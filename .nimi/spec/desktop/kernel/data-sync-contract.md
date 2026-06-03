@@ -1,23 +1,21 @@
-# Data Sync Retirement Contract
+# DataSync Non-Admission Contract
 
 > Authority: Desktop Kernel
 
 ## Scope
 
-Desktop previously exposed `apps/desktop/src/runtime/data-sync/**` as a
-Realm-facing product data facade. That module is retired as platform authority.
-Desktop is a Nimi ecosystem app: it may compose product views and own bounded
-shell/scaffold concerns, but it must not own Realm, Runtime, Cognition, SDK, or
-Kit truth.
+Desktop does not admit a DataSync product/platform facade. Desktop is a Nimi
+ecosystem app: it may compose product views and own bounded shell/scaffold
+concerns, but it must not own Realm, Runtime, Cognition, SDK, or Kit truth.
 
-This contract keeps the historical `D-DSYNC-*` rule IDs as an owner map for
-retirement. New work must not add Desktop DataSync business methods. Existing
-callers must migrate to the replacement owner surface and delete the
-corresponding app-local DataSync flow.
+`apps/desktop/src/runtime/data-sync/**`, `@runtime/data-sync`, `dataSync.*`
+business methods, and any equivalent Desktop-local DataSync facade are
+non-admitted. The `D-DSYNC-*` rules below define the final owner map for product
+data responsibilities that would otherwise drift into Desktop.
 
-## D-DSYNC-000 — Retired Facade Infrastructure
+## D-DSYNC-000 — Non-Admitted Facade Infrastructure
 
-The DataSync facade infrastructure is not a durable Desktop platform layer.
+The DataSync facade infrastructure is not an admitted Desktop platform layer.
 
 - Realm transport, auth custody, token refresh, generated service access,
   request parsing, and reason-code handling belong to SDK Realm/Platform Client.
@@ -156,7 +154,7 @@ workflow contracts. Typed access belongs to SDK/Kit when reused.
 
 ## D-DSYNC-013 — Replacement Path Guidance
 
-Replacement owner order is mandatory:
+Owner selection order is mandatory:
 
 | Responsibility | Owner |
 |---|---|
@@ -167,10 +165,11 @@ Replacement owner order is mandatory:
 | reusable UI, shell, bridge, accessibility, token, headless product primitives | Kit |
 | product screens, user-intent wiring, view-model composition, ephemeral UI state, bounded OS helpers | Desktop |
 
-For every retired DataSync flow, Desktop must consume the replacement shared
-surface and Tester must prove the same surface through a materially different
-consumer flow.
+When a shared surface exists for a product data responsibility, Desktop must
+consume that surface and Tester must prove it through a materially different
+consumer flow. If no shared surface exists, the owning layer must define it
+before Desktop can consume the responsibility.
 
 ## Fact Sources
 
-- `tables/data-sync-flows.yaml` — retired DataSync flow owner map
+- `tables/data-sync-flows.yaml` — DataSync non-admission owner map

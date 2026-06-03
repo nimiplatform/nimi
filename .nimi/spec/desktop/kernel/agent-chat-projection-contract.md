@@ -142,13 +142,13 @@ Fixed rules:
 - The only steady-state Desktop persistence admitted here is non-transcript UI
   state such as focus, scroll, popover, and transient panel state.
 
-## D-LLM-107 — Agent Chat Store Cutover Closeout
+## D-LLM-107 — Agent Chat Store Retirement Requirements
 
 The Desktop `chat_agent_*` projection-cache store is retired. Desktop must not
 register `chat_agent_*` Tauri commands, expose a `chatAgentStoreClient`, or own
 SQLite schema for Agent Chat transcript/message/turn recovery.
 
-Cutover closeout requirements:
+Store retirement requirements:
 
 - Runtime / SDK can list the calling app's Agent Chat conversation summaries
   without reading Desktop SQLite.

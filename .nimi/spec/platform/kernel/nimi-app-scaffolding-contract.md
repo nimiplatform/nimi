@@ -28,7 +28,7 @@ cited below.
   and app-owned product code;
 - `nimi-app create`, `nimi-app init`, `nimi-app doctor`, and
   `nimi-app update` authoring command semantics;
-- the local-evidence acceptance harness role for this scaffolding topic;
+- the local-evidence acceptance harness role for this scaffolding contract;
 - the A5 dependency that default scaffold content must not import
   `kit/features/model-test` until a kit-owned follow-up closes.
 
@@ -64,22 +64,22 @@ truth.
 public Nimi App admission, Runtime account custody, Runtime registration,
 SDK client semantics, Realm login, permission grants, or kit shell behavior.
 
-## P-SCAF-002 — Accepted A0-A5 Pre-Wave-0 Inputs
+## P-SCAF-002 — Accepted A0-A5 Bootstrap Inputs
 
-`MUST`: the following decisions are accepted 2026-05-24 pre-wave-0 inputs and
+`MUST`: the following decisions are accepted 2026-05-24 bootstrap inputs and
 are authoritative for this scaffolding contract:
 
 | Decision | Accepted input |
 |---|---|
 | A0 | App authoring CLI authority stays `nimi-app create|init|doctor|update`; it does not move under the runtime-occupied `nimi app send|watch` namespace. |
-| A1 | Public Rust crate delivery name is `nimi-shell-tauri`; standalone targets the published crate channel after Wave 1 cuts API/publication mechanics, and workspace apps use Cargo path dependency. |
+| A1 | Public Rust crate delivery name is `nimi-shell-tauri`; standalone targets the published crate channel after API/publication mechanics are admitted, and workspace apps use Cargo path dependency. |
 | A2 | SDK auth cuts a generated-app helper shape with modes `local-first-party`, `third-party-nimi-app`, and `dev-standalone`; third-party apps must not reuse first-party helper paths as self-declared first-party. |
 | A3 | Explicit `workspace-app` scaffolding may auto-write monorepo app-slice admission under `P-APP-*`; standalone scaffolding never writes admitted truth. |
 | A4 | `dev-standalone` auth uses an explicit developer app session or returns typed unavailable; mock auth, disabled auth gates, pseudo-success, and first-party self-declaration are forbidden. |
-| A5 | Default Wave 2 scaffold content cannot import `kit/features/model-test` until a kit-owned follow-up topic closes. |
+| A5 | Default scaffold content cannot import `kit/features/model-test` until Kit admits that feature surface. |
 
-`MUST NOT`: later implementation waves must not reopen A0-A5 as compatibility
-choices unless a new authority-bearing topic explicitly supersedes this rule.
+`MUST NOT`: later implementation must not reopen A0-A5 as compatibility
+choices unless a new authority-bearing spec cut explicitly supersedes this rule.
 
 ## P-SCAF-003 — Scaffold Profile Split
 
@@ -245,13 +245,12 @@ produces that projection.
 
 ## P-SCAF-011 — External Harness Is Local Evidence Only
 
-`MUST`: the black-box acceptance harness for this topic is local operational
-evidence. It may run later waves against fresh generated fixture targets and
-record evidence that scaffold outputs obey this contract.
+`MUST`: the black-box acceptance harness for this contract is local operational
+evidence. It may run acceptance passes against fresh generated fixture targets
+and record evidence that scaffold outputs obey this contract.
 
 `MUST`: repo-wide spec language must use a portable acceptance-harness concept
-or topic-local evidence wording. Any workstation-local absolute path belongs in
-topic evidence only.
+only. Any workstation-local absolute path belongs in local evidence only.
 
 `MUST NOT`: the harness must not become generated app output, a scaffold
 template source, an admitted Nimi App, public distribution authority, or
@@ -280,17 +279,17 @@ not substitute for app-slice audit authority (`P-NAPP-010`).
 
 ## P-SCAF-013 — A5 Model-Test Follow-Up Dependency
 
-`MUST`: ST-L1-1 Wave 2 default scaffold content must not import default
-`kit/features/model-test` content until a kit-owned follow-up topic admits that
-feature surface and closes its implementation/evidence obligations.
+`MUST`: ST-L1-1 default scaffold content must not import default
+`kit/features/model-test` content until Kit admits that feature surface and
+closes its implementation/evidence obligations.
 
 `MUST`: before that follow-up closes, scaffold examples may use only already
 admitted SDK/kit/Runtime surfaces or app-owned placeholder product areas that
 do not claim model-test feature availability.
 
 `MUST NOT`: scaffolding must not fabricate a shipped `kit/features/model-test`
-export, edit kit source/package files in this wave, or treat a planned feature
-as available package surface.
+export, edit kit source/package files through scaffolding, or treat a planned
+feature as available package surface.
 
 ## Fact Sources
 
@@ -308,5 +307,3 @@ as available package surface.
 - `.nimi/spec/runtime/kernel/account-session-contract.md` -- `K-ACCSVC-*`
 - `.nimi/spec/runtime/kernel/scoped-app-binding-contract.md` -- `K-BIND-*`
 - `.nimi/spec/runtime/kernel/app-messaging-contract.md` -- `K-APP-*`
-- `.nimi/topics/ongoing/2026-05-23-nimi-app-scaffolding-industrial-shell/design.md`
-- `.nimi/topics/ongoing/2026-05-23-nimi-app-scaffolding-industrial-shell/preflight.md`

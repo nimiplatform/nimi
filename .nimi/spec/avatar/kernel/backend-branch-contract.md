@@ -2,7 +2,7 @@
 
 > **App**: `@nimiplatform/avatar`
 > **Authority**: Avatar kernel contract
-> **Status**: Wave 0 admit (topic `2026-04-30-avatar-vrm-backend-branch`, design-02)
+> **Status**: Active multi-backend carrier authority
 > **Sibling contracts**:
 > - [VRM backend contract](vrm-backend-contract.md)
 > - [Live2D render contract](live2d-render-contract.md)
@@ -23,7 +23,7 @@ window-bounds / hit-region 共同消费的统一接口。任何 backend（Live2D
 本 contract 不定义具体 backend 的渲染细节（见 `live2d-render-contract.md` /
 `vrm-backend-contract.md`），不定义 ontology semantics（见
 `embodiment-projection-contract.md`），不定义 audio pipeline
-（audio pipeline 直接 consume platform `runtime.artifacts.readBytes`，详 design-05）。
+（audio pipeline 直接 consume platform `runtime.artifacts.readBytes`）。
 
 ---
 
@@ -32,7 +32,7 @@ window-bounds / hit-region 共同消费的统一接口。任何 backend（Live2D
 `BackendBranch` 是 `apps/avatar` 私有契约：
 
 - 在 `.nimi/spec/avatar/kernel/` 内 admit；不导出到 `kit/**`
-- 不被其他 app 直接消费（自包含；详 design-12）
+- 不被其他 app 直接消费（自包含 Avatar carrier authority）
 - `kind` 分支只在 `createBackendBranch(model)` 一个工厂位置出现；其余代码
   必须按 `BackendBranch` interface 编程（不允许散落 `if (kind === ...)`）
 

@@ -22,7 +22,7 @@ Bootstrap 阶段检测到 Runtime 不可达时执行 D-BOOT-008 错误/降级路
 
 Realm 不可达时的行为规则：
 
-- 聊天消息写入 Desktop bounded chat shell scaffold 的本地 outbox 队列（retired DataSync owner map records this ownership boundary; current code must not depend on a DataSync facade）。
+- 聊天消息写入 Desktop bounded chat shell scaffold 的本地 outbox 队列（DataSync non-admission owner map records this ownership boundary; current code must not depend on a DataSync facade）。
 - outbox 消息按 FIFO 顺序排列，每条消息附带 `enqueued_at` 时间戳。
 - outbox 最大容量 1000 条消息；超出后拒绝新写入并提示用户。
 - 社交 post interaction 操作（例如点赞/取消点赞）可静默排队，重连后批量提交。Friendship / AgentFriend / LocalAgent linkage 相关 mutation 不得进入 generic social outbox；离线时必须失败关闭，除非 Realm Social contract 明确提供后端持久化 intent。
@@ -64,6 +64,10 @@ Runtime 和 Realm 均不可达时的行为规则：
   projections when Runtime is reachable. Desktop must not persist a browser or
   IndexedDB model-manifest fallback as local readiness/capability truth.
 - 缓存使用 IndexedDB 存储。
+- IndexedDB-backed cache / outbox managers may expose an explicitly named
+  ephemeral store for test/development harnesses only. In production renderer
+  paths, missing IndexedDB support must fail closed; Desktop must not silently
+  degrade offline cache or outbox persistence into process memory.
 - 缓存无 TTL 自动过期；在线时通过 Realm 增量同步更新。
 
 **存储拓扑**:

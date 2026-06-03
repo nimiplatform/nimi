@@ -36,6 +36,7 @@ entries:
   - P-GOV-021
   - P-GOV-022
   - P-GOV-023
+  - P-GOV-024
 rules:
   - rule_id: P-CAPCAT-001
     evidence_refs:
@@ -89,3 +90,8 @@ rules:
       - platform_kernel_consistency
       - audit_evidence_root_gate
     evidence_requirement: required
+  - rule_id: P-GOV-024
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+    evidence_scope_note: enforced by `check:spec-no-process-language`

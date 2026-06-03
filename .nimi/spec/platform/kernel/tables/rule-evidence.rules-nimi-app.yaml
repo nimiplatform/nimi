@@ -63,8 +63,8 @@ rules:
   evidence_refs:
   - platform_kernel_consistency
   evidence_requirement: structural_required
-  evidence_scope_note: structural only; admission authority enforcement requires Wave
-    3 implementation guard `check:no-public-mod-extension-admission`
+  evidence_scope_note: structural only; admission authority enforcement requires
+    implementation guard `check:no-public-mod-extension-admission`
 - rule_id: P-NAPP-002
   evidence_refs:
   - platform_kernel_consistency
@@ -76,7 +76,7 @@ rules:
   - platform_kernel_consistency
   evidence_requirement: structural_required
   evidence_scope_note: structural only; factory AIProfile selection reference resolution
-    requires Wave 2 `P-AIPS-009` consumer validation
+    requires `P-AIPS-009` consumer validation
 - rule_id: P-NAPP-004
   evidence_refs:
   - platform_kernel_consistency
@@ -107,7 +107,7 @@ rules:
   - platform_kernel_consistency
   evidence_requirement: structural_required
   evidence_scope_note: structural only; fail-closed health/repair projection behavior
-    is enforced by Wave 1 hosted-shell consumer validation and SDK projection consumer
+    is enforced by hosted-shell consumer validation and SDK projection consumer
     validation
 - rule_id: P-NAPP-009
   evidence_refs:
@@ -126,25 +126,25 @@ rules:
   evidence_refs:
   - platform_kernel_consistency
   evidence_requirement: structural_required
-  evidence_scope_note: structural only; first-party seed enforcement is Wave 3 implementation
+  evidence_scope_note: structural only; first-party seed enforcement is registry consumer
     validation and Avatar productization master gate consumer validation
 - rule_id: P-NAPP-013
   evidence_refs:
   - platform_kernel_consistency
   evidence_requirement: structural_required
-  evidence_scope_note: structural only; third-party PR admission implementation evidence
-    lands with Apps registry/install/storage child topic
+  evidence_scope_note: structural only; third-party PR admission requires Apps
+    registry/install/storage consumer validation
 - rule_id: P-NAPP-014
   evidence_refs:
   - platform_kernel_consistency
   evidence_requirement: structural_required
-  evidence_scope_note: structural only; release descriptor digest verification implementation
-    evidence lands with SDK/Desktop install tests
+  evidence_scope_note: structural only; release descriptor digest verification
+    requires SDK/Desktop install tests
 - rule_id: P-NAPP-015
   evidence_refs:
   - platform_kernel_consistency
   evidence_requirement: structural_required
-  evidence_scope_note: structural only; app install storage enforcement lands with
+  evidence_scope_note: structural only; app install storage enforcement requires
     Runtime/SDK/Desktop install and uninstall tests
 - rule_id: P-NAPP-017
   evidence_refs:
@@ -165,7 +165,7 @@ rules:
   - platform_kernel_consistency
   evidence_requirement: structural_required
   evidence_scope_note: structural only; no-collapsed sizes/dates/versions enforcement
-    is downstream Apps registry/install/storage child topic consumer validation
+    is downstream Apps registry/install/storage consumer validation
 - rule_id: P-NAPP-020
   evidence_refs:
   - platform_kernel_consistency
@@ -184,7 +184,7 @@ rules:
   - platform_kernel_consistency
   evidence_requirement: structural_required
   evidence_scope_note: structural only; artifact mirror ref and mirror license clearance
-    enforcement is downstream Apps registry/install/storage child topic consumer validation
+    enforcement is downstream Apps registry/install/storage consumer validation
 - rule_id: P-NAPP-023
   evidence_refs:
   - platform_kernel_consistency
@@ -196,7 +196,7 @@ rules:
   - platform_kernel_consistency
   evidence_requirement: structural_required
   evidence_scope_note: structural only; platform signing assurance subfields enforcement
-    is downstream Apps registry/install/storage child topic consumer validation
+    is downstream Apps registry/install/storage consumer validation
 - rule_id: P-NAPP-025
   evidence_refs:
   - platform_kernel_consistency
@@ -245,7 +245,7 @@ rules:
   - platform_kernel_consistency
   evidence_requirement: structural_required
   evidence_scope_note: structural only; existing surfaces as developer/internal/retirement-only
-    posture is recorded in `desktop-kernel-supersession-schedule.md`
+    posture is enforced by desktop kernel supersession consumer validation
 - rule_id: P-MOEX-003
   evidence_refs:
   - platform_kernel_consistency

@@ -4,8 +4,7 @@
 
 ## Scope
 
-定义 `Nimi` 冷启动场景下的 authority owner split。本契约的 floor 由 Wave 0
-`cold-start-authority-contract.md` 决议确认，并在本契约固化为 Platform
+定义 `Nimi` 冷启动场景下的 authority owner split。本契约固化为 Platform
 canonical 规则。
 
 冷启动指 process 启动之后、account / Runtime / 本地依赖 / app registry /
@@ -229,19 +228,19 @@ connector setup, app-specific packs, Runtime route health, file existence,
 localStorage, Desktop path cache, Runtime config alone, endpoint probes, or
 app-level REST calls may participate as positive ready evidence.
 
-## Cross-Wave Closure
+## Cross-Authority Closure
 
-`MUST`：本契约的每条规则均依赖下列下游 wave 与对应 authority；它们的关闭
-事件不变 invariant：
+`MUST`：本契约的每条规则均依赖下列 upstream authority；它们的 owner split
+是不变 invariant：
 
-- Wave 2 `P-AIPS-*` AIProfile selection policy。
-- Wave 3 Nimi App registry / 申请 / 跨 wave joins。
-- Wave 4 permission fabric（account、data、agent identity、AI spend、
+- `P-AIPS-*` AIProfile selection policy。
+- Nimi App registry / 申请 / cross-authority joins。
+- permission fabric（account、data、agent identity、AI spend、
   memory / cognition access）。
-- Wave 5 first-party app integration（Avatar，受 Avatar productization
+- first-party app integration（Avatar，受 Avatar productization
   master gate 约束）。
 
-`MUST NOT`：在 wave 关闭前以"代为预判"的 default ready 状态投影任何
+`MUST NOT`：在 upstream authority 未 ready 前以"代为预判"的 default ready 状态投影任何
 upstream authority。
 
 ## Fact Sources
@@ -257,4 +256,3 @@ upstream authority。
 - `.nimi/spec/runtime/kernel/local-environment-consumer-activation-contract.md`
 - `.nimi/spec/platform/kernel/tables/first-run-state-machine.yaml`
 - `.nimi/spec/platform/kernel/tables/product-control-record-schema.yaml`
-- `.nimi/topics/closed/2026-05-17-nimi-home-platform-entry-redesign/cold-start-authority-contract.md`

@@ -406,7 +406,7 @@ rules:
 - rule_id: S-RUNTIME-111
   evidence_refs:
   - sdk_kernel_consistency
-  note: Admitted authority for runtime.artifacts.readBytes generic by-id artifact bytes retrieval (avatar wave-0; admitted by 2026-04-30-avatar-vrm-backend-branch). SDK projection depends on Runtime class wire + RuntimeArtifactService proto.
+  note: Admitted authority for runtime.artifacts.readBytes generic by-id artifact bytes retrieval. SDK projection depends on Runtime class wire + RuntimeArtifactService proto.
   evidence_requirement: required
 - rule_id: S-RUNTIME-112
   evidence_refs:

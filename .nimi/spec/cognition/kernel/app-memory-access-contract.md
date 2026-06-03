@@ -18,9 +18,14 @@ read / write / projection 的形状与约束。
 `MUST NOT`：Realm grant、Runtime local execution、Desktop hosted shell、
 SDK 都不得自创 memory / knowledge / skill access policy。
 
+`MUST`：RuntimeAgentService 仍是 agent lifecycle 中 canonical agent memory
+admission 的 semantic owner；本契约仅约束 app 访问 Cognition memory /
+knowledge / skill service 的 policy surface，不把 agent lifecycle memory
+truth 转移给 Desktop、SDK、Kit 或 app-local session code。
+
 ## C-APMEM-002 — Admitted Policy Enum
 
-`MUST`：以下为 Wave 4 admitted policy 枚举：
+`MUST`：以下为 admitted policy 枚举：
 
 - `memory.read.persona-scoped-bounded`
 - `memory.read.session-scoped-bounded`
@@ -86,9 +91,10 @@ skill run 持有跨 app persona 的 persistent state。
 
 ## C-APMEM-008 — Agent Chat Memory Projection Boundary
 
-`MUST`：Agent Chat 在 Wave 1 / 2 / 3 surface 上不得 pre-cache 或
-pre-project memory truth；任何 chat 上下文中的 memory projection 必须由
-Wave 4 admitted policy 触发。
+`MUST`：Agent Chat 与 generic app chat / session surfaces 在缺少 active
+admitted Cognition policy grant 时不得 pre-cache 或 pre-project memory
+truth；任何 chat 上下文中的 memory projection 必须由本契约 admitted
+policy enum 触发。
 
 `MUST NOT`：Desktop-hosted Home shell 不得维护 cross-session memory
 cache；session lifecycle 结束后必须 release projection。
@@ -102,6 +108,6 @@ cache；session lifecycle 结束后必须 release projection。
 - `.nimi/spec/cognition/kernel/memory-service-contract.md` — `C-COG-*` memory subset
 - `.nimi/spec/cognition/kernel/knowledge-service-contract.md` — `C-COG-*` knowledge subset
 - `.nimi/spec/cognition/kernel/skill-service-contract.md` — `C-COG-*` skill subset
+- `.nimi/spec/runtime/kernel/runtime-agent-service-contract.md` — `K-AGCORE-*`
 - `.nimi/spec/sdk/kernel/nimi-permission-client-contract.md` — `S-PERM-001..S-PERM-008`
 - `.nimi/spec/desktop/kernel/nimi-home-shell-contract.md` — `D-HOME-001..D-HOME-012`
-- `.nimi/topics/closed/2026-05-17-nimi-home-platform-entry-redesign/runtime-cognition-knowledge-memory-owner-split.md`

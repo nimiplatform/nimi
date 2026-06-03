@@ -11,8 +11,7 @@ description: >
   but uses it as the VRM expression preset for ontology emotions like `shy`
   and `confused`).
 
-  Wave 0 admit (topic 2026-04-30-avatar-vrm-backend-branch, design-04):
-  initial 11 emote bundles. Primary expression weights stay <= 0.8 to avoid
+  This table admits the initial 11 emote bundles. Primary expression weights stay <= 0.8 to avoid
   the "smiles too much" effect (lineage: airi useVRMEmote pattern).
 
   Apps/avatar consumes this table at runtime and skips entries whose
@@ -23,8 +22,7 @@ description: >
   "subtle mouth shape garnish" for emotion expression. When wLipSync is
   active (amplitude > silent threshold), these viseme entries MUST be
   suppressed by the emote state machine — the lipsync driver owns viseme
-  preset writes during active speech (see design-05 §"Coordination with
-  emote layer").
+  preset writes during active speech.
 
 source_authority: /.nimi/spec/runtime/kernel/tables/agent-activity-ontology.yaml
 

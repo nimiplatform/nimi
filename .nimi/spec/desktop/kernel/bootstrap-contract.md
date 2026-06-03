@@ -92,14 +92,14 @@ Agent gateway/status/action surfaces when the Runtime Config UI needs them.
 > **Authority Disposition**：
 > 本规则已 superseded。Replacement authority：`K-ACCSVC-005` `GetAccountSessionStatus` / `SubscribeAccountSessionEvents`，以及 Runtime-backed short-lived access-token provider（`GetAccessToken`）。`K-ACCSVC-013` 要求 Desktop bootstrap query Runtime account state，并删除 `bootstrapAuthSession` token 交换 / 匿名回退路径与共享 auth session 写入逻辑。保留的 Desktop Realm feature data client 必须通过 Runtime-issued access token 初始化，不得读取 shared auth token。
 
-调用 `bootstrapAuthSession` 执行 token 交换或匿名回退。
+Desktop bootstrap MUST NOT call `bootstrapAuthSession`, perform token exchange,
+read shared auth session files, clear shared auth session files, or create a
+Desktop-owned anonymous auth fallback.
 
-- 成功时设置 `auth.status = 'authenticated'`。
-- 失败时设置 `auth.status = 'anonymous'`。
-- source=`persisted` 且 bootstrap 期间发生 unauthorized / decrypt / schema 失败时，必须清空共享 auth session 文件。
-- `auth.status = 'anonymous'` 时，Desktop must route to `not_logged_in` /
-  login-gate product state. It must not enter ordinary shell or default to
-  Runtime as normal product use.
+Desktop bootstrap queries Runtime account-session projection. When Runtime
+projects an unauthenticated, unavailable, expired, or reauth-required account
+state, Desktop must route to `not_logged_in` / login-gate product state. It
+must not enter ordinary shell or default to Runtime as normal product use.
 
 ## D-BOOT-008 — Bootstrap 完成 / 错误处理
 

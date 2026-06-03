@@ -230,6 +230,9 @@ ai_governance:
       - runtime/catalog/source/providers/dashscope.source.yaml
       - "**/generated/**"
       - "**/gen/**"
+      - "**/core_generated/**"
+      - "**/core-generated/**"
+      - "**/coregenerated/**"
       - runtime/**/*.pb.go
       - runtime/**/*.binpb
       - spec/generated/**
@@ -326,6 +329,9 @@ ai_governance:
       - .local/**
       - "**/generated/**"
       - "**/gen/**"
+      - "**/core_generated/**"
+      - "**/core-generated/**"
+      - "**/coregenerated/**"
       - runtime/**/*.pb.go
       - runtime/**/*.binpb
       - spec/generated/**

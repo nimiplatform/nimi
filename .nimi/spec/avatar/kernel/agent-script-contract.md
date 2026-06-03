@@ -66,9 +66,7 @@ Handler 不存在 → neutral NAS layer 走 app-owned default path：
 - **Activity**: 若 backend branch 注册了 `runDefaultActivity`，则委托给 branch-owned fallback
 - **Event**: 大多数 event 无 default（silently skip）
 Model creator 只为想**自定义**的 activity / event 写 handler。零 handler 也能跑，但具体 activity default 由当前 backend branch 自己定义。
-### 2.3.1 NAS handler `requires` 字段（Wave 0 admit）
-
-> Source: topic `2026-04-30-avatar-vrm-backend-branch` design-04 + design-08.
+### 2.3.1 NAS handler `requires` 字段
 
 NAS handler manifest 必须能声明所需 `BackendBranch` extension：
 
@@ -216,9 +214,7 @@ Nimi model package 的组织 **尊重 Live2D Cubism 官方目录结构**。官�
         clamp.js
       config.json                     # (optional) opt-in features (see §11)
 ```
-### 3.2.1 VRM Model Package Integrity（Wave 0 admit）
-
-> Source: topic `2026-04-30-avatar-vrm-backend-branch` design-08.
+### 3.2.1 VRM Model Package Integrity
 
 VRM backend 的 model_path 也是目录形态（不是单 `.vrm` 文件直接 ship）：
 

@@ -4,39 +4,35 @@
 
 ## Scope
 
-定义 first-party Nimi App（Wave 5 hardcut target：Avatar）通过 Platform
+定义 first-party Nimi App hardcut target（Avatar）通过 Platform
 Nimi App registry / SDK Nimi App client / SDK Nimi permission client 与
 Runtime 集成的产品级 authority。本契约不实现 app 代码、Tauri packaging、
 Runtime 集成本身；它锁定 first-party 集成的 contract 关系与"hard cut 之后
 无 standalone ordinary-user product truth"的边界。
 
-> 历史注：ParentOS 在 topic
-> `2026-05-25-parentos-first-party-admission-exit` 中已 retire 出 first-party
-> admission，转为外部 nimi-app（不在 `tables/nimi-app-registry.yaml` row 集合
-> 中）；本契约相关条款也已收缩到 Avatar-only。
+ParentOS 已 retire 出 first-party admission，转为外部 nimi-app（不在
+`tables/nimi-app-registry.yaml` row 集合中）；本契约相关条款收缩到
+Avatar-only。
 
 ## P-FPI-001 — First-Party Hardcut Targets
 
-`MUST`：Wave 5 first-party hardcut target 仅限 Avatar（`nimi.avatar`），
-与 `first-party-hardcut-scope-ledger.md` 保持一致。
+`MUST`：first-party hardcut target 仅限 Avatar（`nimi.avatar`）。
 
-`MUST NOT`：不得把 ParentOS 视作 Wave 5 first-party hardcut target；
-ParentOS 已在
-`2026-05-25-parentos-first-party-admission-exit` 退出 first-party
-admission，转为外部 nimi-app（不在 `tables/nimi-app-registry.yaml` row
-集合中）。
+`MUST NOT`：不得把 ParentOS 视作 first-party hardcut target；ParentOS 已退
+出 first-party admission，转为外部 nimi-app（不在
+`tables/nimi-app-registry.yaml` row 集合中）。
 
-`MUST NOT`：不得在 Wave 5 product close 中使用 deferred first-party app
+`MUST NOT`：不得在 first-party hardcut closeout 中使用 deferred first-party app
 作为 evidence；只能使用当前 admitted registry rows 或明确准入的 app slice。
 
 ## P-FPI-002 — Single Registry Source
 
-`MUST`：first-party app 集成消费 Wave 3
-`tables/nimi-app-registry.yaml` 的对应 row，且 install / launch / update
+`MUST`：first-party app 集成消费 `tables/nimi-app-registry.yaml` 的对应
+row，且 install / launch / update
 / uninstall / health / repair 必须通过 SDK Nimi App client surface
 （`S-APP-001..S-APP-008`）。
 
-`MUST NOT`：Wave 5 不得引入与 registry 并列的第二份 install / launch
+`MUST NOT`：不得引入与 registry 并列的第二份 install / launch
 truth；不得让 Desktop hosted shell 或 first-party app 自行实现安装逻辑。
 
 ## P-FPI-003 — AIProfile Selection Hint Consumption
@@ -51,7 +47,7 @@ provider / connector / engine / model 字符串常量（`P-AIPS-008`、
 
 ## P-FPI-004 — Permission Scope Ref Consumption
 
-`MUST`：first-party app 通过 SDK `S-PERM-*` 请求 Wave 4 admitted grant
+`MUST`：first-party app 通过 SDK `S-PERM-*` 请求 admitted grant
 list（`P-PERM-009`）。Avatar 的 grant list 必须严格匹配
 `tables/nimi-app-registry.yaml` 中的 `permission_scope_ref` typed object
 列表。
@@ -72,13 +68,12 @@ Runtime registration；registration mode 必须匹配 registry row 中的
 
 `MUST`：Avatar 集成实施必须满足下列任一前置条件：
 
-- Avatar 产品化 master gate（参见 `avatar-master-gate-coordination.md`）
-  对 Avatar 必需的 readiness 已 true-close
-- Avatar master gate 明确 delegate Nimi App 集成 scope 到本 topic
+- Avatar 产品化 master gate 对 Avatar 必需的 readiness 已 accepted
+- Avatar master gate 明确 delegate Nimi App 集成 scope
 
 在前置条件未满足前，`tables/nimi-app-registry.yaml` 的 Avatar row
-`admission_status` 必须保持为 `gated_by_avatar_master_gate`。Wave 5
-实施可以仅在前置条件满足后通过显式 admission 步骤把 Avatar 推升到
+`admission_status` 必须保持为 `gated_by_avatar_master_gate`。first-party
+integration 只能在前置条件满足后通过显式 admission 步骤把 Avatar 推升到
 `admitted`。
 
 `MUST NOT`：不得在 Avatar master gate 未清场前把 Avatar admission_status
@@ -86,7 +81,7 @@ Runtime registration；registration mode 必须匹配 registry row 中的
 
 ## P-FPI-007 — No Standalone Ordinary-User Truth After Hard Cut
 
-`MUST`：Wave 5 close 之后，Avatar 在 ordinary-user product truth 层不得
+`MUST`：hard cut 之后，Avatar 在 ordinary-user product truth 层不得
 保留 standalone install / launch / update 路径；只允许 Nimi App registry
 行作为 ordinary-user product truth。
 
@@ -99,8 +94,9 @@ source-development workflows 可继续以 standalone 方式启动，但必须遵
 
 ## P-FPI-008 — Avatar Kernel Authority Retention
 
-`MUST`：Avatar kernel authority 保持在 `.nimi/spec/avatar/**`。Wave 5
-仅添加 Nimi App registry / SDK integration / migration contract，而不把
+`MUST`：Avatar kernel authority 保持在 `.nimi/spec/avatar/**`。first-party
+integration 仅添加 Nimi App registry / SDK integration / migration
+contract，而不把
 Avatar kernel 迁移到 app-local subordinate spec 路径下或降级为 app-local
 spec admission。
 
@@ -121,6 +117,3 @@ spec admission。
 - `.nimi/spec/sdk/kernel/nimi-permission-client-contract.md` — `S-PERM-001..S-PERM-008`
 - `.nimi/spec/desktop/kernel/nimi-home-shell-contract.md` — `D-HOME-001..D-HOME-012`
 - `.nimi/spec/avatar` (kernel authority retained)
-- `.nimi/topics/closed/2026-05-17-nimi-home-platform-entry-redesign/avatar-master-gate-coordination.md`
-- `.nimi/topics/closed/2026-05-17-nimi-home-platform-entry-redesign/first-party-hardcut-scope-ledger.md`
-- `.nimi/topics/closed/2026-05-17-nimi-home-platform-entry-redesign/authority-supersession-map.md`

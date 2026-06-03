@@ -80,6 +80,11 @@ SDK AI config surface 固定分为以下 logical operation 类别：
 - `aiSnapshot.get(executionId)` — 读取特定执行的 snapshot
 - `aiSnapshot.getLatest(scopeRef)` — 读取 scope 最近一次执行 snapshot
 - snapshot record / read 适用于 canonical app, module, and feature scopes；consumer 不得定义 consumer-local `AISnapshot` schema 或 local persistence 作为平行 owner。
+- SDK may expose typed scoped `AISnapshot` host-store helpers, but those helpers
+  are storage mechanics only. Production host `record` / `get` / `getLatest`
+  must use host persistence and must fail closed when host storage is
+  unavailable. Process-memory stores are admitted only as explicitly named
+  test/development harnesses.
 
 ## S-AICONF-002 — No Fallback Surface
 
@@ -92,6 +97,12 @@ SDK AI config surface 不暴露 fallback knob：
 - `probeSchedulingTarget(scopeRef, target)` 返回的 scheduling evidence 必须保持 typed `AISchedulingJudgement`，并严格对应该 target；不允许返回 scope aggregate judgement 作为近似值。
 - `aiSnapshot.record(scopeRef, snapshot)` 必须显式传入 `scopeRef`，且 host 记录的 snapshot.scopeRef 必须与该 canonical scope 一致；不允许在 caller 省略 scope 时隐式回退到 chat scope。
 - raw `runtime.route.*`、`runtime.scheduler.peek`、runtime local profile install/probe surface 只是不透明 low-level dependency；consumer 不得直接把这些 low-level API 作为 product-facing `AIConfig` / `AISnapshot` surface。
+- SDK low-level host store helpers may expose an explicitly named ephemeral
+  store for test/development harnesses only. If host storage is unavailable and
+  that explicit harness mode is not enabled, all AIConfig persistence operations
+  (`has` / `load` / `save` / `listScopeKeys`) must fail closed. The surface must
+  not use fallback terminology or silently degrade production persistence into
+  process memory.
 
 ## S-AICONF-003 — AIScopeRef Consumption
 
@@ -146,6 +157,12 @@ it does not own the resulting ready evidence refs.
   `executionEvidenceRef` opaque and typed; verification belongs to
   `RuntimeAccountService`, `RuntimeLocalService`, Runtime execution evidence,
   and product-control admission
+- SDK Runtime surface may project a verified Runtime `executionEvidenceRef`
+  capability proof into first-run built-in `AIConfig` selected bindings. This
+  projection is non-authoritative: it copies Runtime proof fields into typed
+  AIConfig binding shape and must fail closed on non-local routes, incomplete
+  Text/STT/TTS floor proof, unsupported scenarios, missing model/consumer/route
+  evidence, or a non-ready terminal result.
 
 `MUST NOT`:
 
@@ -154,6 +171,9 @@ it does not own the resulting ready evidence refs.
   first-run readiness evidence
 - SDK must not expose a fallback chat scope or infer `desktop.chat.nimi` /
   `desktop.chat.agent` from an omitted scope
+- SDK must not derive first-run built-in AIConfig provider, engine, model, or
+  consumer bindings from `runtimeBaselineRef` activation consumers. Binding
+  projection must consume Runtime execution evidence proof.
 
 ## S-AICONF-008 — Profile Apply Preview Surface
 

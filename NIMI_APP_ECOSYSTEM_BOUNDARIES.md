@@ -100,6 +100,12 @@ spec/code/tests as the source of truth.
   materialization projection, storage-dir projection, AIProfile CAS DX, and
   local-image dependency request helpers. Runtime owns readiness/evidence.
   Desktop may submit explicit host evidence only where spec admits it.
+  Built-in first-run AIConfig selected bindings are projected from Runtime
+  executionEvidenceRef proof through SDK Runtime / Kit helpers, not from
+  Desktop-local runtimeBaselineRef consumer lookup.
+  Product-control setup reconciliation is Runtime-derived from first-run
+  activation/materialization evidence; apps and SDK clients do not submit
+  product-control state or reason fields.
 - Realm and permission projections: Realm owns social/chat/account commits.
   SDK Realm helpers stay transport/projection only. Kit owns reusable
   notification presentation. Platform owns permission taxonomy and grant-state
@@ -111,8 +117,10 @@ spec/code/tests as the source of truth.
   routing, memory, audit, and fail-closed authority.
 - Kit chat and model UI: Kit owns reusable chat/headless primitives, provider
   registration, session view state, SDK-runner mapping, and model picker UI
-  preview. Kit must not synthesize route/model tokens or own product session
-  truth.
+  preview. Pure app-AI stream/session runners and structured-output helpers
+  live under SDK `ai-app`; Kit may adapt them into composer/hooks but must not
+  publish a second runner surface. Kit must not synthesize route/model tokens
+  or own product session truth.
 - Runtime/Cognition memory: host-local memory embedding config is not canonical
   memory. Runtime/Cognition own resolved state, bind/rebuild/cutover facts.
   RuntimeAgentService owns app-facing canonical agent memory bank status/bind;
@@ -124,7 +132,9 @@ spec/code/tests as the source of truth.
 - Resource residues: Avatar/Agent Center local resources are legal only as
   private import/configuration evidence, not launch/carrier truth. Account
   app-library/grants are Runtime Account/App lifecycle projections; Desktop
-  commands remain bridge adapters.
+  commands remain bridge adapters. Desktop local Avatar import must not
+  synthesize backend capability profile refs or sidecars; missing backend
+  profile evidence remains Avatar/Runtime pending evidence.
 
 ## Dual-App Proof Rule
 

@@ -180,6 +180,8 @@ for (const rel of [
 
 const sdkSurfaces = readYaml('.nimi/spec/sdk/kernel/tables/sdk-surfaces.yaml');
 const importBoundaries = readYaml('.nimi/spec/sdk/kernel/tables/import-boundaries.yaml');
+checkSdkPackageExportsCoveredBySpecTable(sdkSurfaces);
+
 const expectedBoundarySurfaces = new Set(
   (Array.isArray(sdkSurfaces?.surfaces) ? sdkSurfaces.surfaces : [])
     .map((item) => String(item?.package_subpath || '').trim())
@@ -518,6 +520,47 @@ function boundarySourceRules(rule) {
   if (fromArray.length > 0) return fromArray;
   const fromSingle = String(rule?.source_rule || '').trim();
   return fromSingle ? [fromSingle] : [];
+}
+
+function checkSdkPackageExportsCoveredBySpecTable(sdkSurfacesTable) {
+  const packageJsonPath = path.join(cwd, 'sdk/package.json');
+  if (!fs.existsSync(packageJsonPath)) {
+    fail('sdk/package.json missing; cannot validate SDK public surface table');
+    return;
+  }
+
+  let packageJson;
+  try {
+    packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+  } catch (error) {
+    fail(`failed to parse sdk/package.json for public surface validation: ${String(error)}`);
+    return;
+  }
+
+  const packageExports = Object.keys(packageJson.exports || {});
+  const expectedSubpaths = new Set(
+    packageExports.map((exportKey) => {
+      if (exportKey === '.') return '@nimiplatform/sdk';
+      if (exportKey.startsWith('./')) return `@nimiplatform/sdk/${exportKey.slice(2)}`;
+      return exportKey;
+    }),
+  );
+  const tableSubpaths = new Set(
+    (Array.isArray(sdkSurfacesTable?.surfaces) ? sdkSurfacesTable.surfaces : [])
+      .map((item) => String(item?.package_subpath || '').trim())
+      .filter(Boolean),
+  );
+
+  for (const subpath of [...expectedSubpaths].sort()) {
+    if (!tableSubpaths.has(subpath)) {
+      fail(`sdk-surfaces missing package export: ${subpath}`);
+    }
+  }
+  for (const subpath of [...tableSubpaths].sort()) {
+    if (!expectedSubpaths.has(subpath)) {
+      fail(`sdk-surfaces contains package_subpath not exported by sdk/package.json: ${subpath}`);
+    }
+  }
 }
 
 function checkProviderNameAlignment() {

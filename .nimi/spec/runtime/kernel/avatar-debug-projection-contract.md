@@ -1,7 +1,6 @@
 # Avatar Debug Projection Contract
 
 > Owner Domain: `K-AGCORE-*`
-> Topic: `2026-05-01-desktop-avatar-configuration-debug-workbench`
 
 ## K-AGCORE-054 Avatar Debug Projection Authority Home
 
@@ -93,7 +92,7 @@ from local UI state.
 Any app-facing avatar debug projection family must be pinned in
 `tables/runtime-agent-event-projection.yaml`.
 
-Admitted family names in this wave:
+Admitted app-facing family names:
 
 - `runtime.agent.avatar_debug.probe_requested`
 - `runtime.agent.avatar_debug.probe_result`
@@ -114,8 +113,9 @@ the existing Runtime delegated gateway/firewall/audit path.
 Desktop and Avatar must not directly consume MCP/A2A/delegated provider output
 for avatar debug success.
 
-## K-AGCORE-060 Later Implementation Status
+## K-AGCORE-060 Implementation Availability Boundary
 
-Wave-1 admits contract and table truth only. Runtime implementation, SDK
-methods, Desktop UI, and Avatar debug execution belong to later waves and must
-not claim product support until their wave closeout evidence exists.
+This contract admits Runtime authority, table, and event-family truth only.
+Runtime implementation, SDK methods, Desktop UI, and Avatar debug execution
+must each have implementation and test evidence before product support is
+claimed.

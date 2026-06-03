@@ -22,8 +22,7 @@
 
 Avatar app 的 rendering backend（Live2D / VRM / 3D / Lottie / 极简 blob）具体选型**不影响**本 spec 的 event 定义。Runtime presentation/activity projection 与 Avatar-local `tables/activity-mapping.yaml` 把语义映射从 rendering 解耦；closed activity ontology 只保留为设计证据，不是本 app 的活动 authority。
 
-**Wave 0 of topic `2026-04-30-avatar-vrm-backend-branch` extends the event
-surface** to cover the multi-backend BackendBranch carrier abstraction:
+The active Avatar event surface covers the multi-backend BackendBranch carrier abstraction:
 
 - `avatar.audio.pipeline.*`, `avatar.audio.playback.*`, `avatar.lipsync.*`,
   `avatar.motion.preset.*`, `avatar.emote.applied`, `avatar.hit_region.*`,
@@ -35,8 +34,8 @@ surface** to cover the multi-backend BackendBranch carrier abstraction:
   platform-side emit deprecation is a separate topic). Synthetic-audio mime
   triggers `avatar.lipsync.silent { silent_reason: 'synthetic_audio' }` —
   no decode, no mouth movement.
-- `avatar.lipsync.frame` per-frame event is **deprecated** as a public surface
-  (it was an interim Wave 3 admit). Avatar consumers do not subscribe to
+- `avatar.lipsync.frame` per-frame event is **deprecated** as a public surface.
+  Avatar consumers do not subscribe to
   per-frame lipsync events; mouth movement is driven by
   `BackendAudioConsumer.snapshot()` in the surface useFrame loop. Existing
   subscribers must migrate to `avatar.lipsync.{active,silent,frame_drop}`.
@@ -89,11 +88,11 @@ projection 触发）：
 | `avatar.pose.set` | Runtime typed pose cue 设置 | Low | — |
 | `avatar.pose.clear` | Runtime typed pose clear cue | Low | — |
 | `avatar.lookat.set` | Runtime typed lookat cue 触发 | Low | — |
-| `avatar.lipsync.frame` | **Deprecated** (Wave 0 of topic 2026-04-30-avatar-vrm-backend-branch). Per-frame lipsync no longer flows through the event bus; consumers read `BackendAudioConsumer.snapshot()` in surface useFrame. New subscribers MUST use `avatar.lipsync.active` / `avatar.lipsync.silent` instead. | n/a (deprecated) | — |
-| `avatar.speak.start` | Wave 3 admitted TTS playback start；与 runtime `runtime.agent.presentation.voice_playback_requested` 时间戳对齐 | Low | — |
-| `avatar.speak.chunk` | Wave 3 admitted TTS chunk；audio playback chunk 对齐 lipsync frame batch | Medium | — |
-| `avatar.speak.end` | Wave 3 admitted TTS playback completion；voice playback state == `completed` | Low | — |
-| `avatar.speak.interrupt` | Wave 3 admitted TTS interrupt；voice playback state ∈ `{interrupted, canceled}` | Low | — |
+| `avatar.lipsync.frame` | **Deprecated**. Per-frame lipsync no longer flows through the event bus; consumers read `BackendAudioConsumer.snapshot()` in surface useFrame. New subscribers MUST use `avatar.lipsync.active` / `avatar.lipsync.silent` instead. | n/a (deprecated) | — |
+| `avatar.speak.start` | TTS playback start；与 runtime `runtime.agent.presentation.voice_playback_requested` 时间戳对齐 | Low | — |
+| `avatar.speak.chunk` | TTS chunk；audio playback chunk 对齐 lipsync frame batch | Medium | — |
+| `avatar.speak.end` | TTS playback completion；voice playback state == `completed` | Low | — |
+| `avatar.speak.interrupt` | TTS interrupt；voice playback state ∈ `{interrupted, canceled}` | Low | — |
 
 ### 2.3 App Lifecycle (5 events, `avatar.app.*`)
 
@@ -132,11 +131,10 @@ Composition state 转移与 surface mount/unmount 证据。具体 state 枚举�
 | `avatar.composition.surface-mounted` | embodiment-stage / companion-surface / degraded-surface 挂载完成 | Low | — |
 | `avatar.composition.surface-unmounted` | 上述任一 surface 卸载完成 | Low | — |
 
-### 2.5.1 Audio Pipeline & Lipsync (Wave 0 admit, multi-backend carrier)
+### 2.5.1 Audio Pipeline & Lipsync
 
-> Source: topic `2026-04-30-avatar-vrm-backend-branch` design-05 + design-09 +
-> design-10. Hard-cut delete frame_batch consume path (avatar-side only;
-> platform emit deprecation is a separate topic).
+Hard-cut delete frame_batch consume path on the Avatar side. Platform-side emit
+deprecation remains owned by runtime event authority.
 
 | Event | 语义 | Rate tier | Cancellable |
 |---|---|---|---|
@@ -152,7 +150,7 @@ Composition state 转移与 surface mount/unmount 证据。具体 state 枚举�
 | `avatar.lipsync.silent` | 进入 silent phase；`silent_reason` 之一：`amp_below` / `idle_window` / `winner_gain` / `no_source` / `synthetic_audio` / `no_expression_manager` | Medium | — |
 | `avatar.lipsync.frame_drop` | wLipSyncNode 异常或缺帧（telemetry-only） | High (opt-in) | — |
 
-### 2.5.2 Generated Motion & Emote (Wave 0 admit; Wave 2 hard-cut)
+### 2.5.2 Generated Motion & Emote
 
 | Event | 语义 | Rate tier | Cancellable |
 |---|---|---|---|
@@ -160,14 +158,14 @@ Composition state 转移与 surface mount/unmount 证据。具体 state 枚举�
 | `avatar.motion.preset.fail_close` | generated provider missing / route 不存在 / capability 缺失 / unsafe pose / interchange asset drift | Low | — |
 | `avatar.emote.applied` | emote bundle 应用完成；含 `skipped_count`（model 缺 expression preset 跳过的条目数） | Low | — |
 
-### 2.5.3 Hit Region Snapshot (Wave 0 admit)
+### 2.5.3 Hit Region Snapshot
 
 | Event | 语义 | Rate tier | Cancellable |
 |---|---|---|---|
 | `avatar.hit_region.snapshot` | bbox snapshot 上报到 carrier（throttled 100ms minimum） | Medium | — |
 | `avatar.hit_region.degraded` | alpha-mask 不可用，仅 bbox 路径生效（device tier C） | Low | — |
 
-### 2.5.4 Carrier Lifecycle (Wave 0 admit)
+### 2.5.4 Carrier Lifecycle
 
 | Event | 语义 | Rate tier | Cancellable |
 |---|---|---|---|
@@ -313,8 +311,6 @@ avatar.shell.window-bounds-changed:
     embodiment_bounds: { x: int, y: int, width: int, height: int }
     companion_footprint: { width: int, height: int }
     changed_at: string
-
-# ── Wave 0 (topic 2026-04-30-avatar-vrm-backend-branch) admit ──
 
 avatar.model.load:
   detail:

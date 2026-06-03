@@ -364,8 +364,8 @@ rules:
 - rule_id: D-LLM-070
   evidence_refs:
   - desktop_kernel_consistency
-  note: Desktop-to-Avatar demo acceptance boundary; executable coverage lands in the
-    dedicated demo acceptance waves
+  note: Desktop-to-Avatar demo acceptance boundary; dedicated executable demo
+    acceptance coverage is required.
   evidence_requirement: required
 - rule_id: D-LLM-071
   evidence_refs:

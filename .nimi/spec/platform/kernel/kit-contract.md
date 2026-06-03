@@ -64,7 +64,9 @@
 
 - `shell/tauri` is an infra module for shared Tauri host glue: runtime bridge, daemon lifecycle, session logging, auth/oauth commands, runtime defaults, and packaged Platform catalog projections needed by Rust host materialization/verification code.
 - Authority id and source location remain `kit.shell.tauri` at `kit/shell/tauri/`.
-- Public standalone delivery crate name is `nimi-shell-tauri`; standalone generated apps depend on the published crate only after the scaffolding shell package wave admits API and publication mechanics.
+- Public standalone delivery crate name is `nimi-shell-tauri`; standalone
+  generated apps depend on the published crate only after scaffolding shell
+  package API and publication mechanics are admitted.
 - `platform_catalog` modules under this crate are generated read-only projections of Platform catalog tables. They are consumer surfaces, not canonical catalog truth, and must not write app-local admission rows.
 - Workspace generated apps consume the same crate surface by Cargo path dependency.
 - This rule does not rename implementation files, package manifests, crate source, package exports, or the `kit.shell.tauri` authority id.

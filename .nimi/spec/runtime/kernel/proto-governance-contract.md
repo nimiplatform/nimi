@@ -70,7 +70,7 @@ implementation-facing proto cut only when all of the following hold:
 - `.nimi/spec/runtime/kernel/runtime-agent-participation-contract.md` and
   `.nimi/spec/sdk/kernel/runtime-agent-participation-client-contract.md` remain
   the semantic authorities.
-- SDK method registries are marked `contract_only_until_later_wave` and do not
+- SDK method registries are marked `contract_only_pending_proto_cut` and do not
   claim generated stub availability.
 - No `proto/runtime/v1/*.proto`, generated Runtime artifact, generated SDK
   client, or equivalent wire artifact is treated as public truth until a later

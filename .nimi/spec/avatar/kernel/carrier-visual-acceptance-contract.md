@@ -33,7 +33,7 @@ Avatar carrier visual evidence is classified as:
 | deterministic harness | Controlled Avatar app harness exercising the real carrier draw path with stable inputs | Yes, if it exercises the Avatar carrier canvas/WebGL path |
 | fixture/mock path | Explicit `VITE_AVATAR_DRIVER=mock` or mock scenario data source | Regression evidence only |
 | Desktop renderer evidence | Desktop chat Live2D renderer smoke or pixel evidence | No |
-| closed-topic evidence | Historical 2026-04-20 / 2026-04-25 topic artifacts | No |
+| historical process evidence | Historical process artifacts | No |
 
 ## 2. Required Visual Proof
 
@@ -63,12 +63,10 @@ The following evidence must not close Avatar carrier visual proof:
 - Desktop chat Live2D pixel tests, even if they exercise Cubism WebGL
 - static `<canvas>` existence without non-placeholder pixel evidence
 - fixture-only scenario playback reported as the real runtime carrier path
-- closed-topic demo screenshots, checklists, or worker results
+- historical demo screenshots, checklists, or worker results
 - command-state-only tests that do not exercise draw/pixel output
 
-## 4. Multi-Backend Visual Proof (Wave 0 admit)
-
-> Source: topic `2026-04-30-avatar-vrm-backend-branch` design-10.
+## 4. Multi-Backend Visual Proof
 
 `recordCarrierVisualProof` helper is extended with a `modelKind: BackendKind`
 input to support multi-backend visual evidence. Signature:
@@ -101,7 +99,7 @@ across backends.
 
 This contract does not admit:
 
-- voice output or lipsync behavior (admitted by the voice/lipsync wave and tracked separately)
+- voice output or lipsync behavior (owned by voice/lipsync authority and tracked separately)
 - shared `PresentationTimeline`
 - broad platform or SDK Event API behavior
 - 3D / Lottie / robot backend visual proof beyond Live2D + VRM

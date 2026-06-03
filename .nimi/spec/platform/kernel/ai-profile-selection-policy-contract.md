@@ -89,7 +89,7 @@ privacy_posture x compute_posture x capability_set x routing_policy
   （`title`/`description`/`tags`）。本表为最小可识别的占位字段
   （`alias`、`capability_set`、`routing_policy`、`applicable_scopes`、
   `first_run_install_levels`、`source_rule`），不在本表内重复维护完整
-  portable payload；真实 portable payload 由 Wave 3 regenerate 出的
+  portable payload；真实 portable payload 由 generated
   catalog snapshot 与 Desktop AIProfile schema 校验共同保证。
 - **Selection policy inputs**（仅供 Platform-owned selection policy 消费）：
   `privacy_posture`、`compute_posture`、`host_capability_profile_refs`、
@@ -285,8 +285,8 @@ factory `AIProfile` 必须保持 provider/model agnostic。
   first-run 路径代码、SDK AIProfile/AIConfig 表面、first-party Nimi App
   AIProfile 绑定代码都不得内嵌 provider id、connector id、engine id、
   model id 等字符串常量作为默认体验事实源。
-- 该 guard 由 mechanical script gate 注册并执行；Wave 4 必须 land
-  无兼容别名的 no-provider/no-model 结构化 gate，扫描所有 AIProfile
+- 该 guard 由 mechanical script gate 注册并执行；必须保持无兼容别名的
+  no-provider/no-model 结构化 gate，扫描所有 AIProfile
   consumer 路径，并附加 fourth-AI-truth 负面测试，禁止任何
   renamed 第四份 default owner surface 出现在 active spec / code 中。
 

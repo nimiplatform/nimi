@@ -59,8 +59,8 @@ Realm authenticated commit.
 
 This contract freezes the SDK consumer plan only. It does not require production
 SDK method implementation, generated client code, proto changes, Desktop/Web UI
-work, or app migration in wave-2. Those changes require downstream
-implementation packets that cite this contract and preserve the hardcut gates.
+work, or app migration. Those changes require downstream implementation
+admissions that cite this contract and preserve the hardcut gates.
 
 ## Traceability
 

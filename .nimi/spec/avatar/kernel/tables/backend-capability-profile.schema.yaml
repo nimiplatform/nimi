@@ -4,7 +4,7 @@ owner: .nimi/spec/avatar
 catalog_id: avatar_backend_capability_profile_schema
 entries:
   - id: nimi.avatar.backend-capability-profile.v1
-admitted_by: 2026-05-01-avatar-apml-auto-adapter/wave-0
+admission_id: avatar-apml-auto-adapter
 description: >
   Backend-agnostic Avatar capability profile schema. Profiles describe the
   capabilities of a loaded Avatar backend/model for generated motion routing.

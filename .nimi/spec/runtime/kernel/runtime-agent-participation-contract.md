@@ -5,10 +5,9 @@
 This contract admits Runtime-owned agent participation semantics for contexts
 that are not always canonical 1:1 Agent Chat.
 
-It materializes the wave-1 frozen authority model from
-`2026-05-02-runtime-agent-participation-authority`. It does not create SDK,
-proto, Desktop, Avatar, app, Realm implementation, OASIS, Scenario, A2A
-production, or MCP production surfaces.
+It defines Runtime authority only. It does not create SDK, proto, Desktop,
+Avatar, app, Realm implementation, OASIS, Scenario, A2A production, or MCP
+production surfaces.
 
 ## K-AGCORE-061 Runtime Participation Authority
 
@@ -48,8 +47,8 @@ Non-canonical output:
 - must not write AgentRule by default
 - must not become canonical chat history by default
 
-Promotion into memory, cognition, AgentRule, or canonical chat requires a later
-explicit promotion authority.
+Promotion into memory, cognition, AgentRule, or canonical chat requires a
+separate explicit promotion authority.
 
 ## K-AGCORE-063 Axis Registry
 
@@ -646,12 +645,12 @@ truth:
 
 Runtime participation output candidates are not domain commits.
 
-## K-AGCORE-099 Future Product Implementation Gates
+## K-AGCORE-099 Product Implementation Gates
 
 OASIS/world and Scenario Sandbox product implementation require separate
 admission.
 
-Wave-6 does not admit:
+This contract does not admit:
 
 - OASIS/world product UI or backend implementation
 - Scenario Sandbox product UI or backend implementation
@@ -757,7 +756,7 @@ Forbidden:
 - external principal self-promotion
 - debug/probe promotion
 - side audit stores
-- promotion transport implementation in wave-7
+- promotion transport implementation without promotion transport admission
 - open-string promotion targets
 
 Required for every promotion candidate:

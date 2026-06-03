@@ -3,7 +3,7 @@ table_family: product_catalog
 owner: avatar
 catalog_id: avatar_i18n_keys
 description: >
-  Wave 2 admitted i18n key table for Nimi Avatar. Lists every i18n key used by
+  Active i18n key table for Nimi Avatar. Lists every i18n key used by
   the avatar shell renderer along with its English baseline copy, the
   `app-shell-contract.md` anchor that authorizes the surface fragment, and the
   consuming component path. Both `locales/en/avatar.json` and

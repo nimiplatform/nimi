@@ -4,8 +4,7 @@
 
 ## Scope
 
-定义跨 app agent identity 的 platform-level floor。本契约固定 Wave 0
-`agent-identity-primitive-floor.md` 决议：agent identity 不是 app-local
+定义跨 app agent identity 的 platform-level floor。本契约固定：agent identity 不是 app-local
 truth；apps 接收 account-scoped durable identity 的 projection。本契约不
 拥有 chat transcript / `ConversationAnchor` 实现细节（仍由 Runtime 与
 Desktop-hosted Home 拥有），也不拥有 Cognition memory access 政策（属
@@ -14,7 +13,7 @@ Desktop-hosted Home 拥有），也不拥有 Cognition memory access 政策（�
 ## P-AGID-001 — Account-Scoped Durable Identity
 
 `MUST`：agent identity 是 account-scoped durable truth，canonical owner
-是 Realm。Wave 4 admit 的 identity primitive 至少包含：
+是 Realm。admitted identity primitive 至少包含：
 
 - `AgentFamilyId` — agent family 标识。
 - `AgentPersonaId` — persona 标识。
@@ -47,7 +46,7 @@ Desktop-hosted Home 拥有），也不拥有 Cognition memory access 政策（�
 
 `MUST`：agent chat 会话必须绑定到 Runtime `ConversationAnchor`，跨
 surface 续会语义沿用现有 Runtime 合同
-（`runtime-cognition-knowledge-memory-owner-split.md`）。
+（`runtime-agent-service-contract.md`）。
 
 `MUST NOT`：Home / Desktop / SDK 不得将 anchor binding 改为 renderer-local
 state 或 chat-local cache。
@@ -74,8 +73,8 @@ local cache，但其内容不构成 memory truth。
 
 ## P-AGID-007 — Chat-Derived Memory Projection Rule
 
-`MUST`：chat context → memory truth 的转换必须由 Wave 4
-`C-APMEM-003` 的 `chat_derived.projection.admitted` policy 触发，且
+`MUST`：chat context → memory truth 的转换必须由 `C-APMEM-003` 的
+`chat_derived.projection.admitted` policy 触发，且
 projection record 必须携带 `ConversationAnchor` 引用、source app id、
 target persona id、与 Realm audit event 引用。
 
@@ -103,5 +102,3 @@ closed。
 - `.nimi/spec/sdk/kernel/nimi-permission-client-contract.md` — `S-PERM-001..S-PERM-008`
 - `.nimi/spec/desktop/kernel/nimi-home-shell-contract.md` — `D-HOME-001..D-HOME-012`
 - `.nimi/spec/desktop/kernel/agent-chat-projection-contract.md` — `D-LLM-022..D-LLM-026`
-- `.nimi/topics/closed/2026-05-17-nimi-home-platform-entry-redesign/agent-identity-primitive-floor.md`
-- `.nimi/topics/closed/2026-05-17-nimi-home-platform-entry-redesign/runtime-cognition-knowledge-memory-owner-split.md`

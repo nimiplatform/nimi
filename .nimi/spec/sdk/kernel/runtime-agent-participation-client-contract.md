@@ -81,8 +81,11 @@ SDK participation method names, categories, source rules, and input/output
 references are governed by
 `.nimi/spec/sdk/kernel/tables/runtime-agent-participation-methods.yaml`.
 
-The table is the SDK method-family registry for later implementation waves. It
-does not claim production availability until an implementation wave closes.
+The table is the SDK method-family registry for implementation admission. It
+does not by itself claim production availability. A method family becomes
+public-production only when SDK implementation/generation, admitted transport,
+and owner tests bind the registry entry. Missing implementation must fail
+closed as unavailable and must not be advertised as active support.
 
 ## S-RUNTIME-218 Type Escape Prohibition
 
@@ -110,16 +113,17 @@ MCP/A2A client creation.
 All participation execution must route through Runtime-owned authority and all
 domain commits must remain under their domain owners.
 
-## S-RUNTIME-220 Later Surface Status
+## S-RUNTIME-220 Implementation And Consumer Availability Boundary
 
-Wave-3 admits the SDK typed contract and method registry only. SDK
+This contract admits the SDK typed contract and method registry only. SDK
 implementation methods, generated client code, proto stubs, Desktop surfaces,
 Avatar surfaces, app integrations, OASIS consumers, Scenario consumers,
-A2A production entry and MCP production entry remain owned by
-later waves.
+A2A production entry, and MCP production entry are not implied by this
+contract. Each surface requires its own admitted implementation and tests
+before support is claimed.
 
-Until those waves close, SDK must not claim production Runtime Agent
-Participation support.
+Until those implementation gates exist, SDK must not claim production Runtime
+Agent Participation support.
 
 ## Traceability
 

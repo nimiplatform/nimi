@@ -13,7 +13,7 @@ registration mode / permission scope reference、与 app health/repair projectio
 ## P-NAPP-001 — Admission Authority And Package Kind
 
 `MUST`：Platform 拥有 Nimi App admission、`tables/nimi-app-registry.yaml` 与
-admitted package kind set。Wave 3 仅 admit `nimi-app` package kind。
+admitted package kind set。当前仅 admit `nimi-app` package kind。
 
 `MUST NOT`：不得 admit shared Nimi Content Pack 作为可安装 product unit。
 
@@ -41,8 +41,8 @@ admitted package kind set。Wave 3 仅 admit `nimi-app` package kind。
   `.nimi/spec/runtime/kernel/tables/local-compute-packs.yaml` 中已 admit 的
   pack；可为空。
 - `runtime_registration_mode` — 当前 admitted 值集合：`app-managed`。
-- `permission_scope_ref` — Wave 4 permission fabric 的占位引用；在 Wave 4 close
-  前，admitted placeholder 为 `pending_wave_4`。
+- `permission_scope_ref` — permission fabric 尚未 admit 具体 scope set 时的
+  fail-closed 引用；admitted value 为 `permission_fabric_pending`。
 - `health_repair_projection` — fail-closed 状态集合（见 `P-NAPP-008`）。
 - `ordinary_visibility` — `ordinary-visible`、`hidden-internal`、
   `developer-only`、`not-admitted-visible` 之一。Apps 只能显示
@@ -52,7 +52,7 @@ admitted package kind set。Wave 3 仅 admit `nimi-app` package kind。
   descriptor；bundled first-party app 可引用 atomic Nimi bundle descriptor。
 - `install_storage_policy_ref` — 引用 `P-NAPP-015` 的 storage policy。
 - `admission_status` — admitted 值集合：`admitted`,
-  `gated_by_avatar_master_gate`, `pending_wave_4`, `deferred`,
+  `gated_by_avatar_master_gate`, `permission_fabric_pending`, `deferred`,
   `retired`。
 - `source_rule` — `P-NAPP-NNN` 引用。
 
@@ -67,12 +67,12 @@ engine id / model id 字符串常量。任何 vendor 倾向必须 alias-driven�
 
 ## P-NAPP-004 — Trust Tier Reference
 
-`MUST`：`trust_tier_ref` 必须是 Wave 0 floor 的 enum value：
+`MUST`：`trust_tier_ref` 必须是 canonical trust-tier floor 的 enum value：
 `nimi-first-party`, `nimi-verified-partner`, 或 `nimi-community`
 （`trust-tier-enum-floor.md`）。
 
-`MUST NOT`：Wave 3 不得新增第四类 public trust tier；新增必须由 Wave 6 显式
-cut。
+`MUST NOT`：不得静默新增第四类 public trust tier；新增必须由显式
+authority admission 扩展。
 
 ## P-NAPP-005 — Capability And Compute Pack Resolution
 
@@ -92,11 +92,11 @@ registration semantics。
 ## P-NAPP-007 — Package Trust / Signature / Update Channel
 
 `MUST`：package trust posture、signature policy、与 update channel identity
-由 Platform 拥有，并引用 Wave 1 已 admit 的
+由 Platform 拥有，并引用已 admit 的
 `P-PKGREL-002..P-PKGREL-008` 与 `release-gate-registry.yaml`。
 
 `MUST NOT`：Nimi App update 不得 mutate Runtime-owned selected source
-record（`P-SUPD-005` / `P-PKGREL-007`）。Wave 3 也不得借 update path 引入
+record（`P-SUPD-005` / `P-PKGREL-007`）。不得借 update path 引入
 parallel package trust source。
 
 ## P-NAPP-008 — App Health / Repair Projection
@@ -143,20 +143,19 @@ subordinate authority semantics 与本契约 admission 并行存在；两者互�
 
 ## P-NAPP-011 — First-Party Seed
 
-`MUST`：Wave 3 seed row 仅包含 Wave 5 hardcut target：
+`MUST`：first-party seed row 仅包含 Avatar master-gate hardcut target：
 
-- `nimi.avatar` — `admission_status: gated_by_avatar_master_gate`。Wave 5
-  必须先由 Avatar 产品化 master gate 清场，才能切换为 `admitted`。即使
+- `nimi.avatar` — `admission_status: gated_by_avatar_master_gate`。Avatar
+  productization master gate 必须先清场，才能切换为 `admitted`。即使
   future status becomes `admitted` for package/update coordination, ordinary
   Apps visibility remains `hidden-internal` unless a later product authority
   explicitly changes Avatar Apps posture.
 
-> 历史注：ParentOS 在 topic
-> `2026-05-25-parentos-first-party-admission-exit` 中已 retire 出本契约的
-> first-party seed 集合，转为外部 nimi-app。
+ParentOS 已 retire 出本契约的 first-party seed 集合，转为外部
+nimi-app。
 
 其余 `first-party-hardcut-scope-ledger.md` 中的 deferred app scopes
-暂不进入 Wave 3 seed，除非后续 owner admission 显式恢复。
+暂不进入 active seed registry，除非后续 owner admission 显式恢复。
 
 ## P-NAPP-013 — Third-Party Admission Path
 
@@ -272,7 +271,7 @@ Required descriptor fields:
   sandbox claim.
 - `permissions_ref` — admitted permission scope set.
 - `storage_policy_ref` — storage policy identifier (`P-NAPP-015`;
-  wave-A2 `P-NAPP-019+` admits typed posture enum).
+  `P-NAPP-019+` admits typed posture enum).
 - `update_channel_ref` — admitted release channel identity.
 - `rollback_eligibility` — typed eligibility marker (separate from the
   rollback candidate version in `P-NAPP-019`).
@@ -331,8 +330,7 @@ closed with typed reason `descriptor_version_collapsed`.
 `MUST NOT`：a third-party admission MUST NOT carry a single "size", a
 single "date", or a single "version" field that conflates the typed
 fields above. The five sizes, six dates, and three versions are not
-interchangeable projections of one another (see parent
-`result-wave-1-manifest-contract-implementation.md` § 5).
+interchangeable projections of one another.
 
 ## P-NAPP-020 — Publisher Identity Required Fields
 
@@ -367,20 +365,18 @@ admission truth, not a developer-self-attested claim (`P-NAPP-013`).
 
 `MUST`：`domain-verified` and `identity-verified` MUST resolve
 `publisher.namespace_kind: org`. GitHub-style domain verification is
-organization-level (see parent
-`result-wave-1-manifest-contract-implementation.md` line 68); a
-`user`-kind namespace declaring `domain-verified` or `identity-verified`
+organization-level; a `user`-kind namespace declaring `domain-verified` or
+`identity-verified`
 fails admission closed with typed reason `publisher_identity_missing`.
 
 `MUST`：an admission declaring `publisher.identity_assurance:
 identity-verified` MUST resolve a non-null `publisher.kyc_verification_ref`
-through the admitted KYC-vendor-integration pipeline. The KYC pipeline is
-deferred to a future sub-topic; until that sub-topic admits the
-vendor-integration contract, an `identity-verified` declaration without a
-resolvable `kyc_verification_ref` fails admission closed with typed
-reason `kyc_pipeline_not_yet_admitted`. The enum value is admitted now to
-prevent schema drift; the realization path is deferred and is itself
-fail-closed.
+through the admitted KYC-vendor-integration pipeline. Until a separate
+authority-bearing admission defines that vendor-integration contract, an
+`identity-verified` declaration without a resolvable
+`kyc_verification_ref` fails admission closed with typed reason
+`kyc_pipeline_not_yet_admitted`. The enum value is admitted now to prevent
+schema drift; the realization path is deferred and is itself fail-closed.
 
 `MUST NOT`：`identity_assurance` MUST NOT be silently downgraded or
 upgraded post-admission. A change in identity assurance is a new
@@ -419,7 +415,7 @@ pass. The fail-closed semantics are pre-mirror, not post-mirror cleanup.
 MUST resolve to one of `nimi-built | reproducible-verified |
 developer-attested`. The fourth enum value `checksum-pinned` is reserved
 for `nimi-first-party`, internal, and developer-testing classes only
-(parent `result-wave-1-manifest-contract-implementation.md` line 71 + line 223).
+under the descriptor floor.
 
 `MUST NOT`：a third-party admission MUST NOT carry `build_assurance:
 checksum-pinned`. Attempting to admit `checksum-pinned` on any tier other
@@ -431,10 +427,9 @@ mechanically enforced through
 [checksum-pinned]`.
 
 `MUST NOT`：`build_assurance` MUST NOT be used as an automated install
-gate. It is review input and a display field (parent
-`result-wave-0-product-boundary-implementation.md` line 86; PI-W0-8); the
-admission gate is the composite review (`P-NAPP-013` PR-admission path +
-the wave-B `P-AUDIT-*` pipeline once admitted).
+gate. It is review input and a display field; the admission gate is the
+composite review (`P-NAPP-013` PR-admission path plus the admitted
+`P-AUDIT-*` pipeline).
 
 ## P-NAPP-024 — Platform Signing Assurance Subfields
 
@@ -509,15 +504,14 @@ terminal decision only.
 `MUST NOT`：this rule MUST NOT redefine the P-ECO-004 review-state set or
 the P-ECO-004 tier-to-adjudicator mapping. `review.decision` is an
 evidence-recording schema (audit outcome captured on the admitted
-descriptor); policy ownership remains with `P-ECO-004` and the wave-B
+descriptor); policy ownership remains with `P-ECO-004` and the admitted
 `P-AUDIT-*` pipeline.
 
 ## P-NAPP-026 — Support Manifest Required Fields
 
 `MUST`：every third-party admitted release descriptor MUST carry a
 `support` sub-object with the following six typed required sub-fields
-(parent `result-wave-1-manifest-contract-implementation.md` line 58
-PI-W1-14):
+required by the admitted descriptor support block:
 
 - `support.diagnostics_bundle_fields` — typed list of admitted diagnostic
   field names exported into the support diagnostics bundle;
@@ -644,8 +638,7 @@ fails admission closed with typed reason
 `source_repo_visibility_violation`.
 
 `MUST`：`source_repo_url` is the registry-row field admitted in
-`tables/nimi-app-registry.yaml` (added by wave-A1; preserved
-untouched by this rule). Visibility is evaluated at admission time
+`tables/nimi-app-registry.yaml`. Visibility is evaluated at admission time
 against the GitHub repository the URL resolves to; an unresolvable
 URL is a separate failure surface and is not collapsed into
 `source_repo_visibility_violation`.
@@ -714,6 +707,3 @@ admitted conjunction.
 - `.nimi/spec/sdk/kernel/nimi-app-client-contract.md` — `S-APP-001..S-APP-008`
 - `.nimi/spec/runtime/kernel/local-engine-contract.md` — `K-LENG-024..K-LENG-028`
 - `.nimi/spec/desktop/kernel/nimi-home-shell-contract.md` — `D-HOME-001..D-HOME-012`
-- `.nimi/topics/closed/2026-05-17-nimi-home-platform-entry-redesign/app-registry-admission-runtime-registration-map.md`
-- `.nimi/topics/closed/2026-05-17-nimi-home-platform-entry-redesign/trust-tier-enum-floor.md`
-- `.nimi/topics/closed/2026-05-17-nimi-home-platform-entry-redesign/first-party-hardcut-scope-ledger.md`

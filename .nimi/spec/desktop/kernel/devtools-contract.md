@@ -66,4 +66,3 @@ developer diagnostics）的默认可见性为不可见 / 不可达。
 - `.nimi/spec/desktop/kernel/support-surface-contract.md` — `D-SUP-001..D-SUP-008`
 - `.nimi/spec/desktop/kernel/tables/app-tabs.yaml`
 - `.nimi/spec/desktop/kernel/tables/feature-flags.yaml`
-- `.nimi/topics/ongoing/2026-05-20-nimi-product-manual-authority-recovery/product-manual-full-authority.md` — §Support / Settings / Developer Tools (1469-1495)

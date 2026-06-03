@@ -1,7 +1,6 @@
 # Avatar Debug Session Contract
 
 > Authority: Avatar Kernel
-> Topic: `2026-05-01-desktop-avatar-configuration-debug-workbench`
 
 ## Purpose
 
@@ -56,7 +55,7 @@ inventory, or activation authority.
 
 Desktop stores opaque refs only. Runtime owns authorization and probe semantics.
 SDK carries typed refs and methods only. No owner may create a second resolver
-for Avatar backend files in this topic.
+for Avatar backend files in this debug-session boundary.
 
 ## Result Semantics
 
@@ -74,7 +73,8 @@ placeholder profile data.
 VRM loader or asset evidence, but it is not debug success proof and not required
 runtime support proof.
 
-## Later Implementation Status
+## Implementation Availability Boundary
 
-Wave-1 admits this contract and schema only. Avatar debug session runtime code
-belongs to later waves and cannot claim product support before closeout.
+This contract admits Avatar debug session authority and schema only. Avatar
+debug session runtime code, SDK methods, Desktop UI, and product support
+require their own implementation and test evidence before support is claimed.

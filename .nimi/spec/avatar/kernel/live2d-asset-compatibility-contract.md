@@ -152,8 +152,7 @@ type Live2DSemanticMapV1 = {
   };
   lipsync: {
     mouth_open_y_parameter?: string;
-    /** Wave 0 admit (topic 2026-04-30-avatar-vrm-backend-branch, design-05):
-     *  Whether the model declares ParamMouthForm. Driver writes both
+    /** Whether the model declares ParamMouthForm. Driver writes both
      *  ParamMouthOpenY and ParamMouthForm when 'supported'; falls back to
      *  OpenY-only when 'absent'. */
     paramMouthForm?: 'supported' | 'absent';
@@ -244,7 +243,7 @@ Fixture policy is mandatory:
   itself.
 - `fixture_use: "not_allowed"` blocks the package from fixture use.
 
-Wave 2 must include legal fixture evidence before claiming current compatibility
+Current compatibility closure requires legal fixture evidence before claiming
 closure. Synthetic fixtures are acceptable only when they are rights-owned and
 exercise real Cubism package layout and Avatar carrier rendering.
 
@@ -262,10 +261,7 @@ loader success:
 Desktop chat Live2D renderer evidence and static fixture screenshots are not
 accepted.
 
-## 8. ParamMouthForm Winner-Key Mapping (Wave 0 admit)
-
-> Source: topic `2026-04-30-avatar-vrm-backend-branch` design-05
-> §"Live2D ParamMouthForm 映射".
+## 8. ParamMouthForm Winner-Key Mapping
 
 `ParamMouthForm` is the Cubism standard mouth-shape parameter (range
 `[-1, 1]`; -1 = round/closed, 0 = neutral, +1 = wide). When the wLipSync

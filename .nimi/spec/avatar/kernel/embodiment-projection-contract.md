@@ -2,9 +2,8 @@
 
 > **App**: `@nimiplatform/avatar`
 > **Authority**: Avatar kernel contract
-> **Status**: Wave 0 of topic `2026-04-30-avatar-vrm-backend-branch` re-anchors
->   this contract to the multi-backend `BackendProjection` ontology surface.
->   Pre-multi-backend (Wave 6B Live2D-only) framing is superseded.
+> **Status**: Active multi-backend embodiment projection authority. Earlier
+>   Live2D-only framing is superseded.
 > **Sibling contracts**:
 > - [Backend branch contract](backend-branch-contract.md)
 > - [VRM backend contract](vrm-backend-contract.md)
@@ -139,7 +138,7 @@ desktop truth。
 
 ## 6. Current Live2D Branch
 
-Wave 6B 不移除 Live2D branch；它只把 Live2D 收回到 backend-specific authority。
+Multi-backend authority 不移除 Live2D branch；它只把 Live2D 收回到 backend-specific authority。
 
 当前 Live2D branch 继续拥有：
 
@@ -152,7 +151,7 @@ Wave 6B 不移除 Live2D branch；它只把 Live2D 收回到 backend-specific au
 
 ---
 
-## 7. BackendProjection Ontology Surface (Wave 0 admit)
+## 7. BackendProjection Ontology Surface
 
 > Re-anchored from earlier Live2D-coupled parameter-id model. Canonical
 > structure now lives in [`backend-branch-contract.md`](backend-branch-contract.md).

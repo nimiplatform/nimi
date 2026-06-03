@@ -63,7 +63,7 @@ New command code that touches one of these sources without classification and ex
 Annotated but unregistered Tauri commands are not active invoke surface. They must still be classified as either:
 
 - `dormant_admitted`: intentionally retained but unavailable through `generate_handler!`; re-registration requires active command classification first.
-- `dead_for_removal`: not needed and must be deleted in a cleanup wave.
+- `dead_for_removal`: not needed and must be deleted before closure.
 
 A dormant command must never satisfy active remediation counts, and a registered command must never remain under dormant classification.
 
@@ -78,4 +78,4 @@ A dormant command must never satisfy active remediation counts, and a registered
 - reject zero-command parses, missing command definitions, missing risk catalog entries, and unadmitted direct blocking risks;
 - report current `remediation_required` command families without treating them as closed.
 
-W3 remediation waves must consume the classification table as their starting backlog and may only move a family out of `remediation_required` after implementation and gate evidence prove the target execution class.
+Remediation must consume the classification table as its starting backlog and may only move a family out of `remediation_required` after implementation and gate evidence prove the target execution class.

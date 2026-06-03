@@ -1,0 +1,342 @@
+id: nimicoding.runtime-rpc-migration-map.methods-runtime-local.v1
+kind: runtime-rpc-migration-map-shard
+parent: runtime_rpc_design_proto_mapping
+version: 1
+generated: false
+table_family: protocol_surface
+owner: runtime
+protocol_id: runtime_rpc_design_proto_mapping
+services:
+  - RuntimeLocalService
+method_count: 66
+method_mappings:
+  - design_service: RuntimeLocalService
+    design_method: ListLocalAssets
+    proto_service: RuntimeLocalService
+    proto_method: ListLocalAssets
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: ListVerifiedAssets
+    proto_service: RuntimeLocalService
+    proto_method: ListVerifiedAssets
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: InstallVerifiedAsset
+    proto_service: RuntimeLocalService
+    proto_method: InstallVerifiedAsset
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: ImportLocalAsset
+    proto_service: RuntimeLocalService
+    proto_method: ImportLocalAsset
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: GetProductControlRecord
+    proto_service: RuntimeLocalService
+    proto_method: GetProductControlRecord
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: GetProductControlSelectedDataRoot
+    proto_service: RuntimeLocalService
+    proto_method: GetProductControlSelectedDataRoot
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: EnsureProductControlRecordCreated
+    proto_service: RuntimeLocalService
+    proto_method: EnsureProductControlRecordCreated
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: SelectProductControlDataRoot
+    proto_service: RuntimeLocalService
+    proto_method: SelectProductControlDataRoot
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: SetProductControlFirstRunInstallLevel
+    proto_service: RuntimeLocalService
+    proto_method: SetProductControlFirstRunInstallLevel
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: CompleteProductControlFirstRunDeviceEnvironmentScan
+    proto_service: RuntimeLocalService
+    proto_method: CompleteProductControlFirstRunDeviceEnvironmentScan
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: AdmitProductControlReadyForUse
+    proto_service: RuntimeLocalService
+    proto_method: AdmitProductControlReadyForUse
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: RecordProductControlAccountDefaultProfileEvidence
+    proto_service: RuntimeLocalService
+    proto_method: RecordProductControlAccountDefaultProfileEvidence
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: RecordProductControlFirstRunLocalAiReadyEvidence
+    proto_service: RuntimeLocalService
+    proto_method: RecordProductControlFirstRunLocalAiReadyEvidence
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: ReconcileProductControlFirstRunSetupState
+    proto_service: RuntimeLocalService
+    proto_method: ReconcileProductControlFirstRunSetupState
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: ImportLocalAssetFile
+    proto_service: RuntimeLocalService
+    proto_method: ImportLocalAssetFile
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: ImportLocalAssetBundle
+    proto_service: RuntimeLocalService
+    proto_method: ImportLocalAssetBundle
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: RescanLocalAssetBundle
+    proto_service: RuntimeLocalService
+    proto_method: RescanLocalAssetBundle
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: RemoveLocalAsset
+    proto_service: RuntimeLocalService
+    proto_method: RemoveLocalAsset
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: StartLocalAsset
+    proto_service: RuntimeLocalService
+    proto_method: StartLocalAsset
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: StopLocalAsset
+    proto_service: RuntimeLocalService
+    proto_method: StopLocalAsset
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: CheckLocalAssetHealth
+    proto_service: RuntimeLocalService
+    proto_method: CheckLocalAssetHealth
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: WarmLocalAsset
+    proto_service: RuntimeLocalService
+    proto_method: WarmLocalAsset
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: SearchCatalogModels
+    proto_service: RuntimeLocalService
+    proto_method: SearchCatalogModels
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: ListCatalogVariants
+    proto_service: RuntimeLocalService
+    proto_method: ListCatalogVariants
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: GetRecommendationFeed
+    proto_service: RuntimeLocalService
+    proto_method: GetRecommendationFeed
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: ResolveModelInstallPlan
+    proto_service: RuntimeLocalService
+    proto_method: ResolveModelInstallPlan
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: InstallModelFromPlan
+    proto_service: RuntimeLocalService
+    proto_method: InstallModelFromPlan
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: CollectDeviceProfile
+    proto_service: RuntimeLocalService
+    proto_method: CollectDeviceProfile
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: ScanUnregisteredAssets
+    proto_service: RuntimeLocalService
+    proto_method: ScanUnregisteredAssets
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: ScaffoldOrphanAsset
+    proto_service: RuntimeLocalService
+    proto_method: ScaffoldOrphanAsset
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: ListLocalTransfers
+    proto_service: RuntimeLocalService
+    proto_method: ListLocalTransfers
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: PauseLocalTransfer
+    proto_service: RuntimeLocalService
+    proto_method: PauseLocalTransfer
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: ResumeLocalTransfer
+    proto_service: RuntimeLocalService
+    proto_method: ResumeLocalTransfer
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: CancelLocalTransfer
+    proto_service: RuntimeLocalService
+    proto_method: CancelLocalTransfer
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: WatchLocalTransfers
+    proto_service: RuntimeLocalService
+    proto_method: WatchLocalTransfers
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: ResolveLocalEnvironmentPlan
+    proto_service: RuntimeLocalService
+    proto_method: ResolveLocalEnvironmentPlan
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: ListLocalEnvironmentSelectedSources
+    proto_service: RuntimeLocalService
+    proto_method: ListLocalEnvironmentSelectedSources
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: ListLocalEnvironmentDependencyJobs
+    proto_service: RuntimeLocalService
+    proto_method: ListLocalEnvironmentDependencyJobs
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: ResolveLocalEnvironmentActivationGate
+    proto_service: RuntimeLocalService
+    proto_method: ResolveLocalEnvironmentActivationGate
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: MintRuntimeBaselineReadiness
+    proto_service: RuntimeLocalService
+    proto_method: MintRuntimeBaselineReadiness
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: ResolveRuntimeBaselineReadiness
+    proto_service: RuntimeLocalService
+    proto_method: ResolveRuntimeBaselineReadiness
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: MintFirstRunExecutionEvidence
+    proto_service: RuntimeLocalService
+    proto_method: MintFirstRunExecutionEvidence
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: ResolveFirstRunExecutionEvidence
+    proto_service: RuntimeLocalService
+    proto_method: ResolveFirstRunExecutionEvidence
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: StartLocalEnvironmentDependencyJob
+    proto_service: RuntimeLocalService
+    proto_method: StartLocalEnvironmentDependencyJob
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: CancelLocalEnvironmentDependencyJob
+    proto_service: RuntimeLocalService
+    proto_method: CancelLocalEnvironmentDependencyJob
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: RetryLocalEnvironmentDependencyJob
+    proto_service: RuntimeLocalService
+    proto_method: RetryLocalEnvironmentDependencyJob
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: RepairLocalEnvironmentDependency
+    proto_service: RuntimeLocalService
+    proto_method: RepairLocalEnvironmentDependency
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: ResolveLocalStateReconciliation
+    proto_service: RuntimeLocalService
+    proto_method: ResolveLocalStateReconciliation
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: ExecuteLocalStateCutover
+    proto_service: RuntimeLocalService
+    proto_method: ExecuteLocalStateCutover
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: ListLocalServices
+    proto_service: RuntimeLocalService
+    proto_method: ListLocalServices
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: InstallLocalService
+    proto_service: RuntimeLocalService
+    proto_method: InstallLocalService
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: StartLocalService
+    proto_service: RuntimeLocalService
+    proto_method: StartLocalService
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: StopLocalService
+    proto_service: RuntimeLocalService
+    proto_method: StopLocalService
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: CheckLocalServiceHealth
+    proto_service: RuntimeLocalService
+    proto_method: CheckLocalServiceHealth
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: RemoveLocalService
+    proto_service: RuntimeLocalService
+    proto_method: RemoveLocalService
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: ListNodeCatalog
+    proto_service: RuntimeLocalService
+    proto_method: ListNodeCatalog
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: ResolveProfile
+    proto_service: RuntimeLocalService
+    proto_method: ResolveProfile
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: ApplyProfile
+    proto_service: RuntimeLocalService
+    proto_method: ApplyProfile
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: ListLocalAudits
+    proto_service: RuntimeLocalService
+    proto_method: ListLocalAudits
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: AppendInferenceAudit
+    proto_service: RuntimeLocalService
+    proto_method: AppendInferenceAudit
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: AppendRuntimeAudit
+    proto_service: RuntimeLocalService
+    proto_method: AppendRuntimeAudit
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: ListEngines
+    proto_service: RuntimeLocalService
+    proto_method: ListEngines
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: EnsureEngine
+    proto_service: RuntimeLocalService
+    proto_method: EnsureEngine
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: StartEngine
+    proto_service: RuntimeLocalService
+    proto_method: StartEngine
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: StopEngine
+    proto_service: RuntimeLocalService
+    proto_method: StopEngine
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: GetEngineStatus
+    proto_service: RuntimeLocalService
+    proto_method: GetEngineStatus
+    mapping_posture: aligned

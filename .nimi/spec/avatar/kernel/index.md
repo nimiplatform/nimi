@@ -13,8 +13,7 @@ SDK API / presentation timeline) are consumed as upstream references.
 
 ### [`backend-branch-contract.md`](backend-branch-contract.md)
 
-Multi-backend carrier abstraction (Wave 0 of topic
-`2026-04-30-avatar-vrm-backend-branch` admit):
+Multi-backend carrier abstraction:
 
 - `BackendKind` closed union (`'live2d' | 'vrm'`)
 - `BackendBranch` discriminated union (kind narrowing exposes Live2D-only
@@ -26,7 +25,7 @@ Multi-backend carrier abstraction (Wave 0 of topic
 
 ### [`vrm-backend-contract.md`](vrm-backend-contract.md)
 
-VRM backend branch implementation contract (Wave 0 admit):
+VRM backend branch implementation contract:
 
 - VRM lifecycle (load / context-lost recovery / dispose)
 - MToon outline policy
@@ -38,8 +37,7 @@ VRM backend branch implementation contract (Wave 0 admit):
 
 ### [`generated-motion-provider-contract.md`](generated-motion-provider-contract.md)
 
-Avatar generated motion provider authority (Wave 0 of topic
-`2026-05-01-avatar-apml-auto-adapter` admit):
+Avatar generated motion provider authority:
 
 - Avatar consumes typed `runtime.agent.*` projection, never parser diagnostics
   from the APML raw namespace
@@ -51,8 +49,7 @@ Avatar generated motion provider authority (Wave 0 of topic
 
 ### [`embodiment-projection-contract.md`](embodiment-projection-contract.md)
 
-Backend-agnostic embodiment projection truth (re-anchored at Wave 0 of topic
-`2026-04-30-avatar-vrm-backend-branch` to BackendProjection ontology surface;
+Backend-agnostic embodiment projection truth (anchored to BackendProjection ontology surface;
 parameter-id path is now Live2D-only escape hatch via `Live2DBackendExtension`):
 
 - runtime / SDK semantic bundle enters avatar app here
@@ -125,7 +122,7 @@ Current shipped backend-specific rendering branch:
 - Cubism SDK for Web integration boundaries
 - Model loading from `<model-pkg>/runtime/` (official Live2D folder structure)
 - Live2D backend driver + parameter API
-- Default lipsync behavior through admitted voice/lipsync wave authority
+- Default lipsync behavior through admitted voice/lipsync authority
 - Physics / expression / motion playback
 
 ### [`live2d-asset-compatibility-contract.md`](live2d-asset-compatibility-contract.md)
@@ -143,7 +140,7 @@ Existing Live2D asset adaptation:
 Avatar app carrier visual acceptance:
 
 - evidence taxonomy for real runtime path, deterministic harness, fixture path,
-  Desktop renderer evidence, and closed historical evidence
+  Desktop renderer evidence, and historical process evidence
 - current Live2D branch canvas/WebGL proof requirements
 - negative closure rules that block placeholder, fixture-only, or Desktop-only
   visual success
@@ -198,7 +195,7 @@ Explicit fixture tooling:
 
 ### [`tables/feature-matrix.yaml`](tables/feature-matrix.yaml)
 
-Wave-based feature delivery matrix. **Drift check**: code features must map to the declared wave authority.
+Avatar capability matrix. **Drift check**: code features must map to declared capability authority.
 
 ### [`tables/companion-participation-surface-kinds.yaml`](tables/companion-participation-surface-kinds.yaml)
 
@@ -237,8 +234,8 @@ Named mock scenarios available for development / testing.
 ### [`tables/vrm-emote-states.yaml`](tables/vrm-emote-states.yaml)
 
 VRM emote bundle recipes — emotion ontology id → multi-weight expression
-preset bundle. Wave 0 of topic `2026-04-30-avatar-vrm-backend-branch` admit;
-11 emotes (10 ontology emotion + `relaxed` VRM-only fallback).
+preset bundle. Active authority admits 11 emotes (10 ontology emotion +
+`relaxed` VRM-only fallback).
 
 ### [`tables/vrm-motion-presets.yaml`](tables/vrm-motion-presets.yaml)
 
@@ -276,9 +273,8 @@ confidence, evidence, threshold, and manual confirmation semantics.
 
 ### [`tables/window-bounds-policy.yaml`](tables/window-bounds-policy.yaml)
 
-Dynamic window sizing rules. Wave 4 admit baseline + Wave 0 of topic
-`2026-04-30-avatar-vrm-backend-branch` extension (per-backend
-nominal_bounds_default + `BackendBranch.nominalBounds` source authority).
+Dynamic window sizing rules, including per-backend nominal bounds defaults and
+`BackendBranch.nominalBounds` source authority.
 
 ### [`tables/nimi-kit-adoption.yaml`](tables/nimi-kit-adoption.yaml)
 

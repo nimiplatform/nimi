@@ -23,40 +23,40 @@
 
 ## Scope
 
-Desktop 认证会话生命周期契约。定义 desktop 和 web 两种环境下的 token 获取、持久化、刷新和失效策略。
+Desktop account projection lifecycle contract. It defines the local
+first-party Desktop consumption boundary for Runtime-owned account state and
+the separate Web/cloud adapter boundary. It does not make Desktop an account
+session, token custody, refresh, logout, or login-route authority.
 
 > **Authority Note**：superseded 规则仅供历史参照；对应 product code 路径必须删除或 hard-block，且不得保留 dual-read / fallback。
 
 ## D-AUTH-001 — Session Bootstrap
 
-`bootstrapAuthSession` 在启动序列中执行（`D-BOOT-007`）。
+Superseded for Desktop local first-party account sessions. Desktop bootstrap
+MUST NOT run `bootstrapAuthSession`, read `runtime_defaults.realm.accessToken`
+as durable account truth, call `auth_session_load`, or fall back to a Desktop
+anonymous auth state as ordinary product use.
 
-- Desktop 冷启动解析顺序固定为：
-  - `runtime_defaults.realm.accessToken` 若存在，则仅作为本次运行的显式 override。
-  - 否则调用共享 Tauri IPC `auth_session_load` 读取 `~/.nimi/auth/session.v1.json`。
-  - 两者都缺失时进入匿名启动。
-- 输入：`flowId`（追踪 ID）、resolved bootstrap session（`accessToken`、`refreshToken?`、source=`env|persisted|anonymous`）。
-- 成功时：设置 `auth.status = 'authenticated'`、存储 token。
-- 失败时：设置 `auth.status = 'anonymous'`、清除 token；若 source=`persisted` 且为 401 / decrypt / schema 失败，则必须调用 `auth_session_clear` 清空共享持久会话。
+Desktop startup MUST query Runtime account-session projection
+(`GetAccountSessionStatus` and, where reactive state is needed,
+`SubscribeAccountSessionEvents`). Authenticated product use requires Runtime
+to project an authenticated account session. Missing, unavailable, expired, or
+reauth-required Runtime account state routes to the login/not-logged-in product
+state and does not become ordinary shell success.
 
 ## D-AUTH-002 — Token 持久化（Desktop）
 
-Desktop 环境的长期会话真源是共享 Tauri backend auth session 存储：
+Superseded for Desktop local first-party account sessions. Desktop MUST NOT
+treat `~/.nimi/auth/session.v1.json`, `auth_session_load`,
+`auth_session_save`, or `auth_session_clear` as account-session persistence,
+token custody, refresh, logout, or revalidation truth.
 
-- 路径：`~/.nimi/auth/session.v1.json`。
-- 记录：`schemaVersion`、`realmBaseUrl`、`user`、`updatedAt`、`expiresAt`、`accessTokenCiphertext`、`refreshTokenCiphertext?`。
-- 获取：renderer 只通过 `auth_session_load` 读取已解密的 normalized session；`runtime_defaults` 不作为 bearer token 的长期持久化渠道。
-- 更新：登录成功、2FA 完成、OTP 完成、wallet 登录成功、SDK `onTokenRefreshed`、或 Runtime account session projection 更新后，必须立即调用 owner-defined session commit path 原子覆盖整个会话。
-- 清除：logout、refresh 失败、bootstrap unauthorized、schema/decrypt 失败时必须调用 `auth_session_clear`。
-- Realm feature-data modules and Zustand store 只是进程内 / HMR 缓存，不是 desktop 长期持久化真源。
-
-当前 first-party local consumer posture 额外固定为：
-
-- shared desktop auth session 也是本机 authenticated consumer 的 durable auth truth。
-- local consumer 不得把启动时拿到的 access token 视为独立 durable truth。
-- 正在运行的 local consumer 若发现 shared session 被清除、schema/decrypt 失效、realm 不匹配、或切换到不同 user，必须立即对 authenticated capability fail closed。
-- `apps/avatar` 不属于 shared desktop auth session consumer。Default Avatar 是 Runtime-admitted local first-party app；它不得读取 shared auth session、持有 refresh token、或把 durable user/session truth 存在 avatar-local state。
-- Avatar 的默认启动由 Desktop launch intent + Runtime/SDK first-party bootstrap 约束（`K-APP-010` / `D-LLM-072`）。Explicit binding-only Avatar mode 才受 `K-BIND-*` scoped binding 约束。
+Runtime secure custody (`K-ACCSVC-007`) owns durable token/session material.
+Desktop feature-data modules and renderer stores are in-process projections
+only. Local first-party consumers, including Avatar paths, must consume
+Runtime account-session projection, Runtime-issued short-lived access-token
+projection, or scoped binding projection as applicable; they must not read a
+shared Desktop auth session.
 
 ## D-AUTH-003 — Token 持久化（Web）
 
@@ -66,46 +66,47 @@ Web 环境只通过浏览器存储持久化非敏感会话元数据：
 - 更新：仅写入 user/expiresAt/updatedAt 等非敏感字段。
 - 清除：删除 localStorage 条目。
 
-## D-AUTH-004 — Auth 状态机
+## D-AUTH-004 — Runtime Account Projection State
 
-```
-bootstrapping → authenticated  (token 有效)
-bootstrapping → anonymous      (token 无效或缺失)
-authenticated → anonymous      (logout 或 token 过期)
-anonymous     → authenticated  (login 成功)
-```
+Desktop local first-party auth state is a redacted projection of
+`RuntimeAccountService`, not a Desktop-held Realm SDK session.
 
-**跨层映射**：
-
-| Desktop 状态 | Realm SDK 行为 | Runtime 层关系 |
+| Desktop projection | Required Runtime / SDK condition | Desktop allowance |
 |---|---|---|
-| `bootstrapping` | Realm SDK `connect()` / token 获取 | Runtime 无活跃请求（Desktop 尚未开始调用） |
-| `authenticated` | Realm SDK session active，维护 `auth.accessToken` 最新值 | Runtime SDK 调用时自动注入 `Authorization: Bearer <realm_access_token>`，Runtime K-AUTHN-001~008 验证请求合法性 |
-| `anonymous` | Realm SDK 无 token，仅公开 API 可用 | Runtime 拒绝需认证的 RPC（`UNAUTHENTICATED`） |
+| `bootstrapping` | Runtime account status has not been resolved or the Runtime-backed Platform client is not assembled | Render startup / login-gate pending state only |
+| `authenticated` | `GetAccountSessionStatus` projects `authenticated` and the SDK local-first-party client can obtain a Runtime-backed short-lived access-token projection when Realm data calls require it | Store redacted user/account display projection and enable authenticated feature wiring |
+| `anonymous` | Runtime projects `anonymous`, `expired`, `reauth_required`, `unavailable`, or access-token projection is unavailable/fail-closed | Render login / reauth / unavailable product state and disable authenticated feature wiring |
 
-**Desktop 与 RuntimeAuthService 的关系**：
+Fixed rules:
 
-Desktop **不直接使用** RuntimeAuthService（K-AUTHSVC-001~013）的 `OpenSession` / `RefreshSession` / `RevokeSession`。Desktop 认证 token 来自 Realm 后端（通过 Realm SDK REST 调用获取），而非 Runtime daemon 的 session 管理。RuntimeAuthService 的 session 管理面向以下场景：
-
-- 外部 Agent 通过 SDK 建立 Runtime session（K-AUTHSVC-006、RegisterExternalPrincipal）
-- 独立 SDK 消费者（非 Desktop）直接与 Runtime 交互
-
-Runtime 对 Desktop 请求的认证路径：Desktop 持有 Realm SDK session token → Runtime SDK 在每次调用前读取最新 token 并注入 `Authorization: Bearer <realm_access_token>` → Runtime gRPC metadata `authorization` → K-AUTHN-001~008 token 验证拦截器。此 token 由 Realm 后端签发，Runtime 仅做 claims 校验，不管理其生命周期。
-
-**AppMode 声明**（K-AUTHSVC-009）：Desktop 使用 `AppMode=FULL`、`WorldRelation=RENDER` 注册（K-AUTHSVC-010）。`FULL` 模式允许同时访问 `runtime.*` 和 `realm.*` 域。若注册时使用错误的 AppMode，Runtime 返回 `APP_MODE_DOMAIN_FORBIDDEN`（D-ERR-007 映射表兜底处理）。
-
-**RegisterApp 调用路径**：Desktop 通过 SDK Runtime client 在 bootstrap 阶段（D-BOOT-004）调用 `RegisterApp(appMode=FULL, worldRelation=RENDER)`（K-AUTHSVC-010）。此调用属于 Runtime SDK 高阶方法透传，不等同于 Desktop 直接使用 RuntimeAuthService 的 session 管理方法（OpenSession/RefreshSession/RevokeSession）。
-
-- **调用时机**：D-BOOT-004 Runtime Host Assembly 完成 gRPC 连接后、D-BOOT-007 Auth Session 引导前。
-- **失败处理**：进入 D-BOOT-008 错误路径，`bootstrapReady=false`。
-- **参数来源**：`appMode` 和 `worldRelation` 由 Desktop 编译时确定（非用户配置）。
+- Desktop MUST configure the local first-party Platform client through the SDK
+  Runtime-backed account/token provider surface. It MUST NOT pass an
+  app-owned access token, refresh token, session store, JWT hook, or subject
+  provider into local first-party Runtime or Realm transport.
+- Desktop renderer stores, profile/settings screens, `public-web` facades, and
+  bootstrap watchers MUST NOT contain or propagate `auth.token`,
+  `accessToken`, `refreshToken`, raw JWT, or token-bearing session setter
+  parameters for local first-party auth state.
+- Realm data calls retained in Desktop feature modules MUST use SDK Realm
+  clients whose bearer material comes from the Runtime-backed short-lived
+  token provider. Desktop may observe only redacted account/user projection.
+- `RuntimeAuthService` remains the app-session / external-principal session
+  authority (`K-AUTHSVC-*`). It does not replace `RuntimeAccountService`, and
+  Desktop app registration is not account-session custody or login truth.
+- Explicit Web/cloud adapter mode is a separate admitted boundary. It may use
+  SDK/Realm web session plumbing where admitted, but it MUST stay fenced from
+  local first-party Desktop app-store state and MUST NOT become Desktop local
+  account truth.
 
 ## D-AUTH-005 — Auth 事件联动
 
 Desktop auth watcher listens to Runtime account-session projection events:
 
-- `isAuthenticated = true`：配置 SDK Platform Client 的 short-lived access-token provider / current access-token projection。
-- `isAuthenticated = false`：清空 renderer auth projection，停止 feature-local subscriptions / polling。
+- `isAuthenticated = true`：配置或 revalidate SDK Platform Client 的
+  Runtime-backed short-lived access-token provider and redacted account
+  projection.
+- `isAuthenticated = false`：清空 renderer redacted auth projection，停止
+  feature-local subscriptions / polling。
 - Desktop must not reintroduce a DataSync listener, token hot-state, or refresh timer as an auth owner.
 
 ## D-AUTH-006 — Token 刷新: Reactive
@@ -133,8 +134,15 @@ Superseded for Desktop first-party account sessions. Desktop must not persist or
 cache refresh tokens.
 
 - Runtime secure custody owns refresh token storage (`K-ACCSVC-007`).
-- Renderer state may hold only the current short-lived access-token projection
-  needed by SDK public Realm calls.
+- SDK client/provider internals may hold an in-memory short-lived access token
+  projection long enough to execute an admitted request. Desktop renderer
+  app-store state, public-web facades, profile/settings screens, and bootstrap
+  watchers MUST NOT carry access-token or refresh-token fields.
+- Desktop renderer stores, settings/profile pages, bootstrap watchers, and the
+  `public-web` bootstrap facade MUST NOT expose a `refreshToken` field or pass a
+  refresh token through app-level session setters. Non-local-first-party
+  Web/cloud refresh handling, where admitted, must stay inside SDK/Realm client
+  session plumbing and must not become Zustand/app-store state.
 
 ## D-AUTH-009 — Token 过期检测与刷新所有权
 
@@ -186,13 +194,17 @@ anonymous 状态下 desktop 可调用 `Realm.AuthService.checkEmail` 获取类�
 
 ## D-AUTH-014 — Local Consumer Revalidation
 
-共享 auth session 作为 local durable truth 时，运行中的 authenticated consumer 必须持续重读或等价 revalidate 该 truth，而不允许只在 bootstrap 时读取一次。
+Superseded for shared Desktop auth session. Local consumer revalidation MUST
+use Runtime account-session projection, short-lived access-token projection,
+and scoped binding validation. It MUST NOT poll `auth_session_load`, depend on
+`auth_session_clear`, or infer user-switch/logout from Desktop-owned session
+files.
 
-- revalidation 至少要能覆盖：desktop logout、`auth_session_clear`、persisted session schema/decrypt failure、realm mismatch、user switch、same-user token rotation。
-- same-user token rotation 允许仅更新 consumer 进程内 token / user projection，不要求重开 handoff 或发明 per-app token grant。
-- clear / invalid / mismatch / user switch 必须显式把 consumer 迁移到 fail-closed 状态；不得等待下次重启或偶发 401 才发现本地 durable truth 已失效。
-- logout 会先清除 local persisted session、active streams、runtime read caches 与 auth state，再进行 best-effort server logout；server logout 失败不能让 Desktop 继续相信旧 bearer 仍有效。
-- 该规则不适用于 `apps/avatar`。Avatar 的 replacement posture 是 runtime binding revalidation：Desktop/Runtime 持有 auth、Realm、subject、agent、anchor truth，Avatar 只消费 explicit launch context、本地 visual package、以及 runtime IPC projections。
+Logout, token expiry, revocation, user switch, same-user token rotation,
+realm mismatch, and unavailable custody are Runtime account-session events or
+status projections. Desktop consumers must fail closed on the corresponding
+Runtime state instead of waiting for incidental Realm 401s or renderer-local
+cache invalidation.
 
 ## Fact Sources
 

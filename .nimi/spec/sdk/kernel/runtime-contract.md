@@ -348,12 +348,12 @@ Not admitted on the stable SDK surface in the current authority set:
 - SDK-owned app-event schema or rate-limit truth
 
 Future admission of the broad Event API requires a new SDK/runtime authority
-packet and must not be inferred from closed-topic design evidence.
+packet and must not be inferred from historical design evidence.
 
 ## S-RUNTIME-107 Local SDK Consumer Trust Posture
 
 The SDK local runtime consumer posture is an active SDK/runtime boundary, not a
-closed-topic trust checklist.
+historical trust checklist.
 
 Fixed rules:
 

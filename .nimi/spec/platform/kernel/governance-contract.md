@@ -53,6 +53,18 @@ Top-level package/protocol support roots such as `sdk/` root metadata and `proto
 
 Release and CI workflow files must remain traceable to their governed release surface, security posture, or package/protocol release gates. Workflows that publish runtime, SDK, proto, desktop, or web artifacts must not become unstated parallel release authority.
 
+## P-GOV-024 — Spec Final Authority Only
+
+`.nimi/spec/**` records active final authority only. It must not use topic,
+wave, subordinate-process, historical-process, or process-provenance wording as
+the source of truth for an active rule, table, status, evidence requirement, or
+fact source.
+
+Operational planning, execution evidence, topic lifecycle reports, worker
+results, and historical provenance belong in Git history, `.nimi/topics/**`, or
+`.nimi/local/**`. Spec may mention those surfaces only to state that they are not
+product authority.
+
 ## Operational Refinement Reference
 
 `release-gate-contract.md` (`P-RELG-*`) is the operational refinement of `P-GOV-003`, `P-GOV-011`, `P-GOV-021`, and `P-GOV-023`. It declares a single release-gate registry (`tables/release-gate-registry.yaml`) as the source of release-gate identity, locks projection-only semantics for preflight / lint chain / CI workflow step blocks, and enforces traceability through a coherence checker plus a projection-drift checker. `P-RELG-*` rules cite their parent `P-GOV-*` anchors explicitly and never override them.

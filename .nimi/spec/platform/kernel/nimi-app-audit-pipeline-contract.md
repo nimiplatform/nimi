@@ -246,12 +246,9 @@ TOP of `P-ECO-004` admitted set and MUST NOT replace it.
 
 ### Superset Clarification
 
-This sub-section quotes parent wave-2 § 5 verbatim and clarifies that
+This sub-section records the active Solo-Reviewer Lever and clarifies that
 `P-AUDIT-004`'s classification rule adds rigor ON TOP of `P-ECO-004`'s
-already-admitted set and does NOT replace any admitted rule. The
-verbatim parent-wave-2 § 5 language (parent topic
-`2026-05-22-nimi-apps-third-party-distribution-and-admission`,
-`result-wave-2-review-audit-trust-implementation.md` lines 77-93) is:
+already-admitted set and does NOT replace any admitted rule:
 
 > ## 5. Solo-Reviewer Lever
 >
@@ -323,21 +320,13 @@ an authoritative admission gate. Attempting to admit on the strength
 of a developer-side `nimi audit` outcome fails admission closed with
 typed reason `developer_side_audit_not_gate`.
 
-**Forward reference (legitimate)**：this rule cross-references
-`P-DEV-003` (wave-d, `nimi-app-developer-workflow-contract.md`),
+**Cross-reference**：this rule cross-references
+`P-DEV-003` (`nimi-app-developer-workflow-contract.md`),
 which admits the developer-side `nimi audit` command itself.
 `P-AUDIT-005` admits the non-gate status of the developer-side
 command; `P-DEV-003` admits the command and its developer-workflow
 positioning. The two rules are coupled by reference and admit
 disjoint surfaces (non-gate posture vs developer-workflow surface).
-The cross-reference is legitimate under the parent plan's rule-ID
-freeze posture: rule IDs are frozen in the plan registry before any
-worker writes spec text, so a wave-b reference to a wave-d rule ID is
-not a parallel-truth admission. If the rule-ID freeze were to be
-disturbed (i.e. `P-DEV-003` were to be re-allocated or unfrozen), the
-cross-reference here would itself need to be re-admitted; the
-freeze-protected coupling is the mechanism by which the forward
-reference holds.
 
 ## P-AUDIT-006 — Review-Evidence Shape
 
@@ -380,7 +369,7 @@ review-decision schema (the closed enum `approved`,
 `revision-requested`, `rejected`, `kill-switched`; the
 `adjudicator_kind` enum `human | nimi-automated-gate`;
 `adjudicator_ref`; `decided_at`) is owned by `P-NAPP-025` and is
-admitted from wave-A1; this rule cross-references that schema as the
+not redefined here; this rule cross-references that schema as the
 descriptor's decision-record surface that consumes the evidence
 references admitted here.
 
@@ -472,14 +461,7 @@ and do not redefine them.
   `P-AUDIT-001` `submit`-stage forbidden-shortcut clause; descriptor
   shape consumed at `P-AUDIT-006` review-evidence shape)
 - `.nimi/spec/platform/kernel/nimi-app-developer-workflow-contract.md` —
-  `P-DEV-003` (developer-side `nimi audit` command; admitted by wave-d
-  per the rule-ID freeze; cross-referenced from `P-AUDIT-005`)
-- `.nimi/topics/ongoing/2026-05-22-nimi-apps-third-party-distribution-and-admission/result-wave-2-review-audit-trust-implementation.md` —
-  wave-2 contract definition (publish-to-admission gate sequence, audit
-  pipeline, tier-review posture, review states, solo-reviewer lever;
-  this contract admits the wave-2 definition into `.nimi/spec/**`)
-- `.nimi/topics/ongoing/2026-05-22-nimi-apps-third-party-distribution-and-admission/audit-pipeline.md` —
-  parent topic audit-pipeline design (composite-pipeline rationale,
-  pipeline-layer enumeration, AI-audit reliability boundary,
-  solo-reviewer-lever positioning; non-normative design background for
-  this contract)
+  `P-DEV-003` (developer-side `nimi audit` command; cross-referenced from
+  `P-AUDIT-005`)
+- This contract is the active authority for publish-to-admission gate sequence,
+  audit pipeline, tier-review posture, review states, and solo-reviewer lever.

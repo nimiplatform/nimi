@@ -2,9 +2,7 @@
 
 > **App**: `@nimiplatform/avatar`
 > **Authority**: Avatar kernel contract
-> **Status**: Live2D branch baseline; Wave 0 of topic
->   `2026-04-30-avatar-vrm-backend-branch` re-scopes this contract to
->   **`kind: 'live2d'` BackendBranch implementation detail**.
+> **Status**: Active `kind: 'live2d'` BackendBranch implementation authority.
 > **Sibling contracts**:
 > - [Backend branch contract](backend-branch-contract.md) — multi-backend carrier abstraction
 > - [VRM backend contract](vrm-backend-contract.md)
@@ -16,7 +14,7 @@
 
 ---
 
-## Scope (Wave 0 re-scope)
+## Scope
 
 This contract is the `kind: 'live2d'` BackendBranch implementation detail.
 Multi-backend carrier abstraction, BackendProjection ontology surface,
@@ -51,7 +49,7 @@ Cross-references:
 backend command-state update、NAS continuous handler 帧调度、默认 Cubism 行为
 （breath / blink / lipsync）与 NAS override 边界。
 
-Wave 4 hard cut: current Avatar app evidence proves Live2D model/resource loading, command-state mutation, Cubism `model.update()`, and NAS continuous scheduling. It does **not** claim Avatar carrier WebGL canvas draw-loop proof. Desktop chat has a separate Cubism WebGL renderer; that implementation cannot be used as active proof for this Avatar app carrier branch.
+Current Avatar app evidence proves Live2D model/resource loading, command-state mutation, Cubism `model.update()`, and NAS continuous scheduling. It does **not** claim Avatar carrier WebGL canvas draw-loop proof. Desktop chat has a separate Cubism WebGL renderer; that implementation cannot be used as active proof for this Avatar app carrier branch.
 
 **本 contract 不定义** embodiment projection canonical truth（见 `embodiment-projection-contract.md`）、NAS handler convention（见 `agent-script-contract.md`）或 shell / window 行为（见 `app-shell-contract.md`）。
 
@@ -146,7 +144,7 @@ support.
 
 - NAS continuous scheduler 运行于 `requestAnimationFrame`，目标 60fps（浏览器 vsync）
 - Current Avatar app backend-session applies commands and calls Cubism `model.update()` when command-state changes.
-- Avatar carrier WebGL `preDraw` / `draw` / `postDraw` proof is not admitted by the current Live2D branch evidence. A visual-render acceptance wave must add deterministic canvas proof before this contract may claim Avatar carrier draw-loop closure.
+- Avatar carrier WebGL `preDraw` / `draw` / `postDraw` proof is not admitted by the current Live2D branch evidence. A visual-render acceptance authority must add deterministic canvas proof before this contract may claim Avatar carrier draw-loop closure.
 
 ### 3.2 Delta Time
 
@@ -373,4 +371,4 @@ Avatar shell 在 click 时 call `hitTestArea` 填入 `avatar.user.click.detail.r
 
 ---
 
-**Current Live2D branch scope**: Cubism SDK for Web 集成 + Plugin API v1，voice-driven lipsync 通过已 admit 的 voice/lipsync wave 接入；multi-backend 抽象已由 BackendBranch + VRM branch authority 接管。
+**Current Live2D branch scope**: Cubism SDK for Web 集成 + Plugin API v1，voice-driven lipsync 通过已 admit 的 voice/lipsync authority 接入；multi-backend 抽象已由 BackendBranch + VRM branch authority 接管。

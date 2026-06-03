@@ -78,7 +78,12 @@ undergo a new rule admission before proto / RPC table projection.
 - `CompleteLogin`: 接受 typed proof envelope（见 K-ACCSVC-008）。Runtime 验证后写入 custody 并转换状态。
 - `GetAccessToken`: 向 admitted local first-party app instance 返回当前 short-lived access token，或在 Runtime 内部 refresh 后返回新 access token。不得返回 refresh token、durable session、raw subject、或任何可由 app 自行刷新 token 的材料。Explicit binding-only Avatar embodiment 必须被拒绝；default `nimi.avatar` first-party app instance may use this method when registry-admitted.
 - `RefreshAccountSession`: Runtime 主动或被动刷新；调用方不得提交 refresh token。
-- `Logout`: Runtime 撤销 local session 与所有 binding；幂等。
+- `Logout`: Runtime 撤销 local session 与所有 binding；幂等。Caller-facing
+  logout success may be projected only after Runtime has accepted/completed the
+  Runtime-owned logout transition or has emitted a corresponding account status
+  projection. Local first-party apps may stop local side effects while logout is
+  pending, but they MUST NOT claim "signed out locally" success while Runtime
+  custody may still contain an authenticated session.
 - `SwitchAccount`: 原子转换；旧 binding 在新 projection 之前 revoke。
 - `IssueScopedAppBinding`: 见 `scoped-app-binding-contract.md`。account subject 内部派生。
 - `RevokeScopedAppBinding`: 见 `scoped-app-binding-contract.md`。
@@ -211,6 +216,13 @@ Logout / 远程撤销事件顺序：
 4. 发出 `account.status = reauth_required` 或 `anonymous`
 
 任何顺序违反必须 fail-close 并发出 `logout.failed`。
+
+If `Logout` fails, the caller-facing projection MUST fail closed into
+`reauth_required`, `unavailable`, or an explicit logout-failed UX state; it MUST
+NOT convert renderer-local cache clearing into account logout success. Local
+first-party consumers may clear volatile streams, optimistic UI, or query
+state as side effects, but account state remains Runtime-owned until Runtime
+emits the authoritative transition.
 
 ## K-ACCSVC-011 Daemon Restart 行为
 

@@ -80,7 +80,7 @@ app-to-app message broker 语义，messaging 方法不承载 install/uninstall/u
 
 ## K-APP-005 安全基线
 
-AppMessaging 的安全基线规则，实现必须在 Phase 2 启动时优先满足：
+AppMessaging 的安全基线规则，实现必须满足：
 
 | 规则 | 约束 | 理由 |
 |---|---|---|
@@ -96,27 +96,41 @@ runtime-owned product path。Desktop renderer 不得创建 parallel local messag
 来替代 K-APP 的 runtime auth、rate-limit、loop detection、durable event ordering
 或 audit posture。
 
-## K-APP-006a 消费契约状态
+## K-APP-006a 消费契约
 
-AppService 的跨域消费契约状态：
+AppService 的跨域消费契约：
 
-| 消费层 | 当前状态 | Phase 2 启动前必须 |
+| 消费层 | 契约 |
 |---|---|---|
-| **SDK 方法投影** | 已 landed | 保持 SendAppMessage / SubscribeAppMessages 的 gRPC→SDK 参数映射、错误投影与 runtime public surface 对齐 |
-| **Desktop UI Spec** | 无默认 Desktop 消费 | 若 Desktop 需直接使用 K-APP 路径（跨进程、审计场景），创建相应 UI spec |
+| **SDK 方法投影** | 保持 SendAppMessage / SubscribeAppMessages 的 gRPC→SDK 参数映射、错误投影与 runtime public surface 对齐 |
+| **Desktop UI Spec** | Desktop 没有默认 K-APP UI 消费权；若 Desktop 需直接使用 K-APP 路径（跨进程、审计场景），必须先有对应 Desktop UI spec |
 
 > **设计完整性注意**：K-APP-001~005 定义了完整的消息传递模型。K-APP 的
 > gRPC 路径已经存在 SDK 投影，但仍不是 Desktop shell 的默认 UI 消息面。
 
-## K-APP-007 Deferred Decisions
+## K-APP-007 App Messaging Delivery, Retention, And Backpressure
 
-以下决策在 Phase 2 Draft 阶段有意推迟，实现期允许修正：
+`RuntimeAppService.SendAppMessage` / `SubscribeAppMessages` 的 admitted
+delivery semantics 是 process-local live delivery：
 
-| 决策 | 当前状态 | 推迟原因 |
-|---|---|---|
-| **消息保留策略** | 未定义 | 需确定消息是否持久化、保留时长、容量上限（环形缓冲 vs 无限增长） |
-| **投递顺序保证** | `sequence` 单调递增，但未定义跨重启行为 | 需确定 sequence 是否持久化、重启后是否重置 |
-| **背压机制** | 未定义 | 高频消息场景下 `SubscribeAppMessages` 的流控策略（丢弃/缓冲/拒绝）。K-APP-005 的速率限制是入口层保护，背压是出口层保护，两者互补 |
+- Runtime does not persist app-message events.
+- Runtime does not replay events to subscribers that were not connected when
+  the event was published.
+- `sequence` is monotonic only within one Runtime process lifetime and resets
+  after Runtime restart.
+- `SubscribeAppMessagesRequest.cursor` is not admitted for replay or durable
+  resume on this surface. A non-empty cursor MUST fail closed with
+  `INVALID_ARGUMENT` + `PROTOCOL_ENVELOPE_INVALID`.
+- A subscriber stream owns a bounded relay buffer of 32 events. When the
+  consumer is too slow and the relay observes three consecutive drops, Runtime
+  MUST close that subscriber with `RESOURCE_EXHAUSTED`; `SendAppMessage`
+  success MUST NOT be interpreted as durable delivery to that subscriber.
+
+The app-message bus is therefore suitable for live app-to-app notifications
+and for the reserved `runtime.agent` reactive consume seam. It is not a
+durable inbox, durable event log, cross-restart replay stream, audit log, or
+product message-history authority. Durable product records must be committed
+through their owning Runtime / Realm / Cognition / app surface.
 
 ## K-APP-008 Reserved `runtime.agent` Reactive Chat Target
 
@@ -188,8 +202,7 @@ Fixed rules:
   agent chat and admitted projection families; app-local targets must not
   mint new `runtime.agent.*` payload shapes
 - wildcard subscription, cancellable before-events, and SDK-owned app-event
-  emission remain outside this contract unless a later runtime and SDK
-  authority packet admits them
+  emission are not admitted by this contract
 - malformed payloads, missing explicit identity, unauthorized app ids, or
   unsupported message types must fail closed rather than being converted into
   local UI cues
@@ -346,119 +359,47 @@ job 是 `uninstalling` 卡片状态的唯一 live-job 真相源。
 audit / permission / spend 事件，也不得改变 `K-APP-014` 的 durable-data
 保留语义。
 
-> 实现注记：`OpenApp` RPC 与 `AppLifecycleJobKind.uninstall` 的
-> `proto/runtime/v1/app.proto` 物化随后续 app-launch 实现 wave 落地；本规则
-> 是其 normative 契约面。`OpenApp` 不承载 app-to-app message broker 语义，
-> 与 `SendAppMessage` / `SubscribeAppMessages` 语义独立（对齐 `K-APP-001`）。
+`OpenApp` 不承载 app-to-app message broker 语义，与
+`SendAppMessage` / `SubscribeAppMessages` 语义独立（对齐 `K-APP-001`）。
 
-## K-APP-018 Runtime-Mediated File-API Surface And Path Enforcement
+## K-APP-018 Runtime-Mediated File-API Non-Admission
 
-**Background fact (grep-evidence).** `K-APP-001` at this file lines
-5–21 admits the `RuntimeAppService` "方法固定为" enumeration as exactly
-nine methods: `SendAppMessage`, `SubscribeAppMessages`, `InstallApp`,
-`UninstallApp`, `GetAppInstallJob`, `ListAppInstallJobs`,
-`WatchAppInstallJobEvents`, `UpdateApp`, `HealthRepairApp`. **None of
-those nine methods is a file-API method.** `K-APP-018` therefore
-admits a NEW Runtime-mediated file-API surface; it does NOT inherit a
-pre-existing file-API surface from `K-APP-001` or any other admitted
-`K-APP-*` rule.
+`RuntimeAppService` 的 current admitted method set is exactly the 13
+methods listed in `K-APP-001` and
+`.nimi/spec/runtime/kernel/tables/rpc-methods.yaml`. No Runtime-mediated
+file-API RPC is admitted on the current `RuntimeAppService` surface.
 
-`MUST` (surface admission — packet-time-frozen method set).
-`RuntimeAppService` admits a Runtime-mediated file-API method set
-scoped to the Nimi-mediated `app-local-drafts` qualifier (`P-PERM-011`
-on the Platform side; `P-NAPP-027` `nimi-mediated-default` storage
-posture). The admitted method set is exactly the following five
-methods, frozen as part of this rule:
+The following method names are explicitly non-admitted on the current
+surface and MUST NOT be exposed by Runtime, SDK, Kit, Desktop, Tester, or
+scaffold clients as callable product APIs:
 
-1. `ReadAppLocalDraftFile` — read bytes from a file under the calling
-   app's Nimi-owned data root. Request carries the calling app's
-   `app_id` (resolved from the authenticated `RuntimeAuthService`
-   session per `K-APP-005` 应用认证), a relative `path` under the
-   calling app's data root, and an optional byte `range`. Reply carries
-   the `bytes` payload, the resolved typed `qualifier`
-   (`app-local-drafts`), and a fail-closed `reason_code` /
-   `failure_detail` on the unhappy path.
-2. `WriteAppLocalDraftFile` — write bytes to a file under the calling
-   app's Nimi-owned data root. Request carries `app_id`, relative
-   `path`, the `bytes` payload, and a typed `mode` enum
-   (`overwrite` / `create-new` / `append`). Reply carries the typed
-   write outcome and a fail-closed `reason_code` /
-   `failure_detail` on the unhappy path. The 64 KB per-message size
-   cap from `K-APP-005` 消息大小限制 does not apply to file payloads
-   on this surface; chunking strategy is a transport-level concern
-   below the contract, not a re-introduction of `K-APP-005` 's
-   messaging-payload cap.
-3. `ListAppLocalDraftDir` — list directory entries under the calling
-   app's Nimi-owned data root. Request carries `app_id` and a
-   relative `path`. Reply carries a typed list of
-   `{name, kind, size, modified_at}` entries plus a fail-closed
-   `reason_code` / `failure_detail` on the unhappy path.
-4. `DeleteAppLocalDraftFile` — delete a file or empty directory under
-   the calling app's Nimi-owned data root. Request carries `app_id`
-   and a relative `path`. Reply carries the typed delete outcome and a
-   fail-closed `reason_code` / `failure_detail`. Recursive directory
-   deletion outside the typed `data/` / `cache/` / `tmp/` subtree is
-   out of scope of this admission and remains rejected via
-   `out_of_data_root` (below).
-5. `MoveAppLocalDraftFile` — move/rename a file under the calling
-   app's Nimi-owned data root. Request carries `app_id`, relative
-   `source_path`, and relative `destination_path`. Both paths MUST
-   resolve under the same calling app's data root; the destination
-   path leaving the calling app's root is a fail-closed
-   `out_of_data_root`. Reply carries the typed move outcome and a
-   fail-closed `reason_code` / `failure_detail`.
+- `ReadAppLocalDraftFile`
+- `WriteAppLocalDraftFile`
+- `ListAppLocalDraftDir`
+- `DeleteAppLocalDraftFile`
+- `MoveAppLocalDraftFile`
 
-**Amendment-clause to `K-APP-001`.** The five methods above extend
-`K-APP-001` "方法固定为" enumeration at lines 5–21 of this file. The
-extension is admitted INSIDE `K-APP-018`; `K-APP-001` 's rule body
-remains unchanged. Future Runtime-mediated file-API method admissions
-are subject to a separate admitting rule and do NOT enter
-`RuntimeAppService` 's admitted method set by implication of this
-clause.
+`P-PERM-011` still admits the `app-local-drafts` qualifier semantics for
+permission review and scope expression, but that qualifier does not by
+itself admit a Runtime file API, SDK file client, Desktop bridge helper, or
+generic REST/proxy path. Any current attempt to materialize a
+Nimi-mediated file API outside the admitted method set fails closed by
+absence of an admitted method; consumers MUST NOT emulate the missing
+surface through `SendAppMessage`, `proxyHttp`, private Runtime APIs,
+Realm REST, direct cross-app path access, or a generic "file op" wrapper.
 
-`MUST` (path-enforcement invariant). Every method in the file-API set
-admitted above MUST fail closed with typed reason `out_of_data_root`
-when the resolved path leaves the calling app's
-`<nimi_data>/apps/<app_id>/` root or enters another app's root
-`<nimi_data>/apps/<other_app_id>/`. The escape modes covered by this
-invariant include — non-exhaustively — parent traversal segments
-(`..`) that escape the root, absolute paths that resolve outside the
-root, symbolic-link traversal that crosses out of the root, and any
-heuristic "close-enough" resolution that maps an escaping path to a
-permitted neighbor inside the root. Path-enforcement applies to the
-admitted five-method set; future surface extensions are subject to
-their own admitting rule and do not inherit this invariant by
-omission.
+For apps admitted with `storage_policy_ref.kind: app-owned-os-storage`
+(`P-NAPP-027` / `P-NAPP-028`), file IO remains outside this Runtime app
+messaging surface. For apps admitted with `nimi-mediated-default`, the
+admitted storage truth remains the Runtime app-storage projection
+(`GetAppStorage`, `K-APP-022`); it is not an authorization to expose raw
+file read/write RPCs.
 
-`MUST` (cross-references). `K-APP-018` cross-references `P-NAPP-027`
-(Platform-side storage-posture admission; the Nimi-mediated data root
-tree this surface resolves against) and `P-PERM-011` (Platform-side
-qualifier semantics for `file.read.scoped` / `file.write.scoped` with
-`qualifier: app-local-drafts`). The Runtime-side enforcement of the
-qualifier semantics is THIS rule; the Platform-side admission of the
-qualifier and root binding is `P-PERM-011`. The two rules are
-intentionally parallel; neither redefines the other.
-
-**Deferral acknowledgement (not admitted here).** Cross-app file
-access — a method call from app A resolving into
-`<nimi_data>/apps/<other_app_id>/` belonging to app B — remains
-deferred to a future sub-topic via the `P-PERM-006` cross-app
-authorization flow with explicit user confirmation at access time.
-This rule does NOT admit cross-app file access; every cross-app path
-attempt on the admitted five-method surface fails closed with
-`out_of_data_root` until that future sub-topic admits the typed
-cross-app flow shape on this surface.
-
-`MUST NOT`. The Runtime-mediated file-API surface MUST NOT silently
-remap an escaping path to a permitted neighbor inside the root. The
-fail-closed behavior is `out_of_data_root`, not a remapped success.
-The five admitted methods MUST NOT extend their reach to
-`storage_policy_ref.kind: app-owned-os-storage` admissions
-(`P-NAPP-027` / `P-NAPP-028`); on app-owned-os-storage admissions the
-app uses OS-level file IO directly, and `K-APP-018` 's surface does
-not mediate that path. Surface MUST NOT collapse the five typed
-methods into a generic "file op" call; each method is an admitted
-contract face.
+A Runtime-mediated file API cannot be admitted unless the same authority
+change updates `K-APP-001`, `rpc-methods.yaml`,
+`proto/runtime/v1/app.proto`, the Runtime implementation, SDK projection,
+and consumer tests together. A rule body outside `K-APP-001` MUST NOT
+amend the service method set by implication.
 
 ## K-APP-019 AppHealth Typed Diagnostic Projection
 
@@ -479,10 +420,10 @@ producing a typed sub-state:
 
 The eight dimension names (`integrity`, `runtime`,
 `nimi_api_permissions`, `storage`, `publisher_disclosed_network`,
-`data`, `review`, `response`) are exactly the eight names the parent
-topic 's wave-3 health surface enumerates. Each dimension produces
-exactly one typed sub-state per `AppHealth` projection emission; the
-sub-state vocabulary above is the admitted enum for that dimension.
+`data`, `review`, `response`) are exactly the eight names admitted by
+this rule. Each dimension produces exactly one typed sub-state per
+`AppHealth` projection emission; the sub-state vocabulary above is the
+admitted enum for that dimension.
 
 **Disambiguation from `P-NAPP-008`.** `P-NAPP-008` at
 `.nimi/spec/platform/kernel/nimi-app-admission-contract.md:103-118`
@@ -567,8 +508,7 @@ projection ("the app is OK on the eight admitted dimensions"); this
 absence is the typed default and is not itself one of `P-NAPP-008` 's
 admitted degraded states.
 
-**Carry-forward from wave-A2 typed-reason reuse note.** The wave-A2
-typed reason `os_storage_disclosure_missing` (`P-NAPP-028` at
+The typed reason `os_storage_disclosure_missing` (`P-NAPP-028` at
 `.nimi/spec/platform/kernel/nimi-app-admission-contract.md` MUST NOT
 clause) covers both "missing under app-owned-os-storage" and
 "populated under nimi-mediated-default" admission-time invariants.
@@ -577,7 +517,7 @@ projection time for the app-owned-os-storage branch; the projection
 layer MUST surface a differentiated user message between
 "disclosure missing" and "disclosure cross-populated" cases using
 typed message text (the typed reason itself is shared by admission
-intent — this rule does not invent a new typed reason in wave-C).
+intent; this rule does not invent a new typed reason).
 
 `MUST NOT`. `K-APP-019` MUST NOT redefine `P-NAPP-008` 's overall
 state set; this rule cross-references `P-NAPP-008` and admits the
@@ -595,36 +535,33 @@ surface exactly the following typed fields:
 | Field | Type | Semantics |
 |---|---|---|
 | `kill_switch_active` | bool | projects from `P-ECO-004` `kill-switched` review-state — true when the app 's admitted descriptor 's `review.decision` (`P-NAPP-025`) or the registry row 's runtime kill-switch posture resolves to `kill-switched` |
-| `forced_update_required` | bool | true when the parent topic containment-and-response forced-update / remediation mechanism has been engaged and a remediated version is required before next launch |
+| `forced_update_required` | bool | true when Runtime response-state policy resolves that the active descriptor requires a remediated version before next launch |
 | `rollback_available` | bool | true when a previous admitted release descriptor remains eligible per the descriptor 's `rollback_eligibility` (`P-NAPP-018`) and is materializable |
-| `publisher_suspended` | bool | true when the publisher namespace is under suspension per the parent topic containment-and-response publisher-suspension mechanism |
-| `report_received` | uint32 (typed-counted) | typed monotonic counter of post-release community reports received against this descriptor; `0` is "no report"; a non-zero count indicates the community report route has delivered at least one report and is the support-UX entry into report-driven detection |
+| `publisher_suspended` | bool | true when Runtime response-state policy resolves that the publisher namespace is suspended for app launch/support purposes |
+| `report_received` | uint32 (typed-counted) | typed monotonic counter of post-release community reports received against this descriptor; `0` is "no report"; a non-zero count indicates the admitted report aggregate has delivered at least one report and is the support-UX entry into report-driven detection |
 
 Apps consume this projection. The Apps surface MUST NOT compute these
 typed fields from raw data (raw review-state polling, raw descriptor
 diffing, raw publisher-status fetches); Runtime owns the projection
 and Apps reads it as typed truth.
 
-`MUST` (cross-references). `K-APP-020` cross-references `P-ECO-004`
-(`kill-switched` review-state at
-`.nimi/spec/platform/kernel/nimi-ecosystem-contract.md:48-67`; the
-projection 's `kill_switch_active` is the runtime-side projection of
-that admitted state) and the parent topic containment-and-response
-mechanisms (kill-switch, forced-update, rollback, publisher-
-suspension, community-report route) at
-`.nimi/topics/ongoing/2026-05-22-nimi-apps-third-party-distribution-and-admission/containment-and-response.md`.
-`K-APP-020` does NOT redefine any `P-ECO-004` state or any parent
-topic containment-and-response mechanism; it projects them.
+`MUST` (source posture). `K-APP-020` cross-references `P-ECO-004`
+for `kill-switched` review-state and `P-NAPP-018` for
+`rollback_eligibility`. The remaining response-state policy inputs
+(`forced_update_required`, `publisher_suspended`, `report_received`)
+are Runtime projection inputs for this rule and must be resolved as
+typed evidence before Runtime emits them. Runtime MUST NOT derive one
+response field from another or from topic lifecycle reports.
 
 `MUST NOT`. `K-APP-020` MUST NOT extend the five-field set above
-under this rule; the typed field set is closed at wave-C admission.
-A new response-state field is a separate authority-bearing
+under this rule; the typed field set is closed. A new response-state
+field is a separate authority-bearing
 admission event. `K-APP-020` MUST NOT silently coerce one typed
 field 's value from another (e.g. inferring
 `forced_update_required: true` from `kill_switch_active: true`); the
 five fields are orthogonal projections. The Apps surface MUST NOT
-read raw P-ECO / containment-and-response state directly to compute
-these fields; the projection seam is `K-APP-020`.
+read raw P-ECO, descriptor, publisher, report, or topic state directly
+to compute these fields; the projection seam is `K-APP-020`.
 
 ## K-APP-021 Support Next-Action Mapping
 
@@ -735,11 +672,8 @@ semantics in the disambiguation clause above. The Support surface
 MUST NOT skip the mapping table and infer a next-action from prose;
 the typed table is the contract face.
 
-> 实现注记：`K-APP-018` 五方法的 `proto/runtime/v1/app.proto` 物化与
-> `K-APP-019` / `K-APP-020` typed projection 物化随后续 Runtime app
-> 实现 wave 落地；本组规则是其 normative 契约面。`K-APP-019` derivation
-> table 与 `K-APP-021` state-to-action mapping table 是 packet-time
-> frozen，不接受 free-form 投影层重新解释。
+`K-APP-019` derivation table 与 `K-APP-021` state-to-action mapping
+table 是 closed contract faces，不接受 free-form 投影层重新解释。
 
 ## K-APP-022 App Storage Truth Projection
 

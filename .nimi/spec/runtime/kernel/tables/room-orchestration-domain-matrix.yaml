@@ -338,6 +338,6 @@ rows:
 governance:
   source_rule: K-AGCORE-118
   required_cells_deferred: forbidden
-  wave_2_first_definition: forbidden
+  unadmitted_domain_first_definition: forbidden
   domain_private_scheduler: forbidden
   direct_domain_commit: forbidden

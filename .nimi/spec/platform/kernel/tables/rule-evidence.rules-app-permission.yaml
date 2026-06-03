@@ -80,7 +80,7 @@ rules:
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; first-party seed grant set enforcement requires Wave 5 first-party app integration consumer validation
+    evidence_scope_note: structural only; first-party seed grant set enforcement requires first-party app integration consumer validation
   - rule_id: P-PERM-010
     evidence_refs:
       - platform_kernel_consistency
@@ -90,4 +90,4 @@ rules:
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; app-local-drafts qualifier semantics enforcement is `P-NAPP-027` storage posture admission and Runtime `K-APP-018` file-API surface consumer validation
+    evidence_scope_note: structural only; app-local-drafts qualifier semantics are admitted, while Runtime `K-APP-018` and SDK `S-APP-014` currently record file-API/client non-admission

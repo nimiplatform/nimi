@@ -7,14 +7,13 @@ description: >
   Avatar. Each ontology-admitted activity declares BOTH `live2d` AND `vrm`
   routes (drift check: partial entries fail validator).
 
-  Wave 0 admit (topic 2026-04-30-avatar-vrm-backend-branch, design-04):
-  v2 schema replaces the v1 Live2D-only motion-group naming convention
+  This schema replaces the retired Live2D-only motion-group naming convention
   table. The Live2D `motion_group` naming convention itself is preserved
   in §naming_rule for default-fallback lookup behavior; the per-activity
   routing below is the primary authority.
 
-  Wave 0 of topic 2026-05-01-avatar-apml-auto-adapter supersedes `.vrma`
-  fallback semantics for APML auto-adapter runtime support. Generated motion
+  Generated motion provider authority supersedes `.vrma` fallback semantics
+  for APML auto-adapter runtime support. Generated motion
   provider routes are governed by generated-motion-routes.yaml. The initial
   generated route set is `idle_subtle / listen_lean / nod_yes / shake_no /
   greet_wave`. The vrm-motion-presets.yaml registry is interchange-only
@@ -57,7 +56,7 @@ activities: &avatar_activity_backend_projection_surfaces
     live2d:
       motion_group: tap_head
     vrm:
-      motion: idle_subtle    # wave_0 fallback; wave_3 切到 wave_hello
+      motion: idle_subtle
       emotion: happy
       fade: 0.3
   agree:
@@ -82,7 +81,7 @@ activities: &avatar_activity_backend_projection_surfaces
     live2d:
       motion_group: idle
     vrm:
-      motion: idle_subtle    # wave_0 fallback; wave_3 切到 think_chin_touch
+      motion: idle_subtle
       fade: 0.4
 
   # ── state (no intensity) ──
@@ -96,7 +95,7 @@ activities: &avatar_activity_backend_projection_surfaces
     live2d:
       motion_group: tap_body
     vrm:
-      motion: idle_subtle    # wave_0 fallback; wave_3 切到 greet_wave
+      motion: idle_subtle
       emotion: excited
       fade: 0.25
   sleeping:
@@ -109,7 +108,7 @@ activities: &avatar_activity_backend_projection_surfaces
     live2d:
       motion_group: idle
     vrm:
-      motion: idle_subtle    # wave_0 fallback; wave_3 切到 think_chin_touch
+      motion: idle_subtle
       fade: 0.4
 
   # ── emotion (intensity-supported; emotion expression is the primary driver,
@@ -155,7 +154,7 @@ activities: &avatar_activity_backend_projection_surfaces
       motion_group: tap_body
     vrm:
       emotion: excited
-      motion: idle_subtle    # wave_0 fallback; wave_3 切到 greet_wave (与 celebrating 同 trigger 时机)
+      motion: idle_subtle
       fade: 0.25
   worried:
     live2d:
@@ -179,9 +178,8 @@ activities: &avatar_activity_backend_projection_surfaces
 extended_activities_passthrough:
   rule: >
     `ext:*` activities are accepted at runtime; if not declared in this
-    table, they fail-close (log warn + no projection). Wave 0 admits the
-    table without ext:* entries; ext:* admission is a follow-up topic,
-    not in this scope.
+    table, they fail-close (log warn + no projection). This table does not
+    admit ext:* entries; ext:* admission requires separate authority.
 
 custom_activities_passthrough:
   rule: >
@@ -193,8 +191,8 @@ intensity_variants:
   description: >
     Runtime typed projection may carry an intensity value
     (weak / moderate / strong).
-    Live2D Wave 0 keeps v1 intensity_suffix convention for backward
-    compat at the default-fallback layer (`Activity_Happy_Weak` /
+    Live2D keeps the retired v1 intensity_suffix convention only at the
+    default-fallback layer (`Activity_Happy_Weak` /
     `Activity_Happy_Strong`). VRM uses `applyEmotion(intensity)` to
     scale emote bundle weights (clamp 0..1).
   live2d_suffix_map:

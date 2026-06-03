@@ -65,10 +65,10 @@ Desktop/Web implementation must fail closed on:
 
 ## D-LLM-093 — Implementation Status
 
-This contract freezes the consumer hardcut plan only. Wave-2 does not require
+This contract freezes the consumer hardcut plan only. It does not require
 Desktop/Web implementation changes, SDK generated client changes, Runtime
 implementation changes, proto changes, or Realm backend changes. Future
-implementation packets must cite this contract and prove no app-local
+implementation admissions must cite this contract and prove no app-local
 participation execution truth is introduced.
 
 ## Traceability

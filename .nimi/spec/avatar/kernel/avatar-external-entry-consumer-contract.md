@@ -1,7 +1,6 @@
 # Avatar External Entry Consumer Contract
 
 > Authority: Avatar Kernel
-> Topic: `2026-05-16-avatar-external-driver-boundary`
 
 ## Scope
 

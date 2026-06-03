@@ -70,6 +70,12 @@ Desktop E2E 只能依赖稳定 testability surface：
 - 关键 screen root、shell root、banner、nav tab、panel root、chat row 等必须有稳定 `data-testid`。
 - 不得把动态 class、CSS 链式选择器、文案文本或翻译文本作为主选择器。
 - 受控 fixture 只能注入外部边界返回，不得绕开业务 contract。
+- Desktop E2E / macOS smoke fixture overrides that can satisfy Runtime, Realm,
+  app-storage, package-readiness, auth, release, product-control, or bridge
+  responses must be compiled only under `cfg(test)` or an explicit test Cargo
+  feature. Default and production Desktop builds must not read
+  `NIMI_E2E_FIXTURE_PATH`, install Runtime override hooks, forward fixture env
+  to child processes, or return fixture-backed authority projections.
 
 ## D-GATE-060 OS Matrix Gate
 

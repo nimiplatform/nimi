@@ -1,0 +1,221 @@
+id: nimicoding.runtime-rpc-migration-map.methods-identity-app.v1
+kind: runtime-rpc-migration-map-shard
+parent: runtime_rpc_design_proto_mapping
+version: 1
+generated: false
+table_family: protocol_surface
+owner: runtime
+protocol_id: runtime_rpc_design_proto_mapping
+services:
+  - RuntimeAuthService
+  - RuntimeGrantService
+  - RuntimeExternalAgentService
+  - RuntimeAccountService
+  - RuntimeAppService
+method_count: 41
+method_mappings:
+  - design_service: RuntimeAuthService
+    design_method: RegisterApp
+    proto_service: RuntimeAuthService
+    proto_method: RegisterApp
+    mapping_posture: aligned
+  - design_service: RuntimeAuthService
+    design_method: OpenSession
+    proto_service: RuntimeAuthService
+    proto_method: OpenSession
+    mapping_posture: aligned
+  - design_service: RuntimeAuthService
+    design_method: RefreshSession
+    proto_service: RuntimeAuthService
+    proto_method: RefreshSession
+    mapping_posture: aligned
+  - design_service: RuntimeAuthService
+    design_method: RevokeSession
+    proto_service: RuntimeAuthService
+    proto_method: RevokeSession
+    mapping_posture: aligned
+  - design_service: RuntimeAuthService
+    design_method: RegisterExternalPrincipal
+    proto_service: RuntimeAuthService
+    proto_method: RegisterExternalPrincipal
+    mapping_posture: aligned
+  - design_service: RuntimeAuthService
+    design_method: OpenExternalPrincipalSession
+    proto_service: RuntimeAuthService
+    proto_method: OpenExternalPrincipalSession
+    mapping_posture: aligned
+  - design_service: RuntimeAuthService
+    design_method: RevokeExternalPrincipalSession
+    proto_service: RuntimeAuthService
+    proto_method: RevokeExternalPrincipalSession
+    mapping_posture: aligned
+  - design_service: RuntimeGrantService
+    design_method: AuthorizeExternalPrincipal
+    proto_service: RuntimeGrantService
+    proto_method: AuthorizeExternalPrincipal
+    mapping_posture: aligned
+  - design_service: RuntimeGrantService
+    design_method: ValidateAppAccessToken
+    proto_service: RuntimeGrantService
+    proto_method: ValidateAppAccessToken
+    mapping_posture: aligned
+  - design_service: RuntimeGrantService
+    design_method: RevokeAppAccessToken
+    proto_service: RuntimeGrantService
+    proto_method: RevokeAppAccessToken
+    mapping_posture: aligned
+  - design_service: RuntimeGrantService
+    design_method: IssueDelegatedAccessToken
+    proto_service: RuntimeGrantService
+    proto_method: IssueDelegatedAccessToken
+    mapping_posture: aligned
+  - design_service: RuntimeGrantService
+    design_method: ListTokenChain
+    proto_service: RuntimeGrantService
+    proto_method: ListTokenChain
+    mapping_posture: aligned
+  - design_service: RuntimeExternalAgentService
+    design_method: GetExternalAgentGatewayStatus
+    proto_service: RuntimeExternalAgentService
+    proto_method: GetExternalAgentGatewayStatus
+    mapping_posture: aligned
+  - design_service: RuntimeExternalAgentService
+    design_method: IssueExternalAgentToken
+    proto_service: RuntimeExternalAgentService
+    proto_method: IssueExternalAgentToken
+    mapping_posture: aligned
+  - design_service: RuntimeExternalAgentService
+    design_method: RevokeExternalAgentToken
+    proto_service: RuntimeExternalAgentService
+    proto_method: RevokeExternalAgentToken
+    mapping_posture: aligned
+  - design_service: RuntimeExternalAgentService
+    design_method: ListExternalAgentTokens
+    proto_service: RuntimeExternalAgentService
+    proto_method: ListExternalAgentTokens
+    mapping_posture: aligned
+  - design_service: RuntimeAccountService
+    design_method: GetAccountSessionStatus
+    proto_service: RuntimeAccountService
+    proto_method: GetAccountSessionStatus
+    mapping_posture: aligned
+  - design_service: RuntimeAccountService
+    design_method: SubscribeAccountSessionEvents
+    proto_service: RuntimeAccountService
+    proto_method: SubscribeAccountSessionEvents
+    mapping_posture: aligned
+  - design_service: RuntimeAccountService
+    design_method: BeginLogin
+    proto_service: RuntimeAccountService
+    proto_method: BeginLogin
+    mapping_posture: aligned
+  - design_service: RuntimeAccountService
+    design_method: CompleteLogin
+    proto_service: RuntimeAccountService
+    proto_method: CompleteLogin
+    mapping_posture: aligned
+  - design_service: RuntimeAccountService
+    design_method: GetAccessToken
+    proto_service: RuntimeAccountService
+    proto_method: GetAccessToken
+    mapping_posture: aligned
+  - design_service: RuntimeAccountService
+    design_method: RefreshAccountSession
+    proto_service: RuntimeAccountService
+    proto_method: RefreshAccountSession
+    mapping_posture: aligned
+  - design_service: RuntimeAccountService
+    design_method: Logout
+    proto_service: RuntimeAccountService
+    proto_method: Logout
+    mapping_posture: aligned
+  - design_service: RuntimeAccountService
+    design_method: SwitchAccount
+    proto_service: RuntimeAccountService
+    proto_method: SwitchAccount
+    mapping_posture: aligned
+  - design_service: RuntimeAccountService
+    design_method: IssueScopedAppBinding
+    proto_service: RuntimeAccountService
+    proto_method: IssueScopedAppBinding
+    mapping_posture: aligned
+  - design_service: RuntimeAccountService
+    design_method: RevokeScopedAppBinding
+    proto_service: RuntimeAccountService
+    proto_method: RevokeScopedAppBinding
+    mapping_posture: aligned
+  - design_service: RuntimeAccountService
+    design_method: IssueWorkspaceBinding
+    proto_service: RuntimeAccountService
+    proto_method: IssueWorkspaceBinding
+    mapping_posture: aligned
+  - design_service: RuntimeAccountService
+    design_method: RevokeWorkspaceBinding
+    proto_service: RuntimeAccountService
+    proto_method: RevokeWorkspaceBinding
+    mapping_posture: aligned
+  - design_service: RuntimeAppService
+    design_method: SendAppMessage
+    proto_service: RuntimeAppService
+    proto_method: SendAppMessage
+    mapping_posture: aligned
+  - design_service: RuntimeAppService
+    design_method: SubscribeAppMessages
+    proto_service: RuntimeAppService
+    proto_method: SubscribeAppMessages
+    mapping_posture: aligned
+  - design_service: RuntimeAppService
+    design_method: InstallApp
+    proto_service: RuntimeAppService
+    proto_method: InstallApp
+    mapping_posture: aligned
+  - design_service: RuntimeAppService
+    design_method: UninstallApp
+    proto_service: RuntimeAppService
+    proto_method: UninstallApp
+    mapping_posture: aligned
+  - design_service: RuntimeAppService
+    design_method: GetAppStorage
+    proto_service: RuntimeAppService
+    proto_method: GetAppStorage
+    mapping_posture: aligned
+  - design_service: RuntimeAppService
+    design_method: GetAccountAppLibrary
+    proto_service: RuntimeAppService
+    proto_method: GetAccountAppLibrary
+    mapping_posture: aligned
+  - design_service: RuntimeAppService
+    design_method: GetAppPackageReadiness
+    proto_service: RuntimeAppService
+    proto_method: GetAppPackageReadiness
+    mapping_posture: aligned
+  - design_service: RuntimeAppService
+    design_method: GetAppInstallJob
+    proto_service: RuntimeAppService
+    proto_method: GetAppInstallJob
+    mapping_posture: aligned
+  - design_service: RuntimeAppService
+    design_method: ListAppInstallJobs
+    proto_service: RuntimeAppService
+    proto_method: ListAppInstallJobs
+    mapping_posture: aligned
+  - design_service: RuntimeAppService
+    design_method: WatchAppInstallJobEvents
+    proto_service: RuntimeAppService
+    proto_method: WatchAppInstallJobEvents
+    mapping_posture: aligned
+  - design_service: RuntimeAppService
+    design_method: UpdateApp
+    proto_service: RuntimeAppService
+    proto_method: UpdateApp
+    mapping_posture: aligned
+  - design_service: RuntimeAppService
+    design_method: HealthRepairApp
+    proto_service: RuntimeAppService
+    proto_method: HealthRepairApp
+    mapping_posture: aligned
+  - design_service: RuntimeAppService
+    design_method: OpenApp
+    proto_service: RuntimeAppService
+    proto_method: OpenApp
+    mapping_posture: aligned

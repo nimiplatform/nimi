@@ -20,9 +20,14 @@ typed facade，用于把 provider browser/device-code flow 收敛出 Desktop ren
 - Runtime 不新增 `AcquireManagedCredential`、`BeginProviderOAuth`、
   `RefreshManagedCredential` 或等价 connector RPC；`K-RPC-003` 的 ConnectorService
   method freeze 继续有效。
-- facade 必须通过 adapter 注入 host primitives：browser open、provider network /
-  proxy fetch、authorization-code token exchange、sleep/time source、以及 Runtime
-  connector create/update client。
+- facade 必须通过 adapter 注入 host primitives：browser open、profile-scoped
+  provider network request、authorization-code token exchange、sleep/time
+  source、以及 Runtime connector create/update client。
+- provider network request 必须携带 `profileId` 和 purpose
+  (`device_authorization` / `device_token`)；host 必须 fail closed，且只能放行
+  `tables/connector-auth-acquisition-profiles.yaml` 为该 profile 生成的 exact
+  endpoint。SDK 不得要求 host 暴露 arbitrary provider proxy / generic CORS
+  bypass。
 - SDK 不得 import Desktop、Tauri、renderer bridge、或 provider UI component。
 - host adapter 返回的 sealed credential payload 只能经 existing Runtime
   `CreateConnector` / `UpdateConnector` write path 写入；不得建立第二条 credential

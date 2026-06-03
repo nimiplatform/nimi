@@ -190,4 +190,4 @@ internal resolver, or convert workspace binding into Realm REST credentials.
 
 Machine-readable workspace binding relation, decision, and scope facts must be
 kept in `tables/workspace-binding-relation.yaml` and consumed by runtime
-spec-derived docs before implementation waves begin.
+spec-derived docs before implementation begins.

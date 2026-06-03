@@ -1,12 +1,11 @@
 # SDK Runtime Avatar Control Client Contract
 
 > Owner Domain: `S-RUNTIME-*`
-> Topic: `2026-05-01-desktop-avatar-configuration-debug-workbench`
 
 ## S-RUNTIME-112 Avatar Control Client Boundary
 
 SDK may expose Avatar configuration and debug workbench APIs only as typed
-clients for Desktop, Runtime, and Avatar contracts admitted by this topic.
+clients for the referenced Desktop, Runtime, and Avatar authority contracts.
 
 SDK does not own configuration semantics, probe semantics, backend execution,
 or replay truth.
@@ -42,8 +41,8 @@ probe result status remains the public diagnostic status.
 Admitted SDK method names are pinned by
 `tables/runtime-avatar-control-methods.yaml`.
 
-Until later implementation waves close, these names are contract targets only
-and must not be reported as production support.
+Until implementation and test gates exist, these names are contract targets
+only and must not be reported as production support.
 
 ## S-RUNTIME-117 Type Escape Prohibition
 

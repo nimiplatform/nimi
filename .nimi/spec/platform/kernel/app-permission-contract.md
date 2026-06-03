@@ -75,7 +75,8 @@ Runtime 拥有 local audit 写入；两者不得互相替代。
 ## P-PERM-005 — Fail-Closed Denial State Machine
 
 `MUST`：缺少 grant、grant `expired`、grant `revoked`、当前 trust tier 低
-于 scope 要求（参见 `nimi-app-trust-tiers.yaml` 与 Wave 6 expansion）、
+于 scope 要求（参见 `nimi-app-trust-tiers.yaml` 与 ecosystem expansion
+authority）、
 scope 不在 `P-PERM-002` 枚举集合中，皆必须 `denied`。
 
 `MUST NOT`：缺少 grant 时不得静默 allow；请求失败时不得跳过 audit。
@@ -103,8 +104,8 @@ filesystem、socket 等私有 channel 实现 cross-app 数据访问。
 ```
 
 `tables/nimi-app-registry.yaml` 的 `permission_scope_ref` 必须解析到该
-schema；Wave 3 `pending_wave_4` 占位字符串在 Wave 4 close 后必须全部替
-换为 typed object 列表。
+schema；`permission_fabric_pending` 是 permission fabric 尚未 admit 具体
+scope set 时的 fail-closed 状态，不能被应用当作 granted scope。
 
 ## P-PERM-008 — Spend Metering
 
@@ -116,7 +117,7 @@ schema；Wave 3 `pending_wave_4` 占位字符串在 Wave 4 close 后必须全部
 
 ## P-PERM-009 — First-Party Seed Grant Set
 
-`MUST`：Wave 5 first-party target 的 grant set admitted 如下：
+`MUST`：Avatar first-party target 的 grant set admitted 如下：
 
 - `nimi.avatar`：`account.session.read`, `agent.identity.project`,
   `memory.read.bounded` (qualifier=persona-scoped),
@@ -124,7 +125,7 @@ schema；Wave 3 `pending_wave_4` 占位字符串在 Wave 4 close 后必须全部
   `ai.spend.meter`, `device.use.scoped`, `file.read.scoped`,
   `ai_profile.selection.consume`。
 `MUST NOT`：first-party seed grant 不得 admit 超出本枚举的 scope；
-Avatar Wave 5 集成仍受 Avatar 产品化 master gate 约束。
+Avatar 集成仍受 Avatar 产品化 master gate 约束。
 
 ## P-PERM-010 — Cross-Kernel Backend Retention
 
@@ -142,21 +143,21 @@ Avatar Wave 5 集成仍受 Avatar 产品化 master gate 约束。
 
 ## P-PERM-011 — App-Local-Drafts Qualifier Semantics
 
-`MUST`：when an app invokes a Nimi-mediated file scope —
+`MUST`：when a product reviews or projects a Nimi-mediated file scope —
 `file.read.scoped` or `file.write.scoped` per the `P-PERM-002` closed
-enum — with `qualifier: app-local-drafts`, the call MUST resolve
-relative to the calling app's data root:
+enum — with `qualifier: app-local-drafts`, the qualifier denotes the
+calling app's data root:
 
 ```text
 <nimi_data>/apps/<app_id>/
 ```
 
 where `<app_id>` is the calling app's admitted Nimi App registry row
-`app_id` (`P-NAPP-002`). Any Nimi-mediated SDK or Runtime file API
-attempt to resolve a path outside this root — including paths
-escaping via parent traversal, absolute paths leaving the root, or
-paths into another app's root `<nimi_data>/apps/<other_app_id>/` —
-MUST fail closed with typed reason `out_of_data_root`.
+`app_id` (`P-NAPP-002`).
+
+This qualifier is permission-review and scope-expression semantics only.
+It does not by itself admit a Runtime-mediated file API, SDK file client,
+Desktop bridge helper, Realm REST path, or direct filesystem operation.
 
 `MUST`：the calling app's data root admitted by this rule is the
 same Nimi-owned data root admitted by `P-NAPP-015` and bound to
@@ -167,35 +168,26 @@ that admitted root; it does not introduce a parallel root.
 `MUST NOT`：the closed `P-PERM-002` scope enum MUST NOT be extended
 under this rule. `P-PERM-011` admits qualifier semantics for the
 already-admitted `file.read.scoped` and `file.write.scoped` scopes
-ONLY; it does not admit a new scope. Any future scope admission is
-a separate authority-bearing change to `P-PERM-002`.
+ONLY; it does not admit a new scope. Additional scope admission is a
+separate authority-bearing change to `P-PERM-002`.
 
-`MUST NOT`：the Nimi-mediated file API surface MUST NOT silently
-allow a resolved path that escapes the admitted root. Heuristic
-"close enough" path resolution, symbolic-link traversal that crosses
-out of the root, or any fallback that maps an escaping path to a
-permitted neighbor inside the root is forbidden; the fail-closed
-behavior is `out_of_data_root`, not a remapped success.
+`MUST NOT`：no consumer may treat this qualifier as permission to
+silently allow a path that escapes the admitted root. Parent traversal,
+absolute paths leaving the root, paths into another app's root
+`<nimi_data>/apps/<other_app_id>/`, symbolic-link traversal that
+crosses out of the root, heuristic "close enough" path resolution, and
+fallback remapping are all forbidden. If a callable Nimi-mediated file
+surface is admitted by its execution owner, escape attempts MUST fail
+closed with typed reason `out_of_data_root`.
 
-**Forward-reference posture (legitimate)**：the Runtime-side
-enforcement seam for this qualifier is `K-APP-018` in
-`.nimi/spec/runtime/kernel/app-messaging-contract.md` (wave-C
-admission of the Runtime-mediated file-API surface plus its typed
-`out_of_data_root` invariant). The forward reference is legitimate
-because rule IDs are frozen in the ST-L0-1 plan's wave-A1 packet
-across all six waves before any worker writes spec text;
-`K-APP-018` is the allocated wave-C rule ID for the Runtime-side
-file-API admission. The SDK projection seam is `S-APP-*` /
-`S-PERM-*` in `.nimi/spec/sdk/kernel/` (wave-E).
+`MUST NOT`：cross-app file access is not admitted by this rule. A path
+resolving into `<nimi_data>/apps/<other_app_id>/` is not made valid by
+declaring `qualifier: app-local-drafts`.
 
-**Deferral acknowledgement (not admitted here)**：cross-app file
-access — a path resolving into `<nimi_data>/apps/<other_app_id>/` —
-remains deferred to a future sub-topic via the `P-PERM-006`
-cross-app authorization flow with explicit user confirmation at
-access time. This rule does NOT admit the cross-app flow; it
-acknowledges the deferral and treats every cross-app path as
-`out_of_data_root` until that future sub-topic admits the typed
-flow shape.
+Cross-references: `K-APP-018` records the current Runtime-mediated
+file-API non-admission; `S-APP-014` records the current SDK file-client
+non-admission. This Platform rule keeps the qualifier semantics but does
+not admit an execution surface.
 
 ## Fact Sources
 
@@ -209,5 +201,3 @@ flow shape.
 - `.nimi/spec/cognition/kernel/app-memory-access-contract.md` — `C-APMEM-001..C-APMEM-008`
 - `.nimi/spec/sdk/kernel/nimi-permission-client-contract.md` — `S-PERM-001..S-PERM-008`
 - `.nimi/spec/runtime/kernel/local-engine-contract.md` — `K-LENG-024..K-LENG-028`
-- `.nimi/topics/closed/2026-05-17-nimi-home-platform-entry-redesign/authority-supersession-map.md`
-- `.nimi/topics/closed/2026-05-17-nimi-home-platform-entry-redesign/agent-identity-primitive-floor.md`

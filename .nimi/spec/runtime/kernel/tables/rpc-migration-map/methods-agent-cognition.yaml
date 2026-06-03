@@ -1,0 +1,378 @@
+id: nimicoding.runtime-rpc-migration-map.methods-agent-cognition.v1
+kind: runtime-rpc-migration-map-shard
+parent: runtime_rpc_design_proto_mapping
+version: 1
+generated: false
+table_family: protocol_surface
+owner: runtime
+protocol_id: runtime_rpc_design_proto_mapping
+services:
+  - RuntimeCognitionService
+  - RuntimeAgentService
+method_count: 73
+method_mappings:
+  - design_service: RuntimeCognitionService
+    design_method: CreateKnowledgeBank
+    proto_service: RuntimeCognitionService
+    proto_method: CreateKnowledgeBank
+    mapping_posture: aligned
+  - design_service: RuntimeCognitionService
+    design_method: GetKnowledgeBank
+    proto_service: RuntimeCognitionService
+    proto_method: GetKnowledgeBank
+    mapping_posture: aligned
+  - design_service: RuntimeCognitionService
+    design_method: ListKnowledgeBanks
+    proto_service: RuntimeCognitionService
+    proto_method: ListKnowledgeBanks
+    mapping_posture: aligned
+  - design_service: RuntimeCognitionService
+    design_method: DeleteKnowledgeBank
+    proto_service: RuntimeCognitionService
+    proto_method: DeleteKnowledgeBank
+    mapping_posture: aligned
+  - design_service: RuntimeCognitionService
+    design_method: PutPage
+    proto_service: RuntimeCognitionService
+    proto_method: PutPage
+    mapping_posture: aligned
+  - design_service: RuntimeCognitionService
+    design_method: GetPage
+    proto_service: RuntimeCognitionService
+    proto_method: GetPage
+    mapping_posture: aligned
+  - design_service: RuntimeCognitionService
+    design_method: ListPages
+    proto_service: RuntimeCognitionService
+    proto_method: ListPages
+    mapping_posture: aligned
+  - design_service: RuntimeCognitionService
+    design_method: DeletePage
+    proto_service: RuntimeCognitionService
+    proto_method: DeletePage
+    mapping_posture: aligned
+  - design_service: RuntimeCognitionService
+    design_method: SearchKeyword
+    proto_service: RuntimeCognitionService
+    proto_method: SearchKeyword
+    mapping_posture: aligned
+  - design_service: RuntimeCognitionService
+    design_method: SearchHybrid
+    proto_service: RuntimeCognitionService
+    proto_method: SearchHybrid
+    mapping_posture: aligned
+  - design_service: RuntimeCognitionService
+    design_method: AddLink
+    proto_service: RuntimeCognitionService
+    proto_method: AddLink
+    mapping_posture: aligned
+  - design_service: RuntimeCognitionService
+    design_method: RemoveLink
+    proto_service: RuntimeCognitionService
+    proto_method: RemoveLink
+    mapping_posture: aligned
+  - design_service: RuntimeCognitionService
+    design_method: ListLinks
+    proto_service: RuntimeCognitionService
+    proto_method: ListLinks
+    mapping_posture: aligned
+  - design_service: RuntimeCognitionService
+    design_method: ListBacklinks
+    proto_service: RuntimeCognitionService
+    proto_method: ListBacklinks
+    mapping_posture: aligned
+  - design_service: RuntimeCognitionService
+    design_method: TraverseGraph
+    proto_service: RuntimeCognitionService
+    proto_method: TraverseGraph
+    mapping_posture: aligned
+  - design_service: RuntimeCognitionService
+    design_method: IngestDocument
+    proto_service: RuntimeCognitionService
+    proto_method: IngestDocument
+    mapping_posture: aligned
+  - design_service: RuntimeCognitionService
+    design_method: GetIngestTask
+    proto_service: RuntimeCognitionService
+    proto_method: GetIngestTask
+    mapping_posture: aligned
+  - design_service: RuntimeCognitionService
+    design_method: CreateBank
+    proto_service: RuntimeCognitionService
+    proto_method: CreateBank
+    mapping_posture: aligned
+  - design_service: RuntimeCognitionService
+    design_method: GetBank
+    proto_service: RuntimeCognitionService
+    proto_method: GetBank
+    mapping_posture: aligned
+  - design_service: RuntimeCognitionService
+    design_method: ListBanks
+    proto_service: RuntimeCognitionService
+    proto_method: ListBanks
+    mapping_posture: aligned
+  - design_service: RuntimeCognitionService
+    design_method: DeleteBank
+    proto_service: RuntimeCognitionService
+    proto_method: DeleteBank
+    mapping_posture: aligned
+  - design_service: RuntimeCognitionService
+    design_method: Retain
+    proto_service: RuntimeCognitionService
+    proto_method: Retain
+    mapping_posture: aligned
+  - design_service: RuntimeCognitionService
+    design_method: Recall
+    proto_service: RuntimeCognitionService
+    proto_method: Recall
+    mapping_posture: aligned
+  - design_service: RuntimeCognitionService
+    design_method: History
+    proto_service: RuntimeCognitionService
+    proto_method: History
+    mapping_posture: aligned
+  - design_service: RuntimeCognitionService
+    design_method: DeleteMemory
+    proto_service: RuntimeCognitionService
+    proto_method: DeleteMemory
+    mapping_posture: aligned
+  - design_service: RuntimeCognitionService
+    design_method: SubscribeMemoryEvents
+    proto_service: RuntimeCognitionService
+    proto_method: SubscribeMemoryEvents
+    mapping_posture: aligned
+  - design_service: RuntimeCognitionService
+    design_method: GetMemoryEmbeddingRuntimeIntent
+    proto_service: RuntimeCognitionService
+    proto_method: GetMemoryEmbeddingRuntimeIntent
+    mapping_posture: aligned
+  - design_service: RuntimeCognitionService
+    design_method: SetMemoryEmbeddingRuntimeIntent
+    proto_service: RuntimeCognitionService
+    proto_method: SetMemoryEmbeddingRuntimeIntent
+    mapping_posture: aligned
+  - design_service: RuntimeCognitionService
+    design_method: InspectMemoryEmbeddingRuntime
+    proto_service: RuntimeCognitionService
+    proto_method: InspectMemoryEmbeddingRuntime
+    mapping_posture: aligned
+  - design_service: RuntimeCognitionService
+    design_method: RequestMemoryEmbeddingRuntimeBind
+    proto_service: RuntimeCognitionService
+    proto_method: RequestMemoryEmbeddingRuntimeBind
+    mapping_posture: aligned
+  - design_service: RuntimeCognitionService
+    design_method: RequestMemoryEmbeddingRuntimeCutover
+    proto_service: RuntimeCognitionService
+    proto_method: RequestMemoryEmbeddingRuntimeCutover
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: InitializeAgent
+    proto_service: RuntimeAgentService
+    proto_method: InitializeAgent
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: TerminateAgent
+    proto_service: RuntimeAgentService
+    proto_method: TerminateAgent
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: GetAgent
+    proto_service: RuntimeAgentService
+    proto_method: GetAgent
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: ListAgents
+    proto_service: RuntimeAgentService
+    proto_method: ListAgents
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: OpenConversationAnchor
+    proto_service: RuntimeAgentService
+    proto_method: OpenConversationAnchor
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: GetConversationAnchorSnapshot
+    proto_service: RuntimeAgentService
+    proto_method: GetConversationAnchorSnapshot
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: ListAgentConversationSummaries
+    proto_service: RuntimeAgentService
+    proto_method: ListAgentConversationSummaries
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: RegisterAvatarLiveInstanceBinding
+    proto_service: RuntimeAgentService
+    proto_method: RegisterAvatarLiveInstanceBinding
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: ResolveAvatarLiveInstanceBinding
+    proto_service: RuntimeAgentService
+    proto_method: ResolveAvatarLiveInstanceBinding
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: GetPublicChatSessionSnapshot
+    proto_service: RuntimeAgentService
+    proto_method: GetPublicChatSessionSnapshot
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: GetCompanionParticipationProjection
+    proto_service: RuntimeAgentService
+    proto_method: GetCompanionParticipationProjection
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: RequestCompanionParticipation
+    proto_service: RuntimeAgentService
+    proto_method: RequestCompanionParticipation
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: CancelCompanionParticipation
+    proto_service: RuntimeAgentService
+    proto_method: CancelCompanionParticipation
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: OpenCompanionParticipationReplay
+    proto_service: RuntimeAgentService
+    proto_method: OpenCompanionParticipationReplay
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: ListDelegatedProviderProfiles
+    proto_service: RuntimeAgentService
+    proto_method: ListDelegatedProviderProfiles
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: UpsertDelegatedProviderProfile
+    proto_service: RuntimeAgentService
+    proto_method: UpsertDelegatedProviderProfile
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: SetDelegatedProviderState
+    proto_service: RuntimeAgentService
+    proto_method: SetDelegatedProviderState
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: ListDelegatedApprovalRequests
+    proto_service: RuntimeAgentService
+    proto_method: ListDelegatedApprovalRequests
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: SubmitDelegatedApprovalDecision
+    proto_service: RuntimeAgentService
+    proto_method: SubmitDelegatedApprovalDecision
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: ListDelegatedDiagnostics
+    proto_service: RuntimeAgentService
+    proto_method: ListDelegatedDiagnostics
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: GetDelegatedReplayTrace
+    proto_service: RuntimeAgentService
+    proto_method: GetDelegatedReplayTrace
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: GetDelegatedControlSurfaceSnapshot
+    proto_service: RuntimeAgentService
+    proto_method: GetDelegatedControlSurfaceSnapshot
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: ExecuteDelegatedCapability
+    proto_service: RuntimeAgentService
+    proto_method: ExecuteDelegatedCapability
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: GetAvatarDebugSnapshot
+    proto_service: RuntimeAgentService
+    proto_method: GetAvatarDebugSnapshot
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: RequestAvatarDebugProbe
+    proto_service: RuntimeAgentService
+    proto_method: RequestAvatarDebugProbe
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: ListAvatarDebugProbeResults
+    proto_service: RuntimeAgentService
+    proto_method: ListAvatarDebugProbeResults
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: GetAvatarDebugReplay
+    proto_service: RuntimeAgentService
+    proto_method: GetAvatarDebugReplay
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: GetAgentState
+    proto_service: RuntimeAgentService
+    proto_method: GetAgentState
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: UpdateAgentState
+    proto_service: RuntimeAgentService
+    proto_method: UpdateAgentState
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: EnableAutonomy
+    proto_service: RuntimeAgentService
+    proto_method: EnableAutonomy
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: DisableAutonomy
+    proto_service: RuntimeAgentService
+    proto_method: DisableAutonomy
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: SetAutonomyConfig
+    proto_service: RuntimeAgentService
+    proto_method: SetAutonomyConfig
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: ListPendingHooks
+    proto_service: RuntimeAgentService
+    proto_method: ListPendingHooks
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: CancelHook
+    proto_service: RuntimeAgentService
+    proto_method: CancelHook
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: QueryAgentMemory
+    proto_service: RuntimeAgentService
+    proto_method: QueryAgentMemory
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: WriteAgentMemory
+    proto_service: RuntimeAgentService
+    proto_method: WriteAgentMemory
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: GetAgentCanonicalMemoryBankStatus
+    proto_service: RuntimeAgentService
+    proto_method: GetAgentCanonicalMemoryBankStatus
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: RequestAgentCanonicalMemoryBankBind
+    proto_service: RuntimeAgentService
+    proto_method: RequestAgentCanonicalMemoryBankBind
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: SetAgentPresentationProfile
+    proto_service: RuntimeAgentService
+    proto_method: SetAgentPresentationProfile
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: CreateRealmGroupMessageCandidate
+    proto_service: RuntimeAgentService
+    proto_method: CreateRealmGroupMessageCandidate
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: GetRealmGroupMessageCandidateEvidence
+    proto_service: RuntimeAgentService
+    proto_method: GetRealmGroupMessageCandidateEvidence
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: SubscribeAgentEvents
+    proto_service: RuntimeAgentService
+    proto_method: SubscribeAgentEvents
+    mapping_posture: aligned

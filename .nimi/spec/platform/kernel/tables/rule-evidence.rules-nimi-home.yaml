@@ -66,7 +66,7 @@ rules:
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; behavioral guarantee that Nimi Home does not regrow product ontology requires Wave 1 hosted-shell consumer validation
+    evidence_scope_note: structural only; behavioral guarantee that Nimi Home does not regrow product ontology requires hosted-shell consumer validation
   - rule_id: P-HOME-002
     evidence_refs:
       - platform_kernel_consistency
@@ -86,32 +86,32 @@ rules:
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; runtime enforcement of no-provider/no-model constants is owned by the Wave 4 mechanical guard registered under `P-AIPS-008`
+    evidence_scope_note: structural only; runtime enforcement of no-provider/no-model constants is owned by the mechanical guard registered under `P-AIPS-008`
   - rule_id: P-HOME-006
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; Agent Chat transcript/identity/grant/memory boundaries are enforced by Wave 4 permission fabric
+    evidence_scope_note: structural only; Agent Chat transcript/identity/grant/memory boundaries are enforced by permission fabric and Cognition `C-APMEM-*` consumer validation
   - rule_id: P-HOME-007
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; mechanical guard `check:home-shell-aiscoperef-required` is Wave 1 implementation close
+    evidence_scope_note: structural only; mechanical guard `check:home-shell-aiscoperef-required` is hosted-shell consumer validation
   - rule_id: P-HOME-008
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; mechanical guard `check:home-shell-no-runtime-internal-import` is Wave 1 implementation close
+    evidence_scope_note: structural only; mechanical guard `check:home-shell-no-runtime-internal-import` is hosted-shell consumer validation
   - rule_id: P-HOME-009
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; Library/Discovery row schema enforcement is Wave 3 Nimi App registry consumer validation
+    evidence_scope_note: structural only; Library/Discovery row schema enforcement is Nimi App registry consumer validation
   - rule_id: P-HOME-010
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; first-screen content enforcement is Wave 1 hosted-shell consumer validation
+    evidence_scope_note: structural only; first-screen content enforcement is hosted-shell consumer validation
   - rule_id: P-SUPD-001
     evidence_refs:
       - platform_kernel_consistency
@@ -121,7 +121,7 @@ rules:
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; user-facing self-update UI behavior is enforced by Wave 1 hosted-shell consumer validation
+    evidence_scope_note: structural only; user-facing self-update UI behavior is enforced by hosted-shell consumer validation
   - rule_id: P-SUPD-003
     evidence_refs:
       - platform_kernel_consistency
@@ -131,7 +131,7 @@ rules:
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; app registry update boundary is enforced by Wave 3 Nimi App registry admission
+    evidence_scope_note: structural only; app registry update boundary is enforced by Nimi App registry admission
   - rule_id: P-SUPD-005
     evidence_refs:
       - platform_kernel_consistency
@@ -141,12 +141,12 @@ rules:
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; fail-closed self-update behavior is enforced by Wave 1 hosted-shell consumer validation
+    evidence_scope_note: structural only; fail-closed self-update behavior is enforced by hosted-shell consumer validation
   - rule_id: P-SUPD-007
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; existing desktop self-update supersession is recorded in `desktop-kernel-supersession-schedule.md`
+    evidence_scope_note: structural only; existing desktop self-update supersession is enforced by desktop kernel supersession consumer validation
   - rule_id: P-SUPD-008
     evidence_refs:
       - platform_kernel_consistency
@@ -156,12 +156,12 @@ rules:
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; mechanical guard `check:no-desktop-as-user-facing-name` is Wave 1 implementation close
+    evidence_scope_note: structural only; mechanical guard `check:no-desktop-as-user-facing-name` is package-release consumer validation
   - rule_id: P-PKGREL-002
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; atomic bundle identity behavior is enforced by Wave 1 packaging consumer validation
+    evidence_scope_note: structural only; atomic bundle identity behavior is enforced by packaging consumer validation
   - rule_id: P-PKGREL-003
     evidence_refs:
       - platform_kernel_consistency
@@ -181,7 +181,7 @@ rules:
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; failure projection behavior is enforced by Wave 1 hosted-shell consumer validation
+    evidence_scope_note: structural only; failure projection behavior is enforced by hosted-shell consumer validation
   - rule_id: P-PKGREL-007
     evidence_refs:
       - platform_kernel_consistency
@@ -191,17 +191,17 @@ rules:
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; no-child-wave-split rule is enforced by topic-runner closeout audit
+    evidence_scope_note: structural only; no-child-wave-split rule is enforced by owner-layer closeout validation
   - rule_id: P-COLD-001
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; fail-closed-only state set enforcement is Wave 1 hosted-shell consumer validation
+    evidence_scope_note: structural only; fail-closed-only state set enforcement is hosted-shell consumer validation
   - rule_id: P-COLD-002
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; process-start owner split is enforced by Wave 1 hosted-shell consumer validation
+    evidence_scope_note: structural only; process-start owner split is enforced by hosted-shell consumer validation
   - rule_id: P-COLD-003
     evidence_refs:
       - platform_kernel_consistency
@@ -211,7 +211,7 @@ rules:
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; account-unauthenticated owner split is enforced by Realm / Runtime / Wave 4 permission fabric consumer validation
+    evidence_scope_note: structural only; account-unauthenticated owner split is enforced by Realm / Runtime / permission fabric consumer validation
   - rule_id: P-COLD-005
     evidence_refs:
       - platform_kernel_consistency
@@ -221,7 +221,7 @@ rules:
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; AIProfile selection policy owner split is enforced by Wave 2 `P-AIPS-*` consumer validation
+    evidence_scope_note: structural only; AIProfile selection policy owner split is enforced by `P-AIPS-*` consumer validation
   - rule_id: P-COLD-007
     evidence_refs:
       - platform_kernel_consistency
@@ -236,12 +236,12 @@ rules:
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; product-local control record implementation evidence lands with first-run local baseline child topic
+    evidence_scope_note: structural only; product-local control record requires first-run local baseline consumer validation
   - rule_id: P-COLD-010
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; selected nimi_data implementation evidence lands with first-run local baseline child topic
+    evidence_scope_note: structural only; selected nimi_data requires first-run local baseline consumer validation
   - rule_id: P-COLD-011
     evidence_refs:
       - platform_kernel_consistency
@@ -251,24 +251,24 @@ rules:
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; ready entry and auth gate implementation evidence lands with Desktop primary IA child topic
+    evidence_scope_note: structural only; ready entry and auth gate require Desktop primary IA consumer validation
   - rule_id: P-COLD-013
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; Runtime config owner split implementation evidence lands with runtime config/data-root child topic
+    evidence_scope_note: structural only; Runtime config owner split requires runtime config/data-root consumer validation
   - rule_id: P-COLD-014
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; Desktop first-run workflow implementation evidence lands with product first-run state-machine child topic
+    evidence_scope_note: structural only; Desktop first-run workflow requires product first-run state-machine consumer validation
   - rule_id: P-COLD-015
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; product-control schema enforcement evidence lands with desktop_product_control focused tests
+    evidence_scope_note: structural only; product-control schema enforcement requires desktop_product_control focused tests
   - rule_id: P-COLD-016
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; backend ready admission implementation and owner ref verification land in later product-control implementation waves
+    evidence_scope_note: structural only; backend ready admission implementation and owner ref verification land in product-control implementation consumer validation

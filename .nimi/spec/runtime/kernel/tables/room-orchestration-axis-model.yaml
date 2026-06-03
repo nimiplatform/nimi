@@ -16,7 +16,7 @@ entries:
   - source_rule
   - open_string_axis_values_allowed
   - new_axis_requires_new_authority_admission
-  - wave_2_axis_first_definition
+  - unadmitted_axis_first_definition
   - runtime_participation_axis_reopen
 source_rule: K-AGCORE-109
 closed_axis_registry: true
@@ -100,5 +100,5 @@ governance:
   source_rule: K-AGCORE-118
   open_string_axis_values_allowed: false
   new_axis_requires_new_authority_admission: true
-  wave_2_axis_first_definition: forbidden
+  unadmitted_axis_first_definition: forbidden
   runtime_participation_axis_reopen: forbidden

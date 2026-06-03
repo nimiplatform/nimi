@@ -4,12 +4,12 @@ owner: platform
 catalog_id: platform_nimi_app_trust_tiers
 entries:
   - tiers_1
-  - wave 3 freezes the closed enum tier_id values nimi-first-party, nimi-verified-partner, nimi-community
-  - wave 6 expands signature_policy_ref, permission_ceiling_ref, review_posture_ref, and kill_switch_ref behavior
-  - tier_id values must remain stable; wave 6 must not rename or rotate them silently
+  - tier_id values are closed: nimi-first-party, nimi-verified-partner, nimi-community
+  - ecosystem expansion authority governs signature_policy_ref, permission_ceiling_ref, review_posture_ref, and kill_switch_ref behavior
+  - tier_id values must remain stable; no consumer may rename or rotate them silently
 
-# Canonical Nimi App trust tier enum — Wave 0 floor + Wave 3 registry consumer.
-# See nimi-app-admission-contract.md (P-NAPP-004) and trust-tier-enum-floor.md.
+# Canonical Nimi App trust tier enum.
+# See nimi-app-admission-contract.md (P-NAPP-004) and nimi-ecosystem-contract.md (P-ECO-003).
 
 tier_schema:
   owner: platform_nimi_app_trust_tiers

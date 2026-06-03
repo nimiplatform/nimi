@@ -32,21 +32,9 @@ Runtime kernel 的 RPC 覆盖范围为 admitted proto 服务与已定义的 desi
 
 ## K-RPC-002 AIService 方法集合（design 权威）
 
-`AIService` 方法固定为：
-
-1. `ExecuteScenario`
-2. `StreamScenario`
-3. `SubmitScenarioJob`
-4. `GetScenarioJob`
-5. `CancelScenarioJob`
-6. `SubscribeScenarioJobEvents`
-7. `GetScenarioArtifacts`
-8. `ListScenarioProfiles`
-9. `GetVoiceAsset`
-10. `ListVoiceAssets`
-11. `DeleteVoiceAsset`
-12. `ListPresetVoices`
-13. `UploadArtifact`
+`AIService` 的 active method inventory、method type 与 proto mapping 只由
+`tables/rpc-methods.yaml` 和 `tables/rpc-migration-map.yaml` 维护。本节只定义
+scenario family 的 RPC 语义与边界，不维护第二份方法清单。
 
 说明：
 
@@ -58,12 +46,9 @@ Runtime kernel 的 RPC 覆盖范围为 admitted proto 服务与已定义的 desi
 
 ## RuntimeAiRealtimeService 方法集合
 
-`RuntimeAiRealtimeService` 方法固定为：
-
-1. `OpenRealtimeSession`
-2. `AppendRealtimeInput`
-3. `ReadRealtimeEvents`
-4. `CloseRealtimeSession`
+`RuntimeAiRealtimeService` 的 active method inventory、method type 与 proto
+mapping 只由 `tables/rpc-methods.yaml` 和 `tables/rpc-migration-map.yaml`
+维护。本节只定义 realtime session family 的 RPC 语义与边界。
 
 说明：
 
@@ -73,23 +58,9 @@ Runtime kernel 的 RPC 覆盖范围为 admitted proto 服务与已定义的 desi
 
 ## K-RPC-003 ConnectorService 方法集合（design 权威）
 
-`ConnectorService` 方法固定为：
-
-1. `CreateConnector`
-2. `GetConnector`
-3. `ListConnectors`
-4. `UpdateConnector`
-5. `DeleteConnector`
-6. `TestConnector`
-7. `ListConnectorModels`
-8. `ListProviderCatalog`
-9. `ListModelCatalogProviders`
-10. `UpsertModelCatalogProvider`
-11. `DeleteModelCatalogProvider`
-12. `ListCatalogProviderModels`
-13. `GetCatalogModelDetail`
-14. `UpsertCatalogModelOverlay`
-15. `DeleteCatalogModelOverlay`
+`ConnectorService` 的 active method inventory、method type 与 proto mapping
+只由 `tables/rpc-methods.yaml` 和 `tables/rpc-migration-map.yaml` 维护。本节只
+定义 connector custody、catalog、overlay 与 credential shape 边界。
 
 ConnectorService 当前与 proto `RuntimeConnectorService` 对齐（见 `tables/rpc-migration-map.yaml` 中 `mapping_posture=aligned`）。
 
@@ -109,20 +80,12 @@ ConnectorService 在 `CreateConnector` / `UpdateConnector` 上的 credential req
 
 `RuntimeLocalService` 是本地模型控制面的唯一稳定 RPC 面。local model / artifact 的清单、状态、health、audit、import/install/download、orphan adopt/scaffold 与 transfer/progress 必须全部由该服务持有；desktop 不得再拥有并回写第二套本地模型真源。
 
-`RuntimeLocalService` 方法按四层分级：
+`RuntimeLocalService` 的 active method inventory、method type 与 proto
+mapping 只由 `tables/rpc-methods.yaml` 和 `tables/rpc-migration-map.yaml`
+维护。本节只定义 local lifecycle、catalog/intake、dependency、engine、
+product-control 与 cutover families 的语义分层。
 
 **Tier 1 — 核心生命周期：**
-
-1. `ListLocalAssets`
-2. `InstallVerifiedAsset`
-3. `InstallModelFromPlan`
-4. `ImportLocalAsset`
-5. `ImportLocalAssetFile`
-6. `RemoveLocalAsset`
-7. `StartLocalAsset`
-8. `StopLocalAsset`
-9. `CheckLocalAssetHealth`
-10. `WarmLocalAsset`
 
 Tier 1 的读写边界固定如下：
 
@@ -131,59 +94,25 @@ Tier 1 的读写边界固定如下：
 - `StartLocalAsset` 与 `WarmLocalAsset` 是显式 lifecycle/readiness surface；它们可以启动受管引擎、执行 warm/minimal execution、更新 warm/status projection，并记录结构化失败。
 - runtime-owned background health maintainer 可以异步维护 health projection，但它是 runtime 内部执行路径，不得被 Desktop/SDK/apps 以 list polling 方式替代或放大。
 
-**Tier 2 — 目录、伴随资产、intake 与 transfer：**
+**Tier 2 — 目录、伴随资产、intake、recommendation 与 transfer：**
 
-11. `ListVerifiedAssets`
-12. `SearchCatalogModels`
-13. `ListCatalogVariants`
-14. `ResolveModelInstallPlan`
-15. `CollectDeviceProfile`
-16. `ScanUnregisteredAssets`
-17. `ScaffoldOrphanAsset`
-18. `ListLocalTransfers`
-19. `PauseLocalTransfer`
-20. `ResumeLocalTransfer`
-21. `CancelLocalTransfer`
-22. `WatchLocalTransfers`
-33. `ImportLocalAssetBundle`（consumes reserved stable slot 33）
-34. `RescanLocalAssetBundle`（consumes reserved stable slot 34）
-42. `GetRecommendationFeed`（Runtime-owned capability feed / model-index cache / host-fit projection）
+This family owns verified catalog reads, install-plan resolution, unregistered
+asset scan/adoption, bundle intake, recommendation-feed projection, and local
+transfer control.
 
 **Tier 3 — 服务/节点/依赖/审计：**
 
-23. `ListLocalServices`
-24. `InstallLocalService`
-25. `StartLocalService`
-26. `StopLocalService`
-27. `CheckLocalServiceHealth`
-28. `RemoveLocalService`
-29. `ListNodeCatalog`
-30. `ResolveProfile`
-31. `ApplyProfile`
-32. `ListLocalAudits`
-35. `AppendInferenceAudit`
-36. `AppendRuntimeAudit`
+This family owns local services, node catalog/profile resolution, selected
+source records, environment dependency jobs, activation gate, runtime baseline
+readiness evidence, first-run execution evidence, and local audit append/list
+surfaces.
 
 **Tier 4 — 引擎进程管理（K-LENG-004）：**
 
-37. `ListEngines`
-38. `EnsureEngine`
-39. `StartEngine`
-40. `StopEngine`
-41. `GetEngineStatus`
+This family owns managed engine lifecycle/status projection. Desktop, SDK, and
+apps must not maintain a second engine process truth.
 
 **Tier 5 — product-control record (`~/.nimi/nimi.json`)：**
-
-43. `GetProductControlRecord`
-44. `GetProductControlSelectedDataRoot`
-45. `EnsureProductControlRecordCreated`
-46. `SelectProductControlDataRoot`
-47. `SetProductControlFirstRunInstallLevel`
-48. `CompleteProductControlFirstRunDeviceEnvironmentScan`
-49. `AdmitProductControlReadyForUse`
-50. `RecordProductControlAccountDefaultProfileEvidence`
-51. `RecordProductControlFirstRunLocalAiReadyEvidence`
-52. `ReconcileProductControlFirstRunSetupState`
 
 `RuntimeLocalService` owns the product-control record state-machine surface for
 ordinary first-run setup. Desktop may expose bounded OS helpers such as a native
@@ -195,6 +124,11 @@ through these Runtime methods. For Desktop-owned host evidence
 backend-verified evidence JSON, but Runtime owns the authenticated account
 check, Runtime baseline/execution re-resolution, failure routing, intermediate
 state writes, and the atomic `ready_for_use` product-control record write.
+`ReconcileProductControlFirstRunSetupState` is an empty-request Runtime
+materialization reconciliation RPC: Runtime derives the non-ready setup state,
+repair posture, and diagnostic reason from Runtime-owned first-run activation
+and materialization evidence. Apps/SDK clients must not submit product-control
+state or reason fields for this reconciliation.
 
 Runtime-managed shared accelerator dependency jobs are admitted under
 `RuntimeLocalService` as the authority surface for supervised local engine
@@ -250,12 +184,10 @@ Desktop、Web、Kit 与 apps 只能通过 SDK typed projection 消费该 service
 通过 Tauri、本地 SQLite、renderer-local registry 或 app-local HTTP server 维护并行
 gateway/token/action/audit 真源。
 
-方法固定为：
-
-1. `GetExternalAgentGatewayStatus`
-2. `IssueExternalAgentToken`
-3. `RevokeExternalAgentToken`
-4. `ListExternalAgentTokens`
+`RuntimeExternalAgentService` 的 active method inventory、method type 与 proto
+mapping 只由 `tables/rpc-methods.yaml` 和 `tables/rpc-migration-map.yaml`
+维护。本节只定义 gateway / token ledger / action registry / audit projection
+边界。
 
 在 Runtime-owned action registry/server 尚未启用前，service 必须 fail closed：
 status 返回 disabled / `EXTERNAL_AGENT_ACTION_REGISTRY_EMPTY`，token issuance
@@ -315,34 +247,10 @@ local asset record in the active Runtime state.
 `RuntimeCognitionService` 是 runtime-facing cognition overlap 的唯一稳定
 RPC 面。
 
-方法固定为：
-
-1. `CreateBank`
-2. `GetBank`
-3. `ListBanks`
-4. `DeleteBank`
-5. `Retain`
-6. `Recall`
-7. `History`
-8. `DeleteMemory`
-9. `SubscribeMemoryEvents`
-10. `CreateKnowledgeBank`
-11. `GetKnowledgeBank`
-12. `ListKnowledgeBanks`
-13. `DeleteKnowledgeBank`
-14. `PutPage`
-15. `GetPage`
-16. `ListPages`
-17. `DeletePage`
-18. `SearchKeyword`
-19. `SearchHybrid`
-20. `AddLink`
-21. `RemoveLink`
-22. `ListLinks`
-23. `ListBacklinks`
-24. `TraverseGraph`
-25. `IngestDocument`
-26. `GetIngestTask`
+`RuntimeCognitionService` 的 active method inventory、method type 与 proto
+mapping 只由 `tables/rpc-methods.yaml` 和 `tables/rpc-migration-map.yaml`
+维护。本节只定义 memory / knowledge / admitted memory-embedding runtime
+families 的 RPC 语义与边界。
 
 固定约束：
 
@@ -352,8 +260,10 @@ RPC 面。
 - public surface 只暴露 Nimi-owned typed contract；provider-native API truth、
   cognition internal storage、以及 runtime-private review/bank/replication
   truth 均不得外露
-- memory embedding editable config 不属于 `RuntimeCognitionService` public
-  method family；其 live-config read/write owner 仍在 host-local typed surface
+- memory embedding runtime intent / inspect / bind / cutover family 属于
+  `RuntimeCognitionService` 中 admitted 的 Runtime-owned host-local typed
+  surface；SDK、Kit、Desktop 与 apps 只能提交 typed request 或消费 typed
+  projection，不得拥有第二份 memory embedding 配置或 cutover 真源
 - `Working memory` 不属于 `RuntimeCognitionService` 方法范围
 - public app-facing 路径只服务 infra scopes；canonical scopes 通过
   runtime-private typed path 由 runtime-owned owner 消费
@@ -362,19 +272,15 @@ RPC 面。
 - absorbed memory/knowledge 方法族必须保留 fail-close 语义；不得以
   adapter-first 方式重新引入 dual-owner public surface
 - host product 若需要 memory embedding resolved state、canonical bind、rebuild、
-  或 cutover command，必须通过 host bridge 映射到 runtime-private typed path；
-  这不构成新增 `RuntimeCognitionService` public methods 的 admission
+  或 cutover command，必须通过 admitted `RuntimeCognitionService` typed
+  method 或 Runtime implementation-internal typed path；这不构成 SDK、Kit、
+  Desktop、Tester 或其它 apps 的配置/绑定/cutover authority
 
-最小 access matrix：
-
-- `CreateBank` / `DeleteBank`：`runtime.memory.admin`
-- `GetBank` / `ListBanks` / `Recall` / `History` / `SubscribeMemoryEvents`：`runtime.memory.read`
-- `Retain` / `DeleteMemory`：`runtime.memory.write`
-- `GetKnowledgeBank` / `ListKnowledgeBanks` / `GetPage` / `ListPages` / `SearchKeyword` / `SearchHybrid` / `ListLinks` / `ListBacklinks` / `TraverseGraph` / `GetIngestTask`：`runtime.knowledge.read`
-- `PutPage` / `DeletePage` / `AddLink` / `RemoveLink` / `IngestDocument`：`runtime.knowledge.write`
-- `CreateKnowledgeBank` / `DeleteKnowledgeBank`：`runtime.knowledge.admin`
-- runtime-owned internal callers 使用 runtime-private typed path 时，不经
-  app-facing public authz surface
+Access posture is table-owned by
+`tables/runtime-rpc-auth-posture/agent-ai-cognition.yaml`. Runtime-owned
+internal callers may use runtime-private typed paths only where the service
+implementation admits them; app-facing public authz must not be bypassed by
+SDK, Kit, Desktop, Tester, or other apps.
 
 ## K-RPC-004b RuntimeAgentService 方法集合
 
@@ -385,34 +291,11 @@ design RPC 面。
 `RuntimeAgentService`；`RuntimeAgentCoreService` 不再是 admitted transport
 name。design/proto 关系以 `tables/rpc-migration-map.yaml` 为准。
 
-方法固定为：
-
-1. `InitializeAgent`
-2. `TerminateAgent`
-3. `GetAgent`
-4. `ListAgents`
-5. `OpenConversationAnchor`
-6. `GetConversationAnchorSnapshot`
-7. `ListAgentConversationSummaries`
-8. `RegisterAvatarLiveInstanceBinding`
-9. `ResolveAvatarLiveInstanceBinding`
-10. `GetPublicChatSessionSnapshot`
-11. `GetCompanionParticipationProjection`
-12. `RequestCompanionParticipation`
-13. `CancelCompanionParticipation`
-14. `OpenCompanionParticipationReplay`
-15. `GetAgentState`
-16. `UpdateAgentState`
-17. `EnableAutonomy`
-18. `DisableAutonomy`
-19. `SetAutonomyConfig`
-20. `ListPendingHooks`
-21. `CancelHook`
-22. `QueryAgentMemory`
-23. `WriteAgentMemory`
-24. `GetAgentCanonicalMemoryBankStatus`
-25. `RequestAgentCanonicalMemoryBankBind`
-26. `SubscribeAgentEvents`
+`RuntimeAgentService` 的 active method inventory、method type 与 proto
+mapping 只由 `tables/rpc-methods.yaml` 和 `tables/rpc-migration-map.yaml`
+维护。本节只定义 agent lifecycle、conversation anchor、companion
+participation、delegation, avatar debug, presentation, state/autonomy/hooks,
+agent memory, group-message candidate, and event family boundaries.
 
 固定约束：
 
@@ -437,15 +320,10 @@ name。design/proto 关系以 `tables/rpc-migration-map.yaml` 为准。
   part of the canonical RuntimeAgentService authority cut even when they do not
   add new public RPC methods yet
 
-最小 access matrix：
-
-- `InitializeAgent` / `TerminateAgent`：`runtime.agent.admin`
-- `GetAgent` / `ListAgents` / `GetConversationAnchorSnapshot` / `ListAgentConversationSummaries` / `ResolveAvatarLiveInstanceBinding` / `GetPublicChatSessionSnapshot` / `GetAgentState` / `ListPendingHooks` / `QueryAgentMemory` / `GetAgentCanonicalMemoryBankStatus` / `SubscribeAgentEvents`：`runtime.agent.read`
-- `GetCompanionParticipationProjection` / `OpenCompanionParticipationReplay`：`runtime.agent.companion_participation.read`
-- `OpenConversationAnchor` / `RegisterAvatarLiveInstanceBinding`：`runtime.agent.write`
-- `RequestCompanionParticipation` / `CancelCompanionParticipation`：`runtime.agent.companion_participation.write`
-- `UpdateAgentState` / `WriteAgentMemory` / `RequestAgentCanonicalMemoryBankBind` / `CancelHook`：`runtime.agent.write`
-- `EnableAutonomy` / `DisableAutonomy` / `SetAutonomyConfig`：`runtime.agent.autonomy.write`
+Access posture is table-owned by
+`tables/runtime-rpc-auth-posture/agent-ai-cognition.yaml`; app-message access
+for the reserved `runtime.agent` chat seam remains defined separately by
+`K-RPC-004c`.
 
 ## K-RPC-004c RuntimeAppService reserved `runtime.agent` chat access matrix
 

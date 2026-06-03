@@ -77,9 +77,9 @@ surfaces:
       - in_shell_reference_surface_placement_per_P_HOME_006
       - aiscoperef_enforced_per_D_HOME_007
     forbidden_ownership:
-      - transcript_history_truth_in_wave_1
-      - cross_app_agent_identity_truth_in_wave_1
-      - chat_derived_memory_truth_in_wave_1
+      - transcript_history_truth
+      - cross_app_agent_identity_truth
+      - chat_derived_memory_truth
       - runtime_internal_import
     source_rule: D-HOME-006
 
@@ -106,7 +106,7 @@ surfaces:
       - .nimi/spec/platform/kernel/nimi-home-contract.md
     allowed_projection_scope:
       - app_runtime_registration_status_consumed_from_runtime
-      - app_health_consumed_from_wave_3_registry
+      - app_health_consumed_from_app_registry
     forbidden_ownership:
       - app_runtime_registration_authority
       - app_lifecycle_authority

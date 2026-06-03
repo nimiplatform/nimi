@@ -3,7 +3,7 @@ table_family: protocol_surface
 owner: avatar
 protocol_id: avatar_window_bounds_policy
 description: >
-  Dynamic window sizing policy for Nimi Avatar (Wave 4 admitted).
+  Dynamic window sizing policy for Nimi Avatar.
   Governs how the Tauri window's physical size is derived from the active
   embodiment backend's surface bounds plus the companion-surface footprint,
   which triggers cause a recompute, the formula that combines the two
@@ -51,7 +51,6 @@ policy: &avatar_window_bounds_policy_surfaces
       nominal_bounds_source: BackendBranch.nominalBounds
       reason: >
         Authoritative bounds for the current backend's render surface.
-        Wave 0 of topic 2026-04-30-avatar-vrm-backend-branch admit:
         BackendBranch.nominalBounds (per backend-branch-contract.md
         §2.2 BackendNominalBounds) is the canonical source for the
         starting envelope; embodiment_projection.getSurfaceBounds() is
@@ -102,7 +101,6 @@ policy: &avatar_window_bounds_policy_surfaces
       monitor becomes unavailable on relaunch, fall back to the primary
       monitor at default position rather than positioning off-screen.
 
-  # Wave 0 of topic 2026-04-30-avatar-vrm-backend-branch admit:
   # per-backend nominal bounds defaults (used when BackendBranch.nominalBounds
   # is unavailable at first model_load — e.g. before Live2D model3.json
   # canvas-size header parses, before VRM scene bbox computes).

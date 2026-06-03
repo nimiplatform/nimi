@@ -57,12 +57,12 @@ rules:
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; no-app-local-mint enforcement requires Wave 5 first-party app integration consumer validation
+    evidence_scope_note: structural only; no-app-local-mint enforcement requires first-party app integration consumer validation
   - rule_id: P-AGID-006
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; Agent Chat transcript / history owner enforcement is Wave 1 hosted-shell consumer validation
+    evidence_scope_note: structural only; Agent Chat transcript / history owner enforcement is hosted-shell consumer validation
   - rule_id: P-AGID-007
     evidence_refs:
       - platform_kernel_consistency

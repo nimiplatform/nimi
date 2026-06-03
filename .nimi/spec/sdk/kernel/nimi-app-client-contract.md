@@ -93,8 +93,8 @@ install / partial launch；不把 Runtime fail-close 隐藏为 success。
 updated / uninstalled / launching / launched / failed / repair-required
 等 typed event）。
 
-`MUST NOT`：subscription 不承载 audit / permission / spend 事件；Wave 4
-permission fabric 与 Realm audit 拥有 audit truth。
+`MUST NOT`：subscription 不承载 audit / permission / spend 事件；permission
+fabric 与 Realm audit 拥有 audit truth。
 
 ## S-APP-009 — Ordinary Visibility Filter
 
@@ -142,10 +142,8 @@ user explicitly confirms destructive deletion.
 
 **Background fact.** The developer-authored manifest carries a
 `permissions.declared_nimi_api_scopes` list of `{ scope, qualifier?,
-purpose }` entries (parent
-`result-wave-1-manifest-contract-implementation.md` § 6 lines 150-155;
-parent invariant PI-W1-8 records this list as "transparency for review
-and UI; not control"). The admitted release descriptor's
+purpose }` entries as transparency for review and UI, not as an enforcement
+control. The admitted release descriptor's
 `permissions_ref` (`P-NAPP-018`) and the per-tier
 `permission_ceiling_ref` (`P-PERM-*`) remain the enforcement surfaces.
 
@@ -266,93 +264,36 @@ operation; this rule binds its `options` argument), `S-APP-011`
 (install storage projection — this rule is the explicit
 choice-surfacing complement), parent invariant `PI-W1-26`.
 
-## S-APP-014 — File-Scope Client Semantics
+## S-APP-014 — File-Scope Client Non-Admission
 
-**Background fact.** `K-APP-018` admits the Runtime-mediated file-API
-surface scoped to the `app-local-drafts` qualifier, with a frozen
-five-method set (`ReadAppLocalDraftFile`, `WriteAppLocalDraftFile`,
-`ListAppLocalDraftDir`, `DeleteAppLocalDraftFile`,
-`MoveAppLocalDraftFile`) and a `MUST` path-enforcement invariant that
-fails closed with typed reason `out_of_data_root` for any escape
-mode. `P-PERM-011` admits the Platform-side qualifier semantics:
-`file.read.scoped` / `file.write.scoped` with `qualifier:
-app-local-drafts` resolves relative to
-`<nimi_data>/apps/<app_id>/`; any escape fails closed with
-`out_of_data_root`. The two admitted rules are parallel; this rule
-admits the SDK-side file-API client semantics that consume them.
+SDK Nimi App client surface does not admit a callable file-API client in
+the current public SDK.
 
-`MUST` (SDK file-API client surface admission). SDK Nimi App client
-surface admits a typed file-API client that maps the closed scope
-pair `file.read.scoped` / `file.write.scoped` with `qualifier:
-app-local-drafts` (`P-PERM-002` + `P-PERM-011`) onto the admitted
-Runtime-mediated file-API methods (`K-APP-018`). The SDK file-API
-client admits exactly the consumer-side projections of the frozen
-five-method set:
+The following consumer-side operations are explicitly non-admitted and MUST
+NOT be exposed as active SDK APIs:
 
-- `file.read(path, range?)` — projects `ReadAppLocalDraftFile`;
-- `file.write(path, bytes, mode)` — projects `WriteAppLocalDraftFile`
-  with the typed `mode` enum `overwrite | create-new | append`;
-- `file.list(path)` — projects `ListAppLocalDraftDir`;
-- `file.delete(path)` — projects `DeleteAppLocalDraftFile`;
-- `file.move(sourcePath, destinationPath)` — projects
-  `MoveAppLocalDraftFile`.
+- `file.read(path, range?)`
+- `file.write(path, bytes, mode)`
+- `file.list(path)`
+- `file.delete(path)`
+- `file.move(sourcePath, destinationPath)`
 
-The SDK file-API client MUST resolve `app_id` from the admitted
-`AIScopeRef` (`P-AISC-007` app-launch scope shape) bound to the
-calling app; it MUST NOT take `app_id` from caller-supplied input.
+`P-PERM-011` admits the `app-local-drafts` qualifier as permission-review
+and scope-expression semantics. `K-APP-018` explicitly does not admit a
+Runtime-mediated file API. Therefore the SDK MUST NOT map
+`file.read.scoped` / `file.write.scoped` grants to hidden Runtime methods,
+Desktop bridge helpers, Realm REST calls, generic HTTP proxy calls, or
+direct filesystem paths. Missing file client support is a fail-closed
+non-admission state, not a fallback to another transport.
 
-`MUST` (compile-time and runtime out-of-root guard). The SDK file-API
-client MUST guard against constructing a path argument that escapes
-the calling app's data root at both layers:
+SDK may expose read-only descriptor/projection data that tells a consumer a
+file scope was declared or granted. That projection MUST NOT imply that a
+callable Nimi-mediated file API exists.
 
-- compile-time: the typed `path` parameter MUST be admitted as a
-  relative path under the calling app's
-  `<nimi_data>/apps/<app_id>/` root (the path type MUST forbid
-  absolute paths, MUST forbid `..` parent traversal at the type
-  surface, MUST forbid paths that lexically begin with another app's
-  `<nimi_data>/apps/<other_app_id>/` root);
-- runtime: when a path argument cannot be statically constrained
-  (e.g. assembled at runtime from variable parts), the SDK MUST
-  pre-validate that the resolved path stays under the calling app's
-  data root before dispatching to the Runtime-mediated method. A
-  pre-dispatch escape MUST fail closed with typed reason
-  `out_of_data_root` matching the `K-APP-018` /
-  `P-PERM-011` enforcement reason; the SDK MUST NOT silently rewrite
-  the escaping path into a permitted neighbor.
-
-The SDK runtime guard is a defense-in-depth complement to the
-authoritative Runtime-side enforcement at `K-APP-018`; the SDK MUST
-NOT rely on the Runtime-side check alone, and Runtime-side
-enforcement MUST NOT be relaxed because the SDK pre-validates.
-
-`MUST NOT` (no cross-app file access; deferred). The SDK file-API
-client MUST NOT admit a call shape that resolves a path into
-`<nimi_data>/apps/<other_app_id>/` belonging to another app. Cross-app
-file access remains deferred per `K-APP-018` "Deferral
-acknowledgement" and `P-PERM-006` (cross-app authorization, not
-live-admitted as file access at this admission cut). Any cross-app
-path attempt on the admitted five-method projection fails closed
-with `out_of_data_root` until a future sub-topic admits the typed
-cross-app flow shape on the file surface (see also `S-PERM-009`
-below for the SDK-side flow-shape stub).
-
-`MUST NOT` (no parallel file surface, no scope-extension). The SDK
-file-API client MUST NOT collapse the five typed methods into a
-generic "file op" call; each method is an admitted contract face per
-`K-APP-018`. The client MUST NOT expose `app-owned-os-storage` paths
-(`P-NAPP-027` / `P-NAPP-028`) — on app-owned-os-storage admissions
-the app uses OS-level file IO directly outside the Nimi-mediated
-surface. The client MUST NOT extend the `P-PERM-002` scope enum or
-admit a qualifier other than `app-local-drafts` under this rule.
-
-Cross-references: `K-APP-018` (Runtime-mediated file-API surface and
-path enforcement; not redefined), `P-PERM-011` (`app-local-drafts`
-qualifier semantics; not redefined), `P-PERM-002` (closed scope
-enum; not extended), `P-NAPP-015` (data-root layout; not redefined),
-`P-NAPP-027` / `P-NAPP-028` (`nimi-mediated-default` vs
-`app-owned-os-storage` posture; out of scope for this surface),
-`P-AISC-007` (app-launch `AIScopeRef` shape; `app_id` resolution
-source), parent invariants `PI-W1-10`, `PI-W0-3`.
+Cross-references: `K-APP-018` (Runtime-mediated file-API non-admission),
+`P-PERM-011` (`app-local-drafts` qualifier semantics; not a callable
+surface), `P-PERM-002` (closed scope enum; not extended), `P-NAPP-027` /
+`P-NAPP-028` (`nimi-mediated-default` vs `app-owned-os-storage` posture).
 
 ## S-APP-015 — Review-Evidence Accessor
 
@@ -419,9 +360,8 @@ accessor field is a forbidden parallel-truth projection.
 exposes the `P-NAPP-025` decision schema. It MUST NOT expose the
 three upstream audit-evidence references (`audit_evidence_ref`,
 `ai_audit_model_ref`, `scanner_results_ref`) under this rule;
-admitting upstream evidence-record consumer surfaces is out of scope
-for this sub-topic and remains an `S-APP-*` extension if and when a
-future sub-topic admits it. The Apps-surface "review status"
+upstream evidence-record consumer surfaces are out of scope for this
+rule. The Apps-surface "review status"
 projection per `PI-W3-34` reads the terminal decision record; the
 upstream evidence chain consumed by `P-AUDIT-006` is not part of the
 first-level Apps display.
@@ -565,7 +505,7 @@ owns account app-library validation, writes, and fail-closed reason codes.
 - `.nimi/spec/sdk/kernel/error-projection.md` — `S-ERROR-*`
 - `.nimi/spec/sdk/kernel/nimi-permission-client-contract.md` — `S-PERM-001..S-PERM-010` (`S-PERM-010` records the S-APP-vs-S-PERM placement anti-target for the review-evidence accessor admitted at `S-APP-015`)
 - `.nimi/spec/platform/kernel/nimi-app-admission-contract.md` — `P-NAPP-001..P-NAPP-030` (`P-NAPP-015` storage policy, `P-NAPP-018` descriptor shape, `P-NAPP-019` typed sizes/dates, `P-NAPP-025` review-decision schema, `P-NAPP-027`/`P-NAPP-028` storage posture)
-- `.nimi/spec/platform/kernel/app-permission-contract.md` — `P-PERM-001..P-PERM-011` (`P-PERM-002` closed scope enum, `P-PERM-006` cross-app deferred, `P-PERM-011` `app-local-drafts` qualifier semantics)
+- `.nimi/spec/platform/kernel/app-permission-contract.md` — `P-PERM-001..P-PERM-011` (`P-PERM-002` closed scope enum, `P-PERM-006` cross-app authorization, `P-PERM-011` `app-local-drafts` qualifier semantics)
 - `.nimi/spec/platform/kernel/nimi-app-audit-pipeline-contract.md` — `P-AUDIT-001..P-AUDIT-006` (`P-AUDIT-006` review-evidence shape)
 - `.nimi/spec/platform/kernel/mod-extension-retirement-contract.md` — `P-MOEX-001..P-MOEX-006`
 - `.nimi/spec/platform/kernel/tables/nimi-app-registry.yaml`
@@ -573,9 +513,7 @@ owns account app-library validation, writes, and fail-closed reason codes.
 - `.nimi/spec/platform/kernel/ai-profile-selection-policy-contract.md` — `P-AIPS-001..P-AIPS-013`
 - `.nimi/spec/platform/kernel/ai-scope-contract.md` — `P-AISC-001..P-AISC-007`
 - `.nimi/spec/runtime/kernel/local-engine-contract.md` — `K-LENG-024..K-LENG-028`
-- `.nimi/spec/runtime/kernel/app-messaging-contract.md` — `K-APP-014` (uninstall lifecycle), `K-APP-017` (launch gate), `K-APP-018` (Runtime-mediated file-API surface and path enforcement)
+- `.nimi/spec/runtime/kernel/app-messaging-contract.md` — `K-APP-014` (uninstall lifecycle), `K-APP-017` (launch gate), `K-APP-018` (Runtime-mediated file-API non-admission), `K-APP-022` (app storage), `K-APP-023` (package readiness), `K-APP-024` (account app-library)
 - `.nimi/spec/runtime/kernel/account-session-contract.md` — `K-ACCSVC-*` (Runtime account/session and short-lived access-token projection authority consumed by `S-APP-016`)
 - `.nimi/spec/runtime/kernel/scoped-app-binding-contract.md` — `K-BIND-*` (Runtime-issued scoped app binding authority consumed by `S-APP-016`)
 - `.nimi/spec/platform/kernel/nimi-app-scaffolding-contract.md` — `P-SCAF-*` (generated-app auth helper naming, auth modes, dev-standalone fail-closed posture, and no first-party self-declaration consumed by `S-APP-016`)
-- `.nimi/topics/ongoing/2026-05-22-nimi-apps-third-party-distribution-and-admission/result-wave-1-manifest-contract-implementation.md` — consolidated manifest/descriptor shape (`permissions.declared_nimi_api_scopes` entry shape consumed by `S-APP-012`; `data/` retention user-choice referenced by `S-APP-013`)
-- `.nimi/topics/ongoing/2026-05-22-nimi-apps-third-party-distribution-and-admission/result-wave-3-install-detection-support-implementation.md` — Apps UI surfacing first-level fields (`PI-W3-34` "review status" projection consumed by `S-APP-015`)

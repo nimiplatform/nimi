@@ -10,16 +10,14 @@ description: >
   interchange playback. Missing preset_id fail-closes for interchange playback
   (log warn, no fake motion).
 
-  Wave 0 of topic 2026-05-01-avatar-apml-auto-adapter supersedes this registry
-  as APML auto-adapter runtime support proof. Generated motion provider support
+  Generated motion provider authority supersedes this registry as APML
+  auto-adapter runtime support proof. Generated motion provider support
   is now governed by generated-motion-routes.yaml,
   backend-capability-profile.schema.yaml, mapping-sidecar.schema.yaml, and
   generated-motion-provider-contract.md. .vrma remains authoring/interchange
   evidence only.
 
-  Wave 2 of topic
-  2026-05-15-avatar-vrm-deferral-and-authority-reconciliation hard-cuts the
-  stale unbacked preset rows. Only `idle_subtle` is admitted as a built-in
+  This table hard-cuts the stale unbacked preset rows. Only `idle_subtle` is admitted as a built-in
   interchange asset because it is the only physical `.vrma` file present with
   concrete license/source metadata. Runtime support for `listen_lean`,
   `nod_yes`, `shake_no`, and `greet_wave` is governed by
@@ -48,7 +46,7 @@ constraints:
   - description: >
       Registry v1 contains exactly one built-in interchange entry:
       `idle_subtle`. Adding any other built-in `.vrma` entry requires a real
-      physical file, concrete license/source metadata, tests, and topic
+      physical file, concrete license/source metadata, tests, and authority
       evidence.
   - description: >
       `license` and `source` must be concrete strings (non-empty,

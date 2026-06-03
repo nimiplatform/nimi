@@ -160,13 +160,13 @@ Fixed rules:
   and mapping confidence labels are downstream projection facts only; they are
   not runtime activity ids, public APML tags, or runtime-owned presentation
   payload names unless a later runtime packet admits them
-- closed-topic activity ontology documents are evidence only; the active
+- historical activity ontology documents are evidence only; the active
   runtime SSOT is this rule plus `tables/agent-activity-ontology.yaml`
 
 ## K-AGCORE-050 Agent Event Owner Map And Broad Bus Deferral
 
 The active event owner map for the Live2D companion continuation is narrower
-than the closed-topic platform event design.
+than the historical platform event design.
 
 Active owner map:
 

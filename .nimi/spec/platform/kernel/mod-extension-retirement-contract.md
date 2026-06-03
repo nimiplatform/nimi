@@ -9,8 +9,8 @@
 的 developer / internal / retirement 边界，并锁定 `Shared Nimi Content
 Pack` 的 non-admission 边界。
 
-本契约固化 Wave 0 D6 / D8 决议（参见
-`mod-extension-retirement-map.md`）。
+本契约固化 Public Mod / Public Extension non-admission 与 retired surface
+边界。
 
 ## P-MOEX-001 — Public Mod / Public Extension Non-Admission
 
@@ -38,7 +38,7 @@ guards 与 docs active references 已移除。
 重新出现。任何复活 Mod / Hook / runtime-mod / SDK mod surface 的提案必须
 重新通过显式 admission，并不得复用 retired 文件、路径或命名作为兼容层。
 
-`MUST`：Wave 5 true-close audit 必须确认 parent workspace active
+`MUST`：retirement closeout audit 必须确认 parent workspace active
 `nimi-mods` references 已清理或经 admitted allowlist 处置；历史归档与本地
 审计证据只可作为追溯材料，不得成为 active authority。
 
@@ -69,8 +69,7 @@ retirement true-close 前覆盖上述模式，并在 true-close 后持续阻断�
 `MUST`：Nimi 不创建共享的 `Nimi Content Pack` 产品 / channel。
 
 `MUST NOT`：Registry / Apps / SDK 不得引入跨 app 的通用内容包
-admission；任何"通用内容渠道"提案视为 reopen condition（参见 Wave 0
-`mod-extension-retirement-map.md`）。
+admission；任何"通用内容渠道"提案视为 reopen condition。
 
 ## P-MOEX-004 — App-Internal Content Package Boundary
 
@@ -91,8 +90,8 @@ assets，或其他 app 的 prompt / knowledge / workflow bundle 等）由各自 
 ## P-MOEX-006 — Mechanical Guard Registration
 
 `MUST`：mechanical guard `check:no-public-mod-extension-admission` 在
-`enforcement-gates-required.md` 中以 `Required before: Wave 3 close` 注册，
-并 block：registry / package rows admitting public Mods or Extensions，
+`enforcement-gates-required.md` 中注册，并 block：registry / package rows
+admitting public Mods or Extensions，
 以及任何 alias 重新引入共享内容包 channel。
 
 `MUST`：mechanical guard `check:p-moex-anti-targets` 是独立的 full-surface
@@ -104,6 +103,3 @@ script / generated SDK anti-targets。
 
 - `.nimi/spec/platform/kernel/nimi-app-admission-contract.md` — `P-NAPP-001..P-NAPP-011; P-NAPP-013..P-NAPP-030`
 - `.nimi/spec/platform/kernel/tables/nimi-app-registry.yaml`
-- `.nimi/topics/closed/2026-05-17-nimi-home-platform-entry-redesign/mod-extension-retirement-map.md`
-- `.nimi/topics/closed/2026-05-17-nimi-home-platform-entry-redesign/desktop-kernel-supersession-schedule.md`
-- `.nimi/topics/closed/2026-05-25-nimi-mod-system-physical-retirement/` — physical retirement execution

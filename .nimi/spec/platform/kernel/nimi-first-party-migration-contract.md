@@ -4,20 +4,18 @@
 
 ## Scope
 
-定义 first-party Nimi App（Wave 5 hardcut target：Avatar）从 standalone
+定义 first-party Nimi App hardcut target（Avatar）从 standalone
 install path 迁移到 Nimi App registry 行的 product 级 migration authority。
 本契约固化 `design.md` "First-Party Migration Policy" 决议，并锁定
 migration failure fail-closed 状态机、source-development marker rule 与
 no-silent-user-state-reset rule。
 
-> 历史注：ParentOS 在 topic
-> `2026-05-25-parentos-first-party-admission-exit` 中已 retire 出 first-party
-> admission，本契约的 migration 状态机不再覆盖 parentos-standalone-to-nimi-app
-> 路径。
+ParentOS 已 retire 出 first-party admission；本契约的 migration 状态机不再
+覆盖 parentos-standalone-to-nimi-app 路径。
 
 ## P-FPM-001 — Required Migration Questions
 
-`MUST`：Wave 5 implementation 必须为每个 hardcut target 显式回答以下
+`MUST`：first-party hardcut implementation 必须为每个 hardcut target 显式回答以下
 问题，并把答案落到对应 app 的 migration plan：
 
 1. 当前存在哪些 standalone Avatar 用户状态？
@@ -86,7 +84,7 @@ user product truth。
 
 ## P-FPM-006 — Per-App Implementation Plan Requirement
 
-`MUST`：Wave 5 implementation 必须为每个 first-party hardcut target
+`MUST`：first-party hardcut implementation 必须为每个 first-party hardcut target
 产生：
 
 - `P-FPM-001` 的完整问题答案
@@ -106,7 +104,3 @@ user product truth。
 - `.nimi/spec/platform/kernel/nimi-package-release-contract.md` — `P-PKGREL-001..P-PKGREL-008`
 - `.nimi/spec/platform/kernel/nimi-self-update-contract.md` — `P-SUPD-001..P-SUPD-008`
 - `.nimi/spec/desktop/kernel/nimi-home-shell-contract.md` — `D-HOME-001..D-HOME-012`
-- `.nimi/topics/closed/2026-05-17-nimi-home-platform-entry-redesign/avatar-master-gate-coordination.md`
-- `.nimi/topics/closed/2026-05-17-nimi-home-platform-entry-redesign/first-party-hardcut-scope-ledger.md`
-- `.nimi/topics/closed/2026-05-17-nimi-home-platform-entry-redesign/authority-supersession-map.md`
-- `.nimi/topics/closed/2026-05-17-nimi-home-platform-entry-redesign/desktop-kernel-supersession-schedule.md`

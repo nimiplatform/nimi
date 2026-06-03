@@ -76,17 +76,17 @@ pubkey 验证、handoff 给 desktop-host installer 的 scope。
 
 ## P-PKGREL-007 — Three Update Surfaces Are Distinct
 
-`MUST`：Nimi self-update、app updates（Wave 3 Nimi App registry）、与
+`MUST`：Nimi self-update、app updates（Nimi App registry）、与
 Runtime local dependency updates（`K-LENG-024..K-LENG-028`、
 `K-LENV-MAT-*`、`K-LENV-ACT-*`）是三个独立 authority surface。
 
 `MUST NOT`：任一 surface 不得静默 mutate 另外两个 surface 的 source of
 truth。
 
-## P-PKGREL-008 — No Child Wave Split For Packaging Identity
+## P-PKGREL-008 — No Unrecorded Packaging Identity Split
 
-`MUST`：packaging / release / update identity 在 Wave 1 内 close；不切出
-未记录的 child wave。如未来需要扩展 web 自更新或 web-only install
+`MUST`：packaging / release / update identity 是同一 authority family；不切出
+未记录的 subordinate owner。如未来需要扩展 web 自更新或 web-only install
 identity，必须由显式 `web-release-contract.md` cut 处理。
 
 ## Fact Sources
@@ -98,4 +98,3 @@ identity，必须由显式 `web-release-contract.md` cut 处理。
 - `.nimi/spec/platform/kernel/tables/release-gate-registry.yaml`
 - `.nimi/spec/desktop/kernel/self-update-contract.md`
 - `.nimi/spec/runtime/kernel/local-engine-contract.md` — `K-LENG-024..K-LENG-028`
-- `.nimi/topics/closed/2026-05-17-nimi-home-platform-entry-redesign/packaging-release-update-identity.md`

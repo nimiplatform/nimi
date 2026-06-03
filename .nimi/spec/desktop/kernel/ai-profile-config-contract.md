@@ -147,6 +147,11 @@ runtime private loopback convenience endpoint 当成正式 live-config owner。
   owns config evidence identity，Runtime owns execution/runtime evidence slices，
   SDK owns typed projection。Desktop consumer 不得自定义 consumer-local
   `AISnapshot` schema 或把 local storage 当成正式 snapshot owner。
+- Desktop host `AISnapshot` record/read persistence may consume SDK typed
+  storage helpers, but the host surface must not be a renderer-memory-only ring
+  buffer in production. A process-memory store is admitted only for explicit
+  test/development harnesses and must not be projected as durable execution
+  evidence.
 - snapshot 若记录 Agent Chat turn / message / action / voice / workflow /
   presentation evidence，也只能记录 Runtime-owned execution evidence slices；
   Desktop consumer 不得在 capture 时重新解析、覆写、或补默认 Agent Chat truth
@@ -304,8 +309,8 @@ placement surface, not the global writer authority.
   and `committedAt`
 - `builtInAiConfigRefs` in `~/.nimi/nimi.json` must contain backend-verifiable
   durable refs for both required scopes; the refs are valid only when the host
-  SDK / Runtime projection can resolve them to committed full materialized
-  configs and readiness evidence for those exact scopes
+  SDK Runtime / Kit projection can resolve them to committed full materialized
+  configs and Runtime execution evidence proof for those exact scopes
 - apply or verification failure for either required scope fails first-run
   finalization closed; no partial built-in chat set may enter `ready_for_use`
 
@@ -314,6 +319,9 @@ placement surface, not the global writer authority.
 - renderer-local state, localStorage, route health, current tab selection,
   conversation state, or string-only `scopeRef` values may serve as readiness
   truth for built-in AIConfig evidence
+- Desktop may not derive built-in AIConfig selected bindings from
+  `runtimeBaselineRef` activation consumers. Binding projection must consume
+  Runtime executionEvidenceRef proof through the shared SDK Runtime / Kit surface.
 - `desktop.chat.nimi` and `desktop.chat.agent` may not share a generic fallback
   chat scope, inherit config from one another, or be represented by a single
   global active profile

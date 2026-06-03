@@ -39,7 +39,7 @@ policy、或绕过本契约的 fail-closed semantics（`P-SUPD-006`）。
 
 ## P-SUPD-004 — App Registry Update Boundary
 
-`MUST`：Wave 3 Nimi App registry 拥有 app package 更新事实。Nimi
+`MUST`：Nimi App registry 拥有 app package 更新事实。Nimi
 self-update 不得替代 app package 更新；app package 更新也不得替代 Nimi
 self-update。
 
@@ -70,8 +70,7 @@ ready 投影。
 为 desktop-host 实现细节（atomic Desktop release unit、bundled runtime
 staging、updater pubkey/endpoint 实现等）。它在本 Platform policy 之下作为
 desktop-hosted 实现层级；rename 产品文案为 `Nimi` 时按
-`naming-and-kernel-ontology.md` 与 `desktop-kernel-supersession-schedule.md`
-执行。
+`naming-and-kernel-ontology.md` 与 desktop kernel supersession 规则执行。
 
 `MUST NOT`：不得把 Desktop 自更新合同当成 Platform 产品 self-update
 policy 平级 owner。
@@ -91,5 +90,3 @@ policy 平级 owner。
 - `.nimi/spec/runtime/kernel/local-engine-contract.md` — `K-LENG-024..K-LENG-028`
 - `.nimi/spec/runtime/kernel/local-environment-materializers-contract.md`
 - `.nimi/spec/runtime/kernel/local-environment-consumer-activation-contract.md`
-- `.nimi/topics/closed/2026-05-17-nimi-home-platform-entry-redesign/authority-supersession-map.md`
-- `.nimi/topics/closed/2026-05-17-nimi-home-platform-entry-redesign/desktop-kernel-supersession-schedule.md`

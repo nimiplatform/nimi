@@ -6,9 +6,9 @@ schema_id: "nimi.avatar.live2d-adapter-manifest.v1"
 authority: "avatar.kernel.live2d_asset_compatibility"
 entries:
   - id: "nimi.avatar.live2d-adapter-manifest.v1"
-admitted_by:
+admission:
   topic_id: "2026-04-24-live2d-existing-assets-nimi-adaptation"
-  wave_id: "wave-1-compatibility-contract-alignment"
+  scope: "compatibility-contract-alignment"
 description: >
   Closed machine-readable schema authority for Live2D adapter manifests used to
   adapt existing Cubism packages into the Nimi Avatar Live2D carrier.

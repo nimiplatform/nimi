@@ -70,7 +70,7 @@ rules:
   - rule_id: S-PERM-009
     evidence_refs:
       - sdk_kernel_consistency
-    note: Cross-app access flow-shape stub admits no live behavior; the cross_app_access_deferred typed reason fail-closes any premature consumer. Implementation evidence lands with the future cross-app access live-behavior topic.
+    note: Cross-app access flow-shape admits no live behavior; cross_app_access_not_admitted fail-closes any premature consumer.
     evidence_requirement: required
   - rule_id: S-PERM-010
     evidence_refs:

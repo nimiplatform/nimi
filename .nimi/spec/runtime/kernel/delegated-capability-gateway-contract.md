@@ -43,7 +43,7 @@ Required identity fields:
 
 `provider_kind` values are fixed to `MCP_TOOL_PROVIDER`, `REMOTE_AGENT_SEAM`,
 `RUNTIME_NATIVE_PROVIDER`, and `CONTROLLED_TEST_PROVIDER`. `REMOTE_AGENT_SEAM`
-is future-only until a later A2A wave admits production support.
+is inactive for production until A2A support is separately admitted.
 
 ## K-DELEG-003 Provider Profile Non-Equivalence To Connector
 
@@ -279,14 +279,14 @@ discovery, request, and result evidence.
 Drift must transition the provider or capability to `DEGRADED` or
 `QUARANTINED` until Runtime policy allows rediscovery.
 
-## K-DELEG-046 Later-Wave Target Status
+## K-DELEG-046 Inactive Production Consumer Boundary
 
-Wave-1 does not activate production MCP, A2A, Desktop product, or Avatar
-consumer implementation. Their target paths remain admitted targets with no
-alternate active path:
+This contract does not activate production MCP, A2A, Desktop product, or
+Avatar consumer implementation. Their target paths remain admitted targets with
+no alternate active path until their own contract, implementation, and tests
+admit production consumption:
 
-- `delegated-mcp-adapter-contract.md` is owned by wave-2.
-- `agent-delegation-control-surface-contract.md` is owned by wave-5.
-- `delegated-a2a-future-seam-contract.md` is owned by wave-7.
-- Avatar reference-only alignment is owned by the wave that first changes
-  Avatar consumption.
+- `delegated-mcp-adapter-contract.md`
+- `agent-delegation-control-surface-contract.md`
+- `delegated-a2a-future-seam-contract.md`
+- Avatar reference-only alignment when Avatar consumption changes

@@ -5,10 +5,9 @@
 This contract admits Runtime-owned same-room/session orchestration authority for
 multi-agent and external-participant contexts.
 
-It materializes wave-1 of
-`2026-05-03-multi-agent-room-orchestration-authority`. It does not create SDK,
-proto, Desktop, Web, Avatar, Realm, Scenario, OASIS/world, external-entry,
-MCP/A2A, app, or runtime implementation surfaces.
+It defines Runtime orchestration authority only. It does not create SDK, proto,
+Desktop, Web, Avatar, Realm, Scenario, OASIS/world, external-entry, MCP/A2A,
+app, or runtime implementation surfaces.
 
 ## K-AGCORE-107 Room Orchestration Authority
 
@@ -95,9 +94,10 @@ The matrix columns must match `K-AGCORE-109`. Every required cell must name:
 - forbidden parallel truth
 - handoff or refusal posture
 
-Wave-2 may refine domain overlays only after this matrix is closed. Wave-2 must
-not first-define rows, columns, owner cells, schedulers, queues, budgets,
-cancellation, timeout, external admission, status truth, or commit-race policy.
+Domain overlays may refine presentation and evidence binding only after this
+matrix is closed. Overlays must not first-define rows, columns, owner cells,
+schedulers, queues, budgets, cancellation, timeout, external admission, status
+truth, or commit-race policy.
 
 ## K-AGCORE-111 Trigger Arbitration And Turn Ordering
 
@@ -187,12 +187,12 @@ whether and how a candidate is committed.
 ## K-AGCORE-116 Domain Overlay Limitation
 
 Domain overlays may refine presentation, evidence binding, and product-specific
-context after the wave-1 matrix is closed.
+context after the base matrix is closed.
 
 Domain overlays are registered in
 `tables/room-orchestration-domain-overlays.yaml`. That table is overlay truth
 only: it may bind product/domain evidence, display/projection guidance, refusal
-posture, and future packet references to existing wave-1 matrix rows, but it
+posture, and future packet references to existing matrix rows, but it
 must not add or redefine matrix axes, rows, columns, owner cells, schedulers,
 queues, budget, cancellation, timeout, external admission, status truth, or
 commit-race policy.
@@ -222,11 +222,11 @@ its tables:
 - external participant room entry based only on protocol readiness
 - new Runtime Participation profile, axis, or concurrency value by implication
 - public `runtime.orchestration.*` status truth
-- wave-2 first-definition of an axis, row, column, or owner cell
+- overlay first-definition of an axis, row, column, or owner cell
 
-## K-AGCORE-118 Room Orchestration Closure Gates
+## K-AGCORE-118 Room Orchestration Matrix Closure Gates
 
-Wave-1 closure requires all of the following:
+Matrix closure requires all of the following:
 
 - `multi-agent-room-orchestration-contract.md` exists and is referenced by
   `kernel/index.md`
@@ -240,4 +240,5 @@ Wave-1 closure requires all of the following:
   per-agent budget, cancellation, timeout, and exhaustion refusal
 - no required axis, row, column, or owner cell is marked TBD, future, later, or
   deferred
-- wave-2 is explicitly limited to overlays against the wave-1 matrix
+- domain overlays are explicitly limited to refinements against the closed base
+  matrix

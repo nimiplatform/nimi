@@ -386,37 +386,37 @@ rules:
     evidence_refs:
       - runtime_kernel_consistency
       - runtime_go_test
-    note: Runtime artifact bytes retrieval; admitted by 2026-04-30-avatar-vrm-backend-branch wave-0
+    note: Runtime artifact bytes retrieval; active authority requires RuntimeArtifactService wire and storage evidence.
     evidence_requirement: required
   - rule_id: K-AGCORE-054
     evidence_refs:
       - runtime_kernel_consistency
     note: Avatar debug projection authority admitted as contract/table truth; runtime implementation
-      evidence is owned by downstream wave-3.
+      evidence is deferred until debug projection runtime implementation.
     evidence_requirement: deferred
   - rule_id: K-AGCORE-055
     evidence_refs:
       - runtime_kernel_consistency
     note: Avatar probe request envelope admitted as contract/table truth; runtime implementation
-      evidence is owned by downstream wave-3.
+      evidence is deferred until probe request runtime implementation.
     evidence_requirement: deferred
   - rule_id: K-AGCORE-056
     evidence_refs:
       - runtime_kernel_consistency
     note: Avatar probe result envelope admitted as contract/table truth; runtime implementation evidence
-      is owned by downstream wave-3.
+      is deferred until probe result runtime implementation.
     evidence_requirement: deferred
   - rule_id: K-AGCORE-057
     evidence_refs:
       - runtime_kernel_consistency
     note: Avatar debug replay keys admitted as contract/table truth; runtime implementation evidence is
-      owned by downstream wave-3.
+      deferred until debug replay runtime implementation.
     evidence_requirement: deferred
   - rule_id: K-AGCORE-058
     evidence_refs:
       - runtime_kernel_consistency
     note: runtime.agent.avatar_debug.* projection families admitted as contract/table truth; runtime
-      implementation evidence is owned by downstream wave-3.
+      implementation evidence is deferred until avatar debug runtime implementation.
     evidence_requirement: deferred
   - rule_id: K-AGCORE-059
     evidence_refs:
@@ -803,7 +803,7 @@ rules:
   - rule_id: K-AGCORE-139
     evidence_refs:
       - runtime_kernel_consistency
-    note: InitializeAgent is the idempotent creation/repair lifecycle for every ordinary AgentFriend LocalAgent projection, not only the Nimi guide; the upstream Realm creation path owns the InitializeAgent creation trigger symmetric with the K-AGCORE-141 deletion trigger, and the lazy first-chat-open initialize is a repair path only; implementation evidence lands with the T6.2 contacts creation-linkage implementation wave.
+    note: InitializeAgent is the idempotent creation/repair lifecycle for every ordinary AgentFriend LocalAgent projection, not only the Nimi guide; the upstream Realm creation path owns the InitializeAgent creation trigger symmetric with the K-AGCORE-141 deletion trigger, and the lazy first-chat-open initialize is a repair path only; contacts creation-linkage implementation evidence is required.
     evidence_requirement: required
   - rule_id: K-AGCORE-140
     evidence_refs:
@@ -813,7 +813,7 @@ rules:
   - rule_id: K-AGCORE-141
     evidence_refs:
       - runtime_kernel_consistency
-    note: TerminateAgent hard-deletes the AgentFriend LocalAgent projection (runtime_local_agent row plus agent-scoped state/hooks/event-log/memory), is idempotent for an already-absent agent, and snapshot persistence must not re-insert a deleted ref; implementation evidence lands with the T6.1 contacts removal-linkage implementation wave.
+    note: TerminateAgent hard-deletes the AgentFriend LocalAgent projection (runtime_local_agent row plus agent-scoped state/hooks/event-log/memory), is idempotent for an already-absent agent, and snapshot persistence must not re-insert a deleted ref; contacts removal-linkage implementation evidence is required.
     evidence_requirement: required
   - rule_id: K-AGCORE-142
     evidence_refs:

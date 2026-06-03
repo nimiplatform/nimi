@@ -8,11 +8,17 @@ Current `sdk/` TypeScript package public SDK subpaths are fixed to:
 
 - `@nimiplatform/sdk`
 - `@nimiplatform/sdk/runtime`
+- `@nimiplatform/sdk/runtime/browser`
+- `@nimiplatform/sdk/runtime/agent-identity`
 - `@nimiplatform/sdk/world`
 - `@nimiplatform/sdk/ai-provider`
+- `@nimiplatform/sdk/ai`
 - `@nimiplatform/sdk/ai-app`
 - `@nimiplatform/sdk/realm`
 - `@nimiplatform/sdk/scope`
+- `@nimiplatform/sdk/scope/permission`
+- `@nimiplatform/sdk/app`
+- `@nimiplatform/sdk/platform-catalog`
 - `@nimiplatform/sdk/types`
 
 The current TypeScript package must maintain a single package layout; public

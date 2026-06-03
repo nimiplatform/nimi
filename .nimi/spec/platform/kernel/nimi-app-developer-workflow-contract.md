@@ -109,7 +109,7 @@ required; a missing item fails the developer workflow before the
 
 | Item | Required-truth | Notes |
 |---|---|---|
-| `nimi.app.yaml` | developer-authored manifest input resolving the wave-1 `P-NAPP-018` descriptor-shape field set as a submitted-manifest input | submitted-manifest input only; never admitted truth (per `P-NAPP-018` `MUST NOT` against developer-manifest-as-admission-truth and `P-NAPP-013` `MUST NOT` against parallel-truth substrates) |
+| `nimi.app.yaml` | developer-authored manifest input resolving the `P-NAPP-018` descriptor-shape field set as a submitted-manifest input | submitted-manifest input only; never admitted truth (per `P-NAPP-018` `MUST NOT` against developer-manifest-as-admission-truth and `P-NAPP-013` `MUST NOT` against parallel-truth substrates) |
 | `LICENSE` | SPDX-detectable or explicit-custom license file | mirror-license clearance under `P-NAPP-022` consumes this; absence forecloses mirror admission |
 | `SECURITY.md` | vulnerability-report channel disclosure | post-release detectability requirement on the developer side |
 | `README.md` | product purpose, support, data handling, minimum Runtime / SDK statement | reviewable product description input |
@@ -161,8 +161,8 @@ The ordered steps, with required truth and forbidden shortcut, are:
 
 | Step | Required truth | Forbidden shortcut |
 |---|---|---|
-| `pack` | `nimi-coding` packs the developer source tree against the wave-1 `P-NAPP-018` admitted descriptor shape, producing a candidate `nimi.app.yaml` and a candidate build descriptor | hand-authored or hand-edited `nimi.app.yaml` that bypasses the `nimi-coding` pack step (manual authoring without the pack-step's schema-targeting output is not the admitted `pack` step output) |
-| `validate` | `nimi-coding` validates the candidate manifest and build descriptor against the wave-1 `P-NAPP-018` schema locally, producing a typed pass / typed-fail schema check before submission | a validate pass that ignores or masks one or more `P-NAPP-018` required descriptor fields (a present-field subset is not a validated descriptor) |
+| `pack` | `nimi-coding` packs the developer source tree against the `P-NAPP-018` admitted descriptor shape, producing a candidate `nimi.app.yaml` and a candidate build descriptor | hand-authored or hand-edited `nimi.app.yaml` that bypasses the `nimi-coding` pack step (manual authoring without the pack-step's schema-targeting output is not the admitted `pack` step output) |
+| `validate` | `nimi-coding` validates the candidate manifest and build descriptor against the `P-NAPP-018` schema locally, producing a typed pass / typed-fail schema check before submission | a validate pass that ignores or masks one or more `P-NAPP-018` required descriptor fields (a present-field subset is not a validated descriptor) |
 | `local-audit-dry-run` | the developer runs the developer-side `nimi audit` command (admitted under `P-DEV-003`) locally, producing a typed pre-submission self-check output | substituting the developer-side `nimi audit` output for the Nimi-run authoritative audit (forbidden under `P-DEV-003` and `P-AUDIT-005`; consistent with `P-AUDIT-003` `self_attested_scan` posture) |
 | `submit` | the developer opens a PR into the Nimi App registry / package tables admitting, in one reviewable change set, the inputs enumerated by the already-admitted `P-NAPP-013` PR-admission path | submitting an artifact built from a mutable branch or a mutable tag without protection (forbidden under `P-DEV-004` and the descriptor-floor `forbidden_install_inputs` projection of `tables/nimi-app-release-descriptors.yaml`); GitHub repository ownership, npm package name, source directory, or app-local spec presence as admission claim (forbidden under `P-NAPP-013` `MUST NOT`) |
 | `review-evidence` | Nimi runs the authoritative audit pipeline admitted under `P-AUDIT-001..007` on the exact reviewed commit and the exact admitted artifact; the output is Nimi-owned review evidence | developer-supplied scan output as the review evidence (forbidden under `P-AUDIT-003` `self_attested_scan` clause); AI-only verdict as review evidence (forbidden under `P-AUDIT-003` `ai_only_review` clause) |
@@ -203,9 +203,7 @@ reason `developer_workflow_sequence_violation`.
 developer dashboard, or any non-PR submission substrate as the
 `submit`-step substrate. The `submit`-step substrate is the PR
 admitted under `P-NAPP-013`; any alternative substrate is out of
-scope for this rule (consistent with parent topic
-`result-wave-4-developer-workflow-implementation.md` § 6 explicit
-non-targets).
+scope for this rule.
 
 ## P-DEV-003 — Developer-Side `nimi audit` Is Dry-Run Only
 
@@ -239,7 +237,7 @@ admitted under `P-AUDIT-002` (`malicious-package-scanner`,
 `P-AUDIT-003` `self_attested_scan` clause; this rule admits the
 developer-side command surface within that bound.
 
-**Cross-reference (closes wave-b forward reference)**：`P-AUDIT-005`
+**Cross-reference**：`P-AUDIT-005`
 in `nimi-app-audit-pipeline-contract.md` admits the non-gate posture
 of the developer-side `nimi audit` command and forward-references
 `P-DEV-003` (this rule) as the developer-workflow surface admitting
@@ -249,10 +247,8 @@ the non-gate posture (i.e. the developer-side command is NOT an
 admission gate); `P-DEV-003` admits the developer-side command
 itself and its developer-workflow positioning (i.e. WHERE the
 developer-side command sits in the workflow). The freeze-protected
-coupling admitted in the parent plan's rule-ID freeze posture is the
-mechanism by which the wave-b → wave-d cross-reference is not a
-parallel-truth admission; with this rule's admission, the wave-b
-forward reference is closed.
+coupling is the mechanism by which the cross-reference remains a
+single active authority relation rather than a parallel-truth admission.
 
 ## P-DEV-004 — Immutable Submission
 
@@ -401,12 +397,6 @@ scope for this rule.
   (`third_party_descriptor_floor.forbidden_install_inputs` referenced
   at `P-DEV-004` `MUST NOT` clause against mutable resolvers; the
   floor enumeration itself is owned by `P-NAPP-018`)
-- `.nimi/topics/ongoing/2026-05-22-nimi-apps-third-party-distribution-and-admission/result-wave-4-developer-workflow-implementation.md` —
-  wave-4 contract definition (developer repository layout, workflow
-  steps, local audit dry-run, CI build, immutable submission,
-  workflow non-targets; this contract admits the wave-4 definition
-  into `.nimi/spec/**`)
-- `.nimi/topics/ongoing/2026-05-22-nimi-apps-third-party-distribution-and-admission/distribution-model.md` —
-  parent topic distribution-model design (PR-based admission path,
-  GitHub Actions CI build substrate, immutable tag / SHA submission;
-  non-normative design background for this contract)
+- This contract is the active authority for developer repository layout,
+  workflow steps, local audit dry-run, CI build, immutable submission, and
+  workflow non-targets.

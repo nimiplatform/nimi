@@ -11,6 +11,13 @@ rows:
   - rules_6
   - rules_7
   - rules_8
+  - rules_9
+  - rules_10
+  - rules_11
+  - rules_12
+  - rules_13
+  - rules_14
+  - rules_15
 rules:
   - surface: runtime
     allowed:
@@ -18,6 +25,26 @@ rules:
       - "@nimiplatform/sdk/runtime/transports/*"
     forbidden:
       - "@nimiplatform/sdk/runtime/generated/*"
+      - "runtime/internal/**"
+    source_rules:
+      - S-BOUNDARY-001
+      - S-BOUNDARY-002
+  - surface: runtime/browser
+    allowed:
+      - "@nimiplatform/sdk/runtime/browser"
+      - "@nimiplatform/sdk/runtime"
+    forbidden:
+      - "@nimiplatform/sdk/runtime/internal/**"
+      - "runtime/internal/**"
+    source_rules:
+      - S-BOUNDARY-001
+      - S-BOUNDARY-002
+  - surface: runtime/agent-identity
+    allowed:
+      - "@nimiplatform/sdk/runtime/agent-identity"
+      - "@nimiplatform/sdk/runtime"
+    forbidden:
+      - "@nimiplatform/sdk/runtime/internal/**"
       - "runtime/internal/**"
     source_rules:
       - S-BOUNDARY-001
@@ -44,6 +71,31 @@ rules:
       - "runtime/internal/**"
     source_rules:
       - S-BOUNDARY-001
+  - surface: ai
+    allowed:
+      - "@nimiplatform/sdk/ai"
+      - "@nimiplatform/sdk/runtime"
+      - "@nimiplatform/sdk/scope"
+    forbidden:
+      - "@nimiplatform/sdk/runtime/internal/**"
+      - "@nimiplatform/sdk/realm/internal/**"
+      - "runtime/internal/**"
+    source_rules:
+      - S-BOUNDARY-001
+      - S-BOUNDARY-005
+  - surface: ai-app
+    allowed:
+      - "@nimiplatform/sdk/ai-app"
+      - "@nimiplatform/sdk/runtime"
+    forbidden:
+      - "@nimiplatform/sdk/runtime/internal/**"
+      - "@nimiplatform/sdk/realm/internal/**"
+      - "runtime/internal/**"
+    source_rules:
+      - S-BOUNDARY-001
+      - S-BOUNDARY-005
+      - S-BOUNDARY-006
+      - S-BOUNDARY-007
   - surface: realm
     allowed:
       - "@nimiplatform/sdk/realm"
@@ -63,6 +115,41 @@ rules:
       - "runtime/internal/**"
     source_rules:
       - S-BOUNDARY-001
+  - surface: scope/permission
+    allowed:
+      - "@nimiplatform/sdk/scope/permission"
+      - "@nimiplatform/sdk/scope"
+    forbidden:
+      - "@nimiplatform/sdk/runtime/internal/**"
+      - "@nimiplatform/sdk/realm/internal/**"
+      - "runtime/internal/**"
+    source_rules:
+      - S-BOUNDARY-001
+      - S-BOUNDARY-005
+  - surface: app
+    allowed:
+      - "@nimiplatform/sdk/app"
+      - "@nimiplatform/sdk/runtime"
+      - "@nimiplatform/sdk/scope"
+    forbidden:
+      - "@nimiplatform/sdk/runtime/internal/**"
+      - "@nimiplatform/sdk/realm/internal/**"
+      - "runtime/internal/**"
+    source_rules:
+      - S-BOUNDARY-001
+      - S-BOUNDARY-005
+  - surface: platform-catalog
+    allowed:
+      - "@nimiplatform/sdk/platform-catalog"
+      - "@nimiplatform/sdk/app"
+      - "@nimiplatform/sdk/ai"
+    forbidden:
+      - "@nimiplatform/sdk/runtime/internal/**"
+      - "@nimiplatform/sdk/realm/internal/**"
+      - "runtime/internal/**"
+    source_rules:
+      - S-BOUNDARY-001
+      - S-BOUNDARY-005
   - surface: types
     allowed:
       - "@nimiplatform/sdk/types"

@@ -2,8 +2,7 @@
 
 > **App**: `@nimiplatform/avatar`
 > **Authority**: Avatar kernel contract
-> **Status**: Wave 0 admit (topic
-> `2026-05-01-avatar-apml-auto-adapter`)
+> **Status**: Active Avatar generated motion provider authority
 > **Sibling contracts**:
 > - [Backend branch contract](backend-branch-contract.md)
 > - [Embodiment projection contract](embodiment-projection-contract.md)
@@ -47,7 +46,7 @@ and are not runtime activity ontology ids.
 
 ## 2. Non-Admitted Public Syntax
 
-This topic does not admit direct public APML tags for:
+This contract does not admit direct public APML tags for:
 
 - `<motion>`
 - `<expression>`
@@ -144,7 +143,7 @@ claims. Avatar validates those fields against a matching capability profile
 before they can support a route.
 
 Avatar does not own direct LLM provider/model execution for mapping generation
-in this topic. LLM-assisted mappings enter as mapping-only sidecar input through
+under this contract. LLM-assisted mappings enter as mapping-only sidecar input through
 an already-authorized external/runtime path; Avatar runtime code must not
 hardcode a provider, model, prompt transport, or app-local REST call to produce
 them.
@@ -184,11 +183,12 @@ proof for APML auto-adapter support and must not be used as the closure gate for
 generated motion support.
 
 Avatar may later export generated clips to `.vrma` under a separate interchange
-topic. That export path must not become a dual runtime dependency.
+authority. That export path must not become a dual runtime dependency.
 
 ## 9. Initial Route Set
 
-Wave 0 admits the following Avatar backend route ids as provider targets:
+This contract admits the following Avatar backend route ids as provider
+targets:
 
 - `idle_subtle`
 - `listen_lean`
@@ -201,7 +201,7 @@ These ids are Avatar backend route ids only.
 
 ## 10. Validation Gates
 
-Wave implementation and closeout must include gates proving:
+Implementation and release gates must prove:
 
 - no Avatar product path consumes APML raw parser diagnostics
 - no retired app-local Avatar authority root exists
@@ -214,5 +214,6 @@ Wave implementation and closeout must include gates proving:
 
 This contract supersedes the `.vrma` runtime asset close gate recorded by
 `2026-04-30-avatar-vrm-backend-branch` for APML auto-adapter support. Existing
-`.vrma` assets may remain as interchange-only evidence until wave-2 hard-cuts
-implementation, but they are not canonical runtime proof for this topic.
+`.vrma` assets may remain as interchange-only evidence until the replacement
+implementation is hard-cut, but they are not canonical runtime proof for this
+contract.

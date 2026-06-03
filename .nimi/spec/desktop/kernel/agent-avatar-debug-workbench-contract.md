@@ -1,7 +1,6 @@
 # Agent Avatar Debug Workbench Contract
 
 > Authority: Desktop Kernel
-> Topic: `2026-05-01-desktop-avatar-configuration-debug-workbench`
 
 ## Scope
 

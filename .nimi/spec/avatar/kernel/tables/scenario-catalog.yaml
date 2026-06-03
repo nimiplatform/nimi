@@ -113,8 +113,7 @@ scenarios: &avatar_scenario_catalog_entries
     duration_ms: 8000
     loop: false
     description: >
-      Wave 2 chunk 2-D of topic 2026-04-30-avatar-vrm-backend-branch. Drives the
-      VRM BackendBranch lifecycle (manifest → carrier-surface → runtime →
+      Drives the VRM BackendBranch lifecycle (manifest → carrier-surface → runtime →
       loader) end-to-end with a representative MIT-licensed VRM sample
       (VRM1_Constraint_Twist_Sample.vrm from pixiv/three-vrm; fetched on demand
       via apps/avatar/scripts/fetch-vrm-models.mjs into the gitignored
@@ -134,8 +133,7 @@ scenarios: &avatar_scenario_catalog_entries
     duration_ms: 7000
     loop: false
     description: >
-      Wave 3 of topic 2026-05-15-avatar-vrm-deferral-and-authority-reconciliation.
-      Isolates the context-loss proof required by the 21-run smoke matrix:
+      Isolates the context-loss proof required by the representative smoke matrix:
       first webglcontextlost recovers through the admitted 1500ms retry window,
       while a second loss before recovery fails closed with context_lost_twice.
       This scenario shares the VRM runtime lifecycle authority but is separate
@@ -154,8 +152,7 @@ scenarios: &avatar_scenario_catalog_entries
     duration_ms: 6000
     loop: false
     description: >
-      Wave 3 chunk 3-E of topic 2026-04-30-avatar-vrm-backend-branch. Drives
-      applyActivity('listening') through the VRM BackendBranch projection
+      Drives applyActivity('listening') through the VRM BackendBranch projection
       chain. Per activity-mapping.yaml v2 listening → vrm.motion='listen_lean'
       (loop=true, fade=0.3). The route is handled by generatedMotionProvider,
       not by built-in `.vrma` interchange assets. With the missing-provider
@@ -177,8 +174,7 @@ scenarios: &avatar_scenario_catalog_entries
     duration_ms: 6000
     loop: false
     description: >
-      Wave 3 chunk 3-E of topic 2026-04-30-avatar-vrm-backend-branch. Drives
-      applyActivity('thinking') through the VRM projection chain. Per
+      Drives applyActivity('thinking') through the VRM projection chain. Per
       activity-mapping.yaml v2 thinking → vrm.motion='idle_subtle'. The route
       is handled by generatedMotionProvider; the physical idle_subtle.vrma file
       remains interchange-only evidence, not APML runtime support proof.
@@ -195,8 +191,7 @@ scenarios: &avatar_scenario_catalog_entries
     duration_ms: 4000
     loop: false
     description: >
-      Wave 3 chunk 3-E of topic 2026-04-30-avatar-vrm-backend-branch. Drives the
-      AudioPipelineController voice playback path with a NON-synthetic audio
+      Drives the AudioPipelineController voice playback path with a NON-synthetic audio
       mime (audio/wav). Exercises runtime.artifacts.readBytes →
       decodeAudioData → source.start → BackendAudioConsumer.attachAudioSource
       → wLipSync snapshot → vrm-lipsync-driver tick → emote state
@@ -218,8 +213,7 @@ scenarios: &avatar_scenario_catalog_entries
     duration_ms: 2000
     loop: false
     description: >
-      Wave 3 chunk 3-E of topic 2026-04-30-avatar-vrm-backend-branch. Drives the
-      AudioPipelineController voice playback path with the SYNTHETIC mime
+      Drives the AudioPipelineController voice playback path with the SYNTHETIC mime
       application/x-nimi-synthetic-lipsync. Per design-05 §'Synthetic mime
       fail-close' the controller fast-paths: NO decodeAudioData call, NO
       sink.attachAudioSource, sink.silent() invoked, state progresses idle →
@@ -241,9 +235,8 @@ scenarios: &avatar_scenario_catalog_entries
     duration_ms: 2000
     loop: false
     description: >
-      Wave 3 chunk 3-E of topic 2026-04-30-avatar-vrm-backend-branch. Cycles
-      neutral → happy → sad → relaxed → neutral via applyEmotion to validate
-      the chunk 3-A emote bundle crossfade (per-bundle blend_duration_sec
+      Cycles neutral → happy → sad → relaxed → neutral via applyEmotion to validate
+      the emote bundle crossfade (per-bundle blend_duration_sec
       ramp), the primary expressive weight cap (≤ 0.8 per
       vrm-emote-states.yaml constraint), and avatar.emote.applied evidence
       (skipped_count=0 since lipsync inactive).

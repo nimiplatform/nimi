@@ -4,7 +4,7 @@ owner: .nimi/spec/avatar
 catalog_id: avatar_mapping_sidecar_schema
 entries:
   - id: nimi.avatar.mapping-sidecar.v1
-admitted_by: 2026-05-01-avatar-apml-auto-adapter/wave-0
+admission_id: avatar-apml-auto-adapter
 description: >
   Schema for sidecar mappings from Avatar route ids to backend/model-specific
   names. Sidecars carry confidence and evidence only. They do not own semantic

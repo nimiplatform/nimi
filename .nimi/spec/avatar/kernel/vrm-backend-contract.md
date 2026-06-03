@@ -2,8 +2,7 @@
 
 > **App**: `@nimiplatform/avatar`
 > **Authority**: Avatar kernel contract
-> **Status**: Wave 0 admit (topic `2026-04-30-avatar-vrm-backend-branch`,
->   design-01 / design-02 / design-04 / design-05 / design-06 / design-07 / design-08)
+> **Status**: Active `kind: 'vrm'` BackendBranch implementation authority
 > **Sibling contracts**:
 > - [Backend branch contract](backend-branch-contract.md)
 > - [Live2D render contract](live2d-render-contract.md)
@@ -26,8 +25,7 @@ VRM backend 实现 `BackendBranch` 抽象；carrier abstraction 公共契约见
 
 VRM library 版本 pin：`@pixiv/three-vrm@^3.5.2` /
 `@pixiv/three-vrm-animation@^3.5.2` / `@pixiv/three-vrm-core@^3.5.2` /
-`three@^0.183.2` / `@react-three/fiber@^9.5.0`（详
-`apps/avatar/package.json` Phase E admit）。
+`three@^0.183.2` / `@react-three/fiber@^9.5.0`。
 
 ---
 
@@ -35,12 +33,11 @@ VRM library 版本 pin：`@pixiv/three-vrm@^3.5.2` /
 
 VRM backend 是 `apps/avatar` 内独立实现：
 
-- 文件骨架：`apps/avatar/src/shell/renderer/vrm/**`（详 design-02 §"VRM
-  Backend 文件骨架"）
+- 文件骨架：`apps/avatar/src/shell/renderer/vrm/**`
 - 0 行 import 自 `@nimiplatform/kit/features/avatar/*` /
-  `apps/desktop/**` / `_external/**`（self-contained policy；详 design-12
-  及 `apps/avatar/AGENTS.md`）
-- airi 算法借鉴（design-11）：MToon outline / instance cache /
+  `apps/desktop/**` / `_external/**`（self-contained policy；详
+  `apps/avatar/AGENTS.md`）
+- airi 算法借鉴：MToon outline / instance cache /
   framing / hit-test / lipsync envelope；**仅算法/配比/envelope，0 行 import**
 
 ---
@@ -67,8 +64,7 @@ VRM backend 是 `apps/avatar` 内独立实现：
 ```
 
 `VRMUtils.rotateVRM0 → applyIdlePose → traverse frustumCulled=false` 顺序
-**强制**；调换顺序导致首帧错误朝向 / T-pose 闪烁 / 边缘剔除（详 design-01 §F
-must-honor list）。
+**强制**；调换顺序导致首帧错误朝向 / T-pose 闪烁 / 边缘剔除。
 
 ### 2.2 Load Failure (Fail-Close)
 
@@ -222,7 +218,7 @@ type VrmFramingIntent =
 
 avatar 默认 `bottom-companion`，aspect 0.45（高瘦窗口）。framing intent
 可由 NAS handler 通过 `BackendProjection.applyMotion` extension hint 传递
-（wave_2 实施，wave_0 仅 admit 命名空间）。
+（implementation may consume the namespace only after this contract admits it）。
 
 ---
 
@@ -246,8 +242,7 @@ VRM expression preset 标准命名：
 
 - viseme preset 写入由 lipsync driver 独占（`vrm-lipsync-driver.ts`）
 - emotion preset 写入由 emote state 独占（`vrm-emote-state.ts`）
-- 两者**互斥**：lipsync active 时 emote state 不写 viseme（详 design-05
-  §"Coordination with emote layer"）
+- 两者**互斥**：lipsync active 时 emote state 不写 viseme
 
 ---
 
@@ -284,7 +279,7 @@ worklet（wLipSync）+ WebGL2 + offscreen canvas 要求。
 ## K-NAV-VRM-008 Outline Algorithm
 
 VRM 标准 MToon material 支持 outline（描边）。avatar 使用 airi 工业级
-outline fallback 算法（design-11 admit）：
+outline fallback 算法：
 
 - 默认尝试 MToonMaterialLoaderPlugin outline
 - outline 不可渲染（如 GPU 不支持几何 shader fallback）→ skip outline，
@@ -309,8 +304,7 @@ VRM backend 提供 `BackendAudioConsumer` 实现：
 - `vrm/vrm-audio-consumer.ts`：内部 lazy create wLipSyncNode；attach 到当前
   AudioBufferSource；snapshot 暴露 weights + volume
 - `vrm/vrm-lipsync-driver.ts`：6-dim weights → `aa/ih/ou/ee/oh` 5 viseme
-  preset；envelope + winner+runner blend；详 design-05 §"VRM Lipsync Driver Envelope"
-  + §"wLipSync 集成"
+  preset；envelope + winner+runner blend
 
 约束：
 
@@ -338,7 +332,7 @@ R3F `<Canvas>` 内 scene 结构：
 
 - `frustumCulled=false` 应用于 `<Canvas>` camera 与 scene.traverse 整树
 - 不允许在 useFrame 内修改 light intensity / position（避免 stutter）
-- postprocess 极轻量（wave_2 admit 时再决定具体 pass，wave_0 不强制）
+- postprocess 极轻量；新增 pass 必须先由本 contract 或子表承认
 
 ---
 

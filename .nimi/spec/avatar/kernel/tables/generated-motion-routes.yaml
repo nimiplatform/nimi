@@ -2,7 +2,7 @@ version: 1
 table_family: product_catalog
 owner: .nimi/spec/avatar
 catalog_id: avatar_generated_motion_routes
-admitted_by: 2026-05-01-avatar-apml-auto-adapter/wave-0
+admission_id: avatar-apml-auto-adapter
 description: >
   Avatar backend route ids for generated motion provider support. These route
   ids are downstream of typed runtime.agent.* projection and are not public APML

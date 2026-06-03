@@ -148,7 +148,7 @@ rules:
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural rule linkage only; admitted UI Card artifact/hash/classification evidence is topic-local under 2026-05-15-nimi-kit-ui-card-design-system-iteration
+    evidence_scope_note: structural rule linkage only; admitted UI Card artifact/hash/classification evidence is local evidence outside spec authority
   - rule_id: P-DESIGN-010
     evidence_refs:
       - platform_kernel_consistency
@@ -233,7 +233,7 @@ rules:
       - platform_kernel_consistency
       - nimi_ui_pattern
     evidence_requirement: structural_required
-    evidence_scope_note: taxonomy boundary is structurally covered; executable primitive gap closure is deferred to the topic's Wave 2 and Wave 3
+    evidence_scope_note: taxonomy boundary is structurally covered; executable primitive gap closure requires downstream consumer validation
   - rule_id: P-DESIGN-025
     evidence_refs:
       - platform_kernel_consistency
@@ -245,7 +245,7 @@ rules:
       - platform_kernel_consistency
       - nimi_ui_pattern
     evidence_requirement: structural_required
-    evidence_scope_note: negative anti-drift categories are admitted; executable visual fixtures and hard gate coverage are deferred to the topic's Wave 5
+    evidence_scope_note: negative anti-drift categories are admitted; executable visual fixtures and hard gate coverage require downstream consumer validation
   - rule_id: P-DESIGN-090
     evidence_refs:
       - platform_kernel_consistency

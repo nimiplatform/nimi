@@ -2,8 +2,7 @@
 
 > **App**: `@nimiplatform/avatar`
 > **Authority**: Avatar kernel contract
-> **Status**: Wave 1 of topic `2026-05-16-avatar-projection-stability-queue`
-> admits renderer-local signal smoothing after the wave-0 evidence table.
+> **Status**: active. This contract admits renderer-local signal smoothing.
 > **Upstream authority**: Runtime PresentationTimeline (`K-AGCORE-051`) remains
 > the owner of activity, speech, lipsync timing, cancellation, and turn
 > ordering truth.

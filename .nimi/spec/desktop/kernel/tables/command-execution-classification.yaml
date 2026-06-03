@@ -66,7 +66,6 @@ surfaces:
   - registered_command_families_32
   - registered_command_families_33
   - registered_command_families_34
-  - dormant_command_families_1
 # Desktop Tauri command execution classification.
 # Source of truth for D-GATE-092..D-GATE-096.
 schema_version: desktop-tauri-command-execution/v1
@@ -191,12 +190,12 @@ registered_command_families:
       - std_fs
     source_rule: D-GATE-092
 
-  - family: http_proxy_async
+  - family: admitted_shell_network_async
     match:
       exact:
         - http_request
     origin_crate: apps/desktop/src-tauri
-    owner_domain: desktop-http-proxy
+    owner_domain: desktop-admitted-shell-network
     execution_class: request_response_async
     remediation_required: false
     admitted_risks:
@@ -490,14 +489,4 @@ registered_command_families:
       - sync_lock_contention
     source_rule: D-GATE-092
 
-dormant_command_families:
-  - family: shell_tauri_test_fixture_unregistered
-    match:
-      exact:
-        - test_app_command
-    origin_crate: kit/shell/tauri
-    owner_domain: shell-tauri-test-fixture
-    dormant_class: dormant_admitted
-    remediation_required: false
-    reason: Macro self-test fixture command is annotated only inside test support and is not a product command.
-    source_rule: D-GATE-095
+dormant_command_families: []

@@ -42,17 +42,17 @@ rules:
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; implementation evidence lands with scaffold generator and reference-app proof waves
+    evidence_scope_note: structural only; scaffold generator and reference-app proof validation required
   - rule_id: P-SCAF-002
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; accepted A0-A5 input is recorded in the current topic preflight and candidate wave plan
+    evidence_scope_note: structural only; accepted A0-A5 input must be explicit, typed, and validated by scaffold admission
   - rule_id: P-SCAF-003
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; standalone and workspace-app implementation evidence lands with scaffold generator and external harness waves
+    evidence_scope_note: structural only; standalone and workspace-app behavior requires scaffold generator and external harness validation
   - rule_id: P-SCAF-004
     evidence_refs:
       - platform_kernel_consistency
@@ -62,7 +62,7 @@ rules:
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; build-profile generated-file evidence lands with scaffold generator and reference-app proof waves
+    evidence_scope_note: structural only; build-profile generated-file evidence requires scaffold generator and reference-app proof validation
   - rule_id: P-SCAF-006
     evidence_refs:
       - platform_kernel_consistency
@@ -72,27 +72,27 @@ rules:
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; managed-file taxonomy implementation evidence lands with scaffold lock, doctor, and update waves
+    evidence_scope_note: structural only; managed-file taxonomy requires scaffold lock, doctor, and update validation
   - rule_id: P-SCAF-008
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; create/init/doctor/update implementation evidence lands with app-authoring CLI waves
+    evidence_scope_note: structural only; create/init/doctor/update behavior requires app-authoring CLI validation
   - rule_id: P-SCAF-009
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; init/doctor/update behavior evidence lands with scaffold init/doctor/update and reference-app proof waves
+    evidence_scope_note: structural only; init/doctor/update behavior requires scaffold init/doctor/update and reference-app proof validation
   - rule_id: P-SCAF-010
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; nimicoding projection evidence lands with init and doctor checks invoking packaged nimicoding sync
+    evidence_scope_note: structural only; nimicoding projection evidence requires init and doctor checks invoking packaged nimicoding sync
   - rule_id: P-SCAF-011
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; external harness execution evidence is topic-local and lands in later reference-app proof
+    evidence_scope_note: structural only; external harness execution evidence is local-only and lands in reference-app proof consumer validation
   - rule_id: P-SCAF-012
     evidence_refs:
       - platform_kernel_consistency
@@ -103,4 +103,4 @@ rules:
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; model-test dependency closure requires a future kit-owned follow-up before wave-2 default imports
+    evidence_scope_note: structural only; model-test dependency closure requires kit-owned default-import validation before scaffold defaults may depend on it

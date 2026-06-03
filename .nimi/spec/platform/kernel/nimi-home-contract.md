@@ -51,8 +51,7 @@
 - Cognition 语义 memory / knowledge artifact authority
 - Avatar `.nimi/spec/avatar/**` kernel authority
 - 共享 Nimi Content Pack 渠道
-- agent identity 跨 app 平级 owner（参见
-  `agent-identity-primitive-floor.md` Wave 0 决议）
+- agent identity 跨 app 平级 owner（参见 `agent-identity-floor-contract.md`）
 
 ## P-HOME-004 — Surface Registry Requirement
 
@@ -83,22 +82,21 @@ factory AIProfile reference。
 UI / first-run / shell / first-party app AIProfile 绑定代码均不得内嵌
 provider / connector / engine / model 字符串常量。
 
-mechanical guard：Wave 4 重命名后的 no-provider/no-model gate（见
-`enforcement-gates-required.md` 与 `P-AIPS-008`）。
+mechanical guard：no-provider/no-model gate（见 `P-AIPS-008`）。
 
 ## P-HOME-006 — Agent Chat Placement Boundary
 
-`MUST`：Wave 1 的 Agent Chat 在 `Nimi Home` 内是 in-shell reference
-surface only。本契约固定其作为 placement，但不在 Wave 1 收编 transcript /
-history / identity / grant / memory / `ConversationAnchor` 的 ownership。
+`MUST`：Agent Chat 在 `Nimi Home` 内是 in-shell reference surface only。
+本契约固定其作为 placement，但不收编 transcript / history / identity /
+grant / memory / `ConversationAnchor` 的 ownership。
 
 `MUST NOT`:
 
-- Agent Chat 不得在 Wave 1 拥有 chat-derived memory truth 或跨 app agent
-  identity truth。
-- 完整 identity / grant / memory semantics 由 Wave 4 permission fabric
-  与 `runtime-cognition-knowledge-memory-owner-split.md`、
-  `agent-identity-primitive-floor.md` 决议接管。
+- Agent Chat 不得拥有 chat-derived memory truth 或跨 app agent identity
+  truth。
+- 完整 identity / grant / memory semantics 由 permission fabric、
+  `app-memory-access-contract.md`、`runtime-agent-service-contract.md`、与
+  `agent-identity-floor-contract.md` 接管。
 
 ## P-HOME-007 — Mandatory AIScopeRef
 
@@ -132,8 +130,7 @@ App client projection、与 Runtime registration / enforcement projection。
   推导 ordinary Apps 可见性。
 - 不得在 ordinary Apps 中显示 Avatar；隐藏 Avatar 也不得把 package /
   install / update truth 移入 Agent Chat。
-- 不得引入“Home tab as Home”命名递归（参见 Wave 0
-  `naming-and-kernel-ontology.md`）。
+- 不得引入“Home tab as Home”命名递归。
 
 ## P-HOME-010 — First Screen Rule
 

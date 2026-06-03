@@ -148,10 +148,10 @@ modules:
     owner: platform
     source_rule: P-KIT-041
     public_crate_name: nimi-shell-tauri
-    standalone_dependency: published_crate_after_wave_1_api_publication
+    standalone_dependency: published_crate_after_api_publication_admission
     workspace_dependency: cargo_path_dependency
-    wave_0_implementation_rename: none
-    notes: Non-npm Rust crate. Standalone apps consume the public delivery crate name nimi-shell-tauri after Wave 1 admits API/publication mechanics; workspace apps consume via Cargo path dependency. No package.json exports. Wave 0 does not rename implementation files, package manifests, crate source, package exports, or the kit.shell.tauri authority id. The platform_catalog Rust modules are generated read-only Platform catalog projections for consumers; platform_projection Rust modules provide deterministic host projection record construction/validation and SDK-shaped bridge mapping from those catalog projections. Canonical truth remains under .nimi/spec/platform/kernel/tables/**; apps remain responsible for admitted storage roots, file materialization, and app-specific command adapters.
+    implementation_rename: none
+    notes: Non-npm Rust crate. Standalone apps consume the public delivery crate name nimi-shell-tauri after API/publication mechanics are admitted; workspace apps consume via Cargo path dependency. No package.json exports. This admission does not rename implementation files, package manifests, crate source, package exports, or the kit.shell.tauri authority id. The platform_catalog Rust modules are generated read-only Platform catalog projections for consumers; platform_projection Rust modules provide deterministic host projection record construction/validation and SDK-shaped bridge mapping from those catalog projections. Canonical truth remains under .nimi/spec/platform/kernel/tables/**; apps remain responsible for admitted storage roots, file materialization, and app-specific command adapters.
   - id: kit.shell.renderer
     subpath: /shell/renderer
     kind: infra

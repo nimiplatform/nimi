@@ -38,8 +38,8 @@ rules:
   evidence_refs:
   - platform_kernel_consistency
   evidence_requirement: structural_required
-  evidence_scope_note: structural only; ecosystem expansion scope is enforced by Wave
-    6 implementation consumer validation
+  evidence_scope_note: structural only; ecosystem expansion scope is enforced by
+    implementation consumer validation
 - rule_id: P-ECO-002
   evidence_refs:
   - platform_kernel_consistency
@@ -75,8 +75,8 @@ rules:
   evidence_refs:
   - platform_kernel_consistency
   evidence_requirement: structural_required
-  evidence_scope_note: structural only; economy posture child-proposal spawn is downstream
-    proposal authoring; Wave 6 records the name only
+  evidence_scope_note: structural only; economy posture remains non-admitted until
+    an explicit economy spec cut supplies owner, scope, audit, and execution boundaries
 - rule_id: P-ECO-008
   evidence_refs:
   - platform_kernel_consistency
@@ -88,5 +88,5 @@ rules:
   evidence_refs:
   - platform_kernel_consistency
   evidence_requirement: structural_required
-  evidence_scope_note: structural only; cross-wave invariants are enforced by Wave
-    0..5 individual mechanical guards and consumer validations
+  evidence_scope_note: structural only; cross-cutting invariants are enforced by
+    their owning mechanical guards and consumer validations

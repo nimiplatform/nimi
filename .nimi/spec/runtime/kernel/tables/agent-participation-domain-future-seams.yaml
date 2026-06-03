@@ -15,9 +15,9 @@ entries:
   - app_local_agent_execution
   - oasis_world_product_implementation_requires_separate_admission
   - scenario_sandbox_product_implementation_requires_separate_admission
-  - scenario_job_execution_in_participation_wave
-  - sdk_proto_app_surface_in_wave_6
-  - promotion_implementation_in_wave_6
+  - scenario_job_execution_without_admission
+  - sdk_proto_app_surface_without_admission
+  - promotion_implementation_without_admission
   - raw_world_prompt_blob
   - raw_scenario_prompt_blob
   - runtime_world_truth_commit
@@ -66,7 +66,7 @@ domain_future_seams:
     promotion_posture: EXPLICIT_CANDIDATE
     commit_owner: domain_world_authority
     runtime_direct_commit: forbidden
-    product_ontology_implementation: forbidden_in_this_wave
+    product_ontology_implementation: forbidden_without_separate_admission
   - id: SCENARIO_SANDBOX
     source_rule: K-AGCORE-097
     participation_profile: scenario_sandbox
@@ -103,7 +103,7 @@ domain_future_seams:
     promotion_posture: EXPLICIT_CANDIDATE
     commit_owner: future_scenario_authority
     runtime_direct_commit: forbidden
-    product_ontology_implementation: forbidden_in_this_wave
+    product_ontology_implementation: forbidden_without_separate_admission
 shared_invariants:
   source_rule: K-AGCORE-098
   runtime_participation_role: execution_semantics_only
@@ -117,9 +117,9 @@ future_implementation_gates:
   source_rule: K-AGCORE-099
   oasis_world_product_implementation_requires_separate_admission: true
   scenario_sandbox_product_implementation_requires_separate_admission: true
-  scenario_job_execution_in_participation_wave: forbidden
-  sdk_proto_app_surface_in_wave_6: forbidden
-  promotion_implementation_in_wave_6: forbidden
+  scenario_job_execution_without_admission: forbidden
+  sdk_proto_app_surface_without_admission: forbidden
+  promotion_implementation_without_admission: forbidden
 negative_gates:
   source_rule: K-AGCORE-100
   raw_world_prompt_blob: forbidden

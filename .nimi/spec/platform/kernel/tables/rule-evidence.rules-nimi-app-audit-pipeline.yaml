@@ -36,7 +36,7 @@ rules:
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; publish-to-admission gate sequence enforcement is downstream Apps registry/install/storage child topic and review-tool consumer validation
+    evidence_scope_note: structural only; publish-to-admission gate sequence enforcement is downstream Apps registry/install/storage and review-tool consumer validation
   - rule_id: P-AUDIT-002
     evidence_refs:
       - platform_kernel_consistency

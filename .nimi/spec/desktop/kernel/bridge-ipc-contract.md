@@ -19,17 +19,24 @@ Desktop Tauri IPC 桥接契约。定义 renderer 进程通过 `@tauri-apps/api/c
 
 所有字段通过 `parseRuntimeDefaults` 防御性解析。
 
-共享 auth session 命令集（**superseded for local first-party account truth；必须删除或封禁**）：
-- `auth_session_load`：读取并解密 `~/.nimi/auth/session.v1.json`，返回 normalized shared desktop auth session 或 `null`。corrupt / invalid schema 文件必须在读取时删除。
-- `auth_session_save`：原子覆写共享 auth session 文件；renderer 只提交 normalized user + tokens，backend 负责加密与落盘。
-- `auth_session_clear`：删除共享 auth session 文件。
+共享 auth session 命令集（**superseded for local first-party account truth**）：
 
-共享 renderer bridge 对 local consumer 的附加约束：
+- `auth_session_load`
+- `auth_session_save`
+- `auth_session_clear`
 
-- authenticated local consumer 可以基于 `auth_session_load` 做周期性 revalidation，以 shared session 持续校验本地 durable auth truth。
-- 该 revalidation surface 只服务于 shared-session coherence；不得借机引入 raw JWT handoff、per-app token grant、或 local permission UX。
-- consumer 发现 shared session 缺失、无效、realm mismatch、或 user mismatch 时，必须 fail closed。
-- `apps/avatar` 不得调用该 shared auth session surface。Avatar 只允许通过 desktop-selected launch context、本地 visual package、以及 runtime IPC binding surface 消费上游 truth；不得把 `auth_session_load` 当作 runtime bind 前置。
+These command names may remain registered only as disabled Kit/Tauri scaffold
+stubs. Each command MUST fail closed and MUST NOT read, decrypt, write, clear,
+or validate `~/.nimi/auth/session.v1.json` for local first-party Desktop
+account truth. Renderer code, Desktop bootstrap, Avatar, Tester, and Web
+adapters MUST NOT consume these commands for revalidation, token handoff,
+logout, or user-switch detection.
+
+Authenticated local consumer revalidation belongs to Runtime account-session
+projection (`GetAccountSessionStatus`, `SubscribeAccountSessionEvents`,
+`GetAccessToken`) and scoped binding validation. Desktop may render Runtime
+account projection and route user intent, but it must not reintroduce
+shared-session coherence as a Desktop bridge surface.
 
 ## D-IPC-002 — Daemon 生命周期命令
 
@@ -78,7 +85,18 @@ canonical 配置路径固定为 `~/.nimi/runtime/config.json`（K-CFG-001）；D
 
 ## D-IPC-004 — HTTP 代理命令
 
-`http_request` 命令：renderer 通过 Tauri backend 代理所有 HTTP 请求，绕过浏览器 CORS 限制。
+`http_request` is a fail-closed Desktop shell network helper, not a general HTTP
+proxy and not platform truth. It may dispatch only:
+
+- configured Runtime / Realm origins from `runtime_defaults` / E2E runtime
+  defaults; or
+- exact SDK connector-auth acquisition profile endpoints generated from
+  `.nimi/spec/sdk/kernel/tables/connector-auth-acquisition-profiles.yaml`.
+
+Renderer-supplied `Authorization` is admitted only for configured Runtime /
+Realm origins. Provider acquisition endpoints must be selected by
+`connectorAuthProfileId` + `connectorAuthPurpose` and must not receive a
+renderer-supplied Authorization header through this command.
 
 - 每次调用生成唯一 `invokeId` 用于追踪。
 - 日志记录 `requestUrl`、`requestMethod`、`requestBodyBytes`。

@@ -202,4 +202,3 @@ non-cache 的 user / app / account 持久数据；`cache/` / `tmp/` 类纯缓存
 - `.nimi/spec/platform/kernel/tables/nimi-data-directory-ownership.yaml`
 - `.nimi/spec/platform/kernel/tables/local-config-file-registry.yaml`
 - `.nimi/spec/runtime/kernel/config-contract.md` — `K-CFG-014`, `K-CFG-015`, `K-CFG-016`, `K-CFG-018`
-- `.nimi/topics/ongoing/2026-05-20-nimi-product-manual-authority-recovery/product-manual-full-authority.md` — §`nimi_data` Directory Ownership (614-632), §Migration And Repair Rules (634-644)

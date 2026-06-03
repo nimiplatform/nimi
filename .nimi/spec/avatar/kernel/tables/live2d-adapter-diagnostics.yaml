@@ -4,9 +4,9 @@ owner: avatar
 enum_id: live2d_adapter_diagnostics
 registry_id: "nimi.avatar.live2d-adapter-diagnostics.v1"
 authority: "avatar.kernel.live2d_asset_compatibility"
-admitted_by:
+admission:
   topic_id: "2026-04-24-live2d-existing-assets-nimi-adaptation"
-  wave_id: "wave-1-compatibility-contract-alignment"
+  scope: "compatibility-contract-alignment"
 description: >
   Closed diagnostic registry for existing Live2D package adaptation. Codes are
   Avatar compatibility diagnostics, not Runtime/APML/MCP/A2A ontology.
@@ -23,57 +23,57 @@ codes: &live2d_adapter_diagnostic_values
     meaning: "Requested tier requires a manifest but none was selected."
     trigger: "semantic_basic or companion_complete validation starts without an embedded or explicit external sidecar manifest."
     severity: "error"
-    closeout_semantics: "fail_closed_for_manifest_required_tiers"
+    claim_semantics: "fail_closed_for_manifest_required_tiers"
   AVATAR_LIVE2D_COMPAT_MANIFEST_INVALID:
     meaning: "Manifest JSON or schema is invalid."
     trigger: "manifest JSON cannot parse, uses unsupported manifest_kind/schema_version, contains forbidden fields, or violates the closed v1 schema."
     severity: "error"
-    closeout_semantics: "fail_closed"
+    claim_semantics: "fail_closed"
   AVATAR_LIVE2D_COMPAT_MODEL_ID_MISMATCH:
     meaning: "Manifest target does not match resolved model."
     trigger: "target_model.model_id or expected runtime digest does not match the selected Cubism package."
     severity: "error"
-    closeout_semantics: "fail_closed"
+    claim_semantics: "fail_closed"
   AVATAR_LIVE2D_COMPAT_LICENSE_UNVERIFIED:
     meaning: "Fixture or package license evidence is insufficient for the requested use."
     trigger: "license posture is unknown for committable fixture use or evidence is absent for the claimed fixture posture."
     severity: "error"
-    closeout_semantics: "fail_closed_for_fixture_or_distribution_claim"
+    claim_semantics: "fail_closed_for_fixture_or_distribution_claim"
   AVATAR_LIVE2D_COMPAT_MOTION_MISSING:
     meaning: "A supported motion mapping points to a missing group."
     trigger: "a supported motion group or NAS fallback motion is not present in FileReferences.Motions."
     severity: "error"
-    closeout_semantics: "fail_closed_for_claimed_semantic_motion_support"
+    claim_semantics: "fail_closed_for_claimed_semantic_motion_support"
   AVATAR_LIVE2D_COMPAT_EXPRESSION_MISSING:
     meaning: "A supported expression mapping points to a missing expression."
     trigger: "a supported expression id is absent from FileReferences.Expressions."
     severity: "error"
-    closeout_semantics: "fail_closed_for_claimed_expression_support"
+    claim_semantics: "fail_closed_for_claimed_expression_support"
   AVATAR_LIVE2D_COMPAT_POSE_UNAVAILABLE:
     meaning: "Supported pose mapping was claimed but pose support is unavailable."
     trigger: "a supported pose mapping is declared while FileReferences.Pose is absent or unusable."
     severity: "error"
-    closeout_semantics: "fail_closed_for_claimed_pose_support"
+    claim_semantics: "fail_closed_for_claimed_pose_support"
   AVATAR_LIVE2D_COMPAT_LIPSYNC_PARAMETER_MISSING:
     meaning: "Supported lipsync mapping lacks a valid mouth parameter."
     trigger: "mouth_open_y_parameter or declared ParamMouthForm support cannot be proven against the model parameter set when inspection is available."
     severity: "error"
-    closeout_semantics: "fail_closed_for_claimed_lipsync_support"
+    claim_semantics: "fail_closed_for_claimed_lipsync_support"
   AVATAR_LIVE2D_COMPAT_PHYSICS_UNAVAILABLE:
     meaning: "Supported physics was claimed but physics is unavailable or invalid."
     trigger: "model_physics is declared while FileReferences.Physics is absent or Cubism rejects the physics data."
     severity: "error"
-    closeout_semantics: "fail_closed_for_claimed_physics_support"
+    claim_semantics: "fail_closed_for_claimed_physics_support"
   AVATAR_LIVE2D_COMPAT_HIT_REGION_MISSING:
     meaning: "Supported hit-region mapping points to absent hit areas."
     trigger: "a declared supported hit-region alias has no matching HitAreas entry."
     severity: "error"
-    closeout_semantics: "fail_closed_for_claimed_region_support"
+    claim_semantics: "fail_closed_for_claimed_region_support"
   AVATAR_LIVE2D_COMPAT_UNSUPPORTED_SEMANTIC:
     meaning: "A runtime semantic request has no supported model-local mapping."
     trigger: "Avatar receives a typed Runtime projection semantic that the selected manifest/tier cannot map."
     severity: "error"
-    closeout_semantics: "must_not_count_request_as_successful_playback"
+    claim_semantics: "must_not_count_request_as_successful_playback"
 
 invariants:
   - "Unknown AVATAR_LIVE2D_COMPAT_* codes require this registry to be updated before use."

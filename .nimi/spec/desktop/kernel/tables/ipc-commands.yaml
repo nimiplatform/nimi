@@ -27,17 +27,17 @@ commands:
 
   - command: auth_session_load
     module: auth-session
-    description: Load the shared encrypted desktop auth session from ~/.nimi/auth/session.v1.json
+    description: Disabled local-first-party account-truth stub; must fail closed and direct callers to RuntimeAccountService
     source_rule: D-IPC-001
 
   - command: auth_session_save
     module: auth-session
-    description: Atomically overwrite the shared encrypted desktop auth session
+    description: Disabled local-first-party account-truth stub; must fail closed and never persist Desktop account tokens
     source_rule: D-IPC-001
 
   - command: auth_session_clear
     module: auth-session
-    description: Delete the shared desktop auth session file
+    description: Disabled local-first-party account-truth stub; must fail closed and never act as logout authority
     source_rule: D-IPC-001
 
   - command: desktop_release_info_get
@@ -76,10 +76,10 @@ commands:
     description: Collect system resource snapshot (CPU, memory, GPU) for device profiling
     source_rule: D-IPC-009
 
-  # HTTP proxy
+  # Admitted shell network helper
   - command: http_request
     module: http
-    description: Proxy HTTP request through Tauri backend (bypasses browser CORS)
+    description: Fail-closed shell network helper for admitted Runtime/Realm origins and generated SDK connector-auth acquisition endpoints
     source_rule: D-IPC-004
 
   # UI

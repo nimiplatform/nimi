@@ -343,7 +343,7 @@ Desktop owns cross-app demo acceptance only as launcher/orchestrator evidence,
 not as Avatar carrier execution proof.
 
 Current first-30-second Desktop-to-Avatar acceptance must prove the following
-on current active code, not by citing closed-topic artifacts:
+on current active code, not by citing historical process artifacts:
 
 - Desktop selects a target and invokes the admitted Avatar launch path with
   explicit `agent_id` and optional `avatar_instance_id`; Desktop does not

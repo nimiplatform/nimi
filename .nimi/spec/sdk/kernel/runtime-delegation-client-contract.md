@@ -93,17 +93,20 @@ SDK must not provide helper APIs that connect Desktop, Avatar, apps, Web, or
 direct consumers directly to MCP/A2A providers. All delegated operations must route through
 Runtime-owned gateway APIs.
 
-## S-RUNTIME-210 Later Surface Status
+## S-RUNTIME-210 Implementation And Consumer Availability Boundary
 
-Wave-1 admits the SDK typed contract only. SDK implementation methods are
-owned by later implementation waves. Until those waves close, SDK may not claim
-production delegated provider configuration, approval, or replay support.
+This contract admits the SDK typed delegation contract only. SDK
+implementation methods, generated clients, Desktop/Avatar/app consumers,
+provider configuration UX, approval UX, and replay UX require their own
+admitted implementation and tests before support is claimed. Until those gates
+exist, SDK may not claim production delegated provider configuration,
+approval, or replay support.
 
 ## Traceability
 
 `S-RUNTIME-201` through `S-RUNTIME-210` define one SDK projection family for
-Runtime delegation. The family is intentionally reference-only in wave-1:
+Runtime delegation. The family is a typed contract surface:
 `S-RUNTIME-201`, `S-RUNTIME-202`, `S-RUNTIME-203`, `S-RUNTIME-204`,
 `S-RUNTIME-205`, `S-RUNTIME-206`, `S-RUNTIME-207`, `S-RUNTIME-208`,
 `S-RUNTIME-209`, and `S-RUNTIME-210` must be consumed by later SDK
-implementation waves without re-owning Runtime delegation semantics.
+implementation admissions without re-owning Runtime delegation semantics.

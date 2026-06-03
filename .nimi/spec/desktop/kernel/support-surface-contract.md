@@ -133,4 +133,3 @@ preference 状态本身损坏、或 ordinary shell 因 fail-closed 状态不可�
 - `.nimi/spec/platform/kernel/cold-start-authority-contract.md` — `P-COLD-001`, `P-COLD-009..P-COLD-016`
 - `.nimi/spec/platform/kernel/tables/first-run-state-machine.yaml`
 - `.nimi/spec/platform/kernel/tables/nimi-data-directory-ownership.yaml`
-- `.nimi/topics/ongoing/2026-05-20-nimi-product-manual-authority-recovery/product-manual-full-authority.md` — §Support / Settings / Developer Tools (1469-1495)

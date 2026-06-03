@@ -10,8 +10,6 @@ registry_id: platform_release_gate_registry
 # DO NOT hand-edit gate rows in projection surfaces (preflight, lint
 # chain, CI workflow fences). Every projection is generated from this
 # file. Hand-edits in projection surfaces are a projection-drift fail.
-#
-# Topic: 2026-05-10-release-preflight-gate-authority-hardcut, Wave 1.
 
 schema_version: release-gate-registry/v1
 registry_version: "1.0.0"

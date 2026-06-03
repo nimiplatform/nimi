@@ -178,7 +178,7 @@ WorkflowEventType 枚举（12 种）：
 ### Cross-Domain Dependencies
 
 - SDK 方法投影缺口由 `.nimi/spec/sdk/kernel/runtime-contract.md` 的 `S-RUNTIME-023` 记录。
-- Desktop 侧当前没有对应 Workflow DataSync surface；现有 DataSync 规则只覆盖 `D-DSYNC-000~013`，后续若引入 Workflow 消费面，必须先在 Desktop kernel 中新增对应 `D-DSYNC-*` 规则后再由 domain/UI 文档消费。
+- Desktop 侧当前没有对应 Workflow consumer surface。DataSync facade is non-admitted by `D-DSYNC-000~013`; Workflow 消费面必须通过 SDK 方法投影、Desktop UI spec、以及 admitted Runtime bridge/streaming contracts 定义，不得创建 Desktop DataSync flow。
 
 Workflow 服务的跨域消费契约状态：
 
@@ -186,6 +186,6 @@ Workflow 服务的跨域消费契约状态：
 |---|---|---|
 | **SDK 方法投影** | Phase 2 deferred（S-RUNTIME-023） | 创建 SDK 方法投影（SubmitWorkflow、GetWorkflow、CancelWorkflow、SubscribeWorkflowEvents），定义 gRPC→SDK 参数映射和错误投影 |
 | **Desktop UI Spec** | 完全缺失 | 创建 Workflow UI spec，至少定义：(1) 工作流执行状态面板（K-WF-003 状态机映射到 UI 状态）；(2) 节点级进度显示（K-WF-004 NODE_PROGRESS 事件消费）；(3) 取消操作 UI（K-WF-007 异步取消的用户反馈） |
-| **Desktop DataSync** | 无 Workflow 数据流 | 创建 D-DSYNC Workflow 数据流，定义轮询/事件订阅策略 |
+| **Desktop Workflow Consumer** | 无 Workflow 消费面 | 创建 Desktop Workflow UI/runtime bridge consumer contract，定义事件订阅、状态投影和取消交互；不得创建 Desktop DataSync flow |
 
 > **设计完整性注意**：K-WF-001~011 共 11 条规则已定义完整的执行模型，但无任何消费方。Runtime 实现完成后，功能不可交付直到 SDK 和 Desktop 消费契约就绪。

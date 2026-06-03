@@ -16,6 +16,16 @@ surfaces:
     role: runtime_projection
     governed_by: [S-SURFACE-002, S-SURFACE-007, S-SURFACE-009, S-SURFACE-011, S-SURFACE-012, S-SURFACE-015, S-SURFACE-016, S-SURFACE-017, S-RUNTIME-091]
     note: Shared World Evolution Engine app-facing candidate types and runtime helper ergonomics may be projected here, but logical facades remain consumer-seam-only rather than daemon method-group parity
+  - path: .nimi/spec/sdk/kernel/runtime-contract.md
+    package_subpath: "@nimiplatform/sdk/runtime/browser"
+    role: runtime_browser_transport_projection
+    governed_by: [S-SURFACE-001, S-SURFACE-002, S-SURFACE-007, S-SURFACE-011, S-SURFACE-015, S-SURFACE-016, S-SURFACE-017, S-SURFACE-021, S-SURFACE-022]
+    note: Browser/Tauri-friendly Runtime projection and transport composition surface; it must stay a public SDK projection over admitted Runtime APIs, not a private Runtime implementation import path
+  - path: .nimi/spec/sdk/kernel/runtime-contract.md
+    package_subpath: "@nimiplatform/sdk/runtime/agent-identity"
+    role: runtime_agent_identity_projection
+    governed_by: [S-SURFACE-001, S-SURFACE-015]
+    note: Agent identity client projection surface; Runtime/Platform remain identity and lifecycle authorities
   - path: .nimi/spec/sdk/world.md
     package_subpath: "@nimiplatform/sdk/world"
     role: world_domain_facade
@@ -26,6 +36,16 @@ surfaces:
     role: ai_provider_projection
     governed_by: [S-SURFACE-011, S-SURFACE-015, S-SURFACE-016, S-SURFACE-018, S-AIP-007]
     note: External AI framework adapters are protocol adapters over Runtime/SDK public surfaces, not provider routing or agent truth owners
+  - path: .nimi/spec/sdk/kernel/ai-config-surface-contract.md
+    package_subpath: "@nimiplatform/sdk/ai"
+    role: ai_config_projection
+    governed_by: [S-SURFACE-001, S-SURFACE-015, S-SURFACE-016, S-SURFACE-017]
+    note: App-facing AIProfile, AIConfig, AISnapshot, and scope-aware config helpers; SDK exposes typed access and previews, not provider/model routing or durable product truth
+  - path: .nimi/spec/sdk/kernel/surface-contract.md
+    package_subpath: "@nimiplatform/sdk/ai-app"
+    role: app_ai_session_loop_dx
+    governed_by: [S-SURFACE-015, S-SURFACE-016, S-SURFACE-017, S-SURFACE-020]
+    note: Non-authoritative app AI session-loop developer experience surface; Runtime Agent lifecycle chat remains Runtime-owned
   - path: .nimi/spec/sdk/realm.md
     package_subpath: "@nimiplatform/sdk/realm"
     role: realm_projection
@@ -34,6 +54,21 @@ surfaces:
     package_subpath: "@nimiplatform/sdk/scope"
     role: scope_projection
     governed_by: [S-SURFACE-004]
+  - path: .nimi/spec/sdk/kernel/nimi-permission-client-contract.md
+    package_subpath: "@nimiplatform/sdk/scope/permission"
+    role: permission_client_projection
+    governed_by: [S-SURFACE-001, S-PERM-001, S-PERM-002, S-PERM-006]
+    note: Typed permission-grant consumer client over admitted permission authority; it must not expose Realm or Cognition private paths
+  - path: .nimi/spec/sdk/kernel/nimi-app-client-contract.md
+    package_subpath: "@nimiplatform/sdk/app"
+    role: nimi_app_client_projection
+    governed_by: [S-SURFACE-001, S-SURFACE-015, S-SURFACE-017, S-APP-001, S-APP-002, S-APP-004]
+    note: Typed Nimi App admission, registry, install, launch, and status consumer surface; Runtime/Platform remain lifecycle and admission authorities
+  - path: .nimi/spec/sdk/kernel/surface-contract.md
+    package_subpath: "@nimiplatform/sdk/platform-catalog"
+    role: generated_platform_catalog_projection
+    governed_by: [S-SURFACE-001, S-SURFACE-015]
+    note: Generated projection of admitted Platform registry/catalog rows for app consumers; SDK must not become provider/model/catalog authority
   - path: .nimi/spec/sdk/types.md
     package_subpath: "@nimiplatform/sdk/types"
     role: types_projection

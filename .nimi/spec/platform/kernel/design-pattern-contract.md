@@ -56,12 +56,12 @@
 ## P-DESIGN-009 — Visual Reference Taxonomy Admission Boundary
 
 - UI reference artifacts may seed shared taxonomy only after they are admitted
-  through a topic-local artifact manifest, classification matrix, and audit
+  through an artifact manifest, classification matrix, and audit
   result. They are never token tables, theme packs, app composition authority,
   or implementation proof by themselves.
-- Platform contracts must cite the admitted taxonomy and source topic, not copy
+- Platform contracts must cite the admitted taxonomy and admission source, not copy
   host-local artifact paths, hashes, or visual measurements into durable
-  platform truth. Artifact identity stays in the topic evidence that admitted
+  platform truth. Artifact identity stays in the evidence that admitted
   the reference.
 - Generated image labels and pixels must not be used as canonical color,
   radius, blur, shadow, spacing, sizing, or typography values. Numeric visual
@@ -168,7 +168,7 @@
 - The shared taxonomy admitted from UI Card v2.1 is limited to primitive
   families and semantic roles. It does not admit new component APIs until the
   executable primitive table, `kit/ui` implementation, tests, and generated docs
-  are updated in later waves.
+  are updated through admitted implementation and documentation gates.
 - Surface and material taxonomy covers app background, regular glass cards,
   elevated glass cards, navigation/sidebar surfaces, floating overlay panels,
   and modal/dialog shells as reusable surface roles. Concrete dock placement,
@@ -234,7 +234,7 @@
   shared primitive family covers the need.
 - Future visual and pattern gates must encode these negative categories as
   executable checks or named visual smoke fixtures before they are used as
-  closeout criteria.
+  release criteria.
 - App-local exceptions for negative categories require a local manifest entry,
   a named owner, and a reason they do not redefine shared primitive or token
   authority.

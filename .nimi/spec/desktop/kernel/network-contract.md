@@ -51,9 +51,14 @@ Desktop 网络层契约。定义代理 fetch 机制、请求重试策略、指�
 
 `createProxyFetch()` 创建通过 Tauri backend 代理的 fetch 实现：
 
-- 所有 HTTP 请求通过 `http_request` IPC 命令（`D-IPC-004`）转发。
-- 绕过浏览器 CORS 限制。
-- Desktop 模式的 Realm feature-data 和 LLM 请求均使用此 fetch when browser CORS bypass is required.
+- 仅 Runtime / Realm configured origins may be forwarded through
+  `http_request`（`D-IPC-004`）。
+- It is not a general CORS bypass and must not proxy arbitrary HTTPS,
+  private-LAN, provider, model, app, or user-entered URLs.
+- SDK connector-auth acquisition provider requests use their own
+  `connectorAuthProfileId` + `connectorAuthPurpose` admission metadata and the
+  exact generated profile endpoint allow-list; they do not inherit
+  `createProxyFetch()` access.
 
 ## D-NET-005 — 错误归一化
 
@@ -98,7 +103,7 @@ through bounded chat shell scaffold, but a Desktop DataSync facade is not the ch
 
 **通知轮询不受影响**：SDK Realm notification helper 的 unread-count 轮询独立于实时连接状态，始终按固定间隔执行。
 
-**跨层引用**：D-NET-006（实时传输）；retired DataSync owner map only records historical chat/notification extraction boundaries.
+**跨层引用**：D-NET-006（实时传输）；DataSync non-admission owner map only records chat/notification ownership boundaries.
 
 ## Fact Sources
 

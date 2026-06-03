@@ -2,19 +2,19 @@
 
 > **App**: `@nimiplatform/avatar`
 > **Authority**: Avatar kernel contract
-> **Status**: Wave 0 industrial baseline (supersedes retired small-button surface framing)
+> **Status**: active industrial baseline (supersedes retired small-button surface framing)
 > **Sibling contracts**:
 > - [Embodiment projection contract](embodiment-projection-contract.md)
 > - [Live2D render contract](live2d-render-contract.md)
 > - [Agent script contract](agent-script-contract.md)
 > - [Avatar event contract](avatar-event-contract.md)
 >
-> **Hard Cut Status (topic `2026-04-29-avatar-first-party-app-launch-hardcut` wave-1)**：
+> **First-Party Runtime Boundary**：
 > 本 contract 约束默认 Nimi Avatar app。Avatar 是 Runtime-admitted local first-party Nimi app（default app id `nimi.avatar`），Desktop 启动时只传递 `agent_id`、optional `avatar_instance_id`、optional non-authoritative `launch_source`。Avatar 可以像其他 local first-party app 一样使用 Runtime account projection 与 Runtime-issued short-lived access token 访问授权数据；它不得持有 refresh token、durable auth session、shared auth truth、independent Realm auth truth、或 Avatar-local JWT subject truth。Desktop 不得把 scoped binding、visual package truth、conversation anchor truth、account/user truth、Realm/auth material 透传给默认 Avatar 启动路径。
 >
 > Explicit binding-only / embedded / delegated Avatar mode 仍可由 `K-BIND-*` admit，但它不是 Desktop-launched Avatar 的默认路径。
 >
-> **Wave 0 Surface Composition admit**：本 contract 重写 surface composition 模型为 `embodiment-stage` / `companion-surface` / `degraded-surface` 三互斥结构（K-NAV-SHELL-COMPOSITION-*）。原 small chat button 路径正式废弃，由 always-visible Companion Surface（K-NAV-SHELL-COMPANION-*）取代；degraded posture 由独立 Degraded Surface（K-NAV-SHELL-DEGRADED-*）承载，不再混入 ready 主区。
+> **Surface Composition Admission**：本 contract 固定 surface composition 模型为 `embodiment-stage` / `companion-surface` / `degraded-surface` 三互斥结构（K-NAV-SHELL-COMPOSITION-*）。原 small chat button 路径正式废弃，由 always-visible Companion Surface（K-NAV-SHELL-COMPANION-*）取代；degraded posture 由独立 Degraded Surface（K-NAV-SHELL-DEGRADED-*）承载，不再混入 ready 主区。
 
 ---
 
@@ -22,7 +22,7 @@
 
 本 contract 定义 Nimi Avatar 桌面 shell 的 window、交互、surface composition 与 lifecycle 行为。Avatar 不是常规软件窗口，而是**桌面悬浮 embodiment surface**：形象即 UI，透明背景，无 chrome，always-on-top。本 contract 专注 Tauri shell surface 的规则；shell 依赖 embodiment projection layer 提供 surface bounds / hit region，而不是直接拥有 backend truth。
 
-Wave 顺序见 `nimi-avatar.md` 与 `kernel/tables/feature-matrix.yaml`。本 contract 在 Wave 0 admit 之后即作为完整契约对所有 wave 生效；后续 wave 实现的 surface 行为不得偏离本 contract 已声明的规则。
+本 contract 是 Avatar shell surface 的完整权威。新增 surface、composition state、window sizing、hit-region 或 lifecycle 行为必须先更新本 contract 及对应 table authority。
 
 ---
 
@@ -51,7 +51,7 @@ Window 尺寸**必须**跟随当前 embodiment backend 产出的 surface bounds 
 - Companion-surface footprint 变化（assistant-bubble 展开 / 收起、composer 多行输入展开）→ debounce 重算 + `set_size`
 - User 手动 resize 不允许（通过 `resizable: false` 在 runtime 效果上禁止 drag-handle；程序化 set_size 仍然可用）
 
-详细 sizing policy 见 `kernel/tables/window-bounds-policy.yaml`（Wave 4 admit）。
+详细 sizing policy 见 `kernel/tables/window-bounds-policy.yaml`。
 
 ## K-NAV-SHELL-003 Initial Position
 
@@ -88,8 +88,7 @@ hit_region = union of:
 
 ## K-NAV-SHELL-COMPOSITION-006 Hit Region 双层结构
 
-> Wave 0 of topic `2026-04-30-avatar-vrm-backend-branch` (design-07) admit.
-> Replaces the single-layer alpha-mask path with **alpha-mask + bbox 双层互补**.
+> Replaces the retired single-layer alpha-mask path with **alpha-mask + bbox 双层互补**.
 
 Hit region 由 **两层** 数据组成：
 
@@ -125,7 +124,7 @@ backend.hitRegion.isOpaqueAtClientPoint(x, y)
 
 ## K-NAV-SHELL-COMPOSITION-007 Device Tier Baseline
 
-> Wave 0 admit. Per-device capability detection at carrier mount.
+> Per-device capability detection at carrier mount.
 
 | Tier | 设备 baseline | 能力 |
 |---|---|---|
@@ -595,7 +594,6 @@ Minimum permission set for industrial baseline shell：
 
 ## 13. First-Party Runtime Boundary (K-NAV-SHELL-FIRST-PARTY-RUNTIME)
 
-> 本节由 topic `2026-04-29-avatar-first-party-app-launch-hardcut` wave-1 admit。
 > Upstream authority：`.nimi/spec/runtime/kernel/account-session-contract.md`（`K-ACCSVC-*`）、`.nimi/spec/sdk/kernel/runtime-contract.md`（`S-RUNTIME-109` / `S-RUNTIME-110`）、`.nimi/spec/runtime/kernel/scoped-app-binding-contract.md`（explicit binding-only modes only）。
 
 ## K-NAV-SHELL-FIRST-PARTY-RUNTIME-001 默认 Avatar 禁止的能力
@@ -655,7 +653,7 @@ Avatar Tauri capability 文件不允许包含：
 - refresh token / session custody read-write capability
 - Desktop shared auth read-write capability
 
-guardrail 必须在合规 wave 落地（见 `negative-test-matrix.md` 与 `guardrail-scan-plan.md`）。
+guardrail 必须随本 contract 的 first-party runtime boundary 同步落地（见 `negative-test-matrix.md` 与 `guardrail-scan-plan.md`）。
 
 ## K-NAV-SHELL-FIRST-PARTY-RUNTIME-005 Agent / Visual Package / Conversation Ownership
 
@@ -686,4 +684,4 @@ delegated Avatar mode，且作为 carrier-relation attachment，不替代 token�
 
 ---
 
-**Industrial baseline.** Companion Surface、Degraded Surface、Composition State 三个机制在 Wave 0 admit 之后即作为完整契约对所有 wave 生效；后续 wave 的实现工作不得偏离本 contract 已声明的规则，新增表面 / 新增 composition state 必须先以 minor / major bump 方式更新本 contract。
+**Industrial baseline.** Companion Surface、Degraded Surface、Composition State 三个机制属于本 contract 的完整权威；实现不得偏离本 contract 已声明的规则，新增表面 / 新增 composition state 必须先以 minor / major bump 方式更新本 contract。

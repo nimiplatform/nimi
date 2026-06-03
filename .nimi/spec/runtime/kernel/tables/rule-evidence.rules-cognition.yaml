@@ -189,7 +189,7 @@ rules:
     evidence_refs:
       - runtime_kernel_consistency
       - runtime_go_test
-    note: dataRootRef and managed root owner split admitted as Runtime config boundary; implementation evidence lands with product-local first-run/data-root child topic.
+    note: dataRootRef and managed root owner split admitted as Runtime config boundary; product-local first-run/data-root consumer validation is required.
     evidence_requirement: required
   - rule_id: K-KEYSRC-001
     evidence_refs:

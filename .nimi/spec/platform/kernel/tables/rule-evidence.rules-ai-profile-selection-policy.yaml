@@ -42,12 +42,12 @@ rules:
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; behavioral guarantee that factory AIProfile catalog and AIProfile selection policy never own live AIConfig or install state requires Wave 1 Home shell and Wave 5 first-party app consumer validation
+    evidence_scope_note: structural only; behavioral guarantee that factory AIProfile catalog and AIProfile selection policy never own live AIConfig or install state requires Home shell and first-party app consumer validation
   - rule_id: P-AIPS-002
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; dimensioned matrix integrity and alias-as-projection enforcement requires Wave 1 first-run consumer validation
+    evidence_scope_note: structural only; dimensioned matrix integrity and alias-as-projection enforcement requires first-run consumer validation
   - rule_id: P-AIPS-003
     evidence_refs:
       - platform_kernel_consistency
@@ -57,7 +57,7 @@ rules:
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; selection policy input/output behavior and Runtime evidence consumption requires Wave 2 Runtime kernel and Wave 3 Home consumer validation
+    evidence_scope_note: structural only; selection policy input/output behavior and Runtime evidence consumption requires Runtime kernel and Home consumer validation
   - rule_id: P-AIPS-005
     evidence_refs:
       - platform_kernel_consistency
@@ -78,17 +78,17 @@ rules:
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; mechanical no-provider/no-model guard binary is owned by Wave 4 implementation close per the topic foundation-validation gate
+    evidence_scope_note: structural only; mechanical no-provider/no-model guard binary is owned by `check:no-ai-profile-provider-model-constants`
   - rule_id: P-AIPS-009
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; first-party Nimi App AIProfile hint binding behavior requires Wave 3 Nimi App registry and Wave 5 first-party app consumer validation
+    evidence_scope_note: structural only; first-party Nimi App AIProfile hint binding behavior requires Nimi App registry and first-party app consumer validation
   - rule_id: P-AIPS-010
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; first-run / scope-bound apply state machine behavior requires Wave 3 Home shell consumer validation
+    evidence_scope_note: structural only; first-run / scope-bound apply state machine behavior requires Home shell consumer validation
   - rule_id: P-AIPS-011
     evidence_refs:
       - platform_kernel_consistency
@@ -98,9 +98,9 @@ rules:
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; applicable_scopes admission enforcement requires Wave 3 and Wave 5 consumer validation
+    evidence_scope_note: structural only; applicable_scopes admission enforcement requires Nimi App registry and first-party app consumer validation
   - rule_id: P-AIPS-013
     evidence_refs:
       - platform_kernel_consistency
     evidence_requirement: structural_required
-    evidence_scope_note: structural only; Account Default Profile local library record verifier implementation lands with product first-run admission waves
+    evidence_scope_note: structural only; Account Default Profile local library record verifier implementation lands with product first-run admission consumer validation

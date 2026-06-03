@@ -44,10 +44,10 @@ The binding must include:
 
 ## K-DELEG-103 Transport Classes
 
-Wave-2 admits `stdio_command` as the production MCP transport class for
+This contract admits `stdio_command` as the production MCP transport class for
 Runtime-owned local gateway execution.
 
-Remote HTTP transports require a later packet unless the packet proves
+Remote HTTP transports require separate admission unless that admission proves
 target-resource authorization, credential custody, timeout, and response
 quarantine against this contract.
 
@@ -95,7 +95,7 @@ Runtime may call an MCP tool only after:
 
 ## K-DELEG-109 Quarantined Gateway Evidence
 
-Wave-2 MCP call output must be recorded as quarantined gateway evidence.
+MCP call output must be recorded as quarantined gateway evidence.
 
 The evidence may include MCP content, structured content, tool error state,
 provider/session IDs, schema digests, and timing metadata, but it must carry:
@@ -150,11 +150,11 @@ call protocol error, timeout, and server lifecycle failure must map to
 
 ## K-DELEG-115 Audit Link
 
-Wave-2 gateway evidence must carry enough trace material for `K-DELEG-085`
+MCP gateway evidence must carry enough trace material for `K-DELEG-085`
 through `K-DELEG-089` to correlate provider, request, tool, session, failure,
-and quarantine state in later audit/replay waves.
+and quarantine state in admitted audit/replay surfaces.
 
-Wave-2 does not create a second audit store.
+This contract does not create a second audit store.
 
 ## K-DELEG-116 Direct Import Guard
 
@@ -166,22 +166,22 @@ forbidden.
 
 ## K-DELEG-117 A2A Non-Interference
 
-Wave-2 must not implement, import, register, expose, or fake A2A provider
-support.
+A2A provider support must not be implemented, imported, registered, exposed, or
+faked by this MCP adapter admission.
 
-A2A remains the future seam owned by the later A2A future-seam contract.
+A2A remains the future seam owned by the A2A future-seam contract.
 
 ## K-DELEG-118 Controlled MCP Test Requirement
 
-Wave-2 tests must use a real MCP client/server interaction through the official
-SDK transport. Stubbed success without MCP protocol execution is not valid
-closure evidence.
+MCP adapter tests must use a real MCP client/server interaction through the
+official SDK transport. Stubbed success without MCP protocol execution is not
+valid closure evidence.
 
-## K-DELEG-119 Later-Wave Firewall Requirement
+## K-DELEG-119 Firewall Admission Requirement
 
-Wave-2 close does not admit MCP output into Runtime cognition, presentation, or
-action surfaces.
+This MCP adapter admission does not admit MCP output into Runtime cognition,
+presentation, or action surfaces.
 
-Only a later closed firewall wave may transform quarantined gateway evidence
-into accepted observation, suggestion, artifact, failure, approval, or action
-input semantics.
+Only an admitted closed firewall surface may transform quarantined gateway
+evidence into accepted observation, suggestion, artifact, failure, approval, or
+action input semantics.

@@ -1,0 +1,89 @@
+id: nimicoding.runtime-rpc-migration-map.methods-model-workflow-audit.v1
+kind: runtime-rpc-migration-map-shard
+parent: runtime_rpc_design_proto_mapping
+version: 1
+generated: false
+table_family: protocol_surface
+owner: runtime
+protocol_id: runtime_rpc_design_proto_mapping
+services:
+  - RuntimeWorkflowService
+  - RuntimeAuditService
+  - RuntimeModelService
+method_count: 15
+method_mappings:
+  - design_service: RuntimeWorkflowService
+    design_method: SubmitWorkflow
+    proto_service: RuntimeWorkflowService
+    proto_method: SubmitWorkflow
+    mapping_posture: aligned
+  - design_service: RuntimeWorkflowService
+    design_method: GetWorkflow
+    proto_service: RuntimeWorkflowService
+    proto_method: GetWorkflow
+    mapping_posture: aligned
+  - design_service: RuntimeWorkflowService
+    design_method: CancelWorkflow
+    proto_service: RuntimeWorkflowService
+    proto_method: CancelWorkflow
+    mapping_posture: aligned
+  - design_service: RuntimeWorkflowService
+    design_method: SubscribeWorkflowEvents
+    proto_service: RuntimeWorkflowService
+    proto_method: SubscribeWorkflowEvents
+    mapping_posture: aligned
+  - design_service: RuntimeAuditService
+    design_method: ListAuditEvents
+    proto_service: RuntimeAuditService
+    proto_method: ListAuditEvents
+    mapping_posture: aligned
+  - design_service: RuntimeAuditService
+    design_method: ExportAuditEvents
+    proto_service: RuntimeAuditService
+    proto_method: ExportAuditEvents
+    mapping_posture: aligned
+  - design_service: RuntimeAuditService
+    design_method: ListUsageStats
+    proto_service: RuntimeAuditService
+    proto_method: ListUsageStats
+    mapping_posture: aligned
+  - design_service: RuntimeAuditService
+    design_method: GetRuntimeHealth
+    proto_service: RuntimeAuditService
+    proto_method: GetRuntimeHealth
+    mapping_posture: aligned
+  - design_service: RuntimeAuditService
+    design_method: ListAIProviderHealth
+    proto_service: RuntimeAuditService
+    proto_method: ListAIProviderHealth
+    mapping_posture: aligned
+  - design_service: RuntimeAuditService
+    design_method: SubscribeAIProviderHealthEvents
+    proto_service: RuntimeAuditService
+    proto_method: SubscribeAIProviderHealthEvents
+    mapping_posture: aligned
+  - design_service: RuntimeAuditService
+    design_method: SubscribeRuntimeHealthEvents
+    proto_service: RuntimeAuditService
+    proto_method: SubscribeRuntimeHealthEvents
+    mapping_posture: aligned
+  - design_service: RuntimeModelService
+    design_method: ListModels
+    proto_service: RuntimeModelService
+    proto_method: ListModels
+    mapping_posture: aligned
+  - design_service: RuntimeModelService
+    design_method: PullModel
+    proto_service: RuntimeModelService
+    proto_method: PullModel
+    mapping_posture: aligned
+  - design_service: RuntimeModelService
+    design_method: RemoveModel
+    proto_service: RuntimeModelService
+    proto_method: RemoveModel
+    mapping_posture: aligned
+  - design_service: RuntimeModelService
+    design_method: CheckModelHealth
+    proto_service: RuntimeModelService
+    proto_method: CheckModelHealth
+    mapping_posture: aligned

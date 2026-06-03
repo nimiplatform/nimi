@@ -103,4 +103,4 @@ axes:
       - LOW_PRIORITY_CANCELABLE
 governance:
   open_string_axis_values_allowed: false
-  broadening_requires_reopen: wave-1-participation-axis-authority-model
+  broadening_requires_reopen: participation-axis-authority-model

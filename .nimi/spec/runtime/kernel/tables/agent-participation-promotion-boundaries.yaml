@@ -13,7 +13,7 @@ rows:
   - external_principal_self_promotion
   - debug_probe_promotion
   - side_audit_store
-  - promotion_transport_implementation_in_wave_7
+  - promotion_transport_without_admission
   - open_promotion_target_allowed
   - target_owner_required
   - audit_lineage_required
@@ -138,7 +138,7 @@ promotion_invariants:
   external_principal_self_promotion: forbidden
   debug_probe_promotion: forbidden
   side_audit_store: forbidden
-  promotion_transport_implementation_in_wave_7: forbidden
+  promotion_transport_without_admission: forbidden
   open_promotion_target_allowed: false
   target_owner_required: true
   audit_lineage_required: true

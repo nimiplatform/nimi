@@ -47,12 +47,12 @@ posture_decision_doctrine: |
   This doctrine is the worker's classification rule. The doctrine is stored
   verbatim as the `posture_decision_doctrine` field at the top of the
   delivered table file so the table is self-contained and downstream
-  consumers (Wave 2 SDK, Wave 4 runtime tests) read the same doctrine the
+  consumers (SDK and runtime tests) read the same doctrine the
   worker used.
 
   If a handler genuinely does not match any of the three values, the worker
   STOPS and overflows the packet; a fourth posture would require a kernel
-  rule change, which is out of Wave 0 scope.
+  rule change, which is out of the current admitted scope.
 method_shards:
   - path: runtime-rpc-auth-posture/identity-access.yaml
     id: nimicoding.runtime-rpc-auth-posture.identity-access.v1

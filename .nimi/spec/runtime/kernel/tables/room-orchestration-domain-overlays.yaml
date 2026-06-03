@@ -37,7 +37,7 @@ overlays:
   - id: realm_group
     matrix_row: realm_group
     source_rule: K-AGCORE-116
-    downstream_topic_ref: .nimi/topics/proposal/2026-05-03-realm-group-agent-participation-product
+    downstream_admission_ref: realm_group_agent_participation_product
     domain_truth_owner: Realm owns GROUP transcript, membership, message, read-state, sync, and authenticated commit truth.
     orchestration_owner: K-AGCORE
     evidence_bindings:
@@ -57,7 +57,7 @@ overlays:
   - id: scenario_sandbox
     matrix_row: scenario_sandbox
     source_rule: K-AGCORE-116
-    downstream_topic_ref: .nimi/topics/proposal/2026-05-03-scenario-sandbox-participation-domain
+    downstream_admission_ref: scenario_sandbox_participation_domain
     domain_truth_owner: Scenario owns scenario package, run, branch, replay, transcript, and product truth.
     orchestration_owner: K-AGCORE
     evidence_bindings:
@@ -77,7 +77,7 @@ overlays:
   - id: oasis_world
     matrix_row: oasis_world
     source_rule: K-AGCORE-116
-    downstream_topic_ref: .nimi/topics/proposal/2026-05-03-oasis-world-agent-participation-product
+    downstream_admission_ref: oasis_world_agent_participation_product
     domain_truth_owner: OASIS/world owns world state, event log, actor ontology, and product truth.
     orchestration_owner: K-AGCORE
     evidence_bindings:
@@ -97,7 +97,7 @@ overlays:
   - id: avatar_companion_presentation_room
     matrix_row: avatar_companion_presentation_room
     source_rule: K-AGCORE-116
-    downstream_topic_ref: .nimi/topics/proposal/2026-05-03-avatar-companion-participation-product
+    downstream_admission_ref: avatar_companion_participation_product
     domain_truth_owner: Avatar/Companion owns presentation and UI rendering truth only.
     orchestration_owner: K-AGCORE
     evidence_bindings:
@@ -117,7 +117,7 @@ overlays:
   - id: external_entry_inside_room
     matrix_row: external_entry_inside_room
     source_rule: K-AGCORE-114
-    downstream_topic_ref: .nimi/topics/proposal/2026-05-03-external-agent-entry-productization
+    downstream_admission_ref: external_agent_entry_productization
     domain_truth_owner: External protocol/domain owners retain wire/protocol and external-domain truth; Runtime owns room admission posture.
     orchestration_owner: K-AGCORE
     evidence_bindings:
@@ -148,7 +148,7 @@ overlays:
   - id: canonical_chat_adjacency
     matrix_row: canonical_chat_adjacency
     source_rule: K-AGCORE-116
-    downstream_topic_ref: canonical_chat_adjacency
+    downstream_admission_ref: canonical_chat_adjacency
     domain_truth_owner: Canonical chat authority owns canonical chat history and owner-authorized canonical handling.
     orchestration_owner: K-AGCORE
     evidence_bindings:

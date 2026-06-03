@@ -1,7 +1,6 @@
 # Agent Avatar Configuration Contract
 
 > Authority: Desktop Kernel
-> Topic: `2026-05-01-desktop-avatar-configuration-debug-workbench`
 
 ## Scope
 
@@ -94,7 +93,7 @@ Resolver ownership is single-cut:
   and probe projection.
 - Avatar performs local asset resolver execution and emits backend evidence.
 
-No Desktop or Runtime contract admitted by this topic may become a second
+No Desktop or Runtime contract admitted by this scope may become a second
 Avatar backend file resolver.
 
 External Live2D adapter sidecar custody is a Desktop storage operation only:
@@ -113,8 +112,8 @@ External Live2D adapter sidecar custody is a Desktop storage operation only:
 
 ## D-LLM-082 — D-LLM-069 And D-LLM-074 Reconciliation
 
-D-LLM-069 renderer-local debug override remains renderer-local unless a later
-wave explicitly retires or promotes it through a typed public contract. This
+D-LLM-069 renderer-local debug override remains renderer-local unless a separate
+typed public contract explicitly retires or promotes it. This
 configuration contract does not expose that override through SDK, Runtime, or
 public app surfaces.
 

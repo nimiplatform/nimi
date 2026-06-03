@@ -70,9 +70,10 @@ Nimi App registry 拥有，package readiness 由 package/runtime projection
 `MUST`：Agent Chat 是 Home 内 in-shell reference surface（`P-HOME-006`）。
 其在 shell 中的 placement、入口、与 UI navigation 由本契约拥有。
 
-`MUST NOT`：Wave 1 内，Agent Chat surface 不得在 hosted shell 层拥有
+`MUST NOT`：Agent Chat surface 不得在 hosted shell 层拥有
 transcript / history / identity / grant / memory / `ConversationAnchor`
-truth。这些 ownership 由 Wave 4 permission fabric 接管。
+truth。这些 ownership 由 permission fabric、RuntimeAgentService、Realm、
+and Cognition 接管。
 
 ## D-HOME-007 — AIScopeRef Enforcement
 
@@ -80,8 +81,7 @@ truth。这些 ownership 由 Wave 4 permission fabric 接管。
 shell-internal flow）必须显式携带 `AIScopeRef`（`P-AISC-001`、
 `S-AICONF-003`）。
 
-mechanical guard：`check:home-shell-aiscoperef-required`，required-before:
-Wave 1 implementation close。
+mechanical guard：`check:home-shell-aiscoperef-required`。
 
 ## D-HOME-008 — No Private Runtime Path
 
@@ -92,7 +92,7 @@ Wave 1 implementation close。
 - SDK private internals
 
 mechanical guard：`check:home-shell-no-runtime-internal-import`，
-required-before: Wave 1 implementation close。
+required before hosted-shell release claim。
 
 ## D-HOME-009 — Runtime / Account / Diagnostics Surface Consumption
 

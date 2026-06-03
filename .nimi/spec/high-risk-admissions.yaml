@@ -1,6 +1,5 @@
 admissions:
-  - topic_id: 2026-05-03-multi-agent-room-orchestration-authority
-    packet_id: wave-0-authority-reconciliation-authority-admit
+  - admission_id: multi-agent-room-orchestration-authority
     disposition: complete
     admitted_at: "2026-05-12T15:45:17Z"
     manager_review_owner: nimicoding-manager
@@ -17,11 +16,8 @@ admissions:
       commit Realm GROUP, Scenario, OASIS/world, canonical chat, or external
       domain truth. This admission extends the closed Runtime Agent
       Participation Authority without reopening K-AGCORE-073, K-AGCORE-086, or
-      participation profile/axis registry truth. Remediation A froze exact
-      negative-gate commands and allowed-match posture before wave-0 closeout.
-    source_decision_contract: .nimi/topics/ongoing/2026-05-03-multi-agent-room-orchestration-authority/packet-wave-0-authority-reconciliation-authority-admit.md
-  - topic_id: 2026-05-02-runtime-agent-participation-authority
-    packet_id: wave-0-authority-admission-and-inventory-authority-admit
+      participation profile/axis registry truth.
+  - admission_id: runtime-agent-participation-authority
     disposition: complete
     admitted_at: "2026-05-02T04:56:01Z"
     manager_review_owner: nimicoding-manager
@@ -38,9 +34,7 @@ admissions:
       Scenario Sandbox remains future consumer only, A2A/MCP protocol payloads
       remain non-semantic gateway input, and non-canonical memory/cognition or
       canonical-chat writes remain fail-closed without explicit promotion.
-    source_decision_contract: .nimi/topics/ongoing/2026-05-02-runtime-agent-participation-authority/packet-wave-0-authority-admission-and-inventory-authority-admit.md
-  - topic_id: 2026-05-01-desktop-avatar-configuration-debug-workbench
-    packet_id: wave-0-authority-admit
+  - admission_id: desktop-avatar-configuration-debug-workbench
     disposition: complete
     admitted_at: "2026-05-01T12:08:38Z"
     manager_review_owner: nimicoding-manager
@@ -56,9 +50,7 @@ admissions:
       descriptor truth, carrier truth, backend truth, or binding truth, and the
       admitted Avatar launch payload remains agent_id plus optional
       avatar_instance_id and optional non-authoritative launch_source.
-    source_decision_contract: .nimi/topics/ongoing/2026-05-01-desktop-avatar-configuration-debug-workbench/packet-wave-0-authority-admit.md
-  - topic_id: 2026-05-01-runtime-delegated-agent-capability-gateway
-    packet_id: wave-0-authority-admit
+  - admission_id: runtime-delegated-agent-capability-gateway
     disposition: complete
     admitted_at: "2026-05-01T10:23:36Z"
     manager_review_owner: nimicoding-manager
@@ -69,12 +61,11 @@ admissions:
       MCP is admitted only as a quarantined adapter source, A2A remains a
       future seam, and Desktop/Avatar/apps remain typed consumers or
       control surfaces without delegated semantic ownership.
-    source_decision_contract: .nimi/topics/closed/2026-05-01-runtime-delegated-agent-capability-gateway/packet-wave-0-authority-admit.md
 admission_rules:
   - explicit_manager_owned_decision_required_before_canonical_high_risk_admission
-  - mechanically_valid_packet_identity_required_before_canonical_high_risk_admission
+  - mechanically_valid_admission_identity_required_before_canonical_high_risk_admission
   - canonical_high_risk_admission_requires_explicit_write_to_tracked_truth
 semantic_constraints:
   - canonical_admission_records_must_not_promote_operational_runtime_state
-  - canonical_admission_records_must_use_one_record_per_topic_id
+  - canonical_admission_records_must_use_one_record_per_admission_id
   - canonical_admission_records_must_use_iso_8601_utc_admitted_at
