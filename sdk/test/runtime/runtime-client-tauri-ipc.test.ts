@@ -16,7 +16,9 @@ import {
   RegisterAppResponse,
 } from '../../src/runtime/generated/runtime/v1/auth';
 import {
+  AppStorageState,
   GetAccountAppLibraryResponse,
+  GetAppStorageResponse,
   SendAppMessageResponse,
 } from '../../src/runtime/generated/runtime/v1/app';
 import {
@@ -261,6 +263,67 @@ test('tauri-ipc per-call protected access token suppresses stale bearer authoriz
     assert.deepEqual(capturedPayload.protectedAccessToken, {
       tokenId: 'protected-token-id',
       secret: 'protected-token-secret',
+    });
+  } finally {
+    restoreTauri();
+  }
+});
+
+test('tauri-ipc app lifecycle storage request includes app session', async () => {
+  let capturedPayload: Record<string, unknown> | null = null;
+  const restoreTauri = installTauriRuntime({
+    core: {
+      invoke: async (command: string, payload?: unknown) => {
+        if (command !== 'runtime_bridge_unary') {
+          throw new Error(`unexpected tauri command: ${command}`);
+        }
+        capturedPayload = unwrapTauriInvokePayload(payload);
+        return {
+          responseBytesBase64: Buffer.from(
+            GetAppStorageResponse.toBinary(
+              GetAppStorageResponse.create({
+                projection: {
+                  appId: APP_ID,
+                  state: AppStorageState.READY,
+                  appRoot: '/data/apps/nimi.test',
+                  durableDataRoot: '/data/apps/nimi.test/data',
+                  cacheRoot: '/data/apps/nimi.test/cache',
+                  tempRoot: '/data/apps/nimi.test/tmp',
+                },
+              }),
+            ),
+          ).toString('base64'),
+        };
+      },
+    },
+    event: {
+      listen: () => () => {},
+    },
+  });
+
+  try {
+    const runtime = new Runtime({
+      appId: APP_ID,
+      transport: {
+        type: 'tauri-ipc',
+        commandNamespace: 'runtime_bridge',
+        eventNamespace: 'runtime_bridge',
+      },
+      auth: {
+        appSession: () => ({
+          sessionId: 'runtime-session-id',
+          sessionToken: 'runtime-session-token',
+        }),
+      },
+    });
+
+    await runtime.appLifecycle.storage({ appId: APP_ID });
+
+    assert.ok(capturedPayload);
+    assert.equal(capturedPayload.methodId, RuntimeMethodIds.app.getAppStorage);
+    assert.deepEqual(capturedPayload.appSession, {
+      sessionId: 'runtime-session-id',
+      sessionToken: 'runtime-session-token',
     });
   } finally {
     restoreTauri();

@@ -133,6 +133,16 @@ async function resolveProtectedAccessToken(
 function runtimeMethodRequiresAppSession(methodId: string): boolean {
   return methodId === RuntimeMethodIds.app.sendAppMessage
     || methodId === RuntimeMethodIds.app.subscribeAppMessages
+    || methodId === RuntimeMethodIds.app.installApp
+    || methodId === RuntimeMethodIds.app.uninstallApp
+    || methodId === RuntimeMethodIds.app.getAppStorage
+    || methodId === RuntimeMethodIds.app.getAppPackageReadiness
+    || methodId === RuntimeMethodIds.app.getAppInstallJob
+    || methodId === RuntimeMethodIds.app.listAppInstallJobs
+    || methodId === RuntimeMethodIds.app.watchAppInstallJobEvents
+    || methodId === RuntimeMethodIds.app.updateApp
+    || methodId === RuntimeMethodIds.app.healthRepairApp
+    || methodId === RuntimeMethodIds.app.openApp
     || methodId === RuntimeMethodIds.agent.openConversationAnchor
     || methodId === RuntimeMethodIds.agent.getConversationAnchorSnapshot
     || methodId === RuntimeMethodIds.agent.listAgentConversationSummaries
