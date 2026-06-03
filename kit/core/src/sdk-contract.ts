@@ -152,7 +152,7 @@ export type {
   RealmServiceRegistry,
   RealmModel,
 } from '@nimiplatform/sdk/realm';
-export { OAuthLoginState, resolveRealmMediaUrl } from '@nimiplatform/sdk/realm';
+export { OAuthLoginState, OAuthProvider, resolveRealmMediaUrl } from '@nimiplatform/sdk/realm';
 
 // --- Typed error envelope ---------------------------------------------------
 export type { NimiError } from '@nimiplatform/sdk/types';

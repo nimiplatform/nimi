@@ -1,7 +1,7 @@
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ScenarioJobStatus, type Runtime } from '@nimiplatform/sdk/runtime';
+import { ScenarioJobStatus, type Runtime } from '@nimiplatform/kit/core/sdk-contract';
 import {
   copyArtifactBytesToArrayBuffer,
   type RuntimeScenarioArtifact,

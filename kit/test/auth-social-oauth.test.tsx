@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
-import { OAuthProvider } from '@nimiplatform/sdk/realm';
+import { OAuthProvider } from '@nimiplatform/kit/core/sdk-contract';
 import {
   AuthViewMain,
   resolveSocialOauthConfig,

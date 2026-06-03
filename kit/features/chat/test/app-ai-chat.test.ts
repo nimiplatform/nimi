@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { Runtime, TextGenerateOutput, TextStreamPart } from '@nimiplatform/sdk/runtime';
+import type { Runtime, TextGenerateOutput, TextStreamPart } from '@nimiplatform/kit/core/sdk-contract';
 import {
   createAppAiChatComposerAdapter,
 } from '../src/runtime.js';

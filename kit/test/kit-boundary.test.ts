@@ -56,9 +56,8 @@ function importSpecifiers(source: string): string[] {
   return specifiers;
 }
 
-test('Kit non-test code routes static SDK imports through the SDK contract boundary only', () => {
+test('Kit code and tests route static SDK imports through the SDK contract boundary only', () => {
   const offenders = walkSourceFiles(kitRoot)
-    .filter((filePath) => !isTestSource(filePath))
     .filter((filePath) => path.relative(repoRoot, filePath).split(path.sep).join('/') !== 'kit/core/src/sdk-contract.ts')
     .filter((filePath) => {
       const specifiers = importSpecifiers(fs.readFileSync(filePath, 'utf8'));

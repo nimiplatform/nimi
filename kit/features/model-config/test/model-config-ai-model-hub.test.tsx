@@ -10,7 +10,7 @@ import type {
 import type {
   AIConfig,
   AIScopeRef,
-} from '@nimiplatform/sdk/ai';
+} from '@nimiplatform/kit/core/sdk-contract';
 import { previewCopyFields } from './profile-preview-fixtures.js';
 import type { ModelConfigProfileController } from '../src/types.js';
 

@@ -3,7 +3,7 @@ import type {
   Runtime,
   TextStreamOutput,
   TextStreamPart,
-} from '@nimiplatform/sdk/runtime';
+} from '@nimiplatform/kit/core/sdk-contract';
 import {
   buildConversationHistoryWindow,
   ConversationOrchestrationRegistry,

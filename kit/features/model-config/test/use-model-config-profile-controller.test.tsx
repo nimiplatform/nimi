@@ -14,7 +14,7 @@ import type {
   AIProfile,
   AIProfileApplyResult,
   AIScopeRef,
-} from '@nimiplatform/sdk/ai';
+} from '@nimiplatform/kit/core/sdk-contract';
 import type {
   SharedAIConfigService,
   UserProfilesSource,

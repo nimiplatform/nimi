@@ -35,6 +35,7 @@ import {
   type RealmChatSyncResultDto,
   type RealmChatService,
   type RealmChatRealtimeSocket,
+  type RealmMessageViewDto,
   type UseRealmChatRealtimeControllerOptions,
 } from '../src/realm.js';
 
@@ -811,12 +812,13 @@ describe('chat realm helpers', () => {
   });
 
   it('keeps newer realtime message evidence during conflict handling', () => {
-    const newer = {
+    const newer: RealmMessageViewDto = {
       id: 'msg-1',
       chatId: 'chat-1',
       senderId: 'user-1',
       type: 'TEXT',
       text: 'new state',
+      payload: { content: 'new state' },
       isRead: true,
       createdAt: '2026-03-10T10:00:00.000Z',
       clientMessageId: 'cm-1',
@@ -824,6 +826,7 @@ describe('chat realm helpers', () => {
     const older = {
       ...newer,
       text: 'stale replay',
+      payload: { content: 'stale replay' },
       isRead: false,
       createdAt: '2026-03-10T09:59:00.000Z',
     };
@@ -844,6 +847,15 @@ describe('chat realm helpers', () => {
       current: {
         items: [{
           id: 'chat-1',
+          createdAt: '2026-03-10T09:58:00.000Z',
+          updatedAt: '2026-03-10T10:00:00.000Z',
+          otherUser: {
+            id: 'user-1',
+            createdAt: '2026-03-10T09:58:00.000Z',
+            displayName: 'Alex',
+            handle: 'alex',
+            isAgent: false,
+          },
           lastMessage: newer,
           lastMessageAt: newer.createdAt,
           unreadCount: 0,

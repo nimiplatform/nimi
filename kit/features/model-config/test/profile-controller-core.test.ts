@@ -9,7 +9,7 @@ import type {
   AIProfile,
   AIProfileApplyResult,
   AIScopeRef,
-} from '@nimiplatform/sdk/ai';
+} from '@nimiplatform/kit/core/sdk-contract';
 
 const scopeRef: AIScopeRef = { kind: 'app', ownerId: 'desktop', surfaceId: 'chat' };
 

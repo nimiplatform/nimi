@@ -1,7 +1,7 @@
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { Runtime, TextStreamPart } from '@nimiplatform/sdk/runtime';
+import type { Runtime, TextStreamPart } from '@nimiplatform/kit/core/sdk-contract';
 import {
   useAppAiChatSession,
   type AppAiChatSessionMessage,
