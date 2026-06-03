@@ -27,9 +27,9 @@ import {
   ensureText,
   normalizeText,
   toLabels,
-  toProtoStruct,
-  toRoutePolicy,
-} from './helpers.js';
+} from './runtime-value-utils.js';
+import { toProtoStruct } from './runtime-proto-struct-codec.js';
+import { toRoutePolicy } from './runtime-ai-codec.js';
 import { runtimeAiRequestRequiresSubject } from './runtime-guards.js';
 import { toRuntimeVoiceReference } from './speech-voice-reference.js';
 

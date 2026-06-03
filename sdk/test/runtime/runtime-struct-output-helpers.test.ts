@@ -3,12 +3,14 @@ import test from 'node:test';
 
 import {
   decodeUtf8,
+  fromProtoStruct,
+  toProtoStruct,
+} from '../../src/runtime/runtime-proto-struct-codec.js';
+import {
   extractEmbeddingVectors,
   extractGenerateText,
   extractSpeechTranscription,
-  fromProtoStruct,
-  toProtoStruct,
-} from '../../src/runtime/helpers.js';
+} from '../../src/runtime/runtime-scenario-output-codec.js';
 import { ReasonCode } from '../../src/types/index.js';
 import { speechTranscribeOutput, textEmbedOutput, textGenerateOutput } from '../helpers/runtime-ai-shapes.js';
 

@@ -5,10 +5,12 @@ import {
   DEFAULT_RETRY_MAX_ATTEMPTS,
   DEFAULT_WAIT_FOR_READY_TIMEOUT_MS,
   MAX_RETRY_BACKOFF_MS,
-  RETRYABLE_RUNTIME_REASON_CODES,
+} from './runtime-defaults.js';
+import { RETRYABLE_RUNTIME_REASON_CODES } from './runtime-method-lookup.js';
+import {
   normalizeText,
   sleep,
-} from './helpers.js';
+} from './runtime-value-utils.js';
 import type {
   RuntimeClient,
   RuntimeConnectionState,

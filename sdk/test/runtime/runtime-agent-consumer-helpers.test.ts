@@ -232,6 +232,112 @@ test('runtime agent snapshot recovery does not bind active turns without Runtime
   assert.deepEqual(enqueued, []);
 });
 
+test('runtime agent snapshot recovery binds active turns when snapshot request matches current request', async () => {
+  const enqueued: RuntimeAgentConsumeEvent[] = [];
+  const result = await recoverRuntimeAgentTerminalSnapshot({
+    reason: 'subscription_terminal_stall',
+    request: {
+      ownerUserId: 'user-1',
+      realmAgentId: 'agent-1',
+      localAgentRef: 'local-agent:user-1:agent-1',
+      conversationAnchorId: 'anchor-1',
+      threadId: 'thread-1',
+    },
+    requestId: 'request-1',
+    requestMessageId: '',
+    requestStartedAtMs: Date.parse('2026-05-17T04:16:50.000Z'),
+    currentTurnAccepted: false,
+    currentRuntimeTurnId: '',
+    currentRuntimeStreamId: '',
+    hasStructuredEnvelope: false,
+    hasCommittedMessage: false,
+    async querySnapshot() {
+      return {
+        requestId: 'request-1',
+        activeTurn: {
+          turnId: 'turn-active',
+          status: 'running',
+          updatedAt: '2026-05-17T04:16:54.000Z',
+        },
+      };
+    },
+    enqueue(event) {
+      enqueued.push(event);
+    },
+    logEvent() {},
+  });
+
+  assert.equal(result, 'bound');
+  assert.deepEqual(enqueued.map((event) => ({
+    eventName: event.eventName,
+    turnId: event.turnId,
+    streamId: event.streamId,
+  })), [{
+    eventName: 'runtime.agent.turn.accepted',
+    turnId: 'turn-active',
+    streamId: 'snapshot:turn-active',
+  }]);
+});
+
+test('runtime agent terminal snapshot recovery may project a Runtime snapshot stream after the current request', async () => {
+  const enqueued: RuntimeAgentConsumeEvent[] = [];
+  const result = await recoverRuntimeAgentTerminalSnapshot({
+    reason: 'subscription_done_retry',
+    request: {
+      ownerUserId: 'user-1',
+      realmAgentId: 'agent-1',
+      localAgentRef: 'local-agent:user-1:agent-1',
+      conversationAnchorId: 'anchor-1',
+      threadId: 'thread-1',
+    },
+    requestId: 'request-1',
+    requestMessageId: '',
+    requestStartedAtMs: Date.parse('2026-05-17T04:16:50.000Z'),
+    currentTurnAccepted: false,
+    currentRuntimeTurnId: '',
+    currentRuntimeStreamId: '',
+    hasStructuredEnvelope: false,
+    hasCommittedMessage: false,
+    async querySnapshot() {
+      return {
+        lastTurn: {
+          turnId: 'turn-1',
+          status: 'completed',
+          updatedAt: '2026-05-17T04:16:54.000Z',
+          messageId: 'message-1',
+          text: 'done',
+          structured: {
+            message: {
+              message_id: 'message-1',
+              text: 'done',
+            },
+            actions: [],
+          },
+          finishReason: 'stop',
+        },
+      };
+    },
+    enqueue(event) {
+      enqueued.push(event);
+    },
+    logEvent() {},
+  });
+
+  assert.equal(result, 'terminal');
+  assert.deepEqual(enqueued.map((event) => event.eventName), [
+    'runtime.agent.turn.accepted',
+    'runtime.agent.turn.structured',
+    'runtime.agent.turn.message_committed',
+    'runtime.agent.turn.completed',
+  ]);
+  assert.deepEqual(enqueued.map((event) => event.streamId), [
+    'snapshot:turn-1',
+    'snapshot:turn-1',
+    'snapshot:turn-1',
+    'snapshot:turn-1',
+  ]);
+});
+
 test('runtime agent snapshot recovery rejects stale terminal lastTurn from before current request', async () => {
   const enqueued: RuntimeAgentConsumeEvent[] = [];
   const result = await recoverRuntimeAgentTerminalSnapshot({

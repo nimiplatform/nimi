@@ -1,6 +1,7 @@
 import { asNimiError } from '../core/errors.js';
 import { ReasonCode } from '../types/index.js';
-import { fromProtoStruct, toIsoFromTimestamp } from './helpers.js';
+import { fromProtoStruct } from './runtime-proto-struct-codec.js';
+import { toIsoFromTimestamp } from './runtime-value-utils.js';
 import type { Timestamp } from './generated/google/protobuf/timestamp.js';
 import type {
   AgentAutonomyState,

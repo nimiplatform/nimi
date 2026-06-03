@@ -1,5 +1,5 @@
 import { VoiceReferenceKind, type VoiceReference } from './generated/runtime/v1/voice';
-import { normalizeText } from './helpers.js';
+import { normalizeText } from './runtime-value-utils.js';
 import type { SpeechVoiceReference } from './types-media.js';
 
 export function toRuntimeVoiceReference(input: SpeechVoiceReference | undefined): VoiceReference | undefined {

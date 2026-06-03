@@ -5,7 +5,7 @@ import type {
   RuntimeHealthEvent,
 } from './generated/runtime/v1/audit.js';
 import { RuntimeHealthStatus } from './generated/runtime/v1/audit.js';
-import { toIsoFromTimestamp } from './helpers.js';
+import { toIsoFromTimestamp } from './runtime-value-utils.js';
 
 const HEALTH_STALE_MS = 60_000;
 const HEALTH_WATCHDOG_INTERVAL_MS = 60_000;

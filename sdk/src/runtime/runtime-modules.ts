@@ -1,6 +1,10 @@
 import type { ScopeModule } from '../scope/index.js';
 import type { JsonObject } from '../internal/utils.js';
-import { normalizeText, nowIso, wrapModeBWorkflowStream } from './helpers.js';
+import {
+  normalizeText,
+  nowIso,
+} from './runtime-value-utils.js';
+import { wrapModeBWorkflowStream } from './runtime-stream-codec.js';
 import {
   runtimeGenerateText,
   runtimeStreamText,

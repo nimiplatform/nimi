@@ -1,7 +1,7 @@
 import { ReasonCode } from '../types/index.js';
 import type { JsonObject } from '../internal/utils.js';
 import { createNimiError } from '../core/errors.js';
-import { normalizeText } from './helpers.js';
+import { normalizeText } from './runtime-value-utils.js';
 
 export interface ProfileEntryOverride {
   entryId: string;

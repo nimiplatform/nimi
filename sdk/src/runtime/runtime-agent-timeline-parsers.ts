@@ -1,6 +1,9 @@
 import { ReasonCode } from '../types/index.js';
 import { createNimiError } from '../core/errors.js';
-import { asRecord, normalizeText } from './helpers.js';
+import {
+  asRecord,
+  normalizeText,
+} from './runtime-value-utils.js';
 import type {
   RuntimeAgentTimelineChannel,
   RuntimeAgentTimelineEnvelope,

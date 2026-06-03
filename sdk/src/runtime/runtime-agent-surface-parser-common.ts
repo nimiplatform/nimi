@@ -1,6 +1,9 @@
 import { ReasonCode } from '../types/index.js';
 import { createNimiError } from '../core/errors.js';
-import { normalizeText, parseCount } from './helpers.js';
+import {
+  normalizeText,
+  parseCount,
+} from './runtime-value-utils.js';
 
 export function expectString(value: unknown, fieldName: string, messageType: string): string {
   const normalized = normalizeText(value);

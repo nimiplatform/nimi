@@ -1,4 +1,5 @@
-import { fromProtoStruct, normalizeText } from './helpers.js';
+import { fromProtoStruct } from './runtime-proto-struct-codec.js';
+import { normalizeText } from './runtime-value-utils.js';
 import type { RuntimeAgentConsumeEvent, RuntimeAgentConsumeRequest } from './types-runtime-agent.js';
 import { optionalString } from './runtime-agent-surface-parser-common.js';
 

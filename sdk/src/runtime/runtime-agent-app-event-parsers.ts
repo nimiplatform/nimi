@@ -1,6 +1,6 @@
 import { ReasonCode } from '../types/index.js';
 import { createNimiError } from '../core/errors.js';
-import { asRecord } from './helpers.js';
+import { asRecord } from './runtime-value-utils.js';
 import { parseRuntimeAgentPresentationConsumeEvent } from './runtime-agent-presentation-parsers.js';
 import { parseRuntimeAgentTimeline } from './runtime-agent-timeline-parsers.js';
 import type { RuntimeAgentConsumeEvent } from './types-runtime-agent.js';

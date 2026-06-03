@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { toRuntimeMessages } from '../../src/runtime/helpers.js';
+import { toRuntimeMessages } from '../../src/runtime/runtime-ai-codec.js';
 import { ChatContentPartType } from '../../src/runtime/generated/runtime/v1/ai.js';
 import { ReasonCode } from '../../src/types/index.js';
 

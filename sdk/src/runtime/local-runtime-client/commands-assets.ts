@@ -1,9 +1,7 @@
 import {
   localRuntimeCapabilitiesForAssetKind,
 } from '../local-asset-kind.js';
-import {
-  toProtoStruct,
-} from '../helpers.js';
+import { toProtoStruct } from '../runtime-proto-struct-codec.js';
 import { toLocalRuntimeEngineRuntimeModeRequestValue } from '../local-engine.js';
 import type {
   LocalRuntimeAssetFileImportResult,

@@ -4,7 +4,10 @@ import type {
   RuntimeRealmBridgeHelpers,
 } from './types.js';
 import { createNimiError } from '../core/errors.js';
-import { normalizeText, ensureText } from './helpers.js';
+import {
+  normalizeText,
+  ensureText,
+} from './runtime-value-utils.js';
 import { ReasonCode } from '../types/index.js';
 
 type FetchRealmGrantInput = {

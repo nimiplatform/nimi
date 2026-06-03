@@ -14,7 +14,10 @@ import type {
 } from './types-runtime-modules.js';
 import type { RuntimeCallOptions } from './types.js';
 import type { RuntimeMediaModule, ScenarioJobSubmitInput } from './types.js';
-import { normalizeText, sleep } from './helpers.js';
+import {
+  normalizeText,
+  sleep,
+} from './runtime-value-utils.js';
 
 export type RuntimeMediaGenerationJobsModule = Pick<
   RuntimeMediaModule['jobs'],

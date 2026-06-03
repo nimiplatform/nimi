@@ -1,4 +1,7 @@
-import { asRecord, normalizeText } from './helpers.js';
+import {
+  asRecord,
+  normalizeText,
+} from './runtime-value-utils.js';
 import type { RuntimeAgentMessage, RuntimeAgentTranscriptMessage } from './types-runtime-agent.js';
 
 function optionalString(value: unknown): string | undefined {

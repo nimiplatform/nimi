@@ -7,7 +7,7 @@ import {
 import type {
   CompanionParticipationProjection as ProtoCompanionParticipationProjection,
 } from './generated/runtime/v1/agent_service.js';
-import { toIsoFromTimestamp } from './helpers.js';
+import { toIsoFromTimestamp } from './runtime-value-utils.js';
 import type { RuntimeCallOptions } from './types.js';
 import type { RuntimeAgentClient } from './types-client-interfaces.js';
 import type { RuntimeAgentLocalIdentity, RuntimeScopedBindingAttachment } from './types-runtime-agent.js';

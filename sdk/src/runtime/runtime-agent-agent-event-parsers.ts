@@ -1,6 +1,11 @@
 import { ReasonCode } from '../types/index.js';
 import { createNimiError } from '../core/errors.js';
-import { asRecord, normalizeText, parseCount, toIsoFromTimestamp } from './helpers.js';
+import {
+  asRecord,
+  normalizeText,
+  parseCount,
+  toIsoFromTimestamp,
+} from './runtime-value-utils.js';
 import {
   AgentPresentationEventFamily,
   type AgentPresentationEventDetail,

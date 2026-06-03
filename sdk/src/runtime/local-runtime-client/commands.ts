@@ -6,9 +6,7 @@ import {
 import {
   toLocalRecommendationFeedCapabilityRequestValue,
 } from '../local-recommendation-feed.js';
-import {
-  toProtoStruct,
-} from '../helpers.js';
+import { toProtoStruct } from '../runtime-proto-struct-codec.js';
 import {
   parseDeviceProfile,
 } from '../local-execution-plan.js';

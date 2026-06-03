@@ -7,7 +7,8 @@ import {
   RuntimeMethodIds,
 } from './method-ids.js';
 import { RoutePolicy } from './generated/runtime/v1/ai.js';
-import { normalizeText, parseSemverMajor } from './helpers.js';
+import { normalizeText } from './runtime-value-utils.js';
+import { parseSemverMajor } from './runtime-method-lookup.js';
 import type { RuntimeMetadata, RuntimeOptions } from './types.js';
 
 export function checkRuntimeVersionCompatibility(input: {

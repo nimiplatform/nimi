@@ -1,4 +1,4 @@
-import { normalizeText } from './helpers.js';
+import { normalizeText } from './runtime-value-utils.js';
 import type {
   RuntimeAgentConsumeEvent,
   RuntimeAgentSessionTurnSnapshot,
@@ -185,12 +185,15 @@ export function buildRuntimeAgentSnapshotRecoveryEvents(options: {
   currentRuntimeStreamId: string;
   hasStructuredEnvelope: boolean;
   hasCommittedMessage: boolean;
+  allowSnapshotStreamId?: boolean;
 }): RuntimeAgentConsumeEvent[] {
   const runtimeTurnId = normalizeText(options.turn.turnId);
   if (!runtimeTurnId) {
     return [];
   }
-  const streamId = normalizeText(options.currentRuntimeStreamId) || normalizeText(options.turn.streamId);
+  const streamId = normalizeText(options.currentRuntimeStreamId)
+    || normalizeText(options.turn.streamId)
+    || (options.allowSnapshotStreamId === true ? `snapshot:${runtimeTurnId}` : '');
   if (!streamId) {
     return [];
   }
@@ -293,6 +296,7 @@ export async function recoverRuntimeAgentTerminalSnapshot(options: {
   hasStructuredEnvelope: boolean;
   hasCommittedMessage: boolean;
   querySnapshot: () => Promise<{
+    requestId?: string;
     activeTurn?: RuntimeAgentSessionTurnSnapshot;
     lastTurn?: RuntimeAgentSessionTurnSnapshot;
   }>;
@@ -301,8 +305,10 @@ export async function recoverRuntimeAgentTerminalSnapshot(options: {
 }): Promise<RuntimeAgentSnapshotRecoveryResult> {
   let activeTurn: RuntimeAgentSessionTurnSnapshot | undefined;
   let turn: RuntimeAgentSessionTurnSnapshot | undefined;
+  let snapshotRequestId = '';
   try {
     const snapshot = await options.querySnapshot();
+    snapshotRequestId = normalizeText(snapshot.requestId);
     activeTurn = snapshot.activeTurn;
     turn = snapshot.lastTurn;
   } catch (error) {
@@ -321,9 +327,11 @@ export async function recoverRuntimeAgentTerminalSnapshot(options: {
     });
     return 'none';
   }
+  const snapshotMatchesCurrentRequest = snapshotRequestId === options.requestId;
   const activeTurnId = normalizeText(activeTurn?.turnId);
   if (!options.currentTurnAccepted && activeTurnId) {
-    const streamId = normalizeText(activeTurn?.streamId);
+    const streamId = normalizeText(activeTurn?.streamId)
+      || (snapshotMatchesCurrentRequest ? `snapshot:${activeTurnId}` : '');
     if (!streamId) {
       return 'none';
     }
@@ -372,6 +380,7 @@ export async function recoverRuntimeAgentTerminalSnapshot(options: {
       currentRuntimeStreamId: options.currentRuntimeStreamId,
       hasStructuredEnvelope: options.hasStructuredEnvelope,
       hasCommittedMessage: options.hasCommittedMessage,
+      allowSnapshotStreamId: true,
     });
     if (events.length === 0) {
       return 'none';

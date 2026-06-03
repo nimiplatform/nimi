@@ -1,4 +1,4 @@
-import { toProtoStruct } from '../helpers.js';
+import { toProtoStruct } from '../runtime-proto-struct-codec.js';
 import { parseNodeDescriptor } from '../local-node-service.js';
 import type {
   LocalRuntimeAuditEvent,

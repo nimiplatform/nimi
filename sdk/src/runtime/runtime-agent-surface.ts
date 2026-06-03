@@ -5,8 +5,8 @@ import {
   normalizeText,
   parseCount,
   toIsoFromTimestamp,
-  toProtoStruct,
-} from './helpers.js';
+} from './runtime-value-utils.js';
+import { toProtoStruct } from './runtime-proto-struct-codec.js';
 import { Struct } from './generated/google/protobuf/struct.js';
 import {
   AgentEventType,

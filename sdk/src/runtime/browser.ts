@@ -437,7 +437,8 @@ export {
 export { createTauriIpcTransport } from './transports/tauri-ipc.js';
 export { createRuntimeClient } from './core/client.js';
 export { createRuntimeProtectedScopeHelper } from './protected-access.js';
-export { fromProtoStruct, toIsoFromTimestamp, toProtoStruct } from './helpers.js';
+export { toIsoFromTimestamp } from './runtime-value-utils.js';
+export { fromProtoStruct, toProtoStruct } from './runtime-proto-struct-codec.js';
 export { Runtime } from './runtime.js';
 export {
   ResolveProfileRequest,

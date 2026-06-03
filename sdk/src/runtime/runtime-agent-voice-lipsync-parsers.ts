@@ -1,6 +1,10 @@
 import { ReasonCode } from '../types/index.js';
 import { createNimiError } from '../core/errors.js';
-import { asRecord, normalizeText, parseCount } from './helpers.js';
+import {
+  asRecord,
+  normalizeText,
+  parseCount,
+} from './runtime-value-utils.js';
 import type {
   RuntimeAgentLipsyncFrame,
   RuntimeAgentPresentationLipsyncFrameBatchEvent,

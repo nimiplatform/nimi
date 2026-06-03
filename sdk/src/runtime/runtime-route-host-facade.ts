@@ -6,7 +6,7 @@ import {
   RoutePolicy,
   ScenarioType,
 } from './generated/runtime/v1/ai.js';
-import { toProtoStruct } from './helpers.js';
+import { toProtoStruct } from './runtime-proto-struct-codec.js';
 import { createNimiError } from '../core/errors.js';
 import type {
   RuntimeAiExecuteScenarioRequestInput,

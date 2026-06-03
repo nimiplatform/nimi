@@ -30,12 +30,16 @@ import type {
 } from './types.js';
 import {
   ensureText,
+  normalizeText,
+} from './runtime-value-utils.js';
+import {
   extractScenarioArtifacts,
   extractSpeechTranscription,
-  normalizeText,
+} from './runtime-scenario-output-codec.js';
+import {
   toRoutePolicy,
   toTraceInfo,
-} from './helpers.js';
+} from './runtime-ai-codec.js';
 import { resolveStreamUsage } from '../internal/utils.js';
 import { runtimeAiRequestRequiresSubject } from './runtime-guards.js';
 import {

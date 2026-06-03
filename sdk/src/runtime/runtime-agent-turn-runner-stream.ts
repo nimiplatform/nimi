@@ -1,4 +1,4 @@
-import { normalizeText } from './helpers.js';
+import { normalizeText } from './runtime-value-utils.js';
 import {
   cloneAgentResolvedMessageActionEnvelopeWithCommittedMessage,
   parseRuntimeAgentStructuredMessageActionEnvelope,
@@ -344,6 +344,11 @@ export function createRuntimeAgentTurnStream(input: RuntimeAgentTurnStreamInput)
         if (nextResult.type === 'done') {
           const recovered = await recoverTerminalSnapshot('subscription_done');
           if (recovered !== 'none') {
+            continue;
+          }
+          await Promise.resolve();
+          const retryRecovered = await recoverTerminalSnapshot('subscription_done_retry');
+          if (retryRecovered !== 'none') {
             continue;
           }
           break;

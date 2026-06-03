@@ -1,5 +1,5 @@
 import { asNimiError } from '../core/errors.js';
-import { normalizeText } from './helpers.js';
+import { normalizeText } from './runtime-value-utils.js';
 import type { RuntimeAgentTurnRequest } from './types-runtime-agent.js';
 import {
   buildSubscribeRequest,

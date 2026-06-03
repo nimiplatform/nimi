@@ -44,12 +44,14 @@ import {
   PHASE2_AUDIT_METHOD_IDS,
   PHASE2_MODULE_KEYS,
   RUNTIME_METHOD_LOOKUP,
-  SDK_RUNTIME_MAJOR_VERSION,
+} from './runtime-method-lookup.js';
+import { SDK_RUNTIME_MAJOR_VERSION } from './runtime-defaults.js';
+import {
   normalizeText,
   nowIso,
-  resolveHealthStatus,
   toIsoFromTimestamp,
-} from './helpers.js';
+} from './runtime-value-utils.js';
+import { resolveHealthStatus } from './runtime-health-codec.js';
 import {
   createCorePassthroughClients,
   createHealthEventStreams,

@@ -1,4 +1,7 @@
-import { asRecord, normalizeText } from './helpers.js';
+import {
+  asRecord,
+  normalizeText,
+} from './runtime-value-utils.js';
 import { parseTranscript } from './runtime-agent-transcript-parsers.js';
 import type {
   RuntimeAgentExecutionBinding,

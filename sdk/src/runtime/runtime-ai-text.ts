@@ -19,17 +19,21 @@ import type {
 } from './types.js';
 import {
   extractEmbeddingVectors,
-  ensureText,
   extractGenerateText,
-  fromRoutePolicy,
+} from './runtime-scenario-output-codec.js';
+import {
+  ensureText,
   normalizeText,
+} from './runtime-value-utils.js';
+import {
+  fromRoutePolicy,
   toReasoningConfig,
   toFinishReason,
   toRoutePolicy,
   toRuntimeMessages,
   toTraceInfo,
   toUsage,
-} from './helpers.js';
+} from './runtime-ai-codec.js';
 import { resolveStreamUsage } from '../internal/utils.js';
 import { asRecord } from '../internal/utils.js';
 import { runtimeAiRequestRequiresSubject } from './runtime-guards.js';

@@ -8,7 +8,7 @@ import {
 import { buildRuntimeAgentRequestContext, buildRuntimeLocalAgentRef } from './local-agent-identity.js';
 import { createRuntimeProtectedScopeHelper } from './protected-access.js';
 import { normalizeRuntimeAgentText } from './runtime-agent-inspect-projection.js';
-import { toIsoFromTimestamp } from './helpers.js';
+import { toIsoFromTimestamp } from './runtime-value-utils.js';
 import type { RuntimeCallOptions, RuntimeTransportConfig } from './types.js';
 import type {
   RuntimeAgentClient,

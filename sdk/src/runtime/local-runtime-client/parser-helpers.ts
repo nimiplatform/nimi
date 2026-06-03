@@ -1,4 +1,4 @@
-import { fromProtoStruct } from '../helpers.js';
+import { fromProtoStruct } from '../runtime-proto-struct-codec.js';
 import type { LocalRuntimeWriteOptions } from './types.js';
 import { asString } from './parser-primitives.js';
 

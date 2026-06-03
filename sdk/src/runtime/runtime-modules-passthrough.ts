@@ -1,4 +1,4 @@
-import { wrapModeBWorkflowStream } from './helpers.js';
+import { wrapModeBWorkflowStream } from './runtime-stream-codec.js';
 import type {
   RuntimeAccountClient,
   RuntimeAgentClient,
