@@ -1,7 +1,7 @@
 import type {
   TextGenerateInput,
   TextGenerateOutput,
-} from '../runtime/types-media.js';
+} from '../runtime/index.js';
 import {
   buildAppAiStructuredOutputRepairRequest,
   parseAppAiStructuredJson,

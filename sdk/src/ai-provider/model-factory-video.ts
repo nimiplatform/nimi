@@ -10,6 +10,7 @@ import {
   normalizeProviderError,
   normalizeText,
   resolveRoutePolicy,
+  selectArtifactsFromScenarioOutput,
   toLabels,
 } from './helpers.js';
 import {
@@ -17,7 +18,7 @@ import {
   toVideoRoleValue,
   withOptionalHeadSubjectUserId,
 } from './model-factory-shared.js';
-import { ExecutionMode, ScenarioType } from '../runtime/generated/runtime/v1/ai.js';
+import { ExecutionMode, ScenarioType } from '../runtime/browser.js';
 
 export function createVideoModelImpl(
   runtime: RuntimeForAiProvider,
@@ -93,7 +94,7 @@ export function createVideoModelImpl(
         }, defaults.subjectUserId);
         const media = await executeScenarioJob(runtime, defaults, request, timeoutMs, options.signal);
         return {
-          artifacts: media.artifacts,
+          artifacts: selectArtifactsFromScenarioOutput(media, 'videoGenerate'),
         };
       } catch (error) {
         throw normalizeProviderError(error);

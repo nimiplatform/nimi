@@ -2,7 +2,9 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  collectArtifacts,
   executeScenarioJob,
+  selectArtifactsFromScenarioOutput,
   toEmbeddingVectors,
   toEmbeddingVectorsFromScenarioOutput,
 } from '../../src/ai-provider/helpers-scenario.js';
@@ -13,7 +15,7 @@ import {
   type RuntimeAiSubmitScenarioJobRequestInput,
 } from '../../src/runtime/index.js';
 import { ReasonCode } from '../../src/types/index.js';
-import { textEmbedOutput } from '../helpers/runtime-ai-shapes.js';
+import { imageGenerateOutput, textEmbedOutput } from '../helpers/runtime-ai-shapes.js';
 
 const DEFAULTS: RuntimeDefaults = {
   appId: 'nimi.ai.provider.helpers-scenario.test',
@@ -23,6 +25,7 @@ const DEFAULTS: RuntimeDefaults = {
 
 function createScenarioRuntime(input: {
   getScenarioJob: () => Promise<{ job?: Record<string, unknown> }>;
+  getScenarioArtifacts?: () => Promise<Record<string, unknown>>;
 }): RuntimeForAiProvider {
   return {
     ai: {
@@ -44,10 +47,10 @@ function createScenarioRuntime(input: {
       subscribeScenarioJobEvents: async () => {
         throw new Error('not used in test');
       },
-      getScenarioArtifacts: async () => ({
+      getScenarioArtifacts: input.getScenarioArtifacts ?? (async () => ({
         artifacts: [],
         traceId: 'trace-scenario-test',
-      }),
+      })),
     },
   } as RuntimeForAiProvider;
 }
@@ -157,6 +160,127 @@ test('executeScenarioJob reports aborts with OPERATION_ABORTED', async () => {
     ),
     (error: Error & { reasonCode?: string }) => {
       assert.equal(error.reasonCode, ReasonCode.OPERATION_ABORTED);
+      return true;
+    },
+  );
+});
+
+test('executeScenarioJob fails closed when runtime artifact metadata is incomplete', async () => {
+  const runtime = createScenarioRuntime({
+    getScenarioJob: async () => ({
+      job: {
+        jobId: 'job-artifact-missing',
+        status: ScenarioJobStatus.COMPLETED,
+        traceId: 'trace-artifact-missing',
+        modelResolved: 'image/default',
+      },
+    }),
+    getScenarioArtifacts: async () => ({
+      artifacts: [{
+        artifactId: '',
+        mimeType: 'image/png',
+        bytes: Uint8Array.from([1]),
+      }],
+      traceId: 'trace-artifact-missing',
+      output: imageGenerateOutput('image-1') as unknown as Record<string, unknown>,
+    }),
+  });
+
+  await assert.rejects(
+    () => executeScenarioJob(
+      runtime,
+      DEFAULTS,
+      {} as RuntimeAiSubmitScenarioJobRequestInput,
+      1000,
+    ),
+    (error: Error & { reasonCode?: string }) => {
+      assert.equal(error.reasonCode, ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED);
+      assert.match(error.message, /missing stable metadata/);
+      return true;
+    },
+  );
+});
+
+test('collectArtifacts fails closed instead of synthesizing artifact ids', async () => {
+  async function* chunks(): AsyncIterable<Record<string, unknown>> {
+    yield {
+      mimeType: 'image/png',
+      traceId: 'trace-stream',
+      modelResolved: 'image/default',
+      chunk: Uint8Array.from([1]),
+    };
+  }
+
+  await assert.rejects(
+    () => collectArtifacts(chunks()),
+    (error: Error & { reasonCode?: string }) => {
+      assert.equal(error.reasonCode, ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED);
+      assert.match(error.message, /missing artifactId/);
+      return true;
+    },
+  );
+});
+
+test('collectArtifacts fails closed when stream artifact metadata remains incomplete', async () => {
+  async function* chunks(): AsyncIterable<Record<string, unknown>> {
+    yield {
+      artifactId: 'image-stream-1',
+      mimeType: 'image/png',
+      chunk: Uint8Array.from([1]),
+    };
+  }
+
+  await assert.rejects(
+    () => collectArtifacts(chunks()),
+    (error: Error & { reasonCode?: string }) => {
+      assert.equal(error.reasonCode, ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED);
+      assert.match(error.message, /missing stable metadata/);
+      return true;
+    },
+  );
+});
+
+test('collectArtifacts preserves explicit runtime artifact metadata', async () => {
+  async function* chunks(): AsyncIterable<Record<string, unknown>> {
+    yield {
+      artifactId: 'image-stream-1',
+      mimeType: 'image/png',
+      traceId: 'trace-stream',
+      modelResolved: 'image/default',
+      chunk: Uint8Array.from([1, 2]),
+    };
+    yield {
+      artifactId: 'image-stream-1',
+      chunk: Uint8Array.from([3]),
+    };
+  }
+
+  const artifacts = await collectArtifacts(chunks());
+  assert.equal(artifacts.length, 1);
+  assert.equal(artifacts[0]?.artifactId, 'image-stream-1');
+  assert.equal(artifacts[0]?.mimeType, 'image/png');
+  assert.equal(artifacts[0]?.traceId, 'trace-stream');
+  assert.equal(artifacts[0]?.modelResolved, 'image/default');
+  assert.deepEqual([...artifacts[0]!.bytes], [1, 2, 3]);
+});
+
+test('selectArtifactsFromScenarioOutput requires typed media output artifacts', () => {
+  assert.throws(
+    () => selectArtifactsFromScenarioOutput({
+      artifacts: [{
+        artifactId: 'image-1',
+        mimeType: 'image/png',
+        bytes: Uint8Array.from([1]),
+        traceId: 'trace-image',
+        modelResolved: 'image/default',
+      }],
+      traceId: 'trace-image',
+      modelResolved: 'image/default',
+      output: undefined,
+    }, 'imageGenerate'),
+    (error: Error & { reasonCode?: string }) => {
+      assert.equal(error.reasonCode, ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED);
+      assert.match(error.message, /missing typed imageGenerate result/);
       return true;
     },
   );

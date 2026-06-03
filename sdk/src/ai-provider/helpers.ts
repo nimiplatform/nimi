@@ -5,15 +5,14 @@ import type {
   SharedV3ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
+  ChatContentPartType,
   Runtime,
+  Struct,
+  type ChatContentPart,
   type RuntimeCallOptions,
   type RuntimeStreamCallOptions,
 } from '../runtime/browser.js';
 import { createNimiError } from '../core/errors.js';
-import {
-  Struct,
-} from '../runtime/generated/google/protobuf/struct.js';
-import { ChatContentPartType, type ChatContentPart } from '../runtime/generated/runtime/v1/ai.js';
 import { ReasonCode, type AiRoutePolicy } from '../types/index.js';
 import { extractGenerateText as extractGenerateTextShared } from '../internal/scenario-output.js';
 import {
@@ -36,6 +35,7 @@ export {
   collectArtifacts,
   executeScenarioJob,
   normalizeProviderError,
+  selectArtifactsFromScenarioOutput,
   toEmbeddingVectors,
   toEmbeddingVectorsFromScenarioOutput,
   toSpeechSynthesisArtifactsFromScenarioOutput,

@@ -8,7 +8,7 @@ import {
   LocalRecommendationFormat,
   LocalRecommendationSource,
   LocalRecommendationTier,
-} from './generated/runtime/v1/local_runtime_types.js';
+} from './generated/runtime/v1/local_runtime_recommendation.js';
 import { asRecord, normalizeText } from '../internal/utils.js';
 import {
   normalizeLocalRuntimeAssetKindId,

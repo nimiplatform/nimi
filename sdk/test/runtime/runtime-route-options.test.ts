@@ -7,11 +7,12 @@ import {
   projectRuntimeRouteCapabilityCoverage,
   projectRuntimeRouteCapabilityCoverageList,
   runtimeRouteBindingsMatch,
+  runtimeRouteCapabilitiesMatch,
   runtimeRouteLocalKindForCapability,
   runtimeRouteLocalKindSupportsCapability,
   runtimeRouteModalityForCapability,
 } from '../../src/runtime/index.js';
-import { LocalAssetKind } from '../../src/runtime/generated/runtime/v1/local_runtime_types.js';
+import { LocalAssetKind } from '../../src/runtime/generated/runtime/v1/local_runtime_asset_catalog.js';
 
 test('runtime route local kind projection maps canonical capabilities to Runtime asset kind ids', () => {
   assert.equal(runtimeRouteLocalKindForCapability('text.generate'), 'chat');
@@ -32,6 +33,14 @@ test('runtime route capability token projection normalizes app-facing aliases', 
   assert.equal(normalizeRuntimeRouteCapabilityToken('image.edit'), 'image.generate');
   assert.equal(normalizeRuntimeRouteCapabilityToken('speech.transcribe'), 'audio.transcribe');
   assert.equal(normalizeRuntimeRouteCapabilityToken('unknown.capability'), null);
+});
+
+test('runtime route capability matcher projects app-facing aliases without Kit alias truth', () => {
+  assert.equal(runtimeRouteCapabilitiesMatch(['chat'], 'text.generate'), true);
+  assert.equal(runtimeRouteCapabilitiesMatch(['image.generate'], 'image.edit'), true);
+  assert.equal(runtimeRouteCapabilitiesMatch(['tts'], 'audio.synthesize'), true);
+  assert.equal(runtimeRouteCapabilitiesMatch(['video.generate'], 'image.generate'), false);
+  assert.equal(runtimeRouteCapabilitiesMatch(['text.generate'], 'unknown.capability'), false);
 });
 
 test('runtime route modality projection preserves chat fallback for non-local capabilities', () => {

@@ -154,7 +154,7 @@ async function defaultListConnectorModelDescriptors(
 // Default local-route metadata source: the canonical SDK runtime local-asset
 // surface `client.runtime.local.listLocalAssets` (RuntimeLocalServiceClient,
 // sdk/src/runtime/types-client-interfaces.ts:707-708). The raw `LocalAssetRecord`
-// (sdk/src/runtime/generated/runtime/v1/local_runtime_types.ts:61) carries `kind`
+  // (sdk/src/runtime/generated/runtime/v1/local_runtime_asset_catalog.ts) carries `kind`
 // and `status` as numeric proto enums (LocalAssetKind / LocalAssetStatus), but
 // the route projection matches on string tokens
 // (sdk/src/runtime/runtime-route-options.ts:278 `status !== 'removed'`, and

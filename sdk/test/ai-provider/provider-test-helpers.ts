@@ -1,10 +1,12 @@
 import { Runtime } from '../../src/runtime/index.js';
 
 import {
+  imageGenerateOutput,
   speechSynthesizeOutput,
   speechTranscribeOutput,
   textEmbedOutput,
   textGenerateOutput,
+  videoGenerateOutput,
 } from '../helpers/runtime-ai-shapes.js';
 
 export const APP_ID = 'nimi.ai.provider.test';
@@ -137,6 +139,12 @@ export function createRuntimeStub(
       return undefined;
     }
     const firstArtifact = entry.artifacts[0];
+    if (entry.job.scenarioType === 3) {
+      return imageGenerateOutput(firstArtifact?.artifactId || 'image-artifact') as unknown as Record<string, unknown>;
+    }
+    if (entry.job.scenarioType === 4) {
+      return videoGenerateOutput(firstArtifact?.artifactId || 'video-artifact') as unknown as Record<string, unknown>;
+    }
     if (entry.job.scenarioType === 5) {
       return speechSynthesizeOutput(firstArtifact?.artifactId || 'tts-artifact') as unknown as Record<string, unknown>;
     }

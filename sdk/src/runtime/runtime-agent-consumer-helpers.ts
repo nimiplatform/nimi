@@ -180,7 +180,6 @@ export function buildRuntimeAgentSnapshotRecoveryEvents(options: {
   localAgentRef: string;
   conversationAnchorId: string;
   requestId: string;
-  requestMessageId: string;
   currentTurnAccepted: boolean;
   currentRuntimeTurnId: string;
   currentRuntimeStreamId: string;
@@ -191,15 +190,16 @@ export function buildRuntimeAgentSnapshotRecoveryEvents(options: {
   if (!runtimeTurnId) {
     return [];
   }
-  const streamId = options.currentRuntimeStreamId || `snapshot:${runtimeTurnId}`;
+  const streamId = normalizeText(options.currentRuntimeStreamId) || normalizeText(options.turn.streamId);
+  if (!streamId) {
+    return [];
+  }
   const structured = options.turn.structured && Object.keys(options.turn.structured).length > 0
     ? options.turn.structured
     : undefined;
   const text = normalizeText(options.turn.text) || readRuntimeAgentStructuredMessageField(structured, 'text');
   const messageId = normalizeText(options.turn.messageId)
-    || readRuntimeAgentStructuredMessageField(structured, 'message_id')
-    || options.requestMessageId
-    || 'message-0';
+    || readRuntimeAgentStructuredMessageField(structured, 'message_id');
   const events: RuntimeAgentConsumeEvent[] = [];
   if (!options.currentTurnAccepted || options.currentRuntimeTurnId !== runtimeTurnId) {
     events.push({
@@ -229,6 +229,9 @@ export function buildRuntimeAgentSnapshotRecoveryEvents(options: {
     } as RuntimeAgentConsumeEvent);
   }
   if (!options.hasCommittedMessage && text) {
+    if (!messageId) {
+      return [];
+    }
     events.push({
       eventName: 'runtime.agent.turn.message_committed',
       ownerUserId: options.ownerUserId,
@@ -242,6 +245,10 @@ export function buildRuntimeAgentSnapshotRecoveryEvents(options: {
     } as RuntimeAgentConsumeEvent);
   }
   if (runtimeAgentSnapshotTurnIsCompleted(options.turn)) {
+    const terminalReason = normalizeText(options.turn.finishReason);
+    if (!terminalReason) {
+      return [];
+    }
     events.push({
       eventName: 'runtime.agent.turn.completed',
       ownerUserId: options.ownerUserId,
@@ -251,7 +258,7 @@ export function buildRuntimeAgentSnapshotRecoveryEvents(options: {
       turnId: runtimeTurnId,
       streamId,
       detail: {
-        terminalReason: normalizeText(options.turn.finishReason) || 'stop',
+        terminalReason,
       },
     } as RuntimeAgentConsumeEvent);
     return events;
@@ -316,7 +323,10 @@ export async function recoverRuntimeAgentTerminalSnapshot(options: {
   }
   const activeTurnId = normalizeText(activeTurn?.turnId);
   if (!options.currentTurnAccepted && activeTurnId) {
-    const streamId = options.currentRuntimeStreamId || `snapshot:${activeTurnId}`;
+    const streamId = normalizeText(activeTurn?.streamId);
+    if (!streamId) {
+      return 'none';
+    }
     options.logEvent({
       level: 'warn',
       area: 'agent-chat-runtime',
@@ -357,7 +367,6 @@ export async function recoverRuntimeAgentTerminalSnapshot(options: {
       localAgentRef: options.request.localAgentRef,
       conversationAnchorId: options.request.conversationAnchorId,
       requestId: options.requestId,
-      requestMessageId: options.requestMessageId,
       currentTurnAccepted: false,
       currentRuntimeTurnId: '',
       currentRuntimeStreamId: options.currentRuntimeStreamId,
@@ -404,7 +413,6 @@ export async function recoverRuntimeAgentTerminalSnapshot(options: {
     localAgentRef: options.request.localAgentRef,
     conversationAnchorId: options.request.conversationAnchorId,
     requestId: options.requestId,
-    requestMessageId: options.requestMessageId,
     currentTurnAccepted: options.currentTurnAccepted,
     currentRuntimeTurnId: options.currentRuntimeTurnId,
     currentRuntimeStreamId: options.currentRuntimeStreamId,

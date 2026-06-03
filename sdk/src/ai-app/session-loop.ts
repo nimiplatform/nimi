@@ -4,7 +4,7 @@ import type {
   NimiTraceInfo,
   TextMessage,
   TextStreamPart,
-} from '../runtime/types-media.js';
+} from '../runtime/index.js';
 
 export type AppAiSessionMessageRole = TextMessage['role'];
 

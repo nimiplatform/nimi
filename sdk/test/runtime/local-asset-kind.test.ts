@@ -32,11 +32,11 @@ import {
   toLocalRuntimeGpuMemoryModelRequestValue,
 } from '../../src/runtime/index.js';
 import {
-  GpuMemoryModel,
   LocalAssetKind,
   LocalAssetStatus,
   LocalProfileEntryKind,
-} from '../../src/runtime/generated/runtime/v1/local_runtime_types.js';
+} from '../../src/runtime/generated/runtime/v1/local_runtime_asset_catalog.js';
+import { GpuMemoryModel } from '../../src/runtime/generated/runtime/v1/local_runtime_device_environment.js';
 
 test('local runtime asset kind ids are projected from Runtime enum order', () => {
   assert.deepEqual(LOCAL_RUNTIME_RUNNABLE_ASSET_KIND_IDS, ['chat', 'image', 'video', 'tts', 'stt', 'embedding']);

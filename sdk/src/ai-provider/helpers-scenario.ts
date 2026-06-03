@@ -1,11 +1,12 @@
 import {
+  ExecutionMode,
   runRuntimeAiScenarioJob,
+  type ProtoValue,
   type RuntimeAiSubmitScenarioJobRequestInput,
+  type ScenarioArtifact,
+  type ScenarioOutput,
 } from '../runtime/browser.js';
-import { asNimiError } from '../core/errors.js';
-import type {
-  Value as ProtoValue,
-} from '../runtime/generated/google/protobuf/struct.js';
+import { asNimiError, createNimiError } from '../core/errors.js';
 import { ReasonCode, type AiRoutePolicy } from '../types/index.js';
 import {
   type NimiArtifact,
@@ -18,11 +19,6 @@ import {
   fromRouteDecision,
   toCallOptions,
 } from './helpers-shared.js';
-import {
-  ExecutionMode,
-  type ScenarioArtifact,
-  type ScenarioOutput,
-} from '../runtime/generated/runtime/v1/ai.js';
 
 type ScenarioJobExecution = {
   artifacts: NimiArtifact[];
@@ -31,6 +27,8 @@ type ScenarioJobExecution = {
   modelResolved: string;
   output?: ScenarioOutput;
 };
+
+type ArtifactOutputKind = 'imageGenerate' | 'videoGenerate' | 'speechSynthesize';
 
 export async function executeScenarioJob(
   runtime: RuntimeForAiProvider,
@@ -56,22 +54,18 @@ export async function executeScenarioJob(
   });
   const traceId = normalizeText(execution.traceId) || normalizeText(execution.job.traceId);
   const routeDecision = fromRouteDecision(execution.job.routeDecision);
-  const modelResolved = normalizeText(execution.job.modelResolved) || normalizeText(request.head?.modelId);
+  const modelResolved = normalizeText(execution.job.modelResolved);
 
   return {
-    artifacts: execution.artifacts.map((item: ScenarioArtifact) => {
-      const bytes = item.bytes instanceof Uint8Array
-        ? item.bytes
-        : new Uint8Array(0);
-      return {
-        artifactId: normalizeText(item.artifactId),
-        mimeType: normalizeText(item.mimeType),
-        bytes,
+    artifacts: execution.artifacts.map((item: ScenarioArtifact, index: number) => toNimiArtifact(
+      item,
+      {
+        index,
         traceId,
         routeDecision,
         modelResolved,
-      };
-    }),
+      },
+    )),
     traceId,
     routeDecision,
     modelResolved,
@@ -92,13 +86,16 @@ export async function collectArtifacts(stream: AsyncIterable<unknown>): Promise<
 
   for await (const item of stream) {
     const chunk = asRecord(item);
-    const artifactId = normalizeText(chunk.artifactId) || `artifact-${order.length + 1}`;
+    const artifactId = normalizeText(chunk.artifactId);
+    if (!artifactId) {
+      throw missingArtifactMetadataError('stream artifact chunk is missing artifactId');
+    }
     const state = states.get(artifactId) || {
       artifactId,
-      mimeType: '',
+      mimeType: normalizeText(chunk.mimeType),
       chunks: [],
-      traceId: '',
-      modelResolved: '',
+      traceId: normalizeText(chunk.traceId),
+      modelResolved: normalizeText(chunk.modelResolved),
     };
 
     if (!states.has(artifactId)) {
@@ -136,16 +133,10 @@ export async function collectArtifacts(stream: AsyncIterable<unknown>): Promise<
     }
   }
 
-  return order.map((artifactId) => {
+  return order.map((artifactId, index) => {
     const state = states.get(artifactId);
-    if (!state) {
-      return {
-        artifactId,
-        mimeType: '',
-        bytes: new Uint8Array(0),
-        traceId: '',
-        modelResolved: '',
-      };
+    if (!state || !state.artifactId || !state.mimeType || !state.traceId || !state.modelResolved) {
+      throw missingArtifactMetadataError(`stream artifact ${index} is missing stable metadata`);
     }
     return {
       artifactId: state.artifactId,
@@ -155,6 +146,122 @@ export async function collectArtifacts(stream: AsyncIterable<unknown>): Promise<
       routeDecision: state.routeDecision,
       modelResolved: state.modelResolved,
     };
+  });
+}
+
+export function selectArtifactsFromScenarioOutput(
+  execution: ScenarioJobExecution,
+  kind: ArtifactOutputKind,
+): NimiArtifact[] {
+  const typedArtifacts = readTypedOutputArtifacts(execution.output, kind);
+  const hydratedByArtifactId = new Map<string, NimiArtifact>();
+  for (const artifact of execution.artifacts) {
+    hydratedByArtifactId.set(artifact.artifactId, artifact);
+  }
+
+  return typedArtifacts.map((artifact, index) => {
+    const artifactId = normalizeText(artifact.artifactId);
+    if (!artifactId) {
+      throw missingArtifactMetadataError(`runtime ${kind} artifact ${index} is missing artifactId`);
+    }
+    const hydrated = hydratedByArtifactId.get(artifactId);
+    const mimeType = normalizeText(hydrated?.mimeType) || normalizeText(artifact.mimeType);
+    if (!mimeType) {
+      throw missingArtifactMetadataError(`runtime ${kind} artifact ${index} is missing mimeType`);
+    }
+    const traceId = normalizeText(hydrated?.traceId) || normalizeText(execution.traceId);
+    if (!traceId) {
+      throw missingArtifactMetadataError(`runtime ${kind} artifact ${index} is missing traceId`);
+    }
+    const modelResolved = normalizeText(hydrated?.modelResolved) || normalizeText(execution.modelResolved);
+    if (!modelResolved) {
+      throw missingArtifactMetadataError(`runtime ${kind} artifact ${index} is missing modelResolved`);
+    }
+    const bytes = hydrated?.bytes ?? (
+      artifact.bytes instanceof Uint8Array
+        ? artifact.bytes
+        : new Uint8Array(0)
+    );
+    return {
+      artifactId,
+      mimeType,
+      bytes,
+      traceId,
+      routeDecision: hydrated?.routeDecision ?? execution.routeDecision,
+      modelResolved,
+    };
+  });
+}
+
+function readTypedOutputArtifacts(
+  output: ScenarioOutput | undefined,
+  kind: ArtifactOutputKind,
+): ScenarioArtifact[] {
+  const variant = output?.output;
+  if (variant?.oneofKind !== kind) {
+    throw createNimiError({
+      message: `runtime media output missing typed ${kind} result`,
+      reasonCode: ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED,
+      actionHint: 'regenerate_runtime_proto_and_sdk',
+      source: 'runtime',
+    });
+  }
+  const artifacts = (() => {
+    switch (variant.oneofKind) {
+      case 'imageGenerate':
+        return variant.imageGenerate.artifacts;
+      case 'videoGenerate':
+        return variant.videoGenerate.artifacts;
+      case 'speechSynthesize':
+        return variant.speechSynthesize.artifacts;
+    }
+  })();
+  if (!Array.isArray(artifacts) || artifacts.length === 0) {
+    throw createNimiError({
+      message: `runtime media output missing artifacts for typed ${kind} result`,
+      reasonCode: ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED,
+      actionHint: 'check_runtime_media_contract',
+      source: 'runtime',
+    });
+  }
+  return artifacts;
+}
+
+function toNimiArtifact(
+  artifact: ScenarioArtifact,
+  context: {
+    index: number;
+    traceId: string;
+    routeDecision?: AiRoutePolicy;
+    modelResolved: string;
+  },
+): NimiArtifact {
+  const artifactId = normalizeText(artifact.artifactId);
+  const mimeType = normalizeText(artifact.mimeType);
+  const traceId = normalizeText(context.traceId);
+  const modelResolved = normalizeText(context.modelResolved);
+  if (!artifactId || !mimeType || !traceId || !modelResolved) {
+    throw missingArtifactMetadataError(`runtime scenario artifact ${context.index} is missing stable metadata`);
+  }
+  const bytes = artifact.bytes instanceof Uint8Array
+    ? artifact.bytes
+    : new Uint8Array(0);
+  return {
+    artifactId,
+    mimeType,
+    bytes,
+    traceId,
+    routeDecision: context.routeDecision,
+    modelResolved,
+  };
+}
+
+function missingArtifactMetadataError(message: string): Error {
+  return createNimiError({
+    message,
+    reasonCode: ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED,
+    actionHint: 'check_runtime_media_contract',
+    source: 'runtime',
   });
 }
 

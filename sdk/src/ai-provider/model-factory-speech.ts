@@ -10,12 +10,12 @@ import {
   normalizeProviderError,
   normalizeText,
   resolveRoutePolicy,
+  selectArtifactsFromScenarioOutput,
   toLabels,
 } from './helpers.js';
 import { ReasonCode } from '../types/index.js';
 import { withOptionalHeadSubjectUserId } from './model-factory-shared.js';
-import { ExecutionMode, ScenarioType } from '../runtime/generated/runtime/v1/ai.js';
-import { toRuntimeVoiceReference } from '../runtime/speech-voice-reference.js';
+import { ExecutionMode, ScenarioType, toRuntimeVoiceReference } from '../runtime/browser.js';
 
 export function createSpeechModelImpl(
   runtime: RuntimeForAiProvider,
@@ -70,7 +70,7 @@ export function createSpeechModelImpl(
           });
         }
         return {
-          artifacts: media.artifacts,
+          artifacts: selectArtifactsFromScenarioOutput(media, 'speechSynthesize'),
         };
       } catch (error) {
         throw normalizeProviderError(error);

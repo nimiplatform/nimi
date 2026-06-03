@@ -16,7 +16,7 @@ import {
   toProviderMetadata,
 } from './helpers.js';
 import { withOptionalHeadSubjectUserId } from './model-factory-shared.js';
-import { ExecutionMode, ScenarioType } from '../runtime/generated/runtime/v1/ai.js';
+import { ExecutionMode, ScenarioType } from '../runtime/browser.js';
 
 export function createEmbeddingModelImpl(
   runtime: RuntimeForAiProvider,

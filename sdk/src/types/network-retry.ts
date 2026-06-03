@@ -1,5 +1,5 @@
 import { tryParseJsonLike } from './json.js';
-import { extractNimiErrorFields, type NimiError } from './index.js';
+import { extractNimiErrorFields, type NimiError } from './errors.js';
 
 const RETRYABLE_STATUS_CODES = new Set([408, 425, 429, 500, 502, 503, 504]);
 

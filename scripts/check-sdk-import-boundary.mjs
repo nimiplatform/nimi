@@ -24,6 +24,7 @@ const forbiddenExportPattern = /(?:^|\/)(internal|generated)(?:\/|$)/;
 const forbiddenStableImportPattern = /(?:from\s+|import\s+|import\s*\(\s*)['"]@nimiplatform\/sdk\/(?:[^'"]*\/)?(?:internal|generated)(?:\/|['"])/;
 const importTargetPattern = /(?:from\s+['"]([^'"]+)['"]|import\s*\(\s*['"]([^'"]+)['"]\s*\))/g;
 const forbiddenSdkRuntimeUtilitySegments = new Set(['errors', 'ids', 'helpers']);
+const sdkRuntimePublicAdapterEntries = new Set(['browser.js', 'browser.ts', 'index.js', 'index.ts']);
 const consumerSourceRoots = ['apps', 'runtime', 'examples', 'scripts'];
 const sourceExtensions = new Set(['.ts', '.tsx', '.js', '.mjs', '.cjs']);
 const skippedDirectories = new Set(['node_modules', 'dist', 'build', 'coverage', '.next', '.turbo', 'target']);
@@ -126,6 +127,31 @@ function findForbiddenSdkRuntimeUtilityImport(file, raw) {
   return null;
 }
 
+function findForbiddenSdkAdapterRuntimeImport(file, raw) {
+  const normalizedFile = file.split(path.sep).join('/');
+  if (
+    !normalizedFile.includes('/sdk/src/ai-app/')
+    && !normalizedFile.includes('/sdk/src/ai-provider/')
+  ) {
+    return null;
+  }
+  for (const match of raw.matchAll(importTargetPattern)) {
+    const target = match[1] || match[2] || '';
+    if (!target.startsWith('.') && !path.isAbsolute(target)) {
+      continue;
+    }
+    const resolved = path.normalize(
+      path.isAbsolute(target) ? target : path.resolve(path.dirname(file), target),
+    );
+    const normalizedTarget = resolved.split(path.sep).join('/');
+    const sdkRuntimeMatch = normalizedTarget.match(/\/sdk\/src\/runtime\/(.+)$/);
+    if (sdkRuntimeMatch && !sdkRuntimePublicAdapterEntries.has(sdkRuntimeMatch[1])) {
+      return normalizedTarget;
+    }
+  }
+  return null;
+}
+
 async function main() {
   const violations = [];
 
@@ -153,6 +179,12 @@ async function main() {
     if (forbiddenRuntimeUtilityImport) {
       violations.push(
         `forbidden sdk cross-subpath runtime utility import in ${path.relative(repoRoot, file)} -> ${path.relative(repoRoot, forbiddenRuntimeUtilityImport)}`,
+      );
+    }
+    const forbiddenAdapterRuntimeImport = findForbiddenSdkAdapterRuntimeImport(file, raw);
+    if (forbiddenAdapterRuntimeImport) {
+      violations.push(
+        `forbidden sdk ai-app/ai-provider runtime implementation import in ${path.relative(repoRoot, file)} -> ${path.relative(repoRoot, forbiddenAdapterRuntimeImport)}`,
       );
     }
   }

@@ -23,7 +23,7 @@ import type {
 export type NimiAppAdmissionStatus =
   | 'admitted'
   | 'gated_by_avatar_master_gate'
-  | 'pending_wave_4'
+  | 'permission_fabric_pending'
   | 'deferred'
   | 'retired';
 
@@ -225,7 +225,7 @@ function admissionToReadiness(
       return packageReadinessToReadiness(packageReadiness);
     case 'gated_by_avatar_master_gate':
       return 'blocked-by-master-gate';
-    case 'pending_wave_4':
+    case 'permission_fabric_pending':
     case 'deferred':
     case 'retired':
       return 'unsupported';

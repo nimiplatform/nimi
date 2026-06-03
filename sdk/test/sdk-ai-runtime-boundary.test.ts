@@ -4,6 +4,8 @@ import { basename, join } from 'node:path';
 import test from 'node:test';
 
 const aiDir = new URL('../src/ai/', import.meta.url);
+const aiAppDir = new URL('../src/ai-app/', import.meta.url);
+const aiProviderDir = new URL('../src/ai-provider/', import.meta.url);
 const runtimeDir = new URL('../src/runtime/', import.meta.url);
 
 function listFiles(dir: URL): string[] {
@@ -43,6 +45,23 @@ test('sdk ai subpath does not host runtime implementation helpers', () => {
   }
 });
 
+test('sdk ai-app and ai-provider consume Runtime through public subpaths only', () => {
+  const checkedDirs = [
+    { dir: aiAppDir, label: 'ai-app' },
+    { dir: aiProviderDir, label: 'ai-provider' },
+  ];
+  for (const entry of checkedDirs) {
+    for (const file of listFiles(entry.dir)) {
+      const source = readSource(entry.dir, file);
+      assert.doesNotMatch(
+        source,
+        /from ['"]\.\.\/runtime\/(?!index\.js['"]|browser\.js['"])/,
+        `${entry.label}/${file} must use ../runtime/index.js or ../runtime/browser.js only`,
+      );
+    }
+  }
+});
+
 test('sdk ai subpath does not host generic storage helpers', () => {
   const aiFiles = listFiles(aiDir);
   assert.equal(aiFiles.includes('local-storage.ts'), false);
@@ -69,6 +88,11 @@ test('AI runtime execution evidence projection lives on the runtime subpath', ()
   const runtimeFiles = listFiles(runtimeDir);
   assert.ok(runtimeFiles.includes('ai-execution-evidence.ts'));
   assert.doesNotMatch(readSource(aiDir, 'ai-config.ts'), /export type AIRuntimeEvidence =/);
+  assert.doesNotMatch(readSource(aiDir, 'ai-config.ts'), /projectFirstRunExecutionEvidenceToAIConfigBindings/);
+  assert.match(
+    readSource(runtimeDir, 'ai-execution-evidence.ts'),
+    /projectFirstRunExecutionEvidenceToAIConfigBindings/,
+  );
   assert.match(readSource(runtimeDir, 'index.ts'), /ai-execution-evidence\.js/);
   assert.match(readSource(runtimeDir, 'browser.ts'), /ai-execution-evidence\.js/);
 });

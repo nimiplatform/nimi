@@ -1,9 +1,9 @@
 import {
-  GpuMemoryModel,
   LocalAssetKind,
   LocalAssetStatus,
   LocalProfileEntryKind,
-} from './generated/runtime/v1/local_runtime_types.js';
+} from './generated/runtime/v1/local_runtime_asset_catalog.js';
+import { GpuMemoryModel } from './generated/runtime/v1/local_runtime_device_environment.js';
 
 export type LocalRuntimeRunnableAssetKindId =
   | 'chat'

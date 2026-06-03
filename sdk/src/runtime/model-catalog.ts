@@ -1,5 +1,3 @@
-import { ReasonCode } from '../types/index.js';
-import { asNimiError } from '../core/errors.js';
 import type { RuntimeCallOptions } from './types.js';
 import {
   CatalogModelSource,
@@ -167,11 +165,7 @@ export type RuntimeModelCatalogConnectorClient = Pick<
 
 export type RuntimeModelCatalogClientOptions = {
   connector: () => RuntimeModelCatalogConnectorClient;
-  readConnector?: () => RuntimeModelCatalogConnectorClient;
   callOptions?: RuntimeCallOptions;
-  readFallbackTtlMs?: number;
-  shouldUseReadFallback?: (error: unknown) => boolean;
-  now?: () => number;
 };
 
 export type RuntimeModelCatalogClient = {
@@ -445,53 +439,19 @@ function runtimeCatalogWorkflowBindingToInput(binding: RuntimeCatalogWorkflowBin
   };
 }
 
-export function runtimeCatalogAuthFailedBecauseOfStaleBearer(error: unknown): boolean {
-  const normalized = asNimiError(error, {
-    reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
-    actionHint: 'retry_without_stale_runtime_bearer',
-    source: 'runtime',
-  });
-  const code = typeof normalized.reasonCode === 'string' ? normalized.reasonCode.trim() : '';
-  return code === ReasonCode.AUTH_TOKEN_INVALID;
-}
-
 export function createRuntimeModelCatalogClient(options: RuntimeModelCatalogClientOptions): RuntimeModelCatalogClient {
   const callOptions = options.callOptions;
-  const readFallbackTtlMs = options.readFallbackTtlMs ?? 60_000;
-  const shouldUseReadFallback = options.shouldUseReadFallback ?? runtimeCatalogAuthFailedBecauseOfStaleBearer;
-  const now = options.now ?? (() => Date.now());
-  let readFallbackUntilMs = 0;
-
-  async function withReadFallback<T>(
-    action: (connector: RuntimeModelCatalogConnectorClient) => Promise<T>,
-  ): Promise<T> {
-    const readConnector = options.readConnector;
-    if (readConnector && now() < readFallbackUntilMs) {
-      return action(readConnector());
-    }
-    try {
-      return await action(options.connector());
-    } catch (error) {
-      if (!readConnector || !shouldUseReadFallback(error)) {
-        throw error;
-      }
-      readFallbackUntilMs = now() + readFallbackTtlMs;
-      return action(readConnector());
-    }
-  }
 
   return {
     async listProviders() {
-      const response = await withReadFallback<ListModelCatalogProvidersResponse>((connector) =>
-        connector.listModelCatalogProviders({}, callOptions));
+      const response: ListModelCatalogProvidersResponse = await options.connector().listModelCatalogProviders({}, callOptions);
       return (response.providers || [])
         .map(normalizeRuntimeModelCatalogProvider)
         .sort((left, right) => left.provider.localeCompare(right.provider));
     },
     async listProviderModels(provider: string, pageSize = 500, pageToken = '') {
       const request = { provider: provider.trim(), pageSize, pageToken };
-      const response = await withReadFallback<ListCatalogProviderModelsResponse>((connector) =>
-        connector.listCatalogProviderModels(request, callOptions));
+      const response: ListCatalogProviderModelsResponse = await options.connector().listCatalogProviderModels(request, callOptions);
       return {
         provider: normalizeRuntimeModelCatalogProvider(response.provider || {} as ModelCatalogProviderEntry),
         models: (response.models || []).map(normalizeRuntimeCatalogModelSummary),
@@ -501,8 +461,7 @@ export function createRuntimeModelCatalogClient(options: RuntimeModelCatalogClie
     },
     async getModelDetail(provider: string, modelId: string) {
       const request = { provider: provider.trim(), modelId: modelId.trim() };
-      const response = await withReadFallback<GetCatalogModelDetailResponse>((connector) =>
-        connector.getCatalogModelDetail(request, callOptions));
+      const response: GetCatalogModelDetailResponse = await options.connector().getCatalogModelDetail(request, callOptions);
       return {
         provider: normalizeRuntimeModelCatalogProvider(response.provider || {} as ModelCatalogProviderEntry),
         model: normalizeRuntimeCatalogModelDetail(response.model),

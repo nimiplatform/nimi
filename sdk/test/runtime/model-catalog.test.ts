@@ -191,29 +191,25 @@ test('createRuntimeModelCatalogClient normalizes Runtime catalog reads and write
   ]);
 });
 
-test('createRuntimeModelCatalogClient retries read calls through injected fallback on stale bearer', async () => {
+test('createRuntimeModelCatalogClient fails closed on invalid auth token reads', async () => {
   const calls: string[] = [];
   const primary = createMockCatalogConnector('primary', calls);
   primary.listModelCatalogProviders = async () => {
     calls.push('primary:listModelCatalogProviders');
     throw Object.assign(new Error('auth token invalid'), { reasonCode: ReasonCode.AUTH_TOKEN_INVALID });
   };
-  const fallback = createMockCatalogConnector('fallback', calls);
-  let now = 1_000;
   const client = createRuntimeModelCatalogClient({
     connector: () => primary,
-    readConnector: () => fallback,
-    now: () => now,
-    readFallbackTtlMs: 500,
   });
 
-  assert.deepEqual((await client.listProviders()).map((provider) => provider.provider), ['alpha', 'zeta']);
-  now += 100;
-  await client.listProviders();
+  await assert.rejects(
+    () => client.listProviders(),
+    (error) => error instanceof Error
+      && error.message === 'auth token invalid'
+      && (error as Error & { reasonCode?: string }).reasonCode === ReasonCode.AUTH_TOKEN_INVALID,
+  );
 
   assert.deepEqual(calls, [
     'primary:listModelCatalogProviders',
-    'fallback:listModelCatalogProviders',
-    'fallback:listModelCatalogProviders',
   ]);
 });

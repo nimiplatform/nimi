@@ -29,8 +29,8 @@ import {
   ExecutionMode,
   RoutePolicy,
   ScenarioType,
-} from '../runtime/generated/runtime/v1/ai.js';
-import type { UsageStats } from '../runtime/generated/runtime/v1/common.js';
+  type UsageStats,
+} from '../runtime/browser.js';
 
 function createPromptRequiredError() {
   return createNimiError({

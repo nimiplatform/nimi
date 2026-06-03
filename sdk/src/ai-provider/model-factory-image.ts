@@ -12,6 +12,7 @@ import {
   normalizeProviderError,
   normalizeText,
   resolveRoutePolicy,
+  selectArtifactsFromScenarioOutput,
   toBase64,
   toImageFileSource,
   toImageFileSources,
@@ -21,7 +22,7 @@ import {
   flattenImageProviderOptions,
   withOptionalHeadSubjectUserId,
 } from './model-factory-shared.js';
-import { ExecutionMode, ScenarioType } from '../runtime/generated/runtime/v1/ai.js';
+import { ExecutionMode, ScenarioType } from '../runtime/browser.js';
 
 type NimiImageModelCallOptions = ImageModelV3CallOptions & {
   negativePrompt?: string;
@@ -86,7 +87,7 @@ export function createImageModelImpl(
           extensions: [],
         }, defaults.subjectUserId);
         const media = await executeScenarioJob(runtime, defaults, request, timeoutMs, options.abortSignal);
-        const artifacts = media.artifacts;
+        const artifacts = selectArtifactsFromScenarioOutput(media, 'imageGenerate');
         const providerMetadata: ImageModelV3ProviderMetadata = {
           nimi: {
             images: artifacts.map((artifact) => ({

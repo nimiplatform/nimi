@@ -630,6 +630,17 @@ export function runtimeRouteModelSupportsCapability(
   return (capabilities || []).some((item) => normalizeRuntimeRouteCapabilityToken(item) === capability);
 }
 
+export function runtimeRouteCapabilitiesMatch(
+  capabilities: readonly unknown[] | undefined,
+  filter: unknown,
+): boolean {
+  const capability = normalizeRuntimeRouteCapabilityToken(filter);
+  if (!capability) {
+    return false;
+  }
+  return (capabilities || []).some((item) => normalizeRuntimeRouteCapabilityToken(item) === capability);
+}
+
 export function runtimeRouteLocalKindForCapability(
   capability: RuntimeCanonicalCapability,
 ): LocalRuntimeRunnableAssetKindId | null {

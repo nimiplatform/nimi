@@ -1,3 +1,6 @@
+import type { RuntimeCallOptions } from './runtime/types.js';
+import type { RuntimeLocalServiceClient } from './runtime/types-client-interfaces.js';
+
 export const PRODUCT_CONTROL_STATES = [
   'not_logged_in',
   'config_missing',
@@ -96,6 +99,56 @@ export type ProductControlAdmissionProjection =
   | { readonly kind: 'ordinary-shell' }
   | { readonly kind: 'login' }
   | { readonly kind: 'first-run'; readonly state: ProductControlState };
+
+export type RuntimeProductControlLocalClient = Pick<
+  RuntimeLocalServiceClient,
+  | 'getProductControlRecord'
+  | 'getProductControlSelectedDataRoot'
+  | 'ensureProductControlRecordCreated'
+  | 'selectProductControlDataRoot'
+  | 'setProductControlFirstRunInstallLevel'
+  | 'completeProductControlFirstRunDeviceEnvironmentScan'
+  | 'admitProductControlReadyForUse'
+  | 'recordProductControlAccountDefaultProfileEvidence'
+  | 'recordProductControlFirstRunLocalAiReadyEvidence'
+  | 'reconcileProductControlFirstRunSetupState'
+>;
+
+export type RuntimeProductControlClient =
+  | RuntimeProductControlLocalClient
+  | { readonly local: RuntimeProductControlLocalClient };
+
+export type RuntimeProductControlClientFor<Method extends keyof RuntimeProductControlLocalClient> =
+  | Pick<RuntimeProductControlLocalClient, Method>
+  | { readonly local: Pick<RuntimeProductControlLocalClient, Method> };
+
+export type RuntimeProductControlCallOptions = {
+  readonly callOptions?: RuntimeCallOptions;
+};
+
+export type RuntimeProductControlDataRootSelectionInput = {
+  readonly dataRoot: string;
+};
+
+export type RuntimeProductControlFirstRunInstallLevelInput = {
+  readonly installLevel: 'minimal' | 'recommended';
+  readonly aiProfileAlias: string;
+};
+
+export type RuntimeProductControlReadyForUseAdmissionInput = {
+  readonly accountDefaultProfileEvidenceJson: string;
+  readonly builtInAiConfigEvidenceJson: string;
+};
+
+export type RuntimeProductControlAccountDefaultProfileEvidenceInput = {
+  readonly accountDefaultProfileEvidenceJson: string;
+};
+
+export type RuntimeProductControlFirstRunLocalAiReadyEvidenceInput = {
+  readonly runtimeBaselineRef: string;
+  readonly builtInAiConfigEvidenceJson: string;
+  readonly executionEvidenceRef: string;
+};
 
 export const FIRST_RUN_PHASES: readonly FirstRunPhase[] = ['storage', 'device-scan', 'local-ai', 'setup'];
 
@@ -284,6 +337,122 @@ export function parseProductControlSelectedDataRootProjectionJson(
     throw new Error('Runtime product-control selected-data-root projection json is required');
   }
   return parseProductControlSelectedDataRootProjection(JSON.parse(raw));
+}
+
+function runtimeProductControlLocalClient<Method extends keyof RuntimeProductControlLocalClient>(
+  client: RuntimeProductControlClientFor<Method>,
+): Pick<RuntimeProductControlLocalClient, Method> {
+  if ('local' in client) {
+    return client.local;
+  }
+  return client;
+}
+
+export async function getRuntimeProductControlRecord(
+  client: RuntimeProductControlClientFor<'getProductControlRecord'>,
+  options?: RuntimeProductControlCallOptions,
+): Promise<ProductControlRecordProjection> {
+  const response = await runtimeProductControlLocalClient(client)
+    .getProductControlRecord({}, options?.callOptions);
+  return parseProductControlProjectionJson(response);
+}
+
+export async function getRuntimeProductControlSelectedDataRoot(
+  client: RuntimeProductControlClientFor<'getProductControlSelectedDataRoot'>,
+  options?: RuntimeProductControlCallOptions,
+): Promise<ProductControlSelectedDataRootProjection> {
+  const response = await runtimeProductControlLocalClient(client)
+    .getProductControlSelectedDataRoot({}, options?.callOptions);
+  return parseProductControlSelectedDataRootProjectionJson(response);
+}
+
+export async function ensureRuntimeProductControlRecordCreated(
+  client: RuntimeProductControlClientFor<'ensureProductControlRecordCreated'>,
+  options?: RuntimeProductControlCallOptions,
+): Promise<ProductControlRecordProjection> {
+  const response = await runtimeProductControlLocalClient(client)
+    .ensureProductControlRecordCreated({}, options?.callOptions);
+  return parseProductControlProjectionJson(response);
+}
+
+export async function selectRuntimeProductControlDataRoot(
+  client: RuntimeProductControlClientFor<'selectProductControlDataRoot'>,
+  input: RuntimeProductControlDataRootSelectionInput,
+  options?: RuntimeProductControlCallOptions,
+): Promise<ProductControlRecordProjection> {
+  const response = await runtimeProductControlLocalClient(client)
+    .selectProductControlDataRoot({ dataRoot: input.dataRoot }, options?.callOptions);
+  return parseProductControlProjectionJson(response);
+}
+
+export async function setRuntimeProductControlFirstRunInstallLevel(
+  client: RuntimeProductControlClientFor<'setProductControlFirstRunInstallLevel'>,
+  input: RuntimeProductControlFirstRunInstallLevelInput,
+  options?: RuntimeProductControlCallOptions,
+): Promise<ProductControlRecordProjection> {
+  const response = await runtimeProductControlLocalClient(client)
+    .setProductControlFirstRunInstallLevel({
+      installLevel: input.installLevel,
+      aiProfileAlias: input.aiProfileAlias,
+    }, options?.callOptions);
+  return parseProductControlProjectionJson(response);
+}
+
+export async function completeRuntimeProductControlFirstRunDeviceEnvironmentScan(
+  client: RuntimeProductControlClientFor<'completeProductControlFirstRunDeviceEnvironmentScan'>,
+  options?: RuntimeProductControlCallOptions,
+): Promise<ProductControlRecordProjection> {
+  const response = await runtimeProductControlLocalClient(client)
+    .completeProductControlFirstRunDeviceEnvironmentScan({}, options?.callOptions);
+  return parseProductControlProjectionJson(response);
+}
+
+export async function admitRuntimeProductControlReadyForUse(
+  client: RuntimeProductControlClientFor<'admitProductControlReadyForUse'>,
+  input: RuntimeProductControlReadyForUseAdmissionInput,
+  options?: RuntimeProductControlCallOptions,
+): Promise<ProductControlRecordProjection> {
+  const response = await runtimeProductControlLocalClient(client)
+    .admitProductControlReadyForUse({
+      accountDefaultProfileEvidenceJson: input.accountDefaultProfileEvidenceJson,
+      builtInAiConfigEvidenceJson: input.builtInAiConfigEvidenceJson,
+    }, options?.callOptions);
+  return parseProductControlProjectionJson(response);
+}
+
+export async function recordRuntimeProductControlAccountDefaultProfileEvidence(
+  client: RuntimeProductControlClientFor<'recordProductControlAccountDefaultProfileEvidence'>,
+  input: RuntimeProductControlAccountDefaultProfileEvidenceInput,
+  options?: RuntimeProductControlCallOptions,
+): Promise<ProductControlRecordProjection> {
+  const response = await runtimeProductControlLocalClient(client)
+    .recordProductControlAccountDefaultProfileEvidence({
+      accountDefaultProfileEvidenceJson: input.accountDefaultProfileEvidenceJson,
+    }, options?.callOptions);
+  return parseProductControlProjectionJson(response);
+}
+
+export async function recordRuntimeProductControlFirstRunLocalAiReadyEvidence(
+  client: RuntimeProductControlClientFor<'recordProductControlFirstRunLocalAiReadyEvidence'>,
+  input: RuntimeProductControlFirstRunLocalAiReadyEvidenceInput,
+  options?: RuntimeProductControlCallOptions,
+): Promise<ProductControlRecordProjection> {
+  const response = await runtimeProductControlLocalClient(client)
+    .recordProductControlFirstRunLocalAiReadyEvidence({
+      runtimeBaselineRef: input.runtimeBaselineRef,
+      builtInAiConfigEvidenceJson: input.builtInAiConfigEvidenceJson,
+      executionEvidenceRef: input.executionEvidenceRef,
+    }, options?.callOptions);
+  return parseProductControlProjectionJson(response);
+}
+
+export async function reconcileRuntimeProductControlFirstRunSetupState(
+  client: RuntimeProductControlClientFor<'reconcileProductControlFirstRunSetupState'>,
+  options?: RuntimeProductControlCallOptions,
+): Promise<ProductControlRecordProjection> {
+  const response = await runtimeProductControlLocalClient(client)
+    .reconcileProductControlFirstRunSetupState({}, options?.callOptions);
+  return parseProductControlProjectionJson(response);
 }
 
 export function productControlRecordUnavailableProjection(error: string): ProductControlRecordProjection {

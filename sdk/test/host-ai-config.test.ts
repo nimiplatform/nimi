@@ -165,11 +165,11 @@ test('scoped AIConfig store persists by host-provided scope keys and index', () 
   assert.match(storage.snapshot()['test:index'], /app:dev\.nimi\.tester:app-lab/);
 });
 
-test('scoped AIConfig store supports app-specific storage keys and memory fallback', () => {
+test('scoped AIConfig store supports app-specific storage keys and explicit ephemeral store', () => {
   const store = createScopedAIConfigStore({
     storage: () => null,
     configKeyForScope: () => 'single-app-key',
-    memoryFallback: true,
+    enableEphemeralStore: true,
   });
 
   assert.deepEqual(store.listScopeKeys(), []);
@@ -178,16 +178,27 @@ test('scoped AIConfig store supports app-specific storage keys and memory fallba
   assert.deepEqual(store.load(SCOPE), CONFIG);
 });
 
-test('scoped AIConfig store fails closed without storage or explicit memory fallback', () => {
+test('scoped AIConfig store fails closed without storage or explicit ephemeral store', () => {
   const store = createScopedAIConfigStore({
     storage: () => null,
   });
 
   assert.throws(
-    () => store.save(CONFIG),
-    /AIConfig store save requires host storage or explicit memoryFallback=true/,
+    () => store.has(SCOPE),
+    /AIConfig store has requires host storage or explicit enableEphemeralStore=true/,
   );
-  assert.deepEqual(store.listScopeKeys(), []);
+  assert.throws(
+    () => store.load(SCOPE),
+    /AIConfig store load requires host storage or explicit enableEphemeralStore=true/,
+  );
+  assert.throws(
+    () => store.save(CONFIG),
+    /AIConfig store save requires host storage or explicit enableEphemeralStore=true/,
+  );
+  assert.throws(
+    () => store.listScopeKeys(),
+    /AIConfig store listScopeKeys requires host storage or explicit enableEphemeralStore=true/,
+  );
 });
 
 test('scoped AIConfig store fails closed on malformed runtime bindings', () => {

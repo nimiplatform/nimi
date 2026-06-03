@@ -52,7 +52,7 @@ import {
   LocalRecommendationFormat,
   LocalRecommendationSource,
   LocalRecommendationTier,
-} from '../../src/runtime/generated/runtime/v1/local_runtime_types.js';
+} from '../../src/runtime/generated/runtime/v1/local_runtime_recommendation.js';
 
 test('local recommendation feed capabilities are projected from Runtime enum order', () => {
   assert.deepEqual(LOCAL_RECOMMENDATION_FEED_CAPABILITY_IDS, ['chat', 'image', 'video']);

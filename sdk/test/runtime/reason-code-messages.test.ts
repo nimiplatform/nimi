@@ -38,22 +38,64 @@ test('runtime reason-code message projection exposes stable AI and runtime defau
 
 test('runtime reason-code message projection covers Desktop D-ERR-007 Phase 1 codes', () => {
   const phase1CriticalCodes = [
-    ReasonCode.AI_PROVIDER_TIMEOUT,
-    ReasonCode.AI_PROVIDER_UNAVAILABLE,
-    ReasonCode.AI_STREAM_BROKEN,
-    ReasonCode.AI_CONNECTOR_CREDENTIAL_MISSING,
-    ReasonCode.AI_MODEL_NOT_FOUND,
-    ReasonCode.AI_MEDIA_IDEMPOTENCY_CONFLICT,
-    ReasonCode.AI_LOCAL_MODEL_UNAVAILABLE,
-    ReasonCode.AUTH_TOKEN_INVALID,
-    ReasonCode.SESSION_EXPIRED,
-    ReasonCode.RUNTIME_UNAVAILABLE,
-  ];
+    'AI_PROVIDER_TIMEOUT',
+    'AI_PROVIDER_UNAVAILABLE',
+    'AI_PROVIDER_RATE_LIMITED',
+    'AI_PROVIDER_INTERNAL',
+    'AI_PROVIDER_ENDPOINT_FORBIDDEN',
+    'AI_PROVIDER_AUTH_FAILED',
+    'AI_STREAM_BROKEN',
+    'AI_CONNECTOR_CREDENTIAL_MISSING',
+    'AI_CONNECTOR_DISABLED',
+    'AI_CONNECTOR_NOT_FOUND',
+    'AI_CONNECTOR_INVALID',
+    'AI_CONNECTOR_IMMUTABLE',
+    'AI_CONNECTOR_LIMIT_EXCEEDED',
+    'AI_MODEL_NOT_FOUND',
+    'AI_MODALITY_NOT_SUPPORTED',
+    'AI_MODEL_PROVIDER_MISMATCH',
+    'AI_MEDIA_IDEMPOTENCY_CONFLICT',
+    'AI_MEDIA_JOB_NOT_FOUND',
+    'AI_MEDIA_SPEC_INVALID',
+    'AI_MEDIA_OPTION_UNSUPPORTED',
+    'AI_MEDIA_JOB_NOT_CANCELLABLE',
+    'AI_LOCAL_MODEL_UNAVAILABLE',
+    'AI_LOCAL_MODEL_PROFILE_MISSING',
+    'AI_LOCAL_ASSET_ALREADY_INSTALLED',
+    'AI_LOCAL_ENDPOINT_REQUIRED',
+    'AI_LOCAL_TEMPLATE_NOT_FOUND',
+    'AI_LOCAL_MANIFEST_INVALID',
+    'AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED',
+    'AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED',
+    'AI_LOCAL_SPEECH_ENV_INIT_FAILED',
+    'AI_LOCAL_SPEECH_HOST_INIT_FAILED',
+    'AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED',
+    'AI_LOCAL_SPEECH_BUNDLE_DEGRADED',
+    'AUTH_REVOCATION_UNAVAILABLE',
+    'AUTH_TOKEN_INVALID',
+    'SESSION_EXPIRED',
+    'APP_MODE_DOMAIN_FORBIDDEN',
+    'APP_MODE_SCOPE_FORBIDDEN',
+    'APP_MODE_MANIFEST_INVALID',
+    'RUNTIME_UNAVAILABLE',
+    'RUNTIME_BRIDGE_DAEMON_UNAVAILABLE',
+  ] as const;
 
   for (const code of phase1CriticalCodes) {
     assert.ok(
       getRuntimeReasonCodeMessage(code),
       `missing Runtime reason-code message projection for ${code}`,
+    );
+  }
+});
+
+test('runtime reason-code message projection excludes later-scope reason prefixes', () => {
+  const mappedCodes = Object.keys(RUNTIME_REASON_CODE_MESSAGE_MAP).join('\n');
+
+  for (const prefix of ['GRANT_', 'WORKFLOW_', 'APP_MESSAGE_', 'SCRIPT_']) {
+    assert.ok(
+      !mappedCodes.includes(prefix),
+      `Runtime reason-code projection should not include later-scope prefix ${prefix}`,
     );
   }
 });

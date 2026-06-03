@@ -92,6 +92,7 @@ test('runtime agent snapshot recovery builds terminal consume events from public
   const events = buildRuntimeAgentSnapshotRecoveryEvents({
     turn: {
       turnId: 'turn-1',
+      streamId: 'stream-1',
       status: 'completed',
       updatedAt: '2026-05-17T04:16:54.000Z',
       messageId: 'message-1',
@@ -109,7 +110,6 @@ test('runtime agent snapshot recovery builds terminal consume events from public
     localAgentRef: 'local-agent:user-1:agent-1',
     conversationAnchorId: 'anchor-1',
     requestId: 'request-1',
-    requestMessageId: '',
     currentTurnAccepted: false,
     currentRuntimeTurnId: '',
     currentRuntimeStreamId: '',
@@ -123,6 +123,113 @@ test('runtime agent snapshot recovery builds terminal consume events from public
     'runtime.agent.turn.message_committed',
     'runtime.agent.turn.completed',
   ]);
+});
+
+test('runtime agent snapshot recovery does not synthesize missing replay stream identity', () => {
+  const events = buildRuntimeAgentSnapshotRecoveryEvents({
+    turn: {
+      turnId: 'turn-1',
+      status: 'completed',
+      updatedAt: '2026-05-17T04:16:54.000Z',
+      messageId: 'message-1',
+      text: 'done',
+      finishReason: 'stop',
+    },
+    localAgentRef: 'local-agent:user-1:agent-1',
+    conversationAnchorId: 'anchor-1',
+    requestId: 'request-1',
+    currentTurnAccepted: false,
+    currentRuntimeTurnId: '',
+    currentRuntimeStreamId: '',
+    hasStructuredEnvelope: false,
+    hasCommittedMessage: false,
+  });
+
+  assert.deepEqual(events, []);
+});
+
+test('runtime agent snapshot recovery does not synthesize missing committed message identity', () => {
+  const events = buildRuntimeAgentSnapshotRecoveryEvents({
+    turn: {
+      turnId: 'turn-1',
+      streamId: 'stream-1',
+      status: 'completed',
+      updatedAt: '2026-05-17T04:16:54.000Z',
+      text: 'done',
+      finishReason: 'stop',
+    },
+    localAgentRef: 'local-agent:user-1:agent-1',
+    conversationAnchorId: 'anchor-1',
+    requestId: 'request-1',
+    currentTurnAccepted: false,
+    currentRuntimeTurnId: '',
+    currentRuntimeStreamId: '',
+    hasStructuredEnvelope: false,
+    hasCommittedMessage: false,
+  });
+
+  assert.deepEqual(events, []);
+});
+
+test('runtime agent snapshot recovery does not synthesize missing terminal reason', () => {
+  const events = buildRuntimeAgentSnapshotRecoveryEvents({
+    turn: {
+      turnId: 'turn-1',
+      streamId: 'stream-1',
+      status: 'completed',
+      updatedAt: '2026-05-17T04:16:54.000Z',
+      messageId: 'message-1',
+      text: 'done',
+    },
+    localAgentRef: 'local-agent:user-1:agent-1',
+    conversationAnchorId: 'anchor-1',
+    requestId: 'request-1',
+    currentTurnAccepted: false,
+    currentRuntimeTurnId: '',
+    currentRuntimeStreamId: '',
+    hasStructuredEnvelope: false,
+    hasCommittedMessage: false,
+  });
+
+  assert.deepEqual(events, []);
+});
+
+test('runtime agent snapshot recovery does not bind active turns without Runtime stream evidence', async () => {
+  const enqueued: RuntimeAgentConsumeEvent[] = [];
+  const result = await recoverRuntimeAgentTerminalSnapshot({
+    reason: 'subscription_terminal_stall',
+    request: {
+      ownerUserId: 'user-1',
+      realmAgentId: 'agent-1',
+      localAgentRef: 'local-agent:user-1:agent-1',
+      conversationAnchorId: 'anchor-1',
+      threadId: 'thread-1',
+    },
+    requestId: 'request-1',
+    requestMessageId: '',
+    requestStartedAtMs: Date.parse('2026-05-17T04:16:50.000Z'),
+    currentTurnAccepted: false,
+    currentRuntimeTurnId: '',
+    currentRuntimeStreamId: '',
+    hasStructuredEnvelope: false,
+    hasCommittedMessage: false,
+    async querySnapshot() {
+      return {
+        activeTurn: {
+          turnId: 'turn-active',
+          status: 'running',
+          updatedAt: '2026-05-17T04:16:54.000Z',
+        },
+      };
+    },
+    enqueue(event) {
+      enqueued.push(event);
+    },
+    logEvent() {},
+  });
+
+  assert.equal(result, 'none');
+  assert.deepEqual(enqueued, []);
 });
 
 test('runtime agent snapshot recovery rejects stale terminal lastTurn from before current request', async () => {

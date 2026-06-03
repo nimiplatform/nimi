@@ -62,8 +62,10 @@ export {
   StreamEventType,
   ScenarioJobStatus,
   ScenarioJobEventType,
+  ChatContentPartType,
 } from './generated/runtime/v1/ai.js';
 export type {
+  ChatContentPart,
   ScenarioArtifact,
   ScenarioJob,
   ScenarioJobEvent,
@@ -254,7 +256,7 @@ export type {
 } from './generated/runtime/v1/audit.js';
 export { CallerKind } from './generated/runtime/v1/common.js';
 export { ReasonCode as RuntimeReasonCode, ExternalPrincipalType } from './generated/runtime/v1/common.js';
-export type { WorkspaceBindingAttachment } from './generated/runtime/v1/common.js';
+export type { UsageStats, WorkspaceBindingAttachment } from './generated/runtime/v1/common.js';
 export {
   AccountCallerMode,
   AccountSessionState,
@@ -282,7 +284,10 @@ export {
   AuthorizeExternalPrincipalResponse,
 } from './generated/runtime/v1/grant.js';
 export { Timestamp } from './generated/google/protobuf/timestamp.js';
+export { Struct } from './generated/google/protobuf/struct.js';
+export type { Value as ProtoValue } from './generated/google/protobuf/struct.js';
 export { WorkflowStatus, WorkflowEventType, WorkflowExecutionMode } from './generated/runtime/v1/workflow.js';
+export { toRuntimeVoiceReference } from './speech-voice-reference.js';
 export {
   LOCAL_RECOMMENDATION_BASELINE_IDS,
   LOCAL_RECOMMENDATION_FEED_CAPABILITY_IDS,

@@ -4,6 +4,7 @@ import test from 'node:test';
 import { createNimiAiProvider } from '../../src/ai-provider/index.js';
 import { asNimiError } from '../../src/runtime/index.js';
 import { ReasonCode } from '../../src/types/index.js';
+import { imageGenerateOutput } from '../helpers/runtime-ai-shapes.js';
 import { APP_ID, SUBJECT_USER_ID, createRuntimeStub } from './provider-test-helpers.js';
 
 test('createNimiAiProvider embedding and image models map runtime responses', async () => {
@@ -68,6 +69,7 @@ test('createNimiAiProvider embedding and image models map runtime responses', as
         jobId: entry?.job.jobId || '',
         artifacts: entry?.artifacts || [],
         traceId: entry?.job.traceId || '',
+        output: imageGenerateOutput('image-1') as unknown as Record<string, unknown>,
       };
     },
   });
@@ -131,6 +133,7 @@ test('createNimiAiProvider image model flattens providerOptions and maps files/m
         mimeType: 'image/png',
         bytes: Uint8Array.from([7, 8, 9]),
       }],
+      output: imageGenerateOutput('image-compat-1') as unknown as Record<string, unknown>,
     }),
   });
 

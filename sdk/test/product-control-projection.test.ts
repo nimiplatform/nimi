@@ -8,6 +8,11 @@ import {
   isDegradedProductControlState,
   isProductControlPhaseTransient,
   isRepairRoutedProductControlState,
+  admitRuntimeProductControlReadyForUse,
+  completeRuntimeProductControlFirstRunDeviceEnvironmentScan,
+  ensureRuntimeProductControlRecordCreated,
+  getRuntimeProductControlRecord,
+  getRuntimeProductControlSelectedDataRoot,
   parseProductControlProjectionJson,
   parseProductControlSelectedDataRootProjectionJson,
   parseProductControlSelectedDataRootProjection,
@@ -16,7 +21,13 @@ import {
   productControlSelectedDataRootUnavailableProjection,
   projectProductControlStorageDirs,
   projectProductControlAdmission,
+  reconcileRuntimeProductControlFirstRunSetupState,
+  recordRuntimeProductControlAccountDefaultProfileEvidence,
+  recordRuntimeProductControlFirstRunLocalAiReadyEvidence,
+  selectRuntimeProductControlDataRoot,
+  setRuntimeProductControlFirstRunInstallLevel,
   type ProductControlState,
+  type RuntimeProductControlLocalClient,
 } from '../src/index.js';
 
 function record(state: ProductControlState) {
@@ -54,6 +65,29 @@ function record(state: ProductControlState) {
   };
 }
 
+function productControlEnvelope(state: ProductControlState) {
+  return { json: JSON.stringify(record(state)) };
+}
+
+function selectedDataRootEnvelope() {
+  return {
+    json: JSON.stringify({
+      path: '/tmp/home/.nimi/nimi.json',
+      exists: true,
+      state: 'data_root_selected',
+      dataRoot: {
+        path: '/tmp/nimi-data',
+        status: 'selected',
+        selectedAt: '2026-06-02T00:00:00.000Z',
+        verifiedAt: '2026-06-02T00:00:00.000Z',
+        selectedAtUnixMs: 1,
+        verifiedAtUnixMs: 1,
+      },
+      error: null,
+    }),
+  };
+}
+
 test('product-control parser and recovery mapping are total over admitted states', () => {
   for (const state of PRODUCT_CONTROL_STATES) {
     const parsed = parseProductControlRecordProjection(record(state));
@@ -87,6 +121,95 @@ test('product-control parser consumes Runtime JSON projection envelopes', () => 
     }),
   });
   assert.equal(selected.dataRoot?.path, '/tmp/nimi-data');
+});
+
+test('Runtime product-control helpers submit typed RuntimeLocalService requests and parse envelopes', async () => {
+  const calls: Array<{ method: string; request: unknown; timeoutMs: number | undefined }> = [];
+  const capture = <TResponse>(method: string, request: unknown, timeoutMs: number | undefined, response: TResponse) => {
+    calls.push({ method, request, timeoutMs });
+    return Promise.resolve(response);
+  };
+  const local: RuntimeProductControlLocalClient = {
+    getProductControlRecord: (request, options) =>
+      capture('getProductControlRecord', request, options?.timeoutMs, productControlEnvelope('data_root_missing')),
+    getProductControlSelectedDataRoot: (request, options) =>
+      capture('getProductControlSelectedDataRoot', request, options?.timeoutMs, selectedDataRootEnvelope()),
+    ensureProductControlRecordCreated: (request, options) =>
+      capture('ensureProductControlRecordCreated', request, options?.timeoutMs, productControlEnvelope('data_root_missing')),
+    selectProductControlDataRoot: (request, options) =>
+      capture('selectProductControlDataRoot', request, options?.timeoutMs, productControlEnvelope('data_root_selected')),
+    setProductControlFirstRunInstallLevel: (request, options) =>
+      capture('setProductControlFirstRunInstallLevel', request, options?.timeoutMs, productControlEnvelope('ai_environment_unconfigured')),
+    completeProductControlFirstRunDeviceEnvironmentScan: (request, options) =>
+      capture('completeProductControlFirstRunDeviceEnvironmentScan', request, options?.timeoutMs, productControlEnvelope('ai_environment_unconfigured')),
+    admitProductControlReadyForUse: (request, options) =>
+      capture('admitProductControlReadyForUse', request, options?.timeoutMs, productControlEnvelope('ready_for_use')),
+    recordProductControlAccountDefaultProfileEvidence: (request, options) =>
+      capture('recordProductControlAccountDefaultProfileEvidence', request, options?.timeoutMs, productControlEnvelope('ai_environment_unconfigured')),
+    recordProductControlFirstRunLocalAiReadyEvidence: (request, options) =>
+      capture('recordProductControlFirstRunLocalAiReadyEvidence', request, options?.timeoutMs, productControlEnvelope('local_ai_ready')),
+    reconcileProductControlFirstRunSetupState: (request, options) =>
+      capture('reconcileProductControlFirstRunSetupState', request, options?.timeoutMs, productControlEnvelope('local_ai_profile_selected_assets_missing')),
+  };
+
+  assert.equal((await getRuntimeProductControlRecord(local, { callOptions: { timeoutMs: 123 } })).state, 'data_root_missing');
+  assert.equal((await getRuntimeProductControlSelectedDataRoot({ local })).dataRoot?.path, '/tmp/nimi-data');
+  assert.equal((await ensureRuntimeProductControlRecordCreated(local)).state, 'data_root_missing');
+  assert.equal((await selectRuntimeProductControlDataRoot(local, { dataRoot: '/tmp/nimi-data' })).state, 'data_root_selected');
+  assert.equal((await setRuntimeProductControlFirstRunInstallLevel(local, {
+    installLevel: 'minimal',
+    aiProfileAlias: 'local-speech-ready',
+  })).state, 'ai_environment_unconfigured');
+  assert.equal((await completeRuntimeProductControlFirstRunDeviceEnvironmentScan(local)).state, 'ai_environment_unconfigured');
+  assert.equal((await recordRuntimeProductControlAccountDefaultProfileEvidence(local, {
+    accountDefaultProfileEvidenceJson: '{"accountDefaultProfileRef":"ref"}',
+  })).state, 'ai_environment_unconfigured');
+  assert.equal((await recordRuntimeProductControlFirstRunLocalAiReadyEvidence(local, {
+    runtimeBaselineRef: 'runtime-baseline',
+    builtInAiConfigEvidenceJson: '{"builtInAiConfigRef":"ref"}',
+    executionEvidenceRef: 'execution',
+  })).state, 'local_ai_ready');
+  assert.equal((await reconcileRuntimeProductControlFirstRunSetupState(local)).state, 'local_ai_profile_selected_assets_missing');
+  assert.equal((await admitRuntimeProductControlReadyForUse(local, {
+    accountDefaultProfileEvidenceJson: '{"accountDefaultProfileRef":"ref"}',
+    builtInAiConfigEvidenceJson: '{"builtInAiConfigRef":"ref"}',
+  })).state, 'ready_for_use');
+
+  assert.deepEqual(calls, [
+    { method: 'getProductControlRecord', request: {}, timeoutMs: 123 },
+    { method: 'getProductControlSelectedDataRoot', request: {}, timeoutMs: undefined },
+    { method: 'ensureProductControlRecordCreated', request: {}, timeoutMs: undefined },
+    { method: 'selectProductControlDataRoot', request: { dataRoot: '/tmp/nimi-data' }, timeoutMs: undefined },
+    {
+      method: 'setProductControlFirstRunInstallLevel',
+      request: { installLevel: 'minimal', aiProfileAlias: 'local-speech-ready' },
+      timeoutMs: undefined,
+    },
+    { method: 'completeProductControlFirstRunDeviceEnvironmentScan', request: {}, timeoutMs: undefined },
+    {
+      method: 'recordProductControlAccountDefaultProfileEvidence',
+      request: { accountDefaultProfileEvidenceJson: '{"accountDefaultProfileRef":"ref"}' },
+      timeoutMs: undefined,
+    },
+    {
+      method: 'recordProductControlFirstRunLocalAiReadyEvidence',
+      request: {
+        runtimeBaselineRef: 'runtime-baseline',
+        builtInAiConfigEvidenceJson: '{"builtInAiConfigRef":"ref"}',
+        executionEvidenceRef: 'execution',
+      },
+      timeoutMs: undefined,
+    },
+    { method: 'reconcileProductControlFirstRunSetupState', request: {}, timeoutMs: undefined },
+    {
+      method: 'admitProductControlReadyForUse',
+      request: {
+        accountDefaultProfileEvidenceJson: '{"accountDefaultProfileRef":"ref"}',
+        builtInAiConfigEvidenceJson: '{"builtInAiConfigRef":"ref"}',
+      },
+      timeoutMs: undefined,
+    },
+  ]);
 });
 
 test('product-control screen and admission projections preserve fail-closed states', () => {

@@ -42,7 +42,7 @@ const RELEASE_SOURCE_KINDS = new Set(['nimi-bundle', 'github-release', 'github-c
 const ADMISSION_STATUSES = new Set([
   'admitted',
   'gated_by_avatar_master_gate',
-  'pending_wave_4',
+  'permission_fabric_pending',
   'deferred',
   'retired',
 ]);

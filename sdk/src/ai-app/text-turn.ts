@@ -5,7 +5,7 @@ import type {
   TextStreamInput,
   TextStreamOutput,
   TextStreamPart,
-} from '../runtime/types-media.js';
+} from '../runtime/index.js';
 import {
   appendAppAiSessionReasoningDelta,
   appendAppAiSessionTextDelta,

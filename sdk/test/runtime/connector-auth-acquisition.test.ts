@@ -108,6 +108,12 @@ test('acquireManagedConnectorCredential completes device-code flow and persists 
   });
 
   assert.equal(proxyCalls.length, 3);
+  assert.equal(proxyCalls[0]?.profileId, 'openai_codex');
+  assert.equal(proxyCalls[0]?.purpose, 'device_authorization');
+  assert.equal(proxyCalls[1]?.profileId, 'openai_codex');
+  assert.equal(proxyCalls[1]?.purpose, 'device_token');
+  assert.equal(proxyCalls[2]?.profileId, 'openai_codex');
+  assert.equal(proxyCalls[2]?.purpose, 'device_token');
   assert.equal(proxyCalls[0]?.url.endsWith('/deviceauth/usercode'), true);
   assert.equal(proxyCalls[1]?.url.endsWith('/deviceauth/token'), true);
   assert.equal(proxyCalls[2]?.url.endsWith('/deviceauth/token'), true);

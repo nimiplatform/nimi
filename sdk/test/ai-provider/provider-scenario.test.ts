@@ -4,7 +4,7 @@ import test from 'node:test';
 import { createNimiAiProvider } from '../../src/ai-provider/index.js';
 import { asNimiError } from '../../src/runtime/index.js';
 import { ReasonCode } from '../../src/types/index.js';
-import { speechSynthesizeOutput, speechTranscribeOutput } from '../helpers/runtime-ai-shapes.js';
+import { speechSynthesizeOutput, speechTranscribeOutput, videoGenerateOutput } from '../helpers/runtime-ai-shapes.js';
 import { APP_ID, SUBJECT_USER_ID, createRuntimeStub } from './provider-test-helpers.js';
 
 test('createNimiAiProvider maps runtime failures and exposes video/tts/stt extensions', async () => {
@@ -82,11 +82,13 @@ test('createNimiAiProvider maps runtime failures and exposes video/tts/stt exten
         jobId: entry?.job.jobId || '',
         artifacts: entry?.artifacts || [],
         traceId: entry?.job.traceId || '',
-        output: entry?.job.scenarioType === 5
-          ? speechSynthesizeOutput('tts-1') as unknown as Record<string, unknown>
-          : entry?.job.scenarioType === 6
-            ? speechTranscribeOutput('transcribed text', 'stt-1') as unknown as Record<string, unknown>
-            : undefined,
+        output: entry?.job.scenarioType === 4
+          ? videoGenerateOutput('video-1') as unknown as Record<string, unknown>
+          : entry?.job.scenarioType === 5
+            ? speechSynthesizeOutput('audio-1') as unknown as Record<string, unknown>
+            : entry?.job.scenarioType === 6
+              ? speechTranscribeOutput('transcribed text', 'stt-1') as unknown as Record<string, unknown>
+              : undefined,
       };
     },
   });
@@ -233,6 +235,7 @@ test('createNimiAiProvider forwards requestId/idempotencyKey/labels to submitSce
         mimeType: 'video/mp4',
         bytes: Uint8Array.from([1, 2, 3]),
       }],
+      output: videoGenerateOutput('video-meta-1') as unknown as Record<string, unknown>,
     }),
   });
 

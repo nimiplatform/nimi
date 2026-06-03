@@ -11,6 +11,8 @@ export type ConnectorAuthAcquisitionPendingState = {
 };
 
 export type ConnectorAuthAcquisitionHttpRequest = {
+  profileId: string;
+  purpose: 'device_authorization' | 'device_token';
   url: string;
   method: 'POST';
   headers: Record<string, string>;
@@ -174,10 +176,14 @@ function logAcquisition(
 
 async function postJson(
   host: ConnectorAuthAcquisitionHost,
+  profile: ConnectorAuthAcquisitionProfileSpec,
+  purpose: ConnectorAuthAcquisitionHttpRequest['purpose'],
   url: string,
   payload: Record<string, unknown>,
 ): Promise<ConnectorAuthAcquisitionHttpResponse> {
   return host.proxyHttp({
+    profileId: profile.profileId,
+    purpose,
     url,
     method: 'POST',
     headers: {
@@ -296,7 +302,7 @@ export async function acquireManagedConnectorCredential(
     profileId: profile.profileId,
   });
 
-  const deviceCodeResponse = await postJson(host, profile.deviceAuthorizationUrl, {
+  const deviceCodeResponse = await postJson(host, profile, 'device_authorization', profile.deviceAuthorizationUrl, {
     client_id: profile.clientId,
   });
   if (!deviceCodeResponse.ok) {
@@ -356,7 +362,7 @@ export async function acquireManagedConnectorCredential(
   while (now() < deadlineMs) {
     await sleep(pollIntervalSeconds * 1000);
     pollAttempt += 1;
-    const pollResponse = await postJson(host, profile.deviceTokenUrl, {
+    const pollResponse = await postJson(host, profile, 'device_token', profile.deviceTokenUrl, {
       device_auth_id: deviceAuthId,
       user_code: userCode,
     });
