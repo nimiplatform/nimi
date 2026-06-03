@@ -1,12 +1,11 @@
-type DesktopBridgeFacade = (typeof import('@renderer/bridge'))['desktopBridge'];
+type DesktopBridgeFacade = (typeof import('./bridge.web'))['desktopBridge'];
 type CreateProxyFetch = (typeof import('@desktop-public/infra'))['createProxyFetch'];
 type CreateRendererFlowId = (typeof import('@desktop-public/infra'))['createRendererFlowId'];
 type LogRendererEvent = (typeof import('@desktop-public/infra'))['logRendererEvent'];
-type UseAppStore = (typeof import('@desktop-public/app-store'))['useAppStore'];
+type DesktopPublicWebBootstrapStore = (typeof import('@desktop-public/app-store'))['desktopPublicWebBootstrapStore'];
 type ConfigureWebRealmPlatformClient = (typeof import('@desktop-public/realm'))['configureWebRealmPlatformClient'];
 type CallRealmApi = (typeof import('@desktop-public/realm'))['callRealmApi'];
 type ClearPersistedAccessToken = (typeof import('@nimiplatform/kit/auth'))['clearPersistedAccessToken'];
-type LoadPersistedAuthSession = (typeof import('@nimiplatform/kit/auth'))['loadPersistedAuthSession'];
 type PersistAuthSession = (typeof import('@nimiplatform/kit/auth'))['persistAuthSession'];
 
 type RuntimeBootstrapWebDeps = {
@@ -14,22 +13,14 @@ type RuntimeBootstrapWebDeps = {
   createProxyFetch: CreateProxyFetch;
   createRendererFlowId: CreateRendererFlowId;
   logRendererEvent: LogRendererEvent;
-  useAppStore: UseAppStore;
+  bootstrapStore: DesktopPublicWebBootstrapStore;
   configureWebRealmPlatformClient: ConfigureWebRealmPlatformClient;
   callRealmApi: CallRealmApi;
   clearPersistedAccessToken: ClearPersistedAccessToken;
-  loadPersistedAuthSession: LoadPersistedAuthSession;
   persistAuthSession: PersistAuthSession;
 };
 
 export const WEB_CLOUD_ADAPTER_AUTH_MODE = 'web-cloud-adapter' as const;
-
-type AuthSessionSnapshot = {
-  status: string;
-  user: Record<string, unknown> | null;
-  token: string;
-  refreshToken: string;
-};
 
 let bootstrapPromise: Promise<void> | null = null;
 let depsPromise: Promise<RuntimeBootstrapWebDeps> | null = null;
@@ -45,11 +36,11 @@ async function loadRuntimeBootstrapWebDeps(): Promise<RuntimeBootstrapWebDeps> {
       realmModule,
       bridgeModule,
       infraModule,
-      appStoreModule,
+      bootstrapStoreModule,
       authStorageModule,
     ] = await Promise.all([
       import('@desktop-public/realm'),
-      import('@renderer/bridge'),
+      import('./bridge.web'),
       import('@desktop-public/infra'),
       import('@desktop-public/app-store'),
       import('@nimiplatform/kit/auth'),
@@ -60,11 +51,10 @@ async function loadRuntimeBootstrapWebDeps(): Promise<RuntimeBootstrapWebDeps> {
       createProxyFetch: infraModule.createProxyFetch,
       createRendererFlowId: infraModule.createRendererFlowId,
       logRendererEvent: infraModule.logRendererEvent,
-      useAppStore: appStoreModule.useAppStore,
+      bootstrapStore: bootstrapStoreModule.desktopPublicWebBootstrapStore,
       configureWebRealmPlatformClient: realmModule.configureWebRealmPlatformClient,
       callRealmApi: realmModule.callRealmApi,
       clearPersistedAccessToken: authStorageModule.clearPersistedAccessToken,
-      loadPersistedAuthSession: authStorageModule.loadPersistedAuthSession,
       persistAuthSession: authStorageModule.persistAuthSession,
     };
   })();
@@ -99,31 +89,15 @@ export function withTimeout<T>(task: Promise<T>, timeoutMs: number, label: strin
   });
 }
 
-function snapshotAuthSession(deps: RuntimeBootstrapWebDeps): AuthSessionSnapshot {
-  const auth = deps.useAppStore.getState().auth;
-  return {
-    status: String(auth.status || ''),
-    user: auth.user && typeof auth.user === 'object'
-      ? (auth.user as Record<string, unknown>)
-      : null,
-    token: String(auth.token || '').trim(),
-    refreshToken: String(auth.refreshToken || '').trim(),
-  };
-}
-
-function hasAuthenticatedSnapshot(snapshot: AuthSessionSnapshot): boolean {
-  return snapshot.status === 'authenticated' && Boolean(snapshot.token);
-}
-
 async function configureWebRealmSession(
   deps: RuntimeBootstrapWebDeps,
   accessToken: string,
   refreshToken?: string,
 ): Promise<void> {
-  let defaults = deps.useAppStore.getState().runtimeDefaults;
+  let defaults = deps.bootstrapStore.getRuntimeDefaults();
   if (!defaults?.realm?.realmBaseUrl) {
     defaults = await deps.desktopBridge.getRuntimeDefaults();
-    deps.useAppStore.getState().setRuntimeDefaults(defaults);
+    deps.bootstrapStore.applyRuntimeDefaults(defaults);
   }
   await deps.configureWebRealmPlatformClient({
     appId: 'nimi.web',
@@ -131,58 +105,29 @@ async function configureWebRealmSession(
     accessToken,
     refreshToken,
     fetchImpl: deps.createProxyFetch(),
-    getCurrentUser: () => deps.useAppStore.getState().auth.user,
-    setAuthSession: (user, nextAccessToken, nextRefreshToken) => {
-      deps.useAppStore.getState().setAuthSession(user, nextAccessToken, nextRefreshToken);
+    getCurrentUser: () => deps.bootstrapStore.getCurrentUser(),
+    setAuthSession: (user) => {
+      deps.bootstrapStore.applyAuthSession(user);
     },
     clearAuthSession: () => {
-      deps.useAppStore.getState().clearAuthSession();
+      deps.bootstrapStore.applySignedOutAuthSession();
     },
   });
-}
-
-async function applyAuthSessionSnapshot(
-  snapshot: AuthSessionSnapshot,
-  deps: RuntimeBootstrapWebDeps,
-): Promise<void> {
-  if (hasAuthenticatedSnapshot(snapshot)) {
-    await configureWebRealmSession(deps, snapshot.token, snapshot.refreshToken);
-    deps.useAppStore.getState().setAuthSession(
-      snapshot.user,
-      snapshot.token,
-      snapshot.refreshToken || undefined,
-    );
-    return;
-  }
-
-  await configureWebRealmSession(deps, '', '');
-  deps.useAppStore.getState().clearAuthSession();
 }
 
 async function bootstrapAuthSession(input: {
   flowId: string;
   accessToken: string;
   refreshToken?: string;
-  preservePersistedAuthSession?: boolean;
-  authSessionSnapshot: AuthSessionSnapshot;
 }, deps: RuntimeBootstrapWebDeps): Promise<void> {
-  const appStore = deps.useAppStore.getState();
+  const bootstrapStore = deps.bootstrapStore;
   let resolvedToken = String(input.accessToken || '').trim();
   let resolvedRefreshToken = String(input.refreshToken || '').trim();
 
-  if (!resolvedToken && input.preservePersistedAuthSession && hasAuthenticatedSnapshot(input.authSessionSnapshot)) {
-    resolvedToken = input.authSessionSnapshot.token;
-    resolvedRefreshToken = input.authSessionSnapshot.refreshToken;
-  }
-
   if (!resolvedToken) {
-    if (!input.preservePersistedAuthSession) {
-      deps.clearPersistedAccessToken();
-      await configureWebRealmSession(deps, '', '');
-      appStore.clearAuthSession();
-    } else {
-      await applyAuthSessionSnapshot(input.authSessionSnapshot, deps);
-    }
+    deps.clearPersistedAccessToken();
+    await configureWebRealmSession(deps, '', '');
+    bootstrapStore.applySignedOutAuthSession();
     deps.logRendererEvent({
       level: 'info',
       area: 'renderer-bootstrap',
@@ -190,7 +135,6 @@ async function bootstrapAuthSession(input: {
       flowId: input.flowId,
       details: {
         reason: 'missing_access_token',
-        preservePersistedAuthSession: Boolean(input.preservePersistedAuthSession),
       },
     });
     return;
@@ -206,11 +150,7 @@ async function bootstrapAuthSession(input: {
     const normalizedUser = user && typeof user === 'object'
       ? (user as Record<string, unknown>)
       : null;
-    appStore.setAuthSession(
-      normalizedUser,
-      resolvedToken,
-      resolvedRefreshToken || undefined,
-    );
+    bootstrapStore.applyAuthSession(normalizedUser);
     deps.persistAuthSession({
       accessToken: resolvedToken,
       refreshToken: resolvedRefreshToken,
@@ -228,13 +168,9 @@ async function bootstrapAuthSession(input: {
   } catch (error) {
     const errorMessage = safeErrorMessage(error);
     const expectedUnauthorized = isExpectedUnauthorizedAutoLogin(error);
-    if (!input.preservePersistedAuthSession) {
-      deps.clearPersistedAccessToken();
-      appStore.clearAuthSession();
-      await configureWebRealmSession(deps, '', '');
-    } else {
-      await applyAuthSessionSnapshot(input.authSessionSnapshot, deps);
-    }
+    deps.clearPersistedAccessToken();
+    bootstrapStore.applySignedOutAuthSession();
+    await configureWebRealmSession(deps, '', '');
     deps.logRendererEvent({
       level: expectedUnauthorized ? 'info' : 'warn',
       area: 'renderer-bootstrap',
@@ -256,19 +192,11 @@ export function bootstrapRuntime(): Promise<void> {
   }
 
   let deps: RuntimeBootstrapWebDeps | null = null;
-  let authSessionSnapshot: AuthSessionSnapshot | null = null;
-  // Wave C: legacy desktop_callback URL preservation flow is gone — direct-
-  // to-loopback routes the user agent through the realm OAuth authorize
-  // endpoint, which never lands a `?desktop_callback=` URL on apps/web.
-  const preservePersistedAuthSession = false;
   bootstrapPromise = (async () => {
     deps = await loadRuntimeBootstrapWebDeps();
     const flowId = deps.createRendererFlowId('renderer-bootstrap-web');
     const startedAt = performance.now();
-    const appStore = deps.useAppStore.getState();
-    authSessionSnapshot = snapshotAuthSession(deps);
-    appStore.setAuthBootstrapping();
-    appStore.setBootstrapReady(false);
+    deps.bootstrapStore.beginBootstrap();
 
     deps.logRendererEvent({
       level: 'info',
@@ -279,10 +207,9 @@ export function bootstrapRuntime(): Promise<void> {
 
     const defaults = await deps.desktopBridge.getRuntimeDefaults();
     const envAccessToken = String(defaults.realm.accessToken || '').trim();
-    deps.loadPersistedAuthSession();
     const accessToken = envAccessToken;
     const refreshToken = '';
-    deps.useAppStore.getState().setRuntimeDefaults(defaults);
+    deps.bootstrapStore.applyRuntimeDefaults(defaults);
     await configureWebRealmSession(deps, accessToken, refreshToken);
 
     try {
@@ -291,20 +218,14 @@ export function bootstrapRuntime(): Promise<void> {
           flowId,
           accessToken,
           refreshToken,
-          preservePersistedAuthSession,
-          authSessionSnapshot,
         }, deps),
         WEB_BOOTSTRAP_AUTH_TIMEOUT_MS,
         'web-bootstrap-auth',
       );
     } catch (error) {
-      if (!preservePersistedAuthSession) {
-        deps.clearPersistedAccessToken();
-        deps.useAppStore.getState().clearAuthSession();
-        await configureWebRealmSession(deps, '', '');
-      } else {
-        await applyAuthSessionSnapshot(authSessionSnapshot, deps);
-      }
+      deps.clearPersistedAccessToken();
+      deps.bootstrapStore.applySignedOutAuthSession();
+      await configureWebRealmSession(deps, '', '');
       deps.logRendererEvent({
         level: 'warn',
         area: 'renderer-bootstrap',
@@ -317,8 +238,7 @@ export function bootstrapRuntime(): Promise<void> {
       });
     }
 
-    deps.useAppStore.getState().setBootstrapReady(true);
-    deps.useAppStore.getState().setBootstrapError(null);
+    deps.bootstrapStore.completeBootstrap();
     deps.logRendererEvent({
       level: 'info',
       area: 'renderer-bootstrap',
@@ -329,13 +249,8 @@ export function bootstrapRuntime(): Promise<void> {
   })().catch(async (error) => {
     const message = safeErrorMessage(error);
     if (deps) {
-      deps.useAppStore.getState().setBootstrapError(message);
-      deps.useAppStore.getState().setBootstrapReady(false);
-      if (!preservePersistedAuthSession) {
-        deps.useAppStore.getState().clearAuthSession();
-      } else if (authSessionSnapshot) {
-        await applyAuthSessionSnapshot(authSessionSnapshot, deps);
-      }
+      deps.bootstrapStore.failBootstrap(message);
+      deps.bootstrapStore.applySignedOutAuthSession();
       deps.logRendererEvent({
         level: 'error',
         area: 'renderer-bootstrap',

@@ -5,6 +5,7 @@ import {
   createHostAIProfileSurface,
   createAIConfigSubscriptionRegistry,
   createScopedAIConfigStore,
+  createScopedAISnapshotStore,
   parseAIProfile,
   validateAIConfigRuntimeBindings,
   validateAIProfileRuntimeBindings,
@@ -12,6 +13,7 @@ import {
   type AIConfigStorageLike,
   type AIProfile,
   type AIScopeRef,
+  type AISnapshot,
 } from '@nimiplatform/sdk/ai';
 import type {
   SharedAIConfigService,
@@ -23,6 +25,8 @@ import { appId } from '../shell/auth/runtime-platform.js';
 
 export const TESTER_APP_LAB_AI_SURFACE_ID = 'app-lab';
 export const TESTER_AI_CONFIG_STORAGE_KEY = 'nimiapp-tester:app-lab-ai-config:v1';
+export const TESTER_AI_SNAPSHOT_INDEX_KEY = 'nimiapp-tester:app-lab-ai-snapshot-index:v1';
+export const TESTER_AI_SNAPSHOT_STORAGE_PREFIX = 'nimiapp-tester:app-lab-ai-snapshot:';
 export const TESTER_AI_PROFILE_LIBRARY_STORAGE_KEY = 'nimiapp-tester:app-lab-ai-profiles:v1';
 export const TESTER_AI_PROFILE_LIBRARY_SCHEMA_VERSION = 1;
 
@@ -48,7 +52,7 @@ const configSubscriptions = createAIConfigSubscriptionRegistry({
   resolveScopeKey: (config) => scopeKey(config.scopeRef),
   cloneOnNotify: true,
 });
-let memoryProfiles: AIProfile[] = [];
+let ephemeralProfiles: AIProfile[] = [];
 
 export function createTesterAppLabAIScopeRef(): AIScopeRef {
   return createAppAIScopeRef(appId, TESTER_APP_LAB_AI_SURFACE_ID);
@@ -62,11 +66,23 @@ function getStorage(): Storage | null {
   return resolveBrowserStorage('local');
 }
 
+function isTesterEphemeralStoreHarness(): boolean {
+  return typeof window === 'undefined';
+}
+
 const aiConfigStore = createScopedAIConfigStore({
   storage: () => getStorage() as AIConfigStorageLike | null,
   configKeyForScope: () => TESTER_AI_CONFIG_STORAGE_KEY,
   validateRuntimeBindings: true,
-  memoryFallback: true,
+  enableEphemeralStore: isTesterEphemeralStoreHarness(),
+});
+
+const aiSnapshotStore = createScopedAISnapshotStore({
+  storage: () => getStorage() as AIConfigStorageLike | null,
+  indexKey: TESTER_AI_SNAPSHOT_INDEX_KEY,
+  snapshotKeyForExecution: (executionId) => `${TESTER_AI_SNAPSHOT_STORAGE_PREFIX}${executionId}`,
+  maxSnapshots: 16,
+  enableEphemeralStore: isTesterEphemeralStoreHarness(),
 });
 
 function defaultProfileStore(): TesterAIProfileLibraryStore {
@@ -106,9 +122,12 @@ function parseStoredProfileLibrary(raw: string): TesterAIProfileLibraryStore {
 
 function loadProfileLibraryStore(storage: Storage | null = getStorage()): TesterAIProfileLibraryStore {
   if (!storage) {
+    if (!isTesterEphemeralStoreHarness()) {
+      throw new Error('Tester AIProfile library requires browser local storage.');
+    }
     return {
       schemaVersion: TESTER_AI_PROFILE_LIBRARY_SCHEMA_VERSION,
-      profiles: [...memoryProfiles],
+      profiles: [...ephemeralProfiles],
     };
   }
   const raw = storage.getItem(TESTER_AI_PROFILE_LIBRARY_STORAGE_KEY);
@@ -118,7 +137,10 @@ function loadProfileLibraryStore(storage: Storage | null = getStorage()): Tester
 
 function saveProfileLibraryStore(store: TesterAIProfileLibraryStore, storage: Storage | null = getStorage()): void {
   if (!storage) {
-    memoryProfiles = [...store.profiles];
+    if (!isTesterEphemeralStoreHarness()) {
+      throw new Error('Tester AIProfile library requires browser local storage.');
+    }
+    ephemeralProfiles = [...store.profiles];
     return;
   }
   storage.setItem(TESTER_AI_PROFILE_LIBRARY_STORAGE_KEY, JSON.stringify(store));
@@ -212,6 +234,20 @@ export function saveTesterAIConfig(
   const saved = aiConfigStore.save(normalized);
   configSubscriptions.notify(saved);
   return saved;
+}
+
+export function recordTesterAISnapshot(snapshot: AISnapshot): AISnapshot {
+  return aiSnapshotStore.record(snapshot);
+}
+
+export function getTesterAISnapshot(executionId: string): AISnapshot | null {
+  return aiSnapshotStore.get(executionId);
+}
+
+export function getLatestTesterAISnapshot(
+  scopeRef: AIScopeRef = createTesterAppLabAIScopeRef(),
+): AISnapshot | null {
+  return aiSnapshotStore.getLatest(scopeRef);
 }
 
 export function createTesterAIConfigService(): SharedAIConfigService {

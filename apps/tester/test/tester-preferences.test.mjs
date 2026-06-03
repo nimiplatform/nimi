@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
+import { readTesterAiTestingSurface } from './tester-surface-readers.mjs';
 import ts from 'typescript';
 
 const root = path.resolve(import.meta.dirname, '..');
@@ -187,7 +188,7 @@ test('disabled prompt draft persistence does not save new edits', () => {
 
 test('tester preference plumbing stays wired and fail-closed', () => {
   const workbench = read('src/tester/tester-workbench.tsx');
-  const aiTesting = read('src/tester/workbench/section-ai-testing.tsx');
+  const aiTesting = readTesterAiTestingSurface(root);
   const preferences = read('src/tester/tester-preferences.ts');
 
   // Evidence-capture mode + prompt-draft preferences remain wired from the

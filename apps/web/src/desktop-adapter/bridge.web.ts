@@ -200,24 +200,16 @@ export async function setProductFirstRunInstallLevel(_input: {
   unsupportedDesktopRuntime('First-run install level is only available in desktop runtime');
 }
 
-export async function setProductFirstRunSetupState(_input: {
-  state: Exclude<
-    ProductControlState,
-    | 'ready_for_use'
-    | 'local_ai_ready'
-    | 'config_missing'
-    | 'data_root_missing'
-    | 'data_root_selected'
-    | 'ai_environment_unconfigured'
-    | 'not_logged_in'
-  >;
-  reason?: string | null;
-}): Promise<ProductControlRecordProjection> {
-  unsupportedDesktopRuntime('First-run setup state is only available in desktop runtime');
-}
-
 export async function prepareProductFirstRunLocalAiReady(): Promise<ProductControlRecordProjection> {
   unsupportedDesktopRuntime('First-run local AI readiness preparation is only available in desktop runtime');
+}
+
+export async function reconcileProductFirstRunSetupState(): Promise<ProductControlRecordProjection> {
+  unsupportedDesktopRuntime('First-run setup reconciliation is only available in desktop runtime');
+}
+
+export async function completeProductFirstRunDeviceEnvironmentScan(): Promise<ProductControlRecordProjection> {
+  unsupportedDesktopRuntime('First-run device environment scan completion is only available in desktop runtime');
 }
 
 export async function admitProductReadyForUse(): Promise<ProductControlRecordProjection> {
@@ -275,8 +267,9 @@ export const desktopBridge = {
   defaultProductDataRootDirectory,
   selectProductDataRoot,
   setProductFirstRunInstallLevel,
-  setProductFirstRunSetupState,
   prepareProductFirstRunLocalAiReady,
+  reconcileProductFirstRunSetupState,
+  completeProductFirstRunDeviceEnvironmentScan,
   admitProductReadyForUse,
   proxyHttp,
   openExternalUrl,

@@ -37,9 +37,12 @@ test('runtime-bootstrap.web defers chat and contact hydration until UI demand', 
   assert.doesNotMatch(bootstrapAuthSessionSection, /deps\.dataSync\.loadContacts\(\)/);
 });
 
-test('runtime-bootstrap.web restores auth session from persisted browser storage', () => {
-  assert.match(runtimeBootstrapWebSource, /loadPersistedAuthSession/);
+test('runtime-bootstrap.web does not restore bearer tokens from persisted browser storage', () => {
+  assert.doesNotMatch(runtimeBootstrapWebSource, /loadPersistedAuthSession/);
+  assert.doesNotMatch(runtimeBootstrapWebSource, /type AuthSessionSnapshot/);
+  assert.doesNotMatch(runtimeBootstrapWebSource, /hasAuthenticatedSnapshot/);
   assert.doesNotMatch(runtimeBootstrapWebSource, /fallbackToken/);
+  assert.match(runtimeBootstrapWebSource, /const envAccessToken = String\(defaults\.realm\.accessToken \|\| ''\)\.trim\(\)/);
 });
 
 // Wave C hard-cut lock — apps/web no longer participates in the desktop login

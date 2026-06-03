@@ -30,7 +30,7 @@ is allowed to use:
 - `@desktop-public/i18n` — i18n initialization
 - `@desktop-public/bridge` — bridge types and functions
 - `@desktop-public/infra` — proxy-fetch, telemetry
-- `@desktop-public/app-store` — application store
+- `@desktop-public/app-store` — semantic web bootstrap store facade
 - `@desktop-public/realm` — Realm platform session and admitted Realm API helpers
 
 Wide `@renderer/*` and `@runtime/*` aliases remain in Vite config for

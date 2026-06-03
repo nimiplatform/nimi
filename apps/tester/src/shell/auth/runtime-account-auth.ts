@@ -39,19 +39,19 @@ export async function loadRuntimeAccountUser(client: PlatformClient = getPlatfor
   };
 }
 
-export async function logoutRuntimeAccount() {
+export async function logoutRuntimeAccount(client: PlatformClient = getPlatformClient()) {
   requireRuntimeAccountLogin();
-  await getPlatformClient().runtime.account.logout({
+  await client.runtime.account.logout({
     caller: runtimeAccountCaller,
     reason: 'generated_app_logout',
   });
 }
 
-export function createNimiAppRuntimeAccountBroker(): ShellAuthDesktopBrowserAuth['runtimeAccountBroker'] {
+export function createNimiAppRuntimeAccountBroker(client?: PlatformClient): ShellAuthDesktopBrowserAuth['runtimeAccountBroker'] {
   return createRuntimeAccountBrowserBroker({
     caller: runtimeAccountCaller,
     beforeRequest: requireRuntimeAccountLogin,
-    getClient: getPlatformClient,
+    getClient: () => client ?? getPlatformClient(),
     projectUser: (projection) => {
       const accountId = String(projection.accountId || '').trim();
       return accountId
@@ -64,7 +64,10 @@ export function createNimiAppRuntimeAccountBroker(): ShellAuthDesktopBrowserAuth
   });
 }
 
-export function createNimiAppDesktopBrowserAuthAdapter(onLoginComplete: () => void | Promise<void>): AuthPlatformAdapter {
+export function createNimiAppDesktopBrowserAuthAdapter(
+  onLoginComplete: () => void | Promise<void>,
+  client?: PlatformClient,
+): AuthPlatformAdapter {
   return {
     checkEmail: unsupported,
     passwordLogin: unsupported,
@@ -75,7 +78,7 @@ export function createNimiAppDesktopBrowserAuthAdapter(onLoginComplete: () => vo
     walletLogin: unsupported,
     oauthLogin: unsupported,
     updatePassword: unsupported,
-    loadCurrentUser: async () => loadRuntimeAccountUser(),
+    loadCurrentUser: async () => loadRuntimeAccountUser(client),
     applyToken: async () => {
       throw new Error('Generated Nimi App shell must not own access or refresh token custody.');
     },
@@ -83,7 +86,7 @@ export function createNimiAppDesktopBrowserAuthAdapter(onLoginComplete: () => vo
       throw new Error('Generated Nimi App shell must not persist access or refresh tokens.');
     },
     clearPersistedSession: async () => {
-      await logoutRuntimeAccount();
+      await logoutRuntimeAccount(client);
     },
     oauthBridge: nimiAppTauriOAuthBridge,
     syncAfterLogin: async () => {},
