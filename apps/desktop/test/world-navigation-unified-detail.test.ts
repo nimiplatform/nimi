@@ -7,10 +7,16 @@ const worldListSource = fs.readFileSync(
   path.join(import.meta.dirname, '../src/shell/renderer/features/world/world-list.tsx'),
   'utf8',
 );
-const mainLayoutSource = fs.readFileSync(
-  path.join(import.meta.dirname, '../src/shell/renderer/app-shell/layouts/main-layout-view.tsx'),
-  'utf8',
-);
+const mainLayoutSource = [
+  fs.readFileSync(
+    path.join(import.meta.dirname, '../src/shell/renderer/app-shell/layouts/main-layout-view.tsx'),
+    'utf8',
+  ),
+  fs.readFileSync(
+    path.join(import.meta.dirname, '../src/shell/renderer/app-shell/layouts/main-layout-panel-stack.tsx'),
+    'utf8',
+  ),
+].join('\n');
 const worldDetailSource = fs.readFileSync(
   path.join(import.meta.dirname, '../src/shell/renderer/features/world/world-detail.tsx'),
   'utf8',
