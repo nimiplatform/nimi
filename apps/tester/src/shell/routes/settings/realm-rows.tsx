@@ -31,6 +31,7 @@ export function SettingsRealmRows(props: SettingsRouteViewProps) {
       realmFeedScopeProjection,
       realmChatAttachmentProjection,
       avatarVoiceCueProjection,
+      avatarFramingProjection,
       runtimeAvatarVoiceProjection,
     },
   } = props;
@@ -275,6 +276,12 @@ export function SettingsRealmRows(props: SettingsRouteViewProps) {
         <span>Kit avatar voice cue projection</span>
         <StatusBadge tone="neutral">
           {avatarVoiceCueProjection.visemeId ?? 'silent'} / {avatarVoiceCueProjection.amplitude.toFixed(2)}
+        </StatusBadge>
+      </div>
+      <div className="setting-row">
+        <span>Kit avatar framing projection</span>
+        <StatusBadge tone="neutral">
+          {avatarFramingProjection.vrm} / {avatarFramingProjection.live2d}
         </StatusBadge>
       </div>
       <div className="setting-row">

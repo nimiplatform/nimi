@@ -84,30 +84,30 @@ describe('avatar live2d framing helpers', () => {
     });
   });
 
-  it('returns a bust-focused crop in portrait rails when intent is chat-focus', () => {
+  it('returns a head-shoulders crop in portrait rails when requested', () => {
     expect(resolveAvatarLive2dFramingPolicy({
       railWidth: 320,
       railHeight: 820,
       modelCanvasWidth: 1,
       modelCanvasHeight: 1.42,
       layout: new Map(),
-      intent: 'chat-focus',
+      intent: 'head-shoulders',
     })).toEqual({
-      mode: 'chat-focus',
+      mode: 'head-shoulders',
       height: 2.2,
       centerX: 0,
       centerY: -0.15,
     });
   });
 
-  it('keeps existing full-body behaviour when intent is showcase', () => {
+  it('keeps existing full-body behavior when requested explicitly', () => {
     expect(resolveAvatarLive2dFramingPolicy({
       railWidth: 320,
       railHeight: 820,
       modelCanvasWidth: 1,
       modelCanvasHeight: 1.42,
       layout: new Map(),
-      intent: 'showcase',
+      intent: 'full-body',
     })).toEqual({
       mode: 'full-body-tall',
       height: 2.2,
@@ -125,26 +125,10 @@ describe('avatar live2d framing helpers', () => {
       layout: new Map(),
       intent: 'bottom-companion',
     })).toEqual({
-      mode: 'chat-focus',
+      mode: 'bottom-companion',
       height: 2.72,
       centerX: 0,
       centerY: -0.34,
-    });
-  });
-
-  it('returns a presence crop for side-stage scene placement', () => {
-    expect(resolveAvatarLive2dFramingPolicy({
-      railWidth: 420,
-      railHeight: 920,
-      modelCanvasWidth: 1,
-      modelCanvasHeight: 1.42,
-      layout: new Map(),
-      intent: 'scene-presence',
-    })).toEqual({
-      mode: 'chat-focus',
-      height: 2.38,
-      centerX: 0,
-      centerY: -0.08,
     });
   });
 });

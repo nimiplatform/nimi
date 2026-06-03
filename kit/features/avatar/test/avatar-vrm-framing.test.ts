@@ -174,7 +174,7 @@ describe('avatar vrm framing helpers', () => {
     expect(tall.metrics.silhouetteAspect).toBeCloseTo(2.4 / 0.72);
   });
 
-  it('returns a chat-focus bust crop in portrait rails when intent is chat-focus', () => {
+  it('returns a head-shoulders crop in portrait rails when requested', () => {
     const policy = resolveAvatarVrmFramingPolicy({
       railWidth: 320,
       railHeight: 820,
@@ -183,16 +183,16 @@ describe('avatar vrm framing helpers', () => {
         height: 1.8,
         depth: 0.75,
       }),
-      intent: 'chat-focus',
+      intent: 'head-shoulders',
     });
-    expect(policy.mode).toBe('chat-focus');
-    expect(policy.selectionReason).toBe('chat-focus-intent');
+    expect(policy.mode).toBe('head-shoulders');
+    expect(policy.selectionReason).toBe('framing-intent');
     expect(policy.fitHeight).toBe(3.8);
     expect(policy.fitWidth).toBe(2.4);
     expect(policy.targetTop).toBe(1.18);
   });
 
-  it('chat-focus intent keeps default framing on landscape rails', () => {
+  it('head-shoulders intent keeps default framing on landscape rails', () => {
     expect(resolveAvatarVrmFramingPolicy({
       railWidth: 920,
       railHeight: 620,
@@ -201,7 +201,7 @@ describe('avatar vrm framing helpers', () => {
         height: 1.8,
         depth: 0.75,
       }),
-      intent: 'chat-focus',
+      intent: 'head-shoulders',
     }).mode).toBe('default');
   });
 
@@ -216,13 +216,13 @@ describe('avatar vrm framing helpers', () => {
       }),
       intent: 'bottom-companion',
     });
-    expect(policy.mode).toBe('chat-focus');
-    expect(policy.selectionReason).toBe('chat-focus-intent');
+    expect(policy.mode).toBe('bottom-companion');
+    expect(policy.selectionReason).toBe('framing-intent');
     expect(policy.fitHeight).toBe(4.8);
     expect(policy.targetTop).toBe(1.28);
   });
 
-  it('returns a side-stage presence crop for scene placement', () => {
+  it('keeps existing full-body behavior when requested explicitly', () => {
     const policy = resolveAvatarVrmFramingPolicy({
       railWidth: 420,
       railHeight: 920,
@@ -231,12 +231,9 @@ describe('avatar vrm framing helpers', () => {
         height: 1.8,
         depth: 0.75,
       }),
-      intent: 'scene-presence',
+      intent: 'full-body',
     });
-    expect(policy.mode).toBe('chat-focus');
-    expect(policy.selectionReason).toBe('chat-focus-intent');
-    expect(policy.fitHeight).toBe(3.25);
-    expect(policy.fitWidth).toBe(2.12);
-    expect(policy.targetTop).toBe(1.12);
+    expect(policy.mode).toBe('upper-body-portrait');
+    expect(policy.selectionReason).toBe('portrait-default');
   });
 });

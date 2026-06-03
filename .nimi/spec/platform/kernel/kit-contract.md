@@ -181,6 +181,10 @@ Fixed rules:
 - backend renderer seams must not own avatar asset import, storage, registry,
   per-agent binding, fallback policy, local runtime packaging, or viewport
   lifecycle truth
+- backend renderer framing intent vocabulary is `auto`, `full-body`,
+  `bottom-companion`, and `head-shoulders`; app/product synonyms such as
+  `chat-focus`, `scene-presence`, or `showcase` must be mapped by the app before
+  crossing into kit
 - a backend renderer export must be registered and shipped explicitly before it
   is available package surface; registry prose must not fabricate a shipped
   export

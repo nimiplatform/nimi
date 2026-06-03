@@ -9,7 +9,7 @@ import {
   type AvatarVrmViewportRenderInput,
 } from './vrm.js';
 
-export type AvatarLive2dFramingIntent = 'auto' | 'chat-focus' | 'scene-presence' | 'bottom-companion' | 'showcase';
+export type AvatarLive2dFramingIntent = 'auto' | 'full-body' | 'bottom-companion' | 'head-shoulders';
 
 export type AvatarLive2dFramingInput = {
   railWidth: number;
@@ -21,7 +21,7 @@ export type AvatarLive2dFramingInput = {
 };
 
 export type AvatarLive2dFramingPolicy = {
-  mode: 'layout' | 'full-body-tall' | 'upper-body-portrait' | 'wide-in-portrait' | 'default' | 'chat-focus';
+  mode: 'layout' | 'full-body-tall' | 'upper-body-portrait' | 'wide-in-portrait' | 'default' | 'bottom-companion' | 'head-shoulders';
   height?: number;
   width?: number;
   centerX?: number;
@@ -278,31 +278,20 @@ export function resolveAvatarLive2dFramingPolicy(
   const canvasAspect = canvasWidth && canvasHeight ? canvasHeight / canvasWidth : null;
   const intent: AvatarLive2dFramingIntent = input.intent ?? 'auto';
 
-  // Chat Agent framing: bust-style crop that surfaces face and shoulders
-  // regardless of model sheet aspect. Conversation UX values eye contact and
-  // expression over full-body showcase; 'showcase' intent keeps the legacy
-  // full-body behaviour for introductions and profile screens.
+  // Intent framing surfaces reusable avatar presentation cuts; app product modes
+  // map into these neutral intents before crossing the kit boundary.
   if (intent === 'bottom-companion') {
     return {
-      mode: 'chat-focus',
+      mode: 'bottom-companion',
       height: 2.72,
       centerX: 0,
       centerY: -0.34,
     };
   }
 
-  if (intent === 'scene-presence') {
+  if (intent === 'head-shoulders' && railIsPortrait) {
     return {
-      mode: 'chat-focus',
-      height: 2.38,
-      centerX: 0,
-      centerY: -0.08,
-    };
-  }
-
-  if (intent === 'chat-focus' && railIsPortrait) {
-    return {
-      mode: 'chat-focus',
+      mode: 'head-shoulders',
       height: 2.2,
       centerX: 0,
       centerY: -0.15,

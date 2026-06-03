@@ -6,7 +6,7 @@ import {
   resolveAvatarLive2dRenderMotionPose,
   type AvatarLive2dMotionSelection,
   type AvatarLive2dRenderMotionPose,
-  type AvatarLive2dFramingIntent as ChatAgentAvatarLive2dFramingIntent,
+  type AvatarLive2dFramingIntent,
 } from '@nimiplatform/kit/features/avatar/live2d';
 import { createOfficialLive2dCubismModelImpl } from './chat-agent-avatar-live2d-cubism-model';
 import {
@@ -71,7 +71,7 @@ export async function createOfficialLive2dCubismModel(input: {
   width: number;
   height: number;
   verticalOffsetY?: number;
-  framingIntent?: ChatAgentAvatarLive2dFramingIntent;
+  framingIntent?: AvatarLive2dFramingIntent;
 }): Promise<CubismModelHandle> {
   const runtime = await loadOfficialCubismRuntime();
   return createOfficialLive2dCubismModelImpl({

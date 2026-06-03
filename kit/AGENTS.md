@@ -11,7 +11,7 @@
 - `kit/shell/tauri` is shared Rust host glue; do not import JS/TS runtime code or app-local Rust.
 - `kit/shell/renderer` is renderer glue only; it must not own app stores, navigation, UI rendering, auth truth, or telemetry truth.
 - `kit/features/*` must not import `apps/**`, `runtime/internal/**`, app aliases, `dataSync`, app stores, or navigation directly.
-- `kit/features/avatar` is only Desktop chat preview/viewport utility; launched Avatar authority stays in `.nimi/spec/avatar/kernel/backend-branch-contract.md`.
+- `kit/features/avatar` is the admitted reusable avatar surface. Backend-specific renderer seams such as `/vrm` and `/live2d` own reusable renderer semantics only; launched Avatar product authority stays in `.nimi/spec/avatar/**`, and app-specific placement/orchestration stays app-owned.
 - SDK typed services may only bind from explicit `runtime` or `realm` feature surfaces; runtime integrations must not bind realm clients, realm integrations must not bind runtime clients, and apps consume toolkit functionality through `@nimiplatform/kit/*` once it exists.
 ## Retrieval Defaults
 - Start in `kit/ui`, `kit/auth`, `kit/core`, `kit/telemetry`, `kit/features`, `.nimi/spec/platform/kernel`, and `scripts/check-nimi-kit.mjs`.

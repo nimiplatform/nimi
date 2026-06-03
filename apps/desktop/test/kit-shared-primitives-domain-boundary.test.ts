@@ -129,8 +129,12 @@ test('Tester is the second consumer for Kit shared primitives and shell bootstra
   const realmKitProjections = read('apps/tester/src/shell/routes/settings/realm-kit-projections.ts');
   assert.match(realmKitProjections, /from '@nimiplatform\/sdk\/runtime'/);
   assert.match(realmKitProjections, /from '@nimiplatform\/kit\/features\/avatar\/headless'/);
+  assert.match(realmKitProjections, /from '@nimiplatform\/kit\/features\/avatar\/vrm'/);
+  assert.match(realmKitProjections, /from '@nimiplatform\/kit\/features\/avatar\/live2d'/);
   assert.match(realmKitProjections, /\bresolveRuntimeAgentVoicePlaybackDecision\b/);
   assert.match(realmKitProjections, /\bresolveAgentVoicePlaybackCue\b/);
+  assert.match(realmKitProjections, /\bresolveAvatarVrmFramingPolicy\b/);
+  assert.match(realmKitProjections, /\bresolveAvatarLive2dFramingPolicy\b/);
 
   const testerContract = read('apps/tester/test/tester-contract.test.mjs');
   const testerSettingsSurfaceTest = read('apps/tester/test/tester-settings-surface.test.mjs');

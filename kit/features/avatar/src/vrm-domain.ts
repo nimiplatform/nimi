@@ -41,16 +41,16 @@ export type AvatarVrmFramingMetrics = {
   widthRatio: number;
 };
 
-export type AvatarVrmFramingIntent = 'auto' | 'chat-focus' | 'scene-presence' | 'bottom-companion' | 'showcase';
+export type AvatarVrmFramingIntent = 'auto' | 'full-body' | 'bottom-companion' | 'head-shoulders';
 
 export type AvatarVrmFramingPolicy = {
-  mode: 'full-body-tall' | 'upper-body-portrait' | 'broad-portrait' | 'default' | 'chat-focus';
+  mode: 'full-body-tall' | 'upper-body-portrait' | 'broad-portrait' | 'default' | 'bottom-companion' | 'head-shoulders';
   selectionReason:
     | 'silhouette-aspect-threshold'
     | 'width-ratio-threshold'
     | 'portrait-default'
     | 'landscape-default'
-    | 'chat-focus-intent';
+    | 'framing-intent';
   fitHeight: number;
   fitWidth: number;
   fitDepth: number;
@@ -387,14 +387,12 @@ export function resolveAvatarVrmFramingPolicy(input: {
   const rail = normalizeRailDimensions(input);
   const intent: AvatarVrmFramingIntent = input.intent ?? 'auto';
 
-  // Chat Agent bust framing: surfaces face and shoulders by scaling the model
-  // ~70% larger than the portrait full-body framing and relying on the viewport
-  // to crop below the torso. 'showcase' keeps the legacy full-body behaviour
-  // for intros and profile screens.
+  // Intent framing surfaces reusable avatar presentation cuts; app product modes
+  // map into these neutral intents before crossing the kit boundary.
   if (intent === 'bottom-companion') {
     return {
-      mode: 'chat-focus',
-      selectionReason: 'chat-focus-intent',
+      mode: 'bottom-companion',
+      selectionReason: 'framing-intent',
       fitHeight: 4.8,
       fitWidth: 2.7,
       fitDepth: 2.1,
@@ -404,23 +402,10 @@ export function resolveAvatarVrmFramingPolicy(input: {
     };
   }
 
-  if (intent === 'scene-presence') {
+  if (intent === 'head-shoulders' && rail.railIsPortrait) {
     return {
-      mode: 'chat-focus',
-      selectionReason: 'chat-focus-intent',
-      fitHeight: 3.25,
-      fitWidth: 2.12,
-      fitDepth: 1.85,
-      targetTop: 1.12,
-      minBottom: -3.8,
-      zOffset: -0.18,
-    };
-  }
-
-  if (intent === 'chat-focus' && rail.railIsPortrait) {
-    return {
-      mode: 'chat-focus',
-      selectionReason: 'chat-focus-intent',
+      mode: 'head-shoulders',
+      selectionReason: 'framing-intent',
       fitHeight: 3.8,
       fitWidth: 2.4,
       fitDepth: 2,

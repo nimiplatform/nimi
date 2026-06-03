@@ -1,9 +1,9 @@
 import type { ChatAgentAvatarLive2dModelSource, ChatAgentAvatarLive2dViewportState } from './chat-agent-avatar-live2d-viewport-state';
 import {
-  resolveAvatarLive2dFramingPolicy as resolveChatAgentAvatarLive2dFramingPolicy,
+  resolveAvatarLive2dFramingPolicy,
   resolveAvatarLive2dMotionSelection,
   resolveAvatarLive2dRenderMotionPose,
-  type AvatarLive2dFramingIntent as ChatAgentAvatarLive2dFramingIntent,
+  type AvatarLive2dFramingIntent,
   type AvatarLive2dMotionSelection,
 } from '@nimiplatform/kit/features/avatar/live2d';
 import type {
@@ -35,7 +35,7 @@ function createCubismModelClass(
       private readonly gl: WebGLRenderingContext | WebGL2RenderingContext,
       private readonly source: ChatAgentAvatarLive2dModelSource,
       private readonly verticalOffsetY: number,
-      private readonly framingIntent: ChatAgentAvatarLive2dFramingIntent,
+      private readonly framingIntent: AvatarLive2dFramingIntent,
     ) {
       super();
       this.mouthOpenParameterId = CubismFramework.getIdManager().getId(String(CubismDefaultParameterId.ParamMouthOpenY));
@@ -301,7 +301,7 @@ function createCubismModelClass(
       modelMatrix.loadIdentity();
       const layout = new Map<string, number>();
       this.modelSetting?.getLayoutMap(layout);
-      const framing = resolveChatAgentAvatarLive2dFramingPolicy({
+      const framing = resolveAvatarLive2dFramingPolicy({
         railWidth: width,
         railHeight: height,
         modelCanvasWidth: this.modelRef?.getCanvasWidth() ?? null,
@@ -528,7 +528,7 @@ export async function createOfficialLive2dCubismModelImpl(input: {
   width: number;
   height: number;
   verticalOffsetY?: number;
-  framingIntent?: ChatAgentAvatarLive2dFramingIntent;
+  framingIntent?: AvatarLive2dFramingIntent;
   setGlobalLive2dDebugSnapshot: (snapshot: Record<string, unknown> | null) => void;
 }): Promise<CubismModelHandle> {
   const DesktopCubismModel = createCubismModelClass(input.runtime, input.setGlobalLive2dDebugSnapshot);

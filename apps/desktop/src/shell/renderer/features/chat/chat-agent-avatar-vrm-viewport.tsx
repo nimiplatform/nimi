@@ -5,11 +5,14 @@ import { VRMLoaderPlugin, VRMUtils, type VRM } from '@pixiv/three-vrm';
 import { GLTFLoader, type GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import {
   resolveAvatarVrmFramingFromScene as resolveChatAgentAvatarVrmFramingFromScene,
-  type AvatarVrmFramingIntent as ChatAgentAvatarVrmFramingIntent,
   type AvatarVrmFramingResult as ChatAgentAvatarVrmFramingResult,
   type AvatarVrmViewportComponentProps,
 } from '@nimiplatform/kit/features/avatar/vrm';
 import { cn } from '@nimiplatform/kit/ui';
+import {
+  resolveChatAgentAvatarVrmFramingIntent,
+  type ChatAgentAvatarFramingIntent,
+} from './chat-agent-avatar-framing-intent';
 import {
   parseDesktopAgentAvatarAssetRef,
   type DesktopAgentAvatarAssetRef,
@@ -60,7 +63,7 @@ type ChatAgentAvatarVrmViewportProps = AvatarVrmViewportComponentProps & {
   onLoadStateChange?: (status: VrmViewportStatus) => void;
   onLoadErrorChange?: (error: string | null) => void;
   onDiagnosticChange?: (diagnostic: ChatAgentAvatarVrmDiagnostic) => void;
-  framingIntent?: ChatAgentAvatarVrmFramingIntent;
+  framingIntent?: ChatAgentAvatarFramingIntent;
 };
 
 const MINIMAL_CHAT_AGENT_VRM_VERTICAL_OFFSET_Y = -0.12;
@@ -72,7 +75,7 @@ export default function ChatAgentAvatarVrmViewport({
   onLoadStateChange,
   onLoadErrorChange,
   onDiagnosticChange,
-  framingIntent = 'chat-focus',
+  framingIntent = 'conversation',
 }: ChatAgentAvatarVrmViewportProps) {
   const stageVerticalOffsetY = chrome === 'minimal' ? MINIMAL_CHAT_AGENT_VRM_VERTICAL_OFFSET_Y : 0;
   const state = useMemo(
@@ -161,7 +164,7 @@ export default function ChatAgentAvatarVrmViewport({
           railWidth: framingViewportSize.width,
           railHeight: framingViewportSize.height,
           scene: activeLoadedVrm.vrm.scene,
-          intent: framingIntent,
+          intent: resolveChatAgentAvatarVrmFramingIntent(framingIntent),
         })
       : null,
     [activeLoadedVrm, framingIntent, framingViewportSize.height, framingViewportSize.width],

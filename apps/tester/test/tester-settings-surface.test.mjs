@@ -179,6 +179,19 @@ test('tester settings consumes the Kit avatar voice cue projection', () => {
   assert.doesNotMatch(settings, /zeroCrossingRate/);
 });
 
+test('tester settings consumes neutral Kit avatar backend framing projections', () => {
+  const settings = readSettingsSurface();
+
+  assert.match(settings, /resolveAvatarVrmFramingPolicy/);
+  assert.match(settings, /resolveAvatarLive2dFramingPolicy/);
+  assert.match(settings, /from '@nimiplatform\/kit\/features\/avatar\/vrm'/);
+  assert.match(settings, /from '@nimiplatform\/kit\/features\/avatar\/live2d'/);
+  assert.match(settings, /Kit avatar framing projection/);
+  assert.match(settings, /avatarFramingProjection\.vrm/);
+  assert.match(settings, /avatarFramingProjection\.live2d/);
+  assert.doesNotMatch(settings, /chat-focus|scene-presence|showcase/);
+});
+
 test('tester settings consumes SDK Runtime recommendation enum projections', () => {
   const settings = readSettingsSurface();
 

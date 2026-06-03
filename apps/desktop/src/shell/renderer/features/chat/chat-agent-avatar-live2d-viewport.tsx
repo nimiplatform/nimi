@@ -3,7 +3,10 @@ import type { AvatarLive2dViewportComponentProps } from '@nimiplatform/kit/featu
 import { cn } from '@nimiplatform/kit/ui';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { createOfficialLive2dCubismModel } from './chat-agent-avatar-live2d-cubism-runtime';
-import type { AvatarLive2dFramingIntent as ChatAgentAvatarLive2dFramingIntent } from '@nimiplatform/kit/features/avatar/live2d';
+import {
+  resolveChatAgentAvatarLive2dFramingIntent,
+  type ChatAgentAvatarFramingIntent,
+} from './chat-agent-avatar-framing-intent';
 import {
   loadChatAgentAvatarLive2dModelSource,
   resolveChatAgentAvatarLive2dViewportState,
@@ -26,7 +29,7 @@ type ChatAgentAvatarLive2dViewportProps = AvatarLive2dViewportComponentProps & {
   onLoadStateChange?: (status: Live2dViewportStatus) => void;
   onLoadErrorChange?: (error: string | null) => void;
   onDiagnosticChange?: (diagnostic: ChatAgentAvatarLive2dDiagnostic) => void;
-  framingIntent?: ChatAgentAvatarLive2dFramingIntent;
+  framingIntent?: ChatAgentAvatarFramingIntent;
 };
 
 const MINIMAL_CHAT_AGENT_LIVE2D_VERTICAL_OFFSET_Y = 0.14;
@@ -37,9 +40,13 @@ export default function ChatAgentAvatarLive2dViewport({
   onLoadStateChange,
   onLoadErrorChange,
   onDiagnosticChange,
-  framingIntent = 'chat-focus',
+  framingIntent = 'conversation',
 }: ChatAgentAvatarLive2dViewportProps) {
   const modelVerticalOffsetY = chrome === 'minimal' ? MINIMAL_CHAT_AGENT_LIVE2D_VERTICAL_OFFSET_Y : 0;
+  const kitFramingIntent = useMemo(
+    () => resolveChatAgentAvatarLive2dFramingIntent(framingIntent),
+    [framingIntent],
+  );
   const hostRef = useRef<HTMLDivElement | null>(null);
   const modelRef = useRef<Awaited<ReturnType<typeof createOfficialLive2dCubismModel>> | null>(null);
   const animationStateRef = useRef(resolveChatAgentAvatarLive2dViewportState(input));
@@ -311,7 +318,7 @@ export default function ChatAgentAvatarLive2dViewport({
             width: inputRebuild.width,
             height: inputRebuild.height,
             verticalOffsetY: modelVerticalOffsetY,
-            framingIntent,
+            framingIntent: kitFramingIntent,
           });
           if (cancelled || rebuildId !== resizeRebuildRequestId) {
             nextModel.release();
@@ -631,7 +638,7 @@ export default function ChatAgentAvatarLive2dViewport({
       sourceForCleanup?.cleanup?.();
       host.replaceChildren();
     };
-  }, [input.assetRef, modelVerticalOffsetY, runtimeEpoch, framingIntent]);
+  }, [input.assetRef, modelVerticalOffsetY, runtimeEpoch, kitFramingIntent]);
 
   return (
     <div

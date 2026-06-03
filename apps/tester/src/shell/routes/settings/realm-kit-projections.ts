@@ -12,6 +12,8 @@ import {
   resolveRealmMediaUrl,
 } from '@nimiplatform/sdk/realm';
 import { resolveAgentVoicePlaybackCue } from '@nimiplatform/kit/features/avatar/headless';
+import { resolveAvatarLive2dFramingPolicy } from '@nimiplatform/kit/features/avatar/live2d';
+import { resolveAvatarVrmFramingPolicy } from '@nimiplatform/kit/features/avatar/vrm';
 import {
   createRealmChatResourceAttachmentPayload,
   resolveRealmChatAttachmentPreviewText,
@@ -62,6 +64,37 @@ export function createTesterSettingsRealmKitProjections() {
     0.24,
     new Uint8Array([230, 220, 188, 132, 84, 52, 24, 12]),
   );
+  const avatarFramingProjection = {
+    vrm: resolveAvatarVrmFramingPolicy({
+      railWidth: 320,
+      railHeight: 820,
+      metrics: {
+        width: 0.9,
+        height: 1.8,
+        depth: 0.75,
+        minX: -0.45,
+        minY: -0.9,
+        minZ: -0.375,
+        maxX: 0.45,
+        maxY: 0.9,
+        maxZ: 0.375,
+        centerX: 0,
+        centerY: 0,
+        centerZ: 0,
+        silhouetteAspect: 2,
+        widthRatio: 0.5,
+      },
+      intent: 'head-shoulders',
+    }).mode,
+    live2d: resolveAvatarLive2dFramingPolicy({
+      railWidth: 920,
+      railHeight: 360,
+      modelCanvasWidth: 1,
+      modelCanvasHeight: 1.42,
+      layout: new Map(),
+      intent: 'bottom-companion',
+    }).mode,
+  };
   const runtimeAvatarVoiceProjection = (() => {
     const timeline = (
       channel: RuntimeAgentTimelineEnvelope['channel'],
@@ -133,6 +166,7 @@ export function createTesterSettingsRealmKitProjections() {
     realmFeedScopeProjection,
     realmChatAttachmentProjection,
     avatarVoiceCueProjection,
+    avatarFramingProjection,
     runtimeAvatarVoiceProjection,
   };
 }
