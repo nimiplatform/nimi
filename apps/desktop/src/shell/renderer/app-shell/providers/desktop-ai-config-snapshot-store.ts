@@ -10,8 +10,15 @@ const SNAPSHOT_EXECUTION_PREFIX = 'nimi.ai-snapshot.execution.';
 const SNAPSHOT_EXECUTION_SUFFIX = '.v1';
 const SNAPSHOT_RING_SIZE = 64;
 
-function getStorage(): Storage | null {
-  return resolveBrowserStorage('local');
+function isStorageLike(value: unknown): value is AIConfigStorageLike {
+  return Boolean(value)
+    && typeof (value as AIConfigStorageLike).getItem === 'function'
+    && typeof (value as AIConfigStorageLike).setItem === 'function';
+}
+
+function getStorage(): AIConfigStorageLike | null {
+  const storage = resolveBrowserStorage('local');
+  return isStorageLike(storage) ? storage : null;
 }
 
 function isNonBrowserSnapshotStoreHarness(): boolean {
@@ -24,7 +31,7 @@ function snapshotKeyForExecution(executionId: string): string {
 
 export function createDesktopAISnapshotStore(): ScopedAISnapshotStore {
   return createScopedAISnapshotStore({
-    storage: () => getStorage() as AIConfigStorageLike | null,
+    storage: () => getStorage(),
     indexKey: SNAPSHOT_INDEX_KEY,
     snapshotKeyForExecution,
     maxSnapshots: SNAPSHOT_RING_SIZE,

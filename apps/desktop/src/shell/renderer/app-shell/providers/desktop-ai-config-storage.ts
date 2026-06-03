@@ -26,8 +26,15 @@ const SCOPE_INDEX_KEY = 'nimi.ai-config.scope-index.v2';
 const SCOPE_CONFIG_PREFIX = 'nimi.ai-config.scope.';
 const SCOPE_CONFIG_SUFFIX = '.v2';
 
-function getStorage(): Storage | undefined {
-  return resolveBrowserStorage('local') || undefined;
+function isStorageLike(value: unknown): value is AIConfigStorageLike {
+  return Boolean(value)
+    && typeof (value as AIConfigStorageLike).getItem === 'function'
+    && typeof (value as AIConfigStorageLike).setItem === 'function';
+}
+
+function getStorage(): AIConfigStorageLike | undefined {
+  const storage = resolveBrowserStorage('local');
+  return isStorageLike(storage) ? storage : undefined;
 }
 
 function isNonBrowserAIConfigStoreHarness(): boolean {
@@ -35,7 +42,7 @@ function isNonBrowserAIConfigStoreHarness(): boolean {
 }
 
 const scopedStore = createScopedAIConfigStore({
-  storage: () => getStorage() as AIConfigStorageLike | undefined,
+  storage: () => getStorage(),
   indexKey: SCOPE_INDEX_KEY,
   configKeyForScope: (scopeKey) => storageKeyForScope(scopeKey),
   enableEphemeralStore: isNonBrowserAIConfigStoreHarness(),
