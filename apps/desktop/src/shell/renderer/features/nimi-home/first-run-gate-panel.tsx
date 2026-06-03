@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, type ReactElement } from 'react';
 import { desktopBridge, type ProductControlRecordProjection } from '@renderer/bridge';
-import { ProductControlWorkflow } from '../../first-run/index.js';
+import { ProductControlWorkflow } from '../../first-run/product-control-workflow.js';
 
 /**
  * Non-ready first-run gate.

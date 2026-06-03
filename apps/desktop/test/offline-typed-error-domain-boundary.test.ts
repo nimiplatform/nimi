@@ -11,28 +11,26 @@ function read(relativePath: string): string {
 
 test('Offline typed error preflight violation is migrated to SDK types', () => {
   const offlineErrorsPath = path.join(repoRoot, 'apps/desktop/src/shell/renderer/infra/offline/errors.ts');
-  const offlineIndex = read('apps/desktop/src/shell/renderer/infra/offline/index.ts');
+  const offlineIndexPath = path.join(repoRoot, 'apps/desktop/src/shell/renderer/infra/offline/index.ts');
   const realmApi = read('apps/desktop/src/shell/renderer/infra/realm/realm-api.ts');
 
   assert.equal(fs.existsSync(offlineErrorsPath), false, 'Desktop must not retain offline typed-error forwarding shell');
-  assert.doesNotMatch(offlineIndex, /createOfflineError|getErrorMessage|isRealmOfflineError|isRuntimeOfflineError|isNimiErrorLike/);
+  assert.equal(fs.existsSync(offlineIndexPath), false, 'Desktop must not retain an offline barrel shell');
   assert.match(realmApi, /isRealmOfflineErrorLike as isRealmOfflineError/);
 });
 
 test('Offline app surface keeps cache, outbox, and coordinator exports separated', () => {
-  const offlineIndex = read('apps/desktop/src/shell/renderer/infra/offline/index.ts');
+  const offlineIndexPath = path.join(repoRoot, 'apps/desktop/src/shell/renderer/infra/offline/index.ts');
+  const coordinator = read('apps/desktop/src/shell/renderer/infra/offline/coordinator.ts');
   const cacheManager = read('apps/desktop/src/shell/renderer/infra/offline/cache-manager.ts');
   const outboxManager = read('apps/desktop/src/shell/renderer/infra/offline/outbox-manager.ts');
 
-  assert.match(offlineIndex, /OfflineCoordinator/);
-  assert.match(offlineIndex, /@nimiplatform\/kit\/core\/offline-coordinator/);
-  assert.match(offlineIndex, /OfflineCacheManager/);
-  assert.match(offlineIndex, /OfflineOutboxManager/);
+  assert.equal(fs.existsSync(offlineIndexPath), false);
+  assert.match(coordinator, /@nimiplatform\/kit\/core\/offline-coordinator/);
   assert.doesNotMatch(cacheManager, /upsertChatOutboxEntry|getChatOutboxEntries|queueSocialMutation|markSocialMutation/);
   assert.doesNotMatch(cacheManager, /syncModelManifests|getCachedModelManifests|modelManifests/);
   assert.match(outboxManager, /upsertChatOutboxEntry/);
   assert.match(outboxManager, /queueSocialMutation/);
-  assert.doesNotMatch(offlineIndex, /from '.\/errors\.js'/);
 });
 
 test('Offline cache database does not create a Runtime model manifest fallback store', () => {

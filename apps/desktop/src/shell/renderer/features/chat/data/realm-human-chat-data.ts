@@ -11,12 +11,10 @@ import {
   isRealmOfflineErrorLike as isRealmOfflineError,
   type JsonObject,
 } from '@nimiplatform/sdk/types';
-import {
-  getOfflineCacheManager,
-  getOfflineCoordinator,
-  getOfflineOutboxManager,
-  type PersistentOutboxEntry,
-} from '@renderer/infra/offline';
+import { getOfflineCacheManager } from '@renderer/infra/offline/cache-manager';
+import { getOfflineCoordinator } from '@renderer/infra/offline/coordinator';
+import { getOfflineOutboxManager } from '@renderer/infra/offline/outbox-manager';
+import type { PersistentOutboxEntry } from '@renderer/infra/offline/types';
 
 type MessageType = RealmModel<'MessageType'>;
 type SendMessageInputDto = RealmModel<'SendMessageInputDto'>;

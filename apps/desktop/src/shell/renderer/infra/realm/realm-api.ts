@@ -8,7 +8,7 @@ import {
   tryParseJsonLike,
 } from '@nimiplatform/sdk/types';
 import { emitRuntimeLog } from '@nimiplatform/kit/telemetry';
-import { getOfflineCoordinator } from '@renderer/infra/offline';
+import { getOfflineCoordinator } from '@renderer/infra/offline/coordinator';
 
 export type RealmApiCaller = <T>(task: (realm: Realm) => Promise<T>, fallbackMessage?: string) => Promise<T>;
 export type RealmDataErrorEmitter = (

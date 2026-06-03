@@ -18,7 +18,7 @@ import {
   getCachedContacts,
   updateCachedContacts,
 } from '../src/shell/renderer/features/social/data/social-snapshot.js';
-import { getOfflineOutboxManager } from '../src/shell/renderer/infra/offline/index.js';
+import { getOfflineOutboxManager } from '../src/shell/renderer/infra/offline/outbox-manager.js';
 
 const profileFlowSource = readFileSync(
   resolve(import.meta.dirname, '../src/shell/renderer/features/social/data/profile-data.ts'),

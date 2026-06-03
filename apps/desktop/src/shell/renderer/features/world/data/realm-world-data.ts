@@ -23,10 +23,8 @@ import {
   type JsonObject,
 } from '@nimiplatform/sdk/types';
 import { callRealmApi, emitRealmDataError } from '@renderer/infra/realm/realm-api';
-import {
-  getOfflineCacheManager,
-  getOfflineCoordinator,
-} from '@renderer/infra/offline';
+import { getOfflineCacheManager } from '@renderer/infra/offline/cache-manager';
+import { getOfflineCoordinator } from '@renderer/infra/offline/coordinator';
 
 type WorldDetailDto = RealmModel<'WorldDetailDto'>;
 type WorldLevelAuditEventDto = RealmModel<'WorldLevelAuditEventDto'>;

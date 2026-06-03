@@ -9,10 +9,8 @@ import {
 } from '@nimiplatform/sdk/types';
 import { callRealmApi, emitRealmDataError } from '@renderer/infra/realm/realm-api';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import {
-  getOfflineCacheManager,
-  getOfflineCoordinator,
-} from '@renderer/infra/offline';
+import { getOfflineCacheManager } from '@renderer/infra/offline/cache-manager';
+import { getOfflineCoordinator } from '@renderer/infra/offline/coordinator';
 
 // Module-level TTL cache for profile lookups.
 const profileCache = new Map<string, { value: unknown; expiresAt: number }>();

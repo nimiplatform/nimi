@@ -1,4 +1,4 @@
-import type { OfflineCoordinator, OfflineTier } from '@renderer/infra/offline';
+import type { OfflineCoordinator, OfflineTier } from '@nimiplatform/kit/core/offline-coordinator';
 
 export type OfflineCoordinatorBindingsInput = {
   coordinator: OfflineCoordinator;

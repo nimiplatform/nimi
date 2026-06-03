@@ -8,11 +8,11 @@ import {
   getNimiErrorMessage as getErrorMessage,
   isRealmOfflineErrorLike as isRealmOfflineError,
 } from '@nimiplatform/sdk/types';
-import {
-  getOfflineOutboxManager,
-  type PersistentSocialMutationEntry,
-  type SocialMutationKind,
-} from '@renderer/infra/offline';
+import { getOfflineOutboxManager } from '@renderer/infra/offline/outbox-manager';
+import type {
+  PersistentSocialMutationEntry,
+  SocialMutationKind,
+} from '@renderer/infra/offline/types';
 
 function createId(prefix: string): string {
   return createNimiClientId(prefix);

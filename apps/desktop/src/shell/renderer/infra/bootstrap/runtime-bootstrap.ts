@@ -14,7 +14,7 @@ import { queryClient } from '@renderer/infra/query-client/query-client';
 import { createRendererFlowId, logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { initializeBuiltInChatScopesFromProductControl } from '@renderer/app-shell/providers/desktop-ai-config-service';
-import { getOfflineCoordinator } from '@renderer/infra/offline';
+import { getOfflineCoordinator } from '@renderer/infra/offline/coordinator';
 import {
   DEFAULT_NON_CRITICAL_BOOTSTRAP_STEP_TIMEOUT_MS,
   checkRuntimeDaemonVersion,

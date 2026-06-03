@@ -13,7 +13,7 @@ import {
   sendChatMessage,
   startChatWithTarget,
 } from '../src/shell/renderer/features/chat/data/realm-human-chat-data.js';
-import { getOfflineOutboxManager } from '../src/shell/renderer/infra/offline/index.js';
+import { getOfflineOutboxManager } from '../src/shell/renderer/infra/offline/outbox-manager.js';
 
 const chatFlowSource = readFileSync(
   resolve(import.meta.dirname, '../src/shell/renderer/features/chat/data/realm-human-chat-data.ts'),

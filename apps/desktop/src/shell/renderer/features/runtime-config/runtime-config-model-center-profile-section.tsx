@@ -10,7 +10,7 @@ import {
 import { RuntimeSelect } from './runtime-config-primitives';
 import { Button, CheckIcon, PackageIcon, RefreshIcon } from './runtime-config-model-center-profile-controls';
 import { summaryLine } from './runtime-config-model-center-profile-summary';
-import { ProfileSectionFlat } from './runtime-config-model-center-profile-section-flat';
+import { ProfileSectionFlat as ModelCenterProfileSectionFlat } from './runtime-config-model-center-profile-section-flat';
 
 export type ModelCenterProfileSectionProps = {
   isProfileTargetMode: boolean;
@@ -318,7 +318,7 @@ export function ModelCenterProfileSection(props: ModelCenterProfileSectionProps)
   };
 
   if (props.variant === 'flat') {
-    return <ProfileSectionFlat {...shared} />;
+    return <ModelCenterProfileSectionFlat {...shared} />;
   }
   return <ProfileSectionCard {...shared} />;
 }

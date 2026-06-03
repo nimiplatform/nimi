@@ -54,7 +54,8 @@ audited_globs:
   - apps/desktop/src/shell/renderer/app-shell/providers/auth-slice.ts
   - apps/desktop/test/*auth*.test.ts
   - apps/desktop/test/*oauth*.test.ts
-  - apps/desktop/test/desktop-runtime-account-browser-broker.test.ts
+  - kit/test/desktop-callback-no-exchange.test.ts
+  - sdk/test/runtime/platform-runtime-auth-transparent-injection.test.ts
   - apps/desktop/test/auth-runtime-account-domain-boundary.test.ts
   - apps/tester/src/shell/auth/**
   - apps/tester/test/scaffold-boundary.test.mjs
@@ -140,12 +141,12 @@ verification:
         pnpm --filter @nimiplatform/kit exec vitest run --environment jsdom auth/test/runtime-account-browser-broker.test.ts auth/test/desktop-shell-auth-page.test.tsx auth/test/auth-view-email-login.test.tsx
       evidence: Kit shared Runtime account broker, DesktopShellAuthPage, and auth email UI focused tests pass.
     - command: >-
-        pnpm --filter @nimiplatform/desktop exec tsx --test test/auth-runtime-account-domain-boundary.test.ts test/desktop-runtime-account-browser-broker.test.ts test/auth-security-hardcut.test.ts test/auth-refresh-token-retention.test.ts test/oauth-next-continuation.test.ts test/runtime-auth-transparent-injection.test.ts
-      evidence: Desktop Auth/OAuth domain hardcut, retired relay rejection, token persistence hardcuts, oauth_next continuation, and transparent runtime auth injection pass.
+        pnpm --filter @nimiplatform/desktop exec tsx --test test/auth-runtime-account-domain-boundary.test.ts test/auth-security-hardcut.test.ts test/auth-refresh-token-retention.test.ts test/oauth-next-continuation.test.ts
+      evidence: Desktop Auth/OAuth domain hardcut, token persistence hardcuts, and oauth_next continuation pass.
     - command: pnpm --filter @nimiplatform/tester exec node --test test/scaffold-boundary.test.mjs test/tester-contract.test.mjs
       evidence: Tester second-consumer scaffold and app contract tests pass with shared Kit Runtime account broker consumption.
-    - command: pnpm --filter @nimiplatform/sdk exec tsx --test test/runtime-account-caller.test.ts test/nimi-app-runtime-platform-client.test.ts
-      evidence: SDK Runtime account caller helpers and Nimi App runtime platform client pass.
+    - command: pnpm --filter @nimiplatform/sdk exec tsx --test test/runtime-account-caller.test.ts test/nimi-app-runtime-platform-client.test.ts test/runtime/platform-runtime-auth-transparent-injection.test.ts
+      evidence: SDK Runtime account caller helpers, Nimi App runtime platform client, and transparent runtime auth injection pass.
     - command: pnpm check:no-legacy-imports
       evidence: Legacy import guard passes.
     - command: pnpm check:no-absolute-user-paths

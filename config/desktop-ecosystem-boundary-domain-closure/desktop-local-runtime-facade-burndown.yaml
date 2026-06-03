@@ -125,8 +125,8 @@ verification:
     - command: pnpm --filter @nimiplatform/sdk exec tsx --test test/runtime/runtime-local-assets.test.ts test/runtime/runtime-local-artifact-surface.test.ts
       evidence: SDK owner tests pass for local runtime asset projection and runtime-local artifact surface behavior.
     - command: >-
-        pnpm --filter @nimiplatform/desktop exec tsx --test test/local-ai-artifact-import-paths.test.ts test/local-ai-artifact-orphans.test.ts test/local-ai-runtime-dependency-projection.test.ts test/local-runtime-transfer-plane-contract.test.ts test/local-ai-profile-resolve-command.test.ts test/local-ai-recommendation-surface.test.ts test/retired-runtime-ipc-hardcut.test.ts
-      evidence: Desktop hardcut tests pass for deleted facade files, direct SDK localRuntime consumption, OS picker helper residue, and local runtime profile command behavior.
+        pnpm --filter @nimiplatform/desktop exec tsx --test test/local-ai-artifact-import-paths.test.ts test/local-ai-artifact-orphans.test.ts test/local-ai-runtime-dependency-projection.test.ts test/local-runtime-transfer-plane-contract.test.ts test/local-ai-recommendation-surface.test.ts test/retired-runtime-ipc-hardcut.test.ts
+      evidence: Desktop hardcut tests pass for deleted facade files, direct SDK localRuntime consumption, and OS picker helper residue.
     - command: pnpm --filter @nimiplatform/tester exec node --test test/tester-contract.test.mjs test/scaffold-boundary.test.mjs
       evidence: Tester second-consumer contract and scaffold boundary tests pass.
     - command: pnpm --filter @nimiplatform/sdk build
