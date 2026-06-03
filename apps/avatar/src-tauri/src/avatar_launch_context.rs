@@ -4,7 +4,6 @@ use url::Url;
 pub const AVATAR_LAUNCH_SCHEME: &str = "nimi-avatar";
 pub const AVATAR_LAUNCH_HOST: &str = "launch";
 pub const AVATAR_CLOSE_HOST: &str = "close";
-const LOCAL_AGENT_REF_PREFIX: &str = "local-agent:";
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -42,20 +41,9 @@ fn normalize_required_local_agent_ref(
     field: &str,
 ) -> Result<String, String> {
     let normalized = normalize_required_query_value(value, field)?;
-    let rest = normalized
-        .strip_prefix(LOCAL_AGENT_REF_PREFIX)
-        .unwrap_or_default();
-    let Some((owner_user_id, realm_agent_id)) = rest.split_once(':') else {
-        return Err(format!(
-            "avatar launch context requires {field} to be a local-agent ref"
-        ));
-    };
-    if owner_user_id.trim().is_empty() || realm_agent_id.trim().is_empty() {
-        return Err(format!(
-            "avatar launch context requires {field} to be a local-agent ref"
-        ));
-    }
-    Ok(normalized)
+    nimi_shell_tauri::runtime_local_agent_identity::parse_runtime_local_agent_identity(&normalized)
+        .map(|identity| identity.local_agent_ref)
+        .map_err(|_| format!("avatar launch context requires {field} to be a local-agent ref"))
 }
 
 fn normalize_optional_query_value(value: Option<String>) -> Option<String> {

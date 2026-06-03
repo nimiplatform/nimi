@@ -1,5 +1,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-mod agent_center_avatar_asset;
+mod avatar_asset_commands;
 mod avatar_evidence_projection;
 mod avatar_instance_projection;
 mod avatar_instance_registry;
@@ -7,8 +7,8 @@ mod avatar_launch_context;
 mod avatar_paths;
 mod avatar_visual_commands;
 #[cfg(test)]
-use agent_center_avatar_asset::AgentCenterAvatarAssetResolvePayload;
-use agent_center_avatar_asset::{
+use nimi_shell_tauri::agent_center_avatar_asset::AgentCenterAvatarAssetResolvePayload;
+use avatar_asset_commands::{
     nimi_avatar_resolve_agent_center_avatar_asset, nimi_avatar_resolve_local_avatar_asset,
 };
 use avatar_evidence_projection::{

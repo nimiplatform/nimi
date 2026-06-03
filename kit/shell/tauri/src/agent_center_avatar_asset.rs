@@ -8,41 +8,43 @@ use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
+use crate::runtime_local_agent_identity::project_runtime_local_agent_identity;
+
 #[derive(Debug, Serialize)]
-pub(crate) struct ModelManifest {
-    pub(crate) kind: String,
-    pub(crate) runtime_dir: String,
-    pub(crate) model_id: String,
+pub struct ModelManifest {
+    pub kind: String,
+    pub runtime_dir: String,
+    pub model_id: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) model3_json_path: Option<String>,
+    pub model3_json_path: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) vrm_file_path: Option<String>,
-    pub(crate) nimi_dir: Option<String>,
+    pub vrm_file_path: Option<String>,
+    pub nimi_dir: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) motion_presets_dir: Option<String>,
-    pub(crate) adapter_manifest_path: Option<String>,
+    pub motion_presets_dir: Option<String>,
+    pub adapter_manifest_path: Option<String>,
 }
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub(crate) struct AgentCenterAvatarAssetResolvePayload {
-    pub(crate) account_id: String,
-    pub(crate) owner_user_id: String,
-    pub(crate) realm_agent_id: String,
-    pub(crate) local_agent_ref: String,
-    pub(crate) backend_kind: String,
-    pub(crate) local_avatar_asset_ref: String,
-    pub(crate) backend_capability_profile_ref: String,
-    pub(crate) materialization_ref: String,
+pub struct AgentCenterAvatarAssetResolvePayload {
+    pub account_id: String,
+    pub owner_user_id: String,
+    pub realm_agent_id: String,
+    pub local_agent_ref: String,
+    pub backend_kind: String,
+    pub local_avatar_asset_ref: String,
+    pub backend_capability_profile_ref: String,
+    pub materialization_ref: String,
 }
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub(crate) struct LocalAvatarAssetResolvePayload {
-    pub(crate) account_id: String,
-    pub(crate) owner_user_id: String,
-    pub(crate) realm_agent_id: String,
-    pub(crate) local_agent_ref: String,
+pub struct LocalAvatarAssetResolvePayload {
+    pub account_id: String,
+    pub owner_user_id: String,
+    pub realm_agent_id: String,
+    pub local_agent_ref: String,
 }
 
 #[derive(Deserialize)]
@@ -166,7 +168,7 @@ fn can_use_raw_agent_center_path_segment(value: &str) -> bool {
             .all(|ch| ch.is_ascii_lowercase() || ch.is_ascii_digit() || ch == '_' || ch == '-')
 }
 
-pub(crate) fn agent_center_path_segment(value: &str) -> String {
+pub fn agent_center_path_segment(value: &str) -> String {
     if can_use_raw_agent_center_path_segment(value) {
         return value.to_string();
     }
@@ -345,7 +347,7 @@ fn find_agent_center_avatar_asset_dir(
 }
 
 #[tauri::command]
-pub(crate) async fn nimi_avatar_resolve_agent_center_avatar_asset(
+pub async fn nimi_avatar_resolve_agent_center_avatar_asset(
     payload: AgentCenterAvatarAssetResolvePayload,
 ) -> Result<ModelManifest, String> {
     let account_id = validate_agent_center_id(&payload.account_id, "account_id")?;
@@ -364,14 +366,15 @@ pub(crate) async fn nimi_avatar_resolve_agent_center_avatar_asset(
     if local_agent_ref == realm_agent_id {
         return Err("local_agent_ref must not be a bare realm_agent_id".to_string());
     }
-    if !local_agent_ref.starts_with("local-agent:") {
-        return Err("local_agent_ref must start with local-agent:".to_string());
-    }
-    if local_agent_ref != format!("local-agent:{owner_user_id}:{realm_agent_id}") {
-        return Err(
-            "local_agent_ref must equal local-agent:${owner_user_id}:${realm_agent_id}".to_string(),
-        );
-    }
+    let local_agent_ref = project_runtime_local_agent_identity(
+        &owner_user_id,
+        &realm_agent_id,
+        Some(&local_agent_ref),
+    )
+    .map(|identity| identity.local_agent_ref)
+    .map_err(|_| {
+        "local_agent_ref must equal local-agent:${owner_user_id}:${realm_agent_id}".to_string()
+    })?;
     let data_root = resolve_home_data_root()?;
     let materialization_ref =
         validate_handoff_ref(&payload.materialization_ref, "materialization_ref")?;
@@ -596,7 +599,7 @@ pub(crate) async fn nimi_avatar_resolve_agent_center_avatar_asset(
 }
 
 #[tauri::command]
-pub(crate) async fn nimi_avatar_resolve_local_avatar_asset(
+pub async fn nimi_avatar_resolve_local_avatar_asset(
     payload: LocalAvatarAssetResolvePayload,
 ) -> Result<ModelManifest, String> {
     let account_id = validate_agent_center_id(&payload.account_id, "account_id")?;
@@ -606,12 +609,16 @@ pub(crate) async fn nimi_avatar_resolve_local_avatar_asset(
     if account_id != owner_user_id {
         return Err("local Avatar asset account_id must equal owner_user_id".to_string());
     }
-    if local_agent_ref != format!("local-agent:{owner_user_id}:{realm_agent_id}") {
-        return Err(
-            "local Avatar asset local_agent_ref must equal local-agent:${owner_user_id}:${realm_agent_id}"
-                .to_string(),
-        );
-    }
+    let local_agent_ref = project_runtime_local_agent_identity(
+        &owner_user_id,
+        &realm_agent_id,
+        Some(&local_agent_ref),
+    )
+    .map(|identity| identity.local_agent_ref)
+    .map_err(|_| {
+        "local Avatar asset local_agent_ref must equal local-agent:${owner_user_id}:${realm_agent_id}"
+            .to_string()
+    })?;
     let data_root = resolve_home_data_root()?;
     let selection = read_local_avatar_asset_selection(
         &data_root,

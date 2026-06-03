@@ -1,5 +1,5 @@
 use super::*;
-use crate::agent_center_avatar_asset::LocalAvatarAssetResolvePayload;
+use nimi_shell_tauri::agent_center_avatar_asset::LocalAvatarAssetResolvePayload;
 
 fn owner_user_id() -> &'static str {
     "owner_1"
@@ -601,7 +601,7 @@ async fn resolve_agent_center_avatar_asset_accepts_opaque_realm_agent_id() {
     fs::create_dir_all(&home).unwrap();
     let previous_home = std::env::var("HOME").ok();
     std::env::set_var("HOME", &home);
-    let opaque_realm_agent_id = "agent:abc.def+1";
+    let opaque_realm_agent_id = "agent.abc.def+1";
     let opaque_local_agent_ref = local_agent_ref_for(owner_user_id(), opaque_realm_agent_id);
     let package_dir = write_agent_center_live2d_package_for_account_agent(
         &home,

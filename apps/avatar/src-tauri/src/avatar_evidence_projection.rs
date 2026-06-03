@@ -308,10 +308,10 @@ mod tests {
     #[test]
     fn append_evidence_record_writes_context_and_records() {
         let _guard = crate::test_env_guard();
-        let temp_home =
+        let temp_app_data_root =
             std::env::temp_dir().join(format!("nimi-avatar-evidence-{}", std::process::id()));
-        let previous_home = std::env::var("HOME").ok();
-        std::env::set_var("HOME", &temp_home);
+        let previous_app_data_root = std::env::var("NIMI_APP_DATA_ROOT").ok();
+        std::env::set_var("NIMI_APP_DATA_ROOT", &temp_app_data_root);
 
         let path = append_evidence_record(
             context(),
@@ -330,9 +330,9 @@ mod tests {
         )
         .expect("write evidence");
 
-        match previous_home {
-            Some(value) => std::env::set_var("HOME", value),
-            None => std::env::remove_var("HOME"),
+        match previous_app_data_root {
+            Some(value) => std::env::set_var("NIMI_APP_DATA_ROOT", value),
+            None => std::env::remove_var("NIMI_APP_DATA_ROOT"),
         }
 
         let raw = fs::read_to_string(path).expect("read evidence");
@@ -341,18 +341,18 @@ mod tests {
         assert!(raw.contains("\"localAgentRef\": \"local-agent:owner-1:agent-1\""));
         assert!(raw.contains("\"launchSource\": \"desktop-agent-chat\""));
         assert!(raw.contains("\"kind\": \"avatar.model.load\""));
-        let _ = fs::remove_dir_all(temp_home);
+        let _ = fs::remove_dir_all(temp_app_data_root);
     }
 
     #[test]
     fn write_visual_artifact_persists_png_under_instance_artifacts() {
         let _guard = crate::test_env_guard();
-        let temp_home = std::env::temp_dir().join(format!(
+        let temp_app_data_root = std::env::temp_dir().join(format!(
             "nimi-avatar-evidence-artifact-{}",
             std::process::id()
         ));
-        let previous_home = std::env::var("HOME").ok();
-        std::env::set_var("HOME", &temp_home);
+        let previous_app_data_root = std::env::var("NIMI_APP_DATA_ROOT").ok();
+        std::env::set_var("NIMI_APP_DATA_ROOT", &temp_app_data_root);
 
         let result = write_visual_artifact(
             context(),
@@ -363,9 +363,9 @@ mod tests {
         )
         .expect("write artifact");
 
-        match previous_home {
-            Some(value) => std::env::set_var("HOME", value),
-            None => std::env::remove_var("HOME"),
+        match previous_app_data_root {
+            Some(value) => std::env::set_var("NIMI_APP_DATA_ROOT", value),
+            None => std::env::remove_var("NIMI_APP_DATA_ROOT"),
         }
 
         assert_eq!(result.artifact_mime_type, "image/png");
@@ -379,7 +379,7 @@ mod tests {
                 .len()
                 > 0
         );
-        let _ = fs::remove_dir_all(temp_home);
+        let _ = fs::remove_dir_all(temp_app_data_root);
     }
 
     #[test]

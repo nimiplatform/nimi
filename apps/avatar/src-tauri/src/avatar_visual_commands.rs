@@ -1,4 +1,4 @@
-use crate::agent_center_avatar_asset::ModelManifest;
+use nimi_shell_tauri::agent_center_avatar_asset::ModelManifest;
 use notify::{Config, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use serde::Serialize;
 use std::collections::HashMap;

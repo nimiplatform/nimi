@@ -10,7 +10,6 @@ use crate::avatar_paths::resolve_avatar_app_data_dir;
 const AVATAR_INSTANCE_PROJECTION_DIR: &str = "avatar-instance-registry";
 const AVATAR_INSTANCE_PROJECTION_FILE: &str = "instances.json";
 const AVATAR_INSTANCE_PROJECTION_SCHEMA_VERSION: u32 = 2;
-const LOCAL_AGENT_REF_PREFIX: &str = "local-agent:";
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -93,16 +92,12 @@ pub fn persist_projection(
 }
 
 fn resolve_local_agent_ref_parts(local_agent_ref: &str) -> Option<(String, String)> {
-    let rest = local_agent_ref
-        .trim()
-        .strip_prefix(LOCAL_AGENT_REF_PREFIX)?;
-    let (owner_user_id, realm_agent_id) = rest.split_once(':')?;
-    let owner_user_id = owner_user_id.trim();
-    let realm_agent_id = realm_agent_id.trim();
-    if owner_user_id.is_empty() || realm_agent_id.is_empty() {
-        return None;
-    }
-    Some((owner_user_id.to_string(), realm_agent_id.to_string()))
+    let identity =
+        nimi_shell_tauri::runtime_local_agent_identity::parse_runtime_local_agent_identity(
+            local_agent_ref,
+        )
+        .ok()?;
+    Some((identity.owner_user_id, identity.realm_agent_id))
 }
 
 pub fn projection_record_from_launch_context(
@@ -230,7 +225,7 @@ mod tests {
         assert!(projection_record_from_launch_context(&bare_context, "fallback").is_none());
 
         let local_context = AvatarLaunchContext {
-            agent_id: "local-agent:owner-1:agent:opaque".to_string(),
+            agent_id: "local-agent:owner-1:agent-opaque".to_string(),
             avatar_instance_id: Some("instance-1".to_string()),
             launch_source: Some("desktop-agent-chat".to_string()),
         };
@@ -239,8 +234,8 @@ mod tests {
 
         assert_eq!(record.avatar_instance_id, "instance-1");
         assert_eq!(record.owner_user_id, "owner-1");
-        assert_eq!(record.realm_agent_id, "agent:opaque");
-        assert_eq!(record.local_agent_ref, "local-agent:owner-1:agent:opaque");
+        assert_eq!(record.realm_agent_id, "agent-opaque");
+        assert_eq!(record.local_agent_ref, "local-agent:owner-1:agent-opaque");
     }
 
     #[test]
