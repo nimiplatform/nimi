@@ -301,13 +301,49 @@ func TestRuntimeProductControlRecordsHostEvidenceAndSetupState(t *testing.T) {
 		t.Fatalf("account evidence was not recorded: %+v", recorded.Record)
 	}
 
-	response, err = service.ReconcileProductControlFirstRunSetupState(context.Background(), &runtimev1.ReconcileProductControlFirstRunSetupStateRequest{
-		State:  string(productControlStateLocalAIProfileAssetsMissing),
-		Reason: "runtime_materialization_jobs_started",
-	})
+	response, err = service.ReconcileProductControlFirstRunSetupState(context.Background(), &runtimev1.ReconcileProductControlFirstRunSetupStateRequest{})
 	reconciled := decodeProductControlProjectionForTest(t, mustProductControlForTest(t, response, err))
 	if reconciled.State != productControlStateLocalAIProfileAssetsMissing {
 		t.Fatalf("reconciled state = %s", reconciled.State)
+	}
+	if reconciled.Record == nil || reconciled.Record.Repair.Required {
+		t.Fatalf("setup-required reconciliation must not mark product repair required: %+v", reconciled.Record)
+	}
+}
+
+func TestRuntimeProductControlFirstRunSetupReconciliationMapsActivationStates(t *testing.T) {
+	ready := localEnvironmentConsumerActivationGate{ConsumerID: "llama.cpp.cpu", State: localEnvironmentActivationStateReady}
+	setupRequired := localEnvironmentConsumerActivationGate{
+		ConsumerID: "speech.qwen3-asr.python",
+		State:      localEnvironmentActivationStateSetupRequired,
+		Detail:     "dependency confirmation required",
+	}
+	failed := localEnvironmentConsumerActivationGate{
+		ConsumerID: "speech.qwen3-tts.python",
+		State:      localEnvironmentActivationStateFailed,
+		Detail:     "materialization failed",
+	}
+	unsupported := localEnvironmentConsumerActivationGate{
+		ConsumerID: "llama.cpp.cpu",
+		State:      localEnvironmentActivationStateUnsupported,
+		Detail:     "host unsupported",
+	}
+
+	reconciliation := productControlFirstRunSetupReconciliationFromActivationGates([]localEnvironmentConsumerActivationGate{ready, setupRequired})
+	if reconciliation.State != productControlStateLocalAIProfileAssetsMissing || reconciliation.LocalAIReady {
+		t.Fatalf("setup required reconciliation = %+v", reconciliation)
+	}
+	reconciliation = productControlFirstRunSetupReconciliationFromActivationGates([]localEnvironmentConsumerActivationGate{ready, failed})
+	if reconciliation.State != productControlStateLocalAIProfileNotReady || reconciliation.LocalAIReady {
+		t.Fatalf("failed reconciliation = %+v", reconciliation)
+	}
+	reconciliation = productControlFirstRunSetupReconciliationFromActivationGates([]localEnvironmentConsumerActivationGate{unsupported})
+	if reconciliation.State != productControlStateBlocked || reconciliation.LocalAIReady {
+		t.Fatalf("unsupported reconciliation = %+v", reconciliation)
+	}
+	reconciliation = productControlFirstRunSetupReconciliationFromActivationGates([]localEnvironmentConsumerActivationGate{ready})
+	if reconciliation.State != productControlStateLocalAIReady || !reconciliation.LocalAIReady {
+		t.Fatalf("ready reconciliation = %+v", reconciliation)
 	}
 }
 

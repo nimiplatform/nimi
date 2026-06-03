@@ -94,8 +94,8 @@ func TestCheckCallerEligibility_NilRegistry(t *testing.T) {
 	}
 }
 
-func TestCheckCallerEligibility_PendingWave4Status(t *testing.T) {
-	yaml := strings.Replace(sampleRegistryYAML, "admission_status: admitted", "admission_status: pending_wave_4", 1)
+func TestCheckCallerEligibility_PermissionFabricPendingStatus(t *testing.T) {
+	yaml := strings.Replace(sampleRegistryYAML, "admission_status: admitted", "admission_status: permission_fabric_pending", 1)
 	r, err := LoadRegistry(strings.NewReader(yaml))
 	if err != nil {
 		t.Fatalf("LoadRegistry: %v", err)
@@ -105,10 +105,10 @@ func TestCheckCallerEligibility_PendingWave4Status(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if result.Eligible {
-		t.Error("pending_wave_4 must not be eligible")
+		t.Error("permission_fabric_pending must not be eligible")
 	}
-	if result.Reason != string(EligibilityReasonAppPendingWave4) {
-		t.Errorf("reason = %q, want %q", result.Reason, EligibilityReasonAppPendingWave4)
+	if result.Reason != string(EligibilityReasonPermissionFabricPending) {
+		t.Errorf("reason = %q, want %q", result.Reason, EligibilityReasonPermissionFabricPending)
 	}
 }
 

@@ -290,6 +290,9 @@ func (s *Service) SubscribeAppMessages(req *runtimev1.SubscribeAppMessagesReques
 	if req == nil || strings.TrimSpace(req.GetAppId()) == "" {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
+	if strings.TrimSpace(req.GetCursor()) != "" {
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
 	if contextAppID := appIDFromContext(stream.Context()); contextAppID != "" && contextAppID != strings.TrimSpace(req.GetAppId()) {
 		return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
 	}

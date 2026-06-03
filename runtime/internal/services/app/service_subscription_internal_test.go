@@ -62,6 +62,23 @@ func TestSendAppMessageWithAck(t *testing.T) {
 	<-done
 }
 
+func TestSubscribeAppMessagesRejectsCursorReplay(t *testing.T) {
+	svc := newTestService()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	err := svc.SubscribeAppMessages(&runtimev1.SubscribeAppMessagesRequest{
+		AppId:  "app-b",
+		Cursor: "42",
+	}, &appMessageStreamCollector{ctx: ctx})
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("expected invalid argument for cursor replay, got %v", err)
+	}
+	if status.Convert(err).Message() != runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID.String() {
+		t.Fatalf("unexpected reason: %s", status.Convert(err).Message())
+	}
+}
+
 func TestSubscribeAppMessagesSlowConsumerClosed(t *testing.T) {
 	svc := newTestService()
 	ctx, cancel := context.WithCancel(context.Background())

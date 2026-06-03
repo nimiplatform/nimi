@@ -24,7 +24,7 @@ type AdmissionStatus string
 const (
 	AdmissionStatusAdmitted                AdmissionStatus = "admitted"
 	AdmissionStatusGatedByAvatarMasterGate AdmissionStatus = "gated_by_avatar_master_gate"
-	AdmissionStatusPendingWave4            AdmissionStatus = "pending_wave_4"
+	AdmissionStatusPermissionFabricPending AdmissionStatus = "permission_fabric_pending"
 	AdmissionStatusDeferred                AdmissionStatus = "deferred"
 	AdmissionStatusRetired                 AdmissionStatus = "retired"
 )
@@ -32,7 +32,7 @@ const (
 func (a AdmissionStatus) Valid() bool {
 	switch a {
 	case AdmissionStatusAdmitted, AdmissionStatusGatedByAvatarMasterGate,
-		AdmissionStatusPendingWave4, AdmissionStatusDeferred, AdmissionStatusRetired:
+		AdmissionStatusPermissionFabricPending, AdmissionStatusDeferred, AdmissionStatusRetired:
 		return true
 	}
 	return false

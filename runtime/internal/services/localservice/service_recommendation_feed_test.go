@@ -152,6 +152,24 @@ func TestRecommendationFeedProjectsInstalledState(t *testing.T) {
 	}
 }
 
+func TestRecommendationHostSupportUsesManagedEngineAuthority(t *testing.T) {
+	media := classifyRecommendationHostSupport("media", nil)
+	if media.class != runtimev1.LocalHostSupportClass_LOCAL_HOST_SUPPORT_CLASS_UNSUPPORTED {
+		t.Fatalf("media host support without profile = %s, want unsupported", media.class)
+	}
+	if media.detail != "device profile unavailable" {
+		t.Fatalf("media detail = %q", media.detail)
+	}
+
+	speech := classifyRecommendationHostSupport("speech", &runtimev1.LocalDeviceProfile{Os: "freebsd", Arch: "amd64"})
+	if speech.class != runtimev1.LocalHostSupportClass_LOCAL_HOST_SUPPORT_CLASS_ATTACHED_ONLY {
+		t.Fatalf("speech host support on unsupported platform = %s, want attached-only", speech.class)
+	}
+	if speech.detail == "" {
+		t.Fatalf("speech host support should project managed-engine detail")
+	}
+}
+
 func recommendationChatItem(repo string, title string, entry string, size int64) remoteModelEntry {
 	return remoteModelEntry{
 		Repo:         repo,

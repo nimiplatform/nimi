@@ -498,31 +498,20 @@ func TestCheckModelHealthLocalModelFallsBackToRegistryOnLocalServiceError(t *tes
 	}
 }
 
-func TestCheckModelHealthLocalMediaRequiresTargetReadyCatalogEntry(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case "/healthz":
-			w.Header().Set("Content-Type", "application/json")
-			_, _ = w.Write([]byte(`{"status":"ok","ready":true}`))
-		case "/v1/catalog":
-			w.Header().Set("Content-Type", "application/json")
-			_, _ = w.Write([]byte(`{"ready":true,"models":[{"id":"media/demo-image","ready":true}]}`))
-		default:
-			http.NotFound(w, r)
-		}
-	}))
-	defer func() { server.Close() }()
-	t.Setenv("NIMI_RUNTIME_LOCAL_MEDIA_BASE_URL", server.URL)
-
-	registry := modelregistry.New()
-	registry.Upsert(modelregistry.Entry{
-		ModelID:      "media/demo-image",
-		Version:      "latest",
-		Status:       runtimev1.ModelStatus_MODEL_STATUS_INSTALLED,
-		Capabilities: []string{"image.generate"},
-		Source:       "local",
+func TestCheckModelHealthLocalMediaUsesLocalServiceActiveState(t *testing.T) {
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	svc.SetLocalModelLister(&fakeLocalModelLister{
+		responses: []*runtimev1.ListLocalAssetsResponse{{
+			Assets: []*runtimev1.LocalAssetRecord{{
+				LocalAssetId:   "media-1",
+				LogicalModelId: "media/demo-image",
+				Engine:         "media",
+				Capabilities:   []string{"image.generate"},
+				Status:         runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+				WarmState:      runtimev1.LocalWarmState_LOCAL_WARM_STATE_READY,
+			}},
+		}},
 	})
-	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), registry)
 
 	resp, err := svc.CheckModelHealth(context.Background(), &runtimev1.CheckModelHealthRequest{
 		AppId:   "nimi.desktop",
@@ -532,26 +521,11 @@ func TestCheckModelHealthLocalMediaRequiresTargetReadyCatalogEntry(t *testing.T)
 		t.Fatalf("check model health: %v", err)
 	}
 	if !resp.GetHealthy() {
-		t.Fatalf("local media model with matching ready catalog entry must be healthy: %+v", resp)
+		t.Fatalf("local media model with active RuntimeLocalService fact must be healthy: %+v", resp)
 	}
 }
 
-func TestCheckModelHealthLocalMediaFailsClosedWhenCatalogMissesTarget(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case "/healthz":
-			w.Header().Set("Content-Type", "application/json")
-			_, _ = w.Write([]byte(`{"status":"ok","ready":true}`))
-		case "/v1/catalog":
-			w.Header().Set("Content-Type", "application/json")
-			_, _ = w.Write([]byte(`{"ready":true,"models":[{"id":"media/other-model","ready":true}]}`))
-		default:
-			http.NotFound(w, r)
-		}
-	}))
-	defer func() { server.Close() }()
-	t.Setenv("NIMI_RUNTIME_LOCAL_MEDIA_BASE_URL", server.URL)
-
+func TestCheckModelHealthLocalMediaFailsClosedWithoutLocalServiceFact(t *testing.T) {
 	registry := modelregistry.New()
 	registry.Upsert(modelregistry.Entry{
 		ModelID:      "media/demo-image",
@@ -570,12 +544,12 @@ func TestCheckModelHealthLocalMediaFailsClosedWhenCatalogMissesTarget(t *testing
 		t.Fatalf("check model health: %v", err)
 	}
 	if resp.GetHealthy() {
-		t.Fatalf("local media model must fail closed when target catalog entry is missing")
+		t.Fatalf("local media model must fail closed without RuntimeLocalService fact")
 	}
 	if resp.GetReasonCode() != runtimev1.ReasonCode_AI_MODEL_NOT_READY {
 		t.Fatalf("unexpected reason code: %v", resp.GetReasonCode())
 	}
-	if got := resp.GetActionHint(); got != "start local media engine" {
+	if got := resp.GetActionHint(); got != "inspect_local_runtime_model_health" {
 		t.Fatalf("unexpected action hint: %q", got)
 	}
 }

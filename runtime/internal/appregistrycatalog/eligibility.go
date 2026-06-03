@@ -23,7 +23,7 @@ const (
 	EligibilityReasonAppNotRegistered         EligibilityReason = "app-not-registered"
 	EligibilityReasonAppRetired               EligibilityReason = "app-retired"
 	EligibilityReasonAppDeferred              EligibilityReason = "app-deferred"
-	EligibilityReasonAppPendingWave4          EligibilityReason = "app-pending-wave-4"
+	EligibilityReasonPermissionFabricPending  EligibilityReason = "app-permission-fabric-pending"
 	EligibilityReasonAvatarMasterGateBlocked  EligibilityReason = "avatar-master-gate-blocked"
 	EligibilityReasonAppKindNotAdmitted       EligibilityReason = "app-kind-not-admitted"
 	EligibilityReasonNotOrdinaryVisible       EligibilityReason = "app-not-ordinary-visible"
@@ -93,10 +93,10 @@ func (r *Registry) CheckCallerEligibility(appID string) (CallerEligibility, erro
 			Eligible: false,
 			Reason:   string(EligibilityReasonAvatarMasterGateBlocked),
 		}, nil
-	case AdmissionStatusPendingWave4:
+	case AdmissionStatusPermissionFabricPending:
 		return CallerEligibility{
 			Eligible: false,
-			Reason:   string(EligibilityReasonAppPendingWave4),
+			Reason:   string(EligibilityReasonPermissionFabricPending),
 		}, nil
 	case AdmissionStatusDeferred:
 		return CallerEligibility{
