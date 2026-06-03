@@ -7,6 +7,10 @@ const SOURCE_PATH = resolve(
   import.meta.dirname,
   '../src/shell/renderer/features/notification/notification-panel.tsx',
 );
+const ITEM_CARD_SOURCE_PATH = resolve(
+  import.meta.dirname,
+  '../src/shell/renderer/features/notification/notification-panel-item-card.tsx',
+);
 const QUERY_SOURCE_PATH = resolve(
   import.meta.dirname,
   '../src/shell/renderer/features/notification/notification-query.ts',
@@ -19,7 +23,10 @@ const MAIN_LAYOUT_VIEW_PATH = resolve(
   import.meta.dirname,
   '../src/shell/renderer/app-shell/layouts/main-layout-view.tsx',
 );
-const source = readFileSync(SOURCE_PATH, 'utf-8');
+const source = [
+  readFileSync(SOURCE_PATH, 'utf-8'),
+  readFileSync(ITEM_CARD_SOURCE_PATH, 'utf-8'),
+].join('\n');
 const querySource = readFileSync(QUERY_SOURCE_PATH, 'utf-8');
 const actionSource = readFileSync(ACTION_SOURCE_PATH, 'utf-8');
 const mainLayoutViewSource = readFileSync(MAIN_LAYOUT_VIEW_PATH, 'utf-8');
@@ -39,7 +46,7 @@ describe('notification panel action wiring', () => {
     assert.doesNotMatch(source, /dataSync\.acceptGift/);
     assert.doesNotMatch(source, /dataSync\.rejectGift/);
     assert.doesNotMatch(source, /dataSync\.createGiftReview/);
-    assert.match(source, /navigateToGiftInbox\(item\.giftTransactionId\)/);
+    assert.match(source, /navigateToGiftInbox\(item\.giftTransactionId \?\? undefined\)/);
   });
 
   test('positive and negative gift reviews are wired separately', () => {

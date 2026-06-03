@@ -13,7 +13,14 @@ const exploreViewSource = readWorkspaceFile('src/shell/renderer/features/explore
 const exploreSectionNavSource = readWorkspaceFile('src/shell/renderer/features/explore/explore-section-nav.tsx');
 const mainLayoutTitlebarContentSource = readWorkspaceFile('src/shell/renderer/app-shell/layouts/main-layout-titlebar-content.tsx');
 const mainLayoutTopBarSource = readWorkspaceFile('src/shell/renderer/app-shell/layouts/main-layout-topbar.tsx');
-const notificationPanelSource = readWorkspaceFile('src/shell/renderer/features/notification/notification-panel.tsx');
+const notificationPanelSource = [
+  readWorkspaceFile('src/shell/renderer/features/notification/notification-panel.tsx'),
+  readWorkspaceFile('src/shell/renderer/features/notification/notification-panel-header.tsx'),
+].join('\n');
+const notificationPanelSurfaceSource = [
+  notificationPanelSource,
+  readWorkspaceFile('src/shell/renderer/features/notification/notification-panel-item-card.tsx'),
+].join('\n');
 const profilePanelSource = readWorkspaceFile('src/shell/renderer/features/profile/profile-panel.tsx');
 
 test('W3 route redesign: home and explore adopt route-shell material hosts', () => {
@@ -33,7 +40,7 @@ test('W3 route redesign: home and explore adopt route-shell material hosts', () 
 
 test('W3 route redesign: notification and profile consume glass route shells', () => {
   assert.match(notificationPanelSource, /<Surface[\s\S]*tone="panel"[\s\S]*material="glass-regular"[\s\S]*NotificationPanel\.title/);
-  assert.match(notificationPanelSource, /<AppCardSurface[\s\S]*key=\{item\.id\}[\s\S]*kind="promoted-glass"/);
+  assert.match(notificationPanelSurfaceSource, /<AppCardSurface[\s\S]*key=\{item\.id\}[\s\S]*kind="promoted-glass"/);
   assert.doesNotMatch(notificationPanelSource, /className="flex min-h-0 flex-1 flex-col bg-white"/u);
 
   assert.match(profilePanelSource, /<Surface[\s\S]*tone="panel"[\s\S]*material="glass-regular"[\s\S]*<ProfileDetailView/);

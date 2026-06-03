@@ -11,23 +11,12 @@ import { ReportModal } from './report-modal';
 import { usePostCardUi } from './use-post-card-ui';
 import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 import {
-  normalizeMediaType,
-  resolveMediaUrl,
-  resolveMediaThumbnailUrl,
-  resolveRenderableMediaAttachment,
-  resolveVideoPlaybackSource,
-} from './utils';
+  buildPostCardAuthorProjection,
+  buildPostCardMediaProjection,
+} from './post-card-projections';
 
 type PostDto = RealmModel<'PostDto'>;
 type CreateReportDto = RealmModel<'CreateReportDto'>;
-
-function extractPostAttachmentId(attachment: unknown): string {
-  if (!attachment || typeof attachment !== 'object') {
-    return '';
-  }
-  const payload = attachment as Record<string, unknown>;
-  return String(payload.targetType === 'RESOURCE' ? payload.targetId || '' : '').trim();
-}
 
 function toBannerErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof Error) {
@@ -123,8 +112,6 @@ export function PostCard(input: PostCardProps) {
   const authorId = String(
     post.authorId || post.author?.id || (post.author as unknown as { _id?: string })?._id || '',
   ).trim();
-  const attachments = Array.isArray(post.attachments) ? post.attachments : [];
-  const hasMedia = attachments.length > 0;
   const isOwnPost = Boolean(currentUserId && post.author?.id === currentUserId);
   const [isLikePending, setIsLikePending] = useState(false);
   const [isVisibilityPending, setIsVisibilityPending] = useState(false);
@@ -140,109 +127,21 @@ export function PostCard(input: PostCardProps) {
     setFeedback,
   });
 
-  const firstDisplayAttachment = hasMedia
-    ? attachments.find((item) => {
-        const attachmentKind = normalizeMediaType(
-          resolveRenderableMediaAttachment(item)?.displayKind,
-        );
-        return attachmentKind === 'IMAGE' || attachmentKind === 'VIDEO';
-      })
-    : null;
-  const firstMedia = resolveRenderableMediaAttachment(firstDisplayAttachment);
-  const firstMediaType = normalizeMediaType(firstMedia?.displayKind);
-  const firstMediaUrl = resolveMediaUrl(firstMedia, realmBaseUrl);
-  const firstMediaThumbnail = resolveMediaThumbnailUrl(firstMedia, realmBaseUrl);
-  const editPostSeed = useMemo<EditablePostSeed | null>(() => {
-    if (!post.id) {
-      return null;
-    }
-    const attachment: EditablePostSeed['attachment'] =
-      firstDisplayAttachment?.targetType === 'RESOURCE' && firstMedia && firstMediaUrl
-        ? {
-            id: extractPostAttachmentId(firstDisplayAttachment),
-            type: firstMediaType === 'VIDEO' ? 'video' : 'image',
-            previewUrl: firstMediaUrl,
-          }
-        : null;
-    return {
-      postId: post.id,
-      caption: post.caption,
-      tags: Array.isArray(post.tags) ? post.tags.map(String) : [],
-      visibility: postVisibility,
-      attachment,
-    };
-  }, [
-    firstDisplayAttachment,
-    firstMedia,
+  const {
+    canEditPostAttachment,
+    editPostSeed,
+    firstMediaThumbnail,
     firstMediaType,
     firstMediaUrl,
-    post.caption,
-    post.id,
-    post.tags,
-    postVisibility,
-  ]);
-  const canEditPostAttachment = Boolean(editPostSeed?.attachment);
-  const videoSource = firstMediaType === 'VIDEO' ? resolveVideoPlaybackSource(firstMediaUrl) : null;
-
-  const authorRecord =
-    post.author && typeof post.author === 'object'
-      ? (post.author as Record<string, unknown>)
-      : null;
-  const authorProfileSeed = useMemo<ProfileDetailSeed | null>(() => {
-    if (!authorId) {
-      return null;
-    }
-    return {
-      id: authorId,
-      displayName:
-        post.author?.displayName || i18n.t('Common.unknown', { defaultValue: 'Unknown' }),
-      handle: post.author?.handle || '',
-      avatarUrl: post.author?.avatarUrl,
-      bio: typeof authorRecord?.bio === 'string' ? authorRecord.bio : null,
-      isAgent: post.author?.isAgent === true,
-      isOnline: authorRecord?.isOnline === true,
-      createdAt: typeof authorRecord?.createdAt === 'string' ? authorRecord.createdAt : '',
-      tags: Array.isArray(authorRecord?.tags) ? authorRecord.tags.map(String) : [],
-      city: typeof authorRecord?.city === 'string' ? authorRecord.city : null,
-      countryCode: typeof authorRecord?.countryCode === 'string' ? authorRecord.countryCode : null,
-      gender: typeof authorRecord?.gender === 'string' ? authorRecord.gender : null,
-      worldName: typeof authorRecord?.worldName === 'string' ? authorRecord.worldName : null,
-      worldBannerUrl:
-        typeof authorRecord?.worldBannerUrl === 'string' ? authorRecord.worldBannerUrl : null,
-      friendsCount:
-        typeof authorRecord?.friendsCount === 'number' ? authorRecord.friendsCount : undefined,
-      postsCount:
-        typeof authorRecord?.postsCount === 'number' ? authorRecord.postsCount : undefined,
-      likesCount:
-        typeof authorRecord?.likesCount === 'number'
-          ? authorRecord.likesCount
-          : typeof authorRecord?.likeCount === 'number'
-            ? authorRecord.likeCount
-            : undefined,
-      giftStats:
-        authorRecord?.giftStats && typeof authorRecord.giftStats === 'object'
-          ? (authorRecord.giftStats as Record<string, number>)
-          : undefined,
-      agentState: typeof authorRecord?.state === 'string' ? authorRecord.state : null,
-      agentCategory: typeof authorRecord?.category === 'string' ? authorRecord.category : null,
-      agentOrigin: typeof authorRecord?.origin === 'string' ? authorRecord.origin : null,
-      agentTier: typeof authorRecord?.tier === 'string' ? authorRecord.tier : null,
-      agentWakeStrategy:
-        typeof authorRecord?.wakeStrategy === 'string' ? authorRecord.wakeStrategy : null,
-      agentOwnershipType:
-        typeof authorRecord?.ownershipType === 'string' ? authorRecord.ownershipType : null,
-      agentWorldId: typeof authorRecord?.worldId === 'string' ? authorRecord.worldId : null,
-      agentOwnerWorldId:
-        typeof authorRecord?.ownerWorldId === 'string' ? authorRecord.ownerWorldId : null,
-    };
-  }, [
-    authorId,
-    authorRecord,
-    post.author?.avatarUrl,
-    post.author?.displayName,
-    post.author?.handle,
-    post.author?.isAgent,
-  ]);
+    videoSource,
+  } = useMemo(
+    () => buildPostCardMediaProjection({ post, postVisibility, realmBaseUrl }),
+    [post, postVisibility, realmBaseUrl],
+  );
+  const { authorProfileSeed, authorRecord } = useMemo(
+    () => buildPostCardAuthorProjection({ authorId, post }),
+    [authorId, post],
+  );
   const isAuthorFriend = authorRecord?.isFriend === true || actionAdapter.isFriend(authorId);
 
   useEffect(() => {

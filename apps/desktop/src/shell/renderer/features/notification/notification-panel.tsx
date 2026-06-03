@@ -1,6 +1,6 @@
 import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
 import { useEffect, useMemo, useState } from 'react';
-import { AppCardSurface, Button, ScrollArea, Surface } from '@nimiplatform/kit/ui';
+import { AppCardSurface, Button, ScrollArea } from '@nimiplatform/kit/ui';
 import { getPlatformClient } from '@nimiplatform/sdk';
 import {
   loadRealmNotifications,
@@ -11,7 +11,6 @@ import {
   type RealmModel,
 } from '@nimiplatform/sdk/realm';
 import {
-  getNimiNotificationBadgeKey,
   getNimiNotificationCategory,
   getNimiNotificationServerFilter,
 } from '@nimiplatform/kit/core/notifications';
@@ -23,22 +22,20 @@ import {
   rejectRealmGift,
 } from '@nimiplatform/kit/features/commerce/realm';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { i18n } from '@renderer/i18n';
-import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
-import { NotificationActionButtons } from './notification-action-buttons.js';
+import type { InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 import {
   invalidateNotificationQueries,
   notificationQueryKeys,
   patchNotificationUnreadCaches,
   resolveNotificationIdentityRef,
 } from './notification-query.js';
-import { formatNotificationTime, toErrorMessage } from './notification-panel-helpers.js';
+import { toErrorMessage } from './notification-panel-helpers.js';
 import { RejectGiftDialog } from './notification-reject-gift-dialog.js';
-import { getBadgeDefaultLabel } from './notification-panel-labels.js';
+import { NotificationPanelItemCard } from './notification-panel-item-card.js';
+import { NotificationPanelHeader } from './notification-panel-header.js';
 import {
-  FILTER_TABS,
   PAGE_SIZE,
   type ItemActionKind,
   type NotificationFilterTab,
@@ -401,50 +398,17 @@ export function NotificationPanel() {
   return (
     <div data-testid={E2E_IDS.panel('notification')} className="flex min-h-0 flex-1 flex-col px-5 pb-5 pt-4">
       <div className="mx-auto w-full max-w-4xl">
-        <Surface
-          tone="panel"
-          material="glass-regular"
-          padding="none"
-          className="rounded-[1.75rem] border-white/60 px-5 py-4 shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
-        >
-          <div className="flex h-14 shrink-0 items-center justify-between">
-            <h1 className="nimi-type-page-title text-[color:var(--nimi-text-primary)]">
-              {t('NotificationPanel.title', { defaultValue: 'Notifications' })}
-            </h1>
-            <Button
-              tone="ghost"
-              size="sm"
-              disabled={markingAllRead || unreadCount <= 0}
-              onClick={() => {
-                void markAllRead();
-              }}
-            >
-              {markingAllRead
-                ? t('NotificationPanel.markingAllRead', { defaultValue: 'Marking...' })
-                : t('NotificationPanel.markAllRead', { defaultValue: 'Mark All Read' })}
-            </Button>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2 pb-1">
-          {FILTER_TABS.map((tab) => (
-            <Button
-              key={tab}
-              onClick={() => setActiveFilter(tab)}
-              tone={activeFilter === tab ? 'primary' : 'secondary'}
-              size="sm"
-            >
-              {t(`NotificationPanel.filters.${tab}`, {
-                defaultValue: tab,
-              })}
-            </Button>
-          ))}
-          </div>
-          {feedback ? (
-            <div className="pt-4">
-              <InlineFeedback feedback={feedback} onDismiss={() => setFeedback(null)} />
-            </div>
-          ) : null}
-        </Surface>
+        <NotificationPanelHeader
+          activeFilter={activeFilter}
+          feedback={feedback}
+          markingAllRead={markingAllRead}
+          unreadCount={unreadCount}
+          onDismissFeedback={() => setFeedback(null)}
+          onFilterChange={setActiveFilter}
+          onMarkAllRead={() => {
+            void markAllRead();
+          }}
+        />
       </div>
 
       <ScrollArea
@@ -477,132 +441,35 @@ export function NotificationPanel() {
           </AppCardSurface>
         ) : null}
 
-        {filteredItems.map((item) => {
-          const badgeKey = getNimiNotificationBadgeKey(item);
-          const itemBusy = isBusyForItem(item.id);
-          const giftMessage = item.giftMessage?.trim() || '';
-          const body = item.body.trim();
-          const showGiftMessage = Boolean(giftMessage);
-          const showBody = Boolean(body) && (!showGiftMessage || body !== giftMessage);
-          const shouldOpenGiftInbox = (
-            (item.type === 'gift_received' || item.type === 'gift_status_updated')
-            && Boolean(item.giftTransactionId)
-          );
-
-          return (
-            <AppCardSurface
-              key={item.id}
-              onClick={() => {
-                if (!itemBusy) {
-                  if (shouldOpenGiftInbox) {
-                    navigateToGiftInbox(item.giftTransactionId);
-                  }
-                  void markOneRead(item.id);
-                }
-              }}
-              interactive={!itemBusy}
-              active={!item.isRead}
-              className={`group relative cursor-pointer rounded-2xl border-white/60 p-4 shadow-[0_14px_34px_rgba(15,23,42,0.05)] ${itemBusy ? 'pointer-events-none' : ''}`}
-              kind="promoted-glass"
-            >
-              {!item.isRead ? (
-                <div className="absolute right-4 top-4 h-2.5 w-2.5 rounded-full bg-mint-500 shadow-sm" />
-              ) : null}
-
-              <div className="flex gap-4">
-                <div className="relative shrink-0">
-                  <EntityAvatar
-                    imageUrl={item.actorAvatarUrl}
-                    name={item.actorName}
-                    kind={item.actorIsAgent ? 'agent' : 'human'}
-                    sizeClassName="h-12 w-12"
-                    className={item.actorIsAgent ? undefined : 'ring-2 ring-gray-100'}
-                    fallbackClassName={
-                      item.actorIsAgent
-                        ? undefined
-                        : (item.isRead
-                          ? 'bg-gray-100 text-gray-500 ring-2 ring-gray-100'
-                          : 'bg-mint-100 text-mint-700 ring-2 ring-gray-100')
-                    }
-                    textClassName="text-sm font-semibold"
-                  />
-                </div>
-
-                <div className="min-w-0 flex-1 pr-6">
-                  <p className="text-sm text-gray-800">
-                    <span className="font-bold">{item.actorName}</span>{' '}
-                    <span className="text-gray-600">{item.title.replace(item.actorName, '').trim()}</span>{' '}
-                    <span className="inline-flex items-center rounded-md bg-blue-50 px-1.5 py-0.5 text-[10px] font-medium text-blue-600">
-                      {t(`NotificationPanel.typeNotifications.${badgeKey}`, {
-                        defaultValue: getBadgeDefaultLabel(badgeKey),
-                      })}
-                    </span>
-                  </p>
-
-                  <p className="mt-0.5 text-xs text-gray-400">{formatNotificationTime(item.createdAt)}</p>
-
-                  <div className="mt-2 flex flex-wrap items-center gap-2">
-                    {item.giftSparkCost ? (
-                      <span className="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700">
-                        {t('NotificationPanel.sparkAmount', {
-                          amount: item.giftSparkCost,
-                          defaultValue: '{{amount}} Spark',
-                        })}
-                      </span>
-                    ) : null}
-                  </div>
-
-                  {showBody ? (
-                    <div className="mt-2 inline-block max-w-full rounded-xl rounded-tl-sm bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_5%,white)] px-3 py-2">
-                      <p className="line-clamp-2 text-sm text-[var(--nimi-text-secondary)]">"{body}"</p>
-                    </div>
-                  ) : null}
-
-                  {showGiftMessage ? (
-                    <div className="mt-2 inline-block max-w-full rounded-xl rounded-tl-sm bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,white)] px-3 py-2">
-                      <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--nimi-action-primary-bg)]">
-                        {t('NotificationPanel.senderMessage', { defaultValue: 'Sender message' })}
-                      </p>
-                      <p className="line-clamp-3 text-sm text-[var(--nimi-text-primary)]">"{giftMessage}"</p>
-                    </div>
-                  ) : null}
-
-                  <div className="mt-3 flex items-center gap-2">
-                    <NotificationActionButtons
-                      item={item}
-                      pendingItemAction={pendingItemAction}
-                      t={t}
-                      onAcceptFriendRequest={(target) => {
-                        void acceptFriendRequest(target);
-                      }}
-                      onRejectFriendRequest={(target) => {
-                        void rejectFriendRequest(target);
-                      }}
-                      onAcceptGift={(target) => {
-                        void acceptGift(target);
-                      }}
-                      onStartRejectGift={(target) => {
-                        setRejectingItem(target);
-                        setRejectReason('');
-                      }}
-                      onCreateReview={(target, rating, action) => {
-                        void createReview(target, rating, action);
-                      }}
-                    />
-                    {shouldOpenGiftInbox ? (
-                      <span className="inline-flex items-center gap-1 rounded-xl border border-mint-200 bg-mint-50 px-3 py-1.5 text-[12px] font-medium text-mint-700 transition-colors group-hover:border-mint-300 group-hover:bg-mint-100">
-                        {t('NotificationPanel.viewGift', { defaultValue: 'View Gift' })}
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="9 18 15 12 9 6" />
-                        </svg>
-                      </span>
-                    ) : null}
-                  </div>
-                </div>
-              </div>
-            </AppCardSurface>
-          );
-        })}
+        {filteredItems.map((item) => (
+          <NotificationPanelItemCard
+            key={item.id}
+            item={item}
+            itemBusy={isBusyForItem(item.id)}
+            pendingItemAction={pendingItemAction}
+            t={t}
+            navigateToGiftInbox={navigateToGiftInbox}
+            markOneRead={(id) => {
+              void markOneRead(id);
+            }}
+            onAcceptFriendRequest={(target) => {
+              void acceptFriendRequest(target);
+            }}
+            onRejectFriendRequest={(target) => {
+              void rejectFriendRequest(target);
+            }}
+            onAcceptGift={(target) => {
+              void acceptGift(target);
+            }}
+            onStartRejectGift={(target) => {
+              setRejectingItem(target);
+              setRejectReason('');
+            }}
+            onCreateReview={(target, rating, action) => {
+              void createReview(target, rating, action);
+            }}
+          />
+        ))}
 
         {notificationsQuery.hasNextPage ? (
           <div className="flex justify-center pt-2">

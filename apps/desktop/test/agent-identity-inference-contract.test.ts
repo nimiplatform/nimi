@@ -23,7 +23,12 @@ test('product-side profile and contacts models do not infer agent identity from 
 
 test('product-side social and explore flows do not infer agent identity from handle prefixes', () => {
   const socialProfileFlowSource = readSource('../src/shell/renderer/features/social/data/social-snapshot.ts');
-  const explorePanelSource = readSource('../src/shell/renderer/features/explore/explore-panel.tsx');
+  const explorePanelSource = [
+    '../src/shell/renderer/features/explore/explore-panel.tsx',
+    '../src/shell/renderer/features/explore/explore-agent-projection.ts',
+  ]
+    .map(readSource)
+    .join('\n');
   const agentRuntimeFlowSource = readSource('../src/shell/renderer/features/agent-detail/data/realm-agent-detail-data.ts');
   const handleIdentifierPath = path.join(import.meta.dirname, '../src/shell/renderer/features/agent-detail/data/handle-identifier.ts');
 

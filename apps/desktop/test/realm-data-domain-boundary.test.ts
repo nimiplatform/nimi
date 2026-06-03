@@ -14,6 +14,7 @@ test('Realm Data domain surfaces consume SDK or Kit projections instead of app-o
   const notificationPanelSource = readRenderer('features/notification/notification-panel.tsx');
   const humanComposerSource = readRenderer('features/chat/chat-human-canonical-composer-profile.tsx');
   const humanComponentsSource = readRenderer('features/chat/chat-human-canonical-components.tsx');
+  const humanTimelineModelSource = readRenderer('features/chat/chat-human-timeline-model.ts');
   const messageTimelineSource = readRenderer('features/turns/message-timeline-utils.tsx');
   const notificationQuerySource = readRenderer('features/notification/notification-query.ts');
   const preferencesSource = readRenderer('features/settings/settings-preferences-panel.tsx');
@@ -30,12 +31,15 @@ test('Realm Data domain surfaces consume SDK or Kit projections instead of app-o
   assert.doesNotMatch(notificationPanelSource, /NotificationsService\./);
   assert.doesNotMatch(notificationPanelSource, /function toNotificationListView/);
 
-  for (const source of [humanComposerSource, humanComponentsSource, messageTimelineSource]) {
+  for (const source of [humanComposerSource, humanTimelineModelSource, messageTimelineSource]) {
     assert.match(source, /@nimiplatform\/kit\/features\/chat\/realm/);
     assert.doesNotMatch(source, /chat-attachment-contract/);
     assert.doesNotMatch(source, /HumanChatsService\./);
     assert.doesNotMatch(source, /ResourcesService\./);
   }
+  assert.doesNotMatch(humanComponentsSource, /chat-attachment-contract/);
+  assert.doesNotMatch(humanComponentsSource, /HumanChatsService\./);
+  assert.doesNotMatch(humanComponentsSource, /ResourcesService\./);
 
   assert.match(preferencesSource, /loadRealmUserNotificationSettings/);
   assert.match(preferencesSource, /updateRealmUserNotificationSettings/);
