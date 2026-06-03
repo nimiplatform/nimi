@@ -18,6 +18,7 @@ import { RegisterAppResponse } from '../src/runtime/generated/runtime/v1/auth.js
 import { ReasonCode } from '../src/types/index.js';
 
 const testDir = path.dirname(fileURLToPath(import.meta.url));
+const srcDir = path.join(testDir, '..', 'src');
 const distPlatformClientDtsPath = path.join(testDir, '..', 'dist', 'platform-client.d.ts');
 const distRuntimeTypesDtsPath = path.join(testDir, '..', 'dist', 'runtime', 'types-runtime-modules.d.ts');
 
@@ -63,9 +64,22 @@ test('createPlatformClient initializes runtime, realm, and grouped domains', asy
   assert.equal(client.realm.baseUrl, 'https://realm.example');
   assert.equal(typeof client.domains.auth.getCurrentUser, 'function');
   assert.equal(typeof client.domains.runtimeAdmin.listConnectors, 'function');
+  assert.equal('worldGovernance' in (client.domains as Record<string, unknown>), false);
   assert.equal(typeof client.worldEvolution.executionEvents.read, 'function');
   assert.equal(typeof client.worldEvolution.commitRequests.read, 'function');
   assert.equal(getPlatformClient(), client);
+});
+
+test('platform client does not expose ungenerated Realm world governance raw APIs', () => {
+  assert.equal(existsSync(path.join(srcDir, 'platform-client-world-governance.ts')), false);
+  const platformClientSource = readFileSync(path.join(srcDir, 'platform-client.ts'), 'utf8');
+  const unsafeRawGuardSource = readFileSync(
+    path.join(testDir, '..', '..', 'scripts', 'check-sdk-unsafe-raw-usage.mjs'),
+    'utf8',
+  );
+
+  assert.doesNotMatch(platformClientSource, /worldGovernance|admin\/worlds|unsafeRaw\.request/);
+  assert.doesNotMatch(unsafeRawGuardSource, /platform-client-world-governance/);
 });
 
 test('platform client worldEvolution facade fails closed when no selector-read provider is attached', async () => {

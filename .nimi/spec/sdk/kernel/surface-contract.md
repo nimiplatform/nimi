@@ -130,6 +130,10 @@ Realm SDK 公开符号（类型名、service 名、公开方法名、property-en
 - Realm SDK 不再公开 `realm.raw` 兼容别名；如确有未覆盖的底层场景，只允许显式 `realm.unsafeRaw` 命名。
 - Runtime SDK 不再公开 `runtime.raw` 兼容别名；低层调用统一使用 `runtime.call(...)` 或显式 `runtime.unsafeRaw`。
 - 公开 surface 不允许保留 legacy alias 作为“平滑迁移”层；未规范化合同必须通过 `unsafe` 命名暴露，避免被误读为稳定 typed API。
+- `unsafeRaw` 是显式底层 escape hatch 本身，不得被 SDK public domain
+  facade 包装成稳定 API。任何 Realm operation 在进入 SDK public domain
+  之前必须先进入 Realm OpenAPI/codegen 或被登记为具名 typed adapter；不得以
+  `unknown` request/response 和字面量 `/api/...` path 暴露。
 - 一旦 Realm-managed runtime grant 合同落地，bridge helper 必须直接调用生成的 typed service（`realm.services.RuntimeRealmGrantsService.issueRuntimeRealmGrant`），不得继续走 `realm.unsafeRaw.request(...)`。
 
 执行命令：

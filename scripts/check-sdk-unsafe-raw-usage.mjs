@@ -10,7 +10,6 @@ const allowedFiles = new Set([
   path.join(sdkSrcRoot, 'realm', 'client.ts'),
   path.join(sdkSrcRoot, 'runtime', 'runtime.ts'),
   path.join(sdkSrcRoot, 'runtime', 'runtime-method-contracts.assertions.ts'),
-  path.join(sdkSrcRoot, 'platform-client-world-governance.ts'),
 ]);
 
 const rawUsagePattern = /\.(?:raw|unsafeRaw)\.(request|call)(<[^>(]+>)?\(/g;

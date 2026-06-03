@@ -435,7 +435,7 @@ rules:
   evidence_refs:
   - sdk_kernel_consistency
   - sdk_unsafe_raw_gate
-  note: Unsafe raw escape hatches are naming-gated by check:sdk-unsafe-raw-usage
+  note: Unsafe raw escape hatches are naming-gated by check:sdk-unsafe-raw-usage; stable SDK public domains must not wrap ungenerated raw Realm operations behind non-unsafe typed-looking APIs
   evidence_requirement: required
 - rule_id: S-SURFACE-008
   evidence_refs:
