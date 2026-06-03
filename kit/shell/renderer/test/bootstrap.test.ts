@@ -56,6 +56,7 @@ describe('shell renderer bootstrap primitives', () => {
   });
 
   it('derives runtime daemon reachability from running state and shared version policy', () => {
+    expect(isRuntimeDaemonReachable({ running: false, version: undefined }, { appVersion: '0.1.0' })).toBe(false);
     expect(isRuntimeDaemonReachable({ running: false, version: '0.1.0' }, { appVersion: '0.1.0' })).toBe(false);
     expect(isRuntimeDaemonReachable({ running: true, version: '0.1.0' }, { appVersion: '0.1.0' })).toBe(true);
     expect(isRuntimeDaemonReachable({ running: true, version: '1.0.0' }, { appVersion: '0.1.0' })).toBe(false);

@@ -140,7 +140,9 @@ describe('performDesktopWebAuth direct-to-loopback flow', () => {
     )).toBe('https://realm.nimi.test/api/auth/oauth/authorize?response_type=code&client_id=nimi-desktop');
     for (const value of [
       '',
+      'not a url',
       'file:///tmp/login',
+      'https://auth.nimi.invalid/oauth/authorize?state=s&challenge=c',
       'https://realm.nimi.test/api/auth/oauth/token',
       'https://realm.nimi.test/api/auth/oauth/authorize#/login',
       'https://realm.nimi.test/api/auth/oauth/authorize?desktop_callback=http%3A%2F%2Flocalhost',

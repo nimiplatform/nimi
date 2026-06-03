@@ -281,8 +281,9 @@ test('runtime agent snapshot recovery binds active turns when snapshot request m
 
 test('runtime agent terminal snapshot recovery may project a Runtime snapshot stream after the current request', async () => {
   const enqueued: RuntimeAgentConsumeEvent[] = [];
+  const logs: Array<Record<string, unknown>> = [];
   const result = await recoverRuntimeAgentTerminalSnapshot({
-    reason: 'subscription_done_retry',
+    reason: 'subscription_terminal_stall',
     request: {
       ownerUserId: 'user-1',
       realmAgentId: 'agent-1',
@@ -320,7 +321,9 @@ test('runtime agent terminal snapshot recovery may project a Runtime snapshot st
     enqueue(event) {
       enqueued.push(event);
     },
-    logEvent() {},
+    logEvent(event) {
+      logs.push(event);
+    },
   });
 
   assert.equal(result, 'terminal');
@@ -336,6 +339,9 @@ test('runtime agent terminal snapshot recovery may project a Runtime snapshot st
     'snapshot:turn-1',
     'snapshot:turn-1',
   ]);
+  assert.equal(logs[0]?.details && (logs[0].details as Record<string, unknown>).recoveredWithoutAcceptedEvent, true);
+  assert.equal((enqueued[0] as { turnId?: string } | undefined)?.turnId, 'turn-1');
+  assert.equal((enqueued[0] as { streamId?: string } | undefined)?.streamId, 'snapshot:turn-1');
 });
 
 test('runtime agent snapshot recovery rejects stale terminal lastTurn from before current request', async () => {

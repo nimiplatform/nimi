@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   convertTauriFileSrc,
+  hasTauriInvoke,
   hasTauriRuntime,
   invokeTauri,
   listenTauri,
@@ -24,13 +25,28 @@ type TauriRuntimeTestGlobal = typeof globalThis & {
     invoke: (command: string, payload?: unknown) => Promise<unknown>;
     listen: (eventName: string, handler: TauriEventHandler) => Promise<() => void>;
   };
+  __TAURI_INTERNALS__?: unknown;
+  __TAURI_IPC__?: unknown;
+  window?: {
+    __NIMI_TAURI_TEST__?: TauriRuntimeTestGlobal['__NIMI_TAURI_TEST__'];
+    __NIMI_TAURI_RUNTIME__?: TauriRuntimeTestGlobal['__NIMI_TAURI_RUNTIME__'];
+    __TAURI_INTERNALS__?: unknown;
+    __TAURI_IPC__?: unknown;
+  };
 };
 
 const testGlobal = globalThis as TauriRuntimeTestGlobal;
 
-afterEach(() => {
+function resetTauriGlobals(): void {
   delete testGlobal.__NIMI_TAURI_TEST__;
   delete testGlobal.__NIMI_TAURI_RUNTIME__;
+  delete testGlobal.__TAURI_INTERNALS__;
+  delete testGlobal.__TAURI_IPC__;
+  delete testGlobal.window;
+}
+
+afterEach(() => {
+  resetTauriGlobals();
 });
 
 describe('installNimiShellRuntimeBridge', () => {
@@ -100,6 +116,7 @@ describe('installNimiShellRuntimeBridge', () => {
     };
 
     expect(hasTauriRuntime()).toBe(false);
+    expect(hasTauriInvoke()).toBe(false);
     await expect(invokeTauri('desktop_command', { ok: true })).resolves.toEqual({
       command: 'desktop_command',
       payload: { ok: true },
@@ -109,6 +126,15 @@ describe('installNimiShellRuntimeBridge', () => {
     expect(invokeCalls).toEqual([{ command: 'desktop_command', payload: { ok: true } }]);
     expect(listenCalls).toEqual(['menu-bar://quit-requested']);
     expect(convertTauriFileSrc('file:///tmp/avatar.vrm')).toBe('file:///tmp/avatar.vrm');
+  });
+
+  it('detects native Tauri invoke by native runtime markers only', () => {
+    testGlobal.__TAURI_INTERNALS__ = {
+      invoke: () => Promise.resolve(null),
+    };
+
+    expect(hasTauriRuntime()).toBe(true);
+    expect(hasTauriInvoke()).toBe(true);
   });
 });
 
