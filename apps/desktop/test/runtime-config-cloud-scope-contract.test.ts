@@ -8,6 +8,9 @@ function readWorkspaceFile(relativePath: string): string {
 }
 
 const cloudPageSource = readWorkspaceFile('src/shell/renderer/features/runtime-config/runtime-config-page-cloud.tsx');
+const cloudDetailPanelSource = readWorkspaceFile('src/shell/renderer/features/runtime-config/runtime-config-page-cloud-detail-panel.tsx');
+const cloudPageSurfaceSource = `${cloudPageSource}\n${cloudDetailPanelSource}`;
+const cloudConnectorListSource = readWorkspaceFile('src/shell/renderer/features/runtime-config/runtime-config-page-cloud-connector-list.tsx');
 const e2eIdsSource = readWorkspaceFile('src/shell/renderer/testability/e2e-ids.ts');
 const e2eSelectorsSource = readWorkspaceFile('e2e/helpers/selectors.mjs');
 
@@ -22,9 +25,9 @@ test('runtime config cloud scope contract: runtime-system connectors stay read-o
   assert.match(cloudPageSource, /const isRuntimeSystem = connectorScope === 'runtime-system';/);
   assert.match(cloudPageSource, /const isMachineGlobal = connectorScope === 'machine-global';/);
   assert.match(cloudPageSource, /const isSystemOwned = isRuntimeSystem;/);
-  assert.match(cloudPageSource, /disabled=\{isRuntimeSystem\}/);
+  assert.match(cloudPageSurfaceSource, /disabled=\{isRuntimeSystem\}/);
   assert.match(
-    cloudPageSource,
+    cloudPageSurfaceSource,
     /managedMachineGlobal', \{ defaultValue: 'Shared across accounts on this machine' \}\)/,
   );
 });
@@ -38,9 +41,9 @@ test('runtime config cloud scope contract: connector scope badges expose stable 
     e2eSelectorsSource,
     /runtimeConnectorScopeBadge: \(connectorId\) => `runtime-connector-scope-badge:\$\{connectorId\}`,/,
   );
-  assert.match(cloudPageSource, /data-testid=\{E2E_IDS\.runtimeConnectorScopeBadge\(connector\.id\)\}/);
-  assert.match(cloudPageSource, /runtimeConfig\.cloud\.machineGlobal/);
-  assert.match(cloudPageSource, /runtimeConfig\.cloud\.runtimeSystem/);
+  assert.match(cloudConnectorListSource, /data-testid=\{E2E_IDS\.runtimeConnectorScopeBadge\(connector\.id\)\}/);
+  assert.match(cloudConnectorListSource, /runtimeConfig\.cloud\.machineGlobal/);
+  assert.match(cloudConnectorListSource, /runtimeConfig\.cloud\.runtimeSystem/);
 });
 
 test('runtime config cloud scope contract: vendor options are derived from runtime provider catalog', () => {
@@ -48,13 +51,13 @@ test('runtime config cloud scope contract: vendor options are derived from runti
   assert.match(cloudPageSource, /const vendorOptions = useMemo\(\(\) => \{/);
   assert.match(cloudPageSource, /\.filter\(\(entry\) => entry\.managedSupported && entry\.provider !== 'local'\)/);
   assert.match(cloudPageSource, /providerToVendor\(entry\.provider\)/);
-  assert.doesNotMatch(cloudPageSource, /VENDOR_ORDER_V11/);
-  assert.match(cloudPageSource, /options=\{vendorOptions\}/);
+  assert.doesNotMatch(cloudPageSurfaceSource, /VENDOR_ORDER_V11/);
+  assert.match(cloudPageSurfaceSource, /options=\{vendorOptions\}/);
 });
 
 test('runtime config cloud scope contract: only draft connectors can change vendor', () => {
   assert.match(cloudPageSource, /const canEditVendor = !isRuntimeSystem && isDraft;/);
   assert.match(cloudPageSource, /if \(!selectedConnector \|\| !canEditVendor\) return;/);
-  assert.match(cloudPageSource, /disabled=\{!canEditVendor\}/);
-  assert.match(cloudPageSource, /Vendor is fixed after connector creation\. Create a new connector to switch provider\./);
+  assert.match(cloudPageSurfaceSource, /disabled=\{!canEditVendor\}/);
+  assert.match(cloudPageSurfaceSource, /Vendor is fixed after connector creation\. Create a new connector to switch provider\./);
 });

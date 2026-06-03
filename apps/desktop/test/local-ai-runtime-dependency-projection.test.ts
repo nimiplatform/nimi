@@ -17,6 +17,13 @@ const runtimeProjectionSources = `${runtimeStateSource}\n${runtimeReadinessSourc
 const installedSectionSource = readWorkspaceFile(
   'src/shell/renderer/features/runtime-config/runtime-config-local-model-center-installed-section.tsx',
 );
+const installedRowsSource = readWorkspaceFile(
+  'src/shell/renderer/features/runtime-config/runtime-config-local-model-center-installed-rows.tsx',
+);
+const runtimeDependencyBannerSource = readWorkspaceFile(
+  'src/shell/renderer/features/runtime-config/runtime-config-local-model-center-runtime-dependency-banner.tsx',
+);
+const installedSectionProjectionSource = `${installedSectionSource}\n${installedRowsSource}\n${runtimeDependencyBannerSource}`;
 const runtimeViewSource = readWorkspaceFile(
   'src/shell/renderer/features/runtime-config/runtime-config-local-model-center-runtime-view.tsx',
 );
@@ -51,26 +58,26 @@ test('local model center setup CTA projects shared dependency resolver truth at 
   assert.match(installedSectionSource, /props\.onCancelRuntimeDependencyJob/);
   assert.match(installedSectionSource, /props\.onRetryRuntimeDependencyJob/);
   assert.match(installedSectionSource, /props\.onRepairRuntimeDependency/);
-  assert.match(installedSectionSource, /isLocalRuntimeEnvironmentDependencyJobActiveState/);
-  assert.match(installedSectionSource, /isLocalRuntimeEnvironmentDependencyJobRetryableState/);
-  assert.match(installedSectionSource, /isLocalRuntimeEnvironmentDependencyNeedsConfirmationState/);
-  assert.match(installedSectionSource, /isLocalRuntimeEnvironmentDependencyReadyState/);
-  assert.match(installedSectionSource, /isLocalRuntimeEnvironmentDependencyJobFailedState/);
-  assert.match(installedSectionSource, /runtimeDependencyBannerTitle/);
-  assert.match(installedSectionSource, /runtimeDependencyStatusDetail/);
-  assert.doesNotMatch(installedSectionSource, /ACTIVE_RUNTIME_DEPENDENCY_JOB_STATES/);
-  assert.doesNotMatch(installedSectionSource, /RETRYABLE_RUNTIME_DEPENDENCY_JOB_STATES/);
-  assert.doesNotMatch(installedSectionSource, /dependency\?\.state === 'needs_confirmation'/);
-  assert.match(installedSectionSource, /dependency\.confirmationRequired/);
-  assert.doesNotMatch(installedSectionSource, /cudaModelWaitingForSetup/);
-  assert.match(installedSectionSource, /Local image runtime setup/);
-  assert.match(installedSectionSource, /Local image runtime setup failed/);
-  assert.doesNotMatch(installedSectionSource, /Nimi needs one local CUDA runtime package before local models can use GPU acceleration/);
-  assert.doesNotMatch(installedSectionSource, /sharedRuntimeDependencyDetail/);
-  assert.doesNotMatch(installedSectionSource, /dependency\.message \|\| props\.sharedRuntimeDependency/);
-  assert.doesNotMatch(installedSectionSource, /materializable_requires_confirmation/);
+  assert.match(installedSectionProjectionSource, /isLocalRuntimeEnvironmentDependencyJobActiveState/);
+  assert.match(installedSectionProjectionSource, /isLocalRuntimeEnvironmentDependencyJobRetryableState/);
+  assert.match(installedSectionProjectionSource, /isLocalRuntimeEnvironmentDependencyNeedsConfirmationState/);
+  assert.match(installedSectionProjectionSource, /isLocalRuntimeEnvironmentDependencyReadyState/);
+  assert.match(installedSectionProjectionSource, /isLocalRuntimeEnvironmentDependencyJobFailedState/);
+  assert.match(installedSectionProjectionSource, /runtimeDependencyBannerTitle/);
+  assert.match(installedSectionProjectionSource, /runtimeDependencyStatusDetail/);
+  assert.doesNotMatch(installedSectionProjectionSource, /ACTIVE_RUNTIME_DEPENDENCY_JOB_STATES/);
+  assert.doesNotMatch(installedSectionProjectionSource, /RETRYABLE_RUNTIME_DEPENDENCY_JOB_STATES/);
+  assert.doesNotMatch(installedSectionProjectionSource, /dependency\?\.state === 'needs_confirmation'/);
+  assert.match(installedSectionProjectionSource, /dependency\.confirmationRequired/);
+  assert.doesNotMatch(installedSectionProjectionSource, /cudaModelWaitingForSetup/);
+  assert.match(installedSectionProjectionSource, /Local image runtime setup/);
+  assert.match(installedSectionProjectionSource, /Local image runtime setup failed/);
+  assert.doesNotMatch(installedSectionProjectionSource, /Nimi needs one local CUDA runtime package before local models can use GPU acceleration/);
+  assert.doesNotMatch(installedSectionProjectionSource, /sharedRuntimeDependencyDetail/);
+  assert.doesNotMatch(installedSectionProjectionSource, /dependency\.message \|\| props\.sharedRuntimeDependency/);
+  assert.doesNotMatch(installedSectionProjectionSource, /materializable_requires_confirmation/);
   assert.doesNotMatch(
-    installedSectionSource,
+    installedSectionProjectionSource,
     /props\.onSetupRuntimeDependency\(asset\.localAssetId\)/,
   );
 });

@@ -7,6 +7,10 @@ const installedSectionPath = path.resolve(
   process.cwd(),
   'src/shell/renderer/features/runtime-config/runtime-config-local-model-center-installed-section.tsx',
 );
+const installedRowsPath = path.resolve(
+  process.cwd(),
+  'src/shell/renderer/features/runtime-config/runtime-config-local-model-center-installed-rows.tsx',
+);
 const controllerPath = path.resolve(
   process.cwd(),
   'src/shell/renderer/features/runtime-config/runtime-config-panel-controller-install-actions-models.ts',
@@ -18,6 +22,10 @@ const localPagePath = path.resolve(
 const localModelCenterStatePath = path.resolve(
   process.cwd(),
   'src/shell/renderer/features/runtime-config/runtime-config-use-local-model-center-runtime-state.ts',
+);
+const localModelCenterUnregisteredAssetsPath = path.resolve(
+  process.cwd(),
+  'src/shell/renderer/features/runtime-config/runtime-config-use-local-model-center-unregistered-assets.ts',
 );
 const localModelCenterInstalledAssetsPath = path.resolve(
   process.cwd(),
@@ -91,9 +99,13 @@ const tauriLocalRuntimePackagePath = path.resolve(
 );
 
 const installedSectionSource = readFileSync(installedSectionPath, 'utf-8');
+const installedRowsSource = readFileSync(installedRowsPath, 'utf-8');
+const installedSectionProjectionSource = `${installedSectionSource}\n${installedRowsSource}`;
 const controllerSource = readFileSync(controllerPath, 'utf-8');
 const localPageSource = readFileSync(localPagePath, 'utf-8');
 const localModelCenterStateSource = readFileSync(localModelCenterStatePath, 'utf-8');
+const localModelCenterUnregisteredAssetsSource = readFileSync(localModelCenterUnregisteredAssetsPath, 'utf-8');
+const localModelCenterStateProjectionSource = `${localModelCenterStateSource}\n${localModelCenterUnregisteredAssetsSource}`;
 const localModelCenterInstalledAssetsSource = readFileSync(localModelCenterInstalledAssetsPath, 'utf-8');
 const localModelCenterImportActionsSource = readFileSync(localModelCenterImportActionsPath, 'utf-8');
 const localModelCenterImportFilePlanSource = readFileSync(localModelCenterImportFilePlanPath, 'utf-8');
@@ -110,14 +122,14 @@ const tauriLocalRuntimePackageSource = readFileSync(tauriLocalRuntimePackagePath
 const desktopReadmeSource = readFileSync(path.resolve(process.cwd(), 'README.md'), 'utf-8');
 
 test('local model center installed list is status-only and no longer renders a lifecycle toggle', () => {
-  assert.doesNotMatch(installedSectionSource, /<Toggle/);
-  assert.doesNotMatch(installedSectionSource, /onStartModel:/);
-  assert.doesNotMatch(installedSectionSource, /onStopModel:/);
-  assert.doesNotMatch(installedSectionSource, /localModelLifecycleById:/);
-  assert.doesNotMatch(installedSectionSource, /filteredInstalledModels/);
+  assert.doesNotMatch(installedSectionProjectionSource, /<Toggle/);
+  assert.doesNotMatch(installedSectionProjectionSource, /onStartModel:/);
+  assert.doesNotMatch(installedSectionProjectionSource, /onStopModel:/);
+  assert.doesNotMatch(installedSectionProjectionSource, /localModelLifecycleById:/);
+  assert.doesNotMatch(installedSectionProjectionSource, /filteredInstalledModels/);
   assert.match(installedSectionSource, /filteredInstalledRunnableAssets/);
-  assert.match(installedSectionSource, /asset\.status === 'installed'/);
-  assert.match(installedSectionSource, /runtimeConfig\.localModelCenter\.installed/);
+  assert.match(installedSectionProjectionSource, /asset\.status === 'installed'/);
+  assert.match(installedSectionProjectionSource, /runtimeConfig\.localModelCenter\.installed/);
 });
 
 test('desktop local page no longer wires start\\/stop\\/restart product actions into local model center', () => {
@@ -143,10 +155,10 @@ test('local model center consumes SDK local runtime asset-kind DX helpers', () =
   assert.match(localModelCenterUseHelpersSource, /normalizeLocalRuntimeAssetDeclaration/);
   assert.match(localModelCenterUseHelpersSource, /normalizeLocalRuntimeDependencyAssetDeclaration/);
   assert.match(localModelCenterUseHelpersSource, /localRuntimeCapabilitiesForAssetKind/);
-  assert.match(localModelCenterStateSource, /normalizeAssetDeclaration/);
+  assert.match(localModelCenterStateProjectionSource, /normalizeAssetDeclaration/);
   assert.doesNotMatch(localModelCenterUseHelpersSource, /ASSET_KIND_OPTIONS\.find/);
   assert.doesNotMatch(localModelCenterUseHelpersSource, /assetKind === 'auxiliary'/);
-  assert.doesNotMatch(localModelCenterStateSource, /case 'controlnet'/);
+  assert.doesNotMatch(localModelCenterStateProjectionSource, /case 'controlnet'/);
 });
 
 test('local model center consumes SDK local recommendation DX helpers', () => {
@@ -238,13 +250,13 @@ test('unregistered assets import flow also captures attached endpoints for media
   assert.match(localModelCenterSectionsSource, /importAllowedByPath: Record<string, boolean>/);
   assert.match(localModelCenterSectionsSource, /onEndpointChange: \(path: string, endpoint: string\) => void/);
   assert.match(localModelCenterSectionsSource, /const showEndpointField = endpointRequired \|\| Boolean\(endpointValue\) \|\| Boolean\(endpointHint\)/);
-  assert.match(localModelCenterStateSource, /const \[unregisteredEndpointByPath, setUnregisteredEndpointByPath\] = useState<Record<string, string>>\(\{\}\)/);
-  assert.match(localModelCenterStateSource, /const \[unregisteredEndpointRequiredByPath, setUnregisteredEndpointRequiredByPath\] = useState<Record<string, boolean>>\(\{\}\)/);
-  assert.match(localModelCenterStateSource, /const \[unregisteredCompatibilityHintByPath, setUnregisteredCompatibilityHintByPath\] = useState<Record<string, string>>\(\{\}\)/);
-  assert.match(localModelCenterStateSource, /const \[unregisteredImportAllowedByPath, setUnregisteredImportAllowedByPath\] = useState<Record<string, boolean>>\(\{\}\)/);
-  assert.doesNotMatch(localModelCenterStateSource, /localRuntime\.resolveInstallPlan\(/);
-  assert.doesNotMatch(localModelCenterStateSource, /const previewFileName = basenameFromRuntimePath\(asset\.path\)/);
-  assert.doesNotMatch(localModelCenterStateSource, /planCanonicalImageCompatibilityHint\(plan\)/);
+  assert.match(localModelCenterStateProjectionSource, /const \[unregisteredEndpointByPath, setUnregisteredEndpointByPath\] = useState<Record<string, string>>\(\{\}\)/);
+  assert.match(localModelCenterStateProjectionSource, /const \[unregisteredEndpointRequiredByPath, setUnregisteredEndpointRequiredByPath\] = useState<Record<string, boolean>>\(\{\}\)/);
+  assert.match(localModelCenterStateProjectionSource, /const \[unregisteredCompatibilityHintByPath, setUnregisteredCompatibilityHintByPath\] = useState<Record<string, string>>\(\{\}\)/);
+  assert.match(localModelCenterStateProjectionSource, /const \[unregisteredImportAllowedByPath, setUnregisteredImportAllowedByPath\] = useState<Record<string, boolean>>\(\{\}\)/);
+  assert.doesNotMatch(localModelCenterStateProjectionSource, /localRuntime\.resolveInstallPlan\(/);
+  assert.doesNotMatch(localModelCenterStateProjectionSource, /const previewFileName = basenameFromRuntimePath\(asset\.path\)/);
+  assert.doesNotMatch(localModelCenterStateProjectionSource, /planCanonicalImageCompatibilityHint\(plan\)/);
   assert.match(localModelCenterStateSource, /importActions\.importAssetFromPath\(\s*assetPath,\s*declaration,\s*String\(unregisteredEndpointByPath\[assetPath\] \|\| ''\)\.trim\(\) \|\| undefined,\s*\)/s);
   assert.match(localModelCenterSectionsSource, /&& props\.importAllowedByPath\[asset\.path\] !== false/);
   assert.doesNotMatch(localModelCenterSectionsSource, /&& !compatibilityHint/);
@@ -255,19 +267,19 @@ test('scaffolded unregistered asset imports refresh installed asset sections imm
 });
 
 test('installed attached-endpoint assets expose runtime reason-code repair flow instead of forcing remove and reimport', () => {
-  assert.match(installedSectionSource, /function assetNeedsAttachedEndpointRepair\(/);
-  assert.match(installedSectionSource, /asset\.reasonCode \|\| ''/);
-  assert.doesNotMatch(installedSectionSource, /127\.0\.0\.1:8321|127\.0\.0\.1:8330|defaultManagedEndpointForEngine/);
-  assert.match(installedSectionSource, /runtimeConfig\.localModelCenter\.repair/);
-  assert.match(installedSectionSource, /props\.onRepairAsset\(asset\.localAssetId, repairEndpoint\)/);
+  assert.match(installedSectionProjectionSource, /function assetNeedsAttachedEndpointRepair\(/);
+  assert.match(installedSectionProjectionSource, /asset\.reasonCode \|\| ''/);
+  assert.doesNotMatch(installedSectionProjectionSource, /127\.0\.0\.1:8321|127\.0\.0\.1:8330|defaultManagedEndpointForEngine/);
+  assert.match(installedSectionProjectionSource, /runtimeConfig\.localModelCenter\.repair/);
+  assert.match(installedSectionProjectionSource, /props\.onRepairAsset\(props\.asset\.localAssetId, props\.repairEndpoint\)/);
   assert.match(localModelCenterStateSource, /const repairInstalledAsset = useCallback/);
   assert.match(localModelCenterStateSource, /Runtime manifest unavailable for asset repair/);
 });
 
 test('installed unhealthy assets surface runtime health detail in the model list', () => {
-  assert.match(installedSectionSource, /asset\.status === 'unhealthy' && String\(asset\.healthDetail \|\| ''\)\.trim\(\)/);
-  assert.match(installedSectionSource, /asset\.status === 'unhealthy' && String\(asset\.reasonCode \|\| ''\)\.trim\(\)/);
-  assert.match(installedSectionSource, /text-\[var\(--nimi-status-danger\)\]/);
+  assert.match(installedSectionProjectionSource, /props\.asset\.status === 'unhealthy' && String\(props\.asset\.healthDetail \|\| ''\)\.trim\(\)/);
+  assert.match(installedSectionProjectionSource, /props\.asset\.status === 'unhealthy' && String\(props\.asset\.reasonCode \|\| ''\)\.trim\(\)/);
+  assert.match(installedSectionProjectionSource, /text-\[var\(--nimi-status-danger\)\]/);
 });
 
 test('runtime local lifecycle controller remains available only as non-product maintenance surface', () => {

@@ -52,8 +52,8 @@ test('describeRuntimeDaemonIssue returns null for unrelated runtime errors', () 
 });
 
 test('runtime config pages render runtime daemon guidance helper', () => {
-  const runtimePage = readFileSync(
-    resolve(import.meta.dirname, '../src/shell/renderer/features/runtime-config/runtime-config-page-runtime.tsx'),
+  const runtimeOverviewTab = readFileSync(
+    resolve(import.meta.dirname, '../src/shell/renderer/features/runtime-config/runtime-config-runtime-overview-tab.tsx'),
     'utf-8',
   );
   const overviewPage = readFileSync(
@@ -61,6 +61,6 @@ test('runtime config pages render runtime daemon guidance helper', () => {
     'utf-8',
   );
 
-  assert.match(runtimePage, /describeRuntimeDaemonIssue/);
+  assert.match(runtimeOverviewTab, /describeRuntimeDaemonIssue/);
   assert.match(overviewPage, /describeRuntimeDaemonIssue/);
 });

@@ -49,8 +49,11 @@ const advancedPageSource = readRuntimeConfigSource('runtime-config-page-advanced
 const overviewPageSource = readRuntimeConfigSource('runtime-config-page-overview.tsx');
 const profilesPageSource = readRuntimeConfigSource('runtime-config-page-profiles.tsx');
 const profilesLibraryPanelSource = readRuntimeConfigSource('runtime-config-profile-library-panel.tsx');
+const profilesManagementSectionsSource = readRuntimeConfigSource('runtime-config-profile-management-sections.tsx');
 const cloudPageSource = readRuntimeConfigSource('runtime-config-page-cloud.tsx');
 const runtimeDepsPageSource = readRuntimeConfigSource('runtime-config-page-runtime.tsx');
+const runtimeOverviewTabSource = readRuntimeConfigSource('runtime-config-runtime-overview-tab.tsx');
+const runtimeNodeMatrixSource = readRuntimeConfigSource('runtime-config-runtime-node-matrix.tsx');
 
 const CANONICAL_SIX = [
   'overview',
@@ -242,9 +245,9 @@ test('ordinary task 2: see the active Default Profile for new scopes (Profiles)'
 test('ordinary task 3: import / edit / restore / export profiles (Profiles)', () => {
   assert.match(profilesLibraryPanelSource, /runtime-profiles-account-library/);
   assert.match(profilesLibraryPanelSource, /runtime-profiles-create/);
-  assert.match(profilesPageSource, /runtime-profiles-import/);
-  assert.match(profilesPageSource, /runtime-profiles-export/);
-  assert.match(profilesPageSource, /runtime-profiles-factory-restore/);
+  assert.match(profilesManagementSectionsSource, /runtime-profiles-import/);
+  assert.match(profilesManagementSectionsSource, /runtime-profiles-export/);
+  assert.match(profilesManagementSectionsSource, /runtime-profiles-factory-restore/);
   assert.match(profilesPageSource, /deleteAccountProfileLibraryEntry/);
   // Per-capability edit is delegated to the kit AI Config component.
   assert.match(profilesPageSource, /ModelConfigAiModelHub/);
@@ -291,8 +294,8 @@ test('ordinary task 8: Environment exposes no ordinary data-root migration stub'
 test('ordinary task 9: see why an app/model/profile is unusable without raw logs', () => {
   // Runtime health projects humanized reason text, not raw logs.
   assert.match(runtimeDepsPageSource, /RuntimeHealthSection/);
-  assert.match(runtimeDepsPageSource, /localSpeechReasonSummary/);
+  assert.match(runtimeNodeMatrixSource, /localSpeechReasonSummary/);
   // Overview projects capability coverage + daemon guidance as product copy.
   assert.match(overviewPageSource, /capabilitySourceUnavailable/);
-  assert.match(overviewPageSource, /describeRuntimeDaemonIssue/);
+  assert.match(runtimeOverviewTabSource, /describeRuntimeDaemonIssue/);
 });

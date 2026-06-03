@@ -1,0 +1,408 @@
+import type {
+  LocalRuntimeAssetRecord,
+  LocalRuntimeEnvironmentDependencyJob,
+  LocalRuntimeEnvironmentPlanDependency,
+} from '@nimiplatform/sdk/runtime';
+import {
+  isLocalRuntimeEnvironmentDependencyJobActiveState,
+  isLocalRuntimeEnvironmentDependencyJobRetryableState,
+  isLocalRuntimeEnvironmentDependencyNeedsConfirmationState,
+  isLocalRuntimeEnvironmentDependencyReadyState,
+  isLocalRuntimeEnvironmentDependencyRepairRequiredState,
+} from '@nimiplatform/sdk/runtime';
+import { i18n } from '@renderer/i18n';
+import { localSpeechReasonSummary } from './runtime-config-model-center-utils';
+import {
+  formatAssetKindLabel,
+  ModelIcon,
+  recommendationSummary,
+  recommendationTierClass,
+  recommendationTierLabel,
+  TrashIcon,
+} from './runtime-config-local-model-center-helpers';
+import { runtimeDependencyStatusDetail } from './runtime-config-local-model-center-runtime-dependency-banner';
+
+export {
+  RuntimeDependencyAttentionBanner,
+  runtimeDependencyBannerTitle,
+  runtimeDependencyStatusDetail,
+} from './runtime-config-local-model-center-runtime-dependency-banner';
+
+export function assetNeedsAttachedEndpointRepair(asset: LocalRuntimeAssetRecord): boolean {
+  if (asset.engineRuntimeMode !== 'attached-endpoint') {
+    return false;
+  }
+  return String(asset.reasonCode || '').trim() === 'AI_LOCAL_ENDPOINT_REQUIRED';
+}
+
+export function assetSupportsBundleRescan(asset: LocalRuntimeAssetRecord): boolean {
+  return String(asset.source.repo || '').trim().toLowerCase().startsWith('file://');
+}
+
+function runtimeDependencyJobUpdatedAtMs(job: LocalRuntimeEnvironmentDependencyJob): number {
+  const updatedAtMs = Date.parse(String(job.updatedAt || job.createdAt || ''));
+  return Number.isFinite(updatedAtMs) ? updatedAtMs : 0;
+}
+
+export function latestRuntimeDependencyJob(
+  jobs: LocalRuntimeEnvironmentDependencyJob[],
+): LocalRuntimeEnvironmentDependencyJob | undefined {
+  return jobs.slice().sort((left, right) => runtimeDependencyJobUpdatedAtMs(right) - runtimeDependencyJobUpdatedAtMs(left))[0];
+}
+
+export function runtimeDependencyJobMatchesDependency(
+  job: LocalRuntimeEnvironmentDependencyJob,
+  dependency?: LocalRuntimeEnvironmentPlanDependency,
+): boolean {
+  if (!dependency?.environmentKey) {
+    return false;
+  }
+  return (
+    job.environmentKey === dependency.environmentKey
+    && job.dependencyFamily === dependency.dependencyFamily
+    && job.dependencyId === dependency.dependencyId
+  );
+}
+
+function runtimeDependencyCurrentState(
+  dependency?: LocalRuntimeEnvironmentPlanDependency,
+  job?: LocalRuntimeEnvironmentDependencyJob,
+): string {
+  return String(job?.state || dependency?.state || '').trim();
+}
+
+export function runtimeDependencyRequiresAttention(
+  dependency?: LocalRuntimeEnvironmentPlanDependency,
+  job?: LocalRuntimeEnvironmentDependencyJob,
+): boolean {
+  if (!dependency) {
+    return false;
+  }
+  const state = runtimeDependencyCurrentState(dependency, job);
+  return !isLocalRuntimeEnvironmentDependencyReadyState(state);
+}
+
+export function runtimeDependencySetupAllowed(
+  dependency?: LocalRuntimeEnvironmentPlanDependency,
+  job?: LocalRuntimeEnvironmentDependencyJob,
+): boolean {
+  if (!dependency || !dependency.confirmationRequired) {
+    return false;
+  }
+  if (job && (
+    isLocalRuntimeEnvironmentDependencyJobActiveState(job.state)
+    || isLocalRuntimeEnvironmentDependencyJobRetryableState(job.state)
+  )) {
+    return false;
+  }
+  return isLocalRuntimeEnvironmentDependencyNeedsConfirmationState(dependency.state);
+}
+
+export function runtimeDependencyRepairAllowed(
+  dependency?: LocalRuntimeEnvironmentPlanDependency,
+  job?: LocalRuntimeEnvironmentDependencyJob,
+): boolean {
+  return Boolean(
+    (dependency && isLocalRuntimeEnvironmentDependencyRepairRequiredState(dependency.state))
+    || (job && isLocalRuntimeEnvironmentDependencyRepairRequiredState(job.state)),
+  );
+}
+
+function assetHasRuntimeDependencyWarning(
+  asset: LocalRuntimeAssetRecord,
+  dependency?: LocalRuntimeEnvironmentPlanDependency,
+  job?: LocalRuntimeEnvironmentDependencyJob,
+): boolean {
+  const detail = String(asset.healthDetail || '').trim().toLowerCase();
+  return (
+    asset.kind === 'image'
+    && (
+      (
+        asset.status === 'unhealthy'
+        && detail.includes('local environment activation blocked')
+      )
+      || runtimeDependencyRequiresAttention(dependency, job)
+    )
+  );
+}
+
+function runtimeDependencyDetail(
+  asset: LocalRuntimeAssetRecord,
+  dependency?: LocalRuntimeEnvironmentPlanDependency,
+  job?: LocalRuntimeEnvironmentDependencyJob,
+): string {
+  if (runtimeDependencyRequiresAttention(dependency, job)) {
+    return runtimeDependencyStatusDetail(dependency, job);
+  }
+  const healthDetail = String(asset.healthDetail || '').trim();
+  if (healthDetail) {
+    return healthDetail;
+  }
+  if (!dependency) {
+    return '';
+  }
+  return String(dependency.detail || dependency.reasonCode || dependency.state || '').trim();
+}
+
+type RunnableInstalledAssetRowProps = {
+  asset: LocalRuntimeAssetRecord;
+  assetBusy: boolean;
+  confirmRemoveAssetId: string;
+  repairAssetId: string;
+  repairEndpoint: string;
+  runtimeDependency?: LocalRuntimeEnvironmentPlanDependency;
+  runtimeDependencyJob?: LocalRuntimeEnvironmentDependencyJob;
+  onCancelRemove: () => void;
+  onCancelRepair: () => void;
+  onConfirmRemove: (localAssetId: string) => void;
+  onRepairAsset: (localAssetId: string, endpoint: string) => void;
+  onRepairEndpointChange: (value: string) => void;
+  onRequestRemove: (localAssetId: string) => void;
+  onRequestRepair: (localAssetId: string) => void;
+  onRescanAsset: (localAssetId: string) => void;
+};
+
+export function RunnableInstalledAssetRow(props: RunnableInstalledAssetRowProps) {
+  const needsRepair = assetNeedsAttachedEndpointRepair(props.asset);
+  const hasRuntimeDependencyWarning = assetHasRuntimeDependencyWarning(
+    props.asset,
+    props.runtimeDependency,
+    props.runtimeDependencyJob,
+  );
+  const dependencyDetail = runtimeDependencyDetail(props.asset, props.runtimeDependency, props.runtimeDependencyJob);
+  const isRepairing = props.repairAssetId === props.asset.localAssetId;
+  const supportsRescan = assetSupportsBundleRescan(props.asset);
+  const unhealthyReasonSummary = props.asset.status === 'unhealthy'
+    ? localSpeechReasonSummary(props.asset.reasonCode)
+    : '';
+
+  return (
+    <div className="px-5 py-3 transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_92%,white)]">
+      <div className="flex items-center gap-3">
+        <ModelIcon engine={props.asset.engine} />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <span className="truncate text-sm font-medium text-[var(--nimi-text-primary)]">{props.asset.assetId}</span>
+            <span className="rounded bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] px-1.5 py-0.5 text-[10px] text-[var(--nimi-text-muted)]">{props.asset.engine}</span>
+            <span className="rounded bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] px-1.5 py-0.5 text-[10px] text-[var(--nimi-action-primary-bg)]">
+              {formatAssetKindLabel(props.asset.kind)}
+            </span>
+            {props.asset.recommendation ? (
+              <span className={`rounded px-1.5 py-0.5 text-[10px] ${recommendationTierClass(props.asset.recommendation.tier)}`}>
+                {recommendationTierLabel(props.asset.recommendation.tier)}
+              </span>
+            ) : null}
+          </div>
+          <p className="truncate text-xs text-[var(--nimi-text-muted)]">{props.asset.localAssetId}</p>
+          {props.asset.recommendation ? (
+            <p className="mt-1 line-clamp-2 text-[11px] text-[var(--nimi-text-muted)]">
+              {recommendationSummary(props.asset.recommendation)}
+            </p>
+          ) : null}
+          {(props.asset.status === 'unhealthy' || hasRuntimeDependencyWarning) && dependencyDetail ? (
+            <p className={`mt-1 line-clamp-3 text-[11px] ${
+              hasRuntimeDependencyWarning
+                ? 'text-[var(--nimi-status-warning)]'
+                : 'text-[var(--nimi-status-danger)]'
+            }`}>
+              {dependencyDetail}
+            </p>
+          ) : null}
+          {props.asset.status === 'unhealthy' && String(props.asset.reasonCode || '').trim() ? (
+            <p className="mt-1 line-clamp-2 text-[11px] text-[var(--nimi-status-danger)]">
+              {unhealthyReasonSummary || `reason=${String(props.asset.reasonCode || '').trim()}`}
+            </p>
+          ) : null}
+          <div className="mt-1 flex flex-wrap gap-1">
+            {(props.asset.capabilities || []).slice(0, 3).map((capability) => (
+              <span key={capability} className="rounded border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] px-1.5 py-0.5 text-[10px] text-[var(--nimi-action-primary-bg)]">{capability}</span>
+            ))}
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className={`rounded px-2 py-0.5 text-[10px] ${
+            props.asset.status === 'active' ? 'bg-[color-mix(in_srgb,var(--nimi-status-success)_18%,transparent)] text-[var(--nimi-status-success)]' : props.asset.status === 'unhealthy' ? 'bg-[color-mix(in_srgb,var(--nimi-status-danger)_18%,transparent)] text-[var(--nimi-status-danger)]' : 'bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] text-[var(--nimi-text-muted)]'
+          }`}>
+            {props.asset.status === 'installed'
+              ? i18n.t('runtimeConfig.localModelCenter.installed', { defaultValue: 'Installed' })
+              : props.asset.status}
+          </span>
+          {needsRepair ? (
+            <button
+              type="button"
+              onClick={() => props.onRequestRepair(props.asset.localAssetId)}
+              disabled={props.assetBusy}
+              className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_10%,transparent)] px-2.5 py-1 text-[11px] font-medium text-[var(--nimi-status-warning)] transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-status-warning)_16%,transparent)] disabled:opacity-50"
+            >
+              {i18n.t('runtimeConfig.localModelCenter.repair', { defaultValue: 'Repair' })}
+            </button>
+          ) : null}
+          {supportsRescan ? (
+            <button
+              type="button"
+              onClick={() => props.onRescanAsset(props.asset.localAssetId)}
+              disabled={props.assetBusy}
+              className="rounded-lg border border-[var(--nimi-border-subtle)] px-2.5 py-1 text-[11px] font-medium text-[var(--nimi-text-secondary)] transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))] disabled:opacity-50"
+            >
+              {i18n.t('runtimeConfig.localModelCenter.rescanBundle', { defaultValue: 'Re-scan Bundle' })}
+            </button>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => props.onRequestRemove(props.asset.localAssetId)}
+            disabled={props.assetBusy || props.confirmRemoveAssetId === props.asset.localAssetId}
+            className="rounded-lg p-1.5 text-[var(--nimi-status-danger)] transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] disabled:opacity-50"
+            title={i18n.t('runtimeConfig.localModelCenter.remove', { defaultValue: 'Remove' })}
+          >
+            <TrashIcon className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+      {isRepairing ? (
+        <div className="mt-2 rounded-xl border border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_10%,transparent)] px-4 py-3">
+          <p className="text-xs text-[var(--nimi-status-warning)]">
+            {String(props.asset.healthDetail || '').trim() || i18n.t('runtimeConfig.localModelCenter.repairAttachedEndpointHint', {
+              defaultValue: 'This asset must be rebound to an external attached endpoint on the current host.',
+            })}
+          </p>
+          <div className="mt-3 flex items-center gap-2">
+            <input
+              type="text"
+              value={props.repairEndpoint}
+              onChange={(event) => props.onRepairEndpointChange(event.target.value)}
+              placeholder={i18n.t('runtimeConfig.localModelCenter.repairEndpointPlaceholder', { defaultValue: 'http://host:port/v1' })}
+              className="h-9 min-w-0 flex-1 rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)] bg-white px-3 text-xs text-[var(--nimi-text-primary)] outline-none focus:border-[var(--nimi-field-focus)] focus:ring-2 focus:ring-mint-100"
+            />
+            <button
+              type="button"
+              onClick={() => {
+                void Promise.resolve(props.onRepairAsset(props.asset.localAssetId, props.repairEndpoint));
+              }}
+              disabled={props.assetBusy || !String(props.repairEndpoint || '').trim()}
+              className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--nimi-status-warning)] hover:bg-[color-mix(in_srgb,var(--nimi-status-warning)_10%,transparent)] disabled:opacity-50"
+            >
+              {i18n.t('runtimeConfig.localModelCenter.confirmRepair', { defaultValue: 'Apply' })}
+            </button>
+            <button
+              type="button"
+              onClick={props.onCancelRepair}
+              className="rounded-lg border border-[var(--nimi-border-subtle)] px-3 py-1.5 text-xs font-medium text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))]"
+            >
+              {i18n.t('World.createAgent.cancel', { defaultValue: 'Cancel' })}
+            </button>
+          </div>
+        </div>
+      ) : null}
+      {props.confirmRemoveAssetId === props.asset.localAssetId ? (
+        <div className="mt-2 flex items-center gap-3 rounded-xl border border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] px-4 py-2.5">
+          <p className="flex-1 text-xs text-[var(--nimi-status-danger)]">
+            {i18n.t('runtimeConfig.localModelCenter.confirmRemoveAsset', {
+              defaultValue: 'Remove "{{name}}"? Asset files will be permanently deleted.',
+              name: props.asset.assetId,
+            })}
+          </p>
+          <button
+            type="button"
+            onClick={() => props.onConfirmRemove(props.asset.localAssetId)}
+            disabled={props.assetBusy}
+            className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] px-3 py-1.5 text-xs font-medium text-[var(--nimi-status-danger)] hover:bg-[color-mix(in_srgb,var(--nimi-status-danger)_18%,transparent)] disabled:opacity-50"
+          >
+            {i18n.t('runtimeConfig.localModelCenter.confirm', { defaultValue: 'Confirm' })}
+          </button>
+          <button
+            type="button"
+            onClick={props.onCancelRemove}
+            className="rounded-lg border border-[var(--nimi-border-subtle)] px-3 py-1.5 text-xs font-medium text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))]"
+          >
+            {i18n.t('World.createAgent.cancel', { defaultValue: 'Cancel' })}
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+type DependencyInstalledAssetRowProps = {
+  asset: LocalRuntimeAssetRecord;
+  assetBusy: boolean;
+  confirmRemoveAssetId: string;
+  onCancelRemove: () => void;
+  onConfirmRemove: (localAssetId: string) => void;
+  onRequestRemove: (localAssetId: string) => void;
+};
+
+export function DependencyInstalledAssetRow(props: DependencyInstalledAssetRowProps) {
+  const unhealthyReasonSummary = props.asset.status === 'unhealthy'
+    ? localSpeechReasonSummary(props.asset.reasonCode)
+    : '';
+
+  return (
+    <div className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_92%,white)]">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] text-[11px] font-semibold text-[var(--nimi-text-secondary)]">
+        {formatAssetKindLabel(props.asset.kind).slice(0, 3).toUpperCase()}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <span className="truncate text-sm font-medium text-[var(--nimi-text-primary)]">{props.asset.assetId}</span>
+          <span className="rounded bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] px-1.5 py-0.5 text-[10px] text-[var(--nimi-text-secondary)]">
+            {formatAssetKindLabel(props.asset.kind)}
+          </span>
+          <span className="rounded bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] px-1.5 py-0.5 text-[10px] text-[var(--nimi-text-muted)]">{props.asset.engine}</span>
+        </div>
+        <p className="truncate text-xs text-[var(--nimi-text-muted)]">{props.asset.localAssetId}</p>
+        <p className="truncate text-[11px] text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">{props.asset.entry}</p>
+        {props.asset.status === 'unhealthy' && String(props.asset.healthDetail || '').trim() ? (
+          <p className="mt-1 line-clamp-3 text-[11px] text-[var(--nimi-status-danger)]">
+            {String(props.asset.healthDetail || '').trim()}
+          </p>
+        ) : null}
+        {props.asset.status === 'unhealthy' && String(props.asset.reasonCode || '').trim() ? (
+          <p className="mt-1 line-clamp-2 text-[11px] text-[var(--nimi-status-danger)]">
+            {unhealthyReasonSummary || `reason=${String(props.asset.reasonCode || '').trim()}`}
+          </p>
+        ) : null}
+      </div>
+      <div className="flex items-center gap-2">
+        <span className={`rounded px-2 py-0.5 text-[10px] ${
+          props.asset.status === 'active' ? 'bg-[color-mix(in_srgb,var(--nimi-status-success)_18%,transparent)] text-[var(--nimi-status-success)]' : props.asset.status === 'unhealthy' ? 'bg-[color-mix(in_srgb,var(--nimi-status-danger)_18%,transparent)] text-[var(--nimi-status-danger)]' : 'bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] text-[var(--nimi-text-muted)]'
+        }`}>
+          {props.asset.status}
+        </span>
+        <button
+          type="button"
+          onClick={() => props.onRequestRemove(props.asset.localAssetId)}
+          disabled={props.assetBusy || props.confirmRemoveAssetId === props.asset.localAssetId}
+          className="rounded-lg p-1.5 text-[var(--nimi-status-danger)] transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] disabled:opacity-50"
+          title={i18n.t('runtimeConfig.localModelCenter.removeAsset', { defaultValue: 'Remove asset' })}
+        >
+          <TrashIcon className="h-4 w-4" />
+        </button>
+      </div>
+      {props.confirmRemoveAssetId === props.asset.localAssetId ? (
+        <div className="mt-2 flex items-center gap-3 rounded-xl border border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] px-4 py-2.5">
+          <p className="flex-1 text-xs text-[var(--nimi-status-danger)]">
+            {i18n.t('runtimeConfig.localModelCenter.confirmRemoveAsset', {
+              defaultValue: 'Remove "{{name}}"? Asset files will be permanently deleted.',
+              name: props.asset.assetId,
+            })}
+          </p>
+          <button
+            type="button"
+            onClick={() => props.onConfirmRemove(props.asset.localAssetId)}
+            disabled={props.assetBusy}
+            className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] px-3 py-1.5 text-xs font-medium text-[var(--nimi-status-danger)] hover:bg-[color-mix(in_srgb,var(--nimi-status-danger)_18%,transparent)] disabled:opacity-50"
+          >
+            {i18n.t('runtimeConfig.localModelCenter.confirm', { defaultValue: 'Confirm' })}
+          </button>
+          <button
+            type="button"
+            onClick={props.onCancelRemove}
+            className="rounded-lg border border-[var(--nimi-border-subtle)] px-3 py-1.5 text-xs font-medium text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))]"
+          >
+            {i18n.t('World.createAgent.cancel', { defaultValue: 'Cancel' })}
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+}

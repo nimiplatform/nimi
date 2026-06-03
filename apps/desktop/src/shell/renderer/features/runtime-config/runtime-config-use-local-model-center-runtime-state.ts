@@ -1,34 +1,26 @@
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import {
   localRuntime,
-  type LocalRuntimeAssetDeclaration,
   type LocalRuntimeAssetKind,
   type LocalRuntimeAssetRecord,
   type LocalRuntimeCatalogItemDescriptor,
-  type LocalRuntimeUnregisteredAssetDescriptor,
   type LocalRuntimeVerifiedAssetDescriptor,
 } from '@nimiplatform/sdk/runtime';
 import {
-  defaultAssetDeclaration,
   normalizeCapabilityOption,
   CAPABILITY_OPTIONS,
-  PROGRESS_RETENTION_MS,
   type AssetEngineOption,
   type CapabilityOption,
   type LocalModelCenterProps,
 } from './runtime-config-model-center-utils';
 import {
-  isAssetTaskTerminal,
   relatedPassiveAssetsForRunnable,
   sortVerifiedAssetsForDisplay,
-  type AssetTaskEntry,
-  type AssetTaskState,
 } from './runtime-config-local-model-center-helpers';
 import {
   canImportDeclaration,
   isRunnableAssetKind,
   manifestPathFromSourceRepo,
-  normalizeAssetDeclaration,
 } from './runtime-config-use-local-model-center-helpers.js';
 import {
   useLocalModelCenterImportFilePlan,
@@ -39,6 +31,8 @@ import {
   useLocalModelCenterRuntimeDependencies,
 } from './runtime-config-use-local-model-center-runtime-readiness';
 import { useLocalModelCenterInstalledAssetViews } from './runtime-config-use-local-model-center-installed-assets';
+import { useLocalModelCenterUnregisteredAssets } from './runtime-config-use-local-model-center-unregistered-assets';
+import { useLocalModelCenterAssetTasks } from './runtime-config-use-local-model-center-asset-tasks';
 
 type UseLocalModelCenterRuntimeStateInput = {
   isProfileTargetMode: boolean;
@@ -61,8 +55,6 @@ export function useLocalModelCenterRuntimeState({ isProfileTargetMode, props }: 
   const [loadingVerifiedAssets, setLoadingVerifiedAssets] = useState(false);
   const [assetKindFilter, setAssetKindFilter] = useState<'all' | LocalRuntimeAssetKind>('all');
   const [assetBusy, setAssetBusy] = useState(false);
-  const [assetPendingTemplateIds, setAssetPendingTemplateIds] = useState<string[]>([]);
-  const [assetTasks, setAssetTasks] = useState<AssetTaskEntry[]>([]);
   const [showImportMenu, setShowImportMenu] = useState(false);
   const [showImportFileDialog, setShowImportFileDialog] = useState(false);
   const [importFileAssetKind, setImportFileAssetKind] = useState<LocalRuntimeAssetKind>('chat');
@@ -70,13 +62,20 @@ export function useLocalModelCenterRuntimeState({ isProfileTargetMode, props }: 
   const [importFileEndpoint, setImportFileEndpoint] = useState('');
   const importMenuRef = useRef<HTMLDivElement>(null);
   const [catalogCapabilityOverrides, setCatalogCapabilityOverrides] = useState<Record<string, CapabilityOption>>({});
-  const [unregisteredAssets, setUnregisteredAssets] = useState<LocalRuntimeUnregisteredAssetDescriptor[]>([]);
-  const [unregisteredAssetDrafts, setUnregisteredAssetDrafts] = useState<Record<string, LocalRuntimeAssetDeclaration>>({});
-  const [unregisteredEndpointByPath, setUnregisteredEndpointByPath] = useState<Record<string, string>>({});
-  const [unregisteredEndpointRequiredByPath, setUnregisteredEndpointRequiredByPath] = useState<Record<string, boolean>>({});
-  const [unregisteredEndpointHintByPath, setUnregisteredEndpointHintByPath] = useState<Record<string, string>>({});
-  const [unregisteredCompatibilityHintByPath, setUnregisteredCompatibilityHintByPath] = useState<Record<string, string>>({});
-  const [unregisteredImportAllowedByPath, setUnregisteredImportAllowedByPath] = useState<Record<string, boolean>>({});
+  const {
+    refreshUnregisteredAssets: refreshUnregisteredAssetsState,
+    resolveUnregisteredAssetDraft,
+    setUnregisteredAssetKind,
+    setUnregisteredAuxiliaryEngine,
+    setUnregisteredEndpoint,
+    unregisteredAssetDrafts,
+    unregisteredAssets,
+    unregisteredCompatibilityHintByPath,
+    unregisteredEndpointByPath,
+    unregisteredEndpointHintByPath,
+    unregisteredEndpointRequiredByPath,
+    unregisteredImportAllowedByPath,
+  } = useLocalModelCenterUnregisteredAssets();
 
   useEffect(() => {
     if (!showImportMenu) {
@@ -241,34 +240,10 @@ export function useLocalModelCenterRuntimeState({ isProfileTargetMode, props }: 
 
   const refreshUnregisteredAssets = useCallback(async () => {
     const requestId = ++unregisteredAssetsRequestSeqRef.current;
-    try {
-      const rows = await localRuntime.scanUnregisteredAssets();
-      if (!mountedRef.current || requestId !== unregisteredAssetsRequestSeqRef.current) {
-        return;
-      }
-      setUnregisteredAssets(rows);
-      setUnregisteredAssetDrafts((prev) => {
-        const next: Record<string, LocalRuntimeAssetDeclaration> = {};
-        for (const item of rows) {
-          const existing = prev[item.path];
-          if (existing) {
-            next[item.path] = existing;
-            continue;
-          }
-          if (item.declaration) {
-            next[item.path] = normalizeAssetDeclaration(item.declaration);
-          }
-        }
-        return next;
-      });
-    } catch {
-      if (!mountedRef.current || requestId !== unregisteredAssetsRequestSeqRef.current) {
-        return;
-      }
-      setUnregisteredAssets([]);
-      setUnregisteredAssetDrafts({});
-    }
-  }, []);
+    await refreshUnregisteredAssetsState(() => (
+      mountedRef.current && requestId === unregisteredAssetsRequestSeqRef.current
+    ));
+  }, [refreshUnregisteredAssetsState]);
 
   useEffect(() => {
     setCatalogDisplayCount(10);
@@ -336,11 +311,6 @@ export function useLocalModelCenterRuntimeState({ isProfileTargetMode, props }: 
     [verifiedAssets],
   );
 
-  const visibleAssetTasks = useMemo(
-    () => assetTasks.slice().sort((left, right) => right.updatedAtMs - left.updatedAtMs).slice(0, 4),
-    [assetTasks],
-  );
-
   const refreshAssetInventorySections = useCallback(async () => {
     await Promise.all([refreshInstalledAssets(), refreshVerifiedAssets()]);
   }, [refreshInstalledAssets, refreshVerifiedAssets]);
@@ -366,73 +336,15 @@ export function useLocalModelCenterRuntimeState({ isProfileTargetMode, props }: 
     refreshRuntimeDependencies();
   }, [refreshAssetInventorySections, refreshRuntimeDependencies]);
 
-  const markAssetPending = useCallback((templateId: string, pending: boolean) => {
-    const normalized = String(templateId || '').trim();
-    if (!normalized) {
-      return;
-    }
-    setAssetPendingTemplateIds((prev) => {
-      if (pending) {
-        return prev.includes(normalized) ? prev : [...prev, normalized];
-      }
-      return prev.filter((item) => item !== normalized);
-    });
-  }, []);
-
-  const upsertAssetTask = useCallback((templateId: string, state: AssetTaskState, detail?: string) => {
-    const normalizedTemplateId = String(templateId || '').trim();
-    if (!normalizedTemplateId) {
-      return;
-    }
-    const descriptor = verifiedAssetsByTemplateId.get(normalizedTemplateId);
-    if (!descriptor) {
-      return;
-    }
-    const nowMs = Date.now();
-    setAssetTasks((prev) => {
-      const next = prev.filter((task) => (
-        task.templateId !== normalizedTemplateId
-        && !(isAssetTaskTerminal(task.state) && nowMs - task.updatedAtMs > PROGRESS_RETENTION_MS)
-      ));
-      next.unshift({
-        templateId: normalizedTemplateId,
-        assetId: descriptor.assetId,
-        title: descriptor.title,
-        kind: descriptor.kind,
-        taskKind: 'verified-install',
-        state,
-        detail: String(detail || '').trim() || undefined,
-        updatedAtMs: nowMs,
-      });
-      return next.slice(0, 8);
-    });
-  }, [verifiedAssetsByTemplateId]);
-
-  const isAssetPending = useCallback((templateId: string) => (
-    assetPendingTemplateIds.includes(String(templateId || '').trim())
-  ), [assetPendingTemplateIds]);
-
-  const installVerifiedAsset = useCallback(async (templateId: string) => {
-    const normalizedTemplateId = String(templateId || '').trim();
-    if (!normalizedTemplateId) {
-      return;
-    }
-    markAssetPending(normalizedTemplateId, true);
-    upsertAssetTask(normalizedTemplateId, 'running');
-    try {
-      await props.onInstallVerifiedAsset(normalizedTemplateId);
-      upsertAssetTask(normalizedTemplateId, 'running', 'Asset install queued.');
-    } catch (error: unknown) {
-      upsertAssetTask(
-        normalizedTemplateId,
-        'failed',
-        error instanceof Error ? error.message : String(error || 'Asset install failed'),
-      );
-      throw error;
-    } finally {
-      markAssetPending(normalizedTemplateId, false);
-    }
-  }, [markAssetPending, props, refreshAssetSections, upsertAssetTask]);
+  const {
+    assetPendingTemplateIds,
+    installVerifiedAsset,
+    isAssetPending,
+    visibleAssetTasks,
+  } = useLocalModelCenterAssetTasks({
+    onInstallVerifiedAsset: props.onInstallVerifiedAsset,
+    verifiedAssetsByTemplateId,
+  });
 
   const installMissingAssetsForModel = useCallback(async (assets: LocalRuntimeVerifiedAssetDescriptor[]) => {
     const missing = assets.filter((asset) => !installedAssetsById.has(toCanonicalLocalRuntimeAssetLookupKey(asset.assetId)));
@@ -473,91 +385,6 @@ export function useLocalModelCenterRuntimeState({ isProfileTargetMode, props }: 
     onRefreshVerifiedModels: refreshVerifiedModels,
     props,
   });
-
-  const resolveUnregisteredAssetDraft = useCallback((asset: LocalRuntimeUnregisteredAssetDescriptor): LocalRuntimeAssetDeclaration => (
-    unregisteredAssetDrafts[asset.path]
-    || normalizeAssetDeclaration(asset.declaration)
-    || defaultAssetDeclaration('runnable')
-  ), [unregisteredAssetDrafts]);
-
-  const setUnregisteredAssetDraft = useCallback((
-    assetPath: string,
-    nextDeclaration: LocalRuntimeAssetDeclaration,
-  ) => {
-    setUnregisteredAssetDrafts((prev) => ({
-      ...prev,
-      [assetPath]: nextDeclaration,
-    }));
-  }, []);
-
-  const setUnregisteredAssetKind = useCallback((assetPath: string, assetKind: LocalRuntimeAssetKind) => {
-    setUnregisteredAssetDraft(assetPath, {
-      assetKind,
-    });
-  }, [setUnregisteredAssetDraft]);
-
-  const setUnregisteredAuxiliaryEngine = useCallback((assetPath: string, engine: AssetEngineOption | '') => {
-    setUnregisteredAssetDrafts((prev) => {
-      const current = normalizeAssetDeclaration(prev[assetPath] || {
-        assetKind: 'auxiliary',
-      });
-      return {
-        ...prev,
-        [assetPath]: {
-          ...current,
-          assetKind: 'auxiliary',
-          ...(engine ? { engine } : {}),
-        },
-      };
-    });
-  }, []);
-
-  const setUnregisteredEndpoint = useCallback((assetPath: string, endpoint: string) => {
-    setUnregisteredEndpointByPath((prev) => ({
-      ...prev,
-      [assetPath]: endpoint,
-    }));
-  }, []);
-
-  useEffect(() => {
-    const currentPaths = new Set(unregisteredAssets.map((asset) => asset.path));
-    setUnregisteredEndpointByPath((prev) => Object.fromEntries(
-      Object.entries(prev).filter(([path]) => currentPaths.has(path)),
-    ));
-    setUnregisteredEndpointRequiredByPath((prev) => Object.fromEntries(
-      Object.entries(prev).filter(([path]) => currentPaths.has(path)),
-    ));
-    setUnregisteredEndpointHintByPath((prev) => Object.fromEntries(
-      Object.entries(prev).filter(([path]) => currentPaths.has(path)),
-    ));
-    setUnregisteredCompatibilityHintByPath((prev) => Object.fromEntries(
-      Object.entries(prev).filter(([path]) => currentPaths.has(path)),
-    ));
-    setUnregisteredImportAllowedByPath((prev) => Object.fromEntries(
-      Object.entries(prev).filter(([path]) => currentPaths.has(path)),
-    ));
-  }, [unregisteredAssets]);
-
-  useEffect(() => {
-    for (const asset of unregisteredAssets) {
-      const declaration = resolveUnregisteredAssetDraft(asset);
-      if (declaration.assetKind === 'auxiliary') {
-        continue;
-      }
-      const engine = String(declaration.engine || '').trim();
-      if (engine !== 'media' && engine !== 'speech') {
-        setUnregisteredEndpointRequiredByPath((prev) => ({ ...prev, [asset.path]: false }));
-        setUnregisteredEndpointHintByPath((prev) => ({ ...prev, [asset.path]: '' }));
-        setUnregisteredCompatibilityHintByPath((prev) => ({ ...prev, [asset.path]: '' }));
-        setUnregisteredImportAllowedByPath((prev) => ({ ...prev, [asset.path]: true }));
-        continue;
-      }
-      setUnregisteredEndpointRequiredByPath((prev) => ({ ...prev, [asset.path]: false }));
-      setUnregisteredEndpointHintByPath((prev) => ({ ...prev, [asset.path]: '' }));
-      setUnregisteredCompatibilityHintByPath((prev) => ({ ...prev, [asset.path]: '' }));
-      setUnregisteredImportAllowedByPath((prev) => ({ ...prev, [asset.path]: true }));
-    }
-  }, [resolveUnregisteredAssetDraft, unregisteredAssets]);
 
   const importUnregisteredAsset = useCallback(async (assetPath: string) => {
     const asset = unregisteredAssets.find((item) => item.path === assetPath);

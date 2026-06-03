@@ -9,7 +9,21 @@ const EXTERNAL_AGENT_UI_PATH = resolve(
   import.meta.dirname,
   '../src/shell/renderer/features/runtime-config/runtime-config-external-agent-access.tsx',
 );
-const externalAgentUiSource = readFileSync(EXTERNAL_AGENT_UI_PATH, 'utf8');
+const EXTERNAL_AGENT_TOKEN_TABLE_PATH = resolve(
+  import.meta.dirname,
+  '../src/shell/renderer/features/runtime-config/runtime-config-external-agent-token-table.tsx',
+);
+const EXTERNAL_AGENT_ISSUE_TOKEN_FORM_PATH = resolve(
+  import.meta.dirname,
+  '../src/shell/renderer/features/runtime-config/runtime-config-external-agent-issue-token-form.tsx',
+);
+const externalAgentUiSource = [
+  EXTERNAL_AGENT_UI_PATH,
+  EXTERNAL_AGENT_ISSUE_TOKEN_FORM_PATH,
+]
+  .map((filePath) => readFileSync(filePath, 'utf8'))
+  .join('\n');
+const externalAgentTokenTableSource = readFileSync(EXTERNAL_AGENT_TOKEN_TABLE_PATH, 'utf8');
 
 test('D-AUTH-010: external principal token SDK Runtime surface stays available', () => {
   assert.equal(typeof createHostRuntimeExternalAgentAccessSurface, 'function');
@@ -29,9 +43,9 @@ test('D-AUTH-010: external principal token UI flow preserves required structure'
   assert.match(externalAgentUiSource, /ttlValidationMessage/);
   assert.match(externalAgentUiSource, /const \[showIssueForm, setShowIssueForm\] = useState\(false\);/);
   assert.match(externalAgentUiSource, /const filterTabs: Array<\{ key: TokenFilter; label: string \}> = \[/);
-  assert.match(externalAgentUiSource, /disabled=\{busy \|\| !canIssue \|\| !ttlIsPositiveInteger\}/);
+  assert.match(externalAgentUiSource, /disabled=\{(?:props\.)?busy \|\| !(?:props\.)?canIssue \|\| !(?:props\.)?ttlIsPositiveInteger\}/);
   assert.match(externalAgentUiSource, /disabled=\{!canIssue\}/);
-  assert.match(externalAgentUiSource, /handleRevokeToken\(token\.tokenId\)/);
-  assert.match(externalAgentUiSource, /noTokensInFilter/);
-  assert.match(externalAgentUiSource, /noTokensIssuedHint/);
+  assert.match(externalAgentTokenTableSource, /props\.onRevokeToken\(\)/);
+  assert.match(externalAgentTokenTableSource, /noTokensInFilter/);
+  assert.match(externalAgentTokenTableSource, /noTokensIssuedHint/);
 });

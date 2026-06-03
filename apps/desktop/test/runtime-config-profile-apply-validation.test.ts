@@ -11,6 +11,10 @@ const libraryPanelPath = path.join(
   import.meta.dirname,
   '../src/shell/renderer/features/runtime-config/runtime-config-profile-library-panel.tsx',
 );
+const managementSectionsPath = path.join(
+  import.meta.dirname,
+  '../src/shell/renderer/features/runtime-config/runtime-config-profile-management-sections.tsx',
+);
 
 // T2.4: the Profiles section converges onto the Nimi Kit AI Config component.
 // Profile apply is preview-gated (D-AIPC-014 / S-AICONF-008) through the kit
@@ -46,11 +50,12 @@ test('profile section retires the bespoke profile editor', () => {
 test('profile section exposes the file-backed library actions and factory restore', () => {
   const source = readFileSync(sourcePath, 'utf8');
   const libraryPanelSource = readFileSync(libraryPanelPath, 'utf8');
+  const managementSectionsSource = readFileSync(managementSectionsPath, 'utf8');
   assert.match(libraryPanelSource, /runtime-profiles-account-library/);
   assert.match(libraryPanelSource, /runtime-profiles-create/);
-  assert.match(source, /runtime-profiles-import/);
-  assert.match(source, /runtime-profiles-export/);
-  assert.match(source, /runtime-profiles-factory-restore/);
+  assert.match(managementSectionsSource, /runtime-profiles-import/);
+  assert.match(managementSectionsSource, /runtime-profiles-export/);
+  assert.match(managementSectionsSource, /runtime-profiles-factory-restore/);
   // Factory-restore re-applies the file-backed Account Default Profile.
   assert.match(source, /getAccountDefaultProfileForScopeInit/);
 });
@@ -107,9 +112,10 @@ test('profile library import/edit is library-scoped, decoupled from AIConfig app
   // (importAccountProfileLibraryEntries) — a separate concern from apply.
   // Apply to a scope is a distinct, preview-gated kit-controller action.
   const source = readFileSync(sourcePath, 'utf8');
-  assert.match(source, /importAccountProfileLibraryEntries/);
+  const managementSectionsSource = readFileSync(managementSectionsPath, 'utf8');
+  assert.match(managementSectionsSource, /importAccountProfileLibraryEntries/);
   assert.match(source, /useModelConfigProfileController/);
   // Import success copy must not claim a scope AIConfig was changed.
-  assert.match(source, /importSuccess/);
-  assert.doesNotMatch(source, /importAccountProfileLibraryEntries[\s\S]{0,200}aiProfile\.apply/);
+  assert.match(managementSectionsSource, /importSuccess/);
+  assert.doesNotMatch(managementSectionsSource, /importAccountProfileLibraryEntries[\s\S]{0,200}aiProfile\.apply/);
 });

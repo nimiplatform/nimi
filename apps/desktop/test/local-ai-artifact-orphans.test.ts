@@ -15,6 +15,10 @@ const localModelCenterRuntimeStatePath = path.resolve(
   process.cwd(),
   'src/shell/renderer/features/runtime-config/runtime-config-use-local-model-center-runtime-state.ts',
 );
+const localModelCenterUnregisteredAssetsPath = path.resolve(
+  process.cwd(),
+  'src/shell/renderer/features/runtime-config/runtime-config-use-local-model-center-unregistered-assets.ts',
+);
 const localModelCenterSectionsPath = path.resolve(
   process.cwd(),
   'src/shell/renderer/features/runtime-config/runtime-config-local-model-center-sections.tsx',
@@ -22,6 +26,10 @@ const localModelCenterSectionsPath = path.resolve(
 const localModelCenterCatalogSectionsPath = path.resolve(
   process.cwd(),
   'src/shell/renderer/features/runtime-config/runtime-config-local-model-center-catalog-sections.tsx',
+);
+const localModelCenterProgressSectionsPath = path.resolve(
+  process.cwd(),
+  'src/shell/renderer/features/runtime-config/runtime-config-local-model-center-progress-sections.tsx',
 );
 const localModelCenterHelpersPath = path.resolve(
   process.cwd(),
@@ -37,11 +45,17 @@ const localModelCenterImportActionsSource = readFileSync(localModelCenterImportA
 const localModelCenterSource = [
   localModelCenterPath,
   localModelCenterRuntimeStatePath,
+  localModelCenterUnregisteredAssetsPath,
 ]
   .map((filePath) => readFileSync(filePath, 'utf-8'))
   .join('\n');
 const localModelCenterSectionsSource = readFileSync(localModelCenterSectionsPath, 'utf-8');
-const localModelCenterCatalogSectionsSource = readFileSync(localModelCenterCatalogSectionsPath, 'utf-8');
+const localModelCenterCatalogSectionsSource = [
+  localModelCenterCatalogSectionsPath,
+  localModelCenterProgressSectionsPath,
+]
+  .map((filePath) => readFileSync(filePath, 'utf-8'))
+  .join('\n');
 const localModelCenterHelpersSource = readFileSync(localModelCenterHelpersPath, 'utf-8');
 
 test('local runtime exposes unified asset intake command surface', () => {
