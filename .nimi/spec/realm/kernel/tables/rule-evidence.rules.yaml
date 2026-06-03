@@ -19,7 +19,7 @@ forbidden_state_fields:
   - current
   - proposed
   - backlog_status
-  - migration_status
+  - authority_relocation_status
   - mapping_status
   - run_id
   - ledger_ref

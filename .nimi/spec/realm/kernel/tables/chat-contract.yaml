@@ -72,10 +72,9 @@ entries:
     by nimi-backend/libs/domains/chat/src/domains/group-chat.service.spec.ts,
     with broader chat coverage in chat.controller.spec.ts and social integration
     tests.
-  - Wave-1 must replace historical direct group agent message commit with
-    candidate commit-handoff tests that validate candidate lineage, evidence
-    hash, runtime trace ref, idempotency, moderation/refusal, audit, and no raw
-    text fallback.
+  - Group agent message commits use candidate commit-handoff tests that validate
+    candidate lineage, evidence hash, runtime trace ref, idempotency,
+    moderation/refusal, audit, and no raw text fallback.
 owner: '@team'
 sources:
   human_spec: ../chat-contract.md
@@ -256,4 +255,4 @@ dto_evidence:
   - ChatSyncResultDto
 test_evidence_notes:
   - "Group lifecycle/admin, roster changes, and agent-auth anti-spoof are covered by nimi-backend/libs/domains/chat/src/domains/group-chat.service.spec.ts, with broader chat coverage in chat.controller.spec.ts and social integration tests."
-  - "Wave-1 must replace historical direct group agent message commit with candidate commit-handoff tests that validate candidate lineage, evidence hash, runtime trace ref, idempotency, moderation/refusal, audit, and no raw text fallback."
+  - "Group agent message commits use candidate commit-handoff tests that validate candidate lineage, evidence hash, runtime trace ref, idempotency, moderation/refusal, audit, and no raw text fallback."
