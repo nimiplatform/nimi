@@ -42,6 +42,16 @@ async function readPackageVersion(relativeDir) {
   return String(payload.version || '').trim();
 }
 
+async function readRootDependencySpec(packageName) {
+  const packageJsonPath = path.join(repoRoot, 'package.json');
+  const payload = JSON.parse(await fs.readFile(packageJsonPath, 'utf8'));
+  const version = payload.dependencies?.[packageName] ?? payload.devDependencies?.[packageName];
+  if (typeof version !== 'string' || version.trim() === '') {
+    throw new Error(`Root package.json is missing dependency ${packageName}`);
+  }
+  return version.trim();
+}
+
 function tarballFileName(packageName, version) {
   const normalized = packageName.replace('@', '').replace(/\//g, '-');
   return `${normalized}-${version}.tgz`;
@@ -279,7 +289,7 @@ async function writeSmokeEntry(appDir) {
   await fs.writeFile(path.join(appDir, 'index.mjs'), source);
 }
 
-async function writeAuthorToolsPackageJson(appDir, appToolsTarballPath) {
+async function writeAuthorToolsPackageJson(appDir, appToolsTarballPath, nimicodingDependencySpec) {
   const payload = {
     name: 'nimi-author-tools-smoke',
     version: '0.0.0',
@@ -287,7 +297,7 @@ async function writeAuthorToolsPackageJson(appDir, appToolsTarballPath) {
     type: 'module',
     devDependencies: {
       '@nimiplatform/app-tools': `file:${appToolsTarballPath}`,
-      '@nimiplatform/nimi-coding': '0.2.5',
+      '@nimiplatform/nimi-coding': nimicodingDependencySpec,
     },
   };
 
@@ -346,6 +356,7 @@ async function main() {
   const sdkTarball = await packPackage(packDir, SDK_PACKAGE);
   const appToolsTarball = await packPackage(packDir, APP_TOOLS_PACKAGE);
   const kitTarball = await packPackage(packDir, KIT_PACKAGE);
+  const nimicodingDependencySpec = await readRootDependencySpec('@nimiplatform/nimi-coding');
 
   await writeConsumerPackageJson(appDir, sdkTarball);
   await writeSmokeEntry(appDir);
@@ -353,7 +364,7 @@ async function main() {
   runCommand('pnpm', ['install', '--ignore-scripts', '--no-frozen-lockfile'], appDir);
   runCommand('node', ['index.mjs'], appDir);
 
-  await writeAuthorToolsPackageJson(authorDir, appToolsTarball);
+  await writeAuthorToolsPackageJson(authorDir, appToolsTarball, nimicodingDependencySpec);
   runCommand('pnpm', ['install', '--ignore-scripts', '--no-frozen-lockfile'], authorDir);
   process.env.PATH = `${path.join(authorDir, 'node_modules', '.bin')}${path.delimiter}${process.env.PATH || ''}`;
   runCommand(
@@ -380,7 +391,7 @@ async function main() {
     },
     devDependencies: {
       '@nimiplatform/app-tools': `file:${appToolsTarball}`,
-      '@nimiplatform/nimi-coding': '0.2.5',
+      '@nimiplatform/nimi-coding': nimicodingDependencySpec,
     },
     pnpmOverrides: {
       '@nimiplatform/sdk': `file:${sdkTarball}`,
@@ -397,7 +408,7 @@ async function main() {
     },
     devDependencies: {
       '@nimiplatform/app-tools': `file:${appToolsTarball}`,
-      '@nimiplatform/nimi-coding': '0.2.5',
+      '@nimiplatform/nimi-coding': nimicodingDependencySpec,
     },
     pnpmOverrides: {
       '@nimiplatform/sdk': `file:${sdkTarball}`,

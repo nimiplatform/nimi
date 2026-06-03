@@ -23,7 +23,7 @@ document_instance:
   docs_inputs:
     - root: .nimi/spec
       class_filter: product_authority_only
-      allowed_surface_classes: [product_authority, product_authority_table, product_admission_registry, thin_guidance, host_projection_anchor, support_registry]
+      allowed_surface_classes: [product_authority, product_authority_table, thin_guidance, host_projection_anchor, support_registry]
       forbidden_surface_classes: [derived_view, spec_generation_state, audit_evidence_state, operational_local_artifact, nimicoding_managed_projection, candidate_roadmap, lifecycle_progress_state, methodology_authority]
       owner: nimi_host
       use_as_authority: true
@@ -93,7 +93,7 @@ baseline_inputs:
   docs_inputs:
     - root: .nimi/spec
       class_filter: product_authority_only
-      allowed_surface_classes: [product_authority, product_authority_table, product_admission_registry, thin_guidance, host_projection_anchor, support_registry]
+      allowed_surface_classes: [product_authority, product_authority_table, thin_guidance, host_projection_anchor, support_registry]
       forbidden_surface_classes: [derived_view, spec_generation_state, audit_evidence_state, operational_local_artifact, nimicoding_managed_projection, candidate_roadmap, lifecycle_progress_state, methodology_authority]
       owner: nimi_host
       use_as_authority: true

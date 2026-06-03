@@ -32,7 +32,6 @@ disposition_enum:
 target_class_enum:
   - product_authority
   - product_authority_table
-  - product_admission_registry
   - thin_guidance
   - derived_view
   - spec_generation_state
@@ -75,6 +74,5 @@ semantic_constraints:
   - block_entries_require_user_confirmation_before_migration
   - future_under_spec_must_not_have_keep_disposition
   - nimicoding_managed_projection_must_have_keep_disposition_and_must_not_be_promoted_to_product_authority
-  - product_admission_registry_must_not_be_moved_to_package
   - generated_views_default_to_delete_with_stdout_view
   - audit_state_defaults_to_move_local

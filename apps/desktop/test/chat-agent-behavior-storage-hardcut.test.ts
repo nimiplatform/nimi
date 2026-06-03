@@ -10,7 +10,8 @@ function readSource(relativePath: string): string {
 const chatSettingsStorageSource = readSource('../src/shell/renderer/features/chat/chat-settings-storage.ts');
 const chatAgentShellAdapterSource = readSource('../src/shell/renderer/features/chat/chat-agent-shell-adapter.tsx');
 const hardcutTestSource = readSource('chat-agent-behavior-storage-hardcut.test.ts');
-const highRiskAdmissionsSource = readSource('../../../.nimi/spec/high-risk-admissions.yaml');
+const highRiskAdmissionContractSource = readSource('../../../.nimi/contracts/high-risk-admission.schema.yaml');
+const localHighRiskAdmissionsSource = readSource('../../../.nimi/local/high-risk-admissions.yaml');
 
 test('agent chat behavior settings no longer have a durable renderer storage key', () => {
   assert.doesNotMatch(chatSettingsStorageSource, /AGENT_CHAT_BEHAVIOR_SETTINGS_STORAGE_KEY/);
@@ -28,12 +29,20 @@ test('agent shell keeps behavior settings in process state instead of localStora
   assert.doesNotMatch(chatAgentShellAdapterSource, /sessionStorage/);
 });
 
-test('agent behavior storage hardcut does not use closed topic packets as active oracle', () => {
+test('agent behavior storage hardcut does not use lifecycle packets or retired spec admissions as active oracle', () => {
   const closedTopicOraclePattern = new RegExp(`${String.raw`\.nimi`}\\/topics\\/closed`);
+  const retiredSpecAdmissionPattern = new RegExp(
+    `${String.raw`\.nimi`}\\/spec\\/high-risk-admissions${String.raw`\.yaml`}`,
+  );
 
   assert.match(
-    highRiskAdmissionsSource,
-    /canonical_high_risk_admission_requires_explicit_write_to_tracked_truth/,
+    highRiskAdmissionContractSource,
+    /local_high_risk_admission_evidence/,
+  );
+  assert.match(
+    localHighRiskAdmissionsSource,
+    /local_admission_records_must_not_be_used_as_product_authority/,
   );
   assert.doesNotMatch(hardcutTestSource, closedTopicOraclePattern);
+  assert.doesNotMatch(hardcutTestSource, retiredSpecAdmissionPattern);
 });

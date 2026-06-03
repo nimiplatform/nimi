@@ -5,7 +5,6 @@ contract:
 surface_class_enum:
   - product_authority
   - product_authority_table
-  - product_admission_registry
   - thin_guidance
   - derived_view
   - spec_generation_state

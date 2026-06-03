@@ -51,7 +51,6 @@ workflow_consumers:
     required_surface_classes:
       - product_authority
       - product_authority_table
-      - product_admission_registry
       - support_registry
     forbidden_surface_classes:
       - derived_view
@@ -71,7 +70,6 @@ workflow_consumers:
     required_surface_classes:
       - product_authority
       - product_authority_table
-      - product_admission_registry
       - thin_guidance
       - methodology_authority
       - host_projection_anchor

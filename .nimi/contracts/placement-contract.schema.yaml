@@ -42,12 +42,6 @@ placement_rules:
     tracking_policy: tracked_required
     requires_admission: none
     validator_scope: thin_guidance
-  - root_pattern: .nimi/spec/high-risk-admissions.yaml
-    allowed_classes: [product_admission_registry]
-    owner: product_governance
-    tracking_policy: tracked_required
-    requires_admission: packaged_schema
-    validator_scope: product_admission_registry
   - root_pattern: .nimi/spec/_meta/<package>-admission-anchor.yaml
     allowed_classes: [host_projection_anchor]
     owner: host_projection
@@ -155,9 +149,8 @@ fail_closed_cases:
   - tracked_non_product_file_without_admission
   - nimicoding_managed_projection_promoted_to_product_authority
   - future_or_backlog_under_.nimi/spec
-  - product_admission_registry_contains_package_methodology_body
 semantic_constraints:
   - path_shape_is_never_sufficient_authority_proof
   - keep_move_package_move_local_split_rewrite_delete_block_must_be_explicit
   - product_semantic_forks_block_for_user_confirmation
-  - high_risk_admission_records_stay_product_governance_truth_while_schema_and_cli_stay_package_owned
+  - high_risk_admission_records_stay_local_evidence_while_domain_spec_holds_product_authority

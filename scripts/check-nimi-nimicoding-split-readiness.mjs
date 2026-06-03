@@ -56,9 +56,15 @@ if (/['"]?nimi-coding['"]?/u.test(workspaceText)) {
 const packageJson = JSON.parse(readText('package.json'));
 const nimicodingDependency = packageJson.devDependencies?.['@nimiplatform/nimi-coding']
   ?? packageJson.dependencies?.['@nimiplatform/nimi-coding'];
-const expectedNimicodingDependency = '^0.2.5';
-if (nimicodingDependency !== expectedNimicodingDependency) {
-  fail(`package.json must depend on @nimiplatform/nimi-coding as ${expectedNimicodingDependency}, got ${nimicodingDependency ?? '<missing>'}`);
+const bootstrapText = readText('.nimi/config/bootstrap.yaml');
+const bootstrapVersion = bootstrapText.match(/^cli_version:\s*["']?([^"'\s]+)["']?\s*$/mu)?.[1];
+if (!bootstrapVersion) {
+  fail('.nimi/config/bootstrap.yaml must declare cli_version');
+} else {
+  const expectedNimicodingDependency = `^${bootstrapVersion}`;
+  if (nimicodingDependency !== expectedNimicodingDependency) {
+    fail(`package.json must depend on @nimiplatform/nimi-coding as ${expectedNimicodingDependency}, got ${nimicodingDependency ?? '<missing>'}`);
+  }
 }
 
 const scriptText = Object.entries(packageJson.scripts ?? {})

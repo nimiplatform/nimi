@@ -10,6 +10,12 @@ const specRoot = path.join(repoRoot, '.nimi', 'spec');
 
 const SCAN_EXTENSIONS = new Set(['.md', '.yaml', '.yml']);
 const SKIP_DIR_NAMES = new Set(['generated', 'gen']);
+const FORBIDDEN_SPEC_FILES = new Map([
+  [
+    '.nimi/spec/high-risk-admissions.yaml',
+    'high-risk admission records are local execution evidence; final product authority must live in domain spec files',
+  ],
+]);
 
 const BANNED_PATTERNS = [
   {
@@ -88,14 +94,6 @@ const BANNED_PATTERNS = [
   },
 ];
 
-function isAllowedMachineIdentity(relPath, label, text) {
-  return (
-    relPath === '.nimi/spec/high-risk-admissions.yaml'
-    && label === 'wave-numbered implementation/admission language'
-    && text.startsWith('packet_id:')
-  );
-}
-
 async function walk(dir) {
   const output = [];
   const entries = await fs.readdir(dir, { withFileTypes: true });
@@ -125,6 +123,17 @@ async function main() {
 
   for (const filePath of files) {
     const relPath = path.relative(repoRoot, filePath).replace(/\\/g, '/');
+    const forbiddenReason = FORBIDDEN_SPEC_FILES.get(relPath);
+    if (forbiddenReason !== undefined) {
+      violations.push({
+        relPath,
+        line: 1,
+        label: 'local evidence file under active spec',
+        text: forbiddenReason,
+      });
+      continue;
+    }
+
     const content = await fs.readFile(filePath, 'utf8');
     const lines = content.split(/\r?\n/u);
 
@@ -136,9 +145,6 @@ async function main() {
         }
         const line = lineNumber(content, index);
         const text = String(lines[line - 1] ?? '').trim();
-        if (isAllowedMachineIdentity(relPath, label, text)) {
-          continue;
-        }
         violations.push({
           relPath,
           line,
