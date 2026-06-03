@@ -8,11 +8,6 @@ const worldFlowSource = readFileSync(
   'utf8',
 );
 
-const sdkRealmWorldSource = readFileSync(
-  resolve(import.meta.dirname, '../../../sdk/src/realm/extensions/world-data.ts'),
-  'utf8',
-);
-
 const agentFlowSource = readFileSync(
   resolve(import.meta.dirname, '../src/shell/renderer/features/world/data/realm-agent-create-data.ts'),
   'utf8',
@@ -47,17 +42,6 @@ describe('D-DSYNC-005: world flow source scanning', () => {
     );
   });
 
-  test('D-DSYNC-005: loadWorldHistory uses the public WorldsService endpoint', () => {
-    assert.ok(
-      sdkRealmWorldSource.includes('realm.services.WorldsService.worldControllerGetWorldHistory'),
-      'SDK Realm world data helper must use the public WorldsService world history endpoint',
-    );
-    assert.ok(
-      !sdkRealmWorldSource.includes('realm.services.WorldControlService.worldControlControllerListWorldEvents'),
-      'loadWorldHistory must not depend on the maintainer-only WorldControlService endpoint',
-    );
-  });
-
   test('D-DSYNC-005: public world asset loaders use the public WorldsService endpoints', () => {
     assert.ok(
       worldFlowSource.includes('export async function loadWorldLorebooks'),
@@ -67,22 +51,9 @@ describe('D-DSYNC-005: world flow source scanning', () => {
       worldFlowSource.includes('export async function loadWorldBindings'),
       'loadWorldBindings must be exported from world-flow',
     );
-    assert.ok(
-      sdkRealmWorldSource.includes('realm.services.WorldsService.worldControllerGetWorldLorebooks'),
-      'SDK Realm world data helper must use the public WorldsService lorebooks endpoint',
-    );
-    assert.ok(
-      sdkRealmWorldSource.includes('realm.services.WorldsService.worldControllerGetWorldBindings'),
-      'SDK Realm world data helper must use the public WorldsService bindings endpoint',
-    );
-    assert.ok(
-      !sdkRealmWorldSource.includes('worldControllerGetWorldMutations'),
-      'world-flow must not depend on the removed public mutations endpoint',
-    );
   });
 
   test('D-DSYNC-005: reusable public world data DX lives in SDK Realm extension', () => {
-    assert.match(sdkRealmWorldSource, /export async function loadRealmWorldDetailById/);
     assert.match(worldFlowSource, /loadRealmWorldDetailById/);
   });
 });

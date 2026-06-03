@@ -9,10 +9,6 @@ function readWorkspaceFile(relativePath: string): string {
 const homeViewSource = readWorkspaceFile('src/shell/renderer/features/home/home-view.tsx');
 const homeFeedControlsSource = readWorkspaceFile('src/shell/renderer/features/home/home-feed-controls.tsx');
 const postFeedDataSource = readWorkspaceFile('src/shell/renderer/features/social/data/post-feed-data.ts');
-const sdkSocialFeedSource = fs.readFileSync(
-  path.join(import.meta.dirname, '../../../sdk/src/realm/extensions/social-feed.ts'),
-  'utf8',
-);
 const mainLayoutViewSource = readWorkspaceFile('src/shell/renderer/app-shell/layouts/main-layout-view.tsx');
 const mainLayoutTitlebarContentSource = readWorkspaceFile('src/shell/renderer/app-shell/layouts/main-layout-titlebar-content.tsx');
 const mainLayoutTopBarSource = readWorkspaceFile('src/shell/renderer/app-shell/layouts/main-layout-topbar.tsx');
@@ -21,7 +17,6 @@ test('Desktop post feed delegates Realm service scope and pagination behavior to
   assert.match(postFeedDataSource, /loadRealmPostFeed/);
   assert.match(postFeedDataSource, /from '@nimiplatform\/sdk\/realm'/);
   assert.doesNotMatch(postFeedDataSource, /realm\.services\.PostsService\.getHomeFeed/);
-  assert.match(sdkSocialFeedSource, /getHomeFeed\([\s\S]*normalized\.scope/);
 });
 
 test('Home feed controls present exactly the three canonical feed scopes (D-HOMEFEED-004)', () => {

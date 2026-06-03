@@ -39,8 +39,6 @@ function toErrorMessage(error: unknown, fallback: string): string {
 export function ProfilePanel() {
   const authStatus = useAppStore((state) => state.auth.status);
   const currentUser = useAppStore((state) => state.auth.user);
-  const authToken = useAppStore((state) => state.auth.token);
-  const refreshToken = useAppStore((state) => state.auth.refreshToken);
   const setAuthSession = useAppStore((state) => state.setAuthSession);
   const selectedProfileId = useAppStore((state) => state.selectedProfileId);
   const navigateBack = useAppStore((state) => state.navigateBack);
@@ -263,7 +261,7 @@ export function ProfilePanel() {
         updated.avatarUrl = draft.avatarUrl.trim() || null;
       }
 
-      setAuthSession(updated, authToken, refreshToken);
+      setAuthSession(updated);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['user-profile'] }),
         queryClient.invalidateQueries({ queryKey: ['contact-profile'] }),

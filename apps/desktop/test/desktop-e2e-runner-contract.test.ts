@@ -113,6 +113,10 @@ test('desktop E2E fixture Realm origin is admitted by the packaged HTTP bridge a
   assert.match(tauriHttpEnvSource, /defaults\.realm\.jwt_issuer/);
 });
 
+test('desktop E2E runner builds the fixture surface only through an explicit Cargo feature', () => {
+  assert.match(runnerSource, /'--features',\s*'desktop-e2e-fixture'/);
+});
+
 test('authenticated desktop boot smoke fails closed on missing account projection', () => {
   assert.match(authenticatedBootSpecSource, /E2E_IDS\.shellSidebarRail/);
   assert.match(authenticatedBootSpecSource, /E2E_IDS\.navTab\('home'\)/);
@@ -124,9 +128,11 @@ test('core navigation smoke waits for the authenticated rail before tab assertio
   assert.match(shellNavigationSpecSource, /E2E_IDS\.navTab\('home'\)/);
 });
 
-test('desktop E2E fixture owns RuntimeAccount projection through runtime bridge unary overrides', () => {
+test('desktop E2E fixture Runtime overrides are test-feature gated and production no-op', () => {
+  assert.match(desktopE2eFixtureSource, /#\[cfg\(any\(test, feature = "desktop-e2e-fixture"\)\)\]\s*mod enabled/);
+  assert.match(desktopE2eFixtureSource, /#\[cfg\(not\(any\(test, feature = "desktop-e2e-fixture"\)\)\)\]\s*(?:#\[allow\(dead_code\)\]\s*)?mod disabled/);
   assert.match(desktopE2eFixtureSource, /RUNTIME_ACCOUNT_GET_ACCOUNT_SESSION_STATUS_METHOD_ID/);
   assert.match(desktopE2eFixtureSource, /RUNTIME_ACCOUNT_GET_ACCESS_TOKEN_METHOD_ID/);
   assert.match(desktopE2eFixtureSource, /AccountSessionState::Authenticated as i32/);
-  assert.match(desktopE2eFixtureSource, /AccountSessionState::Anonymous as i32/);
+  assert.match(desktopE2eFixtureSource, /pub fn runtime_bridge_unary_override\([\s\S]*?Ok\(None\)/);
 });

@@ -19,18 +19,18 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 
-import { PRODUCT_CONTROL_STATES } from '@nimiplatform/sdk';
+import {
+  PRODUCT_CONTROL_RECOVERY_STATE_COPY_KEY as RECOVERY_STATE_COPY_KEY,
+  PRODUCT_CONTROL_STATES,
+  isDegradedProductControlState as isDegradedProductState,
+  isRepairRoutedProductControlState as isRepairRoutedState,
+} from '@nimiplatform/sdk';
 import {
   SUPPORT_SECTION_IDS,
   SUPPORT_DEGRADED_REACHABLE_SECTIONS,
   resolveSupportSection,
   isSupportSectionId,
 } from '../src/shell/renderer/features/support/support-sections.js';
-import {
-  RECOVERY_STATE_COPY_KEY,
-  isDegradedProductState,
-  isRepairRoutedState,
-} from '../src/shell/renderer/features/support/support-recovery-copy.js';
 import { DESKTOP_LOG_AREAS } from '../src/shell/renderer/features/support/support-log-areas.js';
 
 const desktopDir = path.resolve(import.meta.dirname, '..');

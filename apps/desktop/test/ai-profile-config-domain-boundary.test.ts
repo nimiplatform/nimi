@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
+import { readTesterSettingsSurface } from './helpers/read-tester-settings-surface';
 
 const repoRoot = path.resolve(import.meta.dirname, '../../..');
 
@@ -20,27 +21,10 @@ function readRustModule(entryRelativePath: string, dirRelativePath: string): str
   return [read(entryRelativePath), ...moduleFiles].join('\n');
 }
 
-test('factory AIProfile catalog and first-run selection stay Platform/SDK-owned', () => {
-  const policy = read('.nimi/spec/platform/kernel/ai-profile-selection-policy-contract.md');
-  const factoryTable = read('.nimi/spec/platform/kernel/tables/ai-profile-factory-catalog.yaml');
-  const sdkGeneratedCatalog = read('sdk/src/platform-catalog/generated.ts');
-  const sdkFirstRunSelection = read('sdk/src/platform-catalog/first-run.ts');
-  const shellTauriCatalog = read('kit/shell/tauri/src/platform_catalog/ai_profile_factory.rs');
-  const shellTauriFactoryProjection = read('kit/shell/tauri/src/platform_projection/factory_profile_index.rs');
+test('Desktop consumes factory AIProfile projections without owning catalog rows', () => {
   const desktopFactoryIndex = read('apps/desktop/src-tauri/src/factory_profile_index.rs');
   const firstRunWorkflow = read('apps/desktop/src/shell/renderer/first-run/product-control-workflow.tsx');
 
-  assert.match(policy, /factory AIProfile catalog` 是 Platform 拥有/);
-  assert.match(factoryTable, /owner: platform/);
-  assert.match(factoryTable, /profile rows must not embed provider, connector, engine, or model identifier strings/);
-
-  assert.match(sdkGeneratedCatalog, /PLATFORM_AI_PROFILE_FACTORY_ROWS/);
-  assert.match(sdkFirstRunSelection, /selectFactoryAIProfileForFirstRun/);
-  assert.match(sdkFirstRunSelection, /isAdmittedFirstRunLocalBaseline/);
-
-  assert.match(shellTauriCatalog, /Source: \.nimi\/spec\/platform\/kernel\/tables\/ai-profile-factory-catalog\.yaml/);
-  assert.match(shellTauriCatalog, /verify_first_run_factory_ai_profile/);
-  assert.match(shellTauriFactoryProjection, /validate_factory_profile_index_record/);
   assert.match(desktopFactoryIndex, /build_factory_profile_index_record/);
   assert.match(desktopFactoryIndex, /materialize_factory_profile_index_projection/);
   assert.doesNotMatch(desktopFactoryIndex, /PlatformAIProfileFactoryRow\s*\{/);
@@ -77,7 +61,7 @@ test('built-in first-run AIConfig evidence is Desktop host placement over canoni
     assert.match(desktopAiConfigLibrary, requiredProjectionField);
   }
   assert.match(desktopAiConfigLibrary, /verify_first_run_factory_ai_profile/);
-  assert.match(desktopAiConfigLibrary, /runtime_capability_bindings_from_baseline_ref/);
+  assert.match(desktopAiConfigLibrary, /runtime_capability_bindings_from_execution_evidence_ref/);
   assert.match(desktopAiConfigLibrary, /with_extension\(format!\("json\.tmp/);
   assert.match(desktopAiConfigLibrary, /fs::rename\(&tmp_path, path\)/);
 
@@ -96,7 +80,7 @@ test('built-in first-run AIConfig evidence is Desktop host placement over canoni
 
   assert.match(productControlSchema, /builtInAiConfigRefs:/);
   assert.match(productControlSchema, /owner: desktop_chat_feature_scope_owner/);
-  assert.match(productControlSchema, /verifier: SDK AIConfig projection plus Runtime readiness evidence/);
+  assert.match(productControlSchema, /verifier: Desktop host AIConfig authority plus SDK Runtime \/ Kit projection from Runtime executionEvidenceRef proof/);
 });
 
 test('Account Default Profile library is account-local evidence, not scope AIConfig mutation', () => {
@@ -152,29 +136,16 @@ test('Account Default Profile library is account-local evidence, not scope AICon
 });
 
 test('Desktop and Tester consume SDK and Kit AIProfile surfaces as apps', () => {
-  const sdkHostProfileSurface = read('sdk/src/ai/host-ai-profile-surface.ts');
-  const sdkAiConfig = read('sdk/src/ai/ai-config.ts');
-  const sdkAccountProfileLibrary = read('sdk/src/ai/account-profile-library.ts');
-  const kitModelConfig = read('kit/features/model-config/src/headless/use-model-config-profile-controller.ts');
   const desktopProfilePage = read('apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-page-profiles.tsx');
   const desktopChatSettings = read('apps/desktop/src/shell/renderer/features/chat/chat-shared-settings-panel.tsx');
   const testerStore = read('apps/tester/src/tester/tester-ai-config-store.ts');
-  const testerSettings = read('apps/tester/src/shell/routes/settings.tsx');
+  const testerSettings = readTesterSettingsSurface(repoRoot);
   const testerContract = read('apps/tester/test/tester-contract.test.mjs');
   const testerAiProfileSurface = read('apps/tester/test/tester-ai-profile-surface.test.mjs');
 
-  assert.match(sdkHostProfileSurface, /createHostAIProfileSurface/);
-  assert.match(sdkHostProfileSurface, /previewApply/);
-  assert.match(sdkHostProfileSurface, /applyAIProfileToConfig/);
-  assert.match(sdkAiConfig, /validateAIProfile/);
-  assert.match(sdkAccountProfileLibrary, /parseAIProfile/);
-
-  assert.match(kitModelConfig, /from '@nimiplatform\/kit\/core\/sdk-contract'/);
-  assert.match(kitModelConfig, /previewApply/);
-  assert.match(kitModelConfig, /onConfirmApply/);
-
   assert.match(desktopProfilePage, /from '@nimiplatform\/sdk\/ai'/);
   assert.match(desktopProfilePage, /from '@nimiplatform\/kit\/features\/model-config'/);
+  assert.doesNotMatch(desktopProfilePage, /applyAIProfileToConfig/);
   assert.match(desktopChatSettings, /from '@nimiplatform\/kit\/features\/model-config'/);
 
   assert.match(testerStore, /createHostAIProfileSurface/);

@@ -63,7 +63,7 @@
   "walletChallengeFailed": "获取钱包挑战失败",
   "walletLoginFailed": "钱包登录失败",
   "oauthLoginFailed": "OAuth 登录失败",
-  "logoutServerTransientFailure": "已在本地退出登录，但由于网络错误无法确认服务端退出请求。服务端会话可能仍然处于活跃状态：{{error}}",
-  "logoutServerFailure": "已在本地退出登录，但服务端退出失败。服务端会话可能仍会保持活跃，直到你在其它地方将其撤销：{{error}}",
+  "logoutRuntimeTransientFailure": "退出登录未完成，因为无法确认 Runtime 登出请求。账号会话可能仍然处于活跃状态：{{error}}",
+  "logoutRuntimeFailure": "退出登录未完成，因为 Runtime 登出失败。账号会话可能仍然处于活跃状态：{{error}}",
   "logoutSuccess": "已退出登录"
 }

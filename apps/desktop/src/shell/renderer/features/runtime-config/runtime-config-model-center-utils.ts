@@ -57,7 +57,6 @@ export type LocalModelCenterProps = {
   onRemove: (localModelId: string) => Promise<void>;
   onRemoveAsset: (localAssetId: string) => Promise<void>;
   onSetLocalModelQuery: (value: string) => void;
-  onChangeLocalEndpoint: (endpoint: string) => void;
   onNavigateToSetup?: (pageId: RuntimeSetupPageIdV11) => void;
   onDownloadComplete?: (
     installSessionId: string,

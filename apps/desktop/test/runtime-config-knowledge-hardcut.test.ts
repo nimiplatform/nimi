@@ -52,15 +52,3 @@ test('runtime config hard-cuts the retired knowledge management page', () => {
     );
   }
 });
-
-test('runtime knowledge SDK methods remain absorbed by cognition service ids', () => {
-  const methodIds = readFileSync(
-    path.join(import.meta.dirname, '../../../sdk/src/runtime/method-ids.ts'),
-    'utf8',
-  );
-  const retiredServiceName = ['Runtime', 'Knowledge', 'Service'].join('');
-
-  assert.match(methodIds, /knowledge:\s*{[\s\S]*RuntimeCognitionService\/CreateKnowledgeBank/);
-  assert.match(methodIds, /knowledge:\s*{[\s\S]*RuntimeCognitionService\/SearchKeyword/);
-  assert.equal(methodIds.includes(retiredServiceName), false);
-});

@@ -1,14 +1,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
+
+const retiredRuntimeBootstrapAuthUrl = new URL(
+  '../src/shell/renderer/infra/bootstrap/runtime-bootstrap-auth.ts',
+  import.meta.url,
+);
 
 const runtimeBootstrapSource = readFileSync(
   new URL('../src/shell/renderer/infra/bootstrap/runtime-bootstrap.ts', import.meta.url),
-  'utf8',
-);
-
-const runtimeBootstrapAuthSource = readFileSync(
-  new URL('../src/shell/renderer/infra/bootstrap/runtime-bootstrap-auth.ts', import.meta.url),
   'utf8',
 );
 
@@ -39,8 +39,7 @@ test('desktop bootstrap only projects authenticated when Runtime account token c
   );
 });
 
-test('retired desktop bootstrap auth helper is hard-blocked', () => {
-  assert.match(runtimeBootstrapAuthSource, /RuntimeAccountService owns local account truth/);
-  assert.doesNotMatch(runtimeBootstrapAuthSource, /persistSharedDesktopSession/);
-  assert.doesNotMatch(runtimeBootstrapAuthSource, /dataSync\.loadCurrentUser/);
+test('retired desktop bootstrap auth helper is deleted', () => {
+  assert.equal(existsSync(retiredRuntimeBootstrapAuthUrl), false);
+  assert.doesNotMatch(runtimeBootstrapSource, /runtime-bootstrap-auth/);
 });

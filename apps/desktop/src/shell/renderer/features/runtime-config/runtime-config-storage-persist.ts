@@ -28,9 +28,9 @@ export function loadRuntimeConfigStateV11(): RuntimeConfigStateV11 {
 }
 
 export function persistRuntimeConfigStateV11(state: RuntimeConfigStateV11): void {
-  // Connectors are NOT persisted to localStorage — runtime bridge config (config.json)
-  // is the single source of truth for provider/connector data. Local model
-  // inventory is also runtime-derived and must not be persisted here.
+  // Connectors are NOT persisted to localStorage; neither are Runtime endpoint or inventory.
+  // Runtime bridge config / Runtime SDK projections are the single source of
+  // truth. Renderer storage keeps UI preferences only.
   const payload: StoredStateV11 = {
     version: 12,
     initializedByV11: Boolean(state.initializedByV11),
@@ -41,6 +41,7 @@ export function persistRuntimeConfigStateV11(state: RuntimeConfigStateV11): void
     activeCapability: state.activeCapability,
     local: {
       ...state.local,
+      endpoint: '',
       models: [],
       nodeMatrix: [],
       status: 'idle',

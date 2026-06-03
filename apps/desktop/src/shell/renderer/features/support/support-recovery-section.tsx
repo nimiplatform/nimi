@@ -13,16 +13,16 @@ import { useTranslation } from 'react-i18next';
 import { desktopBridge, type ProductControlRecordProjection } from '@renderer/bridge';
 import { useTypedProjection as useSupportProjection } from '@nimiplatform/kit/ui';
 import {
+  PRODUCT_CONTROL_RECOVERY_STATE_COPY_KEY as RECOVERY_STATE_COPY_KEY,
+  isDegradedProductControlState as isDegradedProductState,
+  isRepairRoutedProductControlState as isRepairRoutedState,
+} from '@nimiplatform/sdk';
+import {
   SupportCard,
   SupportFailClosed,
   SupportLoading,
   SupportSectionShell,
 } from './support-section-shell.js';
-import {
-  isDegradedProductState,
-  isRepairRoutedState,
-  RECOVERY_STATE_COPY_KEY,
-} from './support-recovery-copy.js';
 
 async function loadRecoveryProjection(): Promise<ProductControlRecordProjection> {
   return desktopBridge.getProductControlRecord();

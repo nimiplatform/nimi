@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import test from 'node:test';
+import { readTesterSettingsSurface } from './helpers/read-tester-settings-surface';
 
 const desktopDir = resolve(import.meta.dirname, '..');
 const repoDir = resolve(desktopDir, '../..');
@@ -23,12 +24,10 @@ test('Desktop src/runtime residual namespace is fully retired', () => {
   assert.deepEqual(walkFiles(desktopRuntimeDir), []);
 
   const bootstrap = readRepo('apps/desktop/src/shell/renderer/infra/bootstrap/runtime-bootstrap.ts');
-  const sdkWorldEvolution = readRepo('sdk/src/runtime/world-evolution-selector-read.ts');
-  const testerSettings = readRepo('apps/tester/src/shell/routes/settings.tsx');
+  const testerSettings = readTesterSettingsSurface(repoDir);
 
   assert.match(bootstrap, /createMissingWorldEvolutionSelectorReadProvider/);
   assert.match(bootstrap, /from '@nimiplatform\/sdk\/runtime'/);
-  assert.match(sdkWorldEvolution, /createMissingWorldEvolutionSelectorReadProvider/);
   assert.match(testerSettings, /loadTesterWorldEvolutionSelectorReadProjection/);
   assert.doesNotMatch(bootstrap, /@runtime\/world-evolution/);
 });

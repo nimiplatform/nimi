@@ -2,9 +2,40 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { resolveAvatarComposerActionState } from '../src/shell/renderer/features/chat/chat-agent-shell-local-avatar-controls';
 
 const repoRoot = join(import.meta.dirname, '..');
+
+function createStorage(): Storage {
+  const map = new Map<string, string>();
+  return {
+    get length() {
+      return map.size;
+    },
+    clear: () => map.clear(),
+    getItem: (key: string) => (map.has(key) ? map.get(key)! : null),
+    key: (index: number) => Array.from(map.keys())[index] ?? null,
+    removeItem: (key: string) => map.delete(key),
+    setItem: (key: string, value: string) => map.set(key, String(value)),
+  } as Storage;
+}
+
+const previousLocalStorage = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+
+function installFreshStorage(): void {
+  Object.defineProperty(globalThis, 'localStorage', {
+    value: createStorage(),
+    configurable: true,
+    writable: true,
+  });
+}
+
+test.afterEach(() => {
+  if (previousLocalStorage) {
+    Object.defineProperty(globalThis, 'localStorage', previousLocalStorage);
+  } else {
+    delete (globalThis as { localStorage?: unknown }).localStorage;
+  }
+});
 
 test('Agent Chat Settings Avatar surface exposes closed configuration controls', () => {
   const settingsSource = readFileSync(
@@ -77,7 +108,11 @@ test('Agent Chat Settings Avatar surface does not widen Avatar launch handoff', 
   assert.doesNotMatch(launchCall[0], /package|descriptor|path|profile|token|account|binding|carrier/u);
 });
 
-test('Agent Chat composer Avatar launch fails closed without local asset and backend evidence', () => {
+test('Agent Chat composer Avatar launch fails closed without local asset and backend evidence', async () => {
+  installFreshStorage();
+  const { resolveAvatarComposerActionState } = await import(
+    '../src/shell/renderer/features/chat/chat-agent-shell-local-avatar-controls.js'
+  );
   const presentationSource = readFileSync(
     join(repoRoot, 'src/shell/renderer/features/chat/chat-agent-shell-local-avatar-controls.ts'),
     'utf8',

@@ -2,7 +2,6 @@ import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/ru
 import {
   buildRuntimeBridgeConfigWithLocalEndpoint,
   projectRuntimeBridgeLocalEndpoint,
-  serializeRuntimeBridgeLocalEndpointProjection,
 } from '@nimiplatform/sdk/runtime';
 import type { JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
 
@@ -16,33 +15,24 @@ export function applyRuntimeBridgeConfigToState(
   runtimeConfigRaw: JsonObject,
 ): RuntimeConfigStateV11 {
   const endpointFromConfig = projectRuntimeBridgeLocalEndpoint(runtimeConfigRaw);
-  const nextLocalEndpoint = endpointFromConfig || state.local.endpoint;
 
   return {
     ...state,
     local: {
       ...state.local,
-      endpoint: nextLocalEndpoint,
+      endpoint: endpointFromConfig,
     },
   };
 }
 
 /**
- * Build runtime bridge config from state.
- * Only persists llama loopback endpoint and preserves existing config fields.
- * Cloud provider/connector data is managed by Go runtime connector store.
+ * Build runtime bridge config from an explicit user-submitted endpoint.
+ * The renderer state is not a config authority; it only displays the last
+ * Runtime bridge projection and keeps unsaved input as component-local draft.
  */
-export function buildRuntimeBridgeConfigFromState(
-  state: RuntimeConfigStateV11,
+export function buildRuntimeBridgeConfigFromLocalEndpoint(
+  localEndpoint: string,
   baseConfigRaw: JsonObject,
 ): JsonObject {
-  return buildRuntimeBridgeConfigWithLocalEndpoint(baseConfigRaw, state.local.endpoint);
-}
-
-/**
- * Serialize a projection for dirty-checking whether bridge config needs saving.
- * Only tracks local endpoint since connectors are managed by runtime.
- */
-export function serializeRuntimeBridgeProjection(state: RuntimeConfigStateV11): string {
-  return serializeRuntimeBridgeLocalEndpointProjection(state.local.endpoint);
+  return buildRuntimeBridgeConfigWithLocalEndpoint(baseConfigRaw, localEndpoint);
 }

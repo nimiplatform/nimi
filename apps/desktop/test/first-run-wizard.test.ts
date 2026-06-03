@@ -8,10 +8,10 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { ProductControlWorkflow } from '../src/shell/renderer/first-run/product-control-workflow.js';
 import {
   FIRST_RUN_PHASES,
-  firstRunScreenForState,
-  isPhaseTransient,
-  isTransientSystemState,
-} from '../src/shell/renderer/first-run/first-run-phase-projection.js';
+  firstRunScreenForProductControlState as firstRunScreenForState,
+  isProductControlPhaseTransient as isPhaseTransient,
+  isProductControlTransientState as isTransientSystemState,
+} from '@nimiplatform/sdk';
 import {
   FIRST_RUN_SETUP_STEP_IDS,
   projectSetupChecklist,

@@ -108,11 +108,11 @@ test('built-in AIConfig fails closed on generic scope, string-only ref, and part
   assert.match(desktopProductControlSource, /recorded set is partial/);
   assert.match(desktopAiConfigLibraryModuleSource, /string_only_and_missing_refs_fail_closed/);
   assert.match(desktopAiConfigLibraryModuleSource, /partial_one_of_two_built_in_set_fails_closed/);
-  // Text/STT/TTS bindings come from Runtime baseline evidence; no capability
-  // binding is invented when the runtime baseline omits its consumer.
-  assert.match(desktopAiConfigLibraryModuleSource, /runtime_capability_bindings_from_baseline_ref/);
-  assert.match(desktopAiConfigLibraryModuleSource, /AUDIO_SYNTHESIZE_CAPABILITY/);
-  assert.match(desktopAiConfigLibraryModuleSource, /AUDIO_TRANSCRIBE_CAPABILITY/);
+  // Text/STT/TTS bindings come from Runtime execution evidence; no capability
+  // binding is invented when Runtime omits a selected execution proof.
+  assert.match(desktopAiConfigLibraryModuleSource, /runtime_capability_bindings_from_execution_evidence_ref/);
+  assert.match(desktopAiConfigLibraryModuleSource, /project_first_run_execution_evidence_to_ai_config_bindings/);
+  assert.doesNotMatch(desktopAiConfigLibraryModuleSource, /RuntimeBaselineActivationConsumerEvidence/);
 });
 
 test('built-in AIConfig apply is atomic (D-AIPC-005) via temp-file then rename', () => {
@@ -154,7 +154,7 @@ test('product control materializes built-in AIConfig refs inside first-run final
 test('product-control schema keeps builtInAiConfigRefs owned by desktop chat feature scopes through SDK projection', () => {
   assert.match(productControlSchemaSource, /builtInAiConfigRefs:/);
   assert.match(productControlSchemaSource, /owner: desktop_chat_feature_scope_owner/);
-  assert.match(productControlSchemaSource, /verifier: SDK AIConfig projection plus Runtime readiness evidence/);
+  assert.match(productControlSchemaSource, /verifier: Desktop host AIConfig authority plus SDK Runtime \/ Kit projection from Runtime executionEvidenceRef proof/);
   for (const scope of [/surfaceId: nimi/, /surfaceId: agent/]) {
     assert.match(productControlSchemaSource, scope);
   }

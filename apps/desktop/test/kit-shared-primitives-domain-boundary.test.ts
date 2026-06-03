@@ -2,11 +2,11 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
+import { readTesterKitGallerySurface } from './helpers/read-tester-kit-gallery-surface';
+import { readTesterSettingsSurface } from './helpers/read-tester-settings-surface';
 
 const repoRoot = path.resolve(import.meta.dirname, '../../..');
 const desktopRendererRoot = path.join(repoRoot, 'apps/desktop/src/shell/renderer');
-const kitRoot = path.join(repoRoot, 'kit');
-const kitFeaturesRoot = path.join(repoRoot, 'kit/features');
 
 function read(relativePath: string): string {
   return fs.readFileSync(path.join(repoRoot, relativePath), 'utf8');
@@ -34,27 +34,6 @@ function walkSourceFiles(root: string): string[] {
     }
     return [entryPath];
   });
-}
-
-function isTestSource(filePath: string): boolean {
-  const normalized = path.relative(repoRoot, filePath).split(path.sep).join('/');
-  return (
-    /(?:^|\/)(?:test|tests|__tests__)\/.+\.(?:ts|tsx)$/.test(normalized)
-    || /\.(?:test|spec)\.(?:ts|tsx)$/.test(normalized)
-  );
-}
-
-function importSpecifiers(source: string): string[] {
-  const specifiers: string[] = [];
-  const importPattern = /(?:from\s+|import\s*\(\s*)['"]([^'"]+)['"]/g;
-  let match: RegExpExecArray | null;
-  while ((match = importPattern.exec(source)) !== null) {
-    const specifier = match[1];
-    if (specifier) {
-      specifiers.push(specifier);
-    }
-  }
-  return specifiers;
 }
 
 test('Desktop consumes Kit shared UI, telemetry, and feature primitives for audited app surfaces', () => {
@@ -123,7 +102,7 @@ test('Tester is the second consumer for Kit shared primitives and shell bootstra
   assert.match(main, /from '@nimiplatform\/kit\/shell\/renderer\/bootstrap'/);
   assert.match(main, /\bcreateRendererEntryModuleLoader\b/);
 
-  const gallery = read('apps/tester/src/tester/kit-component-gallery.tsx');
+  const gallery = readTesterKitGallerySurface(repoRoot);
   assert.match(gallery, /from '@nimiplatform\/kit\/ui'/);
   for (const primitive of [
     'Button',
@@ -140,7 +119,7 @@ test('Tester is the second consumer for Kit shared primitives and shell bootstra
     assert.match(gallery, new RegExp(`\\b${primitive}\\b`));
   }
 
-  const settings = read('apps/tester/src/shell/routes/settings.tsx');
+  const settings = readTesterSettingsSurface(repoRoot);
   assert.match(settings, /from '@nimiplatform\/kit\/features\/model-config\/headless'/);
   assert.match(settings, /from '@nimiplatform\/kit\/features\/chat\/headless'/);
   assert.match(settings, /from '@nimiplatform\/kit\/features\/commerce\/realm'/);
@@ -149,54 +128,8 @@ test('Tester is the second consumer for Kit shared primitives and shell bootstra
   assert.match(settings, /from '@nimiplatform\/kit\/ui'/);
 
   const testerContract = read('apps/tester/test/tester-contract.test.mjs');
+  const testerSettingsSurfaceTest = read('apps/tester/test/tester-settings-surface.test.mjs');
   assert.match(testerContract, /tester kit gallery showcases real kit components/);
   assert.match(testerContract, /tester auth and runtime bootstrap consume Kit shell bridge primitives/);
-  assert.match(testerContract, /tester settings consumes Kit model picker binding projection/);
-});
-
-test('Kit non-test code routes static SDK imports through the SDK contract boundary only', () => {
-  const offenders = walkSourceFiles(kitRoot)
-    .filter((filePath) => !isTestSource(filePath))
-    .filter((filePath) => path.relative(repoRoot, filePath).split(path.sep).join('/') !== 'kit/core/src/sdk-contract.ts')
-    .filter((filePath) => {
-      const specifiers = importSpecifiers(fs.readFileSync(filePath, 'utf8'));
-      return specifiers.some((specifier) => specifier === '@nimiplatform/sdk' || specifier.startsWith('@nimiplatform/sdk/'));
-    })
-    .map((filePath) => path.relative(repoRoot, filePath));
-
-  assert.deepEqual(offenders, [], 'Kit SDK imports must stay centralized in kit/core/src/sdk-contract.ts');
-
-  const sdkContract = read('kit/core/src/sdk-contract.ts');
-  assert.match(sdkContract, /resolveRealmMediaUrl/);
-
-  const realmHelpers = read('kit/features/chat/src/realm/helpers.ts');
-  assert.match(realmHelpers, /from '@nimiplatform\/kit\/core\/sdk-contract'/);
-  assert.match(realmHelpers, /from '\.\/codec\.js'/);
-  assert.doesNotMatch(realmHelpers, /from '\.\.\/headless\.js'/);
-  assert.doesNotMatch(realmHelpers, /from '@nimiplatform\/sdk\/realm'/);
-
-  const chatHeadless = read('kit/features/chat/src/headless.ts');
-  assert.doesNotMatch(chatHeadless, /realm\/codec/);
-  assert.doesNotMatch(chatHeadless, /normalizeRealmMessagePayload/);
-
-  const chatRealm = read('kit/features/chat/src/realm.ts');
-  assert.match(chatRealm, /normalizeRealmMessagePayload/);
-});
-
-test('Kit feature modules do not import app or Runtime private boundaries', () => {
-  const offenders = walkSourceFiles(kitFeaturesRoot)
-    .filter((filePath) => !isTestSource(filePath))
-    .flatMap((filePath) => {
-      const relativePath = path.relative(repoRoot, filePath);
-      return importSpecifiers(fs.readFileSync(filePath, 'utf8'))
-        .filter((specifier) => (
-          specifier.startsWith('apps/')
-          || specifier.startsWith('@renderer')
-          || specifier.includes('runtime/internal')
-          || specifier.includes('dataSync')
-        ))
-        .map((specifier) => `${relativePath}: ${specifier}`);
-    });
-
-  assert.deepEqual(offenders, [], 'Kit features must not import app aliases, app sources, dataSync, or Runtime internals');
+  assert.match(testerSettingsSurfaceTest, /tester settings consumes Kit model picker binding projection/);
 });

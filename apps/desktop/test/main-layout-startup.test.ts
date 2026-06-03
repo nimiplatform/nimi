@@ -47,18 +47,6 @@ const CHAT_NIMI_PRESENTATION_SOURCE = readFileSync(
   resolve(import.meta.dirname, '../src/shell/renderer/features/chat/chat-nimi-shell-presentation.tsx'),
   'utf8',
 );
-const CANONICAL_SHELL_SOURCE = readFileSync(
-  resolve(import.meta.dirname, '../../../kit/features/chat/src/components/canonical-conversation-shell.tsx'),
-  'utf8',
-);
-const CANONICAL_BUBBLE_SOURCE = readFileSync(
-  resolve(import.meta.dirname, '../../../kit/features/chat/src/components/canonical-message-bubble.tsx'),
-  'utf8',
-);
-const KIT_RUNTIME_ORCHESTRATION_SOURCE = readFileSync(
-  resolve(import.meta.dirname, '../../../kit/features/chat/src/runtime/orchestration.ts'),
-  'utf8',
-);
 
 test('default desktop route keeps the main layout behind a lazy startup boundary', () => {
   assert.match(
@@ -106,22 +94,11 @@ test('default AI chat startup keeps non-default surfaces out of the eager graph'
     /import \{ CanonicalConversationShell \} from '@nimiplatform\/kit\/features\/chat\/components\/canonical-conversation-shell'/,
   );
   assert.doesNotMatch(CHAT_NIMI_MODE_SOURCE, /from '@nimiplatform\/kit\/features\/chat';/);
-  assert.match(CANONICAL_SHELL_SOURCE, /const CanonicalStagePanel = lazy\(async \(\) => \{/);
-  assert.match(CANONICAL_SHELL_SOURCE, /const CanonicalCharacterRail = lazy\(async \(\) => \{/);
-  assert.doesNotMatch(
-    CANONICAL_SHELL_SOURCE,
-    /import \{ CanonicalStagePanel[^}]*\} from '\.\/canonical-stage-panel\.js'/,
-  );
 });
 
-test('markdown, model config, and SDK barrels do not block default chat import', () => {
-  assert.match(CANONICAL_BUBBLE_SOURCE, /const ChatMarkdownRenderer = lazy\(async \(\) => \{/);
-  assert.match(CANONICAL_BUBBLE_SOURCE, /const RpContentRenderer = lazy\(async \(\) => \{/);
-  assert.doesNotMatch(CANONICAL_BUBBLE_SOURCE, /import \{ ChatMarkdownRenderer \} from '\.\/chat-markdown-renderer\.js'/);
+test('model config does not block default chat import', () => {
   assert.match(CHAT_NIMI_PRESENTATION_SOURCE, /const ChatSettingsPanel = lazy\(async \(\) => \{/);
   assert.doesNotMatch(CHAT_NIMI_PRESENTATION_SOURCE, /import \{ ChatSettingsPanel \} from '\.\/chat-shared-settings-panel'/);
-  assert.doesNotMatch(KIT_RUNTIME_ORCHESTRATION_SOURCE, /import \{ getPlatformClient \} from '@nimiplatform\/sdk'/);
-  assert.match(KIT_RUNTIME_ORCHESTRATION_SOURCE, /import\('@nimiplatform\/kit\/core\/sdk-contract'\)/);
 });
 
 test('human and agent mode chunks do not synchronously import settings or chat barrels', () => {

@@ -19,14 +19,18 @@ type MetadataRow = {
   payload: JsonObject | JsonObject[];
 };
 
-type OfflineMemoryStore = {
+export type OfflineEphemeralStoreOptions = {
+  readonly enableEphemeralStore?: boolean;
+};
+
+type OfflineEphemeralStore = {
   chatList: Map<string, JsonObject>;
   chatMessages: Map<string, Map<string, JsonObject>>;
   agentMetadata: Map<string, MetadataRow>;
   worldMetadata: Map<string, MetadataRow>;
 };
 
-function createMemoryStore(): OfflineMemoryStore {
+function createEphemeralStore(): OfflineEphemeralStore {
   return {
     chatList: new Map(),
     chatMessages: new Map(),
@@ -43,19 +47,26 @@ function toMetadataRow(
 }
 
 /**
- * D-OFFLINE-005: IndexedDB offline cache with in-memory fallback for non-browser tests.
+ * D-OFFLINE-005: IndexedDB offline cache with explicit ephemeral store for non-browser tests.
  */
 export class OfflineCacheManager {
   private db: IDBDatabase | null = null;
-  private memory: OfflineMemoryStore | null = null;
+  private ephemeral: OfflineEphemeralStore | null = null;
+
+  constructor(private readonly options: OfflineEphemeralStoreOptions = {}) {}
 
   async open(): Promise<void> {
-    if (this.db || this.memory) {
+    if (this.db || this.ephemeral) {
       return;
     }
     if (!hasIndexedDb()) {
-      this.memory = createMemoryStore();
-      return;
+      if (this.options.enableEphemeralStore === true) {
+        this.ephemeral = createEphemeralStore();
+        return;
+      }
+      throw new Error(
+        'OfflineCacheManager requires IndexedDB or explicit enableEphemeralStore=true',
+      );
     }
     this.db = await openOfflineDatabase();
   }
@@ -65,7 +76,7 @@ export class OfflineCacheManager {
       this.db.close();
       this.db = null;
     }
-    this.memory = null;
+    this.ephemeral = null;
   }
 
   private ensureDb(): IDBDatabase {
@@ -75,11 +86,11 @@ export class OfflineCacheManager {
     return this.db;
   }
 
-  private ensureMemory(): OfflineMemoryStore {
-    if (!this.memory) {
-      throw new Error('OfflineCacheManager memory store not opened');
+  private ensureEphemeralStore(): OfflineEphemeralStore {
+    if (!this.ephemeral) {
+      throw new Error('OfflineCacheManager ephemeral store not opened');
     }
-    return this.memory;
+    return this.ephemeral;
   }
 
   private async complete(tx: IDBTransaction): Promise<void> {
@@ -91,8 +102,8 @@ export class OfflineCacheManager {
   }
 
   private async getAll<T>(storeName: string): Promise<T[]> {
-    if (this.memory) {
-      throw new Error(`getAll(${storeName}) not implemented for memory store`);
+    if (this.ephemeral) {
+      throw new Error(`getAll(${storeName}) not implemented for ephemeral store`);
     }
     const db = this.ensureDb();
     return await new Promise((resolve, reject) => {
@@ -115,13 +126,13 @@ export class OfflineCacheManager {
 
   async syncChatList<T extends JsonObject>(chats: T[]): Promise<void> {
     const limited = chats.slice(0, OFFLINE_CACHE_MAX_CHATS);
-    if (this.memory) {
-      const memory = this.ensureMemory();
-      memory.chatList.clear();
+    if (this.ephemeral) {
+      const ephemeral = this.ensureEphemeralStore();
+      ephemeral.chatList.clear();
       for (const chat of limited) {
         const id = String(chat.id || '').trim();
         if (!id) continue;
-        memory.chatList.set(id, chat);
+        ephemeral.chatList.set(id, chat);
       }
       return;
     }
@@ -136,16 +147,16 @@ export class OfflineCacheManager {
   }
 
   async getCachedChatList<T extends JsonObject>(): Promise<T[]> {
-    if (this.memory) {
-      return Array.from(this.ensureMemory().chatList.values()) as T[];
+    if (this.ephemeral) {
+      return Array.from(this.ensureEphemeralStore().chatList.values()) as T[];
     }
     return await this.getAll<T>(OFFLINE_STORE_CHAT_LIST);
   }
 
   async syncChatMessages<T extends JsonObject>(chatId: string, messages: T[]): Promise<void> {
     const limited = messages.slice(0, OFFLINE_CACHE_MAX_MESSAGES_PER_CHAT);
-    if (this.memory) {
-      const memory = this.ensureMemory();
+    if (this.ephemeral) {
+      const ephemeral = this.ensureEphemeralStore();
       const byId = new Map<string, JsonObject>();
       for (const message of limited) {
         const id = String(message.id || '').trim();
@@ -155,7 +166,7 @@ export class OfflineCacheManager {
           chatId,
         });
       }
-      memory.chatMessages.set(chatId, byId);
+      ephemeral.chatMessages.set(chatId, byId);
       return;
     }
     const db = this.ensureDb();
@@ -183,8 +194,8 @@ export class OfflineCacheManager {
   }
 
   async getCachedMessages<T extends JsonObject>(chatId: string): Promise<T[]> {
-    if (this.memory) {
-      return Array.from((this.ensureMemory().chatMessages.get(chatId) || new Map()).values()) as T[];
+    if (this.ephemeral) {
+      return Array.from((this.ensureEphemeralStore().chatMessages.get(chatId) || new Map()).values()) as T[];
     }
     const db = this.ensureDb();
     return await new Promise((resolve, reject) => {
@@ -200,8 +211,8 @@ export class OfflineCacheManager {
 
   async syncAgentMetadata<T extends JsonObject>(agentId: string, payload: T): Promise<void> {
     const row = toMetadataRow(agentId, payload);
-    if (this.memory) {
-      this.ensureMemory().agentMetadata.set(agentId, row);
+    if (this.ephemeral) {
+      this.ensureEphemeralStore().agentMetadata.set(agentId, row);
       return;
     }
     const db = this.ensureDb();
@@ -211,8 +222,8 @@ export class OfflineCacheManager {
   }
 
   async getCachedAgentMetadata<T extends JsonObject>(agentId: string): Promise<T | null> {
-    if (this.memory) {
-      const row = this.ensureMemory().agentMetadata.get(agentId);
+    if (this.ephemeral) {
+      const row = this.ensureEphemeralStore().agentMetadata.get(agentId);
       return row && !Array.isArray(row.payload) ? row.payload as T : null;
     }
     const row = await this.getByKey<MetadataRow>(OFFLINE_STORE_AGENT_METADATA, agentId);
@@ -221,8 +232,8 @@ export class OfflineCacheManager {
 
   async syncWorldList<T extends JsonObject>(worlds: T[]): Promise<void> {
     const row = toMetadataRow(WORLD_LIST_CACHE_KEY, worlds);
-    if (this.memory) {
-      this.ensureMemory().worldMetadata.set(WORLD_LIST_CACHE_KEY, row);
+    if (this.ephemeral) {
+      this.ensureEphemeralStore().worldMetadata.set(WORLD_LIST_CACHE_KEY, row);
       return;
     }
     const db = this.ensureDb();
@@ -232,8 +243,8 @@ export class OfflineCacheManager {
   }
 
   async getCachedWorldList<T extends JsonObject>(): Promise<T[]> {
-    if (this.memory) {
-      const row = this.ensureMemory().worldMetadata.get(WORLD_LIST_CACHE_KEY);
+    if (this.ephemeral) {
+      const row = this.ensureEphemeralStore().worldMetadata.get(WORLD_LIST_CACHE_KEY);
       return row && Array.isArray(row.payload) ? row.payload as T[] : [];
     }
     const row = await this.getByKey<MetadataRow>(OFFLINE_STORE_WORLD_METADATA, WORLD_LIST_CACHE_KEY);
@@ -242,8 +253,8 @@ export class OfflineCacheManager {
 
   async syncWorldMetadata<T extends JsonObject>(worldId: string, payload: T): Promise<void> {
     const row = toMetadataRow(worldId, payload);
-    if (this.memory) {
-      this.ensureMemory().worldMetadata.set(worldId, row);
+    if (this.ephemeral) {
+      this.ensureEphemeralStore().worldMetadata.set(worldId, row);
       return;
     }
     const db = this.ensureDb();
@@ -253,8 +264,8 @@ export class OfflineCacheManager {
   }
 
   async getCachedWorldMetadata<T extends JsonObject>(worldId: string): Promise<T | null> {
-    if (this.memory) {
-      const row = this.ensureMemory().worldMetadata.get(worldId);
+    if (this.ephemeral) {
+      const row = this.ensureEphemeralStore().worldMetadata.get(worldId);
       return row && !Array.isArray(row.payload) ? row.payload as T : null;
     }
     const row = await this.getByKey<MetadataRow>(OFFLINE_STORE_WORLD_METADATA, worldId);
@@ -266,6 +277,10 @@ export class OfflineCacheManager {
 let offlineCacheManager: OfflineCacheManager | null = null;
 let offlineCacheManagerPromise: Promise<OfflineCacheManager> | null = null;
 
+function isNonBrowserOfflineStoreHarness(): boolean {
+  return typeof window === 'undefined' && !hasIndexedDb();
+}
+
 export async function getOfflineCacheManager(): Promise<OfflineCacheManager> {
   if (offlineCacheManager) {
     await offlineCacheManager.open();
@@ -273,7 +288,9 @@ export async function getOfflineCacheManager(): Promise<OfflineCacheManager> {
   }
   if (!offlineCacheManagerPromise) {
     offlineCacheManagerPromise = (async () => {
-      const manager = new OfflineCacheManager();
+      const manager = new OfflineCacheManager({
+        enableEphemeralStore: isNonBrowserOfflineStoreHarness(),
+      });
       await manager.open();
       offlineCacheManager = manager;
       return manager;

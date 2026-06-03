@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { clearPlatformClient, createPlatformClient } from '@nimiplatform/sdk';
 
 import {
   chatAiStoreClient,
@@ -90,27 +89,6 @@ test('chat ai bridge parser rejects invalid timestamps', () => {
 });
 
 test('chat ai store bridge invokes fixed tauri commands and payload shapes', async () => {
-  clearPlatformClient();
-  const client = await createPlatformClient({
-    appId: 'nimi.desktop',
-    realmBaseUrl: 'https://realm.example',
-    allowAnonymousRealm: true,
-    runtimeTransport: null,
-  });
-  (client as unknown as { runtime: unknown }).runtime = {
-    appId: 'nimi.desktop',
-    appLifecycle: {
-      storage: async () => ({
-        appId: 'nimi.desktop',
-        state: 'ready',
-        appRoot: '/tmp/nimi/apps/nimi.desktop',
-        durableDataRoot: '/tmp/nimi/apps/nimi.desktop/data',
-        cacheRoot: '/tmp/nimi/apps/nimi.desktop/cache',
-        tempRoot: '/tmp/nimi/apps/nimi.desktop/tmp',
-        storagePolicyRef: 'nimi-data-app-roots',
-      }),
-    },
-  };
   const calls: TauriInvokeCall[] = [];
   const restore = installTauriInvokeMock(async (command, payload) => {
     calls.push({ command, payload });
@@ -266,13 +244,11 @@ test('chat ai store bridge invokes fixed tauri commands and payload shapes', asy
     ]);
     assert.deepEqual(calls[1]?.payload, {
       payload: {
-        storageRoot: '/tmp/nimi/apps/nimi.desktop/data',
         threadId: 'thread-1',
       },
     });
     assert.deepEqual(calls[2]?.payload, {
       payload: {
-        storageRoot: '/tmp/nimi/apps/nimi.desktop/data',
         id: 'thread-1',
         title: 'alpha',
         createdAtMs: 50,
@@ -282,7 +258,6 @@ test('chat ai store bridge invokes fixed tauri commands and payload shapes', asy
     });
     assert.deepEqual(calls[5]?.payload, {
       payload: {
-        storageRoot: '/tmp/nimi/apps/nimi.desktop/data',
         id: 'message-2',
         threadId: 'thread-1',
         role: 'assistant',
@@ -298,7 +273,6 @@ test('chat ai store bridge invokes fixed tauri commands and payload shapes', asy
     });
     assert.deepEqual(calls[6]?.payload, {
       payload: {
-        storageRoot: '/tmp/nimi/apps/nimi.desktop/data',
         id: 'message-1',
         status: 'streaming',
         contentText: 'hello world',
@@ -310,12 +284,10 @@ test('chat ai store bridge invokes fixed tauri commands and payload shapes', asy
     });
     assert.deepEqual(calls[9]?.payload, {
       payload: {
-        storageRoot: '/tmp/nimi/apps/nimi.desktop/data',
         threadId: 'thread-1',
       },
     });
   } finally {
     restore();
-    clearPlatformClient();
   }
 });

@@ -59,14 +59,6 @@ const runtimeConfigPanelEffectsPath = path.resolve(
   process.cwd(),
   'src/shell/renderer/features/runtime-config/runtime-config-panel-effects.ts',
 );
-const sdkRuntimeRouteOptionsPath = path.resolve(
-  process.cwd(),
-  '../../sdk/src/runtime/runtime-route-options.ts',
-);
-const sdkRuntimeRoutePath = path.resolve(
-  process.cwd(),
-  '../../sdk/src/runtime/runtime-route.ts',
-);
 const retiredRouteResolverFileName = ['runtime-bootstrap-route', 'resolvers.ts'].join('-');
 const runtimeBootstrapRouteResolversPath = path.resolve(
   process.cwd(),
@@ -112,8 +104,6 @@ const localModelCenterUtilsSource = readFileSync(localModelCenterUtilsPath, 'utf
 const localModelCenterProgressCacheSource = readFileSync(localModelCenterProgressCachePath, 'utf-8');
 const runtimeBootstrapRouteOptionsSource = readFileSync(runtimeBootstrapRouteOptionsPath, 'utf-8');
 const runtimeConfigPanelEffectsSource = readFileSync(runtimeConfigPanelEffectsPath, 'utf-8');
-const sdkRuntimeRouteOptionsSource = readFileSync(sdkRuntimeRouteOptionsPath, 'utf-8');
-const sdkRuntimeRouteSource = readFileSync(sdkRuntimeRoutePath, 'utf-8');
 const runtimeBootstrapConversationRouteRuntimeSource = readFileSync(runtimeBootstrapConversationRouteRuntimePath, 'utf-8');
 const tauriCommandsSource = readFileSync(tauriCommandsPath, 'utf-8');
 const tauriLocalRuntimePackageSource = readFileSync(tauriLocalRuntimePackagePath, 'utf-8');
@@ -195,54 +185,22 @@ test('runtime config local snapshot polling does not duplicate runtime health tr
   assert.match(runtimeConfigPanelEffectsSource, /useRuntimeHealthCoordinatorState/);
 });
 
-test('local route options preserve per-asset endpoint instead of falling back to global runtime endpoint', () => {
-  assert.match(sdkRuntimeRouteOptionsSource, /endpoint: String\(item\.endpoint \|\| snapshotModel\?\.endpoint \|\| ''\)\.trim\(\) \|\| undefined/);
+test('desktop route options do not fall back to global runtime endpoint fields', () => {
   assert.doesNotMatch(runtimeBootstrapRouteOptionsSource, /runtimeFields\.localProviderEndpoint/);
   assert.doesNotMatch(runtimeBootstrapRouteOptionsSource, /runtimeFields\.localOpenAiEndpoint/);
-  assert.match(
-    readFileSync(
-      path.resolve(
-        process.cwd(),
-        '../../sdk/src/runtime/local-runtime-client/parsers.ts',
-      ),
-      'utf-8',
-    ),
-    /endpoint: asString\(record\.endpoint\) \|\| undefined/,
-  );
-  assert.match(
-    readFileSync(
-      path.resolve(
-        process.cwd(),
-        '../../sdk/src/runtime/local-runtime-client/parsers.ts',
-      ),
-      'utf-8',
-    ),
-    /engineRuntimeMode: record\.engineRuntimeMode == null\s*\?\s*undefined\s*:\s*normalizeEngineRuntimeMode\(record\.engineRuntimeMode\)/,
-  );
 });
 
 test('local route hydration prefers fresh local model adapter over stale binding adapter', () => {
   assert.equal(existsSync(retiredRuntimeBootstrapHostCapabilitiesRoutingPath), false);
   assert.match(runtimeBootstrapRouteOptionsSource, /listRuntimeRouteOptionsWithHost\(\{/);
-  assert.match(sdkRuntimeRouteOptionsSource, /const snapshotByLocalModelId = new Map\(/);
-  assert.match(sdkRuntimeRouteOptionsSource, /const snapshotModel = snapshotByLocalModelId\.get/);
-  assert.match(sdkRuntimeRouteOptionsSource, /endpoint: String\(item\.endpoint \|\| snapshotModel\?\.endpoint \|\| ''\)\.trim\(\) \|\| undefined/);
 });
 
 test('runtime route resolve uses the selected local binding and retired host-capability files stay absent', () => {
   assert.equal(existsSync(retiredRuntimeBootstrapHostCapabilitiesPath), false);
   assert.equal(existsSync(runtimeBootstrapRouteResolversPath), false);
   assert.match(runtimeBootstrapRouteOptionsSource, /runtimeLocalModels,/);
-  assert.match(sdkRuntimeRouteOptionsSource, /\.filter\(\(item\) => String\(item\.status \|\| ''\)\.trim\(\)\.toLowerCase\(\) !== 'removed'\)/);
   assert.match(runtimeBootstrapConversationRouteRuntimeSource, /createRuntimeRouteCapabilityRuntimeWithHost/);
   assert.doesNotMatch(runtimeBootstrapConversationRouteRuntimeSource, /resolveRuntimeRouteBindingFromSnapshot/);
-  assert.match(sdkRuntimeRouteSource, /export function resolveRuntimeRouteBindingFromSnapshot/);
-  assert.match(
-    readFileSync(path.resolve(process.cwd(), '../../sdk/src/runtime/runtime-route-capability-runtime.ts'), 'utf-8'),
-    /resolveRuntimeRouteBindingFromSnapshot/,
-  );
-  assert.match(sdkRuntimeRouteSource, /endpoint: String\(binding\.endpoint \|\| binding\.localProviderEndpoint \|\| binding\.localOpenAiEndpoint \|\| ''\)\.trim\(\) \|\| undefined/);
-  assert.match(sdkRuntimeRouteSource, /goRuntimeStatus: String\(binding\.goRuntimeStatus \|\| ''\)\.trim\(\) \|\| undefined/);
   assert.doesNotMatch(runtimeBootstrapConversationRouteRuntimeSource, new RegExp(['createResolveRuntime', 'Binding'].join('')));
   assert.doesNotMatch(runtimeBootstrapConversationRouteRuntimeSource, new RegExp(retiredRouteResolverFileName.replace('.', '\\.')));
 });
@@ -250,16 +208,6 @@ test('runtime route resolve uses the selected local binding and retired host-cap
 test('manual import no longer injects managed media loopback defaults and can forward explicit endpoints', () => {
   assert.doesNotMatch(localModelCenterImportActionsSource, /defaultImportEndpointForAssetDeclaration/);
   assert.match(localModelCenterImportActionsSource, /endpoint: String\(endpoint \|\| ''\)\.trim\(\) \|\| undefined/);
-  assert.match(
-    readFileSync(
-      path.resolve(
-        process.cwd(),
-        '../../sdk/src/runtime/local-runtime-client/commands-assets.ts',
-      ),
-      'utf-8',
-    ),
-    /endpoint: String\(options\?\.endpoint \|\| ''\)\.trim\(\) \|\| undefined/,
-  );
 });
 
 test('import dialog exposes attached endpoint input when runtime requires it', () => {
@@ -353,17 +301,10 @@ test('desktop README does not document renderer-owned local provider route truth
 });
 
 test('local model lifecycle writes route through SDK runtime service only', () => {
-  const commandsAssetsSource = readFileSync(
-    path.resolve(process.cwd(), '../../sdk/src/runtime/local-runtime-client/commands-assets.ts'),
-    'utf-8',
-  );
   assert.doesNotMatch(tauriCommandsSource, /runtime_local_assets_start/);
   assert.doesNotMatch(tauriCommandsSource, /runtime_local_assets_stop/);
   assert.doesNotMatch(tauriCommandsSource, /runtime_local_assets_health/);
   assert.doesNotMatch(tauriCommandsSource, /runtime_local_assets_remove/);
-  assert.match(commandsAssetsSource, /runtime\.startLocalAsset\(\{/);
-  assert.match(commandsAssetsSource, /runtime\.stopLocalAsset\(\{/);
-  assert.match(commandsAssetsSource, /runtime\.removeLocalAsset\(\{/);
   assert.doesNotMatch(tauriCommandsSource, /start_asset\(&app, &payload\.local_asset_id\)/);
   assert.doesNotMatch(tauriCommandsSource, /stop_asset\(&app, &payload\.local_asset_id\)/);
   assert.doesNotMatch(tauriCommandsSource, /health_assets\(&app, local_asset_id\.as_deref\(\)\)/);

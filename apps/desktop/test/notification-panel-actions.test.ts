@@ -11,12 +11,17 @@ const QUERY_SOURCE_PATH = resolve(
   import.meta.dirname,
   '../src/shell/renderer/features/notification/notification-query.ts',
 );
+const ACTION_SOURCE_PATH = resolve(
+  import.meta.dirname,
+  '../src/shell/renderer/features/notification/notification-action-buttons.tsx',
+);
 const MAIN_LAYOUT_VIEW_PATH = resolve(
   import.meta.dirname,
   '../src/shell/renderer/app-shell/layouts/main-layout-view.tsx',
 );
 const source = readFileSync(SOURCE_PATH, 'utf-8');
 const querySource = readFileSync(QUERY_SOURCE_PATH, 'utf-8');
+const actionSource = readFileSync(ACTION_SOURCE_PATH, 'utf-8');
 const mainLayoutViewSource = readFileSync(MAIN_LAYOUT_VIEW_PATH, 'utf-8');
 
 describe('notification panel action wiring', () => {
@@ -38,8 +43,8 @@ describe('notification panel action wiring', () => {
   });
 
   test('positive and negative gift reviews are wired separately', () => {
-    assert.match(source, /ReviewRatingEnum\.POSITIVE/);
-    assert.match(source, /ReviewRatingEnum\.NEGATIVE/);
+    assert.match(actionSource, /ReviewRatingEnum\.POSITIVE/);
+    assert.match(actionSource, /ReviewRatingEnum\.NEGATIVE/);
   });
 
   test('notification panel renders a distinct load error state', () => {

@@ -1,4 +1,3 @@
-import { buildRuntimeLocalAgentRef, isRuntimeLocalAgentRef } from '@nimiplatform/sdk/runtime';
 import { createDefaultAgentCenterAvatarAssetModule } from './chat-agent-center-avatar-config-types';
 import type { AgentCenterAvatarAssetModule } from './chat-agent-center-avatar-config-types';
 import { validateAvatarAssetModule } from './chat-agent-center-avatar-config-validation';
@@ -91,10 +90,6 @@ export type AgentCenterUiModule = {
 export type AgentCenterLocalConfig = {
   schema_version: 1;
   config_kind: typeof AGENT_CENTER_LOCAL_CONFIG_KIND;
-  account_id: string;
-  owner_user_id: string;
-  realm_agent_id: string;
-  local_agent_ref: string;
   modules: {
     appearance: AgentCenterAppearanceModule;
     avatar_asset: AgentCenterAvatarAssetModule;
@@ -116,10 +111,6 @@ const ISO_TIMESTAMP_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})
 const ROOT_KEYS = [
   'schema_version',
   'config_kind',
-  'account_id',
-  'owner_user_id',
-  'realm_agent_id',
-  'local_agent_ref',
   'modules',
 ] as const;
 const MODULES_KEYS = AGENT_CENTER_LOCAL_CONFIG_MODULE_IDS;
@@ -190,38 +181,6 @@ function readNullableString(value: unknown, path: string, errors: string[]): str
     return null;
   }
   return readString(value, path, errors);
-}
-
-function validateNormalizedId(value: unknown, path: string, errors: string[]): string {
-  const id = readString(value, path, errors);
-  if (!id || !NORMALIZED_ID_PATTERN.test(id)) {
-    errors.push(`${path}: invalid normalized id`);
-    return '';
-  }
-  return id;
-}
-
-function validateLocalAgentRef(
-  ownerUserId: string,
-  realmAgentId: string,
-  value: unknown,
-  path: string,
-  errors: string[],
-): string {
-  const localAgentRef = validateNormalizedId(value, path, errors);
-  if (localAgentRef === realmAgentId) {
-    errors.push(`${path}: must not be a bare realmAgentId`);
-    return localAgentRef;
-  }
-  if (!isRuntimeLocalAgentRef(localAgentRef)) {
-    errors.push(`${path}: must start with local-agent:`);
-    return localAgentRef;
-  }
-  const expected = buildRuntimeLocalAgentRef({ ownerUserId, realmAgentId });
-  if (localAgentRef !== expected) {
-    errors.push(`${path}: must equal local-agent:\${ownerUserId}:\${realmAgentId}`);
-  }
-  return localAgentRef;
 }
 
 function validateBackgroundId(value: unknown, path: string, errors: string[]): string | null {
@@ -307,24 +266,9 @@ export function validateAgentCenterLocalConfig(value: unknown): AgentCenterLocal
     }
   }
 
-  const accountId = validateNormalizedId(root.account_id, 'config.account_id', errors);
-  const ownerUserId = validateNormalizedId(root.owner_user_id, 'config.owner_user_id', errors);
-  const realmAgentId = validateNormalizedId(root.realm_agent_id, 'config.realm_agent_id', errors);
-  const localAgentRef = validateLocalAgentRef(
-    ownerUserId,
-    realmAgentId,
-    root.local_agent_ref,
-    'config.local_agent_ref',
-    errors,
-  );
-
   const config: AgentCenterLocalConfig = {
     schema_version: 1,
     config_kind: AGENT_CENTER_LOCAL_CONFIG_KIND,
-    account_id: accountId,
-    owner_user_id: ownerUserId,
-    realm_agent_id: realmAgentId,
-    local_agent_ref: localAgentRef,
     modules: {
       appearance: validateAppearanceModule(modules.appearance, errors),
       avatar_asset: validateAvatarAssetModule(modules.avatar_asset, errors),
@@ -338,19 +282,10 @@ export function validateAgentCenterLocalConfig(value: unknown): AgentCenterLocal
   return { ok: true, config };
 }
 
-export function createDefaultAgentCenterLocalConfig(input: {
-  accountId: string;
-  ownerUserId: string;
-  realmAgentId: string;
-  localAgentRef: string;
-}): AgentCenterLocalConfig {
+export function createDefaultAgentCenterLocalConfig(): AgentCenterLocalConfig {
   return {
     schema_version: 1,
     config_kind: AGENT_CENTER_LOCAL_CONFIG_KIND,
-    account_id: input.accountId,
-    owner_user_id: input.ownerUserId,
-    realm_agent_id: input.realmAgentId,
-    local_agent_ref: input.localAgentRef,
     modules: {
       appearance: {
         schema_version: 1,

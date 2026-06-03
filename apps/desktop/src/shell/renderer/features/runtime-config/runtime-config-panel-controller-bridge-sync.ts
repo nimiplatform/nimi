@@ -1,12 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { desktopBridge } from '@renderer/bridge';
 import type { JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
-import { getOfflineCoordinator } from '@renderer/infra/offline';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import {
   applyRuntimeBridgeConfigToState,
-  buildRuntimeBridgeConfigFromState,
-  serializeRuntimeBridgeProjection,
+  buildRuntimeBridgeConfigFromLocalEndpoint,
 } from './runtime-bridge-config';
 import { replaceConnectorsInState } from './runtime-config-connector-actions';
 import { asRecord, type SetRuntimeConfigBanner } from './runtime-config-panel-controller-utils';
@@ -15,21 +13,31 @@ const RUNTIME_BRIDGE_CONFIG_RESTART_REQUIRED = 'CONFIG_RESTART_REQUIRED';
 
 type UseRuntimeConfigBridgeSyncInput = {
   hydrated: boolean;
-  state: RuntimeConfigStateV11 | null;
   setState: (updater: (previous: RuntimeConfigStateV11 | null) => RuntimeConfigStateV11 | null) => void;
   setStatusBanner: SetRuntimeConfigBanner;
 };
 
-export function useRuntimeConfigBridgeSync(input: UseRuntimeConfigBridgeSyncInput): void {
-  const { hydrated, state, setState, setStatusBanner } = input;
+export type RuntimeConfigBridgeSyncController = {
+  saveRuntimeLocalEndpoint: (endpoint: string) => Promise<{ restartRequired: boolean }>;
+};
+
+export function useRuntimeConfigBridgeSync(input: UseRuntimeConfigBridgeSyncInput): RuntimeConfigBridgeSyncController {
+  const { hydrated, setState, setStatusBanner } = input;
 
   const runtimeBridgeConfigRef = useRef<JsonObject>({});
-  const runtimeBridgeProjectionRef = useRef('');
-  const runtimeBridgeFailedProjectionRef = useRef('');
   const runtimeBridgeLoadStartedRef = useRef(false);
   const [bridgeRetryCount, setBridgeRetryCount] = useState(0);
   const runtimeBridgeReadSucceededRef = useRef(false);
   const runtimeBridgeRestartHintShownRef = useRef(false);
+
+  const applyBridgeConfigProjection = useCallback((config: JsonObject) => {
+    runtimeBridgeConfigRef.current = config;
+    runtimeBridgeReadSucceededRef.current = true;
+    setState((previous) => {
+      if (!previous) return previous;
+      return applyRuntimeBridgeConfigToState(previous, runtimeBridgeConfigRef.current);
+    });
+  }, [setState]);
 
   useEffect(() => {
     if (!hydrated || runtimeBridgeLoadStartedRef.current) return;
@@ -54,15 +62,7 @@ export function useRuntimeConfigBridgeSync(input: UseRuntimeConfigBridgeSyncInpu
           throw bridgeResult.reason;
         }
 
-        runtimeBridgeConfigRef.current = asRecord(bridgeResult.value.config);
-        runtimeBridgeReadSucceededRef.current = true;
-        setState((previous) => {
-          if (!previous) return previous;
-          const next = applyRuntimeBridgeConfigToState(previous, runtimeBridgeConfigRef.current);
-          runtimeBridgeProjectionRef.current = serializeRuntimeBridgeProjection(next);
-          runtimeBridgeFailedProjectionRef.current = '';
-          return next;
-        });
+        applyBridgeConfigProjection(asRecord(bridgeResult.value.config));
 
         if (!cancelled && connectorResult.status === 'fulfilled' && connectorResult.value.length > 0) {
           setState((previous) => {
@@ -90,84 +90,38 @@ export function useRuntimeConfigBridgeSync(input: UseRuntimeConfigBridgeSyncInpu
     return () => {
       cancelled = true;
     };
-  }, [hydrated, setState, setStatusBanner, bridgeRetryCount]);
+  }, [applyBridgeConfigProjection, hydrated, setState, setStatusBanner, bridgeRetryCount]);
 
-  useEffect(() => {
-    if (!hydrated || !state) return;
-    if (!runtimeBridgeReadSucceededRef.current) return;
-    if (!desktopBridge.hasTauriInvoke()) return;
-
-    const nextProjection = serializeRuntimeBridgeProjection(state);
-    if (nextProjection === runtimeBridgeProjectionRef.current) return;
-    if (nextProjection === runtimeBridgeFailedProjectionRef.current) return;
-
-    let cancelled = false;
-    const timer = setTimeout(() => {
-      const persist = async (currentState: RuntimeConfigStateV11, projection: string) => {
-        try {
-          const nextConfig = buildRuntimeBridgeConfigFromState(currentState, runtimeBridgeConfigRef.current);
-          const result = await desktopBridge.setRuntimeBridgeConfig(JSON.stringify(nextConfig));
-          if (cancelled) return;
-
-          runtimeBridgeConfigRef.current = asRecord(result.config);
-          runtimeBridgeProjectionRef.current = projection;
-          runtimeBridgeFailedProjectionRef.current = '';
-
-          if (
-            result.reasonCode === RUNTIME_BRIDGE_CONFIG_RESTART_REQUIRED
-            && !runtimeBridgeRestartHintShownRef.current
-          ) {
-            runtimeBridgeRestartHintShownRef.current = true;
-            const hint = String(result.actionHint || '').trim();
-            setStatusBanner({
-              kind: 'info',
-              message: hint || 'Runtime config saved. Restart runtime to apply changes.',
-            });
-          }
-        } catch (error) {
-          if (cancelled) return;
-          runtimeBridgeFailedProjectionRef.current = projection;
-          const message = error instanceof Error ? error.message : String(error || 'runtime config bridge save failed');
-          setStatusBanner({
-            kind: 'error',
-            message: `Runtime config save failed: ${message}`,
-          });
-        }
-      };
-
-      void persist(state, nextProjection);
-    }, 300);
-
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
-  }, [hydrated, state, setStatusBanner]);
-
-  useEffect(() => {
+  const saveRuntimeLocalEndpoint = useCallback(async (endpoint: string): Promise<{ restartRequired: boolean }> => {
     if (!desktopBridge.hasTauriInvoke()) {
-      return undefined;
+      throw new Error('Runtime local endpoint config requires desktop runtime');
     }
-    const coordinator = getOfflineCoordinator();
-    return coordinator.subscribeRuntimeReconnect(() => {
-      if (!hydrated || !state || !runtimeBridgeReadSucceededRef.current) {
-        return;
-      }
-      const nextProjection = serializeRuntimeBridgeProjection(state);
-      if (!runtimeBridgeFailedProjectionRef.current || runtimeBridgeFailedProjectionRef.current !== nextProjection) {
-        return;
-      }
-      void (async () => {
-        try {
-          const nextConfig = buildRuntimeBridgeConfigFromState(state, runtimeBridgeConfigRef.current);
-          const result = await desktopBridge.setRuntimeBridgeConfig(JSON.stringify(nextConfig));
-          runtimeBridgeConfigRef.current = asRecord(result.config);
-          runtimeBridgeProjectionRef.current = nextProjection;
-          runtimeBridgeFailedProjectionRef.current = '';
-        } catch {
-          // Keep failed projection intact for the next reconnect edge.
-        }
-      })();
-    });
-  }, [hydrated, setStatusBanner, state]);
+    let baseConfig = runtimeBridgeConfigRef.current;
+    if (!runtimeBridgeReadSucceededRef.current) {
+      const current = await desktopBridge.getRuntimeBridgeConfig();
+      baseConfig = asRecord(current.config);
+      runtimeBridgeReadSucceededRef.current = true;
+      runtimeBridgeConfigRef.current = baseConfig;
+    }
+
+    const nextConfig = buildRuntimeBridgeConfigFromLocalEndpoint(endpoint, baseConfig);
+    const result = await desktopBridge.setRuntimeBridgeConfig(JSON.stringify(nextConfig));
+    const resultConfig = asRecord(result.config);
+    applyBridgeConfigProjection(resultConfig);
+
+    const restartRequired = result.reasonCode === RUNTIME_BRIDGE_CONFIG_RESTART_REQUIRED;
+    if (restartRequired && !runtimeBridgeRestartHintShownRef.current) {
+      runtimeBridgeRestartHintShownRef.current = true;
+      const hint = String(result.actionHint || '').trim();
+      setStatusBanner({
+        kind: 'info',
+        message: hint || 'Runtime config saved. Restart runtime to apply changes.',
+      });
+    }
+    return { restartRequired };
+  }, [applyBridgeConfigProjection, setStatusBanner]);
+
+  return {
+    saveRuntimeLocalEndpoint,
+  };
 }

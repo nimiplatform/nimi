@@ -1,5 +1,6 @@
 import type { RealmAgentFriendState } from './realm-agent-friend-state';
 export { AgentRecommendationCard } from './explore-agent-recommendation-card';
+export { toSafeBackgroundImage } from './explore-background-image';
 export type ExploreAgentCardData = {
   // Basic contact info
   id: string;
@@ -34,22 +35,3 @@ export type ExploreAgentCardData = {
   // never guessed renderer-side. Drives the D-EXPL-006 primary action.
   friendState?: RealmAgentFriendState;
 };
-export function toSafeBackgroundImage(rawUrl: string | null | undefined): string | null {
-  const normalized = String(rawUrl || '').trim();
-  if (!normalized) {
-    return null;
-  }
-  try {
-    const baseUrl =
-      typeof window !== 'undefined' && typeof window.location?.href === 'string'
-        ? window.location.href
-        : 'https://nimi.invalid';
-    const parsed = new URL(normalized, baseUrl);
-    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-      return null;
-    }
-    return `url(${JSON.stringify(parsed.toString())})`;
-  } catch {
-    return null;
-  }
-}

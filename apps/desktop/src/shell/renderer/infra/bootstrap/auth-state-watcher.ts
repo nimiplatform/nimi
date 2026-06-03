@@ -9,14 +9,14 @@ import {
 } from '@renderer/infra/local-agent-courier';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 
-type AuthSnapshot = { status: string; token: string; refreshToken: string };
+type AuthSnapshot = { status: string };
 
 function selectAuth(state: AppStoreState): AuthSnapshot {
-  return { status: state.auth.status, token: state.auth.token, refreshToken: state.auth.refreshToken };
+  return { status: state.auth.status };
 }
 
 function authEqual(a: AuthSnapshot, b: AuthSnapshot): boolean {
-  return a.status === b.status && a.token === b.token && a.refreshToken === b.refreshToken;
+  return a.status === b.status;
 }
 
 let unsubscribe: (() => void) | null = null;

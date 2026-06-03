@@ -504,7 +504,7 @@ export function bootstrapRuntime(): Promise<void> {
         id: accountProjection.accountId,
         displayName: accountProjection.displayName,
         realmEnvironmentId: accountProjection.realmEnvironmentId,
-      }, '', '');
+      });
     } else {
       useAppStore.getState().clearAuthSession();
     }

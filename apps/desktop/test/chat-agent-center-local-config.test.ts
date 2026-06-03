@@ -7,12 +7,7 @@ import {
 } from '../src/shell/renderer/features/chat/chat-agent-center-local-config';
 
 function createConfig() {
-  return createDefaultAgentCenterLocalConfig({
-    accountId: 'account_123',
-    ownerUserId: 'owner_123',
-    realmAgentId: 'agent_456',
-    localAgentRef: 'local-agent:owner_123:agent_456',
-  });
+  return createDefaultAgentCenterLocalConfig();
 }
 
 test('Agent Center local config validates the admitted module platform shape', () => {
@@ -31,31 +26,23 @@ test('Agent Center local config validates the admitted module platform shape', (
   }
 });
 
-test('Agent Center local config rejects bare realmAgentId as local resource key', () => {
+test('Agent Center local config rejects persisted identity fields', () => {
   const config = {
     ...createConfig(),
-    local_agent_ref: 'agent_456',
+    account_id: 'account_123',
+    owner_user_id: 'owner_123',
+    realm_agent_id: 'agent_456',
+    local_agent_ref: 'local-agent:owner_123:agent_456',
   };
 
   const result = validateAgentCenterLocalConfig(config);
 
   assert.equal(result.ok, false);
   if (!result.ok) {
-    assert.ok(result.errors.some((error) => error.includes('bare realmAgentId')));
-  }
-});
-
-test('Agent Center local config rejects mismatched localAgentRef tuple', () => {
-  const config = {
-    ...createConfig(),
-    local_agent_ref: 'local-agent:owner_999:agent_456',
-  };
-
-  const result = validateAgentCenterLocalConfig(config);
-
-  assert.equal(result.ok, false);
-  if (!result.ok) {
-    assert.ok(result.errors.some((error) => error.includes('local-agent:${ownerUserId}:${realmAgentId}')));
+    assert.ok(result.errors.some((error) => error.includes('config.account_id: unknown field')));
+    assert.ok(result.errors.some((error) => error.includes('config.owner_user_id: unknown field')));
+    assert.ok(result.errors.some((error) => error.includes('config.realm_agent_id: unknown field')));
+    assert.ok(result.errors.some((error) => error.includes('config.local_agent_ref: unknown field')));
   }
 });
 
@@ -127,19 +114,5 @@ test('Agent Center avatar asset module rejects future backend for selected local
   assert.equal(result.ok, false);
   if (!result.ok) {
     assert.ok(result.errors.some((error) => error.includes('future backend cannot be selected')));
-  }
-});
-
-test('Agent Center local config rejects non-NFC identifiers', () => {
-  const config = {
-    ...createConfig(),
-    account_id: 'cafe\u0301',
-  };
-
-  const result = validateAgentCenterLocalConfig(config);
-
-  assert.equal(result.ok, false);
-  if (!result.ok) {
-    assert.ok(result.errors.some((error) => error.includes('config.account_id: must be NFC normalized')));
   }
 });

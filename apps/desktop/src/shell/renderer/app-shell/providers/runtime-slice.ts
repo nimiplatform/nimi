@@ -9,7 +9,6 @@ import {
 } from './desktop-ai-config-service';
 import { getActiveScope } from '@renderer/features/chat/chat-shared-active-ai-config-scope';
 import { bindProjectionRefreshToSurface } from '@renderer/features/chat/conversation-capability-projection';
-import { applyAIProfileToConfig } from '@nimiplatform/sdk/ai';
 import type { RuntimeRouteBinding } from '@nimiplatform/sdk/runtime';
 
 const RETIRED_ROUTE_RUNTIME_FIELD_KEYS = new Set([
@@ -31,7 +30,6 @@ type RuntimeSlice = Pick<AppStoreState,
   | 'setRuntimeField'
   | 'setRuntimeFields'
   | 'setAIConfig'
-  | 'applyAIProfile'
   | 'setConversationCapabilityBinding'
   | 'setConversationCapabilityProjections'
   | 'setAgentEffectiveCapabilityResolution'
@@ -118,12 +116,6 @@ export function createRuntimeSlice(set: AppStoreSet): RuntimeSlice {
       // the surface handles persistence + in-memory + app store push + subscribers.
       getDesktopAIConfigService().aiConfig.update(config.scopeRef, config);
     },
-    applyAIProfile: (profile) =>
-      set((state) => {
-        const nextConfig = applyAIProfileToConfig(state.aiConfig, profile);
-        getDesktopAIConfigService().aiConfig.update(nextConfig.scopeRef, nextConfig);
-        return {};
-      }),
     setConversationCapabilityBinding: (capability, binding) =>
       set((state) => {
         const nextBindings = { ...state.aiConfig.capabilities.selectedBindings };

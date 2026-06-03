@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
-import { toSafeBackgroundImage } from '../src/shell/renderer/features/explore/explore-cards';
+import { toSafeBackgroundImage } from '../src/shell/renderer/features/explore/explore-background-image';
 
 function readSource(relativePath: string): string {
   return fs.readFileSync(path.join(import.meta.dirname, relativePath), 'utf8');
@@ -25,7 +25,6 @@ const createPostModalSource = readSource('../src/shell/renderer/features/profile
 const createPostModalPanelsSource = readSource('../src/shell/renderer/features/profile/create-post-modal-panels.tsx');
 const giftsTabSource = readSource('../src/shell/renderer/features/profile/gifts-tab.tsx');
 const sendGiftModalSource = readSource('../src/shell/renderer/features/economy/send-gift-modal.tsx');
-const dialogPrimitiveSource = readSource('../../../kit/ui/src/components/dialog.tsx');
 const designSurfacesTable = readSource('../../../.nimi/spec/desktop/kernel/tables/renderer-design-surfaces.yaml');
 const designOverlaysTable = readSource('../../../.nimi/spec/desktop/kernel/tables/renderer-design-overlays.yaml');
 
@@ -123,13 +122,6 @@ test('governed roots and overlays expose stable testability hooks', () => {
   assert.match(profileDetailModalSource, /dataTestId=\{E2E_IDS\.profileDetailModal\}/);
   assert.match(profileDetailModalSource, /data-testid=\{E2E_IDS\.profileDetailModalClose\}/);
   assert.match(giftsTabSource, /dataTestId=\{E2E_IDS\.profileTopSupportersDialog\}/);
-});
-
-test('dialog primitive keeps data-testid passthrough and panel style support for governed overlays', () => {
-  assert.match(dialogPrimitiveSource, /data-testid=\{dataTestId\}/);
-  assert.match(dialogPrimitiveSource, /panelStyle\?: CSSProperties/);
-  assert.match(dialogPrimitiveSource, /\.\.\.panelStyle/);
-  assert.match(dialogPrimitiveSource, /style=\{mergedPanelStyle\}/);
 });
 
 test('profile post feeds keep a stable two-column breakpoint instead of a late private width threshold', () => {

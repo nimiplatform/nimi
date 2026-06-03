@@ -171,9 +171,9 @@ test('desktop shell source guardrails keep auth helpers centralized', () => {
     path.join(import.meta.dirname, '../src/shell/renderer/features/auth/logout.ts'),
     'utf8',
   );
-  const bootstrapAuthSource = fs.readFileSync(
-    path.join(import.meta.dirname, '../src/shell/renderer/infra/bootstrap/runtime-bootstrap-auth.ts'),
-    'utf8',
+  const retiredBootstrapAuthPath = path.join(
+    import.meta.dirname,
+    '../src/shell/renderer/infra/bootstrap/runtime-bootstrap-auth.ts',
   );
   const runtimeBootstrapSource = fs.readFileSync(
     path.join(import.meta.dirname, '../src/shell/renderer/infra/bootstrap/runtime-bootstrap.ts'),
@@ -206,9 +206,8 @@ test('desktop shell source guardrails keep auth helpers centralized', () => {
     assert.doesNotMatch(source, /scopes:\s*\[\]/);
   }
   assert.doesNotMatch(authAdapterSource, /发送验证码失败|验证码登录失败|2FA 验证失败|获取钱包签名挑战失败|钱包登录失败|OAuth 登录失败/);
-  assert.match(bootstrapAuthSource, /RuntimeAccountService owns local account truth/);
-  assert.doesNotMatch(bootstrapAuthSource, /auth_session_load|auth_session_save|auth_session_clear/);
-  assert.doesNotMatch(bootstrapAuthSource, /as Record<string, unknown>/);
+  assert.equal(fs.existsSync(retiredBootstrapAuthPath), false);
+  assert.doesNotMatch(runtimeBootstrapSource, /runtime-bootstrap-auth|bootstrapAuthSession/);
   assert.match(sessionLoggingSource, /ns_window_ptr\.is_null\(\)/);
   assert.match(systemResourcesSource, /static MACOS_CPU_COUNT: OnceLock<f64> = OnceLock::new\(\);/);
   assert.match(systemResourcesSource, /MACOS_CPU_COUNT\.get_or_init/);

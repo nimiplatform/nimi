@@ -7,10 +7,6 @@ function readWorkspaceFile(relativePath: string): string {
   return fs.readFileSync(path.join(import.meta.dirname, '..', relativePath), 'utf8');
 }
 
-function readRepoFile(relativePath: string): string {
-  return fs.readFileSync(path.join(import.meta.dirname, '..', '..', '..', relativePath), 'utf8');
-}
-
 const conversationCapabilitySource = readWorkspaceFile('src/shell/renderer/features/chat/conversation-capability.ts');
 const runtimeSliceSource = readWorkspaceFile('src/shell/renderer/app-shell/providers/runtime-slice.ts');
 const storeTypesSource = readWorkspaceFile('src/shell/renderer/app-shell/providers/store-types.ts');
@@ -31,7 +27,6 @@ const chatHumanModeContentSource = readWorkspaceFile('src/shell/renderer/feature
 const chatGroupModeContentSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-group-mode-content.tsx');
 const chatSidebarTargetsSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-sidebar-targets.ts');
 const chatSettingsPanelSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-shared-settings-panel.tsx');
-const canonicalConversationShellSource = readRepoFile('kit/features/chat/src/components/canonical-conversation-shell.tsx');
 const mainLayoutViewSource = readWorkspaceFile('src/shell/renderer/app-shell/layouts/main-layout-view.tsx');
 
 test('chat unified shell a2: main layout mounts the dedicated chat page host', () => {
@@ -117,12 +112,12 @@ test('chat unified shell a2: chat page mounts the canonical target-first shell',
   assert.doesNotMatch(chatPageSource, /<ConversationShell/);
 });
 
-test('chat unified shell a2: canonical conversation shell supports transparent chrome for page-level chat layout', () => {
-  assert.match(canonicalConversationShellSource, /chrome\?: 'card' \| 'transparent'/);
-  assert.match(canonicalConversationShellSource, /data-conversation-shell-chrome=/);
-  assert.match(canonicalConversationShellSource, /props\.chrome === 'transparent'/);
-  assert.match(canonicalConversationShellSource, /sceneBackground\?: ReactNode/);
-  assert.match(canonicalConversationShellSource, /data-conversation-scene-background=/);
+test('chat unified shell a2: Desktop modes request transparent Kit chrome without owning shell internals', () => {
+  for (const source of [chatHumanModeContentSource, chatAiModeContentSource, chatAgentModeContentSource, chatGroupModeContentSource]) {
+    assert.match(source, /<CanonicalConversationShell/);
+    assert.match(source, /chrome="transparent"/);
+  }
+  assert.match(chatAgentModeContentSource, /sceneBackground=\{sceneBackground\}/);
 });
 
 test('chat unified shell a2: host contract only exposes canonical data and section props', () => {
@@ -234,7 +229,7 @@ test('chat unified shell a2: AIConfig is the umbrella authority over conversatio
   // Store types include aiConfig as primary truth
   assert.match(storeTypesSource, /aiConfig: AIConfig/);
   assert.match(storeTypesSource, /setAIConfig:/);
-  assert.match(storeTypesSource, /applyAIProfile:/);
+  assert.doesNotMatch(storeTypesSource, /applyAIProfile:/);
 
   // Runtime slice initializes from the mode-aware active chat scope AIConfig
   // and delegates writes to surface — no legacy store in public shape.
@@ -242,7 +237,7 @@ test('chat unified shell a2: AIConfig is the umbrella authority over conversatio
   assert.match(runtimeSliceSource, /getDesktopAIConfigService\(\)\.aiConfig\.get\(initialActiveScope\)/);
   assert.match(runtimeSliceSource, /getDesktopAIConfigService/);
   assert.match(runtimeSliceSource, /bindDesktopAIConfigAppStore/);
-  assert.match(runtimeSliceSource, /applyAIProfileToConfig/);
+  assert.doesNotMatch(runtimeSliceSource, /applyAIProfileToConfig/);
   assert.doesNotMatch(runtimeSliceSource, /conversationCapabilitySelectionStore/);
 
   // Persistence layer is scope-keyed (Phase 5 hard cut — no legacy single key)

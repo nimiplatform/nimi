@@ -54,9 +54,7 @@ test('remaining SDK or Kit forwarding exports are explicit separate domains or p
     'apps/desktop/src/shell/renderer/bridge/runtime-bridge.ts',
     'apps/desktop/src/shell/renderer/features/apps/apps-lifecycle-bridge.ts',
     'apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-catalog-sdk-service.ts',
-    'apps/desktop/src/shell/renderer/features/support/support-recovery-copy.ts',
     'apps/desktop/src/shell/renderer/features/world/world-detail-types.ts',
-    'apps/desktop/src/shell/renderer/first-run/first-run-phase-projection.ts',
     'apps/desktop/src/shell/renderer/first-run/runtime-materialization.ts',
     'apps/desktop/src/shell/renderer/infra/offline/index.ts',
     'apps/desktop/src/shell/renderer/infra/runtime-agent-inspect.ts',
@@ -93,5 +91,5 @@ test('SDK and Kit helper consumers import owner surfaces directly', () => {
   assert.doesNotMatch(conversationCapability, /createEmptyAIConfig\s*\}\s+from '@nimiplatform\/sdk\/ai'/);
   assert.match(runtimeConfigProfileLibrary, /AccountProfileLibraryProjection as SdkAccountProfileLibraryProjection/);
   assert.match(testerSettings, /from '@nimiplatform\/sdk\/ai'/);
-  assert.match(testerSettings, /applyAIProfileToConfig/);
+  assert.doesNotMatch(testerSettings, /applyAIProfileToConfig/);
 });

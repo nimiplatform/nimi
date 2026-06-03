@@ -155,9 +155,8 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     }));
   }), [panelState.updateState]);
 
-  useRuntimeConfigBridgeSync({
+  const bridgeSync = useRuntimeConfigBridgeSync({
     hydrated: panelState.hydrated,
-    state: panelState.state,
     setState: panelState.setState,
     setStatusBanner: setPageFeedback,
   });
@@ -230,6 +229,7 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     startRuntimeDaemon: daemon.startRuntimeDaemon,
     restartRuntimeDaemon: daemon.restartRuntimeDaemon,
     stopRuntimeDaemon: daemon.stopRuntimeDaemon,
+    saveRuntimeLocalEndpoint: bridgeSync.saveRuntimeLocalEndpoint,
     onVaultChanged,
     onDownloadComplete: installActions.onDownloadComplete,
     retryInstall: installActions.retryInstall,

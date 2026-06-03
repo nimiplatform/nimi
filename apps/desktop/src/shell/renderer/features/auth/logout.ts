@@ -1,6 +1,5 @@
 import { queryClient } from '@renderer/infra/query-client/query-client';
 import type { AppStoreState } from '@renderer/app-shell/providers/store-types';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { clearPersistedAccessToken } from '@nimiplatform/kit/auth';
 import { getPlatformClient } from '@nimiplatform/sdk';
 import { createDesktopShellRuntimeAccountCaller } from '@nimiplatform/sdk/runtime';
@@ -63,52 +62,50 @@ function isTransientLogoutError(error: unknown): boolean {
   );
 }
 
+async function emitLogoutFeedback(
+  input: LogoutAndClearSessionInput,
+  banner: { kind: 'info' | 'warning'; message: string },
+): Promise<void> {
+  if (input.onFeedback) {
+    input.onFeedback(banner);
+    return;
+  }
+  if (input.setStatusBanner) {
+    input.setStatusBanner(banner);
+    return;
+  }
+  const { useAppStore } = await import('@renderer/app-shell/providers/app-store');
+  useAppStore.getState().setStatusBanner(banner);
+}
+
 export async function logoutAndClearSession(
   input: LogoutAndClearSessionInput,
   deps: LogoutDependencies = defaultLogoutDependencies,
 ): Promise<void> {
-  let logoutError: unknown = null;
+  try {
+    await deps.logout();
+  } catch (error) {
+    await emitLogoutFeedback(input, {
+      kind: 'warning',
+      message: isTransientLogoutError(error)
+        ? deps.translate('Auth.logoutRuntimeTransientFailure', {
+          error: toErrorMessage(error),
+          defaultValue: 'Sign out could not be completed because Runtime logout could not be confirmed. The account session may still be active: {{error}}',
+        })
+        : deps.translate('Auth.logoutRuntimeFailure', {
+          error: toErrorMessage(error),
+          defaultValue: 'Sign out could not be completed because Runtime logout failed. The account session may still be active: {{error}}',
+        }),
+    });
+    return;
+  }
 
   await deps.clearPersistedSession();
   deps.clearAllStreams();
   input.clearAuthSession();
   deps.clearQueryClient();
 
-  try {
-    await deps.logout();
-  } catch (error) {
-    logoutError = error;
-  }
-
-  const emitFeedback = (banner: { kind: 'info' | 'warning'; message: string }) => {
-    if (input.onFeedback) {
-      input.onFeedback(banner);
-      return;
-    }
-    if (input.setStatusBanner) {
-      input.setStatusBanner(banner);
-      return;
-    }
-    useAppStore.getState().setStatusBanner(banner);
-  };
-
-  if (logoutError) {
-    emitFeedback({
-      kind: 'warning',
-      message: isTransientLogoutError(logoutError)
-        ? deps.translate('Auth.logoutServerTransientFailure', {
-          error: toErrorMessage(logoutError),
-          defaultValue: 'Signed out locally, but the server logout request could not be confirmed because of a network error. The server session may still be active: {{error}}',
-        })
-        : deps.translate('Auth.logoutServerFailure', {
-          error: toErrorMessage(logoutError),
-          defaultValue: 'Signed out locally, but server logout failed. The server session may still be active until it is revoked elsewhere: {{error}}',
-        }),
-    });
-    return;
-  }
-
-  emitFeedback({
+  await emitLogoutFeedback(input, {
     kind: 'info',
     message: deps.translate('Auth.logoutSuccess', { defaultValue: 'Signed out' }),
   });

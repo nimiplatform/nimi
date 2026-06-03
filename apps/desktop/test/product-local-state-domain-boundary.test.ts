@@ -19,6 +19,7 @@ test('Desktop product-local state uses Kit storage mechanics, not direct browser
     'apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-storage-persist.ts',
     'apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-local-model-center-progress-cache.ts',
     'apps/desktop/src/shell/renderer/app-shell/providers/desktop-ai-config-storage.ts',
+    'apps/desktop/src/shell/renderer/app-shell/providers/desktop-ai-config-snapshot-store.ts',
     'apps/desktop/src/shell/renderer/i18n/index.ts',
   ];
 
@@ -48,6 +49,10 @@ test('Desktop local storage residue stays product-local and secretless', () => {
   assert.doesNotMatch(aiConfigStorage, /function persistAIConfig\(/);
   assert.doesNotMatch(aiConfigStorage, /LEGACY_SINGLE_KEY/);
 
+  const aiSnapshotStorage = read('apps/desktop/src/shell/renderer/app-shell/providers/desktop-ai-config-snapshot-store.ts');
+  assert.match(aiSnapshotStorage, /createScopedAISnapshotStore/);
+  assert.doesNotMatch(aiSnapshotStorage, /byExecutionId|byScopeKey|new Map/);
+
   assert.doesNotMatch(chatSettings, /AGENT_CHAT_BEHAVIOR_SETTINGS_STORAGE_KEY/);
   assert.doesNotMatch(chatSettings, /persistStoredAgentChatExperienceSettings/);
   assert.doesNotMatch(agentShellAdapter, /persistStoredAgentChatExperienceSettings/);
@@ -68,5 +73,6 @@ test('Tester proves product-local persistence through the same Kit helper bounda
 
   assert.match(testerAiConfigStore, /from '@nimiplatform\/kit\/core\/storage-json'/);
   assert.match(testerAiConfigStore, /createScopedAIConfigStore/);
+  assert.match(testerAiConfigStore, /createScopedAISnapshotStore/);
   assert.match(testerContract, /tester product-local persistence consumes Kit core storage helpers/);
 });

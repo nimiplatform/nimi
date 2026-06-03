@@ -99,6 +99,35 @@ export type DesktopMacosSmokeFailureReportPayload = DesktopMacosSmokeReportPaylo
   htmlSnapshot: string;
 };
 
+function currentRouteSnapshot(): string {
+  return `${window.location.pathname}${window.location.search}${window.location.hash}`;
+}
+
+function currentHtmlSnapshot(): string {
+  return document.documentElement.outerHTML;
+}
+
+export function buildDesktopMacosSmokeFailureReportPayload(input: {
+  failedStep: string;
+  message: string;
+  errorName?: string;
+  errorStack?: string;
+  errorCause?: string;
+  steps?: readonly string[];
+}): DesktopMacosSmokeFailureReportPayload {
+  return {
+    ok: false,
+    failedStep: input.failedStep,
+    steps: input.steps?.length ? [...input.steps] : [input.failedStep],
+    errorMessage: input.message,
+    errorName: input.errorName,
+    errorStack: input.errorStack,
+    errorCause: input.errorCause,
+    route: currentRouteSnapshot(),
+    htmlSnapshot: currentHtmlSnapshot(),
+  };
+}
+
 export type Live2dVisiblePixelsTimeoutError = Error & {
   live2dStats?: Live2dCanvasStats;
 };

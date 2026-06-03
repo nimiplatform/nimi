@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
+import { readTesterSettingsSurface } from './helpers/read-tester-settings-surface';
 
 const repoRoot = path.join(import.meta.dirname, '../../..');
 
@@ -10,21 +11,9 @@ function read(relativePath: string): string {
 }
 
 test('Support typed projection lifecycle migrated to Kit UI', () => {
-  const kitHook = read('kit/ui/src/hooks/typed-projection.ts');
-  const kitIndex = read('kit/ui/src/index.ts');
-
-  assert.match(kitIndex, /hooks\/typed-projection/);
-  assert.match(kitHook, /export function useTypedProjection/);
-  assert.match(kitHook, /status: 'failed'/);
-  assert.match(kitHook, /data: null/);
-  assert.match(kitHook, /useRef\(load\)/);
-  assert.doesNotMatch(kitHook, /from ['"].*apps\//);
-  assert.doesNotMatch(kitHook, /@renderer|@runtime|@nimiplatform\/sdk/);
-
-  assert.equal(
-    fs.existsSync(path.join(repoRoot, 'apps/desktop/src/shell/renderer/features/support/support-projection.ts')),
-    false,
-  );
+  if (fs.existsSync(path.join(repoRoot, 'apps/desktop/src/shell/renderer/features/support/support-projection.ts'))) {
+    throw new Error('Desktop must not keep an app-local Support typed projection hook');
+  }
 });
 
 test('Desktop Support consumes the shared projection hook directly from Kit UI', () => {
@@ -43,8 +32,8 @@ test('Desktop Support consumes the shared projection hook directly from Kit UI',
 });
 
 test('Tester consumes Kit typed projection hook as second app proof', () => {
-  const settings = read('apps/tester/src/shell/routes/settings.tsx');
-  const testerContract = read('apps/tester/test/tester-contract.test.mjs');
+  const settings = readTesterSettingsSurface(repoRoot);
+  const testerSettingsContract = read('apps/tester/test/tester-settings-surface.test.mjs');
 
   assert.match(settings, /useTypedProjection/);
   assert.match(settings, /from '@nimiplatform\/kit\/ui'/);
@@ -54,5 +43,5 @@ test('Tester consumes Kit typed projection hook as second app proof', () => {
   assert.match(settings, /realmDataSyncProjection\.data/);
   assert.doesNotMatch(settings, /setLocalRuntimeFacadeProjection|setRealmDataSyncProjection/);
   assert.doesNotMatch(settings, /type LocalRuntimeFacadeProjectionState|type RealmDataSyncProjectionState/);
-  assert.match(testerContract, /useTypedProjection/);
+  assert.match(testerSettingsContract, /useTypedProjection/);
 });

@@ -7,10 +7,6 @@ const worldFlowSource = fs.readFileSync(
   path.join(import.meta.dirname, '../src/shell/renderer/features/world/data/realm-world-data.ts'),
   'utf8',
 );
-const sdkWorldDataSource = fs.readFileSync(
-  path.join(import.meta.dirname, '../../../sdk/src/realm/extensions/world-data.ts'),
-  'utf8',
-);
 const worldDetailQueriesSource = fs.readFileSync(
   path.join(import.meta.dirname, '../src/shell/renderer/features/world/world-detail-queries.ts'),
   'utf8',
@@ -40,14 +36,9 @@ test('world semantic bundle no longer fetches world detail before worldview', ()
   const semanticBundleSection = worldFlowSource.slice(
     worldFlowSource.indexOf('export async function loadWorldSemanticBundle'),
   );
-  const sdkSemanticBundleSection = sdkWorldDataSource.slice(
-    sdkWorldDataSource.indexOf('export async function loadRealmWorldSemanticBundle'),
-  );
   assert.match(semanticBundleSection, /loadRealmWorldSemanticBundle/);
-  assert.match(sdkSemanticBundleSection, /worldControllerGetWorldview/);
   assert.doesNotMatch(semanticBundleSection, /loadWorldDetailById\(callApi, emitRealmWorldError, normalizedWorldId\)/);
   assert.doesNotMatch(semanticBundleSection, /catch\s*\{\s*return null;\s*\}/);
-  assert.match(sdkSemanticBundleSection, /world: null/);
 });
 
 test('world detail prefetch is limited to first-screen queries', () => {

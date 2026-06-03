@@ -21,13 +21,16 @@ import {
 } from '@renderer/bridge/runtime-bridge/nimi-data-directory';
 import { useTypedProjection as useSupportProjection } from '@nimiplatform/kit/ui';
 import {
+  PRODUCT_CONTROL_RECOVERY_STATE_COPY_KEY as RECOVERY_STATE_COPY_KEY,
+  isRepairRoutedProductControlState as isRepairRoutedState,
+} from '@nimiplatform/sdk';
+import {
   SupportCard,
   SupportFailClosed,
   SupportInfoRow,
   SupportLoading,
   SupportSectionShell,
 } from './support-section-shell.js';
-import { isRepairRoutedState, RECOVERY_STATE_COPY_KEY } from './support-recovery-copy.js';
 
 interface RepairProjection {
   readonly control: ProductControlRecordProjection;

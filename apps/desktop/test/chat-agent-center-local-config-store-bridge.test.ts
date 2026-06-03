@@ -21,10 +21,6 @@ test('Agent Center local config bridge parser accepts Rust store payload shape',
   const result = validateAgentCenterLocalConfig({
     schema_version: 1,
     config_kind: 'agent_center_local_config',
-    account_id: 'account_1',
-    owner_user_id: 'owner_1',
-    realm_agent_id: 'agent_1',
-    local_agent_ref: 'local-agent:owner_1:agent_1',
     modules: {
       appearance: {
         schema_version: 1,
@@ -63,10 +59,6 @@ test('Agent Center local config bridge rejects retired selected package truth', 
   const result = validateAgentCenterLocalConfig({
     schema_version: 1,
     config_kind: 'agent_center_local_config',
-    account_id: 'account_1',
-    owner_user_id: 'owner_1',
-    realm_agent_id: 'agent_1',
-    local_agent_ref: 'local-agent:owner_1:agent_1',
     modules: {
       appearance: {
         schema_version: 1,
@@ -115,12 +107,7 @@ test('Agent Center local config bridge exposes stable query key shape', () => {
 });
 
 test('Agent Center local config default includes closed avatar configuration fields', () => {
-  const config = createDefaultAgentCenterLocalConfig({
-    accountId: 'account_1',
-    ownerUserId: 'owner_1',
-    realmAgentId: 'agent_1',
-    localAgentRef: 'local-agent:owner_1:agent_1',
-  });
+  const config = createDefaultAgentCenterLocalConfig();
 
   assert.equal(config.modules.avatar_asset.backend_kind, 'live2d');
   assert.equal(config.modules.avatar_asset.live2d_adapter_manifest_source, 'none');
@@ -137,10 +124,6 @@ test('Agent Center local config bridge rejects retired launch package config fie
   const result = validateAgentCenterLocalConfig({
     schema_version: 1,
     config_kind: 'agent_center_local_config',
-    account_id: 'account_1',
-    owner_user_id: 'owner_1',
-    realm_agent_id: 'agent_1',
-    local_agent_ref: 'local-agent:owner_1:agent_1',
     modules: {
       appearance: {
         schema_version: 1,
@@ -194,7 +177,7 @@ test('Agent Center avatar asset import parser accepts Rust payload shape', () =>
   const live2dResult = validateAgentCenterAvatarAssetImportResult({
     local_asset_id: 'live2d_ab12cd34ef56',
     backend_kind: 'live2d',
-    backend_capability_profile_ref: 'avatar_profile_live2d_ab12cd34ef56',
+    backend_capability_profile_ref: null,
     selected: true,
     manifest_sha256: 'b'.repeat(64),
     asset_bytes: 512,
@@ -204,7 +187,7 @@ test('Agent Center avatar asset import parser accepts Rust payload shape', () =>
   const vrmResult = validateAgentCenterAvatarAssetImportResult({
     local_asset_id: 'vrm_cd12ef34ab56',
     backend_kind: 'vrm',
-    backend_capability_profile_ref: 'avatar_profile_vrm_cd12ef34ab56',
+    backend_capability_profile_ref: null,
     selected: true,
     manifest_sha256: 'c'.repeat(64),
     asset_bytes: 4096,
@@ -221,7 +204,7 @@ test('Agent Center avatar asset validation parser accepts Rust payload shape', (
     schema_version: 1,
     local_asset_id: 'live2d_ab12cd34ef56',
     backend_kind: 'live2d',
-    backend_capability_profile_ref: 'avatar_profile_live2d_ab12cd34ef56',
+    backend_capability_profile_ref: null,
     checked_at: '2026-05-01T00:00:00Z',
     status: 'valid',
     errors: [],
@@ -240,7 +223,7 @@ test('Agent Center avatar asset list parser accepts Rust payload shape', () => {
         backend_kind: 'live2d',
         display_name: 'Ren Live2D',
         source_label: 'ren_pro_zh',
-        backend_capability_profile_ref: 'avatar_profile_live2d_ab12cd34ef56',
+        backend_capability_profile_ref: null,
         asset_bytes: 512,
         file_count: 3,
         imported_at: '2026-05-01T00:00:00Z',
@@ -249,7 +232,7 @@ test('Agent Center avatar asset list parser accepts Rust payload shape', () => {
           schema_version: 1,
           local_asset_id: 'live2d_ab12cd34ef56',
           backend_kind: 'live2d',
-          backend_capability_profile_ref: 'avatar_profile_live2d_ab12cd34ef56',
+          backend_capability_profile_ref: null,
           checked_at: '2026-05-01T00:00:00Z',
           status: 'valid',
           errors: [],
@@ -271,7 +254,7 @@ test('Agent Center avatar asset list parser rejects selected flag drift', () => 
         backend_kind: 'vrm',
         display_name: 'Ren VRM',
         source_label: 'ren.vrm',
-        backend_capability_profile_ref: 'avatar_profile_vrm_ab12cd34ef56',
+        backend_capability_profile_ref: null,
         asset_bytes: 4096,
         file_count: 1,
         imported_at: '2026-05-01T00:00:00Z',
@@ -280,7 +263,7 @@ test('Agent Center avatar asset list parser rejects selected flag drift', () => 
           schema_version: 1,
           local_asset_id: 'vrm_ab12cd34ef56',
           backend_kind: 'vrm',
-          backend_capability_profile_ref: 'avatar_profile_vrm_ab12cd34ef56',
+          backend_capability_profile_ref: null,
           checked_at: '2026-05-01T00:00:00Z',
           status: 'valid',
           errors: [],

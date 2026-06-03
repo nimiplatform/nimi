@@ -7,19 +7,12 @@ function readWorkspaceFile(relativePath: string): string {
   return fs.readFileSync(path.join(import.meta.dirname, '..', relativePath), 'utf8');
 }
 
-const actionSource = readWorkspaceFile('../../kit/ui/src/components/app-surface.tsx');
 const chatPageSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-page.tsx');
 const chatRightPanelSettingsSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-right-panel-settings.tsx');
 const chatSessionListSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-nimi-session-list-panel.tsx');
 const chatCognitionSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-cognition-panel.tsx');
 const chatRuntimeInspectSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-runtime-inspect-content.tsx');
 const chatDiagnosticsSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-diagnostics.tsx');
-
-test('W2 chat surface follow-on: kit actions freeze compact, toggle, and field-trigger paths', () => {
-  assert.match(actionSource, /export function CompactAction/);
-  assert.match(actionSource, /export function IconToggleAction/);
-  assert.match(actionSource, /export function FieldTrigger/);
-});
 
 test('W2 chat surface follow-on: page composition keeps toggle ownership in the sidebar shell while rail controls consume the shared icon toggle action path', () => {
   assert.match(chatPageSource, /import \{ ChatRelationshipRail \} from '\.\/chat-relationship-rail';/);

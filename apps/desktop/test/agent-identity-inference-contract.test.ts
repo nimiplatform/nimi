@@ -37,16 +37,9 @@ test('product-side social and explore flows do not infer agent identity from han
 
 test('loadAgentDetails rejects legacy @ and ~ prefixes', async () => {
   const agentRuntimeFlowSource = readSource('../src/shell/renderer/features/agent-detail/data/realm-agent-detail-data.ts');
-  const sdkRealmAgentProfileSource = fs.readFileSync(
-    path.join(import.meta.dirname, '../../../sdk/src/realm/extensions/agent-profile.ts'),
-    'utf8',
-  );
 
   assert.match(agentRuntimeFlowSource, /loadRealmAgentDetails/);
   assert.match(agentRuntimeFlowSource, /from '@nimiplatform\/sdk\/realm'/);
   assert.doesNotMatch(agentRuntimeFlowSource, /AgentsService\.getAgent/);
   assert.doesNotMatch(agentRuntimeFlowSource, /AgentsService\.getAgentByHandle/);
-  assert.match(sdkRealmAgentProfileSource, /HANDLE_PREFIX_UNSUPPORTED/);
-  assert.match(sdkRealmAgentProfileSource, /AgentsService\.getAgent/);
-  assert.match(sdkRealmAgentProfileSource, /AgentsService\.getAgentByHandle/);
 });

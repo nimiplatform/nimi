@@ -3,18 +3,11 @@ import test from 'node:test';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-const SHELL_MODE_PATH = resolve(import.meta.dirname, '../../../kit/core/src/shell-mode.ts');
 const EXIT_HANDLER_PATH = resolve(import.meta.dirname, '../src/shell/renderer/infra/bootstrap/exit-handler.ts');
 const RUNTIME_BRIDGE_PATH = resolve(import.meta.dirname, '../src/shell/renderer/bridge/runtime-bridge.ts');
 const APP_BOOTSTRAP_PATH = resolve(import.meta.dirname, '../src-tauri/src/main_parts/app_bootstrap.rs');
 const MENU_BAR_NAVIGATION_PATH = resolve(import.meta.dirname, '../src/shell/renderer/infra/menu-bar/menu-bar-navigation-listener.ts');
 const RUNTIME_PANEL_CONTROLLER_PATH = resolve(import.meta.dirname, '../src/shell/renderer/features/runtime-config/runtime-config-panel-controller.ts');
-
-test('shell mode exposes enableMenuBarShell flag', () => {
-  const source = readFileSync(SHELL_MODE_PATH, 'utf-8');
-  assert.match(source, /enableMenuBarShell/);
-  assert.match(source, /isMacDesktopEnvironment/);
-});
 
 test('exit handler only reacts to explicit menu bar quit events', () => {
   const source = readFileSync(EXIT_HANDLER_PATH, 'utf-8');

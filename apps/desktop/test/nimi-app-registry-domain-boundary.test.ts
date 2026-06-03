@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { describe, it } from 'node:test';
+import { readTesterSettingsSurface } from './helpers/read-tester-settings-surface';
 
 function readRepo(path: string): string {
   return readFileSync(new URL(`../../../${path}`, import.meta.url), 'utf8');
@@ -123,35 +124,19 @@ describe('Nimi App registry/admission domain boundary', () => {
   });
 
   it('proves Tester is a second SDK consumer, not a Desktop projection fork', () => {
-    const testerSettings = readRepo('apps/tester/src/shell/routes/settings.tsx');
-    const testerContract = readRepo('apps/tester/test/tester-contract.test.mjs');
+    const testerSettings = readTesterSettingsSurface(new URL('../../..', import.meta.url));
+    const testerSettingsContract = readRepo('apps/tester/test/tester-settings-surface.test.mjs');
     const testerScaffoldContract = readRepo('apps/tester/test/scaffold-boundary.test.mjs');
     const testerTauriMain = readRepo('apps/tester/src-tauri/src/main.rs');
 
     assert.match(testerSettings, /parseNimiAppBridgeProjection/);
     assert.match(testerSettings, /parseAccountAppLibraryRecord/);
     assert.match(testerSettings, /from '@nimiplatform\/sdk\/app'/);
-    assert.match(testerContract, /tester settings consumes SDK Nimi App bridge projection parser/);
+    assert.match(testerSettingsContract, /tester settings consumes SDK Nimi App bridge projection parser/);
     assert.match(testerScaffoldContract, /ADMISSION\.md/);
     assert.doesNotMatch(testerSettings, /ADMISSION_STATUSES|RELEASE_DESCRIPTOR_CLASSES|VERIFICATION_STATES/);
     assert.doesNotMatch(testerSettings, /apps\/desktop/);
     assert.match(testerTauriMain, /nimi_shell_tauri::platform_projection::apps_bridge/);
   });
 
-  it('keeps SDK app read projection separate from Runtime app lifecycle mutation', () => {
-    const sdkAppClient = readRepo('sdk/src/app/client.ts');
-    const sdkAppTransport = readRepo('sdk/src/app/transport.ts');
-    const sdkRuntimeLifecycle = readRepo('sdk/src/runtime/runtime-app-lifecycle.ts');
-
-    assert.match(sdkAppClient, /NimiAppClient/);
-    assert.match(sdkAppClient, /runtime\.appLifecycle/);
-    assert.doesNotMatch(sdkAppClient, /\b(?:install|uninstall|update|repair|open)\s*\(/);
-    assert.match(sdkAppTransport, /pure read-projection surface/);
-    assert.doesNotMatch(sdkAppTransport, /\b(?:install|uninstall|update|repair|open)\s*\(/);
-
-    assert.match(sdkRuntimeLifecycle, /RuntimeAppLifecycleModule/);
-    assert.match(sdkRuntimeLifecycle, /\binstall\(/);
-    assert.match(sdkRuntimeLifecycle, /\buninstall\(/);
-    assert.match(sdkRuntimeLifecycle, /\bopen\(/);
-  });
 });

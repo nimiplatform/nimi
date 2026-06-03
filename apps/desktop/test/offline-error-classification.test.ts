@@ -10,15 +10,8 @@ describe('D-OFFLINE-001: SDK-owned offline error classification boundary', () =>
       resolve(import.meta.dirname, '../src/shell/renderer/infra/offline/index.ts'),
       'utf8',
     );
-    const sdkTypesSource = readFileSync(
-      resolve(import.meta.dirname, '../../../sdk/src/types/index.ts'),
-      'utf8',
-    );
 
     assert.equal(existsSync(offlineErrorsPath), false);
-    assert.match(sdkTypesSource, /export function classifyOfflineError/);
-    assert.match(sdkTypesSource, /export function isRealmOfflineErrorLike/);
-    assert.match(sdkTypesSource, /export function isRuntimeOfflineErrorLike/);
     assert.doesNotMatch(offlineIndexSource, /isRealmOfflineError|isRuntimeOfflineError|createOfflineError|getErrorMessage/);
     assert.doesNotMatch(offlineIndexSource, /REALM_OFFLINE_REASON_CODES|RUNTIME_OFFLINE_REASON_CODES/);
   });

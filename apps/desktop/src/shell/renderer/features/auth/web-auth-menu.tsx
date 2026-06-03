@@ -22,7 +22,6 @@ export function WebAuthMenu(props: { mode?: WebAuthMenuMode }) {
   const adapter = useMemo(() => createDesktopAuthAdapter(), []);
   const runtimeAccountBroker = useMemo(() => createDesktopRuntimeAccountBrowserBroker(), []);
   const authStatus = useAppStore((state) => state.auth.status);
-  const authToken = useAppStore((state) => state.auth.token);
   const authUser = useAppStore((state) => state.auth.user);
   const setAuthSession = useAppStore((state) => state.setAuthSession);
   const [authFeedback, setAuthFeedback] = useState<InlineFeedbackState | null>(null);
@@ -77,9 +76,8 @@ export function WebAuthMenu(props: { mode?: WebAuthMenuMode }) {
       session={{
         mode,
         authStatus,
-        authToken,
         authUser: normalizedAuthUser,
-        setAuthSession,
+        setAuthSession: (user) => setAuthSession(user),
         setStatusBanner: handleStatusBanner,
       }}
       footer={footer}

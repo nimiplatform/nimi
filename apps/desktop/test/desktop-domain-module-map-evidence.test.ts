@@ -113,6 +113,7 @@ test('Desktop runtime bridge commands resolve through the shared Tauri shell aut
   assert.match(productControlAdmissionSource, /crate::runtime_bridge::invoke_unary_typed/);
   assert.match(avatarInstanceRegistryStoreSource, /crate::runtime_bridge::invoke_unary_typed_with_metadata/);
   assert.doesNotMatch(desktopE2eFixtureSource, /"\/nimi\.runtime\.v1\./);
+  assert.match(desktopE2eFixtureSource, /feature = "desktop-e2e-fixture"/);
   assert.match(desktopE2eFixtureSource, /RUNTIME_AUTH_REGISTER_APP_METHOD_ID/);
   assertRepoFile('kit/shell/tauri/src/runtime_bridge/mod.rs');
 });

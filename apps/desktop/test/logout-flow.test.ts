@@ -8,7 +8,7 @@ function createTranslate() {
     String(options?.defaultValue || options?.error || '');
 }
 
-test('logout flow clears local state and emits success banner after successful logout', async () => {
+test('logout flow clears local state only after Runtime logout succeeds', async () => {
   const effects: string[] = [];
   let bannerKind: string | null = null;
   let bannerMessage = '';
@@ -41,17 +41,17 @@ test('logout flow clears local state and emits success banner after successful l
   );
 
   assert.deepEqual(effects, [
+    'server-logout',
     'clear-token',
     'clear-streams',
     'clear-auth',
     'clear-query',
-    'server-logout',
   ]);
   assert.equal(bannerKind, 'info');
   assert.equal(bannerMessage, 'Signed out');
 });
 
-test('logout flow distinguishes transient server logout failures while still clearing local state', async () => {
+test('logout flow fails closed when Runtime logout cannot be confirmed', async () => {
   const effects: string[] = [];
   let bannerKind: string | null = null;
   let bannerMessage = '';
@@ -85,12 +85,8 @@ test('logout flow distinguishes transient server logout failures while still cle
   );
 
   assert.deepEqual(effects, [
-    'clear-token',
-    'clear-streams',
-    'clear-auth',
-    'clear-query',
     'server-logout',
   ]);
   assert.equal(bannerKind, 'warning');
-  assert.match(bannerMessage, /network error/i);
+  assert.match(bannerMessage, /could not be completed/i);
 });

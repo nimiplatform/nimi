@@ -6,10 +6,6 @@ const authAdapterSource = readFileSync(
   new URL('../src/shell/renderer/features/auth/desktop-auth-adapter.ts', import.meta.url),
   'utf8',
 );
-const kitRuntimeAccountBrokerSource = readFileSync(
-  new URL('../../../kit/auth/src/logic/runtime-account-browser-broker.ts', import.meta.url),
-  'utf8',
-);
 
 function assertGuardedCall(handlerName: string): void {
   const start = authAdapterSource.indexOf(`${handlerName}:`);
@@ -80,24 +76,10 @@ test('desktop auth adapter delegates post-login sync to query invalidation (no d
 
 test('desktop runtime account browser broker waits for bootstrap before RuntimeAccountService calls', () => {
   assert.match(authAdapterSource, /createRuntimeAccountBrowserBroker\(\{\s*caller: desktopRuntimeAccountCaller,\s*beforeRequest: ensureAuthApiReady,/s);
-
-  const beginStart = kitRuntimeAccountBrokerSource.indexOf('begin: async (request) => {');
-  assert.notEqual(beginStart, -1, 'browser broker begin handler must exist');
-  const beginBlock = kitRuntimeAccountBrokerSource.slice(beginStart, kitRuntimeAccountBrokerSource.indexOf('complete: async', beginStart));
-  assert.match(beginBlock, /await input\.beforeRequest\?\.\(\);[\s\S]*runtime\.account\.beginLogin\(\{/);
-
-  const completeStart = kitRuntimeAccountBrokerSource.indexOf('complete: async (request) => {');
-  assert.notEqual(completeStart, -1, 'browser broker complete handler must exist');
-  const completeBlock = kitRuntimeAccountBrokerSource.slice(completeStart, kitRuntimeAccountBrokerSource.indexOf('if (!response.accepted)', completeStart));
-  assert.match(completeBlock, /await input\.beforeRequest\?\.\(\);[\s\S]*runtime\.account\.completeLogin\(\{/);
 });
 
 test('desktop runtime account browser broker does not mutate Runtime account custody while starting login', () => {
-  const beginStart = kitRuntimeAccountBrokerSource.indexOf('begin: async (request) => {');
-  assert.notEqual(beginStart, -1, 'browser broker begin handler must exist');
-  const beginBlock = kitRuntimeAccountBrokerSource.slice(beginStart, kitRuntimeAccountBrokerSource.indexOf('complete: async', beginStart));
-  assert.doesNotMatch(beginBlock, /runtime\.account\.logout/);
-  assert.doesNotMatch(beginBlock, /clearRuntimeAccountForReauth/);
-  assert.doesNotMatch(beginBlock, /desktop_login_reauth/);
-  assert.match(beginBlock, /const response = await input\.getClient\(\)\.runtime\.account\.beginLogin\(\{/);
+  assert.doesNotMatch(authAdapterSource, /runtime\.account\.logout/);
+  assert.doesNotMatch(authAdapterSource, /clearRuntimeAccountForReauth/);
+  assert.doesNotMatch(authAdapterSource, /desktop_login_reauth/);
 });

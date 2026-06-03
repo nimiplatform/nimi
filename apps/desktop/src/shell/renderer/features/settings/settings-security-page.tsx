@@ -15,8 +15,6 @@ import { FormFeedback, PageShell, SaveFooter, SectionTitle } from './settings-la
 
 export function SecurityPage() {
   const { t } = useTranslation();
-  const authToken = useAppStore((state) => state.auth.token);
-  const refreshToken = useAppStore((state) => state.auth.refreshToken);
   const authUser = useAppStore((state) => state.auth.user);
   const setAuthSession = useAppStore((state) => state.setAuthSession);
   const initialTwoFactorEnabled = authUser?.isTwoFactorEnabled === true;
@@ -75,7 +73,7 @@ export function SecurityPage() {
   const refreshCurrentUser = async () => {
     const latest = await realmSocialData.loadCurrentUser();
     const normalized = parseOptionalJsonObject(latest) ?? null;
-    setAuthSession(normalized, authToken, refreshToken || undefined);
+    setAuthSession(normalized);
   };
 
   const copyTwoFactorValue = async (value: string, successKey: string, successDefaultValue: string) => {

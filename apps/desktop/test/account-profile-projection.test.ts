@@ -32,7 +32,8 @@ test('desktop bootstrap merges Realm profile fields without moving profile owner
   assert.doesNotMatch(runtimeBootstrapAccountProfileSource, /isReauthenticationRequiredError/);
   assert.doesNotMatch(runtimeBootstrapAccountProfileSource, /onReauthenticationRequired/);
   assert.doesNotMatch(runtimeBootstrapSource, /desktop_bootstrap_reauth_required/);
-  assert.match(runtimeBootstrapAccountProfileSource, /setAuthSession\(hydratedUser, '', undefined\)/);
+  assert.match(runtimeBootstrapAccountProfileSource, /setAuthSession\(hydratedUser\)/);
+  assert.doesNotMatch(runtimeBootstrapAccountProfileSource, /setAuthSession\(hydratedUser,\s*['"`]/);
   assert.match(runtimeBootstrapAccountProfileSource, /readNonEmptyString\(profile\.email\)|hasEmail: Boolean\(readNonEmptyString\(hydratedUser\.email\)\)/);
   assert.doesNotMatch(
     runtimeBootstrapAccountProfileSource,

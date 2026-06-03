@@ -18,7 +18,6 @@ const chatHumanModeContentSource = readWorkspace('src/shell/renderer/features/ch
 const chatRelationshipRailSource = readWorkspace('src/shell/renderer/features/chat/chat-relationship-rail.tsx');
 const runtimePanelSource = readWorkspace('src/shell/renderer/features/runtime-config/runtime-config-panel-view.tsx');
 const settingsPanelSource = readWorkspace('src/shell/renderer/features/settings/settings-panel-body.tsx');
-const sidebarPrimitiveSource = readRepo('kit/ui/src/components/sidebar.tsx');
 const desktopStylesSource = readWorkspace('src/shell/renderer/styles.css');
 const adoptionTable = readRepo('.nimi/spec/desktop/kernel/tables/nimi-kit-adoption.yaml');
 const compositionsTable = readRepo('.nimi/spec/desktop/kernel/tables/nimi-kit-compositions.yaml');
@@ -76,15 +75,6 @@ test('chat surface composes the canonical shell with an app-owned relationship r
   assert.match(chatRelationshipRailSource, /E2E_IDS\.chatList/);
   assert.match(chatRelationshipRailSource, /E2E_IDS\.chatRow/);
   assert.doesNotMatch(chatRelationshipRailSource, /components\/sidebar\.js/);
-});
-
-test('shared sidebar primitive exports the required public surface', () => {
-  assert.match(sidebarPrimitiveSource, /export function SidebarShell/u);
-  assert.match(sidebarPrimitiveSource, /export function SidebarHeader/u);
-  assert.match(sidebarPrimitiveSource, /export function SidebarSearch/u);
-  assert.match(sidebarPrimitiveSource, /export function SidebarSection/u);
-  assert.match(sidebarPrimitiveSource, /export function SidebarItem/u);
-  assert.match(sidebarPrimitiveSource, /export function SidebarResizeHandle/u);
 });
 
 test('desktop renderer stylesheet does not redefine shared .nimi authorities', () => {

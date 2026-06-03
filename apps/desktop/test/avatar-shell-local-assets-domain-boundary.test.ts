@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import { describe, it } from 'node:test';
+import { readTesterSettingsSurface } from './helpers/read-tester-settings-surface';
 
 function readRepo(path: string): string {
   return readFileSync(new URL(`../../../${path}`, import.meta.url), 'utf8');
@@ -49,8 +50,7 @@ describe('Avatar shell/local-assets domain boundary', () => {
     const runtimeStreamUi = readRepo(
       'apps/desktop/src/shell/renderer/features/chat/chat-shared-runtime-stream-ui.tsx',
     );
-    const kitAvatarReadme = readRepo('kit/features/avatar/README.md');
-    const testerSettings = readRepo('apps/tester/src/shell/routes/settings.tsx');
+    const testerSettings = readTesterSettingsSurface(new URL('../../..', import.meta.url));
 
     assert.equal(
       existsSync(new URL('../../../apps/desktop/src/shell/renderer/features/chat/chat-agent-avatar-live2d-framing.ts', import.meta.url)),
@@ -69,11 +69,6 @@ describe('Avatar shell/local-assets domain boundary', () => {
 
     assert.match(voiceCapture, /@nimiplatform\/kit\/features\/avatar\/headless/);
     assert.match(runtimeStreamUi, /@nimiplatform\/kit\/features\/avatar\/runtime/);
-    assert.match(kitAvatarReadme, /Reusable agent avatar surface/);
-    assert.match(kitAvatarReadme, /avatar\/headless/);
-    assert.match(kitAvatarReadme, /avatar\/runtime/);
-    assert.match(kitAvatarReadme, /avatar\/vrm/);
-    assert.match(kitAvatarReadme, /avatar\/live2d/);
 
     assert.match(testerSettings, /@nimiplatform\/kit\/features\/avatar\/headless/);
     assert.match(testerSettings, /@nimiplatform\/kit\/features\/avatar\/runtime/);
@@ -128,7 +123,8 @@ describe('Avatar shell/local-assets domain boundary', () => {
 
     assert.match(resources, /MAX_AVATAR_ASSET_BYTES/);
     assert.match(resources, /VALIDATION_FILE_NAME/);
-    assert.match(resources, /CAPABILITY_PROFILE_FILE_NAME/);
+    assert.doesNotMatch(resources, /CAPABILITY_PROFILE_FILE_NAME/);
+    assert.doesNotMatch(resources, /capability-profile\.json/);
     assert.match(resources, /LIVE2D_ADAPTER_FILE_NAME/);
     assert.match(resources, /OPERATIONS_FILE_NAME/);
     assert.doesNotMatch(resources, /refresh_token|access_token|realm_base_url|conversation_anchor_id/);

@@ -3,14 +3,6 @@ import test from 'node:test';
 
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import { invoke } from '../src/shell/renderer/bridge/runtime-bridge/invoke.js';
-import {
-  getRendererDebugLogsForTest,
-  resetRendererDebugBufferForTest,
-} from '../../../kit/telemetry/src/telemetry/debug-buffer.js';
-import { resetRendererEmitStateForTest } from '../../../kit/telemetry/src/telemetry/emit.js';
-import {
-  resetRendererSessionTraceIdForTest,
-} from '../../../kit/telemetry/src/telemetry/session-trace.js';
 import { setRuntimeLogger } from '@nimiplatform/kit/telemetry';
 
 type TauriInvoke = (command: string, payload?: unknown) => Promise<unknown>;
@@ -48,9 +40,6 @@ function clearTelemetryTestState(): void {
   const globalRecord = globalThis as unknown as Record<string, unknown>;
   const windowRecord = globalThis.window as unknown as Record<string, unknown>;
   setRuntimeLogger(null);
-  resetRendererDebugBufferForTest();
-  resetRendererEmitStateForTest();
-  resetRendererSessionTraceIdForTest();
   (globalThis.sessionStorage as { clear?: () => void }).clear?.();
   delete globalRecord.__NIMI_RENDERER_ENV__;
   delete globalRecord.__NIMI_TAURI_TEST__;
@@ -99,7 +88,6 @@ test('D-TEL-005: invoke emits start and success traces with a stable invokeId', 
   assert.match(String(startLog?.details?.invokeId || ''), /^demo_command-[0-9a-f]+$/);
   assert.equal(startLog?.details?.invokeId, successLog?.details?.invokeId);
   assert.equal(startLog?.details?.sessionTraceId, successLog?.details?.sessionTraceId);
-  assert.equal(getRendererDebugLogsForTest().length >= 2, true);
 });
 
 test('D-TEL-005: invoke emits failed traces and preserves structured bridge error fields', async () => {

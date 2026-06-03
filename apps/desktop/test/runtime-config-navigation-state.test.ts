@@ -166,7 +166,7 @@ test('normalizeStoredStateV11: retired Runtime pages are not restored as ordinar
   }
 });
 
-test('normalizeStoredStateV11: accepts v12 snapshots and preserves local provider hints', () => {
+test('normalizeStoredStateV11: accepts v12 snapshots but drops Runtime-owned local endpoint and inventory', () => {
   const stored = {
     version: 12 as const,
     initializedByV11: true,
@@ -212,7 +212,7 @@ test('normalizeStoredStateV11: accepts v12 snapshots and preserves local provide
   assert.equal(result.version, 12);
   assert.deepEqual(result.local.models, []);
   assert.deepEqual(result.local.nodeMatrix, []);
-  assert.equal(result.local.endpoint, 'http://127.0.0.1:8321/v1');
+  assert.equal(result.local.endpoint, '');
 });
 
 test('normalizeStoredStateV11: connectors always empty (bridge is source of truth)', () => {

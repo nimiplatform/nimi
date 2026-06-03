@@ -73,10 +73,6 @@ test('desktop macos smoke renderer sources include mounted ping markers', () => 
     path.join(root, 'src-tauri/src/main_parts/app_bootstrap.rs'),
     'utf8',
   );
-  const kitRendererEntryProbeSource = fs.readFileSync(
-    path.join(root, '../../kit/shell/tauri/src/renderer_entry_probe.rs'),
-    'utf8',
-  );
   const appSource = fs.readFileSync(
     path.join(root, 'src/shell/renderer/App.tsx'),
     'utf8',
@@ -96,11 +92,6 @@ test('desktop macos smoke renderer sources include mounted ping markers', () => 
   assert.match(mainSource, /desktop_macos_smoke_ping/);
   assert.doesNotMatch(mainSource, /import\('@renderer\/bridge\/runtime-bridge\/macos-smoke'\)/);
   assert.match(bootstrapRsSource, /build_renderer_entry_probe_script/);
-  assert.match(kitRendererEntryProbeSource, /window-eval-probe/);
-  assert.match(kitRendererEntryProbeSource, /renderer-module-import-failed/);
-  assert.match(kitRendererEntryProbeSource, /window-dynamic-import-ok/);
-  assert.match(kitRendererEntryProbeSource, /if \(!context\?\.enabled\) \{/);
-  assert.match(kitRendererEntryProbeSource, /return import\(scriptSrc\);/);
   assert.match(appSource, /app-mounted/);
   assert.match(bootstrapSource, /macos-smoke-context-ready/);
   assert.match(bootstrapSource, /macos-smoke-scenario-start/);
@@ -112,6 +103,16 @@ test('desktop macos smoke renderer sources include mounted ping markers', () => 
   assert.match(bootstrapSource, /bootstrap-error-screen/);
   assert.match(live2dViewportSource, /webglcontextrestored/);
   assert.match(live2dViewportSource, /action:live2d-model-rebuilt/);
+});
+
+test('desktop macos smoke builds fixture-enabled app bundles explicitly', () => {
+  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+  const processSource = fs.readFileSync(
+    path.join(root, 'scripts/run-macos-smoke-process.mjs'),
+    'utf8',
+  );
+
+  assert.match(processSource, /'--features',\s*'desktop-e2e-fixture'/);
 });
 
 test('desktop macos smoke DOM driver forwards step callbacks to the scenario runner', () => {

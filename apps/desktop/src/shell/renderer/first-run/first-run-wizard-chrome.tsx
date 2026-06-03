@@ -8,8 +8,8 @@
 
 import type { ReactElement, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { FIRST_RUN_PHASES, type FirstRunPhase } from '@nimiplatform/sdk';
 import { SupportDegradedEntry } from '../features/support/support-degraded-entry.js';
-import { FIRST_RUN_PHASES, type FirstRunPhase } from './first-run-phase-projection.js';
 
 const STEP_LABEL_KEYS: Record<FirstRunPhase, string> = {
   storage: 'FirstRun.steps.storage',

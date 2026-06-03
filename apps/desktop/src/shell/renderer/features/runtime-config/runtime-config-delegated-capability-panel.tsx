@@ -20,13 +20,13 @@ const TOKEN_PANEL_CARD = 'rounded-2xl';
 
 const DEFAULT_PROVIDER_DRAFT: DelegatedProviderProfileDraft = {
   agentId: '',
-  providerProfileId: 'local-mcp',
-  displayName: 'Local MCP',
-  transportRef: 'runtime-transport://local-mcp',
+  providerProfileId: '',
+  displayName: '',
+  transportRef: '',
   credentialRef: '',
-  command: 'nimi-local-mcp',
+  command: '',
   args: '',
-  toolName: 'tool_name',
+  toolName: '',
   inputSchemaDigest: '',
 };
 
@@ -73,6 +73,15 @@ export function DelegatedCapabilityControlPanel() {
 
   const profileAgentId = providerDraft.agentId || agentId;
   const canCall = agentId.trim() !== '' && subjectUserId.trim() !== '';
+  const canSaveProvider = Boolean(
+    profileAgentId.trim()
+      && subjectUserId.trim()
+      && providerDraft.providerProfileId.trim()
+      && providerDraft.displayName.trim()
+      && providerDraft.transportRef.trim()
+      && providerDraft.command.trim()
+      && providerDraft.toolName.trim(),
+  );
   const pendingApprovals = (snapshot?.approvalRequests || []).filter((approval) => isPendingApproval(approval.state));
 
   const refreshSnapshot = async () => {
@@ -196,7 +205,7 @@ export function DelegatedCapabilityControlPanel() {
               <Input label={t('runtimeConfig.delegation.args', { defaultValue: 'Args' })} value={providerDraft.args} onChange={(value) => setProviderDraft((draft) => ({ ...draft, args: value }))} disabled={busy} />
               <Input label={t('runtimeConfig.delegation.toolName', { defaultValue: 'Tool Name' })} value={providerDraft.toolName} onChange={(value) => setProviderDraft((draft) => ({ ...draft, toolName: value }))} disabled={busy} />
               <Input label={t('runtimeConfig.delegation.schemaDigest', { defaultValue: 'Input Schema Digest' })} value={providerDraft.inputSchemaDigest} onChange={(value) => setProviderDraft((draft) => ({ ...draft, inputSchemaDigest: value }))} placeholder="sha256:..." disabled={busy} />
-              <Button variant="primary" size="sm" onClick={() => void saveProvider()} disabled={!profileAgentId.trim() || !subjectUserId.trim() || busy}>
+              <Button variant="primary" size="sm" onClick={() => void saveProvider()} disabled={!canSaveProvider || busy}>
                 {t('runtimeConfig.delegation.saveProvider', { defaultValue: 'Save provider' })}
               </Button>
             </div>

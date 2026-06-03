@@ -67,6 +67,15 @@ test('delegated capability panel preserves gateway firewall and runtime diagnost
   }
 });
 
+test('delegated capability panel does not seed Runtime provider profile truth', () => {
+  const panelSource = readDesktopFile('src/shell/renderer/features/runtime-config/runtime-config-delegated-capability-panel.tsx');
+  assert.doesNotMatch(panelSource, /providerProfileId:\s*'local-mcp'/);
+  assert.doesNotMatch(panelSource, /transportRef:\s*'runtime-transport:\/\/local-mcp'/);
+  assert.doesNotMatch(panelSource, /command:\s*'nimi-local-mcp'/);
+  assert.doesNotMatch(panelSource, /toolName:\s*'tool_name'/);
+  assert.match(panelSource, /const canSaveProvider = Boolean/);
+});
+
 test('delegated capability Desktop service delegates Runtime control-plane composition to SDK', () => {
   const serviceSource = readDesktopFile('src/shell/renderer/features/runtime-config/runtime-config-delegated-capability-service.ts');
   assert.match(serviceSource, /createHostRuntimeAgentDelegatedCapabilitySurface/);

@@ -75,19 +75,12 @@ test('groupMessageToCanonical maps current user, other human, and agent into dis
 
 test('group rendering wires avatar renderers and sender labels through transcript and stage surfaces', () => {
   const groupModeSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-group-mode-content.tsx');
-  const transcriptSource = readWorkspaceFile('kit/features/chat/src/components/canonical-transcript-view.tsx');
   const canonicalComponentsSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-group-canonical-components.tsx');
 
   assert.match(groupModeSource, /const transcriptProps = useGroupCanonicalTranscriptProps\(\);/);
   assert.match(groupModeSource, /const stagePanelProps = useGroupCanonicalStagePanelProps\(\);/);
   assert.match(groupModeSource, /transcriptProps=\{transcriptProps\}/);
   assert.match(groupModeSource, /stagePanelProps=\{stagePanelProps\}/);
-  assert.match(transcriptSource, /const renderedAvatar = props\.renderMessageAvatar\?\.\(virtualItem\.item\.message, renderContext\);/);
-  assert.match(transcriptSource, /const showSenderLabel = virtualItem\.item\.message\.source === 'group'/);
-  assert.match(transcriptSource, /virtualItem\.item\.isGroupStart/);
-  assert.match(transcriptSource, /className=\{cn\(/);
-  assert.match(transcriptSource, /pl-10 text-\[11px\] font-medium tracking-\[0\.01em\]/);
-  assert.match(transcriptSource, /showAvatar=\{Boolean\(renderedAvatar\) && virtualItem\.item\.showAvatar\}/);
   assert.match(canonicalComponentsSource, /EntityAvatar/);
   assert.match(canonicalComponentsSource, /kind=\{senderKind\}/);
 });

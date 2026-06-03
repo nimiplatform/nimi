@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { resolveRealmChatMediaUrl } from '@nimiplatform/kit/features/chat/realm';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { formatLocaleDate, i18n } from '@renderer/i18n';
+import { getDesktopRuntimeAccessToken } from '@renderer/features/auth/runtime-account-access-token';
 
 type MessageViewDto = RealmModel<'MessageViewDto'>;
 
@@ -28,7 +29,6 @@ export function ChatMessageImage(input: {
   src: string;
   alt: string;
   realmBaseUrl: string;
-  authToken: string;
 }) {
   const [resolvedSrc, setResolvedSrc] = useState(input.src);
 
@@ -36,8 +36,7 @@ export function ChatMessageImage(input: {
     setResolvedSrc(input.src);
     const normalizedSrc = String(input.src || '').trim();
     const normalizedBase = String(input.realmBaseUrl || '').trim().replace(/\/$/, '');
-    const token = String(input.authToken || '').trim();
-    if (!normalizedSrc || !normalizedBase || !token || !normalizedSrc.startsWith(`${normalizedBase}/`)) {
+    if (!normalizedSrc || !normalizedBase || !normalizedSrc.startsWith(`${normalizedBase}/`)) {
       return;
     }
 
@@ -45,6 +44,7 @@ export function ChatMessageImage(input: {
     let cancelled = false;
     const run = async () => {
       try {
+        const token = await getDesktopRuntimeAccessToken();
         const response = await fetch(normalizedSrc, {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -71,7 +71,7 @@ export function ChatMessageImage(input: {
         URL.revokeObjectURL(revokedUrl);
       }
     };
-  }, [input.src, input.realmBaseUrl, input.authToken]);
+  }, [input.src, input.realmBaseUrl]);
 
   return (
     <img

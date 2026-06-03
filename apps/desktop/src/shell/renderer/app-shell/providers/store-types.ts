@@ -25,7 +25,7 @@ import type {
   ConversationCapabilityProjection,
 } from '@renderer/features/chat/conversation-capability';
 import type { RuntimeRouteBinding } from '@nimiplatform/sdk/runtime';
-import type { AIConfig, AIProfile } from '@nimiplatform/sdk/ai';
+import type { AIConfig } from '@nimiplatform/sdk/ai';
 
 export type AuthStatus = 'bootstrapping' | 'anonymous' | 'authenticated';
 export type AppTab =
@@ -74,8 +74,6 @@ export type AppStoreState = {
   auth: {
     status: AuthStatus;
     user: Record<string, unknown> | null;
-    token: string;
-    refreshToken: string;
   };
   runtimeFields: RuntimeFieldMap;
   aiConfig: AIConfig;
@@ -109,12 +107,11 @@ export type AppStoreState = {
   setDesktopUpdateState: (state: DesktopUpdateState | null) => void;
   setRuntimeDefaults: (defaults: RuntimeDefaults) => void;
   setAuthBootstrapping: () => void;
-  setAuthSession: (user: Record<string, unknown> | null, token: string, refreshToken?: string) => void;
+  setAuthSession: (user: Record<string, unknown> | null) => void;
   clearAuthSession: () => void;
   setRuntimeField: (key: keyof RuntimeFieldMap, value: string | number | boolean) => void;
   setRuntimeFields: (updates: Partial<RuntimeFieldMap>) => void;
   setAIConfig: (config: AIConfig) => void;
-  applyAIProfile: (profile: AIProfile) => void;
   /**
    * Internal convenience delegate — writes a single capability binding into
    * AIConfig and commits through the AIConfigSDKSurface (D-AIPC-003).

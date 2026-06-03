@@ -62,7 +62,7 @@ export async function hydrateDesktopAccountProfile(input: {
     realmProfile,
     currentUser: useAppStore.getState().auth.user,
   });
-  useAppStore.getState().setAuthSession(hydratedUser, '', undefined);
+  useAppStore.getState().setAuthSession(hydratedUser);
   logRendererEvent({
     level: 'info',
     area: 'renderer-bootstrap',

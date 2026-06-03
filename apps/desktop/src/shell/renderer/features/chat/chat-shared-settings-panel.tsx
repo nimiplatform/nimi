@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { AISchedulingJudgement } from '@nimiplatform/sdk/runtime';
-import { applyAIProfileToConfig } from '@nimiplatform/sdk/ai';
 import {
   getRuntimeRouteCapabilityProjectionIssueKind,
   isRuntimeRouteCapabilityProjectionReady,
@@ -313,7 +312,6 @@ function AiModeSettings(props: {
     scopeRef: aiConfig.scopeRef,
     aiConfigService,
     copy: profileCopy,
-    applyAIProfileToConfig,
     userProfilesSource,
     currentOrigin,
     onManage: handleManageProfiles,

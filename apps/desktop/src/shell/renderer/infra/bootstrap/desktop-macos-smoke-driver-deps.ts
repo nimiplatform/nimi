@@ -431,7 +431,7 @@ export function createDomDriverDeps(options: DesktopMacosSmokeDriverDepsOptions 
               id: accountId,
               displayName: String(account.accountProjection?.displayName || accountId),
               realmEnvironmentId: String(account.accountProjection?.realmEnvironmentId || ''),
-            }, '', '');
+            });
             return;
           }
           lastError = `Runtime account state=${String(account.state || 'unknown')} account_present=${Boolean(accountId)}`;

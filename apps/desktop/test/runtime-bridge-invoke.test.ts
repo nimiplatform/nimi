@@ -10,10 +10,6 @@ const invokeSource = fs.readFileSync(
   path.join(import.meta.dirname, '../src/shell/renderer/bridge/runtime-bridge/invoke.ts'),
   'utf8',
 );
-const kitShellBridgeNimiErrorSource = fs.readFileSync(
-  path.join(import.meta.dirname, '../../../kit/shell/renderer/src/bridge/nimi-error.ts'),
-  'utf8',
-);
 
 test('toBridgeNimiError maps LOCAL_LIFECYCLE_WRITE_DENIED reason code', () => {
   const error = toBridgeNimiError(new Error('LOCAL_LIFECYCLE_WRITE_DENIED: caller=sideload'));
@@ -211,6 +207,4 @@ test('bridge runtime reason messages consume Kit shell normalization before app 
   assert.match(invokeSource, /getShellBridgeUserMessageProjection/);
   assert.doesNotMatch(invokeSource, /AI_PROVIDER_TIMEOUT:\s*\{/);
   assert.doesNotMatch(invokeSource, /DESKTOP_HTTP_METHOD_INVALID:\s*\{/);
-  assert.match(kitShellBridgeNimiErrorSource, /getRuntimeReasonCodeMessage/);
-  assert.match(kitShellBridgeNimiErrorSource, /DESKTOP_HTTP_METHOD_INVALID:\s*\{/);
 });

@@ -155,11 +155,13 @@ export function validateAgentCenterAvatarAssetImportResult(
   if (backendKind && localAssetId && !localAssetId.startsWith(`${backendKind}_`)) {
     errors.push('avatarAssetImportResult.local_asset_id: backend kind mismatch');
   }
-  const backendCapabilityProfileRef = validateNormalizedId(
-    root.backend_capability_profile_ref,
-    'avatarAssetImportResult.backend_capability_profile_ref',
-    errors,
-  );
+  const backendCapabilityProfileRef = root.backend_capability_profile_ref === null
+    ? null
+    : validateNormalizedId(
+      root.backend_capability_profile_ref,
+      'avatarAssetImportResult.backend_capability_profile_ref',
+      errors,
+    );
   if (typeof root.selected !== 'boolean') {
     errors.push('avatarAssetImportResult.selected: expected boolean');
   }
@@ -272,11 +274,13 @@ function validateAgentCenterAvatarAssetRecord(
   }
   const displayName = readString(record.display_name, `${path}.display_name`, errors) || '';
   const sourceLabel = readString(record.source_label, `${path}.source_label`, errors) || '';
-  const backendCapabilityProfileRef = validateNormalizedId(
-    record.backend_capability_profile_ref,
-    `${path}.backend_capability_profile_ref`,
-    errors,
-  );
+  const backendCapabilityProfileRef = record.backend_capability_profile_ref === null
+    ? null
+    : validateNormalizedId(
+      record.backend_capability_profile_ref,
+      `${path}.backend_capability_profile_ref`,
+      errors,
+    );
   if (typeof record.asset_bytes !== 'number' || !Number.isSafeInteger(record.asset_bytes) || record.asset_bytes <= 0) {
     errors.push(`${path}.asset_bytes: expected positive integer`);
   }

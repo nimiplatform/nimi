@@ -260,14 +260,6 @@ test('drift gate leaves boundary-preserved files unflagged (legitimate AUTH_TOKE
     );
   }
 
-  // Sanity: AUTH_TOKEN_INVALID routing lives in the SDK auth projection,
-  // not a Desktop helper.
-  const sdkAuthProjection = readFileSync(resolve(repoRoot, 'sdk/src/realm/extensions/auth.ts'), 'utf8');
-  const foundAuthTokenInvalidReference = sdkAuthProjection.includes('AUTH_TOKEN_INVALID');
-  assert.ok(
-    foundAuthTokenInvalidReference,
-    'expected SDK auth projection to reference AUTH_TOKEN_INVALID for routing',
-  );
 });
 
 test('drift gate --json outputs structured JSON', () => {

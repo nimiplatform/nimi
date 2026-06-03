@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { projectRuntimeRouteCapabilityCoverageList } from '@nimiplatform/sdk/runtime';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
@@ -171,8 +171,14 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
   }, [state]);
 
   const [copiedEndpoint, setCopiedEndpoint] = useState(false);
+  const [endpointDraft, setEndpointDraft] = useState(state.local.endpoint);
+  const [savingEndpoint, setSavingEndpoint] = useState(false);
+  useEffect(() => {
+    setEndpointDraft(state.local.endpoint);
+  }, [state.local.endpoint]);
+  const endpointDirty = endpointDraft.trim() !== state.local.endpoint.trim();
   const onCopyEndpoint = useCallback(() => {
-    const value = state.local.endpoint;
+    const value = endpointDraft;
     if (!value) return;
     const clip = typeof navigator !== 'undefined' ? navigator.clipboard : null;
     if (!clip?.writeText) return;
@@ -180,7 +186,30 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
       setCopiedEndpoint(true);
       window.setTimeout(() => setCopiedEndpoint(false), 1500);
     }).catch(() => undefined);
-  }, [state.local.endpoint]);
+  }, [endpointDraft]);
+  const onSaveEndpoint = useCallback(async () => {
+    setSavingEndpoint(true);
+    try {
+      const result = await model.saveRuntimeLocalEndpoint(endpointDraft);
+      if (!result.restartRequired) {
+        model.setPageFeedback({
+          kind: 'success',
+          message: t('runtimeConfig.runtime.endpointSaved', { defaultValue: 'Runtime local endpoint saved.' }),
+        });
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error || 'Runtime local endpoint save failed');
+      model.setPageFeedback({
+        kind: 'error',
+        message: t('runtimeConfig.runtime.endpointSaveFailed', {
+          defaultValue: 'Runtime local endpoint save failed: {{message}}',
+          message,
+        }),
+      });
+    } finally {
+      setSavingEndpoint(false);
+    }
+  }, [endpointDraft, model, t]);
 
   // Node matrix
   const sortedNodeMatrix = useMemo(
@@ -391,14 +420,8 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
               <div className="relative mt-3">
                 <input
                   type="text"
-                  value={state.local.endpoint}
-                  onChange={(event) => {
-                    const nextEndpoint = event.target.value;
-                    model.updateState((prev) => ({
-                      ...prev,
-                      local: { ...prev.local, endpoint: nextEndpoint },
-                    }));
-                  }}
+                  value={endpointDraft}
+                  onChange={(event) => setEndpointDraft(event.target.value)}
                   placeholder={t('runtimeConfig.runtime.endpointPlaceholder', { defaultValue: 'http://host:port[/base-path]' })}
                   spellCheck={false}
                   className={cn(
@@ -415,6 +438,23 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
                     onClick={onCopyEndpoint}
                   />
                 </div>
+              </div>
+              <div className="mt-3 flex items-center justify-between gap-3">
+                <p className={cn('text-xs', endpointDirty ? TOKEN_TEXT_SECONDARY : TOKEN_TEXT_MUTED)}>
+                  {endpointDirty
+                    ? t('runtimeConfig.runtime.endpointDraftPending', { defaultValue: 'Unsaved draft. Save to update Runtime bridge config.' })
+                    : t('runtimeConfig.runtime.endpointProjectionCurrent', { defaultValue: 'Current Runtime bridge projection.' })}
+                </p>
+                <Button
+                  size="sm"
+                  variant={endpointDirty ? 'primary' : 'secondary'}
+                  disabled={!endpointDirty || savingEndpoint || model.runtimeWritesDisabled}
+                  onClick={() => { void onSaveEndpoint(); }}
+                >
+                  {savingEndpoint
+                    ? t('runtimeConfig.runtime.savingEndpoint', { defaultValue: 'Saving' })
+                    : t('runtimeConfig.runtime.saveEndpoint', { defaultValue: 'Save' })}
+                </Button>
               </div>
             </Surface>
           </div>

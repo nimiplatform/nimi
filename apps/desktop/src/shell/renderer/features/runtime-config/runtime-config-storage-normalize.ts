@@ -1,7 +1,6 @@
 import {
   DEFAULT_LOCAL_ENDPOINT_V11,
   normalizeCapabilityV11,
-  normalizeEndpointV11,
   normalizePageIdV11,
   normalizeSourceV11,
   normalizeUiModeV11,
@@ -18,15 +17,10 @@ function normalizeLocalFromAny(
   const rawLocalRecord = parseOptionalJsonObject(parsed.local) || {};
   const rawLocal = rawLocalRecord as Partial<RuntimeConfigStateV11['local']>;
 
-  const endpoint = normalizeEndpointV11(
-    String(rawLocalRecord.endpoint || ''),
-    DEFAULT_LOCAL_ENDPOINT_V11,
-  );
-
   return {
     ...fallback.local,
     ...(rawLocal || {}),
-    endpoint,
+    endpoint: DEFAULT_LOCAL_ENDPOINT_V11,
     models: [],
     nodeMatrix: [],
   };
@@ -39,8 +33,9 @@ export function normalizeStoredStateV11(parsed: StoredStateV11): RuntimeConfigSt
 
   const rawActivePage = parsedRecord.activePage || fallback.activePage;
 
-  // Connectors are NOT loaded from localStorage — runtime bridge config (config.json)
-  // is the single source of truth. Connectors start empty and are populated by bridge merge.
+  // Connectors are NOT loaded from localStorage; neither are Runtime endpoint or inventory.
+  // Runtime bridge config and Runtime SDK projections are the single source of
+  // truth. Renderer storage keeps UI preferences only.
   return {
     version: 12,
     initializedByV11: Boolean(parsed.initializedByV11),

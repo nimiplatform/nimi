@@ -1,5 +1,5 @@
 import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import type { QueryKey } from '@tanstack/react-query';
 import { io } from 'socket.io-client';
 import type {
@@ -31,6 +31,7 @@ import {
   markChatAsRead,
   syncChatEventWindow,
 } from '@renderer/features/chat/data/realm-human-chat-data';
+import { getDesktopRuntimeAccessToken } from '@renderer/features/auth/runtime-account-access-token';
 
 const CHAT_SOCKET_PATH = '/socket.io/';
 
@@ -239,7 +240,6 @@ export function rememberSeenEvent(seen: Map<string, number>, key: string): boole
 
 export function useChatRealtimeSync(): void {
   const authStatus = useAppStore((state) => state.auth.status);
-  const authToken = useAppStore((state) => state.auth.token);
   const currentUserId = String(useAppStore((state) => state.auth.user?.id || '')).trim();
   const runtimeDefaults = useAppStore((state) => state.runtimeDefaults);
   const selectedChatId = useAppStore((state) => state.selectedChatId);
@@ -252,10 +252,11 @@ export function useChatRealtimeSync(): void {
     }),
     [runtimeDefaults?.realm.realmBaseUrl, runtimeDefaults?.realm.realtimeUrl],
   );
+  const resolveAuthToken = useCallback(() => getDesktopRuntimeAccessToken(), []);
 
   useRealmChatRealtimeController({
     authStatus,
-    authToken,
+    resolveAuthToken,
     realtimeBaseUrl,
     selectedChatId,
     currentUserId,

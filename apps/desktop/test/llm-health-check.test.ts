@@ -13,12 +13,9 @@ function readRepo(relativePath: string): string {
 test('LLM health check behavior is SDK-owned and Desktop consumes configured host access', () => {
   assert.equal(existsSync(resolve(desktopDir, 'src/runtime/llm-adapter/execution/health-check.ts')), false);
 
-  const sdkSurface = readRepo('sdk/src/runtime/runtime-route-host-access.ts');
   const desktopAccess = readRepo('apps/desktop/src/shell/renderer/infra/runtime-route-host-access.ts');
   const bootstrap = readRepo('apps/desktop/src/shell/renderer/infra/bootstrap/runtime-bootstrap-conversation-route-runtime.ts');
 
-  assert.match(sdkSurface, /createHostRuntimeRouteAccessSurface/);
-  assert.match(sdkSurface, /checkRuntimeRouteProviderHealth/);
   assert.match(desktopAccess, /createHostRuntimeRouteAccessSurface/);
   assert.match(desktopAccess, /appId:\s*'nimi\.desktop'/);
   assert.match(bootstrap, /desktopRuntimeRouteAccess\.checkLocalHealth/);

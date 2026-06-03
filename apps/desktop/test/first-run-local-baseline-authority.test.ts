@@ -3,10 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 
-import {
-  PLATFORM_AI_PROFILE_FACTORY_ROWS,
-  loadPlatformAIProfileFactoryRows,
-} from '@nimiplatform/sdk/platform-catalog';
+import { isProductControlTransientState } from '@nimiplatform/sdk';
 
 const appRoutesSource = fs.readFileSync(
   path.join(import.meta.dirname, '../src/shell/renderer/app-shell/routes/app-routes.tsx'),
@@ -14,10 +11,6 @@ const appRoutesSource = fs.readFileSync(
 );
 const firstRunGatePanelSource = fs.readFileSync(
   path.join(import.meta.dirname, '../src/shell/renderer/features/nimi-home/first-run-gate-panel.tsx'),
-  'utf8',
-);
-const installLevelPolicySource = fs.readFileSync(
-  path.join(import.meta.dirname, '../../../sdk/src/platform-catalog/first-run.ts'),
   'utf8',
 );
 const productControlWorkflowSource = fs.readFileSync(
@@ -30,10 +23,6 @@ const readinessTypesSource = fs.readFileSync(
 );
 const productControlBridgeSource = fs.readFileSync(
   path.join(import.meta.dirname, '../src/shell/renderer/bridge/runtime-bridge/product-control.ts'),
-  'utf8',
-);
-const sdkProductControlSource = fs.readFileSync(
-  path.join(import.meta.dirname, '../../../sdk/src/product-control.ts'),
   'utf8',
 );
 const desktopProductControlDir = path.join(
@@ -56,33 +45,7 @@ const desktopPathsSource = fs.readFileSync(
   'utf8',
 );
 
-test('first-run factory catalog projection exposes install levels and no cloud/hybrid first-run rows', () => {
-  const rows = loadPlatformAIProfileFactoryRows();
-  const firstRunRows = rows.filter((row) => row.applicableScopes.includes('first-run'));
-  assert.ok(firstRunRows.length > 0, 'expected local first-run rows');
-  for (const row of firstRunRows) {
-    assert.ok(
-      row.firstRunInstallLevels.includes('minimal') || row.firstRunInstallLevels.includes('recommended'),
-      `${row.alias} must map to Minimal or Recommended`,
-    );
-    assert.notEqual(row.computePosture, 'cloud-only', `${row.alias} must not be cloud-only first-run`);
-    assert.notEqual(row.routingPolicy, 'cloud-first', `${row.alias} must not be cloud-first first-run`);
-    assert.notEqual(row.routingPolicy, 'hybrid-explicit', `${row.alias} must not be hybrid first-run`);
-    assert.equal(row.capabilitySet.includes('video.generate'), false, `${row.alias} must not be video first-run`);
-  }
-  const cloudFirst = PLATFORM_AI_PROFILE_FACTORY_ROWS.find((row) => row.alias === 'cloud-first');
-  const hybrid = PLATFORM_AI_PROFILE_FACTORY_ROWS.find((row) => row.alias === 'hybrid-recommended');
-  assert.equal((cloudFirst?.applicableScopes as readonly string[] | undefined)?.includes('first-run'), false);
-  assert.equal((hybrid?.applicableScopes as readonly string[] | undefined)?.includes('first-run'), false);
-});
-
 test('Nimi Home first-run selection is install-level aware and fail-closed against stale cloud rows', () => {
-  assert.match(installLevelPolicySource, /function isAdmittedFirstRunLocalBaseline/);
-  assert.match(installLevelPolicySource, /row\.firstRunInstallLevels/);
-  assert.match(installLevelPolicySource, /row\.computePosture === 'cloud-only'/);
-  assert.match(installLevelPolicySource, /row\.routingPolicy === 'cloud-first'/);
-  assert.match(installLevelPolicySource, /row\.routingPolicy === 'hybrid-explicit'/);
-  assert.match(installLevelPolicySource, /row\.capabilitySet\.includes\('video\.generate'\)/);
   assert.match(productControlWorkflowSource, /from '@nimiplatform\/sdk\/platform-catalog'/);
   assert.doesNotMatch(productControlWorkflowSource, /install-level-policy/);
 });
@@ -127,13 +90,8 @@ test('config_missing is an internal transient and does not expose the data-root 
   // into the Storage phase as a transient (`isTransientSystemState`), so it
   // never presents the interactive folder-choose control. `data_root_missing`
   // is the first user-action data-root state.
-  const phaseProjectionSource = fs.readFileSync(
-    path.join(import.meta.dirname, '../src/shell/renderer/first-run/first-run-phase-projection.ts'),
-    'utf8',
-  );
-  assert.match(phaseProjectionSource, /isTransientSystemState/);
-  assert.match(sdkProductControlSource, /config_missing/);
-  assert.match(sdkProductControlSource, /data_root_missing/);
+  assert.equal(isProductControlTransientState('config_missing'), true);
+  assert.equal(isProductControlTransientState('data_root_missing'), false);
   // The Storage phase swaps to a transient loading affordance and hides the
   // folder-choose control when the phase is transient.
   const storagePhaseSource = fs.readFileSync(

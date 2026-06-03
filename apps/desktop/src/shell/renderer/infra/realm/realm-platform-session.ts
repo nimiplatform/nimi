@@ -24,28 +24,33 @@ export async function configureWebRealmPlatformClient(input: {
   setAuthSession?: (
     user: Record<string, unknown> | null,
     accessToken: string,
-    refreshToken?: string,
   ) => void | Promise<void>;
   clearAuthSession?: () => void | Promise<void>;
 }) {
-  const accessToken = String(input.accessToken || '').trim();
-  const refreshToken = String(input.refreshToken || '').trim();
+  let currentAccessToken = String(input.accessToken || '').trim();
+  let currentRefreshToken = String(input.refreshToken || '').trim();
   clearPlatformClient();
   return createPlatformClient({
     appId: input.appId || 'nimi.web',
     authMode: 'web-cloud',
     realmBaseUrl: input.realmBaseUrl,
-    accessToken,
-    refreshTokenProvider: () => refreshToken,
+    accessTokenProvider: () => currentAccessToken,
+    refreshTokenProvider: () => currentRefreshToken,
     sessionStore: {
-      getAccessToken: () => accessToken,
-      getRefreshToken: () => refreshToken,
+      getAccessToken: () => currentAccessToken,
+      getRefreshToken: () => currentRefreshToken,
       getCurrentUser: () => input.getCurrentUser?.() ?? null,
-      setAuthSession: input.setAuthSession,
+      setAuthSession: (user, nextAccessToken, nextRefreshToken) => {
+        currentAccessToken = String(nextAccessToken || '').trim();
+        if (typeof nextRefreshToken === 'string') {
+          currentRefreshToken = nextRefreshToken.trim();
+        }
+        return input.setAuthSession?.(user, currentAccessToken);
+      },
       clearAuthSession: input.clearAuthSession,
     },
     runtimeTransport: null,
     realmFetchImpl: input.fetchImpl || undefined,
-    allowAnonymousRealm: !accessToken,
+    allowAnonymousRealm: !currentAccessToken,
   });
 }

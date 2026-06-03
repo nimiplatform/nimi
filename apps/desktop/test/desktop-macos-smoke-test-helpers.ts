@@ -3,9 +3,11 @@ import assert from 'node:assert/strict';
 import { E2E_IDS } from '../src/shell/renderer/testability/e2e-ids';
 import {
   buildDesktopMacosSmokeFailureReportPayload,
-  runDesktopMacosSmokeScenario,
   shouldStartDesktopMacosSmoke,
-} from '../src/shell/renderer/infra/bootstrap/desktop-macos-smoke';
+} from '../src/shell/renderer/infra/bootstrap/desktop-macos-smoke-shared';
+import {
+  runDesktopMacosSmokeScenario,
+} from '../src/shell/renderer/infra/bootstrap/desktop-macos-smoke-scenarios';
 
 export { assert, E2E_IDS, buildDesktopMacosSmokeFailureReportPayload, runDesktopMacosSmokeScenario, shouldStartDesktopMacosSmoke };
 

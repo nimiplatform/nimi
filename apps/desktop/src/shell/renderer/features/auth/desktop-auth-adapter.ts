@@ -96,8 +96,8 @@ async function configureWebAuthRealmSession(accessToken: string, refreshToken?: 
     refreshToken,
     fetchImpl: createProxyFetch(),
     getCurrentUser: () => useAppStore.getState().auth.user,
-    setAuthSession: (user, nextAccessToken, nextRefreshToken) => {
-      useAppStore.getState().setAuthSession(user, nextAccessToken, nextRefreshToken);
+    setAuthSession: (user) => {
+      useAppStore.getState().setAuthSession(user);
     },
     clearAuthSession: () => {
       useAppStore.getState().clearAuthSession();

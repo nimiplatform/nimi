@@ -8,7 +8,7 @@ import {
 import type { DesktopMacosSmokeContext } from '@renderer/bridge/runtime-bridge/types';
 import { createRendererFlowId, logRendererEvent } from '@nimiplatform/kit/telemetry';
 import {
-  type DesktopMacosSmokeFailureReportPayload,
+  buildDesktopMacosSmokeFailureReportPayload,
   SMOKE_BOOTSTRAP_TIMEOUT_MS,
   SMOKE_SCENARIO_TIMEOUT_MS,
   SMOKE_STEP_TIMEOUT_MS,
@@ -17,16 +17,11 @@ import {
 import { createDomDriverDeps } from './desktop-macos-smoke-driver-deps';
 import { runDesktopMacosSmokeScenario } from './desktop-macos-smoke-scenarios';
 
-export { shouldStartDesktopMacosSmoke } from './desktop-macos-smoke-shared';
+export {
+  buildDesktopMacosSmokeFailureReportPayload,
+  shouldStartDesktopMacosSmoke,
+} from './desktop-macos-smoke-shared';
 export { runDesktopMacosSmokeScenario } from './desktop-macos-smoke-scenarios';
-
-function currentRouteSnapshot(): string {
-  return `${window.location.pathname}${window.location.search}${window.location.hash}`;
-}
-
-function currentHtmlSnapshot(): string {
-  return document.documentElement.outerHTML;
-}
 
 function resolveSmokeBootstrapTimeoutMs(context: DesktopMacosSmokeContext): number {
   const requested = Number(context.bootstrapTimeoutMs || 0);
@@ -65,27 +60,6 @@ async function withDesktopMacosSmokeScenarioTimeout<T>(
       clearTimeout(timeoutId);
     }
   }
-}
-
-export function buildDesktopMacosSmokeFailureReportPayload(input: {
-  failedStep: string;
-  message: string;
-  errorName?: string;
-  errorStack?: string;
-  errorCause?: string;
-  steps?: readonly string[];
-}): DesktopMacosSmokeFailureReportPayload {
-  return {
-    ok: false,
-    failedStep: input.failedStep,
-    steps: input.steps?.length ? [...input.steps] : [input.failedStep],
-    errorMessage: input.message,
-    errorName: input.errorName,
-    errorStack: input.errorStack,
-    errorCause: input.errorCause,
-    route: currentRouteSnapshot(),
-    htmlSnapshot: currentHtmlSnapshot(),
-  };
 }
 
 async function writeBootstrapFailureReport(

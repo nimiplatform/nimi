@@ -97,9 +97,10 @@ test('multi-scope: runtime-slice dynamically checks the mode-aware active chat s
 });
 
 test('multi-scope: snapshot getLatest is scope-keyed', () => {
-  // byScopeKey map tracks latest per scope
-  assert.match(snapshotStoreSource, /byScopeKey\.set\(scopeKey\(snapshot\.scopeRef\), snapshot\)/);
-  assert.match(serviceSource, /byScopeKey\.get\(scopeKey\(scopeRef\)\)/);
+  assert.match(snapshotStoreSource, /createScopedAISnapshotStore/);
+  assert.match(snapshotStoreSource, /@nimiplatform\/kit\/core\/storage-json/);
+  assert.match(serviceSource, /snapshotStore\.record\(snapshot\)/);
+  assert.match(serviceSource, /snapshotStore\.getLatest\(scopeRef\)/);
 });
 
 test('multi-scope: no implicit scope inheritance (P-AISC-003)', () => {

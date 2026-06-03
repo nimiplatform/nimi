@@ -36,7 +36,14 @@ export async function acquireCodexManagedCredential(
     onPending: options.onPending,
     persistCredential: options.persistCredential,
     host: {
-      proxyHttp: desktopBridge.proxyHttp,
+      proxyHttp: (request) => desktopBridge.proxyHttp({
+        url: request.url,
+        method: request.method,
+        headers: request.headers,
+        body: request.body,
+        connectorAuthProfileId: request.profileId,
+        connectorAuthPurpose: request.purpose,
+      }),
       openExternalUrl: desktopBridge.openExternalUrl,
       oauthTokenExchange: (input) => desktopBridge.oauthTokenExchange({
         provider: input.provider as Parameters<typeof desktopBridge.oauthTokenExchange>[0]['provider'],

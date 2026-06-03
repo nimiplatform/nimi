@@ -5,8 +5,16 @@ import { OfflineCacheManager } from '../src/shell/renderer/infra/offline/cache-m
 import { OfflineOutboxManager } from '../src/shell/renderer/infra/offline/outbox-manager.js';
 
 describe('D-OFFLINE-002: outbox queue/send/fail behavior', () => {
-  test('queueOutboxEntry rejects when outbox full', async () => {
+  test('outbox manager fails closed without IndexedDB or explicit ephemeral store', async () => {
     const manager = new OfflineOutboxManager();
+    await assert.rejects(
+      () => manager.open(),
+      /OfflineOutboxManager requires IndexedDB or explicit enableEphemeralStore=true/,
+    );
+  });
+
+  test('queueOutboxEntry rejects when outbox full', async () => {
+    const manager = new OfflineOutboxManager({ enableEphemeralStore: true });
     await manager.open();
     for (let index = 0; index < 1000; index += 1) {
       await manager.upsertChatOutboxEntry({
@@ -32,7 +40,7 @@ describe('D-OFFLINE-002: outbox queue/send/fail behavior', () => {
   });
 
   test('outbox entries stay FIFO by enqueuedAt', async () => {
-    const manager = new OfflineOutboxManager();
+    const manager = new OfflineOutboxManager({ enableEphemeralStore: true });
     await manager.open();
     await manager.upsertChatOutboxEntry({
       clientMessageId: 'later',
@@ -55,7 +63,7 @@ describe('D-OFFLINE-002: outbox queue/send/fail behavior', () => {
   });
 
   test('markChatOutboxSent deletes the delivered entry', async () => {
-    const manager = new OfflineOutboxManager();
+    const manager = new OfflineOutboxManager({ enableEphemeralStore: true });
     await manager.open();
     await manager.upsertChatOutboxEntry({
       clientMessageId: 'cm-1',
@@ -70,7 +78,7 @@ describe('D-OFFLINE-002: outbox queue/send/fail behavior', () => {
   });
 
   test('markChatOutboxFailed preserves the failed reason without retrying', async () => {
-    const manager = new OfflineOutboxManager();
+    const manager = new OfflineOutboxManager({ enableEphemeralStore: true });
     await manager.open();
     await manager.upsertChatOutboxEntry({
       clientMessageId: 'cm-2',
@@ -87,9 +95,17 @@ describe('D-OFFLINE-002: outbox queue/send/fail behavior', () => {
   });
 });
 
-describe('D-OFFLINE-005: memory cache behavior', () => {
-  test('chat list cache keeps the latest configured 20 records', async () => {
+describe('D-OFFLINE-005: explicit ephemeral cache behavior', () => {
+  test('cache manager fails closed without IndexedDB or explicit ephemeral store', async () => {
     const manager = new OfflineCacheManager();
+    await assert.rejects(
+      () => manager.open(),
+      /OfflineCacheManager requires IndexedDB or explicit enableEphemeralStore=true/,
+    );
+  });
+
+  test('chat list cache keeps the latest configured 20 records', async () => {
+    const manager = new OfflineCacheManager({ enableEphemeralStore: true });
     await manager.open();
     await manager.syncChatList(
       Array.from({ length: 25 }, (_, index) => ({
@@ -107,7 +123,7 @@ describe('D-OFFLINE-005: memory cache behavior', () => {
   });
 
   test('message cache keeps the latest configured 50 records per chat', async () => {
-    const manager = new OfflineCacheManager();
+    const manager = new OfflineCacheManager({ enableEphemeralStore: true });
     await manager.open();
     await manager.syncChatMessages(
       'chat-1',
@@ -123,8 +139,8 @@ describe('D-OFFLINE-005: memory cache behavior', () => {
     assert.equal(cached[cached.length - 1]?.id, 'msg-49');
   });
 
-  test('agent and world metadata survive memory fallback round-trips', async () => {
-    const manager = new OfflineCacheManager();
+  test('agent and world metadata survive explicit ephemeral store round-trips', async () => {
+    const manager = new OfflineCacheManager({ enableEphemeralStore: true });
     await manager.open();
 
     await manager.syncAgentMetadata('agent:alice', {

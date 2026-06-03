@@ -14,7 +14,7 @@
 - Desktop chat/UI must project runtime authority, not invent a parallel executable truth in renderer-local state.
 
 ## Retrieval Defaults
-- Start in `apps/desktop/src/shell/renderer`, `apps/desktop/src/runtime`, `apps/desktop/src-tauri/src`, and `apps/desktop/test`.
+- Start in `apps/desktop/src/shell/renderer`, `apps/desktop/src/public-web`, `apps/desktop/src-tauri/src`, and `apps/desktop/test`.
 - Skip `apps/desktop/src-tauri/gen/**`, `dist/**`, generated bridge code, and large asset bundles unless required.
 
 ## Verification Commands

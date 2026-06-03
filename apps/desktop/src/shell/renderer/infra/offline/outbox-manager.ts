@@ -12,12 +12,16 @@ import {
   openOfflineDatabase,
 } from './database.js';
 
-type OfflineOutboxMemoryStore = {
+export type OfflineOutboxEphemeralStoreOptions = {
+  readonly enableEphemeralStore?: boolean;
+};
+
+type OfflineOutboxEphemeralStore = {
   chatOutbox: Map<string, PersistentOutboxEntry>;
   socialOutbox: Map<string, PersistentSocialMutationEntry>;
 };
 
-function createMemoryStore(): OfflineOutboxMemoryStore {
+function createEphemeralStore(): OfflineOutboxEphemeralStore {
   return {
     chatOutbox: new Map(),
     socialOutbox: new Map(),
@@ -32,15 +36,22 @@ function createMemoryStore(): OfflineOutboxMemoryStore {
  */
 export class OfflineOutboxManager {
   private db: IDBDatabase | null = null;
-  private memory: OfflineOutboxMemoryStore | null = null;
+  private ephemeral: OfflineOutboxEphemeralStore | null = null;
+
+  constructor(private readonly options: OfflineOutboxEphemeralStoreOptions = {}) {}
 
   async open(): Promise<void> {
-    if (this.db || this.memory) {
+    if (this.db || this.ephemeral) {
       return;
     }
     if (!hasIndexedDb()) {
-      this.memory = createMemoryStore();
-      return;
+      if (this.options.enableEphemeralStore === true) {
+        this.ephemeral = createEphemeralStore();
+        return;
+      }
+      throw new Error(
+        'OfflineOutboxManager requires IndexedDB or explicit enableEphemeralStore=true',
+      );
     }
     this.db = await openOfflineDatabase();
   }
@@ -50,7 +61,7 @@ export class OfflineOutboxManager {
       this.db.close();
       this.db = null;
     }
-    this.memory = null;
+    this.ephemeral = null;
   }
 
   private ensureDb(): IDBDatabase {
@@ -60,11 +71,11 @@ export class OfflineOutboxManager {
     return this.db;
   }
 
-  private ensureMemory(): OfflineOutboxMemoryStore {
-    if (!this.memory) {
-      throw new Error('OfflineOutboxManager memory store not opened');
+  private ensureEphemeralStore(): OfflineOutboxEphemeralStore {
+    if (!this.ephemeral) {
+      throw new Error('OfflineOutboxManager ephemeral store not opened');
     }
-    return this.memory;
+    return this.ephemeral;
   }
 
   private async complete(tx: IDBTransaction): Promise<void> {
@@ -76,8 +87,8 @@ export class OfflineOutboxManager {
   }
 
   private async getAll<T>(storeName: string): Promise<T[]> {
-    if (this.memory) {
-      throw new Error(`getAll(${storeName}) not implemented for memory store`);
+    if (this.ephemeral) {
+      throw new Error(`getAll(${storeName}) not implemented for ephemeral store`);
     }
     const db = this.ensureDb();
     return await new Promise((resolve, reject) => {
@@ -104,8 +115,8 @@ export class OfflineOutboxManager {
     if (!existing && count >= OFFLINE_OUTBOX_MAX_ENTRIES) {
       throw new Error(`Outbox full (${OFFLINE_OUTBOX_MAX_ENTRIES} entries). Cannot queue more messages offline.`);
     }
-    if (this.memory) {
-      this.ensureMemory().chatOutbox.set(entry.clientMessageId, entry);
+    if (this.ephemeral) {
+      this.ensureEphemeralStore().chatOutbox.set(entry.clientMessageId, entry);
       return;
     }
     const db = this.ensureDb();
@@ -115,15 +126,15 @@ export class OfflineOutboxManager {
   }
 
   async getChatOutboxEntry(clientMessageId: string): Promise<PersistentOutboxEntry | undefined> {
-    if (this.memory) {
-      return this.ensureMemory().chatOutbox.get(clientMessageId);
+    if (this.ephemeral) {
+      return this.ensureEphemeralStore().chatOutbox.get(clientMessageId);
     }
     return await this.getByKey<PersistentOutboxEntry>(OFFLINE_STORE_CHAT_OUTBOX, clientMessageId);
   }
 
   async getChatOutboxEntries(chatId?: string): Promise<PersistentOutboxEntry[]> {
-    if (this.memory) {
-      const values = Array.from(this.ensureMemory().chatOutbox.values());
+    if (this.ephemeral) {
+      const values = Array.from(this.ensureEphemeralStore().chatOutbox.values());
       const filtered = chatId
         ? values.filter((entry) => entry.chatId === chatId)
         : values;
@@ -156,8 +167,8 @@ export class OfflineOutboxManager {
   }
 
   async getChatOutboxCount(): Promise<number> {
-    if (this.memory) {
-      return this.ensureMemory().chatOutbox.size;
+    if (this.ephemeral) {
+      return this.ensureEphemeralStore().chatOutbox.size;
     }
     const db = this.ensureDb();
     return await new Promise((resolve, reject) => {
@@ -169,8 +180,8 @@ export class OfflineOutboxManager {
   }
 
   async markChatOutboxSent(clientMessageId: string): Promise<void> {
-    if (this.memory) {
-      this.ensureMemory().chatOutbox.delete(clientMessageId);
+    if (this.ephemeral) {
+      this.ensureEphemeralStore().chatOutbox.delete(clientMessageId);
       return;
     }
     const db = this.ensureDb();
@@ -192,8 +203,8 @@ export class OfflineOutboxManager {
   }
 
   async queueSocialMutation(entry: PersistentSocialMutationEntry): Promise<void> {
-    if (this.memory) {
-      this.ensureMemory().socialOutbox.set(entry.id, entry);
+    if (this.ephemeral) {
+      this.ensureEphemeralStore().socialOutbox.set(entry.id, entry);
       return;
     }
     const db = this.ensureDb();
@@ -203,8 +214,8 @@ export class OfflineOutboxManager {
   }
 
   async getSocialMutationEntries(): Promise<PersistentSocialMutationEntry[]> {
-    if (this.memory) {
-      return Array.from(this.ensureMemory().socialOutbox.values())
+    if (this.ephemeral) {
+      return Array.from(this.ensureEphemeralStore().socialOutbox.values())
         .sort((a, b) => a.enqueuedAt - b.enqueuedAt);
     }
     const items = await this.getAll<PersistentSocialMutationEntry>(OFFLINE_STORE_SOCIAL_OUTBOX);
@@ -217,8 +228,8 @@ export class OfflineOutboxManager {
   }
 
   async markSocialMutationSent(id: string): Promise<void> {
-    if (this.memory) {
-      this.ensureMemory().socialOutbox.delete(id);
+    if (this.ephemeral) {
+      this.ensureEphemeralStore().socialOutbox.delete(id);
       return;
     }
     const db = this.ensureDb();
@@ -244,6 +255,10 @@ export class OfflineOutboxManager {
 let offlineOutboxManager: OfflineOutboxManager | null = null;
 let offlineOutboxManagerPromise: Promise<OfflineOutboxManager> | null = null;
 
+function isNonBrowserOfflineStoreHarness(): boolean {
+  return typeof window === 'undefined' && !hasIndexedDb();
+}
+
 export async function getOfflineOutboxManager(): Promise<OfflineOutboxManager> {
   if (offlineOutboxManager) {
     await offlineOutboxManager.open();
@@ -251,7 +266,9 @@ export async function getOfflineOutboxManager(): Promise<OfflineOutboxManager> {
   }
   if (!offlineOutboxManagerPromise) {
     offlineOutboxManagerPromise = (async () => {
-      const manager = new OfflineOutboxManager();
+      const manager = new OfflineOutboxManager({
+        enableEphemeralStore: isNonBrowserOfflineStoreHarness(),
+      });
       await manager.open();
       offlineOutboxManager = manager;
       return manager;

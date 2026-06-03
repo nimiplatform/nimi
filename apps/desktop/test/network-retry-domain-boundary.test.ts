@@ -10,12 +10,8 @@ function read(relativePath: string): string {
 }
 
 test('Network retry and API error normalization migrated to SDK types', () => {
-  const sdkNetworkRetry = read('sdk/src/types/network-retry.ts');
   const realmApi = read('apps/desktop/src/shell/renderer/infra/realm/realm-api.ts');
 
-  assert.match(sdkNetworkRetry, /export async function requestWithRetry/);
-  assert.match(sdkNetworkRetry, /export function normalizeApiError/);
-  assert.match(sdkNetworkRetry, /RETRYABLE_STATUS_CODES\s*=\s*new Set/);
   assert.match(realmApi, /normalizeApiError/);
   assert.match(realmApi, /from '@nimiplatform\/sdk\/types'/);
 

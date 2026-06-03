@@ -7,6 +7,10 @@ import {
   type FirstRunInstallLevel,
 } from '@nimiplatform/sdk/platform-catalog';
 import { localRuntime, type LocalRuntimeDeviceProfile } from '@nimiplatform/sdk/runtime';
+import {
+  firstRunScreenForProductControlState as firstRunScreenForState,
+  isProductControlPhaseTransient as isPhaseTransient,
+} from '@nimiplatform/sdk';
 import { desktopBridge, type ProductControlRecordProjection, type ProductControlState } from '@renderer/bridge';
 import { FirstRunFinalization } from './first-run-finalization.js';
 import {
@@ -21,10 +25,6 @@ import {
   type FirstRunMaterializationDependencyProjection,
   type FirstRunMaterializationProjection,
 } from './runtime-materialization.js';
-import {
-  firstRunScreenForState,
-  isPhaseTransient,
-} from './first-run-phase-projection.js';
 import { syncRuntimeStorageConfig } from '../infra/bootstrap/runtime-bootstrap-local-models-sync.js';
 import { projectInstallLevelCard } from './first-run-install-level-cards.js';
 import { projectSetupChecklist } from './first-run-setup-checklist.js';
@@ -43,7 +43,7 @@ import { ScreenBlocked, ScreenReady, ScreenRepair } from './screen-terminal.js';
  * machine (cold-start-authority-contract P-COLD-009/014,
  * tables/first-run-state-machine.yaml). It renders the 12 spec-admitted
  * `ProductControlState` values as a guided 4-phase wizard plus 3 terminal
- * screens — see first-run-phase-projection.ts for the mapping. It does NOT
+ * screens — see the SDK product-control projection for the mapping. It does NOT
  * own, add, collapse, or rename any state-machine state, and it never writes
  * `ready_for_use`: backend admission (P-COLD-016) is the sole authority.
  *

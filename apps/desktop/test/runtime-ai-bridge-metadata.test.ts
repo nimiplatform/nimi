@@ -13,14 +13,8 @@ function readRepo(relativePath: string): string {
 test('runtime AI bridge metadata helper is migrated to SDK host route access', () => {
   assert.equal(existsSync(resolve(desktopDir, 'src/runtime/llm-adapter/execution/runtime-ai-bridge.ts')), false);
 
-  const sdkSurface = readRepo('sdk/src/runtime/runtime-route-host-access.ts');
-  const sdkTest = readRepo('sdk/test/runtime/runtime-route-host-access.test.ts');
   const desktopAccess = readRepo('apps/desktop/src/shell/renderer/infra/runtime-route-host-access.ts');
 
-  assert.match(sdkSurface, /buildRequestMetadata/);
-  assert.match(sdkSurface, /buildCallOptions/);
-  assert.match(sdkSurface, /buildStreamOptions/);
-  assert.match(sdkTest, /builds managed metadata/);
   assert.match(desktopAccess, /surfaceId:\s*'desktop\.renderer'/);
   assert.match(desktopAccess, /callerKind:\s*'desktop-core'/);
   assert.doesNotMatch(desktopAccess, /@runtime\/llm-adapter/);

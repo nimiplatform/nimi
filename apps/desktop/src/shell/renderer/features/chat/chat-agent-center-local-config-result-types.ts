@@ -25,7 +25,7 @@ export type AgentCenterLive2dAdapterManifestImportParseResult =
 export type AgentCenterAvatarAssetImportResult = {
   local_asset_id: string;
   backend_kind: AgentCenterAvatarAssetKind;
-  backend_capability_profile_ref: string;
+  backend_capability_profile_ref: string | null;
   selected: boolean;
   manifest_sha256: string;
   asset_bytes: number;
@@ -42,7 +42,7 @@ export type AgentCenterAvatarAssetRecord = {
   backend_kind: AgentCenterAvatarAssetKind;
   display_name: string;
   source_label: string;
-  backend_capability_profile_ref: string;
+  backend_capability_profile_ref: string | null;
   asset_bytes: number;
   file_count: number;
   imported_at: string;

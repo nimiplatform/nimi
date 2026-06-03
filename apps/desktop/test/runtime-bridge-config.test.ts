@@ -4,13 +4,11 @@ import path from 'node:path';
 import test from 'node:test';
 import {
   buildRuntimeBridgeConfigWithLocalEndpoint,
-  serializeRuntimeBridgeLocalEndpointProjection,
 } from '@nimiplatform/sdk/runtime';
 
 import {
   applyRuntimeBridgeConfigToState,
-  buildRuntimeBridgeConfigFromState,
-  serializeRuntimeBridgeProjection,
+  buildRuntimeBridgeConfigFromLocalEndpoint,
 } from '../src/shell/renderer/features/runtime-config/runtime-bridge-config';
 import { createDefaultStateV11 } from '../src/shell/renderer/features/runtime-config/runtime-config-storage-defaults';
 import { createConnectorV11 } from '../src/shell/renderer/features/runtime-config/runtime-config-state-types';
@@ -43,7 +41,7 @@ test('applyRuntimeBridgeConfigToState maps llama engine loopback endpoint', () =
   assert.equal(next.local.endpoint, 'http://127.0.0.1:18080/v1');
 });
 
-test('applyRuntimeBridgeConfigToState preserves existing endpoint when no llama engine config is present', () => {
+test('applyRuntimeBridgeConfigToState clears local endpoint when Runtime bridge config has no llama engine endpoint', () => {
   const previous = createBaseState();
   previous.local.endpoint = 'http://127.0.0.1:9999/v1';
 
@@ -52,7 +50,7 @@ test('applyRuntimeBridgeConfigToState preserves existing endpoint when no llama 
     engines: {},
   });
 
-  assert.equal(next.local.endpoint, 'http://127.0.0.1:9999/v1');
+  assert.equal(next.local.endpoint, '');
 });
 
 test('applyRuntimeBridgeConfigToState does not manage connectors — they come from SDK', () => {
@@ -75,20 +73,18 @@ test('applyRuntimeBridgeConfigToState does not manage connectors — they come f
   assert.equal(next.connectors[0]?.id, existingConnector.id);
 });
 
-test('buildRuntimeBridgeConfigFromState delegates Runtime config schema projection to SDK', () => {
-  const state = createBaseState();
-  state.local.endpoint = 'http://127.0.0.1:11434/v1';
+test('buildRuntimeBridgeConfigFromLocalEndpoint delegates Runtime config schema projection to SDK', () => {
+  const endpoint = 'http://127.0.0.1:11434/v1';
   const baseConfig = {};
 
-  const config = buildRuntimeBridgeConfigFromState(state, baseConfig);
-  assert.deepEqual(config, buildRuntimeBridgeConfigWithLocalEndpoint(baseConfig, state.local.endpoint));
+  const config = buildRuntimeBridgeConfigFromLocalEndpoint(endpoint, baseConfig);
+  assert.deepEqual(config, buildRuntimeBridgeConfigWithLocalEndpoint(baseConfig, endpoint));
 });
 
-test('buildRuntimeBridgeConfigFromState preserves existing non-local provider entries', () => {
-  const state = createBaseState();
-  state.local.endpoint = 'http://127.0.0.1:11434/v1';
+test('buildRuntimeBridgeConfigFromLocalEndpoint preserves existing non-local provider entries', () => {
+  const endpoint = 'http://127.0.0.1:11434/v1';
 
-  const config = buildRuntimeBridgeConfigFromState(state, {
+  const config = buildRuntimeBridgeConfigFromLocalEndpoint(endpoint, {
     engines: {
       media: {
         enabled: true,
@@ -116,54 +112,7 @@ test('buildRuntimeBridgeConfigFromState preserves existing non-local provider en
         apiKeyEnv: 'NIMI_RUNTIME_CLOUD_GEMINI_API_KEY',
       },
     },
-  }, state.local.endpoint));
-});
-
-test('serializeRuntimeBridgeProjection ignores status-only runtime state changes', () => {
-  const state = createBaseState();
-  const connector = createConnectorV11('openrouter', 'Primary');
-  connector.endpoint = 'https://openrouter.ai/api/v1';
-  state.connectors = [connector];
-  state.selectedConnectorId = connector.id;
-
-  const first = serializeRuntimeBridgeProjection(state);
-
-  const changed = {
-    ...state,
-    local: {
-      ...state.local,
-      status: 'healthy',
-      lastCheckedAt: '2026-02-27T12:00:00.000Z',
-      lastDetail: 'runtime ready',
-    },
-    connectors: state.connectors.map((item) => ({
-      ...item,
-      status: 'healthy',
-      lastCheckedAt: '2026-02-27T12:00:00.000Z',
-      lastDetail: 'connector ok',
-    })),
-  } satisfies RuntimeConfigStateV11;
-
-  const second = serializeRuntimeBridgeProjection(changed);
-  assert.equal(first, second);
-});
-
-test('serializeRuntimeBridgeProjection detects local endpoint changes', () => {
-  const state = createBaseState();
-  state.local.endpoint = 'http://127.0.0.1:1234/v1';
-
-  const first = serializeRuntimeBridgeProjection(state);
-
-  const changed = {
-    ...state,
-    local: {
-      ...state.local,
-      endpoint: 'http://127.0.0.1:9999/v1',
-    },
-  };
-
-  const second = serializeRuntimeBridgeProjection(changed);
-  assert.notEqual(first, second);
+  }, endpoint));
 });
 
 test('runtime bridge config wrapper does not own Runtime config schema details', () => {
@@ -172,11 +121,20 @@ test('runtime bridge config wrapper does not own Runtime config schema details',
   assert.doesNotMatch(source, /schemaVersion|grpcAddr|httpAddr/);
   assert.doesNotMatch(source, /engines\.llama|providers\.local/);
   assert.doesNotMatch(source, /function readNumber|function readBoolean|new URL\(/);
+  assert.doesNotMatch(source, /buildRuntimeBridgeConfigFromState|serializeRuntimeBridgeProjection/);
+});
 
-  const state = createBaseState();
-  state.local.endpoint = 'http://127.0.0.1:11434/v1/';
-  assert.equal(
-    serializeRuntimeBridgeProjection(state),
-    serializeRuntimeBridgeLocalEndpointProjection(state.local.endpoint),
+test('runtime config bridge sync only saves endpoint on explicit user action', () => {
+  const syncSource = readRepoFile(
+    'apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-panel-controller-bridge-sync.ts',
   );
+  const localPageSource = readRepoFile(
+    'apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-page-local.tsx',
+  );
+
+  assert.match(syncSource, /saveRuntimeLocalEndpoint/);
+  assert.match(syncSource, /buildRuntimeBridgeConfigFromLocalEndpoint\(endpoint, baseConfig\)/);
+  assert.doesNotMatch(syncSource, /serializeRuntimeBridgeProjection|runtimeBridgeFailedProjectionRef|runtimeBridgeProjectionRef/);
+  assert.doesNotMatch(syncSource, /setTimeout\(\(\) =>[\s\S]*setRuntimeBridgeConfig/);
+  assert.doesNotMatch(localPageSource, /onChangeLocalEndpoint/);
 });

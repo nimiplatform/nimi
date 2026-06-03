@@ -8,18 +8,12 @@ test('chat runtime error message delegates behavior to SDK runtime projection', 
     path.join(import.meta.dirname, '../src/shell/renderer/features/chat/chat-runtime-error-message.ts'),
     'utf8',
   );
-  const sdkSource = fs.readFileSync(
-    path.join(import.meta.dirname, '../../../sdk/src/runtime/reason-code-messages.ts'),
-    'utf8',
-  );
 
   assert.match(source, /getRuntimeReasonCodeMessage/);
   assert.match(source, /toRuntimeUserFacingError/);
   assert.doesNotMatch(source, /CHAT_RUNTIME_REASON_MESSAGE_MAP/);
   assert.doesNotMatch(source, /shouldUseRawMessage/);
   assert.doesNotMatch(source, /AI_PROVIDER_TIMEOUT:\s*\{/);
-  assert.match(sdkSource, /export function toRuntimeUserFacingError/);
-  assert.match(sdkSource, /shouldUseRuntimeErrorRawMessage/);
 });
 
 test('runtime config error formatting does not retain a Desktop helper owner', () => {

@@ -19,11 +19,6 @@ const desktopWizardTest = readFileSync(
   resolve(import.meta.dirname, 'first-run-wizard.test.ts'),
   'utf8',
 );
-const sdkMaterializationTest = readFileSync(
-  resolve(import.meta.dirname, '../../../sdk/test/runtime/first-run-materialization.test.ts'),
-  'utf8',
-);
-
 test('Desktop first-run materialization does not re-export SDK-owned materialization truth', () => {
   assert.doesNotMatch(desktopRuntimeMaterialization, /export\s+\{\s*FIRST_RUN_MATERIALIZATION_CONSUMER_SCOPE/);
   assert.doesNotMatch(desktopFirstRunIndex, /FIRST_RUN_MATERIALIZATION_CONSUMER_SCOPE/);
@@ -36,15 +31,7 @@ test('Desktop first-run materialization does not re-export SDK-owned materializa
   assert.match(desktopRuntimeMaterialization, /localRuntime/);
 });
 
-test('SDK first-run materialization behavior tests live in the SDK owner package', () => {
-  for (const ownerBehavior of [
-    'first-run materialization progress never fabricates a rate or percent',
-    'first-run materialization retry helper admits transient Runtime failures only',
-    'first-run materialization treats ready dependency projection as ready despite stale failed jobs',
-  ]) {
-    assert.match(sdkMaterializationTest, new RegExp(ownerBehavior));
-  }
-
+test('Desktop first-run materialization tests do not retain SDK-only behavior cases', () => {
   for (const sdkOnlyEvidence of [
     'waiting for lock on uv cache',
     'model file hash mismatch',

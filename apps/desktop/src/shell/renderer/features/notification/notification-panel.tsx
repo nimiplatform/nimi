@@ -7,17 +7,13 @@ import {
   loadRealmNotificationUnreadCount,
   markRealmNotificationRead,
   markRealmNotificationsRead,
-  ReviewRating as ReviewRatingEnum,
   toRealmNotificationListProjection,
   type RealmModel,
-  type RealmNotificationItemProjection,
 } from '@nimiplatform/sdk/realm';
 import {
   getNimiNotificationBadgeKey,
   getNimiNotificationCategory,
   getNimiNotificationServerFilter,
-  isNimiGiftNotificationReviewable,
-  type NimiNotificationFilterTab,
 } from '@nimiplatform/kit/core/notifications';
 import { useTranslation } from 'react-i18next';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
@@ -31,6 +27,7 @@ import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { i18n } from '@renderer/i18n';
 import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
+import { NotificationActionButtons } from './notification-action-buttons.js';
 import {
   invalidateNotificationQueries,
   notificationQueryKeys,
@@ -39,28 +36,17 @@ import {
 } from './notification-query.js';
 import { formatNotificationTime, toErrorMessage } from './notification-panel-helpers.js';
 import { RejectGiftDialog } from './notification-reject-gift-dialog.js';
-import { getActionLabel, getBadgeDefaultLabel } from './notification-panel-labels.js';
+import { getBadgeDefaultLabel } from './notification-panel-labels.js';
+import {
+  FILTER_TABS,
+  PAGE_SIZE,
+  type ItemActionKind,
+  type NotificationFilterTab,
+  type NotificationItemView,
+  type PendingItemAction,
+} from './notification-panel-types.js';
 
 type ReviewRating = RealmModel<'ReviewRating'>;
-
-const PAGE_SIZE = 20;
-const FILTER_TABS: NotificationFilterTab[] = ['all', 'gift', 'request', 'mention', 'like', 'system'];
-
-type ItemActionKind =
-  | 'friend-accept'
-  | 'friend-reject'
-  | 'gift-accept'
-  | 'gift-reject'
-  | 'review-positive'
-  | 'review-negative';
-
-type PendingItemAction = {
-  itemId: string;
-  action: ItemActionKind;
-};
-
-type NotificationFilterTab = NimiNotificationFilterTab;
-type NotificationItemView = RealmNotificationItemProjection;
 
 export function NotificationPanel() {
   const authStatus = useAppStore((state) => state.auth.status);
@@ -399,157 +385,6 @@ export function NotificationPanel() {
     }
   };
 
-  const renderActionButtons = (item: NotificationItemView) => {
-    const itemBusy = isBusyForItem(item.id);
-
-    if (item.type === 'friend_request_received') {
-      return (
-        <>
-          <Button
-            tone="primary"
-            size="sm"
-            disabled={itemBusy}
-            onClick={(event) => {
-              event.stopPropagation();
-              void acceptFriendRequest(item);
-            }}
-            leadingIcon={(
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-            )}
-          >
-            {getActionLabel(
-              pendingItemAction,
-              item.id,
-              'friend-accept',
-              t('Relationship.accept', { defaultValue: 'Accept' }),
-              t('NotificationPanel.accepting', { defaultValue: 'Accepting...' }),
-            )}
-          </Button>
-          <Button
-            tone="secondary"
-            size="sm"
-            disabled={itemBusy}
-            onClick={(event) => {
-              event.stopPropagation();
-              void rejectFriendRequest(item);
-            }}
-            leadingIcon={(
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            )}
-          >
-            {getActionLabel(
-              pendingItemAction,
-              item.id,
-              'friend-reject',
-              t('Relationship.reject', { defaultValue: 'Reject' }),
-              t('NotificationPanel.rejecting', { defaultValue: 'Rejecting...' }),
-            )}
-          </Button>
-        </>
-      );
-    }
-
-    if (item.type === 'gift_received' && item.giftTransactionId) {
-      return (
-        <>
-          <Button
-            tone="primary"
-            size="sm"
-            disabled={itemBusy}
-            onClick={(event) => {
-              event.stopPropagation();
-              void acceptGift(item);
-            }}
-            leadingIcon={(
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-            )}
-          >
-            {getActionLabel(
-              pendingItemAction,
-              item.id,
-              'gift-accept',
-              t('NotificationPanel.accept', { defaultValue: 'Accept' }),
-              t('NotificationPanel.accepting', { defaultValue: 'Accepting...' }),
-            )}
-          </Button>
-          <Button
-            tone="secondary"
-            size="sm"
-            disabled={itemBusy}
-            onClick={(event) => {
-              event.stopPropagation();
-              setRejectingItem(item);
-              setRejectReason('');
-            }}
-            leadingIcon={(
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            )}
-          >
-            {t('NotificationPanel.reject', { defaultValue: 'Reject' })}
-          </Button>
-        </>
-      );
-    }
-
-    if (isNimiGiftNotificationReviewable(item)) {
-      return (
-        <>
-          <Button
-            tone="primary"
-            size="sm"
-            disabled={itemBusy}
-            onClick={(event) => {
-              event.stopPropagation();
-              void createReview(item, ReviewRatingEnum.POSITIVE, 'review-positive');
-            }}
-            leadingIcon={(
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-              </svg>
-            )}
-          >
-            {getActionLabel(
-              pendingItemAction,
-              item.id,
-              'review-positive',
-              t('NotificationPanel.reviewPositive', { defaultValue: 'Review+' }),
-              t('NotificationPanel.submitting', { defaultValue: 'Submitting...' }),
-            )}
-          </Button>
-          <Button
-            tone="secondary"
-            size="sm"
-            disabled={itemBusy}
-            onClick={(event) => {
-              event.stopPropagation();
-              void createReview(item, ReviewRatingEnum.NEGATIVE, 'review-negative');
-            }}
-          >
-            {getActionLabel(
-              pendingItemAction,
-              item.id,
-              'review-negative',
-              t('NotificationPanel.reviewNegative', { defaultValue: 'Review-' }),
-              t('NotificationPanel.submitting', { defaultValue: 'Submitting...' }),
-            )}
-          </Button>
-        </>
-      );
-    }
-
-    return null;
-  };
-
   if (authStatus !== 'authenticated') {
     return (
       <div data-testid={E2E_IDS.panel('notification')} className="flex min-h-0 flex-1 px-5 pb-5 pt-4">
@@ -733,7 +568,27 @@ export function NotificationPanel() {
                   ) : null}
 
                   <div className="mt-3 flex items-center gap-2">
-                    {renderActionButtons(item)}
+                    <NotificationActionButtons
+                      item={item}
+                      pendingItemAction={pendingItemAction}
+                      t={t}
+                      onAcceptFriendRequest={(target) => {
+                        void acceptFriendRequest(target);
+                      }}
+                      onRejectFriendRequest={(target) => {
+                        void rejectFriendRequest(target);
+                      }}
+                      onAcceptGift={(target) => {
+                        void acceptGift(target);
+                      }}
+                      onStartRejectGift={(target) => {
+                        setRejectingItem(target);
+                        setRejectReason('');
+                      }}
+                      onCreateReview={(target, rating, action) => {
+                        void createReview(target, rating, action);
+                      }}
+                    />
                     {shouldOpenGiftInbox ? (
                       <span className="inline-flex items-center gap-1 rounded-xl border border-mint-200 bg-mint-50 px-3 py-1.5 text-[12px] font-medium text-mint-700 transition-colors group-hover:border-mint-300 group-hover:bg-mint-100">
                         {t('NotificationPanel.viewGift', { defaultValue: 'View Gift' })}

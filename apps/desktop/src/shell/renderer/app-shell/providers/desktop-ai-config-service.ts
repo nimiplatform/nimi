@@ -57,7 +57,7 @@ import {
   getBuiltInAIConfigForScopeInit,
 } from '@renderer/bridge/runtime-bridge/product-control.js';
 
-import { createSnapshotStore, storeSnapshot } from './desktop-ai-config-snapshot-store.js';
+import { createDesktopAISnapshotStore } from './desktop-ai-config-snapshot-store.js';
 
 import {
   normalizeRuntimeSchedulingTarget,
@@ -71,7 +71,7 @@ import {
 // Multi-scope config state
 // ---------------------------------------------------------------------------
 
-const snapshotStore = createSnapshotStore();
+const snapshotStore = createDesktopAISnapshotStore();
 const configSubscriptions = createAIConfigSubscriptionRegistry({
   resolveScopeKey: (config) => scopeKey(config.scopeRef),
 });
@@ -528,15 +528,15 @@ function createAIConfigSurface(): AIConfigSurface {
 function createAISnapshotSurface(): AISnapshotSurface {
   return {
     record(snapshot: AISnapshot): void {
-      storeSnapshot(snapshotStore, snapshot);
+      snapshotStore.record(snapshot);
     },
 
     get(executionId: string): AISnapshot | null {
-      return snapshotStore.byExecutionId.get(executionId) || null;
+      return snapshotStore.get(executionId);
     },
 
     getLatest(scopeRef: AIScopeRef): AISnapshot | null {
-      return snapshotStore.byScopeKey.get(scopeKey(scopeRef)) || null;
+      return snapshotStore.getLatest(scopeRef);
     },
   };
 }

@@ -10,6 +10,8 @@ type ProxyHttpPayload = {
   headers?: HeadersInit;
   authorization?: string;
   body?: string;
+  connectorAuthProfileId?: string;
+  connectorAuthPurpose?: 'device_authorization' | 'device_token';
 };
 
 type ProxyHttpResult = {

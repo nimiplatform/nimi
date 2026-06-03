@@ -15,8 +15,6 @@ test('Runtime Agent domain stays on SDK and Kit shared surfaces', () => {
   const presentationAdapter = read('apps/desktop/src/shell/renderer/infra/runtime-agent-presentation-profile.ts');
   const provisionCourier = read('apps/desktop/src/shell/renderer/infra/local-agent-courier/provision-courier.ts');
   const terminationCourier = read('apps/desktop/src/shell/renderer/infra/local-agent-courier/termination-courier.ts');
-  const sdkLocalAgentIntents = read('sdk/src/realm/extensions/local-agent-intents.ts');
-  const streamRunner = read('sdk/src/runtime/runtime-agent-turn-runner.ts');
   const streamAdapter = read('apps/desktop/src/shell/renderer/features/chat/chat-agent-runtime-agent.ts');
   const inspectContent = read('apps/desktop/src/shell/renderer/features/chat/chat-runtime-inspect-content.tsx');
   const runtimeStreamUi = read('apps/desktop/src/shell/renderer/features/chat/chat-shared-runtime-stream-ui.tsx');
@@ -30,10 +28,6 @@ test('Runtime Agent domain stays on SDK and Kit shared surfaces', () => {
   assert.match(provisionCourier, /ackRealmLocalAgentProvisionIntent/);
   assert.match(terminationCourier, /listRealmLocalAgentTerminationIntents/);
   assert.match(terminationCourier, /ackRealmLocalAgentTerminationIntent/);
-  assert.match(sdkLocalAgentIntents, /realm\.services\.MeService\.listMyLocalAgentProvisionIntents/);
-  assert.match(sdkLocalAgentIntents, /realm\.services\.MeService\.ackMyLocalAgentProvisionIntent/);
-  assert.match(sdkLocalAgentIntents, /realm\.services\.MeService\.listMyLocalAgentTerminationIntents/);
-  assert.match(sdkLocalAgentIntents, /realm\.services\.MeService\.ackMyLocalAgentTerminationIntent/);
   assert.doesNotMatch(provisionCourier, /realm\.services\.MeService\.(listMyLocalAgentProvisionIntents|ackMyLocalAgentProvisionIntent)/);
   assert.doesNotMatch(terminationCourier, /realm\.services\.MeService\.(listMyLocalAgentTerminationIntents|ackMyLocalAgentTerminationIntent)/);
   assert.match(inspectContent, /CanonicalRuntimeInspectSidebar/);
@@ -62,7 +56,6 @@ test('Runtime Agent domain stays on SDK and Kit shared surfaces', () => {
     'summarizeRuntimeAgentTimeline',
     'matchesRuntimeAgentProjectionScope',
   ].forEach((name) => {
-    assert.match(streamRunner, new RegExp(`\\b${name}\\b`));
     assert.doesNotMatch(streamAdapter, new RegExp(`function ${name}\\b`));
   });
 

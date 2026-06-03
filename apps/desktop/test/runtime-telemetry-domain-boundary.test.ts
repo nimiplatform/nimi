@@ -9,16 +9,8 @@ function read(relativePath: string): string {
   return fs.readFileSync(path.join(repoRoot, relativePath), 'utf8');
 }
 
-test('Runtime log formatter and injected sink migrated to Kit telemetry', () => {
-  const kitTelemetryIndex = read('kit/telemetry/src/telemetry/index.ts');
-  const kitRuntimeLog = read('kit/telemetry/src/telemetry/runtime-log.ts');
+test('Desktop runtime bootstrap consumes Kit runtime telemetry sink', () => {
   const runtimeBootstrap = read('apps/desktop/src/shell/renderer/infra/bootstrap/runtime-bootstrap.ts');
-
-  assert.match(kitTelemetryIndex, /runtime-log/);
-  assert.match(kitRuntimeLog, /export function emitRuntimeLog/);
-  assert.match(kitRuntimeLog, /export function setRuntimeLogger/);
-  assert.match(kitRuntimeLog, /export function toRuntimeLogMessage/);
-  assert.doesNotMatch(kitRuntimeLog, /@renderer|@runtime|apps\//);
 
   assert.equal(fs.existsSync(path.join(repoRoot, 'apps/desktop/src/runtime/telemetry/logger.ts')), false);
   assert.match(runtimeBootstrap, /from '@nimiplatform\/kit\/telemetry'/);

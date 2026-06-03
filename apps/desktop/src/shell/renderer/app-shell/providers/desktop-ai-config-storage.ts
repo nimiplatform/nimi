@@ -30,10 +30,15 @@ function getStorage(): Storage | undefined {
   return resolveBrowserStorage('local') || undefined;
 }
 
+function isNonBrowserAIConfigStoreHarness(): boolean {
+  return typeof window === 'undefined';
+}
+
 const scopedStore = createScopedAIConfigStore({
   storage: () => getStorage() as AIConfigStorageLike | undefined,
   indexKey: SCOPE_INDEX_KEY,
   configKeyForScope: (scopeKey) => storageKeyForScope(scopeKey),
+  enableEphemeralStore: isNonBrowserAIConfigStoreHarness(),
 });
 
 export function scopeKeyFromRef(ref: AIScopeRef): string {

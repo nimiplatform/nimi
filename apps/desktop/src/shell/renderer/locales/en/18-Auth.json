@@ -63,7 +63,7 @@
   "walletChallengeFailed": "Failed to get wallet challenge",
   "walletLoginFailed": "Wallet sign-in failed",
   "oauthLoginFailed": "OAuth sign-in failed",
-  "logoutServerTransientFailure": "Signed out locally, but the server logout request could not be confirmed because of a network error. The server session may still be active: {{error}}",
-  "logoutServerFailure": "Signed out locally, but server logout failed. The server session may still be active until it is revoked elsewhere: {{error}}",
+  "logoutRuntimeTransientFailure": "Sign out could not be completed because Runtime logout could not be confirmed. The account session may still be active: {{error}}",
+  "logoutRuntimeFailure": "Sign out could not be completed because Runtime logout failed. The account session may still be active: {{error}}",
   "logoutSuccess": "Signed out"
 }

@@ -19,10 +19,6 @@ const mainLayoutViewSource = fs.readFileSync(
   path.join(import.meta.dirname, '../src/shell/renderer/app-shell/layouts/main-layout-view.tsx'),
   'utf8',
 );
-const shellModeSource = fs.readFileSync(
-  path.join(import.meta.dirname, '../../../kit/core/src/shell-mode.ts'),
-  'utf8',
-);
 
 // D-SHELL-001: AppTab type includes all required navigation tabs
 
@@ -85,14 +81,4 @@ test('D-SHELL-001: core nav is not gated by runtime flag', () => {
 test('D-SHELL-001: ordinary primary rail does not inject mods as product nav', () => {
   assert.doesNotMatch(mainLayoutViewSource, /item=\{modsNavItem\}/);
   assert.doesNotMatch(mainLayoutViewSource, /E2E_IDS\.navTab\('mods'\)/);
-});
-
-// D-SHELL-008: Feature flags gate runtime shell behavior
-
-test('D-SHELL-008: feature flags include enableRuntimeTab', () => {
-  assert.match(shellModeSource, /enableRuntimeTab:\s*\w+/);
-});
-
-test('D-SHELL-008: feature flags exclude retired mod UI toggles', () => {
-  assert.doesNotMatch(shellModeSource, /enableModUi|enableModWorkspaceTabs|VITE_NIMI_ENABLE_MOD_DEVELOPER_UI/);
 });

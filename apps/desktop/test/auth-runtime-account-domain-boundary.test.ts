@@ -30,15 +30,9 @@ function listSourceFiles(root: string): string[] {
 test('Auth/OAuth preflight inventory has a real migration point closed in Kit', () => {
   const desktopAuthAdapter = read('apps/desktop/src/shell/renderer/features/auth/desktop-auth-adapter.ts');
   const testerRuntimeAccountAuth = read('apps/tester/src/shell/auth/runtime-account-auth.ts');
-  const kitRuntimeAccountBroker = read('kit/auth/src/logic/runtime-account-browser-broker.ts');
-  const sdkRealmAuth = read('sdk/src/realm/extensions/auth.ts');
 
   assert.match(desktopAuthAdapter, /createRuntimeAccountBrowserBroker/);
   assert.match(testerRuntimeAccountAuth, /createRuntimeAccountBrowserBroker/);
-  assert.match(kitRuntimeAccountBroker, /runtime\.account\.beginLogin\(/);
-  assert.match(kitRuntimeAccountBroker, /runtime\.account\.completeLogin\(/);
-  assert.match(kitRuntimeAccountBroker, /validateRuntimeOAuthAuthorizationUrl/);
-  assert.match(kitRuntimeAccountBroker, /refreshToken: ''/);
 
   assert.doesNotMatch(desktopAuthAdapter, /runtime\.account\.beginLogin\(/);
   assert.doesNotMatch(desktopAuthAdapter, /runtime\.account\.completeLogin\(/);
@@ -48,9 +42,6 @@ test('Auth/OAuth preflight inventory has a real migration point closed in Kit', 
   assert.match(desktopAuthAdapter, /loginRealmAuthPassword/);
   assert.match(desktopAuthAdapter, /verifyRealmEmailOtp/);
   assert.match(desktopAuthAdapter, /loginRealmOAuth/);
-  assert.match(sdkRealmAuth, /realm\.services\.AuthService\.checkEmail/);
-  assert.match(sdkRealmAuth, /realm\.services\.AuthService\.passwordLogin/);
-  assert.match(sdkRealmAuth, /realm\.services\.AuthService\.oauthLogin/);
   assert.doesNotMatch(testerRuntimeAccountAuth, /runtime\.account\.beginLogin\(/);
   assert.doesNotMatch(testerRuntimeAccountAuth, /runtime\.account\.completeLogin\(/);
   assert.doesNotMatch(testerRuntimeAccountAuth, /validateRuntimeOAuthAuthorizationUrl/);
@@ -59,23 +50,11 @@ test('Auth/OAuth preflight inventory has a real migration point closed in Kit', 
 test('Desktop auth DTO projection is owned by SDK Realm auth extension', () => {
   const desktopAuthAdapter = read('apps/desktop/src/shell/renderer/features/auth/desktop-auth-adapter.ts');
   const desktopWebAuthMenu = read('apps/desktop/src/shell/renderer/features/auth/web-auth-menu.tsx');
-  const sdkRealmAuth = read('sdk/src/realm/extensions/auth.ts');
 
   assert.match(desktopAuthAdapter, /from '@nimiplatform\/sdk\/realm'/);
   assert.match(desktopWebAuthMenu, /toRealmAuthUserRecord/);
-  assert.match(sdkRealmAuth, /function toRecord/);
-  assert.match(sdkRealmAuth, /toRealmAuthTokensDto/);
-  assert.match(sdkRealmAuth, /toRealmOAuthLoginResultDto/);
-  assert.match(sdkRealmAuth, /isExpectedAnonymousRealmSessionError/);
   assert.doesNotMatch(desktopAuthAdapter, /toAuthTokensDto|toOAuthLoginResultDto|toCheckEmailResponseDto|isExpectedAnonymousSessionError/);
   assert.doesNotMatch(desktopWebAuthMenu, /auth-session-utils/);
-});
-
-test('Auth/OAuth shared broker does not make Kit a direct SDK owner', () => {
-  const kitRuntimeAccountBroker = read('kit/auth/src/logic/runtime-account-browser-broker.ts');
-
-  assert.doesNotMatch(kitRuntimeAccountBroker, /from ['"]@nimiplatform\/sdk/);
-  assert.doesNotMatch(kitRuntimeAccountBroker, /import\(['"]@nimiplatform\/sdk/);
 });
 
 test('Desktop has no app-local Runtime account browser broker except admitted product smoke probe', () => {

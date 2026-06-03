@@ -7,7 +7,6 @@ function readWorkspaceFile(relativePath: string): string {
   return fs.readFileSync(path.join(import.meta.dirname, '..', relativePath), 'utf8');
 }
 
-const sharedSurfaceSource = readWorkspaceFile('../../kit/ui/src/components/app-surface.tsx');
 const homePostFeedSource = readWorkspaceFile('src/shell/renderer/features/home/post-feed.tsx');
 const homeArticleSource = readWorkspaceFile('src/shell/renderer/features/home/article.tsx');
 const exploreCardsSource = [
@@ -15,13 +14,6 @@ const exploreCardsSource = [
   readWorkspaceFile('src/shell/renderer/features/explore/explore-agent-recommendation-card.tsx'),
 ].join('\n');
 const notificationPanelSource = readWorkspaceFile('src/shell/renderer/features/notification/notification-panel.tsx');
-
-test('W3 glass card convergence: kit app card surface supports interactive and active route rows', () => {
-  assert.match(sharedSurfaceSource, /interactive\?: boolean;/);
-  assert.match(sharedSurfaceSource, /active\?: boolean;/);
-  assert.match(sharedSurfaceSource, /interactive=\{interactive\}/);
-  assert.match(sharedSurfaceSource, /active=\{active\}/);
-});
 
 test('W3 glass card convergence: home feed skeletons and post articles consume the shared promoted glass primitive', () => {
   assert.match(homePostFeedSource, /import \{ AppCardSurface \} from '@nimiplatform\/kit\/ui';/);

@@ -34,8 +34,6 @@ const MAX_AVATAR_FILE_SIZE = 10 * 1024 * 1024;
 export function ProfilePage() {
   const { t } = useTranslation();
   const user = useAppStore((s) => s.auth.user);
-  const authToken = useAppStore((s) => s.auth.token);
-  const authRefreshToken = useAppStore((s) => s.auth.refreshToken);
   const realmBaseUrl = useAppStore((s) => String(s.runtimeDefaults?.realm.realmBaseUrl || '').replace(/\/$/, ''));
   const setAuthSession = useAppStore((s) => s.setAuthSession);
   const displayName = String(user?.displayName || user?.handle || 'User');
@@ -76,7 +74,7 @@ export function ProfilePage() {
   const refreshCurrentUser = async () => {
     const latest = await realmSocialData.loadCurrentUser();
     const updatedUser = parseOptionalJsonObject(latest) ?? null;
-    setAuthSession(updatedUser, authToken, authRefreshToken || undefined);
+    setAuthSession(updatedUser);
   };
 
   useEffect(() => {
@@ -253,7 +251,7 @@ export function ProfilePage() {
         if (typeof updatedUser.avatarUrl !== 'string') {
           updatedUser.avatarUrl = avatarUrl;
         }
-        setAuthSession(updatedUser, authToken, authRefreshToken || undefined);
+        setAuthSession(updatedUser);
         setName(String(updatedUser.displayName || updatedUser.handle || name || 'User'));
         setAvatarUrl(typeof updatedUser.avatarUrl === 'string' ? updatedUser.avatarUrl : null);
         setBio(typeof updatedUser.bio === 'string' ? updatedUser.bio : '');

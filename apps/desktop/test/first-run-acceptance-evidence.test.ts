@@ -68,16 +68,8 @@ const runtimeMaterializationSource = readFileSync(
   resolve(import.meta.dirname, '../src/shell/renderer/first-run/runtime-materialization.ts'),
   'utf8',
 );
-const sdkRuntimeMaterializationSource = readFileSync(
-  resolve(import.meta.dirname, '../../../sdk/src/runtime/first-run-materialization.ts'),
-  'utf8',
-);
 const firstRunSetupChecklistSource = readFileSync(
   resolve(import.meta.dirname, '../src/shell/renderer/first-run/first-run-setup-checklist.ts'),
-  'utf8',
-);
-const runtimeClientInterfaceSource = readFileSync(
-  resolve(import.meta.dirname, '../../../sdk/src/runtime/types-client-interfaces.ts'),
   'utf8',
 );
 const aiProfilePolicySource = readFileSync(
@@ -356,31 +348,13 @@ test('ready_for_use has no production renderer/Tauri mark-ready shortcut and rou
 });
 
 test('Runtime materialization orchestration is wired through SDK/localRuntime and no renderer mark-ready shortcut exists', () => {
-  for (const method of [
-    /startLocalEnvironmentDependencyJob/,
-    /cancelLocalEnvironmentDependencyJob/,
-    /retryLocalEnvironmentDependencyJob/,
-    /repairLocalEnvironmentDependency/,
-  ]) {
-    assert.match(runtimeClientInterfaceSource, method);
-  }
   assert.match(aiProfilePolicySource, /StartLocalEnvironmentDependencyJob/);
   assert.match(runtimeLocalEnvironmentContractSource, /Dependency materialization and repair run as Runtime-owned jobs/);
   assert.match(runtimeMaterializationSource, /localRuntime/);
   assert.match(runtimeMaterializationSource, /@nimiplatform\/sdk\/runtime/);
-  assert.match(sdkRuntimeMaterializationSource, /resolveEnvironmentPlan/);
-  assert.match(sdkRuntimeMaterializationSource, /listEnvironmentDependencyJobs/);
-  assert.match(sdkRuntimeMaterializationSource, /startEnvironmentDependencyJob/);
-  assert.match(sdkRuntimeMaterializationSource, /cancelEnvironmentDependencyJob/);
-  assert.match(sdkRuntimeMaterializationSource, /retryEnvironmentDependencyJob/);
-  assert.match(sdkRuntimeMaterializationSource, /repairEnvironmentDependency/);
-  assert.match(sdkRuntimeMaterializationSource, /isLocalRuntimeEnvironmentDependencyReadyState/);
-  assert.match(sdkRuntimeMaterializationSource, /isLocalRuntimeEnvironmentDependencyJobTransferringState/);
-  assert.match(sdkRuntimeMaterializationSource, /isLocalRuntimeEnvironmentDependencyRepairRequiredState/);
   assert.match(firstRunSetupChecklistSource, /isLocalRuntimeEnvironmentDependencyReadyState/);
   assert.match(firstRunSetupChecklistSource, /isLocalRuntimeEnvironmentDependencyJobActiveState/);
   assert.match(firstRunSetupChecklistSource, /isLocalRuntimeEnvironmentDependencyJobFailedState/);
-  assert.doesNotMatch(sdkRuntimeMaterializationSource, /JOB_TRANSFERRING_STATES/);
   assert.doesNotMatch(firstRunSetupChecklistSource, /JOB_ACTIVE_STATES|JOB_FAILED_STATES/);
   assert.doesNotMatch(firstRunSetupChecklistSource, /'starting'|'running'|'in_progress'/);
   assert.match(productControlWorkflowSource, /reconcileProductFirstRunSetupState/);

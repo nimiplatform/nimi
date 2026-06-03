@@ -7,17 +7,10 @@ function readWorkspaceFile(relativePath: string): string {
   return fs.readFileSync(path.join(import.meta.dirname, '..', relativePath), 'utf8');
 }
 
-const sharedSurfaceSource = readWorkspaceFile('../../kit/ui/src/components/app-surface.tsx');
 const chatRightColumnSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-shared-right-column-primitives.tsx');
 const settingsLayoutSource = readWorkspaceFile('src/shell/renderer/features/settings/settings-layout-components.tsx');
 const runtimePrimitivesSource = readWorkspaceFile('src/shell/renderer/features/runtime-config/runtime-config-primitives.tsx');
 const runtimeLocalDebugSource = readWorkspaceFile('src/shell/renderer/features/runtime-config/runtime-config-local-debug-section.tsx');
-
-test('W2 glass card convergence: kit app card surface freezes promoted and operational kinds', () => {
-  assert.match(sharedSurfaceSource, /type AppCardSurfaceKind = 'promoted-glass' \| 'operational-solid'/);
-  assert.match(sharedSurfaceSource, /material=\{kind === 'promoted-glass' \? 'glass-regular' : 'solid'\}/);
-  assert.match(sharedSurfaceSource, /data-nimi-app-card-surface=\{kind\}/);
-});
 
 test('W2 glass card convergence: chat right-column cards consume the kit promoted glass primitive', () => {
   assert.match(chatRightColumnSource, /import \{ AppCardSurface, cn \} from '@nimiplatform\/kit\/ui';/);

@@ -1,7 +1,7 @@
-import { beforeEach, describe, test } from 'node:test';
+import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { OfflineCoordinator, type OfflineCoordinatorTimer } from '../../../kit/core/src/offline-coordinator.js';
+import { OfflineCoordinator, type OfflineCoordinatorTimer } from '../src/shell/renderer/infra/offline/index.js';
 import { attachOfflineCoordinatorBindings } from '../src/shell/renderer/infra/bootstrap/runtime-bootstrap-offline.js';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -66,134 +66,6 @@ async function flushAsyncWork(): Promise<void> {
     await Promise.resolve();
   }
 }
-
-describe('D-OFFLINE-004: reconnect backoff behavior', () => {
-  let timer: FakeTimer;
-  let coordinator: OfflineCoordinator;
-
-  beforeEach(() => {
-    timer = new FakeTimer();
-    coordinator = new OfflineCoordinator({ timer });
-  });
-
-  test('realm reconnect backoff doubles on failure and resets after success', async () => {
-    const reconnects: string[] = [];
-    let probeCount = 0;
-    coordinator.configureReconnectHandlers({
-      hasPendingRealmRecoveryWork: async () => true,
-      probeRealmReachability: async () => {
-        probeCount += 1;
-        return probeCount >= 3;
-      },
-    });
-    coordinator.subscribeRealmReconnect(() => {
-      reconnects.push('realm');
-    });
-
-    coordinator.markRealmRestReachable(false);
-    await flushAsyncWork();
-    assert.equal(timer.nextDelay(), 1000);
-
-    assert.equal(await timer.runNext(), 1000);
-    assert.equal(timer.nextDelay(), 2000);
-
-    assert.equal(await timer.runNext(), 2000);
-    assert.equal(timer.nextDelay(), 4000);
-
-    assert.equal(await timer.runNext(), 4000);
-    assert.equal(reconnects.length, 1);
-
-    coordinator.markRealmRestReachable(false);
-    await flushAsyncWork();
-    assert.equal(timer.nextDelay(), 1000);
-  });
-
-  test('socket disconnect schedules reconnect but does not project realm success from REST alone', async () => {
-    const reconnects: string[] = [];
-    coordinator.configureReconnectHandlers({
-      hasPendingRealmRecoveryWork: async () => true,
-      probeRealmReachability: async () => true,
-    });
-    coordinator.subscribeRealmReconnect(() => {
-      reconnects.push('realm');
-    });
-
-    coordinator.markRealmSocketReachable(false);
-    await flushAsyncWork();
-    assert.equal(coordinator.getTier(), 'L1');
-    assert.equal(timer.nextDelay(), 1000);
-
-    assert.equal(await timer.runNext(), 1000);
-    assert.equal(reconnects.length, 0);
-    assert.equal(coordinator.getTier(), 'L1');
-    assert.equal(timer.nextDelay(), 2000);
-
-    coordinator.markRealmSocketReachable(true);
-    await flushAsyncWork();
-    assert.equal(reconnects.length, 1);
-    assert.equal(coordinator.getTier(), 'L0');
-    assert.equal(timer.pendingCount(), 0);
-  });
-
-  test('rest outage schedules realm reconnect even without pending recovery work', async () => {
-    coordinator.configureReconnectHandlers({
-      hasPendingRealmRecoveryWork: async () => false,
-      probeRealmReachability: async () => false,
-    });
-
-    coordinator.markRealmRestReachable(false);
-    await flushAsyncWork();
-    assert.equal(timer.nextDelay(), 1000);
-  });
-
-  test('markCacheFallbackUsed forces realm reconnect scheduling when only cache fallback needs recovery', async () => {
-    coordinator.configureReconnectHandlers({
-      hasPendingRealmRecoveryWork: async () => false,
-      probeRealmReachability: async () => false,
-    });
-
-    coordinator.markRealmSocketReachable(false);
-    await flushAsyncWork();
-    assert.equal(timer.nextDelay(), 1000);
-    await timer.runNext();
-    assert.equal(timer.nextDelay(), 2000);
-
-    coordinator.markCacheFallbackUsed();
-    await flushAsyncWork();
-    assert.equal(timer.pendingCount(), 1);
-  });
-
-  test('runtime reconnect backoff doubles on failure and resets after success', async () => {
-    const reconnects: string[] = [];
-    let probeCount = 0;
-    coordinator.configureReconnectHandlers({
-      probeRuntimeReachability: async () => {
-        probeCount += 1;
-        return probeCount >= 3;
-      },
-    });
-    coordinator.subscribeRuntimeReconnect(() => {
-      reconnects.push('runtime');
-    });
-
-    coordinator.markRuntimeReachable(false);
-    await flushAsyncWork();
-    assert.equal(timer.nextDelay(), 1000);
-
-    assert.equal(await timer.runNext(), 1000);
-    assert.equal(timer.nextDelay(), 2000);
-
-    assert.equal(await timer.runNext(), 2000);
-    assert.equal(timer.nextDelay(), 4000);
-
-    assert.equal(await timer.runNext(), 4000);
-    assert.equal(reconnects.length, 1);
-
-    coordinator.markRuntimeReachable(false);
-    await flushAsyncWork();
-    assert.equal(timer.nextDelay(), 1000);
-  });
-});
 
 describe('D-OFFLINE-004: bootstrap reconnect bindings', () => {
   test('realm_reconnect flushes outboxes and invalidates queries', async () => {

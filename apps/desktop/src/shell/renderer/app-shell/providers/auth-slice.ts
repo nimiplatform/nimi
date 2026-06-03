@@ -18,8 +18,6 @@ export function createAuthSlice(set: AppStoreSet): AuthSlice {
     auth: {
       status: 'bootstrapping',
       user: null,
-      token: '',
-      refreshToken: '',
     },
     setAuthBootstrapping: () =>
       set((state) => ({
@@ -28,15 +26,11 @@ export function createAuthSlice(set: AppStoreSet): AuthSlice {
           status: 'bootstrapping',
         },
       })),
-    setAuthSession: (user, token, refreshToken) =>
-      set((state) => ({
+    setAuthSession: (user) =>
+      set(() => ({
         auth: {
           status: 'authenticated',
           user,
-          token,
-          refreshToken: refreshToken === undefined
-            ? state.auth.refreshToken
-            : (refreshToken || ''),
         },
       })),
     clearAuthSession: () =>
@@ -44,8 +38,6 @@ export function createAuthSlice(set: AppStoreSet): AuthSlice {
         auth: {
           status: 'anonymous',
           user: null,
-          token: '',
-          refreshToken: '',
         },
         selectedChatId: null,
         chatMode: 'ai',

@@ -1,36 +1,33 @@
-import type { AIScopeRef, AISnapshot } from '@nimiplatform/sdk/ai';
-import { scopeKeyFromRef } from './desktop-ai-config-storage.js';
+import {
+  createScopedAISnapshotStore,
+  type AIConfigStorageLike,
+  type ScopedAISnapshotStore,
+} from '@nimiplatform/sdk/ai';
+import { resolveBrowserStorage } from '@nimiplatform/kit/core/storage-json';
 
-// ---------------------------------------------------------------------------
-// Snapshot store — in-memory ring buffer (S-AICONF-005: host-local persistence)
-// ---------------------------------------------------------------------------
-
+const SNAPSHOT_INDEX_KEY = 'nimi.ai-snapshot.execution-index.v1';
+const SNAPSHOT_EXECUTION_PREFIX = 'nimi.ai-snapshot.execution.';
+const SNAPSHOT_EXECUTION_SUFFIX = '.v1';
 const SNAPSHOT_RING_SIZE = 64;
 
-export type SnapshotStore = {
-  byExecutionId: Map<string, AISnapshot>;
-  byScopeKey: Map<string, AISnapshot>; // latest per scope
-  insertionOrder: string[]; // executionId ring for eviction
-};
-
-export function createSnapshotStore(): SnapshotStore {
-  return {
-    byExecutionId: new Map(),
-    byScopeKey: new Map(),
-    insertionOrder: [],
-  };
+function getStorage(): Storage | null {
+  return resolveBrowserStorage('local');
 }
 
-function scopeKey(ref: AIScopeRef): string {
-  return scopeKeyFromRef(ref);
+function isNonBrowserSnapshotStoreHarness(): boolean {
+  return typeof window === 'undefined';
 }
 
-export function storeSnapshot(store: SnapshotStore, snapshot: AISnapshot): void {
-  if (store.insertionOrder.length >= SNAPSHOT_RING_SIZE) {
-    const evictId = store.insertionOrder.shift()!;
-    store.byExecutionId.delete(evictId);
-  }
-  store.byExecutionId.set(snapshot.executionId, snapshot);
-  store.byScopeKey.set(scopeKey(snapshot.scopeRef), snapshot);
-  store.insertionOrder.push(snapshot.executionId);
+function snapshotKeyForExecution(executionId: string): string {
+  return `${SNAPSHOT_EXECUTION_PREFIX}${executionId}${SNAPSHOT_EXECUTION_SUFFIX}`;
+}
+
+export function createDesktopAISnapshotStore(): ScopedAISnapshotStore {
+  return createScopedAISnapshotStore({
+    storage: () => getStorage() as AIConfigStorageLike | null,
+    indexKey: SNAPSHOT_INDEX_KEY,
+    snapshotKeyForExecution,
+    maxSnapshots: SNAPSHOT_RING_SIZE,
+    enableEphemeralStore: isNonBrowserSnapshotStoreHarness(),
+  });
 }

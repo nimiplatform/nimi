@@ -43,12 +43,6 @@ export function LocalPage({ model, state }: LocalPageProps) {
         onRemove={model.removeLocalModel}
         onRemoveAsset={model.removeLocalAsset}
         onSetLocalModelQuery={model.setLocalModelQuery}
-        onChangeLocalEndpoint={(endpoint) => {
-          model.updateState((prev) => ({
-            ...prev,
-            local: { ...prev.local, endpoint },
-          }));
-        }}
         onNavigateToSetup={(pageId) => model.onChangePage(pageId)}
         onDownloadComplete={model.onDownloadComplete}
         onRetryInstall={model.retryInstall}
