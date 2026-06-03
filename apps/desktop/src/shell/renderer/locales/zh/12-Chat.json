@@ -675,6 +675,8 @@
   "settingsRouteUnavailable": "路由不可用",
   "settingsSelectedRouteUnavailable": "所选路由不可用",
   "settingsSelectedRouteUnavailableHint": "当前选择的路由已经无法解析。",
+  "settingsRouteNeedsSetup": "路由需要配置",
+  "settingsRouteNeedsSetupHint": "完成配置或预热当前选择的本地模型后再使用此路由。",
   "settingsRouteUnhealthy": "路由不健康",
   "settingsRouteUnhealthyHint": "当前选择的路由未通过最近一次健康检查。",
   "settingsRouteMetadataUnavailable": "路由元数据不可用",

@@ -52,13 +52,13 @@ func parseAndVerifyAccountDefaultProfileEvidence(raw string, accountID string, d
 	return evidence, "", ""
 }
 
-func parseAndVerifyBuiltInAIConfigAdmissionEvidence(raw string, record *productControlRecord, accountID string, dataRootRef string, aiProfileAlias string, installLevel string) ([]string, productControlState, string) {
+func parseAndVerifyBuiltInAIConfigAdmissionEvidence(raw string, record *productControlRecord, accountID string, dataRootRef string, aiProfileAlias string, installLevel string, requireRecordedRefs bool) ([]string, productControlState, string) {
 	var evidenceSet builtInAIConfigAdmissionEvidenceSet
 	if err := json.Unmarshal([]byte(raw), &evidenceSet); err != nil {
 		return nil, productControlStateLocalAIReady, "built-in AIConfig owner evidence is missing or invalid JSON"
 	}
 	refs := []string{strings.TrimSpace(evidenceSet.Nimi.BuiltInAIConfigRef), strings.TrimSpace(evidenceSet.Agent.BuiltInAIConfigRef)}
-	if len(record.FirstRun.BuiltInAIConfigRefs) > 0 && !sameStringSet(refs, record.FirstRun.BuiltInAIConfigRefs) {
+	if requireRecordedRefs && len(record.FirstRun.BuiltInAIConfigRefs) > 0 && !sameStringSet(refs, record.FirstRun.BuiltInAIConfigRefs) {
 		return nil, productControlStateLocalAIReady, "built-in AIConfig evidence refs are stale or mismatched"
 	}
 	for expectedSurface, evidence := range map[string]builtInAIConfigAdmissionEvidence{

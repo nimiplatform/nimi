@@ -40,7 +40,7 @@ export function resolveVoiceSessionUnavailableMessage(input: {
       defaultValue: 'Voice input is unavailable because no transcribe route is configured.',
     });
   }
-  if (issueKind === 'route_unhealthy') {
+  if (issueKind === 'route_not_ready' || issueKind === 'route_unhealthy') {
     return input.t('Chat.voiceSessionRuntimeUnavailable', {
       defaultValue: 'Voice input is unavailable because the transcribe runtime is not ready.',
     });

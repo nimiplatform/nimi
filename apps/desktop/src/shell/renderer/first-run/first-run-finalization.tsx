@@ -5,13 +5,14 @@ import { desktopBridge, type ProductControlRecordProjection } from '@renderer/br
 /**
  * Desktop first-run finalization surface for the `local_ai_ready` state.
  *
- * At `local_ai_ready` the renderer requests backend admission of the
- * `ready_for_use` transition via `desktopBridge.admitProductReadyForUse()` and
- * displays finalization progress only. Per cold-start-authority-contract
- * P-COLD-016 the renderer never writes `ready_for_use`, mints refs, or declares
- * refs valid; the backend admission op is the sole authority. The returned
- * projection routes the workflow: `ready_for_use` on success, the
- * earliest-failed `state` (with a non-null `error`) on failure.
+ * At `local_ai_ready` the renderer asks the backend to refresh owner evidence,
+ * then requests backend admission of the `ready_for_use` transition via
+ * `desktopBridge.admitProductReadyForUse()` and displays finalization progress
+ * only. Per cold-start-authority-contract P-COLD-016 the renderer never writes
+ * `ready_for_use`, mints refs, or declares refs valid; the backend admission op
+ * is the sole authority. The returned projection routes the workflow:
+ * `ready_for_use` on success, the earliest-failed `state` (with a non-null
+ * `error`) on failure.
  */
 
 type FinalizationStatus = 'requesting' | 'failed';
@@ -28,13 +29,6 @@ export function FirstRunFinalization(props: FirstRunFinalizationProps): ReactEle
   const [error, setError] = useState<string | null>(props.projection.error ?? null);
   const inFlightRef = useRef(false);
   const autoRequestedRef = useRef(false);
-  const firstRun = props.projection.record?.firstRun;
-  const hasFinalizationRefs = Boolean(
-    firstRun?.accountDefaultProfileRef
-    && firstRun.builtInAiConfigRefs.length >= 2
-    && firstRun.runtimeBaselineRef
-    && firstRun.executionEvidenceRef,
-  );
 
   const requestAdmission = useCallback(async (): Promise<void> => {
     if (inFlightRef.current) return;
@@ -42,14 +36,12 @@ export function FirstRunFinalization(props: FirstRunFinalizationProps): ReactEle
     setStatus('requesting');
     setError(null);
     try {
-      if (!hasFinalizationRefs) {
-        const prepared = await desktopBridge.prepareProductFirstRunLocalAiReady();
-        notifyProjectionChange(prepared);
-        if (prepared.state !== 'local_ai_ready' && prepared.state !== 'ready_for_use') {
-          setStatus('failed');
-          setError(prepared.error);
-          return;
-        }
+      const prepared = await desktopBridge.prepareProductFirstRunLocalAiReady();
+      notifyProjectionChange(prepared);
+      if (prepared.state !== 'local_ai_ready' && prepared.state !== 'ready_for_use') {
+        setStatus('failed');
+        setError(prepared.error);
+        return;
       }
       const next = await desktopBridge.admitProductReadyForUse();
       notifyProjectionChange(next);
@@ -69,7 +61,7 @@ export function FirstRunFinalization(props: FirstRunFinalizationProps): ReactEle
     } finally {
       inFlightRef.current = false;
     }
-  }, [hasFinalizationRefs, notifyProjectionChange, t]);
+  }, [notifyProjectionChange, t]);
 
   // Request admission once on entry into `local_ai_ready`. The backend is the
   // only authority that may admit `ready_for_use`; the renderer only requests.

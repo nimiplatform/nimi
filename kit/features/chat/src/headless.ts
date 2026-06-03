@@ -163,6 +163,7 @@ const DEFAULT_RUNTIME_ROUTE_SETUP_DETAIL_BY_REASON_CODE: Record<string, string> 
   selection_missing: 'Select an AI route before sending a message.',
   selection_cleared: 'Select an AI route before sending a message.',
   binding_unresolved: 'The selected AI route is unavailable. Pick another route.',
+  route_not_ready: 'The selected AI route needs setup before it can run.',
   route_unhealthy: 'The selected AI route is unhealthy. Pick another route.',
   metadata_missing: 'The selected AI route metadata is unavailable. Pick another route.',
 };

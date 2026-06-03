@@ -58,7 +58,7 @@ func (s *Service) composeProductControlReadyAdmission(ctx context.Context, recor
 	if runtimeBaselineError != "" {
 		return productControlReadyAdmissionEvidence{}, runtimeBaselineState, runtimeBaselineError
 	}
-	builtInRefs, state, errText := parseAndVerifyBuiltInAIConfigAdmissionEvidence(req.GetBuiltInAiConfigEvidenceJson(), record, accountID, expectedDataRootRef, aiProfileAlias, installLevel)
+	builtInRefs, state, errText := parseAndVerifyBuiltInAIConfigAdmissionEvidence(req.GetBuiltInAiConfigEvidenceJson(), record, accountID, expectedDataRootRef, aiProfileAlias, installLevel, true)
 	if errText != "" {
 		return productControlReadyAdmissionEvidence{}, state, errText
 	}

@@ -147,6 +147,53 @@ test('runtime route capability projection maps host and capability failures with
   assert.equal(getRuntimeRouteCapabilityProjectionIssueKind(unsupported), 'capability_unsupported');
 });
 
+test('runtime route capability projection distinguishes not-ready local setup from unhealthy routes', async () => {
+  const selectionStore = updateRuntimeRouteCapabilityBinding(
+    createDefaultRuntimeRouteCapabilitySelectionStore(),
+    'text.generate',
+    {
+      source: 'local',
+      connectorId: '',
+      model: 'local/gemma',
+      modelId: 'local/gemma',
+      localModelId: 'local-gemma',
+      engine: 'llama',
+      provider: 'llama',
+      goRuntimeStatus: 'installed',
+    },
+  );
+  const projection = await buildRuntimeRouteCapabilityProjection({
+    capability: 'text.generate',
+    selectionStore,
+    routeRuntime: {
+      ...createRuntime(),
+      resolve: async ({ capability, binding }) => ({
+        ...binding!,
+        capability: toRuntimeRouteCanonicalCapability(capability),
+        source: 'local',
+        connectorId: '',
+        provider: 'llama',
+        engine: 'llama',
+        model: 'gemma',
+        modelId: 'gemma',
+        localModelId: 'local-gemma',
+        goRuntimeStatus: 'installed',
+        resolvedBindingRef: 'local:text.generate:llama:local-gemma',
+      }),
+      checkHealth: async () => ({
+        healthy: false,
+        status: 'unavailable',
+        reasonCode: 'AI_MODEL_NOT_READY',
+        actionHint: 'warm local model',
+      }),
+    },
+  });
+
+  assert.equal(projection.supported, false);
+  assert.equal(projection.reasonCode, 'route_not_ready');
+  assert.equal(getRuntimeRouteCapabilityProjectionIssueKind(projection), 'route_not_ready');
+});
+
 test('runtime route capability projection map refreshes requested capabilities', async () => {
   const selectionStore = updateRuntimeRouteCapabilityBinding(
     updateRuntimeRouteCapabilityBinding(

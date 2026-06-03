@@ -1,17 +1,17 @@
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
-import { basename, join } from 'node:path';
+import { basename, join, relative } from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 
-const aiDir = new URL('../src/ai/', import.meta.url);
-const aiAppDir = new URL('../src/ai-app/', import.meta.url);
-const aiProviderDir = new URL('../src/ai-provider/', import.meta.url);
-const runtimeDir = new URL('../src/runtime/', import.meta.url);
-const sdkSrcDir = new URL('../src/', import.meta.url);
-const worldDir = new URL('../src/world/', import.meta.url);
+const aiDir = fileURLToPath(new URL('../src/ai/', import.meta.url));
+const aiAppDir = fileURLToPath(new URL('../src/ai-app/', import.meta.url));
+const aiProviderDir = fileURLToPath(new URL('../src/ai-provider/', import.meta.url));
+const runtimeDir = fileURLToPath(new URL('../src/runtime/', import.meta.url));
+const sdkSrcDir = fileURLToPath(new URL('../src/', import.meta.url));
+const worldDir = fileURLToPath(new URL('../src/world/', import.meta.url));
 
-function listFiles(dir: URL): string[] {
-  const root = dir.pathname;
+function listFiles(dir: string): string[] {
   const out: string[] = [];
   const visit = (current: string) => {
     for (const entry of readdirSync(current)) {
@@ -19,16 +19,16 @@ function listFiles(dir: URL): string[] {
       if (statSync(path).isDirectory()) {
         visit(path);
       } else if (path.endsWith('.ts')) {
-        out.push(path.slice(root.length));
+        out.push(relative(dir, path).replace(/\\/g, '/'));
       }
     }
   };
-  visit(root);
+  visit(dir);
   return out.sort();
 }
 
-function readSource(dir: URL, relativePath: string): string {
-  return readFileSync(join(dir.pathname, relativePath), 'utf8');
+function readSource(dir: string, relativePath: string): string {
+  return readFileSync(join(dir, relativePath), 'utf8');
 }
 
 test('sdk ai subpath does not host runtime implementation helpers', () => {
@@ -94,8 +94,8 @@ test('sdk ai subpath does not host generic storage helpers', () => {
 test('runtime agent memory helpers live on the runtime subpath', () => {
   const runtimeFiles = listFiles(runtimeDir);
   assert.ok(runtimeFiles.includes('runtime-agent-memory.ts'));
-  assert.match(readSource(runtimeDir, 'index.ts'), /runtime-agent-memory\.js/);
-  assert.match(readSource(runtimeDir, 'browser.ts'), /runtime-agent-memory\.js/);
+  assert.match(readSource(runtimeDir, 'public-surface.ts'), /runtime-agent-memory\.js/);
+  assert.match(readSource(runtimeDir, 'browser.ts'), /public-surface\.js/);
 });
 
 test('AIConfig scheduling projection lives on the runtime subpath, not AI', () => {
@@ -104,7 +104,7 @@ test('AIConfig scheduling projection lives on the runtime subpath, not AI', () =
   assert.equal(aiFiles.includes('ai-config-scheduling.ts'), false);
   assert.ok(runtimeFiles.includes('ai-config-scheduling.ts'));
   assert.doesNotMatch(readSource(aiDir, 'index.ts'), /ai-config-scheduling\.js/);
-  assert.match(readSource(runtimeDir, 'index.ts'), /ai-config-scheduling\.js/);
+  assert.match(readSource(runtimeDir, 'public-surface.ts'), /ai-config-scheduling\.js/);
 });
 
 test('AI runtime execution evidence projection lives on the runtime subpath', () => {
@@ -116,14 +116,14 @@ test('AI runtime execution evidence projection lives on the runtime subpath', ()
     readSource(runtimeDir, 'ai-execution-evidence.ts'),
     /projectFirstRunExecutionEvidenceToAIConfigBindings/,
   );
-  assert.match(readSource(runtimeDir, 'index.ts'), /ai-execution-evidence\.js/);
-  assert.match(readSource(runtimeDir, 'browser.ts'), /ai-execution-evidence\.js/);
+  assert.match(readSource(runtimeDir, 'public-surface.ts'), /ai-execution-evidence\.js/);
+  assert.match(readSource(runtimeDir, 'browser.ts'), /public-surface\.js/);
 });
 
 test('AIConfig consumes Runtime local profile identity from the runtime subpath', () => {
   const runtimeFiles = listFiles(runtimeDir);
   assert.ok(runtimeFiles.includes('runtime-local-profile-ref.ts'));
-  assert.match(readSource(runtimeDir, 'index.ts'), /runtime-local-profile-ref\.js/);
-  assert.match(readSource(runtimeDir, 'browser.ts'), /runtime-local-profile-ref\.js/);
+  assert.match(readSource(runtimeDir, 'public-surface.ts'), /runtime-local-profile-ref\.js/);
+  assert.match(readSource(runtimeDir, 'browser.ts'), /public-surface\.js/);
   assert.match(readSource(aiDir, 'ai-config.ts'), /RuntimeLocalProfileRef/);
 });

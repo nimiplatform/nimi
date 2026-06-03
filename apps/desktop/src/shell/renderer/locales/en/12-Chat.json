@@ -675,6 +675,8 @@
   "settingsRouteUnavailable": "Route unavailable",
   "settingsSelectedRouteUnavailable": "Selected route unavailable",
   "settingsSelectedRouteUnavailableHint": "The selected route can no longer be resolved.",
+  "settingsRouteNeedsSetup": "Route needs setup",
+  "settingsRouteNeedsSetupHint": "Complete setup or warm the selected local model before using this route.",
   "settingsRouteUnhealthy": "Route unhealthy",
   "settingsRouteUnhealthyHint": "The selected route failed the latest health check.",
   "settingsRouteMetadataUnavailable": "Route metadata unavailable",

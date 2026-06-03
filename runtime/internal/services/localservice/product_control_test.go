@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -27,6 +28,19 @@ func decodeProductControlProjectionForTest(t *testing.T, response *runtimev1.Pro
 		t.Fatalf("decode product-control projection: %v\n%s", err, response.GetJson())
 	}
 	return projection
+}
+
+func setProductControlHomeForTest(t *testing.T) string {
+	t.Helper()
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+	volume := filepath.VolumeName(home)
+	if volume != "" {
+		t.Setenv("HOMEDRIVE", volume)
+		t.Setenv("HOMEPATH", strings.TrimPrefix(home, volume))
+	}
+	return home
 }
 
 func accountDefaultProfileEvidenceJSONForTest(t *testing.T, accountID, dataRoot, aiProfileAlias string) string {
@@ -54,10 +68,14 @@ func accountDefaultProfileEvidenceJSONForTest(t *testing.T, accountID, dataRoot,
 }
 
 func builtInAIConfigEvidenceJSONForTest(t *testing.T, accountID, dataRoot, aiProfileAlias, installLevel string) string {
+	return builtInAIConfigEvidenceJSONWithRefPrefixForTest(t, "aiconfig:", accountID, dataRoot, aiProfileAlias, installLevel)
+}
+
+func builtInAIConfigEvidenceJSONWithRefPrefixForTest(t *testing.T, refPrefix, accountID, dataRoot, aiProfileAlias, installLevel string) string {
 	t.Helper()
 	evidenceFor := func(surfaceID string) map[string]any {
 		return map[string]any{
-			"builtInAiConfigRef":  "aiconfig:" + surfaceID,
+			"builtInAiConfigRef":  refPrefix + surfaceID,
 			"accountId":           accountID,
 			"dataRootRef":         productControlDataRootRef(dataRoot),
 			"scopeRef":            map[string]any{"kind": "feature", "ownerId": "desktop.chat", "surfaceId": surfaceID},
@@ -78,9 +96,54 @@ func builtInAIConfigEvidenceJSONForTest(t *testing.T, accountID, dataRoot, aiPro
 	return string(raw)
 }
 
+func TestRuntimeProductControlBuiltInAIConfigRefreshCanReplaceStaleRefs(t *testing.T) {
+	dataRoot := filepath.Join(t.TempDir(), "chosen-nimi-data")
+	record := &productControlRecord{
+		FirstRun: productFirstRunRecord{
+			BuiltInAIConfigRefs: []string{"aiconfig:stale-nimi", "aiconfig:stale-agent"},
+		},
+	}
+	refreshedEvidence := builtInAIConfigEvidenceJSONWithRefPrefixForTest(
+		t,
+		"aiconfig-refreshed:",
+		"acct-refresh",
+		dataRoot,
+		"local-speech-ready",
+		"minimal",
+	)
+
+	refs, _, failure := parseAndVerifyBuiltInAIConfigAdmissionEvidence(
+		refreshedEvidence,
+		record,
+		"acct-refresh",
+		productControlDataRootRef(dataRoot),
+		"local-speech-ready",
+		"minimal",
+		false,
+	)
+	if failure != "" {
+		t.Fatalf("refresh evidence should replace stale refs, got failure: %s", failure)
+	}
+	if len(refs) != 2 || refs[0] != "aiconfig-refreshed:nimi" || refs[1] != "aiconfig-refreshed:agent" {
+		t.Fatalf("unexpected refreshed refs: %+v", refs)
+	}
+
+	_, _, failure = parseAndVerifyBuiltInAIConfigAdmissionEvidence(
+		refreshedEvidence,
+		record,
+		"acct-refresh",
+		productControlDataRootRef(dataRoot),
+		"local-speech-ready",
+		"minimal",
+		true,
+	)
+	if failure != "built-in AIConfig evidence refs are stale or mismatched" {
+		t.Fatalf("ready admission must still reject stale ref replacement, got: %q", failure)
+	}
+}
+
 func TestRuntimeProductControlCreatesAndSelectsDataRoot(t *testing.T) {
-	home := t.TempDir()
-	t.Setenv("HOME", home)
+	home := setProductControlHomeForTest(t)
 	service := newTestService(t)
 
 	response, err := service.GetProductControlRecord(context.Background(), &runtimev1.GetProductControlRecordRequest{})
@@ -109,8 +172,7 @@ func TestRuntimeProductControlCreatesAndSelectsDataRoot(t *testing.T) {
 }
 
 func TestRuntimeProductControlInstallLevelValidatesPresetAlias(t *testing.T) {
-	home := t.TempDir()
-	t.Setenv("HOME", home)
+	home := setProductControlHomeForTest(t)
 	service := newTestService(t)
 	dataRoot := filepath.Join(home, "chosen-nimi-data")
 	response, err := service.SelectProductControlDataRoot(context.Background(), &runtimev1.SelectProductControlDataRootRequest{DataRoot: dataRoot})
@@ -133,8 +195,7 @@ func TestRuntimeProductControlInstallLevelValidatesPresetAlias(t *testing.T) {
 }
 
 func TestRuntimeProductControlLegacyReadyRecordDoesNotAdmit(t *testing.T) {
-	home := t.TempDir()
-	t.Setenv("HOME", home)
+	home := setProductControlHomeForTest(t)
 	service := newTestService(t)
 	dataRoot := filepath.Join(home, "chosen-nimi-data")
 	response, err := service.SelectProductControlDataRoot(context.Background(), &runtimev1.SelectProductControlDataRootRequest{DataRoot: dataRoot})
@@ -180,8 +241,7 @@ func TestRuntimeProductControlLegacyReadyRecordDoesNotAdmit(t *testing.T) {
 }
 
 func TestRuntimeProductControlAdmitsReadyForUseAndReadProjection(t *testing.T) {
-	home := t.TempDir()
-	t.Setenv("HOME", home)
+	home := setProductControlHomeForTest(t)
 	service := newTestService(t)
 	service.SetRuntimeAccountProjectionProvider(fakeRuntimeAccountProjectionProvider{
 		projection: &runtimev1.AccountProjection{AccountId: "acct-ready"},
@@ -241,10 +301,24 @@ func TestRuntimeProductControlAdmitsReadyForUseAndReadProjection(t *testing.T) {
 	if localAIReady.State != productControlStateLocalAIReady {
 		t.Fatalf("local AI ready state = %s", localAIReady.State)
 	}
+	refreshedBuiltInEvidenceJSON := builtInAIConfigEvidenceJSONWithRefPrefixForTest(t, "aiconfig-refreshed:", "acct-ready", dataRoot, "local-speech-ready", "minimal")
+	response, err = service.RecordProductControlFirstRunLocalAiReadyEvidence(context.Background(), &runtimev1.RecordProductControlFirstRunLocalAiReadyEvidenceRequest{
+		RuntimeBaselineRef:          baselineRecord.RuntimeBaselineRef,
+		BuiltInAiConfigEvidenceJson: refreshedBuiltInEvidenceJSON,
+		ExecutionEvidenceRef:        executionRecord.ExecutionEvidenceRef,
+	})
+	refreshedLocalAIReady := decodeProductControlProjectionForTest(t, mustProductControlForTest(t, response, err))
+	if refreshedLocalAIReady.Record == nil || len(refreshedLocalAIReady.Record.FirstRun.BuiltInAIConfigRefs) != 2 {
+		t.Fatalf("refreshed built-in AIConfig refs were not recorded: %+v", refreshedLocalAIReady.Record)
+	}
+	if refreshedLocalAIReady.Record.FirstRun.BuiltInAIConfigRefs[0] != "aiconfig-refreshed:nimi" ||
+		refreshedLocalAIReady.Record.FirstRun.BuiltInAIConfigRefs[1] != "aiconfig-refreshed:agent" {
+		t.Fatalf("stale built-in AIConfig refs were not replaced: %+v", refreshedLocalAIReady.Record.FirstRun.BuiltInAIConfigRefs)
+	}
 
 	response, err = service.AdmitProductControlReadyForUse(context.Background(), &runtimev1.AdmitProductControlReadyForUseRequest{
 		AccountDefaultProfileEvidenceJson: accountEvidenceJSON,
-		BuiltInAiConfigEvidenceJson:       builtInEvidenceJSON,
+		BuiltInAiConfigEvidenceJson:       refreshedBuiltInEvidenceJSON,
 	})
 	ready := decodeProductControlProjectionForTest(t, mustProductControlForTest(t, response, err))
 	if ready.State != productControlStateReadyForUse || ready.Record == nil {
@@ -258,8 +332,7 @@ func TestRuntimeProductControlAdmitsReadyForUseAndReadProjection(t *testing.T) {
 }
 
 func TestRuntimeProductControlRecordsHostEvidenceAndSetupState(t *testing.T) {
-	home := t.TempDir()
-	t.Setenv("HOME", home)
+	home := setProductControlHomeForTest(t)
 	service := newTestService(t)
 	service.SetRuntimeAccountProjectionProvider(fakeRuntimeAccountProjectionProvider{
 		projection: &runtimev1.AccountProjection{AccountId: "acct-host"},

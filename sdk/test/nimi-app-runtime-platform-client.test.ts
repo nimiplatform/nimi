@@ -178,4 +178,6 @@ test('local-first-party path auto-issues the ai.spend.meter protected token for 
     source.indexOf("// mode === 'third-party-nimi-app'"),
   );
   assert.match(localFirstPartyBranch, /autoIssueForAi:\s*true/);
+  assert.match(localFirstPartyBranch, /const developerRegistration = 'developerRegistration' in input && input\.developerRegistration === true/);
+  assert.match(localFirstPartyBranch, /protectedAccess:[\s\S]*developerRegistration,/);
 });

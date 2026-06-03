@@ -78,6 +78,8 @@ export type RuntimeRouteHostProviderHealth = {
   model?: string;
   status?: 'healthy' | 'degraded' | 'unsupported' | 'unreachable' | 'unavailable' | string;
   detail?: string;
+  reasonCode?: string;
+  actionHint?: string;
 };
 
 export type RuntimeRouteDescribeCallOptions = RuntimeCallOptions & {
@@ -296,14 +298,17 @@ export function runtimeRouteHealthResultFromProviderHealth(input: {
   health: RuntimeRouteHostProviderHealth;
 }): RuntimeRouteHealthResult {
   const available = input.health.status === 'healthy' || input.health.status === 'degraded';
+  const actionHint = available
+    ? (normalizeText(input.health.actionHint) || 'none')
+    : (normalizeText(input.health.actionHint)
+      || (input.resolved.source === 'cloud' ? 'verify-connector' : 'install-local-model'));
   return {
     healthy: available,
     status: available ? input.health.status : 'unavailable',
     provider: normalizeText(input.health.provider || input.resolved.provider),
     detail: normalizeText(input.health.detail),
-    actionHint: available
-      ? 'none'
-      : (input.resolved.source === 'cloud' ? 'verify-connector' : 'install-local-model'),
+    reasonCode: normalizeText(input.health.reasonCode) || undefined,
+    actionHint,
   };
 }
 

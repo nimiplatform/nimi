@@ -2,7 +2,11 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import type { NimiAppAuthProjection } from '@nimiplatform/sdk';
 import { OfflineCoordinator, type OfflineTier } from '@nimiplatform/kit/core/offline-coordinator';
 import { StatusBadge } from '@nimiplatform/kit/ui';
-import { getRuntimePlatformProjection, runtimeAccountLoginEnabled } from './runtime-platform.js';
+import {
+  clearRuntimePlatformProjection,
+  getRuntimePlatformProjection,
+  runtimeAccountLoginEnabled,
+} from './runtime-platform.js';
 import { loadRuntimeAccountUser } from './runtime-account-auth.js';
 import { RuntimeLoginPage } from './runtime-login-page.js';
 import { RuntimeUnavailablePage } from './runtime-unavailable-page.js';
@@ -52,6 +56,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
   const [reloadKey, setReloadKey] = useState(0);
 
   const retry = useCallback(() => {
+    clearRuntimePlatformProjection();
     setReloadKey((value) => value + 1);
   }, []);
 

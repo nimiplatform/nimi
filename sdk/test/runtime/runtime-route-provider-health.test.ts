@@ -3,6 +3,7 @@ import test, { mock } from 'node:test';
 
 import {
   ModelHealthStatus,
+  RuntimeReasonCode,
   type CheckModelHealthRequest,
   type CheckModelHealthResponse,
 } from '../../src/runtime/index.js';
@@ -30,6 +31,8 @@ test('runtime route provider health delegates endpoint/model readiness to Runtim
     return healthResponse({
       endpoint: 'http://127.0.0.1:8321/v1',
       modelId: 'media/z_image_turbo',
+      reasonCode: RuntimeReasonCode.AI_MODEL_NOT_READY,
+      actionHint: 'warm local model',
     });
   });
 
@@ -57,6 +60,8 @@ test('runtime route provider health delegates endpoint/model readiness to Runtim
   assert.equal(result.endpoint, 'http://127.0.0.1:8321/v1');
   assert.equal(result.model, 'media/z_image_turbo');
   assert.equal(result.provider, 'media');
+  assert.equal(result.reasonCode, 'AI_MODEL_NOT_READY');
+  assert.equal(result.actionHint, 'warm local model');
   assert.equal(result.checkedAt, '2026-05-31T00:00:00Z');
 });
 

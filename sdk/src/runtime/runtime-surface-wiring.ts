@@ -205,6 +205,7 @@ export function createRuntimeSurfaceWiring(input: RuntimeSurfaceWiringInput): Ru
     runtime: {
       appId: input.appId,
       transport: input.transport,
+      developerRegistration: input.options.protectedAccess?.developerRegistration === true,
       auth: passthrough.auth,
       appAuth,
     },

@@ -34,6 +34,7 @@ export type RuntimeRouteCapabilityProjectionReasonCode =
   | 'selection_missing'
   | 'selection_cleared'
   | 'binding_unresolved'
+  | 'route_not_ready'
   | 'route_unhealthy'
   | 'metadata_missing'
   | 'capability_unsupported'
@@ -42,6 +43,7 @@ export type RuntimeRouteCapabilityProjectionReasonCode =
 export type RuntimeRouteCapabilityProjectionIssueKind =
   | 'needs_selection'
   | 'binding_unresolved'
+  | 'route_not_ready'
   | 'route_unhealthy'
   | 'metadata_missing'
   | 'capability_unsupported'
@@ -153,6 +155,37 @@ function isRuntimeRouteCapabilityHealthHealthy(health: RuntimeRouteHealthResult 
   return health.healthy !== false;
 }
 
+function isRuntimeRouteCapabilityHealthNotReady(
+  health: RuntimeRouteHealthResult | null,
+  resolvedBinding: RuntimeResolvedBinding | null,
+): boolean {
+  const reasonCode = normalizeText(health?.reasonCode).toUpperCase();
+  const actionHint = normalizeText(health?.actionHint).toLowerCase();
+  const detail = normalizeText(health?.detail).toLowerCase();
+  const runtimeStatus = normalizeText(resolvedBinding?.goRuntimeStatus).toLowerCase();
+  if (reasonCode === 'AI_MODEL_NOT_READY') {
+    return true;
+  }
+  if (runtimeStatus === 'installed') {
+    return true;
+  }
+  if (
+    actionHint.includes('warm local model')
+    || actionHint.includes('wait for install')
+    || actionHint.includes('finish local model install')
+    || actionHint.includes('repair local model metadata')
+  ) {
+    return true;
+  }
+  if (
+    detail.includes('setup_required')
+    || detail.includes('materializable_requires_confirmation')
+  ) {
+    return true;
+  }
+  return false;
+}
+
 export function toRuntimeRouteCanonicalCapability(capability: RuntimeRouteAppCapability): RuntimeCanonicalCapability {
   const normalized = normalizeRuntimeRouteCapabilityToken(capability);
   if (!normalized) {
@@ -203,6 +236,8 @@ export function getRuntimeRouteCapabilityProjectionIssueKind(
       return 'needs_selection';
     case 'binding_unresolved':
       return 'binding_unresolved';
+    case 'route_not_ready':
+      return 'route_not_ready';
     case 'route_unhealthy':
       return 'route_unhealthy';
     case 'metadata_missing':
@@ -296,7 +331,9 @@ export async function buildRuntimeRouteCapabilityProjection(
       selectedBinding,
       resolvedBinding,
       health,
-      reasonCode: 'route_unhealthy',
+      reasonCode: isRuntimeRouteCapabilityHealthNotReady(health, resolvedBinding)
+        ? 'route_not_ready'
+        : 'route_unhealthy',
     });
   }
 

@@ -169,6 +169,16 @@ function toProjectionStatus(
           defaultValue: 'The selected route can no longer be resolved.',
         }),
       };
+    case 'route_not_ready':
+      return {
+        supported: false,
+        tone: 'attention',
+        badgeLabel: t('Chat.settingsCapabilityNeedsSetup', { defaultValue: 'Needs setup' }),
+        title: t('Chat.settingsRouteNeedsSetup', { defaultValue: 'Route needs setup' }),
+        detail: t('Chat.settingsRouteNeedsSetupHint', {
+          defaultValue: 'Complete setup or warm the selected local model before using this route.',
+        }),
+      };
     case 'route_unhealthy':
       return {
         supported: false,

@@ -22,6 +22,7 @@ export const RUNTIME_AI_SPEND_METER_SCOPE = 'ai.spend.meter';
 export type RuntimeProtectedScopeRuntime = {
   appId: string;
   transport?: RuntimeTransportConfig;
+  developerRegistration?: boolean;
   auth: Pick<RuntimeAuthClient, 'registerApp'>;
   appAuth: Pick<RuntimeAppAuthClient, 'authorizeExternalPrincipal'>;
 };
@@ -141,7 +142,7 @@ export function createRuntimeProtectedScopeHelper(input: CreateRuntimeProtectedS
         deviceId: 'runtime-protected-access',
         appVersion: '1',
         capabilities: [],
-        developerRegistration: false,
+        developerRegistration: input.runtime.developerRegistration === true,
         modeManifest: {
           appMode: AppMode.FULL,
           runtimeRequired: true,

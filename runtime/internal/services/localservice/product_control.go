@@ -260,6 +260,7 @@ func (s *Service) RecordProductControlFirstRunLocalAiReadyEvidence(ctx context.C
 		productControlDataRootRef(dataRootPath),
 		aiProfileAlias,
 		installLevel,
+		false,
 	)
 	if failure != "" {
 		if err := routeProductControlAdmissionFailure(path, record, state, failure); err != nil {

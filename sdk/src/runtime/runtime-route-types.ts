@@ -121,7 +121,7 @@ export type RuntimeLlmHealthResult = {
 export type RuntimeRouteHealthResult = RuntimeLlmHealthResult & {
   provider?: string;
   reasonCode?: string;
-  actionHint?: 'none' | 'install-local-model' | 'switch-to-cloud' | 'verify-connector' | 'retry';
+  actionHint?: string;
 };
 
 export type HookLlmTextStreamEvent =

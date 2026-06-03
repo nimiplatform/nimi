@@ -3,6 +3,9 @@ import {
   type CheckModelHealthRequest,
   type CheckModelHealthResponse,
 } from './generated/runtime/v1/model.js';
+import {
+  ReasonCode,
+} from './generated/runtime/v1/common.js';
 import type {
   TestConnectorResponse,
 } from './generated/runtime/v1/connector.js';
@@ -32,6 +35,14 @@ export type RuntimeRouteProviderHealthProjection = Omit<
 
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
+}
+
+function reasonCodeName(value: unknown): string {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric <= 0) {
+    return '';
+  }
+  return normalizeText(ReasonCode[numeric as ReasonCode]);
 }
 
 function formatProviderError(error: unknown): string {
@@ -92,6 +103,8 @@ function toProviderHealth(
     model: normalizeText(response.modelId || model || input.goRuntimeLocalModelId || input.localModelId),
     status: modelHealthStatusToProviderStatus(response.status, response.healthy),
     detail: normalizeText(response.detail || response.actionHint),
+    reasonCode: reasonCodeName(response.reasonCode),
+    actionHint: normalizeText(response.actionHint),
     checkedAt: (input.nowIso || (() => new Date().toISOString()))(),
   };
 }
@@ -128,6 +141,8 @@ export async function checkRuntimeRouteProviderHealth(
         model,
         status: ok ? 'healthy' : 'degraded',
         detail: ok ? '' : (result?.ack?.actionHint || 'connector test failed'),
+        reasonCode: reasonCodeName(result?.ack?.reasonCode),
+        actionHint: normalizeText(result?.ack?.actionHint),
         checkedAt,
       };
     } catch (error) {

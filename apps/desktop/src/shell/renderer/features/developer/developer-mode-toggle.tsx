@@ -22,10 +22,16 @@ import {
   loadStoredPerformancePreferences,
   persistStoredPerformancePreferences,
 } from './developer-mode.js';
+import {
+  describeDeveloperModeRuntimeSyncError,
+  syncDeveloperModeRuntimeGate,
+} from './developer-mode-runtime-sync.js';
 
 export function DeveloperModeToggle() {
   const { t } = useTranslation();
   const [enabled, setEnabled] = useState(() => isDeveloperModeEnabled());
+  const [syncing, setSyncing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Keep in sync if Developer Mode is toggled elsewhere (e.g. another
   // discoverable entry or a second tab) — a single persisted truth.
@@ -35,11 +41,24 @@ export function DeveloperModeToggle() {
     });
   }, []);
 
-  const toggle = () => {
+  const toggle = async () => {
+    if (syncing) {
+      return;
+    }
     const next = !enabled;
-    const prefs = loadStoredPerformancePreferences();
-    persistStoredPerformancePreferences({ ...prefs, developerMode: next });
-    setEnabled(next);
+    const flowId = `developer-mode-toggle-${Date.now().toString(36)}`;
+    setSyncing(true);
+    setError(null);
+    try {
+      await syncDeveloperModeRuntimeGate({ enabled: next, flowId });
+      const prefs = loadStoredPerformancePreferences();
+      persistStoredPerformancePreferences({ ...prefs, developerMode: next });
+      setEnabled(next);
+    } catch (syncError) {
+      setError(describeDeveloperModeRuntimeSyncError(syncError));
+    } finally {
+      setSyncing(false);
+    }
   };
 
   return (
@@ -68,16 +87,25 @@ export function DeveloperModeToggle() {
               ? t('DeveloperTools.developerModeStatusOn')
               : t('DeveloperTools.developerModeStatusOff')}
           </p>
+          {error ? (
+            <p
+              data-testid="developer-mode-sync-error"
+              className="text-xs font-medium text-[var(--nimi-status-danger)]"
+            >
+              {error}
+            </p>
+          ) : null}
         </div>
         <button
           type="button"
           data-testid="developer-mode-toggle-button"
           aria-pressed={enabled}
+          disabled={syncing}
           onClick={toggle}
           className={
             enabled
-              ? 'rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-active)] px-3.5 py-2 text-xs font-medium text-[var(--nimi-text-primary)] transition hover:bg-[var(--nimi-action-ghost-hover)]'
-              : 'rounded-lg bg-[var(--nimi-action-primary-bg)] px-3.5 py-2 text-xs font-medium text-[var(--nimi-action-primary-fg)] transition hover:bg-[var(--nimi-action-primary-bg-hover)]'
+              ? 'rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-active)] px-3.5 py-2 text-xs font-medium text-[var(--nimi-text-primary)] transition hover:bg-[var(--nimi-action-ghost-hover)] disabled:cursor-wait disabled:opacity-70'
+              : 'rounded-lg bg-[var(--nimi-action-primary-bg)] px-3.5 py-2 text-xs font-medium text-[var(--nimi-action-primary-fg)] transition hover:bg-[var(--nimi-action-primary-bg-hover)] disabled:cursor-wait disabled:opacity-70'
           }
         >
           {enabled

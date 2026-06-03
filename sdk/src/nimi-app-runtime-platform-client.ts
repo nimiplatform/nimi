@@ -104,10 +104,11 @@ export async function createNimiAppRuntimePlatformClient(
   assertSupportedMode(mode);
 
   if (mode === 'local-first-party') {
+    const developerRegistration = 'developerRegistration' in input && input.developerRegistration === true;
     try {
       const client = await createLocalFirstPartyRuntimePlatformClient({
         ...toSharedPlatformInput(input),
-        developerRegistration: input.mode === 'local-first-party' && input.developerRegistration === true,
+        developerRegistration,
         // Runtime ExecuteScenario is authz-gated on the `ai.spend.meter` protected
         // capability (runtime grpc authz interceptor). A Nimi App consumes the
         // high-level runtime.ai.* surface, so the SDK must auto-issue that
@@ -119,6 +120,7 @@ export async function createNimiAppRuntimePlatformClient(
           protectedAccess: {
             ...input.runtimeOptions?.protectedAccess,
             autoIssueForAi: true,
+            developerRegistration,
           },
         },
       });

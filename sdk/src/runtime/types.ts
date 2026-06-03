@@ -198,6 +198,7 @@ export type RuntimeOptions = {
   auth?: RuntimeAuthProvider;
   protectedAccess?: {
     autoIssueForAi?: boolean;
+    developerRegistration?: boolean;
   };
   timeoutMs?: number;
   retry?: {

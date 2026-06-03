@@ -163,9 +163,16 @@ test('Wave 7: first-run finalization requests admission and routes on the projec
   // At local_ai_ready the finalization surface calls the admission command and
   // feeds the returned projection back into onProjectionChange so the gate
   // re-evaluates: ready_for_use on success, earliest-failed state on failure.
+  assert.match(finalizationSource, /desktopBridge\.prepareProductFirstRunLocalAiReady\(\)/);
   assert.match(finalizationSource, /desktopBridge\.admitProductReadyForUse\(\)/);
+  assert.ok(
+    finalizationSource.indexOf('const prepared = await desktopBridge.prepareProductFirstRunLocalAiReady()')
+      < finalizationSource.indexOf('const next = await desktopBridge.admitProductReadyForUse()'),
+    'finalization must re-prepare owner evidence before admission, even when refs already exist',
+  );
   assert.match(finalizationSource, /notifyProjectionChange\(next\)/);
   assert.match(finalizationSource, /next\.state !== 'ready_for_use'/);
+  assert.doesNotMatch(finalizationSource, /hasFinalizationRefs/);
   // Failure exposes a Retry finalization affordance.
   assert.match(finalizationSource, /data-testid="product-first-run-finalization-retry"/);
   assert.match(finalizationSource, /FirstRun\.finalizationRetry/);
