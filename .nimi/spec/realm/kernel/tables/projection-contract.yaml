@@ -62,8 +62,8 @@ rules:
     statement: "Authoritative projection must produce traceable results that identify selected inputs, suppressed inputs, governing release/truth anchor, and resolution outcomes."
   - rule_id: R-PROJ-008
     level: must
-    title: realm-projection-contract-owns-seam-until-runtime-mounted
-    statement: "Until a dedicated runtime-mounted projection spec is admitted, Realm projection authority owns the semantic contract for ProjectionInput, ProjectionRequest, ProjectionResult, and ProjectionTraceRequirement; downstream runtime or app implementations must not fork or narrow these semantics ad hoc."
+    title: realm-projection-contract-owns-seam
+    statement: "Realm projection authority owns the semantic contract for ProjectionInput, ProjectionRequest, ProjectionResult, and ProjectionTraceRequirement; downstream runtime or app implementations must not fork or narrow these semantics ad hoc."
 entities:
   - name: ProjectionInput
     prisma_model: null

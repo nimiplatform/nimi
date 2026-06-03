@@ -18,11 +18,9 @@ This contract defines the canonical `truth -> projection` seam for `nimi-realm`.
 Projection is a derived consumption layer. It is not semantic truth, not app-local
 view glue, and not ad hoc prompt assembly.
 
-Until a dedicated runtime-mounted authority is admitted under `/.nimi/spec/**`,
-this contract remains the canonical owner of `ProjectionInput`,
-`ProjectionRequest`, `ProjectionResult`, and `ProjectionTraceRequirement`
-semantics. Runtime implementations may consume these objects, but must not
-silently redefine them.
+This contract is the canonical owner of `ProjectionInput`, `ProjectionRequest`,
+`ProjectionResult`, and `ProjectionTraceRequirement` semantics. Runtime
+implementations may consume these objects, but must not silently redefine them.
 
 ## R-PROJ-001
 
@@ -70,8 +68,7 @@ projection result.
 
 ## R-PROJ-008
 
-Until a dedicated runtime-mounted projection spec is admitted, Realm projection
-authority owns the semantic contract for `ProjectionInput`,
+Realm projection authority owns the semantic contract for `ProjectionInput`,
 `ProjectionRequest`, `ProjectionResult`, and `ProjectionTraceRequirement`.
 Downstream runtime or app implementations are consumers of this contract and
 must not fork or narrow these object semantics ad hoc.
