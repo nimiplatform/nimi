@@ -15,12 +15,12 @@ engines:
     default_endpoint: ""
     runtime_mode: attached_endpoint
     protocol: nimi_runtime_text
-    phase1: true
+    default_catalog_admitted: true
     source_rule: K-LENG-005
   - engine: llama
     runtime_mode: supervised
     protocol: nimi_runtime_text
-    phase1: true
+    default_catalog_admitted: true
     source_rule: K-LENG-004
     discovery: managed_binary
     supported_platforms:
@@ -37,12 +37,12 @@ engines:
     default_endpoint: ""
     runtime_mode: attached_endpoint
     protocol: nimi_runtime_media
-    phase1: true
+    default_catalog_admitted: true
     source_rule: K-LENG-005
   - engine: media
     runtime_mode: supervised
     protocol: nimi_runtime_media
-    phase1: true
+    default_catalog_admitted: true
     source_rule: K-LENG-004
     discovery: managed_binary
     supported_platforms:
@@ -60,13 +60,13 @@ engines:
     default_endpoint: ""
     runtime_mode: attached_endpoint
     protocol: nimi_runtime_speech
-    phase1: true
+    default_catalog_admitted: true
     # Advanced/self-hosted local speech path only; not the ordinary-user default.
     source_rule: K-LENG-005
   - engine: speech
     runtime_mode: supervised
     protocol: nimi_runtime_speech
-    phase1: true
+    default_catalog_admitted: true
     source_rule: K-LENG-004
     discovery: uv_managed_python
     # Ordinary-user canonical local speech path.
@@ -103,5 +103,5 @@ engines:
     default_endpoint: ""
     runtime_mode: attached_endpoint
     protocol: nimi_music_http
-    phase1: true
+    default_catalog_admitted: true
     source_rule: K-LENG-005

@@ -491,7 +491,7 @@ rules:
     evidence_refs:
       - runtime_kernel_consistency
     note: Runtime Agent Participation proto surface boundary admitted as contract truth;
-      implementation-facing proto cuts require separate admitted implementation evidence.
+      implementation-facing proto contracts require separate admitted implementation evidence.
     evidence_requirement: deferred
   - rule_id: K-RPC-001
     evidence_refs:

@@ -86,7 +86,11 @@ const BANNED_PATTERNS = [
   },
   {
     label: 'process field leaked into spec',
-    pattern: /\b(?:contract_only_until_later_wave|pending_wave)\b/u,
+    pattern: /\b(?:alignment_phase|contract_only_pending_proto_cut|contract_only_until_later_wave|pending_wave|topic_id)\b/u,
+  },
+  {
+    label: 'proto mapping process posture leaked into spec',
+    pattern: /\b(?:design_only_pending_proto|pending_proto_cut)\b/u,
   },
   {
     label: 'implementation evidence scheduling wording',

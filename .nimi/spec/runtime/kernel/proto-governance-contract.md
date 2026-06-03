@@ -55,27 +55,27 @@ design 名称与 proto 名称映射以 `rpc-migration-map.yaml` 为权威事实�
 
 ## K-PROTO-011 Design-Only Service Boundary
 
-当 `rpc-migration-map.yaml` 将某个 design service 标记为 `design_only_pending_proto`，或其方法标记为 `planned` 时：
+当 `rpc-migration-map.yaml` 将某个 design service 标记为 `design_only_no_proto_contract`，或其方法标记为 `proto_target_unassigned` 时：
 
 - 该 service 尚未拥有 admitted 的 implementation-facing proto contract
 - runtime/kernel 规则与结构化 tables 可以先定义最终态语义
 - 不得把未 admitted 的 proto/message 生成物、客户端 stub、或等价 wire artifact 当作公开 truth
-- 进入实现前，必须先完成 admitted proto cut，再允许对应 generated artifact 进入治理闭环
+- 进入实现前，必须先完成 admitted implementation-facing proto contract，再允许对应 generated artifact 进入治理闭环
 
 ## K-PROTO-012 Runtime Agent Participation Proto Surface Boundary
 
 Runtime Agent Participation method-family contracts may be admitted before an
-implementation-facing proto cut only when all of the following hold:
+implementation-facing proto artifact exists only when all of the following hold:
 
 - `.nimi/spec/runtime/kernel/runtime-agent-participation-contract.md` and
   `.nimi/spec/sdk/kernel/runtime-agent-participation-client-contract.md` remain
   the semantic authorities.
-- SDK method registries are marked `contract_only_pending_proto_cut` and do not
+- SDK method registries are marked `semantic_contract_only_proto_unavailable` and do not
   claim generated stub availability.
 - No `proto/runtime/v1/*.proto`, generated Runtime artifact, generated SDK
-  client, or equivalent wire artifact is treated as public truth until a later
-  admitted proto cut closes.
+  client, or equivalent wire artifact is treated as public truth until the
+  corresponding implementation-facing proto contract is admitted.
 - Proto fields must not expose raw prompt blobs, protocol-native MCP/A2A
   payloads, raw provider payloads, or raw memory payloads as public API.
-- Later proto cuts must preserve Realm GROUP candidate-first posture and must
+- Any later implementation-facing proto contract must preserve Realm GROUP candidate-first posture and must
   not introduce Runtime direct GROUP transcript commit.

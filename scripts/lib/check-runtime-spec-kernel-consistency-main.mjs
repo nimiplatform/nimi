@@ -412,6 +412,7 @@ function walkA2ANegativeGateTree(root) {
   const ignoredDirs = new Set([
     '.git',
     '.next',
+    '.tmp',
     '.turbo',
     '.vite',
     'build',
@@ -424,13 +425,32 @@ function walkA2ANegativeGateTree(root) {
   ]);
   while (stack.length > 0) {
     const dir = stack.pop();
-    const realDir = fs.realpathSync.native(dir);
+    let realDir;
+    try {
+      realDir = fs.realpathSync.native(dir);
+    } catch (err) {
+      if (err && err.code === 'ENOENT') continue;
+      throw err;
+    }
     if (seen.has(realDir)) continue;
     seen.add(realDir);
-    for (const name of fs.readdirSync(dir)) {
+    let names;
+    try {
+      names = fs.readdirSync(dir);
+    } catch (err) {
+      if (err && err.code === 'ENOENT') continue;
+      throw err;
+    }
+    for (const name of names) {
       if (ignoredDirs.has(name)) continue;
       const full = path.join(dir, name);
-      const st = fs.lstatSync(full);
+      let st;
+      try {
+        st = fs.lstatSync(full);
+      } catch (err) {
+        if (err && err.code === 'ENOENT') continue;
+        throw err;
+      }
       if (st.isSymbolicLink()) continue;
       if (st.isDirectory()) {
         stack.push(full);

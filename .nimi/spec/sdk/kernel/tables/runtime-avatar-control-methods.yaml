@@ -75,4 +75,4 @@ forbidden_type_shapes:
   - raw_a2a
   - raw_backend_payload
 
-implementation_status: contract_only_pending_proto_cut
+implementation_status: semantic_contract_only_proto_unavailable

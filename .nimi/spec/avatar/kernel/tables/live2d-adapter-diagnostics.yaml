@@ -4,9 +4,6 @@ owner: avatar
 enum_id: live2d_adapter_diagnostics
 registry_id: "nimi.avatar.live2d-adapter-diagnostics.v1"
 authority: "avatar.kernel.live2d_asset_compatibility"
-admission:
-  topic_id: "2026-04-24-live2d-existing-assets-nimi-adaptation"
-  scope: "compatibility-contract-alignment"
 description: >
   Closed diagnostic registry for existing Live2D package adaptation. Codes are
   Avatar compatibility diagnostics, not Runtime/APML/MCP/A2A ontology.

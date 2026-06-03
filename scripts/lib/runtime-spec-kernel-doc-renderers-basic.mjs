@@ -34,16 +34,15 @@ export function renderRpcMigrationMap(doc, sourceName) {
   let out = header('Generated RPC Migration Map', sourceName);
 
   out += '## Service Mapping\n\n';
-  out += '| Design Service | Proto Service | Mapping Posture | Alignment Phase | Source |\n';
-  out += '|---|---|---|---|---|\n';
+  out += '| Design Service | Proto Service | Mapping Posture | Source |\n';
+  out += '|---|---|---|---|\n';
   for (const item of serviceMappings) {
     const designService = String(item?.design_service || '').trim();
     if (!designService) continue;
     const protoService = String(item?.proto_service || '').trim() || '—';
     const state = String(item?.mapping_posture || '').trim() || 'unknown';
-    const phase = String(item?.alignment_phase || '').trim() || '—';
     const source = String(item?.source_rule || '').trim() || '—';
-    out += `| \`${designService}\` | \`${protoService}\` | \`${state}\` | \`${phase}\` | \`${source}\` |\n`;
+    out += `| \`${designService}\` | \`${protoService}\` | \`${state}\` | \`${source}\` |\n`;
   }
   out += '\n';
 
@@ -342,7 +341,7 @@ export function renderLocalEngineCatalog(doc, sourceName) {
   const engines = Array.isArray(doc?.engines) ? doc.engines : [];
   let out = header('Generated Local Engine Catalog', sourceName);
 
-  out += '| Engine | Default Endpoint | Runtime Mode | Protocol | Phase 1 | Source |\n';
+  out += '| Engine | Default Endpoint | Runtime Mode | Protocol | Default Catalog Admitted | Source |\n';
   out += '|---|---|---|---|---|---|\n';
   for (const item of engines) {
     const engine = String(item?.engine || '').trim();
@@ -350,9 +349,9 @@ export function renderLocalEngineCatalog(doc, sourceName) {
     const endpoint = String(item?.default_endpoint || '').trim() || '—';
     const mode = String(item?.runtime_mode || '').trim() || 'unknown';
     const protocol = String(item?.protocol || '').trim() || 'unknown';
-    const phase1 = mdBool(Boolean(item?.phase1));
+    const defaultCatalogAdmitted = mdBool(Boolean(item?.default_catalog_admitted));
     const source = String(item?.source_rule || '').trim() || '—';
-    out += `| \`${engine}\` | \`${endpoint}\` | \`${mode}\` | \`${protocol}\` | \`${phase1}\` | \`${source}\` |\n`;
+    out += `| \`${engine}\` | \`${endpoint}\` | \`${mode}\` | \`${protocol}\` | \`${defaultCatalogAdmitted}\` | \`${source}\` |\n`;
   }
   out += '\n';
 

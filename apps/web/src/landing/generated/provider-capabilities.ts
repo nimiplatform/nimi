@@ -2,9 +2,9 @@
  * @generated
  * Sources:
  *   .nimi/spec/runtime/kernel/tables/provider-capabilities.yaml
- *     sha256: 1fde68e8e915cbe83b1fd6c473f337c7c8baa3b382a94cef6605056c5be0b9d3
+ *     sha256: 76bced6afe2a42d57a7b35f1b2d13f9ab98173e33ab6096f89d9dfeba801c3c3
  *   .nimi/spec/runtime/kernel/tables/provider-catalog.yaml
- *     sha256: 05df9fa4f477afc9ac2cee30981548f4482f9eab8ecdb8d9b800121e73114382
+ *     sha256: 80056592814f5472d3870b5e2b3fa786f20fb091ff299bc712170ba3e90195b8
  * Generator: apps/web/scripts/generate-landing-data.mjs
  * DO NOT EDIT MANUALLY. Re-run generator (`pnpm prebuild` or
  * `node scripts/generate-landing-data.mjs` from apps/web/) to refresh.
@@ -131,7 +131,7 @@ export const PROVIDER_CAPABILITIES: readonly ProviderCapability[] = [
     inlineSupported: true,
     endpointRequirement: "explicit_required",
     inventoryMode: "static_source",
-    capabilities: ["text.embed", "text.generate"],
+    capabilities: ["text.embed", "text.generate", "text.generate.vision"],
     sources: ["K-CONN-008", "K-KEYSRC-001", "K-MCAT-027"],
   },
   {

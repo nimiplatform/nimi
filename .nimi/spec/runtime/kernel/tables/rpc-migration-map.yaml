@@ -19,69 +19,55 @@ service_mappings:
     proto_service: RuntimeAiService
     source_rule: K-RPC-005
     mapping_posture: renamed_service
-    alignment_phase: phase1
   - design_service: RuntimeAiRealtimeService
     proto_service: RuntimeAiRealtimeService
     source_rule: K-RPC-005
     mapping_posture: aligned
-    alignment_phase: phase1
   - design_service: ConnectorService
     proto_service: RuntimeConnectorService
     source_rule: K-RPC-005
     mapping_posture: aligned
-    alignment_phase: phase1
   - design_service: RuntimeLocalService
     proto_service: RuntimeLocalService
     source_rule: K-RPC-004
     mapping_posture: aligned
-    alignment_phase: phase1
   - design_service: RuntimeAuthService
     proto_service: RuntimeAuthService
     source_rule: K-AUTHSVC-002
     mapping_posture: aligned
-    alignment_phase: phase1
   - design_service: RuntimeGrantService
     proto_service: RuntimeGrantService
     source_rule: K-GRANT-002
     mapping_posture: aligned
-    alignment_phase: phase1
   - design_service: RuntimeExternalAgentService
     proto_service: RuntimeExternalAgentService
     source_rule: K-RPC-026
     mapping_posture: aligned
-    alignment_phase: phase2
   - design_service: RuntimeAccountService
     proto_service: RuntimeAccountService
     source_rule: K-ACCSVC-002
     mapping_posture: aligned
-    alignment_phase: phase1
   - design_service: RuntimeWorkflowService
     proto_service: RuntimeWorkflowService
     source_rule: K-WF-003
     mapping_posture: aligned
-    alignment_phase: phase2
   - design_service: RuntimeAuditService
     proto_service: RuntimeAuditService
     source_rule: K-AUDIT-013
     mapping_posture: aligned
-    alignment_phase: phase2
   - design_service: RuntimeModelService
     proto_service: RuntimeModelService
     source_rule: K-MODEL-004
     mapping_posture: aligned
-    alignment_phase: phase2
   - design_service: RuntimeCognitionService
     proto_service: RuntimeCognitionService
     source_rule: K-RPC-004a
     mapping_posture: aligned
-    alignment_phase: phase2
   - design_service: RuntimeAppService
     proto_service: RuntimeAppService
     source_rule: K-APP-001
     mapping_posture: aligned
-    alignment_phase: phase2
   - design_service: RuntimeAgentService
     proto_service: RuntimeAgentService
     source_rule: K-RPC-004b
     mapping_posture: aligned
-    alignment_phase: phase2

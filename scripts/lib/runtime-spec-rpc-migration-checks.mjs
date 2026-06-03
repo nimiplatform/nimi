@@ -47,7 +47,7 @@ export function checkRpcMigrationMapCoverage({ fail, fs, protoRoot, readYaml, wa
       (item) => String(item?.design_service || '').trim() === designService,
     );
     if (!protoService) {
-      if (state !== 'design_only_pending_proto') {
+      if (state !== 'design_only_no_proto_contract') {
         fail(`rpc-migration-map ${designService} has empty proto_service but mapping_posture is ${state}`);
       }
       for (const item of serviceMethodMappings) {
@@ -55,7 +55,7 @@ export function checkRpcMigrationMapCoverage({ fail, fs, protoRoot, readYaml, wa
         const methodProtoService = String(item?.proto_service || '').trim();
         const methodProtoName = String(item?.proto_method || '').trim();
         if (methodProtoService || methodProtoName) {
-          fail(`rpc-migration-map ${designService} is design_only_pending_proto but method ${designMethod || '<unknown>'} maps to ${methodProtoService || '<empty>'}.${methodProtoName || '<empty>'}`);
+          fail(`rpc-migration-map ${designService} is design_only_no_proto_contract but method ${designMethod || '<unknown>'} maps to ${methodProtoService || '<empty>'}.${methodProtoName || '<empty>'}`);
         }
       }
       continue;
@@ -91,7 +91,7 @@ export function checkRpcMigrationMapCoverage({ fail, fs, protoRoot, readYaml, wa
     const protoMethod = String(item?.proto_method || '').trim();
     const state = String(item?.mapping_posture || '').trim();
     if (!protoService || !protoMethod) {
-      if (state !== 'planned') {
+      if (state !== 'proto_target_unassigned') {
         fail(`rpc-migration-map ${key} has empty proto target but mapping_posture is ${state}`);
       }
       continue;

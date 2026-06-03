@@ -27,7 +27,7 @@ Runtime kernel 的 RPC 覆盖范围为 admitted proto 服务与已定义的 desi
 
 补充约束：
 
-- `rpc-migration-map.yaml` 标记为 `design_only_pending_proto` 的 service 仍属于 design surface，不构成已 admitted 的 proto contract
+- `rpc-migration-map.yaml` 标记为 `design_only_no_proto_contract` 的 service 仍属于 design surface，不构成已 admitted 的 proto contract
 - 设计态 service 进入 implementation-facing proto 前，仍受 `proto-governance-contract.md` 的 `K-PROTO-011` 约束
 
 ## K-RPC-002 AIService 方法集合（design 权威）

@@ -1,7 +1,7 @@
 /**
  * @generated
  * Source: .nimi/spec/runtime/kernel/tables/provider-catalog.yaml
- *   sha256: 05df9fa4f477afc9ac2cee30981548f4482f9eab8ecdb8d9b800121e73114382
+ *   sha256: 80056592814f5472d3870b5e2b3fa786f20fb091ff299bc712170ba3e90195b8
  * Generator: apps/web/scripts/generate-landing-data.mjs
  * DO NOT EDIT MANUALLY. Re-run generator (`pnpm prebuild` or
  * `node scripts/generate-landing-data.mjs` from apps/web/) to refresh.
@@ -38,7 +38,7 @@ export const ADMITTED_PROVIDERS: readonly AdmittedProvider[] = [
   {
     provider: "azure",
     defaultEndpoint: null,
-    defaultTextModel: "gpt-5.4",
+    defaultTextModel: "gpt-5.5",
     requiresExplicitEndpoint: true,
     inventoryMode: "static_source",
     sourceRule: "K-MCAT-027",
@@ -62,7 +62,7 @@ export const ADMITTED_PROVIDERS: readonly AdmittedProvider[] = [
   {
     provider: "cohere",
     defaultEndpoint: null,
-    defaultTextModel: "command-a-03-2025",
+    defaultTextModel: "command-a-plus-05-2026",
     requiresExplicitEndpoint: true,
     inventoryMode: "static_source",
     sourceRule: "K-MCAT-027",
@@ -158,7 +158,7 @@ export const ADMITTED_PROVIDERS: readonly AdmittedProvider[] = [
   {
     provider: "hunyuan",
     defaultEndpoint: "https://api.hunyuan.cloud.tencent.com/v1",
-    defaultTextModel: "hunyuan-turbos-latest",
+    defaultTextModel: "hunyuan-2.0-instruct-20251111",
     requiresExplicitEndpoint: false,
     inventoryMode: "static_source",
     sourceRule: "K-MCAT-027",
@@ -238,7 +238,7 @@ export const ADMITTED_PROVIDERS: readonly AdmittedProvider[] = [
   {
     provider: "openai",
     defaultEndpoint: "https://api.openai.com/v1",
-    defaultTextModel: "gpt-5.4",
+    defaultTextModel: "gpt-5.5",
     requiresExplicitEndpoint: false,
     inventoryMode: "static_source",
     sourceRule: "K-MCAT-027",
@@ -286,7 +286,7 @@ export const ADMITTED_PROVIDERS: readonly AdmittedProvider[] = [
   {
     provider: "qianfan",
     defaultEndpoint: "https://qianfan.baidubce.com/v2",
-    defaultTextModel: "ernie-5.0",
+    defaultTextModel: "ernie-5.1",
     requiresExplicitEndpoint: false,
     inventoryMode: "static_source",
     sourceRule: "K-MCAT-027",
