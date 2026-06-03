@@ -70,15 +70,14 @@ they must not become the canonical audit ledger.
 ## K-DELEG-127 A2A Product Claim Prohibition
 
 Desktop, Web, Avatar, and apps must not claim production A2A availability,
-configuration, health, or success until a future packet admits production A2A
-support.
+configuration, health, or success. Production A2A support is not admitted.
 
-Product surfaces may mention A2A only as a future unsupported seam when they are
+Product surfaces may mention A2A only as an unsupported seam when they are
 rendering spec/debug material, not as a configurable feature.
 
 ## K-DELEG-128 A2A Negative Gate
 
-Until production A2A is admitted, validation must prove there is no:
+Validation must prove there is no:
 
 - production A2A SDK import
 - Runtime A2A adapter registration

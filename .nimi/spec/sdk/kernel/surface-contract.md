@@ -367,13 +367,13 @@ protocol traces. Each language owns only its harness binding. A language is
 core-ready only when shared conformance passes for Runtime and Realm together.
 
 The current `sdk/` tree remains the active TypeScript implementation for
-existing Desktop/Web and non-core SDK refactor work during Phase 1. Phase 1
-must not switch Desktop imports, create forwarding packages, move the current
-TypeScript package to `sdk/typescript`, or claim compatibility through shims or
-fake success.
+existing Desktop/Web and non-core SDK refactor work. This contract must not
+switch Desktop imports, create forwarding packages, move the current TypeScript
+package to `sdk/typescript`, or claim compatibility through shims or fake
+success.
 
-Derivative surfaces are excluded from Phase 1 core readiness unless admitted
-by a later rule. Excluded surfaces include `@nimiplatform/sdk/ai-provider`,
+Derivative surfaces are excluded from core readiness unless explicitly admitted
+by this contract. Excluded surfaces include `@nimiplatform/sdk/ai-provider`,
 `@nimiplatform/sdk/world`, app clients, permission clients, AI config helpers,
 runtime route helpers, local environment helpers, external framework adapters,
 and other developer-experience surfaces.

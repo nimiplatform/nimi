@@ -216,9 +216,9 @@ Fixed rules:
 - retrieval surfaces must keep degraded capability explicit; they must not quietly pretend parity they do not have
 - cleanup and formatting paths must not invent service-owned metadata without explicit derivation logic
 
-## C-COG-018 Explicit Deferrals
+## C-COG-018 Out-Of-Scope Authority
 
-The following remain outside the admitted standalone cognition baseline until later rules explicitly admit them:
+The following are outside the admitted standalone cognition baseline:
 
 - runtime provider bridge ownership
 - runtime replication ownership

@@ -149,7 +149,8 @@ Therefore consumer API must not:
 - depend on host bridge private methods, app-private state stores, bypass clients
 - assume concrete subscription plumbing, buffering strategy, caching policy, or host lifecycle behavior as normative contract
 
-If a consumer surface requires those assumptions to be well-defined, that surface is not yet admissible for stable landing.
+Consumer surfaces that require those assumptions are outside the stable
+consumer API.
 
 ## S-RUNTIME-092 Shared Typed Candidate Building Blocks
 
@@ -200,8 +201,9 @@ The following request-side candidate categories are admissible for later impleme
 - requests to derive, inspect, or forward replay / checkpoint / supervision outcomes using Runtime-owned references
 - requests to derive, inspect, or forward adapter-bound commit-request candidates or adapter-visible submission outcomes
 
-Result and rejection framing is limited to category-level contract only.
-This contract does not yet freeze a concrete enum set, method list, or transport envelope.
+Result and rejection framing is limited to category-level contract only. This
+contract does not freeze a concrete enum set, method list, or transport
+envelope.
 
 Admissible result categories are limited to:
 

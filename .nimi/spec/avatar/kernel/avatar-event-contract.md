@@ -483,8 +483,8 @@ events:
       sequence: int
     rate_limit_tier: very_high_opt_in
     default_max_rate_hz: 60
-    stability: admitted_pending_implementation
-    visibility: unavailable_until_timeline_voice_lipsync_pipeline_lands
+    stability: deprecated
+    visibility: unavailable_public_surface
   # ... 其他 events
 
 before_cancel_policy:

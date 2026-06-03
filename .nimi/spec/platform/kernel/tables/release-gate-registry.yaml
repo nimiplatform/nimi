@@ -188,7 +188,7 @@ gates:
     p_relg_anchors: [P-RELG-001]
     parent_p_gov_anchors: [P-GOV-003]
     experimental: false
-    notes: Source W1 inventory item 12 (nimi-cognition/Makefile build target).
+    notes: Standalone cognition package Go build release gate.
 
   - id: gate.cognition.go-vet
     description: nimi-cognition Go vet.

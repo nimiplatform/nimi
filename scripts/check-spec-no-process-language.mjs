@@ -96,6 +96,42 @@ const BANNED_PATTERNS = [
     label: 'implementation evidence scheduling wording',
     pattern: /\b(?:evidence|implementation)\s+lands\s+with\b/u,
   },
+  {
+    label: 'workstream inventory provenance',
+    pattern: /\bSource\s+W[0-9]+\b/u,
+  },
+  {
+    label: 'discussion/proposal provenance',
+    pattern: /\bdiscussion\s*\/\s*proposal\b/u,
+  },
+  {
+    label: 'pending implementation admitted as authority',
+    pattern: /\badmitted_pending_implementation\b/u,
+  },
+  {
+    label: 'implementation-landing visibility leaked into spec',
+    pattern: /\bunavailable_until_[a-z0-9_]+_lands\b/u,
+  },
+  {
+    label: 'unstable admission wording',
+    pattern: /\bnot yet admissible\b/u,
+  },
+  {
+    label: 'non-frozen contract process wording',
+    pattern: /\bdoes not yet freeze\b/u,
+  },
+  {
+    label: 'current-gate substitution wording',
+    pattern: /\bcurrent\s+`?sdk\/`?\s+gates\s+remain\b/u,
+  },
+  {
+    label: 'later-rule baseline deferral wording',
+    pattern: /\buntil\s+later\s+rules?\s+explicitly\s+admit\b/u,
+  },
+  {
+    label: 'phase core readiness wording',
+    pattern: /\bPhase\s+[0-9]+\s+core readiness\b/u,
+  },
 ];
 
 async function walk(dir) {

@@ -19,9 +19,9 @@ endpoint / pubkey policy、install-gateway handoff scope、failure projection
 - 不得在 user-facing UI、安装包元数据、release manifest、updater channel
   identity、registry schema、或 IPC 命令名中出现 `Desktop` 作为 product
   identity。
-- 不得引入 `Launcher` 作为 user-facing product identity；`launcher` 只允许
-  作为 discussion / proposal 文本里的能力分析词（参见
-  `naming-and-kernel-ontology.md`）。
+- 不得引入 `Launcher` 作为 user-facing product identity；`launcher` 只允许作为
+  internal capability category term，不得进入安装包、release、updater、registry、
+  IPC、或 user-facing product identity surface。
 
 ## P-PKGREL-002 — Atomic Bundle Identity
 
@@ -38,8 +38,8 @@ binary 形成与 Desktop-host 不同步的 release unit。
 ## P-PKGREL-003 — Release Channel Identity
 
 `MUST`：release channel identity 由本契约配合 `release-gate-registry.yaml`
-admit；本轮 baseline 允许 `stable` 与 `beta`，未来 channel 必须经过显式
-spec cut。
+admit；已 admit channel 固定为 `stable` 与 `beta`。其他 channel 不属于当前
+release identity surface。
 
 `MUST NOT`：UI / SDK / app 不得自创 channel 字符串作为产品事实源。
 
