@@ -44,6 +44,12 @@ Avatar owns:
 Avatar-owned route ids are backend projection ids. They are not public APML tags
 and are not runtime activity ontology ids.
 
+`@nimiplatform/kit/features/avatar/vrm` may expose pure route/protocol types
+for these ids so consuming code does not re-declare the provider surface.
+Concrete VRM provider generation, Three.js mixer runtime, capability probing,
+and model-instance execution remain launched Avatar backend implementation
+unless a separate backend renderer seam is admitted.
+
 ## 2. Non-Admitted Public Syntax
 
 This contract does not admit direct public APML tags for:

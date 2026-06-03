@@ -2,7 +2,9 @@
 
 > **App**: `@nimiplatform/avatar`
 > **Authority**: Avatar kernel contract
-> **Status**: active. This contract admits renderer-local signal smoothing.
+> **Status**: active. This contract admits renderer-local signal smoothing and
+> the reusable Kit Avatar headless helper consumed by the launched Avatar
+> carrier.
 > **Upstream authority**: Runtime PresentationTimeline (`K-AGCORE-051`) remains
 > the owner of activity, speech, lipsync timing, cancellation, and turn
 > ordering truth.
@@ -11,7 +13,8 @@
 
 ## AV-PROJ-SMOOTH-001: Scope
 
-Avatar may smooth renderer-local `EmbodimentProjectionApi.setSignal` and
+Avatar may consume `@nimiplatform/kit/features/avatar` headless smoothing for
+renderer-local `EmbodimentProjectionApi.setSignal` and
 `EmbodimentProjectionApi.addSignal` writes before they reach a backend command
 surface.
 
@@ -58,9 +61,10 @@ The smoothing layer must not:
 
 ## AV-PROJ-SMOOTH-004: Lifecycle
 
-The smoothing handle is created inside the Avatar carrier after backend
-materialization and before NAS/event/interaction consumers attach. It must be
-disposed when the runtime driver detaches or the carrier shuts down.
+The smoothing handle is created by the Avatar carrier through the Kit Avatar
+headless helper after backend materialization and before NAS/event/interaction
+consumers attach. It must be disposed when the runtime driver detaches or the
+carrier shuts down.
 
 Disposal must flush pending signal writes before the backend branch is shut
 down.
@@ -70,7 +74,8 @@ down.
 The guard `pnpm check:avatar-projection-no-cue-semantics` must prove:
 
 - the contract exists and cites `K-AGCORE-051`
-- implementation is limited to renderer-local signal writes
+- implementation is limited to renderer-local signal writes, even when the
+  helper lives under Kit Avatar headless
 - motion/expression/pose/default activity methods are pass-through after a
   pending signal flush
 - voice/lipsync modules are not part of the smoothing implementation

@@ -6,7 +6,8 @@
 
 - **App name (Chinese)**: 阿凡达
 - **App name (English)**: Nimi Avatar
-- **App ID**: `app.nimi.avatar`
+- **Runtime app ID**: `nimi.avatar`
+- **Tauri bundle identifier**: `app.nimi.avatar`
 - **One-line**: 桌面悬浮 embodiment carrier，agent 的视觉化身；通过 NAS handler 把 agent semantics 投影到当前 backend branch。
 - **Status**: Productization gate active. Wave 0 spec admit complete; Wave 1 surface composition implementation done; Wave 2 i18n + design tokens 工业化 done; Wave 3 lipsync end-to-end done (orchestrator + live2d/lipsync-bridge split + ParamMouthForm opt-in + audio time anchor + e2e fixture test); Wave 4 window + settings 工业化 done (window-bounds-policy.yaml admitted + dynamic resize wired + drag region limited to embodiment-stage + settings popover + Tauri visible-area constraint + cargo unit tests). Real runtime/SDK consume path is primary; mock is explicit fixture-only.
 
@@ -16,14 +17,14 @@
 |-------|-----------|----------|
 | Desktop shell | Tauri 2 (transparent, always-on-top, no-chrome) | `src-tauri/` |
 | Frontend | React 19 + Vite 7 + Tailwind 4 | `src/shell/renderer/` |
-| Carrier abstraction | `BackendBranch` (multi-backend; live2d / vrm) | `src/shell/renderer/carrier/` |
-| Embodiment projection | App-local ontology projection + NAS runtime | `src/shell/renderer/nas/` |
+| Carrier abstraction | Kit `BackendBranch` contract; app-local backend factory/orchestration | `@nimiplatform/kit/features/avatar` + `src/shell/renderer/carrier/` |
+| Embodiment projection | Kit `BackendProjection` / cue projection contracts; app-local NAS runtime wiring | `@nimiplatform/kit/features/avatar` + `src/shell/renderer/nas/` |
 | Live2D backend branch | Cubism SDK for Web (official) | `src/shell/renderer/live2d/` |
 | VRM backend branch | `@pixiv/three-vrm` + `@react-three/fiber` + `wlipsync` | `src/shell/renderer/vrm/` |
-| Audio pipeline | wLipSync; reads bytes via `runtime.artifacts.readBytes` (S-RUNTIME-111) | `src/shell/renderer/audio/` |
+| Audio pipeline | Kit headless audio pipeline; app consumes runtime artifact bytes (S-RUNTIME-111) | `@nimiplatform/kit/features/avatar` + avatar voice/lipsync wiring |
 | State | Zustand | `src/shell/renderer/app-shell/` |
 | AI / Events | `@nimiplatform/sdk` real consume path | workspace dep |
-| UI components | `@nimiplatform/kit/{ui,core,auth,telemetry}` (NOT `kit/features/avatar`) | workspace dep |
+| UI components | `@nimiplatform/kit/{ui,core,auth,telemetry}` + admitted `@nimiplatform/kit/features/avatar` reusable surface | workspace dep |
 | Dev port | 1427 | `vite.config.ts` |
 
 ## Product Form
@@ -101,7 +102,7 @@ Nimi Avatar-specific contracts in `.nimi/spec/avatar/kernel/**` do not re-define
 | Table | Governs |
 |-------|---------|
 | `feature-matrix.yaml` | Wave 0..4 wave-based feature delivery matrix（v2 schema） |
-| `activity-mapping.yaml` | 当前 Live2D backend branch 的 activity → motion-group fallback naming |
+| `activity-mapping.yaml` | Kit Avatar activity route table consumed by concrete Live2D / VRM backends |
 | `scenario-catalog.yaml` | Dev/test fixture scenarios |
 | `i18n-keys.yaml` | i18n key 与 spec 对齐表（Wave 2 admitted） |
 | `window-bounds-policy.yaml` | Dynamic window sizing rules（Wave 4 admitted） |
@@ -376,17 +377,17 @@ self-contained policy enforced by `pnpm check:apps-avatar-isolation`）；
 
 ---
 
-## Self-Contained Policy (Wave 0 admit, design-12)
+## App Boundary Import Policy
 
-`apps/avatar/**` 是 self-contained app；以下 import 路径**禁止**：
+`apps/avatar/**` 是 Avatar product app；以下 import 路径**禁止**：
 
-- `@nimiplatform/kit/features/avatar/*`（cross-app 已禁；kit avatar 子模块即将整体移除是独立架构 topic）
 - `apps/desktop/**` / `apps/web/**` / `apps/install-gateway/**`
 - `_external/**`（任何路径，runtime 引用禁止；airi 仅算法借鉴）
 
 允许的 import：
 
-- `@nimiplatform/kit/{ui,core,auth,telemetry}`（design system 核心；非 avatar 子模块）
+- `@nimiplatform/kit/{ui,core,auth,telemetry}`（design system / core / telemetry）
+- `@nimiplatform/kit/features/avatar/**`（admitted reusable Avatar surface；apps/avatar 只能消费，不能在 app 内重建第二套 shared owner）
 - `@nimiplatform/sdk/runtime` / `@nimiplatform/sdk/runtime/browser` /
   `@nimiplatform/sdk/realm`
 - `@pixiv/three-vrm` / `@pixiv/three-vrm-animation` / `@pixiv/three-vrm-core`
@@ -403,8 +404,7 @@ grep gate（每 wave close gate 必跑）：
 
 - `lipsync_frame_batch` 在 `apps/avatar/src/**` 必须 0 hits（wave_6 起强制）
 - `fetchAudioBytes` / `fetchBytes` 在 `apps/avatar/src/**` 必须 0 hits（wave_6 起强制）
-- `kit/features/avatar` / `apps/desktop` / `_external/` 字符串在
-  `apps/avatar/src/**` 必须 0 hits
+- `apps/desktop` / `_external/` 字符串在 `apps/avatar/src/**` 必须 0 hits
 
 ---
 

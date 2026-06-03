@@ -20,7 +20,7 @@
 
 本 contract 定义 Nimi Avatar app 作为 first-party event producer / subscriber 的 event spec，遵守 runtime HookIntent / presentation projection authority 与 Avatar-local event convention。Avatar 是独立 app，但 current canonical normal path 由 desktop bridge / handoff 启动；owner 为 `avatar.*`。
 
-Avatar app 的 rendering backend（Live2D / VRM / 3D / Lottie / 极简 blob）具体选型**不影响**本 spec 的 event 定义。Runtime presentation/activity projection 与 Avatar-local `tables/activity-mapping.yaml` 把语义映射从 rendering 解耦；closed activity ontology 只保留为设计证据，不是本 app 的活动 authority。
+Avatar app 的 rendering backend（Live2D / VRM / 3D / Lottie / 极简 blob）具体选型**不影响**本 spec 的 event 定义。Runtime presentation/activity projection 与 Avatar spec-owned `tables/activity-mapping.yaml` 把语义映射从 rendering 解耦；其 reusable projection helper 可以由 `@nimiplatform/kit/features/avatar` 发布。closed activity ontology 只保留为设计证据，不是本 app 的活动 authority。
 
 The active Avatar event surface covers the multi-backend BackendBranch carrier abstraction:
 
@@ -533,13 +533,16 @@ Avatar app 订阅对方 app 的 events（通过 runtime 中转）：
 
 Avatar app 的 rendering backend 具体实现（Live2D Cubism SDK / VRM / 3D / Lottie / 极简 blob）不影响本 spec 的 event 定义 —— event 语义是 rendering-agnostic 的。
 
-Activity → motion/expression 的具体映射见 [activity mapping table](tables/activity-mapping.yaml)。每个 rendering backend 按其 convention + metadata 解析。
+Activity → motion/expression 的具体映射见 [activity mapping table](tables/activity-mapping.yaml)。该表的 authority 留在 Avatar spec；代码侧可通过 Kit Avatar headless helper 消费。每个 rendering backend 按其 convention + metadata 解析。
 
 Generated motion provider routing consumes only typed `runtime.agent.*`
 projection and Avatar-owned mapping/profile/route tables under
-`.nimi/spec/avatar/**`. It must not subscribe to the runtime-internal APML
-parser diagnostic namespace, define an Avatar-local activity ontology, or
-promote Avatar backend route ids into public APML syntax.
+`.nimi/spec/avatar/**`. Kit may expose route/protocol types and pure resolver
+helpers, but concrete VRM provider/runtime implementation remains a launched
+Avatar backend concern unless a backend renderer seam is separately admitted.
+It must not subscribe to the runtime-internal APML parser diagnostic namespace,
+define an Avatar-local activity ontology, or promote Avatar backend route ids
+into public APML syntax.
 
 ---
 
