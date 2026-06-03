@@ -2,7 +2,6 @@ import { createEventBus } from '../internal/event-bus.js';
 import type { JsonObject } from '../internal/utils.js';
 import { createScopeModule, type ScopeModule } from '../scope/index.js';
 import { ReasonCode, type VersionCompatibilityStatus } from '../types/index.js';
-import { asNimiError, createNimiError } from '../core/errors.js';
 import { RuntimeMethodIds } from './method-ids.js';
 import type {
   RuntimeMethodId,
@@ -51,61 +50,21 @@ import {
   toIsoFromTimestamp,
 } from './runtime-value-utils.js';
 import { resolveHealthStatus } from './runtime-health-codec.js';
-import {
-  createCorePassthroughClients,
-  createHealthEventStreams,
-  createAiModule,
-  createAppAuthClient,
-  createAppClient,
-  createMediaModule,
-  createRuntimeEventsModule,
-  createScopeClient,
-  emitAuthTokenIssuedEvent,
-  emitAuthTokenRevokedEvent,
-} from './runtime-modules.js';
-import {
-  attachRuntimeAgentSurface,
-  createRuntimeAgentAnchorsModule,
-  createRuntimeAgentTurnsModule,
-} from './runtime-agent-surface.js';
-import {
-  createRuntimeAvatarDebugModule,
-  type RuntimeAvatarDebugModule,
-} from './runtime-avatar-debug.js';
-import {
-  createRuntimeCompanionParticipationModule,
-  type RuntimeCompanionParticipationModule,
-} from './runtime-companion-participation.js';
-import {
-  type RuntimeArtifactsModule,
-  createRuntimeArtifactsModule,
-} from './runtime-artifacts.js';
-import {
-  type RuntimeAppLifecycleModule,
-  createRuntimeAppLifecycleModule,
-} from './runtime-app-lifecycle.js';
-import {
-  createRuntimeProtectedScopeHelper,
-  type RuntimeProtectedScopeHelper,
-} from './protected-access.js';
+import type { RuntimeAvatarDebugModule } from './runtime-avatar-debug.js';
+import type { RuntimeCompanionParticipationModule } from './runtime-companion-participation.js';
+import type { RuntimeArtifactsModule } from './runtime-artifacts.js';
+import type { RuntimeAppLifecycleModule } from './runtime-app-lifecycle.js';
 import {
   ensureRuntimeClientForCall,
-  invokeWithRuntimeRetry,
   resolveReadyTimeout,
-  resolveRuntimeCallOptions,
-  resolveRuntimeStreamOptions,
   waitForRuntimeReady,
 } from './runtime-infra.js';
 import {
   assertRuntimeMethodAvailable,
-  runtimeAiRequestRequiresSubject,
   checkRuntimeVersionCompatibility,
-  resolveOptionalRuntimeSubjectUserId,
-  resolveRuntimeSubjectUserId,
   wrapModeDStream,
 } from './runtime-guards.js';
 import { closeRuntime, connectRuntime, readyRuntime } from './runtime-lifecycle.js';
-import { FallbackPolicy } from './generated/runtime/v1/ai.js';
 import {
   runtimeGenerateConvenience,
   runtimeStreamConvenience,
@@ -114,22 +73,9 @@ import {
   type RuntimeStreamChunk,
   type RuntimeStreamInput,
 } from './runtime-convenience.js';
-import { createRuntimeUnsafeRawModule } from './runtime-unsafe-raw.js';
-
-function hasOwn(value: object, key: string): boolean {
-  return Object.prototype.hasOwnProperty.call(value, key);
-}
-
-function isNodeRuntime(): boolean {
-  return typeof process !== 'undefined' && Boolean(process?.versions?.node);
-}
-
-function readNodeEnv(name: string): string {
-  if (!isNodeRuntime()) {
-    return '';
-  }
-  return normalizeText(process.env?.[name]);
-}
+import { resolveRuntimeConstructorOptions } from './runtime-constructor-options.js';
+import { invokeRuntimeWithStateTransitions } from './runtime-invoke-state.js';
+import { createRuntimeSurfaceWiring } from './runtime-surface-wiring.js';
 
 export class Runtime {
   readonly appId: string;
@@ -190,38 +136,9 @@ export class Runtime {
   readonly #ctx: RuntimeInternalContext;
 
   constructor(options: RuntimeOptions = {}) {
-    const appIdInput = hasOwn(options, 'appId')
-      ? options.appId
-      : readNodeEnv('NIMI_APP_ID') || 'nimi.app';
-    const normalizedAppId = normalizeText(appIdInput);
-    if (!normalizedAppId) {
-      throw createNimiError({
-        message: 'appId is required',
-        reasonCode: ReasonCode.SDK_APP_ID_REQUIRED,
-        actionHint: 'set_app_id',
-        source: 'sdk',
-      });
-    }
-    this.appId = normalizedAppId;
-    const transportInput = options.transport || (isNodeRuntime()
-      ? {
-        type: 'node-grpc' as const,
-        endpoint: readNodeEnv('NIMI_RUNTIME_ENDPOINT') || '127.0.0.1:46371',
-      }
-      : undefined);
-    if (!transportInput) {
-      throw createNimiError({
-        message: 'transport is required outside Node.js. App-level consumers should use createPlatformClient(); direct Runtime construction only auto-configures transport in Node.js. Otherwise pass transport explicitly (for example node-grpc or tauri-ipc).',
-        reasonCode: ReasonCode.SDK_TRANSPORT_INVALID,
-        actionHint: 'set_transport',
-        source: 'sdk',
-      });
-    }
-    this.transport = transportInput;
-
-    const transportWithObserver = {
-      ...transportInput,
-      _responseMetadataObserver: (metadata: Record<string, string>) => {
+    const constructorOptions = resolveRuntimeConstructorOptions({
+      options,
+      responseMetadataObserver: (metadata) => {
         const version = metadata['x-nimi-runtime-version'];
         if (version && !this.#runtimeVersion) {
           this.#runtimeVersion = version;
@@ -229,165 +146,51 @@ export class Runtime {
           this.#checkVersionCompatibility(version);
         }
       },
-    };
-
-    this.#options = {
-      ...options,
-      appId: this.appId,
-      transport: transportWithObserver,
-      connection: {
-        waitForReadyTimeoutMs: options.connection?.waitForReadyTimeoutMs,
-      },
-    };
+    });
+    this.appId = constructorOptions.appId;
+    this.transport = constructorOptions.transport;
+    this.#options = constructorOptions.options;
 
     this.#scopeModule = createScopeModule({ appId: this.appId });
 
-    let protectedScopeHelper: RuntimeProtectedScopeHelper | null = null;
-
-    this.#ctx = {
+    const surface = createRuntimeSurfaceWiring({
       appId: this.appId,
       options: this.#options,
-      invoke: (op) => this.#invoke(op),
-      invokeWithClient: (op) => this.#invokeWithClient(op),
-      resolveRuntimeCallOptions: (input) => resolveRuntimeCallOptions(this.#options, input),
-      resolveRuntimeStreamOptions: (input) => resolveRuntimeStreamOptions(this.#options, input),
-      resolveSubjectUserId: (explicit) => resolveRuntimeSubjectUserId({
-        explicit,
-        subjectContext: this.#options.subjectContext,
-      }),
-      resolveOptionalSubjectUserId: (explicit) => resolveOptionalRuntimeSubjectUserId({
-        explicit,
-        subjectContext: this.#options.subjectContext,
-      }),
-      normalizeScenarioHead: async ({ head, metadata }) => {
-        const subjectUserId = runtimeAiRequestRequiresSubject({
-          request: { head },
-          metadata,
-        })
-          ? await resolveRuntimeSubjectUserId({
-            explicit: head.subjectUserId,
-            subjectContext: this.#options.subjectContext,
-          })
-          : await resolveOptionalRuntimeSubjectUserId({
-            explicit: head.subjectUserId,
-            subjectContext: this.#options.subjectContext,
-          });
-        return {
-          ...head,
-          subjectUserId: subjectUserId || '',
-          fallback: head.fallback ?? FallbackPolicy.DENY,
-        };
-      },
-      resolveProtectedCallOptions: async <
-        T extends RuntimeCallOptions | RuntimeStreamCallOptions,
-      >(scopes: readonly string[], baseOptions?: T, subjectUserId?: string): Promise<T> => {
-        if (!protectedScopeHelper || !this.#options.protectedAccess?.autoIssueForAi) {
-          return { ...(baseOptions || {}) } as T;
-        }
-        return protectedScopeHelper.getCallOptions(scopes, baseOptions, subjectUserId);
-      },
-      emitTelemetry: (name, data) => this.#emitTelemetry(name, data),
-    };
-
-    this.events = createRuntimeEventsModule(this.#eventBus);
-
-    const passthrough = createCorePassthroughClients({
-      assertMethodAvailable: (moduleKey, methodKey) => this.#assertMethodAvailable(moduleKey, methodKey),
-      invokeWithClient: (operation) => this.#invokeWithClient(operation),
-    });
-    this.auth = passthrough.auth;
-    this.externalAgent = passthrough.externalAgent;
-    this.account = passthrough.account;
-    this.workflow = passthrough.workflow;
-    this.model = passthrough.model;
-    this.local = passthrough.local;
-    this.connector = passthrough.connector;
-    this.knowledge = passthrough.knowledge;
-    this.memory = passthrough.memory;
-    this.audit = passthrough.audit;
-    const healthStreams = createHealthEventStreams({
-      audit: this.audit,
-      wrapModeDStream: (source) => this.#wrapModeDStream(source),
-    });
-    this.healthEvents = healthStreams.healthEvents;
-    this.providerHealthEvents = healthStreams.providerHealthEvents;
-
-    this.app = createAppClient({
-      invokeWithClient: (operation) => this.#invokeWithClient(operation),
-      wrapModeDStream: (source) => this.#wrapModeDStream(source),
-    });
-
-    this.appAuth = createAppAuthClient({
-      invokeWithClient: (operation) => this.#invokeWithClient(operation),
-      resolvePublishedCatalogVersion: (requested) => this.#scopeModule.resolvePublishedCatalogVersion(requested),
-      emitTelemetry: (name, data) => this.#emitTelemetry(name, data),
-      authEvents: {
-        emitTokenIssued: (tokenId) => emitAuthTokenIssuedEvent(this.#eventBus, tokenId),
-        emitTokenRevoked: (tokenId) => emitAuthTokenRevokedEvent(this.#eventBus, tokenId),
-      },
-    });
-
-    protectedScopeHelper = createRuntimeProtectedScopeHelper({
-      runtime: {
-        appId: this.appId,
-        transport: this.transport,
-        auth: this.auth,
-        appAuth: this.appAuth,
-      },
-      getSubjectUserId: (explicit) => this.#ctx.resolveSubjectUserId(explicit),
-    });
-
-    this.agent = attachRuntimeAgentSurface(passthrough.agent, {
-      anchors: createRuntimeAgentAnchorsModule({
-        appId: this.appId,
-        agent: passthrough.agent,
-        protectedAccess: protectedScopeHelper,
-        resolveSubjectUserId: (explicit) => this.#ctx.resolveSubjectUserId(explicit),
-      }),
-      turns: createRuntimeAgentTurnsModule({
-        appId: this.appId,
-        agent: passthrough.agent,
-        app: this.app,
-        protectedAccess: protectedScopeHelper,
-        resolveSubjectUserId: (explicit) => this.#ctx.resolveSubjectUserId(explicit),
-      }),
-    });
-    this.avatarDebug = createRuntimeAvatarDebugModule({
-      appId: this.appId,
-      agent: passthrough.agent,
-      protectedAccess: protectedScopeHelper,
-      resolveSubjectUserId: (explicit) => this.#ctx.resolveSubjectUserId(explicit),
-    });
-    this.companionParticipation = createRuntimeCompanionParticipationModule({
-      appId: this.appId,
-      agent: passthrough.agent,
-      protectedAccess: protectedScopeHelper,
-      resolveSubjectUserId: (explicit) => this.#ctx.resolveSubjectUserId(explicit),
-    });
-
-    this.scope = createScopeClient({
-      invoke: (operation) => this.#invoke(operation),
+      transport: this.transport,
       scopeModule: this.#scopeModule,
-    });
-
-    const ctx = this.#ctx;
-
-    this.ai = createAiModule({
+      eventBus: this.#eventBus,
+      invoke: (operation) => this.#invoke(operation),
       invokeWithClient: (operation) => this.#invokeWithClient(operation),
-      ctx,
-    });
-
-    this.artifacts = createRuntimeArtifactsModule({ ctx });
-
-    this.appLifecycle = createRuntimeAppLifecycleModule({ ctx });
-
-    this.media = createMediaModule(ctx);
-
-    const unsafeRaw = createRuntimeUnsafeRawModule({
       assertMethodAvailable: (moduleKey, methodKey) => this.#assertMethodAvailable(moduleKey, methodKey),
-      invokeWithClient: (operation) => this.#invokeWithClient(operation),
+      wrapModeDStream: (source) => this.#wrapModeDStream(source),
+      emitTelemetry: (name, data) => this.#emitTelemetry(name, data),
     });
-    this.unsafeRaw = unsafeRaw;
+
+    this.#ctx = surface.ctx;
+    this.events = surface.events;
+    this.auth = surface.auth;
+    this.externalAgent = surface.externalAgent;
+    this.account = surface.account;
+    this.workflow = surface.workflow;
+    this.model = surface.model;
+    this.local = surface.local;
+    this.connector = surface.connector;
+    this.knowledge = surface.knowledge;
+    this.memory = surface.memory;
+    this.audit = surface.audit;
+    this.healthEvents = surface.healthEvents;
+    this.providerHealthEvents = surface.providerHealthEvents;
+    this.app = surface.app;
+    this.appAuth = surface.appAuth;
+    this.agent = surface.agent;
+    this.avatarDebug = surface.avatarDebug;
+    this.companionParticipation = surface.companionParticipation;
+    this.scope = surface.scope;
+    this.ai = surface.ai;
+    this.artifacts = surface.artifacts;
+    this.appLifecycle = surface.appLifecycle;
+    this.media = surface.media;
+    this.unsafeRaw = surface.unsafeRaw;
   }
 
   async connect(): Promise<void> {
@@ -547,84 +350,25 @@ export class Runtime {
   }
 
   async #invoke<T>(operation: () => Promise<T>): Promise<T> {
-    let retryEpoch: number | null = null;
-    return invokeWithRuntimeRetry({
+    return invokeRuntimeWithStateTransitions({
       operation,
       options: this.#options,
-      normalizeError: (error) => asNimiError(error, {
-        reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
-        actionHint: 'retry_or_check_runtime_status',
-        source: 'runtime',
-      }),
-      onRecovered: (attempt) => {
-        if (this.#state.status === 'closing' || this.#state.status === 'closed') {
-          return;
-        }
-        if (retryEpoch === null || retryEpoch !== this.#retryTransitionEpoch) {
-          return;
-        }
-        if (this.#state.status !== 'ready') {
-          const at = nowIso();
-          this.#state = {
-            ...this.#state,
-            status: 'ready',
-            lastReadyAt: at,
-          };
-          this.#eventBus.emit('runtime.connected', { at });
-          this.#emitTelemetry('runtime.connected', {
-            at,
-            reason: 'auto_retry_recovered',
-            attempt,
-          });
-        }
+      getState: () => this.#state,
+      setState: (state) => {
+        this.#state = state;
       },
-      onRetry: (normalized, attempt, backoffMs, maxAttempts) => {
-        if (this.#state.status === 'closing' || this.#state.status === 'closed') {
-          return;
-        }
-        retryEpoch = ++this.#retryTransitionEpoch;
-        const at = nowIso();
+      clearClient: () => {
         this.#client = null;
-        const wasReady = this.#state.status === 'ready';
-        this.#state = {
-          ...this.#state,
-          status: 'idle',
-        };
-        if (wasReady) {
-          this.#eventBus.emit('runtime.disconnected', {
-            at,
-            reasonCode: normalized.reasonCode,
-          });
-        }
-        this.#emitTelemetry('runtime.disconnected', {
-          at,
-          reasonCode: normalized.reasonCode,
-          attempt,
-        });
-        this.#emitTelemetry('runtime.retry', {
-          attempt,
-          maxAttempts,
-          backoffMs,
-          reasonCode: normalized.reasonCode,
-        });
       },
-      onTerminalError: (normalized) => {
-        if (
-          normalized.reasonCode === ReasonCode.OPERATION_ABORTED
-          && (this.#state.status === 'closing' || this.#state.status === 'closed')
-        ) {
-          return;
-        }
-        this.#eventBus.emit('error', {
-          error: normalized,
-          at: nowIso(),
-        });
-        this.#emitTelemetry('runtime.error', {
-          reasonCode: normalized.reasonCode,
-          actionHint: normalized.actionHint,
-          traceId: normalized.traceId,
-        });
+      getRetryTransitionEpoch: () => this.#retryTransitionEpoch,
+      nextRetryTransitionEpoch: () => {
+        this.#retryTransitionEpoch += 1;
+        return this.#retryTransitionEpoch;
       },
+      emitConnected: (event) => this.#eventBus.emit('runtime.connected', event),
+      emitDisconnected: (event) => this.#eventBus.emit('runtime.disconnected', event),
+      emitError: (event) => this.#eventBus.emit('error', event),
+      emitTelemetry: (name, data) => this.#emitTelemetry(name, data),
     });
   }
 

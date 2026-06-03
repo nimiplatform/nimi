@@ -1,9 +1,6 @@
 import createClient from 'openapi-fetch';
 import { createEventBus } from '../internal/event-bus.js';
 import type { JsonObject } from '../internal/utils.js';
-import { ReasonCode } from '../types/index.js';
-import { asNimiError, createNimiError } from '../core/errors.js';
-import type { NimiError } from '../types/index.js';
 import type { paths } from './generated/schema.js';
 import {
   createRealmServiceRegistry,
@@ -16,44 +13,27 @@ import type {
   RealmEventsModule,
   RealmOptions,
   RealmResponseParser,
-  RealmRetryOptions,
   RealmServiceRegistry,
   RealmTokenRefreshResult,
   RealmUnsafeRawModule,
 } from './client-types.js';
 import {
   DEFAULT_REALM_TIMEOUT_MS,
-  asRecord,
-  extractResponseReasonCode,
-  hasValue,
-  isResponse,
-  mapRealmError,
-  normalizeText,
   nowIso,
-  readErrorBody,
   resolveBaseUrl,
 } from './client-helpers.js';
 import {
-  REALM_HTTP_METHODS,
-  encodePathValue,
-  getOpenApiMethod,
-  hasOwn,
-  readErrorResponseBodyWithDiagnostics,
   resolvePositiveTimeoutMs,
 } from './client-request-utils.js';
 import {
-  executeGeneratedRealmRefreshToken,
-  parseRealmRefreshResult,
-} from './client-refresh.js';
-import { assertNoAuthRealmEndpointAllowed } from './no-auth-allowlist.js';
-import { assertExternalPrincipalRefreshMode, assertRealmAuthCustodyMode } from './auth-custody.js';
+  createRealmAuthState,
+  decodeRealmTokenExpiryUnsafe,
+  refreshRealmAccessToken,
+  type RealmAuthState,
+} from './client-auth.js';
+import { requestRealmUnknown } from './client-request.js';
 
 type OpenApiClient = ReturnType<typeof createClient<paths>>;
-
-const DEFAULT_RETRY_STATUSES = [429, 502, 503, 504];
-const DEFAULT_RETRY_MAX_RETRIES = 2;
-const DEFAULT_RETRY_BACKOFF_MS = 1000;
-const DEFAULT_RETRY_MAX_BACKOFF_MS = 10000;
 
 export class Realm {
   readonly services: RealmServiceRegistry;
@@ -68,9 +48,9 @@ export class Realm {
     status: 'idle',
   };
 
-  #refreshPromise: Promise<RealmTokenRefreshResult> | null = null;
-
   readonly #options: RealmOptions;
+
+  readonly #authState: RealmAuthState;
 
   readonly #eventBus = createEventBus<RealmEventPayloadMap>();
 
@@ -78,18 +58,7 @@ export class Realm {
 
   constructor(options: RealmOptions) {
     this.baseUrl = resolveBaseUrl(options.baseUrl);
-    const authProvided = hasOwn(options, 'auth');
-    if (!authProvided) {
-      throw createNimiError({
-        message: 'realm token is required (set auth explicitly to null or undefined for unauthenticated access)',
-        reasonCode: ReasonCode.SDK_REALM_TOKEN_REQUIRED,
-        actionHint: 'set_realm_auth_access_token',
-        source: 'sdk',
-      });
-    }
-    if (options.auth != null) {
-      assertRealmAuthCustodyMode(options.auth);
-    }
+    this.#authState = createRealmAuthState({ options, baseUrl: this.baseUrl });
     this.#options = options;
 
     this.#openapiClient = createClient<paths>({
@@ -177,15 +146,11 @@ export class Realm {
   }
 
   updateAuth(patch: Partial<RealmAuthOptions>): void {
-    const nextAuth = this.#options.auth
-      ? { ...this.#options.auth, ...patch }
-      : { ...patch } as RealmAuthOptions;
-    assertRealmAuthCustodyMode(nextAuth);
-    this.#options.auth = nextAuth;
+    this.#authState.updateAuth(patch);
   }
 
   clearAuth(): void {
-    this.#options.auth = undefined;
+    this.#authState.clearAuth();
   }
 
   static async refreshAccessToken(input: {
@@ -194,488 +159,29 @@ export class Realm {
     refreshToken: string;
     fetchImpl?: typeof fetch;
   }): Promise<RealmTokenRefreshResult> {
-    assertExternalPrincipalRefreshMode(input.authMode);
-    const baseUrl = resolveBaseUrl(input.realmBaseUrl);
-    const refreshToken = normalizeText(input.refreshToken);
-    if (!refreshToken) {
-      throw createNimiError({
-        message: 'realm refresh token is required',
-        reasonCode: ReasonCode.SDK_REALM_TOKEN_REQUIRED,
-        actionHint: 'set_realm_refresh_token',
-        source: 'sdk',
-      });
-    }
-
-    const payload = await executeGeneratedRealmRefreshToken({
-      baseUrl,
-      refreshToken,
-      fetchImpl: input.fetchImpl,
-      mapError: (response) => createNimiError({
-        message: `realm refresh failed: ${response.status}`,
-        reasonCode: ReasonCode.REALM_UNAVAILABLE,
-        actionHint: 'check_realm_refresh_token',
-        source: 'realm',
-        details: {
-          httpStatus: response.status,
-        },
-      }),
-    });
-    return parseRealmRefreshResult(payload, {
-      message: 'realm refresh response missing accessToken',
-      reasonCode: ReasonCode.REALM_UNAVAILABLE,
-      actionHint: 'check_realm_refresh_response',
-    });
+    return refreshRealmAccessToken(input);
   }
 
   async #requestUnknown(input: RealmRawRequestInput): Promise<unknown> {
-    if (this.#state.status === 'idle') {
-      await this.connect();
-    }
-
-    let path = normalizeText(input.path);
-    if (!path) {
-      throw createNimiError({
-        message: 'realm path is required',
-        reasonCode: ReasonCode.ACTION_INPUT_INVALID,
-        actionHint: 'set_realm_request_path',
-        source: 'sdk',
-      });
-    }
-    if (input.pathParams) {
-      for (const [key, value] of Object.entries(input.pathParams)) {
-        const placeholder = `{${key}}`;
-        if (!path.includes(placeholder)) {
-          continue;
-        }
-        path = path.replaceAll(placeholder, encodePathValue(value));
-      }
-    }
-
-    const timeoutMs = resolvePositiveTimeoutMs(
-      input.timeoutMs ?? this.#options.timeoutMs,
-      DEFAULT_REALM_TIMEOUT_MS,
-    );
-
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const timeoutController = timeoutMs > 0 ? new AbortController() : undefined;
-    let timeoutTriggered = false;
-    let externalAbortTriggered = false;
-    let refreshAttempted = false;
-    let retryAttempt = 0;
-    let refreshFailure: NimiError | null = null;
-
-    try {
-      if (timeoutController) {
-        timer = setTimeout(() => {
-          timeoutController.abort();
-        }, timeoutMs);
-      }
-
-      const methodName = normalizeText(input.method).toUpperCase();
-      const method = getOpenApiMethod(
-        this.#openapiClient as unknown as Record<string, unknown>,
-        methodName,
-      );
-
-      if (method === null) {
-        throw createNimiError({
-          message: `unsupported realm HTTP method: ${methodName || '(empty)'}; supported methods: ${REALM_HTTP_METHODS.join(', ')}`,
-          reasonCode: ReasonCode.ACTION_INPUT_INVALID,
-          actionHint: 'check_realm_request_method',
-          source: 'sdk',
-        });
-      }
-
-      let accessToken = await this.#resolveAccessToken();
-      assertNoAuthRealmEndpointAllowed({ accessToken, methodName, path });
-      while (true) {
-        const requestAbortController = new AbortController();
-        const abortRequest = () => {
-          if (!requestAbortController.signal.aborted) {
-            requestAbortController.abort();
-          }
-        };
-        const onTimeoutAbort = () => {
-          timeoutTriggered = true;
-          abortRequest();
-        };
-        const onExternalAbort = () => {
-          externalAbortTriggered = true;
-          abortRequest();
-        };
-        timeoutController?.signal.addEventListener('abort', onTimeoutAbort, { once: true });
-        if (timeoutController?.signal.aborted) {
-          onTimeoutAbort();
-        }
-        if (input.signal) {
-          if (input.signal.aborted) {
-            onExternalAbort();
-          } else {
-            input.signal.addEventListener('abort', onExternalAbort, { once: true });
-          }
-        }
-        const headers = await this.#resolveHeaders(input.headers, accessToken);
-        try {
-          const responseTuple = await method(
-            path,
-            {
-              params: input.query ? { query: input.query } : undefined,
-              body: input.body,
-              headers,
-              signal: requestAbortController.signal,
-            },
-          );
-
-          const responseTupleRecord = asRecord(responseTuple);
-          const response = responseTupleRecord.response;
-          const errorPayload = responseTupleRecord.error;
-          const dataPayload = responseTupleRecord.data;
-
-          if (isResponse(response)) {
-            if (!response.ok) {
-              if (
-                !refreshAttempted
-                && response.status === 401
-                && this.#options.auth?.mode === 'external_principal'
-                && this.#options.auth.refreshToken
-              ) {
-                try {
-                  const refreshResult = await this.#attemptRefresh();
-                  refreshAttempted = true;
-                  if (this.#options.auth) {
-                    if (typeof this.#options.auth.accessToken !== 'function') {
-                      this.#options.auth.accessToken = refreshResult.accessToken;
-                    }
-                    if (refreshResult.refreshToken && typeof this.#options.auth.refreshToken !== 'function') {
-                      this.#options.auth.refreshToken = refreshResult.refreshToken;
-                    }
-                  }
-                  accessToken = refreshResult.accessToken;
-                  try {
-                    this.#options.auth?.onTokenRefreshed?.(refreshResult);
-                  } catch { /* observer callback must not break retry */ }
-                  this.#emitTelemetry('realm.token_refreshed');
-                  retryAttempt += 1;
-                  continue;
-                } catch (refreshError) {
-                  try {
-                    this.#options.auth?.onRefreshFailed?.(refreshError);
-                  } catch { /* observer callback must not break error flow */ }
-                  refreshFailure = asNimiError(refreshError, { source: 'realm' });
-                }
-              }
-
-              const retryDelayMs = this.#resolveRetryDelay(response, retryAttempt);
-              if (retryDelayMs !== null) {
-                retryAttempt += 1;
-                await this.#sleep(retryDelayMs, requestAbortController.signal);
-                continue;
-              }
-
-              const bodyRecord = readErrorBody(errorPayload);
-              const mapped = extractResponseReasonCode(bodyRecord, response);
-              throw createNimiError({
-                message: mapped.message,
-                code: mapped.code,
-                reasonCode: mapped.reasonCode,
-                actionHint: mapped.actionHint,
-                traceId: mapped.traceId || undefined,
-                retryable: mapped.retryable,
-                source: 'realm',
-                details: refreshFailure?.details
-                  ? {
-                      ...mapped.details,
-                      refreshFailureReasonCode: refreshFailure.reasonCode,
-                      refreshFailureMessage: refreshFailure.message,
-                      ...refreshFailure.details,
-                    }
-                  : mapped.details,
-              });
-            }
-
-            if (hasValue(dataPayload)) {
-              this.#emitRequestSuccess(methodName, path, response.status);
-              return dataPayload;
-            }
-
-            if (response.status === 204) {
-              this.#emitRequestSuccess(methodName, path, response.status);
-              return undefined;
-            }
-
-            const contentType = normalizeText(response.headers.get('content-type')).toLowerCase();
-            if (contentType.includes('application/json')) {
-              const json = await response.json();
-              this.#emitRequestSuccess(methodName, path, response.status);
-              return json;
-            }
-            const text = await response.text();
-            this.#emitRequestSuccess(methodName, path, response.status);
-            return text;
-          }
-
-          if (hasValue(errorPayload)) {
-            throw errorPayload;
-          }
-
-          if (hasValue(dataPayload)) {
-            this.#emitRequestSuccess(methodName, path);
-            return dataPayload;
-          }
-
-          this.#emitRequestSuccess(methodName, path);
-          return responseTuple;
-        } finally {
-          timeoutController?.signal.removeEventListener('abort', onTimeoutAbort);
-          if (input.signal) {
-            input.signal.removeEventListener('abort', onExternalAbort);
-          }
-        }
-      }
-    } catch (error) {
-      const mapped = timeoutTriggered
-        ? createNimiError({
-          message: `realm request timeout after ${timeoutMs}ms`,
-          code: ReasonCode.REALM_UNAVAILABLE,
-          reasonCode: ReasonCode.REALM_UNAVAILABLE,
-          actionHint: 'retry_after_backoff',
-          source: 'realm',
-          retryable: true,
-          details: { timeoutMs },
-        })
-        : externalAbortTriggered
-          ? createNimiError({
-            message: normalizeText(asRecord(error).message) || 'realm request aborted',
-            code: ReasonCode.OPERATION_ABORTED,
-            reasonCode: ReasonCode.OPERATION_ABORTED,
-            actionHint: 'retry_if_needed',
-            source: 'realm',
-            retryable: false,
-          })
-          : mapRealmError(error);
-      this.#eventBus.emit('error', {
-        error: mapped,
-        at: nowIso(),
-      });
-      this.#emitTelemetry('realm.error', {
-        reasonCode: mapped.reasonCode,
-        actionHint: mapped.actionHint,
-        traceId: mapped.traceId,
-      });
-      throw mapped;
-    } finally {
-      if (timer) {
-        clearTimeout(timer);
-      }
-    }
-  }
-
-  async #resolveAccessToken(): Promise<string> {
-    if (this.#options.auth == null) {
-      return '';
-    }
-    const accessToken = this.#options.auth?.accessToken;
-    // `resolved` is assigned in both branches so we can normalize sync/async token sources once.
-    let resolved: string;
-    if (typeof accessToken === 'function') {
-      resolved = normalizeText(await accessToken());
-    } else {
-      resolved = normalizeText(accessToken);
-    }
-    return resolved;
-  }
-
-  async #resolveRefreshToken(): Promise<string> {
-    const refreshToken = this.#options.auth?.refreshToken;
-    if (typeof refreshToken === 'function') {
-      return normalizeText(await refreshToken());
-    }
-    return normalizeText(refreshToken);
-  }
-
-  async #doRefresh(): Promise<RealmTokenRefreshResult> {
-    const refreshToken = await this.#resolveRefreshToken();
-    if (!refreshToken) {
-      throw createNimiError({
-        message: 'refresh token is not available',
-        reasonCode: ReasonCode.AUTH_DENIED,
-        actionHint: 'reauthenticate',
-        source: 'sdk',
-      });
-    }
-
-    const data = await executeGeneratedRealmRefreshToken({
-      baseUrl: this.baseUrl,
-      refreshToken,
-      fetchImpl: this.#options.fetchImpl,
-      mapError: async (response) => {
-        const { body, details: readDetails } = await readErrorResponseBodyWithDiagnostics(response);
-        const mapped = extractResponseReasonCode(body, response);
-        return createNimiError({
-          message: mapped.message || 'token refresh failed',
-          code: mapped.code,
-          reasonCode: mapped.reasonCode,
-          actionHint: mapped.actionHint,
-          traceId: mapped.traceId || undefined,
-          source: 'realm',
-          details: {
-            ...mapped.details,
-            ...readDetails,
-          },
+    return requestRealmUnknown(input, {
+      openapiClient: this.#openapiClient as unknown as Record<string, unknown>,
+      options: this.#options,
+      authState: this.#authState,
+      getStateStatus: () => this.#state.status,
+      connect: () => this.connect(),
+      emitError: (error) => {
+        this.#eventBus.emit('error', {
+          error,
+          at: nowIso(),
         });
       },
-    });
-    return parseRealmRefreshResult(data, {
-      message: 'refresh response missing accessToken',
-      reasonCode: ReasonCode.AUTH_DENIED,
-      actionHint: 'reauthenticate',
+      emitTelemetry: (name, data) => this.#emitTelemetry(name, data),
+      emitRequestSuccess: (method, path, httpStatus) => this.#emitRequestSuccess(method, path, httpStatus),
     });
   }
 
-  async #attemptRefresh(): Promise<RealmTokenRefreshResult> {
-    if (this.#refreshPromise) {
-      return this.#refreshPromise;
-    }
-    this.#refreshPromise = this.#doRefresh().finally(() => {
-      this.#refreshPromise = null;
-    });
-    return this.#refreshPromise;
-  }
-
-  #resolveRetryConfig(): Required<RealmRetryOptions> {
-    return {
-      maxRetries: Number(this.#options.retry?.maxRetries ?? DEFAULT_RETRY_MAX_RETRIES),
-      retryableStatuses: this.#options.retry?.retryableStatuses ?? DEFAULT_RETRY_STATUSES,
-      backoffMs: Number(this.#options.retry?.backoffMs ?? DEFAULT_RETRY_BACKOFF_MS),
-      maxBackoffMs: Number(this.#options.retry?.maxBackoffMs ?? DEFAULT_RETRY_MAX_BACKOFF_MS),
-    };
-  }
-
-  #resolveRetryDelay(response: Response, attempt: number): number | null {
-    const config = this.#resolveRetryConfig();
-    if (attempt >= config.maxRetries) {
-      return null;
-    }
-    if (!config.retryableStatuses.includes(response.status)) {
-      return null;
-    }
-    if (response.status === 429) {
-      const retryAfterMs = this.#parseRetryAfter(response.headers.get('retry-after'));
-      if (retryAfterMs !== null) {
-        return retryAfterMs;
-      }
-    }
-    const backoff = config.backoffMs * (2 ** attempt);
-    return Math.min(backoff, config.maxBackoffMs);
-  }
-
-  #parseRetryAfter(value: string | null): number | null {
-    const normalized = normalizeText(value);
-    if (!normalized) {
-      return null;
-    }
-    const seconds = Number(normalized);
-    if (Number.isFinite(seconds) && seconds >= 0) {
-      return seconds * 1000;
-    }
-    const retryAt = Date.parse(normalized);
-    if (Number.isNaN(retryAt)) {
-      return null;
-    }
-    return Math.max(retryAt - Date.now(), 0);
-  }
-
-  async #sleep(delayMs: number, signal: AbortSignal): Promise<void> {
-    if (delayMs <= 0) {
-      return;
-    }
-    await new Promise<void>((resolve, reject) => {
-      if (signal.aborted) {
-        reject(createNimiError({
-          message: 'realm request aborted',
-          code: ReasonCode.OPERATION_ABORTED,
-          reasonCode: ReasonCode.OPERATION_ABORTED,
-          actionHint: 'retry_if_needed',
-          source: 'realm',
-          retryable: false,
-        }));
-        return;
-      }
-      const timer = setTimeout(() => {
-        signal.removeEventListener('abort', onAbort);
-        resolve();
-      }, delayMs);
-      const onAbort = () => {
-        clearTimeout(timer);
-        signal.removeEventListener('abort', onAbort);
-        reject(createNimiError({
-          message: 'realm request aborted',
-          code: ReasonCode.OPERATION_ABORTED,
-          reasonCode: ReasonCode.OPERATION_ABORTED,
-          actionHint: 'retry_if_needed',
-          source: 'realm',
-          retryable: false,
-        }));
-      };
-      signal.addEventListener('abort', onAbort, { once: true });
-    });
-  }
-
-  /**
-   * Decodes the unverified JWT payload for UX hints only.
-   * Do not use this helper for trust, authorization, or expiry enforcement.
-   */
   static decodeTokenExpiryUnsafe(jwt: string): { expiresAt: number; expiresInMs: number } | null {
-    try {
-      const parts = jwt.split('.');
-      if (parts.length !== 3) {
-        return null;
-      }
-      const payload = parts[1]!;
-      const normalized = payload
-        .replace(/-/g, '+')
-        .replace(/_/g, '/')
-        .padEnd(Math.ceil(payload.length / 4) * 4, '=');
-      const decoded = typeof atob === 'function'
-        ? atob(normalized)
-        : Buffer.from(normalized, 'base64').toString('utf8');
-      const parsed = asRecord(JSON.parse(decoded));
-      const exp = Number(parsed.exp);
-      if (!Number.isFinite(exp) || exp <= 0) {
-        return null;
-      }
-      const expiresAt = exp * 1000;
-      const expiresInMs = expiresAt - Date.now();
-      return { expiresAt, expiresInMs };
-    } catch {
-      return null;
-    }
-  }
-
-  async #resolveHeaders(overrides?: Record<string, string>, resolvedAccessToken?: string): Promise<Record<string, string>> {
-    const sourceHeaders = this.#options.headers;
-    let baseHeaders: Record<string, string> = {};
-
-    if (sourceHeaders) {
-      if (typeof sourceHeaders === 'function') {
-        const resolved = await sourceHeaders();
-        baseHeaders = Object.keys(resolved || {}).length > 0 ? resolved : {};
-      } else {
-        baseHeaders = Object.keys(sourceHeaders).length > 0 ? sourceHeaders : {};
-      }
-    }
-
-    const merged: Record<string, string> = {
-      ...baseHeaders,
-      ...(overrides || {}),
-    };
-
-    const accessToken = resolvedAccessToken ?? await this.#resolveAccessToken();
-    if (accessToken && !Object.keys(merged).some((name) => name.toLowerCase() === 'authorization')) {
-      merged.Authorization = `Bearer ${accessToken}`;
-    }
-
-    return merged;
+    return decodeRealmTokenExpiryUnsafe(jwt);
   }
 
   #emitTelemetry(name: string, data?: JsonObject): void {
