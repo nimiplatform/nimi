@@ -278,7 +278,7 @@ export function SettingsRealmRows(props: SettingsRouteViewProps) {
         </StatusBadge>
       </div>
       <div className="setting-row">
-        <span>Kit runtime avatar voice projection</span>
+        <span>SDK runtime voice schedule projection</span>
         <StatusBadge tone="neutral">
           {runtimeAvatarVoiceProjection.kind} / {runtimeAvatarVoiceProjection.source} / {runtimeAvatarVoiceProjection.cueCount}
         </StatusBadge>

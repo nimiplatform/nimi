@@ -496,11 +496,11 @@ test('image.edit is present in CONVERSATION_CAPABILITIES', () => {
   );
 });
 
-test('image.edit maps to image.generate via toRuntimeCanonicalCapability', () => {
-  assert.equal(toRuntimeCanonicalCapability('image.edit'), 'image.generate');
+test('image.edit stays an independent canonical capability via toRuntimeCanonicalCapability', () => {
+  assert.equal(toRuntimeCanonicalCapability('image.edit'), 'image.edit');
 });
 
-test('image.edit projection fails closed without image.generate route metadata', async () => {
+test('image.edit projection fails closed without image.edit route metadata', async () => {
   const routeRuntime = createMockRouteRuntime({
     resolveResult: createLocalResolvedBinding('image.generate', 'sd-xl'),
     healthResult: createHealthyResult(),
@@ -522,8 +522,8 @@ test('image.edit projection fails closed without image.generate route metadata',
   assert.equal(projection.resolvedBinding?.model, 'sd-xl');
 });
 
-test('toRuntimeCanonicalCapability maps image.edit to image.generate for host boundary', () => {
-  assert.equal(toRuntimeCanonicalCapability('image.edit'), 'image.generate');
+test('toRuntimeCanonicalCapability preserves image.edit for host boundary', () => {
+  assert.equal(toRuntimeCanonicalCapability('image.edit'), 'image.edit');
   assert.equal(toRuntimeCanonicalCapability('image.generate'), 'image.generate');
   assert.equal(toRuntimeCanonicalCapability('audio.synthesize'), 'audio.synthesize');
   assert.equal(toRuntimeCanonicalCapability('voice_workflow.voice_clone'), 'voice_workflow.voice_clone');

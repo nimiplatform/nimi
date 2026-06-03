@@ -26,27 +26,12 @@ import {
   type VoiceWorkflowVoiceCloneRouteMetadata,
   type VoiceWorkflowVoiceDesignRouteMetadata,
 } from './runtime-route-core.js';
+import {
+  parseRuntimeCanonicalCapabilityToken,
+} from './runtime-capability-vocabulary.generated.js';
 
 export function parseRuntimeCanonicalCapability(value: unknown): RuntimeCanonicalCapability | null {
-  const normalized = String(value || '').trim();
-  if (
-    normalized === 'text.generate'
-    || normalized === 'text.embed'
-    || normalized === 'image.generate'
-    || normalized === 'video.generate'
-    || normalized === 'world.generate'
-    || normalized === 'audio.synthesize'
-    || normalized === 'audio.transcribe'
-    || normalized === 'music.generate'
-    || normalized === 'voice_workflow.voice_clone'
-    || normalized === 'voice_workflow.voice_design'
-  ) {
-    return normalized;
-  }
-  // Runtime keeps `music` as a coarse runtime-only token until the music
-  // product surface gets its own canonical identity.
-  if (normalized === 'music') return 'music.generate';
-  return null;
+  return parseRuntimeCanonicalCapabilityToken(value);
 }
 
 export function parseRuntimeRouteMetadataKind(value: unknown): RuntimeRouteMetadataKind | null {

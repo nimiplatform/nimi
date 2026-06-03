@@ -16,8 +16,12 @@ import { LocalAssetKind } from '../../src/runtime/generated/runtime/v1/local_run
 
 test('runtime route local kind projection maps canonical capabilities to Runtime asset kind ids', () => {
   assert.equal(runtimeRouteLocalKindForCapability('text.generate'), 'chat');
+  assert.equal(runtimeRouteLocalKindForCapability('text.generate.vision'), 'chat');
+  assert.equal(runtimeRouteLocalKindForCapability('text.generate.audio'), 'chat');
+  assert.equal(runtimeRouteLocalKindForCapability('text.generate.video'), 'chat');
   assert.equal(runtimeRouteLocalKindForCapability('text.embed'), 'embedding');
   assert.equal(runtimeRouteLocalKindForCapability('image.generate'), 'image');
+  assert.equal(runtimeRouteLocalKindForCapability('image.edit'), 'image');
   assert.equal(runtimeRouteLocalKindForCapability('video.generate'), 'video');
   assert.equal(runtimeRouteLocalKindForCapability('audio.synthesize'), 'tts');
   assert.equal(runtimeRouteLocalKindForCapability('voice_workflow.voice_clone'), 'tts');
@@ -29,15 +33,19 @@ test('runtime route local kind projection maps canonical capabilities to Runtime
 
 test('runtime route capability token projection normalizes app-facing aliases', () => {
   assert.equal(normalizeRuntimeRouteCapabilityToken('chat'), 'text.generate');
+  assert.equal(normalizeRuntimeRouteCapabilityToken('vision'), 'text.generate.vision');
+  assert.equal(normalizeRuntimeRouteCapabilityToken('audio_chat'), 'text.generate.audio');
+  assert.equal(normalizeRuntimeRouteCapabilityToken('video_chat'), 'text.generate.video');
   assert.equal(normalizeRuntimeRouteCapabilityToken('image'), 'image.generate');
-  assert.equal(normalizeRuntimeRouteCapabilityToken('image.edit'), 'image.generate');
-  assert.equal(normalizeRuntimeRouteCapabilityToken('speech.transcribe'), 'audio.transcribe');
+  assert.equal(normalizeRuntimeRouteCapabilityToken('image.edit'), 'image.edit');
+  assert.equal(normalizeRuntimeRouteCapabilityToken('speech.transcribe'), null);
   assert.equal(normalizeRuntimeRouteCapabilityToken('unknown.capability'), null);
 });
 
 test('runtime route capability matcher projects app-facing aliases without Kit alias truth', () => {
   assert.equal(runtimeRouteCapabilitiesMatch(['chat'], 'text.generate'), true);
-  assert.equal(runtimeRouteCapabilitiesMatch(['image.generate'], 'image.edit'), true);
+  assert.equal(runtimeRouteCapabilitiesMatch(['image.edit'], 'image.edit'), true);
+  assert.equal(runtimeRouteCapabilitiesMatch(['image.generate'], 'image.edit'), false);
   assert.equal(runtimeRouteCapabilitiesMatch(['tts'], 'audio.synthesize'), true);
   assert.equal(runtimeRouteCapabilitiesMatch(['video.generate'], 'image.generate'), false);
   assert.equal(runtimeRouteCapabilitiesMatch(['text.generate'], 'unknown.capability'), false);
@@ -45,6 +53,7 @@ test('runtime route capability matcher projects app-facing aliases without Kit a
 
 test('runtime route modality projection preserves chat fallback for non-local capabilities', () => {
   assert.equal(runtimeRouteModalityForCapability('image.generate'), 'image');
+  assert.equal(runtimeRouteModalityForCapability('image.edit'), 'image');
   assert.equal(runtimeRouteModalityForCapability('world.generate'), 'chat');
   assert.equal(runtimeRouteModalityForCapability('music.generate'), 'chat');
 });

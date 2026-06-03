@@ -601,12 +601,12 @@ test('tester settings consumes Kit model picker binding projection', () => {
   assert.doesNotMatch(settings, /toRuntimeRouteBindingFromPickerSelection/);
 });
 
-test('tester settings consumes Kit runtime avatar voice projection', () => {
+test('tester settings consumes SDK runtime voice schedule and Kit avatar cue projection', () => {
   const settings = readSettingsSurface();
 
   assert.match(settings, /resolveRuntimeAgentVoicePlaybackDecision/);
-  assert.match(settings, /from '@nimiplatform\/kit\/features\/avatar\/runtime'/);
-  assert.match(settings, /Kit runtime avatar voice projection/);
+  assert.match(settings, /from '@nimiplatform\/sdk\/runtime'/);
+  assert.match(settings, /SDK runtime voice schedule projection/);
   assert.match(settings, /runtimeAvatarVoiceProjection\.cueCount/);
   assert.doesNotMatch(settings, /function resolveRuntimeAgentVoicePlaybackDecision/);
 });

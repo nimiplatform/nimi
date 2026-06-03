@@ -116,10 +116,13 @@ test('local runtime asset kind capability projection stays runtime-local', () =>
   assert.deepEqual(localRuntimeCapabilitiesForAssetKind('tts'), ['audio.synthesize']);
   assert.deepEqual(localRuntimeCapabilitiesForAssetKind('stt'), ['audio.transcribe']);
   assert.deepEqual(localRuntimeCapabilitiesForAssetKind('embedding'), ['text.embed']);
-  assert.deepEqual(localRuntimeCapabilitiesForAssetKind('vae'), ['chat']);
+  assert.deepEqual(localRuntimeCapabilitiesForAssetKind('chat'), ['text.generate']);
+  assert.deepEqual(localRuntimeCapabilitiesForAssetKind('vae'), []);
   assert.equal(localRuntimeRunnableAssetKindForCapabilities(['image']), 'image');
+  assert.equal(localRuntimeRunnableAssetKindForCapabilities(['image.edit']), 'image');
   assert.equal(localRuntimeRunnableAssetKindForCapabilities(['text.embed']), 'embedding');
   assert.equal(localRuntimeRunnableAssetKindForCapabilities(['audio.synthesize']), 'tts');
+  assert.equal(localRuntimeRunnableAssetKindForCapabilities(['text.generate', 'text.embed']), 'chat');
   assert.equal(localRuntimeRunnableAssetKindForCapabilities(['unknown']), 'chat');
 });
 

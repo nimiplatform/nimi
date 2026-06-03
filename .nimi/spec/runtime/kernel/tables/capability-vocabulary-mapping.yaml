@@ -8,6 +8,7 @@ entries:
   - text.generate.video
   - text.embed
   - image.generate
+  - image.edit
   - video.generate
   - world.generate
   - audio.synthesize
@@ -25,6 +26,7 @@ entries:
   - tts
   - stt
   - embedding
+  - music
   - LLM
   - VISION
   - IMAGE
@@ -74,6 +76,7 @@ canonical_tokens:
   - text.generate.video
   - text.embed
   - image.generate
+  - image.edit
   - video.generate
   - world.generate
   - audio.synthesize
@@ -94,6 +97,7 @@ local_manifest_tokens:
   - tts
   - stt
   - embedding
+  - music
 
 # LocalConnectorCategory (K-LOCAL-001 Phase 1 fixed categories)
 local_categories:
@@ -156,12 +160,18 @@ local_to_canonical:
     local_category: STT
     source_rule: K-LOCAL-002
 
+  - local_token: music
+    canonical_token: music.generate
+    local_category: CUSTOM
+    note: Sidecar music routing uses the local `music` token while public semantic surfaces use canonical `music.generate`.
+    source_rule: K-LOCAL-002
+
 # Canonical tokens with no Phase 1 local equivalent
 canonical_only:
-  - canonical_token: music.generate
-    note: Music generation remains provider-routed; no Phase 1 local manifest token exists
   - canonical_token: music.generate.iteration
     note: Iterative music generation remains provider-routed; no Phase 1 local manifest token exists
+  - canonical_token: image.edit
+    note: Prompt-based image editing is a canonical capability routed by media local adapter surfaces; no separate Phase 1 local manifest token exists
   - canonical_token: voice_workflow.voice_clone
     note: Voice clone workflow; requires orchestrated pipeline, not single-model local execution
   - canonical_token: voice_workflow.voice_design

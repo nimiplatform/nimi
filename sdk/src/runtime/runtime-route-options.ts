@@ -10,6 +10,10 @@ import {
   normalizeRuntimeRouteModelRoot,
 } from './runtime-route.js';
 import {
+  normalizeRuntimeCapabilityToken,
+  runtimeCanonicalCapabilityToAssetKind,
+} from './runtime-capability-vocabulary.generated.js';
+import {
   LOCAL_RUNTIME_RUNNABLE_ASSET_KIND_IDS,
   isLocalRuntimeRunnableAssetKindId,
   localRuntimeCapabilitiesForAssetKind,
@@ -105,21 +109,6 @@ export type RuntimeRouteCapabilityCoverageProjection = {
 
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
-}
-
-function normalizeCapabilityAlias(value: string): RuntimeCanonicalCapability | null {
-  if (value === 'chat') return 'text.generate';
-  if (value === 'embedding') return 'text.embed';
-  if (value === 'image') return 'image.generate';
-  if (value === 'image.edit') return 'image.generate';
-  if (value === 'video') return 'video.generate';
-  if (value === 'world') return 'world.generate';
-  if (value === 'tts') return 'audio.synthesize';
-  if (value === 'stt' || value === 'speech.transcribe') return 'audio.transcribe';
-  // Runtime keeps `music` as a coarse runtime-only token until the music
-  // product surface gets its own canonical identity.
-  if (value === 'music') return 'music.generate';
-  return null;
 }
 
 function canonicalLocalEngine(value: unknown): string | undefined {
@@ -514,22 +503,7 @@ function hydrateSelectedCloudBinding(
 }
 
 export function normalizeRuntimeRouteCapabilityToken(value: unknown): RuntimeCanonicalCapability | null {
-  const normalized = String(value || '').trim().toLowerCase();
-  if (
-    normalized === 'text.generate'
-    || normalized === 'text.embed'
-    || normalized === 'image.generate'
-    || normalized === 'video.generate'
-    || normalized === 'world.generate'
-    || normalized === 'audio.synthesize'
-    || normalized === 'audio.transcribe'
-    || normalized === 'music.generate'
-    || normalized === 'voice_workflow.voice_clone'
-    || normalized === 'voice_workflow.voice_design'
-  ) {
-    return normalized;
-  }
-  return normalizeCapabilityAlias(normalized);
+  return normalizeRuntimeCapabilityToken(value);
 }
 
 function runtimeCanonicalCapabilitiesForRunnableAssetKind(
@@ -644,29 +618,8 @@ export function runtimeRouteCapabilitiesMatch(
 export function runtimeRouteLocalKindForCapability(
   capability: RuntimeCanonicalCapability,
 ): LocalRuntimeRunnableAssetKindId | null {
-  if (capability === 'text.generate') {
-    return 'chat';
-  }
-  if (capability === 'text.embed') {
-    return 'embedding';
-  }
-  if (capability === 'image.generate') {
-    return 'image';
-  }
-  if (capability === 'video.generate') {
-    return 'video';
-  }
-  if (
-    capability === 'audio.synthesize'
-    || capability === 'voice_workflow.voice_clone'
-    || capability === 'voice_workflow.voice_design'
-  ) {
-    return 'tts';
-  }
-  if (capability === 'audio.transcribe') {
-    return 'stt';
-  }
-  return null;
+  const assetKind = runtimeCanonicalCapabilityToAssetKind(capability);
+  return isLocalRuntimeRunnableAssetKindId(assetKind) ? assetKind : null;
 }
 
 export function runtimeRouteModalityForCapability(

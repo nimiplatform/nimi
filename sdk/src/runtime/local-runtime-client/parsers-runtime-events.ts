@@ -117,11 +117,7 @@ export function parseAuditEvent(value: unknown): LocalRuntimeAuditEvent {
   };
 }
 
-export function normalizeDownloadState(
-  value: unknown,
-  fallbackDone?: boolean,
-  fallbackSuccess?: boolean,
-): LocalRuntimeDownloadState {
+export function normalizeDownloadState(value: unknown): LocalRuntimeDownloadState {
   const raw = asString(value).toLowerCase();
   if (
     raw === 'queued'
@@ -133,10 +129,43 @@ export function normalizeDownloadState(
   ) {
     return raw;
   }
-  if (fallbackDone) {
-    return fallbackSuccess ? 'completed' : 'failed';
+  throw new Error(`Invalid local runtime transfer state: ${raw || '(missing)'}`);
+}
+
+function expectedDoneSuccessForState(state: LocalRuntimeDownloadState): { done: boolean; success: boolean } {
+  switch (state) {
+    case 'completed':
+      return { done: true, success: true };
+    case 'failed':
+    case 'cancelled':
+      return { done: true, success: false };
+    default:
+      return { done: false, success: false };
   }
-  return 'running';
+}
+
+function readOptionalRuntimeBoolean(record: Record<string, unknown>, field: string): boolean | undefined {
+  if (!Object.prototype.hasOwnProperty.call(record, field)) {
+    return undefined;
+  }
+  const value = record[field];
+  if (typeof value !== 'boolean') {
+    throw new Error(`Invalid local runtime transfer ${field}: expected boolean`);
+  }
+  return value;
+}
+
+function parseRuntimeTransferDoneSuccess(
+  record: Record<string, unknown>,
+  state: LocalRuntimeDownloadState,
+): { done: boolean; success: boolean } {
+  const expected = expectedDoneSuccessForState(state);
+  const done = readOptionalRuntimeBoolean(record, 'done') ?? expected.done;
+  const success = readOptionalRuntimeBoolean(record, 'success') ?? expected.success;
+  if (done !== expected.done || success !== expected.success) {
+    throw new Error(`Invalid local runtime transfer terminal flags for state: ${state}`);
+  }
+  return { done, success };
 }
 
 function normalizeTransferSessionKind(value: unknown): LocalRuntimeTransferSessionKind {
@@ -149,8 +178,8 @@ export function parseDownloadProgressEvent(value: unknown): LocalRuntimeDownload
   const bytesTotalRaw = Number(record.bytesTotal);
   const speedRaw = Number(record.speedBytesPerSec);
   const etaRaw = Number(record.etaSeconds);
-  const done = Boolean(record.done);
-  const success = Boolean(record.success);
+  const state = normalizeDownloadState(record.state);
+  const { done, success } = parseRuntimeTransferDoneSuccess(record, state);
   const retryable = typeof record.retryable === 'boolean' ? Boolean(record.retryable) : undefined;
   return {
     installSessionId: asString(record.installSessionId),
@@ -163,7 +192,7 @@ export function parseDownloadProgressEvent(value: unknown): LocalRuntimeDownload
     speedBytesPerSec: Number.isFinite(speedRaw) && speedRaw >= 0 ? speedRaw : undefined,
     etaSeconds: Number.isFinite(etaRaw) && etaRaw >= 0 ? etaRaw : undefined,
     message: asString(record.message) || undefined,
-    state: normalizeDownloadState(record.state, done, success),
+    state,
     reasonCode: asString(record.reasonCode) || undefined,
     retryable,
     done,

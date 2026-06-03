@@ -311,6 +311,7 @@ source、snapshot、registry、resolver、scenario guard、live-provider checks 
 - `text.generate.video`
 - `text.embed`
 - `image.generate`
+- `image.edit`
 - `video.generate`
 - `world.generate`
 - `audio.synthesize`

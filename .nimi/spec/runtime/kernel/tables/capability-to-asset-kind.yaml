@@ -5,8 +5,12 @@ enum_id: runtime_capability_to_asset_kind
 values:
   - chat
   - text.generate
+  - text.generate.vision
+  - text.generate.audio
+  - text.generate.video
   - text.embed
   - image.generate
+  - image.edit
   - video.generate
   - audio.synthesize
   - audio.transcribe
@@ -18,6 +22,8 @@ values:
   - tts
   - stt
   - music
+  - music.generate
+  - music.generate.iteration
   - llm
   - vae
   - clip
@@ -42,11 +48,27 @@ mappings:
     source: canonical
     asset_kind: chat
 
+  - token: text.generate.vision
+    source: canonical
+    asset_kind: chat
+
+  - token: text.generate.audio
+    source: canonical
+    asset_kind: chat
+
+  - token: text.generate.video
+    source: canonical
+    asset_kind: chat
+
   - token: text.embed
     source: canonical
     asset_kind: embedding
 
   - token: image.generate
+    source: canonical
+    asset_kind: image
+
+  - token: image.edit
     source: canonical
     asset_kind: image
 
@@ -69,6 +91,14 @@ mappings:
   - token: voice_workflow.voice_design
     source: canonical
     asset_kind: tts
+
+  - token: music.generate
+    source: canonical
+    asset_kind: auxiliary
+
+  - token: music.generate.iteration
+    source: canonical
+    asset_kind: auxiliary
 
   # Local manifest tokens → asset kind (fallback)
   - token: embedding

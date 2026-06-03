@@ -19,6 +19,7 @@ export * from './model-catalog.js';
 export * from './workflow-builder.js';
 export * from './app-storage.js';
 export * from './runtime-agent-consumer-helpers.js';
+export * from './runtime-agent-voice-playback-decision.js';
 export * from './runtime-agent-turn-runner.js';
 export * from './runtime-media-generation-job-runner.js';
 export * from './runtime-agent-inspect-projection.js';

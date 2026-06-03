@@ -1,4 +1,10 @@
 import {
+  resolveRuntimeAgentVoicePlaybackDecision,
+  type RuntimeAgentPresentationLipsyncFrameBatchEvent,
+  type RuntimeAgentPresentationVoicePlaybackRequestedEvent,
+  type RuntimeAgentTimelineEnvelope,
+} from '@nimiplatform/sdk/runtime';
+import {
   isRealmFeedScope,
   projectRealmBaseUrl,
   projectRealmRealtimeUrl,
@@ -6,12 +12,6 @@ import {
   resolveRealmMediaUrl,
 } from '@nimiplatform/sdk/realm';
 import { resolveAgentVoicePlaybackCue } from '@nimiplatform/kit/features/avatar/headless';
-import {
-  resolveRuntimeAgentVoicePlaybackDecision,
-  type RuntimeAgentPresentationLipsyncFrameBatchEvent,
-  type RuntimeAgentPresentationVoicePlaybackRequestedEvent,
-  type RuntimeAgentTimelineEnvelope,
-} from '@nimiplatform/kit/features/avatar/runtime';
 import {
   createRealmChatResourceAttachmentPayload,
   resolveRealmChatAttachmentPreviewText,

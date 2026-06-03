@@ -303,6 +303,11 @@ Fixed rules:
   APML wire syntax and typed runtime presentation events; no SDK helper may
   re-admit public `<motion>`, `<expression>`, `<lookat>`, `<pose>`, or
   `<clear-pose>` syntax by translating it client-side.
+- SDK may combine typed `runtime.agent.presentation.voice_playback_requested`
+  and `runtime.agent.presentation.lipsync_frame_batch` events into a
+  non-authoritative playback schedule for app/Kit consumers when all Runtime
+  timeline authority fields, turn identity, stream identity, audio artifact
+  identity, and drift bounds remain explicit and fail closed.
 
 ## S-RUNTIME-104 Renderer-Local Transient Non-Owner Boundary
 
@@ -481,3 +486,24 @@ drift check：
 - SDK 不得在 `readBytes` 失败时返回空 bytes、默认 mime、或假装成功路径。
 - SDK 不得为 `readBytes` 暴露 fallback / retry-on-decode-failure 旋钮（K-ERR-003 / S-RUNTIME-085 同 posture）。
 - SDK readBytes mime prefix check 必须 case-insensitive；不得 exact-match。
+
+## S-RUNTIME-112 Local Runtime Transfer State Projection
+
+> Upstream Runtime authority: `K-LOCAL-024`（`local-category-capability.md`）。
+
+Runtime LocalService owns local transfer lifecycle state. SDK local-runtime
+transfer parsers are typed projections over that state only.
+
+Fixed rules:
+
+- `state` is the canonical lifecycle field for local transfer progress events
+  and session summaries.
+- `done` and `success` are terminal flags derived from Runtime-owned `state`;
+  SDK must not reverse-infer `completed`, `failed`, or `cancelled` from these
+  booleans when `state` is absent or invalid.
+- SDK must fail closed on missing or unknown transfer `state`.
+- When Runtime provides `done` or `success`, SDK must verify those booleans are
+  consistent with `state`; mismatches must fail closed instead of being
+  projected as progress or completion.
+- Desktop, Tester, Kit, and other apps may render SDK transfer projections but
+  must not maintain a second transfer lifecycle state machine.

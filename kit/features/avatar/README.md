@@ -1,7 +1,7 @@
 # Kit Feature: Avatar
 
 ## What It Is
-Reusable agent avatar surface for runtime-backed presentation profiles and surface-local interaction state.
+Reusable agent avatar surface for Runtime-adjacent presentation records, voice playback cues, and surface-local interaction state.
 
 ## Public Surfaces
 - `@nimiplatform/kit/features/avatar`
@@ -13,7 +13,7 @@ Reusable agent avatar surface for runtime-backed presentation profiles and surfa
 - Current surfaces:
   - `headless`: admitted for normalized presentation and transient interaction contracts
   - `ui`: admitted for the default avatar stage shell
-  - `runtime`: admitted for runtime-backed persistent agent presentation projection helpers
+  - `runtime`: admitted for avatar presentation records, playback cue envelopes, and estimator helpers after Runtime/SDK has exposed typed projection data
   - `vrm`: admitted optional renderer surface for backend-specific VRM adapters without forcing 3D runtime assumptions into the default `ui` surface
   - `live2d`: admitted optional renderer and helper surface for backend-specific Live2D adapters without moving desktop-local source loading or Cubism bootstrapping into kit
   - `realm`: none
@@ -21,14 +21,14 @@ Reusable agent avatar surface for runtime-backed presentation profiles and surfa
 ## When To Use It
 - Reuse a shared avatar stage instead of rebuilding a chat-private or app-private agent renderer shell.
 - Normalize runtime-owned presentation profiles and app-owned interaction cues before they reach renderer code.
-- Bind first-party runtime agent presentation projection without moving transient voice/session state into runtime truth.
+- Bind first-party Runtime-adjacent avatar presentation records and playback cues without moving transient voice/session state into Runtime truth.
 - Opt into VRM-specific renderer behavior only when a consumer truly needs a 3D avatar backend.
 - Opt into Live2D-specific renderer behavior only when a consumer truly needs a Live2D backend while keeping consumer-local runtime bootstrap separate.
 
 ## Before Building Locally
 - Check `avatar/ui` before building a new avatar stage, idle shell, or reusable agent render container.
 - Check `avatar/headless` before introducing app-local presentation normalization, emotion cue mapping, or transient avatar interaction state contracts.
-- Check `avatar/runtime` before wrapping runtime agent presentation projection directly in app code.
+- Check `avatar/runtime` before rebuilding avatar presentation-record or playback-cue helpers in app code. Runtime event schedule decisions belong in `@nimiplatform/sdk/runtime`.
 - Check `avatar/vrm` before introducing app-local R3F/VRM renderer code; prefer injecting that implementation through the admitted optional VRM surface.
 - Check `avatar/live2d` before introducing app-local Live2D framing, motion-choice, or viewport-state policy; keep source loading and concrete Cubism runtime bootstrap on the consumer side.
 - Prefer lazy-loading the concrete VRM viewport from the consumer side so heavyweight 3D runtime code only loads when a VRM backend is actually rendered.

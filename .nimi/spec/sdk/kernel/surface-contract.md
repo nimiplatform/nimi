@@ -449,6 +449,10 @@ Admitted primitives include:
 - event queues and stream assemblers for `runtime.agent.turn.*`,
   `runtime.agent.presentation.*`, `runtime.agent.state.*`, and
   `runtime.agent.hook.*` consume events
+- non-authoritative voice/lipsync playback schedule decisions assembled from
+  typed `runtime.agent.presentation.voice_playback_requested` and
+  `runtime.agent.presentation.lipsync_frame_batch` events, with Runtime
+  timeline authority and stream identity preserved
 - request-id / committed-message correlation for ignoring backlog events on the
   same conversation anchor
 - terminal snapshot recovery that calls the public
@@ -469,6 +473,8 @@ This surface is SDK DX/client-orchestration only. It must not:
 - infer agent identity, conversation-anchor truth, memory policy, autonomy,
   hooks, presentation posture, APML/message-action existence, voice/media
   workflow truth, provider/model routing, readiness, audit, or permissions
+- infer, synthesize, or persist voice workflow success when Runtime has not
+  emitted admitted voice/lipsync evidence
 - synthesize terminal success when Runtime has not emitted or exposed terminal
   turn evidence
 - persist transcript, session, message, memory, or event truth

@@ -4,6 +4,10 @@ import {
   LocalProfileEntryKind,
 } from './generated/runtime/v1/local_runtime_asset_catalog.js';
 import { GpuMemoryModel } from './generated/runtime/v1/local_runtime_device_environment.js';
+import {
+  RUNTIME_CAPABILITY_TO_ASSET_KIND_MAPPINGS,
+  runtimeCanonicalCapabilityForLocalManifestToken,
+} from './runtime-capability-vocabulary.generated.js';
 
 export type LocalRuntimeRunnableAssetKindId =
   | 'chat'
@@ -333,22 +337,12 @@ export function canImportLocalRuntimeAssetDeclaration(
 }
 
 export function localRuntimeCapabilitiesForAssetKind(kind: LocalRuntimeAssetKindId): string[] {
-  switch (kind) {
-    case 'image':
-      return ['image.generate'];
-    case 'video':
-      return ['video.generate'];
-    case 'tts':
-      return ['audio.synthesize'];
-    case 'stt':
-      return ['audio.transcribe'];
-    case 'embedding':
-      return ['text.embed'];
-    case 'chat':
-      return ['chat'];
-    default:
-      return ['chat'];
+  const parsed = parseLocalRuntimeAssetKindId(kind);
+  if (!parsed || !isLocalRuntimeRunnableAssetKindId(parsed)) {
+    return [];
   }
+  const canonical = runtimeCanonicalCapabilityForLocalManifestToken(parsed);
+  return canonical ? [canonical] : [];
 }
 
 export function localRuntimeRunnableAssetKindForCapabilities(
@@ -365,23 +359,13 @@ export function localRuntimeRunnableAssetKindForCapabilities(
       return kind;
     }
   }
-  if (normalized.has('image.generate') || normalized.has('image.edit')) {
-    return 'image';
-  }
-  if (normalized.has('video.generate')) {
-    return 'video';
-  }
-  if (normalized.has('audio.synthesize')) {
-    return 'tts';
-  }
-  if (normalized.has('audio.transcribe')) {
-    return 'stt';
-  }
-  if (normalized.has('text.embed') || normalized.has('embed')) {
-    return 'embedding';
-  }
-  if (normalized.has('text.generate')) {
-    return 'chat';
+  for (const mapping of RUNTIME_CAPABILITY_TO_ASSET_KIND_MAPPINGS) {
+    if (
+      normalized.has(mapping.token)
+      && isLocalRuntimeRunnableAssetKindId(mapping.assetKind)
+    ) {
+      return mapping.assetKind;
+    }
   }
   return fallback;
 }

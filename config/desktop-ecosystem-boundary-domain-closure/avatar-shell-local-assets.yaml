@@ -78,8 +78,8 @@ legalized:
     - path: apps/desktop/src/shell/renderer/features/chat/chat-agent-avatar-vrm-*.ts
       rationale: Desktop owns lazy host wiring and concrete Three/VRM viewport diagnostics for its chat surface; shared VRM framing/state/render policy is imported from Kit avatar/vrm.
 tester_proof:
-  - apps/tester/src/shell/routes/settings.tsx consumes Kit avatar headless/runtime helpers in a product settings flow distinct from Desktop Agent Chat.
-  - apps/tester/test/tester-contract.test.mjs verifies Tester settings consume Kit runtime avatar voice projection.
+  - apps/tester/src/shell/routes/settings.tsx consumes SDK Runtime voice schedule projection and Kit avatar cue helpers in a product settings flow distinct from Desktop Agent Chat.
+  - apps/tester/test/tester-contract.test.mjs verifies Tester settings consume SDK Runtime voice schedule projection and Kit avatar cue helpers.
   - apps/tester/src/tester/kit-component-gallery.tsx proves Tester consumes Kit UI Avatar primitives as a separate Nimi ecosystem app.
   - kit/features/avatar/test/*.test.* prove shared Kit avatar behavior outside Desktop.
 regression_guards:

@@ -2,22 +2,15 @@ import type {
   LocalProviderAdapter,
   LocalProviderHints,
 } from './runtime-route-types.js';
+import type {
+  RuntimeCanonicalCapabilityToken,
+} from './runtime-capability-vocabulary.generated.js';
 
 export type RuntimeRouteSource = 'local' | 'cloud';
 export type RuntimeRouteModelProfileContextSource = 'provider-api' | 'template' | 'default' | 'unknown';
 export type RuntimeRouteResolvedBindingRef = string;
 export type RuntimeRouteMetadataVersion = 'v1';
-export type RuntimeCanonicalCapability =
-  | 'text.generate'
-  | 'text.embed'
-  | 'image.generate'
-  | 'video.generate'
-  | 'world.generate'
-  | 'audio.synthesize'
-  | 'audio.transcribe'
-  | 'music.generate'
-  | 'voice_workflow.voice_clone'
-  | 'voice_workflow.voice_design';
+export type RuntimeCanonicalCapability = RuntimeCanonicalCapabilityToken;
 
 export type RuntimeRouteBinding = {
   source: RuntimeRouteSource;
