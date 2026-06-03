@@ -23,11 +23,158 @@ export type {
   AgentVoicePlaybackVisemeId,
 } from './voice-playback.js';
 export {
+  AudioPipelineController,
+  getSharedAudioPipelineController,
+  resetSharedAudioPipelineControllerForTesting,
+  SYNTHETIC_AUDIO_MIME_TYPE,
+} from './audio-pipeline.js';
+export type {
+  AudioPipelineListener,
+  AudioPipelinePlayInput,
+  AudioPlaybackSnapshot,
+  AudioPlaybackState,
+  AvatarAudioPipelineSink,
+  AvatarAudioPipelineSinkSnapshot,
+} from './audio-pipeline.js';
+export {
   resolveAgentVoicePlaybackAmplitude,
   resolveAgentVoicePlaybackCue,
   resolveAgentVoicePlaybackEstimatedFrame,
   resolveAgentVoicePlaybackVisemeId,
 } from './voice-playback.js';
+export {
+  createAvatarHitRegionSnapshot,
+  hitTestAvatarRegion,
+  rectFromElement,
+} from './avatar-hit-region.js';
+export type {
+  AvatarHitRegionName,
+  AvatarHitRegionRect,
+  AvatarHitRegionSnapshot,
+  AvatarHitTestPoint,
+  AvatarHitTestResult,
+} from './avatar-hit-region.js';
+export {
+  __KNOWN_ROUTING_ACTIVITY_IDS__,
+  createActivityMappingResolver,
+} from './avatar-activity-mapping-resolver.js';
+export type {
+  ActivityMappingResolver,
+  ActivityRoutes,
+  Live2DActivityRoute,
+  VrmActivityRoute,
+} from './avatar-activity-mapping-resolver.js';
+export type {
+  ActivityFallbackOptions,
+  AvatarActivityFallbackBundle,
+  EmbodimentProjectionApi,
+  MotionPriority,
+  PlayMotionOptions,
+  ProjectionBounds,
+} from './avatar-cue-projection.js';
+export {
+  createSmoothedProjection,
+  PROJECTION_SIGNAL_SMOOTHING_MAX_PENDING_SIGNALS,
+} from './avatar-projection-smoothing.js';
+export type {
+  CreateSmoothedProjectionInput,
+  ProjectionSmoothingHandle,
+  ProjectionSmoothingStats,
+} from './avatar-projection-smoothing.js';
+export {
+  getSharedVoiceLipsyncStateBus,
+  resetSharedVoiceLipsyncStateBusForTesting,
+  VoiceLipsyncStateBus,
+} from './voice-lipsync-state-bus.js';
+export type {
+  VoiceLipsyncStateBusEvent,
+  VoiceLipsyncStateBusListener,
+} from './voice-lipsync-state-bus.js';
+export type {
+  AgentCenterLocalAvatarAssetReference,
+  AvatarModelManifest,
+  Live2DAvatarModelManifest,
+  Live2DLocalModelManifest,
+  LocalAvatarAssetReference,
+  TauriAvatarModelManifest,
+  VrmAvatarModelManifest,
+} from './avatar-model-manifest.js';
+export {
+  fromLive2DLocalModelManifest,
+  fromTauriAvatarModelManifest,
+} from './avatar-model-manifest.js';
+export type {
+  BackendAudioConsumer,
+  BackendBranch,
+  BackendBranchBase,
+  BackendHitRegion,
+  BackendKind,
+  BackendMetadata,
+  BackendNominalBounds,
+  BackendProjection,
+  BackendSurface,
+  BackendSurfaceProps,
+  Live2DBackendExtension,
+  WLipSyncSnapshot,
+} from './backend-branch.js';
+export {
+  assertLive2DCompatibilitySupported,
+  DEFAULT_MOUTH_OPEN_PARAMETER,
+  LIVE2D_ADAPTER_MANIFEST_KIND,
+  parseLive2DAdapterManifest,
+  validateLive2DCompatibility,
+} from './live2d-compatibility.js';
+export type {
+  Live2DAdapterManifestV1,
+  Live2DCompatibilityDiagnostic,
+  Live2DCompatibilityDiagnosticCode,
+  Live2DCompatibilityInput,
+  Live2DCompatibilityModelManifest,
+  Live2DCompatibilityModelSettings,
+  Live2DCompatibilityReport,
+  Live2DCompatibilityResources,
+  Live2DCompatibilityTier,
+  Live2DFeatureDisposition,
+} from './live2d-compatibility.js';
+export {
+  computeLive2DHitRegion,
+  createLive2DHitRegion,
+  LIVE2D_ALPHA_MASK_THRESHOLD,
+  LIVE2D_ALPHA_MASK_THRESHOLD_BYTE,
+  LIVE2D_DEFAULT_HIT_REGION,
+} from './live2d-hit-region.js';
+export type {
+  CreateLive2DHitRegionInputs,
+  Live2DHitRegionDegradedDetail,
+  Live2DHitRegionDeviceTier,
+  Live2DHitRegionInput,
+} from './live2d-hit-region.js';
+export {
+  createVrmHitRegion,
+  VRM_ALPHA_MASK_THRESHOLD,
+  VRM_ALPHA_MASK_THRESHOLD_BYTE,
+} from './vrm-hit-region.js';
+export type {
+  CreateVrmHitRegionInputs,
+  VrmHitRegionDegradedDetail,
+  VrmHitRegionDeviceTier,
+  VrmHitRegionRenderTarget,
+} from './vrm-hit-region.js';
+export {
+  computeLive2DNominalBounds,
+  LIVE2D_FALLBACK_NOMINAL_BOUNDS,
+} from './live2d-nominal-bounds.js';
+export type {
+  Live2DNominalBoundsInput,
+  Live2DNominalBoundsModel,
+} from './live2d-nominal-bounds.js';
+export { activityIdToMotionGroup } from './avatar-activity-naming.js';
+export { createLive2DProjectionAdapter } from './live2d-projection-adapter.js';
+export type {
+  Live2DProjectionAdapterDeps,
+  Live2DProjectionCommandBus,
+  Live2DProjectionCommandEvent,
+} from './live2d-projection-adapter.js';
 
 import type {
   AvatarBackendKind,

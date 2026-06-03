@@ -15,14 +15,50 @@ export type {
   AvatarVrmFramingPolicy,
   AvatarVrmFramingResult,
   AvatarVrmViewportState,
+  VrmCameraFramingInput,
+  VrmCameraFramingIntent,
+  VrmCameraFramingResult,
+  VrmCameraFramingVector,
+  CreateVrmEmoteStateInputs,
+  VrmEmoteBundle,
+  VrmEmoteSnapshot,
+  VrmEmoteState,
+  VrmEmoteTable,
+  VrmExpressionWritable,
+  VrmMotionPresetEntry,
+  VrmMotionPresetTable,
 } from './vrm-domain.js';
 export {
+  GENERATED_MOTION_MAX_ROTATION_RAD,
+  isVrmGeneratedRouteId,
+  VRM_GENERATED_ROUTE_IDS,
+} from './vrm-generated-motion.js';
+export type {
+  GeneratedMotionEvidence,
+  GeneratedMotionRuntimeSnapshot,
+  PlayGeneratedMotionInput,
+  PlayGeneratedMotionResult,
+  VrmGeneratedMotionProvider,
+  VrmGeneratedMotionProviderInput,
+  VrmGeneratedMotionProviderResult,
+  VrmGeneratedMotionRuntime,
+  VrmGeneratedRouteId,
+} from './vrm-generated-motion.js';
+export {
+  ADMITTED_INTERCHANGE_PRESET_IDS,
+  computeVrmCameraFraming,
+  createVrmEmoteState,
+  DEFAULT_TRANSIENT_FADE_SEC,
   measureAvatarVrmFramingMetrics,
+  normalizeVrmEmoteTable,
+  normalizeVrmMotionPresetTable,
+  PRIMARY_EXPRESSION_WEIGHT_CAP,
   resolveAvatarVrmExpressionWeights,
   resolveAvatarVrmFramingFromScene,
   resolveAvatarVrmFramingPolicy,
   resolveAvatarVrmFramingResult,
   resolveAvatarVrmViewportState,
+  VISEME_NAMES,
 } from './vrm-domain.js';
 
 export type AvatarVrmViewportRenderInput = {

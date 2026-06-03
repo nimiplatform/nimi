@@ -1,4 +1,39 @@
 import type { AvatarVrmViewportRenderInput } from './vrm.js';
+import { resolveAvatarVrmPhasePosture } from './vrm-phase-posture.js';
+export {
+  computeVrmCameraFraming,
+} from './vrm-camera-framing.js';
+export type {
+  VrmCameraFramingInput,
+  VrmCameraFramingIntent,
+  VrmCameraFramingResult,
+  VrmCameraFramingVector,
+} from './vrm-camera-framing.js';
+export {
+  createVrmEmoteState,
+  DEFAULT_TRANSIENT_FADE_SEC,
+  PRIMARY_EXPRESSION_WEIGHT_CAP,
+  VISEME_NAMES,
+} from './vrm-emote-state.js';
+export {
+  normalizeVrmEmoteTable,
+} from './vrm-emote-table.js';
+export type {
+  CreateVrmEmoteStateInputs,
+  VrmEmoteBundle,
+  VrmEmoteSnapshot,
+  VrmEmoteState,
+  VrmEmoteTable,
+  VrmExpressionWritable,
+} from './vrm-emote-state.js';
+export {
+  ADMITTED_INTERCHANGE_PRESET_IDS,
+  normalizeVrmMotionPresetTable,
+} from './vrm-motion-preset-table.js';
+export type {
+  VrmMotionPresetEntry,
+  VrmMotionPresetTable,
+} from './vrm-motion-preset-table.js';
 export {
   measureAvatarVrmFramingMetrics,
   resolveAvatarVrmFramingFromScene,
@@ -11,6 +46,12 @@ export type {
   AvatarVrmFramingPolicy,
   AvatarVrmFramingResult,
 } from './vrm-framing.js';
+export {
+  resolveAvatarVrmExpressionWeights,
+} from './vrm-expression.js';
+export type {
+  AvatarVrmExpressionWeights,
+} from './vrm-expression.js';
 
 export type AvatarAttentionState = {
   active: boolean;
@@ -55,11 +96,6 @@ export type AvatarVrmViewportState = {
   accentColor: string;
   glowColor: string;
 };
-
-export type AvatarVrmExpressionWeights = Partial<Record<
-  'happy' | 'sad' | 'relaxed' | 'surprised' | 'aa' | 'ih' | 'ou' | 'ee' | 'oh',
-  number
->>;
 
 function clampUnit(value: number | null | undefined): number {
   if (typeof value !== 'number' || Number.isNaN(value)) {
@@ -115,147 +151,6 @@ function resolvePalette(
   }
 }
 
-function clampExpressionWeight(value: number): number {
-  return Math.max(0, Math.min(value, 1));
-}
-
-function resolvePhasePosture(input: {
-  phase: AvatarVrmViewportRenderInput['snapshot']['interaction']['phase'];
-  amplitude: number;
-  attentionLift: number;
-}): Pick<
-  AvatarVrmViewportState,
-  | 'posture'
-  | 'speakingEnergy'
-  | 'motionSpeed'
-  | 'sparklesSpeed'
-  | 'bodyYawAmplitude'
-  | 'bodyPitchAmplitude'
-  | 'bodyLiftAmplitude'
-  | 'breathingSpeed'
-  | 'breathingScaleAmount'
-  | 'speakingPulseSpeed'
-  | 'speakingPulseAmount'
-  | 'mouthOpen'
-  | 'eyeOpen'
-  | 'blinkSpeed'
-> {
-  switch (input.phase) {
-    case 'speaking': {
-      const speakingEnergy = clampUnit(0.35 + input.amplitude * 0.65);
-      return {
-        posture: 'speaking-energized',
-        speakingEnergy,
-        motionSpeed: 1.45 + input.amplitude * 1.15 + input.attentionLift * 0.35,
-        sparklesSpeed: 0.82 + input.amplitude * 0.72 + input.attentionLift * 0.5,
-        bodyYawAmplitude: 0.075,
-        bodyPitchAmplitude: 0.028,
-        bodyLiftAmplitude: 0.022,
-        breathingSpeed: 1 + input.amplitude * 0.7,
-        breathingScaleAmount: 0.018 + input.amplitude * 0.016,
-        speakingPulseSpeed: 4.2 + input.amplitude * 6,
-        speakingPulseAmount: 0.016 + input.amplitude * 0.028,
-        mouthOpen: 0.14 + input.amplitude * 0.18,
-        eyeOpen: 0.082,
-        blinkSpeed: 6,
-      };
-    }
-    case 'listening':
-      return {
-        posture: 'listening-attentive',
-        speakingEnergy: 0,
-        motionSpeed: 0.54 + input.attentionLift * 0.8,
-        sparklesSpeed: 0.28 + input.attentionLift * 0.5,
-        bodyYawAmplitude: 0.09,
-        bodyPitchAmplitude: 0.035,
-        bodyLiftAmplitude: 0.03,
-        breathingSpeed: 0.92,
-        breathingScaleAmount: 0.014,
-        speakingPulseSpeed: 0,
-        speakingPulseAmount: 0,
-        mouthOpen: 0.11,
-        eyeOpen: 0.09,
-        blinkSpeed: 3.6,
-      };
-    case 'thinking':
-      return {
-        posture: 'thinking-reflective',
-        speakingEnergy: 0,
-        motionSpeed: 0.76 + input.attentionLift * 0.45,
-        sparklesSpeed: 0.42 + input.attentionLift * 0.38,
-        bodyYawAmplitude: 0.11,
-        bodyPitchAmplitude: 0.05,
-        bodyLiftAmplitude: 0.034,
-        breathingSpeed: 0.74,
-        breathingScaleAmount: 0.015,
-        speakingPulseSpeed: 0,
-        speakingPulseAmount: 0,
-        mouthOpen: 0.1,
-        eyeOpen: 0.05,
-        blinkSpeed: 2.2,
-      };
-    case 'transitioning':
-      return {
-        posture: 'transitioning-settle',
-        speakingEnergy: 0,
-        motionSpeed: 0.44 + input.attentionLift * 0.6,
-        sparklesSpeed: 0.24 + input.attentionLift * 0.4,
-        bodyYawAmplitude: 0.095,
-        bodyPitchAmplitude: 0.032,
-        bodyLiftAmplitude: 0.026,
-        breathingSpeed: 0.84,
-        breathingScaleAmount: 0.013,
-        speakingPulseSpeed: 0,
-        speakingPulseAmount: 0,
-        mouthOpen: 0.11,
-        eyeOpen: 0.078,
-        blinkSpeed: 3.1,
-      };
-    case 'idle':
-    default:
-      return {
-        posture: 'idle-settled',
-        speakingEnergy: 0,
-        motionSpeed: 0.35 + input.attentionLift,
-        sparklesSpeed: 0.25 + input.attentionLift * 0.85,
-        bodyYawAmplitude: 0.1,
-        bodyPitchAmplitude: 0.032,
-        bodyLiftAmplitude: 0.03,
-        breathingSpeed: 0.8 + input.amplitude * 0.6,
-        breathingScaleAmount: 0.012 + input.amplitude * 0.012,
-        speakingPulseSpeed: 0,
-        speakingPulseAmount: 0,
-        mouthOpen: 0.11,
-        eyeOpen: 0.08,
-        blinkSpeed: 3.2,
-      };
-  }
-}
-
-function resolveVisemePreset(
-  visemeId: string | null | undefined,
-): keyof AvatarVrmExpressionWeights | null {
-  switch ((visemeId || '').trim().toLowerCase()) {
-    case 'a':
-    case 'aa':
-      return 'aa';
-    case 'i':
-    case 'ih':
-      return 'ih';
-    case 'u':
-    case 'ou':
-      return 'ou';
-    case 'e':
-    case 'ee':
-      return 'ee';
-    case 'o':
-    case 'oh':
-      return 'oh';
-    default:
-      return null;
-  }
-}
-
 export function resolveAvatarVrmViewportState(
   input: AvatarVrmViewportRenderInput,
   attention?: AvatarAttentionState | null,
@@ -289,7 +184,7 @@ export function resolveAvatarVrmViewportState(
   const eyeFollowX = normalizedX * attentionInfluence * EYE_FOLLOW_X_SCALE;
   const eyeFollowY = -normalizedY * attentionInfluence * EYE_FOLLOW_Y_SCALE;
   const attentionLift = attentionInfluence * (phase === 'speaking' ? 0.06 : 0.12);
-  const posture = resolvePhasePosture({
+  const posture = resolveAvatarVrmPhasePosture({
     phase,
     amplitude,
     attentionLift,
@@ -326,56 +221,4 @@ export function resolveAvatarVrmViewportState(
     accentColor: palette.accentColor,
     glowColor: palette.glowColor,
   };
-}
-
-export function resolveAvatarVrmExpressionWeights(
-  input: AvatarVrmViewportRenderInput,
-): AvatarVrmExpressionWeights {
-  const emotion = input.snapshot.interaction.emotion || 'neutral';
-  const phase = input.snapshot.interaction.phase;
-  const amplitude = clampUnit(input.snapshot.interaction.amplitude);
-  const weights: AvatarVrmExpressionWeights = {};
-
-  switch (emotion) {
-    case 'joy':
-      weights.happy = 0.82;
-      break;
-    case 'playful':
-      weights.happy = 0.66;
-      weights.relaxed = 0.3;
-      break;
-    case 'concerned':
-      weights.sad = 0.72;
-      break;
-    case 'calm':
-      weights.relaxed = 0.56;
-      break;
-    case 'focus':
-      weights.relaxed = 0.42;
-      break;
-    case 'surprised':
-      weights.surprised = 0.84;
-      break;
-    default:
-      break;
-  }
-
-  if (phase === 'thinking') {
-    weights.relaxed = Math.max(weights.relaxed ?? 0, 0.3);
-  }
-
-  if (phase === 'listening') {
-    weights.relaxed = Math.max(weights.relaxed ?? 0, 0.16);
-  }
-
-  if (phase === 'speaking') {
-    const visemePreset = resolveVisemePreset(input.snapshot.interaction.visemeId);
-    if (visemePreset) {
-      weights[visemePreset] = clampExpressionWeight(0.4 + amplitude * 0.6);
-    } else {
-      weights.aa = clampExpressionWeight(0.24 + amplitude * 0.56);
-    }
-  }
-
-  return weights;
 }

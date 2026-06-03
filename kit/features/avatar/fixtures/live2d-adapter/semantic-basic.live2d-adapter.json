@@ -1,0 +1,57 @@
+{
+  "manifest_kind": "nimi.avatar.live2d.adapter",
+  "schema_version": 1,
+  "adapter_id": "synthetic-semantic-basic",
+  "target_model": {
+    "model_id": "ren",
+    "model3": "ren.model3.json"
+  },
+  "license": {
+    "redistribution": "allowed",
+    "evidence": "Synthetic metadata fixture authored for Nimi Avatar tests; no Live2D model asset bytes are included.",
+    "fixture_use": "committable"
+  },
+  "compatibility": {
+    "requested_tier": "semantic_basic"
+  },
+  "semantics": {
+    "motions": {
+      "idle": { "group": "Idle" },
+      "activities": {
+        "neutral": { "group": "RenNeutral" },
+        "greet": { "group": "RenGreet" },
+        "listening": { "group": "RenListening" },
+        "thinking": { "group": "RenThinking" }
+      },
+      "missing_activity": "diagnostic_no_success"
+    },
+    "expressions": {
+      "map": { "happy": "smile" },
+      "disposition": { "status": "supported" }
+    },
+    "poses": {
+      "map": { "focused": "standing" },
+      "disposition": { "status": "supported" }
+    },
+    "lipsync": {
+      "mouth_open_y_parameter": "ParamMouthOpenY",
+      "disposition": { "status": "supported" }
+    },
+    "physics": {
+      "mode": "model_physics",
+      "disposition": { "status": "supported" }
+    },
+    "hit_regions": {
+      "map": {
+        "head": ["head"],
+        "body": ["body"]
+      },
+      "fallback": "alpha_mask_only",
+      "disposition": { "status": "supported" }
+    },
+    "nas_fallback": {
+      "default_idle_motion": "Idle",
+      "missing_handler": "backend_default_with_diagnostic"
+    }
+  }
+}
