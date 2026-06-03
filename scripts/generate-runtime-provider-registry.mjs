@@ -454,6 +454,10 @@ function endpointRequirementFor(record) {
   return record.requiresExplicitEndpoint ? 'explicit_required' : 'default_or_explicit';
 }
 
+function numberedTableEntries(prefix, count) {
+  return Array.from({ length: count }, (_, index) => `${prefix}_${index + 1}`);
+}
+
 function providerCatalogTableDoc(records) {
   const providers = records
     .filter((record) => record.runtimePlane === 'remote')
@@ -466,7 +470,14 @@ function providerCatalogTableDoc(records) {
       inventory_mode: record.inventoryMode,
       source_rule: 'K-MCAT-027',
     }));
-  return { version: 1, providers };
+  return {
+    version: 1,
+    table_family: 'product_catalog',
+    owner: 'runtime',
+    catalog_id: 'runtime_provider_catalog',
+    entries: numberedTableEntries('providers', providers.length),
+    providers,
+  };
 }
 
 function providerCapabilitiesTableDoc(records) {
@@ -486,7 +497,14 @@ function providerCapabilitiesTableDoc(records) {
         ? ['K-MCAT-027', 'K-LOCAL-001', 'K-LOCAL-002']
         : ['K-MCAT-027', 'K-CONN-008', 'K-KEYSRC-001'],
     }));
-  return { version: 1, providers };
+  return {
+    version: 1,
+    table_family: 'product_catalog',
+    owner: 'runtime',
+    catalog_id: 'runtime_provider_capabilities',
+    entries: numberedTableEntries('providers', providers.length),
+    providers,
+  };
 }
 
 function renderGoFile(records) {

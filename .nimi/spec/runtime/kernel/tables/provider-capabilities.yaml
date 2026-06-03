@@ -130,6 +130,7 @@ providers:
     capabilities:
       - text.embed
       - text.generate
+      - text.generate.vision
     sources:
       - K-MCAT-027
       - K-CONN-008

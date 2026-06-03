@@ -31,7 +31,7 @@ selection_profiles:
   - profile_id: text.general
     capability: text.generate
     model_id: spark-x
-    reviewed_at: 2026-05-11
+    reviewed_at: 2026-06-03
     freshness_sla_days: 21
     rationale: Default reasoning model for the Spark Reasoning surface.
 

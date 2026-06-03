@@ -42,6 +42,10 @@ sources:
     url: https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-anthropic-claude-opus-4-5.html
     retrieved_at: 2026-04-18
     note: Claude Opus 4.5 model card with dated programmatic id.
+  - source_id: bedrock_claude_opus_4_8_card
+    url: https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-anthropic-claude-opus-4-8.html
+    retrieved_at: 2026-06-03
+    note: Claude Opus 4.8 model card with current programmatic id.
   - source_id: bedrock_claude_sonnet_4_5_card
     url: https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-anthropic-claude-sonnet-4-5.html
     retrieved_at: 2026-04-18
@@ -71,23 +75,38 @@ selection_profiles:
   - profile_id: text.general
     capability: text.generate
     model_id: anthropic.claude-sonnet-4-6
-    reviewed_at: 2026-05-11
+    reviewed_at: 2026-06-03
     freshness_sla_days: 21
     rationale: Best current balanced Bedrock text route in the admitted set.
   - profile_id: text.fast
     capability: text.generate
     model_id: amazon.nova-micro-v1:0
-    reviewed_at: 2026-05-11
+    reviewed_at: 2026-06-03
     freshness_sla_days: 21
     rationale: Fastest admitted Bedrock text-only route in the reviewed Amazon Nova subset.
   - profile_id: text.reasoning
     capability: text.generate
-    model_id: anthropic.claude-opus-4-6-v1
-    reviewed_at: 2026-05-11
+    model_id: anthropic.claude-opus-4-8
+    reviewed_at: 2026-06-03
     freshness_sla_days: 21
     rationale: Highest-quality admitted Bedrock reasoning route.
 
 models:
+  - model_id: anthropic.claude-opus-4-8
+    model_type: chat
+    updated_at: 2026-06-03
+    capabilities: [text.generate, text.generate.vision]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-06-03
+      notes: Current canonical programmatic Claude Opus 4.8 model id on Bedrock. Bedrock also exposes geo and global inference ids, which are intentionally not split into separate source rows here.
+    source_ids: [bedrock_models_doc, bedrock_anthropic_cards_doc, bedrock_claude_opus_4_8_card]
+    aliases:
+      - claude-opus-4-8
+
   - model_id: anthropic.claude-opus-4-6-v1
     model_type: chat
     updated_at: 2026-04-18

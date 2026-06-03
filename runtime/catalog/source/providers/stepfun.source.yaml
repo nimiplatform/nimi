@@ -83,19 +83,19 @@ selection_profiles:
   - profile_id: text.general
     capability: text.generate
     model_id: step-3.5-flash
-    reviewed_at: 2026-05-11
+    reviewed_at: 2026-06-03
     freshness_sla_days: 21
     rationale: Current flagship StepFun reasoning route for broad complex text workloads.
   - profile_id: text.fast
     capability: text.generate
     model_id: step-2-mini
-    reviewed_at: 2026-05-11
+    reviewed_at: 2026-06-03
     freshness_sla_days: 21
     rationale: Current lowest-latency admitted StepFun text route for general and coding-heavy workloads.
   - profile_id: text.reasoning
     capability: text.generate
     model_id: step-3.5-flash
-    reviewed_at: 2026-05-11
+    reviewed_at: 2026-06-03
     freshness_sla_days: 21
     rationale: StepFun's current flagship general-purpose reasoning model, while step-3.5-flash-2603 stays admitted as the optimized agentic variant.
 

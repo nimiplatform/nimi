@@ -64,7 +64,7 @@ providers:
     source_rule: K-MCAT-027
   - provider: azure
     default_endpoint: null
-    default_text_model: gpt-5.4
+    default_text_model: gpt-5.5
     requires_explicit_endpoint: true
     inventory_mode: static_source
     source_rule: K-MCAT-027
@@ -82,7 +82,7 @@ providers:
     source_rule: K-MCAT-027
   - provider: cohere
     default_endpoint: null
-    default_text_model: command-a-03-2025
+    default_text_model: command-a-plus-05-2026
     requires_explicit_endpoint: true
     inventory_mode: static_source
     source_rule: K-MCAT-027
@@ -154,7 +154,7 @@ providers:
     source_rule: K-MCAT-027
   - provider: hunyuan
     default_endpoint: https://api.hunyuan.cloud.tencent.com/v1
-    default_text_model: hunyuan-turbos-latest
+    default_text_model: hunyuan-2.0-instruct-20251111
     requires_explicit_endpoint: false
     inventory_mode: static_source
     source_rule: K-MCAT-027
@@ -214,7 +214,7 @@ providers:
     source_rule: K-MCAT-027
   - provider: openai
     default_endpoint: https://api.openai.com/v1
-    default_text_model: gpt-5.4
+    default_text_model: gpt-5.5
     requires_explicit_endpoint: false
     inventory_mode: static_source
     source_rule: K-MCAT-027
@@ -250,7 +250,7 @@ providers:
     source_rule: K-MCAT-027
   - provider: qianfan
     default_endpoint: https://qianfan.baidubce.com/v2
-    default_text_model: ernie-5.0
+    default_text_model: ernie-5.1
     requires_explicit_endpoint: false
     inventory_mode: static_source
     source_rule: K-MCAT-027

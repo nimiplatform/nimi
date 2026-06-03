@@ -2,8 +2,42 @@ version: 1
 provider: hunyuan
 catalog_version: 2026-04-18-hunyuan-text-embedding-v1
 inventory_mode: static_source
-default_text_model: hunyuan-turbos-latest
+default_text_model: hunyuan-2.0-instruct-20251111
 models:
+  - model_id: hunyuan-2.0-instruct-20251111
+    provider: hunyuan
+    model_type: chat
+    updated_at: 2026-06-03
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-06-03
+      notes: Current Hunyuan 2.0 instruct text route. Exact public pricing is intentionally not inferred when not machine-verifiable in this refresh.
+    source_ref:
+      url: https://cloud.tencent.com/document/product/1729/104753
+      retrieved_at: 2026-04-18
+      note: Tencent Hunyuan product overview with current model families, API call names, and version timestamps.
+  - model_id: hunyuan-2.0-thinking-20251109
+    provider: hunyuan
+    model_type: chat
+    updated_at: 2026-06-03
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-06-03
+      notes: Current Hunyuan 2.0 thinking route. Exact public pricing is intentionally not inferred when not machine-verifiable in this refresh.
+    source_ref:
+      url: https://cloud.tencent.com/document/product/1729/104753
+      retrieved_at: 2026-04-18
+      note: Tencent Hunyuan product overview with current model families, API call names, and version timestamps.
   - model_id: hunyuan-turbos-latest
     provider: hunyuan
     model_type: chat
@@ -77,14 +111,14 @@ selection_profiles:
   - provider: hunyuan
     profile_id: text.general
     capability: text.generate
-    model_id: hunyuan-turbos-latest
-    reviewed_at: 2026-05-11
+    model_id: hunyuan-2.0-instruct-20251111
+    reviewed_at: 2026-06-03
     freshness_sla_days: 21
-    rationale: Current stable fast-thinking flagship route in Hunyuan's public contract.
+    rationale: Current TokenHub-backed Hunyuan 2.0 instruct route in Hunyuan's public contract.
   - provider: hunyuan
     profile_id: text.reasoning
     capability: text.generate
-    model_id: hunyuan-t1-latest
-    reviewed_at: 2026-05-11
+    model_id: hunyuan-2.0-thinking-20251109
+    reviewed_at: 2026-06-03
     freshness_sla_days: 21
-    rationale: Current stable reasoning route in Hunyuan's public contract.
+    rationale: Current TokenHub-backed Hunyuan 2.0 thinking route in Hunyuan's public contract.

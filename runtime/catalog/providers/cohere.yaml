@@ -2,8 +2,26 @@ version: 1
 provider: cohere
 catalog_version: 2026-04-18-cohere-v3
 inventory_mode: static_source
-default_text_model: command-a-03-2025
+default_text_model: command-a-plus-05-2026
 models:
+  - model_id: command-a-plus-05-2026
+    provider: cohere
+    model_type: chat
+    updated_at: 2026-06-03
+    capabilities:
+      - text.generate
+      - text.generate.vision
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-06-03
+      notes: Current flagship Command A+ text route from Cohere's official model catalog. Exact public pricing is intentionally not inferred when not machine-verifiable in this refresh.
+    source_ref:
+      url: https://docs.cohere.com/docs/models
+      retrieved_at: 2026-04-18
+      note: Cohere official model catalog.
   - model_id: command-a-03-2025
     provider: cohere
     model_type: chat
@@ -60,14 +78,14 @@ selection_profiles:
   - provider: cohere
     profile_id: text.general
     capability: text.generate
-    model_id: command-a-03-2025
-    reviewed_at: 2026-05-11
+    model_id: command-a-plus-05-2026
+    reviewed_at: 2026-06-03
     freshness_sla_days: 21
     rationale: Best current Cohere text default in the admitted set.
   - provider: cohere
     profile_id: text.fast
     capability: text.generate
     model_id: command-r7b-12-2024
-    reviewed_at: 2026-05-11
+    reviewed_at: 2026-06-03
     freshness_sla_days: 21
     rationale: Lowest-cost current Cohere text route for faster general tasks.

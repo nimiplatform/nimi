@@ -3518,21 +3518,21 @@ selection_profiles:
     profile_id: text.general
     capability: text.generate
     model_id: qwen3-max
-    reviewed_at: 2026-05-11
+    reviewed_at: 2026-06-03
     freshness_sla_days: 21
     rationale: Highest-tier provider-native DashScope text route in the admitted set.
   - provider: dashscope
     profile_id: text.fast
     capability: text.generate
     model_id: qwen3.6-flash
-    reviewed_at: 2026-05-11
+    reviewed_at: 2026-06-03
     freshness_sla_days: 21
     rationale: Current flash-tier provider-native DashScope text route for latency-sensitive tasks.
   - provider: dashscope
     profile_id: text.reasoning
     capability: text.generate
     model_id: kimi-k2-thinking
-    reviewed_at: 2026-05-11
+    reviewed_at: 2026-06-03
     freshness_sla_days: 21
     rationale: Explicit thinking-oriented text route in the current DashScope catalog set.
 voice_workflow_models:

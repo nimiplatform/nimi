@@ -294,6 +294,40 @@ models:
       url: https://www.volcengine.com/docs/6489/1331021
       retrieved_at: 2026-04-18
       note: Volcengine Ark OpenAI-compatible SDK documentation and model examples.
+  - model_id: doubao-seed-2-0-mini-260428
+    provider: volcengine
+    model_type: chat
+    updated_at: 2026-06-03
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-06-03
+      notes: Current lightweight Ark chat model pricing varies by account plan and endpoint tier.
+    source_ref:
+      url: https://www.volcengine.com/docs/6489/1331021
+      retrieved_at: 2026-04-18
+      note: Volcengine Ark OpenAI-compatible SDK documentation and model examples.
+  - model_id: doubao-seed-2.0-mini
+    provider: volcengine
+    model_type: chat
+    updated_at: 2026-06-03
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-06-03
+      notes: Current lightweight Ark chat model pricing varies by account plan and endpoint tier.
+    source_ref:
+      url: https://www.volcengine.com/docs/6489/1331021
+      retrieved_at: 2026-04-18
+      note: Volcengine Ark OpenAI-compatible SDK documentation and model examples.
   - model_id: doubao-seed-2-0-mini-260215
     provider: volcengine
     model_type: chat
@@ -306,24 +340,7 @@ models:
       output: unknown
       currency: CNY
       as_of: 2026-04-18
-      notes: Lightweight Ark chat model pricing varies by account plan and endpoint tier.
-    source_ref:
-      url: https://www.volcengine.com/docs/6489/1331021
-      retrieved_at: 2026-04-18
-      note: Volcengine Ark OpenAI-compatible SDK documentation and model examples.
-  - model_id: doubao-seed-2.0-mini
-    provider: volcengine
-    model_type: chat
-    updated_at: 2026-04-18
-    capabilities:
-      - text.generate
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-04-18
-      notes: Lightweight Ark chat model pricing varies by account plan and endpoint tier.
+      notes: Volcengine Ark pricing varies by account plan and endpoint tier. OpenSpeech speech surfaces are now tracked under the separate volcengine_openspeech provider.
     source_ref:
       url: https://www.volcengine.com/docs/6489/1331021
       retrieved_at: 2026-04-18
@@ -487,13 +504,13 @@ selection_profiles:
     profile_id: text.general
     capability: text.generate
     model_id: doubao-seed-2-0-pro-260215
-    reviewed_at: 2026-05-11
+    reviewed_at: 2026-06-03
     freshness_sla_days: 21
     rationale: Best current general Volcengine text route in the admitted set.
   - provider: volcengine
     profile_id: text.fast
     capability: text.generate
-    model_id: doubao-seed-2-0-mini-260215
-    reviewed_at: 2026-05-11
+    model_id: doubao-seed-2-0-mini-260428
+    reviewed_at: 2026-06-03
     freshness_sla_days: 21
-    rationale: Lightweight Volcengine text route for lower-latency general tasks.
+    rationale: Current lightweight Volcengine text route for lower-latency general tasks.

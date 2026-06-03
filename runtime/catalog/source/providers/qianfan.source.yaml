@@ -10,7 +10,7 @@ runtime:
   requires_explicit_endpoint: false
 defaults:
   provider: qianfan
-  default_text_model: ernie-5.0
+  default_text_model: ernie-5.1
   model_type: chat
   capabilities: []
   pricing:
@@ -50,24 +50,37 @@ sources:
 selection_profiles:
   - profile_id: text.general
     capability: text.generate
-    model_id: ernie-5.0
-    reviewed_at: 2026-05-11
+    model_id: ernie-5.1
+    reviewed_at: 2026-06-03
     freshness_sla_days: 21
     rationale: Current flagship ERNIE first-party route in the admitted Qianfan subset.
   - profile_id: text.fast
     capability: text.generate
-    model_id: ernie-4.5-turbo-32k
-    reviewed_at: 2026-05-11
+    model_id: ernie-4.5-turbo-128k
+    reviewed_at: 2026-06-03
     freshness_sla_days: 21
     rationale: Current lower-cost high-throughput ERNIE route in the admitted Qianfan subset.
   - profile_id: text.reasoning
     capability: text.generate
-    model_id: ernie-x1.1
-    reviewed_at: 2026-05-11
+    model_id: ernie-x1.1-preview
+    reviewed_at: 2026-06-03
     freshness_sla_days: 21
     rationale: Current stable ERNIE first-party reasoning route for logic, math, and agent workflows.
 
 models:
+  - model_id: ernie-5.1
+    model_type: chat
+    updated_at: 2026-06-03
+    capabilities: [text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-06-03
+      notes: Current flagship ERNIE 5.1 first-party route. Exact public pricing is intentionally not inferred when not machine-verifiable in this refresh.
+    source_ids: [qianfan_model_list_doc, qianfan_pricing_doc, qianfan_text_api_doc]
+
   - model_id: ernie-5.0
     model_type: chat
     updated_at: 2026-04-18
@@ -81,17 +94,17 @@ models:
       notes: Official pricing is tiered by input length. This row records the <=32k rate at 0.006 / 0.024 CNY per 1K tokens.
     source_ids: [qianfan_model_list_doc, qianfan_pricing_doc, qianfan_text_api_doc]
 
-  - model_id: ernie-x1.1
+  - model_id: ernie-x1.1-preview
     model_type: chat
-    updated_at: 2026-04-18
+    updated_at: 2026-06-03
     capabilities: [text.generate]
     pricing:
       unit: token
       input: "1.00"
       output: "4.00"
       currency: CNY
-      as_of: 2026-04-18
-      notes: Current stable ERNIE X1.1 reasoning route priced at 0.001 / 0.004 CNY per 1K tokens.
+      as_of: 2026-06-03
+      notes: Current ERNIE X1.1 preview reasoning route priced at 0.001 / 0.004 CNY per 1K tokens when the current pricing table keeps that family rate.
     source_ids: [qianfan_model_list_doc, qianfan_pricing_doc, qianfan_model_updates_doc]
 
   - model_id: ernie-4.5-turbo-128k

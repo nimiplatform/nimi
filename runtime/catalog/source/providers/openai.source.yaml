@@ -11,7 +11,7 @@ runtime:
 resolution_mode: model_anchor_v2
 defaults:
   provider: openai
-  default_text_model: gpt-5.4
+  default_text_model: gpt-5.5
   model_type: tts
   capabilities: []
   pricing:
@@ -47,6 +47,10 @@ sources:
     url: https://developers.openai.com/api/docs/models/gpt-5.4
     retrieved_at: 2026-04-18
     note: OpenAI GPT-5.4 model card.
+  - source_id: openai_gpt_5_5_doc
+    url: https://developers.openai.com/api/docs/models/gpt-5.5
+    retrieved_at: 2026-06-03
+    note: OpenAI GPT-5.5 model card.
   - source_id: openai_gpt_5_4_mini_doc
     url: https://developers.openai.com/api/docs/models/gpt-5.4-mini
     retrieved_at: 2026-04-18
@@ -94,22 +98,22 @@ language_profiles:
 selection_profiles:
   - profile_id: text.general
     capability: text.generate
-    model_id: gpt-5.4
-    reviewed_at: 2026-05-11
+    model_id: gpt-5.5
+    reviewed_at: 2026-06-03
     freshness_sla_days: 21
     rationale: OpenAI's current start-here frontier model for complex reasoning and coding.
   - profile_id: text.fast
     capability: text.generate
     model_id: gpt-5.4-mini
-    reviewed_at: 2026-05-11
+    reviewed_at: 2026-06-03
     freshness_sla_days: 21
     rationale: OpenAI's current recommended lower-latency GPT-5.4 variant for high-volume workloads.
   - profile_id: text.reasoning
     capability: text.generate
-    model_id: gpt-5.4
-    reviewed_at: 2026-05-11
+    model_id: gpt-5.5
+    reviewed_at: 2026-06-03
     freshness_sla_days: 21
-    rationale: Highest-confidence admitted GPT reasoning route while GPT-5.4-pro endpoint semantics remain under review.
+    rationale: Highest-confidence admitted GPT reasoning route while GPT-5.5-pro endpoint semantics remain under review.
 
 voice_sets:
   - voice_set_id: default-tts-v1
@@ -252,6 +256,19 @@ models:
     source_ids: [openai_gpt_5_2_doc, openai_models_doc]
     aliases:
       - gpt-5.2-2025-12-11
+
+  - model_id: gpt-5.5
+    model_type: chat
+    updated_at: 2026-06-03
+    capabilities: [text.generate, text.generate.vision]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-06-03
+      notes: Current OpenAI default frontier GPT model. Row admitted from the official model card; exact public pricing is intentionally not inferred when not machine-verifiable in this refresh.
+    source_ids: [openai_gpt_5_5_doc, openai_models_doc, openai_pricing_doc]
 
   - model_id: gpt-5.4
     model_type: chat

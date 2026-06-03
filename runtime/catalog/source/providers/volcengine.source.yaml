@@ -51,15 +51,15 @@ selection_profiles:
   - profile_id: text.general
     capability: text.generate
     model_id: doubao-seed-2-0-pro-260215
-    reviewed_at: 2026-05-11
+    reviewed_at: 2026-06-03
     freshness_sla_days: 21
     rationale: Best current general Volcengine text route in the admitted set.
   - profile_id: text.fast
     capability: text.generate
-    model_id: doubao-seed-2-0-mini-260215
-    reviewed_at: 2026-05-11
+    model_id: doubao-seed-2-0-mini-260428
+    reviewed_at: 2026-06-03
     freshness_sla_days: 21
-    rationale: Lightweight Volcengine text route for lower-latency general tasks.
+    rationale: Current lightweight Volcengine text route for lower-latency general tasks.
 
 models:
   - model_id: seedance-1-5-pro
@@ -192,6 +192,21 @@ models:
     aliases:
       - doubao-seed-2.0-lite
 
+  - model_id: doubao-seed-2-0-mini-260428
+    model_type: chat
+    updated_at: 2026-06-03
+    capabilities: [text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-06-03
+      notes: Current lightweight Ark chat model pricing varies by account plan and endpoint tier.
+    source_ids: [volcengine_openai_sdk_doc]
+    aliases:
+      - doubao-seed-2.0-mini
+
   - model_id: doubao-seed-2-0-mini-260215
     model_type: chat
     updated_at: 2026-04-18
@@ -202,10 +217,8 @@ models:
       output: unknown
       currency: CNY
       as_of: 2026-04-18
-      notes: Lightweight Ark chat model pricing varies by account plan and endpoint tier.
+    notes: Lightweight Ark chat model pricing varies by account plan and endpoint tier.
     source_ids: [volcengine_openai_sdk_doc]
-    aliases:
-      - doubao-seed-2.0-mini
 
   - model_id: doubao-seed-2-0-code-preview-260215
     model_type: chat

@@ -4,6 +4,24 @@ catalog_version: 2026-04-18-anthropic-v4
 inventory_mode: static_source
 default_text_model: claude-sonnet-4-6
 models:
+  - model_id: claude-opus-4-8
+    provider: anthropic
+    model_type: chat
+    updated_at: 2026-06-03
+    capabilities:
+      - text.generate
+      - text.generate.vision
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-06-03
+      notes: Current flagship Claude model. Exact public pricing is intentionally not inferred when not machine-verifiable in this refresh.
+    source_ref:
+      url: https://platform.claude.com/docs/en/about-claude/models/overview
+      retrieved_at: 2026-06-03
+      note: Claude Opus 4.8 current model identifier from the Claude model overview.
   - model_id: claude-opus-4-7
     provider: anthropic
     model_type: chat
@@ -136,20 +154,20 @@ selection_profiles:
     profile_id: text.general
     capability: text.generate
     model_id: claude-sonnet-4-6
-    reviewed_at: 2026-05-11
+    reviewed_at: 2026-06-03
     freshness_sla_days: 21
     rationale: Balanced default for general chat and multimodal text use.
   - provider: anthropic
     profile_id: text.fast
     capability: text.generate
     model_id: claude-haiku-4-5
-    reviewed_at: 2026-05-11
+    reviewed_at: 2026-06-03
     freshness_sla_days: 21
     rationale: Lowest-latency Claude track.
   - provider: anthropic
     profile_id: text.reasoning
     capability: text.generate
-    model_id: claude-opus-4-7
-    reviewed_at: 2026-05-11
+    model_id: claude-opus-4-8
+    reviewed_at: 2026-06-03
     freshness_sla_days: 21
-    rationale: Highest reasoning-quality Claude track after Opus 4.7 became the current top-tier model.
+    rationale: Highest reasoning-quality Claude track after Opus 4.8 became the current top-tier model.

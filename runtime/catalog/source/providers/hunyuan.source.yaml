@@ -10,7 +10,7 @@ runtime:
   requires_explicit_endpoint: false
 defaults:
   provider: hunyuan
-  default_text_model: hunyuan-turbos-latest
+  default_text_model: hunyuan-2.0-instruct-20251111
   model_type: chat
   capabilities: []
   pricing:
@@ -42,18 +42,44 @@ sources:
 selection_profiles:
   - profile_id: text.general
     capability: text.generate
-    model_id: hunyuan-turbos-latest
-    reviewed_at: 2026-05-11
+    model_id: hunyuan-2.0-instruct-20251111
+    reviewed_at: 2026-06-03
     freshness_sla_days: 21
-    rationale: Current stable fast-thinking flagship route in Hunyuan's public contract.
+    rationale: Current TokenHub-backed Hunyuan 2.0 instruct route in Hunyuan's public contract.
   - profile_id: text.reasoning
     capability: text.generate
-    model_id: hunyuan-t1-latest
-    reviewed_at: 2026-05-11
+    model_id: hunyuan-2.0-thinking-20251109
+    reviewed_at: 2026-06-03
     freshness_sla_days: 21
-    rationale: Current stable reasoning route in Hunyuan's public contract.
+    rationale: Current TokenHub-backed Hunyuan 2.0 thinking route in Hunyuan's public contract.
 
 models:
+  - model_id: hunyuan-2.0-instruct-20251111
+    model_type: chat
+    updated_at: 2026-06-03
+    capabilities: [text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-06-03
+      notes: Current Hunyuan 2.0 instruct text route. Exact public pricing is intentionally not inferred when not machine-verifiable in this refresh.
+    source_ids: [hunyuan_model_overview_doc, hunyuan_chat_model_doc, hunyuan_pricing_doc]
+
+  - model_id: hunyuan-2.0-thinking-20251109
+    model_type: chat
+    updated_at: 2026-06-03
+    capabilities: [text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-06-03
+      notes: Current Hunyuan 2.0 thinking route. Exact public pricing is intentionally not inferred when not machine-verifiable in this refresh.
+    source_ids: [hunyuan_model_overview_doc, hunyuan_pricing_doc]
+
   - model_id: hunyuan-turbos-latest
     model_type: chat
     updated_at: 2026-04-18

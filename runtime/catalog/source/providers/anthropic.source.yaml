@@ -34,6 +34,10 @@ sources:
     url: https://platform.claude.com/docs/en/about-claude/models/whats-new-claude-4-7
     retrieved_at: 2026-04-18
     note: Claude Opus 4.7 release notes and model identifiers.
+  - source_id: anthropic_whats_new_4_8
+    url: https://platform.claude.com/docs/en/about-claude/models/overview
+    retrieved_at: 2026-06-03
+    note: Claude Opus 4.8 current model identifier from the Claude model overview.
   - source_id: anthropic_models_api
     url: https://platform.claude.com/docs/en/api/models/list
     retrieved_at: 2026-04-18
@@ -55,23 +59,36 @@ selection_profiles:
   - profile_id: text.general
     capability: text.generate
     model_id: claude-sonnet-4-6
-    reviewed_at: 2026-05-11
+    reviewed_at: 2026-06-03
     freshness_sla_days: 21
     rationale: Balanced default for general chat and multimodal text use.
   - profile_id: text.fast
     capability: text.generate
     model_id: claude-haiku-4-5
-    reviewed_at: 2026-05-11
+    reviewed_at: 2026-06-03
     freshness_sla_days: 21
     rationale: Lowest-latency Claude track.
   - profile_id: text.reasoning
     capability: text.generate
-    model_id: claude-opus-4-7
-    reviewed_at: 2026-05-11
+    model_id: claude-opus-4-8
+    reviewed_at: 2026-06-03
     freshness_sla_days: 21
-    rationale: Highest reasoning-quality Claude track after Opus 4.7 became the current top-tier model.
+    rationale: Highest reasoning-quality Claude track after Opus 4.8 became the current top-tier model.
 
 models:
+  - model_id: claude-opus-4-8
+    model_type: chat
+    updated_at: 2026-06-03
+    capabilities: [text.generate, text.generate.vision]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-06-03
+      notes: Current flagship Claude model. Exact public pricing is intentionally not inferred when not machine-verifiable in this refresh.
+    source_ids: [anthropic_whats_new_4_8, anthropic_models_overview, anthropic_pricing, anthropic_models_api]
+
   - model_id: claude-opus-4-7
     model_type: chat
     updated_at: 2026-04-18

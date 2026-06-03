@@ -83,19 +83,19 @@ selection_profiles:
   - profile_id: text.general
     capability: text.generate
     model_id: gemini-3-flash-preview
-    reviewed_at: 2026-05-11
+    reviewed_at: 2026-06-03
     freshness_sla_days: 21
     rationale: Balanced Gemini default for general multimodal chat.
   - profile_id: text.fast
     capability: text.generate
     model_id: gemini-2.5-flash-lite
-    reviewed_at: 2026-05-11
+    reviewed_at: 2026-06-03
     freshness_sla_days: 21
     rationale: Current lowest-cost stable Gemini multimodal text route in the admitted set.
   - profile_id: text.reasoning
     capability: text.generate
     model_id: gemini-3.1-pro-preview
-    reviewed_at: 2026-05-11
+    reviewed_at: 2026-06-03
     freshness_sla_days: 21
     rationale: Strongest current Gemini reasoning track.
 

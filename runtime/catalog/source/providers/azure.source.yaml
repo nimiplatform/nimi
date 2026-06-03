@@ -10,7 +10,7 @@ runtime:
   requires_explicit_endpoint: true
 defaults:
   provider: azure
-  default_text_model: gpt-5.4
+  default_text_model: gpt-5.5
   model_type: chat
   capabilities: []
   pricing:
@@ -38,24 +38,37 @@ sources:
 selection_profiles:
   - profile_id: text.general
     capability: text.generate
-    model_id: gpt-5.4
-    reviewed_at: 2026-05-11
+    model_id: gpt-5.5
+    reviewed_at: 2026-06-03
     freshness_sla_days: 21
     rationale: Current flagship deployable Azure OpenAI text route in the admitted subset.
   - profile_id: text.fast
     capability: text.generate
     model_id: gpt-5.4-mini
-    reviewed_at: 2026-05-11
+    reviewed_at: 2026-06-03
     freshness_sla_days: 21
     rationale: Current lower-latency deployable Azure OpenAI text route in the admitted subset.
   - profile_id: text.reasoning
     capability: text.generate
-    model_id: gpt-5.4
-    reviewed_at: 2026-05-11
+    model_id: gpt-5.5
+    reviewed_at: 2026-06-03
     freshness_sla_days: 21
     rationale: Highest-confidence reasoning route in the reviewed Azure deployable subset.
 
 models:
+  - model_id: gpt-5.5
+    model_type: chat
+    updated_at: 2026-06-03
+    capabilities: [text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-06-03
+      notes: Current flagship Azure OpenAI text model family. Runtime invocation still uses the tenant deployment name that points at this model.
+    source_ids: [azure_models_doc, azure_switching_endpoints_doc, azure_quotas_doc]
+
   - model_id: gpt-5.4
     model_type: chat
     updated_at: 2026-04-18
