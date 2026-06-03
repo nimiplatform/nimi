@@ -20,7 +20,7 @@
 // wasteful and the platform refuses to create one without a user gesture, so
 // reuse is mandatory.
 
-import type { Runtime } from '@nimiplatform/sdk/runtime/browser';
+import type { Runtime } from '@nimiplatform/kit/core/sdk-contract';
 
 export type AvatarAudioPipelineSinkSnapshot = {
   weights: Record<'A' | 'E' | 'I' | 'O' | 'U' | 'S', number>;
