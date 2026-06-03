@@ -7,6 +7,7 @@ import {
   type CanonicalCapabilitySectionId,
 } from '@nimiplatform/kit/core/runtime-capabilities';
 import {
+  hasModelConfigRouteBinding,
   selectEnabledDescriptors,
   summarizeAiModelAggregate,
   type AppModelConfigSurface,
@@ -155,7 +156,7 @@ export function ModelConfigAiModelHub(props: ModelConfigAiModelHubProps) {
     const out: CapabilityEvaluation[] = [];
     for (const descriptor of descriptors) {
       const projection = surface.projectionResolver(descriptor.capabilityId);
-      const bindingPresent = Boolean(config.capabilities.selectedBindings?.[descriptor.capabilityId]);
+      const bindingPresent = hasModelConfigRouteBinding(config, descriptor.capabilityId);
       out.push({
         capabilityId: descriptor.capabilityId,
         descriptor,

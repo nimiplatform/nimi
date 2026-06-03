@@ -24,6 +24,6 @@
 - Every breaking 0.x minor needs a migration note in `kit/CHANGELOG.md`; experimental exports still need documented changes.
 - `@nimiplatform/kit` tracks `@nimiplatform/sdk` compatibility during 0.x, but kit 1.0.0 requires an explicit readiness decision.
 ## Cross-Feature And SDK Edges
-- Admitted one-way feature edges: chat consumes avatar; model-config consumes model-picker. Reverse edges are forbidden without explicit admission here.
+- Cross-feature imports must be declared as `kit.features.*` dependencies in `.nimi/spec/platform/kernel/tables/nimi-kit-registry.yaml`; `pnpm check:kit-feature-edge-boundary` enforces that actual feature imports stay inside the registry graph.
 - All static `@nimiplatform/sdk*` imports in kit non-test code route through `kit/core/src/sdk-contract.ts`.
 - The admitted dynamic SDK boundary is the chat app-AI runtime adapter importing `@nimiplatform/kit/core/sdk-contract`; new SDK consumption adds a re-export to `kit/core/src/sdk-contract.ts`.

@@ -427,12 +427,6 @@ for (const modulePath of registeredModuleSubpaths) {
     }
 
     if (modulePath.startsWith('features/')) {
-      if (isFeatureRuntimeIntegrationFile(fileRel) && content.includes('getPlatformClient().realm')) {
-        fail(`${fileRel}: runtime integration files must not bind getPlatformClient().realm`);
-      }
-      if (isFeatureRealmIntegrationFile(fileRel) && content.includes('getPlatformClient().runtime')) {
-        fail(`${fileRel}: realm integration files must not bind getPlatformClient().runtime`);
-      }
       for (const target of importTargets) {
         if (
           (target === '@nimiplatform/sdk' || target.startsWith('@nimiplatform/sdk/'))

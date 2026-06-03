@@ -203,6 +203,20 @@ describe('desktop human chat shared Kit identity ownership', () => {
     assert.doesNotMatch(chatFlowSource, /export function sameMessageIdentity/);
     assert.doesNotMatch(chatFlowSource, /function sameMessageIdentity/);
   });
+
+  test('human chat data delegates start-chat target payload construction to Kit', () => {
+    const fnStart = chatFlowSource.indexOf('export async function startChatWithTarget');
+    assert.ok(fnStart !== -1, 'startChatWithTarget function not found in source');
+    const fnBody = chatFlowSource.slice(fnStart, fnStart + 700);
+    assert.match(fnBody, /startRealmChatWithTarget/);
+    assert.doesNotMatch(fnBody, /buildRealmTextMessageInput/);
+    assert.doesNotMatch(fnBody, /RealmStartChatInputDto/);
+  });
+
+  test('human chat data delegates message page size normalization to Kit', () => {
+    assert.match(chatFlowSource, /normalizeRealmChatLimit/);
+    assert.doesNotMatch(chatFlowSource, /function normalizeRealmPageSize/);
+  });
 });
 
 describe('desktop human chat defaults', () => {

@@ -102,7 +102,8 @@ modules:
     surface_level: logic
     adapter_contract: none
     description: Pure-logic utilities (OAuth, env, shell-mode, Character Card V2 parsing, renderer-safe storage JSON helpers, and reusable notification headless presentation helpers)
-    dependencies: []
+    dependencies:
+      - sdk
     peer_dependencies: []
     exports:
       - ./core/shell-mode
@@ -208,7 +209,7 @@ modules:
     kind: logic
     surface_level: logic
     adapter_contract: AppModelConfigSurface consumer-injection contract (SharedAIConfigService, providerResolver, projectionResolver, localAssetSource, userProfilesSource, i18n)
-    description: Pure-logic seam for the model-config feature — AppModelConfigSurface contracts, SharedAIConfigService ambient interface, aggregate summary/enabled-descriptor selectors, and the default ModelConfigProfileControllerCore that enforces D-AIPC-005 atomic apply semantics. Renderer-free, app-free, runtime-safe. Consumes canonical capability descriptors as type-only imports from kit.core.runtime-capabilities without declaring it as a registry dependency (logic modules must not declare runtime kit dependencies per check-nimi-kit.mjs).
+    description: Pure-logic seam for the model-config feature — AppModelConfigSurface contracts, SharedAIConfigService ambient interface, aggregate summary/enabled-descriptor selectors, RuntimeRouteBinding-backed route binding projection helpers, AIConfig capability patch helpers, and the default ModelConfigProfileControllerCore that enforces D-AIPC-005 atomic apply semantics. Renderer-free, app-free, runtime-safe. Consumes canonical capability descriptors as type-only imports from kit.core.runtime-capabilities without declaring it as a registry dependency (logic modules must not declare runtime kit dependencies per check-nimi-kit.mjs).
     dependencies: []
     peer_dependencies: []
     exports:
@@ -248,10 +249,13 @@ modules:
     subpath: /features/chat
     kind: feature
     surface_level: headless+ui+runtime+realm
-    adapter_contract: ConversationSourceAdapter + ConversationShellAdapter + ConversationThreadAdapter + ConversationComposerAdapter + ConversationOrchestrationProvider + ConversationOrchestrationRegistry + ConversationRuntimeAdapter + ConversationContinuityAdapter + RuntimeChatComposerAdapterOptions + RealmChatComposerAdapterOptions
-    description: Reusable unified conversation shell with target-first AI/human/agent contracts, a canonical presentational and message shell, orchestration provider registry/contracts, active simple-ai runtime integration, active realm typed human chat integration, realtime normalization, timeline composition/display helpers, and a socket-agnostic transport controller
+    adapter_contract: ConversationSourceAdapter + ConversationShellAdapter + ConversationThreadAdapter + ConversationComposerAdapter + ConversationOrchestrationProvider + ConversationOrchestrationRegistry + ConversationRuntimeAdapter + ConversationContinuityAdapter + RuntimeChatComposerAdapterOptions + RealmChatComposerAdapterOptions + RealmChatOutboxStore
+    description: Reusable unified conversation shell with target-first AI/human/agent contracts, a canonical presentational and message shell, orchestration provider registry/contracts, active simple-ai runtime integration, active realm typed human chat integration, direct-human chat filtering and target/thread projection helpers, realtime normalization, timeline composition/display helpers, injected Realm chat outbox state-machine helpers, and a socket-agnostic transport controller
+    notes: Kit chat timeline authority is limited to reusable DTO normalization, display model, and shell composition helpers; Desktop feature hooks that bind app store, profile navigation, stream controller, query cache, and source-specific canonical role mapping remain app-owned.
     dependencies:
       - kit.ui
+      - kit.features.avatar
+      - sdk
     peer_dependencies:
       - react
     exports:
@@ -334,6 +338,7 @@ modules:
     description: Reusable model browse-and-select surface with headless filtering, default UI shell, and runtime-backed catalog panels
     dependencies:
       - kit.ui
+      - sdk
     peer_dependencies:
       - react
     exports:
@@ -389,6 +394,7 @@ modules:
     description: Reusable generation workflow shell with headless submit orchestration, default status panel UI, app-local runtime panels, and app-local runtime-status consumers
     dependencies:
       - kit.ui
+      - sdk
     peer_dependencies:
       - react
     exports:
@@ -416,6 +422,7 @@ modules:
     description: Reusable commerce surface for cross-app gifting and lightweight transactional dialogs backed by realm business services, with app-local consumers declared outside platform kit authority
     dependencies:
       - kit.ui
+      - sdk
     peer_dependencies:
       - react
     exports:

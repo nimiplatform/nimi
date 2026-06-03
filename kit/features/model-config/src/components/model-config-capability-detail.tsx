@@ -4,6 +4,10 @@ import {
   CANONICAL_CAPABILITY_CATALOG_BY_ID,
   type CanonicalCapabilityDescriptor,
 } from '@nimiplatform/kit/core/runtime-capabilities';
+import {
+  applyModelConfigCapabilityPatch,
+  readModelConfigRouteBinding,
+} from '@nimiplatform/kit/core/model-config';
 import type {
   AppModelConfigSurface,
   CapabilityItemOverride,
@@ -67,26 +71,6 @@ function readParams(config: AIConfig, capabilityId: string): Record<string, unkn
   return (raw && typeof raw === 'object') ? raw : {};
 }
 
-function readBinding(config: AIConfig, capabilityId: string): ModelConfigRouteBinding | null {
-  const stored = config.capabilities.selectedBindings?.[capabilityId];
-  if (!stored) return null;
-  return {
-    source: stored.source === 'cloud' ? 'cloud' : 'local',
-    connectorId: stored.connectorId || '',
-    model: stored.model || '',
-    modelId: stored.modelId || undefined,
-    modelLabel: stored.modelLabel || undefined,
-    localModelId: stored.localModelId || undefined,
-    provider: stored.provider || undefined,
-    engine: stored.engine || undefined,
-    adapter: stored.adapter || undefined,
-    endpoint: stored.endpoint || undefined,
-    goRuntimeLocalModelId: stored.goRuntimeLocalModelId || undefined,
-    goRuntimeStatus: stored.goRuntimeStatus || undefined,
-    providerHints: stored.providerHints || undefined,
-  };
-}
-
 function writeCapabilityPatch(
   service: SharedAIConfigService,
   scopeRef: AppModelConfigSurface['scopeRef'],
@@ -97,33 +81,7 @@ function writeCapabilityPatch(
   },
 ): void {
   const current = service.aiConfig.get(scopeRef);
-  const nextBindings = { ...current.capabilities.selectedBindings };
-  const nextParams = { ...current.capabilities.selectedParams };
-  if (Object.prototype.hasOwnProperty.call(patch, 'binding')) {
-    nextBindings[capabilityId] = patch.binding
-      ? {
-        source: patch.binding.source,
-        connectorId: patch.binding.connectorId,
-        model: patch.binding.model,
-        modelId: patch.binding.modelId,
-        modelLabel: patch.binding.modelLabel,
-        localModelId: patch.binding.localModelId,
-        engine: patch.binding.engine,
-        provider: patch.binding.provider,
-      }
-      : null;
-  }
-  if (patch.params) {
-    nextParams[capabilityId] = patch.params;
-  }
-  service.aiConfig.update(scopeRef, {
-    ...current,
-    capabilities: {
-      ...current.capabilities,
-      selectedBindings: nextBindings,
-      selectedParams: nextParams,
-    },
-  });
+  service.aiConfig.update(scopeRef, applyModelConfigCapabilityPatch(current, capabilityId, patch));
 }
 
 function resolveProvider(
@@ -332,7 +290,7 @@ export function ModelConfigCapabilityDetail({
 }: ModelConfigCapabilityDetailProps) {
   const descriptor = CANONICAL_CAPABILITY_CATALOG_BY_ID[capabilityId];
   const override = resolveOverride(surface, capabilityId);
-  const binding = readBinding(config, capabilityId);
+  const binding = readModelConfigRouteBinding(config, capabilityId);
 
   const handleBindingChange = useCallback((next: ModelConfigRouteBinding | null) => {
     writeCapabilityPatch(surface.aiConfigService, surface.scopeRef, capabilityId, { binding: next });

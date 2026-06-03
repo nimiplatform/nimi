@@ -14,26 +14,46 @@ import {
   applyRealmRealtimeMessageToChatsResult,
   applyRealmRealtimeMessageUpdateToChatsResult,
   applyRealmRealtimeMessageUpdateToMessagesResult,
+  buildRealmStartChatInput,
   buildRealmTextMessageInput,
   createRealmChatResourceAttachmentPayload,
   createRealmChatSessionOpenPayload,
   createRealmChatSessionState,
   createRealmChatComposerAdapter,
   extractRealmChatAttachmentTargetId,
+  filterRealmDirectHumanChats,
   getRealmChatTimelineDisplayModel,
+  getRealmHumanChatTitle,
+  getRealmHumanTargetId,
+  isRealmDirectHumanChat,
+  listRealmChatMessages,
   mergeRealmRealtimeMessageIntoMessagesResult,
+  normalizeRealmChatLimit,
   normalizeRealmRealtimeMessagePayload,
+  resolveCanonicalRealmHumanChatId,
   resolveRealmChatAttachmentPreviewText,
   resolveRealmChatMediaUrl,
   resolveRealmChatSyncRequest,
   rememberRealmChatSeenEvent,
+  countPendingRealmChatOutboxEntries,
+  flushRealmChatOutbox,
   sendRealmChatMessage,
+  sendRealmChatTextMessageWithOutbox,
+  startRealmChatWithTarget,
   syncRealmChatEvents,
+  collapseRealmHumanChatsToTargets,
+  toRealmHumanConversationThreadSummary,
+  toRealmChatOutboxPlaceholderMessage,
+  toRealmHumanTargetSummary,
   useRealmMessageTimeline,
   useRealmChatRealtimeController,
   useRealmChatComposer,
+  type RealmChatOutboxStore,
+  type RealmChatOutboxStoreEntry,
+  type RealmChatSendService,
   type RealmChatSyncResultDto,
   type RealmChatService,
+  type RealmChatViewDto,
   type RealmChatRealtimeSocket,
   type RealmMessageViewDto,
   type UseRealmChatRealtimeControllerOptions,
@@ -192,12 +212,161 @@ function TimelineHarness(input: {
   return <div data-testid="timeline-count">{messages.length}</div>;
 }
 
+function createMemoryRealmChatOutbox(
+  initialEntries: readonly RealmChatOutboxStoreEntry[] = [],
+): RealmChatOutboxStore & { entries: Map<string, RealmChatOutboxStoreEntry> } {
+  const entries = new Map<string, RealmChatOutboxStoreEntry>();
+  for (const entry of initialEntries) {
+    entries.set(entry.clientMessageId, entry);
+  }
+  return {
+    entries,
+    async upsertChatOutboxEntry(entry) {
+      entries.set(entry.clientMessageId, entry);
+    },
+    async getChatOutboxEntry(clientMessageId) {
+      return entries.get(clientMessageId);
+    },
+    async getChatOutboxEntries(chatId) {
+      const values = Array.from(entries.values());
+      return (chatId ? values.filter((entry) => entry.chatId === chatId) : values)
+        .sort((left, right) => left.enqueuedAt - right.enqueuedAt);
+    },
+    async markChatOutboxSent(clientMessageId) {
+      entries.delete(clientMessageId);
+    },
+    async markChatOutboxFailed(clientMessageId, reason) {
+      const entry = entries.get(clientMessageId);
+      if (entry) {
+        entries.set(clientMessageId, { ...entry, status: 'failed', failReason: reason });
+      }
+    },
+  };
+}
+
 describe('chat realm helpers', () => {
   it('builds a default TEXT payload for realm chat messages', () => {
     expect(buildRealmTextMessageInput('  hello realm  ')).toMatchObject({
       type: 'TEXT',
       text: 'hello realm',
       payload: { content: 'hello realm' },
+    });
+  });
+
+  it('owns direct human chat filtering and canonical target projection', () => {
+    const chats = [
+      {
+        id: 'chat-older',
+        createdAt: '2026-04-01T00:00:00.000Z',
+        updatedAt: '2026-04-01T00:00:00.000Z',
+        lastMessageAt: '2026-04-01T00:00:00.000Z',
+        unreadCount: 0,
+        otherUser: {
+          id: 'user-1',
+          displayName: '',
+          handle: '~alice',
+          avatarUrl: '/alice.png',
+          isAgent: false,
+        },
+        lastMessage: {
+          id: 'msg-older',
+          chatId: 'chat-older',
+          senderId: 'user-1',
+          type: 'TEXT',
+          text: 'older',
+          createdAt: '2026-04-01T00:00:00.000Z',
+          isRead: true,
+          payload: { content: 'older' },
+        },
+      },
+      {
+        id: 'chat-newer',
+        createdAt: '2026-04-02T00:00:00.000Z',
+        updatedAt: '2026-04-02T00:00:00.000Z',
+        lastMessageAt: '2026-04-02T00:00:00.000Z',
+        unreadCount: 2,
+        otherUser: {
+          id: 'user-1',
+          displayName: 'Alice',
+          handle: 'alice',
+          avatarUrl: '/alice.png',
+          isAgent: false,
+        },
+        lastMessage: {
+          id: 'msg-newer',
+          chatId: 'chat-newer',
+          senderId: 'user-1',
+          type: 'TEXT',
+          text: '',
+          createdAt: '2026-04-02T00:00:00.000Z',
+          isRead: false,
+          payload: { content: 'newer' },
+        },
+      },
+      {
+        id: 'chat-agent',
+        createdAt: '2026-04-03T00:00:00.000Z',
+        updatedAt: '2026-04-03T00:00:00.000Z',
+        lastMessageAt: '2026-04-03T00:00:00.000Z',
+        unreadCount: 9,
+        otherUser: {
+          id: 'agent-1',
+          displayName: 'Agent',
+          handle: 'agent',
+          isAgent: true,
+        },
+        lastMessage: null,
+      },
+      {
+        id: 'chat-missing-discriminator',
+        otherUser: {
+          id: 'user-2',
+          displayName: 'Bob',
+        },
+      },
+      {
+        id: 'chat-malformed',
+        otherUser: 'user-3',
+      },
+    ] as unknown as readonly RealmChatViewDto[];
+    const aliceNewer = chats[1] as RealmChatViewDto;
+
+    expect(isRealmDirectHumanChat(chats[0])).toBe(true);
+    expect(isRealmDirectHumanChat(chats[2])).toBe(false);
+    expect(isRealmDirectHumanChat(chats[3])).toBe(false);
+    expect(isRealmDirectHumanChat(chats[4])).toBe(false);
+    expect(filterRealmDirectHumanChats(chats).map((chat) => chat.id)).toEqual(['chat-older', 'chat-newer']);
+
+    const collapsed = collapseRealmHumanChatsToTargets(filterRealmDirectHumanChats(chats));
+    expect(collapsed.map((chat) => chat.id)).toEqual(['chat-newer']);
+    expect(resolveCanonicalRealmHumanChatId(filterRealmDirectHumanChats(chats), 'user-1')).toBe('chat-newer');
+    expect(getRealmHumanTargetId(aliceNewer)).toBe('user-1');
+    expect(getRealmHumanChatTitle(aliceNewer)).toBe('Alice');
+
+    expect(toRealmHumanTargetSummary(aliceNewer, {
+      noMessagesFallback: 'No messages',
+      unknownTitle: 'Unknown',
+    })).toMatchObject({
+      id: 'user-1',
+      source: 'human',
+      canonicalSessionId: 'chat-newer',
+      title: 'Alice',
+      handle: '@alice',
+      previewText: 'newer',
+      unreadCount: 2,
+      metadata: {
+        otherUserId: 'user-1',
+      },
+    });
+
+    expect(toRealmHumanConversationThreadSummary(aliceNewer, {
+      formatUpdatedAt: ({ timestamp }) => `formatted:${timestamp}`,
+    })).toMatchObject({
+      id: 'chat-newer',
+      mode: 'human',
+      title: 'Alice',
+      updatedAt: 'formatted:2026-04-02T00:00:00.000Z',
+      targetId: 'user-1',
     });
   });
 
@@ -287,27 +456,166 @@ describe('chat realm helpers', () => {
       text: 'hello helper',
       type: 'TEXT',
     }));
+    const startChat = vi.fn(async () => ({ chatId: 'chat-started' }));
+    const getChatById = vi.fn(async (chatId: string) => ({ id: chatId }));
+    const listMessages = vi.fn(async () => ({ items: [] }));
     const syncChatEventsSpy = vi.fn(async () => ({
       items: [],
       snapshot: null,
     }));
     const service = {
       listChats: async () => ({ items: [] }),
-      getChatById: async () => ({ id: 'chat-1' }),
-      startChat: async () => ({ chatId: 'chat-1' }),
-      listMessages: async () => ({ items: [] }),
+      getChatById,
+      startChat,
+      listMessages,
       sendMessage,
       markChatRead: async () => {},
       syncChatEvents: syncChatEventsSpy,
     } as unknown as RealmChatService;
 
     await sendRealmChatMessage('chat-1', 'hello helper', service);
+    await startRealmChatWithTarget(' user-2 ', ' hello start ', service);
+    await listRealmChatMessages(' chat-1 ', 250, 'cursor-1', service);
+    await listRealmChatMessages('chat-1', 0, 'cursor-2', service);
     await syncRealmChatEvents('chat-1', 12, 300, service);
+    await syncRealmChatEvents('chat-1', -1, 999, service);
 
     expect(sendMessage).toHaveBeenCalledWith('chat-1', expect.objectContaining({
       text: 'hello helper',
     }));
+    expect(buildRealmStartChatInput(' user-2 ', ' hello start ')).toEqual({
+      targetAccountId: 'user-2',
+      type: 'TEXT',
+      text: 'hello start',
+      payload: { content: 'hello start' },
+    });
+    expect(startChat).toHaveBeenCalledWith(expect.objectContaining({
+      targetAccountId: 'user-2',
+      type: 'TEXT',
+      text: 'hello start',
+      payload: { content: 'hello start' },
+    }));
+    expect(getChatById).toHaveBeenCalledWith('chat-started');
+    expect(normalizeRealmChatLimit(0, 20, 100)).toBe(20);
+    expect(normalizeRealmChatLimit(250, 20, 100)).toBe(100);
+    expect(listMessages).toHaveBeenCalledWith('chat-1', 100, 'cursor-1');
+    expect(listMessages).toHaveBeenCalledWith('chat-1', 50, 'cursor-2');
     expect(syncChatEventsSpy).toHaveBeenCalledWith('chat-1', 12, 300);
+    expect(syncChatEventsSpy).toHaveBeenCalledWith('chat-1', 0, 500);
+  });
+
+  it('queues realm chat sends before transport and returns an offline placeholder', async () => {
+    const offlineError = new Error('realm offline');
+    const outbox = createMemoryRealmChatOutbox();
+    const onOffline = vi.fn();
+    const service: RealmChatSendService = {
+      sendMessage: vi.fn(async () => {
+        throw offlineError;
+      }),
+    };
+
+    const result = await sendRealmChatTextMessageWithOutbox({
+      chatId: 'chat-1',
+      content: 'hello offline',
+      service,
+      outbox,
+      createClientMessageId: () => 'cm-1',
+      now: () => 10,
+      isOfflineError: (error) => error === offlineError,
+      onOffline,
+    });
+
+    expect(onOffline).toHaveBeenCalledWith(offlineError, expect.objectContaining({
+      clientMessageId: 'cm-1',
+      attempts: 1,
+    }));
+    expect(result).toMatchObject({
+      kind: 'queued',
+      clientMessageId: 'cm-1',
+      entry: {
+        attempts: 1,
+        status: 'pending',
+      },
+    });
+    expect(result.kind === 'queued' ? result.placeholder : null).toMatchObject({
+      id: 'offline:cm-1',
+      chatId: 'chat-1',
+      clientMessageId: 'cm-1',
+      text: 'hello offline',
+      payload: { content: 'hello offline' },
+    });
+    expect(await countPendingRealmChatOutboxEntries(outbox)).toBe(1);
+    expect(outbox.entries.get('cm-1')).toMatchObject({
+      attempts: 1,
+      status: 'pending',
+      body: {
+        clientMessageId: 'cm-1',
+        text: 'hello offline',
+        payload: { content: 'hello offline' },
+      },
+    });
+  });
+
+  it('flushes pending realm chat outbox entries in FIFO order', async () => {
+    const outbox = createMemoryRealmChatOutbox([
+      {
+        clientMessageId: 'later',
+        chatId: 'chat-1',
+        body: { clientMessageId: 'later', text: 'later', type: 'TEXT', payload: { content: 'later' } },
+        enqueuedAt: 20,
+        attempts: 0,
+        status: 'pending',
+      },
+      {
+        clientMessageId: 'earlier',
+        chatId: 'chat-1',
+        body: { clientMessageId: 'earlier', text: 'earlier', type: 'TEXT', payload: { content: 'earlier' } },
+        enqueuedAt: 10,
+        attempts: 0,
+        status: 'pending',
+      },
+    ]);
+    const replayed: string[] = [];
+    const service: RealmChatSendService = {
+      sendMessage: vi.fn(async (chatId, body) => {
+        replayed.push(String(body.clientMessageId || ''));
+        return {
+          id: `server:${String(body.clientMessageId || '')}`,
+          chatId,
+          clientMessageId: body.clientMessageId,
+          senderId: 'user-1',
+          createdAt: '2026-03-24T10:00:00.000Z',
+          isRead: true,
+          text: body.text,
+          type: 'TEXT' as const,
+          payload: body.payload,
+        };
+      }),
+    };
+
+    const flushed = await flushRealmChatOutbox({ chatId: 'chat-1', service, outbox });
+
+    expect(replayed).toEqual(['earlier', 'later']);
+    expect(flushed.map((message) => message.id)).toEqual(['server:earlier', 'server:later']);
+    expect(await countPendingRealmChatOutboxEntries(outbox)).toBe(0);
+  });
+
+  it('projects outbox entries into stable Realm message placeholders', () => {
+    const entry: RealmChatOutboxStoreEntry = {
+      clientMessageId: 'cm-2',
+      chatId: 'chat-1',
+      body: { clientMessageId: 'cm-2', type: 'TEXT', text: 'queued', payload: { content: 'queued' } },
+      enqueuedAt: Date.parse('2026-03-24T10:00:00.000Z'),
+      attempts: 1,
+      status: 'pending',
+    };
+    expect(toRealmChatOutboxPlaceholderMessage(entry)).toMatchObject({
+      id: 'offline:cm-2',
+      senderId: 'local-user',
+      text: 'queued',
+      payload: { content: 'queued' },
+      type: 'TEXT',
+    });
   });
 
   it('normalizes realtime payload and deduplicates seen events', () => {

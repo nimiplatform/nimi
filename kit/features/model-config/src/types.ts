@@ -1,22 +1,9 @@
 import type { RouteModelPickerDataProvider } from '@nimiplatform/kit/features/model-picker';
 import type { SpeechVoiceReference } from '@nimiplatform/kit/core/sdk-contract';
+import type { ModelConfigRouteBinding } from '@nimiplatform/kit/core/model-config';
 import type { ReactNode } from 'react';
 
-export type ModelConfigRouteBinding = {
-  source: 'local' | 'cloud';
-  connectorId: string;
-  model: string;
-  modelId?: string;
-  modelLabel?: string;
-  localModelId?: string;
-  provider?: string;
-  engine?: string;
-  adapter?: string;
-  endpoint?: string;
-  goRuntimeLocalModelId?: string;
-  goRuntimeStatus?: string;
-  providerHints?: Record<string, unknown>;
-};
+export type { ModelConfigRouteBinding } from '@nimiplatform/kit/core/model-config';
 
 export type ModelConfigCapabilityStatusTone = 'ready' | 'attention' | 'neutral';
 

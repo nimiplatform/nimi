@@ -1,13 +1,24 @@
-import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { createNimiClientId } from '@nimiplatform/sdk/runtime';
 import {
-  normalizeRealmMessagePayload,
+  countPendingRealmChatOutboxEntries,
+  filterRealmDirectHumanChats,
+  flushRealmChatOutbox,
+  listRealmChatMessages,
+  markRealmChatRead,
+  normalizeRealmChatLimit,
   realmChatService,
+  sendRealmChatTextMessageWithOutbox,
+  startRealmChatWithTarget,
+  syncRealmChatEvents,
+  type RealmChatOutboxStore,
+  type RealmChatOutboxStoreEntry,
+  type RealmChatSyncResultDto,
+  type RealmMessageViewDto,
+  type RealmSendMessageInputDto,
   type RealmChatService,
 } from '@nimiplatform/kit/features/chat/realm';
 import {
   getNimiErrorMessage as getErrorMessage,
-  isJsonObject,
   isRealmOfflineErrorLike as isRealmOfflineError,
   type JsonObject,
 } from '@nimiplatform/sdk/types';
@@ -15,12 +26,6 @@ import { getOfflineCacheManager } from '@renderer/infra/offline/cache-manager';
 import { getOfflineCoordinator } from '@renderer/infra/offline/coordinator';
 import { getOfflineOutboxManager } from '@renderer/infra/offline/outbox-manager';
 import type { PersistentOutboxEntry } from '@renderer/infra/offline/types';
-
-type MessageType = RealmModel<'MessageType'>;
-type SendMessageInputDto = RealmModel<'SendMessageInputDto'>;
-type StartChatInputDto = RealmModel<'StartChatInputDto'>;
-type ChatSyncResultDto = RealmModel<'ChatSyncResultDto'>;
-type MessageViewDto = RealmModel<'MessageViewDto'>;
 
 type DesktopChatErrorEmitter = (
   action: string,
@@ -32,74 +37,59 @@ type DesktopRealmHumanChatService = RealmChatService;
 
 function emitNoop() {}
 
-function isHumanChatThread(chat: unknown): boolean {
-  if (!chat || typeof chat !== 'object') {
-    return false;
-  }
-  const otherUser = (chat as { otherUser?: unknown }).otherUser;
-  if (!otherUser || typeof otherUser !== 'object') {
-    return false;
-  }
-  return (otherUser as { isAgent?: unknown }).isAgent === false;
-}
-
-function filterHumanChatItems<T>(items: T[] | undefined): T[] {
-  return Array.isArray(items) ? items.filter((item) => isHumanChatThread(item)) : [];
-}
-
-type PendingChatOutboxEntry = {
-  chatId: string;
-  body: SendMessageInputDto;
-  queuedAt: number;
-  attempts: number;
-};
-
 function createClientMessageId(): string {
   return createNimiClientId('cm');
 }
 
-function createCanonicalTextPayload(
-  content: string,
-): Extract<NonNullable<SendMessageInputDto['payload']>, { content: string }> {
-  return { content };
-}
-
-function toPersistentEntry(entry: PendingChatOutboxEntry): PersistentOutboxEntry {
+function toPersistentEntry(entry: RealmChatOutboxStoreEntry): PersistentOutboxEntry {
   return {
-    clientMessageId: String(entry.body.clientMessageId || '').trim(),
+    clientMessageId: entry.clientMessageId,
     chatId: entry.chatId,
     body: entry.body as JsonObject,
-    enqueuedAt: entry.queuedAt,
+    enqueuedAt: entry.enqueuedAt,
     attempts: entry.attempts,
-    status: 'pending',
+    status: entry.status === 'failed' ? 'failed' : 'pending',
+    failReason: entry.failReason || undefined,
   };
 }
 
-function toQueuedMessagePlaceholder(entry: PersistentOutboxEntry): MessageViewDto {
-  const payload = isJsonObject(entry.body.payload)
-    ? entry.body.payload
-    : null;
+function toKitOutboxEntry(entry: PersistentOutboxEntry): RealmChatOutboxStoreEntry {
   return {
-    id: `offline:${entry.clientMessageId}`,
-    chatId: entry.chatId,
     clientMessageId: entry.clientMessageId,
-    createdAt: new Date(entry.enqueuedAt).toISOString(),
-    isRead: true,
-    payload: normalizeRealmMessagePayload(payload),
-    senderId: String(entry.body.senderId || 'local-user'),
-    text: typeof entry.body.text === 'string' ? entry.body.text : null,
-    type: (entry.body.type || 'TEXT') as MessageType,
+    chatId: entry.chatId,
+    body: entry.body as RealmSendMessageInputDto,
+    enqueuedAt: entry.enqueuedAt,
+    attempts: entry.attempts,
+    status: entry.status,
+    failReason: entry.failReason,
   };
 }
 
-export function buildOfflineOutboxMessage(entry: PersistentOutboxEntry): MessageViewDto {
-  return toQueuedMessagePlaceholder(entry);
+async function getDesktopRealmChatOutboxStore(): Promise<RealmChatOutboxStore> {
+  const manager = await getOfflineOutboxManager();
+  return {
+    upsertChatOutboxEntry: (entry) => manager.upsertChatOutboxEntry(toPersistentEntry(entry)),
+    getChatOutboxEntry: async (clientMessageId) => {
+      const entry = await manager.getChatOutboxEntry(clientMessageId);
+      return entry ? toKitOutboxEntry(entry) : undefined;
+    },
+    getChatOutboxEntries: async (chatId) => {
+      const entries = await manager.getChatOutboxEntries(chatId);
+      return entries.map((entry) => toKitOutboxEntry(entry));
+    },
+    markChatOutboxSent: (clientMessageId) => manager.markChatOutboxSent(clientMessageId),
+    markChatOutboxFailed: (clientMessageId, reason) => manager.markChatOutboxFailed(clientMessageId, reason),
+  };
+}
+
+function markRealmOffline(error: unknown): void {
+  if (isRealmOfflineError(error)) {
+    getOfflineCoordinator().markRealmRestReachable(false);
+  }
 }
 
 export async function countPendingChatOutboxEntries(): Promise<number> {
-  const manager = await getOfflineOutboxManager();
-  const entries = await manager.getChatOutboxEntries();
-  return entries.filter((entry) => entry.status === 'pending').length;
+  return countPendingRealmChatOutboxEntries(await getDesktopRealmChatOutboxStore());
 }
 
 export async function loadChatList(
@@ -110,7 +100,7 @@ export async function loadChatList(
   try {
     const result = await service.listChats(limit);
     const manager = await getOfflineCacheManager();
-    const items = filterHumanChatItems(result?.items);
+    const items = filterRealmDirectHumanChats(result?.items);
     await manager.syncChatList(items);
     return {
       ...result,
@@ -121,7 +111,7 @@ export async function loadChatList(
       const manager = await getOfflineCacheManager();
       getOfflineCoordinator().markCacheFallbackUsed();
       return {
-        items: filterHumanChatItems(await manager.getCachedChatList()),
+        items: filterRealmDirectHumanChats(await manager.getCachedChatList()),
       };
     }
     emitChatError('load-chats', error);
@@ -140,7 +130,7 @@ export async function loadMoreChatList(
     const result = await service.listChats(20, cursor);
     return {
       ...result,
-      items: filterHumanChatItems(result?.items),
+      items: filterRealmDirectHumanChats(result?.items),
     };
   } catch (error) {
     emitChatError('load-more-chats', error);
@@ -155,19 +145,7 @@ export async function startChatWithTarget(
   emitChatError: DesktopChatErrorEmitter = emitNoop,
 ) {
   try {
-    const data: StartChatInputDto = {
-      targetAccountId,
-    };
-    const normalizedMessage = String(initialMessage || '').trim();
-    if (normalizedMessage) {
-      data.text = normalizedMessage;
-      data.type = 'TEXT' as MessageType;
-      data.payload = createCanonicalTextPayload(normalizedMessage) as StartChatInputDto['payload'];
-    }
-
-    const result = await service.startChat(data);
-    const chat = await service.getChatById(result.chatId);
-    return { ...result, chat };
+    return await startRealmChatWithTarget(targetAccountId, initialMessage, service);
   } catch (error) {
     emitChatError('start-chat', error, {
       targetAccountId,
@@ -203,7 +181,7 @@ export async function loadChatMessages(
       const outboxManager = await getOfflineOutboxManager();
       getOfflineCoordinator().markCacheFallbackUsed();
       return {
-        items: await cacheManager.getCachedMessages<MessageViewDto>(chatId),
+        items: await cacheManager.getCachedMessages<RealmMessageViewDto>(chatId),
         offlineOutbox: await outboxManager.getChatOutboxEntries(chatId),
       };
     }
@@ -220,10 +198,14 @@ export async function loadMoreChatMessages(
   emitChatError: DesktopChatErrorEmitter = emitNoop,
 ) {
   if (!cursor) return undefined;
-  const resolvedPageSize = normalizeRealmPageSize(pageSize);
 
   try {
-    const result = await service.listMessages(chatId, resolvedPageSize, cursor);
+    const result = await listRealmChatMessages(
+      chatId,
+      normalizeRealmChatLimit(pageSize, 20, 100),
+      cursor,
+      service,
+    );
     return result;
   } catch (error) {
     emitChatError('load-more-messages', error, { chatId });
@@ -231,61 +213,29 @@ export async function loadMoreChatMessages(
   }
 }
 
-function normalizeRealmPageSize(pageSize: number): number {
-  if (!Number.isFinite(pageSize) || pageSize <= 0) {
-    return 20;
-  }
-  return Math.min(Math.floor(pageSize), 100);
-}
-
 export async function sendChatMessage(
   chatId: string,
   content: string,
-  options: Partial<SendMessageInputDto>,
+  options: Partial<RealmSendMessageInputDto>,
   service: Pick<DesktopRealmHumanChatService, 'sendMessage'> = realmChatService,
   emitChatError: DesktopChatErrorEmitter = emitNoop,
 ) {
   const clientMessageId = String(options.clientMessageId || '').trim() || createClientMessageId();
   try {
-    const data: SendMessageInputDto = {
-      clientMessageId,
-      type: 'TEXT' as MessageType,
-      text: content,
-      payload: createCanonicalTextPayload(content),
-      ...options,
-    };
-    const manager = await getOfflineOutboxManager();
-    const entry = toPersistentEntry({
+    const result = await sendRealmChatTextMessageWithOutbox({
       chatId,
-      body: data,
-      queuedAt: Date.now(),
-      attempts: 0,
+      content,
+      options: { ...options, clientMessageId },
+      service,
+      outbox: await getDesktopRealmChatOutboxStore(),
+      createClientMessageId,
+      isOfflineError: isRealmOfflineError,
+      describeError: (error, fallback) => getErrorMessage(error, fallback),
+      failureMessage: '发送消息失败',
+      onOffline: markRealmOffline,
     });
-    await manager.upsertChatOutboxEntry(entry);
-
-    const message = await service.sendMessage(chatId, data);
-    await manager.markChatOutboxSent(data.clientMessageId);
-    return message;
+    return result.kind === 'sent' ? result.message : result.placeholder;
   } catch (error) {
-    const manager = await getOfflineOutboxManager();
-    const existing = await manager.getChatOutboxEntry(clientMessageId);
-    if (existing && isRealmOfflineError(error)) {
-      await manager.upsertChatOutboxEntry({
-        ...existing,
-        attempts: existing.attempts + 1,
-      });
-      getOfflineCoordinator().markRealmRestReachable(false);
-      return toQueuedMessagePlaceholder({
-        ...existing,
-        attempts: existing.attempts + 1,
-      });
-    }
-    if (existing) {
-      await manager.markChatOutboxFailed(
-        clientMessageId,
-        getErrorMessage(error, '发送消息失败'),
-      );
-    }
     emitChatError('send-message', error, { chatId });
     throw error;
   }
@@ -295,38 +245,23 @@ export async function flushPendingChatOutbox(
   chatId?: string,
   service: Pick<DesktopRealmHumanChatService, 'sendMessage'> = realmChatService,
   emitChatError: DesktopChatErrorEmitter = emitNoop,
-): Promise<MessageViewDto[]> {
-  const manager = await getOfflineOutboxManager();
-  const pending = await manager.getChatOutboxEntries(chatId);
-  const flushed: MessageViewDto[] = [];
-  for (const entry of pending) {
-    if (entry.status !== 'pending') {
-      continue;
-    }
-    try {
-      const message = await service.sendMessage(entry.chatId, entry.body as SendMessageInputDto);
-      await manager.markChatOutboxSent(entry.clientMessageId);
-      flushed.push(message);
-    } catch (error) {
-      if (isRealmOfflineError(error)) {
-        await manager.upsertChatOutboxEntry({
-          ...entry,
-          attempts: entry.attempts + 1,
-        });
-        getOfflineCoordinator().markRealmRestReachable(false);
-        continue;
-      }
-      await manager.markChatOutboxFailed(
-        entry.clientMessageId,
-        getErrorMessage(error, '重放聊天消息失败'),
-      );
+): Promise<RealmMessageViewDto[]> {
+  return flushRealmChatOutbox({
+    chatId,
+    service,
+    outbox: await getDesktopRealmChatOutboxStore(),
+    isOfflineError: isRealmOfflineError,
+    describeError: (error, fallback) => getErrorMessage(error, fallback),
+    failureMessage: '重放聊天消息失败',
+    stopOnOffline: false,
+    onOffline: markRealmOffline,
+    onEntryError: (error, entry) => {
       emitChatError('flush-chat-outbox', error, {
         chatId: entry.chatId,
         clientMessageId: entry.clientMessageId,
       });
-    }
-  }
-  return flushed;
+    },
+  });
 }
 
 export async function markChatAsRead(
@@ -335,7 +270,7 @@ export async function markChatAsRead(
   emitChatError: DesktopChatErrorEmitter = emitNoop,
 ) {
   try {
-    await service.markChatRead(chatId);
+    await markRealmChatRead(chatId, service);
   } catch (error) {
     emitChatError('mark-chat-read', error, { chatId });
   }
@@ -347,18 +282,15 @@ export async function syncChatEventWindow(
   limit = 200,
   service: Pick<DesktopRealmHumanChatService, 'syncChatEvents'> = realmChatService,
   emitChatError: DesktopChatErrorEmitter = emitNoop,
-): Promise<ChatSyncResultDto> {
-  const normalizedAfterSeq = Number.isFinite(afterSeq) ? Math.max(0, Math.floor(afterSeq)) : 0;
-  const normalizedLimit = Number.isFinite(limit) ? Math.min(500, Math.max(1, Math.floor(limit))) : 200;
-
+): Promise<RealmChatSyncResultDto> {
   try {
-    const result = await service.syncChatEvents(chatId, normalizedAfterSeq, normalizedLimit);
+    const result = await syncRealmChatEvents(chatId, afterSeq, limit, service);
     return result;
   } catch (error) {
     emitChatError('sync-chat-events', error, {
       chatId,
-      afterSeq: normalizedAfterSeq,
-      limit: normalizedLimit,
+      afterSeq,
+      limit,
     });
     throw error;
   }

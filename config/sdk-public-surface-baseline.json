@@ -511,7 +511,8 @@
         "export * from './display.js';",
         "export type * from './types.js';",
         "export { truth, normalizeWorldTruthAnchor, normalizeWorldTruthListItem, normalizeWorldTruthSummary, normalizeWorldTruthDetail, readWorldTruthList, readWorldTruthAnchor, readWorldTruthSummary, readWorldTruthDetail, generate, buildWorldInputProjection, toRuntimeWorldGenerateInput, submitWorldGenerate, fixture, normalizeWorldFixturePackage, normalizeWorldInspectVector, normalizeWorldInspectViewPreset, worldFixtureFromResolvedPaths, pickWorldFixturePreviewSpzUrl, resolveWorldFixtureTitle, render, createInspectWorldRenderPlan, projection, projectWorldRuntimePayload, session, createInspectWorldSession, };",
-        "function createWorldFacade"
+        "function createWorldFacade",
+        "type WorldFacade"
       ]
     }
   ]

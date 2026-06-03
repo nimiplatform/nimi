@@ -5,6 +5,7 @@ import {
   resolveRealmChatAttachmentPreviewText,
   resolveRealmChatMediaUrl,
   useRealmMessageTimeline,
+  type RealmChatViewDto,
   type RealmChatOutboxEntryLike,
 } from '@nimiplatform/kit/features/chat/realm';
 import type { ConversationCanonicalMessage } from '@nimiplatform/kit/features/chat/headless';
@@ -12,7 +13,6 @@ import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { useChatUploadPlaceholders } from '../turns/chat-upload-placeholder-store';
 import { getStreamState, subscribeStream, type StreamState } from '../turns/stream-controller';
-import type { HumanChatViewDto } from './chat-human-thread-model';
 import { loadChatMessages } from './data/realm-human-chat-data';
 
 type MessageViewDto = RealmModel<'MessageViewDto'>;
@@ -49,7 +49,7 @@ function useHumanStreamState(chatId: string | null): StreamState | null {
   return state;
 }
 
-export function useHumanTimelineModel(selectedChatId: string | null, selectedChat: HumanChatViewDto | null) {
+export function useHumanTimelineModel(selectedChatId: string | null, selectedChat: RealmChatViewDto | null) {
   const authStatus = useAppStore((state) => state.auth.status);
   const realmBaseUrl = useAppStore((state) => String(state.runtimeDefaults?.realm.realmBaseUrl || '').replace(/\/$/, ''));
   const currentUser = useAppStore((state) => state.auth.user);

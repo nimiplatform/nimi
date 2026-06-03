@@ -15,6 +15,7 @@ import {
 import {
   ChatStreamStatus,
 } from '@nimiplatform/kit/features/chat/components/chat-stream-status';
+import type { RealmChatViewDto } from '@nimiplatform/kit/features/chat/realm';
 import {
   type CanonicalMessageAccessorySlot,
   type CanonicalMessageAvatarSlot,
@@ -27,7 +28,6 @@ import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { GiftMessageBubble, type GiftMessagePayload } from '@renderer/features/economy/gift-message-bubble.js';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
-import type { HumanChatViewDto } from './chat-human-thread-model';
 import { CHAT_CONTENT_WIDTH_CLASS, CHAT_CONTENT_POSITION_CLASS } from './chat-shared-content-layout';
 import { cancelStream, type StreamState } from '../turns/stream-controller';
 import {
@@ -254,7 +254,7 @@ function useHumanMessageRenderers(input: {
 
 export function HumanCanonicalTranscriptSurface(props: {
   selectedChatId: string;
-  selectedChat: HumanChatViewDto | null;
+  selectedChat: RealmChatViewDto | null;
 }) {
   const transcriptProps = useHumanCanonicalTranscriptProps(props);
   return (
@@ -264,7 +264,7 @@ export function HumanCanonicalTranscriptSurface(props: {
 
 export function HumanCanonicalStageSurface(props: {
   selectedChatId: string;
-  selectedChat: HumanChatViewDto | null;
+  selectedChat: RealmChatViewDto | null;
   characterData: ConversationCharacterData;
   stageAnchorViewportRef?: RefObject<HTMLDivElement | null>;
   stageCardAnchorOffsetPx?: number | null;
@@ -276,7 +276,7 @@ export function HumanCanonicalStageSurface(props: {
 
 export function useHumanCanonicalTranscriptProps(props: {
   selectedChatId: string | null;
-  selectedChat: HumanChatViewDto | null;
+  selectedChat: RealmChatViewDto | null;
   voiceUi?: HumanVoiceUiState;
 }): CanonicalTranscriptViewProps {
   const { t } = useTranslation();
@@ -333,7 +333,7 @@ function createHumanCanonicalTranscriptProps(input: {
 
 export function useHumanCanonicalStagePanelProps(props: {
   selectedChatId: string | null;
-  selectedChat: HumanChatViewDto | null;
+  selectedChat: RealmChatViewDto | null;
   characterData: ConversationCharacterData;
   stageAnchorViewportRef?: RefObject<HTMLDivElement | null>;
   stageCardAnchorOffsetPx?: number | null;
@@ -387,7 +387,7 @@ function createHumanCanonicalStagePanelProps(input: {
 
 export function useHumanCanonicalConversationSurface(props: {
   selectedChatId: string | null;
-  selectedChat: HumanChatViewDto | null;
+  selectedChat: RealmChatViewDto | null;
   characterData: ConversationCharacterData;
 }) {
   const model = useHumanTimelineModel(props.selectedChatId, props.selectedChat);

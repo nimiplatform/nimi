@@ -1,9 +1,9 @@
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal.js';
-import type { HumanChatViewDto } from '@renderer/features/chat/chat-human-thread-model';
+import type { RealmChatViewDto } from '@nimiplatform/kit/features/chat/realm';
 
 type HumanConversationGiftModalProps = {
   open: boolean;
-  selectedChat: HumanChatViewDto | null;
+  selectedChat: RealmChatViewDto | null;
   onClose: () => void;
 };
 

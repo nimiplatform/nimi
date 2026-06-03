@@ -40,6 +40,17 @@ import {
 import {
   display,
 } from './display.js';
+import type {
+  WorldGenerateSubmitInput,
+  WorldGenerateSubmitResult,
+  WorldRuntimeProjectionRequest,
+  WorldRuntimeProjectionResult,
+  WorldTruthAnchor,
+  WorldTruthDetail,
+  WorldTruthListItem,
+  WorldTruthSummary,
+  WorldTruthWorldStatus,
+} from './types.js';
 
 export type * from './types.js';
 export * from './display.js';
@@ -73,16 +84,40 @@ export {
   createInspectWorldSession,
 };
 
+export type WorldFacade = {
+  truth: {
+    normalize: typeof normalizeWorldTruthSummary;
+    list: (status?: WorldTruthWorldStatus) => Promise<WorldTruthListItem[]>;
+    read: (worldId: string) => Promise<WorldTruthSummary>;
+    readAnchor: (worldId: string) => Promise<WorldTruthAnchor>;
+    readList: (status?: WorldTruthWorldStatus) => Promise<WorldTruthListItem[]>;
+    readSummary: (worldId: string) => Promise<WorldTruthSummary>;
+    readDetail: (worldId: string, recommendedAgentLimit?: number) => Promise<WorldTruthDetail>;
+  };
+  generate: {
+    project: typeof buildWorldInputProjection;
+    toRuntimeInput: typeof toRuntimeWorldGenerateInput;
+    submit: (input: WorldGenerateSubmitInput) => Promise<WorldGenerateSubmitResult>;
+  };
+  projection: {
+    projectRuntimePayload: (input: WorldRuntimeProjectionRequest) => Promise<WorldRuntimeProjectionResult>;
+  };
+  fixture: typeof fixture;
+  render: typeof render;
+  session: typeof session;
+  display: typeof display;
+};
+
 export function createWorldFacade(
   client: PlatformClient,
-) {
+): WorldFacade {
   return {
     truth: {
       normalize: truth.normalize,
-      list: (status?: Parameters<typeof readWorldTruthList>[1]) => readWorldTruthList(client, status),
+      list: (status) => readWorldTruthList(client, status),
       read: (worldId: string) => readWorldTruthSummary(client, worldId),
       readAnchor: (worldId: string) => readWorldTruthAnchor(client, worldId),
-      readList: (status?: Parameters<typeof readWorldTruthList>[1]) => readWorldTruthList(client, status),
+      readList: (status) => readWorldTruthList(client, status),
       readSummary: (worldId: string) => readWorldTruthSummary(client, worldId),
       readDetail: (worldId: string, recommendedAgentLimit?: number) =>
         readWorldTruthDetail(client, worldId, recommendedAgentLimit),
@@ -90,11 +125,11 @@ export function createWorldFacade(
     generate: {
       project: generate.project,
       toRuntimeInput: generate.toRuntimeInput,
-      submit: (input: Parameters<typeof submitWorldGenerate>[1]) =>
+      submit: (input) =>
         submitWorldGenerate(client, input),
     },
     projection: {
-      projectRuntimePayload: (input: Parameters<typeof projectWorldRuntimePayload>[1]) =>
+      projectRuntimePayload: (input) =>
         projectWorldRuntimePayload(client, input),
     },
     fixture,

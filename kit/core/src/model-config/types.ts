@@ -17,6 +17,7 @@ import type {
   AIProfilePreviewResult,
   AIProfileRef,
   AIScopeRef,
+  RuntimeRouteBinding,
   SpeechVoiceReference,
 } from '@nimiplatform/kit/core/sdk-contract';
 import type {
@@ -69,7 +70,30 @@ export interface ModelConfigI18nBinding {
   readonly t: ModelConfigI18nFormatter;
 }
 
-export type ModelConfigRouteSource = 'local' | 'cloud';
+export type ModelConfigRouteSource = RuntimeRouteBinding['source'];
+
+export type ModelConfigRouteBinding = RuntimeRouteBinding;
+
+export interface ModelConfigRoutePickerSelection {
+  readonly source: ModelConfigRouteSource;
+  readonly connectorId: string;
+  readonly model: string;
+  readonly provider?: string;
+  readonly modelLabel?: string;
+  readonly localModelId?: string;
+  readonly engine?: string;
+  readonly modelId?: string;
+}
+
+export interface ModelConfigBindingSummary {
+  readonly label: string;
+  readonly detail: string | null;
+}
+
+export interface ModelConfigCapabilityPatch {
+  readonly binding?: ModelConfigRouteBinding | null;
+  readonly params?: Record<string, unknown>;
+}
 
 export interface ModelConfigBindingSnapshot {
   readonly source: ModelConfigRouteSource;
@@ -124,16 +148,7 @@ export interface CapabilityItemOverride {
   readonly audioSynthesizeVoiceOptions?: ReadonlyArray<{
     value: SpeechVoiceReference;
     label: string;
-    binding?: {
-      source: ModelConfigRouteSource;
-      connectorId: string;
-      model: string;
-      modelId?: string;
-      modelLabel?: string;
-      localModelId?: string;
-      provider?: string;
-      engine?: string;
-    };
+    binding?: ModelConfigRouteBinding;
   }>;
 }
 

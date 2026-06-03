@@ -85,6 +85,36 @@ export type RealmChatOutboxEntryLike = {
   status: 'pending' | 'failed' | 'sent' | string;
   failReason?: string | null;
 };
+export type RealmChatOutboxStoreEntry = {
+  clientMessageId: string;
+  chatId: string;
+  body: RealmSendMessageInputDto;
+  enqueuedAt: number;
+  attempts: number;
+  status: 'pending' | 'failed' | 'sent' | string;
+  failReason?: string | null;
+};
+export type RealmChatOutboxStore = {
+  upsertChatOutboxEntry: (entry: RealmChatOutboxStoreEntry) => Promise<void>;
+  getChatOutboxEntry: (clientMessageId: string) => Promise<RealmChatOutboxStoreEntry | undefined>;
+  getChatOutboxEntries: (chatId?: string) => Promise<RealmChatOutboxStoreEntry[]>;
+  markChatOutboxSent: (clientMessageId: string) => Promise<void>;
+  markChatOutboxFailed: (clientMessageId: string, reason: string) => Promise<void>;
+};
+export type RealmChatOfflineErrorPredicate = (error: unknown) => boolean;
+export type RealmChatErrorMessageResolver = (error: unknown, fallback: string) => string;
+export type RealmChatOutboxSendResult =
+  | {
+    kind: 'sent';
+    clientMessageId: string;
+    message: RealmMessageViewDto;
+  }
+  | {
+    kind: 'queued';
+    clientMessageId: string;
+    entry: RealmChatOutboxStoreEntry;
+    placeholder: RealmMessageViewDto;
+  };
 export type RealmChatUploadPlaceholderLike = {
   id: string;
   chatId: string;

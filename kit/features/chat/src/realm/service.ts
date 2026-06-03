@@ -47,8 +47,11 @@ function normalizeChatId(chatId: string): string {
   return String(chatId || '').trim();
 }
 
-function normalizeLimit(limit: number, fallback: number, max: number): number {
-  return Number.isFinite(limit) ? Math.min(max, Math.max(1, Math.floor(limit))) : fallback;
+export function normalizeRealmChatLimit(limit: number, fallback: number, max: number): number {
+  if (!Number.isFinite(limit) || limit <= 0) {
+    return fallback;
+  }
+  return Math.min(max, Math.floor(limit));
 }
 
 function openRealmChatSessionOnSocket(
@@ -84,7 +87,7 @@ function ackRealmChatEventOnSocket(
 
 export const realmChatService: RealmChatService = {
   async listChats(limit = 20, cursor) {
-    return realm().services.HumanChatsService.listChats(normalizeLimit(limit, 20, 100), cursor);
+    return realm().services.HumanChatsService.listChats(normalizeRealmChatLimit(limit, 20, 100), cursor);
   },
   async getChatById(chatId) {
     return realm().services.HumanChatsService.getChatById(normalizeChatId(chatId));
@@ -95,7 +98,7 @@ export const realmChatService: RealmChatService = {
   async listMessages(chatId, limit = 50, cursor) {
     return realm().services.HumanChatsService.listMessages(
       normalizeChatId(chatId),
-      normalizeLimit(limit, 50, 100),
+      normalizeRealmChatLimit(limit, 50, 100),
       undefined,
       undefined,
       cursor,
@@ -110,14 +113,18 @@ export const realmChatService: RealmChatService = {
   async syncChatEvents(chatId, afterSeq, limit = 200) {
     return realm().services.HumanChatsService.syncChatEvents(
       normalizeChatId(chatId),
-      normalizeLimit(limit, 200, 500),
+      normalizeRealmChatLimit(limit, 200, 500),
       Number.isFinite(afterSeq) ? Math.max(0, Math.floor(afterSeq)) : 0,
     );
   },
 };
 
-export async function listRealmChats(limit = 20, cursor?: string, service: RealmChatService = realmChatService): Promise<RealmListChatsResultDto> {
-  return service.listChats(limit, cursor);
+export async function listRealmChats(
+  limit = 20,
+  cursor?: string,
+  service: Pick<RealmChatService, 'listChats'> = realmChatService,
+): Promise<RealmListChatsResultDto> {
+  return service.listChats(normalizeRealmChatLimit(limit, 20, 100), cursor);
 }
 
 export async function getRealmChat(chatId: string, service: RealmChatService = realmChatService): Promise<RealmChatViewDto> {
@@ -132,12 +139,53 @@ export async function startRealmChat(input: RealmStartChatInputDto, service: Rea
   return service.startChat(input);
 }
 
-export async function listRealmChatMessages(chatId: string, limit = 50, cursor?: string, service: RealmChatService = realmChatService): Promise<RealmListMessagesResultDto> {
+export function buildRealmStartChatInput(
+  targetAccountId: string,
+  initialMessage?: string | null,
+): RealmStartChatInputDto {
+  const normalizedTargetAccountId = normalizeString(targetAccountId);
+  if (!normalizedTargetAccountId) {
+    throw new Error('Target account id is required');
+  }
+
+  const input: RealmStartChatInputDto = {
+    targetAccountId: normalizedTargetAccountId,
+  };
+  const normalizedMessage = normalizeString(initialMessage);
+  if (normalizedMessage) {
+    const textInput = buildRealmTextMessageInput(normalizedMessage);
+    input.text = textInput.text;
+    input.type = textInput.type;
+    input.payload = textInput.payload as RealmStartChatInputDto['payload'];
+  }
+  return input;
+}
+
+export async function startRealmChatWithTarget(
+  targetAccountId: string,
+  initialMessage?: string | null,
+  service: Pick<RealmChatService, 'startChat' | 'getChatById'> = realmChatService,
+): Promise<RealmStartChatResultDto & { chat: RealmChatViewDto }> {
+  const result = await service.startChat(buildRealmStartChatInput(targetAccountId, initialMessage));
+  const chatId = normalizeChatId(result.chatId);
+  if (!chatId) {
+    throw new Error('Chat id is required');
+  }
+  const chat = await service.getChatById(chatId);
+  return { ...result, chat };
+}
+
+export async function listRealmChatMessages(
+  chatId: string,
+  limit = 50,
+  cursor?: string,
+  service: Pick<RealmChatService, 'listMessages'> = realmChatService,
+): Promise<RealmListMessagesResultDto> {
   const normalizedChatId = normalizeChatId(chatId);
   if (!normalizedChatId) {
     throw new Error('Chat id is required');
   }
-  return service.listMessages(normalizedChatId, limit, cursor);
+  return service.listMessages(normalizedChatId, normalizeRealmChatLimit(limit, 50, 100), cursor);
 }
 
 export async function sendRealmChatMessage(chatId: string, input: string | RealmSendMessageInputDto, service: RealmChatService = realmChatService): Promise<RealmMessageViewDto> {
@@ -148,7 +196,10 @@ export async function sendRealmChatMessage(chatId: string, input: string | Realm
   return service.sendMessage(normalizedChatId, typeof input === 'string' ? buildRealmTextMessageInput(input) : input);
 }
 
-export async function markRealmChatRead(chatId: string, service: RealmChatService = realmChatService): Promise<void> {
+export async function markRealmChatRead(
+  chatId: string,
+  service: Pick<RealmChatService, 'markChatRead'> = realmChatService,
+): Promise<void> {
   const normalizedChatId = normalizeChatId(chatId);
   if (!normalizedChatId) {
     throw new Error('Chat id is required');
@@ -156,12 +207,18 @@ export async function markRealmChatRead(chatId: string, service: RealmChatServic
   await service.markChatRead(normalizedChatId);
 }
 
-export async function syncRealmChatEvents(chatId: string, afterSeq: number, limit = 200, service: RealmChatService = realmChatService): Promise<RealmChatSyncResultDto> {
+export async function syncRealmChatEvents(
+  chatId: string,
+  afterSeq: number,
+  limit = 200,
+  service: Pick<RealmChatService, 'syncChatEvents'> = realmChatService,
+): Promise<RealmChatSyncResultDto> {
   const normalizedChatId = normalizeChatId(chatId);
   if (!normalizedChatId) {
     throw new Error('Chat id is required');
   }
-  return service.syncChatEvents(normalizedChatId, afterSeq, limit);
+  const normalizedAfterSeq = Number.isFinite(afterSeq) ? Math.max(0, Math.floor(afterSeq)) : 0;
+  return service.syncChatEvents(normalizedChatId, normalizedAfterSeq, normalizeRealmChatLimit(limit, 200, 500));
 }
 
 export function createRealmChatComposerAdapter<TAttachment = never>({

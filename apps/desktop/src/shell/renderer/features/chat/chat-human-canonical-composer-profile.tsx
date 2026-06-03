@@ -9,6 +9,7 @@ import {
   createRealmChatComposerAdapter,
   createRealmChatResourceAttachmentPayload,
   extractRealmChatAttachmentTargetId,
+  type RealmChatViewDto,
 } from '@nimiplatform/kit/features/chat/realm';
 import { useTranslation } from 'react-i18next';
 import { sendChatMessage } from './data/realm-human-chat-data';
@@ -22,7 +23,6 @@ import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/
 import { createChatUploadPlaceholder, addChatUploadPlaceholder, removeChatUploadPlaceholder } from '../turns/chat-upload-placeholder-store';
 import { mergeSentRealmChatMessageIntoCache } from '../turns/chat-send-cache.js';
 import { formatPendingAttachmentSize, appendPendingAttachment, clearPendingAttachments, type PendingAttachment } from '../turns/turn-input-attachments';
-import type { HumanChatViewDto } from './chat-human-thread-model';
 import { ChatComposerLeadingAvatar } from './chat-shared-composer-leading-avatar';
 
 function HumanAttachmentStrip(props: {
@@ -326,7 +326,7 @@ export function HumanCanonicalComposer(props: {
 }
 
 export function HumanCanonicalProfileDrawer(props: {
-  selectedChat: HumanChatViewDto | null;
+  selectedChat: RealmChatViewDto | null;
   onOpenGift?: () => void;
 }) {
   const { t } = useTranslation();

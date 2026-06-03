@@ -4,7 +4,11 @@ import {
 } from './generated/runtime/v1/agent_service.js';
 import { MemoryCanonicalClass } from './generated/runtime/v1/memory.js';
 import { buildRuntimeAgentRequestContext } from './local-agent-identity.js';
-import { createRuntimeProtectedScopeHelper, type RuntimeProtectedScopeHelper } from './protected-access.js';
+import {
+  createRuntimeProtectedScopeHelper,
+  type RuntimeProtectedScopeHelper,
+  type RuntimeProtectedScopeRuntime,
+} from './protected-access.js';
 import {
   buildRuntimeAgentStateMutations,
   formatRuntimeAgentHookStatus,
@@ -35,7 +39,7 @@ const DEFAULT_MAX_RECENT_TERMINAL_HOOKS = 6;
 const DEFAULT_MAX_RECENT_CANONICAL_MEMORIES = 6;
 
 type ProtectedRuntimeAgentInspectRuntime =
-  Parameters<typeof createRuntimeProtectedScopeHelper>[0]['runtime']
+  RuntimeProtectedScopeRuntime
   & {
     readonly agent: Pick<
       RuntimeAgentClient,

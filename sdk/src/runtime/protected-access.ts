@@ -19,15 +19,15 @@ const runtimeProtectedScopeCatalogVersion = 'sdk-v2';
 const scopeKeySeparator = '\u0000';
 export const RUNTIME_AI_SPEND_METER_SCOPE = 'ai.spend.meter';
 
-type ProtectedRuntime = {
+export type RuntimeProtectedScopeRuntime = {
   appId: string;
   transport?: RuntimeTransportConfig;
   auth: Pick<RuntimeAuthClient, 'registerApp'>;
   appAuth: Pick<RuntimeAppAuthClient, 'authorizeExternalPrincipal'>;
 };
 
-type CreateRuntimeProtectedScopeHelperInput = {
-  runtime: ProtectedRuntime;
+export type CreateRuntimeProtectedScopeHelperInput = {
+  runtime: RuntimeProtectedScopeRuntime;
   getSubjectUserId: (explicit?: string) => string | Promise<string>;
   now?: () => Date;
 };
@@ -94,7 +94,7 @@ function isRetryableProtectedAccessError(error: unknown): boolean {
     || normalized.reasonCode === ReasonCode.APP_GRANT_INVALID;
 }
 
-export function createRuntimeProtectedScopeHelper(input: CreateRuntimeProtectedScopeHelperInput) {
+export function createRuntimeProtectedScopeHelper(input: CreateRuntimeProtectedScopeHelperInput): RuntimeProtectedScopeHelper {
   const now = input.now ?? (() => new Date());
   const cache = new Map<string, CachedToken>();
   const inflight = new Map<string, Promise<CachedToken>>();

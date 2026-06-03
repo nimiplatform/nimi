@@ -7,7 +7,9 @@ export type {
   AggregateSummary,
   CapabilityEvaluation,
   CapabilityItemOverride,
+  ModelConfigBindingSummary,
   ModelConfigBindingSnapshot,
+  ModelConfigCapabilityPatch,
   ModelConfigI18nBinding,
   ModelConfigI18nFormatter,
   ModelConfigDiffRow,
@@ -22,6 +24,8 @@ export type {
   ModelConfigProjectionResolver,
   ModelConfigProjectionStatus,
   ModelConfigProviderResolver,
+  ModelConfigRouteBinding,
+  ModelConfigRoutePickerSelection,
   ModelConfigRouteProviderHandle,
   ModelConfigRouteSource,
   ModelConfigStatusTone,
@@ -30,6 +34,16 @@ export type {
   SharedAIConfigUnsubscribe,
   UserProfilesSource,
 } from './types.js';
+
+export {
+  applyModelConfigCapabilityPatch,
+  bindingToPickerSelection,
+  hasModelConfigRouteBinding,
+  normalizeModelConfigRouteBinding,
+  pickerSelectionToBinding,
+  readModelConfigRouteBinding,
+  summarizeBinding,
+} from './route-binding.js';
 
 export {
   summarizeAiModelAggregate,

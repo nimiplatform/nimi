@@ -64,15 +64,6 @@
  *  until the runtime adapter is invoked. New dynamic SDK imports inside Kit
  *  must target this file or be admitted explicitly before implementation.
  *
- * Admitted cross-feature edges
- * ----------------------------
- *  The `chat → avatar` cross-feature dependency is admitted as a
- *  documented one-way feature composition (avatar headless surface
- *  consumed by chat domain types and the canonical character rail
- *  component).
- *  The `model-config → model-picker` cross-feature dependency is
- *  retained as a documented one-way feature composition as well.
- *
  * Review rule
  * -----------
  *  New Kit SDK consumption must add or reuse exports here, keep feature modules
@@ -142,6 +133,7 @@ export type {
   RuntimeModelCatalogProvider,
   RuntimeModelCatalogProviderSource,
   RuntimeCanonicalCapability,
+  RuntimeRouteBinding,
   RuntimeRouteOptionsClient,
   RuntimeRouteOptionsSnapshot,
   ListRuntimeRouteOptionsInput,

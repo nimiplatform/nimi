@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
-  collapseHumanChatsToTargets,
-  resolveCanonicalHumanChatId,
-} from '../src/shell/renderer/features/chat/chat-human-thread-model';
-import type { HumanChatViewDto } from '../src/shell/renderer/features/chat/chat-human-thread-model';
+  collapseRealmHumanChatsToTargets,
+  resolveCanonicalRealmHumanChatId,
+  type RealmChatViewDto,
+} from '@nimiplatform/kit/features/chat/realm';
 
 test('human target contract collapses multiple chats for the same other user into one canonical target', () => {
   const chats = [
@@ -47,12 +47,12 @@ test('human target contract collapses multiple chats for the same other user int
         handle: 'bob',
       },
     },
-  ] as unknown as readonly HumanChatViewDto[];
+  ] as unknown as readonly RealmChatViewDto[];
 
-  const collapsed = collapseHumanChatsToTargets(chats);
+  const collapsed = collapseRealmHumanChatsToTargets(chats);
   assert.equal(collapsed.length, 2);
   assert.equal(collapsed[0]?.id, 'chat-bob');
   assert.equal(collapsed[1]?.id, 'chat-newer');
-  assert.equal(resolveCanonicalHumanChatId(chats, 'user-1'), 'chat-newer');
-  assert.equal(resolveCanonicalHumanChatId(chats, 'user-2'), 'chat-bob');
+  assert.equal(resolveCanonicalRealmHumanChatId(chats, 'user-1'), 'chat-newer');
+  assert.equal(resolveCanonicalRealmHumanChatId(chats, 'user-2'), 'chat-bob');
 });

@@ -3,17 +3,15 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import type { ConversationTargetSummary } from '@nimiplatform/kit/features/chat/headless';
+import {
+  collapseRealmHumanChatsToTargets,
+  compareRealmHumanChatsByRecency,
+  toRealmHumanTargetSummary,
+  type RealmChatViewDto,
+} from '@nimiplatform/kit/features/chat/realm';
 import { loadChatList } from './data/realm-human-chat-data';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { realmGroupChatData } from './data/realm-group-chat-data';
-import {
-  collapseHumanChatsToTargets,
-  compareHumanChatsByRecency,
-  getHumanChatPreview,
-  getHumanChatTitle,
-  getHumanTargetId,
-  type HumanChatViewDto,
-} from './chat-human-thread-model';
 import {
   toAgentFriendTargetsFromSocialSnapshot,
 } from './chat-agent-thread-model';
@@ -25,29 +23,6 @@ import {
 } from './chat-group-thread-model';
 
 type SocialSnapshot = Awaited<ReturnType<typeof realmSocialData.loadSocialSnapshot>>;
-
-export function toHumanTargetSummary(chat: HumanChatViewDto): ConversationTargetSummary {
-  return {
-    id: getHumanTargetId(chat),
-    source: 'human' as const,
-    canonicalSessionId: String(chat.id || ''),
-    title: getHumanChatTitle(chat),
-    handle: String(chat.otherUser?.handle || '').trim()
-      ? `@${String(chat.otherUser?.handle || '').trim()}`
-      : null,
-    bio: null,
-    avatarUrl: String(chat.otherUser?.avatarUrl || '').trim() || null,
-    avatarFallback: getHumanChatTitle(chat).charAt(0).toUpperCase() || 'H',
-    previewText: getHumanChatPreview(chat),
-    updatedAt: String(chat.lastMessageAt || chat.lastMessage?.createdAt || chat.createdAt || ''),
-    unreadCount: Number(chat.unreadCount || 0),
-    status: 'active' as const,
-    isOnline: null,
-    metadata: {
-      otherUserId: getHumanTargetId(chat),
-    },
-  };
-}
 
 export function useChatTargetsForSidebar(
   authStatus: 'bootstrapping' | 'anonymous' | 'authenticated',
@@ -80,11 +55,14 @@ export function useChatTargetsForSidebar(
   });
 
   const humanTargets = useMemo(() => {
-    const allChats = ((humanChatsQuery.data as { items?: HumanChatViewDto[] } | undefined)?.items || []) as HumanChatViewDto[];
-    const sorted = [...allChats].sort(compareHumanChatsByRecency);
-    const collapsed = collapseHumanChatsToTargets(sorted);
-    return collapsed.map(toHumanTargetSummary);
-  }, [humanChatsQuery.data]);
+    const allChats = ((humanChatsQuery.data as { items?: RealmChatViewDto[] } | undefined)?.items || []) as RealmChatViewDto[];
+    const sorted = [...allChats].sort(compareRealmHumanChatsByRecency);
+    const collapsed = collapseRealmHumanChatsToTargets(sorted);
+    return collapsed.map((chat) => toRealmHumanTargetSummary(chat, {
+      noMessagesFallback: t('Chat.noMessages', { defaultValue: 'No messages yet' }),
+      unknownTitle: t('Common.unknown', { defaultValue: 'Unknown' }),
+    }));
+  }, [humanChatsQuery.data, t]);
 
   const agentTargets = useMemo(() => {
     const snapshots = agentTargetsQuery.data || [];

@@ -1,19 +1,20 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import { createReadyConversationSetupState } from '@nimiplatform/kit/features/chat/headless';
+import {
+  collapseRealmHumanChatsToTargets,
+  compareRealmHumanChatsByRecency,
+  getRealmHumanChatTitle,
+  getRealmHumanTargetId,
+  resolveCanonicalRealmHumanChatId,
+  toRealmHumanConversationThreadSummary,
+  toRealmHumanTargetSummary,
+  type RealmChatViewDto,
+} from '@nimiplatform/kit/features/chat/realm';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { HumanConversationGiftModal } from '@renderer/features/turns/human-conversation-gift-modal';
+import { formatLocaleDate, formatRelativeLocaleTime } from '@renderer/i18n';
 import { loadChatList } from './data/realm-human-chat-data';
-import {
-  compareHumanChatsByRecency,
-  collapseHumanChatsToTargets,
-  getHumanChatPreview,
-  getHumanTargetId,
-  getHumanChatTitle,
-  resolveCanonicalHumanChatId,
-  toHumanConversationThreadSummary,
-  type HumanChatViewDto,
-} from './chat-human-thread-model';
 import {
   HumanCanonicalComposer,
   HumanCanonicalProfileDrawer,
@@ -39,6 +40,31 @@ type UseHumanConversationModeHostInput = {
   setChatProfilePanelTarget: (target: 'self' | 'other' | null) => void;
 };
 
+function formatHumanChatTime(isoString: string | null | undefined): string {
+  if (!isoString) {
+    return '';
+  }
+  const date = new Date(isoString);
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMin = Math.floor(diffMs / 60000);
+  if (diffMin < 60) {
+    return formatRelativeLocaleTime(date);
+  }
+  const diffHour = Math.floor(diffMin / 60);
+  if (diffHour < 24) {
+    return formatRelativeLocaleTime(date);
+  }
+  const diffDay = Math.floor(diffHour / 24);
+  if (diffDay < 7) {
+    return formatLocaleDate(date, { weekday: 'short' });
+  }
+  return formatLocaleDate(date, { month: 'short', day: 'numeric' });
+}
+
 export function useHumanConversationModeHost(
   input: UseHumanConversationModeHostInput,
 ): DesktopConversationModeHost {
@@ -56,47 +82,35 @@ export function useHumanConversationModeHost(
     enabled: authStatus === 'authenticated',
   });
 
-  const allChats = ((chatsQuery.data as { items?: HumanChatViewDto[] } | undefined)?.items || []) as HumanChatViewDto[];
+  const noMessagesFallback = t('Chat.noMessages', { defaultValue: 'No messages yet' });
+  const unknownTitle = t('Common.unknown', { defaultValue: 'Unknown' });
+  const allChats = ((chatsQuery.data as { items?: RealmChatViewDto[] } | undefined)?.items || []) as RealmChatViewDto[];
   const allChatsSorted = useMemo(
-    () => [...allChats].sort(compareHumanChatsByRecency),
+    () => [...allChats].sort(compareRealmHumanChatsByRecency),
     [allChats],
   );
   const collapsedChats = useMemo(
-    () => collapseHumanChatsToTargets(allChatsSorted),
+    () => collapseRealmHumanChatsToTargets(allChatsSorted),
     [allChatsSorted],
   );
+  const projectionOptions = useMemo(() => ({
+    noMessagesFallback,
+    unknownTitle,
+    formatUpdatedAt: ({ timestamp }: { timestamp: string }) => formatHumanChatTime(timestamp),
+  }), [noMessagesFallback, unknownTitle]);
   const threads = useMemo(
-    () => collapsedChats.map((chat) => toHumanConversationThreadSummary(chat)),
-    [collapsedChats],
+    () => collapsedChats.map((chat) => toRealmHumanConversationThreadSummary(chat, projectionOptions)),
+    [collapsedChats, projectionOptions],
   );
   const chatById = useMemo(
     () => new Map(allChats.map((chat) => [String(chat.id || ''), chat])),
     [allChats],
   );
   const selectedChat = selectedChatId ? chatById.get(String(selectedChatId)) || null : null;
-  const selectedChatTitle = selectedChat ? getHumanChatTitle(selectedChat) : t('Chat.humanTitle', { defaultValue: 'Human Chat' });
+  const selectedChatTitle = selectedChat ? getRealmHumanChatTitle(selectedChat, unknownTitle) : t('Chat.humanTitle', { defaultValue: 'Human Chat' });
   const targets = useMemo(
-    () => collapsedChats.map((chat) => ({
-      id: getHumanTargetId(chat),
-      source: 'human' as const,
-      canonicalSessionId: String(chat.id || ''),
-      title: getHumanChatTitle(chat),
-      handle: String(chat.otherUser?.handle || '').trim()
-        ? `@${String(chat.otherUser?.handle || '').trim()}`
-        : null,
-      bio: null,
-      avatarUrl: String(chat.otherUser?.avatarUrl || '').trim() || null,
-      avatarFallback: getHumanChatTitle(chat).charAt(0).toUpperCase() || 'H',
-      previewText: getHumanChatPreview(chat),
-      updatedAt: String(chat.lastMessageAt || chat.lastMessage?.createdAt || chat.createdAt || ''),
-      unreadCount: Number(chat.unreadCount || 0),
-      status: 'active' as const,
-      isOnline: null,
-      metadata: {
-        otherUserId: getHumanTargetId(chat),
-      },
-    })),
-    [collapsedChats],
+    () => collapsedChats.map((chat) => toRealmHumanTargetSummary(chat, projectionOptions)),
+    [collapsedChats, projectionOptions],
   );
   const canonicalSurface = useHumanCanonicalConversationSurface({
     selectedChatId,
@@ -128,7 +142,7 @@ export function useHumanConversationModeHost(
       statusSummary={(
         <RuntimeInspectCard
           label={t('Chat.mode.human', { defaultValue: 'Human' })}
-          value={getHumanChatTitle(selectedChat)}
+          value={getRealmHumanChatTitle(selectedChat, unknownTitle)}
           detail={canonicalSurface.diagnosticsSummary.isStreaming
             ? t('Chat.voiceInspectPlaying', { defaultValue: 'Currently playing' })
             : t('Chat.voiceInspectReady', { defaultValue: 'Ready to play' })}
@@ -141,11 +155,11 @@ export function useHumanConversationModeHost(
           hint: t('Chat.settingsChatModelHint', {
             defaultValue: 'AI model used for this conversation. Follows Runtime default unless overridden.',
           }),
-          summary: getHumanChatTitle(selectedChat),
+          summary: getRealmHumanChatTitle(selectedChat, unknownTitle),
           content: (
             <RuntimeInspectCard
               label={t('Chat.mode.human', { defaultValue: 'Human' })}
-              value={getHumanChatTitle(selectedChat)}
+              value={getRealmHumanChatTitle(selectedChat, unknownTitle)}
               detail={canonicalSurface.diagnosticsSummary.isStreaming
                 ? t('Chat.voiceInspectPlaying', { defaultValue: 'Currently playing' })
                 : t('Chat.voiceInspectReady', { defaultValue: 'Ready to play' })}
@@ -250,16 +264,16 @@ export function useHumanConversationModeHost(
     adapter,
     activeThreadId: selectedChatId,
     targets,
-    selectedTargetId: selectedChat ? getHumanTargetId(selectedChat) : null,
+    selectedTargetId: selectedChat ? getRealmHumanTargetId(selectedChat) : null,
     messages: canonicalMessages,
     onSelectTarget: (targetId) => {
-      setSelectedChatId(resolveCanonicalHumanChatId(allChats, targetId));
+      setSelectedChatId(resolveCanonicalRealmHumanChatId(allChats, targetId));
       setChatProfilePanelTarget(null);
     },
     characterData: {
       avatarUrl: String(selectedChat?.otherUser?.avatarUrl || '').trim() || undefined,
-      name: selectedChat ? getHumanChatTitle(selectedChat) : t('Chat.humanTitle', { defaultValue: 'Human Chat' }),
-      avatarFallback: selectedChat ? getHumanChatTitle(selectedChat).charAt(0).toUpperCase() || 'H' : 'H',
+      name: selectedChat ? getRealmHumanChatTitle(selectedChat, unknownTitle) : t('Chat.humanTitle', { defaultValue: 'Human Chat' }),
+      avatarFallback: selectedChat ? getRealmHumanChatTitle(selectedChat, unknownTitle).charAt(0).toUpperCase() || 'H' : 'H',
       handle: String(selectedChat?.otherUser?.handle || '').trim()
         ? `@${String(selectedChat?.otherUser?.handle || '').trim()}`
         : null,
@@ -317,9 +331,9 @@ export function useHumanConversationModeHost(
       <HumanCanonicalComposer
         selectedChatId={selectedChatId}
         leadingAvatar={selectedChat ? {
-          name: getHumanChatTitle(selectedChat),
+          name: getRealmHumanChatTitle(selectedChat, unknownTitle),
           imageUrl: String(selectedChat.otherUser?.avatarUrl || '').trim() || null,
-          fallbackLabel: getHumanChatTitle(selectedChat).charAt(0).toUpperCase() || 'H',
+          fallbackLabel: getRealmHumanChatTitle(selectedChat, unknownTitle).charAt(0).toUpperCase() || 'H',
           targetId: String(selectedChat.otherUser?.id || '').trim() || null,
           handle: String(selectedChat.otherUser?.handle || '').trim() || null,
           worldName: null,
