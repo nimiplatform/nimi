@@ -6,7 +6,6 @@ import {
   useState,
 } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { asNimiError } from '@nimiplatform/sdk/runtime';
 import {
   createReadyConversationSetupState,
 } from '@nimiplatform/kit/features/chat/headless';
@@ -45,16 +44,11 @@ import {
   loadStoredPerformancePreferences,
   subscribeStoredPerformancePreferences,
 } from '../settings/settings-storage';
-import { type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
-import { toErrorMessage } from './chat-agent-shell-core';
 import { useAgentConversationPresentation } from './chat-agent-shell-presentation';
 import { useAgentConversationEffects } from './chat-agent-shell-effects';
 import { useAgentConversationCapabilityEffects } from './chat-agent-shell-capability-effects';
 import { useSchedulingFeasibility } from './chat-shared-execution-scheduling-guard';
 import { useAgentConversationHostActions } from './chat-agent-shell-host-actions';
-import { logRendererEvent } from '@nimiplatform/kit/telemetry';
-import type { PendingAttachment } from '../turns/turn-input-attachments';
-import { clearPendingAttachments } from '../turns/turn-input-attachments';
 import { ChatAgentCognitionPanel } from './chat-agent-cognition-panel';
 import { useAgentConversationVoiceSession } from './chat-agent-shell-adapter-voice';
 import { useAgentConversationShellState } from './chat-agent-shell-adapter-state';
@@ -65,6 +59,8 @@ import {
 import { useAgentConversationRuntimeController } from './chat-agent-shell-adapter-runtime';
 import { useAgentRuntimeSessionSnapshotHydration } from './chat-agent-shell-adapter-session-snapshot';
 import { RUNTIME_AGENT_CHAT_MODE_ID } from './chat-agent-runtime-mode';
+import { useAgentConversationHostFeedback } from './chat-agent-shell-adapter-host-feedback';
+import { useAgentConversationPendingAttachments } from './chat-agent-shell-adapter-attachments';
 
 type UseAgentConversationModeHostInput = {
   authStatus: 'bootstrapping' | 'anonymous' | 'authenticated';
@@ -98,7 +94,6 @@ export function useAgentConversationModeHost(
     (state) => state.conversationCapabilityProjectionByCapability['audio.transcribe'] || null,
   );
   const [submittingThreadId, setSubmittingThreadId] = useState<string | null>(null);
-  const [hostFeedback, setHostFeedback] = useState<InlineFeedbackState | null>(null);
   const [behaviorSettings, setBehaviorSettingsState] = useState<AgentChatExperienceSettings>(
     () => createDefaultAgentChatExperienceSettings(),
   );
@@ -112,9 +107,7 @@ export function useAgentConversationModeHost(
       lifecycle: AgentTurnLifecycleState;
     }>
   >({});
-  const [pendingAttachmentsByThreadId, setPendingAttachmentsByThreadId] = useState<Record<string, readonly PendingAttachment[]>>({});
   const currentComposerTextRef = useRef('');
-  const pendingAttachmentsByThreadRef = useRef<Record<string, readonly PendingAttachment[]>>({});
   const registry = useMemo(() => {
     const nextRegistry = new ConversationOrchestrationRegistry();
     nextRegistry.register(createRuntimeAgentChatConversationProvider());
@@ -124,43 +117,12 @@ export function useAgentConversationModeHost(
     () => registry.require(RUNTIME_AGENT_CHAT_MODE_ID),
     [registry],
   );
-  const buildHostErrorDetails = useCallback((error: unknown, action?: string, extra?: Record<string, unknown>) => {
-    const normalized = asNimiError(error, { source: 'runtime' });
-    const causeMessage = error instanceof Error && error.cause instanceof Error
-      ? error.cause.message
-      : undefined;
-    return {
-      error: toErrorMessage(error),
-      ...(action ? { action } : {}),
-      ...(typeof normalized.reasonCode === 'string' && normalized.reasonCode.trim()
-        ? { reasonCode: normalized.reasonCode.trim() }
-        : {}),
-      ...(typeof normalized.actionHint === 'string' && normalized.actionHint.trim()
-        ? { actionHint: normalized.actionHint.trim() }
-        : {}),
-      ...(causeMessage ? { causeMessage } : {}),
-      ...(extra || {}),
-    };
-  }, []);
-  const reportHostError = useCallback((error: unknown, options?: { action?: string; extra?: Record<string, unknown> }) => {
-    const details = buildHostErrorDetails(error, options?.action, options?.extra);
-    const message = [
-      String(details.error || '').trim(),
-      typeof details.reasonCode === 'string' && details.reasonCode.trim()
-        ? `[${details.reasonCode.trim()}]`
-        : '',
-    ].filter(Boolean).join(' ');
-    logRendererEvent({
-      level: 'error',
-      area: 'agent-chat-shell',
-      message: 'action:host-error',
-      details,
-    });
-    setHostFeedback({
-      kind: 'error',
-      message,
-    });
-  }, [buildHostErrorDetails]);
+  const {
+    buildHostErrorDetails,
+    hostFeedback,
+    reportHostError,
+    setHostFeedback,
+  } = useAgentConversationHostFeedback();
   const thinkingSupport = useMemo(
     () => resolveAgentThinkingSupportFromProjection(textCapabilityProjection),
     [textCapabilityProjection],
@@ -171,14 +133,6 @@ export function useAgentConversationModeHost(
   useEffect(() => subscribeStoredPerformancePreferences((preferences) => {
     setDeveloperModeEnabled(preferences.developerMode === true);
   }), []);
-  useEffect(() => {
-    pendingAttachmentsByThreadRef.current = pendingAttachmentsByThreadId;
-  }, [pendingAttachmentsByThreadId]);
-  useEffect(() => () => {
-    for (const attachments of Object.values(pendingAttachmentsByThreadRef.current)) {
-      clearPendingAttachments([...attachments], (url) => URL.revokeObjectURL(url));
-    }
-  }, []);
   const thinkingUnsupportedReason = useMemo(() => {
     if (thinkingSupport.supported || !thinkingSupport.reason) {
       return null;
@@ -394,35 +348,7 @@ export function useAgentConversationModeHost(
     }
   ), [developerModeEnabled, t]);
   const currentFooterHostState = activeThreadId ? footerHostStateByThreadId[activeThreadId] || null : null;
-  const activePendingAttachments = activeThreadId
-    ? (pendingAttachmentsByThreadId[activeThreadId] || [])
-    : [];
-  const setPendingAttachmentsForThread = useCallback((threadId: string | null, nextAttachments: readonly PendingAttachment[]) => {
-    const normalizedThreadId = typeof threadId === 'string' ? threadId.trim() : '';
-    if (!normalizedThreadId) {
-      return;
-    }
-    setPendingAttachmentsByThreadId((current) => {
-      const existing = current[normalizedThreadId] || [];
-      const nextUrlSet = new Set(nextAttachments.map((attachment) => attachment.previewUrl));
-      for (const attachment of existing) {
-        if (!nextUrlSet.has(attachment.previewUrl)) {
-          URL.revokeObjectURL(attachment.previewUrl);
-        }
-      }
-      if (nextAttachments.length === 0) {
-        if (!(normalizedThreadId in current)) {
-          return current;
-        }
-        const { [normalizedThreadId]: _removed, ...rest } = current;
-        return rest;
-      }
-      return {
-        ...current,
-        [normalizedThreadId]: [...nextAttachments],
-      };
-    });
-  }, []);
+  const { activePendingAttachments, setPendingAttachmentsForThread } = useAgentConversationPendingAttachments(activeThreadId);
   const applyVoiceTranscriptComposerText = useCallback(async (input: { text: string; conversationAnchorId: string }) => {
     if (!activeThreadId || !activeConversationAnchorId || input.conversationAnchorId !== activeConversationAnchorId) {
       throw new Error('Voice input is unavailable because no active thread is selected.');

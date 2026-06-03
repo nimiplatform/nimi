@@ -5,12 +5,8 @@ import {
   type MutableRefObject,
   useRef,
   useState,
-  } from 'react';
+} from 'react';
 import type { TFunction } from 'i18next';
-import {
-  getRuntimeRouteCapabilityProjectionIssueKind,
-  isRuntimeRouteCapabilityProjectionReady,
-} from '@nimiplatform/sdk/runtime';
 import type { AgentLocalMessageRecord } from '@renderer/bridge/runtime-bridge/types';
 import { cancelStream } from '../turns/stream-controller';
 import {
@@ -36,17 +32,10 @@ import {
   type AgentVoiceSessionShellState,
 } from './chat-agent-voice-session';
 import { toErrorMessage } from './chat-agent-shell-core';
-
-function resolveIsVoiceSessionForeground(): boolean {
-  if (typeof document === 'undefined') {
-    return true;
-  }
-  const visible = document.visibilityState !== 'hidden';
-  const focused = typeof document.hasFocus === 'function'
-    ? document.hasFocus()
-    : true;
-  return visible && focused;
-}
+import {
+  resolveIsVoiceSessionForeground,
+  resolveVoiceSessionUnavailableMessage,
+} from './chat-agent-shell-adapter-voice-availability';
 
 type UseAgentConversationVoiceSessionInput = {
   activeTarget: { localAgentRef: string } | null;
@@ -132,40 +121,7 @@ export function useAgentConversationVoiceSession(
     };
   }, []);
 
-  const resolveVoiceSessionUnavailableMessage = useCallback(() => {
-    if (!input.activeTarget) {
-      return input.t('Chat.voiceSessionTargetRequired', {
-        defaultValue: 'Select an agent before starting voice input.',
-      });
-    }
-    if (!input.activeThreadId || !normalizeAgentVoiceSessionConversationAnchorId(input.activeConversationAnchorId)) {
-      return input.t('Chat.voiceSessionAnchorRequired', {
-        defaultValue: 'Voice input is unavailable because the conversation anchor is not ready.',
-      });
-    }
-    const issueKind = getRuntimeRouteCapabilityProjectionIssueKind(input.transcribeCapabilityProjection);
-    if (issueKind === 'needs_selection') {
-      return input.t('Chat.voiceSessionRouteRequired', {
-        defaultValue: 'Voice input is unavailable because no transcribe route is configured.',
-      });
-    }
-    if (issueKind === 'route_unhealthy') {
-      return input.t('Chat.voiceSessionRuntimeUnavailable', {
-        defaultValue: 'Voice input is unavailable because the transcribe runtime is not ready.',
-      });
-    }
-    if (issueKind === 'metadata_missing' || issueKind === 'binding_unresolved') {
-      return input.t('Chat.voiceSessionRouteUnavailable', {
-        defaultValue: 'Voice input is unavailable because the selected transcribe route cannot be resolved.',
-      });
-    }
-    if (!isRuntimeRouteCapabilityProjectionReady(input.transcribeCapabilityProjection)) {
-      return input.t('Chat.voiceSessionUnavailable', {
-        defaultValue: 'Voice input is unavailable for the current conversation.',
-      });
-    }
-    return null;
-  }, [input]);
+  const resolveUnavailableMessage = useCallback(() => resolveVoiceSessionUnavailableMessage(input), [input]);
 
   const resetVoiceSessionToPushToTalk = useCallback(() => {
     voiceTranscribeAbortRef.current?.abort();
@@ -466,7 +422,7 @@ export function useAgentConversationVoiceSession(
         setVoiceSessionState(resolveIdleAgentVoiceSessionShellState(voiceSessionState.mode));
         return;
       }
-      const unavailableMessage = resolveVoiceSessionUnavailableMessage();
+      const unavailableMessage = resolveUnavailableMessage();
       if (unavailableMessage) {
         setVoiceSessionState({
           status: 'failed',
@@ -491,7 +447,7 @@ export function useAgentConversationVoiceSession(
     input.reportHostError,
     input.t,
     input.transcribeCapabilityProjection,
-    resolveVoiceSessionUnavailableMessage,
+    resolveUnavailableMessage,
     voiceSessionState.mode,
     voiceSessionState.conversationAnchorId,
     voiceSessionState.status,
@@ -516,7 +472,7 @@ export function useAgentConversationVoiceSession(
       ) {
         return;
       }
-      const unavailableMessage = resolveVoiceSessionUnavailableMessage();
+      const unavailableMessage = resolveUnavailableMessage();
       if (unavailableMessage) {
         setVoiceSessionState({
           status: 'failed',
@@ -535,7 +491,7 @@ export function useAgentConversationVoiceSession(
   }, [
     beginVoiceCapture,
     input.activeConversationAnchorId,
-    resolveVoiceSessionUnavailableMessage,
+    resolveUnavailableMessage,
     voiceSessionState.mode,
     voiceSessionState.status,
   ]);

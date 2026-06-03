@@ -10,6 +10,8 @@ function readWorkspaceFile(relativePath: string): string {
 const humanAdapterSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-human-adapter.tsx');
 const canonicalHumanSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-human-canonical-components.tsx');
 const canonicalHumanComposerProfileSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-human-canonical-composer-profile.tsx');
+const canonicalHumanTimelineModelSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-human-timeline-model.ts');
+const canonicalHumanVoiceUiSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-human-voice-ui.tsx');
 const giftModalSource = readWorkspaceFile('src/shell/renderer/features/turns/human-conversation-gift-modal.tsx');
 
 test('chat human shell a5: human host now uses shell-native transcript, composer, and target rail', () => {
@@ -85,17 +87,17 @@ test('chat human shell a5: canonical human bridge projects realm data into canon
   assert.match(canonicalHumanSource, /renderMessageContent/);
   assert.match(canonicalHumanSource, /renderMessageAvatar/);
   assert.match(canonicalHumanSource, /renderMessageAccessory/);
-  assert.match(canonicalHumanSource, /resolveRealmChatMediaUrl/);
-  assert.match(canonicalHumanSource, /attachmentDisplayKind === 'AUDIO'/);
-  assert.match(canonicalHumanSource, /new Audio\(/);
-  assert.match(canonicalHumanSource, /selectedVoiceMessageId/);
+  assert.match(canonicalHumanTimelineModelSource, /resolveRealmChatMediaUrl/);
+  assert.match(canonicalHumanTimelineModelSource, /attachmentDisplayKind === 'AUDIO'/);
+  assert.match(canonicalHumanVoiceUiSource, /new Audio\(/);
+  assert.match(canonicalHumanVoiceUiSource, /selectedVoiceMessageId/);
   assert.match(canonicalHumanSource, /HumanVoiceInspectSidebar/);
   assert.match(canonicalHumanSource, /rightSidebarContent/);
   assert.match(canonicalHumanSource, /diagnosticsSummary/);
-  assert.match(canonicalHumanSource, /toggleVoiceTranscript/);
-  assert.match(canonicalHumanSource, /rightSidebarOverlayMenu/);
-  assert.match(canonicalHumanSource, /'image-pending'/);
-  assert.match(canonicalHumanSource, /'video-pending'/);
+  assert.match(canonicalHumanVoiceUiSource, /toggleVoiceTranscript/);
+  assert.match(canonicalHumanVoiceUiSource, /rightSidebarOverlayMenu/);
+  assert.match(canonicalHumanTimelineModelSource, /'image-pending'/);
+  assert.match(canonicalHumanTimelineModelSource, /'video-pending'/);
   assert.match(canonicalHumanSource, /ChatStreamStatus/);
   assert.match(canonicalHumanSource, /cancelStream\(props\.selectedChatId\)/);
   assert.doesNotMatch(canonicalHumanSource, /RealmChatTimeline,/);

@@ -323,6 +323,9 @@ test('agent local mode keeps thinking unsupported and forces effective off confi
 
 test('agent shell stays a Runtime Agent projection consumer with local UI state', () => {
   const adapterSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-adapter.tsx');
+  const adapterHostFeedbackSource = readWorkspaceFile(
+    'src/shell/renderer/features/chat/chat-agent-shell-adapter-host-feedback.ts',
+  );
   const adapterSessionSnapshotSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-adapter-session-snapshot.ts');
   const adapterStateSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-adapter-state.ts');
   const sessionHydrationSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-session-hydration.ts');
@@ -387,7 +390,7 @@ test('agent shell stays a Runtime Agent projection consumer with local UI state'
   assert.match(hostActionSubmitSource, /userProjectionApplied = true/);
   assert.doesNotMatch(hostActionSubmitSource, /chatAgentStoreClient\.commitTurnResult/);
   assert.match(hostActionSubmitRunSource, /if \(projectionEffects\.awaitRefresh\) \{\s+const rebuiltBundle =/s);
-  assert.match(adapterSource, /logRendererEvent/);
+  assert.match(adapterHostFeedbackSource, /logRendererEvent/);
   assert.match(adapterSource, /conversationCapabilityProjectionByCapability\['audio\.transcribe'\]/);
   assert.match(adapterSource, /voiceSessionState/);
   assert.match(voiceAdapterSource, /handleVoiceSessionToggle/);

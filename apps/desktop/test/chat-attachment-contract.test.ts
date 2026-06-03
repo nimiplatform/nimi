@@ -19,6 +19,10 @@ const humanComponentsSource = fs.readFileSync(
   path.join(import.meta.dirname, '../src/shell/renderer/features/chat/chat-human-canonical-components.tsx'),
   'utf8',
 );
+const humanTimelineModelSource = fs.readFileSync(
+  path.join(import.meta.dirname, '../src/shell/renderer/features/chat/chat-human-timeline-model.ts'),
+  'utf8',
+);
 
 test('message timeline utilities do not synthesize legacy media endpoints', () => {
   assert.match(messageTimelineUtilsSource, /resolveRealmChatMediaUrl/);
@@ -30,12 +34,13 @@ test('message timeline utilities do not synthesize legacy media endpoints', () =
 
 test('Desktop consumes Kit Realm chat attachment primitives directly', () => {
   assert.equal(fs.existsSync(chatAttachmentContractPath), false);
-  for (const source of [messageTimelineUtilsSource, humanComposerSource, humanComponentsSource]) {
+  for (const source of [messageTimelineUtilsSource, humanComposerSource, humanTimelineModelSource]) {
     assert.match(source, /@nimiplatform\/kit\/features\/chat\/realm/);
     assert.doesNotMatch(source, /chat-attachment-contract/);
   }
   assert.match(humanComposerSource, /createRealmChatResourceAttachmentPayload/);
   assert.match(humanComposerSource, /extractRealmChatAttachmentTargetId/);
-  assert.match(humanComponentsSource, /resolveRealmChatMediaUrl/);
-  assert.match(humanComponentsSource, /resolveRealmChatAttachmentPreviewText/);
+  assert.doesNotMatch(humanComponentsSource, /chat-attachment-contract/);
+  assert.match(humanTimelineModelSource, /resolveRealmChatMediaUrl/);
+  assert.match(humanTimelineModelSource, /resolveRealmChatAttachmentPreviewText/);
 });

@@ -42,6 +42,11 @@ test('Agent Chat Settings Avatar surface exposes closed configuration controls',
     join(repoRoot, 'src/shell/renderer/features/chat/chat-agent-shell-presentation-settings.tsx'),
     'utf8',
   );
+  const avatarSettingsSource = readFileSync(
+    join(repoRoot, 'src/shell/renderer/features/chat/chat-agent-shell-avatar-settings-content.tsx'),
+    'utf8',
+  );
+  const settingsProjectionSource = `${settingsSource}\n${avatarSettingsSource}`;
   const presentationSource = readFileSync(
     join(repoRoot, 'src/shell/renderer/features/chat/chat-agent-shell-presentation.tsx'),
     'utf8',
@@ -67,7 +72,7 @@ test('Agent Chat Settings Avatar surface exposes closed configuration controls',
     'debug_profile',
     'backend_capability_profile_ref',
   ]) {
-    assert.match(settingsSource, new RegExp(requiredControl, 'u'));
+    assert.match(settingsProjectionSource, new RegExp(requiredControl, 'u'));
   }
 
   assert.match(localAvatarControlsSource, /useAgentCenterAvatarConfigMutation/u);
@@ -79,7 +84,7 @@ test('Agent Chat Settings Avatar surface exposes closed configuration controls',
   assert.match(localAvatarControlsSource, /importAgentCenterLive2dAdapterManifest/u);
   assert.match(mutationSource, /putAgentCenterLocalConfig/u);
   assert.match(mutationSource, /backend_kind/u);
-  assert.doesNotMatch(settingsSource, /onChange: \(backend_kind\) => avatarConfigMutation\.mutate\(\{ backend_kind \}\)/u);
+  assert.doesNotMatch(settingsProjectionSource, /onChange: \(backend_kind\) => avatarConfigMutation\.mutate\(\{ backend_kind \}\)/u);
   assert.match(bridgeSource, /desktop_agent_center_avatar_asset_import/u);
   assert.match(bridgeSource, /desktop_agent_center_avatar_asset_list/u);
   assert.match(bridgeSource, /desktop_agent_center_avatar_asset_select/u);
@@ -94,7 +99,7 @@ test('Agent Chat Settings Avatar surface exposes closed configuration controls',
 
 test('Agent Chat Settings Avatar surface does not widen Avatar launch handoff', () => {
   const presentationSource = readFileSync(
-    join(repoRoot, 'src/shell/renderer/features/chat/chat-agent-shell-local-avatar-controls.ts'),
+    join(repoRoot, 'src/shell/renderer/features/chat/chat-agent-local-avatar-launch-controls.ts'),
     'utf8',
   );
   const launchCall = presentationSource.match(/launchDesktopAvatarHandoff\(\{[\s\S]*?\}\)/u);
@@ -111,10 +116,10 @@ test('Agent Chat Settings Avatar surface does not widen Avatar launch handoff', 
 test('Agent Chat composer Avatar launch fails closed without local asset and backend evidence', async () => {
   installFreshStorage();
   const { resolveAvatarComposerActionState } = await import(
-    '../src/shell/renderer/features/chat/chat-agent-shell-local-avatar-controls.js'
+    '../src/shell/renderer/features/chat/chat-agent-local-avatar-launch-controls.js'
   );
   const presentationSource = readFileSync(
-    join(repoRoot, 'src/shell/renderer/features/chat/chat-agent-shell-local-avatar-controls.ts'),
+    join(repoRoot, 'src/shell/renderer/features/chat/chat-agent-local-avatar-launch-controls.ts'),
     'utf8',
   );
   assert.equal(resolveAvatarComposerActionState({
@@ -142,9 +147,9 @@ test('Agent Chat composer Avatar launch fails closed without local asset and bac
     avatarAssetValid: true,
   }), 'ready_stopped');
 
-  const invalidEvidenceGuard = presentationSource.match(/if \(!avatarRunning && !avatarAssetValid\) \{[\s\S]*?\n {4}\}/u);
+  const invalidEvidenceGuard = presentationSource.match(/if \(!avatarRunning && !input\.avatarAssetValid\) \{[\s\S]*?\n {4}\}/u);
   assert.ok(invalidEvidenceGuard, 'Avatar launch must guard resolver and backend evidence before handoff');
-  assert.match(invalidEvidenceGuard[0], /input\.onOpenAgentCenter\?\.\(\)/u);
+  assert.match(invalidEvidenceGuard[0], /presentation\.onOpenAgentCenter\?\.\(\)/u);
   assert.match(invalidEvidenceGuard[0], /Chat\.agentCenterAvatarStartBackendEvidenceRequired/u);
   assert.match(invalidEvidenceGuard[0], /Chat\.agentCenterAvatarStartLocalAssetRequired/u);
 
@@ -155,7 +160,7 @@ test('Agent Chat composer Avatar launch fails closed without local asset and bac
     /handleComposerAvatarAction = useCallback\(async \(\) => \{[\s\S]*?\n {2}\}, \[/u,
   );
   assert.ok(composerAction, 'handleComposerAvatarAction callback must be visible to the guard check');
-  const guardIndex = composerAction[0].indexOf('if (!avatarRunning && !avatarAssetValid)');
+  const guardIndex = composerAction[0].indexOf('if (!avatarRunning && !input.avatarAssetValid)');
   const launchIndex = composerAction[0].indexOf('executeArbitratedLaunch({');
   assert.ok(
     guardIndex >= 0 && launchIndex >= 0 && guardIndex < launchIndex,

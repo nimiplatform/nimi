@@ -27,7 +27,7 @@ test('desktop consumes Kit avatar voice playback cues instead of owning the esti
     /from '@nimiplatform\/kit\/features\/avatar\/headless'/,
   );
   assert.match(
-    readChatSource('chat-shared-runtime-stream-ui.tsx'),
+    readChatSource('chat-shared-runtime-voice-message-content.tsx'),
     /from '@nimiplatform\/kit\/features\/avatar\/runtime'/,
   );
 });

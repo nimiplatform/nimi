@@ -46,9 +46,10 @@ describe('Avatar shell/local-assets domain boundary', () => {
     const voiceCapture = readRepo(
       'apps/desktop/src/shell/renderer/features/chat/chat-agent-voice-capture.ts',
     );
-    const runtimeStreamUi = readRepo(
-      'apps/desktop/src/shell/renderer/features/chat/chat-shared-runtime-stream-ui.tsx',
-    );
+    const runtimeStreamUi = [
+      readRepo('apps/desktop/src/shell/renderer/features/chat/chat-shared-runtime-stream-ui.tsx'),
+      readRepo('apps/desktop/src/shell/renderer/features/chat/chat-shared-runtime-voice-message-content.tsx'),
+    ].join('\n');
 
     assert.equal(
       existsSync(new URL('../../../apps/desktop/src/shell/renderer/features/chat/chat-agent-avatar-live2d-framing.ts', import.meta.url)),
@@ -136,15 +137,18 @@ describe('Avatar shell/local-assets domain boundary', () => {
     const controls = readRepo(
       'apps/desktop/src/shell/renderer/features/chat/chat-agent-shell-local-avatar-controls.ts',
     );
+    const launchControls = readRepo(
+      'apps/desktop/src/shell/renderer/features/chat/chat-agent-local-avatar-launch-controls.ts',
+    );
     const configSurfaceTest = readRepo('apps/desktop/test/chat-agent-avatar-configuration-surface.test.ts');
     const arbitrationTest = readRepo('apps/desktop/test/chat-agent-avatar-launch-arbitration.test.ts');
 
     assert.match(controls, /avatarAssetValid/);
     assert.match(controls, /backend_capability_profile_ref/);
-    assert.match(controls, /executeArbitratedLaunch/);
-    assert.match(controls, /launchDesktopAvatarHandoff/);
-    assert.match(controls, /agentId:\s*input\.activeTarget\.localAgentRef/);
-    assert.doesNotMatch(controls, /agentId:\s*input\.activeTarget\.realmAgentId/);
+    assert.match(launchControls, /executeArbitratedLaunch/);
+    assert.match(launchControls, /launchDesktopAvatarHandoff/);
+    assert.match(launchControls, /agentId:\s*presentation\.activeTarget\.localAgentRef/);
+    assert.doesNotMatch(launchControls, /agentId:\s*presentation\.activeTarget\.realmAgentId/);
 
     assert.match(configSurfaceTest, /does not widen Avatar launch handoff/);
     assert.match(configSurfaceTest, /fails closed without local asset and backend evidence/);

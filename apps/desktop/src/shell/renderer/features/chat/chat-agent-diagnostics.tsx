@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { AppCardSurface, CompactAction } from '@nimiplatform/kit/ui';
+import { CompactAction } from '@nimiplatform/kit/ui';
 import type { AgentLocalTargetSnapshot } from '@renderer/bridge/runtime-bridge/types';
 import type {
   RuntimeAgentInspectEventSummary,
@@ -15,149 +15,17 @@ import {
   RuntimeInspectUnsupportedNote,
 } from './chat-runtime-inspect-content';
 import { AgentDiagnosticsAvatarOverrideCard } from './chat-agent-diagnostics-avatar-override';
-
-const DIAGNOSTIC_INPUT_CLASS_NAME = 'mt-1.5 w-full rounded-lg border border-[var(--nimi-border-subtle)] bg-white px-2.5 py-1.5 text-[13px] font-medium text-[var(--nimi-text-primary)] outline-none transition focus:border-[color:var(--nimi-action-primary-bg)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--nimi-action-primary-bg)_14%,white)] disabled:cursor-not-allowed disabled:opacity-50';
-// Same input look but no top margin — used inside DiagnosticsInlineField where the
-// label sits to the LEFT, not above, so the field shouldn't push itself down.
-const DIAGNOSTIC_INLINE_INPUT_CLASS_NAME = 'w-full rounded-lg border border-[var(--nimi-border-subtle)] bg-white px-2.5 py-1.5 text-[13px] font-medium text-[var(--nimi-text-primary)] outline-none transition focus:border-[color:var(--nimi-action-primary-bg)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--nimi-action-primary-bg)_14%,white)] disabled:cursor-not-allowed disabled:opacity-50';
-
-const AUTONOMY_MODE_OPTIONS = [
-  { value: 'off', label: 'Off' },
-  { value: 'low', label: 'Low' },
-  { value: 'medium', label: 'Medium' },
-  { value: 'high', label: 'High' },
-] as const;
-
-/**
- * Compact key/value row used inside the Advanced/Debug Runtime overview grid.
- * Picks a tone class from the value text so "Ready" renders green, "Loading…"
- * sky-blue, all-caps tokens (MASTER_OWNED) mono, and everything else neutral.
- */
-function DiagnosticsKv(props: { label: string; value: string; detail?: string }) {
-  const trimmed = props.value.trim();
-  const isLoading = /^(loading|checking)/i.test(trimmed) || trimmed.endsWith('…') || /loading\.{2,3}$/i.test(trimmed);
-  const isReady = /^(ready|runtime ready|on)$/i.test(trimmed);
-  const isMonoToken = /^[A-Z][A-Z0-9_]+$/.test(trimmed);
-  const valueClass = isLoading
-    ? 'text-sky-700'
-    : isReady
-      ? 'text-[var(--nimi-status-success)] font-semibold'
-      : isMonoToken
-        ? 'font-mono text-[11px] text-slate-900'
-        : 'text-slate-900';
-  return (
-    <div className="min-w-0">
-      <div className="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500">{props.label}</div>
-      <div className={`mt-1 truncate text-[13px] font-semibold ${valueClass}`} title={trimmed}>
-        {trimmed || '—'}
-      </div>
-      {props.detail ? (
-        <div className="mt-0.5 truncate text-[11.5px] leading-[1.5] text-slate-600">{props.detail}</div>
-      ) : null}
-    </div>
-  );
-}
-
-function DiagnosticsSectionCard(props: {
-  title: string;
-  hint?: ReactNode;
-  children: ReactNode;
-}) {
-  return (
-    <AppCardSurface kind="operational-solid" as="div" className="space-y-3 px-3.5 py-3">
-      <div className="space-y-1">
-        <h4 className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[var(--nimi-text-muted)]">
-          {props.title}
-        </h4>
-        {props.hint ? (
-          <p className="text-[11px] leading-5 text-[var(--nimi-text-muted)]">{props.hint}</p>
-        ) : null}
-      </div>
-      {props.children}
-    </AppCardSurface>
-  );
-}
-
-function DiagnosticsFieldLabel(props: { label: string; children: ReactNode }) {
-  return (
-    <label className="block text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--nimi-text-muted)]">
-      {props.label}
-      {props.children}
-    </label>
-  );
-}
-
-function RuntimeInspectActionButton(props: {
-  label: string;
-  onClick: () => void;
-  disabled?: boolean;
-  tone?: 'neutral' | 'primary' | 'danger';
-}) {
-  return (
-    <CompactAction onClick={props.onClick} disabled={props.disabled} tone={props.tone}>
-      {props.label}
-    </CompactAction>
-  );
-}
-
-/**
- * Ghost-red action used for destructive recovery operations (Clear context, Clear override).
- * Same height as CompactAction but tertiary-weight so the primary "Apply X" stays the
- * single visual focus per section.
- */
-function DiagnosticsDangerGhostButton(props: {
-  label: string;
-  onClick: () => void;
-  disabled?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={props.onClick}
-      disabled={props.disabled}
-      className="inline-flex h-[30px] items-center justify-center whitespace-nowrap rounded-xl border border-transparent bg-transparent px-3 text-[12px] font-medium text-red-700 transition-colors hover:border-red-200 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
-    >
-      {props.label}
-    </button>
-  );
-}
-
-/**
- * Inline-left labeled row for short, single-line debug inputs. Halves vertical space
- * compared to label-on-top forms while preserving uppercase-tracked label visuals.
- */
-function DiagnosticsInlineField(props: { label: string; children: ReactNode }) {
-  return (
-    <div className="flex items-center gap-3">
-      <label className="w-[120px] shrink-0 text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500">
-        {props.label}
-      </label>
-      <div className="min-w-0 flex-1">{props.children}</div>
-    </div>
-  );
-}
-
-/** Small icon-only button used in AdvBlock headers (e.g. Refresh inspect). */
-function DiagnosticsHeaderIconButton(props: {
-  label: string;
-  onClick: () => void;
-  disabled?: boolean;
-  spinning?: boolean;
-  children: ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={props.onClick}
-      disabled={props.disabled}
-      title={props.label}
-      aria-label={props.label}
-      className="grid h-7 w-7 shrink-0 place-items-center rounded-full border border-slate-200/90 bg-white text-slate-500 transition-colors hover:border-slate-300 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-40"
-    >
-      <span className={props.spinning ? 'animate-spin' : undefined}>{props.children}</span>
-    </button>
-  );
-}
+import {
+  AUTONOMY_MODE_OPTIONS,
+  DIAGNOSTIC_INLINE_INPUT_CLASS_NAME,
+  DIAGNOSTIC_INPUT_CLASS_NAME,
+  DiagnosticsDangerGhostButton,
+  DiagnosticsFieldLabel,
+  DiagnosticsHeaderIconButton,
+  DiagnosticsInlineField,
+  DiagnosticsKv,
+} from './chat-agent-diagnostics-controls';
+import { AgentDiagnosticsFallbackPanel } from './chat-agent-diagnostics-fallback-panel';
 
 export type AgentDiagnosticsSectionId = 'runtime' | 'runtime-state' | 'autonomy-control' | 'avatar-override' | 'turns';
 
@@ -529,228 +397,38 @@ export function AgentDiagnosticsPanel(props: {
   }
 
   return (
-    <div className="space-y-3" data-testid="agent-diagnostics-panel">
-      {/* Overview — runtime + state cards in a tighter single column */}
-      <RuntimeInspectCard
-        label={viewModel.runtimeCard.label}
-        value={viewModel.runtimeCard.value}
-        detail={viewModel.runtimeCard.detail || undefined}
-      />
-      {viewModel.stateCards.length > 0 ? (
-        <div className="space-y-2.5">
-          {viewModel.stateCards.map((card) => (
-            <RuntimeInspectCard
-              key={card.key}
-              label={card.label}
-              value={card.value}
-              detail={card.detail || undefined}
-            />
-          ))}
-        </div>
-      ) : null}
-
-      {hasRuntimeInspect && props.runtimeInspect ? (
-        <>
-          {/* Runtime state editing */}
-          <DiagnosticsSectionCard
-            title={t('Chat.agentDiagnosticsRuntimeStateTitle', { defaultValue: 'Runtime State' })}
-          >
-            <div className="space-y-2.5">
-              <DiagnosticsFieldLabel label={t('Chat.agentDiagnosticsStatusTextLabel', { defaultValue: 'Status text' })}>
-                <input
-                  type="text"
-                  value={statusText}
-                  onChange={(event) => setStatusText(event.target.value)}
-                  disabled={mutationPending}
-                  className={DIAGNOSTIC_INPUT_CLASS_NAME}
-                />
-              </DiagnosticsFieldLabel>
-              <DiagnosticsFieldLabel label={t('Chat.agentDiagnosticsWorldContextLabel', { defaultValue: 'World context' })}>
-                <input
-                  type="text"
-                  value={worldId}
-                  onChange={(event) => setWorldId(event.target.value)}
-                  disabled={mutationPending}
-                  className={DIAGNOSTIC_INPUT_CLASS_NAME}
-                />
-              </DiagnosticsFieldLabel>
-              <DiagnosticsFieldLabel label={t('Chat.agentDiagnosticsDyadicUserLabel', { defaultValue: 'Dyadic user' })}>
-                <input
-                  type="text"
-                  value={userId}
-                  onChange={(event) => setUserId(event.target.value)}
-                  disabled={mutationPending}
-                  className={DIAGNOSTIC_INPUT_CLASS_NAME}
-                />
-              </DiagnosticsFieldLabel>
-            </div>
-            <div className="flex flex-wrap items-center gap-3 pt-1">
-              <CompactAction
-                type="button"
-                onClick={() => props.onUpdateRuntimeState?.({ statusText, worldId, userId })}
-                disabled={!props.onUpdateRuntimeState || mutationPending || !runtimeStateDirty}
-                tone="primary"
-              >
-                {t('Chat.agentDiagnosticsApplyRuntimeState', { defaultValue: 'Apply runtime state' })}
-              </CompactAction>
-              <button
-                type="button"
-                onClick={() => props.onClearWorldContext?.()}
-                disabled={!props.onClearWorldContext || mutationPending}
-                className="inline-flex items-center text-[12.5px] font-medium text-red-600 transition-colors hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:text-red-600"
-              >
-                {t('Chat.agentDiagnosticsClearWorldContext', { defaultValue: 'Clear world context' })}
-              </button>
-              <button
-                type="button"
-                onClick={() => props.onClearDyadicContext?.()}
-                disabled={!props.onClearDyadicContext || mutationPending}
-                className="inline-flex items-center text-[12.5px] font-medium text-red-600 transition-colors hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:text-red-600"
-              >
-                {t('Chat.agentDiagnosticsClearDyadicContext', { defaultValue: 'Clear dyadic context' })}
-              </button>
-            </div>
-          </DiagnosticsSectionCard>
-
-          {/* Autonomy — status + config inline */}
-          <DiagnosticsSectionCard
-            title={t('Chat.agentDiagnosticsAutonomyControlTitle', { defaultValue: 'Autonomy Control' })}
-            hint={autonomyStatusDetail}
-          >
-            <div className="flex items-center gap-2">
-              <span
-                className={`h-2 w-2 rounded-full ${
-                  props.runtimeInspect.autonomyEnabled === true
-                    ? 'bg-[var(--nimi-status-success)]'
-                    : 'bg-[var(--nimi-text-muted)]'
-                }`}
-              />
-              <span className="text-[13px] font-semibold text-[var(--nimi-text-primary)]">
-                {autonomyStatusValue}
-              </span>
-            </div>
-            <div className="space-y-2.5">
-              <DiagnosticsFieldLabel label={t('Chat.agentDiagnosticsAutonomyModeLabel', { defaultValue: 'Autonomy mode' })}>
-                <select
-                  value={autonomyMode}
-                  onChange={(event) => setAutonomyMode(event.target.value)}
-                  disabled={mutationPending}
-                  className={DIAGNOSTIC_INPUT_CLASS_NAME}
-                >
-                  {AUTONOMY_MODE_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </DiagnosticsFieldLabel>
-              <div className="grid grid-cols-2 gap-2">
-                <DiagnosticsFieldLabel label={t('Chat.agentDiagnosticsDailyTokenBudgetLabel', { defaultValue: 'Daily token budget' })}>
-                  <input
-                    type="number"
-                    min="0"
-                    value={dailyTokenBudget}
-                    onChange={(event) => setDailyTokenBudget(event.target.value)}
-                    disabled={mutationPending}
-                    className={DIAGNOSTIC_INPUT_CLASS_NAME}
-                  />
-                </DiagnosticsFieldLabel>
-                <DiagnosticsFieldLabel label={t('Chat.agentDiagnosticsMaxTokensPerHookLabel', { defaultValue: 'Max tokens per hook' })}>
-                  <input
-                    type="number"
-                    min="0"
-                    value={maxTokensPerHook}
-                    onChange={(event) => setMaxTokensPerHook(event.target.value)}
-                    disabled={mutationPending}
-                    className={DIAGNOSTIC_INPUT_CLASS_NAME}
-                  />
-                </DiagnosticsFieldLabel>
-              </div>
-            </div>
-            <div className="flex flex-wrap items-center gap-2 pt-1">
-              <button
-                type="button"
-                onClick={() => props.onUpdateAutonomyConfig?.({ mode: autonomyMode, dailyTokenBudget, maxTokensPerHook })}
-                disabled={!props.onUpdateAutonomyConfig || mutationPending || !autonomyConfigDirty}
-                className="inline-flex h-9 items-center justify-center whitespace-nowrap rounded-lg border border-slate-200 bg-white px-4 text-[12.5px] font-semibold text-slate-800 transition-colors hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-45"
-              >
-                {t('Chat.agentDiagnosticsApplyAutonomyConfig', { defaultValue: 'Apply Config' })}
-              </button>
-              {props.runtimeInspect.autonomyEnabled === true ? (
-                <button
-                  type="button"
-                  onClick={() => props.onDisableAutonomy?.()}
-                  disabled={!props.onDisableAutonomy || mutationPending}
-                  className="inline-flex h-9 items-center justify-center whitespace-nowrap rounded-lg border border-transparent bg-red-500 px-4 text-[12.5px] font-semibold text-white shadow-[0_4px_10px_rgba(239,68,68,0.25)] transition-colors hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-45 disabled:shadow-none"
-                >
-                  {t('Chat.disableAgentAutonomyTitle', { defaultValue: 'Disable autonomy' })}
-                </button>
-              ) : (
-                <CompactAction
-                  type="button"
-                  onClick={() => props.onEnableAutonomy?.()}
-                  disabled={
-                    !props.onEnableAutonomy
-                    || mutationPending
-                    || props.runtimeInspect.autonomyMode === 'off'
-                  }
-                  tone="primary"
-                >
-                  {t('Chat.agentDiagnosticsEnableAutonomy', { defaultValue: 'Enable Autonomy' })}
-                </CompactAction>
-              )}
-              <RuntimeInspectActionButton
-                label={t('Chat.agentDiagnosticsRefreshInspect', { defaultValue: 'Refresh inspect' })}
-                onClick={() => props.onRefreshInspect?.()}
-                disabled={!props.onRefreshInspect || props.runtimeInspectLoading || mutationPending}
-              />
-            </div>
-            {props.runtimeInspect.pendingHooks.length > 0 ? (
-              <div className="space-y-1.5 rounded-lg border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))] p-2.5">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--nimi-text-muted)]">
-                  {t('Chat.agentDiagnosticsPendingHooksLabel', { defaultValue: 'Pending hooks' })}
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {props.runtimeInspect.pendingHooks.map((hook) => (
-                    hook.hookId ? (
-                      <RuntimeInspectActionButton
-                        key={hook.hookId}
-                        tone="danger"
-                        label={`${t('Chat.agentDiagnosticsCancelHook', { defaultValue: 'Cancel' })} ${hook.hookId}`}
-                        onClick={() => props.onCancelHook?.(hook.hookId)}
-                        disabled={!props.onCancelHook || mutationPending}
-                      />
-                    ) : null
-                  ))}
-                </div>
-              </div>
-            ) : null}
-            {props.mutationPendingAction ? (
-              <div className="text-[11px] leading-5 text-[var(--nimi-text-muted)]">
-                {props.mutationPendingAction}
-              </div>
-            ) : null}
-          </DiagnosticsSectionCard>
-
-          <AgentDiagnosticsAvatarOverrideCard t={t} disabled={mutationPending} />
-
-        </>
-      ) : null}
-
-      {viewModel.emptyLabel ? (
-        <RuntimeInspectUnsupportedNote label={viewModel.emptyLabel} />
-      ) : (
-        <div className="space-y-2.5">
-          {viewModel.turnCards.map((card) => (
-            <RuntimeInspectCard
-              key={card.key}
-              label={card.label}
-              value={card.value}
-              detail={card.detail || undefined}
-            />
-          ))}
-        </div>
-      )}
-    </div>
+    <AgentDiagnosticsFallbackPanel
+      autonomyConfigDirty={autonomyConfigDirty}
+      autonomyMode={autonomyMode}
+      autonomyStatusDetail={autonomyStatusDetail}
+      autonomyStatusValue={autonomyStatusValue}
+      dailyTokenBudget={dailyTokenBudget}
+      hasRuntimeInspect={hasRuntimeInspect}
+      maxTokensPerHook={maxTokensPerHook}
+      mutationPending={mutationPending}
+      mutationPendingAction={props.mutationPendingAction}
+      onCancelHook={props.onCancelHook}
+      onClearDyadicContext={props.onClearDyadicContext}
+      onClearWorldContext={props.onClearWorldContext}
+      onDisableAutonomy={props.onDisableAutonomy}
+      onEnableAutonomy={props.onEnableAutonomy}
+      onRefreshInspect={props.onRefreshInspect}
+      onUpdateAutonomyConfig={props.onUpdateAutonomyConfig}
+      onUpdateRuntimeState={props.onUpdateRuntimeState}
+      runtimeInspect={props.runtimeInspect}
+      runtimeInspectLoading={props.runtimeInspectLoading}
+      runtimeStateDirty={runtimeStateDirty}
+      setAutonomyMode={setAutonomyMode}
+      setDailyTokenBudget={setDailyTokenBudget}
+      setMaxTokensPerHook={setMaxTokensPerHook}
+      setStatusText={setStatusText}
+      setUserId={setUserId}
+      setWorldId={setWorldId}
+      statusText={statusText}
+      t={t}
+      userId={userId}
+      viewModel={viewModel}
+      worldId={worldId}
+    />
   );
 }

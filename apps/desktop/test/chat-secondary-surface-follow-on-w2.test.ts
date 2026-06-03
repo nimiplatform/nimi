@@ -13,6 +13,7 @@ const chatSessionListSource = readWorkspaceFile('src/shell/renderer/features/cha
 const chatCognitionSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-cognition-panel.tsx');
 const chatRuntimeInspectSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-runtime-inspect-content.tsx');
 const chatDiagnosticsSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-diagnostics.tsx');
+const chatDiagnosticsControlsSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-diagnostics-controls.tsx');
 
 test('W2 chat surface follow-on: page composition keeps toggle ownership in the sidebar shell while rail controls consume the shared icon toggle action path', () => {
   assert.match(chatPageSource, /import \{ ChatRelationshipRail \} from '\.\/chat-relationship-rail';/);
@@ -36,8 +37,11 @@ test('W2 chat surface follow-on: session and cognition cards consume kit surface
 test('W2 chat surface follow-on: inspect and diagnostics panels consume shared operational primitives', () => {
   assert.match(chatRuntimeInspectSource, /import \{ AppCardSurface \} from '@nimiplatform\/kit\/ui';/);
   assert.match(chatRuntimeInspectSource, /<AppCardSurface kind="operational-solid"/);
-  assert.match(chatDiagnosticsSource, /import \{ AppCardSurface, CompactAction \} from '@nimiplatform\/kit\/ui';/);
+  assert.match(chatDiagnosticsSource, /import \{ CompactAction \} from '@nimiplatform\/kit\/ui';/);
   assert.match(chatDiagnosticsSource, /DIAGNOSTIC_INPUT_CLASS_NAME/);
+  assert.match(chatDiagnosticsControlsSource, /import \{ AppCardSurface, CompactAction \} from '@nimiplatform\/kit\/ui';/);
+  assert.match(chatDiagnosticsControlsSource, /export const DIAGNOSTIC_INPUT_CLASS_NAME/);
   assert.match(chatDiagnosticsSource, /<CompactAction/);
   assert.doesNotMatch(chatDiagnosticsSource, /emerald-/u);
+  assert.doesNotMatch(chatDiagnosticsControlsSource, /emerald-/u);
 });

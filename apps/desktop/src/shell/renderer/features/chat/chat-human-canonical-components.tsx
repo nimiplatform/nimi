@@ -1,19 +1,10 @@
 import {
   useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
   type RefObject,
 } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import {
   type CanonicalStagePanelProps,
 } from '@nimiplatform/kit/features/chat/components/canonical-stage-panel';
-import {
-  CanonicalDrawerSection,
-} from '@nimiplatform/kit/features/chat/components/canonical-drawer-section';
 import {
   CanonicalStagePanel,
 } from '@nimiplatform/kit/features/chat/components/canonical-stage-panel';
@@ -31,14 +22,6 @@ import {
   type ConversationCanonicalMessage,
   type ConversationCharacterData,
 } from '@nimiplatform/kit/features/chat/headless';
-import {
-  getRealmChatTimelineDisplayModel,
-  resolveRealmChatAttachmentPreviewText,
-  resolveRealmChatMediaUrl,
-  useRealmMessageTimeline,
-  type RealmChatOutboxEntryLike,
-} from '@nimiplatform/kit/features/chat/realm';
-import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
@@ -46,263 +29,18 @@ import { GiftMessageBubble, type GiftMessagePayload } from '@renderer/features/e
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import type { HumanChatViewDto } from './chat-human-thread-model';
 import { CHAT_CONTENT_WIDTH_CLASS, CHAT_CONTENT_POSITION_CLASS } from './chat-shared-content-layout';
-import { useChatUploadPlaceholders } from '../turns/chat-upload-placeholder-store';
-import { loadChatMessages } from './data/realm-human-chat-data';
-import { cancelStream, getStreamState, subscribeStream, type StreamState } from '../turns/stream-controller';
+import { cancelStream, type StreamState } from '../turns/stream-controller';
+import {
+  useHumanTimelineModel,
+  type HumanRealmChatTimelineDisplay,
+  type HumanTimelineModel,
+} from './chat-human-timeline-model';
+import {
+  HumanVoiceInspectSidebar,
+  useHumanVoiceUiState,
+  type HumanVoiceUiState,
+} from './chat-human-voice-ui';
 export { HumanCanonicalComposer, HumanCanonicalProfileDrawer } from './chat-human-canonical-composer-profile';
-
-type MessageViewDto = RealmModel<'MessageViewDto'>;
-
-function resolveAttachmentDisplayKind(payload: unknown): string {
-  const record = payload && typeof payload === 'object' && !Array.isArray(payload)
-    ? payload as Record<string, unknown>
-    : null;
-  const attachment = record?.attachment && typeof record.attachment === 'object' && !Array.isArray(record.attachment)
-    ? record.attachment as Record<string, unknown>
-    : null;
-  const preview = attachment?.preview && typeof attachment.preview === 'object' && !Array.isArray(attachment.preview)
-    ? attachment.preview as Record<string, unknown>
-    : null;
-  return String(preview?.displayKind || attachment?.displayKind || '').trim().toUpperCase();
-}
-
-function useHumanStreamState(chatId: string | null): StreamState | null {
-  const [state, setState] = useState<StreamState | null>(() => (chatId ? getStreamState(chatId) : null));
-
-  useEffect(() => {
-    if (!chatId) {
-      setState(null);
-      return;
-    }
-    setState(getStreamState(chatId));
-    return subscribeStream(chatId, (updated) => {
-      setState({ ...updated });
-    });
-  }, [chatId]);
-
-  return state;
-}
-
-function useHumanTimelineModel(selectedChatId: string | null, selectedChat: HumanChatViewDto | null) {
-  const authStatus = useAppStore((state) => state.auth.status);
-  const realmBaseUrl = useAppStore((state) => String(state.runtimeDefaults?.realm.realmBaseUrl || '').replace(/\/$/, ''));
-  const currentUser = useAppStore((state) => state.auth.user);
-  const currentUserId = String(currentUser?.id || '');
-  const currentUserAvatarUrl = typeof currentUser?.avatarUrl === 'string' ? currentUser.avatarUrl : null;
-  const uploadPlaceholders = useChatUploadPlaceholders(selectedChatId);
-  const streamState = useHumanStreamState(selectedChatId);
-  const isStreaming = streamState?.phase === 'waiting' || streamState?.phase === 'streaming';
-  const otherUser = selectedChat?.otherUser;
-  const contactName = String(otherUser?.displayName || otherUser?.handle || 'Chat').trim();
-  const contactAvatarUrl = otherUser?.avatarUrl || null;
-  const messagesQuery = useQuery({
-    queryKey: ['messages', selectedChatId],
-    queryFn: async () => {
-      if (!selectedChatId) {
-        return null;
-      }
-      return await loadChatMessages(selectedChatId, 50);
-    },
-    enabled: authStatus === 'authenticated' && Boolean(selectedChatId),
-  });
-
-  const timelineMessages = useRealmMessageTimeline({
-    messagesData: messagesQuery.data as { items?: readonly MessageViewDto[]; offlineOutbox?: readonly RealmChatOutboxEntryLike[] } | undefined,
-    currentUserId,
-    uploadPlaceholders,
-  });
-
-  const canonicalMessages = useMemo(
-    () => timelineMessages.map((message) => {
-      const display = getRealmChatTimelineDisplayModel(message, currentUserId);
-      const attachmentDisplayKind = resolveAttachmentDisplayKind(message.payload);
-      const mediaUrl = display.isMediaMessage
-        ? resolveRealmChatMediaUrl(message.payload, realmBaseUrl) || display.localPreviewUrl || null
-        : null;
-      const mediaLabel = display.isMediaMessage
-        ? resolveRealmChatAttachmentPreviewText(message.payload)
-        : '';
-      return {
-        id: String(message.id || message.clientMessageId || ''),
-        sessionId: String(selectedChatId || ''),
-        targetId: String(selectedChat?.otherUser?.id || selectedChatId),
-        source: 'human' as const,
-        role: display.isMe ? 'human' as const : 'assistant' as const,
-        text: display.resolvedText || '',
-        createdAt: String(message.createdAt || ''),
-        updatedAt: String(message.editedAt || message.createdAt || ''),
-        status: display.deliveryState === 'pending'
-          ? 'pending' as const
-          : display.deliveryState === 'failed'
-            ? 'error' as const
-            : 'complete' as const,
-        error: display.deliveryError,
-        kind: display.isGiftMessage
-          ? 'gift' as const
-          : attachmentDisplayKind === 'AUDIO'
-            ? 'voice' as const
-          : display.isImageMessage
-            ? (display.isUploadingMedia ? 'image-pending' as const : 'image' as const)
-            : display.isVideoMessage
-              ? (display.isUploadingMedia ? 'video-pending' as const : 'video' as const)
-              : 'text' as const,
-        senderName: display.isMe ? 'You' : contactName,
-        senderAvatarUrl: display.isMe ? currentUserAvatarUrl : contactAvatarUrl,
-        senderHandle: display.isMe ? null : String(selectedChat?.otherUser?.handle || '').trim() || null,
-        senderKind: 'human' as const,
-        metadata: {
-          realmMessage: message,
-          display,
-          mediaUrl,
-          mediaLabel,
-          voiceUrl: attachmentDisplayKind === 'AUDIO'
-            ? resolveRealmChatMediaUrl(message.payload, realmBaseUrl) || display.localPreviewUrl || null
-            : null,
-          voiceTranscript: display.resolvedText || '',
-          mediaWidth: (message as unknown as { width?: number }).width,
-          mediaHeight: (message as unknown as { height?: number }).height,
-        },
-      };
-    }),
-    [contactAvatarUrl, contactName, currentUserAvatarUrl, currentUserId, realmBaseUrl, selectedChat?.otherUser?.handle, selectedChat?.otherUser?.id, selectedChatId, timelineMessages],
-  );
-
-  return {
-    authStatus,
-    selectedChatId,
-    realmBaseUrl,
-    currentUserId,
-    currentUserAvatarUrl,
-    contactName,
-    contactAvatarUrl,
-    messagesQuery,
-    timelineMessages,
-    canonicalMessages,
-    streamState,
-    isStreaming,
-  };
-}
-
-function useHumanVoiceUiState() {
-  const { t } = useTranslation();
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const [playingVoiceMessageId, setPlayingVoiceMessageId] = useState<string | null>(null);
-  const [voiceTranscriptVisibleById, setVoiceTranscriptVisibleById] = useState<Record<string, boolean>>({});
-  const [voiceContextMenu, setVoiceContextMenu] = useState<{ messageId: string; x: number; y: number } | null>(null);
-  const [selectedVoiceMessageId, setSelectedVoiceMessageId] = useState<string | null>(null);
-
-  useEffect(() => () => {
-    audioRef.current?.pause();
-    audioRef.current = null;
-  }, []);
-
-  useEffect(() => {
-    if (!voiceContextMenu) {
-      return undefined;
-    }
-    const handlePointerDown = () => {
-      setVoiceContextMenu(null);
-    };
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setVoiceContextMenu(null);
-      }
-    };
-    window.addEventListener('pointerdown', handlePointerDown);
-    window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.removeEventListener('pointerdown', handlePointerDown);
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [voiceContextMenu]);
-
-  const onPlayVoiceMessage = useCallback((message: ConversationCanonicalMessage) => {
-    const metadata = (message.metadata as Record<string, unknown> | undefined) || {};
-    const voiceUrl = String(metadata.voiceUrl || '').trim();
-    if (!voiceUrl || typeof Audio === 'undefined') {
-      return;
-    }
-    setSelectedVoiceMessageId(message.id);
-    if (playingVoiceMessageId === message.id && audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-      setPlayingVoiceMessageId(null);
-      return;
-    }
-    audioRef.current?.pause();
-    const audio = new Audio(voiceUrl);
-    audioRef.current = audio;
-    audio.addEventListener('ended', () => {
-      if (audioRef.current === audio) {
-        setPlayingVoiceMessageId(null);
-      }
-    });
-    audio.addEventListener('pause', () => {
-      if (audioRef.current === audio && audio.ended === false) {
-        setPlayingVoiceMessageId(null);
-      }
-    });
-    audio.addEventListener('error', () => {
-      if (audioRef.current === audio) {
-        setPlayingVoiceMessageId(null);
-      }
-    });
-    void audio.play().then(() => {
-      setPlayingVoiceMessageId(message.id);
-    }).catch(() => {
-      if (audioRef.current === audio) {
-        setPlayingVoiceMessageId(null);
-      }
-    });
-  }, [playingVoiceMessageId]);
-
-  const onVoiceContextMenu = useCallback((message: ConversationCanonicalMessage, event: React.MouseEvent<HTMLButtonElement>) => {
-    event.preventDefault();
-    event.stopPropagation();
-    setSelectedVoiceMessageId(message.id);
-    setVoiceContextMenu({
-      messageId: message.id,
-      x: event.clientX,
-      y: event.clientY,
-    });
-  }, []);
-
-  const toggleVoiceTranscript = useCallback((messageId: string) => {
-    setVoiceTranscriptVisibleById((current) => ({
-      ...current,
-      [messageId]: !current[messageId],
-    }));
-    setVoiceContextMenu(null);
-  }, []);
-
-  const rightSidebarOverlayMenu: ReactNode = voiceContextMenu ? (
-    <div
-      className="fixed z-50 min-w-[160px] rounded-xl border border-gray-200 bg-white p-1.5 shadow-xl"
-      style={{ left: `${voiceContextMenu.x}px`, top: `${voiceContextMenu.y}px`, animation: 'panel-scale-in 0.15s ease-out both' }}
-      onClick={(event) => event.stopPropagation()}
-    >
-      <button
-        type="button"
-        className="w-full rounded-lg px-3 py-2 text-left text-sm text-gray-800 transition-colors hover:bg-gray-100"
-        onClick={() => toggleVoiceTranscript(voiceContextMenu.messageId)}
-      >
-        {voiceTranscriptVisibleById[voiceContextMenu.messageId]
-          ? t('Chat.voiceCollapseTranscript', { defaultValue: 'Collapse transcript' })
-          : t('Chat.voiceTranscribe', { defaultValue: 'Transcribe voice' })}
-      </button>
-    </div>
-  ) : null;
-
-  return {
-    playingVoiceMessageId,
-    selectedVoiceMessageId,
-    isVoiceTranscriptVisible: (message: ConversationCanonicalMessage) => Boolean(voiceTranscriptVisibleById[message.id]),
-    onPlayVoiceMessage,
-    onVoiceContextMenu,
-    toggleVoiceTranscript,
-    rightSidebarOverlayMenu,
-  };
-}
 
 function HumanMediaMessageCard(props: {
   message: ConversationCanonicalMessage;
@@ -311,7 +49,7 @@ function HumanMediaMessageCard(props: {
   uploadingLabel: string;
 }) {
   const metadata = props.message.metadata as Record<string, unknown> | undefined;
-  const display = metadata?.display as ReturnType<typeof getRealmChatTimelineDisplayModel> | undefined;
+  const display = metadata?.display as HumanRealmChatTimelineDisplay | undefined;
   const mediaUrl = typeof metadata?.mediaUrl === 'string' ? metadata.mediaUrl : '';
   const mediaLabel = typeof metadata?.mediaLabel === 'string' && metadata.mediaLabel
     ? metadata.mediaLabel
@@ -422,75 +160,9 @@ function HumanStreamFooter(props: {
   return null;
 }
 
-function HumanVoiceInspectSidebar(props: {
-  message: ConversationCanonicalMessage;
-  playing: boolean;
-  transcriptVisible: boolean;
-  onPlay: (message: ConversationCanonicalMessage) => void;
-  onToggleTranscript: (messageId: string) => void;
-}) {
-  const { t } = useTranslation();
-  const metadata = (props.message.metadata as Record<string, unknown> | undefined) || {};
-  const transcript = String(metadata.voiceTranscript || props.message.text || '').trim();
-  const senderName = String(props.message.senderName || t('Chat.voiceInspectSender', { defaultValue: 'Voice message' })).trim();
-
-  return (
-    <div className="space-y-4">
-      <CanonicalDrawerSection
-        title={t('Chat.voiceInspectTitle', { defaultValue: 'Voice inspect' })}
-        hint={t('Chat.voiceInspectHint', { defaultValue: 'Playback and transcript controls for the selected voice beat.' })}
-      >
-        <div className="space-y-2">
-          <div className="text-sm font-semibold text-slate-900">{senderName}</div>
-          <div className="text-xs text-slate-500">
-            {props.playing
-              ? t('Chat.voiceInspectPlaying', { defaultValue: 'Currently playing' })
-              : t('Chat.voiceInspectReady', { defaultValue: 'Ready to play' })}
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => props.onPlay(props.message)}
-            className="rounded-full bg-gradient-to-r from-emerald-400 to-teal-400 px-4 py-2 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(16,185,129,0.24)] transition hover:-translate-y-px"
-          >
-            {props.playing
-              ? t('Chat.voiceInspectStop', { defaultValue: 'Stop playback' })
-              : t('Chat.voiceInspectPlay', { defaultValue: 'Play voice' })}
-          </button>
-          <button
-            type="button"
-            onClick={() => props.onToggleTranscript(props.message.id)}
-            className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-          >
-            {props.transcriptVisible
-              ? t('Chat.voiceCollapseTranscript', { defaultValue: 'Collapse transcript' })
-              : t('Chat.voiceTranscribe', { defaultValue: 'Transcribe voice' })}
-          </button>
-        </div>
-      </CanonicalDrawerSection>
-
-      <CanonicalDrawerSection
-        title={t('Chat.voiceInspectTranscriptTitle', { defaultValue: 'Transcript' })}
-        hint={t('Chat.voiceInspectTranscriptHint', { defaultValue: 'Voice transcripts stay hidden until you explicitly reveal them.' })}
-      >
-        {props.transcriptVisible ? (
-          <p className="text-sm leading-6 text-slate-700">
-            {transcript || t('Chat.voiceInspectTranscriptUnavailable', { defaultValue: 'No transcript available for this voice beat.' })}
-          </p>
-        ) : (
-          <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/60 px-3 py-4 text-center text-[11px] text-gray-500">
-            {t('Chat.voiceInspectTranscriptHidden', { defaultValue: 'Transcript is hidden until you reveal it.' })}
-          </div>
-        )}
-      </CanonicalDrawerSection>
-    </div>
-  );
-}
-
 function useHumanMessageRenderers(input: {
   selectedChatId: string | null;
-  model: ReturnType<typeof useHumanTimelineModel>;
+  model: HumanTimelineModel;
 }) {
   const { t } = useTranslation();
   const profilePanelTarget = useAppStore((state) => state.chatProfilePanelTarget);
@@ -504,7 +176,7 @@ function useHumanMessageRenderers(input: {
     const isMe = message.role === 'human' || message.role === 'user';
     const senderName = isMe ? t('ChatTimeline.you') : input.model.contactName;
     const messageProfileTarget: 'self' | 'other' = isMe ? 'self' : 'other';
-    const display = (message.metadata as Record<string, unknown> | undefined)?.display as ReturnType<typeof getRealmChatTimelineDisplayModel> | undefined;
+    const display = (message.metadata as Record<string, unknown> | undefined)?.display as HumanRealmChatTimelineDisplay | undefined;
     return (
       <button
         type="button"
@@ -605,7 +277,7 @@ export function HumanCanonicalStageSurface(props: {
 export function useHumanCanonicalTranscriptProps(props: {
   selectedChatId: string | null;
   selectedChat: HumanChatViewDto | null;
-  voiceUi?: ReturnType<typeof useHumanVoiceUiState>;
+  voiceUi?: HumanVoiceUiState;
 }): CanonicalTranscriptViewProps {
   const { t } = useTranslation();
   const model = useHumanTimelineModel(props.selectedChatId, props.selectedChat);
@@ -622,9 +294,9 @@ export function useHumanCanonicalTranscriptProps(props: {
 }
 
 function createHumanCanonicalTranscriptProps(input: {
-  model: ReturnType<typeof useHumanTimelineModel>;
+  model: HumanTimelineModel;
   t: ReturnType<typeof useTranslation>['t'];
-  voiceUi?: ReturnType<typeof useHumanVoiceUiState>;
+  voiceUi?: HumanVoiceUiState;
   renderers: ReturnType<typeof useHumanMessageRenderers>;
 }): CanonicalTranscriptViewProps {
   return {
@@ -666,7 +338,7 @@ export function useHumanCanonicalStagePanelProps(props: {
   stageAnchorViewportRef?: RefObject<HTMLDivElement | null>;
   stageCardAnchorOffsetPx?: number | null;
   onIntentOpenHistory?: () => void;
-  voiceUi?: ReturnType<typeof useHumanVoiceUiState>;
+  voiceUi?: HumanVoiceUiState;
 }): CanonicalStagePanelProps {
   const model = useHumanTimelineModel(props.selectedChatId, props.selectedChat);
   const renderers = useHumanMessageRenderers({
@@ -685,12 +357,12 @@ export function useHumanCanonicalStagePanelProps(props: {
 }
 
 function createHumanCanonicalStagePanelProps(input: {
-  model: ReturnType<typeof useHumanTimelineModel>;
+  model: HumanTimelineModel;
   characterData: ConversationCharacterData;
   stageAnchorViewportRef?: RefObject<HTMLDivElement | null>;
   stageCardAnchorOffsetPx?: number | null;
   onIntentOpenHistory?: () => void;
-  voiceUi?: ReturnType<typeof useHumanVoiceUiState>;
+  voiceUi?: HumanVoiceUiState;
   renderers: ReturnType<typeof useHumanMessageRenderers>;
 }): CanonicalStagePanelProps {
   return {

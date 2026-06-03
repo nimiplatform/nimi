@@ -238,7 +238,7 @@ const repoRoot = join(import.meta.dirname, '..');
 
 test('start_with_chat is actuated only by the launch-arbitration gate (single actuation site)', () => {
   const controlsSource = readFileSync(
-    join(repoRoot, 'src/shell/renderer/features/chat/chat-agent-shell-local-avatar-controls.ts'),
+    join(repoRoot, 'src/shell/renderer/features/chat/chat-agent-local-avatar-launch-controls.ts'),
     'utf8',
   );
   // The controls hook is the single actuation site: it imports and calls the
@@ -267,7 +267,7 @@ test('start_with_chat is actuated only by the launch-arbitration gate (single ac
       if (!/\.(ts|tsx)$/u.test(entry.name)) {
         continue;
       }
-      if (full.endsWith('chat-agent-shell-local-avatar-controls.ts')) {
+      if (full.endsWith('chat-agent-local-avatar-launch-controls.ts')) {
         continue;
       }
       const text = readFileSync(full, 'utf8');
@@ -282,7 +282,7 @@ test('start_with_chat is actuated only by the launch-arbitration gate (single ac
 
 test('start_with_chat condition 6 is not inferred from local readiness', () => {
   const controlsSource = readFileSync(
-    join(repoRoot, 'src/shell/renderer/features/chat/chat-agent-shell-local-avatar-controls.ts'),
+    join(repoRoot, 'src/shell/renderer/features/chat/chat-agent-local-avatar-launch-controls.ts'),
     'utf8',
   );
   assert.match(controlsSource, /No admitted projection exists/u);
@@ -294,7 +294,7 @@ test('start_with_chat condition 6 is not inferred from local readiness', () => {
 
 test('start_with_chat launch keeps the D-LLM-072 payload triple and does not widen it', () => {
   const controlsSource = readFileSync(
-    join(repoRoot, 'src/shell/renderer/features/chat/chat-agent-shell-local-avatar-controls.ts'),
+    join(repoRoot, 'src/shell/renderer/features/chat/chat-agent-local-avatar-launch-controls.ts'),
     'utf8',
   );
   const launchCall = controlsSource.match(/launchDesktopAvatarHandoff\(\{[\s\S]*?\}\)/u);

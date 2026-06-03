@@ -17,7 +17,10 @@ test('Runtime Agent domain stays on SDK and Kit shared surfaces', () => {
   const terminationCourier = read('apps/desktop/src/shell/renderer/infra/local-agent-courier/termination-courier.ts');
   const streamAdapter = read('apps/desktop/src/shell/renderer/features/chat/chat-agent-runtime-agent.ts');
   const inspectContent = read('apps/desktop/src/shell/renderer/features/chat/chat-runtime-inspect-content.tsx');
-  const runtimeStreamUi = read('apps/desktop/src/shell/renderer/features/chat/chat-shared-runtime-stream-ui.tsx');
+  const runtimeStreamUi = [
+    read('apps/desktop/src/shell/renderer/features/chat/chat-shared-runtime-stream-ui.tsx'),
+    read('apps/desktop/src/shell/renderer/features/chat/chat-shared-runtime-voice-message-content.tsx'),
+  ].join('\n');
 
   assert.match(inspectAdapter, /createHostRuntimeAgentInspectSurface/);
   assert.match(memoryAdapter, /createHostRuntimeAgentMemorySurface/);
