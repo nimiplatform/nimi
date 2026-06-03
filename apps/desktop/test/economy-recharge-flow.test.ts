@@ -7,6 +7,10 @@ const walletPageSource = fs.readFileSync(
   path.join(import.meta.dirname, '../src/shell/renderer/features/settings/settings-advanced-panel.tsx'),
   'utf8',
 );
+const walletSectionsSource = fs.readFileSync(
+  path.join(import.meta.dirname, '../src/shell/renderer/features/settings/settings-wallet-sections.tsx'),
+  'utf8',
+);
 
 test('Wallet page performs one-click Spark checkout and callback handling', () => {
   assert.match(walletPageSource, /loadRealmSparkPackages\(\)/);
@@ -19,7 +23,7 @@ test('Wallet page performs one-click Spark checkout and callback handling', () =
 
 test('Wallet recharge button is gated by package readiness and launch state', () => {
   assert.match(
-    walletPageSource,
-    /disabled=\{sparkPackagesQuery\.isPending \|\| launchingRecharge \|\| !defaultSparkPackage\}/,
+    walletSectionsSource,
+    /disabled=\{packagesPending \|\| launchingRecharge \|\| !defaultSparkPackageAvailable\}/,
   );
 });
