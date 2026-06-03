@@ -24,7 +24,7 @@ import {
   COMPANION_FOOTPRINT_MIN_HEIGHT_PX,
   WINDOW_BOUNDS_PADDING_PX,
 } from './window-bounds.js';
-import type { BackendNominalBounds } from '../carrier/backend-branch.js';
+import type { BackendNominalBounds } from '@nimiplatform/kit/features/avatar/headless';
 
 const setWindowSizeMock = vi.fn<(...args: unknown[]) => Promise<void>>();
 let tauriRuntime = true;

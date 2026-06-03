@@ -20,14 +20,13 @@ import {
   type Live2DCarrierVisualFrameStats,
   type Live2DCarrierVisualHost,
 } from '../live2d/carrier-visual-host.js';
-import type { EmbodimentProjectionApi } from '../nas/embodiment-projection-api.js';
-import { createSmoothedProjection, type ProjectionSmoothingHandle } from '../nas/projection-smoothing.js';
+import type { EmbodimentProjectionApi } from '@nimiplatform/kit/features/avatar/headless';
+import { createSmoothedProjection, type ProjectionSmoothingHandle } from '@nimiplatform/kit/features/avatar/headless';
 import {
   resolveAvatarModelManifest,
-  type AvatarModelManifest,
 } from './model-resolver.js';
 import { createBackendBranch, type BackendBranchHandle } from './create-backend-branch.js';
-import type { BackendBranch } from './backend-branch.js';
+import type { AvatarModelManifest, BackendBranch } from '@nimiplatform/kit/features/avatar/headless';
 import {
   createAvatarDebugSession,
   recordAvatarDebugSessionEvidence,

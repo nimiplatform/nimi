@@ -8,11 +8,11 @@
 // union and the `BackendBranch` union, and must keep the exhaustive
 // `_exhaustive: never` check intact (per backend-branch-contract §3.1).
 
-import type { AvatarModelManifest } from './model-resolver.js';
-import type { BackendAudioConsumer, BackendBranch } from './backend-branch.js';
+import type { AvatarModelManifest } from '@nimiplatform/kit/features/avatar/headless';
+import type { BackendAudioConsumer, BackendBranch } from '@nimiplatform/kit/features/avatar/headless';
 import type { Live2DBackendSession } from '../live2d/backend-session.js';
 import type { Live2DCommandBus } from '../live2d/plugin-api.js';
-import type { EmbodimentProjectionApi } from '../nas/embodiment-projection-api.js';
+import type { EmbodimentProjectionApi } from '@nimiplatform/kit/features/avatar/headless';
 import { createLive2DBackendBranch } from '../live2d/live2d-backend-branch.js';
 import { createVrmBackendBranch } from '../vrm/vrm-backend.js';
 

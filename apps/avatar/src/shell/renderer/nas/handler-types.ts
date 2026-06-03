@@ -1,8 +1,8 @@
 import type { AgentDataBundle } from '../driver/types.js';
 import type {
   EmbodimentProjectionApi,
-  NasHandlerExtension,
-} from './embodiment-projection-api.js';
+  Live2DBackendExtension,
+} from '@nimiplatform/kit/features/avatar/headless';
 
 export type HandlerMeta = {
   description?: string;
@@ -16,6 +16,10 @@ export type HandlerMeta = {
  *  handler that requires `live2d-extension` when the loaded model is
  *  VRM — there is no fallback. */
 export type NasHandlerCapability = 'live2d-extension';
+
+export type NasHandlerExtension = {
+  live2d?: Live2DBackendExtension;
+};
 
 export type ActivityOrEventHandler = {
   meta?: HandlerMeta;

@@ -28,6 +28,10 @@ import type { VRMAnimation } from '@pixiv/three-vrm-animation';
 import { AnimationMixer, LoopOnce, LoopRepeat } from 'three';
 
 import { clipFromVRMAnimation, loadVrmAnimation } from './vrm-animation-loader.js';
+import type {
+  VrmMotionPresetEntry,
+  VrmMotionPresetTable,
+} from '@nimiplatform/kit/features/avatar/vrm';
 
 // `three` is shimmed via `declare module 'three'` (no @types/three at this
 // wave), so AnimationMixer / AnimationAction / AnimationClip are exposed
@@ -46,10 +50,6 @@ type AnimationActionLike = {
   timeScale: number;
   loop: number;
 };
-import type {
-  VrmMotionPresetEntry,
-  VrmMotionPresetTable,
-} from './load-vrm-motion-preset-table.js';
 
 /** Intensity clamp range. Lower bound prevents near-zero timeScale (the
  *  AnimationMixer doesn't progress); upper bound caps strong-emote tempo

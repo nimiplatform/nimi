@@ -1,19 +1,9 @@
 import type { VRM } from '@pixiv/three-vrm';
-
-export type VrmGeneratedRouteId =
-  | 'idle_subtle'
-  | 'listen_lean'
-  | 'nod_yes'
-  | 'shake_no'
-  | 'greet_wave';
-
-export const VRM_GENERATED_ROUTE_IDS: readonly VrmGeneratedRouteId[] = Object.freeze([
-  'idle_subtle',
-  'listen_lean',
-  'nod_yes',
-  'shake_no',
-  'greet_wave',
-]);
+import {
+  GENERATED_MOTION_MAX_ROTATION_RAD,
+  VRM_GENERATED_ROUTE_IDS,
+  type VrmGeneratedRouteId,
+} from '@nimiplatform/kit/features/avatar/vrm';
 
 export const VRM_CAPABILITY_REQUIRED_BONES = Object.freeze([
   'hips',
@@ -55,8 +45,6 @@ export type VrmCapabilityProfile = {
     maxRotationRad: number;
   };
 };
-
-export const GENERATED_MOTION_MAX_ROTATION_RAD = 1.2;
 
 export function createVrmCapabilityProfile(vrm: VRM): VrmCapabilityProfile {
   const humanoidBones = {} as Record<VrmBoneName, boolean>;
@@ -106,8 +94,4 @@ export function getVrmBoneNode(vrm: VRM, bone: VrmBoneName): { name?: string } |
   const node = getter.call(humanoid, bone);
   if (typeof node !== 'object' || node === null) return null;
   return node as { name?: string };
-}
-
-export function isVrmGeneratedRouteId(routeId: string): routeId is VrmGeneratedRouteId {
-  return (VRM_GENERATED_ROUTE_IDS as readonly string[]).includes(routeId);
 }

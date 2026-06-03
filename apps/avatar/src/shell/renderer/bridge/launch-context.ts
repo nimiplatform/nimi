@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
+import { parseRuntimeLocalAgentIdentity } from '@nimiplatform/sdk/runtime/browser';
 
 const FORBIDDEN_LAUNCH_FIELDS = [
   'avatarPackage',
@@ -100,8 +101,6 @@ const FORBIDDEN_LAUNCH_FIELDS = [
   'conversation_anchor_id',
 ] as const;
 
-const LOCAL_AGENT_REF_PREFIX = 'local-agent:';
-
 export type AvatarLaunchContext = {
   agentId: string;
   avatarInstanceId: string | null;
@@ -126,16 +125,11 @@ function normalizeRequiredString(value: unknown, field: string): string {
 
 function normalizeRequiredLocalAgentRef(value: unknown, field: string): string {
   const normalized = normalizeRequiredString(value, field);
-  const rest = normalized.startsWith(LOCAL_AGENT_REF_PREFIX)
-    ? normalized.slice(LOCAL_AGENT_REF_PREFIX.length)
-    : '';
-  const separatorIndex = rest.indexOf(':');
-  const ownerUserId = separatorIndex >= 0 ? rest.slice(0, separatorIndex).trim() : '';
-  const realmAgentId = separatorIndex >= 0 ? rest.slice(separatorIndex + 1).trim() : '';
-  if (!ownerUserId || !realmAgentId) {
+  try {
+    return parseRuntimeLocalAgentIdentity(normalized).localAgentRef;
+  } catch {
     throw new Error(`avatar launch context requires ${field} to be a local-agent ref`);
   }
-  return normalized;
 }
 
 function normalizeOptionalString(value: unknown): string | null {

@@ -45,8 +45,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   AudioPipelineController,
   type AudioPlaybackSnapshot,
-} from '../audio/audio-pipeline.js';
-import type { BackendAudioConsumer } from '../carrier/backend-branch.js';
+} from '@nimiplatform/kit/features/avatar/headless';
+import type { BackendAudioConsumer } from '@nimiplatform/kit/features/avatar/headless';
 
 /**
  * Build a real RIFF/WAVE byte sequence: 44-byte header + 100ms of silence at

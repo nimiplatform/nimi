@@ -1,37 +1,19 @@
 import { Runtime } from '@nimiplatform/sdk/runtime/browser';
-import { invoke as tauriInvoke, type InvokeArgs } from '@tauri-apps/api/core';
-import { listen as tauriListen, type UnlistenFn } from '@tauri-apps/api/event';
-import { getAvatarLaunchContext, getRuntimeDefaults, hasTauriInvoke, type AvatarLaunchContext } from '@renderer/bridge';
+import {
+  getAvatarLaunchContext,
+  getRuntimeDefaults,
+  installNimiShellRuntimeBridge,
+  type AvatarLaunchContext,
+  type NimiShellRuntimeBridgeResult,
+} from '@renderer/bridge';
 import { useAvatarStore } from './app-store.js';
 
 export function readNormalizedString(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-type TauriRuntimeSdkHook = {
-  invoke: (command: string, payload?: unknown) => Promise<unknown>;
-  listen: (
-    eventName: string,
-    handler: (event: { event?: string; id?: number; payload: unknown }) => void,
-  ) => Promise<UnlistenFn>;
-};
-
-export function installTauriRuntimeSdkHook(): void {
-  if (!hasTauriInvoke()) {
-    return;
-  }
-  const hook: TauriRuntimeSdkHook = {
-    invoke: (command, payload) => tauriInvoke(command, payload as InvokeArgs | undefined),
-    listen: (eventName, handler) => tauriListen(eventName, handler),
-  };
-  const target = globalThis as typeof globalThis & {
-    __NIMI_TAURI_RUNTIME__?: TauriRuntimeSdkHook;
-    window?: Window & { __NIMI_TAURI_RUNTIME__?: TauriRuntimeSdkHook };
-  };
-  target.__NIMI_TAURI_RUNTIME__ = hook;
-  if (target.window) {
-    target.window.__NIMI_TAURI_RUNTIME__ = hook;
-  }
+export function installAvatarRuntimeBridge(): NimiShellRuntimeBridgeResult {
+  return installNimiShellRuntimeBridge();
 }
 
 export function applyLaunchContextRuntimeDefaults(
@@ -136,17 +118,7 @@ export function resolveExecutionBinding(input: {
     }
   }
 
-  const runtimeFields = input.runtimeDefaults?.runtime;
-  const modelId = readNormalizedString(runtimeFields?.localProviderModel);
-  const connectorId = readNormalizedString(runtimeFields?.connectorId);
-  if (!modelId) {
-    return null;
-  }
-  return {
-    route: connectorId ? 'cloud' : 'local',
-    modelId,
-    ...(connectorId ? { connectorId } : {}),
-  };
+  return null;
 }
 
 export async function resolveCapabilityBinding(

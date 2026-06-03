@@ -1,5 +1,5 @@
 import type { AgentDataBundle } from '../driver/types.js';
-import type { PlayMotionOptions, ProjectionBounds } from './embodiment-projection-api.js';
+import type { PlayMotionOptions, ProjectionBounds } from '@nimiplatform/kit/features/avatar/headless';
 import { validateSandboxSourcePolicy } from './handler-sandbox-policy.js';
 
 type SandboxHandlerKind = 'activity-event' | 'continuous';

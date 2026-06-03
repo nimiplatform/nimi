@@ -1,10 +1,11 @@
 import { AvatarDebugProbeKind } from '@nimiplatform/sdk/runtime';
 import { recordAvatarEvidenceEventually } from '../app-shell/avatar-evidence.js';
-import type { BackendBranch } from '../carrier/backend-branch.js';
-import type {
-  VrmCapabilityProfile,
-  VrmGeneratedRouteId,
-} from '../vrm/vrm-capability-profile.js';
+import type { BackendBranch } from '@nimiplatform/kit/features/avatar/headless';
+import {
+  isVrmGeneratedRouteId,
+  type VrmGeneratedRouteId,
+} from '@nimiplatform/kit/features/avatar/vrm';
+import type { VrmCapabilityProfile } from '../vrm/vrm-capability-profile.js';
 
 export type AvatarDebugBackendKind = 'vrm' | 'live2d' | 'future';
 
@@ -195,9 +196,7 @@ function supportedVrmRouteIds(input: AvatarDebugSessionInput): VrmGeneratedRoute
     return [...input.vrmCapabilityProfile.supportedRoutes];
   }
   return metadataStringList(backendMetadata(input), 'generated_motion_routes')
-    .filter((routeId): routeId is VrmGeneratedRouteId =>
-      ['idle_subtle', 'listen_lean', 'nod_yes', 'shake_no', 'greet_wave'].includes(routeId),
-    );
+    .filter(isVrmGeneratedRouteId);
 }
 
 function unsupportedVrmRouteIds(input: AvatarDebugSessionInput): string[] {

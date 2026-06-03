@@ -76,7 +76,7 @@ vi.mock('./vrm-tauri-quirks.js', () => ({
 }));
 
 // SUT import comes AFTER all mocks.
-import type { VrmAvatarModelManifest } from '../carrier/model-resolver.js';
+import type { VrmAvatarModelManifest } from '@nimiplatform/kit/features/avatar/headless';
 import { clearVrmCache } from './vrm-instance-cache.js';
 import {
   __resetVrmLoaderForTests,

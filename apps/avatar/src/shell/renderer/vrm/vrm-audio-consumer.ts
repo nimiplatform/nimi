@@ -17,7 +17,7 @@
 import type {
   BackendAudioConsumer,
   WLipSyncSnapshot,
-} from '../carrier/backend-branch.js';
+} from '@nimiplatform/kit/features/avatar/headless';
 import type { Profile } from 'wlipsync';
 
 const VISEME_KEYS = ['A', 'E', 'I', 'O', 'U', 'S'] as const;

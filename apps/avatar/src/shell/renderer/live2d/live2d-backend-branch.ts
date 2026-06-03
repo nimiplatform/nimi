@@ -11,17 +11,17 @@
 // `carrier/create-backend-branch.ts`; this factory is invoked from
 // there only (per design-02 §"carrier 重构形状").
 
-import type { Live2DAvatarModelManifest } from '../carrier/model-resolver.js';
+import type { Live2DAvatarModelManifest } from '@nimiplatform/kit/features/avatar/headless';
 import type {
   BackendAudioConsumer,
   BackendBranch,
   BackendHitRegion,
   Live2DBackendExtension,
-} from '../carrier/backend-branch.js';
-import type { EmbodimentProjectionApi } from '../nas/embodiment-projection-api.js';
+} from '@nimiplatform/kit/features/avatar/headless';
+import type { EmbodimentProjectionApi } from '@nimiplatform/kit/features/avatar/headless';
 import type { Profile } from 'wlipsync';
-import type { Live2DAdapterManifestV1 } from './compatibility.js';
-import { parseLive2DAdapterManifest } from './compatibility.js';
+import type { Live2DAdapterManifestV1 } from '@nimiplatform/kit/features/avatar/headless';
+import { parseLive2DAdapterManifest } from '@nimiplatform/kit/features/avatar/headless';
 import { waitForCubismCore } from './cubism-bootstrap.js';
 import { loadOfficialCubismFrameworkRuntime } from './cubism-framework-runtime.js';
 import {
@@ -38,10 +38,10 @@ import {
   type ModelManifest as Live2DTauriManifest,
 } from './model-loader.js';
 
-import { computeLive2DNominalBounds } from './live2d-nominal-bounds.js';
-import { computeLive2DHitRegion } from './live2d-hit-region.js';
+import { computeLive2DNominalBounds } from '@nimiplatform/kit/features/avatar/headless';
+import { computeLive2DHitRegion } from '@nimiplatform/kit/features/avatar/headless';
 import { createLive2DAudioConsumer } from './live2d-audio-consumer.js';
-import { createLive2DProjectionAdapter } from './live2d-projection-adapter.js';
+import { createLive2DProjectionAdapter } from '@nimiplatform/kit/features/avatar/headless';
 import { createLive2DCarrierSurface } from './live2d-carrier-surface.js';
 
 function toLive2DTauriManifest(

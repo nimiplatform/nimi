@@ -31,21 +31,21 @@
 import type { ComponentType } from 'react';
 import { useEffect } from 'react';
 import type { Profile } from 'wlipsync';
-import type { VrmAvatarModelManifest } from '../carrier/model-resolver.js';
+import type { VrmAvatarModelManifest } from '@nimiplatform/kit/features/avatar/headless';
 import type {
   BackendAudioConsumer,
   BackendBranch,
   BackendProjection,
   BackendSurface,
   BackendSurfaceProps,
-} from '../carrier/backend-branch.js';
-import { createActivityMappingResolver } from '../nas/activity-mapping-resolver.js';
+} from '@nimiplatform/kit/features/avatar/headless';
+import { createActivityMappingResolver } from '@nimiplatform/kit/features/avatar/headless';
 import { createVrmCarrierSurface } from './vrm-carrier-surface.js';
 import { createVrmDevPreviewSurfaceComponent } from './vrm-dev-preview-surface.js';
 import { VRM_DEFAULT_NOMINAL_BOUNDS } from './vrm-nominal-bounds.js';
 import type { VrmRuntimeOptions } from './vrm-runtime.js';
 import { createVrmAudioConsumer } from './vrm-audio-consumer.js';
-import { createVrmEmoteState } from './vrm-emote-state.js';
+import { createVrmEmoteState } from '@nimiplatform/kit/features/avatar/vrm';
 import { loadVrmEmoteTable } from './load-vrm-emote-table.js';
 import { createVrmGeneratedMotionRuntime } from './vrm-generated-motion-runtime.js';
 import { createDeterministicVrmGeneratedMotionProvider } from './vrm-deterministic-motion-provider.js';
@@ -231,8 +231,8 @@ export async function createVrmBackendBranch(
   );
   const lipsyncDriver = createVrmLipsyncDriver();
 
-  // NAS resolver wraps the wave_1 activity-mapping table; chunk 3-C
-  // adapter consumes the `resolveVrmRoute` shape only.
+  // Kit resolver wraps the admitted activity-mapping table; the adapter
+  // consumes the `resolveVrmRoute` shape only.
   const resolver = createActivityMappingResolver();
   const activityMapping: ActivityMapping = {
     resolveVrmRoute: (name) => resolver.resolveVrmRoute(name),

@@ -12,24 +12,6 @@ export type ModelManifest = {
   adapterManifestPath?: string | null;
 };
 
-export type AgentCenterLocalAvatarAssetReference = {
-  accountId: string;
-  ownerUserId: string;
-  realmAgentId: string;
-  localAgentRef: string;
-  localAvatarAssetRef: string;
-  backendKind: 'live2d' | 'vrm';
-  backendCapabilityProfileRef: string;
-  materializationRef: string;
-};
-
-export type LocalAvatarAssetReference = {
-  accountId: string;
-  ownerUserId: string;
-  realmAgentId: string;
-  localAgentRef: string;
-};
-
 type RustModelManifest = {
   runtime_dir: string;
   model_id: string;
@@ -40,36 +22,6 @@ type RustModelManifest = {
 
 export async function resolveModelManifest(modelPath: string): Promise<ModelManifest> {
   const raw = await invoke<RustModelManifest>('nimi_avatar_resolve_model', { path: modelPath });
-  return {
-    runtimeDir: raw.runtime_dir,
-    modelId: raw.model_id,
-    model3JsonPath: raw.model3_json_path,
-    nimiDir: raw.nimi_dir,
-    adapterManifestPath: raw.adapter_manifest_path ?? null,
-  };
-}
-
-export async function resolveAgentCenterAvatarAssetManifest(
-  reference: AgentCenterLocalAvatarAssetReference,
-): Promise<ModelManifest> {
-  const raw = await invoke<RustModelManifest>('nimi_avatar_resolve_agent_center_avatar_asset', {
-    payload: reference,
-  });
-  return {
-    runtimeDir: raw.runtime_dir,
-    modelId: raw.model_id,
-    model3JsonPath: raw.model3_json_path,
-    nimiDir: raw.nimi_dir,
-    adapterManifestPath: raw.adapter_manifest_path ?? null,
-  };
-}
-
-export async function resolveLocalAvatarAssetManifest(
-  reference: LocalAvatarAssetReference,
-): Promise<ModelManifest> {
-  const raw = await invoke<RustModelManifest>('nimi_avatar_resolve_local_avatar_asset', {
-    payload: reference,
-  });
   return {
     runtimeDir: raw.runtime_dir,
     modelId: raw.model_id,

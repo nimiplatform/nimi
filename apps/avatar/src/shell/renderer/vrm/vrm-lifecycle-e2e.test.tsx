@@ -35,7 +35,7 @@ import type { VRM } from '@pixiv/three-vrm';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ReactNode } from 'react';
 import scenarioJson from '../mock/scenarios/vrm-lifecycle.mock.json';
-import type { VrmAvatarModelManifest } from '../carrier/model-resolver.js';
+import type { VrmAvatarModelManifest } from '@nimiplatform/kit/features/avatar/headless';
 
 vi.mock('@react-three/fiber', () => ({
   // Same Canvas mock pattern as vrm-carrier-surface.test.tsx — gives us

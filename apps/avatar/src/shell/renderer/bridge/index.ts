@@ -1,5 +1,6 @@
 export {
   hasTauriInvoke,
+  installNimiShellRuntimeBridge,
   getRuntimeDefaults,
   getDaemonStatus,
   startDaemon,
@@ -10,6 +11,7 @@ export {
 } from './launch-context.js';
 
 export type {
+  NimiShellRuntimeBridgeResult,
   RuntimeDefaults,
   RuntimeBridgeDaemonStatus,
 } from '@nimiplatform/kit/shell/renderer/bridge';

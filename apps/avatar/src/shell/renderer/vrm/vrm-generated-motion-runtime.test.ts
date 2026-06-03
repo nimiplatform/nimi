@@ -38,8 +38,8 @@ import {
   DEFAULT_GENERATED_MOTION_FADE_SEC,
   GENERATED_MOTION_INTENSITY_MAX,
   GENERATED_MOTION_INTENSITY_MIN,
-  type VrmGeneratedMotionProvider,
 } from './vrm-generated-motion-runtime.js';
+import type { VrmGeneratedMotionProvider } from '@nimiplatform/kit/features/avatar/vrm';
 
 function fakeVrm(): VRM {
   return { scene: { name: 'fake-vrm' } } as unknown as VRM;

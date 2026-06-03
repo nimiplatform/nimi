@@ -21,6 +21,8 @@
       "@nimiplatform/kit/ui/*": ["../../kit/ui/src/*"],
       "@nimiplatform/kit/core": ["../../kit/core/src/index.ts"],
       "@nimiplatform/kit/core/*": ["../../kit/core/src/*"],
+      "@nimiplatform/kit/features/avatar": ["../../kit/features/avatar/src/index.ts"],
+      "@nimiplatform/kit/features/avatar/*": ["../../kit/features/avatar/src/*"],
       "@nimiplatform/kit/telemetry": ["../../kit/telemetry/src/telemetry/index.ts"],
       "@nimiplatform/kit/telemetry/error-boundary": ["../../kit/telemetry/src/error-boundary/index.ts"],
       "@nimiplatform/kit/shell/renderer/bridge": ["../../kit/shell/renderer/src/bridge/index.ts"],

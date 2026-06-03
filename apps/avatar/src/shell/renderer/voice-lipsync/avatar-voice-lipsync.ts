@@ -31,31 +31,20 @@
 // audio still plays, mouth stays dormant).
 
 import type { AgentDataDriver, AgentEvent } from '../driver/types.js';
-import type { BackendBranch } from '../carrier/backend-branch.js';
+import {
+  parseRuntimeAgentTimeline,
+  type RuntimeAgentTimelineEnvelope,
+} from '@nimiplatform/sdk/runtime/browser';
+import type { BackendBranch } from '@nimiplatform/kit/features/avatar/headless';
 import {
   AudioPipelineController,
   getSharedAudioPipelineController,
-} from '../audio/audio-pipeline.js';
-import {
   getSharedVoiceLipsyncStateBus,
+  type AudioPlaybackState,
   type VoiceLipsyncStateBus,
-} from './voice-lipsync-state-bus.js';
-import type { AudioPlaybackState } from '../voice-companion-state.js';
+} from '@nimiplatform/kit/features/avatar/headless';
 
-type RuntimeTimelineDetail = {
-  turn_id: string;
-  stream_id: string;
-  channel: 'text' | 'voice' | 'avatar' | 'state' | 'lipsync';
-  offset_ms: number;
-  sequence: number;
-  started_at_wall: string;
-  observed_at_wall: string;
-  timebase_owner: 'runtime';
-  projection_rule_id: 'K-AGCORE-051';
-  clock_basis: 'monotonic_with_wall_anchor';
-  provider_neutral: true;
-  app_local_authority: false;
-};
+type RuntimeTimelineDetail = RuntimeAgentTimelineEnvelope;
 
 export type AvatarVoiceLipsyncPipeline = {
   handleEvent(event: AgentEvent): void;
@@ -73,66 +62,46 @@ function readString(record: Record<string, unknown>, key: string): string | null
   return typeof value === 'string' && value.trim() ? value : null;
 }
 
-function readFiniteNumber(record: Record<string, unknown>, key: string): number | null {
-  const value = record[key];
-  return typeof value === 'number' && Number.isFinite(value) ? value : null;
-}
-
-function parseRuntimeTimeline(detail: Record<string, unknown>): RuntimeTimelineDetail | null {
-  const timeline = readRecord(detail['runtime_timeline']);
-  if (!timeline) return null;
-  const turnId = readString(timeline, 'turn_id');
-  const streamId = readString(timeline, 'stream_id');
-  const channel = readString(timeline, 'channel');
-  const offsetMs = readFiniteNumber(timeline, 'offset_ms');
-  const sequence = readFiniteNumber(timeline, 'sequence');
-  const startedAtWall = readString(timeline, 'started_at_wall');
-  const observedAtWall = readString(timeline, 'observed_at_wall');
-  const timebaseOwner = timeline['timebase_owner'];
-  const projectionRuleId = timeline['projection_rule_id'];
-  const clockBasis = timeline['clock_basis'];
-  const providerNeutral = timeline['provider_neutral'];
-  const appLocalAuthority = timeline['app_local_authority'];
-  if (
-    !turnId ||
-    !streamId ||
-    (channel !== 'text' && channel !== 'voice' && channel !== 'avatar' && channel !== 'state' && channel !== 'lipsync') ||
-    offsetMs === null ||
-    sequence === null ||
-    offsetMs < 0 ||
-    sequence <= 0 ||
-    !Number.isInteger(sequence) ||
-    !startedAtWall ||
-    !observedAtWall ||
-    timebaseOwner !== 'runtime' ||
-    projectionRuleId !== 'K-AGCORE-051' ||
-    clockBasis !== 'monotonic_with_wall_anchor' ||
-    providerNeutral !== true ||
-    appLocalAuthority !== false
-  ) {
+function parseRuntimeTimeline(
+  detail: Record<string, unknown>,
+  messageType: string,
+): RuntimeTimelineDetail | null {
+  const turnId = readString(detail, 'turn_id');
+  const streamId = readString(detail, 'stream_id');
+  if (!turnId || !streamId) {
     return null;
   }
-  if (detail['turn_id'] !== turnId || detail['stream_id'] !== streamId) {
+  try {
+    return parseRuntimeAgentTimeline(
+      detail['runtime_timeline'],
+      messageType,
+      turnId,
+      streamId,
+    );
+  } catch {
     return null;
   }
-  return {
-    turn_id: turnId,
-    stream_id: streamId,
-    channel,
-    offset_ms: offsetMs,
-    sequence,
-    started_at_wall: startedAtWall,
-    observed_at_wall: observedAtWall,
-    timebase_owner: 'runtime',
-    projection_rule_id: 'K-AGCORE-051',
-    clock_basis: 'monotonic_with_wall_anchor',
-    provider_neutral: true,
-    app_local_authority: false,
-  };
 }
 
 function timelineIdentity(timeline: RuntimeTimelineDetail): string {
-  return `${timeline.turn_id}:${timeline.stream_id}`;
+  return `${timeline.turnId}:${timeline.streamId}`;
+}
+
+function toRuntimeTimelineDetail(timeline: RuntimeTimelineDetail): Record<string, unknown> {
+  return {
+    turn_id: timeline.turnId,
+    stream_id: timeline.streamId,
+    channel: timeline.channel,
+    offset_ms: timeline.offsetMs,
+    sequence: timeline.sequence,
+    started_at_wall: timeline.startedAtWall,
+    observed_at_wall: timeline.observedAtWall,
+    timebase_owner: timeline.timebaseOwner,
+    projection_rule_id: timeline.projectionRuleId,
+    clock_basis: timeline.clockBasis,
+    provider_neutral: timeline.providerNeutral,
+    app_local_authority: timeline.appLocalAuthority,
+  };
 }
 
 function emitDriverEvent(
@@ -145,9 +114,9 @@ function emitDriverEvent(
     name,
     detail: {
       ...detail,
-      turn_id: timeline.turn_id,
-      stream_id: timeline.stream_id,
-      runtime_timeline: timeline,
+      turn_id: timeline.turnId,
+      stream_id: timeline.streamId,
+      runtime_timeline: toRuntimeTimelineDetail(timeline),
     },
   });
 }
@@ -171,9 +140,9 @@ export function createAvatarVoiceLipsyncPipeline(input: {
   }
 
   function handleInterrupt(event: AgentEvent, detail: Record<string, unknown>): void {
-    const timeline = parseRuntimeTimeline(detail);
-    const streamId = timeline?.stream_id ?? readString(detail, 'stream_id');
-    const turnId = timeline?.turn_id ?? readString(detail, 'turn_id');
+    const timeline = parseRuntimeTimeline(detail, event.name);
+    const streamId = timeline?.streamId ?? readString(detail, 'stream_id');
+    const turnId = timeline?.turnId ?? readString(detail, 'turn_id');
     if (!streamId || !turnId) return;
     canceled.add(`${turnId}:${streamId}`);
     audioPipeline.stop('interrupted');
@@ -195,7 +164,7 @@ export function createAvatarVoiceLipsyncPipeline(input: {
     }
     const state = readString(detail, 'playbackState') ?? readString(detail, 'playback_state');
     if (state === null) return false;
-    const timeline = parseRuntimeTimeline(detail);
+    const timeline = parseRuntimeTimeline(detail, event.name);
     const audioArtifactId =
       readString(detail, 'audioArtifactId') ?? readString(detail, 'audio_artifact_id');
     const audioMimeType =
@@ -278,7 +247,7 @@ function getBackendAudioConsumer(backend: BackendBranch) {
     typeof (consumer as { silent?: unknown }).silent === 'function' &&
     typeof (consumer as { snapshot?: unknown }).snapshot === 'function'
   ) {
-    return consumer as import('../carrier/backend-branch.js').BackendAudioConsumer;
+    return consumer as import('@nimiplatform/kit/features/avatar/headless').BackendAudioConsumer;
   }
   throw new Error(
     'avatar-voice-lipsync: backend.audioConsumer missing (BackendAudioConsumer) — wave_1 carrier wiring required',

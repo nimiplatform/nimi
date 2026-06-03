@@ -1,17 +1,18 @@
+import type { VRM } from '@pixiv/three-vrm';
 import { AnimationClip, NumberKeyframeTrack } from 'three';
-import type {
-  VrmGeneratedMotionProvider,
-  VrmGeneratedMotionProviderInput,
-  VrmGeneratedMotionProviderResult,
-} from './vrm-generated-motion-runtime.js';
 import {
   GENERATED_MOTION_MAX_ROTATION_RAD,
+  isVrmGeneratedRouteId,
+  type VrmGeneratedMotionProvider,
+  type VrmGeneratedMotionProviderInput,
+  type VrmGeneratedMotionProviderResult,
+  type VrmGeneratedRouteId,
+} from '@nimiplatform/kit/features/avatar/vrm';
+import {
   createVrmCapabilityProfile,
   getMissingRouteBones,
   getVrmBoneNode,
-  isVrmGeneratedRouteId,
   type VrmBoneName,
-  type VrmGeneratedRouteId,
 } from './vrm-capability-profile.js';
 import { evaluateAvatarMappingSidecarsForRoute } from './vrm-mapping-sidecar.js';
 
@@ -81,7 +82,7 @@ const ROUTE_TEMPLATES: Readonly<Record<VrmGeneratedRouteId, RouteTemplate>> =
 
 export function createDeterministicVrmGeneratedMotionProvider(
   options: DeterministicVrmGeneratedMotionProviderOptions = {},
-): VrmGeneratedMotionProvider {
+): VrmGeneratedMotionProvider<VRM> {
   return {
     generate(input) {
       return generateDeterministicVrmMotion(input, options);
@@ -90,7 +91,7 @@ export function createDeterministicVrmGeneratedMotionProvider(
 }
 
 export function generateDeterministicVrmMotion(
-  input: VrmGeneratedMotionProviderInput,
+  input: VrmGeneratedMotionProviderInput<VRM>,
   options: DeterministicVrmGeneratedMotionProviderOptions = {},
 ): VrmGeneratedMotionProviderResult {
   if (!isVrmGeneratedRouteId(input.routeId)) {

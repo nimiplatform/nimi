@@ -1,7 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import type { AppOriginEvent } from '../driver/types.js';
-import type { BackendKind } from '../carrier/backend-branch.js';
+import type { BackendKind } from '@nimiplatform/kit/features/avatar/headless';
 import {
   activityHandlerKey,
   handlerFilenameToActivityId,

@@ -1,10 +1,9 @@
 import { parse as parseYaml } from 'yaml';
 import {
   isVrmGeneratedRouteId,
-  type VrmBoneName,
-  type VrmCapabilityProfile,
   type VrmGeneratedRouteId,
-} from './vrm-capability-profile.js';
+} from '@nimiplatform/kit/features/avatar/vrm';
+import type { VrmBoneName, VrmCapabilityProfile } from './vrm-capability-profile.js';
 
 export type AvatarMappingSourceKind =
   | 'deterministic_manifest'

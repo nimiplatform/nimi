@@ -4,7 +4,7 @@ import {
   type AvatarHitRegionSnapshot,
   type AvatarHitTestPoint,
   type AvatarHitTestResult,
-} from './avatar-hit-region.js';
+} from '@nimiplatform/kit/features/avatar/headless';
 
 export type AvatarPointerButton = 'left' | 'middle' | 'right';
 

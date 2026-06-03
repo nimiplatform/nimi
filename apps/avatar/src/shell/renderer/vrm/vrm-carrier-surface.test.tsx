@@ -9,14 +9,13 @@ import { act, render } from '@testing-library/react';
 import type { VRM } from '@pixiv/three-vrm';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ReactNode } from 'react';
-import type { VrmAvatarModelManifest } from '../carrier/model-resolver.js';
+import type { VrmAvatarModelManifest } from '@nimiplatform/kit/features/avatar/headless';
 import type {
   BackendAudioConsumer,
   BackendProjection,
-} from '../carrier/backend-branch.js';
-import type { VrmEmoteState } from './vrm-emote-state.js';
+} from '@nimiplatform/kit/features/avatar/headless';
+import type { VrmEmoteState, VrmGeneratedMotionRuntime } from '@nimiplatform/kit/features/avatar/vrm';
 import type { VrmLipsyncDriver } from './vrm-lipsync-driver.js';
-import type { VrmGeneratedMotionRuntime } from './vrm-generated-motion-runtime.js';
 import type { ActivityMapping } from './vrm-projection-adapter.js';
 import { createVrmRenderTarget } from './vrm-render-target.js';
 import { sampleVrmVisiblePixels } from './vrm-carrier-surface.js';
@@ -81,7 +80,7 @@ function emoteStateStub(): VrmEmoteState {
   };
 }
 
-function generatedMotionRuntimeStub(): VrmGeneratedMotionRuntime {
+function generatedMotionRuntimeStub(): VrmGeneratedMotionRuntime<VRM> {
   return {
     attach() {},
     play: () => ({
@@ -118,7 +117,7 @@ function activityMappingStub(): ActivityMapping {
 
 function commonExtras(): {
   emoteState: VrmEmoteState;
-  generatedMotionRuntime: VrmGeneratedMotionRuntime;
+  generatedMotionRuntime: VrmGeneratedMotionRuntime<VRM>;
   lipsyncDriver: VrmLipsyncDriver;
   activityMapping: ActivityMapping;
   setProjectionAdapter: (adapter: BackendProjection) => void;

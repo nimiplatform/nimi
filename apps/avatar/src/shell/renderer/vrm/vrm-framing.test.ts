@@ -1,14 +1,14 @@
 // Wave 2 chunk 2-E of topic 2026-04-30-avatar-vrm-backend-branch.
 //
-// Verifies the Three.js → pure-domain glue: applyVrmFraming computes a
+// Verifies the Three.js -> Kit pure-domain glue: applyVrmFraming computes a
 // scene bbox via Box3.setFromObject and forwards plain-numeric vectors
-// to computeVrmFraming. The results must match the pure domain output
+// to computeVrmCameraFraming. The results must match the pure domain output
 // for the same bbox + return the bbox vectors alongside.
 
 import type { VRM } from '@pixiv/three-vrm';
 import { BoxGeometry, Mesh, MeshBasicMaterial, Object3D } from 'three';
 import { describe, expect, it } from 'vitest';
-import { computeVrmFraming } from './domain/vrm-framing-domain.js';
+import { computeVrmCameraFraming } from '@nimiplatform/kit/features/avatar/vrm';
 import { applyVrmFraming } from './vrm-framing.js';
 
 function makeStubVrm(min: { x: number; y: number; z: number }, max: { x: number; y: number; z: number }): VRM {
@@ -26,14 +26,14 @@ function makeStubVrm(min: { x: number; y: number; z: number }, max: { x: number;
 }
 
 describe('applyVrmFraming', () => {
-  it('matches computeVrmFraming output for the same bbox', () => {
+  it('matches computeVrmCameraFraming output for the same bbox', () => {
     const min = { x: -0.3, y: 0, z: -0.2 };
     const max = { x: 0.3, y: 1.7, z: 0.2 };
     const vrm = makeStubVrm(min, max);
     const aspect = 0.45;
     const intent = 'bottom-companion' as const;
 
-    const expected = computeVrmFraming({
+    const expected = computeVrmCameraFraming({
       sceneBboxMin: min,
       sceneBboxMax: max,
       intent,

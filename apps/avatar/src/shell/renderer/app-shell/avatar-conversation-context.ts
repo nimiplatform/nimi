@@ -1,3 +1,8 @@
+import {
+  readStorageJsonFrom,
+  resolveBrowserStorage,
+  writeStorageJsonTo,
+} from '@nimiplatform/kit/core/storage-json';
 import type { Runtime } from '@nimiplatform/sdk/runtime/browser';
 
 const STORAGE_KEY = 'nimi.avatar.conversation-context.v2';
@@ -44,14 +49,6 @@ function isMissingAvatarLiveInstanceBinding(error: unknown): boolean {
   return message.toLowerCase().includes('avatar live instance binding not found');
 }
 
-function storage(): Storage | null {
-  try {
-    return typeof window !== 'undefined' ? window.localStorage : null;
-  } catch {
-    return null;
-  }
-}
-
 function contextKey(input: {
   accountId: string;
   localAgentRef: string;
@@ -60,37 +57,47 @@ function contextKey(input: {
   return `${input.accountId}\u001f${input.localAgentRef}\u001f${input.avatarInstanceId}`;
 }
 
-function readPersistedFile(): PersistedConversationContextFile {
-  const raw = storage()?.getItem(STORAGE_KEY);
-  if (!raw) {
-    return { schemaVersion: SCHEMA_VERSION, records: [] };
-  }
-  try {
-    const parsed = JSON.parse(raw) as Partial<PersistedConversationContextFile>;
-    if (parsed?.schemaVersion !== SCHEMA_VERSION || !Array.isArray(parsed.records)) {
-      return { schemaVersion: SCHEMA_VERSION, records: [] };
-    }
-    const records = parsed.records.filter((record): record is PersistedConversationContext => (
-      record?.schemaVersion === SCHEMA_VERSION
-      && Boolean(normalizeText(record.accountId))
-      && Boolean(normalizeText(record.localAgentRef))
-      && Boolean(normalizeText(record.avatarInstanceId))
-      && Boolean(normalizeText(record.conversationAnchorId))
-      && typeof record.updatedAtMs === 'number'
-      && Number.isFinite(record.updatedAtMs)
-    ));
-    return { schemaVersion: SCHEMA_VERSION, records };
-  } catch {
-    return { schemaVersion: SCHEMA_VERSION, records: [] };
-  }
+function emptyPersistedFile(): PersistedConversationContextFile {
+  return { schemaVersion: SCHEMA_VERSION, records: [] };
 }
 
-function writePersistedFile(file: PersistedConversationContextFile): void {
-  const target = storage();
-  if (!target) {
-    return;
+function normalizePersistedFile(value: unknown): PersistedConversationContextFile {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return emptyPersistedFile();
   }
-  target.setItem(STORAGE_KEY, JSON.stringify(file));
+  const parsed = value as Partial<PersistedConversationContextFile>;
+  if (parsed.schemaVersion !== SCHEMA_VERSION || !Array.isArray(parsed.records)) {
+    return emptyPersistedFile();
+  }
+  const records = parsed.records.filter((record): record is PersistedConversationContext => (
+    record?.schemaVersion === SCHEMA_VERSION
+    && Boolean(normalizeText(record.accountId))
+    && Boolean(normalizeText(record.localAgentRef))
+    && Boolean(normalizeText(record.avatarInstanceId))
+    && Boolean(normalizeText(record.conversationAnchorId))
+    && typeof record.updatedAtMs === 'number'
+    && Number.isFinite(record.updatedAtMs)
+  ));
+  return { schemaVersion: SCHEMA_VERSION, records };
+}
+
+function readPersistedFile(storage: Storage | null = resolveBrowserStorage('local')): PersistedConversationContextFile {
+  const result = readStorageJsonFrom(
+    storage,
+    STORAGE_KEY,
+    normalizePersistedFile,
+  );
+  if (result.state !== 'ready') {
+    return emptyPersistedFile();
+  }
+  return result.value;
+}
+
+function writePersistedFile(
+  file: PersistedConversationContextFile,
+  storage: Storage | null = resolveBrowserStorage('local'),
+): void {
+  writeStorageJsonTo(storage, STORAGE_KEY, file);
 }
 
 function writePersistedContext(input: {
@@ -100,8 +107,12 @@ function writePersistedContext(input: {
   conversationAnchorId: string;
   nowMs?: number;
 }): void {
+  const storage = resolveBrowserStorage('local');
+  if (!storage) {
+    return;
+  }
   const key = contextKey(input);
-  const file = readPersistedFile();
+  const file = readPersistedFile(storage);
   const nextRecord: PersistedConversationContext = {
     schemaVersion: SCHEMA_VERSION,
     accountId: input.accountId,
@@ -116,7 +127,7 @@ function writePersistedContext(input: {
       nextRecord,
       ...file.records.filter((record) => contextKey(record) !== key),
     ].slice(0, 128),
-  });
+  }, storage);
 }
 
 function readPersistedContext(input: {

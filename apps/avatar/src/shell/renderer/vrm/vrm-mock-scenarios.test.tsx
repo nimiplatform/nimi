@@ -33,13 +33,13 @@ import {
   AudioPipelineController,
   SYNTHETIC_AUDIO_MIME_TYPE,
   type AudioPlaybackSnapshot,
-} from '../audio/audio-pipeline.js';
+} from '@nimiplatform/kit/features/avatar/headless';
 import type {
   BackendAudioConsumer,
   WLipSyncSnapshot,
-} from '../carrier/backend-branch.js';
+} from '@nimiplatform/kit/features/avatar/headless';
 import { createVrmAudioConsumer } from './vrm-audio-consumer.js';
-import { createVrmEmoteState } from './vrm-emote-state.js';
+import { createVrmEmoteState } from '@nimiplatform/kit/features/avatar/vrm';
 import { createVrmLipsyncDriver } from './vrm-lipsync-driver.js';
 import {
   createMissingVrmGeneratedMotionProvider,
@@ -50,8 +50,8 @@ import { createVrmProjectionAdapter } from './vrm-projection-adapter.js';
 import type {
   VrmMotionPresetEntry,
   VrmMotionPresetTable,
-} from './load-vrm-motion-preset-table.js';
-import type { VrmEmoteTable } from './vrm-emote-state.js';
+} from '@nimiplatform/kit/features/avatar/vrm';
+import type { VrmEmoteTable } from '@nimiplatform/kit/features/avatar/vrm';
 import type { ActivityMapping } from './vrm-projection-adapter.js';
 
 // Mock `three` AnimationMixer / loop constants — same shape as

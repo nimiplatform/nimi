@@ -23,8 +23,8 @@ import type {
   DriverStatus,
 } from '../driver/types.js';
 import { createAvatarVoiceLipsyncPipeline } from './avatar-voice-lipsync.js';
-import { AudioPipelineController } from '../audio/audio-pipeline.js';
-import type { BackendBranch } from '../carrier/backend-branch.js';
+import { AudioPipelineController } from '@nimiplatform/kit/features/avatar/headless';
+import type { BackendBranch } from '@nimiplatform/kit/features/avatar/headless';
 
 function createDriver(): AgentDataDriver & { emitted: AppOriginEvent[] } {
   const emitted: AppOriginEvent[] = [];
@@ -201,7 +201,7 @@ describe('avatar-voice-lipsync orchestrator (wave 0 hard-cut)', () => {
       detail: {
         turn_id: 'turn-1',
         stream_id: 'stream-1',
-        runtime_timeline: createRuntimeTimeline({ sequence: 2 }),
+        runtime_timeline: createRuntimeTimeline({ channel: 'state', sequence: 2 }),
       },
     });
 

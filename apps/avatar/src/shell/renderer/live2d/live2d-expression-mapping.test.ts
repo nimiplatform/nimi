@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import type { Live2DCompatibilityReport } from './compatibility.js';
+import type { Live2DCompatibilityReport } from '@nimiplatform/kit/features/avatar/headless';
 import { createCommandBus, createLive2DBackendApi, type Live2DCommandEvent } from './plugin-api.js';
-import { createLive2DProjectionAdapter } from './live2d-projection-adapter.js';
+import { createLive2DProjectionAdapter } from '@nimiplatform/kit/features/avatar/headless';
 
 function createCompatibility(): Live2DCompatibilityReport {
   return {

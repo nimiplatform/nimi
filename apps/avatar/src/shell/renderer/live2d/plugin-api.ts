@@ -5,9 +5,9 @@ import type {
   MotionPriority,
   PlayMotionOptions,
   ProjectionBounds,
-} from '../nas/embodiment-projection-api.js';
+} from '@nimiplatform/kit/features/avatar/headless';
 import { activityIdToMotionGroup } from '../nas/activity-naming.js';
-import type { Live2DCompatibilityReport } from './compatibility.js';
+import type { Live2DCompatibilityReport } from '@nimiplatform/kit/features/avatar/headless';
 
 export type Live2DCommandEvent =
   | { kind: 'motion'; group: string; options: PlayMotionOptions }

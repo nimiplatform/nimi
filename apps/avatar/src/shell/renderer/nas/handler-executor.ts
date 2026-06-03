@@ -14,9 +14,8 @@
 import type { AgentDataBundle } from '../driver/types.js';
 import type {
   EmbodimentProjectionApi,
-  NasHandlerExtension,
-} from './embodiment-projection-api.js';
-import type { ActivityOrEventHandler } from './handler-types.js';
+} from '@nimiplatform/kit/features/avatar/headless';
+import type { ActivityOrEventHandler, NasHandlerExtension } from './handler-types.js';
 
 export type HandlerRunStatus = 'success' | 'error' | 'timeout' | 'cancelled' | 'shutdown';
 

@@ -6,6 +6,13 @@
 
 import type { VRM } from '@pixiv/three-vrm';
 import { AnimationMixer, LoopOnce, LoopRepeat } from 'three';
+import type {
+  GeneratedMotionRuntimeSnapshot,
+  PlayGeneratedMotionInput,
+  PlayGeneratedMotionResult,
+  VrmGeneratedMotionProvider,
+  VrmGeneratedMotionRuntime,
+} from '@nimiplatform/kit/features/avatar/vrm';
 
 export const GENERATED_MOTION_INTENSITY_MIN = 0.5;
 export const GENERATED_MOTION_INTENSITY_MAX = 1.4;
@@ -27,54 +34,7 @@ type AnimationActionLike = {
   loop: number;
 };
 
-export type GeneratedMotionEvidence = {
-  routeId: string;
-  providerKind: string;
-  reasonCode?: string;
-};
-
-export type VrmGeneratedMotionProviderInput = {
-  vrm: VRM;
-  routeId: string;
-  intensity: number | null;
-  loop: boolean;
-};
-
-export type VrmGeneratedMotionProviderResult =
-  | { ok: true; clip: unknown; evidence: GeneratedMotionEvidence }
-  | { ok: false; reason: string; evidence: GeneratedMotionEvidence };
-
-export interface VrmGeneratedMotionProvider {
-  generate(input: VrmGeneratedMotionProviderInput): VrmGeneratedMotionProviderResult;
-}
-
-export type PlayGeneratedMotionInput = {
-  routeId: string;
-  fade?: number;
-  loop?: boolean;
-  intensity?: number | null;
-};
-
-export type PlayGeneratedMotionResult =
-  | { played: true; evidence: GeneratedMotionEvidence }
-  | { played: false; reason: string; evidence: GeneratedMotionEvidence };
-
-export type GeneratedMotionRuntimeSnapshot = {
-  attached: boolean;
-  activeRouteId: string | null;
-  fadeRemainingSec: number;
-};
-
-export interface VrmGeneratedMotionRuntime {
-  attach(vrm: VRM): void;
-  play(input: PlayGeneratedMotionInput): PlayGeneratedMotionResult;
-  stopAll(): void;
-  tick(deltaSec: number): void;
-  snapshot(): GeneratedMotionRuntimeSnapshot;
-  dispose(): void;
-}
-
-export function createMissingVrmGeneratedMotionProvider(): VrmGeneratedMotionProvider {
+export function createMissingVrmGeneratedMotionProvider(): VrmGeneratedMotionProvider<VRM> {
   return {
     generate(input) {
       return {
@@ -91,8 +51,8 @@ export function createMissingVrmGeneratedMotionProvider(): VrmGeneratedMotionPro
 }
 
 export function createVrmGeneratedMotionRuntime(
-  provider: VrmGeneratedMotionProvider,
-): VrmGeneratedMotionRuntime {
+  provider: VrmGeneratedMotionProvider<VRM>,
+): VrmGeneratedMotionRuntime<VRM> {
   let vrmRef: VRM | null = null;
   let mixer: AnimationMixerInstance | null = null;
   let activeAction: AnimationActionLike | null = null;

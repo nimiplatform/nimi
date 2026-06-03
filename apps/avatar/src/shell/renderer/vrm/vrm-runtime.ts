@@ -33,7 +33,7 @@
 // layer when forwarding to recordAvatarEvidenceEventually.
 
 import type { VRM } from '@pixiv/three-vrm';
-import type { VrmAvatarModelManifest } from '../carrier/model-resolver.js';
+import type { VrmAvatarModelManifest } from '@nimiplatform/kit/features/avatar/headless';
 import { loadVrmFromManifest } from './vrm-loader.js';
 
 /** WebGL context-lost retry window in ms (vrm-backend-contract.md §2.3). */

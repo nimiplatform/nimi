@@ -4,7 +4,7 @@
 // methods (applyActivity / applyEmotion / applyMotion / applyExpression
 // / reset) to the chunk 3-A `VrmEmoteState` + chunk 3-B
 // generated motion runtime, routing activity ids through an injected
-// activity-mapping resolver (NAS layer wave_1).
+// activity-mapping resolver.
 //
 // Spec: design-04 §"VRM Projection Adapter".
 //
@@ -23,25 +23,12 @@
 //     (each is independently optional per design-04 schema).
 
 import type { VRM } from '@pixiv/three-vrm';
-import type { BackendProjection } from '../carrier/backend-branch.js';
-import type { VrmEmoteState } from './vrm-emote-state.js';
-import type { VrmGeneratedMotionRuntime } from './vrm-generated-motion-runtime.js';
-
-/** Per-activity VRM route. Mirrors `VrmActivityRoute` in
- *  `nas/activity-mapping-resolver.ts`. Re-declared locally so the
- *  projection adapter can consume any resolver implementation that
- *  honors the same contract (test seam). */
-export type VrmActivityRoute = {
-  motion?: string;
-  emotion?: string;
-  expression?: string;
-  fade?: number;
-};
+import type { BackendProjection, VrmActivityRoute } from '@nimiplatform/kit/features/avatar/headless';
+import type { VrmEmoteState, VrmGeneratedMotionRuntime } from '@nimiplatform/kit/features/avatar/vrm';
 
 /** Minimal contract the adapter consumes from the activity-mapping
- *  resolver. The wave_1 NAS resolver already implements this method
- *  (`createActivityMappingResolver().resolveVrmRoute(...)`); chunk 3-D
- *  remains free to extend the resolver without breaking this adapter. */
+ *  resolver. Kit's resolver implements this method; tests may inject
+ *  alternate resolvers that honor the same route contract. */
 export type ActivityMapping = {
   resolveVrmRoute(activityName: string): VrmActivityRoute | null;
 };
@@ -49,7 +36,7 @@ export type ActivityMapping = {
 export type CreateVrmProjectionAdapterInputs = {
   vrm: VRM;
   emoteState: VrmEmoteState;
-  generatedMotionRuntime: VrmGeneratedMotionRuntime;
+  generatedMotionRuntime: VrmGeneratedMotionRuntime<VRM>;
   activityMapping: ActivityMapping;
 };
 

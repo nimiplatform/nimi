@@ -22,7 +22,7 @@ import type {
   BackendBranch,
   BackendHitRegion,
   BackendSurfaceProps,
-} from '../carrier/backend-branch.js';
+} from '@nimiplatform/kit/features/avatar/headless';
 
 const recordAvatarEvidenceEventuallyMock = vi.fn();
 const setIgnoreCursorEventsMock = vi.fn();
@@ -48,15 +48,19 @@ vi.mock('../app-shell/tauri-lifecycle.js', () => ({
   onLaunchContextUpdated: () => Promise.resolve(() => {}),
 }));
 
-vi.mock('../audio/audio-pipeline.js', () => ({
-  getSharedAudioPipelineController: () => ({
-    registerLipsyncSink: (...args: unknown[]) => registerLipsyncSinkMock(...args),
-    setRuntime: vi.fn(),
-    subscribe: vi.fn(() => () => undefined),
-    play: vi.fn(),
-    stop: vi.fn(),
-  }),
-}));
+vi.mock('@nimiplatform/kit/features/avatar/headless', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@nimiplatform/kit/features/avatar/headless')>();
+  return {
+    ...actual,
+    getSharedAudioPipelineController: () => ({
+      registerLipsyncSink: (...args: unknown[]) => registerLipsyncSinkMock(...args),
+      setRuntime: vi.fn(),
+      subscribe: vi.fn(() => () => undefined),
+      play: vi.fn(),
+      stop: vi.fn(),
+    }),
+  };
+});
 
 function createAudioConsumerStub(): BackendAudioConsumer {
   return {

@@ -41,8 +41,8 @@ import type {
   BackendAudioConsumer,
   BackendProjection,
   BackendSurfaceProps,
-} from '../carrier/backend-branch.js';
-import type { VrmAvatarModelManifest } from '../carrier/model-resolver.js';
+} from '@nimiplatform/kit/features/avatar/headless';
+import type { VrmAvatarModelManifest } from '@nimiplatform/kit/features/avatar/headless';
 import {
   attachVrmDiagnostics,
   updateVrmDiagnosticsFrameStats,
@@ -55,26 +55,26 @@ import {
   type VrmRuntimeOptions,
 } from './vrm-runtime.js';
 import { VrmScene } from './vrm-scene.js';
-import type { VrmEmoteState } from './vrm-emote-state.js';
-import type { VrmGeneratedMotionRuntime } from './vrm-generated-motion-runtime.js';
+import type { VrmEmoteState, VrmGeneratedMotionRuntime } from '@nimiplatform/kit/features/avatar/vrm';
 import type { VrmLipsyncDriver } from './vrm-lipsync-driver.js';
 import {
   createVrmProjectionAdapter,
   type ActivityMapping,
 } from './vrm-projection-adapter.js';
-import { createVrmHitRegion } from './vrm-hit-region.js';
+import { createVrmHitRegion } from '@nimiplatform/kit/features/avatar/headless';
 import type { VrmRenderTarget } from './vrm-render-target.js';
 import {
   createVrmCapabilityProfile,
   type VrmCapabilityProfile,
 } from './vrm-capability-profile.js';
 import { writeAvatarEvidenceArtifact, type AvatarEvidenceArtifactWriteResult } from '../app-shell/avatar-evidence.js';
+import { getCachedDeviceTier } from '../app-shell/device-tier-detector.js';
 
 export type VrmCarrierSurfaceInput = {
   manifest: VrmAvatarModelManifest;
   audioConsumer: BackendAudioConsumer;
   emoteState: VrmEmoteState;
-  generatedMotionRuntime: VrmGeneratedMotionRuntime;
+  generatedMotionRuntime: VrmGeneratedMotionRuntime<VRM>;
   lipsyncDriver: VrmLipsyncDriver;
   activityMapping: ActivityMapping;
   /** Receives the real BackendProjection adapter once the VRM is loaded;
@@ -235,6 +235,7 @@ export function createVrmCarrierSurface(
         // region works correctly across resize / drag.
         const hitRegion = createVrmHitRegion({
           renderTarget: input.renderTarget,
+          deviceTier: getCachedDeviceTier()?.tier ?? 'C',
           getViewport: () => {
             const container = canvasContainerRef.current;
             if (!container) return null;
@@ -483,7 +484,7 @@ function VrmFrameLoop({
   audioConsumer: BackendAudioConsumer;
   lipsyncDriver: VrmLipsyncDriver;
   emoteState: VrmEmoteState;
-  generatedMotionRuntime: VrmGeneratedMotionRuntime;
+  generatedMotionRuntime: VrmGeneratedMotionRuntime<VRM>;
 }): null {
   useFrame((_state, deltaSec) => {
     const dt = Math.max(0, deltaSec);

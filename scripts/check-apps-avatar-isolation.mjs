@@ -4,7 +4,6 @@
 //
 // Policy:
 //   apps/avatar/src/** must NOT import:
-//     - @nimiplatform/kit/features/avatar (any subpath)
 //     - apps/desktop/, apps/web/, apps/install-gateway/ (any subpath)
 //     - _external/ (any subpath; reference-only)
 //   tsconfig path aliases are resolved before matching, so
@@ -28,12 +27,6 @@ const VENDORED_DIR = path.join(ROOT, 'apps', 'avatar', 'vendored');
 // ─── banned specifier matchers ─────────────────────────────────────────
 // each entry: { test: (specifier: string) => boolean, label: string }
 const BANNED = [
-  {
-    label: '@nimiplatform/kit/features/avatar',
-    test: (s) =>
-      s === '@nimiplatform/kit/features/avatar' ||
-      s.startsWith('@nimiplatform/kit/features/avatar/'),
-  },
   {
     label: 'cross-app: apps/desktop',
     test: (s) => /(^|\/)apps\/desktop(\/|$)/.test(s),

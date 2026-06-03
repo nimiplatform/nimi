@@ -1,5 +1,5 @@
 import type { AgentDataBundle } from '../driver/types.js';
-import type { EmbodimentProjectionApi } from './embodiment-projection-api.js';
+import type { EmbodimentProjectionApi } from '@nimiplatform/kit/features/avatar/headless';
 import type { HandlerRegistry } from './handler-registry.js';
 
 export type ContinuousUpdateStatus = 'success' | 'error' | 'async_contract_violation' | 'over_budget' | 'skipped_reentrant';

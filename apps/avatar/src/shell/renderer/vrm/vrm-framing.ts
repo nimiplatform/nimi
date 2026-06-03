@@ -1,7 +1,7 @@
 // Wave 2 chunk 2-E of topic 2026-04-30-avatar-vrm-backend-branch.
 //
-// Glue layer between Three.js (`Box3` / `Vector3`) and the pure
-// `computeVrmFraming` domain function (vrm-framing-domain.ts, chunk 2-A).
+// Glue layer between Three.js (`Box3` / `Vector3`) and the Kit-owned pure
+// `computeVrmCameraFraming` domain function.
 // This module is the ONLY VRM file that imports both Three.js and the pure
 // domain — it computes the scene bounding box once per call and forwards
 // the plain-numeric vectors to the domain. The caller (carrier surface,
@@ -25,10 +25,13 @@ import type { VRM } from '@pixiv/three-vrm';
 // (x/y/z, framedHeight, framedWidth), so the loose typing is acceptable.
 import { Box3, Vector3 } from 'three';
 import {
-  computeVrmFraming,
-  type VrmFramingIntent,
-  type VrmFramingResult,
-} from './domain/vrm-framing-domain.js';
+  computeVrmCameraFraming,
+  type VrmCameraFramingIntent,
+  type VrmCameraFramingResult,
+} from '@nimiplatform/kit/features/avatar/vrm';
+
+export type VrmFramingIntent = VrmCameraFramingIntent;
+export type VrmFramingResult = VrmCameraFramingResult;
 
 /** Minimal Vector3-shape returned by applyVrmFraming (subset of THREE.Vector3). */
 export interface Vector3Like {
@@ -53,7 +56,7 @@ export type ApplyFramingResult = VrmFramingResult & {
 
 /**
  * Compute a Three.js scene bbox from `vrm.scene` and feed it into the pure
- * `computeVrmFraming` domain. Returns the framing result alongside the
+ * `computeVrmCameraFraming` domain. Returns the framing result alongside the
  * raw bbox vectors so the caller can apply other camera adjustments
  * (e.g. cull margins).
  */
@@ -62,7 +65,7 @@ export function applyVrmFraming(inputs: ApplyFramingInputs): ApplyFramingResult 
   const bbox = new Box3().setFromObject(vrm.scene);
   const sceneBboxMin = bbox.min.clone();
   const sceneBboxMax = bbox.max.clone();
-  const result = computeVrmFraming({
+  const result = computeVrmCameraFraming({
     sceneBboxMin: { x: sceneBboxMin.x, y: sceneBboxMin.y, z: sceneBboxMin.z },
     sceneBboxMax: { x: sceneBboxMax.x, y: sceneBboxMax.y, z: sceneBboxMax.z },
     intent,

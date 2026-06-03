@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { AgentDataBundle, AgentDataDriver, AgentEvent, DriverStatus } from '../driver/types.js';
-import type { EmbodimentProjectionApi } from './embodiment-projection-api.js';
+import type { EmbodimentProjectionApi } from '@nimiplatform/kit/features/avatar/headless';
 import { HandlerExecutor } from './handler-executor.js';
 import { createHandlerRegistry } from './handler-registry.js';
 import { handlerFilenameToEventName } from './activity-naming.js';

@@ -26,7 +26,7 @@ import {
   VRM_PRESET,
   type LipKey,
 } from './vrm-lipsync-driver.js';
-import type { WLipSyncSnapshot } from '../carrier/backend-branch.js';
+import type { WLipSyncSnapshot } from '@nimiplatform/kit/features/avatar/headless';
 
 type SetValueFn = (name: string, weight: number) => void;
 

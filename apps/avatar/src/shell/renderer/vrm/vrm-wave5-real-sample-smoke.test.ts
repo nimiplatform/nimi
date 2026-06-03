@@ -3,8 +3,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { VRM } from '@pixiv/three-vrm';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
-import type { WLipSyncSnapshot } from '../carrier/backend-branch.js';
-import type { VrmAvatarModelManifest } from '../carrier/model-resolver.js';
+import type { WLipSyncSnapshot } from '@nimiplatform/kit/features/avatar/headless';
+import type { VrmAvatarModelManifest } from '@nimiplatform/kit/features/avatar/headless';
 
 const threeMocks = vi.hoisted(() => ({
   createAction: () => ({
@@ -50,20 +50,22 @@ vi.mock('three', () => ({
   },
 }));
 
-import { createActivityMappingResolver } from '../nas/activity-mapping-resolver.js';
+import { createActivityMappingResolver } from '@nimiplatform/kit/features/avatar/headless';
 import { loadVrmEmoteTable } from './load-vrm-emote-table.js';
 import {
   VRM_GENERATED_ROUTE_IDS,
-  createVrmCapabilityProfile,
   type VrmGeneratedRouteId,
+} from '@nimiplatform/kit/features/avatar/vrm';
+import {
+  createVrmCapabilityProfile,
 } from './vrm-capability-profile.js';
 import { createDeterministicVrmGeneratedMotionProvider } from './vrm-deterministic-motion-provider.js';
-import { createVrmEmoteState } from './vrm-emote-state.js';
+import { createVrmEmoteState } from '@nimiplatform/kit/features/avatar/vrm';
 import { createVrmGeneratedMotionRuntime } from './vrm-generated-motion-runtime.js';
 import { createVrmLipsyncDriver } from './vrm-lipsync-driver.js';
 import { createVrmProjectionAdapter } from './vrm-projection-adapter.js';
 import { createVrmRuntime, VRM_CONTEXT_LOST_RETRY_MS } from './vrm-runtime.js';
-import type { VrmEmoteState } from './vrm-emote-state.js';
+import type { VrmEmoteState } from '@nimiplatform/kit/features/avatar/vrm';
 import {
   resolveSamplePath,
   VRM_SAMPLE_DEFINITIONS,

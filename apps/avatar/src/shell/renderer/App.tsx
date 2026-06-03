@@ -46,8 +46,10 @@ import {
   setVoiceCompanionAvailability,
   setVoiceReplyingTurn,
 } from './voice-companion-state.js';
-import { getSharedVoiceLipsyncStateBus } from './voice-lipsync/voice-lipsync-state-bus.js';
-import { getSharedAudioPipelineController } from './audio/audio-pipeline.js';
+import {
+  getSharedAudioPipelineController,
+  getSharedVoiceLipsyncStateBus,
+} from '@nimiplatform/kit/features/avatar/headless';
 import {
   defaultAvatarShellSettings,
   readAvatarShellSettings,

@@ -1,5 +1,7 @@
 import type { CompanionAnchorBinding, CompanionMessageCue } from './companion-state.js';
 import { createCompanionAnchorKey } from './companion-state.js';
+import type { AudioPlaybackState } from '@nimiplatform/kit/features/avatar/headless';
+export type { AudioPlaybackState } from '@nimiplatform/kit/features/avatar/headless';
 
 export type VoiceCompanionAvailability = 'unknown' | 'ready' | 'blocked';
 export type VoiceCompanionStatus =
@@ -10,18 +12,6 @@ export type VoiceCompanionStatus =
   | 'replying'
   | 'interrupted'
   | 'error';
-
-// Wave 3 — runtime.agent.presentation.voice_playback_requested playback_state
-// projection per K-AGCORE-051. The avatar surface mirrors the runtime-owned
-// playback lifecycle 1:1; `idle` is the avatar-local resting state when no
-// committed turn is driving playback.
-export type AudioPlaybackState =
-  | 'idle'
-  | 'requested'
-  | 'started'
-  | 'completed'
-  | 'interrupted'
-  | 'failed';
 
 export type VoiceCompanionCaption = CompanionMessageCue & {
   live: boolean;

@@ -1,5 +1,5 @@
 import type { AgentDataBundle } from '../driver/types.js';
-import type { EmbodimentProjectionApi, ProjectionBounds } from './embodiment-projection-api.js';
+import type { EmbodimentProjectionApi, ProjectionBounds } from '@nimiplatform/kit/features/avatar/headless';
 import type { ActivityOrEventHandler, ContinuousHandler } from './handler-types.js';
 import { assertSandboxSourcePolicy } from './handler-sandbox-policy.js';
 

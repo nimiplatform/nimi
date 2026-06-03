@@ -17,19 +17,18 @@ import {
   DEFAULT_ACTIVITY_FADE_SEC,
   DEFAULT_DIRECT_MOTION_FADE_SEC,
   type ActivityMapping,
-  type VrmActivityRoute,
 } from './vrm-projection-adapter.js';
-import type { BackendProjection } from '../carrier/backend-branch.js';
-import type { VrmEmoteState } from './vrm-emote-state.js';
+import type { BackendProjection, VrmActivityRoute } from '@nimiplatform/kit/features/avatar/headless';
 import type {
   PlayGeneratedMotionResult,
+  VrmEmoteState,
   VrmGeneratedMotionRuntime,
-} from './vrm-generated-motion-runtime.js';
+} from '@nimiplatform/kit/features/avatar/vrm';
 
 function createMocks(routesByName: Record<string, VrmActivityRoute | null>): {
   vrm: VRM;
   emoteState: VrmEmoteState;
-  generatedMotionRuntime: VrmGeneratedMotionRuntime;
+  generatedMotionRuntime: VrmGeneratedMotionRuntime<VRM>;
   activityMapping: ActivityMapping;
   spies: {
     setEmote: ReturnType<typeof vi.fn>;
@@ -69,7 +68,7 @@ function createMocks(routesByName: Record<string, VrmActivityRoute | null>): {
     evidence: { routeId: 'test', providerKind: 'test' },
   }));
   const stopAll = vi.fn();
-  const generatedMotionRuntime: VrmGeneratedMotionRuntime = {
+  const generatedMotionRuntime: VrmGeneratedMotionRuntime<VRM> = {
     attach: vi.fn(),
     play,
     stopAll,

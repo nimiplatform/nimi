@@ -1,3 +1,5 @@
+import { resolveAgentVoicePlaybackAmplitude } from '@nimiplatform/kit/features/avatar/headless';
+
 type MediaStreamTrackLike = {
   stop: () => void;
 };
@@ -150,18 +152,6 @@ function stopTracks(stream: MediaStreamLike | null) {
   }
 }
 
-function resolveAmplitude(samples: Uint8Array): number {
-  if (samples.length === 0) {
-    return 0;
-  }
-  let total = 0;
-  for (const sample of samples) {
-    const normalized = (sample - 128) / 128;
-    total += normalized * normalized;
-  }
-  return Math.max(0, Math.min(1, Math.sqrt(total / samples.length) * 3.2));
-}
-
 function createLevelMeterHandle(input: {
   stream: MediaStreamLike;
   onLevelChange?: (amplitude: number) => void;
@@ -196,7 +186,7 @@ function createLevelMeterHandle(input: {
     }
     try {
       analyser.getByteTimeDomainData(samples);
-      input.onLevelChange?.(resolveAmplitude(samples));
+      input.onLevelChange?.(resolveAgentVoicePlaybackAmplitude(samples));
     } finally {
       timerId = setTimer(poll, LEVEL_POLL_INTERVAL_MS);
     }

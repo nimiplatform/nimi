@@ -26,10 +26,11 @@ import type {
   BackendAudioConsumer,
   BackendSurface,
   BackendSurfaceProps,
-} from '../carrier/backend-branch.js';
+} from '@nimiplatform/kit/features/avatar/headless';
+import { createLive2DHitRegion } from '@nimiplatform/kit/features/avatar/headless';
 import type { Live2DBackendSession } from './backend-session.js';
 import { Live2DCarrierVisualSurface } from './Live2DCarrierVisualSurface.js';
-import { createLive2DHitRegion } from './live2d-hit-region.js';
+import { getCachedDeviceTier } from '../app-shell/device-tier-detector.js';
 
 export type Live2DCarrierSurfaceDeps = {
   session: Live2DBackendSession;
@@ -92,6 +93,7 @@ export function createLive2DCarrierSurface(
             height: rect.height,
           };
         },
+        deviceTier: getCachedDeviceTier()?.tier ?? 'C',
         onDegraded: (detail) => {
           props.onLifecycleEvidence?.('hit_region_degraded', {
             source: 'live2d-carrier-surface',

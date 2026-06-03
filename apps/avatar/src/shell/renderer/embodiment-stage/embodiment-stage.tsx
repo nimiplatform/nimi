@@ -10,7 +10,7 @@ import { cn } from '@nimiplatform/kit/ui';
 import {
   createAvatarHitRegionSnapshot,
   rectFromElement,
-} from '../interaction/avatar-hit-region.js';
+} from '@nimiplatform/kit/features/avatar/headless';
 import { AvatarInteractionController } from '../interaction/avatar-interaction-controller.js';
 import {
   constrainWindowToVisibleArea,
@@ -28,8 +28,8 @@ import type {
   BackendAudioConsumer,
   BackendBranch,
   BackendHitRegion,
-} from '../carrier/backend-branch.js';
-import { getSharedAudioPipelineController } from '../audio/audio-pipeline.js';
+} from '@nimiplatform/kit/features/avatar/headless';
+import { getSharedAudioPipelineController } from '@nimiplatform/kit/features/avatar/headless';
 import { createThrottledCursorEvents } from '../app-shell/throttled-cursor-events.js';
 import { createThrottledEmit } from '../app-shell/throttled-emit.js';
 

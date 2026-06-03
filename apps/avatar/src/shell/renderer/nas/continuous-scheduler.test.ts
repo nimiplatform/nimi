@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { AgentDataBundle } from '../driver/types.js';
-import type { EmbodimentProjectionApi } from './embodiment-projection-api.js';
+import type { EmbodimentProjectionApi } from '@nimiplatform/kit/features/avatar/headless';
 import { ContinuousScheduler } from './continuous-scheduler.js';
 import { createHandlerRegistry } from './handler-registry.js';
 

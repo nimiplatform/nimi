@@ -2,16 +2,16 @@ import type { ActivitySource, AgentDataBundle, AgentDataDriver, AgentEvent } fro
 import type {
   BackendProjection,
   Live2DBackendExtension,
-} from '../carrier/backend-branch.js';
+} from '@nimiplatform/kit/features/avatar/headless';
 import { isAvatarUserInteractionEvent, type InteractionPhysicsController } from '../live2d/interaction-physics.js';
 import { activityHandlerKey } from './activity-naming.js';
 import { createDefaultActivityHandler } from './default-fallback.js';
 import type {
   EmbodimentProjectionApi,
-  NasHandlerExtension,
-} from './embodiment-projection-api.js';
+} from '@nimiplatform/kit/features/avatar/headless';
 import { HandlerExecutor } from './handler-executor.js';
 import type { HandlerRegistry } from './handler-registry.js';
+import type { NasHandlerExtension } from './handler-types.js';
 export { ContinuousScheduler } from './continuous-scheduler.js';
 
 export type DispatchContext = {

@@ -1,6 +1,9 @@
-import { createLocalFirstPartyRuntimePlatformClient } from '@nimiplatform/sdk';
-import { getSharedAudioPipelineController } from '../audio/audio-pipeline.js';
+import { createNimiAppRuntimePlatformClient } from '@nimiplatform/sdk';
+import { getSharedAudioPipelineController } from '@nimiplatform/kit/features/avatar/headless';
 import {
+  AccountReasonCode,
+  AccountSessionState,
+  RuntimeReasonCode,
   type RuntimeCompanionParticipationProjection,
   type Runtime,
 } from '@nimiplatform/sdk/runtime/browser';
@@ -26,7 +29,7 @@ import { bindAvatarRuntimeIdentity, setAlwaysOnTop } from './tauri-commands.js';
 import {
   applyLaunchContextRuntimeDefaults,
   errorMessage,
-  installTauriRuntimeSdkHook,
+  installAvatarRuntimeBridge,
   loadDefaultMockScenarioJson,
   readNormalizedString,
   resolveCapabilityBinding,
@@ -45,7 +48,6 @@ import {
 } from './app-bootstrap-first-party-diagnostics.js';
 
 const AVATAR_FIRST_PARTY_APP_ID = 'nimi.avatar';
-const ACCOUNT_SESSION_STATE_AUTHENTICATED = 3;
 const AVATAR_FIRST_PARTY_DRIVER_START_TIMEOUT_MS = 12_000;
 
 export type BootstrapHandle = {
@@ -197,7 +199,10 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
       if (!isTauriRuntime() || !hasTauriInvoke()) {
         throw new Error('avatar real runtime bootstrap requires Tauri runtime');
       }
-      installTauriRuntimeSdkHook();
+      const runtimeBridge = installAvatarRuntimeBridge();
+      if (!runtimeBridge.installed) {
+        throw new Error(`avatar real runtime bootstrap requires Nimi shell runtime bridge: ${runtimeBridge.reason}`);
+      }
       const launchContext = await waitForAvatarLaunchContext(5_000);
       useAvatarStore.getState().setLaunchContext(launchContext);
 
@@ -221,15 +226,39 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
       let currentAvatarInstanceId: string | null = readNormalizedString(launchContext.avatarInstanceId);
       try {
         await runFirstPartyStage('runtime_daemon_prepare', () => ensureRuntimeDaemonReady());
-        const platformClient = await runFirstPartyStage('platform_client', () => createLocalFirstPartyRuntimePlatformClient({
+        const platformProjection = await runFirstPartyStage('platform_client', () => createNimiAppRuntimePlatformClient({
+          mode: 'local-first-party',
           appId: runtimeAppId,
           realmBaseUrl: runtimeDefaults.realm.realmBaseUrl,
-          runtimeTransport: {
-            type: 'tauri-ipc',
-            commandNamespace: 'runtime_bridge',
-            eventNamespace: 'runtime_bridge',
-          },
         }));
+        if (platformProjection.status !== 'ready') {
+          useAvatarStore.getState().setRuntimeBindingStatus({
+            status: 'unavailable',
+            reason: platformProjection.message,
+            reasonCode: diagnosticEnumString(platformProjection.reasonCode),
+            accountReasonCode: null,
+            actionHint: platformProjection.actionHint,
+            stage: 'platform_client',
+            source: 'sdk',
+            retryable: true,
+          });
+          useAvatarStore.getState().setDriverStatus('stopped');
+          recordAvatarEvidenceEventually({
+            kind: 'avatar.runtime.bind-failed',
+            detail: {
+              agentId: evidenceAgentId,
+              avatar_instance_id: launchContext.avatarInstanceId || null,
+              launch_source: launchContext.launchSource,
+              runtime_app_id: runtimeAppId,
+              reason: platformProjection.message,
+              reason_code: platformProjection.reasonCode,
+              action_hint: platformProjection.actionHint,
+              source: 'sdk',
+            },
+          });
+          return buildHandle();
+        }
+        const platformClient = platformProjection.client;
         const runtime = platformClient.runtime;
         // Wave_1 step_4: hand the SDK Runtime instance to the shared
         // audio pipeline so AudioPipelineController.play() can resolve
@@ -241,7 +270,7 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
         const accountCaller = createAvatarAccountCaller(runtimeAppId);
         const accountStatus = await runFirstPartyStage('account_session_status', () => runtime.account.getAccountSessionStatus({ caller: accountCaller }));
         const accountId = readNormalizedString(accountStatus.accountProjection?.accountId);
-        if (accountStatus.state !== ACCOUNT_SESSION_STATE_AUTHENTICATED || !accountId) {
+        if (accountStatus.state !== AccountSessionState.AUTHENTICATED || !accountId) {
           const accountStatusRecord = accountStatus as unknown as Record<string, unknown>;
           useAvatarStore.getState().setRuntimeBindingStatus({
             status: 'unavailable',
@@ -263,17 +292,19 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
               runtime_app_id: runtimeAppId,
               account_state: accountStatus.state,
               account_state_name: readEnumName(
-                // Numeric protobuf enums expose a reverse lookup in the generated runtime.
-                // Keep this evidence local so product logic stays keyed on the numeric contract.
-                { 0: 'UNSPECIFIED', 1: 'ANONYMOUS', 2: 'LOGIN_PENDING', 3: 'AUTHENTICATED', 4: 'REFRESH_PENDING', 5: 'EXPIRED', 6: 'REAUTH_REQUIRED', 7: 'SWITCHING', 8: 'LOGGING_OUT', 9: 'LOGGED_OUT', 10: 'UNAVAILABLE' },
+                AccountSessionState,
                 accountStatus.state,
               ),
               reason_code: accountStatus.reasonCode,
               reason_code_name: readEnumName(
-                { 0: 'REASON_CODE_UNSPECIFIED', 1: 'ACTION_EXECUTED', 5: 'PRINCIPAL_UNAUTHORIZED', 6: 'AUTH_CONTEXT_MISSING', 7: 'SESSION_EXPIRED' },
+                RuntimeReasonCode,
                 accountStatus.reasonCode,
               ),
               account_reason_code: accountStatus.accountReasonCode,
+              account_reason_code_name: readEnumName(
+                AccountReasonCode,
+                accountStatus.accountReasonCode,
+              ),
               account_projection_present: Boolean(accountStatus.accountProjection),
               account_projection_account_id: accountId || null,
               production_inert: accountStatus.productionInert,

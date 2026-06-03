@@ -12,7 +12,7 @@ import {
   validateLive2DCompatibility,
   type Live2DAdapterManifestV1,
   type Live2DCompatibilityReport,
-} from './compatibility.js';
+} from '@nimiplatform/kit/features/avatar/headless';
 
 export type Live2DBackendResources = {
   mocPath: string;

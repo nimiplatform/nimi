@@ -1,5 +1,5 @@
 import type { AgentDataBundle, AgentEvent } from '../driver/types.js';
-import type { EmbodimentProjectionApi } from '../nas/embodiment-projection-api.js';
+import type { EmbodimentProjectionApi } from '@nimiplatform/kit/features/avatar/headless';
 
 export type InteractionPhysicsController = {
   handle(event: AgentEvent, bundle: AgentDataBundle): void;

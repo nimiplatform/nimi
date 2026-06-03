@@ -14,7 +14,7 @@ const onShellReadyMock = vi.fn();
 const setAlwaysOnTopMock = vi.fn();
 const bindAvatarRuntimeIdentityMock = vi.fn();
 const driverStopMock = vi.fn();
-const createLocalFirstPartyRuntimePlatformClientMock = vi.fn();
+const createNimiAppRuntimePlatformClientMock = vi.fn();
 const getAccountSessionStatusMock = vi.fn();
 const getAccessTokenMock = vi.fn();
 const openAnchorMock = vi.fn();
@@ -90,15 +90,55 @@ vi.mock('../driver/factory.js', () => ({
 }));
 
 vi.mock('@nimiplatform/sdk', () => ({
-  AccountCallerMode: { LOCAL_FIRST_PARTY_APP: 1 },
-  AccountSessionState: { AUTHENTICATED: 3 },
-  createLocalFirstPartyRuntimePlatformClient: (...args: unknown[]) =>
-    createLocalFirstPartyRuntimePlatformClientMock(...args),
+  createNimiAppRuntimePlatformClient: (...args: unknown[]) =>
+    createNimiAppRuntimePlatformClientMock(...args),
 }));
 
 vi.mock('@nimiplatform/sdk/runtime/browser', () => ({
   AccountCallerMode: { LOCAL_FIRST_PARTY_APP: 1 },
+  AccountReasonCode: { 0: 'ACCOUNT_REASON_CODE_UNSPECIFIED', ACCOUNT_REASON_CODE_UNSPECIFIED: 0 },
+  AccountSessionState: { 3: 'AUTHENTICATED', AUTHENTICATED: 3 },
+  RuntimeReasonCode: {
+    0: 'REASON_CODE_UNSPECIFIED',
+    1: 'ACTION_EXECUTED',
+    5: 'PRINCIPAL_UNAUTHORIZED',
+    REASON_CODE_UNSPECIFIED: 0,
+    ACTION_EXECUTED: 1,
+    PRINCIPAL_UNAUTHORIZED: 5,
+  },
   ScopedAppBindingPurpose: { AVATAR_INTERACTION_CONSUME: 1 },
+  createLocalFirstPartyRuntimeAccountCaller: (input: { appId: string; scopes?: string[] }) => ({
+    appId: input.appId,
+    appInstanceId: `${input.appId}.local-first-party`,
+    deviceId: 'local-first-party-device',
+    mode: 1,
+    scopes: input.scopes || [],
+  }),
+  isRuntimeLocalAgentRef: (value: unknown) => typeof value === 'string' && value.trim().startsWith('local-agent:'),
+  parseRuntimeLocalAgentIdentity: (value: unknown) => {
+    const normalized = typeof value === 'string' ? value.trim() : '';
+    const parts = normalized.split(':');
+    if (parts.length !== 3 || parts[0] !== 'local-agent') {
+      throw new Error('runtime local agent identity localAgentRef is malformed');
+    }
+    return {
+      ownerUserId: parts[1],
+      realmAgentId: parts[2],
+      localAgentRef: normalized,
+    };
+  },
+  projectRuntimeLocalAgentIdentity: (input: { ownerUserId: unknown; realmAgentId: unknown }) => {
+    const ownerUserId = typeof input.ownerUserId === 'string' ? input.ownerUserId.trim() : '';
+    const realmAgentId = typeof input.realmAgentId === 'string' ? input.realmAgentId.trim() : '';
+    if (!ownerUserId || !realmAgentId) {
+      throw new Error('runtime local agent identity requires ownerUserId and realmAgentId');
+    }
+    return {
+      ownerUserId,
+      realmAgentId,
+      localAgentRef: `local-agent:${ownerUserId}:${realmAgentId}`,
+    };
+  },
 }));
 
 vi.mock('../mock/scenarios/default.mock.json?raw', () => ({
@@ -120,6 +160,7 @@ vi.mock('@renderer/bridge', () => ({
   getDaemonStatus: (...args: unknown[]) => getDaemonStatusMock(...args),
   startDaemon: (...args: unknown[]) => startDaemonMock(...args),
   hasTauriInvoke: (...args: unknown[]) => hasTauriInvokeMock(...args),
+  installNimiShellRuntimeBridge: () => ({ installed: true }),
 }));
 
 vi.mock('./tauri-lifecycle.js', () => ({
@@ -227,7 +268,7 @@ describe('bootstrapAvatar', () => {
     setAlwaysOnTopMock.mockReset();
     bindAvatarRuntimeIdentityMock.mockReset();
     driverStopMock.mockReset();
-    createLocalFirstPartyRuntimePlatformClientMock.mockReset();
+    createNimiAppRuntimePlatformClientMock.mockReset();
     getAccountSessionStatusMock.mockReset();
     getAccessTokenMock.mockReset();
     openAnchorMock.mockReset();
@@ -288,7 +329,11 @@ describe('bootstrapAvatar', () => {
         userConfirmedUpload: false,
       },
     });
-    createLocalFirstPartyRuntimePlatformClientMock.mockResolvedValue({ runtime: runtimeMock });
+    createNimiAppRuntimePlatformClientMock.mockResolvedValue({
+      status: 'ready',
+      client: { runtime: runtimeMock },
+      auth: { state: 'ready', source: 'runtime-local-first-party' },
+    });
     getAccountSessionStatusMock.mockResolvedValue({
       state: 3,
       accountProjection: { accountId: 'account-runtime' },
@@ -373,12 +418,12 @@ describe('bootstrapAvatar', () => {
     expect(getAvatarLaunchContextMock).toHaveBeenCalledTimes(1);
     expect(getDaemonStatusMock).toHaveBeenCalledTimes(1);
     expect(startDaemonMock).not.toHaveBeenCalled();
-    expect(createLocalFirstPartyRuntimePlatformClientMock).toHaveBeenCalledWith(expect.objectContaining({
+    expect(createNimiAppRuntimePlatformClientMock).toHaveBeenCalledWith(expect.objectContaining({
       appId: 'nimi.avatar',
       realmBaseUrl: 'http://localhost:3002',
     }));
-    expect(createLocalFirstPartyRuntimePlatformClientMock.mock.calls[0]?.[0]).not.toHaveProperty('accessToken');
-    expect(createLocalFirstPartyRuntimePlatformClientMock.mock.calls[0]?.[0]).not.toHaveProperty('refreshTokenProvider');
+    expect(createNimiAppRuntimePlatformClientMock.mock.calls[0]?.[0]).not.toHaveProperty('accessToken');
+    expect(createNimiAppRuntimePlatformClientMock.mock.calls[0]?.[0]).not.toHaveProperty('refreshTokenProvider');
     expect(getAccountSessionStatusMock).toHaveBeenCalledWith({
       caller: expect.objectContaining({
         appId: 'nimi.avatar',
@@ -534,7 +579,7 @@ describe('bootstrapAvatar', () => {
 
     expect(getDaemonStatusMock).toHaveBeenCalledTimes(1);
     expect(startDaemonMock).toHaveBeenCalledTimes(1);
-    expect(createLocalFirstPartyRuntimePlatformClientMock).toHaveBeenCalledTimes(1);
+    expect(createNimiAppRuntimePlatformClientMock).toHaveBeenCalledTimes(1);
     expect(openAnchorMock).toHaveBeenCalledWith({
       ownerUserId: OWNER_USER_ID,
       realmAgentId: REALM_AGENT_ID,
@@ -564,7 +609,7 @@ describe('bootstrapAvatar', () => {
     const handle = await bootstrapAvatar();
 
     expect(startDaemonMock).toHaveBeenCalledTimes(1);
-    expect(createLocalFirstPartyRuntimePlatformClientMock).not.toHaveBeenCalled();
+    expect(createNimiAppRuntimePlatformClientMock).not.toHaveBeenCalled();
     expect(useAvatarStore.getState().runtime.binding.status).toBe('unavailable');
     expect(useAvatarStore.getState().runtime.binding.reason).toBe(
       'runtime_daemon_prepare: RUNTIME_BRIDGE_DAEMON_START_TIMEOUT / start_runtime_daemon',

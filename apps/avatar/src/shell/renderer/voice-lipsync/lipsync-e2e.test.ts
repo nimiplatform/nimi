@@ -30,17 +30,15 @@ import type {
 } from '../driver/types.js';
 import { createAvatarVoiceLipsyncPipeline } from './avatar-voice-lipsync.js';
 import {
-  VoiceLipsyncStateBus,
-  type VoiceLipsyncStateBusEvent,
-} from './voice-lipsync-state-bus.js';
-import {
   AudioPipelineController,
   SYNTHETIC_AUDIO_MIME_TYPE,
-} from '../audio/audio-pipeline.js';
+  VoiceLipsyncStateBus,
+  type VoiceLipsyncStateBusEvent,
+} from '@nimiplatform/kit/features/avatar/headless';
 import type {
   BackendAudioConsumer,
   BackendBranch,
-} from '../carrier/backend-branch.js';
+} from '@nimiplatform/kit/features/avatar/headless';
 
 const FIXTURE_TURN_ID = 'turn-e2e';
 const FIXTURE_STREAM_ID = 'stream-e2e';
@@ -48,7 +46,7 @@ const FIXTURE_AUDIO_ARTIFACT = 'artifact-e2e-wav';
 const FIXTURE_STARTED_AT = '2026-04-29T00:00:00.000Z';
 const FIXTURE_OBSERVED_AT = '2026-04-29T00:00:00.020Z';
 
-function makeRuntimeTimeline(channel: 'voice' | 'lipsync', sequence: number): Record<string, unknown> {
+function makeRuntimeTimeline(channel: 'voice' | 'lipsync' | 'state', sequence: number): Record<string, unknown> {
   return {
     turn_id: FIXTURE_TURN_ID,
     stream_id: FIXTURE_STREAM_ID,
@@ -321,7 +319,7 @@ describe('Lipsync e2e — voice_playback_requested → audio-pipeline → backen
       detail: {
         turn_id: FIXTURE_TURN_ID,
         stream_id: FIXTURE_STREAM_ID,
-        runtime_timeline: makeRuntimeTimeline('voice', 2),
+        runtime_timeline: makeRuntimeTimeline('state', 2),
       },
     });
 

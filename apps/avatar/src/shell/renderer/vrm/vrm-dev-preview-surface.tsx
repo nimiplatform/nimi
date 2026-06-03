@@ -15,8 +15,8 @@
 
 import { useEffect } from 'react';
 import type { ComponentType } from 'react';
-import type { VrmAvatarModelManifest } from '../carrier/model-resolver.js';
-import type { BackendSurfaceProps } from '../carrier/backend-branch.js';
+import type { VrmAvatarModelManifest } from '@nimiplatform/kit/features/avatar/headless';
+import type { BackendSurfaceProps } from '@nimiplatform/kit/features/avatar/headless';
 
 export type VrmDevPreviewSurfaceDeps = {
   manifest: VrmAvatarModelManifest;

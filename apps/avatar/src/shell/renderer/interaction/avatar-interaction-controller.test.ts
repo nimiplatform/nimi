@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { AppOriginEvent } from '../driver/types.js';
-import { createAvatarHitRegionSnapshot } from './avatar-hit-region.js';
+import { createAvatarHitRegionSnapshot } from '@nimiplatform/kit/features/avatar/headless';
 import { AvatarInteractionController } from './avatar-interaction-controller.js';
 
 function createController(input: { tauri?: boolean; dragRejects?: boolean } = {}) {

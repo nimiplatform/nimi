@@ -6,7 +6,7 @@
 
 import type { VRM } from '@pixiv/three-vrm';
 import { describe, expect, it, vi } from 'vitest';
-import type { VrmAvatarModelManifest } from '../carrier/model-resolver.js';
+import type { VrmAvatarModelManifest } from '@nimiplatform/kit/features/avatar/headless';
 import {
   createVrmRuntime,
   VRM_CONTEXT_LOST_RETRY_MS,

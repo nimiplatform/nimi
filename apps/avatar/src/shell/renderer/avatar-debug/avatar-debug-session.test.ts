@@ -1,6 +1,6 @@
 import { AvatarDebugProbeKind } from '@nimiplatform/sdk/runtime';
 import { describe, expect, it } from 'vitest';
-import type { BackendBranch } from '../carrier/backend-branch.js';
+import type { BackendBranch } from '@nimiplatform/kit/features/avatar/headless';
 import type { VrmCapabilityProfile } from '../vrm/vrm-capability-profile.js';
 import {
   createAvatarDebugSession,
