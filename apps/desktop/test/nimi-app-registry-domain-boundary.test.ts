@@ -112,7 +112,8 @@ describe('Nimi App registry/admission domain boundary', () => {
 
     assert.match(accountProjection, /Runtime app lifecycle owns account app-library reads\/writes/);
     assert.match(accountCommands, /RUNTIME_APP_GET_ACCOUNT_APP_LIBRARY_METHOD_ID/);
-    assert.match(accountCommands, /invoke_unary_typed/);
+    assert.match(accountCommands, /invoke_unary_typed_with_metadata/);
+    assert.match(accountCommands, /ACCOUNT_APP_LIBRARY_DESKTOP_APP_ID: &str = "nimi\.desktop"/);
     assert.doesNotMatch(accountProjection, /read_account_app_library|account_app_library_path|ACCOUNT_APP_LIBRARY_SCHEMA_VERSION/);
     assert.doesNotMatch(accountCommands, /authenticated_runtime_account_id/);
     assert.doesNotMatch(accountCommands, /account_app_library_get\([^)]*account_id/i);

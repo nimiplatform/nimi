@@ -10,6 +10,10 @@
 
 use serde::Serialize;
 
+const ACCOUNT_APP_LIBRARY_DESKTOP_APP_ID: &str = "nimi.desktop";
+const ACCOUNT_APP_LIBRARY_CALLER_ID: &str = "desktop.account-app-library";
+const ACCOUNT_APP_LIBRARY_SURFACE_ID: &str = "desktop.apps";
+
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct AccountAppLibraryRow {
@@ -37,9 +41,16 @@ pub struct AccountAppLibraryRecord {
 #[tauri::command]
 pub async fn account_app_library_get() -> Result<Option<AccountAppLibraryRecord>, String> {
     let response: crate::runtime_bridge::generated::GetAccountAppLibraryResponse =
-        crate::runtime_bridge::invoke_unary_typed(
+        crate::runtime_bridge::invoke_unary_typed_with_metadata(
             nimi_shell_tauri::runtime_bridge::RUNTIME_APP_GET_ACCOUNT_APP_LIBRARY_METHOD_ID,
             crate::runtime_bridge::generated::GetAccountAppLibraryRequest {},
+            crate::runtime_bridge::RuntimeBridgeMetadata {
+                app_id: Some(ACCOUNT_APP_LIBRARY_DESKTOP_APP_ID.to_string()),
+                caller_kind: Some("desktop-core".to_string()),
+                caller_id: Some(ACCOUNT_APP_LIBRARY_CALLER_ID.to_string()),
+                surface_id: Some(ACCOUNT_APP_LIBRARY_SURFACE_ID.to_string()),
+                ..Default::default()
+            },
             Some(10_000),
         )
         .await?;

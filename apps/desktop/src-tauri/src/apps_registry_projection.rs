@@ -23,12 +23,15 @@
 use crate::desktop_paths::resolve_nimi_dir;
 use nimi_shell_tauri::governed_config::ConfigReadOutcome;
 use nimi_shell_tauri::platform_projection::apps_registry::{
-    build_apps_registry_record, materialize_apps_registry_projection,
-    read_apps_registry_projection, AppsRegistryRecord, APPS_REGISTRY_POINTER,
-    APPS_REGISTRY_SCHEMA_VERSION,
+    materialize_apps_registry_projection, AppsRegistryRecord, APPS_REGISTRY_POINTER,
 };
 use serde::Serialize;
 use std::path::PathBuf;
+
+#[cfg(test)]
+use nimi_shell_tauri::platform_projection::apps_registry::{
+    build_apps_registry_record, read_apps_registry_projection, APPS_REGISTRY_SCHEMA_VERSION,
+};
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -56,6 +59,7 @@ pub fn apps_registry_path() -> Result<PathBuf, String> {
 /// materialized yet — the deterministic [`ensure_apps_registry`] regeneration
 /// is the caller's recovery path. `ConfigReadOutcome::Repair` means the on-disk
 /// file is faulted and was left intact for a guided repair.
+#[cfg(test)]
 pub fn read_apps_registry_governed() -> Result<ConfigReadOutcome<AppsRegistryRecord>, String> {
     let path = apps_registry_path()?;
     read_apps_registry_projection(&path)
@@ -67,6 +71,7 @@ pub fn read_apps_registry_governed() -> Result<ConfigReadOutcome<AppsRegistryRec
 /// internal package-projection consumer that needs an `Option<Record>`: a
 /// routed repair state is surfaced as the typed repair reason (still not a raw
 /// serde dump), and `Absent` maps to `Ok(None)`.
+#[cfg(test)]
 pub fn read_apps_registry() -> Result<Option<AppsRegistryRecord>, String> {
     match read_apps_registry_governed()? {
         ConfigReadOutcome::Absent => Ok(None),

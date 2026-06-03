@@ -33,6 +33,13 @@ test('desktop dev renderer disables HMR to avoid React refresh module preamble i
   assert.match(viteConfigSource, /server:\s*{[\s\S]*hmr:\s*false/);
 });
 
+test('desktop dev renderer aliases every SDK app AI subpath consumed by Kit contract', () => {
+  assert.match(
+    viteConfigSource,
+    /find:\s*'@nimiplatform\/sdk\/ai-app'[\s\S]*replacement:\s*path\.resolve\(__dirname,\s*'\.\.\/\.\.\/sdk\/src\/ai-app\/index\.ts'\)/,
+  );
+});
+
 test('desktop agent center local config bridge stays with the agent chat chunk', () => {
   const agentCenterBridgeExceptionIndex = viteConfigSource.indexOf(
     "chat-agent-center-local-config-store.ts')",

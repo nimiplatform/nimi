@@ -63,7 +63,7 @@ pub async fn product_control_record_admit_ready_for_use(
         .filter(|value| !value.is_empty())
         .ok_or_else(|| "executionEvidenceRef is required before ready admission".to_string())?;
     let execution_response: crate::runtime_bridge::generated::ResolveFirstRunExecutionEvidenceResponse =
-        crate::runtime_bridge::invoke_unary_typed(
+        crate::runtime_bridge::invoke_unary_typed_with_metadata(
             RUNTIME_EXECUTION_RESOLVE_METHOD_ID,
             crate::runtime_bridge::generated::ResolveFirstRunExecutionEvidenceRequest {
                 execution_evidence_ref: execution_evidence_ref.to_string(),
@@ -72,6 +72,7 @@ pub async fn product_control_record_admit_ready_for_use(
                 expected_install_level: install_level.to_string(),
                 host_profile: None,
             },
+            crate::desktop_product_control::product_control_runtime_bridge_metadata(),
             Some(30_000),
         )
         .await?;
@@ -97,7 +98,7 @@ pub async fn product_control_record_admit_ready_for_use(
             Some(&baseline_bindings),
         )?;
     let response: crate::runtime_bridge::generated::ProductControlProjectionJson =
-        crate::runtime_bridge::invoke_unary_typed(
+        crate::runtime_bridge::invoke_unary_typed_with_metadata(
             nimi_shell_tauri::runtime_bridge::RUNTIME_LOCAL_ADMIT_PRODUCT_CONTROL_READY_FOR_USE_METHOD_ID,
             crate::runtime_bridge::generated::AdmitProductControlReadyForUseRequest {
                 account_default_profile_evidence_json: serde_json::to_string(&account_evidence)
@@ -105,6 +106,7 @@ pub async fn product_control_record_admit_ready_for_use(
                 built_in_ai_config_evidence_json: serde_json::to_string(&built_in_ai_config_set)
                     .map_err(|error| format!("serialize built-in AIConfig evidence: {error}"))?,
             },
+            crate::desktop_product_control::product_control_runtime_bridge_metadata(),
             Some(30_000),
         )
         .await?;

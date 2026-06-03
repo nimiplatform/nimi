@@ -1,5 +1,4 @@
 import { describe, test } from 'node:test';
-import type { RealmModel } from '@nimiplatform/sdk/realm';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -11,13 +10,10 @@ import {
   flushPendingChatOutbox,
   loadChatList,
   loadMoreChatMessages,
-  sameMessageIdentity,
   sendChatMessage,
   startChatWithTarget,
 } from '../src/shell/renderer/features/chat/data/realm-human-chat-data.js';
 import { getOfflineOutboxManager } from '../src/shell/renderer/infra/offline/index.js';
-
-type MessageViewDto = RealmModel<'MessageViewDto'>;
 
 const chatFlowSource = readFileSync(
   resolve(import.meta.dirname, '../src/shell/renderer/features/chat/data/realm-human-chat-data.ts'),
@@ -201,29 +197,11 @@ describe('desktop human chat pagination', () => {
   });
 });
 
-describe('desktop human chat sameMessageIdentity behavioral tests', () => {
-  test('sameMessageIdentity matches by id', () => {
-    const result = sameMessageIdentity(
-      { id: '1', clientMessageId: '' } as unknown as MessageViewDto,
-      { id: '1', clientMessageId: '' } as unknown as MessageViewDto,
-    );
-    assert.equal(result, true, 'Messages with the same id should be considered identical');
-  });
-
-  test('sameMessageIdentity matches by clientMessageId', () => {
-    const result = sameMessageIdentity(
-      { id: 'a', clientMessageId: 'cm_abc' } as unknown as MessageViewDto,
-      { id: 'b', clientMessageId: 'cm_abc' } as unknown as MessageViewDto,
-    );
-    assert.equal(result, true, 'Messages with matching clientMessageId should be considered identical');
-  });
-
-  test('sameMessageIdentity rejects mismatched', () => {
-    const result = sameMessageIdentity(
-      { id: 'a', clientMessageId: 'cm_1' } as unknown as MessageViewDto,
-      { id: 'b', clientMessageId: 'cm_2' } as unknown as MessageViewDto,
-    );
-    assert.equal(result, false, 'Messages with different ids and clientMessageIds should not match');
+describe('desktop human chat shared Kit identity ownership', () => {
+  test('human chat data no longer owns message identity matching behavior', () => {
+    assert.match(chatFlowSource, /@nimiplatform\/kit\/features\/chat\/realm/);
+    assert.doesNotMatch(chatFlowSource, /export function sameMessageIdentity/);
+    assert.doesNotMatch(chatFlowSource, /function sameMessageIdentity/);
   });
 });
 

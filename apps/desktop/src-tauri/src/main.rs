@@ -20,6 +20,7 @@ mod desktop_product_control;
 mod desktop_product_control_admission;
 mod desktop_release;
 mod desktop_updates;
+#[cfg(test)]
 mod factory_profile_index;
 mod local_runtime;
 mod main_parts;

@@ -4,6 +4,7 @@ import {
   createLocalFirstPartyRuntimePlatformClient,
   unstable_attachPlatformWorldEvolutionSelectorReadProvider,
 } from '@nimiplatform/sdk';
+import { isRealmOfflineErrorLike as isRealmOfflineError } from '@nimiplatform/sdk/types';
 import { createMissingWorldEvolutionSelectorReadProvider } from '@nimiplatform/sdk/runtime';
 import { setRuntimeLogger } from '@nimiplatform/kit/telemetry';
 import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
@@ -50,6 +51,7 @@ let bootstrapPromise: Promise<void> | null = null;
 let rebootstrapPromise: Promise<void> | null = null;
 let offlineCoordinatorBindingsReady = false;
 let pendingRebootstrap = false;
+let unsubscribeRealmConnectivityEvents: (() => void) | null = null;
 
 function suspendRuntimeCallbacksForL2(): void {
 }
@@ -249,6 +251,8 @@ async function handleRuntimeConfigSyncError(input: {
 
 async function teardownBootstrapState(): Promise<void> {
   stopAuthStateWatcher();
+  unsubscribeRealmConnectivityEvents?.();
+  unsubscribeRealmConnectivityEvents = null;
   clearDesktopConversationCapabilityRouteRuntime();
   clearPlatformClient();
 }
@@ -470,6 +474,20 @@ export function bootstrapRuntime(): Promise<void> {
         eventNamespace: 'runtime_bridge',
       },
     });
+    unsubscribeRealmConnectivityEvents?.();
+    const coordinator = getOfflineCoordinator();
+    const unsubscribeRealmRequestSuccess = platformClient.realm.events.on('request.success', () => {
+      coordinator.markRealmRestReachable(true);
+    });
+    const unsubscribeRealmError = platformClient.realm.events.on('error', (event) => {
+      if (isRealmOfflineError(event.error)) {
+        coordinator.markRealmRestReachable(false);
+      }
+    });
+    unsubscribeRealmConnectivityEvents = () => {
+      unsubscribeRealmRequestSuccess();
+      unsubscribeRealmError();
+    };
     bindDesktopConversationCapabilityRouteRuntime();
     const accountCaller = createDesktopShellRuntimeAccountCaller({ appId: 'nimi.desktop' });
     const accountStatus = await platformClient.runtime.account.getAccountSessionStatus({

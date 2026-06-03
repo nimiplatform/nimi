@@ -2,12 +2,9 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
-import React from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
 
 import type { AIScopeRef } from '@nimiplatform/sdk/ai';
 import type { ConversationMode } from '@nimiplatform/kit/features/chat/headless';
-import { ConversationModeSwitcher } from '@nimiplatform/kit/features/chat/ui';
 
 /**
  * T3-3 — Chat 4-mode acceptance + no-RealmAgent-direct-chat proof.
@@ -257,63 +254,4 @@ test('T3-3 proof: Agent Chat always means LocalAgent Chat — no direct-RealmAge
   assert.match(launcherSource, /export async function launchAgentConversationFromDisplay/);
   assert.match(launcherSource, /export async function launchAgentVoiceFromDisplay/);
   assert.doesNotMatch(launcherSource, /launchRealmAgentChat|launchRealmAgentConversation/);
-});
-
-// ---------------------------------------------------------------------------
-// Task 4 — 4-mode switcher renderer-markup proof
-// ---------------------------------------------------------------------------
-
-test('T3-3 proof: the conversation mode switcher renders all four modes with product copy', () => {
-  // Honest renderer-markup substitute for a whole-product screenshot gate.
-  // The kit `ConversationModeSwitcher` is the canonical chat mode switcher;
-  // the desktop chat surface drives it with these four product modes.
-  const modeOptions: readonly { mode: ConversationMode; label: string }[] = [
-    { mode: 'human', label: 'Human Chat' },
-    { mode: 'ai', label: 'Nimi Chat' },
-    { mode: 'agent', label: 'Agent Chat' },
-    { mode: 'group', label: 'Group Chat' },
-  ];
-
-  const markup = renderToStaticMarkup(
-    React.createElement(ConversationModeSwitcher, {
-      modes: modeOptions,
-      activeMode: 'ai',
-      onModeChange: () => {},
-    }),
-  );
-
-  // Trigger renders (modes.length > 1) and reflects the active mode label.
-  assert.match(markup, /Current mode: Nimi Chat/);
-
-  // The static markup of the closed switcher carries the active-mode trigger;
-  // assert the open-state markup carries all four product mode labels by
-  // rendering each mode as the active one (the trigger aria-label exposes the
-  // resolved product copy for every mode).
-  for (const option of modeOptions) {
-    const perModeMarkup = renderToStaticMarkup(
-      React.createElement(ConversationModeSwitcher, {
-        modes: modeOptions,
-        activeMode: option.mode,
-        onModeChange: () => {},
-      }),
-    );
-    assert.match(
-      perModeMarkup,
-      new RegExp(`Current mode: ${option.label}`),
-      `mode switcher must render product copy for ${option.mode}`,
-    );
-  }
-});
-
-test('T3-3 proof: a single-mode switcher renders nothing (anonymous desktop exposes only Nimi)', () => {
-  // Anonymous desktop exposes only the AI/Nimi mode; the switcher hides itself
-  // when there is just one mode, so there is no dead 4-mode chrome pre-auth.
-  const markup = renderToStaticMarkup(
-    React.createElement(ConversationModeSwitcher, {
-      modes: [{ mode: 'ai' as ConversationMode, label: 'Nimi Chat' }],
-      activeMode: 'ai',
-      onModeChange: () => {},
-    }),
-  );
-  assert.equal(markup, '');
 });

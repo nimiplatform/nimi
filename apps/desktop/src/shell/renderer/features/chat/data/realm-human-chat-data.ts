@@ -104,19 +104,6 @@ export async function countPendingChatOutboxEntries(): Promise<number> {
   return entries.filter((entry) => entry.status === 'pending').length;
 }
 
-export function sameMessageIdentity(left: MessageViewDto, right: MessageViewDto): boolean {
-  if (String(left.id || '') === String(right.id || '')) {
-    return true;
-  }
-  const leftClientMessageId = String(left.clientMessageId || '').trim();
-  const rightClientMessageId = String(right.clientMessageId || '').trim();
-  return Boolean(
-    leftClientMessageId
-    && rightClientMessageId
-    && leftClientMessageId === rightClientMessageId,
-  );
-}
-
 export async function loadChatList(
   service: Pick<DesktopRealmHumanChatService, 'listChats'> = realmChatService,
   emitChatError: DesktopChatErrorEmitter = emitNoop,

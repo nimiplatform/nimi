@@ -26,6 +26,22 @@ pub use projection::*;
 pub use record::*;
 pub(crate) use record_store::*;
 
+const DESKTOP_RUNTIME_APP_ID: &str = "nimi.desktop";
+const PRODUCT_CONTROL_CALLER_KIND: &str = "desktop-core";
+const PRODUCT_CONTROL_CALLER_ID: &str = "desktop.product-control";
+const PRODUCT_CONTROL_SURFACE_ID: &str = "desktop.product-control";
+
+pub(crate) fn product_control_runtime_bridge_metadata(
+) -> crate::runtime_bridge::RuntimeBridgeMetadata {
+    crate::runtime_bridge::RuntimeBridgeMetadata {
+        app_id: Some(DESKTOP_RUNTIME_APP_ID.to_string()),
+        caller_kind: Some(PRODUCT_CONTROL_CALLER_KIND.to_string()),
+        caller_id: Some(PRODUCT_CONTROL_CALLER_ID.to_string()),
+        surface_id: Some(PRODUCT_CONTROL_SURFACE_ID.to_string()),
+        ..Default::default()
+    }
+}
+
 async fn invoke_product_control_projection_json<Request>(
     method_id: &str,
     request: Request,
@@ -35,7 +51,13 @@ where
     Request: prost::Message + Default,
 {
     let response: crate::runtime_bridge::generated::ProductControlProjectionJson =
-        crate::runtime_bridge::invoke_unary_typed(method_id, request, timeout_ms).await?;
+        crate::runtime_bridge::invoke_unary_typed_with_metadata(
+            method_id,
+            request,
+            product_control_runtime_bridge_metadata(),
+            timeout_ms,
+        )
+        .await?;
     serde_json::from_str::<ProductControlRecordProjection>(&response.json)
         .map_err(|error| format!("Runtime product-control projection decode failed: {error}"))
 }
@@ -49,7 +71,13 @@ where
     Request: prost::Message + Default,
 {
     let response: crate::runtime_bridge::generated::ProductControlProjectionJson =
-        crate::runtime_bridge::invoke_unary_typed(method_id, request, timeout_ms).await?;
+        crate::runtime_bridge::invoke_unary_typed_with_metadata(
+            method_id,
+            request,
+            product_control_runtime_bridge_metadata(),
+            timeout_ms,
+        )
+        .await?;
     serde_json::from_str::<ProductControlSelectedDataRootProjection>(&response.json).map_err(
         |error| format!("Runtime product-control selected-data-root decode failed: {error}"),
     )

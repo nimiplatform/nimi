@@ -3,7 +3,9 @@
 
 use serde::{Deserialize, Serialize};
 
+#[cfg(test)]
 pub(crate) const PRODUCT_CONTROL_FILE_NAME: &str = "nimi.json";
+#[cfg(test)]
 pub(crate) const PRODUCT_CONTROL_SCHEMA_VERSION: u32 = 1;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

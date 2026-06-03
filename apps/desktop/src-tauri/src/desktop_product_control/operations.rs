@@ -240,9 +240,10 @@ pub(crate) async fn authenticated_runtime_account_id() -> Result<String, String>
         caller: Some(product_control_runtime_account_caller()),
     };
     let response: crate::runtime_bridge::generated::GetAccountSessionStatusResponse =
-        crate::runtime_bridge::invoke_unary_typed(
+        crate::runtime_bridge::invoke_unary_typed_with_metadata(
             nimi_shell_tauri::runtime_bridge::RUNTIME_ACCOUNT_GET_ACCOUNT_SESSION_STATUS_METHOD_ID,
             request,
+            super::product_control_runtime_bridge_metadata(),
             Some(10_000),
         )
         .await?;
@@ -363,7 +364,7 @@ pub async fn read_built_in_ai_config_for_scope_init(
         .to_string();
     let account_id = authenticated_runtime_account_id().await?;
     let execution_response: crate::runtime_bridge::generated::ResolveFirstRunExecutionEvidenceResponse =
-        crate::runtime_bridge::invoke_unary_typed(
+        crate::runtime_bridge::invoke_unary_typed_with_metadata(
             nimi_shell_tauri::runtime_bridge::RUNTIME_LOCAL_RESOLVE_FIRST_RUN_EXECUTION_EVIDENCE_METHOD_ID,
             crate::runtime_bridge::generated::ResolveFirstRunExecutionEvidenceRequest {
                 execution_evidence_ref,
@@ -372,6 +373,7 @@ pub async fn read_built_in_ai_config_for_scope_init(
                 expected_install_level: install_level.clone(),
                 host_profile: None,
             },
+            super::product_control_runtime_bridge_metadata(),
             Some(60_000),
         )
         .await?;
@@ -470,11 +472,12 @@ pub async fn prepare_first_run_local_ai_ready_for_product_control(
         )?;
 
     let profile_response: crate::runtime_bridge::generated::CollectDeviceProfileResponse =
-        crate::runtime_bridge::invoke_unary_typed(
+        crate::runtime_bridge::invoke_unary_typed_with_metadata(
             nimi_shell_tauri::runtime_bridge::RUNTIME_LOCAL_COLLECT_DEVICE_PROFILE_METHOD_ID,
             crate::runtime_bridge::generated::CollectDeviceProfileRequest {
                 extra_ports: Vec::new(),
             },
+            super::product_control_runtime_bridge_metadata(),
             Some(10_000),
         )
         .await?;
@@ -493,12 +496,13 @@ pub async fn prepare_first_run_local_ai_ready_for_product_control(
         .map(str::to_string);
     let baseline_ref = if let Some(existing_ref) = existing_runtime_baseline_ref {
         let response: crate::runtime_bridge::generated::ResolveRuntimeBaselineReadinessResponse =
-            crate::runtime_bridge::invoke_unary_typed(
+            crate::runtime_bridge::invoke_unary_typed_with_metadata(
                 nimi_shell_tauri::runtime_bridge::RUNTIME_LOCAL_RESOLVE_RUNTIME_BASELINE_READINESS_METHOD_ID,
                 crate::runtime_bridge::generated::ResolveRuntimeBaselineReadinessRequest {
                     runtime_baseline_ref: existing_ref,
                     host_profile: Some(host_profile.clone()),
                 },
+                super::product_control_runtime_bridge_metadata(),
                 Some(60_000),
             )
             .await?;
@@ -515,7 +519,7 @@ pub async fn prepare_first_run_local_ai_ready_for_product_control(
         })?
     } else {
         let response: crate::runtime_bridge::generated::MintRuntimeBaselineReadinessResponse =
-            crate::runtime_bridge::invoke_unary_typed(
+            crate::runtime_bridge::invoke_unary_typed_with_metadata(
                 nimi_shell_tauri::runtime_bridge::RUNTIME_LOCAL_MINT_RUNTIME_BASELINE_READINESS_METHOD_ID,
                 crate::runtime_bridge::generated::MintRuntimeBaselineReadinessRequest {
                     selected_local_factory_ai_profile_ref: selected_factory_ref.clone(),
@@ -524,6 +528,7 @@ pub async fn prepare_first_run_local_ai_ready_for_product_control(
                     host_profile: Some(host_profile.clone()),
                     baseline_consumers: Vec::new(),
                 },
+                super::product_control_runtime_bridge_metadata(),
                 Some(60_000),
             )
             .await?;
@@ -559,7 +564,7 @@ pub async fn prepare_first_run_local_ai_ready_for_product_control(
         existing_execution_evidence_ref
     {
         let response: crate::runtime_bridge::generated::ResolveFirstRunExecutionEvidenceResponse =
-            crate::runtime_bridge::invoke_unary_typed(
+            crate::runtime_bridge::invoke_unary_typed_with_metadata(
                 nimi_shell_tauri::runtime_bridge::RUNTIME_LOCAL_RESOLVE_FIRST_RUN_EXECUTION_EVIDENCE_METHOD_ID,
                 crate::runtime_bridge::generated::ResolveFirstRunExecutionEvidenceRequest {
                     execution_evidence_ref: existing_ref,
@@ -568,6 +573,7 @@ pub async fn prepare_first_run_local_ai_ready_for_product_control(
                     expected_install_level: install_level.clone(),
                     host_profile: Some(host_profile.clone()),
                 },
+                super::product_control_runtime_bridge_metadata(),
                 Some(60_000),
             )
             .await?;
@@ -591,7 +597,7 @@ pub async fn prepare_first_run_local_ai_ready_for_product_control(
         (evidence_ref, evidence)
     } else {
         let response: crate::runtime_bridge::generated::MintFirstRunExecutionEvidenceResponse =
-            crate::runtime_bridge::invoke_unary_typed(
+            crate::runtime_bridge::invoke_unary_typed_with_metadata(
                 nimi_shell_tauri::runtime_bridge::RUNTIME_LOCAL_MINT_FIRST_RUN_EXECUTION_EVIDENCE_METHOD_ID,
                 crate::runtime_bridge::generated::MintFirstRunExecutionEvidenceRequest {
                     runtime_baseline_ref: runtime_baseline_ref.clone(),
@@ -602,6 +608,7 @@ pub async fn prepare_first_run_local_ai_ready_for_product_control(
                     recommended_capabilities,
                     submit_scheduling_evaluated: false,
                 },
+                super::product_control_runtime_bridge_metadata(),
                 Some(120_000),
             )
             .await?;

@@ -68,6 +68,14 @@ async function flushAsyncWork(): Promise<void> {
 }
 
 describe('D-OFFLINE-004: bootstrap reconnect bindings', () => {
+  test('Desktop binds SDK Realm connectivity events into the offline coordinator', () => {
+    assert.match(RUNTIME_BOOTSTRAP_SOURCE, /realm\.events\.on\('request\.success'/);
+    assert.match(RUNTIME_BOOTSTRAP_SOURCE, /coordinator\.markRealmRestReachable\(true\)/);
+    assert.match(RUNTIME_BOOTSTRAP_SOURCE, /realm\.events\.on\('error'/);
+    assert.match(RUNTIME_BOOTSTRAP_SOURCE, /isRealmOfflineError\(event\.error\)/);
+    assert.match(RUNTIME_BOOTSTRAP_SOURCE, /coordinator\.markRealmRestReachable\(false\)/);
+  });
+
   test('realm_reconnect flushes outboxes and invalidates queries', async () => {
     const timer = new FakeTimer();
     const coordinator = new OfflineCoordinator({ timer });

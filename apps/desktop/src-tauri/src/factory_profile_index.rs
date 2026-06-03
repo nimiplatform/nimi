@@ -18,15 +18,21 @@
 //! module never writes account-scoped records.
 
 use crate::desktop_paths::resolve_nimi_dir;
-use nimi_shell_tauri::governed_config::ConfigReadOutcome;
 use nimi_shell_tauri::platform_projection::factory_profile_index::{
-    build_factory_profile_index_record, materialize_factory_profile_index_projection,
-    read_factory_profile_index_projection, FactoryProfileIndexRecord,
-    FACTORY_PROFILE_INDEX_POINTER, FACTORY_PROFILE_INDEX_SCHEMA_VERSION,
+    FactoryProfileIndexRecord, FACTORY_PROFILE_INDEX_POINTER,
 };
 use serde::Serialize;
 use std::path::PathBuf;
 
+#[cfg(test)]
+use nimi_shell_tauri::governed_config::ConfigReadOutcome;
+#[cfg(test)]
+use nimi_shell_tauri::platform_projection::factory_profile_index::{
+    build_factory_profile_index_record, materialize_factory_profile_index_projection,
+    read_factory_profile_index_projection, FACTORY_PROFILE_INDEX_SCHEMA_VERSION,
+};
+
+#[cfg(test)]
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FactoryProfileIndexProjection {
@@ -55,7 +61,7 @@ pub fn factory_profile_index_path() -> Result<PathBuf, String> {
 /// `Err`. `ConfigReadOutcome::Absent` means the projection has not been
 /// materialized; the deterministic [`ensure_factory_profile_index`]
 /// regeneration is the recovery path.
-#[allow(dead_code)]
+#[cfg(test)]
 pub fn read_factory_profile_index_governed(
 ) -> Result<ConfigReadOutcome<FactoryProfileIndexRecord>, String> {
     let path = factory_profile_index_path()?;
@@ -67,7 +73,7 @@ pub fn read_factory_profile_index_governed(
 /// Thin presence-shaped adapter over [`read_factory_profile_index_governed`]:
 /// a routed repair state is surfaced as the typed repair reason; `Absent` maps
 /// to `Ok(None)`.
-#[allow(dead_code)]
+#[cfg(test)]
 pub fn read_factory_profile_index() -> Result<Option<FactoryProfileIndexRecord>, String> {
     match read_factory_profile_index_governed()? {
         ConfigReadOutcome::Absent => Ok(None),
@@ -82,6 +88,7 @@ pub fn read_factory_profile_index() -> Result<Option<FactoryProfileIndexRecord>,
 /// Current-schema files are returned as-is. Repair-routed files are surfaced as
 /// a typed error and left intact for guided repair. This never reads, seeds, or
 /// restores the Account Default Profile.
+#[cfg(test)]
 pub fn ensure_factory_profile_index() -> Result<FactoryProfileIndexProjection, String> {
     let path = factory_profile_index_path()?;
     match materialize_factory_profile_index_projection(&path)? {
