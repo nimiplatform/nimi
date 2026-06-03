@@ -53,6 +53,8 @@ const ICON_AVATAR = (
   </svg>
 );
 
+const AGENT_COMPOSER_TOOL_BUTTON_CLASS = 'flex h-8 w-8 shrink-0 items-center justify-center rounded-full border transition-colors';
+
 function AgentComposerToolbarControls(props: {
   avatarAction?: AgentComposerAvatarAction;
   onAvatarFeedback?: (feedback: InlineFeedbackState) => void;
@@ -113,7 +115,8 @@ function AgentComposerToolbarControls(props: {
   };
 
   return (
-    <>
+    <div data-agent-composer-toolbar-groups="true" className="flex min-w-0 items-center gap-1">
+      <div data-agent-composer-avatar-group="true" className="flex items-center">
       <button
         type="button"
         data-agent-composer-avatar={avatarState}
@@ -122,21 +125,24 @@ function AgentComposerToolbarControls(props: {
         disabled={avatarDisabled}
         onClick={handleAvatarClick}
         className={cn(
-          'flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition-colors',
+          AGENT_COMPOSER_TOOL_BUTTON_CLASS,
           avatarState === 'running'
             ? 'border-emerald-200 bg-emerald-50 text-emerald-600 hover:border-emerald-300 hover:text-emerald-700'
             : avatarState === 'ready_stopped'
-              ? 'border-amber-200 bg-amber-50 text-amber-700 hover:border-amber-300 hover:text-amber-800'
+              ? 'border-violet-200 bg-violet-50 text-violet-600 shadow-[0_4px_12px_rgba(139,92,246,0.12)] hover:border-violet-300 hover:text-violet-700'
               : avatarState === 'pending'
                 ? 'cursor-wait border-amber-200 bg-amber-50 text-amber-600 opacity-70'
                 : avatarState === 'unavailable'
-                  ? 'cursor-not-allowed border-slate-200 bg-slate-50 text-slate-400 opacity-60'
-            : 'border-slate-200/80 bg-white/90 text-slate-500 hover:border-amber-300 hover:text-amber-700',
-          'disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-slate-200/80 disabled:hover:text-slate-500',
+                  ? 'cursor-not-allowed border-transparent bg-transparent text-slate-400 opacity-60'
+            : 'border-transparent bg-transparent text-slate-500 hover:border-violet-200 hover:bg-white hover:text-violet-700',
+          'disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-transparent disabled:hover:bg-transparent disabled:hover:text-slate-500',
         )}
       >
         {ICON_AVATAR}
       </button>
+      </div>
+      <span aria-hidden="true" data-agent-composer-toolbar-divider="true" className="mx-0.5 h-5 w-px bg-slate-200/80" />
+      <div data-agent-composer-utility-group="true" className="flex items-center gap-1">
       {props.handsFreeState ? (
         <button
           type="button"
@@ -150,11 +156,11 @@ function AgentComposerToolbarControls(props: {
           disabled={handsFreeDisabled}
           onClick={handsFreeActive ? props.handsFreeState.onExit : props.handsFreeState.onEnter}
           className={cn(
-            'flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition-colors',
+            AGENT_COMPOSER_TOOL_BUTTON_CLASS,
             handsFreeActive
-              ? 'border-emerald-200 bg-emerald-50 text-emerald-600'
-              : 'border-slate-200/80 bg-white/90 text-slate-500 hover:border-emerald-300 hover:text-teal-700',
-            'disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-slate-200/80 disabled:hover:text-slate-500',
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-600 shadow-[0_4px_12px_rgba(16,185,129,0.12)]'
+              : 'border-transparent bg-transparent text-slate-500 hover:border-emerald-200 hover:bg-white hover:text-teal-700',
+            'disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-transparent disabled:hover:bg-transparent disabled:hover:text-slate-500',
           )}
         >
           {ICON_HANDS_FREE}
@@ -173,17 +179,18 @@ function AgentComposerToolbarControls(props: {
           disabled={props.thinkingState === 'unsupported'}
           onClick={props.thinkingState === 'unsupported' ? undefined : props.onThinkingToggle}
           className={cn(
-            'flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition-colors',
+            AGENT_COMPOSER_TOOL_BUTTON_CLASS,
             props.thinkingState === 'on'
-              ? 'border-sky-200 bg-sky-50 text-sky-600'
-              : 'border-slate-200/80 bg-white/90 text-slate-500 hover:border-sky-300 hover:text-sky-700',
-            'disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-slate-200/80 disabled:hover:text-slate-500',
+              ? 'border-sky-200 bg-sky-50 text-sky-600 shadow-[0_4px_12px_rgba(14,165,233,0.12)]'
+              : 'border-transparent bg-transparent text-slate-500 hover:border-sky-200 hover:bg-white hover:text-sky-700',
+            'disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-transparent disabled:hover:bg-transparent disabled:hover:text-slate-500',
           )}
         >
           {ICON_THINKING}
         </button>
       ) : null}
-    </>
+      </div>
+    </div>
   );
 }
 

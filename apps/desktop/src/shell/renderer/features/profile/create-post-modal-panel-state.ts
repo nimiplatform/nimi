@@ -3,19 +3,12 @@ import type { RefObject } from 'react';
 
 type PanelPosition = { left: number; top: number } | null;
 
-const PANEL_ESTIMATED_HEIGHT = 320;
-
 function readPanelPosition(ref: RefObject<HTMLButtonElement | null>): PanelPosition {
   if (!ref.current) {
     return null;
   }
   const rect = ref.current.getBoundingClientRect();
-  const spaceBelow = window.innerHeight - rect.bottom - 8;
-  if (spaceBelow >= PANEL_ESTIMATED_HEIGHT) {
-    return { left: rect.left, top: rect.bottom + 8 };
-  }
-  // 空间不足时将面板显示在按钮上方
-  return { left: rect.left, top: Math.max(8, rect.top - PANEL_ESTIMATED_HEIGHT - 8) };
+  return { left: rect.left, top: rect.bottom + 8 };
 }
 
 export function useCreatePostModalPanelState(input: {

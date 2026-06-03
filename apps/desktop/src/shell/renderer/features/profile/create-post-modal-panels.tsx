@@ -30,7 +30,7 @@ export function EmojiPickerPanel(input: {
       dataTestId={E2E_IDS.createPostEmojiPanel}
       className="pointer-events-none bg-transparent p-0"
       panelClassName="emoji-panel pointer-events-auto fixed max-w-none w-[320px] overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-[0_8px_32px_rgba(0,0,0,0.15)]"
-      panelStyle={{ left: input.position.left, top: input.position.top }}
+      panelStyle={{ left: input.position.left, top: input.position.top, transform: 'none' }}
       contentClassName="p-0"
     >
       <div className="relative border-b border-gray-100">
@@ -108,7 +108,7 @@ export function LocationPickerPanel(input: {
       dataTestId={E2E_IDS.createPostLocationPanel}
       className="pointer-events-none bg-transparent p-0"
       panelClassName="location-panel pointer-events-auto fixed max-w-none w-[320px] overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-[0_8px_32px_rgba(0,0,0,0.15)]"
-      panelStyle={{ left: input.position.left, top: input.position.top }}
+      panelStyle={{ left: input.position.left, top: input.position.top, transform: 'none' }}
       contentClassName="p-0"
     >
       <div className="border-b border-gray-100 p-3">
@@ -189,7 +189,7 @@ export function TagPickerPanel(input: {
       dataTestId={E2E_IDS.createPostTagPanel}
       className="pointer-events-none bg-transparent p-0"
       panelClassName="tag-panel pointer-events-auto fixed max-w-none w-[280px] overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-[0_8px_32px_rgba(0,0,0,0.15)]"
-      panelStyle={{ left: input.position.left, top: input.position.top }}
+      panelStyle={{ left: input.position.left, top: input.position.top, transform: 'none' }}
       contentClassName="p-0"
     >
       <div className="border-b border-gray-100 p-3">

@@ -225,12 +225,12 @@ function RelationshipHoverCard({
         )}
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 items-center gap-2">
-            <h3 className="min-w-0 truncate text-[23px] font-semibold leading-7 tracking-normal text-slate-950">
+            <h3 className="min-w-0 truncate text-[16px] font-semibold leading-6 tracking-normal text-slate-950">
               {target.title}
             </h3>
             {isAgent ? (
               <span
-                className="inline-flex shrink-0 items-center gap-1 rounded-full bg-violet-100 px-2 py-0.5 text-[11px] font-semibold leading-4 text-violet-700"
+                className="inline-flex shrink-0 items-center gap-1 rounded-full bg-violet-100 px-1.5 py-0.5 text-[10px] font-medium leading-4 text-violet-700"
                 aria-label={agentPillLabel}
                 title={agentPillLabel}
               >
@@ -239,11 +239,11 @@ function RelationshipHoverCard({
               </span>
             ) : null}
           </div>
-          <div className="mt-1 truncate text-[15px] font-medium leading-5 text-slate-500">
+          <div className="mt-0.5 truncate text-[12px] font-normal leading-4 text-slate-500">
             {identity}
           </div>
-          <div className="mt-4 flex min-w-0 items-center gap-2 text-[15px] leading-5 text-slate-500">
-            <span className="shrink-0 font-semibold text-slate-600">
+          <div className="mt-3 flex min-w-0 items-center gap-1.5 text-[12px] leading-4 text-slate-500">
+            <span className="shrink-0 font-medium text-slate-600">
               {t('Chat.hoverCardLast', { defaultValue: 'Last:' })}
             </span>
             <span className="min-w-0 flex-1 truncate">{preview}</span>

@@ -166,6 +166,7 @@ describe('ChatComposer', () => {
             onToggle: () => undefined,
           }}
           leadingSlot={<div data-testid="leading-slot">Avatar</div>}
+          toolbarSlot={<button type="button" data-testid="custom-tool">Tool</button>}
           modelLabel="GPT-5.4"
           sendHint="Enter to send"
         />,
@@ -176,6 +177,8 @@ describe('ChatComposer', () => {
     expect(container.querySelector('[data-chat-composer-layout="stacked"]')).toBeTruthy();
     expect(container.querySelector('[data-chat-composer-textarea-row="true"]')).toBeTruthy();
     expect(container.querySelector('[data-chat-composer-toolbar="true"]')).toBeTruthy();
+    expect(container.querySelector('[data-chat-composer-toolbar-actions="true"]')).toBeTruthy();
+    expect(container.querySelector('[data-chat-composer-toolbar-slot="true"]')).toBeTruthy();
     expect(container.querySelector('[data-chat-composer-toolbar-meta="true"]')?.textContent).toContain('GPT-5.4');
     expect(container.querySelector('[data-chat-composer-voice="true"]')).toBeTruthy();
     expect(container.querySelector('[data-chat-composer-attach="true"]')).toBeTruthy();

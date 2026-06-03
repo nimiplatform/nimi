@@ -220,6 +220,7 @@ export function ChatComposer<TAttachment = never>({
       compact={isStacked}
     />
   ) : null;
+  const hasStackedLeadingActions = Boolean(voiceButtonNode || toolbarSlot);
 
   const attachmentButtonNode = hasAttachmentControl ? (
     <button
@@ -302,10 +303,17 @@ export function ChatComposer<TAttachment = never>({
                 className="flex min-w-0 flex-1 items-center gap-2.5"
               >
                 {leadingSlot ? <div className="flex items-center">{leadingSlot}</div> : null}
-                {voiceButtonNode}
-                {toolbarSlot ? (
-                  <div data-chat-composer-toolbar-slot="true" className="flex items-center gap-2">
-                    {toolbarSlot}
+                {hasStackedLeadingActions ? (
+                  <div
+                    data-chat-composer-toolbar-actions="true"
+                    className="flex min-w-0 items-center gap-1 rounded-full border border-slate-200/70 bg-slate-50/75 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.82)]"
+                  >
+                    {voiceButtonNode}
+                    {toolbarSlot ? (
+                      <div data-chat-composer-toolbar-slot="true" className="flex min-w-0 items-center gap-1">
+                        {toolbarSlot}
+                      </div>
+                    ) : null}
                   </div>
                 ) : null}
               </div>
@@ -320,7 +328,7 @@ export function ChatComposer<TAttachment = never>({
               ) : null}
               <div
                 data-chat-composer-toolbar-trailing="true"
-                className="ml-auto flex shrink-0 items-center justify-end gap-2"
+                className="ml-auto flex shrink-0 items-center justify-end gap-1 rounded-full border border-slate-200/60 bg-white/75 p-1 shadow-[0_8px_18px_rgba(15,23,42,0.05)]"
               >
                 {attachmentButtonNode}
                 {sendButtonNode}

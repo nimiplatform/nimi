@@ -97,6 +97,9 @@ test('agent composer avatar action is keyboard reachable and package preview rem
   assert.match(chatAgentCanonicalComposerSource, /aria-label=\{avatarLabel\}/);
   assert.match(chatAgentCanonicalComposerSource, /title=\{avatarTitle\}/);
   assert.match(chatAgentCanonicalComposerSource, /disabled=\{avatarDisabled\}/);
+  assert.match(chatAgentCanonicalComposerSource, /data-agent-composer-toolbar-groups="true"/);
+  assert.match(chatAgentCanonicalComposerSource, /data-agent-composer-avatar-group="true"/);
+  assert.match(chatAgentCanonicalComposerSource, /data-agent-composer-utility-group="true"/);
   assert.match(chatAgentPresentationSource, /onConfigure:\s*input\.onOpenAgentCenter/);
   assert.match(chatAgentPresentationSource, /onActivate:\s*localAvatar\.handleComposerAvatarAction/);
   assert.doesNotMatch(chatAgentPresentationSource, /previewLoader|PackagePreview|Preview Avatar/u);
