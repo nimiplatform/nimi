@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
 )
 
@@ -39,6 +40,75 @@ func (s *Service) ensureFirstRunSpeechEngineReady(ctx context.Context, baseline 
 			detail = " endpoint=" + detail
 		}
 		return fmt.Errorf("speech engine not healthy after activation: status=%s%s", strings.TrimSpace(info.Status), detail)
+	}
+	if err := s.refreshFirstRunSpeechBaselineAssetHealth(ctx, baseline); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *Service) refreshFirstRunSpeechBaselineAssetHealth(ctx context.Context, baseline runtimeBaselineReadinessRecord) error {
+	assetIDs := firstRunBaselineSpeechAssetIDs(baseline)
+	for _, assetID := range assetIDs {
+		model := s.firstRunSpeechBaselineLocalAsset(assetID)
+		if model == nil {
+			continue
+		}
+		health, err := s.checkManagedSupervisedSpeechHealthWithReason(ctx, model, "first_run_speech_activation")
+		if err != nil {
+			return fmt.Errorf("first-run speech asset %q health check failed: %w", assetID, err)
+		}
+		if health == nil || health.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
+			detail := ""
+			status := runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNSPECIFIED
+			if health != nil {
+				status = health.GetStatus()
+				detail = strings.TrimSpace(health.GetDetail())
+			}
+			if detail == "" {
+				detail = "speech asset did not become active after engine activation"
+			}
+			return fmt.Errorf("first-run speech asset %q not active after engine activation: status=%s detail=%s", assetID, status.String(), detail)
+		}
+	}
+	return nil
+}
+
+func firstRunBaselineSpeechAssetIDs(record runtimeBaselineReadinessRecord) []string {
+	seen := make(map[string]struct{})
+	out := make([]string, 0, 2)
+	for _, response := range record.ActivationReadyResponses {
+		switch strings.TrimSpace(response.ConsumerID) {
+		case "speech.qwen3-asr.python", "speech.qwen3-tts.python":
+			assetID := strings.TrimSpace(response.BoundAssetID)
+			if assetID == "" {
+				continue
+			}
+			if _, ok := seen[assetID]; ok {
+				continue
+			}
+			seen[assetID] = struct{}{}
+			out = append(out, assetID)
+		}
+	}
+	return out
+}
+
+func (s *Service) firstRunSpeechBaselineLocalAsset(assetID string) *runtimev1.LocalAssetRecord {
+	target := strings.TrimSpace(assetID)
+	if target == "" {
+		return nil
+	}
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	for _, model := range s.assets {
+		if model == nil || strings.TrimSpace(model.GetAssetId()) != target {
+			continue
+		}
+		if !isManagedSupervisedSpeechModel(model, s.assetRuntimeModes[model.GetLocalAssetId()]) {
+			continue
+		}
+		return cloneLocalAsset(model)
 	}
 	return nil
 }

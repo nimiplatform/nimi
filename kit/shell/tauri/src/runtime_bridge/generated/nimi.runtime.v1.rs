@@ -6653,6 +6653,8 @@ pub struct LocalEnvironmentPlanDependency {
     pub reason_code: ::prost::alloc::string::String,
     #[prost(string, tag = "11")]
     pub detail: ::prost::alloc::string::String,
+    #[prost(string, tag = "12")]
+    pub consumer_scope: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LocalEnvironmentPlan {
@@ -6771,6 +6773,8 @@ pub struct LocalEnvironmentDependencyJob {
     /// string but must not parse failure_detail for recovery semantics.
     #[prost(string, tag = "19")]
     pub recovery_disposition: ::prost::alloc::string::String,
+    #[prost(string, tag = "20")]
+    pub consumer_scope: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LocalEnvironmentActivationGate {
@@ -8687,6 +8691,8 @@ pub struct StartLocalEnvironmentDependencyJobRequest {
     pub source_kind: ::prost::alloc::string::String,
     #[prost(bool, tag = "5")]
     pub confirmed: bool,
+    #[prost(string, tag = "6")]
+    pub consumer_scope: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct StartLocalEnvironmentDependencyJobResponse {
@@ -8727,6 +8733,8 @@ pub struct RepairLocalEnvironmentDependencyRequest {
     pub confirmed: bool,
     #[prost(string, tag = "5")]
     pub reason_code: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub consumer_scope: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct RepairLocalEnvironmentDependencyResponse {

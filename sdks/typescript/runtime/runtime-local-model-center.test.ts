@@ -155,6 +155,37 @@ test('Runtime local model center write path fails closed for non-core callers', 
       return true;
     },
   );
+  await assert.rejects(
+    () => client.startEnvironmentDependencyJob({
+      environmentKey: 'env-1',
+      dependencyFamily: 'image-native',
+      dependencyId: 'stable-diffusion.cpp',
+      sourceKind: 'managed',
+      confirmed: true,
+      consumerScope: '',
+    }, { caller: 'core' }),
+    (error: unknown) => {
+      const record = error as { reasonCode?: string; actionHint?: string };
+      assert.equal(record.reasonCode, 'SDK_RUNTIME_LOCAL_INPUT_INVALID');
+      assert.equal(record.actionHint, 'provide_local_dependency_consumer_scope');
+      return true;
+    },
+  );
+  await assert.rejects(
+    () => client.repairEnvironmentDependency({
+      environmentKey: 'env-1',
+      dependencyFamily: 'image-native',
+      dependencyId: 'stable-diffusion.cpp',
+      confirmed: true,
+      consumerScope: '',
+    }, { caller: 'core' }),
+    (error: unknown) => {
+      const record = error as { reasonCode?: string; actionHint?: string };
+      assert.equal(record.reasonCode, 'SDK_RUNTIME_LOCAL_INPUT_INVALID');
+      assert.equal(record.actionHint, 'provide_local_dependency_consumer_scope');
+      return true;
+    },
+  );
 });
 
 test('Runtime local recommendation projection normalizes generated numeric enum values', () => {

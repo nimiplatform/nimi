@@ -170,14 +170,16 @@ func (s *Service) resolveLocalEnvironmentPlan(req localEnvironmentPlanRequest) l
 			dependencies = append(dependencies, resolved...)
 			continue
 		}
+		dependencyConsumerScope := localEnvironmentDependencyConsumerScope(def, family, hostState, consumerScope)
 		if resolved, ok := s.resolveExpandedLocalEnvironmentDependencies(def, family, true, hostState, platformTuple, runtimeDataRoot, consumerScope, req); ok {
 			dependencies = append(dependencies, resolved...)
 			continue
 		}
-		dependencies = append(dependencies, s.resolveLocalEnvironmentDependency(def, family, true, hostState, platformTuple, runtimeDataRoot, consumerScope, req))
+		dependencies = append(dependencies, s.resolveLocalEnvironmentDependency(def, family, true, hostState, platformTuple, runtimeDataRoot, dependencyConsumerScope, req))
 	}
 	for _, family := range def.OptionalDependencyFamilies {
 		required := localEnvironmentOptionalDependencyRequiredForConsumer(def, family, hostState, consumerScope)
+		dependencyConsumerScope := localEnvironmentDependencyConsumerScope(def, family, hostState, consumerScope)
 		if resolved, ok := modelResolution[family]; ok {
 			dependencies = append(dependencies, resolved...)
 			continue
@@ -186,7 +188,7 @@ func (s *Service) resolveLocalEnvironmentPlan(req localEnvironmentPlanRequest) l
 			dependencies = append(dependencies, resolved...)
 			continue
 		}
-		dependencies = append(dependencies, s.resolveLocalEnvironmentDependency(def, family, required, hostState, platformTuple, runtimeDataRoot, consumerScope, req))
+		dependencies = append(dependencies, s.resolveLocalEnvironmentDependency(def, family, required, hostState, platformTuple, runtimeDataRoot, dependencyConsumerScope, req))
 	}
 	for i := range dependencies {
 		dependencies[i] = s.resolveLocalEnvironmentPlanDependencyJobProjection(dependencies[i])
@@ -438,13 +440,16 @@ func (s *Service) resolveExpandedLocalEnvironmentDependencies(def localComputePa
 	if def.PackID != "local-speech" {
 		return nil, false
 	}
-	if family != localEnvironmentFamilyPythonVenv && family != localEnvironmentFamilyPythonPackageSet {
+	if family != localEnvironmentFamilyPythonUV &&
+		family != localEnvironmentFamilyPythonRuntime &&
+		family != localEnvironmentFamilyPythonVenv &&
+		family != localEnvironmentFamilyPythonPackageSet {
 		return nil, false
 	}
 	consumers := localSpeechPlanConsumers(consumerScope)
 	dependencies := make([]localEnvironmentPlanDependency, 0, len(consumers))
 	for _, consumer := range consumers {
-		dependencyID := localSpeechPythonDependencyID(family, consumer)
+		dependencyID := localSpeechPythonDependencyIDForFamily(family, consumer)
 		dependencies = append(dependencies, s.resolveLocalEnvironmentDependencyWithID(def, family, dependencyID, required, hostState, platformTuple, runtimeDataRoot, consumer))
 	}
 	return dependencies, true
@@ -472,6 +477,25 @@ func localEnvironmentOptionalDependencyRequiredForConsumer(def localComputePackD
 	return def.PackID == "local-text" &&
 		localEnvironmentHostSupportsCUDA(hostState) &&
 		localEnvironmentFirstRunConsumerScope(scope)
+}
+
+func localEnvironmentDependencyConsumerScope(def localComputePackDefinition, family string, hostState localEnvironmentHostProfileState, consumerScope string) string {
+	scope := strings.TrimSpace(consumerScope)
+	if !localEnvironmentFirstRunConsumerScope(scope) {
+		return scope
+	}
+	switch def.PackID {
+	case "local-text":
+		switch family {
+		case localEnvironmentFamilyNativeLlama:
+			return "llama.cpp.cpu"
+		case localEnvironmentFamilyCUDA:
+			if localEnvironmentHostSupportsCUDA(hostState) {
+				return "llama.cpp.cuda"
+			}
+		}
+	}
+	return scope
 }
 
 func localEnvironmentCUDAConsumerScopeRequiresRuntime(consumerScope string) bool {
@@ -509,6 +533,15 @@ func localSpeechPythonDependencyID(family string, consumer string) string {
 		return "local-speech-qwen3-tts." + suffix
 	default:
 		return "local-speech." + suffix
+	}
+}
+
+func localSpeechPythonDependencyIDForFamily(family string, consumer string) string {
+	switch family {
+	case localEnvironmentFamilyPythonUV, localEnvironmentFamilyPythonRuntime:
+		return defaultLocalEnvironmentDependencyID("local-speech", family)
+	default:
+		return localSpeechPythonDependencyID(family, consumer)
 	}
 }
 

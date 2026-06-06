@@ -38,6 +38,8 @@ test('local model center resolves shared runtime dependency readiness before any
   assert.match(runtimeProjectionSources, /sharedRuntimeDependencyJobs/);
   assert.match(runtimeProjectionSources, /setupRuntimeDependency/);
   assert.match(runtimeProjectionSources, /runtimeConfigLocalModelCenterClient\.startEnvironmentDependencyJob/);
+  assert.equal((runtimeReadinessSource.match(/consumerScope:\s*dependency\.consumerScope/g) || []).length, 2);
+  assert.match(runtimeReadinessSource, /consumerScope:\s*sharedRuntimeDependency\.consumerScope/);
   assert.match(runtimeReadinessSource, /isNimiRuntimeLocalEnvironmentDependencyReadyState/);
   assert.match(runtimeReadinessSource, /isNimiRuntimeLocalEnvironmentDependencyStartableState/);
   assert.match(runtimeReadinessSource, /isNimiRuntimeLocalEnvironmentDependencyJobActiveState/);

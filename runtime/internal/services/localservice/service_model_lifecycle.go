@@ -63,7 +63,7 @@ func (s *Service) StartLocalAsset(ctx context.Context, req *runtimev1.StartLocal
 		return &runtimev1.StartLocalAssetResponse{Asset: s.modelByID(localModelID)}, nil
 	}
 	if isManagedSupervisedSpeechModel(current, s.modelRuntimeMode(localModelID)) {
-		if _, err := s.checkManagedSupervisedSpeechHealth(ctx, current); err != nil {
+		if _, err := s.checkManagedSupervisedSpeechHealthWithReason(ctx, current, "start_local_asset"); err != nil {
 			return nil, err
 		}
 		latest := s.modelByID(localModelID)
@@ -538,6 +538,10 @@ func (s *Service) checkManagedSupervisedLlamaHealth(ctx context.Context, model *
 }
 
 func (s *Service) checkManagedSupervisedSpeechHealth(ctx context.Context, model *runtimev1.LocalAssetRecord) (*runtimev1.LocalAssetHealth, error) {
+	return s.checkManagedSupervisedSpeechHealthWithReason(ctx, model, "explicit_health_check")
+}
+
+func (s *Service) checkManagedSupervisedSpeechHealthWithReason(ctx context.Context, model *runtimev1.LocalAssetRecord, reason string) (*runtimev1.LocalAssetHealth, error) {
 	if model == nil {
 		return nil, nil
 	}
@@ -561,7 +565,8 @@ func (s *Service) checkManagedSupervisedSpeechHealth(ctx context.Context, model 
 	bootstrapErr := s.bootstrapLocalModelIfManaged(ctx, model)
 	probe := s.probeLocalModelEndpoint(ctx, model, endpoint)
 	if modelProbeSucceeded(model, probe, managedLlamaRegistration{}) {
-		if model.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
+		if model.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY &&
+			!managedSupervisedSpeechImmediateRecovery(reason) {
 			successes := s.modelRecoverySuccess(localModelID, time.Now().UTC())
 			if successes < localRecoverySuccessThreshold {
 				health := modelHealth(model)
@@ -612,6 +617,15 @@ func (s *Service) checkManagedSupervisedSpeechHealth(ctx context.Context, model 
 		return modelHealth(coldModel), nil
 	}
 	return s.setManagedSupervisedSpeechUnhealthy(model, detail)
+}
+
+func managedSupervisedSpeechImmediateRecovery(reason string) bool {
+	switch strings.TrimSpace(reason) {
+	case "start_local_asset", "first_run_speech_activation":
+		return true
+	default:
+		return false
+	}
 }
 
 func (s *Service) setManagedSupervisedLlamaUnhealthy(model *runtimev1.LocalAssetRecord, detail string) (*runtimev1.LocalAssetHealth, error) {

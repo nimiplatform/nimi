@@ -244,6 +244,7 @@ export function useLocalModelCenterRuntimeDependencies({
         dependencyId: dependency.dependencyId,
         sourceKind: dependency.sourceKind,
         confirmed: true,
+        consumerScope: dependency.consumerScope,
       }, { caller: 'core' })));
       if (mountedRef.current) {
         setSharedRuntimeDependencyJobs((prev) => dedupeRuntimeDependencyJobs([...startedJobs, ...prev]));
@@ -284,6 +285,7 @@ export function useLocalModelCenterRuntimeDependencies({
         dependencyId: dependency.dependencyId,
         sourceKind: dependency.sourceKind,
         confirmed: true,
+        consumerScope: dependency.consumerScope,
       }, { caller: 'core' })));
       refreshRuntimeDependencies();
       await refreshAssetInventorySections();
@@ -335,6 +337,7 @@ export function useLocalModelCenterRuntimeDependencies({
         dependencyId: sharedRuntimeDependency.dependencyId,
         confirmed: true,
         reasonCode: sharedRuntimeDependency.reasonCode,
+        consumerScope: sharedRuntimeDependency.consumerScope,
       }, { caller: 'core' });
       if (mountedRef.current) {
         setSharedRuntimeDependencyJobs((prev) => upsertRuntimeDependencyJob(prev, repairJob));

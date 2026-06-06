@@ -62,6 +62,7 @@ export type NimiFirstRunMaterializationRuntime = {
     readonly dependencyId: string;
     readonly sourceKind: string;
     readonly confirmed: boolean;
+    readonly consumerScope: string;
   }, options?: NimiRuntimeLocalWriteOptions) => Promise<unknown>;
   readonly cancelEnvironmentDependencyJob: (input: {
     readonly jobId: string;
@@ -76,6 +77,7 @@ export type NimiFirstRunMaterializationRuntime = {
     readonly dependencyId: string;
     readonly confirmed: boolean;
     readonly reasonCode?: string;
+    readonly consumerScope: string;
   }, options?: NimiRuntimeLocalWriteOptions) => Promise<unknown>;
 };
 
@@ -176,12 +178,7 @@ export function repairableNimiFirstRunMaterializationDependencies(
   projection: NimiFirstRunMaterializationProjection,
 ): readonly NimiFirstRunMaterializationDependencyProjection[] {
   if (projection.status !== 'repair_required') return [];
-  return projection.dependencies.filter(({ dependency, job }) =>
-    !dependencyReady(dependency)
-    && (
-      isNimiRuntimeLocalEnvironmentDependencyRepairRequiredState(dependency.state)
-      || isNimiRuntimeLocalEnvironmentDependencyRepairRequiredState(job?.state)
-    ));
+  return projection.dependencies.filter((item) => !dependencyReady(item.dependency) && dependencyRepairable(item));
 }
 
 export async function resolveNimiFirstRunMaterializationProjection(
@@ -201,7 +198,7 @@ export async function resolveNimiFirstRunMaterializationProjection(
   for (const plan of plans) {
     for (const dependency of plan.dependencies) {
       if (!dependencyInNimiFirstRunMaterializationScope(dependency, requiredFamilies)) continue;
-      dependencyByKey.set(`${dependency.environmentKey}:${dependency.dependencyFamily}:${dependency.dependencyId}`, {
+      dependencyByKey.set(`${dependency.environmentKey}:${dependency.dependencyFamily}:${dependency.dependencyId}:${dependency.consumerScope}`, {
         packId: plan.packId,
         dependency,
         job: null,
@@ -235,15 +232,7 @@ export async function startNimiFirstRunMaterialization(
     };
   }
   const startable = before.dependencies.filter(({ dependency, job }) => dependencyStartable(dependency, job));
-  await Promise.all(startable.map(({ dependency }) =>
-    input.runtime.startEnvironmentDependencyJob({
-      environmentKey: dependency.environmentKey,
-      dependencyFamily: dependency.dependencyFamily,
-      dependencyId: dependency.dependencyId,
-      sourceKind: dependency.sourceKind,
-      confirmed: input.confirmed,
-    }, { caller: 'core' }),
-  ));
+  await startNimiFirstRunMaterializationDependencies(input, startable, input.confirmed);
   const after = await resolveNimiFirstRunMaterializationProjection(input);
   return startable.length > 0
     ? withProductState({
@@ -264,6 +253,12 @@ export async function cancelNimiFirstRunMaterializationJob(
 export async function retryNimiFirstRunMaterializationJob(
   input: NimiFirstRunMaterializationInput & { readonly jobId: string; readonly confirmed: boolean },
 ): Promise<NimiFirstRunMaterializationProjection> {
+  const before = await resolveNimiFirstRunMaterializationProjection(input);
+  await startNimiFirstRunMaterializationDependencies(
+    input,
+    before.dependencies.filter(({ dependency, job }) => dependencyStartable(dependency, job)),
+    input.confirmed,
+  );
   await input.runtime.retryEnvironmentDependencyJob({ jobId: input.jobId, confirmed: input.confirmed }, { caller: 'core' });
   return resolveNimiFirstRunMaterializationProjection(input);
 }
@@ -281,6 +276,7 @@ export async function repairNimiFirstRunMaterializationDependency(
     dependencyId: input.dependency.dependencyId,
     confirmed: input.confirmed,
     reasonCode: input.reasonCode,
+    consumerScope: input.dependency.consumerScope,
   }, { caller: 'core' });
   return resolveNimiFirstRunMaterializationProjection(input);
 }
@@ -310,7 +306,8 @@ function latestJob(
     .filter((job) =>
       job.environmentKey === dependency.environmentKey
       && job.dependencyFamily === dependency.dependencyFamily
-      && job.dependencyId === dependency.dependencyId)
+      && job.dependencyId === dependency.dependencyId
+      && job.consumerScope === dependency.consumerScope)
     .sort((left, right) => String(right.updatedAt || right.createdAt || '').localeCompare(String(left.updatedAt || left.createdAt || '')))[0] ?? null;
 }
 
@@ -321,6 +318,23 @@ function dependencyReady(dependency: NimiRuntimeLocalEnvironmentPlanDependency):
 function dependencyNeedsConfirmation(dependency: NimiRuntimeLocalEnvironmentPlanDependency): boolean {
   return isNimiRuntimeLocalEnvironmentDependencyNeedsConfirmationState(dependency.state)
     && dependency.confirmationRequired === true;
+}
+
+function startNimiFirstRunMaterializationDependencies(
+  input: NimiFirstRunMaterializationInput,
+  dependencies: readonly NimiFirstRunMaterializationDependencyProjection[],
+  confirmed: boolean,
+): Promise<unknown[]> {
+  return Promise.all(dependencies.map(({ dependency }) =>
+    input.runtime.startEnvironmentDependencyJob({
+      environmentKey: dependency.environmentKey,
+      dependencyFamily: dependency.dependencyFamily,
+      dependencyId: dependency.dependencyId,
+      sourceKind: dependency.sourceKind,
+      confirmed,
+      consumerScope: dependency.consumerScope,
+    }, { caller: 'core' }),
+  ));
 }
 
 function jobActive(job: NimiRuntimeLocalEnvironmentDependencyJob | null): boolean {
@@ -370,15 +384,14 @@ function statusForNimiFirstRunMaterialization(
       || isNimiRuntimeLocalEnvironmentDependencyUnsupportedState(job?.state)
     ),
   )) return 'unsupported';
+  if (dependencies.some((item) => !dependencyReady(item.dependency) && dependencyRepairable(item))) return 'repair_required';
   if (dependencies.some(({ dependency, job }) =>
     !dependencyReady(dependency)
     && (
-      isNimiRuntimeLocalEnvironmentDependencyRepairRequiredState(dependency.state)
+      isNimiRuntimeLocalEnvironmentDependencyJobFailedState(job?.state)
       || isNimiRuntimeLocalEnvironmentDependencyRepairRequiredState(job?.state)
+      || isNimiRuntimeLocalEnvironmentDependencyRepairRequiredState(dependency.state)
     ),
-  )) return 'repair_required';
-  if (dependencies.some(({ dependency, job }) =>
-    !dependencyReady(dependency) && isNimiRuntimeLocalEnvironmentDependencyJobFailedState(job?.state),
   )) return 'failed';
   if (dependencies.some(({ dependency, job }) =>
     !dependencyReady(dependency) && isNimiRuntimeLocalEnvironmentDependencyJobCancelledState(job?.state),
@@ -389,6 +402,13 @@ function statusForNimiFirstRunMaterialization(
   if (dependencies.some(({ job }) => jobActive(job))) return 'in_progress';
   if (dependencies.every(({ dependency }) => dependencyReady(dependency))) return 'local_ai_ready';
   return 'activation_pending';
+}
+
+function dependencyRepairable(item: NimiFirstRunMaterializationDependencyProjection): boolean {
+  const selectedSourceRecordId = item.dependency.selectedSourceRecordId || item.job?.selectedSourceRecordId || '';
+  if (!selectedSourceRecordId.trim()) return false;
+  return isNimiRuntimeLocalEnvironmentDependencyRepairRequiredState(item.dependency.state)
+    || isNimiRuntimeLocalEnvironmentDependencyRepairRequiredState(item.job?.state);
 }
 
 function reasonForNimiFirstRunMaterializationStatus(

@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
 )
 
@@ -146,6 +147,103 @@ func TestEnsureFirstRunSpeechEngineReadyFailsBeforeStartWhenPackageSetArtifactsM
 	}
 	if mgr.startConfigCalls != 0 {
 		t.Fatalf("expected StartEngineWithConfig to be skipped, got %d calls", mgr.startConfigCalls)
+	}
+}
+
+func TestEnsureFirstRunSpeechEngineReadyRefreshesBoundSpeechAssets(t *testing.T) {
+	const (
+		asrAssetID = "local.stt.qwen3-asr-0.6b.safetensors"
+		ttsAssetID = "local.tts.qwen3-tts-customvoice-0.6b.safetensors"
+	)
+	probedEndpoints := make([]string, 0, 2)
+	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
+		probedEndpoints = append(probedEndpoints, endpoint)
+		return endpointProbeResult{
+			healthy:   true,
+			responded: true,
+			detail:    "probe succeeded",
+			probeURL:  endpoint,
+			models:    []string{asrAssetID, ttsAssetID},
+			modelCaps: map[string][]string{
+				asrAssetID: {"audio.transcribe"},
+				ttsAssetID: {"audio.synthesize"},
+			},
+		}
+	})
+	mgr := &mockEngineManager{status: &EngineInfo{
+		Engine:   "speech",
+		Status:   "healthy",
+		PID:      1234,
+		Port:     8330,
+		Endpoint: "http://127.0.0.1:8330",
+	}}
+	svc.SetEngineManager(mgr)
+	svc.SetManagedSpeechEndpoint("http://127.0.0.1:8330/v1")
+
+	ttsRoot := filepath.Join(t.TempDir(), "speech", "0.1.0-qwen3-tts")
+	asrRoot := filepath.Join(t.TempDir(), "speech", "0.1.0-qwen3-asr")
+	upsertVerifiedSpeechPackageSetForTest(t, svc, "speech.qwen3-tts.python", "local-speech-qwen3-tts.package-set", ttsRoot, "NIMI_RUNTIME_SPEECH_QWEN3_TTS_CMD", engine.SpeechQwen3TTSDriverPath)
+	upsertVerifiedSpeechPackageSetForTest(t, svc, "speech.qwen3-asr.python", "local-speech-qwen3-asr.package-set", asrRoot, "NIMI_RUNTIME_SPEECH_QWEN3_ASR_CMD", engine.SpeechQwen3ASRDriverPath)
+
+	asr := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      asrAssetID,
+		capabilities: []string{"audio.transcribe"},
+		engine:       "speech",
+		entry:        "model.safetensors",
+		files:        []string{"model.safetensors"},
+	})
+	writeManagedBundleFilesForTest(t, svc, asr, []string{"model.safetensors"}, map[string][]byte{
+		"model.safetensors": []byte("fake-asr"),
+	})
+	tts := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      ttsAssetID,
+		capabilities: []string{"audio.synthesize"},
+		engine:       "speech",
+		entry:        "model.safetensors",
+		files:        []string{"model.safetensors", "voices.json"},
+	})
+	writeManagedBundleFilesForTest(t, svc, tts, []string{"model.safetensors", "voices.json"}, map[string][]byte{
+		"model.safetensors": []byte("fake-tts"),
+		"voices.json":       []byte(`{"voices":["af"]}`),
+	})
+	for _, model := range []*runtimev1.LocalAssetRecord{asr, tts} {
+		if _, err := svc.updateModelAvailabilityAndWarmState(
+			model.GetLocalAssetId(),
+			runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY,
+			runtimev1.LocalWarmState_LOCAL_WARM_STATE_FAILED,
+			"seed unhealthy",
+			true,
+		); err != nil {
+			t.Fatalf("seed unhealthy speech asset %q: %v", model.GetAssetId(), err)
+		}
+	}
+
+	err := svc.ensureFirstRunSpeechEngineReady(context.Background(), runtimeBaselineReadinessRecord{
+		ActivationReadyResponses: []runtimeBaselineActivationConsumerEvidence{
+			{ConsumerID: "speech.qwen3-asr.python", BoundAssetID: asrAssetID},
+			{ConsumerID: "speech.qwen3-tts.python", BoundAssetID: ttsAssetID},
+		},
+	})
+	if err != nil {
+		t.Fatalf("ensure first-run speech engine ready: %v", err)
+	}
+	if mgr.startConfigCalls != 0 {
+		t.Fatalf("expected already-bound speech engine to skip configured start, got %d", mgr.startConfigCalls)
+	}
+	if len(probedEndpoints) != 2 {
+		t.Fatalf("expected one health refresh per bound speech asset, got %#v", probedEndpoints)
+	}
+	for _, model := range []*runtimev1.LocalAssetRecord{asr, tts} {
+		stored := svc.modelByID(model.GetLocalAssetId())
+		if stored == nil {
+			t.Fatalf("missing refreshed speech asset %q", model.GetAssetId())
+		}
+		if stored.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
+			t.Fatalf("speech asset %q status = %s detail=%q", model.GetAssetId(), stored.GetStatus(), stored.GetHealthDetail())
+		}
+		if stored.GetWarmState() != runtimev1.LocalWarmState_LOCAL_WARM_STATE_COLD {
+			t.Fatalf("speech asset %q warm_state = %s", model.GetAssetId(), stored.GetWarmState())
+		}
 	}
 }
 

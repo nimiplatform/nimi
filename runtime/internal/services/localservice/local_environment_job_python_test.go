@@ -25,6 +25,26 @@ func upsertReadyPythonPrerequisiteForTest(t *testing.T, svc *Service, record loc
 	return svc.upsertLocalEnvironmentSelectedSourceRecord(record)
 }
 
+func startFailedLocalEnvironmentDependencyJobForTest(t *testing.T, svc *Service, req localEnvironmentDependencyJobRequest, detail string) localEnvironmentDependencyJobState {
+	t.Helper()
+	job, err := svc.startLocalEnvironmentDependencyJob(context.Background(), req, func(context.Context, localEnvironmentDependencyJobState, localEnvironmentDependencyJobProgressReporter) (localEnvironmentDependencyJobResult, error) {
+		return localEnvironmentDependencyJobResult{
+			State:           localEnvironmentStateFailed,
+			SourceKind:      localEnvironmentSourceManaged,
+			AuditReasonCode: "TEST_LOCAL_ENVIRONMENT_DEPENDENCY_FAILED",
+			FailureDetail:   detail,
+		}, nil
+	})
+	if err != nil {
+		t.Fatalf("start failed dependency job: %v", err)
+	}
+	settled := pollLocalEnvironmentDependencyJobToTerminal(t, svc, job.JobID)
+	if settled.State != localEnvironmentStateFailed {
+		t.Fatalf("seed dependency job state = %q, want failed", settled.State)
+	}
+	return settled
+}
+
 func TestStartPythonRuntimeDependencyJobRequiresSelectedUVRecord(t *testing.T) {
 	svc := newTestService(t)
 	// A genuinely absent prerequisite still fails closed once the bounded
@@ -94,6 +114,47 @@ func TestStartPythonRuntimeDependencyJobPromotesVerifiedSelectedSource(t *testin
 	}
 	if got := source.GetSelectedConsumers(); !stringSliceContains(got, "media.diffusers.cuda") || !stringSliceContains(got, "media.diffusers.cpu") {
 		t.Fatalf("selected consumers = %v, want local-image python consumers", got)
+	}
+}
+
+func TestStartPythonRuntimeDependencyJobUsesRequestConsumerScope(t *testing.T) {
+	svc := newTestService(t)
+	upsertReadyPythonPrerequisiteForTest(t, svc, localEnvironmentSelectedSourceRecordState{
+		DependencyFamily:  localEnvironmentFamilyPythonUV,
+		DependencyID:      "uv",
+		EnvironmentKey:    "python.tool.uv|uv|host|windows/amd64|root",
+		SourceKind:        localEnvironmentSourceManaged,
+		CanonicalRoot:     `C:\nimi\engines\uv\uv.exe`,
+		Version:           "0.11.8",
+		VerifiedArtifacts: []string{`C:\nimi\engines\uv\uv.exe`},
+		SelectedConsumers: []string{"media.diffusers.cuda"},
+	})
+	svc.SetEngineManager(&mockEngineManager{})
+
+	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
+		EnvironmentKey:   "python.runtime|python.runtime|host|windows/amd64|root",
+		DependencyFamily: localEnvironmentFamilyPythonRuntime,
+		DependencyId:     "python.runtime",
+		ConsumerScope:    "media.diffusers.cuda",
+		Confirmed:        true,
+	})
+	if err != nil {
+		t.Fatalf("StartLocalEnvironmentDependencyJob: %v", err)
+	}
+	job := awaitLocalEnvironmentDependencyJobTerminal(t, svc, resp.GetJob().GetJobId())
+	if job.GetState() != localEnvironmentStateReadyManaged {
+		t.Fatalf("job state = %q, want ready_managed", job.GetState())
+	}
+	sources, err := svc.ListLocalEnvironmentSelectedSources(context.Background(), &runtimev1.ListLocalEnvironmentSelectedSourcesRequest{
+		DependencyFamily: localEnvironmentFamilyPythonRuntime,
+		ConsumerScope:    "media.diffusers.cuda",
+	})
+	if err != nil {
+		t.Fatalf("ListLocalEnvironmentSelectedSources: %v", err)
+	}
+	source := sources.GetSources()[0]
+	if !stringSliceContains(source.GetCompatibilityEvidence(), "test python runtime ready for media") {
+		t.Fatalf("compatibility evidence = %v, want media engine target from request consumer scope", source.GetCompatibilityEvidence())
 	}
 }
 
@@ -782,6 +843,124 @@ func TestPythonPrerequisiteOrderingConvergesUnderConcurrentUnorderedStart(t *tes
 	runtimeJob := awaitLocalEnvironmentDependencyJobTerminal(t, svc, runtimeResp.GetJob().GetJobId())
 	if runtimeJob.GetState() != localEnvironmentStateReadyManaged {
 		t.Fatalf("python.runtime job state = %q, want ready_managed after waiting for uv prerequisite", runtimeJob.GetState())
+	}
+}
+
+func TestPythonRuntimeWaitIgnoresFailedPrerequisiteFromDifferentConsumer(t *testing.T) {
+	svc := newTestService(t)
+	svc.SetLocalEnvironmentPrerequisiteWaitTimeout(2 * time.Second)
+	startFailedLocalEnvironmentDependencyJobForTest(t, svc, localEnvironmentDependencyJobRequest{
+		EnvironmentKey:   "python.tool.uv|uv|host|windows/amd64|root|first-run",
+		DependencyFamily: localEnvironmentFamilyPythonUV,
+		DependencyID:     "uv",
+		ConsumerScope:    "first-run",
+		SourceKind:       localEnvironmentSourceManaged,
+	}, "old first-run uv job failed")
+	svc.SetEngineManager(&mockEngineManager{
+		pythonRuntimeStatus: &engine.PythonRuntimeDependencyStatus{
+			PythonVersion:   "Python 3.12.11",
+			InterpreterPath: `C:\nimi\engines\speech\0.1.0\Scripts\python.exe`,
+			RuntimeRoot:     `C:\nimi\engines\speech\0.1.0`,
+			UVExecutable:    `C:\nimi\engines\uv\uv.exe`,
+			Detail:          "Runtime-managed Python runtime verified through selected uv tool",
+		},
+	})
+
+	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
+		EnvironmentKey:   "python.runtime|python.runtime|host|windows/amd64|root|speech.qwen3-asr.python",
+		DependencyFamily: localEnvironmentFamilyPythonRuntime,
+		DependencyId:     "python.runtime",
+		ConsumerScope:    "speech.qwen3-asr.python",
+		Confirmed:        true,
+	})
+	if err != nil {
+		t.Fatalf("StartLocalEnvironmentDependencyJob python.runtime: %v", err)
+	}
+	uvRecord := verifiedSelectedSourceRecordForTest(localEnvironmentSelectedSourceRecordState{
+		DependencyFamily:  localEnvironmentFamilyPythonUV,
+		DependencyID:      "uv",
+		EnvironmentKey:    "python.tool.uv|uv|host|windows/amd64|root|speech.qwen3-asr.python",
+		SourceKind:        localEnvironmentSourceManaged,
+		CanonicalRoot:     filepath.Join(t.TempDir(), "uv.exe"),
+		SelectedConsumers: []string{"speech.qwen3-asr.python"},
+	})
+	writeSelectedSourceLocalArtifactsForTest(t, uvRecord)
+	go func() {
+		time.Sleep(50 * time.Millisecond)
+		svc.upsertLocalEnvironmentSelectedSourceRecord(uvRecord)
+	}()
+
+	job := awaitLocalEnvironmentDependencyJobTerminal(t, svc, resp.GetJob().GetJobId())
+	if job.GetState() != localEnvironmentStateReadyManaged {
+		t.Fatalf("python.runtime job state = %q, want ready_managed after speech uv appears", job.GetState())
+	}
+}
+
+func TestPythonVenvWaitIgnoresOlderFailedPrerequisiteWhenNewerJobInFlight(t *testing.T) {
+	svc := newTestService(t)
+	svc.SetLocalEnvironmentPrerequisiteWaitTimeout(2 * time.Second)
+	uvRecord := upsertReadyPythonPrerequisiteForTest(t, svc, localEnvironmentSelectedSourceRecordState{
+		DependencyFamily:  localEnvironmentFamilyPythonUV,
+		DependencyID:      "uv",
+		EnvironmentKey:    "python.tool.uv|uv|host|windows/amd64|root|speech.qwen3-asr.python",
+		SourceKind:        localEnvironmentSourceManaged,
+		SelectedConsumers: []string{"speech.qwen3-asr.python"},
+	})
+	startFailedLocalEnvironmentDependencyJobForTest(t, svc, localEnvironmentDependencyJobRequest{
+		EnvironmentKey:   "python.runtime|python.runtime|host|windows/amd64|old-root|speech.qwen3-asr.python",
+		DependencyFamily: localEnvironmentFamilyPythonRuntime,
+		DependencyID:     "python.runtime",
+		ConsumerScope:    "speech.qwen3-asr.python",
+		SourceKind:       localEnvironmentSourceManaged,
+	}, "old speech runtime job failed")
+	if _, err := svc.startLocalEnvironmentDependencyJob(context.Background(), localEnvironmentDependencyJobRequest{
+		EnvironmentKey:   "python.runtime|python.runtime|host|windows/amd64|root|speech.qwen3-asr.python",
+		DependencyFamily: localEnvironmentFamilyPythonRuntime,
+		DependencyID:     "python.runtime",
+		ConsumerScope:    "speech.qwen3-asr.python",
+		SourceKind:       localEnvironmentSourceManaged,
+	}, nil); err != nil {
+		t.Fatalf("start in-flight python.runtime job: %v", err)
+	}
+	venvRoot := t.TempDir()
+	svc.SetEngineManager(&mockEngineManager{
+		pythonVenvStatus: &engine.PythonVenvDependencyStatus{
+			VenvRoot:        venvRoot,
+			InterpreterPath: filepath.Join(venvRoot, "bin", "python"),
+			PythonRuntime:   filepath.Join(t.TempDir(), "python"),
+			UVExecutable:    uvRecord.CanonicalRoot,
+			Detail:          "Runtime-managed Python venv verified through selected runtime",
+		},
+	})
+
+	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
+		EnvironmentKey:   "python.venv|local-speech-qwen3-asr.venv|host|windows/amd64|root|speech.qwen3-asr.python",
+		DependencyFamily: localEnvironmentFamilyPythonVenv,
+		DependencyId:     "local-speech-qwen3-asr.venv",
+		ConsumerScope:    "speech.qwen3-asr.python",
+		Confirmed:        true,
+	})
+	if err != nil {
+		t.Fatalf("StartLocalEnvironmentDependencyJob python.venv: %v", err)
+	}
+	runtimeRecord := verifiedSelectedSourceRecordForTest(localEnvironmentSelectedSourceRecordState{
+		DependencyFamily:  localEnvironmentFamilyPythonRuntime,
+		DependencyID:      "python.runtime",
+		EnvironmentKey:    "python.runtime|python.runtime|host|windows/amd64|root|speech.qwen3-asr.python",
+		SourceKind:        localEnvironmentSourceManaged,
+		CanonicalRoot:     filepath.Join(t.TempDir(), "python"),
+		SelectedConsumers: []string{"speech.qwen3-asr.python"},
+		Hashes:            map[string]string{"selected_uv_record": uvRecord.RecordID},
+	})
+	writeSelectedSourceLocalArtifactsForTest(t, runtimeRecord)
+	go func() {
+		time.Sleep(50 * time.Millisecond)
+		svc.upsertLocalEnvironmentSelectedSourceRecord(runtimeRecord)
+	}()
+
+	job := awaitLocalEnvironmentDependencyJobTerminal(t, svc, resp.GetJob().GetJobId())
+	if job.GetState() != localEnvironmentStateReadyManaged {
+		t.Fatalf("python.venv job state = %q, want ready_managed after newer runtime job produces source", job.GetState())
 	}
 }
 

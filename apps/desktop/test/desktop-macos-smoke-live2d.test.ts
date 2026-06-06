@@ -952,7 +952,7 @@ test('desktop macos smoke avatar carrier evidence reports pre-anchor runtime bin
                 error_action_hint: 'register_runtime_app_first',
                 error_source: 'runtime',
                 error_retryable: false,
-                error_message: 'local first-party Runtime account caller registration rejected: 5',
+                error_message: 'desktop shell Runtime account caller registration rejected: 5',
               },
             }],
           },
@@ -975,10 +975,10 @@ test('desktop macos smoke avatar carrier evidence reports pre-anchor runtime bin
   assert.equal(writtenReports[0]?.ok, false);
   assert.equal(writtenReports[0]?.failedStep, 'wait-avatar-carrier-evidence');
   assert.match(String(writtenReports[0]?.errorMessage || ''), /register_runtime_app_first/);
-  assert.match(String(writtenReports[0]?.errorMessage || ''), /local first-party Runtime account caller registration rejected: 5/);
+  assert.match(String(writtenReports[0]?.errorMessage || ''), /desktop shell Runtime account caller registration rejected: 5/);
   const details = writtenReports[0]?.details as { avatarCarrierEvidence?: { bindFailure?: Record<string, unknown> } };
   assert.equal(details.avatarCarrierEvidence?.bindFailure?.errorActionHint, 'register_runtime_app_first');
-  assert.equal(details.avatarCarrierEvidence?.bindFailure?.errorMessage, 'local first-party Runtime account caller registration rejected: 5');
+  assert.equal(details.avatarCarrierEvidence?.bindFailure?.errorMessage, 'desktop shell Runtime account caller registration rejected: 5');
   assert.equal(details.avatarCarrierEvidence?.bindFailure?.runtimeAppId, 'nimi.avatar');
 });
 

@@ -213,6 +213,10 @@ function normalizeText(value: unknown): string | undefined {
   return text ? text : undefined;
 }
 
+function normalizeBase64Field(value: unknown): string | undefined {
+  return typeof value === 'string' ? value.trim() : undefined;
+}
+
 function toBase64(bytes: Uint8Array): string {
   if (typeof Buffer !== 'undefined') {
     return Buffer.from(bytes).toString('base64');
@@ -369,8 +373,9 @@ export function createRuntimeTauriIpcTransport(
         timeoutMs: request.timeoutMs,
       },
     })) as RuntimeBridgeUnaryResponse;
-    const responseBytesBase64 = normalizeText(response.responseBytesBase64 ?? response.response_bytes_base64);
-    if (!responseBytesBase64) {
+    const responseBytesBase64 = normalizeBase64Field(response.responseBytesBase64)
+      ?? normalizeBase64Field(response.response_bytes_base64);
+    if (responseBytesBase64 === undefined) {
       throw new RuntimeTauriIpcTransportError(
         'SDK_RUNTIME_TAURI_UNARY_BYTES_MISSING',
         `${methodId} tauri-ipc unary response missing responseBytesBase64`,

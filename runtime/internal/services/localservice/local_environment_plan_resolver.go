@@ -100,9 +100,10 @@ func (s *Service) resolvePlanModelAssetDependencies(
 				slotReq := req
 				slotReq.AssetID = slot.AssetID
 				slotReq.LocalAssetID = ""
+				slotConsumerScope := planResolvedSlotConsumerScope(def, slot, req)
 				deps = append(deps, s.resolveLocalEnvironmentDependency(
 					def, family, true, hostState, platformTuple, runtimeDataRoot,
-					planConsumerScope(def, req), slotReq))
+					slotConsumerScope, slotReq))
 			}
 			if len(deps) == 0 {
 				// The pack declares a model.asset family but the resolver
@@ -122,9 +123,10 @@ func (s *Service) resolvePlanModelAssetDependencies(
 					companionReq.LocalAssetID = ""
 					companionReq.CompanionAssetID = companion.AssetID
 					companionReq.ParentAssetID = slot.AssetID
+					slotConsumerScope := planResolvedSlotConsumerScope(def, slot, req)
 					deps = append(deps, s.resolveLocalEnvironmentDependency(
 						def, family, planModelFamilyRequired(def, family), hostState, platformTuple, runtimeDataRoot,
-						planConsumerScope(def, req), companionReq))
+						slotConsumerScope, companionReq))
 				}
 			}
 			if len(deps) == 0 {
@@ -178,6 +180,32 @@ func planConsumerScope(def localComputePackDefinition, req localEnvironmentPlanR
 		return def.PackID
 	}
 	return scope
+}
+
+func planResolvedSlotConsumerScope(def localComputePackDefinition, slot catalog.ResolvedSlot, req localEnvironmentPlanRequest) string {
+	scope := planConsumerScope(def, req)
+	if !localEnvironmentFirstRunConsumerScope(scope) {
+		return scope
+	}
+	switch strings.TrimSpace(slot.Capability) {
+	case localResolverCapabilityTextGenerate:
+		return "llama.cpp.cpu"
+	case localResolverCapabilityAudioTranscribe:
+		return "speech.qwen3-asr.python"
+	case localResolverCapabilityAudioSynthesize:
+		return "speech.qwen3-tts.python"
+	case localResolverCapabilityImageGenerate:
+		switch def.PackID {
+		case "local-image-python":
+			return "media.diffusers.cpu"
+		default:
+			return "stable-diffusion.cpp.metal"
+		}
+	case localResolverCapabilityVideoGenerate:
+		return "media.video-python.cpu"
+	default:
+		return scope
+	}
 }
 
 // planHostedResolvedSlots returns the resolver-resolved slots whose capability

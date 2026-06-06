@@ -640,7 +640,7 @@ export interface NimiRuntimeLocalModelCenterClient {
     readonly dependencyId: string;
     readonly sourceKind: string;
     readonly confirmed: boolean;
-    readonly consumerScope?: string;
+    readonly consumerScope: string;
   }, options?: NimiRuntimeLocalWriteOptions): Promise<NimiRuntimeLocalEnvironmentDependencyJob>;
   cancelEnvironmentDependencyJob(input: { readonly jobId: string }, options?: NimiRuntimeLocalWriteOptions):
     Promise<NimiRuntimeLocalEnvironmentDependencyJob>;
@@ -652,7 +652,7 @@ export interface NimiRuntimeLocalModelCenterClient {
     readonly dependencyId: string;
     readonly confirmed: boolean;
     readonly reasonCode?: string;
-    readonly consumerScope?: string;
+    readonly consumerScope: string;
   }, options?: NimiRuntimeLocalWriteOptions): Promise<NimiRuntimeLocalEnvironmentDependencyJob>;
   scanUnregisteredAssets(): Promise<readonly NimiRuntimeLocalUnregisteredAssetDescriptor[]>;
   scaffoldOrphanAsset(input: {

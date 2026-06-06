@@ -43,10 +43,33 @@ test('mergeRuntimeJwtConfig injects account realm and auth.jwt fields', () => {
   const account = (auth.account ?? {}) as Record<string, unknown>;
   const jwt = (auth.jwt ?? {}) as Record<string, unknown>;
   assert.equal(account.realmBaseUrl, realmDefaults.realmBaseUrl);
+  assert.equal(account.authorizationUrl, `${realmDefaults.realmBaseUrl}/api/auth/oauth/authorize`);
+  assert.equal(account.tokenUrl, `${realmDefaults.realmBaseUrl}/api/auth/oauth/token`);
   assert.equal(jwt.issuer, realmDefaults.jwtIssuer);
   assert.equal(jwt.audience, realmDefaults.jwtAudience);
   assert.equal(jwt.jwksUrl, realmDefaults.jwksUrl);
   assert.equal(jwt.revocationUrl, realmDefaults.revocationUrl);
+});
+
+test('mergeRuntimeJwtConfig overwrites stale account OAuth endpoint overrides', () => {
+  const realmDefaults = createRealmDefaults();
+  const { nextConfig, changed } = mergeRuntimeJwtConfig({
+    schemaVersion: 1,
+    auth: {
+      account: {
+        realmBaseUrl: 'http://127.0.0.1:51860',
+        authorizationUrl: 'http://127.0.0.1:51860/api/auth/oauth/authorize',
+        tokenUrl: 'http://127.0.0.1:51860/api/auth/oauth/token',
+      },
+    },
+  }, realmDefaults);
+
+  assert.equal(changed, true);
+  const auth = (nextConfig.auth ?? {}) as Record<string, unknown>;
+  const account = (auth.account ?? {}) as Record<string, unknown>;
+  assert.equal(account.realmBaseUrl, realmDefaults.realmBaseUrl);
+  assert.equal(account.authorizationUrl, `${realmDefaults.realmBaseUrl}/api/auth/oauth/authorize`);
+  assert.equal(account.tokenUrl, `${realmDefaults.realmBaseUrl}/api/auth/oauth/token`);
 });
 
 test('syncRuntimeJwtConfig restarts managed running daemon on CONFIG_RESTART_REQUIRED', async () => {
@@ -91,6 +114,8 @@ test('syncRuntimeJwtConfig restarts managed running daemon on CONFIG_RESTART_REQ
   const account = (auth.account ?? {}) as Record<string, unknown>;
   const jwt = (auth.jwt ?? {}) as Record<string, unknown>;
   assert.equal(account.realmBaseUrl, realmDefaults.realmBaseUrl);
+  assert.equal(account.authorizationUrl, `${realmDefaults.realmBaseUrl}/api/auth/oauth/authorize`);
+  assert.equal(account.tokenUrl, `${realmDefaults.realmBaseUrl}/api/auth/oauth/token`);
   assert.equal(jwt.jwksUrl, realmDefaults.jwksUrl);
   assert.equal(jwt.issuer, realmDefaults.jwtIssuer);
   assert.equal(jwt.audience, realmDefaults.jwtAudience);
@@ -186,6 +211,8 @@ test('syncRuntimeJwtConfig skips write when config already matches', async () =>
             auth: {
               account: {
                 realmBaseUrl: realmDefaults.realmBaseUrl,
+                authorizationUrl: `${realmDefaults.realmBaseUrl}/api/auth/oauth/authorize`,
+                tokenUrl: `${realmDefaults.realmBaseUrl}/api/auth/oauth/token`,
               },
               jwt: {
                 issuer: realmDefaults.jwtIssuer,

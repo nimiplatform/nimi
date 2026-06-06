@@ -506,7 +506,7 @@ export function createNimiRuntimeLocalModelCenterClient(
         dependencyId: requireLocalText(input.dependencyId, 'Runtime local dependency id is required', 'provide_local_dependency_id'),
         sourceKind: requireLocalText(input.sourceKind, 'Runtime local dependency source kind is required', 'provide_local_dependency_source_kind'),
         confirmed: Boolean(input.confirmed),
-        consumerScope: normalizeText(input.consumerScope),
+        consumerScope: requireLocalText(input.consumerScope, 'Runtime local dependency consumer scope is required', 'provide_local_dependency_consumer_scope'),
       }, callOptions(writeOptions));
       return projectRequiredLocal(
         response.job,
@@ -548,7 +548,7 @@ export function createNimiRuntimeLocalModelCenterClient(
         dependencyId: requireLocalText(input.dependencyId, 'Runtime local dependency id is required', 'provide_local_dependency_id'),
         confirmed: Boolean(input.confirmed),
         reasonCode: normalizeText(input.reasonCode),
-        consumerScope: normalizeText(input.consumerScope),
+        consumerScope: requireLocalText(input.consumerScope, 'Runtime local dependency consumer scope is required', 'provide_local_dependency_consumer_scope'),
       }, callOptions(writeOptions));
       return projectRequiredLocal(
         response.job,

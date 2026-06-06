@@ -916,8 +916,11 @@ func (s *Service) waitForSelectedSourceForFamilyAndConsumer(ctx context.Context,
 func (s *Service) waitForSelectedSourceForFamilyAndConsumerDetail(ctx context.Context, family string, consumer string) (localEnvironmentSelectedSourceRecordState, bool, string) {
 	if record, ok, detail := s.readySelectedSourceForFamilyAndConsumer(family, consumer); ok {
 		return record, true, detail
-	} else if job, jobOK := s.latestBlockingLocalEnvironmentDependencyJobForFamilyAndConsumer(family, consumer); jobOK {
-		return localEnvironmentSelectedSourceRecordState{}, false, localEnvironmentPrerequisiteFailureDetail(family, consumer, job, detail)
+	} else {
+		if job, jobOK := s.latestLocalEnvironmentDependencyJobForFamilyAndConsumer(family, consumer); jobOK &&
+			localEnvironmentDependencyJobBlocksPrerequisiteWait(job.State) {
+			return localEnvironmentSelectedSourceRecordState{}, false, localEnvironmentPrerequisiteFailureDetail(family, consumer, job, detail)
+		}
 	}
 	deadline := time.NewTimer(s.prerequisiteWaitTimeout())
 	defer deadline.Stop()
@@ -939,7 +942,8 @@ func (s *Service) waitForSelectedSourceForFamilyAndConsumerDetail(ctx context.Co
 			} else {
 				lastDetail = detail
 			}
-			if job, ok := s.latestBlockingLocalEnvironmentDependencyJobForFamilyAndConsumer(family, consumer); ok {
+			if job, ok := s.latestLocalEnvironmentDependencyJobForFamilyAndConsumer(family, consumer); ok &&
+				localEnvironmentDependencyJobBlocksPrerequisiteWait(job.State) {
 				return localEnvironmentSelectedSourceRecordState{}, false, localEnvironmentPrerequisiteFailureDetail(family, consumer, job, lastDetail)
 			}
 		}
@@ -947,6 +951,14 @@ func (s *Service) waitForSelectedSourceForFamilyAndConsumerDetail(ctx context.Co
 }
 
 func (s *Service) latestBlockingLocalEnvironmentDependencyJobForFamilyAndConsumer(family string, consumer string) (localEnvironmentDependencyJobState, bool) {
+	job, ok := s.latestLocalEnvironmentDependencyJobForFamilyAndConsumer(family, consumer)
+	if !ok || !localEnvironmentDependencyJobBlocksPrerequisiteWait(job.State) {
+		return localEnvironmentDependencyJobState{}, false
+	}
+	return job, true
+}
+
+func (s *Service) latestLocalEnvironmentDependencyJobForFamilyAndConsumer(family string, consumer string) (localEnvironmentDependencyJobState, bool) {
 	trimmedFamily := strings.TrimSpace(family)
 	trimmedConsumer := strings.TrimSpace(consumer)
 	if trimmedFamily == "" {
@@ -957,9 +969,6 @@ func (s *Service) latestBlockingLocalEnvironmentDependencyJobForFamilyAndConsume
 	var latest localEnvironmentDependencyJobState
 	for _, job := range s.localEnvironmentDependencyJobs {
 		if strings.TrimSpace(job.DependencyFamily) != trimmedFamily {
-			continue
-		}
-		if !localEnvironmentDependencyJobBlocksPrerequisiteWait(job.State) {
 			continue
 		}
 		if trimmedConsumer != "" && !localEnvironmentDependencyJobMatchesConsumer(job, trimmedConsumer) {
@@ -992,7 +1001,7 @@ func localEnvironmentDependencyJobMatchesConsumer(job localEnvironmentDependency
 	if localEnvironmentConsumerScopeFromKey(job.EnvironmentKey) == trimmedConsumer {
 		return true
 	}
-	return stringSliceContains(pythonSelectedConsumersForDependency(job.DependencyID), trimmedConsumer)
+	return pythonMaterializerConsumerForDependency(job.DependencyID) == trimmedConsumer
 }
 
 func localEnvironmentDependencyJobNewer(candidate localEnvironmentDependencyJobState, current localEnvironmentDependencyJobState) bool {

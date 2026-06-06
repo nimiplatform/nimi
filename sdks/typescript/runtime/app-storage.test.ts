@@ -228,13 +228,39 @@ describe('Runtime app storage helpers', () => {
     });
     assert.equal(jwt.changed, true);
     assert.deepEqual(jwt.nextConfig.auth, {
-      account: { realmBaseUrl: 'https://realm.example' },
+      account: {
+        realmBaseUrl: 'https://realm.example',
+        authorizationUrl: 'https://realm.example/api/auth/oauth/authorize',
+        tokenUrl: 'https://realm.example/api/auth/oauth/token',
+      },
       jwt: {
         issuer: 'https://realm.example',
         audience: 'nimi-runtime',
         jwksUrl: 'https://realm.example/jwks',
         revocationUrl: 'https://realm.example/introspect',
       },
+    });
+
+    const accountAuth = mergeNimiRuntimeBridgeRealmJwtConfig({
+      auth: {
+        account: {
+          realmBaseUrl: 'http://127.0.0.1:51860',
+          authorizationUrl: 'http://127.0.0.1:51860/api/auth/oauth/authorize',
+          tokenUrl: 'http://127.0.0.1:51860/api/auth/oauth/token',
+        },
+      },
+    }, {
+      realmBaseUrl: 'https://realm.example',
+      jwtIssuer: 'https://realm.example',
+      jwtAudience: 'nimi-runtime',
+      jwksUrl: 'https://realm.example/jwks',
+      revocationUrl: 'https://realm.example/introspect',
+    });
+    assert.equal(accountAuth.changed, true);
+    assert.deepEqual((accountAuth.nextConfig.auth as Record<string, unknown>).account, {
+      realmBaseUrl: 'https://realm.example',
+      authorizationUrl: 'https://realm.example/api/auth/oauth/authorize',
+      tokenUrl: 'https://realm.example/api/auth/oauth/token',
     });
 
     const developer = mergeNimiRuntimeBridgeDeveloperRegistrationConfig({}, true);

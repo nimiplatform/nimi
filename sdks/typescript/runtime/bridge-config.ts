@@ -149,12 +149,16 @@ export function mergeNimiRuntimeBridgeRealmJwtConfig(
   const currentAccount = asRecord(currentAuth.account);
 
   const nextRealmBaseUrl = readString(realmDefaults.realmBaseUrl);
+  const nextAccountAuthorizationUrl = buildNimiRuntimeAccountOAuthEndpoint(nextRealmBaseUrl, '/api/auth/oauth/authorize');
+  const nextAccountTokenUrl = buildNimiRuntimeAccountOAuthEndpoint(nextRealmBaseUrl, '/api/auth/oauth/token');
   const nextIssuer = readString(realmDefaults.jwtIssuer);
   const nextAudience = readString(realmDefaults.jwtAudience);
   const nextJwksUrl = readString(realmDefaults.jwksUrl);
   const nextRevocationUrl = readString(realmDefaults.revocationUrl);
 
   const changed = readString(currentAccount.realmBaseUrl) !== nextRealmBaseUrl
+    || readString(currentAccount.authorizationUrl) !== nextAccountAuthorizationUrl
+    || readString(currentAccount.tokenUrl) !== nextAccountTokenUrl
     || readString(currentJwt.issuer) !== nextIssuer
     || readString(currentJwt.audience) !== nextAudience
     || readString(currentJwt.jwksUrl) !== nextJwksUrl
@@ -175,6 +179,8 @@ export function mergeNimiRuntimeBridgeRealmJwtConfig(
         account: {
           ...currentAccount,
           realmBaseUrl: nextRealmBaseUrl,
+          authorizationUrl: nextAccountAuthorizationUrl,
+          tokenUrl: nextAccountTokenUrl,
         },
         jwt: {
           ...currentJwt,
@@ -226,6 +232,11 @@ function asRecord(value: unknown): NimiRuntimeBridgeConfigJson {
 
 function readString(value: unknown): string {
   return String(value || '').trim();
+}
+
+function buildNimiRuntimeAccountOAuthEndpoint(realmBaseUrl: string, path: string): string {
+  const base = normalizeNimiRuntimeBridgeEndpoint(realmBaseUrl);
+  return base ? `${base}${path}` : '';
 }
 
 function readNumber(value: unknown): number | null {

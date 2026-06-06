@@ -82,6 +82,13 @@ func TestResolveLocalEnvironmentPlanInstallLevelResolvesTextModelAsset(t *testin
 	if dep.ReasonCode == "LOCAL_ENVIRONMENT_ASSET_ID_REQUIRED" {
 		t.Fatalf("install-level resolution must not leave model.asset on LOCAL_ENVIRONMENT_ASSET_ID_REQUIRED: %+v", dep)
 	}
+	if dep.ConsumerScope != "llama.cpp.cpu" {
+		t.Fatalf("first-run local-text model.asset consumer_scope = %q, want llama.cpp.cpu", dep.ConsumerScope)
+	}
+	nativeDep := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyNativeLlama)
+	if nativeDep.ConsumerScope != "llama.cpp.cpu" {
+		t.Fatalf("first-run local-text native llama consumer_scope = %q, want llama.cpp.cpu", nativeDep.ConsumerScope)
+	}
 }
 
 // TestResolveLocalEnvironmentPlanInstallLevelResolvesSpeechModelAssetsOnePerSlot
@@ -120,6 +127,15 @@ func TestResolveLocalEnvironmentPlanInstallLevelResolvesSpeechModelAssetsOnePerS
 			t.Fatalf("speech model.asset dependency has an empty EnvironmentKey: %+v", dep)
 		}
 	}
+	consumerScopes := map[string]bool{}
+	for _, dep := range modelDeps {
+		consumerScopes[dep.ConsumerScope] = true
+	}
+	for _, want := range []string{"speech.qwen3-asr.python", "speech.qwen3-tts.python"} {
+		if !consumerScopes[want] {
+			t.Fatalf("speech model.asset deps missing consumer_scope %s in %v", want, consumerScopes)
+		}
+	}
 	// The two rows must also carry distinct environment keys (keyed by asset_id).
 	if modelDeps[0].EnvironmentKey == modelDeps[1].EnvironmentKey {
 		t.Fatal("the two speech model.asset dependencies collide on EnvironmentKey")
@@ -138,6 +154,14 @@ func TestResolveLocalEnvironmentPlanSplitsSpeechPythonEnvironmentByConsumer(t *t
 		InstallLevel:    runtimeBaselineInstallLevelMinimal,
 	})
 
+	uvDeps := planDependenciesByFamily(plan, localEnvironmentFamilyPythonUV)
+	if len(uvDeps) != 2 {
+		t.Fatalf("local-speech uv deps = %d, want split qwen3_asr + qwen3_tts deps: %+v", len(uvDeps), uvDeps)
+	}
+	runtimeDeps := planDependenciesByFamily(plan, localEnvironmentFamilyPythonRuntime)
+	if len(runtimeDeps) != 2 {
+		t.Fatalf("local-speech python.runtime deps = %d, want split qwen3_asr + qwen3_tts deps: %+v", len(runtimeDeps), runtimeDeps)
+	}
 	venvDeps := planDependenciesByFamily(plan, localEnvironmentFamilyPythonVenv)
 	if len(venvDeps) != 2 {
 		t.Fatalf("local-speech venv deps = %d, want split qwen3_asr + qwen3_tts deps: %+v", len(venvDeps), venvDeps)
@@ -147,10 +171,14 @@ func TestResolveLocalEnvironmentPlanSplitsSpeechPythonEnvironmentByConsumer(t *t
 		t.Fatalf("local-speech package-set deps = %d, want split qwen3_asr + qwen3_tts deps: %+v", len(packageDeps), packageDeps)
 	}
 	dependencyIDs := map[string]bool{}
-	for _, dep := range append(venvDeps, packageDeps...) {
+	consumerScopes := map[string]bool{}
+	for _, dep := range append(append(append(uvDeps, runtimeDeps...), venvDeps...), packageDeps...) {
 		dependencyIDs[dep.DependencyID] = true
+		consumerScopes[dep.ConsumerScope] = true
 	}
 	for _, want := range []string{
+		"uv",
+		"python.runtime",
 		"local-speech-qwen3-asr.venv",
 		"local-speech-qwen3-tts.venv",
 		"local-speech-qwen3-asr.package-set",
@@ -158,6 +186,11 @@ func TestResolveLocalEnvironmentPlanSplitsSpeechPythonEnvironmentByConsumer(t *t
 	} {
 		if !dependencyIDs[want] {
 			t.Fatalf("speech plan missing dependency %s in %v", want, dependencyIDs)
+		}
+	}
+	for _, want := range []string{"speech.qwen3-asr.python", "speech.qwen3-tts.python"} {
+		if !consumerScopes[want] {
+			t.Fatalf("speech python deps missing consumer_scope %s in %v", want, consumerScopes)
 		}
 	}
 

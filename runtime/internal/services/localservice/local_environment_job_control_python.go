@@ -405,17 +405,19 @@ func pythonMaterializerConsumerForJob(job localEnvironmentDependencyJobState) st
 	if consumer := pythonMaterializerConsumerForDependency(job.DependencyID); strings.TrimSpace(consumer) != "" {
 		return consumer
 	}
-	consumer := localEnvironmentConsumerScopeFromKey(job.EnvironmentKey)
-	switch {
-	case strings.HasPrefix(consumer, "stable-diffusion.cpp."):
-		return consumer
-	case strings.HasPrefix(consumer, "media."):
-		return consumer
-	case strings.HasPrefix(consumer, "speech."):
-		return consumer
-	default:
-		return ""
+	for _, consumer := range []string{job.ConsumerScope, localEnvironmentConsumerScopeFromKey(job.EnvironmentKey)} {
+		if pythonMaterializerConsumerScope(consumer) {
+			return strings.TrimSpace(consumer)
+		}
 	}
+	return ""
+}
+
+func pythonMaterializerConsumerScope(consumer string) bool {
+	trimmed := strings.TrimSpace(consumer)
+	return strings.HasPrefix(trimmed, "stable-diffusion.cpp.") ||
+		strings.HasPrefix(trimmed, "media.") ||
+		strings.HasPrefix(trimmed, "speech.")
 }
 
 func localEnvironmentConsumerScopeFromKey(environmentKey string) string {

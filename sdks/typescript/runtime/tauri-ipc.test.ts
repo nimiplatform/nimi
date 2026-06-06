@@ -226,6 +226,25 @@ test('tauri-ipc Runtime transport preserves structured unary errors', async () =
   }
 });
 
+test('tauri-ipc Runtime transport accepts empty protobuf unary responses', async () => {
+  const restore = installTauriTestHook({
+    invoke: async (command) => {
+      assert.equal(command, 'runtime_bridge_unary');
+      return {
+        responseBytesBase64: '',
+      };
+    },
+  });
+
+  try {
+    const runtime = new Runtime({ transport: { type: 'tauri-ipc' } });
+    const response = await runtime.local.listLocalEnvironmentDependencyJobs({});
+    assert.deepEqual(response.jobs, []);
+  } finally {
+    restore();
+  }
+});
+
 test('tauri-ipc Runtime transport fails closed when unary bytes are missing', async () => {
   const restore = installTauriTestHook({
     invoke: async () => ({}),

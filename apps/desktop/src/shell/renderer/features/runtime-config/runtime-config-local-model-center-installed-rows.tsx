@@ -102,6 +102,9 @@ export function runtimeDependencyRepairAllowed(
   dependency?: NimiRuntimeLocalEnvironmentPlanDependency,
   job?: NimiRuntimeLocalEnvironmentDependencyJob,
 ): boolean {
+  if (!(dependency?.selectedSourceRecordId || job?.selectedSourceRecordId)) {
+    return false;
+  }
   return Boolean(
     (dependency && isNimiRuntimeLocalEnvironmentDependencyRepairRequiredState(dependency.state))
     || (job && isNimiRuntimeLocalEnvironmentDependencyRepairRequiredState(job.state)),

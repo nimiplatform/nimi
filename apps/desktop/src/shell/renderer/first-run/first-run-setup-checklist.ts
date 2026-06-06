@@ -162,9 +162,11 @@ function projectFromMaterialization(
       || isNimiRuntimeLocalEnvironmentDependencyJobCancelledState(failingDep.job.state)
     : false;
   const canRepair = failingDep
-    ? isNimiRuntimeLocalEnvironmentDependencyRepairRequiredState(failingDep.dependency.state)
-      || isNimiRuntimeLocalEnvironmentDependencyJobFailedState(failingDep.job?.state)
-      || isNimiRuntimeLocalEnvironmentDependencyRepairRequiredState(failingDep.job?.state)
+    ? Boolean(failingDep.dependency.selectedSourceRecordId || failingDep.job?.selectedSourceRecordId)
+      && (
+        isNimiRuntimeLocalEnvironmentDependencyRepairRequiredState(failingDep.dependency.state)
+        || isNimiRuntimeLocalEnvironmentDependencyRepairRequiredState(failingDep.job?.state)
+      )
     : false;
 
   const baseStatuses: Record<FirstRunSetupStepId, FirstRunSetupStepStatus> = {

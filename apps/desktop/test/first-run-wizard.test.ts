@@ -340,7 +340,7 @@ test('the setup checklist projects the real materialization progression', () => 
   assert.ok(failingStep, 'expected a failed sub-step');
   assert.ok(failingStep.failingDependency, 'the failed sub-step carries the failing dependency');
   assert.equal(failingStep.canRetry, true);
-  assert.equal(failingStep.canRepair, true);
+  assert.equal(failingStep.canRepair, false);
 });
 
 // --- Wave-5: materialization download-progress UX -------------------------
@@ -421,7 +421,7 @@ test('an actively-downloading setup step renders progress and is not failed, wit
   assert.match(markup, /data-testid="first-run-setup-step-download"[^>]*data-step-status="active"/);
 });
 
-test('a genuinely failed setup step is red and offers Retry/Repair, with no progress', () => {
+test('a genuinely failed setup step is red and offers Retry, with no progress', () => {
   const checklist = projectSetupChecklist(
     'repair_required',
     materializationFixture('failed', {
@@ -465,12 +465,47 @@ test('a genuinely failed setup step is red and offers Retry/Repair, with no prog
       actions: { onRetry: () => {}, onRepair: () => {}, onCancel: () => {} },
     }),
   );
-  // The failed step is red and carries the typed Retry / Repair affordances.
+  // The failed step is red and carries the typed Retry affordance.
   assert.match(markup, /data-step-status="failed"/);
   assert.match(markup, /data-testid="first-run-setup-retry"/);
-  assert.match(markup, /data-testid="first-run-setup-repair"/);
+  assert.doesNotMatch(markup, /data-testid="first-run-setup-repair"/);
   // A failed step shows no in-progress download-progress block.
   assert.doesNotMatch(markup, /data-testid="first-run-setup-step-download-progress"/);
+});
+
+test('a selected-source repair-required setup step offers Repair', () => {
+  const checklist = projectSetupChecklist(
+    'repair_required',
+    materializationFixture('repair_required', {
+      dependencies: [
+        {
+          packId: 'local-text',
+          dependency: {
+            dependencyFamily: 'model.asset',
+            dependencyId: 'model.asset:default',
+            selectedSourceRecordId: 'source:model.asset:default',
+            required: true,
+            state: 'repair_required',
+            sourceKind: 'runtime-managed',
+            confirmationRequired: false,
+            environmentKey: 'model.asset:default',
+          },
+          job: null,
+        },
+      ],
+    }),
+  );
+  const markup = renderToStaticMarkup(
+    React.createElement(PhaseSetup, {
+      checklist,
+      busy: false,
+      error: null,
+      actions: { onRetry: () => {}, onRepair: () => {}, onCancel: () => {} },
+    }),
+  );
+  assert.match(markup, /data-step-status="failed"/);
+  assert.match(markup, /data-testid="first-run-setup-repair"/);
+  assert.doesNotMatch(markup, /data-testid="first-run-setup-retry"/);
 });
 
 test('materialization failures stay in the retryable Setup phase', () => {

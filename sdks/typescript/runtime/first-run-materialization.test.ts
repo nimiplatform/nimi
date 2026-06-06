@@ -5,8 +5,10 @@ import {
   NIMI_FIRST_RUN_MATERIALIZATION_CONSUMER_SCOPE,
   aggregateNimiFirstRunMaterializationDownloadProgress,
   repairableNimiFirstRunMaterializationDependencies,
+  repairNimiFirstRunMaterializationDependency,
   resolveNimiFirstRunMaterializationProjection,
   retryableInterruptedNimiFirstRunMaterializationJobs,
+  retryNimiFirstRunMaterializationJob,
   startNimiFirstRunMaterialization,
   type NimiFirstRunMaterializationRuntime,
   type NimiRuntimeLocalEnvironmentDependencyJob,
@@ -93,12 +95,120 @@ test('First-run materialization starts startable dependencies through core Runti
       dependencyId: 'ollama-runtime',
       sourceKind: 'managed',
       confirmed: true,
+      consumerScope: 'first-run',
     },
     options: { caller: 'core' },
   }]);
   assert.equal(projection.status, 'in_progress');
   assert.equal(projection.reason, 'runtime_materialization_jobs_started');
   assert.equal(projection.productState, 'local_ai_profile_selected_assets_missing');
+});
+
+test('First-run materialization repairs dependencies with the first-run consumer scope', async () => {
+  const repairCalls: unknown[] = [];
+  const targetDependency = dependency({
+    dependencyFamily: 'ollama',
+    dependencyId: 'ollama-runtime',
+    state: 'repair_required',
+    reasonCode: 'runtime_asset_missing',
+  });
+  const runtime = materializationRuntime({
+    dependencies: [targetDependency],
+    jobs: [],
+    onRepair(input, options) {
+      repairCalls.push({ input, options });
+    },
+  });
+
+  await repairNimiFirstRunMaterializationDependency({
+    profile: {
+      localComputePackRefs: ['qwen-small'],
+      dependencyFamilyRefs: ['ollama'],
+      materializationConfirmationRequired: true,
+    },
+    runtime,
+    dependency: targetDependency,
+    confirmed: true,
+    reasonCode: 'runtime_asset_missing',
+  });
+
+  assert.deepEqual(repairCalls, [{
+    input: {
+      environmentKey: 'env-1',
+      dependencyFamily: 'ollama',
+      dependencyId: 'ollama-runtime',
+      confirmed: true,
+      reasonCode: 'runtime_asset_missing',
+      consumerScope: 'first-run',
+    },
+    options: { caller: 'core' },
+  }]);
+});
+
+test('First-run materialization retry starts missing prerequisites before retrying failed jobs', async () => {
+  const startCalls: unknown[] = [];
+  const retryCalls: unknown[] = [];
+  const failedJob = job({
+    jobId: 'failed-venv',
+    dependencyFamily: 'python.venv',
+    dependencyId: 'local-speech-qwen3-asr.venv',
+    consumerScope: 'speech.qwen3-asr.python',
+    state: 'failed',
+    retryable: true,
+  });
+  const runtime = materializationRuntime({
+    dependencies: [
+      dependency({
+        dependencyFamily: 'python.tool.uv',
+        dependencyId: 'uv',
+        consumerScope: 'speech.qwen3-asr.python',
+        state: 'needs_confirmation',
+      }),
+      dependency({
+        dependencyFamily: 'python.venv',
+        dependencyId: 'local-speech-qwen3-asr.venv',
+        consumerScope: 'speech.qwen3-asr.python',
+        state: 'failed',
+      }),
+    ],
+    jobs: [failedJob],
+    onStart(input, options) {
+      startCalls.push({ input, options });
+    },
+    onRetry(input, options) {
+      retryCalls.push({ input, options });
+    },
+  });
+
+  await retryNimiFirstRunMaterializationJob({
+    profile: {
+      localComputePackRefs: ['local-speech'],
+      dependencyFamilyRefs: ['python.tool.uv', 'python.venv'],
+      materializationConfirmationRequired: true,
+    },
+    runtime,
+    jobId: 'failed-venv',
+    confirmed: true,
+  });
+
+  assert.deepEqual(startCalls, [{
+    input: {
+      environmentKey: 'env-1',
+      dependencyFamily: 'python.tool.uv',
+      dependencyId: 'uv',
+      sourceKind: 'managed',
+      confirmed: true,
+      consumerScope: 'speech.qwen3-asr.python',
+    },
+    options: { caller: 'core' },
+  }]);
+  assert.deepEqual(retryCalls, [{
+    input: {
+      jobId: 'failed-venv',
+      confirmed: true,
+    },
+    options: { caller: 'core' },
+  }]);
 });
 
 test('First-run materialization projects progress, retryable jobs, and repairable dependencies', () => {
@@ -132,6 +242,7 @@ test('First-run materialization projects progress, retryable jobs, and repairabl
     dependencyFamily: 'driver',
     dependencyId: 'gpu-driver',
     state: 'repair_required',
+    selectedSourceRecordId: 'source-driver',
   });
   const projection = {
     status: 'failed',
@@ -165,6 +276,29 @@ test('First-run materialization projects progress, retryable jobs, and repairabl
   }]);
 });
 
+test('First-run materialization does not repair dependencies without a selected source', () => {
+  const unselectedRepairRequired = dependency({
+    dependencyFamily: 'driver',
+    dependencyId: 'gpu-driver',
+    state: 'repair_required',
+  });
+  const projection = {
+    status: 'failed',
+    reason: 'runtime_materialization_job_failed',
+    productState: 'local_ai_profile_selected_environment_not_ready',
+    missingDependencyFamilies: [],
+    dependencies: [
+      { packId: 'pack', dependency: unselectedRepairRequired, job: null },
+    ],
+  } as const;
+
+  assert.deepEqual(repairableNimiFirstRunMaterializationDependencies({
+    ...projection,
+    status: 'repair_required',
+    reason: 'runtime_materialization_repair_required',
+  }), []);
+});
+
 test('First-run materialization fails closed when the selected profile dependency family is absent', async () => {
   const runtime = materializationRuntime({
     dependencies: [
@@ -196,6 +330,14 @@ function materializationRuntime(input: {
     input: Parameters<NimiFirstRunMaterializationRuntime['startEnvironmentDependencyJob']>[0],
     options: Parameters<NimiFirstRunMaterializationRuntime['startEnvironmentDependencyJob']>[1],
   ) => void;
+  readonly onRepair?: (
+    input: Parameters<NimiFirstRunMaterializationRuntime['repairEnvironmentDependency']>[0],
+    options: Parameters<NimiFirstRunMaterializationRuntime['repairEnvironmentDependency']>[1],
+  ) => void;
+  readonly onRetry?: (
+    input: Parameters<NimiFirstRunMaterializationRuntime['retryEnvironmentDependencyJob']>[0],
+    options: Parameters<NimiFirstRunMaterializationRuntime['retryEnvironmentDependencyJob']>[1],
+  ) => void;
 }): NimiFirstRunMaterializationRuntime {
   return {
     async resolveEnvironmentPlan(planInput) {
@@ -222,11 +364,19 @@ function materializationRuntime(input: {
     async cancelEnvironmentDependencyJob() {
       return job({ jobId: 'cancelled', state: 'cancelled' });
     },
-    async retryEnvironmentDependencyJob() {
+    async retryEnvironmentDependencyJob(retryInput, options) {
+      input.onRetry?.(retryInput, options);
       return job({ jobId: 'retrying', state: 'queued' });
     },
-    async repairEnvironmentDependency() {
-      return job({ jobId: 'repairing', state: 'queued' });
+    async repairEnvironmentDependency(repairInput, options) {
+      input.onRepair?.(repairInput, options);
+      return job({
+        jobId: 'repairing',
+        dependencyFamily: repairInput.dependencyFamily,
+        dependencyId: repairInput.dependencyId,
+        consumerScope: repairInput.consumerScope,
+        state: 'queued',
+      });
     },
   };
 }
@@ -257,6 +407,7 @@ function dependency(
   return {
     dependencyFamily: overrides.dependencyFamily ?? 'ollama',
     dependencyId: overrides.dependencyId ?? 'ollama-runtime',
+    consumerScope: overrides.consumerScope ?? NIMI_FIRST_RUN_MATERIALIZATION_CONSUMER_SCOPE,
     required: overrides.required ?? true,
     state: overrides.state ?? 'needs_confirmation',
     sourceKind: overrides.sourceKind ?? 'managed',
@@ -277,6 +428,7 @@ function job(
     environmentKey: overrides.environmentKey ?? 'env-1',
     dependencyFamily: overrides.dependencyFamily ?? 'ollama',
     dependencyId: overrides.dependencyId ?? 'ollama-runtime',
+    consumerScope: overrides.consumerScope ?? NIMI_FIRST_RUN_MATERIALIZATION_CONSUMER_SCOPE,
     state: overrides.state ?? 'queued',
     sourceKind: overrides.sourceKind ?? 'managed',
     canonicalRoot: overrides.canonicalRoot,

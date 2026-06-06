@@ -1,5 +1,5 @@
 import { NimiClient, createNimiClient } from '@nimiplatform/sdk';
-import { Runtime, createNimiLocalFirstPartyRuntimeAccountCaller, createNimiRuntimeAppSessionMetadataProvider, createNimiRuntimeFullAppRegistration, type NimiHostRuntimeAgentDelegatedCapabilityClient, type NimiHostRuntimeAgentLifecycleClient, type NimiHostRuntimeAgentPresentationProfileClient, type NimiRuntimeAccountCaller, type NimiRuntimeAgentTurnsRuntime } from '@nimiplatform/sdk/runtime';
+import { Runtime, createNimiDesktopShellRuntimeAccountCaller, createNimiRuntimeAppSessionMetadataProvider, createNimiRuntimeFullAppRegistration, type NimiHostRuntimeAgentDelegatedCapabilityClient, type NimiHostRuntimeAgentLifecycleClient, type NimiHostRuntimeAgentPresentationProfileClient, type NimiRuntimeAccountCaller, type NimiRuntimeAgentTurnsRuntime } from '@nimiplatform/sdk/runtime';
 import { AccountSessionState } from '@nimiplatform/sdk/runtime/generated';
 import { Realm, createRealmFetchTransport } from '@nimiplatform/sdk/realm';
 import { createNimiError, ReasonCode, type CoreMetadata } from '@nimiplatform/sdk/types';
@@ -73,14 +73,14 @@ export async function configureDesktopRuntimeRealmSession(
     eventNamespace: 'runtime_bridge',
   };
   const accountRuntime = new Runtime({ appId, transport });
-  const accountCaller = createNimiLocalFirstPartyRuntimeAccountCaller({ appId });
+  const accountCaller = createNimiDesktopShellRuntimeAccountCaller({ appId });
   await createNimiRuntimeFullAppRegistration(
     () => ({ auth: accountRuntime.auth }),
     {
       appId,
       appInstanceId: accountCaller.appInstanceId,
       deviceId: accountCaller.deviceId,
-      rejectionLabel: 'local first-party Runtime account caller registration rejected',
+      rejectionLabel: 'desktop shell Runtime account caller registration rejected',
       developerRegistration: input.developerRegistration,
     },
   )();

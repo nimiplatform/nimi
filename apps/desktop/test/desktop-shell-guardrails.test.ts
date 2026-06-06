@@ -182,6 +182,10 @@ test('desktop shell source guardrails keep auth helpers centralized', () => {
     path.join(import.meta.dirname, '../src/shell/renderer/infra/bootstrap/runtime-bootstrap.ts'),
     'utf8',
   );
+  const desktopClientSessionSource = fs.readFileSync(
+    path.join(import.meta.dirname, '../src/shell/renderer/infra/sdk/desktop-nimi-client-session.ts'),
+    'utf8',
+  );
   const smokeDriverSource = fs.readFileSync(
     path.join(import.meta.dirname, '../src/shell/renderer/infra/bootstrap/desktop-macos-smoke-driver-deps.ts'),
     'utf8',
@@ -208,6 +212,9 @@ test('desktop shell source guardrails keep auth helpers centralized', () => {
     assert.doesNotMatch(source, /mode:\s*2/);
     assert.doesNotMatch(source, /scopes:\s*\[\]/);
   }
+  assert.match(desktopClientSessionSource, /createNimiDesktopShellRuntimeAccountCaller/);
+  assert.doesNotMatch(desktopClientSessionSource, /createNimiLocalFirstPartyRuntimeAccountCaller/);
+  assert.match(desktopClientSessionSource, /desktop shell Runtime account caller registration rejected/);
   assert.match(logoutSource, /getDesktopRuntimeAccountCaller/);
   assert.doesNotMatch(logoutSource, /createNimiDesktopShellRuntimeAccountCaller|createDesktopShellRuntimeAccountCaller/);
   assert.doesNotMatch(authAdapterSource, /发送验证码失败|验证码登录失败|2FA 验证失败|获取钱包签名挑战失败|钱包登录失败|OAuth 登录失败/);

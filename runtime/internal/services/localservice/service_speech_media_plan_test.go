@@ -798,6 +798,59 @@ func TestCheckLocalAssetHealthSpeechSupervisedRecoveryProjectsColdAfterThreshold
 	}
 }
 
+func TestStartLocalAssetSpeechSupervisedRecoversUnhealthyImmediatelyAfterSuccessfulProbe(t *testing.T) {
+	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
+		return endpointProbeResult{
+			healthy:   true,
+			responded: true,
+			detail:    "probe succeeded",
+			probeURL:  endpoint,
+			models:    []string{"speech/kokoro-tts-model"},
+			modelCaps: map[string][]string{
+				"speech/kokoro-tts-model": {"audio.synthesize"},
+			},
+		}
+	})
+	svc.SetManagedSpeechEndpoint("http://127.0.0.1:18330/v1")
+
+	installed := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "speech/kokoro-tts-model",
+		capabilities: []string{"audio.synthesize"},
+		engine:       "speech",
+		entry:        "model.onnx",
+		files:        []string{"model.onnx", "voices.json"},
+	})
+	writeManagedBundleFilesForTest(t, svc, installed, []string{"model.onnx", "voices.json"}, map[string][]byte{
+		"model.onnx":  []byte("fake-onnx"),
+		"voices.json": []byte(`{"voices":["af"]}`),
+	})
+	if _, err := svc.updateModelAvailabilityAndWarmState(
+		installed.GetLocalAssetId(),
+		runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY,
+		runtimev1.LocalWarmState_LOCAL_WARM_STATE_FAILED,
+		"seed unhealthy",
+		true,
+	); err != nil {
+		t.Fatalf("seed supervised speech unhealthy state: %v", err)
+	}
+
+	started, err := svc.StartLocalAsset(context.Background(), &runtimev1.StartLocalAssetRequest{
+		LocalAssetId: installed.GetLocalAssetId(),
+	})
+	if err != nil {
+		t.Fatalf("start unhealthy supervised speech asset: %v", err)
+	}
+	if started.GetAsset().GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
+		t.Fatalf("explicit start should recover supervised speech immediately after a successful probe, got %s detail=%q", started.GetAsset().GetStatus(), started.GetAsset().GetHealthDetail())
+	}
+	if started.GetAsset().GetWarmState() != runtimev1.LocalWarmState_LOCAL_WARM_STATE_COLD {
+		t.Fatalf("recovered supervised speech warm_state = %s", started.GetAsset().GetWarmState())
+	}
+	if started.GetAsset().GetHealthDetail() != managedLocalModelColdDetail() {
+		t.Fatalf("recovered supervised speech detail = %q", started.GetAsset().GetHealthDetail())
+	}
+}
+
 func TestCheckLocalAssetHealthSpeechSupervisedProbeFailureTransitionsFailed(t *testing.T) {
 	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
 		return endpointProbeResult{
