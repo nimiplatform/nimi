@@ -1,11 +1,12 @@
 import type {
-  RuntimeRouteHostAccessSurface,
+  NimiRuntimeRouteHostAccessSurface,
 } from '@nimiplatform/sdk/runtime';
 import type {
-  getDesktopRuntimeClient,
-} from '@renderer/infra/runtime-route-host-access';
+  getDesktopAppId,
+  getDesktopRuntime,
+} from '@renderer/infra/sdk/desktop-nimi-client-session';
 import type {
-  AISnapshot,
+  NimiAISnapshot,
   ConversationExecutionSnapshot,
 } from './conversation-capability';
 
@@ -18,8 +19,9 @@ export type ChatAgentVoiceWorkflowReferenceAudio = {
 export type ChatAgentTranscribeRuntimeInvokeInput = {
   audioBytes: Uint8Array;
   mimeType: string;
-  transcribeExecutionSnapshot: AISnapshot | null;
+  transcribeExecutionSnapshot: NimiAISnapshot | null;
   language?: string;
+  timeoutMs?: number;
   signal?: AbortSignal;
 };
 
@@ -29,8 +31,10 @@ export type ChatAgentTranscribeRuntimeInvokeResult = {
 };
 
 export type ChatAgentTranscribeRuntimeInvokeDeps = {
-  buildRuntimeRequestMetadataImpl?: RuntimeRouteHostAccessSurface['buildRequestMetadata'];
-  getRuntimeClientImpl?: typeof getDesktopRuntimeClient;
+  buildRuntimeCallOptionsImpl?: NimiRuntimeRouteHostAccessSurface['buildCallOptions'];
+  getRuntimeImpl?: typeof getDesktopRuntime;
+  getAppIdImpl?: typeof getDesktopAppId;
+  createRequestIdImpl?: () => string;
 };
 
 export const CORE_CHAT_AGENT_TARGET_ID = 'core.chat-agent';

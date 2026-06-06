@@ -1,18 +1,18 @@
 import {
   assert,
   test,
-  clearPlatformClient,
-  createPlatformClient,
+  clearDesktopTestNimiClientSession,
+  createDesktopTestNimiClientSession,
   streamChatAgentRuntimeAgentTurn,
   buildAgentEffectiveCapabilityResolution,
-  createAISnapshot,
-  createEmptyAIConfig,
+  createNimiConversationAISnapshot,
+  createEmptyNimiAIConfig,
   createLocalTextProjection,
 } from './chat-agent-local-mode-test-utils.js';
 
 test('agent runtime turns interrupt stays bound to the aborted anchor and does not cross-wire sibling anchors', async () => {
-  clearPlatformClient();
-  const client = await createPlatformClient({
+  clearDesktopTestNimiClientSession();
+  const client = await createDesktopTestNimiClientSession({
     appId: 'nimi.desktop.test.anchor-interrupt',
     realmBaseUrl: 'https://realm.example',
     allowAnonymousRealm: true,
@@ -65,8 +65,8 @@ test('agent runtime turns interrupt stays bound to the aborted anchor and does n
     const agentResolution = buildAgentEffectiveCapabilityResolution({
       textProjection: projection,
     });
-    const executionSnapshot = createAISnapshot({
-      config: createEmptyAIConfig(),
+    const executionSnapshot = createNimiConversationAISnapshot({
+      config: createEmptyNimiAIConfig(),
       capability: 'text.generate',
       projection,
       agentResolution,
@@ -100,7 +100,7 @@ test('agent runtime turns interrupt stays bound to the aborted anchor and does n
     });
 
     anchorAController.abort();
-    await Promise.resolve();
+    await new Promise((resolve) => setTimeout(resolve, 0));
 
     assert.deepEqual(
       subscribeCalls.map((call) => call.conversationAnchorId),
@@ -113,7 +113,13 @@ test('agent runtime turns interrupt stays bound to the aborted anchor and does n
         { conversationAnchorId: 'anchor-b', threadId: 'thread-b' },
       ],
     );
-    assert.deepEqual(interruptCalls, [{
+    assert.deepEqual(interruptCalls.map((call) => ({
+      ownerUserId: call.ownerUserId,
+      realmAgentId: call.realmAgentId,
+      localAgentRef: call.localAgentRef,
+      conversationAnchorId: call.conversationAnchorId,
+      reason: call.reason,
+    })), [{
       ownerUserId: 'user-1',
       realmAgentId: 'agent-1',
       localAgentRef: 'local-agent:user-1:agent-1',
@@ -121,13 +127,13 @@ test('agent runtime turns interrupt stays bound to the aborted anchor and does n
       reason: 'desktop_agent_chat_abort',
     }]);
   } finally {
-    clearPlatformClient();
+    clearDesktopTestNimiClientSession();
   }
 });
 
 test('agent runtime turn stream binds to the current request_id and ignores backlog turns on the same anchor', async () => {
-  clearPlatformClient();
-  const client = await createPlatformClient({
+  clearDesktopTestNimiClientSession();
+  const client = await createDesktopTestNimiClientSession({
     appId: 'nimi.desktop.test.anchor-backlog',
     realmBaseUrl: 'https://realm.example',
     allowAnonymousRealm: true,
@@ -164,12 +170,16 @@ test('agent runtime turn stream binds to the current request_id and ignores back
           async *[Symbol.asyncIterator]() {
             yield {
               eventName: 'runtime.agent.turn.accepted' as const,
+              localAgentRef: 'local-agent:user-1:agent-1',
+              conversationAnchorId: 'anchor-backlog',
               turnId: 'turn-old',
               streamId: 'stream-old',
               detail: { requestId: 'request-old' },
             };
             yield {
               eventName: 'runtime.agent.turn.text_delta' as const,
+              localAgentRef: 'local-agent:user-1:agent-1',
+              conversationAnchorId: 'anchor-backlog',
               turnId: 'turn-old',
               streamId: 'stream-old',
               detail: { text: 'old backlog' },
@@ -236,8 +246,8 @@ test('agent runtime turn stream binds to the current request_id and ignores back
     const agentResolution = buildAgentEffectiveCapabilityResolution({
       textProjection: projection,
     });
-    const executionSnapshot = createAISnapshot({
-      config: createEmptyAIConfig(),
+    const executionSnapshot = createNimiConversationAISnapshot({
+      config: createEmptyNimiAIConfig(),
       capability: 'text.generate',
       projection,
       agentResolution,
@@ -287,13 +297,13 @@ test('agent runtime turn stream binds to the current request_id and ignores back
     assert.equal(parts[1]?.outputText, '你好，我在。');
     assert.equal('runtimeTurnTimelines' in (parts[1]?.diagnostics || {}), false);
   } finally {
-    clearPlatformClient();
+    clearDesktopTestNimiClientSession();
   }
 });
 
 test('agent runtime turn starts consuming subscription events before request ack', async () => {
-  clearPlatformClient();
-  const client = await createPlatformClient({
+  clearDesktopTestNimiClientSession();
+  const client = await createDesktopTestNimiClientSession({
     appId: 'nimi.desktop.test.anchor-agent-eager-subscription',
     realmBaseUrl: 'https://realm.example',
     allowAnonymousRealm: true,
@@ -402,8 +412,8 @@ test('agent runtime turn starts consuming subscription events before request ack
     const agentResolution = buildAgentEffectiveCapabilityResolution({
       textProjection: projection,
     });
-    const executionSnapshot = createAISnapshot({
-      config: createEmptyAIConfig(),
+    const executionSnapshot = createNimiConversationAISnapshot({
+      config: createEmptyNimiAIConfig(),
       capability: 'text.generate',
       projection,
       agentResolution,
@@ -440,6 +450,6 @@ test('agent runtime turn starts consuming subscription events before request ack
     );
     assert.equal(parts[1]?.outputText, 'hello from runtime');
   } finally {
-    clearPlatformClient();
+    clearDesktopTestNimiClientSession();
   }
 });

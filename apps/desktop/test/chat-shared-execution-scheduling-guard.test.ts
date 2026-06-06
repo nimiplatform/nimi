@@ -3,11 +3,11 @@ import test from 'node:test';
 import type { TFunction } from 'i18next';
 
 import {
-  createBuiltInChatAIScopeRef,
-  createEmptyAIConfig,
-  type AIConfig,
+  createNimiBuiltInChatAIScopeRef,
+  createEmptyNimiAIConfig,
+  type NimiAIConfig,
+  type NimiAISchedulingJudgement,
 } from '@nimiplatform/sdk/ai';
-import type { AISchedulingJudgement } from '@nimiplatform/sdk/runtime';
 import { getDesktopAIConfigService } from '../src/shell/renderer/app-shell/providers/desktop-ai-config-service.js';
 import {
   isBusySlowdownRisk,
@@ -43,25 +43,17 @@ function t(key: string, options?: Record<string, unknown>): string {
 
 const translate = t as unknown as TFunction;
 
-function createLocalTextSubmitConfig(): AIConfig {
-  const scopeRef = createBuiltInChatAIScopeRef('agent');
-  const config = createEmptyAIConfig(scopeRef);
+function createLocalTextSubmitConfig(): NimiAIConfig {
+  const scopeRef = createNimiBuiltInChatAIScopeRef('agent');
+  const config = createEmptyNimiAIConfig(scopeRef);
   return {
     ...config,
     capabilities: {
       ...config.capabilities,
-      selectedBindings: {
-        ...config.capabilities.selectedBindings,
+      targetRefs: {
+        ...config.capabilities.targetRefs,
         'text.generate': {
-          source: 'local',
-          connectorId: '',
-          model: 'text-generate-local',
-          provider: 'llama',
-        },
-      },
-      localProfileRefs: {
-        ...config.capabilities.localProfileRefs,
-        'text.generate': {
+          kind: 'local-runtime',
           targetId: 'core:runtime',
           profileId: 'text-local',
         },
@@ -71,9 +63,9 @@ function createLocalTextSubmitConfig(): AIConfig {
 }
 
 function createJudgement(
-  state: AISchedulingJudgement['state'],
+  state: NimiAISchedulingJudgement['state'],
   detail: string,
-): AISchedulingJudgement {
+): NimiAISchedulingJudgement {
   return {
     state,
     detail,
@@ -88,7 +80,7 @@ function createJudgement(
 }
 
 async function withProbeJudgement(
-  judgement: AISchedulingJudgement | null,
+  judgement: NimiAISchedulingJudgement | null,
   run: () => Promise<void>,
 ): Promise<void> {
   const surface = getDesktopAIConfigService();
@@ -200,7 +192,7 @@ test('Agent submit: denied scheduling judgement blocks execution before submit p
 });
 
 test('AI submit: advisory scheduling states still allow submit preflight', async () => {
-  const advisoryStates: Array<AISchedulingJudgement['state']> = [
+  const advisoryStates: Array<NimiAISchedulingJudgement['state']> = [
     'queue_required',
     'preemption_risk',
     'slowdown_risk',

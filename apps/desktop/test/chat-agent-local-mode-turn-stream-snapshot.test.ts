@@ -1,19 +1,19 @@
 import {
   assert,
   test,
-  clearPlatformClient,
-  createPlatformClient,
+  clearDesktopTestNimiClientSession,
+  createDesktopTestNimiClientSession,
   streamChatAgentRuntimeAgentTurn,
   buildAgentEffectiveCapabilityResolution,
-  createAISnapshot,
-  createEmptyAIConfig,
+  createNimiConversationAISnapshot,
+  createEmptyNimiAIConfig,
   createRuntimeTurnTimeline,
   createLocalTextProjection,
 } from './chat-agent-local-mode-test-utils.js';
 
 test('agent runtime turn recovers terminal projection from authoritative runtime snapshot when subscription misses commit events', async () => {
-  clearPlatformClient();
-  const client = await createPlatformClient({
+  clearDesktopTestNimiClientSession();
+  const client = await createDesktopTestNimiClientSession({
     appId: 'nimi.desktop.test.anchor-agent-snapshot-recovery',
     realmBaseUrl: 'https://realm.example',
     allowAnonymousRealm: true,
@@ -116,8 +116,8 @@ test('agent runtime turn recovers terminal projection from authoritative runtime
     const agentResolution = buildAgentEffectiveCapabilityResolution({
       textProjection: projection,
     });
-    const executionSnapshot = createAISnapshot({
-      config: createEmptyAIConfig(),
+    const executionSnapshot = createNimiConversationAISnapshot({
+      config: createEmptyNimiAIConfig(),
       capability: 'text.generate',
       projection,
       agentResolution,
@@ -155,13 +155,13 @@ test('agent runtime turn recovers terminal projection from authoritative runtime
     );
     assert.equal(parts[1]?.outputText, 'snapshot recovered response');
   } finally {
-    clearPlatformClient();
+    clearDesktopTestNimiClientSession();
   }
 });
 
 test('agent runtime turn binds current active turn from snapshot when accepted event is missed', async () => {
-  clearPlatformClient();
-  const client = await createPlatformClient({
+  clearDesktopTestNimiClientSession();
+  const client = await createDesktopTestNimiClientSession({
     appId: 'nimi.desktop.test.anchor-agent-snapshot-active-bind',
     realmBaseUrl: 'https://realm.example',
     allowAnonymousRealm: true,
@@ -269,8 +269,8 @@ test('agent runtime turn binds current active turn from snapshot when accepted e
     const agentResolution = buildAgentEffectiveCapabilityResolution({
       textProjection: projection,
     });
-    const executionSnapshot = createAISnapshot({
-      config: createEmptyAIConfig(),
+    const executionSnapshot = createNimiConversationAISnapshot({
+      config: createEmptyNimiAIConfig(),
       capability: 'text.generate',
       projection,
       agentResolution,
@@ -307,13 +307,13 @@ test('agent runtime turn binds current active turn from snapshot when accepted e
     );
     assert.equal(parts[1]?.outputText, 'active bind recovered response');
   } finally {
-    clearPlatformClient();
+    clearDesktopTestNimiClientSession();
   }
 });
 
 test('agent runtime turn consumes runtime-owned projection events from anchor app messages', async () => {
-  clearPlatformClient();
-  const client = await createPlatformClient({
+  clearDesktopTestNimiClientSession();
+  const client = await createDesktopTestNimiClientSession({
     appId: 'nimi.desktop.test.anchor-agent-projection',
     realmBaseUrl: 'https://realm.example',
     allowAnonymousRealm: true,
@@ -496,8 +496,8 @@ test('agent runtime turn consumes runtime-owned projection events from anchor ap
     const agentResolution = buildAgentEffectiveCapabilityResolution({
       textProjection: projection,
     });
-    const executionSnapshot = createAISnapshot({
-      config: createEmptyAIConfig(),
+    const executionSnapshot = createNimiConversationAISnapshot({
+      config: createEmptyNimiAIConfig(),
       capability: 'text.generate',
       projection,
       agentResolution,
@@ -579,6 +579,6 @@ test('agent runtime turn consumes runtime-owned projection events from anchor ap
     assert.equal(projectionEventRecords[1]?.detail.intentId, 'hook-1');
     assert.equal(projectionEventRecords[2]?.detail.activityName, 'thinking');
   } finally {
-    clearPlatformClient();
+    clearDesktopTestNimiClientSession();
   }
 });

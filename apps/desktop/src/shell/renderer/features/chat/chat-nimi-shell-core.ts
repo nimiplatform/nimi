@@ -1,9 +1,9 @@
 import type { ConversationTurnError } from '@nimiplatform/kit/features/chat/headless';
 import {
-  buildAppAiSessionHistoryMessages,
-  type AppAiSessionHistoryMessage,
-} from '@nimiplatform/sdk/ai-app';
-import type { TextStreamPart } from '@nimiplatform/sdk/runtime';
+  buildNimiConversationHistoryMessages,
+  type NimiConversationMessage,
+} from '@nimiplatform/sdk/features/conversation';
+import type { NimiRunEvent } from '@nimiplatform/sdk/contracts';
 import type {
   ChatAiDraftRecord,
   ChatAiMessageRecord,
@@ -104,8 +104,8 @@ export function isEmptyPendingAssistantMessage(
 
 export function toConversationHistoryMessages(
   messages: readonly ChatAiMessageRecord[],
-): AppAiSessionHistoryMessage[] {
-  return buildAppAiSessionHistoryMessages({
+): readonly NimiConversationMessage[] {
+  return buildNimiConversationHistoryMessages({
     messages,
     isCommitted: (message) => message.status === 'complete',
     getId: (message) => message.id,
@@ -129,21 +129,24 @@ export function toStructuredProviderError(error: ConversationTurnError): Error {
 }
 
 export function withPromptTrace(
-  part: TextStreamPart,
+  part: NimiRunEvent,
   promptTraceId: string,
-): TextStreamPart {
-  if (part.type !== 'finish' && part.type !== 'error') {
+): NimiRunEvent {
+  if (part.type !== 'trace' && part.type !== 'error') {
     return part;
   }
   const normalizedPromptTraceId = normalizeText(promptTraceId);
   if (part.type === 'error') {
     return {
       ...part,
-      error: Object.assign(part.error, {
+      cause: Object.assign(
+        part.cause && typeof part.cause === 'object' ? part.cause : {},
+        {
         promptTraceId: normalizedPromptTraceId
-          || (part.error as typeof part.error & { promptTraceId?: string | null }).promptTraceId
+          || (part.cause as Record<string, unknown> | undefined)?.promptTraceId
           || null,
-      }) as typeof part.error,
+        },
+      ),
     };
   }
   return {
@@ -153,6 +156,6 @@ export function withPromptTrace(
       promptTraceId: normalizedPromptTraceId
         || (part.trace as typeof part.trace & { promptTraceId?: string | null }).promptTraceId
         || null,
-    } as typeof part.trace,
-  };
+    } as typeof part.trace & { promptTraceId?: string | null },
+  } as NimiRunEvent;
 }

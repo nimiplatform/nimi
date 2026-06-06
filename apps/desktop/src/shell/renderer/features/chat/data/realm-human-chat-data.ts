@@ -1,4 +1,4 @@
-import { createNimiClientId } from '@nimiplatform/sdk/runtime';
+import { createNimiClientId } from '@nimiplatform/sdk';
 import {
   countPendingRealmChatOutboxEntries,
   filterRealmDirectHumanChats,
@@ -19,6 +19,7 @@ import {
 } from '@nimiplatform/kit/features/chat/realm';
 import {
   getNimiErrorMessage as getErrorMessage,
+  isJsonObject,
   isRealmOfflineErrorLike as isRealmOfflineError,
   type JsonObject,
 } from '@nimiplatform/sdk/types';
@@ -41,11 +42,100 @@ function createClientMessageId(): string {
   return createNimiClientId('cm');
 }
 
+function parseRequiredPersistentString(
+  body: JsonObject,
+  field: 'clientMessageId' | 'type',
+): string {
+  const value = body[field];
+  if (typeof value !== 'string' || !value.trim()) {
+    throw new Error(`Persistent chat outbox body.${field} must be a non-empty string`);
+  }
+  return value.trim();
+}
+
+function parseOptionalPersistentString(
+  body: JsonObject,
+  field: 'replyToMessageId' | 'text',
+): string | undefined {
+  const value = body[field];
+  if (value === null || value === undefined) {
+    return undefined;
+  }
+  if (typeof value !== 'string') {
+    throw new Error(`Persistent chat outbox body.${field} must be a string`);
+  }
+  return value;
+}
+
+function parsePersistentMessageType(value: string): RealmSendMessageInputDto['type'] {
+  switch (value) {
+    case 'TEXT':
+    case 'ATTACHMENT':
+    case 'POST_REF':
+    case 'USER_REF':
+    case 'LINK_REF':
+    case 'GIFT':
+    case 'FRIEND_REQUEST':
+    case 'SYSTEM':
+    case 'RECALL':
+      return value;
+    default:
+      throw new Error(`Persistent chat outbox body.type is unsupported: ${value}`);
+  }
+}
+
+function serializeRealmSendMessageInput(body: RealmSendMessageInputDto): JsonObject {
+  const serialized: JsonObject = {
+    clientMessageId: body.clientMessageId,
+    type: body.type,
+  };
+  if (typeof body.text === 'string') {
+    serialized.text = body.text;
+  }
+  if (typeof body.replyToMessageId === 'string') {
+    serialized.replyToMessageId = body.replyToMessageId;
+  }
+  if (isJsonObject(body.payload)) {
+    serialized.payload = body.payload;
+  }
+  return serialized;
+}
+
+function parsePersistentRealmSendMessageInput(body: JsonObject): RealmSendMessageInputDto {
+  const input: {
+    clientMessageId: string;
+    payload?: RealmSendMessageInputDto['payload'];
+    replyToMessageId?: string;
+    text?: string;
+    type: RealmSendMessageInputDto['type'];
+  } = {
+    clientMessageId: parseRequiredPersistentString(body, 'clientMessageId'),
+    type: parsePersistentMessageType(parseRequiredPersistentString(body, 'type')),
+  };
+
+  const text = parseOptionalPersistentString(body, 'text');
+  if (text !== undefined) {
+    input.text = text;
+  }
+  const replyToMessageId = parseOptionalPersistentString(body, 'replyToMessageId');
+  if (replyToMessageId !== undefined) {
+    input.replyToMessageId = replyToMessageId;
+  }
+  const payload = body.payload;
+  if (payload !== null && payload !== undefined) {
+    if (!isJsonObject(payload)) {
+      throw new Error('Persistent chat outbox body.payload must be an object');
+    }
+    input.payload = payload;
+  }
+  return input;
+}
+
 function toPersistentEntry(entry: RealmChatOutboxStoreEntry): PersistentOutboxEntry {
   return {
     clientMessageId: entry.clientMessageId,
     chatId: entry.chatId,
-    body: entry.body as JsonObject,
+    body: serializeRealmSendMessageInput(entry.body),
     enqueuedAt: entry.enqueuedAt,
     attempts: entry.attempts,
     status: entry.status === 'failed' ? 'failed' : 'pending',
@@ -57,7 +147,7 @@ function toKitOutboxEntry(entry: PersistentOutboxEntry): RealmChatOutboxStoreEnt
   return {
     clientMessageId: entry.clientMessageId,
     chatId: entry.chatId,
-    body: entry.body as RealmSendMessageInputDto,
+    body: parsePersistentRealmSendMessageInput(entry.body),
     enqueuedAt: entry.enqueuedAt,
     attempts: entry.attempts,
     status: entry.status,

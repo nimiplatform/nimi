@@ -4,16 +4,32 @@ import type {
   ConversationThreadSummary,
 } from '@nimiplatform/kit/features/chat/headless';
 import {
+  normalizeRealmMessagePayload,
   resolveRealmChatAttachmentPreviewText,
   resolveRealmMessageText,
+  type RealmMessageViewDto,
 } from '@nimiplatform/kit/features/chat/realm';
-import type { RealmModel } from '@nimiplatform/sdk/realm';
+import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 import { i18n } from '@renderer/i18n';
 
 export type GroupChatViewDto = RealmModel<'GroupChatViewDto'>;
 export type GroupParticipantDto = RealmModel<'GroupParticipantDto'>;
 export type GroupMessageViewDto = RealmModel<'GroupMessageViewDto'>;
 export type GroupMessageAuthorDto = RealmModel<'GroupMessageAuthorDto'>;
+
+type GroupMessageTextSource = {
+  readonly text?: unknown;
+  readonly payload?: unknown;
+};
+
+function projectGroupMessageTextSource(
+  message: GroupMessageTextSource,
+): Pick<RealmMessageViewDto, 'payload' | 'text'> {
+  return {
+    text: typeof message.text === 'string' || message.text === null ? message.text : undefined,
+    payload: normalizeRealmMessagePayload(message.payload),
+  };
+}
 
 export function getGroupChatTitle(chat: GroupChatViewDto): string {
   const title = String(chat.title || '').trim();
@@ -37,9 +53,10 @@ export function getGroupChatPreview(
 ): string {
   const lastMsg = chat.lastMessage;
   if (lastMsg) {
-    const resolvedText = resolveRealmMessageText(lastMsg).trim();
+    const source = projectGroupMessageTextSource(lastMsg);
+    const resolvedText = resolveRealmMessageText(source).trim();
     if (resolvedText) return resolvedText;
-    const attachmentText = resolveRealmChatAttachmentPreviewText(lastMsg.payload);
+    const attachmentText = resolveRealmChatAttachmentPreviewText(source.payload);
     if (attachmentText) return attachmentText;
   }
   return noMessagesFallback;
@@ -121,7 +138,7 @@ export function groupMessageToCanonical(
   if (rawText) {
     text = rawText;
   } else if (msg.payload) {
-    text = resolveRealmMessageText(msg as unknown as Parameters<typeof resolveRealmMessageText>[0]);
+    text = resolveRealmMessageText(projectGroupMessageTextSource(msg));
   }
 
   return {

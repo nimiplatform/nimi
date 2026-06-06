@@ -2,20 +2,19 @@ import {
   resolveConversationRuntimeRouteSetupStateFromProjection,
   type ConversationSetupState,
   } from '@nimiplatform/kit/features/chat/headless';
-import { summarizeBinding } from '@nimiplatform/kit/features/model-config/headless';
 import {
-  isRuntimeRouteLocalOptionSelectable,
-  runtimeRouteBindingsMatch,
-  runtimeRouteLocalOptionToBinding,
-  type RuntimeRouteBinding,
-  type RuntimeRouteModelProfile,
-  type RuntimeRouteOptionsSnapshot,
+  isNimiRuntimeRouteLocalOptionSelectable,
+  nimiRuntimeRouteBindingsMatch,
+  nimiRuntimeRouteLocalOptionToBinding,
+  type NimiRuntimeRouteBinding,
+  type NimiRuntimeRouteModelProfile,
+  type NimiRuntimeRouteOptionsSnapshot,
 } from '@nimiplatform/sdk/runtime';
 import type { ConversationCapabilityProjection } from './conversation-capability';
 
 export type AiConversationRouteOption = {
   key: string;
-  binding: RuntimeRouteBinding;
+  binding: NimiRuntimeRouteBinding;
   label: string;
   detail: string;
 };
@@ -26,7 +25,24 @@ function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-function buildLocalRouteOption(binding: RuntimeRouteBinding): AiConversationRouteOption {
+function summarizeRuntimeBinding(
+  binding: NimiRuntimeRouteBinding | null | undefined,
+): { label: string; detail: string | null } {
+  if (!binding) {
+    return { label: 'Route unavailable', detail: null };
+  }
+  if (binding.source === 'local') {
+    const provider = normalizeText(binding.provider) || normalizeText(binding.engine) || 'Local runtime';
+    const model = normalizeText(binding.modelId) || normalizeText(binding.model) || normalizeText(binding.localModelId);
+    return { label: 'Local runtime', detail: [provider, model].filter(Boolean).join(' · ') || null };
+  }
+  return {
+    label: normalizeText(binding.provider) || normalizeText(binding.connectorId) || 'Cloud route',
+    detail: normalizeText(binding.modelId) || normalizeText(binding.model) || null,
+  };
+}
+
+function buildLocalRouteOption(binding: NimiRuntimeRouteBinding): AiConversationRouteOption {
   const provider = normalizeText(binding.provider) || normalizeText(binding.engine) || 'local';
   const modelId = normalizeText(binding.modelId) || normalizeText(binding.model) || normalizeText(binding.localModelId);
   return {
@@ -37,7 +53,7 @@ function buildLocalRouteOption(binding: RuntimeRouteBinding): AiConversationRout
   };
 }
 
-function buildCloudRouteOption(binding: RuntimeRouteBinding): AiConversationRouteOption {
+function buildCloudRouteOption(binding: NimiRuntimeRouteBinding): AiConversationRouteOption {
   const provider = normalizeText(binding.provider) || normalizeText(binding.connectorId) || 'Cloud route';
   const modelId = normalizeText(binding.modelId) || normalizeText(binding.model) || 'Missing model';
   return {
@@ -48,22 +64,22 @@ function buildCloudRouteOption(binding: RuntimeRouteBinding): AiConversationRout
   };
 }
 
-function toRouteOption(binding: RuntimeRouteBinding): AiConversationRouteOption {
+function toRouteOption(binding: NimiRuntimeRouteBinding): AiConversationRouteOption {
   return binding.source === 'local'
     ? buildLocalRouteOption(binding)
     : buildCloudRouteOption(binding);
 }
 
 export function buildAiConversationRouteOptions(
-  snapshot: RuntimeRouteOptionsSnapshot | null | undefined,
+  snapshot: NimiRuntimeRouteOptionsSnapshot | null | undefined,
 ): AiConversationRouteOption[] {
   if (!snapshot) {
     return [];
   }
 
   const localOptions = snapshot.local.models
-    .filter(isRuntimeRouteLocalOptionSelectable)
-    .map((model) => toRouteOption(runtimeRouteLocalOptionToBinding(model, {
+    .filter(isNimiRuntimeRouteLocalOptionSelectable)
+    .map((model) => toRouteOption(nimiRuntimeRouteLocalOptionToBinding(model, {
       defaultEndpoint: snapshot.local.defaultEndpoint,
     })));
 
@@ -83,13 +99,13 @@ export function buildAiConversationRouteOptions(
 
 export function isAiConversationRouteOptionSelected(
   option: AiConversationRouteOption,
-  binding: RuntimeRouteBinding | null | undefined,
+  binding: NimiRuntimeRouteBinding | null | undefined,
 ): boolean {
-  return runtimeRouteBindingsMatch(option.binding, binding);
+  return nimiRuntimeRouteBindingsMatch(option.binding, binding);
 }
 
 export function resolveAgentChatRequestedMaxOutputTokens(
-  profile: RuntimeRouteModelProfile | null | undefined,
+  profile: NimiRuntimeRouteModelProfile | null | undefined,
   userOverride?: number | null,
 ): number | null {
   // User override takes precedence when it satisfies the minimum floor.
@@ -120,12 +136,12 @@ export function resolveAiConversationSetupStateFromProjection(
 
 export function buildAiConversationRouteSummary(input: {
   projection: ConversationCapabilityProjection | null;
-  selectedBinding: RuntimeRouteBinding | null;
+  selectedBinding: NimiRuntimeRouteBinding | null;
   routeOptions: readonly AiConversationRouteOption[];
 }): { label: string; detail: string | null } {
   const resolvedBinding = input.projection?.resolvedBinding || null;
   if (resolvedBinding) {
-    return summarizeBinding(resolvedBinding);
+    return summarizeRuntimeBinding(resolvedBinding);
   }
 
   if (input.selectedBinding) {
@@ -138,7 +154,7 @@ export function buildAiConversationRouteSummary(input: {
         detail: selectedOption.detail,
       };
     }
-    const fallbackSummary = summarizeBinding(input.selectedBinding);
+    const fallbackSummary = summarizeRuntimeBinding(input.selectedBinding);
     return {
       label: fallbackSummary.label,
       detail: fallbackSummary.detail || 'Selected route is unavailable',

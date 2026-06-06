@@ -118,5 +118,6 @@ test('Desktop SDK and Kit helper consumers import owner surfaces directly', () =
 
   assert.doesNotMatch(conversationCapability, /export\s+\{\s*applyAIProfileToConfig/);
   assert.doesNotMatch(conversationCapability, /createEmptyAIConfig\s*\}\s+from '@nimiplatform\/sdk\/ai'/);
-  assert.match(runtimeConfigProfileLibrary, /AccountProfileLibraryProjection as SdkAccountProfileLibraryProjection/);
+  assert.match(runtimeConfigProfileLibrary, /NimiAccountProfileLibraryProjection/);
+  assert.doesNotMatch(runtimeConfigProfileLibrary, /SdkAccountProfileLibraryProjection/);
 });

@@ -28,8 +28,8 @@ export function ChatGroupCreateModal(props: {
     queryFn: async () => {
       const snapshot = await realmSocialData.loadSocialSnapshot();
       const friends: FriendEntry[] = [];
-      const items = Array.isArray((snapshot as { friends?: unknown[] })?.friends)
-        ? ((snapshot as { friends: unknown[] }).friends)
+      const items = Array.isArray(snapshot.friends)
+        ? snapshot.friends
         : [];
       for (const item of items) {
         if (!item || typeof item !== 'object') continue;

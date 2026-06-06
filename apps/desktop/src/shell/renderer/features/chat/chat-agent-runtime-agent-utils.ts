@@ -2,10 +2,10 @@ import type {
   ConversationRuntimeTrace,
 } from '@nimiplatform/kit/features/chat/headless';
 import {
-  cloneAgentResolvedMessageActionEnvelopeWithCommittedMessage,
-  parseRuntimeAgentStructuredMessageActionEnvelope,
-  type AgentResolvedMessageActionEnvelope,
-  type RuntimeAgentTimelineSummary,
+  cloneNimiRuntimeAgentResolvedMessageActionEnvelopeWithCommittedMessage,
+  parseNimiRuntimeAgentStructuredMessageActionEnvelope,
+  type NimiRuntimeAgentResolvedMessageActionEnvelope,
+  type NimiRuntimeAgentTimelineSummary,
 } from '@nimiplatform/sdk/runtime';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import type { JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
@@ -37,7 +37,7 @@ function elapsedMs(startedAt: number): number {
 export function safeLogRuntimeAgentTiming(input: {
   stage: string;
   startedAt: number;
-  details?: Record<string, unknown>;
+  details?: JsonObject;
 }): void {
   safeLogRuntimeAgentEvent({
     level: 'info',
@@ -51,16 +51,16 @@ export function safeLogRuntimeAgentTiming(input: {
   });
 }
 
-export function toResolvedEnvelope(value: unknown): AgentResolvedMessageActionEnvelope {
-  return parseRuntimeAgentStructuredMessageActionEnvelope(value);
+export function toResolvedEnvelope(value: unknown): NimiRuntimeAgentResolvedMessageActionEnvelope {
+  return parseNimiRuntimeAgentStructuredMessageActionEnvelope(value);
 }
 
 export function cloneEnvelopeWithCommittedMessage(input: {
-  envelope: AgentResolvedMessageActionEnvelope;
+  envelope: NimiRuntimeAgentResolvedMessageActionEnvelope;
   messageId: string;
   text: string;
-}): AgentResolvedMessageActionEnvelope {
-  return cloneAgentResolvedMessageActionEnvelopeWithCommittedMessage(input);
+}): NimiRuntimeAgentResolvedMessageActionEnvelope {
+  return cloneNimiRuntimeAgentResolvedMessageActionEnvelopeWithCommittedMessage(input);
 }
 
 export function toDebugMetadata(input: {
@@ -73,8 +73,8 @@ export function toDebugMetadata(input: {
   modelId: string;
   connectorId?: string;
   trace?: ConversationRuntimeTrace;
-  envelope: AgentResolvedMessageActionEnvelope;
-  latestTimeline?: RuntimeAgentTimelineSummary | null;
+  envelope: NimiRuntimeAgentResolvedMessageActionEnvelope;
+  latestTimeline?: NimiRuntimeAgentTimelineSummary | null;
 }): JsonObject {
   return {
     debugType: 'agent-text-turn',
@@ -115,8 +115,8 @@ export function buildRuntimeAgentDiagnostics(input: {
   modelId: string;
   connectorId?: string;
   trace?: ConversationRuntimeTrace;
-  extra?: Record<string, unknown>;
-}): Record<string, unknown> {
+  extra?: JsonObject;
+}): JsonObject {
   return {
     transport: 'runtime.agent.turns',
     conversationAnchorId: input.conversationAnchorId,
@@ -129,7 +129,7 @@ export function buildRuntimeAgentDiagnostics(input: {
     modelResolved: input.trace?.modelResolved || null,
     routeDecision: input.trace?.routeDecision || null,
     ...(input.extra || {}),
-  };
+  } as JsonObject;
 }
 
 export function resolveRuntimeTrace(): ConversationRuntimeTrace | undefined {

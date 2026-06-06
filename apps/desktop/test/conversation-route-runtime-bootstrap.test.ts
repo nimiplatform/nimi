@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type {
-  RuntimeRouteBinding,
-  RuntimeRouteOptionsSnapshot,
+  NimiRuntimeRouteBinding,
+  NimiRuntimeRouteHealthInput,
+  NimiRuntimeRouteOptionsSnapshot,
 } from '@nimiplatform/sdk/runtime';
 import {
   buildConversationCapabilityProjection,
@@ -20,7 +21,7 @@ function encodeRouteDescribePayload(payload: unknown): string {
   return Buffer.from(JSON.stringify(payload), 'utf8').toString('base64');
 }
 
-const selectedLocalBinding: RuntimeRouteBinding = {
+const selectedLocalBinding: NimiRuntimeRouteBinding = {
   source: 'local',
   connectorId: '',
   model: 'local/local-import/gemma-4-26B-A4B-it-Q8_0',
@@ -33,7 +34,7 @@ const selectedLocalBinding: RuntimeRouteBinding = {
   goRuntimeStatus: 'installed',
 };
 
-function createSnapshot(selected: RuntimeRouteBinding): RuntimeRouteOptionsSnapshot {
+function createSnapshot(selected: NimiRuntimeRouteBinding): NimiRuntimeRouteOptionsSnapshot {
   return {
     capability: 'text.generate',
     selected,
@@ -56,12 +57,17 @@ function createSnapshot(selected: RuntimeRouteBinding): RuntimeRouteOptionsSnaps
 }
 
 test('desktop bootstrap route runtime resolves local import text routes through runtime describe metadata', async () => {
-  let capturedHealthInput: Record<string, unknown> | null = null;
-  let capturedScenarioRequest: Record<string, unknown> | null = null;
+  const captured: {
+    healthInput: NimiRuntimeRouteHealthInput | null;
+    scenarioRequest: Record<string, unknown> | null;
+  } = {
+    healthInput: null,
+    scenarioRequest: null,
+  };
   const routeRuntime = createDesktopConversationCapabilityRouteRuntime({
     loadRuntimeRouteOptions: async () => createSnapshot(selectedLocalBinding),
     checkRuntimeRouteHealth: async (input) => {
-      capturedHealthInput = input as Record<string, unknown>;
+      captured.healthInput = input;
       return {
         provider: 'llama',
         endpoint: null,
@@ -85,10 +91,10 @@ test('desktop bootstrap route runtime resolves local import text routes through 
       appId: 'nimi.desktop',
       ai: {
         executeScenario: async (request: unknown, options: unknown) => {
-          capturedScenarioRequest = request as Record<string, unknown>;
+          captured.scenarioRequest = request as Record<string, unknown>;
           const extensionObserver = (options as {
-            _responseMetadataObserver?: (metadata: Record<string, string>) => void;
-          })._responseMetadataObserver;
+            responseMetadataObserver?: (metadata: Record<string, string>) => void;
+          }).responseMetadataObserver;
           extensionObserver?.({
             'x-nimi-route-describe-result': encodeRouteDescribePayload({
               capability: 'text.generate',
@@ -138,8 +144,8 @@ test('desktop bootstrap route runtime resolves local import text routes through 
   assert.equal(projection.reasonCode, null);
   assert.equal(projection.resolvedBinding?.resolvedBindingRef, 'local:text.generate:llama:01KLOCALGEMMA');
   assert.equal(projection.resolvedBinding?.modelId, 'local-import/gemma-4-26B-A4B-it-Q8_0');
-  const healthInput = capturedHealthInput as Record<string, unknown> | null;
-  const scenarioRequest = capturedScenarioRequest as Record<string, unknown> | null;
+  const healthInput = captured.healthInput;
+  const scenarioRequest = captured.scenarioRequest;
   assert.ok(healthInput);
   assert.ok(scenarioRequest);
   assert.equal(healthInput.localModelId, '01KLOCALGEMMA');
@@ -151,7 +157,7 @@ test('desktop bootstrap route runtime resolves local import text routes through 
 });
 
 test('desktop bootstrap route runtime does not hydrate a selected local binding from a different local model', async () => {
-  const otherLocalBinding: RuntimeRouteBinding = {
+  const otherLocalBinding: NimiRuntimeRouteBinding = {
     source: 'local',
     connectorId: '',
     model: 'local/local-import/other-model',

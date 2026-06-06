@@ -10,14 +10,17 @@ import type { AgentLocalTargetSnapshot, AgentLocalThreadBundle, AgentLocalThread
 import type { AgentRuntimeConversationSummary } from './chat-agent-runtime-conversation-summaries';
 import type { InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 import type { RouteModelPickerSelection } from '@nimiplatform/kit/features/model-picker';
-import type { AISchedulingJudgement } from '@nimiplatform/sdk/runtime';
+import type { NimiAISchedulingJudgement } from '@nimiplatform/sdk/ai';
 import type { AgentConversationSelection } from './chat-shell-types';
 import type { AgentHostFlowFooterState } from './chat-agent-shell-host-flow';
 import type { AgentTurnLifecycleState } from './chat-agent-shell-lifecycle';
 import type { ChatThinkingPreference } from './chat-shared-thinking';
 import type { StreamState } from '../turns/stream-controller';
 import type { AgentChatExperienceSettings } from './chat-settings-storage';
-import type { RuntimeAgentInspectEventSummary, RuntimeAgentInspectSnapshot } from '@renderer/infra/runtime-agent-inspect';
+import type {
+  NimiRuntimeAgentInspectEventSummary,
+  NimiRuntimeAgentInspectSnapshot,
+} from '@renderer/infra/runtime-agent-inspect';
 import type { AgentVoiceSessionShellState } from './chat-agent-voice-session';
 import type { PendingAttachment } from '../turns/turn-input-attachments';
 
@@ -43,7 +46,7 @@ export type UseAgentConversationPresentationInput = {
   onRefreshInspect: () => void;
   onUpdateRuntimeState: (input: { statusText: string; worldId: string; userId: string }) => void;
   onUpdateAutonomyConfig: (input: { mode: string; dailyTokenBudget: string; maxTokensPerHook: string }) => void;
-  recentRuntimeEvents: readonly RuntimeAgentInspectEventSummary[];
+  recentRuntimeEvents: readonly NimiRuntimeAgentInspectEventSummary[];
   handleSubmit: (input: { text: string; attachments: readonly PendingAttachment[] }) => Promise<void>;
   hostFeedback: InlineFeedbackState | null;
   initialModelSelection?: Partial<RouteModelPickerSelection>;
@@ -58,9 +61,9 @@ export type UseAgentConversationPresentationInput = {
   renderMessageAccessory?: CanonicalMessageAccessorySlot;
   renderMessageContent: CanonicalMessageContentSlot;
   routeReady: boolean;
-  runtimeInspect: RuntimeAgentInspectSnapshot | null;
+  runtimeInspect: NimiRuntimeAgentInspectSnapshot | null;
   runtimeInspectLoading: boolean;
-  schedulingJudgement: AISchedulingJudgement | null;
+  schedulingJudgement: NimiAISchedulingJudgement | null;
   selectedTargetId: string | null;
   behaviorSettings: AgentChatExperienceSettings;
   setBehaviorSettings: (value: AgentChatExperienceSettings) => void;

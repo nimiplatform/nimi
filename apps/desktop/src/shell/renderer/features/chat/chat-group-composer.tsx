@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '@nimiplatform/kit/ui';
 import { ConversationComposerShell } from '@nimiplatform/kit/features/chat';
 import { useTranslation } from 'react-i18next';
-import type { RealmModel } from '@nimiplatform/sdk/realm';
+import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 
 type GroupParticipantDto = RealmModel<'GroupParticipantDto'>;
 

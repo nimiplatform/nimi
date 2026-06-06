@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { asNimiError } from '@nimiplatform/sdk/runtime';
+import { asNimiError } from '@nimiplatform/sdk/types';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 import { toErrorMessage } from './chat-agent-shell-core';

@@ -1,4 +1,4 @@
-import type { AIConfig } from './conversation-capability';
+import type { NimiAIConfig } from './conversation-capability';
 import { STREAM_TEXT_TOTAL_TIMEOUT_MS } from '../turns/stream-controller';
 
 function resolvePositiveFiniteTimeoutMs(value: unknown): number | null {
@@ -10,7 +10,7 @@ function resolvePositiveFiniteTimeoutMs(value: unknown): number | null {
   return Number.isFinite(numeric) && numeric > 0 ? numeric : null;
 }
 
-export function resolveAgentTurnTotalTimeoutMs(aiConfig: AIConfig): number {
+export function resolveAgentTurnTotalTimeoutMs(aiConfig: NimiAIConfig): number {
   const imageCapabilityParams = aiConfig.capabilities.selectedParams['image.generate'] as Record<string, unknown> | null | undefined;
   const imageTimeoutMs = resolvePositiveFiniteTimeoutMs(imageCapabilityParams?.timeoutMs);
   if (!imageTimeoutMs) {

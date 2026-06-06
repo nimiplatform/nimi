@@ -1,9 +1,13 @@
 import { useCallback, useEffect, useMemo, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { AISchedulingJudgement } from '@nimiplatform/sdk/runtime';
+import type {
+  NimiAICapabilityRequirementDeclaration,
+  NimiAISchedulingJudgement,
+  NimiAIScopeRef,
+} from '@nimiplatform/sdk/ai';
 import {
-  getRuntimeRouteCapabilityProjectionIssueKind,
-  isRuntimeRouteCapabilityProjectionReady,
+  getNimiRuntimeRouteCapabilityProjectionIssueKind,
+  isNimiRuntimeRouteCapabilityProjectionReady,
 } from '@nimiplatform/sdk/runtime';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { getDesktopAIConfigService } from '@renderer/app-shell/providers/desktop-ai-config-service';
@@ -12,7 +16,6 @@ import {
   ensureAccountProfileLibraryLoaded,
   getCachedAccountProfileLibraryProfiles,
 } from '../runtime-config/runtime-config-profile-library';
-import { getDesktopRouteModelPickerProvider } from '../runtime-config/desktop-route-model-picker-provider';
 import { useSchedulingFeasibility, schedulingDetailKeyForJudgement, schedulingTitleKey } from './chat-shared-execution-scheduling-guard';
 import type {
   AppModelConfigSurface,
@@ -57,7 +60,7 @@ export function DisabledSettingsNote(props: { label: string }) {
   return <DisabledConfigNote label={props.label} />;
 }
 
-export function SchedulingWarningBanner(props: { judgement: AISchedulingJudgement }) {
+export function SchedulingWarningBanner(props: { judgement: NimiAISchedulingJudgement }) {
   const { t } = useTranslation();
   const { detail, occupancy, resourceWarnings, state } = props.judgement;
 
@@ -133,6 +136,20 @@ const CHAT_ENABLED_CAPABILITIES = [
   'text.embed',
 ] as const;
 
+function chatRequirementDeclaration(scopeRef: NimiAIScopeRef): NimiAICapabilityRequirementDeclaration {
+  return {
+    requirementId: `desktop.chat.settings:${scopeRef.surfaceId ?? 'default'}`,
+    scopeRef,
+    requiredSlices: CHAT_ENABLED_CAPABILITIES.map((capability) => ({
+      requirementSliceId: `chat:${capability}`,
+      capability,
+      profileSliceRef: `chat:${capability}`,
+      readinessPolicy: 'required',
+    })),
+    setupProjectionPolicy: 'sdk-ai-config-setup-projection',
+  };
+}
+
 function toProjectionStatus(
   t: ReturnType<typeof useTranslation>['t'],
   projection: ConversationCapabilityProjection | null | undefined,
@@ -141,7 +158,7 @@ function toProjectionStatus(
     return null;
   }
   const hasBinding = Boolean(projection.selectedBinding);
-  if (isRuntimeRouteCapabilityProjectionReady(projection)) {
+  if (isNimiRuntimeRouteCapabilityProjectionReady(projection)) {
     return {
       supported: true,
       tone: 'ready',
@@ -150,7 +167,7 @@ function toProjectionStatus(
       detail: null,
     };
   }
-  switch (getRuntimeRouteCapabilityProjectionIssueKind(projection)) {
+  switch (getNimiRuntimeRouteCapabilityProjectionIssueKind(projection)) {
     case 'needs_selection':
       return {
         supported: false,
@@ -282,13 +299,12 @@ function AiModeSettings(props: {
   const surface: AppModelConfigSurface = useMemo(() => ({
     scopeRef: aiConfig.scopeRef,
     aiConfigService,
-    enabledCapabilities: CHAT_ENABLED_CAPABILITIES,
-    providerResolver: (routeCapability: string) => getDesktopRouteModelPickerProvider(routeCapability),
+    requirementDeclaration: chatRequirementDeclaration(aiConfig.scopeRef),
+    providerResolver: () => null,
     projectionResolver: (capabilityId: string) => toProjectionStatus(
       t,
       projectionByCapability[capabilityId as keyof typeof projectionByCapability] || null,
     ),
-    runtimeReady: true,
     localAssetSource: {
       list: () => assetsQuery.data || [],
       loading: assetsQuery.isLoading,

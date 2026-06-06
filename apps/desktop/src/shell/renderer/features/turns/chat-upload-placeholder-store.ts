@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import { createNimiClientId } from '@nimiplatform/sdk/runtime';
+import { createNimiClientId } from '@nimiplatform/sdk';
 
 export type ChatUploadPlaceholder = {
   id: string;

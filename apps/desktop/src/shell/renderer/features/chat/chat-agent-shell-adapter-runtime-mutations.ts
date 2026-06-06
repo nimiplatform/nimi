@@ -4,7 +4,7 @@ import { confirmDialog } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { AgentLocalTargetSnapshot } from '@renderer/bridge/runtime-bridge/types';
 import type { InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 import type { CanonicalMemoryBankStatus, createRuntimeAgentMemoryAdapter } from '@renderer/infra/runtime-agent-memory';
-import type { createRuntimeAgentInspectAdapter, RuntimeAgentInspectSnapshot } from '@renderer/infra/runtime-agent-inspect';
+import type { createRuntimeAgentInspectAdapter, NimiRuntimeAgentInspectSnapshot } from '@renderer/infra/runtime-agent-inspect';
 
 type RuntimeAgentMemoryAdapter = ReturnType<typeof createRuntimeAgentMemoryAdapter>;
 type RuntimeAgentInspectAdapter = ReturnType<typeof createRuntimeAgentInspectAdapter>;
@@ -32,7 +32,7 @@ type AgentConversationRuntimeMutationInput = {
   reportHostError: RuntimeHostErrorReporter;
   runtimeAgentInspect: RuntimeAgentInspectAdapter;
   runtimeAgentMemory: RuntimeAgentMemoryAdapter;
-  runtimeInspect: RuntimeAgentInspectSnapshot | null;
+  runtimeInspect: NimiRuntimeAgentInspectSnapshot | null;
   setCanonicalMemoryStatus: Dispatch<SetStateAction<CanonicalMemoryBankStatus | null>>;
   setHostFeedback: Dispatch<SetStateAction<InlineFeedbackState | null>>;
   t: TFunction;

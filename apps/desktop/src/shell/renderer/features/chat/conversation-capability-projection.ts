@@ -59,7 +59,7 @@ let activeScopeUnsubscribe: (() => void) | null = null;
  * Unsubscribes from any previous scope first.
  *
  * When the active scope is `null` (Human / Group mode bind no built-in chat
- * AIConfig scope) no subscription is bound — the chat path holds no generic
+ * NimiAIConfig scope) no subscription is bound — the chat path holds no generic
  * fallback scope subscription.
  */
 function bindSubscriptionForScope(): void {
@@ -78,8 +78,8 @@ function bindSubscriptionForScope(): void {
 }
 
 /**
- * Bind projection refresh to the formal AIConfig surface subscription (S-AICONF-006).
- * When AIConfig changes through any surface write path (apply / update / setCapabilityBinding),
+ * Bind projection refresh to the formal NimiAIConfig surface subscription (S-AICONF-006).
+ * When NimiAIConfig changes through any surface write path (apply / update / setCapabilityBinding),
  * the subscription fires and triggers projection rebuild.
  *
  * T3-1: also listens for active chat scope changes and rebinds the subscription

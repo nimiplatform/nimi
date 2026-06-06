@@ -4,7 +4,7 @@ import type {
   ConversationTurnInput,
 } from '@nimiplatform/kit/features/chat/headless';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
-import type { AgentResolvedMessageActionEnvelope } from '@nimiplatform/sdk/runtime';
+import type { NimiRuntimeAgentResolvedMessageActionEnvelope } from '@nimiplatform/sdk/runtime';
 import { feedStreamEvent } from '../turns/stream-controller';
 import {
   AGENT_RUNTIME_CHAT_PROVIDER_CAPABILITIES,
@@ -26,7 +26,7 @@ type AgentRuntimeChatProviderMetadata = {
   realmAgentId: string;
   localAgentRef: string;
   conversationAnchorId: string;
-  textExecutionSnapshot: import('./conversation-capability').AISnapshot | null;
+  textExecutionSnapshot: import('./conversation-capability').NimiAISnapshot | null;
   reasoningPreference: import('./chat-shared-thinking').ChatThinkingPreference;
   textMaxOutputTokensRequested: number | null;
 };
@@ -67,7 +67,7 @@ function isAbortLikeError(error: unknown): boolean {
 
 function textMessageStateFromEnvelope(input: {
   turnId: string;
-  envelope: AgentResolvedMessageActionEnvelope;
+  envelope: NimiRuntimeAgentResolvedMessageActionEnvelope;
   metadataJson: AgentLocalTextMessageState['metadataJson'];
 }): AgentLocalTextMessageState {
   return {
@@ -78,7 +78,7 @@ function textMessageStateFromEnvelope(input: {
   };
 }
 
-function outputTextFromEnvelope(envelope: AgentResolvedMessageActionEnvelope): string {
+function outputTextFromEnvelope(envelope: NimiRuntimeAgentResolvedMessageActionEnvelope): string {
   return normalizeText(envelope.message.text);
 }
 

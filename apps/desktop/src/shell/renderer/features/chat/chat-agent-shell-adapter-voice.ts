@@ -10,9 +10,9 @@ import type { TFunction } from 'i18next';
 import type { AgentLocalMessageRecord } from '@renderer/bridge/runtime-bridge/types';
 import { cancelStream } from '../turns/stream-controller';
 import {
-  createAISnapshot,
+  createNimiConversationAISnapshot,
   type AgentEffectiveCapabilityResolution,
-  type AIConfig,
+  type NimiAIConfig,
   type ConversationCapabilityProjection,
 } from './conversation-capability';
 import {
@@ -41,7 +41,7 @@ type UseAgentConversationVoiceSessionInput = {
   activeTarget: { localAgentRef: string } | null;
   activeConversationAnchorId: string | null;
   activeThreadId: string | null;
-  aiConfig: AIConfig;
+  aiConfig: NimiAIConfig;
   agentResolution: AgentEffectiveCapabilityResolution | null;
   bundleMessages: readonly AgentLocalMessageRecord[] | undefined;
   applyVoiceTranscriptComposerText: (input: { text: string; conversationAnchorId: string }) => Promise<void>;
@@ -165,7 +165,7 @@ export function useAgentConversationVoiceSession(
       try {
         const recording = await recordingPromise;
         const transcribeExecutionSnapshot = input.transcribeCapabilityProjection
-          ? createAISnapshot({
+          ? createNimiConversationAISnapshot({
             config: input.aiConfig,
             capability: 'audio.transcribe',
             projection: input.transcribeCapabilityProjection,
@@ -355,7 +355,7 @@ export function useAgentConversationVoiceSession(
         try {
           const recording = await captureSession.stop();
           const transcribeExecutionSnapshot = input.transcribeCapabilityProjection
-            ? createAISnapshot({
+            ? createNimiConversationAISnapshot({
               config: input.aiConfig,
               capability: 'audio.transcribe',
               projection: input.transcribeCapabilityProjection,

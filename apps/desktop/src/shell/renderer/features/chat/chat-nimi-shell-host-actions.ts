@@ -14,13 +14,13 @@ import {
 } from '@renderer/bridge/runtime-bridge/types';
 import { chatAiStoreClient } from '@renderer/bridge/runtime-bridge/chat-ai-store';
 import {
-  appendAppAiSessionReasoningDelta,
-  appendAppAiSessionTextDelta,
-  completeAppAiSessionText,
-  createAppAiSessionTextAccumulator,
-  failAppAiSessionText,
-} from '@nimiplatform/sdk/ai-app';
-import { createNimiClientId } from '@nimiplatform/sdk/runtime';
+  appendNimiConversationReasoningDelta,
+  appendNimiConversationTextDelta,
+  completeNimiConversationText,
+  createNimiConversationTextAccumulator,
+  failNimiConversationText,
+} from '@nimiplatform/sdk/features/conversation';
+import { createNimiClientId } from '@nimiplatform/sdk';
 import { toChatAiRuntimeError } from './chat-nimi-runtime';
 import {
   AI_NEW_CONVERSATION_TITLE,
@@ -28,8 +28,8 @@ import {
   createPlainTextMessageContent,
   resolveThreadTitleAfterFirstSend,
 } from './chat-nimi-thread-model';
-import type { AIConfig } from './conversation-capability';
-import { resolveAIConfigRuntimeSchedulingTargetForCapability } from '@renderer/app-shell/providers/desktop-ai-config-service';
+import type { NimiAIConfig } from './conversation-capability';
+import { resolveNimiAIConfigRuntimeSchedulingTargetForCapability } from '@renderer/app-shell/providers/desktop-ai-config-service';
 import { probeExecutionSchedulingGuard } from './chat-shared-execution-scheduling-guard';
 import {
   feedStreamEvent,
@@ -65,7 +65,7 @@ type AiRunTurn = (input: {
 
 type UseAiConversationHostActionsInput = {
   activeThreadId: string | null;
-  aiConfig: AIConfig;
+  aiConfig: NimiAIConfig;
   bundleMessages: readonly ChatAiMessageRecord[] | undefined;
   currentDraftTextRef: { current: string };
   ephemeralThread: ChatAiThreadRecord | null;
@@ -87,10 +87,10 @@ type UseAiConversationHostActionsInput = {
 };
 
 export async function assertAiSubmitSchedulingAllowed(input: {
-  aiConfig: AIConfig;
+  aiConfig: NimiAIConfig;
   t: TFunction;
 }): Promise<void> {
-  const target = resolveAIConfigRuntimeSchedulingTargetForCapability(input.aiConfig, 'text.generate');
+  const target = resolveNimiAIConfigRuntimeSchedulingTargetForCapability(input.aiConfig, 'text.generate');
   const schedulingGuard = await probeExecutionSchedulingGuard({
     scopeRef: input.aiConfig.scopeRef,
     target,
@@ -288,7 +288,7 @@ export function useAiConversationHostActions(
 
     input.currentDraftTextRef.current = '';
     input.setSubmittingThreadId(effectiveThreadId);
-    let sessionTurn = createAppAiSessionTextAccumulator();
+    let sessionTurn = createNimiConversationTextAccumulator();
     let runtimeTraceId: string | null = null;
     let promptTraceId = '';
     let userMessagePersisted = false;
@@ -366,21 +366,21 @@ export function useAiConversationHostActions(
         matchConversationTurnEvent(event, {
           'turn-started': () => undefined,
           'reasoning-delta': (nextEvent) => {
-            sessionTurn = appendAppAiSessionReasoningDelta(sessionTurn, nextEvent.textDelta);
+            sessionTurn = appendNimiConversationReasoningDelta(sessionTurn, nextEvent.textDelta);
             feedStreamEvent(effectiveThreadId, {
               type: 'reasoning_delta',
               textDelta: nextEvent.textDelta,
             });
           },
           'text-delta': (nextEvent) => {
-            sessionTurn = appendAppAiSessionTextDelta(sessionTurn, nextEvent.textDelta);
+            sessionTurn = appendNimiConversationTextDelta(sessionTurn, nextEvent.textDelta);
             feedStreamEvent(effectiveThreadId, {
               type: 'text_delta',
               textDelta: nextEvent.textDelta,
             });
           },
           'turn-completed': (nextEvent) => {
-            sessionTurn = completeAppAiSessionText(sessionTurn, {
+            sessionTurn = completeNimiConversationText(sessionTurn, {
               text: nextEvent.outputText,
               reasoningText: normalizeReasoningText(nextEvent.reasoningText),
               finishReason: nextEvent.finishReason,
@@ -396,7 +396,7 @@ export function useAiConversationHostActions(
             });
           },
           'turn-failed': (nextEvent) => {
-            sessionTurn = failAppAiSessionText(sessionTurn, {
+            sessionTurn = failNimiConversationText(sessionTurn, {
               error: nextEvent.error,
               text: nextEvent.outputText,
               reasoningText: normalizeReasoningText(nextEvent.reasoningText),

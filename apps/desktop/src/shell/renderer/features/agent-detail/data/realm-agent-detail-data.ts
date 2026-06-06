@@ -1,13 +1,12 @@
 import {
-  loadRealmAgentDetails,
-  type RealmAgentProfileApiCaller,
-  type RealmAgentProfileErrorEmitter,
+  loadNimiRealmAgentDetails,
 } from '@nimiplatform/sdk/realm';
 import {
   isRealmOfflineErrorLike as isRealmOfflineError,
   type JsonObject,
 } from '@nimiplatform/sdk/types';
-import { callRealmApi, emitRealmDataError } from '@renderer/infra/realm/realm-api';
+import { emitRealmDataError, type RealmDataErrorEmitter } from '@renderer/infra/realm/realm-api';
+import { getDesktopRealm } from '@renderer/infra/sdk/desktop-nimi-client-session';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { getOfflineCacheManager } from '@renderer/infra/offline/cache-manager';
 import { getOfflineCoordinator } from '@renderer/infra/offline/coordinator';
@@ -29,7 +28,7 @@ function cacheSet(key: string, value: unknown, ttlMs: number) {
 }
 
 async function applyAgentProfileReadFilters(input: {
-  emitRealmAgentDetailError: RealmAgentProfileErrorEmitter;
+  emitRealmAgentDetailError: RealmDataErrorEmitter;
   viewerUserId?: string;
   worldId?: string;
   profile: JsonObject;
@@ -47,8 +46,7 @@ function toNonEmptyString(value: unknown): string {
 }
 
 export async function loadAgentDetails(
-  callApi: RealmAgentProfileApiCaller,
-  emitRealmAgentDetailError: RealmAgentProfileErrorEmitter,
+  emitRealmAgentDetailError: RealmDataErrorEmitter,
   agentIdentifier: string,
   context?: {
     viewerUserId?: string;
@@ -69,11 +67,7 @@ export async function loadAgentDetails(
       });
     }
 
-    const enrichedProfile = await loadRealmAgentDetails(
-      callApi,
-      () => undefined,
-      normalizedIdentifier,
-    );
+    const enrichedProfile = await loadNimiRealmAgentDetails(getDesktopRealm(), normalizedIdentifier);
 
     const resolvedId = toNonEmptyString(enrichedProfile.id);
     if (resolvedId) {
@@ -100,7 +94,7 @@ export async function loadAgentDetails(
     });
   } catch (error) {
     if (isRealmOfflineError(error)) {
-      const cached = await (await getOfflineCacheManager()).getCachedAgentMetadata(`agent-profile:${normalizedIdentifier}`);
+      const cached = await (await getOfflineCacheManager()).getCachedAgentMetadata<JsonObject>(`agent-profile:${normalizedIdentifier}`);
       if (cached) {
         getOfflineCoordinator().markCacheFallbackUsed();
         return applyAgentProfileReadFilters({
@@ -118,7 +112,7 @@ export async function loadAgentDetails(
 
 export const realmAgentDetailData = {
   loadAgentDetails: (agentIdentifier: string) =>
-    loadAgentDetails(callRealmApi, emitRealmDataError, agentIdentifier, {
+    loadAgentDetails(emitRealmDataError, agentIdentifier, {
       viewerUserId: String(useAppStore.getState().auth.user?.id || '').trim() || undefined,
     }),
 };

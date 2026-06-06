@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { ConversationAnchorStatus, Timestamp } from '@nimiplatform/sdk/runtime';
+import { ConversationAnchorStatus } from '@nimiplatform/sdk/runtime/generated';
 import type { AgentLocalTargetSnapshot } from '../src/shell/renderer/bridge/runtime-bridge/types.js';
 import { toAgentRuntimeConversationSummary } from '../src/shell/renderer/features/chat/chat-agent-runtime-conversation-summaries.js';
 
@@ -56,7 +56,7 @@ test('Agent Chat store cutover is closed by Runtime and SDK replacement coverage
 test('Runtime admits Agent Chat conversation summaries before store cutover implementation', () => {
   const runtimeSpec = readWorkspaceFile('.nimi/spec/runtime/kernel/runtime-agent-service-contract.md');
   const rpcMethods = readWorkspaceFile('.nimi/spec/runtime/kernel/tables/rpc-methods.yaml');
-  const sdkMethods = readWorkspaceFile('.nimi/spec/sdk/kernel/tables/runtime-method-groups.yaml');
+  const sdkMethods = readWorkspaceFile('.nimi/spec/sdks/kernel/tables/runtime-method-groups.yaml');
 
   assert.match(runtimeSpec, /K-AGCORE-006b/);
   assert.match(runtimeSpec, /ListAgentConversationSummaries/);
@@ -80,9 +80,14 @@ test('Desktop wires Runtime Agent conversation summaries as read-only projection
     'apps/desktop/src/shell/renderer/features/chat/chat-agent-shell-adapter-state.ts',
   );
 
-  assert.match(adapter, /runtime\.agent\.anchors\.listSummaries/);
-  assert.match(adapter, /ConversationAnchorStatus\.ACTIVE/);
+  assert.match(adapter, /createNimiRuntimeAgentConsumeClient/);
+  assert.match(adapter, /getDesktopRuntime\(\)\.agents/);
+  assert.match(adapter, /getDesktopAppId\(\)/);
+  assert.match(adapter, /anchors\.listSummaries/);
+  assert.match(adapter, /statusFilter:\s*\['active'\]/);
   assert.match(adapter, /export type AgentRuntimeConversationSummary/);
+  assert.doesNotMatch(adapter, /getPlatformClient/);
+  assert.doesNotMatch(adapter, /runtime\.agent\.anchors\.listSummaries/);
   assert.doesNotMatch(adapter, /chatAgentStoreClient/);
   assert.doesNotMatch(adapter, /commitTurnResult|getThreadBundle|createThread|putDraft|deleteThread/);
 
@@ -141,15 +146,15 @@ test('Runtime Agent conversation summary adapter keeps Runtime anchor identity e
       localAgentRef: 'local-agent:owner-1:agent-1',
       ownerUserId: 'owner-1',
       realmAgentId: 'agent-1',
-      createdAt: Timestamp.create({ seconds: '1700000000', nanos: 0 }),
-      updatedAt: Timestamp.create({ seconds: '1700000001', nanos: 250000000 }),
+      createdAt: { seconds: '1700000000', nanos: 0 },
+      updatedAt: { seconds: '1700000001', nanos: 250000000 },
     },
     title: 'Runtime title',
     lastMessageRole: 'assistant',
     lastMessageText: 'Hello from Runtime',
     lastMessageId: 'msg-summary',
     transcriptMessageCount: 2,
-    updatedAt: Timestamp.create({ seconds: '1700000002', nanos: 500000000 }),
+    updatedAt: { seconds: '1700000002', nanos: 500000000 },
   });
 
   assert.equal(summary?.conversationAnchorId, 'anchor-1');

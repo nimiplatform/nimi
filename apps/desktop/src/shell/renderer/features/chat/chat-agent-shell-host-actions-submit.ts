@@ -3,13 +3,13 @@ import type {
   AgentLocalThreadRecord,
   AgentLocalThreadSummary,
 } from '@renderer/bridge/runtime-bridge/types';
-import { createNimiClientId } from '@nimiplatform/sdk/runtime';
+import { createNimiClientId } from '@nimiplatform/sdk';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import {
   peekDesktopAISchedulingForEvidence,
   recordDesktopAISnapshot,
-  resolveAIConfigRuntimeSchedulingTargetForCapability,
+  resolveNimiAIConfigRuntimeSchedulingTargetForCapability,
 } from '@renderer/app-shell/providers/desktop-ai-config-service';
 import {
   createInitialAgentSubmitDriverState,
@@ -23,7 +23,7 @@ import {
   toChatAgentRuntimeError,
 } from './chat-agent-runtime';
 import {
-  createAISnapshot,
+  createNimiConversationAISnapshot,
 } from './conversation-capability';
 import {
   refreshAgentEffectiveCapabilityResolution,
@@ -276,9 +276,9 @@ export async function submitAgentConversationTurn(input: {
 
     const runtimeEvidence = await peekDesktopAISchedulingForEvidence({
       scopeRef: input.hostInput.aiConfig.scopeRef,
-      target: resolveAIConfigRuntimeSchedulingTargetForCapability(input.hostInput.aiConfig, 'text.generate'),
+      target: resolveNimiAIConfigRuntimeSchedulingTargetForCapability(input.hostInput.aiConfig, 'text.generate'),
     });
-    const textExecutionSnapshot = createAISnapshot({
+    const textExecutionSnapshot = createNimiConversationAISnapshot({
       config: input.hostInput.aiConfig,
       capability: 'text.generate',
       projection: refreshedAgentResolution.textProjection!,

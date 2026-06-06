@@ -1,14 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
-import { getPlatformClient } from '@nimiplatform/sdk';
-import {
-  AvatarDebugProbeKind,
-  AvatarDebugRequestedBy,
-  type AvatarDebugProbeResultEnvelope,
-  type AvatarDebugReplayRef,
-  type GetAvatarDebugSnapshotResponse,
-  type RuntimeCompanionParticipationProjection,
-  type RuntimeCompanionParticipationSurfaceKind,
-} from '@nimiplatform/sdk/runtime';
+import { createNimiRuntimeAgentConsumeClient, type NimiRuntimeAgentCompanionParticipationProjection, type NimiRuntimeAgentCompanionParticipationSurfaceKind } from '@nimiplatform/sdk/runtime';
+import { AvatarDebugProbeKind, AvatarDebugRequestedBy, type AvatarDebugProbeResultEnvelope, type AvatarDebugReplayRef, type GetAvatarDebugSnapshotResponse } from '@nimiplatform/sdk/runtime/generated';
+import { getDesktopAppId, getDesktopRuntime } from '@renderer/infra/sdk/desktop-nimi-client-session';
 import type { UseAgentConversationPresentationInput } from './chat-agent-shell-presentation-types';
 import type { AgentCenterAvatarAssetModule } from './chat-agent-center-avatar-config-types';
 import {
@@ -53,9 +46,9 @@ export async function requestDesktopCompanionParticipationProjection(input: {
   realmAgentId: string;
   localAgentRef: string;
   conversationAnchorId: string;
-  surfaceKind?: RuntimeCompanionParticipationSurfaceKind;
-}): Promise<RuntimeCompanionParticipationProjection> {
-  return getPlatformClient().runtime.companionParticipation.getProjection(
+  surfaceKind?: NimiRuntimeAgentCompanionParticipationSurfaceKind;
+}): Promise<NimiRuntimeAgentCompanionParticipationProjection> {
+  return createDesktopAvatarDebugRuntimeAgentClient().companionParticipation.getProjection(
     buildDesktopCompanionParticipationProjectionRequest(input),
   );
 }
@@ -67,7 +60,7 @@ export async function requestAvatarDebugWorkbenchProbe(input: {
   conversationAnchorId: string;
   probeKind: AvatarDebugProbeKind;
 }) {
-  return getPlatformClient().runtime.avatarDebug.requestProbe({
+  return createDesktopAvatarDebugRuntimeAgentClient().avatarDebug.requestProbe({
     ownerUserId: input.ownerUserId,
     realmAgentId: input.realmAgentId,
     localAgentRef: input.localAgentRef,
@@ -78,12 +71,19 @@ export async function requestAvatarDebugWorkbenchProbe(input: {
   });
 }
 
+function createDesktopAvatarDebugRuntimeAgentClient() {
+  return createNimiRuntimeAgentConsumeClient({
+    runtime: { agents: getDesktopRuntime().agents },
+    runtimeAppId: getDesktopAppId(),
+  });
+}
+
 export function AgentCenterAvatarDebugWorkbench(props: AgentCenterAvatarDebugWorkbenchProps) {
   const { input, avatarAssetConfig, avatarAssetValid, avatarAssetChecking, validationMessage } = props;
   const [snapshot, setSnapshot] = useState<GetAvatarDebugSnapshotResponse | null>(null);
   const [latestResult, setLatestResult] = useState<AvatarDebugProbeResultEnvelope | null>(null);
   const [latestReplay, setLatestReplay] = useState<AvatarDebugReplayRef | null>(null);
-  const [latestParticipationProjection, setLatestParticipationProjection] = useState<RuntimeCompanionParticipationProjection | null>(null);
+  const [latestParticipationProjection, setLatestParticipationProjection] = useState<NimiRuntimeAgentCompanionParticipationProjection | null>(null);
   const [pendingKind, setPendingKind] = useState<AvatarDebugProbeKind | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -115,7 +115,8 @@ export function AgentCenterAvatarDebugWorkbench(props: AgentCenterAvatarDebugWor
     setPendingKind(AvatarDebugProbeKind.UNSPECIFIED);
     setErrorMessage(null);
     try {
-      const nextSnapshot = await getPlatformClient().runtime.avatarDebug.snapshot({
+      const runtimeAgent = createDesktopAvatarDebugRuntimeAgentClient();
+      const nextSnapshot = await runtimeAgent.avatarDebug.snapshot({
         ownerUserId,
         realmAgentId,
         localAgentRef,
@@ -154,7 +155,7 @@ export function AgentCenterAvatarDebugWorkbench(props: AgentCenterAvatarDebugWor
       });
       setLatestResult(response.result || null);
       setLatestReplay(response.replayRef || null);
-      const nextSnapshot = await getPlatformClient().runtime.avatarDebug.snapshot({
+      const nextSnapshot = await createDesktopAvatarDebugRuntimeAgentClient().avatarDebug.snapshot({
         ownerUserId,
         realmAgentId,
         localAgentRef,
@@ -182,7 +183,7 @@ export function AgentCenterAvatarDebugWorkbench(props: AgentCenterAvatarDebugWor
     setPendingKind(AvatarDebugProbeKind.UNSPECIFIED);
     setErrorMessage(null);
     try {
-      const replay = await getPlatformClient().runtime.avatarDebug.getReplay({
+      const replay = await createDesktopAvatarDebugRuntimeAgentClient().avatarDebug.getReplay({
         ownerUserId,
         realmAgentId,
         localAgentRef,

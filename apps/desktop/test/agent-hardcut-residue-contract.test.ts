@@ -229,10 +229,11 @@ test('phase 3: AI adapter does not sync routeSnapshot to setConversationCapabili
     false,
     'adapter must not contain normalizeRuntimeRouteBindingSelectionKey',
   );
-  // Route summary/setup must use SelectionStore/projection, not routeSnapshot
+  // Route summary/setup must use the vNext capability projection, not routeSnapshot.
   assert.ok(
-    /selectedBinding:\s*selectedTextBinding/.test(adapterSource),
-    'AI adapter must derive setup/summary from selectedTextBinding (SelectionStore)',
+    /projection:\s*textCapabilityProjection/.test(adapterSource)
+      && /selectedBinding:\s*null/.test(adapterSource),
+    'AI adapter must derive setup/summary from the vNext text capability projection',
   );
 });
 

@@ -48,7 +48,7 @@ export function useChatTargetsForSidebar(
     queryKey: [...TARGETS_QUERY_KEY, authStatus],
     queryFn: async (): Promise<ReturnType<typeof toAgentFriendTargetsFromSocialSnapshot>> => {
       const snapshot = await realmSocialData.loadSocialSnapshot() as SocialSnapshot;
-      return toAgentFriendTargetsFromSocialSnapshot({ ...((snapshot as Record<string, unknown> | null) || {}), ownerUserId });
+      return toAgentFriendTargetsFromSocialSnapshot({ ...snapshot, ownerUserId });
     },
     enabled: authStatus === 'authenticated',
     staleTime: 30_000,

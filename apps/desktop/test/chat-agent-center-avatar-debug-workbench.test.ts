@@ -3,14 +3,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import test from 'node:test';
 
-import {
-  AvatarDebugProbeKind,
-  AvatarDebugReplayRedactionState,
-  AvatarDebugReplayVisibility,
-  AvatarDebugProbeStatus,
-  type AvatarDebugProbeResultEnvelope,
-  type AvatarDebugReplayRef,
-} from '@nimiplatform/sdk/runtime';
+import { AvatarDebugProbeKind, AvatarDebugReplayRedactionState, AvatarDebugReplayVisibility, AvatarDebugProbeStatus, type AvatarDebugProbeResultEnvelope, type AvatarDebugReplayRef } from '@nimiplatform/sdk/runtime/generated';
 import {
   AVATAR_DEBUG_WORKBENCH_PROBES,
   avatarDebugProbeFailClosedReason,
@@ -202,11 +195,20 @@ test('desktop companion participation presentation fails visible on Runtime refu
 
 test('avatar debug workbench is a SDK Runtime module consumer, not protected Runtime authority', () => {
   const source = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-center-avatar-debug-workbench.tsx');
+  const model = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-center-avatar-debug-workbench-model.ts');
 
-  assert.match(source, /runtime\.avatarDebug\.snapshot/);
-  assert.match(source, /runtime\.avatarDebug\.requestProbe/);
-  assert.match(source, /runtime\.avatarDebug\.getReplay/);
-  assert.match(source, /runtime\.companionParticipation\.getProjection/);
+  assert.match(source, /createNimiRuntimeAgentConsumeClient/);
+  assert.match(source, /getDesktopRuntime\(\)\.agents/);
+  assert.match(source, /getDesktopAppId\(\)/);
+  assert.match(source, /avatarDebug\.snapshot/);
+  assert.match(source, /avatarDebug\.requestProbe/);
+  assert.match(source, /avatarDebug\.getReplay/);
+  assert.match(source, /companionParticipation\.getProjection/);
+  assert.match(model, /NimiRuntimeAgentCompanionParticipationProjection/);
+  assert.doesNotMatch(model, /RuntimeCompanionParticipationProjection/);
+  assert.doesNotMatch(source, /getPlatformClient/);
+  assert.doesNotMatch(source, /runtime\.avatarDebug/);
+  assert.doesNotMatch(source, /runtime\.companionParticipation/);
   assert.doesNotMatch(source, /createRuntimeProtectedScopeHelper/);
   assert.doesNotMatch(source, /buildRuntimeAgentRequestContext/);
   assert.doesNotMatch(source, /getAvatarDebugSnapshot\(/);

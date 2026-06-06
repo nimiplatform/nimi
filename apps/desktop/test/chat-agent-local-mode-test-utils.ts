@@ -3,11 +3,21 @@ import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 import {
-  clearPlatformClient,
-  createPlatformClient } from '@nimiplatform/sdk';
-import { createNimiError,
-  toProtoStruct } from '@nimiplatform/sdk/runtime';
-import { ReasonCode } from '@nimiplatform/sdk/types';
+  fromNimiRuntimeProtoStruct,
+  toNimiRuntimeProtoStruct,
+  type NimiRuntimeAgentConsumeEvent,
+  type NimiRuntimeAgentMessage,
+  type NimiRuntimeAgentSessionSnapshotRequest,
+  type NimiRuntimeAgentTurnInterruptRequest,
+  type NimiRuntimeAgentTurnRequest,
+  type NimiRuntimeAgentTurnsModule,
+} from '@nimiplatform/sdk/runtime';
+import { createNimiError, ReasonCode, type JsonObject } from '@nimiplatform/sdk/types';
+import {
+  clearDesktopNimiClientSession,
+  setDesktopNimiClientSessionForTests,
+  type DesktopNimiClientSession,
+} from '../src/shell/renderer/infra/sdk/desktop-nimi-client-session.js';
 import {
   resetDesktopRuntimeRouteLocalWarmCacheForTests as resetRuntimeLocalModelWarmCacheForTests,
 } from '../src/shell/renderer/infra/runtime-route-host-access.js';
@@ -31,22 +41,279 @@ import {
 import type { AgentLocalThreadSummary } from '../src/shell/renderer/bridge/runtime-bridge/chat-agent-types.js';
 import {
   buildAgentEffectiveCapabilityResolution,
-  createAISnapshot,
+  createNimiConversationAISnapshot,
   } from '../src/shell/renderer/features/chat/conversation-capability.js';
 import {
-  createBuiltInChatAIScopeRef,
-  createEmptyAIConfig as createSdkEmptyAIConfig,
+  createNimiBuiltInChatAIScopeRef,
+  createEmptyNimiAIConfig as createSdkEmptyAIConfig,
 } from '@nimiplatform/sdk/ai';
-import { findRuntimeRouteModelProfile } from '@nimiplatform/sdk/runtime';
+import { findNimiRuntimeRouteModelProfile } from '@nimiplatform/sdk/runtime';
 
-const TEST_CHAT_SCOPE_REF = createBuiltInChatAIScopeRef('agent');
+const TEST_CHAT_SCOPE_REF = createNimiBuiltInChatAIScopeRef('agent');
 
-function createEmptyAIConfig() {
+function createEmptyNimiAIConfig() {
   return createSdkEmptyAIConfig(TEST_CHAT_SCOPE_REF);
 }
 
 function readWorkspaceFile(relativePath: string): string {
   return fs.readFileSync(path.join(import.meta.dirname, '..', relativePath), 'utf8');
+}
+
+function createDefaultDesktopTestRealm() {
+  return {
+    generated: {},
+  };
+}
+
+function createDefaultDesktopTestAuth() {
+  return {
+    registerApp: async () => ({ accepted: true }),
+  };
+}
+
+function createDefaultDesktopTestAppAuth() {
+  return {
+    authorizeExternalPrincipal: async () => ({
+      tokenId: 'desktop-test-token',
+      secret: 'desktop-test-secret',
+    }),
+  };
+}
+
+function createDefaultDesktopTestAccountCaller() {
+  return {
+    appInstanceId: 'desktop-test-instance',
+    deviceId: 'desktop-test-device',
+  };
+}
+
+function normalizeTestText(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function decodeRuntimeAgentTurnRequestPayload(value: unknown): NimiRuntimeAgentTurnRequest {
+  const payload = fromNimiRuntimeProtoStruct(value as Parameters<typeof fromNimiRuntimeProtoStruct>[0]);
+  const executionBinding = payload.execution_binding && typeof payload.execution_binding === 'object'
+    ? payload.execution_binding as Record<string, unknown>
+    : null;
+  const messages = Array.isArray(payload.messages)
+    ? payload.messages.map((message) => {
+      const record = message && typeof message === 'object' ? message as Record<string, unknown> : {};
+      return {
+        role: normalizeTestText(record.role) as NimiRuntimeAgentMessage['role'],
+        content: normalizeTestText(record.content),
+      };
+    }).filter((message) => Boolean(message.role && message.content))
+    : [];
+  return {
+    ownerUserId: normalizeTestText(payload.owner_user_id),
+    realmAgentId: normalizeTestText(payload.realm_agent_id),
+    localAgentRef: normalizeTestText(payload.local_agent_ref),
+    conversationAnchorId: normalizeTestText(payload.conversation_anchor_id),
+    requestId: normalizeTestText(payload.request_id) || undefined,
+    threadId: normalizeTestText(payload.thread_id) || undefined,
+    messages,
+    ...(executionBinding ? {
+      executionBinding: {
+        route: normalizeTestText(executionBinding.route) as NimiRuntimeAgentTurnRequest['executionBinding'] extends infer Binding
+          ? Binding extends { route?: infer Route } ? Route : never
+          : never,
+        modelId: normalizeTestText(executionBinding.model_id),
+        connectorId: normalizeTestText(executionBinding.connector_id) || undefined,
+      },
+    } : {}),
+  };
+}
+
+function runtimeAgentTestEventToAppMessageEvent(input: {
+  appId: string;
+  event: NimiRuntimeAgentConsumeEvent;
+  sequence: number;
+  turnRequest: NimiRuntimeAgentTurnRequest | null;
+}) {
+  const detail = input.event.detail || {};
+  const structured = detail.payload || detail.structured;
+  const localAgentRef = normalizeTestText(input.event.localAgentRef) || normalizeTestText(input.turnRequest?.localAgentRef);
+  const conversationAnchorId = normalizeTestText(input.event.conversationAnchorId) || normalizeTestText(input.turnRequest?.conversationAnchorId);
+  const looseEvent = input.event as NimiRuntimeAgentConsumeEvent & {
+    readonly messageId?: unknown;
+    readonly originatingTurnId?: unknown;
+    readonly originatingStreamId?: unknown;
+  };
+  return {
+    eventType: 0,
+    sequence: String(input.sequence),
+    messageId: normalizeTestText(looseEvent.messageId)
+      || normalizeTestText(detail.messageId)
+      || `${normalizeTestText(input.event.turnId)}:${input.sequence}`,
+    fromAppId: 'runtime.agent',
+    toAppId: input.appId,
+    subjectUserId: normalizeTestText(input.turnRequest?.ownerUserId),
+    messageType: input.event.eventName,
+    payload: toNimiRuntimeProtoStruct({
+      local_agent_ref: localAgentRef,
+      conversation_anchor_id: conversationAnchorId,
+      turn_id: normalizeTestText(input.event.turnId),
+      stream_id: normalizeTestText(input.event.streamId),
+      ...(normalizeTestText(detail.requestId) ? { request_id: normalizeTestText(detail.requestId) } : {}),
+      ...(normalizeTestText(detail.text) ? { text: normalizeTestText(detail.text) } : {}),
+      ...(normalizeTestText(detail.messageId) ? { message_id: normalizeTestText(detail.messageId) } : {}),
+      ...(normalizeTestText(detail.terminalReason) ? { terminal_reason: normalizeTestText(detail.terminalReason) } : {}),
+      ...(normalizeTestText(detail.reasonCode) ? { reason_code: normalizeTestText(detail.reasonCode) } : {}),
+      ...(normalizeTestText(detail.message) ? { message: normalizeTestText(detail.message) } : {}),
+      ...(input.event.timeline ? { runtime_timeline: input.event.timeline } : {}),
+      ...(normalizeTestText(looseEvent.originatingTurnId) ? { originating_turn_id: normalizeTestText(looseEvent.originatingTurnId) } : {}),
+      ...(normalizeTestText(looseEvent.originatingStreamId) ? { originating_stream_id: normalizeTestText(looseEvent.originatingStreamId) } : {}),
+      ...(normalizeTestText(detail.currentStatusText) ? { current_status_text: normalizeTestText(detail.currentStatusText) } : {}),
+      ...(normalizeTestText(detail.previousStatusText) ? { previous_status_text: normalizeTestText(detail.previousStatusText) } : {}),
+      ...(normalizeTestText(detail.intentId) ? { intent_id: normalizeTestText(detail.intentId) } : {}),
+      ...(normalizeTestText(detail.triggerFamily) ? { trigger_family: normalizeTestText(detail.triggerFamily) } : {}),
+      ...(detail.triggerDetail && typeof detail.triggerDetail === 'object' ? { trigger_detail: detail.triggerDetail } : {}),
+      ...(normalizeTestText(detail.effect) ? { effect: normalizeTestText(detail.effect) } : {}),
+      ...(normalizeTestText(detail.admissionState) ? { admission_state: normalizeTestText(detail.admissionState) } : {}),
+      ...(normalizeTestText(detail.activityName) ? { activity_name: normalizeTestText(detail.activityName) } : {}),
+      ...(normalizeTestText(detail.category) ? { category: normalizeTestText(detail.category) } : {}),
+      ...(normalizeTestText(detail.intensity) ? { intensity: normalizeTestText(detail.intensity) } : {}),
+      ...(normalizeTestText(detail.source) ? { source: normalizeTestText(detail.source) } : {}),
+      ...(structured && typeof structured === 'object' ? { structured } : {}),
+    } as unknown as JsonObject),
+    reasonCode: 0,
+    traceId: '',
+  };
+}
+
+function createDesktopTestRuntimeFromAgentTurns(input: {
+  appId: string;
+  turns: NimiRuntimeAgentTurnsModule;
+}) {
+  let lastTurnRequest: NimiRuntimeAgentTurnRequest | null = null;
+  let activeSubscribeRequest: (NimiRuntimeAgentTurnRequest & { includeAgentEvents: boolean }) | null = null;
+  return {
+    appId: input.appId,
+    auth: createDefaultDesktopTestAuth(),
+    appAuth: createDefaultDesktopTestAppAuth(),
+    grants: createDefaultDesktopTestAppAuth(),
+    agents: {
+      subscribeAgentEvents: async () => (async function* emptyAgentEvents() {})(),
+      getPublicChatSessionSnapshot: async (request: NimiRuntimeAgentSessionSnapshotRequest) => ({
+        snapshot: toNimiRuntimeProtoStruct(
+          await input.turns.getSessionSnapshot(request) as unknown as JsonObject,
+        ),
+      }),
+    },
+    appMessages: {
+      subscribeAppMessages: async () => {
+        activeSubscribeRequest = {
+          ownerUserId: '',
+          realmAgentId: '',
+          localAgentRef: '',
+          conversationAnchorId: '',
+          includeAgentEvents: false,
+          messages: [],
+        };
+        const stream = await input.turns.subscribe(activeSubscribeRequest);
+        return (async function* appMessages() {
+          let sequence = 0;
+          for await (const event of stream) {
+            sequence += 1;
+            yield runtimeAgentTestEventToAppMessageEvent({
+              appId: input.appId,
+              event,
+              sequence,
+              turnRequest: lastTurnRequest,
+            });
+          }
+        })();
+      },
+      sendAppMessage: async (request: { messageType?: string; payload?: unknown }) => {
+        const payloadRequest = request.messageType === 'runtime.agent.turn.interrupt'
+          ? null
+          : decodeRuntimeAgentTurnRequestPayload(request.payload);
+        if (payloadRequest) {
+          lastTurnRequest = payloadRequest;
+          if (activeSubscribeRequest) {
+            Object.assign(activeSubscribeRequest, {
+              ownerUserId: payloadRequest.ownerUserId,
+              realmAgentId: payloadRequest.realmAgentId,
+              localAgentRef: payloadRequest.localAgentRef,
+              conversationAnchorId: payloadRequest.conversationAnchorId,
+              threadId: payloadRequest.threadId,
+            });
+          }
+          const response = await input.turns.request(payloadRequest);
+          return {
+            accepted: true,
+            messageId: response?.messageId || payloadRequest.requestId || '',
+            reasonCode: 0,
+          };
+        }
+        const interruptPayload = fromNimiRuntimeProtoStruct(request.payload as Parameters<typeof fromNimiRuntimeProtoStruct>[0]);
+        const interrupt: NimiRuntimeAgentTurnInterruptRequest = {
+          ownerUserId: normalizeTestText(lastTurnRequest?.ownerUserId),
+          realmAgentId: normalizeTestText(lastTurnRequest?.realmAgentId),
+          localAgentRef: normalizeTestText(lastTurnRequest?.localAgentRef),
+          conversationAnchorId: normalizeTestText(interruptPayload.conversation_anchor_id),
+          reason: normalizeTestText(interruptPayload.reason) || undefined,
+          ...(normalizeTestText(interruptPayload.turn_id) ? { turnId: normalizeTestText(interruptPayload.turn_id) } : {}),
+        };
+        const response = await input.turns.interrupt(interrupt);
+        return {
+          accepted: true,
+          messageId: response?.messageId || '',
+          reasonCode: 0,
+        };
+      },
+    },
+  };
+}
+
+function normalizeDesktopTestRuntime(appId: string, runtime: unknown) {
+  const candidate = runtime && typeof runtime === 'object'
+    ? runtime as { agent?: { turns?: NimiRuntimeAgentTurnsModule } }
+    : {};
+  if (candidate.agent?.turns) {
+    return createDesktopTestRuntimeFromAgentTurns({ appId, turns: candidate.agent.turns });
+  }
+  return runtime;
+}
+
+function clearDesktopTestNimiClientSession() {
+  clearDesktopNimiClientSession();
+}
+
+function createDesktopTestNimiClientSession(input: {
+  appId: string;
+  realmBaseUrl?: string;
+  allowAnonymousRealm?: boolean;
+  runtimeTransport?: unknown;
+  turns?: NimiRuntimeAgentTurnsModule;
+  runtime?: unknown;
+}) {
+  let currentRuntime: unknown = input.runtime || (input.turns
+    ? createDesktopTestRuntimeFromAgentTurns({ appId: input.appId, turns: input.turns })
+    : {
+      appId: input.appId,
+      auth: createDefaultDesktopTestAuth(),
+      appAuth: createDefaultDesktopTestAppAuth(),
+      grants: createDefaultDesktopTestAppAuth(),
+    });
+  const session = {
+    appId: input.appId,
+    client: {},
+    accountCaller: createDefaultDesktopTestAccountCaller(),
+    get runtime() {
+      return currentRuntime;
+    },
+    set runtime(nextRuntime: unknown) {
+      currentRuntime = normalizeDesktopTestRuntime(input.appId, nextRuntime);
+    },
+    get accountRuntime() {
+      return currentRuntime;
+    },
+    realm: createDefaultDesktopTestRealm(),
+  } as unknown as DesktopNimiClientSession;
+  setDesktopNimiClientSessionForTests(session);
+  return session;
 }
 
 function createRuntimeTurnTimeline(input: {
@@ -94,7 +361,9 @@ function createLocalTextProjection() {
     health: {
       healthy: true,
       status: 'healthy' as const,
+      provider: 'llama',
       detail: 'ready',
+      actionHint: 'use_local_runtime_route',
     },
     metadata: {
       capability: 'text.generate' as const,
@@ -134,7 +403,9 @@ function createCloudTextProjection() {
     health: {
       healthy: true,
       status: 'healthy' as const,
+      provider: 'openai',
       detail: 'ready',
+      actionHint: 'use_cloud_runtime_route',
     },
     metadata: {
       capability: 'text.generate' as const,
@@ -159,15 +430,15 @@ export {
   assert,
   path,
   test,
-  clearPlatformClient,
-  createPlatformClient,
+  clearDesktopTestNimiClientSession,
+  createDesktopTestNimiClientSession,
   createNimiError,
-  toProtoStruct,
+  toNimiRuntimeProtoStruct,
   ReasonCode,
   resetRuntimeLocalModelWarmCacheForTests,
   CORE_CHAT_AGENT_TARGET_ID,
   streamChatAgentRuntimeAgentTurn,
-  findRuntimeRouteModelProfile,
+  findNimiRuntimeRouteModelProfile,
   resolveAgentChatRequestedMaxOutputTokens,
   resolveAgentTurnTotalTimeoutMs,
   toAgentFriendTargetsFromSocialSnapshot,
@@ -175,8 +446,8 @@ export {
   resolveAgentChatThinkingSupport,
   resolveChatThinkingConfig,
   buildAgentEffectiveCapabilityResolution,
-  createAISnapshot,
-  createEmptyAIConfig,
+  createNimiConversationAISnapshot,
+  createEmptyNimiAIConfig,
   readWorkspaceFile,
   createRuntimeTurnTimeline,
   createLocalTextProjection,

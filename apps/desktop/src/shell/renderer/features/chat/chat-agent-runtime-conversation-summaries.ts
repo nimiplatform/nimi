@@ -1,9 +1,7 @@
-import { getPlatformClient } from '@nimiplatform/sdk';
-import {
-  ConversationAnchorStatus,
-  type AgentConversationSummary,
-} from '@nimiplatform/sdk/runtime';
+import { createNimiRuntimeAgentConsumeClient } from '@nimiplatform/sdk/runtime';
+import { type AgentConversationSummary } from '@nimiplatform/sdk/runtime/generated';
 import type { AgentLocalTargetSnapshot } from '@renderer/bridge/runtime-bridge/types';
+import { getDesktopAppId, getDesktopRuntime } from '@renderer/infra/sdk/desktop-nimi-client-session';
 
 export const RUNTIME_AGENT_CONVERSATION_SUMMARIES_QUERY_KEY = ['chat-agent-runtime-conversation-summaries'] as const;
 
@@ -91,14 +89,14 @@ export async function listRuntimeAgentConversationSummaries(
   if (targets.length === 0) {
     return [];
   }
-  const runtime = getPlatformClient().runtime;
+  const runtimeAgent = createDesktopRuntimeAgentConversationSummariesClient();
   const responses = await Promise.all(targets.map(async (target) => {
-    const response = await runtime.agent.anchors.listSummaries({
+    const response = await runtimeAgent.anchors.listSummaries({
       ownerUserId: target.ownerUserId,
       realmAgentId: target.realmAgentId,
       localAgentRef: target.localAgentRef,
       subjectUserId: target.ownerUserId,
-      statusFilter: [ConversationAnchorStatus.ACTIVE],
+      statusFilter: ['active'],
       pageSize: 1,
     });
     return response.summaries
@@ -113,4 +111,11 @@ export async function listRuntimeAgentConversationSummaries(
     }
   }
   return sortRuntimeConversationSummaries([...deduped.values()]);
+}
+
+function createDesktopRuntimeAgentConversationSummariesClient() {
+  return createNimiRuntimeAgentConsumeClient({
+    runtime: { agents: getDesktopRuntime().agents },
+    runtimeAppId: getDesktopAppId(),
+  });
 }

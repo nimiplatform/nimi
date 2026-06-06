@@ -1,15 +1,15 @@
 import {
   assert,
   test,
-  clearPlatformClient,
-  createPlatformClient,
+  clearDesktopTestNimiClientSession,
+  createDesktopTestNimiClientSession,
   createNimiError,
   ReasonCode,
   resetRuntimeLocalModelWarmCacheForTests,
   streamChatAgentRuntimeAgentTurn,
   buildAgentEffectiveCapabilityResolution,
-  createAISnapshot,
-  createEmptyAIConfig,
+  createNimiConversationAISnapshot,
+  createEmptyNimiAIConfig,
   createLocalTextProjection,
   createCloudTextProjection,
 } from './chat-agent-local-mode-test-utils.js';
@@ -17,8 +17,8 @@ import {
 
 test('agent runtime turn requests runtime without desktop local warm on local routes', async () => {
   resetRuntimeLocalModelWarmCacheForTests();
-  clearPlatformClient();
-  const client = await createPlatformClient({
+  clearDesktopTestNimiClientSession();
+  const client = await createDesktopTestNimiClientSession({
     appId: 'nimi.desktop.test.anchor-local-warm',
     realmBaseUrl: 'https://realm.example',
     allowAnonymousRealm: true,
@@ -116,8 +116,8 @@ test('agent runtime turn requests runtime without desktop local warm on local ro
     const agentResolution = buildAgentEffectiveCapabilityResolution({
       textProjection: projection,
     });
-    const executionSnapshot = createAISnapshot({
-      config: createEmptyAIConfig(),
+    const executionSnapshot = createNimiConversationAISnapshot({
+      config: createEmptyNimiAIConfig(),
       capability: 'text.generate',
       projection,
       agentResolution,
@@ -143,14 +143,14 @@ test('agent runtime turn requests runtime without desktop local warm on local ro
     assert.deepEqual(calls, ['request']);
   } finally {
     resetRuntimeLocalModelWarmCacheForTests();
-    clearPlatformClient();
+    clearDesktopTestNimiClientSession();
   }
 });
 
 test('agent runtime turn request delegates route/model binding to Runtime', async () => {
   resetRuntimeLocalModelWarmCacheForTests();
-  clearPlatformClient();
-  const client = await createPlatformClient({
+  clearDesktopTestNimiClientSession();
+  const client = await createDesktopTestNimiClientSession({
     appId: 'nimi.desktop.test.anchor-cloud-binding',
     realmBaseUrl: 'https://realm.example',
     allowAnonymousRealm: true,
@@ -246,8 +246,8 @@ test('agent runtime turn request delegates route/model binding to Runtime', asyn
     const agentResolution = buildAgentEffectiveCapabilityResolution({
       textProjection: projection,
     });
-    const executionSnapshot = createAISnapshot({
-      config: createEmptyAIConfig(),
+    const executionSnapshot = createNimiConversationAISnapshot({
+      config: createEmptyNimiAIConfig(),
       capability: 'text.generate',
       projection,
       agentResolution,
@@ -274,14 +274,14 @@ test('agent runtime turn request delegates route/model binding to Runtime', asyn
     assert.equal(requestCalls[0]?.executionBinding, undefined);
   } finally {
     resetRuntimeLocalModelWarmCacheForTests();
-    clearPlatformClient();
+    clearDesktopTestNimiClientSession();
   }
 });
 
 test('agent runtime turn fails closed when runtime rejects request_id in turn payload', async () => {
   resetRuntimeLocalModelWarmCacheForTests();
-  clearPlatformClient();
-  const client = await createPlatformClient({
+  clearDesktopTestNimiClientSession();
+  const client = await createDesktopTestNimiClientSession({
     appId: 'nimi.desktop.test.anchor-legacy-request-id',
     realmBaseUrl: 'https://realm.example',
     allowAnonymousRealm: true,
@@ -380,8 +380,8 @@ test('agent runtime turn fails closed when runtime rejects request_id in turn pa
     const agentResolution = buildAgentEffectiveCapabilityResolution({
       textProjection: projection,
     });
-    const executionSnapshot = createAISnapshot({
-      config: createEmptyAIConfig(),
+    const executionSnapshot = createNimiConversationAISnapshot({
+      config: createEmptyNimiAIConfig(),
       capability: 'text.generate',
       projection,
       agentResolution,
@@ -406,14 +406,14 @@ test('agent runtime turn fails closed when runtime rejects request_id in turn pa
     assert.ok(requestCalls[0]?.requestId);
   } finally {
     resetRuntimeLocalModelWarmCacheForTests();
-    clearPlatformClient();
+    clearDesktopTestNimiClientSession();
   }
 });
 
 test('agent runtime turn yields terminal turn-failed when runtime emits failed event', async () => {
   resetRuntimeLocalModelWarmCacheForTests();
-  clearPlatformClient();
-  const client = await createPlatformClient({
+  clearDesktopTestNimiClientSession();
+  const client = await createDesktopTestNimiClientSession({
     appId: 'nimi.desktop.test.anchor-turn-failed',
     realmBaseUrl: 'https://realm.example',
     allowAnonymousRealm: true,
@@ -488,8 +488,8 @@ test('agent runtime turn yields terminal turn-failed when runtime emits failed e
     const agentResolution = buildAgentEffectiveCapabilityResolution({
       textProjection: projection,
     });
-    const executionSnapshot = createAISnapshot({
-      config: createEmptyAIConfig(),
+    const executionSnapshot = createNimiConversationAISnapshot({
+      config: createEmptyNimiAIConfig(),
       capability: 'text.generate',
       projection,
       agentResolution,
@@ -539,6 +539,6 @@ test('agent runtime turn yields terminal turn-failed when runtime emits failed e
     assert.equal(parts[1]?.outputText, 'partial output');
   } finally {
     resetRuntimeLocalModelWarmCacheForTests();
-    clearPlatformClient();
+    clearDesktopTestNimiClientSession();
   }
 });

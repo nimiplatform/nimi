@@ -2,20 +2,20 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { TFunction } from 'i18next';
 import type {
-  AIConfigSDKSurface,
-  AIScopeRef,
+  NimiAIScopeRef,
+  NimiAISchedulingEvaluationTarget,
+  NimiAISchedulingJudgement,
+  NimiAISchedulingState,
 } from '@nimiplatform/sdk/ai';
-import type {
-  AISchedulingEvaluationTarget,
-  AISchedulingJudgement,
-  AISchedulingState,
-} from '@nimiplatform/sdk/runtime';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import type { InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
-import { getDesktopAIConfigService } from '@renderer/app-shell/providers/desktop-ai-config-service';
+import {
+  getDesktopAIConfigService,
+  type DesktopAIConfigSDKSurface,
+} from '@renderer/app-shell/providers/desktop-ai-config-service';
 
 export type ExecutionSchedulingGuardDecision = {
-  judgement: AISchedulingJudgement | null;
+  judgement: NimiAISchedulingJudgement | null;
   disabled: boolean;
   disabledReason: string | null;
   feedback: InlineFeedbackState | null;
@@ -23,7 +23,7 @@ export type ExecutionSchedulingGuardDecision = {
 
 const ACTIVE_EXECUTION_SLOWDOWN_WARNING = 'active local executions currently occupy scheduler slots';
 
-export function schedulingTitleKey(state: AISchedulingState): string {
+export function schedulingTitleKey(state: NimiAISchedulingState): string {
   switch (state) {
     case 'denied': return 'Chat.schedulingDeniedTitle';
     case 'queue_required': return 'Chat.schedulingQueueRequiredTitle';
@@ -33,7 +33,7 @@ export function schedulingTitleKey(state: AISchedulingState): string {
   }
 }
 
-export function schedulingDetailKey(state: AISchedulingState): string {
+export function schedulingDetailKey(state: NimiAISchedulingState): string {
   switch (state) {
     case 'denied': return 'Chat.schedulingDeniedDetail';
     case 'queue_required': return 'Chat.schedulingQueueRequiredDetail';
@@ -43,12 +43,12 @@ export function schedulingDetailKey(state: AISchedulingState): string {
   }
 }
 
-export function isBusySlowdownRisk(judgement: AISchedulingJudgement): boolean {
+export function isBusySlowdownRisk(judgement: NimiAISchedulingJudgement): boolean {
   return judgement.state === 'slowdown_risk'
     && judgement.resourceWarnings.includes(ACTIVE_EXECUTION_SLOWDOWN_WARNING);
 }
 
-export function schedulingDetailKeyForJudgement(judgement: AISchedulingJudgement): string {
+export function schedulingDetailKeyForJudgement(judgement: NimiAISchedulingJudgement): string {
   if (isBusySlowdownRisk(judgement)) {
     return 'Chat.schedulingSlowdownRiskBusyDetail';
   }
@@ -57,13 +57,13 @@ export function schedulingDetailKeyForJudgement(judgement: AISchedulingJudgement
 
 function formatSchedulingDetail(
   t: TFunction,
-  judgement: AISchedulingJudgement,
+  judgement: NimiAISchedulingJudgement,
 ): string {
   return t(schedulingDetailKeyForJudgement(judgement), { detail: judgement.detail || '' });
 }
 
 export function resolveExecutionSchedulingGuardDecision(input: {
-  judgement: AISchedulingJudgement | null;
+  judgement: NimiAISchedulingJudgement | null;
   t: TFunction;
 }): ExecutionSchedulingGuardDecision {
   const { judgement, t } = input;
@@ -114,10 +114,10 @@ export function resolveExecutionSchedulingGuardDecision(input: {
 }
 
 export async function probeExecutionSchedulingGuard(input: {
-  scopeRef: AIScopeRef;
-  target: AISchedulingEvaluationTarget | null;
+  scopeRef: NimiAIScopeRef;
+  target: NimiAISchedulingEvaluationTarget | null;
   t: TFunction;
-  surface?: Pick<AIConfigSDKSurface, 'aiConfig'>;
+  surface?: Pick<DesktopAIConfigSDKSurface, 'aiConfig'>;
 }): Promise<ExecutionSchedulingGuardDecision> {
   const surface = input.surface ?? getDesktopAIConfigService();
   return resolveExecutionSchedulingGuardDecision({
@@ -128,7 +128,7 @@ export async function probeExecutionSchedulingGuard(input: {
   });
 }
 
-export function useSchedulingFeasibility(): AISchedulingJudgement | null {
+export function useSchedulingFeasibility(): NimiAISchedulingJudgement | null {
   const surface = useMemo(() => getDesktopAIConfigService(), []);
   const scopeRef = useAppStore((state) => state.aiConfig.scopeRef);
 

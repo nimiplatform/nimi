@@ -1,7 +1,7 @@
 import type { TFunction } from 'i18next';
 import {
-  getRuntimeRouteCapabilityProjectionIssueKind,
-  isRuntimeRouteCapabilityProjectionReady,
+  getNimiRuntimeRouteCapabilityProjectionIssueKind,
+  isNimiRuntimeRouteCapabilityProjectionReady,
 } from '@nimiplatform/sdk/runtime';
 import type { ConversationCapabilityProjection } from './conversation-capability';
 import { normalizeAgentVoiceSessionConversationAnchorId } from './chat-agent-voice-session';
@@ -34,7 +34,7 @@ export function resolveVoiceSessionUnavailableMessage(input: {
       defaultValue: 'Voice input is unavailable because the conversation anchor is not ready.',
     });
   }
-  const issueKind = getRuntimeRouteCapabilityProjectionIssueKind(input.transcribeCapabilityProjection);
+  const issueKind = getNimiRuntimeRouteCapabilityProjectionIssueKind(input.transcribeCapabilityProjection);
   if (issueKind === 'needs_selection') {
     return input.t('Chat.voiceSessionRouteRequired', {
       defaultValue: 'Voice input is unavailable because no transcribe route is configured.',
@@ -50,7 +50,7 @@ export function resolveVoiceSessionUnavailableMessage(input: {
       defaultValue: 'Voice input is unavailable because the selected transcribe route cannot be resolved.',
     });
   }
-  if (!isRuntimeRouteCapabilityProjectionReady(input.transcribeCapabilityProjection)) {
+  if (!isNimiRuntimeRouteCapabilityProjectionReady(input.transcribeCapabilityProjection)) {
     return input.t('Chat.voiceSessionUnavailable', {
       defaultValue: 'Voice input is unavailable for the current conversation.',
     });

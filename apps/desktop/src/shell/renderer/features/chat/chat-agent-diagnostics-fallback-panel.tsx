@@ -1,6 +1,6 @@
 import type { Dispatch, SetStateAction } from 'react';
 import { CompactAction } from '@nimiplatform/kit/ui';
-import type { RuntimeAgentInspectSnapshot } from '@renderer/infra/runtime-agent-inspect';
+import type { NimiRuntimeAgentInspectSnapshot } from '@renderer/infra/runtime-agent-inspect';
 import type {
   buildAgentDiagnosticsViewModel,
   DiagnosticsTranslate,
@@ -38,7 +38,7 @@ type AgentDiagnosticsFallbackPanelProps = {
   onRefreshInspect?: () => void;
   onUpdateAutonomyConfig?: (input: { mode: string; dailyTokenBudget: string; maxTokensPerHook: string }) => void;
   onUpdateRuntimeState?: (input: { statusText: string; worldId: string; userId: string }) => void;
-  runtimeInspect: RuntimeAgentInspectSnapshot | null;
+  runtimeInspect: NimiRuntimeAgentInspectSnapshot | null;
   runtimeInspectLoading: boolean;
   runtimeStateDirty: boolean;
   setAutonomyMode: Dispatch<SetStateAction<string>>;

@@ -9,7 +9,8 @@ const realtimeSyncSource = fs.readFileSync(
 );
 
 test('Desktop chat realtime consumes SDK Realm realtime projection', () => {
-  assert.match(realtimeSyncSource, /projectRealmRealtimeUrl/);
+  assert.match(realtimeSyncSource, /projectNimiRealmRealtimeUrl/);
   assert.match(realtimeSyncSource, /from '@nimiplatform\/sdk\/realm'/);
+  assert.doesNotMatch(realtimeSyncSource, /projectRealmRealtimeUrl/);
   assert.doesNotMatch(realtimeSyncSource, /resolveRealtimeUrl/);
 });

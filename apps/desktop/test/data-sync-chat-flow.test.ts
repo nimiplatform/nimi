@@ -43,6 +43,13 @@ describe('desktop human chat scaffold source scanning', () => {
     assert.doesNotMatch(groupChatFlowSource, /Math\.random\(\)/);
   });
 
+  test('chat outbox uses explicit JSON and DTO projection', () => {
+    assert.doesNotMatch(chatFlowSource, /body:\s*entry\.body\s+as\s+JsonObject/);
+    assert.doesNotMatch(chatFlowSource, /body:\s*entry\.body\s+as\s+RealmSendMessageInputDto/);
+    assert.match(chatFlowSource, /serializeRealmSendMessageInput/);
+    assert.match(chatFlowSource, /parsePersistentRealmSendMessageInput/);
+  });
+
   test('failed send queues to outbox with attempts tracking', async () => {
     const manager = await getOfflineOutboxManager();
     manager.close();
@@ -127,6 +134,29 @@ describe('desktop human chat scaffold source scanning', () => {
       },
     } as never);
     assert.deepEqual(replayed, ['earlier', 'later']);
+  });
+
+  test('flushChatOutbox fails closed for malformed persistent message bodies', async () => {
+    const manager = await getOfflineOutboxManager();
+    manager.close();
+    await manager.open();
+    await manager.upsertChatOutboxEntry({
+      clientMessageId: 'malformed',
+      chatId: 'chat-1',
+      body: { clientMessageId: 'malformed', payload: { content: 'missing type' } },
+      enqueuedAt: 10,
+      attempts: 0,
+      status: 'pending',
+    });
+
+    await assert.rejects(
+      () => flushPendingChatOutbox('chat-1', {
+        sendMessage: async () => {
+          throw new Error('service should not receive malformed persistent outbox body');
+        },
+      } as never),
+      /Persistent chat outbox body\.type must be a non-empty string/,
+    );
   });
 
   test('startChatWithTarget writes canonical TEXT payload for initial message', async () => {

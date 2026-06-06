@@ -2,7 +2,7 @@ import type { JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
 import type {
   AgentModelOutputDiagnostics,
 } from './chat-agent-runtime-output-types';
-import type { AgentResolvedStatusCue } from '@nimiplatform/sdk/runtime';
+import type { NimiRuntimeAgentResolvedStatusCue } from '@nimiplatform/sdk/runtime';
 
 export type AgentTextTurnDebugMetadata = {
   debugType: 'agent-text-turn';
@@ -10,7 +10,7 @@ export type AgentTextTurnDebugMetadata = {
   systemPrompt: string | null;
   rawModelOutput: string | null;
   normalizedModelOutput: string | null;
-  statusCue: AgentResolvedStatusCue | null;
+  statusCue: NimiRuntimeAgentResolvedStatusCue | null;
   followUpInstruction: string | null;
   followUpTurn: boolean;
   chainId: string | null;
@@ -41,7 +41,7 @@ function normalizeNullableText(value: unknown): string | null {
   return typeof value === 'string' ? value : null;
 }
 
-function parseStatusCue(value: unknown): AgentResolvedStatusCue | null {
+function parseStatusCue(value: unknown): NimiRuntimeAgentResolvedStatusCue | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return null;
   }
@@ -58,7 +58,7 @@ function parseStatusCue(value: unknown): AgentResolvedStatusCue | null {
     : null;
   return {
     sourceMessageId,
-    ...(mood ? { mood: mood as AgentResolvedStatusCue['mood'] } : {}),
+    ...(mood ? { mood: mood as NimiRuntimeAgentResolvedStatusCue['mood'] } : {}),
     ...(label ? { label } : {}),
     ...(intensity != null ? { intensity } : {}),
     ...(actionCue ? { actionCue } : {}),
@@ -90,7 +90,7 @@ function parseRuntimeAgentTurns(value: unknown): AgentTextTurnDebugMetadata['run
 export function buildAgentTextTurnDebugMetadata(
   diagnostics: AgentModelOutputDiagnostics | null | undefined,
   options?: {
-    statusCue?: AgentResolvedStatusCue | null;
+    statusCue?: NimiRuntimeAgentResolvedStatusCue | null;
     followUpTurn?: boolean;
     followUpInstruction?: string | null;
     chainId?: string | null;

@@ -6,37 +6,43 @@ import { fileURLToPath } from 'node:url';
 
 import { setRuntimeLogger } from '@nimiplatform/kit/telemetry';
 import { useAppStore } from '../src/shell/renderer/app-shell/providers/app-store.js';
-import { clearPlatformClient, createPlatformClient } from '@nimiplatform/sdk';
-import { createBuiltInChatAIScopeRef, createEmptyAIConfig } from '@nimiplatform/sdk/ai';
 import {
   loadLocalRouteMetadata,
   loadRuntimeRouteOptions,
 } from '../src/shell/renderer/infra/bootstrap/runtime-bootstrap-route-options';
+import type { NimiRuntimeRouteOptionsHostRuntime } from '@nimiplatform/sdk/runtime';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const initialRuntimeFields = { ...useAppStore.getState().runtimeFields };
-const testScopeRef = createBuiltInChatAIScopeRef('agent');
+const initialAIConfig = useAppStore.getState().aiConfig;
+const routeOptionsRuntimeStub: NimiRuntimeRouteOptionsHostRuntime = {
+  connectors: {
+    listConnectors: async () => ({ connectors: [], nextPageToken: '' }),
+    listConnectorModels: async () => ({ models: [], nextPageToken: '' }),
+  },
+  local: {
+    listLocalAssets: async () => ({ assets: [], nextPageToken: '' }),
+  },
+};
 
-test.beforeEach(async () => {
-  clearPlatformClient();
-  await createPlatformClient({
-    appId: 'nimi.desktop.test.route-options',
-    realmBaseUrl: 'https://realm.example',
-    allowAnonymousRealm: true,
-    runtimeTransport: null,
-  });
-});
+function withRouteOptionsRuntime<T extends object>(
+  deps: T,
+): T & { readonly runtime: NimiRuntimeRouteOptionsHostRuntime } {
+  return {
+    runtime: routeOptionsRuntimeStub,
+    ...deps,
+  };
+}
 
 test.afterEach(() => {
   setRuntimeLogger(null);
-  clearPlatformClient();
   useAppStore.setState({
     runtimeFields: { ...initialRuntimeFields },
-    aiConfig: createEmptyAIConfig(testScopeRef),
+    aiConfig: initialAIConfig,
   });
 });
 
-test('D-ERR-009: loadLocalRouteMetadata logs and rejects when listNodesCatalog fails', async () => {
+test('D-ERR-009: loadLocalRouteMetadata logs and rejects when local asset listing fails', async () => {
   const logs: Array<Record<string, unknown>> = [];
   setRuntimeLogger((payload) => {
     logs.push(payload as Record<string, unknown>);
@@ -49,10 +55,9 @@ test('D-ERR-009: loadLocalRouteMetadata logs and rejects when listNodesCatalog f
         health: [],
         generatedAt: new Date().toISOString(),
       }),
-      listNodesCatalog: async () => {
-        throw new Error('catalog offline');
+      listRuntimeLocalAssets: async () => {
+        throw new Error('local runtime offline');
       },
-      listRuntimeLocalAssets: async () => [],
     }),
     (error: unknown) => {
       const record = error as { reasonCode?: string; actionHint?: string };
@@ -62,11 +67,11 @@ test('D-ERR-009: loadLocalRouteMetadata logs and rejects when listNodesCatalog f
     },
   );
 
-  const failedLog = logs.find((entry) => entry.message === 'action:list-nodes-catalog:failed');
-  assert.ok(failedLog, 'list-nodes-catalog failure must emit a warn log');
+  const failedLog = logs.find((entry) => entry.message === 'action:list-runtime-local-models:failed');
+  assert.ok(failedLog, 'list-runtime-local-models failure must emit a warn log');
   assert.equal(failedLog?.level, 'warn');
   assert.equal(failedLog?.area, 'route-options');
-  assert.equal((failedLog?.details as Record<string, unknown>)?.error, 'catalog offline');
+  assert.equal((failedLog?.details as Record<string, unknown>)?.error, 'local runtime offline');
 });
 
 test('D-ERR-009: loadLocalRouteMetadata logs and rejects when listRuntimeLocalAssets fails', async () => {
@@ -82,7 +87,6 @@ test('D-ERR-009: loadLocalRouteMetadata logs and rejects when listRuntimeLocalAs
         health: [],
         generatedAt: new Date().toISOString(),
       }),
-      listNodesCatalog: async () => [],
       listRuntimeLocalAssets: async () => {
         throw new Error('go runtime unavailable');
       },
@@ -95,9 +99,8 @@ test('D-ERR-009: loadLocalRouteMetadata logs and rejects when listRuntimeLocalAs
   assert.equal((failedLog?.details as Record<string, unknown>)?.error, 'go runtime unavailable');
 });
 
-test('loadLocalRouteMetadata starts snapshot, node catalog, and local asset reads in parallel', async () => {
+test('loadLocalRouteMetadata starts snapshot and local asset reads in parallel', async () => {
   let releaseSnapshot: (() => void) | null = null;
-  let nodeStarted = false;
   let assetsStarted = false;
 
   const metadataPromise = loadLocalRouteMetadata('text.generate', {
@@ -108,10 +111,6 @@ test('loadLocalRouteMetadata starts snapshot, node catalog, and local asset read
         generatedAt: new Date().toISOString(),
       });
     }),
-    listNodesCatalog: async () => {
-      nodeStarted = true;
-      return [];
-    },
     listRuntimeLocalAssets: async () => {
       assetsStarted = true;
       return [];
@@ -119,7 +118,6 @@ test('loadLocalRouteMetadata starts snapshot, node catalog, and local asset read
   });
 
   await Promise.resolve();
-  assert.equal(nodeStarted, true);
   assert.equal(assetsStarted, true);
 
   const triggerSnapshot = releaseSnapshot;
@@ -143,19 +141,9 @@ test('D-ERR-009: loadRuntimeRouteOptions degrades gracefully when local metadata
       ...useAppStore.getState().runtimeFields,
     },
     aiConfig: {
-      ...createEmptyAIConfig(testScopeRef),
+      ...initialAIConfig,
       capabilities: {
-        selectedBindings: {
-          'text.generate': {
-            source: 'local',
-            connectorId: '',
-            model: 'local-model',
-            modelId: 'local-model',
-            provider: 'localai',
-            engine: 'llama',
-          },
-        },
-        localProfileRefs: {},
+        targetRefs: {},
         selectedParams: {},
       },
     },
@@ -164,7 +152,16 @@ test('D-ERR-009: loadRuntimeRouteOptions degrades gracefully when local metadata
   const options = await loadRuntimeRouteOptions({
     capability: 'text.generate',
     targetId: 'world.nimi.test-ai',
-  }, {
+    selectedBinding: {
+      source: 'local',
+      connectorId: '',
+      model: 'local-model',
+      modelId: 'local-model',
+      localModelId: 'local-model',
+      engine: 'llama',
+      provider: 'llama',
+    },
+  }, withRouteOptionsRuntime({
     listConnectors: async () => ([
       {
         id: 'connector-openai',
@@ -190,7 +187,7 @@ test('D-ERR-009: loadRuntimeRouteOptions degrades gracefully when local metadata
     loadLocalRouteMetadata: async () => {
       throw new Error('local runtime snapshot timed out after 3500ms');
     },
-  });
+  }));
 
   assert.equal(options.local.models.length, 0);
   assert.equal(options.connectors.length, 1);
@@ -213,20 +210,9 @@ test('loadRuntimeRouteOptions does not treat desktop snapshot-only local models 
       ...useAppStore.getState().runtimeFields,
     },
     aiConfig: {
-      ...createEmptyAIConfig(testScopeRef),
+      ...initialAIConfig,
       capabilities: {
-        selectedBindings: {
-          'text.generate': {
-            source: 'local',
-            connectorId: '',
-            model: 'local/local-import/Qwen3-4B-Q4_K_M',
-            modelId: 'local/local-import/Qwen3-4B-Q4_K_M',
-            provider: 'local',
-            engine: 'llama',
-            endpoint: 'http://127.0.0.1:1234/v1',
-          },
-        },
-        localProfileRefs: {},
+        targetRefs: {},
         selectedParams: {},
       },
     },
@@ -235,7 +221,16 @@ test('loadRuntimeRouteOptions does not treat desktop snapshot-only local models 
   const options = await loadRuntimeRouteOptions({
     capability: 'text.generate',
     targetId: 'world.nimi.test-ai',
-  }, {
+    selectedBinding: {
+      source: 'local',
+      connectorId: '',
+      model: 'local-import/Qwen3-4B-Q4_K_M',
+      modelId: 'local-import/Qwen3-4B-Q4_K_M',
+      localModelId: 'desktop-local-1',
+      engine: 'llama',
+      provider: 'llama',
+    },
+  }, withRouteOptionsRuntime({
     listConnectors: async () => ([]),
     listConnectorModelDescriptors: async () => ([]),
     loadLocalRouteMetadata: async () => ({
@@ -270,7 +265,7 @@ test('loadRuntimeRouteOptions does not treat desktop snapshot-only local models 
       }] as never[],
       runtimeLocalModels: [],
     }),
-  });
+  }));
 
   assert.equal(options.local.models.length, 0);
   assert.ok(options.selected);
@@ -302,7 +297,7 @@ test('loadRuntimeRouteOptions fetches connector descriptors in parallel', async 
   const optionsPromise = loadRuntimeRouteOptions({
     capability: 'text.generate',
     targetId: 'world.nimi.parallel-route-options',
-  }, {
+  }, withRouteOptionsRuntime({
     listConnectors: async () => ([
       {
         id: 'connector-openai',
@@ -335,7 +330,7 @@ test('loadRuntimeRouteOptions fetches connector descriptors in parallel', async 
       nodeCatalog: [],
       runtimeLocalModels: [],
     }),
-  });
+  }));
 
   for (let attempt = 0; attempt < 20 && descriptorCalls.length < 2; attempt += 1) {
     await new Promise((resolve) => setTimeout(resolve, 0));
@@ -357,6 +352,7 @@ test('loadRuntimeRouteOptions dedupes concurrent capability reads within the sam
   let descriptorCalls = 0;
   let localMetadataCalls = 0;
   const deps = {
+    runtime: routeOptionsRuntimeStub,
     listConnectors: async () => {
       connectorListCalls += 1;
       return ([
@@ -391,8 +387,8 @@ test('loadRuntimeRouteOptions dedupes concurrent capability reads within the sam
   };
 
   const [left, right] = await Promise.all([
-    loadRuntimeRouteOptions({ capability: 'text.generate', targetId: 'world.nimi.one' }, deps),
-    loadRuntimeRouteOptions({ capability: 'text.generate', targetId: 'world.nimi.two' }, deps),
+    loadRuntimeRouteOptions({ capability: 'text.generate', targetId: 'world.nimi.same' }, deps),
+    loadRuntimeRouteOptions({ capability: 'text.generate', targetId: 'world.nimi.same' }, deps),
   ]);
 
   assert.equal(connectorListCalls, 1);
@@ -411,7 +407,7 @@ test('loadRuntimeRouteOptions preserves local models when connector listing fail
   const options = await loadRuntimeRouteOptions({
     capability: 'text.generate',
     targetId: 'world.nimi.local-only',
-  }, {
+  }, withRouteOptionsRuntime({
     listConnectors: async () => {
       throw new Error('dynamic provider catalog offline');
     },
@@ -449,7 +445,7 @@ test('loadRuntimeRouteOptions preserves local models when connector listing fail
         engineConfig: {},
       }] as never[],
     }),
-  });
+  }));
 
   assert.equal(options.local.models.length, 1);
   assert.equal(options.local.models[0]?.localModelId, '01KLOCALCHAT');
@@ -469,7 +465,7 @@ test('loadRuntimeRouteOptions preserves local models when connector model discov
   const options = await loadRuntimeRouteOptions({
     capability: 'text.generate',
     targetId: 'world.nimi.local-only',
-  }, {
+  }, withRouteOptionsRuntime({
     listConnectors: async () => ([
       {
         id: 'connector-openai',
@@ -513,7 +509,7 @@ test('loadRuntimeRouteOptions preserves local models when connector model discov
         engineConfig: {},
       }] as never[],
     }),
-  });
+  }));
 
   assert.equal(options.local.models.length, 1);
   assert.equal(options.connectors.length, 0);

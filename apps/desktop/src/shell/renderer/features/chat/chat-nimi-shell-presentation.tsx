@@ -20,7 +20,7 @@ import { toConversationThreadSummary } from './chat-nimi-thread-model';
 import type { ChatThinkingPreference } from './chat-shared-thinking';
 import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 import type { RouteModelPickerSelection } from '@nimiplatform/kit/features/model-picker';
-import type { AISchedulingJudgement } from '@nimiplatform/sdk/runtime';
+import type { NimiAISchedulingJudgement } from '@nimiplatform/sdk/ai';
 import { resolveExecutionSchedulingGuardDecision } from './chat-shared-execution-scheduling-guard';
 
 const ChatSettingsPanel = lazy(async () => {
@@ -53,7 +53,7 @@ type UseAiConversationPresentationInput = {
     label: string;
     detail: string | null;
   };
-  schedulingJudgement: AISchedulingJudgement | null;
+  schedulingJudgement: NimiAISchedulingJudgement | null;
   setChatThinkingPreference: (value: ChatThinkingPreference) => void;
   setupState: ConversationSetupState;
   submittingThreadId: string | null;

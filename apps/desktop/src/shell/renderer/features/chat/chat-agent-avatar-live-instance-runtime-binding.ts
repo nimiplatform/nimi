@@ -1,6 +1,7 @@
-import { getPlatformClient } from '@nimiplatform/sdk';
+import { createNimiRuntimeAgentConsumeClient } from '@nimiplatform/sdk/runtime';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import type { AgentLocalTargetSnapshot } from '@renderer/bridge/runtime-bridge/types';
+import { getDesktopAppId, getDesktopRuntime } from '@renderer/infra/sdk/desktop-nimi-client-session';
 import { normalizeText } from './chat-agent-shell-core';
 
 function requireRuntimeSubjectUserId(): string {
@@ -22,9 +23,12 @@ export async function registerDesktopAvatarLiveInstanceBinding(input: {
   if (!avatarInstanceId || !conversationAnchorId) {
     throw new Error('desktop avatar launch requires avatarInstanceId and conversationAnchorId');
   }
-  const runtime = getPlatformClient().runtime;
+  const runtimeAgent = createNimiRuntimeAgentConsumeClient({
+    runtime: { agents: getDesktopRuntime().agents },
+    runtimeAppId: getDesktopAppId(),
+  });
   const subjectUserId = normalizeText(input.subjectUserId) || requireRuntimeSubjectUserId();
-  await runtime.agent.anchors.registerAvatarLiveInstance({
+  await runtimeAgent.anchors.registerAvatarLiveInstance({
     ownerUserId: input.target.ownerUserId,
     realmAgentId: input.target.realmAgentId,
     localAgentRef: input.target.localAgentRef,

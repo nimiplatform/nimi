@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { cn } from '@nimiplatform/kit/ui';
 import { dispatchRuntimeConfigOpenPage } from '../runtime-config/runtime-config-navigation-events';
 import type { AgentLocalTargetSnapshot } from '@renderer/bridge/runtime-bridge/types';
-import type { RuntimeAgentInspectSnapshot } from '@renderer/infra/runtime-agent-inspect';
+import type { NimiRuntimeAgentInspectSnapshot } from '@renderer/infra/runtime-agent-inspect';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import {
   Btn,
@@ -29,7 +29,7 @@ export { AdvBlock } from './chat-agent-center-panel-components';
 
 type AgentCenterPanelProps = {
   activeTarget: AgentLocalTargetSnapshot | null;
-  runtimeInspect: RuntimeAgentInspectSnapshot | null;
+  runtimeInspect: NimiRuntimeAgentInspectSnapshot | null;
   runtimeInspectLoading: boolean;
   routeReady: boolean;
   mutationPendingAction?: string | null;

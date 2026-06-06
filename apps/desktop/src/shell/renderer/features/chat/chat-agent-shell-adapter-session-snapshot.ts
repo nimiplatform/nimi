@@ -1,11 +1,12 @@
 import { useEffect, useRef } from 'react';
 import type { QueryClient } from '@tanstack/react-query';
-import { getPlatformClient } from '@nimiplatform/sdk';
+import { createNimiRuntimeAgentConsumeClient } from '@nimiplatform/sdk/runtime';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import type {
   AgentLocalThreadBundle,
   AgentLocalThreadSummary,
 } from '@renderer/bridge/runtime-bridge/types';
+import { getDesktopAppId, getDesktopRuntime } from '@renderer/infra/sdk/desktop-nimi-client-session';
 import {
   bundleQueryKey,
 } from './chat-agent-shell-core';
@@ -120,7 +121,8 @@ export function useAgentRuntimeSessionSnapshotHydration(
         submittingThreadId: input.submittingThreadId || null,
       },
     });
-    void getPlatformClient().runtime.agent.turns.getSessionSnapshot({
+    const runtimeAgent = createDesktopRuntimeAgentSessionSnapshotClient();
+    void runtimeAgent.turns.getSessionSnapshot({
       localAgentRef,
       ownerUserId: thread.ownerUserId,
       realmAgentId: thread.realmAgentId,
@@ -197,4 +199,11 @@ export function useAgentRuntimeSessionSnapshotHydration(
     input.selectedThreadRecord,
     input.submittingThreadId,
   ]);
+}
+
+function createDesktopRuntimeAgentSessionSnapshotClient() {
+  return createNimiRuntimeAgentConsumeClient({
+    runtime: { agents: getDesktopRuntime().agents },
+    runtimeAppId: getDesktopAppId(),
+  });
 }

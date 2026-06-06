@@ -1,7 +1,7 @@
 import type { AgentLocalTargetSnapshot } from '@renderer/bridge/runtime-bridge/types';
 import type {
-  RuntimeAgentInspectEventSummary,
-  RuntimeAgentInspectSnapshot,
+  NimiRuntimeAgentInspectEventSummary,
+  NimiRuntimeAgentInspectSnapshot,
 } from '@renderer/infra/runtime-agent-inspect';
 import type { AgentTurnLifecycleState } from './chat-agent-shell-lifecycle';
 import { buildAgentRuntimeStateCards } from './chat-agent-diagnostics-runtime-state-cards';
@@ -338,9 +338,9 @@ function buildFollowUpChainCard(lifecycle: AgentTurnLifecycleState): AgentDiagno
 export function buildAgentDiagnosticsViewModel(input: {
   activeTarget: AgentLocalTargetSnapshot | null;
   lifecycle: AgentTurnLifecycleState | null;
-  recentRuntimeEvents: readonly RuntimeAgentInspectEventSummary[];
+  recentRuntimeEvents: readonly NimiRuntimeAgentInspectEventSummary[];
   routeReady: boolean;
-  runtimeInspect: RuntimeAgentInspectSnapshot | null;
+  runtimeInspect: NimiRuntimeAgentInspectSnapshot | null;
   runtimeInspectLoading: boolean;
   t: DiagnosticsTranslate;
   targetsPending: boolean;

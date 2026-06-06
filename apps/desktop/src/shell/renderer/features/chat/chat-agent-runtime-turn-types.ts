@@ -4,7 +4,7 @@ import type {
   ConversationTurnError,
 } from '@nimiplatform/kit/features/chat';
 import type { JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
-import type { AgentResolvedMessageActionEnvelope } from '@nimiplatform/sdk/runtime';
+import type { NimiRuntimeAgentResolvedMessageActionEnvelope } from '@nimiplatform/sdk/runtime';
 
 export const AGENT_RUNTIME_CHAT_PROVIDER_CAPABILITIES = {
   reasoning: true,
@@ -35,7 +35,7 @@ export type AgentRuntimeChatTurnRequest = {
   userAttachments?: readonly AgentChatUserAttachment[];
   maxOutputTokensRequested?: number | null;
   reasoningPreference: import('./chat-shared-thinking').ChatThinkingPreference;
-  textExecutionSnapshot: import('./conversation-capability').AISnapshot | null;
+  textExecutionSnapshot: import('./conversation-capability').NimiAISnapshot | null;
   signal?: AbortSignal;
 };
 
@@ -50,7 +50,7 @@ export type AgentRuntimeChatTurnStreamPart =
   }
   | {
     type: 'message-sealed';
-    envelope: AgentResolvedMessageActionEnvelope;
+    envelope: NimiRuntimeAgentResolvedMessageActionEnvelope;
     trace?: ConversationRuntimeTrace;
     metadataJson?: JsonObject | null;
     diagnostics?: Record<string, unknown>;

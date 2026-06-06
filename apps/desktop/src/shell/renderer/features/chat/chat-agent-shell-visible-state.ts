@@ -1,5 +1,5 @@
 import type { AgentLocalTargetSnapshot } from '@renderer/bridge/runtime-bridge/types';
-import type { AgentResolvedStatusCue } from '@nimiplatform/sdk/runtime';
+import type { NimiRuntimeAgentResolvedStatusCue } from '@nimiplatform/sdk/runtime';
 import type { AgentFooterViewState } from './chat-agent-shell-footer-state';
 import type { AgentVoiceSessionShellState } from './chat-agent-voice-session';
 
@@ -44,7 +44,7 @@ function clampUnit(value: number | null | undefined): number {
 }
 
 function resolveStatusCueInteractionState(
-  statusCue: AgentResolvedStatusCue | null | undefined,
+  statusCue: NimiRuntimeAgentResolvedStatusCue | null | undefined,
 ): AgentConversationSurfaceState['character']['interactionState'] | null {
   if (!statusCue) {
     return null;
@@ -172,7 +172,7 @@ export function resolveAgentConversationSurfaceState(input: {
   } | null;
   activeThreadId: string | null;
   voiceSessionState: AgentVoiceSessionShellState;
-  latestStatusCue?: AgentResolvedStatusCue | null;
+  latestStatusCue?: NimiRuntimeAgentResolvedStatusCue | null;
   runtimeCommittedStatus?: RuntimeCommittedStatusProjection | null;
   footerViewState: AgentFooterViewState;
   labels: {

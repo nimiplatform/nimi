@@ -16,7 +16,7 @@ import {
   resolveAiConversationSetupStateFromProjection,
 } from '../src/shell/renderer/features/chat/chat-nimi-route-view';
 import type { ConversationCapabilityProjection } from '../src/shell/renderer/features/chat/conversation-capability';
-import type { RuntimeRouteOptionsSnapshot } from '@nimiplatform/sdk/runtime';
+import type { NimiRuntimeRouteOptionsSnapshot } from '@nimiplatform/sdk/runtime';
 
 const chatNimiRouteViewSource = readFileSync(
   resolve(import.meta.dirname, '../src/shell/renderer/features/chat/chat-nimi-route-view.ts'),
@@ -137,7 +137,7 @@ test('A0 AI setup maps explicit cleared selection to setup-required without inve
 });
 
 test('A0 AI route options derive from runtime.route.listOptions snapshot, not runtime-config readiness', () => {
-  const snapshot: RuntimeRouteOptionsSnapshot = {
+  const snapshot: NimiRuntimeRouteOptionsSnapshot = {
     capability: 'text.generate',
     selected: null,
     local: {
@@ -193,8 +193,12 @@ test('A0 AI route options derive from runtime.route.listOptions snapshot, not ru
 });
 
 test('A0 AI route options consume SDK local route option projections', () => {
-  assert.match(chatNimiRouteViewSource, /isRuntimeRouteLocalOptionSelectable/);
-  assert.match(chatNimiRouteViewSource, /runtimeRouteLocalOptionToBinding/);
+  assert.match(chatNimiRouteViewSource, /isNimiRuntimeRouteLocalOptionSelectable/);
+  assert.match(chatNimiRouteViewSource, /nimiRuntimeRouteLocalOptionToBinding/);
+  assert.match(chatNimiRouteViewSource, /nimiRuntimeRouteBindingsMatch/);
+  assert.doesNotMatch(chatNimiRouteViewSource, /isRuntimeRouteLocalOptionSelectable/);
+  assert.doesNotMatch(chatNimiRouteViewSource, /runtimeRouteLocalOptionToBinding/);
+  assert.doesNotMatch(chatNimiRouteViewSource, /runtimeRouteBindingsMatch/);
   assert.match(chatNimiRouteViewSource, /from '@nimiplatform\/sdk\/runtime'/);
   assert.doesNotMatch(chatNimiRouteViewSource, /normalizeText\(model\.status\)\.toLowerCase\(\) !== 'removed'/);
   assert.doesNotMatch(chatNimiRouteViewSource, /source:\s*'local',\s*connectorId:\s*''/);

@@ -1,6 +1,6 @@
 import {
-  createBuiltInChatAIScopeRef,
-  type AIScopeRef,
+  createNimiBuiltInChatAIScopeRef,
+  type NimiAIScopeRef,
 } from '@nimiplatform/sdk/ai';
 import type { ConversationMode } from '@nimiplatform/kit/features/chat/headless';
 import { scopeKeyFromRef } from '@renderer/app-shell/providers/desktop-ai-config-storage';
@@ -10,43 +10,43 @@ import { pushDesktopAIConfigToBoundStore } from '@renderer/app-shell/providers/d
  * Chat consumer-local active scope orchestration.
  *
  * This is a convenience state for chat projection and settings flows only.
- * It is not shared Desktop AIConfig authority and must not become a cross-domain
+ * It is not shared Desktop NimiAIConfig authority and must not become a cross-domain
  * singleton for future app consumers.
  *
  * T3-1: the active chat scope is mode-aware. Each chat mode binds to its
- * canonical built-in `AIScopeRef` (P-AISC-006):
+ * canonical built-in `NimiAIScopeRef` (P-AISC-006):
  *   - `ai`    (Nimi Chat)  -> feature:desktop.chat:nimi
  *   - `agent` (Agent Chat) -> feature:desktop.chat:agent
- *   - `human` (Human Chat) -> no built-in chat AIConfig scope
+ *   - `human` (Human Chat) -> no built-in chat NimiAIConfig scope
  *   - `group` (Group Chat) -> see T3-2 below
  *
  * T3-2: Group Chat itself is a Realm-owned thread surface and binds no built-in
- * chat AIConfig scope by default. When the selected group has active LocalAgent
+ * chat NimiAIConfig scope by default. When the selected group has active LocalAgent
  * participation, the LocalAgent-participation path reuses the SAME canonical
  * `desktop.chat.agent` feature scope as Agent Chat. Group participation never
- * mints a group-specific AIConfig scope (product manual Chat rule: "Group agent
- * participation must not create a group-specific AIConfig scope").
+ * mints a group-specific NimiAIConfig scope (product manual Chat rule: "Group agent
+ * participation must not create a group-specific NimiAIConfig scope").
  *
  * There is NO generic `app:desktop:chat` scope in the chat live path. Human and
- * Group modes bind no chat AIConfig scope unless Group LocalAgent participation
+ * Group modes bind no chat NimiAIConfig scope unless Group LocalAgent participation
  * is active, in which case Group reuses the canonical agent feature scope.
  */
 
 /**
  * Mode -> built-in chat scope resolution.
  *
- * `null` is the typed "no built-in chat AIConfig scope" result for modes that
- * do not own a built-in chat AIConfig (`human`, and `group` — Group resolves
+ * `null` is the typed "no built-in chat NimiAIConfig scope" result for modes that
+ * do not own a built-in chat NimiAIConfig (`human`, and `group` — Group resolves
  * its `desktop.chat.agent` reuse dynamically through
  * `resolveGroupLocalAgentParticipationAIScopeRef` and
  * `setGroupLocalAgentParticipationActive`, not from the mode alone).
  */
-export function resolveChatModeAIScopeRef(mode: ConversationMode): AIScopeRef | null {
+export function resolveChatModeAIScopeRef(mode: ConversationMode): NimiAIScopeRef | null {
   switch (mode) {
     case 'ai':
-      return createBuiltInChatAIScopeRef('nimi');
+      return createNimiBuiltInChatAIScopeRef('nimi');
     case 'agent':
-      return createBuiltInChatAIScopeRef('agent');
+      return createNimiBuiltInChatAIScopeRef('agent');
     case 'human':
     case 'group':
       return null;
@@ -61,7 +61,7 @@ export function resolveChatModeAIScopeRef(mode: ConversationMode): AIScopeRef | 
  * Group LocalAgent participation -> built-in chat scope resolution (T3-2).
  *
  * Group Chat is a Realm-owned thread surface; its thread state stays
- * Realm-owned. Only the LocalAgent-participation AIConfig is scoped here, and
+ * Realm-owned. Only the LocalAgent-participation NimiAIConfig is scoped here, and
  * it reuses the SAME canonical built-in `desktop.chat.agent` feature scope as
  * Agent Chat (P-AISC-006). It MUST NOT mint a group-specific scope.
  *
@@ -70,8 +70,8 @@ export function resolveChatModeAIScopeRef(mode: ConversationMode): AIScopeRef | 
  */
 export function resolveGroupLocalAgentParticipationAIScopeRef(
   hasLocalAgentParticipation: boolean,
-): AIScopeRef | null {
-  return hasLocalAgentParticipation ? createBuiltInChatAIScopeRef('agent') : null;
+): NimiAIScopeRef | null {
+  return hasLocalAgentParticipation ? createNimiBuiltInChatAIScopeRef('agent') : null;
 }
 
 /**
@@ -96,23 +96,23 @@ let groupLocalAgentParticipationActive = false;
  * scope when LocalAgent participation is active, `null` otherwise. Group never
  * resolves a group-specific scope.
  */
-function resolveActiveScopeForMode(mode: ConversationMode): AIScopeRef | null {
+function resolveActiveScopeForMode(mode: ConversationMode): NimiAIScopeRef | null {
   if (mode === 'group') {
     return resolveGroupLocalAgentParticipationAIScopeRef(groupLocalAgentParticipationActive);
   }
   return resolveChatModeAIScopeRef(mode);
 }
 
-let activeScopeRef: AIScopeRef | null = resolveActiveScopeForMode(activeMode);
+let activeScopeRef: NimiAIScopeRef | null = resolveActiveScopeForMode(activeMode);
 
-type ActiveScopeChangeListener = (scopeRef: AIScopeRef | null) => void;
+type ActiveScopeChangeListener = (scopeRef: NimiAIScopeRef | null) => void;
 const activeScopeListeners: ActiveScopeChangeListener[] = [];
 
 /**
- * The current active chat AIScopeRef, or `null` when the active chat mode
- * binds no built-in chat AIConfig scope (`human` / `group`).
+ * The current active chat NimiAIScopeRef, or `null` when the active chat mode
+ * binds no built-in chat NimiAIConfig scope (`human` / `group`).
  */
-export function getActiveScope(): AIScopeRef | null {
+export function getActiveScope(): NimiAIScopeRef | null {
   return activeScopeRef;
 }
 
@@ -126,7 +126,7 @@ export function getActiveScopeMode(): ConversationMode {
  * Group participation state, notifying listeners only when the scope changes.
  *
  * Per-mode thread/session selection state is owned by the store and is not
- * touched here — this only rewires the AIConfig scope projection.
+ * touched here — this only rewires the NimiAIConfig scope projection.
  */
 function rebindActiveScope(): void {
   const prevKey = activeScopeRef ? scopeKeyFromRef(activeScopeRef) : null;
@@ -161,7 +161,7 @@ function rebindActiveScope(): void {
  * active LocalAgent participation, otherwise clears the active chat scope.
  *
  * Per-mode thread/session selection state is owned by the store and is not
- * touched here — this only rewires the AIConfig scope projection.
+ * touched here — this only rewires the NimiAIConfig scope projection.
  */
 export function setActiveScopeForMode(mode: ConversationMode): void {
   // Leaving Group always drops Group participation state; a non-group mode

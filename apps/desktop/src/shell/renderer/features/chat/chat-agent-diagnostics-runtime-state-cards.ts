@@ -1,14 +1,14 @@
 import type { AgentLocalTargetSnapshot } from '@renderer/bridge/runtime-bridge/types';
 import type {
-  RuntimeAgentInspectEventSummary,
-  RuntimeAgentInspectSnapshot,
+  NimiRuntimeAgentInspectEventSummary,
+  NimiRuntimeAgentInspectSnapshot,
 } from '@renderer/infra/runtime-agent-inspect';
 import type { AgentDiagnosticsCardData } from './chat-agent-diagnostics-view-model';
 
 type RuntimeStateCardsInput = {
   activeTarget: AgentLocalTargetSnapshot | null;
-  recentRuntimeEvents: readonly RuntimeAgentInspectEventSummary[];
-  runtimeInspect: RuntimeAgentInspectSnapshot | null;
+  recentRuntimeEvents: readonly NimiRuntimeAgentInspectEventSummary[];
+  runtimeInspect: NimiRuntimeAgentInspectSnapshot | null;
   runtimeInspectLoading: boolean;
 };
 

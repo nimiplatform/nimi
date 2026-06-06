@@ -41,8 +41,8 @@ test('chat unified shell a2: main layout mounts the dedicated chat page host', (
 test('chat unified shell a2: AI host stays enterable and submit-time route gating owns readiness', () => {
   assert.match(chatAiAdapterSource, /createReadyConversationSetupState\('ai'\)/);
   assert.doesNotMatch(chatAiAdapterSource, /resolveAiConversationSetupStateFromProjection/);
-  assert.match(chatAiAdapterSource, /pickerSelectionToBinding/);
-  assert.match(chatAiAdapterSource, /@nimiplatform\/kit\/features\/model-config\/headless/);
+  assert.doesNotMatch(chatAiAdapterSource, /pickerSelectionToBinding/);
+  assert.doesNotMatch(chatAiAdapterSource, /@nimiplatform\/kit\/features\/model-config\/headless/);
   assert.match(chatAiAdapterSource, /handleModelSelectionChange/);
   assert.match(chatAiModeContentSource, /ChatNimiThreadListSheet/);
   assert.match(chatAiModeContentSource, /ChatSideSheet/);
@@ -217,20 +217,22 @@ test('chat unified shell a2: AI and agent hosts reuse canonical transcript/compo
 
 test('chat unified shell a2: AIConfig is the umbrella authority over conversation capability (D-AIPC-010)', () => {
   // SDK types imported in conversation-capability.ts
-  assert.match(conversationCapabilitySource, /AIConfig/);
-  assert.match(conversationCapabilitySource, /AIScopeRef/);
+  assert.match(conversationCapabilitySource, /NimiAIConfig/);
+  assert.match(conversationCapabilitySource, /NimiAIScopeRef/);
   assert.match(conversationCapabilitySource, /@nimiplatform\/sdk\/ai/);
 
   // Bridge functions exist
   assert.match(conversationCapabilitySource, /function aiConfigFromSelectionStore\(/);
   assert.match(conversationCapabilitySource, /function selectionStoreFromAIConfig\(/);
 
-  // AISnapshot factory wraps ConversationExecutionSnapshot
-  assert.match(conversationCapabilitySource, /function createAISnapshot\(/);
+  // NimiAISnapshot factory wraps ConversationExecutionSnapshot.
+  assert.match(conversationCapabilitySource, /createNimiAISnapshotRecord/);
+  assert.match(conversationCapabilitySource, /function createConversationExecutionSnapshot\(/);
+  assert.doesNotMatch(conversationCapabilitySource, /function createAISnapshot\(/);
   assert.match(conversationCapabilitySource, /conversationCapabilitySlice/);
 
   // Store types include aiConfig as primary truth
-  assert.match(storeTypesSource, /aiConfig: AIConfig/);
+  assert.match(storeTypesSource, /aiConfig: NimiAIConfig/);
   assert.match(storeTypesSource, /setAIConfig:/);
   assert.doesNotMatch(storeTypesSource, /applyAIProfile:/);
 
@@ -253,16 +255,17 @@ test('chat unified shell a2: AIConfig is the umbrella authority over conversatio
 
 });
 
-test('chat unified shell a2: Phase 4 — AI and Agent adapters write through AIConfig surface, not store action (D-AIPC-003)', () => {
-  // AI adapter uses surface.aiConfig.update for model selection writes
-  assert.match(chatAiAdapterSource, /getDesktopAIConfigService/);
-  assert.match(chatAiAdapterSource, /surface\.aiConfig\.update\(/);
+test('chat unified shell a2: Phase 4 — AI and Agent adapters do not persist route picker selections (D-AIPC-003)', () => {
+  // Wave 5 product projection consumption: composer/model picker changes must not
+  // mint live AIConfig selected bindings or compact target refs.
+  assert.doesNotMatch(chatAiAdapterSource, /getDesktopAIConfigService/);
+  assert.doesNotMatch(chatAiAdapterSource, /surface\.aiConfig\.update\(/);
   assert.doesNotMatch(chatAiAdapterSource, /setConversationCapabilityBinding/);
 
-  // Agent path uses the adapter-state seam for model selection writes
+  // Agent path follows the same product-projection-only boundary.
   const chatAgentAdapterStateSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-adapter-state.ts');
-  assert.match(chatAgentAdapterStateSource, /getDesktopAIConfigService/);
-  assert.match(chatAgentAdapterStateSource, /surface\.aiConfig\.update\(/);
+  assert.doesNotMatch(chatAgentAdapterStateSource, /getDesktopAIConfigService/);
+  assert.doesNotMatch(chatAgentAdapterStateSource, /surface\.aiConfig\.update\(/);
   assert.doesNotMatch(chatAgentAdapterStateSource, /setConversationCapabilityBinding/);
 });
 

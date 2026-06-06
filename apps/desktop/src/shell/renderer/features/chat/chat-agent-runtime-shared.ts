@@ -1,9 +1,6 @@
-import {
-  createNimiError,
-  RoutePolicy,
-} from '@nimiplatform/sdk/runtime';
-import { ReasonCode } from '@nimiplatform/sdk/types';
-import type { AISnapshot } from './conversation-capability';
+import { RoutePolicy } from '@nimiplatform/sdk/runtime/generated';
+import { createNimiError, ReasonCode } from '@nimiplatform/sdk/types';
+import type { NimiAISnapshot } from './conversation-capability';
 
 export function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
@@ -86,7 +83,7 @@ export function requireValue(value: unknown, reasonCode: string, actionHint: str
 }
 
 export function resolveExecutionSlice(
-  snapshot: AISnapshot | null | undefined,
+  snapshot: NimiAISnapshot | null | undefined,
   capability:
     | 'text.generate'
     | 'image.generate'
@@ -94,13 +91,13 @@ export function resolveExecutionSlice(
     | 'audio.transcribe'
     | 'voice_workflow.voice_clone'
     | 'voice_workflow.voice_design',
-): NonNullable<AISnapshot['conversationCapabilitySlice']> {
+): NonNullable<NimiAISnapshot['conversationCapabilitySlice']> {
   const slice = snapshot?.conversationCapabilitySlice;
-  if (!slice || slice.capability !== capability || !slice.resolvedBinding) {
+  if (!slice || slice.capability !== capability || !slice.resolvedTarget) {
     throw createNimiError({
       message: `${capability} execution snapshot is not available`,
       reasonCode: ReasonCode.AI_INPUT_INVALID,
-      actionHint: 'select_runtime_route_binding',
+      actionHint: 'resolve_runtime_execution_target',
       source: 'runtime',
     });
   }

@@ -4,18 +4,27 @@ import {
   resolveAgentChatThinkingSupport,
   resolveChatThinkingConfig,
   buildAgentEffectiveCapabilityResolution,
-  createAISnapshot,
-  createEmptyAIConfig,
+  createNimiConversationAISnapshot,
+  createEmptyNimiAIConfig,
   readWorkspaceFile,
 } from './chat-agent-local-mode-test-utils.js';
 
+function healthyRoute(provider: string) {
+  return {
+    healthy: true,
+    status: 'healthy' as const,
+    provider,
+    detail: 'ready',
+    actionHint: 'use_runtime_route',
+  };
+}
 
 test('agent submit fail-closes when AgentEffectiveCapabilityResolution.ready is false', () => {
   const supportedProjection = {
     capability: 'text.generate' as const,
     selectedBinding: { source: 'local' as const, connectorId: '', model: 'qwen3' },
     resolvedBinding: { capability: 'text.generate' as const, resolvedBindingRef: 'local:llama:qwen3', source: 'local' as const, provider: 'llama', model: 'qwen3', modelId: 'qwen3', connectorId: '' },
-    health: { healthy: true, status: 'healthy' as const, detail: 'ready' },
+    health: healthyRoute('llama'),
     metadata: { capability: 'text.generate' as const, metadataVersion: 'v1' as const, resolvedBindingRef: 'local:llama:qwen3', metadataKind: 'text.generate' as const, metadata: { supportsThinking: false, traceModeSupport: 'none' as const, supportsImageInput: false, supportsAudioInput: false, supportsVideoInput: false, supportsArtifactRefInput: false } },
     supported: true,
     reasonCode: null,
@@ -57,7 +66,7 @@ test('agent capability resolution keeps image and voice optional while exposing 
       modelId: 'qwen3',
       connectorId: '',
     },
-    health: { healthy: true, status: 'healthy' as const, detail: 'ready' },
+    health: healthyRoute('llama'),
     metadata: {
       capability: 'text.generate' as const,
       metadataVersion: 'v1' as const,
@@ -88,7 +97,7 @@ test('agent capability resolution keeps image and voice optional while exposing 
       connectorId: '',
       endpoint: 'http://127.0.0.1:7860',
     },
-    health: { healthy: true, status: 'healthy' as const, detail: 'ready' },
+    health: healthyRoute('local-image'),
     metadata: null,
     supported: true,
     reasonCode: null,
@@ -105,7 +114,7 @@ test('agent capability resolution keeps image and voice optional while exposing 
       modelId: 'gpt-4o-mini-tts',
       connectorId: 'connector-voice',
     },
-    health: { healthy: true, status: 'healthy' as const, detail: 'ready' },
+    health: healthyRoute('openai'),
     metadata: null,
     supported: true,
     reasonCode: null,
@@ -136,7 +145,7 @@ test('agent capability resolution keeps image and voice optional while exposing 
       modelId: 'qwen3-tts-vc',
       connectorId: 'connector-voice-clone',
     },
-    health: { healthy: true, status: 'healthy' as const, detail: 'ready' },
+    health: healthyRoute('dashscope'),
     metadata: {
       capability: 'voice_workflow.voice_clone' as const,
       metadataVersion: 'v1' as const,
@@ -168,7 +177,7 @@ test('agent capability resolution keeps image and voice optional while exposing 
       modelId: 'qwen3-tts-vd',
       connectorId: 'connector-voice-design',
     },
-    health: { healthy: true, status: 'healthy' as const, detail: 'ready' },
+    health: healthyRoute('dashscope'),
     metadata: {
       capability: 'voice_workflow.voice_design' as const,
       metadataVersion: 'v1' as const,
@@ -241,7 +250,7 @@ test('agent local mode creates image execution snapshot for runtime-authoritativ
       endpoint: 'http://127.0.0.1:11434/v1',
       localProviderEndpoint: 'http://127.0.0.1:11434/v1',
     },
-    health: { healthy: true, status: 'healthy' as const, detail: 'ready' },
+    health: healthyRoute('llama'),
     metadata: {
       capability: 'text.generate' as const,
       metadataVersion: 'v1' as const,
@@ -277,7 +286,7 @@ test('agent local mode creates image execution snapshot for runtime-authoritativ
       goRuntimeLocalModelId: 'go-z-image',
       goRuntimeStatus: 'active',
     },
-    health: { healthy: true, status: 'healthy' as const, detail: 'ready' },
+    health: healthyRoute('media'),
     metadata: null,
     supported: true,
     reasonCode: null,
@@ -287,13 +296,13 @@ test('agent local mode creates image execution snapshot for runtime-authoritativ
     textProjection,
     imageProjection,
   });
-  const imageExecutionSnapshot = createAISnapshot({
-    config: createEmptyAIConfig(),
+  const imageExecutionSnapshot = createNimiConversationAISnapshot({
+    config: createEmptyNimiAIConfig(),
     capability: 'image.generate',
     projection: imageProjection,
     agentResolution,
   });
-  const resolvedBinding = imageExecutionSnapshot.conversationCapabilitySlice?.resolvedBinding as {
+  const resolvedBinding = imageExecutionSnapshot.conversationCapabilitySlice?.resolvedTarget as {
     endpoint?: string;
     goRuntimeLocalModelId?: string;
     goRuntimeStatus?: string;
@@ -341,19 +350,27 @@ test('agent shell stays a Runtime Agent projection consumer with local UI state'
   assert.match(adapterSource, /useAgentConversationEffects/);
   assert.match(adapterSource, /useAgentConversationPresentation/);
   assert.match(adapterSource, /useAgentRuntimeSessionSnapshotHydration/);
-  assert.match(adapterSessionSnapshotSource, /runtime\.agent\.turns\.getSessionSnapshot/);
+  assert.match(adapterSessionSnapshotSource, /createNimiRuntimeAgentConsumeClient/);
+  assert.match(adapterSessionSnapshotSource, /getDesktopRuntime\(\)\.agents/);
+  assert.match(adapterSessionSnapshotSource, /getDesktopAppId\(\)/);
+  assert.match(adapterSessionSnapshotSource, /turns\.getSessionSnapshot/);
+  assert.doesNotMatch(adapterSessionSnapshotSource, /getPlatformClient/);
+  assert.doesNotMatch(adapterSessionSnapshotSource, /runtime\.agent\.turns\.getSessionSnapshot/);
   assert.match(adapterSessionSnapshotSource, /hydrateAgentThreadBundleFromRuntimeSessionSnapshot/);
   assert.match(adapterSessionSnapshotSource, /lastRuntimeSessionSnapshotRequestKeyRef/);
   assert.match(adapterSessionSnapshotSource, /pendingRuntimeSessionSnapshotRequestKeyRef/);
   assert.match(adapterSessionSnapshotSource, /desktop_runtime_agent_session_snapshot_request_deduped_total/);
   assert.match(adapterStateSource, /realmSocialData\.loadSocialSnapshot\(\)/);
-  assert.match(adapterStateSource, /getDesktopAIConfigService\(\)/);
+  assert.match(adapterStateSource, /loadDesktopRouteOptions\('text\.generate'\)/);
+  assert.match(adapterStateSource, /findNimiRuntimeRouteModelProfile/);
   assert.match(sessionHydrationSource, /snapshot\.transcript/);
-  assert.match(hostActionHelpersSource, /createHostRuntimeAgentLifecycleSurface/);
+  assert.match(hostActionHelpersSource, /createNimiHostRuntimeAgentLifecycleSurface/);
+  assert.match(hostActionHelpersSource, /createNimiHostRuntimeAgentPresentationProfileSurface/);
+  assert.match(hostActionHelpersSource, /createNimiRuntimeAgentConsumeClient/);
   assert.match(hostActionHelpersSource, /ensureLocalAgentInitialized/);
   assert.doesNotMatch(hostActionHelpersSource, /createRuntimeProtectedScopeHelper/);
   assert.doesNotMatch(hostActionHelpersSource, /runtime\.agent\.initializeAgent/);
-  assert.match(hostActionHelpersSource, /runtime\.agent\.anchors\.getSnapshot/);
+  assert.match(hostActionHelpersSource, /client\.anchors\.getSnapshot/);
   assert.match(hostActionHelpersSource, /clearAgentConversationAnchorBinding/);
   assert.doesNotMatch(hostActionHelpersSource, /runtimeAgentExecutionBindingsMatch/);
   assert.doesNotMatch(hostActionHelpersSource, /withScopes\(\s*\['runtime\.agent\.write'\]/);

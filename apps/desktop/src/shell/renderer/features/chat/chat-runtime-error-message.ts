@@ -1,6 +1,6 @@
 import {
-  getRuntimeReasonCodeMessage,
-  toRuntimeUserFacingError,
+  getNimiRuntimeReasonCodeMessage,
+  toNimiRuntimeUserFacingError,
 } from '@nimiplatform/sdk/runtime';
 import { i18n } from '@renderer/i18n';
 
@@ -15,7 +15,7 @@ function translateMessage(key: string, defaultValue: string): string {
 }
 
 export function chatRuntimeReasonCodeMessage(reasonCode: string): string | null {
-  const entry = getRuntimeReasonCodeMessage(reasonCode);
+  const entry = getNimiRuntimeReasonCodeMessage(reasonCode);
   if (!entry) {
     return null;
   }
@@ -26,7 +26,7 @@ export function toChatUserFacingRuntimeError(
   error: unknown,
   fallbackMessage: string,
 ): { code: string; message: string } {
-  return toRuntimeUserFacingError(error, {
+  return toNimiRuntimeUserFacingError(error, {
     fallbackMessage,
     resolveReasonCodeMessage: (reasonCode) => chatRuntimeReasonCodeMessage(reasonCode),
   });

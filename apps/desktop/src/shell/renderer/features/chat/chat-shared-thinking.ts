@@ -1,20 +1,16 @@
-import {
-  normalizeRuntimeRouteReasoningPreference,
-  resolveRuntimeRouteReasoningConfig,
-  resolveRuntimeTextRouteReasoningSupport,
-  type RuntimeRouteReasoningPreference,
-  type RuntimeTextRouteReasoningSupportReason,
-} from '@nimiplatform/sdk/runtime';
-import type { NimiReasoningConfig } from '@nimiplatform/sdk/runtime';
+import type { NimiRuntimeAIReasoningOptions } from '@nimiplatform/sdk/ai';
 import type {
   ConversationCapabilityProjection,
   ConversationExecutionSnapshot,
 } from './conversation-capability';
 
-export type ChatThinkingPreference = RuntimeRouteReasoningPreference;
+export type ChatThinkingPreference = 'off' | 'on';
 
 export type ChatThinkingSupportReason =
-  | RuntimeTextRouteReasoningSupportReason
+  | 'missing_route'
+  | 'metadata_missing'
+  | 'trace_mode_unsupported'
+  | 'thinking_unsupported'
   | 'agent_route_unsupported';
 
 export type ChatThinkingSupport = {
@@ -23,7 +19,7 @@ export type ChatThinkingSupport = {
 };
 
 export function normalizeChatThinkingPreference(value: unknown): ChatThinkingPreference {
-  return normalizeRuntimeRouteReasoningPreference(value);
+  return value === 'on' ? 'on' : 'off';
 }
 
 export function resolveTextProjectionThinkingSupport(
@@ -60,11 +56,17 @@ export function resolveAgentChatThinkingSupport(): ChatThinkingSupport {
 export function resolveChatThinkingConfig(
   preference: ChatThinkingPreference,
   support: ChatThinkingSupport,
-): NimiReasoningConfig {
-  return resolveRuntimeRouteReasoningConfig(preference, {
-    supported: support.supported,
-    reason: support.reason === 'agent_route_unsupported' ? 'thinking_unsupported' : support.reason,
-  });
+): NimiRuntimeAIReasoningOptions {
+  if (preference === 'on' && support.supported) {
+    return {
+      mode: 'on',
+      traceMode: 'separate',
+    };
+  }
+  return {
+    mode: 'off',
+    traceMode: 'hide',
+  };
 }
 
 export function getChatThinkingUnsupportedCopy(
@@ -102,4 +104,37 @@ export function getChatThinkingUnsupportedCopy(
       defaultValue: 'Thinking is unavailable for the current route.',
     };
   }
+}
+
+function resolveRuntimeTextRouteReasoningSupport(
+  input: Pick<ConversationExecutionSnapshot, 'resolvedBinding' | 'metadata'> | null | undefined,
+): ChatThinkingSupport {
+  if (!input?.resolvedBinding) {
+    return {
+      supported: false,
+      reason: 'missing_route',
+    };
+  }
+  if (input.metadata?.metadataKind !== 'text.generate') {
+    return {
+      supported: false,
+      reason: 'metadata_missing',
+    };
+  }
+  if (!input.metadata.metadata.supportsThinking) {
+    return {
+      supported: false,
+      reason: 'thinking_unsupported',
+    };
+  }
+  if (input.metadata.metadata.traceModeSupport !== 'separate') {
+    return {
+      supported: false,
+      reason: 'trace_mode_unsupported',
+    };
+  }
+  return {
+    supported: true,
+    reason: null,
+  };
 }

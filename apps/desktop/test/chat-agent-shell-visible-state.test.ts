@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import type { AgentResolvedStatusCue } from '@nimiplatform/sdk/runtime';
+import type { NimiRuntimeAgentResolvedStatusCue } from '@nimiplatform/sdk/runtime';
 import {
   resolveAgentConversationSurfaceState,
   type RuntimeCommittedStatusProjection,
@@ -163,7 +163,7 @@ function resolveSurfaceState(input: {
   submittingThreadId: string | null;
   footerViewState: AgentFooterViewState;
   voiceSessionState?: AgentVoiceSessionShellState;
-  latestStatusCue?: AgentResolvedStatusCue | null;
+  latestStatusCue?: NimiRuntimeAgentResolvedStatusCue | null;
   runtimeCommittedStatus?: RuntimeCommittedStatusProjection | null;
   voiceCaptureState?: {
     active: boolean;

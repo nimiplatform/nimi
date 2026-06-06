@@ -2,8 +2,8 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { CompactAction } from '@nimiplatform/kit/ui';
 import type { AgentLocalTargetSnapshot } from '@renderer/bridge/runtime-bridge/types';
 import type {
-  RuntimeAgentInspectEventSummary,
-  RuntimeAgentInspectSnapshot,
+  NimiRuntimeAgentInspectEventSummary,
+  NimiRuntimeAgentInspectSnapshot,
 } from '@renderer/infra/runtime-agent-inspect';
 import type { AgentTurnLifecycleState } from './chat-agent-shell-lifecycle';
 import {
@@ -51,9 +51,9 @@ export function AgentDiagnosticsPanel(props: {
   onRefreshInspect?: () => void;
   onUpdateRuntimeState?: (input: { statusText: string; worldId: string; userId: string }) => void;
   onUpdateAutonomyConfig?: (input: { mode: string; dailyTokenBudget: string; maxTokensPerHook: string }) => void;
-  recentRuntimeEvents: readonly RuntimeAgentInspectEventSummary[];
+  recentRuntimeEvents: readonly NimiRuntimeAgentInspectEventSummary[];
   routeReady: boolean;
-  runtimeInspect: RuntimeAgentInspectSnapshot | null;
+  runtimeInspect: NimiRuntimeAgentInspectSnapshot | null;
   runtimeInspectLoading: boolean;
   t: DiagnosticsTranslate;
   targetsPending: boolean;

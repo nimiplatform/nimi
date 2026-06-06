@@ -2,13 +2,14 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
-  createAISnapshot,
+  createNimiConversationAISnapshot,
   type ConversationCapabilityProjection,
 } from '../src/shell/renderer/features/chat/conversation-capability.js';
-import { createBuiltInChatAIScopeRef, createEmptyAIConfig } from '@nimiplatform/sdk/ai';
+import { createNimiBuiltInChatAIScopeRef, createEmptyNimiAIConfig } from '@nimiplatform/sdk/ai';
+import { ExecutionMode, RoutePolicy, ScenarioJobEventType, ScenarioJobStatus, ScenarioType, type SubmitScenarioJobRequest } from '@nimiplatform/sdk/runtime/generated';
 import { transcribeChatAgentVoiceRuntime } from '../src/shell/renderer/features/chat/chat-agent-runtime.js';
 
-const testScopeRef = createBuiltInChatAIScopeRef('agent');
+const testScopeRef = createNimiBuiltInChatAIScopeRef('agent');
 
 function createTranscribeProjection(): ConversationCapabilityProjection {
   return {
@@ -29,9 +30,11 @@ function createTranscribeProjection(): ConversationCapabilityProjection {
       localModelId: 'whisper-1',
     },
     health: {
-      ok: true,
-      checkedAt: new Date().toISOString(),
-      latencyMs: 10,
+      healthy: true,
+      status: 'healthy',
+      provider: 'local',
+      detail: '',
+      actionHint: '',
     },
     metadata: null,
     supported: true,
@@ -39,38 +42,89 @@ function createTranscribeProjection(): ConversationCapabilityProjection {
   };
 }
 
-test('agent voice transcribe runtime consumes audio.transcribe snapshot and returns typed transcript', async () => {
-  let request: { mimeType?: string; audio?: unknown } | null = null;
-  const snapshot = createAISnapshot({
-    config: createEmptyAIConfig(testScopeRef),
+function createTranscribeSnapshot() {
+  return createNimiConversationAISnapshot({
+    config: createEmptyNimiAIConfig(testScopeRef),
     capability: 'audio.transcribe',
     projection: createTranscribeProjection(),
   });
+}
+
+function createScenarioJob(status: ScenarioJobStatus) {
+  return {
+    jobId: 'job-1',
+    scenarioType: ScenarioType.SPEECH_TRANSCRIBE,
+    executionMode: ExecutionMode.ASYNC_JOB,
+    routeDecision: RoutePolicy.LOCAL,
+    modelResolved: 'whisper-1',
+    status,
+    providerJobId: 'provider-job-1',
+    reasonCode: 0,
+    reasonDetail: '',
+    retryCount: 0,
+    artifacts: [],
+    traceId: 'trace-job',
+    ignoredExtensions: [],
+    progressPercent: status === ScenarioJobStatus.COMPLETED ? 100 : 0,
+    progressCurrentStep: status === ScenarioJobStatus.COMPLETED ? 1 : 0,
+    progressTotalSteps: 1,
+  };
+}
+
+test('agent voice transcribe runtime consumes audio.transcribe snapshot and returns typed transcript', async () => {
+  let request: unknown = null;
+  let callOptionsInput: unknown = null;
+  const snapshot = createTranscribeSnapshot();
 
   const result = await transcribeChatAgentVoiceRuntime({
     audioBytes: new Uint8Array([1, 2, 3]),
     mimeType: 'audio/webm',
     transcribeExecutionSnapshot: snapshot,
   }, {
-    buildRuntimeRequestMetadataImpl: async () => ({ traceId: 'trace-metadata' }),
-    getRuntimeClientImpl: () => ({
-      media: {
-        stt: {
-          transcribe: async (input: { mimeType?: string; audio?: unknown }) => {
-            request = input;
-            return {
-              job: {
-                jobId: 'job-1',
-                status: 'completed',
+    buildRuntimeCallOptionsImpl: async (input) => {
+      callOptionsInput = input;
+      return {
+        timeoutMs: input.timeoutMs,
+        metadata: { traceId: 'trace-metadata' },
+      };
+    },
+    getAppIdImpl: () => 'nimi.desktop.test',
+    createRequestIdImpl: () => 'req-stt-1',
+    getRuntimeImpl: () => ({
+      ai: {
+        async submitScenarioJob(input: SubmitScenarioJobRequest) {
+          request = input;
+          return { job: createScenarioJob(ScenarioJobStatus.SUBMITTED) };
+        },
+        async getScenarioJob() {
+          return { job: createScenarioJob(ScenarioJobStatus.COMPLETED) };
+        },
+        async cancelScenarioJob() {
+          return { job: createScenarioJob(ScenarioJobStatus.CANCELED) };
+        },
+        async *subscribeScenarioJobEvents() {
+          yield {
+            eventType: ScenarioJobEventType.SCENARIO_JOB_EVENT_COMPLETED,
+            sequence: '1',
+            traceId: 'trace-event',
+            job: createScenarioJob(ScenarioJobStatus.COMPLETED),
+          };
+        },
+        async getScenarioArtifacts() {
+          return {
+            jobId: 'job-1',
+            traceId: 'trace-stt',
+            artifacts: [],
+            output: {
+              output: {
+                oneofKind: 'speechTranscribe' as const,
+                speechTranscribe: {
+                  text: 'hello from voice',
+                  artifacts: [],
+                },
               },
-              text: 'hello from voice',
-              artifacts: [],
-              trace: {
-                traceId: 'trace-stt',
-                modelResolved: 'whisper-1',
-              },
-            };
-          },
+            },
+          };
         },
       },
     }) as never,
@@ -79,20 +133,20 @@ test('agent voice transcribe runtime consumes audio.transcribe snapshot and retu
   assert.equal(result.text, 'hello from voice');
   assert.equal(result.traceId, 'trace-stt');
   assert.ok(request);
-  const capturedRequest = request as { mimeType?: string; audio?: unknown };
-  assert.equal(capturedRequest.mimeType, 'audio/webm');
-  assert.deepEqual(capturedRequest.audio, {
-    kind: 'bytes',
-    bytes: new Uint8Array([1, 2, 3]),
-  });
+  const capturedCallOptionsInput = callOptionsInput as { targetId?: string; timeoutMs?: number };
+  const capturedRequest = request as SubmitScenarioJobRequest;
+  assert.ok(capturedRequest.spec);
+  assert.equal(capturedCallOptionsInput.targetId, 'whisper-1');
+  assert.equal(capturedRequest.scenarioType, ScenarioType.SPEECH_TRANSCRIBE);
+  assert.equal(capturedRequest.spec.spec.oneofKind, 'speechTranscribe');
+  assert.equal(capturedRequest.spec.spec.speechTranscribe.mimeType, 'audio/webm');
+  const source = capturedRequest.spec.spec.speechTranscribe.audioSource as { source?: { oneofKind?: string; audioBytes?: Uint8Array } } | undefined;
+  assert.equal(source?.source?.oneofKind, 'audioBytes');
+  assert.deepEqual(source?.source?.audioBytes, new Uint8Array([1, 2, 3]));
 });
 
 test('agent voice transcribe runtime fails close when transcript text is empty', async () => {
-  const snapshot = createAISnapshot({
-    config: createEmptyAIConfig(testScopeRef),
-    capability: 'audio.transcribe',
-    projection: createTranscribeProjection(),
-  });
+  const snapshot = createTranscribeSnapshot();
 
   await assert.rejects(
     () => transcribeChatAgentVoiceRuntime({
@@ -100,22 +154,46 @@ test('agent voice transcribe runtime fails close when transcript text is empty',
       mimeType: 'audio/webm',
       transcribeExecutionSnapshot: snapshot,
     }, {
-      buildRuntimeRequestMetadataImpl: async () => ({ traceId: 'trace-metadata' }),
-      getRuntimeClientImpl: () => ({
-        media: {
-          stt: {
-            transcribe: async () => ({
-              job: {
-                jobId: 'job-1',
-                status: 'completed',
-              },
-              text: '   ',
+      buildRuntimeCallOptionsImpl: async (input) => ({
+        timeoutMs: input.timeoutMs,
+        metadata: { traceId: 'trace-metadata' },
+      }),
+      getAppIdImpl: () => 'nimi.desktop.test',
+      createRequestIdImpl: () => 'req-stt-empty',
+      getRuntimeImpl: () => ({
+        ai: {
+          async submitScenarioJob() {
+            return { job: createScenarioJob(ScenarioJobStatus.SUBMITTED) };
+          },
+          async getScenarioJob() {
+            return { job: createScenarioJob(ScenarioJobStatus.COMPLETED) };
+          },
+          async cancelScenarioJob() {
+            return { job: createScenarioJob(ScenarioJobStatus.CANCELED) };
+          },
+          async *subscribeScenarioJobEvents() {
+            yield {
+              eventType: ScenarioJobEventType.SCENARIO_JOB_EVENT_COMPLETED,
+              sequence: '1',
+              traceId: 'trace-event',
+              job: createScenarioJob(ScenarioJobStatus.COMPLETED),
+            };
+          },
+          async getScenarioArtifacts() {
+            return {
+              jobId: 'job-1',
+              traceId: 'trace-stt',
               artifacts: [],
-              trace: {
-                traceId: 'trace-stt',
-                modelResolved: 'whisper-1',
+              output: {
+                output: {
+                  oneofKind: 'speechTranscribe' as const,
+                  speechTranscribe: {
+                    text: '   ',
+                    artifacts: [],
+                  },
+                },
               },
-            }),
+            };
           },
         },
       }) as never,

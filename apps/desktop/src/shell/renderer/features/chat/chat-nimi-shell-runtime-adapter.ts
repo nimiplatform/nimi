@@ -2,21 +2,21 @@ import type { ConversationRuntimeAdapter } from '@nimiplatform/kit/features/chat
 import type { ChatThinkingPreference } from './chat-shared-thinking';
 import { streamChatAiRuntime } from './chat-nimi-runtime';
 import {
-  createAISnapshot,
-  type AIConfig,
+  createNimiConversationAISnapshot,
+  type NimiAIConfig,
   type ConversationCapabilityProjection,
 } from './conversation-capability';
 import {
   peekDesktopAISchedulingForEvidence,
   recordDesktopAISnapshot,
-  resolveAIConfigRuntimeSchedulingTargetForCapability,
+  resolveNimiAIConfigRuntimeSchedulingTargetForCapability,
 } from '@renderer/app-shell/providers/desktop-ai-config-service';
 import { withPromptTrace } from './chat-nimi-shell-core';
 
 export function createChatAiConversationRuntimeAdapter(input: {
   reasoningPreference: ChatThinkingPreference;
   getTextProjection: () => ConversationCapabilityProjection | null;
-  aiConfig: AIConfig;
+  aiConfig: NimiAIConfig;
 }): ConversationRuntimeAdapter {
   return {
     async streamText(request) {
@@ -26,11 +26,11 @@ export function createChatAiConversationRuntimeAdapter(input: {
       const runtimeEvidence = textProjection?.supported
         ? await peekDesktopAISchedulingForEvidence({
           scopeRef: input.aiConfig.scopeRef,
-          target: resolveAIConfigRuntimeSchedulingTargetForCapability(input.aiConfig, 'text.generate'),
+          target: resolveNimiAIConfigRuntimeSchedulingTargetForCapability(input.aiConfig, 'text.generate'),
         })
         : null;
       const executionSnapshot = textProjection?.supported
-        ? createAISnapshot({
+        ? createNimiConversationAISnapshot({
           config: input.aiConfig,
           capability: 'text.generate',
           projection: textProjection,
@@ -49,13 +49,11 @@ export function createChatAiConversationRuntimeAdapter(input: {
         executionSnapshot,
         signal: request.signal,
       });
-      return {
-        stream: (async function* () {
-          for await (const part of runtimeResult.stream) {
-            yield withPromptTrace(part, runtimeResult.promptTraceId);
-          }
-        })(),
-      };
+      return (async function* () {
+        for await (const part of runtimeResult.stream) {
+          yield withPromptTrace(part, runtimeResult.promptTraceId);
+        }
+      })();
     },
   };
 }

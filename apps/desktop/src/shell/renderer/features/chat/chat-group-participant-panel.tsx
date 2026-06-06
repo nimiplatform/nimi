@@ -1,6 +1,6 @@
 import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
 import { useEffect, useState } from 'react';
-import type { RealmModel } from '@nimiplatform/sdk/realm';
+import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 import { useTranslation } from 'react-i18next';
 import { ScrollArea } from '@nimiplatform/kit/ui';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -17,7 +17,7 @@ type AgentFromSnapshot = {
 };
 
 function toAgentListFromSocialSnapshot(
-  snapshot: { friends?: unknown[] } | null | undefined,
+  snapshot: { friends?: readonly unknown[] } | null | undefined,
 ): AgentFromSnapshot[] {
   const friends = Array.isArray(snapshot?.friends) ? snapshot.friends : [];
   return friends
@@ -91,7 +91,7 @@ export function ChatGroupParticipantPanel(props: {
   }, [addAgentOpen, canManageAgentSlots]);
 
   const availableAgents = toAgentListFromSocialSnapshot(
-    socialQuery.data as { friends?: unknown[] } | null,
+    socialQuery.data ?? null,
   ).filter((a) => !existingAgentIds.has(a.agentId));
 
   const handleAddAgent = async (agentAccountId: string) => {

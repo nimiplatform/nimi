@@ -1,20 +1,25 @@
-import { getPlatformClient } from '@nimiplatform/sdk';
-import { uploadRealmResourceFileWithRealm } from '@nimiplatform/sdk/realm';
+import { uploadNimiRealmResourceFile } from '@nimiplatform/sdk/realm';
 import {
-  asNimiError,
-  createHostRuntimeAgentLifecycleSurface,
-  createHostRuntimeAgentPresentationProfileSurface,
-  normalizeRuntimeAgentPresentationBackendKind,
+  createNimiHostRuntimeAgentLifecycleSurface,
+  createNimiHostRuntimeAgentPresentationProfileSurface,
+  createNimiRuntimeAgentConsumeClient,
+  normalizeNimiRuntimeAgentPresentationBackendKind,
 } from '@nimiplatform/sdk/runtime';
-import { ReasonCode } from '@nimiplatform/sdk/types';
+import { asNimiError, ReasonCode } from '@nimiplatform/sdk/types';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import {
+  getDesktopAppId,
+  getDesktopHostRuntimeAgentClient,
+  getDesktopRealm,
+  getDesktopRuntime,
+} from '@renderer/infra/sdk/desktop-nimi-client-session';
 import type {
   AgentLocalTargetSnapshot,
   AgentLocalThreadRecord,
   AgentLocalThreadSummary,
 } from '@renderer/bridge/runtime-bridge/types';
 import {
-  resolveAIConfigRuntimeSchedulingTargetForCapability,
+  resolveNimiAIConfigRuntimeSchedulingTargetForCapability,
 } from '@renderer/app-shell/providers/desktop-ai-config-service';
 import {
   bundleQueryKey,
@@ -80,14 +85,14 @@ async function syncRuntimePresentationProfile(input: {
 }): Promise<void> {
   const profile = input.target.presentationProfile;
   const backendKind = profile
-    ? normalizeRuntimeAgentPresentationBackendKind(profile.backendKind)
+    ? normalizeNimiRuntimeAgentPresentationBackendKind(profile.backendKind)
     : null;
   const avatarAssetRef = normalizeText(profile?.avatarAssetRef);
   if (!profile || !backendKind || !avatarAssetRef) {
     return;
   }
-  const runtime = getPlatformClient().runtime;
-  const surface = createHostRuntimeAgentPresentationProfileSurface({
+  const runtime = getDesktopHostRuntimeAgentClient();
+  const surface = createNimiHostRuntimeAgentPresentationProfileSurface({
     getRuntime: () => runtime,
     getSubjectUserId: () => input.context.subjectUserId,
   });
@@ -95,7 +100,7 @@ async function syncRuntimePresentationProfile(input: {
 }
 
 export async function ensureRuntimeAgentExists(target: AgentLocalTargetSnapshot): Promise<void> {
-  const runtime = getPlatformClient().runtime;
+  const runtime = getDesktopHostRuntimeAgentClient();
   const subjectUserId = requireRuntimeSubjectUserId();
   const context = {
     appId: runtime.appId,
@@ -104,7 +109,7 @@ export async function ensureRuntimeAgentExists(target: AgentLocalTargetSnapshot)
     realmAgentId: target.realmAgentId,
     localAgentRef: target.localAgentRef,
   };
-  const lifecycleSurface = createHostRuntimeAgentLifecycleSurface({
+  const lifecycleSurface = createNimiHostRuntimeAgentLifecycleSurface({
     getRuntime: () => runtime,
     getSubjectUserId: () => subjectUserId,
   });
@@ -122,7 +127,7 @@ export async function assertAgentSubmitSchedulingAllowed(input: {
   aiConfig: UseAgentConversationHostActionsInput['aiConfig'];
   t: UseAgentConversationHostActionsInput['t'];
 }): Promise<void> {
-  const target = resolveAIConfigRuntimeSchedulingTargetForCapability(input.aiConfig, 'text.generate');
+  const target = resolveNimiAIConfigRuntimeSchedulingTargetForCapability(input.aiConfig, 'text.generate');
   const schedulingGuard = await probeExecutionSchedulingGuard({
     scopeRef: input.aiConfig.scopeRef,
     target,
@@ -139,9 +144,12 @@ export async function assertAgentSubmitSchedulingAllowed(input: {
 async function openConversationAnchorForTarget(
   target: AgentLocalTargetSnapshot,
 ): Promise<string> {
-  const runtime = getPlatformClient().runtime;
+  const client = createNimiRuntimeAgentConsumeClient({
+    runtime: getDesktopRuntime(),
+    runtimeAppId: getDesktopAppId(),
+  });
   await ensureRuntimeAgentExists(target);
-  const snapshot = await runtime.agent.anchors.open({
+  const snapshot = await client.anchors.open({
     localAgentRef: target.localAgentRef,
     ownerUserId: target.ownerUserId,
     realmAgentId: target.realmAgentId,
@@ -176,10 +184,13 @@ async function ensureConversationAnchorBindingUpstream(input: {
   target: AgentLocalTargetSnapshot;
   binding: AgentConversationAnchorBinding;
 }): Promise<AgentConversationAnchorBinding | null> {
-  const runtime = getPlatformClient().runtime;
+  const client = createNimiRuntimeAgentConsumeClient({
+    runtime: getDesktopRuntime(),
+    runtimeAppId: getDesktopAppId(),
+  });
   await ensureRuntimeAgentExists(input.target);
   try {
-    await runtime.agent.anchors.getSnapshot({
+    await client.anchors.getSnapshot({
       localAgentRef: input.target.localAgentRef,
       ownerUserId: input.target.ownerUserId,
       realmAgentId: input.target.realmAgentId,
@@ -270,14 +281,13 @@ export async function uploadPendingAttachment(
       defaultValue: 'Agent chat currently supports image attachments only.',
     }));
   }
-  const uploaded = await uploadRealmResourceFileWithRealm({
-    realm: getPlatformClient().realm,
+  const uploaded = await uploadNimiRealmResourceFile(getDesktopRealm(), {
     kind: 'image',
     file: attachment.file,
     failureMessage: input.t('Chat.agentAttachmentUploadFailed', {
       defaultValue: 'Failed to upload image attachment.',
     }),
-    transportMode: 'multipartPostThenBinaryPut',
+    transportMode: 'multipart_post_then_binary_put',
   });
   const url = normalizeText(uploaded.resource.url);
   if (!url) {

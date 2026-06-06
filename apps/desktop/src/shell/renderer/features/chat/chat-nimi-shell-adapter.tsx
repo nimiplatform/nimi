@@ -43,16 +43,13 @@ import {
   THREADS_QUERY_KEY,
   toErrorMessage,
 } from './chat-nimi-shell-core';
-import type { RuntimeRouteBinding } from '@nimiplatform/sdk/runtime';
 import type { RouteModelPickerSelection } from '@nimiplatform/kit/features/model-picker';
-import { pickerSelectionToBinding } from '@nimiplatform/kit/features/model-config/headless';
 import { useAiConversationPresentation } from './chat-nimi-shell-presentation';
 import { createChatAiConversationRuntimeAdapter } from './chat-nimi-shell-runtime-adapter';
 import { useAiConversationEffects } from './chat-nimi-shell-effects';
 import { useAiConversationCapabilityEffects } from './chat-nimi-shell-capability-effects';
 import { useSchedulingFeasibility } from './chat-shared-execution-scheduling-guard';
 import { useAiConversationHostActions } from './chat-nimi-shell-host-actions';
-import { getDesktopAIConfigService } from '@renderer/app-shell/providers/desktop-ai-config-service';
 
 type UseAiConversationModeHostInput = {
   selection: NimiConversationSelection;
@@ -119,55 +116,13 @@ export function useAiConversationModeHost(
     [activeThreadId, threads],
   );
 
-  const textGenerateBinding: RuntimeRouteBinding | null | undefined =
-    aiConfig.capabilities.selectedBindings['text.generate'] as RuntimeRouteBinding | null | undefined;
-  const hasExplicitTextGenerateSelection = Object.prototype.hasOwnProperty.call(
-    aiConfig.capabilities.selectedBindings,
-    'text.generate',
-  );
-  const selectedTextBinding = hasExplicitTextGenerateSelection
-    ? (textGenerateBinding ?? null)
-    : null;
-
   const handleModelSelectionChange = useCallback((selection: RouteModelPickerSelection) => {
-    if (!selection.model) {
-      return;
-    }
-    const currentModel = selectedTextBinding?.modelId || selectedTextBinding?.model || '';
-    if (
-      selectedTextBinding
-      && selectedTextBinding.source === selection.source
-      && currentModel === selection.model
-    ) {
-      return;
-    }
-    const binding = pickerSelectionToBinding(selection);
-    if (binding) {
-      // Write through AIConfig surface (D-AIPC-003) — the formal config owner.
-      const surface = getDesktopAIConfigService();
-      const nextBindings = { ...aiConfig.capabilities.selectedBindings };
-      nextBindings['text.generate'] = binding;
-      const nextConfig = {
-        ...aiConfig,
-        capabilities: { ...aiConfig.capabilities, selectedBindings: nextBindings },
-      };
-      surface.aiConfig.update(nextConfig.scopeRef, nextConfig);
-    }
-  }, [aiConfig, selectedTextBinding]);
+    void selection;
+  }, []);
 
   const initialModelSelection = useMemo<Partial<RouteModelPickerSelection>>(() => {
-    if (!selectedTextBinding) {
-      return {};
-    }
-    return {
-      source: selectedTextBinding.source,
-      connectorId: selectedTextBinding.connectorId || '',
-      model: selectedTextBinding.source === 'local'
-        ? (selectedTextBinding.localModelId || selectedTextBinding.model || '')
-        : (selectedTextBinding.model || selectedTextBinding.modelId || ''),
-      modelLabel: selectedTextBinding.modelLabel,
-    };
-  }, [selectedTextBinding]);
+    return {};
+  }, []);
 
   const setupState = useMemo(
     () => createReadyConversationSetupState('ai'),
@@ -290,10 +245,10 @@ export function useAiConversationModeHost(
   const routeSummary = useMemo(
     () => buildAiConversationRouteSummary({
       projection: textCapabilityProjection,
-      selectedBinding: selectedTextBinding,
+      selectedBinding: null,
       routeOptions: [],
     }),
-    [selectedTextBinding, textCapabilityProjection],
+    [textCapabilityProjection],
   );
 
   const aiCharacterData = useMemo(() => ({

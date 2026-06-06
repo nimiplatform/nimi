@@ -15,8 +15,10 @@ import {
 import {
   buildConversationCapabilityProjection,
   createDefaultConversationCapabilitySelectionStore,
+  type ConversationCapabilityRouteRuntime,
   updateConversationCapabilityBinding,
 } from '../src/shell/renderer/features/chat/conversation-capability.js';
+import type { NimiRuntimeRouteBinding } from '@nimiplatform/sdk/runtime';
 
 function readWorkspaceFile(relativePath: string): string {
   return fs.readFileSync(path.join(import.meta.dirname, '..', relativePath), 'utf8');
@@ -54,12 +56,12 @@ test('chat ai a4: active thread restore prefers explicit selection before last s
   }), null);
 });
 
-test('chat ai a4: adapter reads text.generate binding from AIConfig as primary route truth', () => {
+test('chat ai a4: adapter does not persist text.generate route selections into AIConfig truth', () => {
   const adapterSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-nimi-shell-adapter.tsx');
-  // Readiness derives from selectedBinding, not routeSnapshot
-  assert.match(adapterSource, /selectedBinding:\s*selectedTextBinding/);
-  assert.match(adapterSource, /aiConfig\.capabilities\.selectedBindings\['text\.generate'\]/);
-  assert.match(adapterSource, /const selectedTextBinding = hasExplicitTextGenerateSelection/);
+  assert.match(adapterSource, /selectedBinding:\s*null/);
+  assert.doesNotMatch(adapterSource, /aiConfig\.capabilities\.selectedBindings\['text\.generate'\]/);
+  assert.doesNotMatch(adapterSource, /aiConfig\.capabilities\.targetRefs\['text\.generate'\]/);
+  assert.doesNotMatch(adapterSource, /surface\.aiConfig\.update\(/);
   assert.equal(
     /if\s*\(!projectionSupported\s*\|\|\s*!activeThreadId\)/.test(adapterSource),
     false,
@@ -104,14 +106,14 @@ test('chat ai a4: composer submit is fire-and-forget and host actions project th
 });
 
 test('chat ai a4: switching thread route truth updates selection-store projection and thinking support', async () => {
-  const cloudBinding = {
+  const cloudBinding: NimiRuntimeRouteBinding = {
     source: 'cloud' as const,
     connectorId: 'connector-ollama',
     provider: 'ollama',
     model: 'qwen3-cloud',
     modelId: 'qwen3-cloud',
   };
-  const localBinding = {
+  const localBinding: NimiRuntimeRouteBinding = {
     source: 'local' as const,
     connectorId: '',
     model: 'qwen3-local',
@@ -122,8 +124,8 @@ test('chat ai a4: switching thread route truth updates selection-store projectio
     endpoint: 'http://127.0.0.1:22434',
   };
 
-  const routeRuntime = {
-    resolve: async ({ binding }: { binding?: Record<string, unknown> }) => {
+  const routeRuntime: ConversationCapabilityRouteRuntime = {
+    resolve: async ({ binding }) => {
       const source = String(binding?.source || '').trim();
       if (source === 'cloud') {
         return {
@@ -151,9 +153,11 @@ test('chat ai a4: switching thread route truth updates selection-store projectio
     checkHealth: async () => ({
       healthy: true,
       status: 'healthy',
+      provider: 'test-route',
       detail: 'ready',
+      actionHint: 'none',
     }),
-    describe: async ({ resolvedBindingRef }: { resolvedBindingRef: string }) => ({
+    describe: async ({ resolvedBindingRef }) => ({
       capability: 'text.generate' as const,
       metadataVersion: 'v1' as const,
       resolvedBindingRef,
@@ -272,7 +276,9 @@ test('chat ai a4: projection thinking fails close when text metadata is missing'
     health: {
       healthy: true,
       status: 'healthy',
+      provider: 'ollama',
       detail: 'ready',
+      actionHint: 'none',
     },
     metadata: null,
     supported: false,

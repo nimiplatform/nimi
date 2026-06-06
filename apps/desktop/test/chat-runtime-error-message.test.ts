@@ -9,8 +9,10 @@ test('chat runtime error message delegates behavior to SDK runtime projection', 
     'utf8',
   );
 
-  assert.match(source, /getRuntimeReasonCodeMessage/);
-  assert.match(source, /toRuntimeUserFacingError/);
+  assert.match(source, /getNimiRuntimeReasonCodeMessage/);
+  assert.match(source, /toNimiRuntimeUserFacingError/);
+  assert.doesNotMatch(source, /getRuntimeReasonCodeMessage/);
+  assert.doesNotMatch(source, /toRuntimeUserFacingError/);
   assert.doesNotMatch(source, /CHAT_RUNTIME_REASON_MESSAGE_MAP/);
   assert.doesNotMatch(source, /shouldUseRawMessage/);
   assert.doesNotMatch(source, /AI_PROVIDER_TIMEOUT:\s*\{/);
@@ -37,7 +39,8 @@ test('runtime config error formatting does not retain a Desktop helper owner', (
   assert.equal(fs.existsSync(helperPath), false);
   for (const source of [providerCommands, connectorTestCommand, cloudPage]) {
     assert.match(source, /from '@nimiplatform\/sdk\/runtime'/);
-    assert.match(source, /formatRuntimeNimiErrorBanner|formatRuntimeNimiErrorDetail/);
+    assert.match(source, /formatNimiRuntimeErrorBanner|formatNimiRuntimeErrorDetail/);
+    assert.doesNotMatch(source, /formatRuntimeNimiErrorBanner|formatRuntimeNimiErrorDetail/);
     assert.doesNotMatch(source, /runtime-config-connector-error/);
   }
 });

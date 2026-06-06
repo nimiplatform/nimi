@@ -31,8 +31,12 @@ describe('Realm group agent participation Desktop hardcut', () => {
   it('wires split Runtime candidate/evidence read and Realm commit facades', () => {
     const flowSource = readDesktopFile('src/shell/renderer/features/chat/data/realm-group-chat-data.ts');
 
-    assert.match(flowSource, /createHostRuntimeRealmGroupMessageCandidateSurface/);
+    assert.match(flowSource, /createNimiHostRuntimeRealmGroupMessageCandidateSurface/);
     assert.match(flowSource, /createCommitPayload/);
+    assert.match(flowSource, /getDesktopRuntime\(\)\.agents/);
+    assert.match(flowSource, /getDesktopAppId\(\)/);
+    assert.doesNotMatch(flowSource, /createHostRuntimeRealmGroupMessageCandidateSurface/);
+    assert.doesNotMatch(flowSource, /getPlatformClient/);
     assert.doesNotMatch(flowSource, /createRuntimeProtectedScopeHelper/);
     assert.doesNotMatch(flowSource, /runtime\.agent\.createRealmGroupMessageCandidate/);
     assert.doesNotMatch(flowSource, /runtime\.agent\.getRealmGroupMessageCandidateEvidence/);

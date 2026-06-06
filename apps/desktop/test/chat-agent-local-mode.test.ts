@@ -5,12 +5,16 @@ import {
   toAgentFriendTargetsFromSocialSnapshot,
   hydrateAgentThreadBundleFromRuntimeSessionSnapshot,
 } from './chat-agent-local-mode-test-utils.js';
-import type { RuntimeAgentSessionSnapshot } from '@nimiplatform/sdk/runtime';
+import type { NimiRuntimeAgentMessage, NimiRuntimeAgentSessionSnapshot } from '@nimiplatform/sdk/runtime';
+
+type RuntimeAgentReplaySessionSnapshot = NimiRuntimeAgentSessionSnapshot & {
+  readonly transcript?: readonly NimiRuntimeAgentMessage[];
+};
 
 function transcriptWithoutRuntimeReplayEnvelope(
   messages: readonly { role: 'user' | 'assistant'; content: string }[],
-): RuntimeAgentSessionSnapshot['transcript'] {
-  return messages as unknown as RuntimeAgentSessionSnapshot['transcript'];
+): RuntimeAgentReplaySessionSnapshot['transcript'] {
+  return messages as unknown as RuntimeAgentReplaySessionSnapshot['transcript'];
 }
 
 test('agent local mode filters social snapshot to agent friends and fails close on broken agent targets', () => {

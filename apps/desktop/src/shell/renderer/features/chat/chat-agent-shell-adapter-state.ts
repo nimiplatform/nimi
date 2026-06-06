@@ -5,10 +5,8 @@ import { useCallback,
   useSyncExternalStore } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { RouteModelPickerSelection } from '@nimiplatform/kit/features/model-picker';
-import { pickerSelectionToBinding } from '@nimiplatform/kit/features/model-config/headless';
 import {
-  findRuntimeRouteModelProfile,
-  type RuntimeRouteBinding,
+  findNimiRuntimeRouteModelProfile,
 } from '@nimiplatform/sdk/runtime';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import type {
@@ -42,9 +40,8 @@ import {
   type AgentRuntimeConversationSummary,
 } from './chat-agent-runtime-conversation-summaries';
 import {
-  type AIConfig,
+  type NimiAIConfig,
 } from './conversation-capability';
-import { getDesktopAIConfigService } from '@renderer/app-shell/providers/desktop-ai-config-service';
 import { loadDesktopRouteOptions } from '../runtime-config/desktop-route-options-service';
 
 type SocialSnapshot = Awaited<ReturnType<typeof realmSocialData.loadSocialSnapshot>>;
@@ -80,7 +77,7 @@ function synthesizeAgentThreadSummaryFromTarget(
 }
 
 type UseAgentConversationShellStateInput = {
-  aiConfig: AIConfig;
+  aiConfig: NimiAIConfig;
   authStatus: 'bootstrapping' | 'anonymous' | 'authenticated';
   bootstrapReady: boolean;
   selection: AgentConversationSelection;
@@ -106,7 +103,7 @@ type AgentConversationShellState = {
   targets: AgentLocalTargetSnapshot[];
   targetsPending: boolean;
   targetsReady: boolean;
-  textRouteModelProfile: ReturnType<typeof findRuntimeRouteModelProfile>;
+  textRouteModelProfile: ReturnType<typeof findNimiRuntimeRouteModelProfile>;
   threads: AgentLocalThreadSummary[];
   threadsReady: boolean;
 };
@@ -115,17 +112,6 @@ export function useAgentConversationShellState(
   input: UseAgentConversationShellStateInput,
 ): AgentConversationShellState {
   const agentResolution = useAppStore((state) => state.agentEffectiveCapabilityResolution);
-  const textGenerateBinding = input.aiConfig.capabilities.selectedBindings['text.generate'] as
-    | RuntimeRouteBinding
-    | null
-    | undefined;
-  const hasExplicitTextGenerateSelection = Object.prototype.hasOwnProperty.call(
-    input.aiConfig.capabilities.selectedBindings,
-    'text.generate',
-  );
-  const selectedTextBinding = hasExplicitTextGenerateSelection
-    ? (textGenerateBinding ?? null)
-    : null;
   const textRouteOptionsQuery = useQuery({
     queryKey: ['chat-agent-route-options', 'text.generate'],
     queryFn: () => loadDesktopRouteOptions('text.generate'),
@@ -133,54 +119,24 @@ export function useAgentConversationShellState(
     staleTime: 60_000,
   });
   const textRouteModelProfile = useMemo(
-    () => findRuntimeRouteModelProfile(textRouteOptionsQuery.data, selectedTextBinding),
-    [selectedTextBinding, textRouteOptionsQuery.data],
+    () => findNimiRuntimeRouteModelProfile(textRouteOptionsQuery.data, null),
+    [textRouteOptionsQuery.data],
   );
 
   const handleModelSelectionChange = useCallback((selection: RouteModelPickerSelection) => {
-    if (!selection.model) {
-      return;
-    }
-    const currentModel = selectedTextBinding?.modelId || selectedTextBinding?.model || '';
-    if (
-      selectedTextBinding
-      && selectedTextBinding.source === selection.source
-      && currentModel === selection.model
-    ) {
-      return;
-    }
-    const binding = pickerSelectionToBinding(selection);
-    if (!binding) {
-      return;
-    }
-    const surface = getDesktopAIConfigService();
-    const nextBindings = { ...input.aiConfig.capabilities.selectedBindings };
-    nextBindings['text.generate'] = binding;
-    const nextConfig = {
-      ...input.aiConfig,
-      capabilities: { ...input.aiConfig.capabilities, selectedBindings: nextBindings },
-    };
-    surface.aiConfig.update(nextConfig.scopeRef, nextConfig);
-  }, [input.aiConfig, selectedTextBinding]);
+    void selection;
+  }, []);
 
   const initialModelSelection = useMemo<Partial<RouteModelPickerSelection>>(() => {
-    if (!selectedTextBinding) {
-      return {};
-    }
-    return {
-      source: selectedTextBinding.source,
-      connectorId: selectedTextBinding.connectorId || '',
-      model: selectedTextBinding.modelId || selectedTextBinding.model || '',
-      modelLabel: selectedTextBinding.modelLabel,
-    };
-  }, [selectedTextBinding]);
+    return {};
+  }, []);
 
   const targetsQuery = useQuery({
     queryKey: [...TARGETS_QUERY_KEY, input.authStatus],
     queryFn: async (): Promise<AgentLocalTargetSnapshot[]> => {
       const snapshot = await realmSocialData.loadSocialSnapshot() as SocialSnapshot;
       const ownerUserId = String((useAppStore.getState().auth.user as Record<string, unknown> | null)?.id || '').trim();
-      return toAgentFriendTargetsFromSocialSnapshot({ ...((snapshot as Record<string, unknown> | null) || {}), ownerUserId });
+      return toAgentFriendTargetsFromSocialSnapshot({ ...snapshot, ownerUserId });
     },
     enabled: input.authStatus === 'authenticated',
   });

@@ -1,7 +1,7 @@
 import type {
-  RuntimeAgentMessage,
-  RuntimeAgentTranscriptMessage,
-  RuntimeAgentSessionSnapshot,
+  NimiRuntimeAgentMessage,
+  NimiRuntimeAgentSessionSnapshot,
+  NimiRuntimeAgentTranscriptMessage,
 } from '@nimiplatform/sdk/runtime';
 import type {
   AgentLocalMessageRecord,
@@ -14,7 +14,11 @@ function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-function isTranscriptTextMessage(message: RuntimeAgentMessage | null | undefined): boolean {
+type RuntimeAgentReplaySessionSnapshot = NimiRuntimeAgentSessionSnapshot & {
+  readonly transcript?: readonly NimiRuntimeAgentMessage[];
+};
+
+function isTranscriptTextMessage(message: NimiRuntimeAgentMessage | null | undefined): boolean {
   const role = normalizeText(message?.role);
   const contentText = typeof message?.content === 'string' ? message.content : '';
   return (role === 'system' || role === 'user' || role === 'assistant')
@@ -61,7 +65,7 @@ function toMessageKind(value: unknown): AgentLocalMessageRecord['kind'] | null {
   return null;
 }
 
-function hasRuntimeReplayEnvelope(message: RuntimeAgentMessage | null | undefined): boolean {
+function hasRuntimeReplayEnvelope(message: NimiRuntimeAgentMessage | null | undefined): boolean {
   return Boolean(
     normalizeText(message?.id)
     && toMessageStatus(message?.status)
@@ -72,8 +76,8 @@ function hasRuntimeReplayEnvelope(message: RuntimeAgentMessage | null | undefine
 }
 
 function transcriptHasRuntimeReplayEnvelope(
-  transcript: readonly RuntimeAgentMessage[],
-): transcript is readonly RuntimeAgentTranscriptMessage[] {
+  transcript: readonly NimiRuntimeAgentMessage[],
+): transcript is readonly NimiRuntimeAgentTranscriptMessage[] {
   const replayMessages = transcript.filter(isTranscriptTextMessage);
   return replayMessages.length > 0 && replayMessages.every(hasRuntimeReplayEnvelope);
 }
@@ -81,7 +85,7 @@ function transcriptHasRuntimeReplayEnvelope(
 function toHydratedMessageRecord(input: {
   threadId: string;
   conversationAnchorId: string;
-  transcript: readonly RuntimeAgentTranscriptMessage[];
+  transcript: readonly NimiRuntimeAgentTranscriptMessage[];
   index: number;
 }): AgentLocalMessageRecord | null {
   const message = input.transcript[input.index];
@@ -126,7 +130,7 @@ function toHydratedMessageRecord(input: {
 function buildHydratedMessages(input: {
   threadId: string;
   conversationAnchorId: string;
-  transcript: readonly RuntimeAgentTranscriptMessage[];
+  transcript: readonly NimiRuntimeAgentTranscriptMessage[];
   nowMs: number;
 }): AgentLocalMessageRecord[] {
   return input.transcript.flatMap((message, index) => {
@@ -141,7 +145,7 @@ function buildHydratedMessages(input: {
 }
 
 function transcriptMatchesBundle(
-  transcript: readonly RuntimeAgentMessage[],
+  transcript: readonly NimiRuntimeAgentMessage[],
   bundle: AgentLocalThreadBundle | null | undefined,
 ): boolean {
   if (!bundle) {
@@ -160,7 +164,7 @@ function transcriptMatchesBundle(
 }
 
 function transcriptWouldDropCommittedAssistantText(
-  transcript: readonly RuntimeAgentMessage[],
+  transcript: readonly NimiRuntimeAgentMessage[],
   bundle: AgentLocalThreadBundle | null | undefined,
 ): boolean {
   if (!bundle) {
@@ -218,7 +222,7 @@ export function hydrateAgentThreadBundleFromRuntimeSessionSnapshot(input: {
   thread: AgentLocalThreadSummary | AgentLocalThreadRecord;
   bundle: AgentLocalThreadBundle | null | undefined;
   conversationAnchorId: string;
-  snapshot: RuntimeAgentSessionSnapshot;
+  snapshot: RuntimeAgentReplaySessionSnapshot;
   nowMs: number;
 }): AgentLocalThreadBundle | null {
   const conversationAnchorId = normalizeText(input.conversationAnchorId);

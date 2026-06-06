@@ -219,7 +219,7 @@ function parseAgentFriendTarget(value: unknown, ownerUserId: string): AgentLocal
 }
 
 export function toAgentFriendTargetsFromSocialSnapshot(
-  snapshot: { friends?: unknown[]; ownerUserId?: unknown; currentUserId?: unknown; userId?: unknown; viewerId?: unknown } | null | undefined,
+  snapshot: { friends?: readonly unknown[]; ownerUserId?: unknown; currentUserId?: unknown; userId?: unknown; viewerId?: unknown } | null | undefined,
 ): AgentLocalTargetSnapshot[] {
   const ownerUserId = parseOwnerUserId(snapshot || {});
   if (!ownerUserId) {

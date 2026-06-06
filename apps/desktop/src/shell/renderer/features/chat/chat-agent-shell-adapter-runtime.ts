@@ -19,8 +19,8 @@ import {
 } from '@renderer/infra/runtime-agent-memory';
 import {
   createRuntimeAgentInspectAdapter,
-  type RuntimeAgentInspectEventSummary,
-  type RuntimeAgentInspectSnapshot,
+  type NimiRuntimeAgentInspectEventSummary,
+  type NimiRuntimeAgentInspectSnapshot,
 } from '@renderer/infra/runtime-agent-inspect';
 import type { AvatarPresentationProfile } from '@nimiplatform/kit/features/avatar/headless';
 import {
@@ -56,8 +56,8 @@ type AgentConversationRuntimeController = {
   canonicalMemoryLoading: boolean;
   canonicalMemoryStatus: CanonicalMemoryBankStatus | null;
   mutationPendingAction: string | null;
-  recentRuntimeEvents: readonly RuntimeAgentInspectEventSummary[];
-  runtimeInspect: RuntimeAgentInspectSnapshot | null;
+  recentRuntimeEvents: readonly NimiRuntimeAgentInspectEventSummary[];
+  runtimeInspect: NimiRuntimeAgentInspectSnapshot | null;
   runtimeInspectLoading: boolean;
   runtimePresentationProfile: AvatarPresentationProfile | null;
   handleCancelPendingHook: (hookId: string) => void;
@@ -97,10 +97,10 @@ export function useAgentConversationRuntimeController(
   } = input;
   const [canonicalMemoryStatus, setCanonicalMemoryStatus] = useState<CanonicalMemoryBankStatus | null>(null);
   const [canonicalMemoryLoading, setCanonicalMemoryLoading] = useState(false);
-  const [runtimeInspect, setRuntimeInspect] = useState<RuntimeAgentInspectSnapshot | null>(null);
+  const [runtimeInspect, setRuntimeInspect] = useState<NimiRuntimeAgentInspectSnapshot | null>(null);
   const [runtimeInspectLoading, setRuntimeInspectLoading] = useState(false);
   const [runtimePresentationProfile, setRuntimePresentationProfile] = useState<AvatarPresentationProfile | null>(null);
-  const [recentRuntimeEvents, setRecentRuntimeEvents] = useState<readonly RuntimeAgentInspectEventSummary[]>([]);
+  const [recentRuntimeEvents, setRecentRuntimeEvents] = useState<readonly NimiRuntimeAgentInspectEventSummary[]>([]);
   const lastInspectFetchedAgentIdRef = useRef<string | null>(null);
   const runtimeAgentMemory = useMemo(() => createRuntimeAgentMemoryAdapter({
     getSubjectUserId: requireRuntimeSubjectUserId,
@@ -298,7 +298,7 @@ export function useAgentConversationRuntimeController(
     }
     const eventsCoalesceMs = 2_000;
     const controller = new AbortController();
-    let pendingEvents: RuntimeAgentInspectEventSummary[] = [];
+    let pendingEvents: NimiRuntimeAgentInspectEventSummary[] = [];
     let flushTimer: ReturnType<typeof setTimeout> | null = null;
     const flush = () => {
       flushTimer = null;

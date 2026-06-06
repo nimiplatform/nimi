@@ -1,11 +1,5 @@
-import {
-  AvatarDebugProbeKind,
-  AvatarDebugProbeStatus,
-  type AvatarDebugProbeResultEnvelope,
-  type AvatarDebugReplayRef,
-  type RuntimeCompanionParticipationProjection,
-  type RuntimeCompanionParticipationSurfaceKind,
-} from '@nimiplatform/sdk/runtime';
+import { type NimiRuntimeAgentCompanionParticipationProjection, type NimiRuntimeAgentCompanionParticipationSurfaceKind } from '@nimiplatform/sdk/runtime';
+import { AvatarDebugProbeKind, AvatarDebugProbeStatus, type AvatarDebugProbeResultEnvelope, type AvatarDebugReplayRef } from '@nimiplatform/sdk/runtime/generated';
 import type { AgentCenterAvatarAssetModule } from './chat-agent-center-avatar-config-types';
 
 export type AvatarDebugWorkbenchProbe = {
@@ -33,7 +27,7 @@ export type DesktopCompanionParticipationProjectionRequest = {
   realmAgentId: string;
   localAgentRef: string;
   conversationAnchorId: string;
-  surfaceKind: RuntimeCompanionParticipationSurfaceKind;
+  surfaceKind: NimiRuntimeAgentCompanionParticipationSurfaceKind;
   triggerSource: 'user_explicit';
 };
 
@@ -241,7 +235,7 @@ export function buildDesktopCompanionParticipationProjectionRequest(input: {
   realmAgentId: string;
   localAgentRef: string;
   conversationAnchorId: string;
-  surfaceKind?: RuntimeCompanionParticipationSurfaceKind;
+  surfaceKind?: NimiRuntimeAgentCompanionParticipationSurfaceKind;
 }): DesktopCompanionParticipationProjectionRequest {
   return {
     ownerUserId: input.ownerUserId,
@@ -254,7 +248,7 @@ export function buildDesktopCompanionParticipationProjectionRequest(input: {
 }
 
 export function desktopCompanionParticipationStatusLabel(
-  projection: RuntimeCompanionParticipationProjection | null | undefined,
+  projection: NimiRuntimeAgentCompanionParticipationProjection | null | undefined,
 ): string {
   if (!projection) return 'Not requested';
   switch (projection.status) {
@@ -280,7 +274,7 @@ export function desktopCompanionParticipationStatusLabel(
 }
 
 export function desktopCompanionParticipationRemediation(
-  projection: RuntimeCompanionParticipationProjection | null | undefined,
+  projection: NimiRuntimeAgentCompanionParticipationProjection | null | undefined,
 ): string {
   if (!projection) {
     return 'Refresh participation projection before treating this debug surface as ready.';

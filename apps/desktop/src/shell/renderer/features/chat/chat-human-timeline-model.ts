@@ -6,16 +6,12 @@ import {
   resolveRealmChatMediaUrl,
   useRealmMessageTimeline,
   type RealmChatViewDto,
-  type RealmChatOutboxEntryLike,
 } from '@nimiplatform/kit/features/chat/realm';
 import type { ConversationCanonicalMessage } from '@nimiplatform/kit/features/chat/headless';
-import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { useChatUploadPlaceholders } from '../turns/chat-upload-placeholder-store';
 import { getStreamState, subscribeStream, type StreamState } from '../turns/stream-controller';
 import { loadChatMessages } from './data/realm-human-chat-data';
-
-type MessageViewDto = RealmModel<'MessageViewDto'>;
 
 export type HumanRealmChatTimelineDisplay = ReturnType<typeof getRealmChatTimelineDisplayModel>;
 
@@ -73,7 +69,7 @@ export function useHumanTimelineModel(selectedChatId: string | null, selectedCha
   });
 
   const timelineMessages = useRealmMessageTimeline({
-    messagesData: messagesQuery.data as { items?: readonly MessageViewDto[]; offlineOutbox?: readonly RealmChatOutboxEntryLike[] } | undefined,
+    messagesData: messagesQuery.data,
     currentUserId,
     uploadPlaceholders,
   });

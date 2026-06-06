@@ -4,10 +4,10 @@ import path from 'node:path';
 import test from 'node:test';
 
 import type {
-  RuntimeCanonicalCapability,
-  RuntimeResolvedBinding,
-  RuntimeRouteDescribeResult,
-  RuntimeRouteHealthResult,
+  NimiRuntimeCanonicalCapability,
+  NimiRuntimeResolvedBinding,
+  NimiRuntimeRouteDescribeResult,
+  NimiRuntimeRouteHealthResult,
 } from '@nimiplatform/sdk/runtime';
 import {
   buildConversationCapabilityProjection,
@@ -24,9 +24,9 @@ function readSource(relativePath: string): string {
 }
 
 function createLocalResolvedBinding(
-  capability: RuntimeCanonicalCapability,
+  capability: NimiRuntimeCanonicalCapability,
   model: string,
-): RuntimeResolvedBinding {
+): NimiRuntimeResolvedBinding {
   return {
     capability,
     source: 'local',
@@ -41,9 +41,9 @@ function createLocalResolvedBinding(
 }
 
 function createCloudResolvedBinding(
-  capability: RuntimeCanonicalCapability,
+  capability: NimiRuntimeCanonicalCapability,
   model: string,
-): RuntimeResolvedBinding {
+): NimiRuntimeResolvedBinding {
   return {
     capability,
     source: 'cloud',
@@ -55,22 +55,27 @@ function createCloudResolvedBinding(
   };
 }
 
-function createHealthyResult(): RuntimeRouteHealthResult {
+function createHealthyResult(): NimiRuntimeRouteHealthResult {
   return {
     healthy: true,
     status: 'healthy',
+    provider: 'test',
+    detail: '',
+    actionHint: 'none',
   };
 }
 
-function createUnhealthyResult(): RuntimeRouteHealthResult {
+function createUnhealthyResult(): NimiRuntimeRouteHealthResult {
   return {
     healthy: false,
     status: 'unhealthy',
+    provider: 'test',
     detail: 'provider offline',
+    actionHint: 'inspect_runtime_route',
   };
 }
 
-function createTextDescribeResult(ref: string): RuntimeRouteDescribeResult {
+function createTextDescribeResult(ref: string): NimiRuntimeRouteDescribeResult {
   return {
     capability: 'text.generate',
     metadataVersion: 'v1',
@@ -87,7 +92,7 @@ function createTextDescribeResult(ref: string): RuntimeRouteDescribeResult {
   };
 }
 
-function createAudioSynthesizeDescribeResult(ref: string): RuntimeRouteDescribeResult {
+function createAudioSynthesizeDescribeResult(ref: string): NimiRuntimeRouteDescribeResult {
   return {
     capability: 'audio.synthesize',
     metadataVersion: 'v1',
@@ -103,7 +108,7 @@ function createAudioSynthesizeDescribeResult(ref: string): RuntimeRouteDescribeR
   };
 }
 
-function createVoiceWorkflowV2vDescribeResult(ref: string): RuntimeRouteDescribeResult {
+function createVoiceWorkflowV2vDescribeResult(ref: string): NimiRuntimeRouteDescribeResult {
   return {
     capability: 'voice_workflow.voice_clone',
     metadataVersion: 'v1',
@@ -122,7 +127,7 @@ function createVoiceWorkflowV2vDescribeResult(ref: string): RuntimeRouteDescribe
   };
 }
 
-function createVoiceWorkflowT2vDescribeResult(ref: string): RuntimeRouteDescribeResult {
+function createVoiceWorkflowT2vDescribeResult(ref: string): NimiRuntimeRouteDescribeResult {
   return {
     capability: 'voice_workflow.voice_design',
     metadataVersion: 'v1',
@@ -140,9 +145,9 @@ function createVoiceWorkflowT2vDescribeResult(ref: string): RuntimeRouteDescribe
 }
 
 function createDescribeResult(
-  capability: RuntimeCanonicalCapability,
+  capability: NimiRuntimeCanonicalCapability,
   ref: string,
-): RuntimeRouteDescribeResult {
+): NimiRuntimeRouteDescribeResult {
   if (capability === 'audio.synthesize') {
     return createAudioSynthesizeDescribeResult(ref);
   }
@@ -156,9 +161,9 @@ function createDescribeResult(
 }
 
 function createMockRouteRuntime(overrides?: {
-  resolveResult?: RuntimeResolvedBinding;
-  healthResult?: RuntimeRouteHealthResult;
-  describeResult?: RuntimeRouteDescribeResult;
+  resolveResult?: NimiRuntimeResolvedBinding;
+  healthResult?: NimiRuntimeRouteHealthResult;
+  describeResult?: NimiRuntimeRouteDescribeResult;
   resolveError?: Error;
   healthError?: Error;
   describeError?: Error;
@@ -166,7 +171,7 @@ function createMockRouteRuntime(overrides?: {
   return {
     resolve: async ({ capability }) => {
       if (overrides?.resolveError) throw overrides.resolveError;
-      return overrides?.resolveResult || createLocalResolvedBinding(capability as RuntimeCanonicalCapability, 'default-model');
+      return overrides?.resolveResult || createLocalResolvedBinding(capability as NimiRuntimeCanonicalCapability, 'default-model');
     },
     checkHealth: async () => {
       if (overrides?.healthError) throw overrides.healthError;
@@ -174,7 +179,7 @@ function createMockRouteRuntime(overrides?: {
     },
     describe: async ({ capability, resolvedBindingRef }) => {
       if (overrides?.describeError) throw overrides.describeError;
-      return overrides?.describeResult || createDescribeResult(capability as RuntimeCanonicalCapability, resolvedBindingRef);
+      return overrides?.describeResult || createDescribeResult(capability as NimiRuntimeCanonicalCapability, resolvedBindingRef);
     },
   };
 }
@@ -385,11 +390,11 @@ test('buildConversationCapabilityProjectionMap refreshes all capabilities includ
   const routeRuntime: ConversationCapabilityRouteRuntime = {
     resolve: async ({ capability }) => {
       resolvedCapabilities.push(capability);
-      return createLocalResolvedBinding(capability as RuntimeCanonicalCapability, 'model-1');
+      return createLocalResolvedBinding(capability as NimiRuntimeCanonicalCapability, 'model-1');
     },
     checkHealth: async () => createHealthyResult(),
     describe: async ({ capability, resolvedBindingRef }) => (
-      createDescribeResult(capability as RuntimeCanonicalCapability, resolvedBindingRef)
+      createDescribeResult(capability as NimiRuntimeCanonicalCapability, resolvedBindingRef)
     ),
   };
   const store = updateConversationCapabilityBinding(
@@ -531,7 +536,7 @@ test('toRuntimeCanonicalCapability preserves image.edit for host boundary', () =
 
 test('conversation capability canonicalization is delegated to SDK projection', () => {
   const source = readSource('src/shell/renderer/features/chat/conversation-capability.ts');
-  assert.match(source, /toRuntimeRouteCanonicalCapability/);
+  assert.match(source, /toNimiRuntimeRouteCanonicalCapability/);
   assert.doesNotMatch(source, /CONVERSATION_CAPABILITY_RUNTIME_MAP/);
 });
 
@@ -626,7 +631,7 @@ test('generic media caller without conversationExecution is not affected by unsu
   const normalResolveCalled: string[] = [];
   const resolveRuntimeRoute = async (payload: {
     targetId: string;
-    capability: RuntimeCanonicalCapability;
+    capability: NimiRuntimeCanonicalCapability;
     binding?: { source: string; connectorId: string; model: string };
     conversationExecution?: boolean;
   }) => {
@@ -650,7 +655,7 @@ test('generic media caller without conversationExecution is not affected by unsu
 test('conversation media path with conversationExecution=true fails closed on unsupported projection', async () => {
   const resolveRuntimeRoute = async (payload: {
     targetId: string;
-    capability: RuntimeCanonicalCapability;
+    capability: NimiRuntimeCanonicalCapability;
     binding?: { source: string; connectorId: string; model: string };
     conversationExecution?: boolean;
   }) => {
@@ -680,7 +685,7 @@ test('conversation media path with conversationExecution=true uses projection re
   const fallbackBinding = createCloudResolvedBinding('image.generate', 'fallback-model');
   const resolveRuntimeRoute = async (payload: {
     targetId: string;
-    capability: RuntimeCanonicalCapability;
+    capability: NimiRuntimeCanonicalCapability;
     binding?: { source: string; connectorId: string; model: string };
     conversationExecution?: boolean;
   }) => {
@@ -706,7 +711,7 @@ test('host media resolve does not equate no-binding with conversation path', asy
   let projectionChecked = false;
   const resolveRuntimeRoute = async (payload: {
     targetId: string;
-    capability: RuntimeCanonicalCapability;
+    capability: NimiRuntimeCanonicalCapability;
     binding?: { source: string; connectorId: string; model: string };
     conversationExecution?: boolean;
   }) => {

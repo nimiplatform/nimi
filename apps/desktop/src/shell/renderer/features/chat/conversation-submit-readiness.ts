@@ -1,10 +1,9 @@
 import type { TFunction } from 'i18next';
 import {
-  isRuntimeRouteCapabilityProjectionReady,
-  isRuntimeRouteCapabilityProjectionSelectionRequired,
+  isNimiRuntimeRouteCapabilityProjectionReady,
+  isNimiRuntimeRouteCapabilityProjectionSelectionRequired,
 } from '@nimiplatform/sdk/runtime';
-import { createNimiError } from '@nimiplatform/sdk/runtime';
-import { ReasonCode } from '@nimiplatform/sdk/types';
+import { createNimiError, ReasonCode } from '@nimiplatform/sdk/types';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import type {
   AgentEffectiveCapabilityResolution,
@@ -34,7 +33,7 @@ function resolveAiSubmitRouteUnavailableMessage(
   t: TFunction,
   projection: ConversationCapabilityProjection | null,
 ): string {
-  if (isRuntimeRouteCapabilityProjectionSelectionRequired(projection)) {
+  if (isNimiRuntimeRouteCapabilityProjectionSelectionRequired(projection)) {
     return t('Chat.nimiSubmitRouteUnavailable', {
       defaultValue: 'Select a Nimi route before sending a message.',
     });
@@ -81,7 +80,7 @@ export async function ensureAiConversationSubmitRouteReady(input: {
   };
   await deps.refreshConversationCapabilityProjections(['text.generate']);
   const projection = deps.getTextCapabilityProjection();
-  if (isRuntimeRouteCapabilityProjectionReady(projection)) {
+  if (isNimiRuntimeRouteCapabilityProjectionReady(projection)) {
     return projection;
   }
   throw new Error(resolveAiSubmitRouteUnavailableMessage(input.t, projection));
@@ -98,11 +97,11 @@ export async function ensureAgentConversationSubmitRouteReady(input: {
   await deps.refreshConversationCapabilityProjections(['text.generate']);
   deps.refreshAgentEffectiveCapabilityResolution();
   const resolution = deps.getAgentResolution();
-  if (resolution?.ready && isRuntimeRouteCapabilityProjectionReady(resolution.textProjection)) {
+  if (resolution?.ready && isNimiRuntimeRouteCapabilityProjectionReady(resolution.textProjection)) {
     return resolution;
   }
   const textProjection = deps.getTextCapabilityProjection();
-  if (isRuntimeRouteCapabilityProjectionReady(textProjection)) {
+  if (isNimiRuntimeRouteCapabilityProjectionReady(textProjection)) {
     const rebuilt = buildAgentEffectiveCapabilityResolution({
       textProjection,
       imageProjection: resolution?.imageProjection || null,

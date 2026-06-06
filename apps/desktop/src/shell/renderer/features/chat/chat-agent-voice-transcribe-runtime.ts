@@ -1,11 +1,15 @@
+import { createNimiError, ReasonCode } from '@nimiplatform/sdk/types';
 import {
-  createNimiError,
-} from '@nimiplatform/sdk/runtime';
-import { ReasonCode } from '@nimiplatform/sdk/types';
+  runNimiRuntimeSpeechTranscription,
+  type NimiRuntimeGenerationRoutePolicy,
+} from '@nimiplatform/sdk/features/generation';
 import {
   desktopRuntimeRouteAccess,
-  getDesktopRuntimeClient,
 } from '@renderer/infra/runtime-route-host-access';
+import {
+  getDesktopAppId,
+  getDesktopRuntime,
+} from '@renderer/infra/sdk/desktop-nimi-client-session';
 import type {
   AgentRuntimeResolvedBinding,
   ChatAgentTranscribeRuntimeInvokeDeps,
@@ -40,44 +44,70 @@ export async function transcribeChatAgentVoiceRuntime(
     });
   }
   const slice = resolveExecutionSlice(input.transcribeExecutionSnapshot, 'audio.transcribe');
-  const resolved = slice.resolvedBinding as AgentRuntimeResolvedBinding;
-  const metadata = await (deps.buildRuntimeRequestMetadataImpl || desktopRuntimeRouteAccess.buildRequestMetadata)({
+  const resolved = slice.resolvedTarget as AgentRuntimeResolvedBinding;
+  const model = requireValue(
+    resolved.modelId || resolved.model || resolved.localModelId,
+    ReasonCode.AI_INPUT_INVALID,
+    'select_runtime_route_binding',
+    'agent voice transcribe route model is missing',
+  );
+  const connectorId = normalizeText(resolved.connectorId) || undefined;
+  const providerEndpoint = normalizeText(resolved.endpoint)
+    || normalizeText(resolved.localProviderEndpoint)
+    || normalizeText(resolved.localOpenAiEndpoint)
+    || undefined;
+  const timeoutMs = normalizePositiveTimeoutMs(input.timeoutMs);
+  const routeCallOptions = await (deps.buildRuntimeCallOptionsImpl || desktopRuntimeRouteAccess.buildCallOptions)({
     source: resolved.source,
-    connectorId: normalizeText(resolved.connectorId) || undefined,
-    providerEndpoint: normalizeText(resolved.endpoint)
-      || normalizeText(resolved.localProviderEndpoint)
-      || normalizeText(resolved.localOpenAiEndpoint)
-      || undefined,
+    connectorId,
+    providerEndpoint,
+    targetId: model,
+    timeoutMs,
   });
-  const response = await (deps.getRuntimeClientImpl || getDesktopRuntimeClient)().media.stt.transcribe({
-    model: requireValue(
-      resolved.modelId || resolved.model || resolved.localModelId,
-      ReasonCode.AI_INPUT_INVALID,
-      'select_runtime_route_binding',
-      'agent voice transcribe route model is missing',
-    ),
-    audio: {
-      kind: 'bytes',
-      bytes: input.audioBytes,
+  const callOptions = {
+    ...routeCallOptions,
+    signal: input.signal,
+  };
+  const requestId = normalizeText(deps.createRequestIdImpl?.()) || createVoiceTranscribeRequestId();
+  const response = await runNimiRuntimeSpeechTranscription({
+    runtime: { ai: (deps.getRuntimeImpl || getDesktopRuntime)().ai },
+    head: {
+      appId: (deps.getAppIdImpl || getDesktopAppId)(),
+      modelId: model,
+      routePolicy: toGenerationRoutePolicy(resolved.source),
+      connectorId,
+      timeoutMs,
     },
+    audio: { type: 'bytes', bytes: input.audioBytes },
     mimeType,
     language: normalizeText(input.language) || undefined,
-    route: resolved.source,
-    connectorId: normalizeText(resolved.connectorId) || undefined,
-    metadata,
+    requestId,
+    idempotencyKey: requestId,
+    callOptions,
     signal: input.signal,
   });
   const text = normalizeText(response.text);
-  if (!text) {
-    throw createNimiError({
-      message: 'agent voice transcription returned no transcript text',
-      reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
-      actionHint: 'retry_voice_transcription',
-      source: 'runtime',
-    });
-  }
   return {
     text,
-    traceId: normalizeText(response.trace?.traceId) || normalizeText(metadata.traceId),
+    traceId: normalizeText(response.traceId) || normalizeText(callOptions.metadata?.traceId),
   };
+}
+
+function normalizePositiveTimeoutMs(value: unknown): number {
+  const normalized = Number(value ?? 120_000);
+  return Number.isFinite(normalized) && normalized > 0 ? normalized : 120_000;
+}
+
+function toGenerationRoutePolicy(source: string): NimiRuntimeGenerationRoutePolicy {
+  if (source === 'local') return 'local';
+  if (source === 'cloud') return 'cloud';
+  return 'unspecified';
+}
+
+function createVoiceTranscribeRequestId(): string {
+  const cryptoLike = globalThis.crypto as { randomUUID?: () => string } | undefined;
+  if (typeof cryptoLike?.randomUUID === 'function') {
+    return `desktop-agent-voice-transcribe:${cryptoLike.randomUUID()}`;
+  }
+  return `desktop-agent-voice-transcribe:${Date.now().toString(36)}:${Math.random().toString(36).slice(2)}`;
 }

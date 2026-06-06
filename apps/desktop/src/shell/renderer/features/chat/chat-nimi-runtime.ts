@@ -1,18 +1,17 @@
 import {
-  createNimiError,
-  RUNTIME_TEXT_GENERATE_TIMEOUT_MS,
-  type TextMessage,
-  type TextStreamOutput,
-  } from '@nimiplatform/sdk/runtime';
+  createNimiRuntimeAIModel,
+  type NimiRuntimeAIRoutePolicy,
+} from '@nimiplatform/sdk/ai';
+import type { NimiMessage, NimiMessagePart, NimiRunEvent } from '@nimiplatform/sdk/contracts';
+import { createNimiError } from '@nimiplatform/sdk/types';
 import type { ConversationRuntimeTextMessage } from '@nimiplatform/kit/features/chat/headless';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
   desktopRuntimeRouteAccess,
-  getDesktopRuntimeClient,
 } from '@renderer/infra/runtime-route-host-access';
+import { getDesktopAppId, getDesktopRuntime } from '@renderer/infra/sdk/desktop-nimi-client-session';
 import {
-  runtimeRouteCallTargetFromResolvedBinding,
-  type RuntimeResolvedBinding,
+  type NimiRuntimeResolvedBinding,
 } from '@nimiplatform/sdk/runtime';
 import {
   resolveChatThinkingConfig,
@@ -20,7 +19,7 @@ import {
   type ChatThinkingPreference,
 } from './chat-shared-thinking';
 import { toChatUserFacingRuntimeError } from './chat-runtime-error-message';
-import type { AISnapshot } from './conversation-capability';
+import type { NimiAISnapshot } from './conversation-capability';
 
 export type ChatAiRuntimeTextInput = {
   prompt: string;
@@ -28,18 +27,18 @@ export type ChatAiRuntimeTextInput = {
   systemPrompt?: string | null;
   threadId: string;
   reasoningPreference: ChatThinkingPreference;
-  executionSnapshot: AISnapshot | null;
+  executionSnapshot: NimiAISnapshot | null;
   signal?: AbortSignal;
 };
 
 export type ChatAiRuntimeStreamResult = {
-  stream: TextStreamOutput['stream'];
+  stream: AsyncIterable<NimiRunEvent>;
   promptTraceId: string;
 };
 
 type ChatAiRuntimeTextExecutionInput = {
   targetId: string;
-  resolvedBinding: RuntimeResolvedBinding;
+  resolvedBinding: NimiRuntimeResolvedBinding;
 };
 
 export type ChatAiRuntimeStreamDeps = {
@@ -47,24 +46,57 @@ export type ChatAiRuntimeStreamDeps = {
 };
 
 export const CORE_CHAT_AI_TARGET_ID = 'core.chat-ai';
+export const CHAT_AI_TEXT_GENERATE_TIMEOUT_MS = 120_000;
 
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-function toSdkTextMessage(message: ConversationRuntimeTextMessage): TextMessage {
+function toNimiTextMessage(message: ConversationRuntimeTextMessage): NimiMessage {
   return {
     role: message.role,
-    content: message.content ?? message.text,
+    content: toNimiMessageParts(message),
     name: normalizeText(message.name) || undefined,
   };
 }
 
-function resolveRuntimeTextInput(input: ChatAiRuntimeTextInput): string | TextMessage[] {
-  if (Array.isArray(input.messages) && input.messages.length > 0) {
-    return input.messages.map((message) => toSdkTextMessage(message));
+function toNimiMessageParts(message: ConversationRuntimeTextMessage): readonly NimiMessagePart[] {
+  if (Array.isArray(message.content)) {
+    return message.content;
   }
-  return input.prompt;
+  const text = normalizeText(typeof message.content === 'string' ? message.content : message.text);
+  return text ? [{ type: 'text', text }] : [];
+}
+
+function resolveRuntimeTextMessages(input: ChatAiRuntimeTextInput): readonly NimiMessage[] {
+  const messages: NimiMessage[] = [];
+  const systemPrompt = normalizeText(input.systemPrompt);
+  if (systemPrompt) {
+    messages.push({
+      role: 'system',
+      content: [{ type: 'text', text: systemPrompt }],
+    });
+  }
+  if (Array.isArray(input.messages) && input.messages.length > 0) {
+    messages.push(...input.messages.map((message) => toNimiTextMessage(message)));
+  } else {
+    messages.push({
+      role: 'user',
+      content: [{ type: 'text', text: input.prompt }],
+    });
+  }
+  return messages;
+}
+
+function toNimiRuntimeAIRoutePolicy(source: string): NimiRuntimeAIRoutePolicy {
+  if (source === 'local' || source === 'cloud') {
+    return source;
+  }
+  return 'unspecified';
+}
+
+function resolvedBindingModelId(resolved: NimiRuntimeResolvedBinding): string {
+  return normalizeText(resolved.modelId || resolved.model);
 }
 
 async function resolveRuntimeTextExecutionInput(
@@ -80,7 +112,7 @@ async function resolveRuntimeTextExecutionInput(
       source: 'runtime',
     });
   }
-  const resolved = slice.resolvedBinding as import('./conversation-capability').ConversationExecutionSnapshot['resolvedBinding'];
+  const resolved = slice.resolvedTarget as import('./conversation-capability').ConversationExecutionSnapshot['resolvedBinding'];
   if (!resolved) {
     throw createNimiError({
       message: 'text.generate execution snapshot resolved binding is missing',
@@ -105,8 +137,8 @@ export async function streamChatAiRuntime(
   deps: ChatAiRuntimeStreamDeps = {},
 ): Promise<ChatAiRuntimeStreamResult> {
   const executionInput = await (deps.resolveTextExecutionInputImpl || resolveRuntimeTextExecutionInput)(input);
-  const resolved = runtimeRouteCallTargetFromResolvedBinding(executionInput.resolvedBinding);
-  const timeoutMs = RUNTIME_TEXT_GENERATE_TIMEOUT_MS;
+  const resolved = executionInput.resolvedBinding;
+  const timeoutMs = CHAT_AI_TEXT_GENERATE_TIMEOUT_MS;
 
   await desktopRuntimeRouteAccess.ensureLocalModelWarm({
     targetId: executionInput.targetId,
@@ -122,23 +154,41 @@ export async function streamChatAiRuntime(
     connectorId: resolved.connectorId,
     providerEndpoint: resolved.endpoint,
   });
-  const streamOutput = await getDesktopRuntimeClient().ai.text.stream({
-    model: resolved.modelId,
-    route: resolved.source,
-    connectorId: resolved.connectorId,
-    input: resolveRuntimeTextInput(input),
-    system: normalizeText(input.systemPrompt) || undefined,
+  const metadata = callOptions.metadata ?? {};
+  const model = createNimiRuntimeAIModel({
+    runtime: getDesktopRuntime(),
+    appId: getDesktopAppId(),
+    model: {
+      providerId: normalizeText(resolved.connectorId) || undefined,
+      modelId: resolvedBindingModelId(resolved),
+    },
+    routePolicy: toNimiRuntimeAIRoutePolicy(resolved.source),
+    connectorId: normalizeText(resolved.connectorId) || undefined,
+    timeoutMs: callOptions.timeoutMs,
+    metadata,
     reasoning: resolveChatThinkingConfig(
       input.reasoningPreference,
       resolveTextExecutionSnapshotThinkingSupport(input.executionSnapshot?.conversationCapabilitySlice as Parameters<typeof resolveTextExecutionSnapshotThinkingSupport>[0]),
     ),
-    timeoutMs: callOptions.timeoutMs,
-    signal: callOptions.signal,
-    metadata: callOptions.metadata as unknown as Record<string, string>,
   });
+  if (!model.streamText) {
+    throw createNimiError({
+      message: `Runtime text model ${model.model.modelId} does not support streaming`,
+      reasonCode: ReasonCode.AI_INPUT_INVALID,
+      actionHint: 'select_streaming_text_model',
+      source: 'runtime',
+    });
+  }
 
   return {
-    stream: streamOutput.stream,
-    promptTraceId: String(callOptions.metadata.traceId || ''),
+    stream: await model.streamText({
+      model: model.model,
+      messages: resolveRuntimeTextMessages(input),
+      signal: callOptions.signal,
+      parameters: {
+        metadata,
+      },
+    }),
+    promptTraceId: String(metadata.traceId || ''),
   };
 }

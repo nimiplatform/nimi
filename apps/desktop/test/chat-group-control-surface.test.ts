@@ -48,7 +48,7 @@ test('group composer mention surface is text insertion posture only', () => {
 });
 
 test('group adapter feeds committed Realm agent slots into split candidate handoff', () => {
-  assert.match(groupAdapterSource, /const participants: GroupParticipantDto\[] = selectedGroup\?\.participants \|\| \[];/);
+  assert.match(groupAdapterSource, /const participants: readonly GroupParticipantDto\[] = selectedGroup\?\.participants \|\| \[];/);
   assert.match(groupAdapterSource, /<ChatGroupComposer[\s\S]*agentParticipants=\{participants\}/);
   assert.match(groupAdapterSource, /realmGroupChatData\.sendGroupMessage\(chatId, content\)/);
   assert.match(groupAdapterSource, /resolveInvokableGroupAgentMention/);

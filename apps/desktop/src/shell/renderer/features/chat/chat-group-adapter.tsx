@@ -40,7 +40,7 @@ function escapeRegExp(value: string): string {
  * Whether `participant` is a LocalAgent the current user can invoke in this
  * group: an agent slot the user owns with a fully Realm-projected slot/agent/
  * local-agent identity. This is the canonical Group LocalAgent participation
- * criterion shared by mention resolution and AIConfig scope binding.
+ * criterion shared by mention resolution and NimiAIConfig scope binding.
  */
 function isInvokableGroupLocalAgentParticipant(
   participant: GroupParticipantDto,
@@ -57,7 +57,7 @@ function isInvokableGroupLocalAgentParticipant(
 
 /**
  * Whether the selected group has any active LocalAgent participation for the
- * current user. Drives whether Group reuses the `desktop.chat.agent` AIConfig
+ * current user. Drives whether Group reuses the `desktop.chat.agent` NimiAIConfig
  * scope (T3-2). When there is no LocalAgent participation, no built-in chat
  * scope is bound for Group.
  */
@@ -213,13 +213,13 @@ export function useGroupConversationModeHost(
     }
   }, [allGroups, selectedGroupId, setSelectedTargetForSource]);
 
-  const participants: GroupParticipantDto[] = selectedGroup?.participants || [];
+  const participants: readonly GroupParticipantDto[] = selectedGroup?.participants || [];
 
   // T3-2: Group LocalAgent participation reuses the canonical
-  // `desktop.chat.agent` built-in AIConfig scope — the SAME scope as Agent
+  // `desktop.chat.agent` built-in NimiAIConfig scope — the SAME scope as Agent
   // Chat. When the selected group has invokable LocalAgent participation, bind
   // that agent scope; otherwise no built-in chat scope is bound. Group thread
-  // state stays Realm-owned — only the LocalAgent-participation AIConfig is
+  // state stays Realm-owned — only the LocalAgent-participation NimiAIConfig is
   // scoped, and it never mints a group-specific scope.
   const groupHasLocalAgentParticipation = useMemo(
     () => hasInvokableGroupLocalAgentParticipation(participants, currentUserId),

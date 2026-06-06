@@ -1,8 +1,7 @@
 import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getPlatformClient } from '@nimiplatform/sdk';
-import { MessageType, uploadRealmResourceFileWithRealm } from '@nimiplatform/sdk/realm';
+import { uploadNimiRealmResourceFile } from '@nimiplatform/sdk/realm';
 import { CanonicalComposer } from '@nimiplatform/kit/features/chat/components/canonical-composer';
 import { CHAT_CONTENT_WIDTH_CLASS, CHAT_CONTENT_POSITION_CLASS } from './chat-shared-content-layout';
 import {
@@ -18,12 +17,13 @@ import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { ChatProfileCard } from '../turns/message-timeline-profile-card.js';
 import { toChatProfileSummary } from '../turns/message-timeline-utils.js';
-import { toProfileData } from '@renderer/features/profile/profile-model';
+import { toProfileData, type ProfileSource } from '@renderer/features/profile/profile-model';
 import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 import { createChatUploadPlaceholder, addChatUploadPlaceholder, removeChatUploadPlaceholder } from '../turns/chat-upload-placeholder-store';
 import { mergeSentRealmChatMessageIntoCache } from '../turns/chat-send-cache.js';
 import { formatPendingAttachmentSize, appendPendingAttachment, clearPendingAttachments, type PendingAttachment } from '../turns/turn-input-attachments';
 import { ChatComposerLeadingAvatar } from './chat-shared-composer-leading-avatar';
+import { getDesktopRealm } from '@renderer/infra/sdk/desktop-nimi-client-session';
 
 function HumanAttachmentStrip(props: {
   attachments: readonly PendingAttachment[];
@@ -123,12 +123,11 @@ export function HumanCanonicalComposer(props: {
 
     const { file, kind } = attachment;
     const isImage = kind === 'image';
-    const uploaded = await uploadRealmResourceFileWithRealm({
-      realm: getPlatformClient().realm,
+    const uploaded = await uploadNimiRealmResourceFile(getDesktopRealm(), {
       kind: isImage ? 'image' : 'video',
       file,
       failureMessage: t('TurnInput.uploadFailed'),
-      transportMode: 'multipartPostThenBinaryPut',
+      transportMode: 'multipart_post_then_binary_put',
     });
     const finalizedAttachmentTargetId = String(uploaded.resource.id || '').trim()
       || extractRealmChatAttachmentTargetId(uploaded.session)
@@ -138,7 +137,7 @@ export function HumanCanonicalComposer(props: {
     }
 
     return await sendChatMessage(props.selectedChatId, '', {
-      type: MessageType.ATTACHMENT,
+      type: 'ATTACHMENT',
       payload: createRealmChatResourceAttachmentPayload(finalizedAttachmentTargetId),
     });
   }, [props.selectedChatId, t]);
@@ -351,7 +350,7 @@ export function HumanCanonicalProfileDrawer(props: {
         return null;
       }
       const result = await realmSocialData.loadUserProfile(profileTargetId);
-      return result as Record<string, unknown>;
+      return result as unknown as Record<string, unknown>;
     },
     enabled: authStatus === 'authenticated' && profilePanelTarget !== null && Boolean(profileTargetId),
   });
@@ -375,7 +374,7 @@ export function HumanCanonicalProfileDrawer(props: {
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden px-4 py-4">
       <ChatProfileCard
-        profileData={toProfileData(profileQuery.data || profileSummary)}
+        profileData={toProfileData((profileQuery.data || profileSummary) as unknown as ProfileSource)}
         onClose={() => setProfilePanelTarget(null)}
         onViewFullProfile={() => {
           if (!profileSummary.id) {

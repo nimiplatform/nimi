@@ -1,5 +1,9 @@
-import { getPlatformClient } from '@nimiplatform/sdk';
-import { createNimiClientId, runRuntimeAgentTurn } from '@nimiplatform/sdk/runtime';
+import { createNimiClientId } from '@nimiplatform/sdk';
+import {
+  createNimiRuntimeAgentTurnsModule,
+  runNimiRuntimeAgentTurn,
+} from '@nimiplatform/sdk/runtime';
+import { getDesktopRuntimeAgentTurnsRuntime } from '@renderer/infra/sdk/desktop-nimi-client-session';
 import type {
   AgentRuntimeChatTurnRequest,
   AgentRuntimeChatTurnStreamPart,
@@ -20,7 +24,11 @@ import {
 export async function streamChatAgentRuntimeAgentTurn(
   request: AgentRuntimeChatTurnRequest,
 ): Promise<{ stream: AsyncIterable<AgentRuntimeChatTurnStreamPart> }> {
-  const runtime = getPlatformClient().runtime;
+  const runtime = getDesktopRuntimeAgentTurnsRuntime();
+  const turns = createNimiRuntimeAgentTurnsModule({
+    runtime,
+    getSubjectUserId: () => request.ownerUserId,
+  });
   const requestId = createNimiClientId('runtime-agent-turn-request');
   safeLogRuntimeAgentEvent({
     level: 'info',
@@ -75,8 +83,8 @@ export async function streamChatAgentRuntimeAgentTurn(
     })(),
   };
 
-  return runRuntimeAgentTurn({
-    turns: runtime.agent.turns,
+  return runNimiRuntimeAgentTurn({
+    turns,
     subscribe: {
       ...localIdentity,
       conversationAnchorId: request.conversationAnchorId,

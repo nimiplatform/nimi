@@ -14,8 +14,8 @@ import type {
 } from './chat-agent-shell-submit-driver';
 import type {
   AgentEffectiveCapabilityResolution,
-  AIConfig,
-  AISnapshot,
+  NimiAIConfig,
+  NimiAISnapshot,
 } from './conversation-capability';
 import type { PendingAttachment } from '../turns/turn-input-attachments';
 import type { AgentChatUserAttachment } from './chat-agent-runtime-turn-types';
@@ -32,7 +32,7 @@ export type AgentRunTurn = (input: {
   };
   signal: AbortSignal;
   agentResolution: AgentEffectiveCapabilityResolution;
-  textExecutionSnapshot: AISnapshot;
+  textExecutionSnapshot: NimiAISnapshot;
   textModelContextTokens: number | null;
   textMaxOutputTokensRequested: number | null;
   target: AgentLocalTargetSnapshot;
@@ -41,7 +41,7 @@ export type AgentRunTurn = (input: {
 export type UseAgentConversationHostActionsInput = {
   activeTarget: AgentLocalTargetSnapshot | null;
   activeThreadId: string | null;
-  aiConfig: AIConfig;
+  aiConfig: NimiAIConfig;
   applyDriverEffects: (threadId: string, effects: ReturnType<typeof import('./chat-agent-shell-submit-driver').reduceAgentSubmitDriverEvent>) => AgentSubmitDriverState;
   bundle: AgentLocalThreadBundle | null;
   currentComposerTextRef: { current: string };
