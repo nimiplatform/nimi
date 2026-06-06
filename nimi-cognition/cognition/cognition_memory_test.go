@@ -471,7 +471,7 @@ func TestMemoryLifecyclePersistsAcrossReopen(t *testing.T) { /* moved unchanged 
 		t.Fatalf("close cognition: %v", err)
 	}
 	reopened := newTestCognitionAt(t, root)
-	defer reopened.Close()
+	defer closeInTest(t, reopened)
 	removed, err := reopened.MemoryService().Load("a1", "m_removed")
 	if err != nil {
 		t.Fatalf("load removed memory after reopen: %v", err)

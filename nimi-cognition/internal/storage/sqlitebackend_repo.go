@@ -136,7 +136,7 @@ func (b *SQLiteBackend) Load(scopeID string, kind ArtifactKind, itemID string) (
 	return raw, nil
 }
 
-func (b *SQLiteBackend) Delete(scopeID string, kind ArtifactKind, itemID string) error {
+func (b *SQLiteBackend) Delete(scopeID string, kind ArtifactKind, itemID string) (err error) {
 	if err := validateScopeID(scopeID); err != nil {
 		return err
 	}
@@ -159,7 +159,7 @@ func (b *SQLiteBackend) Delete(scopeID string, kind ArtifactKind, itemID string)
 		if err != nil {
 			return fmt.Errorf("storage delete kernel rules: %w", err)
 		}
-		defer rows.Close()
+		defer closeRows(rows, &err, "storage delete kernel rules")
 		for rows.Next() {
 			var ruleID string
 			if err := rows.Scan(&ruleID); err != nil {
@@ -276,7 +276,7 @@ func (b *SQLiteBackend) Delete(scopeID string, kind ArtifactKind, itemID string)
 	return tx.Commit()
 }
 
-func (b *SQLiteBackend) List(scopeID string, kind ArtifactKind) ([]string, error) {
+func (b *SQLiteBackend) List(scopeID string, kind ArtifactKind) (ids []string, err error) {
 	if err := validateScopeID(scopeID); err != nil {
 		return nil, err
 	}
@@ -304,9 +304,8 @@ func (b *SQLiteBackend) List(scopeID string, kind ArtifactKind) ([]string, error
 	if err != nil {
 		return nil, fmt.Errorf("storage list: %w", err)
 	}
-	defer rows.Close()
+	defer closeRows(rows, &err, "storage list")
 
-	var ids []string
 	for rows.Next() {
 		var id string
 		if err := rows.Scan(&id); err != nil {
@@ -357,13 +356,12 @@ func (b *SQLiteBackend) DeleteScope(scopeID string) error {
 	return tx.Commit()
 }
 
-func (b *SQLiteBackend) ListScopes() ([]string, error) {
+func (b *SQLiteBackend) ListScopes() (scopes []string, err error) {
 	rows, err := b.db.Query(`SELECT scope_id FROM scope ORDER BY scope_id`)
 	if err != nil {
 		return nil, fmt.Errorf("storage list scopes: %w", err)
 	}
-	defer rows.Close()
-	var scopes []string
+	defer closeRows(rows, &err, "storage list scopes")
 	for rows.Next() {
 		var scopeID string
 		if err := rows.Scan(&scopeID); err != nil {
@@ -382,9 +380,8 @@ func loadJSONRows[T any](db *sql.DB, query string, args ...any) ([]T, error) {
 	return scanJSONRows[T](rows)
 }
 
-func scanJSONRows[T any](rows *sql.Rows) ([]T, error) {
-	defer rows.Close()
-	var result []T
+func scanJSONRows[T any](rows *sql.Rows) (result []T, err error) {
+	defer closeRows(rows, &err, "storage scan json rows")
 	for rows.Next() {
 		var raw []byte
 		if err := rows.Scan(&raw); err != nil {

@@ -37,7 +37,7 @@ func TestKnowledgeIngestRunningAndFailedPersistFailure_ReopenReconcilesToFailed(
 	if err != nil {
 		t.Fatalf("open sqlite: %v", err)
 	}
-	defer db.Close()
+	defer closeInTest(t, db)
 	if _, err := db.Exec(`CREATE TRIGGER fail_all_running_reopen_updates
 		BEFORE UPDATE ON knowledge_ingest_task
 		WHEN NEW.task_id = 'ingest_running_reopen_fail'
@@ -69,7 +69,7 @@ func TestKnowledgeIngestRunningAndFailedPersistFailure_ReopenReconcilesToFailed(
 		t.Fatalf("close cognition: %v", err)
 	}
 	reopened := newTestCognitionAt(t, root)
-	defer reopened.Close()
+	defer closeInTest(t, reopened)
 	reconciled, err := reopened.KnowledgeService().GetIngestTask("a1", task.TaskID)
 	if err != nil {
 		t.Fatalf("load reconciled task after reopen: %v", err)
@@ -107,7 +107,7 @@ func TestKnowledgeIngestCompletedAndFailedPersistFailure_ReopenReconcilesToFaile
 	if err != nil {
 		t.Fatalf("open sqlite: %v", err)
 	}
-	defer db.Close()
+	defer closeInTest(t, db)
 	if _, err := db.Exec(`CREATE TRIGGER fail_completed_and_failed_reopen_updates
 		BEFORE UPDATE ON knowledge_ingest_task
 		WHEN NEW.task_id = 'ingest_completed_reopen_fail'
@@ -143,7 +143,7 @@ func TestKnowledgeIngestCompletedAndFailedPersistFailure_ReopenReconcilesToFaile
 		t.Fatalf("close cognition: %v", err)
 	}
 	reopened := newTestCognitionAt(t, root)
-	defer reopened.Close()
+	defer closeInTest(t, reopened)
 	reconciled, err := reopened.KnowledgeService().GetIngestTask("a1", task.TaskID)
 	if err != nil {
 		t.Fatalf("load reconciled task after reopen: %v", err)
@@ -173,7 +173,7 @@ func TestKnowledgeHybridFailsClosedWhenEmbeddingMissingOrCorrupt(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open sqlite: %v", err)
 	}
-	defer db.Close()
+	defer closeInTest(t, db)
 	if _, err := db.Exec(`DELETE FROM knowledge_page_embedding WHERE scope_id = ? AND page_id = ?`, "a1", "p1"); err != nil {
 		t.Fatalf("delete embedding row: %v", err)
 	}
@@ -215,7 +215,7 @@ func TestKnowledgeLexicalSearchFailsClosedWhenFTSUnavailable(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open sqlite: %v", err)
 	}
-	defer db.Close()
+	defer closeInTest(t, db)
 	if _, err := db.Exec(`DROP TABLE knowledge_page_fts`); err != nil {
 		t.Fatalf("drop knowledge fts table: %v", err)
 	}
@@ -464,7 +464,7 @@ func TestKnowledgeStoredMalformedCitationFailsClosedAcrossReadPaths(t *testing.T
 	if err != nil {
 		t.Fatalf("open sqlite: %v", err)
 	}
-	defer db.Close()
+	defer closeInTest(t, db)
 	if _, err := db.Exec(`INSERT INTO knowledge_page
 		(scope_id, page_id, kind, lifecycle, search_text, page_json, created_at, updated_at)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,

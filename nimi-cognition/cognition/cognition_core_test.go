@@ -132,7 +132,7 @@ func TestWorkingServiceDoesNotPersistAcrossInstances(t *testing.T) {
 	if err != nil {
 		t.Fatalf("reopen cognition: %v", err)
 	}
-	defer reopened.Close()
+	defer closeInTest(t, reopened)
 	loaded, err := reopened.WorkingService().Load("a1")
 	if err != nil {
 		t.Fatalf("load reopened working state: %v", err)

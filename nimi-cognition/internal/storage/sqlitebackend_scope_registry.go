@@ -109,7 +109,7 @@ func (b *SQLiteBackend) GetKnowledgeScopeRow(scopeID string) (KnowledgeScopeRow,
 // ListKnowledgeScopeRows returns scopes matching the filter. Pagination
 // is offset-based and encoded as decimal string in PageToken; empty
 // PageToken means start at offset 0. PageSize <= 0 means no limit.
-func (b *SQLiteBackend) ListKnowledgeScopeRows(filter KnowledgeScopeFilter) ([]KnowledgeScopeRow, string, error) {
+func (b *SQLiteBackend) ListKnowledgeScopeRows(filter KnowledgeScopeFilter) (results []KnowledgeScopeRow, nextToken string, err error) {
 	for _, kind := range filter.OwnerKinds {
 		if !isAdmittedOwnerKind(kind) {
 			return nil, "", fmt.Errorf("storage list knowledge scopes: invalid owner_kind %q", kind)
@@ -154,8 +154,7 @@ func (b *SQLiteBackend) ListKnowledgeScopeRows(filter KnowledgeScopeFilter) ([]K
 	if err != nil {
 		return nil, "", fmt.Errorf("storage list knowledge scopes: %w", err)
 	}
-	defer rows.Close()
-	var results []KnowledgeScopeRow
+	defer closeRows(rows, &err, "storage list knowledge scopes")
 	for rows.Next() {
 		out, err := scanKnowledgeScopeRow(rows)
 		if err != nil {
@@ -166,7 +165,6 @@ func (b *SQLiteBackend) ListKnowledgeScopeRows(filter KnowledgeScopeFilter) ([]K
 	if err := rows.Err(); err != nil {
 		return nil, "", fmt.Errorf("storage list knowledge scopes: %w", err)
 	}
-	nextToken := ""
 	if limit > 0 && len(results) > limit {
 		results = results[:limit]
 		nextToken = fmt.Sprintf("%d", offset+limit)

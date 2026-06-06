@@ -84,7 +84,7 @@ func TestSkillServiceRejectsStoredPayloadScopeMismatch(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open sqlite: %v", err)
 	}
-	defer db.Close()
+	defer closeInTest(t, db)
 	if _, err := db.Exec(`UPDATE skill_bundle SET bundle_json = ? WHERE scope_id = ? AND bundle_id = ?`, raw, "a1", "s1"); err != nil {
 		t.Fatalf("corrupt skill payload scope: %v", err)
 	}
@@ -158,7 +158,7 @@ func TestSkillLifecyclePersistsAcrossReopen(t *testing.T) {
 		t.Fatalf("close cognition: %v", err)
 	}
 	reopened := newTestCognitionAt(t, root)
-	defer reopened.Close()
+	defer closeInTest(t, reopened)
 	if removed, err := reopened.SkillService().Load("a1", "s_removed"); err != nil || removed.Status != skill.BundleStatusRemoved {
 		t.Fatalf("expected removed skill after reopen, got %+v err=%v", removed, err)
 	}
@@ -345,7 +345,7 @@ func TestPromptServiceAfterReopenExcludesRemovedArtifacts(t *testing.T) {
 		t.Fatalf("close cognition: %v", err)
 	}
 	reopened := newTestCognitionAt(t, root)
-	defer reopened.Close()
+	defer closeInTest(t, reopened)
 	advisory, err := reopened.PromptService().FormatAdvisory("a1")
 	if err != nil {
 		t.Fatalf("format advisory after reopen: %v", err)
@@ -369,7 +369,7 @@ func TestPromptServiceFailsClosedOnMalformedKnowledgeProjection(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open sqlite: %v", err)
 	}
-	defer db.Close()
+	defer closeInTest(t, db)
 	if _, err := db.Exec(`INSERT INTO knowledge_page
 		(scope_id, page_id, kind, lifecycle, search_text, page_json, created_at, updated_at)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -420,7 +420,7 @@ func TestLexicalSearchFailsClosedWhenFTSUnavailable(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open sqlite: %v", err)
 	}
-	defer db.Close()
+	defer closeInTest(t, db)
 	if _, err := db.Exec(`DROP TABLE memory_record_fts`); err != nil {
 		t.Fatalf("drop memory fts table: %v", err)
 	}
@@ -451,7 +451,7 @@ func TestSkillLexicalSearchFailsClosedWhenFTSUnavailable(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open sqlite: %v", err)
 	}
-	defer db.Close()
+	defer closeInTest(t, db)
 	if _, err := db.Exec(`DROP TABLE skill_bundle_fts`); err != nil {
 		t.Fatalf("drop skill fts table: %v", err)
 	}

@@ -156,8 +156,7 @@ func TestCommit_PersistsSnapshotsAndLog(t *testing.T) {
 		}},
 	}
 
-	commit, err := engine.Commit(resolved)
-	if err == nil {
+	if _, err := engine.Commit(resolved); err == nil {
 		t.Fatal("expected commit to reject dangling artifact ref target")
 	}
 
@@ -167,7 +166,7 @@ func TestCommit_PersistsSnapshotsAndLog(t *testing.T) {
 		t.Fatalf("seed memory: %v", err)
 	}
 
-	commit, err = engine.Commit(resolved)
+	commit, err := engine.Commit(resolved)
 	if err != nil {
 		t.Fatalf("commit: %v", err)
 	}

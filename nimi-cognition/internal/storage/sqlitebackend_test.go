@@ -18,13 +18,13 @@ func TestSQLiteBackend_MemorySchemaOmitsServiceMetadataColumns(t *testing.T) {
 	if err != nil {
 		t.Fatalf("new sqlite backend: %v", err)
 	}
-	defer b.Close()
+	defer closeInTest(t, b)
 
 	rows, err := b.db.Query(`PRAGMA table_info(memory_record)`)
 	if err != nil {
 		t.Fatalf("pragma table_info: %v", err)
 	}
-	defer rows.Close()
+	defer closeInTest(t, rows)
 
 	columns := map[string]bool{}
 	for rows.Next() {
@@ -52,7 +52,7 @@ func TestSQLiteBackend_SkillSearchDoesNotIndexUnadmittedMetadata(t *testing.T) {
 	if err != nil {
 		t.Fatalf("new sqlite backend: %v", err)
 	}
-	defer b.Close()
+	defer closeInTest(t, b)
 
 	raw, err := json.Marshal(map[string]any{
 		"bundle_id":   "skill_001",
@@ -94,7 +94,7 @@ func TestSQLiteBackend_SaveRejectsPayloadScopeMismatch(t *testing.T) {
 	if err != nil {
 		t.Fatalf("new sqlite backend: %v", err)
 	}
-	defer b.Close()
+	defer closeInTest(t, b)
 
 	raw, err := json.Marshal(testMemoryRecord("m1", "agent_payload", nil))
 	if err != nil {
@@ -116,7 +116,7 @@ func TestSQLiteBackend_SaveRejectsUnresolvedRefsBeforeCommit(t *testing.T) {
 	if err != nil {
 		t.Fatalf("new sqlite backend: %v", err)
 	}
-	defer b.Close()
+	defer closeInTest(t, b)
 
 	ref := testArtifactRef(artifactref.KindMemoryRecord, "m1", artifactref.KindKnowledgePage, "missing_page")
 	raw, err := json.Marshal(testMemoryRecord("m1", "agent_001", []artifactref.Ref{ref}))
@@ -139,7 +139,7 @@ func TestSQLiteBackend_SaveRejectsForbiddenTargetFamily(t *testing.T) {
 	if err != nil {
 		t.Fatalf("new sqlite backend: %v", err)
 	}
-	defer b.Close()
+	defer closeInTest(t, b)
 
 	ref := testArtifactRef(artifactref.KindMemoryRecord, "m1", artifactref.KindKernelRule, "rule_001")
 	raw, err := json.Marshal(testMemoryRecord("m1", "agent_001", []artifactref.Ref{ref}))
@@ -157,7 +157,7 @@ func TestSQLiteBackend_SaveAcceptsLiveAdmittedRefs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("new sqlite backend: %v", err)
 	}
-	defer b.Close()
+	defer closeInTest(t, b)
 
 	pageRaw, err := json.Marshal(testKnowledgePage("page_001", "agent_001", nil))
 	if err != nil {
@@ -182,7 +182,7 @@ func TestSQLiteBackend_DeleteRejectsIncomingRefs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("new sqlite backend: %v", err)
 	}
-	defer b.Close()
+	defer closeInTest(t, b)
 
 	memRaw, err := json.Marshal(testMemoryRecord("m1", "agent_001", nil))
 	if err != nil {
@@ -210,7 +210,7 @@ func TestSQLiteBackend_SaveRemovedRejectsIncomingRefs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("new sqlite backend: %v", err)
 	}
-	defer b.Close()
+	defer closeInTest(t, b)
 
 	mem := testMemoryRecord("m1", "agent_001", nil)
 	memRaw, err := json.Marshal(mem)

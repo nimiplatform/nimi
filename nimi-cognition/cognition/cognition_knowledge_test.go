@@ -220,7 +220,7 @@ func TestKnowledgeLifecycleRetrievalAndIngestPersistAcrossReopen(t *testing.T) {
 		t.Fatalf("close cognition: %v", err)
 	}
 	reopened := newTestCognitionAt(t, root)
-	defer reopened.Close()
+	defer closeInTest(t, reopened)
 	if relations, err := reopened.KnowledgeService().ListRelations("a1", "root"); err != nil || len(relations) != 1 || relations[0].ToPageID != "child" {
 		t.Fatalf("unexpected relations after reopen: %+v err=%v", relations, err)
 	}
@@ -529,7 +529,7 @@ func TestKnowledgeIngestRunningPersistFailureFailsClosed(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open sqlite: %v", err)
 	}
-	defer db.Close()
+	defer closeInTest(t, db)
 	if _, err := db.Exec(`CREATE TRIGGER fail_running_ingest_update
 		BEFORE UPDATE ON knowledge_ingest_task
 		WHEN instr(CAST(NEW.task_json AS TEXT), '"status":"running"') > 0
@@ -578,7 +578,7 @@ func TestKnowledgeIngestCompletedPersistFailureFailsClosed(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open sqlite: %v", err)
 	}
-	defer db.Close()
+	defer closeInTest(t, db)
 	if _, err := db.Exec(`CREATE TRIGGER fail_completed_ingest_update
 		BEFORE UPDATE ON knowledge_ingest_task
 		WHEN instr(CAST(NEW.task_json AS TEXT), '"status":"completed"') > 0

@@ -59,7 +59,7 @@ func ValidateID(id string) bool {
 		return false
 	}
 	for _, c := range strings.ToUpper(ulid) {
-		if strings.IndexRune(crockford, c) < 0 {
+		if !strings.ContainsRune(crockford, c) {
 			return false
 		}
 	}

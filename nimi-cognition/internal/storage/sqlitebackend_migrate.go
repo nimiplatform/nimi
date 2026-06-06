@@ -34,12 +34,12 @@ func knowledgePageEmbeddingText(page knowledge.Page) string {
 	return compactSearch(page.Title, string(page.Body), string(page.Kind))
 }
 
-func (b *SQLiteBackend) migrateMemoryRecordSchema() error {
+func (b *SQLiteBackend) migrateMemoryRecordSchema() (err error) {
 	rows, err := b.db.Query(`PRAGMA table_info(memory_record)`)
 	if err != nil {
 		return fmt.Errorf("storage: inspect memory_record schema: %w", err)
 	}
-	defer rows.Close()
+	defer closeRows(rows, &err, "storage: inspect memory_record schema")
 
 	columns := map[string]struct{}{}
 	for rows.Next() {
@@ -104,12 +104,12 @@ func (b *SQLiteBackend) migrateMemoryRecordSchema() error {
 	return tx.Commit()
 }
 
-func (b *SQLiteBackend) migrateKnowledgeAuxState() error {
+func (b *SQLiteBackend) migrateKnowledgeAuxState() (err error) {
 	rows, err := b.db.Query(`SELECT scope_id, page_id, page_json FROM knowledge_page`)
 	if err != nil {
 		return fmt.Errorf("storage: inspect knowledge aux state: %w", err)
 	}
-	defer rows.Close()
+	defer closeRows(rows, &err, "storage: inspect knowledge aux state")
 
 	type pageRow struct {
 		scopeID string
@@ -188,12 +188,12 @@ func (b *SQLiteBackend) migrateKnowledgeAuxState() error {
 	return tx.Commit()
 }
 
-func (b *SQLiteBackend) migrateDigestCandidateSchema() error {
+func (b *SQLiteBackend) migrateDigestCandidateSchema() (err error) {
 	rows, err := b.db.Query(`PRAGMA table_info(digest_candidate)`)
 	if err != nil {
 		return fmt.Errorf("storage: inspect digest_candidate schema: %w", err)
 	}
-	defer rows.Close()
+	defer closeRows(rows, &err, "storage: inspect digest_candidate schema")
 	var hasStatusPK bool
 	for rows.Next() {
 		var cid int
@@ -286,6 +286,12 @@ func decodeTime(raw string) (time.Time, error) {
 
 func rollback(tx *sql.Tx) {
 	_ = tx.Rollback()
+}
+
+func closeRows(rows *sql.Rows, errp *error, context string) {
+	if closeErr := rows.Close(); closeErr != nil && *errp == nil {
+		*errp = fmt.Errorf("%s: close rows: %w", context, closeErr)
+	}
 }
 
 func relationRole(relationType string) string {

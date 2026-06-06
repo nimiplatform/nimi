@@ -23,15 +23,16 @@ func (b *SQLiteBackend) saveKernelTx(tx *sql.Tx, scopeID string, itemID string, 
 	if err := json.Unmarshal(data, &payload); err != nil {
 		return fmt.Errorf("storage save kernel: unmarshal: %w", err)
 	}
-	if payload.Kernel.KernelType == kernel.KernelTypeAgentModel {
+	switch payload.Kernel.KernelType {
+	case kernel.KernelTypeAgentModel:
 		if err := kernel.ValidateAgentModelKernel(kernel.AgentModelKernel{Kernel: payload.Kernel, Rules: payload.Rules}); err != nil {
 			return fmt.Errorf("storage save kernel: %w", err)
 		}
-	} else if payload.Kernel.KernelType == kernel.KernelTypeWorldModel {
+	case kernel.KernelTypeWorldModel:
 		if err := kernel.ValidateWorldModelKernel(kernel.WorldModelKernel{Kernel: payload.Kernel, Rules: payload.Rules}); err != nil {
 			return fmt.Errorf("storage save kernel: %w", err)
 		}
-	} else {
+	default:
 		return fmt.Errorf("storage save kernel: invalid kernel_type %q", payload.Kernel.KernelType)
 	}
 	if string(payload.Kernel.KernelType) != itemID {
@@ -64,12 +65,22 @@ func (b *SQLiteBackend) saveKernelTx(tx *sql.Tx, scopeID string, itemID string, 
 	for rows.Next() {
 		var ruleID string
 		if err := rows.Scan(&ruleID); err != nil {
-			rows.Close()
+			if closeErr := rows.Close(); closeErr != nil {
+				return fmt.Errorf("storage save kernel rules: %w", errors.Join(err, closeErr))
+			}
 			return fmt.Errorf("storage save kernel rules: %w", err)
 		}
 		staleIDs = append(staleIDs, ruleID)
 	}
-	rows.Close()
+	if err := rows.Err(); err != nil {
+		if closeErr := rows.Close(); closeErr != nil {
+			return fmt.Errorf("storage save kernel rules: %w", errors.Join(err, closeErr))
+		}
+		return fmt.Errorf("storage save kernel rules: %w", err)
+	}
+	if err := rows.Close(); err != nil {
+		return fmt.Errorf("storage save kernel rules: close rows: %w", err)
+	}
 	for _, ruleID := range staleIDs {
 		if err := b.deleteRefsForArtifactTx(tx, scopeID, string(artifactref.KindKernelRule), ruleID); err != nil {
 			return err
@@ -418,12 +429,12 @@ func (b *SQLiteBackend) deleteRefsTargetingTx(tx *sql.Tx, scopeID string, toKind
 	return nil
 }
 
-func (b *SQLiteBackend) ensureNoIncomingRefsTx(tx *sql.Tx, scopeID string, toKind string, toID string) error {
+func (b *SQLiteBackend) ensureNoIncomingRefsTx(tx *sql.Tx, scopeID string, toKind string, toID string) (err error) {
 	rows, err := tx.Query(`SELECT from_kind, from_id, strength FROM artifact_ref WHERE scope_id = ? AND to_kind = ? AND to_id = ?`, scopeID, toKind, toID)
 	if err != nil {
 		return fmt.Errorf("storage incoming refs for %s/%s: %w", toKind, toID, err)
 	}
-	defer rows.Close()
+	defer closeRows(rows, &err, fmt.Sprintf("storage incoming refs for %s/%s", toKind, toID))
 	blocking := 0
 	for rows.Next() {
 		var fromKind artifactref.Kind
@@ -503,13 +514,12 @@ func (b *SQLiteBackend) artifactRefSourceStateTx(tx *sql.Tx, scopeID string, kin
 	}
 }
 
-func (b *SQLiteBackend) loadRefs(query string, args ...any) ([]artifactref.Ref, error) {
+func (b *SQLiteBackend) loadRefs(query string, args ...any) (refs []artifactref.Ref, err error) {
 	rows, err := b.db.Query(query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("storage load refs: %w", err)
 	}
-	defer rows.Close()
-	var refs []artifactref.Ref
+	defer closeRows(rows, &err, "storage load refs")
 	for rows.Next() {
 		var ref artifactref.Ref
 		var createdAt string
@@ -658,12 +668,12 @@ func (b *SQLiteBackend) deleteKnowledgeRelationRefTx(tx *sql.Tx, scopeID string,
 	return nil
 }
 
-func (b *SQLiteBackend) deleteKnowledgeRelationsForPageTx(tx *sql.Tx, scopeID string, pageID string) error {
+func (b *SQLiteBackend) deleteKnowledgeRelationsForPageTx(tx *sql.Tx, scopeID string, pageID string) (err error) {
 	rows, err := tx.Query(`SELECT from_page_id, to_page_id, relation_type FROM knowledge_relation WHERE scope_id = ? AND (from_page_id = ? OR to_page_id = ?)`, scopeID, pageID, pageID)
 	if err != nil {
 		return fmt.Errorf("storage delete knowledge relations for page: %w", err)
 	}
-	defer rows.Close()
+	defer closeRows(rows, &err, "storage delete knowledge relations for page")
 	type relKey struct {
 		from string
 		to   string
@@ -691,13 +701,12 @@ func (b *SQLiteBackend) deleteKnowledgeRelationsForPageTx(tx *sql.Tx, scopeID st
 	return nil
 }
 
-func (b *SQLiteBackend) loadKnowledgeRelations(query string, args ...any) ([]knowledge.Relation, error) {
+func (b *SQLiteBackend) loadKnowledgeRelations(query string, args ...any) (relations []knowledge.Relation, err error) {
 	rows, err := b.db.Query(query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("storage load knowledge relations: %w", err)
 	}
-	defer rows.Close()
-	var relations []knowledge.Relation
+	defer closeRows(rows, &err, "storage load knowledge relations")
 	for rows.Next() {
 		var raw []byte
 		if err := rows.Scan(&raw); err != nil {

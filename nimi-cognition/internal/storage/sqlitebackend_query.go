@@ -93,14 +93,13 @@ func (b *SQLiteBackend) LoadSkillBundles(scopeID string) ([]skill.Bundle, error)
 }
 
 // LoadMemoryHistory returns lifecycle history for one memory record.
-func (b *SQLiteBackend) LoadMemoryHistory(scopeID string, recordID string) ([]memory.HistoryEntry, error) {
+func (b *SQLiteBackend) LoadMemoryHistory(scopeID string, recordID string) (history []memory.HistoryEntry, err error) {
 	rows, err := b.db.Query(`SELECT scope_id, record_id, action, lifecycle, version, at
 		FROM memory_history WHERE scope_id = ? AND record_id = ?`, scopeID, recordID)
 	if err != nil {
 		return nil, fmt.Errorf("storage load memory history: %w", err)
 	}
-	defer rows.Close()
-	var history []memory.HistoryEntry
+	defer closeRows(rows, &err, "storage load memory history")
 	for rows.Next() {
 		var entry memory.HistoryEntry
 		var at string
@@ -123,14 +122,13 @@ func (b *SQLiteBackend) LoadMemoryHistory(scopeID string, recordID string) ([]me
 }
 
 // LoadKnowledgeHistory returns lifecycle history for one knowledge page.
-func (b *SQLiteBackend) LoadKnowledgeHistory(scopeID string, pageID string) ([]knowledge.HistoryEntry, error) {
+func (b *SQLiteBackend) LoadKnowledgeHistory(scopeID string, pageID string) (history []knowledge.HistoryEntry, err error) {
 	rows, err := b.db.Query(`SELECT scope_id, page_id, action, lifecycle, version, at
 		FROM knowledge_history WHERE scope_id = ? AND page_id = ?`, scopeID, pageID)
 	if err != nil {
 		return nil, fmt.Errorf("storage load knowledge history: %w", err)
 	}
-	defer rows.Close()
-	var history []knowledge.HistoryEntry
+	defer closeRows(rows, &err, "storage load knowledge history")
 	for rows.Next() {
 		var entry knowledge.HistoryEntry
 		var at string
@@ -153,14 +151,13 @@ func (b *SQLiteBackend) LoadKnowledgeHistory(scopeID string, pageID string) ([]k
 }
 
 // LoadSkillHistory returns lifecycle history for one skill bundle.
-func (b *SQLiteBackend) LoadSkillHistory(scopeID string, bundleID string) ([]skill.HistoryEntry, error) {
+func (b *SQLiteBackend) LoadSkillHistory(scopeID string, bundleID string) (history []skill.HistoryEntry, err error) {
 	rows, err := b.db.Query(`SELECT scope_id, bundle_id, action, status, version, at
 		FROM skill_history WHERE scope_id = ? AND bundle_id = ?`, scopeID, bundleID)
 	if err != nil {
 		return nil, fmt.Errorf("storage load skill history: %w", err)
 	}
-	defer rows.Close()
-	var history []skill.HistoryEntry
+	defer closeRows(rows, &err, "storage load skill history")
 	for rows.Next() {
 		var entry skill.HistoryEntry
 		var at string
@@ -465,7 +462,7 @@ func (b *SQLiteBackend) CountKnowledgeRelations(scopeID string) (int, error) {
 }
 
 // LoadKnowledgeEmbeddings returns page embeddings for one scope keyed by page id.
-func (b *SQLiteBackend) LoadKnowledgeEmbeddings(scopeID string) (map[string][]float64, error) {
+func (b *SQLiteBackend) LoadKnowledgeEmbeddings(scopeID string) (result map[string][]float64, err error) {
 	if err := validateScopeID(scopeID); err != nil {
 		return nil, err
 	}
@@ -473,8 +470,8 @@ func (b *SQLiteBackend) LoadKnowledgeEmbeddings(scopeID string) (map[string][]fl
 	if err != nil {
 		return nil, fmt.Errorf("storage load knowledge embeddings: %w", err)
 	}
-	defer rows.Close()
-	result := make(map[string][]float64)
+	defer closeRows(rows, &err, "storage load knowledge embeddings")
+	result = make(map[string][]float64)
 	for rows.Next() {
 		var pageID string
 		var raw []byte

@@ -81,7 +81,7 @@ func (b *SQLiteBackend) LoadDigestRun(scopeID string, runID string) ([]byte, err
 }
 
 // ListDigestRunIDs returns persisted digest run ids for one scope in reverse chronological order.
-func (b *SQLiteBackend) ListDigestRunIDs(scopeID string) ([]string, error) {
+func (b *SQLiteBackend) ListDigestRunIDs(scopeID string) (ids []string, err error) {
 	if err := validateScopeID(scopeID); err != nil {
 		return nil, err
 	}
@@ -90,9 +90,8 @@ func (b *SQLiteBackend) ListDigestRunIDs(scopeID string) ([]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("storage list digest runs: %w", err)
 	}
-	defer rows.Close()
+	defer closeRows(rows, &err, "storage list digest runs")
 
-	var ids []string
 	for rows.Next() {
 		var runID string
 		if err := rows.Scan(&runID); err != nil {
@@ -107,7 +106,7 @@ func (b *SQLiteBackend) ListDigestRunIDs(scopeID string) ([]string, error) {
 }
 
 // LoadDigestCandidates returns persisted digest candidates for one run id.
-func (b *SQLiteBackend) LoadDigestCandidates(scopeID string, runID string) ([]DigestCandidate, error) {
+func (b *SQLiteBackend) LoadDigestCandidates(scopeID string, runID string) (candidates []DigestCandidate, err error) {
 	if err := validateScopeID(scopeID); err != nil {
 		return nil, err
 	}
@@ -120,9 +119,8 @@ func (b *SQLiteBackend) LoadDigestCandidates(scopeID string, runID string) ([]Di
 	if err != nil {
 		return nil, fmt.Errorf("storage load digest candidates: %w", err)
 	}
-	defer rows.Close()
+	defer closeRows(rows, &err, "storage load digest candidates")
 
-	var candidates []DigestCandidate
 	for rows.Next() {
 		var candidate DigestCandidate
 		var createdAt string

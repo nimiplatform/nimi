@@ -464,7 +464,7 @@ func TestWorker_PersistsStructuredDigestEvidenceAcrossReopen(t *testing.T) {
 	if err != nil {
 		t.Fatalf("reopen store: %v", err)
 	}
-	defer store.Close()
+	defer closeInTest(t, store)
 
 	runIDs, err := store.ListDigestRunIDs("a1")
 	if err != nil {
