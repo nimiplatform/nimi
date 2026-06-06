@@ -168,6 +168,45 @@ fn creates_default_profile_under_nimi_control_root_accounts() {
             .payload
             .capabilities
             .contains_key("text.generate"));
+        let text_generate = record
+            .profile
+            .payload
+            .capabilities
+            .get("text.generate")
+            .and_then(|value| value.as_object())
+            .expect("text.generate intent");
+        assert_eq!(
+            text_generate
+                .get("readinessPolicy")
+                .and_then(|value| value.as_str()),
+            Some("required")
+        );
+        assert_eq!(
+            text_generate
+                .get("contractState")
+                .and_then(|value| value.as_str()),
+            Some("proposed")
+        );
+        assert!(!text_generate.contains_key("binding"));
+        assert!(record
+            .profile
+            .payload
+            .tags
+            .contains(&"factory-ai-profile-selection-hint".to_string()));
+        assert!(record
+            .profile
+            .payload
+            .tags
+            .contains(&"setup-required".to_string()));
+        assert_eq!(
+            record.profile.payload.projection_warnings.as_deref(),
+            Some(
+                &[
+                    "factory_ai_profile_selection_hint".to_string(),
+                    "runtime_prepare_required_before_live_config".to_string(),
+                ][..]
+            )
+        );
         assert_eq!(record.profile.payload, record.factory_seed_profile_payload);
         assert_eq!(
             record.profile.payload_hash,

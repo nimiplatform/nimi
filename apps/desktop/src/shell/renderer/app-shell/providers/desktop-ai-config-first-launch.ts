@@ -65,14 +65,7 @@ function resolveRecommendedFactoryProfile(
 }
 
 async function resolveAccountDefaultProfile(): Promise<NimiAIProfile> {
-  const accountDefaultProfile = await getAccountDefaultProfileForScopeInit();
-  return {
-    profileId: accountDefaultProfile.profileId,
-    title: accountDefaultProfile.title,
-    description: accountDefaultProfile.description,
-    tags: [...(accountDefaultProfile.tags ?? [])],
-    capabilities: accountDefaultProfile.capabilities as NimiAIProfile['capabilities'],
-  };
+  return getAccountDefaultProfileForScopeInit();
 }
 
 export async function ensureDesktopAppFirstLaunchAIConfig(

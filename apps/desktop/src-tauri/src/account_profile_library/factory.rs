@@ -38,29 +38,46 @@ pub(crate) fn profile_payload_from_row(
 ) -> AccountDefaultAIProfilePayload {
     let mut capabilities = serde_json::Map::new();
     for capability in row.capability_set {
-        let mut binding = serde_json::Map::new();
-        binding.insert("binding".to_string(), serde_json::Value::Null);
-        capabilities.insert(
-            (*capability).to_string(),
-            serde_json::Value::Object(binding),
+        let mut intent = serde_json::Map::new();
+        intent.insert(
+            "readinessPolicy".to_string(),
+            serde_json::Value::String("required".to_string()),
         );
+        intent.insert(
+            "contractState".to_string(),
+            serde_json::Value::String("proposed".to_string()),
+        );
+        capabilities.insert((*capability).to_string(), serde_json::Value::Object(intent));
     }
     AccountDefaultAIProfilePayload {
         profile_id: ACCOUNT_DEFAULT_PROFILE_ID.to_string(),
+        version: None,
+        revision: None,
         title: format!("Default {}", title_from_alias(row.alias)),
         description: format!(
-            "Account Default Profile seeded from factory AIProfile: {}",
+            "Account Default Profile selection hint seeded from factory AIProfile: {}",
             row.alias
         ),
         tags: vec![
             "account-default-profile".to_string(),
             "factory-ai-profile".to_string(),
+            "factory-ai-profile-selection-hint".to_string(),
+            "setup-required".to_string(),
             row.alias.to_string(),
             row.privacy_posture.to_string(),
             row.compute_posture.to_string(),
             row.routing_policy.to_string(),
         ],
         capabilities,
+        asset_bindings: None,
+        default_params: None,
+        editable_fields: None,
+        prepare_requirements: None,
+        contract_states: None,
+        projection_warnings: Some(vec![
+            "factory_ai_profile_selection_hint".to_string(),
+            "runtime_prepare_required_before_live_config".to_string(),
+        ]),
     }
 }
 

@@ -27,15 +27,37 @@ fn sample_payload(profile_id: &str, title: &str) -> LibraryAIProfilePayload {
     let mut capabilities = serde_json::Map::new();
     capabilities.insert(
         "text.generate".to_string(),
-        serde_json::json!({ "binding": null }),
+        serde_json::json!({
+            "readinessPolicy": "required",
+            "contractState": "proposed"
+        }),
     );
     LibraryAIProfilePayload {
         profile_id: profile_id.to_string(),
+        version: Some("v1".to_string()),
+        revision: None,
         title: title.to_string(),
         description: "library test profile".to_string(),
         tags: vec!["test".to_string()],
         capabilities,
+        asset_bindings: None,
+        default_params: Some(serde_json::json!({ "temperature": 0.2 })),
+        editable_fields: Some(vec!["params.temperature".to_string()]),
+        prepare_requirements: Some(vec!["runtime.prepare.required".to_string()]),
+        contract_states: Some(vec!["proposed".to_string()]),
+        projection_warnings: Some(vec![
+            "runtime_prepare_required_before_live_config".to_string()
+        ]),
     }
+}
+
+fn legacy_binding_payload(profile_id: &str, title: &str) -> LibraryAIProfilePayload {
+    let mut payload = sample_payload(profile_id, title);
+    payload.capabilities.insert(
+        "text.generate".to_string(),
+        serde_json::json!({ "binding": null }),
+    );
+    payload
 }
 
 #[test]
@@ -50,6 +72,17 @@ fn create_writes_user_directory_and_index() {
         assert_eq!(projection.profiles[0].origin, "user");
         assert!(projection.profiles[0].editable);
         assert!(projection.profiles[0].removable);
+        assert_eq!(
+            projection.profiles[0]
+                .profile
+                .projection_warnings
+                .as_deref(),
+            Some(&["runtime_prepare_required_before_live_config".to_string()][..])
+        );
+        assert_eq!(
+            projection.profiles[0].profile.default_params.as_ref(),
+            Some(&serde_json::json!({ "temperature": 0.2 }))
+        );
 
         let user_path = library_profile_path("account_1", "user", "custom-alpha").expect("path");
         assert!(user_path.exists());
@@ -75,6 +108,20 @@ fn reserved_default_id_cannot_be_created_or_deleted() {
         let delete_error = delete_account_profile_library_entry("account_1", "default")
             .expect_err("reserved id delete must fail");
         assert!(delete_error.contains("reserved"));
+    });
+}
+
+#[test]
+fn rejects_sdk_forbidden_binding_payload_before_writing_file() {
+    with_isolated_home("binding-negative", || {
+        let error = create_account_profile_library_entry(
+            "account_1",
+            legacy_binding_payload("custom-binding", "Binding"),
+        )
+        .expect_err("SDK-forbidden binding field must fail");
+        assert!(error.contains("binding"));
+        let user_path = library_profile_path("account_1", "user", "custom-binding").expect("path");
+        assert!(!user_path.exists());
     });
 }
 

@@ -4,7 +4,11 @@ export interface NimiMigrationProofResult {
   readonly proofId: string;
   readonly appShape: string;
   readonly status: NimiMigrationProofStatus;
-  readonly migratedBy: 'adapter-model-replacement' | 'adapter-route-replacement' | 'source-root-adapter-contract';
+  readonly migratedBy:
+    | 'adapter-model-replacement'
+    | 'adapter-route-replacement'
+    | 'source-root-adapter-contract'
+    | 'profile-requirement-flow';
   readonly adapterIds: readonly string[];
   readonly observedCapabilities: readonly string[];
   readonly evidence: readonly string[];

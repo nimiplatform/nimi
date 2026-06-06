@@ -13,7 +13,100 @@ use nimi_shell_tauri::platform_catalog::ai_profile_factory::{
     verify_first_run_factory_ai_profile, PlatformAIProfileFactoryRow,
 };
 
-fn validate_sdk_ai_profile_payload(payload: &AccountDefaultAIProfilePayload) -> Result<(), String> {
+const FORBIDDEN_AI_PROFILE_FIELD_NAMES: &[&str] = &[
+    "RuntimeRouteBinding",
+    "selectedBindings",
+    "selected_source_records",
+    "selectedSourceRecords",
+    "install_evidence",
+    "installEvidence",
+    "materialization_evidence",
+    "materializationEvidence",
+    "workflow_binding_id",
+    "workflowBindingId",
+    "prepared_asset_id",
+    "preparedAssetId",
+    "backend_environment_evidence",
+    "backendEnvironmentEvidence",
+    "provider_health",
+    "providerHealth",
+    "scheduler_state",
+    "schedulerState",
+    "credential_payload",
+    "credentialPayload",
+    "secret",
+    "token",
+    "apiKey",
+    "api_key",
+    "oauth",
+    "endpoint",
+    "localModelId",
+    "goRuntimeLocalModelId",
+    "goRuntimeStatus",
+    "providerHints",
+    "binding",
+    "localProfileRef",
+    "localProfileRefs",
+];
+
+fn is_path_like_string(value: &str) -> bool {
+    let trimmed = value.trim();
+    trimmed.starts_with('/')
+        || trimmed.starts_with('~')
+        || trimmed.starts_with("file://")
+        || trimmed.contains("\\")
+        || trimmed.contains("/Users/")
+        || trimmed.contains("/tmp/")
+        || trimmed.contains("/var/")
+        || (trimmed.len() > 2
+            && trimmed.as_bytes()[1] == b':'
+            && (trimmed.as_bytes()[2] == b'/' || trimmed.as_bytes()[2] == b'\\'))
+}
+
+fn validate_no_forbidden_payload_fields(
+    value: &serde_json::Value,
+    path: &str,
+) -> Result<(), String> {
+    match value {
+        serde_json::Value::String(text) => {
+            if is_path_like_string(text) {
+                return Err(format!(
+                    "{path} must be a portable non-path logical ref in Account Default Profile AIProfile payload"
+                ));
+            }
+        }
+        serde_json::Value::Array(items) => {
+            for (index, item) in items.iter().enumerate() {
+                validate_no_forbidden_payload_fields(item, &format!("{path}[{index}]"))?;
+            }
+        }
+        serde_json::Value::Object(record) => {
+            for (key, child) in record {
+                if FORBIDDEN_AI_PROFILE_FIELD_NAMES.contains(&key.as_str()) {
+                    return Err(format!(
+                        "{path}.{key} is forbidden in Account Default Profile AIProfile payload"
+                    ));
+                }
+                validate_no_forbidden_payload_fields(child, &format!("{path}.{key}"))?;
+            }
+        }
+        _ => {}
+    }
+    Ok(())
+}
+
+fn validate_optional_string_vec(values: &Option<Vec<String>>, label: &str) -> Result<(), String> {
+    if let Some(values) = values {
+        if values.iter().any(|value| value.trim().is_empty()) {
+            return Err(format!("{label} must contain only non-empty strings"));
+        }
+    }
+    Ok(())
+}
+
+fn validate_basic_ai_profile_payload_shape(
+    payload: &AccountDefaultAIProfilePayload,
+) -> Result<(), String> {
     if payload.profile_id != ACCOUNT_DEFAULT_PROFILE_ID {
         return Err(
             "Account Default Profile AIProfile payload profileId must be default".to_string(),
@@ -38,19 +131,66 @@ fn validate_sdk_ai_profile_payload(payload: &AccountDefaultAIProfilePayload) -> 
                 "Account Default Profile AIProfile payload capability id is required".to_string(),
             );
         }
-        let Some(binding) = value.as_object() else {
+        if !value.is_object() {
             return Err(
                 "Account Default Profile AIProfile payload capability entries must be objects"
                     .to_string(),
             );
-        };
-        if !binding.contains_key("binding") {
+        }
+    }
+    Ok(())
+}
+
+fn validate_sdk_ai_profile_payload(payload: &AccountDefaultAIProfilePayload) -> Result<(), String> {
+    validate_basic_ai_profile_payload_shape(payload)?;
+    let value = serde_json::to_value(payload).map_err(|error| {
+        format!("Account Default Profile AIProfile payload cannot serialize: {error}")
+    })?;
+    validate_no_forbidden_payload_fields(&value, "profile")?;
+    for (capability, value) in &payload.capabilities {
+        let intent = value.as_object().expect("validated object");
+        if let Some(policy) = intent.get("readinessPolicy") {
+            if policy.as_str() != Some("required") && policy.as_str() != Some("optional") {
+                return Err(format!(
+                    "Account Default Profile AIProfile payload capability {capability} readinessPolicy is invalid"
+                ));
+            }
+        }
+        if let Some(contract_state) = intent.get("contractState") {
+            if contract_state.as_str() != Some("declared")
+                && contract_state.as_str() != Some("proposed")
+                && contract_state.as_str() != Some("unsupported")
+            {
+                return Err(format!(
+                    "Account Default Profile AIProfile payload capability {capability} contractState is invalid"
+                ));
+            }
+        }
+    }
+    if let Some(default_params) = &payload.default_params {
+        if !default_params.is_object() {
             return Err(
-                "Account Default Profile AIProfile payload capability binding field is required"
+                "Account Default Profile AIProfile payload defaultParams must be an object"
                     .to_string(),
             );
         }
     }
+    validate_optional_string_vec(
+        &payload.editable_fields,
+        "Account Default Profile AIProfile payload editableFields",
+    )?;
+    validate_optional_string_vec(
+        &payload.prepare_requirements,
+        "Account Default Profile AIProfile payload prepareRequirements",
+    )?;
+    validate_optional_string_vec(
+        &payload.contract_states,
+        "Account Default Profile AIProfile payload contractStates",
+    )?;
+    validate_optional_string_vec(
+        &payload.projection_warnings,
+        "Account Default Profile AIProfile payload projectionWarnings",
+    )?;
     Ok(())
 }
 
@@ -265,7 +405,7 @@ pub(crate) fn is_reseedable_factory_profile_record(
     {
         return Ok(false);
     }
-    validate_sdk_ai_profile_payload(&record.profile.payload)?;
+    validate_basic_ai_profile_payload_shape(&record.profile.payload)?;
     if record.profile.payload_hash
         != stable_json_hash(
             &record.profile.payload,
@@ -302,4 +442,5 @@ pub(crate) fn is_factory_catalog_drift_error(error: &str) -> bool {
         || error.contains("factory provenance")
         || error.contains("source catalog capability set")
         || error.contains("source catalog routing policy")
+        || error.contains("forbidden in Account Default Profile AIProfile payload")
 }

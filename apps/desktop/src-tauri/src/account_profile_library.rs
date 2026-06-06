@@ -43,11 +43,19 @@ pub fn read_account_default_profile_ai_profile(
     let record = read_profile_record(&path)?;
     verify_record_fields(&record, authenticated_account_id, &expected_data_root_ref)?;
     Ok(AccountDefaultProfileAIProfile {
-        profile_id: record.profile.payload.profile_id,
-        title: record.profile.payload.title,
-        description: record.profile.payload.description,
-        tags: record.profile.payload.tags,
-        capabilities: record.profile.payload.capabilities,
+        profile_id: record.profile.payload.profile_id.clone(),
+        version: record.profile.payload.version.clone(),
+        revision: record.profile.payload.revision.clone(),
+        title: record.profile.payload.title.clone(),
+        description: record.profile.payload.description.clone(),
+        tags: record.profile.payload.tags.clone(),
+        capabilities: record.profile.payload.capabilities.clone(),
+        asset_bindings: record.profile.payload.asset_bindings.clone(),
+        default_params: record.profile.payload.default_params.clone(),
+        editable_fields: record.profile.payload.editable_fields.clone(),
+        prepare_requirements: record.profile.payload.prepare_requirements.clone(),
+        contract_states: record.profile.payload.contract_states.clone(),
+        projection_warnings: record.profile.payload.projection_warnings.clone(),
     })
 }
 

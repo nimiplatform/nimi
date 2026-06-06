@@ -47,6 +47,41 @@ const LIBRARY_ORIGIN_USER: &str = "user";
 const LIBRARY_ORIGIN_IMPORTED: &str = "imported";
 /// Library entry origin of the Account Default Profile index reference.
 const LIBRARY_ORIGIN_ACCOUNT_DEFAULT: &str = "account-default";
+const FORBIDDEN_AI_PROFILE_FIELD_NAMES: &[&str] = &[
+    "RuntimeRouteBinding",
+    "selectedBindings",
+    "selected_source_records",
+    "selectedSourceRecords",
+    "install_evidence",
+    "installEvidence",
+    "materialization_evidence",
+    "materializationEvidence",
+    "workflow_binding_id",
+    "workflowBindingId",
+    "prepared_asset_id",
+    "preparedAssetId",
+    "backend_environment_evidence",
+    "backendEnvironmentEvidence",
+    "provider_health",
+    "providerHealth",
+    "scheduler_state",
+    "schedulerState",
+    "credential_payload",
+    "credentialPayload",
+    "secret",
+    "token",
+    "apiKey",
+    "api_key",
+    "oauth",
+    "endpoint",
+    "localModelId",
+    "goRuntimeLocalModelId",
+    "goRuntimeStatus",
+    "providerHints",
+    "binding",
+    "localProfileRef",
+    "localProfileRefs",
+];
 
 // ---------------------------------------------------------------------------
 // AIProfile payload (mirrors the SDK `AIProfile` portable template shape)
@@ -54,16 +89,32 @@ const LIBRARY_ORIGIN_ACCOUNT_DEFAULT: &str = "account-default";
 
 /// Portable AI profile payload. Mirrors the SDK `AIProfile` type — a portable
 /// configuration template, not a live `AIConfig`. The library stores this
-/// verbatim; capability bindings stay opaque JSON so this module never owns the
+/// verbatim; capability intents stay SDK-shaped JSON so this module never owns the
 /// provider/model/connector vocabulary.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct LibraryAIProfilePayload {
     pub profile_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub revision: Option<String>,
     pub title: String,
     pub description: String,
     pub tags: Vec<String>,
     pub capabilities: serde_json::Map<String, serde_json::Value>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub asset_bindings: Option<Vec<serde_json::Value>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub default_params: Option<serde_json::Value>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub editable_fields: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub prepare_requirements: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub contract_states: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub projection_warnings: Option<Vec<String>>,
 }
 
 /// One editable account profile library entry record persisted under `user/`
@@ -243,6 +294,59 @@ fn library_profile_path(
     Ok(library_origin_dir(account_id, &normalized_origin)?.join(format!("{normalized_id}.json")))
 }
 
+fn is_path_like_string(value: &str) -> bool {
+    let trimmed = value.trim();
+    trimmed.starts_with('/')
+        || trimmed.starts_with('~')
+        || trimmed.starts_with("file://")
+        || trimmed.contains("\\")
+        || trimmed.contains("/Users/")
+        || trimmed.contains("/tmp/")
+        || trimmed.contains("/var/")
+        || (trimmed.len() > 2
+            && trimmed.as_bytes()[1] == b':'
+            && (trimmed.as_bytes()[2] == b'/' || trimmed.as_bytes()[2] == b'\\'))
+}
+
+fn validate_no_forbidden_payload_fields(
+    value: &serde_json::Value,
+    path: &str,
+) -> Result<(), String> {
+    match value {
+        serde_json::Value::String(text) => {
+            if is_path_like_string(text) {
+                return Err(format!("{path} must be a portable non-path logical ref"));
+            }
+        }
+        serde_json::Value::Array(items) => {
+            for (index, item) in items.iter().enumerate() {
+                validate_no_forbidden_payload_fields(item, &format!("{path}[{index}]"))?;
+            }
+        }
+        serde_json::Value::Object(record) => {
+            for (key, child) in record {
+                if FORBIDDEN_AI_PROFILE_FIELD_NAMES.contains(&key.as_str()) {
+                    return Err(format!(
+                        "{path}.{key} is forbidden in library AIProfile payload"
+                    ));
+                }
+                validate_no_forbidden_payload_fields(child, &format!("{path}.{key}"))?;
+            }
+        }
+        _ => {}
+    }
+    Ok(())
+}
+
+fn validate_optional_string_vec(values: &Option<Vec<String>>, label: &str) -> Result<(), String> {
+    if let Some(values) = values {
+        if values.iter().any(|value| value.trim().is_empty()) {
+            return Err(format!("{label} must contain only non-empty strings"));
+        }
+    }
+    Ok(())
+}
+
 // ---------------------------------------------------------------------------
 // AIProfile payload validation
 // ---------------------------------------------------------------------------
@@ -266,14 +370,55 @@ fn validate_library_ai_profile_payload(
     if payload.tags.iter().any(|tag| tag.trim().is_empty()) {
         return Err("library AIProfile payload tags must be non-empty strings".to_string());
     }
+    let payload_value = serde_json::to_value(payload)
+        .map_err(|error| format!("library AIProfile payload cannot serialize: {error}"))?;
+    validate_no_forbidden_payload_fields(&payload_value, "profile")?;
     for (capability, value) in &payload.capabilities {
         if capability.trim().is_empty() {
             return Err("library AIProfile payload capability id is required".to_string());
         }
-        if !value.is_object() {
+        let Some(intent) = value.as_object() else {
             return Err("library AIProfile payload capability entries must be objects".to_string());
+        };
+        if let Some(policy) = intent.get("readinessPolicy") {
+            if policy.as_str() != Some("required") && policy.as_str() != Some("optional") {
+                return Err(format!(
+                    "library AIProfile payload capability {capability} readinessPolicy is invalid"
+                ));
+            }
+        }
+        if let Some(contract_state) = intent.get("contractState") {
+            if contract_state.as_str() != Some("declared")
+                && contract_state.as_str() != Some("proposed")
+                && contract_state.as_str() != Some("unsupported")
+            {
+                return Err(format!(
+                    "library AIProfile payload capability {capability} contractState is invalid"
+                ));
+            }
         }
     }
+    if let Some(default_params) = &payload.default_params {
+        if !default_params.is_object() {
+            return Err("library AIProfile payload defaultParams must be an object".to_string());
+        }
+    }
+    validate_optional_string_vec(
+        &payload.editable_fields,
+        "library AIProfile payload editableFields",
+    )?;
+    validate_optional_string_vec(
+        &payload.prepare_requirements,
+        "library AIProfile payload prepareRequirements",
+    )?;
+    validate_optional_string_vec(
+        &payload.contract_states,
+        "library AIProfile payload contractStates",
+    )?;
+    validate_optional_string_vec(
+        &payload.projection_warnings,
+        "library AIProfile payload projectionWarnings",
+    )?;
     Ok(())
 }
 

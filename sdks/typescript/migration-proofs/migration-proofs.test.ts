@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 
 import { NIMI_LANGGRAPH_ADAPTER_MANIFEST } from '../adapters/langgraph';
 import { NIMI_LLAMA_INDEX_ADAPTER_MANIFEST } from '../adapters/llamaindex';
@@ -7,6 +9,7 @@ import { NIMI_MASTRA_ADAPTER_MANIFEST } from '../adapters/mastra';
 import { NIMI_MCP_ADAPTER_MANIFEST } from '../adapters/mcp';
 import { NIMI_OPENAI_COMPATIBLE_ADAPTER_MANIFEST } from '../adapters/openai-compatible';
 import { NIMI_VERCEL_AI_ADAPTER_MANIFEST } from '../adapters/vercel-ai/manifest';
+import { runAIProfileRequirementFlowProof } from './ai-profile-requirement-flow';
 import { assertProofPassed } from './proof-contracts';
 import { runLangGraphLikeGraphNodeProof } from './langgraph-like-graph-node';
 import { runMastraLikeAgentAppProof } from './mastra-like-agent-app';
@@ -21,6 +24,7 @@ test('SDK vNext migration proofs pass for required app shapes', async () => {
     await runMastraLikeAgentAppProof(),
     await runLangGraphLikeGraphNodeProof(),
     await runMingSimShapedProof(),
+    await runAIProfileRequirementFlowProof(),
   ];
 
   proofs.forEach(assertProofPassed);
@@ -32,6 +36,7 @@ test('SDK vNext migration proofs pass for required app shapes', async () => {
       'mastra-like-agent-app',
       'langgraph-like-graph-node',
       'mingsim-shaped-proof',
+      'ai-profile-requirement-flow',
     ],
   );
   assert.ok(proofs.some((proof) => proof.migratedBy === 'adapter-model-replacement'));
@@ -54,6 +59,36 @@ test('mingsim-shaped proof is not LLM-only', async () => {
   }
 });
 
+test('AIProfile migration proof covers prepare/apply/setup without raw descriptors', async () => {
+  const proof = await runAIProfileRequirementFlowProof();
+
+  assertProofPassed(proof);
+  assert.equal(proof.migratedBy, 'profile-requirement-flow');
+  for (const capability of [
+    'ai-profile-descriptor',
+    'runtime-prepare-request',
+    'requirement-scoped-apply',
+    'setup-required-projection',
+    'no-raw-descriptor-json',
+  ]) {
+    assert.ok(proof.observedCapabilities.includes(capability), capability);
+  }
+  assert.ok(proof.evidence.some((entry) => entry.startsWith('descriptor:')));
+  assert.ok(proof.evidence.some((entry) => entry.startsWith('prepare-bytes:')));
+  assert.ok(proof.evidence.includes('apply-targets:text.generate'));
+  assert.ok(proof.evidence.includes('optional-omitted:true'));
+  assert.ok(proof.evidence.some((entry) => entry.startsWith('setup-required:setup_required_no_live_config:')));
+
+  const source = readFileSync(
+    fileURLToPath(new URL('./ai-profile-requirement-flow.ts', import.meta.url)),
+    'utf8',
+  );
+  assert.match(source, /formNimiRuntimeProfileDescriptor/);
+  assert.match(source, /serializeNimiRuntimeProfileDescriptor/);
+  assert.doesNotMatch(source, /descriptorJson\s*:/);
+  assert.doesNotMatch(source, /descriptor_json/);
+});
+
 test('adapter manifests match observed proof behavior', async () => {
   const manifests: readonly { readonly adapterId: string }[] = [
     NIMI_VERCEL_AI_ADAPTER_MANIFEST,
@@ -72,6 +107,7 @@ test('adapter manifests match observed proof behavior', async () => {
     await runMastraLikeAgentAppProof(),
     await runLangGraphLikeGraphNodeProof(),
     await runMingSimShapedProof(),
+    await runAIProfileRequirementFlowProof(),
   ];
 
   for (const proof of proofs) {

@@ -107,22 +107,6 @@ function normalizeTags(text: string): string[] {
     .filter(Boolean);
 }
 
-function toEditableAIProfile(profile: {
-  readonly profileId: string;
-  readonly title: string;
-  readonly description?: string;
-  readonly tags?: readonly string[];
-  readonly capabilities: NimiAIProfile['capabilities'];
-}): NimiAIProfile {
-  return {
-    profileId: profile.profileId,
-    title: profile.title,
-    description: profile.description ?? '',
-    tags: [...(profile.tags ?? [])],
-    capabilities: { ...profile.capabilities } as NimiAIProfile['capabilities'],
-  };
-}
-
 export function ProfileCatalogPage() {
   const { t } = useTranslation();
   const aiConfig = useAppStore((state) => state.aiConfig);
@@ -146,7 +130,7 @@ export function ProfileCatalogPage() {
         getAccountDefaultProfileForScopeInit(),
       ]);
       setLibraryProjection(projection);
-      setAccountDefaultProfile(toEditableAIProfile(defaultProfile));
+      setAccountDefaultProfile(defaultProfile);
       return projection;
     } finally {
       setLibraryLoading(false);

@@ -18,6 +18,7 @@ const proofFiles = [
   'sdks/typescript/migration-proofs/mastra-like-agent-app.ts',
   'sdks/typescript/migration-proofs/langgraph-like-graph-node.ts',
   'sdks/typescript/migration-proofs/mingsim-shaped-proof.ts',
+  'sdks/typescript/migration-proofs/ai-profile-requirement-flow.ts',
   'sdks/typescript/migration-proofs/migration-proofs.test.ts',
 ];
 

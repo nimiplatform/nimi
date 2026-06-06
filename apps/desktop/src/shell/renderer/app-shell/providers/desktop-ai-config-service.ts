@@ -7,15 +7,12 @@
  */
 
 import {
-  applyNimiAIProfileToConfig,
-  createEmptyNimiAIConfig,
   createNimiAIConfigSubscriptionRegistry,
   createNimiAIRuntimeEvidence,
   createNimiBuiltInChatAIScopeRef,
   previewNimiAIProfileApply,
   validateNimiAIProfile,
   versionNimiAIConfig,
-  type NimiAICapabilityRequirementDeclaration,
   type NimiAIConfig,
   type NimiAIConfigProbeResult,
   type NimiAIProfile,
@@ -33,7 +30,6 @@ import {
 } from '@nimiplatform/sdk/ai';
 import {
   loadNimiAppAIProfileFactoryCatalog,
-  loadNimiAppAIProfileFactoryRows,
 } from '@nimiplatform/sdk/app';
 import {
   listPersistedScopeKeys,
@@ -98,7 +94,6 @@ export type DesktopAIProfileSurface = {
     profileId: string,
     options: NimiAIProfileApplyOptions,
   ): Promise<NimiAIProfileApplyResult>;
-  resolveLocalDependencies(profileId: string): Promise<readonly unknown[]>;
 };
 
 export type DesktopAIConfigSurface = {
@@ -203,59 +198,6 @@ export function pushDesktopAIConfigToBoundStore(scopeRef: NimiAIScopeRef): void 
     return;
   }
   appStoreSetter(scopeKey(scopeRef), getConfigForScope(scopeRef));
-}
-
-/**
- * NimiAIConfig scope-init rule (product manual "Profile And NimiAIConfig Model").
- *
- * A new NimiAIConfig scope initializes its config from the Account Default Profile
- * ONLY when no prior `NimiAIConfig` exists for that scope. When the scope already
- * has a persisted (or in-memory) `NimiAIConfig`, this is a no-op — the scope's
- * config is never re-initialized and never silently overwritten by a Default
- * Profile change. Editing/replacing the Account Default Profile therefore never
- * mutates an existing scope's `NimiAIConfig`.
- *
- * The Account Default Profile content is the verified durable `default.json`
- * record resolved through the Rust host; the renderer never reconstructs it
- * from realm session or app-local state (P-AIPS-013).
- *
- * Returns `true` when this call materialized the scope's first config from the
- * Account Default Profile, `false` when the scope already had a config.
- */
-export async function initializeScopeFromAccountDefaultProfile(
-  scopeRef: NimiAIScopeRef,
-  requirementDeclarations: readonly NimiAICapabilityRequirementDeclaration[],
-): Promise<boolean> {
-  // Never re-initialize / overwrite a scope that already has an NimiAIConfig.
-  if (scopeHasPersistedConfig(scopeRef)) {
-    return false;
-  }
-  const accountDefaultProfile = await getAccountDefaultProfileForScopeInit();
-  const profile: NimiAIProfile = {
-    profileId: accountDefaultProfile.profileId,
-    title: accountDefaultProfile.title,
-    description: accountDefaultProfile.description,
-    tags: [...(accountDefaultProfile.tags ?? [])],
-    capabilities: accountDefaultProfile.capabilities as NimiAIProfile['capabilities'],
-  };
-  const validation = validateNimiAIProfile(profile);
-  if (!validation.valid) {
-    throw new Error(
-      `Account Default Profile is schema-invalid: ${validation.errors.join(', ')}`,
-    );
-  }
-  // Re-check after the await: a concurrent path may have created the config.
-  // The scope-init rule must never overwrite an already-initialized scope.
-  if (scopeHasPersistedConfig(scopeRef)) {
-    return false;
-  }
-  const initialConfig = applyNimiAIProfileToConfig({
-    config: createEmptyNimiAIConfig(scopeRef),
-    profile,
-    requirementDeclarations,
-  });
-  commitConfig(initialConfig);
-  return true;
 }
 
 export async function initializeBuiltInChatScopeFromProductControl(
@@ -434,16 +376,6 @@ function createAIProfileSurface(): DesktopAIProfileSurface {
       };
     },
 
-    async resolveLocalDependencies(profileId: string): Promise<readonly unknown[]> {
-      const row = loadNimiAppAIProfileFactoryRows().find((candidate) => candidate.alias === profileId);
-      if (!row) {
-        return [];
-      }
-      return [
-        ...row.localComputePackRefs.map((ref) => ({ kind: 'local-compute-pack', ref })),
-        ...row.dependencyFamilyRefs.map((ref) => ({ kind: 'dependency-family', ref })),
-      ];
-    },
   };
 }
 
