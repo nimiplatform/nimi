@@ -1,19 +1,20 @@
 // App-owned dispatcher onto the admitted Runtime/SDK AI execution surface. Text
-// generation routes through an AIConfig binding (source local/cloud + model id) —
+// generation routes through an NimiAIConfig binding (source local/cloud + model id) —
 // there is NO hardcoded provider/model and NO app-local provider routing. Image
 // generation uses the runtime media surface with model "auto", i.e. the runtime
 // chooses the route; Storybook never names a provider. Every failure is surfaced
 // as a typed unavailable using the verbatim Runtime error.
 
-import type { PlatformClient } from '@nimiplatform/sdk';
 // Import the enum from the typed subpath, not the root barrel, so the app's AI
 // code does not pull the SDK client (and its Node/gRPC transport graph) into the
 // module graph. Client construction itself stays scaffold-managed (runtime-platform.ts).
 import { ReasonCode } from '@nimiplatform/sdk/types';
-import type { AIConfig } from '@nimiplatform/sdk/ai';
-// RuntimeRouteBinding is owned by the runtime route surface after the SDK refactor.
-import type { RuntimeRouteBinding } from '@nimiplatform/sdk/runtime';
-import { createAIConfigEvidence } from '@nimiplatform/sdk/ai';
+import type { NimiAIConfig, NimiAIConfigTargetRef } from '@nimiplatform/sdk/ai';
+// NimiRuntimeRouteBinding is owned by the runtime route surface after the SDK refactor.
+import type { NimiRuntimeRouteBinding } from '@nimiplatform/sdk/runtime';
+import { createNimiImageGenerationScenario } from '@nimiplatform/sdk/features/generation';
+import { createNimiAIConfigEvidence } from '@nimiplatform/sdk/ai';
+import type { StorybookRuntimePlatformClient } from '../../shell/auth/runtime-platform.js';
 import { loadStorybookAIConfig } from './storybook-ai-config-store.js';
 import { storybookAIUnavailable, type StorybookAIUnavailable, type StorybookAIUnavailableReason } from './storybook-unavailable.js';
 
@@ -29,11 +30,15 @@ export type StorybookImageResult =
   | StorybookAIUnavailable;
 
 type ResolvedTextBinding = {
-  binding: RuntimeRouteBinding;
+  binding: NimiRuntimeRouteBinding;
   model: string;
   configHash: string;
   metadata: Record<string, string>;
 };
+
+function isStorybookAIUnavailable(value: unknown): value is StorybookAIUnavailable {
+  return Boolean(value && typeof value === 'object' && (value as { ok?: unknown }).ok === false);
+}
 
 function describeSdkError(error: unknown): string {
   if (!error) return 'Runtime SDK call failed with no error message.';
@@ -66,19 +71,53 @@ function buildMetadata(surfaceId: string, extra?: Record<string, string>): Recor
   return { callerKind: 'third-party-app', callerId: STORYBOOK_APP_ID, surfaceId, ...(extra || {}) };
 }
 
-function bindingModel(binding: RuntimeRouteBinding): string {
+function bindingModel(binding: NimiRuntimeRouteBinding): string {
   return String(binding.model || binding.modelId || binding.localModelId || '').trim();
 }
 
-/** Resolve the user-selected text route binding from AIConfig. Fails closed. */
-export function resolveStorybookTextBinding(config: AIConfig = loadStorybookAIConfig()): ResolvedTextBinding | StorybookAIUnavailable {
-  const binding = config.capabilities.selectedBindings[TEXT_BINDING_CAPABILITY] || null;
-  if (!binding) {
-    return storybookAIUnavailable('text.generate', 'ai-binding-missing', `No AIConfig binding selected for ${TEXT_BINDING_CAPABILITY}. Storybook fails closed before dispatch — it does not pick a provider for you.`);
+function targetRefToRuntimeBinding(targetRef: NimiAIConfigTargetRef): NimiRuntimeRouteBinding | StorybookAIUnavailable {
+  if (targetRef.kind === 'cloud-connector') {
+    const model = String(targetRef.providerModelId || '').trim();
+    const connectorId = String(targetRef.connectorId || '').trim();
+    if (!model || !connectorId) {
+      return storybookAIUnavailable('text.generate', 'ai-binding-missing', 'Cloud connector NimiAIConfig target requires connectorId and providerModelId.');
+    }
+    return {
+      source: 'cloud',
+      connectorId,
+      provider: String(targetRef.provider || '').trim() || undefined,
+      model,
+      modelId: model,
+    };
   }
+  if (targetRef.kind === 'local-runtime') {
+    const model = String(targetRef.targetId || targetRef.profileId || targetRef.readinessRef || '').trim();
+    if (!model) {
+      return storybookAIUnavailable('text.generate', 'ai-binding-missing', 'Local Runtime NimiAIConfig target requires targetId, profileId, or readinessRef.');
+    }
+    return {
+      source: 'local',
+      connectorId: '',
+      provider: 'runtime-local',
+      model,
+      modelId: model,
+      localModelId: targetRef.targetId || targetRef.profileId || targetRef.readinessRef,
+    };
+  }
+  return storybookAIUnavailable('text.generate', 'ai-binding-missing', 'Profile-slice NimiAIConfig target must be materialized to a live Runtime target before dispatch.');
+}
+
+/** Resolve the user-selected text route binding from NimiAIConfig. Fails closed. */
+export function resolveStorybookTextBinding(config: NimiAIConfig = loadStorybookAIConfig()): ResolvedTextBinding | StorybookAIUnavailable {
+  const targetRef = config.capabilities.targetRefs[TEXT_BINDING_CAPABILITY] || null;
+  if (!targetRef) {
+    return storybookAIUnavailable('text.generate', 'ai-binding-missing', `No NimiAIConfig targetRef selected for ${TEXT_BINDING_CAPABILITY}. Storybook fails closed before dispatch — it does not pick a provider for you.`);
+  }
+  const binding = targetRefToRuntimeBinding(targetRef);
+  if (isStorybookAIUnavailable(binding)) return binding;
   const model = bindingModel(binding);
   if (!model) {
-    return storybookAIUnavailable('text.generate', 'ai-binding-missing', `AIConfig binding for ${TEXT_BINDING_CAPABILITY} has no runtime model id.`);
+    return storybookAIUnavailable('text.generate', 'ai-binding-missing', `NimiAIConfig targetRef for ${TEXT_BINDING_CAPABILITY} has no Runtime model id.`);
   }
   const connectorId = String(binding.connectorId || '').trim();
   if (binding.source === 'local' && connectorId) {
@@ -90,7 +129,7 @@ export function resolveStorybookTextBinding(config: AIConfig = loadStorybookAICo
   if (binding.source !== 'local' && binding.source !== 'cloud') {
     return storybookAIUnavailable('text.generate', 'ai-binding-missing', `Unsupported binding source "${String(binding.source)}".`);
   }
-  const evidence = createAIConfigEvidence(config);
+  const evidence = createNimiAIConfigEvidence(config);
   return {
     binding,
     model,
@@ -104,7 +143,7 @@ export function resolveStorybookTextBinding(config: AIConfig = loadStorybookAICo
   };
 }
 
-function routeInput(binding: RuntimeRouteBinding, model: string): { model: string; connectorId?: string; route: 'local' | 'cloud' } {
+function routeInput(binding: NimiRuntimeRouteBinding, model: string): { model: string; connectorId?: string; route: 'local' | 'cloud' } {
   if (binding.source === 'cloud') {
     return { model, connectorId: String(binding.connectorId || '').trim(), route: 'cloud' };
   }
@@ -117,11 +156,11 @@ function pickTraceId(value: unknown): string | undefined {
   return typeof record.traceId === 'string' ? record.traceId : undefined;
 }
 
-/** Single-shot text generation via the AIConfig-resolved route. */
+/** Single-shot text generation via the NimiAIConfig-resolved route. */
 export async function invokeStorybookText(
-  client: PlatformClient,
+  client: StorybookRuntimePlatformClient,
   input: { prompt: string; directive?: string; surfaceId: string },
-  config: AIConfig = loadStorybookAIConfig(),
+  config: NimiAIConfig = loadStorybookAIConfig(),
 ): Promise<StorybookTextResult> {
   const prompt = input.prompt.trim();
   if (!prompt) {
@@ -133,10 +172,21 @@ export async function invokeStorybookText(
   const route = routeInput(bound.binding, bound.model);
   const directedPrompt = input.directive ? `${input.directive}\n\n${prompt}` : prompt;
   try {
-    const output = await client.runtime.ai.text.generate({
-      ...route,
-      input: directedPrompt,
+    const model = client.ai.createRuntimeModel({
+      model: {
+        providerId: route.connectorId,
+        modelId: route.model,
+      },
+      routePolicy: route.route,
+      connectorId: route.connectorId,
       metadata: buildMetadata(input.surfaceId, bound.metadata),
+    });
+    const output = await model.generateText({
+      model: model.model,
+      messages: [{
+        role: 'user',
+        content: [{ type: 'text', text: directedPrompt }],
+      }],
     });
     return {
       ok: true,
@@ -146,7 +196,7 @@ export async function invokeStorybookText(
       model: bound.model,
       route: route.route,
       configHash: bound.configHash,
-      traceId: pickTraceId(output.trace),
+      traceId: pickTraceId(output.raw),
     };
   } catch (error) {
     return storybookAIUnavailable('text.generate', reasonFromSdkError(error), describeSdkError(error));
@@ -178,7 +228,7 @@ function summariseJob(job: unknown): { jobId: string; jobState: string } {
  * typed unavailable on any runtime contract failure.
  */
 export async function invokeStorybookImage(
-  client: PlatformClient,
+  client: StorybookRuntimePlatformClient,
   input: { prompt: string; surfaceId: string },
 ): Promise<StorybookImageResult> {
   const prompt = input.prompt.trim();
@@ -186,19 +236,28 @@ export async function invokeStorybookImage(
     return storybookAIUnavailable('image.generate', 'input-invalid', 'Image prompt is empty.');
   }
   try {
-    const output = await client.runtime.media.image.generate({
-      model: 'auto',
-      prompt,
-      metadata: buildMetadata(input.surfaceId),
+    const generation = client.features.generation.createRuntimeClient({
+      head: {
+        modelId: 'auto',
+        routePolicy: 'unspecified',
+      },
     });
-    const job = summariseJob(output.job);
-    const first = summariseArtifact(output.artifacts[0]);
+    const job = await generation.submit({
+      scenario: createNimiImageGenerationScenario({
+        kind: 'image',
+        prompt,
+      }),
+      requestId: `${STORYBOOK_APP_ID}:image:${Date.now().toString(36)}`,
+      idempotencyKey: `${STORYBOOK_APP_ID}:image:${input.surfaceId}:${prompt}`,
+      labels: buildMetadata(input.surfaceId),
+    });
+    const first = summariseArtifact(job.artifacts[0]);
     return {
       ok: true,
       capability: 'image.generate',
-      jobId: job.jobId,
-      jobState: job.jobState,
-      artifactCount: output.artifacts.length,
+      jobId: job.id,
+      jobState: job.status,
+      artifactCount: job.artifacts.length,
       firstArtifactRef: first.ref,
       firstArtifactMime: first.mime,
     };

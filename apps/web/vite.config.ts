@@ -92,6 +92,7 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, __dirname, '');
   const realmProxyTarget = resolveRealmProxyTarget(env);
   const realtimeProxyTarget = resolveRealtimeProxyTarget(env, realmProxyTarget);
+  const sdkVNextDist = path.resolve(__dirname, '../../sdks/typescript/dist');
   return {
     plugins: [react(), tailwindcss()],
     envPrefix: ['VITE_', 'NIMI_'],
@@ -153,12 +154,76 @@ export default defineConfig(({ mode }) => {
           replacement: path.resolve(__dirname, '../desktop/src/shell/renderer'),
         },
         {
-          find: /^@nimiplatform\/sdk\/runtime$/,
-          replacement: path.resolve(__dirname, '../../sdk/src/runtime/browser.ts'),
+          find: '@nimiplatform/sdk/runtime/generated',
+          replacement: path.join(sdkVNextDist, 'runtime/generated.js'),
+        },
+        {
+          find: '@nimiplatform/sdk/realm/generated',
+          replacement: path.join(sdkVNextDist, 'realm/generated.js'),
+        },
+        {
+          find: '@nimiplatform/sdk/runtime',
+          replacement: path.join(sdkVNextDist, 'runtime/index.js'),
+        },
+        {
+          find: '@nimiplatform/sdk/realm',
+          replacement: path.join(sdkVNextDist, 'realm/index.js'),
+        },
+        {
+          find: '@nimiplatform/sdk/app',
+          replacement: path.join(sdkVNextDist, 'core/app/index.js'),
+        },
+        {
+          find: '@nimiplatform/sdk/types',
+          replacement: path.join(sdkVNextDist, 'types/index.js'),
+        },
+        {
+          find: '@nimiplatform/sdk/contracts',
+          replacement: path.join(sdkVNextDist, 'core/contracts/index.js'),
+        },
+        {
+          find: '@nimiplatform/sdk/ai',
+          replacement: path.join(sdkVNextDist, 'core/ai/index.js'),
+        },
+        {
+          find: '@nimiplatform/sdk/agent',
+          replacement: path.join(sdkVNextDist, 'core/agent/index.js'),
+        },
+        {
+          find: '@nimiplatform/sdk/testing',
+          replacement: path.join(sdkVNextDist, 'core/testing/index.js'),
+        },
+        {
+          find: '@nimiplatform/sdk/features/conversation',
+          replacement: path.join(sdkVNextDist, 'features/conversation/index.js'),
+        },
+        {
+          find: '@nimiplatform/sdk/features/knowledge-context',
+          replacement: path.join(sdkVNextDist, 'features/knowledge-context/index.js'),
+        },
+        {
+          find: '@nimiplatform/sdk/features/memory-context',
+          replacement: path.join(sdkVNextDist, 'features/memory-context/index.js'),
+        },
+        {
+          find: '@nimiplatform/sdk/features/generation',
+          replacement: path.join(sdkVNextDist, 'features/generation/index.js'),
+        },
+        {
+          find: '@nimiplatform/sdk/features/workflow',
+          replacement: path.join(sdkVNextDist, 'features/workflow/index.js'),
+        },
+        {
+          find: '@nimiplatform/sdk/features/evaluation',
+          replacement: path.join(sdkVNextDist, 'features/evaluation/index.js'),
+        },
+        {
+          find: '@nimiplatform/sdk/features/toolkits',
+          replacement: path.join(sdkVNextDist, 'features/toolkits/index.js'),
         },
         {
           find: '@nimiplatform/sdk',
-          replacement: path.resolve(__dirname, '../../sdk/src'),
+          replacement: path.join(sdkVNextDist, 'index.js'),
         },
         {
           find: '@nimiplatform/kit/core',
@@ -322,7 +387,7 @@ export default defineConfig(({ mode }) => {
               if (matchesAny(normalizedId, [
                 '/chat-human-canonical-composer-profile',
               ])) {
-                return 'chat-human-surface';
+                return 'chat-composer-profile';
               }
               if (matchesAny(normalizedId, [
                 '/chat-group-composer',
@@ -338,10 +403,10 @@ export default defineConfig(({ mode }) => {
               if (
                 normalizedId.includes('/chat-human-canonical-components')
               ) {
-                return 'chat-human-surface';
+                return 'chat-human-ui';
               }
               if (normalizedId.includes('/chat-human-')) {
-                return 'chat-human-surface';
+                return 'chat-human-core';
               }
               if (
                 normalizedId.includes('/conversation-capability')
@@ -412,37 +477,31 @@ export default defineConfig(({ mode }) => {
                 return 'chat-agent-shell';
               }
             }
-            if (normalizedId.includes('/sdk/src/runtime/generated/')) {
-              if (normalizedId.includes('/sdk/src/runtime/generated/google/')) {
+            if (normalizedId.includes('/sdks/typescript/dist/core-generated/')) {
+              if (normalizedId.includes('/sdks/typescript/dist/core-generated/google/')) {
                 return 'vendor-sdk-runtime-google';
               }
-              if (normalizedId.includes('/sdk/src/runtime/generated/runtime/v1/ai')) {
+              if (normalizedId.includes('/sdks/typescript/dist/core-generated/runtime-protobuf/runtime/v1/ai')) {
                 return 'vendor-sdk-runtime-ai-generated';
               }
-              if (normalizedId.includes('/sdk/src/runtime/generated/runtime/v1/local_runtime')) {
+              if (normalizedId.includes('/sdks/typescript/dist/core-generated/runtime-protobuf/runtime/v1/local_runtime')) {
                 return 'vendor-sdk-runtime-local-generated';
               }
-              if (normalizedId.includes('/sdk/src/runtime/generated/runtime/v1/connector')) {
+              if (normalizedId.includes('/sdks/typescript/dist/core-generated/runtime-protobuf/runtime/v1/connector')) {
                 return 'vendor-sdk-runtime-connector-generated';
               }
-              if (normalizedId.includes('/sdk/src/runtime/generated/runtime/v1/workflow')) {
+              if (normalizedId.includes('/sdks/typescript/dist/core-generated/runtime-protobuf/runtime/v1/workflow')) {
                 return 'vendor-sdk-runtime-workflow-generated';
               }
-              if (normalizedId.includes('/sdk/src/runtime/generated/runtime/v1/model')) {
+              if (normalizedId.includes('/sdks/typescript/dist/core-generated/runtime-protobuf/runtime/v1/model')) {
                 return 'vendor-sdk-runtime-model-generated';
               }
-              if (normalizedId.includes('/sdk/src/runtime/generated/runtime/')) {
+              if (normalizedId.includes('/sdks/typescript/dist/core-generated/runtime-protobuf/runtime/')) {
                 return 'vendor-sdk-runtime-generated';
               }
               return 'vendor-sdk-runtime-generated';
             }
-            if (normalizedId.includes('/sdk/src/realm/generated/')) {
-              return 'vendor-sdk-realm-generated';
-            }
-            if (normalizedId.includes('/sdk/src/scope/generated/')) {
-              return 'vendor-sdk-scope-generated';
-            }
-            if (normalizedId.includes('/sdk/src/')) {
+            if (normalizedId.includes('/sdks/typescript/dist/')) {
               return 'vendor-sdk-client';
             }
             if (normalizedId.includes('/apps/desktop/src/runtime/local-runtime/')) {

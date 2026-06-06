@@ -199,7 +199,7 @@ export function StudioProject({ projectId, onBack }: { projectId: string; onBack
         <div className="sb-section__head">
           <div>
             <h2>Storybook Bible</h2>
-            <p>生成草案走已准入的 Runtime/SDK 路由（按 AIConfig 绑定）。没有绑定或运行时不可用时显示有类型的不可用状态，不会伪造内容。</p>
+            <p>生成草案走已准入的 Runtime/SDK 路由（按 NimiAIConfig 绑定）。没有绑定或运行时不可用时显示有类型的不可用状态，不会伪造内容。</p>
           </div>
           <StatusBadge tone={bible?.approved ? 'success' : 'neutral'}>{bible?.approved ? '已审批' : '未审批'}</StatusBadge>
         </div>

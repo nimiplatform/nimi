@@ -1,17 +1,19 @@
-import { getPlatformClient, type PlatformClient } from '@nimiplatform/sdk';
-import {
-  AccountSessionState,
-  createLocalFirstPartyRuntimeAccountCaller,
-} from '@nimiplatform/sdk/runtime';
+import { createNimiLocalFirstPartyRuntimeAccountCaller } from '@nimiplatform/sdk/runtime';
+import { AccountSessionState } from '@nimiplatform/sdk/runtime/generated';
 import {
   validateRuntimeOAuthAuthorizationUrl,
   type AuthPlatformAdapter,
   type ShellAuthDesktopBrowserAuth,
 } from '@nimiplatform/kit/auth';
 import { createTauriOAuthBridge } from '@nimiplatform/kit/shell/renderer/bridge';
-import { appId, runtimeAccountLoginEnabled } from './runtime-platform.js';
+import {
+  appId,
+  getRuntimePlatformProjection,
+  runtimeAccountLoginEnabled,
+  type StorybookRuntimePlatformClient,
+} from './runtime-platform.js';
 
-export const runtimeAccountCaller = createLocalFirstPartyRuntimeAccountCaller({ appId });
+export const runtimeAccountCaller = createNimiLocalFirstPartyRuntimeAccountCaller({ appId });
 
 export const nimiAppTauriOAuthBridge = createTauriOAuthBridge();
 
@@ -25,7 +27,7 @@ function unsupported<T>(): Promise<T> {
   return Promise.reject(new Error('This shell uses Runtime account browser login only; app-owned credential login is forbidden.'));
 }
 
-export async function loadRuntimeAccountUser(client: PlatformClient = getPlatformClient()) {
+export async function loadRuntimeAccountUser(client: StorybookRuntimePlatformClient) {
   if (!runtimeAccountLoginEnabled) {
     return null;
   }
@@ -39,9 +41,18 @@ export async function loadRuntimeAccountUser(client: PlatformClient = getPlatfor
   };
 }
 
+async function requireRuntimePlatformClient(): Promise<StorybookRuntimePlatformClient> {
+  const projection = await getRuntimePlatformProjection();
+  if (projection.status !== 'ready') {
+    throw new Error(projection.message);
+  }
+  return projection.client;
+}
+
 export async function logoutRuntimeAccount() {
   requireRuntimeAccountLogin();
-  await getPlatformClient().runtime.account.logout({
+  const client = await requireRuntimePlatformClient();
+  await client.runtime.account.logout({
     caller: runtimeAccountCaller,
     reason: 'generated_app_logout',
   });
@@ -51,7 +62,8 @@ export function createNimiAppRuntimeAccountBroker(): ShellAuthDesktopBrowserAuth
   return {
     begin: async (input) => {
       requireRuntimeAccountLogin();
-      const response = await getPlatformClient().runtime.account.beginLogin({
+      const client = await requireRuntimePlatformClient();
+      const response = await client.runtime.account.beginLogin({
         caller: runtimeAccountCaller,
         redirectUri: input.callbackUrl,
         callbackOrigin: new URL(input.callbackUrl).origin,
@@ -70,7 +82,8 @@ export function createNimiAppRuntimeAccountBroker(): ShellAuthDesktopBrowserAuth
     },
     complete: async (input) => {
       requireRuntimeAccountLogin();
-      const response = await getPlatformClient().runtime.account.completeLogin({
+      const client = await requireRuntimePlatformClient();
+      const response = await client.runtime.account.completeLogin({
         caller: runtimeAccountCaller,
         loginAttemptId: input.loginAttemptId,
         code: input.code,
@@ -109,7 +122,7 @@ export function createNimiAppDesktopBrowserAuthAdapter(onLoginComplete: () => vo
     walletLogin: unsupported,
     oauthLogin: unsupported,
     updatePassword: unsupported,
-    loadCurrentUser: async () => loadRuntimeAccountUser(),
+    loadCurrentUser: async () => loadRuntimeAccountUser(await requireRuntimePlatformClient()),
     applyToken: async () => {
       throw new Error('Generated Nimi App shell must not own access or refresh token custody.');
     },

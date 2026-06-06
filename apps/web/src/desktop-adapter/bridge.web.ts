@@ -51,9 +51,9 @@ import type {
   NimiDataCleanupPlan,
   NimiDataCleanupOutcome,
   LogsExportResult,
-  ProductControlState,
-  ProductControlRecord,
-  ProductControlRecordProjection,
+  NimiProductControlState,
+  NimiProductControlRecord,
+  NimiProductControlRecordProjection,
 } from '@desktop-public/bridge';
 
 export type {
@@ -77,9 +77,9 @@ export type {
   NimiDataCleanupPlan,
   NimiDataCleanupOutcome,
   LogsExportResult,
-  ProductControlState,
-  ProductControlRecord,
-  ProductControlRecordProjection,
+  NimiProductControlState,
+  NimiProductControlRecord,
+  NimiProductControlRecordProjection,
 };
 
 export {
@@ -169,15 +169,15 @@ export async function exportDesktopLogs(): Promise<LogsExportResult> {
 // product-control read and mutation fails closed rather than synthesizing a
 // projection. Support / first-run consumers already treat a thrown read as a
 // fail-closed `repair_required` projection.
-export async function getProductControlRecord(): Promise<ProductControlRecordProjection> {
+export async function getProductControlRecord(): Promise<NimiProductControlRecordProjection> {
   unsupportedDesktopRuntime('The product control record is only available in desktop runtime');
 }
 
-export async function ensureProductControlRecordCreated(): Promise<ProductControlRecordProjection> {
+export async function ensureProductControlRecordCreated(): Promise<NimiProductControlRecordProjection> {
   unsupportedDesktopRuntime('The product control record is only available in desktop runtime');
 }
 
-export async function selectProductDataRoot(_dataRoot: string): Promise<ProductControlRecordProjection> {
+export async function selectProductDataRoot(_dataRoot: string): Promise<NimiProductControlRecordProjection> {
   unsupportedDesktopRuntime('nimi_data root selection is only available in desktop runtime');
 }
 
@@ -196,23 +196,23 @@ export async function defaultProductDataRootDirectory(): Promise<string | null> 
 export async function setProductFirstRunInstallLevel(_input: {
   installLevel: 'minimal' | 'recommended';
   aiProfileAlias?: string | null;
-}): Promise<ProductControlRecordProjection> {
+}): Promise<NimiProductControlRecordProjection> {
   unsupportedDesktopRuntime('First-run install level is only available in desktop runtime');
 }
 
-export async function prepareProductFirstRunLocalAiReady(): Promise<ProductControlRecordProjection> {
+export async function prepareProductFirstRunLocalAiReady(): Promise<NimiProductControlRecordProjection> {
   unsupportedDesktopRuntime('First-run local AI readiness preparation is only available in desktop runtime');
 }
 
-export async function reconcileProductFirstRunSetupState(): Promise<ProductControlRecordProjection> {
+export async function reconcileProductFirstRunSetupState(): Promise<NimiProductControlRecordProjection> {
   unsupportedDesktopRuntime('First-run setup reconciliation is only available in desktop runtime');
 }
 
-export async function completeProductFirstRunDeviceEnvironmentScan(): Promise<ProductControlRecordProjection> {
+export async function completeProductFirstRunDeviceEnvironmentScan(): Promise<NimiProductControlRecordProjection> {
   unsupportedDesktopRuntime('First-run device environment scan completion is only available in desktop runtime');
 }
 
-export async function admitProductReadyForUse(): Promise<ProductControlRecordProjection> {
+export async function admitProductReadyForUse(): Promise<NimiProductControlRecordProjection> {
   unsupportedDesktopRuntime('First-run readiness admission is only available in desktop runtime');
 }
 

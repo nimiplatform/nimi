@@ -144,11 +144,11 @@ async function bootstrapAuthSession(input: {
 
   try {
     const user = await deps.callRealmApi(
-      (realm) => realm.services.MeService.getMe(),
+      (realm) => realm.me(),
       '获取当前用户失败',
     );
     const normalizedUser = user && typeof user === 'object'
-      ? (user as Record<string, unknown>)
+      ? (user as unknown as Record<string, unknown>)
       : null;
     bootstrapStore.applyAuthSession(normalizedUser);
     deps.persistAuthSession({

@@ -1,25 +1,22 @@
-// App-owned AIConfig store for Storybook. Provider/model selection is Runtime/
+// App-owned NimiAIConfig store for Storybook. Provider/model selection is Runtime/
 // platform configuration and provenance — NOT Storybook truth. Storybook holds
 // only the user's chosen route binding for each capability and validates it
 // fail-closed. There is no hardcoded provider/model list anywhere in this module.
 
-import type { AIConfig, AIScopeRef } from '@nimiplatform/sdk/ai';
-// RuntimeRouteBinding is owned by the runtime route surface (SDK refactor moved it
-// off the /ai subpath). Type-only import: erased at compile time, no runtime graph.
-import type { RuntimeRouteBinding } from '@nimiplatform/sdk/runtime';
-import { createAppAIScopeRef, createEmptyAIConfig } from '@nimiplatform/sdk/ai';
+import type { NimiAIConfig, NimiAIConfigTargetRef, NimiAIScopeRef } from '@nimiplatform/sdk/ai';
+import { createNimiAppAIScopeRef, createEmptyNimiAIConfig } from '@nimiplatform/sdk/ai';
 import { appId } from '../../shell/auth/runtime-platform.js';
 
 export const STORYBOOK_STUDIO_AI_SURFACE_ID = 'studio';
 export const STORYBOOK_AI_CONFIG_STORAGE_KEY = 'nimiapp-storybook:studio-ai-config:v1';
 
-const memoryConfigs = new Map<string, AIConfig>();
+const memoryConfigs = new Map<string, NimiAIConfig>();
 
-export function createStorybookAIScopeRef(): AIScopeRef {
-  return createAppAIScopeRef(appId, STORYBOOK_STUDIO_AI_SURFACE_ID);
+export function createStorybookAIScopeRef(): NimiAIScopeRef {
+  return createNimiAppAIScopeRef(appId, STORYBOOK_STUDIO_AI_SURFACE_ID);
 }
 
-function scopeKey(scopeRef: AIScopeRef): string {
+function scopeKey(scopeRef: NimiAIScopeRef): string {
   return `${scopeRef.kind}:${scopeRef.ownerId}:${scopeRef.surfaceId || ''}`;
 }
 
@@ -32,90 +29,95 @@ function getStorage(): Storage | null {
   }
 }
 
-function cloneConfig(config: AIConfig): AIConfig {
+function cloneConfig(config: NimiAIConfig): NimiAIConfig {
   return {
     scopeRef: { ...config.scopeRef },
     capabilities: {
-      selectedBindings: { ...config.capabilities.selectedBindings },
-      localProfileRefs: { ...config.capabilities.localProfileRefs },
+      targetRefs: { ...config.capabilities.targetRefs },
       selectedParams: { ...config.capabilities.selectedParams },
     },
     profileOrigin: config.profileOrigin ? { ...config.profileOrigin } : null,
   };
 }
 
-export function validateRuntimeRouteBinding(value: unknown, path: string): string[] {
+export function validateRuntimeTargetRef(value: unknown, path: string): string[] {
   const errors: string[] = [];
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return [`${path} binding must be a non-null object`];
+    return [`${path} targetRef must be a non-null object`];
   }
-  const binding = value as Partial<RuntimeRouteBinding>;
-  if (binding.source !== 'local' && binding.source !== 'cloud') {
-    errors.push(`${path}.source must be "local" or "cloud"`);
+  const targetRef = value as Partial<NimiAIConfigTargetRef>;
+  if (targetRef.kind === 'cloud-connector') {
+    if (typeof targetRef.connectorId !== 'string' || !targetRef.connectorId.trim()) {
+      errors.push(`${path}.connectorId is required for cloud connector targets`);
+    }
+    if (typeof targetRef.providerModelId !== 'string' || !targetRef.providerModelId.trim()) {
+      errors.push(`${path}.providerModelId is required for cloud connector targets`);
+    }
+    return errors;
   }
-  if (typeof binding.connectorId !== 'string') {
-    errors.push(`${path}.connectorId must be a string`);
-  } else if (binding.source === 'local' && binding.connectorId.trim()) {
-    errors.push(`${path}.connectorId must be empty for local Runtime bindings`);
-  } else if (binding.source === 'cloud' && !binding.connectorId.trim()) {
-    errors.push(`${path}.connectorId is required for cloud Runtime bindings`);
+  if (targetRef.kind === 'local-runtime') {
+    if (!String(targetRef.targetId || targetRef.profileId || targetRef.readinessRef || '').trim()) {
+      errors.push(`${path} local runtime target requires targetId, profileId, or readinessRef`);
+    }
+    return errors;
   }
-  if (typeof binding.model !== 'string' || !binding.model.trim()) {
-    errors.push(`${path}.model is required`);
+  if (targetRef.kind === 'profile-slice') {
+    errors.push(`${path} profile-slice target is not a live Runtime dispatch binding`);
+    return errors;
   }
+  errors.push(`${path}.kind must be cloud-connector or local-runtime`);
   return errors;
 }
 
-function validateConfigBindings(config: AIConfig): string[] {
+function validateConfigBindings(config: NimiAIConfig): string[] {
   const errors: string[] = [];
-  for (const [capabilityId, binding] of Object.entries(config.capabilities?.selectedBindings || {})) {
-    if (binding === undefined || binding === null) continue;
-    errors.push(...validateRuntimeRouteBinding(binding, `capabilities.selectedBindings.${capabilityId}`));
+  for (const [capabilityId, targetRef] of Object.entries(config.capabilities?.targetRefs || {})) {
+    if (targetRef === undefined || targetRef === null) continue;
+    errors.push(...validateRuntimeTargetRef(targetRef, `capabilities.targetRefs.${capabilityId}`));
   }
   return errors;
 }
 
-function parseStoredConfig(raw: string, scopeRef: AIScopeRef): AIConfig {
-  const parsed = JSON.parse(raw) as AIConfig;
+function parseStoredConfig(raw: string, scopeRef: NimiAIScopeRef): NimiAIConfig {
+  const parsed = JSON.parse(raw) as NimiAIConfig;
   if (!parsed || typeof parsed !== 'object') {
-    throw new Error('Stored AIConfig is not an object.');
+    throw new Error('Stored NimiAIConfig is not an object.');
   }
-  const normalized: AIConfig = {
+  const normalized: NimiAIConfig = {
     scopeRef,
     capabilities: {
-      selectedBindings: { ...(parsed.capabilities?.selectedBindings || {}) },
-      localProfileRefs: { ...(parsed.capabilities?.localProfileRefs || {}) },
+      targetRefs: { ...(parsed.capabilities?.targetRefs || {}) },
       selectedParams: { ...(parsed.capabilities?.selectedParams || {}) },
     },
     profileOrigin: parsed.profileOrigin ? { ...parsed.profileOrigin } : null,
   };
   const errors = validateConfigBindings(normalized);
   if (errors.length > 0) {
-    throw new Error(`Stored AIConfig binding is invalid: ${errors.join('; ')}`);
+    throw new Error(`Stored NimiAIConfig binding is invalid: ${errors.join('; ')}`);
   }
   return normalized;
 }
 
-export function loadStorybookAIConfig(scopeRef: AIScopeRef = createStorybookAIScopeRef()): AIConfig {
+export function loadStorybookAIConfig(scopeRef: NimiAIScopeRef = createStorybookAIScopeRef()): NimiAIConfig {
   const key = scopeKey(scopeRef);
   const storage = getStorage();
   if (!storage) {
     const cached = memoryConfigs.get(key);
     if (cached) return cloneConfig(cached);
-    const empty = createEmptyAIConfig(scopeRef);
+    const empty = createEmptyNimiAIConfig(scopeRef);
     memoryConfigs.set(key, empty);
     return cloneConfig(empty);
   }
   const raw = storage.getItem(STORYBOOK_AI_CONFIG_STORAGE_KEY);
-  if (!raw) return createEmptyAIConfig(scopeRef);
+  if (!raw) return createEmptyNimiAIConfig(scopeRef);
   return parseStoredConfig(raw, scopeRef);
 }
 
-export function saveStorybookAIConfig(next: AIConfig, scopeRef: AIScopeRef = createStorybookAIScopeRef()): AIConfig {
-  const normalized: AIConfig = { ...cloneConfig(next), scopeRef };
+export function saveStorybookAIConfig(next: NimiAIConfig, scopeRef: NimiAIScopeRef = createStorybookAIScopeRef()): NimiAIConfig {
+  const normalized: NimiAIConfig = { ...cloneConfig(next), scopeRef };
   const errors = validateConfigBindings(normalized);
   if (errors.length > 0) {
-    throw new Error(`AIConfig binding validation failed: ${errors.join('; ')}`);
+    throw new Error(`NimiAIConfig binding validation failed: ${errors.join('; ')}`);
   }
   const storage = getStorage();
   if (storage) {

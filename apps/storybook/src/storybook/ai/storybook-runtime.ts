@@ -26,8 +26,8 @@ export async function inspectStorybookRuntime(): Promise<StorybookRuntimeInspect
     return { status: 'unavailable', mode: projection.mode, detail: projection.message };
   }
   try {
-    await projection.client.domains.runtimeAdmin.getRuntimeHealth({});
-    return { status: 'ready', mode: projection.mode, detail: 'Runtime session ready. Storybook routes AI through runtime.ai.* / runtime.media.* via an AIConfig binding.' };
+    await projection.client.runtime.health({});
+    return { status: 'ready', mode: projection.mode, detail: 'Runtime session ready. Storybook routes AI through runtime.ai.* / runtime.media.* via an NimiAIConfig binding.' };
   } catch (error) {
     return { status: 'unavailable', mode: projection.mode, detail: error instanceof Error ? error.message : String(error || 'Runtime health check failed.') };
   }

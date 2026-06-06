@@ -1,16 +1,19 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import type { NimiAppAuthProjection } from '@nimiplatform/sdk';
 import { StatusBadge } from '@nimiplatform/kit/ui';
-import { getRuntimePlatformProjection, runtimeAccountLoginEnabled } from './runtime-platform.js';
+import {
+  getRuntimePlatformProjection,
+  runtimeAccountLoginEnabled,
+  type StorybookRuntimePlatformProjection,
+} from './runtime-platform.js';
 import { loadRuntimeAccountUser } from './runtime-account-auth.js';
 import { RuntimeLoginPage } from './runtime-login-page.js';
 import { RuntimeUnavailablePage } from './runtime-unavailable-page.js';
 
 type GateState =
   | { kind: 'checking' }
-  | { kind: 'ready'; projection: Extract<NimiAppAuthProjection, { status: 'ready' }> }
+  | { kind: 'ready'; projection: Extract<StorybookRuntimePlatformProjection, { status: 'ready' }> }
   | { kind: 'login-required'; message?: string }
-  | { kind: 'blocked'; projection?: Exclude<NimiAppAuthProjection, { status: 'ready' }>; message?: string };
+  | { kind: 'blocked'; projection?: Exclude<StorybookRuntimePlatformProjection, { status: 'ready' }>; message?: string };
 
 function toMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error || 'Runtime check failed');

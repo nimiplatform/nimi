@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { createPlatformClient, type PlatformClient } from '@nimiplatform/sdk';
+import { createRealmFetchTransport, Realm } from '@nimiplatform/sdk/realm';
+import { type PostDto } from '@nimiplatform/sdk/realm/generated';
 
-type PostDto = NonNullable<Awaited<ReturnType<PlatformClient['domains']['publicContent']['getPublicPost']>>>;
 type PostAttachmentDto = PostDto['attachments'][number];
 
 type LoadState =
@@ -23,13 +23,13 @@ export function PostPermalinkPage({ postId }: { postId: string }) {
       };
     }
 
-    createPlatformClient({
-      appId: 'nimi.web',
-      realmBaseUrl: baseUrl,
-      allowAnonymousRealm: true,
-      runtimeTransport: null,
+    const realm = new Realm({
+      transport: createRealmFetchTransport({ baseUrl }),
+    });
+
+    realm.generated.getPublicPost({
+      path: { id: postId },
     })
-      .then((client) => client.domains.publicContent.getPublicPost(postId))
       .then((post) => {
         if (!cancelled) {
           setState(post ? { status: 'ok', post } : { status: 'not_found' });

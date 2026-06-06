@@ -2,10 +2,10 @@
 // `generation-run` records (request + provenance + output refs) whether the call
 // succeeds OR fails. On failure they carry a typed unavailable state — never a
 // fabricated artifact. Provider/model are recorded as provenance only, sourced
-// from the AIConfig binding the runtime resolved; they are not Storybook truth.
+// from the NimiAIConfig binding the runtime resolved; they are not Storybook truth.
 
-import type { AIConfig } from '@nimiplatform/sdk/ai';
-import type { PlatformClient } from '@nimiplatform/sdk';
+import type { NimiAIConfig } from '@nimiplatform/sdk/ai';
+import type { StorybookRuntimePlatformClient } from '../../shell/auth/runtime-platform.js';
 import { mintId } from '../engine/ids.js';
 import { invokeStorybookText, invokeStorybookImage } from './storybook-runtime-invokers.js';
 import { type StorybookAIUnavailable } from './storybook-unavailable.js';
@@ -16,7 +16,7 @@ export type GenerationProvenance = {
   at: string;
   route?: 'local' | 'cloud';
   model?: string;
-  /** Provider/model abstraction ref: AIConfig hash, not a named provider. */
+  /** Provider/model abstraction ref: NimiAIConfig hash, not a named provider. */
   configHash?: string;
   traceId?: string;
   status: 'succeeded' | 'unavailable';
@@ -41,9 +41,9 @@ function startRun(projectId: string, kind: GenerationRunKind, request: Record<st
 }
 
 export async function generateBibleDraft(
-  client: PlatformClient,
+  client: StorybookRuntimePlatformClient,
   input: { projectId: string; premise: string; styleHint?: string; now: string },
-  config?: AIConfig,
+  config?: NimiAIConfig,
 ): Promise<GenerationOutcome<string>> {
   const run = startRun(input.projectId, 'bible-draft', { premise: input.premise, styleHint: input.styleHint });
   const directive = '你是一个互动叙事的设定助理。请基于给定前提，产出一段简洁、可被创作者审阅的 Storybook Bible 草案（世界、基调、风格指纹、节奏）。不要编造与前提冲突的硬设定。';
@@ -56,9 +56,9 @@ export async function generateBibleDraft(
 }
 
 export async function generateSceneText(
-  client: PlatformClient,
+  client: StorybookRuntimePlatformClient,
   input: { projectId: string; contextLines: string[]; instruction: string; now: string },
-  config?: AIConfig,
+  config?: NimiAIConfig,
 ): Promise<GenerationOutcome<string>> {
   const run = startRun(input.projectId, 'scene-text', { instruction: input.instruction });
   const directive = '你在一个受约束的互动叙事运行中生成场景文本。仅依据提供的上下文，不要引入新的硬设定或泄露私密事实。';
@@ -72,9 +72,9 @@ export async function generateSceneText(
 }
 
 export async function generateChoiceSuggestions(
-  client: PlatformClient,
+  client: StorybookRuntimePlatformClient,
   input: { projectId: string; nodeText: string; count: number; now: string },
-  config?: AIConfig,
+  config?: NimiAIConfig,
 ): Promise<GenerationOutcome<string[]>> {
   const run = startRun(input.projectId, 'choice-suggestions', { count: input.count });
   const directive = `为当前场景生成 ${input.count} 个简短、互不重复的玩家选项，每行一个，不要编号。选项应可让玩家在不打字的情况下推进。`;
@@ -92,7 +92,7 @@ export async function generateChoiceSuggestions(
 }
 
 export async function generateAssetImage(
-  client: PlatformClient,
+  client: StorybookRuntimePlatformClient,
   input: { projectId: string; assetRef: string; description: string; now: string },
 ): Promise<GenerationOutcome<{ artifactRef: string; mimeType: string }>> {
   const run = startRun(input.projectId, 'asset-image', { assetRef: input.assetRef, description: input.description });

@@ -1,5 +1,5 @@
 // Typed unavailable/failure states for the Storybook AI boundary. When no usable
-// AI execution surface exists (runtime not ready, no AIConfig binding, auth
+// AI execution surface exists (runtime not ready, no NimiAIConfig binding, auth
 // missing, or a typed runtime contract failure), Storybook returns one of these
 // instead of fabricating output. Missing generation is never success.
 
