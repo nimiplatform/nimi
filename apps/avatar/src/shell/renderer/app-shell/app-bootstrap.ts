@@ -1,17 +1,17 @@
-import { createNimiAppRuntimePlatformClient } from '@nimiplatform/sdk';
+import { createNimiClient } from '@nimiplatform/sdk';
 import { getSharedAudioPipelineController } from '@nimiplatform/kit/features/avatar/headless';
+import { createNimiRuntimeAgentConsumeClient, runNimiRuntimeScenarioJob, type NimiRuntimeAgentCompanionParticipationProjection } from '@nimiplatform/sdk/runtime';
+import { AccountReasonCode, AccountSessionState, ReasonCode } from '@nimiplatform/sdk/runtime/generated';
 import {
-  AccountReasonCode,
-  AccountSessionState,
-  RuntimeReasonCode,
-  type RuntimeCompanionParticipationProjection,
-  type Runtime,
-} from '@nimiplatform/sdk/runtime/browser';
+  buildNimiRuntimeGenerationSubmitRequest,
+  createNimiSpeechTranscriptionScenario,
+} from '@nimiplatform/sdk/features/generation';
 import { getRuntimeDefaults, hasTauriInvoke } from '@renderer/bridge';
 import { startAvatarRuntimeCarrier } from '../carrier/avatar-carrier.js';
 import { createDriver, resolveDriverKind } from '../driver/factory.js';
 import { resolveLocalAvatarAssetManifest } from '../carrier/model-resolver.js';
 import type { AvatarRuntimeCarrier } from '../carrier/avatar-carrier.js';
+import { ulid } from '../infra/ids.js';
 import { readAvatarShellSettings } from '../settings-state.js';
 import type { AgentDataDriver } from '../driver/types.js';
 import { startAvatarVoiceCaptureSession, type AvatarVoiceCaptureSession } from '../voice-capture.js';
@@ -32,7 +32,6 @@ import {
   installAvatarRuntimeBridge,
   loadDefaultMockScenarioJson,
   readNormalizedString,
-  resolveCapabilityBinding,
   resolveRuntimeAppId,
   waitForAvatarLaunchContext,
 } from './app-bootstrap-helpers.js';
@@ -81,12 +80,12 @@ export type BootstrapHandle = {
     projectionId?: string;
     turnId?: string;
     reason?: string;
-  }): Promise<RuntimeCompanionParticipationProjection>;
+  }): Promise<NimiRuntimeAgentCompanionParticipationProjection>;
   requestCompanionParticipation(input: {
     agentId: string;
     conversationAnchorId: string;
     text: string;
-  }): Promise<RuntimeCompanionParticipationProjection>;
+  }): Promise<NimiRuntimeAgentCompanionParticipationProjection>;
   shutdown(): Promise<void>;
 };
 
@@ -226,43 +225,26 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
       let currentAvatarInstanceId: string | null = readNormalizedString(launchContext.avatarInstanceId);
       try {
         await runFirstPartyStage('runtime_daemon_prepare', () => ensureRuntimeDaemonReady());
-        const platformProjection = await runFirstPartyStage('platform_client', () => createNimiAppRuntimePlatformClient({
-          mode: 'local-first-party',
+        const nimiClient = createNimiClient({
           appId: runtimeAppId,
-          realmBaseUrl: runtimeDefaults.realm.realmBaseUrl,
-        }));
-        if (platformProjection.status !== 'ready') {
-          useAvatarStore.getState().setRuntimeBindingStatus({
-            status: 'unavailable',
-            reason: platformProjection.message,
-            reasonCode: diagnosticEnumString(platformProjection.reasonCode),
-            accountReasonCode: null,
-            actionHint: platformProjection.actionHint,
-            stage: 'platform_client',
-            source: 'sdk',
-            retryable: true,
-          });
-          useAvatarStore.getState().setDriverStatus('stopped');
-          recordAvatarEvidenceEventually({
-            kind: 'avatar.runtime.bind-failed',
-            detail: {
-              agentId: evidenceAgentId,
-              avatar_instance_id: launchContext.avatarInstanceId || null,
-              launch_source: launchContext.launchSource,
-              runtime_app_id: runtimeAppId,
-              reason: platformProjection.message,
-              reason_code: platformProjection.reasonCode,
-              action_hint: platformProjection.actionHint,
-              source: 'sdk',
+          runtime: {
+            appId: runtimeAppId,
+            transport: {
+              type: 'tauri-ipc',
+              commandNamespace: 'runtime_bridge',
+              eventNamespace: 'runtime_bridge',
             },
-          });
-          return buildHandle();
-        }
-        const platformClient = platformProjection.client;
-        const runtime = platformClient.runtime;
+          },
+        });
+        await runFirstPartyStage('runtime_client_ready', () => nimiClient.runtime.ready());
+        const runtime = nimiClient.runtime;
+        const runtimeAgent = createNimiRuntimeAgentConsumeClient({
+          runtime,
+          runtimeAppId,
+        });
         // Wave_1 step_4: hand the SDK Runtime instance to the shared
         // audio pipeline so AudioPipelineController.play() can resolve
-        // `runtime.artifacts.readBytes` (S-RUNTIME-111). Idempotent —
+        // `runtime.artifacts.readArtifactBytes` (S-RUNTIME-111). Idempotent —
         // first non-null wins; subsequent rebinds (e.g. logout/login)
         // are dropped to keep a single Runtime authority over voice
         // playback for this session.
@@ -297,7 +279,7 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
               ),
               reason_code: accountStatus.reasonCode,
               reason_code_name: readEnumName(
-                RuntimeReasonCode,
+                ReasonCode,
                 accountStatus.reasonCode,
               ),
               account_reason_code: accountStatus.accountReasonCode,
@@ -364,7 +346,7 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
         const avatarInstanceId = readNormalizedString(launchContext.avatarInstanceId) || `avatar-${Date.now()}`;
         currentAvatarInstanceId = avatarInstanceId;
         const conversationContext = await runFirstPartyStage('conversation_context', () => resolveAvatarConversationContext({
-          runtime,
+          runtimeAgent,
           accountId,
           ownerUserId,
           realmAgentId,
@@ -395,7 +377,7 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
         driver = await runFirstPartyStage('driver_create', async () => createDriver({
           kind: 'sdk',
           sdk: {
-            runtime,
+            runtimeAgent,
             ownerUserId,
             realmAgentId,
             localAgentRef,
@@ -428,7 +410,7 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
         });
         getVoiceInputAvailability = async () => {
           try {
-            await resolveCapabilityBinding(runtime, 'audio.transcribe');
+            await runtime.ready();
             return { available: true, reason: null };
           } catch (error) {
             return { available: false, reason: errorMessage(error) };
@@ -445,7 +427,7 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
           conversationAnchorId: string;
           text: string;
         }) => {
-          return runtime.companionParticipation.request({
+          return runtimeAgent.companionParticipation.request({
             ownerUserId,
             realmAgentId,
             localAgentRef: input.agentId,
@@ -457,16 +439,30 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
         };
         requestCompanionParticipation = requestRuntimeCompanionParticipation;
         submitVoiceCaptureTurn = async (input) => {
-          const transcribeBinding = await resolveCapabilityBinding(runtime, 'audio.transcribe');
-          const result = await runtime.media.stt.transcribe({
-            model: transcribeBinding.modelId,
-            ...(transcribeBinding.connectorId ? { connectorId: transcribeBinding.connectorId } : {}),
-            audio: { kind: 'bytes', bytes: input.audioBytes },
-            mimeType: input.mimeType,
-            ...(input.language ? { language: input.language } : {}),
+          const transcription = await runNimiRuntimeScenarioJob({
+            ai: runtime.ai,
+            request: buildNimiRuntimeGenerationSubmitRequest({
+              appId: runtimeAppId,
+              subjectUserId,
+              timeoutMs: 90_000,
+            }, {
+              scenario: createNimiSpeechTranscriptionScenario({
+                kind: 'speech-transcribe',
+                mimeType: input.mimeType,
+                audio: { type: 'bytes', bytes: input.audioBytes },
+                ...(input.language ? { language: input.language } : {}),
+              }),
+              requestId: `avatar-stt-${ulid()}`,
+              idempotencyKey: `avatar-stt-${ulid()}`,
+            }),
             ...(input.signal ? { signal: input.signal } : {}),
+            abortReason: 'avatar_voice_capture_aborted',
           });
-          const transcript = readNormalizedString(result.text);
+          const transcript = readNormalizedString(
+            transcription.output?.output.oneofKind === 'speechTranscribe'
+              ? transcription.output.output.speechTranscribe.text
+              : '',
+          );
           if (!transcript) {
             throw new Error('Foreground voice transcription returned an empty transcript.');
           }
@@ -477,7 +473,7 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
           });
           return { transcript };
         };
-        cancelCompanionParticipation = async (input) => runtime.companionParticipation.cancel({
+        cancelCompanionParticipation = async (input) => runtimeAgent.companionParticipation.cancel({
           ownerUserId,
           realmAgentId,
           localAgentRef: input.agentId,

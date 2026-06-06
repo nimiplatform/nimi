@@ -86,6 +86,7 @@ async function ensureCubismFrameworkCache(): Promise<void> {
 
 export default defineConfig(() => {
   const workspaceRoot = path.resolve(searchForWorkspaceRoot(process.cwd()));
+  const sdkVNextDist = path.resolve(__dirname, '../../sdks/typescript/dist');
 
   return {
     root: path.resolve(__dirname, 'src/shell/renderer'),
@@ -118,13 +119,22 @@ export default defineConfig(() => {
         { find: '@nas', replacement: path.resolve(__dirname, 'src/shell/renderer/nas') },
         { find: '@mock', replacement: path.resolve(__dirname, 'src/shell/renderer/mock') },
         { find: '@driver', replacement: path.resolve(__dirname, 'src/shell/renderer/driver') },
-        { find: '@nimiplatform/sdk/ai-app', replacement: path.resolve(__dirname, '../../sdk/dist/ai-app/index.js') },
-        { find: '@nimiplatform/sdk/ai', replacement: path.resolve(__dirname, '../../sdk/dist/ai/index.js') },
-        { find: '@nimiplatform/sdk/runtime/browser', replacement: path.resolve(__dirname, '../../sdk/dist/runtime/browser.js') },
-        { find: '@nimiplatform/sdk/runtime', replacement: path.resolve(__dirname, '../../sdk/dist/runtime/index.js') },
-        { find: '@nimiplatform/sdk/realm', replacement: path.resolve(__dirname, '../../sdk/dist/realm/index.js') },
-        { find: '@nimiplatform/sdk/types', replacement: path.resolve(__dirname, '../../sdk/dist/types/index.js') },
-        { find: '@nimiplatform/sdk', replacement: path.resolve(__dirname, '../../sdk/dist/index.js') },
+        { find: '@nimiplatform/sdk/runtime', replacement: path.join(sdkVNextDist, 'runtime/index.js') },
+        { find: '@nimiplatform/sdk/realm', replacement: path.join(sdkVNextDist, 'realm/index.js') },
+        { find: '@nimiplatform/sdk/app', replacement: path.join(sdkVNextDist, 'core/app/index.js') },
+        { find: '@nimiplatform/sdk/types', replacement: path.join(sdkVNextDist, 'types/index.js') },
+        { find: '@nimiplatform/sdk/contracts', replacement: path.join(sdkVNextDist, 'core/contracts/index.js') },
+        { find: '@nimiplatform/sdk/ai', replacement: path.join(sdkVNextDist, 'core/ai/index.js') },
+        { find: '@nimiplatform/sdk/agent', replacement: path.join(sdkVNextDist, 'core/agent/index.js') },
+        { find: '@nimiplatform/sdk/testing', replacement: path.join(sdkVNextDist, 'core/testing/index.js') },
+        { find: '@nimiplatform/sdk/features/conversation', replacement: path.join(sdkVNextDist, 'features/conversation/index.js') },
+        { find: '@nimiplatform/sdk/features/knowledge-context', replacement: path.join(sdkVNextDist, 'features/knowledge-context/index.js') },
+        { find: '@nimiplatform/sdk/features/memory-context', replacement: path.join(sdkVNextDist, 'features/memory-context/index.js') },
+        { find: '@nimiplatform/sdk/features/generation', replacement: path.join(sdkVNextDist, 'features/generation/index.js') },
+        { find: '@nimiplatform/sdk/features/workflow', replacement: path.join(sdkVNextDist, 'features/workflow/index.js') },
+        { find: '@nimiplatform/sdk/features/evaluation', replacement: path.join(sdkVNextDist, 'features/evaluation/index.js') },
+        { find: '@nimiplatform/sdk/features/toolkits', replacement: path.join(sdkVNextDist, 'features/toolkits/index.js') },
+        { find: '@nimiplatform/sdk', replacement: path.join(sdkVNextDist, 'index.js') },
         { find: '@nimiplatform/kit/auth', replacement: path.resolve(__dirname, '../../kit/auth/src/index.ts') },
         { find: '@nimiplatform/kit/shell/renderer/bridge', replacement: path.resolve(__dirname, '../../kit/shell/renderer/src/bridge/index.ts') },
         { find: '@nimiplatform/kit/features/avatar', replacement: path.resolve(__dirname, '../../kit/features/avatar/src') },
@@ -164,10 +174,10 @@ export default defineConfig(() => {
           manualChunks(id) {
             const normalizedId = id.split(path.sep).join('/');
 
-            if (normalizedId.includes('/sdk/src/runtime/generated/')) {
+            if (normalizedId.includes('/sdks/typescript/dist/core-generated/')) {
               return 'sdk-runtime-generated';
             }
-            if (normalizedId.includes('/sdk/src/')) {
+            if (normalizedId.includes('/sdks/typescript/dist/')) {
               return 'sdk-client';
             }
             if (normalizedId.includes('/kit/ui/src/')) {

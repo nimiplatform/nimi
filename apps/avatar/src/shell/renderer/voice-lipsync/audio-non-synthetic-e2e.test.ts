@@ -14,7 +14,7 @@
 //     2. Driving the byte sequence through the SAME public surface that the
 //        runtime daemon would exercise:
 //
-//          runtime.artifacts.readBytes
+//          runtime.artifacts.readArtifactBytes
 //            → AudioPipelineController.play
 //              → AudioContext.decodeAudioData
 //                → source.start
@@ -22,7 +22,7 @@
 //                → state transitions requested → started → completed
 //
 //   The mock boundary is exactly two seams:
-//     - `runtime.artifacts.readBytes` returns the constructed bytes (the
+//     - `runtime.artifacts.readArtifactBytes` returns the constructed bytes (the
 //       runtime daemon would return the same shape; the SDK contract is
 //       S-RUNTIME-111 `{bytes, mimeType, sizeBytes}`).
 //     - `AudioContext.decodeAudioData` returns a stub `AudioBuffer` because
@@ -175,7 +175,7 @@ afterEach(() => {
 });
 
 describe('Audio non-synthetic e2e — wave_1 invariant #15', () => {
-  it('happy path: real .wav bytes flow runtime.artifacts.readBytes → decodeAudioData → source.start → sink.attachAudioSource → started → completed', async () => {
+  it('happy path: real .wav bytes flow runtime.artifacts.readArtifactBytes → decodeAudioData → source.start → sink.attachAudioSource → started → completed', async () => {
     const fakeWav = makeFakeWavBytes();
     expect(fakeWav.byteLength).toBe(44 + 9600);
     // Bytes start with the literal ASCII "RIFF" magic — proof this is NOT
@@ -183,9 +183,8 @@ describe('Audio non-synthetic e2e — wave_1 invariant #15', () => {
     const head = new Uint8Array(fakeWav.slice(0, 4));
     expect(Array.from(head)).toEqual([0x52, 0x49, 0x46, 0x46]);
 
-    const readBytesSpy = vi.fn(async (input: { artifactId: string; expectedMimePrefix?: string }) => {
+    const readArtifactBytesSpy = vi.fn(async (input: { artifactId: string }) => {
       expect(input.artifactId).toBe('artifact-real-001');
-      expect(input.expectedMimePrefix).toBe('audio/');
       return {
         bytes: fakeWav,
         mimeType: 'audio/wav',
@@ -193,7 +192,7 @@ describe('Audio non-synthetic e2e — wave_1 invariant #15', () => {
       };
     });
     const mockRuntime = {
-      artifacts: { readBytes: readBytesSpy },
+      artifacts: { readArtifactBytes: readArtifactBytesSpy },
     };
 
     const fake = createFakeAudioContext();
@@ -215,11 +214,10 @@ describe('Audio non-synthetic e2e — wave_1 invariant #15', () => {
     await Promise.resolve();
     await Promise.resolve();
 
-    // 1. readBytes called exactly once with the right input
-    expect(readBytesSpy).toHaveBeenCalledTimes(1);
-    expect(readBytesSpy).toHaveBeenCalledWith({
+    // 1. readArtifactBytes called exactly once with the right input
+    expect(readArtifactBytesSpy).toHaveBeenCalledTimes(1);
+    expect(readArtifactBytesSpy).toHaveBeenCalledWith({
       artifactId: 'artifact-real-001',
-      expectedMimePrefix: 'audio/',
     });
     // 2. AudioContext.decodeAudioData was called exactly once with a copy of
     //    the bytes (controller calls .slice(0) before decode).
@@ -245,13 +243,13 @@ describe('Audio non-synthetic e2e — wave_1 invariant #15', () => {
     expect(sink.detachAudioSource).toHaveBeenCalled();
   });
 
-  it('readBytes throws ARTIFACT_NOT_FOUND → sink.silent, state failed (artifact_not_found), decodeAudioData NOT called', async () => {
-    const readBytesSpy = vi.fn(async () => {
+  it('readArtifactBytes throws ARTIFACT_NOT_FOUND → sink.silent, state failed (artifact_not_found), decodeAudioData NOT called', async () => {
+    const readArtifactBytesSpy = vi.fn(async () => {
       const err = new Error('artifact missing') as Error & { reasonCode?: string };
       err.reasonCode = 'ARTIFACT_NOT_FOUND';
       throw err;
     });
-    const mockRuntime = { artifacts: { readBytes: readBytesSpy } };
+    const mockRuntime = { artifacts: { readArtifactBytes: readArtifactBytesSpy } };
     const fake = createFakeAudioContext();
     const sink = createSinkMock();
     const controller = new AudioPipelineController({
@@ -267,7 +265,7 @@ describe('Audio non-synthetic e2e — wave_1 invariant #15', () => {
       audioMimeType: 'audio/wav',
     });
 
-    expect(readBytesSpy).toHaveBeenCalledTimes(1);
+    expect(readArtifactBytesSpy).toHaveBeenCalledTimes(1);
     // Decode never reached.
     expect(fake.decodeAudioData).not.toHaveBeenCalled();
     expect(fake.source.start).not.toHaveBeenCalled();
@@ -280,12 +278,12 @@ describe('Audio non-synthetic e2e — wave_1 invariant #15', () => {
 
   it('decodeAudioData rejects → sink.silent, state failed (decode_failed), source.start NOT called', async () => {
     const fakeWav = makeFakeWavBytes();
-    const readBytesSpy = vi.fn(async () => ({
+    const readArtifactBytesSpy = vi.fn(async () => ({
       bytes: fakeWav,
       mimeType: 'audio/wav',
       sizeBytes: fakeWav.byteLength,
     }));
-    const mockRuntime = { artifacts: { readBytes: readBytesSpy } };
+    const mockRuntime = { artifacts: { readArtifactBytes: readArtifactBytesSpy } };
     const fake = createFakeAudioContext(async () => {
       throw new Error('encoding error');
     });
@@ -303,9 +301,9 @@ describe('Audio non-synthetic e2e — wave_1 invariant #15', () => {
       audioMimeType: 'audio/wav',
     });
 
-    // readBytes succeeded → decodeAudioData was called → source.start NOT
+    // readArtifactBytes succeeded → decodeAudioData was called → source.start NOT
     // reached (decode throws first).
-    expect(readBytesSpy).toHaveBeenCalledTimes(1);
+    expect(readArtifactBytesSpy).toHaveBeenCalledTimes(1);
     expect(fake.decodeAudioData).toHaveBeenCalledTimes(1);
     expect(fake.source.start).not.toHaveBeenCalled();
     expect(sink.attachAudioSource).not.toHaveBeenCalled();

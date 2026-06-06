@@ -31,7 +31,7 @@ import { useSurfaceMountEvidence } from '../app-shell/composition-events.js';
 import type { AvatarShellSettings } from '../settings-state.js';
 import type { BootstrapHandle } from '../app-shell/app-bootstrap.js';
 import type { AvatarVoiceCaptureSession } from '../voice-capture.js';
-import type { RuntimeCompanionParticipationProjection } from '@nimiplatform/sdk/runtime/browser';
+import type { NimiRuntimeAgentCompanionParticipationProjection } from '@nimiplatform/sdk/runtime';
 
 export type CompanionSurfaceProps = {
   bootstrapHandle: BootstrapHandle | null;
@@ -79,7 +79,7 @@ function deriveStatus(companion: CompanionState, voice: VoiceCompanionState): St
   return 'idle';
 }
 
-function assertAcceptedProjection(projection: RuntimeCompanionParticipationProjection): void {
+function assertAcceptedProjection(projection: NimiRuntimeAgentCompanionParticipationProjection): void {
   if (
     projection.status === 'blocked'
     || projection.status === 'failed'

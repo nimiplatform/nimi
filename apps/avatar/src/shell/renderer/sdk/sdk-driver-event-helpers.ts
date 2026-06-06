@@ -1,7 +1,7 @@
 import type {
-  RuntimeAgentConsumeEvent as SdkRuntimeAgentConsumeEvent,
-  RuntimeAgentSessionSnapshot as SdkRuntimeAgentSessionSnapshot,
-} from '@nimiplatform/sdk/runtime/browser';
+  NimiRuntimeAgentConsumeEvent as SdkRuntimeAgentConsumeEvent,
+  NimiRuntimeAgentSessionSnapshot as SdkRuntimeAgentSessionSnapshot,
+} from '@nimiplatform/sdk/runtime';
 import type {
   ActivitySource,
   AgentDataBundle,
@@ -107,6 +107,43 @@ export function requireRuntimeSourceText(value: unknown, label: string): string 
     return value.trim();
   }
   throw new Error(`avatar sdk driver received malformed ${label} source`);
+}
+
+export function requireRuntimeDetailText(value: unknown, label: string): string {
+  if (typeof value === 'string') {
+    return value;
+  }
+  throw new Error(`avatar sdk driver received malformed ${label}`);
+}
+
+export function optionalRuntimeDetailText(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value : null;
+}
+
+export function optionalRuntimeExecutionState(value: unknown): RuntimeAgentExecutionStateValue | undefined {
+  if (value === undefined || value === null || value === '') {
+    return undefined;
+  }
+  if (
+    value === 'idle'
+    || value === 'chat_active'
+    || value === 'life_pending'
+    || value === 'life_running'
+    || value === 'suspended'
+  ) {
+    return value;
+  }
+  throw new Error('avatar sdk driver received malformed runtime execution state');
+}
+
+export function requireRuntimePostureDetail(value: unknown): {
+  actionFamily: string;
+  interruptMode: string;
+} {
+  const record = asRecord(value);
+  const actionFamily = requireRuntimeDetailText(record.actionFamily, 'runtime posture action family');
+  const interruptMode = requireRuntimeDetailText(record.interruptMode, 'runtime posture interrupt mode');
+  return { actionFamily, interruptMode };
 }
 
 export function requireRuntimeCurrentEmotion(value: unknown): BundleCurrentEmotion {

@@ -38,7 +38,7 @@ Nimi Avatar 不是常规软件窗口，而是 **桌面悬浮 embodiment surface*
 - Click-through 在 embodiment 形状外 + companion 矩形外（点空白穿透到下层 app）
 - Companion Surface（assistant bubble + status row + composer）固定 always-visible，绑定当前 launch-selected `agent_id + conversation_anchor_id`
 - Degraded Surface 单独承载 loading / error / reauth / launch-context-invalid / relaunch-pending 形态，与 ready surface 互斥
-- STT / TTS 通过 runtime 消费；audio bytes 通过 `runtime.artifacts.readBytes` 获取；lipsync 由 backend `BackendAudioConsumer` + wLipSync 驱动
+- STT / TTS 通过 runtime 消费；audio bytes 通过 `runtime.artifacts.readArtifactBytes` 获取；lipsync 由 backend `BackendAudioConsumer` + wLipSync 驱动
 
 ## Wave Schedule
 
@@ -92,7 +92,7 @@ Platform contracts are consumed from active `.nimi/spec/**` authority:
 - APML LLM compliance → `.nimi/spec/runtime/kernel/agent-output-wire-contract.md`
 - Activity ontology → `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md` and `.nimi/spec/runtime/kernel/tables/agent-activity-ontology.yaml`
 - HookIntent / event owner map → `.nimi/spec/runtime/kernel/agent-hook-intent-contract.md` and `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md`
-- SDK runtime consume surface → `.nimi/spec/sdk/kernel/runtime-contract.md`
+- SDK runtime consume surface → `.nimi/spec/sdks/kernel/runtime-contract.md`
 - Presentation Timeline boundary → `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md`
 
 Nimi Avatar-specific contracts in `.nimi/spec/avatar/kernel/**` do not re-define upstream; they define Avatar-local behavior and downstream implementation binding.
@@ -388,8 +388,8 @@ self-contained policy enforced by `pnpm check:apps-avatar-isolation`）；
 
 - `@nimiplatform/kit/{ui,core,auth,telemetry}`（design system / core / telemetry）
 - `@nimiplatform/kit/features/avatar/**`（admitted reusable Avatar surface；apps/avatar 只能消费，不能在 app 内重建第二套 shared owner）
-- `@nimiplatform/sdk/runtime` / `@nimiplatform/sdk/runtime/browser` /
-  `@nimiplatform/sdk/realm`
+- `@nimiplatform/sdk` / `@nimiplatform/sdk/runtime` /
+  `@nimiplatform/sdk/realm` / `@nimiplatform/sdk/features/generation`
 - `@pixiv/three-vrm` / `@pixiv/three-vrm-animation` / `@pixiv/three-vrm-core`
 - `three` / `@react-three/fiber` / `@react-three/drei`（按需，wave_2 可加）/
   `@react-three/postprocessing`（按需）
@@ -436,7 +436,7 @@ context-lost 不可恢复 / Tauri webview 加载 hang / 嘴型双写冲突。
 
 ## Audio Pipeline (Wave 0 admit, design-05)
 
-audio-pipeline 直接 consume `runtime.artifacts.readBytes`（S-RUNTIME-111；
+audio-pipeline 直接 consume `runtime.artifacts.readArtifactBytes`（S-RUNTIME-111；
 admit 自本 topic platform admission gate）；**不再 caller-注入 fetchBytes**。
 
 ### Synthetic mime fail-close
@@ -460,10 +460,10 @@ admit 自本 topic platform admission gate）；**不再 caller-注入 fetchByte
 | `createWLipSyncNode` 失败（worklet/WASM 加载失败） | `wlipsync_init_failed`（emit `avatar.audio.pipeline.failed`） |
 | `audio_mime_type === SYNTHETIC_AUDIO_MIME_TYPE` | `synthetic_audio` (silent) — see above |
 | `audio_mime_type` 不以 `audio/` 开头且非 synthetic | `unsupported_mime` |
-| `runtime.artifacts.readBytes` ARTIFACT_NOT_FOUND | `artifact_not_found` |
-| `runtime.artifacts.readBytes` ARTIFACT_TOO_LARGE | `artifact_too_large` |
-| `runtime.artifacts.readBytes` ARTIFACT_FORBIDDEN | `artifact_forbidden` |
-| `runtime.artifacts.readBytes` ARTIFACT_MIME_MISMATCH | `artifact_mime_mismatch` |
+| `runtime.artifacts.readArtifactBytes` ARTIFACT_NOT_FOUND | `artifact_not_found` |
+| `runtime.artifacts.readArtifactBytes` ARTIFACT_TOO_LARGE | `artifact_too_large` |
+| `runtime.artifacts.readArtifactBytes` ARTIFACT_FORBIDDEN | `artifact_forbidden` |
+| `runtime.artifacts.readArtifactBytes` ARTIFACT_MIME_MISMATCH | `artifact_mime_mismatch` |
 | 其他 transport / RPC 错误 | `fetch_failed`（不重试；fail-close） |
 | `decodeAudioData` 失败 | `decode_failed` |
 | `playback_state='interrupted' \| 'canceled'` | （audioPipeline.stop；sink.silent via source.onended） |

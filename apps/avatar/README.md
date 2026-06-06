@@ -133,7 +133,7 @@ tracked reader guide is
 - [HookIntent and event owner map](../../.nimi/spec/runtime/kernel/agent-hook-intent-contract.md)
 - [Runtime projection stream](../../.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md)
 - [Conversation anchor](../../.nimi/spec/runtime/kernel/agent-conversation-anchor-contract.md)
-- [SDK runtime consume surface](../../.nimi/spec/sdk/kernel/runtime-contract.md)
+- [SDK runtime consume surface](../../.nimi/spec/sdks/kernel/runtime-contract.md)
 - [Presentation Timeline admission boundary](../../.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md)
 
 ## Carrier Notes

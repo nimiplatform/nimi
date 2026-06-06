@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import { parseRuntimeLocalAgentIdentity } from '@nimiplatform/sdk/runtime/browser';
+import { parseRuntimeLocalAgentIdentity } from '@nimiplatform/sdk/runtime';
 
 const FORBIDDEN_LAUNCH_FIELDS = [
   'avatarPackage',

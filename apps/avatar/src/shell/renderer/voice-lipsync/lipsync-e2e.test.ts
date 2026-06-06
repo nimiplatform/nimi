@@ -3,7 +3,7 @@
 //
 // End-to-end test for the avatar audio + lipsync pipeline. Exercises:
 //
-//   1. Mock SDK Runtime instance that resolves `runtime.artifacts.readBytes`
+//   1. Mock SDK Runtime instance that resolves `runtime.artifacts.readArtifactBytes`
 //      with deterministic .wav-shaped bytes.
 //   2. AudioPipelineController consumes those bytes directly (no caller-
 //      injected byte fetcher).
@@ -171,15 +171,14 @@ function createBackend(kind: 'live2d' | 'vrm'): BackendBranch & {
   return { kind: 'vrm', ...base } as never;
 }
 
-function createRuntimeMock(): { runtime: unknown; readBytes: ReturnType<typeof vi.fn> } {
+function createRuntimeMock(): { runtime: unknown; readArtifactBytes: ReturnType<typeof vi.fn> } {
   // 256-byte deterministic .wav-shaped buffer (header + silent payload).
   const bytes = new ArrayBuffer(256);
-  const readBytes = vi.fn(async (input: { artifactId: string; expectedMimePrefix?: string }) => {
+  const readArtifactBytes = vi.fn(async (input: { artifactId: string }) => {
     expect(input.artifactId).toBe(FIXTURE_AUDIO_ARTIFACT);
-    expect(input.expectedMimePrefix).toBe('audio/');
     return { bytes, mimeType: 'audio/wav', sizeBytes: bytes.byteLength };
   });
-  return { runtime: { artifacts: { readBytes } }, readBytes };
+  return { runtime: { artifacts: { readArtifactBytes } }, readArtifactBytes };
 }
 
 describe('Lipsync e2e — voice_playback_requested → audio-pipeline → backend sink', () => {
@@ -263,7 +262,7 @@ describe('Lipsync e2e — voice_playback_requested → audio-pipeline → backen
       audioContextFactory: () => fake.context,
       logger: { warn: vi.fn(), error: vi.fn() },
     });
-    const { runtime, readBytes } = createRuntimeMock();
+    const { runtime, readArtifactBytes } = createRuntimeMock();
     audioPipeline.setRuntime(runtime as never);
 
     const backend = createBackend('live2d');
@@ -277,7 +276,7 @@ describe('Lipsync e2e — voice_playback_requested → audio-pipeline → backen
     pipeline.handleEvent(makeVoicePlaybackEvent('requested', SYNTHETIC_AUDIO_MIME_TYPE));
     await Promise.resolve();
 
-    expect(readBytes).not.toHaveBeenCalled();
+    expect(readArtifactBytes).not.toHaveBeenCalled();
     expect(fake.source.start).not.toHaveBeenCalled();
     expect(backend.audioConsumer.attachAudioSource).not.toHaveBeenCalled();
     expect(backend.audioConsumer.silent).toHaveBeenCalled();

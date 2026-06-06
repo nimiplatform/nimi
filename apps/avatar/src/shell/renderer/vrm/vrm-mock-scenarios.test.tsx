@@ -368,7 +368,7 @@ describe('scenario vrm-speaking-with-audio (chunk 3-E)', () => {
 
     const runtime = {
       artifacts: {
-        readBytes: vi.fn(async () => ({
+        readArtifactBytes: vi.fn(async () => ({
           bytes: new ArrayBuffer(1024),
           mimeType: 'audio/wav',
           sizeBytes: 1024,

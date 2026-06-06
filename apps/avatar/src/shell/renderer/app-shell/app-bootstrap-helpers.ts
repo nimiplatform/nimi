@@ -1,4 +1,3 @@
-import { Runtime } from '@nimiplatform/sdk/runtime/browser';
 import {
   getAvatarLaunchContext,
   getRuntimeDefaults,
@@ -63,37 +62,6 @@ export type RuntimeExecutionBinding = {
   connectorId?: string;
 };
 
-type RuntimeWithRoute = Runtime & {
-  route: {
-    listOptions: (input: { capability: 'audio.transcribe' }) => Promise<{
-      selected: {
-        source: 'local' | 'cloud';
-        connectorId?: string;
-        model?: string;
-        modelId?: string;
-        localModelId?: string;
-      } | null;
-      resolvedDefault?: {
-        source: 'local' | 'cloud';
-        connectorId?: string;
-        model?: string;
-        modelId?: string;
-        localModelId?: string;
-      } | null;
-    }>;
-    checkHealth: (input: {
-      capability: 'audio.transcribe';
-      binding: {
-        source: 'local' | 'cloud';
-        connectorId?: string;
-        model?: string;
-        modelId?: string;
-        localModelId?: string;
-      };
-    }) => Promise<{ healthy: boolean }>;
-  };
-};
-
 export async function loadDefaultMockScenarioJson(): Promise<string> {
   const module = await import('../mock/scenarios/default.mock.json?raw');
   return module.default;
@@ -119,32 +87,4 @@ export function resolveExecutionBinding(input: {
   }
 
   return null;
-}
-
-export async function resolveCapabilityBinding(
-  runtime: Runtime,
-  capability: 'audio.transcribe',
-): Promise<RuntimeExecutionBinding> {
-  const runtimeWithRoute = runtime as RuntimeWithRoute;
-  const options = await runtimeWithRoute.route.listOptions({ capability });
-  const selected = options.selected ?? options.resolvedDefault ?? null;
-  if (!selected) {
-    throw new Error('Foreground voice requires an admitted transcribe route.');
-  }
-  const modelId = readNormalizedString(selected.modelId || selected.model || selected.localModelId);
-  if (!modelId) {
-    throw new Error('Foreground voice requires a resolved transcribe model.');
-  }
-  const health = await runtimeWithRoute.route.checkHealth({
-    capability,
-    binding: selected,
-  });
-  if (!health.healthy) {
-    throw new Error('Foreground voice is unavailable because the transcribe route is not ready.');
-  }
-  return {
-    route: selected.source,
-    modelId,
-    ...(readNormalizedString(selected.connectorId) ? { connectorId: readNormalizedString(selected.connectorId) } : {}),
-  };
 }

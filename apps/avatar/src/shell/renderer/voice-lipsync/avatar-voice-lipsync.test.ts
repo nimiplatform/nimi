@@ -50,13 +50,13 @@ function createDriver(): AgentDataDriver & { emitted: AppOriginEvent[] } {
   };
 }
 
-function createRuntimeMock(readBytes = vi.fn(async () => ({
+function createRuntimeMock(readArtifactBytes = vi.fn(async () => ({
   bytes: new ArrayBuffer(64),
   mimeType: 'audio/wav',
   sizeBytes: 64,
 }))) {
   return {
-    artifacts: { readBytes },
+    artifacts: { readArtifactBytes },
   } as never;
 }
 

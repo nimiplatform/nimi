@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ReasonCode } from '@nimiplatform/sdk/types';
+import { ReasonCode } from '@nimiplatform/sdk/runtime/generated';
 import type { AgentDataBundle, AgentDataDriver, DriverStatus } from '../driver/types.js';
 import { useAvatarStore } from './app-store.js';
 
@@ -14,7 +14,8 @@ const onShellReadyMock = vi.fn();
 const setAlwaysOnTopMock = vi.fn();
 const bindAvatarRuntimeIdentityMock = vi.fn();
 const driverStopMock = vi.fn();
-const createNimiAppRuntimePlatformClientMock = vi.fn();
+const createNimiClientMock = vi.fn();
+const runtimeReadyMock = vi.fn();
 const getAccountSessionStatusMock = vi.fn();
 const getAccessTokenMock = vi.fn();
 const openAnchorMock = vi.fn();
@@ -22,48 +23,54 @@ const getAnchorSnapshotMock = vi.fn();
 const resolveAvatarLiveInstanceMock = vi.fn();
 const getSessionSnapshotMock = vi.fn();
 const subscribeTurnsMock = vi.fn();
-const requestTurnMock = vi.fn();
-const interruptTurnMock = vi.fn();
 const requestCompanionParticipationMock = vi.fn();
 const cancelCompanionParticipationMock = vi.fn();
-const transcribeMock = vi.fn();
-const listRouteOptionsMock = vi.fn();
-const checkRouteHealthMock = vi.fn();
+const subscribeAppMessagesMock = vi.fn();
+const subscribeAgentEventsMock = vi.fn();
+const submitScenarioJobMock = vi.fn();
+const getScenarioJobMock = vi.fn();
+const cancelScenarioJobMock = vi.fn();
+const subscribeScenarioJobEventsMock = vi.fn();
+const getScenarioArtifactsMock = vi.fn();
 const resolveLocalAvatarAssetManifestMock = vi.fn();
 const startAvatarRuntimeCarrierMock = vi.fn();
 const carrierShutdownMock = vi.fn();
 const recordAvatarEvidenceEventuallyMock = vi.fn();
 
 const runtimeMock = {
+  ready: (...args: unknown[]) => runtimeReadyMock(...args),
   account: {
     getAccountSessionStatus: (...args: unknown[]) => getAccountSessionStatusMock(...args),
     getAccessToken: (...args: unknown[]) => getAccessTokenMock(...args),
   },
-  agent: {
-    anchors: {
-      open: (...args: unknown[]) => openAnchorMock(...args),
-      getSnapshot: (...args: unknown[]) => getAnchorSnapshotMock(...args),
-      resolveAvatarLiveInstance: (...args: unknown[]) => resolveAvatarLiveInstanceMock(...args),
-    },
-    turns: {
-      getSessionSnapshot: (...args: unknown[]) => getSessionSnapshotMock(...args),
-      subscribe: (...args: unknown[]) => subscribeTurnsMock(...args),
-      request: (...args: unknown[]) => requestTurnMock(...args),
-      interrupt: (...args: unknown[]) => interruptTurnMock(...args),
-    },
+  agents: {
+    openConversationAnchor: async (...args: unknown[]) => ({
+      snapshot: await openAnchorMock(...args),
+    }),
+    getConversationAnchorSnapshot: async (...args: unknown[]) => ({
+      snapshot: await getAnchorSnapshotMock(...args),
+    }),
+    resolveAvatarLiveInstanceBinding: (...args: unknown[]) => resolveAvatarLiveInstanceMock(...args),
+    getPublicChatSessionSnapshot: async (...args: unknown[]) => ({
+      snapshot: await getSessionSnapshotMock(...args),
+    }),
+    subscribeAgentEvents: (...args: unknown[]) => subscribeAgentEventsMock(...args),
+    requestCompanionParticipation: async (...args: unknown[]) => ({
+      projection: await requestCompanionParticipationMock(...args),
+    }),
+    cancelCompanionParticipation: async (...args: unknown[]) => ({
+      projection: await cancelCompanionParticipationMock(...args),
+    }),
   },
-  companionParticipation: {
-    request: (...args: unknown[]) => requestCompanionParticipationMock(...args),
-    cancel: (...args: unknown[]) => cancelCompanionParticipationMock(...args),
+  appMessages: {
+    subscribeAppMessages: (...args: unknown[]) => subscribeAppMessagesMock(...args),
   },
-  media: {
-    stt: {
-      transcribe: (...args: unknown[]) => transcribeMock(...args),
-    },
-  },
-  route: {
-    listOptions: (...args: unknown[]) => listRouteOptionsMock(...args),
-    checkHealth: (...args: unknown[]) => checkRouteHealthMock(...args),
+  ai: {
+    submitScenarioJob: (...args: unknown[]) => submitScenarioJobMock(...args),
+    getScenarioJob: (...args: unknown[]) => getScenarioJobMock(...args),
+    cancelScenarioJob: (...args: unknown[]) => cancelScenarioJobMock(...args),
+    subscribeScenarioJobEvents: (...args: unknown[]) => subscribeScenarioJobEventsMock(...args),
+    getScenarioArtifacts: (...args: unknown[]) => getScenarioArtifactsMock(...args),
   },
 };
 
@@ -84,60 +91,56 @@ function launchContext(overrides: Partial<{
   };
 }
 
+function runtimeAgentContextMatcher() {
+  return expect.objectContaining({
+    appId: 'nimi.avatar',
+    subjectUserId: OWNER_USER_ID,
+    ownerUserId: OWNER_USER_ID,
+    realmAgentId: REALM_AGENT_ID,
+    localAgentRef: LOCAL_AGENT_REF,
+  });
+}
+
+function openAnchorRequestMatcher() {
+  return expect.objectContaining({
+    context: runtimeAgentContextMatcher(),
+    agentId: LOCAL_AGENT_REF,
+    subjectUserId: OWNER_USER_ID,
+    localAgentRef: LOCAL_AGENT_REF,
+    ownerUserId: OWNER_USER_ID,
+    realmAgentId: REALM_AGENT_ID,
+  });
+}
+
+function anchorSnapshotRequestMatcher(conversationAnchorId: string) {
+  return expect.objectContaining({
+    context: runtimeAgentContextMatcher(),
+    agentId: LOCAL_AGENT_REF,
+    conversationAnchorId,
+  });
+}
+
+function companionParticipationRequestMatcher(
+  conversationAnchorId: string,
+  extra: Record<string, unknown>,
+) {
+  return expect.objectContaining({
+    context: runtimeAgentContextMatcher(),
+    agentId: LOCAL_AGENT_REF,
+    conversationAnchorId,
+    ...extra,
+  });
+}
+
 vi.mock('../driver/factory.js', () => ({
   resolveDriverKind: () => driverKind,
   createDriver: (...args: unknown[]) => createDriverMock(...args),
 }));
 
 vi.mock('@nimiplatform/sdk', () => ({
-  createNimiAppRuntimePlatformClient: (...args: unknown[]) =>
-    createNimiAppRuntimePlatformClientMock(...args),
-}));
-
-vi.mock('@nimiplatform/sdk/runtime/browser', () => ({
-  AccountCallerMode: { LOCAL_FIRST_PARTY_APP: 1 },
-  AccountReasonCode: { 0: 'ACCOUNT_REASON_CODE_UNSPECIFIED', ACCOUNT_REASON_CODE_UNSPECIFIED: 0 },
-  AccountSessionState: { 3: 'AUTHENTICATED', AUTHENTICATED: 3 },
-  RuntimeReasonCode: {
-    0: 'REASON_CODE_UNSPECIFIED',
-    1: 'ACTION_EXECUTED',
-    5: 'PRINCIPAL_UNAUTHORIZED',
-    REASON_CODE_UNSPECIFIED: 0,
-    ACTION_EXECUTED: 1,
-    PRINCIPAL_UNAUTHORIZED: 5,
-  },
-  ScopedAppBindingPurpose: { AVATAR_INTERACTION_CONSUME: 1 },
-  createLocalFirstPartyRuntimeAccountCaller: (input: { appId: string; scopes?: string[] }) => ({
-    appId: input.appId,
-    appInstanceId: `${input.appId}.local-first-party`,
-    deviceId: 'local-first-party-device',
-    mode: 1,
-    scopes: input.scopes || [],
-  }),
-  isRuntimeLocalAgentRef: (value: unknown) => typeof value === 'string' && value.trim().startsWith('local-agent:'),
-  parseRuntimeLocalAgentIdentity: (value: unknown) => {
-    const normalized = typeof value === 'string' ? value.trim() : '';
-    const parts = normalized.split(':');
-    if (parts.length !== 3 || parts[0] !== 'local-agent') {
-      throw new Error('runtime local agent identity localAgentRef is malformed');
-    }
-    return {
-      ownerUserId: parts[1],
-      realmAgentId: parts[2],
-      localAgentRef: normalized,
-    };
-  },
-  projectRuntimeLocalAgentIdentity: (input: { ownerUserId: unknown; realmAgentId: unknown }) => {
-    const ownerUserId = typeof input.ownerUserId === 'string' ? input.ownerUserId.trim() : '';
-    const realmAgentId = typeof input.realmAgentId === 'string' ? input.realmAgentId.trim() : '';
-    if (!ownerUserId || !realmAgentId) {
-      throw new Error('runtime local agent identity requires ownerUserId and realmAgentId');
-    }
-    return {
-      ownerUserId,
-      realmAgentId,
-      localAgentRef: `local-agent:${ownerUserId}:${realmAgentId}`,
-    };
+  createNimiClient: (...args: unknown[]) => {
+    createNimiClientMock(...args);
+    return { runtime: runtimeMock };
   },
 }));
 
@@ -268,7 +271,8 @@ describe('bootstrapAvatar', () => {
     setAlwaysOnTopMock.mockReset();
     bindAvatarRuntimeIdentityMock.mockReset();
     driverStopMock.mockReset();
-    createNimiAppRuntimePlatformClientMock.mockReset();
+    createNimiClientMock.mockReset();
+    runtimeReadyMock.mockReset();
     getAccountSessionStatusMock.mockReset();
     getAccessTokenMock.mockReset();
     openAnchorMock.mockReset();
@@ -276,13 +280,15 @@ describe('bootstrapAvatar', () => {
     resolveAvatarLiveInstanceMock.mockReset();
     getSessionSnapshotMock.mockReset();
     subscribeTurnsMock.mockReset();
-    requestTurnMock.mockReset();
-    interruptTurnMock.mockReset();
     requestCompanionParticipationMock.mockReset();
     cancelCompanionParticipationMock.mockReset();
-    transcribeMock.mockReset();
-    listRouteOptionsMock.mockReset();
-    checkRouteHealthMock.mockReset();
+    subscribeAppMessagesMock.mockReset();
+    subscribeAgentEventsMock.mockReset();
+    submitScenarioJobMock.mockReset();
+    getScenarioJobMock.mockReset();
+    cancelScenarioJobMock.mockReset();
+    subscribeScenarioJobEventsMock.mockReset();
+    getScenarioArtifactsMock.mockReset();
     resolveLocalAvatarAssetManifestMock.mockReset();
     startAvatarRuntimeCarrierMock.mockReset();
     carrierShutdownMock.mockReset();
@@ -329,11 +335,7 @@ describe('bootstrapAvatar', () => {
         userConfirmedUpload: false,
       },
     });
-    createNimiAppRuntimePlatformClientMock.mockResolvedValue({
-      status: 'ready',
-      client: { runtime: runtimeMock },
-      auth: { state: 'ready', source: 'runtime-local-first-party' },
-    });
+    runtimeReadyMock.mockResolvedValue(undefined);
     getAccountSessionStatusMock.mockResolvedValue({
       state: 3,
       accountProjection: { accountId: 'account-runtime' },
@@ -366,6 +368,8 @@ describe('bootstrapAvatar', () => {
       },
     });
     subscribeTurnsMock.mockResolvedValue((async function* emptyStream() {})());
+    subscribeAppMessagesMock.mockReturnValue((async function* emptyAppMessageStream() {})());
+    subscribeAgentEventsMock.mockReturnValue((async function* emptyAgentEventStream() {})());
     resolveLocalAvatarAssetManifestMock.mockResolvedValue({
       kind: 'live2d',
       runtimeDir: '/models/ren/files',
@@ -418,12 +422,19 @@ describe('bootstrapAvatar', () => {
     expect(getAvatarLaunchContextMock).toHaveBeenCalledTimes(1);
     expect(getDaemonStatusMock).toHaveBeenCalledTimes(1);
     expect(startDaemonMock).not.toHaveBeenCalled();
-    expect(createNimiAppRuntimePlatformClientMock).toHaveBeenCalledWith(expect.objectContaining({
+    expect(createNimiClientMock).toHaveBeenCalledWith(expect.objectContaining({
       appId: 'nimi.avatar',
-      realmBaseUrl: 'http://localhost:3002',
+      runtime: expect.objectContaining({
+        appId: 'nimi.avatar',
+        transport: expect.objectContaining({
+          type: 'tauri-ipc',
+          commandNamespace: 'runtime_bridge',
+          eventNamespace: 'runtime_bridge',
+        }),
+      }),
     }));
-    expect(createNimiAppRuntimePlatformClientMock.mock.calls[0]?.[0]).not.toHaveProperty('accessToken');
-    expect(createNimiAppRuntimePlatformClientMock.mock.calls[0]?.[0]).not.toHaveProperty('refreshTokenProvider');
+    expect(createNimiClientMock.mock.calls[0]?.[0]).not.toHaveProperty('accessToken');
+    expect(createNimiClientMock.mock.calls[0]?.[0]).not.toHaveProperty('refreshTokenProvider');
     expect(getAccountSessionStatusMock).toHaveBeenCalledWith({
       caller: expect.objectContaining({
         appId: 'nimi.avatar',
@@ -440,11 +451,7 @@ describe('bootstrapAvatar', () => {
       requestedScopes: [],
     });
     expect(getAnchorSnapshotMock).not.toHaveBeenCalled();
-    expect(openAnchorMock).toHaveBeenCalledWith({
-      ownerUserId: OWNER_USER_ID,
-      realmAgentId: REALM_AGENT_ID,
-      localAgentRef: LOCAL_AGENT_REF,
-    });
+    expect(openAnchorMock).toHaveBeenCalledWith(openAnchorRequestMatcher(), undefined);
     expect(resolveLocalAvatarAssetManifestMock).toHaveBeenCalledWith({
       accountId: OWNER_USER_ID,
       ownerUserId: OWNER_USER_ID,
@@ -486,7 +493,11 @@ describe('bootstrapAvatar', () => {
     expect(createDriverMock).toHaveBeenCalledWith({
       kind: 'sdk',
       sdk: expect.objectContaining({
-        runtime: runtimeMock,
+        runtimeAgent: expect.objectContaining({
+          anchors: expect.any(Object),
+          turns: expect.any(Object),
+          companionParticipation: expect.any(Object),
+        }),
         ownerUserId: OWNER_USER_ID,
         realmAgentId: REALM_AGENT_ID,
         localAgentRef: LOCAL_AGENT_REF,
@@ -534,27 +545,15 @@ describe('bootstrapAvatar', () => {
       reason: 'avatar_voice_interrupt',
     });
 
-    expect(requestCompanionParticipationMock).toHaveBeenCalledWith({
-      ownerUserId: OWNER_USER_ID,
-      realmAgentId: REALM_AGENT_ID,
-      localAgentRef: LOCAL_AGENT_REF,
+    expect(requestCompanionParticipationMock).toHaveBeenCalledWith(companionParticipationRequestMatcher('anchor-runtime', {
       conversationAnchorId: 'anchor-runtime',
-      surfaceKind: 'avatar_companion',
-      triggerSource: 'user_explicit',
       text: 'hello avatar',
-    });
-    expect(cancelCompanionParticipationMock).toHaveBeenCalledWith({
-      ownerUserId: OWNER_USER_ID,
-      realmAgentId: REALM_AGENT_ID,
-      localAgentRef: LOCAL_AGENT_REF,
+    }), undefined);
+    expect(cancelCompanionParticipationMock).toHaveBeenCalledWith(companionParticipationRequestMatcher('anchor-runtime', {
       conversationAnchorId: 'anchor-runtime',
-      surfaceKind: 'avatar_companion',
-      triggerSource: 'user_explicit',
       turnId: 'turn-runtime',
       reason: 'avatar_voice_interrupt',
-    });
-    expect(requestTurnMock).not.toHaveBeenCalled();
-    expect(interruptTurnMock).not.toHaveBeenCalled();
+    }), undefined);
 
     await handle.shutdown();
   });
@@ -579,12 +578,8 @@ describe('bootstrapAvatar', () => {
 
     expect(getDaemonStatusMock).toHaveBeenCalledTimes(1);
     expect(startDaemonMock).toHaveBeenCalledTimes(1);
-    expect(createNimiAppRuntimePlatformClientMock).toHaveBeenCalledTimes(1);
-    expect(openAnchorMock).toHaveBeenCalledWith({
-      ownerUserId: OWNER_USER_ID,
-      realmAgentId: REALM_AGENT_ID,
-      localAgentRef: LOCAL_AGENT_REF,
-    });
+    expect(createNimiClientMock).toHaveBeenCalledTimes(1);
+    expect(openAnchorMock).toHaveBeenCalledWith(openAnchorRequestMatcher(), undefined);
     expect(useAvatarStore.getState().runtime.binding.status).toBe('active');
 
     await handle.shutdown();
@@ -609,7 +604,7 @@ describe('bootstrapAvatar', () => {
     const handle = await bootstrapAvatar();
 
     expect(startDaemonMock).toHaveBeenCalledTimes(1);
-    expect(createNimiAppRuntimePlatformClientMock).not.toHaveBeenCalled();
+    expect(createNimiClientMock).not.toHaveBeenCalled();
     expect(useAvatarStore.getState().runtime.binding.status).toBe('unavailable');
     expect(useAvatarStore.getState().runtime.binding.reason).toBe(
       'runtime_daemon_prepare: RUNTIME_BRIDGE_DAEMON_START_TIMEOUT / start_runtime_daemon',
@@ -643,11 +638,7 @@ describe('bootstrapAvatar', () => {
       launchSource: null,
     });
     expect(useAvatarStore.getState().runtime.binding.status).toBe('active');
-    expect(openAnchorMock).toHaveBeenCalledWith({
-      ownerUserId: OWNER_USER_ID,
-      realmAgentId: REALM_AGENT_ID,
-      localAgentRef: LOCAL_AGENT_REF,
-    });
+    expect(openAnchorMock).toHaveBeenCalledWith(openAnchorRequestMatcher(), undefined);
     expect(useAvatarStore.getState().consume.avatarInstanceId).toBe('avatar-1777420800000');
     expect(createDriverMock).toHaveBeenCalledTimes(1);
     expect(createDriverMock.mock.calls[0]?.[0]?.sdk).not.toHaveProperty('scopedBinding');
@@ -678,12 +669,7 @@ describe('bootstrapAvatar', () => {
 
     const handle = await bootstrapAvatar();
 
-    expect(getAnchorSnapshotMock).toHaveBeenCalledWith({
-      ownerUserId: OWNER_USER_ID,
-      realmAgentId: REALM_AGENT_ID,
-      localAgentRef: LOCAL_AGENT_REF,
-      conversationAnchorId: 'anchor-recovered',
-    });
+    expect(getAnchorSnapshotMock).toHaveBeenCalledWith(anchorSnapshotRequestMatcher('anchor-recovered'), undefined);
     expect(openAnchorMock).not.toHaveBeenCalled();
     expect(useAvatarStore.getState().consume.conversationAnchorId).toBe('anchor-recovered');
     expect(window.localStorage.getItem('nimi.avatar.conversation-context.v2')).toContain('anchor-recovered');
@@ -715,11 +701,7 @@ describe('bootstrapAvatar', () => {
     const handle = await bootstrapAvatar();
 
     expect(getAnchorSnapshotMock).not.toHaveBeenCalled();
-    expect(openAnchorMock).toHaveBeenCalledWith({
-      ownerUserId: OWNER_USER_ID,
-      realmAgentId: REALM_AGENT_ID,
-      localAgentRef: LOCAL_AGENT_REF,
-    });
+    expect(openAnchorMock).toHaveBeenCalledWith(openAnchorRequestMatcher(), undefined);
     expect(useAvatarStore.getState().consume.conversationAnchorId).toBe('anchor-runtime');
 
     await handle.shutdown();
@@ -749,17 +731,8 @@ describe('bootstrapAvatar', () => {
 
     const handle = await bootstrapAvatar();
 
-    expect(getAnchorSnapshotMock).toHaveBeenCalledWith({
-      ownerUserId: OWNER_USER_ID,
-      realmAgentId: REALM_AGENT_ID,
-      localAgentRef: LOCAL_AGENT_REF,
-      conversationAnchorId: 'anchor-stale',
-    });
-    expect(openAnchorMock).toHaveBeenCalledWith({
-      ownerUserId: OWNER_USER_ID,
-      realmAgentId: REALM_AGENT_ID,
-      localAgentRef: LOCAL_AGENT_REF,
-    });
+    expect(getAnchorSnapshotMock).toHaveBeenCalledWith(anchorSnapshotRequestMatcher('anchor-stale'), undefined);
+    expect(openAnchorMock).toHaveBeenCalledWith(openAnchorRequestMatcher(), undefined);
     expect(useAvatarStore.getState().runtime.binding.status).toBe('active');
     expect(useAvatarStore.getState().consume.conversationAnchorId).toBe('anchor-runtime');
     expect(window.localStorage.getItem('nimi.avatar.conversation-context.v2')).toContain('anchor-runtime');
@@ -803,12 +776,7 @@ describe('bootstrapAvatar', () => {
 
     const handle = await bootstrapAvatar();
 
-    expect(getAnchorSnapshotMock).toHaveBeenCalledWith({
-      ownerUserId: OWNER_USER_ID,
-      realmAgentId: REALM_AGENT_ID,
-      localAgentRef: LOCAL_AGENT_REF,
-      conversationAnchorId: 'anchor-instance-2',
-    });
+    expect(getAnchorSnapshotMock).toHaveBeenCalledWith(anchorSnapshotRequestMatcher('anchor-instance-2'), undefined);
     expect(useAvatarStore.getState().consume.avatarInstanceId).toBe('instance-2');
     expect(useAvatarStore.getState().consume.conversationAnchorId).toBe('anchor-instance-2');
     expect(openAnchorMock).not.toHaveBeenCalled();
@@ -833,11 +801,7 @@ describe('bootstrapAvatar', () => {
     const handle = await bootstrapAvatar();
 
     expect(getAnchorSnapshotMock).not.toHaveBeenCalled();
-    expect(openAnchorMock).toHaveBeenCalledWith({
-      ownerUserId: OWNER_USER_ID,
-      realmAgentId: REALM_AGENT_ID,
-      localAgentRef: LOCAL_AGENT_REF,
-    });
+    expect(openAnchorMock).toHaveBeenCalledWith(openAnchorRequestMatcher(), undefined);
     expect(useAvatarStore.getState().consume.agentId).toBe(LOCAL_AGENT_REF);
     expect(useAvatarStore.getState().consume.conversationAnchorId).toBe('anchor-runtime');
 
@@ -883,7 +847,7 @@ describe('bootstrapAvatar', () => {
       detail: expect.objectContaining({
         reason: 'conversation_context: PRINCIPAL_UNAUTHORIZED / check_runtime_bridge_and_daemon',
         error_stage: 'conversation_context',
-        error_reason_code: ReasonCode.PRINCIPAL_UNAUTHORIZED,
+        error_reason_code: 'PRINCIPAL_UNAUTHORIZED',
         error_action_hint: 'check_runtime_bridge_and_daemon',
         error_source: 'runtime',
         error_retryable: true,

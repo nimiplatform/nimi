@@ -3,7 +3,7 @@ import {
   resolveBrowserStorage,
   writeStorageJsonTo,
 } from '@nimiplatform/kit/core/storage-json';
-import type { Runtime } from '@nimiplatform/sdk/runtime/browser';
+import type { NimiRuntimeAgentConsumeClient } from '@nimiplatform/sdk/runtime';
 
 const STORAGE_KEY = 'nimi.avatar.conversation-context.v2';
 const SCHEMA_VERSION = 2;
@@ -140,14 +140,14 @@ function readPersistedContext(input: {
 }
 
 async function validatePersistedAnchor(input: {
-  runtime: Runtime;
+  runtimeAgent: NimiRuntimeAgentConsumeClient;
   ownerUserId: string;
   realmAgentId: string;
   localAgentRef: string;
   conversationAnchorId: string;
 }): Promise<AvatarConversationContextResult | null> {
   try {
-    const snapshot = await input.runtime.agent.anchors.getSnapshot({
+    const snapshot = await input.runtimeAgent.anchors.getSnapshot({
       ownerUserId: input.ownerUserId,
       realmAgentId: input.realmAgentId,
       localAgentRef: input.localAgentRef,
@@ -175,14 +175,14 @@ async function validatePersistedAnchor(input: {
 }
 
 async function resolveRegisteredLiveInstanceAnchor(input: {
-  runtime: Runtime;
+  runtimeAgent: NimiRuntimeAgentConsumeClient;
   ownerUserId: string;
   realmAgentId: string;
   localAgentRef: string;
   avatarInstanceId: string;
 }): Promise<AvatarConversationContextResult | null> {
   try {
-    const result = await input.runtime.agent.anchors.resolveAvatarLiveInstance({
+    const result = await input.runtimeAgent.anchors.resolveAvatarLiveInstance({
       ownerUserId: input.ownerUserId,
       realmAgentId: input.realmAgentId,
       localAgentRef: input.localAgentRef,
@@ -222,7 +222,7 @@ async function resolveRegisteredLiveInstanceAnchor(input: {
 }
 
 export async function resolveAvatarConversationContext(input: {
-  runtime: Runtime;
+  runtimeAgent: NimiRuntimeAgentConsumeClient;
   accountId: string;
   ownerUserId: string;
   realmAgentId: string;
@@ -233,7 +233,7 @@ export async function resolveAvatarConversationContext(input: {
     throw new Error('Avatar resolved ownerUserId does not match Runtime account projection');
   }
   const registered = await resolveRegisteredLiveInstanceAnchor({
-    runtime: input.runtime,
+    runtimeAgent: input.runtimeAgent,
     ownerUserId: input.ownerUserId,
     realmAgentId: input.realmAgentId,
     localAgentRef: input.localAgentRef,
@@ -256,7 +256,7 @@ export async function resolveAvatarConversationContext(input: {
   });
   if (persisted) {
     const recovered = await validatePersistedAnchor({
-      runtime: input.runtime,
+      runtimeAgent: input.runtimeAgent,
       ownerUserId: input.ownerUserId,
       realmAgentId: input.realmAgentId,
       localAgentRef: input.localAgentRef,
@@ -273,7 +273,7 @@ export async function resolveAvatarConversationContext(input: {
     }
   }
 
-  const opened = await input.runtime.agent.anchors.open({
+  const opened = await input.runtimeAgent.anchors.open({
     ownerUserId: input.ownerUserId,
     realmAgentId: input.realmAgentId,
     localAgentRef: input.localAgentRef,

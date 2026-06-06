@@ -1,11 +1,12 @@
 import { getDaemonStatus, startDaemon } from '@renderer/bridge';
+import { AccountReasonCode, ReasonCode } from '@nimiplatform/sdk/runtime/generated';
 import { recordAvatarEvidenceEventually } from './avatar-evidence.js';
 import { useAvatarStore } from './app-store.js';
 import { readNormalizedString } from './app-bootstrap-helpers.js';
 
 export type FirstPartyBootstrapStage =
   | 'runtime_daemon_prepare'
-  | 'platform_client'
+  | 'runtime_client_ready'
   | 'account_session_status'
   | 'account_access_token'
   | 'conversation_context'
@@ -39,6 +40,22 @@ function readErrorField(error: unknown, field: string): string {
   }
   const value = (error as Record<string, unknown>)[field];
   return typeof value === 'string' ? value.trim() : '';
+}
+
+function readErrorEnumField(
+  error: unknown,
+  field: string,
+  enumObject: Record<string, string | number>,
+): string {
+  const text = readErrorField(error, field);
+  if (text) {
+    return text;
+  }
+  if (!error || typeof error !== 'object') {
+    return '';
+  }
+  const value = (error as Record<string, unknown>)[field];
+  return readEnumName(enumObject, value) || '';
 }
 
 function readErrorBooleanField(error: unknown, field: string): boolean | null {
@@ -192,8 +209,8 @@ export async function runFirstPartyStageWithTimeout<T>(
 export function firstPartyUnavailableDetail(error: unknown): FirstPartyBootstrapErrorDetail {
   const stage = readErrorField(error, 'avatarBootstrapStage') || null;
   const fallback = fallbackDiagnosticForFirstPartyStage(stage);
-  const accountReasonCode = readErrorField(error, 'accountReasonCode') || null;
-  const reasonCode = readErrorField(error, 'reasonCode') || fallback?.reasonCode || null;
+  const accountReasonCode = readErrorEnumField(error, 'accountReasonCode', AccountReasonCode) || null;
+  const reasonCode = readErrorEnumField(error, 'reasonCode', ReasonCode) || fallback?.reasonCode || null;
   const actionHint = readErrorField(error, 'actionHint') || fallback?.actionHint || null;
   const source = readErrorField(error, 'source') || fallback?.source || null;
   const message = error instanceof Error

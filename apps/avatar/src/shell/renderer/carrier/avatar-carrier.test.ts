@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { AvatarDebugProbeKind } from '@nimiplatform/sdk/runtime';
+import { AvatarDebugProbeKind } from '@nimiplatform/sdk/runtime/generated';
 import type { AgentDataBundle, AgentDataDriver, AgentEvent, DriverStatus } from '../driver/types.js';
 import { useAvatarStore } from '../app-shell/app-store.js';
 

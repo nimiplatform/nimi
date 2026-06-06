@@ -10,7 +10,7 @@
 //     topic).
 //   - The caller-injected audio-bytes fetcher is removed. Audio
 //     bytes are read directly by AudioPipelineController via
-//     `runtime.artifacts.readBytes` (S-RUNTIME-111).
+//     `runtime.artifacts.readArtifactBytes` (S-RUNTIME-111).
 //   - The Live2D-specific mouth bridge instance is dropped; topic-internal
 //     wave_1 lands the Live2D wLipSync driver module for the Cubism
 //     `ParamMouthOpenY` / `ParamMouthForm` write path. Wave 0 close gate
@@ -32,9 +32,9 @@
 
 import type { AgentDataDriver, AgentEvent } from '../driver/types.js';
 import {
-  parseRuntimeAgentTimeline,
-  type RuntimeAgentTimelineEnvelope,
-} from '@nimiplatform/sdk/runtime/browser';
+  parseNimiRuntimeAgentTimeline,
+  type NimiRuntimeAgentTimelineEnvelope,
+} from '@nimiplatform/sdk/runtime';
 import type { BackendBranch } from '@nimiplatform/kit/features/avatar/headless';
 import {
   AudioPipelineController,
@@ -44,7 +44,7 @@ import {
   type VoiceLipsyncStateBus,
 } from '@nimiplatform/kit/features/avatar/headless';
 
-type RuntimeTimelineDetail = RuntimeAgentTimelineEnvelope;
+type RuntimeTimelineDetail = NimiRuntimeAgentTimelineEnvelope;
 
 export type AvatarVoiceLipsyncPipeline = {
   handleEvent(event: AgentEvent): void;
@@ -72,7 +72,7 @@ function parseRuntimeTimeline(
     return null;
   }
   try {
-    return parseRuntimeAgentTimeline(
+    return parseNimiRuntimeAgentTimeline(
       detail['runtime_timeline'],
       messageType,
       turnId,

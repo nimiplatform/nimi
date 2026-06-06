@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { resolveAvatarConversationContext } from './avatar-conversation-context.js';
-import { ReasonCode } from '@nimiplatform/sdk/types';
-import type { Runtime } from '@nimiplatform/sdk/runtime/browser';
+import { type NimiRuntimeAgentConsumeClient } from '@nimiplatform/sdk/runtime';
+import { ReasonCode } from '@nimiplatform/sdk/runtime/generated';
 
 const OWNER_USER_ID = 'account-runtime';
 const REALM_AGENT_ID = 'agent-e2e-alpha';
@@ -30,18 +30,16 @@ describe('resolveAvatarConversationContext', () => {
         },
       },
     });
-    const runtime = {
-      agent: {
-        anchors: {
-          open,
-          resolveAvatarLiveInstance,
-          getSnapshot: vi.fn(),
-        },
+    const runtimeAgent = {
+      anchors: {
+        open,
+        resolveAvatarLiveInstance,
+        getSnapshot: vi.fn(),
       },
-    } as unknown as Runtime;
+    } as unknown as NimiRuntimeAgentConsumeClient;
 
     const resolved = await resolveAvatarConversationContext({
-      runtime,
+      runtimeAgent,
       accountId: OWNER_USER_ID,
       ownerUserId: OWNER_USER_ID,
       realmAgentId: REALM_AGENT_ID,
@@ -66,26 +64,24 @@ describe('resolveAvatarConversationContext', () => {
   it('fails closed on registered live-instance binding permission errors', async () => {
     const open = vi.fn();
     const resolveAvatarLiveInstance = vi.fn().mockRejectedValue(Object.assign(new Error('permission denied'), {
-      reasonCode: ReasonCode.RUNTIME_GRPC_PERMISSION_DENIED,
+      reasonCode: ReasonCode.PRINCIPAL_UNAUTHORIZED,
     }));
-    const runtime = {
-      agent: {
-        anchors: {
-          open,
-          resolveAvatarLiveInstance,
-          getSnapshot: vi.fn(),
-        },
+    const runtimeAgent = {
+      anchors: {
+        open,
+        resolveAvatarLiveInstance,
+        getSnapshot: vi.fn(),
       },
-    } as unknown as Runtime;
+    } as unknown as NimiRuntimeAgentConsumeClient;
 
     await expect(resolveAvatarConversationContext({
-      runtime,
+      runtimeAgent,
       accountId: OWNER_USER_ID,
       ownerUserId: OWNER_USER_ID,
       realmAgentId: REALM_AGENT_ID,
       localAgentRef: LOCAL_AGENT_REF,
       avatarInstanceId: 'instance-1',
-    })).rejects.toMatchObject({ reasonCode: ReasonCode.RUNTIME_GRPC_PERMISSION_DENIED });
+    })).rejects.toMatchObject({ reasonCode: ReasonCode.PRINCIPAL_UNAUTHORIZED });
     expect(open).not.toHaveBeenCalled();
   });
 });

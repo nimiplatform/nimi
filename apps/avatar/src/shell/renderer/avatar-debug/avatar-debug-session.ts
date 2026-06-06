@@ -1,4 +1,4 @@
-import { AvatarDebugProbeKind } from '@nimiplatform/sdk/runtime';
+import { AvatarDebugProbeKind } from '@nimiplatform/sdk/runtime/generated';
 import { recordAvatarEvidenceEventually } from '../app-shell/avatar-evidence.js';
 import type { BackendBranch } from '@nimiplatform/kit/features/avatar/headless';
 import {

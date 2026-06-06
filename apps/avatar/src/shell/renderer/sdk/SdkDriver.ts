@@ -1,4 +1,4 @@
-import type { Runtime } from '@nimiplatform/sdk/runtime/browser';
+import type { NimiRuntimeAgentConsumeClient } from '@nimiplatform/sdk/runtime';
 import type {
   AgentDataBundle,
   AgentDataDriver,
@@ -13,11 +13,15 @@ import {
   mergeCustomRecord,
   mergeHistory,
   normalizeRuntimeTimelineForAvatar,
+  optionalRuntimeDetailText,
+  optionalRuntimeExecutionState,
   optionalRuntimePreviousEmotion,
   readSnapshotStatusCue,
   requireRuntimeActivityCategory,
   requireRuntimeActivityIntensity,
   requireRuntimeCurrentEmotion,
+  requireRuntimeDetailText,
+  requireRuntimePostureDetail,
   requireRuntimeProjectionSource,
   requireRuntimeSourceText,
   toRuntimeAgentEvent,
@@ -32,7 +36,7 @@ type InternalEvents = {
 };
 
 export type SdkDriverOptions = {
-  runtime: Runtime;
+  runtimeAgent: NimiRuntimeAgentConsumeClient;
   ownerUserId: string;
   realmAgentId: string;
   localAgentRef: string;
@@ -49,7 +53,7 @@ export type SdkDriverOptions = {
 export class SdkDriver implements AgentDataDriver {
   readonly kind = 'sdk' as const;
   private _status: DriverStatus = 'idle';
-  private readonly runtime: Runtime;
+  private readonly runtimeAgent: NimiRuntimeAgentConsumeClient;
   private readonly ownerUserId: string;
   private readonly realmAgentId: string;
   private readonly localAgentRef: string;
@@ -66,7 +70,7 @@ export class SdkDriver implements AgentDataDriver {
   private bundle: AgentDataBundle;
 
   constructor(options: SdkDriverOptions) {
-    this.runtime = options.runtime;
+    this.runtimeAgent = options.runtimeAgent;
     this.ownerUserId = options.ownerUserId;
     this.realmAgentId = options.realmAgentId;
     this.localAgentRef = options.localAgentRef;
@@ -93,7 +97,7 @@ export class SdkDriver implements AgentDataDriver {
     this.streamAbort = new AbortController();
     this.publishBundle();
     try {
-      const snapshot = await this.runtime.agent.turns.getSessionSnapshot(
+      const snapshot = await this.runtimeAgent.turns.getSessionSnapshot(
         {
 	          ownerUserId: this.ownerUserId,
 	          realmAgentId: this.realmAgentId,
@@ -104,7 +108,7 @@ export class SdkDriver implements AgentDataDriver {
         { signal: this.streamAbort.signal },
       );
       this.applySessionSnapshot(snapshot);
-      const stream = await this.runtime.agent.turns.subscribe(
+      const stream = await this.runtimeAgent.turns.subscribe(
         {
 	          ownerUserId: this.ownerUserId,
 	          realmAgentId: this.realmAgentId,
@@ -403,20 +407,21 @@ export class SdkDriver implements AgentDataDriver {
     switch (event.eventName) {
       case 'runtime.agent.presentation.activity_requested': {
         const timestampNow = this.now();
+        const activityName = requireRuntimeDetailText(event.detail.activityName, 'runtime activity name');
         const category = requireRuntimeActivityCategory(event.detail.category);
         const intensity = requireRuntimeActivityIntensity(event.detail.intensity);
         const runtimeSource = requireRuntimeProjectionSource(event.detail.source, 'runtime activity projection');
         this.bundle = {
           ...this.bundle,
           activity: {
-            name: event.detail.activityName,
+            name: activityName,
             category,
             intensity,
             source: runtimeSource,
           },
           history: mergeHistory(this.bundle.history, {
             last_activity: {
-              name: event.detail.activityName,
+              name: activityName,
               at: new Date(timestampNow).toISOString(),
             },
           }),
@@ -429,7 +434,7 @@ export class SdkDriver implements AgentDataDriver {
         this.touchRuntimeNow();
         this.publishBundle();
         this.emitAgentEvent(toRuntimeAgentEvent(event.eventName, {
-          activity_name: event.detail.activityName,
+          activity_name: activityName,
           category,
           intensity,
           source: runtimeSource,
@@ -442,10 +447,11 @@ export class SdkDriver implements AgentDataDriver {
       }
       case 'runtime.agent.presentation.motion_requested': {
         const at = new Date(this.now()).toISOString();
+        const motionId = requireRuntimeDetailText(event.detail.motionId, 'runtime motion id');
         this.bundle = {
           ...this.bundle,
           history: mergeHistory(this.bundle.history, {
-            last_motion: { group: event.detail.motionId, at },
+            last_motion: { group: motionId, at },
           }),
         };
         break;
@@ -453,16 +459,17 @@ export class SdkDriver implements AgentDataDriver {
       case 'runtime.agent.presentation.expression_requested': {
         const timestampNow = this.now();
         const at = new Date(timestampNow).toISOString();
+        const expressionId = requireRuntimeDetailText(event.detail.expressionId, 'runtime expression id');
         this.bundle = {
           ...this.bundle,
           history: mergeHistory(this.bundle.history, {
-            last_expression: { name: event.detail.expressionId, at },
+            last_expression: { name: expressionId, at },
           }),
         };
         this.touchRuntimeNow();
         this.publishBundle();
         this.emitAgentEvent(toRuntimeAgentEvent(event.eventName, {
-          expression_id: event.detail.expressionId,
+          expression_id: expressionId,
           expected_duration_ms: event.detail.expectedDurationMs ?? null,
           agent_id: event.localAgentRef,
           conversation_anchor_id: event.conversationAnchorId,
@@ -474,13 +481,13 @@ export class SdkDriver implements AgentDataDriver {
       case 'runtime.agent.state.status_text_changed':
         this.bundle = {
           ...this.bundle,
-          status_text: event.detail.currentStatusText,
+          status_text: requireRuntimeDetailText(event.detail.currentStatusText, 'runtime status text'),
         };
         break;
       case 'runtime.agent.state.execution_state_changed':
         this.bundle = {
           ...this.bundle,
-          execution_state: mapExecutionState(event.detail.currentExecutionState),
+          execution_state: mapExecutionState(optionalRuntimeExecutionState(event.detail.currentExecutionState)),
         };
         break;
       case 'runtime.agent.state.emotion_changed': {
@@ -502,41 +509,46 @@ export class SdkDriver implements AgentDataDriver {
         };
         break;
       }
-      case 'runtime.agent.state.posture_changed':
+      case 'runtime.agent.state.posture_changed': {
+        const posture = requireRuntimePostureDetail(event.detail.currentPosture);
         this.bundle = {
           ...this.bundle,
           posture: {
-            posture_class: `${event.detail.currentPosture.actionFamily}_${event.detail.currentPosture.interruptMode}`,
-            action_family: event.detail.currentPosture.actionFamily as AgentDataBundle['posture']['action_family'],
-            interrupt_mode: event.detail.currentPosture.interruptMode as AgentDataBundle['posture']['interrupt_mode'],
+            posture_class: `${posture.actionFamily}_${posture.interruptMode}`,
+            action_family: posture.actionFamily as AgentDataBundle['posture']['action_family'],
+            interrupt_mode: posture.interruptMode as AgentDataBundle['posture']['interrupt_mode'],
             transition_reason: event.eventName,
             truth_basis_ids: [event.originatingTurnId].filter((value): value is string => Boolean(value)),
           },
         };
         break;
-      case 'runtime.agent.turn.message_committed':
+      }
+      case 'runtime.agent.turn.message_committed': {
+        const text = requireRuntimeDetailText(event.detail.text, 'runtime committed message text');
+        const messageId = optionalRuntimeDetailText(event.detail.messageId) ?? undefined;
         this.setActiveTurnCue({
           turnId: event.turnId,
           streamId: event.streamId,
           phase: 'committed',
-          text: event.detail.text || '',
+          text,
           at: new Date(this.now()).toISOString(),
         });
         this.setLatestCommittedMessage({
-          messageId: event.detail.messageId,
+          messageId,
           turnId: event.turnId,
-          text: event.detail.text,
+          text,
           at: new Date(this.now()).toISOString(),
         });
         this.bundle = {
           ...this.bundle,
-          status_text: event.detail.text || this.bundle.status_text,
+          status_text: text || this.bundle.status_text,
           custom: mergeCustomRecord(this.bundle.custom, {
-            last_committed_message_id: event.detail.messageId,
+            last_committed_message_id: messageId ?? null,
             last_committed_turn_id: event.turnId,
           }),
         };
         break;
+      }
       case 'runtime.agent.turn.accepted':
         this.setActiveTurnCue({
           turnId: event.turnId,
@@ -557,7 +569,7 @@ export class SdkDriver implements AgentDataDriver {
         this.updateActiveTurnText({
           turnId: event.turnId,
           streamId: event.streamId,
-          text: event.detail.text || '',
+          text: requireRuntimeDetailText(event.detail.text, 'runtime turn text delta'),
           at: new Date(this.now()).toISOString(),
         });
         break;
@@ -566,7 +578,7 @@ export class SdkDriver implements AgentDataDriver {
           phase: 'completed',
           turnId: event.turnId,
           at: new Date(this.now()).toISOString(),
-          reason: event.detail.terminalReason ?? null,
+          reason: optionalRuntimeDetailText(event.detail.terminalReason),
         });
         break;
       case 'runtime.agent.turn.failed':
@@ -574,7 +586,8 @@ export class SdkDriver implements AgentDataDriver {
           phase: 'failed',
           turnId: event.turnId,
           at: new Date(this.now()).toISOString(),
-          reason: event.detail.message ?? event.detail.reasonCode,
+          reason: optionalRuntimeDetailText(event.detail.message)
+            ?? optionalRuntimeDetailText(event.detail.reasonCode),
         });
         break;
       case 'runtime.agent.turn.interrupted':
@@ -582,7 +595,7 @@ export class SdkDriver implements AgentDataDriver {
           phase: 'interrupted',
           turnId: event.turnId,
           at: new Date(this.now()).toISOString(),
-          reason: event.detail.reason,
+          reason: optionalRuntimeDetailText(event.detail.reason),
           interruptedTurnId: event.turnId,
         });
         break;
@@ -591,7 +604,7 @@ export class SdkDriver implements AgentDataDriver {
           phase: 'interrupt_ack',
           turnId: event.turnId,
           at: new Date(this.now()).toISOString(),
-          interruptedTurnId: event.detail.interruptedTurnId,
+          interruptedTurnId: optionalRuntimeDetailText(event.detail.interruptedTurnId),
         });
         break;
       case 'runtime.agent.turn.reasoning_delta':

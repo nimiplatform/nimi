@@ -1,14 +1,9 @@
-import {
-  createLocalFirstPartyRuntimeAccountCaller,
-  isRuntimeLocalAgentRef,
-  parseRuntimeLocalAgentIdentity,
-  projectRuntimeLocalAgentIdentity,
-  type AccountCaller,
-} from '@nimiplatform/sdk/runtime/browser';
+import { createNimiLocalFirstPartyRuntimeAccountCaller, isRuntimeLocalAgentRef, parseRuntimeLocalAgentIdentity, projectRuntimeLocalAgentIdentity } from '@nimiplatform/sdk/runtime';
+import { type AccountCaller } from '@nimiplatform/sdk/runtime/generated';
 import { readNormalizedString } from './app-bootstrap-helpers.js';
 
 export function createAvatarAccountCaller(appId: string): AccountCaller {
-  return createLocalFirstPartyRuntimeAccountCaller({ appId });
+  return createNimiLocalFirstPartyRuntimeAccountCaller({ appId });
 }
 
 export function resolveLaunchAgentIdentity(input: {

@@ -41,20 +41,18 @@ describe('SdkDriver', () => {
       await new Promise(() => {});
     }
 
-    const runtime = {
-      agent: {
-        turns: {
-          getSessionSnapshot: async () => ({
-            sessionStatus: 'active',
-            transcriptMessageCount: 3,
-          }),
-          subscribe: async () => stream(),
-        },
+    const runtimeAgent = {
+      turns: {
+        getSessionSnapshot: async () => ({
+          sessionStatus: 'active',
+          transcriptMessageCount: 3,
+        }),
+        subscribe: async () => stream(),
       },
     } as const;
 
     const driver = new SdkDriver({
-      runtime: runtime as never,
+      runtimeAgent: runtimeAgent as never,
       ...LOCAL_IDENTITY,
       conversationAnchorId: 'anchor-1',
       activeWorldId: 'world-1',
@@ -89,21 +87,19 @@ describe('SdkDriver', () => {
       return;
     }
 
-    const runtime = {
-      agent: {
-        turns: {
-          getSessionSnapshot: async () => ({
-            sessionStatus: 'active',
-            transcriptMessageCount: 0,
-          }),
-          subscribe: async () => closedStream(),
-        },
+    const runtimeAgent = {
+      turns: {
+        getSessionSnapshot: async () => ({
+          sessionStatus: 'active',
+          transcriptMessageCount: 0,
+        }),
+        subscribe: async () => closedStream(),
       },
     } as const;
 
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     const driver = new SdkDriver({
-      runtime: runtime as never,
+      runtimeAgent: runtimeAgent as never,
       ...LOCAL_IDENTITY,
       conversationAnchorId: 'anchor-1',
       activeWorldId: 'world-1',
@@ -136,21 +132,19 @@ describe('SdkDriver', () => {
       await new Promise(() => {});
     }
 
-    const runtime = {
-      agent: {
-        turns: {
-          getSessionSnapshot: async () => ({
-            sessionStatus: 'active',
-            transcriptMessageCount: 0,
-          }),
-          subscribe: async () => stream(),
-        },
+    const runtimeAgent = {
+      turns: {
+        getSessionSnapshot: async () => ({
+          sessionStatus: 'active',
+          transcriptMessageCount: 0,
+        }),
+        subscribe: async () => stream(),
       },
     } as const;
 
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     const driver = new SdkDriver({
-      runtime: runtime as never,
+      runtimeAgent: runtimeAgent as never,
       ...LOCAL_IDENTITY,
       conversationAnchorId: 'anchor-1',
       activeWorldId: 'world-1',
@@ -183,20 +177,18 @@ describe('SdkDriver', () => {
       await new Promise(() => {});
     }
 
-    const runtime = {
-      agent: {
-        turns: {
-          getSessionSnapshot: async () => ({
-            sessionStatus: 'active',
-            transcriptMessageCount: 0,
-          }),
-          subscribe: async () => stream(),
-        },
+    const runtimeAgent = {
+      turns: {
+        getSessionSnapshot: async () => ({
+          sessionStatus: 'active',
+          transcriptMessageCount: 0,
+        }),
+        subscribe: async () => stream(),
       },
     } as const;
 
     const driver = new SdkDriver({
-      runtime: runtime as never,
+      runtimeAgent: runtimeAgent as never,
       ...LOCAL_IDENTITY,
       conversationAnchorId: 'anchor-1',
       activeWorldId: 'world-1',
@@ -238,26 +230,24 @@ describe('SdkDriver', () => {
       await new Promise(() => {});
     }
 
-    const runtime = {
-      agent: {
-        turns: {
-          getSessionSnapshot: async () => ({
-            sessionStatus: 'active',
-            transcriptMessageCount: 4,
-            lastTurn: {
-              turnId: 'turn-1',
-              messageId: 'msg-1',
-              text: 'older reply',
-              updatedAt: '2026-04-22T00:00:00.000Z',
-            },
-          }),
-          subscribe: async () => stream(),
-        },
+    const runtimeAgent = {
+      turns: {
+        getSessionSnapshot: async () => ({
+          sessionStatus: 'active',
+          transcriptMessageCount: 4,
+          lastTurn: {
+            turnId: 'turn-1',
+            messageId: 'msg-1',
+            text: 'older reply',
+            updatedAt: '2026-04-22T00:00:00.000Z',
+          },
+        }),
+        subscribe: async () => stream(),
       },
     } as const;
 
     const driver = new SdkDriver({
-      runtime: runtime as never,
+      runtimeAgent: runtimeAgent as never,
       ...LOCAL_IDENTITY,
       conversationAnchorId: 'anchor-1',
       activeWorldId: 'world-1',
@@ -283,33 +273,31 @@ describe('SdkDriver', () => {
       await new Promise(() => {});
     }
 
-    const runtime = {
-      agent: {
-        turns: {
-          getSessionSnapshot: async () => ({
-            sessionStatus: 'active',
-            transcriptMessageCount: 1,
-            lastTurn: {
-              turnId: 'turn-1',
-              streamId: 'stream-1',
-              messageId: 'msg-1',
-              text: 'reply',
-              structured: {
-                status_cue: {
-                  mood: 'joy',
-                  action_cue: 'greet',
-                  activity_category: 'interaction',
-                },
+    const runtimeAgent = {
+      turns: {
+        getSessionSnapshot: async () => ({
+          sessionStatus: 'active',
+          transcriptMessageCount: 1,
+          lastTurn: {
+            turnId: 'turn-1',
+            streamId: 'stream-1',
+            messageId: 'msg-1',
+            text: 'reply',
+            structured: {
+              status_cue: {
+                mood: 'joy',
+                action_cue: 'greet',
+                activity_category: 'interaction',
               },
             },
-          }),
-          subscribe: async () => stream(),
-        },
+          },
+        }),
+        subscribe: async () => stream(),
       },
     } as const;
 
     const driver = new SdkDriver({
-      runtime: runtime as never,
+      runtimeAgent: runtimeAgent as never,
       ...LOCAL_IDENTITY,
       conversationAnchorId: 'anchor-1',
       activeWorldId: 'world-1',
@@ -383,20 +371,18 @@ describe('SdkDriver', () => {
       await new Promise(() => {});
     }
 
-    const runtime = {
-      agent: {
-        turns: {
-          getSessionSnapshot: async () => ({
-            sessionStatus: 'active',
-            transcriptMessageCount: 2,
-          }),
-          subscribe: async () => stream(),
-        },
+    const runtimeAgent = {
+      turns: {
+        getSessionSnapshot: async () => ({
+          sessionStatus: 'active',
+          transcriptMessageCount: 2,
+        }),
+        subscribe: async () => stream(),
       },
     } as const;
 
     const driver = new SdkDriver({
-      runtime: runtime as never,
+      runtimeAgent: runtimeAgent as never,
       ...LOCAL_IDENTITY,
       conversationAnchorId: 'anchor-1',
       activeWorldId: 'world-1',
@@ -460,20 +446,18 @@ describe('SdkDriver', () => {
       await new Promise(() => {});
     }
 
-    const runtime = {
-      agent: {
-        turns: {
-          getSessionSnapshot: async () => ({
-            sessionStatus: 'active',
-            transcriptMessageCount: 0,
-          }),
-          subscribe: async () => stream(),
-        },
+    const runtimeAgent = {
+      turns: {
+        getSessionSnapshot: async () => ({
+          sessionStatus: 'active',
+          transcriptMessageCount: 0,
+        }),
+        subscribe: async () => stream(),
       },
     } as const;
 
     const driver = new SdkDriver({
-      runtime: runtime as never,
+      runtimeAgent: runtimeAgent as never,
       ...LOCAL_IDENTITY,
       conversationAnchorId: 'anchor-1',
       activeWorldId: 'world-1',
@@ -543,20 +527,18 @@ describe('SdkDriver', () => {
       await new Promise(() => {});
     }
 
-    const runtime = {
-      agent: {
-        turns: {
-          getSessionSnapshot: async () => ({
-            sessionStatus: 'active',
-            transcriptMessageCount: 0,
-          }),
-          subscribe: async () => stream(),
-        },
+    const runtimeAgent = {
+      turns: {
+        getSessionSnapshot: async () => ({
+          sessionStatus: 'active',
+          transcriptMessageCount: 0,
+        }),
+        subscribe: async () => stream(),
       },
     } as const;
 
     const driver = new SdkDriver({
-      runtime: runtime as never,
+      runtimeAgent: runtimeAgent as never,
       ...LOCAL_IDENTITY,
       conversationAnchorId: 'anchor-1',
       activeWorldId: 'world-1',
