@@ -44,11 +44,13 @@ test('Realm Data domain surfaces consume SDK or Kit projections instead of app-o
   const preferencesSource = readRenderer('features/settings/settings-preferences-panel.tsx');
   const privacySource = readRenderer('features/settings/settings-privacy-page.tsx');
 
-  assert.match(groupDataSource, /listRealmGroupChats/);
-  assert.match(groupDataSource, /commitRealmGroupMessageCandidate/);
+  assert.match(groupDataSource, /listNimiRealmGroupChats/);
+  assert.match(groupDataSource, /commitNimiRealmGroupMessageCandidate/);
+  assert.doesNotMatch(groupDataSource, /listRealmGroupChats/);
+  assert.doesNotMatch(groupDataSource, /getPlatformClient/);
   assert.doesNotMatch(groupDataSource, /GroupChatsService\./);
 
-  assert.match(notificationPanelSource, /toRealmNotificationListProjection/);
+  assert.match(notificationPanelSource, /toNimiRealmNotificationListProjection/);
   assert.match(notificationPanelSource, /@nimiplatform\/kit\/core\/notifications/);
   assert.match(notificationPanelSource, /getNimiNotificationCategory/);
   assert.doesNotMatch(notificationPanelSource, /getRealmNotificationCategory/);
@@ -65,10 +67,10 @@ test('Realm Data domain surfaces consume SDK or Kit projections instead of app-o
   assert.doesNotMatch(humanComponentsSource, /HumanChatsService\./);
   assert.doesNotMatch(humanComponentsSource, /ResourcesService\./);
 
-  assert.match(preferencesSource, /loadRealmUserNotificationSettings/);
-  assert.match(preferencesSource, /updateRealmUserNotificationSettings/);
-  assert.match(privacySource, /loadRealmUserSettings/);
-  assert.match(privacySource, /updateRealmUserSettings/);
+  assert.match(preferencesSource, /loadNimiRealmUserNotificationSettings/);
+  assert.match(preferencesSource, /updateNimiRealmUserNotificationSettings/);
+  assert.match(privacySource, /loadNimiRealmUserSettings/);
+  assert.match(privacySource, /updateNimiRealmUserSettings/);
   for (const source of [notificationQuerySource, preferencesSource, privacySource]) {
     assert.doesNotMatch(source, /dataSync\./);
   }

@@ -1,6 +1,12 @@
 import test from 'node:test';
 
-import { assert, E2E_IDS, createBaseDriver, runDesktopMacosSmokeScenario } from './desktop-macos-smoke-test-helpers';
+import {
+  assert,
+  E2E_IDS,
+  createBaseDriver,
+  createRuntimeAgentSmokeProductPathEvidence,
+  runDesktopMacosSmokeScenario,
+} from './desktop-macos-smoke-test-helpers';
 import { waitForAvatarCarrierEvidence } from '../src/shell/renderer/infra/bootstrap/desktop-macos-smoke-avatar-evidence';
 
 const AVATAR_CARRIER_FAILURE_EVIDENCE_TIMEOUT_MS = 50;
@@ -475,21 +481,10 @@ test('desktop macos smoke live2d avatar product scenario waits for same-anchor A
     },
     async readRuntimeProductPathEvidence(input) {
       runtimeProductEvidenceRead = input.agentId === 'local-agent:user-e2e-primary:agent-e2e-alpha' && input.conversationAnchorId === 'anchor-1';
-      return {
-        runtime_health: { status: 'healthy', sampled_at: '2026-04-26T00:00:00.000Z' },
-        runtime_authenticated: true,
-        runtime_auth_scopes: ['runtime.agent.read'],
-        same_anchor: true,
-        agent_id: input.agentId,
-        conversation_anchor_id: input.conversationAnchorId,
-        anchor_snapshot: {
-          last_turn_id: 'turn-1',
-          active_turn_id: null,
-          active_stream_id: null,
-          last_message_id: 'message-1',
-        },
-        has_runtime_turn: true,
-      };
+      return createRuntimeAgentSmokeProductPathEvidence({
+        agentId: input.agentId,
+        conversationAnchorId: input.conversationAnchorId,
+      });
     },
     async readAgentConversationAnchorBinding() {
       return createRuntimeVerifiedAgentAnchorBinding();
@@ -634,21 +629,7 @@ test('desktop macos smoke live2d avatar product scenario waits for same-anchor A
     'write-pass-report',
   ]);
   const details = report.details as { avatarProductPath?: Record<string, unknown> };
-  assert.deepEqual(details.avatarProductPath?.runtime, {
-    runtime_health: { status: 'healthy', sampled_at: '2026-04-26T00:00:00.000Z' },
-    runtime_authenticated: true,
-    runtime_auth_scopes: ['runtime.agent.read'],
-    same_anchor: true,
-    agent_id: 'local-agent:user-e2e-primary:agent-e2e-alpha',
-    conversation_anchor_id: 'anchor-1',
-    anchor_snapshot: {
-      last_turn_id: 'turn-1',
-      active_turn_id: null,
-      active_stream_id: null,
-      last_message_id: 'message-1',
-    },
-    has_runtime_turn: true,
-  });
+  assert.deepEqual(details.avatarProductPath?.runtime, createRuntimeAgentSmokeProductPathEvidence());
   assert.deepEqual(details.avatarProductPath?.consumeReady, {
     kind: 'avatar.runtime.consume-ready',
     recordedAt: '2026-04-26T00:00:02.000Z',
@@ -711,21 +692,10 @@ test('desktop macos smoke live2d avatar local asset missing scenario requires ty
       values.push({ selector, value });
     },
     async readRuntimeProductPathEvidence(input) {
-      return {
-        runtime_health: { status: 'healthy', sampled_at: '2026-04-26T00:00:00.000Z' },
-        runtime_authenticated: true,
-        runtime_auth_scopes: ['runtime.agent.read'],
-        same_anchor: true,
-        agent_id: input.agentId,
-        conversation_anchor_id: input.conversationAnchorId,
-        anchor_snapshot: {
-          last_turn_id: 'turn-1',
-          active_turn_id: null,
-          active_stream_id: null,
-          last_message_id: 'message-1',
-        },
-        has_runtime_turn: true,
-      };
+      return createRuntimeAgentSmokeProductPathEvidence({
+        agentId: input.agentId,
+        conversationAnchorId: input.conversationAnchorId,
+      });
     },
     async readAgentConversationAnchorBinding() {
       return createRuntimeVerifiedAgentAnchorBinding();

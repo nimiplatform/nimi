@@ -1,22 +1,21 @@
-import { getPlatformClient } from '@nimiplatform/sdk';
 import {
-  createHostRuntimeAgentPresentationProfileSurface,
-  type HostRuntimeAgentPresentationProfileSurfaceOptions,
+  createNimiHostRuntimeAgentPresentationProfileSurface,
+  type NimiHostRuntimeAgentPresentationProfileClient,
+  type NimiHostRuntimeAgentPresentationProfileSurfaceOptions,
 } from '@nimiplatform/sdk/runtime';
 import type { AvatarPresentationProfile } from '@nimiplatform/kit/features/avatar/headless';
-
-type RuntimeClient = ReturnType<typeof getPlatformClient>['runtime'];
+import { getDesktopHostRuntimeAgentClient } from '@renderer/infra/sdk/desktop-nimi-client-session';
 
 type RuntimeAgentPresentationProfileDeps = {
-  getRuntime?: () => RuntimeClient;
-  getSubjectUserId?: HostRuntimeAgentPresentationProfileSurfaceOptions['getSubjectUserId'];
+  getRuntime?: () => NimiHostRuntimeAgentPresentationProfileClient;
+  getSubjectUserId?: NimiHostRuntimeAgentPresentationProfileSurfaceOptions['getSubjectUserId'];
 };
 
 export function createRuntimeAgentPresentationProfileAdapter(
   deps: RuntimeAgentPresentationProfileDeps = {},
 ) {
-  const surface = createHostRuntimeAgentPresentationProfileSurface({
-    getRuntime: deps.getRuntime ?? (() => getPlatformClient().runtime),
+  const surface = createNimiHostRuntimeAgentPresentationProfileSurface({
+    getRuntime: deps.getRuntime ?? getDesktopHostRuntimeAgentClient,
     getSubjectUserId: deps.getSubjectUserId ?? (() => undefined),
   });
 

@@ -1,25 +1,25 @@
 import { hasTauriInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
 import { invokeChecked } from './invoke';
 import {
-  parseProductControlRecordProjection,
-  parseProductControlSelectedDataRootProjection,
-  productControlRecordUnavailableProjection,
-  productControlSelectedDataRootUnavailableProjection,
-  type ProductControlRecordProjection,
-  type ProductControlSelectedDataRootProjection,
-} from '@nimiplatform/sdk';
+  parseNimiProductControlRecordProjection,
+  parseNimiProductControlSelectedDataRootProjection,
+  projectUnavailableNimiProductControlRecord,
+  projectUnavailableNimiProductControlSelectedDataRoot,
+  type NimiProductControlRecordProjection,
+  type NimiProductControlSelectedDataRootProjection,
+} from '@nimiplatform/sdk/runtime';
 import {
-  parseAIProfile,
-  type AIConfig,
-  type AIProfile,
+  parseNimiAIProfile,
+  type NimiAIConfig,
+  type NimiAIProfile,
 } from '@nimiplatform/sdk/ai';
 
 export type {
-  ProductControlRecord,
-  ProductControlRecordProjection,
-  ProductControlSelectedDataRootProjection,
-  ProductControlState,
-} from '@nimiplatform/sdk';
+  NimiProductControlRecord,
+  NimiProductControlRecordProjection,
+  NimiProductControlSelectedDataRootProjection,
+  NimiProductControlState,
+} from '@nimiplatform/sdk/runtime';
 
 function asRecord(value: unknown, label: string): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -28,40 +28,40 @@ function asRecord(value: unknown, label: string): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
-export async function getProductControlRecord(): Promise<ProductControlRecordProjection> {
+export async function getProductControlRecord(): Promise<NimiProductControlRecordProjection> {
   if (!hasTauriInvoke()) {
-    return productControlRecordUnavailableProjection('product_control_record_get requires Tauri runtime');
+    return projectUnavailableNimiProductControlRecord('product_control_record_get requires Tauri runtime');
   }
-  return invokeChecked('product_control_record_get', {}, parseProductControlRecordProjection);
+  return invokeChecked('product_control_record_get', {}, parseNimiProductControlRecordProjection);
 }
 
-export async function getProductControlSelectedDataRoot(): Promise<ProductControlSelectedDataRootProjection> {
+export async function getProductControlSelectedDataRoot(): Promise<NimiProductControlSelectedDataRootProjection> {
   if (!hasTauriInvoke()) {
-    return productControlSelectedDataRootUnavailableProjection(
+    return projectUnavailableNimiProductControlSelectedDataRoot(
       'product_control_selected_data_root_get requires Tauri runtime',
     );
   }
   return invokeChecked(
     'product_control_selected_data_root_get',
     {},
-    parseProductControlSelectedDataRootProjection,
+    parseNimiProductControlSelectedDataRootProjection,
   );
 }
 
-export async function ensureProductControlRecordCreated(): Promise<ProductControlRecordProjection> {
+export async function ensureProductControlRecordCreated(): Promise<NimiProductControlRecordProjection> {
   if (!hasTauriInvoke()) {
     throw new Error('product_control_record_ensure_created requires Tauri runtime');
   }
-  return invokeChecked('product_control_record_ensure_created', {}, parseProductControlRecordProjection);
+  return invokeChecked('product_control_record_ensure_created', {}, parseNimiProductControlRecordProjection);
 }
 
-export async function selectProductDataRoot(dataRoot: string): Promise<ProductControlRecordProjection> {
+export async function selectProductDataRoot(dataRoot: string): Promise<NimiProductControlRecordProjection> {
   if (!hasTauriInvoke()) {
     throw new Error('product_control_record_select_data_root requires Tauri runtime');
   }
   return invokeChecked('product_control_record_select_data_root', {
     payload: { dataRoot },
-  }, parseProductControlRecordProjection);
+  }, parseNimiProductControlRecordProjection);
 }
 
 /**
@@ -112,61 +112,61 @@ export async function defaultProductDataRootDirectory(): Promise<string | null> 
 export async function setProductFirstRunInstallLevel(input: {
   installLevel: 'minimal' | 'recommended';
   aiProfileAlias?: string | null;
-}): Promise<ProductControlRecordProjection> {
+}): Promise<NimiProductControlRecordProjection> {
   if (!hasTauriInvoke()) {
     throw new Error('product_control_record_set_first_run_install_level requires Tauri runtime');
   }
   return invokeChecked('product_control_record_set_first_run_install_level', {
     payload: input,
-  }, parseProductControlRecordProjection);
+  }, parseNimiProductControlRecordProjection);
 }
 
-export async function ensureProductAccountDefaultProfile(): Promise<ProductControlRecordProjection> {
+export async function ensureProductAccountDefaultProfile(): Promise<NimiProductControlRecordProjection> {
   if (!hasTauriInvoke()) {
     throw new Error('product_control_record_ensure_account_default_profile requires Tauri runtime');
   }
   return invokeChecked(
     'product_control_record_ensure_account_default_profile',
     {},
-    parseProductControlRecordProjection,
+    parseNimiProductControlRecordProjection,
   );
 }
 
-export async function prepareProductFirstRunLocalAiReady(): Promise<ProductControlRecordProjection> {
+export async function prepareProductFirstRunLocalAiReady(): Promise<NimiProductControlRecordProjection> {
   if (!hasTauriInvoke()) {
     throw new Error('product_control_record_prepare_first_run_local_ai_ready requires Tauri runtime');
   }
   return invokeChecked(
     'product_control_record_prepare_first_run_local_ai_ready',
     {},
-    parseProductControlRecordProjection,
+    parseNimiProductControlRecordProjection,
   );
 }
 
-export async function reconcileProductFirstRunSetupState(): Promise<ProductControlRecordProjection> {
+export async function reconcileProductFirstRunSetupState(): Promise<NimiProductControlRecordProjection> {
   if (!hasTauriInvoke()) {
     throw new Error('product_control_record_reconcile_first_run_setup_state requires Tauri runtime');
   }
   return invokeChecked(
     'product_control_record_reconcile_first_run_setup_state',
     {},
-    parseProductControlRecordProjection,
+    parseNimiProductControlRecordProjection,
   );
 }
 
-export async function completeProductFirstRunDeviceEnvironmentScan(): Promise<ProductControlRecordProjection> {
+export async function completeProductFirstRunDeviceEnvironmentScan(): Promise<NimiProductControlRecordProjection> {
   if (!hasTauriInvoke()) {
     throw new Error('product_control_record_complete_first_run_device_environment_scan requires Tauri runtime');
   }
   return invokeChecked(
     'product_control_record_complete_first_run_device_environment_scan',
     {},
-    parseProductControlRecordProjection,
+    parseNimiProductControlRecordProjection,
   );
 }
 
 /** The Account Default Profile projected as a portable AIProfile payload. */
-export type AccountDefaultProfileAIProfile = AIProfile;
+export type AccountDefaultProfileAIProfile = NimiAIProfile;
 
 /**
  * Read + verify the Account Default Profile as a portable AIProfile payload.
@@ -183,14 +183,14 @@ export async function getAccountDefaultProfileForScopeInit(): Promise<AccountDef
   return invokeChecked(
     'account_default_profile_for_scope_init',
     {},
-    (value) => parseAIProfile(value, {
+    (value) => parseNimiAIProfile(value, {
       label: 'Account Default Profile payload',
       allowMissingOptionalFields: true,
     }),
   );
 }
 
-function parseBuiltInAIConfigForScopeInit(value: unknown): AIConfig {
+function parseBuiltInAIConfigForScopeInit(value: unknown): NimiAIConfig {
   const record = asRecord(value, 'built_in_ai_config_for_scope_init');
   const scopeRef = asRecord(record.scopeRef, 'built-in AIConfig scopeRef');
   const capabilities = asRecord(record.capabilities, 'built-in AIConfig capabilities');
@@ -201,13 +201,15 @@ function parseBuiltInAIConfigForScopeInit(value: unknown): AIConfig {
   if (kind !== 'feature' || ownerId !== 'desktop.chat' || (surfaceId !== 'nimi' && surfaceId !== 'agent')) {
     throw new Error('built-in AIConfig returned a non-canonical chat scope');
   }
-  const selectedBindings = asRecord(capabilities.selectedBindings, 'built-in AIConfig selectedBindings');
+  const targetRefs = asRecord(capabilities.targetRefs, 'built-in AIConfig targetRefs');
+  const selectedParams = capabilities.selectedParams
+    ? asRecord(capabilities.selectedParams, 'built-in AIConfig selectedParams')
+    : {};
   return {
     scopeRef: { kind: 'feature', ownerId, surfaceId },
     capabilities: {
-      selectedBindings: selectedBindings as AIConfig['capabilities']['selectedBindings'],
-      localProfileRefs: {},
-      selectedParams: {},
+      targetRefs: targetRefs as NimiAIConfig['capabilities']['targetRefs'],
+      selectedParams: selectedParams as NimiAIConfig['capabilities']['selectedParams'],
     },
     profileOrigin: {
       profileId: String(profileOrigin.profileId || '').trim(),
@@ -219,7 +221,7 @@ function parseBuiltInAIConfigForScopeInit(value: unknown): AIConfig {
 
 export async function getBuiltInAIConfigForScopeInit(
   surfaceId: 'nimi' | 'agent',
-): Promise<AIConfig> {
+): Promise<NimiAIConfig> {
   if (!hasTauriInvoke()) {
     throw new Error('built_in_ai_config_for_scope_init requires Tauri runtime');
   }
@@ -237,9 +239,9 @@ export async function getBuiltInAIConfigForScopeInit(
  * Desktop no longer writes admission; the backend submits Desktop-owned host
  * evidence to Runtime, and Runtime commits or routes the product-control state.
  */
-export async function admitProductReadyForUse(): Promise<ProductControlRecordProjection> {
+export async function admitProductReadyForUse(): Promise<NimiProductControlRecordProjection> {
   if (!hasTauriInvoke()) {
     throw new Error('product_control_record_admit_ready_for_use requires Tauri runtime');
   }
-  return invokeChecked('product_control_record_admit_ready_for_use', {}, parseProductControlRecordProjection);
+  return invokeChecked('product_control_record_admit_ready_for_use', {}, parseNimiProductControlRecordProjection);
 }

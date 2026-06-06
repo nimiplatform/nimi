@@ -13,12 +13,14 @@ const runtimeBootstrapSource = readFileSync(
 );
 
 test('desktop bootstrap reads Runtime account projection instead of shared auth-session truth', () => {
-  assert.match(runtimeBootstrapSource, /createLocalFirstPartyRuntimePlatformClient\(/);
-  assert.match(runtimeBootstrapSource, /runtime\.account\.getAccountSessionStatus\(\{/);
-  assert.match(runtimeBootstrapSource, /runtime\.account\.getAccessToken\(\{/);
+  assert.match(runtimeBootstrapSource, /configureDesktopRuntimeRealmSession\(/);
+  assert.match(runtimeBootstrapSource, /createNimiDesktopShellRuntimeAccountCaller\(/);
+  assert.match(runtimeBootstrapSource, /desktopSession\.accountRuntime\.account\.getAccountSessionStatus\(\{/);
+  assert.match(runtimeBootstrapSource, /desktopSession\.accountRuntime\.account\.getAccessToken\(\{/);
   assert.doesNotMatch(runtimeBootstrapSource, /accessTokenProvider:/);
   assert.doesNotMatch(runtimeBootstrapSource, /bootstrapAuthSession\(/);
   assert.doesNotMatch(runtimeBootstrapSource, /resolvedBootstrapAuthSession/);
+  assert.doesNotMatch(runtimeBootstrapSource, /createLocalFirstPartyRuntimePlatformClient\(/);
 });
 
 test('desktop bootstrap only projects authenticated when Runtime account token custody is usable', () => {

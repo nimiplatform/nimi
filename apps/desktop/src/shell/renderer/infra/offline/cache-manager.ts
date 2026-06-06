@@ -16,7 +16,7 @@ const WORLD_LIST_CACHE_KEY = '__world-list__';
 
 type MetadataRow = {
   cacheKey: string;
-  payload: JsonObject | JsonObject[];
+  payload: object | object[];
 };
 
 export type OfflineEphemeralStoreOptions = {
@@ -24,8 +24,8 @@ export type OfflineEphemeralStoreOptions = {
 };
 
 type OfflineEphemeralStore = {
-  chatList: Map<string, JsonObject>;
-  chatMessages: Map<string, Map<string, JsonObject>>;
+  chatList: Map<string, object>;
+  chatMessages: Map<string, Map<string, object>>;
   agentMetadata: Map<string, MetadataRow>;
   worldMetadata: Map<string, MetadataRow>;
 };
@@ -41,7 +41,7 @@ function createEphemeralStore(): OfflineEphemeralStore {
 
 function toMetadataRow(
   cacheKey: string,
-  payload: JsonObject | JsonObject[],
+  payload: object | object[],
 ): MetadataRow {
   return { cacheKey, payload };
 }
@@ -124,13 +124,14 @@ export class OfflineCacheManager {
     });
   }
 
-  async syncChatList<T extends JsonObject>(chats: T[]): Promise<void> {
+  async syncChatList<T extends object>(chats: T[]): Promise<void> {
     const limited = chats.slice(0, OFFLINE_CACHE_MAX_CHATS);
     if (this.ephemeral) {
       const ephemeral = this.ensureEphemeralStore();
       ephemeral.chatList.clear();
       for (const chat of limited) {
-        const id = String(chat.id || '').trim();
+        const record = chat as JsonObject;
+        const id = String(record.id || '').trim();
         if (!id) continue;
         ephemeral.chatList.set(id, chat);
       }
@@ -146,20 +147,21 @@ export class OfflineCacheManager {
     await this.complete(tx);
   }
 
-  async getCachedChatList<T extends JsonObject>(): Promise<T[]> {
+  async getCachedChatList<T extends object = JsonObject>(): Promise<T[]> {
     if (this.ephemeral) {
       return Array.from(this.ensureEphemeralStore().chatList.values()) as T[];
     }
     return await this.getAll<T>(OFFLINE_STORE_CHAT_LIST);
   }
 
-  async syncChatMessages<T extends JsonObject>(chatId: string, messages: T[]): Promise<void> {
+  async syncChatMessages<T extends object>(chatId: string, messages: T[]): Promise<void> {
     const limited = messages.slice(0, OFFLINE_CACHE_MAX_MESSAGES_PER_CHAT);
     if (this.ephemeral) {
       const ephemeral = this.ensureEphemeralStore();
-      const byId = new Map<string, JsonObject>();
+      const byId = new Map<string, object>();
       for (const message of limited) {
-        const id = String(message.id || '').trim();
+        const record = message as JsonObject;
+        const id = String(record.id || '').trim();
         if (!id) continue;
         byId.set(id, {
           ...message,
@@ -193,7 +195,7 @@ export class OfflineCacheManager {
     await this.complete(tx);
   }
 
-  async getCachedMessages<T extends JsonObject>(chatId: string): Promise<T[]> {
+  async getCachedMessages<T extends object = JsonObject>(chatId: string): Promise<T[]> {
     if (this.ephemeral) {
       return Array.from((this.ensureEphemeralStore().chatMessages.get(chatId) || new Map()).values()) as T[];
     }
@@ -209,7 +211,7 @@ export class OfflineCacheManager {
     });
   }
 
-  async syncAgentMetadata<T extends JsonObject>(agentId: string, payload: T): Promise<void> {
+  async syncAgentMetadata<T extends object>(agentId: string, payload: T): Promise<void> {
     const row = toMetadataRow(agentId, payload);
     if (this.ephemeral) {
       this.ensureEphemeralStore().agentMetadata.set(agentId, row);
@@ -221,7 +223,7 @@ export class OfflineCacheManager {
     await this.complete(tx);
   }
 
-  async getCachedAgentMetadata<T extends JsonObject>(agentId: string): Promise<T | null> {
+  async getCachedAgentMetadata<T extends object = JsonObject>(agentId: string): Promise<T | null> {
     if (this.ephemeral) {
       const row = this.ensureEphemeralStore().agentMetadata.get(agentId);
       return row && !Array.isArray(row.payload) ? row.payload as T : null;
@@ -230,7 +232,7 @@ export class OfflineCacheManager {
     return row && !Array.isArray(row.payload) ? row.payload as T : null;
   }
 
-  async syncWorldList<T extends JsonObject>(worlds: T[]): Promise<void> {
+  async syncWorldList<T extends object>(worlds: T[]): Promise<void> {
     const row = toMetadataRow(WORLD_LIST_CACHE_KEY, worlds);
     if (this.ephemeral) {
       this.ensureEphemeralStore().worldMetadata.set(WORLD_LIST_CACHE_KEY, row);
@@ -242,7 +244,7 @@ export class OfflineCacheManager {
     await this.complete(tx);
   }
 
-  async getCachedWorldList<T extends JsonObject>(): Promise<T[]> {
+  async getCachedWorldList<T extends object = JsonObject>(): Promise<T[]> {
     if (this.ephemeral) {
       const row = this.ensureEphemeralStore().worldMetadata.get(WORLD_LIST_CACHE_KEY);
       return row && Array.isArray(row.payload) ? row.payload as T[] : [];
@@ -251,7 +253,7 @@ export class OfflineCacheManager {
     return row && Array.isArray(row.payload) ? row.payload as T[] : [];
   }
 
-  async syncWorldMetadata<T extends JsonObject>(worldId: string, payload: T): Promise<void> {
+  async syncWorldMetadata<T extends object>(worldId: string, payload: T): Promise<void> {
     const row = toMetadataRow(worldId, payload);
     if (this.ephemeral) {
       this.ensureEphemeralStore().worldMetadata.set(worldId, row);
@@ -263,7 +265,7 @@ export class OfflineCacheManager {
     await this.complete(tx);
   }
 
-  async getCachedWorldMetadata<T extends JsonObject>(worldId: string): Promise<T | null> {
+  async getCachedWorldMetadata<T extends object = JsonObject>(worldId: string): Promise<T | null> {
     if (this.ephemeral) {
       const row = this.ensureEphemeralStore().worldMetadata.get(worldId);
       return row && !Array.isArray(row.payload) ? row.payload as T : null;

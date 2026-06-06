@@ -1,12 +1,12 @@
 import { getProductControlSelectedDataRoot } from './product-control';
 import {
-  projectProductControlStorageDirs,
-  type ProductControlStorageDirsProjection,
+  projectNimiProductControlStorageDirs,
+  type NimiProductControlStorageDirsProjection,
 } from '@nimiplatform/sdk';
 
-export type DesktopStorageDirs = ProductControlStorageDirsProjection;
+export type DesktopStorageDirs = NimiProductControlStorageDirsProjection;
 
 export async function getDesktopStorageDirs(): Promise<DesktopStorageDirs> {
   const projection = await getProductControlSelectedDataRoot();
-  return projectProductControlStorageDirs(projection);
+  return projectNimiProductControlStorageDirs(projection);
 }

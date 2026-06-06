@@ -1,21 +1,31 @@
-import { getPlatformClient } from '@nimiplatform/sdk';
 import {
-  createHostRuntimeAgentMemorySurface,
-  type HostRuntimeAgentMemorySurfaceOptions,
-  type RuntimeAgentCanonicalMemoryBankStatus,
+  createNimiHostRuntimeAgentMemorySurface,
+  type NimiHostRuntimeAgentMemoryClient,
+  type NimiHostRuntimeAgentMemorySurfaceOptions,
+  type NimiRuntimeAgentCanonicalMemoryBankStatus,
 } from '@nimiplatform/sdk/runtime';
+import {
+  getDesktopAppId,
+  getDesktopRuntime,
+} from './sdk/desktop-nimi-client-session';
 
-export type CanonicalMemoryBankStatus = RuntimeAgentCanonicalMemoryBankStatus;
+export type CanonicalMemoryBankStatus = NimiRuntimeAgentCanonicalMemoryBankStatus;
 
-type RuntimeClient = ReturnType<typeof getPlatformClient>['runtime'];
 type RuntimeAgentMemoryDeps = {
-  getRuntime?: () => RuntimeClient;
-  getSubjectUserId?: HostRuntimeAgentMemorySurfaceOptions['getSubjectUserId'];
+  getRuntime?: () => NimiHostRuntimeAgentMemoryClient;
+  getSubjectUserId?: NimiHostRuntimeAgentMemorySurfaceOptions['getSubjectUserId'];
 };
 
+function getDesktopRuntimeAgentMemoryClient(): NimiHostRuntimeAgentMemoryClient {
+  return {
+    appId: getDesktopAppId(),
+    agent: getDesktopRuntime().agents,
+  };
+}
+
 export function createRuntimeAgentMemoryAdapter(deps: RuntimeAgentMemoryDeps = {}) {
-  return createHostRuntimeAgentMemorySurface({
-    getRuntime: deps.getRuntime ?? (() => getPlatformClient().runtime),
+  return createNimiHostRuntimeAgentMemorySurface({
+    getRuntime: deps.getRuntime ?? getDesktopRuntimeAgentMemoryClient,
     getSubjectUserId: deps.getSubjectUserId ?? (() => undefined),
   });
 }

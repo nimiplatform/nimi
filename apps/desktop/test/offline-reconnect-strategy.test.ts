@@ -72,11 +72,13 @@ async function flushAsyncWork(): Promise<void> {
 
 describe('D-OFFLINE-004: bootstrap reconnect bindings', () => {
   test('Desktop binds SDK Realm connectivity events into the offline coordinator', () => {
-    assert.match(RUNTIME_BOOTSTRAP_SOURCE, /realm\.events\.on\('request\.success'/);
-    assert.match(RUNTIME_BOOTSTRAP_SOURCE, /coordinator\.markRealmRestReachable\(true\)/);
-    assert.match(RUNTIME_BOOTSTRAP_SOURCE, /realm\.events\.on\('error'/);
-    assert.match(RUNTIME_BOOTSTRAP_SOURCE, /isRealmOfflineError\(event\.error\)/);
-    assert.match(RUNTIME_BOOTSTRAP_SOURCE, /coordinator\.markRealmRestReachable\(false\)/);
+    assert.match(RUNTIME_BOOTSTRAP_SOURCE, /function createObservedRealmFetch/);
+    assert.match(RUNTIME_BOOTSTRAP_SOURCE, /getOfflineCoordinator\(\)\.markRealmRestReachable\(true\)/);
+    assert.match(RUNTIME_BOOTSTRAP_SOURCE, /isRealmOfflineError\(error\)/);
+    assert.match(RUNTIME_BOOTSTRAP_SOURCE, /getOfflineCoordinator\(\)\.markRealmRestReachable\(false\)/);
+    assert.match(RUNTIME_BOOTSTRAP_SOURCE, /realmFetchImpl: createObservedRealmFetch\(proxyFetch\)/);
+    assert.doesNotMatch(RUNTIME_BOOTSTRAP_SOURCE, /realm\.events\.on\('request\.success'/);
+    assert.doesNotMatch(RUNTIME_BOOTSTRAP_SOURCE, /realm\.events\.on\('error'/);
   });
 
   test('realm_reconnect flushes outboxes and invalidates queries', async () => {

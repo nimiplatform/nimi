@@ -1,11 +1,5 @@
 import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
-import {
-  clearPlatformClient,
-  createLocalFirstPartyRuntimePlatformClient,
-  unstable_attachPlatformWorldEvolutionSelectorReadProvider,
-} from '@nimiplatform/sdk';
 import { isRealmOfflineErrorLike as isRealmOfflineError } from '@nimiplatform/sdk/types';
-import { createMissingWorldEvolutionSelectorReadProvider } from '@nimiplatform/sdk/runtime';
 import { setRuntimeLogger } from '@nimiplatform/kit/telemetry';
 import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
 import { desktopBridge, toRendererLogMessage } from '@renderer/bridge';
@@ -22,13 +16,12 @@ import {
   safeBootstrapErrorMessage,
   withBootstrapStepTimeout,
 } from '@nimiplatform/kit/shell/renderer/bootstrap';
-import { createDesktopShellRuntimeAccountCaller } from '@nimiplatform/sdk/runtime';
-import { installDesktopLocalRuntimeClientBindings } from './runtime-local-runtime-client';
+import { createNimiDesktopShellRuntimeAccountCaller } from '@nimiplatform/sdk/runtime';
+import { AccountSessionState } from '@nimiplatform/sdk/runtime/generated';
 import { reconcileLocalRuntimeBootstrapState } from './runtime-bootstrap-local-ai';
 import { attachOfflineCoordinatorBindings } from './runtime-bootstrap-offline';
 import { startAuthStateWatcher, stopAuthStateWatcher } from './auth-state-watcher';
 import { registerExitHandler } from './exit-handler';
-import { AccountSessionState } from '@nimiplatform/sdk/runtime/browser';
 import { getDesktopMacosSmokeContext } from '@renderer/bridge/runtime-bridge/macos-smoke';
 import { pingDesktopMacosSmoke } from '@renderer/bridge/runtime-bridge/macos-smoke';
 import { hydrateDesktopAccountProfile } from './runtime-bootstrap-account-profile';
@@ -45,6 +38,10 @@ import {
   runtimeDaemonUnavailable,
   syncDesktopRuntimeBootstrapConfig,
 } from './runtime-bootstrap-config-sync';
+import {
+  clearDesktopNimiClientSession,
+  configureDesktopRuntimeRealmSession,
+} from '@renderer/infra/sdk/desktop-nimi-client-session';
 
 let bootstrapPromise: Promise<void> | null = null;
 let rebootstrapPromise: Promise<void> | null = null;
@@ -104,6 +101,27 @@ function bindOfflineCoordinator(): void {
   });
 }
 
+function createObservedRealmFetch(fetchImpl: typeof fetch): typeof fetch {
+  return async (input, init) => {
+    try {
+      const response = await fetchImpl(input, init);
+      if (response.ok) {
+        getOfflineCoordinator().markRealmRestReachable(true);
+      }
+      return response;
+    } catch (error) {
+      if (
+        isRealmOfflineError(error)
+        || error instanceof TypeError
+        || (typeof DOMException !== 'undefined' && error instanceof DOMException)
+      ) {
+        getOfflineCoordinator().markRealmRestReachable(false);
+      }
+      throw error;
+    }
+  };
+}
+
 export function rebootstrapRuntime(): Promise<void> {
   pendingRebootstrap = true;
   if (rebootstrapPromise) {
@@ -135,7 +153,7 @@ async function teardownBootstrapState(): Promise<void> {
   unsubscribeRealmConnectivityEvents?.();
   unsubscribeRealmConnectivityEvents = null;
   clearDesktopConversationCapabilityRouteRuntime();
-  clearPlatformClient();
+  clearDesktopNimiClientSession();
 }
 
 async function initializeBuiltInChatScopesAfterReadyAdmission(flowId: string): Promise<void> {
@@ -156,7 +174,6 @@ async function initializeBuiltInChatScopesAfterReadyAdmission(flowId: string): P
 }
 
 export function bootstrapRuntime(): Promise<void> {
-  installDesktopLocalRuntimeClientBindings();
   bindOfflineCoordinator();
   if (rebootstrapPromise) {
     return rebootstrapPromise;
@@ -282,11 +299,11 @@ export function bootstrapRuntime(): Promise<void> {
     void pingDesktopMacosSmoke('bootstrap-platform-client-start', {
       skipHeavyBootstrapForMacosSmoke,
     }).catch(() => {});
-    clearPlatformClient();
-    const platformClient = await createLocalFirstPartyRuntimePlatformClient({
+    clearDesktopNimiClientSession();
+    const desktopSession = await configureDesktopRuntimeRealmSession({
       appId: 'nimi.desktop',
       realmBaseUrl: defaults.realm.realmBaseUrl,
-      realmFetchImpl: proxyFetch,
+      realmFetchImpl: createObservedRealmFetch(proxyFetch),
       runtimeTransport: {
         type: 'tauri-ipc',
         commandNamespace: 'runtime_bridge',
@@ -294,22 +311,10 @@ export function bootstrapRuntime(): Promise<void> {
       },
     });
     unsubscribeRealmConnectivityEvents?.();
-    const coordinator = getOfflineCoordinator();
-    const unsubscribeRealmRequestSuccess = platformClient.realm.events.on('request.success', () => {
-      coordinator.markRealmRestReachable(true);
-    });
-    const unsubscribeRealmError = platformClient.realm.events.on('error', (event) => {
-      if (isRealmOfflineError(event.error)) {
-        coordinator.markRealmRestReachable(false);
-      }
-    });
-    unsubscribeRealmConnectivityEvents = () => {
-      unsubscribeRealmRequestSuccess();
-      unsubscribeRealmError();
-    };
+    unsubscribeRealmConnectivityEvents = null;
     bindDesktopConversationCapabilityRouteRuntime();
-    const accountCaller = createDesktopShellRuntimeAccountCaller({ appId: 'nimi.desktop' });
-    const accountStatus = await platformClient.runtime.account.getAccountSessionStatus({
+    const accountCaller = createNimiDesktopShellRuntimeAccountCaller({ appId: 'nimi.desktop' });
+    const accountStatus = await desktopSession.accountRuntime.account.getAccountSessionStatus({
       caller: accountCaller,
     });
     const accountProjection = accountStatus.accountProjection;
@@ -318,7 +323,7 @@ export function bootstrapRuntime(): Promise<void> {
       accountStatus.state === AccountSessionState.AUTHENTICATED
       && accountProjection?.accountId
     ) {
-      const tokenStatus = await platformClient.runtime.account.getAccessToken({
+      const tokenStatus = await desktopSession.accountRuntime.account.getAccessToken({
         caller: accountCaller,
         requestedScopes: [],
       });
@@ -345,12 +350,6 @@ export function bootstrapRuntime(): Promise<void> {
     } else {
       useAppStore.getState().clearAuthSession();
     }
-    unstable_attachPlatformWorldEvolutionSelectorReadProvider(
-      platformClient,
-      createMissingWorldEvolutionSelectorReadProvider({
-        backingBoundary: 'desktop-runtime-world-evolution-selector-read',
-      }),
-    );
     await withBootstrapStepTimeout(
       'local runtime reconcile',
       reconcileLocalRuntimeBootstrapState({ flowId }),

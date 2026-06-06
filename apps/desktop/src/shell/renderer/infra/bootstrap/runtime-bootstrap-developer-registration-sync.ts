@@ -3,7 +3,7 @@ import type {
   RuntimeBridgeConfigSetResult,
   RuntimeBridgeDaemonStatus,
 } from '@renderer/bridge';
-import { mergeRuntimeBridgeDeveloperRegistrationConfig } from '@nimiplatform/sdk/runtime';
+import { mergeNimiRuntimeBridgeDeveloperRegistrationConfig } from '@nimiplatform/sdk/runtime';
 import { createRuntimeConfigManualRestartRequiredError } from './runtime-bootstrap-config-errors';
 
 const CONFIG_RESTART_REQUIRED = 'CONFIG_RESTART_REQUIRED';
@@ -21,7 +21,7 @@ export type RuntimeDeveloperRegistrationSyncBridge = {
  * runtime developer-registration gate so a local developer's not-yet-admitted
  * app can register; off restores the production fail-closed default.
  */
-export const mergeRuntimeDeveloperRegistrationConfig = mergeRuntimeBridgeDeveloperRegistrationConfig;
+export const mergeRuntimeDeveloperRegistrationConfig = mergeNimiRuntimeBridgeDeveloperRegistrationConfig;
 
 export async function syncRuntimeDeveloperRegistrationConfig(input: {
   daemonStatus: RuntimeBridgeDaemonStatus;

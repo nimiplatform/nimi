@@ -36,10 +36,12 @@ test('Auth/OAuth preflight inventory has a real migration point closed in Kit', 
   assert.doesNotMatch(desktopAuthAdapter, /runtime\.account\.completeLogin\(/);
   assert.doesNotMatch(desktopAuthAdapter, /validateRuntimeOAuthAuthorizationUrl/);
   assert.doesNotMatch(desktopAuthAdapter, /realm\.services\.AuthService\./);
-  assert.match(desktopAuthAdapter, /checkRealmAuthEmail/);
-  assert.match(desktopAuthAdapter, /loginRealmAuthPassword/);
-  assert.match(desktopAuthAdapter, /verifyRealmEmailOtp/);
-  assert.match(desktopAuthAdapter, /loginRealmOAuth/);
+  assert.match(desktopAuthAdapter, /checkNimiRealmAuthEmail/);
+  assert.match(desktopAuthAdapter, /loginNimiRealmAuthPassword/);
+  assert.match(desktopAuthAdapter, /verifyNimiRealmEmailOtp/);
+  assert.match(desktopAuthAdapter, /loginNimiRealmOAuth/);
+  assert.match(desktopAuthAdapter, /getDesktopNimiClient/);
+  assert.doesNotMatch(desktopAuthAdapter, /getPlatformClient/);
 });
 
 test('Desktop auth DTO projection is owned by SDK Realm auth extension', () => {
@@ -47,12 +49,12 @@ test('Desktop auth DTO projection is owned by SDK Realm auth extension', () => {
   const desktopWebAuthMenu = read('apps/desktop/src/shell/renderer/features/auth/web-auth-menu.tsx');
 
   assert.match(desktopAuthAdapter, /from '@nimiplatform\/sdk\/realm'/);
-  assert.match(desktopWebAuthMenu, /toRealmAuthUserRecord/);
+  assert.match(desktopWebAuthMenu, /toNimiRealmAuthUserRecord/);
   assert.doesNotMatch(desktopAuthAdapter, /toAuthTokensDto|toOAuthLoginResultDto|toCheckEmailResponseDto|isExpectedAnonymousSessionError/);
   assert.doesNotMatch(desktopWebAuthMenu, /auth-session-utils/);
 });
 
-test('Desktop has no app-local Runtime account browser broker except admitted product smoke probe', () => {
+test('Desktop has no app-local Runtime account browser broker', () => {
   const desktopFiles = listSourceFiles(path.join(repoRoot, 'apps/desktop/src'));
   const offenders = desktopFiles
     .filter((filePath) => {
@@ -61,7 +63,5 @@ test('Desktop has no app-local Runtime account browser broker except admitted pr
     })
     .map((filePath) => path.relative(repoRoot, filePath));
 
-  assert.deepEqual(offenders, [
-    'apps/desktop/src/shell/renderer/infra/bootstrap/desktop-macos-smoke-driver-deps.ts',
-  ]);
+  assert.deepEqual(offenders, []);
 });

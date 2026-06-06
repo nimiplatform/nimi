@@ -1,4 +1,3 @@
-import { getPlatformClient } from '@nimiplatform/sdk';
 import type { Realm } from '@nimiplatform/sdk/realm';
 import {
   extractNimiErrorFields,
@@ -9,6 +8,7 @@ import {
 } from '@nimiplatform/sdk/types';
 import { emitRuntimeLog } from '@nimiplatform/kit/telemetry';
 import { getOfflineCoordinator } from '@renderer/infra/offline/coordinator';
+import { getDesktopRealm } from '@renderer/infra/sdk/desktop-nimi-client-session';
 
 export type RealmApiCaller = <T>(task: (realm: Realm) => Promise<T>, fallbackMessage?: string) => Promise<T>;
 export type RealmDataErrorEmitter = (
@@ -22,7 +22,7 @@ export async function callRealmApi<T>(
   fallbackMessage?: string,
 ): Promise<T> {
   try {
-    const result = await task(getPlatformClient().realm);
+    const result = await task(getDesktopRealm());
     getOfflineCoordinator().markRealmRestReachable(true);
     return tryParseJsonLike(result);
   } catch (error) {

@@ -1,21 +1,20 @@
 import {
-  createRuntimeRouteCapabilityRuntimeWithHost,
+  createNimiRuntimeRouteCapabilityRuntimeWithHost,
   type Runtime,
 } from '@nimiplatform/sdk/runtime';
 import {
   setConversationCapabilityRouteRuntime,
-  toRuntimeCanonicalCapability,
   type ConversationCapabilityRouteRuntime,
 } from '@renderer/features/chat/conversation-capability';
 import {
   desktopRuntimeRouteAccess,
-  getDesktopRuntimeClient,
 } from '@renderer/infra/runtime-route-host-access';
+import { getDesktopRuntime } from '@renderer/infra/sdk/desktop-nimi-client-session';
 import {
   loadRuntimeRouteOptions,
 } from './runtime-bootstrap-route-options';
 
-type RuntimeClient = Pick<Runtime, 'appId' | 'ai'>;
+type RuntimeClient = Pick<Runtime, 'ai'>;
 
 type DesktopConversationCapabilityRouteRuntimeDeps = {
   loadRuntimeRouteOptions: typeof loadRuntimeRouteOptions;
@@ -28,17 +27,18 @@ const DEFAULT_DEPS: DesktopConversationCapabilityRouteRuntimeDeps = {
   loadRuntimeRouteOptions,
   checkRuntimeRouteHealth: desktopRuntimeRouteAccess.checkLocalHealth,
   buildRuntimeCallOptions: desktopRuntimeRouteAccess.buildCallOptions,
-  getRuntimeClient: getDesktopRuntimeClient,
+  getRuntimeClient: getDesktopRuntime,
 };
 
 export function createDesktopConversationCapabilityRouteRuntime(
   depsInput: Partial<DesktopConversationCapabilityRouteRuntimeDeps> = {},
 ): ConversationCapabilityRouteRuntime {
   const deps = { ...DEFAULT_DEPS, ...depsInput };
-  return createRuntimeRouteCapabilityRuntimeWithHost({
+  return createNimiRuntimeRouteCapabilityRuntimeWithHost({
     loadRuntimeRouteOptions: async (input) => deps.loadRuntimeRouteOptions({
-      capability: toRuntimeCanonicalCapability(input.capability),
+      capability: input.capability,
       targetId: input.targetId,
+      selectedBinding: input.selectedBinding,
     }),
     checkHealth: deps.checkRuntimeRouteHealth,
     describeTargetId: 'core.chat.agent',
@@ -46,7 +46,7 @@ export function createDesktopConversationCapabilityRouteRuntime(
     getDescribeHost: () => {
       const runtime = deps.getRuntimeClient();
       return {
-        appId: runtime.appId,
+        appId: 'nimi.desktop',
         executeScenario: (request, options) => runtime.ai.executeScenario(
           request,
           options as Parameters<Runtime['ai']['executeScenario']>[1],

@@ -1,17 +1,12 @@
 import {
-  clearPlatformClient,
-  createPlatformClient,
-  getPlatformClient,
-} from '@nimiplatform/sdk';
-import type { RealmFetchImpl } from '@nimiplatform/sdk/realm';
+  clearDesktopNimiClientSession,
+  configureDesktopRealmOnlySession,
+  isDesktopNimiClientSessionReady,
+  type DesktopAuthUserRecord,
+} from '@renderer/infra/sdk/desktop-nimi-client-session';
 
 export function isRealmPlatformClientReady(): boolean {
-  try {
-    void getPlatformClient().realm;
-    return true;
-  } catch {
-    return false;
-  }
+  return isDesktopNimiClientSessionReady();
 }
 
 export async function configureWebRealmPlatformClient(input: {
@@ -19,38 +14,23 @@ export async function configureWebRealmPlatformClient(input: {
   realmBaseUrl: string;
   accessToken?: string;
   refreshToken?: string;
-  fetchImpl?: RealmFetchImpl | null;
-  getCurrentUser?: () => Record<string, unknown> | null;
+  fetchImpl?: typeof fetch | null;
+  getCurrentUser?: () => DesktopAuthUserRecord | null;
   setAuthSession?: (
-    user: Record<string, unknown> | null,
+    user: DesktopAuthUserRecord | null,
     accessToken: string,
   ) => void | Promise<void>;
   clearAuthSession?: () => void | Promise<void>;
 }) {
-  let currentAccessToken = String(input.accessToken || '').trim();
-  let currentRefreshToken = String(input.refreshToken || '').trim();
-  clearPlatformClient();
-  return createPlatformClient({
+  clearDesktopNimiClientSession();
+  return configureDesktopRealmOnlySession({
     appId: input.appId || 'nimi.web',
-    authMode: 'web-cloud',
     realmBaseUrl: input.realmBaseUrl,
-    accessTokenProvider: () => currentAccessToken,
-    refreshTokenProvider: () => currentRefreshToken,
-    sessionStore: {
-      getAccessToken: () => currentAccessToken,
-      getRefreshToken: () => currentRefreshToken,
-      getCurrentUser: () => input.getCurrentUser?.() ?? null,
-      setAuthSession: (user, nextAccessToken, nextRefreshToken) => {
-        currentAccessToken = String(nextAccessToken || '').trim();
-        if (typeof nextRefreshToken === 'string') {
-          currentRefreshToken = nextRefreshToken.trim();
-        }
-        return input.setAuthSession?.(user, currentAccessToken);
-      },
-      clearAuthSession: input.clearAuthSession,
-    },
-    runtimeTransport: null,
-    realmFetchImpl: input.fetchImpl || undefined,
-    allowAnonymousRealm: !currentAccessToken,
+    accessToken: input.accessToken,
+    refreshToken: input.refreshToken,
+    fetchImpl: input.fetchImpl,
+    getCurrentUser: input.getCurrentUser,
+    setAuthSession: input.setAuthSession,
+    clearAuthSession: input.clearAuthSession,
   });
 }

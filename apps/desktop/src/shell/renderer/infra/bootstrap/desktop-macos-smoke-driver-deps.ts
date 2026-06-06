@@ -13,14 +13,13 @@ import {
   getAgentConversationAnchorBinding,
 } from '@renderer/app-shell/providers/agent-conversation-anchor-binding-storage';
 import { getActiveScope } from '@renderer/features/chat/chat-shared-active-ai-config-scope';
-import { refreshConversationCapabilityProjections } from '@renderer/features/chat/conversation-capability-projection';
-import { getPlatformClient } from '@nimiplatform/sdk';
 import {
-  createDesktopShellRuntimeAccountCaller,
-  createRuntimeAgentSmokeVerificationSurface,
-  parseRuntimeLocalAgentIdentity,
-} from '@nimiplatform/sdk/runtime';
-import { AccountSessionState } from '@nimiplatform/sdk/runtime/browser';
+  getDesktopAccountRuntime,
+  getDesktopAppId,
+  getDesktopRuntime,
+} from '@renderer/infra/sdk/desktop-nimi-client-session';
+import { createNimiDesktopShellRuntimeAccountCaller, createNimiRuntimeAgentSmokeVerificationSurface, parseRuntimeLocalAgentIdentity, type NimiRuntimeAgentSmokeVerificationRuntime } from '@nimiplatform/sdk/runtime';
+import { AccountSessionState } from '@nimiplatform/sdk/runtime/generated';
 import {
   type DesktopMacosSmokeDriverDeps,
   LIVE2D_VIEWPORT_SELECTOR,
@@ -40,6 +39,18 @@ export type DesktopMacosSmokeDriverDepsOptions = {
   onReportWrite?: () => void;
   isReportOpen?: DesktopMacosSmokeDriverDeps['isReportOpen'];
 };
+
+function getDesktopRuntimeAgentSmokeVerificationRuntime(): NimiRuntimeAgentSmokeVerificationRuntime {
+  const runtime = getDesktopRuntime();
+  const accountRuntime = getDesktopAccountRuntime();
+  return {
+    appId: getDesktopAppId(),
+    auth: accountRuntime.auth,
+    appAuth: accountRuntime.grants,
+    agents: runtime.agents,
+    health: (request, options) => runtime.health(request, options),
+  };
+}
 
 export function createDomDriverDeps(options: DesktopMacosSmokeDriverDepsOptions = {}): DesktopMacosSmokeDriverDeps {
   const queryByTestId = (id: string): HTMLElement | null => (
@@ -160,43 +171,23 @@ export function createDomDriverDeps(options: DesktopMacosSmokeDriverDepsOptions 
         ...current,
         capabilities: {
           ...current.capabilities,
-          selectedBindings: {
-            ...current.capabilities.selectedBindings,
+          targetRefs: {
+            ...current.capabilities.targetRefs,
             'text.generate': {
-              source: 'local',
-              connectorId: '',
-              model: 'e2e-live2d-text-route',
-              modelId: 'e2e-live2d-text-route',
-              modelLabel: 'E2E Live2D Text Route',
-              localModelId: 'local-e2e-live2d-text-route',
-              goRuntimeLocalModelId: 'local-e2e-live2d-text-route',
-              goRuntimeStatus: 'active',
-              provider: 'llama',
-              engine: 'llama',
+              kind: 'local-runtime',
+              targetId: 'core:runtime',
+              profileId: 'e2e-live2d-text-route',
+              readinessRef: 'readiness:e2e-live2d-text-route',
             },
           },
         },
       });
-      await withSmokeTimeout(
-        'Runtime text route projection refresh',
-        refreshConversationCapabilityProjections(['text.generate']),
-        SMOKE_STEP_TIMEOUT_MS,
-      );
-      const projection = useAppStore.getState().conversationCapabilityProjectionByCapability['text.generate'] || null;
-      if (!projection?.supported || !projection.resolvedBinding) {
-        throw new Error(
-          'Runtime text route projection unavailable after smoke configuration'
-          + `; reason=${projection?.reasonCode || 'missing_projection'}`
-          + `; selected=${JSON.stringify(projection?.selectedBinding || null)}`
-          + `; health=${JSON.stringify(projection?.health || null)}`,
-        );
-      }
     },
     async verifyRuntimeConversationAnchor(input) {
       const auth = useAppStore.getState().auth;
       const subjectUserId = String((auth.user as Record<string, unknown> | null)?.id || '').trim();
-      await createRuntimeAgentSmokeVerificationSurface({
-        getRuntime: () => getPlatformClient().runtime,
+      await createNimiRuntimeAgentSmokeVerificationSurface({
+        getRuntime: getDesktopRuntimeAgentSmokeVerificationRuntime,
         getSubjectUserId: () => subjectUserId,
         withTimeout: withSmokeTimeout,
         timeoutMs: SMOKE_STEP_TIMEOUT_MS,
@@ -205,18 +196,19 @@ export function createDomDriverDeps(options: DesktopMacosSmokeDriverDepsOptions 
     async readRuntimeProductPathEvidence(input) {
       const auth = useAppStore.getState().auth;
       const subjectUserId = String((auth.user as Record<string, unknown> | null)?.id || '').trim();
-      return createRuntimeAgentSmokeVerificationSurface({
-        getRuntime: () => getPlatformClient().runtime,
+      return createNimiRuntimeAgentSmokeVerificationSurface({
+        getRuntime: getDesktopRuntimeAgentSmokeVerificationRuntime,
         getSubjectUserId: () => subjectUserId,
         withTimeout: withSmokeTimeout,
         timeoutMs: SMOKE_STEP_TIMEOUT_MS,
       }).readProductPathEvidence(input);
     },
     async verifyRuntimeAccountProjection() {
-      const accountCaller = createDesktopShellRuntimeAccountCaller({ appId: 'nimi.desktop' });
+      const accountRuntime = getDesktopAccountRuntime();
+      const accountCaller = createNimiDesktopShellRuntimeAccountCaller({ appId: getDesktopAppId() });
       const logout = await withSmokeTimeout(
         'Runtime account product-smoke logout reset',
-        getPlatformClient().runtime.account.logout({
+        accountRuntime.account.logout({
           caller: accountCaller,
           reason: 'desktop_macos_avatar_product_smoke_reset',
         }),
@@ -230,7 +222,7 @@ export function createDomDriverDeps(options: DesktopMacosSmokeDriverDepsOptions 
       while (Date.now() < resetDeadline) {
         const resetStatus = await withSmokeTimeout(
           'Runtime account product-smoke logout readback',
-          getPlatformClient().runtime.account.getAccountSessionStatus({ caller: accountCaller }),
+          accountRuntime.account.getAccountSessionStatus({ caller: accountCaller }),
           5_000,
         );
         resetState = resetStatus.state;
@@ -244,7 +236,7 @@ export function createDomDriverDeps(options: DesktopMacosSmokeDriverDepsOptions 
       }
       const begin = await withSmokeTimeout(
         'Runtime account product-smoke login begin',
-        getPlatformClient().runtime.account.beginLogin({
+        accountRuntime.account.beginLogin({
           caller: accountCaller,
           redirectUri: 'http://localhost:46373/auth/callback',
           callbackOrigin: 'http://localhost:46373',
@@ -258,7 +250,7 @@ export function createDomDriverDeps(options: DesktopMacosSmokeDriverDepsOptions 
       }
       const complete = await withSmokeTimeout(
         'Runtime account product-smoke login complete',
-        getPlatformClient().runtime.account.completeLogin({
+        accountRuntime.account.completeLogin({
           caller: accountCaller,
           loginAttemptId: begin.loginAttemptId,
           code: 'e2e-runtime-product-smoke-code',
@@ -281,7 +273,7 @@ export function createDomDriverDeps(options: DesktopMacosSmokeDriverDepsOptions 
         try {
           const account = await withSmokeTimeout(
             'Runtime account projection readback',
-            getPlatformClient().runtime.account.getAccountSessionStatus({ caller: accountCaller }),
+            accountRuntime.account.getAccountSessionStatus({ caller: accountCaller }),
             2_000,
           );
           const accountId = String(account.accountProjection?.accountId || '').trim();

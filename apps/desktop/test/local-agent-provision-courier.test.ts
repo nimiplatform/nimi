@@ -1,8 +1,7 @@
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { Realm } from '@nimiplatform/sdk/realm';
-import { createNimiError } from '@nimiplatform/sdk/runtime';
-import { ReasonCode } from '@nimiplatform/sdk/types';
+import { createNimiError, ReasonCode } from '@nimiplatform/sdk/types';
 import {
   COURIER_POLLING_KEY,
   COURIER_POLL_INTERVAL_MS,
@@ -12,7 +11,7 @@ import {
 
 /**
  * The courier consumes a `RealmCourierApiCaller`: `<T>(task: (realm: Realm) =>
- * Promise<T>) => Promise<T>`. The test doubles supply only the two MeService
+ * Promise<T>) => Promise<T>`. The test doubles supply only the two Realm
  * provision-intent operations the courier actually calls; this alias names that
  * exact call shape so the structural double is cast once, at one boundary.
  */
@@ -72,24 +71,24 @@ function createBackendDouble(initial: IntentDto[]) {
 
   const callApi: RealmCourierApiCaller = async <T>(task: (realm: Realm) => Promise<T>): Promise<T> => {
     const realm = {
-      services: {
-        MeService: {
-          listMyLocalAgentProvisionIntents: async () => {
-            listCalls += 1;
-            return { items: openIntents.map((intent) => ({ ...intent })) };
-          },
-          ackMyLocalAgentProvisionIntent: async (
-            intentId: string,
-            body: { outcome: string; detail?: string },
-          ) => {
-            ackCalls.push({ intentId, outcome: body.outcome, detail: body.detail });
-            if (body.outcome === 'established') {
-              openIntents = openIntents.filter((intent) => intent.id !== intentId);
-            }
-            // substrate_failure → backend keeps it OPEN with backoff; the test
-            // double leaves it in the OPEN list to model that.
-            return { id: intentId, status: body.outcome === 'established' ? 'ACKED' : 'OPEN' };
-          },
+      localAgentIntents: {
+        listMyLocalAgentProvisionIntents: async () => {
+          listCalls += 1;
+          return { items: openIntents.map((intent) => ({ ...intent })) };
+        },
+        ackMyLocalAgentProvisionIntent: async (
+          request: { path?: { intentId?: string }; body?: { outcome?: string; detail?: string } },
+        ) => {
+          const intentId = String(request.path?.intentId || '');
+          const body = request.body || {};
+          const outcome = String(body.outcome || '');
+          ackCalls.push({ intentId, outcome, detail: body.detail });
+          if (outcome === 'established') {
+            openIntents = openIntents.filter((intent) => intent.id !== intentId);
+          }
+          // substrate_failure → backend keeps it OPEN with backoff; the test
+          // double leaves it in the OPEN list to model that.
+          return { id: intentId, status: outcome === 'established' ? 'ACKED' : 'OPEN' };
         },
       },
     } as unknown as Realm;
@@ -390,25 +389,24 @@ describe('R-SOC-009 T6.2-B: the courier owns no decision', () => {
       task: (realm: Realm) => Promise<T>,
     ): Promise<T> => {
       const realm = {
-        services: {
-          MeService: {
-            listMyLocalAgentProvisionIntents: async () => ({ items: [{ ...intent }] }),
-            ackMyLocalAgentProvisionIntent: async (
-              intentId: string,
-              body: { outcome: string },
-            ) => {
-              if (firstAck) {
-                firstAck = false;
-                // Ack POST is lost on the wire after the runtime initialize.
-                throw createNimiError({
-                  message: 'realm unavailable',
-                  reasonCode: ReasonCode.REALM_UNAVAILABLE,
-                  actionHint: 'retry_when_online',
-                  source: 'realm',
-                });
-              }
-              return { id: intentId, status: body.outcome === 'established' ? 'ACKED' : 'OPEN' };
-            },
+        localAgentIntents: {
+          listMyLocalAgentProvisionIntents: async () => ({ items: [{ ...intent }] }),
+          ackMyLocalAgentProvisionIntent: async (
+            request: { path?: { intentId?: string }; body?: { outcome?: string } },
+          ) => {
+            const intentId = String(request.path?.intentId || '');
+            const outcome = String(request.body?.outcome || '');
+            if (firstAck) {
+              firstAck = false;
+              // Ack POST is lost on the wire after the runtime initialize.
+              throw createNimiError({
+                message: 'realm unavailable',
+                reasonCode: ReasonCode.REALM_UNAVAILABLE,
+                actionHint: 'retry_when_online',
+                source: 'realm',
+              });
+            }
+            return { id: intentId, status: outcome === 'established' ? 'ACKED' : 'OPEN' };
           },
         },
       } as unknown as Realm;

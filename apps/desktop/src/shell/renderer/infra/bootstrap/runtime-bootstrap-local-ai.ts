@@ -1,8 +1,9 @@
 import {
-  localRuntime,
-  type LocalRuntimeAssetRecord,
+  createNimiRuntimeLocalModelCenterClient,
+  type NimiRuntimeLocalAssetRecord,
 } from '@nimiplatform/sdk/runtime';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
+import { getDesktopRuntime } from '@renderer/infra/sdk/desktop-nimi-client-session';
 import { safeErrorMessage } from './runtime-bootstrap-utils';
 
 type GoRuntimeSyncResult = {
@@ -10,24 +11,28 @@ type GoRuntimeSyncResult = {
   modelId: string;
   engine: string;
   localModelId: string;
-  status: LocalRuntimeAssetRecord['status'];
+  status: NimiRuntimeLocalAssetRecord['status'];
   matchedBy: 'install' | 'localModelId' | 'modelId+engine';
 };
 
 type GoRuntimeBootstrapResult = {
   reconciled: GoRuntimeSyncResult[];
-  adopted: LocalRuntimeAssetRecord[];
+  adopted: NimiRuntimeLocalAssetRecord[];
 };
 
 type BootstrapLocalRuntimeDeps = {
-  listDesktopModels: () => Promise<LocalRuntimeAssetRecord[]>;
-  reconcileModels: (models: LocalRuntimeAssetRecord[]) => Promise<GoRuntimeBootstrapResult>;
+  listDesktopModels: () => Promise<readonly NimiRuntimeLocalAssetRecord[]>;
+  reconcileModels: (models: readonly NimiRuntimeLocalAssetRecord[]) => Promise<GoRuntimeBootstrapResult>;
   log: typeof logRendererEvent;
 };
 
+const runtimeBootstrapLocalModelCenterClient = createNimiRuntimeLocalModelCenterClient({
+  local: () => getDesktopRuntime().local,
+});
+
 function defaultDeps(): BootstrapLocalRuntimeDeps {
   return {
-    listDesktopModels: () => localRuntime.listAssets(),
+    listDesktopModels: () => runtimeBootstrapLocalModelCenterClient.listAssets(),
     reconcileModels: async (_models) => ({
       reconciled: [],
       adopted: [],

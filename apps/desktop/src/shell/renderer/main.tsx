@@ -25,6 +25,7 @@ async function preflightRendererAppDependencies(): Promise<void> {
       loadEntryModule('entry:app-routes', () => import('@renderer/app-shell/routes/app-routes')),
       loadEntryModule('entry:app-error-boundary', () => import('@renderer/infra/error-boundary/app-error-boundary')),
       loadEntryModule('entry:app-store', () => import('@renderer/app-shell/providers/app-store')),
+      loadEntryModule('entry:sdk-ai', () => import('@nimiplatform/sdk/ai')),
       loadEntryModule('entry:renderer-log', () => import('@nimiplatform/kit/telemetry')),
       loadEntryModule('entry:menu-bar-navigation-listener', () => import('@renderer/infra/menu-bar/menu-bar-navigation-listener')),
       loadEntryModule('entry:menu-bar-runtime-sync', () => import('@renderer/infra/menu-bar/menu-bar-runtime-sync')),
@@ -37,14 +38,12 @@ async function preflightRendererAppDependencies(): Promise<void> {
 // All runtime modules are lazy-imported to keep vendor-data and
 // runtime-bridge out of the main entry's static dependency graph.
 // They resolve concurrently with the lazy App chunk — well before
-// App mounts and makes its first SDK / i18n call.
+// App mounts and makes its first shell bridge / i18n call.
 const runtimeReady = Promise.all([
     loadEntryModule('entry:shell-runtime-bridge', () => import('@nimiplatform/kit/shell/renderer/bridge')),
-    loadEntryModule('entry:sdk-ai', () => import('@nimiplatform/sdk/ai')),
     loadEntryModule('entry:i18n', () => import('@renderer/i18n')),
-]).then(([shellBridge, sdkMod, i18nMod]) => {
+]).then(([shellBridge, i18nMod]) => {
     shellBridge.installNimiShellRuntimeBridge();
-    sdkMod.bindSdkI18n(i18nMod.i18n);
     return i18nMod;
 });
 const entryBootCopy = bootstrapEntryCopy as {

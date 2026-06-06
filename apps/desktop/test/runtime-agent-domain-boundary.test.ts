@@ -16,21 +16,24 @@ test('Runtime Agent domain stays on SDK and Kit shared surfaces', () => {
   const provisionCourier = read('apps/desktop/src/shell/renderer/infra/local-agent-courier/provision-courier.ts');
   const terminationCourier = read('apps/desktop/src/shell/renderer/infra/local-agent-courier/termination-courier.ts');
   const streamAdapter = read('apps/desktop/src/shell/renderer/features/chat/chat-agent-runtime-agent.ts');
+  const avatarLiveInstanceBinding = read(
+    'apps/desktop/src/shell/renderer/features/chat/chat-agent-avatar-live-instance-runtime-binding.ts',
+  );
   const inspectContent = read('apps/desktop/src/shell/renderer/features/chat/chat-runtime-inspect-content.tsx');
   const runtimeStreamUi = [
     read('apps/desktop/src/shell/renderer/features/chat/chat-shared-runtime-stream-ui.tsx'),
     read('apps/desktop/src/shell/renderer/features/chat/chat-shared-runtime-voice-message-content.tsx'),
   ].join('\n');
 
-  assert.match(inspectAdapter, /createHostRuntimeAgentInspectSurface/);
-  assert.match(memoryAdapter, /createHostRuntimeAgentMemorySurface/);
-  assert.match(presentationAdapter, /createHostRuntimeAgentPresentationProfileSurface/);
-  assert.match(provisionCourier, /createHostRuntimeAgentLifecycleSurface/);
-  assert.match(terminationCourier, /createHostRuntimeAgentLifecycleSurface/);
-  assert.match(provisionCourier, /listRealmLocalAgentProvisionIntents/);
-  assert.match(provisionCourier, /ackRealmLocalAgentProvisionIntent/);
-  assert.match(terminationCourier, /listRealmLocalAgentTerminationIntents/);
-  assert.match(terminationCourier, /ackRealmLocalAgentTerminationIntent/);
+  assert.match(inspectAdapter, /createNimiHostRuntimeAgentInspectSurface/);
+  assert.match(memoryAdapter, /createNimiHostRuntimeAgentMemorySurface/);
+  assert.match(presentationAdapter, /createNimiHostRuntimeAgentPresentationProfileSurface/);
+  assert.match(provisionCourier, /createNimiHostRuntimeAgentLifecycleSurface/);
+  assert.match(terminationCourier, /createNimiHostRuntimeAgentLifecycleSurface/);
+  assert.match(provisionCourier, /listNimiRealmLocalAgentProvisionIntents/);
+  assert.match(provisionCourier, /ackNimiRealmLocalAgentProvisionIntent/);
+  assert.match(terminationCourier, /listNimiRealmLocalAgentTerminationIntents/);
+  assert.match(terminationCourier, /ackNimiRealmLocalAgentTerminationIntent/);
   assert.doesNotMatch(provisionCourier, /realm\.services\.MeService\.(listMyLocalAgentProvisionIntents|ackMyLocalAgentProvisionIntent)/);
   assert.doesNotMatch(terminationCourier, /realm\.services\.MeService\.(listMyLocalAgentTerminationIntents|ackMyLocalAgentTerminationIntent)/);
   assert.match(inspectContent, /CanonicalRuntimeInspectSidebar/);
@@ -49,15 +52,22 @@ test('Runtime Agent domain stays on SDK and Kit shared surfaces', () => {
     assert.doesNotMatch(source, /\/nimi\.runtime\.v1\.RuntimeAgentService/);
   });
 
-  assert.match(streamAdapter, /runRuntimeAgentTurn/);
+  assert.match(streamAdapter, /runNimiRuntimeAgentTurn/);
   assert.match(streamAdapter, /from '@nimiplatform\/sdk\/runtime'/);
-  assert.doesNotMatch(streamAdapter, /recoverRuntimeAgentTerminalSnapshot/);
-  assert.doesNotMatch(streamAdapter, /summarizeRuntimeAgentTimeline/);
+  assert.doesNotMatch(streamAdapter, /recoverNimiRuntimeAgentTerminalSnapshot/);
+  assert.doesNotMatch(streamAdapter, /summarizeNimiRuntimeAgentTimeline/);
+  assert.match(avatarLiveInstanceBinding, /createNimiRuntimeAgentConsumeClient/);
+  assert.match(avatarLiveInstanceBinding, /getDesktopRuntime\(\)\.agents/);
+  assert.match(avatarLiveInstanceBinding, /getDesktopAppId\(\)/);
+  assert.match(avatarLiveInstanceBinding, /registerAvatarLiveInstance/);
+  assert.doesNotMatch(avatarLiveInstanceBinding, /getPlatformClient/);
+  assert.doesNotMatch(avatarLiveInstanceBinding, /runtime\.agent\.anchors/);
+  assert.doesNotMatch(avatarLiveInstanceBinding, /registerAvatarLiveInstanceBinding\(/);
   [
-    'recoverRuntimeAgentTerminalSnapshot',
-    'summarizeRuntimeAgentProjectionEvent',
-    'summarizeRuntimeAgentTimeline',
-    'matchesRuntimeAgentProjectionScope',
+    'recoverNimiRuntimeAgentTerminalSnapshot',
+    'summarizeNimiRuntimeAgentProjectionEvent',
+    'summarizeNimiRuntimeAgentTimeline',
+    'matchesNimiRuntimeAgentProjectionScope',
   ].forEach((name) => {
     assert.doesNotMatch(streamAdapter, new RegExp(`function ${name}\\b`));
   });
@@ -69,7 +79,7 @@ test('Runtime Agent domain stays on SDK and Kit shared surfaces', () => {
   ].forEach((source) => {
     assert.doesNotMatch(source, /projectRuntimeAgentInspectSnapshot/);
     assert.doesNotMatch(source, /projectRuntimeAgentInspectEventSummary/);
-    assert.doesNotMatch(source, /buildRuntimeAgentSnapshotRecoveryEvents/);
+    assert.doesNotMatch(source, /buildNimiRuntimeAgentSnapshotRecoveryEvents/);
     assert.doesNotMatch(source, /buildSetRuntimeAgentPresentationProfileRequest/);
     assert.doesNotMatch(source, /projectRuntimeAgentCanonicalMemoryBankStatus/);
   });

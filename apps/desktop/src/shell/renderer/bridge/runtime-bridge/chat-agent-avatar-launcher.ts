@@ -1,4 +1,4 @@
-import { createNimiClientId } from '@nimiplatform/sdk/runtime';
+import { createNimiClientId } from '@nimiplatform/sdk';
 import { invokeChecked } from './invoke';
 
 export type DesktopAvatarLaunchHandoffInput = {

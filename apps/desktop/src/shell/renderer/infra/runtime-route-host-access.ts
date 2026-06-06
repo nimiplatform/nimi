@@ -1,11 +1,11 @@
-import { getPlatformClient } from '@nimiplatform/sdk';
 import {
-  createHostRuntimeRouteAccessSurface,
-  type RuntimeRouteLocalWarmMetric,
+  createNimiHostRuntimeRouteAccessSurface,
+  type NimiRuntimeRouteLocalWarmMetric,
 } from '@nimiplatform/sdk/runtime';
 import { emitRuntimeLog } from '@nimiplatform/kit/telemetry';
+import { getDesktopRuntime } from '@renderer/infra/sdk/desktop-nimi-client-session';
 
-function emitDesktopRuntimeRouteWarmMetric(metric: RuntimeRouteLocalWarmMetric): void {
+function emitDesktopRuntimeRouteWarmMetric(metric: NimiRuntimeRouteLocalWarmMetric): void {
   if (metric.kind === 'timing') {
     emitRuntimeLog({
       level: 'info',
@@ -31,8 +31,8 @@ function emitDesktopRuntimeRouteWarmMetric(metric: RuntimeRouteLocalWarmMetric):
   });
 }
 
-export const desktopRuntimeRouteAccess = createHostRuntimeRouteAccessSurface({
-  getRuntime: () => getPlatformClient().runtime,
+export const desktopRuntimeRouteAccess = createNimiHostRuntimeRouteAccessSurface({
+  getRuntime: getDesktopRuntime,
   appId: 'nimi.desktop',
   callerKind: 'desktop-core',
   surfaceId: 'desktop.renderer',

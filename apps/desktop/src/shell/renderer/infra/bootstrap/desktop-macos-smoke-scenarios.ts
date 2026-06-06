@@ -5,6 +5,7 @@ import {
   type DesktopMacosSmokeDriverDeps,
   type Live2dVisiblePixelsTimeoutError,
   type VrmVisiblePixelsTimeoutError,
+  type JsonObject,
   SMOKE_STEP_TIMEOUT_MS,
 } from './desktop-macos-smoke-shared';
 import {
@@ -28,13 +29,13 @@ const E2E_PRIMARY_REALM_AGENT_ID = 'agent-e2e-alpha';
 const E2E_PRIMARY_LOCAL_AGENT_REF = `local-agent:user-e2e-primary:${E2E_PRIMARY_REALM_AGENT_ID}`;
 const E2E_PRIMARY_AGENT_TARGET_ID = E2E_IDS.chatTarget(E2E_PRIMARY_LOCAL_AGENT_REF);
 
-function smokeDetailsFromError(error: unknown): Record<string, unknown> | undefined {
+function smokeDetailsFromError(error: unknown): JsonObject | undefined {
   if (!error || typeof error !== 'object' || Array.isArray(error)) {
     return undefined;
   }
   const details = (error as { smokeDetails?: unknown }).smokeDetails;
   return details && typeof details === 'object' && !Array.isArray(details)
-    ? details as Record<string, unknown>
+    ? details as JsonObject
     : undefined;
 }
 
@@ -260,7 +261,7 @@ export async function runDesktopMacosSmokeScenario(
                 initialVisible: toVrmCanvasStatsReport(initialVisibleStats),
                 [scenarioConfig.reportKey]: toVrmCanvasStatsReport(phaseVisibleStats),
               },
-            },
+            } as JsonObject,
           });
           return;
         }
@@ -369,7 +370,7 @@ export async function runDesktopMacosSmokeScenario(
                 afterRebind: toVrmCanvasStatsReport(afterRebindStats),
                 afterSecondRebind: toVrmCanvasStatsReport(afterSecondRebindStats),
               },
-            },
+            } as JsonObject,
           });
           return;
         }
@@ -436,7 +437,7 @@ export async function runDesktopMacosSmokeScenario(
               afterSmallResize: toLive2dCanvasStatsReport(afterSmallResizeStats),
               afterRestoredResize: toLive2dCanvasStatsReport(afterRestoredResizeStats),
             },
-          },
+          } as JsonObject,
         });
         return;
       }

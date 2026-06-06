@@ -1,5 +1,6 @@
 import {
   type DesktopMacosSmokeDriverDeps,
+  type JsonObject,
   type VrmCanvasStats,
   type VrmExpressionEvidence,
   type VrmFramingEvidence,
@@ -438,7 +439,7 @@ export async function waitForVrmPostureEvidence(
   );
 }
 
-export function toVrmCanvasStatsReport(stats: VrmCanvasStats): Record<string, unknown> {
+export function toVrmCanvasStatsReport(stats: VrmCanvasStats): JsonObject {
   return {
     status: stats.status,
     stage: stats.stage,
@@ -451,5 +452,5 @@ export function toVrmCanvasStatsReport(stats: VrmCanvasStats): Record<string, un
     nonTransparentSampleCount: stats.nonTransparentSampleCount,
     sampleError: stats.sampleError,
     runtimeDebug: stats.runtimeDebug ?? undefined,
-  };
+  } as JsonObject;
 }

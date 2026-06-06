@@ -4,7 +4,7 @@ import type {
   RuntimeBridgeDaemonStatus,
   RuntimeDefaults,
 } from '@renderer/bridge';
-import { mergeRuntimeBridgeRealmJwtConfig } from '@nimiplatform/sdk/runtime';
+import { mergeNimiRuntimeBridgeRealmJwtConfig } from '@nimiplatform/sdk/runtime';
 import { createRuntimeConfigManualRestartRequiredError } from './runtime-bootstrap-config-errors';
 
 const CONFIG_RESTART_REQUIRED = 'CONFIG_RESTART_REQUIRED';
@@ -15,7 +15,7 @@ export type RuntimeJwtSyncBridge = {
   restartRuntimeBridge: () => Promise<RuntimeBridgeDaemonStatus>;
 };
 
-export const mergeRuntimeJwtConfig = mergeRuntimeBridgeRealmJwtConfig;
+export const mergeRuntimeJwtConfig = mergeNimiRuntimeBridgeRealmJwtConfig;
 
 export async function syncRuntimeJwtConfig(input: {
   daemonStatus: RuntimeBridgeDaemonStatus;

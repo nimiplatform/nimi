@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 import {
-  buildRuntimeBridgeConfigWithLocalEndpoint,
+  buildNimiRuntimeBridgeConfigWithLocalEndpoint,
 } from '@nimiplatform/sdk/runtime';
 
 import {
@@ -78,7 +78,7 @@ test('buildRuntimeBridgeConfigFromLocalEndpoint delegates Runtime config schema 
   const baseConfig = {};
 
   const config = buildRuntimeBridgeConfigFromLocalEndpoint(endpoint, baseConfig);
-  assert.deepEqual(config, buildRuntimeBridgeConfigWithLocalEndpoint(baseConfig, endpoint));
+  assert.deepEqual(config, buildNimiRuntimeBridgeConfigWithLocalEndpoint(baseConfig, endpoint));
 });
 
 test('buildRuntimeBridgeConfigFromLocalEndpoint preserves existing non-local provider entries', () => {
@@ -99,7 +99,7 @@ test('buildRuntimeBridgeConfigFromLocalEndpoint preserves existing non-local pro
     },
   });
 
-  assert.deepEqual(config, buildRuntimeBridgeConfigWithLocalEndpoint({
+  assert.deepEqual(config, buildNimiRuntimeBridgeConfigWithLocalEndpoint({
     engines: {
       media: {
         enabled: true,

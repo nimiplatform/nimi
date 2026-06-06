@@ -133,7 +133,8 @@ test('desktop macos smoke driver consumes SDK Runtime smoke verification surface
     'utf8',
   );
 
-  assert.match(driverSource, /createRuntimeAgentSmokeVerificationSurface/);
+  assert.match(driverSource, /createNimiRuntimeAgentSmokeVerificationSurface/);
+  assert.doesNotMatch(driverSource, /createRuntimeAgentSmokeVerificationSurface/);
   assert.doesNotMatch(driverSource, /createRuntimeProtectedScopeHelper/);
   assert.doesNotMatch(driverSource, /withScopes\(\['runtime\.agent\.read'\]/);
 });

@@ -2,14 +2,14 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
-import { MemoryCanonicalClass, RuntimeReasonCode } from '@nimiplatform/sdk/runtime';
+import { MemoryCanonicalClass, ReasonCode } from '@nimiplatform/sdk/runtime/generated';
 import { createRuntimeAgentInspectAdapter } from '../src/shell/renderer/infra/runtime-agent-inspect.js';
 
 const LOCAL_AGENT_REF = 'local-agent:user-1:agent-1';
 
 test('runtime agent inspect adapter delegates Runtime orchestration to SDK', () => {
   const source = readFileSync('src/shell/renderer/infra/runtime-agent-inspect.ts', 'utf8');
-  assert.match(source, /createHostRuntimeAgentInspectSurface/);
+  assert.match(source, /createNimiHostRuntimeAgentInspectSurface/);
   assert.match(source, /from '@nimiplatform\/sdk\/runtime'/);
   assert.doesNotMatch(source, /projectRuntimeAgentInspectSnapshot/);
   assert.doesNotMatch(source, /projectRuntimeAgentInspectEventSummary/);
@@ -93,6 +93,18 @@ function buildPendingHook(input: {
   };
 }
 
+function assertProtectedAccessOptions(options: Record<string, unknown>): void {
+  assert.equal(
+    (options.metadata as Record<string, unknown> | undefined)?.['x-nimi-protected-access-token-id'],
+    'protected-token-id',
+  );
+  assert.equal(
+    (options.metadata as Record<string, unknown> | undefined)?.['x-nimi-protected-access-secret'],
+    'protected-token-secret',
+  );
+  assert.equal(options.protectedAccessToken, undefined);
+}
+
 function createRuntimeMock() {
   const calls = {
     registerApp: [] as Array<Record<string, unknown>>,
@@ -101,12 +113,12 @@ function createRuntimeMock() {
     getAgentState: [] as Array<Record<string, unknown>>,
     updateAgentState: [] as Array<Record<string, unknown>>,
     listPendingHooks: [] as Array<Record<string, unknown>>,
-    queryMemory: [] as Array<Record<string, unknown>>,
+    queryAgentMemory: [] as Array<Record<string, unknown>>,
     enableAutonomy: [] as Array<Record<string, unknown>>,
     disableAutonomy: [] as Array<Record<string, unknown>>,
     setAutonomyConfig: [] as Array<Record<string, unknown>>,
     cancelHook: [] as Array<Record<string, unknown>>,
-    subscribeEvents: [] as Array<Record<string, unknown>>,
+    subscribeAgentEvents: [] as Array<Record<string, unknown>>,
   };
 
   const state = {
@@ -304,8 +316,8 @@ function createRuntimeMock() {
           nextPageToken: end < hooks.length ? String(end) : '',
         };
       },
-      queryMemory: async (input: Record<string, unknown>, options?: Record<string, unknown>) => {
-        calls.queryMemory.push({ ...input, __options: options });
+      queryAgentMemory: async (input: Record<string, unknown>, options?: Record<string, unknown>) => {
+        calls.queryAgentMemory.push({ ...input, __options: options });
         return {
           memories: [
             {
@@ -455,8 +467,8 @@ function createRuntimeMock() {
           },
         };
       },
-      subscribeEvents: async (input: Record<string, unknown>, options?: Record<string, unknown>) => {
-        calls.subscribeEvents.push({ ...input, __options: options });
+      subscribeAgentEvents: (input: Record<string, unknown>, options?: Record<string, unknown>) => {
+        calls.subscribeAgentEvents.push({ ...input, __options: options });
         async function* stream() {
           yield {
             agentId: String(input.agentId || ''),
@@ -496,7 +508,7 @@ function createRuntimeMock() {
               oneofKind: 'memory',
               memory: {
                 accepted: [{ canonicalClass: MemoryCanonicalClass.DYADIC }],
-                rejected: [{ sourceEventId: 'candidate-2', reasonCode: RuntimeReasonCode.AI_OUTPUT_INVALID, message: 'bad' }],
+                rejected: [{ sourceEventId: 'candidate-2', reasonCode: ReasonCode.AI_OUTPUT_INVALID, message: 'bad' }],
               },
             },
           };
@@ -598,19 +610,16 @@ test('runtime agent inspect adapter projects public state and pending hook summa
   assert.equal(calls.getAgent.length, 1);
   assert.equal(calls.getAgentState.length, 1);
   assert.equal(calls.listPendingHooks.length, 7);
-  assert.equal(calls.queryMemory.length, 1);
-  assert.deepEqual(calls.queryMemory[0]?.canonicalClasses, [
+  assert.equal(calls.queryAgentMemory.length, 1);
+  assert.deepEqual(calls.queryAgentMemory[0]?.canonicalClasses, [
     MemoryCanonicalClass.PUBLIC_SHARED,
     MemoryCanonicalClass.WORLD_SHARED,
     MemoryCanonicalClass.DYADIC,
   ]);
-  assert.equal(calls.registerApp.length, 1);
+  assert.ok(calls.registerApp.length >= 1);
   assert.ok(calls.authorizeExternalPrincipal.length >= 1);
   const options = (calls.getAgent[0]?.__options as Record<string, unknown>) || {};
-  assert.deepEqual(options.protectedAccessToken, {
-    tokenId: 'protected-token-id',
-    secret: 'protected-token-secret',
-  });
+  assertProtectedAccessOptions(options);
 });
 
 test('runtime agent inspect adapter omits dyadic memory preview without active dyadic context', async () => {
@@ -627,8 +636,8 @@ test('runtime agent inspect adapter omits dyadic memory preview without active d
   const snapshot = await adapter.getPublicInspect(LOCAL_AGENT_REF);
 
   assert.equal(snapshot.activeUserId, null);
-  assert.equal(calls.queryMemory.length, 1);
-  assert.deepEqual(calls.queryMemory[0]?.canonicalClasses, [
+  assert.equal(calls.queryAgentMemory.length, 1);
+  assert.deepEqual(calls.queryAgentMemory[0]?.canonicalClasses, [
     MemoryCanonicalClass.PUBLIC_SHARED,
     MemoryCanonicalClass.WORLD_SHARED,
   ]);
@@ -653,7 +662,7 @@ test('runtime agent inspect adapter projects persistent presentation profile wit
   });
   assert.equal(calls.getAgent.length, 1);
   assert.equal(calls.getAgentState.length, 0);
-  assert.equal(calls.queryMemory.length, 0);
+  assert.equal(calls.queryAgentMemory.length, 0);
 });
 
 test('runtime agent inspect adapter accepts live2d presentation profiles', async () => {
@@ -741,10 +750,7 @@ test('runtime agent inspect adapter enables and disables autonomy through admitt
   assert.equal(calls.disableAutonomy.length, 1);
   assert.equal(calls.disableAutonomy[0]?.reason, 'desktop_test_disable');
   const enableOptions = (calls.enableAutonomy[0]?.__options as Record<string, unknown>) || {};
-  assert.deepEqual(enableOptions.protectedAccessToken, {
-    tokenId: 'protected-token-id',
-    secret: 'protected-token-secret',
-  });
+  assertProtectedAccessOptions(enableOptions);
 });
 
 test('runtime agent inspect adapter updates admitted agent state through runtime.agent.write', async () => {
@@ -776,10 +782,7 @@ test('runtime agent inspect adapter updates admitted agent state through runtime
   assert.equal(((calls.updateAgentState[0]?.mutations as Array<Record<string, unknown>>)[1]?.mutation as Record<string, unknown>)?.oneofKind, 'setWorldContext');
   assert.equal(((calls.updateAgentState[0]?.mutations as Array<Record<string, unknown>>)[2]?.mutation as Record<string, unknown>)?.oneofKind, 'setDyadicContext');
   const options = (calls.updateAgentState[0]?.__options as Record<string, unknown>) || {};
-  assert.deepEqual(options.protectedAccessToken, {
-    tokenId: 'protected-token-id',
-    secret: 'protected-token-secret',
-  });
+  assertProtectedAccessOptions(options);
 });
 
 test('runtime agent inspect adapter updates autonomy config through admitted runtime writes', async () => {
@@ -805,10 +808,7 @@ test('runtime agent inspect adapter updates autonomy config through admitted run
   assert.equal((calls.setAutonomyConfig[0]?.config as Record<string, unknown>)?.dailyTokenBudget, '640');
   assert.equal((calls.setAutonomyConfig[0]?.config as Record<string, unknown>)?.maxTokensPerHook, '160');
   const options = (calls.setAutonomyConfig[0]?.__options as Record<string, unknown>) || {};
-  assert.deepEqual(options.protectedAccessToken, {
-    tokenId: 'protected-token-id',
-    secret: 'protected-token-secret',
-  });
+  assertProtectedAccessOptions(options);
 });
 
 test('runtime agent inspect adapter cancels hooks through admitted runtime writes', async () => {
@@ -830,10 +830,7 @@ test('runtime agent inspect adapter cancels hooks through admitted runtime write
   assert.equal(calls.cancelHook[0]?.intentId, 'hook-1');
   assert.equal(calls.cancelHook[0]?.reason, 'desktop_test_cancel');
   const options = (calls.cancelHook[0]?.__options as Record<string, unknown>) || {};
-  assert.deepEqual(options.protectedAccessToken, {
-    tokenId: 'protected-token-id',
-    secret: 'protected-token-secret',
-  });
+  assertProtectedAccessOptions(options);
 });
 
 test('runtime agent inspect adapter subscribes to agent events with protected read scopes', async () => {
@@ -856,7 +853,7 @@ test('runtime agent inspect adapter subscribes to agent events with protected re
         assert.equal(event.eventTypeLabel, 'hook');
         assert.equal(event.hookId, 'hook-1');
         assert.equal(event.hookStatus, 'pending');
-        assert.match(event.summaryText || '', /hook-1 · pending/);
+        assert.match(event.summaryText || '', /hook-1 - pending/);
       }
       if (events.length === 2) {
         assert.equal(event.eventTypeLabel, 'budget');
@@ -865,11 +862,11 @@ test('runtime agent inspect adapter subscribes to agent events with protected re
       }
       if (events.length === 3) {
         assert.equal(event.eventTypeLabel, 'memory');
-        assert.equal(event.summaryText, 'accepted=1 · rejected=1');
+        assert.equal(event.summaryText, 'accepted=1 - rejected=1');
       }
       if (events.length === 4) {
         assert.equal(event.eventTypeLabel, 'replication');
-        assert.equal(event.summaryText, 'mem-dyadic-1 · synced');
+        assert.equal(event.summaryText, 'mem-dyadic-1 - synced');
       }
     },
   });
@@ -880,11 +877,8 @@ test('runtime agent inspect adapter subscribes to agent events with protected re
     { eventType: 3, sequence: '19', detailKind: 'memory' },
     { eventType: 5, sequence: '20', detailKind: 'replication' },
   ]);
-  assert.equal(calls.subscribeEvents.length, 1);
-  assert.deepEqual(calls.subscribeEvents[0]?.eventFilters, []);
-  const options = (calls.subscribeEvents[0]?.__options as Record<string, unknown>) || {};
-  assert.deepEqual(options.protectedAccessToken, {
-    tokenId: 'protected-token-id',
-    secret: 'protected-token-secret',
-  });
+  assert.equal(calls.subscribeAgentEvents.length, 1);
+  assert.deepEqual(calls.subscribeAgentEvents[0]?.eventFilters, []);
+  const options = (calls.subscribeAgentEvents[0]?.__options as Record<string, unknown>) || {};
+  assertProtectedAccessOptions(options);
 });

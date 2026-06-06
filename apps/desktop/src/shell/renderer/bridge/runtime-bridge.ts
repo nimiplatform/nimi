@@ -50,9 +50,9 @@ import {
 } from '@nimiplatform/kit/shell/renderer/bridge';
 
 export type {
-  ProductControlRecord,
-  ProductControlRecordProjection,
-  ProductControlState,
+  NimiProductControlRecord,
+  NimiProductControlRecordProjection,
+  NimiProductControlState,
   AccountDefaultProfileAIProfile,
 } from './runtime-bridge/product-control';
 

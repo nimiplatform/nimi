@@ -1,9 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {
-  AgentCanonicalMemoryBankMode,
-  RuntimeReasonCode,
-} from '@nimiplatform/sdk/runtime';
+import { AgentCanonicalMemoryBankMode, ReasonCode } from '@nimiplatform/sdk/runtime/generated';
 import {
   createRuntimeAgentMemoryAdapter,
 } from '../src/shell/renderer/infra/runtime-agent-memory';
@@ -33,7 +30,7 @@ function runtimeStatus(input: {
       }
       : undefined,
     bindingSourceKind: input.bindingSourceKind ?? '',
-    blockedReasonCode: RuntimeReasonCode.REASON_CODE_UNSPECIFIED,
+    blockedReasonCode: ReasonCode.REASON_CODE_UNSPECIFIED,
     pendingCutover: input.pendingCutover ?? false,
     canonicalBankStatus: input.canonicalBankStatus ?? 'unbound',
     bindAllowed: input.bindAllowed ?? false,
@@ -63,7 +60,7 @@ function createRuntimeMock(statuses: Array<ReturnType<typeof runtimeStatus>>) {
           return {
             status: currentStatus(),
             outcome: 'bound',
-            blockedReasonCode: RuntimeReasonCode.REASON_CODE_UNSPECIFIED,
+            blockedReasonCode: ReasonCode.REASON_CODE_UNSPECIFIED,
           };
         },
       },

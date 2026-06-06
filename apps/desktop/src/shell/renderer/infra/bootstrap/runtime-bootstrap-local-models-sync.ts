@@ -4,7 +4,7 @@ import type {
   RuntimeBridgeConfigSetResult,
   RuntimeBridgeDaemonStatus,
 } from '@renderer/bridge';
-import { mergeRuntimeBridgeDataRootConfig } from '@nimiplatform/sdk/runtime';
+import { mergeNimiRuntimeBridgeDataRootConfig } from '@nimiplatform/sdk/runtime';
 import { createRuntimeConfigManualRestartRequiredError } from './runtime-bootstrap-config-errors';
 
 const CONFIG_RESTART_REQUIRED = 'CONFIG_RESTART_REQUIRED';
@@ -26,7 +26,7 @@ export type RuntimeStorageConfigSyncBridge = RuntimeLocalModelsConfigSyncBridge 
   getDesktopStorageDirs: () => Promise<DesktopStorageDirs>;
 };
 
-export const mergeRuntimeLocalModelsConfig = mergeRuntimeBridgeDataRootConfig;
+export const mergeRuntimeLocalModelsConfig = mergeNimiRuntimeBridgeDataRootConfig;
 
 export async function syncRuntimeLocalModelsConfig(input: {
   daemonStatus: RuntimeBridgeDaemonStatus;

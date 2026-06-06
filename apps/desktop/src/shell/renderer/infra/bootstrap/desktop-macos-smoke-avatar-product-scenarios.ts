@@ -1,5 +1,6 @@
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
-import { type DesktopMacosSmokeDriverDeps, SMOKE_STEP_TIMEOUT_MS } from './desktop-macos-smoke-shared';
+import { type DesktopMacosSmokeDriverDeps, type JsonObject, SMOKE_STEP_TIMEOUT_MS } from './desktop-macos-smoke-shared';
+import type { NimiRuntimeAgentSmokeProductPathEvidence } from '@nimiplatform/sdk/runtime';
 import {
   waitForAvatarCarrierEvidence,
   waitForAvatarLocalAssetDegradedEvidence,
@@ -83,7 +84,7 @@ async function waitForRuntimeProductPathEvidence(
     conversationAnchorId: string;
   },
   timeoutMs = 25_000,
-): Promise<Record<string, unknown>> {
+): Promise<NimiRuntimeAgentSmokeProductPathEvidence> {
   const deadline = Date.now() + timeoutMs;
   let lastError = '';
   while (Date.now() < deadline) {
@@ -188,7 +189,7 @@ export async function runChatLive2dAvatarProductSmokeScenario(
           degradedTransition: degradedEvidence.degradedTransition,
           degradedSurface: degradedEvidence.degradedSurface,
         },
-      },
+      } as unknown as JsonObject,
     });
     return;
   }
@@ -231,8 +232,8 @@ export async function runChatLive2dAvatarProductSmokeScenario(
     steps,
     route: deps.currentRoute(),
     htmlSnapshot: deps.currentHtml(),
-    details: {
-      avatarProductPath: {
+      details: {
+        avatarProductPath: {
         conversationAnchorId,
         runtime: runtimeProductEvidence,
         liveInstance,
@@ -244,7 +245,7 @@ export async function runChatLive2dAvatarProductSmokeScenario(
         lifecycleMounted: carrierEvidence.lifecycleMounted,
         visual: carrierEvidence.visual,
         interaction: interactionEvidence.interaction,
-      },
-    },
+        },
+      } as unknown as JsonObject,
   });
 }

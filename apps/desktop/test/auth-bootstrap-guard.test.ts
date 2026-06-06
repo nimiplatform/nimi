@@ -15,7 +15,7 @@ function assertGuardedCall(handlerName: string): void {
   const nextHandlerIndex = authAdapterSource.indexOf('\n\n', start);
   const searchEnd = nextHandlerIndex === -1 ? authAdapterSource.length : nextHandlerIndex;
   const runtimeProjectionIndex = authAdapterSource.indexOf('runtime.account.getAccountSessionStatus', start);
-  const realmSecurityProjectionIndex = authAdapterSource.indexOf('updateRealmPassword', start);
+  const realmSecurityProjectionIndex = authAdapterSource.indexOf('updateNimiRealmPassword', start);
   const guardedIndex = [runtimeProjectionIndex, realmSecurityProjectionIndex]
     .filter((index) => index !== -1 && index < searchEnd)
     .at(0);

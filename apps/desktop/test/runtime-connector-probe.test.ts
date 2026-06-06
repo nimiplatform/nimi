@@ -13,17 +13,20 @@ import {
   providerToVendor,
   vendorToProvider,
 } from '../src/shell/renderer/features/runtime-config/runtime-config-connector-sdk-service';
-import { createPlatformClient } from '@nimiplatform/sdk';
-import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
-  GetAccessTokenResponse,
+  clearDesktopNimiClientSession,
+  setDesktopNimiClientSessionForTests,
+  type DesktopNimiClientSession,
+} from '../src/shell/renderer/infra/sdk/desktop-nimi-client-session';
+import { ReasonCode } from '@nimiplatform/sdk/types';
+import { Runtime } from '@nimiplatform/sdk/runtime';
+import { type ProviderCatalogEntry } from '@nimiplatform/sdk/runtime/generated';
+import {
+  CreateConnectorResponse,
   ListConnectorModelsResponse,
   ListConnectorsResponse,
   ListProviderCatalogResponse,
-  RefreshAccountSessionResponse,
-  RegisterAppResponse,
-  type ProviderCatalogEntry,
-} from '@nimiplatform/sdk/runtime';
+} from '../../../sdks/typescript/core-generated/runtime-protobuf/runtime/v1/connector';
 
 const CONNECTOR_SERVICE_SOURCE = readFileSync(
   resolve(import.meta.dirname, '../src/shell/renderer/features/runtime-config/runtime-config-connector-sdk-service.ts'),
@@ -57,6 +60,42 @@ type MutableGlobalTauri = typeof globalThis & {
   };
 };
 
+const RUNTIME_CONNECTOR_PROBE_APP_ID = 'nimi.desktop';
+const RUNTIME_CONNECTOR_PROBE_TAURI_TRANSPORT = {
+  type: 'tauri-ipc',
+  commandNamespace: 'runtime_bridge',
+  eventNamespace: 'runtime_bridge',
+} as const;
+
+function unaryResponseBytes(bytes: Uint8Array): { responseBytesBase64: string } {
+  return {
+    responseBytesBase64: Buffer.from(bytes).toString('base64'),
+  };
+}
+
+function createConnectorProbeResponse(provider = 'openai'): { responseBytesBase64: string } {
+  return unaryResponseBytes(
+    CreateConnectorResponse.toBinary(CreateConnectorResponse.create({
+      connector: {
+        connectorId: `conn-${provider}`,
+        provider,
+        endpoint: provider === 'openai_codex'
+          ? 'https://chatgpt.com/backend-api/codex'
+          : 'https://api.openai.com/v1',
+        label: `${provider} Connector`,
+        hasCredential: true,
+        ownerType: 0,
+        ownerId: '',
+        kind: 2,
+        status: 1,
+        localCategory: 0,
+        authKind: 1,
+        providerAuthProfile: provider === 'openai_codex' ? 'openai_codex' : '',
+      },
+    })),
+  );
+}
+
 function unwrapPayload(payload: unknown): Record<string, unknown> {
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
     return {};
@@ -67,6 +106,28 @@ function unwrapPayload(payload: unknown): Record<string, unknown> {
     return {};
   }
   return nested as Record<string, unknown>;
+}
+
+function installRuntimeConnectorProbeDesktopSession(sessionTokenProvider: () => string): void {
+  const runtime = new Runtime({
+    appId: RUNTIME_CONNECTOR_PROBE_APP_ID,
+    transport: RUNTIME_CONNECTOR_PROBE_TAURI_TRANSPORT,
+    authMetadata: async (): Promise<Readonly<Record<string, string>>> => {
+      const sessionToken = String(sessionTokenProvider() || '').trim();
+      return sessionToken
+        ? {
+          'x-nimi-session-id': 'connector-probe-session',
+          'x-nimi-session-token': sessionToken,
+        }
+        : {};
+    },
+  });
+
+  setDesktopNimiClientSessionForTests({
+    appId: RUNTIME_CONNECTOR_PROBE_APP_ID,
+    runtime,
+    realm: {},
+  } as unknown as DesktopNimiClientSession);
 }
 
 function installTauriRuntime(
@@ -86,28 +147,25 @@ function installTauriRuntime(
         });
         if (
           command === 'runtime_bridge_unary'
-          && unwrapped.methodId === '/nimi.runtime.v1.RuntimeAuthService/RegisterApp'
+          && unwrapped.methodId === '/nimi.runtime.v1.RuntimeConnectorService/ListProviderCatalog'
         ) {
-          return {
-            responseBytesBase64: Buffer.from(
-              RegisterAppResponse.toBinary(RegisterAppResponse.create({
-                accepted: true,
-              })),
-            ).toString('base64'),
-          };
+          return unaryResponseBytes(ListProviderCatalogResponse.toBinary(ListProviderCatalogResponse.create({
+            providers: PROVIDER_CATALOG,
+          })));
         }
         if (
           command === 'runtime_bridge_unary'
-          && unwrapped.methodId === '/nimi.runtime.v1.RuntimeAccountService/GetAccessToken'
+          && unwrapped.methodId === '/nimi.runtime.v1.RuntimeConnectorService/ListConnectors'
         ) {
-          return {
-            responseBytesBase64: Buffer.from(
-              GetAccessTokenResponse.toBinary(GetAccessTokenResponse.create({
-                accepted: true,
-                accessToken: accessTokenProvider(),
-              })),
-            ).toString('base64'),
-          };
+          return unaryResponseBytes(ListConnectorsResponse.toBinary(ListConnectorsResponse.create({
+            connectors: [],
+          })));
+        }
+        if (
+          command === 'runtime_bridge_unary'
+          && unwrapped.methodId === '/nimi.runtime.v1.RuntimeConnectorService/CreateConnector'
+        ) {
+          return createConnectorProbeResponse();
         }
         return { responseBytesBase64: '' };
       },
@@ -120,8 +178,10 @@ function installTauriRuntime(
   windowObject.__NIMI_TAURI_TEST__ = { invoke: runtime.core.invoke, listen: runtime.event.listen };
   target.__NIMI_TAURI_TEST__ = { invoke: runtime.core.invoke, listen: runtime.event.listen };
   target.window = windowObject;
+  installRuntimeConnectorProbeDesktopSession(accessTokenProvider);
 
   return () => {
+    clearDesktopNimiClientSession();
     if (typeof previousRoot === 'undefined') {
       Reflect.deleteProperty(target, '__NIMI_TAURI_TEST__');
     } else {
@@ -361,17 +421,12 @@ test('listConnectorAuthOptionsForProvider exposes admitted oauth-managed options
   );
 });
 
-test('sdkCreateConnector runtime calls include auto authorization and pick refreshed token', async () => {
+test('sdkCreateConnector runtime calls include vNext app session metadata and pick refreshed token', async () => {
   clearRuntimeConnectorSdkCaches();
   const calls: TauriInvokeCall[] = [];
   let token = 'connector-token-1';
   const restoreTauri = installTauriRuntime(calls, () => token);
   try {
-    await createPlatformClient({
-      authMode: 'local-first-party-runtime',
-      realmBaseUrl: 'http://localhost:3002',
-    });
-
     await sdkCreateConnector({
       provider: 'openai',
       endpoint: 'https://api.openai.com/v1',
@@ -394,31 +449,26 @@ test('sdkCreateConnector runtime calls include auto authorization and pick refre
     assert.equal(unaryCalls.length, 2);
     const firstCall = unaryCalls[0];
     const secondCall = unaryCalls[1];
-    assert.equal(firstCall?.payload.authorization, 'Bearer connector-token-1');
-    assert.equal(secondCall?.payload.authorization, 'Bearer connector-token-2');
+    assert.equal(firstCall?.payload.authorization, undefined);
+    assert.equal(secondCall?.payload.authorization, undefined);
+    assert.deepEqual(firstCall?.payload.appSession, {
+      sessionId: 'connector-probe-session',
+      sessionToken: 'connector-token-1',
+    });
+    assert.deepEqual(secondCall?.payload.appSession, {
+      sessionId: 'connector-probe-session',
+      sessionToken: 'connector-token-2',
+    });
   } finally {
     restoreTauri();
   }
 });
 
-test('sdkListConnectors discovers connectors via single-path platform-client calls (no anonymous-fallback retry)', async () => {
+test('sdkListConnectors discovers connectors via single-path vNext Runtime calls (no anonymous-fallback retry)', async () => {
   clearRuntimeConnectorSdkCaches();
-  // Wave 3: the renderer no longer wraps Runtime calls in
-  // withAnonymousReadFallback. Wave 0 classifies ListProviderCatalog as
-  // anonymous_read, so Wave 2's SDK classifier filters Bearer for that
-  // method at source — meaning the renderer's single direct call to
-  // ListProviderCatalog goes out with no Authorization header and never
-  // triggers AUTH_TOKEN_INVALID. ListConnectors is `mixed` per Wave 0
-  // and still receives Bearer when a token is configured — that is the
-  // existing fallthrough contract preserved by Wave 2.
   const calls: TauriInvokeCall[] = [];
   const restoreTauri = installTauriRuntime(calls, () => 'realm-token');
   try {
-    await createPlatformClient({
-      authMode: 'local-first-party-runtime',
-      realmBaseUrl: 'http://localhost:3002',
-    });
-
     const target = globalThis as MutableGlobalTauri;
     const invoke = target.__NIMI_TAURI_TEST__?.invoke;
     assert.ok(invoke, 'expected test tauri invoke');
@@ -430,16 +480,32 @@ test('sdkListConnectors discovers connectors via single-path platform-client cal
         const methodId = String(unwrapped.methodId || '');
         if (
           command === 'runtime_bridge_unary'
-          && methodId === '/nimi.runtime.v1.RuntimeAccountService/GetAccessToken'
+          && methodId === '/nimi.runtime.v1.RuntimeConnectorService/ListProviderCatalog'
         ) {
-          return {
-            responseBytesBase64: Buffer.from(
-              GetAccessTokenResponse.toBinary(GetAccessTokenResponse.create({
-                accepted: true,
-                accessToken: 'realm-token',
-              })),
-            ).toString('base64'),
-          };
+          return unaryResponseBytes(ListProviderCatalogResponse.toBinary(ListProviderCatalogResponse.create({
+            providers: PROVIDER_CATALOG,
+          })));
+        }
+        if (
+          command === 'runtime_bridge_unary'
+          && methodId === '/nimi.runtime.v1.RuntimeConnectorService/ListConnectors'
+        ) {
+          return unaryResponseBytes(ListConnectorsResponse.toBinary(ListConnectorsResponse.create({
+            connectors: [{
+              connectorId: 'conn-1',
+              provider: 'openrouter',
+              endpoint: 'https://openrouter.ai/api/v1',
+              label: 'OpenRouter',
+              hasCredential: true,
+              ownerType: 0,
+              ownerId: '',
+              kind: 2,
+              status: 1,
+              localCategory: 0,
+              authKind: 1,
+              providerAuthProfile: '',
+            }],
+          })));
         }
         return { responseBytesBase64: '' };
       },
@@ -460,12 +526,17 @@ test('sdkListConnectors discovers connectors via single-path platform-client cal
     ));
     // Single-path: each method is invoked exactly once. No retry.
     assert.equal(catalogCalls.length, 1, 'ListProviderCatalog must be called exactly once (no fallback retry)');
-    // Wave 2 SDK filters Bearer for anonymous_read — so the catalog call
-    // never carries Authorization regardless of token state.
     assert.equal(catalogCalls[0]?.payload.authorization, undefined);
-    // ListConnectors is mixed; Bearer is forwarded when token is set.
+    assert.deepEqual(catalogCalls[0]?.payload.appSession, {
+      sessionId: 'connector-probe-session',
+      sessionToken: 'realm-token',
+    });
     assert.equal(listConnectorCalls.length, 1, 'ListConnectors must be called exactly once');
-    assert.equal(listConnectorCalls[0]?.payload.authorization, 'Bearer realm-token');
+    assert.equal(listConnectorCalls[0]?.payload.authorization, undefined);
+    assert.deepEqual(listConnectorCalls[0]?.payload.appSession, {
+      sessionId: 'connector-probe-session',
+      sessionToken: 'realm-token',
+    });
   } finally {
     restoreTauri();
   }
@@ -476,11 +547,6 @@ test('sdkListConnectors coalesces concurrent inventory reads and reuses a short-
   const calls: TauriInvokeCall[] = [];
   const restoreTauri = installTauriRuntime(calls, () => 'realm-token');
   try {
-    await createPlatformClient({
-      authMode: 'local-first-party-runtime',
-      realmBaseUrl: 'http://localhost:3002',
-    });
-
     const target = globalThis as MutableGlobalTauri;
     target.__NIMI_TAURI_TEST__ = {
       ...target.__NIMI_TAURI_TEST__,
@@ -490,53 +556,32 @@ test('sdkListConnectors coalesces concurrent inventory reads and reuses a short-
         const methodId = String(unwrapped.methodId || '');
         if (
           command === 'runtime_bridge_unary'
-          && methodId === '/nimi.runtime.v1.RuntimeAccountService/GetAccessToken'
-        ) {
-          return {
-            responseBytesBase64: Buffer.from(
-              GetAccessTokenResponse.toBinary(GetAccessTokenResponse.create({
-                accepted: true,
-                accessToken: 'realm-token',
-              })),
-            ).toString('base64'),
-          };
-        }
-        if (
-          command === 'runtime_bridge_unary'
           && methodId === '/nimi.runtime.v1.RuntimeConnectorService/ListProviderCatalog'
         ) {
-          return {
-            responseBytesBase64: Buffer.from(
-              ListProviderCatalogResponse.toBinary(ListProviderCatalogResponse.create({
-                providers: PROVIDER_CATALOG,
-              })),
-            ).toString('base64'),
-          };
+          return unaryResponseBytes(ListProviderCatalogResponse.toBinary(ListProviderCatalogResponse.create({
+            providers: PROVIDER_CATALOG,
+          })));
         }
         if (
           command === 'runtime_bridge_unary'
           && methodId === '/nimi.runtime.v1.RuntimeConnectorService/ListConnectors'
         ) {
-          return {
-            responseBytesBase64: Buffer.from(
-              ListConnectorsResponse.toBinary(ListConnectorsResponse.create({
-                connectors: [{
-                  connectorId: 'conn-1',
-                  provider: 'openrouter',
-                  endpoint: 'https://openrouter.ai/api/v1',
-                  label: 'OpenRouter',
-                  hasCredential: true,
-                  ownerType: 0,
-                  ownerId: '',
-                  kind: 2,
-                  status: 1,
-                  localCategory: 0,
-                  authKind: 1,
-                  providerAuthProfile: '',
-                }],
-              })),
-            ).toString('base64'),
-          };
+          return unaryResponseBytes(ListConnectorsResponse.toBinary(ListConnectorsResponse.create({
+            connectors: [{
+              connectorId: 'conn-1',
+              provider: 'openrouter',
+              endpoint: 'https://openrouter.ai/api/v1',
+              label: 'OpenRouter',
+              hasCredential: true,
+              ownerType: 0,
+              ownerId: '',
+              kind: 2,
+              status: 1,
+              localCategory: 0,
+              authKind: 1,
+              providerAuthProfile: '',
+            }],
+          })));
         }
         return { responseBytesBase64: '' };
       },
@@ -555,7 +600,8 @@ test('sdkListConnectors coalesces concurrent inventory reads and reuses a short-
       ['conn-1', 'conn-1', 'conn-1'],
     );
 
-    first[0]?.models.push('mutated-by-test');
+    const firstModels = first[0]?.models as string[] | undefined;
+    firstModels?.push('mutated-by-test');
     const cached = await sdkListConnectors();
     assert.deepEqual(cached[0]?.models, [], 'cached connector values must be returned as clones');
 
@@ -579,11 +625,6 @@ test('sdkListConnectorModelDescriptors coalesces concurrent model inventory read
   const calls: TauriInvokeCall[] = [];
   const restoreTauri = installTauriRuntime(calls, () => 'realm-token');
   try {
-    await createPlatformClient({
-      authMode: 'local-first-party-runtime',
-      realmBaseUrl: 'http://localhost:3002',
-    });
-
     const target = globalThis as MutableGlobalTauri;
     target.__NIMI_TAURI_TEST__ = {
       ...target.__NIMI_TAURI_TEST__,
@@ -593,33 +634,16 @@ test('sdkListConnectorModelDescriptors coalesces concurrent model inventory read
         const methodId = String(unwrapped.methodId || '');
         if (
           command === 'runtime_bridge_unary'
-          && methodId === '/nimi.runtime.v1.RuntimeAccountService/GetAccessToken'
-        ) {
-          return {
-            responseBytesBase64: Buffer.from(
-              GetAccessTokenResponse.toBinary(GetAccessTokenResponse.create({
-                accepted: true,
-                accessToken: 'realm-token',
-              })),
-            ).toString('base64'),
-          };
-        }
-        if (
-          command === 'runtime_bridge_unary'
           && methodId === '/nimi.runtime.v1.RuntimeConnectorService/ListConnectorModels'
         ) {
-          return {
-            responseBytesBase64: Buffer.from(
-              ListConnectorModelsResponse.toBinary(ListConnectorModelsResponse.create({
-                models: [{
-                  modelId: 'openrouter/auto',
-                  modelLabel: 'OpenRouter Auto',
-                  available: true,
-                  capabilities: ['text', 'tools'],
-                }],
-              })),
-            ).toString('base64'),
-          };
+          return unaryResponseBytes(ListConnectorModelsResponse.toBinary(ListConnectorModelsResponse.create({
+            models: [{
+              modelId: 'openrouter/auto',
+              modelLabel: 'OpenRouter Auto',
+              available: true,
+              capabilities: ['text', 'tools'],
+            }],
+          })));
         }
         return { responseBytesBase64: '' };
       },
@@ -635,7 +659,8 @@ test('sdkListConnectorModelDescriptors coalesces concurrent model inventory read
     assert.deepEqual(first, [{ modelId: 'openrouter/auto', capabilities: ['text', 'tools'] }]);
     assert.deepEqual(second, first);
 
-    first[0]?.capabilities.push('mutated-by-test');
+    const firstCapabilities = first[0]?.capabilities as string[] | undefined;
+    firstCapabilities?.push('mutated-by-test');
     const cached = await sdkListConnectorModelDescriptors('conn-1');
     assert.deepEqual(cached, [{ modelId: 'openrouter/auto', capabilities: ['text', 'tools'] }]);
 
@@ -656,17 +681,11 @@ test('sdkListConnectorModelDescriptors coalesces concurrent model inventory read
   }
 });
 
-test('sdkListConnectors refreshes local first-party account token on AUTH_TOKEN_INVALID without anonymous fallback', async () => {
+test('sdkListConnectors propagates AUTH_TOKEN_INVALID without refresh or anonymous fallback', async () => {
   clearRuntimeConnectorSdkCaches();
   const calls: TauriInvokeCall[] = [];
-  let token = 'stale-realm-token';
-  const restoreTauri = installTauriRuntime(calls, () => token);
+  const restoreTauri = installTauriRuntime(calls, () => 'stale-realm-token');
   try {
-    await createPlatformClient({
-      authMode: 'local-first-party-runtime',
-      realmBaseUrl: 'http://localhost:3002',
-    });
-
     const target = globalThis as MutableGlobalTauri;
     target.__NIMI_TAURI_TEST__ = {
       ...target.__NIMI_TAURI_TEST__,
@@ -676,34 +695,16 @@ test('sdkListConnectors refreshes local first-party account token on AUTH_TOKEN_
         const methodId = String(unwrapped.methodId || '');
         if (
           command === 'runtime_bridge_unary'
-          && methodId === '/nimi.runtime.v1.RuntimeAccountService/GetAccessToken'
+          && methodId === '/nimi.runtime.v1.RuntimeConnectorService/ListProviderCatalog'
         ) {
-          return {
-            responseBytesBase64: Buffer.from(
-              GetAccessTokenResponse.toBinary(GetAccessTokenResponse.create({
-                accepted: true,
-                accessToken: token,
-              })),
-            ).toString('base64'),
-          };
-        }
-        if (
-          command === 'runtime_bridge_unary'
-          && methodId === '/nimi.runtime.v1.RuntimeAccountService/RefreshAccountSession'
-        ) {
-          token = 'fresh-realm-token';
-          return {
-            responseBytesBase64: Buffer.from(
-              RefreshAccountSessionResponse.toBinary(RefreshAccountSessionResponse.create({
-                accepted: true,
-              })),
-            ).toString('base64'),
-          };
+          return unaryResponseBytes(ListProviderCatalogResponse.toBinary(ListProviderCatalogResponse.create({
+            providers: PROVIDER_CATALOG,
+          })));
         }
         if (
           command === 'runtime_bridge_unary'
           && methodId === '/nimi.runtime.v1.RuntimeConnectorService/ListConnectors'
-          && unwrapped.authorization === 'Bearer stale-realm-token'
+          && (unwrapped.appSession as { sessionToken?: unknown } | undefined)?.sessionToken === 'stale-realm-token'
         ) {
           throw {
             reasonCode: ReasonCode.AUTH_TOKEN_INVALID,
@@ -714,13 +715,9 @@ test('sdkListConnectors refreshes local first-party account token on AUTH_TOKEN_
           command === 'runtime_bridge_unary'
           && methodId === '/nimi.runtime.v1.RuntimeConnectorService/ListConnectors'
         ) {
-          return {
-            responseBytesBase64: Buffer.from(
-              ListConnectorsResponse.toBinary(ListConnectorsResponse.create({
-                connectors: [],
-              })),
-            ).toString('base64'),
-          };
+          return unaryResponseBytes(ListConnectorsResponse.toBinary(ListConnectorsResponse.create({
+            connectors: [],
+          })));
         }
         return { responseBytesBase64: '' };
       },
@@ -729,21 +726,30 @@ test('sdkListConnectors refreshes local first-party account token on AUTH_TOKEN_
       target.window.__NIMI_TAURI_TEST__.invoke = target.__NIMI_TAURI_TEST__.invoke;
     }
 
-    await sdkListConnectors();
+    await assert.rejects(
+      () => sdkListConnectors(),
+      (error: unknown) => {
+        assert.equal((error as { reasonCode?: unknown }).reasonCode, ReasonCode.AUTH_TOKEN_INVALID);
+        return true;
+      },
+    );
 
     const listConnectorCalls = calls.filter((call) => (
       call.command === 'runtime_bridge_unary'
       && call.payload.methodId === '/nimi.runtime.v1.RuntimeConnectorService/ListConnectors'
     ));
-    assert.equal(listConnectorCalls.length, 2, 'ListConnectors retries once after refreshing the local account token');
-    assert.equal(listConnectorCalls[0]?.payload.authorization, 'Bearer stale-realm-token');
-    assert.equal(listConnectorCalls[1]?.payload.authorization, 'Bearer fresh-realm-token');
+    assert.equal(listConnectorCalls.length, 1, 'ListConnectors must not retry through a legacy auth refresh path');
+    assert.equal(listConnectorCalls[0]?.payload.authorization, undefined);
+    assert.deepEqual(listConnectorCalls[0]?.payload.appSession, {
+      sessionId: 'connector-probe-session',
+      sessionToken: 'stale-realm-token',
+    });
 
     const refreshCalls = calls.filter((call) => (
       call.command === 'runtime_bridge_unary'
       && call.payload.methodId === '/nimi.runtime.v1.RuntimeAccountService/RefreshAccountSession'
     ));
-    assert.equal(refreshCalls.length, 1, 'AUTH_TOKEN_INVALID should trigger one account refresh');
+    assert.equal(refreshCalls.length, 0, 'AUTH_TOKEN_INVALID must not trigger legacy account-token refresh');
   } finally {
     restoreTauri();
   }
@@ -754,11 +760,6 @@ test('sdkCreateConnector emits oauth-managed payload when selected auth shape re
   const calls: TauriInvokeCall[] = [];
   const restoreTauri = installTauriRuntime(calls, () => 'connector-token-oauth');
   try {
-    await createPlatformClient({
-      authMode: 'local-first-party-runtime',
-      realmBaseUrl: 'http://localhost:3002',
-    });
-
     await sdkCreateConnector({
       provider: 'openai_codex',
       endpoint: 'https://chatgpt.com/backend-api/codex',
@@ -790,11 +791,6 @@ test('sdkCreateConnector preserves explicit credentialJson for oauth-managed pro
   const calls: TauriInvokeCall[] = [];
   const restoreTauri = installTauriRuntime(calls, () => 'connector-token-oauth');
   try {
-    await createPlatformClient({
-      authMode: 'local-first-party-runtime',
-      realmBaseUrl: 'http://localhost:3002',
-    });
-
     await sdkCreateConnector({
       provider: 'openai_codex',
       endpoint: 'https://chatgpt.com/backend-api/codex',
@@ -827,9 +823,10 @@ test('sdkCreateConnector preserves explicit credentialJson for oauth-managed pro
 });
 
 test('connector service delegates inventory ownership to the SDK client', () => {
-  assert.match(CONNECTOR_SERVICE_SOURCE, /createRuntimeConnectorInventoryClient/);
-  assert.match(CONNECTOR_SERVICE_SOURCE, /getPlatformClient\(\)\.domains\.runtimeAdmin/);
+  assert.match(CONNECTOR_SERVICE_SOURCE, /createNimiRuntimeConnectorInventoryClient/);
+  assert.match(CONNECTOR_SERVICE_SOURCE, /getDesktopRuntime\(\)\.connectors/);
   assert.match(CONNECTOR_SERVICE_SOURCE, /callerId: 'runtime-config\.connector'/);
+  assert.doesNotMatch(CONNECTOR_SERVICE_SOURCE, /getPlatformClient/);
   assert.doesNotMatch(CONNECTOR_SERVICE_SOURCE, /PROVIDER_CATALOG_CACHE_TTL_MS|cachedProviderCatalogAt|pendingConnectorModels/);
   assert.doesNotMatch(CONNECTOR_SERVICE_SOURCE, /listProviderCatalog\(\{\}, CONNECTOR_CALL_OPTIONS\)/);
   assert.doesNotMatch(CONNECTOR_SERVICE_SOURCE, /listConnectorModels\(request, CONNECTOR_CALL_OPTIONS\)/);

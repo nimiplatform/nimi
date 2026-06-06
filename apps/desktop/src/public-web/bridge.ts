@@ -17,9 +17,9 @@ export type {
 export type { LogsExportResult } from '../shell/renderer/bridge/runtime-bridge/support-logs-export';
 
 export type {
-  ProductControlState,
-  ProductControlRecord,
-  ProductControlRecordProjection,
+  NimiProductControlState,
+  NimiProductControlRecord,
+  NimiProductControlRecordProjection,
 } from '@nimiplatform/sdk';
 
 export type { DesktopStorageDirs } from '../shell/renderer/bridge/runtime-bridge/desktop-storage';

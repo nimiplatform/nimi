@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { RUNTIME_BRIDGE_CONFIG_DEFAULTS } from '@nimiplatform/sdk/runtime';
-import { ReasonCode } from '@nimiplatform/sdk/types';
+import { NIMI_RUNTIME_BRIDGE_CONFIG_DEFAULTS } from '@nimiplatform/sdk/runtime';
+import { ReasonCode, type JsonObject } from '@nimiplatform/sdk/types';
 import type {
   RealmDefaults,
   RuntimeBridgeDaemonStatus,
@@ -29,7 +29,7 @@ function createDaemonStatus(overrides: Partial<RuntimeBridgeDaemonStatus> = {}):
     running: true,
     managed: true,
     launchMode: 'RUNTIME',
-    grpcAddr: RUNTIME_BRIDGE_CONFIG_DEFAULTS.grpcAddr,
+    grpcAddr: NIMI_RUNTIME_BRIDGE_CONFIG_DEFAULTS.grpcAddr,
     ...overrides,
   };
 }
@@ -72,7 +72,7 @@ test('syncRuntimeJwtConfig restarts managed running daemon on CONFIG_RESTART_REQ
           path: '/tmp/config.json',
           reasonCode: ReasonCode.CONFIG_RESTART_REQUIRED,
           actionHint: 'restart runtime to apply config changes',
-          config: JSON.parse(configJson) as Record<string, unknown>,
+          config: JSON.parse(configJson) as JsonObject,
         };
       },
       async restartRuntimeBridge() {
@@ -116,7 +116,7 @@ test('syncRuntimeJwtConfig does not restart when daemon is managed but stopped',
           path: '/tmp/config.json',
           reasonCode: ReasonCode.CONFIG_RESTART_REQUIRED,
           actionHint: 'restart runtime to apply config changes',
-          config: JSON.parse(configJson) as Record<string, unknown>,
+          config: JSON.parse(configJson) as JsonObject,
         };
       },
       async restartRuntimeBridge() {
@@ -151,7 +151,7 @@ test('syncRuntimeJwtConfig throws for unmanaged running daemon when restart requ
             path: '/tmp/config.json',
             reasonCode: ReasonCode.CONFIG_RESTART_REQUIRED,
             actionHint: 'please restart external runtime manually',
-            config: JSON.parse(configJson) as Record<string, unknown>,
+            config: JSON.parse(configJson) as JsonObject,
           };
         },
         async restartRuntimeBridge() {

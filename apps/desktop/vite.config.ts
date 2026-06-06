@@ -171,6 +171,7 @@ export default defineConfig(({ mode }) => {
   loadDesktopBuildEnvFiles();
   const env = loadEnv(mode, __dirname, '');
   const fsAllowList = resolveFsAllowList(env);
+  const sdkVNextDist = path.resolve(__dirname, '../../sdks/typescript/dist');
   return {
     root: path.resolve(__dirname, 'src/shell/renderer'),
     base: mode === 'production' ? './' : '/',
@@ -243,20 +244,24 @@ export default defineConfig(({ mode }) => {
           replacement: path.resolve(__dirname, 'src/runtime'),
         },
         { find: '@renderer', replacement: path.resolve(__dirname, 'src/shell/renderer') },
-        { find: '@nimiplatform/sdk/world', replacement: path.resolve(__dirname, '../../sdk/src/world/index.ts') },
-        { find: '@nimiplatform/sdk/runtime/browser', replacement: path.resolve(__dirname, '../../sdk/src/runtime/browser.ts') },
-        { find: '@nimiplatform/sdk/runtime', replacement: path.resolve(__dirname, '../../sdk/src/runtime/browser.ts') },
-        { find: '@nimiplatform/sdk/realm', replacement: path.resolve(__dirname, '../../sdk/src/realm/index.ts') },
-        { find: '@nimiplatform/sdk/types', replacement: path.resolve(__dirname, '../../sdk/src/types/index.ts') },
-        { find: '@nimiplatform/sdk/ai-provider', replacement: path.resolve(__dirname, '../../sdk/src/ai-provider/index.ts') },
-        { find: '@nimiplatform/sdk/ai-app', replacement: path.resolve(__dirname, '../../sdk/src/ai-app/index.ts') },
-        { find: '@nimiplatform/sdk/ai', replacement: path.resolve(__dirname, '../../sdk/src/ai/index.ts') },
-        { find: '@nimiplatform/sdk/platform-catalog', replacement: path.resolve(__dirname, '../../sdk/src/platform-catalog/index.ts') },
-        { find: '@nimiplatform/sdk/app', replacement: path.resolve(__dirname, '../../sdk/src/app/index.ts') },
-        { find: '@nimiplatform/sdk/runtime/agent-identity', replacement: path.resolve(__dirname, '../../sdk/src/runtime/agent-identity/index.ts') },
-        { find: '@nimiplatform/sdk/scope/permission', replacement: path.resolve(__dirname, '../../sdk/src/scope/permission/index.ts') },
-        { find: '@nimiplatform/sdk/scope', replacement: path.resolve(__dirname, '../../sdk/src/scope/index.ts') },
-        { find: '@nimiplatform/sdk', replacement: path.resolve(__dirname, '../../sdk/src/index.ts') },
+        { find: '@nimiplatform/sdk/runtime/generated', replacement: path.join(sdkVNextDist, 'runtime/generated.js') },
+        { find: '@nimiplatform/sdk/realm/generated', replacement: path.join(sdkVNextDist, 'realm/generated.js') },
+        { find: '@nimiplatform/sdk/runtime', replacement: path.join(sdkVNextDist, 'runtime/index.js') },
+        { find: '@nimiplatform/sdk/realm', replacement: path.join(sdkVNextDist, 'realm/index.js') },
+        { find: '@nimiplatform/sdk/app', replacement: path.join(sdkVNextDist, 'core/app/index.js') },
+        { find: '@nimiplatform/sdk/types', replacement: path.join(sdkVNextDist, 'types/index.js') },
+        { find: '@nimiplatform/sdk/contracts', replacement: path.join(sdkVNextDist, 'core/contracts/index.js') },
+        { find: '@nimiplatform/sdk/ai', replacement: path.join(sdkVNextDist, 'core/ai/index.js') },
+        { find: '@nimiplatform/sdk/agent', replacement: path.join(sdkVNextDist, 'core/agent/index.js') },
+        { find: '@nimiplatform/sdk/testing', replacement: path.join(sdkVNextDist, 'core/testing/index.js') },
+        { find: '@nimiplatform/sdk/features/conversation', replacement: path.join(sdkVNextDist, 'features/conversation/index.js') },
+        { find: '@nimiplatform/sdk/features/knowledge-context', replacement: path.join(sdkVNextDist, 'features/knowledge-context/index.js') },
+        { find: '@nimiplatform/sdk/features/memory-context', replacement: path.join(sdkVNextDist, 'features/memory-context/index.js') },
+        { find: '@nimiplatform/sdk/features/generation', replacement: path.join(sdkVNextDist, 'features/generation/index.js') },
+        { find: '@nimiplatform/sdk/features/workflow', replacement: path.join(sdkVNextDist, 'features/workflow/index.js') },
+        { find: '@nimiplatform/sdk/features/evaluation', replacement: path.join(sdkVNextDist, 'features/evaluation/index.js') },
+        { find: '@nimiplatform/sdk/features/toolkits', replacement: path.join(sdkVNextDist, 'features/toolkits/index.js') },
+        { find: '@nimiplatform/sdk', replacement: path.join(sdkVNextDist, 'index.js') },
         { find: '@nimiplatform/kit/ui', replacement: path.resolve(__dirname, '../../kit/ui/src') },
         { find: '@nimiplatform/kit/auth', replacement: path.resolve(__dirname, '../../kit/auth/src') },
         { find: '@nimiplatform/kit/core', replacement: path.resolve(__dirname, '../../kit/core/src') },
@@ -435,23 +440,35 @@ export default defineConfig(({ mode }) => {
                 return 'runtime-config-recommend';
               }
             }
-            if (normalizedId.includes('/sdk/src/runtime/generated/')) {
+            if (normalizedId.includes('/sdks/typescript/dist/core-generated/')) {
+              if (normalizedId.includes('/sdks/typescript/dist/core-generated/google/')) {
+                return 'vendor-sdk-runtime-google';
+              }
+              if (normalizedId.includes('/sdks/typescript/dist/core-generated/runtime-protobuf/runtime/v1/ai')) {
+                return 'vendor-sdk-runtime-ai-generated';
+              }
+              if (normalizedId.includes('/sdks/typescript/dist/core-generated/runtime-protobuf/runtime/v1/local_runtime')) {
+                return 'vendor-sdk-runtime-local-generated';
+              }
+              if (normalizedId.includes('/sdks/typescript/dist/core-generated/runtime-protobuf/runtime/v1/connector')) {
+                return 'vendor-sdk-runtime-connector-generated';
+              }
+              if (normalizedId.includes('/sdks/typescript/dist/core-generated/runtime-protobuf/runtime/v1/workflow')) {
+                return 'vendor-sdk-runtime-workflow-generated';
+              }
+              if (normalizedId.includes('/sdks/typescript/dist/core-generated/runtime-protobuf/runtime/v1/model')) {
+                return 'vendor-sdk-runtime-model-generated';
+              }
+              if (normalizedId.includes('/sdks/typescript/dist/core-generated/runtime-protobuf/runtime/')) {
+                return 'vendor-sdk-runtime-generated';
+              }
               return 'vendor-sdk-runtime-generated';
             }
-            if (normalizedId.includes('/sdk/src/runtime/')) {
-              return 'sdk-runtime-client';
-            }
-            if (normalizedId.includes('/sdk/src/realm/')) {
-              return 'sdk-realm-client';
-            }
-            if (normalizedId.includes('/sdk/src/scope/')) {
-              return 'sdk-scope-client';
+            if (normalizedId.includes('/sdks/typescript/dist/')) {
+              return 'vendor-sdk-client';
             }
             if (normalizedId.includes(CUBISM_WEB_FRAMEWORK_CACHE_ROOT.split(path.sep).join('/'))) {
               return 'vendor-live2d';
-            }
-            if (normalizedId.includes('/sdk/src/')) {
-              return 'sdk-client';
             }
             if (normalizedId.includes('/apps/desktop/src/runtime/data-sync/')) {
               return 'runtime-data-sync';

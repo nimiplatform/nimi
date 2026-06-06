@@ -1,26 +1,26 @@
-import { getPlatformClient } from '@nimiplatform/sdk';
 import {
-  ackRealmLocalAgentTerminationIntent,
-  listRealmLocalAgentTerminationIntents,
-  type RealmLocalAgentIntentApiCaller,
-  type RealmLocalAgentTerminationIntentAckDto,
-  type RealmLocalAgentTerminationIntentDto,
+  ackNimiRealmLocalAgentTerminationIntent,
+  listNimiRealmLocalAgentTerminationIntents,
+  type NimiRealmLocalAgentIntentApiCaller,
+  type NimiRealmLocalAgentTerminationIntentAckDto,
+  type NimiRealmLocalAgentTerminationIntentDto,
 } from '@nimiplatform/sdk/realm';
 import {
-  asNimiError,
-  createHostRuntimeAgentLifecycleSurface,
+  createNimiHostRuntimeAgentLifecycleSurface,
 } from '@nimiplatform/sdk/runtime';
 import {
+  asNimiError,
   isRealmOfflineErrorLike as isRealmOfflineError,
   isRuntimeOfflineErrorLike as isRuntimeOfflineError,
   ReasonCode,
 } from '@nimiplatform/sdk/types';
 import type { JsonObject } from '@nimiplatform/sdk/types';
+import { getDesktopHostRuntimeAgentClient } from '@renderer/infra/sdk/desktop-nimi-client-session';
 
-type LocalAgentTerminationIntentDto = RealmLocalAgentTerminationIntentDto;
-type LocalAgentTerminationIntentAckDto = RealmLocalAgentTerminationIntentAckDto;
+type LocalAgentTerminationIntentDto = NimiRealmLocalAgentTerminationIntentDto;
+type LocalAgentTerminationIntentAckDto = NimiRealmLocalAgentTerminationIntentAckDto;
 
-type RealmCourierApiCaller = RealmLocalAgentIntentApiCaller;
+type RealmCourierApiCaller = NimiRealmLocalAgentIntentApiCaller;
 type RealmCourierErrorEmitter = (action: string, error: unknown, details?: JsonObject) => void;
 type CurrentUserReader = () => Record<string, unknown> | null;
 
@@ -109,8 +109,8 @@ async function deliverTerminateToLocalRuntime(
   if (!localAgentRef || !ownerUserId || !realmAgentId) {
     throw new Error('local-agent termination intent missing R-CHAT-016 identity fields');
   }
-  const lifecycle = createHostRuntimeAgentLifecycleSurface({
-    getRuntime: () => getPlatformClient().runtime,
+  const lifecycle = createNimiHostRuntimeAgentLifecycleSurface({
+    getRuntime: getDesktopHostRuntimeAgentClient,
     getSubjectUserId: () => requireCurrentUserId(getCurrentUser),
   });
   await lifecycle.terminateLocalAgent({
@@ -173,7 +173,7 @@ async function deliverIntent(input: {
   // transport/offline error, the intent stays OPEN server-side (the runtime
   // delete may have happened, but K-AGCORE-141 makes a re-delivery a no-op, so
   // the next pass re-acks idempotently).
-  await ackRealmLocalAgentTerminationIntent(callApi, intent.id, ackBody);
+  await ackNimiRealmLocalAgentTerminationIntent(callApi, intent.id, ackBody);
   return { kind: 'acked', intentId: intent.id, outcome: ackBody.outcome };
 }
 
@@ -204,7 +204,7 @@ export async function runLocalAgentTerminationCourierPass(input: {
 
   let intents: LocalAgentTerminationIntentDto[];
   try {
-    intents = await listRealmLocalAgentTerminationIntents(callApi);
+    intents = await listNimiRealmLocalAgentTerminationIntents(callApi);
   } catch (error) {
     if (isRealmOfflineError(error)) {
       // Realm unreachable — the pass is a no-op; intents stay OPEN server-side

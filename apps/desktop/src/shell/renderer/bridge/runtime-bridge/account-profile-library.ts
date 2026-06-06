@@ -11,20 +11,20 @@
  */
 
 import {
-  parseAccountProfileLibraryProjection,
-  parseExportedAccountProfileLibraryProfiles,
-  type AccountProfileLibraryProjection,
-  type AccountProfileLibraryIndexEntry,
-  type AccountProfileLibraryOrigin,
-  type AccountProfileLibraryProfile,
-  type AIProfile,
+  parseNimiAccountProfileLibraryProjection,
+  parseExportedNimiAccountProfileLibraryProfiles,
+  type NimiAccountProfileLibraryProjection,
+  type NimiAccountProfileLibraryIndexEntry,
+  type NimiAccountProfileLibraryOrigin,
+  type NimiAccountProfileLibraryProfile,
+  type NimiAIProfile,
 } from '@nimiplatform/sdk/ai';
 import { hasTauriInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
 import { invokeChecked } from './invoke';
 
-export type LibraryProfileOrigin = AccountProfileLibraryOrigin;
-export type LibraryProfile = AccountProfileLibraryProfile;
-export type LibraryIndexEntry = AccountProfileLibraryIndexEntry;
+export type LibraryProfileOrigin = NimiAccountProfileLibraryOrigin;
+export type LibraryProfile = NimiAccountProfileLibraryProfile;
+export type LibraryIndexEntry = NimiAccountProfileLibraryIndexEntry;
 
 function requireTauri(command: string): void {
   if (!hasTauriInvoke()) {
@@ -37,70 +37,71 @@ function requireTauri(command: string): void {
 // ---------------------------------------------------------------------------
 
 /** List the account profile library from the Rust file family. */
-export async function listAccountProfileLibrary(): Promise<AccountProfileLibraryProjection> {
+export async function listAccountProfileLibrary(): Promise<NimiAccountProfileLibraryProjection> {
   requireTauri('account_profile_library_list');
-  return invokeChecked('account_profile_library_list', {}, parseAccountProfileLibraryProjection);
+  return invokeChecked('account_profile_library_list', {}, parseNimiAccountProfileLibraryProjection);
 }
 
 /** Create a new user-authored library profile under `user/`. */
 export async function createAccountProfileLibraryProfile(
-  profile: AIProfile,
-): Promise<AccountProfileLibraryProjection> {
+  profile: NimiAIProfile,
+): Promise<NimiAccountProfileLibraryProjection> {
   requireTauri('account_profile_library_create');
   return invokeChecked(
     'account_profile_library_create',
     { payload: { profile } },
-    parseAccountProfileLibraryProjection,
+    parseNimiAccountProfileLibraryProjection,
   );
 }
 
 /** Edit an existing editable library profile in place. */
 export async function editAccountProfileLibraryProfile(
-  profile: AIProfile,
-): Promise<AccountProfileLibraryProjection> {
+  profile: NimiAIProfile,
+): Promise<NimiAccountProfileLibraryProjection> {
   requireTauri('account_profile_library_edit');
   return invokeChecked(
     'account_profile_library_edit',
     { payload: { profile } },
-    parseAccountProfileLibraryProjection,
+    parseNimiAccountProfileLibraryProjection,
   );
 }
 
 /** Import one or more profiles into the library `imported/` directory. */
 export async function importAccountProfileLibraryProfiles(
-  profiles: AIProfile[],
-): Promise<AccountProfileLibraryProjection> {
+  profiles: NimiAIProfile[],
+): Promise<NimiAccountProfileLibraryProjection> {
   requireTauri('account_profile_library_import');
   return invokeChecked(
     'account_profile_library_import',
     { payload: { profiles } },
-    parseAccountProfileLibraryProjection,
+    parseNimiAccountProfileLibraryProjection,
   );
 }
 
 /**
- * Export editable library profiles as portable AIProfile payloads.
+ * Export editable library profiles as portable NimiAIProfile payloads.
  * An empty `profileIds` exports every editable library profile.
  */
 export async function exportAccountProfileLibraryProfiles(
   profileIds: string[] = [],
-): Promise<AIProfile[]> {
+): Promise<NimiAIProfile[]> {
   requireTauri('account_profile_library_export');
-  return invokeChecked(
+  const profiles = await invokeChecked(
     'account_profile_library_export',
     { payload: { profileIds } },
-    parseExportedAccountProfileLibraryProfiles,
+    parseExportedNimiAccountProfileLibraryProfiles,
   );
+  return [...profiles];
 }
 
 /** Delete an editable library profile. */
 export async function deleteAccountProfileLibraryProfile(
   profileId: string,
-): Promise<AccountProfileLibraryProjection> {
+): Promise<NimiAccountProfileLibraryProjection> {
   requireTauri('account_profile_library_delete');
   return invokeChecked(
     'account_profile_library_delete',
     { payload: { profileId } },
-    parseAccountProfileLibraryProjection,
+    parseNimiAccountProfileLibraryProjection,
   );
 }

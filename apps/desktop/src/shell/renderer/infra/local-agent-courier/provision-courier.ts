@@ -1,26 +1,26 @@
-import { getPlatformClient } from '@nimiplatform/sdk';
 import {
-  ackRealmLocalAgentProvisionIntent,
-  listRealmLocalAgentProvisionIntents,
-  type RealmLocalAgentIntentApiCaller,
-  type RealmLocalAgentProvisionIntentAckDto,
-  type RealmLocalAgentProvisionIntentDto,
+  ackNimiRealmLocalAgentProvisionIntent,
+  listNimiRealmLocalAgentProvisionIntents,
+  type NimiRealmLocalAgentIntentApiCaller,
+  type NimiRealmLocalAgentProvisionIntentAckDto,
+  type NimiRealmLocalAgentProvisionIntentDto,
 } from '@nimiplatform/sdk/realm';
 import {
-  asNimiError,
-  createHostRuntimeAgentLifecycleSurface,
+  createNimiHostRuntimeAgentLifecycleSurface,
 } from '@nimiplatform/sdk/runtime';
 import {
+  asNimiError,
   isRealmOfflineErrorLike as isRealmOfflineError,
   isRuntimeOfflineErrorLike as isRuntimeOfflineError,
   ReasonCode,
 } from '@nimiplatform/sdk/types';
 import type { JsonObject } from '@nimiplatform/sdk/types';
+import { getDesktopHostRuntimeAgentClient } from '@renderer/infra/sdk/desktop-nimi-client-session';
 
-type LocalAgentProvisionIntentDto = RealmLocalAgentProvisionIntentDto;
-type LocalAgentProvisionIntentAckDto = RealmLocalAgentProvisionIntentAckDto;
+type LocalAgentProvisionIntentDto = NimiRealmLocalAgentProvisionIntentDto;
+type LocalAgentProvisionIntentAckDto = NimiRealmLocalAgentProvisionIntentAckDto;
 
-type RealmCourierApiCaller = RealmLocalAgentIntentApiCaller;
+type RealmCourierApiCaller = NimiRealmLocalAgentIntentApiCaller;
 type RealmCourierErrorEmitter = (action: string, error: unknown, details?: JsonObject) => void;
 type CurrentUserReader = () => Record<string, unknown> | null;
 
@@ -123,8 +123,8 @@ async function deliverInitializeToLocalRuntime(
   if (!localAgentRef || !ownerUserId || !realmAgentId) {
     throw new Error('local-agent provision intent missing R-CHAT-016 identity fields');
   }
-  const lifecycle = createHostRuntimeAgentLifecycleSurface({
-    getRuntime: () => getPlatformClient().runtime,
+  const lifecycle = createNimiHostRuntimeAgentLifecycleSurface({
+    getRuntime: getDesktopHostRuntimeAgentClient,
     getSubjectUserId: () => requireCurrentUserId(getCurrentUser),
   });
   await lifecycle.initializeLocalAgent({
@@ -187,7 +187,7 @@ async function deliverIntent(input: {
   // transport/offline error, the intent stays OPEN server-side (the runtime
   // initialize may have happened, but K-AGCORE-139 makes a re-delivery an
   // already-exists no-op, so the next pass re-acks idempotently).
-  await ackRealmLocalAgentProvisionIntent(callApi, intent.id, ackBody);
+  await ackNimiRealmLocalAgentProvisionIntent(callApi, intent.id, ackBody);
   return { kind: 'acked', intentId: intent.id, outcome: ackBody.outcome };
 }
 
@@ -218,7 +218,7 @@ export async function runLocalAgentProvisionCourierPass(input: {
 
   let intents: LocalAgentProvisionIntentDto[];
   try {
-    intents = await listRealmLocalAgentProvisionIntents(callApi);
+    intents = await listNimiRealmLocalAgentProvisionIntents(callApi);
   } catch (error) {
     if (isRealmOfflineError(error)) {
       // Realm unreachable — the pass is a no-op; intents stay OPEN server-side

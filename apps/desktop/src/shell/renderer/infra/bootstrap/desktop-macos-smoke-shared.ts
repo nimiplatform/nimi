@@ -1,7 +1,11 @@
 import type { DesktopMacosSmokeContext } from '@renderer/bridge/runtime-bridge/types';
 import type { DesktopAvatarLiveInstanceRecord } from '@renderer/bridge/runtime-bridge/chat-agent-avatar-instance-registry';
 import type { DesktopMacosSmokeAvatarEvidenceReadResult } from '@renderer/bridge/runtime-bridge/types';
+import type { JsonObject } from '@renderer/bridge/runtime-bridge/types';
 import type { AgentConversationAnchorBinding } from '@renderer/app-shell/providers/agent-conversation-anchor-binding-storage';
+import type { NimiRuntimeAgentSmokeProductPathEvidence } from '@nimiplatform/sdk/runtime';
+
+export type { JsonObject };
 
 export const SMOKE_STEP_TIMEOUT_MS = 15000;
 export const SMOKE_BOOTSTRAP_TIMEOUT_MS = 60000;
@@ -54,7 +58,7 @@ export type DesktopMacosSmokeDriverDeps = {
   clearAgentConversationAnchorBindings: () => Promise<void>;
   configureRuntimeTextRoute: () => Promise<void>;
   verifyRuntimeConversationAnchor: (input: { agentId: string; conversationAnchorId: string }) => Promise<void>;
-  readRuntimeProductPathEvidence: (input: { agentId: string; conversationAnchorId: string }) => Promise<Record<string, unknown>>;
+  readRuntimeProductPathEvidence: (input: { agentId: string; conversationAnchorId: string }) => Promise<NimiRuntimeAgentSmokeProductPathEvidence>;
   setChatAvatarInteractionOverride: (override: Record<string, unknown> | null) => Promise<void>;
   resizeLive2dViewport: (size: { width: number; height: number }) => Promise<void>;
   pulseLive2dViewportTinyHost: () => Promise<void>;
@@ -69,7 +73,7 @@ export type DesktopMacosSmokeDriverDeps = {
   readVrmCanvasStats: (selector: string) => Promise<VrmCanvasStats>;
   listAvatarLiveInstances: (localAgentRef: string) => Promise<DesktopAvatarLiveInstanceRecord[]>;
   readAvatarEvidence: (avatarInstanceId: string) => Promise<DesktopMacosSmokeAvatarEvidenceReadResult>;
-  applyAvatarProductLocalAssetFault: (faultKind: 'missing_entry_file') => Promise<Record<string, unknown>>;
+  applyAvatarProductLocalAssetFault: (faultKind: 'missing_entry_file') => Promise<JsonObject>;
   avatarCarrierEvidenceTimeoutMs?: number;
   onStepStart?: (step: string, steps: readonly string[]) => void;
   isReportOpen?: () => boolean;
@@ -88,7 +92,7 @@ export type DesktopMacosSmokeReportPayload = {
   errorCause?: string;
   route?: string;
   htmlSnapshot?: string;
-  details?: Record<string, unknown>;
+  details?: JsonObject;
 };
 
 export type DesktopMacosSmokeFailureReportPayload = DesktopMacosSmokeReportPayload & {

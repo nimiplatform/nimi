@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { RUNTIME_BRIDGE_CONFIG_DEFAULTS } from '@nimiplatform/sdk/runtime';
-import { ReasonCode } from '@nimiplatform/sdk/types';
+import { NIMI_RUNTIME_BRIDGE_CONFIG_DEFAULTS } from '@nimiplatform/sdk/runtime';
+import { ReasonCode, type JsonObject } from '@nimiplatform/sdk/types';
 import type { RuntimeBridgeDaemonStatus } from '../src/shell/renderer/bridge/runtime-bridge/types';
 import type { DesktopStorageDirs } from '../src/shell/renderer/bridge/runtime-bridge/desktop-storage';
 import {
@@ -16,7 +16,7 @@ function createDaemonStatus(overrides: Partial<RuntimeBridgeDaemonStatus> = {}):
     running: true,
     managed: true,
     launchMode: 'RUNTIME',
-    grpcAddr: RUNTIME_BRIDGE_CONFIG_DEFAULTS.grpcAddr,
+    grpcAddr: NIMI_RUNTIME_BRIDGE_CONFIG_DEFAULTS.grpcAddr,
     ...overrides,
   };
 }
@@ -74,7 +74,7 @@ test('syncRuntimeLocalModelsConfig restarts managed running daemon on CONFIG_RES
           path: '/tmp/config.json',
           reasonCode: ReasonCode.CONFIG_RESTART_REQUIRED,
           actionHint: 'restart runtime to apply config changes',
-          config: JSON.parse(configJson) as Record<string, unknown>,
+          config: JSON.parse(configJson) as JsonObject,
         };
       },
       async restartRuntimeBridge() {
@@ -114,7 +114,7 @@ test('syncRuntimeLocalModelsConfig does not restart when daemon is stopped', asy
           path: '/tmp/config.json',
           reasonCode: ReasonCode.CONFIG_RESTART_REQUIRED,
           actionHint: 'restart runtime to apply config changes',
-          config: JSON.parse(configJson) as Record<string, unknown>,
+          config: JSON.parse(configJson) as JsonObject,
         };
       },
       async restartRuntimeBridge() {
@@ -148,7 +148,7 @@ test('syncRuntimeLocalModelsConfig throws for unmanaged running daemon when rest
             path: '/tmp/config.json',
             reasonCode: ReasonCode.CONFIG_RESTART_REQUIRED,
             actionHint: 'please restart external runtime manually',
-            config: JSON.parse(configJson) as Record<string, unknown>,
+            config: JSON.parse(configJson) as JsonObject,
           };
         },
         async restartRuntimeBridge() {
@@ -250,7 +250,7 @@ test('syncRuntimeStorageConfig writes dataRootRef and managedRoots from the sele
           path: '/tmp/config.json',
           reasonCode: ReasonCode.CONFIG_RESTART_REQUIRED,
           actionHint: 'restart runtime to apply config changes',
-          config: JSON.parse(configJson) as Record<string, unknown>,
+          config: JSON.parse(configJson) as JsonObject,
         };
       },
       async restartRuntimeBridge() {
@@ -290,7 +290,7 @@ test('syncRuntimeStorageConfig fetches daemon status when not supplied', async (
           path: '/tmp/config.json',
           reasonCode: ReasonCode.CONFIG_RESTART_REQUIRED,
           actionHint: 'restart runtime to apply config changes',
-          config: JSON.parse(configJson) as Record<string, unknown>,
+          config: JSON.parse(configJson) as JsonObject,
         };
       },
       async restartRuntimeBridge() {
@@ -326,7 +326,7 @@ test('syncRuntimeStorageConfig fails closed when no data root is selected yet', 
           return {
             path: '/tmp/config.json',
             reasonCode: ReasonCode.CONFIG_APPLIED,
-            config: JSON.parse(configJson) as Record<string, unknown>,
+            config: JSON.parse(configJson) as JsonObject,
           };
         },
         async restartRuntimeBridge() {

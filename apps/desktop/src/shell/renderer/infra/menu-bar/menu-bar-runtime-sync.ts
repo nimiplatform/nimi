@@ -1,11 +1,11 @@
 import { useEffect, useRef } from 'react';
 import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
-import { projectRuntimeHealthStatusName } from '@nimiplatform/sdk/runtime';
+import { projectNimiRuntimeHealthStatusName } from '@nimiplatform/sdk/runtime';
 import { desktopBridge } from '@renderer/bridge';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import {
   useRuntimeHealthCoordinatorState,
-  type RuntimeHealthCoordinatorState,
+  type NimiRuntimeHealthCoordinatorState,
 } from '@renderer/features/runtime-config/runtime-health-coordinator';
 import type { MenuBarRuntimeHealthSyncPayload } from '@renderer/bridge/runtime-bridge/types';
 
@@ -40,7 +40,7 @@ function summarizeProviderStates(providers: Array<{ state?: unknown }>): {
 }
 
 export type MenuBarRuntimeSyncState = Pick<
-  RuntimeHealthCoordinatorState,
+  NimiRuntimeHealthCoordinatorState,
   'runtimeHealth' | 'providerHealth' | 'lastFetchedAt' | 'lastStreamAt' | 'error' | 'streamError'
 >;
 
@@ -52,7 +52,7 @@ export function buildMenuBarRuntimeSyncPayload(
   };
 
   if (healthState.runtimeHealth) {
-    payload.runtimeHealthStatus = projectRuntimeHealthStatusName(healthState.runtimeHealth.status);
+    payload.runtimeHealthStatus = projectNimiRuntimeHealthStatusName(healthState.runtimeHealth.status);
     if (healthState.runtimeHealth.reason) {
       payload.runtimeHealthReason = String(healthState.runtimeHealth.reason);
     }

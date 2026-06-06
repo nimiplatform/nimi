@@ -1,4 +1,4 @@
-import { createNimiError } from '@nimiplatform/sdk/runtime';
+import { createNimiError } from '@nimiplatform/sdk/types';
 import { hasTauriInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
 import { assertRecord, parseOptionalJsonObject } from './shared.js';
 import { invokeChecked } from './invoke';

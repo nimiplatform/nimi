@@ -1,5 +1,6 @@
 import {
   type DesktopMacosSmokeDriverDeps,
+  type JsonObject,
   type Live2dCanvasStats,
   type Live2dVisiblePixelsTimeoutError,
   LIVE2D_VIEWPORT_SELECTOR,
@@ -75,7 +76,7 @@ export async function waitForVisibleLive2dPixels(
   throw error;
 }
 
-export function toLive2dCanvasStatsReport(stats: Live2dCanvasStats): Record<string, unknown> {
+export function toLive2dCanvasStatsReport(stats: Live2dCanvasStats): JsonObject {
   return {
     status: stats.status,
     fallbackText: stats.fallbackText,
@@ -87,5 +88,5 @@ export function toLive2dCanvasStatsReport(stats: Live2dCanvasStats): Record<stri
     nonTransparentSampleCount: stats.nonTransparentSampleCount,
     sampleError: stats.sampleError,
     runtimeDebug: stats.runtimeDebug ?? undefined,
-  };
+  } as JsonObject;
 }
