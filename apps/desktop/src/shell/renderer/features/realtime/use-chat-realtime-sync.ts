@@ -17,10 +17,11 @@ import {
   applyRealmRealtimeMessageUpdateToMessagesResult,
   extractRealmMessageFromEvent,
   mergeRealmRealtimeMessageIntoMessagesResult,
+  projectRealmChatView,
   rememberRealmChatSeenEvent,
   useRealmChatRealtimeController,
 } from '@nimiplatform/kit/features/chat/realm';
-import { projectRealmRealtimeUrl } from '@nimiplatform/sdk/realm';
+import { projectNimiRealmRealtimeUrl } from '@nimiplatform/sdk/realm';
 import { getOfflineCoordinator } from '@renderer/infra/offline/coordinator';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { queryClient } from '@renderer/infra/query-client/query-client';
@@ -161,9 +162,10 @@ function applySyncSnapshotToCache(chatId: string, snapshot: RealmChatSyncResultD
     return;
   }
   if (snapshot.chat) {
+    const projectedChat = projectRealmChatView(snapshot.chat);
     const chatQueries = queryClient.getQueriesData<RealmListChatsResultDto>({ queryKey: ['chats'] });
     for (const [queryKey, current] of chatQueries) {
-      queryClient.setQueryData(queryKey as QueryKey, upsertChatInChatsResult(current, snapshot.chat));
+      queryClient.setQueryData(queryKey as QueryKey, upsertChatInChatsResult(current, projectedChat));
     }
   }
   if (Array.isArray(snapshot.messages)) {
@@ -246,7 +248,7 @@ export function useChatRealtimeSync(): void {
   const offlineCoordinator = getOfflineCoordinator();
 
   const realtimeBaseUrl = useMemo(
-    () => projectRealmRealtimeUrl({
+    () => projectNimiRealmRealtimeUrl({
       realmBaseUrl: runtimeDefaults?.realm.realmBaseUrl,
       realtimeUrl: runtimeDefaults?.realm.realtimeUrl,
     }),

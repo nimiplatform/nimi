@@ -3,10 +3,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 import {
-  disableRealmTwoFactor,
-  enableRealmTwoFactor,
-  prepareRealmTwoFactor,
-  updateRealmPassword,
+  disableNimiRealmTwoFactor,
+  enableNimiRealmTwoFactor,
+  prepareNimiRealmTwoFactor,
+  updateNimiRealmPassword,
 } from '@nimiplatform/sdk/realm';
 
 const securityPageSource = fs.readFileSync(
@@ -33,38 +33,50 @@ const performancePageSource = fs.readFileSync(
 test('SDK Realm security helpers behaviorally call password and 2FA APIs', async () => {
   const calls: string[] = [];
   const realm = {
-    services: {
-      AuthService: {
-        updatePassword: async (payload: Record<string, unknown>) => {
-          calls.push(`password:${String(payload.newPassword || '')}`);
-          return {};
-        },
+    account: {
+      getMyCreatorEligibility: async () => ({
+        canCreateAgent: false,
+        canCreateWorld: false,
+        isEligible: false,
+        message: '',
+        status: 'ACTIVE',
+        tier: 'FREE',
+      }),
+      getMyNotificationSettings: async () => ({}),
+      getMySettings: async () => ({}),
+      updateMyNotificationSettings: async () => ({}),
+      updateMySettings: async () => ({}),
+    },
+    auth: {
+      updatePassword: async (payload: { readonly body?: Record<string, unknown> }) => {
+        calls.push(`password:${String(payload.body?.newPassword || '')}`);
+        return {};
       },
-      MeTwoFactorService: {
-        prepareTwoFactor: async () => {
-          calls.push('prepare-2fa');
-          return { secret: 'secret', uri: 'otpauth://nimi/test' };
-        },
-        enableTwoFactor: async (payload: Record<string, unknown>) => {
-          calls.push(`enable-2fa:${String(payload.code || '')}`);
-          return {};
-        },
-        disableTwoFactor: async (payload: Record<string, unknown>) => {
-          calls.push(`disable-2fa:${String(payload.code || '')}`);
-          return {};
-        },
+      prepare2Fa: async () => {
+        calls.push('prepare-2fa');
+        return { secret: 'secret', otpauthUri: 'otpauth://nimi/test' };
       },
+      enable2Fa: async (payload: { readonly body?: Record<string, unknown> }) => {
+        calls.push(`enable-2fa:${String(payload.body?.code || '')}`);
+        return { success: true };
+      },
+      disable2Fa: async (payload: { readonly body?: Record<string, unknown> }) => {
+        calls.push(`disable-2fa:${String(payload.body?.code || '')}`);
+        return { success: true };
+      },
+      linkOauth: async () => ({}),
+      unlinkOauth: async () => ({}),
     },
   };
 
-  const passwordResult = await updateRealmPassword(realm as never, {
+  const passwordResult = await updateNimiRealmPassword(realm as never, {
     newPassword: 'new-password-123',
   } as never);
-  const prepareResult = await prepareRealmTwoFactor(realm as never);
-  const enableResult = await enableRealmTwoFactor(realm as never, {
+  const prepareResult = await prepareNimiRealmTwoFactor(realm as never);
+  const enableResult = await enableNimiRealmTwoFactor(realm as never, {
     code: '123456',
   } as never);
-  const disableResult = await disableRealmTwoFactor(realm as never, {
+  const disableResult = await disableNimiRealmTwoFactor(realm as never, {
     code: '654321',
   } as never);
 
@@ -76,26 +88,26 @@ test('SDK Realm security helpers behaviorally call password and 2FA APIs', async
   ]);
   assert.deepEqual(passwordResult, { ok: true });
   assert.equal(String((prepareResult as { secret?: string }).secret || ''), 'secret');
-  assert.deepEqual(enableResult, { enabled: true });
-  assert.deepEqual(disableResult, { enabled: false });
+  assert.deepEqual(enableResult, { enabled: true, success: true });
+  assert.deepEqual(disableResult, { enabled: false, success: true });
 });
 
 test('security page consumes SDK Realm security helpers instead of Realm security helper', () => {
-  assert.match(securityPageSource, /prepareRealmTwoFactor\(getPlatformClient\(\)\.realm\)/);
-  assert.match(securityPageSource, /updateRealmPassword\(getPlatformClient\(\)\.realm/);
-  assert.match(securityPageSource, /enableRealmTwoFactor\(getPlatformClient\(\)\.realm/);
-  assert.match(securityPageSource, /disableRealmTwoFactor\(getPlatformClient\(\)\.realm/);
+  assert.match(securityPageSource, /prepareNimiRealmTwoFactor\(getDesktopRealm\(\)\)/);
+  assert.match(securityPageSource, /updateNimiRealmPassword\(getDesktopRealm\(\)/);
+  assert.match(securityPageSource, /enableNimiRealmTwoFactor\(getDesktopRealm\(\)/);
+  assert.match(securityPageSource, /disableNimiRealmTwoFactor\(getDesktopRealm\(\)/);
   assert.doesNotMatch(securityPageSource, /dataSync\.(prepareTwoFactor|updatePassword|enableTwoFactor|disableTwoFactor)/);
 });
 
 test('settings pages consume SDK Realm account helpers instead of Realm account helper', () => {
-  assert.match(notificationsPageSource, /loadRealmUserNotificationSettings\(getPlatformClient\(\)\.realm\)/);
-  assert.match(notificationsPageSource, /updateRealmUserNotificationSettings\(getPlatformClient\(\)\.realm/);
-  assert.match(privacyPageSource, /loadRealmUserSettings\(getPlatformClient\(\)\.realm\)/);
-  assert.match(privacyPageSource, /updateRealmUserSettings\(getPlatformClient\(\)\.realm/);
-  assert.match(performancePageSource, /loadRealmCreatorEligibility\(getPlatformClient\(\)\.realm\)/);
-  assert.match(accountPageSource, /linkRealmOAuth\(getPlatformClient\(\)\.realm/);
-  assert.match(accountPageSource, /unlinkRealmOAuth\(getPlatformClient\(\)\.realm/);
+  assert.match(notificationsPageSource, /loadNimiRealmUserNotificationSettings\(getDesktopRealm\(\)\)/);
+  assert.match(notificationsPageSource, /updateNimiRealmUserNotificationSettings\(getDesktopRealm\(\)/);
+  assert.match(privacyPageSource, /loadNimiRealmUserSettings\(getDesktopRealm\(\)\)/);
+  assert.match(privacyPageSource, /updateNimiRealmUserSettings\(getDesktopRealm\(\)/);
+  assert.match(performancePageSource, /loadNimiRealmCreatorEligibility\(getDesktopRealm\(\)\)/);
+  assert.match(accountPageSource, /linkNimiRealmOAuth\(getDesktopRealm\(\)/);
+  assert.match(accountPageSource, /unlinkNimiRealmOAuth\(getDesktopRealm\(\)/);
   assert.doesNotMatch(
     `${notificationsPageSource}\n${privacyPageSource}\n${performancePageSource}\n${accountPageSource}`,
     /dataSync\.(loadMySettings|updateMySettings|loadMyNotificationSettings|updateMyNotificationSettings|loadMyCreatorEligibility|linkOauth|unlinkOauth)/,

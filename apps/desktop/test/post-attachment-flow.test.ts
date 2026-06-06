@@ -30,10 +30,11 @@ test('create post modal writes targetType-targetId attachments payloads for new 
 });
 
 test('create post modal uses shared Realm upload helper instead of owning direct upload transport', () => {
-  assert.match(createPostModalSource, /uploadRealmResourceFileWithRealm/);
-  assert.match(createPostModalSource, /getPlatformClient\(\)\.realm/);
+  assert.match(createPostModalSource, /uploadNimiRealmResourceFile\(getDesktopRealm\(\),/);
   assert.doesNotMatch(createPostModalSource, /fetch\([^)]*uploadUrl/);
   assert.doesNotMatch(createPostModalSource, /finalizeResource\(/);
+  assert.doesNotMatch(createPostModalSource, /uploadRealmResourceFileWithRealm/);
+  assert.doesNotMatch(createPostModalSource, /getPlatformClient\(\)\.realm/);
   assert.doesNotMatch(createPostModalSource, /dataSync\.upload(Image|Video)ResourceFile/);
 });
 

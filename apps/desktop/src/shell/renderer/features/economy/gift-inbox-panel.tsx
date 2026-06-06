@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   type CommerceGiftStatus,
 } from '@nimiplatform/kit/features/commerce/headless';
@@ -15,6 +15,7 @@ import { invalidateNotificationQueries } from '@renderer/features/notification/n
 import { persistStoredSettingsSelected } from '@renderer/features/settings/settings-storage';
 import { useTranslation } from 'react-i18next';
 import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
+import { getDesktopRealmCommerceGiftService } from '@renderer/infra/realm/realm-commerce-service';
 
 function formatGiftDate(input: string | null | undefined): string {
   const value = String(input || '').trim();
@@ -80,6 +81,7 @@ export function GiftInboxPanel() {
   const selectedGiftTransactionId = useAppStore((state) => state.selectedGiftTransactionId);
   const setSelectedGiftTransactionId = useAppStore((state) => state.setSelectedGiftTransactionId);
   const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
+  const giftService = useMemo(() => getDesktopRealmCommerceGiftService(), []);
 
   const currentUserId = String(currentUser?.id || '').trim();
   const {
@@ -99,6 +101,7 @@ export function GiftInboxPanel() {
     handleAccept,
     handleReject,
   } = useRealmGiftInbox({
+    service: giftService,
     enabled: authStatus === 'authenticated',
     currentUserId,
     selectedGiftTransactionId,

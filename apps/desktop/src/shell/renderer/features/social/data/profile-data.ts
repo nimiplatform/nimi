@@ -1,12 +1,12 @@
 import {
-  addRealmFriendById,
-  blockRealmUser,
-  loadRealmCurrentUserProfile,
-  loadRealmUserProfileById,
-  removeRealmFriendById,
-  unblockRealmUser,
-  updateRealmCurrentUserProfile,
-  type RealmModel,
+  addNimiRealmFriendById,
+  blockNimiRealmUser,
+  loadNimiRealmCurrentUserProfile,
+  loadNimiRealmUserProfileById,
+  type NimiRealmSocialProfileProjection,
+  removeNimiRealmFriendById,
+  unblockNimiRealmUser,
+  updateNimiRealmCurrentUserProfile,
 } from '@nimiplatform/sdk/realm';
 import {
   isRealmOfflineErrorLike as isRealmOfflineError,
@@ -24,7 +24,7 @@ import {
 } from './social-snapshot';
 import { dispatchBlockedUsersUpdated } from './blocked-content';
 
-type UserProfileDto = RealmModel<'UserProfileDto'>;
+type UserProfileProjection = NimiRealmSocialProfileProjection;
 
 export type { SocialContactSnapshot } from './social-snapshot';
 
@@ -32,7 +32,10 @@ export async function loadCurrentUserProfile(
   callApi: RealmApiCaller,
   emitRealmDataError: RealmDataErrorEmitter,
 ) {
-  return loadRealmCurrentUserProfile(callApi, emitRealmDataError);
+  return callApi(
+    (realm) => loadNimiRealmCurrentUserProfile(realm, emitRealmDataError),
+    'Failed to load Realm current user',
+  );
 }
 
 export async function updateCurrentUserProfile(
@@ -40,7 +43,10 @@ export async function updateCurrentUserProfile(
   emitRealmDataError: RealmDataErrorEmitter,
   data: JsonObject,
 ) {
-  return updateRealmCurrentUserProfile(callApi, emitRealmDataError, data);
+  return callApi(
+    (realm) => updateNimiRealmCurrentUserProfile(realm, emitRealmDataError, data),
+    'Failed to update Realm current user',
+  );
 }
 
 export async function loadContactList(
@@ -85,17 +91,20 @@ export async function loadUserProfileById(
   callApi: RealmApiCaller,
   emitRealmDataError: RealmDataErrorEmitter,
   id: string,
-): Promise<UserProfileDto> {
+): Promise<UserProfileProjection> {
   const normalizedId = String(id || '').trim();
   try {
-    const enriched = await loadRealmUserProfileById(callApi, emitRealmDataError, normalizedId);
+    const enriched = await callApi(
+      (realm) => loadNimiRealmUserProfileById(realm, emitRealmDataError, normalizedId),
+      'Failed to load Realm user profile',
+    );
     const cache = await getOfflineCacheManager();
     await cache.syncAgentMetadata(`user:${normalizedId}`, enriched);
     return enriched;
   } catch (error) {
     if (isRealmOfflineError(error)) {
       const cache = await getOfflineCacheManager();
-      const cached = await cache.getCachedAgentMetadata<UserProfileDto>(`user:${normalizedId}`);
+      const cached = await cache.getCachedAgentMetadata<UserProfileProjection>(`user:${normalizedId}`);
       if (cached) {
         getOfflineCoordinator().markCacheFallbackUsed();
         return cached;
@@ -113,7 +122,10 @@ export async function addFriendById(
   if (!userId) {
     throw new Error('用户ID不能为空');
   }
-  return addRealmFriendById(callApi, userId, message);
+  return callApi(
+    (realm) => addNimiRealmFriendById(realm, userId, message),
+    'Failed to add Realm friend',
+  );
 }
 
 export async function removeFriendById(
@@ -123,7 +135,10 @@ export async function removeFriendById(
   if (!userId) {
     throw new Error('用户ID不能为空');
   }
-  await removeRealmFriendById(callApi, userId);
+  await callApi(
+    (realm) => removeNimiRealmFriendById(realm, userId),
+    'Failed to remove Realm friend',
+  );
 }
 
 export async function addFriendByIdentifier(input: {
@@ -197,7 +212,10 @@ export async function blockUser(
     throw new Error('用户ID不能为空');
   }
 
-  const result = await blockRealmUser(callApi, contactId);
+  const result = await callApi(
+    (realm) => blockNimiRealmUser(realm, contactId),
+    'Failed to block Realm user',
+  );
 
   await reloadContacts();
   dispatchBlockedUsersUpdated();
@@ -214,7 +232,10 @@ export async function unblockUser(
     throw new Error('用户ID不能为空');
   }
 
-  const result = await unblockRealmUser(callApi, contactId);
+  const result = await callApi(
+    (realm) => unblockNimiRealmUser(realm, contactId),
+    'Failed to unblock Realm user',
+  );
 
   await reloadContacts();
   dispatchBlockedUsersUpdated();

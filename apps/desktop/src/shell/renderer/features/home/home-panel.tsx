@@ -1,9 +1,9 @@
-import type { RealmFeedScope } from '@nimiplatform/sdk/realm';
+import type { NimiRealmFeedScope } from '@nimiplatform/sdk/realm';
 import { HomeView } from './home-view';
 
 type HomePanelProps = {
   createPostRequestKey?: number;
-  feedScope: RealmFeedScope;
+  feedScope: NimiRealmFeedScope;
 };
 
 export function HomePanel(props: HomePanelProps) {

@@ -2,7 +2,7 @@ import { realmSocialData } from '@renderer/features/social/data/realm-social-dat
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ScrollArea, Surface } from '@nimiplatform/kit/ui';
 import { useTranslation } from 'react-i18next';
-import { type RealmFeedScope } from '@nimiplatform/sdk/realm';
+import type { NimiRealmFeedScope } from '@nimiplatform/sdk/realm';
 import { BLOCKED_USERS_UPDATED_EVENT } from '@renderer/features/social/data/blocked-content';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { ProfileDetailModal } from '@renderer/features/relationship/profile-detail-modal.js';
@@ -84,7 +84,7 @@ const PAGE_SIZE = 15;
 
 type HomeViewProps = {
   createPostRequestKey?: number;
-  feedScope: RealmFeedScope;
+  feedScope: NimiRealmFeedScope;
 };
 
 export function HomeView(props: HomeViewProps) {

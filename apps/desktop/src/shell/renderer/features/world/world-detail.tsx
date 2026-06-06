@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { getPlatformClient } from '@nimiplatform/sdk';
-import { uploadRealmResourceFileWithRealm } from '@nimiplatform/sdk/realm';
+import { uploadNimiRealmResourceFile } from '@nimiplatform/sdk/realm';
 import { realmAgentCreateData } from './data/realm-agent-create-data';
 import { queryClient } from '@renderer/infra/query-client/query-client';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { getDesktopRealm } from '@renderer/infra/sdk/desktop-nimi-client-session';
 import { ScrollArea } from '@nimiplatform/kit/ui';
 import { createRendererFlowId, logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
@@ -207,8 +207,7 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
       }
       let resolvedImageUrl: string | undefined;
       if (input.avatarFile) {
-        const uploaded = await uploadRealmResourceFileWithRealm({
-          realm: getPlatformClient().realm,
+        const uploaded = await uploadNimiRealmResourceFile(getDesktopRealm(), {
           kind: 'image',
           file: input.avatarFile,
           failureMessage: i18n.t('World.createAgent.avatarUploadFailed', {

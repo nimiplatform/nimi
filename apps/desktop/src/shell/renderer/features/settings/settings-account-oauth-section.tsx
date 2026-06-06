@@ -1,5 +1,8 @@
 import type { ReactNode } from 'react';
-import { OAuthProvider } from '@nimiplatform/sdk/realm';
+import {
+  NIMI_REALM_OAUTH_PROVIDER,
+  type NimiRealmOAuthProvider,
+} from '@nimiplatform/sdk/realm';
 import { useTranslation } from 'react-i18next';
 import { resolveSocialOauthConfig } from '@nimiplatform/kit/auth';
 import { desktopOAuthBridge } from '@renderer/features/auth/desktop-auth-adapter.js';
@@ -7,7 +10,7 @@ import { ICON_MAIL } from './settings-assets.js';
 import { SectionTitle } from './settings-layout-components.js';
 
 type ProfileOauthRow = {
-  provider: OAuthProvider;
+  provider: NimiRealmOAuthProvider;
   label: string;
   subtitle: string;
   disabledReason: string;
@@ -19,7 +22,7 @@ function buildProfileOauthRows(googleClientId: string): ProfileOauthRow[] {
   const tikTokOauthConfig = resolveSocialOauthConfig('TIKTOK', desktopOAuthBridge);
   return [
     {
-      provider: OAuthProvider.GOOGLE,
+      provider: NIMI_REALM_OAUTH_PROVIDER.GOOGLE,
       label: 'Google',
       subtitle: 'google.com',
       disabledReason: googleClientId ? '' : 'Missing Google OAuth client ID',
@@ -45,7 +48,7 @@ function buildProfileOauthRows(googleClientId: string): ProfileOauthRow[] {
       ),
     },
     {
-      provider: OAuthProvider.TWITTER,
+      provider: NIMI_REALM_OAUTH_PROVIDER.TWITTER,
       label: 'Twitter',
       subtitle: 'x.com',
       disabledReason: twitterOauthConfig.enabled ? '' : twitterOauthConfig.disabledReason,
@@ -56,7 +59,7 @@ function buildProfileOauthRows(googleClientId: string): ProfileOauthRow[] {
       ),
     },
     {
-      provider: OAuthProvider.TIKTOK,
+      provider: NIMI_REALM_OAUTH_PROVIDER.TIKTOK,
       label: 'TikTok',
       subtitle: 'tiktok.com',
       disabledReason: tikTokOauthConfig.enabled ? '' : tikTokOauthConfig.disabledReason,
@@ -78,13 +81,13 @@ export function ProfileConnectedAccountsSection({
   onUnlinkProvider,
   unlinkingProvider,
 }: {
-  connectedProviderSet: ReadonlySet<OAuthProvider>;
+  connectedProviderSet: ReadonlySet<NimiRealmOAuthProvider>;
   email: string;
   googleClientId: string;
-  linkingProvider: OAuthProvider | null;
-  onLinkProvider: (provider: OAuthProvider) => void;
-  onUnlinkProvider: (provider: OAuthProvider) => void;
-  unlinkingProvider: OAuthProvider | null;
+  linkingProvider: NimiRealmOAuthProvider | null;
+  onLinkProvider: (provider: NimiRealmOAuthProvider) => void;
+  onUnlinkProvider: (provider: NimiRealmOAuthProvider) => void;
+  unlinkingProvider: NimiRealmOAuthProvider | null;
 }) {
   const { t } = useTranslation();
   const oauthRows = buildProfileOauthRows(googleClientId);

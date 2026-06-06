@@ -15,6 +15,7 @@ import {
 } from '@nimiplatform/kit/features/commerce/realm';
 import { parseOptionalJsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
 import { formatLocaleDateTime, formatLocaleNumber } from '@renderer/i18n';
+import { getDesktopRealmCommerceGiftService } from '@renderer/infra/realm/realm-commerce-service';
 import { PageShell } from './settings-layout-components.js';
 import {
   WalletBalanceCards,
@@ -238,37 +239,54 @@ export function WalletPage() {
 
   const balancesQuery = useQuery({
     queryKey: ['wallet-currency-balances'],
-    queryFn: async () => loadRealmCurrencyBalances(),
+    queryFn: async () => loadRealmCurrencyBalances({
+      service: getDesktopRealmCommerceGiftService(),
+    }),
   });
 
   const sparkHistoryQuery = useQuery({
     queryKey: ['wallet-spark-history'],
-    queryFn: async () => loadRealmSparkTransactionHistory(20),
+    queryFn: async () => loadRealmSparkTransactionHistory({
+      service: getDesktopRealmCommerceGiftService(),
+      limit: 20,
+    }),
   });
 
   const gemHistoryQuery = useQuery({
     queryKey: ['wallet-gem-history'],
-    queryFn: async () => loadRealmGemTransactionHistory(20),
+    queryFn: async () => loadRealmGemTransactionHistory({
+      service: getDesktopRealmCommerceGiftService(),
+      limit: 20,
+    }),
   });
 
   const subscriptionQuery = useQuery({
     queryKey: ['wallet-subscription'],
-    queryFn: async () => loadRealmSubscriptionStatus(),
+    queryFn: async () => loadRealmSubscriptionStatus({
+      service: getDesktopRealmCommerceGiftService(),
+    }),
   });
 
   const sparkPackagesQuery = useQuery({
     queryKey: ['wallet-spark-packages'],
-    queryFn: async () => loadRealmSparkPackages(),
+    queryFn: async () => loadRealmSparkPackages({
+      service: getDesktopRealmCommerceGiftService(),
+    }),
   });
 
   const withdrawEligibilityQuery = useQuery({
     queryKey: ['wallet-withdrawal-eligibility'],
-    queryFn: async () => loadRealmWithdrawalEligibility(),
+    queryFn: async () => loadRealmWithdrawalEligibility({
+      service: getDesktopRealmCommerceGiftService(),
+    }),
   });
 
   const withdrawalHistoryQuery = useQuery({
     queryKey: ['wallet-withdrawal-history'],
-    queryFn: async () => loadRealmWithdrawalHistory(10),
+    queryFn: async () => loadRealmWithdrawalHistory({
+      service: getDesktopRealmCommerceGiftService(),
+      limit: 10,
+    }),
   });
 
   const subscriptionPayload = parseOptionalJsonObject(subscriptionQuery.data);
@@ -359,9 +377,12 @@ export function WalletPage() {
     setRechargeMessage(null);
     try {
       const checkout = await createRealmSparkCheckout({
-        packageId: defaultSparkPackage.id,
-        successUrl: buildWalletCheckoutRedirectUrl('success'),
-        cancelUrl: buildWalletCheckoutRedirectUrl('cancel'),
+        service: getDesktopRealmCommerceGiftService(),
+        input: {
+          packageId: defaultSparkPackage.id,
+          successUrl: buildWalletCheckoutRedirectUrl('success'),
+          cancelUrl: buildWalletCheckoutRedirectUrl('cancel'),
+        },
       });
       const checkoutUrl = String(checkout?.url || '').trim();
       if (!checkoutUrl) {
@@ -390,7 +411,10 @@ export function WalletPage() {
     setSubmittingWithdrawal(true);
     setWithdrawalMessage(null);
     try {
-      await createRealmWithdrawal({ gemAmount: normalized });
+      await createRealmWithdrawal({
+        service: getDesktopRealmCommerceGiftService(),
+        input: { gemAmount: normalized },
+      });
       setWithdrawAmount('');
       setWithdrawalMessage(t('Wallet.withdrawalSubmitted'));
       await Promise.all([

@@ -2,14 +2,14 @@ import { realmSocialData } from '@renderer/features/social/data/realm-social-dat
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  disableRealmTwoFactor,
-  enableRealmTwoFactor,
-  prepareRealmTwoFactor,
-  updateRealmPassword,
+  disableNimiRealmTwoFactor,
+  enableNimiRealmTwoFactor,
+  prepareNimiRealmTwoFactor,
+  updateNimiRealmPassword,
 } from '@nimiplatform/sdk/realm';
-import { getPlatformClient } from '@nimiplatform/sdk';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { parseOptionalJsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
+import { getDesktopRealm } from '@renderer/infra/sdk/desktop-nimi-client-session';
 import type { InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 import { FormFeedback, PageShell, SaveFooter, SectionTitle } from './settings-layout-components.js';
 import {
@@ -57,7 +57,7 @@ export function SecurityPage() {
       return;
     }
     setPreparingTwoFactor(true);
-    void prepareRealmTwoFactor(getPlatformClient().realm)
+    void prepareNimiRealmTwoFactor(getDesktopRealm())
       .then((payload) => {
         setTwoFactorSecret(String(payload.secret || ''));
         setTwoFactorUri(String(payload.otpauthUri || ''));
@@ -125,7 +125,7 @@ export function SecurityPage() {
     setSaving(true);
     try {
       if (newPw.trim()) {
-        await updateRealmPassword(getPlatformClient().realm, {
+        await updateNimiRealmPassword(getDesktopRealm(), {
           oldPassword: currentPw.trim() || undefined,
           newPassword: newPw.trim(),
         });
@@ -136,9 +136,9 @@ export function SecurityPage() {
           code: twoFactorCode.trim(),
         };
         if (twoFactor) {
-          await enableRealmTwoFactor(getPlatformClient().realm, payload);
+          await enableNimiRealmTwoFactor(getDesktopRealm(), payload);
         } else {
-          await disableRealmTwoFactor(getPlatformClient().realm, payload);
+          await disableNimiRealmTwoFactor(getDesktopRealm(), payload);
         }
       }
 

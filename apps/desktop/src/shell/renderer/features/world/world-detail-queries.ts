@@ -1,20 +1,19 @@
-import { getPlatformClient } from '@nimiplatform/sdk';
 import {
-  createWorldFacade,
-  mergeWorldPrimaryDetailTruth,
-  normalizeWorldTruthDetail,
-  toWorldDisplayAgent,
-  toWorldDisplayAuditItem,
-  toWorldDisplayBindingItem,
-  toWorldDisplayData,
-  toWorldDisplayFallback as toSdkWorldDisplayFallback,
-  toWorldDisplayHistoryBundle,
-  toWorldDisplayLorebookItem,
-  toWorldDisplaySceneItem,
-  toWorldDisplaySemanticBundle,
-  type WorldTruthListItem,
-  type WorldTruthDetail,
-} from '@nimiplatform/sdk/world';
+  mergeNimiRealmWorldPrimaryDetailTruth,
+  normalizeNimiRealmWorldTruthDetail,
+  normalizeNimiRealmWorldTruthListItem,
+  toNimiRealmWorldDisplayAgent,
+  toNimiRealmWorldDisplayAuditItem,
+  toNimiRealmWorldDisplayBindingItem,
+  toNimiRealmWorldDisplayData,
+  toNimiRealmWorldDisplayFallback as toSdkWorldDisplayFallback,
+  toNimiRealmWorldDisplayHistoryBundle,
+  toNimiRealmWorldDisplayLorebookItem,
+  toNimiRealmWorldDisplaySceneItem,
+  toNimiRealmWorldDisplaySemanticBundle,
+  type NimiRealmWorldTruthDetail as WorldTruthDetail,
+  type NimiRealmWorldTruthListItem as WorldTruthListItem,
+} from '@nimiplatform/sdk/realm';
 import { realmWorldData } from './data/realm-world-data';
 import { queryClient } from '@renderer/infra/query-client/query-client';
 import type {
@@ -84,7 +83,10 @@ export function worldListQueryKey() {
 export async function fetchWorldListItems(
   status?: WorldTruthListItem['status'],
 ): Promise<WorldTruthListItem[]> {
-  return createWorldFacade(getPlatformClient()).truth.list(status);
+  const worlds = await realmWorldData.loadWorlds(status);
+  return worlds
+    .map((world) => normalizeNimiRealmWorldTruthListItem(world))
+    .filter((world): world is WorldTruthListItem => Boolean(world));
 }
 export function worldDisplayDetailQueryKey(worldId: string) {
   return [
@@ -112,31 +114,31 @@ export async function fetchWorldDetailWithAgents(worldId: string): Promise<World
       normalizedWorldId,
       DEFAULT_WORLD_DETAIL_RECOMMENDED_AGENT_LIMIT,
     ),
-    getPlatformClient().domains.world.getWorldview(normalizedWorldId),
+    realmWorldData.loadWorldSemanticBundle(normalizedWorldId),
   ]);
   if (!detailResponse) {
     throw new Error('WORLD_DETAIL_NOT_FOUND');
   }
   const detail = detailResponse;
-  const worldTruth = normalizeWorldTruthDetail({ detail, worldview });
+  const worldTruth = normalizeNimiRealmWorldTruthDetail({ detail, worldview: worldview.worldview });
   if (!worldTruth) {
     throw new Error('WORLD_DETAIL_WORLD_TRUTH_INVALID');
   }
   // SDK truth owns the normalized truth-bearing fields; Desktop keeps only the
   // bounded supplement the current primary lane still needs.
-  return mergeWorldPrimaryDetailTruth(detail, worldTruth);
+  return mergeNimiRealmWorldPrimaryDetailTruth(detail, worldTruth);
 }
 export async function fetchWorldHistory(worldId: string): Promise<WorldHistoryBundle> {
   const payload = await realmWorldData.loadWorldHistory(normalizeWorldId(worldId));
-  return toWorldDisplayHistoryBundle(payload);
+  return toNimiRealmWorldDisplayHistoryBundle(payload);
 }
 export async function fetchWorldSemanticBundle(worldId: string): Promise<WorldSemanticData> {
   const payload = await realmWorldData.loadWorldSemanticBundle(normalizeWorldId(worldId));
-  return toWorldDisplaySemanticBundle(payload);
+  return toNimiRealmWorldDisplaySemanticBundle(payload);
 }
 export async function fetchWorldLevelAudits(worldId: string): Promise<WorldAuditItem[]> {
   const payload = await realmWorldData.loadWorldLevelAudits(normalizeWorldId(worldId), 20);
-  return payload.map(toWorldDisplayAuditItem);
+  return payload.map(toNimiRealmWorldDisplayAuditItem);
 }
 export async function fetchWorldPublicAssets(worldId: string): Promise<WorldPublicAssetsData> {
   const normalizedWorldId = normalizeWorldId(worldId);
@@ -146,16 +148,16 @@ export async function fetchWorldPublicAssets(worldId: string): Promise<WorldPubl
     realmWorldData.loadWorldScenes(normalizedWorldId),
   ]);
   return {
-    lorebooks: lorebooksPayload.items.map(toWorldDisplayLorebookItem),
-    scenes: scenesPayload.items.map(toWorldDisplaySceneItem) as WorldSceneItem[],
-    bindings: bindingsPayload.items.map(toWorldDisplayBindingItem),
+    lorebooks: lorebooksPayload.items.map(toNimiRealmWorldDisplayLorebookItem),
+    scenes: scenesPayload.items.map(toNimiRealmWorldDisplaySceneItem) as WorldSceneItem[],
+    bindings: bindingsPayload.items.map(toNimiRealmWorldDisplayBindingItem),
   };
 }
 export async function fetchWorldDisplayDetail(worldId: string): Promise<WorldDisplayDetail> {
   const primary = await fetchWorldDetailWithAgents(worldId);
-  const world = toWorldDisplayData(primary);
-  const agentRecords = Array.isArray(primary.agents) ? (primary.agents as Array<Record<string, unknown>>) : [];
-  const agents = agentRecords.map((agent) => toWorldDisplayAgent(agent, world.createdAt));
+  const world = toNimiRealmWorldDisplayData(primary);
+  const agentRecords = Array.isArray(primary.agents) ? primary.agents : [];
+  const agents = agentRecords.map((agent) => toNimiRealmWorldDisplayAgent(agent, world.createdAt));
   const [historyResult, semanticResult, auditsResult, publicAssetsResult] = await Promise.allSettled([
     fetchWorldHistory(worldId),
     fetchWorldSemanticBundle(worldId),

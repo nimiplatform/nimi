@@ -1,11 +1,9 @@
 import { Button } from '@nimiplatform/kit/ui';
 import { isNimiGiftNotificationReviewable } from '@nimiplatform/kit/core/notifications';
-import { ReviewRating as ReviewRatingEnum, type RealmModel } from '@nimiplatform/sdk/realm';
+import { ReviewRatingValue, type ReviewRating } from '@nimiplatform/sdk/realm/generated';
 import type { TFunction } from 'i18next';
 import { getActionLabel } from './notification-panel-labels.js';
 import type { ItemActionKind, NotificationItemView, PendingItemAction } from './notification-panel-types.js';
-
-type ReviewRating = RealmModel<'ReviewRating'>;
 
 export function NotificationActionButtons(props: {
   item: NotificationItemView;
@@ -138,10 +136,10 @@ export function NotificationActionButtons(props: {
           tone="primary"
           size="sm"
           disabled={itemBusy}
-          onClick={(event) => {
-            event.stopPropagation();
-            onCreateReview(item, ReviewRatingEnum.POSITIVE, 'review-positive');
-          }}
+            onClick={(event) => {
+              event.stopPropagation();
+              onCreateReview(item, ReviewRatingValue.POSITIVE, 'review-positive');
+            }}
           leadingIcon={(
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
@@ -160,10 +158,10 @@ export function NotificationActionButtons(props: {
           tone="secondary"
           size="sm"
           disabled={itemBusy}
-          onClick={(event) => {
-            event.stopPropagation();
-            onCreateReview(item, ReviewRatingEnum.NEGATIVE, 'review-negative');
-          }}
+            onClick={(event) => {
+              event.stopPropagation();
+              onCreateReview(item, ReviewRatingValue.NEGATIVE, 'review-negative');
+            }}
         >
           {getActionLabel(
             pendingItemAction,

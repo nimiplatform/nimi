@@ -14,14 +14,15 @@ const mainLayoutTitlebarContentSource = readWorkspaceFile('src/shell/renderer/ap
 const mainLayoutTopBarSource = readWorkspaceFile('src/shell/renderer/app-shell/layouts/main-layout-topbar.tsx');
 
 test('Desktop post feed delegates Realm service scope and pagination behavior to SDK', () => {
-  assert.match(postFeedDataSource, /loadRealmPostFeed/);
+  assert.match(postFeedDataSource, /loadNimiRealmPostFeed/);
+  assert.doesNotMatch(postFeedDataSource, /loadRealmPostFeed/);
   assert.match(postFeedDataSource, /from '@nimiplatform\/sdk\/realm'/);
   assert.doesNotMatch(postFeedDataSource, /realm\.services\.PostsService\.getHomeFeed/);
 });
 
 test('Home feed controls present exactly the three canonical feed scopes (D-HOMEFEED-004)', () => {
-  assert.match(homeFeedControlsSource, /REALM_FEED_SCOPES/);
-  assert.match(homeFeedControlsSource, /HOME_FEED_SCOPES\s*=\s*REALM_FEED_SCOPES/);
+  assert.match(homeFeedControlsSource, /NIMI_REALM_FEED_SCOPES/);
+  assert.match(homeFeedControlsSource, /HOME_FEED_SCOPES\s*=\s*NIMI_REALM_FEED_SCOPES/);
   assert.match(homeFeedControlsSource, /from '@nimiplatform\/sdk\/realm'/);
   assert.doesNotMatch(homeFeedControlsSource, /PostFeedScope/);
   assert.doesNotMatch(homeFeedControlsSource, /@runtime\/data-sync/);

@@ -43,14 +43,14 @@ test('Desktop local storage residue stays product-local and secretless', () => {
   assert.doesNotMatch(runtimeConfigPersist, /tokenApiKey|localOpenAiApiKey/);
   assert.match(runtimeConfigNormalize, /Connectors are NOT loaded from localStorage/);
 
-  assert.match(aiConfigStorage, /createScopedAIConfigStore/);
-  assert.match(aiConfigStorage, /aiConfigScopeKeyFromRef/);
+  assert.match(aiConfigStorage, /createNimiAIConfigStore/);
+  assert.match(aiConfigStorage, /encodeNimiAIScopeRef/);
   assert.doesNotMatch(aiConfigStorage, /function loadAIConfig\(/);
   assert.doesNotMatch(aiConfigStorage, /function persistAIConfig\(/);
   assert.doesNotMatch(aiConfigStorage, /LEGACY_SINGLE_KEY/);
 
   const aiSnapshotStorage = read('apps/desktop/src/shell/renderer/app-shell/providers/desktop-ai-config-snapshot-store.ts');
-  assert.match(aiSnapshotStorage, /createScopedAISnapshotStore/);
+  assert.match(aiSnapshotStorage, /createNimiAISnapshotStore/);
   assert.doesNotMatch(aiSnapshotStorage, /byExecutionId|byScopeKey|new Map/);
 
   assert.doesNotMatch(chatSettings, /AGENT_CHAT_BEHAVIOR_SETTINGS_STORAGE_KEY/);

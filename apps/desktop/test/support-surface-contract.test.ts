@@ -20,11 +20,11 @@ import path from 'node:path';
 import test from 'node:test';
 
 import {
-  PRODUCT_CONTROL_RECOVERY_STATE_COPY_KEY as RECOVERY_STATE_COPY_KEY,
-  PRODUCT_CONTROL_STATES,
-  isDegradedProductControlState as isDegradedProductState,
-  isRepairRoutedProductControlState as isRepairRoutedState,
-} from '@nimiplatform/sdk';
+  NIMI_PRODUCT_CONTROL_RECOVERY_STATE_COPY_KEY,
+  NIMI_PRODUCT_CONTROL_STATES,
+  isNimiProductControlDegradedState,
+  isNimiProductControlRepairRoutedState,
+} from '@nimiplatform/sdk/runtime';
 import {
   SUPPORT_SECTION_IDS,
   SUPPORT_DEGRADED_REACHABLE_SECTIONS,
@@ -205,9 +205,9 @@ test('D-SUP-006: the log-areas projection matches the kernel closed enum', () =>
 });
 
 test('D-SUP-007: recovery copy mapping is total and uses the copy floor', () => {
-  for (const state of PRODUCT_CONTROL_STATES) {
+  for (const state of NIMI_PRODUCT_CONTROL_STATES) {
     assert.ok(
-      Object.prototype.hasOwnProperty.call(RECOVERY_STATE_COPY_KEY, state),
+      Object.prototype.hasOwnProperty.call(NIMI_PRODUCT_CONTROL_RECOVERY_STATE_COPY_KEY, state),
       `recovery copy key missing for state: ${state}`,
     );
   }
@@ -217,17 +217,17 @@ test('D-SUP-007: recovery never shows the raw enum name as primary copy', () => 
   const source = readDesktop(SECTION_FILES.recovery);
   // Primary title/body come from the copy-floor key; the raw state id is only
   // a secondary technical detail line.
-  assert.match(source, /RECOVERY_STATE_COPY_KEY/);
+  assert.match(source, /NIMI_PRODUCT_CONTROL_RECOVERY_STATE_COPY_KEY/);
   assert.match(source, /recoveryTechnicalStateLabel/);
 });
 
 test('D-SUP-007: degraded vs repair-routed state classification', () => {
-  assert.equal(isDegradedProductState('repair_required'), true);
-  assert.equal(isDegradedProductState('data_root_missing'), true);
-  assert.equal(isDegradedProductState('ready_for_use'), false);
-  assert.equal(isRepairRoutedState('repair_required'), true);
-  assert.equal(isRepairRoutedState('blocked'), true);
-  assert.equal(isRepairRoutedState('ready_for_use'), false);
+  assert.equal(isNimiProductControlDegradedState('repair_required'), true);
+  assert.equal(isNimiProductControlDegradedState('data_root_missing'), true);
+  assert.equal(isNimiProductControlDegradedState('ready_for_use'), false);
+  assert.equal(isNimiProductControlRepairRoutedState('repair_required'), true);
+  assert.equal(isNimiProductControlRepairRoutedState('blocked'), true);
+  assert.equal(isNimiProductControlRepairRoutedState('ready_for_use'), false);
 });
 
 // ---------------------------------------------------------------------------

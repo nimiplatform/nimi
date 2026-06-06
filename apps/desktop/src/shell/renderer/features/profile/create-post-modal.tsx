@@ -1,11 +1,11 @@
 import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
 import { useCallback, useRef, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { getPlatformClient } from '@nimiplatform/sdk';
-import { uploadRealmResourceFileWithRealm } from '@nimiplatform/sdk/realm';
+import { uploadNimiRealmResourceFile } from '@nimiplatform/sdk/realm';
 import { OverlayShell } from '@nimiplatform/kit/ui';
 import { realmWorldData } from '@renderer/features/world/data/realm-world-data';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
+import { getDesktopRealm } from '@renderer/infra/sdk/desktop-nimi-client-session';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import {
   ACCEPTED_IMAGE_TYPES,
@@ -312,8 +312,7 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
       let resourceId: string;
       
       if ('file' in activeAttachment) {
-        const upload = await uploadRealmResourceFileWithRealm({
-          realm: getPlatformClient().realm,
+        const upload = await uploadNimiRealmResourceFile(getDesktopRealm(), {
           kind: activeAttachment.type === 'image' ? 'image' : 'video',
           file: activeAttachment.file,
           failureMessage: activeAttachment.type === 'image' ? 'Image upload failed' : 'Video upload failed',

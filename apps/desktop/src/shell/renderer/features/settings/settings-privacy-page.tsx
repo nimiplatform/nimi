@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import type { RealmModel } from '@nimiplatform/sdk/realm';
+import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 import {
-  loadRealmUserSettings,
-  updateRealmUserSettings,
+  loadNimiRealmUserSettings,
+  updateNimiRealmUserSettings,
 } from '@nimiplatform/sdk/realm';
-import { getPlatformClient } from '@nimiplatform/sdk';
+import { getDesktopRealm } from '@renderer/infra/sdk/desktop-nimi-client-session';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { FormFeedback, PageShell, SectionTitle } from './settings-layout-components.js';
@@ -172,7 +172,7 @@ export function PrivacyPage() {
 
   const settingsQuery = useQuery({
     queryKey: ['settings-privacy'],
-    queryFn: async () => loadRealmUserSettings(getPlatformClient().realm),
+    queryFn: async () => loadNimiRealmUserSettings(getDesktopRealm()),
   });
 
   useEffect(() => {
@@ -204,7 +204,7 @@ export function PrivacyPage() {
     }
     setSaving(true);
     try {
-      await updateRealmUserSettings(getPlatformClient().realm, toUpdatePayload(form));
+      await updateNimiRealmUserSettings(getDesktopRealm(), toUpdatePayload(form));
       await settingsQuery.refetch();
       if (!silentSuccess) {
         setFeedback({

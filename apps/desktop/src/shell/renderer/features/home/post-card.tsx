@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
-import type { RealmModel } from '@nimiplatform/sdk/realm';
-import { ReportReason } from '@nimiplatform/sdk/realm';
+import type { RealmModel, ReportReason } from '@nimiplatform/sdk/realm/generated';
 import { i18n } from '@renderer/i18n';
 import type { ProfileDetailSeed } from '@renderer/features/relationship/profile-detail-modal.js';
 import type { EditablePostSeed } from '@renderer/features/profile/create-post-modal-helpers.js';
@@ -109,9 +108,7 @@ export function PostCard(input: PostCardProps) {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
 
-  const authorId = String(
-    post.authorId || post.author?.id || (post.author as unknown as { _id?: string })?._id || '',
-  ).trim();
+  const authorId = String(post.authorId || post.author?.id || '').trim();
   const isOwnPost = Boolean(currentUserId && post.author?.id === currentUserId);
   const [isLikePending, setIsLikePending] = useState(false);
   const [isVisibilityPending, setIsVisibilityPending] = useState(false);
@@ -138,11 +135,11 @@ export function PostCard(input: PostCardProps) {
     () => buildPostCardMediaProjection({ post, postVisibility, realmBaseUrl }),
     [post, postVisibility, realmBaseUrl],
   );
-  const { authorProfileSeed, authorRecord } = useMemo(
+  const { authorProfileSeed } = useMemo(
     () => buildPostCardAuthorProjection({ authorId, post }),
     [authorId, post],
   );
-  const isAuthorFriend = authorRecord?.isFriend === true || actionAdapter.isFriend(authorId);
+  const isAuthorFriend = actionAdapter.isFriend(authorId);
 
   useEffect(() => {
     ui.setIsFriend(isAuthorFriend);
@@ -195,7 +192,7 @@ export function PostCard(input: PostCardProps) {
   ]);
 
   const handleReportPost = useCallback(
-    async (payload: { reason: keyof typeof ReportReason; description?: string }) => {
+    async (payload: { reason: ReportReason; description?: string }) => {
       try {
         await actionAdapter.createReport({
           targetType: 'POST',

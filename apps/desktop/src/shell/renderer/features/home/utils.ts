@@ -1,11 +1,12 @@
-import { resolveRealmMediaUrl, type RealmModel } from '@nimiplatform/sdk/realm';
+import { resolveNimiRealmMediaUrl } from '@nimiplatform/sdk/realm';
+import { type RealmModel } from '@nimiplatform/sdk/realm/generated';
 
 type PostDto = RealmModel<'PostDto'>;
 export type MediaDisplayKind = 'IMAGE' | 'VIDEO';
 
 export type VideoPlaybackSource = { mode: 'iframe' | 'native'; src: string };
 
-export function prepareHomeFeedItems(items: PostDto[]): PostDto[] {
+export function prepareHomeFeedItems(items: readonly PostDto[]): PostDto[] {
   return [...items].sort((left, right) => {
     const leftTime = Date.parse(String(left.createdAt ?? ''));
     const rightTime = Date.parse(String(right.createdAt ?? ''));
@@ -44,7 +45,7 @@ export function resolveMediaUrl(
   if (!renderable) {
     return undefined;
   }
-  const directUrl = resolveRealmMediaUrl({ realmBaseUrl, mediaUrl: renderable.url || '' });
+  const directUrl = resolveNimiRealmMediaUrl({ realmBaseUrl, mediaUrl: renderable.url || '' });
   if (directUrl) {
     return directUrl;
   }
@@ -59,7 +60,7 @@ export function resolveMediaThumbnailUrl(
   if (!renderable) {
     return undefined;
   }
-  return resolveRealmMediaUrl({ realmBaseUrl, mediaUrl: renderable.thumbnail || '' });
+  return resolveNimiRealmMediaUrl({ realmBaseUrl, mediaUrl: renderable.thumbnail || '' });
 }
 
 export function resolveVideoPlaybackSource(rawUrl?: string): VideoPlaybackSource | null {

@@ -28,15 +28,36 @@ function createEmitter(errors: RealmWorldDataError[]) {
   };
 }
 
+type RealmWorldCallApi = Parameters<typeof loadMainWorld>[0];
+
+function createWorldCallApi(world: Record<string, unknown>): RealmWorldCallApi {
+  return async (task) => task({ world } as never);
+}
+
+async function assertRejectsWithReasonCode(
+  action: () => Promise<unknown>,
+  reasonCode: string,
+): Promise<void> {
+  await assert.rejects(
+    action,
+    (error: unknown) => {
+      assert.equal((error as { readonly reasonCode?: string }).reasonCode, reasonCode);
+      return true;
+    },
+  );
+}
+
 test('loadMainWorld fails close on non-object payloads', async () => {
   const errors: RealmWorldDataError[] = [];
 
-  await assert.rejects(
+  await assertRejectsWithReasonCode(
     () => loadMainWorld(
-      async () => 'not-an-object' as never,
+      createWorldCallApi({
+        worldControllerGetMainWorld: async () => 'not-an-object',
+      }),
       createEmitter(errors),
     ),
-    /MAIN_WORLD_CONTRACT_INVALID/,
+    'SDK_REALM_MAIN_WORLD_CONTRACT_INVALID',
   );
 
   assert.equal(errors.length, 1);
@@ -70,13 +91,15 @@ test('loadMainWorld still falls back to cached world metadata for offline errors
 test('loadWorldAgents fails close on invalid list payloads', async () => {
   const errors: RealmWorldDataError[] = [];
 
-  await assert.rejects(
+  await assertRejectsWithReasonCode(
     () => loadWorldAgents(
-      async () => [{ id: 'ok' }, 'bad-entry'] as never,
+      createWorldCallApi({
+        worldControllerGetWorldAgents: async () => [{ id: 'ok' }, 'bad-entry'],
+      }),
       createEmitter(errors),
       'world-1',
     ),
-    /WORLD_AGENT_LIST_CONTRACT_INVALID/,
+    'SDK_REALM_WORLD_AGENTS_CONTRACT_INVALID',
   );
 
   assert.equal(errors.length, 1);
@@ -86,13 +109,15 @@ test('loadWorldAgents fails close on invalid list payloads', async () => {
 test('loadWorldDetailWithAgents fails close on invalid object payloads', async () => {
   const errors: RealmWorldDataError[] = [];
 
-  await assert.rejects(
+  await assertRejectsWithReasonCode(
     () => loadWorldDetailWithAgents(
-      async () => 'bad-payload' as never,
+      createWorldCallApi({
+        worldControllerGetWorldDetailWithAgents: async () => 'bad-payload',
+      }),
       createEmitter(errors),
       'world-1',
     ),
-    /WORLD_DETAIL_WITH_AGENTS_CONTRACT_INVALID/,
+    'SDK_REALM_WORLD_DETAIL_WITH_AGENTS_CONTRACT_INVALID',
   );
 
   assert.equal(errors.length, 1);
@@ -102,13 +127,15 @@ test('loadWorldDetailWithAgents fails close on invalid object payloads', async (
 test('loadWorldDetailWithAgents fails close when the response world id does not match the request', async () => {
   const errors: RealmWorldDataError[] = [];
 
-  await assert.rejects(
+  await assertRejectsWithReasonCode(
     () => loadWorldDetailWithAgents(
-      async () => ({ id: 'world-2', agents: [] }) as never,
+      createWorldCallApi({
+        worldControllerGetWorldDetailWithAgents: async () => ({ id: 'world-2', agents: [] }),
+      }),
       createEmitter(errors),
       'world-1',
     ),
-    /WORLD_DETAIL_WITH_AGENTS_WORLD_ID_MISMATCH/,
+    'SDK_REALM_WORLD_DETAIL_WITH_AGENTS_WORLD_ID_MISMATCH',
   );
 
   assert.equal(errors.length, 1);
@@ -118,13 +145,15 @@ test('loadWorldDetailWithAgents fails close when the response world id does not 
 test('loadWorldDetailById fails close when the response world id does not match the request', async () => {
   const errors: RealmWorldDataError[] = [];
 
-  await assert.rejects(
+  await assertRejectsWithReasonCode(
     () => loadWorldDetailById(
-      async () => ({ id: 'world-2' }) as never,
+      createWorldCallApi({
+        worldControllerGetWorld: async () => ({ id: 'world-2' }),
+      }),
       createEmitter(errors),
       'world-1',
     ),
-    /WORLD_DETAIL_WORLD_ID_MISMATCH/,
+    'SDK_REALM_WORLD_DETAIL_WORLD_ID_MISMATCH',
   );
 
   assert.equal(errors.length, 1);
@@ -134,13 +163,15 @@ test('loadWorldDetailById fails close when the response world id does not match 
 test('loadWorldHistory fails close when the response world id does not match the request', async () => {
   const errors: RealmWorldDataError[] = [];
 
-  await assert.rejects(
+  await assertRejectsWithReasonCode(
     () => loadWorldHistory(
-      async () => ({ worldId: 'world-2', items: [] }) as never,
+      createWorldCallApi({
+        worldControllerGetWorldHistory: async () => ({ worldId: 'world-2', items: [] }),
+      }),
       createEmitter(errors),
       'world-1',
     ),
-    /WORLD_HISTORY_WORLD_ID_MISMATCH/,
+    'SDK_REALM_WORLD_HISTORY_WORLD_ID_MISMATCH',
   );
 
   assert.equal(errors.length, 1);
@@ -150,13 +181,15 @@ test('loadWorldHistory fails close when the response world id does not match the
 test('loadWorldLorebooks fails close when the response world id does not match the request', async () => {
   const errors: RealmWorldDataError[] = [];
 
-  await assert.rejects(
+  await assertRejectsWithReasonCode(
     () => loadWorldLorebooks(
-      async () => ({ worldId: 'world-2', items: [] }) as never,
+      createWorldCallApi({
+        worldControllerGetWorldLorebooks: async () => ({ worldId: 'world-2', items: [] }),
+      }),
       createEmitter(errors),
       'world-1',
     ),
-    /LOAD_WORLD_LOREBOOKS_WORLD_ID_MISMATCH/,
+    'SDK_REALM_WORLD_LOREBOOKS_WORLD_ID_MISMATCH',
   );
 
   assert.equal(errors.length, 1);
@@ -169,26 +202,22 @@ test('loadWorldSemanticBundle only requests worldview and skips redundant world 
   let worldviewCalls = 0;
 
   const result = await loadWorldSemanticBundle(
-    async (task) => task({
-      services: {
-        WorldsService: {
-          worldControllerGetWorld: async () => {
-            worldDetailCalls += 1;
-            return { id: 'world-1' };
-          },
-          worldControllerGetWorldview: async () => {
-            worldviewCalls += 1;
-            return {
-              id: 'view-1',
-              coreSystem: null,
-              spaceTopology: null,
-              causality: null,
-              languages: null,
-            };
-          },
-        },
+    createWorldCallApi({
+      worldControllerGetWorld: async () => {
+        worldDetailCalls += 1;
+        return { id: 'world-1' };
       },
-    } as never),
+      worldControllerGetWorldview: async () => {
+        worldviewCalls += 1;
+        return {
+          id: 'view-1',
+          coreSystem: null,
+          spaceTopology: null,
+          causality: null,
+          languages: null,
+        };
+      },
+    }),
     createEmitter(errors),
     'world-1',
   );

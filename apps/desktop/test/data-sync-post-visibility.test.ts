@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import type { RealmModel } from '@nimiplatform/sdk/realm';
+import type { NimiRealmSocialApi } from '@nimiplatform/sdk/realm';
+import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 import { filterBlockedPosts, getPostAuthorId } from '../src/shell/renderer/features/social/data/blocked-content';
 import {
   loadLikedPosts,
@@ -13,6 +14,7 @@ import {
 } from '../src/shell/renderer/features/social/data/social-snapshot';
 
 type PostDto = RealmModel<'PostDto'>;
+type PostFeedGeneratedMock = Pick<NimiRealmSocialApi['generated'], 'getHomeFeed' | 'listLikedPosts' | 'getPost'>;
 
 async function withBlockedUsers(blockedIds: string[], run: () => Promise<void> | void) {
   const original = getCachedContacts();
@@ -27,11 +29,9 @@ async function withBlockedUsers(blockedIds: string[], run: () => Promise<void> |
   }
 }
 
-function createRealm(postsService: Record<string, unknown>) {
+function createRealm(generated: Partial<PostFeedGeneratedMock>) {
   return {
-    services: {
-      PostsService: postsService,
-    },
+    generated: generated as PostFeedGeneratedMock,
   } as never;
 }
 
@@ -69,7 +69,6 @@ test('loadPostFeed returns an empty feed without calling the service for blocked
     assert.deepEqual(feed.items, []);
     assert.equal(feed.page.cursor, 'cursor-1');
     assert.equal(feed.page.limit, 15);
-    assert.equal(feed.page.nextCursor, null);
   });
 });
 
@@ -82,7 +81,7 @@ test('loadPostFeed filters blocked authors from unscoped feeds', async () => {
             createPost('visible-post', 'visible-author'),
             createPost('hidden-post', 'blocked-author'),
           ],
-          page: { cursor: null, limit: 20, nextCursor: 'next-1' },
+          page: { limit: 20, nextCursor: 'next-1' },
         }),
       })),
       () => undefined,
@@ -103,7 +102,7 @@ test('loadLikedPosts filters blocked authors from liked-post feeds', async () =>
             createPost('liked-visible', 'visible-author'),
             createPost('liked-hidden', 'blocked-author'),
           ],
-          page: { cursor: null, limit: 20, nextCursor: null },
+          page: { limit: 20 },
         }),
       })),
       () => undefined,

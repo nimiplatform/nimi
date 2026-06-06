@@ -1,5 +1,5 @@
 import type { ReactNode, RefObject } from 'react';
-import type { RealmModel } from '@nimiplatform/sdk/realm';
+import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 import { formatLocaleDate, i18n } from '@renderer/i18n';
 import { AppCardSurface } from '@nimiplatform/kit/ui';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';

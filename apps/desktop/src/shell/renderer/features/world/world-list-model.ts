@@ -1,10 +1,11 @@
-import type { WorldTruthListItem } from '@nimiplatform/sdk/world';
-import type { RealmModel } from '@nimiplatform/sdk/realm';
+import type {
+  NimiRealmWorldAgentSummary as WorldAgentSummaryDto,
+  NimiRealmWorldDetail as WorldDetailDto,
+  NimiRealmWorldDetailWithAgents as WorldDetailWithAgentsDto,
+  NimiRealmWorldTruthListItem as WorldTruthListItem,
+} from '@nimiplatform/sdk/realm';
 import { isMainWorldType } from './shared';
 
-type WorldDetailDto = RealmModel<'WorldDetailDto'>;
-type WorldDetailWithAgentsDto = RealmModel<'WorldDetailWithAgentsDto'>;
-type WorldAgentSummaryDto = RealmModel<'WorldAgentSummaryDto'>;
 type LooseObject = { [key: string]: unknown };
 
 export type WorldAgentItem = {
@@ -178,7 +179,7 @@ export function toWorldListItemFromTruth(raw: WorldTruthListItem): WorldListItem
     overview: raw.overview ?? null,
     contentRating: raw.contentRating ?? null,
     genre: raw.genre ?? null,
-    themes: raw.themes ?? [],
+    themes: [...(raw.themes ?? [])],
     era: raw.era ?? null,
     iconUrl: raw.iconUrl ?? null,
     bannerUrl: raw.bannerUrl ?? null,
@@ -210,7 +211,7 @@ export function toWorldListItemFromTruth(raw: WorldTruthListItem): WorldListItem
       },
       languages: {
         primary: computed?.languages?.primary ?? null,
-        common: computed?.languages?.common ?? [],
+        common: [...(computed?.languages?.common ?? [])],
       },
       entry: {
         recommendedAgents: (computed?.entry?.recommendedAgents ?? []).map((agent) => ({

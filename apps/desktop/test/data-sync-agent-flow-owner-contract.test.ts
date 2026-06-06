@@ -17,8 +17,8 @@ test('contacts social flow no longer owns CreatorService operations', () => {
 });
 
 test('Desktop agent flow delegates CreatorService list/create ownership to SDK Realm', () => {
-  assert.match(agentFlowSource, /createRealmMasterAgent/);
-  assert.match(agentFlowSource, /loadRealmCreatorAgents/);
+  assert.match(agentFlowSource, /createNimiRealmMasterAgent/);
+  assert.match(agentFlowSource, /loadNimiRealmCreatorAgents/);
   assert.match(agentFlowSource, /from '@nimiplatform\/sdk\/realm'/);
   assert.doesNotMatch(agentFlowSource, /CreatorService\.creatorControllerListAgents/);
   assert.doesNotMatch(agentFlowSource, /CreatorService\.creatorControllerCreateAgent/);

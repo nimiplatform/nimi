@@ -1,6 +1,6 @@
 import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { RealmModel } from '@nimiplatform/sdk/realm';
+import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 import { useTranslation } from 'react-i18next';
 import { BLOCKED_USERS_UPDATED_EVENT } from '@renderer/features/social/data/blocked-content';
 import { AppCardSurface, CompactAction } from '@nimiplatform/kit/ui';
@@ -65,7 +65,7 @@ export function LikesTab({ profileId, layout = 'grid' }: LikesTabProps) {
           setLoadingInitial(true);
         }
         const data = await realmSocialData.loadLikedPosts(profileId, PAGE_SIZE, cursorArg ?? undefined);
-        const newItems = Array.isArray(data?.items) ? (data.items as PostDto[]) : [];
+        const newItems = Array.isArray(data?.items) ? [...data.items] : [];
         const nextCursor = data?.page?.nextCursor ?? null;
 
         setLikedPosts((prev) => {

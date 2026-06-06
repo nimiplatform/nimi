@@ -22,7 +22,7 @@ test('Desktop notification surface consumes SDK Realm notification projections',
   const notificationSurfaceSource = `${notificationPanelSource}\n${notificationPanelItemCardSource}`;
   assert.match(notificationPanelSource, /from '@nimiplatform\/sdk\/realm'/);
   assert.match(notificationSurfaceSource, /from '@nimiplatform\/kit\/core\/notifications'/);
-  assert.match(notificationPanelSource, /toRealmNotificationListProjection/);
+  assert.match(notificationPanelSource, /toNimiRealmNotificationListProjection/);
   assert.match(notificationPanelSource, /getNimiNotificationCategory/);
   assert.match(notificationPanelSource, /getNimiNotificationServerFilter/);
   assert.match(notificationSurfaceSource, /getNimiNotificationBadgeKey/);

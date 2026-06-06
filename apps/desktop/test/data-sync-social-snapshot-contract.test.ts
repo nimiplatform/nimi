@@ -21,17 +21,14 @@ test('loadContactList skips creator agents when warming the social graph', async
 
   const result = await loadContactList(
     async (task) => task({
-      services: {
-        MeService: {
-          listMyFriendsWithDetails: async () => ({ items: [] }),
-          getMyPendingFriendRequests: async () => ({ received: [], sent: [] }),
-          getMyBlockedUsers: async () => ({ items: [] }),
-        },
-        CreatorService: {
-          creatorControllerListAgents: async () => {
-            creatorAgentsCalls += 1;
-            return [];
-          },
+      generated: {
+        listMyFriendsWithDetails: async () => ({ items: [] }),
+        getMyPendingFriendRequests: async () => ({ received: [], sent: [] }),
+        getMyBlockedUsers: async () => ({ items: [] }),
+        getUser: async () => ({ id: 'unused' }),
+        creatorControllerListAgents: async () => {
+          creatorAgentsCalls += 1;
+          return [];
         },
       },
     } as never),
@@ -49,17 +46,14 @@ test('loadSocialSnapshot does not list creator agents through the contacts socia
 
   const result = await loadSocialSnapshot(
     async (task) => task({
-      services: {
-        MeService: {
-          listMyFriendsWithDetails: async () => ({ items: [] }),
-          getMyPendingFriendRequests: async () => ({ received: [], sent: [] }),
-          getMyBlockedUsers: async () => ({ items: [] }),
-        },
-        CreatorService: {
-          creatorControllerListAgents: async () => {
-            creatorAgentsCalls += 1;
-            return [{ id: 'agent-1' }];
-          },
+      generated: {
+        listMyFriendsWithDetails: async () => ({ items: [] }),
+        getMyPendingFriendRequests: async () => ({ received: [], sent: [] }),
+        getMyBlockedUsers: async () => ({ items: [] }),
+        getUser: async () => ({ id: 'unused' }),
+        creatorControllerListAgents: async () => {
+          creatorAgentsCalls += 1;
+          return [{ id: 'agent-1' }];
         },
       },
     } as never),

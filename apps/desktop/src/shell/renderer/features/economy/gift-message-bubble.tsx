@@ -9,6 +9,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { persistStoredSettingsSelected } from '@renderer/features/settings/settings-storage';
+import { getDesktopRealmCommerceGiftService } from '@renderer/infra/realm/realm-commerce-service';
 import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 
 export interface GiftMessagePayload {
@@ -37,7 +38,10 @@ export function GiftMessageBubble({ payload, isMe, currentUserId }: GiftMessageB
   const txQuery = useQuery({
     queryKey: ['gift-transaction', payload.giftTransactionId],
     queryFn: async (): Promise<CommerceGiftTransaction> =>
-      loadRealmGiftTransaction(payload.giftTransactionId),
+      loadRealmGiftTransaction({
+        service: getDesktopRealmCommerceGiftService(),
+        giftTransactionId: payload.giftTransactionId,
+      }),
     staleTime: 30_000,
   });
 
@@ -50,7 +54,10 @@ export function GiftMessageBubble({ payload, isMe, currentUserId }: GiftMessageB
   const handleAccept = async () => {
     setActionLoading('accept');
     try {
-      await acceptRealmGift(payload.giftTransactionId);
+      await acceptRealmGift({
+        service: getDesktopRealmCommerceGiftService(),
+        giftTransactionId: payload.giftTransactionId,
+      });
       await queryClient.invalidateQueries({ queryKey: ['gift-transaction', payload.giftTransactionId] });
       setFeedback(null);
     } catch (error) {
@@ -73,7 +80,11 @@ export function GiftMessageBubble({ payload, isMe, currentUserId }: GiftMessageB
   const handleReject = async () => {
     setActionLoading('reject');
     try {
-      await rejectRealmGift(payload.giftTransactionId, {});
+      await rejectRealmGift({
+        service: getDesktopRealmCommerceGiftService(),
+        giftTransactionId: payload.giftTransactionId,
+        input: {},
+      });
       await queryClient.invalidateQueries({ queryKey: ['gift-transaction', payload.giftTransactionId] });
       setFeedback(null);
     } catch (error) {

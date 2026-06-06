@@ -1,18 +1,18 @@
 import {
-  executeRealmSocialMutation,
-  type RealmSocialFeedApiCaller,
-  type RealmSocialFeedErrorEmitter,
+  executeNimiRealmSocialMutation,
 } from '@nimiplatform/sdk/realm';
-import { createNimiClientId } from '@nimiplatform/sdk/runtime';
+import { createNimiClientId } from '@nimiplatform/sdk';
 import {
   getNimiErrorMessage as getErrorMessage,
   isRealmOfflineErrorLike as isRealmOfflineError,
+  type JsonObject,
 } from '@nimiplatform/sdk/types';
 import { getOfflineOutboxManager } from '@renderer/infra/offline/outbox-manager';
 import type {
   PersistentSocialMutationEntry,
   SocialMutationKind,
 } from '@renderer/infra/offline/types';
+import type { RealmApiCaller, RealmDataErrorEmitter } from './social-snapshot';
 
 function createId(prefix: string): string {
   return createNimiClientId(prefix);
@@ -20,7 +20,7 @@ function createId(prefix: string): string {
 
 export async function queueSocialMutation(input: {
   kind: SocialMutationKind;
-  payload: Record<string, unknown>;
+  payload: JsonObject;
 }): Promise<PersistentSocialMutationEntry> {
   const manager = await getOfflineOutboxManager();
   const entry: PersistentSocialMutationEntry = {
@@ -41,15 +41,18 @@ export async function countPendingSocialMutations(): Promise<number> {
 }
 
 async function executeSocialMutation(
-  callApi: RealmSocialFeedApiCaller,
+  callApi: RealmApiCaller,
   entry: PersistentSocialMutationEntry,
 ): Promise<void> {
-  return executeRealmSocialMutation(callApi, entry);
+  return callApi(
+    (realm) => executeNimiRealmSocialMutation(realm, entry),
+    'Failed to execute Realm social mutation',
+  );
 }
 
 export async function flushPendingSocialMutations(
-  callApi: RealmSocialFeedApiCaller,
-  emitRealmDataError: RealmSocialFeedErrorEmitter,
+  callApi: RealmApiCaller,
+  emitRealmDataError: RealmDataErrorEmitter,
 ): Promise<void> {
   const manager = await getOfflineOutboxManager();
   const entries = await manager.getSocialMutationEntries();

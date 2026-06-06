@@ -40,8 +40,8 @@ describe('notification panel action wiring', () => {
   });
 
   test('gift actions use Kit commerce Realm helpers', () => {
-    assert.match(source, /acceptRealmGift\(item\.giftTransactionId as string\)/);
-    assert.match(source, /rejectRealmGift\(rejectingItem\.giftTransactionId as string/);
+    assert.match(source, /acceptRealmGift\(\{[\s\S]*service: getDesktopRealmCommerceGiftService\(\),[\s\S]*giftTransactionId: item\.giftTransactionId as string/);
+    assert.match(source, /rejectRealmGift\(\{[\s\S]*service: getDesktopRealmCommerceGiftService\(\),[\s\S]*giftTransactionId: rejectingItem\.giftTransactionId as string/);
     assert.match(source, /createRealmGiftReview\(\{/);
     assert.doesNotMatch(source, /dataSync\.acceptGift/);
     assert.doesNotMatch(source, /dataSync\.rejectGift/);
@@ -50,8 +50,9 @@ describe('notification panel action wiring', () => {
   });
 
   test('positive and negative gift reviews are wired separately', () => {
-    assert.match(actionSource, /ReviewRatingEnum\.POSITIVE/);
-    assert.match(actionSource, /ReviewRatingEnum\.NEGATIVE/);
+    assert.match(actionSource, /ReviewRatingValue\.POSITIVE/);
+    assert.match(actionSource, /ReviewRatingValue\.NEGATIVE/);
+    assert.doesNotMatch(actionSource, /ReviewRatingEnum/);
   });
 
   test('notification panel renders a distinct load error state', () => {

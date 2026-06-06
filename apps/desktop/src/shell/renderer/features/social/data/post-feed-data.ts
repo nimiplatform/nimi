@@ -1,18 +1,16 @@
-import type { RealmModel } from '@nimiplatform/sdk/realm';
+import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 import {
-  buildEmptyRealmPostFeedResponse,
-  createRealmPost,
-  createRealmReport,
-  deleteRealmPost,
-  likeRealmPost,
-  loadRealmLikedPosts,
-  loadRealmPostById,
-  loadRealmPostFeed,
-  unlikeRealmPost,
-  updateRealmPostVisibility,
-  type RealmPostFeedInput,
-  type RealmSocialFeedApiCaller,
-  type RealmSocialFeedErrorEmitter,
+  buildEmptyNimiRealmPostFeedResponse,
+  createNimiRealmPost,
+  createNimiRealmReport,
+  deleteNimiRealmPost,
+  likeNimiRealmPost,
+  loadNimiRealmLikedPosts,
+  loadNimiRealmPostById,
+  loadNimiRealmPostFeed,
+  unlikeNimiRealmPost,
+  updateNimiRealmPostVisibility,
+  type NimiRealmPostFeedInput,
 } from '@nimiplatform/sdk/realm';
 import { isRealmOfflineErrorLike as isRealmOfflineError } from '@nimiplatform/sdk/types';
 import { getOfflineCoordinator } from '@renderer/infra/offline/coordinator';
@@ -22,6 +20,7 @@ import {
   isPostHiddenByBlockedAuthor,
 } from './blocked-content';
 import { queueSocialMutation } from './offline-social-outbox';
+import type { RealmApiCaller, RealmDataErrorEmitter } from './social-snapshot';
 
 type CreateReportDto = RealmModel<'CreateReportDto'>;
 type CreatePostDto = RealmModel<'CreatePostDto'>;
@@ -36,7 +35,7 @@ type ReportResponseDto = RealmModel<'ReportResponseDto'>;
  */
 export type PostFeedScope = 'personal' | 'friends' | 'agent_activity';
 
-export type LoadPostFeedInput = RealmPostFeedInput;
+export type LoadPostFeedInput = NimiRealmPostFeedInput;
 
 function filterFeedResponse(response: FeedResponseDto): FeedResponseDto {
   return {
@@ -46,8 +45,8 @@ function filterFeedResponse(response: FeedResponseDto): FeedResponseDto {
 }
 
 export async function loadPostFeed(
-  callApi: RealmSocialFeedApiCaller,
-  emitRealmDataError: RealmSocialFeedErrorEmitter,
+  callApi: RealmApiCaller,
+  emitRealmDataError: RealmDataErrorEmitter,
   input: LoadPostFeedInput,
 ): Promise<FeedResponseDto> {
   const normalized: LoadPostFeedInput = {
@@ -60,30 +59,39 @@ export async function loadPostFeed(
   };
 
   if (normalized.authorId && isBlockedUser(normalized.authorId)) {
-    return buildEmptyRealmPostFeedResponse(normalized);
+    return buildEmptyNimiRealmPostFeedResponse(normalized);
   }
 
-  const response = await loadRealmPostFeed(callApi, emitRealmDataError, normalized);
+  const response = await callApi(
+    (realm) => loadNimiRealmPostFeed(realm, emitRealmDataError, normalized),
+    'Failed to load Realm post feed',
+  );
   return filterFeedResponse(response);
 }
 
 export async function loadLikedPosts(
-  callApi: RealmSocialFeedApiCaller,
-  emitRealmDataError: RealmSocialFeedErrorEmitter,
+  callApi: RealmApiCaller,
+  emitRealmDataError: RealmDataErrorEmitter,
   profileId: string,
   limit = 20,
   cursor?: string,
 ): Promise<FeedResponseDto> {
-  const response = await loadRealmLikedPosts(callApi, emitRealmDataError, profileId, limit, cursor);
+  const response = await callApi(
+    (realm) => loadNimiRealmLikedPosts(realm, emitRealmDataError, profileId, limit, cursor),
+    'Failed to load Realm liked posts',
+  );
   return filterFeedResponse(response);
 }
 
 export async function loadPostById(
-  callApi: RealmSocialFeedApiCaller,
-  emitRealmDataError: RealmSocialFeedErrorEmitter,
+  callApi: RealmApiCaller,
+  emitRealmDataError: RealmDataErrorEmitter,
   postId: string,
 ): Promise<PostDto> {
-  const post = await loadRealmPostById(callApi, emitRealmDataError, postId);
+  const post = await callApi(
+    (realm) => loadNimiRealmPostById(realm, emitRealmDataError, postId),
+    'Failed to load Realm post',
+  );
   if (isPostHiddenByBlockedAuthor(post)) {
     throw new Error('This post is unavailable because you blocked the author.');
   }
@@ -91,37 +99,49 @@ export async function loadPostById(
 }
 
 export async function createPost(
-  callApi: RealmSocialFeedApiCaller,
-  emitRealmDataError: RealmSocialFeedErrorEmitter,
+  callApi: RealmApiCaller,
+  emitRealmDataError: RealmDataErrorEmitter,
   payload: CreatePostDto,
 ): Promise<PostDto> {
-  return createRealmPost(callApi, emitRealmDataError, payload);
+  return callApi(
+    (realm) => createNimiRealmPost(realm, emitRealmDataError, payload),
+    'Failed to create Realm post',
+  );
 }
 
 export async function deletePost(
-  callApi: RealmSocialFeedApiCaller,
-  emitRealmDataError: RealmSocialFeedErrorEmitter,
+  callApi: RealmApiCaller,
+  emitRealmDataError: RealmDataErrorEmitter,
   postId: string,
 ): Promise<void> {
-  return deleteRealmPost(callApi, emitRealmDataError, postId);
+  return callApi(
+    (realm) => deleteNimiRealmPost(realm, emitRealmDataError, postId),
+    'Failed to delete Realm post',
+  );
 }
 
 export async function updatePostVisibility(
-  callApi: RealmSocialFeedApiCaller,
-  emitRealmDataError: RealmSocialFeedErrorEmitter,
+  callApi: RealmApiCaller,
+  emitRealmDataError: RealmDataErrorEmitter,
   postId: string,
   visibility: 'PUBLIC' | 'FRIENDS' | 'PRIVATE',
 ): Promise<PostDto> {
-  return updateRealmPostVisibility(callApi, emitRealmDataError, postId, visibility);
+  return callApi(
+    (realm) => updateNimiRealmPostVisibility(realm, emitRealmDataError, postId, visibility),
+    'Failed to update Realm post visibility',
+  );
 }
 
 export async function likePost(
-  callApi: RealmSocialFeedApiCaller,
-  emitRealmDataError: RealmSocialFeedErrorEmitter,
+  callApi: RealmApiCaller,
+  emitRealmDataError: RealmDataErrorEmitter,
   postId: string,
 ): Promise<void> {
   try {
-    await likeRealmPost(callApi, emitRealmDataError, postId);
+    await callApi(
+      (realm) => likeNimiRealmPost(realm, emitRealmDataError, postId),
+      'Failed to like Realm post',
+    );
   } catch (error) {
     if (isRealmOfflineError(error)) {
       await queueSocialMutation({
@@ -136,12 +156,15 @@ export async function likePost(
 }
 
 export async function unlikePost(
-  callApi: RealmSocialFeedApiCaller,
-  emitRealmDataError: RealmSocialFeedErrorEmitter,
+  callApi: RealmApiCaller,
+  emitRealmDataError: RealmDataErrorEmitter,
   postId: string,
 ): Promise<void> {
   try {
-    await unlikeRealmPost(callApi, emitRealmDataError, postId);
+    await callApi(
+      (realm) => unlikeNimiRealmPost(realm, emitRealmDataError, postId),
+      'Failed to unlike Realm post',
+    );
   } catch (error) {
     if (isRealmOfflineError(error)) {
       await queueSocialMutation({
@@ -156,9 +179,12 @@ export async function unlikePost(
 }
 
 export async function createReport(
-  callApi: RealmSocialFeedApiCaller,
-  emitRealmDataError: RealmSocialFeedErrorEmitter,
+  callApi: RealmApiCaller,
+  emitRealmDataError: RealmDataErrorEmitter,
   payload: CreateReportDto,
 ): Promise<ReportResponseDto> {
-  return createRealmReport(callApi, emitRealmDataError, payload);
+  return callApi(
+    (realm) => createNimiRealmReport(realm, emitRealmDataError, payload),
+    'Failed to create Realm report',
+  );
 }

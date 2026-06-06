@@ -54,7 +54,9 @@ describe('D-DSYNC-005: world flow source scanning', () => {
   });
 
   test('D-DSYNC-005: reusable public world data DX lives in SDK Realm extension', () => {
-    assert.match(worldFlowSource, /loadRealmWorldDetailById/);
+    assert.match(worldFlowSource, /loadNimiRealmWorldDetailById/);
+    assert.match(worldFlowSource, /from '@nimiplatform\/sdk\/realm'/);
+    assert.doesNotMatch(worldFlowSource, /@nimiplatform\/sdk\/world/);
   });
 });
 

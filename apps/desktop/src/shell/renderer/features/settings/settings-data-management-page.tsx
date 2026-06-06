@@ -1,12 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { getPlatformClient } from '@nimiplatform/sdk';
-import { requestAccountDeletion } from '@nimiplatform/sdk/realm';
+import { requestNimiRealmAccountDeletion } from '@nimiplatform/sdk/realm';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { useTranslation } from 'react-i18next';
 import { queryClient } from '@renderer/infra/query-client/query-client';
 import { logoutAndClearSession } from '@renderer/features/auth/logout';
 import { desktopBridge } from '@renderer/bridge';
 import type { DesktopStorageDirs } from '@renderer/bridge';
+import { getDesktopRealm } from '@renderer/infra/sdk/desktop-nimi-client-session';
 import { resolveBrowserStorage } from '@nimiplatform/kit/core/storage-json';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import {
@@ -157,12 +157,9 @@ export function DataManagementPage() {
     }
     setDeleting(true);
     try {
-      const result = await requestAccountDeletion(
-        getPlatformClient().realm,
-        {
-          reason: 'user_request',
-        },
-      );
+      const result = await requestNimiRealmAccountDeletion(getDesktopRealm(), {
+        reason: 'user_request',
+      });
       if (!result.accepted) {
         setFeedback({
           kind: 'warning',

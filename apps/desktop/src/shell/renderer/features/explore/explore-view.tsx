@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { IconButton, ScrollArea, Surface } from '@nimiplatform/kit/ui';
-import type { RealmModel } from '@nimiplatform/sdk/realm';
+import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 import { useTranslation } from 'react-i18next';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { PostCard, type PostCardAuthorProfileTarget } from '../home/post-card';

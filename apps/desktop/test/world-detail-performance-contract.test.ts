@@ -36,7 +36,7 @@ test('world semantic bundle no longer fetches world detail before worldview', ()
   const semanticBundleSection = worldFlowSource.slice(
     worldFlowSource.indexOf('export async function loadWorldSemanticBundle'),
   );
-  assert.match(semanticBundleSection, /loadRealmWorldSemanticBundle/);
+  assert.match(semanticBundleSection, /loadNimiRealmWorldSemanticBundle/);
   assert.doesNotMatch(semanticBundleSection, /loadWorldDetailById\(callApi, emitRealmWorldError, normalizedWorldId\)/);
   assert.doesNotMatch(semanticBundleSection, /catch\s*\{\s*return null;\s*\}/);
 });
@@ -56,10 +56,12 @@ test('world detail prefetch is limited to first-screen queries', () => {
 });
 
 test('world detail primary query adopts sdk world truth through a bounded adapter', () => {
-  assert.match(worldDetailQueriesSource, /normalizeWorldTruthDetail/);
-  assert.match(worldDetailQueriesSource, /getPlatformClient\(\)\.domains\.world\.getWorldview/);
+  const oldRootSingletonPattern = new RegExp('get' + 'PlatformClient');
+  assert.match(worldDetailQueriesSource, /normalizeNimiRealmWorldTruthDetail/);
+  assert.doesNotMatch(worldDetailQueriesSource, oldRootSingletonPattern);
+  assert.match(worldDetailQueriesSource, /realmWorldData\.loadWorldSemanticBundle/);
   assert.match(worldDetailQueriesSource, /realmWorldData\.loadWorldDetailWithAgents/);
-  assert.match(worldDetailQueriesSource, /mergeWorldPrimaryDetailTruth/);
+  assert.match(worldDetailQueriesSource, /mergeNimiRealmWorldPrimaryDetailTruth/);
   assert.match(worldDetailQueriesSource, /WORLD_DETAIL_WORLD_TRUTH_INVALID/);
 });
 

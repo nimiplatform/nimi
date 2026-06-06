@@ -1,6 +1,6 @@
 import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { RealmModel } from '@nimiplatform/sdk/realm';
+import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 import { useTranslation } from 'react-i18next';
 import { BLOCKED_USERS_UPDATED_EVENT } from '@renderer/features/social/data/blocked-content';
 import { AppCardSurface, CompactAction } from '@nimiplatform/kit/ui';
@@ -81,7 +81,7 @@ export function PostsTab({ profileId, layout = 'grid', blockedContent = false }:
           limit: PAGE_SIZE,
           cursor: cursorArg ?? undefined,
         });
-        const newItems = data?.items ?? [];
+        const newItems = Array.isArray(data?.items) ? [...data.items] : [];
         const nextCursor = data?.page?.nextCursor ?? null;
 
         setPosts((prev) => {

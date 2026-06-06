@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import type { RealmModel } from '@nimiplatform/sdk/realm';
+import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 import { AppCardSurface, CompactAction } from '@nimiplatform/kit/ui';
 import { PostCard } from '@renderer/features/home/post-card';
 import { usePostCardActionAdapter } from '@renderer/features/home/post-card-action-adapter';

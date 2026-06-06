@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import test, { describe } from 'node:test';
 
-import type { RealmModel } from '@nimiplatform/sdk/realm';
+import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 
 import {
   prepareHomeFeedItems,
@@ -56,7 +56,7 @@ describe('prepareHomeFeedItems', () => {
         createdAt: '2026-03-10T10:00:00.000Z',
         isAgent: true,
       }),
-    ];
+    ] as const satisfies readonly PostDto[];
 
     const result = prepareHomeFeedItems(posts);
 
@@ -71,7 +71,8 @@ describe('prepareHomeFeedItems', () => {
 
 describe('media url resolution', () => {
   test('uses the SDK Realm media URL projection instead of app-local URL joining', () => {
-    assert.match(HOME_UTILS_SOURCE, /resolveRealmMediaUrl/);
+    assert.match(HOME_UTILS_SOURCE, /resolveNimiRealmMediaUrl/);
+    assert.doesNotMatch(HOME_UTILS_SOURCE, /resolveRealmMediaUrl/);
     assert.doesNotMatch(HOME_UTILS_SOURCE, /function resolveRealmMediaPath/);
     assert.doesNotMatch(HOME_UTILS_SOURCE, /\$\{normalizedBase\}\$\{normalizedPath\}/);
   });

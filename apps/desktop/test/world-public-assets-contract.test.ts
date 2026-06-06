@@ -114,6 +114,12 @@ test('fetchWorldPublicAssets fails close when projection contract fields are mis
 
   await assert.rejects(
     () => fetchWorldPublicAssets('world-1'),
-    /WORLD_DETAIL_BINDING_RESOURCE_URL_INVALID/,
+    (error: unknown) => {
+      assert.equal(
+        (error as { readonly reasonCode?: string }).reasonCode,
+        'SDK_REALM_WORLD_DISPLAY_BINDING_RESOURCE_URL_INVALID',
+      );
+      return true;
+    },
   );
 });

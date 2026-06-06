@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import type { RealmModel } from '@nimiplatform/sdk/realm';
+import { ReportReasonValues, type RealmModel, type ReportReason } from '@nimiplatform/sdk/realm/generated';
 import { useTranslation } from 'react-i18next';
-import { ReportReason } from '@nimiplatform/sdk/realm';
 import { ScrollArea } from '@nimiplatform/kit/ui';
 
 type PostDto = RealmModel<'PostDto'>;
@@ -13,20 +12,24 @@ export function ReportModal({
 }: {
   post: PostDto;
   onClose: () => void;
-  onSubmit: (payload: { reason: keyof typeof ReportReason; description?: string }) => Promise<void>;
+  onSubmit: (payload: { reason: ReportReason; description?: string }) => Promise<void>;
 }) {
   const { t } = useTranslation();
-  const [selectedReason, setSelectedReason] = useState<keyof typeof ReportReason | ''>('');
+  const [selectedReason, setSelectedReason] = useState<ReportReason | ''>('');
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const reportReasons = [
-    { value: ReportReason.SPAM, label: t('Home.reportReasons.spam', { defaultValue: 'Spam' }) },
-    { value: ReportReason.NSFW, label: t('Home.reportReasons.nsfw', { defaultValue: 'NSFW content' }) },
-    { value: ReportReason.HATE_SPEECH, label: t('Home.reportReasons.hateSpeech', { defaultValue: 'Hate speech' }) },
-    { value: ReportReason.SCAM, label: t('Home.reportReasons.scam', { defaultValue: 'Scam or fraud' }) },
-    { value: ReportReason.OTHER, label: t('Home.reportReasons.other', { defaultValue: 'Other' }) },
-  ] as const;
+  const reasonLabels = {
+    SPAM: t('Home.reportReasons.spam', { defaultValue: 'Spam' }),
+    NSFW: t('Home.reportReasons.nsfw', { defaultValue: 'NSFW content' }),
+    HATE_SPEECH: t('Home.reportReasons.hateSpeech', { defaultValue: 'Hate speech' }),
+    SCAM: t('Home.reportReasons.scam', { defaultValue: 'Scam or fraud' }),
+    OTHER: t('Home.reportReasons.other', { defaultValue: 'Other' }),
+  } satisfies Record<ReportReason, string>;
+  const reportReasons = ReportReasonValues.map((value) => ({
+    value,
+    label: reasonLabels[value],
+  }));
 
   const handleSubmit = async () => {
     if (!selectedReason) {

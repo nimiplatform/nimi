@@ -1,4 +1,4 @@
-import type { RealmModel } from '@nimiplatform/sdk/realm';
+import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 import { getCachedContacts } from './social-snapshot';
 
 type PostDto = RealmModel<'PostDto'>;

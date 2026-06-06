@@ -16,6 +16,7 @@ function readDesktopFile(relativePath: string): string {
 }
 
 const explorePanelSource = readRendererFile('features/explore/explore-panel.tsx');
+const realmExploreDataSource = readRendererFile('features/explore/data/realm-explore-data.ts');
 const exploreViewSource = readRendererFile('features/explore/explore-view.tsx');
 const exploreSectionNavSource = readRendererFile('features/explore/explore-section-nav.tsx');
 const mainLayoutViewSource = readRendererFile('app-shell/layouts/main-layout-view.tsx');
@@ -38,6 +39,10 @@ test('Explore fold mounts complete Worlds catalog under Explore', () => {
 
 test('Explore fold keeps RealmAgent discovery as Explore-owned discovery without direct RealmAgent chat', () => {
   assert.match(explorePanelSource, /realmExploreData\.loadExploreAgents/);
+  assert.match(realmExploreDataSource, /realm\.generated\.searchIndexedUsers/);
+  assert.match(realmExploreDataSource, /realm\.generated\.getExploreFeed/);
+  assert.doesNotMatch(realmExploreDataSource, /loadRealmExploreAgents/);
+  assert.doesNotMatch(realmExploreDataSource, /loadRealmExploreFeedItems/);
   assert.match(exploreViewSource, /data-testid="explore-agents-section"/);
   assert.match(exploreViewSource, /<AgentRecommendationCard/);
   assert.match(agentRecommendationCardSource, /worldName/);

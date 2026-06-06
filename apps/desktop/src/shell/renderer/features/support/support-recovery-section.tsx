@@ -10,13 +10,13 @@
  */
 
 import { useTranslation } from 'react-i18next';
-import { desktopBridge, type ProductControlRecordProjection } from '@renderer/bridge';
+import { desktopBridge, type NimiProductControlRecordProjection } from '@renderer/bridge';
 import { useTypedProjection as useSupportProjection } from '@nimiplatform/kit/ui';
 import {
-  PRODUCT_CONTROL_RECOVERY_STATE_COPY_KEY as RECOVERY_STATE_COPY_KEY,
-  isDegradedProductControlState as isDegradedProductState,
-  isRepairRoutedProductControlState as isRepairRoutedState,
-} from '@nimiplatform/sdk';
+  NIMI_PRODUCT_CONTROL_RECOVERY_STATE_COPY_KEY,
+  isNimiProductControlDegradedState,
+  isNimiProductControlRepairRoutedState,
+} from '@nimiplatform/sdk/runtime';
 import {
   SupportCard,
   SupportFailClosed,
@@ -24,7 +24,7 @@ import {
   SupportSectionShell,
 } from './support-section-shell.js';
 
-async function loadRecoveryProjection(): Promise<ProductControlRecordProjection> {
+async function loadRecoveryProjection(): Promise<NimiProductControlRecordProjection> {
   return desktopBridge.getProductControlRecord();
 }
 
@@ -77,9 +77,9 @@ export function SupportRecoverySection(props: { onNavigateToRepair: () => void }
   }
 
   const control = projection.data;
-  const copyKey = RECOVERY_STATE_COPY_KEY[control.state];
-  const degraded = isDegradedProductState(control.state);
-  const repairRouted = isRepairRoutedState(control.state);
+  const copyKey = NIMI_PRODUCT_CONTROL_RECOVERY_STATE_COPY_KEY[control.state];
+  const degraded = isNimiProductControlDegradedState(control.state);
+  const repairRouted = isNimiProductControlRepairRoutedState(control.state);
 
   return (
     <SupportSectionShell

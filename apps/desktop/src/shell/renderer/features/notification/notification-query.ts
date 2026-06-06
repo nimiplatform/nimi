@@ -1,6 +1,14 @@
 import type { QueryClient } from '@tanstack/react-query';
-import type { RealmNotificationUnreadProjection } from '@nimiplatform/sdk/realm';
+import type { NimiRealmNotificationUnreadProjection } from '@nimiplatform/sdk/realm';
 import { queryClient } from '@renderer/infra/query-client/query-client';
+
+interface NotificationIdentityUser {
+  readonly [key: string]: unknown;
+  readonly id?: unknown;
+  readonly accountId?: unknown;
+  readonly subjectId?: unknown;
+  readonly sub?: unknown;
+}
 
 export const notificationQueryKeys = {
   pageRoot: ['notification-page'] as const,
@@ -14,7 +22,7 @@ export const notificationQueryKeys = {
 
 export function resolveNotificationIdentityRef(
   authStatus: string,
-  user: Record<string, unknown> | null | undefined,
+  user: NotificationIdentityUser | null | undefined,
 ): string | null {
   if (authStatus !== 'authenticated') {
     return null;
@@ -40,9 +48,9 @@ export function patchNotificationUnreadCaches(
 
   client.setQueryData(
     notificationQueryKeys.unreadCount(identityRef),
-    (current: unknown): RealmNotificationUnreadProjection => {
+    (current: unknown): NimiRealmNotificationUnreadProjection => {
       if (current && typeof current === 'object' && !Array.isArray(current)) {
-        const currentProjection = current as Partial<RealmNotificationUnreadProjection>;
+        const currentProjection = current as Partial<NimiRealmNotificationUnreadProjection>;
         return {
           ...currentProjection,
           total: nextUnreadCount,
@@ -58,9 +66,9 @@ export function patchNotificationUnreadCaches(
 
   client.setQueryData(
     notificationQueryKeys.topbarUnreadCount(identityRef),
-    (current: unknown): RealmNotificationUnreadProjection => {
+    (current: unknown): NimiRealmNotificationUnreadProjection => {
       if (current && typeof current === 'object' && !Array.isArray(current)) {
-        const currentProjection = current as Partial<RealmNotificationUnreadProjection>;
+        const currentProjection = current as Partial<NimiRealmNotificationUnreadProjection>;
         return {
           ...currentProjection,
           total: nextUnreadCount,

@@ -78,7 +78,8 @@ describe('D-DSYNC-004: social flow source scanning', () => {
   });
 
   test('D-DSYNC-004: reusable social snapshot DX lives in SDK Realm extension', () => {
-    assert.match(profileFlowSocialSource, /loadRealmSocialSnapshot/);
+    assert.match(profileFlowSocialSource, /loadNimiRealmSocialSnapshot/);
+    assert.doesNotMatch(profileFlowSocialSource, /loadRealmSocialSnapshot/);
     assert.doesNotMatch(profileFlowSocialSource, /realm\.services\.MeService\.listMyFriendsWithDetails/);
   });
 
@@ -141,13 +142,11 @@ test('social snapshot ignores local test and fallback contacts when Realm return
 
   const snapshot = await loadSocialSnapshot(
     async (task) => task({
-      services: {
-        MeService: {
-          listMyFriendsWithDetails: async () => ({ items: [] }),
-          getMyPendingFriendRequests: async () => ({ received: [], sent: [] }),
-          getMyBlockedUsers: async () => ({ items: [] }),
-        },
-        UserService: {},
+      generated: {
+        listMyFriendsWithDetails: async () => ({ items: [] }),
+        getMyPendingFriendRequests: async () => ({ received: [], sent: [] }),
+        getMyBlockedUsers: async () => ({ items: [] }),
+        getUser: async () => ({ id: 'unused' }),
       },
     } as never),
     () => undefined,
@@ -165,19 +164,12 @@ test('block and unblock test-prefixed contacts use Realm instead of local succes
   let reloads = 0;
 
   const callApi = async (task: (realm: unknown) => Promise<unknown>) => task({
-    services: {
-      MeService: {
-        blockUser: async (id: string) => {
-          calls.push(`block:${id}`);
-        },
-        unblockUser: async (id: string) => {
-          calls.push(`unblock:${id}`);
-        },
+    social: {
+      blockUser: async (request: { path: { id: string } }) => {
+        calls.push(`block:${request.path.id}`);
       },
-      UserService: {
-        addFriend: async () => {
-          calls.push('addFriend');
-        },
+      unblockUser: async (request: { path: { id: string } }) => {
+        calls.push(`unblock:${request.path.id}`);
       },
     },
   });
@@ -201,17 +193,9 @@ test('unblock does not insert a fallback friend when Realm add-friend would fail
 
   await unblockUser(
     (async (task: (realm: unknown) => Promise<unknown>) => task({
-      services: {
-        MeService: {
-          unblockUser: async (id: string) => {
-            calls.push(`unblock:${id}`);
-          },
-        },
-        UserService: {
-          addFriend: async () => {
-            calls.push('addFriend');
-            throw new Error('privacy denied');
-          },
+      social: {
+        unblockUser: async (request: { path: { id: string } }) => {
+          calls.push(`unblock:${request.path.id}`);
         },
       },
     })) as never,
@@ -230,15 +214,13 @@ test('blocked user load failures fail close instead of becoming an empty social 
   await assert.rejects(
     () => loadSocialSnapshot(
       async (task) => task({
-        services: {
-          MeService: {
-            listMyFriendsWithDetails: async () => ({ items: [] }),
-            getMyPendingFriendRequests: async () => ({ received: [], sent: [] }),
-            getMyBlockedUsers: async () => {
-              throw new Error('blocked users unavailable');
-            },
+        generated: {
+          listMyFriendsWithDetails: async () => ({ items: [] }),
+          getMyPendingFriendRequests: async () => ({ received: [], sent: [] }),
+          getMyBlockedUsers: async () => {
+            throw new Error('blocked users unavailable');
           },
-          UserService: {},
+          getUser: async () => ({ id: 'unused' }),
         },
       } as never),
       (action, error) => {

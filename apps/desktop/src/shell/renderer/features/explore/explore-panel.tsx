@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import type { RealmModel } from '@nimiplatform/sdk/realm';
+import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { realmExploreData } from './data/realm-explore-data';

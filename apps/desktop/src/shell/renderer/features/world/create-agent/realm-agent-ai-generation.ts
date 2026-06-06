@@ -9,19 +9,21 @@
  * written.
  *
  * Per P-AISC-001 / P-AISC-004 the AI execution path carries an explicit
- * `AIScopeRef` (`REALM_AGENT_CREATION_AI_SCOPE_REF`). The text binding for
+ * `NimiAIScopeRef` (`REALM_AGENT_CREATION_AI_SCOPE_REF`). The text binding for
  * that scope is resolved from the desktop host AIConfig service; execution
  * runs through the admitted runtime AI bridge — no Explore-layer scope-less
  * runtime AI call.
  */
 
-import { runAppAiTextGenerate } from '@nimiplatform/sdk/ai-app';
-import type { RuntimeRouteBinding } from '@nimiplatform/sdk/runtime';
-import type { NimiRoutePolicy } from '@nimiplatform/sdk/runtime';
+import {
+  createNimiRuntimeAIModel,
+  runNimiTextGenerate,
+  type NimiRuntimeAIRoutePolicy,
+} from '@nimiplatform/sdk/ai';
 import {
   desktopRuntimeRouteAccess,
-  getDesktopRuntimeClient,
 } from '@renderer/infra/runtime-route-host-access.js';
+import { getDesktopAppId, getDesktopRuntime } from '@renderer/infra/sdk/desktop-nimi-client-session.js';
 import { getDesktopAIConfigService } from '@renderer/app-shell/providers/desktop-ai-config-service.js';
 import {
   createEmptyDraft,
@@ -60,21 +62,17 @@ function buildSystemPrompt(): string {
   ].join(' ');
 }
 
-function resolveTextBinding(): RuntimeRouteBinding | null {
+function resolveTextTargetRef() {
   const config = getDesktopAIConfigService().aiConfig.get(REALM_AGENT_CREATION_AI_SCOPE_REF);
-  const binding = config.capabilities.selectedBindings?.['text.generate'];
-  return binding && typeof binding === 'object' ? binding : null;
+  return config.capabilities.targetRefs['text.generate'] ?? null;
 }
 
 function asTrimmedString(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-function validateGenerationObject(value: unknown): Record<string, unknown> {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    throw new Error('RealmAgent generation output must be a JSON object.');
-  }
-  return value as Record<string, unknown>;
+function validateGenerationObject(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value));
 }
 
 function deriveHandle(raw: string, displayName: string): string {
@@ -178,34 +176,57 @@ export async function generateRealmAgentDraft(
     return { ok: false, error: 'Describe the agent concept before generating a draft.' };
   }
 
-  const binding = resolveTextBinding();
-  if (!binding || !binding.model) {
+  const targetRef = resolveTextTargetRef();
+  if (!targetRef) {
     return {
       ok: false,
-      error: 'No text model is configured for AI-assisted generation. Configure a text route first.',
+      error: 'AI-assisted generation requires text setup before generation.',
+    };
+  }
+  if (targetRef.kind !== 'cloud-connector') {
+    return {
+      ok: false,
+      error: 'AI-assisted generation requires a prepared cloud connector text target.',
     };
   }
 
-  const route = (binding.source === 'cloud' ? 'cloud' : 'local') as NimiRoutePolicy;
-
-  const result = await runAppAiTextGenerate<Record<string, unknown>>({
-    runtime: {
-      generateText: (request) => getDesktopRuntimeClient().ai.text.generate(request),
+  const routePolicy: NimiRuntimeAIRoutePolicy = 'cloud';
+  const metadata = await desktopRuntimeRouteAccess.buildRequestMetadata({
+    source: routePolicy,
+    connectorId: targetRef.connectorId,
+  });
+  const model = createNimiRuntimeAIModel({
+    runtime: getDesktopRuntime(),
+    appId: getDesktopAppId(),
+    model: {
+      providerId: targetRef.connectorId,
+      modelId: targetRef.providerModelId,
     },
+    routePolicy,
+    connectorId: targetRef.connectorId,
+    timeoutMs: AI_GENERATION_TIMEOUT_MS,
+    metadata,
+  });
+
+  const result = await runNimiTextGenerate<Record<string, unknown>>({
+    runtime: { model },
     request: {
-      model: binding.modelId || binding.model,
-      input: `Concept: ${description}`,
-      system: buildSystemPrompt(),
-      route,
-      connectorId: binding.connectorId || undefined,
-      maxTokens: 1024,
-      temperature: 0.8,
-      timeoutMs: AI_GENERATION_TIMEOUT_MS,
-      metadata: await desktopRuntimeRouteAccess.buildRequestMetadata({
-        source: route,
-        connectorId: binding.connectorId || undefined,
-        providerEndpoint: binding.endpoint || undefined,
-      }),
+      model: model.model,
+      messages: [
+        {
+          role: 'system',
+          content: [{ type: 'text', text: buildSystemPrompt() }],
+        },
+        {
+          role: 'user',
+          content: [{ type: 'text', text: `Concept: ${description}` }],
+        },
+      ],
+      parameters: {
+        maxTokens: 1024,
+        temperature: 0.8,
+        metadata,
+      },
     },
     structuredOutput: {
       validate: validateGenerationObject,

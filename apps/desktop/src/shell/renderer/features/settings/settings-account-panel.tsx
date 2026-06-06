@@ -1,12 +1,12 @@
 import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
 import { useEffect, useRef, useState } from 'react';
 import {
-  linkRealmOAuth,
-  OAuthProvider,
-  unlinkRealmOAuth,
-  uploadRealmResourceFileWithRealm,
+  linkNimiRealmOAuth,
+  NIMI_REALM_OAUTH_PROVIDER,
+  unlinkNimiRealmOAuth,
+  uploadNimiRealmResourceFile,
+  type NimiRealmOAuthProvider,
 } from '@nimiplatform/sdk/realm';
-import { getPlatformClient } from '@nimiplatform/sdk';
 import { useTranslation } from 'react-i18next';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
@@ -28,6 +28,7 @@ import {
 } from './settings-layout-components.js';
 import type { InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 import { ProfileConnectedAccountsSection } from './settings-account-oauth-section.js';
+import { getDesktopRealm } from '@renderer/infra/sdk/desktop-nimi-client-session';
 
 const ACCEPTED_AVATAR_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
 const MAX_AVATAR_FILE_SIZE = 10 * 1024 * 1024;
@@ -47,17 +48,19 @@ export function ProfilePage() {
   const [bio, setBio] = useState(String(user?.bio || ''));
   const [saving, setSaving] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
-  const [linkingProvider, setLinkingProvider] = useState<OAuthProvider | null>(null);
-  const [unlinkingProvider, setUnlinkingProvider] = useState<OAuthProvider | null>(null);
+  const [linkingProvider, setLinkingProvider] = useState<NimiRealmOAuthProvider | null>(null);
+  const [unlinkingProvider, setUnlinkingProvider] = useState<NimiRealmOAuthProvider | null>(null);
   const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const profileAutosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const connectedProviders = Array.isArray(user?.oauthProviders)
-    ? user.oauthProviders.filter((item): item is OAuthProvider => (
-      item === OAuthProvider.GOOGLE || item === OAuthProvider.TWITTER || item === OAuthProvider.TIKTOK
+    ? user.oauthProviders.filter((item): item is NimiRealmOAuthProvider => (
+      item === NIMI_REALM_OAUTH_PROVIDER.GOOGLE
+      || item === NIMI_REALM_OAUTH_PROVIDER.TWITTER
+      || item === NIMI_REALM_OAUTH_PROVIDER.TIKTOK
     ))
     : [];
-  const connectedProviderSet = new Set<OAuthProvider>(connectedProviders);
+  const connectedProviderSet = new Set<NimiRealmOAuthProvider>(connectedProviders);
   const googleClientId = getGoogleClientId();
   const profileDraft = {
     displayName: name.trim() || displayName,
@@ -116,29 +119,29 @@ export function ProfilePage() {
     });
   };
 
-  const resolveProviderAccessToken = async (provider: OAuthProvider): Promise<string> => {
-    if (provider === OAuthProvider.GOOGLE) {
+  const resolveProviderAccessToken = async (provider: NimiRealmOAuthProvider): Promise<string> => {
+    if (provider === NIMI_REALM_OAUTH_PROVIDER.GOOGLE) {
       return requestGoogleAccessToken();
     }
-    if (provider === OAuthProvider.TWITTER) {
+    if (provider === NIMI_REALM_OAUTH_PROVIDER.TWITTER) {
       const result = await startSocialOauth('TWITTER', desktopOAuthBridge);
       return result.accessToken;
     }
-    if (provider === OAuthProvider.TIKTOK) {
+    if (provider === NIMI_REALM_OAUTH_PROVIDER.TIKTOK) {
       const result = await startSocialOauth('TIKTOK', desktopOAuthBridge);
       return result.accessToken;
     }
     throw new Error(`Unsupported OAuth provider: ${provider}`);
   };
 
-  const handleLinkProvider = async (provider: OAuthProvider) => {
+  const handleLinkProvider = async (provider: NimiRealmOAuthProvider) => {
     if (linkingProvider || unlinkingProvider) {
       return;
     }
     setLinkingProvider(provider);
     try {
       const accessToken = await resolveProviderAccessToken(provider);
-      await linkRealmOAuth(getPlatformClient().realm, provider, accessToken);
+      await linkNimiRealmOAuth(getDesktopRealm(), provider, accessToken);
       await refreshCurrentUser();
       setFeedback(null);
     } catch (error) {
@@ -151,13 +154,13 @@ export function ProfilePage() {
     }
   };
 
-  const handleUnlinkProvider = async (provider: OAuthProvider) => {
+  const handleUnlinkProvider = async (provider: NimiRealmOAuthProvider) => {
     if (linkingProvider || unlinkingProvider) {
       return;
     }
     setUnlinkingProvider(provider);
     try {
-      await unlinkRealmOAuth(getPlatformClient().realm, provider);
+      await unlinkNimiRealmOAuth(getDesktopRealm(), provider);
       await refreshCurrentUser();
       setFeedback(null);
     } catch (error) {
@@ -244,8 +247,7 @@ export function ProfilePage() {
 
     setUploadingAvatar(true);
     try {
-      const uploaded = await uploadRealmResourceFileWithRealm({
-        realm: getPlatformClient().realm,
+      const uploaded = await uploadNimiRealmResourceFile(getDesktopRealm(), {
         kind: 'image',
         file,
         failureMessage: t('Profile.avatarUploadFailed'),

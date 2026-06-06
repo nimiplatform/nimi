@@ -1,22 +1,27 @@
-import type { Realm, RealmModel, RealmServiceResult } from '@nimiplatform/sdk/realm';
 import {
-  buildRealmWorldDetailWithAgentsCacheKey,
-  loadRealmMainWorld,
-  loadRealmWorldAgents,
-  loadRealmWorldBindings,
-  loadRealmWorldDetailById,
-  loadRealmWorldDetailWithAgents,
-  loadRealmWorldHistory,
-  loadRealmWorldLevelAudits,
-  loadRealmWorldList,
-  loadRealmWorldLorebooks,
-  loadRealmWorldScenes,
-  loadRealmWorldSemanticBundle,
-  type RealmWorldBindingListPayload,
-  type RealmWorldHistoryPayload,
-  type RealmWorldLorebookListPayload,
-  type RealmWorldSceneListPayload,
-  type RealmWorldSemanticBundle,
+  buildNimiRealmWorldDetailWithAgentsCacheKey,
+  loadNimiRealmMainWorld,
+  loadNimiRealmWorldAgents,
+  loadNimiRealmWorldBindings,
+  loadNimiRealmWorldDetailById,
+  loadNimiRealmWorldDetailWithAgents,
+  loadNimiRealmWorldHistory,
+  loadNimiRealmWorldLevelAudits,
+  loadNimiRealmWorldList,
+  loadNimiRealmWorldLorebooks,
+  loadNimiRealmWorldScenes,
+  loadNimiRealmWorldSemanticBundle,
+  type NimiRealmWorldAgentSummary,
+  type NimiRealmWorldBindingListPayload,
+  type NimiRealmWorldDetail,
+  type NimiRealmWorldDetailWithAgents,
+  type NimiRealmWorldHistoryPayload,
+  type NimiRealmWorldLevelAuditEvent,
+  type NimiRealmWorldLorebookListPayload,
+  type NimiRealmWorldSceneListPayload,
+  type NimiRealmWorldSemanticBundle,
+  type NimiRealmWorldStatus,
+  type Realm,
 } from '@nimiplatform/sdk/realm';
 import {
   isRealmOfflineErrorLike as isRealmOfflineError,
@@ -26,10 +31,10 @@ import { callRealmApi, emitRealmDataError } from '@renderer/infra/realm/realm-ap
 import { getOfflineCacheManager } from '@renderer/infra/offline/cache-manager';
 import { getOfflineCoordinator } from '@renderer/infra/offline/coordinator';
 
-type WorldDetailDto = RealmModel<'WorldDetailDto'>;
-type WorldLevelAuditEventDto = RealmModel<'WorldLevelAuditEventDto'>;
-type WorldDetailWithAgentsDto = RealmServiceResult<'WorldsService', 'worldControllerGetWorldDetailWithAgents'>;
-type WorldAgentSummaryDto = RealmServiceResult<'WorldsService', 'worldControllerGetWorldAgents'>[number];
+type WorldDetailDto = NimiRealmWorldDetail;
+type WorldLevelAuditEventDto = NimiRealmWorldLevelAuditEvent;
+type WorldDetailWithAgentsDto = NimiRealmWorldDetailWithAgents;
+type WorldAgentSummaryDto = NimiRealmWorldAgentSummary;
 
 type RealmWorldApiCaller = <T>(task: (realm: Realm) => Promise<T>, fallbackMessage?: string) => Promise<T>;
 type RealmWorldErrorEmitter = (
@@ -38,21 +43,22 @@ type RealmWorldErrorEmitter = (
   details?: JsonObject,
 ) => void;
 
-export type WorldSemanticBundle = RealmWorldSemanticBundle;
-export type WorldHistoryPayload = RealmWorldHistoryPayload;
-export type WorldLorebookListPayload = RealmWorldLorebookListPayload;
-export type WorldBindingListPayload = RealmWorldBindingListPayload;
-export type WorldSceneListPayload = RealmWorldSceneListPayload;
-
-const silentWorldErrorEmitter: RealmWorldErrorEmitter = () => undefined;
+export type WorldSemanticBundle = NimiRealmWorldSemanticBundle;
+export type WorldHistoryPayload = NimiRealmWorldHistoryPayload;
+export type WorldLorebookListPayload = NimiRealmWorldLorebookListPayload;
+export type WorldBindingListPayload = NimiRealmWorldBindingListPayload;
+export type WorldSceneListPayload = NimiRealmWorldSceneListPayload;
 
 export async function loadWorldList(
   callApi: RealmWorldApiCaller,
   emitRealmWorldError: RealmWorldErrorEmitter,
-  status?: 'DRAFT' | 'PENDING_REVIEW' | 'ACTIVE' | 'SUSPENDED' | 'ARCHIVED',
+  status?: NimiRealmWorldStatus,
 ): Promise<WorldDetailDto[]> {
   try {
-    const normalized = await loadRealmWorldList(callApi, silentWorldErrorEmitter, status);
+    const normalized = await callApi(
+      (realm) => loadNimiRealmWorldList(realm, status),
+      'Failed to load world list',
+    );
     await (await getOfflineCacheManager()).syncWorldList(normalized);
     return normalized;
   } catch (error) {
@@ -70,7 +76,10 @@ export async function loadMainWorld(
   emitRealmWorldError: RealmWorldErrorEmitter,
 ): Promise<WorldDetailDto> {
   try {
-    const world = await loadRealmMainWorld(callApi, silentWorldErrorEmitter);
+    const world = await callApi(
+      (realm) => loadNimiRealmMainWorld(realm),
+      'Failed to load main world',
+    );
     await (await getOfflineCacheManager()).syncWorldMetadata('main-world', world);
     return world;
   } catch (error) {
@@ -92,7 +101,15 @@ export async function loadWorldLevelAudits(
   worldId: string,
   limit = 20,
 ): Promise<WorldLevelAuditEventDto[]> {
-  return loadRealmWorldLevelAudits(callApi, emitRealmWorldError, worldId, limit);
+  try {
+    return await callApi(
+      (realm) => loadNimiRealmWorldLevelAudits(realm, worldId, limit),
+      'Failed to load world level audits',
+    );
+  } catch (error) {
+    emitRealmWorldError('load-world-level-audits', error, { worldId, limit });
+    throw error;
+  }
 }
 
 export async function loadWorldDetailById(
@@ -102,7 +119,10 @@ export async function loadWorldDetailById(
 ): Promise<WorldDetailDto | null> {
   const normalizedWorldId = String(worldId || '').trim();
   try {
-    const record = await loadRealmWorldDetailById(callApi, silentWorldErrorEmitter, normalizedWorldId);
+    const record = await callApi(
+      (realm) => loadNimiRealmWorldDetailById(realm, normalizedWorldId),
+      'Failed to load world detail',
+    );
     if (record) {
       await (await getOfflineCacheManager()).syncWorldMetadata(
         `world:${normalizedWorldId}`,
@@ -128,7 +148,15 @@ export async function loadWorldHistory(
   emitRealmWorldError: RealmWorldErrorEmitter,
   worldId: string,
 ): Promise<WorldHistoryPayload> {
-  return loadRealmWorldHistory(callApi, emitRealmWorldError, worldId);
+  try {
+    return await callApi(
+      (realm) => loadNimiRealmWorldHistory(realm, worldId),
+      'Failed to load world history',
+    );
+  } catch (error) {
+    emitRealmWorldError('load-world-history', error, { worldId });
+    throw error;
+  }
 }
 
 export async function loadWorldLorebooks(
@@ -136,7 +164,15 @@ export async function loadWorldLorebooks(
   emitRealmWorldError: RealmWorldErrorEmitter,
   worldId: string,
 ): Promise<WorldLorebookListPayload> {
-  return loadRealmWorldLorebooks(callApi, emitRealmWorldError, worldId);
+  try {
+    return await callApi(
+      (realm) => loadNimiRealmWorldLorebooks(realm, worldId),
+      'Failed to load world lorebooks',
+    );
+  } catch (error) {
+    emitRealmWorldError('load-world-lorebooks', error, { worldId });
+    throw error;
+  }
 }
 
 export async function loadWorldBindings(
@@ -144,7 +180,15 @@ export async function loadWorldBindings(
   emitRealmWorldError: RealmWorldErrorEmitter,
   worldId: string,
 ): Promise<WorldBindingListPayload> {
-  return loadRealmWorldBindings(callApi, emitRealmWorldError, worldId);
+  try {
+    return await callApi(
+      (realm) => loadNimiRealmWorldBindings(realm, worldId),
+      'Failed to load world bindings',
+    );
+  } catch (error) {
+    emitRealmWorldError('load-world-bindings', error, { worldId });
+    throw error;
+  }
 }
 
 export async function loadWorldScenes(
@@ -152,7 +196,15 @@ export async function loadWorldScenes(
   emitRealmWorldError: RealmWorldErrorEmitter,
   worldId: string,
 ): Promise<WorldSceneListPayload> {
-  return loadRealmWorldScenes(callApi, emitRealmWorldError, worldId);
+  try {
+    return await callApi(
+      (realm) => loadNimiRealmWorldScenes(realm, worldId),
+      'Failed to load world scenes',
+    );
+  } catch (error) {
+    emitRealmWorldError('load-world-scenes', error, { worldId });
+    throw error;
+  }
 }
 
 export async function loadWorldAgents(
@@ -160,7 +212,15 @@ export async function loadWorldAgents(
   emitRealmWorldError: RealmWorldErrorEmitter,
   worldId: string,
 ): Promise<WorldAgentSummaryDto[]> {
-  return loadRealmWorldAgents(callApi, emitRealmWorldError, worldId);
+  try {
+    return await callApi(
+      (realm) => loadNimiRealmWorldAgents(realm, worldId),
+      'Failed to load world agents',
+    );
+  } catch (error) {
+    emitRealmWorldError('load-world-agents', error, { worldId });
+    throw error;
+  }
 }
 
 export async function loadWorldDetailWithAgents(
@@ -170,13 +230,11 @@ export async function loadWorldDetailWithAgents(
   recommendedAgentLimit?: number,
 ): Promise<WorldDetailWithAgentsDto | null> {
   const normalizedWorldId = String(worldId || '').trim();
-  const cacheKey = buildRealmWorldDetailWithAgentsCacheKey(normalizedWorldId, recommendedAgentLimit);
+  const cacheKey = buildNimiRealmWorldDetailWithAgentsCacheKey(normalizedWorldId, recommendedAgentLimit);
   try {
-    const detail = await loadRealmWorldDetailWithAgents(
-      callApi,
-      silentWorldErrorEmitter,
-      normalizedWorldId,
-      recommendedAgentLimit,
+    const detail = await callApi(
+      (realm) => loadNimiRealmWorldDetailWithAgents(realm, normalizedWorldId, recommendedAgentLimit),
+      'Failed to load world detail with agents',
     );
     if (detail) {
       await (await getOfflineCacheManager()).syncWorldMetadata(cacheKey, detail);
@@ -200,11 +258,19 @@ export async function loadWorldSemanticBundle(
   emitRealmWorldError: RealmWorldErrorEmitter,
   worldId: string,
 ): Promise<WorldSemanticBundle> {
-  return loadRealmWorldSemanticBundle(callApi, emitRealmWorldError, worldId);
+  try {
+    return await callApi(
+      (realm) => loadNimiRealmWorldSemanticBundle(realm, worldId),
+      'Failed to load worldview',
+    );
+  } catch (error) {
+    emitRealmWorldError('load-world-semantic-bundle', error, { worldId });
+    throw error;
+  }
 }
 
 export const realmWorldData = {
-  loadWorlds: (status?: 'DRAFT' | 'PENDING_REVIEW' | 'ACTIVE' | 'SUSPENDED' | 'ARCHIVED') =>
+  loadWorlds: (status?: NimiRealmWorldStatus) =>
     loadWorldList(callRealmApi, emitRealmDataError, status),
   loadWorldDetailById: (worldId: string) =>
     loadWorldDetailById(callRealmApi, emitRealmDataError, worldId),

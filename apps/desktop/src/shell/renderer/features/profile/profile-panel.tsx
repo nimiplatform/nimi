@@ -21,6 +21,7 @@ import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { toProfileData, type ProfileSource } from './profile-model.js';
 import { toFriendContact, type ContactRecord } from '@renderer/features/relationship/relationship-model';
 import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
+import { parseOptionalJsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
 import {
   loadChatList,
   startChatWithTarget,
@@ -257,11 +258,16 @@ export function ProfilePanel() {
         tags: toArray(draft.tags),
       });
 
-      if (typeof updated.avatarUrl !== 'string') {
-        updated.avatarUrl = draft.avatarUrl.trim() || null;
-      }
+      const updatedUser = parseOptionalJsonObject(updated) ?? {};
+      const updatedAuthUser = {
+        ...updated,
+        ...updatedUser,
+        avatarUrl: typeof updated.avatarUrl === 'string'
+          ? updated.avatarUrl
+          : draft.avatarUrl.trim() || null,
+      };
 
-      setAuthSession(updated);
+      setAuthSession(updatedAuthUser);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['user-profile'] }),
         queryClient.invalidateQueries({ queryKey: ['contact-profile'] }),

@@ -189,9 +189,11 @@ test('cultivation rings mapping caps levels at 12 and keeps extra systems compac
 });
 
 test('cultivation rings fallback uses standalone levels when no primary system exists', () => {
-  const semantic = makeSemantic();
-  semantic.powerSystems = [];
-  semantic.standaloneLevels = [{ name: 'Standalone One' }, { name: 'Standalone Two' }];
+  const semantic = {
+    ...makeSemantic(),
+    powerSystems: [],
+    standaloneLevels: [{ name: 'Standalone One' }, { name: 'Standalone Two' }],
+  };
   const mapped = mapCultivationRingsData(semantic);
   assert.ok(mapped);
   assert.equal(mapped?.systemName, 'Rule Engine');
@@ -204,13 +206,17 @@ test('realm constellation supports meta-only mode and trims realm nodes to eight
   assert.ok(mapped);
   assert.equal(mapped?.realms.length, 8);
 
-  semantic.topology = { type: 'GRAPH', boundary: 'BOUNDED', dimensions: '2', realms: [] };
-  const metaOnly = mapRealmConstellationData(semantic);
+  const metaOnly = mapRealmConstellationData({
+    ...semantic,
+    topology: { type: 'GRAPH', boundary: 'BOUNDED', dimensions: '2', realms: [] },
+  });
   assert.ok(metaOnly);
   assert.equal(metaOnly?.realms.length, 0);
 
-  semantic.topology = { type: null, boundary: null, dimensions: null, realms: [] };
-  assert.equal(mapRealmConstellationData(semantic), null);
+  assert.equal(mapRealmConstellationData({
+    ...semantic,
+    topology: { type: null, boundary: null, dimensions: null, realms: [] },
+  }), null);
 });
 
 test('world detail pages are composition-driven and expose stable test surfaces', () => {

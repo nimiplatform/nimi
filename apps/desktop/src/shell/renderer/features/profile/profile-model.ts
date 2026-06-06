@@ -1,4 +1,4 @@
-import type { RealmModel } from '@nimiplatform/sdk/realm';
+import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 
 export type ProfileTab = 'Posts' | 'Collections' | 'Likes' | 'Gifts';
 
@@ -85,7 +85,26 @@ type ProfileWorldLike = {
   name?: string | null;
   bannerUrl?: string | null;
 };
-export type ProfileSource = Partial<Omit<UserProfileDto, 'stats' | 'giftStats' | 'agent' | 'agentProfile' | 'createdAt' | 'gender'>> & {
+type ProfileSourceGeneratedBase = Partial<Omit<
+  UserProfileDto,
+  | 'agent'
+  | 'agentProfile'
+  | 'avatarUrl'
+  | 'bio'
+  | 'city'
+  | 'countryCode'
+  | 'createdAt'
+  | 'displayName'
+  | 'gender'
+  | 'giftStats'
+  | 'handle'
+  | 'id'
+  | 'isAgent'
+  | 'languages'
+  | 'stats'
+  | 'tags'
+>>;
+export type ProfileSource = ProfileSourceGeneratedBase & {
   createdAt?: string | null;
   displayName?: string;
   handle?: string;
@@ -100,9 +119,9 @@ export type ProfileSource = Partial<Omit<UserProfileDto, 'stats' | 'giftStats' |
   bio?: string | null;
   city?: string | null;
   countryCode?: string | null;
-  languages?: string[];
+  languages?: readonly string[];
   postCount?: number;
-  tags?: string[];
+  tags?: readonly string[];
   isFriend?: boolean;
   isPendingFriendRequest?: boolean;
   worldId?: string | null;
@@ -113,7 +132,7 @@ export type ProfileSource = Partial<Omit<UserProfileDto, 'stats' | 'giftStats' |
   likesCount?: number;
   likeCount?: number;
   stats?: ProfileStatsLike | null;
-  giftStats?: Record<string, number> | null;
+  giftStats?: Record<string, unknown> | null;
   agent?: ProfileAgentLike | null;
   agentProfile?: ProfileAgentProfileLike | null;
   world?: ProfileWorldLike | null;

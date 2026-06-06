@@ -13,7 +13,7 @@ import { useTranslation } from 'react-i18next';
 import {
   desktopBridge,
   type DesktopStorageDirs,
-  type ProductControlRecordProjection,
+  type NimiProductControlRecordProjection,
 } from '@renderer/bridge';
 import {
   NIMI_DATA_DESTRUCTIVE_CLEANUP_CONFIRMATION,
@@ -21,9 +21,9 @@ import {
 } from '@renderer/bridge/runtime-bridge/nimi-data-directory';
 import { useTypedProjection as useSupportProjection } from '@nimiplatform/kit/ui';
 import {
-  PRODUCT_CONTROL_RECOVERY_STATE_COPY_KEY as RECOVERY_STATE_COPY_KEY,
-  isRepairRoutedProductControlState as isRepairRoutedState,
-} from '@nimiplatform/sdk';
+  NIMI_PRODUCT_CONTROL_RECOVERY_STATE_COPY_KEY,
+  isNimiProductControlRepairRoutedState,
+} from '@nimiplatform/sdk/runtime';
 import {
   SupportCard,
   SupportFailClosed,
@@ -33,7 +33,7 @@ import {
 } from './support-section-shell.js';
 
 interface RepairProjection {
-  readonly control: ProductControlRecordProjection;
+  readonly control: NimiProductControlRecordProjection;
   readonly dirs: DesktopStorageDirs | null;
   readonly dirsError: string | null;
 }
@@ -89,7 +89,8 @@ export function SupportRepairSection(props: { onNavigateToRecovery: () => void }
   }
 
   const { control, dirs, dirsError } = projection.data;
-  const repairRouted = isRepairRoutedState(control.state) || control.record?.repair.required === true;
+  const repairRouted = isNimiProductControlRepairRoutedState(control.state)
+    || control.record?.repair.required === true;
   const repairReason = control.error
     ?? control.record?.repair.reason
     ?? null;
@@ -112,7 +113,7 @@ export function SupportRepairSection(props: { onNavigateToRecovery: () => void }
         <div className="divide-y divide-[var(--nimi-border-subtle)]">
           <SupportInfoRow
             label={t('Support.repairProductState')}
-            value={t(`${RECOVERY_STATE_COPY_KEY[control.state]}.title`)}
+            value={t(`${NIMI_PRODUCT_CONTROL_RECOVERY_STATE_COPY_KEY[control.state]}.title`)}
           />
           <SupportInfoRow
             label={t('Support.repairRecordPath')}
@@ -152,7 +153,7 @@ export function SupportRepairSection(props: { onNavigateToRecovery: () => void }
  * see which pointer is unresolved. It never recreates a pointer — silent
  * recreation would orphan the user's data root.
  */
-function SupportPointerCard(props: { control: ProductControlRecordProjection }) {
+function SupportPointerCard(props: { control: NimiProductControlRecordProjection }) {
   const { t } = useTranslation();
   const pointers = props.control.record?.pointers;
   if (!pointers) {

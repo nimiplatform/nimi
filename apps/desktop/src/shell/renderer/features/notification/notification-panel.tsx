@@ -1,15 +1,8 @@
 import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
 import { useEffect, useMemo, useState } from 'react';
 import { AppCardSurface, Button, ScrollArea } from '@nimiplatform/kit/ui';
-import { getPlatformClient } from '@nimiplatform/sdk';
-import {
-  loadRealmNotifications,
-  loadRealmNotificationUnreadCount,
-  markRealmNotificationRead,
-  markRealmNotificationsRead,
-  toRealmNotificationListProjection,
-  type RealmModel,
-} from '@nimiplatform/sdk/realm';
+import { loadNimiRealmNotifications, loadNimiRealmNotificationUnreadCount, markNimiRealmNotificationRead, markNimiRealmNotificationsRead, toNimiRealmNotificationListProjection } from '@nimiplatform/sdk/realm';
+import { type RealmModel } from '@nimiplatform/sdk/realm/generated';
 import {
   getNimiNotificationCategory,
   getNimiNotificationServerFilter,
@@ -42,6 +35,8 @@ import {
   type NotificationItemView,
   type PendingItemAction,
 } from './notification-panel-types.js';
+import { getDesktopRealm } from '@renderer/infra/sdk/desktop-nimi-client-session';
+import { getDesktopRealmCommerceGiftService } from '@renderer/infra/realm/realm-commerce-service';
 
 type ReviewRating = RealmModel<'ReviewRating'>;
 
@@ -72,8 +67,8 @@ export function NotificationPanel() {
   const notificationsQuery = useInfiniteQuery({
     queryKey: notificationQueryKeys.page(notificationQueryIdentityRef, serverFilter),
     initialPageParam: '',
-    queryFn: async ({ pageParam }) => loadRealmNotifications(
-      getPlatformClient().realm,
+    queryFn: async ({ pageParam }) => loadNimiRealmNotifications(
+      getDesktopRealm(),
       {
         limit: PAGE_SIZE,
         ...(pageParam ? { cursor: String(pageParam) } : {}),
@@ -82,7 +77,7 @@ export function NotificationPanel() {
     ),
     enabled: authStatus === 'authenticated' && Boolean(notificationIdentityRef),
     getNextPageParam: (lastPage) => {
-      const parsed = toRealmNotificationListProjection(
+      const parsed = toNimiRealmNotificationListProjection(
         lastPage,
         t('NotificationPanel.title', { defaultValue: 'Notification' }),
         i18n.t('Common.unknown', { defaultValue: 'Unknown' }),
@@ -92,7 +87,7 @@ export function NotificationPanel() {
   });
   const unreadCountQuery = useQuery({
     queryKey: notificationQueryKeys.topbarUnreadCount(notificationQueryIdentityRef),
-    queryFn: async () => loadRealmNotificationUnreadCount(getPlatformClient().realm),
+    queryFn: async () => loadNimiRealmNotificationUnreadCount(getDesktopRealm()),
     enabled: authStatus === 'authenticated' && Boolean(notificationIdentityRef),
     staleTime: 15_000,
     refetchInterval: 30_000,
@@ -117,7 +112,7 @@ export function NotificationPanel() {
 
     const byId = new Map<string, NotificationItemView>();
     for (const page of notificationsQuery.data.pages) {
-      const parsed = toRealmNotificationListProjection(
+      const parsed = toNimiRealmNotificationListProjection(
         page,
         t('NotificationPanel.title', { defaultValue: 'Notification' }),
         i18n.t('Common.unknown', { defaultValue: 'Unknown' }),
@@ -177,7 +172,7 @@ export function NotificationPanel() {
     updateUnreadCount(Math.max(0, previousUnreadCount - 1));
 
     try {
-      await markRealmNotificationRead(getPlatformClient().realm, notificationId);
+      await markNimiRealmNotificationRead(getDesktopRealm(), notificationId);
       await refreshNotifications();
     } catch (error) {
       setReadOverrides((previous) => {
@@ -215,8 +210,8 @@ export function NotificationPanel() {
     updateUnreadCount(0);
 
     try {
-      await markRealmNotificationsRead(
-        getPlatformClient().realm,
+      await markNimiRealmNotificationsRead(
+        getDesktopRealm(),
         { markAllBefore: new Date().toISOString() },
       );
       await refreshNotifications();
@@ -324,7 +319,10 @@ export function NotificationPanel() {
       item,
       action: 'gift-accept',
       task: async () => {
-        await acceptRealmGift(item.giftTransactionId as string);
+        await acceptRealmGift({
+          service: getDesktopRealmCommerceGiftService(),
+          giftTransactionId: item.giftTransactionId as string,
+        });
       },
       errorMessage: t('NotificationPanel.acceptError', { defaultValue: 'Failed to accept gift' }),
     });
@@ -339,8 +337,12 @@ export function NotificationPanel() {
       item: rejectingItem,
       action: 'gift-reject',
       task: async () => {
-        await rejectRealmGift(rejectingItem.giftTransactionId as string, {
-          reason: rejectReason.trim() || undefined,
+        await rejectRealmGift({
+          service: getDesktopRealmCommerceGiftService(),
+          giftTransactionId: rejectingItem.giftTransactionId as string,
+          input: {
+            reason: rejectReason.trim() || undefined,
+          },
         });
       },
       errorMessage: t('NotificationPanel.rejectError'),
@@ -360,8 +362,11 @@ export function NotificationPanel() {
       action,
       task: async () => {
         await createRealmGiftReview({
-          giftTransactionId: item.giftTransactionId as string,
-          rating,
+          service: getDesktopRealmCommerceGiftService(),
+          input: {
+            giftTransactionId: item.giftTransactionId as string,
+            rating,
+          },
         });
       },
       errorMessage: t('NotificationPanel.reviewError'),

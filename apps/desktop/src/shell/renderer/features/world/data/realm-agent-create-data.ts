@@ -1,34 +1,31 @@
 import {
-  createRealmMasterAgent,
-  loadRealmCreatorAgents,
-  type CreateRealmMasterAgentInput,
-  type RealmAgentProfileApiCaller,
+  createNimiRealmMasterAgent,
+  loadNimiRealmCreatorAgents,
+  type NimiRealmCreateMasterAgentInput,
+  type NimiRealmCreatorAgentProjection,
 } from '@nimiplatform/sdk/realm';
-import { callRealmApi } from '@renderer/infra/realm/realm-api';
+import { getDesktopRealm } from '@renderer/infra/sdk/desktop-nimi-client-session';
 
-export type CreateMasterAgentInput = CreateRealmMasterAgentInput;
+export type CreateMasterAgentInput = NimiRealmCreateMasterAgentInput;
 
 export async function createMasterAgent(
-  callApi: RealmAgentProfileApiCaller,
   input: CreateMasterAgentInput,
-): Promise<Record<string, unknown>> {
-  return createRealmMasterAgent(callApi, input);
+): Promise<NimiRealmCreatorAgentProjection> {
+  return createNimiRealmMasterAgent(getDesktopRealm(), input);
 }
 
-let inflightCreatorAgents: Promise<Record<string, unknown>[]> | null = null;
+let inflightCreatorAgents: Promise<readonly NimiRealmCreatorAgentProjection[]> | null = null;
 
-export async function loadCreatorAgents(
-  callApi: RealmAgentProfileApiCaller,
-): Promise<Record<string, unknown>[]> {
+export async function loadCreatorAgents(): Promise<readonly NimiRealmCreatorAgentProjection[]> {
   if (inflightCreatorAgents) return inflightCreatorAgents;
-  const task = loadRealmCreatorAgents(callApi).finally(() => { inflightCreatorAgents = null; });
+  const task = loadNimiRealmCreatorAgents(getDesktopRealm()).finally(() => { inflightCreatorAgents = null; });
   inflightCreatorAgents = task;
   return task;
 }
 
 export const realmAgentCreateData = {
   createAgent: (input: CreateMasterAgentInput) =>
-    createMasterAgent(callRealmApi, input),
+    createMasterAgent(input),
   loadMyAgents: () =>
-    loadCreatorAgents(callRealmApi),
+    loadCreatorAgents(),
 };

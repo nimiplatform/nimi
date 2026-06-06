@@ -11,6 +11,10 @@ const postCardActionAdapterSource = fs.readFileSync(
   path.join(import.meta.dirname, '../src/shell/renderer/features/home/post-card-action-adapter.tsx'),
   'utf8',
 );
+const postCardProjectionsSource = fs.readFileSync(
+  path.join(import.meta.dirname, '../src/shell/renderer/features/home/post-card-projections.ts'),
+  'utf8',
+);
 const reportModalSource = fs.readFileSync(
   path.join(import.meta.dirname, '../src/shell/renderer/features/home/report-modal.tsx'),
   'utf8',
@@ -32,11 +36,18 @@ test('post card action adapter uses real like/unlike/report/visibility APIs', ()
 });
 
 test('report modal reason list matches backend enum contract', () => {
-  assert.match(reportModalSource, /ReportReason\.SPAM/);
-  assert.match(reportModalSource, /ReportReason\.NSFW/);
-  assert.match(reportModalSource, /ReportReason\.HATE_SPEECH/);
-  assert.match(reportModalSource, /ReportReason\.SCAM/);
-  assert.match(reportModalSource, /ReportReason\.OTHER/);
+  assert.match(reportModalSource, /ReportReasonValues\.map/);
+  assert.match(reportModalSource, /satisfies Record<ReportReason, string>/);
+  assert.doesNotMatch(reportModalSource, /ReportReason\.[A-Z_]+/);
+  assert.doesNotMatch(postCardSource, /keyof typeof ReportReason/);
+});
+
+test('post card author projection consumes generated UserLiteDto fields exactly', () => {
+  assert.doesNotMatch(postCardSource, /_id/);
+  assert.doesNotMatch(postCardProjectionsSource, /authorRecord/);
+  assert.doesNotMatch(postCardProjectionsSource, /post\.author as Record<string, unknown>/);
+  assert.match(postCardProjectionsSource, /const agent = author\?\.agent \?\? null/);
+  assert.match(postCardProjectionsSource, /const agentProfile = author\?\.agentProfile \?\? null/);
 });
 
 test('report modal preserves failure feedback instead of silently closing on submit errors', () => {

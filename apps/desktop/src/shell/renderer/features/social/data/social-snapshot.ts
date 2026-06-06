@@ -1,16 +1,18 @@
-import type { RealmSocialContactSnapshot } from '@nimiplatform/sdk/realm';
 import {
-  enrichRealmProfileWithWorldBanner,
-  fetchRealmAgentFriendLimit,
-  fetchRealmPendingFriendRequests,
-  loadRealmSocialSnapshot,
-  type RealmSocialApiCaller,
-  type RealmSocialErrorEmitter,
+  enrichNimiRealmSocialProfileWithWorldBanner,
+  fetchNimiRealmAgentFriendLimit,
+  fetchNimiRealmPendingFriendRequests,
+  loadNimiRealmSocialSnapshot,
+  type NimiRealmSocialContactSnapshot,
+  type NimiRealmSocialDataErrorEmitter,
+  type NimiRealmSocialProfileProjection,
+  type Realm,
 } from '@nimiplatform/sdk/realm';
+import type { JsonObject } from '@nimiplatform/sdk/types';
 
-export type RealmApiCaller = RealmSocialApiCaller;
-export type RealmDataErrorEmitter = RealmSocialErrorEmitter;
-export type SocialContactSnapshot = RealmSocialContactSnapshot;
+export type RealmApiCaller = <T>(task: (realm: Realm) => Promise<T>, fallbackMessage?: string) => Promise<T>;
+export type RealmDataErrorEmitter = NimiRealmSocialDataErrorEmitter;
+export type SocialContactSnapshot = NimiRealmSocialContactSnapshot;
 
 let cachedContacts: SocialContactSnapshot = {
   friends: [],
@@ -27,9 +29,35 @@ function mergeWithLocalContacts(snapshot: SocialContactSnapshot): SocialContactS
   return snapshot;
 }
 
-export const enrichProfileWithWorldBanner = enrichRealmProfileWithWorldBanner;
-export const fetchPendingFriendRequests = fetchRealmPendingFriendRequests;
-export const fetchAgentFriendLimit = fetchRealmAgentFriendLimit;
+export function enrichProfileWithWorldBanner(
+  callApi: RealmApiCaller,
+  profile: JsonObject,
+): Promise<NimiRealmSocialProfileProjection> {
+  return callApi(
+    (realm) => enrichNimiRealmSocialProfileWithWorldBanner(realm, profile as NimiRealmSocialProfileProjection),
+    'Failed to load Realm world detail',
+  );
+}
+
+export function fetchPendingFriendRequests(
+  callApi: RealmApiCaller,
+  emitRealmDataError: RealmDataErrorEmitter,
+) {
+  return callApi(
+    (realm) => fetchNimiRealmPendingFriendRequests(realm, emitRealmDataError),
+    'Failed to load Realm friend requests',
+  );
+}
+
+export function fetchAgentFriendLimit(
+  callApi: RealmApiCaller,
+  emitRealmDataError: RealmDataErrorEmitter,
+) {
+  return callApi(
+    (realm) => fetchNimiRealmAgentFriendLimit(realm, emitRealmDataError),
+    'Failed to load Realm agent friend limit',
+  );
+}
 
 export async function loadMergedSocialSnapshot(
   callApi: RealmApiCaller,
@@ -39,7 +67,10 @@ export async function loadMergedSocialSnapshot(
   const existing = inflightSnapshots.get(key);
   if (existing) return existing;
 
-  const task = loadRealmSocialSnapshot(callApi, emitRealmDataError)
+  const task = callApi(
+    (realm) => loadNimiRealmSocialSnapshot(realm, emitRealmDataError),
+    'Failed to load Realm social snapshot',
+  )
     .then((snapshot) => {
       const merged = mergeWithLocalContacts(snapshot);
       cachedContacts = { ...merged };
@@ -70,7 +101,7 @@ export function updateCachedContacts(snapshot: SocialContactSnapshot) {
 }
 
 export function isFriendInContacts(
-  contacts: { friends?: Array<Record<string, unknown>> } | undefined,
+  contacts: { friends?: readonly Record<string, unknown>[] } | undefined,
   userId: string,
 ): boolean {
   if (!contacts?.friends?.length) return false;
