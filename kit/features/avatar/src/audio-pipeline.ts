@@ -7,8 +7,8 @@
 //
 // Wave 0 hard-cut (B2.A+):
 //   - The caller-injected byte fetcher is removed. Bytes are read
-//     from `runtime.artifacts.readBytes({ artifactId, expectedMimePrefix:
-//     'audio/' })` (S-RUNTIME-111; admitted by this topic).
+//     from `runtime.artifacts.readArtifactBytes({ artifactId })`
+//     (S-RUNTIME-111; admitted by this topic).
 //   - `registerLipsyncSink(consumer)` connects a per-backend lipsync sink.
 //     The pipeline attaches the active
 //     AudioBufferSourceNode to the registered sink in the same lifecycle
@@ -207,11 +207,10 @@ export class AudioPipelineController {
       return;
     }
 
-    let result: { bytes: ArrayBuffer; mimeType: string; sizeBytes: number };
+    let result: Awaited<ReturnType<Runtime['artifacts']['readArtifactBytes']>>;
     try {
-      result = await this.runtime.artifacts.readBytes({
+      result = await this.runtime.artifacts.readArtifactBytes({
         artifactId: audioArtifactId,
-        expectedMimePrefix: 'audio/',
       });
     } catch (err) {
       const reasonCode = readReasonCode(err);
@@ -232,6 +231,22 @@ export class AudioPipelineController {
     }
     if (this.playId !== playId) return;
 
+    if (!isPlayableMimeType(result.mimeType.toLowerCase())) {
+      this.logger.warn('audio_artifact_mime_mismatch', {
+        audio_artifact_id: audioArtifactId,
+        expected_mime_prefix: 'audio/',
+        returned_mime_type: result.mimeType,
+      });
+      this.sink?.silent();
+      this.publish({
+        state: 'failed',
+        audioArtifactId,
+        audioMimeType,
+        reason: 'ARTIFACT_MIME_MISMATCH',
+      });
+      return;
+    }
+
     const context = this.ensureContext();
     if (!context) {
       this.sink?.silent();
@@ -246,7 +261,7 @@ export class AudioPipelineController {
 
     let buffer: AudioBuffer;
     try {
-      buffer = await context.decodeAudioData(result.bytes.slice(0));
+      buffer = await context.decodeAudioData(arrayBufferFromBytes(result.bytes));
     } catch (err) {
       this.logger.warn('audio_decode_failed', {
         audio_artifact_id: audioArtifactId,
@@ -375,6 +390,12 @@ export class AudioPipelineController {
 
 function isPlayableMimeType(mime: string): boolean {
   return PLAYABLE_MIME_PREFIXES.some((prefix) => mime.startsWith(prefix));
+}
+
+function arrayBufferFromBytes(bytes: Uint8Array): ArrayBuffer {
+  const copy = new Uint8Array(bytes.byteLength);
+  copy.set(bytes);
+  return copy.buffer;
 }
 
 function errorMessage(error: unknown): string {

@@ -2,6 +2,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  createRealmCommerceGiftService,
   createRealmCommerceGiftAdapter,
   createRealmSparkCheckout,
   loadRealmCurrencyBalances,
@@ -84,14 +85,34 @@ describe('commerce realm helpers', () => {
     });
 
     await expect(loadRealmCurrencyBalances({
-      getBalances: async () => ({
-        sparkBalance: '5',
-        gemBalance: '3',
-      }),
+      service: {
+        getBalances: async () => ({
+          sparkBalance: '5',
+          gemBalance: '3',
+        }),
+      },
     })).resolves.toEqual({
       sparkBalance: 5,
       gemBalance: 3,
     });
+  });
+
+  it('projects an explicit vNext Realm generated client into commerce service calls', async () => {
+    const economyControllerGetBalances = vi.fn(async () => ({
+      sparkBalance: '8',
+      gemBalance: '4',
+    }));
+    const service = createRealmCommerceGiftService({
+      generated: {
+        economyControllerGetBalances,
+      } as never,
+    });
+
+    await expect(service.getBalances()).resolves.toEqual({
+      sparkBalance: '8',
+      gemBalance: '4',
+    });
+    expect(economyControllerGetBalances).toHaveBeenCalledWith({ path: {} });
   });
 
   it('normalizes gift catalog through the realm adapter', async () => {
@@ -160,10 +181,13 @@ describe('commerce realm helpers', () => {
       },
     } as unknown as RealmCommerceGiftService;
 
-    await expect(loadRealmSparkPackages(service)).resolves.toEqual([
+    await expect(loadRealmSparkPackages({ service })).resolves.toEqual([
       { id: 'pkg-1', label: 'Starter', sparkAmount: 100, usdPrice: 1.99, popular: true },
     ]);
-    await expect(createRealmSparkCheckout({ packageId: 'pkg-1' } as never, service)).resolves.toEqual({
+    await expect(createRealmSparkCheckout({
+      service,
+      input: { packageId: 'pkg-1' } as never,
+    })).resolves.toEqual({
       sessionId: 'session-1',
       url: 'https://checkout.nimi.example/session-1',
     });
@@ -193,7 +217,7 @@ describe('commerce realm helpers', () => {
       rejectGift: async () => {},
     } as unknown as RealmCommerceGiftService;
 
-    await expect(loadRealmGiftTransaction('gift-2', service)).resolves.toMatchObject({
+    await expect(loadRealmGiftTransaction({ service, giftTransactionId: 'gift-2' })).resolves.toMatchObject({
       id: 'gift-2',
       status: 'ACCEPTED',
       sparkCost: 20,

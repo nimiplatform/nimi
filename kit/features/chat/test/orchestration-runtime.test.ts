@@ -1,9 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import type {
-  Runtime,
-  TextStreamOutput,
-  TextStreamPart,
+  NimiRunEvent,
 } from '@nimiplatform/kit/core/sdk-contract';
+import { ReasonCode } from '@nimiplatform/kit/core/sdk-contract';
 import {
   buildConversationHistoryWindow,
   ConversationOrchestrationRegistry,
@@ -20,6 +19,7 @@ import {
   createSdkConversationRuntimeAdapter,
   createSimpleAiConversationProvider,
 } from '../src/runtime.js';
+import { createRuntimeAiTestRuntime } from './runtime-ai-test-helpers.js';
 
 async function collectEvents(stream: AsyncIterable<ConversationTurnEvent>): Promise<ConversationTurnEvent[]> {
   const events: ConversationTurnEvent[] = [];
@@ -29,39 +29,22 @@ async function collectEvents(stream: AsyncIterable<ConversationTurnEvent>): Prom
   return events;
 }
 
-function sdkStream(parts: readonly TextStreamPart[]): TextStreamOutput {
-  return {
-    stream: (async function* () {
-      for (const part of parts) {
-        yield part;
-      }
-    })(),
-  };
+async function* sdkStream(parts: readonly NimiRunEvent[]): AsyncIterable<NimiRunEvent> {
+  for (const part of parts) {
+    yield part;
+  }
 }
 
 function sdkStreamError(input: {
   reasonCode: string;
   message: string;
   traceId?: string;
-}): TextStreamPart {
-  const error = new Error(input.message) as Error & {
-    code: string;
-    reasonCode: string;
-    actionHint: string;
-    traceId: string;
-    retryable: boolean;
-    source: 'runtime';
-  };
-  error.name = input.reasonCode;
-  error.code = input.reasonCode;
-  error.reasonCode = input.reasonCode;
-  error.actionHint = 'inspect_runtime_stream';
-  error.traceId = input.traceId || '';
-  error.retryable = false;
-  error.source = 'runtime';
+}): NimiRunEvent {
   return {
     type: 'error',
-    error,
+    code: input.reasonCode,
+    message: input.message,
+    cause: input.traceId ? { traceId: input.traceId } : undefined,
   };
 }
 
@@ -134,14 +117,11 @@ describe('chat orchestration primitives', () => {
   });
 
   it('fails closed before Runtime execution when sdk adapter request lacks an explicit model', async () => {
-    const runtime = {
-      ai: {
-        text: {
-          stream: vi.fn(),
-        },
-      },
-    } as unknown as Runtime;
-    const adapter = createSdkConversationRuntimeAdapter(runtime);
+    const runtimeHarness = createRuntimeAiTestRuntime();
+    const adapter = createSdkConversationRuntimeAdapter({
+      runtime: runtimeHarness.runtime,
+      appId: 'kit-chat-test-app',
+    });
 
     await expect(adapter.streamText({
       modeId: 'simple-ai',
@@ -149,18 +129,15 @@ describe('chat orchestration primitives', () => {
       turnId: 'turn-1',
       messages: [{ role: 'user', text: 'Hello' }],
     })).rejects.toThrow('conversation runtime request requires an explicit model');
-    expect(runtime.ai.text.stream).not.toHaveBeenCalled();
+    expect(runtimeHarness.streamScenario).not.toHaveBeenCalled();
   });
 
   it('fails closed before Runtime execution when sdk adapter request uses auto as a pseudo-model', async () => {
-    const runtime = {
-      ai: {
-        text: {
-          stream: vi.fn(),
-        },
-      },
-    } as unknown as Runtime;
-    const adapter = createSdkConversationRuntimeAdapter(runtime);
+    const runtimeHarness = createRuntimeAiTestRuntime();
+    const adapter = createSdkConversationRuntimeAdapter({
+      runtime: runtimeHarness.runtime,
+      appId: 'kit-chat-test-app',
+    });
 
     await expect(adapter.streamText({
       modeId: 'simple-ai',
@@ -169,7 +146,7 @@ describe('chat orchestration primitives', () => {
       model: 'auto',
       messages: [{ role: 'user', text: 'Hello' }],
     })).rejects.toThrow('conversation runtime request requires a concrete Runtime model, not auto');
-    expect(runtime.ai.text.stream).not.toHaveBeenCalled();
+    expect(runtimeHarness.streamScenario).not.toHaveBeenCalled();
   });
 });
 
@@ -180,17 +157,13 @@ describe('simple-ai conversation provider', () => {
       streamText: vi.fn(async (request) => {
         capturedRequest = request;
         return sdkStream([
-          { type: 'start' },
+          { type: 'start', traceId: 'trace-1' },
           { type: 'reasoning-delta', text: 'private-thought' },
-          { type: 'delta', text: 'public-answer' },
+          { type: 'text-delta', text: 'public-answer' },
           {
-            type: 'finish',
+            type: 'done',
             finishReason: 'stop',
-            usage: { inputTokens: 10, outputTokens: 4, totalTokens: 14 },
-            trace: { traceId: 'trace-1', promptTraceId: 'prompt-1' } as Extract<
-              TextStreamPart,
-              { type: 'finish' }
-            >['trace'],
+            usage: { promptTokens: 10, completionTokens: 4, totalTokens: 14 },
           },
         ]);
       }),
@@ -210,6 +183,7 @@ describe('simple-ai conversation provider', () => {
     const events = await collectEvents(provider.runTurn(createTurnInput({
       history: [
         { id: 'sys-1', role: 'system', text: 'must be stripped' },
+        { id: 'dev-1', role: 'developer', text: 'developer instruction survives as model context' },
         { id: 'user-0', role: 'user', text: 'history-user' },
         {
           id: 'assistant-0',
@@ -224,6 +198,7 @@ describe('simple-ai conversation provider', () => {
       modeId: 'simple-ai',
       systemPrompt: 'desktop-app-preset',
       messages: [
+        { role: 'developer', text: 'developer instruction survives as model context', name: null },
         { role: 'user', text: 'history-user', name: null },
         { role: 'assistant', text: 'history-assistant', name: null },
         { role: 'user', text: 'What should we ship next?', name: null },
@@ -242,7 +217,7 @@ describe('simple-ai conversation provider', () => {
       reasoningText: 'private-thought',
       finishReason: 'stop',
       usage: { inputTokens: 10, outputTokens: 4, totalTokens: 14 },
-      trace: { traceId: 'trace-1', promptTraceId: 'prompt-1' },
+      trace: { traceId: 'trace-1' },
     });
   });
 
@@ -252,16 +227,12 @@ describe('simple-ai conversation provider', () => {
       streamText: vi.fn(async (request) => {
         capturedRequest = request;
         return sdkStream([
-          { type: 'start' },
-          { type: 'delta', text: 'vision-answer' },
+          { type: 'start', traceId: 'trace-vision' },
+          { type: 'text-delta', text: 'vision-answer' },
           {
-            type: 'finish',
+            type: 'done',
             finishReason: 'stop',
-            usage: { inputTokens: 4, outputTokens: 2, totalTokens: 6 },
-            trace: { traceId: 'trace-vision' } as Extract<
-              TextStreamPart,
-              { type: 'finish' }
-            >['trace'],
+            usage: { promptTokens: 4, completionTokens: 2, totalTokens: 6 },
           },
         ]);
       }),
@@ -272,7 +243,7 @@ describe('simple-ai conversation provider', () => {
         role: 'user',
         text: context.normalizedUserText,
         content: [
-          { type: 'image_url', imageUrl: 'data:image/png;base64,ZmFrZQ==' },
+          { type: 'data', data: { kind: 'image-url', imageUrl: 'data:image/png;base64,ZmFrZQ==' } },
           { type: 'text', text: context.normalizedUserText },
         ],
         name: null,
@@ -297,7 +268,7 @@ describe('simple-ai conversation provider', () => {
           role: 'user',
           text: 'Read the image',
           content: [
-            { type: 'image_url', imageUrl: 'data:image/png;base64,ZmFrZQ==' },
+            { type: 'data', data: { kind: 'image-url', imageUrl: 'data:image/png;base64,ZmFrZQ==' } },
             { type: 'text', text: 'Read the image' },
           ],
           name: null,
@@ -308,6 +279,7 @@ describe('simple-ai conversation provider', () => {
       type: 'turn-completed',
       turnId: 'turn-1',
       outputText: 'vision-answer',
+      reasoningText: undefined,
       finishReason: 'stop',
       usage: { inputTokens: 4, outputTokens: 2, totalTokens: 6 },
       trace: { traceId: 'trace-vision' },
@@ -350,9 +322,9 @@ describe('simple-ai conversation provider', () => {
     const runtimeAdapter: ConversationRuntimeAdapter = {
       streamText: vi.fn(async () => sdkStream([
         { type: 'start' },
-        { type: 'delta', text: 'partial' },
+        { type: 'text-delta', text: 'partial' },
         sdkStreamError({
-          reasonCode: 'AI_INPUT_INVALID',
+          reasonCode: ReasonCode.AI_INPUT_INVALID,
           message: 'request is invalid',
           traceId: 'trace-2',
         }),

@@ -1,6 +1,6 @@
 import type {
-  TextMessageContentPart,
-  TextStreamOutput,
+  NimiMessagePart,
+  NimiRunEvent,
 } from '@nimiplatform/kit/core/sdk-contract';
 import type { ConversationMessageRole } from '../types.js';
 
@@ -17,7 +17,7 @@ export type ConversationOrchestrationModeId =
 
 export type ConversationTurnRole = Extract<
   ConversationMessageRole,
-  'system' | 'user' | 'assistant' | 'tool'
+  'system' | 'developer' | 'user' | 'assistant' | 'tool'
 >;
 
 export type ConversationTurnHistoryMessage = {
@@ -59,7 +59,7 @@ export type ConversationRuntimeTrace = {
 export type ConversationRuntimeTextMessage = {
   role: ConversationTurnRole;
   text: string;
-  content?: string | TextMessageContentPart[];
+  content?: string | readonly NimiMessagePart[];
   name?: string | null;
 };
 
@@ -95,7 +95,7 @@ export type ConversationTurnError = {
 export interface ConversationRuntimeAdapter {
   streamText: (
     request: ConversationRuntimeTextRequest,
-  ) => Promise<TextStreamOutput>;
+  ) => AsyncIterable<NimiRunEvent> | Promise<AsyncIterable<NimiRunEvent>>;
 }
 
 export type ConversationContinuityLoadInput = {

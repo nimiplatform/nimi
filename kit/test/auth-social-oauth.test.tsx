@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
-import { OAuthProvider } from '@nimiplatform/kit/core/sdk-contract';
+import { NIMI_REALM_OAUTH_PROVIDER } from '@nimiplatform/kit/core/sdk-contract';
 import {
   AuthViewMain,
   resolveSocialOauthConfig,
@@ -24,8 +24,8 @@ const desktopOAuthBridge = {
 
 describe('social OAuth config', () => {
   it('maps provider enum values correctly', () => {
-    expect(toOauthProvider('TWITTER')).toBe(OAuthProvider.TWITTER);
-    expect(toOauthProvider('TIKTOK')).toBe(OAuthProvider.TIKTOK);
+    expect(toOauthProvider('TWITTER')).toBe(NIMI_REALM_OAUTH_PROVIDER.TWITTER);
+    expect(toOauthProvider('TIKTOK')).toBe(NIMI_REALM_OAUTH_PROVIDER.TIKTOK);
   });
 
   it('is disabled with an explicit reason when client id is missing', () => {

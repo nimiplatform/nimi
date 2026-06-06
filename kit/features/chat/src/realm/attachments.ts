@@ -1,4 +1,4 @@
-import { resolveRealmMediaUrl } from '@nimiplatform/kit/core/sdk-contract';
+import { resolveNimiRealmMediaUrl } from '@nimiplatform/kit/core/sdk-contract';
 import type { RealmMessageInputPayload, RealmMessageViewDto } from './codec.js';
 import type { RealmChatTimelineDisplayModel, RealmChatTimelineMessage } from './types.js';
 import { asRecord, normalizeString } from './shared.js';
@@ -95,7 +95,7 @@ export function resolveRealmChatMediaUrl(payload: unknown, realmBaseUrl: string)
   if (!url) {
     return '';
   }
-  return resolveRealmMediaUrl({ realmBaseUrl, mediaUrl: url }) || '';
+  return resolveNimiRealmMediaUrl({ realmBaseUrl, mediaUrl: url }) || '';
 }
 
 export function getRealmChatTimelineDisplayModel(

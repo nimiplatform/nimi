@@ -1,5 +1,11 @@
 import type { FormEvent } from 'react';
-import { OAuthLoginState, type RealmModel } from '@nimiplatform/kit/core/sdk-contract';
+import {
+  NIMI_REALM_OAUTH_LOGIN_STATE,
+  readNimiRealmOAuthLoginTokens,
+  toNimiRealmAuthUserRecord,
+  type NimiRealmAuthTokens,
+  type NimiRealmOAuthLoginResult,
+} from '@nimiplatform/kit/core/sdk-contract';
 import {
   startSocialOauth,
   type SocialOauthProvider,
@@ -16,8 +22,8 @@ import {
 import { saveRememberedLogin, clearRememberedLogin } from './remember-login.js';
 import { loadGoogleScript, getGoogleClientId } from './google-helpers.js';
 
-type AuthTokensDto = RealmModel<'AuthTokensDto'>;
-type OAuthLoginResultDto = RealmModel<'OAuthLoginResultDto'>;
+type AuthTokensDto = NimiRealmAuthTokens;
+type OAuthLoginResultDto = NimiRealmOAuthLoginResult;
 
 // ---------------------------------------------------------------------------
 // State setter interface — passed by the AuthMenu component
@@ -54,9 +60,7 @@ export async function applyTokens(
 
   const refreshToken =
     typeof tokens.refreshToken === 'string' ? tokens.refreshToken.trim() : '';
-  const user = tokens.user && typeof tokens.user === 'object'
-    ? (tokens.user as Record<string, unknown>)
-    : null;
+  const user = toNimiRealmAuthUserRecord(tokens.user);
 
   await adapter.applyToken(accessToken, refreshToken || undefined);
   setters.setAuthSession(user, accessToken);
@@ -94,12 +98,12 @@ export async function handleLoginResult(
   adapter: AuthPlatformAdapter,
   twoFactorReturnView: AuthView = 'main',
 ): Promise<void> {
-  if (result.loginState === OAuthLoginState.BLOCKED) {
+  if (result.loginState === NIMI_REALM_OAUTH_LOGIN_STATE.BLOCKED) {
     setters.setLoginError(String(result.blockedReason || '账号不可用，请联系支持团队。'));
     return;
   }
 
-  if (result.loginState === OAuthLoginState.NEEDS_TWO_FACTOR) {
+  if (result.loginState === NIMI_REALM_OAUTH_LOGIN_STATE.NEEDS_TWO_FACTOR) {
     setters.setTempToken(String(result.tempToken || ''));
     setters.setTwoFactorCode('');
     setters.setTwoFactorReturnView(twoFactorReturnView);
@@ -107,13 +111,14 @@ export async function handleLoginResult(
     return;
   }
 
-  if (!result.tokens) {
+  const tokens = readNimiRealmOAuthLoginTokens(result);
+  if (!tokens) {
     throw new Error(AUTH_COPY.loginMissingTokenPayload);
   }
 
-  await applyTokens(result.tokens, successMessage, setters, adapter);
+  await applyTokens(tokens, successMessage, setters, adapter);
 
-  if (result.loginState === OAuthLoginState.NEEDS_ONBOARDING) {
+  if (result.loginState === NIMI_REALM_OAUTH_LOGIN_STATE.NEEDS_ONBOARDING) {
     setters.setStatusBanner({
       kind: 'warning',
       message: AUTH_COPY.onboardingPending,
@@ -281,39 +286,29 @@ export async function handleSetPasswordAfterOtp(
   }
 
   const finalizePendingTokens = async (): Promise<void> => {
-    let latestUserRecord: AuthTokensDto['user'] | null = null;
+    let latestUserRecord: Record<string, unknown> | null = null;
     try {
       const latestUser = await adapter.loadCurrentUser();
-      latestUserRecord = latestUser && typeof latestUser === 'object'
-        ? (latestUser as AuthTokensDto['user'])
-        : null;
+      latestUserRecord = toNimiRealmAuthUserRecord(latestUser);
     } catch {
       latestUserRecord = null;
     }
 
-    const finalizedTokens: AuthTokensDto = latestUserRecord
+    const pendingUserRecord = toNimiRealmAuthUserRecord(pendingTokens.user);
+    const finalizedUser = pendingUserRecord || latestUserRecord
+      ? {
+          ...(pendingUserRecord || {}),
+          ...(latestUserRecord || {}),
+          hasPassword: true,
+        }
+      : null;
+
+    const finalizedTokens: AuthTokensDto = finalizedUser
       ? {
           ...pendingTokens,
-          user: pendingTokens.user && typeof pendingTokens.user === 'object'
-            ? {
-                ...pendingTokens.user,
-                ...latestUserRecord,
-                hasPassword: true,
-              }
-            : {
-                ...latestUserRecord,
-                hasPassword: true,
-              },
+          user: finalizedUser,
         }
-      : pendingTokens.user && typeof pendingTokens.user === 'object'
-        ? {
-            ...pendingTokens,
-            user: {
-              ...pendingTokens.user,
-              hasPassword: true,
-            },
-          }
-        : pendingTokens;
+      : pendingTokens;
 
     setters.setPendingTokens(null);
     try {

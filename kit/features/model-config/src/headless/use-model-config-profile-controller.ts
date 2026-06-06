@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type {
-  AIProfile,
-  AIProfileApplyResult,
-  AIProfilePreviewResult,
-  AIScopeRef,
+  NimiAIProfile,
+  NimiAIProfileApplyResult,
+  NimiAIProfilePreviewResult,
+  NimiAIScopeRef,
 } from '@nimiplatform/kit/core/sdk-contract';
 import {
   createModelConfigProfileControllerCore,
@@ -19,7 +19,7 @@ import type {
 } from '../types.js';
 
 export interface UseModelConfigProfileControllerInput {
-  readonly scopeRef: AIScopeRef;
+  readonly scopeRef: NimiAIScopeRef;
   readonly aiConfigService: SharedAIConfigService;
   readonly copy: ModelConfigProfileCopy;
   readonly userProfilesSource?: UserProfilesSource;
@@ -30,7 +30,7 @@ export interface UseModelConfigProfileControllerInput {
   readonly onManage?: () => void;
 }
 
-function toProfileOptions(profiles: readonly AIProfile[]): ModelConfigProfileOption[] {
+function toProfileOptions(profiles: readonly NimiAIProfile[]): ModelConfigProfileOption[] {
   return profiles.map((profile) => ({
     profileId: profile.profileId,
     title: profile.title || profile.profileId,
@@ -38,7 +38,7 @@ function toProfileOptions(profiles: readonly AIProfile[]): ModelConfigProfileOpt
   }));
 }
 
-function scopeDependencyKey(scopeRef: AIScopeRef): string {
+function scopeDependencyKey(scopeRef: NimiAIScopeRef): string {
   return `${scopeRef.kind}\0${scopeRef.ownerId}\0${scopeRef.surfaceId ?? ''}`;
 }
 
@@ -52,7 +52,7 @@ function describeError(error: unknown): string {
   return 'Profile apply preview failed.';
 }
 
-function findProfile(profiles: readonly AIProfile[], profileId: string): AIProfile | null {
+function findProfile(profiles: readonly NimiAIProfile[], profileId: string): NimiAIProfile | null {
   for (const profile of profiles) {
     if (profile.profileId === profileId) {
       return profile;
@@ -64,7 +64,7 @@ function findProfile(profiles: readonly AIProfile[], profileId: string): AIProfi
 function toDisplayPreview(
   profileId: string,
   profileTitle: string,
-  preview: AIProfilePreviewResult,
+  preview: NimiAIProfilePreviewResult,
 ): ModelConfigProfilePreview {
   const summary = summarizeProfilePreview({ profileId, preview });
   return {
@@ -87,7 +87,7 @@ function toDisplayPreview(
  * fallback into a ModelConfigProfileController.
  *
  * Apply is preview-gated (D-AIPC-014 / S-AICONF-008): `onApply` computes a
- * non-committing before→after AIConfig preview, the panel surfaces the diff,
+ * non-committing before→after NimiAIConfig preview, the panel surfaces the diff,
  * and only `onConfirmApply` performs the D-AIPC-005 atomic commit. There is no
  * immediate-commit path for profile apply on this surface.
  *
@@ -109,9 +109,9 @@ export function useModelConfigProfileController(
   const [applying, setApplying] = useState(false);
   const [previewing, setPreviewing] = useState(false);
   const [preview, setPreview] = useState<ModelConfigProfilePreview | null>(null);
-  const [pendingPreview, setPendingPreview] = useState<AIProfilePreviewResult | null>(null);
+  const [pendingPreview, setPendingPreview] = useState<NimiAIProfilePreviewResult | null>(null);
   const [applyError, setApplyError] = useState<string | null>(null);
-  const [profiles, setProfiles] = useState<ReadonlyArray<AIProfile>>([]);
+  const [profiles, setProfiles] = useState<ReadonlyArray<NimiAIProfile>>([]);
   const [loading, setLoading] = useState(true);
   const [reloading, setReloading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -119,7 +119,7 @@ export function useModelConfigProfileController(
   const scopeKey = scopeDependencyKey(scopeRef);
   const scopeRefRef = useRef(scopeRef);
   const userProfilesSourceRef = useRef<UserProfilesSource | undefined>(userProfilesSource);
-  const profilesRef = useRef<ReadonlyArray<AIProfile>>([]);
+  const profilesRef = useRef<ReadonlyArray<NimiAIProfile>>([]);
 
   scopeRefRef.current = scopeRef;
   userProfilesSourceRef.current = userProfilesSource;
@@ -183,7 +183,7 @@ export function useModelConfigProfileController(
     setPendingPreview(null);
     const currentScopeRef = scopeRefRef.current;
     void aiConfigService.aiProfile.previewApply(currentScopeRef, profileId)
-      .then((previewResult: AIProfilePreviewResult) => {
+      .then((previewResult: NimiAIProfilePreviewResult) => {
         setPendingPreview(previewResult);
         setPreview(toDisplayPreview(profileId, profileTitleFor(profileId), previewResult));
       })
@@ -206,7 +206,7 @@ export function useModelConfigProfileController(
     void aiConfigService.aiProfile.apply(currentScopeRef, profileId, {
       expectedBaseVersion: pendingPreview.baseVersion,
     })
-      .then((remoteResult: AIProfileApplyResult) => {
+      .then((remoteResult: NimiAIProfileApplyResult) => {
         const resolution = core.resolveRemoteApply({
           profileId,
           remoteResult,

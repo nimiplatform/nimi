@@ -1,4 +1,5 @@
 import type { FormEvent } from 'react';
+import { readNimiRealmOAuthLoginTokens } from '@nimiplatform/kit/core/sdk-contract';
 import type { WalletType } from '../types/auth-types.js';
 import type { AuthPlatformAdapter } from '../platform/auth-platform-adapter.js';
 import { shouldPromptPasswordSetupAfterEmailOtp } from './auth-email-flow.js';
@@ -103,11 +104,12 @@ export async function handleVerifyEmailOtp(
   setters.setLoginError(null);
   try {
     const result = await adapter.verifyEmailOtp(normalizedEmail, otpCode);
-    if (result.tokens && shouldPromptPasswordSetupAfterEmailOtp(result)) {
-      const accessToken = String(result.tokens.accessToken || '').trim();
-      const refreshToken = String(result.tokens.refreshToken || '').trim();
+    const tokens = readNimiRealmOAuthLoginTokens(result);
+    if (tokens && shouldPromptPasswordSetupAfterEmailOtp(result)) {
+      const accessToken = String(tokens.accessToken || '').trim();
+      const refreshToken = String(tokens.refreshToken || '').trim();
       await adapter.applyToken(accessToken, refreshToken);
-      setters.setPendingTokens(result.tokens);
+      setters.setPendingTokens(tokens);
       setters.setOtpCode('');
       setters.setView('email_set_password');
       return;

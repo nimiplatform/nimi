@@ -1,6 +1,8 @@
 export type JsonPrimitive = string | number | boolean | null;
-export type JsonValue = unknown;
-export type JsonObject = Record<string, unknown>;
+export type JsonValue = JsonPrimitive | undefined | readonly JsonValue[] | JsonObject;
+export type JsonObject = {
+  [key: string]: JsonValue;
+};
 
 export type RealmDefaults = {
   realmBaseUrl: string;

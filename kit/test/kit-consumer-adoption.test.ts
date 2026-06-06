@@ -146,11 +146,12 @@ test('Tester is the second consumer for Kit shared primitives and shell bootstra
   assert.match(settings, /from '@nimiplatform\/kit\/ui'/);
 
   const realmKitProjections = read('apps/tester/src/shell/routes/settings/realm-kit-projections.ts');
-  assert.match(realmKitProjections, /from '@nimiplatform\/sdk\/runtime'/);
+  assert.doesNotMatch(realmKitProjections, /from '@nimiplatform\/sdk\/runtime'/);
   assert.match(realmKitProjections, /from '@nimiplatform\/kit\/features\/avatar\/headless'/);
   assert.match(realmKitProjections, /from '@nimiplatform\/kit\/features\/avatar\/vrm'/);
   assert.match(realmKitProjections, /from '@nimiplatform\/kit\/features\/avatar\/live2d'/);
-  assert.match(realmKitProjections, /\bresolveRuntimeAgentVoicePlaybackDecision\b/);
+  assert.match(realmKitProjections, /runtime_agent_voice_playback_decision_not_public_in_sdk_vnext/);
+  assert.doesNotMatch(realmKitProjections, /\bresolveRuntimeAgentVoicePlaybackDecision\b/);
   assert.match(realmKitProjections, /\bresolveAgentVoicePlaybackCue\b/);
   assert.match(realmKitProjections, /\bresolveAvatarVrmFramingPolicy\b/);
   assert.match(realmKitProjections, /\bresolveAvatarLive2dFramingPolicy\b/);
@@ -223,7 +224,9 @@ test('Tester product-local persistence consumes Kit core storage helpers', () =>
   assert.doesNotMatch(testerPreferences, /JSON\.stringify\(normalized\)/);
 
   assert.match(testerAiConfigStore, /from '@nimiplatform\/kit\/core\/storage-json'/);
-  assert.match(testerAiConfigStore, /createScopedAIConfigStore/);
-  assert.match(testerAiConfigStore, /createScopedAISnapshotStore/);
+  assert.match(testerAiConfigStore, /createNimiAIConfigStore/);
+  assert.match(testerAiConfigStore, /createNimiAISnapshotStore/);
+  assert.doesNotMatch(testerAiConfigStore, /createScopedAIConfigStore/);
+  assert.doesNotMatch(testerAiConfigStore, /createScopedAISnapshotStore/);
   assert.match(testerContract, /tester product-local persistence consumes Kit core storage helpers/);
 });

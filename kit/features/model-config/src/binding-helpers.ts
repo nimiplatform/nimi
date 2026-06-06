@@ -1,5 +1,3 @@
 export {
-  bindingToPickerSelection,
-  pickerSelectionToBinding,
-  summarizeBinding,
+  summarizeTargetRef,
 } from '@nimiplatform/kit/core/model-config';

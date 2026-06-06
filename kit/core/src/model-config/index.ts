@@ -24,11 +24,10 @@ export type {
   ModelConfigProjectionResolver,
   ModelConfigProjectionStatus,
   ModelConfigProviderResolver,
-  ModelConfigRouteBinding,
-  ModelConfigRoutePickerSelection,
   ModelConfigRouteProviderHandle,
-  ModelConfigRouteSource,
   ModelConfigStatusTone,
+  ModelConfigTargetRef,
+  ModelConfigRequirementEvaluation,
   SharedAIConfigService,
   SharedAIConfigSubscribeListener,
   SharedAIConfigUnsubscribe,
@@ -37,17 +36,14 @@ export type {
 
 export {
   applyModelConfigCapabilityPatch,
-  bindingToPickerSelection,
-  hasModelConfigRouteBinding,
-  normalizeModelConfigRouteBinding,
-  pickerSelectionToBinding,
-  readModelConfigRouteBinding,
-  summarizeBinding,
-} from './route-binding.js';
+  hasModelConfigTargetRef,
+  readModelConfigTargetRef,
+  selectRequirementDescriptors,
+  summarizeTargetRef,
+} from './target-ref.js';
 
 export {
   summarizeAiModelAggregate,
-  selectEnabledDescriptors,
 } from './aggregate.js';
 
 export type {

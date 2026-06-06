@@ -68,7 +68,7 @@ test('Kit code and tests route static SDK imports through the SDK contract bound
   assert.deepEqual(offenders, [], 'Kit SDK imports must stay centralized in kit/core/src/sdk-contract.ts');
 
   const sdkContract = read('kit/core/src/sdk-contract.ts');
-  assert.match(sdkContract, /resolveRealmMediaUrl/);
+  assert.match(sdkContract, /resolveNimiRealmMediaUrl/);
 
   const realmModulePaths = [
     'kit/features/chat/src/realm/attachments.ts',

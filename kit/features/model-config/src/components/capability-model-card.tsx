@@ -1,9 +1,5 @@
-import { useState } from 'react';
-import type { RouteModelPickerSelection } from '@nimiplatform/kit/features/model-picker';
-import { ModelPickerModal, ModelSelectorTrigger } from '@nimiplatform/kit/features/model-picker/ui';
-import { bindingToPickerSelection, pickerSelectionToBinding } from '../binding-helpers.js';
+import { summarizeTargetRef } from '@nimiplatform/kit/core/model-config';
 import type { CapabilityModelCardProps, ModelConfigCapabilityStatus } from '../types.js';
-import { DisabledConfigNote } from './config-section.js';
 
 function statusToneClasses(status: ModelConfigCapabilityStatus | null | undefined): {
   dot: string;
@@ -32,25 +28,11 @@ function statusToneClasses(status: ModelConfigCapabilityStatus | null | undefine
 }
 
 export function CapabilityModelCard({ item }: CapabilityModelCardProps) {
-  const [modalOpen, setModalOpen] = useState(false);
   const shouldShowEditor = item.editor && (
     item.showEditorWhen !== 'local'
-    || item.binding?.source === 'local'
+    || item.targetRef?.kind === 'local-runtime'
   );
-
-  if (!item.provider) {
-    return (
-      <div className="space-y-2">
-        <DisabledConfigNote label={item.runtimeNotReadyLabel || 'Runtime not ready'} />
-        {shouldShowEditor ? item.editor : null}
-      </div>
-    );
-  }
-
-  const selection = bindingToPickerSelection(item.binding);
-  const displayLabel = selection.modelLabel || selection.model || null;
-  const source = selection.source || null;
-  const connectorDetail = source === 'cloud' && selection.connectorId ? selection.connectorId : null;
+  const targetSummary = summarizeTargetRef(item.targetRef);
   const statusClasses = statusToneClasses(item.status);
 
   const headerLabel = item.activeModelLabel;
@@ -84,28 +66,16 @@ export function CapabilityModelCard({ item }: CapabilityModelCardProps) {
         ) : null}
       </div>
 
-      <ModelSelectorTrigger
-        source={source}
-        modelLabel={displayLabel}
-        detail={connectorDetail}
-        placeholder={item.placeholder}
-        onClick={() => setModalOpen(true)}
-        disabled={item.disabled}
-      />
-
-      {modalOpen ? (
-        <ModelPickerModal
-          open={modalOpen}
-          onClose={() => setModalOpen(false)}
-          capability={item.routeCapability}
-          capabilityLabel={item.label}
-          provider={item.provider}
-          initialSelection={selection}
-          onSelect={(pickerSelection: RouteModelPickerSelection) => {
-            item.onBindingChange(pickerSelectionToBinding(pickerSelection));
-          }}
-        />
-      ) : null}
+      <div className="rounded-[8px] border border-[var(--nimi-border,#e2e8f0)] bg-[var(--nimi-surface-muted,#f8fafc)] px-3 py-2">
+        <div className="truncate text-[12px] font-medium text-[var(--nimi-text-primary,#0f172a)]">
+          {targetSummary.label || item.placeholder || 'Setup required'}
+        </div>
+        {targetSummary.detail ? (
+          <div className="mt-0.5 truncate text-[11px] text-[var(--nimi-text-muted,#94a3b8)]">
+            {targetSummary.detail}
+          </div>
+        ) : null}
+      </div>
 
       {item.status?.title || item.status?.detail ? (
         <div className="space-y-0.5">
@@ -122,10 +92,10 @@ export function CapabilityModelCard({ item }: CapabilityModelCardProps) {
         </div>
       ) : null}
 
-      {item.showClearButton && item.binding ? (
+      {item.showClearButton && item.targetRef ? (
         <button
           type="button"
-          onClick={() => item.onBindingChange(null)}
+          onClick={() => item.onTargetRefChange(null)}
           className="text-xs text-[var(--nimi-text-muted,#94a3b8)] transition-colors hover:text-[var(--nimi-action-primary-bg,#10b981)]"
         >
           {item.clearSelectionLabel || 'Clear selection'}

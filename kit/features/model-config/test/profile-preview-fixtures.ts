@@ -6,10 +6,10 @@
 // not each re-declare them.
 
 import type {
-  AIConfig,
-  AIProfile,
-  AIProfilePreviewResult,
-  AIScopeRef,
+  NimiAIConfig,
+  NimiAIProfile,
+  NimiAIProfilePreviewResult,
+  NimiAIScopeRef,
 } from '@nimiplatform/kit/core/sdk-contract';
 import type { ModelConfigProfileCopy } from '../src/types.js';
 
@@ -45,22 +45,23 @@ export const previewCopyFields: Pick<
  * closed (throw), matching the host contract.
  */
 export function makePreviewApplyStub(input: {
-  readonly currentConfig: () => AIConfig;
-  readonly profilesById: ReadonlyArray<AIProfile>;
-}): (scopeRef: AIScopeRef, profileId: string) => Promise<AIProfilePreviewResult> {
+  readonly currentConfig: () => NimiAIConfig;
+  readonly profilesById: ReadonlyArray<NimiAIProfile>;
+}): (scopeRef: NimiAIScopeRef, profileId: string) => Promise<NimiAIProfilePreviewResult> {
   return async (_scopeRef, profileId) => {
     const profile = input.profilesById.find((entry) => entry.profileId === profileId);
     if (!profile) {
       throw new Error(`Profile not found: ${profileId}`);
     }
     const before = input.currentConfig();
-    const after: AIConfig = {
+    const after: NimiAIConfig = {
       ...before,
       profileOrigin: { profileId: profile.profileId, title: profile.title, appliedAt: 'preview' },
     };
     return {
       before,
       after,
+      outcome: 'ready_to_apply',
       diff: {
         identical: false,
         fields: [

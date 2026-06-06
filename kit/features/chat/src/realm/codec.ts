@@ -1,8 +1,48 @@
 import type { RealmModel } from '@nimiplatform/kit/core/sdk-contract';
 
+type RealmGeneratedMessageViewDto = RealmModel<'MessageViewDto'>;
+type RealmGeneratedMessageReplyViewDto = RealmModel<'MessageReplyViewDto'>;
 export type RealmSendMessageInputDto = RealmModel<'SendMessageInputDto'>;
-export type RealmMessageViewDto = RealmModel<'MessageViewDto'>;
-export type RealmMessagePayload = Exclude<RealmMessageViewDto['payload'], null>;
+export type RealmAttachmentTargetType = 'RESOURCE' | 'ASSET' | 'BUNDLE';
+export type RealmAttachmentDisplayKind = 'IMAGE' | 'VIDEO' | 'AUDIO' | 'TEXT' | 'CARD';
+export type RealmAttachmentEnvelope = {
+  targetType: RealmAttachmentTargetType;
+  targetId: string;
+  displayKind?: RealmAttachmentDisplayKind;
+  url?: string;
+  thumbnail?: string;
+  title?: string;
+  subtitle?: string;
+  width?: number;
+  height?: number;
+  duration?: number;
+  preview?: RealmAttachmentEnvelope;
+};
+export type RealmMessagePayload =
+  | { content: string }
+  | { attachment: RealmAttachmentEnvelope }
+  | { postId: string }
+  | { userId: string; snapshot?: Record<string, unknown> }
+  | { url: string; title?: string }
+  | {
+    interactionId: string;
+    amount?: number;
+    tokenSymbol?: string;
+    status?: string;
+  }
+  | {
+    requestId: string;
+    status: string;
+    requestMessage?: string;
+  };
+export type RealmMessageReplyViewDto = Omit<RealmGeneratedMessageReplyViewDto, 'payload'> & {
+  readonly payload: RealmMessagePayload | null;
+};
+export type RealmMessageViewDto = Omit<RealmGeneratedMessageViewDto, 'payload' | 'replyTo' | 'text'> & {
+  readonly payload: RealmMessagePayload | null;
+  readonly replyTo?: RealmMessageReplyViewDto;
+  readonly text?: string | null;
+};
 export type RealmMessageInputPayload = NonNullable<RealmSendMessageInputDto['payload']>;
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -19,11 +59,6 @@ function normalizeString(value: unknown): string {
 function normalizeFiniteNumber(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
 }
-
-type RealmAttachmentPayload = Extract<RealmMessagePayload, { attachment: unknown }>;
-type RealmAttachmentEnvelope = RealmAttachmentPayload['attachment'];
-type RealmAttachmentTargetType = RealmAttachmentEnvelope['targetType'];
-type RealmAttachmentDisplayKind = NonNullable<RealmAttachmentEnvelope['displayKind']>;
 
 function normalizeAttachmentTargetType(value: unknown): RealmAttachmentTargetType | null {
   const normalized = normalizeString(value).toUpperCase();

@@ -5,17 +5,23 @@ import {
   useState,
 } from 'react';
 import {
-  getPlatformClient,
-  streamAppAiChatResponse as streamSdkAppAiChatResponse,
-  submitAppAiChat as submitSdkAppAiChat,
-  type AppAiChatMetadataDefaults,
-  type AppAiChatPrompt,
-  type AppAiChatRequest,
-  type AppAiChatStreamRequest,
-  type AppAiChatStreamResult,
-  type Runtime,
-  type TextGenerateOutput,
-  type TextStreamPart,
+  createNimiRuntimeAIModel,
+  runNimiTextGenerate,
+  streamNimiTextResponse,
+  textPart,
+  type NimiGenerateTextRequest,
+  type NimiGenerateTextResult,
+  type NimiJsonObject,
+  type NimiMessage,
+  type NimiMessagePart,
+  type NimiModelRef,
+  type NimiRunEvent,
+  type NimiRuntimeAIModelOptions,
+  type NimiRuntimeAIReasoningOptions,
+  type NimiRuntimeAIRoutePolicy,
+  type NimiTextError,
+  type NimiTextStreamResponseResult,
+  type NimiTextTurnEvent,
   type NimiError,
 } from '@nimiplatform/kit/core/sdk-contract';
 import type { ChatComposerAdapter, ChatComposerSubmitInput } from './types.js';
@@ -33,6 +39,32 @@ const KIT_APP_AI_CHAT_METADATA: AppAiChatMetadataDefaults = {
   surfaceId: 'kit.features.chat',
 } as const;
 
+export type AppAiChatRuntime = NimiRuntimeAIModelOptions['runtime'];
+export type AppAiChatMetadataDefaults = Record<string, string>;
+export type AppAiChatMessage = Omit<NimiMessage, 'content'> & {
+  readonly content: string | readonly NimiMessagePart[];
+};
+export type AppAiChatPrompt = string | readonly AppAiChatMessage[];
+export type AppAiChatRoutePolicy = Exclude<NimiRuntimeAIRoutePolicy, 'unspecified'>;
+export type AppAiChatGenerateResult = NimiGenerateTextResult;
+export type AppAiChatStreamChunk = NimiRunEvent;
+export type AppAiChatRequest = {
+  readonly model: string;
+  readonly input: AppAiChatPrompt;
+  readonly system?: string;
+  readonly subjectUserId?: string;
+  readonly temperature?: number;
+  readonly topP?: number;
+  readonly maxTokens?: number;
+  readonly route?: AppAiChatRoutePolicy;
+  readonly timeoutMs?: number;
+  readonly connectorId?: string;
+  readonly metadata?: Record<string, string>;
+  readonly reasoning?: NimiRuntimeAIReasoningOptions;
+  readonly signal?: AbortSignal;
+};
+export type AppAiChatStreamRequest = AppAiChatRequest;
+export type AppAiChatStreamResult = NimiTextStreamResponseResult;
 export type AppAiChatError = NimiError | Error;
 export type AppAiChatSessionMessage = {
   id: string;
@@ -47,7 +79,7 @@ export type AppAiChatComposerResponse =
   | {
     mode: 'generate';
     text: string;
-    result: TextGenerateOutput;
+    result: AppAiChatGenerateResult;
   }
   | {
     mode: 'stream';
@@ -70,7 +102,8 @@ export type AppAiChatSessionResolveRequestContext = {
 };
 
 export type UseAppAiChatSessionOptions = {
-  runtime?: Runtime;
+  runtime?: AppAiChatRuntime;
+  appId?: string;
   initialMessages?: readonly AppAiChatSessionMessage[];
   resolveRequest: (
     context: AppAiChatSessionResolveRequestContext,
@@ -92,7 +125,8 @@ export type UseAppAiChatSessionResult = {
 };
 
 export type AppAiChatComposerAdapterOptions<TAttachment = never> = {
-  runtime?: Runtime;
+  runtime?: AppAiChatRuntime;
+  appId?: string;
   mode?: 'generate' | 'stream';
   model?: string;
   input?: AppAiChatPrompt;
@@ -105,12 +139,13 @@ export type AppAiChatComposerAdapterOptions<TAttachment = never> = {
   timeoutMs?: number;
   connectorId?: string;
   metadata?: AppAiChatRequest['metadata'];
+  reasoning?: NimiRuntimeAIReasoningOptions;
   signal?: AbortSignal;
   resolveRequest?: (
     input: ChatComposerSubmitInput<TAttachment>,
   ) => AppAiChatRequest | AppAiChatStreamRequest;
   resolveInput?: (input: ChatComposerSubmitInput<TAttachment>) => AppAiChatPrompt;
-  onChunk?: (part: TextStreamPart, input: ChatComposerSubmitInput<TAttachment>) => void;
+  onChunk?: (part: AppAiChatStreamChunk, input: ChatComposerSubmitInput<TAttachment>) => void;
   onResponse?: (
     response: AppAiChatComposerResponse,
     input: ChatComposerSubmitInput<TAttachment>,
@@ -122,29 +157,26 @@ export function createAppAiChatComposerAdapter<TAttachment = never>(
 ): ChatComposerAdapter<TAttachment> {
   return {
     submit: async (input) => {
-      const runtime = options.runtime ?? getPlatformClient().runtime;
+      const runtime = requireAppAiRuntime(options.runtime);
       const request = resolveAppAiChatRequest(input, options);
+      const model = createAppAiChatModel(runtime, request, options.appId);
+      const textRequest = toNimiGenerateTextRequest(request, model.model);
 
       if (options.mode === 'stream') {
-        const result = await streamSdkAppAiChatResponse(
-          runtime,
-          request as AppAiChatStreamRequest,
+        const result = await streamNimiTextResponse(
           {
-            onDelta: (_text, part) => {
-              options.onChunk?.(part, input);
-            },
-            onFinish: (_result, part) => {
-              if (part) {
-                options.onChunk?.(part, input);
-              }
-            },
-            onError: (_error, part) => {
-              if (part) {
-                options.onChunk?.(part, input);
-              }
+            runtime: { model },
+            request: textRequest,
+            signal: request.signal,
+          },
+          {
+            onDelta: (
+              _text: string,
+              event: Extract<NimiTextTurnEvent, { readonly type: 'text-delta' }>,
+            ) => {
+              options.onChunk?.(event.runEvent, input);
             },
           },
-          { metadataDefaults: KIT_APP_AI_CHAT_METADATA },
         );
 
         await options.onResponse?.({
@@ -155,11 +187,14 @@ export function createAppAiChatComposerAdapter<TAttachment = never>(
         return;
       }
 
-      const result = await submitSdkAppAiChat(
-        runtime,
-        request,
-        { metadataDefaults: KIT_APP_AI_CHAT_METADATA },
-      );
+      const generated = await runNimiTextGenerate({
+        runtime: { model },
+        request: textRequest,
+      });
+      if (!generated.ok) {
+        throw toError(generated.error);
+      }
+      const result = generated.result;
       await options.onResponse?.({
         mode: 'generate',
         text: result.text,
@@ -171,12 +206,12 @@ export function createAppAiChatComposerAdapter<TAttachment = never>(
 
 export function useAppAiChatSession({
   runtime,
+  appId,
   initialMessages = [],
   resolveRequest,
   onMessagesChange,
   onError,
 }: UseAppAiChatSessionOptions): UseAppAiChatSessionResult {
-  const runtimeClient = runtime ?? getPlatformClient().runtime;
   const [messages, setMessagesState] = useState<readonly AppAiChatSessionMessage[]>(initialMessages);
   const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -260,12 +295,17 @@ export function useAppAiChatSession({
         messages: nextMessages,
       });
       const requestWithSignal = withAppAiChatAbortSignal(request, abortController.signal);
+      const model = createAppAiChatModel(requireAppAiRuntime(runtime), requestWithSignal, appId);
+      const textRequest = toNimiGenerateTextRequest(requestWithSignal, model.model);
 
-      const result = await streamSdkAppAiChatResponse(
-        runtimeClient,
-        requestWithSignal,
+      const result = await streamNimiTextResponse(
         {
-          onDelta: (text) => {
+          runtime: { model },
+          request: textRequest,
+          signal: requestWithSignal.signal,
+        },
+        {
+          onDelta: (text: string) => {
             commitMessages((current) => current.map((message) => (
               message.id === assistantMessageId
                 ? {
@@ -277,7 +317,6 @@ export function useAppAiChatSession({
             )));
           },
         },
-        { metadataDefaults: KIT_APP_AI_CHAT_METADATA },
       );
 
       commitMessages((current) => current.map((message) => (
@@ -322,7 +361,7 @@ export function useAppAiChatSession({
       isStreamingRef.current = false;
       setIsStreaming(false);
     }
-  }, [commitMessages, onError, resolveRequest, runtimeClient]);
+  }, [appId, commitMessages, onError, resolveRequest, runtime]);
 
   return {
     messages,
@@ -362,7 +401,90 @@ function resolveAppAiChatRequest<TAttachment>(
     timeoutMs: options.timeoutMs,
     connectorId: options.connectorId,
     metadata: options.metadata,
+    reasoning: options.reasoning,
     signal: options.mode === 'stream' ? options.signal : undefined,
+  };
+}
+
+function createAppAiChatModel(
+  runtime: AppAiChatRuntime,
+  request: AppAiChatRequest,
+  appId: string | undefined,
+) {
+  return createNimiRuntimeAIModel({
+    runtime,
+    appId: normalizeRequiredText(appId, 'app AI chat requires an explicit appId'),
+    model: toNimiModelRef(request),
+    routePolicy: toNimiRuntimeRoutePolicy(request.route),
+    connectorId: normalizeNullableText(request.connectorId) || undefined,
+    subjectUserId: normalizeNullableText(request.subjectUserId) || undefined,
+    timeoutMs: request.timeoutMs,
+    metadata: withDefaultAppAiChatMetadata(request.metadata),
+    reasoning: request.reasoning,
+  });
+}
+
+function toNimiGenerateTextRequest(
+  request: AppAiChatRequest,
+  model: NimiModelRef,
+): NimiGenerateTextRequest {
+  const messages: NimiMessage[] = [];
+  const system = normalizeNullableText(request.system);
+  if (system) {
+    messages.push({ role: 'system', content: [textPart(system)] });
+  }
+  if (typeof request.input === 'string') {
+    messages.push({ role: 'user', content: [textPart(request.input)] });
+  } else {
+    messages.push(...request.input.map(toNimiMessage));
+  }
+  return {
+    model,
+    messages,
+    parameters: {
+      temperature: request.temperature,
+      topP: request.topP,
+      maxTokens: request.maxTokens,
+      metadata: withDefaultAppAiChatMetadata(request.metadata),
+    },
+  };
+}
+
+function toNimiMessage(message: AppAiChatMessage): NimiMessage {
+  return {
+    role: message.role,
+    content: typeof message.content === 'string' ? [textPart(message.content)] : message.content,
+    name: normalizeNullableText(message.name) || undefined,
+    toolCallId: normalizeNullableText(message.toolCallId) || undefined,
+    toolCalls: message.toolCalls,
+    metadata: message.metadata,
+  };
+}
+
+function toNimiModelRef(request: AppAiChatRequest): NimiModelRef {
+  return {
+    modelId: normalizeRequiredAppAiModel(request.model),
+    providerId: normalizeNullableText(request.connectorId) || undefined,
+  };
+}
+
+function toNimiRuntimeRoutePolicy(route: AppAiChatRequest['route']): NimiRuntimeAIRoutePolicy {
+  return route === 'local' || route === 'cloud' ? route : 'unspecified';
+}
+
+function requireAppAiRuntime(runtime: AppAiChatRuntime | undefined): AppAiChatRuntime {
+  if (!runtime) {
+    throw new Error('app AI chat requires an explicit Runtime AI surface');
+  }
+  return runtime;
+}
+
+function withDefaultAppAiChatMetadata(
+  metadata: Record<string, string> | undefined,
+): NimiJsonObject {
+  return {
+    ...KIT_APP_AI_CHAT_METADATA,
+    ...(metadata || {}),
   };
 }
 
@@ -375,6 +497,25 @@ function normalizeRequiredAppAiModel(model: string | undefined): string {
     throw new Error('app AI chat adapter requires a concrete Runtime model, not auto');
   }
   return normalized;
+}
+
+function normalizeRequiredText(value: unknown, message: string): string {
+  const normalized = normalizeNullableText(value);
+  if (!normalized) {
+    throw new Error(message);
+  }
+  return normalized;
+}
+
+function normalizeNullableText(value: unknown): string | null {
+  const normalized = typeof value === 'string' ? value.trim() : '';
+  return normalized || null;
+}
+
+function toError(error: NimiTextError): Error {
+  const next = new Error(error.message);
+  next.name = error.code;
+  return next;
 }
 
 function toAppAiChatError(error: NimiError | Error | string): AppAiChatError {

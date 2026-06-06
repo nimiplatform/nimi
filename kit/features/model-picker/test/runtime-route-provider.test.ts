@@ -4,18 +4,18 @@ import {
   createRuntimeRouteModelPickerProviderCache,
 } from '../src/runtime.js';
 import type {
-  RuntimeCanonicalCapability,
-  RuntimeRouteOptionsSnapshot,
+  NimiRuntimeCanonicalCapability,
+  NimiRuntimeRouteOptionsSnapshot,
 } from '@nimiplatform/kit/core/sdk-contract';
 
 function makeRouteOptionsLoader() {
   let calls = 0;
-  type RouteOptionsInput = { capability: RuntimeCanonicalCapability };
+  type RouteOptionsInput = { capability: NimiRuntimeCanonicalCapability };
   return {
     get calls() {
       return calls;
     },
-    async loadOptions(input: RouteOptionsInput): Promise<RuntimeRouteOptionsSnapshot> {
+    async loadOptions(input: RouteOptionsInput): Promise<NimiRuntimeRouteOptionsSnapshot> {
       calls += 1;
       return {
         capability: input.capability,

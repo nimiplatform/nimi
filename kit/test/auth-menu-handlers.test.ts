@@ -137,6 +137,8 @@ describe('auth menu handlers', () => {
     const tokens = {
       accessToken: 'access-token',
       refreshToken: 'refresh-token',
+      expiresIn: 3600,
+      tokenType: 'Bearer',
       user: {
         id: 'user-1',
         hasPassword: false,
@@ -159,7 +161,7 @@ describe('auth menu handlers', () => {
     );
 
     expect(applyTokenCalls).toEqual([['access-token', 'refresh-token']]);
-    expect(state.pendingTokensValue).toBe(tokens);
+    expect(state.pendingTokensValue).toEqual(tokens);
     expect(state.view).toBe('email_set_password');
     expect(state.authSessionCalls).toBe(0);
     expect(state.loginError).toBeNull();

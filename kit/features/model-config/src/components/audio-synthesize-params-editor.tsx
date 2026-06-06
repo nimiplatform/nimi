@@ -1,5 +1,5 @@
 import type { AudioSynthesizeParamsState } from '../types.js';
-import type { SpeechVoiceReference } from '@nimiplatform/kit/core/sdk-contract';
+import type { NimiRuntimeSpeechVoiceReference } from '@nimiplatform/kit/core/sdk-contract';
 import { AUDIO_SYNTHESIZE_RESPONSE_FORMAT_OPTIONS } from '../constants.js';
 import {
   EditorSectionTitle,
@@ -30,7 +30,7 @@ export type AudioSynthesizeParamsEditorCopy = {
 };
 
 export type AudioSynthesizeVoiceOption = {
-  value: SpeechVoiceReference;
+  value: NimiRuntimeSpeechVoiceReference;
   label: string;
 };
 
@@ -43,7 +43,7 @@ export type AudioSynthesizeParamsEditorProps = {
 
 const DEFAULT_VOICE_SENTINEL = '__default_voice__';
 
-function voiceReferenceKey(value: SpeechVoiceReference | null): string {
+function voiceReferenceKey(value: NimiRuntimeSpeechVoiceReference | null): string {
   if (!value) return DEFAULT_VOICE_SENTINEL;
   switch (value.kind) {
     case 'preset_voice_id':
@@ -56,7 +56,10 @@ function voiceReferenceKey(value: SpeechVoiceReference | null): string {
   return '';
 }
 
-function voiceReferenceEquals(left: SpeechVoiceReference | null, right: SpeechVoiceReference | null): boolean {
+function voiceReferenceEquals(
+  left: NimiRuntimeSpeechVoiceReference | null,
+  right: NimiRuntimeSpeechVoiceReference | null,
+): boolean {
   return voiceReferenceKey(left) === voiceReferenceKey(right);
 }
 

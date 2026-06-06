@@ -1,11 +1,16 @@
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { Runtime, TextStreamPart } from '@nimiplatform/kit/core/sdk-contract';
+import { afterEach, describe, expect, it } from 'vitest';
+import type { Runtime } from '@nimiplatform/kit/core/sdk-contract';
 import {
   useAppAiChatSession,
   type AppAiChatSessionMessage,
 } from '../src/runtime.js';
+import {
+  createRuntimeAiTestRuntime,
+  runtimeDoneEvent,
+  runtimeTextDeltaEvent,
+} from './runtime-ai-test-helpers.js';
 
 (
   globalThis as typeof globalThis & {
@@ -17,23 +22,6 @@ function flush() {
   return new Promise((resolve) => {
     setTimeout(resolve, 0);
   });
-}
-
-function makeStreamRuntime(parts: TextStreamPart[]): Runtime {
-  return {
-    ai: {
-      text: {
-        generate: vi.fn(),
-        stream: vi.fn().mockResolvedValue({
-          stream: (async function* () {
-            for (const part of parts) {
-              yield part;
-            }
-          })(),
-        }),
-      },
-    },
-  } as unknown as Runtime;
 }
 
 type HarnessProps = {
@@ -48,6 +36,7 @@ type HarnessProps = {
 function Harness({ runtime, onReady }: HarnessProps) {
   const session = useAppAiChatSession({
     runtime,
+    appId: 'kit-chat-test-app',
     resolveRequest: ({ messages }) => ({
       model: 'runtime-selected-chat',
       input: messages.map((message) => ({
@@ -99,12 +88,14 @@ afterEach(async () => {
 
 describe('useAppAiChatSession', () => {
   it('appends user and assistant messages and resolves streamed text', async () => {
-    const runtime = makeStreamRuntime([
-      { type: 'start' },
-      { type: 'delta', text: 'Hello ' },
-      { type: 'delta', text: 'world' },
-      { type: 'finish', finishReason: 'stop', usage: { inputTokens: 1, outputTokens: 2 }, trace: { traceId: 'trace-1' } },
-    ]);
+    const runtimeHarness = createRuntimeAiTestRuntime({
+      streamEvents: [
+        { type: 'start', traceId: 'trace-1' },
+        { type: 'text-delta', text: 'Hello ' },
+        { type: 'text-delta', text: 'world' },
+        { type: 'done', finishReason: 'stop', usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 } },
+      ],
+    });
     let api: HarnessProps['onReady'] extends (input: infer T) => void ? T : never;
 
     container = document.createElement('div');
@@ -112,7 +103,7 @@ describe('useAppAiChatSession', () => {
     root = createRoot(container);
 
     await act(async () => {
-      root?.render(<Harness runtime={runtime} onReady={(value) => { api = value; }} />);
+      root?.render(<Harness runtime={runtimeHarness.runtime} onReady={(value) => { api = value; }} />);
       await flush();
     });
 
@@ -133,19 +124,12 @@ describe('useAppAiChatSession', () => {
   });
 
   it('marks the assistant message as error when the runtime stream fails', async () => {
-    const runtime = {
-      ai: {
-        text: {
-          generate: vi.fn(),
-          stream: vi.fn().mockResolvedValue({
-            stream: (async function* () {
-              yield { type: 'delta', text: 'Partial' } as TextStreamPart;
-              yield { type: 'error', error: new Error('overloaded') } as TextStreamPart;
-            })(),
-          }),
-        },
-      },
-    } as unknown as Runtime;
+    const runtimeHarness = createRuntimeAiTestRuntime({
+      streamEvents: [
+        { type: 'text-delta', text: 'Partial' },
+        { type: 'error', code: 'RUNTIME_OVERLOADED', message: 'overloaded' },
+      ],
+    });
     let api: HarnessProps['onReady'] extends (input: infer T) => void ? T : never;
 
     container = document.createElement('div');
@@ -153,7 +137,7 @@ describe('useAppAiChatSession', () => {
     root = createRoot(container);
 
     await act(async () => {
-      root?.render(<Harness runtime={runtime} onReady={(value) => { api = value; }} />);
+      root?.render(<Harness runtime={runtimeHarness.runtime} onReady={(value) => { api = value; }} />);
       await flush();
     });
 
@@ -174,21 +158,14 @@ describe('useAppAiChatSession', () => {
 
   it('cancels an active stream and marks the assistant message as canceled', async () => {
     let release: (() => void) | null = null;
-    const runtime = {
-      ai: {
-        text: {
-          generate: vi.fn(),
-          stream: vi.fn().mockResolvedValue({
-            stream: (async function* () {
-              yield { type: 'delta', text: 'Partial' } as TextStreamPart;
-              await new Promise<void>((resolve, reject) => {
-                release = () => reject(new DOMException('Aborted', 'AbortError'));
-              });
-            })(),
-          }),
-        },
-      },
-    } as unknown as Runtime;
+    const runtimeHarness = createRuntimeAiTestRuntime({
+      streamScenario: () => (async function* () {
+        yield runtimeTextDeltaEvent('Partial');
+        await new Promise<void>((_resolve, reject) => {
+          release = () => reject(new DOMException('Aborted', 'AbortError'));
+        });
+      })(),
+    });
     let api: {
       sendPrompt: (input: string) => Promise<void>;
       resetMessages: (messages?: readonly AppAiChatSessionMessage[]) => void;
@@ -200,7 +177,7 @@ describe('useAppAiChatSession', () => {
     root = createRoot(container);
 
     await act(async () => {
-      root?.render(<Harness runtime={runtime} onReady={(value) => { api = value as typeof api; }} />);
+      root?.render(<Harness runtime={runtimeHarness.runtime} onReady={(value) => { api = value as typeof api; }} />);
       await flush();
     });
 
@@ -231,23 +208,15 @@ describe('useAppAiChatSession', () => {
 
   it('drops overlapping sendPrompt calls while a stream is already starting', async () => {
     let release: (() => void) | null = null;
-    const stream = vi.fn().mockResolvedValue({
-      stream: (async function* () {
+    const runtimeHarness = createRuntimeAiTestRuntime({
+      streamScenario: () => (async function* () {
         await new Promise<void>((resolve) => {
           release = resolve;
         });
-        yield { type: 'delta', text: 'Only once' } as TextStreamPart;
-        yield { type: 'finish', finishReason: 'stop' } as TextStreamPart;
+        yield runtimeTextDeltaEvent('Only once');
+        yield runtimeDoneEvent();
       })(),
     });
-    const runtime = {
-      ai: {
-        text: {
-          generate: vi.fn(),
-          stream,
-        },
-      },
-    } as unknown as Runtime;
     let api: {
       sendPrompt: (input: string) => Promise<void>;
       resetMessages: (messages?: readonly AppAiChatSessionMessage[]) => void;
@@ -259,7 +228,7 @@ describe('useAppAiChatSession', () => {
     root = createRoot(container);
 
     await act(async () => {
-      root?.render(<Harness runtime={runtime} onReady={(value) => { api = value as typeof api; }} />);
+      root?.render(<Harness runtime={runtimeHarness.runtime} onReady={(value) => { api = value as typeof api; }} />);
       await flush();
     });
 
@@ -275,7 +244,7 @@ describe('useAppAiChatSession', () => {
       await flush();
     });
 
-    expect(stream).toHaveBeenCalledTimes(1);
+    expect(runtimeHarness.streamScenario).toHaveBeenCalledTimes(1);
 
     await act(async () => {
       release?.();

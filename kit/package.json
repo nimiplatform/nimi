@@ -305,7 +305,7 @@
     "test": "vitest run --config ui/vitest.config.ts"
   },
   "dependencies": {
-    "@nimiplatform/sdk": "workspace:^0.6.0",
+    "@nimiplatform/sdk": "workspace:*",
     "@tauri-apps/api": "^2.11.0",
     "@radix-ui/react-avatar": "^1.1.10",
     "@radix-ui/react-dialog": "^1.1.14",

@@ -60,8 +60,9 @@ This module owns the following shared Nimi app surfaces:
 - `ProfileConfigSection` renders exactly once per hub, in the header action
   slot, using `variant='import-button'`. Peer or footer placements are
   forbidden by the hub layout contract; this is asserted by the kit tests.
-- Section cards render only for canonical section ids admitted by
-  `enabledCapabilities ∩ CANONICAL_CAPABILITY_CATALOG_BY_ID`, in
+- Section cards render only for canonical section ids admitted by the injected
+  SDK `AICapabilityRequirementDeclaration` slices intersected with
+  `CANONICAL_CAPABILITY_CATALOG_BY_ID`, in
   `CapabilitySectionId` enum order (`chat | tts | stt | image | video | voice
   | embed | world`).
 - A capability with `editorKind !== null` whose editor is missing must fail

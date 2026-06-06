@@ -5,9 +5,6 @@
 // every consumer projects the same aggregate tone/label taxonomy.
 
 import type {
-  CanonicalCapabilityDescriptor,
-} from '@nimiplatform/kit/core/runtime-capabilities';
-import type {
   AggregateCountsLabels,
   AggregateSummary,
   CapabilityEvaluation,
@@ -67,23 +64,4 @@ export function summarizeAiModelAggregate(
     attentionCount: attention,
     neutralCount: neutral,
   };
-}
-
-/**
- * Filter a canonical descriptor set down to the subset enabled by an app.
- * Unknown capability ids are dropped rather than silently admitted; callers
- * that need strict validation should assert before calling this helper.
- */
-export function selectEnabledDescriptors(
-  enabledCapabilities: ReadonlyArray<string>,
-  catalogById: Readonly<Record<string, CanonicalCapabilityDescriptor>>,
-): ReadonlyArray<CanonicalCapabilityDescriptor> {
-  const out: CanonicalCapabilityDescriptor[] = [];
-  for (const capabilityId of enabledCapabilities) {
-    const descriptor = catalogById[capabilityId];
-    if (descriptor) {
-      out.push(descriptor);
-    }
-  }
-  return out;
 }

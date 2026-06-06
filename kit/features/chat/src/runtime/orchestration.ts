@@ -1,11 +1,14 @@
 import type {
-  Runtime,
-  TextMessage,
-  TextStreamInput,
-} from '@nimiplatform/kit/core/sdk-contract';
-import {
-  runAppAiTextTurn,
-  type AppAiTextTurnEvent,
+  NimiAiModel,
+  NimiGenerateTextRequest,
+  NimiJsonObject,
+  NimiMessage,
+  NimiMessagePart,
+  NimiModelRef,
+  NimiRuntimeAIModelOptions,
+  NimiRuntimeAIReasoningOptions,
+  NimiRuntimeAIRoutePolicy,
+  NimiTextTurnEvent,
 } from '@nimiplatform/kit/core/sdk-contract';
 import type {
   ConversationOrchestrationProvider,
@@ -13,6 +16,7 @@ import type {
   ConversationRuntimeTextMessage,
   ConversationRuntimeTextRequest,
   ConversationRuntimeTrace,
+  ConversationRuntimeUsage,
   ConversationTurnError,
   ConversationTurnEvent,
   ConversationTurnHistoryMessage,
@@ -33,6 +37,15 @@ const SIMPLE_AI_PROVIDER_CAPABILITIES = {
   imageGeneration: false,
   videoGeneration: false,
 } as const;
+
+type SdkContractModule = typeof import('@nimiplatform/kit/core/sdk-contract');
+
+let sdkContractModulePromise: Promise<SdkContractModule> | null = null;
+
+function loadSdkContract(): Promise<SdkContractModule> {
+  sdkContractModulePromise ??= import('@nimiplatform/kit/core/sdk-contract');
+  return sdkContractModulePromise;
+}
 
 export type SimpleAiConversationProviderOptions = {
   runtimeAdapter: ConversationRuntimeAdapter;
@@ -56,6 +69,11 @@ export type SimpleAiConversationProviderOptions = {
     ConversationRuntimeTextRequest,
     'modeId' | 'threadId' | 'turnId' | 'messages' | 'systemPrompt' | 'signal'
   >;
+};
+
+export type SdkConversationRuntimeAdapterOptions = {
+  runtime: NimiRuntimeAIModelOptions['runtime'];
+  appId: string;
 };
 
 export function createSimpleAiConversationProvider(
@@ -103,7 +121,7 @@ export function createSimpleAiConversationProvider(
         })
         : {};
 
-      const request = toSdkTextStreamRequest({
+      const request = toConversationRuntimeTextRequest({
         modeId: 'simple-ai',
         threadId: input.threadId,
         turnId: input.turnId,
@@ -112,21 +130,16 @@ export function createSimpleAiConversationProvider(
         signal: input.signal,
         ...runtimeRequest,
       });
+      const modelRef = toNimiModelRef(request);
+      const textRequest = toNimiGenerateTextRequest(request, modelRef);
+      const { runNimiTextTurn } = await loadSdkContract();
 
-      for await (const event of runAppAiTextTurn({
-        runtime: {
-          streamText: (nextRequest) => options.runtimeAdapter.streamText({
-            ...nextRequest,
-            modeId: 'simple-ai',
-            threadId: input.threadId,
-            turnId: input.turnId,
-            messages,
-            systemPrompt,
-          }),
-        },
-        request,
+      for await (const event of runNimiTextTurn({
+        runtime: { model: createAdapterTextModel(options.runtimeAdapter, request, modelRef) },
+        request: textRequest,
         threadId: input.threadId,
         turnId: input.turnId,
+        signal: input.signal,
       })) {
         const conversationEvent = toConversationTurnEvent(event, input);
         if (conversationEvent) {
@@ -137,20 +150,34 @@ export function createSimpleAiConversationProvider(
   };
 }
 
-export function createSdkConversationRuntimeAdapter(runtime?: Runtime): ConversationRuntimeAdapter {
-  const runtimeClient = runtime
-    ? Promise.resolve(runtime)
-    : import('@nimiplatform/kit/core/sdk-contract').then((mod) => mod.getPlatformClient().runtime);
+export function createSdkConversationRuntimeAdapter(
+  options: SdkConversationRuntimeAdapterOptions,
+): ConversationRuntimeAdapter {
   return {
     async streamText(request) {
-      const resolvedRuntimeClient = await runtimeClient;
-      return resolvedRuntimeClient.ai.text.stream(toSdkTextStreamRequest(request));
+      const { createNimiRuntimeAIModel } = await loadSdkContract();
+      const modelRef = toNimiModelRef(request);
+      const model = createNimiRuntimeAIModel({
+        runtime: options.runtime,
+        appId: normalizeRequiredText(options.appId, 'conversation runtime adapter requires an explicit appId'),
+        model: modelRef,
+        routePolicy: toRuntimeRoutePolicy(request.route),
+        connectorId: normalizeNullableText(request.connectorId) || undefined,
+        subjectUserId: normalizeNullableText(request.subjectUserId) || undefined,
+        timeoutMs: request.timeoutMs,
+        metadata: toNimiJsonObject(request.metadata),
+        reasoning: toNimiRuntimeReasoning(request.reasoning),
+      });
+      if (!model.streamText) {
+        throw new Error(`conversation runtime model ${model.model.modelId} does not support streaming`);
+      }
+      return model.streamText(toNimiGenerateTextRequest(request, model.model));
     },
   };
 }
 
 function toConversationTurnEvent(
-  event: AppAiTextTurnEvent,
+  event: NimiTextTurnEvent,
   input: ConversationTurnInput,
 ): ConversationTurnEvent | null {
   switch (event.type) {
@@ -175,6 +202,10 @@ function toConversationTurnEvent(
       };
     case 'structured-output-parsed':
     case 'structured-output-repair-required':
+    case 'tool-call':
+    case 'warning':
+    case 'artifact':
+    case 'trace':
       return null;
     case 'turn-completed':
       return {
@@ -183,8 +214,8 @@ function toConversationTurnEvent(
         outputText: event.snapshot.text,
         reasoningText: event.snapshot.reasoningText || undefined,
         finishReason: event.snapshot.finishReason,
-        usage: event.snapshot.usage,
-        trace: toConversationRuntimeTrace(event.snapshot.trace),
+        usage: toConversationRuntimeUsage(event.snapshot.usage),
+        trace: toConversationRuntimeTrace(event.snapshot.traceId),
       };
     case 'turn-failed':
       return {
@@ -194,8 +225,8 @@ function toConversationTurnEvent(
         outputText: event.snapshot.text || undefined,
         reasoningText: event.snapshot.reasoningText || undefined,
         finishReason: event.snapshot.finishReason,
-        usage: event.snapshot.usage,
-        trace: toConversationRuntimeTrace(event.snapshot.trace, event.error.cause),
+        usage: toConversationRuntimeUsage(event.snapshot.usage),
+        trace: toConversationRuntimeTrace(event.snapshot.traceId, event.error.cause),
       };
     case 'turn-canceled':
       return {
@@ -205,12 +236,28 @@ function toConversationTurnEvent(
         outputText: event.snapshot.text || undefined,
         reasoningText: event.snapshot.reasoningText || undefined,
         finishReason: event.snapshot.finishReason,
-        usage: event.snapshot.usage,
-        trace: toConversationRuntimeTrace(event.snapshot.trace),
+        usage: toConversationRuntimeUsage(event.snapshot.usage),
+        trace: toConversationRuntimeTrace(event.snapshot.traceId),
       };
-    default:
-      return assertNever(event);
   }
+  return null;
+}
+
+function toConversationRuntimeUsage(
+  usage: {
+    readonly promptTokens?: number;
+    readonly completionTokens?: number;
+    readonly totalTokens?: number;
+  } | undefined,
+): ConversationRuntimeUsage | undefined {
+  if (!usage) {
+    return undefined;
+  }
+  return {
+    inputTokens: usage.promptTokens,
+    outputTokens: usage.completionTokens,
+    totalTokens: usage.totalTokens,
+  };
 }
 
 function toConversationRuntimeTrace(
@@ -219,7 +266,9 @@ function toConversationRuntimeTrace(
 ): ConversationRuntimeTrace | undefined {
   const traceRecord = toRecord(trace);
   const errorRecord = toRecord(errorCause);
-  const traceId = normalizeNullableText(traceRecord?.traceId) || normalizeNullableText(errorRecord?.traceId);
+  const traceId = normalizeNullableText(trace)
+    || normalizeNullableText(traceRecord?.traceId)
+    || normalizeNullableText(errorRecord?.traceId);
   const promptTraceId = normalizeNullableText(traceRecord?.promptTraceId)
     || normalizeNullableText(errorRecord?.promptTraceId);
   const modelResolved = normalizeNullableText(traceRecord?.modelResolved);
@@ -240,22 +289,13 @@ function toRecord(value: unknown): Record<string, unknown> | null {
     : null;
 }
 
-function toSdkTextStreamRequest(request: ConversationRuntimeTextRequest): TextStreamInput {
-  const model = normalizeRequiredRuntimeModel(request.model);
+function toConversationRuntimeTextRequest(request: ConversationRuntimeTextRequest): ConversationRuntimeTextRequest {
+  normalizeRequiredRuntimeModel(request.model);
   return {
-    model,
-    input: request.messages.map(toSdkTextMessage),
-    system: normalizeNullableText(request.systemPrompt) || undefined,
-    route: request.route,
+    ...request,
     connectorId: normalizeNullableText(request.connectorId) || undefined,
     subjectUserId: normalizeNullableText(request.subjectUserId) || undefined,
-    temperature: request.temperature,
-    topP: request.topP,
-    maxTokens: request.maxTokens,
-    timeoutMs: request.timeoutMs,
-    reasoning: request.reasoning,
-    metadata: request.metadata,
-    signal: request.signal,
+    systemPrompt: normalizeNullableText(request.systemPrompt),
   };
 }
 
@@ -268,14 +308,6 @@ function normalizeRequiredRuntimeModel(model: string | undefined): string {
     throw new Error('conversation runtime request requires a concrete Runtime model, not auto');
   }
   return normalized;
-}
-
-function toSdkTextMessage(message: ConversationRuntimeTextMessage): TextMessage {
-  return {
-    role: message.role,
-    content: message.content ?? message.text,
-    name: normalizeNullableText(message.name) || undefined,
-  };
 }
 
 function toRuntimeTextMessage(
@@ -331,6 +363,99 @@ function toConversationTurnError(error: unknown): ConversationTurnError {
   };
 }
 
+function createAdapterTextModel(
+  adapter: ConversationRuntimeAdapter,
+  request: ConversationRuntimeTextRequest,
+  model: NimiModelRef,
+): NimiAiModel {
+  return {
+    model,
+    async generateText() {
+      throw new Error('conversation runtime adapter does not support non-streaming generateText');
+    },
+    streamText: () => adapter.streamText(request),
+  };
+}
+
+function toNimiGenerateTextRequest(
+  request: ConversationRuntimeTextRequest,
+  model: NimiModelRef,
+): NimiGenerateTextRequest {
+  const messages: NimiMessage[] = [];
+  const systemPrompt = normalizeNullableText(request.systemPrompt);
+  if (systemPrompt) {
+    messages.push({
+      role: 'system',
+      content: [toTextPart(systemPrompt)],
+    });
+  }
+  messages.push(...request.messages.map(toNimiMessage));
+  return {
+    model,
+    messages,
+    parameters: {
+      temperature: request.temperature,
+      topP: request.topP,
+      maxTokens: request.maxTokens,
+      metadata: toNimiJsonObject(request.metadata),
+    },
+  };
+}
+
+function toNimiMessage(message: ConversationRuntimeTextMessage): NimiMessage {
+  const content = Array.isArray(message.content)
+    ? message.content
+    : [toTextPart(normalizeText(message.content ?? message.text))];
+  return {
+    role: message.role,
+    content,
+    name: normalizeNullableText(message.name) || undefined,
+  };
+}
+
+function toTextPart(text: string): NimiMessagePart {
+  return { type: 'text', text };
+}
+
+function toNimiModelRef(request: ConversationRuntimeTextRequest): NimiModelRef {
+  return {
+    modelId: normalizeRequiredRuntimeModel(request.model),
+    providerId: normalizeNullableText(request.connectorId) || undefined,
+  };
+}
+
+function toRuntimeRoutePolicy(route: ConversationRuntimeTextRequest['route']): NimiRuntimeAIRoutePolicy {
+  return route === 'local' || route === 'cloud' ? route : 'unspecified';
+}
+
+function toNimiRuntimeReasoning(
+  reasoning: ConversationRuntimeTextRequest['reasoning'],
+): NimiRuntimeAIReasoningOptions | undefined {
+  if (!reasoning) {
+    return undefined;
+  }
+  return {
+    mode: reasoning.mode === 'on' ? 'on' : reasoning.mode === 'off' ? 'off' : undefined,
+    traceMode: reasoning.traceMode,
+    budgetTokens: reasoning.budgetTokens,
+  };
+}
+
+function toNimiJsonObject(value: Record<string, string> | undefined): NimiJsonObject | undefined {
+  if (!value || Object.keys(value).length === 0) {
+    return undefined;
+  }
+  return { ...value };
+}
+
+function normalizeRequiredText(value: unknown, message: string): string {
+  const normalized = normalizeText(value);
+  if (!normalized) {
+    throw new Error(message);
+  }
+  return normalized;
+}
+
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
@@ -338,8 +463,4 @@ function normalizeText(value: unknown): string {
 function normalizeNullableText(value: unknown): string | null {
   const normalized = normalizeText(value);
   return normalized || null;
-}
-
-function assertNever(value: never): never {
-  throw new Error(`Unhandled runtime orchestration value: ${JSON.stringify(value)}`);
 }

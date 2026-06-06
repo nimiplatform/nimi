@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import type { AIConfig } from '@nimiplatform/kit/core/sdk-contract';
+import type { NimiAIConfig } from '@nimiplatform/kit/core/sdk-contract';
 import {
   CANONICAL_CAPABILITY_CATALOG_BY_ID,
   type CanonicalCapabilityDescriptor,
   type CanonicalCapabilitySectionId,
 } from '@nimiplatform/kit/core/runtime-capabilities';
 import {
-  hasModelConfigRouteBinding,
-  selectEnabledDescriptors,
+  hasModelConfigTargetRef,
+  selectRequirementDescriptors,
   summarizeAiModelAggregate,
   type AppModelConfigSurface,
   type CapabilityEvaluation,
@@ -123,8 +123,8 @@ function groupDescriptorsBySection(
   return map;
 }
 
-function useLiveConfig(surface: AppModelConfigSurface): AIConfig {
-  const [config, setConfig] = useState<AIConfig>(() => surface.aiConfigService.aiConfig.get(surface.scopeRef));
+function useLiveConfig(surface: AppModelConfigSurface): NimiAIConfig {
+  const [config, setConfig] = useState<NimiAIConfig>(() => surface.aiConfigService.aiConfig.get(surface.scopeRef));
   useEffect(() => {
     setConfig(surface.aiConfigService.aiConfig.get(surface.scopeRef));
     return surface.aiConfigService.aiConfig.subscribe(surface.scopeRef, (next) => {
@@ -141,8 +141,8 @@ export function ModelConfigAiModelHub(props: ModelConfigAiModelHubProps) {
   const [activeSection, setActiveSection] = useState<CanonicalCapabilitySectionId | null>(null);
 
   const descriptors = useMemo(
-    () => selectEnabledDescriptors(surface.enabledCapabilities, CANONICAL_CAPABILITY_CATALOG_BY_ID),
-    [surface.enabledCapabilities],
+    () => selectRequirementDescriptors(surface.requirementDeclaration, CANONICAL_CAPABILITY_CATALOG_BY_ID),
+    [surface.requirementDeclaration],
   );
 
   const sectionMap = useMemo(() => groupDescriptorsBySection(descriptors), [descriptors]);
@@ -156,7 +156,7 @@ export function ModelConfigAiModelHub(props: ModelConfigAiModelHubProps) {
     const out: CapabilityEvaluation[] = [];
     for (const descriptor of descriptors) {
       const projection = surface.projectionResolver(descriptor.capabilityId);
-      const bindingPresent = hasModelConfigRouteBinding(config, descriptor.capabilityId);
+      const bindingPresent = hasModelConfigTargetRef(config, descriptor.capabilityId);
       out.push({
         capabilityId: descriptor.capabilityId,
         descriptor,

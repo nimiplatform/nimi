@@ -1,4 +1,4 @@
-import { getPlatformClient, type RealmModel } from '@nimiplatform/kit/core/sdk-contract';
+import type { RealmModel, RealmTypedClient } from '@nimiplatform/kit/core/sdk-contract';
 import { useMemo } from 'react';
 import {
   normalizeCommerceGiftCatalog,
@@ -18,11 +18,7 @@ import type {
   CommerceGiftTransaction,
 } from './types.js';
 
-function realm() {
-  return getPlatformClient().realm;
-}
-
-export type RealmGiftCatalogResponse = RealmModel<'GiftCatalogItemDto'>[];
+export type RealmGiftCatalogResponse = readonly RealmModel<'GiftCatalogItemDto'>[];
 export type RealmSendGiftInput = RealmModel<'SendGiftDto'>;
 export type RealmReceivedGiftsResponse = RealmModel<'ReceivedGiftsResponseDto'>;
 export type RealmRejectGiftInput = RealmModel<'RejectGiftDto'>;
@@ -48,7 +44,7 @@ export type RealmCommerceGiftService = {
   listSparkTransactionHistory: (limit?: number, cursor?: string) => Promise<RealmCurrencyTransactionHistoryResponse>;
   listGemTransactionHistory: (limit?: number, cursor?: string) => Promise<RealmCurrencyTransactionHistoryResponse>;
   getSubscriptionStatus: () => Promise<RealmSubscriptionResponse>;
-  listSparkPackages: () => Promise<RealmSparkPackage[]>;
+  listSparkPackages: () => Promise<readonly RealmSparkPackage[]>;
   createSparkCheckout: (input: RealmCreateSparkCheckoutInput) => Promise<RealmSparkCheckoutSession>;
   getWithdrawalEligibility: () => Promise<RealmWithdrawalEligibilityResponse>;
   listWithdrawalHistory: (limit?: number, cursor?: string) => Promise<RealmWithdrawalHistoryResponse>;
@@ -62,16 +58,44 @@ export type RealmCommerceGiftService = {
   createGiftReview: (input: RealmCreateGiftReviewInput) => Promise<void>;
 };
 
+export type RealmCommerceGiftClient = Pick<
+  RealmTypedClient,
+  | 'economyControllerAcceptGift'
+  | 'economyControllerCanWithdraw'
+  | 'economyControllerCreateSparkCheckout'
+  | 'economyControllerCreateWithdrawal'
+  | 'economyControllerGetBalances'
+  | 'economyControllerGetGemHistory'
+  | 'economyControllerGetGiftCatalog'
+  | 'economyControllerGetReceivedGifts'
+  | 'economyControllerGetSentGifts'
+  | 'economyControllerGetSparkHistory'
+  | 'economyControllerGetSparkPackages'
+  | 'economyControllerGetSubscription'
+  | 'economyControllerGetWithdrawalHistory'
+  | 'economyControllerRejectGift'
+  | 'economyControllerSendGift'
+  | 'reviewControllerCreateReview'
+>;
+
+export type RealmCommerceGiftClientInput =
+  | RealmCommerceGiftClient
+  | { readonly generated: RealmCommerceGiftClient };
+
 export type RealmCommerceGiftAdapterOptions = {
-  service?: RealmCommerceGiftService;
+  readonly service: RealmCommerceGiftService;
 };
 
 export type UseRealmSendGiftDialogOptions = Omit<UseSendGiftDialogOptions, 'adapter'> & {
-  service?: RealmCommerceGiftService;
+  readonly service: RealmCommerceGiftService;
 };
 
 export type UseRealmGiftInboxOptions = Omit<UseGiftInboxOptions, 'adapter'> & {
-  service?: RealmCommerceGiftService;
+  readonly service: RealmCommerceGiftService;
+};
+
+type ServiceOption<TService> = {
+  readonly service: TService;
 };
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -230,60 +254,84 @@ async function findGiftTransactionInFeed(
   }
 }
 
-export const realmCommerceGiftService: RealmCommerceGiftService = {
-  async getBalances() {
-    return realm().services.EconomyCurrencyGiftsService.economyControllerGetBalances();
-  },
-  async listSparkTransactionHistory(limit = 30, cursor) {
-    return realm().services.EconomyCurrencyGiftsService.economyControllerGetSparkHistory(limit, cursor);
-  },
-  async listGemTransactionHistory(limit = 30, cursor) {
-    return realm().services.EconomyCurrencyGiftsService.economyControllerGetGemHistory(limit, cursor);
-  },
-  async getSubscriptionStatus() {
-    return realm().services.EconomyCurrencyGiftsService.economyControllerGetSubscription();
-  },
-  async listSparkPackages() {
-    return realm().services.EconomyCurrencyGiftsService.economyControllerGetSparkPackages();
-  },
-  async createSparkCheckout(input) {
-    return realm().services.EconomyCurrencyGiftsService.economyControllerCreateSparkCheckout(input);
-  },
-  async getWithdrawalEligibility() {
-    return realm().services.EconomyCurrencyGiftsService.economyControllerCanWithdraw();
-  },
-  async listWithdrawalHistory(limit = 20, cursor) {
-    return realm().services.EconomyCurrencyGiftsService.economyControllerGetWithdrawalHistory(limit, cursor);
-  },
-  async createWithdrawal(input) {
-    return realm().services.EconomyCurrencyGiftsService.economyControllerCreateWithdrawal(input);
-  },
-  async listGiftCatalog() {
-    return realm().services.EconomyCurrencyGiftsService.economyControllerGetGiftCatalog();
-  },
-  async sendGift(input) {
-    await realm().services.EconomyCurrencyGiftsService.economyControllerSendGift(input);
-  },
-  async listReceivedGifts(limit = 20, cursor) {
-    return realm().services.EconomyCurrencyGiftsService.economyControllerGetReceivedGifts(limit, cursor);
-  },
-  async listSentGifts(limit = 20, cursor) {
-    return realm().services.EconomyCurrencyGiftsService.economyControllerGetSentGifts(limit, cursor);
-  },
-  async acceptGift(giftTransactionId) {
-    await realm().services.EconomyCurrencyGiftsService.economyControllerAcceptGift(giftTransactionId.trim());
-  },
-  async rejectGift(giftTransactionId, input) {
-    await realm().services.EconomyCurrencyGiftsService.economyControllerRejectGift(giftTransactionId.trim(), input);
-  },
-  async createGiftReview(input) {
-    await realm().services.ReviewsEconomyTrustService.reviewControllerCreateReview(input);
-  },
-};
+function resolveRealmCommerceGiftClient(input: RealmCommerceGiftClientInput): RealmCommerceGiftClient {
+  return 'generated' in input ? input.generated : input;
+}
+
+function emptyRealmRequest() {
+  return { path: {} };
+}
+
+function paginationRealmRequest(limit: number, cursor?: string) {
+  const normalizedCursor = asString(cursor);
+  return {
+    path: {},
+    query: {
+      limit,
+      ...(normalizedCursor ? { cursor: normalizedCursor } : {}),
+    },
+  };
+}
+
+export function createRealmCommerceGiftService(
+  input: RealmCommerceGiftClientInput,
+): RealmCommerceGiftService {
+  const client = resolveRealmCommerceGiftClient(input);
+  return {
+    async getBalances() {
+      return client.economyControllerGetBalances(emptyRealmRequest());
+    },
+    async listSparkTransactionHistory(limit = 30, cursor) {
+      return client.economyControllerGetSparkHistory(paginationRealmRequest(limit, cursor));
+    },
+    async listGemTransactionHistory(limit = 30, cursor) {
+      return client.economyControllerGetGemHistory(paginationRealmRequest(limit, cursor));
+    },
+    async getSubscriptionStatus() {
+      return client.economyControllerGetSubscription(emptyRealmRequest());
+    },
+    async listSparkPackages() {
+      return client.economyControllerGetSparkPackages(emptyRealmRequest());
+    },
+    async createSparkCheckout(body) {
+      return client.economyControllerCreateSparkCheckout({ path: {}, body });
+    },
+    async getWithdrawalEligibility() {
+      return client.economyControllerCanWithdraw(emptyRealmRequest());
+    },
+    async listWithdrawalHistory(limit = 20, cursor) {
+      return client.economyControllerGetWithdrawalHistory(paginationRealmRequest(limit, cursor));
+    },
+    async createWithdrawal(body) {
+      return client.economyControllerCreateWithdrawal({ path: {}, body });
+    },
+    async listGiftCatalog() {
+      return client.economyControllerGetGiftCatalog(emptyRealmRequest());
+    },
+    async sendGift(body) {
+      await client.economyControllerSendGift({ path: {}, body });
+    },
+    async listReceivedGifts(limit = 20, cursor) {
+      return client.economyControllerGetReceivedGifts(paginationRealmRequest(limit, cursor));
+    },
+    async listSentGifts(limit = 20, cursor) {
+      return client.economyControllerGetSentGifts(paginationRealmRequest(limit, cursor));
+    },
+    async acceptGift(giftTransactionId) {
+      await client.economyControllerAcceptGift({ path: { id: giftTransactionId.trim() } });
+    },
+    async rejectGift(giftTransactionId, body) {
+      await client.economyControllerRejectGift({ path: { giftId: giftTransactionId.trim() }, body });
+    },
+    async createGiftReview(body) {
+      await client.reviewControllerCreateReview({ path: {}, body });
+    },
+  };
+}
 
 export function createRealmCommerceGiftAdapter({
-  service = realmCommerceGiftService,
-}: RealmCommerceGiftAdapterOptions = {}): CommerceGiftAdapter {
+  service,
+}: RealmCommerceGiftAdapterOptions): CommerceGiftAdapter {
   return {
     listGiftCatalog: async () => normalizeCommerceGiftCatalog(await service.listGiftCatalog()),
     sendGift: async (input) => {
@@ -293,70 +341,97 @@ export function createRealmCommerceGiftAdapter({
 }
 
 export async function loadRealmCurrencyBalances(
-  service: Pick<RealmCommerceGiftService, 'getBalances'> = realmCommerceGiftService,
+  { service }: ServiceOption<Pick<RealmCommerceGiftService, 'getBalances'>>,
 ): Promise<CommerceCurrencyBalances> {
   return normalizeRealmCurrencyBalances(await service.getBalances());
 }
 
 export async function loadRealmSparkTransactionHistory(
-  limit = 30,
-  cursor?: string,
-  service: Pick<RealmCommerceGiftService, 'listSparkTransactionHistory'> = realmCommerceGiftService,
+  {
+    service,
+    limit = 30,
+    cursor,
+  }: ServiceOption<Pick<RealmCommerceGiftService, 'listSparkTransactionHistory'>> & {
+    readonly limit?: number;
+    readonly cursor?: string;
+  },
 ): Promise<RealmCurrencyTransactionHistoryResponse> {
   return service.listSparkTransactionHistory(limit, cursor);
 }
 
 export async function loadRealmGemTransactionHistory(
-  limit = 30,
-  cursor?: string,
-  service: Pick<RealmCommerceGiftService, 'listGemTransactionHistory'> = realmCommerceGiftService,
+  {
+    service,
+    limit = 30,
+    cursor,
+  }: ServiceOption<Pick<RealmCommerceGiftService, 'listGemTransactionHistory'>> & {
+    readonly limit?: number;
+    readonly cursor?: string;
+  },
 ): Promise<RealmCurrencyTransactionHistoryResponse> {
   return service.listGemTransactionHistory(limit, cursor);
 }
 
 export async function loadRealmSubscriptionStatus(
-  service: Pick<RealmCommerceGiftService, 'getSubscriptionStatus'> = realmCommerceGiftService,
+  { service }: ServiceOption<Pick<RealmCommerceGiftService, 'getSubscriptionStatus'>>,
 ): Promise<RealmSubscriptionResponse> {
   return service.getSubscriptionStatus();
 }
 
 export async function loadRealmSparkPackages(
-  service: Pick<RealmCommerceGiftService, 'listSparkPackages'> = realmCommerceGiftService,
-): Promise<RealmSparkPackage[]> {
+  { service }: ServiceOption<Pick<RealmCommerceGiftService, 'listSparkPackages'>>,
+): Promise<readonly RealmSparkPackage[]> {
   return service.listSparkPackages();
 }
 
 export async function createRealmSparkCheckout(
-  input: RealmCreateSparkCheckoutInput,
-  service: Pick<RealmCommerceGiftService, 'createSparkCheckout'> = realmCommerceGiftService,
+  {
+    service,
+    input,
+  }: ServiceOption<Pick<RealmCommerceGiftService, 'createSparkCheckout'>> & {
+    readonly input: RealmCreateSparkCheckoutInput;
+  },
 ): Promise<RealmSparkCheckoutSession> {
   return service.createSparkCheckout(input);
 }
 
 export async function loadRealmWithdrawalEligibility(
-  service: Pick<RealmCommerceGiftService, 'getWithdrawalEligibility'> = realmCommerceGiftService,
+  { service }: ServiceOption<Pick<RealmCommerceGiftService, 'getWithdrawalEligibility'>>,
 ): Promise<RealmWithdrawalEligibilityResponse> {
   return service.getWithdrawalEligibility();
 }
 
 export async function loadRealmWithdrawalHistory(
-  limit = 20,
-  cursor?: string,
-  service: Pick<RealmCommerceGiftService, 'listWithdrawalHistory'> = realmCommerceGiftService,
+  {
+    service,
+    limit = 20,
+    cursor,
+  }: ServiceOption<Pick<RealmCommerceGiftService, 'listWithdrawalHistory'>> & {
+    readonly limit?: number;
+    readonly cursor?: string;
+  },
 ): Promise<RealmWithdrawalHistoryResponse> {
   return service.listWithdrawalHistory(limit, cursor);
 }
 
 export async function createRealmWithdrawal(
-  input: RealmCreateWithdrawalInput,
-  service: Pick<RealmCommerceGiftService, 'createWithdrawal'> = realmCommerceGiftService,
+  {
+    service,
+    input,
+  }: ServiceOption<Pick<RealmCommerceGiftService, 'createWithdrawal'>> & {
+    readonly input: RealmCreateWithdrawalInput;
+  },
 ): Promise<RealmWithdrawalResponse> {
   return service.createWithdrawal(input);
 }
 
 export async function acceptRealmGift(
-  giftTransactionId: string,
-  service: Pick<RealmCommerceGiftService, 'acceptGift'> = realmCommerceGiftService,
+  {
+    service,
+    giftTransactionId,
+  }: ServiceOption<Pick<RealmCommerceGiftService, 'acceptGift'>> & {
+    readonly giftTransactionId: string;
+  },
 ): Promise<void> {
   const normalizedId = giftTransactionId.trim();
   if (!normalizedId) {
@@ -366,9 +441,14 @@ export async function acceptRealmGift(
 }
 
 export async function rejectRealmGift(
-  giftTransactionId: string,
-  input: RealmRejectGiftInput,
-  service: Pick<RealmCommerceGiftService, 'rejectGift'> = realmCommerceGiftService,
+  {
+    service,
+    giftTransactionId,
+    input,
+  }: ServiceOption<Pick<RealmCommerceGiftService, 'rejectGift'>> & {
+    readonly giftTransactionId: string;
+    readonly input: RealmRejectGiftInput;
+  },
 ): Promise<void> {
   const normalizedId = giftTransactionId.trim();
   if (!normalizedId) {
@@ -378,15 +458,23 @@ export async function rejectRealmGift(
 }
 
 export async function createRealmGiftReview(
-  input: RealmCreateGiftReviewInput,
-  service: Pick<RealmCommerceGiftService, 'createGiftReview'> = realmCommerceGiftService,
+  {
+    service,
+    input,
+  }: ServiceOption<Pick<RealmCommerceGiftService, 'createGiftReview'>> & {
+    readonly input: RealmCreateGiftReviewInput;
+  },
 ): Promise<void> {
   await service.createGiftReview(input);
 }
 
 export async function loadRealmGiftTransaction(
-  giftTransactionId: string,
-  service: RealmCommerceGiftService = realmCommerceGiftService,
+  {
+    service,
+    giftTransactionId,
+  }: ServiceOption<RealmCommerceGiftService> & {
+    readonly giftTransactionId: string;
+  },
 ): Promise<CommerceGiftTransaction> {
   const normalizedId = giftTransactionId.trim();
   if (!normalizedId) {
@@ -413,13 +501,13 @@ export async function loadRealmGiftTransaction(
 }
 
 export function createRealmCommerceGiftInboxAdapter({
-  service = realmCommerceGiftService,
-}: RealmCommerceGiftAdapterOptions = {}): CommerceGiftInboxAdapter {
+  service,
+}: RealmCommerceGiftAdapterOptions): CommerceGiftInboxAdapter {
   return {
     listReceivedGifts: async (limit = 50) =>
       normalizeRealmReceivedGiftsResponse(await service.listReceivedGifts(limit)),
     getGiftTransaction: async (giftTransactionId) =>
-      loadRealmGiftTransaction(giftTransactionId, service),
+      loadRealmGiftTransaction({ service, giftTransactionId }),
     acceptGift: async (giftTransactionId) => {
       await service.acceptGift(giftTransactionId);
     },
@@ -430,7 +518,7 @@ export function createRealmCommerceGiftInboxAdapter({
 }
 
 export function useRealmSendGiftDialog({
-  service = realmCommerceGiftService,
+  service,
   open,
   receiverId,
   onSent,
@@ -448,7 +536,7 @@ export function useRealmSendGiftDialog({
 }
 
 export function useRealmGiftInbox({
-  service = realmCommerceGiftService,
+  service,
   enabled,
   currentUserId,
   selectedGiftTransactionId,

@@ -1,22 +1,15 @@
 import { useCallback, useState } from 'react';
 import {
-  getPlatformClient,
-  runRuntimeMediaGenerationJob,
+  runNimiRuntimeScenarioJob,
   ScenarioJobStatus,
   type Runtime,
-  type RuntimeMediaGenerationJob,
-  type RuntimeMediaGenerationJobResult,
-  type RuntimeMediaGenerationSubmitRequest,
-  type RuntimeMediaScenarioArtifact,
+  type NimiRuntimeScenarioJob,
+  type NimiRuntimeScenarioJobResult,
+  type NimiRuntimeScenarioJobSubmitRequest,
 } from '@nimiplatform/kit/core/sdk-contract';
 import { useGenerationPanel, type UseGenerationPanelResult } from './hooks/use-generation-panel.js';
 import type { GenerationRunItem } from './types.js';
-export type RuntimeGenerationSubmitRequest = RuntimeMediaGenerationSubmitRequest;
-export type RuntimeScenarioJob = RuntimeMediaGenerationJob;
-export type RuntimeScenarioArtifact = RuntimeMediaScenarioArtifact;
 export type RuntimeGenerationMappedStatus = 'pending' | 'running' | 'completed' | 'failed' | 'timeout' | 'canceled';
-
-export type RuntimeGenerationJobResult = RuntimeMediaGenerationJobResult;
 
 export type RuntimeGenerationRequestContext<TInput> = {
   input: TInput;
@@ -24,13 +17,13 @@ export type RuntimeGenerationRequestContext<TInput> = {
 
 export type RuntimeGenerationPanelStatusContext<TInput> = {
   input: TInput;
-  job: RuntimeScenarioJob;
+  job: NimiRuntimeScenarioJob;
 };
 
 export type RuntimeGenerationPanelErrorContext<TInput> = {
   input: TInput;
-  job: RuntimeScenarioJob | null;
-  result: RuntimeGenerationJobResult | null;
+  job: NimiRuntimeScenarioJob | null;
+  result: NimiRuntimeScenarioJobResult | null;
 };
 
 export type UseRuntimeGenerationPanelOptions<TInput> = {
@@ -38,7 +31,7 @@ export type UseRuntimeGenerationPanelOptions<TInput> = {
   input: TInput;
   resolveRequest: (
     context: RuntimeGenerationRequestContext<TInput>,
-  ) => RuntimeGenerationSubmitRequest;
+  ) => NimiRuntimeScenarioJobSubmitRequest;
   disabled?: boolean;
   submitting?: boolean;
   triggerEventName?: string;
@@ -51,7 +44,7 @@ export type UseRuntimeGenerationPanelOptions<TInput> = {
     context: RuntimeGenerationPanelStatusContext<TInput>,
   ) => void;
   onCompleted?: (
-    result: RuntimeGenerationJobResult,
+    result: NimiRuntimeScenarioJobResult,
     context: RuntimeGenerationRequestContext<TInput>,
   ) => Promise<void> | void;
   onError?: (
@@ -63,7 +56,7 @@ export type UseRuntimeGenerationPanelOptions<TInput> = {
 export type UseRuntimeGenerationPanelResult = {
   state: UseGenerationPanelResult;
   statusItems: readonly GenerationRunItem[];
-  latestResult: RuntimeGenerationJobResult | null;
+  latestResult: NimiRuntimeScenarioJobResult | null;
   clearStatusItems: () => void;
 };
 
@@ -121,13 +114,13 @@ export function useRuntimeGenerationPanel<TInput>({
   onError,
 }: UseRuntimeGenerationPanelOptions<TInput>): UseRuntimeGenerationPanelResult {
   const [statusItems, setStatusItems] = useState<readonly GenerationRunItem[]>([]);
-  const [latestResult, setLatestResult] = useState<RuntimeGenerationJobResult | null>(null);
+  const [latestResult, setLatestResult] = useState<NimiRuntimeScenarioJobResult | null>(null);
 
   const clearStatusItems = useCallback(() => {
     setStatusItems([]);
   }, []);
 
-  const upsertStatusItem = useCallback((job: RuntimeScenarioJob) => {
+  const upsertStatusItem = useCallback((job: NimiRuntimeScenarioJob) => {
     const nextItem: GenerationRunItem = {
       runId: job.jobId,
       status: scenarioJobStatusToGenerationStatus(job.status),
@@ -151,14 +144,14 @@ export function useRuntimeGenerationPanel<TInput>({
     adapter: {
       submit: async (nextInput: TInput) => {
         const requestContext = { input: nextInput };
-        const resolvedRuntime = runtime ?? getPlatformClient().runtime;
+        const resolvedRuntime = requireRuntime(runtime);
         const request = resolveRequest(requestContext);
-        let latestJob: RuntimeScenarioJob | null = null;
-        let result: RuntimeGenerationJobResult | null = null;
+        let latestJob: NimiRuntimeScenarioJob | null = null;
+        let result: NimiRuntimeScenarioJobResult | null = null;
 
         try {
-          result = await runRuntimeMediaGenerationJob({
-            jobs: resolvedRuntime.media.jobs,
+          result = await runNimiRuntimeScenarioJob({
+            ai: resolvedRuntime.ai,
             request,
             onJobUpdate: (job) => {
               latestJob = job;
@@ -191,6 +184,13 @@ export function useRuntimeGenerationPanel<TInput>({
     latestResult,
     clearStatusItems,
   };
+}
+
+function requireRuntime(runtime: Runtime | undefined): Runtime {
+  if (!runtime) {
+    throw new Error('Runtime generation panel requires an explicit Runtime instance.');
+  }
+  return runtime;
 }
 
 export function copyArtifactBytesToArrayBuffer(bytes: Uint8Array | undefined): ArrayBuffer | null {

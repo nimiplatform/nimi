@@ -7,7 +7,7 @@ export type ConversationSourceKind = ConversationMode;
 export type ConversationSourceFilter = 'all' | ConversationSourceKind;
 export type ConversationThreadStatus = 'active' | 'archived' | 'deleted';
 export type ConversationMessageStatus = 'pending' | 'streaming' | 'complete' | 'error' | 'canceled';
-export type ConversationMessageRole = 'user' | 'assistant' | 'human' | 'agent' | 'system' | 'tool';
+export type ConversationMessageRole = 'user' | 'assistant' | 'human' | 'agent' | 'system' | 'developer' | 'tool';
 export type ConversationSetupAction =
   | {
     kind: 'open-settings';

@@ -8439,6 +8439,41 @@ pub struct ResolveLocalEnvironmentPlanResponse {
     pub plan: ::core::option::Option<LocalEnvironmentPlan>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct PrepareProfileRuntimeDescriptorRequest {
+    #[prost(bytes = "vec", tag = "1")]
+    pub descriptor_json: ::prost::alloc::vec::Vec<u8>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ProfileRuntimeDescriptorSlicePrepareResult {
+    #[prost(string, tag = "1")]
+    pub slice_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub capability: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub outcome: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "4")]
+    pub reason_codes: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "5")]
+    pub materialization_key: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub workflow_binding_id: ::prost::alloc::string::String,
+    #[prost(bool, tag = "7")]
+    pub reusable_asset_healthy: bool,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct PrepareProfileRuntimeDescriptorResponse {
+    #[prost(string, tag = "1")]
+    pub descriptor_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub profile_id: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "3")]
+    pub requirement_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(message, repeated, tag = "4")]
+    pub slice_results: ::prost::alloc::vec::Vec<
+        ProfileRuntimeDescriptorSlicePrepareResult,
+    >,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ListLocalEnvironmentSelectedSourcesRequest {
     #[prost(string, tag = "1")]
     pub dependency_family: ::prost::alloc::string::String,
@@ -9853,6 +9888,37 @@ pub mod runtime_local_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeLocalService",
                         "ResolveLocalEnvironmentPlan",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn prepare_profile_runtime_descriptor(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::PrepareProfileRuntimeDescriptorRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::PrepareProfileRuntimeDescriptorResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/PrepareProfileRuntimeDescriptor",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "PrepareProfileRuntimeDescriptor",
                     ),
                 );
             self.inner.unary(req, path, codec).await

@@ -1,7 +1,10 @@
-import type { RealmModel } from '@nimiplatform/kit/core/sdk-contract';
+import {
+  readNimiRealmOAuthLoginTokens,
+  type NimiRealmOAuthLoginResult,
+  type RealmModel,
+} from '@nimiplatform/kit/core/sdk-contract';
 
 type CheckEmailResponseDto = RealmModel<'CheckEmailResponseDto'>;
-type OAuthLoginResultDto = RealmModel<'OAuthLoginResultDto'>;
 
 export type EmailEntryRoute =
   | 'register_with_otp'
@@ -13,7 +16,7 @@ export function resolveEmailEntryRoute(result: CheckEmailResponseDto): EmailEntr
 }
 
 export function shouldPromptPasswordSetupAfterEmailOtp(
-  result: Pick<OAuthLoginResultDto, 'tokens'>,
+  result: Pick<NimiRealmOAuthLoginResult, 'tokens'>,
 ): boolean {
-  return result.tokens?.user?.hasPassword === false;
+  return readNimiRealmOAuthLoginTokens(result)?.user?.hasPassword === false;
 }

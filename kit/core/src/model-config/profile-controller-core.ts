@@ -1,6 +1,6 @@
 // kit/core/model-config profile controller core.
 //
-// Pure-logic strategy for resolving an AIProfile apply attempt into one of
+// Pure-logic strategy for resolving an NimiAIProfile apply attempt into one of
 // three canonical apply paths per D-AIPC-005 atomic overwrite semantics:
 //
 //   - remote-success
@@ -11,9 +11,9 @@
 // this file must never import React.
 
 import type {
-  AIConfig,
-  AIProfileApplyResult,
-  AIProfilePreviewResult,
+  NimiAIConfig,
+  NimiAIProfileApplyResult,
+  NimiAIProfilePreviewResult,
 } from '@nimiplatform/kit/core/sdk-contract';
 import type {
   ModelConfigDiffRow,
@@ -33,14 +33,14 @@ export interface ModelConfigProfileControllerCore {
    */
   resolveRemoteApply(input: {
     readonly profileId: string;
-    readonly remoteResult: AIProfileApplyResult;
-    readonly currentConfig: AIConfig;
+    readonly remoteResult: NimiAIProfileApplyResult;
+    readonly currentConfig: NimiAIConfig;
     readonly now: () => string;
   }): ModelConfigProfileApplyPath;
   /**
    * Resolve an exception thrown by the remote apply call into a network-error
    * apply path. Does not rescue typed failures; those must reach
-   * resolveRemoteApply via AIProfileApplyResult.
+   * resolveRemoteApply via NimiAIProfileApplyResult.
    */
   resolveNetworkError(input: {
     readonly profileId: string;
@@ -76,7 +76,7 @@ function diffValueToText(value: unknown): string {
 }
 
 /**
- * Project an `AIProfilePreviewResult` (D-AIPC-014 / S-AICONF-008) into a
+ * Project an `NimiAIProfilePreviewResult` (D-AIPC-014 / S-AICONF-008) into a
  * displayable preview state for the preview→confirm step.
  *
  * Pure logic: it only reshapes the typed diff; it never commits, mutates, or
@@ -85,7 +85,7 @@ function diffValueToText(value: unknown): string {
  */
 export function summarizeProfilePreview(input: {
   readonly profileId: string;
-  readonly preview: AIProfilePreviewResult;
+  readonly preview: NimiAIProfilePreviewResult;
 }): ModelConfigPreviewState {
   const { profileId, preview } = input;
   const rows: ModelConfigDiffRow[] = preview.diff.fields.map((field) => ({
@@ -109,7 +109,7 @@ export function summarizeProfilePreview(input: {
  * D-AIPC-005 atomic apply path selector.
  *
  * Rules:
- *   - success           -> remote-success; use the host-resolved AIConfig.
+ *   - success           -> remote-success; use the host-resolved NimiAIConfig.
  *   - remote fail       -> remote-fail-without-user-profile with failureReason.
  *   - exception thrown  -> resolveNetworkError returns network-error.
  *

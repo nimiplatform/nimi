@@ -1,81 +1,71 @@
 import { describe, expect, it } from 'vitest';
 import {
   applyModelConfigCapabilityPatch,
-  bindingToPickerSelection,
-  pickerSelectionToBinding,
-  readModelConfigRouteBinding,
-  type ModelConfigRouteBinding,
+  readModelConfigTargetRef,
+  summarizeTargetRef,
 } from '@nimiplatform/kit/core/model-config';
-import type { AIConfig, AIScopeRef } from '@nimiplatform/kit/core/sdk-contract';
+import type { NimiAIConfig, NimiAIConfigTargetRef, NimiAIScopeRef } from '@nimiplatform/kit/core/sdk-contract';
 
-const scopeRef: AIScopeRef = { kind: 'app', ownerId: 'desktop', surfaceId: 'chat' };
+const scopeRef: NimiAIScopeRef = { kind: 'app', ownerId: 'desktop', surfaceId: 'chat' };
 
-function configWithBinding(binding: ModelConfigRouteBinding | null): AIConfig {
+function configWithTargetRef(targetRef: NimiAIConfigTargetRef | null): NimiAIConfig {
   return {
     scopeRef,
     capabilities: {
-      selectedBindings: { 'text.generate': binding },
-      localProfileRefs: {},
+      targetRefs: targetRef ? { 'text.generate': targetRef } : {},
       selectedParams: {},
     },
     profileOrigin: null,
   };
 }
 
-describe('model config route binding core helpers', () => {
-  it('preserves cloud provider metadata between picker selection and stored binding', () => {
-    const binding = pickerSelectionToBinding({
-      source: 'cloud',
+describe('model config compact target-ref helpers', () => {
+  it('summarizes compact cloud refs without provider health or route shape', () => {
+    const targetRef: NimiAIConfigTargetRef = {
+      kind: 'cloud-connector',
       connectorId: 'connector-dashscope',
       provider: 'dashscope',
-      model: 'qwen3-tts-vc',
-      modelLabel: 'qwen3-tts-vc',
-    });
+      providerModelId: 'qwen3-tts-vc',
+    };
 
-    expect(binding).toEqual({
-      source: 'cloud',
-      connectorId: 'connector-dashscope',
-      provider: 'dashscope',
-      model: 'qwen3-tts-vc',
-      modelLabel: 'qwen3-tts-vc',
-    });
-
-    expect(bindingToPickerSelection(binding)).toEqual({
-      source: 'cloud',
-      connectorId: 'connector-dashscope',
-      provider: 'dashscope',
-      model: 'qwen3-tts-vc',
-      modelLabel: 'qwen3-tts-vc',
-      localModelId: undefined,
-      engine: undefined,
+    expect(summarizeTargetRef(targetRef)).toEqual({
+      label: 'dashscope',
+      detail: 'qwen3-tts-vc',
     });
   });
 
-  it('normalizes AIConfig binding patches without dropping runtime metadata', () => {
-    const binding: ModelConfigRouteBinding = {
-      source: 'local',
-      connectorId: '',
-      model: 'asset-1',
-      modelId: 'asset-1',
-      localModelId: 'qwen-local',
-      engine: 'llama.cpp',
-      provider: 'llama.cpp',
-      adapter: 'llama_cpp',
-      endpoint: 'http://127.0.0.1:8080',
-      localProviderEndpoint: 'http://127.0.0.1:8080/v1',
-      goRuntimeLocalModelId: 'qwen-local',
-      goRuntimeStatus: 'installed',
-      providerHints: { quant: 'q4' },
-      maxContextTokens: 8192,
-      maxOutputTokens: 1024,
+  it('patches compact target refs and params without writing selectedBindings', () => {
+    const targetRef: NimiAIConfigTargetRef = {
+      kind: 'local-runtime',
+      readinessRef: 'readiness:desktop:text',
     };
 
-    const next = applyModelConfigCapabilityPatch(configWithBinding(null), 'text.generate', {
-      binding,
+    const next = applyModelConfigCapabilityPatch(configWithTargetRef(null), 'text.generate', {
+      targetRef,
       params: { temperature: '0.7' },
     });
 
-    expect(readModelConfigRouteBinding(next, 'text.generate')).toEqual(binding);
+    expect(readModelConfigTargetRef(next, 'text.generate')).toEqual(targetRef);
     expect(next.capabilities.selectedParams['text.generate']).toEqual({ temperature: '0.7' });
+    expect(JSON.stringify(next)).not.toContain('selectedBindings');
+    expect(JSON.stringify(next)).not.toContain('NimiRuntimeRouteBinding');
+  });
+
+  it('preserves falsy JSON params when patching selected params', () => {
+    const next = applyModelConfigCapabilityPatch(configWithTargetRef(null), 'text.generate', {
+      params: {
+        enabled: false,
+        retries: 0,
+        seed: '',
+        optional: null,
+      },
+    });
+
+    expect(next.capabilities.selectedParams['text.generate']).toEqual({
+      enabled: false,
+      retries: 0,
+      seed: '',
+      optional: null,
+    });
   });
 });

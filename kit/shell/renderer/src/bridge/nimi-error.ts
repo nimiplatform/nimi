@@ -1,9 +1,9 @@
 import {
   asNimiError,
   createNimiError,
-  getRuntimeReasonCodeMessage,
+  getNimiRuntimeReasonCodeMessage,
   isNimiError,
-  ReasonCode,
+  NIMI_RUNTIME_REASON_CODES,
   type NimiError,
 } from '@nimiplatform/kit/core/sdk-contract';
 import { parseOptionalJsonObject, type JsonObject } from './types.js';
@@ -168,7 +168,7 @@ export function getShellBridgeUserMessageProjection(error: unknown): ShellBridge
   const codeFromNimiError = isNimiError(error) ? String(error.reasonCode || '').trim() : '';
   const codeFromPayload = parseShellBridgeJsonPayload(error)?.reasonCode || '';
   const errorCode = codeFromNimiError || codeFromPayload || extractShellBridgeErrorCode(raw);
-  const runtimeReasonProjection = getRuntimeReasonCodeMessage(errorCode);
+  const runtimeReasonProjection = getNimiRuntimeReasonCodeMessage(errorCode);
   if (runtimeReasonProjection) {
     return {
       key: `BridgeErrors.codes.${runtimeReasonProjection.reasonCode}`,
@@ -210,8 +210,8 @@ export function toShellBridgeNimiError(error: unknown, options?: ShellBridgeNimi
     if (parsedPayload) {
       return createNimiError({
         message: parsedPayload.message || rawMessage || 'RUNTIME_CALL_FAILED',
-        code: parsedPayload.code || parsedPayload.reasonCode || ReasonCode.RUNTIME_CALL_FAILED,
-        reasonCode: parsedPayload.reasonCode || ReasonCode.RUNTIME_CALL_FAILED,
+        code: parsedPayload.code || parsedPayload.reasonCode || NIMI_RUNTIME_REASON_CODES.RUNTIME_CALL_FAILED,
+        reasonCode: parsedPayload.reasonCode || NIMI_RUNTIME_REASON_CODES.RUNTIME_CALL_FAILED,
         actionHint: parsedPayload.actionHint || 'retry_or_check_runtime_status',
         traceId: parsedPayload.traceId || '',
         retryable: parsedPayload.retryable ?? false,
@@ -232,7 +232,7 @@ export function toShellBridgeNimiError(error: unknown, options?: ShellBridgeNimi
     }
 
     return asNimiError(error, {
-      reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
+      reasonCode: NIMI_RUNTIME_REASON_CODES.RUNTIME_CALL_FAILED,
       actionHint: 'retry_or_check_runtime_status',
       source: 'runtime',
     });

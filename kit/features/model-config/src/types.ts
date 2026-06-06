@@ -1,9 +1,8 @@
-import type { RouteModelPickerDataProvider } from '@nimiplatform/kit/features/model-picker';
-import type { SpeechVoiceReference } from '@nimiplatform/kit/core/sdk-contract';
-import type { ModelConfigRouteBinding } from '@nimiplatform/kit/core/model-config';
+import type { NimiRuntimeSpeechVoiceReference } from '@nimiplatform/kit/core/sdk-contract';
+import type { ModelConfigTargetRef } from '@nimiplatform/kit/core/model-config';
 import type { ReactNode } from 'react';
 
-export type { ModelConfigRouteBinding } from '@nimiplatform/kit/core/model-config';
+export type { ModelConfigTargetRef } from '@nimiplatform/kit/core/model-config';
 
 export type ModelConfigCapabilityStatusTone = 'ready' | 'attention' | 'neutral';
 
@@ -24,9 +23,8 @@ export type ModelConfigCapabilityItem = {
    *  the card renders this instead of the per-capability `label` row and hides the
    *  inline status dot/badge — page-level chrome carries the status. */
   activeModelLabel?: string;
-  binding: ModelConfigRouteBinding | null;
-  provider: RouteModelPickerDataProvider | null;
-  onBindingChange: (binding: ModelConfigRouteBinding | null) => void;
+  targetRef: ModelConfigTargetRef | null;
+  onTargetRefChange: (targetRef: ModelConfigTargetRef | null) => void;
   status?: ModelConfigCapabilityStatus | null;
   editor?: ReactNode;
   showEditorWhen?: 'always' | 'local';
@@ -149,7 +147,7 @@ export type TextGenerateParamsState = {
 };
 
 export type AudioSynthesizeParamsState = {
-  voiceRef: SpeechVoiceReference | null;
+  voiceRef: NimiRuntimeSpeechVoiceReference | null;
   speakingRate: string;
   volume: string;
   pitchSemitones: string;
@@ -214,9 +212,9 @@ export type CompanionSlotDef = {
 export type LocalAssetEntry = {
   localAssetId: string;
   assetId: string;
-  kind: number;
+  kind: string;
   engine: string;
-  status: number;
+  status: string;
 };
 
 export type CapabilityModelCardProps = {

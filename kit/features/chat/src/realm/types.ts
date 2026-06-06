@@ -1,4 +1,4 @@
-import type { RealmServiceRegistry } from '@nimiplatform/kit/core/sdk-contract';
+import type { RealmModel } from '@nimiplatform/kit/core/sdk-contract';
 import type { UseChatComposerOptions } from '../headless.js';
 import type {
   RealmMessageViewDto,
@@ -6,20 +6,25 @@ import type {
 } from './codec.js';
 import type { ChatComposerAdapter, ChatComposerSubmitInput } from '../types.js';
 
-type HumanChatsService = RealmServiceRegistry['HumanChatsService'];
-
-export type RealmChatViewDto =
-  Awaited<ReturnType<HumanChatsService['getChatById']>>;
-export type RealmListChatsResultDto =
-  Awaited<ReturnType<HumanChatsService['listChats']>>;
-export type RealmListMessagesResultDto =
-  Awaited<ReturnType<HumanChatsService['listMessages']>>;
-export type RealmStartChatInputDto =
-  Parameters<HumanChatsService['startChat']>[0];
-export type RealmStartChatResultDto =
-  Awaited<ReturnType<HumanChatsService['startChat']>>;
-export type RealmChatSyncResultDto =
-  Awaited<ReturnType<HumanChatsService['syncChatEvents']>>;
+type RealmGeneratedChatViewDto = RealmModel<'ChatViewDto'>;
+type RealmGeneratedListChatsResultDto = RealmModel<'ListChatsResultDto'>;
+type RealmGeneratedListMessagesResultDto = RealmModel<'ListMessagesResultDto'>;
+export type RealmChatViewDto = Omit<RealmGeneratedChatViewDto, 'lastMessage'> & {
+  readonly lastMessage?: RealmMessageViewDto | null;
+};
+export type RealmListChatsResultDto = Omit<RealmGeneratedListChatsResultDto, 'items' | 'nextCursor'> & {
+  readonly items: readonly RealmChatViewDto[];
+  readonly nextCursor?: string | null;
+};
+export type RealmListMessagesResultDto = Omit<RealmGeneratedListMessagesResultDto, 'items' | 'nextAfter' | 'nextBefore'> & {
+  readonly items: readonly RealmMessageViewDto[];
+  readonly nextAfter?: string | null;
+  readonly nextBefore?: string | null;
+  readonly offlineOutbox?: readonly RealmChatOutboxEntryLike[];
+};
+export type RealmStartChatInputDto = RealmModel<'StartChatInputDto'>;
+export type RealmStartChatResultDto = RealmModel<'StartChatResultDto'>;
+export type RealmChatSyncResultDto = RealmModel<'ChatSyncResultDto'>;
 export type RealmChatEventEnvelopeDto =
   NonNullable<RealmChatSyncResultDto['events']>[number];
 export type RealmChatSessionState = {

@@ -2,8 +2,8 @@
 //
 // AudioPipelineController test (renamed from AudioPlaybackController).
 // Verifies hard-cut surface:
-//   - Bytes are read via `runtime.artifacts.readBytes`; the caller-injected
-//     byte fetcher no longer exists.
+//   - Bytes are read via `runtime.artifacts.readArtifactBytes`; the
+//     caller-injected byte fetcher no longer exists.
 //   - `registerLipsyncSink(consumer)` connects a BackendAudioConsumer; the
 //     pipeline calls `attachAudioSource` after `source.start()` and `silent`
 //     on synthetic / fail / stop / reset.
@@ -47,8 +47,8 @@ function createFakeContext(decode?: () => Promise<AudioBuffer>): {
   return { context, source, decodeAudioData };
 }
 
-function bufferOf(size: number): ArrayBuffer {
-  return new ArrayBuffer(size);
+function bytesOf(size: number): Uint8Array {
+  return new Uint8Array(size);
 }
 
 function recordSnapshots(controller: AudioPipelineController): {
@@ -76,10 +76,10 @@ function createSinkMock(): AvatarAudioPipelineSink & {
   } as never;
 }
 
-function createRuntimeMock(readBytes: (input: { artifactId: string; expectedMimePrefix?: string }) => Promise<unknown>) {
-  const readBytesFn = vi.fn(readBytes);
+function createRuntimeMock(readArtifactBytes: (input: { artifactId: string }) => Promise<unknown>) {
+  const readArtifactBytesFn = vi.fn(readArtifactBytes);
   return {
-    artifacts: { readBytes: readBytesFn },
+    artifacts: { readArtifactBytes: readArtifactBytesFn },
   };
 }
 
@@ -119,13 +119,14 @@ describe('AudioPipelineController — synthetic mime fail-close', () => {
   });
 });
 
-describe('AudioPipelineController — runtime.artifacts.readBytes path', () => {
+describe('AudioPipelineController — runtime.artifacts.readArtifactBytes path', () => {
   it('decodes bytes from runtime, starts source, attaches sink, transitions to started → completed', async () => {
     const fake = createFakeContext();
     const runtime = createRuntimeMock(async () => ({
-      bytes: bufferOf(1024),
+      bytes: bytesOf(1024),
       mimeType: 'audio/wav',
-      sizeBytes: 1024,
+      sizeBytes: '1024',
+      mimeInferred: false,
     }));
     const sink = createSinkMock();
     const controller = new AudioPipelineController({
@@ -141,9 +142,8 @@ describe('AudioPipelineController — runtime.artifacts.readBytes path', () => {
       audioMimeType: 'audio/wav',
     });
 
-    expect(runtime.artifacts.readBytes).toHaveBeenCalledWith({
+    expect(runtime.artifacts.readArtifactBytes).toHaveBeenCalledWith({
       artifactId: 'artifact-1',
-      expectedMimePrefix: 'audio/',
     });
     expect(fake.decodeAudioData).toHaveBeenCalledTimes(1);
     expect(fake.source.start).toHaveBeenCalledTimes(1);
@@ -174,7 +174,7 @@ describe('AudioPipelineController — runtime.artifacts.readBytes path', () => {
     expect(sink.silent).toHaveBeenCalled();
   });
 
-  it('propagates SDK reasonCode from runtime.artifacts.readBytes errors unchanged', async () => {
+  it('propagates SDK reasonCode from runtime.artifacts.readArtifactBytes errors unchanged', async () => {
     const runtime = createRuntimeMock(async () => {
       const err = new Error('artifact missing') as Error & { reasonCode?: string };
       err.reasonCode = 'ARTIFACT_NOT_FOUND';
@@ -200,9 +200,10 @@ describe('AudioPipelineController — runtime.artifacts.readBytes path', () => {
   it('accepts audio MIME prefixes case-insensitively', async () => {
     const fake = createFakeContext();
     const runtime = createRuntimeMock(async () => ({
-      bytes: bufferOf(128),
+      bytes: bytesOf(128),
       mimeType: 'audio/wav',
-      sizeBytes: 128,
+      sizeBytes: '128',
+      mimeInferred: false,
     }));
     const controller = new AudioPipelineController({
       audioContextFactory: () => fake.context,
@@ -212,11 +213,35 @@ describe('AudioPipelineController — runtime.artifacts.readBytes path', () => {
 
     await controller.play({ audioArtifactId: 'a', audioMimeType: 'Audio/WAV' });
 
-    expect(runtime.artifacts.readBytes).toHaveBeenCalledWith({
+    expect(runtime.artifacts.readArtifactBytes).toHaveBeenCalledWith({
       artifactId: 'a',
-      expectedMimePrefix: 'audio/',
     });
     expect(controller.getSnapshot().state).toBe('started');
+  });
+
+  it('fails closed when runtime returns non-audio artifact bytes', async () => {
+    const fake = createFakeContext();
+    const runtime = createRuntimeMock(async () => ({
+      bytes: bytesOf(32),
+      mimeType: 'application/octet-stream',
+      sizeBytes: '32',
+      mimeInferred: true,
+    }));
+    const sink = createSinkMock();
+    const controller = new AudioPipelineController({
+      audioContextFactory: () => fake.context,
+      logger: { warn: vi.fn(), error: vi.fn() },
+    });
+    controller.setRuntime(runtime as never);
+    controller.registerLipsyncSink(sink);
+    const { snapshots } = recordSnapshots(controller);
+
+    await controller.play({ audioArtifactId: 'a', audioMimeType: 'audio/wav' });
+
+    expect(snapshots.map((s) => s.state)).toEqual(['idle', 'requested', 'failed']);
+    expect(snapshots[snapshots.length - 1]?.reason).toBe('ARTIFACT_MIME_MISMATCH');
+    expect(fake.decodeAudioData).not.toHaveBeenCalled();
+    expect(sink.silent).toHaveBeenCalled();
   });
 
   it('marks failed when decodeAudioData throws', async () => {
@@ -224,9 +249,10 @@ describe('AudioPipelineController — runtime.artifacts.readBytes path', () => {
       throw new Error('bad audio');
     });
     const runtime = createRuntimeMock(async () => ({
-      bytes: bufferOf(64),
+      bytes: bytesOf(64),
       mimeType: 'audio/wav',
-      sizeBytes: 64,
+      sizeBytes: '64',
+      mimeInferred: false,
     }));
     const sink = createSinkMock();
     const controller = new AudioPipelineController({
@@ -306,9 +332,10 @@ describe('AudioPipelineController — interrupt + reset', () => {
   it('stop() interrupts an in-flight playback and emits sink.silent()', async () => {
     const fake = createFakeContext();
     const runtime = createRuntimeMock(async () => ({
-      bytes: bufferOf(64),
+      bytes: bytesOf(64),
       mimeType: 'audio/wav',
-      sizeBytes: 64,
+      sizeBytes: '64',
+      mimeInferred: false,
     }));
     const sink = createSinkMock();
     const controller = new AudioPipelineController({

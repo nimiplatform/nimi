@@ -1,19 +1,26 @@
 import {
-  createRuntimeModelCatalogClient,
-  getPlatformClient,
-  listRuntimeRouteOptions,
-  type RuntimeCatalogModelDetail,
-  type RuntimeCatalogModelDetailResponse,
-  type RuntimeCatalogModelSource,
-  type RuntimeCatalogModelSummary,
-  type RuntimeCatalogOverlayWarning,
-  type RuntimeCatalogProviderModelsResponse,
-  type RuntimeModelCatalogClient,
-  type RuntimeModelCatalogProvider,
-  type RuntimeCanonicalCapability,
-  type RuntimeRouteOptionsSnapshot,
-  type RuntimeRouteOptionsClient,
-  type ListRuntimeRouteOptionsInput,
+  createNimiRuntimeModelCatalogClient,
+  listNimiRuntimeRouteOptions,
+  type NimiRuntimeCatalogModelDetail,
+  type NimiRuntimeCatalogModelDetailResponse,
+  type NimiRuntimeCatalogModelSource,
+  type NimiRuntimeCatalogModelSummary,
+  type NimiRuntimeCatalogOverlayWarning,
+  type NimiRuntimeCatalogPricing,
+  type NimiRuntimeCatalogProviderModelsResponse,
+  type NimiRuntimeCatalogSourceRef,
+  type NimiRuntimeCatalogVideoGeneration,
+  type NimiRuntimeCatalogVoiceEntry,
+  type NimiRuntimeCatalogWorkflowBinding,
+  type NimiRuntimeCatalogWorkflowModel,
+  type NimiRuntimeModelCatalogClient,
+  type NimiRuntimeModelCatalogConnectorClient,
+  type NimiRuntimeModelCatalogProvider,
+  type NimiRuntimeModelCatalogProviderSource,
+  type NimiRuntimeCanonicalCapability,
+  type NimiRuntimeRouteOptionsSnapshot,
+  type NimiRuntimeRouteOptionsClient,
+  type NimiListRuntimeRouteOptionsInput,
 } from '@nimiplatform/kit/core/sdk-contract';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useModelPicker, type UseModelPickerOptions, type UseModelPickerResult } from './headless.js';
@@ -22,21 +29,19 @@ import type { ModelCatalogAdapter } from './types.js';
 
 export type { RouteModelPickerDataProvider } from './route-data.js';
 
-export type {
-  RuntimeCatalogModelDetail,
-  RuntimeCatalogModelDetailResponse,
-  RuntimeCatalogModelSummary,
-  RuntimeCatalogOverlayWarning,
-  RuntimeCatalogPricing,
-  RuntimeCatalogProviderModelsResponse,
-  RuntimeCatalogSourceRef,
-  RuntimeCatalogVideoGeneration,
-  RuntimeCatalogVoiceEntry,
-  RuntimeCatalogWorkflowBinding,
-  RuntimeCatalogWorkflowModel,
-  RuntimeModelCatalogProvider,
-  RuntimeModelCatalogProviderSource,
-} from '@nimiplatform/kit/core/sdk-contract';
+export type RuntimeCatalogModelDetail = NimiRuntimeCatalogModelDetail;
+export type RuntimeCatalogModelDetailResponse = NimiRuntimeCatalogModelDetailResponse;
+export type RuntimeCatalogModelSummary = NimiRuntimeCatalogModelSummary;
+export type RuntimeCatalogOverlayWarning = NimiRuntimeCatalogOverlayWarning;
+export type RuntimeCatalogPricing = NimiRuntimeCatalogPricing;
+export type RuntimeCatalogProviderModelsResponse = NimiRuntimeCatalogProviderModelsResponse;
+export type RuntimeCatalogSourceRef = NimiRuntimeCatalogSourceRef;
+export type RuntimeCatalogVideoGeneration = NimiRuntimeCatalogVideoGeneration;
+export type RuntimeCatalogVoiceEntry = NimiRuntimeCatalogVoiceEntry;
+export type RuntimeCatalogWorkflowBinding = NimiRuntimeCatalogWorkflowBinding;
+export type RuntimeCatalogWorkflowModel = NimiRuntimeCatalogWorkflowModel;
+export type RuntimeModelCatalogProvider = NimiRuntimeModelCatalogProvider;
+export type RuntimeModelCatalogProviderSource = NimiRuntimeModelCatalogProviderSource;
 
 const CATALOG_CALL_OPTIONS = {
   timeoutMs: 8000,
@@ -47,19 +52,19 @@ const CATALOG_CALL_OPTIONS = {
   },
 };
 
-export type RuntimeModelCatalogSource = RuntimeCatalogModelSource;
+export type RuntimeModelCatalogSource = NimiRuntimeCatalogModelSource;
 
-export type RuntimeRouteModelPickerClient = RuntimeRouteOptionsClient;
+export type RuntimeRouteModelPickerClient = NimiRuntimeRouteOptionsClient;
 
 export type RuntimeRouteModelPickerProviderOptions = {
   capability: string;
   client?: RuntimeRouteModelPickerClient | null;
   getClient?: () => RuntimeRouteModelPickerClient | null | Promise<RuntimeRouteModelPickerClient | null>;
   loadOptions?: (
-    input: ListRuntimeRouteOptionsInput,
-  ) => RuntimeRouteOptionsSnapshot | Promise<RuntimeRouteOptionsSnapshot>;
+    input: NimiListRuntimeRouteOptionsInput,
+  ) => NimiRuntimeRouteOptionsSnapshot | Promise<NimiRuntimeRouteOptionsSnapshot>;
   targetId?: string;
-  selectedBinding?: Parameters<typeof listRuntimeRouteOptions>[1]['selectedBinding'];
+  selectedBinding?: Parameters<typeof listNimiRuntimeRouteOptions>[1]['selectedBinding'];
   unavailableMessage?: string;
 };
 
@@ -68,20 +73,20 @@ export type RuntimeRouteModelPickerProviderCacheOptions = Omit<
   'capability'
 >;
 
-function resolveRouteCapability(capability: string): RuntimeCanonicalCapability {
+function resolveRouteCapability(capability: string): NimiRuntimeCanonicalCapability {
   const normalized = String(capability || '').trim().toLowerCase();
   if (!normalized) {
     throw new Error('Runtime route capability is required.');
   }
-  return normalized as RuntimeCanonicalCapability;
+  return normalized as NimiRuntimeCanonicalCapability;
 }
 
 async function resolveRouteModelPickerClient(
   input: Pick<RuntimeRouteModelPickerProviderOptions, 'client' | 'getClient' | 'unavailableMessage'>,
 ): Promise<RuntimeRouteModelPickerClient> {
-  const client = input.client ?? (input.getClient ? await input.getClient() : getPlatformClient());
+  const client = input.client ?? (input.getClient ? await input.getClient() : null);
   if (!client) {
-    throw new Error(input.unavailableMessage || 'Runtime route model picker client is unavailable.');
+    throw new Error(input.unavailableMessage || 'Runtime route model picker requires an explicit route options client.');
   }
   return client;
 }
@@ -106,7 +111,7 @@ export function createRuntimeRouteModelPickerProvider(
       return input.loadOptions(optionsInput);
     }
     const client = await resolveRouteModelPickerClient(input);
-    return listRuntimeRouteOptions(client, optionsInput);
+    return listNimiRuntimeRouteOptions(client, optionsInput);
   });
 }
 
@@ -144,19 +149,38 @@ export function createRuntimeRouteModelPickerProviderCache(
 }
 
 export type RuntimeModelCatalogService = {
-  listProviders: () => Promise<RuntimeModelCatalogProvider[]>;
+  listProviders: () => Promise<readonly RuntimeModelCatalogProvider[]>;
   listProviderModels: (provider: string, pageSize?: number, pageToken?: string) => Promise<RuntimeCatalogProviderModelsResponse>;
   getModelDetail: (provider: string, modelId: string) => Promise<RuntimeCatalogModelDetailResponse>;
 };
 
-function runtimeAdmin() {
-  return getPlatformClient().domains.runtimeAdmin;
+export type RuntimeModelCatalogServiceOptions = {
+  connectors: NimiRuntimeModelCatalogConnectorClient;
+  callOptions?: Parameters<typeof createNimiRuntimeModelCatalogClient>[0]['callOptions'];
+};
+
+export function createRuntimeModelCatalogService({
+  connectors,
+  callOptions = CATALOG_CALL_OPTIONS,
+}: RuntimeModelCatalogServiceOptions): RuntimeModelCatalogService {
+  return createNimiRuntimeModelCatalogClient({
+    connectors,
+    callOptions,
+  }) satisfies NimiRuntimeModelCatalogClient;
 }
 
-export const runtimeModelCatalogService: RuntimeModelCatalogService = createRuntimeModelCatalogClient({
-  connector: runtimeAdmin,
-  callOptions: CATALOG_CALL_OPTIONS,
-}) satisfies RuntimeModelCatalogClient;
+export const runtimeModelCatalogService: RuntimeModelCatalogService = createUnavailableRuntimeModelCatalogService();
+
+function createUnavailableRuntimeModelCatalogService(): RuntimeModelCatalogService {
+  const unavailable = async (): Promise<never> => {
+    throw new Error('Runtime model catalog service requires explicit Runtime connectors');
+  };
+  return {
+    listProviders: unavailable,
+    listProviderModels: unavailable,
+    getModelDetail: unavailable,
+  };
+}
 
 export type RuntimeModelCatalogAdapterOptions = {
   provider: string;

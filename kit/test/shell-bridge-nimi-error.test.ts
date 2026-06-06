@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { ReasonCode } from '@nimiplatform/kit/core/sdk-contract';
+import { NIMI_RUNTIME_REASON_CODES } from '@nimiplatform/kit/core/sdk-contract';
 import {
   getShellBridgeUserMessageProjection,
   parseShellBridgeJsonPayload,
@@ -9,7 +9,7 @@ import {
 describe('shell bridge Nimi error normalization', () => {
   test('preserves structured runtime bridge payload fields', () => {
     const error = toShellBridgeNimiError(JSON.stringify({
-      reasonCode: ReasonCode.AI_PROVIDER_TIMEOUT,
+      reasonCode: NIMI_RUNTIME_REASON_CODES.AI_PROVIDER_TIMEOUT,
       actionHint: 'retry_or_switch_route',
       traceId: 'trace-kit-bridge-001',
       retryable: true,
@@ -17,7 +17,7 @@ describe('shell bridge Nimi error normalization', () => {
       details: { provider: 'test' },
     }));
 
-    expect(error.reasonCode).toBe(ReasonCode.AI_PROVIDER_TIMEOUT);
+    expect(error.reasonCode).toBe(NIMI_RUNTIME_REASON_CODES.AI_PROVIDER_TIMEOUT);
     expect(error.actionHint).toBe('retry_or_switch_route');
     expect(error.traceId).toBe('trace-kit-bridge-001');
     expect(error.retryable).toBe(true);

@@ -8,8 +8,8 @@ import type {
   SharedAIConfigService,
 } from '@nimiplatform/kit/core/model-config';
 import type {
-  AIConfig,
-  AIScopeRef,
+  NimiAIConfig,
+  NimiAIScopeRef,
 } from '@nimiplatform/kit/core/sdk-contract';
 import { previewCopyFields } from './profile-preview-fixtures.js';
 import type { ModelConfigProfileController } from '../src/types.js';
@@ -63,11 +63,11 @@ function click(element: Element) {
   element.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 }
 
-const scopeRef: AIScopeRef = { kind: 'app', ownerId: 'desktop', surfaceId: 'chat' };
+const scopeRef: NimiAIScopeRef = { kind: 'app', ownerId: 'desktop', surfaceId: 'chat' };
 
-const baseConfig: AIConfig = {
+const baseConfig: NimiAIConfig = {
   scopeRef,
-  capabilities: { selectedBindings: {}, localProfileRefs: {}, selectedParams: {} },
+  capabilities: { targetRefs: {}, selectedParams: {} },
   profileOrigin: null,
 };
 
@@ -81,7 +81,13 @@ function stubService(): SharedAIConfigService {
     aiProfile: {
       list: async () => [],
       previewApply: async () => { throw new Error('stub'); },
-      apply: async () => ({ success: false, config: null, failureReason: 'stub', probeWarnings: [] }),
+      apply: async () => ({
+        success: false,
+        config: null,
+        failureReason: 'stub',
+        outcome: 'failed',
+        probeWarnings: [],
+      }),
     },
   };
 }
@@ -129,20 +135,27 @@ const ALL_SECTION_CAPABILITIES = [
   'world.generate', // world
 ];
 
-const providerStub = Object.freeze({
-  listLocalModels: async () => [],
-  listConnectors: async () => [],
-  listConnectorModels: async () => [],
-});
+function requirementDeclaration(capabilities: readonly string[]) {
+  return {
+    requirementId: 'desktop.chat.model-config',
+    scopeRef,
+    requiredSlices: capabilities.map((capability) => ({
+      requirementSliceId: `req.${capability}`,
+      capability,
+      profileSliceRef: `slice.${capability}`,
+      readinessPolicy: 'required' as const,
+    })),
+    setupProjectionPolicy: 'sdk-ai-config-setup-projection',
+  };
+}
 
 function makeSurface(service: SharedAIConfigService): AppModelConfigSurface {
   return {
     scopeRef,
     aiConfigService: service,
-    enabledCapabilities: ALL_SECTION_CAPABILITIES,
+    requirementDeclaration: requirementDeclaration(ALL_SECTION_CAPABILITIES),
     providerResolver: () => null,
     projectionResolver: () => null,
-    runtimeReady: true,
     i18n: { t: (key) => key },
   };
 }
@@ -171,11 +184,11 @@ describe('ModelConfigAiModelHub', () => {
     }
   });
 
-  it('derives section composition only from enabledCapabilities (image-only)', async () => {
+  it('derives section composition only from requirement declaration slices (image-only)', async () => {
     const service = stubService();
     const surface: AppModelConfigSurface = {
       ...makeSurface(service),
-      enabledCapabilities: ['image.generate'],
+      requirementDeclaration: requirementDeclaration(['image.generate']),
     };
     await render(
       <ModelConfigAiModelHub surface={surface} profile={emptyProfileController} />,
@@ -192,8 +205,7 @@ describe('ModelConfigAiModelHub', () => {
     const service = stubService();
     const surface: AppModelConfigSurface = {
       ...makeSurface(service),
-      enabledCapabilities: ['text.generate', 'text.embed'],
-      providerResolver: () => providerStub,
+      requirementDeclaration: requirementDeclaration(['text.generate', 'text.embed']),
     };
     await render(
       wrap(
@@ -222,16 +234,6 @@ describe('ModelConfigAiModelHub', () => {
     expect(container?.textContent).toContain('ModelConfig.hub.detailTitleFormat');
     expect(container?.textContent).toContain('ModelConfig.editor.textGenerate.temperatureLabel');
 
-    const selectorButton = Array.from(container?.querySelectorAll('button') || [])
-      .find((button) => button.textContent?.includes('Select a model'));
-    expect(selectorButton).toBeTruthy();
-
-    await act(async () => {
-      click(selectorButton as HTMLButtonElement);
-      await flush();
-      await flush();
-    });
-
-    expect(document.body.textContent).toContain('Select Model');
+    expect(container?.textContent).toContain('Setup required');
   });
 });

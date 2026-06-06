@@ -114,20 +114,14 @@ export function buildRealmTextMessageInput(
   if (!text) {
     throw new Error('Chat message text is required');
   }
-  const next = {
-    type: 'TEXT',
-    text,
-    payload: createCanonicalTextPayload(text),
+  const optionText = typeof options.text === 'string' ? options.text : undefined;
+  const resolvedText = optionText && normalizeText(optionText) ? optionText : text;
+  return {
     ...options,
+    type: 'TEXT',
+    text: resolvedText,
+    payload: options.payload ?? createCanonicalTextPayload(text),
   } as RealmSendMessageInputDto;
-
-  if (!normalizeText(String(next.text || ''))) {
-    next.text = text;
-  }
-  if (!next.payload) {
-    next.payload = createCanonicalTextPayload(text) as RealmSendMessageInputDto['payload'];
-  }
-  return next;
 }
 
 export function normalizeRealmRealtimeMessagePayload(
@@ -147,7 +141,8 @@ export function normalizeRealmRealtimeMessagePayload(
   }
 
   const textValue = record.text;
-  const normalized: RealmMessageViewDto = {
+  const replyTo = normalizeReplyTo(record.replyTo);
+  return {
     id,
     chatId,
     senderId,
@@ -160,12 +155,8 @@ export function normalizeRealmRealtimeMessagePayload(
         : undefined,
     isRead: Boolean(record.isRead),
     createdAt: normalizeDateString(record.createdAt),
+    ...(replyTo ? { replyTo } : {}),
   };
-  const replyTo = normalizeReplyTo(record.replyTo);
-  if (replyTo) {
-    normalized.replyTo = replyTo;
-  }
-  return normalized;
 }
 
 function upsertMessageDescending(

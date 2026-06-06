@@ -5,17 +5,17 @@ import {
   type UserProfilesSource,
 } from '@nimiplatform/kit/core/model-config';
 import type {
-  AIConfig,
-  AIProfile,
-  AIProfileApplyResult,
-  AIScopeRef,
+  NimiAIConfig,
+  NimiAIProfile,
+  NimiAIProfileApplyResult,
+  NimiAIScopeRef,
 } from '@nimiplatform/kit/core/sdk-contract';
 
-const scopeRef: AIScopeRef = { kind: 'app', ownerId: 'desktop', surfaceId: 'chat' };
+const scopeRef: NimiAIScopeRef = { kind: 'app', ownerId: 'desktop', surfaceId: 'chat' };
 
-const baseConfig: AIConfig = {
+const baseConfig: NimiAIConfig = {
   scopeRef,
-  capabilities: { selectedBindings: {}, localProfileRefs: {}, selectedParams: {} },
+  capabilities: { targetRefs: {}, selectedParams: {} },
   profileOrigin: null,
 };
 
@@ -28,11 +28,17 @@ const fakeService: SharedAIConfigService = {
   aiProfile: {
     list: async () => [],
     previewApply: async () => { throw new Error('test'); },
-    apply: async () => ({ success: false, config: null, failureReason: 'test', probeWarnings: [] }),
+    apply: async () => ({
+      success: false,
+      config: null,
+      failureReason: 'test',
+      outcome: 'failed',
+      probeWarnings: [],
+    }),
   },
 };
 
-const userProfile: AIProfile = {
+const userProfile: NimiAIProfile = {
   profileId: 'local-profile-1',
   title: 'Local Profile',
   description: '',
@@ -40,17 +46,18 @@ const userProfile: AIProfile = {
   capabilities: {},
 };
 
-function userSource(profiles: AIProfile[]): UserProfilesSource {
+function userSource(profiles: NimiAIProfile[]): UserProfilesSource {
   return { list: () => profiles };
 }
 
 describe('createModelConfigProfileControllerCore', () => {
   it('path 1 — remote-success returns config from remote result without placeholder', () => {
     const core = createModelConfigProfileControllerCore({ scopeRef, service: fakeService });
-    const remoteResult: AIProfileApplyResult = {
+    const remoteResult: NimiAIProfileApplyResult = {
       success: true,
       config: { ...baseConfig, profileOrigin: { profileId: 'remote', title: 'Remote', appliedAt: 'now' } },
       failureReason: null,
+      outcome: 'ready_to_apply',
       probeWarnings: [],
     };
     const resolution = core.resolveRemoteApply({
@@ -71,10 +78,11 @@ describe('createModelConfigProfileControllerCore', () => {
       service: fakeService,
       userProfilesSource: userSource([userProfile]),
     });
-    const remoteResult: AIProfileApplyResult = {
+    const remoteResult: NimiAIProfileApplyResult = {
       success: false,
       config: null,
       failureReason: 'remote unavailable',
+      outcome: 'failed',
       probeWarnings: [],
     };
     const resolution = core.resolveRemoteApply({
@@ -95,10 +103,11 @@ describe('createModelConfigProfileControllerCore', () => {
       service: fakeService,
       userProfilesSource: userSource([]),
     });
-    const remoteResult: AIProfileApplyResult = {
+    const remoteResult: NimiAIProfileApplyResult = {
       success: false,
       config: null,
       failureReason: 'profile not in catalog',
+      outcome: 'failed',
       probeWarnings: [],
     };
     const resolution = core.resolveRemoteApply({
@@ -124,10 +133,11 @@ describe('createModelConfigProfileControllerCore', () => {
 
   it('never produces placeholder success on remote fail', () => {
     const core = createModelConfigProfileControllerCore({ scopeRef, service: fakeService });
-    const remoteResult: AIProfileApplyResult = {
+    const remoteResult: NimiAIProfileApplyResult = {
       success: false,
       config: null,
       failureReason: 'route down',
+      outcome: 'failed',
       probeWarnings: [],
     };
     const resolution = core.resolveRemoteApply({

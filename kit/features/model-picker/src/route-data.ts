@@ -19,7 +19,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { runtimeRouteCapabilitiesMatch } from '@nimiplatform/kit/core/sdk-contract';
+import { runtimeNimiRouteCapabilitiesMatch } from '@nimiplatform/kit/core/sdk-contract';
 import { useModelPicker, type UseModelPickerResult } from './hooks/use-model-picker.js';
 import type { ModelCatalogAdapter } from './types.js';
 import type { RouteModelPickerPanelProps, RouteModelPickerSource } from './components/route-model-picker-panel.js';
@@ -102,7 +102,7 @@ function mapLocalStatus(raw: number): RouteLocalModel['status'] {
  * source — the runtime pre-filters local models and cloud connectors by
  * capability before returning the snapshot.
  *
- * This type mirrors `RuntimeRouteOptionsSnapshot` from the SDK but is declared
+ * This type mirrors `NimiRuntimeRouteOptionsSnapshot` from the SDK but is declared
  * here so the kit layer does not import SDK internals directly.
  */
 export type RouteOptionsSnapshot = {
@@ -117,7 +117,7 @@ export type RouteOptionsSnapshot = {
     engine?: string;
   } | null;
   local: {
-    models: Array<{
+    models: ReadonlyArray<{
       localModelId: string;
       label?: string;
       engine?: string;
@@ -126,17 +126,17 @@ export type RouteOptionsSnapshot = {
       provider?: string;
       endpoint?: string;
       status?: string;
-      capabilities?: string[];
+      capabilities?: readonly string[];
     }>;
     defaultEndpoint?: string;
   };
-  connectors: Array<{
+  connectors: ReadonlyArray<{
     id: string;
     label: string;
     vendor?: string;
     provider?: string;
-    models: string[];
-    modelCapabilities?: Record<string, string[]>;
+    models: readonly string[];
+    modelCapabilities?: Record<string, readonly string[]>;
   }>;
 };
 
@@ -251,7 +251,7 @@ export function createSnapshotRouteDataProvider(
             modelLabel: String(modelId),
             available: true,
             capabilities: capabilities.length > 0
-              ? capabilities
+              ? [...capabilities]
               : (snapshotCapability ? [snapshotCapability] : []),
           };
         });
@@ -457,7 +457,7 @@ export function useRouteModelPickerData({
   const availableModels: readonly RouteDisplayModel[] = useMemo(() => {
     if (source === 'local') {
       const filtered = capability
-        ? localModels.filter((m) => runtimeRouteCapabilitiesMatch(m.capabilities, capability))
+        ? localModels.filter((m) => runtimeNimiRouteCapabilitiesMatch(m.capabilities, capability))
         : localModels;
       return filtered.map((m) => ({
         id: m.localModelId,
@@ -467,7 +467,7 @@ export function useRouteModelPickerData({
     }
     const models = connectorModelsMap[connectorId] ?? [];
     const filtered = capability
-      ? models.filter((m) => m.available && runtimeRouteCapabilitiesMatch(m.capabilities, capability))
+      ? models.filter((m) => m.available && runtimeNimiRouteCapabilitiesMatch(m.capabilities, capability))
       : models.filter((m) => m.available);
     return filtered.map((m) => ({
       id: m.modelId,

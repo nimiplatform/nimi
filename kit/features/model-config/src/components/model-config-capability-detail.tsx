@@ -1,19 +1,18 @@
-import { useCallback, useMemo } from 'react';
-import type { RouteModelPickerDataProvider } from '@nimiplatform/kit/features/model-picker';
+import { useCallback } from 'react';
 import {
   CANONICAL_CAPABILITY_CATALOG_BY_ID,
   type CanonicalCapabilityDescriptor,
 } from '@nimiplatform/kit/core/runtime-capabilities';
 import {
   applyModelConfigCapabilityPatch,
-  readModelConfigRouteBinding,
+  readModelConfigTargetRef,
 } from '@nimiplatform/kit/core/model-config';
 import type {
   AppModelConfigSurface,
   CapabilityItemOverride,
   SharedAIConfigService,
 } from '@nimiplatform/kit/core/model-config';
-import type { AIConfig } from '@nimiplatform/kit/core/sdk-contract';
+import type { NimiAIConfig, NimiJsonValue } from '@nimiplatform/kit/core/sdk-contract';
 import {
   DEFAULT_AUDIO_SYNTHESIZE_PARAMS,
   DEFAULT_AUDIO_TRANSCRIBE_PARAMS,
@@ -33,12 +32,12 @@ import type {
   AudioTranscribeParamsState,
   ImageParamsState,
   ModelConfigCapabilityItem,
-  ModelConfigRouteBinding,
+  ModelConfigTargetRef,
   TextGenerateParamsState,
   VideoParamsState,
   VoiceWorkflowParamsState,
 } from '../types.js';
-import type { SpeechVoiceReference } from '@nimiplatform/kit/core/sdk-contract';
+import type { NimiRuntimeSpeechVoiceReference } from '@nimiplatform/kit/core/sdk-contract';
 import { CapabilityModelCard } from './capability-model-card.js';
 import {
   TextGenerateParamsEditor,
@@ -62,13 +61,15 @@ import { VideoParamsEditor } from './video-params-editor.js';
 export type ModelConfigCapabilityDetailProps = {
   capabilityId: string;
   surface: AppModelConfigSurface;
-  config: AIConfig;
+  config: NimiAIConfig;
   activeModelLabel?: string | null;
 };
 
-function readParams(config: AIConfig, capabilityId: string): Record<string, unknown> {
+function readParams(config: NimiAIConfig, capabilityId: string): Readonly<Record<string, unknown>> {
   const raw = config.capabilities.selectedParams?.[capabilityId];
-  return (raw && typeof raw === 'object') ? raw : {};
+  return (raw && typeof raw === 'object' && !Array.isArray(raw))
+    ? raw as Readonly<Record<string, unknown>>
+    : {};
 }
 
 function writeCapabilityPatch(
@@ -76,20 +77,12 @@ function writeCapabilityPatch(
   scopeRef: AppModelConfigSurface['scopeRef'],
   capabilityId: string,
   patch: {
-    binding?: ModelConfigRouteBinding | null;
-    params?: Record<string, unknown>;
+    targetRef?: ModelConfigTargetRef | null;
+    params?: NimiJsonValue;
   },
 ): void {
   const current = service.aiConfig.get(scopeRef);
   service.aiConfig.update(scopeRef, applyModelConfigCapabilityPatch(current, capabilityId, patch));
-}
-
-function resolveProvider(
-  surface: AppModelConfigSurface,
-  routeCapability: string,
-): RouteModelPickerDataProvider | null {
-  const resolved = surface.providerResolver(routeCapability);
-  return (resolved ?? null) as RouteModelPickerDataProvider | null;
 }
 
 function resolveOverride(
@@ -99,7 +92,10 @@ function resolveOverride(
   return surface.capabilityOverrides?.[capabilityId] ?? {};
 }
 
-function sameSpeechVoiceReference(left: SpeechVoiceReference | null, right: SpeechVoiceReference | null): boolean {
+function sameSpeechVoiceReference(
+  left: NimiRuntimeSpeechVoiceReference | null,
+  right: NimiRuntimeSpeechVoiceReference | null,
+): boolean {
   if (!left || !right || left.kind !== right.kind) {
     return !left && !right;
   }
@@ -117,7 +113,7 @@ function sameSpeechVoiceReference(left: SpeechVoiceReference | null, right: Spee
 function renderEditor(
   descriptor: CanonicalCapabilityDescriptor,
   surface: AppModelConfigSurface,
-  config: AIConfig,
+  config: NimiAIConfig,
 ): {
   editor: ReturnType<typeof Object> | null;
   showEditorWhen: 'always' | 'local';
@@ -159,7 +155,7 @@ function renderEditor(
                 sameSpeechVoiceReference(option.value, next.voiceRef)
               ));
               writeCapabilityPatch(service, scopeRef, descriptor.capabilityId, {
-                ...(selectedOption?.binding ? { binding: selectedOption.binding } : {}),
+                ...(selectedOption?.targetRef ? { targetRef: selectedOption.targetRef } : {}),
                 params: { ...DEFAULT_AUDIO_SYNTHESIZE_PARAMS, ...next },
               });
             }}
@@ -290,16 +286,11 @@ export function ModelConfigCapabilityDetail({
 }: ModelConfigCapabilityDetailProps) {
   const descriptor = CANONICAL_CAPABILITY_CATALOG_BY_ID[capabilityId];
   const override = resolveOverride(surface, capabilityId);
-  const binding = readModelConfigRouteBinding(config, capabilityId);
+  const targetRef = readModelConfigTargetRef(config, capabilityId);
 
-  const handleBindingChange = useCallback((next: ModelConfigRouteBinding | null) => {
-    writeCapabilityPatch(surface.aiConfigService, surface.scopeRef, capabilityId, { binding: next });
+  const handleTargetRefChange = useCallback((next: ModelConfigTargetRef | null) => {
+    writeCapabilityPatch(surface.aiConfigService, surface.scopeRef, capabilityId, { targetRef: next });
   }, [capabilityId, surface.aiConfigService, surface.scopeRef]);
-
-  const provider = useMemo(
-    () => (descriptor ? resolveProvider(surface, descriptor.sourceRef.capability) : null),
-    [descriptor, surface],
-  );
 
   if (!descriptor) {
     return null;
@@ -317,9 +308,8 @@ export function ModelConfigCapabilityDetail({
     activeModelLabel: activeModelLabel === null
       ? undefined
       : (activeModelLabel ?? t('ModelConfig.hub.activeModelLabel', { defaultValue: 'Active Model' })),
-    binding,
-    provider,
-    onBindingChange: handleBindingChange,
+    targetRef,
+    onTargetRefChange: handleTargetRefChange,
     status: projection,
     editor,
     showEditorWhen,

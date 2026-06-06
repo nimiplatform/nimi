@@ -10,10 +10,10 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it } from 'vitest';
 import { useModelConfigProfileController } from '../src/headless.js';
 import type {
-  AIConfig,
-  AIProfile,
-  AIProfileApplyResult,
-  AIScopeRef,
+  NimiAIConfig,
+  NimiAIProfile,
+  NimiAIProfileApplyResult,
+  NimiAIScopeRef,
 } from '@nimiplatform/kit/core/sdk-contract';
 import type {
   SharedAIConfigService,
@@ -59,11 +59,11 @@ async function render(node: ReactNode) {
   });
 }
 
-const scopeRef: AIScopeRef = { kind: 'app', ownerId: 'desktop', surfaceId: 'chat' };
+const scopeRef: NimiAIScopeRef = { kind: 'app', ownerId: 'desktop', surfaceId: 'chat' };
 
-const baseConfig: AIConfig = {
+const baseConfig: NimiAIConfig = {
   scopeRef,
-  capabilities: { selectedBindings: {}, localProfileRefs: {}, selectedParams: {} },
+  capabilities: { targetRefs: {}, selectedParams: {} },
   profileOrigin: null,
 };
 
@@ -85,7 +85,7 @@ const copy: ModelConfigProfileCopy = {
   ...previewCopyFields,
 };
 
-const remoteProfile: AIProfile = {
+const remoteProfile: NimiAIProfile = {
   profileId: 'remote-profile',
   title: 'Remote profile',
   description: '',
@@ -93,7 +93,7 @@ const remoteProfile: AIProfile = {
   capabilities: {},
 };
 
-const localUserProfile: AIProfile = {
+const localUserProfile: NimiAIProfile = {
   profileId: 'local-user-profile',
   title: 'Local user profile',
   description: '',
@@ -101,12 +101,12 @@ const localUserProfile: AIProfile = {
   capabilities: {},
 };
 
-const appliedConfig: AIConfig = {
+const appliedConfig: NimiAIConfig = {
   ...baseConfig,
   profileOrigin: { profileId: 'remote-profile', title: 'Remote profile', appliedAt: 'now' },
 };
 
-function userSource(profiles: AIProfile[]): UserProfilesSource {
+function userSource(profiles: NimiAIProfile[]): UserProfilesSource {
   return { list: () => profiles };
 }
 
@@ -163,8 +163,9 @@ describe('useModelConfigProfileController apply paths', () => {
           success: true,
           config: appliedConfig,
           failureReason: null,
+          outcome: 'ready_to_apply',
           probeWarnings: [],
-        }) satisfies AIProfileApplyResult,
+        }) satisfies NimiAIProfileApplyResult,
       },
     };
 
@@ -182,7 +183,7 @@ describe('useModelConfigProfileController apply paths', () => {
 
   it('path 1 — apply-success previews then commits remote nextConfig on confirm', async () => {
     let currentConfig = baseConfig;
-    const updates: AIConfig[] = [];
+    const updates: NimiAIConfig[] = [];
     const applyBaseVersions: Array<string | undefined> = [];
     const service: SharedAIConfigService = {
       aiConfig: {
@@ -205,8 +206,9 @@ describe('useModelConfigProfileController apply paths', () => {
             success: true,
             config: appliedConfig,
             failureReason: null,
+            outcome: 'ready_to_apply',
             probeWarnings: [],
-          } satisfies AIProfileApplyResult;
+          } satisfies NimiAIProfileApplyResult;
         },
       },
     };
@@ -247,7 +249,7 @@ describe('useModelConfigProfileController apply paths', () => {
 
   it('path 2 — preview remote failure with user profile fails closed and never commits', async () => {
     let currentConfig = baseConfig;
-    const updates: AIConfig[] = [];
+    const updates: NimiAIConfig[] = [];
     const service: SharedAIConfigService = {
       aiConfig: {
         get: () => currentConfig,
@@ -264,8 +266,9 @@ describe('useModelConfigProfileController apply paths', () => {
           success: false,
           config: null,
           failureReason: 'remote unavailable',
+          outcome: 'failed',
           probeWarnings: [],
-        }) satisfies AIProfileApplyResult,
+        }) satisfies NimiAIProfileApplyResult,
       },
     };
 
@@ -292,7 +295,7 @@ describe('useModelConfigProfileController apply paths', () => {
 
   it('path 3 — preview without a known profile fails closed and never commits', async () => {
     let currentConfig = baseConfig;
-    const updates: AIConfig[] = [];
+    const updates: NimiAIConfig[] = [];
     const service: SharedAIConfigService = {
       aiConfig: {
         get: () => currentConfig,
@@ -310,8 +313,9 @@ describe('useModelConfigProfileController apply paths', () => {
           success: false,
           config: null,
           failureReason: 'profile not in catalog',
+          outcome: 'failed',
           probeWarnings: [],
-        }) satisfies AIProfileApplyResult,
+        }) satisfies NimiAIProfileApplyResult,
       },
     };
 
@@ -340,8 +344,8 @@ describe('useModelConfigProfileController apply paths', () => {
 
   it('path 4 — apply-network-error on confirm preserves error message and does not commit', async () => {
     let currentConfig = baseConfig;
-    const updates: AIConfig[] = [];
-    const networkProfile: AIProfile = {
+    const updates: NimiAIConfig[] = [];
+    const networkProfile: NimiAIProfile = {
       profileId: 'any-profile',
       title: 'Any profile',
       description: '',

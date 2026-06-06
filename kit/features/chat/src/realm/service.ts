@@ -1,4 +1,4 @@
-import { getPlatformClient } from '@nimiplatform/kit/core/sdk-contract';
+import type { RealmHumanChatModule, RealmModel } from '@nimiplatform/kit/core/sdk-contract';
 import { useEffect, useMemo, useRef } from 'react';
 import {
   useChatComposer,
@@ -17,7 +17,7 @@ import {
   rememberRealmChatSeenEvent,
   resolveRealmChatSyncRequest,
 } from './events.js';
-import { buildRealmTextMessageInput } from './messages.js';
+import { buildRealmTextMessageInput, normalizeRealmRealtimeMessagePayload } from './messages.js';
 import type {
   RealmChatComposerAdapter,
   RealmChatComposerAdapterOptions,
@@ -35,8 +35,33 @@ import type {
   UseRealmChatRealtimeControllerOptions,
 } from './types.js';
 
-function realm() {
-  return getPlatformClient().realm;
+function projectRealmMessageView(input: unknown): RealmMessageViewDto {
+  const projected = normalizeRealmRealtimeMessagePayload(input);
+  if (!projected) {
+    throw new Error('Realm chat message projection failed');
+  }
+  return projected;
+}
+
+export function projectRealmChatView(input: RealmModel<'ChatViewDto'>): RealmChatViewDto {
+  return {
+    ...input,
+    lastMessage: normalizeRealmRealtimeMessagePayload(input.lastMessage),
+  };
+}
+
+function projectRealmListChatsResult(input: RealmModel<'ListChatsResultDto'>): RealmListChatsResultDto {
+  return {
+    ...input,
+    items: input.items.map((item) => projectRealmChatView(item)),
+  };
+}
+
+function projectRealmListMessagesResult(input: RealmModel<'ListMessagesResultDto'>): RealmListMessagesResultDto {
+  return {
+    ...input,
+    items: input.items.map((item) => projectRealmMessageView(item)),
+  };
 }
 
 function normalizeString(value: unknown): string {
@@ -85,39 +110,76 @@ function ackRealmChatEventOnSocket(
   socket.emit('chat:event.ack', next.ackPayload);
 }
 
-export const realmChatService: RealmChatService = {
-  async listChats(limit = 20, cursor) {
-    return realm().services.HumanChatsService.listChats(normalizeRealmChatLimit(limit, 20, 100), cursor);
-  },
-  async getChatById(chatId) {
-    return realm().services.HumanChatsService.getChatById(normalizeChatId(chatId));
-  },
-  async startChat(input) {
-    return realm().services.HumanChatsService.startChat(input);
-  },
-  async listMessages(chatId, limit = 50, cursor) {
-    return realm().services.HumanChatsService.listMessages(
-      normalizeChatId(chatId),
-      normalizeRealmChatLimit(limit, 50, 100),
-      undefined,
-      undefined,
-      cursor,
-    );
-  },
-  async sendMessage(chatId, input) {
-    return realm().services.HumanChatsService.sendMessage(normalizeChatId(chatId), input);
-  },
-  async markChatRead(chatId) {
-    await realm().services.HumanChatsService.markChatRead(normalizeChatId(chatId));
-  },
-  async syncChatEvents(chatId, afterSeq, limit = 200) {
-    return realm().services.HumanChatsService.syncChatEvents(
-      normalizeChatId(chatId),
-      normalizeRealmChatLimit(limit, 200, 500),
-      Number.isFinite(afterSeq) ? Math.max(0, Math.floor(afterSeq)) : 0,
-    );
-  },
-};
+export function createRealmChatService(humanChats: RealmHumanChatModule): RealmChatService {
+  return {
+    async listChats(limit = 20, cursor) {
+      return projectRealmListChatsResult(await humanChats.listChats({
+        path: {},
+        query: {
+          limit: normalizeRealmChatLimit(limit, 20, 100),
+          cursor,
+        },
+      }));
+    },
+    async getChatById(chatId) {
+      return projectRealmChatView(await humanChats.getChatById({
+        path: { chatId: normalizeChatId(chatId) },
+      }));
+    },
+    async startChat(input) {
+      return humanChats.startChat({
+        path: {},
+        body: input,
+      });
+    },
+    async listMessages(chatId, limit = 50, cursor) {
+      return projectRealmListMessagesResult(await humanChats.listMessages({
+        path: { chatId: normalizeChatId(chatId) },
+        query: {
+          limit: normalizeRealmChatLimit(limit, 50, 100),
+          before: cursor,
+        },
+      }));
+    },
+    async sendMessage(chatId, input) {
+      return projectRealmMessageView(await humanChats.sendMessage({
+        path: { chatId: normalizeChatId(chatId) },
+        body: input,
+      }));
+    },
+    async markChatRead(chatId) {
+      await humanChats.markChatRead({
+        path: { chatId: normalizeChatId(chatId) },
+      });
+    },
+    async syncChatEvents(chatId, afterSeq, limit = 200) {
+      return humanChats.syncChatEvents({
+        path: { chatId: normalizeChatId(chatId) },
+        query: {
+          limit: normalizeRealmChatLimit(limit, 200, 500),
+          afterSeq: Number.isFinite(afterSeq) ? Math.max(0, Math.floor(afterSeq)) : 0,
+        },
+      });
+    },
+  };
+}
+
+export const realmChatService: RealmChatService = createUnavailableRealmChatService();
+
+function createUnavailableRealmChatService(): RealmChatService {
+  const unavailable = async (): Promise<never> => {
+    throw new Error('Realm chat service requires an explicit Realm humanChats module.');
+  };
+  return {
+    listChats: unavailable,
+    getChatById: unavailable,
+    startChat: unavailable,
+    listMessages: unavailable,
+    sendMessage: unavailable,
+    markChatRead: unavailable,
+    syncChatEvents: unavailable,
+  };
+}
 
 export async function listRealmChats(
   limit = 20,
@@ -148,17 +210,19 @@ export function buildRealmStartChatInput(
     throw new Error('Target account id is required');
   }
 
-  const input: RealmStartChatInputDto = {
-    targetAccountId: normalizedTargetAccountId,
-  };
   const normalizedMessage = normalizeString(initialMessage);
-  if (normalizedMessage) {
-    const textInput = buildRealmTextMessageInput(normalizedMessage);
-    input.text = textInput.text;
-    input.type = textInput.type;
-    input.payload = textInput.payload as RealmStartChatInputDto['payload'];
+  if (!normalizedMessage) {
+    return {
+      targetAccountId: normalizedTargetAccountId,
+    };
   }
-  return input;
+  const textInput = buildRealmTextMessageInput(normalizedMessage);
+  return {
+    targetAccountId: normalizedTargetAccountId,
+    text: textInput.text,
+    type: textInput.type,
+    payload: textInput.payload as RealmStartChatInputDto['payload'],
+  };
 }
 
 export async function startRealmChatWithTarget(

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
-import type { RealmModel } from '@nimiplatform/kit/core/sdk-contract';
+import type { NimiRealmAuthTokens } from '@nimiplatform/kit/core/sdk-contract';
 import { toErrorMessage } from '../logic/oauth-helpers.js';
 import type { AuthPlatformAdapter } from '../platform/auth-platform-adapter.js';
 import type { AuthView, EmbeddedAuthStage } from '../types/auth-types.js';
@@ -20,7 +20,7 @@ import {
 import { resolveEmailEntryRoute } from '../logic/auth-email-flow.js';
 import { AUTH_COPY } from '../logic/auth-copy.js';
 
-type AuthTokensDto = RealmModel<'AuthTokensDto'>;
+type AuthTokensDto = NimiRealmAuthTokens;
 
 const EMAIL_SHAPE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 function isLikelyEmailAddress(value: string): boolean {

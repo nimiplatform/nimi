@@ -3,9 +3,9 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it } from 'vitest';
 import { useModelConfigProfileController } from '../src/headless.js';
 import type {
-  AIConfig,
-  AIProfile,
-  AIScopeRef,
+  NimiAIConfig,
+  NimiAIProfile,
+  NimiAIScopeRef,
 } from '@nimiplatform/kit/core/sdk-contract';
 import type { SharedAIConfigService } from '@nimiplatform/kit/core/model-config';
 import type {
@@ -48,20 +48,20 @@ async function render(node: ReactNode) {
   });
 }
 
-const scopeRef: AIScopeRef = { kind: 'app', ownerId: 'desktop', surfaceId: 'chat' };
+const scopeRef: NimiAIScopeRef = { kind: 'app', ownerId: 'desktop', surfaceId: 'chat' };
 
-const baseConfig: AIConfig = {
+const baseConfig: NimiAIConfig = {
   scopeRef,
-  capabilities: { selectedBindings: {}, localProfileRefs: {}, selectedParams: {} },
+  capabilities: { targetRefs: {}, selectedParams: {} },
   profileOrigin: null,
 };
 
-const appliedConfig: AIConfig = {
+const appliedConfig: NimiAIConfig = {
   ...baseConfig,
   profileOrigin: { profileId: 'remote-profile', title: 'Remote profile', appliedAt: 'now' },
 };
 
-const remoteProfile: AIProfile = {
+const remoteProfile: NimiAIProfile = {
   profileId: 'remote-profile',
   title: 'Remote profile',
   description: '',
@@ -108,7 +108,7 @@ function HookHarness(props: {
 describe('useModelConfigProfileController', () => {
   it('previews before commit, then commits remote-success only on explicit confirm', async () => {
     let currentConfig = baseConfig;
-    const updates: AIConfig[] = [];
+    const updates: NimiAIConfig[] = [];
     const applyBaseVersions: Array<string | undefined> = [];
     const service: SharedAIConfigService = {
       aiConfig: {
@@ -131,6 +131,7 @@ describe('useModelConfigProfileController', () => {
             success: true,
             config: appliedConfig,
             failureReason: null,
+            outcome: 'ready_to_apply',
             probeWarnings: [],
           };
         },
@@ -166,7 +167,7 @@ describe('useModelConfigProfileController', () => {
 
   it('cancelling the preview discards it without committing', async () => {
     let currentConfig = baseConfig;
-    const updates: AIConfig[] = [];
+    const updates: NimiAIConfig[] = [];
     const service: SharedAIConfigService = {
       aiConfig: {
         get: () => currentConfig,
@@ -186,6 +187,7 @@ describe('useModelConfigProfileController', () => {
           success: true,
           config: appliedConfig,
           failureReason: null,
+          outcome: 'ready_to_apply',
           probeWarnings: [],
         }),
       },

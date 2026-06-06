@@ -11,7 +11,7 @@ import type {
   AppModelConfigSurface,
   SharedAIConfigService,
 } from '@nimiplatform/kit/core/model-config';
-import type { AIConfig, AIScopeRef } from '@nimiplatform/kit/core/sdk-contract';
+import type { NimiAIConfig, NimiAIScopeRef } from '@nimiplatform/kit/core/sdk-contract';
 
 (
   globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }
@@ -54,11 +54,11 @@ async function render(node: ReactNode) {
   });
 }
 
-const scopeRef: AIScopeRef = { kind: 'app', ownerId: 'desktop', surfaceId: 'chat' };
+const scopeRef: NimiAIScopeRef = { kind: 'app', ownerId: 'desktop', surfaceId: 'chat' };
 
-const baseConfig: AIConfig = {
+const baseConfig: NimiAIConfig = {
   scopeRef,
-  capabilities: { selectedBindings: {}, localProfileRefs: {}, selectedParams: {} },
+  capabilities: { targetRefs: {}, selectedParams: {} },
   profileOrigin: null,
 };
 
@@ -72,7 +72,13 @@ function stubService(): SharedAIConfigService {
     aiProfile: {
       list: async () => [],
       previewApply: async () => { throw new Error('stub'); },
-      apply: async () => ({ success: false, config: null, failureReason: 'stub', probeWarnings: [] }),
+      apply: async () => ({
+        success: false,
+        config: null,
+        failureReason: 'stub',
+        outcome: 'failed',
+        probeWarnings: [],
+      }),
     },
   };
 }
@@ -83,23 +89,27 @@ function setInputValue(input: HTMLInputElement, value: string) {
   input.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
-// Provider stub that satisfies RouteModelPickerDataProvider shape. The modal
-// mounts immediately and runs a data-fetch effect even when `open=false`, so
-// listLocalModels/listConnectors must be real functions.
-const providerStub = Object.freeze({
-  listLocalModels: async () => [],
-  listConnectors: async () => [],
-  listConnectorModels: async () => [],
-});
+function requirementDeclaration(capability: string) {
+  return {
+    requirementId: `desktop.chat.${capability}`,
+    scopeRef,
+    requiredSlices: [{
+      requirementSliceId: `req.${capability}`,
+      capability,
+      profileSliceRef: `slice.${capability}`,
+      readinessPolicy: 'required' as const,
+    }],
+    setupProjectionPolicy: 'sdk-ai-config-setup-projection',
+  };
+}
 
 function makeSurface(capabilityId: string): AppModelConfigSurface {
   return {
     scopeRef,
     aiConfigService: stubService(),
-    enabledCapabilities: [capabilityId],
-    providerResolver: () => providerStub,
+    requirementDeclaration: requirementDeclaration(capabilityId),
+    providerResolver: () => null,
     projectionResolver: () => null,
-    runtimeReady: true,
     i18n: { t: (key) => key },
   };
 }
@@ -136,22 +146,21 @@ describe('ModelConfigCapabilityDetail editorKind routing', () => {
       ),
     );
     // Image editor has showEditorWhen='local'; without a local binding the body
-    // is not rendered, but the shared model selector remains visible.
+    // is not rendered, but setup projection remains visible.
     expect(container?.textContent).toContain('ModelConfig.hub.activeModelLabel');
+    expect(container?.textContent).toContain('Setup required');
   });
 
   it('passes image companion slots and local assets through the shared detail editor', async () => {
-    const imageConfig: AIConfig = {
+    const imageConfig: NimiAIConfig = {
       ...baseConfig,
       capabilities: {
-        selectedBindings: {
+        targetRefs: {
           'image.generate': {
-            source: 'local',
-            connectorId: 'local',
-            model: 'image-local',
+            kind: 'local-runtime',
+            readinessRef: 'readiness:image-local',
           },
         },
-        localProfileRefs: {},
         selectedParams: {
           'image.generate': {
             seed: 'seed-old',
@@ -160,7 +169,7 @@ describe('ModelConfigCapabilityDetail editorKind routing', () => {
         },
       },
     };
-    const updates: AIConfig[] = [];
+    const updates: NimiAIConfig[] = [];
     const service: SharedAIConfigService = {
       aiConfig: {
         get: () => imageConfig,
@@ -170,7 +179,13 @@ describe('ModelConfigCapabilityDetail editorKind routing', () => {
       aiProfile: {
         list: async () => [],
         previewApply: async () => { throw new Error('stub'); },
-        apply: async () => ({ success: false, config: null, failureReason: 'stub', probeWarnings: [] }),
+        apply: async () => ({
+          success: false,
+          config: null,
+          failureReason: 'stub',
+          outcome: 'failed',
+          probeWarnings: [],
+        }),
       },
     };
     const surface: AppModelConfigSurface = {
@@ -180,9 +195,9 @@ describe('ModelConfigCapabilityDetail editorKind routing', () => {
         list: () => [{
           localAssetId: 'asset-vae',
           assetId: 'VAE Asset',
-          kind: 10,
+          kind: 'vae',
           engine: 'test',
-          status: 0,
+          status: 'active',
         }],
         loading: false,
       },

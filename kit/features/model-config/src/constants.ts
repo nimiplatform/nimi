@@ -22,14 +22,13 @@ export const COMPANION_SLOTS: CompanionSlotDef[] = [
   { slot: 'aux_path', label: 'Auxiliary', kind: 'auxiliary' },
 ];
 
-// kind enum values from proto LocalAssetKind
-export const ASSET_KIND_MAP: Record<string, number[]> = {
-  vae: [10],
-  chat: [1],
-  clip: [11],
-  controlnet: [13],
-  lora: [12],
-  auxiliary: [14],
+export const ASSET_KIND_MAP: Record<string, readonly string[]> = {
+  vae: ['vae'],
+  chat: ['chat'],
+  clip: ['clip'],
+  controlnet: ['controlnet'],
+  lora: ['lora'],
+  auxiliary: ['auxiliary'],
 };
 
 // ---------------------------------------------------------------------------
@@ -79,17 +78,22 @@ export const DEFAULT_VIDEO_PARAMS: VideoParamsState = {
 // Asset filtering
 // ---------------------------------------------------------------------------
 
-export function filterAssetsByKind(assets: Array<{ kind: number; status: number }>, kind: string): Array<{ kind: number; status: number }> {
+type FilterableLocalAsset = { kind: string; status: string };
+
+export function filterAssetsByKind<Asset extends FilterableLocalAsset>(
+  assets: readonly Asset[],
+  kind: string,
+): Asset[] {
   const kindValues = ASSET_KIND_MAP[kind];
-  if (!kindValues) return assets;
-  return assets.filter((a) => kindValues.includes(a.kind) && a.status !== 4);
+  if (!kindValues) return [...assets];
+  return assets.filter((a) => kindValues.includes(a.kind) && a.status !== 'removed');
 }
 
 // ---------------------------------------------------------------------------
 // Param parsing helpers
 // ---------------------------------------------------------------------------
 
-export function parseImageParams(stored: Record<string, unknown>): ImageParamsState {
+export function parseImageParams(stored: Readonly<Record<string, unknown>>): ImageParamsState {
   return {
     size: typeof stored.size === 'string' ? stored.size : DEFAULT_IMAGE_PARAMS.size,
     responseFormat: typeof stored.responseFormat === 'string' ? stored.responseFormat : DEFAULT_IMAGE_PARAMS.responseFormat,
@@ -103,7 +107,7 @@ export function parseImageParams(stored: Record<string, unknown>): ImageParamsSt
   };
 }
 
-export function parseVideoParams(stored: Record<string, unknown>): VideoParamsState {
+export function parseVideoParams(stored: Readonly<Record<string, unknown>>): VideoParamsState {
   return {
     mode: typeof stored.mode === 'string' ? stored.mode : DEFAULT_VIDEO_PARAMS.mode,
     ratio: typeof stored.ratio === 'string' ? stored.ratio : DEFAULT_VIDEO_PARAMS.ratio,
@@ -144,7 +148,7 @@ function toStringArray(value: unknown): string[] {
   return out;
 }
 
-export function parseTextGenerateParams(stored: Record<string, unknown>): TextGenerateParamsState {
+export function parseTextGenerateParams(stored: Readonly<Record<string, unknown>>): TextGenerateParamsState {
   return {
     temperature: typeof stored.temperature === 'string' ? stored.temperature : DEFAULT_TEXT_GENERATE_PARAMS.temperature,
     topP: typeof stored.topP === 'string' ? stored.topP : DEFAULT_TEXT_GENERATE_PARAMS.topP,
@@ -175,7 +179,7 @@ export const DEFAULT_AUDIO_SYNTHESIZE_PARAMS: AudioSynthesizeParamsState = {
   timeoutMs: '',
 };
 
-function parseSpeechVoiceReference(value: unknown): AudioSynthesizeParamsState['voiceRef'] {
+function parseNimiRuntimeSpeechVoiceReference(value: unknown): AudioSynthesizeParamsState['voiceRef'] {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   const record = value as Record<string, unknown>;
   switch (record.kind) {
@@ -196,9 +200,9 @@ function parseSpeechVoiceReference(value: unknown): AudioSynthesizeParamsState['
   }
 }
 
-export function parseAudioSynthesizeParams(stored: Record<string, unknown>): AudioSynthesizeParamsState {
+export function parseAudioSynthesizeParams(stored: Readonly<Record<string, unknown>>): AudioSynthesizeParamsState {
   return {
-    voiceRef: parseSpeechVoiceReference(stored.voiceRef),
+    voiceRef: parseNimiRuntimeSpeechVoiceReference(stored.voiceRef),
     speakingRate: typeof stored.speakingRate === 'string' ? stored.speakingRate : DEFAULT_AUDIO_SYNTHESIZE_PARAMS.speakingRate,
     volume: typeof stored.volume === 'string' ? stored.volume : DEFAULT_AUDIO_SYNTHESIZE_PARAMS.volume,
     pitchSemitones: typeof stored.pitchSemitones === 'string' ? stored.pitchSemitones : DEFAULT_AUDIO_SYNTHESIZE_PARAMS.pitchSemitones,
@@ -224,7 +228,7 @@ export const DEFAULT_AUDIO_TRANSCRIBE_PARAMS: AudioTranscribeParamsState = {
   diarization: false,
 };
 
-export function parseAudioTranscribeParams(stored: Record<string, unknown>): AudioTranscribeParamsState {
+export function parseAudioTranscribeParams(stored: Readonly<Record<string, unknown>>): AudioTranscribeParamsState {
   return {
     language: typeof stored.language === 'string' ? stored.language : DEFAULT_AUDIO_TRANSCRIBE_PARAMS.language,
     responseFormat: typeof stored.responseFormat === 'string' ? stored.responseFormat : DEFAULT_AUDIO_TRANSCRIBE_PARAMS.responseFormat,
@@ -252,7 +256,7 @@ export const DEFAULT_VOICE_WORKFLOW_PARAMS: VoiceWorkflowParamsState = {
   timeoutMs: '',
 };
 
-export function parseVoiceWorkflowParams(stored: Record<string, unknown>): VoiceWorkflowParamsState {
+export function parseVoiceWorkflowParams(stored: Readonly<Record<string, unknown>>): VoiceWorkflowParamsState {
   return {
     referenceAssetId: typeof stored.referenceAssetId === 'string' ? stored.referenceAssetId : DEFAULT_VOICE_WORKFLOW_PARAMS.referenceAssetId,
     referenceText: typeof stored.referenceText === 'string' ? stored.referenceText : DEFAULT_VOICE_WORKFLOW_PARAMS.referenceText,

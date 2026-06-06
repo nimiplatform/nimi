@@ -1,59 +1,63 @@
 // kit/core/model-config types.
 //
 // Authority:
-//   - D-AIPC-001..012 AIProfile / AIConfig / AISnapshot
+//   - D-AIPC-001..012 NimiAIProfile / NimiAIConfig / AISnapshot
 //   - P-CAPCAT-001..003 canonical capability identity
 //   - P-KIT-043 pure-logic boundary for kit/core
 //
 // This module is renderer-safe and runtime-safe: zero React, CSS, Node, Tauri,
-// Electron, or app imports. Consumers bind AIConfig persistence through the
-// shared service interface; kit does not own AIConfig / AIProfile truth.
+// Electron, or app imports. Consumers bind NimiAIConfig persistence through the
+// shared service interface; kit does not own NimiAIConfig / NimiAIProfile truth.
 
 import type {
-  AIConfig,
-  AIProfile,
-  AIProfileApplyOptions,
-  AIProfileApplyResult,
-  AIProfilePreviewResult,
-  AIProfileRef,
-  AIScopeRef,
-  RuntimeRouteBinding,
-  SpeechVoiceReference,
+  NimiAIConfig,
+  NimiAIConfigSetupProjection,
+  NimiAIConfigTargetRef,
+  NimiAIProfile,
+  NimiAIProfileApplyOptions,
+  NimiAIProfileApplyResult,
+  NimiAIProfilePreviewResult,
+  NimiAIProfileOriginRef,
+  NimiAICapabilityRequirementDeclaration,
+  NimiAICapabilityRequirementSlice,
+  NimiAIScopeRef,
+  NimiJsonValue,
+  NimiRuntimeSpeechVoiceReference,
 } from '@nimiplatform/kit/core/sdk-contract';
 import type {
   CanonicalCapabilityDescriptor,
 } from '@nimiplatform/kit/core/runtime-capabilities';
 
 // ---------------------------------------------------------------------------
-// SharedAIConfigService — host-owned AIConfig persistence seam.
+// SharedAIConfigService — host-owned NimiAIConfig persistence seam.
 //
-// The kit never persists AIConfig locally. Consumers inject a service that
+// The kit never persists NimiAIConfig locally. Consumers inject a service that
 // already honours D-AIPC-003 / D-AIPC-005 / D-AIPC-011 host ownership rules.
 // ---------------------------------------------------------------------------
 
 export type SharedAIConfigUnsubscribe = () => void;
 
-export type SharedAIConfigSubscribeListener = (config: AIConfig) => void;
+export type SharedAIConfigSubscribeListener = (config: NimiAIConfig) => void;
 
 export interface SharedAIConfigService {
   readonly aiConfig: {
-    get(scopeRef: AIScopeRef): AIConfig;
-    update(scopeRef: AIScopeRef, next: AIConfig): void;
-    subscribe(scopeRef: AIScopeRef, listener: SharedAIConfigSubscribeListener): SharedAIConfigUnsubscribe;
+    get(scopeRef: NimiAIScopeRef): NimiAIConfig;
+    update(scopeRef: NimiAIScopeRef, next: NimiAIConfig): void;
+    subscribe(scopeRef: NimiAIScopeRef, listener: SharedAIConfigSubscribeListener): SharedAIConfigUnsubscribe;
   };
   readonly aiProfile: {
-    list(): Promise<AIProfile[]>;
+    list(): Promise<NimiAIProfile[]>;
     /**
      * D-AIPC-014 / S-AICONF-008 non-committing apply preview. Computes the
-     * typed before→after AIConfig diff without mutating live config. The kit
+     * typed before→after NimiAIConfig diff without mutating live config. The kit
      * apply flow gates `apply` behind an explicit confirm of this preview.
      */
-    previewApply(scopeRef: AIScopeRef, profileId: string): Promise<AIProfilePreviewResult>;
+    previewApply(scopeRef: NimiAIScopeRef, profileId: string): Promise<NimiAIProfilePreviewResult>;
     apply(
-      scopeRef: AIScopeRef,
+      scopeRef: NimiAIScopeRef,
       profileId: string,
-      options?: AIProfileApplyOptions,
-    ): Promise<AIProfileApplyResult>;
+      options?: NimiAIProfileApplyOptions,
+    ): Promise<NimiAIProfileApplyResult>;
   };
 }
 
@@ -70,20 +74,7 @@ export interface ModelConfigI18nBinding {
   readonly t: ModelConfigI18nFormatter;
 }
 
-export type ModelConfigRouteSource = RuntimeRouteBinding['source'];
-
-export type ModelConfigRouteBinding = RuntimeRouteBinding;
-
-export interface ModelConfigRoutePickerSelection {
-  readonly source: ModelConfigRouteSource;
-  readonly connectorId: string;
-  readonly model: string;
-  readonly provider?: string;
-  readonly modelLabel?: string;
-  readonly localModelId?: string;
-  readonly engine?: string;
-  readonly modelId?: string;
-}
+export type ModelConfigTargetRef = NimiAIConfigTargetRef;
 
 export interface ModelConfigBindingSummary {
   readonly label: string;
@@ -91,16 +82,14 @@ export interface ModelConfigBindingSummary {
 }
 
 export interface ModelConfigCapabilityPatch {
-  readonly binding?: ModelConfigRouteBinding | null;
-  readonly params?: Record<string, unknown>;
+  readonly targetRef?: ModelConfigTargetRef | null;
+  readonly params?: NimiJsonValue;
 }
 
 export interface ModelConfigBindingSnapshot {
-  readonly source: ModelConfigRouteSource;
-  readonly connectorId: string;
-  readonly model: string;
-  readonly modelLabel?: string | null;
-  readonly localModelId?: string | null;
+  readonly capabilityId: string;
+  readonly targetRef: ModelConfigTargetRef | null;
+  readonly params?: NimiJsonValue;
 }
 
 export type ModelConfigStatusTone = 'ready' | 'attention' | 'neutral';
@@ -116,9 +105,9 @@ export interface ModelConfigProjectionStatus {
 export interface ModelConfigLocalAssetDescriptor {
   readonly localAssetId: string;
   readonly assetId: string;
-  readonly kind: number;
+  readonly kind: string;
   readonly engine: string;
-  readonly status: number;
+  readonly status: string;
 }
 
 export interface ModelConfigLocalAssetSource {
@@ -146,23 +135,31 @@ export interface CapabilityItemOverride {
   readonly detail?: string;
   readonly disabled?: boolean;
   readonly audioSynthesizeVoiceOptions?: ReadonlyArray<{
-    value: SpeechVoiceReference;
+    value: NimiRuntimeSpeechVoiceReference;
     label: string;
-    binding?: ModelConfigRouteBinding;
+    targetRef?: ModelConfigTargetRef;
   }>;
 }
 
 export interface AppModelConfigSurface {
-  readonly scopeRef: AIScopeRef;
+  readonly scopeRef: NimiAIScopeRef;
   readonly aiConfigService: SharedAIConfigService;
-  readonly enabledCapabilities: ReadonlyArray<string>;
+  readonly requirementDeclaration: NimiAICapabilityRequirementDeclaration;
   readonly providerResolver: ModelConfigProviderResolver;
   readonly projectionResolver: ModelConfigProjectionResolver;
   readonly localAssetSource?: ModelConfigLocalAssetSource;
   readonly capabilityOverrides?: Readonly<Record<string, CapabilityItemOverride>>;
-  readonly runtimeReady: boolean;
   readonly runtimeNotReadyLabel?: string;
   readonly i18n: ModelConfigI18nBinding;
+}
+
+export interface ModelConfigRequirementEvaluation {
+  readonly capabilityId: string;
+  readonly requirementSlice: NimiAICapabilityRequirementSlice;
+  readonly descriptor: CanonicalCapabilityDescriptor;
+  readonly targetRef: ModelConfigTargetRef | null;
+  readonly setupProjection: NimiAIConfigSetupProjection | null;
+  readonly editableFieldRefs: ReadonlyArray<string>;
 }
 
 // ---------------------------------------------------------------------------
@@ -206,18 +203,18 @@ export interface ModelConfigProfileOriginRef {
  * commit a substitute config.
  */
 export type ModelConfigProfileApplyPath =
-  | { kind: 'remote-success'; nextConfig: AIConfig; profileOrigin: AIProfileRef | null }
+  | { kind: 'remote-success'; nextConfig: NimiAIConfig; profileOrigin: NimiAIProfileOriginRef | null }
   | { kind: 'remote-fail-without-user-profile'; failureReason: string }
   | { kind: 'network-error'; failureReason: string };
 
 export interface ModelConfigProfileControllerCoreInput {
-  readonly scopeRef: AIScopeRef;
+  readonly scopeRef: NimiAIScopeRef;
   readonly service: SharedAIConfigService;
   readonly userProfilesSource?: UserProfilesSource;
 }
 
 export interface UserProfilesSource {
-  list(): ReadonlyArray<AIProfile>;
+  list(): ReadonlyArray<NimiAIProfile>;
 }
 
 // ---------------------------------------------------------------------------
@@ -236,12 +233,12 @@ export interface ModelConfigDiffRow {
 }
 
 /**
- * Pure-logic projection of an `AIProfilePreviewResult` into a displayable
+ * Pure-logic projection of an `NimiAIProfilePreviewResult` into a displayable
  * shape for the preview→confirm step. Holds no live config truth.
  */
 export interface ModelConfigPreviewState {
   readonly profileId: string;
-  /** True for a first apply (scope had no AIConfig); diff is full creation. */
+  /** True for a first apply (scope had no NimiAIConfig); diff is full creation. */
   readonly isFirstApply: boolean;
   /** True when before and after are equivalent (apply would be a no-op). */
   readonly identical: boolean;
@@ -251,7 +248,7 @@ export interface ModelConfigPreviewState {
   /** Typed availability / feasibility warnings carried by the preview. */
   readonly probeWarnings: ReadonlyArray<string>;
   /** The full preview result, retained so the caller can commit afterwards. */
-  readonly preview: AIProfilePreviewResult;
+  readonly preview: NimiAIProfilePreviewResult;
 }
 
 // ---------------------------------------------------------------------------

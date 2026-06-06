@@ -28,12 +28,6 @@ function flush() {
   });
 }
 
-const provider = {
-  listLocalModels: async () => [],
-  listConnectors: async () => [],
-  listConnectorModels: async () => [],
-};
-
 let root: Root | null = null;
 let container: HTMLDivElement | null = null;
 
@@ -103,13 +97,12 @@ describe('ModelConfigPanel', () => {
               capabilityId: 'text.generate',
               routeCapability: 'text.generate',
               label: 'Chat Model',
-              binding: {
-                source: 'cloud',
+              targetRef: {
+                kind: 'cloud-connector',
                 connectorId: 'openai',
-                model: 'gpt-4.1-mini',
+                providerModelId: 'gpt-4.1-mini',
               },
-              provider,
-              onBindingChange: () => undefined,
+              onTargetRefChange: () => undefined,
               status: {
                 supported: false,
                 tone: 'attention',
@@ -131,9 +124,8 @@ describe('ModelConfigPanel', () => {
               capabilityId: 'image.generate',
               routeCapability: 'image.generate',
               label: 'Image Model',
-              binding: null,
-              provider: null,
-              onBindingChange: () => undefined,
+              targetRef: null,
+              onTargetRefChange: () => undefined,
               runtimeNotReadyLabel: 'Runtime not ready',
             },
           ],

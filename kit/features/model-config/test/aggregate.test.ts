@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  selectEnabledDescriptors,
+  selectRequirementDescriptors,
   summarizeAiModelAggregate,
   type CapabilityEvaluation,
 } from '@nimiplatform/kit/core/model-config';
@@ -56,10 +56,36 @@ describe('summarizeAiModelAggregate', () => {
   });
 });
 
-describe('selectEnabledDescriptors', () => {
-  it('drops unknown capability ids and preserves input order', () => {
-    const selected = selectEnabledDescriptors(
-      ['text.generate', 'unknown.bogus', 'image.generate'],
+describe('selectRequirementDescriptors', () => {
+  it('derives visible controls from SDK requirement declarations only', () => {
+    const selected = selectRequirementDescriptors(
+      {
+        requirementId: 'desktop.chat.settings',
+        scopeRef: { kind: 'feature', ownerId: 'desktop.chat', surfaceId: 'settings' },
+        requiredSlices: [
+          {
+            requirementSliceId: 'req.text',
+            capability: 'text.generate',
+            profileSliceRef: 'slice.text',
+            readinessPolicy: 'required',
+          },
+          {
+            requirementSliceId: 'req.unknown',
+            capability: 'unknown.bogus',
+            profileSliceRef: 'slice.unknown',
+            readinessPolicy: 'required',
+          },
+        ],
+        optionalSlices: [
+          {
+            requirementSliceId: 'opt.image',
+            capability: 'image.generate',
+            profileSliceRef: 'slice.image',
+            readinessPolicy: 'optional',
+          },
+        ],
+        setupProjectionPolicy: 'sdk-ai-config-setup-projection',
+      },
       CANONICAL_CAPABILITY_CATALOG_BY_ID,
     );
     expect(selected.map((d) => d.capabilityId)).toEqual(['text.generate', 'image.generate']);

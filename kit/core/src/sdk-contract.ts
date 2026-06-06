@@ -11,7 +11,7 @@
  * instead of being scattered through feature modules.
  *
  * This file is not platform authority. SDK public surface admission remains in
- * `.nimi/spec/sdk/kernel/surface-contract.md`; Runtime, Realm, and AI execution
+ * `.nimi/spec/sdks/kernel/surface-contract.md`; Runtime, Realm, and AI execution
  * authority remains in their owning specs and services. This file is the Kit
  * package-local SDK coupling surface.
  *
@@ -19,41 +19,45 @@
  * -----------------------------------
  *
  *   @nimiplatform/sdk          — root facade
- *     - getPlatformClient
+ *     - createNimiClient / NimiClient explicit composition
  *   @nimiplatform/sdk/runtime — runtime type family
  *     - Runtime, text generation/streaming types, media scenario job helpers,
  *       route/model catalog projections, reason-code helpers, and local route
  *       option projections
  *     - Runtime catalog projection/client types and
- *       createRuntimeModelCatalogClient
+ *       createNimiRuntimeModelCatalogClient
  *       (features/model-picker/src/runtime.ts:1-32)
  *   @nimiplatform/sdk/realm — realm typed surface
- *     - RealmServiceRegistry, RealmModel, and auth/realm helper values
- *     - resolveRealmMediaUrl (chat/src/realm/helpers.ts)
+ *     - RealmModel, RealmHumanChatModule, and auth/realm helper values
+ *     - resolveNimiRealmMediaUrl (chat/src/realm/attachments.ts)
  *   @nimiplatform/sdk/types — typed error envelope
- *     - NimiError and ReasonCode
+ *     - NimiError and error helpers
  *   @nimiplatform/sdk/ai   — module-config projection and profile DX
- *     - AIConfig, AIProfile, apply/preview result types, and AIScopeRef
- *   @nimiplatform/sdk/ai-app — app AI developer experience
- *     - submitAppAiChat, streamAppAiChatResponse,
- *       runAppAiTextTurn, streamAppAiTextResponse, and event/handler types
- *     - buildAppAiHistoryWindow and history budget helpers
+ *     - NimiAIConfig, compact target refs, NimiAIProfile, requirement
+ *       declarations, setup projection, apply/preview result types, and
+ *       NimiAIScopeRef
+ *   @nimiplatform/sdk/ai — Nimi-native AI developer experience
+ *     - createNimiRuntimeAIModel, runNimiTextGenerate,
+ *       runNimiTextTurn, streamNimiTextResponse, and event/handler types
+ *   @nimiplatform/sdk/features/conversation — conversation primitives
+ *     - history windows, text accumulation, and stream snapshots
  *
  * Re-export strategy
  * ------------------
  *  - Type-only re-exports keep this file React-free + runtime-safe
  *    (kit/core hard boundary preserved).
- *  - The single value re-export `getPlatformClient` is the SDK root
- *    facade entrypoint.
- *  - Runtime classes, enums, error helpers, catalog client factories, and
- *    app-AI helper functions are value exports because Kit feature code invokes
- *    them directly.
+ *  - vNext removes the SDK platform singleton. Kit feature code must receive
+ *    Runtime/Realm/App surfaces explicitly.
+ *  - Runtime classes, enums, error helpers, catalog client factories, and AI
+ *    helper functions are value exports because Kit feature code invokes them
+ *    directly.
  *  - Kit module-config has both type and value SDK surfaces from
  *    `@nimiplatform/sdk/ai`; we re-export the whole sub-path for
  *    that one consumer to match its existing star-import shape.
- *  - Kit chat uses `@nimiplatform/sdk/ai-app` only for non-authoritative
- *    app-AI text generate/stream helpers and text-turn stream assembly; Kit
- *    maps the resulting events into reusable conversation headless events.
+ *  - Kit chat uses `@nimiplatform/sdk/ai` and
+ *    `@nimiplatform/sdk/features/conversation` for non-authoritative text
+ *    generate/stream helpers and text-turn stream assembly; Kit maps the
+ *    resulting events into reusable conversation headless events.
  *  - Kit generation uses `@nimiplatform/sdk/runtime` only for
  *    non-authoritative media scenario job consumption; Kit maps the
  *    resulting Runtime job projection into reusable generation UI state.
@@ -72,144 +76,116 @@
  */
 
 // --- Root facade ------------------------------------------------------------
-export { getPlatformClient } from '@nimiplatform/sdk';
-export type { getPlatformClient as GetPlatformClientFn } from '@nimiplatform/sdk';
+export { NimiClient, createNimiClient } from '@nimiplatform/sdk';
+export type { NimiClientConfig } from '@nimiplatform/sdk';
 
 // --- Runtime type family ----------------------------------------------------
 // `Runtime`, `ScenarioJobStatus`, catalog enums, and catalog client factories
 // are runtime values, not type-only — keep their value-side export.
-export {
-  Runtime,
-  asNimiError,
-  createNimiError,
-  createRuntimeModelCatalogClient,
-  getRuntimeReasonCodeMessage,
-  isNimiError,
-  listRuntimeRouteOptions,
-  runtimeRouteCapabilitiesMatch,
-  runRuntimeMediaGenerationJob,
-  ScenarioJobStatus,
-  CatalogModelSource,
-  ModelCatalogProviderSource,
-} from '@nimiplatform/sdk/runtime';
-export type {
-  TextGenerateInput,
-  TextGenerateOutput,
-  TextMessage,
-  TextMessageContentPart,
-  TextStreamInput,
-  TextStreamOutput,
-  TextStreamPart,
-  SpeechVoiceReference,
-  ScenarioJobSubmitInput,
-  RuntimeMediaGenerationJob,
-  RuntimeMediaGenerationJobResult,
-  RuntimeMediaGenerationJobsModule,
-  RuntimeMediaGenerationSubmitRequest,
-  RuntimeMediaScenarioArtifact,
-  CatalogModelDetail,
-  CatalogOverlayWarning,
-  CatalogPricing,
-  CatalogSourceRef,
-  CatalogVideoGenerationCapability,
-  CatalogVoiceEntry,
-  CatalogWorkflowModel,
-  CatalogModelWorkflowBinding,
-  CatalogModelSummary,
-  ModelCatalogProviderEntry,
-  RuntimeCatalogModelDetail,
-  RuntimeCatalogModelDetailResponse,
-  RuntimeCatalogModelSource,
-  RuntimeCatalogOverlayWarning,
-  RuntimeCatalogPricing,
-  RuntimeCatalogProviderModelsResponse,
-  RuntimeCatalogSourceRef,
-  RuntimeCatalogVideoGeneration,
-  RuntimeCatalogVoiceEntry,
-  RuntimeCatalogWorkflowBinding,
-  RuntimeCatalogWorkflowModel,
-  RuntimeCatalogModelSummary,
-  RuntimeModelCatalogClient,
-  RuntimeModelCatalogProvider,
-  RuntimeModelCatalogProviderSource,
-  RuntimeCanonicalCapability,
-  RuntimeRouteBinding,
-  RuntimeRouteOptionsClient,
-  RuntimeRouteOptionsSnapshot,
-  ListRuntimeRouteOptionsInput,
-} from '@nimiplatform/sdk/runtime';
+export { Runtime, createNimiRuntimeModelCatalogClient, getNimiRuntimeReasonCodeMessage, listNimiRuntimeRouteOptions, NIMI_RUNTIME_REASON_CODES, runNimiRuntimeScenarioJob, runtimeNimiRouteCapabilitiesMatch } from '@nimiplatform/sdk/runtime';
+export { ExecutionMode, ScenarioJobStatus, ScenarioType, CatalogModelSource, ModelCatalogProviderSource } from '@nimiplatform/sdk/runtime/generated';
+export type { NimiRuntimeCatalogModelDetail, NimiRuntimeCatalogModelDetailResponse, NimiRuntimeCatalogModelSource, NimiRuntimeCatalogOverlayWarning, NimiRuntimeCatalogPricing, NimiRuntimeCatalogProviderModelsResponse, NimiRuntimeCatalogSourceRef, NimiRuntimeCatalogVideoGeneration, NimiRuntimeCatalogVoiceEntry, NimiRuntimeCatalogWorkflowBinding, NimiRuntimeCatalogWorkflowModel, NimiRuntimeCatalogModelSummary, NimiRuntimeModelCatalogClient, NimiRuntimeModelCatalogConnectorClient, NimiRuntimeModelCatalogProvider, NimiRuntimeModelCatalogProviderSource, NimiListRuntimeRouteOptionsInput, NimiRuntimeCanonicalCapability, NimiRuntimeRouteBinding, NimiRuntimeRouteOptionsClient, NimiRuntimeRouteOptionsSnapshot, NimiRuntimeScenarioArtifact, NimiRuntimeScenarioJob, NimiRuntimeScenarioJobClient, NimiRuntimeScenarioJobResult, NimiRuntimeScenarioJobSubmitRequest, NimiRuntimeSpeechVoiceReference } from '@nimiplatform/sdk/runtime';
+export type { CatalogModelDetail, CatalogOverlayWarning, CatalogPricing, CatalogSourceRef, CatalogVideoGenerationCapability, CatalogVoiceEntry, CatalogWorkflowModel, CatalogModelWorkflowBinding, CatalogModelSummary, ModelCatalogProviderEntry } from '@nimiplatform/sdk/runtime/generated';
 
 // --- Realm type family ------------------------------------------------------
-export type {
-  RealmServiceRegistry,
-  RealmModel,
+export type { RealmHumanChatModule, NimiRealmAuthTokens, NimiRealmOAuthLoginResult } from '@nimiplatform/sdk/realm';
+export type { RealmModel, RealmTypedClient } from '@nimiplatform/sdk/realm/generated';
+export {
+  NIMI_REALM_OAUTH_LOGIN_STATE,
+  NIMI_REALM_OAUTH_PROVIDER,
+  normalizeNimiRealmAuthTokens,
+  normalizeNimiRealmOAuthLoginResult,
+  readNimiRealmOAuthLoginTokens,
+  resolveNimiRealmMediaUrl,
+  toNimiRealmAuthUserRecord,
 } from '@nimiplatform/sdk/realm';
-export { OAuthLoginState, OAuthProvider, resolveRealmMediaUrl } from '@nimiplatform/sdk/realm';
 
 // --- Typed error envelope ---------------------------------------------------
 export type { NimiError } from '@nimiplatform/sdk/types';
-export { ReasonCode } from '@nimiplatform/sdk/types';
+export { asNimiError, createNimiError, isNimiError, ReasonCode } from '@nimiplatform/sdk/types';
 
 // --- Module-config (kit/core/model-config + kit/features/model-config) ------
 // `@nimiplatform/sdk/ai` consumers in kit:
-//   - core/model-config/types.ts (AIConfig, AIProfile, AIProfileApplyResult,
-//     AIProfileApplyOptions, AIProfilePreviewResult, AIProfileRef, AIScopeRef)
-//   - core/model-config/profile-controller-core.ts (AIConfig, AIProfile,
-//     AIProfileApplyResult, AIProfilePreviewResult, AIProfileRef)
+//   - core/model-config/types.ts (NimiAIConfig, compact target refs,
+//     requirement declarations, setup projection, NimiAIProfileApplyResult,
+//     NimiAIProfileApplyOptions, NimiAIProfilePreviewResult,
+//     NimiAIProfileOriginRef, NimiAIScopeRef)
+//   - core/model-config/profile-controller-core.ts (NimiAIConfig,
+//     NimiAIProfile, NimiAIProfileApplyResult, NimiAIProfilePreviewResult,
+//     NimiAIProfileOriginRef)
 //   - features/model-config/src/components/model-config-ai-model-hub.tsx
-//     (AIConfig)
+//     (NimiAIConfig)
 //   - features/model-config/src/components/model-config-capability-detail.tsx
-//     (AIConfig)
+//     (NimiAIConfig)
 //   - features/model-config/src/headless/use-model-config-profile-controller.ts
-//     (AIConfig, AIProfile, AIProfileApplyResult, AIProfilePreviewResult,
-//      AIScopeRef)
+//     (NimiAIConfig, NimiAIProfile, NimiAIProfileApplyResult,
+//      NimiAIProfilePreviewResult, NimiAIScopeRef)
 export type {
-  AIConfig,
-  AIProfile,
-  AIProfileApplyOptions,
-  AIProfileApplyResult,
-  AIProfilePreviewResult,
-  AIProfileRef,
-  AIScopeRef,
+  NimiAICapabilityRequirementDeclaration,
+  NimiAICapabilityRequirementSlice,
+  NimiAIConfig,
+  NimiAIConfigSetupProjection,
+  NimiAIConfigTargetRef,
+  NimiAIProfile,
+  NimiAIProfileApplyOptions,
+  NimiAIProfileApplyResult,
+  NimiAIProfileOriginRef,
+  NimiAIProfilePreviewResult,
+  NimiAIScopeRef,
 } from '@nimiplatform/sdk/ai';
 
-// --- App AI developer-experience primitives --------------------------------
+// --- Nimi AI developer-experience primitives --------------------------------
 export {
-  APP_AI_SESSION_COMPLETION_RESERVE,
-  APP_AI_SESSION_HISTORY_BUDGET,
-  buildAppAiHistoryWindow,
-  estimateAppAiHistoryMessageChars,
-  estimateAppAiHistoryTokenCountFromChars,
-  measureAppAiHistoryWindowBudget,
-  runAppAiTextTurn,
-  streamAppAiTextResponse,
-  streamAppAiChatResponse,
-  submitAppAiChat,
-  withDefaultAppAiChatMetadata,
-} from '@nimiplatform/sdk/ai-app';
+  createNimiRuntimeAIModel,
+  runNimiTextGenerate,
+  runNimiTextTurn,
+  streamNimiTextResponse,
+} from '@nimiplatform/sdk/ai';
 export type {
-  AppAiChatDeltaPart,
-  AppAiChatErrorPart,
-  AppAiChatFinishPart,
-  AppAiChatMetadataDefaults,
-  AppAiChatPrompt,
-  AppAiChatRequest,
-  AppAiChatRuntimeOptions,
-  AppAiChatStreamHandlers,
-  AppAiChatStreamRequest,
-  AppAiChatStreamResult,
-  AppAiChatStreamSnapshot,
-  AppAiHistoryTokenCounter,
-  AppAiHistoryWindowBudget,
-  AppAiHistoryWindowMessage,
-  AppAiHistoryWindowResult,
-  AppAiTextStreamDeltaPart,
-  AppAiTextStreamErrorPart,
-  AppAiTextStreamFinishPart,
-  AppAiTextStreamResponseHandlers,
-  AppAiTextStreamResponseResult,
-  AppAiTextStreamResponseRuntime,
-  AppAiTextStreamResponseSnapshot,
-  AppAiTextTurnEvent,
-  AppAiTextTurnRuntime,
-} from '@nimiplatform/sdk/ai-app';
+  NimiAiModel,
+  NimiGenerateTextRequest,
+  NimiGenerateTextResult,
+  NimiRuntimeAIModelOptions,
+  NimiRuntimeAIRoutePolicy,
+  NimiRuntimeAIReasoningOptions,
+  NimiTextError,
+  NimiTextGenerateInput,
+  NimiTextGenerateResult,
+  NimiTextRuntime,
+  NimiTextStreamHandlers,
+  NimiTextStreamResponseResult,
+  NimiTextTurnEvent,
+  NimiTextTurnInput,
+} from '@nimiplatform/sdk/ai';
+export type {
+  NimiJsonObject,
+  NimiJsonValue,
+  NimiMessage,
+  NimiMessagePart,
+  NimiMessageRole,
+  NimiModelRef,
+  NimiRunEvent,
+} from '@nimiplatform/sdk/contracts';
+export {
+  textPart,
+} from '@nimiplatform/sdk/contracts';
+export {
+  NIMI_CONVERSATION_SESSION_COMPLETION_RESERVE,
+  NIMI_CONVERSATION_SESSION_HISTORY_BUDGET,
+  buildNimiConversationHistoryWindow,
+  buildNimiConversationHistoryWindowResult,
+  buildNimiConversationHistoryMessages,
+  estimateNimiConversationMessageChars,
+  estimateNimiConversationTokenEstimateFromChars,
+  estimateNimiConversationTokens,
+  measureNimiConversationHistoryWindow,
+} from '@nimiplatform/sdk/features/conversation';
+export type {
+  NimiConversationHistoryBudget,
+  NimiConversationHistoryMessageInput,
+  NimiConversationHistoryTokenCounter,
+  NimiConversationHistoryWindowMeasurement,
+  NimiConversationHistoryWindowResult,
+  NimiConversationMessage,
+  NimiConversationTextAccumulatorSnapshot,
+} from '@nimiplatform/sdk/features/conversation';

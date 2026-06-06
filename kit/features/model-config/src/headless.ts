@@ -2,7 +2,7 @@ export type {
   ModelConfigCapabilityItem,
   ModelConfigCapabilityStatus,
   ModelConfigCapabilityStatusTone,
-  ModelConfigRouteBinding,
+  ModelConfigTargetRef,
   ModelConfigSection,
   ModelConfigProfileController,
   ModelConfigProfileOption,
@@ -71,10 +71,8 @@ export {
 } from './constants.js';
 
 export {
-  bindingToPickerSelection,
-  pickerSelectionToBinding,
-  summarizeBinding,
-} from './binding-helpers.js';
+  summarizeTargetRef,
+} from '@nimiplatform/kit/core/model-config';
 
 export { defaultModelConfigProfileCopy } from './default-profile-copy.js';
 export type { ModelConfigCopyFormatter } from './default-profile-copy.js';
@@ -102,6 +100,7 @@ export type {
   ModelConfigProjectionStatus,
   ModelConfigProviderResolver,
   ModelConfigStatusTone,
+  ModelConfigRequirementEvaluation,
   SharedAIConfigService,
   SharedAIConfigSubscribeListener,
   SharedAIConfigUnsubscribe,
@@ -110,7 +109,7 @@ export type {
 
 export {
   createModelConfigProfileControllerCore,
-  selectEnabledDescriptors,
+  selectRequirementDescriptors,
   summarizeAiModelAggregate,
   summarizeProfilePreview,
 } from '@nimiplatform/kit/core/model-config';

@@ -1,11 +1,16 @@
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ScenarioJobStatus, type Runtime } from '@nimiplatform/kit/core/sdk-contract';
+import {
+  ExecutionMode,
+  ScenarioJobStatus,
+  ScenarioType,
+  type NimiRuntimeScenarioArtifact,
+  type NimiRuntimeScenarioJob,
+  type Runtime,
+} from '@nimiplatform/kit/core/sdk-contract';
 import {
   copyArtifactBytesToArrayBuffer,
-  type RuntimeScenarioArtifact,
-  type RuntimeScenarioJob,
   scenarioJobStatusLabel,
   scenarioJobStatusToGenerationStatus,
   useRuntimeGenerationPanel,
@@ -39,30 +44,36 @@ afterEach(async () => {
   container = null;
 });
 
-function makeJob(status: ScenarioJobStatus, jobId = 'job-1'): RuntimeScenarioJob {
-  return { jobId, status } as RuntimeScenarioJob;
+function makeJob(status: ScenarioJobStatus, jobId = 'job-1'): NimiRuntimeScenarioJob {
+  return { jobId, status } as NimiRuntimeScenarioJob;
 }
 
 function makeMockRuntime(options: {
-  submitJob?: RuntimeScenarioJob;
-  subscribeEvents?: Array<{ job?: RuntimeScenarioJob }>;
-  getJob?: RuntimeScenarioJob;
-  artifacts?: RuntimeScenarioArtifact[];
+  submitJob?: NimiRuntimeScenarioJob;
+  subscribeEvents?: Array<{ job?: NimiRuntimeScenarioJob }>;
+  getJob?: NimiRuntimeScenarioJob;
+  artifacts?: NimiRuntimeScenarioArtifact[];
 }) {
   return {
-    media: {
-      jobs: {
-        submit: vi.fn().mockResolvedValue(options.submitJob ?? makeJob(ScenarioJobStatus.SUBMITTED)),
-        subscribe: vi.fn().mockResolvedValue(
-          (async function* () {
-            for (const event of options.subscribeEvents ?? []) {
-              yield event;
-            }
-          })(),
-        ),
-        get: vi.fn().mockResolvedValue(options.getJob ?? makeJob(ScenarioJobStatus.COMPLETED)),
-        getArtifacts: vi.fn().mockResolvedValue({ artifacts: options.artifacts ?? [] }),
-      },
+    ai: {
+      submitScenarioJob: vi.fn().mockResolvedValue({
+        job: options.submitJob ?? makeJob(ScenarioJobStatus.SUBMITTED),
+      }),
+      subscribeScenarioJobEvents: vi.fn(() => (
+        async function* () {
+          for (const event of options.subscribeEvents ?? []) {
+            yield event;
+          }
+        }
+      )()),
+      getScenarioJob: vi.fn().mockResolvedValue({
+        job: options.getJob ?? makeJob(ScenarioJobStatus.COMPLETED),
+      }),
+      cancelScenarioJob: vi.fn().mockResolvedValue({}),
+      getScenarioArtifacts: vi.fn().mockResolvedValue({
+        jobId: 'job-1',
+        artifacts: options.artifacts ?? [],
+      }),
     },
   } as unknown as Runtime;
 }
@@ -72,11 +83,12 @@ function RuntimeHarness({ runtime }: { runtime: Runtime }) {
     runtime,
     input: { prompt: 'test prompt' },
     resolveRequest: () => ({
-      modal: 'music',
-      input: {
-        model: 'music-model',
-        prompt: 'test prompt',
-      },
+      scenarioType: ScenarioType.TEXT_GENERATE,
+      executionMode: ExecutionMode.ASYNC_JOB,
+      requestId: 'request-1',
+      idempotencyKey: 'idem-1',
+      labels: {},
+      extensions: [],
     }),
   });
 
@@ -135,6 +147,6 @@ describe('generation runtime helpers', () => {
 
     expect(container.textContent).toContain('Runtime Generation');
     expect(container.textContent).toContain('Completed');
-    expect(runtime.media.jobs.submit).toHaveBeenCalledOnce();
+    expect(runtime.ai.submitScenarioJob).toHaveBeenCalledOnce();
   });
 });
