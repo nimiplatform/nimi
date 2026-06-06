@@ -91,6 +91,14 @@ export function parseNimiAIProfile(value: unknown, options: NimiAIProfileParseOp
       ? record.tags.map((tag) => String(tag || '')).filter(Boolean)
       : options.allowMissingOptionalFields ? [] : requireArray(record.tags, `${label} tags`).map(String),
     capabilities: asAIRecord(record.capabilities, `${label} capabilities`) as NimiAIProfile['capabilities'],
+    ...(typeof record.version === 'string' ? { version: record.version } : {}),
+    ...(typeof record.revision === 'string' ? { revision: record.revision } : {}),
+    ...(Array.isArray(record.assetBindings) ? { assetBindings: record.assetBindings as NimiAIProfile['assetBindings'] } : {}),
+    ...(isRecord(record.defaultParams) ? { defaultParams: record.defaultParams as NimiAIProfile['defaultParams'] } : {}),
+    ...(Array.isArray(record.editableFields) ? { editableFields: record.editableFields.map(String).filter(Boolean) } : {}),
+    ...(Array.isArray(record.prepareRequirements) ? { prepareRequirements: record.prepareRequirements.map(String).filter(Boolean) } : {}),
+    ...(Array.isArray(record.contractStates) ? { contractStates: record.contractStates.map(String).filter(Boolean) } : {}),
+    ...(Array.isArray(record.projectionWarnings) ? { projectionWarnings: record.projectionWarnings.map(String).filter(Boolean) } : {}),
   };
   const validation = validateNimiAIProfile(profile);
   if (!validation.valid) {
@@ -336,6 +344,45 @@ function validateRuntimeDescriptorSliceInput(slice: unknown, path: string): read
     && slice.contractState !== 'proposed'
     && slice.contractState !== 'unsupported') {
     errors.push(`${path}.contractState is invalid`);
+  }
+  if (slice.assetRefs !== undefined && !Array.isArray(slice.assetRefs)) {
+    errors.push(`${path}.assetRefs must be an array when provided`);
+  }
+  if (Array.isArray(slice.assetRefs)) {
+    slice.assetRefs.forEach((assetRef, index) => {
+      if (!isNonEmptyString(assetRef)) {
+        errors.push(`${path}.assetRefs[${index}] is required`);
+      }
+    });
+  }
+  if (slice.orderedCompanionOccurrences !== undefined && !Array.isArray(slice.orderedCompanionOccurrences)) {
+    errors.push(`${path}.orderedCompanionOccurrences must be an array when provided`);
+  }
+  if (Array.isArray(slice.orderedCompanionOccurrences)) {
+    slice.orderedCompanionOccurrences.forEach((occurrence, index) => {
+      if (!isRecord(occurrence)) {
+        errors.push(`${path}.orderedCompanionOccurrences[${index}] must be an object`);
+        return;
+      }
+      if (!isNonEmptyString(occurrence.occurrenceId)) {
+        errors.push(`${path}.orderedCompanionOccurrences[${index}].occurrenceId is required`);
+      }
+      if (typeof occurrence.order !== 'number' || !Number.isInteger(occurrence.order) || occurrence.order < 0) {
+        errors.push(`${path}.orderedCompanionOccurrences[${index}].order is invalid`);
+      }
+      if (!isNonEmptyString(occurrence.role)) {
+        errors.push(`${path}.orderedCompanionOccurrences[${index}].role is required`);
+      }
+      if (!isNonEmptyString(occurrence.engineSlot)) {
+        errors.push(`${path}.orderedCompanionOccurrences[${index}].engineSlot is required`);
+      }
+      if (!isNonEmptyString(occurrence.assetBindingRef)) {
+        errors.push(`${path}.orderedCompanionOccurrences[${index}].assetBindingRef is required`);
+      }
+      if (typeof occurrence.required !== 'boolean') {
+        errors.push(`${path}.orderedCompanionOccurrences[${index}].required is required`);
+      }
+    });
   }
   return errors;
 }

@@ -106,10 +106,18 @@ export interface NimiAIProfileCapabilityIntent {
 
 export interface NimiAIProfile {
   readonly profileId: string;
+  readonly version?: string;
+  readonly revision?: string;
   readonly title: string;
   readonly description?: string;
   readonly tags?: readonly string[];
   readonly capabilities: Readonly<Record<string, NimiAIProfileCapabilityIntent | null | undefined>>;
+  readonly assetBindings?: readonly NimiRuntimeProfileDescriptorAssetBinding[];
+  readonly defaultParams?: NimiJsonObject;
+  readonly editableFields?: readonly string[];
+  readonly prepareRequirements?: readonly string[];
+  readonly contractStates?: readonly string[];
+  readonly projectionWarnings?: readonly string[];
 }
 
 export interface NimiAIConfig {
@@ -185,10 +193,15 @@ export interface NimiRuntimeProfileDescriptorSliceInput {
   readonly executionMode?: 'local' | 'cloud_connector';
   readonly contractState?: NimiAIConfigSliceContractState;
   readonly paramsRef?: string;
+  readonly runtimeConsumerId?: string;
+  readonly consumerId?: string;
+  readonly consumerScope?: string;
   readonly execution?: {
     readonly backend: string;
     readonly backendClass?: string;
     readonly backendFamily?: string;
+    readonly consumerId?: string;
+    readonly consumerScope?: string;
   };
   readonly model?: {
     readonly family: string;
@@ -198,6 +211,9 @@ export interface NimiRuntimeProfileDescriptorSliceInput {
   readonly modelId?: string;
   readonly credentialPolicy?: string;
   readonly connectorSelector?: string;
+  readonly paramsSchemaRef?: string;
+  readonly assetRefs?: readonly string[];
+  readonly orderedCompanionOccurrences?: readonly NimiRuntimeProfileDescriptorCompanionOccurrence[];
   readonly paramsDigest?: string;
   readonly environmentDigest?: string;
 }
@@ -207,7 +223,15 @@ export interface NimiAICapabilityRequirementSlice {
   readonly capability: string;
   readonly profileSliceRef: string;
   readonly readinessPolicy: NimiAIConfigReadinessPolicy;
+  readonly editableFieldRefs?: readonly string[];
+  readonly runtimeDescriptorRef?: string;
   readonly runtimeDescriptor?: NimiRuntimeProfileDescriptorSliceInput;
+}
+
+export interface NimiAIRuntimeActivationConsumerRef {
+  readonly consumerId: string;
+  readonly consumerScope?: string;
+  readonly requirementSliceId?: string;
 }
 
 export interface NimiAICapabilityRequirementDeclaration {
@@ -215,16 +239,22 @@ export interface NimiAICapabilityRequirementDeclaration {
   readonly scopeRef: NimiAIScopeRef;
   readonly requiredSlices: readonly NimiAICapabilityRequirementSlice[];
   readonly optionalSlices?: readonly NimiAICapabilityRequirementSlice[];
+  readonly editableFields?: readonly string[];
+  readonly runtimeActivationConsumers?: readonly NimiAIRuntimeActivationConsumerRef[];
+  readonly readinessProjectionRefs?: readonly string[];
   readonly setupProjectionPolicy: string;
+}
+
+export interface NimiRuntimeProfileDescriptorProfileRef {
+  readonly profileId: string;
+  readonly version?: string;
+  readonly revision?: string;
 }
 
 export interface NimiRuntimeProfileDescriptor {
   readonly schemaVersion: 1;
   readonly descriptorId: string;
-  readonly profileRef: {
-    readonly profileId: string;
-    readonly title: string;
-  };
+  readonly profileRef: NimiRuntimeProfileDescriptorProfileRef;
   readonly sourceProfileDigest: string;
   readonly projectionOrigin: {
     readonly component: 'sdks.typescript.ai.formRuntimeDescriptor';
@@ -232,6 +262,67 @@ export interface NimiRuntimeProfileDescriptor {
   };
   readonly requirementRefs: readonly string[];
   readonly capabilitySlices: readonly NimiRuntimeProfileDescriptorCapabilitySlice[];
+  readonly assetBindings?: readonly NimiRuntimeProfileDescriptorAssetBinding[];
+  readonly defaultParams?: NimiJsonObject;
+  readonly editableFields?: readonly string[];
+  readonly prepareRequirements?: readonly string[];
+  readonly contractStates?: readonly string[];
+  readonly projectionWarnings?: readonly string[];
+}
+
+export interface NimiRuntimeProfileDescriptorExecution {
+  readonly backend: string;
+  readonly backendClass?: string;
+  readonly backendFamily?: string;
+  readonly consumerId?: string;
+  readonly consumerScope?: string;
+}
+
+export interface NimiRuntimeProfileDescriptorModel {
+  readonly family: string;
+}
+
+export interface NimiRuntimeProfileDescriptorCompanionOccurrence {
+  readonly occurrenceId: string;
+  readonly order: number;
+  readonly role: string;
+  readonly engineSlot: string;
+  readonly assetBindingRef: string;
+  readonly required: boolean;
+  readonly weight?: string;
+  readonly options?: NimiJsonObject;
+  readonly appliesTo?: readonly string[];
+}
+
+export interface NimiRuntimeProfileDescriptorHuggingFaceSource {
+  readonly repoId: string;
+  readonly revision: string;
+  readonly entries: readonly string[];
+  readonly accessPolicy: 'public' | 'requires_auth' | 'gated' | 'unknown';
+  readonly repoType?: string;
+  readonly format?: string;
+  readonly variant?: string;
+  readonly expectedIntegrity?: string;
+}
+
+export interface NimiRuntimeProfileDescriptorManualSource {
+  readonly expectedName: string;
+  readonly associationInstructions: string;
+  readonly expectedFormat?: string;
+  readonly allowedFilePatterns?: readonly string[];
+  readonly expectedIntegrity?: string;
+  readonly riskLabel?: string;
+}
+
+export interface NimiRuntimeProfileDescriptorAssetBinding {
+  readonly bindingId: string;
+  readonly assetRole: 'main' | 'component' | 'companion' | string;
+  readonly componentKind: string;
+  readonly source: 'huggingface' | 'manual';
+  readonly expectedIdentity: string;
+  readonly readinessPolicy: NimiAIConfigReadinessPolicy;
+  readonly huggingFace?: NimiRuntimeProfileDescriptorHuggingFaceSource;
+  readonly manual?: NimiRuntimeProfileDescriptorManualSource;
 }
 
 export interface NimiRuntimeProfileDescriptorCapabilitySlice {
@@ -241,21 +332,125 @@ export interface NimiRuntimeProfileDescriptorCapabilitySlice {
   readonly contractState: NimiAIConfigSliceContractState;
   readonly readinessPolicy: NimiAIConfigReadinessPolicy;
   readonly paramsRef: string;
-  readonly execution?: {
-    readonly backend: string;
-    readonly backendClass?: string;
-    readonly backendFamily?: string;
-  };
-  readonly model?: {
-    readonly family: string;
-  };
+  readonly runtimeConsumerId?: string;
+  readonly consumerId?: string;
+  readonly consumerScope?: string;
+  readonly execution?: NimiRuntimeProfileDescriptorExecution;
+  readonly model?: NimiRuntimeProfileDescriptorModel;
   readonly provider?: string;
   readonly providerCapability?: string;
   readonly modelId?: string;
   readonly credentialPolicy?: string;
   readonly connectorSelector?: string;
+  readonly paramsSchemaRef?: string;
+  readonly assetRefs?: readonly string[];
+  readonly orderedCompanionOccurrences?: readonly NimiRuntimeProfileDescriptorCompanionOccurrence[];
   readonly paramsDigest?: string;
   readonly environmentDigest?: string;
+}
+
+export interface NimiRuntimeProfileDescriptorProfileRefWire {
+  readonly profile_id: string;
+  readonly version?: string;
+  readonly revision?: string;
+}
+
+export interface NimiRuntimeProfileDescriptorExecutionWire {
+  readonly backend: string;
+  readonly backend_class?: string;
+  readonly backend_family?: string;
+  readonly consumer_id?: string;
+  readonly consumer_scope?: string;
+}
+
+export interface NimiRuntimeProfileDescriptorModelWire {
+  readonly family: string;
+}
+
+export interface NimiRuntimeProfileDescriptorCompanionOccurrenceWire {
+  readonly occurrence_id: string;
+  readonly order: number;
+  readonly role: string;
+  readonly engineSlot: string;
+  readonly asset_binding_ref: string;
+  readonly required: boolean;
+  readonly weight?: string;
+  readonly options?: NimiJsonObject;
+  readonly applies_to?: readonly string[];
+}
+
+export interface NimiRuntimeProfileDescriptorHuggingFaceSourceWire {
+  readonly repo_id: string;
+  readonly revision: string;
+  readonly entries: readonly string[];
+  readonly access_policy: 'public' | 'requires_auth' | 'gated' | 'unknown';
+  readonly repo_type?: string;
+  readonly format?: string;
+  readonly variant?: string;
+  readonly expected_integrity?: string;
+}
+
+export interface NimiRuntimeProfileDescriptorManualSourceWire {
+  readonly expected_name: string;
+  readonly association_instructions: string;
+  readonly expected_format?: string;
+  readonly allowed_file_patterns?: readonly string[];
+  readonly expected_integrity?: string;
+  readonly risk_label?: string;
+}
+
+export interface NimiRuntimeProfileDescriptorAssetBindingWire {
+  readonly binding_id: string;
+  readonly asset_role: string;
+  readonly component_kind: string;
+  readonly source: 'huggingface' | 'manual';
+  readonly expected_identity: string;
+  readonly readiness_policy: NimiAIConfigReadinessPolicy;
+  readonly huggingface?: NimiRuntimeProfileDescriptorHuggingFaceSourceWire;
+  readonly manual?: NimiRuntimeProfileDescriptorManualSourceWire;
+}
+
+export interface NimiRuntimeProfileDescriptorCapabilitySliceWire {
+  readonly slice_id: string;
+  readonly capability: string;
+  readonly execution_mode: 'local' | 'cloud_connector';
+  readonly contract_state: NimiAIConfigSliceContractState;
+  readonly readiness_policy: NimiAIConfigReadinessPolicy;
+  readonly params_ref: string;
+  readonly runtime_consumer_id?: string;
+  readonly consumer_id?: string;
+  readonly consumer_scope?: string;
+  readonly execution?: NimiRuntimeProfileDescriptorExecutionWire;
+  readonly model?: NimiRuntimeProfileDescriptorModelWire;
+  readonly provider?: string;
+  readonly provider_capability?: string;
+  readonly model_id?: string;
+  readonly credential_policy?: string;
+  readonly connector_selector?: string;
+  readonly params_schema_ref?: string;
+  readonly asset_refs?: readonly string[];
+  readonly ordered_companion_occurrences?: readonly NimiRuntimeProfileDescriptorCompanionOccurrenceWire[];
+  readonly params_digest?: string;
+  readonly environment_digest?: string;
+}
+
+export interface NimiRuntimeProfileDescriptorWire {
+  readonly schema_version: 1;
+  readonly descriptor_id: string;
+  readonly profile_ref: NimiRuntimeProfileDescriptorProfileRefWire;
+  readonly source_profile_digest: string;
+  readonly projection_origin: {
+    readonly component: 'sdks.typescript.ai.formRuntimeDescriptor';
+    readonly projected_at: string;
+  };
+  readonly requirement_refs: readonly string[];
+  readonly capability_slices: readonly NimiRuntimeProfileDescriptorCapabilitySliceWire[];
+  readonly asset_bindings?: readonly NimiRuntimeProfileDescriptorAssetBindingWire[];
+  readonly default_params?: NimiJsonObject;
+  readonly editable_fields?: readonly string[];
+  readonly prepare_requirements?: readonly string[];
+  readonly contract_states?: readonly string[];
+  readonly projection_warnings?: readonly string[];
 }
 
 export interface NimiAIConfigEvidence {

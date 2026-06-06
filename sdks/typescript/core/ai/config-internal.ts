@@ -12,6 +12,8 @@ const FORBIDDEN_AI_CONFIG_FIELD_NAMES = new Set([
   'materializationEvidence',
   'workflow_binding_id',
   'workflowBindingId',
+  'prepared_asset_id',
+  'preparedAssetId',
   'backend_environment_evidence',
   'backendEnvironmentEvidence',
   'provider_health',

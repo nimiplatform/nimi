@@ -35,6 +35,8 @@ import {
   parseNimiAIScopeRefKey,
   previewNimiAIProfileApply,
   projectNimiAIProfileApply,
+  serializeNimiRuntimeProfileDescriptor,
+  toNimiRuntimeProfileDescriptorWire,
   validateNimiAIConfig,
   validateNimiAIConfigTargetRef,
   validateNimiAIProfile,
@@ -324,6 +326,289 @@ test('Nimi AI profile parsing and runtime descriptor projection cover failure bo
     }),
     (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_AI_RUNTIME_DESCRIPTOR_INVALID',
   );
+});
+
+test('Nimi runtime profile descriptor serialization emits Runtime wire JSON bytes', () => {
+  const mediaProfile: NimiAIProfile = {
+    profileId: 'factory:z-image',
+    version: '1',
+    revision: 'rev-1',
+    title: 'Z Image',
+    capabilities: {
+      'image.generate': {
+        runtimeDescriptor: {
+          executionMode: 'local',
+          runtimeConsumerId: 'stable-diffusion.cpp.metal',
+          execution: {
+            backend: 'stablediffusion-ggml',
+            backendClass: 'native_binary',
+            backendFamily: 'stablediffusion-ggml',
+          },
+          model: { family: 'flux' },
+          assetRefs: ['main'],
+          orderedCompanionOccurrences: [{
+            occurrenceId: 'qwen-text-encoder',
+            order: 0,
+            role: 'text_encoder',
+            engineSlot: 'llm_path',
+            assetBindingRef: 'qwen',
+            required: true,
+          }, {
+            occurrenceId: 'z-image-ae',
+            order: 1,
+            role: 'vae',
+            engineSlot: 'vae_path',
+            assetBindingRef: 'ae',
+            required: true,
+            options: { precision: 'fp16' },
+            appliesTo: ['slice:image-native'],
+          }],
+        },
+      },
+    },
+    assetBindings: [{
+      bindingId: 'main',
+      assetRole: 'main',
+      componentKind: 'image',
+      source: 'huggingface',
+      expectedIdentity: 'z_image_turbo',
+      readinessPolicy: 'required',
+      huggingFace: {
+        repoId: 'nimiplatform/z-image',
+        revision: 'main',
+        entries: ['z-image.gguf'],
+        accessPolicy: 'public',
+        repoType: 'model',
+        format: 'gguf',
+      },
+    }, {
+      bindingId: 'qwen',
+      assetRole: 'companion',
+      componentKind: 'chat',
+      source: 'huggingface',
+      expectedIdentity: 'qwen3_4b_companion',
+      readinessPolicy: 'required',
+      huggingFace: {
+        repoId: 'nimiplatform/qwen3-4b',
+        revision: 'main',
+        entries: ['Qwen3-4B-Q4_K_M.gguf'],
+        accessPolicy: 'public',
+      },
+    }, {
+      bindingId: 'ae',
+      assetRole: 'companion',
+      componentKind: 'vae',
+      source: 'manual',
+      expectedIdentity: 'z_image_ae',
+      readinessPolicy: 'required',
+      manual: {
+        expectedName: 'ae.safetensors',
+        associationInstructions: 'Associate the VAE companion with the Z Image profile.',
+        expectedFormat: 'safetensors',
+        allowedFilePatterns: ['*.safetensors'],
+      },
+    }],
+    defaultParams: { steps: 8 },
+    editableFields: ['steps'],
+    prepareRequirements: ['native_backend_package'],
+    contractStates: ['declared'],
+    projectionWarnings: ['setup_required_until_runtime_prepare'],
+  };
+
+  const descriptor = formNimiRuntimeProfileDescriptor({
+    profile: mediaProfile,
+    descriptorId: 'descriptor:z-image',
+    sourceProfileDigest: 'sha256:z-image',
+    projectedAt: '2026-06-06T00:00:00.000Z',
+    requirementDeclarations: [{
+      requirementId: 'requirement:z-image',
+      scopeRef: SCOPE,
+      setupProjectionPolicy: 'sdk-ai-config-setup-projection',
+      requiredSlices: [{
+        requirementSliceId: 'slice:image-native',
+        capability: 'image.generate',
+        profileSliceRef: 'slice:image-native',
+        readinessPolicy: 'required',
+        editableFieldRefs: ['steps'],
+      }],
+      runtimeActivationConsumers: [{
+        requirementSliceId: 'slice:image-native',
+        consumerId: 'desktop.chat.generate',
+        consumerScope: 'app:dev.nimi.wave4:chat',
+      }],
+      editableFields: ['steps'],
+      readinessProjectionRefs: ['runtime.local.prepareProfileRuntimeDescriptor'],
+    }],
+  });
+
+  assert.equal(descriptor.profileRef.profileId, 'factory:z-image');
+  assert.equal(descriptor.capabilitySlices[0]?.consumerId, 'desktop.chat.generate');
+  assert.equal(descriptor.capabilitySlices[0]?.runtimeConsumerId, 'stable-diffusion.cpp.metal');
+  assert.equal(descriptor.assetBindings?.length, 3);
+
+  const wire = toNimiRuntimeProfileDescriptorWire(descriptor);
+  assert.equal(wire.schema_version, 1);
+  assert.equal(wire.profile_ref.profile_id, 'factory:z-image');
+  assert.equal(wire.projection_origin.projected_at, '2026-06-06T00:00:00.000Z');
+  assert.equal(wire.capability_slices[0]?.execution?.backend_class, 'native_binary');
+  assert.deepEqual(wire.capability_slices[0]?.asset_refs, ['main']);
+  assert.equal(wire.capability_slices[0]?.consumer_id, 'desktop.chat.generate');
+  assert.equal(wire.capability_slices[0]?.runtime_consumer_id, 'stable-diffusion.cpp.metal');
+  assert.deepEqual(wire.capability_slices[0]?.ordered_companion_occurrences?.map((occurrence) => ({
+    occurrenceId: occurrence.occurrence_id,
+    order: occurrence.order,
+    engineSlot: occurrence.engineSlot,
+    binding: occurrence.asset_binding_ref,
+  })), [{
+    occurrenceId: 'qwen-text-encoder',
+    order: 0,
+    engineSlot: 'llm_path',
+    binding: 'qwen',
+  }, {
+    occurrenceId: 'z-image-ae',
+    order: 1,
+    engineSlot: 'vae_path',
+    binding: 'ae',
+  }]);
+  assert.equal(wire.asset_bindings?.[0]?.huggingface?.repo_id, 'nimiplatform/z-image');
+  assert.equal(wire.asset_bindings?.[2]?.manual?.expected_name, 'ae.safetensors');
+  assert.equal(JSON.stringify(wire).includes('prepared_asset_id'), false);
+
+  const descriptorJson = serializeNimiRuntimeProfileDescriptor(descriptor);
+  const runtimePrepareRequest = { descriptorJson };
+  assert.equal(runtimePrepareRequest.descriptorJson instanceof Uint8Array, true);
+  assert.deepEqual(JSON.parse(new TextDecoder().decode(runtimePrepareRequest.descriptorJson)), wire);
+});
+
+test('Nimi runtime profile descriptor serialization rejects Runtime evidence and ambiguous consumers', () => {
+  assert.throws(
+    () => formNimiRuntimeProfileDescriptor({
+      profile: READY_PROFILE,
+      descriptorId: 'descriptor-ambiguous-consumer',
+      sourceProfileDigest: 'digest-profile-chat',
+      requirementDeclarations: [{
+        requirementId: 'chat-requirement',
+        scopeRef: SCOPE,
+        setupProjectionPolicy: 'fail-closed',
+        requiredSlices: [{
+          requirementSliceId: 'slice-text',
+          capability: 'text.generate',
+          profileSliceRef: 'text-generate-local',
+          readinessPolicy: 'required',
+        }],
+        optionalSlices: [{
+          requirementSliceId: 'slice-extra',
+          capability: 'image.generate',
+          profileSliceRef: 'image-local',
+          readinessPolicy: 'optional',
+        }],
+        runtimeActivationConsumers: [{
+          consumerId: 'desktop.chat.generate',
+        }],
+      }],
+    }),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_AI_REQUIREMENT_INVALID',
+  );
+  assert.throws(
+    () => formNimiRuntimeProfileDescriptor({
+      profile: {
+        ...READY_PROFILE,
+        assetBindings: [{
+          bindingId: 'main',
+          assetRole: 'main',
+          componentKind: 'text',
+          source: 'huggingface',
+          expectedIdentity: 'llama',
+          readinessPolicy: 'required',
+          preparedAssetId: 'asset:main',
+          huggingFace: {
+            repoId: 'nimiplatform/llama',
+            revision: 'main',
+            entries: ['model.gguf'],
+            accessPolicy: 'public',
+          },
+        }],
+      } as unknown as NimiAIProfile,
+      descriptorId: 'descriptor-forbidden',
+      sourceProfileDigest: 'digest-profile-chat',
+      requirementDeclarations: [{
+        requirementId: 'chat-requirement',
+        scopeRef: SCOPE,
+        setupProjectionPolicy: 'fail-closed',
+        requiredSlices: [{
+          requirementSliceId: 'slice-text',
+          capability: 'text.generate',
+          profileSliceRef: 'text-generate-local',
+          readinessPolicy: 'required',
+        }],
+      }],
+    }),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_AI_PROFILE_INVALID',
+  );
+});
+
+test('Nimi runtime profile descriptor keeps proposed and unsupported workflow shapes explicit', () => {
+  const descriptor = formNimiRuntimeProfileDescriptor({
+    profile: {
+      profileId: 'profile-workflow-fail-closed',
+      title: 'Workflow fail closed',
+      capabilities: {
+        'image.generate': {
+          contractState: 'proposed',
+          runtimeDescriptor: {
+            executionMode: 'local',
+            execution: { backend: 'diffusers', backendFamily: 'diffusers' },
+            model: { family: 'sdxl' },
+          },
+        },
+        'video.generate': {
+          contractState: 'unsupported',
+          runtimeDescriptor: {
+            executionMode: 'local',
+            execution: { backend: 'video.pipeline', backendFamily: 'video.pipeline' },
+            model: { family: 'wan' },
+          },
+        },
+      },
+    },
+    descriptorId: 'descriptor-workflow-fail-closed',
+    sourceProfileDigest: 'sha256:workflow',
+    projectedAt: '2026-06-06T00:00:00.000Z',
+    requirementDeclarations: [{
+      requirementId: 'requirement-workflow',
+      scopeRef: SCOPE,
+      setupProjectionPolicy: 'sdk-ai-config-setup-projection',
+      requiredSlices: [{
+        requirementSliceId: 'slice-image-diffusers',
+        capability: 'image.generate',
+        profileSliceRef: 'slice-image-diffusers',
+        readinessPolicy: 'required',
+      }, {
+        requirementSliceId: 'slice-video',
+        capability: 'video.generate',
+        profileSliceRef: 'slice-video',
+        readinessPolicy: 'required',
+      }],
+    }],
+  });
+
+  const wire = toNimiRuntimeProfileDescriptorWire(descriptor);
+  assert.deepEqual(wire.capability_slices.map((slice) => ({
+    capability: slice.capability,
+    backend: slice.execution?.backend,
+    family: slice.model?.family,
+    contractState: slice.contract_state,
+  })), [{
+    capability: 'image.generate',
+    backend: 'diffusers',
+    family: 'sdxl',
+    contractState: 'proposed',
+  }, {
+    capability: 'video.generate',
+    backend: 'video.pipeline',
+    family: 'wan',
+    contractState: 'unsupported',
+  }]);
 });
 
 test('Nimi AI host surface previews and applies profiles without implicit storage fallback', async () => {
