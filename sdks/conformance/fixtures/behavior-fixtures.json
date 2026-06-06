@@ -8,7 +8,7 @@
   ],
   "cases": {
     "runtime_unary": {
-      "method_id": "/runtime.v1.RuntimeAccountService/BeginLogin",
+      "method_id": "/nimi.runtime.v1.RuntimeAccountService/BeginLogin",
       "method": "BeginLogin",
       "typed_names": {
         "typescript": "beginLogin",
@@ -28,7 +28,7 @@
       }
     },
     "runtime_stream": {
-      "method_id": "/runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents",
+      "method_id": "/nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents",
       "method": "SubscribeAccountSessionEvents",
       "typed_names": {
         "typescript": "subscribeAccountSessionEvents",

@@ -332,6 +332,27 @@ message ResolveLocalEnvironmentPlanResponse {
   LocalEnvironmentPlan plan = 1;
 }
 
+message PrepareProfileRuntimeDescriptorRequest {
+  bytes descriptor_json = 1;
+}
+
+message ProfileRuntimeDescriptorSlicePrepareResult {
+  string slice_id = 1;
+  string capability = 2;
+  string outcome = 3;
+  repeated string reason_codes = 4;
+  string materialization_key = 5;
+  string workflow_binding_id = 6;
+  bool reusable_asset_healthy = 7;
+}
+
+message PrepareProfileRuntimeDescriptorResponse {
+  string descriptor_id = 1;
+  string profile_id = 2;
+  repeated string requirement_ids = 3;
+  repeated ProfileRuntimeDescriptorSlicePrepareResult slice_results = 4;
+}
+
 message ListLocalEnvironmentSelectedSourcesRequest {
   string dependency_family = 1;
   string consumer_scope = 2;
@@ -805,6 +826,7 @@ service RuntimeLocalService {
 
   // Runtime-owned local environment
   rpc ResolveLocalEnvironmentPlan(ResolveLocalEnvironmentPlanRequest) returns (ResolveLocalEnvironmentPlanResponse);
+  rpc PrepareProfileRuntimeDescriptor(PrepareProfileRuntimeDescriptorRequest) returns (PrepareProfileRuntimeDescriptorResponse);
   rpc ListLocalEnvironmentSelectedSources(ListLocalEnvironmentSelectedSourcesRequest) returns (ListLocalEnvironmentSelectedSourcesResponse);
   rpc ListLocalEnvironmentDependencyJobs(ListLocalEnvironmentDependencyJobsRequest) returns (ListLocalEnvironmentDependencyJobsResponse);
   rpc ResolveLocalEnvironmentActivationGate(ResolveLocalEnvironmentActivationGateRequest) returns (ResolveLocalEnvironmentActivationGateResponse);

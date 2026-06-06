@@ -1,41 +1,23 @@
 # sdks/ AGENTS.md
-
 ## Scope
-
 - Applies to `sdks/**`.
-- This tree is the Phase 1 multi-language Runtime/Realm core-family foundation.
-- Phase 1 means generated Runtime/Realm core implementation plus behavior
-  conformance. Manifest-only parity, directory presence, and thin skeletons are
-  not sufficient completion evidence.
-- Phase 1B means generated named typed Runtime and Realm APIs. Generic
-  descriptor calls such as `call(methodId, body)` or `operation(operationId,
-  body)` are low-level support, not core-ready public API proof.
-
-## Boundaries
-
-- Do not switch Desktop/Web imports to `sdks/**`.
-- Do not refactor or move the current `sdk/` package from this tree.
-- Do not create forwarding packages or compatibility shims between `sdk/` and
-  `sdks/`.
-- Core-generated facts must come from Runtime proto, Realm OpenAPI, or admitted
-  spec tables. Do not copy method IDs, codec maps, Realm operation maps, error
-  tables, or export manifests from `sdk/src/**`.
-- Derivative surfaces such as `ai-provider`, `world`, app clients, permission
-  clients, AI config, runtime route, local environment helpers, Agno, LangChain,
-  and Vercel AI SDK adapters are outside Phase 1 core readiness.
-- OpenAI-compatible APIs, tool loops, agent loops, memory/session
-  orchestration, and structured-output repair helpers are outside Phase 1 core
-  readiness.
-- Runtime AIService typed consume coverage is in scope because it is part of
-  Runtime proto; external framework semantics are not.
-- Conformance must invoke generated clients through fake transports. Do not
-  count manifest comparison or file-existence checks as core readiness.
-- Typed-core conformance must invoke generated named typed methods/operations,
-  not generic descriptor calls.
-
-## Verification
-
+- `.nimi/spec/sdks/**` owns the new SDK family.
+- `sdks/typescript/**` is the TypeScript-first next major `@nimiplatform/sdk`.
+- Python/Go/Rust stay generated Runtime/Realm core until TypeScript stabilizes.
+## Hard Boundaries
+- Do not restore active `sdk/**`; archived SDK history is baseline evidence only.
+- Do not create forwarding packages, old-name aliases, or compatibility shims.
+- Do not hand-edit generated files; regenerate through `sdks/generators`.
+- Generated facts come from Runtime proto, Realm OpenAPI, or admitted spec.
+- Adapter public surfaces live in adapter packages, not base SDK shims.
+- Unsupported capability fails closed. No pseudo-success or hidden bypass.
+## Retrieval Defaults
+- Start in `sdks/typescript`, `sdks/generators`, `sdks/conformance`, and `.nimi/spec/sdks/kernel`.
+- For generated drift, inspect proto/OpenAPI input before generated output.
+- Skip `archive/**`, `**/dist/**`, `**/generated/**`, and dependency folders.
+## Verification Commands
 - `node sdks/generators/generate.mjs --check`
-- `node sdks/conformance/run.mjs --language all`
-- `node sdks/conformance/run.mjs --language all --profile typed-core` once
-  Phase 1B is implemented.
+- `node sdks/conformance/run.mjs --language all --profile typed-core`
+- `pnpm --filter @nimiplatform/sdk build`
+- `pnpm --filter @nimiplatform/sdk test`
+- `pnpm check:sdk-vnext-matrix`

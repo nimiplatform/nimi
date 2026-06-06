@@ -6,7 +6,7 @@
 
 ## Hard Boundaries
 - Keep sources under `proto/runtime/v1/**`.
-- Do not edit generated outputs in `runtime/gen/**` or `sdk/src/runtime/generated/**`.
+- Do not edit generated outputs in `runtime/gen/**` or `sdks/**/core-generated/**`.
 - Preserve field numbers, reserve removals, and keep service / RPC names stable unless the task explicitly changes the wire contract.
 
 ## Retrieval Defaults

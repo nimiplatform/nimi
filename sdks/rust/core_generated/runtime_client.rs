@@ -16,7 +16,7 @@ pub struct RuntimeMethodDescriptor {
 
 pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAccountService/BeginLogin",
+        method_id: "/nimi.runtime.v1.RuntimeAccountService/BeginLogin",
         service: "RuntimeAccountService",
         method: "BeginLogin",
         kind: "unary",
@@ -24,7 +24,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "BeginLoginResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAccountService/CompleteLogin",
+        method_id: "/nimi.runtime.v1.RuntimeAccountService/CompleteLogin",
         service: "RuntimeAccountService",
         method: "CompleteLogin",
         kind: "unary",
@@ -32,7 +32,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "CompleteLoginResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAccountService/GetAccessToken",
+        method_id: "/nimi.runtime.v1.RuntimeAccountService/GetAccessToken",
         service: "RuntimeAccountService",
         method: "GetAccessToken",
         kind: "unary",
@@ -40,7 +40,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "GetAccessTokenResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAccountService/GetAccountSessionStatus",
+        method_id: "/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus",
         service: "RuntimeAccountService",
         method: "GetAccountSessionStatus",
         kind: "unary",
@@ -48,7 +48,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "GetAccountSessionStatusResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAccountService/IssueScopedAppBinding",
+        method_id: "/nimi.runtime.v1.RuntimeAccountService/IssueScopedAppBinding",
         service: "RuntimeAccountService",
         method: "IssueScopedAppBinding",
         kind: "unary",
@@ -56,7 +56,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "IssueScopedAppBindingResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAccountService/IssueWorkspaceBinding",
+        method_id: "/nimi.runtime.v1.RuntimeAccountService/IssueWorkspaceBinding",
         service: "RuntimeAccountService",
         method: "IssueWorkspaceBinding",
         kind: "unary",
@@ -64,7 +64,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "IssueWorkspaceBindingResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAccountService/Logout",
+        method_id: "/nimi.runtime.v1.RuntimeAccountService/Logout",
         service: "RuntimeAccountService",
         method: "Logout",
         kind: "unary",
@@ -72,7 +72,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "LogoutResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAccountService/RefreshAccountSession",
+        method_id: "/nimi.runtime.v1.RuntimeAccountService/RefreshAccountSession",
         service: "RuntimeAccountService",
         method: "RefreshAccountSession",
         kind: "unary",
@@ -80,7 +80,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "RefreshAccountSessionResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAccountService/RevokeScopedAppBinding",
+        method_id: "/nimi.runtime.v1.RuntimeAccountService/RevokeScopedAppBinding",
         service: "RuntimeAccountService",
         method: "RevokeScopedAppBinding",
         kind: "unary",
@@ -88,7 +88,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "RevokeScopedAppBindingResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAccountService/RevokeWorkspaceBinding",
+        method_id: "/nimi.runtime.v1.RuntimeAccountService/RevokeWorkspaceBinding",
         service: "RuntimeAccountService",
         method: "RevokeWorkspaceBinding",
         kind: "unary",
@@ -96,7 +96,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "RevokeWorkspaceBindingResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents",
+        method_id: "/nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents",
         service: "RuntimeAccountService",
         method: "SubscribeAccountSessionEvents",
         kind: "server_stream",
@@ -104,7 +104,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "AccountSessionEvent",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAccountService/SwitchAccount",
+        method_id: "/nimi.runtime.v1.RuntimeAccountService/SwitchAccount",
         service: "RuntimeAccountService",
         method: "SwitchAccount",
         kind: "unary",
@@ -112,7 +112,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "SwitchAccountResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAgentService/CancelCompanionParticipation",
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/CancelCompanionParticipation",
         service: "RuntimeAgentService",
         method: "CancelCompanionParticipation",
         kind: "unary",
@@ -120,7 +120,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "CancelCompanionParticipationResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAgentService/CancelHook",
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/CancelHook",
         service: "RuntimeAgentService",
         method: "CancelHook",
         kind: "unary",
@@ -128,7 +128,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "CancelHookResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAgentService/CreateRealmGroupMessageCandidate",
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/CreateRealmGroupMessageCandidate",
         service: "RuntimeAgentService",
         method: "CreateRealmGroupMessageCandidate",
         kind: "unary",
@@ -136,7 +136,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "CreateRealmGroupMessageCandidateResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAgentService/DisableAutonomy",
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy",
         service: "RuntimeAgentService",
         method: "DisableAutonomy",
         kind: "unary",
@@ -144,7 +144,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "DisableAutonomyResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAgentService/EnableAutonomy",
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/EnableAutonomy",
         service: "RuntimeAgentService",
         method: "EnableAutonomy",
         kind: "unary",
@@ -152,7 +152,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "EnableAutonomyResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAgentService/ExecuteDelegatedCapability",
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/ExecuteDelegatedCapability",
         service: "RuntimeAgentService",
         method: "ExecuteDelegatedCapability",
         kind: "unary",
@@ -160,7 +160,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ExecuteDelegatedCapabilityResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAgentService/GetAgent",
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/GetAgent",
         service: "RuntimeAgentService",
         method: "GetAgent",
         kind: "unary",
@@ -168,7 +168,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "GetAgentResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus",
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus",
         service: "RuntimeAgentService",
         method: "GetAgentCanonicalMemoryBankStatus",
         kind: "unary",
@@ -176,7 +176,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "GetAgentCanonicalMemoryBankStatusResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAgentService/GetAgentState",
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/GetAgentState",
         service: "RuntimeAgentService",
         method: "GetAgentState",
         kind: "unary",
@@ -184,7 +184,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "GetAgentStateResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAgentService/GetAvatarDebugReplay",
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugReplay",
         service: "RuntimeAgentService",
         method: "GetAvatarDebugReplay",
         kind: "unary",
@@ -192,7 +192,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "GetAvatarDebugReplayResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAgentService/GetAvatarDebugSnapshot",
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugSnapshot",
         service: "RuntimeAgentService",
         method: "GetAvatarDebugSnapshot",
         kind: "unary",
@@ -200,7 +200,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "GetAvatarDebugSnapshotResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAgentService/GetCompanionParticipationProjection",
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/GetCompanionParticipationProjection",
         service: "RuntimeAgentService",
         method: "GetCompanionParticipationProjection",
         kind: "unary",
@@ -208,7 +208,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "GetCompanionParticipationProjectionResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot",
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot",
         service: "RuntimeAgentService",
         method: "GetConversationAnchorSnapshot",
         kind: "unary",
@@ -216,7 +216,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "GetConversationAnchorSnapshotResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAgentService/GetDelegatedControlSurfaceSnapshot",
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedControlSurfaceSnapshot",
         service: "RuntimeAgentService",
         method: "GetDelegatedControlSurfaceSnapshot",
         kind: "unary",
@@ -224,7 +224,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "GetDelegatedControlSurfaceSnapshotResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAgentService/GetDelegatedReplayTrace",
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedReplayTrace",
         service: "RuntimeAgentService",
         method: "GetDelegatedReplayTrace",
         kind: "unary",
@@ -232,7 +232,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "GetDelegatedReplayTraceResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot",
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot",
         service: "RuntimeAgentService",
         method: "GetPublicChatSessionSnapshot",
         kind: "unary",
@@ -240,7 +240,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "GetPublicChatSessionSnapshotResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAgentService/GetRealmGroupMessageCandidateEvidence",
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/GetRealmGroupMessageCandidateEvidence",
         service: "RuntimeAgentService",
         method: "GetRealmGroupMessageCandidateEvidence",
         kind: "unary",
@@ -248,7 +248,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "GetRealmGroupMessageCandidateEvidenceResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAgentService/InitializeAgent",
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/InitializeAgent",
         service: "RuntimeAgentService",
         method: "InitializeAgent",
         kind: "unary",
@@ -256,7 +256,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "InitializeAgentResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAgentService/ListAgentConversationSummaries",
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/ListAgentConversationSummaries",
         service: "RuntimeAgentService",
         method: "ListAgentConversationSummaries",
         kind: "unary",
@@ -264,7 +264,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ListAgentConversationSummariesResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAgentService/ListAgents",
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/ListAgents",
         service: "RuntimeAgentService",
         method: "ListAgents",
         kind: "unary",
@@ -272,7 +272,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ListAgentsResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAgentService/ListAvatarDebugProbeResults",
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/ListAvatarDebugProbeResults",
         service: "RuntimeAgentService",
         method: "ListAvatarDebugProbeResults",
         kind: "unary",
@@ -280,7 +280,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ListAvatarDebugProbeResultsResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAgentService/ListDelegatedApprovalRequests",
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedApprovalRequests",
         service: "RuntimeAgentService",
         method: "ListDelegatedApprovalRequests",
         kind: "unary",
@@ -288,7 +288,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ListDelegatedApprovalRequestsResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAgentService/ListDelegatedDiagnostics",
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedDiagnostics",
         service: "RuntimeAgentService",
         method: "ListDelegatedDiagnostics",
         kind: "unary",
@@ -296,7 +296,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ListDelegatedDiagnosticsResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAgentService/ListDelegatedProviderProfiles",
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedProviderProfiles",
         service: "RuntimeAgentService",
         method: "ListDelegatedProviderProfiles",
         kind: "unary",
@@ -304,7 +304,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ListDelegatedProviderProfilesResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAgentService/ListPendingHooks",
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/ListPendingHooks",
         service: "RuntimeAgentService",
         method: "ListPendingHooks",
         kind: "unary",
@@ -312,7 +312,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ListPendingHooksResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAgentService/OpenCompanionParticipationReplay",
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/OpenCompanionParticipationReplay",
         service: "RuntimeAgentService",
         method: "OpenCompanionParticipationReplay",
         kind: "unary",
@@ -320,7 +320,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "OpenCompanionParticipationReplayResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAgentService/OpenConversationAnchor",
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor",
         service: "RuntimeAgentService",
         method: "OpenConversationAnchor",
         kind: "unary",
@@ -328,7 +328,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "OpenConversationAnchorResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAgentService/QueryAgentMemory",
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/QueryAgentMemory",
         service: "RuntimeAgentService",
         method: "QueryAgentMemory",
         kind: "unary",
@@ -336,7 +336,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "QueryAgentMemoryResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding",
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding",
         service: "RuntimeAgentService",
         method: "RegisterAvatarLiveInstanceBinding",
         kind: "unary",
@@ -344,7 +344,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "RegisterAvatarLiveInstanceBindingResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAgentService/RequestAgentCanonicalMemoryBankBind",
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/RequestAgentCanonicalMemoryBankBind",
         service: "RuntimeAgentService",
         method: "RequestAgentCanonicalMemoryBankBind",
         kind: "unary",
@@ -352,7 +352,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "RequestAgentCanonicalMemoryBankBindResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAgentService/RequestAvatarDebugProbe",
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/RequestAvatarDebugProbe",
         service: "RuntimeAgentService",
         method: "RequestAvatarDebugProbe",
         kind: "unary",
@@ -360,7 +360,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "RequestAvatarDebugProbeResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAgentService/RequestCompanionParticipation",
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/RequestCompanionParticipation",
         service: "RuntimeAgentService",
         method: "RequestCompanionParticipation",
         kind: "unary",
@@ -368,7 +368,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "RequestCompanionParticipationResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding",
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding",
         service: "RuntimeAgentService",
         method: "ResolveAvatarLiveInstanceBinding",
         kind: "unary",
@@ -376,7 +376,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ResolveAvatarLiveInstanceBindingResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAgentService/SetAgentPresentationProfile",
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile",
         service: "RuntimeAgentService",
         method: "SetAgentPresentationProfile",
         kind: "unary",
@@ -384,7 +384,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "SetAgentPresentationProfileResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAgentService/SetAutonomyConfig",
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/SetAutonomyConfig",
         service: "RuntimeAgentService",
         method: "SetAutonomyConfig",
         kind: "unary",
@@ -392,7 +392,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "SetAutonomyConfigResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAgentService/SetDelegatedProviderState",
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/SetDelegatedProviderState",
         service: "RuntimeAgentService",
         method: "SetDelegatedProviderState",
         kind: "unary",
@@ -400,7 +400,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "SetDelegatedProviderStateResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAgentService/SubmitDelegatedApprovalDecision",
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/SubmitDelegatedApprovalDecision",
         service: "RuntimeAgentService",
         method: "SubmitDelegatedApprovalDecision",
         kind: "unary",
@@ -408,7 +408,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "SubmitDelegatedApprovalDecisionResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAgentService/SubscribeAgentEvents",
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents",
         service: "RuntimeAgentService",
         method: "SubscribeAgentEvents",
         kind: "server_stream",
@@ -416,7 +416,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "AgentEvent",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAgentService/TerminateAgent",
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/TerminateAgent",
         service: "RuntimeAgentService",
         method: "TerminateAgent",
         kind: "unary",
@@ -424,7 +424,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "TerminateAgentResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAgentService/UpdateAgentState",
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState",
         service: "RuntimeAgentService",
         method: "UpdateAgentState",
         kind: "unary",
@@ -432,7 +432,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "UpdateAgentStateResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAgentService/UpsertDelegatedProviderProfile",
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/UpsertDelegatedProviderProfile",
         service: "RuntimeAgentService",
         method: "UpsertDelegatedProviderProfile",
         kind: "unary",
@@ -440,7 +440,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "UpsertDelegatedProviderProfileResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAgentService/WriteAgentMemory",
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/WriteAgentMemory",
         service: "RuntimeAgentService",
         method: "WriteAgentMemory",
         kind: "unary",
@@ -448,7 +448,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "WriteAgentMemoryResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAiRealtimeService/AppendRealtimeInput",
+        method_id: "/nimi.runtime.v1.RuntimeAiRealtimeService/AppendRealtimeInput",
         service: "RuntimeAiRealtimeService",
         method: "AppendRealtimeInput",
         kind: "unary",
@@ -456,7 +456,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "AppendRealtimeInputResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAiRealtimeService/CloseRealtimeSession",
+        method_id: "/nimi.runtime.v1.RuntimeAiRealtimeService/CloseRealtimeSession",
         service: "RuntimeAiRealtimeService",
         method: "CloseRealtimeSession",
         kind: "unary",
@@ -464,7 +464,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "CloseRealtimeSessionResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAiRealtimeService/OpenRealtimeSession",
+        method_id: "/nimi.runtime.v1.RuntimeAiRealtimeService/OpenRealtimeSession",
         service: "RuntimeAiRealtimeService",
         method: "OpenRealtimeSession",
         kind: "unary",
@@ -472,7 +472,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "OpenRealtimeSessionResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAiRealtimeService/ReadRealtimeEvents",
+        method_id: "/nimi.runtime.v1.RuntimeAiRealtimeService/ReadRealtimeEvents",
         service: "RuntimeAiRealtimeService",
         method: "ReadRealtimeEvents",
         kind: "server_stream",
@@ -480,7 +480,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "RealtimeEvent",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAiService/CancelScenarioJob",
+        method_id: "/nimi.runtime.v1.RuntimeAiService/CancelScenarioJob",
         service: "RuntimeAiService",
         method: "CancelScenarioJob",
         kind: "unary",
@@ -488,7 +488,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "CancelScenarioJobResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAiService/DeleteVoiceAsset",
+        method_id: "/nimi.runtime.v1.RuntimeAiService/DeleteVoiceAsset",
         service: "RuntimeAiService",
         method: "DeleteVoiceAsset",
         kind: "unary",
@@ -496,7 +496,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "DeleteVoiceAssetResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAiService/ExecuteScenario",
+        method_id: "/nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
         service: "RuntimeAiService",
         method: "ExecuteScenario",
         kind: "unary",
@@ -504,7 +504,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ExecuteScenarioResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAiService/GetScenarioArtifacts",
+        method_id: "/nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts",
         service: "RuntimeAiService",
         method: "GetScenarioArtifacts",
         kind: "unary",
@@ -512,7 +512,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "GetScenarioArtifactsResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAiService/GetScenarioJob",
+        method_id: "/nimi.runtime.v1.RuntimeAiService/GetScenarioJob",
         service: "RuntimeAiService",
         method: "GetScenarioJob",
         kind: "unary",
@@ -520,7 +520,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "GetScenarioJobResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAiService/GetVoiceAsset",
+        method_id: "/nimi.runtime.v1.RuntimeAiService/GetVoiceAsset",
         service: "RuntimeAiService",
         method: "GetVoiceAsset",
         kind: "unary",
@@ -528,7 +528,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "GetVoiceAssetResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAiService/ListPresetVoices",
+        method_id: "/nimi.runtime.v1.RuntimeAiService/ListPresetVoices",
         service: "RuntimeAiService",
         method: "ListPresetVoices",
         kind: "unary",
@@ -536,7 +536,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ListPresetVoicesResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAiService/ListScenarioProfiles",
+        method_id: "/nimi.runtime.v1.RuntimeAiService/ListScenarioProfiles",
         service: "RuntimeAiService",
         method: "ListScenarioProfiles",
         kind: "unary",
@@ -544,7 +544,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ListScenarioProfilesResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAiService/ListVoiceAssets",
+        method_id: "/nimi.runtime.v1.RuntimeAiService/ListVoiceAssets",
         service: "RuntimeAiService",
         method: "ListVoiceAssets",
         kind: "unary",
@@ -552,7 +552,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ListVoiceAssetsResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAiService/PeekScheduling",
+        method_id: "/nimi.runtime.v1.RuntimeAiService/PeekScheduling",
         service: "RuntimeAiService",
         method: "PeekScheduling",
         kind: "unary",
@@ -560,7 +560,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "PeekSchedulingResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAiService/StreamScenario",
+        method_id: "/nimi.runtime.v1.RuntimeAiService/StreamScenario",
         service: "RuntimeAiService",
         method: "StreamScenario",
         kind: "server_stream",
@@ -568,7 +568,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "StreamScenarioEvent",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAiService/SubmitScenarioJob",
+        method_id: "/nimi.runtime.v1.RuntimeAiService/SubmitScenarioJob",
         service: "RuntimeAiService",
         method: "SubmitScenarioJob",
         kind: "unary",
@@ -576,7 +576,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "SubmitScenarioJobResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAiService/SubscribeScenarioJobEvents",
+        method_id: "/nimi.runtime.v1.RuntimeAiService/SubscribeScenarioJobEvents",
         service: "RuntimeAiService",
         method: "SubscribeScenarioJobEvents",
         kind: "server_stream",
@@ -584,7 +584,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ScenarioJobEvent",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAiService/UploadArtifact",
+        method_id: "/nimi.runtime.v1.RuntimeAiService/UploadArtifact",
         service: "RuntimeAiService",
         method: "UploadArtifact",
         kind: "client_stream",
@@ -592,7 +592,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "UploadArtifactResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAppService/GetAccountAppLibrary",
+        method_id: "/nimi.runtime.v1.RuntimeAppService/GetAccountAppLibrary",
         service: "RuntimeAppService",
         method: "GetAccountAppLibrary",
         kind: "unary",
@@ -600,7 +600,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "GetAccountAppLibraryResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAppService/GetAppInstallJob",
+        method_id: "/nimi.runtime.v1.RuntimeAppService/GetAppInstallJob",
         service: "RuntimeAppService",
         method: "GetAppInstallJob",
         kind: "unary",
@@ -608,7 +608,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "GetAppInstallJobResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAppService/GetAppPackageReadiness",
+        method_id: "/nimi.runtime.v1.RuntimeAppService/GetAppPackageReadiness",
         service: "RuntimeAppService",
         method: "GetAppPackageReadiness",
         kind: "unary",
@@ -616,7 +616,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "GetAppPackageReadinessResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAppService/GetAppStorage",
+        method_id: "/nimi.runtime.v1.RuntimeAppService/GetAppStorage",
         service: "RuntimeAppService",
         method: "GetAppStorage",
         kind: "unary",
@@ -624,7 +624,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "GetAppStorageResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAppService/HealthRepairApp",
+        method_id: "/nimi.runtime.v1.RuntimeAppService/HealthRepairApp",
         service: "RuntimeAppService",
         method: "HealthRepairApp",
         kind: "unary",
@@ -632,7 +632,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "HealthRepairAppResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAppService/InstallApp",
+        method_id: "/nimi.runtime.v1.RuntimeAppService/InstallApp",
         service: "RuntimeAppService",
         method: "InstallApp",
         kind: "unary",
@@ -640,7 +640,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "InstallAppResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAppService/ListAppInstallJobs",
+        method_id: "/nimi.runtime.v1.RuntimeAppService/ListAppInstallJobs",
         service: "RuntimeAppService",
         method: "ListAppInstallJobs",
         kind: "unary",
@@ -648,7 +648,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ListAppInstallJobsResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAppService/OpenApp",
+        method_id: "/nimi.runtime.v1.RuntimeAppService/OpenApp",
         service: "RuntimeAppService",
         method: "OpenApp",
         kind: "unary",
@@ -656,7 +656,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "OpenAppResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAppService/SendAppMessage",
+        method_id: "/nimi.runtime.v1.RuntimeAppService/SendAppMessage",
         service: "RuntimeAppService",
         method: "SendAppMessage",
         kind: "unary",
@@ -664,7 +664,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "SendAppMessageResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAppService/SubscribeAppMessages",
+        method_id: "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages",
         service: "RuntimeAppService",
         method: "SubscribeAppMessages",
         kind: "server_stream",
@@ -672,7 +672,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "AppMessageEvent",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAppService/UninstallApp",
+        method_id: "/nimi.runtime.v1.RuntimeAppService/UninstallApp",
         service: "RuntimeAppService",
         method: "UninstallApp",
         kind: "unary",
@@ -680,7 +680,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "UninstallAppResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAppService/UpdateApp",
+        method_id: "/nimi.runtime.v1.RuntimeAppService/UpdateApp",
         service: "RuntimeAppService",
         method: "UpdateApp",
         kind: "unary",
@@ -688,7 +688,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "UpdateAppResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAppService/WatchAppInstallJobEvents",
+        method_id: "/nimi.runtime.v1.RuntimeAppService/WatchAppInstallJobEvents",
         service: "RuntimeAppService",
         method: "WatchAppInstallJobEvents",
         kind: "server_stream",
@@ -696,7 +696,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "AppInstallJobEvent",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeArtifactService/ReadArtifactBytes",
+        method_id: "/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes",
         service: "RuntimeArtifactService",
         method: "ReadArtifactBytes",
         kind: "unary",
@@ -704,7 +704,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ReadArtifactBytesResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAuditService/ExportAuditEvents",
+        method_id: "/nimi.runtime.v1.RuntimeAuditService/ExportAuditEvents",
         service: "RuntimeAuditService",
         method: "ExportAuditEvents",
         kind: "server_stream",
@@ -712,7 +712,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "AuditExportChunk",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAuditService/GetRuntimeHealth",
+        method_id: "/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth",
         service: "RuntimeAuditService",
         method: "GetRuntimeHealth",
         kind: "unary",
@@ -720,7 +720,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "GetRuntimeHealthResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAuditService/ListAIProviderHealth",
+        method_id: "/nimi.runtime.v1.RuntimeAuditService/ListAIProviderHealth",
         service: "RuntimeAuditService",
         method: "ListAIProviderHealth",
         kind: "unary",
@@ -728,7 +728,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ListAIProviderHealthResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAuditService/ListAuditEvents",
+        method_id: "/nimi.runtime.v1.RuntimeAuditService/ListAuditEvents",
         service: "RuntimeAuditService",
         method: "ListAuditEvents",
         kind: "unary",
@@ -736,7 +736,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ListAuditEventsResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAuditService/ListUsageStats",
+        method_id: "/nimi.runtime.v1.RuntimeAuditService/ListUsageStats",
         service: "RuntimeAuditService",
         method: "ListUsageStats",
         kind: "unary",
@@ -744,7 +744,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ListUsageStatsResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAuditService/SubscribeAIProviderHealthEvents",
+        method_id: "/nimi.runtime.v1.RuntimeAuditService/SubscribeAIProviderHealthEvents",
         service: "RuntimeAuditService",
         method: "SubscribeAIProviderHealthEvents",
         kind: "server_stream",
@@ -752,7 +752,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "AIProviderHealthEvent",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAuditService/SubscribeRuntimeHealthEvents",
+        method_id: "/nimi.runtime.v1.RuntimeAuditService/SubscribeRuntimeHealthEvents",
         service: "RuntimeAuditService",
         method: "SubscribeRuntimeHealthEvents",
         kind: "server_stream",
@@ -760,7 +760,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "RuntimeHealthEvent",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAuthService/OpenExternalPrincipalSession",
+        method_id: "/nimi.runtime.v1.RuntimeAuthService/OpenExternalPrincipalSession",
         service: "RuntimeAuthService",
         method: "OpenExternalPrincipalSession",
         kind: "unary",
@@ -768,7 +768,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "OpenExternalPrincipalSessionResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAuthService/OpenSession",
+        method_id: "/nimi.runtime.v1.RuntimeAuthService/OpenSession",
         service: "RuntimeAuthService",
         method: "OpenSession",
         kind: "unary",
@@ -776,7 +776,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "OpenSessionResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAuthService/RefreshSession",
+        method_id: "/nimi.runtime.v1.RuntimeAuthService/RefreshSession",
         service: "RuntimeAuthService",
         method: "RefreshSession",
         kind: "unary",
@@ -784,7 +784,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "RefreshSessionResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAuthService/RegisterApp",
+        method_id: "/nimi.runtime.v1.RuntimeAuthService/RegisterApp",
         service: "RuntimeAuthService",
         method: "RegisterApp",
         kind: "unary",
@@ -792,7 +792,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "RegisterAppResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAuthService/RegisterExternalPrincipal",
+        method_id: "/nimi.runtime.v1.RuntimeAuthService/RegisterExternalPrincipal",
         service: "RuntimeAuthService",
         method: "RegisterExternalPrincipal",
         kind: "unary",
@@ -800,7 +800,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "RegisterExternalPrincipalResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAuthService/RevokeExternalPrincipalSession",
+        method_id: "/nimi.runtime.v1.RuntimeAuthService/RevokeExternalPrincipalSession",
         service: "RuntimeAuthService",
         method: "RevokeExternalPrincipalSession",
         kind: "unary",
@@ -808,7 +808,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "Ack",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeAuthService/RevokeSession",
+        method_id: "/nimi.runtime.v1.RuntimeAuthService/RevokeSession",
         service: "RuntimeAuthService",
         method: "RevokeSession",
         kind: "unary",
@@ -816,7 +816,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "Ack",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeCognitionService/AddLink",
+        method_id: "/nimi.runtime.v1.RuntimeCognitionService/AddLink",
         service: "RuntimeCognitionService",
         method: "AddLink",
         kind: "unary",
@@ -824,7 +824,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "AddLinkResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeCognitionService/CreateBank",
+        method_id: "/nimi.runtime.v1.RuntimeCognitionService/CreateBank",
         service: "RuntimeCognitionService",
         method: "CreateBank",
         kind: "unary",
@@ -832,7 +832,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "CreateBankResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeCognitionService/CreateKnowledgeBank",
+        method_id: "/nimi.runtime.v1.RuntimeCognitionService/CreateKnowledgeBank",
         service: "RuntimeCognitionService",
         method: "CreateKnowledgeBank",
         kind: "unary",
@@ -840,7 +840,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "CreateKnowledgeBankResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeCognitionService/DeleteBank",
+        method_id: "/nimi.runtime.v1.RuntimeCognitionService/DeleteBank",
         service: "RuntimeCognitionService",
         method: "DeleteBank",
         kind: "unary",
@@ -848,7 +848,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "DeleteBankResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeCognitionService/DeleteKnowledgeBank",
+        method_id: "/nimi.runtime.v1.RuntimeCognitionService/DeleteKnowledgeBank",
         service: "RuntimeCognitionService",
         method: "DeleteKnowledgeBank",
         kind: "unary",
@@ -856,7 +856,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "DeleteKnowledgeBankResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeCognitionService/DeleteMemory",
+        method_id: "/nimi.runtime.v1.RuntimeCognitionService/DeleteMemory",
         service: "RuntimeCognitionService",
         method: "DeleteMemory",
         kind: "unary",
@@ -864,7 +864,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "DeleteMemoryResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeCognitionService/DeletePage",
+        method_id: "/nimi.runtime.v1.RuntimeCognitionService/DeletePage",
         service: "RuntimeCognitionService",
         method: "DeletePage",
         kind: "unary",
@@ -872,7 +872,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "DeletePageResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeCognitionService/GetBank",
+        method_id: "/nimi.runtime.v1.RuntimeCognitionService/GetBank",
         service: "RuntimeCognitionService",
         method: "GetBank",
         kind: "unary",
@@ -880,7 +880,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "GetBankResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeCognitionService/GetIngestTask",
+        method_id: "/nimi.runtime.v1.RuntimeCognitionService/GetIngestTask",
         service: "RuntimeCognitionService",
         method: "GetIngestTask",
         kind: "unary",
@@ -888,7 +888,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "GetIngestTaskResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeCognitionService/GetKnowledgeBank",
+        method_id: "/nimi.runtime.v1.RuntimeCognitionService/GetKnowledgeBank",
         service: "RuntimeCognitionService",
         method: "GetKnowledgeBank",
         kind: "unary",
@@ -896,7 +896,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "GetKnowledgeBankResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeCognitionService/GetMemoryEmbeddingRuntimeIntent",
+        method_id: "/nimi.runtime.v1.RuntimeCognitionService/GetMemoryEmbeddingRuntimeIntent",
         service: "RuntimeCognitionService",
         method: "GetMemoryEmbeddingRuntimeIntent",
         kind: "unary",
@@ -904,7 +904,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "GetMemoryEmbeddingRuntimeIntentResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeCognitionService/GetPage",
+        method_id: "/nimi.runtime.v1.RuntimeCognitionService/GetPage",
         service: "RuntimeCognitionService",
         method: "GetPage",
         kind: "unary",
@@ -912,7 +912,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "GetPageResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeCognitionService/History",
+        method_id: "/nimi.runtime.v1.RuntimeCognitionService/History",
         service: "RuntimeCognitionService",
         method: "History",
         kind: "unary",
@@ -920,7 +920,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "HistoryResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeCognitionService/IngestDocument",
+        method_id: "/nimi.runtime.v1.RuntimeCognitionService/IngestDocument",
         service: "RuntimeCognitionService",
         method: "IngestDocument",
         kind: "unary",
@@ -928,7 +928,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "IngestDocumentResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeCognitionService/InspectMemoryEmbeddingRuntime",
+        method_id: "/nimi.runtime.v1.RuntimeCognitionService/InspectMemoryEmbeddingRuntime",
         service: "RuntimeCognitionService",
         method: "InspectMemoryEmbeddingRuntime",
         kind: "unary",
@@ -936,7 +936,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "InspectMemoryEmbeddingRuntimeResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeCognitionService/ListBacklinks",
+        method_id: "/nimi.runtime.v1.RuntimeCognitionService/ListBacklinks",
         service: "RuntimeCognitionService",
         method: "ListBacklinks",
         kind: "unary",
@@ -944,7 +944,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ListBacklinksResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeCognitionService/ListBanks",
+        method_id: "/nimi.runtime.v1.RuntimeCognitionService/ListBanks",
         service: "RuntimeCognitionService",
         method: "ListBanks",
         kind: "unary",
@@ -952,7 +952,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ListBanksResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeCognitionService/ListKnowledgeBanks",
+        method_id: "/nimi.runtime.v1.RuntimeCognitionService/ListKnowledgeBanks",
         service: "RuntimeCognitionService",
         method: "ListKnowledgeBanks",
         kind: "unary",
@@ -960,7 +960,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ListKnowledgeBanksResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeCognitionService/ListLinks",
+        method_id: "/nimi.runtime.v1.RuntimeCognitionService/ListLinks",
         service: "RuntimeCognitionService",
         method: "ListLinks",
         kind: "unary",
@@ -968,7 +968,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ListLinksResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeCognitionService/ListPages",
+        method_id: "/nimi.runtime.v1.RuntimeCognitionService/ListPages",
         service: "RuntimeCognitionService",
         method: "ListPages",
         kind: "unary",
@@ -976,7 +976,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ListPagesResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeCognitionService/PutPage",
+        method_id: "/nimi.runtime.v1.RuntimeCognitionService/PutPage",
         service: "RuntimeCognitionService",
         method: "PutPage",
         kind: "unary",
@@ -984,7 +984,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "PutPageResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeCognitionService/Recall",
+        method_id: "/nimi.runtime.v1.RuntimeCognitionService/Recall",
         service: "RuntimeCognitionService",
         method: "Recall",
         kind: "unary",
@@ -992,7 +992,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "RecallResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeCognitionService/RemoveLink",
+        method_id: "/nimi.runtime.v1.RuntimeCognitionService/RemoveLink",
         service: "RuntimeCognitionService",
         method: "RemoveLink",
         kind: "unary",
@@ -1000,7 +1000,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "RemoveLinkResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeCognitionService/RequestMemoryEmbeddingRuntimeBind",
+        method_id: "/nimi.runtime.v1.RuntimeCognitionService/RequestMemoryEmbeddingRuntimeBind",
         service: "RuntimeCognitionService",
         method: "RequestMemoryEmbeddingRuntimeBind",
         kind: "unary",
@@ -1008,7 +1008,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "RequestMemoryEmbeddingRuntimeBindResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeCognitionService/RequestMemoryEmbeddingRuntimeCutover",
+        method_id: "/nimi.runtime.v1.RuntimeCognitionService/RequestMemoryEmbeddingRuntimeCutover",
         service: "RuntimeCognitionService",
         method: "RequestMemoryEmbeddingRuntimeCutover",
         kind: "unary",
@@ -1016,7 +1016,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "RequestMemoryEmbeddingRuntimeCutoverResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeCognitionService/Retain",
+        method_id: "/nimi.runtime.v1.RuntimeCognitionService/Retain",
         service: "RuntimeCognitionService",
         method: "Retain",
         kind: "unary",
@@ -1024,7 +1024,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "RetainResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeCognitionService/SearchHybrid",
+        method_id: "/nimi.runtime.v1.RuntimeCognitionService/SearchHybrid",
         service: "RuntimeCognitionService",
         method: "SearchHybrid",
         kind: "unary",
@@ -1032,7 +1032,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "SearchHybridResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeCognitionService/SearchKeyword",
+        method_id: "/nimi.runtime.v1.RuntimeCognitionService/SearchKeyword",
         service: "RuntimeCognitionService",
         method: "SearchKeyword",
         kind: "unary",
@@ -1040,7 +1040,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "SearchKeywordResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeCognitionService/SetMemoryEmbeddingRuntimeIntent",
+        method_id: "/nimi.runtime.v1.RuntimeCognitionService/SetMemoryEmbeddingRuntimeIntent",
         service: "RuntimeCognitionService",
         method: "SetMemoryEmbeddingRuntimeIntent",
         kind: "unary",
@@ -1048,7 +1048,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "SetMemoryEmbeddingRuntimeIntentResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeCognitionService/SubscribeMemoryEvents",
+        method_id: "/nimi.runtime.v1.RuntimeCognitionService/SubscribeMemoryEvents",
         service: "RuntimeCognitionService",
         method: "SubscribeMemoryEvents",
         kind: "server_stream",
@@ -1056,7 +1056,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "MemoryEvent",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeCognitionService/TraverseGraph",
+        method_id: "/nimi.runtime.v1.RuntimeCognitionService/TraverseGraph",
         service: "RuntimeCognitionService",
         method: "TraverseGraph",
         kind: "unary",
@@ -1064,7 +1064,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "TraverseGraphResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeConnectorService/CreateConnector",
+        method_id: "/nimi.runtime.v1.RuntimeConnectorService/CreateConnector",
         service: "RuntimeConnectorService",
         method: "CreateConnector",
         kind: "unary",
@@ -1072,7 +1072,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "CreateConnectorResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeConnectorService/DeleteCatalogModelOverlay",
+        method_id: "/nimi.runtime.v1.RuntimeConnectorService/DeleteCatalogModelOverlay",
         service: "RuntimeConnectorService",
         method: "DeleteCatalogModelOverlay",
         kind: "unary",
@@ -1080,7 +1080,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "DeleteCatalogModelOverlayResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeConnectorService/DeleteConnector",
+        method_id: "/nimi.runtime.v1.RuntimeConnectorService/DeleteConnector",
         service: "RuntimeConnectorService",
         method: "DeleteConnector",
         kind: "unary",
@@ -1088,7 +1088,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "DeleteConnectorResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeConnectorService/DeleteModelCatalogProvider",
+        method_id: "/nimi.runtime.v1.RuntimeConnectorService/DeleteModelCatalogProvider",
         service: "RuntimeConnectorService",
         method: "DeleteModelCatalogProvider",
         kind: "unary",
@@ -1096,7 +1096,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "DeleteModelCatalogProviderResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeConnectorService/GetCatalogModelDetail",
+        method_id: "/nimi.runtime.v1.RuntimeConnectorService/GetCatalogModelDetail",
         service: "RuntimeConnectorService",
         method: "GetCatalogModelDetail",
         kind: "unary",
@@ -1104,7 +1104,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "GetCatalogModelDetailResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeConnectorService/GetConnector",
+        method_id: "/nimi.runtime.v1.RuntimeConnectorService/GetConnector",
         service: "RuntimeConnectorService",
         method: "GetConnector",
         kind: "unary",
@@ -1112,7 +1112,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "GetConnectorResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeConnectorService/ListCatalogProviderModels",
+        method_id: "/nimi.runtime.v1.RuntimeConnectorService/ListCatalogProviderModels",
         service: "RuntimeConnectorService",
         method: "ListCatalogProviderModels",
         kind: "unary",
@@ -1120,7 +1120,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ListCatalogProviderModelsResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeConnectorService/ListConnectorModels",
+        method_id: "/nimi.runtime.v1.RuntimeConnectorService/ListConnectorModels",
         service: "RuntimeConnectorService",
         method: "ListConnectorModels",
         kind: "unary",
@@ -1128,7 +1128,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ListConnectorModelsResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeConnectorService/ListConnectors",
+        method_id: "/nimi.runtime.v1.RuntimeConnectorService/ListConnectors",
         service: "RuntimeConnectorService",
         method: "ListConnectors",
         kind: "unary",
@@ -1136,7 +1136,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ListConnectorsResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeConnectorService/ListModelCatalogProviders",
+        method_id: "/nimi.runtime.v1.RuntimeConnectorService/ListModelCatalogProviders",
         service: "RuntimeConnectorService",
         method: "ListModelCatalogProviders",
         kind: "unary",
@@ -1144,7 +1144,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ListModelCatalogProvidersResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeConnectorService/ListProviderCatalog",
+        method_id: "/nimi.runtime.v1.RuntimeConnectorService/ListProviderCatalog",
         service: "RuntimeConnectorService",
         method: "ListProviderCatalog",
         kind: "unary",
@@ -1152,7 +1152,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ListProviderCatalogResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeConnectorService/TestConnector",
+        method_id: "/nimi.runtime.v1.RuntimeConnectorService/TestConnector",
         service: "RuntimeConnectorService",
         method: "TestConnector",
         kind: "unary",
@@ -1160,7 +1160,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "TestConnectorResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeConnectorService/UpdateConnector",
+        method_id: "/nimi.runtime.v1.RuntimeConnectorService/UpdateConnector",
         service: "RuntimeConnectorService",
         method: "UpdateConnector",
         kind: "unary",
@@ -1168,7 +1168,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "UpdateConnectorResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeConnectorService/UpsertCatalogModelOverlay",
+        method_id: "/nimi.runtime.v1.RuntimeConnectorService/UpsertCatalogModelOverlay",
         service: "RuntimeConnectorService",
         method: "UpsertCatalogModelOverlay",
         kind: "unary",
@@ -1176,7 +1176,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "UpsertCatalogModelOverlayResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeConnectorService/UpsertModelCatalogProvider",
+        method_id: "/nimi.runtime.v1.RuntimeConnectorService/UpsertModelCatalogProvider",
         service: "RuntimeConnectorService",
         method: "UpsertModelCatalogProvider",
         kind: "unary",
@@ -1184,7 +1184,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "UpsertModelCatalogProviderResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeExternalAgentService/GetExternalAgentGatewayStatus",
+        method_id: "/nimi.runtime.v1.RuntimeExternalAgentService/GetExternalAgentGatewayStatus",
         service: "RuntimeExternalAgentService",
         method: "GetExternalAgentGatewayStatus",
         kind: "unary",
@@ -1192,7 +1192,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ExternalAgentGatewayStatusResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeExternalAgentService/IssueExternalAgentToken",
+        method_id: "/nimi.runtime.v1.RuntimeExternalAgentService/IssueExternalAgentToken",
         service: "RuntimeExternalAgentService",
         method: "IssueExternalAgentToken",
         kind: "unary",
@@ -1200,7 +1200,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ExternalAgentIssueTokenResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeExternalAgentService/ListExternalAgentTokens",
+        method_id: "/nimi.runtime.v1.RuntimeExternalAgentService/ListExternalAgentTokens",
         service: "RuntimeExternalAgentService",
         method: "ListExternalAgentTokens",
         kind: "unary",
@@ -1208,7 +1208,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ExternalAgentListTokensResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeExternalAgentService/RevokeExternalAgentToken",
+        method_id: "/nimi.runtime.v1.RuntimeExternalAgentService/RevokeExternalAgentToken",
         service: "RuntimeExternalAgentService",
         method: "RevokeExternalAgentToken",
         kind: "unary",
@@ -1216,7 +1216,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "Ack",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeGrantService/AuthorizeExternalPrincipal",
+        method_id: "/nimi.runtime.v1.RuntimeGrantService/AuthorizeExternalPrincipal",
         service: "RuntimeGrantService",
         method: "AuthorizeExternalPrincipal",
         kind: "unary",
@@ -1224,7 +1224,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "AuthorizeExternalPrincipalResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeGrantService/IssueDelegatedAccessToken",
+        method_id: "/nimi.runtime.v1.RuntimeGrantService/IssueDelegatedAccessToken",
         service: "RuntimeGrantService",
         method: "IssueDelegatedAccessToken",
         kind: "unary",
@@ -1232,7 +1232,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "IssueDelegatedAccessTokenResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeGrantService/ListTokenChain",
+        method_id: "/nimi.runtime.v1.RuntimeGrantService/ListTokenChain",
         service: "RuntimeGrantService",
         method: "ListTokenChain",
         kind: "unary",
@@ -1240,7 +1240,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ListTokenChainResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeGrantService/RevokeAppAccessToken",
+        method_id: "/nimi.runtime.v1.RuntimeGrantService/RevokeAppAccessToken",
         service: "RuntimeGrantService",
         method: "RevokeAppAccessToken",
         kind: "unary",
@@ -1248,7 +1248,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "Ack",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeGrantService/ValidateAppAccessToken",
+        method_id: "/nimi.runtime.v1.RuntimeGrantService/ValidateAppAccessToken",
         service: "RuntimeGrantService",
         method: "ValidateAppAccessToken",
         kind: "unary",
@@ -1256,7 +1256,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ValidateAppAccessTokenResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse",
         service: "RuntimeLocalService",
         method: "AdmitProductControlReadyForUse",
         kind: "unary",
@@ -1264,7 +1264,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ProductControlProjectionJson",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/AppendInferenceAudit",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/AppendInferenceAudit",
         service: "RuntimeLocalService",
         method: "AppendInferenceAudit",
         kind: "unary",
@@ -1272,7 +1272,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "Ack",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/AppendRuntimeAudit",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/AppendRuntimeAudit",
         service: "RuntimeLocalService",
         method: "AppendRuntimeAudit",
         kind: "unary",
@@ -1280,7 +1280,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "Ack",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/ApplyProfile",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/ApplyProfile",
         service: "RuntimeLocalService",
         method: "ApplyProfile",
         kind: "unary",
@@ -1288,7 +1288,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ApplyProfileResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/CancelLocalEnvironmentDependencyJob",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/CancelLocalEnvironmentDependencyJob",
         service: "RuntimeLocalService",
         method: "CancelLocalEnvironmentDependencyJob",
         kind: "unary",
@@ -1296,7 +1296,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "CancelLocalEnvironmentDependencyJobResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/CancelLocalTransfer",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/CancelLocalTransfer",
         service: "RuntimeLocalService",
         method: "CancelLocalTransfer",
         kind: "unary",
@@ -1304,7 +1304,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "CancelLocalTransferResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/CheckLocalAssetHealth",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/CheckLocalAssetHealth",
         service: "RuntimeLocalService",
         method: "CheckLocalAssetHealth",
         kind: "unary",
@@ -1312,7 +1312,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "CheckLocalAssetHealthResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/CheckLocalServiceHealth",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/CheckLocalServiceHealth",
         service: "RuntimeLocalService",
         method: "CheckLocalServiceHealth",
         kind: "unary",
@@ -1320,7 +1320,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "CheckLocalServiceHealthResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/CollectDeviceProfile",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/CollectDeviceProfile",
         service: "RuntimeLocalService",
         method: "CollectDeviceProfile",
         kind: "unary",
@@ -1328,7 +1328,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "CollectDeviceProfileResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan",
         service: "RuntimeLocalService",
         method: "CompleteProductControlFirstRunDeviceEnvironmentScan",
         kind: "unary",
@@ -1336,7 +1336,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ProductControlProjectionJson",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/EnsureEngine",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/EnsureEngine",
         service: "RuntimeLocalService",
         method: "EnsureEngine",
         kind: "unary",
@@ -1344,7 +1344,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "EnsureEngineResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/EnsureProductControlRecordCreated",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/EnsureProductControlRecordCreated",
         service: "RuntimeLocalService",
         method: "EnsureProductControlRecordCreated",
         kind: "unary",
@@ -1352,7 +1352,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ProductControlProjectionJson",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/ExecuteLocalStateCutover",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/ExecuteLocalStateCutover",
         service: "RuntimeLocalService",
         method: "ExecuteLocalStateCutover",
         kind: "unary",
@@ -1360,7 +1360,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ExecuteLocalStateCutoverResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/GetEngineStatus",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/GetEngineStatus",
         service: "RuntimeLocalService",
         method: "GetEngineStatus",
         kind: "unary",
@@ -1368,7 +1368,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "GetEngineStatusResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/GetProductControlRecord",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord",
         service: "RuntimeLocalService",
         method: "GetProductControlRecord",
         kind: "unary",
@@ -1376,7 +1376,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ProductControlProjectionJson",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/GetProductControlSelectedDataRoot",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/GetProductControlSelectedDataRoot",
         service: "RuntimeLocalService",
         method: "GetProductControlSelectedDataRoot",
         kind: "unary",
@@ -1384,7 +1384,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ProductControlProjectionJson",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/GetRecommendationFeed",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/GetRecommendationFeed",
         service: "RuntimeLocalService",
         method: "GetRecommendationFeed",
         kind: "unary",
@@ -1392,7 +1392,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "GetRecommendationFeedResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/ImportLocalAsset",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/ImportLocalAsset",
         service: "RuntimeLocalService",
         method: "ImportLocalAsset",
         kind: "unary",
@@ -1400,7 +1400,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ImportLocalAssetResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/ImportLocalAssetBundle",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/ImportLocalAssetBundle",
         service: "RuntimeLocalService",
         method: "ImportLocalAssetBundle",
         kind: "unary",
@@ -1408,7 +1408,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ImportLocalAssetBundleResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/ImportLocalAssetFile",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/ImportLocalAssetFile",
         service: "RuntimeLocalService",
         method: "ImportLocalAssetFile",
         kind: "unary",
@@ -1416,7 +1416,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ImportLocalAssetFileResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/InstallLocalService",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/InstallLocalService",
         service: "RuntimeLocalService",
         method: "InstallLocalService",
         kind: "unary",
@@ -1424,7 +1424,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "InstallLocalServiceResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/InstallModelFromPlan",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/InstallModelFromPlan",
         service: "RuntimeLocalService",
         method: "InstallModelFromPlan",
         kind: "unary",
@@ -1432,7 +1432,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "InstallModelFromPlanResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/InstallVerifiedAsset",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/InstallVerifiedAsset",
         service: "RuntimeLocalService",
         method: "InstallVerifiedAsset",
         kind: "unary",
@@ -1440,7 +1440,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "InstallVerifiedAssetResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/ListCatalogVariants",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/ListCatalogVariants",
         service: "RuntimeLocalService",
         method: "ListCatalogVariants",
         kind: "unary",
@@ -1448,7 +1448,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ListCatalogVariantsResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/ListEngines",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/ListEngines",
         service: "RuntimeLocalService",
         method: "ListEngines",
         kind: "unary",
@@ -1456,7 +1456,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ListEnginesResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/ListLocalAssets",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/ListLocalAssets",
         service: "RuntimeLocalService",
         method: "ListLocalAssets",
         kind: "unary",
@@ -1464,7 +1464,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ListLocalAssetsResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/ListLocalAudits",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/ListLocalAudits",
         service: "RuntimeLocalService",
         method: "ListLocalAudits",
         kind: "unary",
@@ -1472,7 +1472,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ListLocalAuditsResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/ListLocalEnvironmentDependencyJobs",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/ListLocalEnvironmentDependencyJobs",
         service: "RuntimeLocalService",
         method: "ListLocalEnvironmentDependencyJobs",
         kind: "unary",
@@ -1480,7 +1480,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ListLocalEnvironmentDependencyJobsResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/ListLocalEnvironmentSelectedSources",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/ListLocalEnvironmentSelectedSources",
         service: "RuntimeLocalService",
         method: "ListLocalEnvironmentSelectedSources",
         kind: "unary",
@@ -1488,7 +1488,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ListLocalEnvironmentSelectedSourcesResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/ListLocalServices",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/ListLocalServices",
         service: "RuntimeLocalService",
         method: "ListLocalServices",
         kind: "unary",
@@ -1496,7 +1496,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ListLocalServicesResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/ListLocalTransfers",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/ListLocalTransfers",
         service: "RuntimeLocalService",
         method: "ListLocalTransfers",
         kind: "unary",
@@ -1504,7 +1504,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ListLocalTransfersResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/ListNodeCatalog",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/ListNodeCatalog",
         service: "RuntimeLocalService",
         method: "ListNodeCatalog",
         kind: "unary",
@@ -1512,7 +1512,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ListNodeCatalogResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/ListVerifiedAssets",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/ListVerifiedAssets",
         service: "RuntimeLocalService",
         method: "ListVerifiedAssets",
         kind: "unary",
@@ -1520,7 +1520,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ListVerifiedAssetsResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/MintFirstRunExecutionEvidence",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/MintFirstRunExecutionEvidence",
         service: "RuntimeLocalService",
         method: "MintFirstRunExecutionEvidence",
         kind: "unary",
@@ -1528,7 +1528,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "MintFirstRunExecutionEvidenceResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/MintRuntimeBaselineReadiness",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/MintRuntimeBaselineReadiness",
         service: "RuntimeLocalService",
         method: "MintRuntimeBaselineReadiness",
         kind: "unary",
@@ -1536,7 +1536,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "MintRuntimeBaselineReadinessResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/PauseLocalTransfer",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/PauseLocalTransfer",
         service: "RuntimeLocalService",
         method: "PauseLocalTransfer",
         kind: "unary",
@@ -1544,7 +1544,15 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "PauseLocalTransferResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/PrepareProfileRuntimeDescriptor",
+        service: "RuntimeLocalService",
+        method: "PrepareProfileRuntimeDescriptor",
+        kind: "unary",
+        request_type: "PrepareProfileRuntimeDescriptorRequest",
+        response_type: "PrepareProfileRuntimeDescriptorResponse",
+    },
+    RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState",
         service: "RuntimeLocalService",
         method: "ReconcileProductControlFirstRunSetupState",
         kind: "unary",
@@ -1552,7 +1560,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ProductControlProjectionJson",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/RecordProductControlAccountDefaultProfileEvidence",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/RecordProductControlAccountDefaultProfileEvidence",
         service: "RuntimeLocalService",
         method: "RecordProductControlAccountDefaultProfileEvidence",
         kind: "unary",
@@ -1560,7 +1568,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ProductControlProjectionJson",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/RecordProductControlFirstRunLocalAiReadyEvidence",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/RecordProductControlFirstRunLocalAiReadyEvidence",
         service: "RuntimeLocalService",
         method: "RecordProductControlFirstRunLocalAiReadyEvidence",
         kind: "unary",
@@ -1568,7 +1576,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ProductControlProjectionJson",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/RemoveLocalAsset",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/RemoveLocalAsset",
         service: "RuntimeLocalService",
         method: "RemoveLocalAsset",
         kind: "unary",
@@ -1576,7 +1584,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "RemoveLocalAssetResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/RemoveLocalService",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/RemoveLocalService",
         service: "RuntimeLocalService",
         method: "RemoveLocalService",
         kind: "unary",
@@ -1584,7 +1592,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "RemoveLocalServiceResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/RepairLocalEnvironmentDependency",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/RepairLocalEnvironmentDependency",
         service: "RuntimeLocalService",
         method: "RepairLocalEnvironmentDependency",
         kind: "unary",
@@ -1592,7 +1600,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "RepairLocalEnvironmentDependencyResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/RescanLocalAssetBundle",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/RescanLocalAssetBundle",
         service: "RuntimeLocalService",
         method: "RescanLocalAssetBundle",
         kind: "unary",
@@ -1600,7 +1608,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "RescanLocalAssetBundleResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/ResolveFirstRunExecutionEvidence",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/ResolveFirstRunExecutionEvidence",
         service: "RuntimeLocalService",
         method: "ResolveFirstRunExecutionEvidence",
         kind: "unary",
@@ -1608,7 +1616,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ResolveFirstRunExecutionEvidenceResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentActivationGate",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentActivationGate",
         service: "RuntimeLocalService",
         method: "ResolveLocalEnvironmentActivationGate",
         kind: "unary",
@@ -1616,7 +1624,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ResolveLocalEnvironmentActivationGateResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentPlan",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentPlan",
         service: "RuntimeLocalService",
         method: "ResolveLocalEnvironmentPlan",
         kind: "unary",
@@ -1624,7 +1632,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ResolveLocalEnvironmentPlanResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/ResolveLocalStateReconciliation",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalStateReconciliation",
         service: "RuntimeLocalService",
         method: "ResolveLocalStateReconciliation",
         kind: "unary",
@@ -1632,7 +1640,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ResolveLocalStateReconciliationResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/ResolveModelInstallPlan",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/ResolveModelInstallPlan",
         service: "RuntimeLocalService",
         method: "ResolveModelInstallPlan",
         kind: "unary",
@@ -1640,7 +1648,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ResolveModelInstallPlanResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/ResolveProfile",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/ResolveProfile",
         service: "RuntimeLocalService",
         method: "ResolveProfile",
         kind: "unary",
@@ -1648,7 +1656,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ResolveProfileResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/ResolveRuntimeBaselineReadiness",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/ResolveRuntimeBaselineReadiness",
         service: "RuntimeLocalService",
         method: "ResolveRuntimeBaselineReadiness",
         kind: "unary",
@@ -1656,7 +1664,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ResolveRuntimeBaselineReadinessResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/ResumeLocalTransfer",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/ResumeLocalTransfer",
         service: "RuntimeLocalService",
         method: "ResumeLocalTransfer",
         kind: "unary",
@@ -1664,7 +1672,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ResumeLocalTransferResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/RetryLocalEnvironmentDependencyJob",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/RetryLocalEnvironmentDependencyJob",
         service: "RuntimeLocalService",
         method: "RetryLocalEnvironmentDependencyJob",
         kind: "unary",
@@ -1672,7 +1680,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "RetryLocalEnvironmentDependencyJobResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/ScaffoldOrphanAsset",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/ScaffoldOrphanAsset",
         service: "RuntimeLocalService",
         method: "ScaffoldOrphanAsset",
         kind: "unary",
@@ -1680,7 +1688,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ScaffoldOrphanAssetResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/ScanUnregisteredAssets",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/ScanUnregisteredAssets",
         service: "RuntimeLocalService",
         method: "ScanUnregisteredAssets",
         kind: "unary",
@@ -1688,7 +1696,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ScanUnregisteredAssetsResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/SearchCatalogModels",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/SearchCatalogModels",
         service: "RuntimeLocalService",
         method: "SearchCatalogModels",
         kind: "unary",
@@ -1696,7 +1704,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "SearchCatalogModelsResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/SelectProductControlDataRoot",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/SelectProductControlDataRoot",
         service: "RuntimeLocalService",
         method: "SelectProductControlDataRoot",
         kind: "unary",
@@ -1704,7 +1712,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ProductControlProjectionJson",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/SetProductControlFirstRunInstallLevel",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/SetProductControlFirstRunInstallLevel",
         service: "RuntimeLocalService",
         method: "SetProductControlFirstRunInstallLevel",
         kind: "unary",
@@ -1712,7 +1720,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ProductControlProjectionJson",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/StartEngine",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/StartEngine",
         service: "RuntimeLocalService",
         method: "StartEngine",
         kind: "unary",
@@ -1720,7 +1728,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "StartEngineResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/StartLocalAsset",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/StartLocalAsset",
         service: "RuntimeLocalService",
         method: "StartLocalAsset",
         kind: "unary",
@@ -1728,7 +1736,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "StartLocalAssetResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/StartLocalEnvironmentDependencyJob",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/StartLocalEnvironmentDependencyJob",
         service: "RuntimeLocalService",
         method: "StartLocalEnvironmentDependencyJob",
         kind: "unary",
@@ -1736,7 +1744,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "StartLocalEnvironmentDependencyJobResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/StartLocalService",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/StartLocalService",
         service: "RuntimeLocalService",
         method: "StartLocalService",
         kind: "unary",
@@ -1744,7 +1752,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "StartLocalServiceResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/StopEngine",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/StopEngine",
         service: "RuntimeLocalService",
         method: "StopEngine",
         kind: "unary",
@@ -1752,7 +1760,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "StopEngineResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/StopLocalAsset",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/StopLocalAsset",
         service: "RuntimeLocalService",
         method: "StopLocalAsset",
         kind: "unary",
@@ -1760,7 +1768,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "StopLocalAssetResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/StopLocalService",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/StopLocalService",
         service: "RuntimeLocalService",
         method: "StopLocalService",
         kind: "unary",
@@ -1768,7 +1776,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "StopLocalServiceResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/WarmLocalAsset",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/WarmLocalAsset",
         service: "RuntimeLocalService",
         method: "WarmLocalAsset",
         kind: "unary",
@@ -1776,7 +1784,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "WarmLocalAssetResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeLocalService/WatchLocalTransfers",
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/WatchLocalTransfers",
         service: "RuntimeLocalService",
         method: "WatchLocalTransfers",
         kind: "server_stream",
@@ -1784,7 +1792,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "LocalTransferProgressEvent",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeModelService/CheckModelHealth",
+        method_id: "/nimi.runtime.v1.RuntimeModelService/CheckModelHealth",
         service: "RuntimeModelService",
         method: "CheckModelHealth",
         kind: "unary",
@@ -1792,7 +1800,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "CheckModelHealthResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeModelService/ListModels",
+        method_id: "/nimi.runtime.v1.RuntimeModelService/ListModels",
         service: "RuntimeModelService",
         method: "ListModels",
         kind: "unary",
@@ -1800,7 +1808,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ListModelsResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeModelService/PullModel",
+        method_id: "/nimi.runtime.v1.RuntimeModelService/PullModel",
         service: "RuntimeModelService",
         method: "PullModel",
         kind: "unary",
@@ -1808,7 +1816,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "PullModelResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeModelService/RemoveModel",
+        method_id: "/nimi.runtime.v1.RuntimeModelService/RemoveModel",
         service: "RuntimeModelService",
         method: "RemoveModel",
         kind: "unary",
@@ -1816,7 +1824,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "Ack",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeWorkflowService/CancelWorkflow",
+        method_id: "/nimi.runtime.v1.RuntimeWorkflowService/CancelWorkflow",
         service: "RuntimeWorkflowService",
         method: "CancelWorkflow",
         kind: "unary",
@@ -1824,7 +1832,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "Ack",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeWorkflowService/GetWorkflow",
+        method_id: "/nimi.runtime.v1.RuntimeWorkflowService/GetWorkflow",
         service: "RuntimeWorkflowService",
         method: "GetWorkflow",
         kind: "unary",
@@ -1832,7 +1840,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "GetWorkflowResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeWorkflowService/SubmitWorkflow",
+        method_id: "/nimi.runtime.v1.RuntimeWorkflowService/SubmitWorkflow",
         service: "RuntimeWorkflowService",
         method: "SubmitWorkflow",
         kind: "unary",
@@ -1840,7 +1848,7 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "SubmitWorkflowResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/runtime.v1.RuntimeWorkflowService/SubscribeWorkflowEvents",
+        method_id: "/nimi.runtime.v1.RuntimeWorkflowService/SubscribeWorkflowEvents",
         service: "RuntimeWorkflowService",
         method: "SubscribeWorkflowEvents",
         kind: "server_stream",

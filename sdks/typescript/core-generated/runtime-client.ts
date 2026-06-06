@@ -15,7 +15,7 @@ export interface RuntimeMethodDescriptor {
 
 export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
   {
-    "methodId": "/runtime.v1.RuntimeAccountService/BeginLogin",
+    "methodId": "/nimi.runtime.v1.RuntimeAccountService/BeginLogin",
     "service": "RuntimeAccountService",
     "method": "BeginLogin",
     "kind": "unary",
@@ -23,7 +23,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "BeginLoginResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAccountService/CompleteLogin",
+    "methodId": "/nimi.runtime.v1.RuntimeAccountService/CompleteLogin",
     "service": "RuntimeAccountService",
     "method": "CompleteLogin",
     "kind": "unary",
@@ -31,7 +31,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "CompleteLoginResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAccountService/GetAccessToken",
+    "methodId": "/nimi.runtime.v1.RuntimeAccountService/GetAccessToken",
     "service": "RuntimeAccountService",
     "method": "GetAccessToken",
     "kind": "unary",
@@ -39,7 +39,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "GetAccessTokenResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAccountService/GetAccountSessionStatus",
+    "methodId": "/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus",
     "service": "RuntimeAccountService",
     "method": "GetAccountSessionStatus",
     "kind": "unary",
@@ -47,7 +47,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "GetAccountSessionStatusResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAccountService/IssueScopedAppBinding",
+    "methodId": "/nimi.runtime.v1.RuntimeAccountService/IssueScopedAppBinding",
     "service": "RuntimeAccountService",
     "method": "IssueScopedAppBinding",
     "kind": "unary",
@@ -55,7 +55,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "IssueScopedAppBindingResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAccountService/IssueWorkspaceBinding",
+    "methodId": "/nimi.runtime.v1.RuntimeAccountService/IssueWorkspaceBinding",
     "service": "RuntimeAccountService",
     "method": "IssueWorkspaceBinding",
     "kind": "unary",
@@ -63,7 +63,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "IssueWorkspaceBindingResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAccountService/Logout",
+    "methodId": "/nimi.runtime.v1.RuntimeAccountService/Logout",
     "service": "RuntimeAccountService",
     "method": "Logout",
     "kind": "unary",
@@ -71,7 +71,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "LogoutResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAccountService/RefreshAccountSession",
+    "methodId": "/nimi.runtime.v1.RuntimeAccountService/RefreshAccountSession",
     "service": "RuntimeAccountService",
     "method": "RefreshAccountSession",
     "kind": "unary",
@@ -79,7 +79,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "RefreshAccountSessionResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAccountService/RevokeScopedAppBinding",
+    "methodId": "/nimi.runtime.v1.RuntimeAccountService/RevokeScopedAppBinding",
     "service": "RuntimeAccountService",
     "method": "RevokeScopedAppBinding",
     "kind": "unary",
@@ -87,7 +87,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "RevokeScopedAppBindingResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAccountService/RevokeWorkspaceBinding",
+    "methodId": "/nimi.runtime.v1.RuntimeAccountService/RevokeWorkspaceBinding",
     "service": "RuntimeAccountService",
     "method": "RevokeWorkspaceBinding",
     "kind": "unary",
@@ -95,7 +95,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "RevokeWorkspaceBindingResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents",
+    "methodId": "/nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents",
     "service": "RuntimeAccountService",
     "method": "SubscribeAccountSessionEvents",
     "kind": "server_stream",
@@ -103,7 +103,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "AccountSessionEvent"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAccountService/SwitchAccount",
+    "methodId": "/nimi.runtime.v1.RuntimeAccountService/SwitchAccount",
     "service": "RuntimeAccountService",
     "method": "SwitchAccount",
     "kind": "unary",
@@ -111,7 +111,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "SwitchAccountResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAgentService/CancelCompanionParticipation",
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/CancelCompanionParticipation",
     "service": "RuntimeAgentService",
     "method": "CancelCompanionParticipation",
     "kind": "unary",
@@ -119,7 +119,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "CancelCompanionParticipationResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAgentService/CancelHook",
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/CancelHook",
     "service": "RuntimeAgentService",
     "method": "CancelHook",
     "kind": "unary",
@@ -127,7 +127,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "CancelHookResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAgentService/CreateRealmGroupMessageCandidate",
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/CreateRealmGroupMessageCandidate",
     "service": "RuntimeAgentService",
     "method": "CreateRealmGroupMessageCandidate",
     "kind": "unary",
@@ -135,7 +135,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "CreateRealmGroupMessageCandidateResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAgentService/DisableAutonomy",
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy",
     "service": "RuntimeAgentService",
     "method": "DisableAutonomy",
     "kind": "unary",
@@ -143,7 +143,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "DisableAutonomyResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAgentService/EnableAutonomy",
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/EnableAutonomy",
     "service": "RuntimeAgentService",
     "method": "EnableAutonomy",
     "kind": "unary",
@@ -151,7 +151,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "EnableAutonomyResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAgentService/ExecuteDelegatedCapability",
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/ExecuteDelegatedCapability",
     "service": "RuntimeAgentService",
     "method": "ExecuteDelegatedCapability",
     "kind": "unary",
@@ -159,7 +159,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ExecuteDelegatedCapabilityResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAgentService/GetAgent",
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/GetAgent",
     "service": "RuntimeAgentService",
     "method": "GetAgent",
     "kind": "unary",
@@ -167,7 +167,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "GetAgentResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus",
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus",
     "service": "RuntimeAgentService",
     "method": "GetAgentCanonicalMemoryBankStatus",
     "kind": "unary",
@@ -175,7 +175,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "GetAgentCanonicalMemoryBankStatusResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAgentService/GetAgentState",
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/GetAgentState",
     "service": "RuntimeAgentService",
     "method": "GetAgentState",
     "kind": "unary",
@@ -183,7 +183,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "GetAgentStateResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAgentService/GetAvatarDebugReplay",
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugReplay",
     "service": "RuntimeAgentService",
     "method": "GetAvatarDebugReplay",
     "kind": "unary",
@@ -191,7 +191,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "GetAvatarDebugReplayResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAgentService/GetAvatarDebugSnapshot",
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugSnapshot",
     "service": "RuntimeAgentService",
     "method": "GetAvatarDebugSnapshot",
     "kind": "unary",
@@ -199,7 +199,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "GetAvatarDebugSnapshotResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAgentService/GetCompanionParticipationProjection",
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/GetCompanionParticipationProjection",
     "service": "RuntimeAgentService",
     "method": "GetCompanionParticipationProjection",
     "kind": "unary",
@@ -207,7 +207,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "GetCompanionParticipationProjectionResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot",
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot",
     "service": "RuntimeAgentService",
     "method": "GetConversationAnchorSnapshot",
     "kind": "unary",
@@ -215,7 +215,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "GetConversationAnchorSnapshotResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAgentService/GetDelegatedControlSurfaceSnapshot",
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedControlSurfaceSnapshot",
     "service": "RuntimeAgentService",
     "method": "GetDelegatedControlSurfaceSnapshot",
     "kind": "unary",
@@ -223,7 +223,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "GetDelegatedControlSurfaceSnapshotResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAgentService/GetDelegatedReplayTrace",
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedReplayTrace",
     "service": "RuntimeAgentService",
     "method": "GetDelegatedReplayTrace",
     "kind": "unary",
@@ -231,7 +231,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "GetDelegatedReplayTraceResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot",
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot",
     "service": "RuntimeAgentService",
     "method": "GetPublicChatSessionSnapshot",
     "kind": "unary",
@@ -239,7 +239,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "GetPublicChatSessionSnapshotResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAgentService/GetRealmGroupMessageCandidateEvidence",
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/GetRealmGroupMessageCandidateEvidence",
     "service": "RuntimeAgentService",
     "method": "GetRealmGroupMessageCandidateEvidence",
     "kind": "unary",
@@ -247,7 +247,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "GetRealmGroupMessageCandidateEvidenceResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAgentService/InitializeAgent",
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/InitializeAgent",
     "service": "RuntimeAgentService",
     "method": "InitializeAgent",
     "kind": "unary",
@@ -255,7 +255,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "InitializeAgentResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAgentService/ListAgentConversationSummaries",
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/ListAgentConversationSummaries",
     "service": "RuntimeAgentService",
     "method": "ListAgentConversationSummaries",
     "kind": "unary",
@@ -263,7 +263,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ListAgentConversationSummariesResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAgentService/ListAgents",
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/ListAgents",
     "service": "RuntimeAgentService",
     "method": "ListAgents",
     "kind": "unary",
@@ -271,7 +271,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ListAgentsResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAgentService/ListAvatarDebugProbeResults",
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/ListAvatarDebugProbeResults",
     "service": "RuntimeAgentService",
     "method": "ListAvatarDebugProbeResults",
     "kind": "unary",
@@ -279,7 +279,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ListAvatarDebugProbeResultsResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAgentService/ListDelegatedApprovalRequests",
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedApprovalRequests",
     "service": "RuntimeAgentService",
     "method": "ListDelegatedApprovalRequests",
     "kind": "unary",
@@ -287,7 +287,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ListDelegatedApprovalRequestsResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAgentService/ListDelegatedDiagnostics",
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedDiagnostics",
     "service": "RuntimeAgentService",
     "method": "ListDelegatedDiagnostics",
     "kind": "unary",
@@ -295,7 +295,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ListDelegatedDiagnosticsResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAgentService/ListDelegatedProviderProfiles",
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedProviderProfiles",
     "service": "RuntimeAgentService",
     "method": "ListDelegatedProviderProfiles",
     "kind": "unary",
@@ -303,7 +303,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ListDelegatedProviderProfilesResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAgentService/ListPendingHooks",
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/ListPendingHooks",
     "service": "RuntimeAgentService",
     "method": "ListPendingHooks",
     "kind": "unary",
@@ -311,7 +311,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ListPendingHooksResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAgentService/OpenCompanionParticipationReplay",
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/OpenCompanionParticipationReplay",
     "service": "RuntimeAgentService",
     "method": "OpenCompanionParticipationReplay",
     "kind": "unary",
@@ -319,7 +319,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "OpenCompanionParticipationReplayResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAgentService/OpenConversationAnchor",
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor",
     "service": "RuntimeAgentService",
     "method": "OpenConversationAnchor",
     "kind": "unary",
@@ -327,7 +327,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "OpenConversationAnchorResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAgentService/QueryAgentMemory",
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/QueryAgentMemory",
     "service": "RuntimeAgentService",
     "method": "QueryAgentMemory",
     "kind": "unary",
@@ -335,7 +335,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "QueryAgentMemoryResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding",
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding",
     "service": "RuntimeAgentService",
     "method": "RegisterAvatarLiveInstanceBinding",
     "kind": "unary",
@@ -343,7 +343,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "RegisterAvatarLiveInstanceBindingResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAgentService/RequestAgentCanonicalMemoryBankBind",
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/RequestAgentCanonicalMemoryBankBind",
     "service": "RuntimeAgentService",
     "method": "RequestAgentCanonicalMemoryBankBind",
     "kind": "unary",
@@ -351,7 +351,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "RequestAgentCanonicalMemoryBankBindResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAgentService/RequestAvatarDebugProbe",
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/RequestAvatarDebugProbe",
     "service": "RuntimeAgentService",
     "method": "RequestAvatarDebugProbe",
     "kind": "unary",
@@ -359,7 +359,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "RequestAvatarDebugProbeResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAgentService/RequestCompanionParticipation",
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/RequestCompanionParticipation",
     "service": "RuntimeAgentService",
     "method": "RequestCompanionParticipation",
     "kind": "unary",
@@ -367,7 +367,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "RequestCompanionParticipationResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding",
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding",
     "service": "RuntimeAgentService",
     "method": "ResolveAvatarLiveInstanceBinding",
     "kind": "unary",
@@ -375,7 +375,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ResolveAvatarLiveInstanceBindingResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAgentService/SetAgentPresentationProfile",
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile",
     "service": "RuntimeAgentService",
     "method": "SetAgentPresentationProfile",
     "kind": "unary",
@@ -383,7 +383,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "SetAgentPresentationProfileResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAgentService/SetAutonomyConfig",
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/SetAutonomyConfig",
     "service": "RuntimeAgentService",
     "method": "SetAutonomyConfig",
     "kind": "unary",
@@ -391,7 +391,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "SetAutonomyConfigResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAgentService/SetDelegatedProviderState",
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/SetDelegatedProviderState",
     "service": "RuntimeAgentService",
     "method": "SetDelegatedProviderState",
     "kind": "unary",
@@ -399,7 +399,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "SetDelegatedProviderStateResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAgentService/SubmitDelegatedApprovalDecision",
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/SubmitDelegatedApprovalDecision",
     "service": "RuntimeAgentService",
     "method": "SubmitDelegatedApprovalDecision",
     "kind": "unary",
@@ -407,7 +407,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "SubmitDelegatedApprovalDecisionResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAgentService/SubscribeAgentEvents",
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents",
     "service": "RuntimeAgentService",
     "method": "SubscribeAgentEvents",
     "kind": "server_stream",
@@ -415,7 +415,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "AgentEvent"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAgentService/TerminateAgent",
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/TerminateAgent",
     "service": "RuntimeAgentService",
     "method": "TerminateAgent",
     "kind": "unary",
@@ -423,7 +423,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "TerminateAgentResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAgentService/UpdateAgentState",
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState",
     "service": "RuntimeAgentService",
     "method": "UpdateAgentState",
     "kind": "unary",
@@ -431,7 +431,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "UpdateAgentStateResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAgentService/UpsertDelegatedProviderProfile",
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/UpsertDelegatedProviderProfile",
     "service": "RuntimeAgentService",
     "method": "UpsertDelegatedProviderProfile",
     "kind": "unary",
@@ -439,7 +439,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "UpsertDelegatedProviderProfileResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAgentService/WriteAgentMemory",
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/WriteAgentMemory",
     "service": "RuntimeAgentService",
     "method": "WriteAgentMemory",
     "kind": "unary",
@@ -447,7 +447,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "WriteAgentMemoryResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAiRealtimeService/AppendRealtimeInput",
+    "methodId": "/nimi.runtime.v1.RuntimeAiRealtimeService/AppendRealtimeInput",
     "service": "RuntimeAiRealtimeService",
     "method": "AppendRealtimeInput",
     "kind": "unary",
@@ -455,7 +455,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "AppendRealtimeInputResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAiRealtimeService/CloseRealtimeSession",
+    "methodId": "/nimi.runtime.v1.RuntimeAiRealtimeService/CloseRealtimeSession",
     "service": "RuntimeAiRealtimeService",
     "method": "CloseRealtimeSession",
     "kind": "unary",
@@ -463,7 +463,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "CloseRealtimeSessionResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAiRealtimeService/OpenRealtimeSession",
+    "methodId": "/nimi.runtime.v1.RuntimeAiRealtimeService/OpenRealtimeSession",
     "service": "RuntimeAiRealtimeService",
     "method": "OpenRealtimeSession",
     "kind": "unary",
@@ -471,7 +471,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "OpenRealtimeSessionResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAiRealtimeService/ReadRealtimeEvents",
+    "methodId": "/nimi.runtime.v1.RuntimeAiRealtimeService/ReadRealtimeEvents",
     "service": "RuntimeAiRealtimeService",
     "method": "ReadRealtimeEvents",
     "kind": "server_stream",
@@ -479,7 +479,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "RealtimeEvent"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAiService/CancelScenarioJob",
+    "methodId": "/nimi.runtime.v1.RuntimeAiService/CancelScenarioJob",
     "service": "RuntimeAiService",
     "method": "CancelScenarioJob",
     "kind": "unary",
@@ -487,7 +487,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "CancelScenarioJobResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAiService/DeleteVoiceAsset",
+    "methodId": "/nimi.runtime.v1.RuntimeAiService/DeleteVoiceAsset",
     "service": "RuntimeAiService",
     "method": "DeleteVoiceAsset",
     "kind": "unary",
@@ -495,7 +495,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "DeleteVoiceAssetResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAiService/ExecuteScenario",
+    "methodId": "/nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
     "service": "RuntimeAiService",
     "method": "ExecuteScenario",
     "kind": "unary",
@@ -503,7 +503,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ExecuteScenarioResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAiService/GetScenarioArtifacts",
+    "methodId": "/nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts",
     "service": "RuntimeAiService",
     "method": "GetScenarioArtifacts",
     "kind": "unary",
@@ -511,7 +511,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "GetScenarioArtifactsResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAiService/GetScenarioJob",
+    "methodId": "/nimi.runtime.v1.RuntimeAiService/GetScenarioJob",
     "service": "RuntimeAiService",
     "method": "GetScenarioJob",
     "kind": "unary",
@@ -519,7 +519,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "GetScenarioJobResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAiService/GetVoiceAsset",
+    "methodId": "/nimi.runtime.v1.RuntimeAiService/GetVoiceAsset",
     "service": "RuntimeAiService",
     "method": "GetVoiceAsset",
     "kind": "unary",
@@ -527,7 +527,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "GetVoiceAssetResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAiService/ListPresetVoices",
+    "methodId": "/nimi.runtime.v1.RuntimeAiService/ListPresetVoices",
     "service": "RuntimeAiService",
     "method": "ListPresetVoices",
     "kind": "unary",
@@ -535,7 +535,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ListPresetVoicesResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAiService/ListScenarioProfiles",
+    "methodId": "/nimi.runtime.v1.RuntimeAiService/ListScenarioProfiles",
     "service": "RuntimeAiService",
     "method": "ListScenarioProfiles",
     "kind": "unary",
@@ -543,7 +543,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ListScenarioProfilesResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAiService/ListVoiceAssets",
+    "methodId": "/nimi.runtime.v1.RuntimeAiService/ListVoiceAssets",
     "service": "RuntimeAiService",
     "method": "ListVoiceAssets",
     "kind": "unary",
@@ -551,7 +551,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ListVoiceAssetsResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAiService/PeekScheduling",
+    "methodId": "/nimi.runtime.v1.RuntimeAiService/PeekScheduling",
     "service": "RuntimeAiService",
     "method": "PeekScheduling",
     "kind": "unary",
@@ -559,7 +559,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "PeekSchedulingResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAiService/StreamScenario",
+    "methodId": "/nimi.runtime.v1.RuntimeAiService/StreamScenario",
     "service": "RuntimeAiService",
     "method": "StreamScenario",
     "kind": "server_stream",
@@ -567,7 +567,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "StreamScenarioEvent"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAiService/SubmitScenarioJob",
+    "methodId": "/nimi.runtime.v1.RuntimeAiService/SubmitScenarioJob",
     "service": "RuntimeAiService",
     "method": "SubmitScenarioJob",
     "kind": "unary",
@@ -575,7 +575,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "SubmitScenarioJobResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAiService/SubscribeScenarioJobEvents",
+    "methodId": "/nimi.runtime.v1.RuntimeAiService/SubscribeScenarioJobEvents",
     "service": "RuntimeAiService",
     "method": "SubscribeScenarioJobEvents",
     "kind": "server_stream",
@@ -583,7 +583,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ScenarioJobEvent"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAiService/UploadArtifact",
+    "methodId": "/nimi.runtime.v1.RuntimeAiService/UploadArtifact",
     "service": "RuntimeAiService",
     "method": "UploadArtifact",
     "kind": "client_stream",
@@ -591,7 +591,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "UploadArtifactResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAppService/GetAccountAppLibrary",
+    "methodId": "/nimi.runtime.v1.RuntimeAppService/GetAccountAppLibrary",
     "service": "RuntimeAppService",
     "method": "GetAccountAppLibrary",
     "kind": "unary",
@@ -599,7 +599,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "GetAccountAppLibraryResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAppService/GetAppInstallJob",
+    "methodId": "/nimi.runtime.v1.RuntimeAppService/GetAppInstallJob",
     "service": "RuntimeAppService",
     "method": "GetAppInstallJob",
     "kind": "unary",
@@ -607,7 +607,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "GetAppInstallJobResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAppService/GetAppPackageReadiness",
+    "methodId": "/nimi.runtime.v1.RuntimeAppService/GetAppPackageReadiness",
     "service": "RuntimeAppService",
     "method": "GetAppPackageReadiness",
     "kind": "unary",
@@ -615,7 +615,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "GetAppPackageReadinessResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAppService/GetAppStorage",
+    "methodId": "/nimi.runtime.v1.RuntimeAppService/GetAppStorage",
     "service": "RuntimeAppService",
     "method": "GetAppStorage",
     "kind": "unary",
@@ -623,7 +623,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "GetAppStorageResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAppService/HealthRepairApp",
+    "methodId": "/nimi.runtime.v1.RuntimeAppService/HealthRepairApp",
     "service": "RuntimeAppService",
     "method": "HealthRepairApp",
     "kind": "unary",
@@ -631,7 +631,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "HealthRepairAppResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAppService/InstallApp",
+    "methodId": "/nimi.runtime.v1.RuntimeAppService/InstallApp",
     "service": "RuntimeAppService",
     "method": "InstallApp",
     "kind": "unary",
@@ -639,7 +639,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "InstallAppResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAppService/ListAppInstallJobs",
+    "methodId": "/nimi.runtime.v1.RuntimeAppService/ListAppInstallJobs",
     "service": "RuntimeAppService",
     "method": "ListAppInstallJobs",
     "kind": "unary",
@@ -647,7 +647,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ListAppInstallJobsResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAppService/OpenApp",
+    "methodId": "/nimi.runtime.v1.RuntimeAppService/OpenApp",
     "service": "RuntimeAppService",
     "method": "OpenApp",
     "kind": "unary",
@@ -655,7 +655,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "OpenAppResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAppService/SendAppMessage",
+    "methodId": "/nimi.runtime.v1.RuntimeAppService/SendAppMessage",
     "service": "RuntimeAppService",
     "method": "SendAppMessage",
     "kind": "unary",
@@ -663,7 +663,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "SendAppMessageResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAppService/SubscribeAppMessages",
+    "methodId": "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages",
     "service": "RuntimeAppService",
     "method": "SubscribeAppMessages",
     "kind": "server_stream",
@@ -671,7 +671,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "AppMessageEvent"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAppService/UninstallApp",
+    "methodId": "/nimi.runtime.v1.RuntimeAppService/UninstallApp",
     "service": "RuntimeAppService",
     "method": "UninstallApp",
     "kind": "unary",
@@ -679,7 +679,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "UninstallAppResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAppService/UpdateApp",
+    "methodId": "/nimi.runtime.v1.RuntimeAppService/UpdateApp",
     "service": "RuntimeAppService",
     "method": "UpdateApp",
     "kind": "unary",
@@ -687,7 +687,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "UpdateAppResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAppService/WatchAppInstallJobEvents",
+    "methodId": "/nimi.runtime.v1.RuntimeAppService/WatchAppInstallJobEvents",
     "service": "RuntimeAppService",
     "method": "WatchAppInstallJobEvents",
     "kind": "server_stream",
@@ -695,7 +695,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "AppInstallJobEvent"
   },
   {
-    "methodId": "/runtime.v1.RuntimeArtifactService/ReadArtifactBytes",
+    "methodId": "/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes",
     "service": "RuntimeArtifactService",
     "method": "ReadArtifactBytes",
     "kind": "unary",
@@ -703,7 +703,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ReadArtifactBytesResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAuditService/ExportAuditEvents",
+    "methodId": "/nimi.runtime.v1.RuntimeAuditService/ExportAuditEvents",
     "service": "RuntimeAuditService",
     "method": "ExportAuditEvents",
     "kind": "server_stream",
@@ -711,7 +711,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "AuditExportChunk"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAuditService/GetRuntimeHealth",
+    "methodId": "/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth",
     "service": "RuntimeAuditService",
     "method": "GetRuntimeHealth",
     "kind": "unary",
@@ -719,7 +719,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "GetRuntimeHealthResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAuditService/ListAIProviderHealth",
+    "methodId": "/nimi.runtime.v1.RuntimeAuditService/ListAIProviderHealth",
     "service": "RuntimeAuditService",
     "method": "ListAIProviderHealth",
     "kind": "unary",
@@ -727,7 +727,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ListAIProviderHealthResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAuditService/ListAuditEvents",
+    "methodId": "/nimi.runtime.v1.RuntimeAuditService/ListAuditEvents",
     "service": "RuntimeAuditService",
     "method": "ListAuditEvents",
     "kind": "unary",
@@ -735,7 +735,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ListAuditEventsResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAuditService/ListUsageStats",
+    "methodId": "/nimi.runtime.v1.RuntimeAuditService/ListUsageStats",
     "service": "RuntimeAuditService",
     "method": "ListUsageStats",
     "kind": "unary",
@@ -743,7 +743,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ListUsageStatsResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAuditService/SubscribeAIProviderHealthEvents",
+    "methodId": "/nimi.runtime.v1.RuntimeAuditService/SubscribeAIProviderHealthEvents",
     "service": "RuntimeAuditService",
     "method": "SubscribeAIProviderHealthEvents",
     "kind": "server_stream",
@@ -751,7 +751,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "AIProviderHealthEvent"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAuditService/SubscribeRuntimeHealthEvents",
+    "methodId": "/nimi.runtime.v1.RuntimeAuditService/SubscribeRuntimeHealthEvents",
     "service": "RuntimeAuditService",
     "method": "SubscribeRuntimeHealthEvents",
     "kind": "server_stream",
@@ -759,7 +759,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "RuntimeHealthEvent"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAuthService/OpenExternalPrincipalSession",
+    "methodId": "/nimi.runtime.v1.RuntimeAuthService/OpenExternalPrincipalSession",
     "service": "RuntimeAuthService",
     "method": "OpenExternalPrincipalSession",
     "kind": "unary",
@@ -767,7 +767,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "OpenExternalPrincipalSessionResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAuthService/OpenSession",
+    "methodId": "/nimi.runtime.v1.RuntimeAuthService/OpenSession",
     "service": "RuntimeAuthService",
     "method": "OpenSession",
     "kind": "unary",
@@ -775,7 +775,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "OpenSessionResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAuthService/RefreshSession",
+    "methodId": "/nimi.runtime.v1.RuntimeAuthService/RefreshSession",
     "service": "RuntimeAuthService",
     "method": "RefreshSession",
     "kind": "unary",
@@ -783,7 +783,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "RefreshSessionResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAuthService/RegisterApp",
+    "methodId": "/nimi.runtime.v1.RuntimeAuthService/RegisterApp",
     "service": "RuntimeAuthService",
     "method": "RegisterApp",
     "kind": "unary",
@@ -791,7 +791,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "RegisterAppResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAuthService/RegisterExternalPrincipal",
+    "methodId": "/nimi.runtime.v1.RuntimeAuthService/RegisterExternalPrincipal",
     "service": "RuntimeAuthService",
     "method": "RegisterExternalPrincipal",
     "kind": "unary",
@@ -799,7 +799,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "RegisterExternalPrincipalResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAuthService/RevokeExternalPrincipalSession",
+    "methodId": "/nimi.runtime.v1.RuntimeAuthService/RevokeExternalPrincipalSession",
     "service": "RuntimeAuthService",
     "method": "RevokeExternalPrincipalSession",
     "kind": "unary",
@@ -807,7 +807,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "Ack"
   },
   {
-    "methodId": "/runtime.v1.RuntimeAuthService/RevokeSession",
+    "methodId": "/nimi.runtime.v1.RuntimeAuthService/RevokeSession",
     "service": "RuntimeAuthService",
     "method": "RevokeSession",
     "kind": "unary",
@@ -815,7 +815,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "Ack"
   },
   {
-    "methodId": "/runtime.v1.RuntimeCognitionService/AddLink",
+    "methodId": "/nimi.runtime.v1.RuntimeCognitionService/AddLink",
     "service": "RuntimeCognitionService",
     "method": "AddLink",
     "kind": "unary",
@@ -823,7 +823,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "AddLinkResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeCognitionService/CreateBank",
+    "methodId": "/nimi.runtime.v1.RuntimeCognitionService/CreateBank",
     "service": "RuntimeCognitionService",
     "method": "CreateBank",
     "kind": "unary",
@@ -831,7 +831,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "CreateBankResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeCognitionService/CreateKnowledgeBank",
+    "methodId": "/nimi.runtime.v1.RuntimeCognitionService/CreateKnowledgeBank",
     "service": "RuntimeCognitionService",
     "method": "CreateKnowledgeBank",
     "kind": "unary",
@@ -839,7 +839,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "CreateKnowledgeBankResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeCognitionService/DeleteBank",
+    "methodId": "/nimi.runtime.v1.RuntimeCognitionService/DeleteBank",
     "service": "RuntimeCognitionService",
     "method": "DeleteBank",
     "kind": "unary",
@@ -847,7 +847,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "DeleteBankResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeCognitionService/DeleteKnowledgeBank",
+    "methodId": "/nimi.runtime.v1.RuntimeCognitionService/DeleteKnowledgeBank",
     "service": "RuntimeCognitionService",
     "method": "DeleteKnowledgeBank",
     "kind": "unary",
@@ -855,7 +855,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "DeleteKnowledgeBankResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeCognitionService/DeleteMemory",
+    "methodId": "/nimi.runtime.v1.RuntimeCognitionService/DeleteMemory",
     "service": "RuntimeCognitionService",
     "method": "DeleteMemory",
     "kind": "unary",
@@ -863,7 +863,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "DeleteMemoryResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeCognitionService/DeletePage",
+    "methodId": "/nimi.runtime.v1.RuntimeCognitionService/DeletePage",
     "service": "RuntimeCognitionService",
     "method": "DeletePage",
     "kind": "unary",
@@ -871,7 +871,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "DeletePageResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeCognitionService/GetBank",
+    "methodId": "/nimi.runtime.v1.RuntimeCognitionService/GetBank",
     "service": "RuntimeCognitionService",
     "method": "GetBank",
     "kind": "unary",
@@ -879,7 +879,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "GetBankResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeCognitionService/GetIngestTask",
+    "methodId": "/nimi.runtime.v1.RuntimeCognitionService/GetIngestTask",
     "service": "RuntimeCognitionService",
     "method": "GetIngestTask",
     "kind": "unary",
@@ -887,7 +887,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "GetIngestTaskResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeCognitionService/GetKnowledgeBank",
+    "methodId": "/nimi.runtime.v1.RuntimeCognitionService/GetKnowledgeBank",
     "service": "RuntimeCognitionService",
     "method": "GetKnowledgeBank",
     "kind": "unary",
@@ -895,7 +895,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "GetKnowledgeBankResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeCognitionService/GetMemoryEmbeddingRuntimeIntent",
+    "methodId": "/nimi.runtime.v1.RuntimeCognitionService/GetMemoryEmbeddingRuntimeIntent",
     "service": "RuntimeCognitionService",
     "method": "GetMemoryEmbeddingRuntimeIntent",
     "kind": "unary",
@@ -903,7 +903,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "GetMemoryEmbeddingRuntimeIntentResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeCognitionService/GetPage",
+    "methodId": "/nimi.runtime.v1.RuntimeCognitionService/GetPage",
     "service": "RuntimeCognitionService",
     "method": "GetPage",
     "kind": "unary",
@@ -911,7 +911,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "GetPageResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeCognitionService/History",
+    "methodId": "/nimi.runtime.v1.RuntimeCognitionService/History",
     "service": "RuntimeCognitionService",
     "method": "History",
     "kind": "unary",
@@ -919,7 +919,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "HistoryResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeCognitionService/IngestDocument",
+    "methodId": "/nimi.runtime.v1.RuntimeCognitionService/IngestDocument",
     "service": "RuntimeCognitionService",
     "method": "IngestDocument",
     "kind": "unary",
@@ -927,7 +927,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "IngestDocumentResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeCognitionService/InspectMemoryEmbeddingRuntime",
+    "methodId": "/nimi.runtime.v1.RuntimeCognitionService/InspectMemoryEmbeddingRuntime",
     "service": "RuntimeCognitionService",
     "method": "InspectMemoryEmbeddingRuntime",
     "kind": "unary",
@@ -935,7 +935,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "InspectMemoryEmbeddingRuntimeResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeCognitionService/ListBacklinks",
+    "methodId": "/nimi.runtime.v1.RuntimeCognitionService/ListBacklinks",
     "service": "RuntimeCognitionService",
     "method": "ListBacklinks",
     "kind": "unary",
@@ -943,7 +943,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ListBacklinksResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeCognitionService/ListBanks",
+    "methodId": "/nimi.runtime.v1.RuntimeCognitionService/ListBanks",
     "service": "RuntimeCognitionService",
     "method": "ListBanks",
     "kind": "unary",
@@ -951,7 +951,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ListBanksResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeCognitionService/ListKnowledgeBanks",
+    "methodId": "/nimi.runtime.v1.RuntimeCognitionService/ListKnowledgeBanks",
     "service": "RuntimeCognitionService",
     "method": "ListKnowledgeBanks",
     "kind": "unary",
@@ -959,7 +959,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ListKnowledgeBanksResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeCognitionService/ListLinks",
+    "methodId": "/nimi.runtime.v1.RuntimeCognitionService/ListLinks",
     "service": "RuntimeCognitionService",
     "method": "ListLinks",
     "kind": "unary",
@@ -967,7 +967,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ListLinksResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeCognitionService/ListPages",
+    "methodId": "/nimi.runtime.v1.RuntimeCognitionService/ListPages",
     "service": "RuntimeCognitionService",
     "method": "ListPages",
     "kind": "unary",
@@ -975,7 +975,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ListPagesResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeCognitionService/PutPage",
+    "methodId": "/nimi.runtime.v1.RuntimeCognitionService/PutPage",
     "service": "RuntimeCognitionService",
     "method": "PutPage",
     "kind": "unary",
@@ -983,7 +983,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "PutPageResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeCognitionService/Recall",
+    "methodId": "/nimi.runtime.v1.RuntimeCognitionService/Recall",
     "service": "RuntimeCognitionService",
     "method": "Recall",
     "kind": "unary",
@@ -991,7 +991,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "RecallResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeCognitionService/RemoveLink",
+    "methodId": "/nimi.runtime.v1.RuntimeCognitionService/RemoveLink",
     "service": "RuntimeCognitionService",
     "method": "RemoveLink",
     "kind": "unary",
@@ -999,7 +999,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "RemoveLinkResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeCognitionService/RequestMemoryEmbeddingRuntimeBind",
+    "methodId": "/nimi.runtime.v1.RuntimeCognitionService/RequestMemoryEmbeddingRuntimeBind",
     "service": "RuntimeCognitionService",
     "method": "RequestMemoryEmbeddingRuntimeBind",
     "kind": "unary",
@@ -1007,7 +1007,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "RequestMemoryEmbeddingRuntimeBindResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeCognitionService/RequestMemoryEmbeddingRuntimeCutover",
+    "methodId": "/nimi.runtime.v1.RuntimeCognitionService/RequestMemoryEmbeddingRuntimeCutover",
     "service": "RuntimeCognitionService",
     "method": "RequestMemoryEmbeddingRuntimeCutover",
     "kind": "unary",
@@ -1015,7 +1015,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "RequestMemoryEmbeddingRuntimeCutoverResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeCognitionService/Retain",
+    "methodId": "/nimi.runtime.v1.RuntimeCognitionService/Retain",
     "service": "RuntimeCognitionService",
     "method": "Retain",
     "kind": "unary",
@@ -1023,7 +1023,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "RetainResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeCognitionService/SearchHybrid",
+    "methodId": "/nimi.runtime.v1.RuntimeCognitionService/SearchHybrid",
     "service": "RuntimeCognitionService",
     "method": "SearchHybrid",
     "kind": "unary",
@@ -1031,7 +1031,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "SearchHybridResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeCognitionService/SearchKeyword",
+    "methodId": "/nimi.runtime.v1.RuntimeCognitionService/SearchKeyword",
     "service": "RuntimeCognitionService",
     "method": "SearchKeyword",
     "kind": "unary",
@@ -1039,7 +1039,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "SearchKeywordResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeCognitionService/SetMemoryEmbeddingRuntimeIntent",
+    "methodId": "/nimi.runtime.v1.RuntimeCognitionService/SetMemoryEmbeddingRuntimeIntent",
     "service": "RuntimeCognitionService",
     "method": "SetMemoryEmbeddingRuntimeIntent",
     "kind": "unary",
@@ -1047,7 +1047,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "SetMemoryEmbeddingRuntimeIntentResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeCognitionService/SubscribeMemoryEvents",
+    "methodId": "/nimi.runtime.v1.RuntimeCognitionService/SubscribeMemoryEvents",
     "service": "RuntimeCognitionService",
     "method": "SubscribeMemoryEvents",
     "kind": "server_stream",
@@ -1055,7 +1055,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "MemoryEvent"
   },
   {
-    "methodId": "/runtime.v1.RuntimeCognitionService/TraverseGraph",
+    "methodId": "/nimi.runtime.v1.RuntimeCognitionService/TraverseGraph",
     "service": "RuntimeCognitionService",
     "method": "TraverseGraph",
     "kind": "unary",
@@ -1063,7 +1063,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "TraverseGraphResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeConnectorService/CreateConnector",
+    "methodId": "/nimi.runtime.v1.RuntimeConnectorService/CreateConnector",
     "service": "RuntimeConnectorService",
     "method": "CreateConnector",
     "kind": "unary",
@@ -1071,7 +1071,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "CreateConnectorResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeConnectorService/DeleteCatalogModelOverlay",
+    "methodId": "/nimi.runtime.v1.RuntimeConnectorService/DeleteCatalogModelOverlay",
     "service": "RuntimeConnectorService",
     "method": "DeleteCatalogModelOverlay",
     "kind": "unary",
@@ -1079,7 +1079,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "DeleteCatalogModelOverlayResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeConnectorService/DeleteConnector",
+    "methodId": "/nimi.runtime.v1.RuntimeConnectorService/DeleteConnector",
     "service": "RuntimeConnectorService",
     "method": "DeleteConnector",
     "kind": "unary",
@@ -1087,7 +1087,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "DeleteConnectorResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeConnectorService/DeleteModelCatalogProvider",
+    "methodId": "/nimi.runtime.v1.RuntimeConnectorService/DeleteModelCatalogProvider",
     "service": "RuntimeConnectorService",
     "method": "DeleteModelCatalogProvider",
     "kind": "unary",
@@ -1095,7 +1095,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "DeleteModelCatalogProviderResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeConnectorService/GetCatalogModelDetail",
+    "methodId": "/nimi.runtime.v1.RuntimeConnectorService/GetCatalogModelDetail",
     "service": "RuntimeConnectorService",
     "method": "GetCatalogModelDetail",
     "kind": "unary",
@@ -1103,7 +1103,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "GetCatalogModelDetailResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeConnectorService/GetConnector",
+    "methodId": "/nimi.runtime.v1.RuntimeConnectorService/GetConnector",
     "service": "RuntimeConnectorService",
     "method": "GetConnector",
     "kind": "unary",
@@ -1111,7 +1111,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "GetConnectorResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeConnectorService/ListCatalogProviderModels",
+    "methodId": "/nimi.runtime.v1.RuntimeConnectorService/ListCatalogProviderModels",
     "service": "RuntimeConnectorService",
     "method": "ListCatalogProviderModels",
     "kind": "unary",
@@ -1119,7 +1119,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ListCatalogProviderModelsResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeConnectorService/ListConnectorModels",
+    "methodId": "/nimi.runtime.v1.RuntimeConnectorService/ListConnectorModels",
     "service": "RuntimeConnectorService",
     "method": "ListConnectorModels",
     "kind": "unary",
@@ -1127,7 +1127,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ListConnectorModelsResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeConnectorService/ListConnectors",
+    "methodId": "/nimi.runtime.v1.RuntimeConnectorService/ListConnectors",
     "service": "RuntimeConnectorService",
     "method": "ListConnectors",
     "kind": "unary",
@@ -1135,7 +1135,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ListConnectorsResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeConnectorService/ListModelCatalogProviders",
+    "methodId": "/nimi.runtime.v1.RuntimeConnectorService/ListModelCatalogProviders",
     "service": "RuntimeConnectorService",
     "method": "ListModelCatalogProviders",
     "kind": "unary",
@@ -1143,7 +1143,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ListModelCatalogProvidersResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeConnectorService/ListProviderCatalog",
+    "methodId": "/nimi.runtime.v1.RuntimeConnectorService/ListProviderCatalog",
     "service": "RuntimeConnectorService",
     "method": "ListProviderCatalog",
     "kind": "unary",
@@ -1151,7 +1151,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ListProviderCatalogResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeConnectorService/TestConnector",
+    "methodId": "/nimi.runtime.v1.RuntimeConnectorService/TestConnector",
     "service": "RuntimeConnectorService",
     "method": "TestConnector",
     "kind": "unary",
@@ -1159,7 +1159,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "TestConnectorResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeConnectorService/UpdateConnector",
+    "methodId": "/nimi.runtime.v1.RuntimeConnectorService/UpdateConnector",
     "service": "RuntimeConnectorService",
     "method": "UpdateConnector",
     "kind": "unary",
@@ -1167,7 +1167,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "UpdateConnectorResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeConnectorService/UpsertCatalogModelOverlay",
+    "methodId": "/nimi.runtime.v1.RuntimeConnectorService/UpsertCatalogModelOverlay",
     "service": "RuntimeConnectorService",
     "method": "UpsertCatalogModelOverlay",
     "kind": "unary",
@@ -1175,7 +1175,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "UpsertCatalogModelOverlayResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeConnectorService/UpsertModelCatalogProvider",
+    "methodId": "/nimi.runtime.v1.RuntimeConnectorService/UpsertModelCatalogProvider",
     "service": "RuntimeConnectorService",
     "method": "UpsertModelCatalogProvider",
     "kind": "unary",
@@ -1183,7 +1183,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "UpsertModelCatalogProviderResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeExternalAgentService/GetExternalAgentGatewayStatus",
+    "methodId": "/nimi.runtime.v1.RuntimeExternalAgentService/GetExternalAgentGatewayStatus",
     "service": "RuntimeExternalAgentService",
     "method": "GetExternalAgentGatewayStatus",
     "kind": "unary",
@@ -1191,7 +1191,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ExternalAgentGatewayStatusResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeExternalAgentService/IssueExternalAgentToken",
+    "methodId": "/nimi.runtime.v1.RuntimeExternalAgentService/IssueExternalAgentToken",
     "service": "RuntimeExternalAgentService",
     "method": "IssueExternalAgentToken",
     "kind": "unary",
@@ -1199,7 +1199,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ExternalAgentIssueTokenResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeExternalAgentService/ListExternalAgentTokens",
+    "methodId": "/nimi.runtime.v1.RuntimeExternalAgentService/ListExternalAgentTokens",
     "service": "RuntimeExternalAgentService",
     "method": "ListExternalAgentTokens",
     "kind": "unary",
@@ -1207,7 +1207,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ExternalAgentListTokensResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeExternalAgentService/RevokeExternalAgentToken",
+    "methodId": "/nimi.runtime.v1.RuntimeExternalAgentService/RevokeExternalAgentToken",
     "service": "RuntimeExternalAgentService",
     "method": "RevokeExternalAgentToken",
     "kind": "unary",
@@ -1215,7 +1215,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "Ack"
   },
   {
-    "methodId": "/runtime.v1.RuntimeGrantService/AuthorizeExternalPrincipal",
+    "methodId": "/nimi.runtime.v1.RuntimeGrantService/AuthorizeExternalPrincipal",
     "service": "RuntimeGrantService",
     "method": "AuthorizeExternalPrincipal",
     "kind": "unary",
@@ -1223,7 +1223,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "AuthorizeExternalPrincipalResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeGrantService/IssueDelegatedAccessToken",
+    "methodId": "/nimi.runtime.v1.RuntimeGrantService/IssueDelegatedAccessToken",
     "service": "RuntimeGrantService",
     "method": "IssueDelegatedAccessToken",
     "kind": "unary",
@@ -1231,7 +1231,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "IssueDelegatedAccessTokenResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeGrantService/ListTokenChain",
+    "methodId": "/nimi.runtime.v1.RuntimeGrantService/ListTokenChain",
     "service": "RuntimeGrantService",
     "method": "ListTokenChain",
     "kind": "unary",
@@ -1239,7 +1239,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ListTokenChainResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeGrantService/RevokeAppAccessToken",
+    "methodId": "/nimi.runtime.v1.RuntimeGrantService/RevokeAppAccessToken",
     "service": "RuntimeGrantService",
     "method": "RevokeAppAccessToken",
     "kind": "unary",
@@ -1247,7 +1247,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "Ack"
   },
   {
-    "methodId": "/runtime.v1.RuntimeGrantService/ValidateAppAccessToken",
+    "methodId": "/nimi.runtime.v1.RuntimeGrantService/ValidateAppAccessToken",
     "service": "RuntimeGrantService",
     "method": "ValidateAppAccessToken",
     "kind": "unary",
@@ -1255,7 +1255,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ValidateAppAccessTokenResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse",
     "service": "RuntimeLocalService",
     "method": "AdmitProductControlReadyForUse",
     "kind": "unary",
@@ -1263,7 +1263,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ProductControlProjectionJson"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/AppendInferenceAudit",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/AppendInferenceAudit",
     "service": "RuntimeLocalService",
     "method": "AppendInferenceAudit",
     "kind": "unary",
@@ -1271,7 +1271,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "Ack"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/AppendRuntimeAudit",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/AppendRuntimeAudit",
     "service": "RuntimeLocalService",
     "method": "AppendRuntimeAudit",
     "kind": "unary",
@@ -1279,7 +1279,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "Ack"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/ApplyProfile",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/ApplyProfile",
     "service": "RuntimeLocalService",
     "method": "ApplyProfile",
     "kind": "unary",
@@ -1287,7 +1287,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ApplyProfileResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/CancelLocalEnvironmentDependencyJob",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/CancelLocalEnvironmentDependencyJob",
     "service": "RuntimeLocalService",
     "method": "CancelLocalEnvironmentDependencyJob",
     "kind": "unary",
@@ -1295,7 +1295,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "CancelLocalEnvironmentDependencyJobResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/CancelLocalTransfer",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/CancelLocalTransfer",
     "service": "RuntimeLocalService",
     "method": "CancelLocalTransfer",
     "kind": "unary",
@@ -1303,7 +1303,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "CancelLocalTransferResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/CheckLocalAssetHealth",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/CheckLocalAssetHealth",
     "service": "RuntimeLocalService",
     "method": "CheckLocalAssetHealth",
     "kind": "unary",
@@ -1311,7 +1311,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "CheckLocalAssetHealthResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/CheckLocalServiceHealth",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/CheckLocalServiceHealth",
     "service": "RuntimeLocalService",
     "method": "CheckLocalServiceHealth",
     "kind": "unary",
@@ -1319,7 +1319,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "CheckLocalServiceHealthResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/CollectDeviceProfile",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/CollectDeviceProfile",
     "service": "RuntimeLocalService",
     "method": "CollectDeviceProfile",
     "kind": "unary",
@@ -1327,7 +1327,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "CollectDeviceProfileResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan",
     "service": "RuntimeLocalService",
     "method": "CompleteProductControlFirstRunDeviceEnvironmentScan",
     "kind": "unary",
@@ -1335,7 +1335,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ProductControlProjectionJson"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/EnsureEngine",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/EnsureEngine",
     "service": "RuntimeLocalService",
     "method": "EnsureEngine",
     "kind": "unary",
@@ -1343,7 +1343,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "EnsureEngineResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/EnsureProductControlRecordCreated",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/EnsureProductControlRecordCreated",
     "service": "RuntimeLocalService",
     "method": "EnsureProductControlRecordCreated",
     "kind": "unary",
@@ -1351,7 +1351,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ProductControlProjectionJson"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/ExecuteLocalStateCutover",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/ExecuteLocalStateCutover",
     "service": "RuntimeLocalService",
     "method": "ExecuteLocalStateCutover",
     "kind": "unary",
@@ -1359,7 +1359,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ExecuteLocalStateCutoverResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/GetEngineStatus",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/GetEngineStatus",
     "service": "RuntimeLocalService",
     "method": "GetEngineStatus",
     "kind": "unary",
@@ -1367,7 +1367,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "GetEngineStatusResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/GetProductControlRecord",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord",
     "service": "RuntimeLocalService",
     "method": "GetProductControlRecord",
     "kind": "unary",
@@ -1375,7 +1375,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ProductControlProjectionJson"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/GetProductControlSelectedDataRoot",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/GetProductControlSelectedDataRoot",
     "service": "RuntimeLocalService",
     "method": "GetProductControlSelectedDataRoot",
     "kind": "unary",
@@ -1383,7 +1383,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ProductControlProjectionJson"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/GetRecommendationFeed",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/GetRecommendationFeed",
     "service": "RuntimeLocalService",
     "method": "GetRecommendationFeed",
     "kind": "unary",
@@ -1391,7 +1391,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "GetRecommendationFeedResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/ImportLocalAsset",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/ImportLocalAsset",
     "service": "RuntimeLocalService",
     "method": "ImportLocalAsset",
     "kind": "unary",
@@ -1399,7 +1399,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ImportLocalAssetResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/ImportLocalAssetBundle",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/ImportLocalAssetBundle",
     "service": "RuntimeLocalService",
     "method": "ImportLocalAssetBundle",
     "kind": "unary",
@@ -1407,7 +1407,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ImportLocalAssetBundleResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/ImportLocalAssetFile",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/ImportLocalAssetFile",
     "service": "RuntimeLocalService",
     "method": "ImportLocalAssetFile",
     "kind": "unary",
@@ -1415,7 +1415,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ImportLocalAssetFileResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/InstallLocalService",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/InstallLocalService",
     "service": "RuntimeLocalService",
     "method": "InstallLocalService",
     "kind": "unary",
@@ -1423,7 +1423,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "InstallLocalServiceResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/InstallModelFromPlan",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/InstallModelFromPlan",
     "service": "RuntimeLocalService",
     "method": "InstallModelFromPlan",
     "kind": "unary",
@@ -1431,7 +1431,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "InstallModelFromPlanResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/InstallVerifiedAsset",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/InstallVerifiedAsset",
     "service": "RuntimeLocalService",
     "method": "InstallVerifiedAsset",
     "kind": "unary",
@@ -1439,7 +1439,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "InstallVerifiedAssetResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/ListCatalogVariants",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/ListCatalogVariants",
     "service": "RuntimeLocalService",
     "method": "ListCatalogVariants",
     "kind": "unary",
@@ -1447,7 +1447,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ListCatalogVariantsResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/ListEngines",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/ListEngines",
     "service": "RuntimeLocalService",
     "method": "ListEngines",
     "kind": "unary",
@@ -1455,7 +1455,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ListEnginesResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/ListLocalAssets",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/ListLocalAssets",
     "service": "RuntimeLocalService",
     "method": "ListLocalAssets",
     "kind": "unary",
@@ -1463,7 +1463,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ListLocalAssetsResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/ListLocalAudits",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/ListLocalAudits",
     "service": "RuntimeLocalService",
     "method": "ListLocalAudits",
     "kind": "unary",
@@ -1471,7 +1471,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ListLocalAuditsResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/ListLocalEnvironmentDependencyJobs",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/ListLocalEnvironmentDependencyJobs",
     "service": "RuntimeLocalService",
     "method": "ListLocalEnvironmentDependencyJobs",
     "kind": "unary",
@@ -1479,7 +1479,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ListLocalEnvironmentDependencyJobsResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/ListLocalEnvironmentSelectedSources",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/ListLocalEnvironmentSelectedSources",
     "service": "RuntimeLocalService",
     "method": "ListLocalEnvironmentSelectedSources",
     "kind": "unary",
@@ -1487,7 +1487,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ListLocalEnvironmentSelectedSourcesResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/ListLocalServices",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/ListLocalServices",
     "service": "RuntimeLocalService",
     "method": "ListLocalServices",
     "kind": "unary",
@@ -1495,7 +1495,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ListLocalServicesResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/ListLocalTransfers",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/ListLocalTransfers",
     "service": "RuntimeLocalService",
     "method": "ListLocalTransfers",
     "kind": "unary",
@@ -1503,7 +1503,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ListLocalTransfersResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/ListNodeCatalog",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/ListNodeCatalog",
     "service": "RuntimeLocalService",
     "method": "ListNodeCatalog",
     "kind": "unary",
@@ -1511,7 +1511,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ListNodeCatalogResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/ListVerifiedAssets",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/ListVerifiedAssets",
     "service": "RuntimeLocalService",
     "method": "ListVerifiedAssets",
     "kind": "unary",
@@ -1519,7 +1519,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ListVerifiedAssetsResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/MintFirstRunExecutionEvidence",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/MintFirstRunExecutionEvidence",
     "service": "RuntimeLocalService",
     "method": "MintFirstRunExecutionEvidence",
     "kind": "unary",
@@ -1527,7 +1527,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "MintFirstRunExecutionEvidenceResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/MintRuntimeBaselineReadiness",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/MintRuntimeBaselineReadiness",
     "service": "RuntimeLocalService",
     "method": "MintRuntimeBaselineReadiness",
     "kind": "unary",
@@ -1535,7 +1535,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "MintRuntimeBaselineReadinessResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/PauseLocalTransfer",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/PauseLocalTransfer",
     "service": "RuntimeLocalService",
     "method": "PauseLocalTransfer",
     "kind": "unary",
@@ -1543,7 +1543,15 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "PauseLocalTransferResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/PrepareProfileRuntimeDescriptor",
+    "service": "RuntimeLocalService",
+    "method": "PrepareProfileRuntimeDescriptor",
+    "kind": "unary",
+    "requestType": "PrepareProfileRuntimeDescriptorRequest",
+    "responseType": "PrepareProfileRuntimeDescriptorResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState",
     "service": "RuntimeLocalService",
     "method": "ReconcileProductControlFirstRunSetupState",
     "kind": "unary",
@@ -1551,7 +1559,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ProductControlProjectionJson"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/RecordProductControlAccountDefaultProfileEvidence",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/RecordProductControlAccountDefaultProfileEvidence",
     "service": "RuntimeLocalService",
     "method": "RecordProductControlAccountDefaultProfileEvidence",
     "kind": "unary",
@@ -1559,7 +1567,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ProductControlProjectionJson"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/RecordProductControlFirstRunLocalAiReadyEvidence",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/RecordProductControlFirstRunLocalAiReadyEvidence",
     "service": "RuntimeLocalService",
     "method": "RecordProductControlFirstRunLocalAiReadyEvidence",
     "kind": "unary",
@@ -1567,7 +1575,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ProductControlProjectionJson"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/RemoveLocalAsset",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/RemoveLocalAsset",
     "service": "RuntimeLocalService",
     "method": "RemoveLocalAsset",
     "kind": "unary",
@@ -1575,7 +1583,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "RemoveLocalAssetResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/RemoveLocalService",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/RemoveLocalService",
     "service": "RuntimeLocalService",
     "method": "RemoveLocalService",
     "kind": "unary",
@@ -1583,7 +1591,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "RemoveLocalServiceResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/RepairLocalEnvironmentDependency",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/RepairLocalEnvironmentDependency",
     "service": "RuntimeLocalService",
     "method": "RepairLocalEnvironmentDependency",
     "kind": "unary",
@@ -1591,7 +1599,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "RepairLocalEnvironmentDependencyResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/RescanLocalAssetBundle",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/RescanLocalAssetBundle",
     "service": "RuntimeLocalService",
     "method": "RescanLocalAssetBundle",
     "kind": "unary",
@@ -1599,7 +1607,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "RescanLocalAssetBundleResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/ResolveFirstRunExecutionEvidence",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/ResolveFirstRunExecutionEvidence",
     "service": "RuntimeLocalService",
     "method": "ResolveFirstRunExecutionEvidence",
     "kind": "unary",
@@ -1607,7 +1615,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ResolveFirstRunExecutionEvidenceResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentActivationGate",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentActivationGate",
     "service": "RuntimeLocalService",
     "method": "ResolveLocalEnvironmentActivationGate",
     "kind": "unary",
@@ -1615,7 +1623,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ResolveLocalEnvironmentActivationGateResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentPlan",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentPlan",
     "service": "RuntimeLocalService",
     "method": "ResolveLocalEnvironmentPlan",
     "kind": "unary",
@@ -1623,7 +1631,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ResolveLocalEnvironmentPlanResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/ResolveLocalStateReconciliation",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalStateReconciliation",
     "service": "RuntimeLocalService",
     "method": "ResolveLocalStateReconciliation",
     "kind": "unary",
@@ -1631,7 +1639,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ResolveLocalStateReconciliationResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/ResolveModelInstallPlan",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/ResolveModelInstallPlan",
     "service": "RuntimeLocalService",
     "method": "ResolveModelInstallPlan",
     "kind": "unary",
@@ -1639,7 +1647,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ResolveModelInstallPlanResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/ResolveProfile",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/ResolveProfile",
     "service": "RuntimeLocalService",
     "method": "ResolveProfile",
     "kind": "unary",
@@ -1647,7 +1655,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ResolveProfileResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/ResolveRuntimeBaselineReadiness",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/ResolveRuntimeBaselineReadiness",
     "service": "RuntimeLocalService",
     "method": "ResolveRuntimeBaselineReadiness",
     "kind": "unary",
@@ -1655,7 +1663,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ResolveRuntimeBaselineReadinessResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/ResumeLocalTransfer",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/ResumeLocalTransfer",
     "service": "RuntimeLocalService",
     "method": "ResumeLocalTransfer",
     "kind": "unary",
@@ -1663,7 +1671,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ResumeLocalTransferResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/RetryLocalEnvironmentDependencyJob",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/RetryLocalEnvironmentDependencyJob",
     "service": "RuntimeLocalService",
     "method": "RetryLocalEnvironmentDependencyJob",
     "kind": "unary",
@@ -1671,7 +1679,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "RetryLocalEnvironmentDependencyJobResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/ScaffoldOrphanAsset",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/ScaffoldOrphanAsset",
     "service": "RuntimeLocalService",
     "method": "ScaffoldOrphanAsset",
     "kind": "unary",
@@ -1679,7 +1687,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ScaffoldOrphanAssetResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/ScanUnregisteredAssets",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/ScanUnregisteredAssets",
     "service": "RuntimeLocalService",
     "method": "ScanUnregisteredAssets",
     "kind": "unary",
@@ -1687,7 +1695,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ScanUnregisteredAssetsResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/SearchCatalogModels",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/SearchCatalogModels",
     "service": "RuntimeLocalService",
     "method": "SearchCatalogModels",
     "kind": "unary",
@@ -1695,7 +1703,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "SearchCatalogModelsResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/SelectProductControlDataRoot",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/SelectProductControlDataRoot",
     "service": "RuntimeLocalService",
     "method": "SelectProductControlDataRoot",
     "kind": "unary",
@@ -1703,7 +1711,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ProductControlProjectionJson"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/SetProductControlFirstRunInstallLevel",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/SetProductControlFirstRunInstallLevel",
     "service": "RuntimeLocalService",
     "method": "SetProductControlFirstRunInstallLevel",
     "kind": "unary",
@@ -1711,7 +1719,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ProductControlProjectionJson"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/StartEngine",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/StartEngine",
     "service": "RuntimeLocalService",
     "method": "StartEngine",
     "kind": "unary",
@@ -1719,7 +1727,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "StartEngineResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/StartLocalAsset",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/StartLocalAsset",
     "service": "RuntimeLocalService",
     "method": "StartLocalAsset",
     "kind": "unary",
@@ -1727,7 +1735,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "StartLocalAssetResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/StartLocalEnvironmentDependencyJob",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/StartLocalEnvironmentDependencyJob",
     "service": "RuntimeLocalService",
     "method": "StartLocalEnvironmentDependencyJob",
     "kind": "unary",
@@ -1735,7 +1743,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "StartLocalEnvironmentDependencyJobResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/StartLocalService",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/StartLocalService",
     "service": "RuntimeLocalService",
     "method": "StartLocalService",
     "kind": "unary",
@@ -1743,7 +1751,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "StartLocalServiceResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/StopEngine",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/StopEngine",
     "service": "RuntimeLocalService",
     "method": "StopEngine",
     "kind": "unary",
@@ -1751,7 +1759,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "StopEngineResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/StopLocalAsset",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/StopLocalAsset",
     "service": "RuntimeLocalService",
     "method": "StopLocalAsset",
     "kind": "unary",
@@ -1759,7 +1767,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "StopLocalAssetResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/StopLocalService",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/StopLocalService",
     "service": "RuntimeLocalService",
     "method": "StopLocalService",
     "kind": "unary",
@@ -1767,7 +1775,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "StopLocalServiceResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/WarmLocalAsset",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/WarmLocalAsset",
     "service": "RuntimeLocalService",
     "method": "WarmLocalAsset",
     "kind": "unary",
@@ -1775,7 +1783,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "WarmLocalAssetResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeLocalService/WatchLocalTransfers",
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/WatchLocalTransfers",
     "service": "RuntimeLocalService",
     "method": "WatchLocalTransfers",
     "kind": "server_stream",
@@ -1783,7 +1791,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "LocalTransferProgressEvent"
   },
   {
-    "methodId": "/runtime.v1.RuntimeModelService/CheckModelHealth",
+    "methodId": "/nimi.runtime.v1.RuntimeModelService/CheckModelHealth",
     "service": "RuntimeModelService",
     "method": "CheckModelHealth",
     "kind": "unary",
@@ -1791,7 +1799,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "CheckModelHealthResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeModelService/ListModels",
+    "methodId": "/nimi.runtime.v1.RuntimeModelService/ListModels",
     "service": "RuntimeModelService",
     "method": "ListModels",
     "kind": "unary",
@@ -1799,7 +1807,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ListModelsResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeModelService/PullModel",
+    "methodId": "/nimi.runtime.v1.RuntimeModelService/PullModel",
     "service": "RuntimeModelService",
     "method": "PullModel",
     "kind": "unary",
@@ -1807,7 +1815,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "PullModelResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeModelService/RemoveModel",
+    "methodId": "/nimi.runtime.v1.RuntimeModelService/RemoveModel",
     "service": "RuntimeModelService",
     "method": "RemoveModel",
     "kind": "unary",
@@ -1815,7 +1823,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "Ack"
   },
   {
-    "methodId": "/runtime.v1.RuntimeWorkflowService/CancelWorkflow",
+    "methodId": "/nimi.runtime.v1.RuntimeWorkflowService/CancelWorkflow",
     "service": "RuntimeWorkflowService",
     "method": "CancelWorkflow",
     "kind": "unary",
@@ -1823,7 +1831,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "Ack"
   },
   {
-    "methodId": "/runtime.v1.RuntimeWorkflowService/GetWorkflow",
+    "methodId": "/nimi.runtime.v1.RuntimeWorkflowService/GetWorkflow",
     "service": "RuntimeWorkflowService",
     "method": "GetWorkflow",
     "kind": "unary",
@@ -1831,7 +1839,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "GetWorkflowResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeWorkflowService/SubmitWorkflow",
+    "methodId": "/nimi.runtime.v1.RuntimeWorkflowService/SubmitWorkflow",
     "service": "RuntimeWorkflowService",
     "method": "SubmitWorkflow",
     "kind": "unary",
@@ -1839,7 +1847,7 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "SubmitWorkflowResponse"
   },
   {
-    "methodId": "/runtime.v1.RuntimeWorkflowService/SubscribeWorkflowEvents",
+    "methodId": "/nimi.runtime.v1.RuntimeWorkflowService/SubscribeWorkflowEvents",
     "service": "RuntimeWorkflowService",
     "method": "SubscribeWorkflowEvents",
     "kind": "server_stream",

@@ -5295,6 +5295,17 @@ type PendingHook struct {
 	AdmittedAt string `json:"admitted_at,omitempty"`
 }
 
+type PrepareProfileRuntimeDescriptorRequest struct {
+	DescriptorJson []byte `json:"descriptor_json,omitempty"`
+}
+
+type PrepareProfileRuntimeDescriptorResponse struct {
+	DescriptorId string `json:"descriptor_id,omitempty"`
+	ProfileId string `json:"profile_id,omitempty"`
+	RequirementIds []string `json:"requirement_ids,omitempty"`
+	SliceResults []ProfileRuntimeDescriptorSlicePrepareResult `json:"slice_results,omitempty"`
+}
+
 type ProductControlProjectionJson struct {
 	Json string `json:"json,omitempty"`
 }
@@ -5302,6 +5313,16 @@ type ProductControlProjectionJson struct {
 type ProfileEntryOverride struct {
 	EntryId string `json:"entry_id,omitempty"`
 	LocalAssetId string `json:"local_asset_id,omitempty"`
+}
+
+type ProfileRuntimeDescriptorSlicePrepareResult struct {
+	SliceId string `json:"slice_id,omitempty"`
+	Capability string `json:"capability,omitempty"`
+	Outcome string `json:"outcome,omitempty"`
+	ReasonCodes []string `json:"reason_codes,omitempty"`
+	MaterializationKey string `json:"materialization_key,omitempty"`
+	WorkflowBindingId string `json:"workflow_binding_id,omitempty"`
+	ReusableAssetHealthy bool `json:"reusable_asset_healthy,omitempty"`
 }
 
 type ProviderCatalogEntry struct {
@@ -7083,7 +7104,7 @@ func decodeTypedResponse[T any](raw []byte) (T, error) {
 }
 
 func (c RuntimeTypedClient) BeginLogin(ctx context.Context, request BeginLoginRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (BeginLoginResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAccountService/BeginLogin", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAccountService/BeginLogin", request, metadata, timeoutMS)
 	if err != nil {
 		return BeginLoginResponse{}, err
 	}
@@ -7091,7 +7112,7 @@ func (c RuntimeTypedClient) BeginLogin(ctx context.Context, request BeginLoginRe
 }
 
 func (c RuntimeTypedClient) CompleteLogin(ctx context.Context, request CompleteLoginRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CompleteLoginResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAccountService/CompleteLogin", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAccountService/CompleteLogin", request, metadata, timeoutMS)
 	if err != nil {
 		return CompleteLoginResponse{}, err
 	}
@@ -7099,7 +7120,7 @@ func (c RuntimeTypedClient) CompleteLogin(ctx context.Context, request CompleteL
 }
 
 func (c RuntimeTypedClient) GetAccessToken(ctx context.Context, request GetAccessTokenRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAccessTokenResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAccountService/GetAccessToken", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAccountService/GetAccessToken", request, metadata, timeoutMS)
 	if err != nil {
 		return GetAccessTokenResponse{}, err
 	}
@@ -7107,7 +7128,7 @@ func (c RuntimeTypedClient) GetAccessToken(ctx context.Context, request GetAcces
 }
 
 func (c RuntimeTypedClient) GetAccountSessionStatus(ctx context.Context, request GetAccountSessionStatusRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAccountSessionStatusResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAccountService/GetAccountSessionStatus", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus", request, metadata, timeoutMS)
 	if err != nil {
 		return GetAccountSessionStatusResponse{}, err
 	}
@@ -7115,7 +7136,7 @@ func (c RuntimeTypedClient) GetAccountSessionStatus(ctx context.Context, request
 }
 
 func (c RuntimeTypedClient) IssueScopedAppBinding(ctx context.Context, request IssueScopedAppBindingRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (IssueScopedAppBindingResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAccountService/IssueScopedAppBinding", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAccountService/IssueScopedAppBinding", request, metadata, timeoutMS)
 	if err != nil {
 		return IssueScopedAppBindingResponse{}, err
 	}
@@ -7123,7 +7144,7 @@ func (c RuntimeTypedClient) IssueScopedAppBinding(ctx context.Context, request I
 }
 
 func (c RuntimeTypedClient) IssueWorkspaceBinding(ctx context.Context, request IssueWorkspaceBindingRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (IssueWorkspaceBindingResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAccountService/IssueWorkspaceBinding", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAccountService/IssueWorkspaceBinding", request, metadata, timeoutMS)
 	if err != nil {
 		return IssueWorkspaceBindingResponse{}, err
 	}
@@ -7131,7 +7152,7 @@ func (c RuntimeTypedClient) IssueWorkspaceBinding(ctx context.Context, request I
 }
 
 func (c RuntimeTypedClient) Logout(ctx context.Context, request LogoutRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (LogoutResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAccountService/Logout", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAccountService/Logout", request, metadata, timeoutMS)
 	if err != nil {
 		return LogoutResponse{}, err
 	}
@@ -7139,7 +7160,7 @@ func (c RuntimeTypedClient) Logout(ctx context.Context, request LogoutRequest, m
 }
 
 func (c RuntimeTypedClient) RefreshAccountSession(ctx context.Context, request RefreshAccountSessionRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RefreshAccountSessionResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAccountService/RefreshAccountSession", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAccountService/RefreshAccountSession", request, metadata, timeoutMS)
 	if err != nil {
 		return RefreshAccountSessionResponse{}, err
 	}
@@ -7147,7 +7168,7 @@ func (c RuntimeTypedClient) RefreshAccountSession(ctx context.Context, request R
 }
 
 func (c RuntimeTypedClient) RevokeScopedAppBinding(ctx context.Context, request RevokeScopedAppBindingRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RevokeScopedAppBindingResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAccountService/RevokeScopedAppBinding", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAccountService/RevokeScopedAppBinding", request, metadata, timeoutMS)
 	if err != nil {
 		return RevokeScopedAppBindingResponse{}, err
 	}
@@ -7155,7 +7176,7 @@ func (c RuntimeTypedClient) RevokeScopedAppBinding(ctx context.Context, request 
 }
 
 func (c RuntimeTypedClient) RevokeWorkspaceBinding(ctx context.Context, request RevokeWorkspaceBindingRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RevokeWorkspaceBindingResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAccountService/RevokeWorkspaceBinding", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAccountService/RevokeWorkspaceBinding", request, metadata, timeoutMS)
 	if err != nil {
 		return RevokeWorkspaceBindingResponse{}, err
 	}
@@ -7163,7 +7184,7 @@ func (c RuntimeTypedClient) RevokeWorkspaceBinding(ctx context.Context, request 
 }
 
 func (c RuntimeTypedClient) SubscribeAccountSessionEvents(ctx context.Context, request SubscribeAccountSessionEventsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[AccountSessionEvent], error) {
-	reader, err := c.streamTyped(ctx, "/runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents", request, metadata, timeoutMS)
+	reader, err := c.streamTyped(ctx, "/nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents", request, metadata, timeoutMS)
 	if err != nil {
 		return nil, err
 	}
@@ -7171,7 +7192,7 @@ func (c RuntimeTypedClient) SubscribeAccountSessionEvents(ctx context.Context, r
 }
 
 func (c RuntimeTypedClient) SwitchAccount(ctx context.Context, request SwitchAccountRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SwitchAccountResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAccountService/SwitchAccount", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAccountService/SwitchAccount", request, metadata, timeoutMS)
 	if err != nil {
 		return SwitchAccountResponse{}, err
 	}
@@ -7179,7 +7200,7 @@ func (c RuntimeTypedClient) SwitchAccount(ctx context.Context, request SwitchAcc
 }
 
 func (c RuntimeTypedClient) CancelCompanionParticipation(ctx context.Context, request CancelCompanionParticipationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CancelCompanionParticipationResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAgentService/CancelCompanionParticipation", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/CancelCompanionParticipation", request, metadata, timeoutMS)
 	if err != nil {
 		return CancelCompanionParticipationResponse{}, err
 	}
@@ -7187,7 +7208,7 @@ func (c RuntimeTypedClient) CancelCompanionParticipation(ctx context.Context, re
 }
 
 func (c RuntimeTypedClient) CancelHook(ctx context.Context, request CancelHookRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CancelHookResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAgentService/CancelHook", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/CancelHook", request, metadata, timeoutMS)
 	if err != nil {
 		return CancelHookResponse{}, err
 	}
@@ -7195,7 +7216,7 @@ func (c RuntimeTypedClient) CancelHook(ctx context.Context, request CancelHookRe
 }
 
 func (c RuntimeTypedClient) CreateRealmGroupMessageCandidate(ctx context.Context, request CreateRealmGroupMessageCandidateRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CreateRealmGroupMessageCandidateResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAgentService/CreateRealmGroupMessageCandidate", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/CreateRealmGroupMessageCandidate", request, metadata, timeoutMS)
 	if err != nil {
 		return CreateRealmGroupMessageCandidateResponse{}, err
 	}
@@ -7203,7 +7224,7 @@ func (c RuntimeTypedClient) CreateRealmGroupMessageCandidate(ctx context.Context
 }
 
 func (c RuntimeTypedClient) DisableAutonomy(ctx context.Context, request DisableAutonomyRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (DisableAutonomyResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAgentService/DisableAutonomy", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy", request, metadata, timeoutMS)
 	if err != nil {
 		return DisableAutonomyResponse{}, err
 	}
@@ -7211,7 +7232,7 @@ func (c RuntimeTypedClient) DisableAutonomy(ctx context.Context, request Disable
 }
 
 func (c RuntimeTypedClient) EnableAutonomy(ctx context.Context, request EnableAutonomyRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (EnableAutonomyResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAgentService/EnableAutonomy", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/EnableAutonomy", request, metadata, timeoutMS)
 	if err != nil {
 		return EnableAutonomyResponse{}, err
 	}
@@ -7219,7 +7240,7 @@ func (c RuntimeTypedClient) EnableAutonomy(ctx context.Context, request EnableAu
 }
 
 func (c RuntimeTypedClient) ExecuteDelegatedCapability(ctx context.Context, request ExecuteDelegatedCapabilityRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ExecuteDelegatedCapabilityResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAgentService/ExecuteDelegatedCapability", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/ExecuteDelegatedCapability", request, metadata, timeoutMS)
 	if err != nil {
 		return ExecuteDelegatedCapabilityResponse{}, err
 	}
@@ -7227,7 +7248,7 @@ func (c RuntimeTypedClient) ExecuteDelegatedCapability(ctx context.Context, requ
 }
 
 func (c RuntimeTypedClient) GetAgent(ctx context.Context, request GetAgentRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAgentResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAgentService/GetAgent", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/GetAgent", request, metadata, timeoutMS)
 	if err != nil {
 		return GetAgentResponse{}, err
 	}
@@ -7235,7 +7256,7 @@ func (c RuntimeTypedClient) GetAgent(ctx context.Context, request GetAgentReques
 }
 
 func (c RuntimeTypedClient) GetAgentCanonicalMemoryBankStatus(ctx context.Context, request GetAgentCanonicalMemoryBankStatusRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAgentCanonicalMemoryBankStatusResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus", request, metadata, timeoutMS)
 	if err != nil {
 		return GetAgentCanonicalMemoryBankStatusResponse{}, err
 	}
@@ -7243,7 +7264,7 @@ func (c RuntimeTypedClient) GetAgentCanonicalMemoryBankStatus(ctx context.Contex
 }
 
 func (c RuntimeTypedClient) GetAgentState(ctx context.Context, request GetAgentStateRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAgentStateResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAgentService/GetAgentState", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/GetAgentState", request, metadata, timeoutMS)
 	if err != nil {
 		return GetAgentStateResponse{}, err
 	}
@@ -7251,7 +7272,7 @@ func (c RuntimeTypedClient) GetAgentState(ctx context.Context, request GetAgentS
 }
 
 func (c RuntimeTypedClient) GetAvatarDebugReplay(ctx context.Context, request GetAvatarDebugReplayRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAvatarDebugReplayResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAgentService/GetAvatarDebugReplay", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugReplay", request, metadata, timeoutMS)
 	if err != nil {
 		return GetAvatarDebugReplayResponse{}, err
 	}
@@ -7259,7 +7280,7 @@ func (c RuntimeTypedClient) GetAvatarDebugReplay(ctx context.Context, request Ge
 }
 
 func (c RuntimeTypedClient) GetAvatarDebugSnapshot(ctx context.Context, request GetAvatarDebugSnapshotRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAvatarDebugSnapshotResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAgentService/GetAvatarDebugSnapshot", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugSnapshot", request, metadata, timeoutMS)
 	if err != nil {
 		return GetAvatarDebugSnapshotResponse{}, err
 	}
@@ -7267,7 +7288,7 @@ func (c RuntimeTypedClient) GetAvatarDebugSnapshot(ctx context.Context, request 
 }
 
 func (c RuntimeTypedClient) GetCompanionParticipationProjection(ctx context.Context, request GetCompanionParticipationProjectionRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetCompanionParticipationProjectionResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAgentService/GetCompanionParticipationProjection", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/GetCompanionParticipationProjection", request, metadata, timeoutMS)
 	if err != nil {
 		return GetCompanionParticipationProjectionResponse{}, err
 	}
@@ -7275,7 +7296,7 @@ func (c RuntimeTypedClient) GetCompanionParticipationProjection(ctx context.Cont
 }
 
 func (c RuntimeTypedClient) GetConversationAnchorSnapshot(ctx context.Context, request GetConversationAnchorSnapshotRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetConversationAnchorSnapshotResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot", request, metadata, timeoutMS)
 	if err != nil {
 		return GetConversationAnchorSnapshotResponse{}, err
 	}
@@ -7283,7 +7304,7 @@ func (c RuntimeTypedClient) GetConversationAnchorSnapshot(ctx context.Context, r
 }
 
 func (c RuntimeTypedClient) GetDelegatedControlSurfaceSnapshot(ctx context.Context, request GetDelegatedControlSurfaceSnapshotRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetDelegatedControlSurfaceSnapshotResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAgentService/GetDelegatedControlSurfaceSnapshot", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedControlSurfaceSnapshot", request, metadata, timeoutMS)
 	if err != nil {
 		return GetDelegatedControlSurfaceSnapshotResponse{}, err
 	}
@@ -7291,7 +7312,7 @@ func (c RuntimeTypedClient) GetDelegatedControlSurfaceSnapshot(ctx context.Conte
 }
 
 func (c RuntimeTypedClient) GetDelegatedReplayTrace(ctx context.Context, request GetDelegatedReplayTraceRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetDelegatedReplayTraceResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAgentService/GetDelegatedReplayTrace", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedReplayTrace", request, metadata, timeoutMS)
 	if err != nil {
 		return GetDelegatedReplayTraceResponse{}, err
 	}
@@ -7299,7 +7320,7 @@ func (c RuntimeTypedClient) GetDelegatedReplayTrace(ctx context.Context, request
 }
 
 func (c RuntimeTypedClient) GetPublicChatSessionSnapshot(ctx context.Context, request GetPublicChatSessionSnapshotRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetPublicChatSessionSnapshotResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot", request, metadata, timeoutMS)
 	if err != nil {
 		return GetPublicChatSessionSnapshotResponse{}, err
 	}
@@ -7307,7 +7328,7 @@ func (c RuntimeTypedClient) GetPublicChatSessionSnapshot(ctx context.Context, re
 }
 
 func (c RuntimeTypedClient) GetRealmGroupMessageCandidateEvidence(ctx context.Context, request GetRealmGroupMessageCandidateEvidenceRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetRealmGroupMessageCandidateEvidenceResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAgentService/GetRealmGroupMessageCandidateEvidence", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/GetRealmGroupMessageCandidateEvidence", request, metadata, timeoutMS)
 	if err != nil {
 		return GetRealmGroupMessageCandidateEvidenceResponse{}, err
 	}
@@ -7315,7 +7336,7 @@ func (c RuntimeTypedClient) GetRealmGroupMessageCandidateEvidence(ctx context.Co
 }
 
 func (c RuntimeTypedClient) InitializeAgent(ctx context.Context, request InitializeAgentRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (InitializeAgentResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAgentService/InitializeAgent", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/InitializeAgent", request, metadata, timeoutMS)
 	if err != nil {
 		return InitializeAgentResponse{}, err
 	}
@@ -7323,7 +7344,7 @@ func (c RuntimeTypedClient) InitializeAgent(ctx context.Context, request Initial
 }
 
 func (c RuntimeTypedClient) ListAgentConversationSummaries(ctx context.Context, request ListAgentConversationSummariesRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListAgentConversationSummariesResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAgentService/ListAgentConversationSummaries", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/ListAgentConversationSummaries", request, metadata, timeoutMS)
 	if err != nil {
 		return ListAgentConversationSummariesResponse{}, err
 	}
@@ -7331,7 +7352,7 @@ func (c RuntimeTypedClient) ListAgentConversationSummaries(ctx context.Context, 
 }
 
 func (c RuntimeTypedClient) ListAgents(ctx context.Context, request ListAgentsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListAgentsResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAgentService/ListAgents", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/ListAgents", request, metadata, timeoutMS)
 	if err != nil {
 		return ListAgentsResponse{}, err
 	}
@@ -7339,7 +7360,7 @@ func (c RuntimeTypedClient) ListAgents(ctx context.Context, request ListAgentsRe
 }
 
 func (c RuntimeTypedClient) ListAvatarDebugProbeResults(ctx context.Context, request ListAvatarDebugProbeResultsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListAvatarDebugProbeResultsResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAgentService/ListAvatarDebugProbeResults", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/ListAvatarDebugProbeResults", request, metadata, timeoutMS)
 	if err != nil {
 		return ListAvatarDebugProbeResultsResponse{}, err
 	}
@@ -7347,7 +7368,7 @@ func (c RuntimeTypedClient) ListAvatarDebugProbeResults(ctx context.Context, req
 }
 
 func (c RuntimeTypedClient) ListDelegatedApprovalRequests(ctx context.Context, request ListDelegatedApprovalRequestsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListDelegatedApprovalRequestsResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAgentService/ListDelegatedApprovalRequests", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedApprovalRequests", request, metadata, timeoutMS)
 	if err != nil {
 		return ListDelegatedApprovalRequestsResponse{}, err
 	}
@@ -7355,7 +7376,7 @@ func (c RuntimeTypedClient) ListDelegatedApprovalRequests(ctx context.Context, r
 }
 
 func (c RuntimeTypedClient) ListDelegatedDiagnostics(ctx context.Context, request ListDelegatedDiagnosticsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListDelegatedDiagnosticsResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAgentService/ListDelegatedDiagnostics", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedDiagnostics", request, metadata, timeoutMS)
 	if err != nil {
 		return ListDelegatedDiagnosticsResponse{}, err
 	}
@@ -7363,7 +7384,7 @@ func (c RuntimeTypedClient) ListDelegatedDiagnostics(ctx context.Context, reques
 }
 
 func (c RuntimeTypedClient) ListDelegatedProviderProfiles(ctx context.Context, request ListDelegatedProviderProfilesRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListDelegatedProviderProfilesResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAgentService/ListDelegatedProviderProfiles", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedProviderProfiles", request, metadata, timeoutMS)
 	if err != nil {
 		return ListDelegatedProviderProfilesResponse{}, err
 	}
@@ -7371,7 +7392,7 @@ func (c RuntimeTypedClient) ListDelegatedProviderProfiles(ctx context.Context, r
 }
 
 func (c RuntimeTypedClient) ListPendingHooks(ctx context.Context, request ListPendingHooksRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListPendingHooksResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAgentService/ListPendingHooks", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/ListPendingHooks", request, metadata, timeoutMS)
 	if err != nil {
 		return ListPendingHooksResponse{}, err
 	}
@@ -7379,7 +7400,7 @@ func (c RuntimeTypedClient) ListPendingHooks(ctx context.Context, request ListPe
 }
 
 func (c RuntimeTypedClient) OpenCompanionParticipationReplay(ctx context.Context, request OpenCompanionParticipationReplayRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (OpenCompanionParticipationReplayResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAgentService/OpenCompanionParticipationReplay", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/OpenCompanionParticipationReplay", request, metadata, timeoutMS)
 	if err != nil {
 		return OpenCompanionParticipationReplayResponse{}, err
 	}
@@ -7387,7 +7408,7 @@ func (c RuntimeTypedClient) OpenCompanionParticipationReplay(ctx context.Context
 }
 
 func (c RuntimeTypedClient) OpenConversationAnchor(ctx context.Context, request OpenConversationAnchorRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (OpenConversationAnchorResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAgentService/OpenConversationAnchor", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor", request, metadata, timeoutMS)
 	if err != nil {
 		return OpenConversationAnchorResponse{}, err
 	}
@@ -7395,7 +7416,7 @@ func (c RuntimeTypedClient) OpenConversationAnchor(ctx context.Context, request 
 }
 
 func (c RuntimeTypedClient) QueryAgentMemory(ctx context.Context, request QueryAgentMemoryRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (QueryAgentMemoryResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAgentService/QueryAgentMemory", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/QueryAgentMemory", request, metadata, timeoutMS)
 	if err != nil {
 		return QueryAgentMemoryResponse{}, err
 	}
@@ -7403,7 +7424,7 @@ func (c RuntimeTypedClient) QueryAgentMemory(ctx context.Context, request QueryA
 }
 
 func (c RuntimeTypedClient) RegisterAvatarLiveInstanceBinding(ctx context.Context, request RegisterAvatarLiveInstanceBindingRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RegisterAvatarLiveInstanceBindingResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding", request, metadata, timeoutMS)
 	if err != nil {
 		return RegisterAvatarLiveInstanceBindingResponse{}, err
 	}
@@ -7411,7 +7432,7 @@ func (c RuntimeTypedClient) RegisterAvatarLiveInstanceBinding(ctx context.Contex
 }
 
 func (c RuntimeTypedClient) RequestAgentCanonicalMemoryBankBind(ctx context.Context, request RequestAgentCanonicalMemoryBankBindRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RequestAgentCanonicalMemoryBankBindResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAgentService/RequestAgentCanonicalMemoryBankBind", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/RequestAgentCanonicalMemoryBankBind", request, metadata, timeoutMS)
 	if err != nil {
 		return RequestAgentCanonicalMemoryBankBindResponse{}, err
 	}
@@ -7419,7 +7440,7 @@ func (c RuntimeTypedClient) RequestAgentCanonicalMemoryBankBind(ctx context.Cont
 }
 
 func (c RuntimeTypedClient) RequestAvatarDebugProbe(ctx context.Context, request RequestAvatarDebugProbeRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RequestAvatarDebugProbeResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAgentService/RequestAvatarDebugProbe", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/RequestAvatarDebugProbe", request, metadata, timeoutMS)
 	if err != nil {
 		return RequestAvatarDebugProbeResponse{}, err
 	}
@@ -7427,7 +7448,7 @@ func (c RuntimeTypedClient) RequestAvatarDebugProbe(ctx context.Context, request
 }
 
 func (c RuntimeTypedClient) RequestCompanionParticipation(ctx context.Context, request RequestCompanionParticipationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RequestCompanionParticipationResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAgentService/RequestCompanionParticipation", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/RequestCompanionParticipation", request, metadata, timeoutMS)
 	if err != nil {
 		return RequestCompanionParticipationResponse{}, err
 	}
@@ -7435,7 +7456,7 @@ func (c RuntimeTypedClient) RequestCompanionParticipation(ctx context.Context, r
 }
 
 func (c RuntimeTypedClient) ResolveAvatarLiveInstanceBinding(ctx context.Context, request ResolveAvatarLiveInstanceBindingRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ResolveAvatarLiveInstanceBindingResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding", request, metadata, timeoutMS)
 	if err != nil {
 		return ResolveAvatarLiveInstanceBindingResponse{}, err
 	}
@@ -7443,7 +7464,7 @@ func (c RuntimeTypedClient) ResolveAvatarLiveInstanceBinding(ctx context.Context
 }
 
 func (c RuntimeTypedClient) SetAgentPresentationProfile(ctx context.Context, request SetAgentPresentationProfileRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SetAgentPresentationProfileResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAgentService/SetAgentPresentationProfile", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile", request, metadata, timeoutMS)
 	if err != nil {
 		return SetAgentPresentationProfileResponse{}, err
 	}
@@ -7451,7 +7472,7 @@ func (c RuntimeTypedClient) SetAgentPresentationProfile(ctx context.Context, req
 }
 
 func (c RuntimeTypedClient) SetAutonomyConfig(ctx context.Context, request SetAutonomyConfigRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SetAutonomyConfigResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAgentService/SetAutonomyConfig", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/SetAutonomyConfig", request, metadata, timeoutMS)
 	if err != nil {
 		return SetAutonomyConfigResponse{}, err
 	}
@@ -7459,7 +7480,7 @@ func (c RuntimeTypedClient) SetAutonomyConfig(ctx context.Context, request SetAu
 }
 
 func (c RuntimeTypedClient) SetDelegatedProviderState(ctx context.Context, request SetDelegatedProviderStateRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SetDelegatedProviderStateResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAgentService/SetDelegatedProviderState", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/SetDelegatedProviderState", request, metadata, timeoutMS)
 	if err != nil {
 		return SetDelegatedProviderStateResponse{}, err
 	}
@@ -7467,7 +7488,7 @@ func (c RuntimeTypedClient) SetDelegatedProviderState(ctx context.Context, reque
 }
 
 func (c RuntimeTypedClient) SubmitDelegatedApprovalDecision(ctx context.Context, request SubmitDelegatedApprovalDecisionRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SubmitDelegatedApprovalDecisionResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAgentService/SubmitDelegatedApprovalDecision", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/SubmitDelegatedApprovalDecision", request, metadata, timeoutMS)
 	if err != nil {
 		return SubmitDelegatedApprovalDecisionResponse{}, err
 	}
@@ -7475,7 +7496,7 @@ func (c RuntimeTypedClient) SubmitDelegatedApprovalDecision(ctx context.Context,
 }
 
 func (c RuntimeTypedClient) SubscribeAgentEvents(ctx context.Context, request SubscribeAgentEventsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[AgentEvent], error) {
-	reader, err := c.streamTyped(ctx, "/runtime.v1.RuntimeAgentService/SubscribeAgentEvents", request, metadata, timeoutMS)
+	reader, err := c.streamTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents", request, metadata, timeoutMS)
 	if err != nil {
 		return nil, err
 	}
@@ -7483,7 +7504,7 @@ func (c RuntimeTypedClient) SubscribeAgentEvents(ctx context.Context, request Su
 }
 
 func (c RuntimeTypedClient) TerminateAgent(ctx context.Context, request TerminateAgentRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (TerminateAgentResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAgentService/TerminateAgent", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/TerminateAgent", request, metadata, timeoutMS)
 	if err != nil {
 		return TerminateAgentResponse{}, err
 	}
@@ -7491,7 +7512,7 @@ func (c RuntimeTypedClient) TerminateAgent(ctx context.Context, request Terminat
 }
 
 func (c RuntimeTypedClient) UpdateAgentState(ctx context.Context, request UpdateAgentStateRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UpdateAgentStateResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAgentService/UpdateAgentState", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState", request, metadata, timeoutMS)
 	if err != nil {
 		return UpdateAgentStateResponse{}, err
 	}
@@ -7499,7 +7520,7 @@ func (c RuntimeTypedClient) UpdateAgentState(ctx context.Context, request Update
 }
 
 func (c RuntimeTypedClient) UpsertDelegatedProviderProfile(ctx context.Context, request UpsertDelegatedProviderProfileRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UpsertDelegatedProviderProfileResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAgentService/UpsertDelegatedProviderProfile", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/UpsertDelegatedProviderProfile", request, metadata, timeoutMS)
 	if err != nil {
 		return UpsertDelegatedProviderProfileResponse{}, err
 	}
@@ -7507,7 +7528,7 @@ func (c RuntimeTypedClient) UpsertDelegatedProviderProfile(ctx context.Context, 
 }
 
 func (c RuntimeTypedClient) WriteAgentMemory(ctx context.Context, request WriteAgentMemoryRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WriteAgentMemoryResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAgentService/WriteAgentMemory", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/WriteAgentMemory", request, metadata, timeoutMS)
 	if err != nil {
 		return WriteAgentMemoryResponse{}, err
 	}
@@ -7515,7 +7536,7 @@ func (c RuntimeTypedClient) WriteAgentMemory(ctx context.Context, request WriteA
 }
 
 func (c RuntimeTypedClient) AppendRealtimeInput(ctx context.Context, request AppendRealtimeInputRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AppendRealtimeInputResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAiRealtimeService/AppendRealtimeInput", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAiRealtimeService/AppendRealtimeInput", request, metadata, timeoutMS)
 	if err != nil {
 		return AppendRealtimeInputResponse{}, err
 	}
@@ -7523,7 +7544,7 @@ func (c RuntimeTypedClient) AppendRealtimeInput(ctx context.Context, request App
 }
 
 func (c RuntimeTypedClient) CloseRealtimeSession(ctx context.Context, request CloseRealtimeSessionRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CloseRealtimeSessionResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAiRealtimeService/CloseRealtimeSession", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAiRealtimeService/CloseRealtimeSession", request, metadata, timeoutMS)
 	if err != nil {
 		return CloseRealtimeSessionResponse{}, err
 	}
@@ -7531,7 +7552,7 @@ func (c RuntimeTypedClient) CloseRealtimeSession(ctx context.Context, request Cl
 }
 
 func (c RuntimeTypedClient) OpenRealtimeSession(ctx context.Context, request OpenRealtimeSessionRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (OpenRealtimeSessionResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAiRealtimeService/OpenRealtimeSession", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAiRealtimeService/OpenRealtimeSession", request, metadata, timeoutMS)
 	if err != nil {
 		return OpenRealtimeSessionResponse{}, err
 	}
@@ -7539,7 +7560,7 @@ func (c RuntimeTypedClient) OpenRealtimeSession(ctx context.Context, request Ope
 }
 
 func (c RuntimeTypedClient) ReadRealtimeEvents(ctx context.Context, request ReadRealtimeEventsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[RealtimeEvent], error) {
-	reader, err := c.streamTyped(ctx, "/runtime.v1.RuntimeAiRealtimeService/ReadRealtimeEvents", request, metadata, timeoutMS)
+	reader, err := c.streamTyped(ctx, "/nimi.runtime.v1.RuntimeAiRealtimeService/ReadRealtimeEvents", request, metadata, timeoutMS)
 	if err != nil {
 		return nil, err
 	}
@@ -7547,7 +7568,7 @@ func (c RuntimeTypedClient) ReadRealtimeEvents(ctx context.Context, request Read
 }
 
 func (c RuntimeTypedClient) CancelScenarioJob(ctx context.Context, request CancelScenarioJobRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CancelScenarioJobResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAiService/CancelScenarioJob", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAiService/CancelScenarioJob", request, metadata, timeoutMS)
 	if err != nil {
 		return CancelScenarioJobResponse{}, err
 	}
@@ -7555,7 +7576,7 @@ func (c RuntimeTypedClient) CancelScenarioJob(ctx context.Context, request Cance
 }
 
 func (c RuntimeTypedClient) DeleteVoiceAsset(ctx context.Context, request DeleteVoiceAssetRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (DeleteVoiceAssetResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAiService/DeleteVoiceAsset", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAiService/DeleteVoiceAsset", request, metadata, timeoutMS)
 	if err != nil {
 		return DeleteVoiceAssetResponse{}, err
 	}
@@ -7563,7 +7584,7 @@ func (c RuntimeTypedClient) DeleteVoiceAsset(ctx context.Context, request Delete
 }
 
 func (c RuntimeTypedClient) ExecuteScenario(ctx context.Context, request ExecuteScenarioRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ExecuteScenarioResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAiService/ExecuteScenario", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAiService/ExecuteScenario", request, metadata, timeoutMS)
 	if err != nil {
 		return ExecuteScenarioResponse{}, err
 	}
@@ -7571,7 +7592,7 @@ func (c RuntimeTypedClient) ExecuteScenario(ctx context.Context, request Execute
 }
 
 func (c RuntimeTypedClient) GetScenarioArtifacts(ctx context.Context, request GetScenarioArtifactsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetScenarioArtifactsResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAiService/GetScenarioArtifacts", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts", request, metadata, timeoutMS)
 	if err != nil {
 		return GetScenarioArtifactsResponse{}, err
 	}
@@ -7579,7 +7600,7 @@ func (c RuntimeTypedClient) GetScenarioArtifacts(ctx context.Context, request Ge
 }
 
 func (c RuntimeTypedClient) GetScenarioJob(ctx context.Context, request GetScenarioJobRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetScenarioJobResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAiService/GetScenarioJob", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAiService/GetScenarioJob", request, metadata, timeoutMS)
 	if err != nil {
 		return GetScenarioJobResponse{}, err
 	}
@@ -7587,7 +7608,7 @@ func (c RuntimeTypedClient) GetScenarioJob(ctx context.Context, request GetScena
 }
 
 func (c RuntimeTypedClient) GetVoiceAsset(ctx context.Context, request GetVoiceAssetRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetVoiceAssetResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAiService/GetVoiceAsset", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAiService/GetVoiceAsset", request, metadata, timeoutMS)
 	if err != nil {
 		return GetVoiceAssetResponse{}, err
 	}
@@ -7595,7 +7616,7 @@ func (c RuntimeTypedClient) GetVoiceAsset(ctx context.Context, request GetVoiceA
 }
 
 func (c RuntimeTypedClient) ListPresetVoices(ctx context.Context, request ListPresetVoicesRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListPresetVoicesResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAiService/ListPresetVoices", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAiService/ListPresetVoices", request, metadata, timeoutMS)
 	if err != nil {
 		return ListPresetVoicesResponse{}, err
 	}
@@ -7603,7 +7624,7 @@ func (c RuntimeTypedClient) ListPresetVoices(ctx context.Context, request ListPr
 }
 
 func (c RuntimeTypedClient) ListScenarioProfiles(ctx context.Context, request ListScenarioProfilesRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListScenarioProfilesResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAiService/ListScenarioProfiles", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAiService/ListScenarioProfiles", request, metadata, timeoutMS)
 	if err != nil {
 		return ListScenarioProfilesResponse{}, err
 	}
@@ -7611,7 +7632,7 @@ func (c RuntimeTypedClient) ListScenarioProfiles(ctx context.Context, request Li
 }
 
 func (c RuntimeTypedClient) ListVoiceAssets(ctx context.Context, request ListVoiceAssetsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListVoiceAssetsResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAiService/ListVoiceAssets", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAiService/ListVoiceAssets", request, metadata, timeoutMS)
 	if err != nil {
 		return ListVoiceAssetsResponse{}, err
 	}
@@ -7619,7 +7640,7 @@ func (c RuntimeTypedClient) ListVoiceAssets(ctx context.Context, request ListVoi
 }
 
 func (c RuntimeTypedClient) PeekScheduling(ctx context.Context, request PeekSchedulingRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (PeekSchedulingResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAiService/PeekScheduling", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAiService/PeekScheduling", request, metadata, timeoutMS)
 	if err != nil {
 		return PeekSchedulingResponse{}, err
 	}
@@ -7627,7 +7648,7 @@ func (c RuntimeTypedClient) PeekScheduling(ctx context.Context, request PeekSche
 }
 
 func (c RuntimeTypedClient) StreamScenario(ctx context.Context, request StreamScenarioRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[StreamScenarioEvent], error) {
-	reader, err := c.streamTyped(ctx, "/runtime.v1.RuntimeAiService/StreamScenario", request, metadata, timeoutMS)
+	reader, err := c.streamTyped(ctx, "/nimi.runtime.v1.RuntimeAiService/StreamScenario", request, metadata, timeoutMS)
 	if err != nil {
 		return nil, err
 	}
@@ -7635,7 +7656,7 @@ func (c RuntimeTypedClient) StreamScenario(ctx context.Context, request StreamSc
 }
 
 func (c RuntimeTypedClient) SubmitScenarioJob(ctx context.Context, request SubmitScenarioJobRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SubmitScenarioJobResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAiService/SubmitScenarioJob", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAiService/SubmitScenarioJob", request, metadata, timeoutMS)
 	if err != nil {
 		return SubmitScenarioJobResponse{}, err
 	}
@@ -7643,7 +7664,7 @@ func (c RuntimeTypedClient) SubmitScenarioJob(ctx context.Context, request Submi
 }
 
 func (c RuntimeTypedClient) SubscribeScenarioJobEvents(ctx context.Context, request SubscribeScenarioJobEventsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[ScenarioJobEvent], error) {
-	reader, err := c.streamTyped(ctx, "/runtime.v1.RuntimeAiService/SubscribeScenarioJobEvents", request, metadata, timeoutMS)
+	reader, err := c.streamTyped(ctx, "/nimi.runtime.v1.RuntimeAiService/SubscribeScenarioJobEvents", request, metadata, timeoutMS)
 	if err != nil {
 		return nil, err
 	}
@@ -7651,11 +7672,11 @@ func (c RuntimeTypedClient) SubscribeScenarioJobEvents(ctx context.Context, requ
 }
 
 func (c RuntimeTypedClient) UploadArtifact(context.Context, UploadArtifactRequest, sdkstypes.CoreMetadata, int64) (UploadArtifactResponse, error) {
-	return UploadArtifactResponse{}, fmt.Errorf("SDK_RUNTIME_METHOD_UNAVAILABLE: Runtime method kind is not supported by the unary/server-stream core transport: /runtime.v1.RuntimeAiService/UploadArtifact")
+	return UploadArtifactResponse{}, fmt.Errorf("SDK_RUNTIME_METHOD_UNAVAILABLE: Runtime method kind is not supported by the unary/server-stream core transport: /nimi.runtime.v1.RuntimeAiService/UploadArtifact")
 }
 
 func (c RuntimeTypedClient) GetAccountAppLibrary(ctx context.Context, request GetAccountAppLibraryRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAccountAppLibraryResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAppService/GetAccountAppLibrary", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppService/GetAccountAppLibrary", request, metadata, timeoutMS)
 	if err != nil {
 		return GetAccountAppLibraryResponse{}, err
 	}
@@ -7663,7 +7684,7 @@ func (c RuntimeTypedClient) GetAccountAppLibrary(ctx context.Context, request Ge
 }
 
 func (c RuntimeTypedClient) GetAppInstallJob(ctx context.Context, request GetAppInstallJobRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAppInstallJobResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAppService/GetAppInstallJob", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppService/GetAppInstallJob", request, metadata, timeoutMS)
 	if err != nil {
 		return GetAppInstallJobResponse{}, err
 	}
@@ -7671,7 +7692,7 @@ func (c RuntimeTypedClient) GetAppInstallJob(ctx context.Context, request GetApp
 }
 
 func (c RuntimeTypedClient) GetAppPackageReadiness(ctx context.Context, request GetAppPackageReadinessRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAppPackageReadinessResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAppService/GetAppPackageReadiness", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppService/GetAppPackageReadiness", request, metadata, timeoutMS)
 	if err != nil {
 		return GetAppPackageReadinessResponse{}, err
 	}
@@ -7679,7 +7700,7 @@ func (c RuntimeTypedClient) GetAppPackageReadiness(ctx context.Context, request 
 }
 
 func (c RuntimeTypedClient) GetAppStorage(ctx context.Context, request GetAppStorageRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAppStorageResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAppService/GetAppStorage", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppService/GetAppStorage", request, metadata, timeoutMS)
 	if err != nil {
 		return GetAppStorageResponse{}, err
 	}
@@ -7687,7 +7708,7 @@ func (c RuntimeTypedClient) GetAppStorage(ctx context.Context, request GetAppSto
 }
 
 func (c RuntimeTypedClient) HealthRepairApp(ctx context.Context, request HealthRepairAppRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (HealthRepairAppResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAppService/HealthRepairApp", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppService/HealthRepairApp", request, metadata, timeoutMS)
 	if err != nil {
 		return HealthRepairAppResponse{}, err
 	}
@@ -7695,7 +7716,7 @@ func (c RuntimeTypedClient) HealthRepairApp(ctx context.Context, request HealthR
 }
 
 func (c RuntimeTypedClient) InstallApp(ctx context.Context, request InstallAppRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (InstallAppResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAppService/InstallApp", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppService/InstallApp", request, metadata, timeoutMS)
 	if err != nil {
 		return InstallAppResponse{}, err
 	}
@@ -7703,7 +7724,7 @@ func (c RuntimeTypedClient) InstallApp(ctx context.Context, request InstallAppRe
 }
 
 func (c RuntimeTypedClient) ListAppInstallJobs(ctx context.Context, request ListAppInstallJobsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListAppInstallJobsResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAppService/ListAppInstallJobs", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppService/ListAppInstallJobs", request, metadata, timeoutMS)
 	if err != nil {
 		return ListAppInstallJobsResponse{}, err
 	}
@@ -7711,7 +7732,7 @@ func (c RuntimeTypedClient) ListAppInstallJobs(ctx context.Context, request List
 }
 
 func (c RuntimeTypedClient) OpenApp(ctx context.Context, request OpenAppRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (OpenAppResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAppService/OpenApp", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppService/OpenApp", request, metadata, timeoutMS)
 	if err != nil {
 		return OpenAppResponse{}, err
 	}
@@ -7719,7 +7740,7 @@ func (c RuntimeTypedClient) OpenApp(ctx context.Context, request OpenAppRequest,
 }
 
 func (c RuntimeTypedClient) SendAppMessage(ctx context.Context, request SendAppMessageRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SendAppMessageResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAppService/SendAppMessage", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppService/SendAppMessage", request, metadata, timeoutMS)
 	if err != nil {
 		return SendAppMessageResponse{}, err
 	}
@@ -7727,7 +7748,7 @@ func (c RuntimeTypedClient) SendAppMessage(ctx context.Context, request SendAppM
 }
 
 func (c RuntimeTypedClient) SubscribeAppMessages(ctx context.Context, request SubscribeAppMessagesRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[AppMessageEvent], error) {
-	reader, err := c.streamTyped(ctx, "/runtime.v1.RuntimeAppService/SubscribeAppMessages", request, metadata, timeoutMS)
+	reader, err := c.streamTyped(ctx, "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages", request, metadata, timeoutMS)
 	if err != nil {
 		return nil, err
 	}
@@ -7735,7 +7756,7 @@ func (c RuntimeTypedClient) SubscribeAppMessages(ctx context.Context, request Su
 }
 
 func (c RuntimeTypedClient) UninstallApp(ctx context.Context, request UninstallAppRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UninstallAppResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAppService/UninstallApp", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppService/UninstallApp", request, metadata, timeoutMS)
 	if err != nil {
 		return UninstallAppResponse{}, err
 	}
@@ -7743,7 +7764,7 @@ func (c RuntimeTypedClient) UninstallApp(ctx context.Context, request UninstallA
 }
 
 func (c RuntimeTypedClient) UpdateApp(ctx context.Context, request UpdateAppRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UpdateAppResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAppService/UpdateApp", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppService/UpdateApp", request, metadata, timeoutMS)
 	if err != nil {
 		return UpdateAppResponse{}, err
 	}
@@ -7751,7 +7772,7 @@ func (c RuntimeTypedClient) UpdateApp(ctx context.Context, request UpdateAppRequ
 }
 
 func (c RuntimeTypedClient) WatchAppInstallJobEvents(ctx context.Context, request WatchAppInstallJobEventsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[AppInstallJobEvent], error) {
-	reader, err := c.streamTyped(ctx, "/runtime.v1.RuntimeAppService/WatchAppInstallJobEvents", request, metadata, timeoutMS)
+	reader, err := c.streamTyped(ctx, "/nimi.runtime.v1.RuntimeAppService/WatchAppInstallJobEvents", request, metadata, timeoutMS)
 	if err != nil {
 		return nil, err
 	}
@@ -7759,7 +7780,7 @@ func (c RuntimeTypedClient) WatchAppInstallJobEvents(ctx context.Context, reques
 }
 
 func (c RuntimeTypedClient) ReadArtifactBytes(ctx context.Context, request ReadArtifactBytesRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ReadArtifactBytesResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeArtifactService/ReadArtifactBytes", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes", request, metadata, timeoutMS)
 	if err != nil {
 		return ReadArtifactBytesResponse{}, err
 	}
@@ -7767,7 +7788,7 @@ func (c RuntimeTypedClient) ReadArtifactBytes(ctx context.Context, request ReadA
 }
 
 func (c RuntimeTypedClient) ExportAuditEvents(ctx context.Context, request ExportAuditEventsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[AuditExportChunk], error) {
-	reader, err := c.streamTyped(ctx, "/runtime.v1.RuntimeAuditService/ExportAuditEvents", request, metadata, timeoutMS)
+	reader, err := c.streamTyped(ctx, "/nimi.runtime.v1.RuntimeAuditService/ExportAuditEvents", request, metadata, timeoutMS)
 	if err != nil {
 		return nil, err
 	}
@@ -7775,7 +7796,7 @@ func (c RuntimeTypedClient) ExportAuditEvents(ctx context.Context, request Expor
 }
 
 func (c RuntimeTypedClient) GetRuntimeHealth(ctx context.Context, request GetRuntimeHealthRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetRuntimeHealthResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAuditService/GetRuntimeHealth", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth", request, metadata, timeoutMS)
 	if err != nil {
 		return GetRuntimeHealthResponse{}, err
 	}
@@ -7783,7 +7804,7 @@ func (c RuntimeTypedClient) GetRuntimeHealth(ctx context.Context, request GetRun
 }
 
 func (c RuntimeTypedClient) ListAIProviderHealth(ctx context.Context, request ListAIProviderHealthRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListAIProviderHealthResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAuditService/ListAIProviderHealth", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAuditService/ListAIProviderHealth", request, metadata, timeoutMS)
 	if err != nil {
 		return ListAIProviderHealthResponse{}, err
 	}
@@ -7791,7 +7812,7 @@ func (c RuntimeTypedClient) ListAIProviderHealth(ctx context.Context, request Li
 }
 
 func (c RuntimeTypedClient) ListAuditEvents(ctx context.Context, request ListAuditEventsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListAuditEventsResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAuditService/ListAuditEvents", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAuditService/ListAuditEvents", request, metadata, timeoutMS)
 	if err != nil {
 		return ListAuditEventsResponse{}, err
 	}
@@ -7799,7 +7820,7 @@ func (c RuntimeTypedClient) ListAuditEvents(ctx context.Context, request ListAud
 }
 
 func (c RuntimeTypedClient) ListUsageStats(ctx context.Context, request ListUsageStatsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListUsageStatsResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAuditService/ListUsageStats", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAuditService/ListUsageStats", request, metadata, timeoutMS)
 	if err != nil {
 		return ListUsageStatsResponse{}, err
 	}
@@ -7807,7 +7828,7 @@ func (c RuntimeTypedClient) ListUsageStats(ctx context.Context, request ListUsag
 }
 
 func (c RuntimeTypedClient) SubscribeAIProviderHealthEvents(ctx context.Context, request SubscribeAIProviderHealthEventsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[AIProviderHealthEvent], error) {
-	reader, err := c.streamTyped(ctx, "/runtime.v1.RuntimeAuditService/SubscribeAIProviderHealthEvents", request, metadata, timeoutMS)
+	reader, err := c.streamTyped(ctx, "/nimi.runtime.v1.RuntimeAuditService/SubscribeAIProviderHealthEvents", request, metadata, timeoutMS)
 	if err != nil {
 		return nil, err
 	}
@@ -7815,7 +7836,7 @@ func (c RuntimeTypedClient) SubscribeAIProviderHealthEvents(ctx context.Context,
 }
 
 func (c RuntimeTypedClient) SubscribeRuntimeHealthEvents(ctx context.Context, request SubscribeRuntimeHealthEventsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[RuntimeHealthEvent], error) {
-	reader, err := c.streamTyped(ctx, "/runtime.v1.RuntimeAuditService/SubscribeRuntimeHealthEvents", request, metadata, timeoutMS)
+	reader, err := c.streamTyped(ctx, "/nimi.runtime.v1.RuntimeAuditService/SubscribeRuntimeHealthEvents", request, metadata, timeoutMS)
 	if err != nil {
 		return nil, err
 	}
@@ -7823,7 +7844,7 @@ func (c RuntimeTypedClient) SubscribeRuntimeHealthEvents(ctx context.Context, re
 }
 
 func (c RuntimeTypedClient) OpenExternalPrincipalSession(ctx context.Context, request OpenExternalPrincipalSessionRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (OpenExternalPrincipalSessionResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAuthService/OpenExternalPrincipalSession", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAuthService/OpenExternalPrincipalSession", request, metadata, timeoutMS)
 	if err != nil {
 		return OpenExternalPrincipalSessionResponse{}, err
 	}
@@ -7831,7 +7852,7 @@ func (c RuntimeTypedClient) OpenExternalPrincipalSession(ctx context.Context, re
 }
 
 func (c RuntimeTypedClient) OpenSession(ctx context.Context, request OpenSessionRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (OpenSessionResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAuthService/OpenSession", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAuthService/OpenSession", request, metadata, timeoutMS)
 	if err != nil {
 		return OpenSessionResponse{}, err
 	}
@@ -7839,7 +7860,7 @@ func (c RuntimeTypedClient) OpenSession(ctx context.Context, request OpenSession
 }
 
 func (c RuntimeTypedClient) RefreshSession(ctx context.Context, request RefreshSessionRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RefreshSessionResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAuthService/RefreshSession", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAuthService/RefreshSession", request, metadata, timeoutMS)
 	if err != nil {
 		return RefreshSessionResponse{}, err
 	}
@@ -7847,7 +7868,7 @@ func (c RuntimeTypedClient) RefreshSession(ctx context.Context, request RefreshS
 }
 
 func (c RuntimeTypedClient) RegisterApp(ctx context.Context, request RegisterAppRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RegisterAppResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAuthService/RegisterApp", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAuthService/RegisterApp", request, metadata, timeoutMS)
 	if err != nil {
 		return RegisterAppResponse{}, err
 	}
@@ -7855,7 +7876,7 @@ func (c RuntimeTypedClient) RegisterApp(ctx context.Context, request RegisterApp
 }
 
 func (c RuntimeTypedClient) RegisterExternalPrincipal(ctx context.Context, request RegisterExternalPrincipalRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RegisterExternalPrincipalResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAuthService/RegisterExternalPrincipal", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAuthService/RegisterExternalPrincipal", request, metadata, timeoutMS)
 	if err != nil {
 		return RegisterExternalPrincipalResponse{}, err
 	}
@@ -7863,7 +7884,7 @@ func (c RuntimeTypedClient) RegisterExternalPrincipal(ctx context.Context, reque
 }
 
 func (c RuntimeTypedClient) RevokeExternalPrincipalSession(ctx context.Context, request RevokeExternalPrincipalSessionRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (Ack, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAuthService/RevokeExternalPrincipalSession", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAuthService/RevokeExternalPrincipalSession", request, metadata, timeoutMS)
 	if err != nil {
 		return Ack{}, err
 	}
@@ -7871,7 +7892,7 @@ func (c RuntimeTypedClient) RevokeExternalPrincipalSession(ctx context.Context, 
 }
 
 func (c RuntimeTypedClient) RevokeSession(ctx context.Context, request RevokeSessionRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (Ack, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeAuthService/RevokeSession", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAuthService/RevokeSession", request, metadata, timeoutMS)
 	if err != nil {
 		return Ack{}, err
 	}
@@ -7879,7 +7900,7 @@ func (c RuntimeTypedClient) RevokeSession(ctx context.Context, request RevokeSes
 }
 
 func (c RuntimeTypedClient) AddLink(ctx context.Context, request AddLinkRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AddLinkResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeCognitionService/AddLink", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeCognitionService/AddLink", request, metadata, timeoutMS)
 	if err != nil {
 		return AddLinkResponse{}, err
 	}
@@ -7887,7 +7908,7 @@ func (c RuntimeTypedClient) AddLink(ctx context.Context, request AddLinkRequest,
 }
 
 func (c RuntimeTypedClient) CreateBank(ctx context.Context, request CreateBankRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CreateBankResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeCognitionService/CreateBank", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeCognitionService/CreateBank", request, metadata, timeoutMS)
 	if err != nil {
 		return CreateBankResponse{}, err
 	}
@@ -7895,7 +7916,7 @@ func (c RuntimeTypedClient) CreateBank(ctx context.Context, request CreateBankRe
 }
 
 func (c RuntimeTypedClient) CreateKnowledgeBank(ctx context.Context, request CreateKnowledgeBankRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CreateKnowledgeBankResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeCognitionService/CreateKnowledgeBank", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeCognitionService/CreateKnowledgeBank", request, metadata, timeoutMS)
 	if err != nil {
 		return CreateKnowledgeBankResponse{}, err
 	}
@@ -7903,7 +7924,7 @@ func (c RuntimeTypedClient) CreateKnowledgeBank(ctx context.Context, request Cre
 }
 
 func (c RuntimeTypedClient) DeleteBank(ctx context.Context, request DeleteBankRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (DeleteBankResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeCognitionService/DeleteBank", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeCognitionService/DeleteBank", request, metadata, timeoutMS)
 	if err != nil {
 		return DeleteBankResponse{}, err
 	}
@@ -7911,7 +7932,7 @@ func (c RuntimeTypedClient) DeleteBank(ctx context.Context, request DeleteBankRe
 }
 
 func (c RuntimeTypedClient) DeleteKnowledgeBank(ctx context.Context, request DeleteKnowledgeBankRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (DeleteKnowledgeBankResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeCognitionService/DeleteKnowledgeBank", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeCognitionService/DeleteKnowledgeBank", request, metadata, timeoutMS)
 	if err != nil {
 		return DeleteKnowledgeBankResponse{}, err
 	}
@@ -7919,7 +7940,7 @@ func (c RuntimeTypedClient) DeleteKnowledgeBank(ctx context.Context, request Del
 }
 
 func (c RuntimeTypedClient) DeleteMemory(ctx context.Context, request DeleteMemoryRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (DeleteMemoryResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeCognitionService/DeleteMemory", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeCognitionService/DeleteMemory", request, metadata, timeoutMS)
 	if err != nil {
 		return DeleteMemoryResponse{}, err
 	}
@@ -7927,7 +7948,7 @@ func (c RuntimeTypedClient) DeleteMemory(ctx context.Context, request DeleteMemo
 }
 
 func (c RuntimeTypedClient) DeletePage(ctx context.Context, request DeletePageRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (DeletePageResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeCognitionService/DeletePage", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeCognitionService/DeletePage", request, metadata, timeoutMS)
 	if err != nil {
 		return DeletePageResponse{}, err
 	}
@@ -7935,7 +7956,7 @@ func (c RuntimeTypedClient) DeletePage(ctx context.Context, request DeletePageRe
 }
 
 func (c RuntimeTypedClient) GetBank(ctx context.Context, request GetBankRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetBankResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeCognitionService/GetBank", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeCognitionService/GetBank", request, metadata, timeoutMS)
 	if err != nil {
 		return GetBankResponse{}, err
 	}
@@ -7943,7 +7964,7 @@ func (c RuntimeTypedClient) GetBank(ctx context.Context, request GetBankRequest,
 }
 
 func (c RuntimeTypedClient) GetIngestTask(ctx context.Context, request GetIngestTaskRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetIngestTaskResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeCognitionService/GetIngestTask", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeCognitionService/GetIngestTask", request, metadata, timeoutMS)
 	if err != nil {
 		return GetIngestTaskResponse{}, err
 	}
@@ -7951,7 +7972,7 @@ func (c RuntimeTypedClient) GetIngestTask(ctx context.Context, request GetIngest
 }
 
 func (c RuntimeTypedClient) GetKnowledgeBank(ctx context.Context, request GetKnowledgeBankRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetKnowledgeBankResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeCognitionService/GetKnowledgeBank", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeCognitionService/GetKnowledgeBank", request, metadata, timeoutMS)
 	if err != nil {
 		return GetKnowledgeBankResponse{}, err
 	}
@@ -7959,7 +7980,7 @@ func (c RuntimeTypedClient) GetKnowledgeBank(ctx context.Context, request GetKno
 }
 
 func (c RuntimeTypedClient) GetMemoryEmbeddingRuntimeIntent(ctx context.Context, request GetMemoryEmbeddingRuntimeIntentRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetMemoryEmbeddingRuntimeIntentResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeCognitionService/GetMemoryEmbeddingRuntimeIntent", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeCognitionService/GetMemoryEmbeddingRuntimeIntent", request, metadata, timeoutMS)
 	if err != nil {
 		return GetMemoryEmbeddingRuntimeIntentResponse{}, err
 	}
@@ -7967,7 +7988,7 @@ func (c RuntimeTypedClient) GetMemoryEmbeddingRuntimeIntent(ctx context.Context,
 }
 
 func (c RuntimeTypedClient) GetPage(ctx context.Context, request GetPageRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetPageResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeCognitionService/GetPage", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeCognitionService/GetPage", request, metadata, timeoutMS)
 	if err != nil {
 		return GetPageResponse{}, err
 	}
@@ -7975,7 +7996,7 @@ func (c RuntimeTypedClient) GetPage(ctx context.Context, request GetPageRequest,
 }
 
 func (c RuntimeTypedClient) History(ctx context.Context, request HistoryRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (HistoryResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeCognitionService/History", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeCognitionService/History", request, metadata, timeoutMS)
 	if err != nil {
 		return HistoryResponse{}, err
 	}
@@ -7983,7 +8004,7 @@ func (c RuntimeTypedClient) History(ctx context.Context, request HistoryRequest,
 }
 
 func (c RuntimeTypedClient) IngestDocument(ctx context.Context, request IngestDocumentRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (IngestDocumentResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeCognitionService/IngestDocument", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeCognitionService/IngestDocument", request, metadata, timeoutMS)
 	if err != nil {
 		return IngestDocumentResponse{}, err
 	}
@@ -7991,7 +8012,7 @@ func (c RuntimeTypedClient) IngestDocument(ctx context.Context, request IngestDo
 }
 
 func (c RuntimeTypedClient) InspectMemoryEmbeddingRuntime(ctx context.Context, request InspectMemoryEmbeddingRuntimeRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (InspectMemoryEmbeddingRuntimeResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeCognitionService/InspectMemoryEmbeddingRuntime", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeCognitionService/InspectMemoryEmbeddingRuntime", request, metadata, timeoutMS)
 	if err != nil {
 		return InspectMemoryEmbeddingRuntimeResponse{}, err
 	}
@@ -7999,7 +8020,7 @@ func (c RuntimeTypedClient) InspectMemoryEmbeddingRuntime(ctx context.Context, r
 }
 
 func (c RuntimeTypedClient) ListBacklinks(ctx context.Context, request ListBacklinksRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListBacklinksResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeCognitionService/ListBacklinks", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeCognitionService/ListBacklinks", request, metadata, timeoutMS)
 	if err != nil {
 		return ListBacklinksResponse{}, err
 	}
@@ -8007,7 +8028,7 @@ func (c RuntimeTypedClient) ListBacklinks(ctx context.Context, request ListBackl
 }
 
 func (c RuntimeTypedClient) ListBanks(ctx context.Context, request ListBanksRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListBanksResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeCognitionService/ListBanks", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeCognitionService/ListBanks", request, metadata, timeoutMS)
 	if err != nil {
 		return ListBanksResponse{}, err
 	}
@@ -8015,7 +8036,7 @@ func (c RuntimeTypedClient) ListBanks(ctx context.Context, request ListBanksRequ
 }
 
 func (c RuntimeTypedClient) ListKnowledgeBanks(ctx context.Context, request ListKnowledgeBanksRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListKnowledgeBanksResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeCognitionService/ListKnowledgeBanks", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeCognitionService/ListKnowledgeBanks", request, metadata, timeoutMS)
 	if err != nil {
 		return ListKnowledgeBanksResponse{}, err
 	}
@@ -8023,7 +8044,7 @@ func (c RuntimeTypedClient) ListKnowledgeBanks(ctx context.Context, request List
 }
 
 func (c RuntimeTypedClient) ListLinks(ctx context.Context, request ListLinksRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListLinksResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeCognitionService/ListLinks", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeCognitionService/ListLinks", request, metadata, timeoutMS)
 	if err != nil {
 		return ListLinksResponse{}, err
 	}
@@ -8031,7 +8052,7 @@ func (c RuntimeTypedClient) ListLinks(ctx context.Context, request ListLinksRequ
 }
 
 func (c RuntimeTypedClient) ListPages(ctx context.Context, request ListPagesRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListPagesResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeCognitionService/ListPages", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeCognitionService/ListPages", request, metadata, timeoutMS)
 	if err != nil {
 		return ListPagesResponse{}, err
 	}
@@ -8039,7 +8060,7 @@ func (c RuntimeTypedClient) ListPages(ctx context.Context, request ListPagesRequ
 }
 
 func (c RuntimeTypedClient) PutPage(ctx context.Context, request PutPageRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (PutPageResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeCognitionService/PutPage", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeCognitionService/PutPage", request, metadata, timeoutMS)
 	if err != nil {
 		return PutPageResponse{}, err
 	}
@@ -8047,7 +8068,7 @@ func (c RuntimeTypedClient) PutPage(ctx context.Context, request PutPageRequest,
 }
 
 func (c RuntimeTypedClient) Recall(ctx context.Context, request RecallRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RecallResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeCognitionService/Recall", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeCognitionService/Recall", request, metadata, timeoutMS)
 	if err != nil {
 		return RecallResponse{}, err
 	}
@@ -8055,7 +8076,7 @@ func (c RuntimeTypedClient) Recall(ctx context.Context, request RecallRequest, m
 }
 
 func (c RuntimeTypedClient) RemoveLink(ctx context.Context, request RemoveLinkRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RemoveLinkResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeCognitionService/RemoveLink", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeCognitionService/RemoveLink", request, metadata, timeoutMS)
 	if err != nil {
 		return RemoveLinkResponse{}, err
 	}
@@ -8063,7 +8084,7 @@ func (c RuntimeTypedClient) RemoveLink(ctx context.Context, request RemoveLinkRe
 }
 
 func (c RuntimeTypedClient) RequestMemoryEmbeddingRuntimeBind(ctx context.Context, request RequestMemoryEmbeddingRuntimeBindRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RequestMemoryEmbeddingRuntimeBindResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeCognitionService/RequestMemoryEmbeddingRuntimeBind", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeCognitionService/RequestMemoryEmbeddingRuntimeBind", request, metadata, timeoutMS)
 	if err != nil {
 		return RequestMemoryEmbeddingRuntimeBindResponse{}, err
 	}
@@ -8071,7 +8092,7 @@ func (c RuntimeTypedClient) RequestMemoryEmbeddingRuntimeBind(ctx context.Contex
 }
 
 func (c RuntimeTypedClient) RequestMemoryEmbeddingRuntimeCutover(ctx context.Context, request RequestMemoryEmbeddingRuntimeCutoverRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RequestMemoryEmbeddingRuntimeCutoverResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeCognitionService/RequestMemoryEmbeddingRuntimeCutover", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeCognitionService/RequestMemoryEmbeddingRuntimeCutover", request, metadata, timeoutMS)
 	if err != nil {
 		return RequestMemoryEmbeddingRuntimeCutoverResponse{}, err
 	}
@@ -8079,7 +8100,7 @@ func (c RuntimeTypedClient) RequestMemoryEmbeddingRuntimeCutover(ctx context.Con
 }
 
 func (c RuntimeTypedClient) Retain(ctx context.Context, request RetainRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RetainResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeCognitionService/Retain", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeCognitionService/Retain", request, metadata, timeoutMS)
 	if err != nil {
 		return RetainResponse{}, err
 	}
@@ -8087,7 +8108,7 @@ func (c RuntimeTypedClient) Retain(ctx context.Context, request RetainRequest, m
 }
 
 func (c RuntimeTypedClient) SearchHybrid(ctx context.Context, request SearchHybridRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SearchHybridResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeCognitionService/SearchHybrid", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeCognitionService/SearchHybrid", request, metadata, timeoutMS)
 	if err != nil {
 		return SearchHybridResponse{}, err
 	}
@@ -8095,7 +8116,7 @@ func (c RuntimeTypedClient) SearchHybrid(ctx context.Context, request SearchHybr
 }
 
 func (c RuntimeTypedClient) SearchKeyword(ctx context.Context, request SearchKeywordRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SearchKeywordResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeCognitionService/SearchKeyword", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeCognitionService/SearchKeyword", request, metadata, timeoutMS)
 	if err != nil {
 		return SearchKeywordResponse{}, err
 	}
@@ -8103,7 +8124,7 @@ func (c RuntimeTypedClient) SearchKeyword(ctx context.Context, request SearchKey
 }
 
 func (c RuntimeTypedClient) SetMemoryEmbeddingRuntimeIntent(ctx context.Context, request SetMemoryEmbeddingRuntimeIntentRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SetMemoryEmbeddingRuntimeIntentResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeCognitionService/SetMemoryEmbeddingRuntimeIntent", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeCognitionService/SetMemoryEmbeddingRuntimeIntent", request, metadata, timeoutMS)
 	if err != nil {
 		return SetMemoryEmbeddingRuntimeIntentResponse{}, err
 	}
@@ -8111,7 +8132,7 @@ func (c RuntimeTypedClient) SetMemoryEmbeddingRuntimeIntent(ctx context.Context,
 }
 
 func (c RuntimeTypedClient) SubscribeMemoryEvents(ctx context.Context, request SubscribeMemoryEventsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[MemoryEvent], error) {
-	reader, err := c.streamTyped(ctx, "/runtime.v1.RuntimeCognitionService/SubscribeMemoryEvents", request, metadata, timeoutMS)
+	reader, err := c.streamTyped(ctx, "/nimi.runtime.v1.RuntimeCognitionService/SubscribeMemoryEvents", request, metadata, timeoutMS)
 	if err != nil {
 		return nil, err
 	}
@@ -8119,7 +8140,7 @@ func (c RuntimeTypedClient) SubscribeMemoryEvents(ctx context.Context, request S
 }
 
 func (c RuntimeTypedClient) TraverseGraph(ctx context.Context, request TraverseGraphRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (TraverseGraphResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeCognitionService/TraverseGraph", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeCognitionService/TraverseGraph", request, metadata, timeoutMS)
 	if err != nil {
 		return TraverseGraphResponse{}, err
 	}
@@ -8127,7 +8148,7 @@ func (c RuntimeTypedClient) TraverseGraph(ctx context.Context, request TraverseG
 }
 
 func (c RuntimeTypedClient) CreateConnector(ctx context.Context, request CreateConnectorRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CreateConnectorResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeConnectorService/CreateConnector", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeConnectorService/CreateConnector", request, metadata, timeoutMS)
 	if err != nil {
 		return CreateConnectorResponse{}, err
 	}
@@ -8135,7 +8156,7 @@ func (c RuntimeTypedClient) CreateConnector(ctx context.Context, request CreateC
 }
 
 func (c RuntimeTypedClient) DeleteCatalogModelOverlay(ctx context.Context, request DeleteCatalogModelOverlayRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (DeleteCatalogModelOverlayResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeConnectorService/DeleteCatalogModelOverlay", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeConnectorService/DeleteCatalogModelOverlay", request, metadata, timeoutMS)
 	if err != nil {
 		return DeleteCatalogModelOverlayResponse{}, err
 	}
@@ -8143,7 +8164,7 @@ func (c RuntimeTypedClient) DeleteCatalogModelOverlay(ctx context.Context, reque
 }
 
 func (c RuntimeTypedClient) DeleteConnector(ctx context.Context, request DeleteConnectorRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (DeleteConnectorResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeConnectorService/DeleteConnector", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeConnectorService/DeleteConnector", request, metadata, timeoutMS)
 	if err != nil {
 		return DeleteConnectorResponse{}, err
 	}
@@ -8151,7 +8172,7 @@ func (c RuntimeTypedClient) DeleteConnector(ctx context.Context, request DeleteC
 }
 
 func (c RuntimeTypedClient) DeleteModelCatalogProvider(ctx context.Context, request DeleteModelCatalogProviderRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (DeleteModelCatalogProviderResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeConnectorService/DeleteModelCatalogProvider", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeConnectorService/DeleteModelCatalogProvider", request, metadata, timeoutMS)
 	if err != nil {
 		return DeleteModelCatalogProviderResponse{}, err
 	}
@@ -8159,7 +8180,7 @@ func (c RuntimeTypedClient) DeleteModelCatalogProvider(ctx context.Context, requ
 }
 
 func (c RuntimeTypedClient) GetCatalogModelDetail(ctx context.Context, request GetCatalogModelDetailRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetCatalogModelDetailResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeConnectorService/GetCatalogModelDetail", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeConnectorService/GetCatalogModelDetail", request, metadata, timeoutMS)
 	if err != nil {
 		return GetCatalogModelDetailResponse{}, err
 	}
@@ -8167,7 +8188,7 @@ func (c RuntimeTypedClient) GetCatalogModelDetail(ctx context.Context, request G
 }
 
 func (c RuntimeTypedClient) GetConnector(ctx context.Context, request GetConnectorRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetConnectorResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeConnectorService/GetConnector", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeConnectorService/GetConnector", request, metadata, timeoutMS)
 	if err != nil {
 		return GetConnectorResponse{}, err
 	}
@@ -8175,7 +8196,7 @@ func (c RuntimeTypedClient) GetConnector(ctx context.Context, request GetConnect
 }
 
 func (c RuntimeTypedClient) ListCatalogProviderModels(ctx context.Context, request ListCatalogProviderModelsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListCatalogProviderModelsResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeConnectorService/ListCatalogProviderModels", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeConnectorService/ListCatalogProviderModels", request, metadata, timeoutMS)
 	if err != nil {
 		return ListCatalogProviderModelsResponse{}, err
 	}
@@ -8183,7 +8204,7 @@ func (c RuntimeTypedClient) ListCatalogProviderModels(ctx context.Context, reque
 }
 
 func (c RuntimeTypedClient) ListConnectorModels(ctx context.Context, request ListConnectorModelsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListConnectorModelsResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeConnectorService/ListConnectorModels", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeConnectorService/ListConnectorModels", request, metadata, timeoutMS)
 	if err != nil {
 		return ListConnectorModelsResponse{}, err
 	}
@@ -8191,7 +8212,7 @@ func (c RuntimeTypedClient) ListConnectorModels(ctx context.Context, request Lis
 }
 
 func (c RuntimeTypedClient) ListConnectors(ctx context.Context, request ListConnectorsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListConnectorsResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeConnectorService/ListConnectors", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeConnectorService/ListConnectors", request, metadata, timeoutMS)
 	if err != nil {
 		return ListConnectorsResponse{}, err
 	}
@@ -8199,7 +8220,7 @@ func (c RuntimeTypedClient) ListConnectors(ctx context.Context, request ListConn
 }
 
 func (c RuntimeTypedClient) ListModelCatalogProviders(ctx context.Context, request ListModelCatalogProvidersRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListModelCatalogProvidersResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeConnectorService/ListModelCatalogProviders", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeConnectorService/ListModelCatalogProviders", request, metadata, timeoutMS)
 	if err != nil {
 		return ListModelCatalogProvidersResponse{}, err
 	}
@@ -8207,7 +8228,7 @@ func (c RuntimeTypedClient) ListModelCatalogProviders(ctx context.Context, reque
 }
 
 func (c RuntimeTypedClient) ListProviderCatalog(ctx context.Context, request ListProviderCatalogRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListProviderCatalogResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeConnectorService/ListProviderCatalog", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeConnectorService/ListProviderCatalog", request, metadata, timeoutMS)
 	if err != nil {
 		return ListProviderCatalogResponse{}, err
 	}
@@ -8215,7 +8236,7 @@ func (c RuntimeTypedClient) ListProviderCatalog(ctx context.Context, request Lis
 }
 
 func (c RuntimeTypedClient) TestConnector(ctx context.Context, request TestConnectorRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (TestConnectorResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeConnectorService/TestConnector", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeConnectorService/TestConnector", request, metadata, timeoutMS)
 	if err != nil {
 		return TestConnectorResponse{}, err
 	}
@@ -8223,7 +8244,7 @@ func (c RuntimeTypedClient) TestConnector(ctx context.Context, request TestConne
 }
 
 func (c RuntimeTypedClient) UpdateConnector(ctx context.Context, request UpdateConnectorRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UpdateConnectorResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeConnectorService/UpdateConnector", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeConnectorService/UpdateConnector", request, metadata, timeoutMS)
 	if err != nil {
 		return UpdateConnectorResponse{}, err
 	}
@@ -8231,7 +8252,7 @@ func (c RuntimeTypedClient) UpdateConnector(ctx context.Context, request UpdateC
 }
 
 func (c RuntimeTypedClient) UpsertCatalogModelOverlay(ctx context.Context, request UpsertCatalogModelOverlayRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UpsertCatalogModelOverlayResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeConnectorService/UpsertCatalogModelOverlay", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeConnectorService/UpsertCatalogModelOverlay", request, metadata, timeoutMS)
 	if err != nil {
 		return UpsertCatalogModelOverlayResponse{}, err
 	}
@@ -8239,7 +8260,7 @@ func (c RuntimeTypedClient) UpsertCatalogModelOverlay(ctx context.Context, reque
 }
 
 func (c RuntimeTypedClient) UpsertModelCatalogProvider(ctx context.Context, request UpsertModelCatalogProviderRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UpsertModelCatalogProviderResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeConnectorService/UpsertModelCatalogProvider", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeConnectorService/UpsertModelCatalogProvider", request, metadata, timeoutMS)
 	if err != nil {
 		return UpsertModelCatalogProviderResponse{}, err
 	}
@@ -8247,7 +8268,7 @@ func (c RuntimeTypedClient) UpsertModelCatalogProvider(ctx context.Context, requ
 }
 
 func (c RuntimeTypedClient) GetExternalAgentGatewayStatus(ctx context.Context, request ExternalAgentGatewayStatusRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ExternalAgentGatewayStatusResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeExternalAgentService/GetExternalAgentGatewayStatus", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeExternalAgentService/GetExternalAgentGatewayStatus", request, metadata, timeoutMS)
 	if err != nil {
 		return ExternalAgentGatewayStatusResponse{}, err
 	}
@@ -8255,7 +8276,7 @@ func (c RuntimeTypedClient) GetExternalAgentGatewayStatus(ctx context.Context, r
 }
 
 func (c RuntimeTypedClient) IssueExternalAgentToken(ctx context.Context, request ExternalAgentIssueTokenRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ExternalAgentIssueTokenResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeExternalAgentService/IssueExternalAgentToken", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeExternalAgentService/IssueExternalAgentToken", request, metadata, timeoutMS)
 	if err != nil {
 		return ExternalAgentIssueTokenResponse{}, err
 	}
@@ -8263,7 +8284,7 @@ func (c RuntimeTypedClient) IssueExternalAgentToken(ctx context.Context, request
 }
 
 func (c RuntimeTypedClient) ListExternalAgentTokens(ctx context.Context, request ExternalAgentListTokensRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ExternalAgentListTokensResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeExternalAgentService/ListExternalAgentTokens", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeExternalAgentService/ListExternalAgentTokens", request, metadata, timeoutMS)
 	if err != nil {
 		return ExternalAgentListTokensResponse{}, err
 	}
@@ -8271,7 +8292,7 @@ func (c RuntimeTypedClient) ListExternalAgentTokens(ctx context.Context, request
 }
 
 func (c RuntimeTypedClient) RevokeExternalAgentToken(ctx context.Context, request ExternalAgentRevokeTokenRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (Ack, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeExternalAgentService/RevokeExternalAgentToken", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeExternalAgentService/RevokeExternalAgentToken", request, metadata, timeoutMS)
 	if err != nil {
 		return Ack{}, err
 	}
@@ -8279,7 +8300,7 @@ func (c RuntimeTypedClient) RevokeExternalAgentToken(ctx context.Context, reques
 }
 
 func (c RuntimeTypedClient) AuthorizeExternalPrincipal(ctx context.Context, request AuthorizeExternalPrincipalRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AuthorizeExternalPrincipalResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeGrantService/AuthorizeExternalPrincipal", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeGrantService/AuthorizeExternalPrincipal", request, metadata, timeoutMS)
 	if err != nil {
 		return AuthorizeExternalPrincipalResponse{}, err
 	}
@@ -8287,7 +8308,7 @@ func (c RuntimeTypedClient) AuthorizeExternalPrincipal(ctx context.Context, requ
 }
 
 func (c RuntimeTypedClient) IssueDelegatedAccessToken(ctx context.Context, request IssueDelegatedAccessTokenRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (IssueDelegatedAccessTokenResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeGrantService/IssueDelegatedAccessToken", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeGrantService/IssueDelegatedAccessToken", request, metadata, timeoutMS)
 	if err != nil {
 		return IssueDelegatedAccessTokenResponse{}, err
 	}
@@ -8295,7 +8316,7 @@ func (c RuntimeTypedClient) IssueDelegatedAccessToken(ctx context.Context, reque
 }
 
 func (c RuntimeTypedClient) ListTokenChain(ctx context.Context, request ListTokenChainRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListTokenChainResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeGrantService/ListTokenChain", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeGrantService/ListTokenChain", request, metadata, timeoutMS)
 	if err != nil {
 		return ListTokenChainResponse{}, err
 	}
@@ -8303,7 +8324,7 @@ func (c RuntimeTypedClient) ListTokenChain(ctx context.Context, request ListToke
 }
 
 func (c RuntimeTypedClient) RevokeAppAccessToken(ctx context.Context, request RevokeAppAccessTokenRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (Ack, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeGrantService/RevokeAppAccessToken", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeGrantService/RevokeAppAccessToken", request, metadata, timeoutMS)
 	if err != nil {
 		return Ack{}, err
 	}
@@ -8311,7 +8332,7 @@ func (c RuntimeTypedClient) RevokeAppAccessToken(ctx context.Context, request Re
 }
 
 func (c RuntimeTypedClient) ValidateAppAccessToken(ctx context.Context, request ValidateAppAccessTokenRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ValidateAppAccessTokenResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeGrantService/ValidateAppAccessToken", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeGrantService/ValidateAppAccessToken", request, metadata, timeoutMS)
 	if err != nil {
 		return ValidateAppAccessTokenResponse{}, err
 	}
@@ -8319,7 +8340,7 @@ func (c RuntimeTypedClient) ValidateAppAccessToken(ctx context.Context, request 
 }
 
 func (c RuntimeTypedClient) AdmitProductControlReadyForUse(ctx context.Context, request AdmitProductControlReadyForUseRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ProductControlProjectionJson, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse", request, metadata, timeoutMS)
 	if err != nil {
 		return ProductControlProjectionJson{}, err
 	}
@@ -8327,7 +8348,7 @@ func (c RuntimeTypedClient) AdmitProductControlReadyForUse(ctx context.Context, 
 }
 
 func (c RuntimeTypedClient) AppendInferenceAudit(ctx context.Context, request AppendInferenceAuditRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (Ack, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/AppendInferenceAudit", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/AppendInferenceAudit", request, metadata, timeoutMS)
 	if err != nil {
 		return Ack{}, err
 	}
@@ -8335,7 +8356,7 @@ func (c RuntimeTypedClient) AppendInferenceAudit(ctx context.Context, request Ap
 }
 
 func (c RuntimeTypedClient) AppendRuntimeAudit(ctx context.Context, request AppendRuntimeAuditRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (Ack, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/AppendRuntimeAudit", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/AppendRuntimeAudit", request, metadata, timeoutMS)
 	if err != nil {
 		return Ack{}, err
 	}
@@ -8343,7 +8364,7 @@ func (c RuntimeTypedClient) AppendRuntimeAudit(ctx context.Context, request Appe
 }
 
 func (c RuntimeTypedClient) ApplyProfile(ctx context.Context, request ApplyProfileRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ApplyProfileResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/ApplyProfile", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/ApplyProfile", request, metadata, timeoutMS)
 	if err != nil {
 		return ApplyProfileResponse{}, err
 	}
@@ -8351,7 +8372,7 @@ func (c RuntimeTypedClient) ApplyProfile(ctx context.Context, request ApplyProfi
 }
 
 func (c RuntimeTypedClient) CancelLocalEnvironmentDependencyJob(ctx context.Context, request CancelLocalEnvironmentDependencyJobRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CancelLocalEnvironmentDependencyJobResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/CancelLocalEnvironmentDependencyJob", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/CancelLocalEnvironmentDependencyJob", request, metadata, timeoutMS)
 	if err != nil {
 		return CancelLocalEnvironmentDependencyJobResponse{}, err
 	}
@@ -8359,7 +8380,7 @@ func (c RuntimeTypedClient) CancelLocalEnvironmentDependencyJob(ctx context.Cont
 }
 
 func (c RuntimeTypedClient) CancelLocalTransfer(ctx context.Context, request CancelLocalTransferRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CancelLocalTransferResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/CancelLocalTransfer", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/CancelLocalTransfer", request, metadata, timeoutMS)
 	if err != nil {
 		return CancelLocalTransferResponse{}, err
 	}
@@ -8367,7 +8388,7 @@ func (c RuntimeTypedClient) CancelLocalTransfer(ctx context.Context, request Can
 }
 
 func (c RuntimeTypedClient) CheckLocalAssetHealth(ctx context.Context, request CheckLocalAssetHealthRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CheckLocalAssetHealthResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/CheckLocalAssetHealth", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/CheckLocalAssetHealth", request, metadata, timeoutMS)
 	if err != nil {
 		return CheckLocalAssetHealthResponse{}, err
 	}
@@ -8375,7 +8396,7 @@ func (c RuntimeTypedClient) CheckLocalAssetHealth(ctx context.Context, request C
 }
 
 func (c RuntimeTypedClient) CheckLocalServiceHealth(ctx context.Context, request CheckLocalServiceHealthRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CheckLocalServiceHealthResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/CheckLocalServiceHealth", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/CheckLocalServiceHealth", request, metadata, timeoutMS)
 	if err != nil {
 		return CheckLocalServiceHealthResponse{}, err
 	}
@@ -8383,7 +8404,7 @@ func (c RuntimeTypedClient) CheckLocalServiceHealth(ctx context.Context, request
 }
 
 func (c RuntimeTypedClient) CollectDeviceProfile(ctx context.Context, request CollectDeviceProfileRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CollectDeviceProfileResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/CollectDeviceProfile", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/CollectDeviceProfile", request, metadata, timeoutMS)
 	if err != nil {
 		return CollectDeviceProfileResponse{}, err
 	}
@@ -8391,7 +8412,7 @@ func (c RuntimeTypedClient) CollectDeviceProfile(ctx context.Context, request Co
 }
 
 func (c RuntimeTypedClient) CompleteProductControlFirstRunDeviceEnvironmentScan(ctx context.Context, request CompleteProductControlFirstRunDeviceEnvironmentScanRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ProductControlProjectionJson, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan", request, metadata, timeoutMS)
 	if err != nil {
 		return ProductControlProjectionJson{}, err
 	}
@@ -8399,7 +8420,7 @@ func (c RuntimeTypedClient) CompleteProductControlFirstRunDeviceEnvironmentScan(
 }
 
 func (c RuntimeTypedClient) EnsureEngine(ctx context.Context, request EnsureEngineRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (EnsureEngineResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/EnsureEngine", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/EnsureEngine", request, metadata, timeoutMS)
 	if err != nil {
 		return EnsureEngineResponse{}, err
 	}
@@ -8407,7 +8428,7 @@ func (c RuntimeTypedClient) EnsureEngine(ctx context.Context, request EnsureEngi
 }
 
 func (c RuntimeTypedClient) EnsureProductControlRecordCreated(ctx context.Context, request EnsureProductControlRecordCreatedRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ProductControlProjectionJson, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/EnsureProductControlRecordCreated", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/EnsureProductControlRecordCreated", request, metadata, timeoutMS)
 	if err != nil {
 		return ProductControlProjectionJson{}, err
 	}
@@ -8415,7 +8436,7 @@ func (c RuntimeTypedClient) EnsureProductControlRecordCreated(ctx context.Contex
 }
 
 func (c RuntimeTypedClient) ExecuteLocalStateCutover(ctx context.Context, request ExecuteLocalStateCutoverRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ExecuteLocalStateCutoverResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/ExecuteLocalStateCutover", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/ExecuteLocalStateCutover", request, metadata, timeoutMS)
 	if err != nil {
 		return ExecuteLocalStateCutoverResponse{}, err
 	}
@@ -8423,7 +8444,7 @@ func (c RuntimeTypedClient) ExecuteLocalStateCutover(ctx context.Context, reques
 }
 
 func (c RuntimeTypedClient) GetEngineStatus(ctx context.Context, request GetEngineStatusRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetEngineStatusResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/GetEngineStatus", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/GetEngineStatus", request, metadata, timeoutMS)
 	if err != nil {
 		return GetEngineStatusResponse{}, err
 	}
@@ -8431,7 +8452,7 @@ func (c RuntimeTypedClient) GetEngineStatus(ctx context.Context, request GetEngi
 }
 
 func (c RuntimeTypedClient) GetProductControlRecord(ctx context.Context, request GetProductControlRecordRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ProductControlProjectionJson, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/GetProductControlRecord", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord", request, metadata, timeoutMS)
 	if err != nil {
 		return ProductControlProjectionJson{}, err
 	}
@@ -8439,7 +8460,7 @@ func (c RuntimeTypedClient) GetProductControlRecord(ctx context.Context, request
 }
 
 func (c RuntimeTypedClient) GetProductControlSelectedDataRoot(ctx context.Context, request GetProductControlSelectedDataRootRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ProductControlProjectionJson, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/GetProductControlSelectedDataRoot", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/GetProductControlSelectedDataRoot", request, metadata, timeoutMS)
 	if err != nil {
 		return ProductControlProjectionJson{}, err
 	}
@@ -8447,7 +8468,7 @@ func (c RuntimeTypedClient) GetProductControlSelectedDataRoot(ctx context.Contex
 }
 
 func (c RuntimeTypedClient) GetRecommendationFeed(ctx context.Context, request GetRecommendationFeedRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetRecommendationFeedResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/GetRecommendationFeed", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/GetRecommendationFeed", request, metadata, timeoutMS)
 	if err != nil {
 		return GetRecommendationFeedResponse{}, err
 	}
@@ -8455,7 +8476,7 @@ func (c RuntimeTypedClient) GetRecommendationFeed(ctx context.Context, request G
 }
 
 func (c RuntimeTypedClient) ImportLocalAsset(ctx context.Context, request ImportLocalAssetRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ImportLocalAssetResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/ImportLocalAsset", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/ImportLocalAsset", request, metadata, timeoutMS)
 	if err != nil {
 		return ImportLocalAssetResponse{}, err
 	}
@@ -8463,7 +8484,7 @@ func (c RuntimeTypedClient) ImportLocalAsset(ctx context.Context, request Import
 }
 
 func (c RuntimeTypedClient) ImportLocalAssetBundle(ctx context.Context, request ImportLocalAssetBundleRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ImportLocalAssetBundleResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/ImportLocalAssetBundle", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/ImportLocalAssetBundle", request, metadata, timeoutMS)
 	if err != nil {
 		return ImportLocalAssetBundleResponse{}, err
 	}
@@ -8471,7 +8492,7 @@ func (c RuntimeTypedClient) ImportLocalAssetBundle(ctx context.Context, request 
 }
 
 func (c RuntimeTypedClient) ImportLocalAssetFile(ctx context.Context, request ImportLocalAssetFileRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ImportLocalAssetFileResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/ImportLocalAssetFile", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/ImportLocalAssetFile", request, metadata, timeoutMS)
 	if err != nil {
 		return ImportLocalAssetFileResponse{}, err
 	}
@@ -8479,7 +8500,7 @@ func (c RuntimeTypedClient) ImportLocalAssetFile(ctx context.Context, request Im
 }
 
 func (c RuntimeTypedClient) InstallLocalService(ctx context.Context, request InstallLocalServiceRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (InstallLocalServiceResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/InstallLocalService", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/InstallLocalService", request, metadata, timeoutMS)
 	if err != nil {
 		return InstallLocalServiceResponse{}, err
 	}
@@ -8487,7 +8508,7 @@ func (c RuntimeTypedClient) InstallLocalService(ctx context.Context, request Ins
 }
 
 func (c RuntimeTypedClient) InstallModelFromPlan(ctx context.Context, request InstallModelFromPlanRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (InstallModelFromPlanResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/InstallModelFromPlan", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/InstallModelFromPlan", request, metadata, timeoutMS)
 	if err != nil {
 		return InstallModelFromPlanResponse{}, err
 	}
@@ -8495,7 +8516,7 @@ func (c RuntimeTypedClient) InstallModelFromPlan(ctx context.Context, request In
 }
 
 func (c RuntimeTypedClient) InstallVerifiedAsset(ctx context.Context, request InstallVerifiedAssetRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (InstallVerifiedAssetResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/InstallVerifiedAsset", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/InstallVerifiedAsset", request, metadata, timeoutMS)
 	if err != nil {
 		return InstallVerifiedAssetResponse{}, err
 	}
@@ -8503,7 +8524,7 @@ func (c RuntimeTypedClient) InstallVerifiedAsset(ctx context.Context, request In
 }
 
 func (c RuntimeTypedClient) ListCatalogVariants(ctx context.Context, request ListCatalogVariantsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListCatalogVariantsResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/ListCatalogVariants", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/ListCatalogVariants", request, metadata, timeoutMS)
 	if err != nil {
 		return ListCatalogVariantsResponse{}, err
 	}
@@ -8511,7 +8532,7 @@ func (c RuntimeTypedClient) ListCatalogVariants(ctx context.Context, request Lis
 }
 
 func (c RuntimeTypedClient) ListEngines(ctx context.Context, request ListEnginesRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListEnginesResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/ListEngines", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/ListEngines", request, metadata, timeoutMS)
 	if err != nil {
 		return ListEnginesResponse{}, err
 	}
@@ -8519,7 +8540,7 @@ func (c RuntimeTypedClient) ListEngines(ctx context.Context, request ListEngines
 }
 
 func (c RuntimeTypedClient) ListLocalAssets(ctx context.Context, request ListLocalAssetsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListLocalAssetsResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/ListLocalAssets", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/ListLocalAssets", request, metadata, timeoutMS)
 	if err != nil {
 		return ListLocalAssetsResponse{}, err
 	}
@@ -8527,7 +8548,7 @@ func (c RuntimeTypedClient) ListLocalAssets(ctx context.Context, request ListLoc
 }
 
 func (c RuntimeTypedClient) ListLocalAudits(ctx context.Context, request ListLocalAuditsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListLocalAuditsResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/ListLocalAudits", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/ListLocalAudits", request, metadata, timeoutMS)
 	if err != nil {
 		return ListLocalAuditsResponse{}, err
 	}
@@ -8535,7 +8556,7 @@ func (c RuntimeTypedClient) ListLocalAudits(ctx context.Context, request ListLoc
 }
 
 func (c RuntimeTypedClient) ListLocalEnvironmentDependencyJobs(ctx context.Context, request ListLocalEnvironmentDependencyJobsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListLocalEnvironmentDependencyJobsResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/ListLocalEnvironmentDependencyJobs", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/ListLocalEnvironmentDependencyJobs", request, metadata, timeoutMS)
 	if err != nil {
 		return ListLocalEnvironmentDependencyJobsResponse{}, err
 	}
@@ -8543,7 +8564,7 @@ func (c RuntimeTypedClient) ListLocalEnvironmentDependencyJobs(ctx context.Conte
 }
 
 func (c RuntimeTypedClient) ListLocalEnvironmentSelectedSources(ctx context.Context, request ListLocalEnvironmentSelectedSourcesRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListLocalEnvironmentSelectedSourcesResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/ListLocalEnvironmentSelectedSources", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/ListLocalEnvironmentSelectedSources", request, metadata, timeoutMS)
 	if err != nil {
 		return ListLocalEnvironmentSelectedSourcesResponse{}, err
 	}
@@ -8551,7 +8572,7 @@ func (c RuntimeTypedClient) ListLocalEnvironmentSelectedSources(ctx context.Cont
 }
 
 func (c RuntimeTypedClient) ListLocalServices(ctx context.Context, request ListLocalServicesRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListLocalServicesResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/ListLocalServices", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/ListLocalServices", request, metadata, timeoutMS)
 	if err != nil {
 		return ListLocalServicesResponse{}, err
 	}
@@ -8559,7 +8580,7 @@ func (c RuntimeTypedClient) ListLocalServices(ctx context.Context, request ListL
 }
 
 func (c RuntimeTypedClient) ListLocalTransfers(ctx context.Context, request ListLocalTransfersRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListLocalTransfersResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/ListLocalTransfers", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/ListLocalTransfers", request, metadata, timeoutMS)
 	if err != nil {
 		return ListLocalTransfersResponse{}, err
 	}
@@ -8567,7 +8588,7 @@ func (c RuntimeTypedClient) ListLocalTransfers(ctx context.Context, request List
 }
 
 func (c RuntimeTypedClient) ListNodeCatalog(ctx context.Context, request ListNodeCatalogRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListNodeCatalogResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/ListNodeCatalog", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/ListNodeCatalog", request, metadata, timeoutMS)
 	if err != nil {
 		return ListNodeCatalogResponse{}, err
 	}
@@ -8575,7 +8596,7 @@ func (c RuntimeTypedClient) ListNodeCatalog(ctx context.Context, request ListNod
 }
 
 func (c RuntimeTypedClient) ListVerifiedAssets(ctx context.Context, request ListVerifiedAssetsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListVerifiedAssetsResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/ListVerifiedAssets", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/ListVerifiedAssets", request, metadata, timeoutMS)
 	if err != nil {
 		return ListVerifiedAssetsResponse{}, err
 	}
@@ -8583,7 +8604,7 @@ func (c RuntimeTypedClient) ListVerifiedAssets(ctx context.Context, request List
 }
 
 func (c RuntimeTypedClient) MintFirstRunExecutionEvidence(ctx context.Context, request MintFirstRunExecutionEvidenceRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (MintFirstRunExecutionEvidenceResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/MintFirstRunExecutionEvidence", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/MintFirstRunExecutionEvidence", request, metadata, timeoutMS)
 	if err != nil {
 		return MintFirstRunExecutionEvidenceResponse{}, err
 	}
@@ -8591,7 +8612,7 @@ func (c RuntimeTypedClient) MintFirstRunExecutionEvidence(ctx context.Context, r
 }
 
 func (c RuntimeTypedClient) MintRuntimeBaselineReadiness(ctx context.Context, request MintRuntimeBaselineReadinessRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (MintRuntimeBaselineReadinessResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/MintRuntimeBaselineReadiness", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/MintRuntimeBaselineReadiness", request, metadata, timeoutMS)
 	if err != nil {
 		return MintRuntimeBaselineReadinessResponse{}, err
 	}
@@ -8599,15 +8620,23 @@ func (c RuntimeTypedClient) MintRuntimeBaselineReadiness(ctx context.Context, re
 }
 
 func (c RuntimeTypedClient) PauseLocalTransfer(ctx context.Context, request PauseLocalTransferRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (PauseLocalTransferResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/PauseLocalTransfer", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/PauseLocalTransfer", request, metadata, timeoutMS)
 	if err != nil {
 		return PauseLocalTransferResponse{}, err
 	}
 	return decodeTypedResponse[PauseLocalTransferResponse](raw)
 }
 
+func (c RuntimeTypedClient) PrepareProfileRuntimeDescriptor(ctx context.Context, request PrepareProfileRuntimeDescriptorRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (PrepareProfileRuntimeDescriptorResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/PrepareProfileRuntimeDescriptor", request, metadata, timeoutMS)
+	if err != nil {
+		return PrepareProfileRuntimeDescriptorResponse{}, err
+	}
+	return decodeTypedResponse[PrepareProfileRuntimeDescriptorResponse](raw)
+}
+
 func (c RuntimeTypedClient) ReconcileProductControlFirstRunSetupState(ctx context.Context, request ReconcileProductControlFirstRunSetupStateRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ProductControlProjectionJson, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState", request, metadata, timeoutMS)
 	if err != nil {
 		return ProductControlProjectionJson{}, err
 	}
@@ -8615,7 +8644,7 @@ func (c RuntimeTypedClient) ReconcileProductControlFirstRunSetupState(ctx contex
 }
 
 func (c RuntimeTypedClient) RecordProductControlAccountDefaultProfileEvidence(ctx context.Context, request RecordProductControlAccountDefaultProfileEvidenceRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ProductControlProjectionJson, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/RecordProductControlAccountDefaultProfileEvidence", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/RecordProductControlAccountDefaultProfileEvidence", request, metadata, timeoutMS)
 	if err != nil {
 		return ProductControlProjectionJson{}, err
 	}
@@ -8623,7 +8652,7 @@ func (c RuntimeTypedClient) RecordProductControlAccountDefaultProfileEvidence(ct
 }
 
 func (c RuntimeTypedClient) RecordProductControlFirstRunLocalAiReadyEvidence(ctx context.Context, request RecordProductControlFirstRunLocalAiReadyEvidenceRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ProductControlProjectionJson, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/RecordProductControlFirstRunLocalAiReadyEvidence", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/RecordProductControlFirstRunLocalAiReadyEvidence", request, metadata, timeoutMS)
 	if err != nil {
 		return ProductControlProjectionJson{}, err
 	}
@@ -8631,7 +8660,7 @@ func (c RuntimeTypedClient) RecordProductControlFirstRunLocalAiReadyEvidence(ctx
 }
 
 func (c RuntimeTypedClient) RemoveLocalAsset(ctx context.Context, request RemoveLocalAssetRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RemoveLocalAssetResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/RemoveLocalAsset", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/RemoveLocalAsset", request, metadata, timeoutMS)
 	if err != nil {
 		return RemoveLocalAssetResponse{}, err
 	}
@@ -8639,7 +8668,7 @@ func (c RuntimeTypedClient) RemoveLocalAsset(ctx context.Context, request Remove
 }
 
 func (c RuntimeTypedClient) RemoveLocalService(ctx context.Context, request RemoveLocalServiceRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RemoveLocalServiceResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/RemoveLocalService", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/RemoveLocalService", request, metadata, timeoutMS)
 	if err != nil {
 		return RemoveLocalServiceResponse{}, err
 	}
@@ -8647,7 +8676,7 @@ func (c RuntimeTypedClient) RemoveLocalService(ctx context.Context, request Remo
 }
 
 func (c RuntimeTypedClient) RepairLocalEnvironmentDependency(ctx context.Context, request RepairLocalEnvironmentDependencyRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RepairLocalEnvironmentDependencyResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/RepairLocalEnvironmentDependency", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/RepairLocalEnvironmentDependency", request, metadata, timeoutMS)
 	if err != nil {
 		return RepairLocalEnvironmentDependencyResponse{}, err
 	}
@@ -8655,7 +8684,7 @@ func (c RuntimeTypedClient) RepairLocalEnvironmentDependency(ctx context.Context
 }
 
 func (c RuntimeTypedClient) RescanLocalAssetBundle(ctx context.Context, request RescanLocalAssetBundleRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RescanLocalAssetBundleResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/RescanLocalAssetBundle", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/RescanLocalAssetBundle", request, metadata, timeoutMS)
 	if err != nil {
 		return RescanLocalAssetBundleResponse{}, err
 	}
@@ -8663,7 +8692,7 @@ func (c RuntimeTypedClient) RescanLocalAssetBundle(ctx context.Context, request 
 }
 
 func (c RuntimeTypedClient) ResolveFirstRunExecutionEvidence(ctx context.Context, request ResolveFirstRunExecutionEvidenceRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ResolveFirstRunExecutionEvidenceResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/ResolveFirstRunExecutionEvidence", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/ResolveFirstRunExecutionEvidence", request, metadata, timeoutMS)
 	if err != nil {
 		return ResolveFirstRunExecutionEvidenceResponse{}, err
 	}
@@ -8671,7 +8700,7 @@ func (c RuntimeTypedClient) ResolveFirstRunExecutionEvidence(ctx context.Context
 }
 
 func (c RuntimeTypedClient) ResolveLocalEnvironmentActivationGate(ctx context.Context, request ResolveLocalEnvironmentActivationGateRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ResolveLocalEnvironmentActivationGateResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentActivationGate", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentActivationGate", request, metadata, timeoutMS)
 	if err != nil {
 		return ResolveLocalEnvironmentActivationGateResponse{}, err
 	}
@@ -8679,7 +8708,7 @@ func (c RuntimeTypedClient) ResolveLocalEnvironmentActivationGate(ctx context.Co
 }
 
 func (c RuntimeTypedClient) ResolveLocalEnvironmentPlan(ctx context.Context, request ResolveLocalEnvironmentPlanRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ResolveLocalEnvironmentPlanResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentPlan", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentPlan", request, metadata, timeoutMS)
 	if err != nil {
 		return ResolveLocalEnvironmentPlanResponse{}, err
 	}
@@ -8687,7 +8716,7 @@ func (c RuntimeTypedClient) ResolveLocalEnvironmentPlan(ctx context.Context, req
 }
 
 func (c RuntimeTypedClient) ResolveLocalStateReconciliation(ctx context.Context, request ResolveLocalStateReconciliationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ResolveLocalStateReconciliationResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/ResolveLocalStateReconciliation", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalStateReconciliation", request, metadata, timeoutMS)
 	if err != nil {
 		return ResolveLocalStateReconciliationResponse{}, err
 	}
@@ -8695,7 +8724,7 @@ func (c RuntimeTypedClient) ResolveLocalStateReconciliation(ctx context.Context,
 }
 
 func (c RuntimeTypedClient) ResolveModelInstallPlan(ctx context.Context, request ResolveModelInstallPlanRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ResolveModelInstallPlanResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/ResolveModelInstallPlan", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/ResolveModelInstallPlan", request, metadata, timeoutMS)
 	if err != nil {
 		return ResolveModelInstallPlanResponse{}, err
 	}
@@ -8703,7 +8732,7 @@ func (c RuntimeTypedClient) ResolveModelInstallPlan(ctx context.Context, request
 }
 
 func (c RuntimeTypedClient) ResolveProfile(ctx context.Context, request ResolveProfileRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ResolveProfileResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/ResolveProfile", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/ResolveProfile", request, metadata, timeoutMS)
 	if err != nil {
 		return ResolveProfileResponse{}, err
 	}
@@ -8711,7 +8740,7 @@ func (c RuntimeTypedClient) ResolveProfile(ctx context.Context, request ResolveP
 }
 
 func (c RuntimeTypedClient) ResolveRuntimeBaselineReadiness(ctx context.Context, request ResolveRuntimeBaselineReadinessRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ResolveRuntimeBaselineReadinessResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/ResolveRuntimeBaselineReadiness", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/ResolveRuntimeBaselineReadiness", request, metadata, timeoutMS)
 	if err != nil {
 		return ResolveRuntimeBaselineReadinessResponse{}, err
 	}
@@ -8719,7 +8748,7 @@ func (c RuntimeTypedClient) ResolveRuntimeBaselineReadiness(ctx context.Context,
 }
 
 func (c RuntimeTypedClient) ResumeLocalTransfer(ctx context.Context, request ResumeLocalTransferRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ResumeLocalTransferResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/ResumeLocalTransfer", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/ResumeLocalTransfer", request, metadata, timeoutMS)
 	if err != nil {
 		return ResumeLocalTransferResponse{}, err
 	}
@@ -8727,7 +8756,7 @@ func (c RuntimeTypedClient) ResumeLocalTransfer(ctx context.Context, request Res
 }
 
 func (c RuntimeTypedClient) RetryLocalEnvironmentDependencyJob(ctx context.Context, request RetryLocalEnvironmentDependencyJobRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RetryLocalEnvironmentDependencyJobResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/RetryLocalEnvironmentDependencyJob", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/RetryLocalEnvironmentDependencyJob", request, metadata, timeoutMS)
 	if err != nil {
 		return RetryLocalEnvironmentDependencyJobResponse{}, err
 	}
@@ -8735,7 +8764,7 @@ func (c RuntimeTypedClient) RetryLocalEnvironmentDependencyJob(ctx context.Conte
 }
 
 func (c RuntimeTypedClient) ScaffoldOrphanAsset(ctx context.Context, request ScaffoldOrphanAssetRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ScaffoldOrphanAssetResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/ScaffoldOrphanAsset", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/ScaffoldOrphanAsset", request, metadata, timeoutMS)
 	if err != nil {
 		return ScaffoldOrphanAssetResponse{}, err
 	}
@@ -8743,7 +8772,7 @@ func (c RuntimeTypedClient) ScaffoldOrphanAsset(ctx context.Context, request Sca
 }
 
 func (c RuntimeTypedClient) ScanUnregisteredAssets(ctx context.Context, request ScanUnregisteredAssetsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ScanUnregisteredAssetsResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/ScanUnregisteredAssets", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/ScanUnregisteredAssets", request, metadata, timeoutMS)
 	if err != nil {
 		return ScanUnregisteredAssetsResponse{}, err
 	}
@@ -8751,7 +8780,7 @@ func (c RuntimeTypedClient) ScanUnregisteredAssets(ctx context.Context, request 
 }
 
 func (c RuntimeTypedClient) SearchCatalogModels(ctx context.Context, request SearchCatalogModelsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SearchCatalogModelsResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/SearchCatalogModels", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/SearchCatalogModels", request, metadata, timeoutMS)
 	if err != nil {
 		return SearchCatalogModelsResponse{}, err
 	}
@@ -8759,7 +8788,7 @@ func (c RuntimeTypedClient) SearchCatalogModels(ctx context.Context, request Sea
 }
 
 func (c RuntimeTypedClient) SelectProductControlDataRoot(ctx context.Context, request SelectProductControlDataRootRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ProductControlProjectionJson, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/SelectProductControlDataRoot", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/SelectProductControlDataRoot", request, metadata, timeoutMS)
 	if err != nil {
 		return ProductControlProjectionJson{}, err
 	}
@@ -8767,7 +8796,7 @@ func (c RuntimeTypedClient) SelectProductControlDataRoot(ctx context.Context, re
 }
 
 func (c RuntimeTypedClient) SetProductControlFirstRunInstallLevel(ctx context.Context, request SetProductControlFirstRunInstallLevelRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ProductControlProjectionJson, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/SetProductControlFirstRunInstallLevel", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/SetProductControlFirstRunInstallLevel", request, metadata, timeoutMS)
 	if err != nil {
 		return ProductControlProjectionJson{}, err
 	}
@@ -8775,7 +8804,7 @@ func (c RuntimeTypedClient) SetProductControlFirstRunInstallLevel(ctx context.Co
 }
 
 func (c RuntimeTypedClient) StartEngine(ctx context.Context, request StartEngineRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (StartEngineResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/StartEngine", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/StartEngine", request, metadata, timeoutMS)
 	if err != nil {
 		return StartEngineResponse{}, err
 	}
@@ -8783,7 +8812,7 @@ func (c RuntimeTypedClient) StartEngine(ctx context.Context, request StartEngine
 }
 
 func (c RuntimeTypedClient) StartLocalAsset(ctx context.Context, request StartLocalAssetRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (StartLocalAssetResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/StartLocalAsset", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/StartLocalAsset", request, metadata, timeoutMS)
 	if err != nil {
 		return StartLocalAssetResponse{}, err
 	}
@@ -8791,7 +8820,7 @@ func (c RuntimeTypedClient) StartLocalAsset(ctx context.Context, request StartLo
 }
 
 func (c RuntimeTypedClient) StartLocalEnvironmentDependencyJob(ctx context.Context, request StartLocalEnvironmentDependencyJobRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (StartLocalEnvironmentDependencyJobResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/StartLocalEnvironmentDependencyJob", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/StartLocalEnvironmentDependencyJob", request, metadata, timeoutMS)
 	if err != nil {
 		return StartLocalEnvironmentDependencyJobResponse{}, err
 	}
@@ -8799,7 +8828,7 @@ func (c RuntimeTypedClient) StartLocalEnvironmentDependencyJob(ctx context.Conte
 }
 
 func (c RuntimeTypedClient) StartLocalService(ctx context.Context, request StartLocalServiceRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (StartLocalServiceResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/StartLocalService", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/StartLocalService", request, metadata, timeoutMS)
 	if err != nil {
 		return StartLocalServiceResponse{}, err
 	}
@@ -8807,7 +8836,7 @@ func (c RuntimeTypedClient) StartLocalService(ctx context.Context, request Start
 }
 
 func (c RuntimeTypedClient) StopEngine(ctx context.Context, request StopEngineRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (StopEngineResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/StopEngine", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/StopEngine", request, metadata, timeoutMS)
 	if err != nil {
 		return StopEngineResponse{}, err
 	}
@@ -8815,7 +8844,7 @@ func (c RuntimeTypedClient) StopEngine(ctx context.Context, request StopEngineRe
 }
 
 func (c RuntimeTypedClient) StopLocalAsset(ctx context.Context, request StopLocalAssetRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (StopLocalAssetResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/StopLocalAsset", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/StopLocalAsset", request, metadata, timeoutMS)
 	if err != nil {
 		return StopLocalAssetResponse{}, err
 	}
@@ -8823,7 +8852,7 @@ func (c RuntimeTypedClient) StopLocalAsset(ctx context.Context, request StopLoca
 }
 
 func (c RuntimeTypedClient) StopLocalService(ctx context.Context, request StopLocalServiceRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (StopLocalServiceResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/StopLocalService", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/StopLocalService", request, metadata, timeoutMS)
 	if err != nil {
 		return StopLocalServiceResponse{}, err
 	}
@@ -8831,7 +8860,7 @@ func (c RuntimeTypedClient) StopLocalService(ctx context.Context, request StopLo
 }
 
 func (c RuntimeTypedClient) WarmLocalAsset(ctx context.Context, request WarmLocalAssetRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WarmLocalAssetResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeLocalService/WarmLocalAsset", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/WarmLocalAsset", request, metadata, timeoutMS)
 	if err != nil {
 		return WarmLocalAssetResponse{}, err
 	}
@@ -8839,7 +8868,7 @@ func (c RuntimeTypedClient) WarmLocalAsset(ctx context.Context, request WarmLoca
 }
 
 func (c RuntimeTypedClient) WatchLocalTransfers(ctx context.Context, request WatchLocalTransfersRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[LocalTransferProgressEvent], error) {
-	reader, err := c.streamTyped(ctx, "/runtime.v1.RuntimeLocalService/WatchLocalTransfers", request, metadata, timeoutMS)
+	reader, err := c.streamTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/WatchLocalTransfers", request, metadata, timeoutMS)
 	if err != nil {
 		return nil, err
 	}
@@ -8847,7 +8876,7 @@ func (c RuntimeTypedClient) WatchLocalTransfers(ctx context.Context, request Wat
 }
 
 func (c RuntimeTypedClient) CheckModelHealth(ctx context.Context, request CheckModelHealthRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CheckModelHealthResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeModelService/CheckModelHealth", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeModelService/CheckModelHealth", request, metadata, timeoutMS)
 	if err != nil {
 		return CheckModelHealthResponse{}, err
 	}
@@ -8855,7 +8884,7 @@ func (c RuntimeTypedClient) CheckModelHealth(ctx context.Context, request CheckM
 }
 
 func (c RuntimeTypedClient) ListModels(ctx context.Context, request ListModelsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListModelsResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeModelService/ListModels", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeModelService/ListModels", request, metadata, timeoutMS)
 	if err != nil {
 		return ListModelsResponse{}, err
 	}
@@ -8863,7 +8892,7 @@ func (c RuntimeTypedClient) ListModels(ctx context.Context, request ListModelsRe
 }
 
 func (c RuntimeTypedClient) PullModel(ctx context.Context, request PullModelRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (PullModelResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeModelService/PullModel", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeModelService/PullModel", request, metadata, timeoutMS)
 	if err != nil {
 		return PullModelResponse{}, err
 	}
@@ -8871,7 +8900,7 @@ func (c RuntimeTypedClient) PullModel(ctx context.Context, request PullModelRequ
 }
 
 func (c RuntimeTypedClient) RemoveModel(ctx context.Context, request RemoveModelRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (Ack, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeModelService/RemoveModel", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeModelService/RemoveModel", request, metadata, timeoutMS)
 	if err != nil {
 		return Ack{}, err
 	}
@@ -8879,7 +8908,7 @@ func (c RuntimeTypedClient) RemoveModel(ctx context.Context, request RemoveModel
 }
 
 func (c RuntimeTypedClient) CancelWorkflow(ctx context.Context, request CancelWorkflowRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (Ack, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeWorkflowService/CancelWorkflow", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeWorkflowService/CancelWorkflow", request, metadata, timeoutMS)
 	if err != nil {
 		return Ack{}, err
 	}
@@ -8887,7 +8916,7 @@ func (c RuntimeTypedClient) CancelWorkflow(ctx context.Context, request CancelWo
 }
 
 func (c RuntimeTypedClient) GetWorkflow(ctx context.Context, request GetWorkflowRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetWorkflowResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeWorkflowService/GetWorkflow", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeWorkflowService/GetWorkflow", request, metadata, timeoutMS)
 	if err != nil {
 		return GetWorkflowResponse{}, err
 	}
@@ -8895,7 +8924,7 @@ func (c RuntimeTypedClient) GetWorkflow(ctx context.Context, request GetWorkflow
 }
 
 func (c RuntimeTypedClient) SubmitWorkflow(ctx context.Context, request SubmitWorkflowRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SubmitWorkflowResponse, error) {
-	raw, err := c.callTyped(ctx, "/runtime.v1.RuntimeWorkflowService/SubmitWorkflow", request, metadata, timeoutMS)
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeWorkflowService/SubmitWorkflow", request, metadata, timeoutMS)
 	if err != nil {
 		return SubmitWorkflowResponse{}, err
 	}
@@ -8903,7 +8932,7 @@ func (c RuntimeTypedClient) SubmitWorkflow(ctx context.Context, request SubmitWo
 }
 
 func (c RuntimeTypedClient) SubscribeWorkflowEvents(ctx context.Context, request SubscribeWorkflowEventsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[WorkflowEvent], error) {
-	reader, err := c.streamTyped(ctx, "/runtime.v1.RuntimeWorkflowService/SubscribeWorkflowEvents", request, metadata, timeoutMS)
+	reader, err := c.streamTyped(ctx, "/nimi.runtime.v1.RuntimeWorkflowService/SubscribeWorkflowEvents", request, metadata, timeoutMS)
 	if err != nil {
 		return nil, err
 	}
@@ -9901,60 +9930,6 @@ type CreatorEligibilityResponseDto struct {
 	Message string `json:"message,omitempty"`
 	Status string `json:"status,omitempty"`
 	Tier string `json:"tier,omitempty"`
-}
-
-type CreatorModControlAuditIngestRequestDto struct {
-	ModId string `json:"modId,omitempty"`
-	Records []CreatorModControlAuditRecordDto `json:"records,omitempty"`
-	Source string `json:"source,omitempty"`
-	TraceId string `json:"traceId,omitempty"`
-}
-
-type CreatorModControlAuditRecordDto struct {
-	Decision string `json:"decision,omitempty"`
-	EventType string `json:"eventType,omitempty"`
-	ModId string `json:"modId,omitempty"`
-	OccurredAt string `json:"occurredAt,omitempty"`
-	Payload map[string]any `json:"payload,omitempty"`
-	ReasonCodes []string `json:"reasonCodes,omitempty"`
-	Stage string `json:"stage,omitempty"`
-}
-
-type CreatorModControlGrantIssueRequestDto struct {
-	Capabilities []string `json:"capabilities,omitempty"`
-	ModId string `json:"modId,omitempty"`
-	Scope string `json:"scope,omitempty"`
-	TtlSeconds float64 `json:"ttlSeconds,omitempty"`
-}
-
-type CreatorModControlGrantIssueResponseDto struct {
-	Capabilities []string `json:"capabilities,omitempty"`
-	ExpiresAt string `json:"expiresAt,omitempty"`
-	GrantId string `json:"grantId,omitempty"`
-	Token string `json:"token,omitempty"`
-}
-
-type CreatorModControlGrantValidateRequestDto struct {
-	Capability string `json:"capability,omitempty"`
-	GrantId string `json:"grantId,omitempty"`
-	ModId string `json:"modId,omitempty"`
-	Token string `json:"token,omitempty"`
-}
-
-type CreatorModControlManifestVerifyRequestDto struct {
-	Manifest map[string]any `json:"manifest,omitempty"`
-	ModId string `json:"modId,omitempty"`
-	Mode string `json:"mode,omitempty"`
-	Version string `json:"version,omitempty"`
-}
-
-type CreatorModControlSignatureVerifyRequestDto struct {
-	Digest string `json:"digest,omitempty"`
-	ModId string `json:"modId,omitempty"`
-	Mode string `json:"mode,omitempty"`
-	Signature string `json:"signature,omitempty"`
-	SignerId string `json:"signerId,omitempty"`
-	Version string `json:"version,omitempty"`
 }
 
 type CurrencyBalancesDto struct {
@@ -13355,139 +13330,6 @@ type RealmCreatorControllerUpdateAgentOperationRequest struct {
 	Query   RealmCreatorControllerUpdateAgentOperationQuery `json:"query,omitempty"`
 	Headers RealmCreatorControllerUpdateAgentOperationHeaders `json:"headers,omitempty"`
 	Body    UpdateCreatorAgentDto `json:"body,omitempty"`
-}
-
-type RealmCreatorModsControllerIngestAuditOperationPath struct {
-
-}
-
-type RealmCreatorModsControllerIngestAuditOperationQuery struct {
-
-}
-
-type RealmCreatorModsControllerIngestAuditOperationHeaders struct {
-
-}
-
-type RealmCreatorModsControllerIngestAuditOperationRequest struct {
-	Path    RealmCreatorModsControllerIngestAuditOperationPath `json:"path,omitempty"`
-	Query   RealmCreatorModsControllerIngestAuditOperationQuery `json:"query,omitempty"`
-	Headers RealmCreatorModsControllerIngestAuditOperationHeaders `json:"headers,omitempty"`
-	Body    CreatorModControlAuditIngestRequestDto `json:"body,omitempty"`
-}
-
-type RealmCreatorModsControllerIssueGrantOperationPath struct {
-
-}
-
-type RealmCreatorModsControllerIssueGrantOperationQuery struct {
-
-}
-
-type RealmCreatorModsControllerIssueGrantOperationHeaders struct {
-
-}
-
-type RealmCreatorModsControllerIssueGrantOperationRequest struct {
-	Path    RealmCreatorModsControllerIssueGrantOperationPath `json:"path,omitempty"`
-	Query   RealmCreatorModsControllerIssueGrantOperationQuery `json:"query,omitempty"`
-	Headers RealmCreatorModsControllerIssueGrantOperationHeaders `json:"headers,omitempty"`
-	Body    CreatorModControlGrantIssueRequestDto `json:"body,omitempty"`
-}
-
-type RealmCreatorModsControllerQueryAuditOperationPath struct {
-
-}
-
-type RealmCreatorModsControllerQueryAuditOperationQuery struct {
-
-}
-
-type RealmCreatorModsControllerQueryAuditOperationHeaders struct {
-
-}
-
-type RealmCreatorModsControllerQueryAuditOperationRequest struct {
-	Path    RealmCreatorModsControllerQueryAuditOperationPath `json:"path,omitempty"`
-	Query   RealmCreatorModsControllerQueryAuditOperationQuery `json:"query,omitempty"`
-	Headers RealmCreatorModsControllerQueryAuditOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmCreatorModsControllerRevocationsOperationPath struct {
-
-}
-
-type RealmCreatorModsControllerRevocationsOperationQuery struct {
-
-}
-
-type RealmCreatorModsControllerRevocationsOperationHeaders struct {
-
-}
-
-type RealmCreatorModsControllerRevocationsOperationRequest struct {
-	Path    RealmCreatorModsControllerRevocationsOperationPath `json:"path,omitempty"`
-	Query   RealmCreatorModsControllerRevocationsOperationQuery `json:"query,omitempty"`
-	Headers RealmCreatorModsControllerRevocationsOperationHeaders `json:"headers,omitempty"`
-	Body    struct{} `json:"body,omitempty"`
-}
-
-type RealmCreatorModsControllerValidateGrantOperationPath struct {
-
-}
-
-type RealmCreatorModsControllerValidateGrantOperationQuery struct {
-
-}
-
-type RealmCreatorModsControllerValidateGrantOperationHeaders struct {
-
-}
-
-type RealmCreatorModsControllerValidateGrantOperationRequest struct {
-	Path    RealmCreatorModsControllerValidateGrantOperationPath `json:"path,omitempty"`
-	Query   RealmCreatorModsControllerValidateGrantOperationQuery `json:"query,omitempty"`
-	Headers RealmCreatorModsControllerValidateGrantOperationHeaders `json:"headers,omitempty"`
-	Body    CreatorModControlGrantValidateRequestDto `json:"body,omitempty"`
-}
-
-type RealmCreatorModsControllerVerifyManifestOperationPath struct {
-
-}
-
-type RealmCreatorModsControllerVerifyManifestOperationQuery struct {
-
-}
-
-type RealmCreatorModsControllerVerifyManifestOperationHeaders struct {
-
-}
-
-type RealmCreatorModsControllerVerifyManifestOperationRequest struct {
-	Path    RealmCreatorModsControllerVerifyManifestOperationPath `json:"path,omitempty"`
-	Query   RealmCreatorModsControllerVerifyManifestOperationQuery `json:"query,omitempty"`
-	Headers RealmCreatorModsControllerVerifyManifestOperationHeaders `json:"headers,omitempty"`
-	Body    CreatorModControlManifestVerifyRequestDto `json:"body,omitempty"`
-}
-
-type RealmCreatorModsControllerVerifySignatureOperationPath struct {
-
-}
-
-type RealmCreatorModsControllerVerifySignatureOperationQuery struct {
-
-}
-
-type RealmCreatorModsControllerVerifySignatureOperationHeaders struct {
-
-}
-
-type RealmCreatorModsControllerVerifySignatureOperationRequest struct {
-	Path    RealmCreatorModsControllerVerifySignatureOperationPath `json:"path,omitempty"`
-	Query   RealmCreatorModsControllerVerifySignatureOperationQuery `json:"query,omitempty"`
-	Headers RealmCreatorModsControllerVerifySignatureOperationHeaders `json:"headers,omitempty"`
-	Body    CreatorModControlSignatureVerifyRequestDto `json:"body,omitempty"`
 }
 
 type RealmDeletePostOperationPath struct {
@@ -17826,62 +17668,6 @@ func (c RealmTypedClient) CreatorControllerUpdateAgent(ctx context.Context, requ
 		return CreatorAgentResponseDto{}, err
 	}
 	return decodeTypedResponse[CreatorAgentResponseDto](raw)
-}
-
-func (c RealmTypedClient) CreatorModsControllerIngestAudit(ctx context.Context, request RealmCreatorModsControllerIngestAuditOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (struct{}, error) {
-	raw, err := c.operationTyped(ctx, "CreatorModsController_ingestAudit", request, metadata, timeoutMS)
-	if err != nil {
-		return struct{}{}, err
-	}
-	return decodeTypedResponse[struct{}](raw)
-}
-
-func (c RealmTypedClient) CreatorModsControllerIssueGrant(ctx context.Context, request RealmCreatorModsControllerIssueGrantOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CreatorModControlGrantIssueResponseDto, error) {
-	raw, err := c.operationTyped(ctx, "CreatorModsController_issueGrant", request, metadata, timeoutMS)
-	if err != nil {
-		return CreatorModControlGrantIssueResponseDto{}, err
-	}
-	return decodeTypedResponse[CreatorModControlGrantIssueResponseDto](raw)
-}
-
-func (c RealmTypedClient) CreatorModsControllerQueryAudit(ctx context.Context, request RealmCreatorModsControllerQueryAuditOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (struct{}, error) {
-	raw, err := c.operationTyped(ctx, "CreatorModsController_queryAudit", request, metadata, timeoutMS)
-	if err != nil {
-		return struct{}{}, err
-	}
-	return decodeTypedResponse[struct{}](raw)
-}
-
-func (c RealmTypedClient) CreatorModsControllerRevocations(ctx context.Context, request RealmCreatorModsControllerRevocationsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (struct{}, error) {
-	raw, err := c.operationTyped(ctx, "CreatorModsController_revocations", request, metadata, timeoutMS)
-	if err != nil {
-		return struct{}{}, err
-	}
-	return decodeTypedResponse[struct{}](raw)
-}
-
-func (c RealmTypedClient) CreatorModsControllerValidateGrant(ctx context.Context, request RealmCreatorModsControllerValidateGrantOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (struct{}, error) {
-	raw, err := c.operationTyped(ctx, "CreatorModsController_validateGrant", request, metadata, timeoutMS)
-	if err != nil {
-		return struct{}{}, err
-	}
-	return decodeTypedResponse[struct{}](raw)
-}
-
-func (c RealmTypedClient) CreatorModsControllerVerifyManifest(ctx context.Context, request RealmCreatorModsControllerVerifyManifestOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (struct{}, error) {
-	raw, err := c.operationTyped(ctx, "CreatorModsController_verifyManifest", request, metadata, timeoutMS)
-	if err != nil {
-		return struct{}{}, err
-	}
-	return decodeTypedResponse[struct{}](raw)
-}
-
-func (c RealmTypedClient) CreatorModsControllerVerifySignature(ctx context.Context, request RealmCreatorModsControllerVerifySignatureOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (struct{}, error) {
-	raw, err := c.operationTyped(ctx, "CreatorModsController_verifySignature", request, metadata, timeoutMS)
-	if err != nil {
-		return struct{}{}, err
-	}
-	return decodeTypedResponse[struct{}](raw)
 }
 
 func (c RealmTypedClient) DeletePost(ctx context.Context, request RealmDeletePostOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (struct{}, error) {

@@ -17,7 +17,18 @@ function stripProtoComments(source) {
 }
 
 function normalizeProtoType(type) {
-  return String(type).replace(/^\./, '').replace(/^runtime\.v1\./, '');
+  return String(type)
+    .replace(/^\./, '')
+    .replace(/^nimi\.runtime\.v1\./, '')
+    .replace(/^runtime\.v1\./, '');
+}
+
+function extractProtoPackage(source, file) {
+  const protoPackage = source.match(/^\s*package\s+([A-Za-z_][A-Za-z0-9_.]*)\s*;/m)?.[1];
+  if (!protoPackage) {
+    throw new Error(`Runtime proto file is missing package declaration: ${file}`);
+  }
+  return protoPackage;
 }
 
 function collectNamedBlocks(source, keyword) {
@@ -89,6 +100,7 @@ export function extractRuntimeProto() {
 
   for (const file of protoFiles) {
     const source = stripProtoComments(readText(file));
+    const protoPackage = extractProtoPackage(source, file);
     for (const block of collectNamedBlocks(source, 'message')) {
       messages.set(block.name, {
         name: block.name,
@@ -122,7 +134,7 @@ export function extractRuntimeProto() {
               : 'unary';
         methods.push({
           name: methodName,
-          method_id: `/runtime.v1.${serviceName}/${methodName}`,
+          method_id: `/${protoPackage}.${serviceName}/${methodName}`,
           kind,
           request_type: requestType,
           response_type: responseType,

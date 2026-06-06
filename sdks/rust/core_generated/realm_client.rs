@@ -302,48 +302,6 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         path: Some("/api/creator/agents/{agentId}"),
     },
     RealmOperationDescriptor {
-        operation_id: "CreatorModsController_ingestAudit",
-        service: "Creator Mods Control Plane",
-        method: "POST",
-        path: Some("/api/creator/mods/control/audit/ingest"),
-    },
-    RealmOperationDescriptor {
-        operation_id: "CreatorModsController_issueGrant",
-        service: "Creator Mods Control Plane",
-        method: "POST",
-        path: Some("/api/creator/mods/control/grants/issue"),
-    },
-    RealmOperationDescriptor {
-        operation_id: "CreatorModsController_queryAudit",
-        service: "Creator Mods Control Plane",
-        method: "GET",
-        path: Some("/api/creator/mods/control/audit/query"),
-    },
-    RealmOperationDescriptor {
-        operation_id: "CreatorModsController_revocations",
-        service: "Creator Mods Control Plane",
-        method: "GET",
-        path: Some("/api/creator/mods/control/revocations"),
-    },
-    RealmOperationDescriptor {
-        operation_id: "CreatorModsController_validateGrant",
-        service: "Creator Mods Control Plane",
-        method: "POST",
-        path: Some("/api/creator/mods/control/grants/validate"),
-    },
-    RealmOperationDescriptor {
-        operation_id: "CreatorModsController_verifyManifest",
-        service: "Creator Mods Control Plane",
-        method: "POST",
-        path: Some("/api/creator/mods/control/manifest/verify"),
-    },
-    RealmOperationDescriptor {
-        operation_id: "CreatorModsController_verifySignature",
-        service: "Creator Mods Control Plane",
-        method: "POST",
-        path: Some("/api/creator/mods/control/signature/verify"),
-    },
-    RealmOperationDescriptor {
         operation_id: "deletePost",
         service: "Posts",
         method: "DELETE",

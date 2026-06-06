@@ -181,7 +181,7 @@ function runTypescriptBehavior(profile) {
     '@nimiplatform/sdk',
     'exec',
     'tsx',
-    '../sdks/conformance/behavior/typescript.ts',
+    '../conformance/behavior/typescript.ts',
   ], { env: { SDKS_CONFORMANCE_PROFILE: profile } });
 }
 

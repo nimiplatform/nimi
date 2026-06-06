@@ -296,48 +296,6 @@ REALM_OPERATIONS = [
     "path": "/api/creator/agents/{agentId}"
   },
   {
-    "operation_id": "CreatorModsController_ingestAudit",
-    "service": "Creator Mods Control Plane",
-    "method": "POST",
-    "path": "/api/creator/mods/control/audit/ingest"
-  },
-  {
-    "operation_id": "CreatorModsController_issueGrant",
-    "service": "Creator Mods Control Plane",
-    "method": "POST",
-    "path": "/api/creator/mods/control/grants/issue"
-  },
-  {
-    "operation_id": "CreatorModsController_queryAudit",
-    "service": "Creator Mods Control Plane",
-    "method": "GET",
-    "path": "/api/creator/mods/control/audit/query"
-  },
-  {
-    "operation_id": "CreatorModsController_revocations",
-    "service": "Creator Mods Control Plane",
-    "method": "GET",
-    "path": "/api/creator/mods/control/revocations"
-  },
-  {
-    "operation_id": "CreatorModsController_validateGrant",
-    "service": "Creator Mods Control Plane",
-    "method": "POST",
-    "path": "/api/creator/mods/control/grants/validate"
-  },
-  {
-    "operation_id": "CreatorModsController_verifyManifest",
-    "service": "Creator Mods Control Plane",
-    "method": "POST",
-    "path": "/api/creator/mods/control/manifest/verify"
-  },
-  {
-    "operation_id": "CreatorModsController_verifySignature",
-    "service": "Creator Mods Control Plane",
-    "method": "POST",
-    "path": "/api/creator/mods/control/signature/verify"
-  },
-  {
     "operation_id": "deletePost",
     "service": "Posts",
     "method": "DELETE",

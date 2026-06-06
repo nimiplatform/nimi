@@ -882,53 +882,6 @@ export interface CreatorEligibilityResponseDto {
   readonly status: "ACTIVE" | "CANCELED" | "PAST_DUE" | "PAUSED";
   readonly tier: "FREE" | "PRO" | "MAX";
 }
-export interface CreatorModControlAuditIngestRequestDto {
-  readonly modId?: string;
-  readonly records: readonly (CreatorModControlAuditRecordDto)[];
-  readonly source: string;
-  readonly traceId?: string;
-}
-export interface CreatorModControlAuditRecordDto {
-  readonly decision?: "ALLOW" | "ALLOW_WITH_WARNING" | "DENY";
-  readonly eventType: string;
-  readonly modId?: string;
-  readonly occurredAt: string;
-  readonly payload?: Record<string, unknown>;
-  readonly reasonCodes?: readonly (string)[];
-  readonly stage?: "discovery" | "manifest/compat" | "signature/auth" | "dependency/build" | "sandbox/policy" | "load" | "lifecycle" | "audit";
-}
-export interface CreatorModControlGrantIssueRequestDto {
-  readonly capabilities: readonly (string)[];
-  readonly modId: string;
-  readonly scope?: string;
-  readonly ttlSeconds?: number;
-}
-export interface CreatorModControlGrantIssueResponseDto {
-  readonly capabilities: readonly (string)[];
-  readonly expiresAt: string;
-  readonly grantId: string;
-  readonly token: string;
-}
-export interface CreatorModControlGrantValidateRequestDto {
-  readonly capability?: string;
-  readonly grantId: string;
-  readonly modId?: string;
-  readonly token: string;
-}
-export interface CreatorModControlManifestVerifyRequestDto {
-  readonly manifest: Record<string, unknown>;
-  readonly modId: string;
-  readonly mode: "local-dev" | "community" | "official" | "sideload";
-  readonly version: string;
-}
-export interface CreatorModControlSignatureVerifyRequestDto {
-  readonly digest: string;
-  readonly modId: string;
-  readonly mode: "local-dev" | "community" | "official" | "sideload";
-  readonly signature: string;
-  readonly signerId: string;
-  readonly version: string;
-}
 export interface CurrencyBalancesDto {
   readonly gemBalance: string;
   readonly sparkBalance: string;
@@ -3121,6 +3074,858 @@ export interface WorldviewTruthRuleSummaryDto {
   readonly version: number;
 }
 
+export const AccountRoleValues = [
+  "USER",
+  "AGENT",
+  "SERVICE_ACC",
+  "SYSTEM_BOT",
+  "ADMIN",
+] as const satisfies readonly AccountRole[];
+
+export const AccountRoleValue = {
+  USER: "USER",
+  AGENT: "AGENT",
+  SERVICE_ACC: "SERVICE_ACC",
+  SYSTEM_BOT: "SYSTEM_BOT",
+  ADMIN: "ADMIN",
+} as const satisfies Record<string, AccountRole>;
+
+export const AccountStatusValues = [
+  "ONBOARDING",
+  "CHECK_INVITED",
+  "ACTIVE",
+  "SUSPENDED",
+  "BANNED",
+] as const satisfies readonly AccountStatus[];
+
+export const AccountStatusValue = {
+  ONBOARDING: "ONBOARDING",
+  CHECK_INVITED: "CHECK_INVITED",
+  ACTIVE: "ACTIVE",
+  SUSPENDED: "SUSPENDED",
+  BANNED: "BANNED",
+} as const satisfies Record<string, AccountStatus>;
+
+export const AgentCategoryValues = [
+  "GENERAL",
+  "COMPANION",
+  "ASSISTANT",
+  "GAME",
+  "CRYPTO",
+  "NSFW_AGENT",
+] as const satisfies readonly AgentCategory[];
+
+export const AgentCategoryValue = {
+  GENERAL: "GENERAL",
+  COMPANION: "COMPANION",
+  ASSISTANT: "ASSISTANT",
+  GAME: "GAME",
+  CRYPTO: "CRYPTO",
+  NSFW_AGENT: "NSFW_AGENT",
+} as const satisfies Record<string, AgentCategory>;
+
+export const AgentImportanceValues = [
+  "PRIMARY",
+  "SECONDARY",
+  "BACKGROUND",
+] as const satisfies readonly AgentImportance[];
+
+export const AgentImportanceValue = {
+  PRIMARY: "PRIMARY",
+  SECONDARY: "SECONDARY",
+  BACKGROUND: "BACKGROUND",
+} as const satisfies Record<string, AgentImportance>;
+
+export const AgentOriginValues = [
+  "COMMUNITY",
+  "NAF",
+  "PARTNER",
+  "SYSTEM",
+] as const satisfies readonly AgentOrigin[];
+
+export const AgentOriginValue = {
+  COMMUNITY: "COMMUNITY",
+  NAF: "NAF",
+  PARTNER: "PARTNER",
+  SYSTEM: "SYSTEM",
+} as const satisfies Record<string, AgentOrigin>;
+
+export const AgentOwnershipTypeValues = [
+  "MASTER_OWNED",
+  "WORLD_OWNED",
+] as const satisfies readonly AgentOwnershipType[];
+
+export const AgentOwnershipTypeValue = {
+  MASTER_OWNED: "MASTER_OWNED",
+  WORLD_OWNED: "WORLD_OWNED",
+} as const satisfies Record<string, AgentOwnershipType>;
+
+export const AgentRelationTypeValues = [
+  "ALLY",
+  "RIVAL",
+  "ENEMY",
+] as const satisfies readonly AgentRelationType[];
+
+export const AgentRelationTypeValue = {
+  ALLY: "ALLY",
+  RIVAL: "RIVAL",
+  ENEMY: "ENEMY",
+} as const satisfies Record<string, AgentRelationType>;
+
+export const AgentStateValues = [
+  "INCUBATING",
+  "READY",
+  "ACTIVE",
+  "SUSPENDED",
+  "FAILED",
+] as const satisfies readonly AgentState[];
+
+export const AgentStateValue = {
+  INCUBATING: "INCUBATING",
+  READY: "READY",
+  ACTIVE: "ACTIVE",
+  SUSPENDED: "SUSPENDED",
+  FAILED: "FAILED",
+} as const satisfies Record<string, AgentState>;
+
+export const AgentWakeStrategyValues = [
+  "PASSIVE",
+  "PROACTIVE",
+] as const satisfies readonly AgentWakeStrategy[];
+
+export const AgentWakeStrategyValue = {
+  PASSIVE: "PASSIVE",
+  PROACTIVE: "PROACTIVE",
+} as const satisfies Record<string, AgentWakeStrategy>;
+
+export const ApiKeyTypeValues = [
+  "PERSONAL",
+  "ENTERPRISE",
+] as const satisfies readonly ApiKeyType[];
+
+export const ApiKeyTypeValue = {
+  PERSONAL: "PERSONAL",
+  ENTERPRISE: "ENTERPRISE",
+} as const satisfies Record<string, ApiKeyType>;
+
+export const AttachmentDisplayKindValues = [
+  "IMAGE",
+  "VIDEO",
+  "AUDIO",
+  "TEXT",
+  "CARD",
+] as const satisfies readonly AttachmentDisplayKind[];
+
+export const AttachmentDisplayKindValue = {
+  IMAGE: "IMAGE",
+  VIDEO: "VIDEO",
+  AUDIO: "AUDIO",
+  TEXT: "TEXT",
+  CARD: "CARD",
+} as const satisfies Record<string, AttachmentDisplayKind>;
+
+export const AttachmentTargetTypeValues = [
+  "RESOURCE",
+  "ASSET",
+  "BUNDLE",
+] as const satisfies readonly AttachmentTargetType[];
+
+export const AttachmentTargetTypeValue = {
+  RESOURCE: "RESOURCE",
+  ASSET: "ASSET",
+  BUNDLE: "BUNDLE",
+} as const satisfies Record<string, AttachmentTargetType>;
+
+export const ContentRatingStringValues = [
+  "UNRATED",
+  "G",
+  "PG13",
+  "R18",
+  "EXPLICIT",
+] as const satisfies readonly ContentRatingString[];
+
+export const ContentRatingStringValue = {
+  UNRATED: "UNRATED",
+  G: "G",
+  PG13: "PG13",
+  R18: "R18",
+  EXPLICIT: "EXPLICIT",
+} as const satisfies Record<string, ContentRatingString>;
+
+export const DnaSecondaryTraitValues = [
+  "HUMOROUS",
+  "SARCASTIC",
+  "GENTLE",
+  "DIRECT",
+  "OPTIMISTIC",
+  "REALISTIC",
+  "DRAMATIC",
+  "PASSIONATE",
+  "REBELLIOUS",
+  "INNOCENT",
+  "WISE",
+  "ECCENTRIC",
+] as const satisfies readonly DnaSecondaryTrait[];
+
+export const DnaSecondaryTraitValue = {
+  HUMOROUS: "HUMOROUS",
+  SARCASTIC: "SARCASTIC",
+  GENTLE: "GENTLE",
+  DIRECT: "DIRECT",
+  OPTIMISTIC: "OPTIMISTIC",
+  REALISTIC: "REALISTIC",
+  DRAMATIC: "DRAMATIC",
+  PASSIONATE: "PASSIONATE",
+  REBELLIOUS: "REBELLIOUS",
+  INNOCENT: "INNOCENT",
+  WISE: "WISE",
+  ECCENTRIC: "ECCENTRIC",
+} as const satisfies Record<string, DnaSecondaryTrait>;
+
+export const GenderValues = [
+  "MALE",
+  "FEMALE",
+  "NONBINARY",
+  "PREFER_NOT_SAY",
+] as const satisfies readonly Gender[];
+
+export const GenderValue = {
+  MALE: "MALE",
+  FEMALE: "FEMALE",
+  NONBINARY: "NONBINARY",
+  PREFER_NOT_SAY: "PREFER_NOT_SAY",
+} as const satisfies Record<string, Gender>;
+
+export const GiftStatusValues = [
+  "PENDING",
+  "ACCEPTED",
+  "REJECTED",
+  "EXPIRED",
+  "REFUNDED",
+] as const satisfies readonly GiftStatus[];
+
+export const GiftStatusValue = {
+  PENDING: "PENDING",
+  ACCEPTED: "ACCEPTED",
+  REJECTED: "REJECTED",
+  EXPIRED: "EXPIRED",
+  REFUNDED: "REFUNDED",
+} as const satisfies Record<string, GiftStatus>;
+
+export const LocalAgentProvisionIntentAckOutcomeValues = [
+  "established",
+  "substrate_failure",
+] as const satisfies readonly LocalAgentProvisionIntentAckOutcome[];
+
+export const LocalAgentProvisionIntentAckOutcomeValue = {
+  ESTABLISHED: "established",
+  SUBSTRATE_FAILURE: "substrate_failure",
+} as const satisfies Record<string, LocalAgentProvisionIntentAckOutcome>;
+
+export const LocalAgentProvisionIntentStatusValues = [
+  "OPEN",
+  "ACKED",
+  "FAILED",
+] as const satisfies readonly LocalAgentProvisionIntentStatus[];
+
+export const LocalAgentProvisionIntentStatusValue = {
+  OPEN: "OPEN",
+  ACKED: "ACKED",
+  FAILED: "FAILED",
+} as const satisfies Record<string, LocalAgentProvisionIntentStatus>;
+
+export const LocalAgentTerminationIntentAckOutcomeValues = [
+  "terminated",
+  "substrate_failure",
+] as const satisfies readonly LocalAgentTerminationIntentAckOutcome[];
+
+export const LocalAgentTerminationIntentAckOutcomeValue = {
+  TERMINATED: "terminated",
+  SUBSTRATE_FAILURE: "substrate_failure",
+} as const satisfies Record<string, LocalAgentTerminationIntentAckOutcome>;
+
+export const LocalAgentTerminationIntentStatusValues = [
+  "OPEN",
+  "ACKED",
+  "FAILED",
+] as const satisfies readonly LocalAgentTerminationIntentStatus[];
+
+export const LocalAgentTerminationIntentStatusValue = {
+  OPEN: "OPEN",
+  ACKED: "ACKED",
+  FAILED: "FAILED",
+} as const satisfies Record<string, LocalAgentTerminationIntentStatus>;
+
+export const MessageTypeValues = [
+  "TEXT",
+  "ATTACHMENT",
+  "POST_REF",
+  "USER_REF",
+  "LINK_REF",
+  "GIFT",
+  "FRIEND_REQUEST",
+  "SYSTEM",
+  "RECALL",
+] as const satisfies readonly MessageType[];
+
+export const MessageTypeValue = {
+  TEXT: "TEXT",
+  ATTACHMENT: "ATTACHMENT",
+  POST_REF: "POST_REF",
+  USER_REF: "USER_REF",
+  LINK_REF: "LINK_REF",
+  GIFT: "GIFT",
+  FRIEND_REQUEST: "FRIEND_REQUEST",
+  SYSTEM: "SYSTEM",
+  RECALL: "RECALL",
+} as const satisfies Record<string, MessageType>;
+
+export const ModerationStatusStringValues = [
+  "ACTIVE",
+  "UNDER_REVIEW",
+  "FLAGGED",
+  "BANNED",
+] as const satisfies readonly ModerationStatusString[];
+
+export const ModerationStatusStringValue = {
+  ACTIVE: "ACTIVE",
+  UNDER_REVIEW: "UNDER_REVIEW",
+  FLAGGED: "FLAGGED",
+  BANNED: "BANNED",
+} as const satisfies Record<string, ModerationStatusString>;
+
+export const OAuthProviderValues = [
+  "GOOGLE",
+  "WECHAT",
+  "TWITTER",
+  "TIKTOK",
+] as const satisfies readonly OAuthProvider[];
+
+export const OAuthProviderValue = {
+  GOOGLE: "GOOGLE",
+  WECHAT: "WECHAT",
+  TWITTER: "TWITTER",
+  TIKTOK: "TIKTOK",
+} as const satisfies Record<string, OAuthProvider>;
+
+export const PresenceStatusValues = [
+  "online",
+  "invisible",
+] as const satisfies readonly PresenceStatus[];
+
+export const PresenceStatusValue = {
+  ONLINE: "online",
+  INVISIBLE: "invisible",
+} as const satisfies Record<string, PresenceStatus>;
+
+export const ReportReasonValues = [
+  "SPAM",
+  "NSFW",
+  "HATE_SPEECH",
+  "SCAM",
+  "OTHER",
+] as const satisfies readonly ReportReason[];
+
+export const ReportReasonValue = {
+  SPAM: "SPAM",
+  NSFW: "NSFW",
+  HATE_SPEECH: "HATE_SPEECH",
+  SCAM: "SCAM",
+  OTHER: "OTHER",
+} as const satisfies Record<string, ReportReason>;
+
+export const ReviewRatingValues = [
+  "POSITIVE",
+  "NEGATIVE",
+] as const satisfies readonly ReviewRating[];
+
+export const ReviewRatingValue = {
+  POSITIVE: "POSITIVE",
+  NEGATIVE: "NEGATIVE",
+} as const satisfies Record<string, ReviewRating>;
+
+export const StripeConnectStatusValues = [
+  "NOT_CREATED",
+  "PENDING",
+  "VERIFIED",
+  "RESTRICTED",
+  "DISABLED",
+] as const satisfies readonly StripeConnectStatus[];
+
+export const StripeConnectStatusValue = {
+  NOT_CREATED: "NOT_CREATED",
+  PENDING: "PENDING",
+  VERIFIED: "VERIFIED",
+  RESTRICTED: "RESTRICTED",
+  DISABLED: "DISABLED",
+} as const satisfies Record<string, StripeConnectStatus>;
+
+export const SubscriptionTierValues = [
+  "FREE",
+  "PRO",
+  "MAX",
+] as const satisfies readonly SubscriptionTier[];
+
+export const SubscriptionTierValue = {
+  FREE: "FREE",
+  PRO: "PRO",
+  MAX: "MAX",
+} as const satisfies Record<string, SubscriptionTier>;
+
+export const VerificationTierValues = [
+  "COMMUNITY",
+  "VERIFIED",
+  "OFFICIAL",
+] as const satisfies readonly VerificationTier[];
+
+export const VerificationTierValue = {
+  COMMUNITY: "COMMUNITY",
+  VERIFIED: "VERIFIED",
+  OFFICIAL: "OFFICIAL",
+} as const satisfies Record<string, VerificationTier>;
+
+export const VisibilityValues = [
+  "PUBLIC",
+  "FRIENDS",
+  "PRIVATE",
+] as const satisfies readonly Visibility[];
+
+export const VisibilityValue = {
+  PUBLIC: "PUBLIC",
+  FRIENDS: "FRIENDS",
+  PRIVATE: "PRIVATE",
+} as const satisfies Record<string, Visibility>;
+
+export const WithdrawalStatusValues = [
+  "PENDING",
+  "PROCESSING",
+  "COMPLETED",
+  "FAILED",
+  "CANCELLED",
+] as const satisfies readonly WithdrawalStatus[];
+
+export const WithdrawalStatusValue = {
+  PENDING: "PENDING",
+  PROCESSING: "PROCESSING",
+  COMPLETED: "COMPLETED",
+  FAILED: "FAILED",
+  CANCELLED: "CANCELLED",
+} as const satisfies Record<string, WithdrawalStatus>;
+
+export interface RealmTypedModelMap {
+  readonly "AbilityDefinitionDto": AbilityDefinitionDto;
+  readonly "AccountRole": AccountRole;
+  readonly "AccountStatus": AccountStatus;
+  readonly "AddFriendBodyDto": AddFriendBodyDto;
+  readonly "AddGroupAgentInputDto": AddGroupAgentInputDto;
+  readonly "AddGroupParticipantInputDto": AddGroupParticipantInputDto;
+  readonly "AgentAppearanceDto": AgentAppearanceDto;
+  readonly "AgentBiologicalDto": AgentBiologicalDto;
+  readonly "AgentCapabilitiesDto": AgentCapabilitiesDto;
+  readonly "AgentCategory": AgentCategory;
+  readonly "AgentCommunicationDto": AgentCommunicationDto;
+  readonly "AgentDisplayDto": AgentDisplayDto;
+  readonly "AgentDnaDto": AgentDnaDto;
+  readonly "AgentFriendLimitDto": AgentFriendLimitDto;
+  readonly "AgentHandleAvailabilityResponseDto": AgentHandleAvailabilityResponseDto;
+  readonly "AgentIdentityDto": AgentIdentityDto;
+  readonly "AgentImportance": AgentImportance;
+  readonly "AgentMetadataDto": AgentMetadataDto;
+  readonly "AgentOrigin": AgentOrigin;
+  readonly "AgentOriginDto": AgentOriginDto;
+  readonly "AgentOwnershipType": AgentOwnershipType;
+  readonly "AgentPersonalityDto": AgentPersonalityDto;
+  readonly "AgentProfileDto": AgentProfileDto;
+  readonly "AgentRelationType": AgentRelationType;
+  readonly "AgentRelationshipOtherAccountDto": AgentRelationshipOtherAccountDto;
+  readonly "AgentRelationshipRecordDto": AgentRelationshipRecordDto;
+  readonly "AgentResponseMetadataDto": AgentResponseMetadataDto;
+  readonly "AgentResponseProfileDto": AgentResponseProfileDto;
+  readonly "AgentResponseProfileStatsDto": AgentResponseProfileStatsDto;
+  readonly "AgentResponseTierSummaryDto": AgentResponseTierSummaryDto;
+  readonly "AgentResponseUserDto": AgentResponseUserDto;
+  readonly "AgentRuleDto": AgentRuleDto;
+  readonly "AgentRuleLayerCountDto": AgentRuleLayerCountDto;
+  readonly "AgentState": AgentState;
+  readonly "AgentStatsDto": AgentStatsDto;
+  readonly "AgentVisibilitySettingsDto": AgentVisibilitySettingsDto;
+  readonly "AgentVoiceConfigDto": AgentVoiceConfigDto;
+  readonly "AgentWakeStrategy": AgentWakeStrategy;
+  readonly "ApiKeyType": ApiKeyType;
+  readonly "AppendWorldHistoryDto": AppendWorldHistoryDto;
+  readonly "AssetDetailDto": AssetDetailDto;
+  readonly "AssetListDto": AssetListDto;
+  readonly "AttachmentDisplayKind": AttachmentDisplayKind;
+  readonly "AttachmentEnvelopeDto": AttachmentEnvelopeDto;
+  readonly "AttachmentReferenceDto": AttachmentReferenceDto;
+  readonly "AttachmentTargetType": AttachmentTargetType;
+  readonly "Auth2faVerifyDto": Auth2faVerifyDto;
+  readonly "AuthTokensDto": AuthTokensDto;
+  readonly "AuthUserAgentMetadataDto": AuthUserAgentMetadataDto;
+  readonly "AuthUserAgentProfileDto": AuthUserAgentProfileDto;
+  readonly "AuthUserAgentStatsDto": AuthUserAgentStatsDto;
+  readonly "AuthUserDto": AuthUserDto;
+  readonly "AuthUserSocialProfileDto": AuthUserSocialProfileDto;
+  readonly "AuthUserTierSummaryDto": AuthUserTierSummaryDto;
+  readonly "AuthUserWalletDto": AuthUserWalletDto;
+  readonly "BatchCreateAgentCreatedDto": BatchCreateAgentCreatedDto;
+  readonly "BatchCreateAgentFailedDto": BatchCreateAgentFailedDto;
+  readonly "BatchCreateAgentsRequestDto": BatchCreateAgentsRequestDto;
+  readonly "BatchCreateAgentsResponseDto": BatchCreateAgentsResponseDto;
+  readonly "BatchUpsertBindingsDto": BatchUpsertBindingsDto;
+  readonly "BindEmailDto": BindEmailDto;
+  readonly "BindingDetailDto": BindingDetailDto;
+  readonly "BindingListDto": BindingListDto;
+  readonly "BindingResourceDetailDto": BindingResourceDetailDto;
+  readonly "BindingUpsertDto": BindingUpsertDto;
+  readonly "BlockUserBodyDto": BlockUserBodyDto;
+  readonly "BundleDetailDto": BundleDetailDto;
+  readonly "BundleListDto": BundleListDto;
+  readonly "BundleMemberDto": BundleMemberDto;
+  readonly "CalendarSystemDto": CalendarSystemDto;
+  readonly "CanManageNsfwResponseDto": CanManageNsfwResponseDto;
+  readonly "CanWithdrawDto": CanWithdrawDto;
+  readonly "CausalityModelDto": CausalityModelDto;
+  readonly "CausalityRuleDto": CausalityRuleDto;
+  readonly "ChangeEmailDto": ChangeEmailDto;
+  readonly "ChatEventEnvelopeDto": ChatEventEnvelopeDto;
+  readonly "ChatFriendRequestPayloadDto": ChatFriendRequestPayloadDto;
+  readonly "ChatGiftPayloadDto": ChatGiftPayloadDto;
+  readonly "ChatLinkRefPayloadDto": ChatLinkRefPayloadDto;
+  readonly "ChatPostRefPayloadDto": ChatPostRefPayloadDto;
+  readonly "ChatSyncResultDto": ChatSyncResultDto;
+  readonly "ChatSyncSnapshotDto": ChatSyncSnapshotDto;
+  readonly "ChatTextPayloadDto": ChatTextPayloadDto;
+  readonly "ChatUserRefPayloadDto": ChatUserRefPayloadDto;
+  readonly "ChatViewDto": ChatViewDto;
+  readonly "CheckEmailDto": CheckEmailDto;
+  readonly "CheckEmailResponseDto": CheckEmailResponseDto;
+  readonly "ClassDefinitionDto": ClassDefinitionDto;
+  readonly "CloneAssetDto": CloneAssetDto;
+  readonly "CommitRealmGroupMessageCandidateInputDto": CommitRealmGroupMessageCandidateInputDto;
+  readonly "CommitWorldStateDto": CommitWorldStateDto;
+  readonly "ConnectDashboardLinkDto": ConnectDashboardLinkDto;
+  readonly "ConnectOnboardingResponseDto": ConnectOnboardingResponseDto;
+  readonly "ContentRatingString": ContentRatingString;
+  readonly "CreateAgentDto": CreateAgentDto;
+  readonly "CreateAgentResponseDto": CreateAgentResponseDto;
+  readonly "CreateAgentRuleDto": CreateAgentRuleDto;
+  readonly "CreateAgentRulesDto": CreateAgentRulesDto;
+  readonly "CreateApiKeyDto": CreateApiKeyDto;
+  readonly "CreateAssetDto": CreateAssetDto;
+  readonly "CreateAudioDirectUploadDto": CreateAudioDirectUploadDto;
+  readonly "CreateBundleDto": CreateBundleDto;
+  readonly "CreateConnectOnboardingDto": CreateConnectOnboardingDto;
+  readonly "CreateGroupInputDto": CreateGroupInputDto;
+  readonly "CreatePortalSessionDto": CreatePortalSessionDto;
+  readonly "CreatePostAttachmentDto": CreatePostAttachmentDto;
+  readonly "CreatePostDto": CreatePostDto;
+  readonly "CreateRelationshipDto": CreateRelationshipDto;
+  readonly "CreateReportDto": CreateReportDto;
+  readonly "CreateReviewDto": CreateReviewDto;
+  readonly "CreateSparkCheckoutDto": CreateSparkCheckoutDto;
+  readonly "CreateSubscriptionCheckoutDto": CreateSubscriptionCheckoutDto;
+  readonly "CreateTextResourceDto": CreateTextResourceDto;
+  readonly "CreateWithdrawalDto": CreateWithdrawalDto;
+  readonly "CreateWorldDraftDto": CreateWorldDraftDto;
+  readonly "CreateWorldRuleDto": CreateWorldRuleDto;
+  readonly "CreateWorldTransitDto": CreateWorldTransitDto;
+  readonly "CreatorAgentResponseDto": CreatorAgentResponseDto;
+  readonly "CreatorCapabilitiesResponseDto": CreatorCapabilitiesResponseDto;
+  readonly "CreatorEligibilityResponseDto": CreatorEligibilityResponseDto;
+  readonly "CurrencyBalancesDto": CurrencyBalancesDto;
+  readonly "CurrencyTransactionDto": CurrencyTransactionDto;
+  readonly "CurrencyTransactionHistoryDto": CurrencyTransactionHistoryDto;
+  readonly "CursorPageMetaDto": CursorPageMetaDto;
+  readonly "DeleteAgentOperationResponseDto": DeleteAgentOperationResponseDto;
+  readonly "DeleteRelationshipResponseDto": DeleteRelationshipResponseDto;
+  readonly "DnaSecondaryTrait": DnaSecondaryTrait;
+  readonly "EditMessageInputDto": EditMessageInputDto;
+  readonly "EmailOtpRequestDto": EmailOtpRequestDto;
+  readonly "EmailOtpResponseDto": EmailOtpResponseDto;
+  readonly "EmailOtpVerifyDto": EmailOtpVerifyDto;
+  readonly "ExistenceDefinitionDto": ExistenceDefinitionDto;
+  readonly "FactionDefinitionDto": FactionDefinitionDto;
+  readonly "FactionRelationshipDto": FactionRelationshipDto;
+  readonly "FeedPageMetaDto": FeedPageMetaDto;
+  readonly "FeedResponseDto": FeedResponseDto;
+  readonly "FinalizeResourceDto": FinalizeResourceDto;
+  readonly "FriendProfileDto": FriendProfileDto;
+  readonly "FriendProfileListDto": FriendProfileListDto;
+  readonly "Gender": Gender;
+  readonly "GiftCatalogItemDto": GiftCatalogItemDto;
+  readonly "GiftStatus": GiftStatus;
+  readonly "GiftTransactionDto": GiftTransactionDto;
+  readonly "GiftTransactionRichDto": GiftTransactionRichDto;
+  readonly "GlossaryTermDto": GlossaryTermDto;
+  readonly "GroupChatViewDto": GroupChatViewDto;
+  readonly "GroupMessageAuthorDto": GroupMessageAuthorDto;
+  readonly "GroupMessageViewDto": GroupMessageViewDto;
+  readonly "GroupParticipantDto": GroupParticipantDto;
+  readonly "HandleAvailabilityDto": HandleAvailabilityDto;
+  readonly "ImportPolicyDto": ImportPolicyDto;
+  readonly "IntrospectSessionErrorDto": IntrospectSessionErrorDto;
+  readonly "IntrospectSessionRequestDto": IntrospectSessionRequestDto;
+  readonly "IntrospectSessionResponseDto": IntrospectSessionResponseDto;
+  readonly "InvitationCodeResponseDto": InvitationCodeResponseDto;
+  readonly "InvitationCodeUsedByAccountDto": InvitationCodeUsedByAccountDto;
+  readonly "ListChatsResultDto": ListChatsResultDto;
+  readonly "ListGroupChatsResultDto": ListGroupChatsResultDto;
+  readonly "ListGroupMessagesResultDto": ListGroupMessagesResultDto;
+  readonly "ListMessagesResultDto": ListMessagesResultDto;
+  readonly "LocalAgentProvisionIntentAckDto": LocalAgentProvisionIntentAckDto;
+  readonly "LocalAgentProvisionIntentAckOutcome": LocalAgentProvisionIntentAckOutcome;
+  readonly "LocalAgentProvisionIntentDto": LocalAgentProvisionIntentDto;
+  readonly "LocalAgentProvisionIntentListDto": LocalAgentProvisionIntentListDto;
+  readonly "LocalAgentProvisionIntentStatus": LocalAgentProvisionIntentStatus;
+  readonly "LocalAgentTerminationIntentAckDto": LocalAgentTerminationIntentAckDto;
+  readonly "LocalAgentTerminationIntentAckOutcome": LocalAgentTerminationIntentAckOutcome;
+  readonly "LocalAgentTerminationIntentDto": LocalAgentTerminationIntentDto;
+  readonly "LocalAgentTerminationIntentListDto": LocalAgentTerminationIntentListDto;
+  readonly "LocalAgentTerminationIntentStatus": LocalAgentTerminationIntentStatus;
+  readonly "LocationLandmarkDto": LocationLandmarkDto;
+  readonly "LocationRegionDto": LocationRegionDto;
+  readonly "MakeAgentPublicResponseDto": MakeAgentPublicResponseDto;
+  readonly "MarkNotificationsReadInputDto": MarkNotificationsReadInputDto;
+  readonly "Me2faOperationResultDto": Me2faOperationResultDto;
+  readonly "Me2faPrepareResponseDto": Me2faPrepareResponseDto;
+  readonly "Me2faVerifyDto": Me2faVerifyDto;
+  readonly "MessageReplyViewDto": MessageReplyViewDto;
+  readonly "MessageType": MessageType;
+  readonly "MessageViewDto": MessageViewDto;
+  readonly "ModerationStatusString": ModerationStatusString;
+  readonly "MutationActorRefDto": MutationActorRefDto;
+  readonly "MutationCommitEnvelopeDto": MutationCommitEnvelopeDto;
+  readonly "MutationEvidenceRefDto": MutationEvidenceRefDto;
+  readonly "NotificationActivityDto": NotificationActivityDto;
+  readonly "NotificationActorAgentMetadataDto": NotificationActorAgentMetadataDto;
+  readonly "NotificationActorAgentProfileDto": NotificationActorAgentProfileDto;
+  readonly "NotificationActorAgentStatsDto": NotificationActorAgentStatsDto;
+  readonly "NotificationActorDto": NotificationActorDto;
+  readonly "NotificationActorTierSummaryDto": NotificationActorTierSummaryDto;
+  readonly "NotificationChannelsDto": NotificationChannelsDto;
+  readonly "NotificationDto": NotificationDto;
+  readonly "NotificationGiftsDto": NotificationGiftsDto;
+  readonly "NotificationListResultDto": NotificationListResultDto;
+  readonly "NotificationTargetDto": NotificationTargetDto;
+  readonly "NsfwConsentResponseDto": NsfwConsentResponseDto;
+  readonly "NsfwConsentStatusResponseDto": NsfwConsentStatusResponseDto;
+  readonly "OAuthLoginDto": OAuthLoginDto;
+  readonly "OAuthLoginResultDto": OAuthLoginResultDto;
+  readonly "OAuthProvider": OAuthProvider;
+  readonly "OAuthTokenRequestDto": OAuthTokenRequestDto;
+  readonly "OAuthTokenResponseDto": OAuthTokenResponseDto;
+  readonly "OwnerAgentBoundarySettingsDto": OwnerAgentBoundarySettingsDto;
+  readonly "OwnerAgentCommunicationSettingsDto": OwnerAgentCommunicationSettingsDto;
+  readonly "OwnerAgentIdentitySettingsDto": OwnerAgentIdentitySettingsDto;
+  readonly "OwnerAgentPersonalitySettingsDto": OwnerAgentPersonalitySettingsDto;
+  readonly "OwnerAgentPositioningSettingsDto": OwnerAgentPositioningSettingsDto;
+  readonly "OwnerAgentSettingsDto": OwnerAgentSettingsDto;
+  readonly "PPSlotConfigDto": PPSlotConfigDto;
+  readonly "PPSlotConfigResponseDto": PPSlotConfigResponseDto;
+  readonly "PPSlotItemDto": PPSlotItemDto;
+  readonly "PasswordLoginDto": PasswordLoginDto;
+  readonly "PasswordRegisterDto": PasswordRegisterDto;
+  readonly "PermissionCheckResponseDto": PermissionCheckResponseDto;
+  readonly "PortalSessionDto": PortalSessionDto;
+  readonly "PostAttachmentDto": PostAttachmentDto;
+  readonly "PostDto": PostDto;
+  readonly "PowerSystemDto": PowerSystemDto;
+  readonly "PowerSystemLevelDto": PowerSystemLevelDto;
+  readonly "PowerSystemTabooDto": PowerSystemTabooDto;
+  readonly "PowerTierDto": PowerTierDto;
+  readonly "PresenceStatus": PresenceStatus;
+  readonly "PublicBindingDto": PublicBindingDto;
+  readonly "PublicBindingListDto": PublicBindingListDto;
+  readonly "PublicBindingResourceDto": PublicBindingResourceDto;
+  readonly "PublicFilterDto": PublicFilterDto;
+  readonly "PublicWorldHistoryEventDto": PublicWorldHistoryEventDto;
+  readonly "PublicWorldHistoryListDto": PublicWorldHistoryListDto;
+  readonly "PublicWorldLorebookDto": PublicWorldLorebookDto;
+  readonly "PublicWorldLorebookListDto": PublicWorldLorebookListDto;
+  readonly "PublicWorldSceneDto": PublicWorldSceneDto;
+  readonly "PublicWorldSceneListDto": PublicWorldSceneListDto;
+  readonly "PublishWorldDraftDto": PublishWorldDraftDto;
+  readonly "PublishWorldDraftResultDto": PublishWorldDraftResultDto;
+  readonly "RealmGroupMessageCandidateCommitResultDto": RealmGroupMessageCandidateCommitResultDto;
+  readonly "ReceivedGiftsResponseDto": ReceivedGiftsResponseDto;
+  readonly "RefreshTokenDto": RefreshTokenDto;
+  readonly "RejectGiftDto": RejectGiftDto;
+  readonly "RelationshipResponseDto": RelationshipResponseDto;
+  readonly "RemoveAgentRelationshipDto": RemoveAgentRelationshipDto;
+  readonly "ReportReason": ReportReason;
+  readonly "ReportResponseDto": ReportResponseDto;
+  readonly "RequestAccountDeletionDto": RequestAccountDeletionDto;
+  readonly "RequestDataExportDto": RequestDataExportDto;
+  readonly "ResourceAcquisitionRuleDto": ResourceAcquisitionRuleDto;
+  readonly "ResourceConsumptionRuleDto": ResourceConsumptionRuleDto;
+  readonly "ResourceCostDto": ResourceCostDto;
+  readonly "ResourceDefinitionDto": ResourceDefinitionDto;
+  readonly "ResourceDetailDto": ResourceDetailDto;
+  readonly "ResourceDirectUploadSessionDto": ResourceDirectUploadSessionDto;
+  readonly "ResourceListDto": ResourceListDto;
+  readonly "ResourceTypeDto": ResourceTypeDto;
+  readonly "RevenueDistributionPreviewDto": RevenueDistributionPreviewDto;
+  readonly "RevenueShareConfigDto": RevenueShareConfigDto;
+  readonly "ReviewDto": ReviewDto;
+  readonly "ReviewRating": ReviewRating;
+  readonly "ReviewStatsDto": ReviewStatsDto;
+  readonly "RuleValidationResponseDto": RuleValidationResponseDto;
+  readonly "RuntimeProjectionContextEnvelopeDto": RuntimeProjectionContextEnvelopeDto;
+  readonly "RuntimeProjectionInputDto": RuntimeProjectionInputDto;
+  readonly "RuntimeProjectionPayloadDto": RuntimeProjectionPayloadDto;
+  readonly "RuntimeProjectionRequestDto": RuntimeProjectionRequestDto;
+  readonly "RuntimeProjectionResolutionOutcomeDto": RuntimeProjectionResolutionOutcomeDto;
+  readonly "RuntimeProjectionResponseDto": RuntimeProjectionResponseDto;
+  readonly "RuntimeProjectionSuppressedInputDto": RuntimeProjectionSuppressedInputDto;
+  readonly "RuntimeProjectionTraceDto": RuntimeProjectionTraceDto;
+  readonly "RuntimeRealmGrantIssueRequestDto": RuntimeRealmGrantIssueRequestDto;
+  readonly "RuntimeRealmGrantIssueResponseDto": RuntimeRealmGrantIssueResponseDto;
+  readonly "SceneConnectionDto": SceneConnectionDto;
+  readonly "SceneDefinitionDto": SceneDefinitionDto;
+  readonly "SceneTimeConfigDto": SceneTimeConfigDto;
+  readonly "SceneTimeCycleDto": SceneTimeCycleDto;
+  readonly "SceneTimePhaseDto": SceneTimePhaseDto;
+  readonly "SceneTimeSettingsDto": SceneTimeSettingsDto;
+  readonly "SelectAvatarDto": SelectAvatarDto;
+  readonly "SendGiftDto": SendGiftDto;
+  readonly "SendMessageInputDto": SendMessageInputDto;
+  readonly "SetAgentRelationshipDto": SetAgentRelationshipDto;
+  readonly "SocialProfileDto": SocialProfileDto;
+  readonly "SpaceRealmDto": SpaceRealmDto;
+  readonly "SpaceTopologyDto": SpaceTopologyDto;
+  readonly "SparkCheckoutSessionDto": SparkCheckoutSessionDto;
+  readonly "SparkPackageDto": SparkPackageDto;
+  readonly "SpeciesDefinitionDto": SpeciesDefinitionDto;
+  readonly "StartChatInputDto": StartChatInputDto;
+  readonly "StartChatResultDto": StartChatResultDto;
+  readonly "StripeConnectStatus": StripeConnectStatus;
+  readonly "StripeConnectStatusDto": StripeConnectStatusDto;
+  readonly "SubscriptionCheckoutSessionDto": SubscriptionCheckoutSessionDto;
+  readonly "SubscriptionDto": SubscriptionDto;
+  readonly "SubscriptionTier": SubscriptionTier;
+  readonly "SubscriptionTierConfigDto": SubscriptionTierConfigDto;
+  readonly "TierDetailDto": TierDetailDto;
+  readonly "TimeCycleDto": TimeCycleDto;
+  readonly "TimeModelDto": TimeModelDto;
+  readonly "TransitContextDto": TransitContextDto;
+  readonly "TransitDetailDto": TransitDetailDto;
+  readonly "TranslateRequestDto": TranslateRequestDto;
+  readonly "TranslateResponseDto": TranslateResponseDto;
+  readonly "UnreadNotificationCountDto": UnreadNotificationCountDto;
+  readonly "UpdateAgentDnaDto": UpdateAgentDnaDto;
+  readonly "UpdateAgentNsfwConsentDto": UpdateAgentNsfwConsentDto;
+  readonly "UpdateAgentRuleDto": UpdateAgentRuleDto;
+  readonly "UpdateAgentVisibilityDto": UpdateAgentVisibilityDto;
+  readonly "UpdateAssetDto": UpdateAssetDto;
+  readonly "UpdateBundleDto": UpdateBundleDto;
+  readonly "UpdateCreatorAgentDto": UpdateCreatorAgentDto;
+  readonly "UpdateGroupInputDto": UpdateGroupInputDto;
+  readonly "UpdateNsfwConsentResponseDto": UpdateNsfwConsentResponseDto;
+  readonly "UpdateOwnerAgentSettingsDto": UpdateOwnerAgentSettingsDto;
+  readonly "UpdatePPSlotConfigDto": UpdatePPSlotConfigDto;
+  readonly "UpdateParticipantRoleInputDto": UpdateParticipantRoleInputDto;
+  readonly "UpdatePasswordRequestDto": UpdatePasswordRequestDto;
+  readonly "UpdatePostDto": UpdatePostDto;
+  readonly "UpdateRelationshipDto": UpdateRelationshipDto;
+  readonly "UpdateResourceDto": UpdateResourceDto;
+  readonly "UpdateUserDto": UpdateUserDto;
+  readonly "UpdateUserNotificationSettingsDto": UpdateUserNotificationSettingsDto;
+  readonly "UpdateUserNsfwConsentDto": UpdateUserNsfwConsentDto;
+  readonly "UpdateUserSettingsDto": UpdateUserSettingsDto;
+  readonly "UpdateWorldDraftDto": UpdateWorldDraftDto;
+  readonly "UpdateWorldRuleDto": UpdateWorldRuleDto;
+  readonly "UsePolicyDto": UsePolicyDto;
+  readonly "UserAgentAppearanceDto": UserAgentAppearanceDto;
+  readonly "UserAgentBiologicalDto": UserAgentBiologicalDto;
+  readonly "UserAgentCommunicationDto": UserAgentCommunicationDto;
+  readonly "UserAgentDnaDto": UserAgentDnaDto;
+  readonly "UserAgentIdentityDto": UserAgentIdentityDto;
+  readonly "UserAgentPersonalityDto": UserAgentPersonalityDto;
+  readonly "UserAgentVoiceConfigDto": UserAgentVoiceConfigDto;
+  readonly "UserCapabilitiesDto": UserCapabilitiesDto;
+  readonly "UserFeatureCapabilitiesDto": UserFeatureCapabilitiesDto;
+  readonly "UserLiteDto": UserLiteDto;
+  readonly "UserNotificationSettingsDto": UserNotificationSettingsDto;
+  readonly "UserPrivateDto": UserPrivateDto;
+  readonly "UserProfileDto": UserProfileDto;
+  readonly "UserSearchResponseDto": UserSearchResponseDto;
+  readonly "UserSettingsDto": UserSettingsDto;
+  readonly "UserStatsDto": UserStatsDto;
+  readonly "UserTierSummaryDto": UserTierSummaryDto;
+  readonly "UserWalletDto": UserWalletDto;
+  readonly "UserWalletListResponseDto": UserWalletListResponseDto;
+  readonly "ValidateRulesDto": ValidateRulesDto;
+  readonly "VerificationTier": VerificationTier;
+  readonly "VerifyInvitationCodeDto": VerifyInvitationCodeDto;
+  readonly "Visibility": Visibility;
+  readonly "VisualGuideDto": VisualGuideDto;
+  readonly "WalletBindDto": WalletBindDto;
+  readonly "WalletChallengeDto": WalletChallengeDto;
+  readonly "WalletChallengeResponseDto": WalletChallengeResponseDto;
+  readonly "WalletLoginDto": WalletLoginDto;
+  readonly "WalletPrepareBindDto": WalletPrepareBindDto;
+  readonly "WalletPrepareBindResponseDto": WalletPrepareBindResponseDto;
+  readonly "WithdrawalConfigDto": WithdrawalConfigDto;
+  readonly "WithdrawalDto": WithdrawalDto;
+  readonly "WithdrawalHistoryDto": WithdrawalHistoryDto;
+  readonly "WithdrawalStatus": WithdrawalStatus;
+  readonly "WithdrawalSummaryDto": WithdrawalSummaryDto;
+  readonly "WorldAccessRecordDto": WorldAccessRecordDto;
+  readonly "WorldAccessSummaryDto": WorldAccessSummaryDto;
+  readonly "WorldAgentRuleSummaryDto": WorldAgentRuleSummaryDto;
+  readonly "WorldAgentSummaryDto": WorldAgentSummaryDto;
+  readonly "WorldClockConfigDto": WorldClockConfigDto;
+  readonly "WorldClockEraDto": WorldClockEraDto;
+  readonly "WorldComputedEntryDto": WorldComputedEntryDto;
+  readonly "WorldComputedLanguagesDto": WorldComputedLanguagesDto;
+  readonly "WorldComputedScoreDto": WorldComputedScoreDto;
+  readonly "WorldComputedTimeDto": WorldComputedTimeDto;
+  readonly "WorldDetailDto": WorldDetailDto;
+  readonly "WorldDetailWithAgentsDto": WorldDetailWithAgentsDto;
+  readonly "WorldDisplayComputedDto": WorldDisplayComputedDto;
+  readonly "WorldDraftDetailDto": WorldDraftDetailDto;
+  readonly "WorldDraftHistoryBucketsDto": WorldDraftHistoryBucketsDto;
+  readonly "WorldDraftHistoryDraftDto": WorldDraftHistoryDraftDto;
+  readonly "WorldDraftHistoryEventDto": WorldDraftHistoryEventDto;
+  readonly "WorldDraftImportSourceDto": WorldDraftImportSourceDto;
+  readonly "WorldDraftPayloadDto": WorldDraftPayloadDto;
+  readonly "WorldDraftStateDraftDto": WorldDraftStateDraftDto;
+  readonly "WorldDraftSummaryDto": WorldDraftSummaryDto;
+  readonly "WorldDraftSummaryListDto": WorldDraftSummaryListDto;
+  readonly "WorldDraftTruthDraftDto": WorldDraftTruthDraftDto;
+  readonly "WorldDraftTruthRuleDto": WorldDraftTruthRuleDto;
+  readonly "WorldEventEvidenceRefDto": WorldEventEvidenceRefDto;
+  readonly "WorldEventEvidenceRefInputDto": WorldEventEvidenceRefInputDto;
+  readonly "WorldHistoryAppendItemDto": WorldHistoryAppendItemDto;
+  readonly "WorldHistoryEventDto": WorldHistoryEventDto;
+  readonly "WorldHistoryListDto": WorldHistoryListDto;
+  readonly "WorldHistoryRelatedStateRefDto": WorldHistoryRelatedStateRefDto;
+  readonly "WorldLandingDecisionDto": WorldLandingDecisionDto;
+  readonly "WorldLanguageDto": WorldLanguageDto;
+  readonly "WorldLevelAuditEventDto": WorldLevelAuditEventDto;
+  readonly "WorldLorebookDetailDto": WorldLorebookDetailDto;
+  readonly "WorldLorebookListDto": WorldLorebookListDto;
+  readonly "WorldRecommendedAgentDto": WorldRecommendedAgentDto;
+  readonly "WorldRuleDto": WorldRuleDto;
+  readonly "WorldRuleItemDto": WorldRuleItemDto;
+  readonly "WorldStateDto": WorldStateDto;
+  readonly "WorldStateRecordDto": WorldStateRecordDto;
+  readonly "WorldStateWriteDto": WorldStateWriteDto;
+  readonly "WorldSummaryDto": WorldSummaryDto;
+  readonly "WorldSummaryListDto": WorldSummaryListDto;
+  readonly "WorldTimeFormatDto": WorldTimeFormatDto;
+  readonly "WorldTruthDto": WorldTruthDto;
+  readonly "WorldviewDetailDto": WorldviewDetailDto;
+  readonly "WorldviewGlossaryDto": WorldviewGlossaryDto;
+  readonly "WorldviewLanguagesDto": WorldviewLanguagesDto;
+  readonly "WorldviewLocationsDto": WorldviewLocationsDto;
+  readonly "WorldviewTruthRuleSummaryDto": WorldviewTruthRuleSummaryDto;
+}
+
+export type RealmTypedModelName = keyof RealmTypedModelMap & string;
+export type RealmTypedModel<Name extends RealmTypedModelName> = RealmTypedModelMap[Name];
+
 export interface RealmAckMyLocalAgentProvisionIntentOperationRequest {
   readonly path: {
     readonly intentId: string;
@@ -3754,97 +4559,6 @@ export interface RealmCreatorControllerUpdateAgentOperationRequest {
   readonly body: UpdateCreatorAgentDto;
 }
 export type RealmCreatorControllerUpdateAgentOperationResponse = CreatorAgentResponseDto;
-export interface RealmCreatorModsControllerIngestAuditOperationRequest {
-  readonly path: {
-
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body: CreatorModControlAuditIngestRequestDto;
-}
-export type RealmCreatorModsControllerIngestAuditOperationResponse = Record<string, never>;
-export interface RealmCreatorModsControllerIssueGrantOperationRequest {
-  readonly path: {
-
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body: CreatorModControlGrantIssueRequestDto;
-}
-export type RealmCreatorModsControllerIssueGrantOperationResponse = CreatorModControlGrantIssueResponseDto;
-export interface RealmCreatorModsControllerQueryAuditOperationRequest {
-  readonly path: {
-
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmCreatorModsControllerQueryAuditOperationResponse = Record<string, never>;
-export interface RealmCreatorModsControllerRevocationsOperationRequest {
-  readonly path: {
-
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body?: Record<string, never>;
-}
-export type RealmCreatorModsControllerRevocationsOperationResponse = Record<string, never>;
-export interface RealmCreatorModsControllerValidateGrantOperationRequest {
-  readonly path: {
-
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body: CreatorModControlGrantValidateRequestDto;
-}
-export type RealmCreatorModsControllerValidateGrantOperationResponse = Record<string, never>;
-export interface RealmCreatorModsControllerVerifyManifestOperationRequest {
-  readonly path: {
-
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body: CreatorModControlManifestVerifyRequestDto;
-}
-export type RealmCreatorModsControllerVerifyManifestOperationResponse = Record<string, never>;
-export interface RealmCreatorModsControllerVerifySignatureOperationRequest {
-  readonly path: {
-
-  };
-  readonly query?: {
-
-  };
-  readonly headers?: {
-
-  };
-  readonly body: CreatorModControlSignatureVerifyRequestDto;
-}
-export type RealmCreatorModsControllerVerifySignatureOperationResponse = Record<string, never>;
 export interface RealmDeletePostOperationRequest {
   readonly path: {
     readonly id: string;
@@ -7048,76 +7762,6 @@ export class RealmTypedClient {
   async creatorControllerUpdateAgent(request: RealmCreatorControllerUpdateAgentOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmCreatorControllerUpdateAgentOperationResponse> {
     return this.core.unary<RealmCreatorControllerUpdateAgentOperationResponse, RealmCreatorControllerUpdateAgentOperationRequest>({
       methodId: "CreatorController_updateAgent",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-    });
-  }
-
-  async creatorModsControllerIngestAudit(request: RealmCreatorModsControllerIngestAuditOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmCreatorModsControllerIngestAuditOperationResponse> {
-    return this.core.unary<RealmCreatorModsControllerIngestAuditOperationResponse, RealmCreatorModsControllerIngestAuditOperationRequest>({
-      methodId: "CreatorModsController_ingestAudit",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-    });
-  }
-
-  async creatorModsControllerIssueGrant(request: RealmCreatorModsControllerIssueGrantOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmCreatorModsControllerIssueGrantOperationResponse> {
-    return this.core.unary<RealmCreatorModsControllerIssueGrantOperationResponse, RealmCreatorModsControllerIssueGrantOperationRequest>({
-      methodId: "CreatorModsController_issueGrant",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-    });
-  }
-
-  async creatorModsControllerQueryAudit(request: RealmCreatorModsControllerQueryAuditOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmCreatorModsControllerQueryAuditOperationResponse> {
-    return this.core.unary<RealmCreatorModsControllerQueryAuditOperationResponse, RealmCreatorModsControllerQueryAuditOperationRequest>({
-      methodId: "CreatorModsController_queryAudit",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-    });
-  }
-
-  async creatorModsControllerRevocations(request: RealmCreatorModsControllerRevocationsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmCreatorModsControllerRevocationsOperationResponse> {
-    return this.core.unary<RealmCreatorModsControllerRevocationsOperationResponse, RealmCreatorModsControllerRevocationsOperationRequest>({
-      methodId: "CreatorModsController_revocations",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-    });
-  }
-
-  async creatorModsControllerValidateGrant(request: RealmCreatorModsControllerValidateGrantOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmCreatorModsControllerValidateGrantOperationResponse> {
-    return this.core.unary<RealmCreatorModsControllerValidateGrantOperationResponse, RealmCreatorModsControllerValidateGrantOperationRequest>({
-      methodId: "CreatorModsController_validateGrant",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-    });
-  }
-
-  async creatorModsControllerVerifyManifest(request: RealmCreatorModsControllerVerifyManifestOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmCreatorModsControllerVerifyManifestOperationResponse> {
-    return this.core.unary<RealmCreatorModsControllerVerifyManifestOperationResponse, RealmCreatorModsControllerVerifyManifestOperationRequest>({
-      methodId: "CreatorModsController_verifyManifest",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-    });
-  }
-
-  async creatorModsControllerVerifySignature(request: RealmCreatorModsControllerVerifySignatureOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmCreatorModsControllerVerifySignatureOperationResponse> {
-    return this.core.unary<RealmCreatorModsControllerVerifySignatureOperationResponse, RealmCreatorModsControllerVerifySignatureOperationRequest>({
-      methodId: "CreatorModsController_verifySignature",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,

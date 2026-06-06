@@ -3978,6 +3978,17 @@ class PendingHook:
     admitted_at: str | None = None
 
 @dataclass(frozen=True)
+class PrepareProfileRuntimeDescriptorRequest:
+    descriptor_json: bytes | None = None
+
+@dataclass(frozen=True)
+class PrepareProfileRuntimeDescriptorResponse:
+    descriptor_id: str | None = None
+    profile_id: str | None = None
+    requirement_ids: tuple[str, ...] = field(default_factory=tuple)
+    slice_results: tuple[ProfileRuntimeDescriptorSlicePrepareResult, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
 class ProductControlProjectionJson:
     json: str | None = None
 
@@ -3985,6 +3996,16 @@ class ProductControlProjectionJson:
 class ProfileEntryOverride:
     entry_id: str | None = None
     local_asset_id: str | None = None
+
+@dataclass(frozen=True)
+class ProfileRuntimeDescriptorSlicePrepareResult:
+    slice_id: str | None = None
+    capability: str | None = None
+    outcome: str | None = None
+    reason_codes: tuple[str, ...] = field(default_factory=tuple)
+    materialization_key: str | None = None
+    workflow_binding_id: str | None = None
+    reusable_asset_healthy: bool | None = None
 
 @dataclass(frozen=True)
 class ProviderCatalogEntry:
@@ -5725,903 +5746,907 @@ class RuntimeTypedClient:
             yield _decode_model(response_type, event)
 
     async def begin_login(self, request: BeginLoginRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> BeginLoginResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAccountService/BeginLogin", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAccountService/BeginLogin", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(BeginLoginResponse, raw)
 
     async def complete_login(self, request: CompleteLoginRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> CompleteLoginResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAccountService/CompleteLogin", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAccountService/CompleteLogin", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(CompleteLoginResponse, raw)
 
     async def get_access_token(self, request: GetAccessTokenRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetAccessTokenResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAccountService/GetAccessToken", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAccountService/GetAccessToken", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetAccessTokenResponse, raw)
 
     async def get_account_session_status(self, request: GetAccountSessionStatusRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetAccountSessionStatusResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAccountService/GetAccountSessionStatus", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetAccountSessionStatusResponse, raw)
 
     async def issue_scoped_app_binding(self, request: IssueScopedAppBindingRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> IssueScopedAppBindingResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAccountService/IssueScopedAppBinding", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAccountService/IssueScopedAppBinding", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(IssueScopedAppBindingResponse, raw)
 
     async def issue_workspace_binding(self, request: IssueWorkspaceBindingRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> IssueWorkspaceBindingResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAccountService/IssueWorkspaceBinding", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAccountService/IssueWorkspaceBinding", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(IssueWorkspaceBindingResponse, raw)
 
     async def logout(self, request: LogoutRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> LogoutResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAccountService/Logout", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAccountService/Logout", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(LogoutResponse, raw)
 
     async def refresh_account_session(self, request: RefreshAccountSessionRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RefreshAccountSessionResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAccountService/RefreshAccountSession", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAccountService/RefreshAccountSession", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(RefreshAccountSessionResponse, raw)
 
     async def revoke_scoped_app_binding(self, request: RevokeScopedAppBindingRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RevokeScopedAppBindingResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAccountService/RevokeScopedAppBinding", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAccountService/RevokeScopedAppBinding", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(RevokeScopedAppBindingResponse, raw)
 
     async def revoke_workspace_binding(self, request: RevokeWorkspaceBindingRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RevokeWorkspaceBindingResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAccountService/RevokeWorkspaceBinding", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAccountService/RevokeWorkspaceBinding", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(RevokeWorkspaceBindingResponse, raw)
 
     def subscribe_account_session_events(self, request: SubscribeAccountSessionEventsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AsyncIterator[AccountSessionEvent]:
-        return self._stream("/runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents", _model_body(request), AccountSessionEvent, metadata=metadata, timeout_ms=timeout_ms)
+        return self._stream("/nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents", _model_body(request), AccountSessionEvent, metadata=metadata, timeout_ms=timeout_ms)
 
     async def switch_account(self, request: SwitchAccountRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> SwitchAccountResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAccountService/SwitchAccount", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAccountService/SwitchAccount", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(SwitchAccountResponse, raw)
 
     async def cancel_companion_participation(self, request: CancelCompanionParticipationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> CancelCompanionParticipationResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAgentService/CancelCompanionParticipation", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/CancelCompanionParticipation", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(CancelCompanionParticipationResponse, raw)
 
     async def cancel_hook(self, request: CancelHookRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> CancelHookResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAgentService/CancelHook", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/CancelHook", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(CancelHookResponse, raw)
 
     async def create_realm_group_message_candidate(self, request: CreateRealmGroupMessageCandidateRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> CreateRealmGroupMessageCandidateResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAgentService/CreateRealmGroupMessageCandidate", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/CreateRealmGroupMessageCandidate", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(CreateRealmGroupMessageCandidateResponse, raw)
 
     async def disable_autonomy(self, request: DisableAutonomyRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> DisableAutonomyResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAgentService/DisableAutonomy", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(DisableAutonomyResponse, raw)
 
     async def enable_autonomy(self, request: EnableAutonomyRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> EnableAutonomyResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAgentService/EnableAutonomy", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/EnableAutonomy", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(EnableAutonomyResponse, raw)
 
     async def execute_delegated_capability(self, request: ExecuteDelegatedCapabilityRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ExecuteDelegatedCapabilityResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAgentService/ExecuteDelegatedCapability", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ExecuteDelegatedCapability", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ExecuteDelegatedCapabilityResponse, raw)
 
     async def get_agent(self, request: GetAgentRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetAgentResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAgentService/GetAgent", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetAgent", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetAgentResponse, raw)
 
     async def get_agent_canonical_memory_bank_status(self, request: GetAgentCanonicalMemoryBankStatusRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetAgentCanonicalMemoryBankStatusResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetAgentCanonicalMemoryBankStatusResponse, raw)
 
     async def get_agent_state(self, request: GetAgentStateRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetAgentStateResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAgentService/GetAgentState", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetAgentState", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetAgentStateResponse, raw)
 
     async def get_avatar_debug_replay(self, request: GetAvatarDebugReplayRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetAvatarDebugReplayResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAgentService/GetAvatarDebugReplay", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugReplay", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetAvatarDebugReplayResponse, raw)
 
     async def get_avatar_debug_snapshot(self, request: GetAvatarDebugSnapshotRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetAvatarDebugSnapshotResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAgentService/GetAvatarDebugSnapshot", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugSnapshot", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetAvatarDebugSnapshotResponse, raw)
 
     async def get_companion_participation_projection(self, request: GetCompanionParticipationProjectionRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetCompanionParticipationProjectionResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAgentService/GetCompanionParticipationProjection", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetCompanionParticipationProjection", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetCompanionParticipationProjectionResponse, raw)
 
     async def get_conversation_anchor_snapshot(self, request: GetConversationAnchorSnapshotRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetConversationAnchorSnapshotResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetConversationAnchorSnapshotResponse, raw)
 
     async def get_delegated_control_surface_snapshot(self, request: GetDelegatedControlSurfaceSnapshotRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetDelegatedControlSurfaceSnapshotResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAgentService/GetDelegatedControlSurfaceSnapshot", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetDelegatedControlSurfaceSnapshot", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetDelegatedControlSurfaceSnapshotResponse, raw)
 
     async def get_delegated_replay_trace(self, request: GetDelegatedReplayTraceRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetDelegatedReplayTraceResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAgentService/GetDelegatedReplayTrace", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetDelegatedReplayTrace", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetDelegatedReplayTraceResponse, raw)
 
     async def get_public_chat_session_snapshot(self, request: GetPublicChatSessionSnapshotRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetPublicChatSessionSnapshotResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetPublicChatSessionSnapshotResponse, raw)
 
     async def get_realm_group_message_candidate_evidence(self, request: GetRealmGroupMessageCandidateEvidenceRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetRealmGroupMessageCandidateEvidenceResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAgentService/GetRealmGroupMessageCandidateEvidence", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetRealmGroupMessageCandidateEvidence", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetRealmGroupMessageCandidateEvidenceResponse, raw)
 
     async def initialize_agent(self, request: InitializeAgentRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> InitializeAgentResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAgentService/InitializeAgent", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/InitializeAgent", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(InitializeAgentResponse, raw)
 
     async def list_agent_conversation_summaries(self, request: ListAgentConversationSummariesRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListAgentConversationSummariesResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAgentService/ListAgentConversationSummaries", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ListAgentConversationSummaries", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListAgentConversationSummariesResponse, raw)
 
     async def list_agents(self, request: ListAgentsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListAgentsResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAgentService/ListAgents", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ListAgents", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListAgentsResponse, raw)
 
     async def list_avatar_debug_probe_results(self, request: ListAvatarDebugProbeResultsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListAvatarDebugProbeResultsResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAgentService/ListAvatarDebugProbeResults", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ListAvatarDebugProbeResults", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListAvatarDebugProbeResultsResponse, raw)
 
     async def list_delegated_approval_requests(self, request: ListDelegatedApprovalRequestsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListDelegatedApprovalRequestsResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAgentService/ListDelegatedApprovalRequests", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ListDelegatedApprovalRequests", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListDelegatedApprovalRequestsResponse, raw)
 
     async def list_delegated_diagnostics(self, request: ListDelegatedDiagnosticsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListDelegatedDiagnosticsResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAgentService/ListDelegatedDiagnostics", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ListDelegatedDiagnostics", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListDelegatedDiagnosticsResponse, raw)
 
     async def list_delegated_provider_profiles(self, request: ListDelegatedProviderProfilesRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListDelegatedProviderProfilesResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAgentService/ListDelegatedProviderProfiles", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ListDelegatedProviderProfiles", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListDelegatedProviderProfilesResponse, raw)
 
     async def list_pending_hooks(self, request: ListPendingHooksRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListPendingHooksResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAgentService/ListPendingHooks", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ListPendingHooks", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListPendingHooksResponse, raw)
 
     async def open_companion_participation_replay(self, request: OpenCompanionParticipationReplayRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> OpenCompanionParticipationReplayResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAgentService/OpenCompanionParticipationReplay", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/OpenCompanionParticipationReplay", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(OpenCompanionParticipationReplayResponse, raw)
 
     async def open_conversation_anchor(self, request: OpenConversationAnchorRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> OpenConversationAnchorResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAgentService/OpenConversationAnchor", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(OpenConversationAnchorResponse, raw)
 
     async def query_agent_memory(self, request: QueryAgentMemoryRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> QueryAgentMemoryResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAgentService/QueryAgentMemory", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/QueryAgentMemory", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(QueryAgentMemoryResponse, raw)
 
     async def register_avatar_live_instance_binding(self, request: RegisterAvatarLiveInstanceBindingRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RegisterAvatarLiveInstanceBindingResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(RegisterAvatarLiveInstanceBindingResponse, raw)
 
     async def request_agent_canonical_memory_bank_bind(self, request: RequestAgentCanonicalMemoryBankBindRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RequestAgentCanonicalMemoryBankBindResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAgentService/RequestAgentCanonicalMemoryBankBind", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/RequestAgentCanonicalMemoryBankBind", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(RequestAgentCanonicalMemoryBankBindResponse, raw)
 
     async def request_avatar_debug_probe(self, request: RequestAvatarDebugProbeRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RequestAvatarDebugProbeResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAgentService/RequestAvatarDebugProbe", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/RequestAvatarDebugProbe", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(RequestAvatarDebugProbeResponse, raw)
 
     async def request_companion_participation(self, request: RequestCompanionParticipationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RequestCompanionParticipationResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAgentService/RequestCompanionParticipation", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/RequestCompanionParticipation", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(RequestCompanionParticipationResponse, raw)
 
     async def resolve_avatar_live_instance_binding(self, request: ResolveAvatarLiveInstanceBindingRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ResolveAvatarLiveInstanceBindingResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ResolveAvatarLiveInstanceBindingResponse, raw)
 
     async def set_agent_presentation_profile(self, request: SetAgentPresentationProfileRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> SetAgentPresentationProfileResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAgentService/SetAgentPresentationProfile", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(SetAgentPresentationProfileResponse, raw)
 
     async def set_autonomy_config(self, request: SetAutonomyConfigRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> SetAutonomyConfigResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAgentService/SetAutonomyConfig", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/SetAutonomyConfig", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(SetAutonomyConfigResponse, raw)
 
     async def set_delegated_provider_state(self, request: SetDelegatedProviderStateRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> SetDelegatedProviderStateResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAgentService/SetDelegatedProviderState", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/SetDelegatedProviderState", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(SetDelegatedProviderStateResponse, raw)
 
     async def submit_delegated_approval_decision(self, request: SubmitDelegatedApprovalDecisionRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> SubmitDelegatedApprovalDecisionResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAgentService/SubmitDelegatedApprovalDecision", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/SubmitDelegatedApprovalDecision", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(SubmitDelegatedApprovalDecisionResponse, raw)
 
     def subscribe_agent_events(self, request: SubscribeAgentEventsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AsyncIterator[AgentEvent]:
-        return self._stream("/runtime.v1.RuntimeAgentService/SubscribeAgentEvents", _model_body(request), AgentEvent, metadata=metadata, timeout_ms=timeout_ms)
+        return self._stream("/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents", _model_body(request), AgentEvent, metadata=metadata, timeout_ms=timeout_ms)
 
     async def terminate_agent(self, request: TerminateAgentRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> TerminateAgentResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAgentService/TerminateAgent", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/TerminateAgent", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(TerminateAgentResponse, raw)
 
     async def update_agent_state(self, request: UpdateAgentStateRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> UpdateAgentStateResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAgentService/UpdateAgentState", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(UpdateAgentStateResponse, raw)
 
     async def upsert_delegated_provider_profile(self, request: UpsertDelegatedProviderProfileRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> UpsertDelegatedProviderProfileResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAgentService/UpsertDelegatedProviderProfile", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/UpsertDelegatedProviderProfile", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(UpsertDelegatedProviderProfileResponse, raw)
 
     async def write_agent_memory(self, request: WriteAgentMemoryRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> WriteAgentMemoryResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAgentService/WriteAgentMemory", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/WriteAgentMemory", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(WriteAgentMemoryResponse, raw)
 
     async def append_realtime_input(self, request: AppendRealtimeInputRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AppendRealtimeInputResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAiRealtimeService/AppendRealtimeInput", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAiRealtimeService/AppendRealtimeInput", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(AppendRealtimeInputResponse, raw)
 
     async def close_realtime_session(self, request: CloseRealtimeSessionRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> CloseRealtimeSessionResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAiRealtimeService/CloseRealtimeSession", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAiRealtimeService/CloseRealtimeSession", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(CloseRealtimeSessionResponse, raw)
 
     async def open_realtime_session(self, request: OpenRealtimeSessionRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> OpenRealtimeSessionResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAiRealtimeService/OpenRealtimeSession", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAiRealtimeService/OpenRealtimeSession", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(OpenRealtimeSessionResponse, raw)
 
     def read_realtime_events(self, request: ReadRealtimeEventsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AsyncIterator[RealtimeEvent]:
-        return self._stream("/runtime.v1.RuntimeAiRealtimeService/ReadRealtimeEvents", _model_body(request), RealtimeEvent, metadata=metadata, timeout_ms=timeout_ms)
+        return self._stream("/nimi.runtime.v1.RuntimeAiRealtimeService/ReadRealtimeEvents", _model_body(request), RealtimeEvent, metadata=metadata, timeout_ms=timeout_ms)
 
     async def cancel_scenario_job(self, request: CancelScenarioJobRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> CancelScenarioJobResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAiService/CancelScenarioJob", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAiService/CancelScenarioJob", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(CancelScenarioJobResponse, raw)
 
     async def delete_voice_asset(self, request: DeleteVoiceAssetRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> DeleteVoiceAssetResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAiService/DeleteVoiceAsset", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAiService/DeleteVoiceAsset", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(DeleteVoiceAssetResponse, raw)
 
     async def execute_scenario(self, request: ExecuteScenarioRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ExecuteScenarioResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAiService/ExecuteScenario", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAiService/ExecuteScenario", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ExecuteScenarioResponse, raw)
 
     async def get_scenario_artifacts(self, request: GetScenarioArtifactsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetScenarioArtifactsResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAiService/GetScenarioArtifacts", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetScenarioArtifactsResponse, raw)
 
     async def get_scenario_job(self, request: GetScenarioJobRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetScenarioJobResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAiService/GetScenarioJob", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAiService/GetScenarioJob", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetScenarioJobResponse, raw)
 
     async def get_voice_asset(self, request: GetVoiceAssetRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetVoiceAssetResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAiService/GetVoiceAsset", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAiService/GetVoiceAsset", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetVoiceAssetResponse, raw)
 
     async def list_preset_voices(self, request: ListPresetVoicesRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListPresetVoicesResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAiService/ListPresetVoices", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAiService/ListPresetVoices", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListPresetVoicesResponse, raw)
 
     async def list_scenario_profiles(self, request: ListScenarioProfilesRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListScenarioProfilesResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAiService/ListScenarioProfiles", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAiService/ListScenarioProfiles", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListScenarioProfilesResponse, raw)
 
     async def list_voice_assets(self, request: ListVoiceAssetsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListVoiceAssetsResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAiService/ListVoiceAssets", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAiService/ListVoiceAssets", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListVoiceAssetsResponse, raw)
 
     async def peek_scheduling(self, request: PeekSchedulingRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> PeekSchedulingResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAiService/PeekScheduling", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAiService/PeekScheduling", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(PeekSchedulingResponse, raw)
 
     def stream_scenario(self, request: StreamScenarioRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AsyncIterator[StreamScenarioEvent]:
-        return self._stream("/runtime.v1.RuntimeAiService/StreamScenario", _model_body(request), StreamScenarioEvent, metadata=metadata, timeout_ms=timeout_ms)
+        return self._stream("/nimi.runtime.v1.RuntimeAiService/StreamScenario", _model_body(request), StreamScenarioEvent, metadata=metadata, timeout_ms=timeout_ms)
 
     async def submit_scenario_job(self, request: SubmitScenarioJobRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> SubmitScenarioJobResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAiService/SubmitScenarioJob", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAiService/SubmitScenarioJob", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(SubmitScenarioJobResponse, raw)
 
     def subscribe_scenario_job_events(self, request: SubscribeScenarioJobEventsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AsyncIterator[ScenarioJobEvent]:
-        return self._stream("/runtime.v1.RuntimeAiService/SubscribeScenarioJobEvents", _model_body(request), ScenarioJobEvent, metadata=metadata, timeout_ms=timeout_ms)
+        return self._stream("/nimi.runtime.v1.RuntimeAiService/SubscribeScenarioJobEvents", _model_body(request), ScenarioJobEvent, metadata=metadata, timeout_ms=timeout_ms)
 
     async def upload_artifact(self, request: UploadArtifactRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> UploadArtifactResponse:
-        raise RuntimeError("SDK_RUNTIME_METHOD_UNAVAILABLE: Runtime method kind is not supported by the unary/server-stream core transport: /runtime.v1.RuntimeAiService/UploadArtifact")
+        raise RuntimeError("SDK_RUNTIME_METHOD_UNAVAILABLE: Runtime method kind is not supported by the unary/server-stream core transport: /nimi.runtime.v1.RuntimeAiService/UploadArtifact")
 
     async def get_account_app_library(self, request: GetAccountAppLibraryRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetAccountAppLibraryResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAppService/GetAccountAppLibrary", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAppService/GetAccountAppLibrary", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetAccountAppLibraryResponse, raw)
 
     async def get_app_install_job(self, request: GetAppInstallJobRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetAppInstallJobResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAppService/GetAppInstallJob", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAppService/GetAppInstallJob", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetAppInstallJobResponse, raw)
 
     async def get_app_package_readiness(self, request: GetAppPackageReadinessRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetAppPackageReadinessResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAppService/GetAppPackageReadiness", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAppService/GetAppPackageReadiness", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetAppPackageReadinessResponse, raw)
 
     async def get_app_storage(self, request: GetAppStorageRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetAppStorageResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAppService/GetAppStorage", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAppService/GetAppStorage", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetAppStorageResponse, raw)
 
     async def health_repair_app(self, request: HealthRepairAppRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> HealthRepairAppResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAppService/HealthRepairApp", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAppService/HealthRepairApp", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(HealthRepairAppResponse, raw)
 
     async def install_app(self, request: InstallAppRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> InstallAppResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAppService/InstallApp", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAppService/InstallApp", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(InstallAppResponse, raw)
 
     async def list_app_install_jobs(self, request: ListAppInstallJobsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListAppInstallJobsResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAppService/ListAppInstallJobs", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAppService/ListAppInstallJobs", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListAppInstallJobsResponse, raw)
 
     async def open_app(self, request: OpenAppRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> OpenAppResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAppService/OpenApp", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAppService/OpenApp", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(OpenAppResponse, raw)
 
     async def send_app_message(self, request: SendAppMessageRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> SendAppMessageResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAppService/SendAppMessage", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAppService/SendAppMessage", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(SendAppMessageResponse, raw)
 
     def subscribe_app_messages(self, request: SubscribeAppMessagesRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AsyncIterator[AppMessageEvent]:
-        return self._stream("/runtime.v1.RuntimeAppService/SubscribeAppMessages", _model_body(request), AppMessageEvent, metadata=metadata, timeout_ms=timeout_ms)
+        return self._stream("/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages", _model_body(request), AppMessageEvent, metadata=metadata, timeout_ms=timeout_ms)
 
     async def uninstall_app(self, request: UninstallAppRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> UninstallAppResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAppService/UninstallApp", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAppService/UninstallApp", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(UninstallAppResponse, raw)
 
     async def update_app(self, request: UpdateAppRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> UpdateAppResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAppService/UpdateApp", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAppService/UpdateApp", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(UpdateAppResponse, raw)
 
     def watch_app_install_job_events(self, request: WatchAppInstallJobEventsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AsyncIterator[AppInstallJobEvent]:
-        return self._stream("/runtime.v1.RuntimeAppService/WatchAppInstallJobEvents", _model_body(request), AppInstallJobEvent, metadata=metadata, timeout_ms=timeout_ms)
+        return self._stream("/nimi.runtime.v1.RuntimeAppService/WatchAppInstallJobEvents", _model_body(request), AppInstallJobEvent, metadata=metadata, timeout_ms=timeout_ms)
 
     async def read_artifact_bytes(self, request: ReadArtifactBytesRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ReadArtifactBytesResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeArtifactService/ReadArtifactBytes", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ReadArtifactBytesResponse, raw)
 
     def export_audit_events(self, request: ExportAuditEventsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AsyncIterator[AuditExportChunk]:
-        return self._stream("/runtime.v1.RuntimeAuditService/ExportAuditEvents", _model_body(request), AuditExportChunk, metadata=metadata, timeout_ms=timeout_ms)
+        return self._stream("/nimi.runtime.v1.RuntimeAuditService/ExportAuditEvents", _model_body(request), AuditExportChunk, metadata=metadata, timeout_ms=timeout_ms)
 
     async def get_runtime_health(self, request: GetRuntimeHealthRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetRuntimeHealthResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAuditService/GetRuntimeHealth", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetRuntimeHealthResponse, raw)
 
     async def list_aiprovider_health(self, request: ListAIProviderHealthRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListAIProviderHealthResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAuditService/ListAIProviderHealth", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAuditService/ListAIProviderHealth", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListAIProviderHealthResponse, raw)
 
     async def list_audit_events(self, request: ListAuditEventsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListAuditEventsResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAuditService/ListAuditEvents", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAuditService/ListAuditEvents", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListAuditEventsResponse, raw)
 
     async def list_usage_stats(self, request: ListUsageStatsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListUsageStatsResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAuditService/ListUsageStats", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAuditService/ListUsageStats", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListUsageStatsResponse, raw)
 
     def subscribe_aiprovider_health_events(self, request: SubscribeAIProviderHealthEventsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AsyncIterator[AIProviderHealthEvent]:
-        return self._stream("/runtime.v1.RuntimeAuditService/SubscribeAIProviderHealthEvents", _model_body(request), AIProviderHealthEvent, metadata=metadata, timeout_ms=timeout_ms)
+        return self._stream("/nimi.runtime.v1.RuntimeAuditService/SubscribeAIProviderHealthEvents", _model_body(request), AIProviderHealthEvent, metadata=metadata, timeout_ms=timeout_ms)
 
     def subscribe_runtime_health_events(self, request: SubscribeRuntimeHealthEventsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AsyncIterator[RuntimeHealthEvent]:
-        return self._stream("/runtime.v1.RuntimeAuditService/SubscribeRuntimeHealthEvents", _model_body(request), RuntimeHealthEvent, metadata=metadata, timeout_ms=timeout_ms)
+        return self._stream("/nimi.runtime.v1.RuntimeAuditService/SubscribeRuntimeHealthEvents", _model_body(request), RuntimeHealthEvent, metadata=metadata, timeout_ms=timeout_ms)
 
     async def open_external_principal_session(self, request: OpenExternalPrincipalSessionRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> OpenExternalPrincipalSessionResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAuthService/OpenExternalPrincipalSession", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAuthService/OpenExternalPrincipalSession", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(OpenExternalPrincipalSessionResponse, raw)
 
     async def open_session(self, request: OpenSessionRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> OpenSessionResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAuthService/OpenSession", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAuthService/OpenSession", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(OpenSessionResponse, raw)
 
     async def refresh_session(self, request: RefreshSessionRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RefreshSessionResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAuthService/RefreshSession", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAuthService/RefreshSession", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(RefreshSessionResponse, raw)
 
     async def register_app(self, request: RegisterAppRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RegisterAppResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAuthService/RegisterApp", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAuthService/RegisterApp", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(RegisterAppResponse, raw)
 
     async def register_external_principal(self, request: RegisterExternalPrincipalRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RegisterExternalPrincipalResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAuthService/RegisterExternalPrincipal", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAuthService/RegisterExternalPrincipal", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(RegisterExternalPrincipalResponse, raw)
 
     async def revoke_external_principal_session(self, request: RevokeExternalPrincipalSessionRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> Ack:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAuthService/RevokeExternalPrincipalSession", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAuthService/RevokeExternalPrincipalSession", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(Ack, raw)
 
     async def revoke_session(self, request: RevokeSessionRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> Ack:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeAuthService/RevokeSession", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAuthService/RevokeSession", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(Ack, raw)
 
     async def add_link(self, request: AddLinkRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AddLinkResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeCognitionService/AddLink", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeCognitionService/AddLink", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(AddLinkResponse, raw)
 
     async def create_bank(self, request: CreateBankRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> CreateBankResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeCognitionService/CreateBank", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeCognitionService/CreateBank", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(CreateBankResponse, raw)
 
     async def create_knowledge_bank(self, request: CreateKnowledgeBankRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> CreateKnowledgeBankResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeCognitionService/CreateKnowledgeBank", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeCognitionService/CreateKnowledgeBank", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(CreateKnowledgeBankResponse, raw)
 
     async def delete_bank(self, request: DeleteBankRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> DeleteBankResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeCognitionService/DeleteBank", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeCognitionService/DeleteBank", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(DeleteBankResponse, raw)
 
     async def delete_knowledge_bank(self, request: DeleteKnowledgeBankRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> DeleteKnowledgeBankResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeCognitionService/DeleteKnowledgeBank", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeCognitionService/DeleteKnowledgeBank", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(DeleteKnowledgeBankResponse, raw)
 
     async def delete_memory(self, request: DeleteMemoryRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> DeleteMemoryResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeCognitionService/DeleteMemory", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeCognitionService/DeleteMemory", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(DeleteMemoryResponse, raw)
 
     async def delete_page(self, request: DeletePageRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> DeletePageResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeCognitionService/DeletePage", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeCognitionService/DeletePage", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(DeletePageResponse, raw)
 
     async def get_bank(self, request: GetBankRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetBankResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeCognitionService/GetBank", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeCognitionService/GetBank", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetBankResponse, raw)
 
     async def get_ingest_task(self, request: GetIngestTaskRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetIngestTaskResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeCognitionService/GetIngestTask", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeCognitionService/GetIngestTask", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetIngestTaskResponse, raw)
 
     async def get_knowledge_bank(self, request: GetKnowledgeBankRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetKnowledgeBankResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeCognitionService/GetKnowledgeBank", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeCognitionService/GetKnowledgeBank", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetKnowledgeBankResponse, raw)
 
     async def get_memory_embedding_runtime_intent(self, request: GetMemoryEmbeddingRuntimeIntentRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetMemoryEmbeddingRuntimeIntentResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeCognitionService/GetMemoryEmbeddingRuntimeIntent", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeCognitionService/GetMemoryEmbeddingRuntimeIntent", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetMemoryEmbeddingRuntimeIntentResponse, raw)
 
     async def get_page(self, request: GetPageRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetPageResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeCognitionService/GetPage", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeCognitionService/GetPage", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetPageResponse, raw)
 
     async def history(self, request: HistoryRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> HistoryResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeCognitionService/History", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeCognitionService/History", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(HistoryResponse, raw)
 
     async def ingest_document(self, request: IngestDocumentRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> IngestDocumentResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeCognitionService/IngestDocument", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeCognitionService/IngestDocument", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(IngestDocumentResponse, raw)
 
     async def inspect_memory_embedding_runtime(self, request: InspectMemoryEmbeddingRuntimeRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> InspectMemoryEmbeddingRuntimeResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeCognitionService/InspectMemoryEmbeddingRuntime", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeCognitionService/InspectMemoryEmbeddingRuntime", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(InspectMemoryEmbeddingRuntimeResponse, raw)
 
     async def list_backlinks(self, request: ListBacklinksRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListBacklinksResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeCognitionService/ListBacklinks", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeCognitionService/ListBacklinks", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListBacklinksResponse, raw)
 
     async def list_banks(self, request: ListBanksRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListBanksResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeCognitionService/ListBanks", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeCognitionService/ListBanks", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListBanksResponse, raw)
 
     async def list_knowledge_banks(self, request: ListKnowledgeBanksRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListKnowledgeBanksResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeCognitionService/ListKnowledgeBanks", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeCognitionService/ListKnowledgeBanks", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListKnowledgeBanksResponse, raw)
 
     async def list_links(self, request: ListLinksRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListLinksResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeCognitionService/ListLinks", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeCognitionService/ListLinks", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListLinksResponse, raw)
 
     async def list_pages(self, request: ListPagesRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListPagesResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeCognitionService/ListPages", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeCognitionService/ListPages", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListPagesResponse, raw)
 
     async def put_page(self, request: PutPageRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> PutPageResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeCognitionService/PutPage", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeCognitionService/PutPage", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(PutPageResponse, raw)
 
     async def recall(self, request: RecallRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RecallResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeCognitionService/Recall", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeCognitionService/Recall", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(RecallResponse, raw)
 
     async def remove_link(self, request: RemoveLinkRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RemoveLinkResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeCognitionService/RemoveLink", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeCognitionService/RemoveLink", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(RemoveLinkResponse, raw)
 
     async def request_memory_embedding_runtime_bind(self, request: RequestMemoryEmbeddingRuntimeBindRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RequestMemoryEmbeddingRuntimeBindResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeCognitionService/RequestMemoryEmbeddingRuntimeBind", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeCognitionService/RequestMemoryEmbeddingRuntimeBind", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(RequestMemoryEmbeddingRuntimeBindResponse, raw)
 
     async def request_memory_embedding_runtime_cutover(self, request: RequestMemoryEmbeddingRuntimeCutoverRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RequestMemoryEmbeddingRuntimeCutoverResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeCognitionService/RequestMemoryEmbeddingRuntimeCutover", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeCognitionService/RequestMemoryEmbeddingRuntimeCutover", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(RequestMemoryEmbeddingRuntimeCutoverResponse, raw)
 
     async def retain(self, request: RetainRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RetainResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeCognitionService/Retain", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeCognitionService/Retain", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(RetainResponse, raw)
 
     async def search_hybrid(self, request: SearchHybridRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> SearchHybridResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeCognitionService/SearchHybrid", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeCognitionService/SearchHybrid", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(SearchHybridResponse, raw)
 
     async def search_keyword(self, request: SearchKeywordRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> SearchKeywordResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeCognitionService/SearchKeyword", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeCognitionService/SearchKeyword", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(SearchKeywordResponse, raw)
 
     async def set_memory_embedding_runtime_intent(self, request: SetMemoryEmbeddingRuntimeIntentRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> SetMemoryEmbeddingRuntimeIntentResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeCognitionService/SetMemoryEmbeddingRuntimeIntent", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeCognitionService/SetMemoryEmbeddingRuntimeIntent", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(SetMemoryEmbeddingRuntimeIntentResponse, raw)
 
     def subscribe_memory_events(self, request: SubscribeMemoryEventsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AsyncIterator[MemoryEvent]:
-        return self._stream("/runtime.v1.RuntimeCognitionService/SubscribeMemoryEvents", _model_body(request), MemoryEvent, metadata=metadata, timeout_ms=timeout_ms)
+        return self._stream("/nimi.runtime.v1.RuntimeCognitionService/SubscribeMemoryEvents", _model_body(request), MemoryEvent, metadata=metadata, timeout_ms=timeout_ms)
 
     async def traverse_graph(self, request: TraverseGraphRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> TraverseGraphResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeCognitionService/TraverseGraph", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeCognitionService/TraverseGraph", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(TraverseGraphResponse, raw)
 
     async def create_connector(self, request: CreateConnectorRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> CreateConnectorResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeConnectorService/CreateConnector", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeConnectorService/CreateConnector", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(CreateConnectorResponse, raw)
 
     async def delete_catalog_model_overlay(self, request: DeleteCatalogModelOverlayRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> DeleteCatalogModelOverlayResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeConnectorService/DeleteCatalogModelOverlay", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeConnectorService/DeleteCatalogModelOverlay", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(DeleteCatalogModelOverlayResponse, raw)
 
     async def delete_connector(self, request: DeleteConnectorRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> DeleteConnectorResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeConnectorService/DeleteConnector", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeConnectorService/DeleteConnector", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(DeleteConnectorResponse, raw)
 
     async def delete_model_catalog_provider(self, request: DeleteModelCatalogProviderRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> DeleteModelCatalogProviderResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeConnectorService/DeleteModelCatalogProvider", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeConnectorService/DeleteModelCatalogProvider", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(DeleteModelCatalogProviderResponse, raw)
 
     async def get_catalog_model_detail(self, request: GetCatalogModelDetailRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetCatalogModelDetailResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeConnectorService/GetCatalogModelDetail", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeConnectorService/GetCatalogModelDetail", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetCatalogModelDetailResponse, raw)
 
     async def get_connector(self, request: GetConnectorRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetConnectorResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeConnectorService/GetConnector", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeConnectorService/GetConnector", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetConnectorResponse, raw)
 
     async def list_catalog_provider_models(self, request: ListCatalogProviderModelsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListCatalogProviderModelsResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeConnectorService/ListCatalogProviderModels", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeConnectorService/ListCatalogProviderModels", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListCatalogProviderModelsResponse, raw)
 
     async def list_connector_models(self, request: ListConnectorModelsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListConnectorModelsResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeConnectorService/ListConnectorModels", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeConnectorService/ListConnectorModels", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListConnectorModelsResponse, raw)
 
     async def list_connectors(self, request: ListConnectorsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListConnectorsResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeConnectorService/ListConnectors", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeConnectorService/ListConnectors", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListConnectorsResponse, raw)
 
     async def list_model_catalog_providers(self, request: ListModelCatalogProvidersRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListModelCatalogProvidersResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeConnectorService/ListModelCatalogProviders", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeConnectorService/ListModelCatalogProviders", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListModelCatalogProvidersResponse, raw)
 
     async def list_provider_catalog(self, request: ListProviderCatalogRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListProviderCatalogResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeConnectorService/ListProviderCatalog", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeConnectorService/ListProviderCatalog", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListProviderCatalogResponse, raw)
 
     async def test_connector(self, request: TestConnectorRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> TestConnectorResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeConnectorService/TestConnector", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeConnectorService/TestConnector", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(TestConnectorResponse, raw)
 
     async def update_connector(self, request: UpdateConnectorRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> UpdateConnectorResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeConnectorService/UpdateConnector", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeConnectorService/UpdateConnector", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(UpdateConnectorResponse, raw)
 
     async def upsert_catalog_model_overlay(self, request: UpsertCatalogModelOverlayRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> UpsertCatalogModelOverlayResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeConnectorService/UpsertCatalogModelOverlay", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeConnectorService/UpsertCatalogModelOverlay", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(UpsertCatalogModelOverlayResponse, raw)
 
     async def upsert_model_catalog_provider(self, request: UpsertModelCatalogProviderRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> UpsertModelCatalogProviderResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeConnectorService/UpsertModelCatalogProvider", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeConnectorService/UpsertModelCatalogProvider", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(UpsertModelCatalogProviderResponse, raw)
 
     async def get_external_agent_gateway_status(self, request: ExternalAgentGatewayStatusRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ExternalAgentGatewayStatusResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeExternalAgentService/GetExternalAgentGatewayStatus", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeExternalAgentService/GetExternalAgentGatewayStatus", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ExternalAgentGatewayStatusResponse, raw)
 
     async def issue_external_agent_token(self, request: ExternalAgentIssueTokenRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ExternalAgentIssueTokenResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeExternalAgentService/IssueExternalAgentToken", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeExternalAgentService/IssueExternalAgentToken", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ExternalAgentIssueTokenResponse, raw)
 
     async def list_external_agent_tokens(self, request: ExternalAgentListTokensRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ExternalAgentListTokensResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeExternalAgentService/ListExternalAgentTokens", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeExternalAgentService/ListExternalAgentTokens", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ExternalAgentListTokensResponse, raw)
 
     async def revoke_external_agent_token(self, request: ExternalAgentRevokeTokenRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> Ack:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeExternalAgentService/RevokeExternalAgentToken", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeExternalAgentService/RevokeExternalAgentToken", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(Ack, raw)
 
     async def authorize_external_principal(self, request: AuthorizeExternalPrincipalRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AuthorizeExternalPrincipalResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeGrantService/AuthorizeExternalPrincipal", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeGrantService/AuthorizeExternalPrincipal", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(AuthorizeExternalPrincipalResponse, raw)
 
     async def issue_delegated_access_token(self, request: IssueDelegatedAccessTokenRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> IssueDelegatedAccessTokenResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeGrantService/IssueDelegatedAccessToken", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeGrantService/IssueDelegatedAccessToken", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(IssueDelegatedAccessTokenResponse, raw)
 
     async def list_token_chain(self, request: ListTokenChainRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListTokenChainResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeGrantService/ListTokenChain", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeGrantService/ListTokenChain", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListTokenChainResponse, raw)
 
     async def revoke_app_access_token(self, request: RevokeAppAccessTokenRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> Ack:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeGrantService/RevokeAppAccessToken", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeGrantService/RevokeAppAccessToken", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(Ack, raw)
 
     async def validate_app_access_token(self, request: ValidateAppAccessTokenRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ValidateAppAccessTokenResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeGrantService/ValidateAppAccessToken", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeGrantService/ValidateAppAccessToken", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ValidateAppAccessTokenResponse, raw)
 
     async def admit_product_control_ready_for_use(self, request: AdmitProductControlReadyForUseRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ProductControlProjectionJson:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ProductControlProjectionJson, raw)
 
     async def append_inference_audit(self, request: AppendInferenceAuditRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> Ack:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/AppendInferenceAudit", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/AppendInferenceAudit", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(Ack, raw)
 
     async def append_runtime_audit(self, request: AppendRuntimeAuditRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> Ack:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/AppendRuntimeAudit", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/AppendRuntimeAudit", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(Ack, raw)
 
     async def apply_profile(self, request: ApplyProfileRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ApplyProfileResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/ApplyProfile", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/ApplyProfile", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ApplyProfileResponse, raw)
 
     async def cancel_local_environment_dependency_job(self, request: CancelLocalEnvironmentDependencyJobRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> CancelLocalEnvironmentDependencyJobResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/CancelLocalEnvironmentDependencyJob", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/CancelLocalEnvironmentDependencyJob", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(CancelLocalEnvironmentDependencyJobResponse, raw)
 
     async def cancel_local_transfer(self, request: CancelLocalTransferRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> CancelLocalTransferResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/CancelLocalTransfer", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/CancelLocalTransfer", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(CancelLocalTransferResponse, raw)
 
     async def check_local_asset_health(self, request: CheckLocalAssetHealthRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> CheckLocalAssetHealthResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/CheckLocalAssetHealth", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/CheckLocalAssetHealth", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(CheckLocalAssetHealthResponse, raw)
 
     async def check_local_service_health(self, request: CheckLocalServiceHealthRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> CheckLocalServiceHealthResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/CheckLocalServiceHealth", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/CheckLocalServiceHealth", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(CheckLocalServiceHealthResponse, raw)
 
     async def collect_device_profile(self, request: CollectDeviceProfileRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> CollectDeviceProfileResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/CollectDeviceProfile", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/CollectDeviceProfile", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(CollectDeviceProfileResponse, raw)
 
     async def complete_product_control_first_run_device_environment_scan(self, request: CompleteProductControlFirstRunDeviceEnvironmentScanRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ProductControlProjectionJson:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ProductControlProjectionJson, raw)
 
     async def ensure_engine(self, request: EnsureEngineRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> EnsureEngineResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/EnsureEngine", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/EnsureEngine", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(EnsureEngineResponse, raw)
 
     async def ensure_product_control_record_created(self, request: EnsureProductControlRecordCreatedRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ProductControlProjectionJson:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/EnsureProductControlRecordCreated", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/EnsureProductControlRecordCreated", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ProductControlProjectionJson, raw)
 
     async def execute_local_state_cutover(self, request: ExecuteLocalStateCutoverRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ExecuteLocalStateCutoverResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/ExecuteLocalStateCutover", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/ExecuteLocalStateCutover", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ExecuteLocalStateCutoverResponse, raw)
 
     async def get_engine_status(self, request: GetEngineStatusRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetEngineStatusResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/GetEngineStatus", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/GetEngineStatus", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetEngineStatusResponse, raw)
 
     async def get_product_control_record(self, request: GetProductControlRecordRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ProductControlProjectionJson:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/GetProductControlRecord", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ProductControlProjectionJson, raw)
 
     async def get_product_control_selected_data_root(self, request: GetProductControlSelectedDataRootRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ProductControlProjectionJson:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/GetProductControlSelectedDataRoot", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/GetProductControlSelectedDataRoot", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ProductControlProjectionJson, raw)
 
     async def get_recommendation_feed(self, request: GetRecommendationFeedRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetRecommendationFeedResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/GetRecommendationFeed", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/GetRecommendationFeed", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetRecommendationFeedResponse, raw)
 
     async def import_local_asset(self, request: ImportLocalAssetRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ImportLocalAssetResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/ImportLocalAsset", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/ImportLocalAsset", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ImportLocalAssetResponse, raw)
 
     async def import_local_asset_bundle(self, request: ImportLocalAssetBundleRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ImportLocalAssetBundleResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/ImportLocalAssetBundle", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/ImportLocalAssetBundle", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ImportLocalAssetBundleResponse, raw)
 
     async def import_local_asset_file(self, request: ImportLocalAssetFileRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ImportLocalAssetFileResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/ImportLocalAssetFile", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/ImportLocalAssetFile", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ImportLocalAssetFileResponse, raw)
 
     async def install_local_service(self, request: InstallLocalServiceRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> InstallLocalServiceResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/InstallLocalService", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/InstallLocalService", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(InstallLocalServiceResponse, raw)
 
     async def install_model_from_plan(self, request: InstallModelFromPlanRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> InstallModelFromPlanResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/InstallModelFromPlan", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/InstallModelFromPlan", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(InstallModelFromPlanResponse, raw)
 
     async def install_verified_asset(self, request: InstallVerifiedAssetRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> InstallVerifiedAssetResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/InstallVerifiedAsset", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/InstallVerifiedAsset", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(InstallVerifiedAssetResponse, raw)
 
     async def list_catalog_variants(self, request: ListCatalogVariantsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListCatalogVariantsResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/ListCatalogVariants", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/ListCatalogVariants", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListCatalogVariantsResponse, raw)
 
     async def list_engines(self, request: ListEnginesRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListEnginesResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/ListEngines", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/ListEngines", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListEnginesResponse, raw)
 
     async def list_local_assets(self, request: ListLocalAssetsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListLocalAssetsResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/ListLocalAssets", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/ListLocalAssets", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListLocalAssetsResponse, raw)
 
     async def list_local_audits(self, request: ListLocalAuditsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListLocalAuditsResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/ListLocalAudits", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/ListLocalAudits", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListLocalAuditsResponse, raw)
 
     async def list_local_environment_dependency_jobs(self, request: ListLocalEnvironmentDependencyJobsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListLocalEnvironmentDependencyJobsResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/ListLocalEnvironmentDependencyJobs", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/ListLocalEnvironmentDependencyJobs", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListLocalEnvironmentDependencyJobsResponse, raw)
 
     async def list_local_environment_selected_sources(self, request: ListLocalEnvironmentSelectedSourcesRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListLocalEnvironmentSelectedSourcesResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/ListLocalEnvironmentSelectedSources", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/ListLocalEnvironmentSelectedSources", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListLocalEnvironmentSelectedSourcesResponse, raw)
 
     async def list_local_services(self, request: ListLocalServicesRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListLocalServicesResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/ListLocalServices", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/ListLocalServices", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListLocalServicesResponse, raw)
 
     async def list_local_transfers(self, request: ListLocalTransfersRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListLocalTransfersResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/ListLocalTransfers", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/ListLocalTransfers", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListLocalTransfersResponse, raw)
 
     async def list_node_catalog(self, request: ListNodeCatalogRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListNodeCatalogResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/ListNodeCatalog", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/ListNodeCatalog", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListNodeCatalogResponse, raw)
 
     async def list_verified_assets(self, request: ListVerifiedAssetsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListVerifiedAssetsResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/ListVerifiedAssets", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/ListVerifiedAssets", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListVerifiedAssetsResponse, raw)
 
     async def mint_first_run_execution_evidence(self, request: MintFirstRunExecutionEvidenceRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> MintFirstRunExecutionEvidenceResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/MintFirstRunExecutionEvidence", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/MintFirstRunExecutionEvidence", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(MintFirstRunExecutionEvidenceResponse, raw)
 
     async def mint_runtime_baseline_readiness(self, request: MintRuntimeBaselineReadinessRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> MintRuntimeBaselineReadinessResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/MintRuntimeBaselineReadiness", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/MintRuntimeBaselineReadiness", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(MintRuntimeBaselineReadinessResponse, raw)
 
     async def pause_local_transfer(self, request: PauseLocalTransferRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> PauseLocalTransferResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/PauseLocalTransfer", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/PauseLocalTransfer", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(PauseLocalTransferResponse, raw)
 
+    async def prepare_profile_runtime_descriptor(self, request: PrepareProfileRuntimeDescriptorRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> PrepareProfileRuntimeDescriptorResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/PrepareProfileRuntimeDescriptor", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(PrepareProfileRuntimeDescriptorResponse, raw)
+
     async def reconcile_product_control_first_run_setup_state(self, request: ReconcileProductControlFirstRunSetupStateRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ProductControlProjectionJson:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ProductControlProjectionJson, raw)
 
     async def record_product_control_account_default_profile_evidence(self, request: RecordProductControlAccountDefaultProfileEvidenceRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ProductControlProjectionJson:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/RecordProductControlAccountDefaultProfileEvidence", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/RecordProductControlAccountDefaultProfileEvidence", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ProductControlProjectionJson, raw)
 
     async def record_product_control_first_run_local_ai_ready_evidence(self, request: RecordProductControlFirstRunLocalAiReadyEvidenceRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ProductControlProjectionJson:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/RecordProductControlFirstRunLocalAiReadyEvidence", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/RecordProductControlFirstRunLocalAiReadyEvidence", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ProductControlProjectionJson, raw)
 
     async def remove_local_asset(self, request: RemoveLocalAssetRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RemoveLocalAssetResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/RemoveLocalAsset", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/RemoveLocalAsset", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(RemoveLocalAssetResponse, raw)
 
     async def remove_local_service(self, request: RemoveLocalServiceRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RemoveLocalServiceResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/RemoveLocalService", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/RemoveLocalService", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(RemoveLocalServiceResponse, raw)
 
     async def repair_local_environment_dependency(self, request: RepairLocalEnvironmentDependencyRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RepairLocalEnvironmentDependencyResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/RepairLocalEnvironmentDependency", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/RepairLocalEnvironmentDependency", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(RepairLocalEnvironmentDependencyResponse, raw)
 
     async def rescan_local_asset_bundle(self, request: RescanLocalAssetBundleRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RescanLocalAssetBundleResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/RescanLocalAssetBundle", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/RescanLocalAssetBundle", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(RescanLocalAssetBundleResponse, raw)
 
     async def resolve_first_run_execution_evidence(self, request: ResolveFirstRunExecutionEvidenceRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ResolveFirstRunExecutionEvidenceResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/ResolveFirstRunExecutionEvidence", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/ResolveFirstRunExecutionEvidence", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ResolveFirstRunExecutionEvidenceResponse, raw)
 
     async def resolve_local_environment_activation_gate(self, request: ResolveLocalEnvironmentActivationGateRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ResolveLocalEnvironmentActivationGateResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentActivationGate", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentActivationGate", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ResolveLocalEnvironmentActivationGateResponse, raw)
 
     async def resolve_local_environment_plan(self, request: ResolveLocalEnvironmentPlanRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ResolveLocalEnvironmentPlanResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentPlan", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentPlan", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ResolveLocalEnvironmentPlanResponse, raw)
 
     async def resolve_local_state_reconciliation(self, request: ResolveLocalStateReconciliationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ResolveLocalStateReconciliationResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/ResolveLocalStateReconciliation", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/ResolveLocalStateReconciliation", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ResolveLocalStateReconciliationResponse, raw)
 
     async def resolve_model_install_plan(self, request: ResolveModelInstallPlanRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ResolveModelInstallPlanResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/ResolveModelInstallPlan", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/ResolveModelInstallPlan", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ResolveModelInstallPlanResponse, raw)
 
     async def resolve_profile(self, request: ResolveProfileRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ResolveProfileResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/ResolveProfile", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/ResolveProfile", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ResolveProfileResponse, raw)
 
     async def resolve_runtime_baseline_readiness(self, request: ResolveRuntimeBaselineReadinessRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ResolveRuntimeBaselineReadinessResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/ResolveRuntimeBaselineReadiness", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/ResolveRuntimeBaselineReadiness", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ResolveRuntimeBaselineReadinessResponse, raw)
 
     async def resume_local_transfer(self, request: ResumeLocalTransferRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ResumeLocalTransferResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/ResumeLocalTransfer", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/ResumeLocalTransfer", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ResumeLocalTransferResponse, raw)
 
     async def retry_local_environment_dependency_job(self, request: RetryLocalEnvironmentDependencyJobRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RetryLocalEnvironmentDependencyJobResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/RetryLocalEnvironmentDependencyJob", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/RetryLocalEnvironmentDependencyJob", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(RetryLocalEnvironmentDependencyJobResponse, raw)
 
     async def scaffold_orphan_asset(self, request: ScaffoldOrphanAssetRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ScaffoldOrphanAssetResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/ScaffoldOrphanAsset", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/ScaffoldOrphanAsset", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ScaffoldOrphanAssetResponse, raw)
 
     async def scan_unregistered_assets(self, request: ScanUnregisteredAssetsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ScanUnregisteredAssetsResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/ScanUnregisteredAssets", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/ScanUnregisteredAssets", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ScanUnregisteredAssetsResponse, raw)
 
     async def search_catalog_models(self, request: SearchCatalogModelsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> SearchCatalogModelsResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/SearchCatalogModels", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/SearchCatalogModels", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(SearchCatalogModelsResponse, raw)
 
     async def select_product_control_data_root(self, request: SelectProductControlDataRootRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ProductControlProjectionJson:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/SelectProductControlDataRoot", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/SelectProductControlDataRoot", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ProductControlProjectionJson, raw)
 
     async def set_product_control_first_run_install_level(self, request: SetProductControlFirstRunInstallLevelRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ProductControlProjectionJson:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/SetProductControlFirstRunInstallLevel", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/SetProductControlFirstRunInstallLevel", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ProductControlProjectionJson, raw)
 
     async def start_engine(self, request: StartEngineRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> StartEngineResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/StartEngine", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/StartEngine", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(StartEngineResponse, raw)
 
     async def start_local_asset(self, request: StartLocalAssetRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> StartLocalAssetResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/StartLocalAsset", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/StartLocalAsset", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(StartLocalAssetResponse, raw)
 
     async def start_local_environment_dependency_job(self, request: StartLocalEnvironmentDependencyJobRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> StartLocalEnvironmentDependencyJobResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/StartLocalEnvironmentDependencyJob", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/StartLocalEnvironmentDependencyJob", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(StartLocalEnvironmentDependencyJobResponse, raw)
 
     async def start_local_service(self, request: StartLocalServiceRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> StartLocalServiceResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/StartLocalService", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/StartLocalService", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(StartLocalServiceResponse, raw)
 
     async def stop_engine(self, request: StopEngineRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> StopEngineResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/StopEngine", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/StopEngine", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(StopEngineResponse, raw)
 
     async def stop_local_asset(self, request: StopLocalAssetRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> StopLocalAssetResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/StopLocalAsset", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/StopLocalAsset", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(StopLocalAssetResponse, raw)
 
     async def stop_local_service(self, request: StopLocalServiceRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> StopLocalServiceResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/StopLocalService", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/StopLocalService", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(StopLocalServiceResponse, raw)
 
     async def warm_local_asset(self, request: WarmLocalAssetRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> WarmLocalAssetResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeLocalService/WarmLocalAsset", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/WarmLocalAsset", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(WarmLocalAssetResponse, raw)
 
     def watch_local_transfers(self, request: WatchLocalTransfersRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AsyncIterator[LocalTransferProgressEvent]:
-        return self._stream("/runtime.v1.RuntimeLocalService/WatchLocalTransfers", _model_body(request), LocalTransferProgressEvent, metadata=metadata, timeout_ms=timeout_ms)
+        return self._stream("/nimi.runtime.v1.RuntimeLocalService/WatchLocalTransfers", _model_body(request), LocalTransferProgressEvent, metadata=metadata, timeout_ms=timeout_ms)
 
     async def check_model_health(self, request: CheckModelHealthRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> CheckModelHealthResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeModelService/CheckModelHealth", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeModelService/CheckModelHealth", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(CheckModelHealthResponse, raw)
 
     async def list_models(self, request: ListModelsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListModelsResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeModelService/ListModels", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeModelService/ListModels", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListModelsResponse, raw)
 
     async def pull_model(self, request: PullModelRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> PullModelResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeModelService/PullModel", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeModelService/PullModel", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(PullModelResponse, raw)
 
     async def remove_model(self, request: RemoveModelRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> Ack:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeModelService/RemoveModel", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeModelService/RemoveModel", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(Ack, raw)
 
     async def cancel_workflow(self, request: CancelWorkflowRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> Ack:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeWorkflowService/CancelWorkflow", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeWorkflowService/CancelWorkflow", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(Ack, raw)
 
     async def get_workflow(self, request: GetWorkflowRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetWorkflowResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeWorkflowService/GetWorkflow", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeWorkflowService/GetWorkflow", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetWorkflowResponse, raw)
 
     async def submit_workflow(self, request: SubmitWorkflowRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> SubmitWorkflowResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/runtime.v1.RuntimeWorkflowService/SubmitWorkflow", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeWorkflowService/SubmitWorkflow", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(SubmitWorkflowResponse, raw)
 
     def subscribe_workflow_events(self, request: SubscribeWorkflowEventsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AsyncIterator[WorkflowEvent]:
-        return self._stream("/runtime.v1.RuntimeWorkflowService/SubscribeWorkflowEvents", _model_body(request), WorkflowEvent, metadata=metadata, timeout_ms=timeout_ms)
+        return self._stream("/nimi.runtime.v1.RuntimeWorkflowService/SubscribeWorkflowEvents", _model_body(request), WorkflowEvent, metadata=metadata, timeout_ms=timeout_ms)

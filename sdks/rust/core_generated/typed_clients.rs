@@ -15904,6 +15904,47 @@ impl PendingHook {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct PrepareProfileRuntimeDescriptorRequest {
+    pub descriptor_json: Option<Vec<u8>>,
+}
+
+impl PrepareProfileRuntimeDescriptorRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        Vec::new()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let _ = raw;
+        Self::default()
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct PrepareProfileRuntimeDescriptorResponse {
+    pub descriptor_id: Option<String>,
+    pub profile_id: Option<String>,
+    pub requirement_ids: Vec<String>,
+    pub slice_results: Vec<Box<ProfileRuntimeDescriptorSlicePrepareResult>>,
+}
+
+impl PrepareProfileRuntimeDescriptorResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.descriptor_id { pairs.push(format!("descriptor_id={}", value)); }
+        if let Some(value) = &self.profile_id { pairs.push(format!("profile_id={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.descriptor_id = pairs.get("descriptor_id").cloned();
+        out.profile_id = pairs.get("profile_id").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ProductControlProjectionJson {
     pub json: Option<String>,
 }
@@ -15942,6 +15983,42 @@ impl ProfileEntryOverride {
         let mut out = Self::default();
         out.entry_id = pairs.get("entry_id").cloned();
         out.local_asset_id = pairs.get("local_asset_id").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ProfileRuntimeDescriptorSlicePrepareResult {
+    pub slice_id: Option<String>,
+    pub capability: Option<String>,
+    pub outcome: Option<String>,
+    pub reason_codes: Vec<String>,
+    pub materialization_key: Option<String>,
+    pub workflow_binding_id: Option<String>,
+    pub reusable_asset_healthy: Option<bool>,
+}
+
+impl ProfileRuntimeDescriptorSlicePrepareResult {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.slice_id { pairs.push(format!("slice_id={}", value)); }
+        if let Some(value) = &self.capability { pairs.push(format!("capability={}", value)); }
+        if let Some(value) = &self.outcome { pairs.push(format!("outcome={}", value)); }
+        if let Some(value) = &self.materialization_key { pairs.push(format!("materialization_key={}", value)); }
+        if let Some(value) = &self.workflow_binding_id { pairs.push(format!("workflow_binding_id={}", value)); }
+        if let Some(value) = &self.reusable_asset_healthy { pairs.push(format!("reusable_asset_healthy={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.slice_id = pairs.get("slice_id").cloned();
+        out.capability = pairs.get("capability").cloned();
+        out.outcome = pairs.get("outcome").cloned();
+        out.materialization_key = pairs.get("materialization_key").cloned();
+        out.workflow_binding_id = pairs.get("workflow_binding_id").cloned();
+        out.reusable_asset_healthy = pairs.get("reusable_asset_healthy").and_then(|value| value.parse().ok());
         out
     }
 }
@@ -25289,6 +25366,18 @@ impl From<Vec<u8>> for PendingHook {
     }
 }
 
+impl From<Vec<u8>> for PrepareProfileRuntimeDescriptorRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for PrepareProfileRuntimeDescriptorResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for ProductControlProjectionJson {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -25296,6 +25385,12 @@ impl From<Vec<u8>> for ProductControlProjectionJson {
 }
 
 impl From<Vec<u8>> for ProfileEntryOverride {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for ProfileRuntimeDescriptorSlicePrepareResult {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -26832,7 +26927,7 @@ where
 
     pub fn begin_login(&self, request: BeginLoginRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<BeginLoginResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAccountService/BeginLogin".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAccountService/BeginLogin".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -26842,7 +26937,7 @@ where
 
     pub fn complete_login(&self, request: CompleteLoginRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CompleteLoginResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAccountService/CompleteLogin".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAccountService/CompleteLogin".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -26852,7 +26947,7 @@ where
 
     pub fn get_access_token(&self, request: GetAccessTokenRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetAccessTokenResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAccountService/GetAccessToken".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAccountService/GetAccessToken".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -26862,7 +26957,7 @@ where
 
     pub fn get_account_session_status(&self, request: GetAccountSessionStatusRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetAccountSessionStatusResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAccountService/GetAccountSessionStatus".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -26872,7 +26967,7 @@ where
 
     pub fn issue_scoped_app_binding(&self, request: IssueScopedAppBindingRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<IssueScopedAppBindingResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAccountService/IssueScopedAppBinding".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAccountService/IssueScopedAppBinding".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -26882,7 +26977,7 @@ where
 
     pub fn issue_workspace_binding(&self, request: IssueWorkspaceBindingRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<IssueWorkspaceBindingResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAccountService/IssueWorkspaceBinding".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAccountService/IssueWorkspaceBinding".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -26892,7 +26987,7 @@ where
 
     pub fn logout(&self, request: LogoutRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<LogoutResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAccountService/Logout".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAccountService/Logout".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -26902,7 +26997,7 @@ where
 
     pub fn refresh_account_session(&self, request: RefreshAccountSessionRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RefreshAccountSessionResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAccountService/RefreshAccountSession".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAccountService/RefreshAccountSession".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -26912,7 +27007,7 @@ where
 
     pub fn revoke_scoped_app_binding(&self, request: RevokeScopedAppBindingRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RevokeScopedAppBindingResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAccountService/RevokeScopedAppBinding".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAccountService/RevokeScopedAppBinding".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -26922,7 +27017,7 @@ where
 
     pub fn revoke_workspace_binding(&self, request: RevokeWorkspaceBindingRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RevokeWorkspaceBindingResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAccountService/RevokeWorkspaceBinding".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAccountService/RevokeWorkspaceBinding".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -26935,7 +27030,7 @@ where
         T::Stream: CoreTypedStream,
     {
         let inner = self.core.server_stream(CoreStreamRequest {
-            method_id: "/runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -26945,7 +27040,7 @@ where
 
     pub fn switch_account(&self, request: SwitchAccountRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<SwitchAccountResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAccountService/SwitchAccount".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAccountService/SwitchAccount".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -26955,7 +27050,7 @@ where
 
     pub fn cancel_companion_participation(&self, request: CancelCompanionParticipationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CancelCompanionParticipationResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAgentService/CancelCompanionParticipation".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/CancelCompanionParticipation".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -26965,7 +27060,7 @@ where
 
     pub fn cancel_hook(&self, request: CancelHookRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CancelHookResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAgentService/CancelHook".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/CancelHook".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -26975,7 +27070,7 @@ where
 
     pub fn create_realm_group_message_candidate(&self, request: CreateRealmGroupMessageCandidateRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CreateRealmGroupMessageCandidateResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAgentService/CreateRealmGroupMessageCandidate".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/CreateRealmGroupMessageCandidate".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -26985,7 +27080,7 @@ where
 
     pub fn disable_autonomy(&self, request: DisableAutonomyRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<DisableAutonomyResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAgentService/DisableAutonomy".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -26995,7 +27090,7 @@ where
 
     pub fn enable_autonomy(&self, request: EnableAutonomyRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<EnableAutonomyResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAgentService/EnableAutonomy".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/EnableAutonomy".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27005,7 +27100,7 @@ where
 
     pub fn execute_delegated_capability(&self, request: ExecuteDelegatedCapabilityRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ExecuteDelegatedCapabilityResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAgentService/ExecuteDelegatedCapability".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/ExecuteDelegatedCapability".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27015,7 +27110,7 @@ where
 
     pub fn get_agent(&self, request: GetAgentRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetAgentResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAgentService/GetAgent".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/GetAgent".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27025,7 +27120,7 @@ where
 
     pub fn get_agent_canonical_memory_bank_status(&self, request: GetAgentCanonicalMemoryBankStatusRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetAgentCanonicalMemoryBankStatusResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27035,7 +27130,7 @@ where
 
     pub fn get_agent_state(&self, request: GetAgentStateRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetAgentStateResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAgentService/GetAgentState".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/GetAgentState".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27045,7 +27140,7 @@ where
 
     pub fn get_avatar_debug_replay(&self, request: GetAvatarDebugReplayRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetAvatarDebugReplayResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAgentService/GetAvatarDebugReplay".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugReplay".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27055,7 +27150,7 @@ where
 
     pub fn get_avatar_debug_snapshot(&self, request: GetAvatarDebugSnapshotRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetAvatarDebugSnapshotResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAgentService/GetAvatarDebugSnapshot".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugSnapshot".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27065,7 +27160,7 @@ where
 
     pub fn get_companion_participation_projection(&self, request: GetCompanionParticipationProjectionRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetCompanionParticipationProjectionResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAgentService/GetCompanionParticipationProjection".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/GetCompanionParticipationProjection".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27075,7 +27170,7 @@ where
 
     pub fn get_conversation_anchor_snapshot(&self, request: GetConversationAnchorSnapshotRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetConversationAnchorSnapshotResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27085,7 +27180,7 @@ where
 
     pub fn get_delegated_control_surface_snapshot(&self, request: GetDelegatedControlSurfaceSnapshotRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetDelegatedControlSurfaceSnapshotResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAgentService/GetDelegatedControlSurfaceSnapshot".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedControlSurfaceSnapshot".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27095,7 +27190,7 @@ where
 
     pub fn get_delegated_replay_trace(&self, request: GetDelegatedReplayTraceRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetDelegatedReplayTraceResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAgentService/GetDelegatedReplayTrace".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedReplayTrace".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27105,7 +27200,7 @@ where
 
     pub fn get_public_chat_session_snapshot(&self, request: GetPublicChatSessionSnapshotRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetPublicChatSessionSnapshotResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27115,7 +27210,7 @@ where
 
     pub fn get_realm_group_message_candidate_evidence(&self, request: GetRealmGroupMessageCandidateEvidenceRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetRealmGroupMessageCandidateEvidenceResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAgentService/GetRealmGroupMessageCandidateEvidence".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/GetRealmGroupMessageCandidateEvidence".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27125,7 +27220,7 @@ where
 
     pub fn initialize_agent(&self, request: InitializeAgentRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<InitializeAgentResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAgentService/InitializeAgent".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/InitializeAgent".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27135,7 +27230,7 @@ where
 
     pub fn list_agent_conversation_summaries(&self, request: ListAgentConversationSummariesRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListAgentConversationSummariesResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAgentService/ListAgentConversationSummaries".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/ListAgentConversationSummaries".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27145,7 +27240,7 @@ where
 
     pub fn list_agents(&self, request: ListAgentsRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListAgentsResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAgentService/ListAgents".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/ListAgents".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27155,7 +27250,7 @@ where
 
     pub fn list_avatar_debug_probe_results(&self, request: ListAvatarDebugProbeResultsRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListAvatarDebugProbeResultsResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAgentService/ListAvatarDebugProbeResults".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/ListAvatarDebugProbeResults".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27165,7 +27260,7 @@ where
 
     pub fn list_delegated_approval_requests(&self, request: ListDelegatedApprovalRequestsRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListDelegatedApprovalRequestsResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAgentService/ListDelegatedApprovalRequests".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedApprovalRequests".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27175,7 +27270,7 @@ where
 
     pub fn list_delegated_diagnostics(&self, request: ListDelegatedDiagnosticsRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListDelegatedDiagnosticsResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAgentService/ListDelegatedDiagnostics".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedDiagnostics".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27185,7 +27280,7 @@ where
 
     pub fn list_delegated_provider_profiles(&self, request: ListDelegatedProviderProfilesRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListDelegatedProviderProfilesResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAgentService/ListDelegatedProviderProfiles".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedProviderProfiles".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27195,7 +27290,7 @@ where
 
     pub fn list_pending_hooks(&self, request: ListPendingHooksRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListPendingHooksResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAgentService/ListPendingHooks".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/ListPendingHooks".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27205,7 +27300,7 @@ where
 
     pub fn open_companion_participation_replay(&self, request: OpenCompanionParticipationReplayRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<OpenCompanionParticipationReplayResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAgentService/OpenCompanionParticipationReplay".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/OpenCompanionParticipationReplay".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27215,7 +27310,7 @@ where
 
     pub fn open_conversation_anchor(&self, request: OpenConversationAnchorRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<OpenConversationAnchorResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAgentService/OpenConversationAnchor".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27225,7 +27320,7 @@ where
 
     pub fn query_agent_memory(&self, request: QueryAgentMemoryRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<QueryAgentMemoryResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAgentService/QueryAgentMemory".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/QueryAgentMemory".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27235,7 +27330,7 @@ where
 
     pub fn register_avatar_live_instance_binding(&self, request: RegisterAvatarLiveInstanceBindingRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RegisterAvatarLiveInstanceBindingResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27245,7 +27340,7 @@ where
 
     pub fn request_agent_canonical_memory_bank_bind(&self, request: RequestAgentCanonicalMemoryBankBindRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RequestAgentCanonicalMemoryBankBindResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAgentService/RequestAgentCanonicalMemoryBankBind".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/RequestAgentCanonicalMemoryBankBind".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27255,7 +27350,7 @@ where
 
     pub fn request_avatar_debug_probe(&self, request: RequestAvatarDebugProbeRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RequestAvatarDebugProbeResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAgentService/RequestAvatarDebugProbe".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/RequestAvatarDebugProbe".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27265,7 +27360,7 @@ where
 
     pub fn request_companion_participation(&self, request: RequestCompanionParticipationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RequestCompanionParticipationResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAgentService/RequestCompanionParticipation".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/RequestCompanionParticipation".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27275,7 +27370,7 @@ where
 
     pub fn resolve_avatar_live_instance_binding(&self, request: ResolveAvatarLiveInstanceBindingRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ResolveAvatarLiveInstanceBindingResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27285,7 +27380,7 @@ where
 
     pub fn set_agent_presentation_profile(&self, request: SetAgentPresentationProfileRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<SetAgentPresentationProfileResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAgentService/SetAgentPresentationProfile".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27295,7 +27390,7 @@ where
 
     pub fn set_autonomy_config(&self, request: SetAutonomyConfigRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<SetAutonomyConfigResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAgentService/SetAutonomyConfig".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/SetAutonomyConfig".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27305,7 +27400,7 @@ where
 
     pub fn set_delegated_provider_state(&self, request: SetDelegatedProviderStateRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<SetDelegatedProviderStateResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAgentService/SetDelegatedProviderState".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/SetDelegatedProviderState".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27315,7 +27410,7 @@ where
 
     pub fn submit_delegated_approval_decision(&self, request: SubmitDelegatedApprovalDecisionRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<SubmitDelegatedApprovalDecisionResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAgentService/SubmitDelegatedApprovalDecision".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/SubmitDelegatedApprovalDecision".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27328,7 +27423,7 @@ where
         T::Stream: CoreTypedStream,
     {
         let inner = self.core.server_stream(CoreStreamRequest {
-            method_id: "/runtime.v1.RuntimeAgentService/SubscribeAgentEvents".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27338,7 +27433,7 @@ where
 
     pub fn terminate_agent(&self, request: TerminateAgentRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<TerminateAgentResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAgentService/TerminateAgent".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/TerminateAgent".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27348,7 +27443,7 @@ where
 
     pub fn update_agent_state(&self, request: UpdateAgentStateRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<UpdateAgentStateResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAgentService/UpdateAgentState".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27358,7 +27453,7 @@ where
 
     pub fn upsert_delegated_provider_profile(&self, request: UpsertDelegatedProviderProfileRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<UpsertDelegatedProviderProfileResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAgentService/UpsertDelegatedProviderProfile".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/UpsertDelegatedProviderProfile".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27368,7 +27463,7 @@ where
 
     pub fn write_agent_memory(&self, request: WriteAgentMemoryRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<WriteAgentMemoryResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAgentService/WriteAgentMemory".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/WriteAgentMemory".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27378,7 +27473,7 @@ where
 
     pub fn append_realtime_input(&self, request: AppendRealtimeInputRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<AppendRealtimeInputResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAiRealtimeService/AppendRealtimeInput".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAiRealtimeService/AppendRealtimeInput".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27388,7 +27483,7 @@ where
 
     pub fn close_realtime_session(&self, request: CloseRealtimeSessionRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CloseRealtimeSessionResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAiRealtimeService/CloseRealtimeSession".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAiRealtimeService/CloseRealtimeSession".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27398,7 +27493,7 @@ where
 
     pub fn open_realtime_session(&self, request: OpenRealtimeSessionRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<OpenRealtimeSessionResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAiRealtimeService/OpenRealtimeSession".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAiRealtimeService/OpenRealtimeSession".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27411,7 +27506,7 @@ where
         T::Stream: CoreTypedStream,
     {
         let inner = self.core.server_stream(CoreStreamRequest {
-            method_id: "/runtime.v1.RuntimeAiRealtimeService/ReadRealtimeEvents".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAiRealtimeService/ReadRealtimeEvents".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27421,7 +27516,7 @@ where
 
     pub fn cancel_scenario_job(&self, request: CancelScenarioJobRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CancelScenarioJobResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAiService/CancelScenarioJob".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAiService/CancelScenarioJob".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27431,7 +27526,7 @@ where
 
     pub fn delete_voice_asset(&self, request: DeleteVoiceAssetRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<DeleteVoiceAssetResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAiService/DeleteVoiceAsset".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAiService/DeleteVoiceAsset".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27441,7 +27536,7 @@ where
 
     pub fn execute_scenario(&self, request: ExecuteScenarioRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ExecuteScenarioResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAiService/ExecuteScenario".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAiService/ExecuteScenario".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27451,7 +27546,7 @@ where
 
     pub fn get_scenario_artifacts(&self, request: GetScenarioArtifactsRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetScenarioArtifactsResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAiService/GetScenarioArtifacts".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27461,7 +27556,7 @@ where
 
     pub fn get_scenario_job(&self, request: GetScenarioJobRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetScenarioJobResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAiService/GetScenarioJob".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAiService/GetScenarioJob".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27471,7 +27566,7 @@ where
 
     pub fn get_voice_asset(&self, request: GetVoiceAssetRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetVoiceAssetResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAiService/GetVoiceAsset".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAiService/GetVoiceAsset".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27481,7 +27576,7 @@ where
 
     pub fn list_preset_voices(&self, request: ListPresetVoicesRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListPresetVoicesResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAiService/ListPresetVoices".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAiService/ListPresetVoices".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27491,7 +27586,7 @@ where
 
     pub fn list_scenario_profiles(&self, request: ListScenarioProfilesRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListScenarioProfilesResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAiService/ListScenarioProfiles".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAiService/ListScenarioProfiles".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27501,7 +27596,7 @@ where
 
     pub fn list_voice_assets(&self, request: ListVoiceAssetsRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListVoiceAssetsResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAiService/ListVoiceAssets".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAiService/ListVoiceAssets".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27511,7 +27606,7 @@ where
 
     pub fn peek_scheduling(&self, request: PeekSchedulingRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<PeekSchedulingResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAiService/PeekScheduling".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAiService/PeekScheduling".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27524,7 +27619,7 @@ where
         T::Stream: CoreTypedStream,
     {
         let inner = self.core.server_stream(CoreStreamRequest {
-            method_id: "/runtime.v1.RuntimeAiService/StreamScenario".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAiService/StreamScenario".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27534,7 +27629,7 @@ where
 
     pub fn submit_scenario_job(&self, request: SubmitScenarioJobRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<SubmitScenarioJobResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAiService/SubmitScenarioJob".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAiService/SubmitScenarioJob".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27547,7 +27642,7 @@ where
         T::Stream: CoreTypedStream,
     {
         let inner = self.core.server_stream(CoreStreamRequest {
-            method_id: "/runtime.v1.RuntimeAiService/SubscribeScenarioJobEvents".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAiService/SubscribeScenarioJobEvents".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27556,12 +27651,12 @@ where
     }
 
     pub fn upload_artifact(&self, _request: UploadArtifactRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<UploadArtifactResponse, T::Error> {
-        panic!("SDK_RUNTIME_METHOD_UNAVAILABLE: Runtime method kind is not supported by the unary/server-stream core transport: /runtime.v1.RuntimeAiService/UploadArtifact");
+        panic!("SDK_RUNTIME_METHOD_UNAVAILABLE: Runtime method kind is not supported by the unary/server-stream core transport: /nimi.runtime.v1.RuntimeAiService/UploadArtifact");
     }
 
     pub fn get_account_app_library(&self, request: GetAccountAppLibraryRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetAccountAppLibraryResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAppService/GetAccountAppLibrary".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAppService/GetAccountAppLibrary".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27571,7 +27666,7 @@ where
 
     pub fn get_app_install_job(&self, request: GetAppInstallJobRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetAppInstallJobResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAppService/GetAppInstallJob".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAppService/GetAppInstallJob".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27581,7 +27676,7 @@ where
 
     pub fn get_app_package_readiness(&self, request: GetAppPackageReadinessRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetAppPackageReadinessResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAppService/GetAppPackageReadiness".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAppService/GetAppPackageReadiness".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27591,7 +27686,7 @@ where
 
     pub fn get_app_storage(&self, request: GetAppStorageRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetAppStorageResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAppService/GetAppStorage".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAppService/GetAppStorage".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27601,7 +27696,7 @@ where
 
     pub fn health_repair_app(&self, request: HealthRepairAppRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<HealthRepairAppResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAppService/HealthRepairApp".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAppService/HealthRepairApp".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27611,7 +27706,7 @@ where
 
     pub fn install_app(&self, request: InstallAppRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<InstallAppResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAppService/InstallApp".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAppService/InstallApp".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27621,7 +27716,7 @@ where
 
     pub fn list_app_install_jobs(&self, request: ListAppInstallJobsRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListAppInstallJobsResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAppService/ListAppInstallJobs".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAppService/ListAppInstallJobs".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27631,7 +27726,7 @@ where
 
     pub fn open_app(&self, request: OpenAppRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<OpenAppResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAppService/OpenApp".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAppService/OpenApp".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27641,7 +27736,7 @@ where
 
     pub fn send_app_message(&self, request: SendAppMessageRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<SendAppMessageResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAppService/SendAppMessage".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAppService/SendAppMessage".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27654,7 +27749,7 @@ where
         T::Stream: CoreTypedStream,
     {
         let inner = self.core.server_stream(CoreStreamRequest {
-            method_id: "/runtime.v1.RuntimeAppService/SubscribeAppMessages".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27664,7 +27759,7 @@ where
 
     pub fn uninstall_app(&self, request: UninstallAppRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<UninstallAppResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAppService/UninstallApp".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAppService/UninstallApp".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27674,7 +27769,7 @@ where
 
     pub fn update_app(&self, request: UpdateAppRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<UpdateAppResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAppService/UpdateApp".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAppService/UpdateApp".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27687,7 +27782,7 @@ where
         T::Stream: CoreTypedStream,
     {
         let inner = self.core.server_stream(CoreStreamRequest {
-            method_id: "/runtime.v1.RuntimeAppService/WatchAppInstallJobEvents".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAppService/WatchAppInstallJobEvents".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27697,7 +27792,7 @@ where
 
     pub fn read_artifact_bytes(&self, request: ReadArtifactBytesRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ReadArtifactBytesResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeArtifactService/ReadArtifactBytes".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27710,7 +27805,7 @@ where
         T::Stream: CoreTypedStream,
     {
         let inner = self.core.server_stream(CoreStreamRequest {
-            method_id: "/runtime.v1.RuntimeAuditService/ExportAuditEvents".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAuditService/ExportAuditEvents".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27720,7 +27815,7 @@ where
 
     pub fn get_runtime_health(&self, request: GetRuntimeHealthRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetRuntimeHealthResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAuditService/GetRuntimeHealth".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27730,7 +27825,7 @@ where
 
     pub fn list_aiprovider_health(&self, request: ListAIProviderHealthRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListAIProviderHealthResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAuditService/ListAIProviderHealth".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAuditService/ListAIProviderHealth".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27740,7 +27835,7 @@ where
 
     pub fn list_audit_events(&self, request: ListAuditEventsRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListAuditEventsResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAuditService/ListAuditEvents".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAuditService/ListAuditEvents".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27750,7 +27845,7 @@ where
 
     pub fn list_usage_stats(&self, request: ListUsageStatsRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListUsageStatsResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAuditService/ListUsageStats".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAuditService/ListUsageStats".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27763,7 +27858,7 @@ where
         T::Stream: CoreTypedStream,
     {
         let inner = self.core.server_stream(CoreStreamRequest {
-            method_id: "/runtime.v1.RuntimeAuditService/SubscribeAIProviderHealthEvents".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAuditService/SubscribeAIProviderHealthEvents".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27776,7 +27871,7 @@ where
         T::Stream: CoreTypedStream,
     {
         let inner = self.core.server_stream(CoreStreamRequest {
-            method_id: "/runtime.v1.RuntimeAuditService/SubscribeRuntimeHealthEvents".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAuditService/SubscribeRuntimeHealthEvents".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27786,7 +27881,7 @@ where
 
     pub fn open_external_principal_session(&self, request: OpenExternalPrincipalSessionRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<OpenExternalPrincipalSessionResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAuthService/OpenExternalPrincipalSession".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAuthService/OpenExternalPrincipalSession".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27796,7 +27891,7 @@ where
 
     pub fn open_session(&self, request: OpenSessionRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<OpenSessionResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAuthService/OpenSession".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAuthService/OpenSession".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27806,7 +27901,7 @@ where
 
     pub fn refresh_session(&self, request: RefreshSessionRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RefreshSessionResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAuthService/RefreshSession".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAuthService/RefreshSession".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27816,7 +27911,7 @@ where
 
     pub fn register_app(&self, request: RegisterAppRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RegisterAppResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAuthService/RegisterApp".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAuthService/RegisterApp".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27826,7 +27921,7 @@ where
 
     pub fn register_external_principal(&self, request: RegisterExternalPrincipalRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RegisterExternalPrincipalResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAuthService/RegisterExternalPrincipal".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAuthService/RegisterExternalPrincipal".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27836,7 +27931,7 @@ where
 
     pub fn revoke_external_principal_session(&self, request: RevokeExternalPrincipalSessionRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<Ack, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAuthService/RevokeExternalPrincipalSession".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAuthService/RevokeExternalPrincipalSession".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27846,7 +27941,7 @@ where
 
     pub fn revoke_session(&self, request: RevokeSessionRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<Ack, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeAuthService/RevokeSession".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAuthService/RevokeSession".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27856,7 +27951,7 @@ where
 
     pub fn add_link(&self, request: AddLinkRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<AddLinkResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeCognitionService/AddLink".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeCognitionService/AddLink".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27866,7 +27961,7 @@ where
 
     pub fn create_bank(&self, request: CreateBankRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CreateBankResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeCognitionService/CreateBank".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeCognitionService/CreateBank".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27876,7 +27971,7 @@ where
 
     pub fn create_knowledge_bank(&self, request: CreateKnowledgeBankRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CreateKnowledgeBankResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeCognitionService/CreateKnowledgeBank".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeCognitionService/CreateKnowledgeBank".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27886,7 +27981,7 @@ where
 
     pub fn delete_bank(&self, request: DeleteBankRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<DeleteBankResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeCognitionService/DeleteBank".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeCognitionService/DeleteBank".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27896,7 +27991,7 @@ where
 
     pub fn delete_knowledge_bank(&self, request: DeleteKnowledgeBankRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<DeleteKnowledgeBankResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeCognitionService/DeleteKnowledgeBank".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeCognitionService/DeleteKnowledgeBank".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27906,7 +28001,7 @@ where
 
     pub fn delete_memory(&self, request: DeleteMemoryRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<DeleteMemoryResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeCognitionService/DeleteMemory".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeCognitionService/DeleteMemory".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27916,7 +28011,7 @@ where
 
     pub fn delete_page(&self, request: DeletePageRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<DeletePageResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeCognitionService/DeletePage".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeCognitionService/DeletePage".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27926,7 +28021,7 @@ where
 
     pub fn get_bank(&self, request: GetBankRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetBankResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeCognitionService/GetBank".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeCognitionService/GetBank".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27936,7 +28031,7 @@ where
 
     pub fn get_ingest_task(&self, request: GetIngestTaskRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetIngestTaskResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeCognitionService/GetIngestTask".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeCognitionService/GetIngestTask".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27946,7 +28041,7 @@ where
 
     pub fn get_knowledge_bank(&self, request: GetKnowledgeBankRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetKnowledgeBankResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeCognitionService/GetKnowledgeBank".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeCognitionService/GetKnowledgeBank".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27956,7 +28051,7 @@ where
 
     pub fn get_memory_embedding_runtime_intent(&self, request: GetMemoryEmbeddingRuntimeIntentRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetMemoryEmbeddingRuntimeIntentResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeCognitionService/GetMemoryEmbeddingRuntimeIntent".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeCognitionService/GetMemoryEmbeddingRuntimeIntent".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27966,7 +28061,7 @@ where
 
     pub fn get_page(&self, request: GetPageRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetPageResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeCognitionService/GetPage".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeCognitionService/GetPage".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27976,7 +28071,7 @@ where
 
     pub fn history(&self, request: HistoryRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<HistoryResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeCognitionService/History".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeCognitionService/History".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27986,7 +28081,7 @@ where
 
     pub fn ingest_document(&self, request: IngestDocumentRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<IngestDocumentResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeCognitionService/IngestDocument".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeCognitionService/IngestDocument".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -27996,7 +28091,7 @@ where
 
     pub fn inspect_memory_embedding_runtime(&self, request: InspectMemoryEmbeddingRuntimeRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<InspectMemoryEmbeddingRuntimeResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeCognitionService/InspectMemoryEmbeddingRuntime".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeCognitionService/InspectMemoryEmbeddingRuntime".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28006,7 +28101,7 @@ where
 
     pub fn list_backlinks(&self, request: ListBacklinksRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListBacklinksResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeCognitionService/ListBacklinks".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeCognitionService/ListBacklinks".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28016,7 +28111,7 @@ where
 
     pub fn list_banks(&self, request: ListBanksRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListBanksResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeCognitionService/ListBanks".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeCognitionService/ListBanks".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28026,7 +28121,7 @@ where
 
     pub fn list_knowledge_banks(&self, request: ListKnowledgeBanksRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListKnowledgeBanksResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeCognitionService/ListKnowledgeBanks".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeCognitionService/ListKnowledgeBanks".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28036,7 +28131,7 @@ where
 
     pub fn list_links(&self, request: ListLinksRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListLinksResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeCognitionService/ListLinks".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeCognitionService/ListLinks".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28046,7 +28141,7 @@ where
 
     pub fn list_pages(&self, request: ListPagesRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListPagesResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeCognitionService/ListPages".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeCognitionService/ListPages".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28056,7 +28151,7 @@ where
 
     pub fn put_page(&self, request: PutPageRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<PutPageResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeCognitionService/PutPage".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeCognitionService/PutPage".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28066,7 +28161,7 @@ where
 
     pub fn recall(&self, request: RecallRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RecallResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeCognitionService/Recall".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeCognitionService/Recall".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28076,7 +28171,7 @@ where
 
     pub fn remove_link(&self, request: RemoveLinkRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RemoveLinkResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeCognitionService/RemoveLink".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeCognitionService/RemoveLink".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28086,7 +28181,7 @@ where
 
     pub fn request_memory_embedding_runtime_bind(&self, request: RequestMemoryEmbeddingRuntimeBindRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RequestMemoryEmbeddingRuntimeBindResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeCognitionService/RequestMemoryEmbeddingRuntimeBind".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeCognitionService/RequestMemoryEmbeddingRuntimeBind".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28096,7 +28191,7 @@ where
 
     pub fn request_memory_embedding_runtime_cutover(&self, request: RequestMemoryEmbeddingRuntimeCutoverRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RequestMemoryEmbeddingRuntimeCutoverResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeCognitionService/RequestMemoryEmbeddingRuntimeCutover".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeCognitionService/RequestMemoryEmbeddingRuntimeCutover".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28106,7 +28201,7 @@ where
 
     pub fn retain(&self, request: RetainRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RetainResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeCognitionService/Retain".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeCognitionService/Retain".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28116,7 +28211,7 @@ where
 
     pub fn search_hybrid(&self, request: SearchHybridRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<SearchHybridResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeCognitionService/SearchHybrid".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeCognitionService/SearchHybrid".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28126,7 +28221,7 @@ where
 
     pub fn search_keyword(&self, request: SearchKeywordRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<SearchKeywordResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeCognitionService/SearchKeyword".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeCognitionService/SearchKeyword".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28136,7 +28231,7 @@ where
 
     pub fn set_memory_embedding_runtime_intent(&self, request: SetMemoryEmbeddingRuntimeIntentRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<SetMemoryEmbeddingRuntimeIntentResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeCognitionService/SetMemoryEmbeddingRuntimeIntent".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeCognitionService/SetMemoryEmbeddingRuntimeIntent".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28149,7 +28244,7 @@ where
         T::Stream: CoreTypedStream,
     {
         let inner = self.core.server_stream(CoreStreamRequest {
-            method_id: "/runtime.v1.RuntimeCognitionService/SubscribeMemoryEvents".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeCognitionService/SubscribeMemoryEvents".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28159,7 +28254,7 @@ where
 
     pub fn traverse_graph(&self, request: TraverseGraphRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<TraverseGraphResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeCognitionService/TraverseGraph".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeCognitionService/TraverseGraph".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28169,7 +28264,7 @@ where
 
     pub fn create_connector(&self, request: CreateConnectorRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CreateConnectorResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeConnectorService/CreateConnector".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeConnectorService/CreateConnector".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28179,7 +28274,7 @@ where
 
     pub fn delete_catalog_model_overlay(&self, request: DeleteCatalogModelOverlayRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<DeleteCatalogModelOverlayResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeConnectorService/DeleteCatalogModelOverlay".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeConnectorService/DeleteCatalogModelOverlay".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28189,7 +28284,7 @@ where
 
     pub fn delete_connector(&self, request: DeleteConnectorRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<DeleteConnectorResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeConnectorService/DeleteConnector".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeConnectorService/DeleteConnector".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28199,7 +28294,7 @@ where
 
     pub fn delete_model_catalog_provider(&self, request: DeleteModelCatalogProviderRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<DeleteModelCatalogProviderResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeConnectorService/DeleteModelCatalogProvider".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeConnectorService/DeleteModelCatalogProvider".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28209,7 +28304,7 @@ where
 
     pub fn get_catalog_model_detail(&self, request: GetCatalogModelDetailRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetCatalogModelDetailResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeConnectorService/GetCatalogModelDetail".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeConnectorService/GetCatalogModelDetail".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28219,7 +28314,7 @@ where
 
     pub fn get_connector(&self, request: GetConnectorRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetConnectorResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeConnectorService/GetConnector".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeConnectorService/GetConnector".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28229,7 +28324,7 @@ where
 
     pub fn list_catalog_provider_models(&self, request: ListCatalogProviderModelsRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListCatalogProviderModelsResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeConnectorService/ListCatalogProviderModels".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeConnectorService/ListCatalogProviderModels".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28239,7 +28334,7 @@ where
 
     pub fn list_connector_models(&self, request: ListConnectorModelsRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListConnectorModelsResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeConnectorService/ListConnectorModels".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeConnectorService/ListConnectorModels".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28249,7 +28344,7 @@ where
 
     pub fn list_connectors(&self, request: ListConnectorsRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListConnectorsResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeConnectorService/ListConnectors".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeConnectorService/ListConnectors".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28259,7 +28354,7 @@ where
 
     pub fn list_model_catalog_providers(&self, request: ListModelCatalogProvidersRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListModelCatalogProvidersResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeConnectorService/ListModelCatalogProviders".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeConnectorService/ListModelCatalogProviders".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28269,7 +28364,7 @@ where
 
     pub fn list_provider_catalog(&self, request: ListProviderCatalogRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListProviderCatalogResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeConnectorService/ListProviderCatalog".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeConnectorService/ListProviderCatalog".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28279,7 +28374,7 @@ where
 
     pub fn test_connector(&self, request: TestConnectorRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<TestConnectorResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeConnectorService/TestConnector".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeConnectorService/TestConnector".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28289,7 +28384,7 @@ where
 
     pub fn update_connector(&self, request: UpdateConnectorRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<UpdateConnectorResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeConnectorService/UpdateConnector".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeConnectorService/UpdateConnector".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28299,7 +28394,7 @@ where
 
     pub fn upsert_catalog_model_overlay(&self, request: UpsertCatalogModelOverlayRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<UpsertCatalogModelOverlayResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeConnectorService/UpsertCatalogModelOverlay".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeConnectorService/UpsertCatalogModelOverlay".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28309,7 +28404,7 @@ where
 
     pub fn upsert_model_catalog_provider(&self, request: UpsertModelCatalogProviderRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<UpsertModelCatalogProviderResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeConnectorService/UpsertModelCatalogProvider".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeConnectorService/UpsertModelCatalogProvider".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28319,7 +28414,7 @@ where
 
     pub fn get_external_agent_gateway_status(&self, request: ExternalAgentGatewayStatusRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ExternalAgentGatewayStatusResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeExternalAgentService/GetExternalAgentGatewayStatus".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeExternalAgentService/GetExternalAgentGatewayStatus".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28329,7 +28424,7 @@ where
 
     pub fn issue_external_agent_token(&self, request: ExternalAgentIssueTokenRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ExternalAgentIssueTokenResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeExternalAgentService/IssueExternalAgentToken".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeExternalAgentService/IssueExternalAgentToken".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28339,7 +28434,7 @@ where
 
     pub fn list_external_agent_tokens(&self, request: ExternalAgentListTokensRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ExternalAgentListTokensResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeExternalAgentService/ListExternalAgentTokens".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeExternalAgentService/ListExternalAgentTokens".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28349,7 +28444,7 @@ where
 
     pub fn revoke_external_agent_token(&self, request: ExternalAgentRevokeTokenRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<Ack, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeExternalAgentService/RevokeExternalAgentToken".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeExternalAgentService/RevokeExternalAgentToken".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28359,7 +28454,7 @@ where
 
     pub fn authorize_external_principal(&self, request: AuthorizeExternalPrincipalRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<AuthorizeExternalPrincipalResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeGrantService/AuthorizeExternalPrincipal".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeGrantService/AuthorizeExternalPrincipal".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28369,7 +28464,7 @@ where
 
     pub fn issue_delegated_access_token(&self, request: IssueDelegatedAccessTokenRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<IssueDelegatedAccessTokenResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeGrantService/IssueDelegatedAccessToken".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeGrantService/IssueDelegatedAccessToken".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28379,7 +28474,7 @@ where
 
     pub fn list_token_chain(&self, request: ListTokenChainRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListTokenChainResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeGrantService/ListTokenChain".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeGrantService/ListTokenChain".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28389,7 +28484,7 @@ where
 
     pub fn revoke_app_access_token(&self, request: RevokeAppAccessTokenRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<Ack, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeGrantService/RevokeAppAccessToken".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeGrantService/RevokeAppAccessToken".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28399,7 +28494,7 @@ where
 
     pub fn validate_app_access_token(&self, request: ValidateAppAccessTokenRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ValidateAppAccessTokenResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeGrantService/ValidateAppAccessToken".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeGrantService/ValidateAppAccessToken".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28409,7 +28504,7 @@ where
 
     pub fn admit_product_control_ready_for_use(&self, request: AdmitProductControlReadyForUseRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ProductControlProjectionJson, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28419,7 +28514,7 @@ where
 
     pub fn append_inference_audit(&self, request: AppendInferenceAuditRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<Ack, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/AppendInferenceAudit".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/AppendInferenceAudit".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28429,7 +28524,7 @@ where
 
     pub fn append_runtime_audit(&self, request: AppendRuntimeAuditRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<Ack, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/AppendRuntimeAudit".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/AppendRuntimeAudit".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28439,7 +28534,7 @@ where
 
     pub fn apply_profile(&self, request: ApplyProfileRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ApplyProfileResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/ApplyProfile".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/ApplyProfile".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28449,7 +28544,7 @@ where
 
     pub fn cancel_local_environment_dependency_job(&self, request: CancelLocalEnvironmentDependencyJobRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CancelLocalEnvironmentDependencyJobResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/CancelLocalEnvironmentDependencyJob".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/CancelLocalEnvironmentDependencyJob".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28459,7 +28554,7 @@ where
 
     pub fn cancel_local_transfer(&self, request: CancelLocalTransferRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CancelLocalTransferResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/CancelLocalTransfer".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/CancelLocalTransfer".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28469,7 +28564,7 @@ where
 
     pub fn check_local_asset_health(&self, request: CheckLocalAssetHealthRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CheckLocalAssetHealthResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/CheckLocalAssetHealth".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/CheckLocalAssetHealth".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28479,7 +28574,7 @@ where
 
     pub fn check_local_service_health(&self, request: CheckLocalServiceHealthRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CheckLocalServiceHealthResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/CheckLocalServiceHealth".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/CheckLocalServiceHealth".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28489,7 +28584,7 @@ where
 
     pub fn collect_device_profile(&self, request: CollectDeviceProfileRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CollectDeviceProfileResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/CollectDeviceProfile".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/CollectDeviceProfile".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28499,7 +28594,7 @@ where
 
     pub fn complete_product_control_first_run_device_environment_scan(&self, request: CompleteProductControlFirstRunDeviceEnvironmentScanRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ProductControlProjectionJson, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28509,7 +28604,7 @@ where
 
     pub fn ensure_engine(&self, request: EnsureEngineRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<EnsureEngineResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/EnsureEngine".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/EnsureEngine".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28519,7 +28614,7 @@ where
 
     pub fn ensure_product_control_record_created(&self, request: EnsureProductControlRecordCreatedRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ProductControlProjectionJson, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/EnsureProductControlRecordCreated".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/EnsureProductControlRecordCreated".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28529,7 +28624,7 @@ where
 
     pub fn execute_local_state_cutover(&self, request: ExecuteLocalStateCutoverRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ExecuteLocalStateCutoverResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/ExecuteLocalStateCutover".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/ExecuteLocalStateCutover".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28539,7 +28634,7 @@ where
 
     pub fn get_engine_status(&self, request: GetEngineStatusRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetEngineStatusResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/GetEngineStatus".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/GetEngineStatus".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28549,7 +28644,7 @@ where
 
     pub fn get_product_control_record(&self, request: GetProductControlRecordRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ProductControlProjectionJson, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/GetProductControlRecord".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28559,7 +28654,7 @@ where
 
     pub fn get_product_control_selected_data_root(&self, request: GetProductControlSelectedDataRootRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ProductControlProjectionJson, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/GetProductControlSelectedDataRoot".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/GetProductControlSelectedDataRoot".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28569,7 +28664,7 @@ where
 
     pub fn get_recommendation_feed(&self, request: GetRecommendationFeedRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetRecommendationFeedResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/GetRecommendationFeed".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/GetRecommendationFeed".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28579,7 +28674,7 @@ where
 
     pub fn import_local_asset(&self, request: ImportLocalAssetRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ImportLocalAssetResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/ImportLocalAsset".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/ImportLocalAsset".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28589,7 +28684,7 @@ where
 
     pub fn import_local_asset_bundle(&self, request: ImportLocalAssetBundleRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ImportLocalAssetBundleResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/ImportLocalAssetBundle".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/ImportLocalAssetBundle".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28599,7 +28694,7 @@ where
 
     pub fn import_local_asset_file(&self, request: ImportLocalAssetFileRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ImportLocalAssetFileResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/ImportLocalAssetFile".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/ImportLocalAssetFile".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28609,7 +28704,7 @@ where
 
     pub fn install_local_service(&self, request: InstallLocalServiceRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<InstallLocalServiceResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/InstallLocalService".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/InstallLocalService".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28619,7 +28714,7 @@ where
 
     pub fn install_model_from_plan(&self, request: InstallModelFromPlanRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<InstallModelFromPlanResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/InstallModelFromPlan".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/InstallModelFromPlan".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28629,7 +28724,7 @@ where
 
     pub fn install_verified_asset(&self, request: InstallVerifiedAssetRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<InstallVerifiedAssetResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/InstallVerifiedAsset".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/InstallVerifiedAsset".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28639,7 +28734,7 @@ where
 
     pub fn list_catalog_variants(&self, request: ListCatalogVariantsRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListCatalogVariantsResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/ListCatalogVariants".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/ListCatalogVariants".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28649,7 +28744,7 @@ where
 
     pub fn list_engines(&self, request: ListEnginesRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListEnginesResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/ListEngines".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/ListEngines".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28659,7 +28754,7 @@ where
 
     pub fn list_local_assets(&self, request: ListLocalAssetsRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListLocalAssetsResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/ListLocalAssets".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/ListLocalAssets".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28669,7 +28764,7 @@ where
 
     pub fn list_local_audits(&self, request: ListLocalAuditsRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListLocalAuditsResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/ListLocalAudits".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/ListLocalAudits".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28679,7 +28774,7 @@ where
 
     pub fn list_local_environment_dependency_jobs(&self, request: ListLocalEnvironmentDependencyJobsRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListLocalEnvironmentDependencyJobsResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/ListLocalEnvironmentDependencyJobs".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/ListLocalEnvironmentDependencyJobs".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28689,7 +28784,7 @@ where
 
     pub fn list_local_environment_selected_sources(&self, request: ListLocalEnvironmentSelectedSourcesRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListLocalEnvironmentSelectedSourcesResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/ListLocalEnvironmentSelectedSources".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/ListLocalEnvironmentSelectedSources".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28699,7 +28794,7 @@ where
 
     pub fn list_local_services(&self, request: ListLocalServicesRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListLocalServicesResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/ListLocalServices".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/ListLocalServices".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28709,7 +28804,7 @@ where
 
     pub fn list_local_transfers(&self, request: ListLocalTransfersRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListLocalTransfersResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/ListLocalTransfers".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/ListLocalTransfers".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28719,7 +28814,7 @@ where
 
     pub fn list_node_catalog(&self, request: ListNodeCatalogRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListNodeCatalogResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/ListNodeCatalog".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/ListNodeCatalog".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28729,7 +28824,7 @@ where
 
     pub fn list_verified_assets(&self, request: ListVerifiedAssetsRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListVerifiedAssetsResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/ListVerifiedAssets".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/ListVerifiedAssets".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28739,7 +28834,7 @@ where
 
     pub fn mint_first_run_execution_evidence(&self, request: MintFirstRunExecutionEvidenceRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<MintFirstRunExecutionEvidenceResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/MintFirstRunExecutionEvidence".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/MintFirstRunExecutionEvidence".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28749,7 +28844,7 @@ where
 
     pub fn mint_runtime_baseline_readiness(&self, request: MintRuntimeBaselineReadinessRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<MintRuntimeBaselineReadinessResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/MintRuntimeBaselineReadiness".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/MintRuntimeBaselineReadiness".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28759,7 +28854,7 @@ where
 
     pub fn pause_local_transfer(&self, request: PauseLocalTransferRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<PauseLocalTransferResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/PauseLocalTransfer".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/PauseLocalTransfer".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28767,9 +28862,19 @@ where
         Ok(PauseLocalTransferResponse::from_transport(&raw))
     }
 
+    pub fn prepare_profile_runtime_descriptor(&self, request: PrepareProfileRuntimeDescriptorRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<PrepareProfileRuntimeDescriptorResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/PrepareProfileRuntimeDescriptor".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(PrepareProfileRuntimeDescriptorResponse::from_transport(&raw))
+    }
+
     pub fn reconcile_product_control_first_run_setup_state(&self, request: ReconcileProductControlFirstRunSetupStateRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ProductControlProjectionJson, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28779,7 +28884,7 @@ where
 
     pub fn record_product_control_account_default_profile_evidence(&self, request: RecordProductControlAccountDefaultProfileEvidenceRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ProductControlProjectionJson, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/RecordProductControlAccountDefaultProfileEvidence".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/RecordProductControlAccountDefaultProfileEvidence".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28789,7 +28894,7 @@ where
 
     pub fn record_product_control_first_run_local_ai_ready_evidence(&self, request: RecordProductControlFirstRunLocalAiReadyEvidenceRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ProductControlProjectionJson, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/RecordProductControlFirstRunLocalAiReadyEvidence".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/RecordProductControlFirstRunLocalAiReadyEvidence".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28799,7 +28904,7 @@ where
 
     pub fn remove_local_asset(&self, request: RemoveLocalAssetRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RemoveLocalAssetResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/RemoveLocalAsset".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/RemoveLocalAsset".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28809,7 +28914,7 @@ where
 
     pub fn remove_local_service(&self, request: RemoveLocalServiceRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RemoveLocalServiceResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/RemoveLocalService".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/RemoveLocalService".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28819,7 +28924,7 @@ where
 
     pub fn repair_local_environment_dependency(&self, request: RepairLocalEnvironmentDependencyRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RepairLocalEnvironmentDependencyResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/RepairLocalEnvironmentDependency".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/RepairLocalEnvironmentDependency".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28829,7 +28934,7 @@ where
 
     pub fn rescan_local_asset_bundle(&self, request: RescanLocalAssetBundleRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RescanLocalAssetBundleResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/RescanLocalAssetBundle".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/RescanLocalAssetBundle".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28839,7 +28944,7 @@ where
 
     pub fn resolve_first_run_execution_evidence(&self, request: ResolveFirstRunExecutionEvidenceRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ResolveFirstRunExecutionEvidenceResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/ResolveFirstRunExecutionEvidence".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/ResolveFirstRunExecutionEvidence".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28849,7 +28954,7 @@ where
 
     pub fn resolve_local_environment_activation_gate(&self, request: ResolveLocalEnvironmentActivationGateRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ResolveLocalEnvironmentActivationGateResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentActivationGate".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentActivationGate".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28859,7 +28964,7 @@ where
 
     pub fn resolve_local_environment_plan(&self, request: ResolveLocalEnvironmentPlanRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ResolveLocalEnvironmentPlanResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentPlan".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentPlan".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28869,7 +28974,7 @@ where
 
     pub fn resolve_local_state_reconciliation(&self, request: ResolveLocalStateReconciliationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ResolveLocalStateReconciliationResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/ResolveLocalStateReconciliation".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalStateReconciliation".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28879,7 +28984,7 @@ where
 
     pub fn resolve_model_install_plan(&self, request: ResolveModelInstallPlanRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ResolveModelInstallPlanResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/ResolveModelInstallPlan".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/ResolveModelInstallPlan".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28889,7 +28994,7 @@ where
 
     pub fn resolve_profile(&self, request: ResolveProfileRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ResolveProfileResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/ResolveProfile".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/ResolveProfile".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28899,7 +29004,7 @@ where
 
     pub fn resolve_runtime_baseline_readiness(&self, request: ResolveRuntimeBaselineReadinessRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ResolveRuntimeBaselineReadinessResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/ResolveRuntimeBaselineReadiness".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/ResolveRuntimeBaselineReadiness".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28909,7 +29014,7 @@ where
 
     pub fn resume_local_transfer(&self, request: ResumeLocalTransferRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ResumeLocalTransferResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/ResumeLocalTransfer".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/ResumeLocalTransfer".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28919,7 +29024,7 @@ where
 
     pub fn retry_local_environment_dependency_job(&self, request: RetryLocalEnvironmentDependencyJobRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RetryLocalEnvironmentDependencyJobResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/RetryLocalEnvironmentDependencyJob".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/RetryLocalEnvironmentDependencyJob".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28929,7 +29034,7 @@ where
 
     pub fn scaffold_orphan_asset(&self, request: ScaffoldOrphanAssetRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ScaffoldOrphanAssetResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/ScaffoldOrphanAsset".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/ScaffoldOrphanAsset".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28939,7 +29044,7 @@ where
 
     pub fn scan_unregistered_assets(&self, request: ScanUnregisteredAssetsRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ScanUnregisteredAssetsResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/ScanUnregisteredAssets".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/ScanUnregisteredAssets".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28949,7 +29054,7 @@ where
 
     pub fn search_catalog_models(&self, request: SearchCatalogModelsRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<SearchCatalogModelsResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/SearchCatalogModels".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/SearchCatalogModels".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28959,7 +29064,7 @@ where
 
     pub fn select_product_control_data_root(&self, request: SelectProductControlDataRootRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ProductControlProjectionJson, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/SelectProductControlDataRoot".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/SelectProductControlDataRoot".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28969,7 +29074,7 @@ where
 
     pub fn set_product_control_first_run_install_level(&self, request: SetProductControlFirstRunInstallLevelRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ProductControlProjectionJson, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/SetProductControlFirstRunInstallLevel".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/SetProductControlFirstRunInstallLevel".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28979,7 +29084,7 @@ where
 
     pub fn start_engine(&self, request: StartEngineRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<StartEngineResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/StartEngine".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/StartEngine".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28989,7 +29094,7 @@ where
 
     pub fn start_local_asset(&self, request: StartLocalAssetRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<StartLocalAssetResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/StartLocalAsset".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/StartLocalAsset".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -28999,7 +29104,7 @@ where
 
     pub fn start_local_environment_dependency_job(&self, request: StartLocalEnvironmentDependencyJobRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<StartLocalEnvironmentDependencyJobResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/StartLocalEnvironmentDependencyJob".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/StartLocalEnvironmentDependencyJob".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -29009,7 +29114,7 @@ where
 
     pub fn start_local_service(&self, request: StartLocalServiceRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<StartLocalServiceResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/StartLocalService".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/StartLocalService".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -29019,7 +29124,7 @@ where
 
     pub fn stop_engine(&self, request: StopEngineRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<StopEngineResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/StopEngine".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/StopEngine".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -29029,7 +29134,7 @@ where
 
     pub fn stop_local_asset(&self, request: StopLocalAssetRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<StopLocalAssetResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/StopLocalAsset".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/StopLocalAsset".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -29039,7 +29144,7 @@ where
 
     pub fn stop_local_service(&self, request: StopLocalServiceRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<StopLocalServiceResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/StopLocalService".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/StopLocalService".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -29049,7 +29154,7 @@ where
 
     pub fn warm_local_asset(&self, request: WarmLocalAssetRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<WarmLocalAssetResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/WarmLocalAsset".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/WarmLocalAsset".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -29062,7 +29167,7 @@ where
         T::Stream: CoreTypedStream,
     {
         let inner = self.core.server_stream(CoreStreamRequest {
-            method_id: "/runtime.v1.RuntimeLocalService/WatchLocalTransfers".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/WatchLocalTransfers".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -29072,7 +29177,7 @@ where
 
     pub fn check_model_health(&self, request: CheckModelHealthRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CheckModelHealthResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeModelService/CheckModelHealth".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeModelService/CheckModelHealth".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -29082,7 +29187,7 @@ where
 
     pub fn list_models(&self, request: ListModelsRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListModelsResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeModelService/ListModels".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeModelService/ListModels".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -29092,7 +29197,7 @@ where
 
     pub fn pull_model(&self, request: PullModelRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<PullModelResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeModelService/PullModel".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeModelService/PullModel".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -29102,7 +29207,7 @@ where
 
     pub fn remove_model(&self, request: RemoveModelRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<Ack, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeModelService/RemoveModel".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeModelService/RemoveModel".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -29112,7 +29217,7 @@ where
 
     pub fn cancel_workflow(&self, request: CancelWorkflowRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<Ack, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeWorkflowService/CancelWorkflow".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeWorkflowService/CancelWorkflow".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -29122,7 +29227,7 @@ where
 
     pub fn get_workflow(&self, request: GetWorkflowRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetWorkflowResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeWorkflowService/GetWorkflow".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeWorkflowService/GetWorkflow".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -29132,7 +29237,7 @@ where
 
     pub fn submit_workflow(&self, request: SubmitWorkflowRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<SubmitWorkflowResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/runtime.v1.RuntimeWorkflowService/SubmitWorkflow".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeWorkflowService/SubmitWorkflow".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -29145,7 +29250,7 @@ where
         T::Stream: CoreTypedStream,
     {
         let inner = self.core.server_stream(CoreStreamRequest {
-            method_id: "/runtime.v1.RuntimeWorkflowService/SubscribeWorkflowEvents".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeWorkflowService/SubscribeWorkflowEvents".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -30252,67 +30357,6 @@ pub struct CreatorEligibilityResponseDto {
     pub message: String,
     pub status: String,
     pub tier: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct CreatorModControlAuditIngestRequestDto {
-    pub mod_id: String,
-    pub records: Vec<CreatorModControlAuditRecordDto>,
-    pub source: String,
-    pub trace_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct CreatorModControlAuditRecordDto {
-    pub decision: String,
-    pub event_type: String,
-    pub mod_id: String,
-    pub occurred_at: String,
-    pub payload: BTreeMap<String, String>,
-    pub reason_codes: Vec<String>,
-    pub stage: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct CreatorModControlGrantIssueRequestDto {
-    pub capabilities: Vec<String>,
-    pub mod_id: String,
-    pub scope: String,
-    pub ttl_seconds: f64,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct CreatorModControlGrantIssueResponseDto {
-    pub capabilities: Vec<String>,
-    pub expires_at: String,
-    pub grant_id: String,
-    pub token: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct CreatorModControlGrantValidateRequestDto {
-    pub capability: String,
-    pub grant_id: String,
-    pub mod_id: String,
-    pub token: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct CreatorModControlManifestVerifyRequestDto {
-    pub manifest: BTreeMap<String, String>,
-    pub mod_id: String,
-    pub mode: String,
-    pub version: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct CreatorModControlSignatureVerifyRequestDto {
-    pub digest: String,
-    pub mod_id: String,
-    pub mode: String,
-    pub signature: String,
-    pub signer_id: String,
-    pub version: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -34175,167 +34219,6 @@ pub struct RealmCreatorControllerUpdateAgentOperationRequest {
     pub query: RealmCreatorControllerUpdateAgentOperationQuery,
     pub headers: RealmCreatorControllerUpdateAgentOperationHeaders,
     pub body: UpdateCreatorAgentDto,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorModsControllerIngestAuditOperationPath {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorModsControllerIngestAuditOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorModsControllerIngestAuditOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorModsControllerIngestAuditOperationRequest {
-    pub path: RealmCreatorModsControllerIngestAuditOperationPath,
-    pub query: RealmCreatorModsControllerIngestAuditOperationQuery,
-    pub headers: RealmCreatorModsControllerIngestAuditOperationHeaders,
-    pub body: CreatorModControlAuditIngestRequestDto,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorModsControllerIssueGrantOperationPath {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorModsControllerIssueGrantOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorModsControllerIssueGrantOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorModsControllerIssueGrantOperationRequest {
-    pub path: RealmCreatorModsControllerIssueGrantOperationPath,
-    pub query: RealmCreatorModsControllerIssueGrantOperationQuery,
-    pub headers: RealmCreatorModsControllerIssueGrantOperationHeaders,
-    pub body: CreatorModControlGrantIssueRequestDto,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorModsControllerQueryAuditOperationPath {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorModsControllerQueryAuditOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorModsControllerQueryAuditOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorModsControllerQueryAuditOperationRequest {
-    pub path: RealmCreatorModsControllerQueryAuditOperationPath,
-    pub query: RealmCreatorModsControllerQueryAuditOperationQuery,
-    pub headers: RealmCreatorModsControllerQueryAuditOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorModsControllerRevocationsOperationPath {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorModsControllerRevocationsOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorModsControllerRevocationsOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorModsControllerRevocationsOperationRequest {
-    pub path: RealmCreatorModsControllerRevocationsOperationPath,
-    pub query: RealmCreatorModsControllerRevocationsOperationQuery,
-    pub headers: RealmCreatorModsControllerRevocationsOperationHeaders,
-    pub body: (),
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorModsControllerValidateGrantOperationPath {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorModsControllerValidateGrantOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorModsControllerValidateGrantOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorModsControllerValidateGrantOperationRequest {
-    pub path: RealmCreatorModsControllerValidateGrantOperationPath,
-    pub query: RealmCreatorModsControllerValidateGrantOperationQuery,
-    pub headers: RealmCreatorModsControllerValidateGrantOperationHeaders,
-    pub body: CreatorModControlGrantValidateRequestDto,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorModsControllerVerifyManifestOperationPath {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorModsControllerVerifyManifestOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorModsControllerVerifyManifestOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorModsControllerVerifyManifestOperationRequest {
-    pub path: RealmCreatorModsControllerVerifyManifestOperationPath,
-    pub query: RealmCreatorModsControllerVerifyManifestOperationQuery,
-    pub headers: RealmCreatorModsControllerVerifyManifestOperationHeaders,
-    pub body: CreatorModControlManifestVerifyRequestDto,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorModsControllerVerifySignatureOperationPath {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorModsControllerVerifySignatureOperationQuery {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorModsControllerVerifySignatureOperationHeaders {
-
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RealmCreatorModsControllerVerifySignatureOperationRequest {
-    pub path: RealmCreatorModsControllerVerifySignatureOperationPath,
-    pub query: RealmCreatorModsControllerVerifySignatureOperationQuery,
-    pub headers: RealmCreatorModsControllerVerifySignatureOperationHeaders,
-    pub body: CreatorModControlSignatureVerifyRequestDto,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -39627,83 +39510,6 @@ where
         })?;
         let _ = raw;
         Ok(CreatorAgentResponseDto::default())
-    }
-
-    pub fn creator_mods_controller_ingest_audit(&self, request: RealmCreatorModsControllerIngestAuditOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "CreatorModsController_ingestAudit".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
-        let _ = raw;
-        Ok(<()>::default())
-    }
-
-    pub fn creator_mods_controller_issue_grant(&self, request: RealmCreatorModsControllerIssueGrantOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CreatorModControlGrantIssueResponseDto, T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "CreatorModsController_issueGrant".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
-        let _ = raw;
-        Ok(CreatorModControlGrantIssueResponseDto::default())
-    }
-
-    pub fn creator_mods_controller_query_audit(&self, request: RealmCreatorModsControllerQueryAuditOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "CreatorModsController_queryAudit".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
-        let _ = raw;
-        Ok(<()>::default())
-    }
-
-    pub fn creator_mods_controller_revocations(&self, request: RealmCreatorModsControllerRevocationsOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "CreatorModsController_revocations".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
-        let _ = raw;
-        Ok(<()>::default())
-    }
-
-    pub fn creator_mods_controller_validate_grant(&self, request: RealmCreatorModsControllerValidateGrantOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "CreatorModsController_validateGrant".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
-        let _ = raw;
-        Ok(<()>::default())
-    }
-
-    pub fn creator_mods_controller_verify_manifest(&self, request: RealmCreatorModsControllerVerifyManifestOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "CreatorModsController_verifyManifest".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
-        let _ = raw;
-        Ok(<()>::default())
-    }
-
-    pub fn creator_mods_controller_verify_signature(&self, request: RealmCreatorModsControllerVerifySignatureOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
-        let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "CreatorModsController_verifySignature".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
-        let _ = raw;
-        Ok(<()>::default())
     }
 
     pub fn delete_post(&self, request: RealmDeletePostOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<(), T::Error> {

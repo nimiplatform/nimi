@@ -3,7 +3,12 @@ import fixtures from '../fixtures/behavior-fixtures.json' with { type: 'json' };
 import { CoreClient, type CoreTransport } from '../../typescript/core-client';
 import { RuntimeGeneratedClient } from '../../typescript/core-generated/runtime-client';
 import { RealmGeneratedClient } from '../../typescript/core-generated/realm-client';
-import { RuntimeTypedClient, type BeginLoginRequest } from '../../typescript/core-generated/runtime-typed-client';
+import {
+  AccountCallerMode,
+  AccountEventType,
+  RuntimeTypedClient,
+  type BeginLoginRequest,
+} from '../../typescript/core-generated/runtime-typed-client';
 import { RealmTypedClient } from '../../typescript/core-generated/realm-typed-client';
 import type { CoreStreamRequest, CoreUnaryRequest } from '../../typescript/types';
 
@@ -16,7 +21,7 @@ class FakeTransport implements CoreTransport {
     if (request.signal?.aborted) {
       throw Object.assign(new Error('aborted'), { code: fixtures.cases.cancellation.reason_code });
     }
-    if ((request.body as { redirect_uri?: string }).redirect_uri === 'force-error') {
+    if ((request.body as { redirectUri?: string }).redirectUri === 'force-error') {
       throw Object.assign(new Error(fixtures.cases.structured_error.message), {
         code: fixtures.cases.structured_error.reason_code,
         details: fixtures.cases.structured_error.details,
@@ -26,8 +31,8 @@ class FakeTransport implements CoreTransport {
       if (process.env.SDKS_CONFORMANCE_PROFILE === 'typed-core') {
         return {
           accepted: true,
-          login_attempt_id: 'login-conformance',
-          callback_origin: 'https://app.example',
+          loginAttemptId: 'login-conformance',
+          callbackOrigin: 'https://app.example',
         } as Response;
       }
       return fixtures.cases.runtime_unary.response_body as Response;
@@ -54,8 +59,8 @@ class FakeTransport implements CoreTransport {
     this.streamCalls.push(request);
     assert.equal(request.methodId, fixtures.cases.runtime_stream.method_id);
     if (process.env.SDKS_CONFORMANCE_PROFILE === 'typed-core') {
-      yield { event_id: 'event-1', sequence: 1, event_type: 'ACCOUNT_EVENT_TYPE_LOGIN_STARTED' } as Response;
-      yield { event_id: 'event-2', sequence: 2, event_type: 'ACCOUNT_EVENT_TYPE_LOGIN_COMPLETED' } as Response;
+      yield { eventId: 'event-1', sequence: '1', eventType: AccountEventType.LOGIN_STARTED } as Response;
+      yield { eventId: 'event-2', sequence: '2', eventType: AccountEventType.LOGIN_COMPLETED } as Response;
       return;
     }
     for (const event of fixtures.cases.runtime_stream.events) {
@@ -78,28 +83,28 @@ async function main() {
 
   if (profile === 'typed-core') {
     const runtimeRequest: BeginLoginRequest = {
-      caller: { app_id: 'app-conformance', mode: 'ACCOUNT_CALLER_MODE_DESKTOP_SHELL', scopes: ['account.login'] },
-      redirect_uri: 'https://app.example/callback',
-      callback_origin: 'https://app.example',
-      requested_scopes: ['openid', 'profile'],
-      ttl_seconds: 60,
+      caller: { appId: 'app-conformance', mode: AccountCallerMode.DESKTOP_SHELL, scopes: ['account.login'] },
+      redirectUri: 'https://app.example/callback',
+      callbackOrigin: 'https://app.example',
+      requestedScopes: ['openid', 'profile'],
+      ttlSeconds: 60,
     };
     const typedRuntimeResponse = await typedRuntime.beginLogin(
       runtimeRequest,
       { metadata: fixtures.cases.metadata.caller, timeoutMs: fixtures.cases.timeout_ms },
     );
     assert.equal(typedRuntimeResponse.accepted, true);
-    assert.equal(typedRuntimeResponse.login_attempt_id, 'login-conformance');
+    assert.equal(typedRuntimeResponse.loginAttemptId, 'login-conformance');
 
     const typedEvents = [];
     for await (const event of typedRuntime.subscribeAccountSessionEvents({
       caller: runtimeRequest.caller,
-      after_sequence: 0,
+      afterSequence: '0',
     })) {
       typedEvents.push(event);
     }
-    assert.equal(typedEvents[0].event_type, 'ACCOUNT_EVENT_TYPE_LOGIN_STARTED');
-    assert.equal(typedEvents[1].event_type, 'ACCOUNT_EVENT_TYPE_LOGIN_COMPLETED');
+    assert.equal(typedEvents[0].eventType, AccountEventType.LOGIN_STARTED);
+    assert.equal(typedEvents[1].eventType, AccountEventType.LOGIN_COMPLETED);
 
     const typedRealmResponse = await typedRealm.ackMyLocalAgentProvisionIntent({
       path: { intentId: 'intent-conformance' },
@@ -118,7 +123,7 @@ async function main() {
       (error: unknown) => (error as { code?: string }).code === fixtures.cases.cancellation.reason_code,
     );
     await assert.rejects(
-      typedRuntime.beginLogin({ ...runtimeRequest, redirect_uri: 'force-error' }),
+      typedRuntime.beginLogin({ ...runtimeRequest, redirectUri: 'force-error' }),
       (error: unknown) => {
         const shaped = error as { code?: string; message?: string; details?: unknown };
         assert.equal(shaped.code, fixtures.cases.structured_error.reason_code);

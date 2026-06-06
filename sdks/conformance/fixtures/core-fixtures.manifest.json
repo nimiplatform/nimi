@@ -17,16 +17,16 @@
   "fixture_groups": [
     {
       "name": "runtime_method_presence",
-      "count": 229
+      "count": 230
     },
     {
       "name": "realm_operation_presence",
-      "count": 257,
+      "count": 250,
       "source_state": "openapi_loaded"
     },
     {
       "name": "request_response_codecs",
-      "count": 229
+      "count": 230
     },
     {
       "name": "stream_event_branch_preservation",
