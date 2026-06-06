@@ -26,10 +26,10 @@ test('runtime config hydration banner is localized instead of hardcoded Chinese 
 });
 
 test('runtime config connector discovery validates node capabilities without as any', () => {
-  assert.match(connectorDiscoverySource, /type RuntimeNodeCapability = LocalRuntimeRunnableAssetKindId/);
+  assert.match(connectorDiscoverySource, /type RuntimeNodeCapability = NimiRuntimeLocalRunnableAssetKindId/);
   assert.match(connectorDiscoverySource, /function normalizeRuntimeNodeCapability/);
-  assert.match(connectorDiscoverySource, /normalizeLocalRuntimeRunnableAssetKindId/);
-  assert.match(connectorDiscoverySource, /projectRuntimeHealthSummary/);
+  assert.match(connectorDiscoverySource, /normalizeNimiRuntimeLocalRunnableAssetKindId/);
+  assert.match(connectorDiscoverySource, /projectNimiRuntimeHealthSummary/);
   assert.doesNotMatch(connectorDiscoverySource, /RuntimeHealthStatus enum: 0=UNSPECIFIED/);
   assert.doesNotMatch(connectorDiscoverySource, /function statusFromRuntimeHealth/);
   assert.doesNotMatch(connectorDiscoverySource, /capability: \(\(\(n\.capabilities \|\| \[\]\)\[0\] \|\| 'chat'\) as any/);

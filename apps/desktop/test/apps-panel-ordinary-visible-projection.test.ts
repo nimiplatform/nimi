@@ -5,19 +5,13 @@ import { describe, it, test } from 'node:test';
 import {
   NimiAppClient,
   createNimiAppRegistryTransport,
+  loadNimiAppRegistryRows,
+  loadNimiAppReleaseDescriptorRows,
   type AppLaunchReadiness,
   type NimiAppRow,
   type NimiAppStatus,
   type NimiAppTransport,
 } from '@nimiplatform/sdk/app';
-// T4 Fork C: the live Apps bridge reads the runtime `~/.nimi/apps`
-// projections, not the SDK Platform catalog.
-// These transport-filter tests still exercise the SDK ordinary-visible filter
-// against the generated catalog projection used purely as a row fixture.
-import {
-  loadPlatformNimiAppReleaseDescriptorRows,
-  loadPlatformNimiAppRegistryRows,
-} from '@nimiplatform/sdk/platform-catalog';
 import {
   DESKTOP_APPS_CARD_STATES,
   mapLaunchReadinessToAppsCardState,
@@ -27,8 +21,8 @@ import {
 
 function createPlatformRegistryClient(): NimiAppClient {
   return new NimiAppClient(createNimiAppRegistryTransport({
-    loadRows: loadPlatformNimiAppRegistryRows,
-    loadReleaseDescriptors: loadPlatformNimiAppReleaseDescriptorRows,
+    loadRows: loadNimiAppRegistryRows,
+    loadReleaseDescriptors: loadNimiAppReleaseDescriptorRows,
   }));
 }
 

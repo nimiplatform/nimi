@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { ReasonCode } from '@nimiplatform/sdk/types';
+import { ReasonCode, type JsonObject } from '@nimiplatform/sdk/types';
 import type { RuntimeBridgeDaemonStatus } from '../src/shell/renderer/bridge/runtime-bridge/types';
 import {
   syncDeveloperModeRuntimeGate,
@@ -40,7 +40,7 @@ test('syncDeveloperModeRuntimeGate enables runtime developer-registration and re
         path: '/tmp/runtime-config.json',
         reasonCode: ReasonCode.CONFIG_RESTART_REQUIRED,
         actionHint: 'restart runtime to apply developer-registration',
-        config: JSON.parse(configJson) as Record<string, unknown>,
+        config: JSON.parse(configJson) as JsonObject,
       };
     },
     async restartRuntimeBridge() {

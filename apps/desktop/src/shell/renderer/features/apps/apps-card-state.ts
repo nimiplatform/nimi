@@ -5,12 +5,12 @@
 // projection of the SDK `AppLaunchReadiness` floor. The manual is explicit:
 // the product state *refines* the 7-value readiness floor with package
 // progress, update compatibility, and error details — those signals live in
-// the runtime-owned `RuntimeAppInstallJob` projection, not in the readiness
+// the runtime-owned `NimiRuntimeAppInstallJob` projection, not in the readiness
 // floor. Four states (`installing`, `update_available`, `install_failed`,
 // `uninstalling`) are unreachable from readiness alone.
 //
 // This module is the single derivation seam: it composes the
-// `AppLaunchReadiness` floor WITH the live `RuntimeAppInstallJob` for the same
+// `AppLaunchReadiness` floor WITH the live `NimiRuntimeAppInstallJob` for the same
 // app. It is a pure function over already-typed projections — it never reads
 // app-local spec files, never owns a parallel job/registry truth, and never
 // collapses a distinct failure into a generic bucket (`P-NAPP-008`).
@@ -18,12 +18,12 @@
 // Authority:
 //   - manual Apps `#### Canonical Card States` (11 states, verbatim)
 //   - P-NAPP-008 (no collapsed `unavailable` card)
-//   - K-APP-011..K-APP-016 (RuntimeAppInstallJob lifecycle)
+//   - K-APP-011..K-APP-016 (NimiRuntimeAppInstallJob lifecycle)
 
 import type { AppLaunchReadiness, NimiAppStatus } from '@nimiplatform/sdk/app';
 import type {
-  RuntimeAppInstallJob,
-  RuntimeAppLifecycleJobKind,
+  NimiRuntimeAppInstallJob,
+  NimiRuntimeAppLifecycleJobKind,
 } from './apps-lifecycle-bridge.js';
 
 /**
@@ -86,11 +86,11 @@ export function postureForCardState(state: CanonicalAppCardState): AppCardPostur
  * considers the single most-recent job (the live truth), passed here already
  * selected so this module stays a pure function.
  */
-export type AppCardJobInput = RuntimeAppInstallJob | undefined;
+export type AppCardJobInput = NimiRuntimeAppInstallJob | undefined;
 
 /**
  * The composed inputs for one app's card state. `readiness` is the SDK floor;
- * `status` carries the version signals; `job` is the live `RuntimeAppInstallJob`
+ * `status` carries the version signals; `job` is the live `NimiRuntimeAppInstallJob`
  * (already narrowed to the most recent job for this app).
  */
 export interface AppCardStateInput {
@@ -101,7 +101,7 @@ export interface AppCardStateInput {
 
 /**
  * Derive the canonical product card state by composing the readiness floor
- * with the live `RuntimeAppInstallJob`.
+ * with the live `NimiRuntimeAppInstallJob`.
  *
  * Derivation order (the live job wins over the floor while it is in flight or
  * terminal-failed, because the floor cannot represent progress/error):
@@ -138,11 +138,11 @@ export function deriveAppCardState(input: AppCardStateInput): CanonicalAppCardSt
 }
 
 /**
- * Map a live `RuntimeAppInstallJob` to its product card state, or `undefined`
+ * Map a live `NimiRuntimeAppInstallJob` to its product card state, or `undefined`
  * when the job does not override the readiness floor (a terminal-success or
  * terminal-cancelled job lets the floor re-resolve).
  */
-function liveJobCardState(job: RuntimeAppInstallJob): CanonicalAppCardState | undefined {
+function liveJobCardState(job: NimiRuntimeAppInstallJob): CanonicalAppCardState | undefined {
   switch (job.state) {
     case 'queued':
     case 'in_progress':
@@ -162,7 +162,7 @@ function liveJobCardState(job: RuntimeAppInstallJob): CanonicalAppCardState | un
       // Exhaustiveness guard — a new job state must be handled explicitly,
       // never silently collapsed.
       const exhaustive: never = job.state;
-      throw new Error(`unhandled RuntimeAppInstallJob state: ${String(exhaustive)}`);
+      throw new Error(`unhandled NimiRuntimeAppInstallJob state: ${String(exhaustive)}`);
     }
   }
 }
@@ -173,7 +173,7 @@ function liveJobCardState(job: RuntimeAppInstallJob): CanonicalAppCardState | un
  * single Progress-with-phase card for forward lifecycle work); `uninstall`
  * surfaces as the distinct `uninstalling` Progress card.
  */
-function inFlightCardState(kind: RuntimeAppLifecycleJobKind): CanonicalAppCardState {
+function inFlightCardState(kind: NimiRuntimeAppLifecycleJobKind): CanonicalAppCardState {
   switch (kind) {
     case 'install':
     case 'update':
@@ -183,7 +183,7 @@ function inFlightCardState(kind: RuntimeAppLifecycleJobKind): CanonicalAppCardSt
       return 'uninstalling';
     default: {
       const exhaustive: never = kind;
-      throw new Error(`unhandled RuntimeAppLifecycleJobKind: ${String(exhaustive)}`);
+      throw new Error(`unhandled NimiRuntimeAppLifecycleJobKind: ${String(exhaustive)}`);
     }
   }
 }
@@ -246,8 +246,8 @@ function hasNonBreakingUpdate(status: NimiAppStatus): boolean {
  */
 export function selectLatestJobForApp(
   appId: string,
-  jobs: readonly RuntimeAppInstallJob[],
-): RuntimeAppInstallJob | undefined {
+  jobs: readonly NimiRuntimeAppInstallJob[],
+): NimiRuntimeAppInstallJob | undefined {
   const normalizedAppId = appId.trim();
   const candidates = jobs.filter((job) => job.appId === normalizedAppId);
   if (candidates.length === 0) {
@@ -256,7 +256,7 @@ export function selectLatestJobForApp(
   return [...candidates].sort(compareJobRecency)[0];
 }
 
-function compareJobRecency(a: RuntimeAppInstallJob, b: RuntimeAppInstallJob): number {
+function compareJobRecency(a: NimiRuntimeAppInstallJob, b: NimiRuntimeAppInstallJob): number {
   const aKey = a.updatedAt ?? a.createdAt ?? '';
   const bKey = b.updatedAt ?? b.createdAt ?? '';
   if (aKey !== bKey) {

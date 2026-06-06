@@ -1,11 +1,11 @@
-import { getPlatformClient } from '@nimiplatform/sdk';
-import { createDesktopShellRuntimeAccountCaller } from '@nimiplatform/sdk/runtime';
-
-const desktopAccountCaller = createDesktopShellRuntimeAccountCaller({ appId: 'nimi.desktop' });
+import {
+  getDesktopAccountRuntime,
+  getDesktopRuntimeAccountCaller,
+} from '@renderer/infra/sdk/desktop-nimi-client-session';
 
 export async function getDesktopRuntimeAccessToken(requestedScopes: string[] = []): Promise<string> {
-  const result = await getPlatformClient().runtime.account.getAccessToken({
-    caller: desktopAccountCaller,
+  const result = await getDesktopAccountRuntime().account.getAccessToken({
+    caller: getDesktopRuntimeAccountCaller(),
     requestedScopes,
   });
   const token = String(result.accessToken || '').trim();

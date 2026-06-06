@@ -1,6 +1,6 @@
 import { Suspense, lazy } from 'react';
 import type { AppTab } from '@renderer/app-shell/providers/app-store';
-import type { RealmFeedScope } from '@nimiplatform/sdk/realm';
+import type { NimiRealmFeedScope } from '@nimiplatform/sdk/realm';
 import type { ExploreSectionId } from '@renderer/features/explore/explore-section-nav';
 import { loadWorldDetailPanelModule, WorldDetailRouteLoading } from '@renderer/features/world/world-detail-route-state';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
@@ -72,7 +72,7 @@ type MainLayoutPanelStackProps = {
   exploreActiveSection: ExploreSectionId;
   exploreSearchText: string;
   homeCreatePostRequestKey: number;
-  homeFeedScope: RealmFeedScope;
+  homeFeedScope: NimiRealmFeedScope;
   runtimeActive: boolean;
   runtimeEverMounted: boolean;
 };

@@ -308,7 +308,7 @@ function CardActionButton({
 }
 
 /**
- * Map a typed `RuntimeAppInstallJob` phase to a coarse progress percentage for
+ * Map a typed `NimiRuntimeAppInstallJob` phase to a coarse progress percentage for
  * the ProgressIndicator. The phase label itself is shown verbatim beneath the
  * bar — the bar is a coarse position cue, not a fabricated byte-progress.
  */

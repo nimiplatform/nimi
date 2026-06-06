@@ -2,8 +2,7 @@ import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
 import logoImage from '../../assets/logo.svg';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import { getPlatformClient } from '@nimiplatform/sdk';
-import { loadRealmNotificationUnreadCount } from '@nimiplatform/sdk/realm';
+import { loadNimiRealmNotificationUnreadCount } from '@nimiplatform/sdk/realm';
 import { useAppStore, type AppTab } from '@renderer/app-shell/providers/app-store';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { AmbientBackground, ScrollArea, Tooltip } from '@nimiplatform/kit/ui';
@@ -13,7 +12,7 @@ import {
   notificationQueryKeys,
   resolveNotificationIdentityRef,
 } from '@renderer/features/notification/notification-query.js';
-import type { RealmFeedScope } from '@nimiplatform/sdk/realm';
+import type { NimiRealmFeedScope } from '@nimiplatform/sdk/realm';
 import { DEFAULT_HOME_FEED_SCOPE } from '@renderer/features/home/home-feed-controls';
 import type { ExploreSectionId } from '@renderer/features/explore/explore-section-nav';
 import {
@@ -41,6 +40,8 @@ import {
   NavLink,
 } from './navigation-config';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
+import { getDesktopRealm } from '@renderer/infra/sdk/desktop-nimi-client-session';
+import { getDesktopRealmCommerceGiftService } from '@renderer/infra/realm/realm-commerce-service';
 
 /** Track window focus so polling queries can pause when the app is not focused. */
 function useWindowFocused(): boolean {
@@ -123,14 +124,16 @@ export function MainLayoutView(props: MainLayoutViewProps) {
   const windowFocused = useWindowFocused();
   const balancesQuery = useQuery({
     queryKey: ['topbar-currency-balances'],
-    queryFn: async () => loadRealmCurrencyBalances(),
+    queryFn: async () => loadRealmCurrencyBalances({
+      service: getDesktopRealmCommerceGiftService(),
+    }),
     enabled: props.authStatus === 'authenticated',
     staleTime: 30_000,
     refetchInterval: windowFocused ? 60_000 : false,
   });
   const unreadCountQuery = useQuery({
     queryKey: notificationQueryKeys.topbarUnreadCount(notificationQueryIdentityRef),
-    queryFn: async () => loadRealmNotificationUnreadCount(getPlatformClient().realm),
+    queryFn: async () => loadNimiRealmNotificationUnreadCount(getDesktopRealm()),
     enabled: props.authStatus === 'authenticated' && Boolean(notificationIdentityRef),
     staleTime: 15_000,
     refetchInterval: windowFocused ? 30_000 : false,
@@ -327,7 +330,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
           <MainLayoutTitlebarContent
             activeTab={props.activeTab}
             homeFeedScope={homeFeedScope}
-            onHomeFeedScopeChange={(scope: RealmFeedScope) => setHomeFeedScope(scope)}
+            onHomeFeedScopeChange={(scope: NimiRealmFeedScope) => setHomeFeedScope(scope)}
             exploreActiveSection={exploreActiveSection}
             onExploreSectionChange={setExploreActiveSection}
             exploreSearchText={exploreSearchText}

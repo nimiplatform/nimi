@@ -1,7 +1,7 @@
 // Desktop App Lifecycle bridge.
 //
 // Renderer-side seam onto the SDK `runtime.appLifecycle` surface
-// (`RuntimeAppLifecycleModule`). The desktop Apps surface (T4-W4) drives app
+// (`NimiRuntimeAppLifecycleClient`). The desktop Apps surface (T4-W4) drives app
 // install / uninstall / update / health-repair and observes the typed
 // `AppInstallJob` lifecycle through this bridge — never through a direct
 // gRPC client and never through a renderer-local job/registry truth.
@@ -11,7 +11,7 @@
 //     (.nimi/spec/runtime/kernel/app-messaging-contract.md)
 //   - D-IPC-012 (.nimi/spec/desktop/kernel/bridge-ipc-contract.md): app
 //     install/update/repair lifecycle is a Phase 2 Runtime RPC surface and
-//     travels the SDK gRPC path — `getPlatformClient().runtime` — not the
+//     travels through the configured desktop vNext Runtime session, not the
 //     Tauri IPC bridge path. This module is therefore an SDK-path renderer
 //     service, not a `runtime-bridge/` Tauri command client.
 //
@@ -25,49 +25,50 @@
 //   - No provider / route rescue knobs are exposed: install source, phase,
 //     and state are read straight from the SDK typed projection.
 
-import { getPlatformClient } from '@nimiplatform/sdk';
-import {
-  asRuntimeCallNimiError,
-  formatRuntimeNimiErrorDetail,
-} from '@nimiplatform/sdk/runtime';
 import type {
-  RuntimeAppHealthRepairInput,
-  RuntimeAppInstallInput,
-  RuntimeAppInstallJob,
-  RuntimeAppInstallJobEvent,
-  RuntimeAppLifecycleModule,
-  RuntimeAppOpenInput,
-  RuntimeAppOpenProjection,
-  RuntimeAppStorageProjection,
-  RuntimeAppUninstallInput,
-  RuntimeAppUninstallResult,
-  RuntimeAppUpdateInput,
+  NimiRuntimeAppHealthRepairInput,
+  NimiRuntimeAppInstallInput,
+  NimiRuntimeAppInstallJob,
+  NimiRuntimeAppInstallJobEvent,
+  NimiRuntimeAppLifecycleClient,
+  NimiRuntimeAppOpenInput,
+  NimiRuntimeAppOpenProjection,
+  NimiRuntimeAppStorageProjection,
+  NimiRuntimeAppUninstallInput,
+  NimiRuntimeAppUninstallResult,
+  NimiRuntimeAppUpdateInput,
 } from '@nimiplatform/sdk/runtime';
-import type { NimiError } from '@nimiplatform/sdk/types';
+import {
+  asNimiError,
+  createNimiError,
+  ReasonCode,
+  type NimiError,
+} from '@nimiplatform/sdk/types';
+import { getDesktopRuntime } from '@renderer/infra/sdk/desktop-nimi-client-session';
 
 // Re-export the SDK typed projections so the Apps surface (T4-W4) consumes a
 // single bridge entrypoint without reaching into `@nimiplatform/sdk/runtime`
 // for lifecycle types directly.
 export type {
-  RuntimeAppHealthRepairAction,
-  RuntimeAppHealthRepairInput,
-  RuntimeAppInstallInput,
-  RuntimeAppInstallJob,
-  RuntimeAppInstallJobEvent,
-  RuntimeAppInstallJobPhase,
-  RuntimeAppInstallJobState,
-  RuntimeAppInstallSourceKind,
-  RuntimeAppInstallStorage,
-  RuntimeAppLifecycleJobKind,
-  RuntimeAppOpenFlowStep,
-  RuntimeAppOpenInput,
-  RuntimeAppOpenProjection,
-  RuntimeAppOpenScopeRef,
-  RuntimeAppOpenState,
-  RuntimeAppStorageProjection,
-  RuntimeAppUninstallInput,
-  RuntimeAppUninstallResult,
-  RuntimeAppUpdateInput,
+  NimiRuntimeAppHealthRepairAction,
+  NimiRuntimeAppHealthRepairInput,
+  NimiRuntimeAppInstallInput,
+  NimiRuntimeAppInstallJob,
+  NimiRuntimeAppInstallJobEvent,
+  NimiRuntimeAppInstallJobPhase,
+  NimiRuntimeAppInstallJobState,
+  NimiRuntimeAppInstallSourceKind,
+  NimiRuntimeAppInstallStorage,
+  NimiRuntimeAppLifecycleJobKind,
+  NimiRuntimeAppOpenFlowStep,
+  NimiRuntimeAppOpenInput,
+  NimiRuntimeAppOpenProjection,
+  NimiRuntimeAppOpenScopeRef,
+  NimiRuntimeAppOpenState,
+  NimiRuntimeAppStorageProjection,
+  NimiRuntimeAppUninstallInput,
+  NimiRuntimeAppUninstallResult,
+  NimiRuntimeAppUpdateInput,
 } from '@nimiplatform/sdk/runtime';
 
 /**
@@ -98,12 +99,12 @@ const APP_LIFECYCLE_STREAM_OPTIONS = {
 } as const;
 
 /**
- * Resolve the SDK `runtime.appLifecycle` module. Kept lazy — the platform
- * client is constructed during desktop bootstrap, so the module is read at
+ * Resolve the SDK `runtime.appLifecycle` client. Kept lazy — the desktop
+ * Runtime session is constructed during bootstrap, so the client is read at
  * call time rather than at import time.
  */
-function appLifecycleModule(): RuntimeAppLifecycleModule {
-  return getPlatformClient().runtime.appLifecycle;
+function appLifecycleModule(): NimiRuntimeAppLifecycleClient {
+  return getDesktopRuntime().appLifecycle;
 }
 
 /**
@@ -113,7 +114,12 @@ function appLifecycleModule(): RuntimeAppLifecycleModule {
  * synthesized result.
  */
 export function asAppLifecycleNimiError(error: unknown): NimiError {
-  return asRuntimeCallNimiError(error);
+  return asNimiError(error, {
+    message: 'Runtime app lifecycle call failed',
+    reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
+    actionHint: 'check_runtime_app_lifecycle',
+    source: 'runtime',
+  });
 }
 
 /**
@@ -122,14 +128,25 @@ export function asAppLifecycleNimiError(error: unknown): NimiError {
  * distinct fail-closed reasons into a generic message.
  */
 export function formatAppLifecycleErrorDetail(error: unknown): string {
-  return formatRuntimeNimiErrorDetail(error);
+  const nimiError = asAppLifecycleNimiError(error);
+  const detail = typeof nimiError.details?.cause === 'string'
+    ? nimiError.details.cause.trim()
+    : '';
+  const message = nimiError.message || nimiError.reasonCode;
+  const base = message.includes(nimiError.reasonCode)
+    ? message
+    : `${nimiError.reasonCode}: ${message}`;
+  if (detail && !nimiError.message.includes(detail)) {
+    return `${base}: ${detail}`;
+  }
+  return base;
 }
 
 /**
  * The desktop App Lifecycle bridge surface. Mirrors the SDK
- * `RuntimeAppLifecycleModule` one-to-one — install / uninstall / getJob /
+ * `NimiRuntimeAppLifecycleClient` one-to-one — install / uninstall / getJob /
  * listJobs / watchJobEvents / update / healthRepair — projecting the typed
- * `RuntimeAppInstallJob` lifecycle to the renderer with stable desktop-core
+ * `NimiRuntimeAppInstallJob` lifecycle to the renderer with stable desktop-core
  * call metadata. Each method either resolves with the SDK typed projection or
  * rejects with a typed `NimiError`.
  */
@@ -138,21 +155,21 @@ export interface DesktopAppLifecycleBridge {
    * Trigger the Runtime-owned install lifecycle for an admitted app. Resolves
    * with the initial typed `AppInstallJob` projection (`kind=install`).
    */
-  install(input: RuntimeAppInstallInput): Promise<RuntimeAppInstallJob>;
+  install(input: NimiRuntimeAppInstallInput): Promise<NimiRuntimeAppInstallJob>;
   /**
    * Uninstall an app's release payload. Durable app data is kept unless the
    * caller passes the explicit destructive-delete confirmation.
    */
-  uninstall(input: RuntimeAppUninstallInput): Promise<RuntimeAppUninstallResult>;
+  uninstall(input: NimiRuntimeAppUninstallInput): Promise<NimiRuntimeAppUninstallResult>;
   /** Read a single lifecycle job's typed projection by id. */
-  getJob(jobId: string): Promise<RuntimeAppInstallJob>;
+  getJob(jobId: string): Promise<NimiRuntimeAppInstallJob>;
   /** List lifecycle job projections, optionally filtered to a single app. */
-  listJobs(appId?: string): Promise<RuntimeAppInstallJob[]>;
+  listJobs(appId?: string): Promise<NimiRuntimeAppInstallJob[]>;
   /** Read the Runtime-owned app-scoped storage truth projection. */
   storage(
     input: { appId: string },
-    options?: Parameters<RuntimeAppLifecycleModule['storage']>[1],
-  ): Promise<RuntimeAppStorageProjection>;
+    options?: Parameters<NimiRuntimeAppLifecycleClient['storage']>[1],
+  ): Promise<NimiRuntimeAppStorageProjection>;
   /**
    * Subscribe to the typed job-event stream. Each frame carries a monotonic
    * sequence and the full job snapshot, so the consumer never rebuilds state
@@ -161,18 +178,18 @@ export interface DesktopAppLifecycleBridge {
   watchJobEvents(input?: {
     jobId?: string;
     signal?: AbortSignal;
-  }): Promise<AsyncIterable<RuntimeAppInstallJobEvent>>;
+  }): Promise<AsyncIterable<NimiRuntimeAppInstallJobEvent>>;
   /**
    * Trigger the Runtime-owned atomic update lifecycle. Resolves with the typed
    * update job projection (`kind=update`).
    */
-  update(input: RuntimeAppUpdateInput): Promise<RuntimeAppInstallJob>;
+  update(input: NimiRuntimeAppUpdateInput): Promise<NimiRuntimeAppInstallJob>;
   /**
    * Trigger the Runtime-owned health/repair lifecycle. `cancel` resolves with
    * the cancelled job; `retry` / `repair` / `reinstall` resolve with the new
    * in-flight job.
    */
-  healthRepair(input: RuntimeAppHealthRepairInput): Promise<RuntimeAppInstallJob>;
+  healthRepair(input: NimiRuntimeAppHealthRepairInput): Promise<NimiRuntimeAppInstallJob>;
   /**
    * Open (launch) an admitted Nimi App through the Runtime Open flow
    * (`K-APP-017`). Requires an explicit app-launch `AIScopeRef` — the bridge
@@ -180,7 +197,7 @@ export interface DesktopAppLifecycleBridge {
    * projection: a `blocked` open carries the distinct fail-closed `reasonCode`
    * and the step that blocked; it is never projected as launched.
    */
-  open(input: RuntimeAppOpenInput): Promise<RuntimeAppOpenProjection>;
+  open(input: NimiRuntimeAppOpenInput): Promise<NimiRuntimeAppOpenProjection>;
 }
 
 function requireJobId(jobId: string): string {
@@ -189,7 +206,12 @@ function requireJobId(jobId: string): string {
     // Fail closed before the RPC: a job read with no id can never resolve to
     // a real projection, and must not be papered over with a placeholder.
     throw asAppLifecycleNimiError(
-      new Error('desktop apps lifecycle bridge requires a non-empty jobId'),
+      createNimiError({
+        message: 'desktop apps lifecycle bridge requires a non-empty jobId',
+        reasonCode: ReasonCode.SDK_RUNTIME_APP_LIFECYCLE_JOB_ID_REQUIRED,
+        actionHint: 'pass_runtime_emitted_job_id',
+        source: 'sdk',
+      }),
     );
   }
   return normalized;
@@ -197,10 +219,10 @@ function requireJobId(jobId: string): string {
 
 /**
  * Construct the desktop App Lifecycle bridge. Exposed as a factory rather than
- * a singleton const so tests can inject a stub `RuntimeAppLifecycleModule`.
+ * a singleton const so tests can inject a stub `NimiRuntimeAppLifecycleClient`.
  */
 export function createDesktopAppLifecycleBridge(deps?: {
-  getModule?: () => RuntimeAppLifecycleModule;
+  getModule?: () => NimiRuntimeAppLifecycleClient;
 }): DesktopAppLifecycleBridge {
   const getModule = deps?.getModule ?? appLifecycleModule;
   return {

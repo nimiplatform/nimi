@@ -2,7 +2,7 @@
 //
 // Composes the Apps card grid from three typed projections:
 //   1. the Nimi App registry read-projection (`NimiAppClient.list`/`.status`)
-//   2. the live runtime `RuntimeAppInstallJob` lifecycle projection
+//   2. the live runtime `NimiRuntimeAppInstallJob` lifecycle projection
 //      (`DesktopAppLifecycleBridge.listJobs`)
 //   3. the card-state derivation (`deriveAppCardState`) that composes the SDK
 //      `AppLaunchReadiness` floor WITH the live job.
@@ -24,7 +24,7 @@ import type {
   NimiAppStorageRoots,
   NimiAppStatus,
 } from '@nimiplatform/sdk/app';
-import { resolveRuntimeAppActiveStorageRoots } from '@nimiplatform/sdk/runtime';
+import { resolveNimiRuntimeAppActiveStorageRoots } from '@nimiplatform/sdk/runtime';
 import {
   CANONICAL_APP_CARD_STATES,
   deriveAppCardState,
@@ -32,7 +32,7 @@ import {
   type CanonicalAppCardState,
 } from './apps-card-state.js';
 import { resolveAppStatusFailure } from './apps-status-failure.js';
-import type { DesktopAppLifecycleBridge, RuntimeAppInstallJob } from './apps-lifecycle-bridge.js';
+import type { DesktopAppLifecycleBridge, NimiRuntimeAppInstallJob } from './apps-lifecycle-bridge.js';
 
 /**
  * The full Desktop Apps card-state vocabulary: the 11 canonical product states
@@ -47,7 +47,7 @@ export const DESKTOP_APPS_CARD_STATES = CANONICAL_APP_CARD_STATES;
 export type DesktopAppsCardState = CanonicalAppCardState;
 
 /**
- * One projected Apps card entry. `job` is the live `RuntimeAppInstallJob` the
+ * One projected Apps card entry. `job` is the live `NimiRuntimeAppInstallJob` the
  * card state was derived from (when one exists) — the view reads its `phase`
  * for the install/uninstall progress label and its `reasonCode` for the
  * `install_failed` error detail.
@@ -55,7 +55,7 @@ export type DesktopAppsCardState = CanonicalAppCardState;
 export interface DesktopAppsEntry {
   readonly app: NimiAppRow;
   readonly status?: NimiAppStatus;
-  readonly job?: RuntimeAppInstallJob;
+  readonly job?: NimiRuntimeAppInstallJob;
   readonly cardState: DesktopAppsCardState;
   readonly detail?: string;
 }
@@ -68,7 +68,7 @@ export type DesktopAppsPanelProjection =
  * Project the Apps panel.
  *
  * `client` is the read-projection floor. `lifecycle` is the W2d lifecycle
- * bridge — its `listJobs()` supplies the live `RuntimeAppInstallJob`
+ * bridge — its `listJobs()` supplies the live `NimiRuntimeAppInstallJob`
  * projection that the card-state derivation composes with the readiness floor.
  * `lifecycle` is optional so the first-paint can render the floor-only card
  * states before the job projection resolves; when omitted, the four
@@ -94,7 +94,7 @@ export async function projectAppsPanel(
   // The live lifecycle job projection. A failure here fails the panel closed
   // rather than silently dropping the job-dependent card states: the panel
   // must not render `installed_ready` for an app that is in fact mid-install.
-  let jobs: readonly RuntimeAppInstallJob[] = [];
+  let jobs: readonly NimiRuntimeAppInstallJob[] = [];
   if (lifecycle) {
     try {
       jobs = await lifecycle.listJobs();
@@ -155,7 +155,7 @@ async function resolveRuntimeStatusStorageRoots(
   lifecycle: DesktopAppLifecycleBridge,
   appId: string,
 ): Promise<NimiAppStorageRoots | undefined> {
-  return resolveRuntimeAppActiveStorageRoots({
+  return resolveNimiRuntimeAppActiveStorageRoots({
     appLifecycle: lifecycle,
     appId,
     label: 'desktop Apps app',
@@ -177,7 +177,7 @@ async function resolveRuntimeStatusStorageRoots(
  * NO status refinement — i.e. it can only ever produce the 7 floor-reachable
  * states. The four job-dependent states (`installing`, `update_available`,
  * `install_failed`, `uninstalling`) require `deriveAppCardState` with a live
- * `RuntimeAppInstallJob` / `NimiAppStatus`.
+ * `NimiRuntimeAppInstallJob` / `NimiAppStatus`.
  */
 export function mapLaunchReadinessToAppsCardState(
   readiness: AppLaunchReadiness,
@@ -196,6 +196,10 @@ function errorMessage(error: unknown): string {
   const cause = (error as { readonly cause?: unknown }).cause;
   if (cause instanceof Error && cause.message) {
     return `${error.message}: ${cause.message}`;
+  }
+  const detailsCause = (error as { readonly details?: { readonly cause?: unknown } }).details?.cause;
+  if (typeof detailsCause === 'string' && detailsCause.trim()) {
+    return `${error.message}: ${detailsCause.trim()}`;
   }
   return error.message;
 }

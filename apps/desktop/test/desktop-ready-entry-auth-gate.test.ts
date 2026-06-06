@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 import test from 'node:test';
 
 import { getProductControlRecord } from '../src/shell/renderer/bridge/runtime-bridge/product-control.js';
-import type { ProductControlRecordProjection } from '../src/shell/renderer/bridge/runtime-bridge/product-control.js';
+import type { NimiProductControlRecordProjection } from '../src/shell/renderer/bridge/runtime-bridge/product-control.js';
 
 const appRoutesSource = readFileSync(
   resolve(import.meta.dirname, '../src/shell/renderer/app-shell/routes/app-routes.tsx'),
@@ -67,7 +67,7 @@ test('Gate 7: Desktop root route is guarded by auth and product ready_for_use', 
   // the actual root admission code path instead.
   assert.match(appRoutesSource, /if \(authStatus === 'anonymous'\) \{\s*navigate\('\/login', \{ replace: true \}\);/);
   assert.match(appRoutesSource, /desktopBridge\.getProductControlRecord\(\)/);
-  assert.match(appRoutesSource, /projectProductControlAdmission\(projection\.state\)/);
+  assert.match(appRoutesSource, /projectNimiProductControlAdmission\(projection\.state\)/);
   assert.ok(appRoutesSource.includes('<Route path="/" element={<DesktopOrdinaryShellGate />} />'));
 });
 
@@ -135,13 +135,13 @@ test('Gate 7: first-run ready projection signals the ordinary shell admission ga
 test('Wave 7: bridge exposes a backend-only admitProductReadyForUse request', () => {
   // The renderer requests admission; the backend admission op is the sole
   // authority that writes ready_for_use (cold-start P-COLD-016).
-  assert.match(productControlBridgeSource, /export async function admitProductReadyForUse\(\): Promise<ProductControlRecordProjection>/);
-  assert.match(productControlBridgeSource, /invokeChecked\('product_control_record_admit_ready_for_use', \{\}, parseProductControlRecordProjection\)/);
+  assert.match(productControlBridgeSource, /export async function admitProductReadyForUse\(\): Promise<NimiProductControlRecordProjection>/);
+  assert.match(productControlBridgeSource, /invokeChecked\('product_control_record_admit_ready_for_use', \{\}, parseNimiProductControlRecordProjection\)/);
   // Fails closed when the Tauri runtime is unavailable.
   assert.match(productControlBridgeSource, /product_control_record_admit_ready_for_use requires Tauri runtime/);
   // Account Default Profile payload decoding is shared SDK AIProfile parsing;
   // product-control remains the command/state authority, not the profile parser.
-  assert.match(productControlBridgeSource, /parseAIProfile/);
+  assert.match(productControlBridgeSource, /parseNimiAIProfile/);
   assert.doesNotMatch(productControlBridgeSource, /function parseAccountDefaultProfileAIProfile/);
   // Setup progress is reconciled by a no-payload backend command; the renderer
   // cannot submit a product-control state string.
@@ -210,7 +210,7 @@ test('Wave 7: workflow mounts the finalization branch only after local AI eviden
  * to source so a relaxation is caught.
  */
 function deriveOrdinaryShellAdmission(
-  projection: ProductControlRecordProjection,
+  projection: NimiProductControlRecordProjection,
 ): 'ready' | 'not-ready' {
   return projection.state === 'ready_for_use' ? 'ready' : 'not-ready';
 }
@@ -294,7 +294,7 @@ test('Wave 8: only a backend-admitted ready_for_use projection derives the Ready
   // Every non-ready_for_use backend projection — including a backend-reported
   // failure state with a fabricated ready_for_use still cached in renderer
   // state — derives 'not-ready'. Only a genuine backend ready_for_use admits.
-  const nonReadyStates: ProductControlRecordProjection['state'][] = [
+  const nonReadyStates: NimiProductControlRecordProjection['state'][] = [
     'not_logged_in',
     'config_missing',
     'data_root_missing',
@@ -308,7 +308,7 @@ test('Wave 8: only a backend-admitted ready_for_use projection derives the Ready
     'blocked',
   ];
   for (const state of nonReadyStates) {
-    const projection: ProductControlRecordProjection = {
+    const projection: NimiProductControlRecordProjection = {
       path: '/nimi/nimi.json',
       exists: true,
       state,
@@ -321,7 +321,7 @@ test('Wave 8: only a backend-admitted ready_for_use projection derives the Ready
       `${state} must not mount ReadyDesktopShell`,
     );
   }
-  const backendReady: ProductControlRecordProjection = {
+  const backendReady: NimiProductControlRecordProjection = {
     path: '/nimi/nimi.json',
     exists: true,
     state: 'ready_for_use',

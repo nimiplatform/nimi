@@ -9,25 +9,24 @@ import {
 import type { TauriOAuthBridge } from '@nimiplatform/kit/core/oauth';
 import { isWebShellMode } from '@nimiplatform/kit/core/shell-mode';
 import {
-  checkRealmAuthEmail,
-  createRealmWalletChallenge,
-  isExpectedAnonymousRealmSessionError,
-  loginRealmAuthPassword,
-  loginRealmOAuth,
-  loginRealmWallet,
-  requestRealmEmailOtp,
-  toRealmAuthUserRecord,
-  updateRealmPassword,
-  verifyRealmEmailOtp,
-  verifyRealmTwoFactor,
-  type RealmAuthTokensDto,
-  type RealmCheckEmailResponseDto,
-  type RealmOAuthLoginResultDto,
-  type RealmOAuthProvider,
+  checkNimiRealmAuthEmail,
+  createNimiRealmWalletChallenge,
+  isNimiRealmExpectedAnonymousSessionError,
+  loginNimiRealmAuthPassword,
+  loginNimiRealmOAuth,
+  loginNimiRealmWallet,
+  requestNimiRealmEmailOtp,
+  toNimiRealmAuthUserRecord,
+  updateNimiRealmPassword,
+  verifyNimiRealmEmailOtp,
+  verifyNimiRealmTwoFactor,
+  type NimiRealmAuthTokens,
+  type NimiRealmCheckEmailResponse,
+  type NimiRealmOAuthLoginResult,
+  type NimiRealmOAuthProvider,
 } from '@nimiplatform/sdk/realm';
-import { getPlatformClient } from '@nimiplatform/sdk';
-import { createDesktopShellRuntimeAccountCaller } from '@nimiplatform/sdk/runtime';
-import { AccountSessionState } from '@nimiplatform/sdk/runtime/browser';
+import { createNimiDesktopShellRuntimeAccountCaller } from '@nimiplatform/sdk/runtime';
+import { AccountSessionState } from '@nimiplatform/sdk/runtime/generated';
 import { bootstrapRuntime } from '@renderer/infra/bootstrap/runtime-bootstrap';
 import { queryClient } from '@renderer/infra/query-client/query-client';
 import { desktopBridge } from '@renderer/bridge';
@@ -38,6 +37,10 @@ import {
   configureWebRealmPlatformClient,
   isRealmPlatformClientReady,
 } from '@renderer/infra/realm/realm-platform-session';
+import {
+  getDesktopAccountRuntime,
+  getDesktopNimiClient,
+} from '@renderer/infra/sdk/desktop-nimi-client-session';
 import { i18n } from '@renderer/i18n';
 
 export const desktopOAuthBridge: TauriOAuthBridge = {
@@ -48,17 +51,17 @@ export const desktopOAuthBridge: TauriOAuthBridge = {
   focusMainWindow: () => desktopBridge.focusMainWindow(),
 };
 
-type AuthTokensDto = RealmAuthTokensDto;
-type CheckEmailResponseDto = RealmCheckEmailResponseDto;
-type OAuthLoginResultDto = RealmOAuthLoginResultDto;
+type AuthTokensDto = NimiRealmAuthTokens;
+type CheckEmailResponseDto = NimiRealmCheckEmailResponse;
+type OAuthLoginResultDto = NimiRealmOAuthLoginResult;
 
-const desktopRuntimeAccountCaller = createDesktopShellRuntimeAccountCaller({ appId: 'nimi.desktop' });
+const desktopRuntimeAccountCaller = createNimiDesktopShellRuntimeAccountCaller({ appId: 'nimi.desktop' });
 
 export function createDesktopRuntimeAccountBrowserBroker() {
   return createRuntimeAccountBrowserBroker({
     caller: desktopRuntimeAccountCaller,
     beforeRequest: ensureAuthApiReady,
-    getClient: getPlatformClient,
+    getClient: getDesktopNimiClient,
     projectUser: (projection) => projection.accountId
       ? {
           id: projection.accountId,
@@ -116,7 +119,7 @@ export function createDesktopAuthAdapter(): AuthPlatformAdapter {
         return localFirstPartyBlocked('checkEmail');
       }
       await ensureAuthApiReady();
-      return checkRealmAuthEmail(callRealmApi, email);
+      return callRealmApi((realm) => checkNimiRealmAuthEmail(realm, email));
     },
 
     passwordLogin: async (identifier, password): Promise<OAuthLoginResultDto> => {
@@ -124,10 +127,8 @@ export function createDesktopAuthAdapter(): AuthPlatformAdapter {
         return localFirstPartyBlocked('passwordLogin');
       }
       await ensureAuthApiReady();
-      return loginRealmAuthPassword(
-        callRealmApi,
-        identifier,
-        password,
+      return callRealmApi(
+        (realm) => loginNimiRealmAuthPassword(realm, identifier, password),
         i18n.t('Auth.passwordLoginFailed', { defaultValue: 'Email sign-in failed' }),
       );
     },
@@ -137,9 +138,8 @@ export function createDesktopAuthAdapter(): AuthPlatformAdapter {
         return localFirstPartyBlocked('requestEmailOtp');
       }
       await ensureAuthApiReady();
-      return requestRealmEmailOtp(
-        callRealmApi,
-        email,
+      return callRealmApi(
+        (realm) => requestNimiRealmEmailOtp(realm, email),
         i18n.t('Auth.requestEmailOtpFailed', { defaultValue: 'Failed to send verification code' }),
       );
     },
@@ -149,10 +149,8 @@ export function createDesktopAuthAdapter(): AuthPlatformAdapter {
         return localFirstPartyBlocked('verifyEmailOtp');
       }
       await ensureAuthApiReady();
-      return verifyRealmEmailOtp(
-        callRealmApi,
-        email,
-        code,
+      return callRealmApi(
+        (realm) => verifyNimiRealmEmailOtp(realm, email, code),
         i18n.t('Auth.verifyEmailOtpFailed', { defaultValue: 'Failed to sign in with email code' }),
       );
     },
@@ -162,10 +160,8 @@ export function createDesktopAuthAdapter(): AuthPlatformAdapter {
         return localFirstPartyBlocked('verifyTwoFactor');
       }
       await ensureAuthApiReady();
-      return verifyRealmTwoFactor(
-        callRealmApi,
-        tempToken,
-        code,
+      return callRealmApi(
+        (realm) => verifyNimiRealmTwoFactor(realm, tempToken, code),
         i18n.t('Auth.verifyTwoFactorFailed', { defaultValue: 'Two-factor verification failed' }),
       );
     },
@@ -175,9 +171,8 @@ export function createDesktopAuthAdapter(): AuthPlatformAdapter {
         return localFirstPartyBlocked('walletChallenge');
       }
       await ensureAuthApiReady();
-      return createRealmWalletChallenge(
-        callRealmApi,
-        input,
+      return callRealmApi(
+        (realm) => createNimiRealmWalletChallenge(realm, input),
         i18n.t('Auth.walletChallengeFailed', { defaultValue: 'Failed to get wallet challenge' }),
       );
     },
@@ -187,9 +182,8 @@ export function createDesktopAuthAdapter(): AuthPlatformAdapter {
         return localFirstPartyBlocked('walletLogin');
       }
       await ensureAuthApiReady();
-      return loginRealmWallet(
-        callRealmApi,
-        input,
+      return callRealmApi(
+        (realm) => loginNimiRealmWallet(realm, input),
         i18n.t('Auth.walletLoginFailed', { defaultValue: 'Wallet sign-in failed' }),
       );
     },
@@ -199,47 +193,46 @@ export function createDesktopAuthAdapter(): AuthPlatformAdapter {
         return localFirstPartyBlocked('oauthLogin');
       }
       await ensureAuthApiReady();
-      return loginRealmOAuth(
-        callRealmApi,
-        provider as RealmOAuthProvider,
-        accessToken,
+      return callRealmApi(
+        (realm) => loginNimiRealmOAuth(realm, provider as NimiRealmOAuthProvider, accessToken),
         i18n.t('Auth.oauthLoginFailed', { defaultValue: 'OAuth sign-in failed' }),
       );
     },
 
     updatePassword: async (newPassword) => {
       await ensureAuthApiReady();
-      await updateRealmPassword(getPlatformClient().realm, { newPassword });
+      await callRealmApi((realm) => updateNimiRealmPassword(realm, { newPassword }));
     },
 
     loadCurrentUser: async () => {
       if (isWebShellMode()) {
         try {
           const user = await realmSocialData.loadCurrentUser();
-          return toRealmAuthUserRecord(user);
+          return toNimiRealmAuthUserRecord(user);
         } catch (error) {
-          if (isExpectedAnonymousRealmSessionError(error)) {
+          if (isNimiRealmExpectedAnonymousSessionError(error)) {
             return null;
           }
           throw error;
         }
       }
       await ensureAuthApiReady();
-      const response = await getPlatformClient().runtime.account.getAccountSessionStatus({
+      const runtime = getDesktopAccountRuntime();
+      const response = await runtime.account.getAccountSessionStatus({
         caller: desktopRuntimeAccountCaller,
       });
       const projection = response.accountProjection;
       if (response.state !== AccountSessionState.AUTHENTICATED || !projection?.accountId) {
         return null;
       }
-      const tokenStatus = await getPlatformClient().runtime.account.getAccessToken({
+      const tokenStatus = await runtime.account.getAccessToken({
         caller: desktopRuntimeAccountCaller,
         requestedScopes: [],
       });
       if (!tokenStatus.accepted || !tokenStatus.accessToken) {
         return null;
       }
-      return toRealmAuthUserRecord({
+      return toNimiRealmAuthUserRecord({
         id: projection.accountId,
         displayName: projection.displayName,
         realmEnvironmentId: projection.realmEnvironmentId,

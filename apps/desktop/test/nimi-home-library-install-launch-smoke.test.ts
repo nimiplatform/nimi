@@ -3,22 +3,16 @@ import { describe, it } from 'node:test';
 import {
   NimiAppClient,
   createNimiAppRegistryTransport,
+  loadNimiAppRegistryRows,
+  loadNimiAppReleaseDescriptorRows,
 } from '@nimiplatform/sdk/app';
-// T4 Fork C: the live Apps bridge reads the runtime `~/.nimi/apps`
-// projections, not the SDK Platform catalog.
-// This smoke test still exercises the SDK transport against the generated
-// catalog projection used purely as a row fixture.
-import {
-  loadPlatformNimiAppReleaseDescriptorRows,
-  loadPlatformNimiAppRegistryRows,
-} from '@nimiplatform/sdk/platform-catalog';
 import { projectDiscovery } from '../src/shell/renderer/first-run/discovery-projection.js';
 import { projectLibrary } from '../src/shell/renderer/first-run/library-projection.js';
 
 function createPlatformRegistryClient(): NimiAppClient {
   return new NimiAppClient(createNimiAppRegistryTransport({
-    loadRows: loadPlatformNimiAppRegistryRows,
-    loadReleaseDescriptors: loadPlatformNimiAppReleaseDescriptorRows,
+    loadRows: loadNimiAppRegistryRows,
+    loadReleaseDescriptors: loadNimiAppReleaseDescriptorRows,
   }));
 }
 
@@ -51,7 +45,12 @@ describe('Nimi Home Library / install / launch smoke', () => {
   it('fails closed when a registry status row is missing', async () => {
     await assert.rejects(
       createPlatformRegistryClient().status('missing.registry.row'),
-      /missing registry row|status transport error/i,
+      (error: unknown) => {
+        const candidate = error as { reasonCode?: string; details?: { cause?: string } };
+        assert.equal(candidate.reasonCode, 'SDK_APP_TRANSPORT_FAILED');
+        assert.match(candidate.details?.cause ?? '', /registry row missing/i);
+        return true;
+      },
     );
   });
 

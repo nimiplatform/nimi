@@ -3,7 +3,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 
-import { isExpectedAnonymousRealmSessionError, toRealmAuthUserRecord } from '@nimiplatform/sdk/realm';
+import {
+  isNimiRealmExpectedAnonymousSessionError,
+  toNimiRealmAuthUserRecord,
+} from '@nimiplatform/sdk/realm';
 import { confirmDialog, openExternalUrl } from '@nimiplatform/kit/shell/renderer/bridge';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 
@@ -34,13 +37,13 @@ function installWindowMock(windowMock: WindowLike): () => void {
 }
 
 test('SDK auth projection only coerces object user payloads and keeps anonymous session errors explicit', () => {
-  assert.deepEqual(toRealmAuthUserRecord({ id: 'user-1' }), { id: 'user-1' });
-  assert.equal(toRealmAuthUserRecord(null), null);
-  assert.equal(toRealmAuthUserRecord(['user-1']), null);
+  assert.deepEqual(toNimiRealmAuthUserRecord({ id: 'user-1' }), { id: 'user-1' });
+  assert.equal(toNimiRealmAuthUserRecord(null), null);
+  assert.equal(toNimiRealmAuthUserRecord(['user-1']), null);
 
-  assert.equal(isExpectedAnonymousRealmSessionError({ reasonCode: ReasonCode.AUTH_TOKEN_INVALID }), true);
-  assert.equal(isExpectedAnonymousRealmSessionError(new Error('HTTP_401 unauthorized')), true);
-  assert.equal(isExpectedAnonymousRealmSessionError(new Error('contract mismatch')), false);
+  assert.equal(isNimiRealmExpectedAnonymousSessionError({ reasonCode: ReasonCode.AUTH_TOKEN_INVALID }), true);
+  assert.equal(isNimiRealmExpectedAnonymousSessionError(new Error('HTTP_401 unauthorized')), true);
+  assert.equal(isNimiRealmExpectedAnonymousSessionError(new Error('contract mismatch')), false);
 });
 
 test('openExternalUrl rejects non-http protocols before invoking browser APIs', async () => {
@@ -198,13 +201,15 @@ test('desktop shell source guardrails keep auth helpers centralized', () => {
   assert.doesNotMatch(mainSource, /function isRetryableEntryImportError|function createEntryImportError|Failed to fetch dynamically imported module|Importing a module script failed/);
   assert.doesNotMatch(desktopTauriConfigSource, /"pubkey"\s*:\s*"dev-placeholder"/);
   assert.doesNotMatch(authAdapterSource, /as Promise</);
-  for (const source of [authAdapterSource, logoutSource, runtimeBootstrapSource, smokeDriverSource]) {
-    assert.match(source, /createDesktopShellRuntimeAccountCaller/);
+  for (const source of [authAdapterSource, runtimeBootstrapSource, smokeDriverSource]) {
+    assert.match(source, /createNimiDesktopShellRuntimeAccountCaller/);
     assert.doesNotMatch(source, /appInstanceId:\s*['"`]nimi\.desktop\.local-first-party/);
     assert.doesNotMatch(source, /deviceId:\s*['"`]desktop-shell/);
     assert.doesNotMatch(source, /mode:\s*2/);
     assert.doesNotMatch(source, /scopes:\s*\[\]/);
   }
+  assert.match(logoutSource, /getDesktopRuntimeAccountCaller/);
+  assert.doesNotMatch(logoutSource, /createNimiDesktopShellRuntimeAccountCaller|createDesktopShellRuntimeAccountCaller/);
   assert.doesNotMatch(authAdapterSource, /发送验证码失败|验证码登录失败|2FA 验证失败|获取钱包签名挑战失败|钱包登录失败|OAuth 登录失败/);
   assert.equal(fs.existsSync(retiredBootstrapAuthPath), false);
   assert.doesNotMatch(runtimeBootstrapSource, /runtime-bootstrap-auth|bootstrapAuthSession/);

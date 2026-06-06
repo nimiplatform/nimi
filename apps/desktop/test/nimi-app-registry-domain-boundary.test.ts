@@ -89,17 +89,18 @@ describe('Nimi App registry/admission domain boundary', () => {
     assert.match(liveBridge, /NimiAppClient/);
     assert.match(liveBridge, /createNimiAppRegistryTransport/);
     assert.match(liveBridge, /loadPackageReadiness/);
-    assert.match(liveBridge, /runtime\.appLifecycle\.packageReadiness/);
+    assert.match(liveBridge, /getDesktopRuntime\(\)\.appLifecycle\.packageReadiness/);
     assert.doesNotMatch(liveBridge, /loadInstallEvidence/);
     assert.match(liveBridge, /from '@nimiplatform\/sdk\/app'/);
 
     assert.match(panelProjection, /NimiAppClient/);
-    assert.match(panelProjection, /resolveRuntimeAppActiveStorageRoots/);
+    assert.match(panelProjection, /resolveNimiRuntimeAppActiveStorageRoots/);
     assert.doesNotMatch(panelProjection, /nimi-app-registry\.yaml|nimi-app-release-descriptors\.yaml/);
     assert.doesNotMatch(panelProjection, /ADMISSION_STATUSES|RELEASE_DESCRIPTOR_CLASSES|VERIFICATION_STATES/);
 
-    assert.match(lifecycleBridge, /getPlatformClient\(\)\.runtime\.appLifecycle/);
-    assert.match(lifecycleBridge, /RuntimeAppLifecycleModule/);
+    assert.match(lifecycleBridge, /getDesktopRuntime\(\)\.appLifecycle/);
+    assert.doesNotMatch(lifecycleBridge, /getPlatformClient\(\)\.runtime\.appLifecycle/);
+    assert.match(lifecycleBridge, /NimiRuntimeAppLifecycleClient/);
     assert.doesNotMatch(lifecycleBridge, /invokeChecked|apps_bridge_projection_get|__TAURI__/);
     assert.match(lifecycleBridge, /never returns a fabricated "success" job/);
   });

@@ -3,7 +3,7 @@
 // The renderer-side controller hook for the Apps surface. It owns:
 //   - loading the Apps panel projection (registry + status + live jobs);
 //   - routing every card action onto the `DesktopAppLifecycleBridge` (W2d);
-//   - observing the `RuntimeAppInstallJob` lifecycle via `watchJobEvents` so
+//   - observing the `NimiRuntimeAppInstallJob` lifecycle via `watchJobEvents` so
 //     `installing` / `uninstalling` progress and the `installed_ready` /
 //     `install_failed` terminal states are live;
 //   - the separate destructive "Delete app data" confirm flow.
@@ -14,12 +14,12 @@
 // is open, which confirm dialog is pending, the last action error).
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { RuntimeAppOpenScopeRef } from '@nimiplatform/sdk/runtime';
+import type { NimiRuntimeAppOpenScopeRef } from '@nimiplatform/sdk/runtime';
 import {
   desktopAppLifecycleBridge,
   formatAppLifecycleErrorDetail,
   type DesktopAppLifecycleBridge,
-  type RuntimeAppInstallJob,
+  type NimiRuntimeAppInstallJob,
 } from './apps-lifecycle-bridge.js';
 import type { AppCardActionId } from './apps-card-actions.js';
 import { createDesktopAppsLiveBridge } from './apps-live-bridge.js';
@@ -118,7 +118,7 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps = {}): Apps
     }
     return projection.entries
       .map((entry) => entry.job)
-      .filter((job): job is RuntimeAppInstallJob => Boolean(job && isActiveJob(job)))
+      .filter((job): job is NimiRuntimeAppInstallJob => Boolean(job && isActiveJob(job)))
       .map((job) => job.jobId)
       .sort()
       .join('|');
@@ -220,12 +220,12 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps = {}): Apps
   };
 }
 
-function isActiveJob(job: RuntimeAppInstallJob): boolean {
+function isActiveJob(job: NimiRuntimeAppInstallJob): boolean {
   return job.state === 'queued' || job.state === 'in_progress';
 }
 
 /** Build the canonical app-launch AIScopeRef for an Open action. */
-export function appLaunchScopeRef(appId: string): RuntimeAppOpenScopeRef {
+export function appLaunchScopeRef(appId: string): NimiRuntimeAppOpenScopeRef {
   // The Apps surface opens the app at the app scope itself — `ownerId` is the
   // admitted app id, with no manifest-declared `surfaceId`. The runtime Open
   // flow (`K-APP-017`) validates this; it is never inferred runtime-side.

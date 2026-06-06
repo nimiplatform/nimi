@@ -51,8 +51,8 @@ test('bootstrap failure performs teardown before auth reset and surfaces cleanup
     'teardown helper must stop auth state watcher',
   );
   assert.ok(
-    bootstrapSource.includes('clearPlatformClient();'),
-    'teardown helper must clear platform client state',
+    bootstrapSource.includes('clearDesktopNimiClientSession();'),
+    'teardown helper must clear Desktop Nimi client session state',
   );
   assert.doesNotMatch(
     bootstrapSource,

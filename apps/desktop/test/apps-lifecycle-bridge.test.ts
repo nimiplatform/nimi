@@ -1,14 +1,13 @@
 import assert from 'node:assert/strict';
 import test, { describe } from 'node:test';
 
-import { createNimiError } from '@nimiplatform/sdk/runtime';
 import type {
-  RuntimeAppInstallJob,
-  RuntimeAppInstallJobEvent,
-  RuntimeAppLifecycleModule,
-  RuntimeAppUninstallResult,
+  NimiRuntimeAppInstallJob,
+  NimiRuntimeAppInstallJobEvent,
+  NimiRuntimeAppLifecycleClient,
+  NimiRuntimeAppUninstallResult,
 } from '@nimiplatform/sdk/runtime';
-import { ReasonCode } from '@nimiplatform/sdk/types';
+import { createNimiError, ReasonCode } from '@nimiplatform/sdk/types';
 
 import {
   asAppLifecycleNimiError,
@@ -21,7 +20,7 @@ import {
 // must project them through unchanged.
 // ---------------------------------------------------------------------------
 
-function installJob(overrides: Partial<RuntimeAppInstallJob> = {}): RuntimeAppInstallJob {
+function installJob(overrides: Partial<NimiRuntimeAppInstallJob> = {}): NimiRuntimeAppInstallJob {
   return {
     jobId: 'job-01',
     appId: 'nimi.notes',
@@ -44,7 +43,7 @@ function installJob(overrides: Partial<RuntimeAppInstallJob> = {}): RuntimeAppIn
   };
 }
 
-const uninstallResult: RuntimeAppUninstallResult = {
+const uninstallResult: NimiRuntimeAppUninstallResult = {
   appId: 'nimi.notes',
   releaseRemoved: true,
   durableDataRemoved: false,
@@ -53,20 +52,20 @@ const uninstallResult: RuntimeAppUninstallResult = {
 };
 
 type ModuleCall = {
-  method: keyof RuntimeAppLifecycleModule;
+  method: keyof NimiRuntimeAppLifecycleClient;
   input: unknown;
   options: unknown;
 };
 
-/** A recording stub `RuntimeAppLifecycleModule` for bridge-isolation tests. */
+/** A recording stub `NimiRuntimeAppLifecycleClient` for bridge-isolation tests. */
 function stubModule(
-  overrides: Partial<RuntimeAppLifecycleModule> = {},
-): { module: RuntimeAppLifecycleModule; calls: ModuleCall[] } {
+  overrides: Partial<NimiRuntimeAppLifecycleClient> = {},
+): { module: NimiRuntimeAppLifecycleClient; calls: ModuleCall[] } {
   const calls: ModuleCall[] = [];
-  const record = (method: keyof RuntimeAppLifecycleModule) => (input: unknown, options: unknown) => {
+  const record = (method: keyof NimiRuntimeAppLifecycleClient) => (input: unknown, options: unknown) => {
     calls.push({ method, input, options });
   };
-  const base: RuntimeAppLifecycleModule = {
+  const base: NimiRuntimeAppLifecycleClient = {
     async install(input, options) {
       record('install')(input, options);
       return installJob();
@@ -109,9 +108,9 @@ function stubModule(
       record('listJobs')(input, options);
       return [installJob()];
     },
-    async watchJobEvents(input, options) {
+    watchJobEvents(input, options) {
       record('watchJobEvents')(input, options);
-      const frames: RuntimeAppInstallJobEvent[] = [
+      const frames: NimiRuntimeAppInstallJobEvent[] = [
         { sequence: 0, job: installJob() },
         { sequence: 1, job: installJob({ state: 'installed', phase: 'installed' }) },
       ];

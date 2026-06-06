@@ -24,7 +24,8 @@ test('Desktop src/runtime residual namespace is fully retired', () => {
 
   const bootstrap = readRepo('apps/desktop/src/shell/renderer/infra/bootstrap/runtime-bootstrap.ts');
 
-  assert.match(bootstrap, /createMissingWorldEvolutionSelectorReadProvider/);
+  assert.match(bootstrap, /configureDesktopRuntimeRealmSession/);
   assert.match(bootstrap, /from '@nimiplatform\/sdk\/runtime'/);
   assert.doesNotMatch(bootstrap, /@runtime\/world-evolution/);
+  assert.doesNotMatch(bootstrap, /createMissingWorldEvolutionSelectorReadProvider/);
 });

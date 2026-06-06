@@ -8,7 +8,7 @@ import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import type { WebAuthMenuMode } from '@nimiplatform/kit/auth';
 import { DesktopShellAuthPage } from '@nimiplatform/kit/auth';
 import '@nimiplatform/kit/auth/styles.css';
-import { toRealmAuthUserRecord } from '@nimiplatform/sdk/realm';
+import { toNimiRealmAuthUserRecord } from '@nimiplatform/sdk/realm';
 import {
   createDesktopAuthAdapter,
   createDesktopRuntimeAccountBrowserBroker,
@@ -25,7 +25,7 @@ export function WebAuthMenu(props: { mode?: WebAuthMenuMode }) {
   const authUser = useAppStore((state) => state.auth.user);
   const setAuthSession = useAppStore((state) => state.setAuthSession);
   const [authFeedback, setAuthFeedback] = useState<InlineFeedbackState | null>(null);
-  const normalizedAuthUser = toRealmAuthUserRecord(authUser);
+  const normalizedAuthUser = toNimiRealmAuthUserRecord(authUser);
   const handleStatusBanner = (banner: { kind: string; message: string } | null) => {
     if (!banner) {
       setAuthFeedback(null);

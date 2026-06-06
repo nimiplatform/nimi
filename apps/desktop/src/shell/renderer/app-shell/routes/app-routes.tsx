@@ -3,7 +3,7 @@ import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-
 import { useTranslation } from 'react-i18next';
 import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
 import { AmbientBackground, ProgressIndicator, Surface } from '@nimiplatform/kit/ui';
-import { projectProductControlAdmission, type ProductControlState } from '@nimiplatform/sdk';
+import { projectNimiProductControlAdmission, type NimiProductControlState } from '@nimiplatform/sdk/runtime';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { desktopBridge } from '@renderer/bridge';
@@ -270,9 +270,9 @@ function useDesktopOrdinaryShellAdmission(
     let cancelled = false;
     let admissionRequested = false;
 
-    const projectVerdict = (projection: { state: ProductControlState }) => {
+    const projectVerdict = (projection: { state: NimiProductControlState }) => {
       if (cancelled) return;
-      const decision = projectProductControlAdmission(projection.state);
+      const decision = projectNimiProductControlAdmission(projection.state);
       if (decision.kind === 'ordinary-shell') {
         setAdmission('ready');
         return;

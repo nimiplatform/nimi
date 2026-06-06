@@ -25,8 +25,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { createNimiError } from '@nimiplatform/sdk/runtime';
-import { ReasonCode } from '@nimiplatform/sdk/types';
+import { createNimiError, ReasonCode } from '@nimiplatform/sdk/types';
 import {
   NimiAppClient,
   createNimiAppRegistryTransport,
@@ -48,10 +47,10 @@ import {
 } from '../src/shell/renderer/features/apps/apps-panel-controller.js';
 import type {
   DesktopAppLifecycleBridge,
-  RuntimeAppInstallJob,
-  RuntimeAppStorageProjection,
-  RuntimeAppUninstallInput,
-  RuntimeAppUninstallResult,
+  NimiRuntimeAppInstallJob,
+  NimiRuntimeAppStorageProjection,
+  NimiRuntimeAppUninstallInput,
+  NimiRuntimeAppUninstallResult,
 } from '../src/shell/renderer/features/apps/apps-lifecycle-bridge.js';
 
 // ---------------------------------------------------------------------------
@@ -352,7 +351,7 @@ function releaseDescriptorFor(row: NimiAppRegistrySourceRow): NimiAppReleaseDesc
   };
 }
 
-function uninstallJob(): RuntimeAppInstallJob {
+function uninstallJob(): NimiRuntimeAppInstallJob {
   return {
     jobId: 'job-uninstall-01',
     appId: 'nimi.example-app',
@@ -374,7 +373,7 @@ function uninstallJob(): RuntimeAppInstallJob {
   };
 }
 
-function storageProjection(appId = 'nimi.example-app'): RuntimeAppStorageProjection {
+function storageProjection(appId = 'nimi.example-app'): NimiRuntimeAppStorageProjection {
   return {
     appId,
     state: 'ready',
@@ -394,14 +393,14 @@ function storageProjection(appId = 'nimi.example-app'): RuntimeAppStorageProject
  */
 function recordingLifecycle(): {
   lifecycle: DesktopAppLifecycleBridge;
-  uninstallCalls: RuntimeAppUninstallInput[];
+  uninstallCalls: NimiRuntimeAppUninstallInput[];
 } {
-  const uninstallCalls: RuntimeAppUninstallInput[] = [];
+  const uninstallCalls: NimiRuntimeAppUninstallInput[] = [];
   const lifecycle: DesktopAppLifecycleBridge = {
     async install() {
       return uninstallJob();
     },
-    async uninstall(input): Promise<RuntimeAppUninstallResult> {
+    async uninstall(input): Promise<NimiRuntimeAppUninstallResult> {
       uninstallCalls.push(input);
       return {
         appId: input.appId,

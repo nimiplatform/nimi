@@ -4,9 +4,9 @@
 // broader Nimi Home bridge, because Apps only needs the SDK NimiAppClient over
 // the desktop `~/.nimi/apps` projection.
 
-import { getPlatformClient } from '@nimiplatform/sdk';
 import { NimiAppClient, createNimiAppRegistryTransport } from '@nimiplatform/sdk/app';
 import { getAppsBridgeProjection } from '@renderer/bridge/runtime-bridge/apps-projection';
+import { getDesktopRuntime } from '@renderer/infra/sdk/desktop-nimi-client-session';
 
 export interface DesktopAppsLiveBridge {
   readonly appClient: NimiAppClient;
@@ -28,7 +28,7 @@ export function createDesktopAppsLiveBridge(): DesktopAppsLiveBridge {
     appClient: new NimiAppClient(createNimiAppRegistryTransport({
       loadRows: async () => (await loadProjection()).registryRows,
       loadReleaseDescriptors: async () => (await loadProjection()).releaseDescriptors,
-      loadPackageReadiness: async (appId) => getPlatformClient().runtime.appLifecycle.packageReadiness(
+      loadPackageReadiness: async (appId) => getDesktopRuntime().appLifecycle.packageReadiness(
         { appId },
         {
           timeoutMs: 20_000,

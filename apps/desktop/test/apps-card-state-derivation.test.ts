@@ -2,7 +2,7 @@
 //
 // Proves the W4 closed loop:
 //   1. each of the 11 canonical card states derives correctly from the SDK
-//      `AppLaunchReadiness` floor composed WITH the live `RuntimeAppInstallJob`
+//      `AppLaunchReadiness` floor composed WITH the live `NimiRuntimeAppInstallJob`
 //      projection (the four job-dependent states are unreachable from the
 //      floor alone);
 //   2. every card action routes onto the `DesktopAppLifecycleBridge` (no
@@ -41,15 +41,15 @@ import {
 import { projectAppsPanel } from '../src/shell/renderer/features/apps/apps-panel-projection.js';
 import type {
   DesktopAppLifecycleBridge,
-  RuntimeAppInstallJob,
-  RuntimeAppStorageProjection,
+  NimiRuntimeAppInstallJob,
+  NimiRuntimeAppStorageProjection,
 } from '../src/shell/renderer/features/apps/apps-lifecycle-bridge.js';
 
 // ---------------------------------------------------------------------------
 // Typed fixtures.
 // ---------------------------------------------------------------------------
 
-function job(overrides: Partial<RuntimeAppInstallJob>): RuntimeAppInstallJob {
+function job(overrides: Partial<NimiRuntimeAppInstallJob>): NimiRuntimeAppInstallJob {
   return {
     jobId: 'job-01',
     appId: 'nimi.notes',
@@ -76,7 +76,7 @@ function status(overrides: Partial<NimiAppStatus> = {}): NimiAppStatus {
   return { appId: 'nimi.notes', launchReadiness: 'ready', ...overrides };
 }
 
-function storageProjection(appId = 'nimi.notes'): RuntimeAppStorageProjection {
+function storageProjection(appId = 'nimi.notes'): NimiRuntimeAppStorageProjection {
   return {
     appId,
     state: 'ready',
@@ -208,7 +208,7 @@ describe('deriveAppCardState — 11 canonical card states', () => {
 
 describe('selectLatestJobForApp', () => {
   it('selects the most recent job for an app by updatedAt', () => {
-    const jobs: RuntimeAppInstallJob[] = [
+    const jobs: NimiRuntimeAppInstallJob[] = [
       job({ jobId: 'a', updatedAt: '2026-05-21T10:00:00.000Z' }),
       job({ jobId: 'b', updatedAt: '2026-05-21T12:00:00.000Z' }),
       job({ jobId: 'c', appId: 'nimi.other', updatedAt: '2026-05-21T13:00:00.000Z' }),

@@ -115,7 +115,11 @@ function extractReasonCode(error: unknown): string | undefined {
  */
 function describeStatusFailure(error: unknown): string {
   if (isNimiErrorLike(error)) {
-    return `${error.message} (reasonCode=${error.reasonCode})`;
+    const detailsCause = (error as { readonly details?: { readonly cause?: unknown } }).details?.cause;
+    const causeDetail = typeof detailsCause === 'string' && detailsCause.trim()
+      ? `: ${detailsCause.trim()}`
+      : '';
+    return `${error.message}${causeDetail} (reasonCode=${error.reasonCode})`;
   }
   if (!(error instanceof Error)) {
     return 'unknown error';
