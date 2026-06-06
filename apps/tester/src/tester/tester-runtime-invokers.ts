@@ -1,7 +1,7 @@
-import type { PlatformClient } from '@nimiplatform/sdk';
 import type { TesterCapabilityId } from './tester-capabilities.js';
 import type {
   TesterInvocationResult,
+  TesterRuntimeInvocationClient,
   TesterScenarioInput,
 } from './tester-runtime-invokers-core.js';
 import {
@@ -27,7 +27,7 @@ export type {
 export { resolveTesterLLMBinding } from './tester-runtime-invokers-core.js';
 
 export async function invokeTesterCapability(
-  client: PlatformClient,
+  client: TesterRuntimeInvocationClient,
   capabilityId: TesterCapabilityId,
   input: TesterScenarioInput,
 ): Promise<TesterInvocationResult> {

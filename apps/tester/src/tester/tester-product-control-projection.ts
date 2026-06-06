@@ -1,32 +1,32 @@
 import {
-  firstRunScreenForProductControlState,
-  isDegradedProductControlState,
-  projectProductControlAdmission,
-  projectProductControlStorageDirs,
-  reconcileRuntimeProductControlFirstRunSetupState,
-  type ProductControlState,
-  type RuntimeProductControlClientFor,
-} from '@nimiplatform/sdk';
+  isNimiProductControlDegradedState,
+  projectNimiProductControlAdmission,
+  projectNimiProductControlFirstRunScreen,
+  projectNimiProductControlStorageDirs,
+  reconcileNimiRuntimeProductControlFirstRunSetupState,
+  type NimiProductControlState,
+  type NimiRuntimeProductControlClientFor,
+} from '@nimiplatform/sdk/runtime';
 
 export type TesterProductControlProjection = {
-  readonly state: ProductControlState;
+  readonly state: NimiProductControlState;
   readonly degraded: boolean;
   readonly screen: string;
   readonly dataRootSelectedScreen: string;
   readonly aiEnvironmentScreen: string;
   readonly admission: string;
-  readonly storageDirs: ReturnType<typeof projectProductControlStorageDirs>;
+  readonly storageDirs: ReturnType<typeof projectNimiProductControlStorageDirs>;
   readonly runtimeMethod: 'reconcileProductControlFirstRunSetupState';
 };
 
-const TESTER_PRODUCT_CONTROL_STATE: ProductControlState = 'local_ai_assets_downloaded_environment_not_ready';
+const TESTER_PRODUCT_CONTROL_STATE: NimiProductControlState = 'local_ai_assets_downloaded_environment_not_ready';
 
-function screenLabel(state: ProductControlState): string {
-  const screen = firstRunScreenForProductControlState(state);
+function screenLabel(state: NimiProductControlState): string {
+  const screen = projectNimiProductControlFirstRunScreen(state);
   return screen.kind === 'phase' ? screen.phase : screen.screen;
 }
 
-function testerProductControlEnvelope(state: ProductControlState) {
+function testerProductControlEnvelope(state: NimiProductControlState) {
   return {
     json: JSON.stringify({
       path: '/tester/.nimi/nimi.json',
@@ -63,7 +63,7 @@ function testerProductControlEnvelope(state: ProductControlState) {
   };
 }
 
-function testerRuntimeProductControlClient(): RuntimeProductControlClientFor<'reconcileProductControlFirstRunSetupState'> {
+function testerRuntimeProductControlClient(): NimiRuntimeProductControlClientFor<'reconcileProductControlFirstRunSetupState'> {
   return {
     local: {
       reconcileProductControlFirstRunSetupState: async (request) => {
@@ -77,11 +77,11 @@ function testerRuntimeProductControlClient(): RuntimeProductControlClientFor<'re
 }
 
 export async function loadTesterProductControlProjection(): Promise<TesterProductControlProjection> {
-  const projection = await reconcileRuntimeProductControlFirstRunSetupState(
+  const projection = await reconcileNimiRuntimeProductControlFirstRunSetupState(
     testerRuntimeProductControlClient(),
   );
-  const admission = projectProductControlAdmission(projection.state);
-  const storageDirs = projectProductControlStorageDirs({
+  const admission = projectNimiProductControlAdmission(projection.state);
+  const storageDirs = projectNimiProductControlStorageDirs({
     path: projection.path,
     exists: projection.exists,
     state: projection.state,
@@ -90,7 +90,7 @@ export async function loadTesterProductControlProjection(): Promise<TesterProduc
   });
   return {
     state: projection.state,
-    degraded: isDegradedProductControlState(projection.state),
+    degraded: isNimiProductControlDegradedState(projection.state),
     screen: screenLabel(projection.state),
     dataRootSelectedScreen: screenLabel('data_root_selected'),
     aiEnvironmentScreen: screenLabel('ai_environment_unconfigured'),

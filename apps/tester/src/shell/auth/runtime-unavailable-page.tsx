@@ -1,10 +1,9 @@
-import type { NimiAppAuthUnavailable } from '@nimiplatform/sdk';
 import type { OfflineTier } from '@nimiplatform/kit/core/offline-coordinator';
 import { Button, InlineAlert, StatusBadge, Surface } from '@nimiplatform/kit/ui';
-import { appTitle } from './runtime-platform.js';
+import { appTitle, type TesterRuntimeAuthUnavailable } from './runtime-platform.js';
 
 type RuntimeUnavailablePageProps = {
-  projection?: NimiAppAuthUnavailable;
+  projection?: TesterRuntimeAuthUnavailable;
   message?: string;
   offlineTier?: OfflineTier;
   onRetry: () => void;

@@ -1,14 +1,14 @@
 import type {
-  RuntimeConnectorProjection,
-  RuntimeModelCatalogProvider,
-  RuntimeRouteProviderHealthProjection,
+  NimiRuntimeConnectorProjection,
+  NimiRuntimeModelCatalogProvider,
+  NimiRuntimeRouteHostProviderHealth,
 } from '@nimiplatform/sdk/runtime';
 import type {
-  RealmCreatorEligibilityDto,
-  RealmGroupChatListResultDto,
-  RealmNotificationListProjection,
-  RealmNotificationUnreadProjection,
-  RequestDataExportOutput,
+  NimiRealmCreatorEligibility,
+  NimiRealmGroupChatListResult,
+  NimiRealmNotificationListProjection,
+  NimiRealmNotificationUnreadProjection,
+  NimiRealmRequestDataExportOutput,
 } from '@nimiplatform/sdk/realm';
 import type { CommerceCurrencyBalances } from '@nimiplatform/kit/features/commerce/realm';
 import type { RealmListChatsResultDto } from '@nimiplatform/kit/features/chat/realm';
@@ -29,14 +29,14 @@ export type GiftTransactionProjectionState =
 
 export type NotificationProjectionState =
   | { status: 'idle'; unread: null; error: null }
-  | { status: 'loading'; unread: RealmNotificationUnreadProjection | null; error: null }
-  | { status: 'ready'; unread: RealmNotificationUnreadProjection; error: null }
+  | { status: 'loading'; unread: NimiRealmNotificationUnreadProjection | null; error: null }
+  | { status: 'ready'; unread: NimiRealmNotificationUnreadProjection; error: null }
   | { status: 'error'; unread: null; error: string };
 
 export type NotificationListProjectionState =
   | { status: 'idle'; list: null; error: null }
-  | { status: 'loading'; list: RealmNotificationListProjection | null; error: null }
-  | { status: 'ready'; list: RealmNotificationListProjection; error: null }
+  | { status: 'loading'; list: NimiRealmNotificationListProjection | null; error: null }
+  | { status: 'ready'; list: NimiRealmNotificationListProjection; error: null }
   | { status: 'error'; list: null; error: string };
 
 export type ResourceUploadProjectionState =
@@ -47,14 +47,14 @@ export type ResourceUploadProjectionState =
 
 export type AccountDataProjectionState =
   | { status: 'idle'; exportRequest: null; error: null }
-  | { status: 'loading'; exportRequest: RequestDataExportOutput | null; error: null }
-  | { status: 'ready'; exportRequest: RequestDataExportOutput; error: null }
+  | { status: 'loading'; exportRequest: NimiRealmRequestDataExportOutput | null; error: null }
+  | { status: 'ready'; exportRequest: NimiRealmRequestDataExportOutput; error: null }
   | { status: 'error'; exportRequest: null; error: string };
 
 export type AccountSettingsProjectionState =
   | { status: 'idle'; eligibility: null; error: null }
-  | { status: 'loading'; eligibility: RealmCreatorEligibilityDto | null; error: null }
-  | { status: 'ready'; eligibility: RealmCreatorEligibilityDto; error: null }
+  | { status: 'loading'; eligibility: NimiRealmCreatorEligibility | null; error: null }
+  | { status: 'ready'; eligibility: NimiRealmCreatorEligibility; error: null }
   | { status: 'error'; eligibility: null; error: string };
 
 export type HumanChatProjectionState =
@@ -65,21 +65,21 @@ export type HumanChatProjectionState =
 
 export type GroupChatProjectionState =
   | { status: 'idle'; groups: null; error: null }
-  | { status: 'loading'; groups: RealmGroupChatListResultDto | null; error: null }
-  | { status: 'ready'; groups: RealmGroupChatListResultDto; error: null }
+  | { status: 'loading'; groups: NimiRealmGroupChatListResult | null; error: null }
+  | { status: 'ready'; groups: NimiRealmGroupChatListResult; error: null }
   | { status: 'error'; groups: null; error: string };
 
 export type ConnectorProjectionState =
-  | { status: 'idle'; connectors: RuntimeConnectorProjection[]; error: null }
-  | { status: 'loading'; connectors: RuntimeConnectorProjection[]; error: null }
-  | { status: 'ready'; connectors: RuntimeConnectorProjection[]; error: null }
-  | { status: 'error'; connectors: RuntimeConnectorProjection[]; error: string };
+  | { status: 'idle'; connectors: NimiRuntimeConnectorProjection[]; error: null }
+  | { status: 'loading'; connectors: NimiRuntimeConnectorProjection[]; error: null }
+  | { status: 'ready'; connectors: NimiRuntimeConnectorProjection[]; error: null }
+  | { status: 'error'; connectors: NimiRuntimeConnectorProjection[]; error: string };
 
 export type CatalogProjectionState =
-  | { status: 'idle'; providers: RuntimeModelCatalogProvider[]; error: null }
-  | { status: 'loading'; providers: RuntimeModelCatalogProvider[]; error: null }
-  | { status: 'ready'; providers: RuntimeModelCatalogProvider[]; error: null }
-  | { status: 'error'; providers: RuntimeModelCatalogProvider[]; error: string };
+  | { status: 'idle'; providers: NimiRuntimeModelCatalogProvider[]; error: null }
+  | { status: 'loading'; providers: NimiRuntimeModelCatalogProvider[]; error: null }
+  | { status: 'ready'; providers: NimiRuntimeModelCatalogProvider[]; error: null }
+  | { status: 'error'; providers: NimiRuntimeModelCatalogProvider[]; error: string };
 
 export type RuntimeCapabilityProjectionState =
   | { status: 'loading'; summary: null; error: null }
@@ -88,7 +88,7 @@ export type RuntimeCapabilityProjectionState =
 
 export type RuntimeProviderHealthProjectionState =
   | { status: 'loading'; health: null; error: null }
-  | { status: 'ready'; health: RuntimeRouteProviderHealthProjection; error: null }
+  | { status: 'ready'; health: NimiRuntimeRouteHostProviderHealth; error: null }
   | { status: 'error'; health: null; error: string };
 
 export type RuntimeRouteHostAccessProjectionState =

@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import type { NimiAppAuthProjection } from '@nimiplatform/sdk';
 import { OfflineCoordinator, type OfflineTier } from '@nimiplatform/kit/core/offline-coordinator';
 import { StatusBadge } from '@nimiplatform/kit/ui';
 import {
   clearRuntimePlatformProjection,
   getRuntimePlatformProjection,
   runtimeAccountLoginEnabled,
+  type TesterRuntimePlatformProjection,
 } from './runtime-platform.js';
 import { loadRuntimeAccountUser } from './runtime-account-auth.js';
 import { RuntimeLoginPage } from './runtime-login-page.js';
@@ -15,11 +15,15 @@ const runtimeGateOfflineCoordinator = new OfflineCoordinator();
 
 type GateState =
   | { kind: 'checking' }
-  | { kind: 'ready'; projection: Extract<NimiAppAuthProjection, { status: 'ready' }> }
-  | { kind: 'login-required'; message?: string }
+  | { kind: 'ready'; projection: Extract<TesterRuntimePlatformProjection, { status: 'ready' }> }
+  | {
+      kind: 'login-required';
+      projection: Extract<TesterRuntimePlatformProjection, { status: 'ready' }>;
+      message?: string;
+    }
   | {
       kind: 'blocked';
-      projection?: Exclude<NimiAppAuthProjection, { status: 'ready' }>;
+      projection?: Exclude<TesterRuntimePlatformProjection, { status: 'ready' }>;
       message?: string;
       offlineTier: OfflineTier;
     };
@@ -45,9 +49,9 @@ async function resolveGateState(): Promise<GateState> {
     if (user) {
       return { kind: 'ready', projection };
     }
-    return { kind: 'login-required' };
+    return { kind: 'login-required', projection };
   } catch (error) {
-    return { kind: 'login-required', message: toMessage(error) };
+    return { kind: 'login-required', projection, message: toMessage(error) };
   }
 }
 
@@ -89,7 +93,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
   }
 
   if (state.kind === 'login-required') {
-    return <RuntimeLoginPage errorMessage={state.message} onReady={retry} />;
+    return <RuntimeLoginPage client={state.projection.client} errorMessage={state.message} onReady={retry} />;
   }
 
   if (state.kind === 'blocked') {

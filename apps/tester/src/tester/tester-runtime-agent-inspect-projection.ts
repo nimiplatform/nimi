@@ -1,19 +1,5 @@
-import {
-  AgentAutonomyMode,
-  AgentEventType,
-  AgentExecutionState,
-  AgentLifecycleStatus,
-  HookAdmissionState,
-  HookTriggerFamily,
-  MemoryReplicationOutcome,
-  buildRuntimeAgentStateMutations,
-  createHostRuntimeAgentInspectSurface,
-  projectRuntimeAgentInspectEventSummary,
-  projectRuntimeAgentInspectSnapshot,
-  projectRuntimeAgentPendingHookInspect,
-  readRuntimeAgentPresentationProfile,
-  toProtoStruct,
-} from '@nimiplatform/sdk/runtime';
+import { buildNimiRuntimeAgentStateMutations, createNimiHostRuntimeAgentInspectSurface, projectNimiRuntimeAgentInspectEventSummary, projectNimiRuntimeAgentInspectSnapshot, projectNimiRuntimeAgentPendingHookInspect, readNimiRuntimeAgentPresentationProfile, toNimiRuntimeProtoStruct } from '@nimiplatform/sdk/runtime';
+import { AgentAutonomyMode, AgentEventType, AgentExecutionState, AgentLifecycleStatus, HookAdmissionState, HookTriggerFamily, MemoryReplicationOutcome } from '@nimiplatform/sdk/runtime/generated';
 
 export type TesterRuntimeAgentInspectProjection = {
   lifecycleStatus: string | null;
@@ -24,7 +10,7 @@ export type TesterRuntimeAgentInspectProjection = {
 };
 
 export function createTesterRuntimeAgentInspectSurface() {
-  return createHostRuntimeAgentInspectSurface({
+  return createNimiHostRuntimeAgentInspectSurface({
     getRuntime: () => ({
       appId: 'nimi.tester',
       auth: {
@@ -42,7 +28,7 @@ export function createTesterRuntimeAgentInspectSurface() {
           return {
             agent: {
               lifecycleStatus: AgentLifecycleStatus.ACTIVE,
-              metadata: toProtoStruct({
+              metadata: toNimiRuntimeProtoStruct({
                 presentationProfile: {
                   backendKind: 'vrm',
                   avatarAssetRef: 'asset://tester/vrm-agent',
@@ -64,7 +50,7 @@ export function createTesterRuntimeAgentInspectSurface() {
         async listPendingHooks() {
           return { hooks: [], nextPageToken: '' };
         },
-        async queryMemory() {
+        async queryAgentMemory() {
           return { memories: [] };
         },
         async updateAgentState() {
@@ -116,14 +102,14 @@ export async function inspectTesterRuntimeAgentSurfaceProjection(): Promise<{
 }
 
 export function createTesterRuntimeAgentInspectProjection(): TesterRuntimeAgentInspectProjection {
-  const metadata = toProtoStruct({
+  const metadata = toNimiRuntimeProtoStruct({
     presentationProfile: {
       backendKind: 'vrm',
       avatarAssetRef: 'asset://tester/vrm-agent',
     },
   });
-  const presentation = readRuntimeAgentPresentationProfile(metadata);
-  const pendingHook = projectRuntimeAgentPendingHookInspect({
+  const presentation = readNimiRuntimeAgentPresentationProfile(metadata);
+  const pendingHook = projectNimiRuntimeAgentPendingHookInspect({
     intent: {
       intentId: 'tester-hook',
       agentId: 'tester-agent',
@@ -143,7 +129,7 @@ export function createTesterRuntimeAgentInspectProjection(): TesterRuntimeAgentI
     },
     scheduledFor: { seconds: '1776135600', nanos: 0 },
   });
-  const snapshot = projectRuntimeAgentInspectSnapshot({
+  const snapshot = projectNimiRuntimeAgentInspectSnapshot({
     agent: {
       lifecycleStatus: AgentLifecycleStatus.ACTIVE,
       metadata,
@@ -170,7 +156,7 @@ export function createTesterRuntimeAgentInspectProjection(): TesterRuntimeAgentI
     terminalHooks: [],
     recentCanonicalMemories: [],
   });
-  const event = projectRuntimeAgentInspectEventSummary({
+  const event = projectNimiRuntimeAgentInspectEventSummary({
     event: {
       agentId: 'tester-agent',
       eventType: AgentEventType.REPLICATION,
@@ -196,7 +182,7 @@ export function createTesterRuntimeAgentInspectProjection(): TesterRuntimeAgentI
       },
     },
   });
-  const mutationKinds = buildRuntimeAgentStateMutations({
+  const mutationKinds = buildNimiRuntimeAgentStateMutations({
     statusText: 'tester ready',
     clearWorldContext: true,
     userId: 'tester-user',

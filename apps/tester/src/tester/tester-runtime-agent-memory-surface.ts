@@ -1,8 +1,5 @@
-import {
-  AgentCanonicalMemoryBankMode,
-  RuntimeReasonCode,
-  createHostRuntimeAgentMemorySurface,
-} from '@nimiplatform/sdk/runtime';
+import { createNimiHostRuntimeAgentMemorySurface } from '@nimiplatform/sdk/runtime';
+import { AgentCanonicalMemoryBankMode, ReasonCode } from '@nimiplatform/sdk/runtime/generated';
 
 const TESTER_LOCAL_AGENT_REF = 'local-agent:tester-user:tester-agent';
 
@@ -19,13 +16,13 @@ export function createTesterRuntimeAgentMemorySurface() {
       migrationPolicy: 1,
     },
     bindingSourceKind: 'cloud',
-    blockedReasonCode: RuntimeReasonCode.REASON_CODE_UNSPECIFIED,
+    blockedReasonCode: ReasonCode.REASON_CODE_UNSPECIFIED,
     pendingCutover: true,
     canonicalBankStatus: 'rebuild_pending',
     bindAllowed: false,
     cutoverAllowed: true,
   };
-  return createHostRuntimeAgentMemorySurface({
+  return createNimiHostRuntimeAgentMemorySurface({
     getRuntime: () => ({
       appId: 'nimi.tester',
       agent: {
@@ -33,7 +30,7 @@ export function createTesterRuntimeAgentMemorySurface() {
         requestAgentCanonicalMemoryBankBind: async () => ({
           status,
           outcome: 'staged_rebuild',
-          blockedReasonCode: RuntimeReasonCode.REASON_CODE_UNSPECIFIED,
+          blockedReasonCode: ReasonCode.REASON_CODE_UNSPECIFIED,
         }),
       },
     }),

@@ -1,7 +1,7 @@
 import {
-  mergeRuntimeBridgeDataRootConfig,
-  mergeRuntimeBridgeDeveloperRegistrationConfig,
-  mergeRuntimeBridgeRealmJwtConfig,
+  mergeNimiRuntimeBridgeDataRootConfig,
+  mergeNimiRuntimeBridgeDeveloperRegistrationConfig,
+  mergeNimiRuntimeBridgeRealmJwtConfig,
 } from '@nimiplatform/sdk/runtime';
 
 export type TesterRuntimeConfigProjection = {
@@ -15,15 +15,15 @@ function asRecord(value: unknown): Record<string, unknown> {
 }
 
 export function createTesterRuntimeConfigProjection(): TesterRuntimeConfigProjection {
-  const dataRoot = mergeRuntimeBridgeDataRootConfig({ schemaVersion: 1 }, '/tester/nimi_data', '/tester/nimi_data/models');
-  const jwt = mergeRuntimeBridgeRealmJwtConfig(dataRoot.nextConfig, {
+  const dataRoot = mergeNimiRuntimeBridgeDataRootConfig({ schemaVersion: 1 }, '/tester/nimi_data', '/tester/nimi_data/models');
+  const jwt = mergeNimiRuntimeBridgeRealmJwtConfig(dataRoot.nextConfig, {
     realmBaseUrl: 'https://realm.tester.local',
     jwtIssuer: 'https://realm.tester.local',
     jwtAudience: 'nimi-runtime',
     jwksUrl: 'https://realm.tester.local/api/auth/jwks',
     revocationUrl: 'https://realm.tester.local/api/auth/sessions/introspect',
   });
-  const developer = mergeRuntimeBridgeDeveloperRegistrationConfig(jwt.nextConfig, true);
+  const developer = mergeNimiRuntimeBridgeDeveloperRegistrationConfig(jwt.nextConfig, true);
   const auth = asRecord(developer.nextConfig.auth);
   const jwtConfig = asRecord(auth.jwt);
   const developerRegistration = asRecord(auth.developerRegistration);

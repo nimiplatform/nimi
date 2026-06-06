@@ -48,6 +48,7 @@ export function SettingsRuntimeRows(props: SettingsRouteViewProps) {
       runtimeHealthSummaryProjection,
     },
   } = props;
+  const runtimeTargetCallMetadata = runtimeTargetCallOptionsProjection.metadata ?? {};
 
   return (
     <>
@@ -247,8 +248,8 @@ export function SettingsRuntimeRows(props: SettingsRouteViewProps) {
       </div>
       <div className="setting-row">
         <span>Runtime call options projection / Runtime config projection</span>
-        <StatusBadge tone={runtimeTargetCallOptionsProjection.metadata.keySource === 'managed' ? 'success' : 'neutral'}>
-          {runtimeTargetCallOptionsProjection.metadata.callerId}: {runtimeTargetCallOptionsProjection.metadata.traceId} / {runtimeConfigProjection.jwtIssuer}
+        <StatusBadge tone={runtimeTargetCallMetadata.keySource === 'managed' ? 'success' : 'neutral'}>
+          {runtimeTargetCallMetadata.callerId}: {runtimeTargetCallMetadata.traceId} / {runtimeConfigProjection.jwtIssuer}
         </StatusBadge>
       </div>
       <div className="setting-row">

@@ -1,6 +1,8 @@
 import {
-  createHostRuntimeAgentLifecycleSurface,
   createNimiError,
+} from '@nimiplatform/sdk/types';
+import {
+  createNimiHostRuntimeAgentLifecycleSurface,
 } from '@nimiplatform/sdk/runtime';
 
 export async function inspectTesterRuntimeAgentLifecycleSurface(): Promise<{
@@ -16,7 +18,7 @@ export async function inspectTesterRuntimeAgentLifecycleSurface(): Promise<{
     terminated: '',
   };
   let agentExists = false;
-  const surface = createHostRuntimeAgentLifecycleSurface({
+  const surface = createNimiHostRuntimeAgentLifecycleSurface({
     getRuntime: () => ({
       appId: 'nimi.tester',
       auth: {

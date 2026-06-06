@@ -15,13 +15,15 @@ const appSource = [authSource, runtimeLoginSource, productSource, demoSource, te
 const manifest = readFileSync(new URL('../nimi.app.yaml', import.meta.url), 'utf8');
 const admission = readFileSync(new URL('../ADMISSION.md', import.meta.url), 'utf8');
 
-test('auth glue uses Nimi App runtime platform helper', () => {
-  assert.match(authSource, /createNimiAppRuntimePlatformClient/);
-  assert.match(authSource, /mode: 'local-first-party'/);
-  assert.match(authSource, /mode: 'third-party-nimi-app'/);
+test('auth glue uses explicit vNext NimiClient runtime projection', () => {
+  assert.match(authSource, /createNimiClient/);
+  assert.match(authSource, /'local-first-party'/);
+  assert.match(authSource, /'third-party-nimi-app'/);
   assert.doesNotMatch(authSource, /dev-standalone/);
   assert.match(runtimeLoginSource, /DesktopShellAuthPage/);
+  assert.doesNotMatch(authSource, /createNimiAppRuntimePlatformClient/);
   assert.doesNotMatch(authSource, /createPlatformClient\s*\(/);
+  assert.doesNotMatch(authSource, /getPlatformClient\(/);
 });
 
 test('single login model requires runtime account login (no dev-standalone bypass)', () => {
@@ -35,7 +37,8 @@ test('single login model requires runtime account login (no dev-standalone bypas
   assert.match(authGateSource, /clearRuntimePlatformProjection/);
   assert.match(authGateSource, /clearRuntimePlatformProjection\(\);\s*setReloadKey/s);
   assert.match(runtimeAccountAuthSource, /createRuntimeAccountBrowserBroker/);
-  assert.match(runtimeAccountAuthSource, /createLocalFirstPartyRuntimeAccountCaller/);
+  assert.match(runtimeAccountAuthSource, /createNimiLocalFirstPartyRuntimeAccountCaller/);
+  assert.doesNotMatch(runtimeAccountAuthSource, /getPlatformClient\(/);
   assert.match(runtimeAccountAuthSource, /from '@nimiplatform\/kit\/auth'/);
   assert.doesNotMatch(runtimeAccountAuthSource, /runtime\.account\.beginLogin\(/);
   assert.doesNotMatch(runtimeAccountAuthSource, /runtime\.account\.completeLogin\(/);

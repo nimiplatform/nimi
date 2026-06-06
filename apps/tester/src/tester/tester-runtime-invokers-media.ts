@@ -1,6 +1,9 @@
-import type { PlatformClient } from '@nimiplatform/sdk';
 import { getTesterCapability } from './tester-capabilities.js';
-import type { TesterScenarioInput, TesterInvocationResult } from './tester-runtime-invokers-core.js';
+import type {
+  TesterRuntimeInvocationClient,
+  TesterScenarioInput,
+  TesterInvocationResult,
+} from './tester-runtime-invokers-core.js';
 import {
   buildMetadata,
   ensureSchedulingPreflight,
@@ -11,6 +14,28 @@ import {
   unavailableFromError,
   unavailableFromValidation,
 } from './tester-runtime-invokers-core.js';
+
+type RuntimeMediaJobOutput = {
+  readonly job?: unknown;
+  readonly artifacts?: readonly unknown[];
+  readonly trace?: unknown;
+};
+
+type RuntimeTranscriptOutput = RuntimeMediaJobOutput & {
+  readonly text?: string;
+};
+
+type RuntimeVoiceCatalogOutput = {
+  readonly modelResolved?: string;
+  readonly voiceCount?: number;
+  readonly voiceCatalogSource?: string;
+  readonly voices?: readonly { readonly voiceId?: string; readonly name?: string; readonly lang?: string }[];
+  readonly traceId?: string;
+};
+
+function artifactsFrom(output: RuntimeMediaJobOutput): readonly unknown[] {
+  return Array.isArray(output.artifacts) ? output.artifacts : [];
+}
 
 // Normalize the runtime artifact `bytes` field into a Uint8Array regardless of
 // how the transport delivered it (typed array, ArrayBuffer, number array, an
@@ -93,7 +118,7 @@ function summariseJob(job: unknown): { jobId: string; jobState: string } {
   };
 }
 
-export async function invokeImageGenerate(client: PlatformClient, input: TesterScenarioInput): Promise<TesterInvocationResult> {
+export async function invokeImageGenerate(client: TesterRuntimeInvocationClient, input: TesterScenarioInput): Promise<TesterInvocationResult> {
   const prompt = input.prompt.trim();
   if (!prompt) {
     return unavailableFromValidation('image.generate', 'Scenario prompt is empty — supply an image prompt before running image.generate.');
@@ -102,28 +127,33 @@ export async function invokeImageGenerate(client: PlatformClient, input: TesterS
   if (isTesterUnavailable(resolved)) return resolved;
   const schedulingPreflight = await ensureSchedulingPreflight(client, 'image.generate', resolved);
   if (schedulingPreflight.unavailable) return schedulingPreflight.unavailable;
-  const route = routeInput(resolved.binding, resolved.model);
+  const route = routeInput(resolved);
   try {
-    const output = await client.runtime.media.image.generate({
+    const mediaImage = client.runtime.media?.image;
+    if (!mediaImage) {
+      throw new Error('Runtime media image facade is not exposed by vNext; migrate image.generate to Runtime Scenario jobs.');
+    }
+    const output = await mediaImage.generate({
       ...route,
       prompt,
       metadata: buildMetadata('nimi.tester.media.image.generate', {
         ...resolved.metadata,
         ...schedulingPreflight.evidenceMetadata,
       }),
-    });
+    }) as RuntimeMediaJobOutput;
+    const artifacts = artifactsFrom(output);
     const job = summariseJob(output.job);
     return {
       ok: true,
       capabilityId: 'image.generate',
       capabilityLabel: getTesterCapability('image.generate').label,
-      message: `Runtime accepted the image job (state=${job.jobState}, ${output.artifacts.length} artifact(s)).`,
+      message: `Runtime accepted the image job (state=${job.jobState}, ${artifacts.length} artifact(s)).`,
       output: {
         kind: 'artifacts',
         jobId: job.jobId,
         jobState: job.jobState,
-        artifactCount: output.artifacts.length,
-        firstArtifact: summariseArtifact(output.artifacts[0]),
+        artifactCount: artifacts.length,
+        firstArtifact: summariseArtifact(artifacts[0]),
       },
       trace: pickTrace(output.trace),
     };
@@ -132,7 +162,7 @@ export async function invokeImageGenerate(client: PlatformClient, input: TesterS
   }
 }
 
-export async function invokeVideoGenerate(client: PlatformClient, input: TesterScenarioInput): Promise<TesterInvocationResult> {
+export async function invokeVideoGenerate(client: TesterRuntimeInvocationClient, input: TesterScenarioInput): Promise<TesterInvocationResult> {
   const prompt = input.prompt.trim();
   if (!prompt) {
     return unavailableFromValidation('video.generate', 'Scenario prompt is empty — supply a video prompt before running video.generate.');
@@ -141,9 +171,13 @@ export async function invokeVideoGenerate(client: PlatformClient, input: TesterS
   if (isTesterUnavailable(resolved)) return resolved;
   const schedulingPreflight = await ensureSchedulingPreflight(client, 'video.generate', resolved);
   if (schedulingPreflight.unavailable) return schedulingPreflight.unavailable;
-  const route = routeInput(resolved.binding, resolved.model);
+  const route = routeInput(resolved);
   try {
-    const output = await client.runtime.media.video.generate({
+    const mediaVideo = client.runtime.media?.video;
+    if (!mediaVideo) {
+      throw new Error('Runtime media video facade is not exposed by vNext; migrate video.generate to Runtime Scenario jobs.');
+    }
+    const output = await mediaVideo.generate({
       mode: 't2v',
       ...route,
       prompt,
@@ -152,19 +186,20 @@ export async function invokeVideoGenerate(client: PlatformClient, input: TesterS
         ...resolved.metadata,
         ...schedulingPreflight.evidenceMetadata,
       }),
-    });
+    }) as RuntimeMediaJobOutput;
+    const artifacts = artifactsFrom(output);
     const job = summariseJob(output.job);
     return {
       ok: true,
       capabilityId: 'video.generate',
       capabilityLabel: getTesterCapability('video.generate').label,
-      message: `Runtime accepted the video job (state=${job.jobState}, ${output.artifacts.length} artifact(s)).`,
+      message: `Runtime accepted the video job (state=${job.jobState}, ${artifacts.length} artifact(s)).`,
       output: {
         kind: 'artifacts',
         jobId: job.jobId,
         jobState: job.jobState,
-        artifactCount: output.artifacts.length,
-        firstArtifact: summariseArtifact(output.artifacts[0]),
+        artifactCount: artifacts.length,
+        firstArtifact: summariseArtifact(artifacts[0]),
       },
       trace: pickTrace(output.trace),
     };
@@ -173,7 +208,7 @@ export async function invokeVideoGenerate(client: PlatformClient, input: TesterS
   }
 }
 
-export async function invokeSpeechSynthesize(client: PlatformClient, input: TesterScenarioInput): Promise<TesterInvocationResult> {
+export async function invokeSpeechSynthesize(client: TesterRuntimeInvocationClient, input: TesterScenarioInput): Promise<TesterInvocationResult> {
   const prompt = input.prompt.trim();
   if (!prompt) {
     return unavailableFromValidation('audio.synthesize', 'Scenario prompt is empty — supply the text to synthesize before running audio.synthesize.');
@@ -182,28 +217,33 @@ export async function invokeSpeechSynthesize(client: PlatformClient, input: Test
   if (isTesterUnavailable(resolved)) return resolved;
   const schedulingPreflight = await ensureSchedulingPreflight(client, 'audio.synthesize', resolved);
   if (schedulingPreflight.unavailable) return schedulingPreflight.unavailable;
-  const route = routeInput(resolved.binding, resolved.model);
+  const route = routeInput(resolved);
   try {
-    const output = await client.runtime.media.tts.synthesize({
+    const mediaTts = client.runtime.media?.tts;
+    if (!mediaTts) {
+      throw new Error('Runtime media TTS facade is not exposed by vNext; migrate audio.synthesize to Runtime Scenario jobs.');
+    }
+    const output = await mediaTts.synthesize({
       ...route,
       text: prompt,
       metadata: buildMetadata('nimi.tester.media.tts.synthesize', {
         ...resolved.metadata,
         ...schedulingPreflight.evidenceMetadata,
       }),
-    });
+    }) as RuntimeMediaJobOutput;
+    const artifacts = artifactsFrom(output);
     const job = summariseJob(output.job);
     return {
       ok: true,
       capabilityId: 'audio.synthesize',
       capabilityLabel: getTesterCapability('audio.synthesize').label,
-      message: `Runtime accepted the synthesis job (state=${job.jobState}, ${output.artifacts.length} artifact(s)).`,
+      message: `Runtime accepted the synthesis job (state=${job.jobState}, ${artifacts.length} artifact(s)).`,
       output: {
         kind: 'artifacts',
         jobId: job.jobId,
         jobState: job.jobState,
-        artifactCount: output.artifacts.length,
-        firstArtifact: summariseArtifact(output.artifacts[0]),
+        artifactCount: artifacts.length,
+        firstArtifact: summariseArtifact(artifacts[0]),
       },
       trace: pickTrace(output.trace),
     };
@@ -212,7 +252,7 @@ export async function invokeSpeechSynthesize(client: PlatformClient, input: Test
   }
 }
 
-export async function invokeSpeechTranscribe(client: PlatformClient, input: TesterScenarioInput): Promise<TesterInvocationResult> {
+export async function invokeSpeechTranscribe(client: TesterRuntimeInvocationClient, input: TesterScenarioInput): Promise<TesterInvocationResult> {
   const url = input.prompt.trim();
   if (!url || (!url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('file://'))) {
     return unavailableFromValidation(
@@ -224,28 +264,34 @@ export async function invokeSpeechTranscribe(client: PlatformClient, input: Test
   if (isTesterUnavailable(resolved)) return resolved;
   const schedulingPreflight = await ensureSchedulingPreflight(client, 'audio.transcribe', resolved);
   if (schedulingPreflight.unavailable) return schedulingPreflight.unavailable;
-  const route = routeInput(resolved.binding, resolved.model);
+  const route = routeInput(resolved);
   try {
-    const output = await client.runtime.media.stt.transcribe({
+    const mediaStt = client.runtime.media?.stt;
+    if (!mediaStt) {
+      throw new Error('Runtime media STT facade is not exposed by vNext; migrate audio.transcribe to Runtime Scenario jobs.');
+    }
+    const output = await mediaStt.transcribe({
       ...route,
       audio: { kind: 'url', url },
       metadata: buildMetadata('nimi.tester.media.stt.transcribe', {
         ...resolved.metadata,
         ...schedulingPreflight.evidenceMetadata,
       }),
-    });
+    }) as RuntimeTranscriptOutput;
+    const artifacts = artifactsFrom(output);
+    const text = output.text ?? '';
     const job = summariseJob(output.job);
     return {
       ok: true,
       capabilityId: 'audio.transcribe',
       capabilityLabel: getTesterCapability('audio.transcribe').label,
-      message: `Runtime returned transcript (${output.text.length} chars, jobState=${job.jobState}).`,
+      message: `Runtime returned transcript (${text.length} chars, jobState=${job.jobState}).`,
       output: {
         kind: 'transcript',
-        text: output.text,
+        text,
         jobId: job.jobId,
         jobState: job.jobState,
-        artifactCount: output.artifacts.length,
+        artifactCount: artifacts.length,
       },
       trace: pickTrace(output.trace),
     };
@@ -254,33 +300,38 @@ export async function invokeSpeechTranscribe(client: PlatformClient, input: Test
   }
 }
 
-export async function invokeSpeechBundle(client: PlatformClient, _input: TesterScenarioInput): Promise<TesterInvocationResult> {
+export async function invokeSpeechBundle(client: TesterRuntimeInvocationClient, _input: TesterScenarioInput): Promise<TesterInvocationResult> {
   const resolved = resolveTesterLLMBinding('speech.bundle');
   if (isTesterUnavailable(resolved)) return resolved;
   const schedulingPreflight = await ensureSchedulingPreflight(client, 'speech.bundle', resolved);
   if (schedulingPreflight.unavailable) return schedulingPreflight.unavailable;
-  const route = routeInput(resolved.binding, resolved.model);
+  const route = routeInput(resolved);
   try {
-    const output = await client.runtime.media.tts.listVoices({
+    const mediaTts = client.runtime.media?.tts;
+    if (!mediaTts) {
+      throw new Error('Runtime media TTS voice facade is not exposed by vNext; migrate speech.bundle to Runtime Scenario jobs.');
+    }
+    const output = await mediaTts.listVoices({
       ...route,
       metadata: buildMetadata('nimi.tester.media.tts.list-voices', {
         ...resolved.metadata,
         ...schedulingPreflight.evidenceMetadata,
       }),
-    });
+    }) as RuntimeVoiceCatalogOutput;
+    const voices = output.voices ?? [];
     return {
       ok: true,
       capabilityId: 'speech.bundle',
       capabilityLabel: getTesterCapability('speech.bundle').label,
-      message: `Runtime returned ${output.voices.length} voice(s) from catalog "${output.voiceCatalogSource || 'default'}".`,
+      message: `Runtime returned ${voices.length} voice(s) from catalog "${output.voiceCatalogSource || 'default'}".`,
       output: {
         kind: 'voice-catalog',
-        modelResolved: output.modelResolved,
-        voiceCount: output.voiceCount ?? output.voices.length,
-        sample: output.voices.slice(0, 4).map((voice) => ({
-          voiceId: voice.voiceId,
-          name: voice.name,
-          lang: voice.lang,
+        modelResolved: output.modelResolved ?? 'unresolved',
+        voiceCount: output.voiceCount ?? voices.length,
+        sample: voices.slice(0, 4).map((voice) => ({
+          voiceId: voice.voiceId ?? '',
+          name: voice.name ?? '',
+          lang: voice.lang ?? '',
         })),
       },
       trace: { traceId: output.traceId, modelResolved: output.modelResolved },

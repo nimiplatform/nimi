@@ -1,7 +1,7 @@
 import {
-  createRuntimeConfigConnectorDraft,
-  normalizeRuntimeConfigConnectorProjection,
-  runtimeConnectorProjectionToRuntimeConfigConnector,
+  createNimiRuntimeConfigConnectorDraft,
+  normalizeNimiRuntimeConfigConnectorProjection,
+  runtimeConnectorProjectionToNimiRuntimeConfigConnector,
 } from '@nimiplatform/sdk/runtime';
 
 export type TesterRuntimeConnectorProjection = {
@@ -13,11 +13,11 @@ export type TesterRuntimeConnectorProjection = {
 };
 
 export function createTesterRuntimeConnectorProjection(): TesterRuntimeConnectorProjection {
-  const draft = createRuntimeConfigConnectorDraft({
+  const draft = createNimiRuntimeConfigConnectorDraft({
     id: 'tester-draft',
     vendor: 'openai_compatible',
   });
-  const runtimeConnector = runtimeConnectorProjectionToRuntimeConfigConnector({
+  const runtimeConnector = runtimeConnectorProjectionToNimiRuntimeConfigConnector({
     id: 'tester-cloud',
     label: 'Tester Cloud',
     vendor: 'tester',
@@ -29,7 +29,7 @@ export function createTesterRuntimeConnectorProjection(): TesterRuntimeConnector
     isSystemOwned: false,
     models: ['tester-text', 'tester-image'],
   });
-  const normalized = normalizeRuntimeConfigConnectorProjection({
+  const normalized = normalizeNimiRuntimeConfigConnectorProjection({
     ...runtimeConnector,
     status: 'healthy',
     modelCapabilities: {

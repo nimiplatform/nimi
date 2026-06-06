@@ -1,7 +1,7 @@
 import {
-  buildSetRuntimeAgentPresentationProfileRequest,
-  createHostRuntimeAgentPresentationProfileSurface,
-  normalizeRuntimeAgentPresentationDefaultVoiceReference,
+  buildNimiSetRuntimeAgentPresentationProfileRequest,
+  createNimiHostRuntimeAgentPresentationProfileSurface,
+  normalizeNimiRuntimeAgentPresentationDefaultVoiceReference,
   parseRuntimeLocalAgentIdentity,
 } from '@nimiplatform/sdk/runtime';
 
@@ -14,7 +14,7 @@ export type TesterRuntimeAgentPresentationProfileProjection = {
 
 export function createTesterRuntimeAgentPresentationProfileProjection(): TesterRuntimeAgentPresentationProfileProjection {
   const agentId = 'local-agent:tester-user:tester-agent';
-  const request = buildSetRuntimeAgentPresentationProfileRequest({
+  const request = buildNimiSetRuntimeAgentPresentationProfileRequest({
     context: { appId: 'tester', subjectUserId: 'tester-user' },
     agentId,
     profile: {
@@ -27,13 +27,13 @@ export function createTesterRuntimeAgentPresentationProfileProjection(): TesterR
   return {
     backendKind: 'profile' in mutation ? mutation.profile.backendKind : 0,
     localAgentOwner: parseRuntimeLocalAgentIdentity(agentId).ownerUserId,
-    defaultVoiceReference: normalizeRuntimeAgentPresentationDefaultVoiceReference(' provider_voice_ref:tester:voice '),
+    defaultVoiceReference: normalizeNimiRuntimeAgentPresentationDefaultVoiceReference(' provider_voice_ref:tester:voice '),
     mutationKind: mutation.oneofKind ?? 'unknown',
   };
 }
 
 export function createTesterRuntimeAgentPresentationProfileSurface() {
-  return createHostRuntimeAgentPresentationProfileSurface({
+  return createNimiHostRuntimeAgentPresentationProfileSurface({
     getRuntime: () => ({
       appId: 'nimi.tester',
       auth: {
@@ -46,7 +46,7 @@ export function createTesterRuntimeAgentPresentationProfileSurface() {
         }),
       },
       agent: {
-        setPresentationProfile: async (request: unknown) => ({ request }),
+        setAgentPresentationProfile: async (request: unknown) => ({ request }),
       },
     }) as never,
     getSubjectUserId: () => 'tester-user',

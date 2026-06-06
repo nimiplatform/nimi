@@ -1,12 +1,5 @@
-import {
-  AuthorizeExternalPrincipalResponse,
-  RegisterAppResponse,
-  RuntimeReasonCode,
-  buildMemoryEmbeddingBindingIntentSnapshot,
-  createEmptyMemoryEmbeddingConfig,
-  createProtectedHostMemoryEmbeddingConfigSurface,
-  createProtectedHostMemoryEmbeddingRuntimeSurface,
-} from '@nimiplatform/sdk/runtime';
+import { buildNimiMemoryEmbeddingBindingIntentSnapshot, createEmptyNimiMemoryEmbeddingConfig, createNimiProtectedHostMemoryEmbeddingConfigSurface, createNimiProtectedHostMemoryEmbeddingRuntimeSurface } from '@nimiplatform/sdk/runtime';
+import { ReasonCode } from '@nimiplatform/sdk/runtime/generated';
 
 export type TesterMemoryEmbeddingRuntimeProjection = {
   agentId: string;
@@ -27,7 +20,7 @@ const TESTER_MEMORY_EMBEDDING_TARGET_REF = {
 };
 
 const testerMemoryEmbeddingConfig = {
-  ...createEmptyMemoryEmbeddingConfig(TESTER_MEMORY_EMBEDDING_SCOPE_REF),
+  ...createEmptyNimiMemoryEmbeddingConfig(TESTER_MEMORY_EMBEDDING_SCOPE_REF),
   sourceKind: 'cloud' as const,
   bindingRef: {
     kind: 'cloud' as const,
@@ -37,12 +30,16 @@ const testerMemoryEmbeddingConfig = {
 };
 
 export function createTesterMemoryEmbeddingRuntimeSurface() {
-  let bindingIntent = buildMemoryEmbeddingBindingIntentSnapshot(testerMemoryEmbeddingConfig);
+  let bindingIntent = buildNimiMemoryEmbeddingBindingIntentSnapshot(testerMemoryEmbeddingConfig);
   const runtime = {
     appId: 'nimi.tester',
     auth: {
       async registerApp() {
-        return RegisterAppResponse.create({ accepted: true });
+        return {
+          appInstanceId: 'nimi.tester.memory-embedding',
+          accepted: true,
+          reasonCode: ReasonCode.REASON_CODE_UNSPECIFIED,
+        };
       },
     },
     appAuth: {
@@ -54,7 +51,7 @@ export function createTesterMemoryEmbeddingRuntimeSurface() {
         policyVersion: string;
         scopeCatalogVersion: string;
       }) {
-        return AuthorizeExternalPrincipalResponse.create({
+        return {
           tokenId: 'tester-token',
           secret: 'tester-secret',
           appId: request.appId,
@@ -64,7 +61,7 @@ export function createTesterMemoryEmbeddingRuntimeSurface() {
           policyVersion: request.policyVersion,
           issuedScopeCatalogVersion: request.scopeCatalogVersion,
           canDelegate: false,
-        });
+        };
       },
     },
     memory: {
@@ -90,14 +87,14 @@ export function createTesterMemoryEmbeddingRuntimeSurface() {
           bindingSourceKind: bindingIntent?.sourceKind || '',
           resolutionState: bindingIntent ? 'resolved' : 'missing',
           canonicalBankStatus: 'bound_equivalent',
-          blockedReasonCode: RuntimeReasonCode.REASON_CODE_UNSPECIFIED,
+          blockedReasonCode: ReasonCode.REASON_CODE_UNSPECIFIED,
           operationReadiness: { bindAllowed: false, cutoverAllowed: false },
         };
       },
       async requestMemoryEmbeddingRuntimeBind() {
         return {
           outcome: bindingIntent ? 'already_bound' : 'rejected',
-          blockedReasonCode: RuntimeReasonCode.REASON_CODE_UNSPECIFIED,
+          blockedReasonCode: ReasonCode.REASON_CODE_UNSPECIFIED,
           canonicalBankStatusAfter: bindingIntent ? 'bound_equivalent' : 'unbound',
           pendingCutover: false,
         };
@@ -105,18 +102,18 @@ export function createTesterMemoryEmbeddingRuntimeSurface() {
       async requestMemoryEmbeddingRuntimeCutover() {
         return {
           outcome: bindingIntent ? 'already_current' : 'not_ready',
-          blockedReasonCode: RuntimeReasonCode.REASON_CODE_UNSPECIFIED,
+          blockedReasonCode: ReasonCode.REASON_CODE_UNSPECIFIED,
           canonicalBankStatusAfter: bindingIntent ? 'bound_equivalent' : 'unbound',
         };
       },
     },
   };
   return {
-    memoryEmbeddingConfig: createProtectedHostMemoryEmbeddingConfigSurface({
+    memoryEmbeddingConfig: createNimiProtectedHostMemoryEmbeddingConfigSurface({
       runtime: () => runtime,
       getSubjectUserId: () => 'tester-user',
     }),
-    memoryEmbeddingRuntime: createProtectedHostMemoryEmbeddingRuntimeSurface({
+    memoryEmbeddingRuntime: createNimiProtectedHostMemoryEmbeddingRuntimeSurface({
       runtime: () => runtime,
       getSubjectUserId: () => 'tester-user',
     }),

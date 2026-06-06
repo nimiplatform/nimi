@@ -1,12 +1,5 @@
-import {
-  runRuntimeMediaGenerationJob,
-  ScenarioJobEventType,
-  ScenarioJobStatus,
-  type RuntimeMediaGenerationJob,
-  type RuntimeMediaGenerationJobsModule,
-  type RuntimeMediaScenarioArtifact,
-  type ScenarioJobEvent,
-} from '@nimiplatform/sdk/runtime';
+import { runNimiRuntimeScenarioJob, type NimiRuntimeScenarioJob, type NimiRuntimeScenarioJobClient, type NimiRuntimeScenarioArtifact } from '@nimiplatform/sdk/runtime';
+import { ExecutionMode, ReasonCode, ScenarioJobEventType, ScenarioJobStatus, ScenarioType, type ScenarioJobEvent } from '@nimiplatform/sdk/runtime/generated';
 
 export type TesterRuntimeMediaGenerationRunnerProjection = {
   finalStatus: string;
@@ -16,53 +9,74 @@ export type TesterRuntimeMediaGenerationRunnerProjection = {
   fallbackPollCount: number;
 };
 
-function makeJob(status: ScenarioJobStatus, jobId = 'tester-media-job'): RuntimeMediaGenerationJob {
-  return { jobId, status } as RuntimeMediaGenerationJob;
+function makeJob(status: ScenarioJobStatus, jobId = 'tester-media-job'): NimiRuntimeScenarioJob {
+  return {
+    jobId,
+    scenarioType: ScenarioType.IMAGE_GENERATE,
+    executionMode: ExecutionMode.ASYNC_JOB,
+    routeDecision: 0,
+    modelResolved: 'tester-image-model',
+    status,
+    providerJobId: '',
+    reasonCode: ReasonCode.REASON_CODE_UNSPECIFIED,
+    reasonDetail: '',
+    retryCount: 0,
+    artifacts: [],
+    traceId: 'tester-media-trace',
+    ignoredExtensions: [],
+    progressPercent: status === ScenarioJobStatus.RUNNING ? 50 : 0,
+    progressCurrentStep: 0,
+    progressTotalSteps: 0,
+  };
 }
 
 export async function inspectTesterRuntimeMediaGenerationRunnerProjection(): Promise<TesterRuntimeMediaGenerationRunnerProjection> {
   const updateStatuses: string[] = [];
   let subscribedJobId = '';
   let fallbackPollCount = 0;
-  const artifact: RuntimeMediaScenarioArtifact = {
+  const artifact: NimiRuntimeScenarioArtifact = {
     artifactId: 'tester-media-artifact',
     mimeType: 'image/png',
-  } as RuntimeMediaScenarioArtifact;
-  const jobs: RuntimeMediaGenerationJobsModule = {
-    async submit() {
-      return makeJob(ScenarioJobStatus.SUBMITTED);
+  } as NimiRuntimeScenarioArtifact;
+  const ai: NimiRuntimeScenarioJobClient = {
+    async submitScenarioJob() {
+      return { job: makeJob(ScenarioJobStatus.SUBMITTED) };
     },
-    async subscribe(jobId) {
+    async *subscribeScenarioJobEvents(input) {
+      const jobId = input.jobId;
       subscribedJobId = jobId;
-      return (async function* stream(): AsyncIterable<ScenarioJobEvent> {
-        yield {
-          eventType: ScenarioJobEventType.SCENARIO_JOB_EVENT_RUNNING,
-          sequence: '1',
-          traceId: 'tester-media-trace',
-          job: makeJob(ScenarioJobStatus.RUNNING, jobId),
-        } as ScenarioJobEvent;
-      })();
+      yield {
+        eventType: ScenarioJobEventType.SCENARIO_JOB_EVENT_RUNNING,
+        sequence: '1',
+        traceId: 'tester-media-trace',
+        job: makeJob(ScenarioJobStatus.RUNNING, jobId),
+      } as ScenarioJobEvent;
     },
-    async get(jobId) {
+    async getScenarioJob(input) {
       fallbackPollCount += 1;
-      return makeJob(ScenarioJobStatus.COMPLETED, jobId);
+      return { job: makeJob(ScenarioJobStatus.COMPLETED, input.jobId) };
     },
-    async cancel(input) {
-      return makeJob(ScenarioJobStatus.CANCELED, input.jobId);
+    async cancelScenarioJob(input) {
+      return { job: makeJob(ScenarioJobStatus.CANCELED, input.jobId) };
     },
-    async getArtifacts() {
-      return { artifacts: [artifact] };
+    async getScenarioArtifacts(input) {
+      return {
+        jobId: input.jobId,
+        artifacts: [artifact],
+        traceId: 'tester-media-trace',
+      };
     },
   };
 
-  const result = await runRuntimeMediaGenerationJob({
-    jobs,
+  const result = await runNimiRuntimeScenarioJob({
+    ai,
     request: {
-      modal: 'image',
-      input: {
-        model: 'tester-image-model',
-        prompt: 'tester media generation runner',
-      },
+      scenarioType: ScenarioType.IMAGE_GENERATE,
+      executionMode: ExecutionMode.ASYNC_JOB,
+      requestId: 'tester-media-request',
+      idempotencyKey: 'tester-media-idem',
+      labels: {},
+      extensions: [],
     },
     onJobUpdate: (job) => {
       updateStatuses.push(ScenarioJobStatus[job.status] || String(job.status));

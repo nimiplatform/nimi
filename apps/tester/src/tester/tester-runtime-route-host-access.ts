@@ -1,9 +1,6 @@
 import {
-  createHostRuntimeRouteAccessSurface,
-  ModelHealthStatus,
-  RuntimeReasonCode,
-  type CheckModelHealthRequest,
-  type RuntimeRouteHostAccessClient,
+  createNimiHostRuntimeRouteAccessSurface,
+  type NimiRuntimeRouteHostAccessClient,
 } from '@nimiplatform/sdk/runtime';
 
 export type TesterRuntimeRouteHostAccessProjection = {
@@ -13,38 +10,26 @@ export type TesterRuntimeRouteHostAccessProjection = {
 };
 
 export async function loadTesterRuntimeRouteHostAccessProjection(): Promise<TesterRuntimeRouteHostAccessProjection> {
-  const surface = createHostRuntimeRouteAccessSurface({
+  const surface = createNimiHostRuntimeRouteAccessSurface({
     getRuntime: () => ({
-      appId: 'nimi.tester',
-      ai: {},
-      media: {},
       local: {
         async listLocalAssets() {
           return { assets: [], nextPageToken: '' };
+        },
+        async checkLocalAssetHealth() {
+          return { assets: [] };
         },
         async warmLocalAsset() {
           return {};
         },
       },
-      connector: {
+      connectors: {
         async testConnector() {
-          return { ack: { ok: true, reasonCode: RuntimeReasonCode.REASON_CODE_UNSPECIFIED, actionHint: '' } };
+          return { ack: { ok: true, reasonCode: 0, actionHint: '' } };
         },
       },
-      model: {
-        async checkHealth(request: CheckModelHealthRequest) {
-          return {
-            healthy: true,
-            status: ModelHealthStatus.HEALTHY,
-            endpoint: request.endpoint,
-            modelId: request.modelId,
-            detail: 'tester runtime route host access ready',
-            actionHint: 'none',
-            reasonCode: RuntimeReasonCode.REASON_CODE_UNSPECIFIED,
-          };
-        },
-      },
-    } as unknown as RuntimeRouteHostAccessClient),
+    } as unknown as NimiRuntimeRouteHostAccessClient),
+    appId: 'nimi.tester',
     callerKind: 'third-party-app',
     surfaceId: 'tester.settings',
   });
@@ -66,8 +51,8 @@ export async function loadTesterRuntimeRouteHostAccessProjection(): Promise<Test
     }),
   ]);
   return {
-    callerId: options.metadata.callerId,
-    keySource: String(metadata.keySource || options.metadata.keySource || 'direct'),
-    healthStatus: health.status,
+    callerId: String(options.metadata?.callerId || 'unknown'),
+    keySource: String(metadata.keySource || options.metadata?.keySource || 'direct'),
+    healthStatus: health.status ?? 'unknown',
   };
 }

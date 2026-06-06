@@ -21,7 +21,7 @@ export function createTesterRuntimeModelPickerProvider(
       if (projection.status !== 'ready') {
         throw new Error(projection.message || 'Runtime unavailable; model catalog failed closed.');
       }
-      return projection.client as RuntimeRouteModelPickerClient;
+      return projection.client as unknown as RuntimeRouteModelPickerClient;
     },
   });
 }
@@ -35,7 +35,7 @@ export function createTesterRuntimeModelPickerProviderCache(): (
       if (projection.status !== 'ready') {
         throw new Error(projection.message || 'Runtime unavailable; model catalog failed closed.');
       }
-      return projection.client as RuntimeRouteModelPickerClient;
+      return projection.client as unknown as RuntimeRouteModelPickerClient;
     },
   });
 }

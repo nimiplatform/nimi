@@ -10,7 +10,7 @@ import { createTesterRuntimeModelPickerProviderCache } from '../tester-runtime-m
 import { TesterAiConfigSettings } from '../../shell/ai/tester-ai-config-settings.js';
 import { testerModelConfigCopy } from '../../shell/ai/model-config-copy.js';
 
-// App-owned wrapper: injects the tester's app-scoped AIConfig service, scope
+// App-owned wrapper: injects the tester's app-scoped NimiAIConfig service, scope
 // ref, runtime model-picker provider, and copy into the scaffold-managed
 // sectioned TesterAiConfigSettings. The AI config itself is the admitted kit
 // model-config surface — this file only carries tester-specific wiring + copy.

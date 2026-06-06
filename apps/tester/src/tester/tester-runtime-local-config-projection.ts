@@ -1,7 +1,7 @@
 import {
-  normalizeRuntimeConfigLocalModelProjection,
-  normalizeRuntimeConfigLocalNodeMatrixEntryProjection,
-  pickPreferredRuntimeConfigLocalModel,
+  normalizeNimiRuntimeConfigLocalModelProjection,
+  normalizeNimiRuntimeConfigLocalNodeMatrixEntryProjection,
+  pickPreferredNimiRuntimeConfigLocalModel,
 } from '@nimiplatform/sdk/runtime';
 
 export type TesterRuntimeLocalConfigProjection = {
@@ -13,13 +13,13 @@ export type TesterRuntimeLocalConfigProjection = {
 
 export function createTesterRuntimeLocalConfigProjection(): TesterRuntimeLocalConfigProjection {
   const models = [
-    normalizeRuntimeConfigLocalModelProjection({
+    normalizeNimiRuntimeConfigLocalModelProjection({
       localModelId: 'tester-removed',
       model: 'tester/removed',
       capabilities: ['chat'],
       status: 'removed',
     }),
-    normalizeRuntimeConfigLocalModelProjection({
+    normalizeNimiRuntimeConfigLocalModelProjection({
       localModelId: 'tester-active',
       model: 'tester/active',
       engine: 'runtime-native',
@@ -28,7 +28,7 @@ export function createTesterRuntimeLocalConfigProjection(): TesterRuntimeLocalCo
       status: 'active',
     }),
   ];
-  const node = normalizeRuntimeConfigLocalNodeMatrixEntryProjection({
+  const node = normalizeNimiRuntimeConfigLocalNodeMatrixEntryProjection({
     nodeId: 'tester-chat.runtime-native',
     capability: 'chat',
     serviceId: 'tester-runtime-local',
@@ -36,7 +36,7 @@ export function createTesterRuntimeLocalConfigProjection(): TesterRuntimeLocalCo
     adapter: 'media_native_adapter',
     available: true,
   });
-  const preferred = pickPreferredRuntimeConfigLocalModel({ models, capability: 'chat' });
+  const preferred = pickPreferredNimiRuntimeConfigLocalModel({ models, capability: 'chat' });
   return {
     preferredLocalModelId: preferred?.localModelId || null,
     normalizedEndpoint: models[1]?.endpoint || '',

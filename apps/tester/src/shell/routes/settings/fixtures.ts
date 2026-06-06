@@ -1,27 +1,17 @@
-import { getPlatformClient } from '@nimiplatform/sdk';
 import {
   PermissionClient,
   type GrantStatus,
+  type NimiAppScopeRef,
   type PermissionScopeRef,
   type PermissionTransport,
-} from '@nimiplatform/sdk/scope/permission';
+} from '@nimiplatform/sdk/app';
+import { createNimiRuntimeConnectorInventoryClient, createNimiRuntimeModelCatalogClient, listNimiRuntimeLocalAssetEntries, NimiRuntimeHealthCoordinator, normalizeNimiRuntimeRouteCapabilityToken, type NimiRuntimeConnectorClient, type NimiRuntimeModelCatalogConnectorClient, type NimiRuntimeRouteCapabilityRuntime } from '@nimiplatform/sdk/runtime';
+import { CatalogModelSource, ConnectorAuthKind, ConnectorKind, ConnectorOwnerType, ConnectorStatus, LocalAssetKind, LocalAssetStatus, ModelCatalogProviderSource, type LocalAssetRecord, type ProviderCatalogEntry } from '@nimiplatform/sdk/runtime/generated';
 import {
-  bindLocalRuntimeServiceClientProvider,
-  CatalogModelSource,
-  createRuntimeConnectorInventoryClient,
-  createRuntimeModelCatalogClient,
-  listRuntimeLocalAssetEntries,
-  localRuntime,
-  ModelCatalogProviderSource,
-  RuntimeHealthCoordinator,
-  toRuntimeRouteCanonicalCapability,
-  type RuntimeModelCatalogConnectorClient,
-  type RuntimeRouteCapabilityRuntime,
-} from '@nimiplatform/sdk/runtime';
-import {
-  loadRealmSocialSnapshot,
-  loadRealmWorldSemanticBundle,
+  loadNimiRealmSocialSnapshot,
+  loadNimiRealmWorldSemanticBundle,
   type Realm,
+  type NimiRealmWorldApi,
 } from '@nimiplatform/sdk/realm';
 import type {
   RealmCommerceGiftService,
@@ -32,56 +22,51 @@ import { createTesterWorldDisplayProjection } from '../../../tester/tester-world
 import { createTesterAppLabAIScopeRef } from '../../../tester/tester-ai-config-store';
 
 export async function resolveTesterLocalRuntimeFacadeProjection(): Promise<string> {
-  const unbind = bindLocalRuntimeServiceClientProvider(() => ({
-    async listLocalAssets() {
-      return {
-        assets: [{
-          localAssetId: 'tester-local-asset',
-          assetId: 'tester/local-facade-asset',
-          kind: 'LOCAL_ASSET_KIND_CHAT',
-          engine: 'runtime-engine',
-          entry: 'model.gguf',
-          files: ['model.gguf'],
-          license: 'apache-2.0',
-          source: { repo: 'tester/local-facade-asset', revision: 'main' },
-          hashes: {},
-          status: 'LOCAL_ASSET_STATUS_INSTALLED',
-          installedAt: '2026-05-31T00:00:00Z',
-          updatedAt: '2026-05-31T00:00:00Z',
-        }],
-        nextPageToken: '',
-      };
-    },
-  }) as never);
-  try {
-    const [asset] = await localRuntime.listAssets({ kind: 'chat' });
-    const [entry] = await listRuntimeLocalAssetEntries({
-      local: {
-        async listLocalAssets() {
-          return {
-            assets: [{
-              localAssetId: 'tester-local-asset',
-              assetId: 'tester/local-facade-asset',
-              kind: 'LOCAL_ASSET_KIND_CHAT',
-              engine: 'runtime-engine',
-              status: 'LOCAL_ASSET_STATUS_INSTALLED',
-            }],
-            nextPageToken: '',
-          };
-        },
+  const asset: LocalAssetRecord = {
+    localAssetId: 'tester-local-asset',
+    assetId: 'tester/local-facade-asset',
+    kind: LocalAssetKind.CHAT,
+    engine: 'runtime-engine',
+    entry: 'model.gguf',
+    files: ['model.gguf'],
+    license: 'tester-fixture',
+    hashes: { sha256: '0'.repeat(64) },
+    status: LocalAssetStatus.INSTALLED,
+    installedAt: '2026-05-31T00:00:00Z',
+    updatedAt: '2026-05-31T00:00:00Z',
+    healthDetail: 'tester fixture installed',
+    capabilities: ['text.generate'],
+    logicalModelId: 'tester/local-facade-asset',
+    family: 'tester',
+    artifactRoles: ['model'],
+    preferredEngine: 'runtime-engine',
+    fallbackEngines: [],
+    bundleState: 0,
+    warmState: 0,
+    localInvokeProfileId: 'tester-local-facade',
+    endpoint: 'http://127.0.0.1:19000/v1',
+    reasonCode: 0,
+  };
+  const [entry] = await listNimiRuntimeLocalAssetEntries({
+    local: {
+      async listLocalAssets() {
+        return {
+          assets: [asset],
+          nextPageToken: '',
+        };
       },
-    } as never);
-    if (entry?.assetId !== asset?.assetId) {
-      throw new Error('tester local asset projection did not match local runtime facade asset');
-    }
-    return asset?.assetId ?? 'none';
-  } finally {
-    unbind();
-  }
+    },
+  });
+  return entry?.assetId ?? 'none';
 }
 
 export async function resolveTesterPermissionClientProjection(): Promise<{ scopeOwner: string; grantCount: number; firstState: string }> {
-  const scopeRef = createTesterAppLabAIScopeRef();
+  const aiScopeRef = createTesterAppLabAIScopeRef();
+  const scopeRef: NimiAppScopeRef = {
+    kind: 'app',
+    ownerId: aiScopeRef.ownerId,
+    surfaceId: aiScopeRef.surfaceId,
+  };
   const permissionScope: PermissionScopeRef = {
     appId: 'tester.app',
     scopeFamily: 'account',
@@ -103,7 +88,7 @@ export async function resolveTesterPermissionClientProjection(): Promise<{ scope
     async get(inputScopeRef, grantId) {
       return { ...grant, scopeRef: inputScopeRef, grant: { ...grant.grant, grantId } };
     },
-    async request(inputScopeRef) {
+    async request(inputScopeRef, _grantSpec) {
       return {
         scopeRef: inputScopeRef,
         accepted: true,
@@ -143,28 +128,29 @@ export async function resolveTesterPermissionClientProjection(): Promise<{ scope
 
 export async function resolveTesterRealmDataSyncProjection(): Promise<string> {
   const callRealm = async <T,>(task: (realm: Realm) => Promise<T>): Promise<T> => task({
+    generated: {
+      listMyFriendsWithDetails: async () => ({ items: [{ id: 'tester-friend' }] }),
+      getMyPendingFriendRequests: async () => ({ received: [], sent: [] }),
+      getMyBlockedUsers: async () => ({ items: [{ id: 'tester-blocked' }] }),
+      getUser: async () => ({ id: 'tester-user' }),
+    },
     services: {
-      MeService: {
-        listMyFriendsWithDetails: async () => ({ items: [{ id: 'tester-friend' }] }),
-        getMyPendingFriendRequests: async () => ({ received: [], sent: [] }),
-        getMyBlockedUsers: async () => ({ items: [{ id: 'tester-blocked' }] }),
-      },
-      UserService: {
-        getUser: async () => ({ id: 'tester-user' }),
-      },
       WorldsService: {
         worldControllerGetWorldview: async () => ({ id: 'tester-worldview', coreSystem: null }),
       },
     },
   } as unknown as Realm);
   const errors: string[] = [];
+  const worldApi: NimiRealmWorldApi = {
+    world: {
+      worldControllerGetWorldview: async () => ({ id: 'tester-worldview', coreSystem: null }),
+    } as unknown as NimiRealmWorldApi['world'],
+  };
   const [social, world] = await Promise.all([
-    loadRealmSocialSnapshot(callRealm, (action) => {
+    callRealm((realm) => loadNimiRealmSocialSnapshot(realm, (action) => {
       errors.push(action);
-    }),
-    loadRealmWorldSemanticBundle(callRealm, (action) => {
-      errors.push(action);
-    }, 'tester-world'),
+    })),
+    loadNimiRealmWorldSemanticBundle(worldApi, 'tester-world'),
   ]);
   if (errors.length > 0) {
     throw new Error(errors.join(', '));
@@ -172,8 +158,67 @@ export async function resolveTesterRealmDataSyncProjection(): Promise<string> {
   return `${social.friends.length}/${social.blocked.length}/${world.worldview?.id ?? 'none'}/${createTesterWorldDisplayProjection(world)}`;
 }
 
-export const runtimeConnectorInventory = createRuntimeConnectorInventoryClient({
-  runtimeAdmin: () => getPlatformClient().domains.runtimeAdmin,
+const testerProviderCatalog: ProviderCatalogEntry[] = [{
+  provider: 'tester',
+  defaultEndpoint: 'https://runtime.example/v1',
+  requiresExplicitEndpoint: false,
+  runtimePlane: 'cloud',
+  executionModule: 'cloud',
+  managedSupported: true,
+  inventoryMode: 'static_source',
+  inlineSupported: true,
+}];
+
+const testerRuntimeConnectorClient = {
+  async listProviderCatalog() {
+    return { providers: testerProviderCatalog };
+  },
+  async listConnectors() {
+    return {
+      connectors: [{
+        connectorId: 'tester-cloud',
+        kind: ConnectorKind.REMOTE_MANAGED,
+        ownerType: ConnectorOwnerType.REALM_USER,
+        ownerId: 'tester-user',
+        provider: 'tester',
+        endpoint: 'https://runtime.example/v1',
+        label: 'Tester Cloud',
+        status: ConnectorStatus.ACTIVE,
+        localCategory: 0,
+        hasCredential: true,
+        authKind: ConnectorAuthKind.API_KEY,
+        providerAuthProfile: '',
+      }],
+      nextPageToken: '',
+    };
+  },
+  async listConnectorModels() {
+    return {
+      models: [{
+        modelId: 'tester-model',
+        modelLabel: 'Tester Model',
+        available: true,
+        capabilities: ['text.generate'],
+      }],
+      nextPageToken: '',
+    };
+  },
+  async createConnector() {
+    throw new Error('Tester settings does not mutate Runtime connector truth.');
+  },
+  async updateConnector() {
+    throw new Error('Tester settings does not mutate Runtime connector truth.');
+  },
+  async deleteConnector() {
+    throw new Error('Tester settings does not mutate Runtime connector truth.');
+  },
+  async testConnector() {
+    return { ack: { ok: true, reasonCode: 0, actionHint: '' } };
+  },
+} satisfies NimiRuntimeConnectorClient;
+
+export const runtimeConnectorInventory = createNimiRuntimeConnectorInventoryClient({
+  connectors: testerRuntimeConnectorClient,
   callOptions: {
     timeoutMs: 5000,
     metadata: {
@@ -254,10 +299,10 @@ const testerRuntimeModelCatalogConnector = {
   async deleteCatalogModelOverlay() {
     throw new Error('Tester settings does not mutate Runtime catalog truth.');
   },
-} satisfies RuntimeModelCatalogConnectorClient;
+} satisfies NimiRuntimeModelCatalogConnectorClient;
 
-export const runtimeModelCatalogProjection = createRuntimeModelCatalogClient({
-  connector: () => testerRuntimeModelCatalogConnector,
+export const runtimeModelCatalogProjection = createNimiRuntimeModelCatalogClient({
+  connectors: testerRuntimeModelCatalogConnector,
   callOptions: {
     timeoutMs: 5000,
     metadata: {
@@ -268,10 +313,14 @@ export const runtimeModelCatalogProjection = createRuntimeModelCatalogClient({
   },
 });
 
-export const testerRouteCapabilityRuntime: RuntimeRouteCapabilityRuntime = {
+export const testerRouteCapabilityRuntime: NimiRuntimeRouteCapabilityRuntime = {
   async resolve({ capability, binding }) {
+    const canonicalCapability = normalizeNimiRuntimeRouteCapabilityToken(capability);
+    if (!canonicalCapability) {
+      throw new Error(`Tester settings route capability is unsupported: ${String(capability)}`);
+    }
     return {
-      capability: toRuntimeRouteCanonicalCapability(capability),
+      capability: canonicalCapability,
       resolvedBindingRef: `tester:${capability}:resolved`,
       source: binding?.source || 'cloud',
       connectorId: binding?.connectorId || 'tester-cloud',
@@ -284,7 +333,9 @@ export const testerRouteCapabilityRuntime: RuntimeRouteCapabilityRuntime = {
     return {
       healthy: true,
       status: 'healthy',
+      provider: 'tester',
       detail: 'tester route ready',
+      actionHint: 'none',
     };
   },
   async describe({ capability, resolvedBindingRef }) {
@@ -307,7 +358,7 @@ export const testerRouteCapabilityRuntime: RuntimeRouteCapabilityRuntime = {
   },
 };
 
-export const runtimeHealthCoordinatorDiagnostics = new RuntimeHealthCoordinator({
+export const runtimeHealthCoordinatorDiagnostics = new NimiRuntimeHealthCoordinator({
   fetchRuntimeHealth: async () => {
     throw new Error('Tester settings diagnostics do not own Runtime health truth.');
   },

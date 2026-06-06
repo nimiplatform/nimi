@@ -1,78 +1,13 @@
 import {
-  PLATFORM_AI_PROFILE_FACTORY_ROWS,
-  selectFactoryAIProfileForFirstRun,
-} from '@nimiplatform/sdk/platform-catalog';
-import {
-  parseAccountAppLibraryRecord,
+  NIMI_APP_AI_PROFILE_FACTORY_ROWS,
+  parseNimiAppAccountLibraryRecord,
   parseNimiAppBridgeProjection,
+  selectNimiAppFactoryAIProfileForFirstRun,
 } from '@nimiplatform/sdk/app';
-import {
-  AgentCanonicalMemoryBankMode,
-  aggregateMaterializationDownloadProgress,
-  buildLocalRuntimeImageNativeEnvironmentPlanPayload,
-  buildRuntimeAgentRequestContext,
-  buildRuntimeAgentSnapshotRecoveryEvents,
-  buildRuntimeRequestMetadata,
-  buildRuntimeTargetCallOptions,
-  bridgeLocalRuntimeProfile,
-  CallerKind,
-  createEmptyMemoryEmbeddingConfig,
-  extractRuntimeReasonCodeFromError,
-  findRuntimeRouteModelProfile,
-  fromProtoStruct,
-  getRuntimeReasonCodeDefaultMessage,
-  isLocalRuntimeEnvironmentDependencyJobActiveState,
-  isLocalRuntimeEnvironmentDependencyJobRetryableState,
-  isLocalRuntimeEnvironmentDependencyJobTransferringState,
-  isLocalRuntimeEnvironmentDependencyRepairRequiredState,
-  isLocalRuntimeEnvironmentDependencyStartableState,
-  isRuntimeAgentProjectionEvent,
-  isRuntimeRouteLocalOptionSelectable,
-  localRecommendationTierToRunGrade,
-  matchesRuntimeAgentProjectionScope,
-  mapRuntimeErrorToLocalAiReasonCode,
-  normalizeLocalRecommendationFeedCacheStateId,
-  normalizeLocalRuntimeProfilesDeclaration,
-  normalizeRuntimeReasonCode,
-  parseLocalRecommendationFeedSourceId,
-  parseLocalRuntimeEnvironmentDependencyJobProjection,
-  parseLocalRuntimeEnvironmentPlanProjection,
-  parseLocalRuntimeExecutionPlan,
-  parseLocalRuntimeNodeDescriptor,
-  parseLocalRuntimeServiceDescriptor,
-  parseRuntimeLocalRecommendationFeedDescriptor,
-  productStateForMaterializationStatus,
-  projectMemoryEmbeddingRouteAvailability,
-  projectRuntimeAgentCanonicalMemoryBankStatus,
-  projectRuntimeAuditCallerKindName,
-  projectRuntimeHealthStatusName,
-  projectRuntimeHealthSummary,
-  projectRuntimeLocalAgentIdentity,
-  projectRuntimeRouteCapabilityCoverage,
-  projectRuntimeUsageWindowName,
-  repairableFirstRunMaterializationDependencies,
-  resolveRuntimeRouteReasoningConfig,
-  resolveRuntimeTextRouteReasoningSupport,
-  retryableInterruptedFirstRunMaterializationJobs,
-  runtimeRouteBindingsMatch,
-  runtimeRouteLocalOptionToBinding,
-  RuntimeHealthStatus,
-  RuntimeReasonCode,
-  summarizeLocalRecommendationFeedCacheState,
-  summarizeRuntimeAgentProjectionEvent,
-  summarizeRuntimeAgentTimeline,
-  toCanonicalLocalRuntimeAssetId,
-  toCanonicalLocalRuntimeAssetLookupKey,
-  toIsoFromTimestamp,
-  toProtoStruct,
-  toRuntimeUserFacingError,
-  UsageWindow,
-  type RuntimeAgentConsumeEvent,
-  type RuntimeResolvedBinding,
-  type RuntimeRouteDescribeResult,
-} from '@nimiplatform/sdk/runtime';
+import { aggregateNimiFirstRunMaterializationDownloadProgress, buildNimiRuntimeLocalImageNativeEnvironmentPlanInput, buildRuntimeAgentRequestContext, buildNimiRuntimeAgentSnapshotRecoveryEvents, buildNimiRuntimeRouteRequestMetadata, buildNimiRuntimeRouteTargetCallOptions, bridgeNimiRuntimeLocalProfile, createEmptyNimiMemoryEmbeddingConfig, extractNimiRuntimeReasonCodeFromError, findNimiRuntimeRouteModelProfile, fromNimiRuntimeProtoStruct, getNimiRuntimeReasonCodeDefaultMessage, isNimiRuntimeLocalEnvironmentDependencyJobActiveState, isNimiRuntimeLocalEnvironmentDependencyJobRetryableState, isNimiRuntimeLocalEnvironmentDependencyJobTransferringState, isNimiRuntimeLocalEnvironmentDependencyRepairRequiredState, isNimiRuntimeLocalEnvironmentDependencyStartableState, isNimiRuntimeAgentProjectionEvent, isNimiRuntimeRouteLocalOptionSelectable, nimiRuntimeLocalRecommendationTierToRunGrade, matchesNimiRuntimeAgentProjectionScope, parseNimiRuntimeLocalRecommendationFeedCacheStateId, normalizeNimiRuntimeLocalProfilesDeclaration, normalizeNimiRuntimeReasonCode, parseNimiRuntimeLocalRecommendationFeedSourceId, projectNimiRuntimeLocalEnvironmentDependencyJob, projectNimiRuntimeLocalEnvironmentPlan, projectNimiRuntimeLocalRecommendationFeed, productStateForNimiFirstRunMaterializationStatus, projectNimiMemoryEmbeddingRouteAvailability, projectNimiRuntimeAgentCanonicalMemoryBankStatus, projectNimiRuntimeAuditCallerKindName, projectNimiRuntimeHealthStatusName, projectNimiRuntimeHealthSummary, projectRuntimeLocalAgentIdentity, projectNimiRuntimeRouteCapabilityCoverage, projectNimiRuntimeUsageWindowName, repairableNimiFirstRunMaterializationDependencies, retryableInterruptedNimiFirstRunMaterializationJobs, nimiRuntimeRouteBindingsMatch, nimiRuntimeRouteLocalOptionToBinding, summarizeNimiRuntimeLocalRecommendationFeedCacheState, summarizeNimiRuntimeAgentProjectionEvent, summarizeNimiRuntimeAgentTimeline, toCanonicalNimiRuntimeLocalAssetId, toCanonicalNimiRuntimeLocalAssetLookupKey, toNimiRuntimeIsoFromTimestamp, toNimiRuntimeProtoStruct, toNimiRuntimeUserFacingError, type NimiRuntimeAgentConsumeEvent, type NimiRuntimeLocalExecutionPlan, type NimiRuntimeResolvedBinding, type NimiRuntimeRouteDescribeResult } from '@nimiplatform/sdk/runtime';
+import { AgentCanonicalMemoryBankMode, CallerKind, RuntimeHealthStatus, ReasonCode as RuntimeReasonCode, UsageWindow } from '@nimiplatform/sdk/runtime/generated';
 import { classifyOfflineError, classifyOfflineReasonCode, createOfflineNimiError, extractNimiErrorFields, ReasonCode } from '@nimiplatform/sdk/types';
-import { pickerSelectionToBinding, summarizeBinding } from '@nimiplatform/kit/features/model-config/headless';
+import { summarizeTargetRef } from '@nimiplatform/kit/features/model-config/headless';
 import { createTesterExternalAgentProjection } from '../../../tester/tester-external-agent-projection';
 import { createTesterMemoryEmbeddingRuntimeProjection } from '../../../tester/tester-memory-embedding-runtime-projection';
 import { createTesterRuntimeAgentPresentationProfileProjection } from '../../../tester/tester-runtime-agent-presentation-profile';
@@ -84,13 +19,13 @@ import { runtimeHealthCoordinatorDiagnostics } from './fixtures';
 
 export function createTesterSettingsRuntimeProjections() {
   const recommendationFeedProjection = {
-    cacheState: summarizeLocalRecommendationFeedCacheState({
-      cacheState: normalizeLocalRecommendationFeedCacheStateId('LOCAL_RECOMMENDATION_FEED_CACHE_STATE_FRESH'),
+    cacheState: summarizeNimiRuntimeLocalRecommendationFeedCacheState({
+      cacheState: parseNimiRuntimeLocalRecommendationFeedCacheStateId('LOCAL_RECOMMENDATION_FEED_CACHE_STATE_FRESH'),
     }),
-    source: parseLocalRecommendationFeedSourceId('LOCAL_RECOMMENDATION_FEED_SOURCE_MODEL_INDEX') ?? 'unknown',
-    grade: localRecommendationTierToRunGrade('LOCAL_RECOMMENDATION_TIER_RUNNABLE'),
+    source: parseNimiRuntimeLocalRecommendationFeedSourceId('LOCAL_RECOMMENDATION_FEED_SOURCE_MODEL_INDEX') ?? 'unknown',
+    grade: nimiRuntimeLocalRecommendationTierToRunGrade('LOCAL_RECOMMENDATION_TIER_RUNNABLE'),
   };
-  const recommendationFeedParserProjection = parseRuntimeLocalRecommendationFeedDescriptor({
+  const recommendationFeedParserProjection = projectNimiRuntimeLocalRecommendationFeed({
     deviceProfile: { surface: 'tester.settings' },
     activeCapability: 'LOCAL_RECOMMENDATION_FEED_CAPABILITY_IMAGE',
     cacheState: 'LOCAL_RECOMMENDATION_FEED_CACHE_STATE_STALE',
@@ -110,11 +45,11 @@ export function createTesterSettingsRuntimeProjections() {
   const recommendationCopyProjection = createTesterLocalRecommendationCopyProjection();
   const runtimeReasonProjection = {
     reasonCode: ReasonCode.AI_PROVIDER_TIMEOUT,
-    message: getRuntimeReasonCodeDefaultMessage(ReasonCode.AI_PROVIDER_TIMEOUT) ?? 'unknown',
-    credentialMissing: getRuntimeReasonCodeDefaultMessage(ReasonCode.AI_CONNECTOR_CREDENTIAL_MISSING) ?? 'unknown',
-    numeric: normalizeRuntimeReasonCode(351) || 'unknown',
-    extracted: extractRuntimeReasonCodeFromError(new Error('runtime failed: reason=411')) ?? 'unknown',
-    presented: toRuntimeUserFacingError({
+    message: getNimiRuntimeReasonCodeDefaultMessage(ReasonCode.AI_PROVIDER_TIMEOUT) ?? 'unknown',
+    credentialMissing: getNimiRuntimeReasonCodeDefaultMessage(ReasonCode.AI_CONNECTOR_CREDENTIAL_MISSING) ?? 'unknown',
+    numeric: normalizeNimiRuntimeReasonCode(351) || 'unknown',
+    extracted: extractNimiRuntimeReasonCodeFromError(new Error('runtime failed: reason=411')) ?? 'unknown',
+    presented: toNimiRuntimeUserFacingError({
       reasonCode: ReasonCode.AI_STREAM_BROKEN,
       actionHint: 'retry stream request',
       message: 'retry stream request',
@@ -151,19 +86,23 @@ export function createTesterSettingsRuntimeProjections() {
     })) ?? 'unknown',
   };
   const runtimeDependencyStateProjection = {
-    dependencyStartable: isLocalRuntimeEnvironmentDependencyStartableState('needs_confirmation'),
-    jobActive: isLocalRuntimeEnvironmentDependencyJobActiveState('downloading'),
-    jobRetryable: isLocalRuntimeEnvironmentDependencyJobRetryableState('failed'),
-    jobTransferring: isLocalRuntimeEnvironmentDependencyJobTransferringState('verifying'),
-    dependencyRepairRequired: isLocalRuntimeEnvironmentDependencyRepairRequiredState('repair_required'),
+    dependencyStartable: isNimiRuntimeLocalEnvironmentDependencyStartableState('needs_confirmation'),
+    jobActive: isNimiRuntimeLocalEnvironmentDependencyJobActiveState('downloading'),
+    jobRetryable: isNimiRuntimeLocalEnvironmentDependencyJobRetryableState('failed'),
+    jobTransferring: isNimiRuntimeLocalEnvironmentDependencyJobTransferringState('verifying'),
+    dependencyRepairRequired: isNimiRuntimeLocalEnvironmentDependencyRepairRequiredState('repair_required'),
   };
-  const runtimeDependencyPlanProjection = parseLocalRuntimeEnvironmentPlanProjection({
+  const runtimeDependencyPlanProjection = projectNimiRuntimeLocalEnvironmentPlan({
     planId: 'tester-plan',
     packId: 'tester-local-speech',
     productLabel: 'Tester Local Speech',
     hostProfileId: 'tester-host',
     platformTuple: 'darwin-arm64',
+    runtimeDataRoot: '/tester/runtime',
+    consumerScope: 'tester.settings',
+    cloudOnlyImpact: 'none',
     state: 'needs_confirmation',
+    reasonCode: ReasonCode.AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED,
     dependencies: [{
       dependencyFamily: 'python',
       dependencyId: 'tester-python',
@@ -171,18 +110,28 @@ export function createTesterSettingsRuntimeProjections() {
       state: 'needs_confirmation',
       sourceKind: 'managed_download',
       confirmationRequired: true,
+      selectedSourceRecordId: 'tester-managed-download',
       environmentKey: 'tester-local-speech',
+      canonicalRoot: '/tester/runtime/local-speech',
       reasonCode: ReasonCode.AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED,
+      detail: 'tester local speech dependency requires explicit confirmation',
     }],
   });
-  const runtimeDependencyJobProjection = parseLocalRuntimeEnvironmentDependencyJobProjection({
+  const runtimeDependencyJobProjection = projectNimiRuntimeLocalEnvironmentDependencyJob({
     jobId: 'tester-job',
     environmentKey: 'tester-local-speech',
     dependencyFamily: 'python',
     dependencyId: 'tester-python',
     state: 'downloading',
     sourceKind: 'managed_download',
+    canonicalRoot: '/tester/runtime/local-speech',
+    selectedSourceRecordId: 'tester-managed-download',
+    failureDetail: '',
     retryable: true,
+    createdAt: '2026-05-31T00:00:00Z',
+    updatedAt: '2026-05-31T00:00:01Z',
+    reasonCode: '',
+    recoveryDisposition: '',
     bytesReceived: '512',
     bytesTotal: '1024',
     percent: 50,
@@ -190,8 +139,8 @@ export function createTesterSettingsRuntimeProjections() {
     etaSeconds: '2',
   });
   const firstRunProfileProjection = {
-    minimal: selectFactoryAIProfileForFirstRun(PLATFORM_AI_PROFILE_FACTORY_ROWS, 'minimal')?.alias ?? 'none',
-    recommended: selectFactoryAIProfileForFirstRun(PLATFORM_AI_PROFILE_FACTORY_ROWS, 'recommended')?.alias ?? 'none',
+    minimal: selectNimiAppFactoryAIProfileForFirstRun(NIMI_APP_AI_PROFILE_FACTORY_ROWS, 'minimal')?.alias ?? 'none',
+    recommended: selectNimiAppFactoryAIProfileForFirstRun(NIMI_APP_AI_PROFILE_FACTORY_ROWS, 'recommended')?.alias ?? 'none',
   };
   const runtimeDependencyPlanItem = runtimeDependencyPlanProjection.dependencies[0]!;
   const runtimeFirstRunDependency = {
@@ -208,7 +157,7 @@ export function createTesterSettingsRuntimeProjections() {
   };
   const runtimeFirstRunMaterializationProjection = {
     status: 'failed' as const,
-    productState: productStateForMaterializationStatus('failed'),
+    productState: productStateForNimiFirstRunMaterializationStatus('failed'),
     reason: 'runtime_materialization_job_failed',
     missingDependencyFamilies: [],
     dependencies: [{
@@ -220,7 +169,7 @@ export function createTesterSettingsRuntimeProjections() {
   const runtimeFirstRunRepairProjection = {
     ...runtimeFirstRunMaterializationProjection,
     status: 'repair_required' as const,
-    productState: productStateForMaterializationStatus('repair_required'),
+    productState: productStateForNimiFirstRunMaterializationStatus('repair_required'),
     reason: 'runtime_materialization_repair_required',
     dependencies: [{
       packId: runtimeDependencyPlanProjection.packId,
@@ -228,38 +177,36 @@ export function createTesterSettingsRuntimeProjections() {
       job: null,
     }],
   };
-  const runtimeFirstRunMaterializationProgress = aggregateMaterializationDownloadProgress([{
+  const runtimeFirstRunMaterializationProgress = aggregateNimiFirstRunMaterializationDownloadProgress([{
     packId: runtimeDependencyPlanProjection.packId,
     dependency: runtimeFirstRunDependency,
     job: runtimeDependencyJobProjection,
   }]);
   const runtimeFirstRunMaterializationSummary = {
-    retryableJobs: retryableInterruptedFirstRunMaterializationJobs(runtimeFirstRunMaterializationProjection).length,
-    repairableDependencies: repairableFirstRunMaterializationDependencies(runtimeFirstRunRepairProjection).length,
+    retryableJobs: retryableInterruptedNimiFirstRunMaterializationJobs(runtimeFirstRunMaterializationProjection).length,
+    repairableDependencies: repairableNimiFirstRunMaterializationDependencies(runtimeFirstRunRepairProjection).length,
     productState: runtimeFirstRunMaterializationProjection.productState,
     recoveryDisposition: runtimeFirstRunFailedJob.recoveryDisposition,
     percent: runtimeFirstRunMaterializationProgress?.percent ?? null,
   };
-  const localRuntimeAssetIdProjection = { assetId: toCanonicalLocalRuntimeAssetId('local/tester-model'), lookupKey: toCanonicalLocalRuntimeAssetLookupKey('LOCAL/Tester-Model') };
+  const localRuntimeAssetIdProjection = { assetId: toCanonicalNimiRuntimeLocalAssetId('local/tester-model'), lookupKey: toCanonicalNimiRuntimeLocalAssetLookupKey('LOCAL/Tester-Model') };
   const localRuntimeAssetKindProjection = createTesterLocalRuntimeAssetKindProjection();
   const runtimeConfigProjection = createTesterRuntimeConfigProjection();
-  const runtimeTargetCallOptionsProjection = buildRuntimeTargetCallOptions({
+  const runtimeTargetCallOptionsProjection = buildNimiRuntimeRouteTargetCallOptions({
     targetId: 'tester.settings.runtime-route',
     timeoutMs: 5000,
     callerKind: 'third-party-app',
     surfaceId: 'tester.settings',
     connectorId: 'tester-cloud',
-    createTraceId: (prefix = 'tester-runtime') => `${prefix}-trace`,
+    callerIdPrefix: 'tester-runtime',
   });
-  const runtimeRequestMetadataProjection = buildRuntimeRequestMetadata({
+  const runtimeRequestMetadataProjection = buildNimiRuntimeRouteRequestMetadata({
     connectorId: 'tester-cloud',
-    createTraceId: (prefix = 'tester-metadata') => `${prefix}-trace`,
+    traceIdPrefix: 'tester-metadata',
   });
-  const runtimeLocalAiReasonProjection = mapRuntimeErrorToLocalAiReasonCode({
-    reasonCode: ReasonCode.AI_STREAM_BROKEN,
-  }) ?? 'unknown';
+  const runtimeLocalAiReasonProjection = normalizeNimiRuntimeReasonCode(ReasonCode.AI_STREAM_BROKEN) || 'unknown';
   const memoryEmbeddingConfig = {
-    ...createEmptyMemoryEmbeddingConfig({
+    ...createEmptyNimiMemoryEmbeddingConfig({
       kind: 'feature',
       ownerId: 'tester',
       surfaceId: 'settings-memory-embedding',
@@ -271,7 +218,7 @@ export function createTesterSettingsRuntimeProjections() {
       modelId: 'tester-embedding',
     },
   };
-  const memoryEmbeddingRouteProjection = projectMemoryEmbeddingRouteAvailability({
+  const memoryEmbeddingRouteProjection = projectNimiMemoryEmbeddingRouteAvailability({
     config: memoryEmbeddingConfig,
     routeOptions: {
       capability: 'text.embed',
@@ -285,7 +232,7 @@ export function createTesterSettingsRuntimeProjections() {
       }],
     },
   });
-  const runtimeAgentMemoryProjection = projectRuntimeAgentCanonicalMemoryBankStatus({
+  const runtimeAgentMemoryProjection = projectNimiRuntimeAgentCanonicalMemoryBankStatus({
     mode: AgentCanonicalMemoryBankMode.STANDARD,
     bankId: 'tester-agent-bank',
     embeddingProfile: {
@@ -307,7 +254,7 @@ export function createTesterSettingsRuntimeProjections() {
   const runtimeAgentInspectProjection = createTesterRuntimeAgentInspectProjection();
   const runtimeAgentPresentationProfileProjection = createTesterRuntimeAgentPresentationProfileProjection();
   const externalAgentProjection = createTesterExternalAgentProjection();
-  const runtimeRouteModelProfileProjection = findRuntimeRouteModelProfile({
+  const runtimeRouteModelProfileProjection = findNimiRuntimeRouteModelProfile({
     capability: 'text.generate',
     selected: null,
     local: { models: [] },
@@ -339,22 +286,22 @@ export function createTesterSettingsRuntimeProjections() {
       capabilities: ['text.embed'],
     };
     return {
-      selectable: isRuntimeRouteLocalOptionSelectable(option),
-      binding: runtimeRouteLocalOptionToBinding(option, {
+      selectable: isNimiRuntimeRouteLocalOptionSelectable(option),
+      binding: nimiRuntimeRouteLocalOptionToBinding(option, {
         defaultEndpoint: 'http://127.0.0.1:19000/v1',
       }),
     };
   })();
-  const runtimeRouteBindingMatchProjection = runtimeRouteBindingsMatch(localRouteOptionProjection.binding, {
+  const runtimeRouteBindingMatchProjection = nimiRuntimeRouteBindingsMatch(localRouteOptionProjection.binding, {
     ...localRouteOptionProjection.binding,
     model: 'local/tester-embedding',
     localModelId: 'tester-local-embedding',
   });
-  const localRuntimeImageNativeEnvironmentPlanPayload = buildLocalRuntimeImageNativeEnvironmentPlanPayload(
+  const localRuntimeImageNativeEnvironmentPlanPayload = buildNimiRuntimeLocalImageNativeEnvironmentPlanInput(
     { assetId: 'tester-image-asset', localAssetId: 'tester-local-image-asset' },
     { os: 'linux', arch: 'x64', gpu: { vendor: 'nvidia' } },
   );
-  const runtimeCapabilityCoverageProjection = projectRuntimeRouteCapabilityCoverage({
+  const runtimeCapabilityCoverageProjection = projectNimiRuntimeRouteCapabilityCoverage({
     capability: 'image',
     localNodes: [],
     localModels: [],
@@ -366,49 +313,24 @@ export function createTesterSettingsRuntimeProjections() {
       },
     }],
   });
-  const runtimeRouteReasoningProjection = (() => {
-    const resolvedBinding: RuntimeResolvedBinding = {
-      capability: 'text.generate',
-      source: 'cloud',
-      connectorId: 'tester-cloud',
-      provider: 'tester',
-      model: 'tester-reasoning-model',
-      modelId: 'tester-reasoning-model',
-      resolvedBindingRef: 'binding:tester-reasoning',
-    };
-    const metadata: RuntimeRouteDescribeResult = {
-      capability: 'text.generate',
-      metadataVersion: 'v1',
-      resolvedBindingRef: 'binding:tester-reasoning',
-      metadataKind: 'text.generate',
-      metadata: {
-        supportsThinking: true,
-        traceModeSupport: 'separate',
-        supportsImageInput: false,
-        supportsAudioInput: false,
-        supportsVideoInput: false,
-        supportsArtifactRefInput: false,
-      },
-    };
-    const support = resolveRuntimeTextRouteReasoningSupport({
-      resolvedBinding,
-      metadata,
-    });
-    const config = resolveRuntimeRouteReasoningConfig('on', support);
-    return {
-      supported: support.supported,
-      reason: support.reason ?? 'ok',
-      traceMode: config.traceMode ?? 'none',
-    };
-  })();
-  const modelConfigBindingProjection = pickerSelectionToBinding({
+  const runtimeRouteReasoningProjection = {
+    supported: false,
+    reason: 'reasoning_metadata_helper_not_public',
+    traceMode: 'none',
+  };
+  const modelConfigBindingProjection = {
     source: 'cloud',
     connectorId: 'tester-cloud',
     model: 'tester-config-model',
     provider: 'tester',
+  };
+  const modelConfigBindingSummaryProjection = summarizeTargetRef({
+    kind: 'cloud-connector',
+    connectorId: modelConfigBindingProjection.connectorId,
+    providerModelId: modelConfigBindingProjection.model,
+    provider: modelConfigBindingProjection.provider,
   });
-  const modelConfigBindingSummaryProjection = summarizeBinding(modelConfigBindingProjection);
-  const runtimeHealthSummaryProjection = projectRuntimeHealthSummary({
+  const runtimeHealthSummaryProjection = projectNimiRuntimeHealthSummary({
     status: RuntimeHealthStatus.READY,
     reason: 'tester runtime ready',
     queueDepth: 0,
@@ -420,11 +342,11 @@ export function createTesterSettingsRuntimeProjections() {
     sampledAt: { seconds: '1710000000', nanos: 0 },
   });
   const runtimeHealthWireProjection = {
-    statusName: projectRuntimeHealthStatusName(RuntimeHealthStatus.READY) ?? 'unknown',
-    sampledAt: toIsoFromTimestamp({ seconds: '1710000000', nanos: 0 }) ?? 'unknown',
+    statusName: projectNimiRuntimeHealthStatusName(RuntimeHealthStatus.READY) ?? 'unknown',
+    sampledAt: toNimiRuntimeIsoFromTimestamp({ seconds: '1710000000', nanos: 0 }) ?? 'unknown',
   };
   const localRuntimeProfileProjection = (() => {
-    const [profile] = normalizeLocalRuntimeProfilesDeclaration([
+    const [profile] = normalizeNimiRuntimeLocalProfilesDeclaration([
       {
         id: 'tester-profile',
         title: 'Tester Profile',
@@ -435,39 +357,44 @@ export function createTesterSettingsRuntimeProjections() {
         ],
       },
     ]);
-    const bridge = profile ? bridgeLocalRuntimeProfile(profile, 'chat') : null;
+    const bridge = profile ? bridgeNimiRuntimeLocalProfile(profile, 'chat') : null;
     return {
       profileCount: profile ? 1 : 0,
       runtimeEntryCount: bridge?.runtimeEntries?.required?.length ?? 0,
       assetCount: bridge?.assets.length ?? 0,
     };
   })();
-  const localRuntimeExecutionPlanProjection = parseLocalRuntimeExecutionPlan({
+  const localRuntimeExecutionPlanProjection: NimiRuntimeLocalExecutionPlan = {
     planId: 'tester-execution-plan',
     targetId: 'tester-runtime',
     capability: 'chat',
     deviceProfile: {
       os: 'darwin',
       arch: 'arm64',
-      gpu: { available: true, memoryModel: 'unified' },
+      totalRamBytes: 17179869184,
+      availableRamBytes: 8589934592,
+      gpu: {
+        available: true,
+        vendor: 'apple',
+        model: 'integrated',
+        totalVramBytes: 8589934592,
+        availableVramBytes: 4294967296,
+        memoryModel: 'unified',
+      },
       python: { available: true, version: '3.12' },
-      npu: { available: false, ready: false },
+      npu: { available: false, ready: false, vendor: '', runtime: '', detail: 'not present' },
       diskFreeBytes: 1024,
       ports: [{ port: 7341, available: true }],
     },
     entries: [{
       entryId: 'tester-service',
-      kind: 'LOCAL_EXECUTION_ENTRY_KIND_SERVICE',
+      kind: 'service',
       capability: 'chat',
       required: true,
       selected: true,
       preferred: true,
-    }],
-    selectionRationale: [{
-      entryId: 'tester-service',
-      selected: true,
-      reasonCode: ReasonCode.ACTION_EXECUTED,
-      detail: 'tester selected SDK execution decoder path',
+      serviceId: 'tester-runtime',
+      warnings: [],
     }],
     preflightDecisions: [{
       entryId: 'tester-service',
@@ -478,20 +405,21 @@ export function createTesterSettingsRuntimeProjections() {
       detail: 'tester port available',
     }],
     warnings: [],
-  });
+    reasonCode: ReasonCode.ACTION_EXECUTED,
+  };
   const localRuntimeServiceNodeProjection = {
-    service: parseLocalRuntimeServiceDescriptor({
+    service: {
       serviceId: 'tester-service',
       title: 'Tester Service',
       engine: 'speech',
       artifactType: 'attached-endpoint',
       capabilities: ['audio.synthesize'],
-      status: 'LOCAL_SERVICE_STATUS_ACTIVE',
+      status: 'active',
       reasonCode: ReasonCode.ACTION_EXECUTED,
       installedAt: '2026-05-31T00:00:00Z',
       updatedAt: '2026-05-31T00:00:00Z',
-    }),
-    node: parseLocalRuntimeNodeDescriptor({
+    },
+    node: {
       nodeId: 'tester-node',
       title: 'Tester Node',
       serviceId: 'tester-service',
@@ -499,7 +427,7 @@ export function createTesterSettingsRuntimeProjections() {
       adapter: 'SPEECH_NATIVE_ADAPTER',
       available: true,
       readOnly: true,
-    }),
+    },
   };
   const appBridgeProjection = parseNimiAppBridgeProjection({
     registryPath: '/tester/.nimi/apps/registry.json',
@@ -540,7 +468,7 @@ export function createTesterSettingsRuntimeProjections() {
       sourceRule: 'tester-fixture',
     }],
   });
-  const accountAppLibraryProjection = parseAccountAppLibraryRecord({
+  const accountAppLibraryProjection = parseNimiAppAccountLibraryRecord({
     schemaVersion: 1,
     accountId: 'tester-account',
     updatedAt: '2026-05-31T00:00:00Z',
@@ -552,8 +480,8 @@ export function createTesterSettingsRuntimeProjections() {
     }],
   });
   const runtimeAuditWireProjection = {
-    callerKindName: projectRuntimeAuditCallerKindName(CallerKind.THIRD_PARTY_APP) ?? 'unknown',
-    usageWindowName: projectRuntimeUsageWindowName(UsageWindow.HOUR) ?? 'unknown',
+    callerKindName: projectNimiRuntimeAuditCallerKindName(CallerKind.THIRD_PARTY_APP) ?? 'unknown',
+    usageWindowName: projectNimiRuntimeUsageWindowName(UsageWindow.HOUR) ?? 'unknown',
   };
   const runtimeHealthCoordinatorProjection = runtimeHealthCoordinatorDiagnostics.getSnapshot();
   const runtimeAgentConsumerProjection = (() => {
@@ -564,7 +492,7 @@ export function createTesterSettingsRuntimeProjections() {
       originatingTurnId: 'tester-turn',
       originatingStreamId: 'tester-stream',
       detail: { intentId: 'tester-hook' },
-    } as RuntimeAgentConsumeEvent;
+    } as NimiRuntimeAgentConsumeEvent;
     const timelineEvent = {
       eventName: 'runtime.agent.turn.text_delta',
       localAgentRef: 'local-agent:tester-owner:tester-agent',
@@ -586,8 +514,8 @@ export function createTesterSettingsRuntimeProjections() {
         appLocalAuthority: false,
       },
       detail: { text: 'tester' },
-    } as RuntimeAgentConsumeEvent;
-    const recoveryEvents = buildRuntimeAgentSnapshotRecoveryEvents({
+    } as NimiRuntimeAgentConsumeEvent;
+    const recoveryEvents = buildNimiRuntimeAgentSnapshotRecoveryEvents({
       turn: {
         turnId: 'tester-turn',
         streamId: 'tester-stream',
@@ -613,11 +541,11 @@ export function createTesterSettingsRuntimeProjections() {
       hasStructuredEnvelope: false,
       hasCommittedMessage: false,
     });
-    const projectionSummary = summarizeRuntimeAgentProjectionEvent(projectionEvent);
-    const timelineSummary = summarizeRuntimeAgentTimeline(timelineEvent);
+    const projectionSummary = summarizeNimiRuntimeAgentProjectionEvent(projectionEvent);
+    const timelineSummary = summarizeNimiRuntimeAgentTimeline(timelineEvent);
     const terminal = recoveryEvents[recoveryEvents.length - 1];
     return {
-      projectionScoped: isRuntimeAgentProjectionEvent(projectionEvent) && matchesRuntimeAgentProjectionScope({
+      projectionScoped: isNimiRuntimeAgentProjectionEvent(projectionEvent) && matchesNimiRuntimeAgentProjectionScope({
         event: projectionEvent,
         conversationAnchorId: 'tester-anchor',
         currentTurnAccepted: true,
@@ -630,7 +558,7 @@ export function createTesterSettingsRuntimeProjections() {
     };
   })();
   const runtimeStructProjection = (() => {
-    const encoded = toProtoStruct({
+    const encoded = toNimiRuntimeProtoStruct({
       surfaceId: 'tester.settings',
       audit: {
         kind: 'diagnostic',
@@ -638,7 +566,7 @@ export function createTesterSettingsRuntimeProjections() {
       },
       tags: ['runtime', 'settings'],
     });
-    const decoded = fromProtoStruct(encoded);
+    const decoded = fromNimiRuntimeProtoStruct(encoded);
     const audit = decoded.audit && typeof decoded.audit === 'object'
       ? decoded.audit as Record<string, unknown>
       : {};

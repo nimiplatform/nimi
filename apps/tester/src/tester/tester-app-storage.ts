@@ -1,8 +1,8 @@
 import { getRuntimePlatformProjection, appId } from '../shell/auth/runtime-platform.js';
 import {
-  attachRuntimeAppDataStorageRoot,
-  attachRuntimeAppStorageRoots,
-  resolveRuntimeAppStorageRoots,
+  attachNimiRuntimeAppDataStorageRoot,
+  attachNimiRuntimeAppStorageRoots,
+  resolveNimiRuntimeAppStorageRoots,
 } from '@nimiplatform/sdk/runtime';
 
 export type TesterAppStorageRoots = {
@@ -12,13 +12,13 @@ export type TesterAppStorageRoots = {
 };
 
 export async function getTesterAppStorageRoots(): Promise<TesterAppStorageRoots> {
-  return resolveRuntimeAppStorageRoots(await testerStorageInput('tester app'));
+  return resolveNimiRuntimeAppStorageRoots(await testerStorageInput('tester app'));
 }
 
 export async function withTesterDataStorageRoot<T extends Record<string, unknown>>(
   payload: T,
 ): Promise<T & { storageRoot: string }> {
-  return attachRuntimeAppDataStorageRoot({
+  return attachNimiRuntimeAppDataStorageRoot({
     ...(await testerStorageInput('tester app')),
     payload,
   });
@@ -27,7 +27,7 @@ export async function withTesterDataStorageRoot<T extends Record<string, unknown
 export async function withTesterAppStorageRoots<T extends Record<string, unknown>>(
   payload: T,
 ): Promise<T & TesterAppStorageRoots> {
-  return attachRuntimeAppStorageRoots({
+  return attachNimiRuntimeAppStorageRoots({
     ...(await testerStorageInput('tester app')),
     payload,
   });

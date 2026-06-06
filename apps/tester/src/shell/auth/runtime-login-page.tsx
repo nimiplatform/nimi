@@ -2,16 +2,18 @@ import { useMemo, useState } from 'react';
 import { DesktopShellAuthPage } from '@nimiplatform/kit/auth';
 import { InlineAlert } from '@nimiplatform/kit/ui';
 import { createNimiAppDesktopBrowserAuthAdapter, createNimiAppRuntimeAccountBroker, nimiAppTauriOAuthBridge } from './runtime-account-auth.js';
+import type { TesterRuntimePlatformClient } from './runtime-platform.js';
 
 type RuntimeLoginPageProps = {
+  client: TesterRuntimePlatformClient;
   errorMessage?: string;
   onReady: () => void;
 };
 
-export function RuntimeLoginPage({ errorMessage, onReady }: RuntimeLoginPageProps) {
+export function RuntimeLoginPage({ client, errorMessage, onReady }: RuntimeLoginPageProps) {
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
-  const adapter = useMemo(() => createNimiAppDesktopBrowserAuthAdapter(onReady), [onReady]);
-  const runtimeAccountBroker = useMemo(() => createNimiAppRuntimeAccountBroker(), []);
+  const adapter = useMemo(() => createNimiAppDesktopBrowserAuthAdapter(onReady, client), [client, onReady]);
+  const runtimeAccountBroker = useMemo(() => createNimiAppRuntimeAccountBroker(client), [client]);
 
   return (
     <div className="runtime-login-screen">

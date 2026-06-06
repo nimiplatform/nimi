@@ -212,9 +212,9 @@ export function getCapabilityStudioProfile(id: TesterCapabilityId): CapabilitySt
 }
 
 const RUNTIME_METHODS: Record<TesterCapabilityId, string> = {
-  'text.generate': 'runtime.ai.text.generate',
-  'chat.stream': 'runtime.ai.text.stream',
-  'text.embed': 'runtime.ai.embedding.generate',
+  'text.generate': 'runtime.ai.executeScenario:text_generate',
+  'chat.stream': 'runtime.ai.streamScenario:text_generate',
+  'text.embed': 'runtime.ai.executeScenario:text_embed',
   'image.generate': 'runtime.media.image.generate',
   'video.generate': 'runtime.media.video.generate',
   'audio.synthesize': 'runtime.media.tts.synthesize',

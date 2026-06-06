@@ -1,19 +1,18 @@
 import {
-  aiConfigScopeKeyFromRef,
-  createAppAIScopeRef,
-  computeAIConfigVersion,
-  createHostAIProfileSurface,
-  createAIConfigSubscriptionRegistry,
-  createScopedAIConfigStore,
-  createScopedAISnapshotStore,
-  parseAIProfile,
-  validateAIConfigRuntimeBindings,
-  validateAIProfileRuntimeBindings,
-  type AIConfig,
-  type AIConfigStorageLike,
-  type AIProfile,
-  type AIScopeRef,
-  type AISnapshot,
+  createNimiAIConfigStore,
+  createNimiAIConfigSubscriptionRegistry,
+  createNimiAIHostSurface,
+  createNimiAISnapshotStore,
+  createNimiAppAIScopeRef,
+  parseNimiAIProfile,
+  validateNimiAIConfig,
+  validateNimiAIProfile,
+  versionNimiAIConfig,
+  type NimiAIConfig,
+  type NimiAIHostStorage,
+  type NimiAIProfile,
+  type NimiAIScopeRef,
+  type NimiAISnapshot,
 } from '@nimiplatform/sdk/ai';
 import type {
   SharedAIConfigService,
@@ -21,7 +20,7 @@ import type {
   SharedAIConfigUnsubscribe,
 } from '@nimiplatform/kit/features/model-config/headless';
 import { resolveBrowserStorage } from '@nimiplatform/kit/core/storage-json';
-import { appId } from '../shell/auth/runtime-platform.js';
+import { appId } from '../shell/auth/app-identity.js';
 
 export const TESTER_APP_LAB_AI_SURFACE_ID = 'app-lab';
 export const TESTER_AI_CONFIG_STORAGE_KEY = 'nimiapp-tester:app-lab-ai-config:v1';
@@ -33,7 +32,7 @@ export const TESTER_AI_PROFILE_LIBRARY_SCHEMA_VERSION = 1;
 export type TesterAIProfileImportResult =
   | {
       ok: true;
-      profile: AIProfile;
+      profile: NimiAIProfile;
       profileCount: number;
       message: string;
     }
@@ -45,21 +44,14 @@ export type TesterAIProfileImportResult =
 
 type TesterAIProfileLibraryStore = {
   schemaVersion: typeof TESTER_AI_PROFILE_LIBRARY_SCHEMA_VERSION;
-  profiles: AIProfile[];
+  profiles: NimiAIProfile[];
 };
 
-const configSubscriptions = createAIConfigSubscriptionRegistry({
-  resolveScopeKey: (config) => scopeKey(config.scopeRef),
-  cloneOnNotify: true,
-});
-let ephemeralProfiles: AIProfile[] = [];
+const configSubscriptions = createNimiAIConfigSubscriptionRegistry();
+let ephemeralProfiles: NimiAIProfile[] = [];
 
-export function createTesterAppLabAIScopeRef(): AIScopeRef {
-  return createAppAIScopeRef(appId, TESTER_APP_LAB_AI_SURFACE_ID);
-}
-
-function scopeKey(scopeRef: AIScopeRef): string {
-  return aiConfigScopeKeyFromRef(scopeRef);
+export function createTesterAppLabAIScopeRef(): NimiAIScopeRef {
+  return createNimiAppAIScopeRef(appId, TESTER_APP_LAB_AI_SURFACE_ID);
 }
 
 function getStorage(): Storage | null {
@@ -70,18 +62,17 @@ function isTesterEphemeralStoreHarness(): boolean {
   return typeof window === 'undefined';
 }
 
-const aiConfigStore = createScopedAIConfigStore({
-  storage: () => getStorage() as AIConfigStorageLike | null,
+const aiConfigStore = createNimiAIConfigStore({
+  storage: () => getStorage() as NimiAIHostStorage | null,
   configKeyForScope: () => TESTER_AI_CONFIG_STORAGE_KEY,
-  validateRuntimeBindings: true,
   enableEphemeralStore: isTesterEphemeralStoreHarness(),
 });
 
-const aiSnapshotStore = createScopedAISnapshotStore({
-  storage: () => getStorage() as AIConfigStorageLike | null,
+const aiSnapshotStore = createNimiAISnapshotStore({
+  storage: () => getStorage() as NimiAIHostStorage | null,
   indexKey: TESTER_AI_SNAPSHOT_INDEX_KEY,
   snapshotKeyForExecution: (executionId) => `${TESTER_AI_SNAPSHOT_STORAGE_PREFIX}${executionId}`,
-  maxSnapshots: 16,
+  latestKeyForScope: (encodedScopeRef) => `${TESTER_AI_SNAPSHOT_STORAGE_PREFIX}latest:${encodedScopeRef}`,
   enableEphemeralStore: isTesterEphemeralStoreHarness(),
 });
 
@@ -100,17 +91,17 @@ function parseStoredProfileLibrary(raw: string): TesterAIProfileLibraryStore {
   ) {
     throw new Error('Stored AIProfile library schema is invalid.');
   }
-  const profiles: AIProfile[] = [];
+  const profiles: NimiAIProfile[] = [];
   for (const profile of parsed.profiles) {
-    let parsedProfile: AIProfile;
+    let parsedProfile: NimiAIProfile;
     try {
-      parsedProfile = parseAIProfile(profile);
+      parsedProfile = parseNimiAIProfile(profile);
     } catch (error) {
       throw new Error(`Stored AIProfile is invalid: ${error instanceof Error ? error.message : String(error)}`);
     }
-    const bindingErrors = validateAIProfileRuntimeBindings(parsedProfile);
-    if (bindingErrors.length > 0) {
-      throw new Error(`Stored AIProfile binding is invalid: ${bindingErrors.join('; ')}`);
+    const validation = validateNimiAIProfile(parsedProfile);
+    if (!validation.valid) {
+      throw new Error(`Stored AIProfile is invalid: ${validation.errors.join('; ')}`);
     }
     profiles.push(parsedProfile);
   }
@@ -146,7 +137,7 @@ function saveProfileLibraryStore(store: TesterAIProfileLibraryStore, storage: St
   storage.setItem(TESTER_AI_PROFILE_LIBRARY_STORAGE_KEY, JSON.stringify(store));
 }
 
-export function listTesterAIProfiles(): AIProfile[] {
+export function listTesterAIProfiles(): NimiAIProfile[] {
   return [...loadProfileLibraryStore().profiles];
 }
 
@@ -162,9 +153,9 @@ export function importTesterAIProfileJson(rawJson: string): TesterAIProfileImpor
     };
   }
 
-  let profile: AIProfile;
+  let profile: NimiAIProfile;
   try {
-    profile = parseAIProfile(parsed);
+    profile = parseNimiAIProfile(parsed);
   } catch (error) {
     return {
       ok: false,
@@ -173,12 +164,12 @@ export function importTesterAIProfileJson(rawJson: string): TesterAIProfileImpor
     };
   }
 
-  const bindingErrors = validateAIProfileRuntimeBindings(profile);
-  if (bindingErrors.length > 0) {
+  const validation = validateNimiAIProfile(profile);
+  if (!validation.valid) {
     return {
       ok: false,
-      errors: bindingErrors,
-      message: 'AIProfile binding validation failed.',
+      errors: [...validation.errors],
+      message: 'AIProfile validation failed.',
     };
   }
   const store = loadProfileLibraryStore();
@@ -199,87 +190,85 @@ export function importTesterAIProfileJson(rawJson: string): TesterAIProfileImpor
   };
 }
 
-export function loadTesterAIConfig(scopeRef: AIScopeRef = createTesterAppLabAIScopeRef()): AIConfig {
+export function loadTesterAIConfig(scopeRef: NimiAIScopeRef = createTesterAppLabAIScopeRef()): NimiAIConfig {
   try {
     return aiConfigStore.load(scopeRef);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    if (message.startsWith('AIConfig binding is invalid: ')) {
+    if (message.startsWith('Stored NimiAIConfig is invalid: ')) {
       throw new Error(`Stored ${message}`);
     }
-    if (message === 'AIConfig schema is invalid.') {
-      throw new Error('Stored AIConfig scope does not match App Lab.');
+    if (message.includes('Stored NimiAIConfig scopeRef does not match requested scopeRef')) {
+      throw new Error('Stored NimiAIConfig scope does not match App Lab.');
     }
     throw error;
   }
 }
 
 export function saveTesterAIConfig(
-  next: AIConfig,
-  scopeRef: AIScopeRef = createTesterAppLabAIScopeRef(),
+  next: NimiAIConfig,
+  scopeRef: NimiAIScopeRef = createTesterAppLabAIScopeRef(),
   options?: { readonly expectedBaseVersion?: string },
-): AIConfig {
+): NimiAIConfig {
   const normalized = { ...next, scopeRef };
   const expectedBaseVersion = options?.expectedBaseVersion?.trim();
   if (expectedBaseVersion) {
-    const currentVersion = computeAIConfigVersion(loadTesterAIConfig(scopeRef));
+    const currentVersion = versionNimiAIConfig(loadTesterAIConfig(scopeRef));
     if (currentVersion !== expectedBaseVersion) {
-      throw new Error('AIConfig CAS conflict: baseVersion is stale');
+      throw new Error('NimiAIConfig CAS conflict: baseVersion is stale');
     }
   }
-  const bindingErrors = validateAIConfigRuntimeBindings(normalized);
-  if (bindingErrors.length > 0) {
-    throw new Error(`AIConfig binding validation failed: ${bindingErrors.join('; ')}`);
+  const validation = validateNimiAIConfig(normalized);
+  if (!validation.valid) {
+    throw new Error(`NimiAIConfig validation failed: ${validation.errors.join('; ')}`);
   }
   const saved = aiConfigStore.save(normalized);
   configSubscriptions.notify(saved);
   return saved;
 }
 
-export function recordTesterAISnapshot(snapshot: AISnapshot): AISnapshot {
+export function recordTesterAISnapshot(snapshot: NimiAISnapshot): NimiAISnapshot {
   return aiSnapshotStore.record(snapshot);
 }
 
-export function getTesterAISnapshot(executionId: string): AISnapshot | null {
+export function getTesterAISnapshot(executionId: string): NimiAISnapshot | null {
   return aiSnapshotStore.get(executionId);
 }
 
 export function getLatestTesterAISnapshot(
-  scopeRef: AIScopeRef = createTesterAppLabAIScopeRef(),
-): AISnapshot | null {
+  scopeRef: NimiAIScopeRef = createTesterAppLabAIScopeRef(),
+): NimiAISnapshot | null {
   return aiSnapshotStore.getLatest(scopeRef);
 }
 
 export function createTesterAIConfigService(): SharedAIConfigService {
-  const aiProfile = createHostAIProfileSurface({
-    listProfiles: () => listTesterAIProfiles(),
-    loadConfig: (scopeRef) => loadTesterAIConfig(scopeRef),
-    saveConfig: (scopeRef, next, options) => saveTesterAIConfig(next, scopeRef, options),
-    missingProfileMessage: (profileId) =>
-      `AIProfile ${profileId} is not in the App Lab profile library.`,
+  const surface = createNimiAIHostSurface({
+    profiles: listTesterAIProfiles(),
+    configStore: aiConfigStore,
+    snapshotStore: aiSnapshotStore,
+    subscriptions: configSubscriptions,
   });
   return {
     aiConfig: {
-      get(scopeRef: AIScopeRef) {
+      get(scopeRef: NimiAIScopeRef) {
         return loadTesterAIConfig(scopeRef);
       },
-      update(scopeRef: AIScopeRef, next: AIConfig) {
+      update(scopeRef: NimiAIScopeRef, next: NimiAIConfig) {
         saveTesterAIConfig(next, scopeRef);
       },
-      subscribe(scopeRef: AIScopeRef, listener: SharedAIConfigSubscribeListener): SharedAIConfigUnsubscribe {
-        const key = scopeKey(scopeRef);
-        return configSubscriptions.subscribe(key, listener);
+      subscribe(scopeRef: NimiAIScopeRef, listener: SharedAIConfigSubscribeListener): SharedAIConfigUnsubscribe {
+        return configSubscriptions.subscribe(scopeRef, listener);
       },
     },
     aiProfile: {
       async list() {
-        return aiProfile.list();
+        return [...await surface.aiProfile.list()];
       },
-      async previewApply(scopeRef: AIScopeRef, profileId: string) {
-        return aiProfile.previewApply(scopeRef, profileId);
+      async previewApply(scopeRef: NimiAIScopeRef, profileId: string) {
+        return surface.aiProfile.previewApply(scopeRef, profileId);
       },
-      async apply(scopeRef: AIScopeRef, profileId: string, options) {
-        return aiProfile.apply(scopeRef, profileId, options);
+      async apply(scopeRef: NimiAIScopeRef, profileId: string, options) {
+        return surface.aiProfile.apply(scopeRef, profileId, options);
       },
     },
   };

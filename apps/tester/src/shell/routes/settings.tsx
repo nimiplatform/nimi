@@ -1,24 +1,22 @@
 import { useEffect, useState } from 'react';
-import { getPlatformClient } from '@nimiplatform/sdk';
 import {
-  buildRuntimeRouteCapabilityProjection,
-  checkRuntimeRouteProviderHealth,
-  createDefaultRuntimeRouteCapabilitySelectionStore,
-  getRuntimeRouteCapabilityProjectionIssueKind,
-  isRuntimeRouteCapabilityProjectionReady,
-  ModelHealthStatus,
-  RuntimeReasonCode,
-  updateRuntimeRouteCapabilityBinding,
+  buildNimiRuntimeRouteCapabilityProjection,
+  createDefaultNimiRuntimeRouteCapabilitySelectionStore,
+  getNimiRuntimeRouteCapabilityProjectionIssueKind,
+  isNimiRuntimeRouteCapabilityProjectionReady,
+  updateNimiRuntimeRouteCapabilityBinding,
 } from '@nimiplatform/sdk/runtime';
+import type { Realm } from '@nimiplatform/sdk/realm';
 import {
-  listRealmGroupChats,
-  loadRealmCreatorEligibility,
-  loadRealmNotificationUnreadCount,
-  loadRealmNotifications,
-  requestDataExport,
-  toRealmNotificationListProjection,
-  uploadRealmResourceFileWithRealm,
+  listNimiRealmGroupChats,
+  loadNimiRealmCreatorEligibility,
+  loadNimiRealmNotificationUnreadCount,
+  loadNimiRealmNotifications,
+  requestNimiRealmDataExport,
+  toNimiRealmNotificationListProjection,
+  uploadNimiRealmResourceFile,
 } from '@nimiplatform/sdk/realm';
+import { getRuntimePlatformProjection } from '../auth/runtime-platform';
 import { loadRealmCurrencyBalances, loadRealmGiftTransaction } from '@nimiplatform/kit/features/commerce/realm';
 import { getNimiNotificationServerFilter } from '@nimiplatform/kit/core/notifications';
 import { resolveConversationRuntimeRouteSetupStateFromProjection } from '@nimiplatform/kit/features/chat/headless';
@@ -64,6 +62,17 @@ import type {
   WalletProjectionState,
 } from './settings/types';
 import { SettingsRouteView } from './settings/view';
+
+async function requireTesterRealm(): Promise<Realm> {
+  const projection = await getRuntimePlatformProjection();
+  if (projection.status !== 'ready') {
+    throw new Error(projection.message);
+  }
+  if (!projection.client.realm) {
+    throw new Error('Tester settings Realm projection requires explicit vNext Realm configuration.');
+  }
+  return projection.client.realm;
+}
 
 export function SettingsRoute() {
   const [localDrafts, setLocalDrafts] = useState(true);
@@ -138,40 +147,49 @@ export function SettingsRoute() {
   useEffect(() => {
     let cancelled = false;
     setResourceUploadProjection({ status: 'loading', summary: null, error: null });
-    void uploadRealmResourceFileWithRealm({
+    void uploadNimiRealmResourceFile({
+      resources: {
+        async createImageDirectUpload() {
+          return {
+            deliveryAccess: 'SIGNED',
+            provider: 'S3_OBJECT',
+            resourceId: 'tester-resource-upload',
+            resourceType: 'IMAGE',
+            status: 'PENDING',
+            storageRef: 'tester/settings/resource-upload',
+            uploadUrl: 'https://upload.nimi.test/tester-resource-upload',
+          };
+        },
+        async createVideoDirectUpload() {
+          throw new Error('tester settings resource upload only exercises image upload');
+        },
+        async createAudioDirectUpload() {
+          throw new Error('tester settings resource upload only exercises image upload');
+        },
+        async finalizeResource(request) {
+          return {
+            controllerId: 'tester-account',
+            controllerKind: 'ACCOUNT',
+            createdAt: '2026-06-05T00:00:00.000Z',
+            deliveryAccess: request.body.deliveryAccess ?? 'SIGNED',
+            id: request.path.resourceId,
+            mimeType: request.body.mimeType,
+            provenance: 'UPLOADED',
+            provider: 'S3_OBJECT',
+            resourceType: 'IMAGE',
+            sizeBytes: request.body.sizeBytes,
+            status: 'READY',
+            storageRef: 'tester/settings/resource-upload',
+            tags: [],
+            updatedAt: '2026-06-05T00:00:01.000Z',
+            uploaderAccountId: 'tester-account',
+            url: 'https://media.nimi.test/resources/tester-resource-upload',
+          };
+        },
+      },
+    }, {
       kind: 'image',
       file: new Blob(['tester-settings-resource-upload'], { type: 'image/png' }),
-      realm: {
-        services: {
-          ResourcesService: {
-            async createImageDirectUpload() {
-              return {
-                deliveryAccess: 'SIGNED',
-                provider: 'S3_OBJECT',
-                resourceId: 'tester-resource-upload',
-                resourceType: 'IMAGE',
-                status: 'PENDING',
-                storageRef: 'tester/settings/resource-upload',
-                uploadUrl: 'https://upload.nimi.test/tester-resource-upload',
-              };
-            },
-            async createVideoDirectUpload() {
-              throw new Error('tester settings resource upload only exercises image upload');
-            },
-            async createAudioDirectUpload() {
-              throw new Error('tester settings resource upload only exercises image upload');
-            },
-            async finalizeResource(resourceId: string) {
-              return {
-                id: resourceId,
-                status: 'READY',
-                type: 'IMAGE',
-                url: 'https://media.nimi.test/resources/tester-resource-upload',
-              } as never;
-            },
-          },
-        },
-      } as never,
       fetchImpl: async () => new Response(null, { status: 204 }),
     }).then((result) => {
       if (cancelled) return;
@@ -188,12 +206,12 @@ export function SettingsRoute() {
 
   useEffect(() => {
     let cancelled = false;
-    const selectionStore = updateRuntimeRouteCapabilityBinding(
-      createDefaultRuntimeRouteCapabilitySelectionStore(),
+    const selectionStore = updateNimiRuntimeRouteCapabilityBinding(
+      createDefaultNimiRuntimeRouteCapabilitySelectionStore(),
       'audio.synthesize',
       { source: 'cloud', connectorId: 'tester-cloud', provider: 'tester', model: 'tester-tts' },
     );
-    void buildRuntimeRouteCapabilityProjection({
+    void buildNimiRuntimeRouteCapabilityProjection({
       capability: 'audio.synthesize',
       selectionStore,
       routeRuntime: testerRouteCapabilityRuntime,
@@ -205,8 +223,8 @@ export function SettingsRoute() {
         summary: {
           capability: projection.capability,
           supported: projection.supported,
-          ready: isRuntimeRouteCapabilityProjectionReady(projection),
-          issueKind: getRuntimeRouteCapabilityProjectionIssueKind(projection) ?? 'none',
+          ready: isNimiRuntimeRouteCapabilityProjectionReady(projection),
+          issueKind: getNimiRuntimeRouteCapabilityProjectionIssueKind(projection) ?? 'none',
           reasonCode: projection.reasonCode ?? 'ok',
           setupStatus: setupState.status,
         },
@@ -220,23 +238,15 @@ export function SettingsRoute() {
 
   useEffect(() => {
     let cancelled = false;
-    void checkRuntimeRouteProviderHealth({
-      appId: 'nimi.tester',
-      provider: 'tester',
+    void testerRouteCapabilityRuntime.checkHealth({
       capability: 'text.generate',
-      connectorId: 'tester-cloud',
-      localProviderEndpoint: 'http://127.0.0.1:19000/v1',
-      localProviderModel: 'tester-health-model',
-      checkModelHealth: async (request) => ({
-        healthy: true,
-        status: ModelHealthStatus.HEALTHY,
-        endpoint: request.endpoint,
-        modelId: request.modelId,
-        detail: 'tester runtime route provider ready',
-        actionHint: 'none',
-        reasonCode: RuntimeReasonCode.REASON_CODE_UNSPECIFIED,
-      }),
-      nowIso: () => '2026-05-31T00:00:00.000Z',
+      binding: {
+        source: 'cloud',
+        connectorId: 'tester-cloud',
+        provider: 'tester',
+        model: 'tester-health-model',
+        modelId: 'tester-health-model',
+      },
     }).then((health) => {
       if (!cancelled) setRuntimeProviderHealthProjection({ status: 'ready', health, error: null });
     }).catch((error: unknown) => {
@@ -261,7 +271,9 @@ export function SettingsRoute() {
   const refreshWalletProjection = async () => {
     setWalletProjection((current) => ({ status: 'loading', balances: current.balances, error: null }));
     try {
-      const balances = await loadRealmCurrencyBalances();
+      const balances = await loadRealmCurrencyBalances({
+        service: testerGiftTransactionProjectionService,
+      });
       setWalletProjection({ status: 'ready', balances, error: null });
     } catch (error) {
       setWalletProjection({ status: 'error', balances: null, error: errorMessage(error) });
@@ -271,7 +283,10 @@ export function SettingsRoute() {
   const refreshGiftTransactionProjection = async () => {
     setGiftTransactionProjection((current) => ({ status: 'loading', gift: current.gift, error: null }));
     try {
-      const gift = await loadRealmGiftTransaction('tester-gift-preview', testerGiftTransactionProjectionService);
+      const gift = await loadRealmGiftTransaction({
+        service: testerGiftTransactionProjectionService,
+        giftTransactionId: 'tester-gift-preview',
+      });
       setGiftTransactionProjection({ status: 'ready', gift: { id: gift.id, giftStatus: gift.status }, error: null });
     } catch (error) {
       setGiftTransactionProjection({ status: 'error', gift: null, error: errorMessage(error) });
@@ -281,7 +296,7 @@ export function SettingsRoute() {
   const refreshNotificationProjection = async () => {
     setNotificationProjection((current) => ({ status: 'loading', unread: current.unread, error: null }));
     try {
-      const unread = await loadRealmNotificationUnreadCount(getPlatformClient().realm);
+      const unread = await loadNimiRealmNotificationUnreadCount(await requireTesterRealm());
       setNotificationProjection({ status: 'ready', unread, error: null });
     } catch (error) {
       setNotificationProjection({ status: 'error', unread: null, error: errorMessage(error) });
@@ -291,14 +306,14 @@ export function SettingsRoute() {
   const refreshNotificationListProjection = async () => {
     setNotificationListProjection((current) => ({ status: 'loading', list: current.list, error: null }));
     try {
-      const list = await loadRealmNotifications(getPlatformClient().realm, {
+      const list = await loadNimiRealmNotifications(await requireTesterRealm(), {
         limit: 5,
         unreadOnly: false,
         type: getNimiNotificationServerFilter('system') ?? undefined,
       });
       setNotificationListProjection({
         status: 'ready',
-        list: toRealmNotificationListProjection(list, 'Tester notification', 'Unknown actor'),
+        list: toNimiRealmNotificationListProjection(list, 'Tester notification', 'Unknown actor'),
         error: null,
       });
     } catch (error) {
@@ -309,7 +324,7 @@ export function SettingsRoute() {
   const requestAccountDataExportProjection = async () => {
     setAccountDataProjection((current) => ({ status: 'loading', exportRequest: current.exportRequest, error: null }));
     try {
-      const exportRequest = await requestDataExport(getPlatformClient().realm, {
+      const exportRequest = await requestNimiRealmDataExport(await requireTesterRealm(), {
         format: 'JSON',
         includeMedia: false,
         includeMessages: false,
@@ -324,7 +339,7 @@ export function SettingsRoute() {
   const refreshAccountSettingsProjection = async () => {
     setAccountSettingsProjection((current) => ({ status: 'loading', eligibility: current.eligibility, error: null }));
     try {
-      const eligibility = await loadRealmCreatorEligibility(getPlatformClient().realm);
+      const eligibility = await loadNimiRealmCreatorEligibility(await requireTesterRealm());
       setAccountSettingsProjection({ status: 'ready', eligibility, error: null });
     } catch (error) {
       setAccountSettingsProjection({ status: 'error', eligibility: null, error: errorMessage(error) });
@@ -344,7 +359,7 @@ export function SettingsRoute() {
   const refreshGroupChatProjection = async () => {
     setGroupChatProjection((current) => ({ status: 'loading', groups: current.groups, error: null }));
     try {
-      const groups = await listRealmGroupChats(getPlatformClient().realm, 20);
+      const groups = await listNimiRealmGroupChats(await requireTesterRealm(), 20);
       setGroupChatProjection({ status: 'ready', groups, error: null });
     } catch (error) {
       setGroupChatProjection({ status: 'error', groups: null, error: errorMessage(error) });
@@ -355,7 +370,8 @@ export function SettingsRoute() {
     setConnectorProjection((current) => ({ status: 'loading', connectors: current.connectors, error: null }));
     try {
       const connectors = await runtimeConnectorInventory.listConnectors();
-      setConnectorProjection({ status: 'ready', connectors, error: null });
+      const connectorList = [...connectors];
+      setConnectorProjection({ status: 'ready', connectors: connectorList, error: null });
     } catch (error) {
       setConnectorProjection((current) => ({ status: 'error', connectors: current.connectors, error: errorMessage(error) }));
     }
@@ -365,7 +381,7 @@ export function SettingsRoute() {
     setCatalogProjection((current) => ({ status: 'loading', providers: current.providers, error: null }));
     try {
       const providers = await runtimeModelCatalogProjection.listProviders();
-      setCatalogProjection({ status: 'ready', providers, error: null });
+      setCatalogProjection({ status: 'ready', providers: [...providers], error: null });
     } catch (error) {
       setCatalogProjection((current) => ({ status: 'error', providers: current.providers, error: errorMessage(error) }));
     }

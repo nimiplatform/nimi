@@ -1,9 +1,14 @@
 import React from 'react';
-import { createNimiClientId, type TextMessage, type TextMessageContentPart } from '@nimiplatform/sdk/runtime';
+import {
+  dataPart,
+  textPart,
+  type NimiMessage,
+  type NimiMessagePart,
+} from '@nimiplatform/sdk/contracts';
 
 // App-owned multimodal input for runtime-backed text capabilities (vision /
 // image→text). Recovered from the desktop tester. Attachments are read locally
-// as data URLs and shaped into the admitted SDK `input` (string | TextMessage[]);
+// as data URLs and shaped into vNext Nimi message data parts;
 // no app-local transport or fabricated content.
 
 export type MediaKind = 'image' | 'video';
@@ -18,6 +23,7 @@ export type MediaAttachment = {
 const ACCEPTED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/bmp'];
 const ACCEPTED_VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo'];
 const FILE_ACCEPT = [...ACCEPTED_IMAGE_TYPES, ...ACCEPTED_VIDEO_TYPES].join(',');
+let attachmentSequence = 0;
 
 function inferMediaKind(mimeType: string): MediaKind | null {
   if (mimeType.startsWith('image/')) return 'image';
@@ -31,13 +37,21 @@ function readMediaFile(file: File, callback: (attachment: MediaAttachment) => vo
   const reader = new FileReader();
   reader.onload = () => {
     callback({
-      id: createNimiClientId('tester-attachment'),
+      id: createTesterAttachmentId(),
       kind,
       name: file.name || (kind === 'image' ? 'pasted-image.png' : 'pasted-video.mp4'),
       dataUrl: reader.result as string,
     });
   };
   reader.readAsDataURL(file);
+}
+
+function createTesterAttachmentId(): string {
+  attachmentSequence += 1;
+  const randomUUID = globalThis.crypto?.randomUUID?.();
+  return randomUUID
+    ? `tester-attachment:${randomUUID}`
+    : `tester-attachment:${Date.now().toString(36)}:${attachmentSequence}`;
 }
 
 export function useMediaAttachments() {
@@ -74,20 +88,19 @@ export function useMediaAttachments() {
 }
 
 /**
- * Build the SDK `input` field for text.generate / text.stream. Returns a plain
- * string when there are no attachments, or a TextMessage[] with image_url /
- * video_url + text content parts when media is attached.
+ * Build a vNext message projection for text-capability attachments. Runtime
+ * text Scenario execution currently fails closed before sending these parts;
+ * the projection remains app-owned UI evidence for future multimodal support.
  */
-export function buildMultimodalInput(prompt: string, media: MediaAttachment[]): string | TextMessage[] {
+export function buildMultimodalInput(prompt: string, media: MediaAttachment[]): string | NimiMessage[] {
   if (media.length === 0) return prompt;
-  const parts: TextMessageContentPart[] = [
-    ...media.map((item): TextMessageContentPart => {
-      if (item.kind === 'video') {
-        return { type: 'video_url' as const, videoUrl: item.dataUrl };
-      }
-      return { type: 'image_url' as const, imageUrl: item.dataUrl };
-    }),
-    { type: 'text' as const, text: prompt },
+  const parts: NimiMessagePart[] = [
+    ...media.map((item): NimiMessagePart => dataPart({
+      kind: item.kind,
+      name: item.name,
+      dataUrl: item.dataUrl,
+    })),
+    textPart(prompt),
   ];
   return [{ role: 'user' as const, content: parts }];
 }

@@ -1,7 +1,7 @@
 import {
-  executeRealmSocialMutation,
-  loadRealmExploreFeedItems,
-  loadRealmPostFeed,
+  executeNimiRealmSocialMutation,
+  loadNimiRealmExploreFeedItems,
+  loadNimiRealmPostFeed,
 } from '@nimiplatform/sdk/realm';
 
 export type TesterRealmSocialFeedProjection = {
@@ -12,43 +12,28 @@ export type TesterRealmSocialFeedProjection = {
 
 export async function loadTesterRealmSocialFeedProjection(): Promise<TesterRealmSocialFeedProjection> {
   const mutationCalls: string[] = [];
-  const callRealm = async <T>(task: (realm: {
-    services: {
-      PostsService: {
-        getHomeFeed: (...args: unknown[]) => Promise<unknown>;
-        likePost: (postId: string) => Promise<void>;
-      };
-      ExploreService: {
-        getExploreFeed: (...args: unknown[]) => Promise<unknown>;
-      };
-    };
-  }) => Promise<T>) =>
-    task({
-      services: {
-        PostsService: {
-          getHomeFeed: async (_visibility, _worldId, _authorId, _limit, _cursor, scope) => ({
-            items: [{ id: 'tester-post', scope }],
-            page: { cursor: null, limit: 1, nextCursor: null },
-          }),
-          likePost: async (postId) => {
-            mutationCalls.push(postId);
-          },
-        },
-        ExploreService: {
-          getExploreFeed: async (_status, tag, limit, cursor) => ({
-            items: [{ id: 'tester-explore', tag, limit }],
-            page: { cursor, nextCursor: 'next-tester-explore' },
-          }),
-        },
+  const realm = {
+    generated: {
+      getHomeFeed: async (request: { query?: { scope?: string } }) => ({
+        items: [{ id: 'tester-post', scope: request.query?.scope }],
+        page: { cursor: null, limit: 1, nextCursor: null },
+      }),
+      likePost: async (request: { path: { postId: string } }) => {
+        mutationCalls.push(request.path.postId);
       },
-    });
+      getExploreFeed: async (request: { query?: { tag?: string; limit?: number; cursor?: string } }) => ({
+        items: [{ id: 'tester-explore', tag: request.query?.tag, limit: request.query?.limit }],
+        page: { cursor: request.query?.cursor, nextCursor: 'next-tester-explore' },
+      }),
+    },
+  };
 
-  const postFeed = await loadRealmPostFeed(callRealm as never, () => undefined, {
+  const postFeed = await loadNimiRealmPostFeed(realm as never, () => undefined, {
     scope: 'agent_activity',
     limit: 1,
   });
-  const exploreFeed = await loadRealmExploreFeedItems(callRealm as never, () => undefined, 'tester', 1, 'cursor-tester');
-  await executeRealmSocialMutation(callRealm as never, {
+  const exploreFeed = await loadNimiRealmExploreFeedItems(realm as never, () => undefined, 'tester', 1, 'cursor-tester');
+  await executeNimiRealmSocialMutation(realm as never, {
     kind: 'post-like',
     payload: { postId: 'tester-post' },
   });

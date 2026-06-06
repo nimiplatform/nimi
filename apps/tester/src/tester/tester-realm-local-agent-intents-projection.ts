@@ -1,8 +1,8 @@
 import {
-  ackRealmLocalAgentProvisionIntent,
-  ackRealmLocalAgentTerminationIntent,
-  listRealmLocalAgentProvisionIntents,
-  listRealmLocalAgentTerminationIntents,
+  ackNimiRealmLocalAgentProvisionIntent,
+  ackNimiRealmLocalAgentTerminationIntent,
+  listNimiRealmLocalAgentProvisionIntents,
+  listNimiRealmLocalAgentTerminationIntents,
 } from '@nimiplatform/sdk/realm';
 
 export type TesterRealmLocalAgentIntentsProjection = {
@@ -42,10 +42,10 @@ export async function loadTesterRealmLocalAgentIntentsProjection(): Promise<Test
       },
     });
 
-  const provision = await listRealmLocalAgentProvisionIntents(callRealm as never);
-  const termination = await listRealmLocalAgentTerminationIntents(callRealm as never);
-  await ackRealmLocalAgentProvisionIntent(callRealm as never, 'tester-provision-intent', { outcome: 'established' } as never);
-  await ackRealmLocalAgentTerminationIntent(callRealm as never, 'tester-termination-intent', { outcome: 'terminated' } as never);
+  const provision = await listNimiRealmLocalAgentProvisionIntents(callRealm as never);
+  const termination = await listNimiRealmLocalAgentTerminationIntents(callRealm as never);
+  await ackNimiRealmLocalAgentProvisionIntent(callRealm as never, 'tester-provision-intent', { outcome: 'established' } as never);
+  await ackNimiRealmLocalAgentTerminationIntent(callRealm as never, 'tester-termination-intent', { outcome: 'terminated' } as never);
 
   return {
     provisionCount: provision.length,

@@ -1,8 +1,8 @@
 import {
-  canImportLocalRuntimeAssetDeclaration,
-  formatLocalRuntimeAssetKindLabel,
-  normalizeLocalRuntimeAssetDeclaration,
-  normalizeLocalRuntimeDependencyAssetDeclaration,
+  canImportNimiRuntimeLocalAssetDeclaration,
+  formatNimiRuntimeLocalAssetKindLabel,
+  normalizeNimiRuntimeLocalAssetDeclaration,
+  normalizeNimiRuntimeLocalDependencyAssetDeclaration,
 } from '@nimiplatform/sdk/runtime';
 
 export type TesterLocalRuntimeAssetKindProjection = {
@@ -13,19 +13,19 @@ export type TesterLocalRuntimeAssetKindProjection = {
 };
 
 export function createTesterLocalRuntimeAssetKindProjection(): TesterLocalRuntimeAssetKindProjection {
-  const runnableDeclaration = normalizeLocalRuntimeAssetDeclaration({
+  const runnableDeclaration = normalizeNimiRuntimeLocalAssetDeclaration({
     assetKind: 'LOCAL_ASSET_KIND_IMAGE',
     engine: ' media ',
   });
-  const dependencyDeclaration = normalizeLocalRuntimeDependencyAssetDeclaration({
+  const dependencyDeclaration = normalizeNimiRuntimeLocalDependencyAssetDeclaration({
     assetKind: 'chat',
     engine: ' sidecar ',
   });
   return {
-    label: formatLocalRuntimeAssetKindLabel('LOCAL_ASSET_KIND_CONTROLNET'),
+    label: formatNimiRuntimeLocalAssetKindLabel('LOCAL_ASSET_KIND_CONTROLNET'),
     runnableAssetKind: runnableDeclaration.assetKind,
     dependencyAssetKind: dependencyDeclaration.assetKind,
-    auxiliaryImportable: canImportLocalRuntimeAssetDeclaration({
+    auxiliaryImportable: canImportNimiRuntimeLocalAssetDeclaration({
       assetKind: 'auxiliary',
       engine: 'sidecar',
     }),

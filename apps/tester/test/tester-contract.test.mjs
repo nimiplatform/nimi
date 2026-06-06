@@ -88,6 +88,116 @@ function createMemoryStorage(initial = {}) {
   };
 }
 
+const RUNTIME_SCENARIO_TYPE_TEXT_GENERATE = 1;
+const RUNTIME_SCENARIO_TYPE_TEXT_EMBED = 2;
+const RUNTIME_EXECUTION_MODE_SYNC = 1;
+const RUNTIME_EXECUTION_MODE_STREAM = 2;
+const RUNTIME_ROUTE_POLICY_LOCAL = 1;
+const RUNTIME_ROUTE_POLICY_CLOUD = 2;
+const RUNTIME_FINISH_REASON_STOP = 1;
+const RUNTIME_SCHEDULING_RUNNABLE = 1;
+const RUNTIME_SCHEDULING_DENIED = 5;
+
+function runnableSchedulingResponse() {
+  return {
+    occupancy: { globalUsed: 0, globalCap: 2, appUsed: 0, appCap: 1 },
+    aggregateJudgement: {
+      state: RUNTIME_SCHEDULING_RUNNABLE,
+      detail: '',
+      occupancy: { globalUsed: 0, globalCap: 2, appUsed: 0, appCap: 1 },
+      resourceWarnings: [],
+    },
+    targetJudgements: [],
+  };
+}
+
+function textGenerateScenarioResponse(input, traceId = 'trace-1', text = 'ok') {
+  return {
+    output: {
+      output: {
+        oneofKind: 'textGenerate',
+        textGenerate: { text },
+      },
+    },
+    finishReason: RUNTIME_FINISH_REASON_STOP,
+    usage: { inputTokens: '1', outputTokens: '1', computeMs: '0' },
+    routeDecision: input.head.routePolicy,
+    modelResolved: input.head.modelId,
+    traceId,
+    ignoredExtensions: [],
+  };
+}
+
+function textEmbedScenarioResponse(input, traceId = 'trace-3') {
+  return {
+    output: {
+      output: {
+        oneofKind: 'textEmbed',
+        textEmbed: {
+          vectors: [{ values: [0.1, 0.2] }],
+        },
+      },
+    },
+    finishReason: RUNTIME_FINISH_REASON_STOP,
+    usage: { inputTokens: '1', outputTokens: '0', computeMs: '0' },
+    routeDecision: input.head.routePolicy,
+    modelResolved: input.head.modelId,
+    traceId,
+    ignoredExtensions: [],
+  };
+}
+
+async function* textScenarioStream(input, traceId = 'trace-2') {
+  yield {
+    eventType: 1,
+    sequence: '1',
+    traceId,
+    payload: {
+      oneofKind: 'started',
+      started: {
+        modelResolved: input.head.modelId,
+        routeDecision: input.head.routePolicy,
+      },
+    },
+  };
+  yield {
+    eventType: 2,
+    sequence: '2',
+    traceId,
+    payload: {
+      oneofKind: 'delta',
+      delta: {
+        delta: {
+          oneofKind: 'text',
+          text: { text: 'o' },
+        },
+      },
+    },
+  };
+  yield {
+    eventType: 5,
+    sequence: '3',
+    traceId,
+    payload: {
+      oneofKind: 'usage',
+      usage: { inputTokens: '1', outputTokens: '1', computeMs: '0' },
+    },
+  };
+  yield {
+    eventType: 6,
+    sequence: '4',
+    traceId,
+    payload: {
+      oneofKind: 'completed',
+      completed: {
+        finishReason: RUNTIME_FINISH_REASON_STOP,
+        usage: { inputTokens: '1', outputTokens: '1', computeMs: '0' },
+        streamSimulated: false,
+      },
+    },
+  };
+}
+
 test.after(() => {
   if (behaviorBuildDir) {
     rmSync(behaviorBuildDir, { recursive: true, force: true });
@@ -115,9 +225,10 @@ test('tester auth and runtime bootstrap consume Kit shell bridge primitives', ()
   assert.match(main, /from '@nimiplatform\/kit\/shell\/renderer\/bridge'/);
   assert.match(runtimeAccountAuth, /createTauriOAuthBridge/);
   assert.match(runtimeAccountAuth, /createRuntimeAccountBrowserBroker/);
-  assert.match(runtimeAccountAuth, /createLocalFirstPartyRuntimeAccountCaller/);
+  assert.match(runtimeAccountAuth, /createNimiLocalFirstPartyRuntimeAccountCaller/);
   assert.match(runtimeAccountAuth, /from '@nimiplatform\/sdk\/runtime'/);
   assert.match(runtimeAccountAuth, /from '@nimiplatform\/kit\/shell\/renderer\/bridge'/);
+  assert.doesNotMatch(runtimeAccountAuth, /getPlatformClient\(/);
   assert.doesNotMatch(runtimeAccountAuth, /@renderer\/bridge|runtime-bridge/);
   assert.doesNotMatch(runtimeAccountAuth, /runtime\.account\.beginLogin\(/);
   assert.doesNotMatch(runtimeAccountAuth, /runtime\.account\.completeLogin\(/);
@@ -296,7 +407,7 @@ test('tester chat.stream consumes Kit chat runtime provider (no fabricated text)
   assert.match(invokers, /from '@nimiplatform\/kit\/features\/chat\/runtime'/);
   assert.match(invokers, /createSimpleAiConversationProvider/);
   assert.match(invokers, /createSdkConversationRuntimeAdapter/);
-  assert.match(invokers, /resolveRuntimeUserMessage: \(\) => buildChatRuntimeUserMessage\(prompt, input\.attachments \?\? \[\]\)/);
+  assert.match(invokers, /resolveRuntimeUserMessage: \(\) => buildChatRuntimeUserMessage\(prompt\)/);
   assert.match(invokers, /for await \(const event of provider\.runTurn/);
   assert.match(invokers, /event\.type === 'text-delta'/);
   assert.match(invokers, /streamedText \+= event\.textDelta/);
@@ -309,32 +420,35 @@ test('tester chat.stream consumes Kit chat runtime provider (no fabricated text)
   assert.match(capabilities, /streamingText=\{streamingText\}/);
 });
 
-test('tester text.generate consumes SDK app AI text generate helper', () => {
+test('tester text.generate consumes SDK vNext text runner and Runtime Scenario model', () => {
   const invokers = readTesterRuntimeInvokersSurface(root);
-  assert.match(invokers, /from '@nimiplatform\/sdk\/ai-app'/);
-  assert.match(invokers, /runAppAiTextGenerate/);
-  assert.match(invokers, /generateText: \(request\) => client\.runtime\.ai\.text\.generate\(request\)/);
+  assert.match(invokers, /runNimiTextGenerate/);
+  assert.match(invokers, /createNimiRuntimeAIModel/);
+  assert.match(invokers, /createNimiRuntimeEmbeddingClient/);
+  assert.match(invokers, /NimiRuntimeAIScenarioClient/);
+  assert.match(invokers, /runtime: client\.runtime/);
+  assert.doesNotMatch(invokers, /@nimiplatform\/sdk\/ai-app/);
+  assert.doesNotMatch(invokers, /runtime\.ai\.text\.generate/);
 });
 
-test('tester multimodal image input shapes the admitted SDK input (no app transport)', () => {
+test('tester multimodal attachment input is app-local vNext message evidence and text runtime fails closed', () => {
   const multimodal = read('src/tester/tester-multimodal-input.tsx');
   const invokers = readTesterRuntimeInvokersSurface(root);
   const capabilities = readTesterAiTestingSurface(root);
 
-  // Attachments are read locally and shaped into the admitted SDK input
-  // (string | TextMessage[] with image_url/video_url parts) — no app-local
-  // upload/transport or fabricated content.
-  assert.match(multimodal, /from '@nimiplatform\/sdk\/runtime'/);
-  assert.match(multimodal, /createNimiClientId\('tester-attachment'\)/);
-  assert.match(multimodal, /type: 'image_url' as const, imageUrl/);
+  // Attachments are read locally and shaped into vNext Nimi message data parts;
+  // Runtime text Scenario does not yet accept multimodal parts, so execution
+  // fails closed before dispatch instead of fabricating transport support.
+  assert.match(multimodal, /from '@nimiplatform\/sdk\/contracts'/);
+  assert.match(multimodal, /createTesterAttachmentId/);
+  assert.match(multimodal, /dataPart/);
   assert.match(multimodal, /export function buildMultimodalInput/);
   assert.doesNotMatch(multimodal, /Math\.random\(\)/);
-  // text.generate prepends the optional app-composed tone/length directive to the
-  // prompt before shaping it into the admitted SDK input — still no app transport.
+  assert.match(invokers, /unsupportedTextAttachments/);
+  assert.match(invokers, /Runtime text Scenario currently accepts text-only input/);
   assert.match(invokers, /const directedPrompt = input\.directive \? `\$\{input\.directive\}/);
-  assert.match(invokers, /input: buildMultimodalInput\(directedPrompt, input\.attachments \?\? \[\]\)/);
-  assert.match(invokers, /buildChatRuntimeUserMessage\(prompt, input\.attachments \?\? \[\]\)/);
-  assert.match(invokers, /buildMultimodalInput\(prompt, \[\.\.\.attachments\]\)/);
+  assert.match(invokers, /messages: buildNimiUserMessages\(directedPrompt\)/);
+  assert.match(invokers, /buildChatRuntimeUserMessage\(prompt\)/);
   assert.match(capabilities, /attachments: supportsMedia \? media\.attachments : undefined/);
   assert.match(capabilities, /<ImageAttachmentStrip/);
 });
@@ -357,15 +471,16 @@ test('tester AI config is the Kit model-config surface in Settings with real SDK
   const capabilities = readTesterAiTestingSurface(root);
 
   for (const required of [
-    'AIProfile',
-    'AIConfig',
-    'createAppAIScopeRef',
-    'createScopedAIConfigStore',
-    'createScopedAISnapshotStore',
-    'parseAIProfile',
-    'createHostAIProfileSurface',
-    'missingProfileMessage',
-    'saveConfig',
+    'NimiAIProfile',
+    'NimiAIConfig',
+    'createNimiAppAIScopeRef',
+    'createNimiAIConfigStore',
+    'createNimiAISnapshotStore',
+    'parseNimiAIProfile',
+    'createNimiAIHostSurface',
+    'createNimiAIConfigSubscriptionRegistry',
+    'validateNimiAIConfig',
+    'versionNimiAIConfig',
     'importTesterAIProfileJson',
     'TESTER_AI_PROFILE_LIBRARY_STORAGE_KEY',
     'TESTER_AI_SNAPSHOT_INDEX_KEY',
@@ -378,7 +493,11 @@ test('tester AI config is the Kit model-config surface in Settings with real SDK
   ]) {
     assert.match(store, new RegExp(required.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
-  assert.doesNotMatch(store, /validateAIProfile,\n/);
+  assert.doesNotMatch(store, /createAppAIScopeRef/);
+  assert.doesNotMatch(store, /createScopedAIConfigStore/);
+  assert.doesNotMatch(store, /createScopedAISnapshotStore/);
+  assert.doesNotMatch(store, /createHostAIProfileSurface/);
+  assert.doesNotMatch(store, /validateAIProfileRuntimeBindings/);
 
   // The kit model-config mechanics live in the scaffold-managed sectioned config
   // surface skeleton (inherited by every generated app). It composes admitted kit
@@ -448,19 +567,25 @@ test('tester LLM invokers consume AIConfig bindings and fail closed without bind
   assert.match(invokers, /capabilityId === 'text\.embed'/);
   assert.match(invokers, /Runtime invocation failed closed before request dispatch/);
   assert.match(invokers, /routeInput/);
-  assert.match(invokers, /binding\.source === 'local' && connectorId/);
-  assert.match(invokers, /binding\.source === 'cloud' && !connectorId/);
-  assert.match(invokers, /connectorId,\s*\n\s*route: 'cloud'/);
+  assert.match(invokers, /config\.capabilities\.targetRefs\[bindingCapabilityId\]/);
+  assert.match(invokers, /targetRef\.kind === 'profile-slice'/);
+  assert.match(invokers, /targetRef\.kind === 'cloud-connector'/);
+  assert.match(invokers, /targetRef\.kind === 'local-runtime'/);
+  assert.match(invokers, /connectorId: resolved\.connectorId/);
   assert.match(invokers, /route: 'local'/);
   assert.match(invokers, /aiConfigScopeKind/);
   assert.match(invokers, /aiConfigProfileId/);
   assert.match(invokers, /aiConfigBindingCapabilityId/);
   assert.match(invokers, /aiConfigBindingModel/);
+  assert.match(invokers, /aiConfigTargetRefKind/);
   assert.match(invokers, /aiConfigHash/);
-  assert.match(invokers, /resolveAIConfigRuntimeSchedulingTargetForCapability/);
-  assert.match(invokers, /from '@nimiplatform\/sdk\/runtime'/);
-  assert.match(invokers, /peekRuntimeSchedulingBatch/);
-  assert.match(invokers, /client\.runtime\.ai\.peekScheduling/);
+  assert.match(invokers, /versionNimiAIConfig/);
+  assert.match(invokers, /from '@nimiplatform\/sdk\/ai'/);
+  assert.match(invokers, /createNimiRuntimeAISchedulingClient/);
+  assert.match(invokers, /client\.runtime/);
+  assert.doesNotMatch(invokers, /resolveAIConfigRuntimeSchedulingTargetForCapability/);
+  assert.doesNotMatch(invokers, /peekRuntimeSchedulingBatch/);
+  assert.doesNotMatch(invokers, /client\.runtime\.ai\.peekScheduling/);
 });
 
 test('tester LLM binding resolver fails closed for missing and malformed bindings', async () => {
@@ -470,11 +595,29 @@ test('tester LLM binding resolver fails closed for missing and malformed binding
 
   const missing = invokers.resolveTesterLLMBinding('text.generate', {
     scopeRef,
-    capabilities: { selectedBindings: {}, localProfileRefs: {}, selectedParams: {} },
+    capabilities: { targetRefs: {}, selectedParams: {} },
     profileOrigin: null,
   });
   assert.equal(missing.ok, false);
   assert.equal(missing.reason, 'ai-config-binding-missing');
+
+  const unresolvedProfileSlice = invokers.resolveTesterLLMBinding('text.generate', {
+    scopeRef,
+    capabilities: {
+      targetRefs: {
+        'text.generate': {
+          kind: 'profile-slice',
+          sourceProfileId: 'profile-chat',
+          sliceId: 'text-generate-local',
+        },
+      },
+      selectedParams: {},
+    },
+    profileOrigin: null,
+  });
+  assert.equal(unresolvedProfileSlice.ok, false);
+  assert.equal(unresolvedProfileSlice.reason, 'ai-config-binding-missing');
+  assert.match(unresolvedProfileSlice.message, /profile-slice .* apply\/materialize/i);
 
   const malformedProfile = store.importTesterAIProfileJson(JSON.stringify({
     profileId: 'malformed',
@@ -483,20 +626,22 @@ test('tester LLM binding resolver fails closed for missing and malformed binding
     tags: [],
     capabilities: {
       'text.generate': {
-        binding: {
-          source: 'remote',
-          connectorId: 42,
-          model: '',
+        targetRef: {
+          kind: 'cloud-connector',
+          connectorId: '',
+          providerModelId: '',
         },
       },
     },
   }));
   assert.equal(malformedProfile.ok, false);
-  assert.match(malformedProfile.message, /binding validation failed/i);
+  assert.match(malformedProfile.message, /AIProfile validation failed/i);
+  assert.match(malformedProfile.errors.join('\n'), /targetRef.*connectorId.*required/i);
+  assert.match(malformedProfile.errors.join('\n'), /targetRef.*providerModelId.*required/i);
 
-  const localConnectorProfile = store.importTesterAIProfileJson(JSON.stringify({
-    profileId: 'local-connector-facade',
-    title: 'Local Connector Facade',
+  const legacyBindingProfile = store.importTesterAIProfileJson(JSON.stringify({
+    profileId: 'legacy-binding-facade',
+    title: 'Legacy Binding Facade',
     description: '',
     tags: [],
     capabilities: {
@@ -509,53 +654,48 @@ test('tester LLM binding resolver fails closed for missing and malformed binding
       },
     },
   }));
-  assert.equal(localConnectorProfile.ok, false);
-  assert.match(localConnectorProfile.errors.join('\n'), /connectorId.*local/i);
+  assert.equal(legacyBindingProfile.ok, false);
+  assert.match(legacyBindingProfile.errors.join('\n'), /binding is forbidden/i);
 
   assert.throws(() => store.saveTesterAIConfig({
     scopeRef,
     capabilities: {
-      selectedBindings: {
+      targetRefs: {
         'text.generate': {
-          source: 'remote',
+          kind: 'cloud-connector',
           connectorId: '',
-          model: 'bad',
+          providerModelId: '',
         },
       },
-      localProfileRefs: {},
       selectedParams: {},
     },
     profileOrigin: null,
-  }), /AIConfig binding validation failed/);
+  }), /AIConfig validation failed: .*connectorId.*required.*providerModelId.*required/i);
 
   assert.throws(() => store.saveTesterAIConfig({
     scopeRef,
     capabilities: {
-      selectedBindings: {
+      targetRefs: {
         'text.generate': {
-          source: 'local',
-          connectorId: 'runtime-local-facade',
-          model: 'local.chat.gemma-4-e2b-it.q8-0',
+          kind: 'local-runtime',
         },
       },
-      localProfileRefs: {},
       selectedParams: {},
     },
     profileOrigin: null,
-  }), /connectorId.*local/i);
+  }), /AIConfig validation failed: .*readinessRef or targetId\/profileId/i);
 
   const previousWindow = globalThis.window;
   const invalidStoredConfig = {
     scopeRef,
     capabilities: {
-      selectedBindings: {
+      targetRefs: {
         'text.generate': {
-          source: 'local',
-          connectorId: 'runtime-local-facade',
-          model: 'local.chat.gemma-4-e2b-it.q8-0',
+          kind: 'cloud-connector',
+          connectorId: 'runtime-connector',
+          providerModelId: '',
         },
       },
-      localProfileRefs: {},
       selectedParams: {},
     },
     profileOrigin: null,
@@ -566,7 +706,7 @@ test('tester LLM binding resolver fails closed for missing and malformed binding
         [store.TESTER_AI_CONFIG_STORAGE_KEY]: JSON.stringify(invalidStoredConfig),
       }),
     };
-    assert.throws(() => store.loadTesterAIConfig(scopeRef), /Stored AIConfig binding is invalid: .*connectorId.*local/i);
+    assert.throws(() => store.loadTesterAIConfig(scopeRef), /Stored AIConfig is invalid: .*providerModelId is required/i);
   } finally {
     if (previousWindow === undefined) {
       delete globalThis.window;
@@ -578,20 +718,19 @@ test('tester LLM binding resolver fails closed for missing and malformed binding
 
 test('Tester consumes SDK scoped AISnapshot store as App Lab execution evidence proof', async () => {
   const store = await importBehaviorModule('tester/tester-ai-config-store.js');
-  const { createAISnapshotRecord } = await import('@nimiplatform/sdk/ai');
+  const { createNimiAISnapshotRecord } = await import('@nimiplatform/sdk/ai');
   const scopeRef = store.createTesterAppLabAIScopeRef();
-  const binding = {
-    source: 'cloud',
+  const targetRef = {
+    kind: 'cloud-connector',
     connectorId: 'runtime-connector',
-    model: 'runtime-model',
+    providerModelId: 'runtime-model',
   };
   const config = store.saveTesterAIConfig({
     scopeRef,
     capabilities: {
-      selectedBindings: {
-        'text.generate': binding,
+      targetRefs: {
+        'text.generate': targetRef,
       },
-      localProfileRefs: {},
       selectedParams: {},
     },
     profileOrigin: {
@@ -600,12 +739,13 @@ test('Tester consumes SDK scoped AISnapshot store as App Lab execution evidence 
       appliedAt: '2026-06-02T00:00:00.000Z',
     },
   });
-  const snapshot = createAISnapshotRecord({
+  const snapshot = createNimiAISnapshotRecord({
     executionId: 'tester-snapshot-exec-1',
+    scopeRef,
     createdAt: '2026-06-02T00:00:01.000Z',
     config,
     capability: 'text.generate',
-    selectedBinding: binding,
+    selectedTargetRef: targetRef,
     metadata: { flow: 'app-lab-capability-run' },
   });
 
@@ -621,23 +761,16 @@ test('tester LLM invoker dispatches configured AIConfig route payload', async ()
   store.saveTesterAIConfig({
     scopeRef,
     capabilities: {
-      selectedBindings: {
+      targetRefs: {
         'text.generate': {
-          source: 'cloud',
+          kind: 'cloud-connector',
           connectorId: 'runtime-connector',
-          model: 'runtime-model',
-          modelLabel: 'Runtime Model',
+          providerModelId: 'runtime-model',
         },
         'text.embed': {
-          source: 'local',
-          connectorId: '',
-          model: 'embedding-model',
-        },
-      },
-      localProfileRefs: {
-        'text.embed': {
+          kind: 'local-runtime',
           targetId: 'core:runtime',
-          profileId: 'embedding-local-profile',
+          profileId: 'embedding-model',
         },
       },
       selectedParams: {},
@@ -652,54 +785,23 @@ test('tester LLM invoker dispatches configured AIConfig route payload', async ()
   const captured = [];
   const client = {
     runtime: {
+      scheduling: {
+        async peekScheduling(input, options) {
+          captured.push({ surface: 'peekScheduling', input, options });
+          return runnableSchedulingResponse();
+        },
+      },
       ai: {
-        async peekScheduling(input) {
-          captured.push({ surface: 'peekScheduling', input });
-          return {
-            occupancy: { globalUsed: 0, globalCap: 2, appUsed: 0, appCap: 1 },
-            aggregateJudgement: {
-              state: 1,
-              detail: '',
-              occupancy: { globalUsed: 0, globalCap: 2, appUsed: 0, appCap: 1 },
-              resourceWarnings: [],
-            },
-            targetJudgements: [],
-          };
+        async executeScenario(input, options) {
+          captured.push({ surface: 'executeScenario', input, options });
+          if (input.scenarioType === RUNTIME_SCENARIO_TYPE_TEXT_EMBED) {
+            return textEmbedScenarioResponse(input);
+          }
+          return textGenerateScenarioResponse(input);
         },
-        text: {
-          async generate(input) {
-            captured.push({ surface: 'generate', input });
-            return {
-              text: 'ok',
-              finishReason: 'stop',
-              usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
-              trace: { traceId: 'trace-1', modelResolved: input.model, routeDecision: input.route },
-            };
-          },
-          async stream(input) {
-            captured.push({ surface: 'stream', input });
-            return {
-              stream: (async function* stream() {
-                yield { type: 'delta', text: 'o' };
-                yield {
-                  type: 'finish',
-                  finishReason: 'stop',
-                  usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
-                  trace: { traceId: 'trace-2', modelResolved: input.model, routeDecision: input.route },
-                };
-              })(),
-            };
-          },
-        },
-        embedding: {
-          async generate(input) {
-            captured.push({ surface: 'embed', input });
-            return {
-              vectors: [[0.1, 0.2]],
-              usage: { totalTokens: 1 },
-              trace: { traceId: 'trace-3', modelResolved: input.model, routeDecision: input.route },
-            };
-          },
+        streamScenario(input, options) {
+          captured.push({ surface: 'streamScenario', input, options });
+          return textScenarioStream(input);
         },
       },
     },
@@ -723,29 +825,41 @@ test('tester LLM invoker dispatches configured AIConfig route payload', async ()
   });
   assert.equal(embedResult.ok, true);
 
-  assert.deepEqual(captured.map((entry) => entry.surface), ['generate', 'stream', 'peekScheduling', 'embed']);
-  assert.equal(captured[0].input.model, 'runtime-model');
-  assert.equal(captured[0].input.connectorId, 'runtime-connector');
-  assert.equal(Object.hasOwn(captured[0].input, 'connectorId'), true);
-  assert.equal(captured[0].input.route, 'cloud');
-  assert.equal(captured[0].input.metadata.aiConfigProfileId, 'behavior-profile');
-  assert.equal(captured[0].input.metadata.aiConfigBindingCapabilityId, 'text.generate');
-  assert.equal(captured[1].input.model, 'runtime-model');
-  assert.equal(captured[1].input.connectorId, 'runtime-connector');
-  assert.equal(Object.hasOwn(captured[1].input, 'connectorId'), true);
-  assert.equal(captured[1].input.route, 'cloud');
-  assert.deepEqual(captured[2].input.targets, [{
-    capability: 'text.embed',
-    targetId: 'core:runtime',
-    profileId: 'embedding-local-profile',
-  }]);
-  assert.equal(captured[3].input.model, 'embedding-model');
-  assert.equal(captured[3].input.connectorId, undefined);
-  assert.equal(Object.hasOwn(captured[3].input, 'connectorId'), false);
-  assert.equal(captured[3].input.route, 'local');
-  assert.equal(captured[3].input.metadata.aiConfigBindingCapabilityId, 'text.embed');
-  assert.equal(captured[3].input.metadata.runtimeSchedulingState, 'runnable');
-  assert.equal(Object.hasOwn(captured[3].input.metadata, 'runtimeSchedulingDetail'), false);
+  assert.deepEqual(captured.map((entry) => entry.surface), [
+    'peekScheduling',
+    'executeScenario',
+    'peekScheduling',
+    'streamScenario',
+    'peekScheduling',
+    'executeScenario',
+  ]);
+  assert.equal(captured[0].input.targets[0].targetId, 'runtime-connector');
+  assert.equal(captured[0].input.targets[0].profileId, 'runtime-model');
+  assert.equal(captured[1].input.scenarioType, RUNTIME_SCENARIO_TYPE_TEXT_GENERATE);
+  assert.equal(captured[1].input.executionMode, RUNTIME_EXECUTION_MODE_SYNC);
+  assert.equal(captured[1].input.head.modelId, 'runtime-model');
+  assert.equal(captured[1].input.head.connectorId, 'runtime-connector');
+  assert.equal(captured[1].input.head.routePolicy, RUNTIME_ROUTE_POLICY_CLOUD);
+  assert.equal(captured[1].options.metadata.aiConfigProfileId, 'behavior-profile');
+  assert.equal(captured[1].options.metadata.aiConfigBindingCapabilityId, 'text.generate');
+  assert.equal(captured[1].options.metadata.aiConfigTargetRefKind, 'cloud-connector');
+  assert.equal(captured[3].input.scenarioType, RUNTIME_SCENARIO_TYPE_TEXT_GENERATE);
+  assert.equal(captured[3].input.executionMode, RUNTIME_EXECUTION_MODE_STREAM);
+  assert.equal(captured[3].input.head.modelId, 'runtime-model');
+  assert.equal(captured[3].input.head.connectorId, 'runtime-connector');
+  assert.equal(captured[3].input.head.routePolicy, RUNTIME_ROUTE_POLICY_CLOUD);
+  assert.equal(captured[3].options.metadata.aiConfigBindingCapabilityId, 'text.generate');
+  assert.equal(captured[4].input.targets[0].capability, 'text.embed');
+  assert.equal(captured[4].input.targets[0].targetId, 'core:runtime');
+  assert.equal(captured[4].input.targets[0].profileId, 'embedding-model');
+  assert.equal(captured[5].input.scenarioType, RUNTIME_SCENARIO_TYPE_TEXT_EMBED);
+  assert.equal(captured[5].input.executionMode, RUNTIME_EXECUTION_MODE_SYNC);
+  assert.equal(captured[5].input.head.modelId, 'embedding-model');
+  assert.equal(captured[5].input.head.connectorId, '');
+  assert.equal(captured[5].input.head.routePolicy, RUNTIME_ROUTE_POLICY_LOCAL);
+  assert.equal(captured[5].options.metadata.aiConfigBindingCapabilityId, 'text.embed');
+  assert.equal(captured[5].options.metadata.runtimeSchedulingState, 'runnable');
+  assert.equal(Object.hasOwn(captured[5].options.metadata, 'runtimeSchedulingDetail'), false);
 });
 
 test('tester surfaces inline runtime media artifact bytes as a previewable data URL', async () => {
@@ -755,19 +869,18 @@ test('tester surfaces inline runtime media artifact bytes as a previewable data 
   store.saveTesterAIConfig({
     scopeRef,
     capabilities: {
-      selectedBindings: {
+      targetRefs: {
         'image.generate': {
-          source: 'local',
-          connectorId: '',
-          model: 'local.image.test',
+          kind: 'local-runtime',
+          targetId: 'core:runtime',
+          profileId: 'local.image.test',
         },
         'audio.synthesize': {
-          source: 'local',
-          connectorId: '',
-          model: 'local.tts.test',
+          kind: 'local-runtime',
+          targetId: 'core:runtime',
+          profileId: 'local.tts.test',
         },
       },
-      localProfileRefs: {},
       selectedParams: {},
     },
     profileOrigin: null,
@@ -781,17 +894,17 @@ test('tester surfaces inline runtime media artifact bytes as a previewable data 
 
   const client = {
     runtime: {
-      ai: {
+      scheduling: {
         async peekScheduling() {
-          return {
-            aggregateJudgement: {
-              state: 1,
-              detail: '',
-              occupancy: { globalUsed: 0, globalCap: 2, appUsed: 0, appCap: 1 },
-              resourceWarnings: [],
-            },
-            targetJudgements: [],
-          };
+          return runnableSchedulingResponse();
+        },
+      },
+      ai: {
+        async executeScenario() {
+          throw new Error('executeScenario should not be called by this media facade compatibility test');
+        },
+        streamScenario() {
+          throw new Error('streamScenario should not be called by this media facade compatibility test');
         },
       },
       media: {
@@ -845,20 +958,32 @@ test('tester prefers a hosted artifact uri over inline bytes', async () => {
   store.saveTesterAIConfig({
     scopeRef,
     capabilities: {
-      selectedBindings: {
+      targetRefs: {
         'image.generate': {
-          source: 'cloud',
+          kind: 'cloud-connector',
           connectorId: 'runtime-image-connector',
-          model: 'cloud.image.test',
+          providerModelId: 'cloud.image.test',
         },
       },
-      localProfileRefs: {},
       selectedParams: {},
     },
     profileOrigin: null,
   });
   const client = {
     runtime: {
+      scheduling: {
+        async peekScheduling() {
+          return runnableSchedulingResponse();
+        },
+      },
+      ai: {
+        async executeScenario() {
+          throw new Error('executeScenario should not be called by this media facade compatibility test');
+        },
+        streamScenario() {
+          throw new Error('streamScenario should not be called by this media facade compatibility test');
+        },
+      },
       media: {
         image: {
           async generate() {
@@ -893,20 +1018,11 @@ test('tester local text.generate binding omits runtime connectorId payload', asy
   store.saveTesterAIConfig({
     scopeRef,
     capabilities: {
-      selectedBindings: {
+      targetRefs: {
         'text.generate': {
-          source: 'local',
-          connectorId: '',
-          model: runtimeLocalModelId,
-          modelId: runtimeLocalModelId,
-          localModelId: runtimeLocalModelId,
-          engine: 'runtime-local-llm',
-        },
-      },
-      localProfileRefs: {
-        'text.generate': {
+          kind: 'local-runtime',
           targetId: 'core:runtime',
-          profileId: 'text-local-profile',
+          profileId: runtimeLocalModelId,
         },
       },
       selectedParams: {},
@@ -918,38 +1034,19 @@ test('tester local text.generate binding omits runtime connectorId payload', asy
   let capturedSchedulingInput = null;
   const client = {
     runtime: {
-      ai: {
+      scheduling: {
         async peekScheduling(input) {
           capturedSchedulingInput = input;
-          return {
-            occupancy: { globalUsed: 0, globalCap: 2, appUsed: 0, appCap: 1 },
-            aggregateJudgement: {
-              state: 1,
-              detail: '',
-              occupancy: { globalUsed: 0, globalCap: 2, appUsed: 0, appCap: 1 },
-              resourceWarnings: [],
-            },
-            targetJudgements: [],
-          };
+          return runnableSchedulingResponse();
         },
-        text: {
-          async generate(input) {
-            capturedInput = input;
-            return {
-              text: 'nimi runtime llm ok',
-              finishReason: 'stop',
-              usage: { inputTokens: 1, outputTokens: 4, totalTokens: 5 },
-              trace: { traceId: 'trace-local', modelResolved: input.model, routeDecision: input.route },
-            };
-          },
-          async stream() {
-            throw new Error('stream should not be called');
-          },
+      },
+      ai: {
+        async executeScenario(input) {
+          capturedInput = input;
+          return textGenerateScenarioResponse(input, 'trace-local', 'nimi runtime llm ok');
         },
-        embedding: {
-          async generate() {
-            throw new Error('embedding should not be called');
-          },
+        streamScenario() {
+          throw new Error('streamScenario should not be called');
         },
       },
     },
@@ -960,17 +1057,17 @@ test('tester local text.generate binding omits runtime connectorId payload', asy
     scenarioId: 'local-behavior',
   });
   assert.equal(result.ok, true);
-  assert.equal(capturedInput.model, runtimeLocalModelId);
-  assert.equal(capturedInput.route, 'local');
-  assert.equal(capturedInput.connectorId, undefined);
-  assert.equal(Object.hasOwn(capturedInput, 'connectorId'), false);
+  assert.equal(capturedInput.scenarioType, RUNTIME_SCENARIO_TYPE_TEXT_GENERATE);
+  assert.equal(capturedInput.executionMode, RUNTIME_EXECUTION_MODE_SYNC);
+  assert.equal(capturedInput.head.modelId, runtimeLocalModelId);
+  assert.equal(capturedInput.head.routePolicy, RUNTIME_ROUTE_POLICY_LOCAL);
+  assert.equal(capturedInput.head.connectorId, '');
   assert.deepEqual(capturedSchedulingInput.targets, [{
     capability: 'text.generate',
     targetId: 'core:runtime',
-    profileId: 'text-local-profile',
+    profileId: runtimeLocalModelId,
+    resourceHint: undefined,
   }]);
-  assert.equal(capturedInput.metadata.runtimeSchedulingState, 'runnable');
-  assert.equal(Object.hasOwn(capturedInput.metadata, 'runtimeSchedulingDetail'), false);
 });
 
 test('tester local LLM scheduling denial fails closed before Runtime execution', async () => {
@@ -980,17 +1077,11 @@ test('tester local LLM scheduling denial fails closed before Runtime execution',
   store.saveTesterAIConfig({
     scopeRef,
     capabilities: {
-      selectedBindings: {
+      targetRefs: {
         'text.generate': {
-          source: 'local',
-          connectorId: '',
-          model: 'local.chat.blocked',
-        },
-      },
-      localProfileRefs: {
-        'text.generate': {
+          kind: 'local-runtime',
           targetId: 'core:runtime',
-          profileId: 'blocked-profile',
+          profileId: 'local.chat.blocked',
         },
       },
       selectedParams: {},
@@ -1001,12 +1092,12 @@ test('tester local LLM scheduling denial fails closed before Runtime execution',
   let generateCalled = false;
   const client = {
     runtime: {
-      ai: {
+      scheduling: {
         async peekScheduling() {
           return {
             occupancy: { globalUsed: 1, globalCap: 1, appUsed: 1, appCap: 1 },
             aggregateJudgement: {
-              state: 5,
+              state: RUNTIME_SCHEDULING_DENIED,
               detail: 'dependency missing',
               occupancy: { globalUsed: 1, globalCap: 1, appUsed: 1, appCap: 1 },
               resourceWarnings: ['dependency missing'],
@@ -1014,19 +1105,14 @@ test('tester local LLM scheduling denial fails closed before Runtime execution',
             targetJudgements: [],
           };
         },
-        text: {
-          async generate() {
-            generateCalled = true;
-            throw new Error('generate must not run after denied scheduling');
-          },
-          async stream() {
-            throw new Error('stream should not be called');
-          },
+      },
+      ai: {
+        async executeScenario() {
+          generateCalled = true;
+          throw new Error('executeScenario must not run after denied scheduling');
         },
-        embedding: {
-          async generate() {
-            throw new Error('embedding should not be called');
-          },
+        streamScenario() {
+          throw new Error('streamScenario should not be called');
         },
       },
     },
@@ -1048,60 +1134,37 @@ test('tester model picker consumes SDK route projection for runtime local assets
   const remoteConnectorId = 'runtime-cloud-managed';
   const runtimeLocalModelId = 'local.chat.gemma-4-e2b-it.q8-0';
   const provider = providerModule.createTesterRuntimeModelPickerProviderFromClient({
-    runtime: {
-      local: {
-        async listLocalAssets(input) {
-          calls.push({ surface: 'listLocalAssets', input });
-          return {
-            assets: [
-              {
-                localAssetId: runtimeLocalModelId,
-                assetId: runtimeLocalModelId,
-                kind: 1,
-                engine: 'llama',
-                endpoint: 'http://127.0.0.1:11434/v1',
-                status: 2,
-                capabilities: ['text.generate'],
-              },
-            ],
-            nextPageToken: '',
-          };
+    async listRuntimeRouteOptions(input) {
+      calls.push({ surface: 'listRuntimeRouteOptions', input });
+      return {
+        capability: input.capability,
+        selected: null,
+        local: {
+          models: [
+            {
+              localModelId: runtimeLocalModelId,
+              model: runtimeLocalModelId,
+              modelId: runtimeLocalModelId,
+              label: runtimeLocalModelId,
+              engine: 'llama',
+              status: 'active',
+              capabilities: ['text.generate'],
+            },
+          ],
+          defaultEndpoint: 'http://127.0.0.1:11434/v1',
         },
-      },
-    },
-    domains: {
-      runtimeAdmin: {
-        async listConnectors(input) {
-          calls.push({ surface: 'listConnectors', input });
-          return {
-            connectors: [
-              {
-                connectorId: remoteConnectorId,
-                provider: 'cloud-provider',
-                label: 'Cloud Provider',
-                kind: 2,
-                localCategory: 0,
-                status: 1,
-              },
-            ],
-            nextPageToken: '',
-          };
-        },
-        async listConnectorModels(input) {
-          calls.push({ surface: 'listConnectorModels', input });
-          return {
-            models: [
-              {
-                modelId: 'remote.chat.model',
-                modelLabel: 'Remote Chat Model',
-                available: true,
-                capabilities: ['text.generate'],
-              },
-            ],
-            nextPageToken: '',
-          };
-        },
-      },
+        connectors: [
+          {
+            id: remoteConnectorId,
+            provider: 'cloud-provider',
+            label: 'Cloud Provider',
+            models: ['remote.chat.model'],
+            modelCapabilities: {
+              'remote.chat.model': ['text.generate'],
+            },
+          },
+        ],
+      };
     },
   }, 'text.generate');
 
@@ -1119,25 +1182,42 @@ test('tester model picker consumes SDK route projection for runtime local assets
       capabilities: ['text.generate'],
     },
   ]);
-  assert.equal(localModels[0].localModelId, runtimeLocalModelId);
-  assert.equal(localModels[0].modelId, runtimeLocalModelId);
-  assert.equal(calls.some((call) => call.surface === 'listLocalAssets'), true);
-  assert.equal(calls.some((call) => call.surface === 'listConnectorModels' && call.input.connectorId === remoteConnectorId), true);
+  const connectorModels = await provider.listConnectorModels(remoteConnectorId);
+  assert.deepEqual(connectorModels, [
+    {
+      modelId: 'remote.chat.model',
+      modelLabel: 'remote.chat.model',
+      available: true,
+      capabilities: ['text.generate'],
+    },
+  ]);
+  assert.deepEqual(calls, [
+    {
+      surface: 'listRuntimeRouteOptions',
+      input: {
+        capability: 'text.generate',
+        targetId: undefined,
+        selectedBinding: undefined,
+      },
+    },
+  ]);
 });
 
-test('tester model picker catalog uses runtimeAdmin connector surfaces only', () => {
+test('tester model picker catalog uses SDK route options projection only', () => {
   const provider = read('src/tester/tester-runtime-model-provider.ts');
   const summary = read('src/tester/tester-ai-config.ts');
 
   assert.match(provider, /createRuntimeRouteModelPickerProvider/);
   assert.match(provider, /@nimiplatform\/kit\/features\/model-picker\/runtime/);
   assert.match(provider, /getRuntimePlatformProjection/);
+  assert.match(provider, /listRuntimeRouteOptions/);
   assert.match(provider, /model catalog failed closed/);
   assert.doesNotMatch(provider, /normalizeRuntimeRouteCapabilityToken/);
   assert.doesNotMatch(provider, /createSnapshotRouteDataProvider/);
-  assert.doesNotMatch(provider, /as RuntimeCanonicalCapability/);
+  assert.doesNotMatch(provider, /as NimiRuntimeCanonicalCapability/);
   assert.doesNotMatch(provider, /openai|anthropic|gemini|gpt-4|claude|mock.*success/i);
-  assert.match(summary, /runtimeAdmin\.listConnectors\/listConnectorModels/);
+  assert.match(summary, /sdk\.runtime\.listNimiRuntimeRouteOptions/);
+  assert.doesNotMatch(summary, /runtimeAdmin\.listConnectors\/listConnectorModels/);
 });
 
 test('tester app-owned Tauri commands are registered in standalone shell', () => {

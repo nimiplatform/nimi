@@ -1,21 +1,21 @@
 import {
-  createRuntimeRouteCapabilityRuntimeWithHost,
-  type RuntimeRouteBinding,
-  type RuntimeRouteOptionsSnapshot,
+  createNimiRuntimeRouteCapabilityRuntimeWithHost,
+  type NimiRuntimeRouteBinding,
+  type NimiRuntimeRouteOptionsSnapshot,
 } from '@nimiplatform/sdk/runtime';
 
 function encodeRouteDescribePayload(payload: unknown): string {
   return Buffer.from(JSON.stringify(payload), 'utf8').toString('base64');
 }
 
-const testerBinding: RuntimeRouteBinding = {
+const testerBinding: NimiRuntimeRouteBinding = {
   source: 'cloud',
   connectorId: 'tester-cloud',
   provider: 'tester',
   model: 'tester-model',
 };
 
-function createTesterSnapshot(): RuntimeRouteOptionsSnapshot {
+function createTesterSnapshot(): NimiRuntimeRouteOptionsSnapshot {
   return {
     capability: 'text.generate',
     selected: testerBinding,
@@ -41,7 +41,7 @@ export async function createTesterRuntimeRouteCapabilityRuntimeProjection(): Pro
   supportsThinking: boolean;
 }> {
   let describeTargetId = '';
-  const routeRuntime = createRuntimeRouteCapabilityRuntimeWithHost({
+  const routeRuntime = createNimiRuntimeRouteCapabilityRuntimeWithHost({
     loadRuntimeRouteOptions: async () => createTesterSnapshot(),
     checkHealth: async () => ({
       provider: 'tester',
@@ -63,7 +63,7 @@ export async function createTesterRuntimeRouteCapabilityRuntimeProjection(): Pro
     getDescribeHost: () => ({
       appId: 'nimi.tester',
       executeScenario: async (_request, options) => {
-        options._responseMetadataObserver?.({
+        options.responseMetadataObserver?.({
           'x-nimi-route-describe-result': encodeRouteDescribePayload({
             capability: 'text.generate',
             metadataVersion: 'v1',

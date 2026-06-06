@@ -1,67 +1,65 @@
 import {
-  createHostRuntimeExternalAgentAccessSurface,
-  parseExternalAgentTokenLedgerRecord,
-  projectExternalAgentGatewayStatus,
-  projectExternalAgentIssueTokenResult,
-  type ExternalAgentGatewayStatusProjection,
-  type ExternalAgentIssueTokenProjection,
-  type ExternalAgentTokenLedgerRecord,
+  createNimiRuntimeExternalAgentAccessSurface,
+  parseNimiExternalAgentTokenLedgerRecord,
+  projectNimiExternalAgentGatewayStatus,
+  projectNimiExternalAgentIssueTokenResult,
+  type NimiExternalAgentGatewayStatusProjection,
+  type NimiExternalAgentIssueTokenProjection,
+  type NimiExternalAgentTokenLedgerRecord,
 } from '@nimiplatform/sdk/runtime';
 
 export type TesterExternalAgentProjection = {
-  issued: ExternalAgentIssueTokenProjection;
-  token: ExternalAgentTokenLedgerRecord;
-  gateway: ExternalAgentGatewayStatusProjection;
+  issued: NimiExternalAgentIssueTokenProjection;
+  token: NimiExternalAgentTokenLedgerRecord;
+  gateway: NimiExternalAgentGatewayStatusProjection;
 };
 
 export function createTesterExternalAgentAccessSurface() {
-  return createHostRuntimeExternalAgentAccessSurface({
-    getRuntime: () => ({
-      externalAgent: {
-        async issueToken(request) {
-          return {
-            token: 'tester-token',
+  return createNimiRuntimeExternalAgentAccessSurface({
+    getExternalAgents: () => ({
+      async issueExternalAgentToken(request) {
+        return {
+          token: 'tester-token',
+          tokenId: 'tester-token-id',
+          principalId: request.principalId,
+          mode: request.mode,
+          subjectAccountId: request.subjectAccountId,
+          actions: request.actions,
+          scopes: request.scopes,
+          issuedAt: { seconds: '1776124800', nanos: 0 },
+          expiresAt: { seconds: '1776128400', nanos: 0 },
+          revokedAt: '',
+          issuer: 'tester-runtime',
+        };
+      },
+      async revokeExternalAgentToken() {
+        return {};
+      },
+      async listExternalAgentTokens() {
+        return {
+          tokens: [{
             tokenId: 'tester-token-id',
-            principalId: request.principalId,
-            mode: request.mode,
-            subjectAccountId: request.subjectAccountId,
-            actions: request.actions,
-            scopes: request.scopes,
+            principalId: 'tester-principal',
+            mode: 'delegated',
+            subjectAccountId: 'tester-account',
+            actions: ['chat.send'],
+            scopes: [{ actionId: 'chat.send', ops: ['invoke'] }],
             issuedAt: { seconds: '1776124800', nanos: 0 },
             expiresAt: { seconds: '1776128400', nanos: 0 },
-            revokedAt: '',
             issuer: 'tester-runtime',
-          };
-        },
-        async revokeToken() {
-          return { ok: true, reasonCode: 0, actionHint: '' };
-        },
-        async listTokens() {
-          return {
-            tokens: [{
-              tokenId: 'tester-token-id',
-              principalId: 'tester-principal',
-              mode: 'delegated',
-              subjectAccountId: 'tester-account',
-              actions: ['chat.send'],
-              scopes: [{ actionId: 'chat.send', ops: ['invoke'] }],
-              issuedAt: { seconds: '1776124800', nanos: 0 },
-              expiresAt: { seconds: '1776128400', nanos: 0 },
-              issuer: 'tester-runtime',
-            }],
-            nextPageToken: '',
-          };
-        },
-        async getGatewayStatus() {
-          return {
-            enabled: true,
-            bindAddress: '127.0.0.1:0',
-            issuer: 'tester-runtime',
-            actionCount: 1,
-            status: 'ready',
-            reasonCode: '',
-          };
-        },
+          }],
+          nextPageToken: '',
+        };
+      },
+      async getExternalAgentGatewayStatus() {
+        return {
+          enabled: true,
+          bindAddress: '127.0.0.1:0',
+          issuer: 'tester-runtime',
+          actionCount: 1,
+          status: 'ready',
+          reasonCode: '',
+        };
       },
     }),
   });
@@ -89,7 +87,7 @@ export async function loadTesterExternalAgentProjection(): Promise<TesterExterna
 }
 
 export function createTesterExternalAgentProjection(): TesterExternalAgentProjection {
-  const issued = projectExternalAgentIssueTokenResult({
+  const issued = projectNimiExternalAgentIssueTokenResult({
     token: 'tester-token',
     tokenId: 'tester-token-id',
     principalId: 'tester-principal',
@@ -102,7 +100,7 @@ export function createTesterExternalAgentProjection(): TesterExternalAgentProjec
     revokedAt: '',
     issuer: 'tester-runtime',
   });
-  const token = parseExternalAgentTokenLedgerRecord({
+  const token = parseNimiExternalAgentTokenLedgerRecord({
     tokenId: 'tester-token-id',
     principalId: 'tester-principal',
     mode: 'delegated',
@@ -113,7 +111,7 @@ export function createTesterExternalAgentProjection(): TesterExternalAgentProjec
     expiresAt: { seconds: '1776128400', nanos: 0 },
     issuer: 'tester-runtime',
   }, 0);
-  const gateway = projectExternalAgentGatewayStatus({
+  const gateway = projectNimiExternalAgentGatewayStatus({
     enabled: true,
     bindAddress: '127.0.0.1:0',
     issuer: 'tester-runtime',

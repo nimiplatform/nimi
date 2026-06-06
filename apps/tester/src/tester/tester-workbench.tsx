@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import './tester-workbench.css';
 import { createRendererFlowId, emitRuntimeLog, logRendererEvent } from '@nimiplatform/kit/telemetry';
-import { createNimiClientId } from '@nimiplatform/sdk/runtime';
+import { createNimiClientId } from '@nimiplatform/sdk';
 import { requestWithRetry } from '@nimiplatform/sdk/types';
 import { getTesterCapability, testerCapabilities, type TesterCapabilityId } from './tester-capabilities.js';
 import { shouldPersistTesterArtifactRecord } from './tester-artifact-persistence.js';
@@ -89,7 +89,7 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
           detail: error instanceof Error ? error.message : String(error || 'Runtime inspection failed.'),
         },
         schedulingOwner: 'runtime',
-        providerCatalogSurface: 'runtimeAdmin.listConnectors/listConnectorModels',
+        providerCatalogSurface: 'sdk.runtime.listNimiRuntimeRouteOptions',
         appLocalProviderDefaults: false,
       });
     }

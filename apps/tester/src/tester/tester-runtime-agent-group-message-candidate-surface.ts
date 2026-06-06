@@ -1,8 +1,5 @@
-import {
-  createHostRuntimeRealmGroupMessageCandidateSurface,
-  RealmGroupMessageCandidateCommitDisposition,
-  Timestamp,
-} from '@nimiplatform/sdk/runtime';
+import { createNimiHostRuntimeRealmGroupMessageCandidateSurface, toNimiRuntimeTimestamp } from '@nimiplatform/sdk/runtime';
+import { RealmGroupMessageCandidateCommitDisposition } from '@nimiplatform/sdk/runtime/generated';
 
 export async function inspectTesterRuntimeAgentGroupMessageCandidateSurface(): Promise<{
   createScope: string;
@@ -12,7 +9,7 @@ export async function inspectTesterRuntimeAgentGroupMessageCandidateSurface(): P
   body: string;
 }> {
   const scopes: string[] = [];
-  const surface = createHostRuntimeRealmGroupMessageCandidateSurface({
+  const surface = createNimiHostRuntimeRealmGroupMessageCandidateSurface({
     getRuntime: () => ({
       appId: 'nimi.tester',
       auth: {
@@ -44,8 +41,8 @@ export async function inspectTesterRuntimeAgentGroupMessageCandidateSurface(): P
             outputCandidateRef: 'runtime://tester/output',
             auditLineageRef: 'runtime://tester/audit',
             policyVerdictRef: 'runtime://tester/policy',
-            createdAt: Timestamp.fromDate(new Date('2026-01-01T00:00:00.000Z')),
-            expiresAt: Timestamp.fromDate(new Date('2026-01-01T00:05:00.000Z')),
+            createdAt: toNimiRuntimeTimestamp(new Date('2026-01-01T00:00:00.000Z')),
+            expiresAt: toNimiRuntimeTimestamp(new Date('2026-01-01T00:05:00.000Z')),
             commitDisposition: RealmGroupMessageCandidateCommitDisposition.MESSAGE_CANDIDATE,
           },
         }),
@@ -64,8 +61,8 @@ export async function inspectTesterRuntimeAgentGroupMessageCandidateSurface(): P
             runtimeTraceRef: 'runtime://tester/trace',
             auditLineageRef: 'runtime://tester/audit',
             policyVerdictRef: 'runtime://tester/policy',
-            createdAt: Timestamp.fromDate(new Date('2026-01-01T00:00:00.000Z')),
-            expiresAt: Timestamp.fromDate(new Date('2026-01-01T00:05:00.000Z')),
+            createdAt: toNimiRuntimeTimestamp(new Date('2026-01-01T00:00:00.000Z')),
+            expiresAt: toNimiRuntimeTimestamp(new Date('2026-01-01T00:05:00.000Z')),
             commitDisposition: RealmGroupMessageCandidateCommitDisposition.MESSAGE_CANDIDATE,
             messageType: 'TEXT',
             body: 'tester body',

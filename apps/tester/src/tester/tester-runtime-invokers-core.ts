@@ -4,10 +4,6 @@
 // translated to typed unavailable using the raw SDK error message so the
 // developer sees verbatim what Runtime returned.
 
-import {
-  ReasonCode,
-  type PlatformClient,
-} from '@nimiplatform/sdk';
 import type {
   ConversationRuntimeTextMessage,
   ConversationTurnEvent,
@@ -16,29 +12,30 @@ import {
   createSdkConversationRuntimeAdapter,
   createSimpleAiConversationProvider,
 } from '@nimiplatform/kit/features/chat/runtime';
-import type {
-  AIConfig,
+import {
+  createNimiRuntimeAIModel,
+  createNimiRuntimeAISchedulingClient,
+  createNimiRuntimeEmbeddingClient,
+  runNimiTextGenerate,
+  versionNimiAIConfig,
+  type NimiAIConfig,
+  type NimiAIConfigTargetRef,
+  type NimiAISchedulingProjection,
+  type NimiAISchedulingTargetInput,
+  type NimiRuntimeAIModelOptions,
+  type NimiRuntimeAIScenarioClient,
+  type NimiRuntimeAISchedulingClient,
+  type NimiRuntimeEmbeddingScenarioClient,
 } from '@nimiplatform/sdk/ai';
 import {
-  createAIConfigEvidence,
-} from '@nimiplatform/sdk/ai';
-import {
-  runAppAiTextGenerate,
-} from '@nimiplatform/sdk/ai-app';
-import {
-  createAIRuntimeEvidence,
-  peekRuntimeSchedulingBatch,
-  projectAIRuntimeEvidenceMetadata,
-  resolveAIConfigRuntimeSchedulingTargetForCapability,
-  type AISchedulingEvaluationTarget,
-  type RuntimeRouteAppCapability,
-  type RuntimeRouteBinding,
-} from '@nimiplatform/sdk/runtime';
+  textPart,
+  type NimiMessage,
+} from '@nimiplatform/sdk/contracts';
 import type { TesterCapabilityId } from './tester-capabilities.js';
 import { capabilityUnavailable, type TesterUnavailable, type TesterUnavailableReason } from './tester-unavailable.js';
 import { getTesterCapability } from './tester-capabilities.js';
 import { loadTesterAIConfig } from './tester-ai-config-store.js';
-import { buildMultimodalInput, type MediaAttachment } from './tester-multimodal-input.js';
+import type { MediaAttachment } from './tester-multimodal-input.js';
 
 export type TesterScenarioInput = {
   prompt: string;
@@ -113,16 +110,33 @@ export type TesterTypedSuccess = {
 
 export type TesterInvocationResult = TesterTypedSuccess | TesterUnavailable;
 type ConversationTurnCompletedEvent = Extract<ConversationTurnEvent, { type: 'turn-completed' }>;
+export type TesterRuntimeInvocationClient = {
+  readonly runtime: {
+    readonly ai: NimiRuntimeAIScenarioClient & NimiRuntimeEmbeddingScenarioClient;
+    readonly scheduling: NimiRuntimeAISchedulingClient;
+    readonly media?: {
+      readonly image?: { readonly generate: (input: unknown) => Promise<unknown> };
+      readonly video?: { readonly generate: (input: unknown) => Promise<unknown> };
+      readonly tts?: {
+        readonly synthesize: (input: unknown) => Promise<unknown>;
+        readonly listVoices: (input: unknown) => Promise<unknown>;
+      };
+      readonly stt?: { readonly transcribe: (input: unknown) => Promise<unknown> };
+    };
+  };
+};
 
 const TESTER_APP_ID = 'nimi.tester';
-const TEXT_GENERATION_BINDING_CAPABILITY: RuntimeRouteAppCapability = 'text.generate';
-const EMBEDDING_BINDING_CAPABILITY: RuntimeRouteAppCapability = 'text.embed';
+const TEXT_GENERATION_BINDING_CAPABILITY = 'text.generate';
+const EMBEDDING_BINDING_CAPABILITY = 'text.embed';
 
 export type ResolvedLLMBinding = {
-  bindingCapabilityId: RuntimeRouteAppCapability;
-  binding: RuntimeRouteBinding;
+  bindingCapabilityId: string;
+  targetRef: NimiAIConfigTargetRef;
   model: string;
-  schedulingTarget: AISchedulingEvaluationTarget | null;
+  routePolicy: Exclude<NimiRuntimeAIModelOptions['routePolicy'], 'unspecified'>;
+  connectorId?: string;
+  schedulingTarget: NimiAISchedulingTargetInput | null;
   metadata: Record<string, string>;
 };
 
@@ -170,14 +184,14 @@ function reasonFromSdkError(error: unknown): TesterUnavailableReason {
     )
     : '';
   switch (reasonCode) {
-    case ReasonCode.AUTH_CONTEXT_MISSING:
+    case 'AUTH_CONTEXT_MISSING':
       return 'auth-context-missing';
-    case ReasonCode.PRINCIPAL_UNAUTHORIZED:
-    case ReasonCode.SESSION_EXPIRED:
-    case ReasonCode.APP_TOKEN_EXPIRED:
-    case ReasonCode.APP_TOKEN_REVOKED:
+    case 'PRINCIPAL_UNAUTHORIZED':
+    case 'SESSION_EXPIRED':
+    case 'APP_TOKEN_EXPIRED':
+    case 'APP_TOKEN_REVOKED':
       return 'principal-unauthorized';
-    case ReasonCode.SDK_RUNTIME_METHOD_UNAVAILABLE:
+    case 'SDK_RUNTIME_METHOD_UNAVAILABLE':
       return 'sdk-method-unavailable';
     default:
       return 'runtime-call-failed';
@@ -199,7 +213,7 @@ export function unavailableFromAIConfig(capabilityId: TesterCapabilityId, messag
   return capabilityUnavailable(capability, 'ai-config-binding-missing', message);
 }
 
-function bindingCapabilityFor(capabilityId: TesterCapabilityId): ResolvedLLMBinding['bindingCapabilityId'] | null {
+function bindingCapabilityFor(capabilityId: TesterCapabilityId): string | null {
   if (capabilityId === 'text.generate' || capabilityId === 'chat.stream') {
     return TEXT_GENERATION_BINDING_CAPABILITY;
   }
@@ -220,58 +234,68 @@ function bindingCapabilityFor(capabilityId: TesterCapabilityId): ResolvedLLMBind
   return null;
 }
 
-function bindingModel(binding: RuntimeRouteBinding): string {
-  return String(binding.model || binding.modelId || binding.localModelId || '').trim();
+function normalizeText(value: unknown): string {
+  return String(value ?? '').trim();
+}
+
+function targetRefModel(targetRef: NimiAIConfigTargetRef): string {
+  if (targetRef.kind === 'cloud-connector') {
+    return normalizeText(targetRef.providerModelId);
+  }
+  if (targetRef.kind === 'local-runtime') {
+    return normalizeText(targetRef.profileId) || normalizeText(targetRef.targetId) || normalizeText(targetRef.readinessRef);
+  }
+  return '';
+}
+
+function targetRefSchedulingInput(
+  capability: string,
+  targetRef: NimiAIConfigTargetRef,
+): NimiAISchedulingTargetInput | null {
+  if (targetRef.kind === 'profile-slice') {
+    return null;
+  }
+  return { capability, targetRef };
 }
 
 export function resolveTesterLLMBinding(
   capabilityId: TesterCapabilityId,
-  config: AIConfig = loadTesterAIConfig(),
+  config: NimiAIConfig = loadTesterAIConfig(),
 ): ResolvedLLMBinding | TesterUnavailable {
   const bindingCapabilityId = bindingCapabilityFor(capabilityId);
   if (!bindingCapabilityId) {
-    return unavailableFromAIConfig(capabilityId, `Capability ${capabilityId} does not have an AIConfig LLM binding path.`);
+    return unavailableFromAIConfig(capabilityId, `Capability ${capabilityId} does not have an NimiAIConfig LLM binding path.`);
   }
-  const binding = config.capabilities.selectedBindings[bindingCapabilityId] || null;
-  if (!binding) {
+  const targetRef = config.capabilities.targetRefs[bindingCapabilityId] || null;
+  if (!targetRef) {
     return unavailableFromAIConfig(
       capabilityId,
-      `AIConfig binding is required for ${bindingCapabilityId}; Runtime invocation failed closed before request dispatch.`,
+      `NimiAIConfig targetRef is required for ${bindingCapabilityId}; Runtime invocation failed closed before request dispatch.`,
     );
   }
-  const model = bindingModel(binding);
+  if (targetRef.kind === 'profile-slice') {
+    return unavailableFromAIConfig(
+      capabilityId,
+      `NimiAIConfig targetRef for ${bindingCapabilityId} still points to profile-slice ${targetRef.sliceId}; apply/materialize a live Runtime target before dispatch.`,
+    );
+  }
+  const model = targetRefModel(targetRef);
   if (!model) {
     return unavailableFromAIConfig(
       capabilityId,
-      `AIConfig binding for ${bindingCapabilityId} does not include a runtime model id.`,
+      `NimiAIConfig targetRef for ${bindingCapabilityId} does not include a Runtime model id.`,
     );
   }
-  const connectorId = String(binding.connectorId || '').trim();
-  if (binding.source === 'local' && connectorId) {
-    return unavailableFromAIConfig(
-      capabilityId,
-      `AIConfig binding for ${bindingCapabilityId} is local but includes connectorId; Runtime local bindings must use connectorId="" and route by model id.`,
-    );
-  }
-  if (binding.source === 'cloud' && !connectorId) {
-    return unavailableFromAIConfig(
-      capabilityId,
-      `AIConfig binding for ${bindingCapabilityId} is cloud but does not include a runtime connectorId.`,
-    );
-  }
-  if (binding.source !== 'local' && binding.source !== 'cloud') {
-    return unavailableFromAIConfig(
-      capabilityId,
-      `AIConfig binding for ${bindingCapabilityId} has unsupported source "${String(binding.source)}".`,
-    );
-  }
-  const evidence = createAIConfigEvidence(config);
+  const connectorId = targetRef.kind === 'cloud-connector' ? normalizeText(targetRef.connectorId) : '';
+  const routePolicy = targetRef.kind === 'cloud-connector' ? 'cloud' : 'local';
   const scopeRef = config.scopeRef;
   return {
     bindingCapabilityId,
-    binding,
+    targetRef,
     model,
-    schedulingTarget: resolveAIConfigRuntimeSchedulingTargetForCapability(config, bindingCapabilityId),
+    routePolicy,
+    ...(connectorId ? { connectorId } : {}),
+    schedulingTarget: targetRefSchedulingInput(bindingCapabilityId, targetRef),
     metadata: {
       aiConfigScopeKind: scopeRef.kind,
       aiConfigScopeOwnerId: scopeRef.ownerId,
@@ -280,17 +304,18 @@ export function resolveTesterLLMBinding(
       aiConfigProfileTitle: config.profileOrigin?.title || '',
       aiConfigCapabilityId: capabilityId,
       aiConfigBindingCapabilityId: bindingCapabilityId,
-      aiConfigBindingSource: binding.source,
-      aiConfigBindingConnectorId: binding.connectorId || '',
+      aiConfigBindingSource: routePolicy,
+      aiConfigBindingConnectorId: connectorId,
       aiConfigBindingModel: model,
-      aiConfigHash: evidence.configHash,
-      aiConfigBindingKeys: evidence.capabilityBindingKeys.join(','),
+      aiConfigTargetRefKind: targetRef.kind,
+      aiConfigHash: versionNimiAIConfig(config),
+      aiConfigBindingKeys: Object.keys(config.capabilities.targetRefs).sort().join(','),
     },
   };
 }
 
 export async function ensureSchedulingPreflight(
-  client: PlatformClient,
+  client: TesterRuntimeInvocationClient,
   capabilityId: TesterCapabilityId,
   resolved: ResolvedLLMBinding,
 ): Promise<SchedulingPreflightResult> {
@@ -298,15 +323,14 @@ export async function ensureSchedulingPreflight(
     return { unavailable: null, evidenceMetadata: {} };
   }
   try {
-    const batch = await peekRuntimeSchedulingBatch({
+    const scheduling = createNimiRuntimeAISchedulingClient({
+      runtime: client.runtime,
       appId: TESTER_APP_ID,
       targets: [resolved.schedulingTarget],
-      peekScheduling: (request, options) => client.runtime.ai.peekScheduling(request, options),
     });
-    const judgement = batch?.aggregateJudgement ?? null;
-    const evidenceMetadata = projectAIRuntimeEvidenceMetadata(
-      createAIRuntimeEvidence({ schedulingJudgement: judgement }),
-    );
+    const batch = await scheduling.peek();
+    const judgement = batch.aggregateJudgement;
+    const evidenceMetadata = schedulingEvidenceMetadata(batch);
     if (judgement?.state === 'denied') {
       return {
         unavailable: capabilityUnavailable(
@@ -323,21 +347,37 @@ export async function ensureSchedulingPreflight(
   }
 }
 
-export function routeInput(binding: RuntimeRouteBinding, model: string): {
+function schedulingEvidenceMetadata(batch: NimiAISchedulingProjection): Record<string, string> {
+  const judgement = batch.aggregateJudgement;
+  if (!judgement) {
+    return {};
+  }
+  const metadata: Record<string, string> = {
+    runtimeSchedulingState: judgement.state,
+  };
+  if (judgement.detail) {
+    metadata.runtimeSchedulingDetail = judgement.detail;
+  }
+  if (judgement.resourceWarnings.length > 0) {
+    metadata.runtimeSchedulingWarnings = judgement.resourceWarnings.join(',');
+  }
+  return metadata;
+}
+
+export function routeInput(resolved: ResolvedLLMBinding): {
   model: string;
   connectorId?: string;
   route: 'local' | 'cloud';
 } {
-  const connectorId = String(binding.connectorId || '').trim();
-  if (binding.source === 'cloud') {
+  if (resolved.routePolicy === 'cloud') {
     return {
-      model,
-      connectorId,
+      model: resolved.model,
+      connectorId: resolved.connectorId,
       route: 'cloud',
     };
   }
   return {
-    model,
+    model: resolved.model,
     route: 'local',
   };
 }
@@ -356,22 +396,43 @@ function stableTesterIdPart(value: string): string {
   return value.trim().replace(/[^a-zA-Z0-9._:-]+/g, '-').replace(/^-+|-+$/g, '') || 'scenario';
 }
 
-function buildChatRuntimeUserMessage(prompt: string, attachments: readonly MediaAttachment[]): ConversationRuntimeTextMessage {
-  const multimodalInput = buildMultimodalInput(prompt, [...attachments]);
-  if (Array.isArray(multimodalInput)) {
-    const [message] = multimodalInput;
-    return {
-      role: 'user',
-      text: prompt,
-      content: message?.content ?? prompt,
-      name: null,
-    };
+function unsupportedTextAttachments(
+  capabilityId: Extract<TesterCapabilityId, 'text.generate' | 'chat.stream'>,
+  attachments: readonly MediaAttachment[] | undefined,
+): TesterUnavailable | null {
+  if (!attachments || attachments.length === 0) {
+    return null;
   }
+  return unavailableFromValidation(
+    capabilityId,
+    'Runtime text Scenario currently accepts text-only input; remove media attachments or use a media capability lane.',
+  );
+}
+
+function buildNimiUserMessages(prompt: string): NimiMessage[] {
+  return [{ role: 'user', content: [textPart(prompt)] }];
+}
+
+function buildChatRuntimeUserMessage(prompt: string): ConversationRuntimeTextMessage {
   return {
     role: 'user',
-    text: multimodalInput,
+    text: prompt,
+    content: prompt,
     name: null,
   };
+}
+
+function createTesterTextModel(client: TesterRuntimeInvocationClient, resolved: ResolvedLLMBinding) {
+  return createNimiRuntimeAIModel({
+    runtime: client.runtime,
+    appId: TESTER_APP_ID,
+    model: {
+      modelId: resolved.model,
+      ...(resolved.connectorId ? { providerId: resolved.connectorId } : {}),
+    },
+    routePolicy: resolved.routePolicy,
+    connectorId: resolved.connectorId,
+  });
 }
 
 function conversationRuntimeFailure(code: string, message: string): Error & {
@@ -385,34 +446,36 @@ function conversationRuntimeFailure(code: string, message: string): Error & {
   return error;
 }
 
-export async function invokeTextGenerate(client: PlatformClient, input: TesterScenarioInput): Promise<TesterInvocationResult> {
+export async function invokeTextGenerate(client: TesterRuntimeInvocationClient, input: TesterScenarioInput): Promise<TesterInvocationResult> {
   const prompt = input.prompt.trim();
   if (!prompt) {
     return unavailableFromValidation('text.generate', 'Scenario prompt is empty — supply a request body before running text.generate.');
   }
+  const attachmentUnavailable = unsupportedTextAttachments('text.generate', input.attachments);
+  if (attachmentUnavailable) return attachmentUnavailable;
   const resolved = resolveTesterLLMBinding('text.generate');
   if (isTesterUnavailable(resolved)) return resolved;
   const schedulingPreflight = await ensureSchedulingPreflight(client, 'text.generate', resolved);
   if (schedulingPreflight.unavailable) return schedulingPreflight.unavailable;
-  const route = routeInput(resolved.binding, resolved.model);
   const directedPrompt = input.directive ? `${input.directive}\n\n${prompt}` : prompt;
-  const result = await runAppAiTextGenerate({
-    runtime: {
-      generateText: (request) => client.runtime.ai.text.generate(request),
-    },
+  const model = createTesterTextModel(client, resolved);
+  const result = await runNimiTextGenerate({
+    runtime: { model },
     request: {
-      ...route,
-      input: buildMultimodalInput(directedPrompt, input.attachments ?? []),
-      metadata: buildMetadata('nimi.tester.ai.text.generate', {
-        ...resolved.metadata,
-        ...schedulingPreflight.evidenceMetadata,
-      }),
+      model: model.model,
+      messages: buildNimiUserMessages(directedPrompt),
+      parameters: {
+        metadata: buildMetadata('nimi.tester.ai.text.generate', {
+          ...resolved.metadata,
+          ...schedulingPreflight.evidenceMetadata,
+        }),
+      },
     },
   });
   if (result.ok === false) {
     return unavailableFromError('text.generate', result.error.cause ?? result.error);
   }
-  const output = result.output;
+  const output = result.result;
   return {
     ok: true,
     capabilityId: 'text.generate',
@@ -422,30 +485,35 @@ export async function invokeTextGenerate(client: PlatformClient, input: TesterSc
       kind: 'text',
       text: result.text,
       finishReason: output.finishReason,
-      inputTokens: output.usage?.inputTokens,
-      outputTokens: output.usage?.outputTokens,
+      inputTokens: output.usage?.promptTokens,
+      outputTokens: output.usage?.completionTokens,
       totalTokens: output.usage?.totalTokens,
       streamed: false,
     },
-    trace: pickTrace(output.trace),
+    trace: pickTrace(output.raw),
   };
 }
 
-export async function invokeChatStream(client: PlatformClient, input: TesterScenarioInput): Promise<TesterInvocationResult> {
+export async function invokeChatStream(client: TesterRuntimeInvocationClient, input: TesterScenarioInput): Promise<TesterInvocationResult> {
   const prompt = input.prompt.trim();
   if (!prompt) {
     return unavailableFromValidation('chat.stream', 'Scenario prompt is empty — supply a chat turn before running chat.stream.');
   }
+  const attachmentUnavailable = unsupportedTextAttachments('chat.stream', input.attachments);
+  if (attachmentUnavailable) return attachmentUnavailable;
   const resolved = resolveTesterLLMBinding('chat.stream');
   if (isTesterUnavailable(resolved)) return resolved;
   const schedulingPreflight = await ensureSchedulingPreflight(client, 'chat.stream', resolved);
   if (schedulingPreflight.unavailable) return schedulingPreflight.unavailable;
-  const route = routeInput(resolved.binding, resolved.model);
+  const route = routeInput(resolved);
   try {
     const scenarioId = stableTesterIdPart(input.scenarioId);
     const provider = createSimpleAiConversationProvider({
-      runtimeAdapter: createSdkConversationRuntimeAdapter(client.runtime),
-      resolveRuntimeUserMessage: () => buildChatRuntimeUserMessage(prompt, input.attachments ?? []),
+      runtimeAdapter: createSdkConversationRuntimeAdapter({
+        runtime: client.runtime,
+        appId: TESTER_APP_ID,
+      }),
+      resolveRuntimeUserMessage: () => buildChatRuntimeUserMessage(prompt),
       resolveRuntimeRequest: () => ({
         ...route,
         metadata: buildMetadata('nimi.tester.ai.chat.stream', {
@@ -514,7 +582,7 @@ export async function invokeChatStream(client: PlatformClient, input: TesterScen
   }
 }
 
-export async function invokeEmbedding(client: PlatformClient, input: TesterScenarioInput): Promise<TesterInvocationResult> {
+export async function invokeEmbedding(client: TesterRuntimeInvocationClient, input: TesterScenarioInput): Promise<TesterInvocationResult> {
   const prompt = input.prompt.trim();
   if (!prompt) {
     return unavailableFromValidation('text.embed', 'Scenario prompt is empty — supply at least one input string for embedding.');
@@ -523,30 +591,38 @@ export async function invokeEmbedding(client: PlatformClient, input: TesterScena
   if (isTesterUnavailable(resolved)) return resolved;
   const schedulingPreflight = await ensureSchedulingPreflight(client, 'text.embed', resolved);
   if (schedulingPreflight.unavailable) return schedulingPreflight.unavailable;
-  const route = routeInput(resolved.binding, resolved.model);
   try {
-    const output = await client.runtime.ai.embedding.generate({
-      ...route,
-      input: prompt,
+    const embedding = createNimiRuntimeEmbeddingClient({
+      runtime: client.runtime,
+      appId: TESTER_APP_ID,
+      model: {
+        modelId: resolved.model,
+        ...(resolved.connectorId ? { providerId: resolved.connectorId } : {}),
+      },
+      routePolicy: resolved.routePolicy,
+      connectorId: resolved.connectorId,
+    });
+    const output = await embedding.embedText({
+      values: [prompt],
       metadata: buildMetadata('nimi.tester.ai.embedding.generate', {
         ...resolved.metadata,
         ...schedulingPreflight.evidenceMetadata,
       }),
     });
-    const first = output.vectors[0] || [];
+    const first = output.embeddings[0] || [];
     return {
       ok: true,
       capabilityId: 'text.embed',
       capabilityLabel: getTesterCapability('text.embed').label,
-      message: `Runtime returned ${output.vectors.length} vector(s) with ${first.length} dimensions.`,
+      message: `Runtime returned ${output.embeddings.length} vector(s) with ${first.length} dimensions.`,
       output: {
         kind: 'embedding',
-        vectorCount: output.vectors.length,
+        vectorCount: output.embeddings.length,
         dimensions: first.length,
         sample: first.slice(0, 8),
-        totalTokens: output.usage?.totalTokens,
+        totalTokens: output.usage?.totalTokens ?? output.usage?.promptTokens,
       },
-      trace: pickTrace(output.trace),
+      trace: pickTrace(output.raw),
     };
   } catch (error) {
     return unavailableFromError('text.embed', error);

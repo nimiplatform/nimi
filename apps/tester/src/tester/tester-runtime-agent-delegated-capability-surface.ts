@@ -1,19 +1,12 @@
-import {
-  DelegatedApprovalMode,
-  DelegatedProviderKind,
-  DelegatedProviderState,
-  DelegatedProviderTrustTier,
-  DelegatedReplayOutcome,
-  DelegatedTransportKind,
-  createHostRuntimeAgentDelegatedCapabilitySurface,
-} from '@nimiplatform/sdk/runtime';
+import { createNimiHostRuntimeAgentDelegatedCapabilitySurface } from '@nimiplatform/sdk/runtime';
+import { DelegatedApprovalMode, DelegatedProviderKind, DelegatedProviderState, DelegatedProviderTrustTier, DelegatedReplayOutcome, DelegatedTransportKind } from '@nimiplatform/sdk/runtime/generated';
 
 export async function inspectTesterRuntimeAgentDelegatedCapabilitySurface(): Promise<{
   snapshotAgentId: string;
   profileState: number;
   replayOutcome: number;
 }> {
-  const surface = createHostRuntimeAgentDelegatedCapabilitySurface({
+  const surface = createNimiHostRuntimeAgentDelegatedCapabilitySurface({
     getRuntime: () => ({
       appId: 'nimi.tester',
       auth: {

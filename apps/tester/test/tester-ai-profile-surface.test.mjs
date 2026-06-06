@@ -78,22 +78,26 @@ test('Tester consumes the SDK host AIProfile surface for preview and apply', asy
       tags: [],
       capabilities: {
         'text.generate': {
-          binding: {
-            source: 'local',
-            connectorId: '',
-            model: 'local-chat',
+          targetRef: {
+            kind: 'local-runtime',
+            targetId: 'runtime-local-chat',
+            profileId: 'local-chat',
           },
         },
-        'image.generate': {},
+        'image.generate': {
+          readinessPolicy: 'optional',
+        },
       },
     };
 
     assert.equal(store.importTesterAIProfileJson(JSON.stringify(profile)).ok, true);
     const service = store.createTesterAIConfigService();
     const preview = await service.aiProfile.previewApply(scopeRef, profile.profileId);
-    assert.equal(preview.before.scopeRef.ownerId, scopeRef.ownerId);
-    assert.equal(preview.after.capabilities.selectedBindings['text.generate'].model, 'local-chat');
-    assert.match(preview.probeWarnings.join('\n'), /image\.generate/);
+    assert.equal(preview.before, null);
+    assert.equal(preview.outcome, 'ready_to_apply');
+    assert.equal(preview.after.scopeRef.ownerId, scopeRef.ownerId);
+    assert.equal(preview.after.capabilities.targetRefs['text.generate'].profileId, 'local-chat');
+    assert.deepEqual(preview.probeWarnings, []);
 
     const apply = await service.aiProfile.apply(scopeRef, profile.profileId, {
       expectedBaseVersion: preview.baseVersion,
@@ -109,12 +113,11 @@ test('Tester consumes the SDK host AIProfile surface for preview and apply', asy
         appliedAt: 'test',
       },
     });
-    await assert.rejects(
-      () => service.aiProfile.apply(scopeRef, profile.profileId, {
-        expectedBaseVersion: stalePreview.baseVersion,
-      }),
-      /AIConfig CAS conflict/,
-    );
+    const staleApply = await service.aiProfile.apply(scopeRef, profile.profileId, {
+      expectedBaseVersion: stalePreview.baseVersion,
+    });
+    assert.equal(staleApply.success, false);
+    assert.equal(staleApply.outcome, 'stale_base');
     assert.equal((await service.aiProfile.apply(scopeRef, 'missing-profile')).success, false);
   } finally {
     if (previousWindow === undefined) {

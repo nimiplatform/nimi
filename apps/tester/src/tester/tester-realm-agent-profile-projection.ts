@@ -1,7 +1,8 @@
 import {
-  createRealmMasterAgent,
-  loadRealmAgentDetails,
-  loadRealmCreatorAgents,
+  createNimiRealmMasterAgent,
+  loadNimiRealmAgentDetails,
+  loadNimiRealmCreatorAgents,
+  type NimiRealmAgentProfileApi,
 } from '@nimiplatform/sdk/realm';
 
 export type TesterRealmAgentProfileProjection = {
@@ -12,44 +13,25 @@ export type TesterRealmAgentProfileProjection = {
 };
 
 export async function loadTesterRealmAgentProfileProjection(): Promise<TesterRealmAgentProfileProjection> {
-  const callRealm = async <T>(task: (realm: {
-    services: {
-      AgentsService: {
-        getAgent: (agentId: string) => Promise<unknown>;
-        getAgentByHandle: (handle: string) => Promise<unknown>;
-      };
-      WorldsService: {
-        worldControllerGetWorld: (worldId: string) => Promise<unknown>;
-      };
-      CreatorService: {
-        creatorControllerListAgents: () => Promise<unknown[]>;
-        creatorControllerCreateAgent: (input: Record<string, unknown>) => Promise<Record<string, unknown>>;
-      };
-    };
-  }) => Promise<T>) =>
-    task({
-      services: {
-        AgentsService: {
-          getAgent: async (agentId) => ({ id: agentId, isAgent: true, worldId: 'tester-world' }),
-          getAgentByHandle: async (handle) => ({ id: 'agent-by-handle', handle, isAgent: true }),
-        },
-        WorldsService: {
-          worldControllerGetWorld: async (worldId) => ({
-            id: worldId,
-            name: 'Tester World',
-            bannerUrl: 'https://media.nimi.test/tester-world.png',
-          }),
-        },
-        CreatorService: {
-          creatorControllerListAgents: async () => [{ id: 'creator-agent-1' }],
-          creatorControllerCreateAgent: async (input) => ({ id: 'creator-agent-2', ...input }),
-        },
-      },
-    });
+  const realm = {
+    agents: {
+      getAgent: async ({ path }: { path: { id: string } }) => ({ id: path.id, isAgent: true, worldId: 'tester-world' }),
+      getAgentByHandle: async ({ path }: { path: { handle: string } }) => ({ id: 'agent-by-handle', handle: path.handle, isAgent: true }),
+      creatorControllerListAgents: async () => [{ id: 'creator-agent-1' }],
+      creatorControllerCreateAgent: async ({ body }: { body: Record<string, unknown> }) => ({ id: 'creator-agent-2', ...body }),
+    },
+    world: {
+      worldControllerGetWorld: async ({ path }: { path: { id: string } }) => ({
+        id: path.id,
+        name: 'Tester World',
+        bannerUrl: 'https://media.nimi.test/tester-world.png',
+      }),
+    },
+  } as unknown as NimiRealmAgentProfileApi;
 
-  const detail = await loadRealmAgentDetails(callRealm as never, () => undefined, 'tester-agent');
-  const creators = await loadRealmCreatorAgents(callRealm as never);
-  const created = await createRealmMasterAgent(callRealm as never, {
+  const detail = await loadNimiRealmAgentDetails(realm, 'tester-agent');
+  const creators = await loadNimiRealmCreatorAgents(realm);
+  const created = await createNimiRealmMasterAgent(realm, {
     worldId: 'tester-world',
     handle: ' tester-created ',
     concept: ' tester concept ',
@@ -59,6 +41,6 @@ export async function loadTesterRealmAgentProfileProjection(): Promise<TesterRea
     agentId: String(detail.id || 'none'),
     worldBannerUrl: String(detail.worldBannerUrl || 'none'),
     creatorCount: creators.length,
-    createdOwnershipType: String(created.ownershipType || 'none'),
+    createdOwnershipType: created.isAgent === true ? 'agent' : 'account',
   };
 }

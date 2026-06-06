@@ -1,7 +1,7 @@
 import {
-  runRuntimeAgentTurn,
-  type RuntimeAgentConsumeEvent,
-  type RuntimeAgentTurnsModule,
+  runNimiRuntimeAgentTurn,
+  type NimiRuntimeAgentConsumeEvent,
+  type NimiRuntimeAgentTurnsModule,
 } from '@nimiplatform/sdk/runtime';
 
 export type TesterRuntimeAgentTurnRunnerProjection = {
@@ -16,9 +16,9 @@ export type TesterRuntimeAgentTurnRunnerProjection = {
 export async function inspectTesterRuntimeAgentTurnRunnerProjection(): Promise<TesterRuntimeAgentTurnRunnerProjection> {
   const requestIds: string[] = [];
   let snapshotQueryCount = 0;
-  const turns: RuntimeAgentTurnsModule = {
+  const turns: NimiRuntimeAgentTurnsModule = {
     async subscribe() {
-      return (async function* stream(): AsyncIterable<RuntimeAgentConsumeEvent> {
+      return (async function* stream(): AsyncIterable<NimiRuntimeAgentConsumeEvent> {
         yield {
           eventName: 'runtime.agent.turn.accepted',
           localAgentRef: 'local-agent:tester-owner:tester-agent',
@@ -26,7 +26,7 @@ export async function inspectTesterRuntimeAgentTurnRunnerProjection(): Promise<T
           turnId: 'tester-backlog-turn',
           streamId: 'tester-backlog-stream',
           detail: { requestId: 'tester-backlog-request' },
-        } as RuntimeAgentConsumeEvent;
+        } as NimiRuntimeAgentConsumeEvent;
         yield {
           eventName: 'runtime.agent.turn.text_delta',
           localAgentRef: 'local-agent:tester-owner:tester-agent',
@@ -34,7 +34,7 @@ export async function inspectTesterRuntimeAgentTurnRunnerProjection(): Promise<T
           turnId: 'tester-backlog-turn',
           streamId: 'tester-backlog-stream',
           detail: { text: 'backlog' },
-        } as RuntimeAgentConsumeEvent;
+        } as NimiRuntimeAgentConsumeEvent;
         while (!requestIds[0]) {
           await Promise.resolve();
         }
@@ -45,7 +45,7 @@ export async function inspectTesterRuntimeAgentTurnRunnerProjection(): Promise<T
           turnId: 'tester-turn',
           streamId: 'tester-stream',
           detail: { requestId: requestIds[0] },
-        } as RuntimeAgentConsumeEvent;
+        } as NimiRuntimeAgentConsumeEvent;
         yield {
           eventName: 'runtime.agent.turn.structured',
           localAgentRef: 'local-agent:tester-owner:tester-agent',
@@ -62,7 +62,7 @@ export async function inspectTesterRuntimeAgentTurnRunnerProjection(): Promise<T
               actions: [],
             },
           },
-        } as RuntimeAgentConsumeEvent;
+        } as NimiRuntimeAgentConsumeEvent;
         yield {
           eventName: 'runtime.agent.turn.message_committed',
           localAgentRef: 'local-agent:tester-owner:tester-agent',
@@ -74,7 +74,7 @@ export async function inspectTesterRuntimeAgentTurnRunnerProjection(): Promise<T
             messageId: 'tester-assistant-message',
             text: 'tester runtime runner complete',
           },
-        } as RuntimeAgentConsumeEvent;
+        } as NimiRuntimeAgentConsumeEvent;
         yield {
           eventName: 'runtime.agent.turn.completed',
           localAgentRef: 'local-agent:tester-owner:tester-agent',
@@ -82,7 +82,7 @@ export async function inspectTesterRuntimeAgentTurnRunnerProjection(): Promise<T
           turnId: 'tester-turn',
           streamId: 'tester-stream',
           detail: { terminalReason: 'stop' },
-        } as RuntimeAgentConsumeEvent;
+        } as NimiRuntimeAgentConsumeEvent;
       })();
     },
     async request(request) {
@@ -98,7 +98,7 @@ export async function inspectTesterRuntimeAgentTurnRunnerProjection(): Promise<T
     },
   };
 
-  const result = await runRuntimeAgentTurn({
+  const result = await runNimiRuntimeAgentTurn({
     turns,
     request: {
       ownerUserId: 'tester-owner',

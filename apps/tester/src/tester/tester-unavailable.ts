@@ -49,7 +49,7 @@ function actionHintForReason(reason: TesterUnavailableReason): string {
     case 'sdk-method-unavailable':
       return 'Add an admitted SDK Nimi App execution method. Do not bypass Runtime with app-local REST.';
     case 'ai-config-binding-missing':
-      return 'Import/apply an AIProfile or choose a runtime model binding in App Lab AIConfig, then retry.';
+      return 'Import/apply an AIProfile or choose a runtime model binding in App Lab NimiAIConfig, then retry.';
     case 'auth-context-missing':
       return 'Cloud routes require an authenticated Nimi account subject. Sign in to your Nimi account, or switch this capability to a local model binding, then retry.';
     case 'principal-unauthorized':

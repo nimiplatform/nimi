@@ -16,13 +16,18 @@ import {
   type CanonicalCapabilitySectionId,
 } from '@nimiplatform/kit/core/runtime-capabilities';
 import {
-  selectEnabledDescriptors,
+  selectRequirementDescriptors,
   summarizeAiModelAggregate,
   type CapabilityEvaluation,
   type ModelConfigStatusTone,
 } from '@nimiplatform/kit/core/model-config';
 import type { RouteModelPickerDataProvider } from '@nimiplatform/kit/features/model-picker';
-import type { AIConfig, AIScopeRef } from '@nimiplatform/sdk/ai';
+import type {
+  NimiAICapabilityRequirementDeclaration,
+  NimiAIConfig,
+  NimiAIConfigTargetRef,
+  NimiAIScopeRef,
+} from '@nimiplatform/kit/core/sdk-contract';
 import { ChevronLeft, ChevronRight, Upload, X } from 'lucide-react';
 
 // Scaffold-managed AI config Settings surface.
@@ -32,7 +37,7 @@ import { ChevronLeft, ChevronRight, Upload, X } from 'lucide-react';
 // `ModelConfigCapabilityDetail` + `SharedAIConfigService` contract. Unlike kit's
 // `ModelConfigAiModelHub`, this panel accepts an `initialSection` so the AI
 // Capabilities settings gear can open straight into the capability under test.
-// It owns NO truth: the app injects its app-scoped AIConfig service, scope ref,
+// It owns NO truth: the app injects its app-scoped NimiAIConfig service, scope ref,
 // model-picker provider resolver, and copy. Runtime model catalog stays Runtime
 // truth (resolved through the SDK by the injected provider). Only admitted
 // kit/SDK surfaces; no app-local provider/model defaults, no REST bypass.
@@ -45,7 +50,7 @@ export type TesterAiConfigProfileImportResult = {
 };
 
 export type TesterAiConfigSettingsProps = {
-  scopeRef: AIScopeRef;
+  scopeRef: NimiAIScopeRef;
   service: SharedAIConfigService;
   enabledCapabilities: readonly string[];
   providerResolver: (capabilityId: string) => RouteModelPickerDataProvider | null;
@@ -84,7 +89,7 @@ function makeTranslator(copy: Record<string, string>) {
 }
 
 function bindingStatus(
-  config: AIConfig,
+  config: NimiAIConfig,
   capabilityId: string,
   runtimeReady: boolean,
   runtimeDetail: string | null,
@@ -98,27 +103,37 @@ function bindingStatus(
       detail: runtimeDetail || 'Runtime readiness has not succeeded.',
     };
   }
-  const binding = config.capabilities.selectedBindings[capabilityId] || null;
-  if (!binding) {
+  const targetRef = config.capabilities.targetRefs[capabilityId] || null;
+  if (!targetRef) {
     return {
       supported: false,
       tone: 'attention',
-      badgeLabel: 'Needs binding',
-      title: 'Binding required',
-      detail: 'Runs fail closed until this capability has an AIConfig binding.',
+      badgeLabel: 'Needs target',
+      title: 'Target required',
+      detail: 'Runs fail closed until this capability has an NimiAIConfig targetRef.',
     };
   }
   return {
     supported: true,
     tone: 'ready',
     badgeLabel: 'Bound',
-    title: 'Binding configured',
-    detail: binding.modelLabel || binding.model || null,
+    title: 'Target configured',
+    detail: targetRefDetail(targetRef),
   };
 }
 
-function useLiveAIConfig(service: SharedAIConfigService, scopeRef: AIScopeRef): AIConfig {
-  const [config, setConfig] = useState<AIConfig>(() => service.aiConfig.get(scopeRef));
+function targetRefDetail(targetRef: NimiAIConfigTargetRef): string | null {
+  if (targetRef.kind === 'cloud-connector') {
+    return targetRef.providerModelId || targetRef.connectorId || null;
+  }
+  if (targetRef.kind === 'local-runtime') {
+    return targetRef.profileId || targetRef.targetId || targetRef.readinessRef || null;
+  }
+  return `${targetRef.sourceProfileId}:${targetRef.sliceId}`;
+}
+
+function useLiveAIConfig(service: SharedAIConfigService, scopeRef: NimiAIScopeRef): NimiAIConfig {
+  const [config, setConfig] = useState<NimiAIConfig>(() => service.aiConfig.get(scopeRef));
   useEffect(() => {
     setConfig(service.aiConfig.get(scopeRef));
     return service.aiConfig.subscribe(scopeRef, setConfig);
@@ -136,6 +151,23 @@ function groupBySection(
     map.set(descriptor.section, list);
   }
   return map;
+}
+
+function createRequirementDeclaration(
+  scopeRef: NimiAIScopeRef,
+  capabilities: readonly string[],
+): NimiAICapabilityRequirementDeclaration {
+  return {
+    requirementId: `${scopeRef.ownerId}:${scopeRef.surfaceId || 'default'}:tester-settings`,
+    scopeRef,
+    requiredSlices: capabilities.map((capability) => ({
+      requirementSliceId: `tester-settings.${capability}`,
+      capability,
+      profileSliceRef: `profile.${capability}`,
+      readinessPolicy: 'required' as const,
+    })),
+    setupProjectionPolicy: 'sdk-ai-config-setup-projection',
+  };
 }
 
 function statusDotTone(tone: ModelConfigStatusTone): 'success' | 'warning' | 'neutral' {
@@ -170,10 +202,9 @@ export function TesterAiConfigSettings({
   const surface: AppModelConfigSurface = useMemo(() => ({
     scopeRef,
     aiConfigService: service,
-    enabledCapabilities: [...enabledCapabilities],
+    requirementDeclaration: createRequirementDeclaration(scopeRef, enabledCapabilities),
     providerResolver: (capabilityId: string) => (runtimeReady ? providerResolver(capabilityId) : null),
     projectionResolver: (capabilityId: string) => bindingStatus(config, capabilityId, runtimeReady, runtimeDetail),
-    runtimeReady,
     runtimeNotReadyLabel: runtimeDetail || 'Runtime unavailable',
     i18n: { t },
   }), [config, enabledCapabilities, providerResolver, runtimeDetail, runtimeReady, scopeRef, service, t]);
@@ -193,8 +224,8 @@ export function TesterAiConfigSettings({
   });
 
   const descriptors = useMemo(
-    () => selectEnabledDescriptors(enabledCapabilities, CANONICAL_CAPABILITY_CATALOG_BY_ID),
-    [enabledCapabilities],
+    () => selectRequirementDescriptors(surface.requirementDeclaration, CANONICAL_CAPABILITY_CATALOG_BY_ID),
+    [surface.requirementDeclaration],
   );
   const sectionMap = useMemo(() => groupBySection(descriptors), [descriptors]);
   const orderedSections = useMemo(
@@ -208,7 +239,7 @@ export function TesterAiConfigSettings({
         capabilityId: descriptor.capabilityId,
         descriptor,
         status: surface.projectionResolver(descriptor.capabilityId),
-        bindingPresent: Boolean(config.capabilities.selectedBindings?.[descriptor.capabilityId]),
+        bindingPresent: Boolean(config.capabilities.targetRefs?.[descriptor.capabilityId]),
       });
     }
     return out;
@@ -333,7 +364,7 @@ export function TesterAiConfigSettings({
                     rows={5}
                     wrap="soft"
                     aria-label="AIProfile JSON"
-                    placeholder='{"profileId":"tester-runtime","title":"Tester Runtime Profile","capabilities":{"text.generate":{"binding":{"source":"cloud","connectorId":"runtime-connector-id","model":"runtime-model-id"}}}}'
+                    placeholder='{"profileId":"tester-runtime","title":"Tester Runtime Profile","capabilities":{"text.generate":{"targetRef":{"kind":"cloud-connector","connectorId":"runtime-connector-id","providerModelId":"runtime-model-id"}}}}'
                     value={profileJson}
                     onChange={(event) => setProfileJson(event.currentTarget.value)}
                   />

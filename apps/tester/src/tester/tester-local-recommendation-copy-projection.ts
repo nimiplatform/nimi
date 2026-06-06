@@ -1,13 +1,13 @@
 import {
-  collectLocalRecommendationFeedProviders,
-  countLocalRecommendationRunGrades,
-  filterLocalRecommendationFeedItems,
-  buildLocalRecommendationDetailItems,
-  formatLocalRecommendationReasonLabel,
-  parseLocalRecommendationLicenseShort,
-  parseRuntimeLocalCatalogRecommendation,
-  splitLocalRecommendationFeedItems,
-  summarizeLocalCatalogRecommendation,
+  collectNimiRuntimeLocalRecommendationFeedProviders,
+  countNimiRuntimeLocalRecommendationRunGrades,
+  filterNimiRuntimeLocalRecommendationFeedItems,
+  buildNimiRuntimeLocalRecommendationDetailItems,
+  formatNimiRuntimeLocalRecommendationReasonLabel,
+  parseNimiRuntimeLocalRecommendationLicenseShort,
+  projectNimiRuntimeLocalCatalogRecommendation,
+  splitNimiRuntimeLocalRecommendationFeedItems,
+  summarizeNimiRuntimeLocalCatalogRecommendation,
 } from '@nimiplatform/sdk/runtime';
 
 export type TesterLocalRecommendationCopyProjection = {
@@ -18,7 +18,7 @@ export type TesterLocalRecommendationCopyProjection = {
 };
 
 export function createTesterLocalRecommendationCopyProjection(): TesterLocalRecommendationCopyProjection {
-  const recommendation = parseRuntimeLocalCatalogRecommendation({
+  const recommendation = projectNimiRuntimeLocalCatalogRecommendation({
     source: 'LOCAL_RECOMMENDATION_SOURCE_MEDIA_FIT',
     tier: 'LOCAL_RECOMMENDATION_TIER_RUNNABLE',
     reasonCodes: ['memory_headroom_runnable'],
@@ -35,19 +35,19 @@ export function createTesterLocalRecommendationCopyProjection(): TesterLocalReco
     installedState: { installed: false },
     entries: [{ entry: 'tester-q4.gguf', totalSizeBytes: 4 }],
   }];
-  const feedSections = splitLocalRecommendationFeedItems(feedRows);
-  const feedCounts = countLocalRecommendationRunGrades(feedRows);
-  const feedProviders = collectLocalRecommendationFeedProviders(feedRows);
+  const feedSections = splitNimiRuntimeLocalRecommendationFeedItems(feedRows);
+  const feedCounts = countNimiRuntimeLocalRecommendationRunGrades(feedRows);
+  const feedProviders = collectNimiRuntimeLocalRecommendationFeedProviders(feedRows);
   return {
-    summary: summarizeLocalCatalogRecommendation(recommendation),
-    reason: formatLocalRecommendationReasonLabel('memory_headroom_runnable'),
-    detailCount: buildLocalRecommendationDetailItems(recommendation).length,
+    summary: summarizeNimiRuntimeLocalCatalogRecommendation(recommendation),
+    reason: formatNimiRuntimeLocalRecommendationReasonLabel('memory_headroom_runnable'),
+    detailCount: buildNimiRuntimeLocalRecommendationDetailItems(recommendation).length,
     feedSummary: [
-      filterLocalRecommendationFeedItems(feedRows, 'tester-q4').length,
+      filterNimiRuntimeLocalRecommendationFeedItems(feedRows, 'tester-q4').length,
       feedSections.topMatches.length,
       feedCounts.runs_well,
       feedProviders[0],
-      parseLocalRecommendationLicenseShort(feedRows[0]?.installPayload.license),
+      parseNimiRuntimeLocalRecommendationLicenseShort(feedRows[0]?.installPayload.license),
     ].join('/'),
   };
 }

@@ -100,7 +100,7 @@ export class DrawerErrorBoundary extends Component<{ onClose: () => void; childr
   }
 }
 
-// Maps each tester capability to the canonical AIConfig section its settings
+// Maps each tester capability to the canonical NimiAIConfig section its settings
 // gear opens (mirrors the desktop tester CAPABILITY_TO_SECTION).
 export const CAPABILITY_TO_SECTION: Record<TesterCapabilityId, CanonicalCapabilitySectionId> = {
   'text.generate': 'chat',

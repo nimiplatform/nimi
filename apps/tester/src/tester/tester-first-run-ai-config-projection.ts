@@ -1,11 +1,7 @@
-import {
-  projectFirstRunExecutionEvidenceToAIConfigBindings,
-  type FirstRunExecutionEvidenceForAIConfig,
-  RoutePolicy,
-  ScenarioType,
-} from '@nimiplatform/sdk/runtime';
+import { projectNimiFirstRunExecutionEvidenceToAIConfigTargets, type NimiFirstRunExecutionEvidenceForAIConfig } from '@nimiplatform/sdk/runtime';
+import { RoutePolicy, ScenarioType } from '@nimiplatform/sdk/runtime/generated';
 
-function testerExecutionEvidence(): FirstRunExecutionEvidenceForAIConfig {
+function testerExecutionEvidence(): NimiFirstRunExecutionEvidenceForAIConfig {
   return {
     executionEvidenceRef: 'tester-execution-evidence',
     runtimeBaselineRef: 'tester-runtime-baseline',
@@ -49,9 +45,9 @@ function testerExecutionEvidence(): FirstRunExecutionEvidenceForAIConfig {
 }
 
 export function createTesterFirstRunAIConfigProjection(): Record<string, string> {
-  const projected = projectFirstRunExecutionEvidenceToAIConfigBindings(testerExecutionEvidence());
+  const projected = projectNimiFirstRunExecutionEvidenceToAIConfigTargets(testerExecutionEvidence());
   return Object.fromEntries(projected.map((item) => [
     item.capability,
-    item.binding.runtimeExecutionEvidenceRef,
+    item.targetRef.readinessRef,
   ]));
 }

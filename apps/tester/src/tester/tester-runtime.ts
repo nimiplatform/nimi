@@ -52,7 +52,7 @@ export async function inspectRuntimeReadiness(): Promise<TesterRuntimeInspection
     const defaults = await getRuntimeDefaults();
     const daemonStatus = await getDaemonStatus();
     const daemonVersion = checkRuntimeDaemonVersion(daemonStatus.version, '0.1.0');
-    const health = await projection.client.domains.runtimeAdmin.getRuntimeHealth({});
+    const health = await projection.client.runtime.health({});
     return {
       status: 'ready',
       mode: projection.mode,
