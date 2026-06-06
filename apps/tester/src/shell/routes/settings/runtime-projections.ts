@@ -106,6 +106,7 @@ export function createTesterSettingsRuntimeProjections() {
     dependencies: [{
       dependencyFamily: 'python',
       dependencyId: 'tester-python',
+      consumerScope: 'tester.settings',
       required: true,
       state: 'needs_confirmation',
       sourceKind: 'managed_download',
@@ -122,6 +123,7 @@ export function createTesterSettingsRuntimeProjections() {
     environmentKey: 'tester-local-speech',
     dependencyFamily: 'python',
     dependencyId: 'tester-python',
+    consumerScope: 'tester.settings',
     state: 'downloading',
     sourceKind: 'managed_download',
     canonicalRoot: '/tester/runtime/local-speech',
