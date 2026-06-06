@@ -464,6 +464,21 @@ func TestStartLocalEnvironmentDependencyJobFailsClosedForAmbiguousConsumerContra
 	if status.Code(err) != codes.FailedPrecondition {
 		t.Fatalf("StartLocalEnvironmentDependencyJob error = %v, want FailedPrecondition for ambiguous shared key", err)
 	}
+
+	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
+		EnvironmentKey:   metalDep.EnvironmentKey,
+		DependencyFamily: metalDep.DependencyFamily,
+		DependencyId:     metalDep.DependencyID,
+		SourceKind:       metalDep.SourceKind,
+		Confirmed:        true,
+		ConsumerScope:    metalDep.ConsumerScope,
+	})
+	if err != nil {
+		t.Fatalf("StartLocalEnvironmentDependencyJob with consumer scope: %v", err)
+	}
+	if got := resp.GetJob().GetConsumerScope(); got != metalDep.ConsumerScope {
+		t.Fatalf("started job consumer scope = %q, want %q", got, metalDep.ConsumerScope)
+	}
 }
 
 func TestStartNativeSDCPPDependencyJobPromotesWindowsRuntimeWrapperSelectedSource(t *testing.T) {

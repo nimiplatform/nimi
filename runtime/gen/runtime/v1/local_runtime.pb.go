@@ -4284,6 +4284,7 @@ type StartLocalEnvironmentDependencyJobRequest struct {
 	DependencyId     string                 `protobuf:"bytes,3,opt,name=dependency_id,json=dependencyId,proto3" json:"dependency_id,omitempty"`
 	SourceKind       string                 `protobuf:"bytes,4,opt,name=source_kind,json=sourceKind,proto3" json:"source_kind,omitempty"`
 	Confirmed        bool                   `protobuf:"varint,5,opt,name=confirmed,proto3" json:"confirmed,omitempty"`
+	ConsumerScope    string                 `protobuf:"bytes,6,opt,name=consumer_scope,json=consumerScope,proto3" json:"consumer_scope,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -4351,6 +4352,13 @@ func (x *StartLocalEnvironmentDependencyJobRequest) GetConfirmed() bool {
 		return x.Confirmed
 	}
 	return false
+}
+
+func (x *StartLocalEnvironmentDependencyJobRequest) GetConsumerScope() string {
+	if x != nil {
+		return x.ConsumerScope
+	}
+	return ""
 }
 
 type StartLocalEnvironmentDependencyJobResponse struct {
@@ -4588,6 +4596,7 @@ type RepairLocalEnvironmentDependencyRequest struct {
 	DependencyId     string                 `protobuf:"bytes,3,opt,name=dependency_id,json=dependencyId,proto3" json:"dependency_id,omitempty"`
 	Confirmed        bool                   `protobuf:"varint,4,opt,name=confirmed,proto3" json:"confirmed,omitempty"`
 	ReasonCode       string                 `protobuf:"bytes,5,opt,name=reason_code,json=reasonCode,proto3" json:"reason_code,omitempty"`
+	ConsumerScope    string                 `protobuf:"bytes,6,opt,name=consumer_scope,json=consumerScope,proto3" json:"consumer_scope,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -4653,6 +4662,13 @@ func (x *RepairLocalEnvironmentDependencyRequest) GetConfirmed() bool {
 func (x *RepairLocalEnvironmentDependencyRequest) GetReasonCode() string {
 	if x != nil {
 		return x.ReasonCode
+	}
+	return ""
+}
+
+func (x *RepairLocalEnvironmentDependencyRequest) GetConsumerScope() string {
+	if x != nil {
+		return x.ConsumerScope
 	}
 	return ""
 }
@@ -7325,14 +7341,15 @@ const file_runtime_v1_local_runtime_proto_rawDesc = "" +
 	"\x05state\x18\x02 \x01(\tR\x05state\x12\x1f\n" +
 	"\vreason_code\x18\x03 \x01(\tR\n" +
 	"reasonCode\x12\x16\n" +
-	"\x06detail\x18\x04 \x01(\tR\x06detail\"\xe5\x01\n" +
+	"\x06detail\x18\x04 \x01(\tR\x06detail\"\x8c\x02\n" +
 	")StartLocalEnvironmentDependencyJobRequest\x12'\n" +
 	"\x0fenvironment_key\x18\x01 \x01(\tR\x0eenvironmentKey\x12+\n" +
 	"\x11dependency_family\x18\x02 \x01(\tR\x10dependencyFamily\x12#\n" +
 	"\rdependency_id\x18\x03 \x01(\tR\fdependencyId\x12\x1f\n" +
 	"\vsource_kind\x18\x04 \x01(\tR\n" +
 	"sourceKind\x12\x1c\n" +
-	"\tconfirmed\x18\x05 \x01(\bR\tconfirmed\"n\n" +
+	"\tconfirmed\x18\x05 \x01(\bR\tconfirmed\x12%\n" +
+	"\x0econsumer_scope\x18\x06 \x01(\tR\rconsumerScope\"n\n" +
 	"*StartLocalEnvironmentDependencyJobResponse\x12@\n" +
 	"\x03job\x18\x01 \x01(\v2..nimi.runtime.v1.LocalEnvironmentDependencyJobR\x03job\"C\n" +
 	"*CancelLocalEnvironmentDependencyJobRequest\x12\x15\n" +
@@ -7343,14 +7360,15 @@ const file_runtime_v1_local_runtime_proto_rawDesc = "" +
 	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12\x1c\n" +
 	"\tconfirmed\x18\x02 \x01(\bR\tconfirmed\"n\n" +
 	"*RetryLocalEnvironmentDependencyJobResponse\x12@\n" +
-	"\x03job\x18\x01 \x01(\v2..nimi.runtime.v1.LocalEnvironmentDependencyJobR\x03job\"\xe3\x01\n" +
+	"\x03job\x18\x01 \x01(\v2..nimi.runtime.v1.LocalEnvironmentDependencyJobR\x03job\"\x8a\x02\n" +
 	"'RepairLocalEnvironmentDependencyRequest\x12'\n" +
 	"\x0fenvironment_key\x18\x01 \x01(\tR\x0eenvironmentKey\x12+\n" +
 	"\x11dependency_family\x18\x02 \x01(\tR\x10dependencyFamily\x12#\n" +
 	"\rdependency_id\x18\x03 \x01(\tR\fdependencyId\x12\x1c\n" +
 	"\tconfirmed\x18\x04 \x01(\bR\tconfirmed\x12\x1f\n" +
 	"\vreason_code\x18\x05 \x01(\tR\n" +
-	"reasonCode\"l\n" +
+	"reasonCode\x12%\n" +
+	"\x0econsumer_scope\x18\x06 \x01(\tR\rconsumerScope\"l\n" +
 	"(RepairLocalEnvironmentDependencyResponse\x12@\n" +
 	"\x03job\x18\x01 \x01(\v2..nimi.runtime.v1.LocalEnvironmentDependencyJobR\x03job\"\x84\a\n" +
 	"\x1cLocalStateReconciliationPlan\x12\x17\n" +

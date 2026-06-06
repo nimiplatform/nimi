@@ -384,6 +384,65 @@ func TestProfileRuntimeDescriptorAllowsRepeatedAssetUseWithDistinctOccurrences(t
 	}
 }
 
+func TestProfileRuntimeDescriptorKeepsSameMainAssetDistinctAcrossCompanionWorkflows(t *testing.T) {
+	keyFor := func(t *testing.T, descriptor profileRuntimeDescriptor) string {
+		t.Helper()
+		validated, err := validateProfileRuntimeDescriptor(marshalProfileRuntimeDescriptor(t, descriptor))
+		if err != nil {
+			t.Fatalf("validate descriptor: %v", err)
+		}
+		results, err := prepareProfileRuntimeDescriptorWithFacts(validated, testProfileRuntimeReadyFacts(descriptor))
+		if err != nil {
+			t.Fatalf("prepare descriptor: %v", err)
+		}
+		if len(results) != 1 || results[0].Outcome != profileRuntimePrepareReady || strings.TrimSpace(results[0].MaterializationKey) == "" {
+			t.Fatalf("expected ready materialization result, got %+v", results)
+		}
+		return results[0].MaterializationKey
+	}
+
+	first := testProfileRuntimeImageCompanionDescriptor()
+	second := testProfileRuntimeImageCompanionDescriptor()
+	second.DescriptorID = "descriptor:z-image-companions-alt"
+	second.ProfileRef.ProfileID = "profile:z-image-alt-workflow"
+	second.CapabilitySlices[0].SliceID = "slice:image-native-alt-companions"
+	second.CapabilitySlices[0].OrderedCompanionOccurrences = []profileRuntimeDescriptorCompanionOccurrence{
+		{
+			OccurrenceID:    "z-image-ae-alt",
+			Order:           0,
+			Role:            "vae",
+			EngineSlot:      "vae_path",
+			AssetBindingRef: "ae-alt",
+			Required:        true,
+		},
+	}
+	second.AssetBindings = []profileRuntimeDescriptorAssetBinding{
+		second.AssetBindings[0],
+		{
+			BindingID:        "ae-alt",
+			AssetRole:        "companion",
+			ComponentKind:    "vae",
+			Source:           "huggingface",
+			ExpectedIdentity: "z_image_ae_alt",
+			ReadinessPolicy:  "required",
+			PreparedAssetID:  "local-z-image-ae-alt",
+			HuggingFace: &profileRuntimeDescriptorHFSource{
+				RepoID:       "nimiplatform/z-image-ae-alt",
+				Revision:     "main",
+				Entries:      []string{"ae-alt.safetensors"},
+				AccessPolicy: "public",
+			},
+		},
+	}
+	if first.AssetBindings[0].PreparedAssetID != second.AssetBindings[0].PreparedAssetID {
+		t.Fatalf("test setup changed main prepared asset: first=%q second=%q", first.AssetBindings[0].PreparedAssetID, second.AssetBindings[0].PreparedAssetID)
+	}
+
+	if gotFirst, gotSecond := keyFor(t, first), keyFor(t, second); gotFirst == gotSecond {
+		t.Fatalf("same main asset with different companion workflows collapsed materialization key: %s", gotFirst)
+	}
+}
+
 func TestProfileRuntimeDescriptorRejectsCapabilityVideoAsImageDuration(t *testing.T) {
 	descriptor := testProfileRuntimeDescriptor()
 	descriptor.CapabilitySlices[0].Execution.Backend = "video.pipeline"

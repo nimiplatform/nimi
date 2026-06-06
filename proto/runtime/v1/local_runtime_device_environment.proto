@@ -70,6 +70,7 @@ message LocalEnvironmentPlanDependency {
   string canonical_root = 9;
   string reason_code = 10;
   string detail = 11;
+  string consumer_scope = 12;
 }
 
 message LocalEnvironmentPlan {
@@ -139,6 +140,7 @@ message LocalEnvironmentDependencyJob {
   // Runtime-owned recovery policy projection. Consumers may filter this closed
   // string but must not parse failure_detail for recovery semantics.
   string recovery_disposition = 19;
+  string consumer_scope = 20;
 }
 
 message LocalEnvironmentActivationGate {

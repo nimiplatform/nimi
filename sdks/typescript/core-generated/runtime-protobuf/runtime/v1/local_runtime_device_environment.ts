@@ -188,6 +188,10 @@ export interface LocalEnvironmentPlanDependency {
      * @generated from protobuf field: string detail = 11
      */
     detail: string;
+    /**
+     * @generated from protobuf field: string consumer_scope = 12
+     */
+    consumerScope: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.LocalEnvironmentPlan
@@ -407,6 +411,10 @@ export interface LocalEnvironmentDependencyJob {
      * @generated from protobuf field: string recovery_disposition = 19
      */
     recoveryDisposition: string;
+    /**
+     * @generated from protobuf field: string consumer_scope = 20
+     */
+    consumerScope: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.LocalEnvironmentActivationGate
@@ -1214,7 +1222,8 @@ class LocalEnvironmentPlanDependency$Type extends MessageType<LocalEnvironmentPl
             { no: 8, name: "environment_key", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 9, name: "canonical_root", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 10, name: "reason_code", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 11, name: "detail", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 11, name: "detail", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 12, name: "consumer_scope", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<LocalEnvironmentPlanDependency>): LocalEnvironmentPlanDependency {
@@ -1230,6 +1239,7 @@ class LocalEnvironmentPlanDependency$Type extends MessageType<LocalEnvironmentPl
         message.canonicalRoot = "";
         message.reasonCode = "";
         message.detail = "";
+        message.consumerScope = "";
         if (value !== undefined)
             reflectionMergePartial<LocalEnvironmentPlanDependency>(this, message, value);
         return message;
@@ -1271,6 +1281,9 @@ class LocalEnvironmentPlanDependency$Type extends MessageType<LocalEnvironmentPl
                     break;
                 case /* string detail */ 11:
                     message.detail = reader.string();
+                    break;
+                case /* string consumer_scope */ 12:
+                    message.consumerScope = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1317,6 +1330,9 @@ class LocalEnvironmentPlanDependency$Type extends MessageType<LocalEnvironmentPl
         /* string detail = 11; */
         if (message.detail !== "")
             writer.tag(11, WireType.LengthDelimited).string(message.detail);
+        /* string consumer_scope = 12; */
+        if (message.consumerScope !== "")
+            writer.tag(12, WireType.LengthDelimited).string(message.consumerScope);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1659,7 +1675,8 @@ class LocalEnvironmentDependencyJob$Type extends MessageType<LocalEnvironmentDep
             { no: 16, name: "speed_bytes_per_sec", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
             { no: 17, name: "eta_seconds", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
             { no: 18, name: "reason_code", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 19, name: "recovery_disposition", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 19, name: "recovery_disposition", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 20, name: "consumer_scope", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<LocalEnvironmentDependencyJob>): LocalEnvironmentDependencyJob {
@@ -1683,6 +1700,7 @@ class LocalEnvironmentDependencyJob$Type extends MessageType<LocalEnvironmentDep
         message.etaSeconds = "0";
         message.reasonCode = "";
         message.recoveryDisposition = "";
+        message.consumerScope = "";
         if (value !== undefined)
             reflectionMergePartial<LocalEnvironmentDependencyJob>(this, message, value);
         return message;
@@ -1748,6 +1766,9 @@ class LocalEnvironmentDependencyJob$Type extends MessageType<LocalEnvironmentDep
                     break;
                 case /* string recovery_disposition */ 19:
                     message.recoveryDisposition = reader.string();
+                    break;
+                case /* string consumer_scope */ 20:
+                    message.consumerScope = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1818,6 +1839,9 @@ class LocalEnvironmentDependencyJob$Type extends MessageType<LocalEnvironmentDep
         /* string recovery_disposition = 19; */
         if (message.recoveryDisposition !== "")
             writer.tag(19, WireType.LengthDelimited).string(message.recoveryDisposition);
+        /* string consumer_scope = 20; */
+        if (message.consumerScope !== "")
+            writer.tag(20, WireType.LengthDelimited).string(message.consumerScope);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

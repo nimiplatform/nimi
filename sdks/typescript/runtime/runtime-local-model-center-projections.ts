@@ -419,6 +419,7 @@ export function projectNimiRuntimeLocalEnvironmentPlanDependency(
   return {
     dependencyFamily: normalizeText(value.dependencyFamily),
     dependencyId: normalizeText(value.dependencyId),
+    consumerScope: normalizeText(value.consumerScope),
     required: Boolean(value.required),
     state: normalizeText(value.state),
     sourceKind: normalizeText(value.sourceKind),
@@ -439,6 +440,7 @@ export function projectNimiRuntimeLocalEnvironmentDependencyJob(
     environmentKey: normalizeText(value.environmentKey),
     dependencyFamily: normalizeText(value.dependencyFamily),
     dependencyId: normalizeText(value.dependencyId),
+    consumerScope: normalizeText(value.consumerScope),
     state: normalizeText(value.state),
     sourceKind: normalizeText(value.sourceKind),
     canonicalRoot: normalizeText(value.canonicalRoot) || undefined,

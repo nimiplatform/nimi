@@ -14,7 +14,7 @@ func (s *Service) StartLocalEnvironmentDependencyJob(ctx context.Context, req *r
 	if !req.GetConfirmed() {
 		return nil, localEnvironmentJobControlError(codes.FailedPrecondition, "local environment dependency setup requires explicit confirmation", "confirm_local_environment_dependency")
 	}
-	consumerScope := s.localEnvironmentDependencyJobConsumerScope(req.GetEnvironmentKey(), req.GetDependencyFamily(), req.GetDependencyId(), "")
+	consumerScope := s.localEnvironmentDependencyJobConsumerScope(req.GetEnvironmentKey(), req.GetDependencyFamily(), req.GetDependencyId(), req.GetConsumerScope())
 	if strings.TrimSpace(consumerScope) == "" {
 		return nil, localEnvironmentJobControlError(codes.FailedPrecondition, "local environment dependency consumer scope is ambiguous", "refresh_local_environment_plan")
 	}
@@ -83,7 +83,7 @@ func (s *Service) RepairLocalEnvironmentDependency(ctx context.Context, req *run
 	environmentKey := strings.TrimSpace(req.GetEnvironmentKey())
 	family := strings.TrimSpace(req.GetDependencyFamily())
 	dependencyID := strings.TrimSpace(req.GetDependencyId())
-	consumerScope := s.localEnvironmentDependencyJobConsumerScope(environmentKey, family, dependencyID, "")
+	consumerScope := s.localEnvironmentDependencyJobConsumerScope(environmentKey, family, dependencyID, req.GetConsumerScope())
 	if strings.TrimSpace(consumerScope) == "" {
 		return nil, localEnvironmentJobControlError(codes.FailedPrecondition, "local environment dependency repair consumer scope is ambiguous", "refresh_local_environment_plan")
 	}

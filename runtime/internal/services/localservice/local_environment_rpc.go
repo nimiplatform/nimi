@@ -368,6 +368,7 @@ func localEnvironmentPlanDependencyToProto(dep localEnvironmentPlanDependency) *
 		CanonicalRoot:          dep.CanonicalRoot,
 		ReasonCode:             dep.ReasonCode,
 		Detail:                 dep.Detail,
+		ConsumerScope:          dep.ConsumerScope,
 	}
 }
 
@@ -398,6 +399,7 @@ func localEnvironmentDependencyJobToProto(job localEnvironmentDependencyJobState
 		EnvironmentKey:         job.EnvironmentKey,
 		DependencyFamily:       job.DependencyFamily,
 		DependencyId:           job.DependencyID,
+		ConsumerScope:          job.ConsumerScope,
 		State:                  job.State,
 		SourceKind:             job.SourceKind,
 		CanonicalRoot:          job.CanonicalRoot,

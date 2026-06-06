@@ -133,7 +133,7 @@ func TestLoadModelAndGenerateImage(t *testing.T) {
 	}
 }
 
-func TestGenerateImageRejectsResultTerminalShape(t *testing.T) {
+func TestGenerateImageAcceptsResultTerminalShapeWhenArtifactExists(t *testing.T) {
 	if err := ensureDescriptors(); err != nil {
 		t.Fatalf("ensureDescriptors: %v", err)
 	}
@@ -172,8 +172,55 @@ func TestGenerateImageRejectsResultTerminalShape(t *testing.T) {
 		ModelPath:      "resolved/example/model.gguf",
 		Dst:            outputPath,
 	})
-	if err == nil || !strings.Contains(err.Error(), "missing terminal backend event") {
-		t.Fatalf("expected Result-shaped generate response to fail closed, got %v", err)
+	if err != nil {
+		t.Fatalf("expected Result-shaped generate terminal with artifact to pass, got %v", err)
+	}
+	payload, err := os.ReadFile(outputPath)
+	if err != nil {
+		t.Fatalf("read generated output: %v", err)
+	}
+	if string(payload) != "png" {
+		t.Fatalf("generated payload mismatch: %q", string(payload))
+	}
+}
+
+func TestGenerateImageRejectsResultTerminalWithoutArtifact(t *testing.T) {
+	if err := ensureDescriptors(); err != nil {
+		t.Fatalf("ensureDescriptors: %v", err)
+	}
+
+	outputPath := filepath.Join(t.TempDir(), "artifact.png")
+
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	defer func() { _ = listener.Close() }()
+
+	server := grpc.NewServer(grpc.UnknownServiceHandler(func(_ any, stream grpc.ServerStream) error {
+		method, _ := grpc.MethodFromServerStream(stream)
+		if method != backendGenerateImageMethod {
+			return status.Error(codes.Unimplemented, method)
+		}
+		in := dynamicpb.NewMessage(generateImageMessageDescriptor)
+		if err := stream.RecvMsg(in); err != nil {
+			return err
+		}
+		return stream.SendMsg(successResult("generated"))
+	}))
+	defer server.Stop()
+
+	go func() {
+		_ = server.Serve(listener)
+	}()
+
+	_, err = GenerateImage(context.Background(), ImageRequest{
+		BackendAddress: listener.Addr().String(),
+		ModelPath:      "resolved/example/model.gguf",
+		Dst:            outputPath,
+	})
+	if err == nil || !strings.Contains(err.Error(), "did not produce artifact") {
+		t.Fatalf("expected Result-shaped terminal without artifact to fail closed, got %v", err)
 	}
 }
 

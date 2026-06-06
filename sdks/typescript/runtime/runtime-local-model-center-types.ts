@@ -377,6 +377,7 @@ export interface NimiRuntimeLocalTransferAccepted {
 export interface NimiRuntimeLocalEnvironmentPlanDependency {
   readonly dependencyFamily: string;
   readonly dependencyId: string;
+  readonly consumerScope: string;
   readonly required: boolean;
   readonly state: string;
   readonly sourceKind: string;
@@ -407,6 +408,7 @@ export interface NimiRuntimeLocalEnvironmentDependencyJob {
   readonly environmentKey: string;
   readonly dependencyFamily: string;
   readonly dependencyId: string;
+  readonly consumerScope: string;
   readonly state: string;
   readonly sourceKind: string;
   readonly canonicalRoot?: string;
@@ -638,6 +640,7 @@ export interface NimiRuntimeLocalModelCenterClient {
     readonly dependencyId: string;
     readonly sourceKind: string;
     readonly confirmed: boolean;
+    readonly consumerScope?: string;
   }, options?: NimiRuntimeLocalWriteOptions): Promise<NimiRuntimeLocalEnvironmentDependencyJob>;
   cancelEnvironmentDependencyJob(input: { readonly jobId: string }, options?: NimiRuntimeLocalWriteOptions):
     Promise<NimiRuntimeLocalEnvironmentDependencyJob>;
@@ -649,6 +652,7 @@ export interface NimiRuntimeLocalModelCenterClient {
     readonly dependencyId: string;
     readonly confirmed: boolean;
     readonly reasonCode?: string;
+    readonly consumerScope?: string;
   }, options?: NimiRuntimeLocalWriteOptions): Promise<NimiRuntimeLocalEnvironmentDependencyJob>;
   scanUnregisteredAssets(): Promise<readonly NimiRuntimeLocalUnregisteredAssetDescriptor[]>;
   scaffoldOrphanAsset(input: {

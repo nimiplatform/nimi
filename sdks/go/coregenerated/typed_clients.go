@@ -4341,6 +4341,7 @@ type LocalEnvironmentDependencyJob struct {
 	EtaSeconds int64 `json:"eta_seconds,omitempty"`
 	ReasonCode string `json:"reason_code,omitempty"`
 	RecoveryDisposition string `json:"recovery_disposition,omitempty"`
+	ConsumerScope string `json:"consumer_scope,omitempty"`
 }
 
 type LocalEnvironmentPlan struct {
@@ -4369,6 +4370,7 @@ type LocalEnvironmentPlanDependency struct {
 	CanonicalRoot string `json:"canonical_root,omitempty"`
 	ReasonCode string `json:"reason_code,omitempty"`
 	Detail string `json:"detail,omitempty"`
+	ConsumerScope string `json:"consumer_scope,omitempty"`
 }
 
 type LocalEnvironmentSelectedSourceRecord struct {
@@ -5642,6 +5644,7 @@ type RepairLocalEnvironmentDependencyRequest struct {
 	DependencyId string `json:"dependency_id,omitempty"`
 	Confirmed bool `json:"confirmed,omitempty"`
 	ReasonCode string `json:"reason_code,omitempty"`
+	ConsumerScope string `json:"consumer_scope,omitempty"`
 }
 
 type RepairLocalEnvironmentDependencyResponse struct {
@@ -6365,6 +6368,7 @@ type StartLocalEnvironmentDependencyJobRequest struct {
 	DependencyId string `json:"dependency_id,omitempty"`
 	SourceKind string `json:"source_kind,omitempty"`
 	Confirmed bool `json:"confirmed,omitempty"`
+	ConsumerScope string `json:"consumer_scope,omitempty"`
 }
 
 type StartLocalEnvironmentDependencyJobResponse struct {

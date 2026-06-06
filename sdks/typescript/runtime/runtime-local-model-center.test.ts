@@ -755,13 +755,16 @@ test('Runtime local model center client maps catalog, writes, transfers, profile
   assert.equal(profilePlan.profileId, 'profile-image');
   assert.equal((await client.applyProfile(profilePlan, writeOptions)).installedAssets[0]?.localAssetId, 'local-image');
   assert.equal((await client.resolveEnvironmentPlan({ packId: 'local-image-native', consumerScope: 'stable-diffusion.cpp.metal' })).dependencies[0]?.dependencyId, 'stable-diffusion.cpp');
+  assert.equal((await client.resolveEnvironmentPlan({ packId: 'local-image-native', consumerScope: 'stable-diffusion.cpp.metal' })).dependencies[0]?.consumerScope, 'stable-diffusion.cpp.metal');
   assert.equal((await client.listEnvironmentDependencyJobs({ environmentKey: 'env-1', state: 'queued' }))[0]?.jobId, 'job-1');
+  assert.equal((await client.listEnvironmentDependencyJobs({ environmentKey: 'env-1', state: 'queued' }))[0]?.consumerScope, 'stable-diffusion.cpp.metal');
   assert.equal((await client.startEnvironmentDependencyJob({
     environmentKey: 'env-1',
     dependencyFamily: 'image-native',
     dependencyId: 'stable-diffusion.cpp',
     sourceKind: 'managed',
     confirmed: true,
+    consumerScope: 'stable-diffusion.cpp.metal',
   }, writeOptions)).state, 'queued');
   assert.equal((await client.cancelEnvironmentDependencyJob({ jobId: 'job-1' }, writeOptions)).state, 'cancelled');
   assert.equal((await client.retryEnvironmentDependencyJob({ jobId: 'job-1', confirmed: true }, writeOptions)).state, 'queued');
@@ -771,6 +774,7 @@ test('Runtime local model center client maps catalog, writes, transfers, profile
     dependencyId: 'stable-diffusion.cpp',
     confirmed: true,
     reasonCode: 'repair_required',
+    consumerScope: 'stable-diffusion.cpp.metal',
   }, writeOptions)).state, 'installing');
   assert.equal((await client.scanUnregisteredAssets())[0]?.declaration?.assetKind, 'chat');
   assert.equal((await client.scaffoldOrphanAsset({ path: '/models/orphan.gguf', kind: 'chat' }, writeOptions)).localAssetId, 'local-image');
@@ -783,6 +787,15 @@ test('Runtime local model center client maps catalog, writes, transfers, profile
     dependencyId: 'stable-diffusion.cpp',
     confirmed: true,
     reasonCode: 'repair_required',
+    consumerScope: 'stable-diffusion.cpp.metal',
+  });
+  assert.deepEqual(calls.find((call) => call.method === 'startLocalEnvironmentDependencyJob')?.request, {
+    environmentKey: 'env-1',
+    dependencyFamily: 'image-native',
+    dependencyId: 'stable-diffusion.cpp',
+    sourceKind: 'managed',
+    confirmed: true,
+    consumerScope: 'stable-diffusion.cpp.metal',
   });
 });
 
@@ -982,6 +995,7 @@ function generatedEnvironmentPlan() {
       confirmationRequired: false,
       selectedSourceRecordId: 'source-1',
       environmentKey: 'env-1',
+      consumerScope: 'stable-diffusion.cpp.metal',
       canonicalRoot: '/runtime/deps/stable-diffusion.cpp',
       reasonCode: '',
       detail: 'ready',
@@ -995,6 +1009,7 @@ function generatedEnvironmentDependencyJob() {
     environmentKey: 'env-1',
     dependencyFamily: 'image-native',
     dependencyId: 'stable-diffusion.cpp',
+    consumerScope: 'stable-diffusion.cpp.metal',
     state: 'queued',
     sourceKind: 'managed',
     canonicalRoot: '/runtime/deps/stable-diffusion.cpp',

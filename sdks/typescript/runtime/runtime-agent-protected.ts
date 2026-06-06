@@ -129,8 +129,8 @@ async function issueNimiRuntimeAgentCallOptions(input: {
   }
   return {
     metadata: {
-      'x-nimi-protected-access-token-id': tokenId,
-      'x-nimi-protected-access-secret': secret,
+      'x-nimi-access-token-id': tokenId,
+      'x-nimi-access-token-secret': secret,
     },
   };
 }

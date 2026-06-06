@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -158,6 +159,7 @@ func GenerateImage(ctx context.Context, req ImageRequest) (*ImageGenerateDiagnos
 	if err := stream.CloseSend(); err != nil {
 		return nil, fmt.Errorf("close managed media generate request stream: %w", err)
 	}
+	sawResultTerminalCandidate := false
 	for {
 		event := dynamicpb.NewMessage(generateImageEventDescriptor)
 		if err := stream.RecvMsg(event); err != nil {
@@ -174,6 +176,10 @@ func GenerateImage(ctx context.Context, req ImageRequest) (*ImageGenerateDiagnos
 			return nil, fmt.Errorf("generate managed media image: %w", err)
 		}
 		progress, hasProgress, done, success, message, diag := readGenerateImageEvent(event)
+		if isGenerateResultTerminalCandidate(progress, done, success, message, diag) {
+			sawResultTerminalCandidate = true
+			continue
+		}
 		if hasProgress && req.OnProgress != nil {
 			req.OnProgress(progress)
 		}
@@ -192,6 +198,29 @@ func GenerateImage(ctx context.Context, req ImageRequest) (*ImageGenerateDiagnos
 		if !success {
 			return nil, fmt.Errorf("generate managed media image failed: %s", defaultMessage(message, "backend returned unsuccessful image result"))
 		}
+		return diag, nil
+	}
+	if sawResultTerminalCandidate {
+		if err := requireGeneratedImageArtifact(req.Dst); err != nil {
+			slog.Warn("managed image backend result terminal rejected",
+				"operation", "generate",
+				"backend_address", strings.TrimSpace(req.BackendAddress),
+				"model_path", strings.TrimSpace(req.ModelPath),
+				"duration_ms", time.Since(invokeStartedAt).Milliseconds(),
+				"error", err,
+			)
+			return nil, fmt.Errorf("generate managed media image: backend result terminal did not produce artifact: %w", err)
+		}
+		diag := &ImageGenerateDiagnostics{
+			GenerateDurationMs: time.Since(invokeStartedAt).Milliseconds(),
+		}
+		slog.Info("managed image backend invoke completed",
+			"operation", "generate",
+			"backend_address", strings.TrimSpace(req.BackendAddress),
+			"model_path", strings.TrimSpace(req.ModelPath),
+			"duration_ms", diag.GenerateDurationMs,
+			"terminal_shape", "result",
+		)
 		return diag, nil
 	}
 	// Stream closed (io.EOF) before a terminal event arrived.
@@ -646,6 +675,37 @@ func readGenerateImageEvent(message *dynamicpb.Message) (ImageGenerateProgress, 
 		QueueSerialized:    readOptionalBoolField(message, "queue_serialized"),
 		ResidentReused:     readOptionalBoolField(message, "resident_reused"),
 	}
+}
+
+func isGenerateResultTerminalCandidate(progress ImageGenerateProgress, done bool, success bool, message string, diag *ImageGenerateDiagnostics) bool {
+	if done || success || strings.TrimSpace(message) != "" || diag == nil {
+		return false
+	}
+	if progress.CurrentStep != 0 || progress.ProgressPercent != 0 || progress.TotalSteps != 1 {
+		return false
+	}
+	return diag.QueueWaitMs == 0 &&
+		diag.GenerateDurationMs == 0 &&
+		!diag.QueueSerialized &&
+		!diag.ResidentReused
+}
+
+func requireGeneratedImageArtifact(path string) error {
+	trimmed := strings.TrimSpace(path)
+	if trimmed == "" {
+		return fmt.Errorf("destination path is empty")
+	}
+	info, err := os.Stat(trimmed)
+	if err != nil {
+		return err
+	}
+	if info.IsDir() {
+		return fmt.Errorf("destination is a directory")
+	}
+	if info.Size() <= 0 {
+		return fmt.Errorf("destination file is empty")
+	}
+	return nil
 }
 
 func defaultMessage(value string, fallback string) string {

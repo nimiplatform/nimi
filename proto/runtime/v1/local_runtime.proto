@@ -506,6 +506,7 @@ message StartLocalEnvironmentDependencyJobRequest {
   string dependency_id = 3;
   string source_kind = 4;
   bool confirmed = 5;
+  string consumer_scope = 6;
 }
 
 message StartLocalEnvironmentDependencyJobResponse {
@@ -535,6 +536,7 @@ message RepairLocalEnvironmentDependencyRequest {
   string dependency_id = 3;
   bool confirmed = 4;
   string reason_code = 5;
+  string consumer_scope = 6;
 }
 
 message RepairLocalEnvironmentDependencyResponse {

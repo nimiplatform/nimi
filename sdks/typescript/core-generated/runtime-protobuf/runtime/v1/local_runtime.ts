@@ -1350,6 +1350,10 @@ export interface StartLocalEnvironmentDependencyJobRequest {
      * @generated from protobuf field: bool confirmed = 5
      */
     confirmed: boolean;
+    /**
+     * @generated from protobuf field: string consumer_scope = 6
+     */
+    consumerScope: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.StartLocalEnvironmentDependencyJobResponse
@@ -1424,6 +1428,10 @@ export interface RepairLocalEnvironmentDependencyRequest {
      * @generated from protobuf field: string reason_code = 5
      */
     reasonCode: string;
+    /**
+     * @generated from protobuf field: string consumer_scope = 6
+     */
+    consumerScope: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.RepairLocalEnvironmentDependencyResponse
@@ -6490,7 +6498,8 @@ class StartLocalEnvironmentDependencyJobRequest$Type extends MessageType<StartLo
             { no: 2, name: "dependency_family", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "dependency_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "source_kind", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 5, name: "confirmed", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+            { no: 5, name: "confirmed", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 6, name: "consumer_scope", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<StartLocalEnvironmentDependencyJobRequest>): StartLocalEnvironmentDependencyJobRequest {
@@ -6500,6 +6509,7 @@ class StartLocalEnvironmentDependencyJobRequest$Type extends MessageType<StartLo
         message.dependencyId = "";
         message.sourceKind = "";
         message.confirmed = false;
+        message.consumerScope = "";
         if (value !== undefined)
             reflectionMergePartial<StartLocalEnvironmentDependencyJobRequest>(this, message, value);
         return message;
@@ -6523,6 +6533,9 @@ class StartLocalEnvironmentDependencyJobRequest$Type extends MessageType<StartLo
                     break;
                 case /* bool confirmed */ 5:
                     message.confirmed = reader.bool();
+                    break;
+                case /* string consumer_scope */ 6:
+                    message.consumerScope = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -6551,6 +6564,9 @@ class StartLocalEnvironmentDependencyJobRequest$Type extends MessageType<StartLo
         /* bool confirmed = 5; */
         if (message.confirmed !== false)
             writer.tag(5, WireType.Varint).bool(message.confirmed);
+        /* string consumer_scope = 6; */
+        if (message.consumerScope !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.consumerScope);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -6809,7 +6825,8 @@ class RepairLocalEnvironmentDependencyRequest$Type extends MessageType<RepairLoc
             { no: 2, name: "dependency_family", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "dependency_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "confirmed", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 5, name: "reason_code", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 5, name: "reason_code", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "consumer_scope", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<RepairLocalEnvironmentDependencyRequest>): RepairLocalEnvironmentDependencyRequest {
@@ -6819,6 +6836,7 @@ class RepairLocalEnvironmentDependencyRequest$Type extends MessageType<RepairLoc
         message.dependencyId = "";
         message.confirmed = false;
         message.reasonCode = "";
+        message.consumerScope = "";
         if (value !== undefined)
             reflectionMergePartial<RepairLocalEnvironmentDependencyRequest>(this, message, value);
         return message;
@@ -6842,6 +6860,9 @@ class RepairLocalEnvironmentDependencyRequest$Type extends MessageType<RepairLoc
                     break;
                 case /* string reason_code */ 5:
                     message.reasonCode = reader.string();
+                    break;
+                case /* string consumer_scope */ 6:
+                    message.consumerScope = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -6870,6 +6891,9 @@ class RepairLocalEnvironmentDependencyRequest$Type extends MessageType<RepairLoc
         /* string reason_code = 5; */
         if (message.reasonCode !== "")
             writer.tag(5, WireType.LengthDelimited).string(message.reasonCode);
+        /* string consumer_scope = 6; */
+        if (message.consumerScope !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.consumerScope);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

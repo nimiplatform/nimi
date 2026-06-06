@@ -198,7 +198,7 @@ test('Runtime Agent protected presentation surface requests scoped Runtime acces
   });
 
   assert.deepEqual(issuedScopes, [['runtime.agent.write']]);
-  assert.equal(issuedOptions[0]?.metadata?.['x-nimi-protected-access-token-id'], 'token-1');
+  assert.equal(issuedOptions[0]?.metadata?.['x-nimi-access-token-id'], 'token-1');
   assert.equal(requests.length, 1);
 });
 
@@ -482,7 +482,7 @@ test('Runtime Agent inspect surface reads, writes, and subscribes through protec
   assert.ok(issuedScopes.some((scopes) => scopes.join(',') === 'runtime.agent.autonomy.write'));
   assert.ok(issuedScopes.some((scopes) => scopes.join(',') === 'runtime.agent.write'));
   assert.ok(issuedScopes.some((scopes) => scopes.join(',') === 'runtime.agent.read'));
-  assert.equal(issuedOptions[0]?.metadata?.['x-nimi-protected-access-token-id'], 'token-1');
+  assert.equal(issuedOptions[0]?.metadata?.['x-nimi-access-token-id'], 'token-1');
   assert.equal((issuedOptions[0] as Record<string, unknown> | undefined)?.protectedAccessToken, undefined);
 });
 
@@ -572,7 +572,7 @@ test('Runtime Agent smoke verification reads protected anchor snapshot and healt
   });
 
   assert.deepEqual(issuedScopes, [['runtime.agent.read']]);
-  assert.equal(issuedOptions[0]?.metadata?.['x-nimi-protected-access-token-id'], 'token-1');
+  assert.equal(issuedOptions[0]?.metadata?.['x-nimi-access-token-id'], 'token-1');
   assert.equal(healthOptions.length, 1);
   assert.deepEqual(anchorRequests[0], {
     context: {

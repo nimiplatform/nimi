@@ -458,6 +458,7 @@ type LocalEnvironmentPlanDependency struct {
 	CanonicalRoot          string                 `protobuf:"bytes,9,opt,name=canonical_root,json=canonicalRoot,proto3" json:"canonical_root,omitempty"`
 	ReasonCode             string                 `protobuf:"bytes,10,opt,name=reason_code,json=reasonCode,proto3" json:"reason_code,omitempty"`
 	Detail                 string                 `protobuf:"bytes,11,opt,name=detail,proto3" json:"detail,omitempty"`
+	ConsumerScope          string                 `protobuf:"bytes,12,opt,name=consumer_scope,json=consumerScope,proto3" json:"consumer_scope,omitempty"`
 	unknownFields          protoimpl.UnknownFields
 	sizeCache              protoimpl.SizeCache
 }
@@ -565,6 +566,13 @@ func (x *LocalEnvironmentPlanDependency) GetReasonCode() string {
 func (x *LocalEnvironmentPlanDependency) GetDetail() string {
 	if x != nil {
 		return x.Detail
+	}
+	return ""
+}
+
+func (x *LocalEnvironmentPlanDependency) GetConsumerScope() string {
+	if x != nil {
+		return x.ConsumerScope
 	}
 	return ""
 }
@@ -892,6 +900,7 @@ type LocalEnvironmentDependencyJob struct {
 	// Runtime-owned recovery policy projection. Consumers may filter this closed
 	// string but must not parse failure_detail for recovery semantics.
 	RecoveryDisposition string `protobuf:"bytes,19,opt,name=recovery_disposition,json=recoveryDisposition,proto3" json:"recovery_disposition,omitempty"`
+	ConsumerScope       string `protobuf:"bytes,20,opt,name=consumer_scope,json=consumerScope,proto3" json:"consumer_scope,omitempty"`
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }
@@ -1055,6 +1064,13 @@ func (x *LocalEnvironmentDependencyJob) GetReasonCode() string {
 func (x *LocalEnvironmentDependencyJob) GetRecoveryDisposition() string {
 	if x != nil {
 		return x.RecoveryDisposition
+	}
+	return ""
+}
+
+func (x *LocalEnvironmentDependencyJob) GetConsumerScope() string {
+	if x != nil {
+		return x.ConsumerScope
 	}
 	return ""
 }
@@ -1898,7 +1914,7 @@ const file_runtime_v1_local_runtime_device_environment_proto_rawDesc = "" +
 	"\x0fdisk_free_bytes\x18\x06 \x01(\x03R\rdiskFreeBytes\x12<\n" +
 	"\x05ports\x18\a \x03(\v2&.nimi.runtime.v1.LocalPortAvailabilityR\x05ports\x12&\n" +
 	"\x0ftotal_ram_bytes\x18\b \x01(\x03R\rtotalRamBytes\x12.\n" +
-	"\x13available_ram_bytes\x18\t \x01(\x03R\x11availableRamBytes\"\xbe\x03\n" +
+	"\x13available_ram_bytes\x18\t \x01(\x03R\x11availableRamBytes\"\xe5\x03\n" +
 	"\x1eLocalEnvironmentPlanDependency\x12+\n" +
 	"\x11dependency_family\x18\x01 \x01(\tR\x10dependencyFamily\x12#\n" +
 	"\rdependency_id\x18\x02 \x01(\tR\fdependencyId\x12\x1a\n" +
@@ -1913,7 +1929,8 @@ const file_runtime_v1_local_runtime_device_environment_proto_rawDesc = "" +
 	"\vreason_code\x18\n" +
 	" \x01(\tR\n" +
 	"reasonCode\x12\x16\n" +
-	"\x06detail\x18\v \x01(\tR\x06detail\"\xc7\x03\n" +
+	"\x06detail\x18\v \x01(\tR\x06detail\x12%\n" +
+	"\x0econsumer_scope\x18\f \x01(\tR\rconsumerScope\"\xc7\x03\n" +
 	"\x14LocalEnvironmentPlan\x12\x17\n" +
 	"\aplan_id\x18\x01 \x01(\tR\x06planId\x12\x17\n" +
 	"\apack_id\x18\x02 \x01(\tR\x06packId\x12#\n" +
@@ -1950,7 +1967,7 @@ const file_runtime_v1_local_runtime_device_environment_proto_rawDesc = "" +
 	"\x11audit_reason_code\x18\x10 \x01(\tR\x0fauditReasonCode\x1a9\n" +
 	"\vHashesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xd3\x05\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xfa\x05\n" +
 	"\x1dLocalEnvironmentDependencyJob\x12\x15\n" +
 	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12'\n" +
 	"\x0fenvironment_key\x18\x02 \x01(\tR\x0eenvironmentKey\x12+\n" +
@@ -1977,7 +1994,8 @@ const file_runtime_v1_local_runtime_device_environment_proto_rawDesc = "" +
 	"etaSeconds\x12\x1f\n" +
 	"\vreason_code\x18\x12 \x01(\tR\n" +
 	"reasonCode\x121\n" +
-	"\x14recovery_disposition\x18\x13 \x01(\tR\x13recoveryDisposition\"\xe4\x02\n" +
+	"\x14recovery_disposition\x18\x13 \x01(\tR\x13recoveryDisposition\x12%\n" +
+	"\x0econsumer_scope\x18\x14 \x01(\tR\rconsumerScope\"\xe4\x02\n" +
 	"\x1eLocalEnvironmentActivationGate\x12\x1f\n" +
 	"\vconsumer_id\x18\x01 \x01(\tR\n" +
 	"consumerId\x12\x17\n" +

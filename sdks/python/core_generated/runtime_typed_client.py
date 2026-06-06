@@ -3024,6 +3024,7 @@ class LocalEnvironmentDependencyJob:
     eta_seconds: int | None = None
     reason_code: str | None = None
     recovery_disposition: str | None = None
+    consumer_scope: str | None = None
 
 @dataclass(frozen=True)
 class LocalEnvironmentPlan:
@@ -3052,6 +3053,7 @@ class LocalEnvironmentPlanDependency:
     canonical_root: str | None = None
     reason_code: str | None = None
     detail: str | None = None
+    consumer_scope: str | None = None
 
 @dataclass(frozen=True)
 class LocalEnvironmentSelectedSourceRecord:
@@ -4325,6 +4327,7 @@ class RepairLocalEnvironmentDependencyRequest:
     dependency_id: str | None = None
     confirmed: bool | None = None
     reason_code: str | None = None
+    consumer_scope: str | None = None
 
 @dataclass(frozen=True)
 class RepairLocalEnvironmentDependencyResponse:
@@ -5048,6 +5051,7 @@ class StartLocalEnvironmentDependencyJobRequest:
     dependency_id: str | None = None
     source_kind: str | None = None
     confirmed: bool | None = None
+    consumer_scope: str | None = None
 
 @dataclass(frozen=True)
 class StartLocalEnvironmentDependencyJobResponse:

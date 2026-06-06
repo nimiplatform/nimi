@@ -12570,6 +12570,7 @@ pub struct LocalEnvironmentDependencyJob {
     pub eta_seconds: Option<i64>,
     pub reason_code: Option<String>,
     pub recovery_disposition: Option<String>,
+    pub consumer_scope: Option<String>,
 }
 
 impl LocalEnvironmentDependencyJob {
@@ -12594,6 +12595,7 @@ impl LocalEnvironmentDependencyJob {
         if let Some(value) = &self.eta_seconds { pairs.push(format!("eta_seconds={}", value)); }
         if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={}", value)); }
         if let Some(value) = &self.recovery_disposition { pairs.push(format!("recovery_disposition={}", value)); }
+        if let Some(value) = &self.consumer_scope { pairs.push(format!("consumer_scope={}", value)); }
         pairs.join(";").into_bytes()
     }
 
@@ -12619,6 +12621,7 @@ impl LocalEnvironmentDependencyJob {
         out.eta_seconds = pairs.get("eta_seconds").and_then(|value| value.parse().ok());
         out.reason_code = pairs.get("reason_code").cloned();
         out.recovery_disposition = pairs.get("recovery_disposition").cloned();
+        out.consumer_scope = pairs.get("consumer_scope").cloned();
         out
     }
 }
@@ -12684,6 +12687,7 @@ pub struct LocalEnvironmentPlanDependency {
     pub canonical_root: Option<String>,
     pub reason_code: Option<String>,
     pub detail: Option<String>,
+    pub consumer_scope: Option<String>,
 }
 
 impl LocalEnvironmentPlanDependency {
@@ -12700,6 +12704,7 @@ impl LocalEnvironmentPlanDependency {
         if let Some(value) = &self.canonical_root { pairs.push(format!("canonical_root={}", value)); }
         if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={}", value)); }
         if let Some(value) = &self.detail { pairs.push(format!("detail={}", value)); }
+        if let Some(value) = &self.consumer_scope { pairs.push(format!("consumer_scope={}", value)); }
         pairs.join(";").into_bytes()
     }
 
@@ -12717,6 +12722,7 @@ impl LocalEnvironmentPlanDependency {
         out.canonical_root = pairs.get("canonical_root").cloned();
         out.reason_code = pairs.get("reason_code").cloned();
         out.detail = pairs.get("detail").cloned();
+        out.consumer_scope = pairs.get("consumer_scope").cloned();
         out
     }
 }
@@ -17205,6 +17211,7 @@ pub struct RepairLocalEnvironmentDependencyRequest {
     pub dependency_id: Option<String>,
     pub confirmed: Option<bool>,
     pub reason_code: Option<String>,
+    pub consumer_scope: Option<String>,
 }
 
 impl RepairLocalEnvironmentDependencyRequest {
@@ -17215,6 +17222,7 @@ impl RepairLocalEnvironmentDependencyRequest {
         if let Some(value) = &self.dependency_id { pairs.push(format!("dependency_id={}", value)); }
         if let Some(value) = &self.confirmed { pairs.push(format!("confirmed={}", value)); }
         if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={}", value)); }
+        if let Some(value) = &self.consumer_scope { pairs.push(format!("consumer_scope={}", value)); }
         pairs.join(";").into_bytes()
     }
 
@@ -17226,6 +17234,7 @@ impl RepairLocalEnvironmentDependencyRequest {
         out.dependency_id = pairs.get("dependency_id").cloned();
         out.confirmed = pairs.get("confirmed").and_then(|value| value.parse().ok());
         out.reason_code = pairs.get("reason_code").cloned();
+        out.consumer_scope = pairs.get("consumer_scope").cloned();
         out
     }
 }
@@ -19835,6 +19844,7 @@ pub struct StartLocalEnvironmentDependencyJobRequest {
     pub dependency_id: Option<String>,
     pub source_kind: Option<String>,
     pub confirmed: Option<bool>,
+    pub consumer_scope: Option<String>,
 }
 
 impl StartLocalEnvironmentDependencyJobRequest {
@@ -19845,6 +19855,7 @@ impl StartLocalEnvironmentDependencyJobRequest {
         if let Some(value) = &self.dependency_id { pairs.push(format!("dependency_id={}", value)); }
         if let Some(value) = &self.source_kind { pairs.push(format!("source_kind={}", value)); }
         if let Some(value) = &self.confirmed { pairs.push(format!("confirmed={}", value)); }
+        if let Some(value) = &self.consumer_scope { pairs.push(format!("consumer_scope={}", value)); }
         pairs.join(";").into_bytes()
     }
 
@@ -19856,6 +19867,7 @@ impl StartLocalEnvironmentDependencyJobRequest {
         out.dependency_id = pairs.get("dependency_id").cloned();
         out.source_kind = pairs.get("source_kind").cloned();
         out.confirmed = pairs.get("confirmed").and_then(|value| value.parse().ok());
+        out.consumer_scope = pairs.get("consumer_scope").cloned();
         out
     }
 }
