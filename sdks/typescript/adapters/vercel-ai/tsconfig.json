@@ -1,0 +1,29 @@
+{
+  "extends": "../../../../tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "rootDir": ".",
+    "noEmit": true,
+    "paths": {
+      "@nimiplatform/sdk": [
+        "../../index.ts"
+      ],
+      "@nimiplatform/sdk/ai": [
+        "../../core/ai/index.ts"
+      ],
+      "@nimiplatform/sdk/contracts": [
+        "../../core/contracts/index.ts"
+      ]
+    }
+  },
+  "include": [
+    "index.ts",
+    "mappers.ts",
+    "manifest.ts",
+    "vercel-ai.example.ts",
+    "vercel-ai.test.ts"
+  ],
+  "exclude": [
+    "dist"
+  ]
+}
