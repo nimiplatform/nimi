@@ -12,6 +12,13 @@ const args = new Set(process.argv.slice(2));
 const checkMode = args.has('--check');
 
 const profileTablePath = path.join(repoRoot, '.nimi/spec/platform/kernel/tables/ai-profile-factory-catalog.yaml');
+const canonicalCapabilityTablePath = path.join(repoRoot, '.nimi/spec/platform/kernel/tables/canonical-capability-catalog.yaml');
+const hostCapabilityProfilesTablePath = path.join(repoRoot, '.nimi/spec/runtime/kernel/tables/host-capability-profiles.yaml');
+const localComputePacksTablePath = path.join(repoRoot, '.nimi/spec/runtime/kernel/tables/local-compute-packs.yaml');
+const localEnvironmentDependenciesTablePath = path.join(
+  repoRoot,
+  '.nimi/spec/runtime/kernel/tables/local-environment-dependencies.yaml',
+);
 const appRegistryTablePath = path.join(repoRoot, '.nimi/spec/platform/kernel/tables/nimi-app-registry.yaml');
 const appReleaseDescriptorTablePath = path.join(repoRoot, '.nimi/spec/platform/kernel/tables/nimi-app-release-descriptors.yaml');
 const vNextAppOutputPath = path.join(repoRoot, 'sdks/typescript/core/app/platform-catalog.generated.ts');
@@ -154,13 +161,59 @@ function assertAppRegistryRefsResolve(appRows, releaseDescriptorRows) {
   }
 }
 
+function idSetFromRows(rows, idField, label) {
+  return new Set(
+    asArray(rows, label).map((row, index) => asString(row?.[idField], `${label}[${index}].${idField}`)),
+  );
+}
+
+function assertRefsResolve(refs, admittedIds, rowAlias, fieldName) {
+  for (const ref of refs) {
+    if (!admittedIds.has(ref)) {
+      throw new Error(`factory AIProfile ${rowAlias}.${fieldName} does not resolve: ${ref}`);
+    }
+  }
+}
+
+function assertFactoryCatalogRefsResolve(factoryRows, referenceDocs) {
+  const capabilityIds = idSetFromRows(
+    referenceDocs.canonicalCapabilities?.capabilities,
+    'capabilityId',
+    'canonical capability rows',
+  );
+  const hostProfileIds = idSetFromRows(
+    referenceDocs.hostCapabilityProfiles?.profiles,
+    'profile_id',
+    'host capability profile rows',
+  );
+  const localComputePackIds = idSetFromRows(
+    referenceDocs.localComputePacks?.packs,
+    'pack_id',
+    'local compute pack rows',
+  );
+  const dependencyFamilyIds = idSetFromRows(
+    referenceDocs.localEnvironmentDependencies?.dependency_families,
+    'family_id',
+    'local environment dependency rows',
+  );
+
+  for (const row of factoryRows) {
+    assertRefsResolve(row.capabilitySet, capabilityIds, row.alias, 'capability_set');
+    assertRefsResolve(row.hostCapabilityProfileRefs, hostProfileIds, row.alias, 'host_capability_profile_refs');
+    assertRefsResolve(row.localComputePackRefs, localComputePackIds, row.alias, 'local_compute_pack_refs');
+    assertRefsResolve(row.dependencyFamilyRefs, dependencyFamilyIds, row.alias, 'dependency_family_refs');
+  }
+}
+
 function deriveAiProfiles(factoryRows) {
   return factoryRows.map((profile) => ({
     profileId: profile.alias,
     title: titleFromAlias(profile.alias),
-    description: `Factory AIProfile: ${profile.alias}`,
+    description: `Factory AIProfile selection hint: ${profile.alias}`,
     tags: [
       'factory-ai-profile',
+      'factory-ai-profile-selection-hint',
+      'setup-required',
       profile.privacyPosture,
       profile.computePosture,
       profile.routingPolicy,
@@ -168,9 +221,16 @@ function deriveAiProfiles(factoryRows) {
     capabilities: Object.fromEntries(
       profile.capabilitySet.map((capability) => [
         capability,
-        {},
+        {
+          readinessPolicy: 'required',
+          contractState: 'proposed',
+        },
       ]),
     ),
+    projectionWarnings: [
+      'factory_ai_profile_selection_hint',
+      'runtime_prepare_required_before_live_config',
+    ],
   }));
 }
 
@@ -462,12 +522,30 @@ function formatRust(source) {
 }
 
 async function main() {
-  const [profileDoc, appRegistryDoc, releaseDescriptorDoc] = await Promise.all([
+  const [
+    profileDoc,
+    canonicalCapabilityDoc,
+    hostCapabilityProfileDoc,
+    localComputePackDoc,
+    localEnvironmentDependencyDoc,
+    appRegistryDoc,
+    releaseDescriptorDoc,
+  ] = await Promise.all([
     readYaml(profileTablePath),
+    readYaml(canonicalCapabilityTablePath),
+    readYaml(hostCapabilityProfilesTablePath),
+    readYaml(localComputePacksTablePath),
+    readYaml(localEnvironmentDependenciesTablePath),
     readYaml(appRegistryTablePath),
     readYaml(appReleaseDescriptorTablePath),
   ]);
   const factoryRows = normalizeAIProfileFactoryRows(profileDoc);
+  assertFactoryCatalogRefsResolve(factoryRows, {
+    canonicalCapabilities: canonicalCapabilityDoc,
+    hostCapabilityProfiles: hostCapabilityProfileDoc,
+    localComputePacks: localComputePackDoc,
+    localEnvironmentDependencies: localEnvironmentDependencyDoc,
+  });
   const appRows = normalizeNimiAppRegistryRows(appRegistryDoc);
   const releaseDescriptorRows = normalizeNimiAppReleaseDescriptorRows(releaseDescriptorDoc);
   assertAppRegistryRefsResolve(appRows, releaseDescriptorRows);

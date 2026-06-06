@@ -2,6 +2,11 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import {
+  createNimiAIScopeRef,
+  previewNimiAIProfileApply,
+  type NimiAICapabilityRequirementDeclaration,
+} from '../ai/index';
+import {
   NimiAppClient,
   PermissionClient,
   NimiAppRegistryTransportError,
@@ -11,6 +16,7 @@ import {
   createPermissionClient,
   createScopeCatalogModule,
   isAdmittedNimiFirstRunLocalBaseline,
+  loadNimiAppAIProfileFactoryCatalog,
   loadNimiAppRegistryRows,
   loadNimiAppReleaseDescriptorRows,
   parseNimiAppAccountLibraryRecord,
@@ -689,5 +695,43 @@ describe('vNext app surface', () => {
     assert.equal(isAdmittedNimiFirstRunLocalBaseline(local), true);
     assert.equal(isAdmittedNimiFirstRunLocalBaseline(cloudVideo), false);
     assert.equal(selectNimiAppFactoryAIProfileForFirstRun([cloudVideo, local])?.alias, 'local-small');
+  });
+
+  it('projects generated factory AIProfiles as explicit setup-required selection hints', () => {
+    const profiles = loadNimiAppAIProfileFactoryCatalog();
+    const profile = profiles.find((candidate) => candidate.profileId === 'local-speech-ready');
+    assert.ok(profile, 'expected generated local-speech-ready factory profile');
+    assert.match(profile.description ?? '', /selection hint/);
+    assert.equal(profile.tags?.includes('factory-ai-profile-selection-hint'), true);
+    assert.equal(profile.projectionWarnings?.includes('runtime_prepare_required_before_live_config'), true);
+
+    for (const [capability, intent] of Object.entries(profile.capabilities)) {
+      assert.ok(intent, `expected non-empty capability intent for ${capability}`);
+      assert.equal(intent.contractState, 'proposed');
+      assert.equal(intent.readinessPolicy, 'required');
+      assert.equal(intent.targetRef, undefined);
+    }
+
+    const scopeRef = createNimiAIScopeRef({ kind: 'app', ownerId: 'dev.nimi.factory-profile-audit' });
+    const requirementDeclarations: readonly NimiAICapabilityRequirementDeclaration[] = [{
+      requirementId: 'factory-profile-audit.requirements',
+      scopeRef,
+      requiredSlices: [{
+        requirementSliceId: 'factory-profile-audit.text.generate',
+        capability: 'text.generate',
+        profileSliceRef: 'capabilities.text.generate',
+        readinessPolicy: 'required',
+      }],
+      setupProjectionPolicy: 'setup-required',
+    }];
+    const preview = previewNimiAIProfileApply({
+      before: null,
+      scopeRef,
+      profile,
+      requirementDeclarations,
+    });
+    assert.equal(preview.outcome, 'setup_required_no_live_config');
+    assert.deepEqual(preview.setupProjection?.reasonCodes, ['product_state_proposed']);
+    assert.equal(preview.after, null);
   });
 });

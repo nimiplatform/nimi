@@ -259,93 +259,201 @@ export const NIMI_APP_AI_PROFILE_FACTORY_CATALOG = [
   {
     "profileId": "cloud-first",
     "title": "Cloud First",
-    "description": "Factory AIProfile: cloud-first",
+    "description": "Factory AIProfile selection hint: cloud-first",
     "tags": [
       "factory-ai-profile",
+      "factory-ai-profile-selection-hint",
+      "setup-required",
       "cloud-ok",
       "cloud-only",
       "cloud-first"
     ],
     "capabilities": {
-      "text.generate": {},
-      "text.generate.vision": {},
-      "text.embed": {},
-      "audio.synthesize": {},
-      "audio.transcribe": {},
-      "image.generate": {},
-      "image.edit": {}
-    }
+      "text.generate": {
+        "readinessPolicy": "required",
+        "contractState": "proposed"
+      },
+      "text.generate.vision": {
+        "readinessPolicy": "required",
+        "contractState": "proposed"
+      },
+      "text.embed": {
+        "readinessPolicy": "required",
+        "contractState": "proposed"
+      },
+      "audio.synthesize": {
+        "readinessPolicy": "required",
+        "contractState": "proposed"
+      },
+      "audio.transcribe": {
+        "readinessPolicy": "required",
+        "contractState": "proposed"
+      },
+      "image.generate": {
+        "readinessPolicy": "required",
+        "contractState": "proposed"
+      },
+      "image.edit": {
+        "readinessPolicy": "required",
+        "contractState": "proposed"
+      }
+    },
+    "projectionWarnings": [
+      "factory_ai_profile_selection_hint",
+      "runtime_prepare_required_before_live_config"
+    ]
   },
   {
     "profileId": "local-standard",
     "title": "Local Standard",
-    "description": "Factory AIProfile: local-standard",
+    "description": "Factory AIProfile selection hint: local-standard",
     "tags": [
       "factory-ai-profile",
+      "factory-ai-profile-selection-hint",
+      "setup-required",
       "local-preferred",
       "cpu-only",
       "local-first"
     ],
     "capabilities": {
-      "text.generate": {},
-      "text.embed": {}
-    }
+      "text.generate": {
+        "readinessPolicy": "required",
+        "contractState": "proposed"
+      },
+      "text.embed": {
+        "readinessPolicy": "required",
+        "contractState": "proposed"
+      }
+    },
+    "projectionWarnings": [
+      "factory_ai_profile_selection_hint",
+      "runtime_prepare_required_before_live_config"
+    ]
   },
   {
     "profileId": "local-speech-ready",
     "title": "Local Speech Ready",
-    "description": "Factory AIProfile: local-speech-ready",
+    "description": "Factory AIProfile selection hint: local-speech-ready",
     "tags": [
       "factory-ai-profile",
+      "factory-ai-profile-selection-hint",
+      "setup-required",
       "local-preferred",
       "cpu-only",
       "local-first"
     ],
     "capabilities": {
-      "text.generate": {},
-      "audio.transcribe": {},
-      "audio.synthesize": {}
-    }
+      "text.generate": {
+        "readinessPolicy": "required",
+        "contractState": "proposed"
+      },
+      "audio.transcribe": {
+        "readinessPolicy": "required",
+        "contractState": "proposed"
+      },
+      "audio.synthesize": {
+        "readinessPolicy": "required",
+        "contractState": "proposed"
+      }
+    },
+    "projectionWarnings": [
+      "factory_ai_profile_selection_hint",
+      "runtime_prepare_required_before_live_config"
+    ]
   },
   {
     "profileId": "local-gpu",
     "title": "Local Gpu",
-    "description": "Factory AIProfile: local-gpu",
+    "description": "Factory AIProfile selection hint: local-gpu",
     "tags": [
       "factory-ai-profile",
+      "factory-ai-profile-selection-hint",
+      "setup-required",
       "local-preferred",
       "cuda-capable",
       "local-first"
     ],
     "capabilities": {
-      "text.generate": {},
-      "text.generate.vision": {},
-      "audio.transcribe": {},
-      "audio.synthesize": {},
-      "image.generate": {},
-      "image.edit": {}
-    }
+      "text.generate": {
+        "readinessPolicy": "required",
+        "contractState": "proposed"
+      },
+      "text.generate.vision": {
+        "readinessPolicy": "required",
+        "contractState": "proposed"
+      },
+      "audio.transcribe": {
+        "readinessPolicy": "required",
+        "contractState": "proposed"
+      },
+      "audio.synthesize": {
+        "readinessPolicy": "required",
+        "contractState": "proposed"
+      },
+      "image.generate": {
+        "readinessPolicy": "required",
+        "contractState": "proposed"
+      },
+      "image.edit": {
+        "readinessPolicy": "required",
+        "contractState": "proposed"
+      }
+    },
+    "projectionWarnings": [
+      "factory_ai_profile_selection_hint",
+      "runtime_prepare_required_before_live_config"
+    ]
   },
   {
     "profileId": "hybrid-recommended",
     "title": "Hybrid Recommended",
-    "description": "Factory AIProfile: hybrid-recommended",
+    "description": "Factory AIProfile selection hint: hybrid-recommended",
     "tags": [
       "factory-ai-profile",
+      "factory-ai-profile-selection-hint",
+      "setup-required",
       "cloud-ok",
       "cuda-capable",
       "hybrid-explicit"
     ],
     "capabilities": {
-      "text.generate": {},
-      "text.generate.vision": {},
-      "text.embed": {},
-      "audio.transcribe": {},
-      "audio.synthesize": {},
-      "image.generate": {},
-      "image.edit": {},
-      "video.generate": {}
-    }
+      "text.generate": {
+        "readinessPolicy": "required",
+        "contractState": "proposed"
+      },
+      "text.generate.vision": {
+        "readinessPolicy": "required",
+        "contractState": "proposed"
+      },
+      "text.embed": {
+        "readinessPolicy": "required",
+        "contractState": "proposed"
+      },
+      "audio.transcribe": {
+        "readinessPolicy": "required",
+        "contractState": "proposed"
+      },
+      "audio.synthesize": {
+        "readinessPolicy": "required",
+        "contractState": "proposed"
+      },
+      "image.generate": {
+        "readinessPolicy": "required",
+        "contractState": "proposed"
+      },
+      "image.edit": {
+        "readinessPolicy": "required",
+        "contractState": "proposed"
+      },
+      "video.generate": {
+        "readinessPolicy": "required",
+        "contractState": "proposed"
+      }
+    },
+    "projectionWarnings": [
+      "factory_ai_profile_selection_hint",
+      "runtime_prepare_required_before_live_config"
+    ]
   }
 ] as const satisfies readonly NimiAIProfile[];
 
