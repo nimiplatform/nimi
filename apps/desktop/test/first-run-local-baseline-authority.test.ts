@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 
-import { isProductControlTransientState } from '@nimiplatform/sdk';
+import { isNimiProductControlTransientState } from '@nimiplatform/sdk/runtime';
 
 const appRoutesSource = fs.readFileSync(
   path.join(import.meta.dirname, '../src/shell/renderer/app-shell/routes/app-routes.tsx'),
@@ -46,7 +46,7 @@ const desktopPathsSource = fs.readFileSync(
 );
 
 test('Nimi Home first-run selection is install-level aware and fail-closed against stale cloud rows', () => {
-  assert.match(productControlWorkflowSource, /from '@nimiplatform\/sdk\/platform-catalog'/);
+  assert.match(productControlWorkflowSource, /from '@nimiplatform\/sdk\/app'/);
   assert.doesNotMatch(productControlWorkflowSource, /install-level-policy/);
 });
 
@@ -60,7 +60,7 @@ test('first-run wizard exposes data root selection, install levels, and no mark-
   assert.match(productControlWorkflowSource, /pickProductDataRootDirectory/);
   assert.match(productControlWorkflowSource, /setProductFirstRunInstallLevel/);
   assert.match(productControlWorkflowSource, /reconcileProductFirstRunSetupState/);
-  assert.match(productControlWorkflowSource, /startFirstRunMaterialization/);
+  assert.match(productControlWorkflowSource, /startDesktopNimiFirstRunMaterialization/);
   // The two admitted install levels are still the only ones presented.
   assert.match(productControlWorkflowSource, /'minimal'/);
   assert.match(productControlWorkflowSource, /'recommended'/);
@@ -90,8 +90,8 @@ test('config_missing is an internal transient and does not expose the data-root 
   // into the Storage phase as a transient (`isTransientSystemState`), so it
   // never presents the interactive folder-choose control. `data_root_missing`
   // is the first user-action data-root state.
-  assert.equal(isProductControlTransientState('config_missing'), true);
-  assert.equal(isProductControlTransientState('data_root_missing'), false);
+  assert.equal(isNimiProductControlTransientState('config_missing'), true);
+  assert.equal(isNimiProductControlTransientState('data_root_missing'), false);
   // The Storage phase swaps to a transient loading affordance and hides the
   // folder-choose control when the phase is transient.
   const storagePhaseSource = fs.readFileSync(

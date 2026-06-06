@@ -1,42 +1,38 @@
 /**
- * Shared Desktop host AIConfig service (S-AICONF-001~006).
+ * Shared Desktop host NimiAIConfig service (S-AICONF-001~006).
  *
- * Desktop host owns app scope AIConfig and AISnapshot persistence here.
+ * Desktop host owns app scope NimiAIConfig and NimiAISnapshot persistence here.
  * Chat and runtime-config callers consume this service;
  * none of them own the underlying persistence authority.
  */
 
 import {
-  applyAIProfileToConfig,
-  createBuiltInChatAIScopeRef,
-  computeAIConfigVersion,
-  createEmptyAIConfig,
-  createHostAIProfileSurface,
-  validateAIProfile,
-  type AIConfig,
-  type AIConfigProbeResult,
-  type AIConfigSDKSurface,
-  type AIConfigSurface,
-  type AIProfile,
-  type AIProfileSurface,
-  type AIProbeStatus,
-  type AIScopeRef,
-  type AISnapshot,
-  type AISnapshotSurface,
-  createAIConfigSubscriptionRegistry,
+  applyNimiAIProfileToConfig,
+  createEmptyNimiAIConfig,
+  createNimiAIConfigSubscriptionRegistry,
+  createNimiAIRuntimeEvidence,
+  createNimiBuiltInChatAIScopeRef,
+  previewNimiAIProfileApply,
+  validateNimiAIProfile,
+  versionNimiAIConfig,
+  type NimiAIConfig,
+  type NimiAIConfigProbeResult,
+  type NimiAIProfile,
+  type NimiAIProfileApplyOptions,
+  type NimiAIProfileApplyResult,
+  type NimiAIProfilePreviewResult,
+  type NimiAIProfileValidationResult,
+  type NimiAIProbeStatus,
+  type NimiAIRuntimeEvidence,
+  type NimiAISchedulingEvaluationTarget,
+  type NimiAISchedulingJudgement,
+  type NimiAIScopeRef,
+  type NimiAISnapshot,
 } from '@nimiplatform/sdk/ai';
-import type {
-  AISchedulingEvaluationTarget,
-  AISchedulingJudgement,
-  AIRuntimeEvidence,
-} from '@nimiplatform/sdk/runtime';
 import {
-  createAIRuntimeEvidence,
-} from '@nimiplatform/sdk/runtime';
-import {
-  loadPlatformAIProfileFactoryCatalog,
-  loadPlatformAIProfileFactoryRows,
-} from '@nimiplatform/sdk/platform-catalog';
+  loadNimiAppAIProfileFactoryCatalog,
+  loadNimiAppAIProfileFactoryRows,
+} from '@nimiplatform/sdk/app';
 import {
   listPersistedScopeKeys,
   loadAIConfigForScope,
@@ -61,11 +57,11 @@ import {
 } from './desktop-ai-config-first-launch.js';
 
 import {
-  normalizeRuntimeSchedulingTarget,
+  normalizeNimiAISchedulingTarget,
   peekDesktopRuntimeAggregateSchedulingJudgement,
   peekDesktopRuntimeSchedulingBatch,
-  resolveAIConfigRuntimeSchedulingTargets,
-  runtimeSchedulingTargetsEqual,
+  resolveNimiAIConfigRuntimeSchedulingTargets,
+  nimiAISchedulingTargetsEqual,
 } from './desktop-ai-config-scheduling.js';
 
 // ---------------------------------------------------------------------------
@@ -73,27 +69,63 @@ import {
 // ---------------------------------------------------------------------------
 
 const snapshotStore = createDesktopAISnapshotStore();
-const configSubscriptions = createAIConfigSubscriptionRegistry({
-  resolveScopeKey: (config) => scopeKey(config.scopeRef),
-});
+const configSubscriptions = createNimiAIConfigSubscriptionRegistry();
 
-function scopeKey(ref: AIScopeRef): string {
+function scopeKey(ref: NimiAIScopeRef): string {
   return scopeKeyFromRef(ref);
 }
 
 /** In-memory config map keyed by scope key string. */
-const configByScope = new Map<string, AIConfig>();
+const configByScope = new Map<string, NimiAIConfig>();
 const materializedScopeKeys = new Set<string>();
 
 const CORE_RUNTIME_PROFILE_OWNER_ID = 'core:runtime';
 const DESKTOP_RUNTIME_APP_ID = 'nimi.desktop';
+
+export type DesktopAIProfileSurface = {
+  list(): Promise<NimiAIProfile[]>;
+  get(profileId: string): Promise<NimiAIProfile | null>;
+  validate(profile: NimiAIProfile): NimiAIProfileValidationResult;
+  previewApply(scopeRef: NimiAIScopeRef, profileId: string): Promise<NimiAIProfilePreviewResult>;
+  apply(
+    scopeRef: NimiAIScopeRef,
+    profileId: string,
+    options?: NimiAIProfileApplyOptions,
+  ): Promise<NimiAIProfileApplyResult>;
+  resolveLocalDependencies(profileId: string): Promise<readonly unknown[]>;
+};
+
+export type DesktopAIConfigSurface = {
+  get(scopeRef: NimiAIScopeRef): NimiAIConfig;
+  update(scopeRef: NimiAIScopeRef, config: NimiAIConfig): void;
+  listScopes(): readonly NimiAIScopeRef[];
+  probe(scopeRef: NimiAIScopeRef): Promise<NimiAIConfigProbeResult>;
+  probeFeasibility(scopeRef: NimiAIScopeRef): Promise<NimiAIConfigProbeResult>;
+  probeSchedulingTarget(
+    scopeRef: NimiAIScopeRef,
+    target: NimiAISchedulingEvaluationTarget,
+  ): Promise<NimiAISchedulingJudgement | null>;
+  subscribe(scopeRef: NimiAIScopeRef, callback: (config: NimiAIConfig) => void): () => void;
+};
+
+export type DesktopAISnapshotSurface = {
+  record(snapshot: NimiAISnapshot): void;
+  get(executionId: string): NimiAISnapshot | null;
+  getLatest(scopeRef: NimiAIScopeRef): NimiAISnapshot | null;
+};
+
+export type DesktopAIConfigSDKSurface = {
+  aiProfile: DesktopAIProfileSurface;
+  aiConfig: DesktopAIConfigSurface;
+  aiSnapshot: DesktopAISnapshotSurface;
+};
 
 /**
  * App store sync callback. Set by `bindDesktopAIConfigAppStore()` at bootstrap time.
  * Receives the scope key and new config so the store can decide whether
  * to update (e.g. the Zustand store only tracks the "active" scope).
  */
-let appStoreSetter: ((scopeKey: string, config: AIConfig) => void) | null = null;
+let appStoreSetter: ((scopeKey: string, config: NimiAIConfig) => void) | null = null;
 
 /** Bootstrap: load all persisted scopes into memory. */
 function ensureHydrated(): void {
@@ -109,11 +141,11 @@ function ensureHydrated(): void {
 }
 
 /**
- * True when the scope already has a persisted (or in-memory) AIConfig.
+ * True when the scope already has a persisted (or in-memory) NimiAIConfig.
  * Used by `previewApply` to decide whether `before` is a real config or an
  * explicit `null` first-apply (D-AIPC-014).
  */
-function scopeHasPersistedConfig(scopeRef: AIScopeRef): boolean {
+function scopeHasPersistedConfig(scopeRef: NimiAIScopeRef): boolean {
   ensureHydrated();
   const key = scopeKey(scopeRef);
   if (materializedScopeKeys.has(key)) {
@@ -125,7 +157,7 @@ function scopeHasPersistedConfig(scopeRef: AIScopeRef): boolean {
 /**
  * Get the in-memory config for a scope, loading from persistence if needed.
  */
-function getConfigForScope(scopeRef: AIScopeRef): AIConfig {
+function getConfigForScope(scopeRef: NimiAIScopeRef): NimiAIConfig {
   ensureHydrated();
   const key = scopeKey(scopeRef);
   const existing = configByScope.get(key);
@@ -138,17 +170,17 @@ function getConfigForScope(scopeRef: AIScopeRef): AIConfig {
 
 /**
  * Unified config commit: persistence + in-memory + app store + subscribers.
- * This is the single write path for AIConfig. No caller outside this module
+ * This is the single write path for NimiAIConfig. No caller outside this module
  * should write to persistence or app store directly for config mutations.
  */
-function commitConfig(config: AIConfig, options?: { readonly expectedBaseVersion?: string }): void {
+function commitConfig(config: NimiAIConfig, options?: { readonly expectedBaseVersion?: string }): void {
   const key = scopeKey(config.scopeRef);
   const expectedBaseVersion = options?.expectedBaseVersion?.trim();
   if (expectedBaseVersion) {
     const current = getConfigForScope(config.scopeRef);
-    const currentVersion = computeAIConfigVersion(current);
+    const currentVersion = versionNimiAIConfig(current);
     if (currentVersion !== expectedBaseVersion) {
-      throw new Error('AIConfig CAS conflict: baseVersion is stale');
+      throw new Error('NimiAIConfig CAS conflict: baseVersion is stale');
     }
   }
   persistAIConfigForScope(config);
@@ -160,7 +192,7 @@ function commitConfig(config: AIConfig, options?: { readonly expectedBaseVersion
   configSubscriptions.notify(config);
 }
 
-export function pushDesktopAIConfigToBoundStore(scopeRef: AIScopeRef): void {
+export function pushDesktopAIConfigToBoundStore(scopeRef: NimiAIScopeRef): void {
   if (!appStoreSetter) {
     return;
   }
@@ -168,14 +200,14 @@ export function pushDesktopAIConfigToBoundStore(scopeRef: AIScopeRef): void {
 }
 
 /**
- * AIConfig scope-init rule (product manual "Profile And AIConfig Model").
+ * NimiAIConfig scope-init rule (product manual "Profile And NimiAIConfig Model").
  *
- * A new AIConfig scope initializes its config from the Account Default Profile
- * ONLY when no prior `AIConfig` exists for that scope. When the scope already
- * has a persisted (or in-memory) `AIConfig`, this is a no-op — the scope's
+ * A new NimiAIConfig scope initializes its config from the Account Default Profile
+ * ONLY when no prior `NimiAIConfig` exists for that scope. When the scope already
+ * has a persisted (or in-memory) `NimiAIConfig`, this is a no-op — the scope's
  * config is never re-initialized and never silently overwritten by a Default
  * Profile change. Editing/replacing the Account Default Profile therefore never
- * mutates an existing scope's `AIConfig`.
+ * mutates an existing scope's `NimiAIConfig`.
  *
  * The Account Default Profile content is the verified durable `default.json`
  * record resolved through the Rust host; the renderer never reconstructs it
@@ -185,21 +217,21 @@ export function pushDesktopAIConfigToBoundStore(scopeRef: AIScopeRef): void {
  * Account Default Profile, `false` when the scope already had a config.
  */
 export async function initializeScopeFromAccountDefaultProfile(
-  scopeRef: AIScopeRef,
+  scopeRef: NimiAIScopeRef,
 ): Promise<boolean> {
-  // Never re-initialize / overwrite a scope that already has an AIConfig.
+  // Never re-initialize / overwrite a scope that already has an NimiAIConfig.
   if (scopeHasPersistedConfig(scopeRef)) {
     return false;
   }
   const accountDefaultProfile = await getAccountDefaultProfileForScopeInit();
-  const profile: AIProfile = {
+  const profile: NimiAIProfile = {
     profileId: accountDefaultProfile.profileId,
     title: accountDefaultProfile.title,
     description: accountDefaultProfile.description,
-    tags: [...accountDefaultProfile.tags],
-    capabilities: accountDefaultProfile.capabilities as AIProfile['capabilities'],
+    tags: [...(accountDefaultProfile.tags ?? [])],
+    capabilities: accountDefaultProfile.capabilities as NimiAIProfile['capabilities'],
   };
-  const validation = validateAIProfile(profile);
+  const validation = validateNimiAIProfile(profile);
   if (!validation.valid) {
     throw new Error(
       `Account Default Profile is schema-invalid: ${validation.errors.join(', ')}`,
@@ -210,13 +242,13 @@ export async function initializeScopeFromAccountDefaultProfile(
   if (scopeHasPersistedConfig(scopeRef)) {
     return false;
   }
-  const initialConfig = applyAIProfileToConfig(createEmptyAIConfig(scopeRef), profile);
+  const initialConfig = applyNimiAIProfileToConfig(createEmptyNimiAIConfig(scopeRef), profile);
   commitConfig(initialConfig);
   return true;
 }
 
 export async function initializeBuiltInChatScopeFromProductControl(
-  scopeRef: AIScopeRef,
+  scopeRef: NimiAIScopeRef,
 ): Promise<boolean> {
   if (scopeRef.kind !== 'feature'
     || scopeRef.ownerId !== 'desktop.chat'
@@ -241,8 +273,8 @@ export function initializeBuiltInChatScopesFromProductControl(): Promise<void> {
     return builtInChatScopeInitializationInFlight;
   }
   builtInChatScopeInitializationInFlight = Promise.all([
-    initializeBuiltInChatScopeFromProductControl(createBuiltInChatAIScopeRef('nimi')),
-    initializeBuiltInChatScopeFromProductControl(createBuiltInChatAIScopeRef('agent')),
+    initializeBuiltInChatScopeFromProductControl(createNimiBuiltInChatAIScopeRef('nimi')),
+    initializeBuiltInChatScopeFromProductControl(createNimiBuiltInChatAIScopeRef('agent')),
   ]).then(() => undefined)
     .finally(() => {
       builtInChatScopeInitializationInFlight = null;
@@ -251,28 +283,28 @@ export function initializeBuiltInChatScopesFromProductControl(): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
-// Per-app first-launch AIConfig initialization (S-AICONF-009)
+// Per-app first-launch NimiAIConfig initialization (S-AICONF-009)
 // ---------------------------------------------------------------------------
 
 /**
- * Initialize a Nimi App's per-app AIConfig on first launch (S-AICONF-009).
+ * Initialize a Nimi App's per-app NimiAIConfig on first launch (S-AICONF-009).
  *
  * Wires the host-agnostic SDK helper `ensureAppFirstLaunchAIConfig` to the
- * Desktop host AIConfig persistence:
+ * Desktop host NimiAIConfig persistence:
  *  - the init scope is the canonical `P-AISC-007` app shape;
- *  - an existing per-app AIConfig is returned unchanged and NEVER overwritten
+ *  - an existing per-app NimiAIConfig is returned unchanged and NEVER overwritten
  *    on any later launch — a changed Default Profile or registry
  *    `ai_profile_selection_ref` cannot re-initialize it;
- *  - first launch materializes the scope's AIConfig from the recommended
+ *  - first launch materializes the scope's NimiAIConfig from the recommended
  *    factory profile when declared + resolvable + manifest-satisfied, else
  *    from the Account Default Profile (`P-AIPS-013`), via the typed
  *    atomic-overwrite apply path (`commitConfig`);
  *  - when neither resolves, it fails closed with a typed error — no
- *    synthesized, empty, or placeholder AIConfig and no launch;
+ *    synthesized, empty, or placeholder NimiAIConfig and no launch;
  *  - unmet manifest requirements surface as a typed setup/repair plan.
  *
  * The runtime install path does not call this — install handles package
- * readiness only and must not mutate AIConfig (S-AICONF-009 `MUST NOT`,
+ * readiness only and must not mutate NimiAIConfig (S-AICONF-009 `MUST NOT`,
  * `K-APP-011`). The app Open / launch path is the caller.
  */
 export async function ensureAppFirstLaunchAIConfig(
@@ -287,20 +319,108 @@ export async function ensureAppFirstLaunchAIConfig(
 }
 
 // ---------------------------------------------------------------------------
-// AIProfile surface implementation (S-AICONF-001 catalog + apply)
+// NimiAIProfile surface implementation (S-AICONF-001 catalog + apply)
 // ---------------------------------------------------------------------------
 
-function createAIProfileSurface(): AIProfileSurface {
-  return createHostAIProfileSurface({
-    listProfiles: () => loadPlatformAIProfileFactoryCatalog(),
-    hasConfig: (scopeRef) => scopeHasPersistedConfig(scopeRef),
-    loadConfig: (scopeRef) => getConfigForScope(scopeRef),
-    saveConfig: (_scopeRef, config, options) => {
-      commitConfig(config, options);
-      return config;
+function resolveFactoryAIProfile(profileId: string): NimiAIProfile | null {
+  const normalizedProfileId = String(profileId || '').trim();
+  if (!normalizedProfileId) {
+    return null;
+  }
+  return loadNimiAppAIProfileFactoryCatalog()
+    .find((profile) => profile.profileId === normalizedProfileId) ?? null;
+}
+
+function createMissingProfileApplyResult(profileId: string): NimiAIProfileApplyResult {
+  return {
+    success: false,
+    config: null,
+    failureReason: `profile_not_found:${profileId}`,
+    outcome: 'failed',
+    probeWarnings: [`AI profile not found: ${profileId}`],
+  };
+}
+
+function createAIProfileSurface(): DesktopAIProfileSurface {
+  async function previewApply(
+    scopeRef: NimiAIScopeRef,
+    profileId: string,
+  ): Promise<NimiAIProfilePreviewResult> {
+    const profile = resolveFactoryAIProfile(profileId);
+    if (!profile) {
+      return {
+        before: scopeHasPersistedConfig(scopeRef) ? getConfigForScope(scopeRef) : null,
+        after: null,
+        outcome: 'failed',
+        diff: { identical: true, fields: [] },
+        baseVersion: versionNimiAIConfig(getConfigForScope(scopeRef)),
+        probeWarnings: [`AI profile not found: ${profileId}`],
+      };
+    }
+    return previewNimiAIProfileApply({
+      before: scopeHasPersistedConfig(scopeRef) ? getConfigForScope(scopeRef) : null,
+      scopeRef,
+      profile,
+    });
+  }
+
+  return {
+    async list(): Promise<NimiAIProfile[]> {
+      return [...loadNimiAppAIProfileFactoryCatalog()];
     },
-    resolveLocalDependencies: async (profileId: string): Promise<unknown[]> => {
-      const row = loadPlatformAIProfileFactoryRows().find((candidate) => candidate.alias === profileId);
+
+    async get(profileId: string): Promise<NimiAIProfile | null> {
+      return resolveFactoryAIProfile(profileId);
+    },
+
+    validate(profile: NimiAIProfile): NimiAIProfileValidationResult {
+      return validateNimiAIProfile(profile);
+    },
+
+    previewApply,
+
+    async apply(
+      scopeRef: NimiAIScopeRef,
+      profileId: string,
+      options: NimiAIProfileApplyOptions = {},
+    ): Promise<NimiAIProfileApplyResult> {
+      const preview = await previewApply(scopeRef, profileId);
+      if (preview.outcome === 'failed') {
+        return createMissingProfileApplyResult(profileId);
+      }
+      if (preview.outcome !== 'ready_to_apply' || !preview.after) {
+        return {
+          success: false,
+          config: null,
+          failureReason: preview.outcome,
+          outcome: preview.outcome,
+          setupProjection: preview.setupProjection,
+          probeWarnings: preview.probeWarnings,
+        };
+      }
+      if (options.expectedBaseVersion && options.expectedBaseVersion !== preview.baseVersion) {
+        return {
+          success: false,
+          config: null,
+          failureReason: 'stale_base',
+          outcome: 'stale_base',
+          probeWarnings: [],
+        };
+      }
+      commitConfig(preview.after, options.expectedBaseVersion
+        ? { expectedBaseVersion: options.expectedBaseVersion }
+        : undefined);
+      return {
+        success: true,
+        config: getConfigForScope(scopeRef),
+        failureReason: null,
+        outcome: 'ready_to_apply',
+        probeWarnings: [],
+      };
+    },
+
+    async resolveLocalDependencies(profileId: string): Promise<readonly unknown[]> {
+      const row = loadNimiAppAIProfileFactoryRows().find((candidate) => candidate.alias === profileId);
       if (!row) {
         return [];
       }
@@ -309,31 +429,31 @@ function createAIProfileSurface(): AIProfileSurface {
         ...row.dependencyFamilyRefs.map((ref) => ({ kind: 'dependency-family', ref })),
       ];
     },
-  });
+  };
 }
 
 // ---------------------------------------------------------------------------
-// AIConfig surface implementation (S-AICONF-001 config CRUD + probe)
+// NimiAIConfig surface implementation (S-AICONF-001 config CRUD + probe)
 // ---------------------------------------------------------------------------
 
-function createAIConfigSurface(): AIConfigSurface {
+function createAIConfigSurface(): DesktopAIConfigSurface {
   return {
-    get(scopeRef: AIScopeRef): AIConfig {
+    get(scopeRef: NimiAIScopeRef): NimiAIConfig {
       return getConfigForScope(scopeRef);
     },
 
-    update(scopeRef: AIScopeRef, config: AIConfig): void {
+    update(scopeRef: NimiAIScopeRef, config: NimiAIConfig): void {
       // Full materialized write (D-AIPC-003)
-      const resolved: AIConfig = {
+      const resolved: NimiAIConfig = {
         ...config,
         scopeRef,
       };
       commitConfig(resolved);
     },
 
-    listScopes(): AIScopeRef[] {
+    listScopes(): NimiAIScopeRef[] {
       ensureHydrated();
-      const refs: AIScopeRef[] = [];
+      const refs: NimiAIScopeRef[] = [];
       for (const key of configByScope.keys()) {
         const ref = parseScopeKey(key);
         if (ref) refs.push(ref);
@@ -341,7 +461,7 @@ function createAIConfigSurface(): AIConfigSurface {
       return refs;
     },
 
-    async probe(scopeRef: AIScopeRef): Promise<AIConfigProbeResult> {
+    async probe(scopeRef: NimiAIScopeRef): Promise<NimiAIConfigProbeResult> {
       // D-AIPC-012 layer 2: runtime availability probe
       const config = this.get(scopeRef);
       const routeRuntime = getConversationCapabilityRouteRuntime();
@@ -351,7 +471,7 @@ function createAIConfigSurface(): AIConfigSurface {
       return probeConfigAvailability(config, routeRuntime);
     },
 
-    async probeFeasibility(scopeRef: AIScopeRef): Promise<AIConfigProbeResult> {
+    async probeFeasibility(scopeRef: NimiAIScopeRef): Promise<NimiAIConfigProbeResult> {
       // D-AIPC-012 layer 3: resource feasibility probe.
       // Consumes runtime Peek (K-SCHED-002) for scheduling judgement.
       const config = this.get(scopeRef);
@@ -360,13 +480,13 @@ function createAIConfigSurface(): AIConfigSurface {
         return { status: 'unknown', capabilityStatuses: {}, schedulingJudgement: null };
       }
       const availabilityResult = await probeConfigAvailability(config, routeRuntime);
-      const targets = resolveAIConfigRuntimeSchedulingTargets(config);
+      const targets = resolveNimiAIConfigRuntimeSchedulingTargets(config);
       const schedulingJudgement = targets.length > 0
         ? await peekDesktopRuntimeAggregateSchedulingJudgement(CORE_RUNTIME_PROFILE_OWNER_ID, DESKTOP_RUNTIME_APP_ID, targets)
         : null;
 
       // Aggregate status projection: combine availability + scheduling.
-      let status: AIProbeStatus = availabilityResult.status;
+      let status: NimiAIProbeStatus = availabilityResult.status;
       if (schedulingJudgement) {
         if (schedulingJudgement.state === 'denied') {
           status = 'unavailable';
@@ -384,10 +504,10 @@ function createAIConfigSurface(): AIConfigSurface {
     },
 
     async probeSchedulingTarget(
-      scopeRef: AIScopeRef,
-      target: AISchedulingEvaluationTarget,
-    ): Promise<AISchedulingJudgement | null> {
-      const normalizedTarget = normalizeRuntimeSchedulingTarget(target);
+      scopeRef: NimiAIScopeRef,
+      target: NimiAISchedulingEvaluationTarget,
+    ): Promise<NimiAISchedulingJudgement | null> {
+      const normalizedTarget = normalizeNimiAISchedulingTarget(target);
       if (!normalizedTarget) {
         return null;
       }
@@ -396,31 +516,31 @@ function createAIConfigSurface(): AIConfigSurface {
         return null;
       }
       const exactMatch = batchResult.targetJudgements.find((entry) =>
-        runtimeSchedulingTargetsEqual(entry.target, normalizedTarget));
+        nimiAISchedulingTargetsEqual(entry.target, normalizedTarget));
       return exactMatch?.judgement ?? batchResult.aggregateJudgement ?? null;
     },
 
-    subscribe(scopeRef: AIScopeRef, callback: (config: AIConfig) => void): () => void {
-      return configSubscriptions.subscribe(scopeKey(scopeRef), callback);
+    subscribe(scopeRef: NimiAIScopeRef, callback: (config: NimiAIConfig) => void): () => void {
+      return configSubscriptions.subscribe(scopeRef, callback);
     },
   };
 }
 
 // ---------------------------------------------------------------------------
-// AISnapshot surface implementation (S-AICONF-001 snapshot read)
+// NimiAISnapshot surface implementation (S-AICONF-001 snapshot read)
 // ---------------------------------------------------------------------------
 
-function createAISnapshotSurface(): AISnapshotSurface {
+function createAISnapshotSurface(): DesktopAISnapshotSurface {
   return {
-    record(snapshot: AISnapshot): void {
+    record(snapshot: NimiAISnapshot): void {
       snapshotStore.record(snapshot);
     },
 
-    get(executionId: string): AISnapshot | null {
+    get(executionId: string): NimiAISnapshot | null {
       return snapshotStore.get(executionId);
     },
 
-    getLatest(scopeRef: AIScopeRef): AISnapshot | null {
+    getLatest(scopeRef: NimiAIScopeRef): NimiAISnapshot | null {
       return snapshotStore.getLatest(scopeRef);
     },
   };
@@ -430,12 +550,12 @@ function createAISnapshotSurface(): AISnapshotSurface {
 // Aggregate surface factory
 // ---------------------------------------------------------------------------
 
-let desktopAIConfigServiceSingleton: AIConfigSDKSurface | null = null;
+let desktopAIConfigServiceSingleton: DesktopAIConfigSDKSurface | null = null;
 
 /**
- * Get or create the shared Desktop host AIConfig service singleton.
+ * Get or create the shared Desktop host NimiAIConfig service singleton.
  */
-export function getDesktopAIConfigService(): AIConfigSDKSurface {
+export function getDesktopAIConfigService(): DesktopAIConfigSDKSurface {
   if (!desktopAIConfigServiceSingleton) {
     desktopAIConfigServiceSingleton = {
       aiProfile: createAIProfileSurface(),
@@ -454,16 +574,16 @@ export function getDesktopAIConfigService(): AIConfigSDKSurface {
  * helpers decide whether to project that update into app state.
  */
 export function bindDesktopAIConfigAppStore(
-  setter: (scopeKey: string, config: AIConfig) => void,
+  setter: (scopeKey: string, config: NimiAIConfig) => void,
 ): void {
   appStoreSetter = setter;
 }
 
 /**
- * Record an AISnapshot into host-local storage.
+ * Record an NimiAISnapshot into host-local storage.
  * Called by submit/execution paths after snapshot creation.
  */
-export function recordDesktopAISnapshot(snapshot: AISnapshot): void {
+export function recordDesktopAISnapshot(snapshot: NimiAISnapshot): void {
   getDesktopAIConfigService().aiSnapshot.record(snapshot);
 }
 
@@ -472,8 +592,8 @@ export function recordDesktopAISnapshot(snapshot: AISnapshot): void {
 // ---------------------------------------------------------------------------
 
 export {
-  resolveAIConfigRuntimeSchedulingTargetForCapability,
-  resolveAIConfigRuntimeSchedulingTargets,
+  resolveNimiAIConfigRuntimeSchedulingTargetForCapability,
+  resolveNimiAIConfigRuntimeSchedulingTargets,
 } from './desktop-ai-config-scheduling.js';
 export type {
   EnsureAppFirstLaunchAIConfigDepsOverride,
@@ -482,15 +602,15 @@ export type {
 
 /**
  * Peek scheduling judgement for snapshot evidence capture.
- * Returns AIRuntimeEvidence with scheduling judgement, or null if unavailable.
- * Used by AI and Agent submit paths before creating AISnapshot.
+ * Returns NimiAIRuntimeEvidence with scheduling judgement, or null if unavailable.
+ * Used by AI and Agent submit paths before creating NimiAISnapshot.
  *
  */
 export async function peekDesktopAISchedulingForEvidence(input: {
-  scopeRef: AIScopeRef;
-  target: AISchedulingEvaluationTarget | null;
-}): Promise<AIRuntimeEvidence | null> {
-  const target = normalizeRuntimeSchedulingTarget(input.target);
+  scopeRef: NimiAIScopeRef;
+  target: NimiAISchedulingEvaluationTarget | null;
+}): Promise<NimiAIRuntimeEvidence | null> {
+  const target = normalizeNimiAISchedulingTarget(input.target);
   if (!target) {
     return null;
   }
@@ -498,7 +618,7 @@ export async function peekDesktopAISchedulingForEvidence(input: {
     input.scopeRef,
     target,
   );
-  return createAIRuntimeEvidence({ schedulingJudgement: judgement });
+  return createNimiAIRuntimeEvidence({ schedulingJudgement: judgement });
 }
 
 // ---------------------------------------------------------------------------
@@ -506,48 +626,19 @@ export async function peekDesktopAISchedulingForEvidence(input: {
 // ---------------------------------------------------------------------------
 
 async function probeConfigAvailability(
-  config: AIConfig,
-  routeRuntime: ConversationCapabilityRouteRuntime,
-): Promise<AIConfigProbeResult> {
-  const capabilityStatuses: Partial<Record<string, AIProbeStatus>> = {};
-  const bindingEntries = Object.entries(config.capabilities.selectedBindings);
+  config: NimiAIConfig,
+  _routeRuntime: ConversationCapabilityRouteRuntime,
+): Promise<NimiAIConfigProbeResult> {
+  const capabilityStatuses: Record<string, NimiAIProbeStatus> = {};
+  const targetRefEntries = Object.entries(config.capabilities.targetRefs);
 
-  if (bindingEntries.length === 0) {
+  if (targetRefEntries.length === 0) {
     return { status: 'unavailable', capabilityStatuses: {} };
   }
 
-  let allAvailable = true;
-  let anyAvailable = false;
+  for (const [capability, targetRef] of targetRefEntries) {
+    capabilityStatuses[capability] = targetRef ? 'unknown' : 'unavailable';
+  }
 
-  await Promise.all(
-    bindingEntries.map(async ([capability, binding]) => {
-      if (!binding) {
-        capabilityStatuses[capability] = 'unavailable';
-        allAvailable = false;
-        return;
-      }
-      try {
-        const health = await routeRuntime.checkHealth({
-          capability: capability as Parameters<typeof routeRuntime.checkHealth>[0]['capability'],
-          binding,
-        });
-        const healthy = health.healthy !== false
-          && health.status !== 'unavailable'
-          && health.status !== 'unhealthy';
-        capabilityStatuses[capability] = healthy ? 'available' : 'unavailable';
-        if (healthy) anyAvailable = true;
-        else allAvailable = false;
-      } catch {
-        capabilityStatuses[capability] = 'unavailable';
-        allAvailable = false;
-      }
-    }),
-  );
-
-  let status: AIProbeStatus;
-  if (allAvailable) status = 'available';
-  else if (anyAvailable) status = 'degraded';
-  else status = 'unavailable';
-
-  return { status, capabilityStatuses };
+  return { status: 'unknown', capabilityStatuses };
 }

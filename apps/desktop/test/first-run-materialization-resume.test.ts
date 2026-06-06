@@ -2,16 +2,16 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
-  repairableConfirmedFirstRunMaterializationDependencies,
-  retryableInterruptedFirstRunMaterializationJobs,
-  shouldResumeConfirmedFirstRunMaterialization,
-  type FirstRunMaterializationProjection,
+  repairableConfirmedNimiFirstRunMaterializationDependencies,
+  retryableInterruptedNimiFirstRunMaterializationJobsForProductState,
+  shouldResumeConfirmedNimiFirstRunMaterialization,
+  type NimiFirstRunMaterializationProjection,
 } from '../src/shell/renderer/first-run/runtime-materialization.js';
 
 function projection(
-  status: FirstRunMaterializationProjection['status'],
-  dependencies: FirstRunMaterializationProjection['dependencies'] = [],
-): FirstRunMaterializationProjection {
+  status: NimiFirstRunMaterializationProjection['status'],
+  dependencies: NimiFirstRunMaterializationProjection['dependencies'] = [],
+): NimiFirstRunMaterializationProjection {
   return {
     status,
     productState: 'local_ai_profile_selected_assets_missing',
@@ -23,8 +23,8 @@ function projection(
 
 function dependencyJob(
   failureDetail: string,
-  overrides: Partial<NonNullable<FirstRunMaterializationProjection['dependencies'][number]['job']>> = {},
-): FirstRunMaterializationProjection['dependencies'][number] {
+  overrides: Partial<NonNullable<NimiFirstRunMaterializationProjection['dependencies'][number]['job']>> = {},
+): NimiFirstRunMaterializationProjection['dependencies'][number] {
   return {
     packId: 'local-text',
     dependency: {
@@ -44,6 +44,8 @@ function dependencyJob(
       state: overrides.state ?? 'failed',
       sourceKind: 'runtime-managed',
       retryable: overrides.retryable ?? true,
+      createdAt: overrides.createdAt ?? '2026-06-05T00:00:00.000Z',
+      updatedAt: overrides.updatedAt ?? '2026-06-05T00:01:00.000Z',
       failureDetail,
       reasonCode: overrides.reasonCode ?? 'LOCAL_ENVIRONMENT_DEPENDENCY_JOB_FAILED',
       recoveryDisposition: overrides.recoveryDisposition ?? 'manual_retry',
@@ -57,8 +59,8 @@ function dependencyJob(
 }
 
 function repairRequiredDependency(
-  overrides: Partial<FirstRunMaterializationProjection['dependencies'][number]['dependency']> = {},
-): FirstRunMaterializationProjection['dependencies'][number] {
+  overrides: Partial<NimiFirstRunMaterializationProjection['dependencies'][number]['dependency']> = {},
+): NimiFirstRunMaterializationProjection['dependencies'][number] {
   return {
     packId: 'local-speech',
     dependency: {
@@ -78,28 +80,28 @@ function repairRequiredDependency(
 
 test('confirmed first-run setup resumes startable materialization after restart', () => {
   assert.equal(
-    shouldResumeConfirmedFirstRunMaterialization(
+    shouldResumeConfirmedNimiFirstRunMaterialization(
       'local_ai_profile_selected_assets_missing',
       projection('needs_confirmation'),
     ),
     true,
   );
   assert.equal(
-    shouldResumeConfirmedFirstRunMaterialization(
+    shouldResumeConfirmedNimiFirstRunMaterialization(
       'local_ai_profile_selected_environment_not_ready',
       projection('needs_confirmation'),
     ),
     true,
   );
   assert.equal(
-    shouldResumeConfirmedFirstRunMaterialization(
+    shouldResumeConfirmedNimiFirstRunMaterialization(
       'local_ai_assets_downloaded_environment_not_ready',
       projection('needs_confirmation'),
     ),
     true,
   );
   assert.equal(
-    shouldResumeConfirmedFirstRunMaterialization(
+    shouldResumeConfirmedNimiFirstRunMaterialization(
       'local_ai_ready',
       projection('needs_confirmation'),
     ),
@@ -109,14 +111,14 @@ test('confirmed first-run setup resumes startable materialization after restart'
 
 test('first-run materialization resume does not run before setup confirmation or after readiness', () => {
   assert.equal(
-    shouldResumeConfirmedFirstRunMaterialization(
+    shouldResumeConfirmedNimiFirstRunMaterialization(
       'ai_environment_unconfigured',
       projection('needs_confirmation'),
     ),
     false,
   );
   assert.equal(
-    shouldResumeConfirmedFirstRunMaterialization(
+    shouldResumeConfirmedNimiFirstRunMaterialization(
       'local_ai_profile_selected_assets_missing',
       projection('local_ai_ready'),
     ),
@@ -130,14 +132,14 @@ test('confirmed first-run setup gates SDK retryable materialization jobs', () =>
     recoveryDisposition: 'auto_retry_transient',
   });
   assert.deepEqual(
-    retryableInterruptedFirstRunMaterializationJobs(
+    retryableInterruptedNimiFirstRunMaterializationJobsForProductState(
       'local_ai_profile_selected_environment_not_ready',
       projection('failed', [interrupted]),
     ).map((job) => job.jobId),
     ['job-model'],
   );
   assert.deepEqual(
-    retryableInterruptedFirstRunMaterializationJobs(
+    retryableInterruptedNimiFirstRunMaterializationJobsForProductState(
       'ai_environment_unconfigured',
       projection('failed', [interrupted]),
     ),
@@ -152,7 +154,7 @@ test('confirmed first-run setup auto-repairs repair-required materialization dep
     environmentKey: 'python.package-set|local-speech-qwen3-asr.package-set',
   });
   assert.deepEqual(
-    repairableConfirmedFirstRunMaterializationDependencies(
+    repairableConfirmedNimiFirstRunMaterializationDependencies(
       'local_ai_profile_selected_environment_not_ready',
       projection('repair_required', [tts, asr]),
     ).map(({ dependency }) => dependency.dependencyId),
@@ -163,14 +165,14 @@ test('confirmed first-run setup auto-repairs repair-required materialization dep
 test('first-run repair auto-recovery does not run before setup confirmation or outside repair state', () => {
   const repair = repairRequiredDependency();
   assert.deepEqual(
-    repairableConfirmedFirstRunMaterializationDependencies(
+    repairableConfirmedNimiFirstRunMaterializationDependencies(
       'ai_environment_unconfigured',
       projection('repair_required', [repair]),
     ),
     [],
   );
   assert.deepEqual(
-    repairableConfirmedFirstRunMaterializationDependencies(
+    repairableConfirmedNimiFirstRunMaterializationDependencies(
       'local_ai_profile_selected_environment_not_ready',
       projection('failed', [repair]),
     ),

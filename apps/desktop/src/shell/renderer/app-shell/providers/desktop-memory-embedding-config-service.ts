@@ -6,25 +6,26 @@
  * bind, and cutover all go through Runtime.
  */
 
+import { getDesktopAppId, getDesktopRuntime } from '@renderer/infra/sdk/desktop-nimi-client-session';
 import {
-  getPlatformClient,
-} from '@nimiplatform/sdk';
-import {
-  createProtectedHostMemoryEmbeddingConfigSurface,
-  createProtectedHostMemoryEmbeddingRuntimeSurface,
-  type MemoryEmbeddingRuntimeSurface,
-  type MemoryEmbeddingConfigSurface,
+  createNimiProtectedHostMemoryEmbeddingConfigSurface,
+  createNimiProtectedHostMemoryEmbeddingRuntimeSurface,
+  type NimiProtectedHostMemoryEmbeddingConfigClient,
+  type NimiProtectedHostMemoryEmbeddingRuntimeClient,
+  type NimiMemoryEmbeddingRuntimeSurface,
+  type NimiMemoryEmbeddingConfigSurface,
 } from '@nimiplatform/sdk/runtime';
 
 export type DesktopMemoryEmbeddingConfigService = {
-  memoryEmbeddingConfig: MemoryEmbeddingConfigSurface;
-  memoryEmbeddingRuntime: MemoryEmbeddingRuntimeSurface;
+  memoryEmbeddingConfig: NimiMemoryEmbeddingConfigSurface;
+  memoryEmbeddingRuntime: NimiMemoryEmbeddingRuntimeSurface;
 };
 
-type RuntimeClient = ReturnType<typeof getPlatformClient>['runtime'];
+type RuntimeClient = ReturnType<typeof getDesktopRuntime>;
 
 type DesktopMemoryEmbeddingConfigServiceDeps = {
   getRuntime?: () => RuntimeClient;
+  getAppId?: () => string;
   getSubjectUserId?: () => string | Promise<string>;
 };
 
@@ -34,17 +35,35 @@ async function currentSubjectUserId(): Promise<string> {
   return String(user?.id || '').trim();
 }
 
+function createProtectedMemoryEmbeddingRuntimeClient(
+  runtime: RuntimeClient,
+  appId: string,
+): NimiProtectedHostMemoryEmbeddingConfigClient & NimiProtectedHostMemoryEmbeddingRuntimeClient {
+  const normalizedAppId = String(appId || '').trim();
+  if (!normalizedAppId) {
+    throw new Error('Desktop memory embedding service requires a Nimi app id.');
+  }
+  return {
+    appId: normalizedAppId,
+    memory: runtime.memory,
+    auth: runtime.auth,
+    appAuth: runtime.grants,
+  };
+}
+
 export function createDesktopMemoryEmbeddingConfigService(
   deps: DesktopMemoryEmbeddingConfigServiceDeps = {},
 ): DesktopMemoryEmbeddingConfigService {
-  const getRuntime = deps.getRuntime ?? (() => getPlatformClient().runtime);
+  const getRuntime = deps.getRuntime ?? (() => getDesktopRuntime());
+  const getAppId = deps.getAppId ?? (() => getDesktopAppId());
+  const getProtectedRuntime = () => createProtectedMemoryEmbeddingRuntimeClient(getRuntime(), getAppId());
   const getSubjectUserId = deps.getSubjectUserId ?? currentSubjectUserId;
-  const configSurface = createProtectedHostMemoryEmbeddingConfigSurface({
-    runtime: getRuntime,
+  const configSurface = createNimiProtectedHostMemoryEmbeddingConfigSurface({
+    runtime: getProtectedRuntime,
     getSubjectUserId,
   });
-  const runtimeSurface = createProtectedHostMemoryEmbeddingRuntimeSurface({
-    runtime: getRuntime,
+  const runtimeSurface = createNimiProtectedHostMemoryEmbeddingRuntimeSurface({
+    runtime: getProtectedRuntime,
     getSubjectUserId,
   });
   return {

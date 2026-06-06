@@ -86,18 +86,18 @@ test('runtime state refreshes unified unregistered assets without passive auto-i
 });
 
 test('unregistered model imports use orphan scaffold for all kinds while picked files stay on direct import', () => {
-  assert.match(localModelCenterImportActionsSource, /localRuntime\.scaffoldOrphanAsset\(\{/);
+  assert.match(localModelCenterImportActionsSource, /runtimeConfigLocalModelCenterClient\.scaffoldOrphanAsset\(\{/);
   assert.doesNotMatch(localModelCenterImportActionsSource, /const preflightImportPlan = useCallback/);
-  assert.doesNotMatch(localModelCenterImportActionsSource, /localRuntime\.resolveInstallPlan\(\{/);
+  assert.doesNotMatch(localModelCenterImportActionsSource, /runtimeConfigLocalModelCenterClient\.resolveInstallPlan\(\{/);
   assert.doesNotMatch(localModelCenterImportActionsSource, /planBlocksCanonicalImageImport/);
   assert.match(localModelCenterImportActionsSource, /importManagedModelAssetFromPath\(assetPath, declaration, endpoint\)/);
-  assert.match(localModelCenterImportActionsSource, /await localRuntime\.importAssetFile\(\{/);
+  assert.match(localModelCenterImportActionsSource, /await runtimeConfigLocalModelCenterClient\.importAssetFile\(\{/);
   assert.match(localModelCenterImportActionsSource, /const filePath = await pickLocalRuntimeAssetFile\(\)/);
 });
 
 test('asset kind helpers keep vae as a first-class passive asset', () => {
-  assert.match(localModelCenterHelpersSource, /LOCAL_RUNTIME_PASSIVE_ASSET_KIND_IDS/);
-  assert.match(localModelCenterHelpersSource, /formatLocalRuntimeAssetKindLabel/);
+  assert.match(localModelCenterHelpersSource, /NIMI_RUNTIME_LOCAL_PASSIVE_ASSET_KIND_IDS/);
+  assert.match(localModelCenterHelpersSource, /formatNimiRuntimeLocalAssetKindLabel/);
 });
 
 test('verified asset tasks expose retry only for failed verified installs', () => {

@@ -18,7 +18,7 @@ test('external agent token ledger uses SDK Runtime projection instead of Tauri e
   const uiSource = readDesktopFile('src/shell/renderer/features/runtime-config/runtime-config-external-agent-access.tsx');
 
   assert.equal(existsSync(resolve(desktopDir, 'src/runtime/external-agent/index.ts')), false);
-  assert.match(uiSource, /createHostRuntimeExternalAgentAccessSurface/);
+  assert.match(uiSource, /createNimiRuntimeExternalAgentAccessSurface/);
   assert.match(uiSource, /from '@nimiplatform\/sdk\/runtime'/);
   assert.doesNotMatch(uiSource, /@runtime\/external-agent/);
   assert.doesNotMatch(uiSource, /tauriInvoke/);

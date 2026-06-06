@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { localRuntime, type LocalRuntimeAuditEvent } from '@nimiplatform/sdk/runtime';
+import type { LocalAuditEvent } from '@nimiplatform/sdk/runtime/generated';
+import { getDesktopRuntime } from '@renderer/infra/sdk/desktop-nimi-client-session';
 import {
   filterAuditEvents,
   summarizeAuditReasons,
@@ -18,7 +19,7 @@ function toIsoTimeRangeValue(value: string): string | undefined {
 
 export function useAuditPageData(enabled: boolean) {
   const [loadingAudits, setLoadingAudits] = useState(false);
-  const [auditEvents, setAuditEvents] = useState<LocalRuntimeAuditEvent[]>([]);
+  const [auditEvents, setAuditEvents] = useState<LocalAuditEvent[]>([]);
   const [auditEventType, setAuditEventType] = useState('all');
   const [auditSource, setAuditSource] = useState('all');
   const [auditModality, setAuditModality] = useState('all');
@@ -42,16 +43,28 @@ export function useAuditPageData(enabled: boolean) {
     const timeTo = toIsoTimeRangeValue(overrides?.timeTo ?? auditTimeTo);
     setLoadingAudits(true);
     try {
-      const audits = await localRuntime.listAudits({
-        limit: 500,
-        eventType: eventType && eventType !== 'all' ? eventType : undefined,
-        source: source && source !== 'all' ? source : undefined,
-        modality: modality && modality !== 'all' ? modality : undefined,
-        reasonCode: reasonCode || undefined,
-        timeRange: timeFrom || timeTo
-          ? { from: timeFrom, to: timeTo }
-          : undefined,
-      });
+      const audits: LocalAuditEvent[] = [];
+      let pageToken = '';
+      do {
+        const response = await getDesktopRuntime().local.listLocalAudits({
+          eventType: eventType && eventType !== 'all' ? eventType : '',
+          eventTypes: [],
+          source: source && source !== 'all' ? source : '',
+          modality: modality && modality !== 'all' ? modality : '',
+          localModelId: '',
+          targetId: '',
+          reasonCode: reasonCode || '',
+          timeRange: timeFrom || timeTo
+            ? { from: timeFrom || '', to: timeTo || '' }
+            : undefined,
+          pageSize: 500,
+          pageToken,
+          appId: '',
+          subjectUserId: '',
+        });
+        audits.push(...response.events);
+        pageToken = String(response.nextPageToken || '').trim();
+      } while (pageToken);
       setAuditEvents(audits);
     } finally {
       setLoadingAudits(false);

@@ -21,8 +21,13 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { AIConfig, AIProfile } from '@nimiplatform/sdk/ai';
-import { validateAIProfile } from '@nimiplatform/sdk/ai';
+import type {
+  NimiAICapabilityRequirementDeclaration,
+  NimiAIConfig,
+  NimiAIProfile,
+  NimiAIProfileCapabilityIntent,
+} from '@nimiplatform/sdk/ai';
+import { validateNimiAIProfile } from '@nimiplatform/sdk/ai';
 import {
   CANONICAL_CAPABILITY_CATALOG,
 } from '@nimiplatform/kit/core/runtime-capabilities';
@@ -52,7 +57,7 @@ import {
   generateLibraryProfileId,
   getCachedAccountProfileLibraryProfiles,
   loadAccountProfileLibrary,
-  type AccountProfileLibraryProjection,
+  type NimiAccountProfileLibraryProjection,
   type LibraryProfile,
 } from './runtime-config-profile-library.js';
 
@@ -61,19 +66,34 @@ const RUNTIME_ENABLED_CAPABILITIES = Object.freeze(
   CANONICAL_CAPABILITY_CATALOG.map((descriptor) => descriptor.capabilityId),
 );
 
+function modelConfigRequirementDeclaration(
+  scopeRef: NimiAIConfig['scopeRef'],
+  capabilities: readonly string[],
+): NimiAICapabilityRequirementDeclaration {
+  return {
+    requirementId: `desktop.runtime-config.profiles:${scopeRef.kind}:${scopeRef.ownerId}:${scopeRef.surfaceId ?? 'default'}`,
+    scopeRef,
+    requiredSlices: capabilities.map((capability) => ({
+      requirementSliceId: `runtime-config:${capability}`,
+      capability,
+      profileSliceRef: `runtime-config:${capability}`,
+      readinessPolicy: 'required',
+    })),
+    setupProjectionPolicy: 'sdk-ai-config-setup-projection',
+  };
+}
+
 function profileCapabilitiesFromAIConfig(
-  capabilities: AIConfig['capabilities'],
-): AIProfile['capabilities'] {
-  const out: AIProfile['capabilities'] = {};
+  capabilities: NimiAIConfig['capabilities'],
+): NimiAIProfile['capabilities'] {
+  const out: Record<string, NimiAIProfileCapabilityIntent | null | undefined> = {};
   const capabilityIds = new Set([
-    ...Object.keys(capabilities.selectedBindings ?? {}),
-    ...Object.keys(capabilities.localProfileRefs ?? {}),
+    ...Object.keys(capabilities.targetRefs ?? {}),
     ...Object.keys(capabilities.selectedParams ?? {}),
   ]);
   for (const capabilityId of capabilityIds) {
     out[capabilityId] = {
-      binding: capabilities.selectedBindings?.[capabilityId] ?? null,
-      localProfileRef: capabilities.localProfileRefs?.[capabilityId] ?? null,
+      targetRef: capabilities.targetRefs?.[capabilityId] ?? null,
       params: capabilities.selectedParams?.[capabilityId] ?? {},
     };
   }
@@ -90,16 +110,16 @@ function normalizeTags(text: string): string[] {
 function toEditableAIProfile(profile: {
   readonly profileId: string;
   readonly title: string;
-  readonly description: string;
-  readonly tags: readonly string[];
-  readonly capabilities: Record<string, unknown>;
-}): AIProfile {
+  readonly description?: string;
+  readonly tags?: readonly string[];
+  readonly capabilities: NimiAIProfile['capabilities'];
+}): NimiAIProfile {
   return {
     profileId: profile.profileId,
     title: profile.title,
-    description: profile.description,
-    tags: [...profile.tags],
-    capabilities: { ...profile.capabilities } as AIProfile['capabilities'],
+    description: profile.description ?? '',
+    tags: [...(profile.tags ?? [])],
+    capabilities: { ...profile.capabilities } as NimiAIProfile['capabilities'],
   };
 }
 
@@ -110,8 +130,8 @@ export function ProfileCatalogPage() {
   const assetsQuery = useLocalAssets();
   const [restoring, setRestoring] = useState(false);
   const [restoreFeedback, setRestoreFeedback] = useState<ProfileFeedback>(null);
-  const [libraryProjection, setLibraryProjection] = useState<AccountProfileLibraryProjection | null>(null);
-  const [accountDefaultProfile, setAccountDefaultProfile] = useState<AIProfile | null>(null);
+  const [libraryProjection, setLibraryProjection] = useState<NimiAccountProfileLibraryProjection | null>(null);
+  const [accountDefaultProfile, setAccountDefaultProfile] = useState<NimiAIProfile | null>(null);
   const [libraryLoading, setLibraryLoading] = useState(false);
   const [libraryFeedback, setLibraryFeedback] = useState<ProfileFeedback>(null);
   const [editorDraft, setEditorDraft] = useState<ProfileEditorDraft | null>(null);
@@ -136,10 +156,9 @@ export function ProfileCatalogPage() {
   const surface: AppModelConfigSurface = useMemo(() => ({
     scopeRef: aiConfig.scopeRef,
     aiConfigService,
-    enabledCapabilities: RUNTIME_ENABLED_CAPABILITIES,
+    requirementDeclaration: modelConfigRequirementDeclaration(aiConfig.scopeRef, RUNTIME_ENABLED_CAPABILITIES),
     providerResolver: (routeCapability: string) => getDesktopRouteModelPickerProvider(routeCapability),
     projectionResolver: () => null,
-    runtimeReady: true,
     localAssetSource: {
       list: () => assetsQuery.data || [],
       loading: assetsQuery.isLoading,
@@ -234,8 +253,8 @@ export function ProfileCatalogPage() {
       mode: 'edit',
       profile: entry.profile,
       title: entry.profile.title,
-      description: entry.profile.description,
-      tagsText: entry.profile.tags.join(', '),
+      description: entry.profile.description ?? '',
+      tagsText: (entry.profile.tags ?? []).join(', '),
       replaceWithCurrentConfig: false,
     });
   }, []);
@@ -246,7 +265,7 @@ export function ProfileCatalogPage() {
     setLibraryFeedback(null);
     void (async () => {
       try {
-        const nextProfile: AIProfile = {
+        const nextProfile: NimiAIProfile = {
           ...editorDraft.profile,
           title: editorDraft.title.trim(),
           description: editorDraft.description,
@@ -255,7 +274,7 @@ export function ProfileCatalogPage() {
             ? profileCapabilitiesFromAIConfig(aiConfig.capabilities)
             : editorDraft.profile.capabilities,
         };
-        const validation = validateAIProfile(nextProfile);
+        const validation = validateNimiAIProfile(nextProfile);
         if (!validation.valid) {
           throw new Error(validation.errors.join(', '));
         }
@@ -286,8 +305,8 @@ export function ProfileCatalogPage() {
       mode: 'edit',
       profile: entry.profile,
       title: entry.profile.title,
-      description: entry.profile.description,
-      tagsText: entry.profile.tags.join(', '),
+      description: entry.profile.description ?? '',
+      tagsText: (entry.profile.tags ?? []).join(', '),
       replaceWithCurrentConfig: true,
     });
   }, []);

@@ -1,22 +1,22 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  loadPlatformAIProfileFactoryRows,
-  selectFactoryAIProfileForFirstRun,
-  type FirstRunInstallLevel,
-} from '@nimiplatform/sdk/platform-catalog';
+  loadNimiAppAIProfileFactoryRows,
+  selectNimiAppFactoryAIProfileForFirstRun,
+  type NimiFirstRunInstallLevel,
+} from '@nimiplatform/sdk/app';
 import {
-  firstRunScreenForProductControlState as firstRunScreenForState,
-  isProductControlPhaseTransient as isPhaseTransient,
-} from '@nimiplatform/sdk';
-import { desktopBridge, type ProductControlRecordProjection, type ProductControlState } from '@renderer/bridge';
+  isNimiProductControlPhaseTransient,
+  projectNimiProductControlFirstRunScreen,
+} from '@nimiplatform/sdk/runtime';
+import { desktopBridge, type NimiProductControlRecordProjection, type NimiProductControlState } from '@renderer/bridge';
 import {
-  cancelFirstRunMaterializationJob,
-  repairFirstRunMaterializationDependency,
-  retryFirstRunMaterializationJob,
-  startFirstRunMaterialization,
-  type FirstRunMaterializationDependencyProjection,
-  type FirstRunMaterializationProjection,
+  cancelDesktopNimiFirstRunMaterializationJob,
+  repairDesktopNimiFirstRunMaterializationDependency,
+  retryDesktopNimiFirstRunMaterializationJob,
+  startDesktopNimiFirstRunMaterialization,
+  type NimiFirstRunMaterializationDependencyProjection,
+  type NimiFirstRunMaterializationProjection,
 } from './runtime-materialization.js';
 import { syncFirstRunRuntimeDataRootConfig } from './first-run-runtime-storage-sync.js';
 import { useFirstRunMaterializationObserver } from './use-first-run-materialization-observer.js';
@@ -32,7 +32,7 @@ import { ProductControlWorkflowScreen } from './product-control-workflow-screen.
  * This is a pure presentation/projection over the product-control state
  * machine (cold-start-authority-contract P-COLD-009/014,
  * tables/first-run-state-machine.yaml). It renders the 12 spec-admitted
- * `ProductControlState` values as a guided 4-phase wizard plus 3 terminal
+ * `NimiProductControlState` values as a guided 4-phase wizard plus 3 terminal
  * screens — see the SDK product-control projection for the mapping. It does NOT
  * own, add, collapse, or rename any state-machine state, and it never writes
  * `ready_for_use`: backend admission (P-COLD-016) is the sole authority.
@@ -43,14 +43,14 @@ import { ProductControlWorkflowScreen } from './product-control-workflow-screen.
  */
 
 type ProductControlWorkflowProps = {
-  readonly projection: ProductControlRecordProjection | null;
-  readonly onProjectionChange: (projection: ProductControlRecordProjection) => void;
+  readonly projection: NimiProductControlRecordProjection | null;
+  readonly onProjectionChange: (projection: NimiProductControlRecordProjection) => void;
 };
 
 export function ProductControlWorkflow(props: ProductControlWorkflowProps): ReactElement {
   const { t } = useTranslation();
   const projection = props.projection;
-  const state: ProductControlState = projection?.state ?? 'config_missing';
+  const state: NimiProductControlState = projection?.state ?? 'config_missing';
   const notifyProjectionChange = props.onProjectionChange;
 
   const [pendingAction, setPendingAction] = useState<string | null>(null);
@@ -58,16 +58,16 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
   const [pickedPath, setPickedPath] = useState<string | null>(
     projection?.record?.dataRoot?.path ?? null,
   );
-  const [materialization, setMaterialization] = useState<FirstRunMaterializationProjection | null>(null);
+  const [materialization, setMaterialization] = useState<NimiFirstRunMaterializationProjection | null>(null);
 
   const busy = pendingAction !== null;
 
   // Factory AIProfile rows resolve the admitted Minimal / Recommended plans.
-  const rows = useMemo(() => loadPlatformAIProfileFactoryRows(), []);
+  const rows = useMemo(() => loadNimiAppAIProfileFactoryRows(), []);
   const installPlans = useMemo(
     () => ({
-      minimal: selectFactoryAIProfileForFirstRun(rows, 'minimal'),
-      recommended: selectFactoryAIProfileForFirstRun(rows, 'recommended'),
+      minimal: selectNimiAppFactoryAIProfileForFirstRun(rows, 'minimal'),
+      recommended: selectNimiAppFactoryAIProfileForFirstRun(rows, 'recommended'),
     }),
     [rows],
   );
@@ -83,7 +83,7 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
   const selectedPlan = selectedInstallLevel ? installPlans[selectedInstallLevel] : null;
   const selectedDataRoot = projection?.record?.dataRoot?.path ?? null;
 
-  const screen = firstRunScreenForState(state);
+  const screen = projectNimiProductControlFirstRunScreen(state);
 
   // Sync the picked path to the recorded data root whenever the projection
   // changes. A projection without a recorded data root (the Storage phase)
@@ -157,7 +157,12 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
   const { deviceSummary, deviceScanSettled, retryDeviceScan } = useFirstRunDeviceScan(selectedDataRoot);
 
   const projectMaterialization = useCallback(
-    async (next: FirstRunMaterializationProjection, observedProductState?: ProductControlState): Promise<void> => {
+    async (next: NimiFirstRunMaterializationProjection, observedProductState?: NimiProductControlState): Promise<void> => {
+      // A successful Runtime materialization projection supersedes stale
+      // product-control ready-read verification errors from a recoverable
+      // Setup downgrade. Bridge/observer failures still set `error` in their
+      // catch paths.
+      setError(null);
       setMaterialization(next);
       if (
         next.productState !== observedProductState
@@ -310,7 +315,7 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
 
   // --- Phase 2: Local AI --------------------------------------------------
 
-  const [draftInstallLevel, setDraftInstallLevel] = useState<FirstRunInstallLevel | null>(
+  const [draftInstallLevel, setDraftInstallLevel] = useState<NimiFirstRunInstallLevel | null>(
     selectedInstallLevel,
   );
   useEffect(() => {
@@ -318,7 +323,7 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
   }, [selectedInstallLevel]);
 
   const persistInstallLevel = useCallback(
-    async (installLevel: FirstRunInstallLevel): Promise<ProductControlRecordProjection | null> => {
+    async (installLevel: NimiFirstRunInstallLevel): Promise<NimiProductControlRecordProjection | null> => {
       const plan = installPlans[installLevel];
       if (!plan) {
         setError(
@@ -378,7 +383,7 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
       // 2) Start Runtime materialization (explicit confirmation — this is the
       //    first storage/network-heavy step) and persist the resulting setup
       //    state so the gate advances into the Setup phase.
-      const next = await startFirstRunMaterialization({
+      const next = await startDesktopNimiFirstRunMaterialization({
         profile: plan,
         runtimeDataRoot: dataRoot,
         installLevel,
@@ -401,13 +406,13 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
   // --- Phase 3: Setup checklist actions -----------------------------------
 
   const retrySetupStep = useCallback(
-    async (item: FirstRunMaterializationDependencyProjection): Promise<void> => {
+    async (item: NimiFirstRunMaterializationDependencyProjection): Promise<void> => {
       if (!selectedPlan || !selectedDataRoot || !item.job) return;
       setPendingAction(`retry-${item.job.jobId}`);
       setError(null);
       try {
         await projectMaterialization(
-          await retryFirstRunMaterializationJob({
+          await retryDesktopNimiFirstRunMaterializationJob({
             profile: selectedPlan,
             runtimeDataRoot: selectedDataRoot,
             installLevel: selectedInstallLevel,
@@ -431,13 +436,13 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
   );
 
   const repairSetupStep = useCallback(
-    async (item: FirstRunMaterializationDependencyProjection): Promise<void> => {
+    async (item: NimiFirstRunMaterializationDependencyProjection): Promise<void> => {
       if (!selectedPlan || !selectedDataRoot) return;
       setPendingAction(`repair-${item.dependency.environmentKey}`);
       setError(null);
       try {
         await projectMaterialization(
-          await repairFirstRunMaterializationDependency({
+          await repairDesktopNimiFirstRunMaterializationDependency({
             profile: selectedPlan,
             runtimeDataRoot: selectedDataRoot,
             installLevel: selectedInstallLevel,
@@ -462,13 +467,13 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
   );
 
   const cancelSetupStep = useCallback(
-    async (item: FirstRunMaterializationDependencyProjection): Promise<void> => {
+    async (item: NimiFirstRunMaterializationDependencyProjection): Promise<void> => {
       if (!selectedPlan || !selectedDataRoot || !item.job) return;
       setPendingAction(`cancel-${item.job.jobId}`);
       setError(null);
       try {
         await projectMaterialization(
-          await cancelFirstRunMaterializationJob({
+          await cancelDesktopNimiFirstRunMaterializationJob({
             profile: selectedPlan,
             runtimeDataRoot: selectedDataRoot,
             installLevel: selectedInstallLevel,
@@ -565,7 +570,7 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
           selectedDataRoot={selectedDataRoot}
           setupChecklist={setupChecklist}
           state={state}
-          storageTransient={isPhaseTransient(state)}
+          storageTransient={isNimiProductControlPhaseTransient(state)}
         />
       </FirstRunWizardChrome>
     </section>

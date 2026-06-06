@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { RuntimeRouteCapabilityCoverageProjection } from '@nimiplatform/sdk/runtime';
+import type { NimiRuntimeRouteCapabilityCoverageProjection } from '@nimiplatform/sdk/runtime';
 import { Surface, StatusBadge as KitStatusBadge, cn } from '@nimiplatform/kit/ui';
 import { desktopBridge } from '@renderer/bridge';
 import { formatLocaleDateTime } from '@renderer/i18n';
@@ -27,7 +27,7 @@ import {
 type RuntimeOverviewTabProps = {
   model: RuntimeConfigPanelControllerModel;
   state: RuntimeConfigStateV11;
-  capabilitySummary: RuntimeRouteCapabilityCoverageProjection[];
+  capabilitySummary: NimiRuntimeRouteCapabilityCoverageProjection[];
   availableCapabilityCount: number;
   onOpenHealth: () => void;
 };

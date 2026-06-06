@@ -1,47 +1,53 @@
-import { getPlatformClient } from '@nimiplatform/sdk';
 import {
-  normalizeRuntimeSchedulingTarget,
-  peekRuntimeAggregateSchedulingJudgement as peekSdkAggregateSchedulingJudgement,
-  peekRuntimeSchedulingBatch as peekSdkSchedulingBatch,
-  resolveAIConfigRuntimeSchedulingTargetForCapability,
-  resolveAIConfigRuntimeSchedulingTargets,
-  runtimeSchedulingTargetsEqual,
-  type AISchedulingEvaluationTarget,
-  type AISchedulingJudgement,
-  type RuntimeSchedulingBatchPeekResult,
-} from '@nimiplatform/sdk/runtime';
+  createNimiRuntimeAISchedulingClient,
+  normalizeNimiAISchedulingTarget,
+  resolveNimiAIConfigRuntimeSchedulingTargetForCapability,
+  resolveNimiAIConfigRuntimeSchedulingTargets,
+  nimiAISchedulingTargetsEqual,
+  type NimiAIConfig,
+  type NimiAISchedulingEvaluationTarget,
+  type NimiAISchedulingJudgement,
+  type NimiAISchedulingProjection,
+} from '@nimiplatform/sdk/ai';
+import { getDesktopRuntime } from '@renderer/infra/sdk/desktop-nimi-client-session';
 
 export {
-  normalizeRuntimeSchedulingTarget,
-  resolveAIConfigRuntimeSchedulingTargetForCapability,
-  resolveAIConfigRuntimeSchedulingTargets,
-  runtimeSchedulingTargetsEqual,
+  normalizeNimiAISchedulingTarget,
+  resolveNimiAIConfigRuntimeSchedulingTargetForCapability,
+  resolveNimiAIConfigRuntimeSchedulingTargets,
+  nimiAISchedulingTargetsEqual,
 };
 
 export async function peekDesktopRuntimeSchedulingBatch(
-  runtimePackageId: string,
+  _runtimePackageId: string,
   appId: string,
-  targets: AISchedulingEvaluationTarget[],
-): Promise<RuntimeSchedulingBatchPeekResult | null> {
-  void runtimePackageId;
-  return peekSdkSchedulingBatch({
+  targets: readonly NimiAISchedulingEvaluationTarget[],
+): Promise<NimiAISchedulingProjection | null> {
+  const normalizedTargets = targets
+    .map((target) => normalizeNimiAISchedulingTarget(target))
+    .filter((target): target is NimiAISchedulingEvaluationTarget => target !== null);
+  if (normalizedTargets.length === 0) {
+    return null;
+  }
+  const scheduling = createNimiRuntimeAISchedulingClient({
+    runtime: getDesktopRuntime(),
     appId,
-    targets,
-    peekScheduling: (request, options) =>
-      getPlatformClient().runtime.ai.peekScheduling(request, options),
+    targets: normalizedTargets,
   });
+  return scheduling.peek();
 }
 
 export async function peekDesktopRuntimeAggregateSchedulingJudgement(
   runtimePackageId: string,
   appId: string,
-  targets: AISchedulingEvaluationTarget[],
-): Promise<AISchedulingJudgement | null> {
-  void runtimePackageId;
-  return peekSdkAggregateSchedulingJudgement({
-    appId,
-    targets,
-    peekScheduling: (request, options) =>
-      getPlatformClient().runtime.ai.peekScheduling(request, options),
-  });
+  targets: readonly NimiAISchedulingEvaluationTarget[],
+): Promise<NimiAISchedulingJudgement | null> {
+  const batchResult = await peekDesktopRuntimeSchedulingBatch(runtimePackageId, appId, targets);
+  return batchResult?.aggregateJudgement ?? null;
+}
+
+export function resolveDesktopAIConfigRuntimeSchedulingTargets(
+  config: NimiAIConfig,
+): readonly NimiAISchedulingEvaluationTarget[] {
+  return resolveNimiAIConfigRuntimeSchedulingTargets(config);
 }

@@ -8,8 +8,10 @@
 // capability the admitted plan does not carry. There is no hardcoded
 // capability list that could contradict the policy.
 
-import type { PlatformAIProfileFactoryRow } from '@nimiplatform/sdk/platform-catalog';
-import type { FirstRunInstallLevel } from '@nimiplatform/sdk/platform-catalog';
+import type {
+  NimiAppAIProfileFactoryRow,
+  NimiFirstRunInstallLevel,
+} from '@nimiplatform/sdk/app';
 
 /**
  * A capability highlight bullet identity. The renderer maps each id to a
@@ -25,14 +27,14 @@ export type FirstRunCapabilityHighlightId =
   | 'local-voice';
 
 export type FirstRunInstallLevelCard = {
-  readonly installLevel: FirstRunInstallLevel;
+  readonly installLevel: NimiFirstRunInstallLevel;
   /** The resolved admitted factory AIProfile row, or null when unavailable. */
-  readonly plan: PlatformAIProfileFactoryRow | null;
+  readonly plan: NimiAppAIProfileFactoryRow | null;
   /** Exactly three capability highlight bullets projected from the plan. */
   readonly highlights: readonly FirstRunCapabilityHighlightId[];
 };
 
-function hasCapability(plan: PlatformAIProfileFactoryRow | null, capability: string): boolean {
+function hasCapability(plan: NimiAppAIProfileFactoryRow | null, capability: string): boolean {
   return Boolean(plan?.capabilitySet.includes(capability));
 }
 
@@ -48,8 +50,8 @@ function hasCapability(plan: PlatformAIProfileFactoryRow | null, capability: str
  * shown only when the resolved plan actually carries `image.generate`.
  */
 export function projectInstallLevelCard(
-  installLevel: FirstRunInstallLevel,
-  plan: PlatformAIProfileFactoryRow | null,
+  installLevel: NimiFirstRunInstallLevel,
+  plan: NimiAppAIProfileFactoryRow | null,
 ): FirstRunInstallLevelCard {
   let highlights: FirstRunCapabilityHighlightId[];
   if (installLevel === 'minimal') {

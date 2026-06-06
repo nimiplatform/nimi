@@ -7,11 +7,11 @@ import { renderToStaticMarkup } from 'react-dom/server';
 
 import { ProductControlWorkflow } from '../src/shell/renderer/first-run/product-control-workflow.js';
 import {
-  FIRST_RUN_PHASES,
-  firstRunScreenForProductControlState as firstRunScreenForState,
-  isProductControlPhaseTransient as isPhaseTransient,
-  isProductControlTransientState as isTransientSystemState,
-} from '@nimiplatform/sdk';
+  NIMI_FIRST_RUN_PHASES,
+  isNimiProductControlPhaseTransient as isPhaseTransient,
+  isNimiProductControlTransientState as isTransientSystemState,
+  projectNimiProductControlFirstRunScreen as firstRunScreenForState,
+} from '@nimiplatform/sdk/runtime';
 import {
   FIRST_RUN_SETUP_STEP_IDS,
   projectSetupChecklist,
@@ -20,26 +20,26 @@ import { PhaseSetup } from '../src/shell/renderer/first-run/phase-setup.js';
 import { projectInstallLevelCard } from '../src/shell/renderer/first-run/first-run-install-level-cards.js';
 import { projectDeviceSummary } from '../src/shell/renderer/first-run/first-run-device-summary.js';
 import {
-  PLATFORM_AI_PROFILE_FACTORY_ROWS,
-  selectFactoryAIProfileForFirstRun,
-  type PlatformAIProfileFactoryRow,
-} from '@nimiplatform/sdk/platform-catalog';
+  NIMI_APP_AI_PROFILE_FACTORY_ROWS,
+  selectNimiAppFactoryAIProfileForFirstRun,
+  type NimiAppAIProfileFactoryRow,
+} from '@nimiplatform/sdk/app';
 import type {
-  ProductControlRecord,
-  ProductControlRecordProjection,
-  ProductControlState,
+  NimiProductControlRecord,
+  NimiProductControlRecordProjection,
+  NimiProductControlState,
 } from '../src/shell/renderer/bridge/runtime-bridge/product-control.js';
-import type { FirstRunMaterializationProjection } from '../src/shell/renderer/first-run/runtime-materialization.js';
+import type { NimiFirstRunMaterializationProjection } from '../src/shell/renderer/first-run/runtime-materialization.js';
 import {
-  productStateForMaterializationStatus,
+  productStateForNimiFirstRunMaterializationStatus,
 } from '../src/shell/renderer/first-run/runtime-materialization.js';
 
 // --- Fixtures -------------------------------------------------------------
 
 function projectionFor(
-  state: ProductControlState,
-  override: Partial<ProductControlRecord> = {},
-): ProductControlRecordProjection {
+  state: NimiProductControlState,
+  override: Partial<NimiProductControlRecord> = {},
+): NimiProductControlRecordProjection {
   const dataRoot = override.dataRoot ?? (
     state === 'config_missing' || state === 'data_root_missing'
       ? null
@@ -84,7 +84,7 @@ function projectionFor(
   };
 }
 
-function render(state: ProductControlState, override: Partial<ProductControlRecord> = {}): string {
+function render(state: NimiProductControlState, override: Partial<NimiProductControlRecord> = {}): string {
   return renderToStaticMarkup(
     React.createElement(ProductControlWorkflow, {
       projection: projectionFor(state, override),
@@ -136,7 +136,7 @@ test('only config_missing is a phase transient; data_root_selected is device sca
 // --- Step indicator -------------------------------------------------------
 
 test('step indicator highlights the phase matching the current state', () => {
-  assert.deepEqual([...FIRST_RUN_PHASES], ['storage', 'device-scan', 'local-ai', 'setup']);
+  assert.deepEqual([...NIMI_FIRST_RUN_PHASES], ['storage', 'device-scan', 'local-ai', 'setup']);
 
   const storage = render('data_root_missing');
   assert.match(storage, /data-testid="first-run-step-storage" data-active="true"/);
@@ -223,9 +223,9 @@ test('the Storage phase pre-fills the OS default nimi_data path as a confirmable
 // --- Install-level cards --------------------------------------------------
 
 test('install-level cards are driven by the admitted install-level policy', () => {
-  const minimalPlan = selectFactoryAIProfileForFirstRun(PLATFORM_AI_PROFILE_FACTORY_ROWS, 'minimal');
-  const recommendedPlan = selectFactoryAIProfileForFirstRun(
-    PLATFORM_AI_PROFILE_FACTORY_ROWS,
+  const minimalPlan = selectNimiAppFactoryAIProfileForFirstRun(NIMI_APP_AI_PROFILE_FACTORY_ROWS, 'minimal');
+  const recommendedPlan = selectNimiAppFactoryAIProfileForFirstRun(
+    NIMI_APP_AI_PROFILE_FACTORY_ROWS,
     'recommended',
   );
   assert.ok(minimalPlan, 'expected an admitted minimal plan');
@@ -263,9 +263,9 @@ test('the Local AI phase renders both selectable install-level cards', () => {
 // --- Setup checklist ------------------------------------------------------
 
 function materializationFixture(
-  status: FirstRunMaterializationProjection['status'],
-  overrides: Partial<FirstRunMaterializationProjection> = {},
-): FirstRunMaterializationProjection {
+  status: NimiFirstRunMaterializationProjection['status'],
+  overrides: Partial<NimiFirstRunMaterializationProjection> = {},
+): NimiFirstRunMaterializationProjection {
   return {
     status,
     productState: 'local_ai_profile_selected_assets_missing',
@@ -323,6 +323,8 @@ test('the setup checklist projects the real materialization progression', () => 
             state: 'failed',
             sourceKind: 'runtime-managed',
             retryable: true,
+            createdAt: '2026-06-05T00:00:00.000Z',
+            updatedAt: '2026-06-05T00:01:00.000Z',
             bytesReceived: 0,
             bytesTotal: 0,
             percent: 0,
@@ -368,6 +370,8 @@ function downloadingDependency(
       state: 'downloading',
       sourceKind: 'runtime-managed',
       retryable: true,
+      createdAt: '2026-06-05T00:00:00.000Z',
+      updatedAt: '2026-06-05T00:01:00.000Z',
       bytesReceived,
       bytesTotal,
       percent: bytesTotal > 0 ? Math.round((bytesReceived / bytesTotal) * 100) : 0,
@@ -441,6 +445,8 @@ test('a genuinely failed setup step is red and offers Retry/Repair, with no prog
             state: 'failed',
             sourceKind: 'runtime-managed',
             retryable: true,
+            createdAt: '2026-06-05T00:00:00.000Z',
+            updatedAt: '2026-06-05T00:01:00.000Z',
             bytesReceived: 0,
             bytesTotal: 0,
             percent: 0,
@@ -469,7 +475,7 @@ test('a genuinely failed setup step is red and offers Retry/Repair, with no prog
 
 test('materialization failures stay in the retryable Setup phase', () => {
   for (const status of ['failed', 'repair_required', 'cancelled'] as const) {
-    const productState = productStateForMaterializationStatus(status);
+    const productState = productStateForNimiFirstRunMaterializationStatus(status);
     assert.equal(productState, 'local_ai_profile_selected_environment_not_ready');
     assert.deepEqual(firstRunScreenForState(productState), { kind: 'phase', phase: 'setup' });
   }
@@ -506,9 +512,21 @@ test('the device summary projects real evidence and fails closed when absent', (
       arch: '',
       totalRamBytes: 0,
       availableRamBytes: 0,
-      gpu: { available: false },
-      python: { available: false },
-      npu: { available: false, ready: false },
+      gpu: {
+        available: false,
+        vendor: '',
+        model: '',
+        totalVramBytes: 0,
+        availableVramBytes: 0,
+      },
+      python: { available: false, version: '' },
+      npu: {
+        available: false,
+        ready: false,
+        vendor: '',
+        runtime: '',
+        detail: '',
+      },
       diskFreeBytes: 0,
       ports: [],
     }),
@@ -520,9 +538,22 @@ test('the device summary projects real evidence and fails closed when absent', (
     arch: 'arm64',
     totalRamBytes: 16 * 1024 * 1024 * 1024,
     availableRamBytes: 8 * 1024 * 1024 * 1024,
-    gpu: { available: true, vendor: 'apple', model: 'M3' },
+    gpu: {
+      available: true,
+      vendor: 'apple',
+      model: 'M3',
+      totalVramBytes: 8 * 1024 * 1024 * 1024,
+      availableVramBytes: 4 * 1024 * 1024 * 1024,
+      memoryModel: 'unified',
+    },
     python: { available: true, version: '3.12' },
-    npu: { available: false, ready: false },
+    npu: {
+      available: false,
+      ready: false,
+      vendor: '',
+      runtime: '',
+      detail: '',
+    },
     diskFreeBytes: 200 * 1024 * 1024 * 1024,
     ports: [],
   });
@@ -569,7 +600,7 @@ test('no wizard phase or screen exposes a mark-ready shortcut', () => {
 });
 
 test('factory rows used by the wizard remain local-only first-run baselines', () => {
-  const rows: readonly PlatformAIProfileFactoryRow[] = PLATFORM_AI_PROFILE_FACTORY_ROWS.filter(
+  const rows: readonly NimiAppAIProfileFactoryRow[] = NIMI_APP_AI_PROFILE_FACTORY_ROWS.filter(
     (row) => (row.applicableScopes as readonly string[]).includes('first-run'),
   );
   assert.ok(rows.length > 0);

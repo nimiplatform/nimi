@@ -1,9 +1,10 @@
 import { useEffect } from 'react';
-import { localRuntime, type LocalRuntimeSnapshot } from '@nimiplatform/sdk/runtime';
-import { isLocalRuntimeRunnableAssetKindId } from '@nimiplatform/sdk/runtime';
+import type { NimiRuntimeLocalSnapshot } from '@nimiplatform/sdk/runtime';
+import { isNimiRuntimeLocalRunnableAssetKindId } from '@nimiplatform/sdk/runtime';
 import type { Dispatch, SetStateAction } from 'react';
 import type { StatusBanner } from '@renderer/app-shell/providers/app-store';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
+import { runtimeConfigLocalModelCenterClient } from './runtime-config-local-model-center-sdk-service';
 import { useRuntimeConfigHydrationEffect } from './runtime-config-effect-hydration';
 import { useRuntimeConfigVaultSyncEffect } from './runtime-config-effect-vault-sync';
 import { useRuntimeConfigRouteInitEffect } from './runtime-config-effect-route-init';
@@ -27,7 +28,7 @@ type RuntimeConfigPanelEffectsInput = {
 
 function mergeLocalSnapshot(
   previous: RuntimeConfigStateV11,
-  snapshot: LocalRuntimeSnapshot,
+  snapshot: NimiRuntimeLocalSnapshot,
 ): RuntimeConfigStateV11 {
   const snapshotAssets = snapshot.assets ?? [];
   const nextModels = snapshotAssets
@@ -38,7 +39,7 @@ function mergeLocalSnapshot(
       model: item.assetId || '',
       endpoint: '',
       capabilities: (item.capabilities || [])
-        .filter(isLocalRuntimeRunnableAssetKindId),
+        .filter(isNimiRuntimeLocalRunnableAssetKindId),
       status: item.status,
       integrityMode: item.integrityMode,
       recommendation: item.recommendation,
@@ -59,8 +60,8 @@ function mergeLocalSnapshot(
   };
 }
 
-async function fetchRuntimeConfigLocalSnapshot(): Promise<LocalRuntimeSnapshot> {
-  const assets = await localRuntime.listAssets();
+async function fetchRuntimeConfigLocalSnapshot(): Promise<NimiRuntimeLocalSnapshot> {
+  const assets = await runtimeConfigLocalModelCenterClient.listAssets();
   return {
     assets,
     health: [],
@@ -70,7 +71,7 @@ async function fetchRuntimeConfigLocalSnapshot(): Promise<LocalRuntimeSnapshot> 
 
 function startRuntimeConfigSnapshotPolling(options: {
   intervalMs: number;
-  onSnapshot: (snapshot: LocalRuntimeSnapshot) => void;
+  onSnapshot: (snapshot: NimiRuntimeLocalSnapshot) => void;
   onError: (error: unknown) => void;
 }): () => void {
   let cancelled = false;

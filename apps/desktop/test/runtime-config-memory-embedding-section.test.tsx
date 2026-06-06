@@ -25,7 +25,7 @@ test('runtime config memory embedding section renders Runtime-owned intent avail
 });
 
 test('runtime config memory embedding availability consumes the SDK route projection', () => {
-  assert.match(memoryEmbeddingSectionSource, /projectMemoryEmbeddingRouteAvailability/);
+  assert.match(memoryEmbeddingSectionSource, /projectNimiMemoryEmbeddingRouteAvailability/);
   assert.match(memoryEmbeddingSectionSource, /from '@nimiplatform\/sdk\/runtime'/);
   assert.doesNotMatch(memoryEmbeddingSectionSource, /getDesktopMemoryEmbeddingConfigService/);
   assert.doesNotMatch(memoryEmbeddingSectionSource, /memoryEmbeddingConfig\.update/);

@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react';
-import type { LocalRuntimeAuditEvent } from '@nimiplatform/sdk/runtime';
 import { useTranslation } from 'react-i18next';
 import { Tooltip, cn } from '@nimiplatform/kit/ui';
 import { formatRelativeLocaleTime } from '@renderer/i18n';
@@ -9,6 +8,7 @@ import {
   resolveAuditPolicyGate,
   resolveAuditReasonCode,
   resolveAuditSource,
+  type RuntimeConfigAuditEvent,
 } from './runtime-config-audit-view-model.js';
 
 const TOKEN_TEXT_PRIMARY = 'text-[var(--nimi-text-primary)]';
@@ -204,7 +204,7 @@ export function FacetPill({
   );
 }
 
-export function AuditTableRow({ event }: { event: LocalRuntimeAuditEvent }) {
+export function AuditTableRow({ event }: { event: RuntimeConfigAuditEvent }) {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
 

@@ -1,7 +1,7 @@
 import { createRendererFlowId, logRendererEvent } from '@nimiplatform/kit/telemetry';
 import {
-  formatRuntimeNimiErrorBanner as formatRuntimeConfigErrorBanner,
-  formatRuntimeNimiErrorDetail as formatRuntimeConfigErrorDetail,
+  formatNimiRuntimeErrorBanner as formatRuntimeConfigErrorBanner,
+  formatNimiRuntimeErrorDetail as formatRuntimeConfigErrorDetail,
 } from '@nimiplatform/sdk/runtime';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import type { StatusBanner } from '@renderer/app-shell/providers/app-store';

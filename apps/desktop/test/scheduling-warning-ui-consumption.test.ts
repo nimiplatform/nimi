@@ -36,9 +36,9 @@ test('SchedulingWarningBanner: exported from chat-shared-settings-panel', () => 
   assert.match(source, /export function SchedulingWarningBanner/);
 });
 
-test('SchedulingWarningBanner: receives judgement prop typed as AISchedulingJudgement', () => {
+test('SchedulingWarningBanner: receives judgement prop typed as NimiAISchedulingJudgement', () => {
   const source = readSource('src/shell/renderer/features/chat/chat-shared-settings-panel.tsx');
-  assert.match(source, /judgement:\s*AISchedulingJudgement/);
+  assert.match(source, /judgement:\s*NimiAISchedulingJudgement/);
 });
 
 test('SchedulingWarningBanner: returns null for runnable state', () => {
@@ -226,11 +226,12 @@ test('no parallel scheduling truth: shared guard module reads scope and submit t
 
 test('no parallel scheduling truth: Desktop delegates AIConfig scheduling projection to SDK and Runtime Peek', () => {
   const source = readSource(schedulingModulePath);
-  assert.match(source, /from '@nimiplatform\/sdk\/runtime'/);
-  assert.doesNotMatch(source, /from '@nimiplatform\/sdk\/ai'/);
-  assert.match(source, /resolveAIConfigRuntimeSchedulingTargets/);
-  assert.match(source, /getPlatformClient\(\)\.runtime\.ai\.peekScheduling/);
+  assert.match(source, /from '@nimiplatform\/sdk\/ai'/);
+  assert.match(source, /createNimiRuntimeAISchedulingClient/);
+  assert.match(source, /resolveNimiAIConfigRuntimeSchedulingTargets/);
+  assert.match(source, /runtime:\s*getDesktopRuntime\(\)/);
+  assert.match(source, /return scheduling\.peek\(\);/);
+  assert.doesNotMatch(source, /getPlatformClient\(\)\.runtime\.ai\.peekScheduling/);
   assert.doesNotMatch(source, /export function resolveAIConfigScopeSchedulingTargets\(/);
   assert.doesNotMatch(source, /export function resolveAIConfigSchedulingTargetForCapability\(/);
-  assert.doesNotMatch(source, /return null;/);
 });

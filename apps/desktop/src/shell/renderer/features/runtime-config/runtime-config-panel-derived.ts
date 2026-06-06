@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { normalizeLocalRuntimeProfilesDeclaration } from '@nimiplatform/sdk/runtime';
+import { normalizeNimiRuntimeLocalProfilesDeclaration } from '@nimiplatform/sdk/runtime';
 import {
   type CapabilityV11,
   type ProviderStatusV11,
@@ -21,7 +21,7 @@ export type RuntimeConfigPanelDerivedModel = {
     targetId: string;
     targetName: string;
     consumeCapabilities: CapabilityV11[];
-    profiles: ReturnType<typeof normalizeLocalRuntimeProfilesDeclaration>;
+    profiles: ReturnType<typeof normalizeNimiRuntimeLocalProfilesDeclaration>;
   }>;
   runtimeStatus: ProviderStatusV11 | null;
 };
@@ -60,7 +60,7 @@ export function useRuntimeConfigPanelDerived(input: {
     targetId: string;
     targetName: string;
     consumeCapabilities: CapabilityV11[];
-    profiles: ReturnType<typeof normalizeLocalRuntimeProfilesDeclaration>;
+    profiles: ReturnType<typeof normalizeNimiRuntimeLocalProfilesDeclaration>;
   }>>(() => [], []);
 
   return {

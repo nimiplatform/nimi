@@ -78,7 +78,7 @@ test('delegated capability panel does not seed Runtime provider profile truth', 
 
 test('delegated capability Desktop service delegates Runtime control-plane composition to SDK', () => {
   const serviceSource = readDesktopFile('src/shell/renderer/features/runtime-config/runtime-config-delegated-capability-service.ts');
-  assert.match(serviceSource, /createHostRuntimeAgentDelegatedCapabilitySurface/);
+  assert.match(serviceSource, /createNimiHostRuntimeAgentDelegatedCapabilitySurface/);
   assert.doesNotMatch(serviceSource, /createRuntimeProtectedScopeHelper/);
   assert.doesNotMatch(serviceSource, /buildRuntimeAgentRequestContext/);
   assert.doesNotMatch(serviceSource, /runtime\.agent\.getDelegatedControlSurfaceSnapshot/);

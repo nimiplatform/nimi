@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import type { LocalRuntimeRecommendationFeedItemDescriptor } from '@nimiplatform/sdk/runtime';
+import type { NimiRuntimeLocalRecommendationFeedItem } from '@nimiplatform/sdk/runtime';
 import { Button } from './runtime-config-primitives';
 import { formatBytes } from './runtime-config-model-center-utils';
 import {
@@ -12,7 +12,7 @@ import {
 } from './runtime-config-page-recommend-utils';
 
 type RecommendQuantizationTableProps = {
-  item: LocalRuntimeRecommendationFeedItemDescriptor;
+  item: NimiRuntimeLocalRecommendationFeedItem;
   onReviewInstallPlan: (options?: { entry?: string; files?: string[]; hashes?: Record<string, string> }) => void;
   totalVramBytes?: number;
 };
@@ -87,7 +87,7 @@ export function RecommendQuantizationTable({
                       size="sm"
                       onClick={() => onReviewInstallPlan({
                         entry: entry.entry,
-                        files: entry.files,
+                        files: [...entry.files],
                         hashes: entry.sha256 ? { [entry.entry]: entry.sha256 } : undefined,
                       })}
                     >

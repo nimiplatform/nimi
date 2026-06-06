@@ -1,8 +1,8 @@
 import type {
-  GgufVariantDescriptor,
-  LocalRuntimeAssetRecord,
-  LocalRuntimeCatalogItemDescriptor,
-  LocalRuntimeVerifiedAssetDescriptor,
+  NimiRuntimeLocalCatalogVariantDescriptor,
+  NimiRuntimeLocalAssetRecord,
+  NimiRuntimeLocalCatalogItemDescriptor,
+  NimiRuntimeLocalVerifiedAssetDescriptor,
 } from '@nimiplatform/sdk/runtime';
 import { Surface } from '@nimiplatform/kit/ui';
 import { i18n } from '@renderer/i18n';
@@ -31,26 +31,26 @@ type CatalogCardProps = {
   loadingCatalog: boolean;
   assetBusy: boolean;
   hasSearchQuery: boolean;
-  verifiedModels: LocalRuntimeVerifiedAssetDescriptor[];
-  catalogItems: LocalRuntimeCatalogItemDescriptor[];
+  verifiedModels: NimiRuntimeLocalVerifiedAssetDescriptor[];
+  catalogItems: NimiRuntimeLocalCatalogItemDescriptor[];
   catalogDisplayCount: number;
-  relatedAssetsByModelTemplate: Map<string, LocalRuntimeVerifiedAssetDescriptor[]>;
-  installedAssetsById: Map<string, LocalRuntimeAssetRecord>;
-  variantPickerItem: LocalRuntimeCatalogItemDescriptor | null;
-  variantList: GgufVariantDescriptor[];
+  relatedAssetsByModelTemplate: Map<string, NimiRuntimeLocalVerifiedAssetDescriptor[]>;
+  installedAssetsById: Map<string, NimiRuntimeLocalAssetRecord>;
+  variantPickerItem: NimiRuntimeLocalCatalogItemDescriptor | null;
+  variantList: NimiRuntimeLocalCatalogVariantDescriptor[];
   variantError: string;
   loadingVariants: boolean;
-  selectedCatalogCapability: (item: LocalRuntimeCatalogItemDescriptor) => CapabilityOption;
+  selectedCatalogCapability: (item: NimiRuntimeLocalCatalogItemDescriptor) => CapabilityOption;
   isAssetPending: (templateId: string) => boolean;
   onSearchQueryChange: (value: string) => void;
   onCatalogCapabilityChange: (value: 'all' | CapabilityOption) => void;
-  onInstallMissingAssets: (assets: LocalRuntimeVerifiedAssetDescriptor[]) => void;
+  onInstallMissingAssets: (assets: NimiRuntimeLocalVerifiedAssetDescriptor[]) => void;
   onInstallVerifiedModel: (templateId: string) => void;
   onInstallAsset: (templateId: string) => void;
-  onToggleVariantPicker: (item: LocalRuntimeCatalogItemDescriptor) => void;
+  onToggleVariantPicker: (item: NimiRuntimeLocalCatalogItemDescriptor) => void;
   onCloseVariantPicker: () => void;
   onCatalogCapabilityOverrideChange: (itemId: string, capability: CapabilityOption) => void;
-  onInstallCatalogVariant: (item: LocalRuntimeCatalogItemDescriptor, variantFilename: string) => void;
+  onInstallCatalogVariant: (item: NimiRuntimeLocalCatalogItemDescriptor, variantFilename: string) => void;
   onLoadMoreCatalog: () => void;
   installing: boolean;
 };

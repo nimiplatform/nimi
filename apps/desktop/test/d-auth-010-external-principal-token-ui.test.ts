@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import test from 'node:test';
 
-import { createHostRuntimeExternalAgentAccessSurface } from '@nimiplatform/sdk/runtime';
+import { createNimiRuntimeExternalAgentAccessSurface } from '@nimiplatform/sdk/runtime';
 
 const EXTERNAL_AGENT_UI_PATH = resolve(
   import.meta.dirname,
@@ -26,11 +26,11 @@ const externalAgentUiSource = [
 const externalAgentTokenTableSource = readFileSync(EXTERNAL_AGENT_TOKEN_TABLE_PATH, 'utf8');
 
 test('D-AUTH-010: external principal token SDK Runtime surface stays available', () => {
-  assert.equal(typeof createHostRuntimeExternalAgentAccessSurface, 'function');
+  assert.equal(typeof createNimiRuntimeExternalAgentAccessSurface, 'function');
 });
 
 test('D-AUTH-010: external principal token UI flow preserves required structure', () => {
-  assert.match(externalAgentUiSource, /createHostRuntimeExternalAgentAccessSurface/);
+  assert.match(externalAgentUiSource, /createNimiRuntimeExternalAgentAccessSurface/);
   assert.match(externalAgentUiSource, /const status = await externalAgentAccess\.getGatewayStatus\(\);/);
   assert.match(externalAgentUiSource, /const rows = await externalAgentAccess\.listTokens\(\);/);
   assert.match(externalAgentUiSource, /setGatewayStatus\(\{/);

@@ -1,58 +1,58 @@
 import type {
-  LocalRuntimeRecommendationFeedDescriptor,
-  LocalRuntimeRecommendationFeedItemDescriptor,
+  NimiRuntimeLocalRecommendationFeed,
+  NimiRuntimeLocalRecommendationFeedItem,
 } from '@nimiplatform/sdk/runtime';
 import {
-  LOCAL_RECOMMENDATION_FEED_CAPABILITY_IDS,
-  LOCAL_RECOMMENDATION_RUN_GRADE_IDS,
-  applyLocalRecommendationFeedFilters,
-  buildLocalRecommendationHuggingFaceUrl,
-  collectLocalRecommendationFeedLicenses,
-  collectLocalRecommendationFeedProviders,
-  computeLocalRecommendationVramPercentage,
-  countLocalRecommendationRunGrades,
-  filterLocalRecommendationFeedItems as filterSdkRecommendationFeedItems,
-  formatLocalRecommendationQuantQualityLabel,
-  formatLocalRecommendationRepoOwner,
-  formatLocalRecommendationRunGradeLabel,
-  localRecommendationFeedMatchesQuery,
-  localRecommendationTierToRunGrade,
-  normalizeLocalRecommendationFeedCapabilityId,
-  parseLocalRecommendationLicenseShort,
-  parseLocalRecommendationParamsFromTitle,
-  parseLocalRecommendationQuantBitsFromEntry,
-  parseLocalRecommendationQuantLevelFromEntry,
-  selectLocalRecommendationPrimaryEntrySize,
-  sortLocalRecommendationFeedItems,
-  splitLocalRecommendationFeedItems as splitSdkRecommendationFeedItems,
-  summarizeLocalRecommendationFeedCacheState,
-  type LocalRecommendationFeedCapabilityId,
-  type LocalRecommendationFeedSections as SdkRecommendationFeedSections,
-  type LocalRecommendationFeedSortKey,
-  type LocalRecommendationRunGradeId,
+  NIMI_RUNTIME_LOCAL_RECOMMENDATION_FEED_CAPABILITY_IDS,
+  NIMI_RUNTIME_LOCAL_RECOMMENDATION_RUN_GRADE_IDS,
+  applyNimiRuntimeLocalRecommendationFeedFilters,
+  buildNimiRuntimeLocalRecommendationHuggingFaceUrl,
+  collectNimiRuntimeLocalRecommendationFeedLicenses,
+  collectNimiRuntimeLocalRecommendationFeedProviders,
+  computeNimiRuntimeLocalRecommendationVramPercentage,
+  countNimiRuntimeLocalRecommendationRunGrades,
+  filterNimiRuntimeLocalRecommendationFeedItems as filterSdkRecommendationFeedItems,
+  formatNimiRuntimeLocalRecommendationQuantQualityLabel,
+  formatNimiRuntimeLocalRecommendationRepoOwner,
+  formatNimiRuntimeLocalRecommendationRunGradeLabel,
+  nimiRuntimeLocalRecommendationFeedMatchesQuery,
+  nimiRuntimeLocalRecommendationTierToRunGrade,
+  normalizeNimiRuntimeLocalRecommendationFeedCapabilityId,
+  parseNimiRuntimeLocalRecommendationLicenseShort,
+  parseNimiRuntimeLocalRecommendationParamsFromTitle,
+  parseNimiRuntimeLocalRecommendationQuantBitsFromEntry,
+  parseNimiRuntimeLocalRecommendationQuantLevelFromEntry,
+  selectNimiRuntimeLocalRecommendationPrimaryEntrySize,
+  sortNimiRuntimeLocalRecommendationFeedItems,
+  splitNimiRuntimeLocalRecommendationFeedItems as splitSdkRecommendationFeedItems,
+  summarizeNimiRuntimeLocalRecommendationFeedCacheState,
+  type NimiRuntimeLocalRecommendationFeedCapabilityId,
+  type NimiRuntimeLocalRecommendationFeedSections as SdkRecommendationFeedSections,
+  type NimiRuntimeLocalRecommendationFeedSortKey,
+  type NimiRuntimeLocalRecommendationRunGradeId,
 } from '@nimiplatform/sdk/runtime';
 import type { CapabilityV11 } from './runtime-config-state-types';
 
-export const RECOMMEND_PAGE_CAPABILITIES = LOCAL_RECOMMENDATION_FEED_CAPABILITY_IDS;
+export const RECOMMEND_PAGE_CAPABILITIES = NIMI_RUNTIME_LOCAL_RECOMMENDATION_FEED_CAPABILITY_IDS;
 
-export type RecommendPageCapability = LocalRecommendationFeedCapabilityId;
+export type RecommendPageCapability = NimiRuntimeLocalRecommendationFeedCapabilityId;
 
-export type RecommendationFeedSections = SdkRecommendationFeedSections<LocalRuntimeRecommendationFeedItemDescriptor>;
+export type RecommendationFeedSections = SdkRecommendationFeedSections<NimiRuntimeLocalRecommendationFeedItem>;
 
 // ---------------------------------------------------------------------------
 // Grade (display tier) — maps internal tiers to CanIRun-style labels
 // ---------------------------------------------------------------------------
 
-export type RecommendGrade = LocalRecommendationRunGradeId;
+export type RecommendGrade = NimiRuntimeLocalRecommendationRunGradeId;
 
-export const RECOMMEND_GRADES: readonly RecommendGrade[] = LOCAL_RECOMMENDATION_RUN_GRADE_IDS;
+export const RECOMMEND_GRADES: readonly RecommendGrade[] = NIMI_RUNTIME_LOCAL_RECOMMENDATION_RUN_GRADE_IDS;
 
 export function tierToGrade(tier?: unknown): RecommendGrade {
-  return localRecommendationTierToRunGrade(tier);
+  return nimiRuntimeLocalRecommendationTierToRunGrade(tier);
 }
 
 export function gradeLabel(grade: RecommendGrade): string {
-  return formatLocalRecommendationRunGradeLabel(grade);
+  return formatNimiRuntimeLocalRecommendationRunGradeLabel(grade);
 }
 
 export function gradeColorClass(grade: RecommendGrade): string {
@@ -75,8 +75,8 @@ export function gradeDotClass(grade: RecommendGrade): string {
 
 export type TierCounts = Record<RecommendGrade, number>;
 
-export function computeTierCounts(items: LocalRuntimeRecommendationFeedItemDescriptor[]): TierCounts {
-  return countLocalRecommendationRunGrades(items);
+export function computeTierCounts(items: readonly NimiRuntimeLocalRecommendationFeedItem[]): TierCounts {
+  return countNimiRuntimeLocalRecommendationRunGrades(items);
 }
 
 // ---------------------------------------------------------------------------
@@ -84,11 +84,11 @@ export function computeTierCounts(items: LocalRuntimeRecommendationFeedItemDescr
 // ---------------------------------------------------------------------------
 
 export function parseParamsFromTitle(title: string): string {
-  return parseLocalRecommendationParamsFromTitle(title);
+  return parseNimiRuntimeLocalRecommendationParamsFromTitle(title);
 }
 
 export function parseLicenseShort(license?: string): string {
-  return parseLocalRecommendationLicenseShort(license);
+  return parseNimiRuntimeLocalRecommendationLicenseShort(license);
 }
 
 export function licenseColorClass(label: string): string {
@@ -100,22 +100,22 @@ export function licenseColorClass(label: string): string {
 }
 
 export function formatRepoOwnerFromRepo(repo: string): string {
-  return formatLocalRecommendationRepoOwner(repo);
+  return formatNimiRuntimeLocalRecommendationRepoOwner(repo);
 }
 
 // ---------------------------------------------------------------------------
 // Model size helpers
 // ---------------------------------------------------------------------------
 
-export function primaryEntrySize(item: LocalRuntimeRecommendationFeedItemDescriptor): number {
-  return selectLocalRecommendationPrimaryEntrySize(item);
+export function primaryEntrySize(item: NimiRuntimeLocalRecommendationFeedItem): number {
+  return selectNimiRuntimeLocalRecommendationPrimaryEntrySize(item);
 }
 
 export function computeVramPercentage(
   modelSizeBytes: number,
   totalVramBytes?: number,
 ): number | null {
-  return computeLocalRecommendationVramPercentage(modelSizeBytes, totalVramBytes);
+  return computeNimiRuntimeLocalRecommendationVramPercentage(modelSizeBytes, totalVramBytes);
 }
 
 export function vramPercentageColorClass(pct: number | null): string {
@@ -138,7 +138,7 @@ export function vramBarColorClass(pct: number | null): string {
 // Sort
 // ---------------------------------------------------------------------------
 
-export type RecommendSortKey = LocalRecommendationFeedSortKey;
+export type RecommendSortKey = NimiRuntimeLocalRecommendationFeedSortKey;
 
 export const RECOMMEND_SORT_OPTIONS: { value: RecommendSortKey; label: string }[] = [
   { value: 'score', label: 'Score' },
@@ -150,10 +150,10 @@ export const RECOMMEND_SORT_OPTIONS: { value: RecommendSortKey; label: string }[
 ];
 
 export function sortFeedItems(
-  items: LocalRuntimeRecommendationFeedItemDescriptor[],
+  items: readonly NimiRuntimeLocalRecommendationFeedItem[],
   sortKey: RecommendSortKey,
-): LocalRuntimeRecommendationFeedItemDescriptor[] {
-  return sortLocalRecommendationFeedItems(items, sortKey);
+): NimiRuntimeLocalRecommendationFeedItem[] {
+  return sortNimiRuntimeLocalRecommendationFeedItems(items, sortKey);
 }
 
 // ---------------------------------------------------------------------------
@@ -172,18 +172,18 @@ export function emptyFilters(): RecommendFilters {
 }
 
 export function applyFilters(
-  items: LocalRuntimeRecommendationFeedItemDescriptor[],
+  items: readonly NimiRuntimeLocalRecommendationFeedItem[],
   filters: RecommendFilters,
-): LocalRuntimeRecommendationFeedItemDescriptor[] {
-  return applyLocalRecommendationFeedFilters(items, filters);
+): NimiRuntimeLocalRecommendationFeedItem[] {
+  return applyNimiRuntimeLocalRecommendationFeedFilters(items, filters);
 }
 
-export function collectUniqueProviders(items: LocalRuntimeRecommendationFeedItemDescriptor[]): string[] {
-  return collectLocalRecommendationFeedProviders(items);
+export function collectUniqueProviders(items: readonly NimiRuntimeLocalRecommendationFeedItem[]): string[] {
+  return collectNimiRuntimeLocalRecommendationFeedProviders(items);
 }
 
-export function collectUniqueLicenses(items: LocalRuntimeRecommendationFeedItemDescriptor[]): string[] {
-  return collectLocalRecommendationFeedLicenses(items);
+export function collectUniqueLicenses(items: readonly NimiRuntimeLocalRecommendationFeedItem[]): string[] {
+  return collectNimiRuntimeLocalRecommendationFeedLicenses(items);
 }
 
 // ---------------------------------------------------------------------------
@@ -191,15 +191,15 @@ export function collectUniqueLicenses(items: LocalRuntimeRecommendationFeedItemD
 // ---------------------------------------------------------------------------
 
 export function parseQuantBitsFromEntry(entry: string): number | null {
-  return parseLocalRecommendationQuantBitsFromEntry(entry);
+  return parseNimiRuntimeLocalRecommendationQuantBitsFromEntry(entry);
 }
 
 export function parseQuantLevelFromEntry(entry: string): string {
-  return parseLocalRecommendationQuantLevelFromEntry(entry);
+  return parseNimiRuntimeLocalRecommendationQuantLevelFromEntry(entry);
 }
 
 export function quantQualityLabel(bits: number | null): string {
-  return formatLocalRecommendationQuantQualityLabel(bits);
+  return formatNimiRuntimeLocalRecommendationQuantQualityLabel(bits);
 }
 
 export function quantQualityColorClass(label: string): string {
@@ -213,35 +213,35 @@ export function quantQualityColorClass(label: string): string {
 }
 
 export function buildHuggingFaceUrl(repo: string): string {
-  return buildLocalRecommendationHuggingFaceUrl(repo);
+  return buildNimiRuntimeLocalRecommendationHuggingFaceUrl(repo);
 }
 
 export function normalizeRecommendPageCapability(value: CapabilityV11 | string | undefined): RecommendPageCapability {
-  return normalizeLocalRecommendationFeedCapabilityId(value);
+  return normalizeNimiRuntimeLocalRecommendationFeedCapabilityId(value);
 }
 
 export function recommendationFeedMatchesQuery(
-  item: LocalRuntimeRecommendationFeedItemDescriptor,
+  item: NimiRuntimeLocalRecommendationFeedItem,
   query: string,
 ): boolean {
-  return localRecommendationFeedMatchesQuery(item, query);
+  return nimiRuntimeLocalRecommendationFeedMatchesQuery(item, query);
 }
 
 export function filterRecommendationFeedItems(
-  items: LocalRuntimeRecommendationFeedItemDescriptor[],
+  items: readonly NimiRuntimeLocalRecommendationFeedItem[],
   query: string,
-): LocalRuntimeRecommendationFeedItemDescriptor[] {
+): NimiRuntimeLocalRecommendationFeedItem[] {
   return filterSdkRecommendationFeedItems(items, query);
 }
 
 export function splitRecommendationFeedItems(
-  items: LocalRuntimeRecommendationFeedItemDescriptor[],
+  items: readonly NimiRuntimeLocalRecommendationFeedItem[],
 ): RecommendationFeedSections {
   return splitSdkRecommendationFeedItems(items);
 }
 
 export function recommendationFeedCacheSummary(
-  feed: LocalRuntimeRecommendationFeedDescriptor | null,
+  feed: NimiRuntimeLocalRecommendationFeed | null,
 ): 'fresh' | 'stale' | 'empty' {
-  return summarizeLocalRecommendationFeedCacheState(feed);
+  return summarizeNimiRuntimeLocalRecommendationFeedCacheState(feed);
 }

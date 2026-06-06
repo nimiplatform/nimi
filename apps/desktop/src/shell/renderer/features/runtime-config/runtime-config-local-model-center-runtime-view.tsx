@@ -1,14 +1,14 @@
 import type { RefObject } from 'react';
 import type {
-  LocalRuntimeAssetDeclaration,
-  LocalRuntimeAssetKind,
-  LocalRuntimeAssetRecord,
-  LocalRuntimeCatalogItemDescriptor,
-  LocalRuntimeEnvironmentDependencyJob,
-  LocalRuntimeEnvironmentPlanDependency,
-  GgufVariantDescriptor,
-  LocalRuntimeUnregisteredAssetDescriptor,
-  LocalRuntimeVerifiedAssetDescriptor,
+  NimiRuntimeLocalAssetDeclaration,
+  NimiRuntimeLocalAssetKind,
+  NimiRuntimeLocalAssetRecord,
+  NimiRuntimeLocalCatalogItemDescriptor,
+  NimiRuntimeLocalEnvironmentDependencyJob,
+  NimiRuntimeLocalEnvironmentPlanDependency,
+  NimiRuntimeLocalCatalogVariantDescriptor,
+  NimiRuntimeLocalUnregisteredAssetDescriptor,
+  NimiRuntimeLocalVerifiedAssetDescriptor,
 } from '@nimiplatform/sdk/runtime';
 import { ScrollArea } from '@nimiplatform/kit/ui';
 import type {
@@ -35,21 +35,21 @@ type DownloadState = ReturnType<typeof useLocalModelCenterDownloads>;
 
 type LocalModelCenterRuntimeViewProps = {
   assetBusy: boolean;
-  assetKindFilter: 'all' | LocalRuntimeAssetKind;
+  assetKindFilter: 'all' | NimiRuntimeLocalAssetKind;
   assetPendingTemplateIds: string[];
   catalogCapability: 'all' | CapabilityOption;
   catalogDisplayCount: number;
-  catalogItems: LocalRuntimeCatalogItemDescriptor[];
+  catalogItems: NimiRuntimeLocalCatalogItemDescriptor[];
   checkingHealth: boolean;
   deferredSearchQuery: string;
   discovering: boolean;
-  filteredInstalledDependencyAssets: LocalRuntimeAssetRecord[];
-  filteredInstalledRunnableAssets: LocalRuntimeAssetRecord[];
-  sharedRuntimeDependency?: LocalRuntimeEnvironmentPlanDependency;
-  sharedRuntimeDependencyJobs: LocalRuntimeEnvironmentDependencyJob[];
-  runtimeDependencyByAssetId: Record<string, LocalRuntimeEnvironmentPlanDependency | undefined>;
+  filteredInstalledDependencyAssets: NimiRuntimeLocalAssetRecord[];
+  filteredInstalledRunnableAssets: NimiRuntimeLocalAssetRecord[];
+  sharedRuntimeDependency?: NimiRuntimeLocalEnvironmentPlanDependency;
+  sharedRuntimeDependencyJobs: NimiRuntimeLocalEnvironmentDependencyJob[];
+  runtimeDependencyByAssetId: Record<string, NimiRuntimeLocalEnvironmentPlanDependency | undefined>;
   hasSearchQuery: boolean;
-  importFileAssetKind: LocalRuntimeAssetKind;
+  importFileAssetKind: NimiRuntimeLocalAssetKind;
   importFileAuxiliaryEngine: AssetEngineOption | '';
   importFileEndpoint: string;
   importEndpointRequired: boolean;
@@ -58,7 +58,7 @@ type LocalModelCenterRuntimeViewProps = {
   importMenuRef: RefObject<HTMLDivElement | null>;
   importingAssetPath: string | null;
   installing: boolean;
-  installedAssetsById: Map<string, LocalRuntimeAssetRecord>;
+  installedAssetsById: Map<string, NimiRuntimeLocalAssetRecord>;
   isAssetPending: (templateId: string) => boolean;
   loadingCatalog: boolean;
   loadingInstalledAssets: boolean;
@@ -73,8 +73,8 @@ type LocalModelCenterRuntimeViewProps = {
   unregisteredEndpointByPath: Record<string, string>;
   unregisteredEndpointRequiredByPath: Record<string, boolean>;
   unregisteredEndpointHintByPath: Record<string, string>;
-  onArtifactKindFilterChange: (value: 'all' | LocalRuntimeAssetKind) => void;
-  onAssetKindChange: (kind: LocalRuntimeAssetKind) => void;
+  onArtifactKindFilterChange: (value: 'all' | NimiRuntimeLocalAssetKind) => void;
+  onAssetKindChange: (kind: NimiRuntimeLocalAssetKind) => void;
   onAssetAuxiliaryEngineChange: (engine: AssetEngineOption | '') => void;
   onImportEndpointChange: (endpoint: string) => void;
   onCatalogCapabilityChange: (value: 'all' | CapabilityOption) => void;
@@ -87,8 +87,8 @@ type LocalModelCenterRuntimeViewProps = {
   onOpenModelsFolder: () => void;
   onImportManifest: () => void;
   onInstallAsset: (templateId: string) => void;
-  onInstallCatalogVariant: (item: LocalRuntimeCatalogItemDescriptor, variantFilename: string) => void;
-  onInstallMissingAssets: (assets: LocalRuntimeVerifiedAssetDescriptor[]) => void;
+  onInstallCatalogVariant: (item: NimiRuntimeLocalCatalogItemDescriptor, variantFilename: string) => void;
+  onInstallMissingAssets: (assets: NimiRuntimeLocalVerifiedAssetDescriptor[]) => void;
   onInstallVerifiedModel: (templateId: string) => void;
   onLoadMoreCatalog: () => void;
   onOpenImportFile: () => void;
@@ -108,28 +108,28 @@ type LocalModelCenterRuntimeViewProps = {
   onResumeDownload: DownloadState['onResumeDownload'];
   onSearchQueryChange: (value: string) => void;
   onToggleImportMenu: () => void;
-  onToggleVariantPicker: (item: LocalRuntimeCatalogItemDescriptor) => void;
+  onToggleVariantPicker: (item: NimiRuntimeLocalCatalogItemDescriptor) => void;
   onImportUnregisteredAsset: (path: string) => void;
-  onUnregisteredAssetKindChange: (path: string, kind: LocalRuntimeAssetKind) => void;
+  onUnregisteredAssetKindChange: (path: string, kind: NimiRuntimeLocalAssetKind) => void;
   onUnregisteredAuxiliaryEngineChange: (path: string, engine: AssetEngineOption | '') => void;
   onUnregisteredEndpointChange: (path: string, endpoint: string) => void;
-  relatedAssetsByModelTemplate: Map<string, LocalRuntimeVerifiedAssetDescriptor[]>;
-  resolveUnregisteredAssetDraft: (asset: LocalRuntimeUnregisteredAssetDescriptor) => LocalRuntimeAssetDeclaration;
+  relatedAssetsByModelTemplate: Map<string, NimiRuntimeLocalVerifiedAssetDescriptor[]>;
+  resolveUnregisteredAssetDraft: (asset: NimiRuntimeLocalUnregisteredAssetDescriptor) => NimiRuntimeLocalAssetDeclaration;
   searchQuery: string;
-  selectedCatalogCapability: (item: LocalRuntimeCatalogItemDescriptor) => CapabilityOption;
+  selectedCatalogCapability: (item: NimiRuntimeLocalCatalogItemDescriptor) => CapabilityOption;
   showImportFileDialog: boolean;
   showImportMenu: boolean;
   canChooseImportFile: boolean;
   canChooseImportDirectory: boolean;
   variantError: string;
-  variantList: GgufVariantDescriptor[];
-  variantPickerItem: LocalRuntimeCatalogItemDescriptor | null;
-  verifiedModels: LocalRuntimeVerifiedAssetDescriptor[];
+  variantList: NimiRuntimeLocalCatalogVariantDescriptor[];
+  variantPickerItem: NimiRuntimeLocalCatalogItemDescriptor | null;
+  verifiedModels: NimiRuntimeLocalVerifiedAssetDescriptor[];
   visibleAssetTasks: AssetTaskEntry[];
-  visibleVerifiedAssets: LocalRuntimeVerifiedAssetDescriptor[];
+  visibleVerifiedAssets: NimiRuntimeLocalVerifiedAssetDescriptor[];
   downloads: DownloadState['activeDownloads'];
   imports: DownloadState['activeImports'];
-  unregisteredAssets: LocalRuntimeUnregisteredAssetDescriptor[];
+  unregisteredAssets: NimiRuntimeLocalUnregisteredAssetDescriptor[];
   onCancelDownload: DownloadState['onCancelDownload'];
   onDismissSession: (installSessionId: string) => void;
   lastCheckedAt?: string | null;

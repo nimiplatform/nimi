@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Tooltip, cn } from '@nimiplatform/kit/ui';
-import type { ExternalAgentTokenLedgerRecord } from '@nimiplatform/sdk/runtime';
+import type { NimiExternalAgentTokenLedgerRecord } from '@nimiplatform/sdk/runtime';
 
 export type TokenMode = 'delegated' | 'autonomous';
 export type TokenFilter = 'all' | 'active' | 'revoked';
@@ -192,7 +192,7 @@ export function relativeFromNow(iso: string, t: (key: string, options?: Record<s
     : t('runtimeConfig.eaa.inPattern', { defaultValue: 'in {{value}}{{unit}}', value, unit: unitLabel });
 }
 
-export function resolveTokenStatus(token: ExternalAgentTokenLedgerRecord): TokenStatus {
+export function resolveTokenStatus(token: NimiExternalAgentTokenLedgerRecord): TokenStatus {
   if (token.revokedAt) return 'revoked';
   const expiresMs = new Date(token.expiresAt).getTime();
   if (Number.isFinite(expiresMs) && expiresMs < Date.now()) return 'expired';

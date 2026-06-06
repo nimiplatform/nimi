@@ -29,22 +29,22 @@ const runtimeViewSource = readWorkspaceFile(
 );
 
 test('local model center resolves shared runtime dependency readiness before any imported model is required', () => {
-  assert.match(runtimeProjectionSources, /localRuntime\.resolveEnvironmentPlan/);
+  assert.match(runtimeProjectionSources, /runtimeConfigLocalModelCenterClient\.resolveEnvironmentPlan/);
   assert.match(runtimeProjectionSources, /packId:\s*'local-gpu-support'/);
   assert.match(runtimeProjectionSources, /consumerScope:\s*'desktop\.local-model-center'/);
-  assert.match(runtimeProjectionSources, /resolveLocalRuntimeImageNativeEnvironmentPlan/);
+  assert.match(runtimeProjectionSources, /resolveNimiRuntimeLocalImageNativeEnvironmentPlan/);
   assert.match(runtimeProjectionSources, /sharedRuntimeEnvironmentPlan/);
   assert.match(runtimeProjectionSources, /sharedRuntimeDependency/);
   assert.match(runtimeProjectionSources, /sharedRuntimeDependencyJobs/);
   assert.match(runtimeProjectionSources, /setupRuntimeDependency/);
-  assert.match(runtimeProjectionSources, /localRuntime\.startEnvironmentDependencyJob/);
-  assert.match(runtimeReadinessSource, /isLocalRuntimeEnvironmentDependencyReadyState/);
-  assert.match(runtimeReadinessSource, /isLocalRuntimeEnvironmentDependencyStartableState/);
-  assert.match(runtimeReadinessSource, /isLocalRuntimeEnvironmentDependencyJobActiveState/);
+  assert.match(runtimeProjectionSources, /runtimeConfigLocalModelCenterClient\.startEnvironmentDependencyJob/);
+  assert.match(runtimeReadinessSource, /isNimiRuntimeLocalEnvironmentDependencyReadyState/);
+  assert.match(runtimeReadinessSource, /isNimiRuntimeLocalEnvironmentDependencyStartableState/);
+  assert.match(runtimeReadinessSource, /isNimiRuntimeLocalEnvironmentDependencyJobActiveState/);
   assert.doesNotMatch(runtimeReadinessSource, /ACTIVE_RUNTIME_DEPENDENCY_JOB_STATES/);
   assert.doesNotMatch(runtimeReadinessSource, /STARTABLE_RUNTIME_DEPENDENCY_STATES/);
-  assert.doesNotMatch(runtimeReadinessSource, /localRuntime\.startDependencySetup/);
-  assert.doesNotMatch(runtimeReadinessSource, /localRuntime\.resolveDependency/);
+  assert.doesNotMatch(runtimeReadinessSource, /runtimeConfigLocalModelCenterClient\.startDependencySetup/);
+  assert.doesNotMatch(runtimeReadinessSource, /runtimeConfigLocalModelCenterClient\.resolveDependency/);
   assert.doesNotMatch(runtimeReadinessSource, /stable-diffusion\.cpp/);
   assert.match(runtimeReadinessSource, /asset,\s*\}/);
   assert.match(runtimeReadinessSource, /prepareAssetRuntimeDependencies/);
@@ -58,11 +58,11 @@ test('local model center setup CTA projects shared dependency resolver truth at 
   assert.match(installedSectionSource, /props\.onCancelRuntimeDependencyJob/);
   assert.match(installedSectionSource, /props\.onRetryRuntimeDependencyJob/);
   assert.match(installedSectionSource, /props\.onRepairRuntimeDependency/);
-  assert.match(installedSectionProjectionSource, /isLocalRuntimeEnvironmentDependencyJobActiveState/);
-  assert.match(installedSectionProjectionSource, /isLocalRuntimeEnvironmentDependencyJobRetryableState/);
-  assert.match(installedSectionProjectionSource, /isLocalRuntimeEnvironmentDependencyNeedsConfirmationState/);
-  assert.match(installedSectionProjectionSource, /isLocalRuntimeEnvironmentDependencyReadyState/);
-  assert.match(installedSectionProjectionSource, /isLocalRuntimeEnvironmentDependencyJobFailedState/);
+  assert.match(installedSectionProjectionSource, /isNimiRuntimeLocalEnvironmentDependencyJobActiveState/);
+  assert.match(installedSectionProjectionSource, /isNimiRuntimeLocalEnvironmentDependencyJobRetryableState/);
+  assert.match(installedSectionProjectionSource, /isNimiRuntimeLocalEnvironmentDependencyNeedsConfirmationState/);
+  assert.match(installedSectionProjectionSource, /isNimiRuntimeLocalEnvironmentDependencyReadyState/);
+  assert.match(installedSectionProjectionSource, /isNimiRuntimeLocalEnvironmentDependencyJobFailedState/);
   assert.match(installedSectionProjectionSource, /runtimeDependencyBannerTitle/);
   assert.match(installedSectionProjectionSource, /runtimeDependencyStatusDetail/);
   assert.doesNotMatch(installedSectionProjectionSource, /ACTIVE_RUNTIME_DEPENDENCY_JOB_STATES/);
@@ -83,7 +83,7 @@ test('local model center setup CTA projects shared dependency resolver truth at 
 });
 
 test('local model center projects Runtime-owned local environment state instead of desktop file fallback', () => {
-  assert.match(runtimeProjectionSources, /localRuntime\.resolveEnvironmentPlan/);
+  assert.match(runtimeProjectionSources, /runtimeConfigLocalModelCenterClient\.resolveEnvironmentPlan/);
   assert.match(runtimeProjectionSources, /sharedRuntimeEnvironmentPlan/);
   assert.match(runtimeViewSource, /LocalModelCenterInstalledAssetsSection/);
   assert.doesNotMatch(runtimeProjectionSources, /readTextFile|fs\.|state\.json/);

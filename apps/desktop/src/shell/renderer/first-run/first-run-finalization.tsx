@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
-import { desktopBridge, type ProductControlRecordProjection } from '@renderer/bridge';
+import { desktopBridge, type NimiProductControlRecordProjection } from '@renderer/bridge';
 
 /**
  * Desktop first-run finalization surface for the `local_ai_ready` state.
@@ -18,8 +18,8 @@ import { desktopBridge, type ProductControlRecordProjection } from '@renderer/br
 type FinalizationStatus = 'requesting' | 'failed';
 
 type FirstRunFinalizationProps = {
-  readonly projection: ProductControlRecordProjection;
-  readonly onProjectionChange: (projection: ProductControlRecordProjection) => void;
+  readonly projection: NimiProductControlRecordProjection;
+  readonly onProjectionChange: (projection: NimiProductControlRecordProjection) => void;
 };
 
 export function FirstRunFinalization(props: FirstRunFinalizationProps): ReactElement {

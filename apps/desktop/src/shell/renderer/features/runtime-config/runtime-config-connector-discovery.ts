@@ -1,25 +1,19 @@
 import type {
   RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import type { ProviderStatusV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
-import { localRuntime } from '@nimiplatform/sdk/runtime';
-import type {
-  GetRuntimeHealthResponse,
-  LocalRuntimeRunnableAssetKindId,
-  } from '@nimiplatform/sdk/runtime';
-import {
-  normalizeLocalProviderAdapterId,
-  type LocalProviderAdapterId,
-  asNimiError,
-  isLocalRuntimeRunnableAssetKindId,
-  normalizeLocalRuntimeRunnableAssetKindId,
-  projectRuntimeHealthSummary,
-} from '@nimiplatform/sdk/runtime';
-import { ReasonCode } from '@nimiplatform/sdk/types';
+import type { NimiRuntimeLocalRunnableAssetKindId } from '@nimiplatform/sdk/runtime';
+import type { GetRuntimeHealthResponse } from '@nimiplatform/sdk/runtime/generated';
+import type { JsonObject } from '@nimiplatform/sdk/types';
+import { normalizeNimiRuntimeLocalProviderAdapterId, type NimiRuntimeLocalProviderAdapterId, normalizeNimiRuntimeLocalRunnableAssetKindId, parseNimiRuntimeLocalAssetStatusId, parseNimiRuntimeLocalRunnableAssetKindId, projectNimiRuntimeHealthSummary } from '@nimiplatform/sdk/runtime';
+import { LocalAssetKind, LocalAssetStatus } from '@nimiplatform/sdk/runtime/generated';
+import { asNimiError } from '@nimiplatform/sdk/types';
+import { NIMI_RUNTIME_REASON_CODES } from '@nimiplatform/sdk/runtime';
 import {
   sdkTestConnector,
   sdkListConnectorModelDescriptors,
 } from './runtime-config-connector-sdk-service';
 import { getRuntimeHealthCoordinator } from './runtime-health-coordinator';
+import { getDesktopRuntime } from '@renderer/infra/sdk/desktop-nimi-client-session';
 
 type HealthResult = {
   status: 'healthy' | 'degraded' | 'unreachable' | 'unsupported';
@@ -27,21 +21,35 @@ type HealthResult = {
   checkedAt: string;
 };
 
-type RuntimeNodeCapability = LocalRuntimeRunnableAssetKindId;
+type RuntimeNodeCapability = NimiRuntimeLocalRunnableAssetKindId;
+
+type ActiveLocalModelStatus = 'installed' | 'active' | 'unhealthy';
 
 function normalizeRuntimeNodeCapability(value: unknown): RuntimeNodeCapability {
-  return normalizeLocalRuntimeRunnableAssetKindId(value);
+  return normalizeNimiRuntimeLocalRunnableAssetKindId(value);
 }
 
-function normalizeRuntimeNodeAdapter(value: unknown): LocalProviderAdapterId | undefined {
-  return normalizeLocalProviderAdapterId(value);
+function normalizeRuntimeNodeAdapter(value: unknown): NimiRuntimeLocalProviderAdapterId | undefined {
+  return normalizeNimiRuntimeLocalProviderAdapterId(value);
+}
+
+function normalizeActiveLocalModelStatus(value: unknown): ActiveLocalModelStatus {
+  const status = parseNimiRuntimeLocalAssetStatusId(value);
+  return status === 'active' || status === 'unhealthy' ? status : 'installed';
+}
+
+function normalizeProviderHints(value: unknown): JsonObject | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return undefined;
+  }
+  return { ...(value as JsonObject) };
 }
 
 export function normalizeRuntimeHealthResult(result: GetRuntimeHealthResponse): {
   health: HealthResult;
   normalizedStatus: ProviderStatusV11;
 } {
-  const projection = projectRuntimeHealthSummary(result);
+  const projection = projectNimiRuntimeHealthSummary(result);
   const normalizedStatus = projection.normalizedStatus as ProviderStatusV11;
   return {
     health: projection.health,
@@ -49,21 +57,61 @@ export function normalizeRuntimeHealthResult(result: GetRuntimeHealthResponse): 
   };
 }
 
+async function listRuntimeLocalAssets() {
+  const assets = [];
+  let pageToken = '';
+  do {
+    const response = await getDesktopRuntime().local.listLocalAssets({
+      statusFilter: LocalAssetStatus.UNSPECIFIED,
+      kindFilter: LocalAssetKind.UNSPECIFIED,
+      engineFilter: '',
+      pageSize: 200,
+      pageToken,
+    });
+    assets.push(...response.assets);
+    pageToken = String(response.nextPageToken || '').trim();
+  } while (pageToken);
+  return assets;
+}
+
+async function listRuntimeLocalNodes() {
+  const nodes = [];
+  let pageToken = '';
+  do {
+    const response = await getDesktopRuntime().local.listNodeCatalog({
+      capability: '',
+      serviceId: '',
+      provider: '',
+      typeFilter: '',
+      pageSize: 200,
+      pageToken,
+    });
+    nodes.push(...response.nodes);
+    pageToken = String(response.nextPageToken || '').trim();
+  } while (pageToken);
+  return nodes;
+}
+
 export async function discoverLocalModelsFromEndpoint(state: RuntimeConfigStateV11) {
   const endpoint = String(state.local.endpoint || '').trim();
   const [models, nodes] = await Promise.all([
-    localRuntime.listAssets(),
-    localRuntime.listNodesCatalog(),
+    listRuntimeLocalAssets(),
+    listRuntimeLocalNodes(),
   ]);
-  const activeModels = models.filter((m) => m.status !== 'removed');
+  const activeModels = models.filter((m) => parseNimiRuntimeLocalAssetStatusId(m.status) !== 'removed');
   const discovered = activeModels.map((m) => m.assetId);
   const normalizedModels = activeModels.map((m) => ({
     localModelId: m.localAssetId || m.assetId,
     engine: m.engine || '',
     model: m.assetId,
     endpoint: endpoint,
-    capabilities: (m.capabilities || []).filter(isLocalRuntimeRunnableAssetKindId),
-    status: m.status as 'installed' | 'active' | 'unhealthy',
+    capabilities: [
+      ...new Set([
+        parseNimiRuntimeLocalRunnableAssetKindId(m.kind),
+        ...(m.capabilities || []).map(parseNimiRuntimeLocalRunnableAssetKindId),
+      ].filter((capability): capability is NimiRuntimeLocalRunnableAssetKindId => Boolean(capability))),
+    ],
+    status: normalizeActiveLocalModelStatus(m.status),
   }));
   const nodeMatrix = (nodes || []).map((n) => ({
     nodeId: n.nodeId || '',
@@ -72,7 +120,7 @@ export async function discoverLocalModelsFromEndpoint(state: RuntimeConfigStateV
     provider: n.provider || '',
     adapter: normalizeRuntimeNodeAdapter(n.adapter),
     available: n.available !== false,
-    providerHints: n.providerHints,
+    providerHints: normalizeProviderHints(n.providerHints),
     reasonCode: n.reasonCode,
 }));
   return { endpoint, discovered, models: normalizedModels, nodeMatrix };
@@ -90,7 +138,7 @@ export async function checkLocalHealth(): Promise<{
     return normalizeRuntimeHealthResult(snapshot.runtimeHealth);
   } catch (error) {
     throw asNimiError(error, {
-      reasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
+      reasonCode: NIMI_RUNTIME_REASON_CODES.RUNTIME_UNAVAILABLE,
       actionHint: 'check_runtime_daemon_health',
       source: 'runtime',
     });
@@ -113,7 +161,7 @@ export async function discoverConnectorModelsAndHealth(input: {
   const modelCapabilities: Record<string, string[]> = {};
   for (const d of descriptors) {
     if (d.capabilities.length > 0) {
-      modelCapabilities[d.modelId] = d.capabilities;
+      modelCapabilities[d.modelId] = [...d.capabilities];
     }
   }
   return {

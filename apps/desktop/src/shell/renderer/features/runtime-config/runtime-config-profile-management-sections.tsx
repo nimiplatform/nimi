@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { AIProfile } from '@nimiplatform/sdk/ai';
-import { validateAIProfile } from '@nimiplatform/sdk/ai';
+import type { NimiAIProfile } from '@nimiplatform/sdk/ai';
+import { validateNimiAIProfile } from '@nimiplatform/sdk/ai';
 
 import {
   exportAccountProfileLibraryEntries,
@@ -12,7 +12,7 @@ export type ProfileFeedback = { type: 'success' | 'error'; message: string } | n
 
 export type ProfileEditorDraft = {
   mode: 'create' | 'edit';
-  profile: AIProfile;
+  profile: NimiAIProfile;
   title: string;
   description: string;
   tagsText: string;
@@ -188,12 +188,12 @@ export function ProfileLibraryActions(props: {
           return;
         }
         const items = Array.isArray(parsed) ? parsed : [parsed];
-        const candidates: AIProfile[] = [];
+        const candidates: NimiAIProfile[] = [];
         const errors: string[] = [];
         for (let index = 0; index < items.length; index += 1) {
-          const result = validateAIProfile(items[index]);
+          const result = validateNimiAIProfile(items[index]);
           if (result.valid) {
-            candidates.push(items[index] as AIProfile);
+            candidates.push(items[index] as NimiAIProfile);
           } else {
             errors.push(`Item ${index}: ${result.errors.join(', ')}`);
           }

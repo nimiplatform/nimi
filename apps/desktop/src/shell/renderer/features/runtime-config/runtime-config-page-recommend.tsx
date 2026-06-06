@@ -1,11 +1,12 @@
 import { useCallback, useDeferredValue, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import {
-  localRuntime,
-  type LocalRuntimeRecommendationFeedDescriptor,
-  type LocalRuntimeRecommendationFeedItemDescriptor,
+import type {
+  NimiRuntimeLocalDeviceProfile,
+  NimiRuntimeLocalRecommendationFeed,
+  NimiRuntimeLocalRecommendationFeedItem,
 } from '@nimiplatform/sdk/runtime';
+import { runtimeConfigLocalModelCenterClient } from './runtime-config-local-model-center-sdk-service';
 import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { Card } from './runtime-config-primitives';
@@ -52,9 +53,9 @@ export function RecommendPage({ model, state }: RecommendPageProps) {
   // gcTime Infinity: never evict — manual refresh via "Refresh Hardware" button
   // placeholderData: keepPreviousData so UI renders instantly on capability switch
   // ---------------------------------------------------------------------------
-  const feedQuery = useQuery<LocalRuntimeRecommendationFeedDescriptor, Error>({
+  const feedQuery = useQuery<NimiRuntimeLocalRecommendationFeed<NimiRuntimeLocalDeviceProfile>, Error>({
     queryKey: ['recommendation-feed', capability],
-    queryFn: () => localRuntime.getRecommendationFeed({ capability, pageSize: 48 }),
+    queryFn: () => runtimeConfigLocalModelCenterClient.getRecommendationFeed({ capability, pageSize: 48 }),
     staleTime: (query) => query.state.data?.cacheState === 'fresh' ? 24 * 60 * 60 * 1000 : 0,
     gcTime: Infinity,
     refetchOnWindowFocus: false,
@@ -79,7 +80,7 @@ export function RecommendPage({ model, state }: RecommendPageProps) {
   // ---------------------------------------------------------------------------
   // Detail view state (internal navigation)
   // ---------------------------------------------------------------------------
-  const [selectedDetailItem, setSelectedDetailItem] = useState<LocalRuntimeRecommendationFeedItemDescriptor | null>(null);
+  const [selectedDetailItem, setSelectedDetailItem] = useState<NimiRuntimeLocalRecommendationFeedItem | null>(null);
 
   // ---------------------------------------------------------------------------
   // Derived data

@@ -6,17 +6,21 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 
 import {
-  PLATFORM_AI_PROFILE_FACTORY_ROWS,
-  type PlatformAIProfileFactoryRow,
-} from '@nimiplatform/sdk/platform-catalog';
-import { FIRST_RUN_MATERIALIZATION_CONSUMER_SCOPE } from '@nimiplatform/sdk/runtime';
+  NIMI_APP_AI_PROFILE_FACTORY_ROWS,
+  type NimiAppAIProfileFactoryRow,
+} from '@nimiplatform/sdk/app';
+import { NIMI_FIRST_RUN_MATERIALIZATION_CONSUMER_SCOPE } from '@nimiplatform/sdk/runtime';
 import { ProductControlWorkflow } from '../src/shell/renderer/first-run/product-control-workflow.js';
 import {
-  resolveFirstRunMaterializationProjection,
-  startFirstRunMaterialization,
-  type FirstRunMaterializationInput,
+  resolveDesktopNimiFirstRunMaterializationProjection,
+  startDesktopNimiFirstRunMaterialization,
+  type DesktopNimiFirstRunMaterializationInput,
 } from '../src/shell/renderer/first-run/runtime-materialization.js';
-import type { ProductControlRecord, ProductControlRecordProjection, ProductControlState } from '../src/shell/renderer/bridge/runtime-bridge/product-control.js';
+import type {
+  NimiProductControlRecord,
+  NimiProductControlRecordProjection,
+  NimiProductControlState,
+} from '../src/shell/renderer/bridge/runtime-bridge/product-control.js';
 
 const appRoutesSource = readFileSync(
   resolve(import.meta.dirname, '../src/shell/renderer/app-shell/routes/app-routes.tsx'),
@@ -82,9 +86,9 @@ const runtimeLocalEnvironmentContractSource = readFileSync(
 );
 
 function projectionFor(
-  state: ProductControlState,
-  override: Partial<ProductControlRecord> = {},
-): ProductControlRecordProjection {
+  state: NimiProductControlState,
+  override: Partial<NimiProductControlRecord> = {},
+): NimiProductControlRecordProjection {
   const dataRoot = override.dataRoot ?? (
     state === 'config_missing' || state === 'data_root_missing'
       ? null
@@ -129,15 +133,15 @@ function projectionFor(
   };
 }
 
-function renderWorkflow(state: ProductControlState, override: Partial<ProductControlRecord> = {}): string {
+function renderWorkflow(state: NimiProductControlState, override: Partial<NimiProductControlRecord> = {}): string {
   return renderToStaticMarkup(React.createElement(ProductControlWorkflow, {
     projection: projectionFor(state, override),
     onProjectionChange: () => {},
   }));
 }
 
-function firstRunRows(): readonly PlatformAIProfileFactoryRow[] {
-  return PLATFORM_AI_PROFILE_FACTORY_ROWS.filter((row) =>
+function firstRunRows(): readonly NimiAppAIProfileFactoryRow[] {
+  return NIMI_APP_AI_PROFILE_FACTORY_ROWS.filter((row) =>
     (row.applicableScopes as readonly string[]).includes('first-run'),
   );
 }
@@ -201,7 +205,7 @@ test('renderer evidence: continuing from the Local AI phase records the install 
   // The redesigned wizard folds the explicit-confirmation step into the
   // Local AI phase Continue action: persisting the install level + starting
   // materialization happens through `setProductFirstRunInstallLevel` and
-  // `startFirstRunMaterialization`. The renderer never writes ready_for_use.
+  // `startDesktopNimiFirstRunMaterialization`. The renderer never writes ready_for_use.
   const markup = renderWorkflow('ai_environment_unconfigured', {
     firstRun: {
       installLevel: 'minimal',
@@ -216,7 +220,7 @@ test('renderer evidence: continuing from the Local AI phase records the install 
   // shortcut step.
   assert.match(markup, /data-testid="first-run-step-local-ai" data-active="true"/);
   assert.match(productControlWorkflowSource, /setProductFirstRunInstallLevel/);
-  assert.match(productControlWorkflowSource, /startFirstRunMaterialization/);
+  assert.match(productControlWorkflowSource, /startDesktopNimiFirstRunMaterialization/);
   assert.match(productControlWorkflowSource, /await projectMaterialization\(next, afterLevel\.state\)/);
   assert.doesNotMatch(productControlWorkflowSource, /next\.productState === 'local_ai_ready'[\s\S]*?prepareProductFirstRunLocalAiReady/);
   assert.match(productControlWorkflowSource, /materializationReadyForFinalization/);
@@ -269,7 +273,7 @@ test('renderer copy-floor: every first-run state renders human copy and no raw e
   // phase or terminal screen; the fast `config_missing` system state folds
   // into the Storage phase as a transient rather than its own boxed screen.
   // Every state still renders human copy, never the raw enum identifier.
-  const allStates: ProductControlState[] = [
+  const allStates: NimiProductControlState[] = [
     'config_missing',
     'data_root_missing',
     'data_root_selected',
@@ -342,34 +346,41 @@ test('ready_for_use has no production renderer/Tauri mark-ready shortcut and rou
   ]) {
     assert.match(desktopProductControlSource, required);
   }
-  assert.match(appRoutesSource, /projectProductControlAdmission\(projection\.state\)/);
+  assert.match(appRoutesSource, /projectNimiProductControlAdmission\(projection\.state\)/);
   assert.match(appRoutesSource, /decision\.kind === 'ordinary-shell'/);
   assert.match(appRoutesSource, /setActiveTab\('chat'\)/);
 });
 
-test('Runtime materialization orchestration is wired through SDK/localRuntime and no renderer mark-ready shortcut exists', () => {
+test('Runtime materialization orchestration is wired through SDK Runtime local client and no renderer mark-ready shortcut exists', () => {
   assert.match(aiProfilePolicySource, /StartLocalEnvironmentDependencyJob/);
   assert.match(runtimeLocalEnvironmentContractSource, /Dependency materialization and repair run as Runtime-owned jobs/);
-  assert.match(runtimeMaterializationSource, /localRuntime/);
+  assert.match(runtimeMaterializationSource, /firstRunRuntimeLocalClient/);
+  assert.match(runtimeMaterializationSource, /resolveNimiFirstRunMaterializationProjection/);
+  assert.doesNotMatch(runtimeMaterializationSource, /\blocalRuntime\b/);
   assert.match(runtimeMaterializationSource, /@nimiplatform\/sdk\/runtime/);
-  assert.match(firstRunSetupChecklistSource, /isLocalRuntimeEnvironmentDependencyReadyState/);
-  assert.match(firstRunSetupChecklistSource, /isLocalRuntimeEnvironmentDependencyJobActiveState/);
-  assert.match(firstRunSetupChecklistSource, /isLocalRuntimeEnvironmentDependencyJobFailedState/);
+  assert.match(firstRunSetupChecklistSource, /isNimiRuntimeLocalEnvironmentDependencyReadyState/);
+  assert.match(firstRunSetupChecklistSource, /isNimiRuntimeLocalEnvironmentDependencyJobActiveState/);
+  assert.match(firstRunSetupChecklistSource, /isNimiRuntimeLocalEnvironmentDependencyJobFailedState/);
   assert.doesNotMatch(firstRunSetupChecklistSource, /JOB_ACTIVE_STATES|JOB_FAILED_STATES/);
   assert.doesNotMatch(firstRunSetupChecklistSource, /'starting'|'running'|'in_progress'/);
   assert.match(productControlWorkflowSource, /reconcileProductFirstRunSetupState/);
-  assert.match(productControlWorkflowSource, /startFirstRunMaterialization/);
+  assert.match(productControlWorkflowSource, /startDesktopNimiFirstRunMaterialization/);
   assert.doesNotMatch(productControlWorkflowSource, /markProductReadyForUse/);
   assert.doesNotMatch(productControlWorkflowSource, /setProductFirstRunSetupState/);
   assert.match(productControlWorkflowSource, /'local_ai_ready'/);
 });
 
+test('renderer evidence: Runtime materialization projection clears stale ready-read errors', () => {
+  assert.match(productControlWorkflowSource, /product-control ready-read verification errors/);
+  assert.match(productControlWorkflowSource, /setError\(null\);\s*setMaterialization\(next\);/);
+});
+
 test('first-run materialization derives Runtime job requests from selected AIProfile pack and dependency refs', async () => {
-  const profile = PLATFORM_AI_PROFILE_FACTORY_ROWS.find((row) => row.alias === 'local-speech-ready');
+  const profile = NIMI_APP_AI_PROFILE_FACTORY_ROWS.find((row) => row.alias === 'local-speech-ready');
   assert.ok(profile);
   const calls: Array<{ dependencyFamily: string; dependencyId: string; environmentKey: string; sourceKind: string; confirmed: boolean }> = [];
   const planInstallLevels: Array<string | undefined> = [];
-  const runtime: FirstRunMaterializationInput['runtime'] = {
+  const runtime: DesktopNimiFirstRunMaterializationInput['runtime'] = {
     async resolveEnvironmentPlan(payload) {
       planInstallLevels.push(payload.installLevel);
       const dependencies = payload.packId === 'local-text'
@@ -389,8 +400,9 @@ test('first-run materialization derives Runtime job requests from selected AIPro
         productLabel: payload.packId,
         hostProfileId: 'darwin-arm64-metal',
         platformTuple: 'darwin-arm64',
-        runtimeDataRoot: payload.runtimeDataRoot,
+        runtimeDataRoot: payload.runtimeDataRoot ?? '',
         consumerScope: payload.consumerScope,
+        cloudOnlyImpact: '',
         state: 'needs_confirmation',
         dependencies,
       };
@@ -426,7 +438,7 @@ test('first-run materialization derives Runtime job requests from selected AIPro
     },
   };
 
-  const unconfirmed = await startFirstRunMaterialization({
+  const unconfirmed = await startDesktopNimiFirstRunMaterialization({
     profile,
     runtime,
     runtimeDataRoot: '/tmp/nimi-data-explicit',
@@ -436,7 +448,7 @@ test('first-run materialization derives Runtime job requests from selected AIPro
   assert.equal(unconfirmed.status, 'needs_confirmation');
   assert.equal(calls.length, 0);
 
-  const projection = await startFirstRunMaterialization({
+  const projection = await startDesktopNimiFirstRunMaterialization({
     profile,
     runtime,
     runtimeDataRoot: '/tmp/nimi-data-explicit',
@@ -453,15 +465,15 @@ test('first-run materialization derives Runtime job requests from selected AIPro
     new Set([true]),
   );
   assert.deepEqual(new Set(planInstallLevels), new Set(['minimal']));
-  assert.equal(FIRST_RUN_MATERIALIZATION_CONSUMER_SCOPE, 'first-run');
+  assert.equal(NIMI_FIRST_RUN_MATERIALIZATION_CONSUMER_SCOPE, 'first-run');
 });
 
 test('first-run materialization includes Runtime-required platform dependencies outside static profile refs', async () => {
-  const profile = PLATFORM_AI_PROFILE_FACTORY_ROWS.find((row) => row.alias === 'local-speech-ready');
+  const profile = NIMI_APP_AI_PROFILE_FACTORY_ROWS.find((row) => row.alias === 'local-speech-ready');
   assert.ok(profile);
   assert.equal((profile.dependencyFamilyRefs as readonly string[]).includes('accelerator.cuda.runtime'), false);
   const calls: Array<{ dependencyFamily: string; dependencyId: string }> = [];
-  const runtime: FirstRunMaterializationInput['runtime'] = {
+  const runtime: DesktopNimiFirstRunMaterializationInput['runtime'] = {
     async resolveEnvironmentPlan(payload) {
       const dependencies = profile.dependencyFamilyRefs.map((family, index) =>
         dependency(family, `${payload.packId}:${family}:${index}`),
@@ -478,8 +490,9 @@ test('first-run materialization includes Runtime-required platform dependencies 
         productLabel: payload.packId,
         hostProfileId: 'windows-amd64-nvidia-cuda',
         platformTuple: 'windows/amd64',
-        runtimeDataRoot: payload.runtimeDataRoot,
+        runtimeDataRoot: payload.runtimeDataRoot ?? '',
         consumerScope: payload.consumerScope,
+        cloudOnlyImpact: '',
         state: 'needs_confirmation',
         dependencies,
       };
@@ -515,7 +528,7 @@ test('first-run materialization includes Runtime-required platform dependencies 
     },
   };
 
-  await startFirstRunMaterialization({
+  await startDesktopNimiFirstRunMaterialization({
     profile,
     runtime,
     runtimeDataRoot: '/tmp/nimi-data-explicit',
@@ -527,10 +540,10 @@ test('first-run materialization includes Runtime-required platform dependencies 
 });
 
 test('first-run materialization does not treat selected or candidate dependency states as ready', async () => {
-  const profile = PLATFORM_AI_PROFILE_FACTORY_ROWS.find((row) => row.alias === 'local-speech-ready');
+  const profile = NIMI_APP_AI_PROFILE_FACTORY_ROWS.find((row) => row.alias === 'local-speech-ready');
   assert.ok(profile);
   const calls: Array<{ dependencyFamily: string; dependencyId: string }> = [];
-  const runtime: FirstRunMaterializationInput['runtime'] = {
+  const runtime: DesktopNimiFirstRunMaterializationInput['runtime'] = {
     async resolveEnvironmentPlan(payload) {
       return {
         planId: `plan:${payload.packId}`,
@@ -538,8 +551,9 @@ test('first-run materialization does not treat selected or candidate dependency 
         productLabel: payload.packId,
         hostProfileId: 'darwin-arm64-metal',
         platformTuple: 'darwin-arm64',
-        runtimeDataRoot: payload.runtimeDataRoot,
+        runtimeDataRoot: payload.runtimeDataRoot ?? '',
         consumerScope: payload.consumerScope,
+        cloudOnlyImpact: '',
         state: 'ready',
         dependencies: profile.dependencyFamilyRefs.map((family, index) =>
           dependency(family, `${family}:${index}`, {
@@ -580,7 +594,7 @@ test('first-run materialization does not treat selected or candidate dependency 
     },
   };
 
-  const projectionBeforeStart = await resolveFirstRunMaterializationProjection({
+  const projectionBeforeStart = await resolveDesktopNimiFirstRunMaterializationProjection({
     profile,
     runtime,
     runtimeDataRoot: '/tmp/nimi-data-explicit',
@@ -588,7 +602,7 @@ test('first-run materialization does not treat selected or candidate dependency 
   assert.equal(projectionBeforeStart.status, 'activation_pending');
   assert.notEqual(projectionBeforeStart.productState, 'local_ai_ready');
 
-  const projectionAfterStart = await startFirstRunMaterialization({
+  const projectionAfterStart = await startDesktopNimiFirstRunMaterialization({
     profile,
     runtime,
     runtimeDataRoot: '/tmp/nimi-data-explicit',
@@ -600,9 +614,9 @@ test('first-run materialization does not treat selected or candidate dependency 
 });
 
 test('first-run materialization asks backend finalization only after ready_system or ready_managed dependencies', async () => {
-  const profile = PLATFORM_AI_PROFILE_FACTORY_ROWS.find((row) => row.alias === 'local-speech-ready');
+  const profile = NIMI_APP_AI_PROFILE_FACTORY_ROWS.find((row) => row.alias === 'local-speech-ready');
   assert.ok(profile);
-  const runtime: FirstRunMaterializationInput['runtime'] = {
+  const runtime: DesktopNimiFirstRunMaterializationInput['runtime'] = {
     async resolveEnvironmentPlan(payload) {
       return {
         planId: `plan:${payload.packId}`,
@@ -610,8 +624,9 @@ test('first-run materialization asks backend finalization only after ready_syste
         productLabel: payload.packId,
         hostProfileId: 'darwin-arm64-metal',
         platformTuple: 'darwin-arm64',
-        runtimeDataRoot: payload.runtimeDataRoot,
+        runtimeDataRoot: payload.runtimeDataRoot ?? '',
         consumerScope: payload.consumerScope,
+        cloudOnlyImpact: '',
         state: 'ready',
         dependencies: profile.dependencyFamilyRefs.map((family, index) =>
           dependency(family, `${family}:${index}`, {
@@ -638,7 +653,7 @@ test('first-run materialization asks backend finalization only after ready_syste
     },
   };
 
-  const projection = await resolveFirstRunMaterializationProjection({
+  const projection = await resolveDesktopNimiFirstRunMaterializationProjection({
     profile,
     runtime,
     runtimeDataRoot: '/tmp/nimi-data-explicit',

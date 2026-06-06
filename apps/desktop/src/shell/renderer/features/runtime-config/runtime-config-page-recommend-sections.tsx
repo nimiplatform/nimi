@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { ScrollArea } from '@nimiplatform/kit/ui';
 import { formatRelativeLocaleTime } from '@renderer/i18n';
 import type {
-  LocalRuntimeRecommendationFeedItemDescriptor,
+  NimiRuntimeLocalRecommendationFeedItem,
 } from '@nimiplatform/sdk/runtime';
 import { Button } from './runtime-config-primitives';
 import { formatBytes } from './runtime-config-model-center-utils';
@@ -317,7 +317,7 @@ export function SelectChip({
 // ---------------------------------------------------------------------------
 
 export type ModelRowProps = {
-  item: LocalRuntimeRecommendationFeedItemDescriptor;
+  item: NimiRuntimeLocalRecommendationFeedItem;
   totalVramBytes?: number;
   onSelect: () => void;
 };

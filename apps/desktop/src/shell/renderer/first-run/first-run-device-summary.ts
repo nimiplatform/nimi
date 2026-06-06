@@ -1,13 +1,13 @@
 // First-Run Device Summary — projects the real Runtime device-scan evidence
 // into the short "Detected: <device>" line shown under the Phase 2 cards.
 //
-// The device summary is a projection of `LocalRuntimeDeviceProfile`, the
+// The device summary is a projection of `NimiRuntimeLocalDeviceProfile`, the
 // Runtime-owned host capability evidence (P-COLD-005). When device evidence
 // is unavailable the projection fails closed: it returns `null` and the
 // renderer shows an explicit "device scan unavailable" line instead of
 // fabricating a device string.
 
-import type { LocalRuntimeDeviceProfile } from '@nimiplatform/sdk/runtime';
+import type { NimiRuntimeLocalDeviceProfile } from '@nimiplatform/sdk/runtime';
 
 const GIB = 1024 * 1024 * 1024;
 
@@ -26,7 +26,7 @@ function formatGib(bytes: number): string | null {
  * line — never replaced with a guessed device string.
  */
 export function projectDeviceSummary(
-  profile: LocalRuntimeDeviceProfile | null,
+  profile: NimiRuntimeLocalDeviceProfile | null,
 ): string | null {
   if (!profile) return null;
   const os = String(profile.os || '').trim();

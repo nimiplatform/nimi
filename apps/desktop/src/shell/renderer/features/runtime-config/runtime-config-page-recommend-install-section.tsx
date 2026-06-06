@@ -1,13 +1,13 @@
 import { useCallback, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  localRuntime,
-  type LocalRuntimeCatalogVariantDescriptor,
-  type LocalRuntimeInstallPayload,
-  type LocalRuntimeInstallPlanDescriptor,
-  type LocalRuntimeRecommendationFeedItemDescriptor,
+import type {
+  NimiRuntimeLocalCatalogVariantDescriptor,
+  NimiRuntimeLocalInstallPayload,
+  NimiRuntimeLocalInstallPlanDescriptor,
+  NimiRuntimeLocalRecommendationFeedItem,
 } from '@nimiplatform/sdk/runtime';
 import { Button, Card } from './runtime-config-primitives';
+import { runtimeConfigLocalModelCenterClient } from './runtime-config-local-model-center-sdk-service';
 import {
   DownloadIcon,
   PackageIcon,
@@ -20,13 +20,13 @@ import { formatBytes } from './runtime-config-model-center-utils';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 
 type RecommendInstallSectionProps = {
-  item: LocalRuntimeRecommendationFeedItemDescriptor;
+  item: NimiRuntimeLocalRecommendationFeedItem;
   model: RuntimeConfigPanelControllerModel;
   controller: RecommendInstallController;
 };
 
 type RecommendInstallControllerInput = {
-  item: LocalRuntimeRecommendationFeedItemDescriptor;
+  item: NimiRuntimeLocalRecommendationFeedItem;
   model: RuntimeConfigPanelControllerModel;
 };
 
@@ -37,10 +37,10 @@ type InstallPlanOptions = {
 };
 
 export type RecommendInstallController = {
-  planPreview: LocalRuntimeInstallPlanDescriptor | null;
+  planPreview: NimiRuntimeLocalInstallPlanDescriptor | null;
   planLoading: boolean;
   planError: string;
-  variants: LocalRuntimeCatalogVariantDescriptor[];
+  variants: NimiRuntimeLocalCatalogVariantDescriptor[];
   variantsLoading: boolean;
   variantsError: string;
   installing: boolean;
@@ -51,9 +51,9 @@ export type RecommendInstallController = {
 };
 
 function installPayloadFromPlan(
-  plan: LocalRuntimeInstallPlanDescriptor,
-  item: LocalRuntimeRecommendationFeedItemDescriptor,
-): LocalRuntimeInstallPayload {
+  plan: NimiRuntimeLocalInstallPlanDescriptor,
+  item: NimiRuntimeLocalRecommendationFeedItem,
+): NimiRuntimeLocalInstallPayload {
   return {
     modelId: plan.modelId,
     kind: item.installPayload.kind,
@@ -71,7 +71,7 @@ function installPayloadFromPlan(
 }
 
 function resolveInstallPlanPayload(
-  item: LocalRuntimeRecommendationFeedItemDescriptor,
+  item: NimiRuntimeLocalRecommendationFeedItem,
   options?: InstallPlanOptions,
 ) {
   return {
@@ -94,10 +94,10 @@ export function useRecommendInstallController({
   item,
   model,
 }: RecommendInstallControllerInput): RecommendInstallController {
-  const [planPreview, setPlanPreview] = useState<LocalRuntimeInstallPlanDescriptor | null>(null);
+  const [planPreview, setPlanPreview] = useState<NimiRuntimeLocalInstallPlanDescriptor | null>(null);
   const [planLoading, setPlanLoading] = useState(false);
   const [planError, setPlanError] = useState('');
-  const [variants, setVariants] = useState<LocalRuntimeCatalogVariantDescriptor[]>([]);
+  const [variants, setVariants] = useState<NimiRuntimeLocalCatalogVariantDescriptor[]>([]);
   const [variantsLoading, setVariantsLoading] = useState(false);
   const [variantsError, setVariantsError] = useState('');
   const [installing, setInstalling] = useState(false);
@@ -108,7 +108,7 @@ export function useRecommendInstallController({
     setPlanLoading(true);
     setPlanError('');
     try {
-      const plan = await localRuntime.resolveInstallPlan(resolveInstallPlanPayload(item, options));
+      const plan = await runtimeConfigLocalModelCenterClient.resolveInstallPlan(resolveInstallPlanPayload(item, options));
       setPlanPreview(plan);
     } catch (err) {
       setPlanPreview(null);
@@ -122,8 +122,8 @@ export function useRecommendInstallController({
     setVariantsLoading(true);
     setVariantsError('');
     try {
-      const rows = await localRuntime.listRepoVariants(item.repo);
-      setVariants(rows);
+      const rows = await runtimeConfigLocalModelCenterClient.listCatalogVariants(item.repo);
+      setVariants([...rows]);
     } catch (err) {
       setVariants([]);
       setVariantsError(err instanceof Error ? err.message : String(err || 'Failed to load variants.'));
@@ -314,7 +314,7 @@ export function RecommendInstallSection({
                   size="sm"
                   onClick={() => void reviewInstallPlan({
                     entry: variant.entry || variant.filename,
-                    files: variant.files,
+                    files: [...variant.files],
                     hashes: variant.sha256 ? { [variant.entry || variant.filename]: variant.sha256 } : undefined,
                   })}
                 >

@@ -8,23 +8,23 @@
 // one progress screen. The checklist sub-steps below project the real
 // underlying Runtime materialization job/state progression — they are not
 // renderer-invented progress. Each sub-step status is derived from the
-// `FirstRunMaterializationProjection` (or the finalization phase) so the
+// `NimiFirstRunMaterializationProjection` (or the finalization phase) so the
 // happy path stays calm and a failing sub-step surfaces the typed action
 // exactly where it failed.
 
-import type { ProductControlState } from '@renderer/bridge';
+import type { NimiProductControlState } from '@renderer/bridge';
 import {
-  aggregateMaterializationDownloadProgress,
-  isLocalRuntimeEnvironmentDependencyJobActiveState,
-  isLocalRuntimeEnvironmentDependencyJobCancelledState,
-  isLocalRuntimeEnvironmentDependencyJobFailedState,
-  isLocalRuntimeEnvironmentDependencyNeedsConfirmationState,
-  isLocalRuntimeEnvironmentDependencyReadyState,
-  isLocalRuntimeEnvironmentDependencyRepairRequiredState,
-  isLocalRuntimeEnvironmentDependencyUnsupportedState,
-  type FirstRunMaterializationDependencyProjection,
-  type FirstRunMaterializationDownloadProgress,
-  type FirstRunMaterializationProjection,
+  aggregateNimiFirstRunMaterializationDownloadProgress,
+  isNimiRuntimeLocalEnvironmentDependencyJobActiveState,
+  isNimiRuntimeLocalEnvironmentDependencyJobCancelledState,
+  isNimiRuntimeLocalEnvironmentDependencyJobFailedState,
+  isNimiRuntimeLocalEnvironmentDependencyNeedsConfirmationState,
+  isNimiRuntimeLocalEnvironmentDependencyReadyState,
+  isNimiRuntimeLocalEnvironmentDependencyRepairRequiredState,
+  isNimiRuntimeLocalEnvironmentDependencyUnsupportedState,
+  type NimiFirstRunMaterializationDependencyProjection,
+  type NimiFirstRunMaterializationDownloadProgress,
+  type NimiFirstRunMaterializationProjection,
 } from '@nimiplatform/sdk/runtime';
 
 /**
@@ -54,7 +54,7 @@ export type FirstRunSetupStep = {
    * The failing dependency row, present only when `status === 'failed'`. The
    * checklist row binds the Retry / Repair / Cancel affordances to it.
    */
-  readonly failingDependency: FirstRunMaterializationDependencyProjection | null;
+  readonly failingDependency: NimiFirstRunMaterializationDependencyProjection | null;
   /** Whether the failing row's job can be retried. */
   readonly canRetry: boolean;
   /** Whether the failing row's dependency can be repaired. */
@@ -68,7 +68,7 @@ export type FirstRunSetupStep = {
    * row renders a concrete %/rate/ETA from it and never invents an estimate.
    * `null` when the step is not actively downloading.
    */
-  readonly downloadProgress: FirstRunMaterializationDownloadProgress | null;
+  readonly downloadProgress: NimiFirstRunMaterializationDownloadProgress | null;
 };
 
 export type FirstRunSetupChecklist = {
@@ -88,20 +88,20 @@ export type FirstRunSetupChecklist = {
  * `ready_for_use` (handled by {@link projectSetupChecklist}).
  */
 function projectFromMaterialization(
-  materialization: FirstRunMaterializationProjection,
+  materialization: NimiFirstRunMaterializationProjection,
 ): FirstRunSetupChecklist {
   const deps = materialization.dependencies;
   const failingDep = deps.find(
     (item) =>
-      isLocalRuntimeEnvironmentDependencyJobFailedState(item.job?.state)
-      || isLocalRuntimeEnvironmentDependencyJobCancelledState(item.job?.state)
-      || isLocalRuntimeEnvironmentDependencyRepairRequiredState(item.job?.state)
-      || isLocalRuntimeEnvironmentDependencyUnsupportedState(item.job?.state)
-      || isLocalRuntimeEnvironmentDependencyRepairRequiredState(item.dependency.state)
-      || isLocalRuntimeEnvironmentDependencyUnsupportedState(item.dependency.state),
+      isNimiRuntimeLocalEnvironmentDependencyJobFailedState(item.job?.state)
+      || isNimiRuntimeLocalEnvironmentDependencyJobCancelledState(item.job?.state)
+      || isNimiRuntimeLocalEnvironmentDependencyRepairRequiredState(item.job?.state)
+      || isNimiRuntimeLocalEnvironmentDependencyUnsupportedState(item.job?.state)
+      || isNimiRuntimeLocalEnvironmentDependencyRepairRequiredState(item.dependency.state)
+      || isNimiRuntimeLocalEnvironmentDependencyUnsupportedState(item.dependency.state),
   ) ?? null;
   const allAssetsReady = deps.length > 0
-    && deps.every((item) => isLocalRuntimeEnvironmentDependencyReadyState(item.dependency.state));
+    && deps.every((item) => isNimiRuntimeLocalEnvironmentDependencyReadyState(item.dependency.state));
 
   // The materialization status is the authoritative phase signal; the four
   // sub-step statuses are a faithful projection of it.
@@ -153,18 +153,18 @@ function projectFromMaterialization(
     : null;
 
   const canCancel = failingDep?.job
-    ? isLocalRuntimeEnvironmentDependencyNeedsConfirmationState(failingDep.job.state)
-      || isLocalRuntimeEnvironmentDependencyJobActiveState(failingDep.job.state)
+    ? isNimiRuntimeLocalEnvironmentDependencyNeedsConfirmationState(failingDep.job.state)
+      || isNimiRuntimeLocalEnvironmentDependencyJobActiveState(failingDep.job.state)
     : false;
   const canRetry = failingDep?.job
     ? Boolean(failingDep.job.retryable)
-      || isLocalRuntimeEnvironmentDependencyJobFailedState(failingDep.job.state)
-      || isLocalRuntimeEnvironmentDependencyJobCancelledState(failingDep.job.state)
+      || isNimiRuntimeLocalEnvironmentDependencyJobFailedState(failingDep.job.state)
+      || isNimiRuntimeLocalEnvironmentDependencyJobCancelledState(failingDep.job.state)
     : false;
   const canRepair = failingDep
-    ? isLocalRuntimeEnvironmentDependencyRepairRequiredState(failingDep.dependency.state)
-      || isLocalRuntimeEnvironmentDependencyJobFailedState(failingDep.job?.state)
-      || isLocalRuntimeEnvironmentDependencyRepairRequiredState(failingDep.job?.state)
+    ? isNimiRuntimeLocalEnvironmentDependencyRepairRequiredState(failingDep.dependency.state)
+      || isNimiRuntimeLocalEnvironmentDependencyJobFailedState(failingDep.job?.state)
+      || isNimiRuntimeLocalEnvironmentDependencyRepairRequiredState(failingDep.job?.state)
     : false;
 
   const baseStatuses: Record<FirstRunSetupStepId, FirstRunSetupStepStatus> = {
@@ -178,7 +178,7 @@ function projectFromMaterialization(
   // are actively being fetched — it is attached to the `download` step while
   // it is the active step. Verifying jobs roll up into the same transferring
   // aggregate, so the bar keeps moving across download → verify.
-  const downloadProgress = aggregateMaterializationDownloadProgress(deps);
+  const downloadProgress = aggregateNimiFirstRunMaterializationDownloadProgress(deps);
 
   const steps = FIRST_RUN_SETUP_STEP_IDS.map((id) => {
     const isFailing = failed && id === failingStepId;
@@ -224,8 +224,8 @@ function computeProgress(steps: readonly FirstRunSetupStep[]): number {
  * product readiness.
  */
 export function projectSetupChecklist(
-  state: ProductControlState,
-  materialization: FirstRunMaterializationProjection | null,
+  state: NimiProductControlState,
+  materialization: NimiFirstRunMaterializationProjection | null,
 ): FirstRunSetupChecklist {
   if (state === 'local_ai_ready') {
     const steps = FIRST_RUN_SETUP_STEP_IDS.map((id) => ({

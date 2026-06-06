@@ -1,7 +1,7 @@
 import type { ReactElement } from 'react';
-import { firstRunScreenForProductControlState as firstRunScreenForState } from '@nimiplatform/sdk';
-import type { FirstRunInstallLevel } from '@nimiplatform/sdk/platform-catalog';
-import type { ProductControlRecordProjection, ProductControlState } from '@renderer/bridge';
+import { projectNimiProductControlFirstRunScreen } from '@nimiplatform/sdk/runtime';
+import type { NimiFirstRunInstallLevel } from '@nimiplatform/sdk/app';
+import type { NimiProductControlRecordProjection, NimiProductControlState } from '@renderer/bridge';
 import { FirstRunFinalization } from './first-run-finalization.js';
 import type { FirstRunInstallLevelCard } from './first-run-install-level-cards.js';
 import type { FirstRunSetupChecklist } from './first-run-setup-checklist.js';
@@ -10,40 +10,40 @@ import { PhaseDeviceScan } from './phase-device-scan.js';
 import { PhaseLocalAi } from './phase-local-ai.js';
 import { PhaseSetup } from './phase-setup.js';
 import { PhaseStorage } from './phase-storage.js';
-import type { FirstRunMaterializationDependencyProjection } from './runtime-materialization.js';
+import type { NimiFirstRunMaterializationDependencyProjection } from './runtime-materialization.js';
 import { ScreenBlocked, ScreenReady, ScreenRepair } from './screen-terminal.js';
 
-type FirstRunScreenProjection = ReturnType<typeof firstRunScreenForState>;
+type FirstRunScreenProjection = ReturnType<typeof projectNimiProductControlFirstRunScreen>;
 
 type ProductControlWorkflowScreenProps = {
   busy: boolean;
   deviceScanSettled: boolean;
   deviceSummary: string | null;
-  draftInstallLevel: FirstRunInstallLevel | null;
+  draftInstallLevel: NimiFirstRunInstallLevel | null;
   error: string | null;
   installLevelCards: {
     readonly minimal: FirstRunInstallLevelCard;
     readonly recommended: FirstRunInstallLevelCard;
   };
   materializationReadyForFinalization: boolean;
-  onCancelSetupStep: (item: FirstRunMaterializationDependencyProjection) => void;
+  onCancelSetupStep: (item: NimiFirstRunMaterializationDependencyProjection) => void;
   onChangeDataRootFolder: () => void;
   onChooseDataRootFolder: () => void;
   onConfirmDataRoot: () => void;
   onContinueFromDeviceScan: () => void;
   onContinueFromLocalAi: () => void;
-  onProjectionChange: (projection: ProductControlRecordProjection) => void;
+  onProjectionChange: (projection: NimiProductControlRecordProjection) => void;
   onReevaluateProductControl: () => void;
-  onRepairSetupStep: (item: FirstRunMaterializationDependencyProjection) => void;
+  onRepairSetupStep: (item: NimiFirstRunMaterializationDependencyProjection) => void;
   onRetryDeviceScan: () => void;
-  onRetrySetupStep: (item: FirstRunMaterializationDependencyProjection) => void;
-  onSelectInstallLevel: (installLevel: FirstRunInstallLevel) => void;
+  onRetrySetupStep: (item: NimiFirstRunMaterializationDependencyProjection) => void;
+  onSelectInstallLevel: (installLevel: NimiFirstRunInstallLevel) => void;
   pickedPath: string | null;
-  projection: ProductControlRecordProjection | null;
+  projection: NimiProductControlRecordProjection | null;
   screen: FirstRunScreenProjection;
   selectedDataRoot: string | null;
   setupChecklist: FirstRunSetupChecklist;
-  state: ProductControlState;
+  state: NimiProductControlState;
   storageTransient: boolean;
 };
 

@@ -10,16 +10,17 @@ import { Button, Card, Input, RuntimeSelect } from './runtime-config-primitives'
 import { RuntimePageShell } from './runtime-config-page-shell';
 import {
   runtimeConfigCatalogClient,
-  type RuntimeCatalogModelDetail,
-  type RuntimeCatalogModelOverlayInput,
-  type RuntimeCatalogProviderModelsResponse,
-  type RuntimeCatalogVoiceEntry,
-  type RuntimeCatalogWorkflowBinding,
-  type RuntimeCatalogWorkflowModel,
-  type RuntimeModelCatalogProvider,
+  type NimiRuntimeCatalogModelDetail,
+  type NimiRuntimeCatalogModelOverlayInput,
+  type NimiRuntimeCatalogProviderModelsResponse,
+  type NimiRuntimeCatalogVoiceEntry,
+  type NimiRuntimeCatalogWorkflowBinding,
+  type NimiRuntimeCatalogWorkflowModel,
+  type NimiRuntimeModelCatalogProvider,
 } from './runtime-config-catalog-sdk-service';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
+import type { JsonObject } from '@nimiplatform/sdk/types';
 
 type CatalogPageProps = {
   model: RuntimeConfigPanelControllerModel;
@@ -97,7 +98,7 @@ function createEmptyWorkflowRow(): WorkflowRow {
   return { workflowModelId: '', workflowType: 'voice_clone', inputContractRef: '', outputPersistence: '', targetModelRefs: '', langs: '', sourceUrl: '', sourceRetrievedAt: todayDate(), sourceNote: '' };
 }
 
-function createEmptyFormState(_selectedProvider: RuntimeModelCatalogProvider | null): CatalogFormState {
+function createEmptyFormState(_selectedProvider: NimiRuntimeModelCatalogProvider | null): CatalogFormState {
   return {
     modelId: '',
     modelType: 'text',
@@ -134,9 +135,9 @@ function splitCsv(value: string): string[] {
 }
 
 export function CatalogPage({ model, state: _state }: CatalogPageProps) {
-  const [providers, setProviders] = useState<RuntimeModelCatalogProvider[]>([]);
+  const [providers, setProviders] = useState<NimiRuntimeModelCatalogProvider[]>([]);
   const [selectedProviderId, setSelectedProviderId] = useState('');
-  const [providerModels, setProviderModels] = useState<RuntimeCatalogProviderModelsResponse | null>(null);
+  const [providerModels, setProviderModels] = useState<NimiRuntimeCatalogProviderModelsResponse | null>(null);
   const [overlayYamlDraft, setOverlayYamlDraft] = useState('');
   const [loadingModels, setLoadingModels] = useState(false);
   const [savingOverlayYaml, setSavingOverlayYaml] = useState(false);
@@ -148,7 +149,7 @@ export function CatalogPage({ model, state: _state }: CatalogPageProps) {
   const loadProviders = useCallback(async () => {
     try {
       const rows = await runtimeConfigCatalogClient.listProviders();
-      setProviders(rows);
+      setProviders([...rows]);
       setSelectedProviderId((current) => (current && rows.some((row) => row.provider === current) ? current : rows[0]?.provider || ''));
     } catch (error) {
       model.setPageFeedback({ kind: 'error', message: `Catalog load failed: ${error instanceof Error ? error.message : String(error || '')}` });
@@ -237,9 +238,9 @@ export function CatalogPage({ model, state: _state }: CatalogPageProps) {
       const needsVideo = capabilities.includes('video.generate');
       if (needsVoice && !formState.voiceSetId.trim()) throw new Error('voice_set_id is required for TTS models.');
       const videoInputRoles = needsVideo ? JSON.parse(formState.videoInputRolesText || '{}') as Record<string, string[]> : {};
-      const videoLimits = needsVideo ? JSON.parse(formState.videoLimitsJson || '{}') as Record<string, unknown> : {};
-      const videoConstraints = needsVideo ? JSON.parse(formState.videoConstraintsJson || '{}') as Record<string, unknown> : {};
-      const detail: RuntimeCatalogModelDetail = {
+      const videoLimits = needsVideo ? JSON.parse(formState.videoLimitsJson || '{}') as JsonObject : {};
+      const videoConstraints = needsVideo ? JSON.parse(formState.videoConstraintsJson || '{}') as JsonObject : {};
+      const detail: NimiRuntimeCatalogModelDetail = {
         provider: selectedProvider.provider,
         modelId: formState.modelId.trim(),
         modelType: formState.modelType.trim(),
@@ -261,11 +262,11 @@ export function CatalogPage({ model, state: _state }: CatalogPageProps) {
         voiceWorkflowModels: [],
         modelWorkflowBinding: formState.bindingRefsText.trim() || formState.bindingTypesText.trim() ? { modelId: formState.modelId.trim(), workflowModelRefs: splitCsv(formState.bindingRefsText), workflowTypes: splitCsv(formState.bindingTypesText) } : null,
       };
-      const overlayInput: RuntimeCatalogModelOverlayInput = {
+      const overlayInput: NimiRuntimeCatalogModelOverlayInput = {
         model: detail,
-        voices: formState.voices.filter((voice) => voice.voiceId.trim()).map((voice): RuntimeCatalogVoiceEntry => ({ voiceSetId: formState.voiceSetId.trim(), provider: selectedProvider.provider, voiceId: voice.voiceId.trim(), name: voice.name.trim() || voice.voiceId.trim(), langs: splitCsv(voice.langs), modelIds: splitCsv(voice.modelIds || formState.modelId), sourceRef: { url: voice.sourceUrl.trim() || formState.sourceUrl.trim(), retrievedAt: voice.sourceRetrievedAt.trim() || formState.sourceRetrievedAt.trim(), note: voice.sourceNote.trim() } })),
-        voiceWorkflowModels: formState.workflows.filter((workflow) => workflow.workflowModelId.trim()).map((workflow): RuntimeCatalogWorkflowModel => ({ workflowModelId: workflow.workflowModelId.trim(), workflowType: workflow.workflowType.trim(), inputContractRef: workflow.inputContractRef.trim(), outputPersistence: workflow.outputPersistence.trim(), targetModelRefs: splitCsv(workflow.targetModelRefs || formState.modelId), langs: splitCsv(workflow.langs), sourceRef: { url: workflow.sourceUrl.trim() || formState.sourceUrl.trim(), retrievedAt: workflow.sourceRetrievedAt.trim() || formState.sourceRetrievedAt.trim(), note: workflow.sourceNote.trim() } })),
-        modelWorkflowBinding: detail.modelWorkflowBinding as RuntimeCatalogWorkflowBinding | null,
+        voices: formState.voices.filter((voice) => voice.voiceId.trim()).map((voice): NimiRuntimeCatalogVoiceEntry => ({ voiceSetId: formState.voiceSetId.trim(), provider: selectedProvider.provider, voiceId: voice.voiceId.trim(), name: voice.name.trim() || voice.voiceId.trim(), langs: splitCsv(voice.langs), modelIds: splitCsv(voice.modelIds || formState.modelId), sourceRef: { url: voice.sourceUrl.trim() || formState.sourceUrl.trim(), retrievedAt: voice.sourceRetrievedAt.trim() || formState.sourceRetrievedAt.trim(), note: voice.sourceNote.trim() } })),
+        voiceWorkflowModels: formState.workflows.filter((workflow) => workflow.workflowModelId.trim()).map((workflow): NimiRuntimeCatalogWorkflowModel => ({ workflowModelId: workflow.workflowModelId.trim(), workflowType: workflow.workflowType.trim(), inputContractRef: workflow.inputContractRef.trim(), outputPersistence: workflow.outputPersistence.trim(), targetModelRefs: splitCsv(workflow.targetModelRefs || formState.modelId), langs: splitCsv(workflow.langs), sourceRef: { url: workflow.sourceUrl.trim() || formState.sourceUrl.trim(), retrievedAt: workflow.sourceRetrievedAt.trim() || formState.sourceRetrievedAt.trim(), note: workflow.sourceNote.trim() } })),
+        modelWorkflowBinding: detail.modelWorkflowBinding as NimiRuntimeCatalogWorkflowBinding | null,
       };
       setSavingModel(true);
       await runtimeConfigCatalogClient.upsertModelOverlay(selectedProvider.provider, overlayInput);
@@ -336,7 +337,7 @@ export function CatalogPage({ model, state: _state }: CatalogPageProps) {
   );
 }
 
-function ProviderCapabilities({ provider }: { provider: RuntimeModelCatalogProvider | null }) {
+function ProviderCapabilities({ provider }: { provider: NimiRuntimeModelCatalogProvider | null }) {
   if (!provider) return null;
   const sourceLabel = provider.source === 'builtin'
     ? 'Built-in'
@@ -395,7 +396,7 @@ function ModelSection(props: { providerId: string; onDeleteModel: (modelId: stri
   );
 }
 
-function YamlPanel(props: { provider: RuntimeModelCatalogProvider; overlayYamlDraft: string; onChangeOverlayYaml: (value: string) => void; onSave: () => void; onDelete: () => void; saving: boolean }) {
+function YamlPanel(props: { provider: NimiRuntimeModelCatalogProvider; overlayYamlDraft: string; onChangeOverlayYaml: (value: string) => void; onSave: () => void; onDelete: () => void; saving: boolean }) {
   return (
     <Card className="space-y-3 p-4">
       <div className="flex items-center justify-between gap-3">
@@ -413,7 +414,7 @@ function YamlPanel(props: { provider: RuntimeModelCatalogProvider; overlayYamlDr
   );
 }
 
-function AddModelDialog(props: { provider: RuntimeModelCatalogProvider; formState: CatalogFormState; saving: boolean; onChange: (value: CatalogFormState) => void; onClose: () => void; onSubmit: () => void }) {
+function AddModelDialog(props: { provider: NimiRuntimeModelCatalogProvider; formState: CatalogFormState; saving: boolean; onChange: (value: CatalogFormState) => void; onClose: () => void; onSubmit: () => void }) {
   const setField = <K extends keyof CatalogFormState>(key: K, value: CatalogFormState[K]) => props.onChange({ ...props.formState, [key]: value });
   const updateVoice = (index: number, patch: Partial<VoiceRow>) => props.onChange({ ...props.formState, voices: props.formState.voices.map((voice, voiceIndex) => (voiceIndex === index ? { ...voice, ...patch } : voice)) });
   const updateWorkflow = (index: number, patch: Partial<WorkflowRow>) => props.onChange({ ...props.formState, workflows: props.formState.workflows.map((workflow, workflowIndex) => (workflowIndex === index ? { ...workflow, ...patch } : workflow)) });

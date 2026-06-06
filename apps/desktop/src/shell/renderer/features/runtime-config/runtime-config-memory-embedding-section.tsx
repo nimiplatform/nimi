@@ -3,10 +3,10 @@ import {
 } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  createEmptyMemoryEmbeddingConfig,
-  projectMemoryEmbeddingRouteAvailability,
-  type MemoryEmbeddingConfig,
-  type RuntimeRouteOptionsSnapshot,
+  createEmptyNimiMemoryEmbeddingConfig,
+  projectNimiMemoryEmbeddingRouteAvailability,
+  type NimiMemoryEmbeddingConfig,
+  type NimiRuntimeRouteOptionsSnapshot,
 } from '@nimiplatform/sdk/runtime';
 import { Surface, cn } from '@nimiplatform/kit/ui';
 import { createDesktopMemoryEmbeddingScopeRef } from '@renderer/app-shell/providers/desktop-memory-embedding-scope';
@@ -48,10 +48,10 @@ type MemoryEmbeddingRouteCandidate = {
 };
 
 function buildCloudCandidateConfig(
-  base: MemoryEmbeddingConfig,
+  base: NimiMemoryEmbeddingConfig,
   connectorId: string,
   modelId: string,
-): MemoryEmbeddingConfig {
+): NimiMemoryEmbeddingConfig {
   return {
     ...base,
     sourceKind: 'cloud',
@@ -63,7 +63,7 @@ function buildCloudCandidateConfig(
   };
 }
 
-function buildLocalCandidateConfig(base: MemoryEmbeddingConfig, targetId: string): MemoryEmbeddingConfig {
+function buildLocalCandidateConfig(base: NimiMemoryEmbeddingConfig, targetId: string): NimiMemoryEmbeddingConfig {
   return {
     ...base,
     sourceKind: 'local',
@@ -85,15 +85,15 @@ function candidateTone(state: string): AvailabilityTone {
 }
 
 function buildCandidates(
-  scopeConfig: MemoryEmbeddingConfig,
-  routeOptions: RuntimeRouteOptionsSnapshot | null,
+  scopeConfig: NimiMemoryEmbeddingConfig,
+  routeOptions: NimiRuntimeRouteOptionsSnapshot | null,
 ): MemoryEmbeddingRouteCandidate[] {
   if (!routeOptions) {
     return [];
   }
   const cloud = routeOptions.connectors.flatMap((connector) => (
     connector.models.map((modelId) => {
-      const projection = projectMemoryEmbeddingRouteAvailability({
+      const projection = projectNimiMemoryEmbeddingRouteAvailability({
         config: buildCloudCandidateConfig(scopeConfig, connector.id, modelId),
         routeOptions,
       });
@@ -107,7 +107,7 @@ function buildCandidates(
     })
   ));
   const local = routeOptions.local.models.map((model) => {
-    const projection = projectMemoryEmbeddingRouteAvailability({
+    const projection = projectNimiMemoryEmbeddingRouteAvailability({
       config: buildLocalCandidateConfig(scopeConfig, model.model),
       routeOptions,
     });
@@ -125,8 +125,8 @@ function buildCandidates(
 export function RuntimeConfigMemoryEmbeddingSection(props: RuntimeConfigMemoryEmbeddingSectionProps) {
   const { t } = useTranslation();
   const scopeRef = useMemo(() => createDesktopMemoryEmbeddingScopeRef(), []);
-  const scopeConfig = useMemo(() => createEmptyMemoryEmbeddingConfig(scopeRef), [scopeRef]);
-  const routeOptions = useMemo<RuntimeRouteOptionsSnapshot>(() => {
+  const scopeConfig = useMemo(() => createEmptyNimiMemoryEmbeddingConfig(scopeRef), [scopeRef]);
+  const routeOptions = useMemo<NimiRuntimeRouteOptionsSnapshot>(() => {
     return {
       capability: 'text.embed',
       selected: null,

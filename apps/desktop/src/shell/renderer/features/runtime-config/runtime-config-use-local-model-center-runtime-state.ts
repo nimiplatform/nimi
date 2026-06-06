@@ -1,10 +1,9 @@
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  localRuntime,
-  type LocalRuntimeAssetKind,
-  type LocalRuntimeAssetRecord,
-  type LocalRuntimeCatalogItemDescriptor,
-  type LocalRuntimeVerifiedAssetDescriptor,
+import type {
+  NimiRuntimeLocalAssetKind,
+  NimiRuntimeLocalAssetRecord,
+  NimiRuntimeLocalCatalogItemDescriptor,
+  NimiRuntimeLocalVerifiedAssetDescriptor,
 } from '@nimiplatform/sdk/runtime';
 import {
   normalizeCapabilityOption,
@@ -22,10 +21,11 @@ import {
   isRunnableAssetKind,
   manifestPathFromSourceRepo,
 } from './runtime-config-use-local-model-center-helpers.js';
+import { runtimeConfigLocalModelCenterClient } from './runtime-config-local-model-center-sdk-service';
 import {
   useLocalModelCenterImportFilePlan,
 } from './runtime-config-use-local-model-center-import-file-plan';
-import { toCanonicalLocalRuntimeAssetLookupKey } from '@nimiplatform/sdk/runtime';
+import { toCanonicalNimiRuntimeLocalAssetLookupKey } from '@nimiplatform/sdk/runtime';
 import { useLocalModelCenterImportActions } from './runtime-config-use-local-model-center-import-actions';
 import {
   useLocalModelCenterRuntimeDependencies,
@@ -44,20 +44,20 @@ export function useLocalModelCenterRuntimeState({ isProfileTargetMode, props }: 
   const [searchQuery, setSearchQuery] = useState('');
   const deferredSearchQuery = useDeferredValue(searchQuery);
   const [catalogCapability, setCatalogCapability] = useState<'all' | CapabilityOption>('all');
-  const [catalogItems, setCatalogItems] = useState<LocalRuntimeCatalogItemDescriptor[]>([]);
+  const [catalogItems, setCatalogItems] = useState<NimiRuntimeLocalCatalogItemDescriptor[]>([]);
   const [catalogDisplayCount, setCatalogDisplayCount] = useState(10);
   const [loadingCatalog, setLoadingCatalog] = useState(false);
-  const [verifiedModels, setVerifiedModels] = useState<LocalRuntimeVerifiedAssetDescriptor[]>([]);
+  const [verifiedModels, setVerifiedModels] = useState<NimiRuntimeLocalVerifiedAssetDescriptor[]>([]);
   const [loadingVerifiedModels, setLoadingVerifiedModels] = useState(false);
-  const [installedAssets, setInstalledAssets] = useState<LocalRuntimeAssetRecord[]>([]);
+  const [installedAssets, setInstalledAssets] = useState<NimiRuntimeLocalAssetRecord[]>([]);
   const [loadingInstalledAssets, setLoadingInstalledAssets] = useState(false);
-  const [verifiedAssets, setVerifiedAssets] = useState<LocalRuntimeVerifiedAssetDescriptor[]>([]);
+  const [verifiedAssets, setVerifiedAssets] = useState<NimiRuntimeLocalVerifiedAssetDescriptor[]>([]);
   const [loadingVerifiedAssets, setLoadingVerifiedAssets] = useState(false);
-  const [assetKindFilter, setAssetKindFilter] = useState<'all' | LocalRuntimeAssetKind>('all');
+  const [assetKindFilter, setAssetKindFilter] = useState<'all' | NimiRuntimeLocalAssetKind>('all');
   const [assetBusy, setAssetBusy] = useState(false);
   const [showImportMenu, setShowImportMenu] = useState(false);
   const [showImportFileDialog, setShowImportFileDialog] = useState(false);
-  const [importFileAssetKind, setImportFileAssetKind] = useState<LocalRuntimeAssetKind>('chat');
+  const [importFileAssetKind, setImportFileAssetKind] = useState<NimiRuntimeLocalAssetKind>('chat');
   const [importFileAuxiliaryEngine, setImportFileAuxiliaryEngine] = useState<AssetEngineOption | ''>('');
   const [importFileEndpoint, setImportFileEndpoint] = useState('');
   const importMenuRef = useRef<HTMLDivElement>(null);
@@ -102,26 +102,26 @@ export function useLocalModelCenterRuntimeState({ isProfileTargetMode, props }: 
   });
 
   const installedRunnableAssetIds = useMemo(
-    () => new Set(sortedInstalledRunnableAssets.map((asset) => toCanonicalLocalRuntimeAssetLookupKey(asset.assetId)).filter(Boolean)),
+    () => new Set(sortedInstalledRunnableAssets.map((asset) => toCanonicalNimiRuntimeLocalAssetLookupKey(asset.assetId)).filter(Boolean)),
     [sortedInstalledRunnableAssets],
   );
 
   const installedAssetsById = useMemo(
-    () => new Map(visibleInstalledAssets.map((asset) => [toCanonicalLocalRuntimeAssetLookupKey(asset.assetId), asset] as const)),
+    () => new Map(visibleInstalledAssets.map((asset) => [toCanonicalNimiRuntimeLocalAssetLookupKey(asset.assetId), asset] as const)),
     [visibleInstalledAssets],
   );
 
   const isRunnableAssetInstalled = useCallback((assetId: string) => (
-    installedRunnableAssetIds.has(toCanonicalLocalRuntimeAssetLookupKey(assetId))
+    installedRunnableAssetIds.has(toCanonicalNimiRuntimeLocalAssetLookupKey(assetId))
   ), [installedRunnableAssetIds]);
 
-  const inferredCatalogCapability = useCallback((item: LocalRuntimeCatalogItemDescriptor): CapabilityOption => (
+  const inferredCatalogCapability = useCallback((item: NimiRuntimeLocalCatalogItemDescriptor): CapabilityOption => (
     normalizeCapabilityOption(item.capabilities.find((capability) => (
       CAPABILITY_OPTIONS.includes(capability as CapabilityOption)
     )))
   ), []);
 
-  const selectedCatalogCapability = useCallback((item: LocalRuntimeCatalogItemDescriptor): CapabilityOption => (
+  const selectedCatalogCapability = useCallback((item: NimiRuntimeLocalCatalogItemDescriptor): CapabilityOption => (
     catalogCapabilityOverrides[item.itemId] || inferredCatalogCapability(item)
   ), [catalogCapabilityOverrides, inferredCatalogCapability]);
 
@@ -152,7 +152,7 @@ export function useLocalModelCenterRuntimeState({ isProfileTargetMode, props }: 
     }
     setLoadingCatalog(true);
     try {
-      const rows = await localRuntime.searchCatalog({
+      const rows = await runtimeConfigLocalModelCenterClient.searchCatalog({
         query,
         capability: capability === 'all' ? undefined : capability,
         limit: 30,
@@ -177,7 +177,7 @@ export function useLocalModelCenterRuntimeState({ isProfileTargetMode, props }: 
     const requestId = ++verifiedModelsRequestSeqRef.current;
     setLoadingVerifiedModels(true);
     try {
-      const rows = await localRuntime.listVerifiedAssets();
+      const rows = await runtimeConfigLocalModelCenterClient.listVerifiedAssets();
       if (!mountedRef.current || requestId !== verifiedModelsRequestSeqRef.current) {
         return;
       }
@@ -200,11 +200,11 @@ export function useLocalModelCenterRuntimeState({ isProfileTargetMode, props }: 
     const requestId = ++installedAssetsRequestSeqRef.current;
     setLoadingInstalledAssets(true);
     try {
-      const rows = await localRuntime.listAssets();
+      const rows = await runtimeConfigLocalModelCenterClient.listAssets();
       if (!mountedRef.current || requestId !== installedAssetsRequestSeqRef.current) {
         return;
       }
-      setInstalledAssets(rows);
+      setInstalledAssets([...rows]);
     } catch {
       if (!mountedRef.current || requestId !== installedAssetsRequestSeqRef.current) {
         return;
@@ -221,11 +221,11 @@ export function useLocalModelCenterRuntimeState({ isProfileTargetMode, props }: 
     const requestId = ++verifiedAssetsRequestSeqRef.current;
     setLoadingVerifiedAssets(true);
     try {
-      const rows = await localRuntime.listVerifiedAssets();
+      const rows = await runtimeConfigLocalModelCenterClient.listVerifiedAssets();
       if (!mountedRef.current || requestId !== verifiedAssetsRequestSeqRef.current) {
         return;
       }
-      setVerifiedAssets(rows);
+      setVerifiedAssets([...rows]);
     } catch {
       if (!mountedRef.current || requestId !== verifiedAssetsRequestSeqRef.current) {
         return;
@@ -281,7 +281,7 @@ export function useLocalModelCenterRuntimeState({ isProfileTargetMode, props }: 
       if (assetKindFilter !== 'all' && asset.kind !== assetKindFilter) {
         return false;
       }
-      if (installedAssetsById.has(toCanonicalLocalRuntimeAssetLookupKey(asset.assetId))) {
+      if (installedAssetsById.has(toCanonicalNimiRuntimeLocalAssetLookupKey(asset.assetId))) {
         return false;
       }
       if (!query) {
@@ -299,7 +299,7 @@ export function useLocalModelCenterRuntimeState({ isProfileTargetMode, props }: 
   }, [assetKindFilter, deferredSearchQuery, installedAssetsById, verifiedAssets]);
 
   const relatedAssetsByModelTemplate = useMemo(() => {
-    const next = new Map<string, LocalRuntimeVerifiedAssetDescriptor[]>();
+    const next = new Map<string, NimiRuntimeLocalVerifiedAssetDescriptor[]>();
     for (const model of verifiedModels) {
       next.set(model.templateId, sortVerifiedAssetsForDisplay(relatedPassiveAssetsForRunnable(model, verifiedAssets)));
     }
@@ -346,8 +346,8 @@ export function useLocalModelCenterRuntimeState({ isProfileTargetMode, props }: 
     verifiedAssetsByTemplateId,
   });
 
-  const installMissingAssetsForModel = useCallback(async (assets: LocalRuntimeVerifiedAssetDescriptor[]) => {
-    const missing = assets.filter((asset) => !installedAssetsById.has(toCanonicalLocalRuntimeAssetLookupKey(asset.assetId)));
+  const installMissingAssetsForModel = useCallback(async (assets: NimiRuntimeLocalVerifiedAssetDescriptor[]) => {
+    const missing = assets.filter((asset) => !installedAssetsById.has(toCanonicalNimiRuntimeLocalAssetLookupKey(asset.assetId)));
     for (const asset of missing) {
       await installVerifiedAsset(asset.templateId);
     }
@@ -403,7 +403,7 @@ export function useLocalModelCenterRuntimeState({ isProfileTargetMode, props }: 
   }, [importActions, resolveUnregisteredAssetDraft, unregisteredAssets, unregisteredEndpointByPath, unregisteredImportAllowedByPath]);
 
   const installCatalogVariant = useCallback(async (
-    item: LocalRuntimeCatalogItemDescriptor,
+    item: NimiRuntimeLocalCatalogItemDescriptor,
     variantFilename: string,
   ) => {
     importActions.closeVariantPicker();
@@ -441,7 +441,7 @@ export function useLocalModelCenterRuntimeState({ isProfileTargetMode, props }: 
     }
     setAssetBusy(true);
     try {
-      await localRuntime.importAssetManifest(manifestPath, {
+      await runtimeConfigLocalModelCenterClient.importAssetManifest(manifestPath, {
         caller: 'core',
         endpoint: normalizedEndpoint,
       });
@@ -455,7 +455,7 @@ export function useLocalModelCenterRuntimeState({ isProfileTargetMode, props }: 
   const rescanInstalledAsset = useCallback(async (localAssetId: string) => {
     setAssetBusy(true);
     try {
-      await localRuntime.rescanAssetBundle({ localAssetId }, { caller: 'core' });
+      await runtimeConfigLocalModelCenterClient.rescanBundle({ localAssetId }, { caller: 'core' });
       await refreshAssetSections();
       await refreshUnregisteredAssets();
     } finally {

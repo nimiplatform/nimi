@@ -19,7 +19,7 @@ test('Desktop runtime local facade is removed instead of re-exporting SDK helper
 test('desktop shipped progress paths no longer treat tauri local-ai progress as the SSOT', () => {
   assert.equal(existsSync(localAiBridgePath), false);
   assert.equal(existsSync(localAiBridgeParsersPath), false);
-  assert.match(localModelCenterDownloadsSource, /localRuntime\.listDownloads\(\)/);
-  assert.match(localModelCenterDownloadsSource, /localRuntime\.subscribeDownloadProgress\(/);
+  assert.match(localModelCenterDownloadsSource, /runtimeConfigLocalModelCenterClient\.listTransfers\(\)/);
+  assert.match(localModelCenterDownloadsSource, /runtimeConfigLocalModelCenterClient\.watchTransferProgress\(/);
   assert.doesNotMatch(buildChunksSource, /bridge\/runtime-bridge\/local-ai|chunk:\s*local-ai/);
 });

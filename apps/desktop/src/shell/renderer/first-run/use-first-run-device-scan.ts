@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { localRuntime, type LocalRuntimeDeviceProfile } from '@nimiplatform/sdk/runtime';
+import type { NimiRuntimeLocalDeviceProfile } from '@nimiplatform/sdk/runtime';
 import { projectDeviceSummary } from './first-run-device-summary.js';
+import { firstRunRuntimeLocalClient } from './first-run-runtime-local-client.js';
 
 type UseFirstRunDeviceScanResult = {
   readonly deviceSummary: ReturnType<typeof projectDeviceSummary>;
@@ -11,7 +12,7 @@ type UseFirstRunDeviceScanResult = {
 export function useFirstRunDeviceScan(
   selectedDataRoot: string | null,
 ): UseFirstRunDeviceScanResult {
-  const [deviceProfile, setDeviceProfile] = useState<LocalRuntimeDeviceProfile | null>(null);
+  const [deviceProfile, setDeviceProfile] = useState<NimiRuntimeLocalDeviceProfile | null>(null);
   const [deviceScanSettled, setDeviceScanSettled] = useState(false);
   const [deviceScanAttempt, setDeviceScanAttempt] = useState(0);
 
@@ -30,8 +31,8 @@ export function useFirstRunDeviceScan(
     void (async () => {
       try {
         const next = await Promise.race([
-          localRuntime.collectDeviceProfile(),
-          new Promise<LocalRuntimeDeviceProfile | null>((resolve) => {
+          firstRunRuntimeLocalClient.collectDeviceProfile(),
+          new Promise<NimiRuntimeLocalDeviceProfile | null>((resolve) => {
             window.setTimeout(() => resolve(null), 8_000);
           }),
         ]);

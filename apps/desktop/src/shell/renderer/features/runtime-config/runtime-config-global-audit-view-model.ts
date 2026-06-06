@@ -1,13 +1,13 @@
 import {
-  projectRuntimeAuditCallerKindName,
-  projectRuntimeHealthStatusName,
-  projectRuntimeUsageWindowName,
-  toIsoFromTimestamp,
+  projectNimiRuntimeAuditCallerKindName,
+  projectNimiRuntimeHealthStatusName,
+  projectNimiRuntimeUsageWindowName,
+  toNimiRuntimeIsoFromTimestamp,
 } from '@nimiplatform/sdk/runtime';
 import { formatRelativeLocaleTime } from '@renderer/i18n';
 
 export function runtimeHealthStatusLabel(status: number): string {
-  switch (projectRuntimeHealthStatusName(status)) {
+  switch (projectNimiRuntimeHealthStatusName(status)) {
     case 'STOPPED': return 'Stopped';
     case 'STARTING': return 'Starting';
     case 'READY': return 'Ready';
@@ -18,7 +18,7 @@ export function runtimeHealthStatusLabel(status: number): string {
 }
 
 export function runtimeHealthStatusColor(status: number): string {
-  switch (projectRuntimeHealthStatusName(status)) {
+  switch (projectNimiRuntimeHealthStatusName(status)) {
     case 'READY': return 'tone-green text-[var(--nimi-status-success)] bg-[color-mix(in_srgb,var(--nimi-status-success)_12%,transparent)] border-[color-mix(in_srgb,var(--nimi-status-success)_28%,transparent)]';
     case 'DEGRADED': return 'tone-yellow text-[var(--nimi-status-warning)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_12%,transparent)] border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)]';
     case 'STOPPED': return 'tone-red text-[var(--nimi-status-danger)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)]';
@@ -52,7 +52,7 @@ export function formatCpuMilli(milliStr: string): string {
 }
 
 export function callerKindLabel(kind: number): string {
-  switch (projectRuntimeAuditCallerKindName(kind)) {
+  switch (projectNimiRuntimeAuditCallerKindName(kind)) {
     case 'DESKTOP_CORE': return 'Desktop Core';
     case 'THIRD_PARTY_APP': return 'Third-Party App';
     case 'THIRD_PARTY_SERVICE': return 'Third-Party Service';
@@ -61,7 +61,7 @@ export function callerKindLabel(kind: number): string {
 }
 
 export function usageWindowLabel(window: number): string {
-  switch (projectRuntimeUsageWindowName(window)) {
+  switch (projectNimiRuntimeUsageWindowName(window)) {
     case 'MINUTE': return 'Minute';
     case 'HOUR': return 'Hour';
     case 'DAY': return 'Day';
@@ -79,7 +79,7 @@ export function formatTokenCount(n: string): string {
 }
 
 export function timestampToIso(ts?: { seconds: string; nanos: number }): string {
-  return toIsoFromTimestamp(ts) ?? '-';
+  return toNimiRuntimeIsoFromTimestamp(ts) ?? '-';
 }
 
 export function structToRecord(struct?: { fields: Record<string, unknown> }): Record<string, unknown> {

@@ -66,6 +66,8 @@ test('profile section restores account profile CRUD without turning profiles int
   assert.match(source, /editAccountProfileLibraryEntry/);
   assert.match(source, /deleteAccountProfileLibraryEntry/);
   assert.match(source, /profileCapabilitiesFromAIConfig/);
+  assert.match(source, /Object\.keys\(capabilities\.targetRefs \?\? \{\}\)/);
+  assert.match(source, /targetRef: capabilities\.targetRefs\?\.\[capabilityId\] \?\? null/);
   assert.match(source, /accountDefaultProfile \? \[accountDefaultProfile\] : \[\]/);
   assert.match(source, /onApply=\{\(profileId\) => profile\.onApply\(profileId\)\}/);
   assert.doesNotMatch(source, /createAccountProfileLibraryEntry[\s\S]{0,300}aiConfigService\.aiConfig\.update/);

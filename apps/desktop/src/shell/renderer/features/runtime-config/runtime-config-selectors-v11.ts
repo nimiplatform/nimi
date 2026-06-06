@@ -19,9 +19,9 @@ export function selectAllLocalModelsV11(state: RuntimeConfigStateV11 | null): st
   return dedupeStringsV11([...(state?.local.models || []).map((item) => item.model)]);
 }
 
-export function selectFilteredLocalModelsV11(models: string[], queryInput: string): string[] {
+export function selectFilteredLocalModelsV11(models: readonly string[], queryInput: string): string[] {
   const query = queryInput.trim().toLowerCase();
-  if (!query) return models;
+  if (!query) return [...models];
   return models.filter((model) => model.toLowerCase().includes(query));
 }
 

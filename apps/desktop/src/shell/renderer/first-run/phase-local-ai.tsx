@@ -7,7 +7,7 @@ import type { ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { Button } from '@nimiplatform/kit/ui';
-import type { FirstRunInstallLevel } from '@nimiplatform/sdk/platform-catalog';
+import type { NimiFirstRunInstallLevel } from '@nimiplatform/sdk/app';
 import type {
   FirstRunCapabilityHighlightId,
   FirstRunInstallLevelCard,
@@ -40,7 +40,7 @@ type PhaseLocalAiProps = {
     readonly recommended: FirstRunInstallLevelCard;
   };
   /** The currently selected install level, or null when none is chosen yet. */
-  readonly selected: FirstRunInstallLevel | null;
+  readonly selected: NimiFirstRunInstallLevel | null;
   /**
    * The real device-scan summary line, or null when device evidence is
    * unavailable (fail-closed — no fabricated device string).
@@ -51,7 +51,7 @@ type PhaseLocalAiProps = {
   /** The recorded nimi_data folder, shown so the user can review/change it. */
   readonly dataRootPath: string | null;
   readonly busy: boolean;
-  readonly onSelect: (installLevel: FirstRunInstallLevel) => void;
+  readonly onSelect: (installLevel: NimiFirstRunInstallLevel) => void;
   /** Re-opens the OS folder picker to change the recorded nimi_data folder. */
   readonly onChangeDataRoot: () => void;
   readonly onContinue: () => void;

@@ -896,6 +896,7 @@
     "importAssetManifest": "Import Asset Manifest",
     "importAssetBundle": "Import Asset Bundle Folder",
     "importAssetFile": "Import Asset File",
+    "importBundle": "Import Bundle",
     "importLocalAsset": "Import Local Asset",
     "importLocalAssetFile": "Import Local Asset File",
     "importLocalModelFile": "Import Local Model File",

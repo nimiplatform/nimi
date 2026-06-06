@@ -24,8 +24,7 @@ import type {
   ConversationCapability,
   ConversationCapabilityProjection,
 } from '@renderer/features/chat/conversation-capability';
-import type { RuntimeRouteBinding } from '@nimiplatform/sdk/runtime';
-import type { AIConfig } from '@nimiplatform/sdk/ai';
+import type { NimiAIConfig } from '@nimiplatform/sdk/ai';
 
 export type AuthStatus = 'bootstrapping' | 'anonymous' | 'authenticated';
 export type AppTab =
@@ -76,7 +75,7 @@ export type AppStoreState = {
     user: Record<string, unknown> | null;
   };
   runtimeFields: RuntimeFieldMap;
-  aiConfig: AIConfig;
+  aiConfig: NimiAIConfig;
   conversationCapabilityProjectionByCapability: Partial<Record<ConversationCapability, ConversationCapabilityProjection>>;
   agentEffectiveCapabilityResolution: AgentEffectiveCapabilityResolution | null;
   activeTab: AppTab;
@@ -111,18 +110,7 @@ export type AppStoreState = {
   clearAuthSession: () => void;
   setRuntimeField: (key: keyof RuntimeFieldMap, value: string | number | boolean) => void;
   setRuntimeFields: (updates: Partial<RuntimeFieldMap>) => void;
-  setAIConfig: (config: AIConfig) => void;
-  /**
-   * Internal convenience delegate — writes a single capability binding into
-   * AIConfig and commits through the AIConfigSDKSurface (D-AIPC-003).
-   * Prefer calling `getDesktopAIConfigService().aiConfig.update()` directly
-   * in product-facing UI code. This action exists for runtime-config effects
-   * and bootstrap paths that operate within the Zustand set() context.
-   */
-  setConversationCapabilityBinding: (
-    capability: ConversationCapability,
-    binding: RuntimeRouteBinding | null | undefined,
-  ) => void;
+  setAIConfig: (config: NimiAIConfig) => void;
   setConversationCapabilityProjections: (
     projections: Partial<Record<ConversationCapability, ConversationCapabilityProjection>>,
   ) => void;

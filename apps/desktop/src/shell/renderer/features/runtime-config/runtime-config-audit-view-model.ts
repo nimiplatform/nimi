@@ -1,5 +1,13 @@
 import { i18n } from '@renderer/i18n';
-import type { LocalRuntimeAuditEvent } from '@nimiplatform/sdk/runtime';
+import type { LocalAuditEvent } from '@nimiplatform/sdk/runtime/generated';
+import { nimiRuntimeProtoStructToJson } from '@nimiplatform/sdk/runtime';
+
+export type RuntimeConfigAuditEvent = Omit<Partial<LocalAuditEvent>, 'payload'> & {
+  id: string;
+  eventType: string;
+  occurredAt: string;
+  payload?: unknown;
+};
 
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)
@@ -7,13 +15,21 @@ function asRecord(value: unknown): Record<string, unknown> {
     : {};
 }
 
-function payloadValue(event: LocalRuntimeAuditEvent, key: string): string {
-  const payload = asRecord(event.payload);
+function payloadRecord(value: unknown): Record<string, unknown> {
+  const record = asRecord(value);
+  if (record.fields && typeof record.fields === 'object' && !Array.isArray(record.fields)) {
+    return nimiRuntimeProtoStructToJson(record as unknown as Parameters<typeof nimiRuntimeProtoStructToJson>[0]);
+  }
+  return record;
+}
+
+function payloadValue(event: RuntimeConfigAuditEvent, key: string): string {
+  const payload = payloadRecord(event.payload);
   return String(payload[key] || '').trim();
 }
 
-function payloadRaw(event: LocalRuntimeAuditEvent, key: string): unknown {
-  const payload = asRecord(event.payload);
+function payloadRaw(event: RuntimeConfigAuditEvent, key: string): unknown {
+  const payload = payloadRecord(event.payload);
   return payload[key];
 }
 
@@ -39,26 +55,26 @@ function translateAuditText(
   });
 }
 
-export function resolveAuditSource(event: LocalRuntimeAuditEvent): string {
+export function resolveAuditSource(event: RuntimeConfigAuditEvent): string {
   return String(event.source || payloadValue(event, 'source')).trim() || '-';
 }
 
-export function resolveAuditModality(event: LocalRuntimeAuditEvent): string {
+export function resolveAuditModality(event: RuntimeConfigAuditEvent): string {
   return String(event.modality || payloadValue(event, 'modality')).trim() || '-';
 }
 
-export function resolveAuditReasonCode(event: LocalRuntimeAuditEvent): string {
+export function resolveAuditReasonCode(event: RuntimeConfigAuditEvent): string {
   return String(event.reasonCode || payloadValue(event, 'reasonCode')).trim() || '-';
 }
 
-export function resolveAuditDetail(event: LocalRuntimeAuditEvent): string {
+export function resolveAuditDetail(event: RuntimeConfigAuditEvent): string {
   return String(event.detail || '').trim()
     || payloadValue(event, 'detail')
     || payloadValue(event, 'error')
     || '-';
 }
 
-export function resolveAuditPolicyGate(event: LocalRuntimeAuditEvent): string {
+export function resolveAuditPolicyGate(event: RuntimeConfigAuditEvent): string {
   const direct = payloadRaw(event, 'policyGate');
   if (typeof direct === 'string') {
     return direct.trim() || '-';
@@ -70,7 +86,7 @@ export function resolveAuditPolicyGate(event: LocalRuntimeAuditEvent): string {
   return '-';
 }
 
-export function resolveAuditLabel(event: LocalRuntimeAuditEvent): string {
+export function resolveAuditLabel(event: RuntimeConfigAuditEvent): string {
   const source = resolveAuditSource(event);
   const targetId = payloadValue(event, 'targetId');
   const model = String(event.modelId || '').trim() || payloadValue(event, 'model');
@@ -86,7 +102,7 @@ export function resolveAuditLabel(event: LocalRuntimeAuditEvent): string {
 }
 
 export function filterAuditEvents(input: {
-  audits: LocalRuntimeAuditEvent[];
+  audits: RuntimeConfigAuditEvent[];
   eventType: string;
   source: string;
   modality: string;
@@ -95,7 +111,7 @@ export function filterAuditEvents(input: {
     from?: string;
     to?: string;
   };
-}): LocalRuntimeAuditEvent[] {
+}): RuntimeConfigAuditEvent[] {
   const eventType = String(input.eventType || '').trim();
   const source = String(input.source || '').trim();
   const modality = String(input.modality || '').trim();
@@ -128,7 +144,7 @@ export function filterAuditEvents(input: {
   });
 }
 
-export function summarizeAuditReasons(audits: LocalRuntimeAuditEvent[]): Array<{ reasonCode: string; count: number }> {
+export function summarizeAuditReasons(audits: RuntimeConfigAuditEvent[]): Array<{ reasonCode: string; count: number }> {
   const counts = new Map<string, number>();
   for (const event of audits) {
     const reasonCode = resolveAuditReasonCode(event);
@@ -140,7 +156,7 @@ export function summarizeAuditReasons(audits: LocalRuntimeAuditEvent[]): Array<{
     .sort((left, right) => right.count - left.count || left.reasonCode.localeCompare(right.reasonCode));
 }
 
-export function summarizeAuditEventTypes(audits: LocalRuntimeAuditEvent[]): Array<{ eventType: string; count: number }> {
+export function summarizeAuditEventTypes(audits: RuntimeConfigAuditEvent[]): Array<{ eventType: string; count: number }> {
   const counts = new Map<string, number>();
   for (const event of audits) {
     const eventType = String(event.eventType || '').trim();
@@ -152,7 +168,7 @@ export function summarizeAuditEventTypes(audits: LocalRuntimeAuditEvent[]): Arra
     .sort((left, right) => right.count - left.count || left.eventType.localeCompare(right.eventType));
 }
 
-export function summarizeAuditSources(audits: LocalRuntimeAuditEvent[]): Array<{ source: string; count: number }> {
+export function summarizeAuditSources(audits: RuntimeConfigAuditEvent[]): Array<{ source: string; count: number }> {
   const counts = new Map<string, number>();
   for (const event of audits) {
     const source = resolveAuditSource(event);
@@ -164,7 +180,7 @@ export function summarizeAuditSources(audits: LocalRuntimeAuditEvent[]): Array<{
     .sort((left, right) => right.count - left.count || left.source.localeCompare(right.source));
 }
 
-export function summarizeAuditModalities(audits: LocalRuntimeAuditEvent[]): Array<{ modality: string; count: number }> {
+export function summarizeAuditModalities(audits: RuntimeConfigAuditEvent[]): Array<{ modality: string; count: number }> {
   const counts = new Map<string, number>();
   for (const event of audits) {
     const modality = resolveAuditModality(event);
@@ -176,7 +192,7 @@ export function summarizeAuditModalities(audits: LocalRuntimeAuditEvent[]): Arra
     .sort((left, right) => right.count - left.count || left.modality.localeCompare(right.modality));
 }
 
-export function buildAuditDiagnosticsText(audits: LocalRuntimeAuditEvent[]): string {
+export function buildAuditDiagnosticsText(audits: RuntimeConfigAuditEvent[]): string {
   if (audits.length === 0) {
     return translateAuditText('runtimeConfig.runtime.noAuditEventsSimple', 'No audit events.');
   }

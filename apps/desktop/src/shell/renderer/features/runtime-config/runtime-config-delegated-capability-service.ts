@@ -1,20 +1,19 @@
-import { getPlatformClient } from '@nimiplatform/sdk';
 import {
-  createHostRuntimeAgentDelegatedCapabilitySurface,
-  type HostRuntimeAgentDelegatedCapabilitySurfaceOptions,
-  type RuntimeAgentDelegatedControlSurfaceQuery,
-  type RuntimeAgentDelegatedProviderProfileDraft,
+  createNimiHostRuntimeAgentDelegatedCapabilitySurface,
+  type NimiHostRuntimeAgentDelegatedCapabilityClient,
+  type NimiHostRuntimeAgentDelegatedCapabilitySurfaceOptions,
+  type NimiRuntimeAgentDelegatedControlSurfaceQuery,
+  type NimiRuntimeAgentDelegatedProviderProfileDraft,
 } from '@nimiplatform/sdk/runtime';
-
-type RuntimeClient = ReturnType<typeof getPlatformClient>['runtime'];
+import { getDesktopHostRuntimeAgentClient } from '@renderer/infra/sdk/desktop-nimi-client-session';
 
 type DelegatedCapabilityServiceDeps = {
-  getRuntime?: () => RuntimeClient;
-  getSubjectUserId?: HostRuntimeAgentDelegatedCapabilitySurfaceOptions['getSubjectUserId'];
+  getRuntime?: () => NimiHostRuntimeAgentDelegatedCapabilityClient;
+  getSubjectUserId?: NimiHostRuntimeAgentDelegatedCapabilitySurfaceOptions['getSubjectUserId'];
 };
 
-export type DelegatedProviderProfileDraft = RuntimeAgentDelegatedProviderProfileDraft;
-export type DelegatedControlSurfaceQuery = RuntimeAgentDelegatedControlSurfaceQuery;
+export type DelegatedProviderProfileDraft = NimiRuntimeAgentDelegatedProviderProfileDraft;
+export type DelegatedControlSurfaceQuery = NimiRuntimeAgentDelegatedControlSurfaceQuery;
 
 const DESKTOP_USER_DISABLED_PROVIDER_REASON = 'provider_disabled_by_desktop_user';
 
@@ -23,14 +22,14 @@ function normalizeText(value: unknown): string {
 }
 
 export function createDesktopDelegatedCapabilityService(deps: DelegatedCapabilityServiceDeps = {}) {
-  const surface = createHostRuntimeAgentDelegatedCapabilitySurface({
-    getRuntime: deps.getRuntime ?? (() => getPlatformClient().runtime),
+  const surface = createNimiHostRuntimeAgentDelegatedCapabilitySurface({
+    getRuntime: deps.getRuntime ?? getDesktopHostRuntimeAgentClient,
     getSubjectUserId: async () => {
-    const subjectUserId = normalizeText(await deps.getSubjectUserId?.());
-    if (!subjectUserId) {
-      throw new Error('DESKTOP_DELEGATED_CAPABILITY_SUBJECT_REQUIRED');
-    }
-    return subjectUserId;
+      const subjectUserId = normalizeText(await deps.getSubjectUserId?.());
+      if (!subjectUserId) {
+        throw new Error('DESKTOP_DELEGATED_CAPABILITY_SUBJECT_REQUIRED');
+      }
+      return subjectUserId;
     },
     disabledProviderReasonCode: DESKTOP_USER_DISABLED_PROVIDER_REASON,
   });

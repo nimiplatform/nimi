@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import type { AIProfile } from '@nimiplatform/sdk/ai';
+import type { NimiAIProfile } from '@nimiplatform/sdk/ai';
 import type { NimiError } from '@nimiplatform/sdk/types';
 
 /**
@@ -56,20 +56,34 @@ test.afterEach(() => {
 // Fixtures
 // ---------------------------------------------------------------------------
 
-const RECOMMENDED_PROFILE: AIProfile = {
+const RECOMMENDED_PROFILE: NimiAIProfile = {
   profileId: 'factory:app-recommended',
   title: 'App Recommended',
   description: "The app's declared recommended factory profile.",
   tags: ['factory-ai-profile'],
-  capabilities: { 'text.generate': { binding: null } },
+  capabilities: {
+    'text.generate': {
+      targetRef: {
+        kind: 'local-runtime',
+        readinessRef: 'readiness:app-recommended:text',
+      },
+    },
+  },
 };
 
-const ACCOUNT_DEFAULT_PROFILE: AIProfile = {
+const ACCOUNT_DEFAULT_PROFILE: NimiAIProfile = {
   profileId: 'default',
   title: 'Account Default Profile',
   description: 'Account-scoped local AI profile library default.',
   tags: ['account-default'],
-  capabilities: { 'text.generate': { binding: null } },
+  capabilities: {
+    'text.generate': {
+      targetRef: {
+        kind: 'local-runtime',
+        readinessRef: 'readiness:account-default:text',
+      },
+    },
+  },
 };
 
 async function loadService() {
@@ -148,7 +162,7 @@ test('desktop first launch fails closed when neither profile resolves', async ()
         },
       ),
     (error: unknown) => {
-      assert.equal((error as NimiError).reasonCode, 'SDK_APP_AI_CONFIG_INIT_PROFILE_UNRESOLVED');
+      assert.equal((error as NimiError).reasonCode, 'SDK_AI_CONFIG_INIT_PROFILE_UNRESOLVED');
       return true;
     },
   );
@@ -174,8 +188,8 @@ test('desktop never overwrites an existing per-app AIConfig on a later launch', 
 
   // Later launch with a CHANGED recommended profile and a CHANGED Default
   // Profile — neither may re-initialize the existing scope.
-  const changedRecommended: AIProfile = { ...RECOMMENDED_PROFILE, profileId: 'factory:changed' };
-  const changedDefault: AIProfile = { ...ACCOUNT_DEFAULT_PROFILE, profileId: 'default-v2' };
+  const changedRecommended: NimiAIProfile = { ...RECOMMENDED_PROFILE, profileId: 'factory:changed' };
+  const changedDefault: NimiAIProfile = { ...ACCOUNT_DEFAULT_PROFILE, profileId: 'default-v2' };
   const second = await ensureAppFirstLaunchAIConfig(
     { appId, recommendedProfileRef: changedRecommended.profileId },
     {
@@ -231,7 +245,7 @@ test('desktop first-launch init builds the canonical P-AISC-007 app scope and re
         },
       ),
     (error: unknown) => {
-      assert.equal((error as NimiError).reasonCode, 'SDK_APP_AI_CONFIG_SCOPE_INVALID');
+      assert.equal((error as NimiError).reasonCode, 'SDK_AI_INPUT_INVALID');
       return true;
     },
   );

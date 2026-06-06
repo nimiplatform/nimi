@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
-import {
-  localRuntime,
-  type LocalRuntimeAssetDeclaration,
-  type LocalRuntimeAssetKind,
-  type LocalRuntimeUnregisteredAssetDescriptor,
+import type {
+  NimiRuntimeLocalAssetDeclaration,
+  NimiRuntimeLocalAssetKind,
+  NimiRuntimeLocalUnregisteredAssetDescriptor,
 } from '@nimiplatform/sdk/runtime';
+import { runtimeConfigLocalModelCenterClient } from './runtime-config-local-model-center-sdk-service';
 import {
   defaultAssetDeclaration,
   type AssetEngineOption,
@@ -14,8 +14,8 @@ import {
 } from './runtime-config-use-local-model-center-helpers.js';
 
 export function useLocalModelCenterUnregisteredAssets() {
-  const [unregisteredAssets, setUnregisteredAssets] = useState<LocalRuntimeUnregisteredAssetDescriptor[]>([]);
-  const [unregisteredAssetDrafts, setUnregisteredAssetDrafts] = useState<Record<string, LocalRuntimeAssetDeclaration>>({});
+  const [unregisteredAssets, setUnregisteredAssets] = useState<NimiRuntimeLocalUnregisteredAssetDescriptor[]>([]);
+  const [unregisteredAssetDrafts, setUnregisteredAssetDrafts] = useState<Record<string, NimiRuntimeLocalAssetDeclaration>>({});
   const [unregisteredEndpointByPath, setUnregisteredEndpointByPath] = useState<Record<string, string>>({});
   const [unregisteredEndpointRequiredByPath, setUnregisteredEndpointRequiredByPath] = useState<Record<string, boolean>>({});
   const [unregisteredEndpointHintByPath, setUnregisteredEndpointHintByPath] = useState<Record<string, string>>({});
@@ -24,13 +24,13 @@ export function useLocalModelCenterUnregisteredAssets() {
 
   const refreshUnregisteredAssets = useCallback(async (requestIsCurrent?: () => boolean) => {
     try {
-      const rows = await localRuntime.scanUnregisteredAssets();
+      const rows = await runtimeConfigLocalModelCenterClient.scanUnregisteredAssets();
       if (requestIsCurrent && !requestIsCurrent()) {
         return;
       }
-      setUnregisteredAssets(rows);
+      setUnregisteredAssets([...rows]);
       setUnregisteredAssetDrafts((prev) => {
-        const next: Record<string, LocalRuntimeAssetDeclaration> = {};
+        const next: Record<string, NimiRuntimeLocalAssetDeclaration> = {};
         for (const item of rows) {
           const existing = prev[item.path];
           if (existing) {
@@ -52,7 +52,7 @@ export function useLocalModelCenterUnregisteredAssets() {
     }
   }, []);
 
-  const resolveUnregisteredAssetDraft = useCallback((asset: LocalRuntimeUnregisteredAssetDescriptor): LocalRuntimeAssetDeclaration => (
+  const resolveUnregisteredAssetDraft = useCallback((asset: NimiRuntimeLocalUnregisteredAssetDescriptor): NimiRuntimeLocalAssetDeclaration => (
     unregisteredAssetDrafts[asset.path]
     || normalizeAssetDeclaration(asset.declaration)
     || defaultAssetDeclaration('runnable')
@@ -60,7 +60,7 @@ export function useLocalModelCenterUnregisteredAssets() {
 
   const setUnregisteredAssetDraft = useCallback((
     assetPath: string,
-    nextDeclaration: LocalRuntimeAssetDeclaration,
+    nextDeclaration: NimiRuntimeLocalAssetDeclaration,
   ) => {
     setUnregisteredAssetDrafts((prev) => ({
       ...prev,
@@ -68,7 +68,7 @@ export function useLocalModelCenterUnregisteredAssets() {
     }));
   }, []);
 
-  const setUnregisteredAssetKind = useCallback((assetPath: string, assetKind: LocalRuntimeAssetKind) => {
+  const setUnregisteredAssetKind = useCallback((assetPath: string, assetKind: NimiRuntimeLocalAssetKind) => {
     setUnregisteredAssetDraft(assetPath, {
       assetKind,
     });

@@ -1,9 +1,9 @@
 import { i18n } from '@renderer/i18n';
 import { Surface } from '@nimiplatform/kit/ui';
-import { toCanonicalLocalRuntimeAssetLookupKey } from '@nimiplatform/sdk/runtime';
+import { toCanonicalNimiRuntimeLocalAssetLookupKey } from '@nimiplatform/sdk/runtime';
 import type {
-  LocalRuntimeAssetRecord,
-  LocalRuntimeVerifiedAssetDescriptor,
+  NimiRuntimeLocalAssetRecord,
+  NimiRuntimeLocalVerifiedAssetDescriptor,
 } from '@nimiplatform/sdk/runtime';
 import {
   DownloadIcon,
@@ -21,11 +21,11 @@ import {
 
 type AssetRequirementBadgesProps = {
   modelTemplateId: string;
-  relatedAssets: LocalRuntimeVerifiedAssetDescriptor[];
-  installedAssetsById: Map<string, LocalRuntimeAssetRecord>;
+  relatedAssets: NimiRuntimeLocalVerifiedAssetDescriptor[];
+  installedAssetsById: Map<string, NimiRuntimeLocalAssetRecord>;
   assetBusy: boolean;
   isAssetPending: (templateId: string) => boolean;
-  onInstallMissingAssets: (assets: LocalRuntimeVerifiedAssetDescriptor[]) => void;
+  onInstallMissingAssets: (assets: NimiRuntimeLocalVerifiedAssetDescriptor[]) => void;
   onInstallAsset: (templateId: string) => void;
 };
 
@@ -35,7 +35,7 @@ function AssetRequirementBadges(props: AssetRequirementBadgesProps) {
   }
 
   const missingAssets = props.relatedAssets.filter((asset) => (
-    !props.installedAssetsById.has(toCanonicalLocalRuntimeAssetLookupKey(asset.assetId))
+    !props.installedAssetsById.has(toCanonicalNimiRuntimeLocalAssetLookupKey(asset.assetId))
   ));
   const hasPendingMissingAssets = missingAssets.some((asset) => props.isAssetPending(asset.templateId));
 
@@ -57,7 +57,7 @@ function AssetRequirementBadges(props: AssetRequirementBadgesProps) {
         </button>
       ) : null}
       {props.relatedAssets.map((asset) => {
-        const installed = props.installedAssetsById.get(toCanonicalLocalRuntimeAssetLookupKey(asset.assetId)) || null;
+        const installed = props.installedAssetsById.get(toCanonicalNimiRuntimeLocalAssetLookupKey(asset.assetId)) || null;
         const pending = props.isAssetPending(asset.templateId);
         return (
           <div
@@ -102,7 +102,7 @@ type VerifiedAssetsSectionProps = {
   hasSearchQuery: boolean;
   loadingVerifiedAssets: boolean;
   assetBusy: boolean;
-  visibleVerifiedAssets: LocalRuntimeVerifiedAssetDescriptor[];
+  visibleVerifiedAssets: NimiRuntimeLocalVerifiedAssetDescriptor[];
   isAssetPending: (templateId: string) => boolean;
   onRefresh: () => void;
   onInstallAsset: (templateId: string) => void;
@@ -190,14 +190,14 @@ type QuickPicksSectionProps = {
   loadingVerifiedModels: boolean;
   installing: boolean;
   assetBusy: boolean;
-  verifiedModels: LocalRuntimeVerifiedAssetDescriptor[];
-  relatedAssetsByModelTemplate: Map<string, LocalRuntimeVerifiedAssetDescriptor[]>;
-  installedAssetsById: Map<string, LocalRuntimeAssetRecord>;
+  verifiedModels: NimiRuntimeLocalVerifiedAssetDescriptor[];
+  relatedAssetsByModelTemplate: Map<string, NimiRuntimeLocalVerifiedAssetDescriptor[]>;
+  installedAssetsById: Map<string, NimiRuntimeLocalAssetRecord>;
   isAssetPending: (templateId: string) => boolean;
   onRefresh: () => void;
   onInstallVerifiedModel: (templateId: string) => void;
   onInstallAsset: (templateId: string) => void;
-  onInstallMissingAssets: (assets: LocalRuntimeVerifiedAssetDescriptor[]) => void;
+  onInstallMissingAssets: (assets: NimiRuntimeLocalVerifiedAssetDescriptor[]) => void;
 };
 
 function LocalModelCenterQuickPicksSection(props: QuickPicksSectionProps) {

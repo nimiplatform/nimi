@@ -1,38 +1,37 @@
-import type { LocalRuntimeCatalogRecommendation } from '@nimiplatform/sdk/runtime';
+import type { NimiRuntimeLocalCatalogRecommendation } from '@nimiplatform/sdk/runtime';
+import type { JsonObject } from '@nimiplatform/sdk/types';
+import { createNimiClientId } from '@nimiplatform/sdk';
 import {
-  LOCAL_RUNTIME_RUNNABLE_ASSET_KIND_IDS,
-  normalizeLocalRuntimeRunnableAssetKindId,
-  type LocalRuntimeRunnableAssetKindId,
-  createNimiClientId,
-  createRuntimeConfigConnectorDraft,
-  normalizeRuntimeConfigConnectorAuthMode,
-  normalizeRuntimeConfigConnectorModels,
-  normalizeRuntimeConfigConnectorProjection,
-  normalizeRuntimeConfigConnectorScope,
-  normalizeRuntimeConfigConnectorStatus,
-  normalizeRuntimeConfigConnectorVendor,
-  RUNTIME_CONFIG_DEFAULT_LOCAL_ENDPOINT,
-  RUNTIME_CONFIG_DEFAULT_CONNECTOR_ENDPOINT,
-  runtimeConfigConnectorVendorLabel,
-  normalizeRuntimeConfigEndpoint,
-  normalizeRuntimeConfigLocalModelProjection,
-  normalizeRuntimeConfigLocalNodeMatrixEntryProjection,
-  normalizeRuntimeConfigStringList,
-  type RuntimeConfigConnectorProjection,
-  type LocalProviderAdapterId,
-  type RuntimeConfigProviderStatus,
-  type RuntimeConnectorAuthMode,
-  type RuntimeConnectorScope,
-  type RuntimeConfigLocalModelProjection,
-  type RuntimeConfigLocalNodeCapability,
-  type RuntimeConfigLocalNodeMatrixEntryProjection,
-  type RuntimeConfigLocalProviderHints,
+  NIMI_RUNTIME_LOCAL_RUNNABLE_ASSET_KIND_IDS,
+  normalizeNimiRuntimeLocalRunnableAssetKindId,
+  type NimiRuntimeLocalRunnableAssetKindId,
+  createNimiRuntimeConfigConnectorDraft,
+  normalizeNimiRuntimeConfigConnectorAuthMode,
+  normalizeNimiRuntimeConfigConnectorModels,
+  normalizeNimiRuntimeConfigConnectorProjection,
+  normalizeNimiRuntimeConfigConnectorScope,
+  normalizeNimiRuntimeConfigConnectorStatus,
+  normalizeNimiRuntimeConfigConnectorVendor,
+  NIMI_RUNTIME_CONFIG_DEFAULT_LOCAL_ENDPOINT,
+  NIMI_RUNTIME_CONFIG_DEFAULT_CONNECTOR_ENDPOINT,
+  nimiRuntimeConfigConnectorVendorLabel,
+  normalizeNimiRuntimeConfigEndpoint,
+  normalizeNimiRuntimeConfigLocalModelProjection,
+  normalizeNimiRuntimeConfigLocalNodeMatrixEntryProjection,
+  normalizeNimiRuntimeConfigStringList,
+  type NimiRuntimeConfigConnectorProjection,
+  type NimiRuntimeLocalProviderAdapterId,
+  type NimiRuntimeConfigProviderStatus,
+  type NimiRuntimeConnectorAuthMode,
+  type NimiRuntimeConnectorScope,
+  type NimiRuntimeConfigLocalModelProjection,
+  type NimiRuntimeConfigLocalNodeCapability,
+  type NimiRuntimeConfigLocalNodeMatrixEntryProjection,
+  type NimiRuntimeConfigLocalProviderHints,
 } from '@nimiplatform/sdk/runtime';
 
-type JsonObject = Record<string, unknown>;
-
-export const CAPABILITIES_V11 = LOCAL_RUNTIME_RUNNABLE_ASSET_KIND_IDS;
-export type CapabilityV11 = LocalRuntimeRunnableAssetKindId;
+export const CAPABILITIES_V11 = NIMI_RUNTIME_LOCAL_RUNNABLE_ASSET_KIND_IDS;
+export type CapabilityV11 = NimiRuntimeLocalRunnableAssetKindId;
 
 export type SourceIdV11 = 'local' | 'cloud';
 /**
@@ -56,22 +55,22 @@ export type RuntimePageIdV11 =
  */
 export type RuntimeSetupPageIdV11 = 'models' | 'cloud';
 export type UiModeV11 = 'simple' | 'advanced';
-export type ProviderStatusV11 = RuntimeConfigProviderStatus;
+export type ProviderStatusV11 = NimiRuntimeConfigProviderStatus;
 export type ApiConnectorScopeV11 = 'user' | 'machine-global' | 'runtime-system';
 export type ApiVendor = string;
 export type ApiConnectorAuthModeV11 = 'api_key' | 'oauth_managed';
 
-export type LocalModelOptionV11 = RuntimeConfigLocalModelProjection & {
-  recommendation?: LocalRuntimeCatalogRecommendation;
+export type LocalModelOptionV11 = NimiRuntimeConfigLocalModelProjection & {
+  recommendation?: NimiRuntimeLocalCatalogRecommendation;
 };
 
-export type NodeCapabilityV11 = RuntimeConfigLocalNodeCapability;
+export type NodeCapabilityV11 = NimiRuntimeConfigLocalNodeCapability;
 
-export type LocalProviderHintsV11 = RuntimeConfigLocalProviderHints & JsonObject;
+export type LocalProviderHintsV11 = NimiRuntimeConfigLocalProviderHints & JsonObject;
 
-export type LocalNodeMatrixEntryV11 = RuntimeConfigLocalNodeMatrixEntryProjection & {
+export type LocalNodeMatrixEntryV11 = NimiRuntimeConfigLocalNodeMatrixEntryProjection & {
   capability: NodeCapabilityV11;
-  adapter?: LocalProviderAdapterId;
+  adapter?: NimiRuntimeLocalProviderAdapterId;
   providerHints?: LocalProviderHintsV11;
 };
 
@@ -84,7 +83,7 @@ export type LocalStateV11 = {
   lastDetail: string;
 };
 
-export type ApiConnector = RuntimeConfigConnectorProjection;
+export type ApiConnector = NimiRuntimeConfigConnectorProjection;
 
 export type RuntimeConfigStateV11 = {
   version: 11 | 12;
@@ -99,8 +98,8 @@ export type RuntimeConfigStateV11 = {
   selectedConnectorId: string;
 };
 
-export const DEFAULT_LOCAL_ENDPOINT_V11 = RUNTIME_CONFIG_DEFAULT_LOCAL_ENDPOINT;
-export const DEFAULT_CONNECTOR_ENDPOINT_V11 = RUNTIME_CONFIG_DEFAULT_CONNECTOR_ENDPOINT;
+export const DEFAULT_LOCAL_ENDPOINT_V11 = NIMI_RUNTIME_CONFIG_DEFAULT_LOCAL_ENDPOINT;
+export const DEFAULT_CONNECTOR_ENDPOINT_V11 = NIMI_RUNTIME_CONFIG_DEFAULT_CONNECTOR_ENDPOINT;
 
 export function normalizeSourceV11(value: unknown): SourceIdV11 {
   return value === 'cloud' ? 'cloud' : 'local';
@@ -121,7 +120,7 @@ export function normalizePageIdV11(value: unknown): RuntimePageIdV11 {
 }
 
 export function normalizeCapabilityV11(value: unknown): CapabilityV11 {
-  return normalizeLocalRuntimeRunnableAssetKindId(value);
+  return normalizeNimiRuntimeLocalRunnableAssetKindId(value);
 }
 
 export function normalizeUiModeV11(value: unknown): UiModeV11 {
@@ -129,15 +128,15 @@ export function normalizeUiModeV11(value: unknown): UiModeV11 {
 }
 
 export function normalizeVendorV11(value: unknown): ApiVendor {
-  return normalizeRuntimeConfigConnectorVendor(value) as ApiVendor;
+  return normalizeNimiRuntimeConfigConnectorVendor(value) as ApiVendor;
 }
 
 export function normalizeStatusV11(value: unknown): ProviderStatusV11 {
-  return normalizeRuntimeConfigConnectorStatus(value);
+  return normalizeNimiRuntimeConfigConnectorStatus(value);
 }
 
 export function normalizeConnectorScopeV11(value: unknown): ApiConnectorScopeV11 {
-  return normalizeRuntimeConfigConnectorScope(value) as ApiConnectorScopeV11;
+  return normalizeNimiRuntimeConfigConnectorScope(value) as ApiConnectorScopeV11;
 }
 
 export function statusTextV11(status: ProviderStatusV11): string {
@@ -156,16 +155,16 @@ export function statusClassV11(status: ProviderStatusV11): string {
   return 'bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] text-[var(--nimi-text-secondary)]';
 }
 
-export function dedupeStringsV11(values: string[]): string[] {
-  return normalizeRuntimeConfigStringList(values);
+export function dedupeStringsV11(values: readonly string[]): string[] {
+  return normalizeNimiRuntimeConfigStringList(values);
 }
 
 export function getVendorLabelV11(vendor: ApiVendor): string {
-  return runtimeConfigConnectorVendorLabel(vendor);
+  return nimiRuntimeConfigConnectorVendorLabel(vendor);
 }
 
 export function normalizeEndpointV11(value: string, fallback: string): string {
-  return normalizeRuntimeConfigEndpoint(value, fallback);
+  return normalizeNimiRuntimeConfigEndpoint(value, fallback);
 }
 
 export function randomIdV11(prefix: string): string {
@@ -173,29 +172,29 @@ export function randomIdV11(prefix: string): string {
 }
 
 export function createConnectorV11(vendor: ApiVendor = 'custom', label?: string): ApiConnector {
-  return createRuntimeConfigConnectorDraft({ id: randomIdV11('connector'), vendor, label });
+  return createNimiRuntimeConfigConnectorDraft({ id: randomIdV11('connector'), vendor, label });
 }
 
 export function normalizeConnectorModelsV11(vendor: ApiVendor, rawModels: unknown): string[] {
   void vendor;
-  return normalizeRuntimeConfigConnectorModels(rawModels);
+  return normalizeNimiRuntimeConfigConnectorModels(rawModels);
 }
 
 export function normalizeConnectorV11(raw: Partial<ApiConnector>): ApiConnector {
-  return normalizeRuntimeConfigConnectorProjection({
+  return normalizeNimiRuntimeConfigConnectorProjection({
     ...raw,
     id: raw.id || randomIdV11('connector'),
-    authMode: normalizeRuntimeConfigConnectorAuthMode(raw.authMode) as RuntimeConnectorAuthMode,
-    scope: normalizeRuntimeConfigConnectorScope(raw.scope) as RuntimeConnectorScope,
+    authMode: normalizeNimiRuntimeConfigConnectorAuthMode(raw.authMode) as NimiRuntimeConnectorAuthMode,
+    scope: normalizeNimiRuntimeConfigConnectorScope(raw.scope) as NimiRuntimeConnectorScope,
   });
 }
 
 export function normalizeLocalModelV11(raw: Partial<LocalModelOptionV11>): LocalModelOptionV11 {
-  return normalizeRuntimeConfigLocalModelProjection(raw) as LocalModelOptionV11;
+  return normalizeNimiRuntimeConfigLocalModelProjection(raw) as LocalModelOptionV11;
 }
 
 export function normalizeLocalNodeMatrixEntryV11(
   raw: Partial<LocalNodeMatrixEntryV11>,
 ): LocalNodeMatrixEntryV11 {
-  return normalizeRuntimeConfigLocalNodeMatrixEntryProjection(raw) as LocalNodeMatrixEntryV11;
+  return normalizeNimiRuntimeConfigLocalNodeMatrixEntryProjection(raw) as LocalNodeMatrixEntryV11;
 }

@@ -1,8 +1,8 @@
 import { i18n } from '@renderer/i18n';
 import { ScrollArea } from '@nimiplatform/kit/ui';
 import type {
-  LocalRuntimeProfileApplyResult,
-  LocalRuntimeProfileResolutionPlan,
+  NimiRuntimeLocalProfileApplyResult,
+  NimiRuntimeLocalProfileResolutionPlan,
 } from '@nimiplatform/sdk/runtime';
 import type {
   RuntimeConfigStateV11,
@@ -19,13 +19,13 @@ type ProfileTargetViewProps = {
   profileSelectionLocked: boolean;
   selectedProfileId: string;
   selectedProfileCapability: string;
-  profilePlanPreview: LocalRuntimeProfileResolutionPlan | null;
+  profilePlanPreview: NimiRuntimeLocalProfileResolutionPlan | null;
   runtimeProfileTargets: RuntimeProfileTargetDescriptor[];
   onSetSelectedProfileTargetId: (targetId: string) => void;
   onSetSelectedProfileId: (profileId: string) => void;
   onSetSelectedProfileCapability: (capability: string) => void;
   onResolveProfilePlanPreview: () => void;
-  onApplyProfile: (targetId: string, profileId: string, capability?: string) => Promise<LocalRuntimeProfileApplyResult>;
+  onApplyProfile: (targetId: string, profileId: string, capability?: string) => Promise<NimiRuntimeLocalProfileApplyResult>;
   onNavigateToSetup?: (pageId: RuntimeSetupPageIdV11) => void;
 };
 

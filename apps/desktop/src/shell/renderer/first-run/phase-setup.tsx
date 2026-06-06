@@ -24,7 +24,7 @@ import type {
   FirstRunSetupStep,
   FirstRunSetupStepId,
 } from './first-run-setup-checklist.js';
-import type { FirstRunMaterializationDependencyProjection } from './runtime-materialization.js';
+import type { NimiFirstRunMaterializationDependencyProjection } from './runtime-materialization.js';
 
 const STEP_LABEL_DEFAULTS: Record<FirstRunSetupStepId, string> = {
   download: 'Downloading local models',
@@ -67,9 +67,9 @@ function formatEta(seconds: number): string {
 }
 
 type SetupActionHandlers = {
-  readonly onRetry: (dependency: FirstRunMaterializationDependencyProjection) => void;
-  readonly onRepair: (dependency: FirstRunMaterializationDependencyProjection) => void;
-  readonly onCancel: (dependency: FirstRunMaterializationDependencyProjection) => void;
+  readonly onRetry: (dependency: NimiFirstRunMaterializationDependencyProjection) => void;
+  readonly onRepair: (dependency: NimiFirstRunMaterializationDependencyProjection) => void;
+  readonly onCancel: (dependency: NimiFirstRunMaterializationDependencyProjection) => void;
 };
 
 type PhaseSetupProps = {

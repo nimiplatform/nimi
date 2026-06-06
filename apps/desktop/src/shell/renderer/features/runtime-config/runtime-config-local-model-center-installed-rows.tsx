@@ -1,14 +1,14 @@
 import type {
-  LocalRuntimeAssetRecord,
-  LocalRuntimeEnvironmentDependencyJob,
-  LocalRuntimeEnvironmentPlanDependency,
+  NimiRuntimeLocalAssetRecord,
+  NimiRuntimeLocalEnvironmentDependencyJob,
+  NimiRuntimeLocalEnvironmentPlanDependency,
 } from '@nimiplatform/sdk/runtime';
 import {
-  isLocalRuntimeEnvironmentDependencyJobActiveState,
-  isLocalRuntimeEnvironmentDependencyJobRetryableState,
-  isLocalRuntimeEnvironmentDependencyNeedsConfirmationState,
-  isLocalRuntimeEnvironmentDependencyReadyState,
-  isLocalRuntimeEnvironmentDependencyRepairRequiredState,
+  isNimiRuntimeLocalEnvironmentDependencyJobActiveState,
+  isNimiRuntimeLocalEnvironmentDependencyJobRetryableState,
+  isNimiRuntimeLocalEnvironmentDependencyNeedsConfirmationState,
+  isNimiRuntimeLocalEnvironmentDependencyReadyState,
+  isNimiRuntimeLocalEnvironmentDependencyRepairRequiredState,
 } from '@nimiplatform/sdk/runtime';
 import { i18n } from '@renderer/i18n';
 import { localSpeechReasonSummary } from './runtime-config-model-center-utils';
@@ -28,31 +28,31 @@ export {
   runtimeDependencyStatusDetail,
 } from './runtime-config-local-model-center-runtime-dependency-banner';
 
-export function assetNeedsAttachedEndpointRepair(asset: LocalRuntimeAssetRecord): boolean {
+export function assetNeedsAttachedEndpointRepair(asset: NimiRuntimeLocalAssetRecord): boolean {
   if (asset.engineRuntimeMode !== 'attached-endpoint') {
     return false;
   }
   return String(asset.reasonCode || '').trim() === 'AI_LOCAL_ENDPOINT_REQUIRED';
 }
 
-export function assetSupportsBundleRescan(asset: LocalRuntimeAssetRecord): boolean {
+export function assetSupportsBundleRescan(asset: NimiRuntimeLocalAssetRecord): boolean {
   return String(asset.source.repo || '').trim().toLowerCase().startsWith('file://');
 }
 
-function runtimeDependencyJobUpdatedAtMs(job: LocalRuntimeEnvironmentDependencyJob): number {
+function runtimeDependencyJobUpdatedAtMs(job: NimiRuntimeLocalEnvironmentDependencyJob): number {
   const updatedAtMs = Date.parse(String(job.updatedAt || job.createdAt || ''));
   return Number.isFinite(updatedAtMs) ? updatedAtMs : 0;
 }
 
 export function latestRuntimeDependencyJob(
-  jobs: LocalRuntimeEnvironmentDependencyJob[],
-): LocalRuntimeEnvironmentDependencyJob | undefined {
+  jobs: NimiRuntimeLocalEnvironmentDependencyJob[],
+): NimiRuntimeLocalEnvironmentDependencyJob | undefined {
   return jobs.slice().sort((left, right) => runtimeDependencyJobUpdatedAtMs(right) - runtimeDependencyJobUpdatedAtMs(left))[0];
 }
 
 export function runtimeDependencyJobMatchesDependency(
-  job: LocalRuntimeEnvironmentDependencyJob,
-  dependency?: LocalRuntimeEnvironmentPlanDependency,
+  job: NimiRuntimeLocalEnvironmentDependencyJob,
+  dependency?: NimiRuntimeLocalEnvironmentPlanDependency,
 ): boolean {
   if (!dependency?.environmentKey) {
     return false;
@@ -65,53 +65,53 @@ export function runtimeDependencyJobMatchesDependency(
 }
 
 function runtimeDependencyCurrentState(
-  dependency?: LocalRuntimeEnvironmentPlanDependency,
-  job?: LocalRuntimeEnvironmentDependencyJob,
+  dependency?: NimiRuntimeLocalEnvironmentPlanDependency,
+  job?: NimiRuntimeLocalEnvironmentDependencyJob,
 ): string {
   return String(job?.state || dependency?.state || '').trim();
 }
 
 export function runtimeDependencyRequiresAttention(
-  dependency?: LocalRuntimeEnvironmentPlanDependency,
-  job?: LocalRuntimeEnvironmentDependencyJob,
+  dependency?: NimiRuntimeLocalEnvironmentPlanDependency,
+  job?: NimiRuntimeLocalEnvironmentDependencyJob,
 ): boolean {
   if (!dependency) {
     return false;
   }
   const state = runtimeDependencyCurrentState(dependency, job);
-  return !isLocalRuntimeEnvironmentDependencyReadyState(state);
+  return !isNimiRuntimeLocalEnvironmentDependencyReadyState(state);
 }
 
 export function runtimeDependencySetupAllowed(
-  dependency?: LocalRuntimeEnvironmentPlanDependency,
-  job?: LocalRuntimeEnvironmentDependencyJob,
+  dependency?: NimiRuntimeLocalEnvironmentPlanDependency,
+  job?: NimiRuntimeLocalEnvironmentDependencyJob,
 ): boolean {
   if (!dependency || !dependency.confirmationRequired) {
     return false;
   }
   if (job && (
-    isLocalRuntimeEnvironmentDependencyJobActiveState(job.state)
-    || isLocalRuntimeEnvironmentDependencyJobRetryableState(job.state)
+    isNimiRuntimeLocalEnvironmentDependencyJobActiveState(job.state)
+    || isNimiRuntimeLocalEnvironmentDependencyJobRetryableState(job.state)
   )) {
     return false;
   }
-  return isLocalRuntimeEnvironmentDependencyNeedsConfirmationState(dependency.state);
+  return isNimiRuntimeLocalEnvironmentDependencyNeedsConfirmationState(dependency.state);
 }
 
 export function runtimeDependencyRepairAllowed(
-  dependency?: LocalRuntimeEnvironmentPlanDependency,
-  job?: LocalRuntimeEnvironmentDependencyJob,
+  dependency?: NimiRuntimeLocalEnvironmentPlanDependency,
+  job?: NimiRuntimeLocalEnvironmentDependencyJob,
 ): boolean {
   return Boolean(
-    (dependency && isLocalRuntimeEnvironmentDependencyRepairRequiredState(dependency.state))
-    || (job && isLocalRuntimeEnvironmentDependencyRepairRequiredState(job.state)),
+    (dependency && isNimiRuntimeLocalEnvironmentDependencyRepairRequiredState(dependency.state))
+    || (job && isNimiRuntimeLocalEnvironmentDependencyRepairRequiredState(job.state)),
   );
 }
 
 function assetHasRuntimeDependencyWarning(
-  asset: LocalRuntimeAssetRecord,
-  dependency?: LocalRuntimeEnvironmentPlanDependency,
-  job?: LocalRuntimeEnvironmentDependencyJob,
+  asset: NimiRuntimeLocalAssetRecord,
+  dependency?: NimiRuntimeLocalEnvironmentPlanDependency,
+  job?: NimiRuntimeLocalEnvironmentDependencyJob,
 ): boolean {
   const detail = String(asset.healthDetail || '').trim().toLowerCase();
   return (
@@ -127,9 +127,9 @@ function assetHasRuntimeDependencyWarning(
 }
 
 function runtimeDependencyDetail(
-  asset: LocalRuntimeAssetRecord,
-  dependency?: LocalRuntimeEnvironmentPlanDependency,
-  job?: LocalRuntimeEnvironmentDependencyJob,
+  asset: NimiRuntimeLocalAssetRecord,
+  dependency?: NimiRuntimeLocalEnvironmentPlanDependency,
+  job?: NimiRuntimeLocalEnvironmentDependencyJob,
 ): string {
   if (runtimeDependencyRequiresAttention(dependency, job)) {
     return runtimeDependencyStatusDetail(dependency, job);
@@ -145,13 +145,13 @@ function runtimeDependencyDetail(
 }
 
 type RunnableInstalledAssetRowProps = {
-  asset: LocalRuntimeAssetRecord;
+  asset: NimiRuntimeLocalAssetRecord;
   assetBusy: boolean;
   confirmRemoveAssetId: string;
   repairAssetId: string;
   repairEndpoint: string;
-  runtimeDependency?: LocalRuntimeEnvironmentPlanDependency;
-  runtimeDependencyJob?: LocalRuntimeEnvironmentDependencyJob;
+  runtimeDependency?: NimiRuntimeLocalEnvironmentPlanDependency;
+  runtimeDependencyJob?: NimiRuntimeLocalEnvironmentDependencyJob;
   onCancelRemove: () => void;
   onCancelRepair: () => void;
   onConfirmRemove: (localAssetId: string) => void;
@@ -323,7 +323,7 @@ export function RunnableInstalledAssetRow(props: RunnableInstalledAssetRowProps)
 }
 
 type DependencyInstalledAssetRowProps = {
-  asset: LocalRuntimeAssetRecord;
+  asset: NimiRuntimeLocalAssetRecord;
   assetBusy: boolean;
   confirmRemoveAssetId: string;
   onCancelRemove: () => void;

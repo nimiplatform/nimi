@@ -896,6 +896,7 @@
     "importAssetManifest": "导入资产清单",
     "importAssetBundle": "导入资产 Bundle 文件夹",
     "importAssetFile": "导入资产文件",
+    "importBundle": "导入 Bundle",
     "importLocalAsset": "导入本地资产",
     "importLocalAssetFile": "导入本地资产文件",
     "importLocalModelFile": "导入本地模型文件",

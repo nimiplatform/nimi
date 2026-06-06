@@ -25,13 +25,13 @@
  */
 
 import type {
-  AccountProfileLibraryIndexEntry,
-  AccountProfileLibraryOrigin,
-  AccountProfileLibraryProfile,
-  AccountProfileLibraryProjection as SdkAccountProfileLibraryProjection,
-  AIProfile,
+  NimiAccountProfileLibraryIndexEntry,
+  NimiAccountProfileLibraryOrigin,
+  NimiAccountProfileLibraryProfile,
+  NimiAccountProfileLibraryProjection,
+  NimiAIProfile,
 } from '@nimiplatform/sdk/ai';
-import { createNimiClientId } from '@nimiplatform/sdk/runtime';
+import { createNimiClientId } from '@nimiplatform/sdk';
 import { hasTauriInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
 import {
   createAccountProfileLibraryProfile,
@@ -42,20 +42,20 @@ import {
   listAccountProfileLibrary,
 } from '@renderer/bridge/runtime-bridge/account-profile-library.js';
 
-export type LibraryProfileOrigin = AccountProfileLibraryOrigin;
-export type LibraryProfile = AccountProfileLibraryProfile;
-export type LibraryIndexEntry = AccountProfileLibraryIndexEntry;
-export type AccountProfileLibraryProjection = SdkAccountProfileLibraryProjection;
+export type LibraryProfileOrigin = NimiAccountProfileLibraryOrigin;
+export type LibraryProfile = NimiAccountProfileLibraryProfile;
+export type LibraryIndexEntry = NimiAccountProfileLibraryIndexEntry;
+export type { NimiAccountProfileLibraryProjection };
 
 // ---------------------------------------------------------------------------
 // Read-through projection cache (a projection of Rust truth, never the store)
 // ---------------------------------------------------------------------------
 
-let libraryProjectionCache: AccountProfileLibraryProjection | null = null;
+let libraryProjectionCache: NimiAccountProfileLibraryProjection | null = null;
 
 function adoptProjection(
-  projection: AccountProfileLibraryProjection,
-): AccountProfileLibraryProjection {
+  projection: NimiAccountProfileLibraryProjection,
+): NimiAccountProfileLibraryProjection {
   libraryProjectionCache = projection;
   return projection;
 }
@@ -65,45 +65,45 @@ function adoptProjection(
 // ---------------------------------------------------------------------------
 
 /** Load the account profile library from the Rust file family. */
-export async function loadAccountProfileLibrary(): Promise<AccountProfileLibraryProjection> {
+export async function loadAccountProfileLibrary(): Promise<NimiAccountProfileLibraryProjection> {
   return adoptProjection(await listAccountProfileLibrary());
 }
 
 /** Create a new user-authored library profile under `user/`. */
 export async function createAccountProfileLibraryEntry(
-  profile: AIProfile,
-): Promise<AccountProfileLibraryProjection> {
+  profile: NimiAIProfile,
+): Promise<NimiAccountProfileLibraryProjection> {
   return adoptProjection(await createAccountProfileLibraryProfile(profile));
 }
 
 /** Edit an existing editable library profile in place. */
 export async function editAccountProfileLibraryEntry(
-  profile: AIProfile,
-): Promise<AccountProfileLibraryProjection> {
+  profile: NimiAIProfile,
+): Promise<NimiAccountProfileLibraryProjection> {
   return adoptProjection(await editAccountProfileLibraryProfile(profile));
 }
 
 /** Import one or more profiles into the library `imported/` directory. */
 export async function importAccountProfileLibraryEntries(
-  profiles: AIProfile[],
-): Promise<AccountProfileLibraryProjection> {
+  profiles: NimiAIProfile[],
+): Promise<NimiAccountProfileLibraryProjection> {
   return adoptProjection(await importAccountProfileLibraryProfiles(profiles));
 }
 
 /**
- * Export editable library profiles as portable AIProfile payloads.
+ * Export editable library profiles as portable NimiAIProfile payloads.
  * An empty `profileIds` exports every editable library profile.
  */
 export async function exportAccountProfileLibraryEntries(
   profileIds: string[] = [],
-): Promise<AIProfile[]> {
+): Promise<NimiAIProfile[]> {
   return exportAccountProfileLibraryProfiles(profileIds);
 }
 
 /** Delete an editable library profile. */
 export async function deleteAccountProfileLibraryEntry(
   profileId: string,
-): Promise<AccountProfileLibraryProjection> {
+): Promise<NimiAccountProfileLibraryProjection> {
   return adoptProjection(await deleteAccountProfileLibraryProfile(profileId));
 }
 
@@ -134,7 +134,7 @@ export async function ensureAccountProfileLibraryLoaded(): Promise<void> {
  * It is never authored locally — it only ever reflects the last Rust file
  * family read. Empty until `ensureAccountProfileLibraryLoaded()` resolves.
  */
-export function getCachedAccountProfileLibraryProfiles(): AIProfile[] {
+export function getCachedAccountProfileLibraryProfiles(): NimiAIProfile[] {
   if (!libraryProjectionCache) {
     return [];
   }
@@ -142,7 +142,7 @@ export function getCachedAccountProfileLibraryProfiles(): AIProfile[] {
 }
 
 /** Synchronous read-through projection accessor for the full library state. */
-export function getCachedAccountProfileLibrary(): AccountProfileLibraryProjection | null {
+export function getCachedAccountProfileLibrary(): NimiAccountProfileLibraryProjection | null {
   return libraryProjectionCache;
 }
 
@@ -160,7 +160,7 @@ export function generateLibraryProfileId(): string {
 }
 
 /** Create an empty editable library profile shell for the create flow. */
-export function createEmptyLibraryProfile(profileId?: string): AIProfile {
+export function createEmptyLibraryProfile(profileId?: string): NimiAIProfile {
   return {
     profileId: profileId || generateLibraryProfileId(),
     title: '',

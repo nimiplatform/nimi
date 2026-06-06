@@ -1,5 +1,5 @@
 import type { RefObject } from 'react';
-import type { LocalRuntimeAssetKind } from '@nimiplatform/sdk/runtime';
+import type { NimiRuntimeLocalAssetKind } from '@nimiplatform/sdk/runtime';
 import type {
   AssetEngineOption,
 } from './runtime-config-model-center-utils';
@@ -16,7 +16,7 @@ type LocalModelCenterImportControlsProps = {
   importMenuRef: RefObject<HTMLDivElement | null>;
   showImportMenu: boolean;
   showImportFileDialog: boolean;
-  importFileAssetKind: LocalRuntimeAssetKind;
+  importFileAssetKind: NimiRuntimeLocalAssetKind;
   importFileAuxiliaryEngine: AssetEngineOption | '';
   importFileEndpoint: string;
   importEndpointRequired: boolean;
@@ -29,7 +29,7 @@ type LocalModelCenterImportControlsProps = {
   onOpenImportFile: () => void;
   onOpenImportBundle: () => void;
   onImportManifest: () => void;
-  onAssetKindChange: (kind: LocalRuntimeAssetKind) => void;
+  onAssetKindChange: (kind: NimiRuntimeLocalAssetKind) => void;
   onAuxiliaryEngineChange: (engine: AssetEngineOption | '') => void;
   onEndpointChange: (endpoint: string) => void;
   onCloseImportFileDialog: () => void;

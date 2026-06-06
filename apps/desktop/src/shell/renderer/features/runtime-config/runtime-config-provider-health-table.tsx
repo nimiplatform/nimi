@@ -1,9 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type {
-  AIProviderHealthSnapshot,
-  AIProviderSubHealth,
-} from '@nimiplatform/sdk/runtime';
+import type { AIProviderHealthSnapshot, AIProviderSubHealth } from '@nimiplatform/sdk/runtime/generated';
 import { cn } from '@nimiplatform/kit/ui';
 import {
   relativeTimeShort,

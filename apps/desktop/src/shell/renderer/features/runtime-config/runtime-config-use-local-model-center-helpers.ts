@@ -1,35 +1,35 @@
-import type { LocalRuntimeAssetDeclaration, LocalRuntimeAssetKind } from '@nimiplatform/sdk/runtime';
+import type { NimiRuntimeLocalAssetDeclaration, NimiRuntimeLocalAssetKind } from '@nimiplatform/sdk/runtime';
 import {
-  LOCAL_RUNTIME_RUNNABLE_ASSET_KIND_IDS,
-  canImportLocalRuntimeAssetDeclaration,
-  isLocalRuntimeRunnableAssetKindId,
-  localRuntimeCapabilitiesForAssetKind,
-  normalizeLocalRuntimeAssetDeclaration,
-  normalizeLocalRuntimeDependencyAssetDeclaration,
+  NIMI_RUNTIME_LOCAL_RUNNABLE_ASSET_KIND_IDS,
+  canImportNimiRuntimeLocalAssetDeclaration,
+  isNimiRuntimeLocalRunnableAssetKindId,
+  nimiRuntimeLocalCapabilitiesForAssetKind,
+  normalizeNimiRuntimeLocalAssetDeclaration,
+  normalizeNimiRuntimeLocalDependencyAssetDeclaration,
 } from '@nimiplatform/sdk/runtime';
 
-export const RUNNABLE_ASSET_KINDS = new Set(LOCAL_RUNTIME_RUNNABLE_ASSET_KIND_IDS);
+export const RUNNABLE_ASSET_KINDS = new Set(NIMI_RUNTIME_LOCAL_RUNNABLE_ASSET_KIND_IDS);
 
-export function isRunnableAssetKind(kind: LocalRuntimeAssetKind): boolean {
-  return isLocalRuntimeRunnableAssetKindId(kind);
+export function isRunnableAssetKind(kind: NimiRuntimeLocalAssetKind): boolean {
+  return isNimiRuntimeLocalRunnableAssetKindId(kind);
 }
 
-export function normalizeDependencyAssetKind(kind: string | undefined): LocalRuntimeAssetKind {
-  return normalizeLocalRuntimeDependencyAssetDeclaration({ assetKind: kind }).assetKind as LocalRuntimeAssetKind;
+export function normalizeDependencyAssetKind(kind: string | undefined): NimiRuntimeLocalAssetKind {
+  return normalizeNimiRuntimeLocalDependencyAssetDeclaration({ assetKind: kind }).assetKind as NimiRuntimeLocalAssetKind;
 }
 
 export function normalizeAssetDeclaration(
-  declaration?: LocalRuntimeAssetDeclaration,
-): LocalRuntimeAssetDeclaration {
-  return normalizeLocalRuntimeAssetDeclaration(declaration) as LocalRuntimeAssetDeclaration;
+  declaration?: NimiRuntimeLocalAssetDeclaration,
+): NimiRuntimeLocalAssetDeclaration {
+  return normalizeNimiRuntimeLocalAssetDeclaration(declaration) as NimiRuntimeLocalAssetDeclaration;
 }
 
-export function canImportDeclaration(declaration: LocalRuntimeAssetDeclaration): boolean {
-  return canImportLocalRuntimeAssetDeclaration(declaration);
+export function canImportDeclaration(declaration: NimiRuntimeLocalAssetDeclaration): boolean {
+  return canImportNimiRuntimeLocalAssetDeclaration(declaration);
 }
 
-export function capabilitiesForAssetKind(kind: LocalRuntimeAssetKind): string[] {
-  return localRuntimeCapabilitiesForAssetKind(kind);
+export function capabilitiesForAssetKind(kind: NimiRuntimeLocalAssetKind): string[] {
+  return nimiRuntimeLocalCapabilitiesForAssetKind(kind);
 }
 
 export function manifestPathFromSourceRepo(repo: string | undefined): string | undefined {

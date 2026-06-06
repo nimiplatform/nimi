@@ -1,24 +1,24 @@
 import type {
-  LocalRuntimeAssetDeclaration,
-  LocalRuntimeAssetKind,
-  LocalRuntimeCatalogItemDescriptor,
-  LocalRuntimeDownloadSessionSummary,
-  LocalRuntimeDownloadState,
-  LocalRuntimeDownloadProgressEvent,
-  LocalRuntimeInstallPayload,
-  LocalRuntimeInstallPlanDescriptor,
-  LocalRuntimeProfileDescriptor,
-  LocalRuntimeProfileEntryDescriptor,
-  LocalRuntimeProfileApplyResult,
-  LocalRuntimeProfileResolutionPlan,
+  NimiRuntimeLocalAssetDeclaration,
+  NimiRuntimeLocalAssetKind,
+  NimiRuntimeLocalCatalogItemDescriptor,
+  NimiRuntimeLocalTransferSessionSummary,
+  NimiRuntimeLocalDownloadState,
+  NimiRuntimeLocalTransferProgressEvent,
+  NimiRuntimeLocalInstallPayload,
+  NimiRuntimeLocalInstallPlanDescriptor,
+  NimiRuntimeLocalProfileDescriptor,
+  NimiRuntimeLocalProfileEntryDescriptor,
+  NimiRuntimeLocalProfileApplyResult,
+  NimiRuntimeLocalProfileResolutionPlan,
 } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
-  LOCAL_RUNTIME_ENGINE_IDS,
-  LOCAL_RUNTIME_RUNNABLE_ASSET_KIND_IDS,
-  normalizeLocalRuntimeRunnableAssetKindId,
-  type LocalRuntimeEngineId,
-  type LocalRuntimeRunnableAssetKindId,
+  NIMI_RUNTIME_LOCAL_ENGINE_IDS,
+  NIMI_RUNTIME_LOCAL_RUNNABLE_ASSET_KIND_IDS,
+  normalizeNimiRuntimeLocalRunnableAssetKindId,
+  type NimiRuntimeLocalEngineId,
+  type NimiRuntimeLocalRunnableAssetKindId,
 } from '@nimiplatform/sdk/runtime';
 import type { RuntimeProfileTargetDescriptor } from './runtime-config-panel-types';
 import type { RuntimeConfigStateV11, RuntimeSetupPageIdV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
@@ -36,10 +36,10 @@ export type LocalModelCenterProps = {
   filteredLocalModels: string[];
   onDiscover: () => Promise<void>;
   onHealthCheck: () => Promise<void>;
-  onResolveProfile: (targetId: string, profileId: string, capability?: string) => Promise<LocalRuntimeProfileResolutionPlan>;
-  onApplyProfile: (targetId: string, profileId: string, capability?: string) => Promise<LocalRuntimeProfileApplyResult>;
+  onResolveProfile: (targetId: string, profileId: string, capability?: string) => Promise<NimiRuntimeLocalProfileResolutionPlan>;
+  onApplyProfile: (targetId: string, profileId: string, capability?: string) => Promise<NimiRuntimeLocalProfileApplyResult>;
   onInstallCatalogItem: (
-    item: LocalRuntimeCatalogItemDescriptor,
+    item: NimiRuntimeLocalCatalogItemDescriptor,
     options?: {
       entry?: string;
       files?: string[];
@@ -47,12 +47,12 @@ export type LocalModelCenterProps = {
       engine?: string;
     },
   ) => Promise<void>;
-  onInstall: (payload: LocalRuntimeInstallPayload) => Promise<void>;
+  onInstall: (payload: NimiRuntimeLocalInstallPayload) => Promise<void>;
   onInstallVerified: (templateId: string) => Promise<void>;
   onImport: () => Promise<void>;
   onInstallVerifiedAsset: (templateId: string) => Promise<void>;
   onImportAsset: () => Promise<void>;
-  onScaffoldAssetOrphan: (path: string, kind: LocalRuntimeAssetKind) => Promise<void>;
+  onScaffoldAssetOrphan: (path: string, kind: NimiRuntimeLocalAssetKind) => Promise<void>;
   onImportFile: (capabilities: string[], engine?: string) => Promise<void>;
   onRemove: (localModelId: string) => Promise<void>;
   onRemoveAsset: (localAssetId: string) => Promise<void>;
@@ -65,18 +65,18 @@ export type LocalModelCenterProps = {
     localModelId?: string,
     modelId?: string,
   ) => Promise<void>;
-  onRetryInstall?: (plan: LocalRuntimeInstallPlanDescriptor, source: 'catalog' | 'manual' | 'verified') => void;
-  installSessionMeta?: Map<string, { plan: LocalRuntimeInstallPlanDescriptor; installSource: string }>;
+  onRetryInstall?: (plan: NimiRuntimeLocalInstallPlanDescriptor, source: 'catalog' | 'manual' | 'verified') => void;
+  installSessionMeta?: Map<string, { plan: NimiRuntimeLocalInstallPlanDescriptor; installSource: string }>;
 };
 
-export const CAPABILITY_OPTIONS = LOCAL_RUNTIME_RUNNABLE_ASSET_KIND_IDS;
-export type CapabilityOption = LocalRuntimeRunnableAssetKindId;
+export const CAPABILITY_OPTIONS = NIMI_RUNTIME_LOCAL_RUNNABLE_ASSET_KIND_IDS;
+export type CapabilityOption = NimiRuntimeLocalRunnableAssetKindId;
 export const ASSET_CLASS_OPTIONS = ['runnable', 'dependency'] as const;
 export type AssetClassOption = typeof ASSET_CLASS_OPTIONS[number];
-export const ASSET_ENGINE_OPTIONS = LOCAL_RUNTIME_ENGINE_IDS;
-export type AssetEngineOption = LocalRuntimeEngineId;
+export const ASSET_ENGINE_OPTIONS = NIMI_RUNTIME_LOCAL_ENGINE_IDS;
+export type AssetEngineOption = NimiRuntimeLocalEngineId;
 export type ProgressSessionState = {
-  event: LocalRuntimeDownloadProgressEvent;
+  event: NimiRuntimeLocalTransferProgressEvent;
   updatedAtMs: number;
   createdAtMs: number;
   installSource?: 'catalog' | 'manual' | 'verified';
@@ -98,11 +98,11 @@ export const PROGRESS_SESSION_LIMIT = 6;
 export const PROGRESS_RETENTION_MS = 15 * 60 * 1000;
 export const HIGHLIGHT_CLEAR_MS = 8000;
 
-export function isDownloadTerminal(state: LocalRuntimeDownloadState): boolean {
+export function isDownloadTerminal(state: NimiRuntimeLocalDownloadState): boolean {
   return state === 'completed' || state === 'failed' || state === 'cancelled';
 }
 
-export function deriveDoneSuccessFromState(state: LocalRuntimeDownloadState): { done: boolean; success: boolean } {
+export function deriveDoneSuccessFromState(state: NimiRuntimeLocalDownloadState): { done: boolean; success: boolean } {
   if (state === 'completed') {
     return { done: true, success: true };
   }
@@ -113,8 +113,8 @@ export function deriveDoneSuccessFromState(state: LocalRuntimeDownloadState): { 
 }
 
 export function toProgressEventFromSummary(
-  summary: LocalRuntimeDownloadSessionSummary,
-): LocalRuntimeDownloadProgressEvent {
+  summary: NimiRuntimeLocalTransferSessionSummary,
+): NimiRuntimeLocalTransferProgressEvent {
   const terminal = deriveDoneSuccessFromState(summary.state);
   return {
     installSessionId: summary.installSessionId,
@@ -135,7 +135,7 @@ export function toProgressEventFromSummary(
   };
 }
 
-export function downloadStateLabel(state: LocalRuntimeDownloadState): string {
+export function downloadStateLabel(state: NimiRuntimeLocalDownloadState): string {
   if (state === 'queued') return 'Queued';
   if (state === 'running') return 'Running';
   if (state === 'paused') return 'Paused';
@@ -198,7 +198,7 @@ export function formatImportPhaseLabel(phase: string | undefined): string {
 }
 
 export function normalizeCapabilityOption(value: string | undefined): CapabilityOption {
-  return normalizeLocalRuntimeRunnableAssetKindId(value);
+  return normalizeNimiRuntimeLocalRunnableAssetKindId(value);
 }
 
 export function normalizeAssetClassOption(value: string | undefined): AssetClassOption {
@@ -215,11 +215,11 @@ export function basenameFromRuntimePath(value: string | undefined): string {
   return String(parts[parts.length - 1] || '').trim();
 }
 
-export function planRequiresAttachedEndpointInput(plan: LocalRuntimeInstallPlanDescriptor | null | undefined): boolean {
+export function planRequiresAttachedEndpointInput(plan: NimiRuntimeLocalInstallPlanDescriptor | null | undefined): boolean {
   return Boolean(plan && plan.engineRuntimeMode === 'attached-endpoint');
 }
 
-export function planInstallAvailable(plan: LocalRuntimeInstallPlanDescriptor | null | undefined): boolean {
+export function planInstallAvailable(plan: NimiRuntimeLocalInstallPlanDescriptor | null | undefined): boolean {
   return plan == null ? true : Boolean(plan.installAvailable);
 }
 
@@ -242,19 +242,19 @@ export function localSpeechReasonSummary(reasonCode: string | undefined): string
   }
 }
 
-export function planBlocksCanonicalImageImport(plan: LocalRuntimeInstallPlanDescriptor | null | undefined): boolean {
+export function planBlocksCanonicalImageImport(plan: NimiRuntimeLocalInstallPlanDescriptor | null | undefined): boolean {
   const reasonCode = String(plan?.reasonCode || '').trim();
   return reasonCode === ReasonCode.AI_LOCAL_MODEL_UNAVAILABLE;
 }
 
-export function planCanonicalImageCompatibilityHint(plan: LocalRuntimeInstallPlanDescriptor | null | undefined): string {
+export function planCanonicalImageCompatibilityHint(plan: NimiRuntimeLocalInstallPlanDescriptor | null | undefined): string {
   if (!planBlocksCanonicalImageImport(plan)) {
     return '';
   }
   return planBlockingHint(plan);
 }
 
-export function planBlockingHint(plan: LocalRuntimeInstallPlanDescriptor | null | undefined): string {
+export function planBlockingHint(plan: NimiRuntimeLocalInstallPlanDescriptor | null | undefined): string {
   if (planInstallAvailable(plan)) {
     return '';
   }
@@ -272,7 +272,7 @@ export function planBlockingHint(plan: LocalRuntimeInstallPlanDescriptor | null 
   return 'This asset is not available on the current host.';
 }
 
-export function defaultAssetDeclaration(assetClass: AssetClassOption = 'runnable'): LocalRuntimeAssetDeclaration {
+export function defaultAssetDeclaration(assetClass: AssetClassOption = 'runnable'): NimiRuntimeLocalAssetDeclaration {
   if (assetClass === 'dependency') {
     return {
       assetKind: 'vae',
@@ -319,7 +319,7 @@ export function resolveSelectedRuntimeProfileTarget(
 }
 
 export function resolveProfileCapabilityOptions(
-  profile: LocalRuntimeProfileDescriptor | null | undefined,
+  profile: NimiRuntimeLocalProfileDescriptor | null | undefined,
 ): string[] {
   if (!profile) {
     return [];
@@ -338,7 +338,7 @@ export function resolveProfileCapabilityOptions(
 }
 
 export function normalizeSelectedProfileCapability(
-  profile: LocalRuntimeProfileDescriptor | null | undefined,
+  profile: NimiRuntimeLocalProfileDescriptor | null | undefined,
   selectedCapability: string | undefined,
 ): string {
   const capabilityOptions = resolveProfileCapabilityOptions(profile);
@@ -357,7 +357,7 @@ export function shouldShowRuntimeProfileInstallSection(
   return Boolean(target && target.profiles.length > 0);
 }
 
-function isInteractiveDownloadState(state: LocalRuntimeDownloadState): boolean {
+function isInteractiveDownloadState(state: NimiRuntimeLocalDownloadState): boolean {
   return state === 'queued' || state === 'running' || state === 'paused' || state === 'failed';
 }
 
@@ -402,7 +402,7 @@ export function filterInstalledModels<T extends { model?: string; localModelId?:
 }
 
 export function resolveDependencyStatus(
-  entry: LocalRuntimeProfileEntryDescriptor,
+  entry: NimiRuntimeLocalProfileEntryDescriptor,
   state: RuntimeConfigStateV11,
 ): { met: boolean; reason: string } {
   if (entry.capability) {

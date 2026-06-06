@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  type LocalRuntimeProfileResolutionPlan,
+  type NimiRuntimeLocalProfileResolutionPlan,
 } from '@nimiplatform/sdk/runtime';
 import { revealLocalRuntimeAssetsRootFolder } from '@renderer/bridge/runtime-bridge/local-runtime-os-helpers';
 import {
@@ -17,7 +17,7 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
   const [internalSelectedProfileTargetId, setInternalSelectedProfileTargetId] = useState('');
   const [selectedProfileId, setSelectedProfileId] = useState('');
   const [selectedProfileCapability, setSelectedProfileCapability] = useState('');
-  const [profilePlanPreview, setProfilePlanPreview] = useState<LocalRuntimeProfileResolutionPlan | null>(null);
+  const [profilePlanPreview, setProfilePlanPreview] = useState<NimiRuntimeLocalProfileResolutionPlan | null>(null);
   const [loadingProfilePlan, setLoadingProfilePlan] = useState(false);
 
   const displayMode: 'runtime' | 'profile-target' = props.displayMode === 'profile-target' ? 'profile-target' : 'runtime';

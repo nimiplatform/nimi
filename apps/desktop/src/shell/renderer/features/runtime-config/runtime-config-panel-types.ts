@@ -6,20 +6,20 @@ import type {
 import type { RuntimeBridgeDaemonStatus } from '@renderer/bridge';
 import type { InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 import type {
-  LocalRuntimeAssetKind,
-  LocalRuntimeCatalogItemDescriptor,
-  LocalRuntimeInstallPayload,
-  LocalRuntimeInstallPlanDescriptor,
-  LocalRuntimeProfileApplyResult,
-  LocalRuntimeProfileDescriptor,
-  LocalRuntimeProfileResolutionPlan,
+  NimiRuntimeLocalAssetKind,
+  NimiRuntimeLocalCatalogItemDescriptor,
+  NimiRuntimeLocalInstallPayload,
+  NimiRuntimeLocalInstallPlanDescriptor,
+  NimiRuntimeLocalProfileApplyResult,
+  NimiRuntimeLocalProfileDescriptor,
+  NimiRuntimeLocalProfileResolutionPlan,
 } from '@nimiplatform/sdk/runtime';
 
 export type RuntimeProfileTargetDescriptor = {
   targetId: string;
   targetName: string;
   consumeCapabilities: CapabilityV11[];
-  profiles: LocalRuntimeProfileDescriptor[];
+  profiles: NimiRuntimeLocalProfileDescriptor[];
 };
 
 export type RuntimeConfigPanelControllerModel = {
@@ -63,14 +63,14 @@ export type RuntimeConfigPanelControllerModel = {
     targetId: string,
     profileId: string,
     capability?: string,
-  ) => Promise<LocalRuntimeProfileResolutionPlan>;
+  ) => Promise<NimiRuntimeLocalProfileResolutionPlan>;
   applyRuntimeProfile: (
     targetId: string,
     profileId: string,
     capability?: string,
-  ) => Promise<LocalRuntimeProfileApplyResult>;
+  ) => Promise<NimiRuntimeLocalProfileApplyResult>;
   installCatalogLocalModel: (
-    item: LocalRuntimeCatalogItemDescriptor,
+    item: NimiRuntimeLocalCatalogItemDescriptor,
     options?: {
       entry?: string;
       files?: string[];
@@ -78,12 +78,12 @@ export type RuntimeConfigPanelControllerModel = {
       engine?: string;
     },
   ) => Promise<void>;
-  installLocalModel: (payload: LocalRuntimeInstallPayload) => Promise<void>;
+  installLocalModel: (payload: NimiRuntimeLocalInstallPayload) => Promise<void>;
   installVerifiedLocalModel: (templateId: string) => Promise<void>;
   importLocalModel: () => Promise<void>;
   installVerifiedLocalAsset: (templateId: string) => Promise<void>;
   importLocalAsset: () => Promise<void>;
-  scaffoldLocalAssetOrphan: (path: string, kind: LocalRuntimeAssetKind) => Promise<void>;
+  scaffoldLocalAssetOrphan: (path: string, kind: NimiRuntimeLocalAssetKind) => Promise<void>;
   importLocalModelFile: (capabilities: string[], engine?: string) => Promise<void>;
   startLocalModel: (localModelId: string) => Promise<void>;
   stopLocalModel: (localModelId: string) => Promise<void>;
@@ -103,6 +103,6 @@ export type RuntimeConfigPanelControllerModel = {
     localModelId?: string,
     modelId?: string,
   ) => Promise<void>;
-  retryInstall: (plan: LocalRuntimeInstallPlanDescriptor, source: 'catalog' | 'manual' | 'verified') => void;
-  installSessionMeta: Map<string, { plan: LocalRuntimeInstallPlanDescriptor; installSource: string }>;
+  retryInstall: (plan: NimiRuntimeLocalInstallPlanDescriptor, source: 'catalog' | 'manual' | 'verified') => void;
+  installSessionMeta: Map<string, { plan: NimiRuntimeLocalInstallPlanDescriptor; installSource: string }>;
 };

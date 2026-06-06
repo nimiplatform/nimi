@@ -1,29 +1,13 @@
-import { getPlatformClient } from '@nimiplatform/sdk';
-import {
-  createRuntimeConnectorInventoryClient,
-  defaultRuntimeConnectorAuthOptionForProvider,
-  listRuntimeConnectorAuthOptionsForProvider,
-  providerToRuntimeConnectorVendor,
-  resolveRuntimeConnectorProviderEndpoint,
-  runtimeConnectorAuthProfileForId,
-  runtimeConnectorToProjection,
-  runtimeConnectorProjectionToRuntimeConfigConnector,
-  runtimeConnectorVendorToProvider,
-  type ConnectorAuthProfileSpec,
-  type ProviderCatalogEntry,
-  type RuntimeCallOptions,
-  type RuntimeConnectorAuthOption,
-  type RuntimeConnectorModelInfo,
-  type RuntimeConnectorProjection,
-  type RuntimeConnectorProjectionInput,
-} from '@nimiplatform/sdk/runtime';
+import { createNimiRuntimeConnectorInventoryClient, defaultNimiRuntimeConnectorAuthOptionForProvider, listNimiRuntimeConnectorAuthOptionsForProvider, providerToNimiRuntimeConnectorVendor, resolveNimiRuntimeConnectorProviderEndpoint, nimiRuntimeConnectorAuthProfileForId, nimiRuntimeConnectorToProjection, runtimeConnectorProjectionToNimiRuntimeConfigConnector, nimiRuntimeConnectorVendorToProvider, type NimiRuntimeConnectorAuthProfileSpec, type NimiRuntimeConnectorAuthOption, type NimiRuntimeConnectorClient, type NimiRuntimeConnectorModelInfo, type NimiRuntimeConnectorProjection, type NimiRuntimeConnectorProjectionInput } from '@nimiplatform/sdk/runtime';
+import { type ProviderCatalogEntry, type RuntimeTypedCallOptions } from '@nimiplatform/sdk/runtime/generated';
 import type {
   ApiConnector,
   ApiConnectorAuthModeV11,
   ApiVendor,
 } from '@renderer/features/runtime-config/runtime-config-state-types';
+import { getDesktopRuntime } from '@renderer/infra/sdk/desktop-nimi-client-session';
 
-const CONNECTOR_CALL_OPTIONS: RuntimeCallOptions = {
+const CONNECTOR_CALL_OPTIONS: RuntimeTypedCallOptions = {
   timeoutMs: 5000,
   metadata: {
     callerKind: 'desktop-core',
@@ -39,21 +23,31 @@ export type ApiConnectorAuthOption = {
   providerAuthProfile?: string;
 };
 
-export type ConnectorModelInfo = RuntimeConnectorModelInfo;
+export type ConnectorModelInfo = NimiRuntimeConnectorModelInfo;
 
-const runtimeConnectorInventory = createRuntimeConnectorInventoryClient({
-  runtimeAdmin: () => getPlatformClient().domains.runtimeAdmin,
+const runtimeConnectors: NimiRuntimeConnectorClient = {
+  listProviderCatalog: (request, options) => getDesktopRuntime().connectors.listProviderCatalog(request, options),
+  listConnectors: (request, options) => getDesktopRuntime().connectors.listConnectors(request, options),
+  createConnector: (request, options) => getDesktopRuntime().connectors.createConnector(request, options),
+  updateConnector: (request, options) => getDesktopRuntime().connectors.updateConnector(request, options),
+  deleteConnector: (request, options) => getDesktopRuntime().connectors.deleteConnector(request, options),
+  testConnector: (request, options) => getDesktopRuntime().connectors.testConnector(request, options),
+  listConnectorModels: (request, options) => getDesktopRuntime().connectors.listConnectorModels(request, options),
+};
+
+const runtimeConnectorInventory = createNimiRuntimeConnectorInventoryClient({
+  connectors: runtimeConnectors,
   callOptions: CONNECTOR_CALL_OPTIONS,
 });
 
 function runtimeConnectorProjectionToApiConnector(
-  connector: RuntimeConnectorProjection,
+  connector: NimiRuntimeConnectorProjection,
 ): ApiConnector {
-  return runtimeConnectorProjectionToRuntimeConfigConnector(connector);
+  return runtimeConnectorProjectionToNimiRuntimeConfigConnector(connector);
 }
 
 function runtimeConnectorAuthOptionToApiOption(
-  option: RuntimeConnectorAuthOption,
+  option: NimiRuntimeConnectorAuthOption,
 ): ApiConnectorAuthOption {
   return {
     value: option.value,
@@ -71,47 +65,47 @@ export function resolveProviderEndpoint(
   provider: string,
   catalog: ProviderCatalogEntry[],
 ): string {
-  return resolveRuntimeConnectorProviderEndpoint(provider, catalog);
+  return resolveNimiRuntimeConnectorProviderEndpoint(provider, catalog);
 }
 
 export function providerToVendor(provider: string): ApiVendor {
-  return providerToRuntimeConnectorVendor(provider) as ApiVendor;
+  return providerToNimiRuntimeConnectorVendor(provider) as ApiVendor;
 }
 
 export function vendorToProvider(vendor: ApiVendor): string {
-  return runtimeConnectorVendorToProvider(vendor);
+  return nimiRuntimeConnectorVendorToProvider(vendor);
 }
 
-export function connectorAuthProfileForId(profileId: string | undefined): ConnectorAuthProfileSpec | null {
-  return runtimeConnectorAuthProfileForId(profileId);
+export function connectorAuthProfileForId(profileId: string | undefined): NimiRuntimeConnectorAuthProfileSpec | null {
+  return nimiRuntimeConnectorAuthProfileForId(profileId);
 }
 
 export function listConnectorAuthOptionsForProvider(
   provider: string,
   catalog?: ProviderCatalogEntry[],
 ): ApiConnectorAuthOption[] {
-  return listRuntimeConnectorAuthOptionsForProvider(provider, catalog).map(runtimeConnectorAuthOptionToApiOption);
+  return listNimiRuntimeConnectorAuthOptionsForProvider(provider, catalog).map(runtimeConnectorAuthOptionToApiOption);
 }
 
 export function defaultConnectorAuthOptionForProvider(
   provider: string,
   catalog?: ProviderCatalogEntry[],
 ): ApiConnectorAuthOption {
-  return runtimeConnectorAuthOptionToApiOption(defaultRuntimeConnectorAuthOptionForProvider(provider, catalog));
+  return runtimeConnectorAuthOptionToApiOption(defaultNimiRuntimeConnectorAuthOptionForProvider(provider, catalog));
 }
 
 export function sdkConnectorToApiConnector(
-  connector: RuntimeConnectorProjectionInput,
+  connector: NimiRuntimeConnectorProjectionInput,
   providerCatalog: ProviderCatalogEntry[],
   models?: string[],
 ): ApiConnector {
   return runtimeConnectorProjectionToApiConnector(
-    runtimeConnectorToProjection(connector, providerCatalog, models),
+    nimiRuntimeConnectorToProjection(connector, providerCatalog, models),
   );
 }
 
 export async function sdkListProviderCatalog(): Promise<ProviderCatalogEntry[]> {
-  return runtimeConnectorInventory.listProviderCatalog();
+  return [...await runtimeConnectorInventory.listProviderCatalog()];
 }
 
 export async function sdkListConnectors(): Promise<ApiConnector[]> {
@@ -159,12 +153,12 @@ export async function sdkListConnectorModels(
   connectorId: string,
   forceRefresh: boolean = false,
 ): Promise<string[]> {
-  return runtimeConnectorInventory.listConnectorModels(connectorId, forceRefresh);
+  return [...await runtimeConnectorInventory.listConnectorModels(connectorId, forceRefresh)];
 }
 
 export async function sdkListConnectorModelDescriptors(
   connectorId: string,
   forceRefresh: boolean = false,
 ): Promise<ConnectorModelInfo[]> {
-  return runtimeConnectorInventory.listConnectorModelDescriptors(connectorId, forceRefresh);
+  return [...await runtimeConnectorInventory.listConnectorModelDescriptors(connectorId, forceRefresh)];
 }

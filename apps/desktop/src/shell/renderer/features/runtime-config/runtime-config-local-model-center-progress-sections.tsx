@@ -1,5 +1,5 @@
 import { i18n } from '@renderer/i18n';
-import type { LocalRuntimeDownloadProgressEvent } from '@nimiplatform/sdk/runtime';
+import type { NimiRuntimeLocalTransferProgressEvent } from '@nimiplatform/sdk/runtime';
 import {
   FolderOpenIcon,
   DownloadIcon,
@@ -17,7 +17,7 @@ import {
 } from './runtime-config-model-center-utils';
 
 type ActiveDownloadsSectionProps = {
-  downloads: LocalRuntimeDownloadProgressEvent[];
+  downloads: NimiRuntimeLocalTransferProgressEvent[];
   onPause: (installSessionId: string) => void;
   onResume: (installSessionId: string) => void;
   onCancel: (installSessionId: string) => void;
@@ -116,7 +116,7 @@ function LocalModelCenterActiveDownloadsSection(props: ActiveDownloadsSectionPro
 }
 
 type ActiveImportsSectionProps = {
-  imports: LocalRuntimeDownloadProgressEvent[];
+  imports: NimiRuntimeLocalTransferProgressEvent[];
   onDismiss: (installSessionId: string) => void;
 };
 

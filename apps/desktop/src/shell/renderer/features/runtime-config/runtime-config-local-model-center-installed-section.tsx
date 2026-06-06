@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import type {
-  LocalRuntimeAssetKind,
-  LocalRuntimeAssetRecord,
-  LocalRuntimeEnvironmentDependencyJob,
-  LocalRuntimeEnvironmentPlanDependency,
+  NimiRuntimeLocalAssetKind,
+  NimiRuntimeLocalAssetRecord,
+  NimiRuntimeLocalEnvironmentDependencyJob,
+  NimiRuntimeLocalEnvironmentPlanDependency,
 } from '@nimiplatform/sdk/runtime';
 import {
-  isLocalRuntimeEnvironmentDependencyJobActiveState,
-  isLocalRuntimeEnvironmentDependencyJobRetryableState,
+  isNimiRuntimeLocalEnvironmentDependencyJobActiveState,
+  isNimiRuntimeLocalEnvironmentDependencyJobRetryableState,
 } from '@nimiplatform/sdk/runtime';
 import { i18n } from '@renderer/i18n';
 import { RuntimeSelect } from './runtime-config-primitives';
@@ -30,16 +30,16 @@ import {
 } from './runtime-config-local-model-center-installed-rows';
 
 type InstalledAssetsSectionProps = {
-  filteredInstalledRunnableAssets: LocalRuntimeAssetRecord[];
-  filteredInstalledDependencyAssets: LocalRuntimeAssetRecord[];
-  sharedRuntimeDependency?: LocalRuntimeEnvironmentPlanDependency;
-  sharedRuntimeDependencyJobs: LocalRuntimeEnvironmentDependencyJob[];
-  runtimeDependencyByAssetId: Record<string, LocalRuntimeEnvironmentPlanDependency | undefined>;
+  filteredInstalledRunnableAssets: NimiRuntimeLocalAssetRecord[];
+  filteredInstalledDependencyAssets: NimiRuntimeLocalAssetRecord[];
+  sharedRuntimeDependency?: NimiRuntimeLocalEnvironmentPlanDependency;
+  sharedRuntimeDependencyJobs: NimiRuntimeLocalEnvironmentDependencyJob[];
+  runtimeDependencyByAssetId: Record<string, NimiRuntimeLocalEnvironmentPlanDependency | undefined>;
   loadingInstalledAssets: boolean;
   loadingVerifiedAssets: boolean;
-  assetKindFilter: 'all' | LocalRuntimeAssetKind;
+  assetKindFilter: 'all' | NimiRuntimeLocalAssetKind;
   assetBusy: boolean;
-  onArtifactKindFilterChange: (value: 'all' | LocalRuntimeAssetKind) => void;
+  onArtifactKindFilterChange: (value: 'all' | NimiRuntimeLocalAssetKind) => void;
   onRefreshAssets: () => void;
   onRemoveAsset: (localAssetId: string) => void;
   onRepairAsset: (localAssetId: string, endpoint: string) => void;
@@ -70,12 +70,12 @@ export function LocalModelCenterInstalledAssetsSection(props: InstalledAssetsSec
   );
   const canCancelRuntimeDependencyJob = Boolean(
     currentRuntimeDependencyJob?.jobId
-    && isLocalRuntimeEnvironmentDependencyJobActiveState(currentRuntimeDependencyJobState),
+    && isNimiRuntimeLocalEnvironmentDependencyJobActiveState(currentRuntimeDependencyJobState),
   );
   const canRetryRuntimeDependencyJob = Boolean(
     currentRuntimeDependencyJob?.jobId
     && currentRuntimeDependencyJob.retryable
-    && isLocalRuntimeEnvironmentDependencyJobRetryableState(currentRuntimeDependencyJobState),
+    && isNimiRuntimeLocalEnvironmentDependencyJobRetryableState(currentRuntimeDependencyJobState),
   );
   const canRepairRuntimeDependency = runtimeDependencyRepairAllowed(props.sharedRuntimeDependency, currentRuntimeDependencyJob);
   const canStartRuntimeDependencySetup = runtimeDependencySetupAllowed(props.sharedRuntimeDependency, currentRuntimeDependencyJob);
@@ -97,7 +97,7 @@ export function LocalModelCenterInstalledAssetsSection(props: InstalledAssetsSec
         <div className="flex items-center gap-2">
           <RuntimeSelect
             value={props.assetKindFilter}
-            onChange={(next) => props.onArtifactKindFilterChange((next || 'all') as 'all' | LocalRuntimeAssetKind)}
+            onChange={(next) => props.onArtifactKindFilterChange((next || 'all') as 'all' | NimiRuntimeLocalAssetKind)}
             className="w-36"
             options={[
               {

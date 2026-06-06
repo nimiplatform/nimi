@@ -21,6 +21,13 @@ type RuntimeNodeCapabilityMatrixProps = {
   onToggleExpanded: () => void;
 };
 
+function asProviderHintRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return {};
+  }
+  return value as Record<string, unknown>;
+}
+
 export function RuntimeNodeCapabilityMatrix({
   rows,
   expanded,
@@ -120,8 +127,9 @@ export function RuntimeNodeCapabilityMatrix({
           ) : (
             <div className={cn(providerStatusSummary.length > 0 ? 'mt-4 border-t border-[var(--nimi-border-subtle)]/60 pt-3' : '', 'divide-y divide-[var(--nimi-border-subtle)]/50')}>
               {rows.map((row) => {
-                const runtimeSupportClass = String(row.providerHints?.extra?.runtime_support_class || '').trim();
-                const runtimeSupportDetail = String(row.providerHints?.extra?.runtime_support_detail || '').trim();
+                const providerHintExtra = asProviderHintRecord(row.providerHints?.extra);
+                const runtimeSupportClass = String(providerHintExtra.runtime_support_class || '').trim();
+                const runtimeSupportDetail = String(providerHintExtra.runtime_support_detail || '').trim();
                 const speechReasonSummary = localSpeechReasonSummary(row.reasonCode);
                 const tone: RuntimeTone = row.available ? 'success' : 'danger';
                 const toneStyle = TONE_STYLES[tone];

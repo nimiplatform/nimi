@@ -1,9 +1,9 @@
 import { ScrollArea } from '@nimiplatform/kit/ui';
 import type {
-  GgufVariantDescriptor,
-  LocalRuntimeAssetRecord,
-  LocalRuntimeCatalogItemDescriptor,
-  LocalRuntimeVerifiedAssetDescriptor,
+  NimiRuntimeLocalCatalogVariantDescriptor,
+  NimiRuntimeLocalAssetRecord,
+  NimiRuntimeLocalCatalogItemDescriptor,
+  NimiRuntimeLocalVerifiedAssetDescriptor,
 } from '@nimiplatform/sdk/runtime';
 import { i18n } from '@renderer/i18n';
 import { RuntimeSelect } from './runtime-config-primitives';
@@ -25,13 +25,13 @@ import {
 import { AssetRequirementBadges } from './runtime-config-local-model-center-sections';
 
 export function VerifiedModelSearchRow(props: {
-  item: LocalRuntimeVerifiedAssetDescriptor;
-  relatedAssets: LocalRuntimeVerifiedAssetDescriptor[];
-  installedAssetsById: Map<string, LocalRuntimeAssetRecord>;
+  item: NimiRuntimeLocalVerifiedAssetDescriptor;
+  relatedAssets: NimiRuntimeLocalVerifiedAssetDescriptor[];
+  installedAssetsById: Map<string, NimiRuntimeLocalAssetRecord>;
   assetBusy: boolean;
   installing: boolean;
   isAssetPending: (templateId: string) => boolean;
-  onInstallMissingAssets: (assets: LocalRuntimeVerifiedAssetDescriptor[]) => void;
+  onInstallMissingAssets: (assets: NimiRuntimeLocalVerifiedAssetDescriptor[]) => void;
   onInstallAsset: (templateId: string) => void;
   onInstallVerifiedModel: (templateId: string) => void;
 }) {
@@ -78,8 +78,8 @@ export function VerifiedModelSearchRow(props: {
 }
 
 export function CatalogVariantPicker(props: {
-  item: LocalRuntimeCatalogItemDescriptor;
-  variantList: GgufVariantDescriptor[];
+  item: NimiRuntimeLocalCatalogItemDescriptor;
+  variantList: NimiRuntimeLocalCatalogVariantDescriptor[];
   variantError: string;
   loadingVariants: boolean;
   selectedCapability: CapabilityOption;

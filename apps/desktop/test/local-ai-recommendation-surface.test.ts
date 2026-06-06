@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type {
-  LocalRuntimeVerifiedAssetDescriptor,
+  NimiRuntimeLocalVerifiedAssetDescriptor,
 } from '@nimiplatform/sdk/runtime';
 
 import {
@@ -133,7 +133,7 @@ test('sortVerifiedPassiveAssetsForDisplay keeps recommended VAE and LLM ahead of
 });
 
 test('relatedPassiveAssetsForRunnable ignores recommended tag when matching image families', () => {
-  const model: LocalRuntimeVerifiedAssetDescriptor = {
+  const model: NimiRuntimeLocalVerifiedAssetDescriptor = {
     templateId: 'verified.image.z_image_turbo',
     title: 'Z-Image Turbo (GGUF)',
     description: 'Recommended image model',
@@ -155,7 +155,7 @@ test('relatedPassiveAssetsForRunnable ignores recommended tag when matching imag
     tags: ['image', 'verified', 'recommended', 'z-image'],
   };
 
-  const artifacts: LocalRuntimeVerifiedAssetDescriptor[] = [
+  const artifacts: NimiRuntimeLocalVerifiedAssetDescriptor[] = [
     {
       templateId: 'verified.asset.z_image.vae',
       title: 'Z-Image AE VAE',
@@ -197,7 +197,7 @@ test('relatedPassiveAssetsForRunnable ignores recommended tag when matching imag
   ];
 
   assert.deepEqual(
-    relatedPassiveAssetsForRunnable(model, artifacts).map((artifact: LocalRuntimeVerifiedAssetDescriptor) => artifact.templateId),
+    relatedPassiveAssetsForRunnable(model, artifacts).map((artifact: NimiRuntimeLocalVerifiedAssetDescriptor) => artifact.templateId),
     ['verified.asset.z_image.vae'],
   );
 });

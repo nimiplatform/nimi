@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { UsageWindow } from '@nimiplatform/sdk/runtime';
-import type { UsageStatRecord } from '@nimiplatform/sdk/runtime';
+import { UsageWindow } from '@nimiplatform/sdk/runtime/generated';
+import type { UsageStatRecord } from '@nimiplatform/sdk/runtime/generated';
 import { fetchUsageStats } from './runtime-config-audit-sdk-service.js';
 import { usePricingIndex, type PricingEntry } from './runtime-config-pricing-index.js';
-import type { RuntimeCatalogPricing } from './runtime-config-catalog-sdk-service.js';
+import type { NimiRuntimeCatalogPricing } from './runtime-config-catalog-sdk-service.js';
 
 export type UsageEstimateBreakdownEntry = {
   label: string;
@@ -47,7 +47,7 @@ function parsePriceValue(value: string): number | null {
 
 export function calculateModelCost(
   usage: { requests: number; inputTokens: number; outputTokens: number; computeMs: number },
-  pricing: RuntimeCatalogPricing,
+  pricing: NimiRuntimeCatalogPricing,
 ): { cost: number | null; currency: string } {
   if (pricing.currency === 'none') {
     return { cost: 0, currency: 'none' };

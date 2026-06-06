@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { LocalRuntimeProfileApplyResult, LocalRuntimeProfileResolutionPlan } from '@nimiplatform/sdk/runtime';
+import type { NimiRuntimeLocalProfileApplyResult, NimiRuntimeLocalProfileResolutionPlan } from '@nimiplatform/sdk/runtime';
 import type { RuntimeConfigStateV11, RuntimePageIdV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import type { RuntimeProfileTargetDescriptor } from './runtime-config-panel-types';
 import {
@@ -20,13 +20,13 @@ export type ModelCenterProfileSectionProps = {
   selectedProfileId: string;
   selectedProfileCapability: string;
   selectedProfileTarget: RuntimeProfileTargetDescriptor | null;
-  executionPlanPreview: LocalRuntimeProfileResolutionPlan | null;
+  executionPlanPreview: NimiRuntimeLocalProfileResolutionPlan | null;
   runtimeProfileTargets: RuntimeProfileTargetDescriptor[];
   onSetSelectedProfileTargetId: (targetId: string) => void;
   onSetSelectedProfileId: (profileId: string) => void;
   onSetSelectedProfileCapability: (capability: string) => void;
   onResolveProfilePlanPreview: () => void;
-  onApplyProfile: (targetId: string, profileId: string, capability?: string) => Promise<LocalRuntimeProfileApplyResult>;
+  onApplyProfile: (targetId: string, profileId: string, capability?: string) => Promise<NimiRuntimeLocalProfileApplyResult>;
   variant?: 'card' | 'flat';
   state?: RuntimeConfigStateV11;
   onNavigateToSetup?: (pageId: RuntimePageIdV11) => void;

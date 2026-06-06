@@ -1,4 +1,4 @@
-import type { ExternalAgentTokenLedgerRecord } from '@nimiplatform/sdk/runtime';
+import type { NimiExternalAgentTokenLedgerRecord } from '@nimiplatform/sdk/runtime';
 import { cn } from '@nimiplatform/kit/ui';
 import {
   ChevronIcon,
@@ -20,7 +20,7 @@ export function ExternalAgentTokenTable(props: {
   busy: boolean;
   errorMessage: string;
   expandedTokenId: string;
-  filteredTokens: ExternalAgentTokenLedgerRecord[];
+  filteredTokens: readonly NimiExternalAgentTokenLedgerRecord[];
   onExpandedTokenIdChange: (tokenId: string) => void;
   onRevokeToken: (tokenId: string) => void;
   showIssueForm: boolean;
@@ -87,7 +87,7 @@ function ExternalAgentTokenRow(props: {
   onExpandedChange: (expanded: boolean) => void;
   onRevokeToken: () => void;
   t: Translate;
-  token: ExternalAgentTokenLedgerRecord;
+  token: NimiExternalAgentTokenLedgerRecord;
 }) {
   const { token, t } = props;
   const status = resolveTokenStatus(token);
@@ -222,9 +222,9 @@ function ExternalAgentTokenRow(props: {
 }
 
 function ExternalAgentTokenExpandedDetails(props: {
-  displayScopes: string[];
+  displayScopes: readonly string[];
   t: Translate;
-  token: ExternalAgentTokenLedgerRecord;
+  token: NimiExternalAgentTokenLedgerRecord;
 }) {
   const { token, t } = props;
   return (

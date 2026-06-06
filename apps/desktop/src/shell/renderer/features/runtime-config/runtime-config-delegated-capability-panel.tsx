@@ -1,12 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  DelegatedApprovalRequestState,
-  DelegatedProviderState,
-  type DelegatedControlSurfaceSnapshot,
-  type DelegatedDiagnostic,
-  type DelegatedReplayTrace,
-} from '@nimiplatform/sdk/runtime';
+import { DelegatedApprovalRequestState, DelegatedProviderState, type DelegatedControlSurfaceSnapshot, type DelegatedDiagnostic, type DelegatedReplayTrace } from '@nimiplatform/sdk/runtime/generated';
 import { ScrollArea, Surface, cn } from '@nimiplatform/kit/ui';
 import { Button, Input } from './runtime-config-primitives';
 import {

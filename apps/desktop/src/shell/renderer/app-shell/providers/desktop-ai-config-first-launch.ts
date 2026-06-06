@@ -1,13 +1,13 @@
 import {
-  assertAppAIScopeRef,
-  ensureAppFirstLaunchAIConfig as ensureAppFirstLaunchAIConfig_sdk,
-  type AIConfig,
-  type AIProfile,
-  type AIScopeRef,
-  type AppFirstLaunchAIConfigResult,
-  type AppManifestRequirementGap,
+  assertNimiAppAIScopeRef,
+  ensureNimiAppFirstLaunchAIConfig,
+  type NimiAIConfig,
+  type NimiAIProfile,
+  type NimiAIScopeRef,
+  type NimiAppFirstLaunchAIConfigResult,
+  type NimiAppManifestRequirementGap,
 } from '@nimiplatform/sdk/ai';
-import { loadPlatformAIProfileFactoryCatalog } from '@nimiplatform/sdk/platform-catalog';
+import { loadNimiAppAIProfileFactoryCatalog } from '@nimiplatform/sdk/app';
 import { getAccountDefaultProfileForScopeInit } from '@renderer/bridge/runtime-bridge/product-control.js';
 
 export interface EnsureAppFirstLaunchAIConfigInput {
@@ -34,42 +34,42 @@ export interface EnsureAppFirstLaunchAIConfigInput {
    * typed setup/repair plan; the config is never mutated to force a pass.
    */
   readonly validateManifestRequirements?: (
-    scopeRef: AIScopeRef,
-    config: AIConfig,
-  ) => Promise<AppManifestRequirementGap[]> | AppManifestRequirementGap[];
+    scopeRef: NimiAIScopeRef,
+    config: NimiAIConfig,
+  ) => Promise<NimiAppManifestRequirementGap[]> | NimiAppManifestRequirementGap[];
 }
 
 export interface EnsureAppFirstLaunchAIConfigDepsOverride {
   readonly resolveRecommendedFactoryProfile?: (
     recommendedProfileRef: string | null | undefined,
-  ) => AIProfile | null;
-  readonly resolveAccountDefaultProfile?: () => Promise<AIProfile | null> | AIProfile | null;
+  ) => NimiAIProfile | null;
+  readonly resolveAccountDefaultProfile?: () => Promise<NimiAIProfile | null> | NimiAIProfile | null;
 }
 
 export type DesktopAppFirstLaunchAIConfigHost = {
-  scopeHasPersistedConfig: (scopeRef: AIScopeRef) => boolean;
-  getConfigForScope: (scopeRef: AIScopeRef) => AIConfig;
-  commitConfig: (config: AIConfig) => void;
+  scopeHasPersistedConfig: (scopeRef: NimiAIScopeRef) => boolean;
+  getConfigForScope: (scopeRef: NimiAIScopeRef) => NimiAIConfig;
+  commitConfig: (config: NimiAIConfig) => void;
 };
 
 function resolveRecommendedFactoryProfile(
   recommendedProfileRef: string | null | undefined,
-): AIProfile | null {
+): NimiAIProfile | null {
   const ref = String(recommendedProfileRef || '').trim();
   if (!ref) {
     return null;
   }
-  return loadPlatformAIProfileFactoryCatalog().find((profile) => profile.profileId === ref) ?? null;
+  return loadNimiAppAIProfileFactoryCatalog().find((profile) => profile.profileId === ref) ?? null;
 }
 
-async function resolveAccountDefaultProfile(): Promise<AIProfile> {
+async function resolveAccountDefaultProfile(): Promise<NimiAIProfile> {
   const accountDefaultProfile = await getAccountDefaultProfileForScopeInit();
   return {
     profileId: accountDefaultProfile.profileId,
     title: accountDefaultProfile.title,
     description: accountDefaultProfile.description,
-    tags: [...accountDefaultProfile.tags],
-    capabilities: accountDefaultProfile.capabilities as AIProfile['capabilities'],
+    tags: [...(accountDefaultProfile.tags ?? [])],
+    capabilities: accountDefaultProfile.capabilities as NimiAIProfile['capabilities'],
   };
 }
 
@@ -77,8 +77,8 @@ export async function ensureDesktopAppFirstLaunchAIConfig(
   input: EnsureAppFirstLaunchAIConfigInput,
   host: DesktopAppFirstLaunchAIConfigHost,
   deps?: EnsureAppFirstLaunchAIConfigDepsOverride,
-): Promise<AppFirstLaunchAIConfigResult> {
-  const scopeRef = assertAppAIScopeRef(
+): Promise<NimiAppFirstLaunchAIConfigResult> {
+  const scopeRef = assertNimiAppAIScopeRef(
     input.surfaceId
       ? { kind: 'app', ownerId: input.appId, surfaceId: input.surfaceId }
       : { kind: 'app', ownerId: input.appId },
@@ -89,7 +89,7 @@ export async function ensureDesktopAppFirstLaunchAIConfig(
   const resolveAccountDefault =
     deps?.resolveAccountDefaultProfile ?? resolveAccountDefaultProfile;
 
-  return ensureAppFirstLaunchAIConfig_sdk({
+  return ensureNimiAppFirstLaunchAIConfig({
     scopeRef,
     getExistingAppAIConfig: (ref) =>
       host.scopeHasPersistedConfig(ref) ? host.getConfigForScope(ref) : null,
@@ -104,8 +104,8 @@ export async function ensureDesktopAppFirstLaunchAIConfig(
       };
     },
     resolveAccountDefaultProfile: resolveAccountDefault,
-    applyHostAiConfig: (ref, config) => {
-      const committed: AIConfig = { ...config, scopeRef: ref };
+    applyHostAIConfig: (ref, config) => {
+      const committed: NimiAIConfig = { ...config, scopeRef: ref };
       host.commitConfig(committed);
       return committed;
     },

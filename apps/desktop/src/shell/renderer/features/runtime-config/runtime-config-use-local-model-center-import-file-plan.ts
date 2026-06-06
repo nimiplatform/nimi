@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  type LocalRuntimeAssetDeclaration,
-  type LocalRuntimeAssetKind,
+  type NimiRuntimeLocalAssetDeclaration,
+  type NimiRuntimeLocalAssetKind,
 } from '@nimiplatform/sdk/runtime';
 import {
   canImportDeclaration,
@@ -12,7 +12,7 @@ import {
 
 type UseLocalModelCenterImportFilePlanInput = {
   showImportFileDialog: boolean;
-  importFileAssetKind: LocalRuntimeAssetKind;
+  importFileAssetKind: NimiRuntimeLocalAssetKind;
   importFileAuxiliaryEngine: AssetEngineOption | '';
   importFileEndpoint: string;
 };
@@ -28,7 +28,7 @@ export function useLocalModelCenterImportFilePlan({
   const [importCompatibilityHint, setImportCompatibilityHint] = useState('');
   const [importPlanAvailable, setImportPlanAvailable] = useState(true);
 
-  const importFileDeclaration = useMemo<LocalRuntimeAssetDeclaration>(() => {
+  const importFileDeclaration = useMemo<NimiRuntimeLocalAssetDeclaration>(() => {
     const engine = importFileAssetKind === 'auxiliary'
       ? String(importFileAuxiliaryEngine || '').trim()
       : '';

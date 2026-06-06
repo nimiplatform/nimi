@@ -1,23 +1,12 @@
-import { getPlatformClient } from '@nimiplatform/sdk';
-import { asNimiError } from '@nimiplatform/sdk/runtime';
-import { ReasonCode } from '@nimiplatform/sdk/types';
-import type {
-  ListAuditEventsRequest,
-  ListAuditEventsResponse,
-  ExportAuditEventsRequest,
-  AuditExportChunk,
-  ListUsageStatsRequest,
-  ListUsageStatsResponse,
-  GetRuntimeHealthResponse,
-  ListAIProviderHealthResponse,
-  RuntimeHealthEvent,
-  AIProviderHealthEvent,
-} from '@nimiplatform/sdk/runtime';
+import { NIMI_RUNTIME_REASON_CODES } from '@nimiplatform/sdk/runtime';
+import { asNimiError } from '@nimiplatform/sdk/types';
+import type { ListAuditEventsRequest, ListAuditEventsResponse, ExportAuditEventsRequest, AuditExportChunk, ListUsageStatsRequest, ListUsageStatsResponse, GetRuntimeHealthResponse, ListAIProviderHealthResponse, RuntimeHealthEvent, AIProviderHealthEvent } from '@nimiplatform/sdk/runtime/generated';
+import { getDesktopRuntime } from '@renderer/infra/sdk/desktop-nimi-client-session';
 
-function withAuditError<T>(promise: Promise<T>): Promise<T> {
-  return promise.catch((error) => {
+function withAuditError<T>(value: T | Promise<T>): Promise<T> {
+  return Promise.resolve(value).catch((error) => {
     throw asNimiError(error, {
-      reasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
+      reasonCode: NIMI_RUNTIME_REASON_CODES.RUNTIME_UNAVAILABLE,
       actionHint: 'check_runtime_daemon_health',
       source: 'runtime',
     });
@@ -25,7 +14,7 @@ function withAuditError<T>(promise: Promise<T>): Promise<T> {
 }
 
 function runtimeAdmin() {
-  return getPlatformClient().domains.runtimeAdmin;
+  return getDesktopRuntime().audit;
 }
 
 export function dateToTimestamp(date: Date): { seconds: string; nanos: number } {
@@ -102,9 +91,9 @@ export async function fetchProviderHealth(): Promise<ListAIProviderHealthRespons
 }
 
 export async function subscribeRuntimeHealth(): Promise<AsyncIterable<RuntimeHealthEvent>> {
-  return withAuditError(runtimeAdmin().healthEvents({}));
+  return withAuditError(runtimeAdmin().subscribeRuntimeHealthEvents({}));
 }
 
 export async function subscribeProviderHealth(): Promise<AsyncIterable<AIProviderHealthEvent>> {
-  return withAuditError(runtimeAdmin().providerHealthEvents({}));
+  return withAuditError(runtimeAdmin().subscribeAIProviderHealthEvents({}));
 }

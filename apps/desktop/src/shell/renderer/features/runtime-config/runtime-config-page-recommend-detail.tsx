@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatRelativeLocaleTime } from '@renderer/i18n';
 import {
-  type LocalRuntimeRecommendationFeedItemDescriptor,
+  type NimiRuntimeLocalRecommendationFeedItem,
 } from '@nimiplatform/sdk/runtime';
 import { ModelIcon } from './runtime-config-local-model-center-icons';
 import {
@@ -33,7 +33,7 @@ import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-t
 // ---------------------------------------------------------------------------
 
 export type RecommendDetailPageProps = {
-  item: LocalRuntimeRecommendationFeedItemDescriptor;
+  item: NimiRuntimeLocalRecommendationFeedItem;
   totalVramBytes?: number;
   model: RuntimeConfigPanelControllerModel;
   onBack: () => void;

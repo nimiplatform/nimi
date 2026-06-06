@@ -8,17 +8,17 @@
 
 import type { ReactElement, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FIRST_RUN_PHASES, type FirstRunPhase } from '@nimiplatform/sdk';
+import { NIMI_FIRST_RUN_PHASES, type NimiFirstRunPhase } from '@nimiplatform/sdk/runtime';
 import { SupportDegradedEntry } from '../features/support/support-degraded-entry.js';
 
-const STEP_LABEL_KEYS: Record<FirstRunPhase, string> = {
+const STEP_LABEL_KEYS: Record<NimiFirstRunPhase, string> = {
   storage: 'FirstRun.steps.storage',
   'device-scan': 'FirstRun.steps.deviceScan',
   'local-ai': 'FirstRun.steps.localAi',
   setup: 'FirstRun.steps.setup',
 };
 
-const STEP_LABEL_DEFAULTS: Record<FirstRunPhase, string> = {
+const STEP_LABEL_DEFAULTS: Record<NimiFirstRunPhase, string> = {
   storage: 'Storage',
   'device-scan': 'Device',
   'local-ai': 'Local AI',
@@ -30,7 +30,7 @@ type FirstRunWizardChromeProps = {
    * The phase whose step is highlighted in the indicator. `null` on terminal
    * screens (repair / blocked / ready), which carry no active step.
    */
-  readonly activePhase: FirstRunPhase | null;
+  readonly activePhase: NimiFirstRunPhase | null;
   readonly children: ReactNode;
 };
 
@@ -39,7 +39,7 @@ type FirstRunWizardChromeProps = {
  */
 export function FirstRunWizardChrome(props: FirstRunWizardChromeProps): ReactElement {
   const { t } = useTranslation();
-  const activeIndex = props.activePhase ? FIRST_RUN_PHASES.indexOf(props.activePhase) : -1;
+  const activeIndex = props.activePhase ? NIMI_FIRST_RUN_PHASES.indexOf(props.activePhase) : -1;
 
   return (
     <div
@@ -72,7 +72,7 @@ export function FirstRunWizardChrome(props: FirstRunWizardChromeProps): ReactEle
         aria-label={t('FirstRun.stepIndicatorLabel', { defaultValue: 'Setup steps' })}
         className="mx-auto mt-7 flex w-full max-w-md items-stretch gap-3 px-10"
       >
-        {FIRST_RUN_PHASES.map((phase, index) => {
+        {NIMI_FIRST_RUN_PHASES.map((phase, index) => {
           const active = index === activeIndex;
           return (
             <div

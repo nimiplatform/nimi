@@ -1,24 +1,25 @@
 import {
-  acquireManagedConnectorCredential,
-  type ConnectorAuthAcquisitionPendingState,
-  type ManagedConnectorCredentialAcquisitionResult,
-  type PersistManagedConnectorCredentialInput,
-  type PersistManagedConnectorCredentialResult,
+  acquireNimiManagedConnectorCredential,
+  type NimiConnectorAuthAcquisitionPendingState,
+  type NimiManagedConnectorCredentialAcquisitionResult,
+  type NimiPersistManagedConnectorCredentialInput,
+  type NimiPersistManagedConnectorCredentialResult,
 } from '@nimiplatform/sdk/runtime';
+import type { JsonObject } from '@nimiplatform/sdk/types';
 import { desktopBridge, logRendererEvent } from '@renderer/bridge';
 
-export type CodexOAuthPendingState = ConnectorAuthAcquisitionPendingState;
+export type CodexOAuthPendingState = NimiConnectorAuthAcquisitionPendingState;
 
 type AcquireCodexManagedCredentialOptions = {
   profileId: string;
   onPending?: (state: CodexOAuthPendingState) => void;
-  persistCredential(input: PersistManagedConnectorCredentialInput): Promise<PersistManagedConnectorCredentialResult>;
+  persistCredential(input: NimiPersistManagedConnectorCredentialInput): Promise<NimiPersistManagedConnectorCredentialResult>;
 };
 
 function logCodexOAuth(
   level: 'debug' | 'info' | 'warn' | 'error',
   message: string,
-  details: Record<string, unknown>,
+  details: JsonObject,
 ): void {
   logRendererEvent({
     level,
@@ -30,8 +31,8 @@ function logCodexOAuth(
 
 export async function acquireCodexManagedCredential(
   options: AcquireCodexManagedCredentialOptions,
-): Promise<ManagedConnectorCredentialAcquisitionResult> {
-  return acquireManagedConnectorCredential({
+): Promise<NimiManagedConnectorCredentialAcquisitionResult> {
+  return acquireNimiManagedConnectorCredential({
     profileId: options.profileId,
     onPending: options.onPending,
     persistCredential: options.persistCredential,
@@ -45,13 +46,19 @@ export async function acquireCodexManagedCredential(
         connectorAuthPurpose: request.purpose,
       }),
       openExternalUrl: desktopBridge.openExternalUrl,
-      oauthTokenExchange: (input) => desktopBridge.oauthTokenExchange({
-        provider: input.provider as Parameters<typeof desktopBridge.oauthTokenExchange>[0]['provider'],
-        clientId: input.clientId,
-        code: input.code,
-        codeVerifier: input.codeVerifier,
-        redirectUri: input.redirectUri,
-      }),
+      oauthTokenExchange: async (input) => {
+        const result = await desktopBridge.oauthTokenExchange({
+          provider: input.provider as Parameters<typeof desktopBridge.oauthTokenExchange>[0]['provider'],
+          clientId: input.clientId,
+          code: input.code,
+          codeVerifier: input.codeVerifier,
+          redirectUri: input.redirectUri,
+        });
+        return {
+          ...result,
+          raw: result.raw as JsonObject,
+        };
+      },
       sleep: (ms) => new Promise<void>((resolve) => {
         globalThis.setTimeout(resolve, ms);
       }),

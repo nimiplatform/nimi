@@ -1,18 +1,18 @@
 import { useTranslation } from 'react-i18next';
-import type { AIProfile } from '@nimiplatform/sdk/ai';
-import type { AccountProfileLibraryProjection, LibraryProfile } from './runtime-config-profile-library.js';
+import type { NimiAIProfile } from '@nimiplatform/sdk/ai';
+import type { NimiAccountProfileLibraryProjection, LibraryProfile } from './runtime-config-profile-library.js';
 
-function countConfiguredCapabilities(profile: AIProfile): number {
+function countConfiguredCapabilities(profile: NimiAIProfile): number {
   return Object.values(profile.capabilities).filter((intent) => {
     if (!intent) return false;
     const params = intent.params && Object.keys(intent.params).length > 0;
-    return Boolean(intent.binding || intent.localProfileRef || params);
+    return Boolean(intent.targetRef || params);
   }).length;
 }
 
 export function AccountProfileLibraryPanel(props: {
-  projection: AccountProfileLibraryProjection | null;
-  accountDefaultProfile: AIProfile | null;
+  projection: NimiAccountProfileLibraryProjection | null;
+  accountDefaultProfile: NimiAIProfile | null;
   currentOrigin: { profileId: string; title?: string | null } | null;
   loading: boolean;
   busyProfileId: string | null;

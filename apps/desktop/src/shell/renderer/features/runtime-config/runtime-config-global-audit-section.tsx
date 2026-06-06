@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { AuditEventRecord } from '@nimiplatform/sdk/runtime';
-import { CallerKind } from '@nimiplatform/sdk/runtime';
+import type { AuditEventRecord } from '@nimiplatform/sdk/runtime/generated';
+import { CallerKind } from '@nimiplatform/sdk/runtime/generated';
 import { ScrollArea, Surface, Tooltip, cn } from '@nimiplatform/kit/ui';
 import { Button, RuntimeSelect } from './runtime-config-primitives.js';
 import {

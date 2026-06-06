@@ -1,23 +1,23 @@
 import { useState } from 'react';
 import type {
-  LocalRuntimeAssetKind,
-  LocalRuntimeAssetRecord,
-  LocalRuntimeCatalogRecommendation,
-  LocalRuntimeVerifiedAssetDescriptor,
+  NimiRuntimeLocalAssetKind,
+  NimiRuntimeLocalAssetRecord,
+  NimiRuntimeLocalCatalogRecommendation,
+  NimiRuntimeLocalVerifiedAssetDescriptor,
 } from '@nimiplatform/sdk/runtime';
 import {
-  LOCAL_RUNTIME_ASSET_KIND_IDS,
-  LOCAL_RUNTIME_PASSIVE_ASSET_KIND_IDS,
-  buildLocalRecommendationDetailItems,
-  compareLocalRuntimeAssetKindForDisplay,
-  formatLocalRecommendationBaselineLabel,
-  formatLocalRecommendationConfidenceLabel,
-  formatLocalRecommendationHostSupportLabel,
-  formatLocalRecommendationReasonLabel,
-  formatLocalRuntimeAssetKindLabel,
-  summarizeLocalCatalogRecommendation,
-  type LocalRecommendationCopyOptions,
-  type LocalRecommendationDetailItem,
+  NIMI_RUNTIME_LOCAL_ASSET_KIND_IDS,
+  NIMI_RUNTIME_LOCAL_PASSIVE_ASSET_KIND_IDS,
+  buildNimiRuntimeLocalRecommendationDetailItems,
+  compareNimiRuntimeLocalAssetKindForDisplay,
+  formatNimiRuntimeLocalRecommendationBaselineLabel,
+  formatNimiRuntimeLocalRecommendationConfidenceLabel,
+  formatNimiRuntimeLocalRecommendationHostSupportLabel,
+  formatNimiRuntimeLocalRecommendationReasonLabel,
+  formatNimiRuntimeLocalAssetKindLabel,
+  summarizeNimiRuntimeLocalCatalogRecommendation,
+  type NimiRuntimeLocalRecommendationCopyOptions,
+  type NimiRuntimeLocalRecommendationDetailItem,
 } from '@nimiplatform/sdk/runtime';
 import { formatRelativeLocaleTime, i18n } from '@renderer/i18n';
 import { parseTimestamp } from './runtime-config-model-center-utils';
@@ -41,14 +41,14 @@ export {
   removeDismissedSessionId,
 } from './runtime-config-local-model-center-progress-cache';
 
-export const ASSET_KIND_OPTIONS = LOCAL_RUNTIME_PASSIVE_ASSET_KIND_IDS;
-export const ALL_ASSET_KIND_OPTIONS = LOCAL_RUNTIME_ASSET_KIND_IDS;
-const LOCAL_RECOMMENDATION_COPY_OPTIONS: LocalRecommendationCopyOptions = {
+export const ASSET_KIND_OPTIONS = NIMI_RUNTIME_LOCAL_PASSIVE_ASSET_KIND_IDS;
+export const ALL_ASSET_KIND_OPTIONS = NIMI_RUNTIME_LOCAL_ASSET_KIND_IDS;
+const LOCAL_RECOMMENDATION_COPY_OPTIONS: NimiRuntimeLocalRecommendationCopyOptions = {
   translate: (key, options) => i18n.t(key, options),
 };
 
-export function formatAssetKindLabel(value: LocalRuntimeAssetKind): string {
-  return formatLocalRuntimeAssetKindLabel(value);
+export function formatAssetKindLabel(value: NimiRuntimeLocalAssetKind): string {
+  return formatNimiRuntimeLocalAssetKindLabel(value);
 }
 
 const GENERIC_MODEL_TAGS = new Set([
@@ -69,7 +69,7 @@ function normalizeDescriptorToken(value: string | undefined | null): string {
   return String(value || '').trim().toLowerCase();
 }
 
-function collectAssetFamilyHints(asset: LocalRuntimeVerifiedAssetDescriptor): string[] {
+function collectAssetFamilyHints(asset: NimiRuntimeLocalVerifiedAssetDescriptor): string[] {
   const hints = new Set<string>();
   for (const tag of asset.tags || []) {
     const normalized = normalizeDescriptorToken(tag);
@@ -82,7 +82,7 @@ function collectAssetFamilyHints(asset: LocalRuntimeVerifiedAssetDescriptor): st
 }
 
 export function hasDescriptorTag(
-  tags: string[] | undefined | null,
+  tags: readonly string[] | undefined | null,
   target: string,
 ): boolean {
   const normalizedTarget = normalizeDescriptorToken(target);
@@ -92,7 +92,7 @@ export function hasDescriptorTag(
   return (tags || []).some((tag) => normalizeDescriptorToken(tag) === normalizedTarget);
 }
 
-export function isRecommendedDescriptor(tags: string[] | undefined | null): boolean {
+export function isRecommendedDescriptor(tags: readonly string[] | undefined | null): boolean {
   return hasDescriptorTag(tags, 'recommended');
 }
 
@@ -110,8 +110,8 @@ function compareDescriptorTitles(
 }
 
 export function sortVerifiedAssetsForDisplay(
-  assets: LocalRuntimeVerifiedAssetDescriptor[],
-): LocalRuntimeVerifiedAssetDescriptor[] {
+  assets: readonly NimiRuntimeLocalVerifiedAssetDescriptor[],
+): NimiRuntimeLocalVerifiedAssetDescriptor[] {
   return [...assets].sort((left, right) => {
     const leftRecommended = isRecommendedDescriptor(left.tags);
     const rightRecommended = isRecommendedDescriptor(right.tags);
@@ -123,15 +123,15 @@ export function sortVerifiedAssetsForDisplay(
 }
 
 export function sortVerifiedPassiveAssetsForDisplay(
-  assets: LocalRuntimeVerifiedAssetDescriptor[],
-): LocalRuntimeVerifiedAssetDescriptor[] {
+  assets: readonly NimiRuntimeLocalVerifiedAssetDescriptor[],
+): NimiRuntimeLocalVerifiedAssetDescriptor[] {
   return [...assets].sort((left, right) => {
     const leftRecommended = isRecommendedDescriptor(left.tags);
     const rightRecommended = isRecommendedDescriptor(right.tags);
     if (leftRecommended !== rightRecommended) {
       return leftRecommended ? -1 : 1;
     }
-    const byKind = compareLocalRuntimeAssetKindForDisplay(left.kind, right.kind);
+    const byKind = compareNimiRuntimeLocalAssetKindForDisplay(left.kind, right.kind);
     if (byKind !== 0) {
       return byKind;
     }
@@ -139,7 +139,7 @@ export function sortVerifiedPassiveAssetsForDisplay(
   });
 }
 
-function collectPassiveAssetFamilyHints(asset: LocalRuntimeVerifiedAssetDescriptor): string[] {
+function collectPassiveAssetFamilyHints(asset: NimiRuntimeLocalVerifiedAssetDescriptor): string[] {
   const hints = new Set<string>();
   const family = normalizeDescriptorToken(typeof asset.metadata?.family === 'string' ? asset.metadata.family : '');
   if (family) {
@@ -156,10 +156,10 @@ function collectPassiveAssetFamilyHints(asset: LocalRuntimeVerifiedAssetDescript
 }
 
 export function filterInstalledAssets(
-  assets: LocalRuntimeAssetRecord[],
-  kindFilter: 'all' | LocalRuntimeAssetKind,
+  assets: NimiRuntimeLocalAssetRecord[],
+  kindFilter: 'all' | NimiRuntimeLocalAssetKind,
   query: string,
-): LocalRuntimeAssetRecord[] {
+): NimiRuntimeLocalAssetRecord[] {
   return assets.filter((asset) => {
     if (asset.status === 'removed') return false;
     const matchesKind = kindFilter === 'all' || asset.kind === kindFilter;
@@ -176,9 +176,9 @@ export function filterInstalledAssets(
 }
 
 export function relatedPassiveAssetsForRunnable(
-  runnable: LocalRuntimeVerifiedAssetDescriptor,
-  passiveAssets: LocalRuntimeVerifiedAssetDescriptor[],
-): LocalRuntimeVerifiedAssetDescriptor[] {
+  runnable: NimiRuntimeLocalVerifiedAssetDescriptor,
+  passiveAssets: NimiRuntimeLocalVerifiedAssetDescriptor[],
+): NimiRuntimeLocalVerifiedAssetDescriptor[] {
   const capabilities = new Set((runnable.capabilities || []).map((value) => normalizeDescriptorToken(value)));
   if (!capabilities.has('image')) {
     return [];
@@ -199,7 +199,7 @@ export type AssetTaskEntry = {
   templateId: string;
   assetId: string;
   title: string;
-  kind: LocalRuntimeAssetKind;
+  kind: NimiRuntimeLocalAssetKind;
   taskKind: 'verified-install';
   state: AssetTaskState;
   detail?: string;
@@ -233,7 +233,7 @@ export function formatLastCheckedAgo(lastCheckedAt: string | null): string {
   });
 }
 
-export function recommendationTierLabel(value?: LocalRuntimeCatalogRecommendation['tier']): string {
+export function recommendationTierLabel(value?: NimiRuntimeLocalCatalogRecommendation['tier']): string {
   if (value === 'recommended') return 'Recommended';
   if (value === 'runnable') return 'Runnable';
   if (value === 'tight') return 'Tight';
@@ -241,7 +241,7 @@ export function recommendationTierLabel(value?: LocalRuntimeCatalogRecommendatio
   return 'Needs Review';
 }
 
-export function recommendationTierClass(value?: LocalRuntimeCatalogRecommendation['tier']): string {
+export function recommendationTierClass(value?: NimiRuntimeLocalCatalogRecommendation['tier']): string {
   if (value === 'recommended') return 'bg-[color-mix(in_srgb,var(--nimi-status-success)_15%,transparent)] text-[var(--nimi-status-success)]';
   if (value === 'runnable') return 'bg-[color-mix(in_srgb,var(--nimi-status-info)_15%,transparent)] text-[var(--nimi-status-info)]';
   if (value === 'tight') return 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_15%,transparent)] text-[var(--nimi-status-warning)]';
@@ -250,41 +250,41 @@ export function recommendationTierClass(value?: LocalRuntimeCatalogRecommendatio
 }
 
 export function recommendationHostSupportLabel(
-  value?: LocalRuntimeCatalogRecommendation['hostSupportClass'],
+  value?: NimiRuntimeLocalCatalogRecommendation['hostSupportClass'],
 ): string {
-  return formatLocalRecommendationHostSupportLabel(value);
+  return formatNimiRuntimeLocalRecommendationHostSupportLabel(value);
 }
 
 export function recommendationConfidenceLabel(
-  value?: LocalRuntimeCatalogRecommendation['confidence'],
+  value?: NimiRuntimeLocalCatalogRecommendation['confidence'],
 ): string {
-  return formatLocalRecommendationConfidenceLabel(value);
+  return formatNimiRuntimeLocalRecommendationConfidenceLabel(value);
 }
 
 export function recommendationBaselineLabel(
-  value?: LocalRuntimeCatalogRecommendation['baseline'],
+  value?: NimiRuntimeLocalCatalogRecommendation['baseline'],
 ): string {
-  return formatLocalRecommendationBaselineLabel(value, LOCAL_RECOMMENDATION_COPY_OPTIONS);
+  return formatNimiRuntimeLocalRecommendationBaselineLabel(value, LOCAL_RECOMMENDATION_COPY_OPTIONS);
 }
 
 export function recommendationReasonLabel(code: string): string {
-  return formatLocalRecommendationReasonLabel(code, LOCAL_RECOMMENDATION_COPY_OPTIONS);
+  return formatNimiRuntimeLocalRecommendationReasonLabel(code, LOCAL_RECOMMENDATION_COPY_OPTIONS);
 }
 
 export function recommendationSummary(
-  recommendation: LocalRuntimeCatalogRecommendation | undefined,
+  recommendation: NimiRuntimeLocalCatalogRecommendation | undefined,
 ): string {
-  return summarizeLocalCatalogRecommendation(recommendation, LOCAL_RECOMMENDATION_COPY_OPTIONS);
+  return summarizeNimiRuntimeLocalCatalogRecommendation(recommendation, LOCAL_RECOMMENDATION_COPY_OPTIONS);
 }
 
 export function recommendationDetailItems(
-  recommendation: LocalRuntimeCatalogRecommendation | undefined,
+  recommendation: NimiRuntimeLocalCatalogRecommendation | undefined,
   options?: {
     maxFallbackEntries?: number;
     includeNote?: boolean;
   },
-): LocalRecommendationDetailItem[] {
-  return buildLocalRecommendationDetailItems(recommendation, {
+): NimiRuntimeLocalRecommendationDetailItem[] {
+  return buildNimiRuntimeLocalRecommendationDetailItems(recommendation, {
     ...LOCAL_RECOMMENDATION_COPY_OPTIONS,
     maxFallbackEntries: options?.maxFallbackEntries,
     includeNote: options?.includeNote,
@@ -292,7 +292,7 @@ export function recommendationDetailItems(
 }
 
 export function RecommendationDetailList(props: {
-  recommendation: LocalRuntimeCatalogRecommendation | undefined;
+  recommendation: NimiRuntimeLocalCatalogRecommendation | undefined;
   className?: string;
   rowClassName?: string;
   labelClassName?: string;
@@ -320,7 +320,7 @@ export function RecommendationDetailList(props: {
 }
 
 export function RecommendationDiagnosticsPanel(props: {
-  recommendation: LocalRuntimeCatalogRecommendation | undefined;
+  recommendation: NimiRuntimeLocalCatalogRecommendation | undefined;
   className?: string;
   buttonClassName?: string;
   panelClassName?: string;

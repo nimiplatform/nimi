@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type ReactElement } from 'react';
-import { desktopBridge, type ProductControlRecordProjection } from '@renderer/bridge';
+import { desktopBridge, type NimiProductControlRecordProjection } from '@renderer/bridge';
 import { ProductControlWorkflow } from '../../first-run/product-control-workflow.js';
 
 /**
@@ -14,10 +14,10 @@ import { ProductControlWorkflow } from '../../first-run/product-control-workflow
  */
 
 function useProductControlRecord(): {
-  projection: ProductControlRecordProjection | null;
-  setProjection: (projection: ProductControlRecordProjection) => void;
+  projection: NimiProductControlRecordProjection | null;
+  setProjection: (projection: NimiProductControlRecordProjection) => void;
 } {
-  const [projection, setProjection] = useState<ProductControlRecordProjection | null>(null);
+  const [projection, setProjection] = useState<NimiProductControlRecordProjection | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -62,7 +62,7 @@ export function FirstRunGatePanel(props: FirstRunGatePanelProps): ReactElement {
   }, [projection?.state, onReadyForUse]);
 
   const updateProjection = useCallback(
-    (next: ProductControlRecordProjection): void => {
+    (next: NimiProductControlRecordProjection): void => {
       setProjection(next);
       if (next.state === 'ready_for_use') {
         onReadyForUse?.();

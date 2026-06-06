@@ -1,49 +1,49 @@
 import type {
-  LocalRuntimeEnvironmentDependencyJob,
-  LocalRuntimeEnvironmentPlanDependency,
+  NimiRuntimeLocalEnvironmentDependencyJob,
+  NimiRuntimeLocalEnvironmentPlanDependency,
 } from '@nimiplatform/sdk/runtime';
 import {
-  isLocalRuntimeEnvironmentDependencyJobActiveState,
-  isLocalRuntimeEnvironmentDependencyJobCancelledState,
-  isLocalRuntimeEnvironmentDependencyJobFailedState,
-  isLocalRuntimeEnvironmentDependencyRepairRequiredState,
-  isLocalRuntimeEnvironmentDependencyUnsupportedState,
+  isNimiRuntimeLocalEnvironmentDependencyJobActiveState,
+  isNimiRuntimeLocalEnvironmentDependencyJobCancelledState,
+  isNimiRuntimeLocalEnvironmentDependencyJobFailedState,
+  isNimiRuntimeLocalEnvironmentDependencyRepairRequiredState,
+  isNimiRuntimeLocalEnvironmentDependencyUnsupportedState,
 } from '@nimiplatform/sdk/runtime';
 import { i18n } from '@renderer/i18n';
 
 function runtimeDependencyCurrentState(
-  dependency?: LocalRuntimeEnvironmentPlanDependency,
-  job?: LocalRuntimeEnvironmentDependencyJob,
+  dependency?: NimiRuntimeLocalEnvironmentPlanDependency,
+  job?: NimiRuntimeLocalEnvironmentDependencyJob,
 ): string {
   return String(job?.state || dependency?.state || '').trim();
 }
 
 export function runtimeDependencyBannerTitle(
-  dependency?: LocalRuntimeEnvironmentPlanDependency,
-  job?: LocalRuntimeEnvironmentDependencyJob,
+  dependency?: NimiRuntimeLocalEnvironmentPlanDependency,
+  job?: NimiRuntimeLocalEnvironmentDependencyJob,
 ): string {
   const state = runtimeDependencyCurrentState(dependency, job);
-  if (isLocalRuntimeEnvironmentDependencyJobActiveState(state)) {
+  if (isNimiRuntimeLocalEnvironmentDependencyJobActiveState(state)) {
     return i18n.t('runtimeConfig.localModelCenter.runtimeSetupInProgressTitle', {
       defaultValue: 'Local image runtime setup in progress',
     });
   }
-  if (isLocalRuntimeEnvironmentDependencyJobFailedState(state)) {
+  if (isNimiRuntimeLocalEnvironmentDependencyJobFailedState(state)) {
     return i18n.t('runtimeConfig.localModelCenter.runtimeSetupFailedTitle', {
       defaultValue: 'Local image runtime setup failed',
     });
   }
-  if (isLocalRuntimeEnvironmentDependencyJobCancelledState(state)) {
+  if (isNimiRuntimeLocalEnvironmentDependencyJobCancelledState(state)) {
     return i18n.t('runtimeConfig.localModelCenter.runtimeSetupCancelledTitle', {
       defaultValue: 'Local image runtime setup cancelled',
     });
   }
-  if (isLocalRuntimeEnvironmentDependencyRepairRequiredState(state)) {
+  if (isNimiRuntimeLocalEnvironmentDependencyRepairRequiredState(state)) {
     return i18n.t('runtimeConfig.localModelCenter.runtimeRepairRequiredTitle', {
       defaultValue: 'Local image runtime repair required',
     });
   }
-  if (isLocalRuntimeEnvironmentDependencyUnsupportedState(state)) {
+  if (isNimiRuntimeLocalEnvironmentDependencyUnsupportedState(state)) {
     return i18n.t('runtimeConfig.localModelCenter.runtimeUnsupportedTitle', {
       defaultValue: 'Local image runtime unsupported',
     });
@@ -54,8 +54,8 @@ export function runtimeDependencyBannerTitle(
 }
 
 export function runtimeDependencyStatusDetail(
-  dependency?: LocalRuntimeEnvironmentPlanDependency,
-  job?: LocalRuntimeEnvironmentDependencyJob,
+  dependency?: NimiRuntimeLocalEnvironmentPlanDependency,
+  job?: NimiRuntimeLocalEnvironmentDependencyJob,
 ): string {
   const jobDetail = String(job?.failureDetail || '').trim();
   if (jobDetail) {
@@ -77,8 +77,8 @@ type RuntimeDependencyAttentionBannerProps = {
   canRetryRuntimeDependencyJob: boolean;
   canStartRuntimeDependencySetup: boolean;
   confirmSetup: boolean;
-  dependency?: LocalRuntimeEnvironmentPlanDependency;
-  job?: LocalRuntimeEnvironmentDependencyJob;
+  dependency?: NimiRuntimeLocalEnvironmentPlanDependency;
+  job?: NimiRuntimeLocalEnvironmentDependencyJob;
   onCancelJob: (jobId: string) => void;
   onCancelSetupConfirm: () => void;
   onConfirmSetup: () => void;

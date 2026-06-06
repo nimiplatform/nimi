@@ -15,7 +15,7 @@ function readRuntimeConfigSource(name: string): string {
 test('Runtime Config capability coverage consumes SDK projection in both views', () => {
   for (const fileName of ['runtime-config-page-overview.tsx', 'runtime-config-page-runtime.tsx']) {
     const source = readRuntimeConfigSource(fileName);
-    assert.match(source, /projectRuntimeRouteCapabilityCoverageList/);
+    assert.match(source, /projectNimiRuntimeRouteCapabilityCoverageList/);
     assert.match(source, /from '@nimiplatform\/sdk\/runtime'/);
     assert.doesNotMatch(source, /CAPABILITIES_V11\.map/);
     assert.doesNotMatch(source, /state\.connectors\.some\(\(c\) => c\.status === 'healthy'\)/);

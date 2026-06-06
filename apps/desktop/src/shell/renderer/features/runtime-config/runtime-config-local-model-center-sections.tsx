@@ -1,10 +1,11 @@
 import type { RefObject } from 'react';
 import { i18n } from '@renderer/i18n';
 import type {
-  LocalRuntimeAssetDeclaration,
-  LocalRuntimeAssetKind,
-  LocalRuntimeUnregisteredAssetDescriptor,
+  NimiRuntimeLocalAssetDeclaration,
+  NimiRuntimeLocalAssetKind,
+  NimiRuntimeLocalUnregisteredAssetDescriptor,
 } from '@nimiplatform/sdk/runtime';
+import { cn } from '@nimiplatform/kit/ui';
 import { RuntimeSelect } from './runtime-config-primitives';
 import {
   ASSET_ENGINE_OPTIONS,
@@ -65,7 +66,7 @@ export function LocalModelCenterToolbar(props: ToolbarProps) {
           aria-label={i18n.t('runtimeConfig.localModelCenter.health', { defaultValue: 'Health' })}
           className={iconBtnClass}
         >
-          <HeartPulseIcon className={`h-4 w-4 ${props.checkingHealth ? 'animate-pulse' : ''}`} />
+          <HeartPulseIcon className={cn('h-4 w-4', props.checkingHealth ? 'animate-pulse' : undefined)} />
         </button>
         <button
           type="button"
@@ -77,7 +78,7 @@ export function LocalModelCenterToolbar(props: ToolbarProps) {
           aria-label={i18n.t('runtimeConfig.localModelCenter.refresh', { defaultValue: 'Refresh' })}
           className={iconBtnClass}
         >
-          <RefreshIcon className={`h-4 w-4 ${props.discovering ? 'animate-spin' : ''}`} />
+          <RefreshIcon className={cn('h-4 w-4', props.discovering ? 'animate-spin' : undefined)} />
         </button>
         <button
           type="button"
@@ -113,7 +114,7 @@ export function LocalModelCenterToolbar(props: ToolbarProps) {
               </button>
               <button type="button" onClick={props.onOpenImportBundle} className="w-full border-t border-[var(--nimi-border-subtle)] px-3 py-2.5 text-left text-xs transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-text-primary)_6%,transparent)]">
                 <div className="font-medium text-[var(--nimi-text-primary)]">
-                  {i18n.t('runtimeConfig.localModelCenter.importAssetBundle', { defaultValue: 'Import Asset Bundle Folder' })}
+                  {i18n.t('runtimeConfig.localModelCenter.importBundle', { defaultValue: 'Import Asset Bundle Folder' })}
                 </div>
                 <div className="mt-0.5 text-[var(--nimi-text-muted)]">
                   {i18n.t('runtimeConfig.localModelCenter.supportedAssetBundleFolder', {
@@ -140,13 +141,13 @@ export function LocalModelCenterToolbar(props: ToolbarProps) {
 
 type ImportDialogProps = {
   visible: boolean;
-  assetKind: LocalRuntimeAssetKind;
+  assetKind: NimiRuntimeLocalAssetKind;
   auxiliaryEngine: AssetEngineOption | '';
   endpoint: string;
   endpointRequired: boolean;
   compatibilityHint?: string;
   endpointHint?: string;
-  onAssetKindChange: (kind: LocalRuntimeAssetKind) => void;
+  onAssetKindChange: (kind: NimiRuntimeLocalAssetKind) => void;
   onAuxiliaryEngineChange: (engine: AssetEngineOption | '') => void;
   onEndpointChange: (endpoint: string) => void;
   onClose: () => void;
@@ -186,7 +187,7 @@ export function LocalModelCenterImportDialog(props: ImportDialogProps) {
           </span>
           <RuntimeSelect
             value={props.assetKind}
-            onChange={(value) => props.onAssetKindChange((value || 'chat') as LocalRuntimeAssetKind)}
+            onChange={(value) => props.onAssetKindChange((value || 'chat') as NimiRuntimeLocalAssetKind)}
             className="w-36"
             options={ALL_ASSET_KIND_OPTIONS.map((kind) => ({ value: kind, label: formatAssetKindLabel(kind) }))}
           />
@@ -268,18 +269,18 @@ export function LocalModelCenterImportDialog(props: ImportDialogProps) {
 }
 
 type UnregisteredAssetsSectionProps = {
-  assets: LocalRuntimeUnregisteredAssetDescriptor[];
+  assets: NimiRuntimeLocalUnregisteredAssetDescriptor[];
   assetImportError: string;
   assetImportSessionByPath: Record<string, string>;
   compatibilityHintByPath: Record<string, string>;
   importAllowedByPath: Record<string, boolean>;
   importingAssetPath: string | null;
-  resolveDraft: (asset: LocalRuntimeUnregisteredAssetDescriptor) => LocalRuntimeAssetDeclaration;
+  resolveDraft: (asset: NimiRuntimeLocalUnregisteredAssetDescriptor) => NimiRuntimeLocalAssetDeclaration;
   endpointByPath: Record<string, string>;
   endpointRequiredByPath: Record<string, boolean>;
   endpointHintByPath: Record<string, string>;
   onRefresh: () => void;
-  onAssetKindChange: (path: string, kind: LocalRuntimeAssetKind) => void;
+  onAssetKindChange: (path: string, kind: NimiRuntimeLocalAssetKind) => void;
   onAuxiliaryEngineChange: (path: string, engine: AssetEngineOption | '') => void;
   onEndpointChange: (path: string, endpoint: string) => void;
   onImport: (path: string) => void;
@@ -370,7 +371,7 @@ export function LocalModelCenterUnregisteredAssetsSection(props: UnregisteredAss
               <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-[color-mix(in_srgb,var(--nimi-border-subtle)_50%,transparent)] pt-3">
                 <RuntimeSelect
                   value={draft.assetKind || 'chat'}
-                  onChange={(value) => props.onAssetKindChange(asset.path, (value || 'chat') as LocalRuntimeAssetKind)}
+                  onChange={(value) => props.onAssetKindChange(asset.path, (value || 'chat') as NimiRuntimeLocalAssetKind)}
                   className="w-36"
                   options={ALL_ASSET_KIND_OPTIONS.map((kind) => ({ value: kind, label: formatAssetKindLabel(kind) }))}
                 />

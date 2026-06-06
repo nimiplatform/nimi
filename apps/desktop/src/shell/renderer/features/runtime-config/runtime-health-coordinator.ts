@@ -1,10 +1,7 @@
 import { useEffect, useSyncExternalStore } from 'react';
-import {
-  RuntimeHealthCoordinator,
-  type RuntimeHealthCoordinatorState,
-  type RuntimeStreamCallOptions,
-} from '@nimiplatform/sdk/runtime';
-import { getPlatformClient } from '@nimiplatform/sdk';
+import { NimiRuntimeHealthCoordinator, type NimiRuntimeHealthCoordinatorState } from '@nimiplatform/sdk/runtime';
+import { type RuntimeTypedCallOptions } from '@nimiplatform/sdk/runtime/generated';
+import { getDesktopRuntime } from '@renderer/infra/sdk/desktop-nimi-client-session';
 
 const HEALTH_METADATA = {
   callerKind: 'desktop-core' as const,
@@ -17,29 +14,29 @@ const HEALTH_CALL_OPTIONS = {
   metadata: HEALTH_METADATA,
 };
 
-const HEALTH_STREAM_OPTIONS: RuntimeStreamCallOptions = {
+const HEALTH_STREAM_OPTIONS: RuntimeTypedCallOptions = {
   metadata: HEALTH_METADATA,
 };
 
-function runtimeAdmin() {
-  return getPlatformClient().domains.runtimeAdmin;
+function runtimeAudit() {
+  return getDesktopRuntime().audit;
 }
 
-const runtimeHealthCoordinator = new RuntimeHealthCoordinator({
-  fetchRuntimeHealth: async () => runtimeAdmin().getRuntimeHealth({}, HEALTH_CALL_OPTIONS),
-  fetchProviderHealth: async () => runtimeAdmin().listAIProviderHealth({}, HEALTH_CALL_OPTIONS),
-  subscribeRuntimeHealth: async () => runtimeAdmin().healthEvents({}, HEALTH_STREAM_OPTIONS),
-  subscribeProviderHealth: async () => runtimeAdmin().providerHealthEvents({}, HEALTH_STREAM_OPTIONS),
-  subscribeRuntimeConnected: (listener) => getPlatformClient().runtime.events.on('runtime.connected', listener),
-  subscribeRuntimeDisconnected: (listener) => getPlatformClient().runtime.events.on('runtime.disconnected', listener),
+const runtimeHealthCoordinator = new NimiRuntimeHealthCoordinator({
+  fetchRuntimeHealth: async () => runtimeAudit().getRuntimeHealth({}, HEALTH_CALL_OPTIONS),
+  fetchProviderHealth: async () => runtimeAudit().listAIProviderHealth({}, HEALTH_CALL_OPTIONS),
+  subscribeRuntimeHealth: async () => runtimeAudit().subscribeRuntimeHealthEvents({}, HEALTH_STREAM_OPTIONS),
+  subscribeProviderHealth: async () => runtimeAudit().subscribeAIProviderHealthEvents({}, HEALTH_STREAM_OPTIONS),
+  subscribeRuntimeConnected: () => () => {},
+  subscribeRuntimeDisconnected: () => () => {},
   setInterval: (callback, intervalMs) => window.setInterval(callback, intervalMs),
   clearInterval: (handle) => window.clearInterval(handle as number),
 });
 
-export { RuntimeHealthCoordinator };
-export type { RuntimeHealthCoordinatorState };
+export { NimiRuntimeHealthCoordinator };
+export type { NimiRuntimeHealthCoordinatorState };
 
-export function getRuntimeHealthCoordinator(): RuntimeHealthCoordinator {
+export function getRuntimeHealthCoordinator(): NimiRuntimeHealthCoordinator {
   return runtimeHealthCoordinator;
 }
 
@@ -56,7 +53,7 @@ export function useRuntimeHealthCoordinatorBootstrap(enabled: boolean): void {
   }, [enabled]);
 }
 
-export function useRuntimeHealthCoordinatorState(): RuntimeHealthCoordinatorState {
+export function useRuntimeHealthCoordinatorState(): NimiRuntimeHealthCoordinatorState {
   const coordinator = getRuntimeHealthCoordinator();
   return useSyncExternalStore(
     coordinator.subscribe,

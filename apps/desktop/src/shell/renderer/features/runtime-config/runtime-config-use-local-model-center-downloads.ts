@@ -1,9 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  localRuntime,
-  type LocalRuntimeDownloadProgressEvent,
-} from '@nimiplatform/sdk/runtime';
+import type { NimiRuntimeLocalTransferProgressEvent } from '@nimiplatform/sdk/runtime';
 import { emitRuntimeLog } from '@nimiplatform/kit/telemetry';
+import { runtimeConfigLocalModelCenterClient } from './runtime-config-local-model-center-sdk-service';
 import {
   PROGRESS_SESSION_LIMIT,
   type ProgressSessionState,
@@ -30,7 +28,7 @@ type DownloadCompleteHandler = (
 type UseLocalModelCenterDownloadsInput = {
   isProfileTargetMode: boolean;
   onDownloadComplete?: DownloadCompleteHandler;
-  onProgressSettled?: (event: LocalRuntimeDownloadProgressEvent) => void;
+  onProgressSettled?: (event: NimiRuntimeLocalTransferProgressEvent) => void;
 };
 
 export function useLocalModelCenterDownloads(input: UseLocalModelCenterDownloadsInput) {
@@ -51,7 +49,7 @@ export function useLocalModelCenterDownloads(input: UseLocalModelCenterDownloads
     let disposed = false;
     let unsubscribe: (() => void) | null = null;
 
-    void localRuntime.listDownloads()
+    void runtimeConfigLocalModelCenterClient.listTransfers()
       .then((sessions) => {
         if (disposed) {
           return;
@@ -78,12 +76,12 @@ export function useLocalModelCenterDownloads(input: UseLocalModelCenterDownloads
         emitRuntimeLog({
           level: 'warn',
           area: 'local-ai',
-          message: 'action:listDownloads:failed',
+          message: 'action:listTransfers:failed',
           details: { error: err instanceof Error ? err.message : String(err) },
         });
       });
 
-    void localRuntime.subscribeDownloadProgress((event) => {
+    void runtimeConfigLocalModelCenterClient.watchTransferProgress((event) => {
       if (disposed) {
         return;
       }
@@ -158,21 +156,21 @@ export function useLocalModelCenterDownloads(input: UseLocalModelCenterDownloads
   const onPauseDownload = useCallback((installSessionId: string) => {
     mergeSessionSummary(
       installSessionId,
-      async () => toProgressEventFromSummary(await localRuntime.pauseDownload(installSessionId, { caller: 'core' })),
+      async () => toProgressEventFromSummary(await runtimeConfigLocalModelCenterClient.pauseTransfer(installSessionId, { caller: 'core' })),
     );
   }, [mergeSessionSummary]);
 
   const onResumeDownload = useCallback((installSessionId: string) => {
     mergeSessionSummary(
       installSessionId,
-      async () => toProgressEventFromSummary(await localRuntime.resumeDownload(installSessionId, { caller: 'core' })),
+      async () => toProgressEventFromSummary(await runtimeConfigLocalModelCenterClient.resumeTransfer(installSessionId, { caller: 'core' })),
     );
   }, [mergeSessionSummary]);
 
   const onCancelDownload = useCallback((installSessionId: string) => {
     mergeSessionSummary(
       installSessionId,
-      async () => toProgressEventFromSummary(await localRuntime.cancelDownload(installSessionId, { caller: 'core' })),
+      async () => toProgressEventFromSummary(await runtimeConfigLocalModelCenterClient.cancelTransfer(installSessionId, { caller: 'core' })),
     );
   }, [mergeSessionSummary]);
 

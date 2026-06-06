@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { projectRuntimeRouteCapabilityCoverageList } from '@nimiplatform/sdk/runtime';
+import { projectNimiRuntimeRouteCapabilityCoverageList } from '@nimiplatform/sdk/runtime';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { cn } from '@nimiplatform/kit/ui';
 import { RuntimeHealthSection } from './runtime-config-runtime-health-section.js';
@@ -30,7 +30,7 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
   const [activeTab, setActiveTab] = useState<RuntimeTabKey>('overview');
 
   const capabilitySummary = useMemo(() => {
-    return projectRuntimeRouteCapabilityCoverageList({
+    return projectNimiRuntimeRouteCapabilityCoverageList({
       localNodes: state.local.nodeMatrix,
       localModels: state.local.models,
       connectors: state.connectors,

@@ -1,10 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { getPlatformClient } from '@nimiplatform/sdk';
-import {
-  formatRuntimeNimiErrorBanner as formatRuntimeConfigErrorBanner,
-  type ProviderCatalogEntry,
-} from '@nimiplatform/sdk/runtime';
+import { formatNimiRuntimeErrorBanner as formatRuntimeConfigErrorBanner } from '@nimiplatform/sdk/runtime';
+import { type ProviderCatalogEntry } from '@nimiplatform/sdk/runtime/generated';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { getVendorLabelV11, randomIdV11, type ApiVendor } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
@@ -149,25 +146,6 @@ export function CloudPage({ model, state }: CloudPageProps) {
       cancelled = true;
     };
   }, [loadProviderCatalog, reportError, PROVIDER_CATALOG_ERROR_LABEL]);
-  useEffect(() => {
-    const unsubscribe = getPlatformClient().runtime.events.on('runtime.connected', () => {
-      void loadProviderCatalog()
-        .catch((error) => {
-          reportError(PROVIDER_CATALOG_ERROR_LABEL, error);
-        });
-      void refreshConnectorsFromSdk()
-        .catch((error) => {
-          reportError(CONNECTORS_LOAD_ERROR_LABEL, error);
-        });
-    });
-    return unsubscribe;
-  }, [
-    loadProviderCatalog,
-    refreshConnectorsFromSdk,
-    reportError,
-    PROVIDER_CATALOG_ERROR_LABEL,
-    CONNECTORS_LOAD_ERROR_LABEL,
-  ]);
   const onAddConnector = useCallback(async () => {
     const runtimeCatalog = await sdkListProviderCatalog();
     const providerEntry = runtimeCatalog.find((entry) => entry.managedSupported && entry.provider !== 'local');

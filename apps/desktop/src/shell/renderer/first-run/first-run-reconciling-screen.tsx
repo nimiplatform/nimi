@@ -1,14 +1,14 @@
 import { useEffect, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
-import type { ProductControlState } from '@renderer/bridge';
+import type { NimiProductControlState } from '@renderer/bridge';
 
 /**
  * Defensive surface for the `not_logged_in` terminal screen that AppRoutes'
  * admission gate is expected to intercept upstream.
  */
 export function FirstRunReconcilingScreen(props: {
-  readonly productState: ProductControlState;
+  readonly productState: NimiProductControlState;
 }): ReactElement {
   const { t } = useTranslation();
   useEffect(() => {

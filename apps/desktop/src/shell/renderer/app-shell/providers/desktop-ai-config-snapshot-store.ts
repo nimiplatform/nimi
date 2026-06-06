@@ -1,7 +1,7 @@
 import {
-  createScopedAISnapshotStore,
-  type AIConfigStorageLike,
-  type ScopedAISnapshotStore,
+  createNimiAISnapshotStore,
+  type NimiAIHostStorage,
+  type NimiAISnapshotStore,
 } from '@nimiplatform/sdk/ai';
 import { resolveBrowserStorage } from '@nimiplatform/kit/core/storage-json';
 
@@ -10,13 +10,13 @@ const SNAPSHOT_EXECUTION_PREFIX = 'nimi.ai-snapshot.execution.';
 const SNAPSHOT_EXECUTION_SUFFIX = '.v1';
 const SNAPSHOT_RING_SIZE = 64;
 
-function isStorageLike(value: unknown): value is AIConfigStorageLike {
+function isStorageLike(value: unknown): value is NimiAIHostStorage {
   return Boolean(value)
-    && typeof (value as AIConfigStorageLike).getItem === 'function'
-    && typeof (value as AIConfigStorageLike).setItem === 'function';
+    && typeof (value as NimiAIHostStorage).getItem === 'function'
+    && typeof (value as NimiAIHostStorage).setItem === 'function';
 }
 
-function getStorage(): AIConfigStorageLike | null {
+function getStorage(): NimiAIHostStorage | null {
   const storage = resolveBrowserStorage('local');
   return isStorageLike(storage) ? storage : null;
 }
@@ -29,8 +29,8 @@ function snapshotKeyForExecution(executionId: string): string {
   return `${SNAPSHOT_EXECUTION_PREFIX}${executionId}${SNAPSHOT_EXECUTION_SUFFIX}`;
 }
 
-export function createDesktopAISnapshotStore(): ScopedAISnapshotStore {
-  return createScopedAISnapshotStore({
+export function createDesktopAISnapshotStore(): NimiAISnapshotStore {
+  return createNimiAISnapshotStore({
     storage: () => getStorage(),
     indexKey: SNAPSHOT_INDEX_KEY,
     snapshotKeyForExecution,

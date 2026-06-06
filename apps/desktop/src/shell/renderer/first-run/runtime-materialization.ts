@@ -1,43 +1,41 @@
-import { localRuntime } from '@nimiplatform/sdk/runtime';
-import type { ProductControlState } from '@renderer/bridge';
+import type { NimiProductControlState } from '@renderer/bridge';
 import {
-  cancelFirstRunMaterializationJob as cancelSdkFirstRunMaterializationJob,
-  repairableFirstRunMaterializationDependencies as sdkRepairableFirstRunMaterializationDependencies,
-  repairFirstRunMaterializationDependency as repairSdkFirstRunMaterializationDependency,
-  resolveFirstRunMaterializationProjection as resolveSdkFirstRunMaterializationProjection,
-  retryableInterruptedFirstRunMaterializationJobs as sdkRetryableInterruptedFirstRunMaterializationJobs,
-  retryFirstRunMaterializationJob as retrySdkFirstRunMaterializationJob,
-  startFirstRunMaterialization as startSdkFirstRunMaterialization,
-  type FirstRunMaterializationDependencyProjection,
-  type FirstRunMaterializationInput as SdkFirstRunMaterializationInput,
-  type FirstRunMaterializationProjection as SdkFirstRunMaterializationProjection,
-  type FirstRunMaterializationRuntime,
+  cancelNimiFirstRunMaterializationJob,
+  repairNimiFirstRunMaterializationDependency,
+  repairableNimiFirstRunMaterializationDependencies,
+  resolveNimiFirstRunMaterializationProjection,
+  retryNimiFirstRunMaterializationJob,
+  retryableInterruptedNimiFirstRunMaterializationJobs,
+  startNimiFirstRunMaterialization,
+  type NimiFirstRunMaterializationInput,
+  type NimiFirstRunMaterializationProjection,
+  type NimiFirstRunMaterializationRuntime,
+  type NimiRuntimeLocalEnvironmentPlanDependency,
 } from '@nimiplatform/sdk/runtime';
-import type { LocalRuntimeEnvironmentPlanDependency } from '@nimiplatform/sdk/runtime';
+import { firstRunRuntimeLocalClient } from './first-run-runtime-local-client.js';
 
 export type {
-  FirstRunMaterializationDependencyProjection,
-  FirstRunMaterializationDownloadProgress,
-  FirstRunMaterializationProductState,
-  FirstRunMaterializationStatus,
+  NimiFirstRunMaterializationDependencyProjection,
+  NimiFirstRunMaterializationDownloadProgress,
+  NimiFirstRunMaterializationProductState,
+  NimiFirstRunMaterializationProjection,
+  NimiFirstRunMaterializationStatus,
 } from '@nimiplatform/sdk/runtime';
-export { productStateForMaterializationStatus } from '@nimiplatform/sdk/runtime';
+export { productStateForNimiFirstRunMaterializationStatus } from '@nimiplatform/sdk/runtime';
 
-export type FirstRunMaterializationProjection = SdkFirstRunMaterializationProjection;
-
-export type FirstRunMaterializationInput = Omit<SdkFirstRunMaterializationInput, 'runtime'> & {
-  readonly runtime?: FirstRunMaterializationRuntime;
+export type DesktopNimiFirstRunMaterializationInput = Omit<NimiFirstRunMaterializationInput, 'runtime'> & {
+  readonly runtime?: NimiFirstRunMaterializationRuntime;
 };
 
-function materializationRuntime(
-  input: FirstRunMaterializationInput,
-): FirstRunMaterializationRuntime {
-  return input.runtime ?? localRuntime;
+function nimiFirstRunMaterializationRuntime(
+  input: DesktopNimiFirstRunMaterializationInput,
+): NimiFirstRunMaterializationRuntime {
+  return input.runtime ?? firstRunRuntimeLocalClient;
 }
 
-export function shouldResumeConfirmedFirstRunMaterialization(
-  productState: ProductControlState,
-  projection: FirstRunMaterializationProjection,
+export function shouldResumeConfirmedNimiFirstRunMaterialization(
+  productState: NimiProductControlState,
+  projection: NimiFirstRunMaterializationProjection,
 ): boolean {
   if (projection.status !== 'needs_confirmation') return false;
   return productState === 'local_ai_profile_selected_assets_missing'
@@ -46,74 +44,74 @@ export function shouldResumeConfirmedFirstRunMaterialization(
     || productState === 'local_ai_ready';
 }
 
-function isConfirmedFirstRunSetupState(productState: ProductControlState): boolean {
+function isConfirmedNimiFirstRunSetupState(productState: NimiProductControlState): boolean {
   return productState === 'local_ai_profile_selected_assets_missing'
     || productState === 'local_ai_profile_selected_environment_not_ready'
     || productState === 'local_ai_assets_downloaded_environment_not_ready'
     || productState === 'local_ai_ready';
 }
 
-export function retryableInterruptedFirstRunMaterializationJobs(
-  productState: ProductControlState,
-  projection: FirstRunMaterializationProjection,
+export function retryableInterruptedNimiFirstRunMaterializationJobsForProductState(
+  productState: NimiProductControlState,
+  projection: NimiFirstRunMaterializationProjection,
 ) {
-  if (!isConfirmedFirstRunSetupState(productState)) return [];
-  return sdkRetryableInterruptedFirstRunMaterializationJobs(projection);
+  if (!isConfirmedNimiFirstRunSetupState(productState)) return [];
+  return retryableInterruptedNimiFirstRunMaterializationJobs(projection);
 }
 
-export function repairableConfirmedFirstRunMaterializationDependencies(
-  productState: ProductControlState,
-  projection: FirstRunMaterializationProjection,
-): readonly FirstRunMaterializationDependencyProjection[] {
-  if (!isConfirmedFirstRunSetupState(productState)) return [];
-  return sdkRepairableFirstRunMaterializationDependencies(projection);
+export function repairableConfirmedNimiFirstRunMaterializationDependencies(
+  productState: NimiProductControlState,
+  projection: NimiFirstRunMaterializationProjection,
+) {
+  if (!isConfirmedNimiFirstRunSetupState(productState)) return [];
+  return repairableNimiFirstRunMaterializationDependencies(projection);
 }
 
-export async function resolveFirstRunMaterializationProjection(
-  input: FirstRunMaterializationInput,
-): Promise<FirstRunMaterializationProjection> {
-  return resolveSdkFirstRunMaterializationProjection({
+export async function resolveDesktopNimiFirstRunMaterializationProjection(
+  input: DesktopNimiFirstRunMaterializationInput,
+): Promise<NimiFirstRunMaterializationProjection> {
+  return resolveNimiFirstRunMaterializationProjection({
     ...input,
-    runtime: materializationRuntime(input),
+    runtime: nimiFirstRunMaterializationRuntime(input),
   });
 }
 
-export async function startFirstRunMaterialization(
-  input: FirstRunMaterializationInput & { readonly confirmed: boolean },
-): Promise<FirstRunMaterializationProjection> {
-  return startSdkFirstRunMaterialization({
+export async function startDesktopNimiFirstRunMaterialization(
+  input: DesktopNimiFirstRunMaterializationInput & { readonly confirmed: boolean },
+): Promise<NimiFirstRunMaterializationProjection> {
+  return startNimiFirstRunMaterialization({
     ...input,
-    runtime: materializationRuntime(input),
+    runtime: nimiFirstRunMaterializationRuntime(input),
   });
 }
 
-export async function cancelFirstRunMaterializationJob(
-  input: FirstRunMaterializationInput & { readonly jobId: string },
-): Promise<FirstRunMaterializationProjection> {
-  return cancelSdkFirstRunMaterializationJob({
+export async function cancelDesktopNimiFirstRunMaterializationJob(
+  input: DesktopNimiFirstRunMaterializationInput & { readonly jobId: string },
+): Promise<NimiFirstRunMaterializationProjection> {
+  return cancelNimiFirstRunMaterializationJob({
     ...input,
-    runtime: materializationRuntime(input),
+    runtime: nimiFirstRunMaterializationRuntime(input),
   });
 }
 
-export async function retryFirstRunMaterializationJob(
-  input: FirstRunMaterializationInput & { readonly jobId: string; readonly confirmed: boolean },
-): Promise<FirstRunMaterializationProjection> {
-  return retrySdkFirstRunMaterializationJob({
+export async function retryDesktopNimiFirstRunMaterializationJob(
+  input: DesktopNimiFirstRunMaterializationInput & { readonly jobId: string; readonly confirmed: boolean },
+): Promise<NimiFirstRunMaterializationProjection> {
+  return retryNimiFirstRunMaterializationJob({
     ...input,
-    runtime: materializationRuntime(input),
+    runtime: nimiFirstRunMaterializationRuntime(input),
   });
 }
 
-export async function repairFirstRunMaterializationDependency(
-  input: FirstRunMaterializationInput & {
-    readonly dependency: LocalRuntimeEnvironmentPlanDependency;
+export async function repairDesktopNimiFirstRunMaterializationDependency(
+  input: DesktopNimiFirstRunMaterializationInput & {
+    readonly dependency: NimiRuntimeLocalEnvironmentPlanDependency;
     readonly confirmed: boolean;
     readonly reasonCode?: string;
   },
-): Promise<FirstRunMaterializationProjection> {
-  return repairSdkFirstRunMaterializationDependency({
+): Promise<NimiFirstRunMaterializationProjection> {
+  return repairNimiFirstRunMaterializationDependency({
     ...input,
-    runtime: materializationRuntime(input),
+    runtime: nimiFirstRunMaterializationRuntime(input),
   });
 }

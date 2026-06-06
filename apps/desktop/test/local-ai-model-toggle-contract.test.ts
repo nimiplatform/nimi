@@ -143,18 +143,18 @@ test('local model center hides removed tombstones from installed sections and re
   assert.match(localModelCenterInstalledAssetsSource, /sortedInstalledAssets\.filter\(\(asset\) => asset\.status !== 'removed'\)/);
   assert.match(localModelCenterInstalledAssetsSource, /visibleInstalledAssets\.filter\(\(asset\) => isRunnableAssetKind\(asset\.kind\)\)/);
   assert.match(localModelCenterStateSource, /from '@nimiplatform\/sdk\/runtime'/);
-  assert.match(localModelCenterStateSource, /new Map\(visibleInstalledAssets\.map\(\(asset\) => \[toCanonicalLocalRuntimeAssetLookupKey\(asset\.assetId\), asset\] as const\)\)/);
+  assert.match(localModelCenterStateSource, /new Map\(visibleInstalledAssets\.map\(\(asset\) => \[toCanonicalNimiRuntimeLocalAssetLookupKey\(asset\.assetId\), asset\] as const\)\)/);
   assert.doesNotMatch(localModelCenterStateSource, /@runtime\/local-runtime\/local-id/);
 });
 
 test('local model center consumes SDK local runtime asset-kind DX helpers', () => {
   assert.match(localModelCenterSectionsSource, /formatAssetKindLabel/);
-  assert.match(localModelCenterUseHelpersSource, /LOCAL_RUNTIME_RUNNABLE_ASSET_KIND_IDS/);
+  assert.match(localModelCenterUseHelpersSource, /NIMI_RUNTIME_LOCAL_RUNNABLE_ASSET_KIND_IDS/);
   assert.match(localModelCenterUseHelpersSource, /from '@nimiplatform\/sdk\/runtime'/);
-  assert.match(localModelCenterUseHelpersSource, /canImportLocalRuntimeAssetDeclaration/);
-  assert.match(localModelCenterUseHelpersSource, /normalizeLocalRuntimeAssetDeclaration/);
-  assert.match(localModelCenterUseHelpersSource, /normalizeLocalRuntimeDependencyAssetDeclaration/);
-  assert.match(localModelCenterUseHelpersSource, /localRuntimeCapabilitiesForAssetKind/);
+  assert.match(localModelCenterUseHelpersSource, /canImportNimiRuntimeLocalAssetDeclaration/);
+  assert.match(localModelCenterUseHelpersSource, /normalizeNimiRuntimeLocalAssetDeclaration/);
+  assert.match(localModelCenterUseHelpersSource, /normalizeNimiRuntimeLocalDependencyAssetDeclaration/);
+  assert.match(localModelCenterUseHelpersSource, /nimiRuntimeLocalCapabilitiesForAssetKind/);
   assert.match(localModelCenterStateProjectionSource, /normalizeAssetDeclaration/);
   assert.doesNotMatch(localModelCenterUseHelpersSource, /ASSET_KIND_OPTIONS\.find/);
   assert.doesNotMatch(localModelCenterUseHelpersSource, /assetKind === 'auxiliary'/);
@@ -163,12 +163,12 @@ test('local model center consumes SDK local runtime asset-kind DX helpers', () =
 
 test('local model center consumes SDK local recommendation DX helpers', () => {
   assert.match(localModelCenterHelpersSource, /from '@nimiplatform\/sdk\/runtime'/);
-  assert.match(localModelCenterHelpersSource, /formatLocalRecommendationHostSupportLabel/);
-  assert.match(localModelCenterHelpersSource, /formatLocalRecommendationConfidenceLabel/);
-  assert.match(localModelCenterHelpersSource, /formatLocalRecommendationBaselineLabel/);
-  assert.match(localModelCenterHelpersSource, /formatLocalRecommendationReasonLabel/);
-  assert.match(localModelCenterHelpersSource, /summarizeLocalCatalogRecommendation/);
-  assert.match(localModelCenterHelpersSource, /buildLocalRecommendationDetailItems/);
+  assert.match(localModelCenterHelpersSource, /formatNimiRuntimeLocalRecommendationHostSupportLabel/);
+  assert.match(localModelCenterHelpersSource, /formatNimiRuntimeLocalRecommendationConfidenceLabel/);
+  assert.match(localModelCenterHelpersSource, /formatNimiRuntimeLocalRecommendationBaselineLabel/);
+  assert.match(localModelCenterHelpersSource, /formatNimiRuntimeLocalRecommendationReasonLabel/);
+  assert.match(localModelCenterHelpersSource, /summarizeNimiRuntimeLocalCatalogRecommendation/);
+  assert.match(localModelCenterHelpersSource, /buildNimiRuntimeLocalRecommendationDetailItems/);
   assert.doesNotMatch(localModelCenterHelpersSource, /switch \(String\(code \|\| ''\)\.trim\(\)\)/);
   assert.doesNotMatch(localModelCenterHelpersSource, /case 'llmfit_vision_model'/);
   assert.doesNotMatch(localModelCenterHelpersSource, /function recommendationWorkloadLabel/);
@@ -193,7 +193,7 @@ test('local route options consume runtime node adapter truth without image-speci
 });
 
 test('runtime config local snapshot polling does not duplicate runtime health truth', () => {
-  assert.doesNotMatch(runtimeConfigPanelEffectsSource, /localRuntime\.health\(/);
+  assert.doesNotMatch(runtimeConfigPanelEffectsSource, /runtimeConfigLocalModelCenterClient\.health\(/);
   assert.match(runtimeConfigPanelEffectsSource, /useRuntimeHealthCoordinatorState/);
 });
 
@@ -204,14 +204,14 @@ test('desktop route options do not fall back to global runtime endpoint fields',
 
 test('local route hydration prefers fresh local model adapter over stale binding adapter', () => {
   assert.equal(existsSync(retiredRuntimeBootstrapHostCapabilitiesRoutingPath), false);
-  assert.match(runtimeBootstrapRouteOptionsSource, /listRuntimeRouteOptionsWithHost\(\{/);
+  assert.match(runtimeBootstrapRouteOptionsSource, /listNimiRuntimeRouteOptionsWithHost\(\{/);
 });
 
 test('runtime route resolve uses the selected local binding and retired host-capability files stay absent', () => {
   assert.equal(existsSync(retiredRuntimeBootstrapHostCapabilitiesPath), false);
   assert.equal(existsSync(runtimeBootstrapRouteResolversPath), false);
   assert.match(runtimeBootstrapRouteOptionsSource, /runtimeLocalModels,/);
-  assert.match(runtimeBootstrapConversationRouteRuntimeSource, /createRuntimeRouteCapabilityRuntimeWithHost/);
+  assert.match(runtimeBootstrapConversationRouteRuntimeSource, /createNimiRuntimeRouteCapabilityRuntimeWithHost/);
   assert.doesNotMatch(runtimeBootstrapConversationRouteRuntimeSource, /resolveRuntimeRouteBindingFromSnapshot/);
   assert.doesNotMatch(runtimeBootstrapConversationRouteRuntimeSource, new RegExp(['createResolveRuntime', 'Binding'].join('')));
   assert.doesNotMatch(runtimeBootstrapConversationRouteRuntimeSource, new RegExp(retiredRouteResolverFileName.replace('.', '\\.')));
@@ -230,7 +230,7 @@ test('import dialog exposes attached endpoint input when runtime requires it', (
   assert.match(localModelCenterImportFilePlanSource, /const \[importEndpointRequired, setImportEndpointRequired\] = useState\(false\)/);
   assert.match(localModelCenterImportFilePlanSource, /const \[importCompatibilityHint, setImportCompatibilityHint\] = useState\(''\)/);
   assert.match(localModelCenterImportFilePlanSource, /const \[importPlanAvailable, setImportPlanAvailable\] = useState\(true\)/);
-  assert.doesNotMatch(localModelCenterImportFilePlanSource, /localRuntime\.resolveInstallPlan\(/);
+  assert.doesNotMatch(localModelCenterImportFilePlanSource, /runtimeConfigLocalModelCenterClient\.resolveInstallPlan\(/);
   assert.match(localModelCenterUtilsSource, /export function planRequiresAttachedEndpointInput\(/);
   assert.match(localModelCenterUtilsSource, /plan\.engineRuntimeMode === 'attached-endpoint'/);
   assert.match(localModelCenterUtilsSource, /export function planBlockingHint\(/);
@@ -254,7 +254,7 @@ test('unregistered assets import flow also captures attached endpoints for media
   assert.match(localModelCenterStateProjectionSource, /const \[unregisteredEndpointRequiredByPath, setUnregisteredEndpointRequiredByPath\] = useState<Record<string, boolean>>\(\{\}\)/);
   assert.match(localModelCenterStateProjectionSource, /const \[unregisteredCompatibilityHintByPath, setUnregisteredCompatibilityHintByPath\] = useState<Record<string, string>>\(\{\}\)/);
   assert.match(localModelCenterStateProjectionSource, /const \[unregisteredImportAllowedByPath, setUnregisteredImportAllowedByPath\] = useState<Record<string, boolean>>\(\{\}\)/);
-  assert.doesNotMatch(localModelCenterStateProjectionSource, /localRuntime\.resolveInstallPlan\(/);
+  assert.doesNotMatch(localModelCenterStateProjectionSource, /runtimeConfigLocalModelCenterClient\.resolveInstallPlan\(/);
   assert.doesNotMatch(localModelCenterStateProjectionSource, /const previewFileName = basenameFromRuntimePath\(asset\.path\)/);
   assert.doesNotMatch(localModelCenterStateProjectionSource, /planCanonicalImageCompatibilityHint\(plan\)/);
   assert.match(localModelCenterStateSource, /importActions\.importAssetFromPath\(\s*assetPath,\s*declaration,\s*String\(unregisteredEndpointByPath\[assetPath\] \|\| ''\)\.trim\(\) \|\| undefined,\s*\)/s);
@@ -287,9 +287,9 @@ test('runtime local lifecycle controller remains available only as non-product m
   assert.doesNotMatch(controllerSource, /from ['"]@runtime\/local-runtime['"]/);
   assert.doesNotMatch(controllerSource, /from ['"]runtime\/internal/);
   assert.doesNotMatch(controllerSource, /from ['"]@renderer\/bridge\/runtime-bridge\/local-ai['"]/);
-  assert.match(controllerSource, /localRuntime\.start\(localModelId, \{ caller: 'core' \}\)/);
-  assert.match(controllerSource, /localRuntime\.stop\(localModelId, \{ caller: 'core' \}\)/);
-  assert.match(controllerSource, /localRuntime\.remove\(localModelId, \{ caller: 'core' \}\)/);
+  assert.match(controllerSource, /runtimeConfigLocalModelCenterClient\.start\(localModelId, \{ caller: 'core' \}\)/);
+  assert.match(controllerSource, /runtimeConfigLocalModelCenterClient\.stop\(localModelId, \{ caller: 'core' \}\)/);
+  assert.match(controllerSource, /runtimeConfigLocalModelCenterClient\.remove\(localModelId, \{ caller: 'core' \}\)/);
   assert.match(controllerSource, /localModelLifecycleById: Record<string, string>/);
   assert.match(controllerSource, /setLifecycleState\(localModelId, 'starting', '', epoch\)/);
   assert.match(controllerSource, /setLifecycleState\(localModelId, 'stopping', '', epoch\)/);

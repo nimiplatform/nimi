@@ -1,30 +1,30 @@
 import { useEffect, useRef } from 'react';
 import type {
-  FirstRunInstallLevel,
-  PlatformAIProfileFactoryRow,
-} from '@nimiplatform/sdk/platform-catalog';
-import type { ProductControlState } from '@renderer/bridge';
+  NimiAppAIProfileFactoryRow,
+  NimiFirstRunInstallLevel,
+} from '@nimiplatform/sdk/app';
+import type { NimiProductControlState } from '@renderer/bridge';
 import {
-  repairFirstRunMaterializationDependency,
-  repairableConfirmedFirstRunMaterializationDependencies,
-  resolveFirstRunMaterializationProjection,
-  retryFirstRunMaterializationJob,
-  retryableInterruptedFirstRunMaterializationJobs,
-  shouldResumeConfirmedFirstRunMaterialization,
-  startFirstRunMaterialization,
-  type FirstRunMaterializationProjection,
+  repairDesktopNimiFirstRunMaterializationDependency,
+  repairableConfirmedNimiFirstRunMaterializationDependencies,
+  resolveDesktopNimiFirstRunMaterializationProjection,
+  retryDesktopNimiFirstRunMaterializationJob,
+  retryableInterruptedNimiFirstRunMaterializationJobsForProductState,
+  shouldResumeConfirmedNimiFirstRunMaterialization,
+  startDesktopNimiFirstRunMaterialization,
+  type NimiFirstRunMaterializationProjection,
 } from './runtime-materialization.js';
 
 type UseFirstRunMaterializationObserverInput = {
-  readonly selectedPlan: PlatformAIProfileFactoryRow | null;
+  readonly selectedPlan: NimiAppAIProfileFactoryRow | null;
   readonly selectedDataRoot: string | null;
-  readonly selectedInstallLevel: FirstRunInstallLevel | null;
-  readonly state: ProductControlState;
+  readonly selectedInstallLevel: NimiFirstRunInstallLevel | null;
+  readonly state: NimiProductControlState;
   readonly projectMaterialization: (
-    next: FirstRunMaterializationProjection,
-    observedProductState?: ProductControlState,
+    next: NimiFirstRunMaterializationProjection,
+    observedProductState?: NimiProductControlState,
   ) => Promise<void>;
-  readonly setMaterialization: (next: FirstRunMaterializationProjection | null) => void;
+  readonly setMaterialization: (next: NimiFirstRunMaterializationProjection | null) => void;
   readonly setPendingAction: (action: string | null) => void;
   readonly setError: (message: string | null) => void;
   readonly observeFailedFallback: string;
@@ -63,13 +63,13 @@ export function useFirstRunMaterializationObserver(
     let disposed = false;
     async function observe(): Promise<void> {
       try {
-        const next = await resolveFirstRunMaterializationProjection({
+        const next = await resolveDesktopNimiFirstRunMaterializationProjection({
           profile: observedPlan,
           runtimeDataRoot: observedDataRoot,
           installLevel: observedInstallLevel,
         });
         if (disposed) return;
-        if (shouldResumeConfirmedFirstRunMaterialization(observedProductState, next)) {
+        if (shouldResumeConfirmedNimiFirstRunMaterialization(observedProductState, next)) {
           if (resumingMaterializationRef.current) {
             await input.projectMaterialization(next, observedProductState);
             return;
@@ -77,7 +77,7 @@ export function useFirstRunMaterializationObserver(
           resumingMaterializationRef.current = true;
           input.setPendingAction('resume-materialization');
           try {
-            const resumed = await startFirstRunMaterialization({
+            const resumed = await startDesktopNimiFirstRunMaterialization({
               profile: observedPlan,
               runtimeDataRoot: observedDataRoot,
               installLevel: observedInstallLevel,
@@ -92,7 +92,7 @@ export function useFirstRunMaterializationObserver(
           }
           return;
         }
-        const retryableInterruptedJobs = retryableInterruptedFirstRunMaterializationJobs(
+        const retryableInterruptedJobs = retryableInterruptedNimiFirstRunMaterializationJobsForProductState(
           observedProductState,
           next,
         ).filter((job) => {
@@ -115,7 +115,7 @@ export function useFirstRunMaterializationObserver(
           input.setPendingAction('resume-materialization');
           try {
             await Promise.all(retryableInterruptedJobs.map((job) =>
-              retryFirstRunMaterializationJob({
+              retryDesktopNimiFirstRunMaterializationJob({
                 profile: observedPlan,
                 runtimeDataRoot: observedDataRoot,
                 installLevel: observedInstallLevel,
@@ -123,7 +123,7 @@ export function useFirstRunMaterializationObserver(
                 confirmed: true,
               }),
             ));
-            const resumed = await resolveFirstRunMaterializationProjection({
+            const resumed = await resolveDesktopNimiFirstRunMaterializationProjection({
               profile: observedPlan,
               runtimeDataRoot: observedDataRoot,
               installLevel: observedInstallLevel,
@@ -137,7 +137,7 @@ export function useFirstRunMaterializationObserver(
           }
           return;
         }
-        const repairableDependencies = repairableConfirmedFirstRunMaterializationDependencies(
+        const repairableDependencies = repairableConfirmedNimiFirstRunMaterializationDependencies(
           observedProductState,
           next,
         ).filter(({ dependency }) => {
@@ -161,7 +161,7 @@ export function useFirstRunMaterializationObserver(
           input.setPendingAction('resume-materialization');
           try {
             await Promise.all(repairableDependencies.map(({ dependency }) =>
-              repairFirstRunMaterializationDependency({
+              repairDesktopNimiFirstRunMaterializationDependency({
                 profile: observedPlan,
                 runtimeDataRoot: observedDataRoot,
                 installLevel: observedInstallLevel,
@@ -170,7 +170,7 @@ export function useFirstRunMaterializationObserver(
                 reasonCode: dependency.reasonCode ?? next.reason,
               }),
             ));
-            const repaired = await resolveFirstRunMaterializationProjection({
+            const repaired = await resolveDesktopNimiFirstRunMaterializationProjection({
               profile: observedPlan,
               runtimeDataRoot: observedDataRoot,
               installLevel: observedInstallLevel,

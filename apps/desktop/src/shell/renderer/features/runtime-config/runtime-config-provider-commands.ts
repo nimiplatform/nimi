@@ -10,7 +10,7 @@ import {
 import { runDiscoverLocalModelsCommand } from './runtime-config-connector-discover-command';
 import { runLocalHealthCheckCommand } from './runtime-config-connector-health-command';
 import {
-  formatRuntimeNimiErrorBanner as formatRuntimeConfigErrorBanner,
+  formatNimiRuntimeErrorBanner as formatRuntimeConfigErrorBanner,
 } from '@nimiplatform/sdk/runtime';
 
 export async function discoverLocalModelsCommand(input: DiscoverProviderCommandContext) {

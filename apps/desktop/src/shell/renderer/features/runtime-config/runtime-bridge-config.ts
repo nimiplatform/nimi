@@ -1,7 +1,7 @@
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import {
-  buildRuntimeBridgeConfigWithLocalEndpoint,
-  projectRuntimeBridgeLocalEndpoint,
+  buildNimiRuntimeBridgeConfigWithLocalEndpoint,
+  projectNimiRuntimeBridgeLocalEndpoint,
 } from '@nimiplatform/sdk/runtime';
 import type { JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
 
@@ -14,7 +14,7 @@ export function applyRuntimeBridgeConfigToState(
   state: RuntimeConfigStateV11,
   runtimeConfigRaw: JsonObject,
 ): RuntimeConfigStateV11 {
-  const endpointFromConfig = projectRuntimeBridgeLocalEndpoint(runtimeConfigRaw);
+  const endpointFromConfig = projectNimiRuntimeBridgeLocalEndpoint(runtimeConfigRaw);
 
   return {
     ...state,
@@ -34,5 +34,5 @@ export function buildRuntimeBridgeConfigFromLocalEndpoint(
   localEndpoint: string,
   baseConfigRaw: JsonObject,
 ): JsonObject {
-  return buildRuntimeBridgeConfigWithLocalEndpoint(baseConfigRaw, localEndpoint);
+  return buildNimiRuntimeBridgeConfigWithLocalEndpoint(baseConfigRaw, localEndpoint);
 }

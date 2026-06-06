@@ -1,5 +1,5 @@
-import type { UsageStatRecord } from '@nimiplatform/sdk/runtime';
-import { UsageWindow } from '@nimiplatform/sdk/runtime';
+import type { UsageStatRecord } from '@nimiplatform/sdk/runtime/generated';
+import { UsageWindow } from '@nimiplatform/sdk/runtime/generated';
 import { useTranslation } from 'react-i18next';
 import { Surface, Tooltip, cn } from '@nimiplatform/kit/ui';
 import { Button } from './runtime-config-primitives.js';

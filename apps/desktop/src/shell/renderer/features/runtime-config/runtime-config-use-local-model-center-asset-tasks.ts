@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { type LocalRuntimeVerifiedAssetDescriptor } from '@nimiplatform/sdk/runtime';
+import { type NimiRuntimeLocalVerifiedAssetDescriptor } from '@nimiplatform/sdk/runtime';
 import { PROGRESS_RETENTION_MS, type LocalModelCenterProps } from './runtime-config-model-center-utils';
 import {
   isAssetTaskTerminal,
@@ -9,7 +9,7 @@ import {
 
 export function useLocalModelCenterAssetTasks(input: {
   onInstallVerifiedAsset: LocalModelCenterProps['onInstallVerifiedAsset'];
-  verifiedAssetsByTemplateId: Map<string, LocalRuntimeVerifiedAssetDescriptor>;
+  verifiedAssetsByTemplateId: Map<string, NimiRuntimeLocalVerifiedAssetDescriptor>;
 }) {
   const [assetPendingTemplateIds, setAssetPendingTemplateIds] = useState<string[]>([]);
   const [assetTasks, setAssetTasks] = useState<AssetTaskEntry[]>([]);

@@ -7,8 +7,8 @@ import {
   cn,
   } from '@nimiplatform/kit/ui';
 import {
-  projectRuntimeRouteCapabilityCoverageList,
-  type RuntimeRouteCapabilityCoverageProjection,
+  projectNimiRuntimeRouteCapabilityCoverageList,
+  type NimiRuntimeRouteCapabilityCoverageProjection,
 } from '@nimiplatform/sdk/runtime';
 import {
   type RuntimeConfigStateV11,
@@ -60,8 +60,8 @@ const TONE_STYLES: Record<RuntimeTone, {
   },
 };
 
-function deriveCapabilityStatuses(state: RuntimeConfigStateV11): RuntimeRouteCapabilityCoverageProjection[] {
-  return projectRuntimeRouteCapabilityCoverageList({
+function deriveCapabilityStatuses(state: RuntimeConfigStateV11): NimiRuntimeRouteCapabilityCoverageProjection[] {
+  return projectNimiRuntimeRouteCapabilityCoverageList({
     localNodes: state.local.nodeMatrix,
     localModels: state.local.models,
     connectors: state.connectors,

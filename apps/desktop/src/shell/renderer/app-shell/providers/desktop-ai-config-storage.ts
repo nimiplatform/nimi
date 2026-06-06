@@ -8,14 +8,14 @@
  * Hard cut — no legacy migration, no backward-compat shim. Project is pre-launch.
  */
 
-import type { AIConfig, AIConfigStorageLike, AIScopeRef } from '@nimiplatform/sdk/ai';
+import type { NimiAIConfig, NimiAIHostStorage, NimiAIScopeRef } from '@nimiplatform/sdk/ai';
 import {
   resolveBrowserStorage,
 } from '@nimiplatform/kit/core/storage-json';
 import {
-  aiConfigScopeKeyFromRef,
-  createScopedAIConfigStore,
-  parseAIConfigScopeKey,
+  createNimiAIConfigStore,
+  encodeNimiAIScopeRef,
+  parseNimiAIScopeRefKey,
 } from '@nimiplatform/sdk/ai';
 
 // ---------------------------------------------------------------------------
@@ -26,30 +26,30 @@ const SCOPE_INDEX_KEY = 'nimi.ai-config.scope-index.v2';
 const SCOPE_CONFIG_PREFIX = 'nimi.ai-config.scope.';
 const SCOPE_CONFIG_SUFFIX = '.v2';
 
-function isStorageLike(value: unknown): value is AIConfigStorageLike {
+function isStorageLike(value: unknown): value is NimiAIHostStorage {
   return Boolean(value)
-    && typeof (value as AIConfigStorageLike).getItem === 'function'
-    && typeof (value as AIConfigStorageLike).setItem === 'function';
+    && typeof (value as NimiAIHostStorage).getItem === 'function'
+    && typeof (value as NimiAIHostStorage).setItem === 'function';
 }
 
-function getStorage(): AIConfigStorageLike | undefined {
+function getStorage(): NimiAIHostStorage | null {
   const storage = resolveBrowserStorage('local');
-  return isStorageLike(storage) ? storage : undefined;
+  return isStorageLike(storage) ? storage : null;
 }
 
 function isNonBrowserAIConfigStoreHarness(): boolean {
   return typeof window === 'undefined';
 }
 
-const scopedStore = createScopedAIConfigStore({
+const scopedStore = createNimiAIConfigStore({
   storage: () => getStorage(),
   indexKey: SCOPE_INDEX_KEY,
   configKeyForScope: (scopeKey) => storageKeyForScope(scopeKey),
   enableEphemeralStore: isNonBrowserAIConfigStoreHarness(),
 });
 
-export function scopeKeyFromRef(ref: AIScopeRef): string {
-  return aiConfigScopeKeyFromRef(ref);
+export function scopeKeyFromRef(ref: NimiAIScopeRef): string {
+  return encodeNimiAIScopeRef(ref);
 }
 
 function storageKeyForScope(scopeKey: string): string {
@@ -61,21 +61,21 @@ function storageKeyForScope(scopeKey: string): string {
 // ---------------------------------------------------------------------------
 
 /** Load AIConfig for a specific scope. Returns empty config if not found. */
-export function loadAIConfigForScope(scopeRef: AIScopeRef): AIConfig {
+export function loadAIConfigForScope(scopeRef: NimiAIScopeRef): NimiAIConfig {
   return scopedStore.load(scopeRef);
 }
 
 /** Persist AIConfig for a specific scope. */
-export function persistAIConfigForScope(config: AIConfig): void {
+export function persistAIConfigForScope(config: NimiAIConfig): void {
   scopedStore.save(config);
 }
 
 /** List all known scope keys from the index. */
 export function listPersistedScopeKeys(): string[] {
-  return scopedStore.listScopeKeys();
+  return scopedStore.listScopeRefs().map(encodeNimiAIScopeRef);
 }
 
 /** Parse a scope key string back to AIScopeRef. */
-export function parseScopeKey(key: string): AIScopeRef | null {
-  return parseAIConfigScopeKey(key);
+export function parseScopeKey(key: string): NimiAIScopeRef | null {
+  return parseNimiAIScopeRefKey(key);
 }

@@ -1,11 +1,10 @@
 import { useCallback, useRef, useState } from 'react';
-import {
-  localRuntime,
-  type GgufVariantDescriptor,
-  type LocalRuntimeAssetDeclaration,
-  type LocalRuntimeAssetRecord,
-  type LocalRuntimeCatalogItemDescriptor,
-  type LocalRuntimeDownloadProgressEvent,
+import type {
+  NimiRuntimeLocalAssetDeclaration,
+  NimiRuntimeLocalAssetRecord,
+  NimiRuntimeLocalCatalogItemDescriptor,
+  NimiRuntimeLocalCatalogVariantDescriptor,
+  NimiRuntimeLocalTransferProgressEvent,
 } from '@nimiplatform/sdk/runtime';
 import {
   pickLocalRuntimeAssetDirectory,
@@ -13,6 +12,7 @@ import {
   pickLocalRuntimeAssetManifestPath,
 } from '@renderer/bridge/runtime-bridge/local-runtime-os-helpers';
 import { i18n } from '@renderer/i18n';
+import { runtimeConfigLocalModelCenterClient } from './runtime-config-local-model-center-sdk-service';
 import {
   basenameFromRuntimePath,
   type LocalModelCenterProps,
@@ -22,7 +22,7 @@ import { useLocalModelCenterDownloads } from './runtime-config-use-local-model-c
 
 type UseLocalModelCenterImportActionsInput = {
   isProfileTargetMode: boolean;
-  onPrepareImportedAssetEnvironment?: (asset: LocalRuntimeAssetRecord) => Promise<void>;
+  onPrepareImportedAssetEnvironment?: (asset: NimiRuntimeLocalAssetRecord) => Promise<void>;
   onRefreshUnregisteredAssets: () => Promise<void>;
   onRefreshAssetSections: () => Promise<void>;
   onRefreshVerifiedModels: () => Promise<void>;
@@ -40,8 +40,8 @@ export function toAssetImportUserMessage(error: unknown): string {
 }
 
 export function useLocalModelCenterImportActions(input: UseLocalModelCenterImportActionsInput) {
-  const [variantPickerItem, setVariantPickerItem] = useState<LocalRuntimeCatalogItemDescriptor | null>(null);
-  const [variantList, setVariantList] = useState<GgufVariantDescriptor[]>([]);
+  const [variantPickerItem, setVariantPickerItem] = useState<NimiRuntimeLocalCatalogItemDescriptor | null>(null);
+  const [variantList, setVariantList] = useState<NimiRuntimeLocalCatalogVariantDescriptor[]>([]);
   const [variantError, setVariantError] = useState('');
   const [loadingVariants, setLoadingVariants] = useState(false);
   const [assetImportSessionByPath, setAssetImportSessionByPath] = useState<Record<string, string>>({});
@@ -62,7 +62,7 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
       void input.props.onDiscover().finally(() => {
         void input.onRefreshAssetSections();
         void input.onRefreshUnregisteredAssets();
-        void localRuntime.listAssets({ kind: 'image' }).then((assets) => Promise.all(
+        void runtimeConfigLocalModelCenterClient.listAssets({ kind: 'image' }).then((assets) => Promise.all(
           assets.map((asset) => input.onPrepareImportedAssetEnvironment?.(asset)),
         ));
       });
@@ -72,7 +72,7 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
     void input.onRefreshUnregisteredAssets();
   }, [input]);
 
-  const handleSettledDownload = useCallback((event: LocalRuntimeDownloadProgressEvent) => {
+  const handleSettledDownload = useCallback((event: NimiRuntimeLocalTransferProgressEvent) => {
     const orphanPath = Object.entries(assetImportSessionByPathRef.current)
       .find(([, sessionId]) => sessionId === event.installSessionId)?.[0];
     if (orphanPath) {
@@ -96,9 +96,9 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
 
   const handleImportedAsset = useCallback(async (
     assetPath: string,
-    imported: Awaited<ReturnType<typeof localRuntime.importAssetFile>> | {
+    imported: Awaited<ReturnType<typeof runtimeConfigLocalModelCenterClient.importAssetFile>> | {
       scaffolded: true;
-      model: Awaited<ReturnType<typeof localRuntime.scaffoldOrphanAsset>>;
+      model: Awaited<ReturnType<typeof runtimeConfigLocalModelCenterClient.scaffoldOrphanAsset>>;
     },
   ) => {
     if ('scaffolded' in imported && imported.scaffolded) {
@@ -117,14 +117,14 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
 
   const importManagedModelAssetFromPath = useCallback(async (
     assetPath: string,
-    declaration: LocalRuntimeAssetDeclaration,
+    declaration: NimiRuntimeLocalAssetDeclaration,
     endpoint?: string,
   ) => {
     const assetKind = declaration.assetKind;
     if (!assetKind) {
       throw new Error('assetKind is required for asset import');
     }
-    const accepted = await localRuntime.scaffoldOrphanAsset({
+    const accepted = await runtimeConfigLocalModelCenterClient.scaffoldOrphanAsset({
       path: assetPath,
       kind: assetKind,
       engine: declaration.engine,
@@ -135,7 +135,7 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
 
   const importAssetFromPath = useCallback(async (
     assetPath: string,
-    declaration: LocalRuntimeAssetDeclaration,
+    declaration: NimiRuntimeLocalAssetDeclaration,
     endpoint?: string,
   ) => {
     setImportingAssetPath(assetPath);
@@ -152,7 +152,7 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
   }, [handleImportedAsset, importManagedModelAssetFromPath]);
 
   const importPickedAssetFile = useCallback(async (
-    declaration: LocalRuntimeAssetDeclaration,
+    declaration: NimiRuntimeLocalAssetDeclaration,
     endpoint?: string,
   ) => {
     setAssetImportError('');
@@ -162,7 +162,7 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
     }
     setImportingAssetPath(filePath);
     try {
-      const imported = await localRuntime.importAssetFile({
+      const imported = await runtimeConfigLocalModelCenterClient.importAssetFile({
         filePath,
         declaration,
         endpoint: String(endpoint || '').trim() || undefined,
@@ -182,7 +182,7 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
     if (!manifestPath) {
       return;
     }
-    const imported = await localRuntime.importAssetManifest(manifestPath, {
+    const imported = await runtimeConfigLocalModelCenterClient.importAssetManifest(manifestPath, {
       caller: 'core',
       endpoint: String(endpoint || '').trim() || undefined,
     });
@@ -193,7 +193,7 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
   }, [input]);
 
   const importPickedAssetDirectory = useCallback(async (
-    declaration: LocalRuntimeAssetDeclaration,
+    declaration: NimiRuntimeLocalAssetDeclaration,
     endpoint?: string,
   ) => {
     setAssetImportError('');
@@ -208,7 +208,7 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
         throw new Error('assetKind is required for bundle import');
       }
       const assetName = basenameFromRuntimePath(directoryPath);
-      const imported = await localRuntime.importAssetBundle({
+      const imported = await runtimeConfigLocalModelCenterClient.importBundle({
         directoryPath,
         modelName: assetName || undefined,
         capabilities: capabilitiesForAssetKind(assetKind),
@@ -232,7 +232,7 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
     setVariantList([]);
   }, []);
 
-  const toggleVariantPicker = useCallback((item: LocalRuntimeCatalogItemDescriptor) => {
+  const toggleVariantPicker = useCallback((item: NimiRuntimeLocalCatalogItemDescriptor) => {
     if (variantPickerItem?.itemId === item.itemId) {
       closeVariantPicker();
       return;
@@ -241,8 +241,8 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
     setVariantList([]);
     setVariantError('');
     setLoadingVariants(true);
-    void localRuntime.listRepoVariants(item.repo).then((variants) => {
-      setVariantList(variants);
+    void runtimeConfigLocalModelCenterClient.listCatalogVariants(item.repo).then((variants) => {
+      setVariantList([...variants]);
       setLoadingVariants(false);
     }).catch((error) => {
       setVariantList([]);
@@ -258,13 +258,13 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
   }, [closeVariantPicker, variantPickerItem?.itemId]);
 
   const installCatalogVariant = useCallback(async (
-    item: LocalRuntimeCatalogItemDescriptor,
+    item: NimiRuntimeLocalCatalogItemDescriptor,
     variantFilename: string,
   ) => {
     const selectedVariant = variantList.find((variant) => variant.filename === variantFilename) || null;
     await input.props.onInstallCatalogItem(item, {
       entry: selectedVariant?.entry || variantFilename,
-      files: selectedVariant?.files || [variantFilename],
+      files: selectedVariant ? [...selectedVariant.files] : [variantFilename],
       capabilities: [String(item.capabilities[0] || 'chat').trim() || 'chat'],
       engine: String(item.engine || '').trim(),
     });

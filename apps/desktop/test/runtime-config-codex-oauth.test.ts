@@ -14,7 +14,7 @@ test('desktop managed OAuth adapter delegates acquisition truth to SDK', () => {
     'apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-codex-oauth.ts',
   );
 
-  assert.match(adapterSource, /acquireManagedConnectorCredential/);
+  assert.match(adapterSource, /acquireNimiManagedConnectorCredential/);
   assert.doesNotMatch(adapterSource, /CODEX_OAUTH_/);
   assert.doesNotMatch(adapterSource, /auth\.openai\.com/);
   assert.doesNotMatch(adapterSource, /deviceauth/);

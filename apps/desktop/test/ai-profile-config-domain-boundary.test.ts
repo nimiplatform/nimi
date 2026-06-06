@@ -28,7 +28,9 @@ test('Desktop consumes factory AIProfile projections without owning catalog rows
   assert.match(desktopFactoryIndex, /materialize_factory_profile_index_projection/);
   assert.doesNotMatch(desktopFactoryIndex, /PlatformAIProfileFactoryRow\s*\{/);
 
-  assert.match(firstRunWorkflow, /from '@nimiplatform\/sdk\/platform-catalog'/);
+  assert.match(firstRunWorkflow, /from '@nimiplatform\/sdk\/app'/);
+  assert.match(firstRunWorkflow, /loadNimiAppAIProfileFactoryRows/);
+  assert.match(firstRunWorkflow, /selectNimiAppFactoryAIProfileForFirstRun/);
   assert.doesNotMatch(firstRunWorkflow, /install-level-policy/);
 });
 
@@ -117,8 +119,8 @@ test('Account Default Profile library is account-local evidence, not scope AICon
   assert.doesNotMatch(accountProfileFiles, /aiConfig|aiProfile\.apply/);
 
   assert.match(accountProfileBridge, /from '@nimiplatform\/sdk\/ai'/);
-  assert.match(accountProfileBridge, /parseAccountProfileLibraryProjection/);
-  assert.match(accountProfileBridge, /parseExportedAccountProfileLibraryProfiles/);
+  assert.match(accountProfileBridge, /parseNimiAccountProfileLibraryProjection/);
+  assert.match(accountProfileBridge, /parseExportedNimiAccountProfileLibraryProfiles/);
   assert.doesNotMatch(accountProfileBridge, /localStorage|sessionStorage/);
 
   assert.match(profilePage, /ModelConfigAiModelHub/);

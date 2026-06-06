@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   runtimeConfigCatalogClient,
-  type RuntimeCatalogPricing,
+  type NimiRuntimeCatalogPricing,
 } from './runtime-config-catalog-sdk-service.js';
 
 export type PricingEntry = {
   provider: string;
-  pricing: RuntimeCatalogPricing;
+  pricing: NimiRuntimeCatalogPricing;
 };
 
 type PricingIndexState = {

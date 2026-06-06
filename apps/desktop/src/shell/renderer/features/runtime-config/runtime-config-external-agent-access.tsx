@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { getPlatformClient } from '@nimiplatform/sdk';
 import {
-  createHostRuntimeExternalAgentAccessSurface,
-  type ExternalAgentTokenLedgerRecord,
+  createNimiRuntimeExternalAgentAccessSurface,
+  type NimiExternalAgentTokenLedgerRecord,
 } from '@nimiplatform/sdk/runtime';
 import { Surface, cn } from '@nimiplatform/kit/ui';
+import { getDesktopRuntime } from '@renderer/infra/sdk/desktop-nimi-client-session';
 import { Button } from './runtime-config-primitives';
 import {
   CheckIcon,
@@ -25,8 +25,8 @@ import {
 import { ExternalAgentIssueTokenForm } from './runtime-config-external-agent-issue-token-form';
 import { ExternalAgentTokenTable } from './runtime-config-external-agent-token-table';
 
-const externalAgentAccess = createHostRuntimeExternalAgentAccessSurface({
-  getRuntime: () => getPlatformClient().runtime,
+const externalAgentAccess = createNimiRuntimeExternalAgentAccessSurface({
+  getExternalAgents: () => getDesktopRuntime().externalAgents,
 });
 
 export function ExternalAgentAccessPanel() {
@@ -51,7 +51,7 @@ export function ExternalAgentAccessPanel() {
   const [busy, setBusy] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const [tokens, setTokens] = useState<ExternalAgentTokenLedgerRecord[]>([]);
+  const [tokens, setTokens] = useState<NimiExternalAgentTokenLedgerRecord[]>([]);
   const [copiedBindAddress, setCopiedBindAddress] = useState(false);
   const [filter, setFilter] = useState<TokenFilter>('all');
   const [showIssueForm, setShowIssueForm] = useState(false);
@@ -78,7 +78,7 @@ export function ExternalAgentAccessPanel() {
         reasonCode: status.reasonCode,
         errored: false,
       });
-      setTokens(rows);
+      setTokens([...rows]);
     } catch (error) {
       setGatewayStatus({
         enabled: false,

@@ -17,15 +17,17 @@ const desktopWizardTest = readFileSync(
   'utf8',
 );
 test('Desktop first-run materialization does not re-export SDK-owned materialization truth', () => {
-  assert.doesNotMatch(desktopRuntimeMaterialization, /export\s+\{\s*FIRST_RUN_MATERIALIZATION_CONSUMER_SCOPE/);
+  assert.doesNotMatch(desktopRuntimeMaterialization, /export\s+\{\s*NIMI_FIRST_RUN_MATERIALIZATION_CONSUMER_SCOPE/);
   assert.equal(existsSync(desktopFirstRunIndexPath), false);
   assert.match(
     desktopRuntimeMaterialization,
-    /productStateForMaterializationStatus[\s\S]*@nimiplatform\/sdk\/runtime/,
+    /productStateForNimiFirstRunMaterializationStatus[\s\S]*@nimiplatform\/sdk\/runtime/,
   );
-  assert.doesNotMatch(desktopRuntimeMaterialization, /export function productStateForMaterializationStatus/);
+  assert.doesNotMatch(desktopRuntimeMaterialization, /export function productStateForNimiFirstRunMaterializationStatus/);
   assert.doesNotMatch(desktopRuntimeMaterialization, /function withProductState/);
-  assert.match(desktopRuntimeMaterialization, /localRuntime/);
+  assert.match(desktopRuntimeMaterialization, /firstRunRuntimeLocalClient/);
+  assert.match(desktopRuntimeMaterialization, /resolveNimiFirstRunMaterializationProjection/);
+  assert.doesNotMatch(desktopRuntimeMaterialization, /\blocalRuntime\b/);
 });
 
 test('Desktop first-run materialization tests do not retain SDK-only behavior cases', () => {
@@ -33,7 +35,7 @@ test('Desktop first-run materialization tests do not retain SDK-only behavior ca
     'waiting for lock on uv cache',
     'model file hash mismatch',
     'job-stale-failed',
-    'aggregateMaterializationDownloadProgress projects Runtime job progress',
+    'aggregateNimiFirstRunMaterializationDownloadProgress projects Runtime job progress',
   ]) {
     assert.doesNotMatch(desktopResumeTest, new RegExp(sdkOnlyEvidence));
     assert.doesNotMatch(desktopWizardTest, new RegExp(sdkOnlyEvidence));
