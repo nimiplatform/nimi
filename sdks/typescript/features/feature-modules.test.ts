@@ -7,6 +7,7 @@ import {
   MemoryRecordKind,
   ReasonCode,
   RoutePolicy,
+  type RuntimeTypedCallOptions,
   ScenarioJobEventType,
   ScenarioJobStatus,
   ScenarioType,
@@ -275,6 +276,7 @@ test('generation feature transitions jobs and collects artifacts', () => {
 
 test('Runtime-bound generation client uses Scenario jobs and Runtime artifacts', async () => {
   const submitRequests: ReturnType<typeof buildNimiRuntimeGenerationSubmitRequest>[] = [];
+  const submitOptions: RuntimeTypedCallOptions[] = [];
   const runtimeJob = {
     jobId: 'job-runtime-1',
     scenarioType: ScenarioType.IMAGE_GENERATE,
@@ -297,8 +299,12 @@ test('Runtime-bound generation client uses Scenario jobs and Runtime artifacts',
     head: { appId: 'app-1', modelId: 'image-model', routePolicy: 'local' },
     runtime: {
       ai: {
-        async submitScenarioJob(request) {
+        async submitScenarioJob(
+          request: ReturnType<typeof buildNimiRuntimeGenerationSubmitRequest>,
+          options?: RuntimeTypedCallOptions,
+        ) {
           submitRequests.push(request);
+          submitOptions.push(options ?? {});
           return { job: runtimeJob };
         },
         async getScenarioJob() {
@@ -378,6 +384,7 @@ test('Runtime-bound generation client uses Scenario jobs and Runtime artifacts',
 
   assert.equal(submitted.status, 'submitted');
   assert.equal(submitRequests[0]?.executionMode, ExecutionMode.ASYNC_JOB);
+  assert.equal(submitOptions[0]?.metadata?.idempotencyKey, 'idempotency-1');
   assert.equal(submitRequests[0]?.spec?.spec.oneofKind, 'imageGenerate');
   assert.equal((await runtime.get('job-runtime-1')).artifacts[0]?.kind, 'image');
   assert.equal((await runtime.artifacts('job-runtime-1'))[0]?.uri, 'runtime://artifact-1');
@@ -392,6 +399,7 @@ test('Runtime-bound generation client uses Scenario jobs and Runtime artifacts',
 
 test('Runtime speech transcription helper runs Scenario job and extracts typed transcript', async () => {
   const submitRequests: ReturnType<typeof buildNimiRuntimeGenerationSubmitRequest>[] = [];
+  const submitOptions: RuntimeTypedCallOptions[] = [];
   const runtimeJob = {
     jobId: 'job-stt-1',
     scenarioType: ScenarioType.SPEECH_TRANSCRIBE,
@@ -411,8 +419,12 @@ test('Runtime speech transcription helper runs Scenario job and extracts typed t
     progressTotalSteps: 0,
   };
   const runtime = {
-    async submitScenarioJob(request) {
+    async submitScenarioJob(
+      request: ReturnType<typeof buildNimiRuntimeGenerationSubmitRequest>,
+      options?: RuntimeTypedCallOptions,
+    ) {
       submitRequests.push(request);
+      submitOptions.push(options ?? {});
       return { job: runtimeJob };
     },
     async getScenarioJob() {
@@ -459,6 +471,7 @@ test('Runtime speech transcription helper runs Scenario job and extracts typed t
   assert.equal(result.text, 'hello from speech');
   assert.equal(result.traceId, 'trace-artifacts');
   assert.equal(submitRequests[0]?.scenarioType, ScenarioType.SPEECH_TRANSCRIBE);
+  assert.equal(submitOptions[0]?.metadata?.idempotencyKey, 'idem-stt');
   assert.equal(submitRequests[0]?.spec.spec.oneofKind, 'speechTranscribe');
   if (submitRequests[0]?.spec.spec.oneofKind === 'speechTranscribe') {
     assert.equal(submitRequests[0].spec.spec.speechTranscribe.mimeType, 'audio/webm');

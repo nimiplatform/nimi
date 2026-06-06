@@ -1,0 +1,486 @@
+version: 1
+provider: mimo
+catalog_version: 2026-06-06-mimo-v2-5
+inventory_mode: static_source
+default_text_model: mimo-v2.5-pro
+models:
+  - model_id: mimo-v2.5-pro
+    provider: mimo
+    model_type: chat
+    updated_at: 2026-06-02
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-06-02
+      notes: Current MiMo Pro text model. The older mimo-v2-pro name is officially forwarded to V2.5 until 2026-06-30 and is not selected by runtime defaults.
+    source_ref:
+      url: https://platform.xiaomimimo.com/docs/zh-CN/quick-start/model
+      retrieved_at: 2026-06-06
+      note: Xiaomi MiMo official model and rate-limit page updated 2026-06-02.
+  - model_id: mimo-v2-pro
+    provider: mimo
+    model_type: chat
+    updated_at: 2026-06-02
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-06-02
+      notes: Current MiMo Pro text model. The older mimo-v2-pro name is officially forwarded to V2.5 until 2026-06-30 and is not selected by runtime defaults.
+    source_ref:
+      url: https://platform.xiaomimimo.com/docs/zh-CN/quick-start/model
+      retrieved_at: 2026-06-06
+      note: Xiaomi MiMo official model and rate-limit page updated 2026-06-02.
+  - model_id: mimo-v2.5
+    provider: mimo
+    model_type: chat
+    updated_at: 2026-06-02
+    capabilities:
+      - text.generate
+      - text.generate.vision
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-06-02
+      notes: Current MiMo Omni-family multimodal text route. The older mimo-v2-omni name is officially forwarded to V2.5 until 2026-06-30 and is not selected by runtime defaults.
+    source_ref:
+      url: https://platform.xiaomimimo.com/docs/zh-CN/quick-start/model
+      retrieved_at: 2026-06-06
+      note: Xiaomi MiMo official model and rate-limit page updated 2026-06-02.
+  - model_id: mimo-v2-omni
+    provider: mimo
+    model_type: chat
+    updated_at: 2026-06-02
+    capabilities:
+      - text.generate
+      - text.generate.vision
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-06-02
+      notes: Current MiMo Omni-family multimodal text route. The older mimo-v2-omni name is officially forwarded to V2.5 until 2026-06-30 and is not selected by runtime defaults.
+    source_ref:
+      url: https://platform.xiaomimimo.com/docs/zh-CN/quick-start/model
+      retrieved_at: 2026-06-06
+      note: Xiaomi MiMo official model and rate-limit page updated 2026-06-02.
+  - model_id: mimo-v2-flash
+    provider: mimo
+    model_type: chat
+    updated_at: 2026-06-02
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-06-02
+      notes: Current MiMo Flash text model; pricing is not normalized in the official model table.
+    source_ref:
+      url: https://platform.xiaomimimo.com/docs/zh-CN/quick-start/model
+      retrieved_at: 2026-06-06
+      note: Xiaomi MiMo official model and rate-limit page updated 2026-06-02.
+  - model_id: mimo-v2.5-asr
+    provider: mimo
+    model_type: stt
+    updated_at: 2026-06-02
+    capabilities:
+      - audio.transcribe
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-06-02
+      notes: Current MiMo ASR model. Official API uses chat completions with inline audio data URI.
+    source_ref:
+      url: https://platform.xiaomimimo.com/docs/zh-CN/quick-start/model
+      retrieved_at: 2026-06-06
+      note: Xiaomi MiMo official model and rate-limit page updated 2026-06-02.
+    transcription:
+      tiers:
+        - core_transcript
+      response_formats:
+        - text
+      supports_language: true
+  - model_id: mimo-v2.5-tts
+    provider: mimo
+    model_type: tts
+    updated_at: 2026-05-28
+    capabilities:
+      - audio.synthesize
+    pricing:
+      unit: char
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-05-28
+      notes: Current MiMo V2.5 preset TTS model. Official guide marks V2.5 TTS billing as temporarily free at retrieval time.
+    source_ref:
+      url: https://platform.xiaomimimo.com/docs/zh-CN/quick-start/model
+      retrieved_at: 2026-06-06
+      note: Xiaomi MiMo official model and rate-limit page updated 2026-06-02.
+    voice_set_id: mimo:tts_preset_v25
+    voice_discovery_mode: static_catalog
+    voice_request_options:
+      timing_modes:
+        - none
+      audio_formats:
+        - wav
+    voice_ref_kinds:
+      - preset_voice_id
+      - provider_voice_ref
+  - model_id: mimo-v2.5-tts-voicedesign
+    provider: mimo
+    model_type: tts
+    updated_at: 2026-05-28
+    capabilities:
+      - audio.synthesize
+    pricing:
+      unit: char
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-05-28
+      notes: Current MiMo V2.5 voice-design TTS model. The user message carries the voice design prompt; no preset voice or audio sample is accepted.
+    source_ref:
+      url: https://platform.xiaomimimo.com/docs/zh-CN/quick-start/model
+      retrieved_at: 2026-06-06
+      note: Xiaomi MiMo official model and rate-limit page updated 2026-06-02.
+    voice_set_id: mimo:mimo-v2-5-tts-voicedesign-dynamic
+    voice_discovery_mode: dynamic_user_scoped
+    voice_request_options:
+      timing_modes:
+        - none
+      audio_formats:
+        - wav
+    voice_ref_kinds:
+      - voice_asset_id
+      - provider_voice_ref
+  - model_id: mimo-v2.5-tts-voiceclone
+    provider: mimo
+    model_type: tts
+    updated_at: 2026-05-28
+    capabilities:
+      - audio.synthesize
+    pricing:
+      unit: char
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-05-28
+      notes: Current MiMo V2.5 voice-clone TTS model. The audio.voice field must carry a wav/mp3 data URI sample no larger than the provider limit.
+    source_ref:
+      url: https://platform.xiaomimimo.com/docs/zh-CN/quick-start/model
+      retrieved_at: 2026-06-06
+      note: Xiaomi MiMo official model and rate-limit page updated 2026-06-02.
+    voice_set_id: mimo:mimo-v2-5-tts-voiceclone-dynamic
+    voice_discovery_mode: dynamic_user_scoped
+    voice_request_options:
+      timing_modes:
+        - none
+      audio_formats:
+        - wav
+    voice_ref_kinds:
+      - voice_asset_id
+      - provider_voice_ref
+  - model_id: mimo-v2-tts
+    provider: mimo
+    model_type: tts
+    updated_at: 2026-05-22
+    capabilities:
+      - audio.synthesize
+    pricing:
+      unit: char
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-05-22
+      notes: MiMo V2 preset TTS model retained in the current official model table.
+    source_ref:
+      url: https://platform.xiaomimimo.com/docs/zh-CN/quick-start/model
+      retrieved_at: 2026-06-06
+      note: Xiaomi MiMo official model and rate-limit page updated 2026-06-02.
+    voice_set_id: mimo:tts_preset_v2
+    voice_discovery_mode: static_catalog
+    voice_request_options:
+      timing_modes:
+        - none
+      audio_formats:
+        - wav
+    voice_ref_kinds:
+      - preset_voice_id
+      - provider_voice_ref
+voices:
+  - voice_id: mimo_default
+    voice_set_id: mimo:tts_preset_v25
+    provider: mimo
+    name: MiMo Default
+    langs:
+      - zh
+      - en
+    model_ids:
+      - mimo-v2.5-tts
+    source_ref:
+      url: https://platform.xiaomimimo.com/docs/zh-CN/usage-guide/speech-synthesis-v2.5
+      retrieved_at: 2026-06-06
+      note: Xiaomi MiMo V2.5 TTS guide covering preset voices and chat completion audio output.
+  - voice_id: 冰糖
+    voice_set_id: mimo:tts_preset_v25
+    provider: mimo
+    name: Bing Tang
+    langs:
+      - zh
+    model_ids:
+      - mimo-v2.5-tts
+    source_ref:
+      url: https://platform.xiaomimimo.com/docs/zh-CN/usage-guide/speech-synthesis-v2.5
+      retrieved_at: 2026-06-06
+      note: Xiaomi MiMo V2.5 TTS guide covering preset voices and chat completion audio output.
+  - voice_id: 茉莉
+    voice_set_id: mimo:tts_preset_v25
+    provider: mimo
+    name: Mo Li
+    langs:
+      - zh
+    model_ids:
+      - mimo-v2.5-tts
+    source_ref:
+      url: https://platform.xiaomimimo.com/docs/zh-CN/usage-guide/speech-synthesis-v2.5
+      retrieved_at: 2026-06-06
+      note: Xiaomi MiMo V2.5 TTS guide covering preset voices and chat completion audio output.
+  - voice_id: 苏打
+    voice_set_id: mimo:tts_preset_v25
+    provider: mimo
+    name: Su Da
+    langs:
+      - zh
+    model_ids:
+      - mimo-v2.5-tts
+    source_ref:
+      url: https://platform.xiaomimimo.com/docs/zh-CN/usage-guide/speech-synthesis-v2.5
+      retrieved_at: 2026-06-06
+      note: Xiaomi MiMo V2.5 TTS guide covering preset voices and chat completion audio output.
+  - voice_id: 白桦
+    voice_set_id: mimo:tts_preset_v25
+    provider: mimo
+    name: Bai Hua
+    langs:
+      - zh
+    model_ids:
+      - mimo-v2.5-tts
+    source_ref:
+      url: https://platform.xiaomimimo.com/docs/zh-CN/usage-guide/speech-synthesis-v2.5
+      retrieved_at: 2026-06-06
+      note: Xiaomi MiMo V2.5 TTS guide covering preset voices and chat completion audio output.
+  - voice_id: Mia
+    voice_set_id: mimo:tts_preset_v25
+    provider: mimo
+    name: Mia
+    langs:
+      - en
+    model_ids:
+      - mimo-v2.5-tts
+    source_ref:
+      url: https://platform.xiaomimimo.com/docs/zh-CN/usage-guide/speech-synthesis-v2.5
+      retrieved_at: 2026-06-06
+      note: Xiaomi MiMo V2.5 TTS guide covering preset voices and chat completion audio output.
+  - voice_id: Chloe
+    voice_set_id: mimo:tts_preset_v25
+    provider: mimo
+    name: Chloe
+    langs:
+      - en
+    model_ids:
+      - mimo-v2.5-tts
+    source_ref:
+      url: https://platform.xiaomimimo.com/docs/zh-CN/usage-guide/speech-synthesis-v2.5
+      retrieved_at: 2026-06-06
+      note: Xiaomi MiMo V2.5 TTS guide covering preset voices and chat completion audio output.
+  - voice_id: Milo
+    voice_set_id: mimo:tts_preset_v25
+    provider: mimo
+    name: Milo
+    langs:
+      - en
+    model_ids:
+      - mimo-v2.5-tts
+    source_ref:
+      url: https://platform.xiaomimimo.com/docs/zh-CN/usage-guide/speech-synthesis-v2.5
+      retrieved_at: 2026-06-06
+      note: Xiaomi MiMo V2.5 TTS guide covering preset voices and chat completion audio output.
+  - voice_id: Dean
+    voice_set_id: mimo:tts_preset_v25
+    provider: mimo
+    name: Dean
+    langs:
+      - en
+    model_ids:
+      - mimo-v2.5-tts
+    source_ref:
+      url: https://platform.xiaomimimo.com/docs/zh-CN/usage-guide/speech-synthesis-v2.5
+      retrieved_at: 2026-06-06
+      note: Xiaomi MiMo V2.5 TTS guide covering preset voices and chat completion audio output.
+  - voice_id: mimo_default
+    voice_set_id: mimo:tts_preset_v2
+    provider: mimo
+    name: MiMo Default
+    langs:
+      - zh
+      - en
+    model_ids:
+      - mimo-v2-tts
+    source_ref:
+      url: https://platform.xiaomimimo.com/docs/zh-CN/usage-guide/speech-synthesis
+      retrieved_at: 2026-06-06
+      note: Xiaomi MiMo V2 TTS guide covering mimo-v2-tts and its default preset voices.
+  - voice_id: default_zh
+    voice_set_id: mimo:tts_preset_v2
+    provider: mimo
+    name: MiMo Chinese Female
+    langs:
+      - zh
+    model_ids:
+      - mimo-v2-tts
+    source_ref:
+      url: https://platform.xiaomimimo.com/docs/zh-CN/usage-guide/speech-synthesis
+      retrieved_at: 2026-06-06
+      note: Xiaomi MiMo V2 TTS guide covering mimo-v2-tts and its default preset voices.
+  - voice_id: default_en
+    voice_set_id: mimo:tts_preset_v2
+    provider: mimo
+    name: MiMo English Female
+    langs:
+      - en
+    model_ids:
+      - mimo-v2-tts
+    source_ref:
+      url: https://platform.xiaomimimo.com/docs/zh-CN/usage-guide/speech-synthesis
+      retrieved_at: 2026-06-06
+      note: Xiaomi MiMo V2 TTS guide covering mimo-v2-tts and its default preset voices.
+  - voice_id: user-custom
+    voice_set_id: mimo:mimo-v2-5-tts-voicedesign-dynamic
+    provider: mimo
+    name: User Custom Voice
+    langs:
+      - zh
+      - en
+    model_ids:
+      - mimo-v2.5-tts-voicedesign
+    source_ref:
+      url: https://platform.xiaomimimo.com/docs/zh-CN/quick-start/model
+      retrieved_at: 2026-06-06
+      note: Xiaomi MiMo official model and rate-limit page updated 2026-06-02.
+  - voice_id: user-custom
+    voice_set_id: mimo:mimo-v2-5-tts-voiceclone-dynamic
+    provider: mimo
+    name: User Custom Voice
+    langs:
+      - zh
+      - en
+    model_ids:
+      - mimo-v2.5-tts-voiceclone
+    source_ref:
+      url: https://platform.xiaomimimo.com/docs/zh-CN/quick-start/model
+      retrieved_at: 2026-06-06
+      note: Xiaomi MiMo official model and rate-limit page updated 2026-06-02.
+selection_profiles:
+  - provider: mimo
+    profile_id: text.general
+    capability: text.generate
+    model_id: mimo-v2.5-pro
+    reviewed_at: 2026-06-06
+    freshness_sla_days: 21
+    rationale: Current MiMo Pro text route with the strongest published context and output limits.
+  - provider: mimo
+    profile_id: text.fast
+    capability: text.generate
+    model_id: mimo-v2-flash
+    reviewed_at: 2026-06-06
+    freshness_sla_days: 21
+    rationale: Current MiMo Flash text route for lower-latency and lower-cost text generation.
+  - provider: mimo
+    profile_id: text.reasoning
+    capability: text.generate
+    model_id: mimo-v2.5-pro
+    reviewed_at: 2026-06-06
+    freshness_sla_days: 21
+    rationale: Current Pro route advertises deep-thinking support and the largest published text limits.
+voice_workflow_models:
+  - workflow_model_id: mimo-v2.5-tts-voiceclone
+    workflow_type: voice_clone
+    input_contract_ref: mimo_voice_clone_input_v1
+    output_persistence: session_ephemeral
+    request_options:
+      text_prompt_mode: optional
+      supports_language_hints: false
+      supports_preferred_name: false
+      reference_audio_uri_input: true
+      reference_audio_bytes_input: true
+      allowed_reference_audio_mime_types:
+        - audio/wav
+        - audio/mpeg
+        - audio/mp3
+    target_model_refs:
+      - mimo-v2.5-tts-voiceclone
+    source_ref:
+      url: https://platform.xiaomimimo.com/docs/zh-CN/usage-guide/speech-synthesis-v2.5
+      retrieved_at: 2026-06-06
+      note: Xiaomi MiMo V2.5 TTS guide covering preset voices and chat completion audio output.
+    langs:
+      - zh
+      - en
+  - workflow_model_id: mimo-v2.5-tts-voicedesign
+    workflow_type: voice_design
+    input_contract_ref: mimo_voice_design_input_v1
+    output_persistence: session_ephemeral
+    request_options:
+      instruction_text_mode: required
+      preview_text_mode: optional
+      supports_language: false
+      supports_preferred_name: false
+    target_model_refs:
+      - mimo-v2.5-tts-voicedesign
+    source_ref:
+      url: https://platform.xiaomimimo.com/docs/zh-CN/usage-guide/speech-synthesis-v2.5
+      retrieved_at: 2026-06-06
+      note: Xiaomi MiMo V2.5 TTS guide covering preset voices and chat completion audio output.
+    langs:
+      - zh
+      - en
+model_workflow_bindings:
+  - model_id: mimo-v2.5-tts-voiceclone
+    workflow_model_refs:
+      - mimo-v2.5-tts-voiceclone
+    workflow_types:
+      - voice_clone
+  - model_id: mimo-v2.5-tts-voicedesign
+    workflow_model_refs:
+      - mimo-v2.5-tts-voicedesign
+    workflow_types:
+      - voice_design
+voice_handle_policies:
+  - policy_id: mimo_runtime_session_ephemeral_default
+    applies_to_workflow_types:
+      - voice_clone
+      - voice_design
+    persistence: session_ephemeral
+    default_ttl: session
+    scope: user_scoped
+    delete_semantics: runtime_authoritative_delete
+    runtime_reconciliation_required: false
+    source_ref:
+      url: https://platform.xiaomimimo.com/docs/zh-CN/usage-guide/speech-synthesis-v2.5
+      retrieved_at: 2026-06-06
+      note: Xiaomi MiMo V2.5 TTS guide covering preset voices and chat completion audio output.

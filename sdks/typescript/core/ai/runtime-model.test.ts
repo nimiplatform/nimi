@@ -17,14 +17,21 @@ import {
   createNimiRuntimeAIModel,
   type NimiRuntimeAIScenarioClient,
 } from './index';
+import type { RuntimeTypedCallOptions } from '../../core-generated/runtime-typed-client';
 import { textPart } from '../contracts';
 
 class FakeScenarioClient implements NimiRuntimeAIScenarioClient {
   executeRequests: ExecuteScenarioRequest[] = [];
   streamRequests: StreamScenarioRequest[] = [];
+  executeOptions: RuntimeTypedCallOptions[] = [];
+  streamOptions: RuntimeTypedCallOptions[] = [];
 
-  async executeScenario(request: ExecuteScenarioRequest): Promise<ExecuteScenarioResponse> {
+  async executeScenario(
+    request: ExecuteScenarioRequest,
+    options?: RuntimeTypedCallOptions,
+  ): Promise<ExecuteScenarioResponse> {
     this.executeRequests.push(request);
+    this.executeOptions.push(options ?? {});
     return {
       output: {
         output: {
@@ -41,8 +48,12 @@ class FakeScenarioClient implements NimiRuntimeAIScenarioClient {
     };
   }
 
-  async *streamScenario(request: StreamScenarioRequest): AsyncIterable<StreamScenarioEvent> {
+  async *streamScenario(
+    request: StreamScenarioRequest,
+    options?: RuntimeTypedCallOptions,
+  ): AsyncIterable<StreamScenarioEvent> {
     this.streamRequests.push(request);
+    this.streamOptions.push(options ?? {});
     yield {
       eventType: 1,
       sequence: '1',
@@ -150,6 +161,7 @@ test('Runtime-backed Nimi AI maps generateText to Runtime Scenario text_generate
   assert.equal(request?.head?.fallback, FallbackPolicy.DENY);
   assert.equal(request?.head?.routePolicy, RoutePolicy.LOCAL);
   assert.equal(request?.head?.connectorId, 'connector-1');
+  assert.match(client.executeOptions[0]?.metadata?.idempotencyKey ?? '', /^runtime-ai-/);
   assert.equal(request?.spec?.spec.oneofKind, 'textGenerate');
   assert.equal(request?.spec?.spec.oneofKind === 'textGenerate' ? request.spec.spec.textGenerate.systemPrompt : '', 'You are precise.');
   assert.equal(request?.spec?.spec.oneofKind === 'textGenerate' ? request.spec.spec.textGenerate.input[0]?.content : '', 'Say hello.');
@@ -173,6 +185,7 @@ test('Runtime-backed Nimi AI maps streamScenario to Nimi run events', async () =
 
   assert.equal(client.streamRequests[0]?.executionMode, ExecutionMode.STREAM);
   assert.equal(client.streamRequests[0]?.head?.routePolicy, RoutePolicy.CLOUD);
+  assert.match(client.streamOptions[0]?.metadata?.idempotencyKey ?? '', /^runtime-ai-/);
   assert.equal(collected.text, 'hello ');
   assert.equal(collected.finishReason, 'stop');
   assert.deepEqual(collected.usage, { promptTokens: 7, completionTokens: 3, totalTokens: 10 });

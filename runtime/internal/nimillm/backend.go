@@ -295,12 +295,13 @@ func (b *Backend) GenerateText(ctx context.Context, modelID string, input []*run
 		return b.generateTextCodexResponses(ctx, modelID, input, systemPrompt, temperature, topP, maxTokens)
 	}
 	type chatRequest struct {
-		Model       string   `json:"model"`
-		Messages    any      `json:"messages"`
-		Temperature *float32 `json:"temperature,omitempty"`
-		TopP        *float32 `json:"top_p,omitempty"`
-		MaxTokens   *int32   `json:"max_tokens,omitempty"`
-		Stream      bool     `json:"stream"`
+		Model               string   `json:"model"`
+		Messages            any      `json:"messages"`
+		Temperature         *float32 `json:"temperature,omitempty"`
+		TopP                *float32 `json:"top_p,omitempty"`
+		MaxTokens           *int32   `json:"max_tokens,omitempty"`
+		MaxCompletionTokens *int32   `json:"max_completion_tokens,omitempty"`
+		Stream              bool     `json:"stream"`
 	}
 
 	messages, err := buildTextChatMessages(ctx, systemPrompt, input, b)
@@ -323,7 +324,11 @@ func (b *Backend) GenerateText(ctx context.Context, modelID string, input []*run
 	}
 	if maxTokens > 0 {
 		max := maxTokens
-		reqBody.MaxTokens = &max
+		if b.supportsMimoChatCompletions() || isMimoModelID(modelID) {
+			reqBody.MaxCompletionTokens = &max
+		} else {
+			reqBody.MaxTokens = &max
+		}
 	}
 
 	respBody := map[string]any{}
@@ -384,13 +389,14 @@ func (b *Backend) StreamGenerateText(ctx context.Context, modelID string, input 
 		IncludeUsage bool `json:"include_usage"`
 	}
 	type chatRequest struct {
-		Model         string         `json:"model"`
-		Messages      any            `json:"messages"`
-		Temperature   *float32       `json:"temperature,omitempty"`
-		TopP          *float32       `json:"top_p,omitempty"`
-		MaxTokens     *int32         `json:"max_tokens,omitempty"`
-		Stream        bool           `json:"stream"`
-		StreamOptions *streamOptions `json:"stream_options,omitempty"`
+		Model               string         `json:"model"`
+		Messages            any            `json:"messages"`
+		Temperature         *float32       `json:"temperature,omitempty"`
+		TopP                *float32       `json:"top_p,omitempty"`
+		MaxTokens           *int32         `json:"max_tokens,omitempty"`
+		MaxCompletionTokens *int32         `json:"max_completion_tokens,omitempty"`
+		Stream              bool           `json:"stream"`
+		StreamOptions       *streamOptions `json:"stream_options,omitempty"`
 	}
 	type streamResponse struct {
 		Choices []struct {
@@ -429,7 +435,11 @@ func (b *Backend) StreamGenerateText(ctx context.Context, modelID string, input 
 	}
 	if maxTokens > 0 {
 		max := maxTokens
-		reqBody.MaxTokens = &max
+		if b.supportsMimoChatCompletions() || isMimoModelID(modelID) {
+			reqBody.MaxCompletionTokens = &max
+		} else {
+			reqBody.MaxTokens = &max
+		}
 	}
 
 	payload, err := json.Marshal(reqBody)

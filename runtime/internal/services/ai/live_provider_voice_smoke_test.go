@@ -459,6 +459,62 @@ func runLiveSmokeVoiceWorkflowForProvider(t *testing.T, providerID string, recor
 		maybeSkipStepFunQuotaBlocked(t, providerID, errors.New(job.GetReasonDetail()), job.GetReasonDetail())
 		t.Fatalf("voice workflow job status not completed: %s reason=%s detail=%s", job.GetStatus().String(), job.GetReasonCode().String(), job.GetReasonDetail())
 	}
+	if strings.EqualFold(strings.TrimSpace(providerID), "mimo") {
+		runLiveSmokeSpeechSynthesizeWithVoiceAsset(t, svc, providerID, qualifyLiveModelIDForRoute(providerID, targetModelID), voiceAssetID)
+	}
+}
+
+func runLiveSmokeSpeechSynthesizeWithVoiceAsset(t *testing.T, svc *Service, providerID string, modelID string, voiceAssetID string) {
+	t.Helper()
+	synthResp, err := svc.SubmitScenarioJob(context.Background(), &runtimev1.SubmitScenarioJobRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         liveSmokeMatrixAppID,
+			SubjectUserId: liveSmokeMatrixUserID,
+			ModelId:       modelID,
+			RoutePolicy:   routePolicyForProvider(providerID),
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     120_000,
+		},
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
+		Spec: &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{
+				SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{
+					Text: "Hello from Nimi live voice asset synthesis smoke.",
+					VoiceRef: &runtimev1.VoiceReference{
+						Kind: runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_VOICE_ASSET,
+						Reference: &runtimev1.VoiceReference_VoiceAssetId{
+							VoiceAssetId: voiceAssetID,
+						},
+					},
+				},
+			},
+		},
+	})
+	if err != nil {
+		maybeSkipFishAudioBalanceBlocked(t, providerID, err, "")
+		maybeSkipStepFunQuotaBlocked(t, providerID, err, "")
+		t.Fatalf("submit speech synth via voice asset failed: %v", err)
+	}
+	synthJob := waitLiveSmokeScenarioJob(t, svc, synthResp.GetJob().GetJobId())
+	if synthJob.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
+		maybeSkipFishAudioBalanceBlocked(t, providerID, errors.New(synthJob.GetReasonDetail()), synthJob.GetReasonDetail())
+		maybeSkipStepFunQuotaBlocked(t, providerID, errors.New(synthJob.GetReasonDetail()), synthJob.GetReasonDetail())
+		t.Fatalf("voice asset synth job status not completed: %s reason=%s detail=%s", synthJob.GetStatus().String(), synthJob.GetReasonCode().String(), synthJob.GetReasonDetail())
+	}
+	artifactsResp, err := svc.GetScenarioArtifacts(scenarioJobContext(liveSmokeMatrixAppID), &runtimev1.GetScenarioArtifactsRequest{
+		JobId: synthJob.GetJobId(),
+	})
+	if err != nil {
+		t.Fatalf("GetScenarioArtifacts(%s): %v", synthJob.GetJobId(), err)
+	}
+	if len(artifactsResp.GetArtifacts()) == 0 {
+		t.Fatalf("voice asset synth returned no artifacts")
+	}
+	firstArtifact := artifactsResp.GetArtifacts()[0]
+	if len(firstArtifact.GetBytes()) == 0 && strings.TrimSpace(firstArtifact.GetUri()) == "" {
+		t.Fatalf("voice asset synth artifact must contain bytes or uri")
+	}
 }
 
 func waitLiveSmokeScenarioJob(t *testing.T, svc *Service, jobID string) *runtimev1.ScenarioJob {

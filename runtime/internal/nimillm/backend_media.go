@@ -124,6 +124,9 @@ func (b *Backend) Transcribe(
 	if len(audio) == 0 {
 		return "", nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
+	if b.supportsMimoChatCompletions() || isMimoModelID(modelID) {
+		return b.transcribeMimoChat(ctx, modelID, spec, audio, mimeType)
+	}
 
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
@@ -499,6 +502,9 @@ func (b *Backend) GenerateMusic(ctx context.Context, modelID string, spec *runti
 func (b *Backend) SynthesizeSpeech(ctx context.Context, modelID string, spec *runtimev1.SpeechSynthesizeScenarioSpec, scenarioExtensions map[string]any) ([]byte, *runtimev1.UsageStats, error) {
 	if spec == nil {
 		return nil, nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	}
+	if b.supportsMimoChatCompletions() || isMimoModelID(modelID) {
+		return b.synthesizeMimoChat(ctx, modelID, spec, scenarioExtensions)
 	}
 
 	type speechRequest struct {

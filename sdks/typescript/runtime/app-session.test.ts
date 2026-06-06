@@ -7,6 +7,7 @@ import {
   WorldRelation,
   type OpenSessionRequest,
   type RegisterAppRequest,
+  type RuntimeTypedCallOptions,
 } from '../core-generated/runtime-typed-client';
 import { ReasonCode as SdkReasonCode } from '../types';
 import {
@@ -16,11 +17,13 @@ import {
 
 test('Runtime app registration helper registers full Runtime/Realm mode once', async () => {
   const registrations: RegisterAppRequest[] = [];
+  const registrationOptions: RuntimeTypedCallOptions[] = [];
   const ensureRegistered = createNimiRuntimeFullAppRegistration(
     () => ({
       auth: {
-        async registerApp(request: RegisterAppRequest) {
+        async registerApp(request: RegisterAppRequest, options?: RuntimeTypedCallOptions) {
           registrations.push(request);
+          registrationOptions.push(options ?? {});
           return {
             appInstanceId: request.appInstanceId,
             accepted: true,
@@ -46,11 +49,14 @@ test('Runtime app registration helper registers full Runtime/Realm mode once', a
   assert.equal(registrations[0]?.modeManifest?.realmRequired, true);
   assert.equal(registrations[0]?.modeManifest?.worldRelation, WorldRelation.NONE);
   assert.deepEqual(registrations[0]?.capabilities, ['runtime.account']);
+  assert.match(registrationOptions[0]?.metadata?.idempotencyKey ?? '', /^runtime-register-app-/);
 });
 
 test('Runtime app session metadata provider caches session by subject and emits session headers', async () => {
   const registrations: RegisterAppRequest[] = [];
   const sessions: OpenSessionRequest[] = [];
+  const registrationOptions: RuntimeTypedCallOptions[] = [];
+  const sessionOptions: RuntimeTypedCallOptions[] = [];
   let subjectUserId = 'user-1';
   let sessionCounter = 0;
   const provider = createNimiRuntimeAppSessionMetadataProvider({
@@ -59,16 +65,18 @@ test('Runtime app session metadata provider caches session by subject and emits 
     deviceId: 'desktop-shell',
     getSubjectUserId: () => subjectUserId,
     auth: {
-      async registerApp(request) {
+      async registerApp(request, options) {
         registrations.push(request);
+        registrationOptions.push(options ?? {});
         return {
           appInstanceId: request.appInstanceId,
           accepted: true,
           reasonCode: RuntimeGeneratedReasonCode.ACTION_EXECUTED,
         };
       },
-      async openSession(request) {
+      async openSession(request, options) {
         sessions.push(request);
+        sessionOptions.push(options ?? {});
         sessionCounter += 1;
         return {
           sessionId: `session-${sessionCounter}`,
@@ -97,6 +105,8 @@ test('Runtime app session metadata provider caches session by subject and emits 
   });
 
   assert.equal(registrations.length, 1);
+  assert.match(registrationOptions[0]?.metadata?.idempotencyKey ?? '', /^runtime-register-app-/);
+  assert.match(sessionOptions[0]?.metadata?.idempotencyKey ?? '', /^runtime-open-session-/);
   assert.deepEqual(sessions.map((request) => request.subjectUserId), ['user-1', 'user-2']);
 });
 

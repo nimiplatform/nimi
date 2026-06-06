@@ -49,6 +49,7 @@ entries:
   - providers_44
   - providers_45
   - providers_46
+  - providers_47
 providers:
   - provider: anthropic
     default_endpoint: https://api.anthropic.com
@@ -186,6 +187,12 @@ providers:
     default_endpoint: null
     default_text_model: null
     requires_explicit_endpoint: true
+    inventory_mode: static_source
+    source_rule: K-MCAT-027
+  - provider: mimo
+    default_endpoint: https://api.xiaomimimo.com/v1
+    default_text_model: mimo-v2.5-pro
+    requires_explicit_endpoint: false
     inventory_mode: static_source
     source_rule: K-MCAT-027
   - provider: minimax

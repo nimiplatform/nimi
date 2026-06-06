@@ -50,6 +50,7 @@ entries:
   - providers_45
   - providers_46
   - providers_47
+  - providers_48
 providers:
   - provider: anthropic
     runtime_plane: remote
@@ -401,6 +402,24 @@ providers:
     inventory_mode: static_source
     capabilities:
       - video.generate
+    sources:
+      - K-MCAT-027
+      - K-CONN-008
+      - K-KEYSRC-001
+  - provider: mimo
+    runtime_plane: remote
+    execution_module: nimillm
+    managed_connector_supported: true
+    inline_supported: true
+    endpoint_requirement: default_or_explicit
+    inventory_mode: static_source
+    capabilities:
+      - audio.synthesize
+      - audio.transcribe
+      - text.generate
+      - text.generate.vision
+      - voice_workflow.voice_clone
+      - voice_workflow.voice_design
     sources:
       - K-MCAT-027
       - K-CONN-008

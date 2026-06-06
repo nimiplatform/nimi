@@ -14,7 +14,8 @@ import {
 } from '../../core-generated/runtime-protobuf/runtime/v1/ai';
 import type { UsageStats } from '../../core-generated/runtime-protobuf/runtime/v1/common';
 import type { RuntimeTypedCallOptions } from '../../core-generated/runtime-typed-client';
-import { createNimiError } from '../../types';
+import { withNimiRuntimeIdempotencyMetadata } from '../../runtime/scenario-jobs';
+import { createNimiClientId, createNimiError } from '../../types';
 import type {
   NimiFinishReason,
   NimiJsonObject,
@@ -70,7 +71,7 @@ export function createNimiRuntimeAIModel(options: NimiRuntimeAIModelOptions): Ni
           appId,
           executionMode: ExecutionMode.SYNC,
         }),
-        toRuntimeCallOptions(request, options),
+        toRuntimeScenarioWriteCallOptions(request, options),
       );
       return toGenerateTextResult(response);
     },
@@ -85,7 +86,7 @@ export function createNimiRuntimeAIModel(options: NimiRuntimeAIModelOptions): Ni
           appId,
           executionMode: ExecutionMode.STREAM,
         }),
-        toRuntimeCallOptions(request, options),
+        toRuntimeScenarioWriteCallOptions(request, options),
       );
       yield* runtimeScenarioStreamToNimiEvents(stream, model);
     },
@@ -334,6 +335,16 @@ function toRuntimeCallOptions(
     timeoutMs: Number(options.timeoutMs ?? 0) || undefined,
     signal: request.signal,
   };
+}
+
+function toRuntimeScenarioWriteCallOptions(
+  request: NimiGenerateTextRequest,
+  options: NimiRuntimeAIModelOptions,
+): RuntimeTypedCallOptions {
+  return withNimiRuntimeIdempotencyMetadata(
+    toRuntimeCallOptions(request, options),
+    createNimiClientId('runtime-ai'),
+  );
 }
 
 function toNimiFinishReason(reason: FinishReason): NimiFinishReason {

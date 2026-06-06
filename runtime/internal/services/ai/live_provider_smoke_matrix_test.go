@@ -171,7 +171,7 @@ func newLiveSmokeServiceForProvider(t *testing.T, providerID string, record prov
 
 	envToken := liveProviderEnvToken(providerID)
 	baseURL := liveEnvOrDefault(t, "NIMI_LIVE_"+envToken+"_BASE_URL", record.DefaultEndpoint)
-	apiKey := requiredLiveEnv(t, "NIMI_LIVE_"+envToken+"_API_KEY")
+	apiKey := requiredLiveProviderAPIKey(t, providerID, envToken)
 	headers := map[string]string{}
 	if providerID == "mubert" {
 		if customerID := strings.TrimSpace(os.Getenv("NIMI_LIVE_MUBERT_CUSTOMER_ID")); customerID != "" {
@@ -186,6 +186,19 @@ func newLiveSmokeServiceForProvider(t *testing.T, providerID string, record prov
 			providerID: {BaseURL: baseURL, APIKey: apiKey, Headers: headers},
 		},
 	})
+}
+
+func requiredLiveProviderAPIKey(t *testing.T, providerID string, envToken string) string {
+	t.Helper()
+	keys := []string{"NIMI_LIVE_" + envToken + "_API_KEY"}
+	if strings.EqualFold(strings.TrimSpace(providerID), "mimo") {
+		keys = append(keys, "MIMO_API_KEY")
+	}
+	if value := liveEnvFirst(keys...); value != "" {
+		return value
+	}
+	t.Skipf("set one of %s to run %s live smoke", strings.Join(keys, ", "), providerID)
+	return ""
 }
 
 func routePolicyForProvider(providerID string) runtimev1.RoutePolicy {

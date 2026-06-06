@@ -29,6 +29,8 @@ const (
 	adapterGeminiOperation     = "gemini_operation_adapter"
 	adapterGeminiChatSTT       = "gemini_chat_transcribe_adapter"
 	adapterDashScopeChatSTT    = "dashscope_chat_transcribe_adapter"
+	adapterMimoChatTTS         = "mimo_chat_synthesize_adapter"
+	adapterMimoChatSTT         = "mimo_chat_transcribe_adapter"
 	adapterMiniMaxTask         = "minimax_task_adapter"
 	adapterGLMTask             = "glm_task_adapter"
 	adapterGLMNative           = "glm_native_adapter"
@@ -117,6 +119,10 @@ var mediaAdapterStrategiesByProvider = map[string]mediaAdapterStrategy{
 		Video: adapterGeminiOperation,
 		TTS:   adapterGeminiOperation,
 		STT:   adapterGeminiChatSTT,
+	},
+	"mimo": {
+		TTS: adapterMimoChatTTS,
+		STT: adapterMimoChatSTT,
 	},
 	"minimax": {
 		Image: adapterMiniMaxTask,
@@ -645,7 +651,7 @@ func (s *Service) resolveSynthesizeSpeechSpecVoiceRef(
 	if asset.GetStatus() == runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_FAILED {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID)
 	}
-	if targetModelID := strings.TrimSpace(asset.GetTargetModelId()); targetModelID != "" && strings.TrimSpace(modelResolved) != "" && !strings.EqualFold(targetModelID, strings.TrimSpace(modelResolved)) {
+	if targetModelID := normalizeVoiceWorkflowProviderModelID(asset.GetTargetModelId(), asset.GetProvider()); targetModelID != "" && strings.TrimSpace(modelResolved) != "" && !strings.EqualFold(targetModelID, normalizeVoiceWorkflowProviderModelID(modelResolved, asset.GetProvider())) {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_TARGET_MODEL_MISMATCH)
 	}
 	providerVoiceRef := strings.TrimSpace(asset.GetProviderVoiceRef())

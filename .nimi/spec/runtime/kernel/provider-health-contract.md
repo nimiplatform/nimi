@@ -38,6 +38,7 @@ Provider 探测目标从配置（`K-DAEMON-009`）与环境变量解析，固定
 | `cloud-volcengine-openspeech` | `NIMI_RUNTIME_CLOUD_VOLCENGINE_OPENSPEECH_BASE_URL` | `NIMI_RUNTIME_CLOUD_VOLCENGINE_OPENSPEECH_API_KEY` |
 | `cloud-gemini` | `NIMI_RUNTIME_CLOUD_GEMINI_BASE_URL` | `NIMI_RUNTIME_CLOUD_GEMINI_API_KEY` |
 | `cloud-minimax` | `NIMI_RUNTIME_CLOUD_MINIMAX_BASE_URL` | `NIMI_RUNTIME_CLOUD_MINIMAX_API_KEY` |
+| `cloud-mimo` | `NIMI_RUNTIME_CLOUD_MIMO_BASE_URL` | `NIMI_RUNTIME_CLOUD_MIMO_API_KEY` |
 | `cloud-kimi` | `NIMI_RUNTIME_CLOUD_KIMI_BASE_URL` | `NIMI_RUNTIME_CLOUD_KIMI_API_KEY` |
 | `cloud-glm` | `NIMI_RUNTIME_CLOUD_GLM_BASE_URL` | `NIMI_RUNTIME_CLOUD_GLM_API_KEY` |
 | `cloud-deepseek` | `NIMI_RUNTIME_CLOUD_DEEPSEEK_BASE_URL` | `NIMI_RUNTIME_CLOUD_DEEPSEEK_API_KEY` |
@@ -100,6 +101,7 @@ Provider 探测目标从配置（`K-DAEMON-009`）与环境变量解析，固定
 - `volcengine`、`volcengine_openspeech`
 - `gemini`
 - `minimax`
+- `mimo`
 - `kimi`
 - `glm`
 - `deepseek`
@@ -135,6 +137,7 @@ Gemini 默认：当配置了 `NIMI_RUNTIME_CLOUD_GEMINI_API_KEY` 且未配置 Ba
 | `cloud-volcengine-openspeech` | `volcengine_openspeech` | 字节跳动开放语音 |
 | `cloud-gemini` | `gemini` | Google Gemini |
 | `cloud-minimax` | `minimax` | MiniMax |
+| `cloud-mimo` | `mimo` | Xiaomi MiMo |
 | `cloud-kimi` | `kimi` | Moonshot Kimi |
 | `cloud-glm` | `glm` | 智谱 GLM |
 | `cloud-deepseek` | `deepseek` | DeepSeek |

@@ -8,8 +8,9 @@ import {
 } from '../../core-generated/runtime-protobuf/runtime/v1/ai';
 import type { UsageStats } from '../../core-generated/runtime-protobuf/runtime/v1/common';
 import type { RuntimeTypedCallOptions } from '../../core-generated/runtime-typed-client';
+import { withNimiRuntimeIdempotencyMetadata } from '../../runtime/scenario-jobs';
 import type { CoreMetadata } from '../../types';
-import { createNimiError } from '../../types';
+import { createNimiClientId, createNimiError } from '../../types';
 import type { NimiJsonObject, NimiModelRef, NimiUsage } from '../contracts';
 
 export type NimiRuntimeEmbeddingRoutePolicy = 'local' | 'cloud' | 'unspecified';
@@ -60,10 +61,10 @@ export function createNimiRuntimeEmbeddingClient(
       const values = normalizeEmbeddingInputs(request.values);
       const response = await scenarioClient.executeScenario(
         buildRuntimeTextEmbeddingRequest({ values, options, model, appId }),
-        {
+        withNimiRuntimeIdempotencyMetadata({
           metadata: mergeMetadata(options.metadata, request.metadata),
           timeoutMs: Number(options.timeoutMs ?? 0) || undefined,
-        },
+        }, createNimiClientId('runtime-embed')),
       );
       return toEmbedTextResult(response);
     },

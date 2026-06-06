@@ -81,6 +81,18 @@ entries:
     namespace: nimi.scenario.voice_design.request
     strategy: strict
     source_rule: K-MMPROV-020
+  - provider_id: mimo
+    scenario_type: VOICE_CLONE
+    direction: request
+    namespace: nimi.scenario.voice_clone.request
+    strategy: strict
+    source_rule: K-MMPROV-020
+  - provider_id: mimo
+    scenario_type: VOICE_DESIGN
+    direction: request
+    namespace: nimi.scenario.voice_design.request
+    strategy: strict
+    source_rule: K-MMPROV-020
   - provider_id: stepfun
     scenario_type: VOICE_CLONE
     direction: request

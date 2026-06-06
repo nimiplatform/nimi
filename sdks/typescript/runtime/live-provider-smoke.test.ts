@@ -1,21 +1,28 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { dirname, resolve } from 'node:path';
+import { dirname, isAbsolute, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 
 import {
+  AuthorizationPreset,
   ExecutionMode,
+  ExternalPrincipalType,
   FallbackPolicy,
+  PolicyMode,
   RoutePolicy,
   ScenarioJobStatus,
   ScenarioType,
+  VoiceReferenceKind,
   type ScenarioSpec,
 } from './generated';
+import { createNimiRuntimeFullAppRegistration } from './app-session';
 import { Runtime } from './index';
 import { withRuntimeDaemon } from './live-runtime-daemon.test-helper';
+import { toNimiRuntimeTimestamp } from './runtime-agent-values';
+import { withNimiRuntimeIdempotencyMetadata } from './scenario-jobs';
 import {
   createNimiRuntimeAIModel,
   createNimiRuntimeEmbeddingClient,
@@ -29,6 +36,7 @@ import {
 } from '../features/generation';
 import {
   loadSourceProviderCapabilityMatrix,
+  readYamlFile,
 } from '../../../scripts/live-provider-utils.mjs';
 
 type ProviderCapability =
@@ -44,8 +52,16 @@ type ProviderCapability =
 
 const APP_ID = 'nimi.desktop.sdk.vnext.live';
 const SUBJECT_USER_ID = 'user-sdk-vnext-live';
+const LIVE_APP_INSTANCE_ID = `${APP_ID}.live-smoke`;
+const LIVE_SCOPE_CATALOG_VERSION = 'sdk-v2';
 const LIVE_VOICE_DESIGN_INSTRUCTION = 'Warm, calm, natural narrator voice with steady pacing, clear diction, low background noise, gentle emotional range, and a polished studio delivery for long-form spoken content.';
 const LIVE_VOICE_CLONE_TEXT = 'Hello from Nimi SDK vNext live voice clone.';
+const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
+const PROVIDER_API_KEY_ALIASES: Record<string, readonly string[]> = {
+  mimo: ['MIMO_API_KEY'],
+};
+
+const providerSourceDocCache = new Map<string, any>();
 
 function providerEnvToken(provider: string): string {
   return String(provider || '')
@@ -63,6 +79,13 @@ function envValue(keys: readonly string[]): string {
   return '';
 }
 
+function envTokens(keys: readonly string[]): string[] {
+  return envValue(keys)
+    .split(/[,\s]+/g)
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean);
+}
+
 function requiredAnyEnvOrSkip(t: { skip: (message?: string) => void }, keys: readonly string[]): string | null {
   const value = envValue(keys);
   if (!value) {
@@ -73,10 +96,137 @@ function requiredAnyEnvOrSkip(t: { skip: (message?: string) => void }, keys: rea
 }
 
 function loadProviderCapabilityMatrix(): Map<string, Set<ProviderCapability>> {
-  const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
   return loadSourceProviderCapabilityMatrix(
-    resolve(repoRoot, 'runtime', 'catalog', 'source', 'providers'),
+    resolve(REPO_ROOT, 'runtime', 'catalog', 'source', 'providers'),
   ) as Map<string, Set<ProviderCapability>>;
+}
+
+function providerApiKeyKeys(provider: string): readonly string[] {
+  const token = providerEnvToken(provider);
+  return [`NIMI_LIVE_${token}_API_KEY`, ...(PROVIDER_API_KEY_ALIASES[provider] || [])];
+}
+
+function sdkLiveProviderFilter(): Set<string> | null {
+  const values = envTokens(['NIMI_SDK_LIVE_PROVIDER', 'NIMI_SDK_LIVE_PROVIDERS']);
+  return values.length > 0 ? new Set(values) : null;
+}
+
+function sdkLiveCapabilityFilter(): Set<string> | null {
+  const values = envTokens(['NIMI_SDK_LIVE_CAPABILITY', 'NIMI_SDK_LIVE_CAPABILITIES']);
+  return values.length > 0 ? new Set(values) : null;
+}
+
+function providerAllowedByFilter(provider: string, filter: Set<string> | null): boolean {
+  if (!filter) return true;
+  return filter.has(provider.toLowerCase()) || filter.has(providerEnvToken(provider).toLowerCase());
+}
+
+function capabilityAllowedByFilter(capability: ProviderCapability, filter: Set<string> | null): boolean {
+  return !filter || filter.has(capability);
+}
+
+function providerSourceDoc(provider: string): any {
+  if (providerSourceDocCache.has(provider)) {
+    return providerSourceDocCache.get(provider);
+  }
+  const sourcePath = resolve(REPO_ROOT, 'runtime', 'catalog', 'source', 'providers', `${provider}.source.yaml`);
+  const doc = existsSync(sourcePath) ? readYamlFile(sourcePath) : {};
+  providerSourceDocCache.set(provider, doc);
+  return doc;
+}
+
+function normalizeStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => String(item || '').trim()).filter(Boolean);
+}
+
+function sourceCapabilityForLive(capability: ProviderCapability): string {
+  switch (capability) {
+    case 'generate':
+      return 'text.generate';
+    case 'embed':
+      return 'text.embed';
+    case 'image':
+      return 'image.generate';
+    case 'video':
+      return 'video.generate';
+    case 'tts':
+      return 'audio.synthesize';
+    case 'voice_clone':
+      return 'voice_workflow.voice_clone';
+    case 'voice_design':
+      return 'voice_workflow.voice_design';
+    case 'stt':
+      return 'audio.transcribe';
+    case 'music':
+      return 'music.generate';
+    default:
+      return '';
+  }
+}
+
+function defaultVoiceWorkflowModelIdFromSource(provider: string, capability: ProviderCapability): string {
+  const workflowType = capability === 'voice_clone'
+    ? 'voice_clone'
+    : capability === 'voice_design'
+      ? 'voice_design'
+      : '';
+  if (!workflowType) return '';
+  const doc = providerSourceDoc(provider);
+  const workflowModels = Array.isArray(doc?.voice_workflow_models) ? doc.voice_workflow_models : [];
+  for (const entry of workflowModels) {
+    if (String(entry?.workflow_type || '').trim().toLowerCase() !== workflowType) continue;
+    const workflowModelId = String(entry?.workflow_model_id || '').trim();
+    if (workflowModelId) return workflowModelId;
+  }
+  const bindings = Array.isArray(doc?.model_workflow_bindings) ? doc.model_workflow_bindings : [];
+  for (const binding of bindings) {
+    const workflowTypes = normalizeStringArray(binding?.workflow_types).map((value) => value.toLowerCase());
+    if (!workflowTypes.includes(workflowType)) continue;
+    const modelId = String(binding?.model_id || '').trim();
+    if (modelId) return modelId;
+  }
+  return '';
+}
+
+function defaultCapabilityModelIdFromSource(provider: string, capability: ProviderCapability): string {
+  const doc = providerSourceDoc(provider);
+  if (capability === 'generate') {
+    const defaultTextModel = String(doc?.defaults?.default_text_model || '').trim();
+    if (defaultTextModel) return defaultTextModel;
+  }
+  if (capability === 'voice_clone' || capability === 'voice_design') {
+    const workflowModelId = defaultVoiceWorkflowModelIdFromSource(provider, capability);
+    if (workflowModelId) return workflowModelId;
+  }
+  const wanted = sourceCapabilityForLive(capability);
+  if (!wanted) return '';
+  const defaultCapabilities = normalizeStringArray(doc?.defaults?.capabilities).map((value) => value.toLowerCase());
+  const models = Array.isArray(doc?.models) ? doc.models : [];
+  for (const model of models) {
+    const modelId = String(model?.model_id || '').trim();
+    if (!modelId) continue;
+    const capabilities = normalizeStringArray(model?.capabilities).map((value) => value.toLowerCase());
+    const effectiveCapabilities = capabilities.length > 0 ? capabilities : defaultCapabilities;
+    if (effectiveCapabilities.includes(wanted)) {
+      return modelId;
+    }
+  }
+  return '';
+}
+
+function requiredCapabilityModelIdOrSkip(
+  t: { skip: (message?: string) => void },
+  provider: string,
+  capability: ProviderCapability,
+  keys: readonly string[],
+): string | null {
+  const value = envValue(keys);
+  if (value) return value;
+  const sourceDefault = defaultCapabilityModelIdFromSource(provider, capability);
+  if (sourceDefault) return sourceDefault;
+  t.skip(`set one of ${keys.join(', ')} to run live smoke test`);
+  return null;
 }
 
 function normalizeCloudModelId(modelId: string): string {
@@ -92,6 +242,11 @@ function sdkRoutePolicy(provider: string): 'local' | 'cloud' {
   return provider === 'local' ? 'local' : 'cloud';
 }
 
+function liveConnectorId(provider: string): string {
+  if (provider === 'local') return '';
+  return envValue([`NIMI_LIVE_${providerEnvToken(provider)}_CONNECTOR_ID`]);
+}
+
 function runtimeRoutePolicy(provider: string): RoutePolicy {
   return provider === 'local' ? RoutePolicy.LOCAL : RoutePolicy.CLOUD;
 }
@@ -100,14 +255,96 @@ function routedModelId(provider: string, modelId: string): string {
   return sdkRoutePolicy(provider) === 'cloud' ? normalizeCloudModelId(modelId) : modelId;
 }
 
+function runtimeTransport(endpoint: string) {
+  return {
+    type: 'node-grpc' as const,
+    endpoint,
+  };
+}
+
 function createRuntimeModule(endpoint: string): Runtime {
+  const bootstrap = new Runtime({
+    appId: APP_ID,
+    transport: runtimeTransport(endpoint),
+  });
   return new Runtime({
     appId: APP_ID,
-    transport: {
-      type: 'node-grpc',
-      endpoint,
-    },
+    authMetadata: createRuntimeLiveProtectedAccessMetadataProvider(bootstrap),
+    transport: runtimeTransport(endpoint),
   });
+}
+
+function createRuntimeLiveProtectedAccessMetadataProvider(
+  bootstrap: Runtime,
+): () => Promise<Record<string, string>> {
+  const ensureRegistered = createNimiRuntimeFullAppRegistration(
+    () => ({ auth: bootstrap.auth }),
+    {
+      appId: APP_ID,
+      appInstanceId: LIVE_APP_INSTANCE_ID,
+      deviceId: 'sdk-vnext-live',
+      capabilities: ['ai.spend.meter'],
+      developerRegistration: true,
+    },
+  );
+  let cached: { readonly metadata: Record<string, string>; readonly expiresAtMs: number } | null = null;
+  let inflight: Promise<{ readonly metadata: Record<string, string>; readonly expiresAtMs: number }> | null = null;
+  return async () => {
+    if (cached && cached.expiresAtMs - Date.now() > 60_000) {
+      return cached.metadata;
+    }
+    inflight ??= (async () => {
+      await ensureRegistered();
+      const token = await bootstrap.grants.authorizeExternalPrincipal({
+        domain: 'app-auth',
+        appId: APP_ID,
+        externalPrincipalId: APP_ID,
+        externalPrincipalType: ExternalPrincipalType.APP,
+        subjectUserId: SUBJECT_USER_ID,
+        consentId: 'sdk-vnext-live-smoke',
+        consentVersion: 'v1',
+        decisionAt: toNimiRuntimeTimestamp(new Date()),
+        policyVersion: 'sdk-vnext-live-smoke-v1',
+        policyMode: PolicyMode.CUSTOM,
+        preset: AuthorizationPreset.UNSPECIFIED,
+        scopes: ['ai.spend.meter'],
+        resourceSelectors: { conversationIds: [], messageIds: [], documentIds: [], labels: {} },
+        canDelegate: false,
+        maxDelegationDepth: 0,
+        ttlSeconds: 3600,
+        scopeCatalogVersion: LIVE_SCOPE_CATALOG_VERSION,
+        policyOverride: false,
+      }, withNimiRuntimeIdempotencyMetadata({
+        metadata: { domain: 'app-auth' },
+      }, randomUUID()));
+      const tokenId = String(token.tokenId || '').trim();
+      const secret = String(token.secret || '').trim();
+      assert.ok(tokenId, 'live protected access token id should not be empty');
+      assert.ok(secret, 'live protected access token secret should not be empty');
+      return {
+        metadata: {
+          'x-nimi-access-token-id': tokenId,
+          'x-nimi-access-token-secret': secret,
+        },
+        expiresAtMs: runtimeTimestampMillis(token.expiresAt) || Date.now() + 3_600_000,
+      };
+    })();
+    try {
+      cached = await inflight;
+      return cached.metadata;
+    } finally {
+      inflight = null;
+    }
+  };
+}
+
+function runtimeTimestampMillis(timestamp: { readonly seconds?: string | number; readonly nanos?: number } | undefined): number {
+  const seconds = Number(timestamp?.seconds || 0);
+  const nanos = Number(timestamp?.nanos || 0);
+  if (!Number.isFinite(seconds) || seconds <= 0) {
+    return 0;
+  }
+  return Math.floor(seconds * 1000 + (Number.isFinite(nanos) ? nanos / 1_000_000 : 0));
 }
 
 function buildRuntimeEnvForProvider(t: { skip: (message?: string) => void }, provider: string): Record<string, string> | null {
@@ -132,7 +369,7 @@ function buildRuntimeEnvForProvider(t: { skip: (message?: string) => void }, pro
     };
   }
 
-  const apiKey = requiredAnyEnvOrSkip(t, [`NIMI_LIVE_${token}_API_KEY`]);
+  const apiKey = requiredAnyEnvOrSkip(t, providerApiKeyKeys(provider));
   if (!apiKey) return null;
   const baseUrl = envValue([`NIMI_LIVE_${token}_BASE_URL`]);
   return {
@@ -151,23 +388,23 @@ function capabilityModelId(t: { skip: (message?: string) => void }, provider: st
   const token = providerEnvToken(provider);
   switch (capability) {
     case 'generate':
-      return requiredAnyEnvOrSkip(t, [`NIMI_LIVE_${token}_MODEL_ID`]);
+      return requiredCapabilityModelIdOrSkip(t, provider, capability, [`NIMI_LIVE_${token}_MODEL_ID`]);
     case 'embed':
-      return requiredAnyEnvOrSkip(t, [`NIMI_LIVE_${token}_EMBED_MODEL_ID`, `NIMI_LIVE_${token}_MODEL_ID`]);
+      return requiredCapabilityModelIdOrSkip(t, provider, capability, [`NIMI_LIVE_${token}_EMBED_MODEL_ID`, `NIMI_LIVE_${token}_MODEL_ID`]);
     case 'image':
-      return requiredAnyEnvOrSkip(t, [`NIMI_LIVE_${token}_IMAGE_MODEL_ID`, `NIMI_LIVE_${token}_MODEL_ID`]);
+      return requiredCapabilityModelIdOrSkip(t, provider, capability, [`NIMI_LIVE_${token}_IMAGE_MODEL_ID`, `NIMI_LIVE_${token}_MODEL_ID`]);
     case 'video':
-      return requiredAnyEnvOrSkip(t, [`NIMI_LIVE_${token}_VIDEO_MODEL_ID`, `NIMI_LIVE_${token}_MODEL_ID`]);
+      return requiredCapabilityModelIdOrSkip(t, provider, capability, [`NIMI_LIVE_${token}_VIDEO_MODEL_ID`, `NIMI_LIVE_${token}_MODEL_ID`]);
     case 'tts':
-      return requiredAnyEnvOrSkip(t, [`NIMI_LIVE_${token}_TTS_MODEL_ID`, `NIMI_LIVE_${token}_MODEL_ID`]);
+      return requiredCapabilityModelIdOrSkip(t, provider, capability, [`NIMI_LIVE_${token}_TTS_MODEL_ID`, `NIMI_LIVE_${token}_MODEL_ID`]);
     case 'stt':
-      return requiredAnyEnvOrSkip(t, [`NIMI_LIVE_${token}_STT_MODEL_ID`, `NIMI_LIVE_${token}_MODEL_ID`]);
+      return requiredCapabilityModelIdOrSkip(t, provider, capability, [`NIMI_LIVE_${token}_STT_MODEL_ID`, `NIMI_LIVE_${token}_MODEL_ID`]);
     case 'music':
-      return requiredAnyEnvOrSkip(t, [`NIMI_LIVE_${token}_MUSIC_MODEL_ID`, `NIMI_LIVE_${token}_MODEL_ID`]);
+      return requiredCapabilityModelIdOrSkip(t, provider, capability, [`NIMI_LIVE_${token}_MUSIC_MODEL_ID`, `NIMI_LIVE_${token}_MODEL_ID`]);
     case 'voice_clone':
-      return requiredAnyEnvOrSkip(t, [`NIMI_LIVE_${token}_VOICE_CLONE_MODEL_ID`, `NIMI_LIVE_${token}_TTS_MODEL_ID`]);
+      return requiredCapabilityModelIdOrSkip(t, provider, capability, [`NIMI_LIVE_${token}_VOICE_CLONE_MODEL_ID`, `NIMI_LIVE_${token}_TTS_MODEL_ID`]);
     case 'voice_design':
-      return requiredAnyEnvOrSkip(t, [`NIMI_LIVE_${token}_VOICE_DESIGN_MODEL_ID`, `NIMI_LIVE_${token}_TTS_MODEL_ID`]);
+      return requiredCapabilityModelIdOrSkip(t, provider, capability, [`NIMI_LIVE_${token}_VOICE_DESIGN_MODEL_ID`, `NIMI_LIVE_${token}_TTS_MODEL_ID`]);
     default:
       return null;
   }
@@ -181,27 +418,36 @@ function resolveLiveAudioMime(resource: string): string {
   return 'audio/wav';
 }
 
+function resolveLiveAudioPath(filePath: string): string {
+  const normalized = String(filePath || '').trim();
+  if (!normalized || isAbsolute(normalized)) {
+    return normalized;
+  }
+  return resolve(REPO_ROOT, normalized);
+}
+
 function loadLiveAudioBytes(filePath: string): Uint8Array {
-  const bytes = readFileSync(filePath);
-  assert.ok(bytes.length > 0, `${filePath} should not be empty`);
+  const resolvedPath = resolveLiveAudioPath(filePath);
+  const bytes = readFileSync(resolvedPath);
+  assert.ok(bytes.length > 0, `${resolvedPath} should not be empty`);
   return new Uint8Array(bytes);
 }
 
 function resolveLiveSttAudioInput():
-  | { readonly audio: { readonly kind: 'bytes'; readonly bytes: Uint8Array }; readonly mimeType: string }
-  | { readonly audio: { readonly kind: 'url'; readonly url: string }; readonly mimeType: string }
+  | { readonly audio: { readonly type: 'bytes'; readonly bytes: Uint8Array }; readonly mimeType: string }
+  | { readonly audio: { readonly type: 'url'; readonly url: string }; readonly mimeType: string }
   | null {
   const audioPath = envValue(['NIMI_LIVE_STT_AUDIO_PATH']);
   if (audioPath) {
     return {
-      audio: { kind: 'bytes', bytes: loadLiveAudioBytes(audioPath) },
+      audio: { type: 'bytes', bytes: loadLiveAudioBytes(audioPath) },
       mimeType: resolveLiveAudioMime(audioPath),
     };
   }
   const audioUri = envValue(['NIMI_LIVE_STT_AUDIO_URI']);
   if (!audioUri) return null;
   return {
-    audio: { kind: 'url', url: audioUri },
+    audio: { type: 'url', url: audioUri },
     mimeType: resolveLiveAudioMime(audioUri),
   };
 }
@@ -297,7 +543,7 @@ function scenarioHead(provider: string, modelId: string, timeoutMs: number) {
     routePolicy: runtimeRoutePolicy(provider),
     fallback: FallbackPolicy.DENY,
     timeoutMs,
-    connectorId: provider === 'local' ? '' : provider,
+    connectorId: liveConnectorId(provider),
   };
 }
 
@@ -309,19 +555,48 @@ async function submitDirectScenario(
   spec: ScenarioSpec,
   timeoutMs: number,
 ) {
+  const idempotencyKey = randomUUID();
   const response = await runtime.ai.submitScenarioJob({
     head: scenarioHead(provider, modelId, timeoutMs),
     scenarioType,
     executionMode: ExecutionMode.ASYNC_JOB,
     spec,
     requestId: randomUUID(),
-    idempotencyKey: randomUUID(),
+    idempotencyKey,
     labels: {},
     extensions: [],
-  });
+  }, withNimiRuntimeIdempotencyMetadata(undefined, idempotencyKey));
   const jobId = String(response.job?.jobId || '').trim();
   assert.ok(jobId, `scenario ${ScenarioType[scenarioType] || scenarioType} job id should not be empty`);
   return response;
+}
+
+async function assertSpeechSynthesisWithVoiceAsset(runtime: Runtime, provider: string, modelId: string, voiceAssetId: string): Promise<void> {
+  const response = await submitDirectScenario(runtime, provider, modelId, ScenarioType.SPEECH_SYNTHESIZE, {
+    spec: {
+      oneofKind: 'speechSynthesize',
+      speechSynthesize: {
+        text: 'Hello from Nimi SDK vNext live voice asset synthesis smoke.',
+        voiceRef: {
+          kind: VoiceReferenceKind.VOICE_ASSET,
+          reference: {
+            oneofKind: 'voiceAssetId',
+            voiceAssetId,
+          },
+        },
+      },
+    },
+  }, 180_000);
+  const job = await waitForScenarioJobDone(runtime, response.job?.jobId || '', 180_000);
+  assert.equal(
+    job?.status,
+    ScenarioJobStatus.COMPLETED,
+    `voice asset synthesis should complete: status=${job?.status} reasonCode=${job?.reasonCode} detail=${job?.reasonDetail || ''}`,
+  );
+  const artifacts = await runtime.ai.getScenarioArtifacts({ jobId: job?.jobId || response.job?.jobId || '' });
+  assert.ok(artifacts.artifacts.length > 0, 'voice asset synthesis should return artifacts');
+  const first = artifacts.artifacts[0];
+  assert.ok((first.bytes?.length ?? 0) > 0 || String(first.uri || '').trim().length > 0, 'voice asset synthesis artifact should contain bytes or uri');
 }
 
 async function runSdkVNextCapabilityLiveSmoke(endpoint: string, provider: string, capability: ProviderCapability, modelId: string): Promise<void> {
@@ -343,7 +618,7 @@ async function runSdkVNextCapabilityLiveSmoke(endpoint: string, provider: string
       appId: APP_ID,
       subjectUserId: SUBJECT_USER_ID,
       routePolicy: route,
-      connectorId: provider === 'local' ? '' : provider,
+      connectorId: liveConnectorId(provider),
       timeoutMs: 45_000,
     });
     const result = await model.generateText({
@@ -364,7 +639,7 @@ async function runSdkVNextCapabilityLiveSmoke(endpoint: string, provider: string
       appId: APP_ID,
       subjectUserId: SUBJECT_USER_ID,
       routePolicy: route,
-      connectorId: provider === 'local' ? '' : provider,
+      connectorId: liveConnectorId(provider),
       timeoutMs: 45_000,
     });
     const result = await embedding.embedText({ values: ['Nimi SDK vNext matrix live smoke embed'] });
@@ -379,7 +654,7 @@ async function runSdkVNextCapabilityLiveSmoke(endpoint: string, provider: string
       subjectUserId: SUBJECT_USER_ID,
       modelId: modelRef.modelId,
       routePolicy: route,
-      connectorId: provider === 'local' ? '' : provider,
+      connectorId: liveConnectorId(provider),
       timeoutMs: 240_000,
     },
   });
@@ -508,7 +783,13 @@ async function runSdkVNextCapabilityLiveSmoke(endpoint: string, provider: string
   );
   const voiceAssetId = String(response.asset?.voiceAssetId || '').trim();
   if (voiceAssetId) {
-    const deleted = await runtime.ai.deleteVoiceAsset({ voiceAssetId });
+    if (provider === 'mimo') {
+      await assertSpeechSynthesisWithVoiceAsset(runtime, provider, targetModelId, voiceAssetId);
+    }
+    const deleted = await runtime.ai.deleteVoiceAsset(
+      { voiceAssetId },
+      withNimiRuntimeIdempotencyMetadata(undefined, `delete-voice:${voiceAssetId}:${randomUUID()}`),
+    );
     assert.equal(deleted.ack?.ok, true, `deleteVoiceAsset should acknowledge cleanup for ${voiceAssetId}`);
   }
 }
@@ -559,11 +840,15 @@ function registerSdkVNextProviderCapabilityMatrixTests(): void {
   const matrix = loadProviderCapabilityMatrix();
   const orderedProviders = [...matrix.keys()].sort((left, right) => left.localeCompare(right));
   const orderedCapabilities: readonly ProviderCapability[] = ['generate', 'embed', 'image', 'video', 'tts', 'stt', 'music', 'voice_clone', 'voice_design'];
+  const providerFilter = sdkLiveProviderFilter();
+  const capabilityFilter = sdkLiveCapabilityFilter();
 
   for (const provider of orderedProviders) {
+    if (!providerAllowedByFilter(provider, providerFilter)) continue;
     const capabilitySet = matrix.get(provider) || new Set<ProviderCapability>();
     for (const capability of orderedCapabilities) {
       if (!capabilitySet.has(capability)) continue;
+      if (!capabilityAllowedByFilter(capability, capabilityFilter)) continue;
       test(`nimi sdk vnext live smoke: ${provider} ${capability}`, {
         skip: process.env.NIMI_SDK_LIVE !== '1',
         timeout: 300_000,

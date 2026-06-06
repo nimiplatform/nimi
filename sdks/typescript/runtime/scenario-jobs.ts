@@ -60,6 +60,23 @@ export interface NimiRuntimeScenarioJobRunnerInput {
   readonly onJobUpdate?: (job: NimiRuntimeScenarioJob) => void;
 }
 
+export function withNimiRuntimeIdempotencyMetadata(
+  options: RuntimeTypedCallOptions | undefined,
+  idempotencyKey: string | undefined,
+): RuntimeTypedCallOptions {
+  const normalized = normalizeText(idempotencyKey);
+  if (!normalized) {
+    return options ?? {};
+  }
+  return {
+    ...(options ?? {}),
+    metadata: {
+      ...(options?.metadata ?? {}),
+      idempotencyKey: normalized,
+    },
+  };
+}
+
 export function isNimiRuntimeScenarioJobTerminalStatus(status: ScenarioJobStatus): boolean {
   return status === ScenarioJobStatus.COMPLETED
     || status === ScenarioJobStatus.FAILED
@@ -72,7 +89,10 @@ export async function runNimiRuntimeScenarioJob(
 ): Promise<NimiRuntimeScenarioJobResult> {
   throwIfAborted(input.signal);
 
-  const submitResponse = await input.ai.submitScenarioJob(input.request, input.callOptions);
+  const submitResponse = await input.ai.submitScenarioJob(
+    input.request,
+    withNimiRuntimeIdempotencyMetadata(input.callOptions, input.request.idempotencyKey),
+  );
   const submitted = submitResponse.job;
   const jobId = normalizeText(submitted?.jobId);
   if (!jobId) {
@@ -145,7 +165,7 @@ async function cancelNimiRuntimeScenarioJob(
     await input.ai.cancelScenarioJob({
       jobId,
       reason: input.abortReason || 'aborted_by_abort_signal',
-    }, input.callOptions);
+    }, withNimiRuntimeIdempotencyMetadata(input.callOptions, `cancel:${input.request.idempotencyKey}:${jobId}`));
   } catch {
     // Preserve the original abort/error path; Runtime remains job authority.
   }

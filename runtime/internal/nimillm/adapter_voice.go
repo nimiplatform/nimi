@@ -36,7 +36,7 @@ type VoiceWorkflowResult struct {
 // voice workflow adapter for the provider.
 func SupportsVoiceWorkflowProvider(provider string) bool {
 	p := strings.TrimSpace(strings.ToLower(provider))
-	return p == "dashscope" || p == "elevenlabs" || p == "fish_audio" || p == "stepfun"
+	return p == "dashscope" || p == "elevenlabs" || p == "fish_audio" || p == "mimo" || p == "stepfun"
 }
 
 // ExecuteVoiceWorkflow dispatches a voice workflow request to the appropriate
@@ -59,6 +59,8 @@ func ExecuteVoiceWorkflow(ctx context.Context, req VoiceWorkflowRequest, cfg Med
 		return executeElevenLabsVoiceWorkflow(ctx, req, cfg)
 	case "fish_audio":
 		return executeFishAudioVoiceWorkflow(ctx, req, cfg)
+	case "mimo":
+		return executeMimoVoiceWorkflow(ctx, req, cfg)
 	case "stepfun":
 		return executeStepFunVoiceWorkflow(ctx, req, cfg)
 	default:

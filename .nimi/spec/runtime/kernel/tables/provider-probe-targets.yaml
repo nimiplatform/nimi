@@ -14,6 +14,7 @@ entries:
   - cloud-volcengine-openspeech
   - cloud-gemini
   - cloud-minimax
+  - cloud-mimo
   - cloud-kimi
   - cloud-glm
   - cloud-deepseek
@@ -72,6 +73,11 @@ targets:
   - name: cloud-minimax
     base_url_env: NIMI_RUNTIME_CLOUD_MINIMAX_BASE_URL
     api_key_env: NIMI_RUNTIME_CLOUD_MINIMAX_API_KEY
+    category: cloud
+    source_rule: K-PROV-002
+  - name: cloud-mimo
+    base_url_env: NIMI_RUNTIME_CLOUD_MIMO_BASE_URL
+    api_key_env: NIMI_RUNTIME_CLOUD_MIMO_API_KEY
     category: cloud
     source_rule: K-PROV-002
   - name: cloud-kimi

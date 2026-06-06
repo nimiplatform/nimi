@@ -19,6 +19,10 @@ const WORKFLOW_ENV_SUFFIX = new Map([
   ['voice_design', { modelKey: 'VOICE_DESIGN_MODEL_ID', targetKey: 'VOICE_DESIGN_MODEL_ID_TARGET_MODEL_ID' }],
 ]);
 
+const PROVIDER_API_KEY_ALIASES = new Map([
+  ['mimo', ['MIMO_API_KEY']],
+]);
+
 function providerEnvToken(provider) {
   return String(provider || '')
     .trim()
@@ -80,6 +84,17 @@ function firstString(values) {
     const normalized = String(value || '').trim();
     if (normalized) {
       return normalized;
+    }
+  }
+  return '';
+}
+
+function providerLiveAPIKey(provider, token, env) {
+  const keys = [`NIMI_LIVE_${token}_API_KEY`, ...(PROVIDER_API_KEY_ALIASES.get(provider) || [])];
+  for (const key of keys) {
+    const value = String(env?.[key] || '').trim();
+    if (value) {
+      return value;
     }
   }
   return '';
@@ -195,14 +210,20 @@ export function synthesizeLiveProviderEnvDefaults({ repoRoot, env = process.env 
 
     const token = providerEnvToken(provider);
     const apiKeyEnv = `NIMI_LIVE_${token}_API_KEY`;
+    const providerAPIKey = providerLiveAPIKey(provider, token, env);
     const providerConfigured = provider === 'local'
       ? localProviderLiveConfigured(env)
-      : hasValue(env[apiKeyEnv]);
+      : hasValue(providerAPIKey);
     if (!providerConfigured) {
       continue;
     }
 
     let added = false;
+    if (provider !== 'local' && hasValue(providerAPIKey) && !hasValue(env[apiKeyEnv])) {
+      derivedEnv[apiKeyEnv] = providerAPIKey;
+      added = true;
+    }
+
     const defaultEndpoint = String(doc?.runtime?.default_endpoint || '').trim();
     const baseURLEnv = `NIMI_LIVE_${token}_BASE_URL`;
     if (defaultEndpoint && !hasValue(env[baseURLEnv])) {

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { ExecutionMode, RoutePolicy, ScenarioType } from '../../core-generated/runtime-protobuf/runtime/v1/ai';
+import type { RuntimeTypedCallOptions } from '../../core-generated/runtime-typed-client';
 import {
   buildRuntimeTextEmbeddingRequest,
   createNimiRuntimeEmbeddingClient,
@@ -9,6 +10,7 @@ import {
 
 test('Runtime-backed embedding client maps text embedding Scenario requests and output', async () => {
   let capturedRequest: ReturnType<typeof buildRuntimeTextEmbeddingRequest> | null = null;
+  let capturedOptions: RuntimeTypedCallOptions | undefined;
   const embedding = createNimiRuntimeEmbeddingClient({
     appId: 'app-1',
     subjectUserId: 'user-1',
@@ -16,8 +18,9 @@ test('Runtime-backed embedding client maps text embedding Scenario requests and 
     model: { providerId: 'runtime', modelId: 'embedder-1' },
     runtime: {
       ai: {
-        async executeScenario(request) {
+        async executeScenario(request, options) {
           capturedRequest = request;
+          capturedOptions = options;
           return {
             output: {
               output: {
@@ -49,6 +52,7 @@ test('Runtime-backed embedding client maps text embedding Scenario requests and 
   assert.equal(capturedRequest?.head?.appId, 'app-1');
   assert.equal(capturedRequest?.head?.subjectUserId, 'user-1');
   assert.equal(capturedRequest?.head?.modelId, 'embedder-1');
+  assert.match(capturedOptions?.metadata?.idempotencyKey ?? '', /^runtime-embed-/);
   assert.equal(capturedRequest?.spec.spec.oneofKind, 'textEmbed');
   assert.deepEqual(capturedRequest?.spec.spec.textEmbed.inputs, ['first', 'second']);
   assert.deepEqual(result.embeddings, [[0.1, 0.2], [0.3, 0.4]]);

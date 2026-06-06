@@ -26,6 +26,7 @@ import type { NimiJsonObject, NimiJsonValue } from '../../core/contracts';
 import { createNimiError, ReasonCode } from '../../types';
 import {
   runNimiRuntimeScenarioJob,
+  withNimiRuntimeIdempotencyMetadata,
   type NimiRuntimeScenarioJobClient,
 } from '../../runtime/scenario-jobs';
 import {
@@ -238,7 +239,11 @@ export function createNimiRuntimeGenerationClient(
   const clients = getRuntimeGenerationClients(options);
   return {
     async submit(input) {
-      const response = await clients.ai.submitScenarioJob(buildNimiRuntimeGenerationSubmitRequest(options.head, input), options.callOptions);
+      const request = buildNimiRuntimeGenerationSubmitRequest(options.head, input);
+      const response = await clients.ai.submitScenarioJob(
+        request,
+        withNimiRuntimeIdempotencyMetadata(options.callOptions, request.idempotencyKey),
+      );
       return requireRuntimeJob(response.job, 'submitScenarioJob');
     },
     async get(jobId) {
@@ -248,10 +253,14 @@ export function createNimiRuntimeGenerationClient(
       return requireRuntimeJob(response.job, 'getScenarioJob');
     },
     async cancel(jobId, reason) {
-      const response = await clients.ai.cancelScenarioJob({
+      const request = {
         jobId: requireText(jobId, 'Runtime generation cancel requires jobId', 'provide_generation_job_id'),
         reason: requireText(reason, 'Runtime generation cancel requires reason', 'provide_generation_cancel_reason'),
-      }, options.callOptions);
+      };
+      const response = await clients.ai.cancelScenarioJob(
+        request,
+        withNimiRuntimeIdempotencyMetadata(options.callOptions, `cancel:${request.jobId}:${request.reason}`),
+      );
       return requireRuntimeJob(response.job, 'cancelScenarioJob');
     },
     async artifacts(jobId) {

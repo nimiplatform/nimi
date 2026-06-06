@@ -1,0 +1,308 @@
+schema_version: 3
+provider: mimo
+catalog_version: 2026-06-06-mimo-v2-5
+generated_target: runtime/catalog/providers/mimo.yaml
+runtime:
+  runtime_plane: remote
+  managed_connector_supported: true
+  inline_supported: true
+  default_endpoint: https://api.xiaomimimo.com/v1
+  requires_explicit_endpoint: false
+resolution_mode: model_anchor_v2
+defaults:
+  provider: mimo
+  default_text_model: mimo-v2.5-pro
+  model_type: chat
+  capabilities: []
+  pricing:
+    unit: token
+    input: unknown
+    output: unknown
+    currency: CNY
+    as_of: 2026-06-02
+    notes: Official public docs list current model IDs and limits but do not expose a stable unified pricing schema in the model table.
+
+sources:
+  - source_id: mimo_models_doc
+    url: https://platform.xiaomimimo.com/docs/zh-CN/quick-start/model
+    retrieved_at: 2026-06-06
+    note: Xiaomi MiMo official model and rate-limit page updated 2026-06-02.
+  - source_id: mimo_openai_api_doc
+    url: https://platform.xiaomimimo.com/docs/zh-CN/api/chat/openai-api
+    retrieved_at: 2026-06-06
+    note: Xiaomi MiMo OpenAI-compatible chat completions API, authentication, and text request shape.
+  - source_id: mimo_asr_api_doc
+    url: https://platform.xiaomimimo.com/docs/zh-CN/api/audio/Speech-Recognition
+    retrieved_at: 2026-06-06
+    note: Xiaomi MiMo V2.5 ASR OpenAI-compatible chat completions API reference.
+  - source_id: mimo_asr_guide_doc
+    url: https://platform.xiaomimimo.com/docs/zh-CN/usage-guide/Speech-Recognition
+    retrieved_at: 2026-06-06
+    note: Xiaomi MiMo V2.5 ASR usage guide with data URI audio input examples.
+  - source_id: mimo_tts_v25_guide_doc
+    url: https://platform.xiaomimimo.com/docs/zh-CN/usage-guide/speech-synthesis-v2.5
+    retrieved_at: 2026-06-06
+    note: Xiaomi MiMo V2.5 TTS guide covering preset voices and chat completion audio output.
+  - source_id: mimo_tts_v2_guide_doc
+    url: https://platform.xiaomimimo.com/docs/zh-CN/usage-guide/speech-synthesis
+    retrieved_at: 2026-06-06
+    note: Xiaomi MiMo V2 TTS guide covering mimo-v2-tts and its default preset voices.
+
+language_profiles:
+  short_v1: [zh, en]
+
+selection_profiles:
+  - profile_id: text.general
+    capability: text.generate
+    model_id: mimo-v2.5-pro
+    reviewed_at: 2026-06-06
+    freshness_sla_days: 21
+    rationale: Current MiMo Pro text route with the strongest published context and output limits.
+  - profile_id: text.fast
+    capability: text.generate
+    model_id: mimo-v2-flash
+    reviewed_at: 2026-06-06
+    freshness_sla_days: 21
+    rationale: Current MiMo Flash text route for lower-latency and lower-cost text generation.
+  - profile_id: text.reasoning
+    capability: text.generate
+    model_id: mimo-v2.5-pro
+    reviewed_at: 2026-06-06
+    freshness_sla_days: 21
+    rationale: Current Pro route advertises deep-thinking support and the largest published text limits.
+
+voice_sets:
+  - voice_set_id: tts_preset_v25
+    langs_ref: short_v1
+    source_ids: [mimo_tts_v25_guide_doc]
+    voices:
+      - voice_id: mimo_default
+        name: MiMo Default
+      - voice_id: 冰糖
+        name: Bing Tang
+        langs: [zh]
+      - voice_id: 茉莉
+        name: Mo Li
+        langs: [zh]
+      - voice_id: 苏打
+        name: Su Da
+        langs: [zh]
+      - voice_id: 白桦
+        name: Bai Hua
+        langs: [zh]
+      - voice_id: Mia
+        name: Mia
+        langs: [en]
+      - voice_id: Chloe
+        name: Chloe
+        langs: [en]
+      - voice_id: Milo
+        name: Milo
+        langs: [en]
+      - voice_id: Dean
+        name: Dean
+        langs: [en]
+  - voice_set_id: tts_preset_v2
+    langs_ref: short_v1
+    source_ids: [mimo_tts_v2_guide_doc]
+    voices:
+      - voice_id: mimo_default
+        name: MiMo Default
+      - voice_id: default_zh
+        name: MiMo Chinese Female
+        langs: [zh]
+      - voice_id: default_en
+        name: MiMo English Female
+        langs: [en]
+
+models:
+  - model_id: mimo-v2.5-pro
+    model_type: chat
+    updated_at: 2026-06-02
+    capabilities: [text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-06-02
+      notes: Current MiMo Pro text model. The older mimo-v2-pro name is officially forwarded to V2.5 until 2026-06-30 and is not selected by runtime defaults.
+    source_ids: [mimo_models_doc, mimo_openai_api_doc]
+    aliases:
+      - mimo-v2-pro
+
+  - model_id: mimo-v2.5
+    model_type: chat
+    updated_at: 2026-06-02
+    capabilities: [text.generate, text.generate.vision]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-06-02
+      notes: Current MiMo Omni-family multimodal text route. The older mimo-v2-omni name is officially forwarded to V2.5 until 2026-06-30 and is not selected by runtime defaults.
+    source_ids: [mimo_models_doc, mimo_openai_api_doc]
+    aliases:
+      - mimo-v2-omni
+
+  - model_id: mimo-v2-flash
+    model_type: chat
+    updated_at: 2026-06-02
+    capabilities: [text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-06-02
+      notes: Current MiMo Flash text model; pricing is not normalized in the official model table.
+    source_ids: [mimo_models_doc, mimo_openai_api_doc]
+
+  - model_id: mimo-v2.5-asr
+    model_type: stt
+    updated_at: 2026-06-02
+    capabilities: [audio.transcribe]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-06-02
+      notes: Current MiMo ASR model. Official API uses chat completions with inline audio data URI.
+    source_ids: [mimo_models_doc, mimo_asr_api_doc, mimo_asr_guide_doc]
+    transcription:
+      tiers: [core_transcript]
+      response_formats: [text]
+      supports_language: true
+      supports_prompt: false
+
+  - model_id: mimo-v2.5-tts
+    model_type: tts
+    updated_at: 2026-05-28
+    capabilities: [audio.synthesize]
+    pricing:
+      unit: char
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-05-28
+      notes: Current MiMo V2.5 preset TTS model. Official guide marks V2.5 TTS billing as temporarily free at retrieval time.
+    source_ids: [mimo_models_doc, mimo_tts_v25_guide_doc]
+    voice:
+      discovery_mode: static_catalog
+      voice_set_ref: tts_preset_v25
+      supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref]
+      langs_ref: short_v1
+      request_options:
+        timing_modes: [none]
+        audio_formats: [wav]
+
+  - model_id: mimo-v2.5-tts-voicedesign
+    model_type: tts
+    updated_at: 2026-05-28
+    capabilities: [audio.synthesize]
+    pricing:
+      unit: char
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-05-28
+      notes: Current MiMo V2.5 voice-design TTS model. The user message carries the voice design prompt; no preset voice or audio sample is accepted.
+    source_ids: [mimo_models_doc, mimo_tts_v25_guide_doc]
+    voice:
+      discovery_mode: dynamic_user_scoped
+      supports_voice_ref_kinds: [voice_asset_id, provider_voice_ref]
+      langs_ref: short_v1
+      request_options:
+        timing_modes: [none]
+        audio_formats: [wav]
+
+  - model_id: mimo-v2.5-tts-voiceclone
+    model_type: tts
+    updated_at: 2026-05-28
+    capabilities: [audio.synthesize]
+    pricing:
+      unit: char
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-05-28
+      notes: Current MiMo V2.5 voice-clone TTS model. The audio.voice field must carry a wav/mp3 data URI sample no larger than the provider limit.
+    source_ids: [mimo_models_doc, mimo_tts_v25_guide_doc]
+    voice:
+      discovery_mode: dynamic_user_scoped
+      supports_voice_ref_kinds: [voice_asset_id, provider_voice_ref]
+      langs_ref: short_v1
+      request_options:
+        timing_modes: [none]
+        audio_formats: [wav]
+
+  - model_id: mimo-v2-tts
+    model_type: tts
+    updated_at: 2026-05-22
+    capabilities: [audio.synthesize]
+    pricing:
+      unit: char
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-05-22
+      notes: MiMo V2 preset TTS model retained in the current official model table.
+    source_ids: [mimo_models_doc, mimo_tts_v2_guide_doc]
+    voice:
+      discovery_mode: static_catalog
+      voice_set_ref: tts_preset_v2
+      supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref]
+      langs_ref: short_v1
+      request_options:
+        timing_modes: [none]
+        audio_formats: [wav]
+
+voice_workflow_models:
+  - workflow_model_id: mimo-v2.5-tts-voiceclone
+    workflow_type: voice_clone
+    input_contract_ref: mimo_voice_clone_input_v1
+    output_persistence: session_ephemeral
+    request_options:
+      text_prompt_mode: optional
+      supports_language_hints: false
+      supports_preferred_name: false
+      reference_audio_uri_input: true
+      reference_audio_bytes_input: true
+      allowed_reference_audio_mime_types: [audio/wav, audio/mpeg, audio/mp3]
+    target_model_refs:
+      - mimo-v2.5-tts-voiceclone
+    langs_ref: short_v1
+    source_ids: [mimo_tts_v25_guide_doc]
+  - workflow_model_id: mimo-v2.5-tts-voicedesign
+    workflow_type: voice_design
+    input_contract_ref: mimo_voice_design_input_v1
+    output_persistence: session_ephemeral
+    request_options:
+      instruction_text_mode: required
+      preview_text_mode: optional
+      supports_language: false
+      supports_preferred_name: false
+    target_model_refs:
+      - mimo-v2.5-tts-voicedesign
+    langs_ref: short_v1
+    source_ids: [mimo_tts_v25_guide_doc]
+
+model_workflow_bindings:
+  - model_id: mimo-v2.5-tts-voiceclone
+    workflow_model_refs: [mimo-v2.5-tts-voiceclone]
+    workflow_types: [voice_clone]
+  - model_id: mimo-v2.5-tts-voicedesign
+    workflow_model_refs: [mimo-v2.5-tts-voicedesign]
+    workflow_types: [voice_design]
+
+voice_handle_policies:
+  - policy_id: mimo_runtime_session_ephemeral_default
+    applies_to_workflow_types: [voice_clone, voice_design]
+    persistence: session_ephemeral
+    default_ttl: session
+    scope: user_scoped
+    delete_semantics: runtime_authoritative_delete
+    runtime_reconciliation_required: false
+    source_ids: [mimo_tts_v25_guide_doc]

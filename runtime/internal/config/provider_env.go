@@ -26,6 +26,7 @@ var providerEnvBindings = []providerEnvBinding{
 	{canonicalID: "glm", baseURLKey: "NIMI_RUNTIME_CLOUD_GLM_BASE_URL", apiKeyKey: "NIMI_RUNTIME_CLOUD_GLM_API_KEY"},
 	{canonicalID: "kimi", baseURLKey: "NIMI_RUNTIME_CLOUD_KIMI_BASE_URL", apiKeyKey: "NIMI_RUNTIME_CLOUD_KIMI_API_KEY"},
 	{canonicalID: "minimax", baseURLKey: "NIMI_RUNTIME_CLOUD_MINIMAX_BASE_URL", apiKeyKey: "NIMI_RUNTIME_CLOUD_MINIMAX_API_KEY"},
+	{canonicalID: "mimo", baseURLKey: "NIMI_RUNTIME_CLOUD_MIMO_BASE_URL", apiKeyKey: "NIMI_RUNTIME_CLOUD_MIMO_API_KEY"},
 	{canonicalID: "nimillm", baseURLKey: "NIMI_RUNTIME_CLOUD_NIMILLM_BASE_URL", apiKeyKey: "NIMI_RUNTIME_CLOUD_NIMILLM_API_KEY"},
 	{canonicalID: "openrouter", baseURLKey: "NIMI_RUNTIME_CLOUD_OPENROUTER_BASE_URL", apiKeyKey: "NIMI_RUNTIME_CLOUD_OPENROUTER_API_KEY"},
 	{canonicalID: "volcengine", baseURLKey: "NIMI_RUNTIME_CLOUD_VOLCENGINE_BASE_URL", apiKeyKey: "NIMI_RUNTIME_CLOUD_VOLCENGINE_API_KEY"},

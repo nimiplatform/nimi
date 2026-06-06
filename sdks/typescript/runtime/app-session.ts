@@ -8,7 +8,8 @@ import {
   type RegisterAppResponse,
   type RuntimeTypedCallOptions,
 } from '../core-generated/runtime-typed-client';
-import { createNimiError, type CoreMetadata } from '../types';
+import { createNimiClientId, createNimiError, type CoreMetadata } from '../types';
+import { withNimiRuntimeIdempotencyMetadata } from './scenario-jobs';
 
 export interface NimiRuntimeAppRegistrationClient {
   registerApp(request: RegisterAppRequest, options?: RuntimeTypedCallOptions): Promise<RegisterAppResponse>;
@@ -60,7 +61,10 @@ export function createNimiRuntimeFullAppRegistration(
       return inflight;
     }
     inflight = (async () => {
-      const response = await resolveRuntime().auth.registerApp(createNimiRuntimeRegisterAppRequest(input), input.callOptions);
+      const response = await resolveRuntime().auth.registerApp(
+        createNimiRuntimeRegisterAppRequest(input),
+        withNimiRuntimeIdempotencyMetadata(input.callOptions, createNimiClientId('runtime-register-app')),
+      );
       if (!response.accepted) {
         throw createNimiError({
           message: `${input.rejectionLabel || 'Runtime app registration was rejected'}: ${runtimeReasonCodeName(response.reasonCode) || 'unknown'}`,
@@ -146,7 +150,7 @@ async function openNimiRuntimeAppSession(
     deviceId: requireText(input.deviceId, 'deviceId'),
     subjectUserId,
     ttlSeconds,
-  }, input.callOptions);
+  }, withNimiRuntimeIdempotencyMetadata(input.callOptions, createNimiClientId('runtime-open-session')));
   const sessionId = normalizeText(response.sessionId);
   const sessionToken = normalizeText(response.sessionToken);
   if (!sessionId || !sessionToken) {

@@ -69,6 +69,15 @@ entries:
     voice_discovery_mode: mixed
     activation_state: active
     source_rule: K-MCAT-023
+  - provider_id: mimo
+    runtime_plane: remote
+    supports_tts_synthesize: true
+    supports_voice_clone: true
+    supports_voice_design: true
+    supports_timing_alignment: false
+    voice_discovery_mode: mixed
+    activation_state: active
+    source_rule: K-MCAT-023
   - provider_id: openai
     runtime_plane: remote
     supports_tts_synthesize: true

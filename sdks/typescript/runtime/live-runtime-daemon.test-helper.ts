@@ -138,6 +138,7 @@ export async function withRuntimeDaemon(
       NIMI_RUNTIME_MODEL_REGISTRY_PATH: join(stateRoot, 'model-registry.json'),
       NIMI_RUNTIME_LOCAL_STATE_PATH: join(stateRoot, 'local-state.json'),
       NIMI_RUNTIME_LOCAL_MODELS_PATH: localModelsPath,
+      NIMI_RUNTIME_AUTH_DEVELOPER_REGISTRATION_ENABLED: '1',
       NIMI_RUNTIME_CONNECTOR_STORE_PATH: join(stateRoot, 'connector-store.json'),
       XDG_DATA_HOME: join(stateRoot, 'xdg-data'),
       XDG_CACHE_HOME: join(stateRoot, 'xdg-cache'),
@@ -172,11 +173,54 @@ export async function withRuntimeDaemon(
 
     await input.run({ endpoint, localModelsPath });
   } catch (error) {
-    const detail = error instanceof Error ? error.message : String(error || '');
+    const detail = formatRuntimeLiveError(error);
     throw new Error(`${detail}\nstdout=${stdout}\nstderr=${stderr}`);
   } finally {
     await terminateDaemon(daemon);
     rmSync(stateRoot, { recursive: true, force: true });
+  }
+}
+
+function formatRuntimeLiveError(error: unknown): string {
+  if (!error || typeof error !== 'object') {
+    return String(error || '');
+  }
+  const record = error as {
+    readonly message?: unknown;
+    readonly code?: unknown;
+    readonly reasonCode?: unknown;
+    readonly actionHint?: unknown;
+    readonly traceId?: unknown;
+    readonly retryable?: unknown;
+    readonly details?: unknown;
+    readonly cause?: unknown;
+  };
+  const parts = [String(record.message || 'Runtime live smoke failed')];
+  for (const [label, value] of [
+    ['code', record.code],
+    ['reasonCode', record.reasonCode],
+    ['actionHint', record.actionHint],
+    ['traceId', record.traceId],
+    ['retryable', record.retryable],
+  ] as const) {
+    if (value !== undefined && value !== null && String(value).trim()) {
+      parts.push(`${label}=${String(value)}`);
+    }
+  }
+  if (record.details !== undefined) {
+    parts.push(`details=${safeJson(record.details)}`);
+  }
+  if (record.cause !== undefined) {
+    parts.push(`cause=${formatRuntimeLiveError(record.cause)}`);
+  }
+  return parts.join('\n');
+}
+
+function safeJson(value: unknown): string {
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
   }
 }
 
