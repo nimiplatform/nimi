@@ -417,6 +417,7 @@ test('first-run materialization derives Runtime job requests from selected AIPro
         environmentKey: payload.environmentKey,
         dependencyFamily: payload.dependencyFamily,
         dependencyId: payload.dependencyId,
+        consumerScope: payload.consumerScope,
         state: 'queued',
         sourceKind: payload.sourceKind,
         retryable: false,
@@ -507,6 +508,7 @@ test('first-run materialization includes Runtime-required platform dependencies 
         environmentKey: payload.environmentKey,
         dependencyFamily: payload.dependencyFamily,
         dependencyId: payload.dependencyId,
+        consumerScope: payload.consumerScope,
         state: 'queued',
         sourceKind: payload.sourceKind,
         retryable: true,
@@ -573,6 +575,7 @@ test('first-run materialization does not treat selected or candidate dependency 
         environmentKey: payload.environmentKey,
         dependencyFamily: payload.dependencyFamily,
         dependencyId: payload.dependencyId,
+        consumerScope: payload.consumerScope,
         state: 'queued',
         sourceKind: payload.sourceKind,
         retryable: false,
@@ -672,11 +675,13 @@ function dependency(
     confirmationRequired: boolean;
     selectedSourceRecordId: string;
     environmentKey: string;
+    consumerScope: string;
   }> = {},
 ) {
   return {
     dependencyFamily,
     dependencyId,
+    consumerScope: NIMI_FIRST_RUN_MATERIALIZATION_CONSUMER_SCOPE,
     required: true,
     state: 'needs_confirmation',
     sourceKind: 'runtime-managed',

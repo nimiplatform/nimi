@@ -123,10 +123,13 @@ test('Account Default Profile library is account-local evidence, not scope AICon
   assert.match(accountProfileBridge, /parseExportedNimiAccountProfileLibraryProfiles/);
   assert.doesNotMatch(accountProfileBridge, /localStorage|sessionStorage/);
 
-  assert.match(profilePage, /ModelConfigAiModelHub/);
-  assert.match(profilePage, /useModelConfigProfileController/);
   assert.match(profilePage, /getAccountDefaultProfileForScopeInit/);
-  assert.match(profilePage, /profile\.onApply\(accountDefault\.profileId\)/);
+  assert.match(profilePage, /ProfileLibraryActions/);
+  assert.match(profilePage, /AccountProfileLibraryPanel/);
+  assert.match(profilePage, /buildProfileFromEditorDraft/);
+  assert.doesNotMatch(profilePage, /ModelConfigAiModelHub/);
+  assert.doesNotMatch(profilePage, /useModelConfigProfileController/);
+  assert.doesNotMatch(profilePage, /profile\.onApply\(accountDefault\.profileId\)/);
   assert.doesNotMatch(profilePage, /aiConfigService\.aiProfile\.apply\(/);
   assert.doesNotMatch(profilePage, /aiConfigService\.aiConfig\.update\(/);
 
@@ -141,7 +144,7 @@ test('Desktop consumes SDK and Kit AIProfile surfaces as an app', () => {
   const desktopChatSettings = read('apps/desktop/src/shell/renderer/features/chat/chat-shared-settings-panel.tsx');
 
   assert.match(desktopProfilePage, /from '@nimiplatform\/sdk\/ai'/);
-  assert.match(desktopProfilePage, /from '@nimiplatform\/kit\/features\/model-config'/);
+  assert.doesNotMatch(desktopProfilePage, /from '@nimiplatform\/kit\/features\/model-config'/);
   assert.doesNotMatch(desktopProfilePage, /applyAIProfileToConfig/);
   assert.match(desktopChatSettings, /from '@nimiplatform\/kit\/features\/model-config'/);
 });

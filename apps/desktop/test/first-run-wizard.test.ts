@@ -7,6 +7,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 
 import { ProductControlWorkflow } from '../src/shell/renderer/first-run/product-control-workflow.js';
 import {
+  NIMI_FIRST_RUN_MATERIALIZATION_CONSUMER_SCOPE,
   NIMI_FIRST_RUN_PHASES,
   isNimiProductControlPhaseTransient as isPhaseTransient,
   isNimiProductControlTransientState as isTransientSystemState,
@@ -309,6 +310,7 @@ test('the setup checklist projects the real materialization progression', () => 
           dependency: {
             dependencyFamily: 'model.asset',
             dependencyId: 'model.asset:default',
+            consumerScope: NIMI_FIRST_RUN_MATERIALIZATION_CONSUMER_SCOPE,
             required: true,
             state: 'repair_required',
             sourceKind: 'runtime-managed',
@@ -320,6 +322,7 @@ test('the setup checklist projects the real materialization progression', () => 
             environmentKey: 'model.asset:default',
             dependencyFamily: 'model.asset',
             dependencyId: 'model.asset:default',
+            consumerScope: NIMI_FIRST_RUN_MATERIALIZATION_CONSUMER_SCOPE,
             state: 'failed',
             sourceKind: 'runtime-managed',
             retryable: true,
@@ -356,6 +359,7 @@ function downloadingDependency(
     dependency: {
       dependencyFamily: 'model.asset',
       dependencyId: 'model.asset:default',
+      consumerScope: NIMI_FIRST_RUN_MATERIALIZATION_CONSUMER_SCOPE,
       required: true,
       state: 'downloading',
       sourceKind: 'runtime-managed',
@@ -367,6 +371,7 @@ function downloadingDependency(
       environmentKey: 'model.asset:default',
       dependencyFamily: 'model.asset',
       dependencyId: 'model.asset:default',
+      consumerScope: NIMI_FIRST_RUN_MATERIALIZATION_CONSUMER_SCOPE,
       state: 'downloading',
       sourceKind: 'runtime-managed',
       retryable: true,
@@ -431,6 +436,7 @@ test('a genuinely failed setup step is red and offers Retry, with no progress', 
           dependency: {
             dependencyFamily: 'model.asset',
             dependencyId: 'model.asset:default',
+            consumerScope: NIMI_FIRST_RUN_MATERIALIZATION_CONSUMER_SCOPE,
             required: true,
             state: 'repair_required',
             sourceKind: 'runtime-managed',
@@ -442,6 +448,7 @@ test('a genuinely failed setup step is red and offers Retry, with no progress', 
             environmentKey: 'model.asset:default',
             dependencyFamily: 'model.asset',
             dependencyId: 'model.asset:default',
+            consumerScope: NIMI_FIRST_RUN_MATERIALIZATION_CONSUMER_SCOPE,
             state: 'failed',
             sourceKind: 'runtime-managed',
             retryable: true,
@@ -483,6 +490,7 @@ test('a selected-source repair-required setup step offers Repair', () => {
           dependency: {
             dependencyFamily: 'model.asset',
             dependencyId: 'model.asset:default',
+            consumerScope: NIMI_FIRST_RUN_MATERIALIZATION_CONSUMER_SCOPE,
             selectedSourceRecordId: 'source:model.asset:default',
             required: true,
             state: 'repair_required',

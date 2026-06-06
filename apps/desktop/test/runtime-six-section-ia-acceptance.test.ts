@@ -235,29 +235,30 @@ test('ordinary task 1: check whether the AI environment is ready (Overview)', ()
   assert.match(RUNTIME_PAGE_META.overview.description, /readiness/i);
 });
 
-test('ordinary task 2: see the active Default Profile for new scopes (Profiles)', () => {
-  // The kit hub surfaces the active origin via `currentOrigin` from profileOrigin.
-  assert.match(profilesPageSource, /currentOrigin/);
-  assert.match(profilesPageSource, /profileOrigin/);
+test('ordinary task 2: see the account Default Profile for new scopes (Profiles)', () => {
+  // Runtime > Profiles shows the account default template without projecting a
+  // hidden current-scope AIConfig origin.
   assert.match(profilesPageSource, /getAccountDefaultProfileForScopeInit/);
+  assert.doesNotMatch(profilesPageSource, /currentOrigin/);
+  assert.doesNotMatch(profilesPageSource, /aiConfig\.profileOrigin/);
 });
 
-test('ordinary task 3: import / edit / restore / export profiles (Profiles)', () => {
+test('ordinary task 3: import / edit / export portable profiles (Profiles)', () => {
   assert.match(profilesLibraryPanelSource, /runtime-profiles-account-library/);
   assert.match(profilesLibraryPanelSource, /runtime-profiles-create/);
   assert.match(profilesManagementSectionsSource, /runtime-profiles-import/);
   assert.match(profilesManagementSectionsSource, /runtime-profiles-export/);
-  assert.match(profilesManagementSectionsSource, /runtime-profiles-factory-restore/);
   assert.match(profilesPageSource, /deleteAccountProfileLibraryEntry/);
-  // Per-capability edit is delegated to the kit AI Config component.
-  assert.match(profilesPageSource, /ModelConfigAiModelHub/);
+  assert.match(profilesManagementSectionsSource, /profileJsonText/);
+  assert.doesNotMatch(profilesManagementSectionsSource, /runtime-profiles-factory-restore/);
+  assert.doesNotMatch(profilesPageSource, /ModelConfigAiModelHub/);
 });
 
-test('ordinary task 4: apply a profile to a scope with preview (Profiles)', () => {
-  // Apply is preview-gated through the kit controller (D-AIPC-014 / S-AICONF-008).
-  assert.match(profilesPageSource, /useModelConfigProfileController/);
-  // No bespoke immediate-commit apply path.
+test('ordinary task 4: Runtime Profiles does not apply to an implicit scope', () => {
+  // Scope profile apply lives in explicit app/module/feature surfaces.
+  assert.doesNotMatch(profilesPageSource, /useModelConfigProfileController/);
   assert.doesNotMatch(profilesPageSource, /surface\.aiProfile\.apply\(scopeRef, profileId\)/);
+  assert.doesNotMatch(profilesPageSource, /profile\.onApply/);
 });
 
 test('ordinary task 5: install / remove local models by capability (Models)', () => {

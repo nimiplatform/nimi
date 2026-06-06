@@ -16,20 +16,18 @@ const managementSectionsPath = path.join(
   '../src/shell/renderer/features/runtime-config/runtime-config-profile-management-sections.tsx',
 );
 
-// T2.4: the Profiles section converges onto the Nimi Kit AI Config component.
-// Profile apply is preview-gated (D-AIPC-014 / S-AICONF-008) through the kit
-// `useModelConfigProfileController` controller — the bespoke direct-apply path
-// is retired. There is no immediate-commit apply on this surface.
+// T2.4: Runtime > Profiles is an account AIProfile library surface. It must
+// not mount a hidden current-scope AIConfig editor/apply flow.
 
-test('profile section delegates apply to the kit preview-gated controller', () => {
+test('profile section stays library-scoped and does not mount hidden AIConfig apply', () => {
   const source = readFileSync(sourcePath, 'utf8');
-  // Apply flows through the canonical kit hub + controller, not a bespoke path.
-  assert.match(source, /useModelConfigProfileController/);
-  assert.match(source, /ModelConfigAiModelHub/);
-  // No bespoke immediate-commit apply: the retired direct `aiProfile.apply`
-  // call and renderer-authored `aiConfig.update` must not return.
-  assert.doesNotMatch(source, /surface\.aiProfile\.apply\(scopeRef, profileId\)/);
-  assert.doesNotMatch(source, /surface\.aiConfig\.update\(scopeRef/);
+  assert.doesNotMatch(source, /ModelConfigAiModelHub/);
+  assert.doesNotMatch(source, /useModelConfigProfileController/);
+  assert.doesNotMatch(source, /useAppStore/);
+  assert.doesNotMatch(source, /profileCapabilitiesFromAIConfig/);
+  assert.doesNotMatch(source, /aiConfig\.capabilities/);
+  assert.doesNotMatch(source, /aiConfigService\.aiProfile\.apply\(/);
+  assert.doesNotMatch(source, /aiConfigService\.aiConfig\.update\(/);
 });
 
 test('profile section retires the bespoke profile editor', () => {
@@ -47,7 +45,7 @@ test('profile section retires the bespoke profile editor', () => {
   );
 });
 
-test('profile section exposes the file-backed library actions and factory restore', () => {
+test('profile section exposes file-backed library actions without factory restore apply', () => {
   const source = readFileSync(sourcePath, 'utf8');
   const libraryPanelSource = readFileSync(libraryPanelPath, 'utf8');
   const managementSectionsSource = readFileSync(managementSectionsPath, 'utf8');
@@ -55,31 +53,38 @@ test('profile section exposes the file-backed library actions and factory restor
   assert.match(libraryPanelSource, /runtime-profiles-create/);
   assert.match(managementSectionsSource, /runtime-profiles-import/);
   assert.match(managementSectionsSource, /runtime-profiles-export/);
-  assert.match(managementSectionsSource, /runtime-profiles-factory-restore/);
-  // Factory-restore re-applies the file-backed Account Default Profile.
   assert.match(source, /getAccountDefaultProfileForScopeInit/);
+  assert.doesNotMatch(managementSectionsSource, /runtime-profiles-factory-restore/);
+  assert.doesNotMatch(source, /profile\.onApply\(accountDefault\.profileId\)/);
 });
 
-test('profile section restores account profile CRUD without turning profiles into capability categories', () => {
+test('profile section restores account profile CRUD and portable body editing', () => {
   const source = readFileSync(sourcePath, 'utf8');
+  const libraryPanelSource = readFileSync(libraryPanelPath, 'utf8');
+  const managementSectionsSource = readFileSync(managementSectionsPath, 'utf8');
   assert.match(source, /createAccountProfileLibraryEntry/);
   assert.match(source, /editAccountProfileLibraryEntry/);
   assert.match(source, /deleteAccountProfileLibraryEntry/);
-  assert.match(source, /profileCapabilitiesFromAIConfig/);
-  assert.match(source, /Object\.keys\(capabilities\.targetRefs \?\? \{\}\)/);
-  assert.match(source, /targetRef: capabilities\.targetRefs\?\.\[capabilityId\] \?\? null/);
-  assert.match(source, /accountDefaultProfile \? \[accountDefaultProfile\] : \[\]/);
-  assert.match(source, /onApply=\{\(profileId\) => profile\.onApply\(profileId\)\}/);
+  assert.match(source, /buildProfileFromEditorDraft/);
+  assert.match(source, /PROFILE_BODY_RESERVED_FIELDS/);
+  assert.match(source, /validateNimiAIProfile\(nextProfile\)/);
+  assert.match(managementSectionsSource, /profileJsonText/);
+  assert.match(managementSectionsSource, /profileBodyLabel/);
+  assert.doesNotMatch(managementSectionsSource, /replaceWithCurrentConfig/);
+  assert.doesNotMatch(managementSectionsSource, /current AI config/i);
+  assert.doesNotMatch(libraryPanelSource, /onApply/);
+  assert.doesNotMatch(libraryPanelSource, /onReplaceFromCurrent/);
   assert.doesNotMatch(source, /createAccountProfileLibraryEntry[\s\S]{0,300}aiConfigService\.aiConfig\.update/);
   assert.doesNotMatch(source, /editAccountProfileLibraryEntry[\s\S]{0,300}aiConfigService\.aiConfig\.update/);
 });
 
 // ---------------------------------------------------------------------------
-// T2.5 acceptance — profile apply preview + no silent AIConfig mutation
+// T2.5 acceptance — profile library CRUD + no silent AIConfig mutation
 //
 // Product manual "Profile And AIConfig Model":
 //   - editing or replacing Account Default Profile never mutates existing AIConfig;
-//   - applying a profile to existing scopes is explicit, previewed, and atomic.
+//   - applying a profile to existing scopes belongs to explicit app/module
+//     scope surfaces, not Runtime > Profiles.
 // ---------------------------------------------------------------------------
 
 const libraryPath = path.join(
@@ -87,13 +92,12 @@ const libraryPath = path.join(
   '../src/shell/renderer/features/runtime-config/runtime-config-profile-library.ts',
 );
 
-test('factory-restore routes through the kit preview-gated controller, not a direct commit', () => {
+test('runtime profiles has no factory-restore apply path', () => {
   const source = readFileSync(sourcePath, 'utf8');
-  // The explicit restore-to-Account-Default action re-applies through the kit
-  // controller `onApply` — which is preview-gated (D-AIPC-014 / S-AICONF-008).
-  // It must not issue an immediate-commit `aiProfile.apply` / `aiConfig.update`.
-  assert.match(source, /profile\.onApply\(accountDefault\.profileId\)/);
-  assert.match(source, /restorePreview/, 'restore must surface a "review then confirm" preview copy');
+  const managementSectionsSource = readFileSync(managementSectionsPath, 'utf8');
+  assert.doesNotMatch(source, /profile\.onApply\(accountDefault\.profileId\)/);
+  assert.doesNotMatch(source, /restorePreview/);
+  assert.doesNotMatch(managementSectionsSource, /factoryRestore/);
   assert.doesNotMatch(source, /aiConfigService\.aiProfile\.apply\(/);
   assert.doesNotMatch(source, /aiConfigService\.aiConfig\.update\(/);
 });
@@ -109,14 +113,13 @@ test('account profile library layer never mutates scope-bound AIConfig', () => {
   assert.match(source, /single source of truth/);
 });
 
-test('profile library import/edit is library-scoped, decoupled from AIConfig apply', () => {
+test('profile library import/edit is library-scoped and decoupled from AIConfig apply', () => {
   // The Profiles section import handler writes the library file family
-  // (importAccountProfileLibraryEntries) — a separate concern from apply.
-  // Apply to a scope is a distinct, preview-gated kit-controller action.
+  // (importAccountProfileLibraryEntries) — a separate concern from scope apply.
   const source = readFileSync(sourcePath, 'utf8');
   const managementSectionsSource = readFileSync(managementSectionsPath, 'utf8');
   assert.match(managementSectionsSource, /importAccountProfileLibraryEntries/);
-  assert.match(source, /useModelConfigProfileController/);
+  assert.doesNotMatch(source, /useModelConfigProfileController/);
   // Import success copy must not claim a scope AIConfig was changed.
   assert.match(managementSectionsSource, /importSuccess/);
   assert.doesNotMatch(managementSectionsSource, /importAccountProfileLibraryEntries[\s\S]{0,200}aiProfile\.apply/);

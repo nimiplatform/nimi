@@ -1,44 +1,16 @@
 /**
  * Profiles section — canonical six-section Runtime IA.
  *
- * Profile catalog management is owned by the account profile library file
- * family. Capability binding detail and preview-gated apply
- * (D-AIPC-014 / S-AICONF-008) still use the Nimi Kit AI Config component
- * (`ModelConfigAiModelHub`). The old localStorage-backed
- * `runtime-config-profile-editor.tsx` remains retired.
- *
- * The Account Default Profile is file-backed (P-AIPS-013 `account_profile_library`);
- * the library access layer (`runtime-config-profile-library`) feeds the kit's
- * synchronous `userProfilesSource`. This section exposes:
- *   - create / edit / delete / import / export of editable library profiles
- *   - Account Default Profile as a switchable profile row
- *   - per-capability edit via the kit AI Config component
- *   - explicit factory-restore (preview-gated re-apply of the file-backed
- *     Account Default Profile to the active scope)
- *   - the "Active Default Profile for new scopes" indicator (ordinary task 2),
- *     surfaced by the kit hub via `currentOrigin`.
+ * Runtime > Profiles is account AIProfile library management only. It does
+ * not read the current scope AIConfig, does not derive profile bodies from
+ * AIConfig, and does not apply profiles to an implicit scope. Concrete app /
+ * module / feature scope apply remains owned by those scope surfaces.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type {
-  NimiAICapabilityRequirementDeclaration,
-  NimiAIConfig,
-  NimiAIProfile,
-  NimiAIProfileCapabilityIntent,
-} from '@nimiplatform/sdk/ai';
+import type { NimiAIProfile } from '@nimiplatform/sdk/ai';
 import { validateNimiAIProfile } from '@nimiplatform/sdk/ai';
-import {
-  CANONICAL_CAPABILITY_CATALOG,
-} from '@nimiplatform/kit/core/runtime-capabilities';
-import type { AppModelConfigSurface } from '@nimiplatform/kit/features/model-config';
-import {
-  ModelConfigAiModelHub,
-  defaultModelConfigProfileCopy,
-  useModelConfigProfileController,
-} from '@nimiplatform/kit/features/model-config';
-import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
-import { getDesktopAIConfigService } from '@renderer/app-shell/providers/desktop-ai-config-service.js';
 import { getAccountDefaultProfileForScopeInit } from '@renderer/bridge/runtime-bridge/product-control.js';
 import { RuntimePageShell } from './runtime-config-page-shell.js';
 import { AccountProfileLibraryPanel } from './runtime-config-profile-library-panel.js';
@@ -48,57 +20,24 @@ import {
   type ProfileEditorDraft,
   type ProfileFeedback,
 } from './runtime-config-profile-management-sections.js';
-import { getDesktopRouteModelPickerProvider } from './desktop-route-model-picker-provider.js';
-import { useLocalAssets } from '../chat/capability-settings-shared.js';
 import {
+  createEmptyLibraryProfile,
   createAccountProfileLibraryEntry,
   deleteAccountProfileLibraryEntry,
   editAccountProfileLibraryEntry,
-  generateLibraryProfileId,
-  getCachedAccountProfileLibraryProfiles,
   loadAccountProfileLibrary,
   type NimiAccountProfileLibraryProjection,
   type LibraryProfile,
 } from './runtime-config-profile-library.js';
 
-// Account default profile spans every canonical capability.
-const RUNTIME_ENABLED_CAPABILITIES = Object.freeze(
-  CANONICAL_CAPABILITY_CATALOG.map((descriptor) => descriptor.capabilityId),
-);
-
-function modelConfigRequirementDeclaration(
-  scopeRef: NimiAIConfig['scopeRef'],
-  capabilities: readonly string[],
-): NimiAICapabilityRequirementDeclaration {
-  return {
-    requirementId: `desktop.runtime-config.profiles:${scopeRef.kind}:${scopeRef.ownerId}:${scopeRef.surfaceId ?? 'default'}`,
-    scopeRef,
-    requiredSlices: capabilities.map((capability) => ({
-      requirementSliceId: `runtime-config:${capability}`,
-      capability,
-      profileSliceRef: `runtime-config:${capability}`,
-      readinessPolicy: 'required',
-    })),
-    setupProjectionPolicy: 'sdk-ai-config-setup-projection',
-  };
-}
-
-function profileCapabilitiesFromAIConfig(
-  capabilities: NimiAIConfig['capabilities'],
-): NimiAIProfile['capabilities'] {
-  const out: Record<string, NimiAIProfileCapabilityIntent | null | undefined> = {};
-  const capabilityIds = new Set([
-    ...Object.keys(capabilities.targetRefs ?? {}),
-    ...Object.keys(capabilities.selectedParams ?? {}),
-  ]);
-  for (const capabilityId of capabilityIds) {
-    out[capabilityId] = {
-      targetRef: capabilities.targetRefs?.[capabilityId] ?? null,
-      params: capabilities.selectedParams?.[capabilityId] ?? {},
-    };
-  }
-  return out;
-}
+const PROFILE_BODY_RESERVED_FIELDS = [
+  'profileId',
+  'title',
+  'description',
+  'tags',
+  'scopeRef',
+  'profileOrigin',
+] as const;
 
 function normalizeTags(text: string): string[] {
   return text
@@ -107,20 +46,57 @@ function normalizeTags(text: string): string[] {
     .filter(Boolean);
 }
 
+function isPlainObject(value: unknown): value is { readonly [key: string]: unknown } {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function profileBodyJson(profile: NimiAIProfile): string {
+  const body: { [key: string]: unknown } = {};
+  if (profile.version !== undefined) body.version = profile.version;
+  if (profile.revision !== undefined) body.revision = profile.revision;
+  body.capabilities = profile.capabilities;
+  if (profile.assetBindings !== undefined) body.assetBindings = profile.assetBindings;
+  if (profile.defaultParams !== undefined) body.defaultParams = profile.defaultParams;
+  if (profile.editableFields !== undefined) body.editableFields = profile.editableFields;
+  if (profile.prepareRequirements !== undefined) body.prepareRequirements = profile.prepareRequirements;
+  if (profile.contractStates !== undefined) body.contractStates = profile.contractStates;
+  if (profile.projectionWarnings !== undefined) body.projectionWarnings = profile.projectionWarnings;
+  return JSON.stringify(body, null, 2);
+}
+
+function buildProfileFromEditorDraft(draft: ProfileEditorDraft): NimiAIProfile {
+  const parsed = JSON.parse(draft.profileJsonText) as unknown;
+  if (!isPlainObject(parsed)) {
+    throw new Error('Portable profile body must be a JSON object.');
+  }
+  const reserved = PROFILE_BODY_RESERVED_FIELDS.filter((field) => (
+    Object.prototype.hasOwnProperty.call(parsed, field)
+  ));
+  if (reserved.length > 0) {
+    throw new Error(`Portable profile body must not include: ${reserved.join(', ')}`);
+  }
+  const nextProfile = {
+    ...parsed,
+    profileId: draft.profile.profileId,
+    title: draft.title.trim(),
+    description: draft.description,
+    tags: normalizeTags(draft.tagsText),
+  } as unknown as NimiAIProfile;
+  const validation = validateNimiAIProfile(nextProfile);
+  if (!validation.valid) {
+    throw new Error(validation.errors.join(', '));
+  }
+  return nextProfile;
+}
+
 export function ProfileCatalogPage() {
   const { t } = useTranslation();
-  const aiConfig = useAppStore((state) => state.aiConfig);
-  const aiConfigService = useMemo(() => getDesktopAIConfigService(), []);
-  const assetsQuery = useLocalAssets();
-  const [restoring, setRestoring] = useState(false);
-  const [restoreFeedback, setRestoreFeedback] = useState<ProfileFeedback>(null);
   const [libraryProjection, setLibraryProjection] = useState<NimiAccountProfileLibraryProjection | null>(null);
   const [accountDefaultProfile, setAccountDefaultProfile] = useState<NimiAIProfile | null>(null);
   const [libraryLoading, setLibraryLoading] = useState(false);
   const [libraryFeedback, setLibraryFeedback] = useState<ProfileFeedback>(null);
   const [editorDraft, setEditorDraft] = useState<ProfileEditorDraft | null>(null);
   const [editorSaving, setEditorSaving] = useState(false);
-  const profileReloadRef = useRef<(() => void) | undefined>(undefined);
 
   const refreshProfileLibrary = useCallback(async () => {
     setLibraryLoading(true);
@@ -137,66 +113,10 @@ export function ProfileCatalogPage() {
     }
   }, []);
 
-  const surface: AppModelConfigSurface = useMemo(() => ({
-    scopeRef: aiConfig.scopeRef,
-    aiConfigService,
-    requirementDeclaration: modelConfigRequirementDeclaration(aiConfig.scopeRef, RUNTIME_ENABLED_CAPABILITIES),
-    providerResolver: (routeCapability: string) => getDesktopRouteModelPickerProvider(routeCapability),
-    projectionResolver: () => null,
-    localAssetSource: {
-      list: () => assetsQuery.data || [],
-      loading: assetsQuery.isLoading,
-    },
-    i18n: { t },
-  }), [aiConfig.scopeRef, aiConfigService, assetsQuery.data, assetsQuery.isLoading, t]);
-
-  const profileCopy = useMemo(() => ({
-    ...defaultModelConfigProfileCopy(t),
-    importLabel: t('runtimeConfig.profiles.switchProfile', { defaultValue: 'Switch AI Profile' }),
-    modalTitle: t('runtimeConfig.profiles.switchProfileModalTitle', { defaultValue: 'Switch AI Profile' }),
-    modalHint: t('runtimeConfig.profiles.switchProfileModalHint', {
-      defaultValue: 'Choose a profile to preview the changes before applying it to this scope.',
-    }),
-  }), [t]);
-
-  const userProfilesSource = useMemo(
-    () => ({
-      list: () => [
-        ...(accountDefaultProfile ? [accountDefaultProfile] : []),
-        ...getCachedAccountProfileLibraryProfiles(),
-      ],
-    }),
-    [accountDefaultProfile],
-  );
-
-  const currentOrigin = useMemo(
-    () => (aiConfig.profileOrigin
-      ? { profileId: aiConfig.profileOrigin.profileId, title: aiConfig.profileOrigin.title }
-      : null),
-    [aiConfig.profileOrigin?.profileId, aiConfig.profileOrigin?.title],
-  );
-
-  const profile = useModelConfigProfileController({
-    scopeRef: aiConfig.scopeRef,
-    aiConfigService,
-    requirementDeclaration: modelConfigRequirementDeclaration(aiConfig.scopeRef, RUNTIME_ENABLED_CAPABILITIES),
-    copy: profileCopy,
-    userProfilesSource,
-    currentOrigin,
-  });
-
-  useEffect(() => {
-    profileReloadRef.current = profile.onReload;
-  }, [profile.onReload]);
-
-  // Prime the file-backed account profile library and force the kit controller
-  // to reload once the synchronous userProfilesSource can see host truth.
+  // Prime the file-backed account profile library projection.
   useEffect(() => {
     let cancelled = false;
     void refreshProfileLibrary()
-      .then(() => {
-        if (!cancelled) profileReloadRef.current?.();
-      })
       .catch((error: unknown) => {
         if (!cancelled) {
           setLibraryFeedback({
@@ -210,28 +130,21 @@ export function ProfileCatalogPage() {
     };
   }, [refreshProfileLibrary]);
 
-  const reloadLibraryAndProfileController = useCallback(async () => {
+  const reloadProfileLibrary = useCallback(async () => {
     await refreshProfileLibrary();
-    profileReloadRef.current?.();
   }, [refreshProfileLibrary]);
 
   const openCreateProfile = useCallback(() => {
-    const base = {
-      profileId: generateLibraryProfileId(),
-      title: '',
-      description: '',
-      tags: [],
-      capabilities: profileCapabilitiesFromAIConfig(aiConfig.capabilities),
-    };
+    const base = createEmptyLibraryProfile();
     setEditorDraft({
       mode: 'create',
       profile: base,
       title: '',
       description: '',
       tagsText: '',
-      replaceWithCurrentConfig: true,
+      profileJsonText: profileBodyJson(base),
     });
-  }, [aiConfig.capabilities]);
+  }, []);
 
   const openEditProfile = useCallback((entry: LibraryProfile) => {
     setEditorDraft({
@@ -240,7 +153,7 @@ export function ProfileCatalogPage() {
       title: entry.profile.title,
       description: entry.profile.description ?? '',
       tagsText: (entry.profile.tags ?? []).join(', '),
-      replaceWithCurrentConfig: false,
+      profileJsonText: profileBodyJson(entry.profile),
     });
   }, []);
 
@@ -250,25 +163,13 @@ export function ProfileCatalogPage() {
     setLibraryFeedback(null);
     void (async () => {
       try {
-        const nextProfile: NimiAIProfile = {
-          ...editorDraft.profile,
-          title: editorDraft.title.trim(),
-          description: editorDraft.description,
-          tags: normalizeTags(editorDraft.tagsText),
-          capabilities: editorDraft.replaceWithCurrentConfig
-            ? profileCapabilitiesFromAIConfig(aiConfig.capabilities)
-            : editorDraft.profile.capabilities,
-        };
-        const validation = validateNimiAIProfile(nextProfile);
-        if (!validation.valid) {
-          throw new Error(validation.errors.join(', '));
-        }
+        const nextProfile = buildProfileFromEditorDraft(editorDraft);
         if (editorDraft.mode === 'create') {
           await createAccountProfileLibraryEntry(nextProfile);
         } else {
           await editAccountProfileLibraryEntry(nextProfile);
         }
-        await reloadLibraryAndProfileController();
+        await reloadProfileLibrary();
         setEditorDraft(null);
         setLibraryFeedback({
           type: 'success',
@@ -283,25 +184,14 @@ export function ProfileCatalogPage() {
         setEditorSaving(false);
       }
     })();
-  }, [aiConfig.capabilities, editorDraft, reloadLibraryAndProfileController, t]);
-
-  const replaceProfileFromCurrentConfig = useCallback((entry: LibraryProfile) => {
-    setEditorDraft({
-      mode: 'edit',
-      profile: entry.profile,
-      title: entry.profile.title,
-      description: entry.profile.description ?? '',
-      tagsText: (entry.profile.tags ?? []).join(', '),
-      replaceWithCurrentConfig: true,
-    });
-  }, []);
+  }, [editorDraft, reloadProfileLibrary, t]);
 
   const deleteProfile = useCallback((entry: LibraryProfile) => {
     setLibraryFeedback(null);
     void (async () => {
       try {
         await deleteAccountProfileLibraryEntry(entry.profileId);
-        await reloadLibraryAndProfileController();
+        await reloadProfileLibrary();
         setLibraryFeedback({
           type: 'success',
           message: t('runtimeConfig.profiles.deleted', { defaultValue: 'Profile deleted.' }),
@@ -313,55 +203,21 @@ export function ProfileCatalogPage() {
         });
       }
     })();
-  }, [reloadLibraryAndProfileController, t]);
-
-  // Explicit factory-restore: re-apply the file-backed Account Default Profile
-  // to the active scope. This routes through the kit controller's preview-gated
-  // apply (D-AIPC-014) — the user confirms the before→after diff before any
-  // D-AIPC-005 commit. No library file family mutation is performed here.
-  const handleRestoreToAccountDefault = useCallback(() => {
-    setRestoring(true);
-    setRestoreFeedback(null);
-    void (async () => {
-      try {
-        const accountDefault = await getAccountDefaultProfileForScopeInit();
-        profile.onApply(accountDefault.profileId);
-        setRestoreFeedback({
-          type: 'success',
-          message: t('runtimeConfig.profiles.restorePreview', {
-            defaultValue: 'Review the Account Default changes below, then confirm to apply.',
-          }),
-        });
-      } catch (error: unknown) {
-        setRestoreFeedback({
-          type: 'error',
-          message: error instanceof Error ? error.message : 'Failed to load the Account Default Profile.',
-        });
-      } finally {
-        setRestoring(false);
-      }
-    })();
-  }, [profile, t]);
+  }, [reloadProfileLibrary, t]);
 
   return (
     <RuntimePageShell>
       <ProfileLibraryActions
-        onRestoreToAccountDefault={handleRestoreToAccountDefault}
-        restoring={restoring}
         exportCount={libraryProjection?.profiles.length ?? 0}
-        onLibraryChanged={reloadLibraryAndProfileController}
+        onLibraryChanged={reloadProfileLibrary}
       />
       <AccountProfileLibraryPanel
         projection={libraryProjection}
         accountDefaultProfile={accountDefaultProfile}
-        currentOrigin={currentOrigin}
         loading={libraryLoading}
-        busyProfileId={null}
-        onRefresh={() => { void reloadLibraryAndProfileController(); }}
-        onApply={(profileId) => profile.onApply(profileId)}
+        onRefresh={() => { void reloadProfileLibrary(); }}
         onCreate={openCreateProfile}
         onEdit={openEditProfile}
-        onReplaceFromCurrent={replaceProfileFromCurrentConfig}
         onDelete={deleteProfile}
       />
       {libraryFeedback ? (
@@ -377,20 +233,6 @@ export function ProfileCatalogPage() {
           {libraryFeedback.message}
         </p>
       ) : null}
-      {restoreFeedback ? (
-        <p
-          className={
-            restoreFeedback.type === 'success'
-              ? 'rounded-xl bg-blue-50 px-3 py-2 text-xs text-blue-700 ring-1 ring-blue-200'
-              : 'rounded-xl bg-red-50 px-3 py-2 text-xs text-red-700 ring-1 ring-red-200'
-          }
-          role="status"
-          data-testid="runtime-profiles-restore-feedback"
-        >
-          {restoreFeedback.message}
-        </p>
-      ) : null}
-      <ModelConfigAiModelHub surface={surface} profile={profile} />
       {editorDraft ? (
         <ProfileEditorModal
           draft={editorDraft}

@@ -16,7 +16,7 @@ export type ProfileEditorDraft = {
   title: string;
   description: string;
   tagsText: string;
-  replaceWithCurrentConfig: boolean;
+  profileJsonText: string;
 };
 
 export function ProfileEditorModal(props: {
@@ -31,7 +31,7 @@ export function ProfileEditorModal(props: {
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/20 px-4">
       <section
-        className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-5 shadow-xl"
+        className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-slate-200 bg-white p-5 shadow-xl"
         data-testid="runtime-profiles-editor"
       >
         <div>
@@ -42,7 +42,7 @@ export function ProfileEditorModal(props: {
           </h3>
           <p className="mt-1 text-xs text-slate-500">
             {t('runtimeConfig.profiles.profileIdentityHint', {
-              defaultValue: 'Set this AI profile metadata and choose whether to capture the current AI config.',
+              defaultValue: 'Set the profile metadata and portable AIProfile body. Scope AIConfig is configured from app or module surfaces.',
             })}
           </p>
         </div>
@@ -81,24 +81,21 @@ export function ProfileEditorModal(props: {
               placeholder={t('runtimeConfig.profiles.tagsPlaceholder', { defaultValue: 'local, writing, fast' })}
             />
           </label>
-          <label className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
-            <input
-              type="checkbox"
-              checked={draft.replaceWithCurrentConfig}
-              onChange={(event) => props.onDraftChange({ ...draft, replaceWithCurrentConfig: event.target.checked })}
-              className="mt-0.5 h-4 w-4 rounded border-slate-300 text-emerald-600"
+          <label className="block">
+            <span className="text-xs font-medium text-slate-700">
+              {t('runtimeConfig.profiles.profileBodyLabel', { defaultValue: 'Portable profile body JSON' })}
+            </span>
+            <textarea
+              value={draft.profileJsonText}
+              onChange={(event) => props.onDraftChange({ ...draft, profileJsonText: event.target.value })}
+              className="mt-1 min-h-56 w-full resize-y rounded-xl border border-slate-200 px-3 py-2 font-mono text-xs leading-5 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+              spellCheck={false}
+              placeholder={'{\n  "capabilities": {}\n}'}
             />
-            <span>
-              <span className="block text-xs font-medium text-slate-800">
-                {draft.mode === 'create'
-                  ? t('runtimeConfig.profiles.captureCurrentConfig', { defaultValue: 'Create from current AI config' })
-                  : t('runtimeConfig.profiles.replaceWithCurrentConfig', { defaultValue: 'Replace capabilities with current AI config' })}
-              </span>
-              <span className="mt-1 block text-xs text-slate-500">
-                {t('runtimeConfig.profiles.captureCurrentConfigHint', {
-                  defaultValue: 'This changes the profile template only; applying it to a scope remains preview-gated.',
-                })}
-              </span>
+            <span className="mt-1 block text-xs text-slate-500">
+              {t('runtimeConfig.profiles.profileBodyHint', {
+                defaultValue: 'Edit portable profile fields such as capabilities, defaultParams, assetBindings, editableFields, and prepareRequirements. Do not include scopeRef, profileOrigin, secrets, local paths, or runtime evidence.',
+              })}
             </span>
           </label>
         </div>
@@ -113,7 +110,7 @@ export function ProfileEditorModal(props: {
           </button>
           <button
             type="button"
-            disabled={props.saving || draft.title.trim().length === 0}
+            disabled={props.saving || draft.title.trim().length === 0 || draft.profileJsonText.trim().length === 0}
             onClick={props.onSave}
             className="rounded-xl bg-emerald-500 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-emerald-600 disabled:pointer-events-none disabled:opacity-50"
           >
@@ -128,8 +125,6 @@ export function ProfileEditorModal(props: {
 }
 
 export function ProfileLibraryActions(props: {
-  onRestoreToAccountDefault: () => void;
-  restoring: boolean;
   exportCount: number;
   onLibraryChanged: () => Promise<void>;
 }) {
@@ -137,8 +132,6 @@ export function ProfileLibraryActions(props: {
   const {
     exportCount,
     onLibraryChanged,
-    onRestoreToAccountDefault,
-    restoring,
   } = props;
   const [feedback, setFeedback] = useState<ProfileFeedback>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -238,7 +231,7 @@ export function ProfileLibraryActions(props: {
           </h3>
           <p className="mt-0.5 text-xs text-gray-500">
             {t('runtimeConfig.profiles.librarySubtitle', {
-              defaultValue: 'Import, export, and restore your account profile library.',
+              defaultValue: 'Import and export portable account AIProfile files.',
             })}
           </p>
         </div>
@@ -259,17 +252,6 @@ export function ProfileLibraryActions(props: {
             className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50 disabled:pointer-events-none disabled:opacity-50"
           >
             {t('runtimeConfig.profiles.export', { defaultValue: 'Export' })}
-          </button>
-          <button
-            type="button"
-            data-testid="runtime-profiles-factory-restore"
-            onClick={onRestoreToAccountDefault}
-            disabled={restoring}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-white px-3.5 py-1.5 text-xs font-medium text-amber-700 shadow-sm transition-all hover:bg-amber-50 disabled:pointer-events-none disabled:opacity-50"
-          >
-            {restoring
-              ? t('runtimeConfig.profiles.restoring', { defaultValue: 'Restoring...' })
-              : t('runtimeConfig.profiles.factoryRestore', { defaultValue: 'Restore to Account Default' })}
           </button>
           <input
             ref={fileInputRef}

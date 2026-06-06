@@ -4,23 +4,17 @@ import type { NimiAccountProfileLibraryProjection, LibraryProfile } from './runt
 
 function countConfiguredCapabilities(profile: NimiAIProfile): number {
   return Object.values(profile.capabilities).filter((intent) => {
-    if (!intent) return false;
-    const params = intent.params && Object.keys(intent.params).length > 0;
-    return Boolean(intent.targetRef || params);
+    return intent !== null && intent !== undefined;
   }).length;
 }
 
 export function AccountProfileLibraryPanel(props: {
   projection: NimiAccountProfileLibraryProjection | null;
   accountDefaultProfile: NimiAIProfile | null;
-  currentOrigin: { profileId: string; title?: string | null } | null;
   loading: boolean;
-  busyProfileId: string | null;
   onRefresh: () => void;
-  onApply: (profileId: string) => void;
   onCreate: () => void;
   onEdit: (entry: LibraryProfile) => void;
-  onReplaceFromCurrent: (entry: LibraryProfile) => void;
   onDelete: (entry: LibraryProfile) => void;
 }) {
   const { t } = useTranslation();
@@ -40,7 +34,7 @@ export function AccountProfileLibraryPanel(props: {
           </h3>
           <p className="mt-1 max-w-2xl text-xs text-slate-500">
             {t('runtimeConfig.profiles.accountLibrarySubtitle', {
-              defaultValue: 'Create, edit, switch, import, and export account AI profiles. Profiles are presets; applying one updates the current scope only after preview.',
+              defaultValue: 'Create, edit, import, and export portable account AIProfile templates. Apply/use flows live in explicit app or module scope surfaces.',
             })}
           </p>
         </div>
@@ -81,35 +75,20 @@ export function AccountProfileLibraryPanel(props: {
                 <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-medium text-emerald-700 ring-1 ring-emerald-200">
                   {t('runtimeConfig.profiles.accountDefaultBadge', { defaultValue: 'Account default' })}
                 </span>
-                {props.currentOrigin?.profileId === props.accountDefaultProfile?.profileId ? (
-                  <span className="rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-medium text-white">
-                    {t('runtimeConfig.profiles.currentBadge', { defaultValue: 'Current' })}
-                  </span>
-                ) : null}
               </div>
               <p className="mt-1 text-xs text-slate-600">
                 {props.accountDefaultProfile?.description
                   || t('runtimeConfig.profiles.accountDefaultDescription', {
-                    defaultValue: 'Created during onboarding and available like any other profile for switching.',
+                    defaultValue: 'Created during onboarding and used as the account default template for new scope initialization.',
                   })}
               </p>
               <p className="mt-2 text-[11px] text-slate-500">
                 {t('runtimeConfig.profiles.capabilityCount', {
-                  defaultValue: '{{count}} configured capabilities',
+                  defaultValue: '{{count}} profile slices',
                   count: defaultCapabilityCount,
                 })}
               </p>
             </div>
-            <button
-              type="button"
-              disabled={!props.accountDefaultProfile || props.busyProfileId === props.accountDefaultProfile.profileId}
-              onClick={() => {
-                if (props.accountDefaultProfile) props.onApply(props.accountDefaultProfile.profileId);
-              }}
-              className="rounded-xl border border-emerald-300 bg-white px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-50 disabled:pointer-events-none disabled:opacity-50"
-            >
-              {t('runtimeConfig.profiles.applyProfile', { defaultValue: 'Apply' })}
-            </button>
           </div>
         </article>
 
@@ -119,7 +98,6 @@ export function AccountProfileLibraryPanel(props: {
           </div>
         ) : entries.map((entry) => {
           const profile = entry.profile;
-          const current = props.currentOrigin?.profileId === profile.profileId;
           return (
             <article
               key={profile.profileId}
@@ -133,18 +111,13 @@ export function AccountProfileLibraryPanel(props: {
                     <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600">
                       {entry.origin}
                     </span>
-                    {current ? (
-                      <span className="rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-medium text-white">
-                        {t('runtimeConfig.profiles.currentBadge', { defaultValue: 'Current' })}
-                      </span>
-                    ) : null}
                   </div>
                   {profile.description ? (
                     <p className="mt-1 text-xs text-slate-600">{profile.description}</p>
                   ) : null}
                   <p className="mt-2 text-[11px] text-slate-500">
                     {t('runtimeConfig.profiles.capabilityCount', {
-                      defaultValue: '{{count}} configured capabilities',
+                      defaultValue: '{{count}} profile slices',
                       count: countConfiguredCapabilities(profile),
                     })}
                     {' · '}
@@ -157,24 +130,10 @@ export function AccountProfileLibraryPanel(props: {
                 <div className="flex flex-wrap justify-end gap-2">
                   <button
                     type="button"
-                    onClick={() => props.onApply(profile.profileId)}
-                    className="rounded-xl border border-emerald-300 bg-white px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-50"
-                  >
-                    {t('runtimeConfig.profiles.applyProfile', { defaultValue: 'Apply' })}
-                  </button>
-                  <button
-                    type="button"
                     onClick={() => props.onEdit(entry)}
                     className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
                   >
                     {t('runtimeConfig.profiles.edit', { defaultValue: 'Edit' })}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => props.onReplaceFromCurrent(entry)}
-                    className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
-                  >
-                    {t('runtimeConfig.profiles.updateFromCurrent', { defaultValue: 'Update from current' })}
                   </button>
                   <button
                     type="button"

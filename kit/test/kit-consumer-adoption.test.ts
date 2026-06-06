@@ -107,8 +107,8 @@ test('Desktop consumes Kit shared UI, telemetry, and feature primitives for audi
   assert.match(catalog, /\buseRuntimeModelPickerPanel\b/);
 
   const profiles = read('apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-page-profiles.tsx');
-  assert.match(profiles, /from '@nimiplatform\/kit\/features\/model-config'/);
-  assert.match(profiles, /\bModelConfigAiModelHub\b/);
+  assert.doesNotMatch(profiles, /from '@nimiplatform\/kit\/features\/model-config'/);
+  assert.doesNotMatch(profiles, /\bModelConfigAiModelHub\b/);
 });
 
 test('Tester is the second consumer for Kit shared primitives and shell bootstrap', () => {

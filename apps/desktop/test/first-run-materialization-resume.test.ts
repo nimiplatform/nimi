@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { NIMI_FIRST_RUN_MATERIALIZATION_CONSUMER_SCOPE } from '@nimiplatform/sdk/runtime';
 import {
   repairableConfirmedNimiFirstRunMaterializationDependencies,
   retryableInterruptedNimiFirstRunMaterializationJobsForProductState,
@@ -30,6 +31,7 @@ function dependencyJob(
     dependency: {
       dependencyFamily: overrides.dependencyFamily ?? 'model.asset',
       dependencyId: overrides.dependencyId ?? 'asset-id:local.chat.gemma',
+      consumerScope: overrides.consumerScope ?? NIMI_FIRST_RUN_MATERIALIZATION_CONSUMER_SCOPE,
       required: true,
       state: 'needs_confirmation',
       sourceKind: 'runtime-managed',
@@ -41,6 +43,7 @@ function dependencyJob(
       environmentKey: overrides.environmentKey ?? 'model.asset|asset-id:local.chat.gemma',
       dependencyFamily: overrides.dependencyFamily ?? 'model.asset',
       dependencyId: overrides.dependencyId ?? 'asset-id:local.chat.gemma',
+      consumerScope: overrides.consumerScope ?? NIMI_FIRST_RUN_MATERIALIZATION_CONSUMER_SCOPE,
       state: overrides.state ?? 'failed',
       sourceKind: 'runtime-managed',
       retryable: overrides.retryable ?? true,
@@ -71,8 +74,10 @@ function repairRequiredDependency(
       sourceKind: 'runtime-managed',
       confirmationRequired: false,
       environmentKey: 'python.package-set|local-speech-qwen3-tts.package-set',
+      selectedSourceRecordId: 'source:local-speech-qwen3-tts.package-set',
       reasonCode: 'LOCAL_ENVIRONMENT_DEPENDENCY_REPAIR_REQUIRED',
       ...overrides,
+      consumerScope: overrides.consumerScope ?? NIMI_FIRST_RUN_MATERIALIZATION_CONSUMER_SCOPE,
     },
     job: null,
   };
@@ -152,6 +157,7 @@ test('confirmed first-run setup auto-repairs repair-required materialization dep
   const asr = repairRequiredDependency({
     dependencyId: 'local-speech-qwen3-asr.package-set',
     environmentKey: 'python.package-set|local-speech-qwen3-asr.package-set',
+    selectedSourceRecordId: 'source:local-speech-qwen3-asr.package-set',
   });
   assert.deepEqual(
     repairableConfirmedNimiFirstRunMaterializationDependencies(
