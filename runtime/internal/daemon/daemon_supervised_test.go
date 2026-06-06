@@ -752,12 +752,12 @@ func TestStartSupervisedEnginesEnablesManagedImageBackendOnImageSupportedAttache
 	}
 
 	daemon.startSupervisedEngines(context.Background())
-	if len(startCalls) != 1 || !slices.Contains(startCalls, engine.EngineMedia) {
-		t.Fatalf("expected runtime-owned image path to bootstrap media only, got=%v", startCalls)
+	if len(startCalls) != 0 {
+		t.Fatalf("native-binary image backend must not bootstrap media proxy, got=%v", startCalls)
 	}
 	if svc := daemon.grpc.LocalService(); svc != nil {
-		if managedEndpoint := svc.ManagedMediaEndpoint(); managedEndpoint != "http://127.0.0.1:8321/v1" {
-			t.Fatalf("expected managed media endpoint to be exposed for image-supported host, got %q", managedEndpoint)
+		if managedEndpoint := svc.ManagedMediaEndpoint(); managedEndpoint != "" {
+			t.Fatalf("native-binary image backend must not expose media proxy endpoint, got %q", managedEndpoint)
 		}
 		listed, err := svc.ListLocalServices(context.Background(), &runtimev1.ListLocalServicesRequest{})
 		if err != nil {

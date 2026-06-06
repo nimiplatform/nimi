@@ -351,7 +351,7 @@ func TestImportLocalAssetAutoDetectsMMProjAndGemma4ArchitectureWithoutManifestFi
 	}
 }
 
-func TestLocalStartManagedImageModelUsesSelectionAwareMediaEngineConfig(t *testing.T) {
+func TestLocalStartManagedImageModelSkipsMediaProxyForNativeBinaryDirectBackend(t *testing.T) {
 	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
 		return endpointProbeResult{
 			healthy:   true,
@@ -431,23 +431,14 @@ func TestLocalStartManagedImageModelUsesSelectionAwareMediaEngineConfig(t *testi
 	if !strings.Contains(started.GetAsset().GetHealthDetail(), "backend validation pending") {
 		t.Fatalf("expected pending validation detail, got %q", started.GetAsset().GetHealthDetail())
 	}
-	if mgr.startConfigCalls != 1 {
+	if mgr.startConfigCalls != 0 || mgr.startCalls != 0 {
 		t.Fatalf(
-			"expected selection-aware engine start to be used once, got config_calls=%d plain_calls=%d plain_engines=%v last_engine=%q",
+			"native-binary image direct backend must not bootstrap media proxy, got config_calls=%d plain_calls=%d plain_engines=%v last_engine=%q",
 			mgr.startConfigCalls,
 			mgr.startCalls,
 			mgr.startEngines,
 			mgr.lastStartEngine,
 		)
-	}
-	if mgr.lastStartConfig.ImageSupervisedSelection == nil {
-		t.Fatal("expected media engine start config to include canonical image selection")
-	}
-	if got := mgr.lastStartConfig.ImageSupervisedSelection.EntryID; got != "macos-apple-silicon-gguf" {
-		t.Fatalf("unexpected image selection entry: %q", got)
-	}
-	if got := mgr.lastStartConfig.MediaMode; got != engine.MediaModeProxyExecution {
-		t.Fatalf("expected explicit proxy media mode, got %q", got)
 	}
 }
 

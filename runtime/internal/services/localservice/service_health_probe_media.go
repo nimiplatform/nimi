@@ -18,26 +18,6 @@ func (s *Service) bootstrapAssetExecutionEngineIfManaged(ctx context.Context, mo
 		return nil
 	}
 	engineName := executionRuntimeEngineForModel(model)
-	endpoint := s.effectiveLocalModelEndpoint(model)
-	port, err := parseManagedEndpointPort(engineName, endpoint)
-	if err != nil {
-		return err
-	}
-	profile := collectDeviceProfile()
-	if classification, detail := classifyManagedEngineSupportForAsset(
-		model.GetEngine(),
-		model.GetCapabilities(),
-		model.GetKind(),
-		profile,
-	); classification != localEngineSupportSupportedSupervised {
-		if strings.TrimSpace(detail) != "" {
-			return fmt.Errorf("%s", detail)
-		}
-		return fmt.Errorf("%s managed mode is unavailable on this host", strings.TrimSpace(engineName))
-	}
-	if strings.EqualFold(engineName, "speech") {
-		return s.startConfiguredManagedSpeechEngine(ctx, mgr, port)
-	}
 	if strings.EqualFold(engineName, "media") &&
 		isCanonicalSupervisedImageAsset(model.GetEngine(), model.GetCapabilities(), model.GetKind()) {
 		selection := canonicalSupervisedImageSelectionForLocalAsset(model, collectDeviceProfile())
@@ -54,6 +34,14 @@ func (s *Service) bootstrapAssetExecutionEngineIfManaged(ctx context.Context, mo
 				detail = fmt.Sprintf("image topology %s is not supported for managed media bootstrap", selection.EntryID)
 			}
 			return fmt.Errorf("%s", detail)
+		}
+		if selectionUsesDirectManagedImageBackend(selection) {
+			return nil
+		}
+		endpoint := s.effectiveLocalModelEndpoint(model)
+		port, err := parseManagedEndpointPort(engineName, endpoint)
+		if err != nil {
+			return err
 		}
 		mediaMode, err := engine.MediaModeFromSelection(selection)
 		if err != nil {
@@ -74,6 +62,26 @@ func (s *Service) bootstrapAssetExecutionEngineIfManaged(ctx context.Context, mo
 			return err
 		}
 		return nil
+	}
+	endpoint := s.effectiveLocalModelEndpoint(model)
+	port, err := parseManagedEndpointPort(engineName, endpoint)
+	if err != nil {
+		return err
+	}
+	profile := collectDeviceProfile()
+	if classification, detail := classifyManagedEngineSupportForAsset(
+		model.GetEngine(),
+		model.GetCapabilities(),
+		model.GetKind(),
+		profile,
+	); classification != localEngineSupportSupportedSupervised {
+		if strings.TrimSpace(detail) != "" {
+			return fmt.Errorf("%s", detail)
+		}
+		return fmt.Errorf("%s managed mode is unavailable on this host", strings.TrimSpace(engineName))
+	}
+	if strings.EqualFold(engineName, "speech") {
+		return s.startConfiguredManagedSpeechEngine(ctx, mgr, port)
 	}
 	if managedEngineAlreadyBound(mgr, strings.ToLower(strings.TrimSpace(engineName)), port) {
 		return nil
@@ -96,6 +104,9 @@ func (s *Service) bootstrapLocalModelIfManaged(ctx context.Context, model *runti
 	if normalizeRuntimeMode(mode) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED &&
 		isCanonicalSupervisedImageAsset(model.GetEngine(), model.GetCapabilities(), model.GetKind()) {
 		selection := canonicalSupervisedImageSelectionForLocalAsset(model, collectDeviceProfile())
+		if selectionUsesDirectManagedImageBackend(selection) {
+			return nil
+		}
 		executionEngine := executionRuntimeEngineForSelection(selection)
 		if executionEngine != "media" {
 			return nil
@@ -127,6 +138,9 @@ func (s *Service) bootstrapSelectionAwareManagedMediaEngine(
 	if mgr == nil || model == nil {
 		return nil
 	}
+	if selectionUsesDirectManagedImageBackend(selection) {
+		return nil
+	}
 	endpoint := s.effectiveLocalModelEndpoint(model)
 	port, err := parseManagedEndpointPort("media", endpoint)
 	if err != nil {
@@ -151,6 +165,12 @@ func (s *Service) bootstrapSelectionAwareManagedMediaEngine(
 		return err
 	}
 	return nil
+}
+
+func selectionUsesDirectManagedImageBackend(selection engine.ImageSupervisedMatrixSelection) bool {
+	return selection.ControlPlane == engine.ImageControlPlaneRuntime &&
+		selection.ExecutionPlane == engine.EngineMedia &&
+		selection.BackendClass == engine.ImageBackendClassNativeBinary
 }
 
 func managedEngineAlreadyBound(mgr EngineManager, engineName string, port int) bool {

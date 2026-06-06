@@ -423,7 +423,6 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 	}
 	mgr.SetManagedImageBackend(nil)
 	managedImageBackendConfigured := false
-	managedImageDependencyBlocked := false
 	startInstalledManagedImageBackend := func() bool {
 		err := mgr.StartInstalledManagedImageBackend(ctx, &engine.ManagedImageBackendConfig{
 			Mode:          engine.ManagedImageBackendOfficial,
@@ -450,7 +449,6 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 			if runtime.GOOS == "windows" &&
 				dependencyStatus.State != engine.SharedAcceleratorDependencyReadySystem &&
 				dependencyStatus.State != engine.SharedAcceleratorDependencyReadyManaged {
-				managedImageDependencyBlocked = true
 				detail := strings.TrimSpace(dependencyStatus.Detail)
 				if detail == "" {
 					detail = fmt.Sprintf("cuda_user_space_runtime state=%s", dependencyStatus.State)
@@ -470,7 +468,7 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 			}
 		}
 	}
-	managedMediaLoopback := (managedImageLoopback && !managedImageDependencyBlocked) || (d.cfg.EngineMediaEnabled && mediaHostSupport == engine.MediaHostSupportSupportedSupervised)
+	managedMediaLoopback := d.cfg.EngineMediaEnabled && mediaHostSupport == engine.MediaHostSupportSupportedSupervised
 	if svc != nil {
 		svc.SetManagedLlamaRegistrationConfig(d.cfg.LocalModelsPath, managedLlamaConfigPath, effectiveManagedLlama)
 		if effectiveManagedLlama {

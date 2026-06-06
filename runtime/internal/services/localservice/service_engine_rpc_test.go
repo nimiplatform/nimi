@@ -606,6 +606,44 @@ func TestBootstrapSelectionAwareManagedMediaEngineSkipsRestartWhenMediaAlreadyOw
 	}
 }
 
+func TestBootstrapSelectionAwareManagedMediaEngineSkipsNativeBinaryDirectBackend(t *testing.T) {
+	svc := newTestService(t)
+	mgr := &mockEngineManager{}
+	svc.SetEngineManager(mgr)
+
+	model := &runtimev1.LocalAssetRecord{
+		LocalAssetId: "image-local-id",
+		AssetId:      "local-import/z_image_turbo-Q4_K",
+		Engine:       "media",
+		Endpoint:     "",
+		Capabilities: []string{"image"},
+	}
+	selection := engine.ImageSupervisedMatrixSelection{
+		Matched:        true,
+		EntryID:        "macos-apple-silicon-gguf",
+		ProductState:   engine.ImageProductStateSupported,
+		BackendClass:   engine.ImageBackendClassNativeBinary,
+		BackendFamily:  engine.ImageBackendFamilyStableDiffusionGGML,
+		ControlPlane:   engine.ImageControlPlaneRuntime,
+		ExecutionPlane: engine.EngineMedia,
+		Entry: &engine.ImageSupervisedMatrixEntry{
+			EntryID:        "macos-apple-silicon-gguf",
+			ProductState:   engine.ImageProductStateSupported,
+			BackendClass:   engine.ImageBackendClassNativeBinary,
+			BackendFamily:  engine.ImageBackendFamilyStableDiffusionGGML,
+			ControlPlane:   engine.ImageControlPlaneRuntime,
+			ExecutionPlane: engine.EngineMedia,
+		},
+	}
+
+	if err := svc.bootstrapSelectionAwareManagedMediaEngine(context.Background(), model, selection); err != nil {
+		t.Fatalf("native-binary direct backend must not require media endpoint bootstrap: %v", err)
+	}
+	if mgr.startConfigCalls != 0 || mgr.startCalls != 0 {
+		t.Fatalf("native-binary direct backend must not start media proxy, config_calls=%d plain_calls=%d", mgr.startConfigCalls, mgr.startCalls)
+	}
+}
+
 // --- Enum mapping test ---
 
 func TestEngineStatusToProtoMapping(t *testing.T) {
