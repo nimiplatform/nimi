@@ -5,25 +5,28 @@
 
 import { generateText } from 'ai';
 
-import { createPlatformClient } from '@nimiplatform/sdk';
-import { createNimiAiProvider } from '@nimiplatform/sdk/ai-provider';
+import { createNimiClient } from '@nimiplatform/sdk';
+import { createNimiVercelProvider } from '@nimiplatform/sdk-adapter-vercel-ai';
 
-const { runtime } = await createPlatformClient({
+const client = createNimiClient({
   appId: 'example.custom-runtime',
-  runtimeTransport: {
-    type: 'node-grpc',
-    endpoint: process.env.NIMI_RUNTIME_ENDPOINT || '127.0.0.1:46371',
+  runtime: {
+    transport: {
+      type: 'node-grpc',
+      endpoint: process.env.NIMI_RUNTIME_GRPC_ENDPOINT || '127.0.0.1:46371',
+    },
   },
-  subjectUserIdProvider: () => 'local-user',
 });
 
-const nimi = createNimiAiProvider({
-  runtime,
+const nimi = createNimiVercelProvider({
+  client,
   routePolicy: 'cloud',
+  subjectUserId: 'local-user',
+  timeoutMs: 120_000,
 });
 
 const { text } = await generateText({
-  model: nimi.text('gemini/default'),
+  model: nimi.languageModel(process.env.NIMI_VERCEL_AI_MODEL || 'gemini/default'),
   prompt: 'Show the explicit Runtime + provider path in one sentence.',
 });
 

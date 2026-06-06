@@ -6,8 +6,8 @@
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
-import { createPlatformClient } from '@nimiplatform/sdk';
-import { KnowledgeBankScope, RuntimeReasonCode } from '@nimiplatform/sdk/runtime';
+import { createNimiClient } from '@nimiplatform/sdk';
+import { KnowledgeBankScope, ReasonCode } from '@nimiplatform/sdk/runtime/generated';
 
 const APP_ID = 'example.knowledge';
 const SUBJECT_USER_ID = 'local-user';
@@ -16,9 +16,9 @@ const context = {
   subjectUserId: SUBJECT_USER_ID,
 };
 
-const { runtime } = await createPlatformClient({
+const { runtime } = createNimiClient({
   appId: APP_ID,
-  runtimeTransport: { type: 'node-grpc', endpoint: '127.0.0.1:46371' },
+  runtime: { transport: { type: 'node-grpc', endpoint: '127.0.0.1:46371' } },
 });
 
 const sourcePath = resolve(process.cwd(), 'README.md');
@@ -69,4 +69,4 @@ const deleted = await runtime.knowledge.deleteKnowledgeBank({
   bankId: bank.bankId,
 });
 
-console.log('delete:', RuntimeReasonCode[deleted.ack?.reasonCode ?? RuntimeReasonCode.REASON_CODE_UNSPECIFIED]);
+console.log('delete:', ReasonCode[deleted.ack?.reasonCode ?? ReasonCode.REASON_CODE_UNSPECIFIED]);

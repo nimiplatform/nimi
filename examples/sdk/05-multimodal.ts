@@ -1,53 +1,122 @@
 /**
- * Generate an image and a TTS clip through the runtime.
+ * Generate an image and a TTS clip through Runtime Scenario jobs.
  * Prerequisites: `nimi start` and the referenced local multimodal models installed.
  * Run: npx tsx examples/sdk/05-multimodal.ts
  */
 
 import { writeFile } from 'node:fs/promises';
+import { setTimeout as sleep } from 'node:timers/promises';
 
-import { createPlatformClient } from '@nimiplatform/sdk';
+import { VoiceReferenceKind } from '@nimiplatform/sdk/runtime/generated';
+import {
+  createNimiImageGenerationScenario,
+  createNimiSpeechSynthesisScenario,
+  type NimiGenerationArtifact,
+  type NimiGenerationJob,
+  type NimiRuntimeGenerationSurface,
+} from '@nimiplatform/sdk/features/generation';
 
-const { runtime } = await createPlatformClient({
+import { createExampleClient } from './_vnext.js';
+
+const client = createExampleClient({
   appId: 'example.sdk.multimodal',
 });
 
-async function saveImage() {
-  const chunks: Uint8Array[] = [];
-  const stream = await runtime.media.image.stream({
-    model: 'local/sd1.5',
-    prompt: 'A bold launch poster for Nimi',
-    subjectUserId: 'local-user',
-    route: 'local',
-    timeoutMs: 120000,
+function generationClient(modelId: string, timeoutMs: number): NimiRuntimeGenerationSurface {
+  return client.features.generation.createRuntimeClient({
+    head: {
+      subjectUserId: 'local-user',
+      modelId,
+      routePolicy: 'local',
+      timeoutMs,
+    },
   });
+}
 
-  for await (const chunk of stream) {
-    chunks.push(chunk.chunk);
-    if (chunk.eof) {
-      await writeFile('nimi-image.png', Buffer.concat(chunks.map((part) => Buffer.from(part))));
-      console.log(`saved nimi-image.png (${chunk.mimeType})`);
+async function waitForTerminalJob(
+  generation: NimiRuntimeGenerationSurface,
+  job: NimiGenerationJob,
+): Promise<NimiGenerationJob> {
+  let current = job;
+  for (let attempt = 0; attempt < 120; attempt += 1) {
+    if (['completed', 'failed', 'cancelled', 'timeout'].includes(current.status)) {
+      return current;
     }
+    await sleep(1_000);
+    current = await generation.get(current.id);
   }
+  throw new Error(`generation job did not finish before timeout: ${job.id}`);
+}
+
+async function readArtifactBytes(
+  generation: NimiRuntimeGenerationSurface,
+  artifact: NimiGenerationArtifact,
+): Promise<Uint8Array> {
+  if (artifact.bytes && artifact.bytes.length > 0) {
+    return artifact.bytes;
+  }
+  const response = await generation.readArtifactBytes(artifact.id);
+  return response.bytes;
+}
+
+async function saveFirstArtifact(
+  generation: NimiRuntimeGenerationSurface,
+  job: NimiGenerationJob,
+  outputPath: string,
+): Promise<void> {
+  const artifacts = job.artifacts.length > 0
+    ? job.artifacts
+    : await generation.artifacts(job.id);
+  const artifact = artifacts[0];
+  if (!artifact) {
+    throw new Error(`generation job produced no artifacts: ${job.id}`);
+  }
+  const bytes = await readArtifactBytes(generation, artifact);
+  await writeFile(outputPath, Buffer.from(bytes));
+  console.log(`saved ${outputPath} (${artifact.mimeType || 'application/octet-stream'})`);
+}
+
+async function saveImage() {
+  const generation = generationClient('local/sd1.5', 120_000);
+  const submitted = await generation.submit({
+    scenario: createNimiImageGenerationScenario({
+      kind: 'image',
+      prompt: 'A bold launch poster for Nimi',
+    }),
+    requestId: crypto.randomUUID(),
+    idempotencyKey: crypto.randomUUID(),
+  });
+  const completed = await waitForTerminalJob(generation, submitted);
+  if (completed.status !== 'completed') {
+    throw new Error(`image generation failed: ${completed.error || completed.status}`);
+  }
+  await saveFirstArtifact(generation, completed, 'nimi-image.png');
 }
 
 async function saveSpeech() {
-  const chunks: Uint8Array[] = [];
-  const stream = await runtime.media.tts.stream({
-    model: 'local/tts-default',
-    text: 'Hello from the Nimi runtime.',
-    subjectUserId: 'local-user',
-    route: 'local',
-    timeoutMs: 45000,
+  const generation = generationClient('local/tts-default', 45_000);
+  const submitted = await generation.submit({
+    scenario: createNimiSpeechSynthesisScenario({
+      kind: 'speech-synthesize',
+      text: 'Hello from the Nimi runtime.',
+      voiceRef: {
+        kind: VoiceReferenceKind.PRESET,
+        reference: {
+          oneofKind: 'presetVoiceId',
+          presetVoiceId: 'default',
+        },
+      },
+      audioFormat: 'wav',
+      timingMode: 'none',
+    }),
+    requestId: crypto.randomUUID(),
+    idempotencyKey: crypto.randomUUID(),
   });
-
-  for await (const chunk of stream) {
-    chunks.push(chunk.chunk);
-    if (chunk.eof) {
-      await writeFile('nimi-audio.wav', Buffer.concat(chunks.map((part) => Buffer.from(part))));
-      console.log(`saved nimi-audio.wav (${chunk.mimeType})`);
-    }
+  const completed = await waitForTerminalJob(generation, submitted);
+  if (completed.status !== 'completed') {
+    throw new Error(`speech generation failed: ${completed.error || completed.status}`);
   }
+  await saveFirstArtifact(generation, completed, 'nimi-audio.wav');
 }
 
 await saveImage();

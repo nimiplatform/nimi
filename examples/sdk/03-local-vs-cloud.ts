@@ -4,19 +4,20 @@
  * Run: npx tsx examples/sdk/03-local-vs-cloud.ts
  */
 
-import { createPlatformClient } from '@nimiplatform/sdk';
+import { createExampleClient, createExampleTextModel, generateExampleText } from './_vnext.js';
 
-const { runtime } = await createPlatformClient({
+const client = createExampleClient({
   appId: 'example.sdk.local-vs-cloud',
 });
 const prompt = 'Explain why one runtime for local and cloud AI is useful.';
 
 for (const [label, input] of [
-  ['local', { prompt }],
-  ['cloud:gemini', { provider: 'gemini', prompt }],
+  ['local', { modelId: 'default', routePolicy: 'local' }],
+  ['cloud:gemini', { modelId: 'gemini/default', providerId: 'gemini', routePolicy: 'cloud' }],
 ] as const) {
   try {
-    const result = await runtime.generate(input);
+    const model = createExampleTextModel(client, input);
+    const result = await generateExampleText(model, prompt);
     console.log(`[${label}] ${result.text}`);
   } catch (error) {
     console.error(`[${label}]`, error);

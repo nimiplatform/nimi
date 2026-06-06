@@ -27,7 +27,9 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { createPlatformClient } from '@nimiplatform/sdk';
+import { createNimiSpeechSynthesisScenario, type NimiRuntimeGenerationSurface } from '@nimiplatform/sdk/features/generation';
+import { VoiceReferenceKind } from '@nimiplatform/sdk/runtime/generated';
+import { createExampleClient } from '../_vnext.js';
 
 type SavedConnector = {
   connectorId: string;
@@ -98,45 +100,60 @@ async function main(): Promise<void> {
     apiKey: requiredEnv('NIMI_BYTEDANCE_API_KEY'),
   });
 
-  const { runtime } = await createPlatformClient({
+  const client = createExampleClient({
     appId,
-    runtimeTransport: {
-      type: 'node-grpc',
-      endpoint,
-    },
-    runtimeDefaults: {
+    endpoint,
+    metadata: {
       callerKind: 'desktop-core',
       callerId: 'docs-example-provider',
     },
   });
 
   const connector = resolveConnector(connectorId);
-  const response = await runtime.media.tts.synthesize({
-    model,
-    subjectUserId,
-    connectorId,
-    text,
-    voiceRef: { kind: 'preset_voice_id', presetVoiceId: voice },
-    audioFormat: 'mp3',
-    route: 'cloud',
-    timeoutMs: 120000,
-    metadata: {
-      keySource: 'inline',
-      providerEndpoint: connector.endpoint,
-      providerApiKey: connector.apiKey,
+  const generation: NimiRuntimeGenerationSurface = client.features.generation.createRuntimeClient({
+    head: {
+      subjectUserId,
+      modelId: model,
+      routePolicy: 'cloud',
+      connectorId,
+      timeoutMs: 120000,
+    },
+    callOptions: {
+      metadata: {
+        keySource: 'inline',
+        providerEndpoint: connector.endpoint,
+        providerApiKey: connector.apiKey,
+      },
     },
   });
-
-  const first = response.artifacts[0];
-  if (!first?.bytes) {
+  const job = await generation.submit({
+    scenario: createNimiSpeechSynthesisScenario({
+      kind: 'speech-synthesize',
+      text,
+      voiceRef: {
+        kind: VoiceReferenceKind.PRESET,
+        reference: {
+          oneofKind: 'presetVoiceId',
+          presetVoiceId: voice,
+        },
+      },
+      audioFormat: 'mp3',
+    }),
+    requestId: randomUUID(),
+    idempotencyKey: randomUUID(),
+  });
+  const artifacts = job.artifacts.length > 0 ? job.artifacts : await generation.artifacts(job.id);
+  const first = artifacts[0];
+  if (!first) {
     throw new Error('tts returned empty artifacts');
   }
-  const output = await saveBytes(out, first.bytes);
+  const bytes = first.bytes ?? (await generation.readArtifactBytes(first.id)).bytes;
+  const output = await saveBytes(out, bytes);
 
   log(`[bytedance-tts] runtime grpc endpoint: ${endpoint}`);
   log(`[bytedance-tts] connectorId: ${connectorId}`);
   log(`[bytedance-tts] model: ${model}`);
-  log(`[bytedance-tts] jobId: ${response.job.jobId}`);
+  log(`[bytedance-tts] jobId: ${job.id}`);
   log(`[bytedance-tts][saved] ${output}`);
 }
 

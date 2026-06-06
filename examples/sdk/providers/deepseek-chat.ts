@@ -23,7 +23,7 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import { createPlatformClient } from '@nimiplatform/sdk';
+import { createExampleClient, createExampleTextModel, generateExampleText } from '../_vnext.js';
 
 type SavedConnector = {
   connectorId: string;
@@ -88,25 +88,22 @@ async function main(): Promise<void> {
     apiKey: requiredEnv('NIMI_DEEPSEEK_API_KEY'),
   });
 
-  const { runtime } = await createPlatformClient({
+  const client = createExampleClient({
     appId,
-    runtimeTransport: {
-      type: 'node-grpc',
-      endpoint,
-    },
-    runtimeDefaults: {
+    endpoint,
+    metadata: {
       callerKind: 'desktop-core',
       callerId: 'docs-example-provider',
     },
   });
 
   const connector = resolveConnector(connectorId);
-  const response = await runtime.ai.text.generate({
-    model,
+  const runtimeModel = createExampleTextModel(client, {
+    modelId: model,
+    providerId: 'deepseek',
+    routePolicy: 'cloud',
     subjectUserId,
     connectorId,
-    input: prompt,
-    route: 'cloud',
     timeoutMs: 120000,
     metadata: {
       keySource: 'inline',
@@ -114,6 +111,7 @@ async function main(): Promise<void> {
       providerApiKey: connector.apiKey,
     },
   });
+  const response = await generateExampleText(runtimeModel, prompt);
   if (!response.text.trim()) {
     throw new Error('deepseek chat returned empty text');
   }

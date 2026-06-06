@@ -3,24 +3,16 @@
  * Run: npx tsx examples/sdk/advanced/app-auth.ts
  */
 
-import { createPlatformClient } from '@nimiplatform/sdk';
-import {
-  AppMode,
-  ExternalPrincipalType,
-  ExternalProofType,
-  PolicyMode,
-  RuntimeAuthorizationPreset,
-  RuntimeReasonCode,
-  WorldRelation,
-} from '@nimiplatform/sdk/runtime';
+import { createNimiClient } from '@nimiplatform/sdk';
+import { AppMode, AuthorizationPreset, ExternalPrincipalType, ExternalProofType, PolicyMode, ReasonCode, WorldRelation } from '@nimiplatform/sdk/runtime/generated';
 
 const APP_ID = 'example.auth';
 const PRINCIPAL_ID = 'agent-assistant-1';
 const SUBJECT_USER_ID = 'local-user';
 
-const { runtime } = await createPlatformClient({
+const { runtime } = createNimiClient({
   appId: APP_ID,
-  runtimeTransport: { type: 'node-grpc', endpoint: '127.0.0.1:46371' },
+  runtime: { transport: { type: 'node-grpc', endpoint: '127.0.0.1:46371' } },
 });
 
 function nowTimestamp() {
@@ -46,7 +38,7 @@ await runtime.auth.registerApp(
       worldRelation: WorldRelation.NONE,
     },
   },
-  { idempotencyKey: crypto.randomUUID() },
+  { metadata: { idempotencyKey: crypto.randomUUID() } },
 );
 
 await runtime.auth.registerExternalPrincipal(
@@ -59,10 +51,10 @@ await runtime.auth.registerExternalPrincipal(
     signatureKeyId: 'demo-key',
     proofType: ExternalProofType.JWT,
   },
-  { idempotencyKey: crypto.randomUUID() },
+  { metadata: { idempotencyKey: crypto.randomUUID() } },
 );
 
-const authorization = await runtime.appAuth.authorizeExternalPrincipal(
+const authorization = await runtime.grants.authorizeExternalPrincipal(
   {
     domain: 'app-auth',
     appId: APP_ID,
@@ -74,7 +66,7 @@ const authorization = await runtime.appAuth.authorizeExternalPrincipal(
     decisionAt: nowTimestamp(),
     policyVersion: 'v1',
     policyMode: PolicyMode.PRESET,
-    preset: RuntimeAuthorizationPreset.DELEGATE,
+    preset: AuthorizationPreset.DELEGATE,
     scopes: ['runtime.ai.generate', 'runtime.model.list'],
     canDelegate: true,
     maxDelegationDepth: 1,
@@ -82,10 +74,10 @@ const authorization = await runtime.appAuth.authorizeExternalPrincipal(
     scopeCatalogVersion: 'sdk-v1',
     policyOverride: false,
   },
-  { idempotencyKey: crypto.randomUUID() },
+  { metadata: { idempotencyKey: crypto.randomUUID() } },
 );
 
-const validation = await runtime.appAuth.validateToken({
+const validation = await runtime.grants.validateAppAccessToken({
   appId: APP_ID,
   tokenId: authorization.tokenId,
   subjectUserId: SUBJECT_USER_ID,
@@ -94,4 +86,4 @@ const validation = await runtime.appAuth.validateToken({
 });
 
 console.log('token:', authorization.tokenId);
-console.log('valid:', validation.valid, RuntimeReasonCode[validation.reasonCode]);
+console.log('valid:', validation.valid, ReasonCode[validation.reasonCode]);

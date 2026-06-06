@@ -6,6 +6,7 @@
     "check": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@nimiplatform/sdk-adapter-vercel-ai": "workspace:*",
     "@nimiplatform/sdk": "workspace:*",
     "ai": "6.0.190"
   },

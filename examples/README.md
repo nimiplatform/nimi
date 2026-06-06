@@ -31,8 +31,8 @@ npx tsx examples/sdk/01-hello.ts
 
 This is the shortest proof that:
 
-- `createPlatformClient()` can attach to the local daemon with defaults
-- `runtime.generate()` is the new ergonomic first-run API
+- `createNimiClient()` can attach to the local daemon with explicit app identity
+- `client.ai.createRuntimeModel(...).generateText(...)` is the vNext text path
 - local generation can happen without wiring app-specific transport code
 
 ## Onboarding Ladder
@@ -62,13 +62,15 @@ What each file demonstrates:
 Advanced examples live under `examples/sdk/advanced/`:
 
 - `app-auth.ts`: app authorization lifecycle
-- `workflow.ts`: workflow DAG orchestration
 - `knowledge.ts`: private knowledge bank/page CRUD + keyword search
 - `custom-runtime.ts`: explicit transport + provider wiring
 
 Provider-focused examples remain in `examples/sdk/providers/`.
 
-The onboarding ladder stays on high-level `nimi run` and `runtime.generate()/stream()` flows. Fully-qualified explicit model ids remain in lower-level surfaces such as `nimi ai text-generate --model-id ...` and `runtime.ai.text.generate({ model: ... })`.
+The onboarding ladder stays on high-level `nimi run` and vNext Runtime AI model
+flows. Fully-qualified explicit model ids remain in lower-level surfaces such as
+`nimi ai text-generate --model-id ...` and
+`client.ai.createRuntimeModel({ model: ... }).generateText(...)`.
 
 For SDK examples that use provider-default cloud targeting, save a reusable default on the runtime machine first:
 

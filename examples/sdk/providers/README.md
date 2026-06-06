@@ -1,6 +1,7 @@
-# Provider Tutorials
+# Provider Demos
 
-`examples/sdk/providers/*.ts` are end-user tutorials (not mock tests).
+`examples/sdk/providers/*.ts` are demo files, not authority. They only show
+flows that already have vNext SDK surfaces.
 
 ## First Clarify The Goal
 
@@ -14,7 +15,7 @@ That path can prompt for a missing API key once, save it, and continue the same 
 
 These provider scripts are different: they are SDK/provider tutorials. They assume credentials are configured on the runtime machine before the script runs.
 
-## Runtime-Machine Setup For Provider Tutorials
+## Runtime-Machine Setup
 
 1. Configure one provider on the runtime machine (example: NimiLLM).
 
@@ -37,10 +38,10 @@ nimi serve
 
 The env-only path is for foreground/runtime-process-local setup. Those variables must be present on the runtime process itself.
 
-2. Run a single provider tutorial.
+2. Run a single provider demo.
 
 ```bash
-npx tsx examples/sdk/providers/nimillm.ts
+npx tsx examples/sdk/providers/deepseek-chat.ts
 ```
 
 3. Verify output includes generated text and optional artifact save path.
@@ -49,28 +50,16 @@ npx tsx examples/sdk/providers/nimillm.ts
 
 | Script | Typical Usage | Minimum Prerequisites | Output Artifact |
 |---|---|---|---|
-| [local-llama.ts](./local-llama.ts) | local llama + media engine text & image | `NIMI_RUNTIME_LOCAL_AI_BASE_URL` | text + png |
-| [nimillm.ts](./nimillm.ts) | cloud text + embedding (+ optional image) | `NIMI_RUNTIME_CLOUD_NIMILLM_API_KEY` | text + embedding (+ optional png) |
-| [deepseek-chat.ts](./deepseek-chat.ts) | cloud chat (DeepSeek via OpenAI-compatible endpoint) | `NIMI_DEEPSEEK_API_KEY` | text |
-| [bytedance-tts.ts](./bytedance-tts.ts) | cloud tts (Bytedance OpenSpeech only) | `NIMI_BYTEDANCE_API_KEY` | mp3 |
-| [bytedance-openspeech.ts](./bytedance-openspeech.ts) | cloud tts + stt | `NIMI_RUNTIME_CLOUD_VOLCENGINE_OPENSPEECH_API_KEY` | mp3 + transcript |
-| [gemini.ts](./gemini.ts) | cloud image + video | `NIMI_RUNTIME_CLOUD_GEMINI_API_KEY` | png + mp4 |
-| [minimax.ts](./minimax.ts) | cloud image + video | `NIMI_RUNTIME_CLOUD_MINIMAX_API_KEY` | png + mp4 |
-| [glm.ts](./glm.ts) | cloud video + image + tts (+ optional stt) | `NIMI_RUNTIME_CLOUD_GLM_API_KEY` | mp4 + png + mp3 |
-| [kimi.ts](./kimi.ts) | cloud chat-multimodal image | `NIMI_RUNTIME_CLOUD_KIMI_API_KEY` | text + png |
+| [deepseek-chat.ts](./deepseek-chat.ts) | cloud chat through vNext Runtime AI model | `NIMI_DEEPSEEK_API_KEY` | text |
+| [bytedance-tts.ts](./bytedance-tts.ts) | cloud TTS through vNext generation feature | `NIMI_BYTEDANCE_API_KEY` | mp3 |
 
-`deepseek-chat.ts` and `bytedance-tts.ts` intentionally use the raw `Runtime` client surface instead of the provider wrapper. The other tutorials use `createNimiAiProvider`.
+Older demos that depended on `createNimiAiProvider` were removed during the SDK
+vNext hardcut. Re-add provider-specific demos only when they can be expressed
+through admitted vNext SDK surfaces.
 
 ## Run
 
 ```bash
-npx tsx examples/sdk/providers/local-llama.ts
-npx tsx examples/sdk/providers/nimillm.ts
 npx tsx examples/sdk/providers/deepseek-chat.ts
 npx tsx examples/sdk/providers/bytedance-tts.ts
-npx tsx examples/sdk/providers/bytedance-openspeech.ts
-npx tsx examples/sdk/providers/gemini.ts
-npx tsx examples/sdk/providers/minimax.ts
-npx tsx examples/sdk/providers/glm.ts
-npx tsx examples/sdk/providers/kimi.ts
 ```

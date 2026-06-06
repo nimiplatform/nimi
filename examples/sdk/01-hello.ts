@@ -5,14 +5,13 @@
  * Run: npx tsx examples/sdk/01-hello.ts
  */
 
-import { createPlatformClient } from '@nimiplatform/sdk';
+import { createExampleClient, createExampleTextModel, generateExampleText } from './_vnext.js';
 
-const { runtime } = await createPlatformClient({
+const client = createExampleClient({
   appId: 'example.sdk.hello',
 });
+const model = createExampleTextModel(client);
 
-const result = await runtime.generate({
-  prompt: 'What is Nimi in one sentence?',
-});
+const result = await generateExampleText(model, 'What is Nimi in one sentence?');
 
 console.log(result.text);

@@ -5,18 +5,17 @@
  * Run: npx tsx examples/sdk/02-streaming.ts
  */
 
-import { createPlatformClient } from '@nimiplatform/sdk';
+import { createExampleClient, createExampleTextModel, streamExampleText } from './_vnext.js';
 
-const { runtime } = await createPlatformClient({
+const client = createExampleClient({
   appId: 'example.sdk.streaming',
 });
-const stream = await runtime.stream({
-  prompt: 'Write a haiku about AI runtimes.',
-});
+const model = createExampleTextModel(client);
+const stream = await streamExampleText(model, 'Write a haiku about AI runtimes.');
 
-for await (const chunk of stream) {
-  if (chunk.type === 'text') {
-    process.stdout.write(chunk.text);
+for await (const event of stream) {
+  if (event.type === 'text-delta') {
+    process.stdout.write(event.text);
   }
 }
 

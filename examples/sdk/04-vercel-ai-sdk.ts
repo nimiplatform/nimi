@@ -6,16 +6,23 @@
 
 import { generateText } from 'ai';
 
-import { createPlatformClient } from '@nimiplatform/sdk';
-import { createNimiAiProvider } from '@nimiplatform/sdk/ai-provider';
+import { createNimiVercelProvider } from '@nimiplatform/sdk-adapter-vercel-ai';
 
-const { runtime } = await createPlatformClient({
+import { createExampleClient } from './_vnext.js';
+
+const client = createExampleClient({
   appId: 'example.sdk.vercel-ai',
 });
-const nimi = createNimiAiProvider({ runtime, routePolicy: 'cloud' });
+
+const nimi = createNimiVercelProvider({
+  client,
+  routePolicy: 'cloud',
+  subjectUserId: 'local-user',
+  timeoutMs: 120_000,
+});
 
 const { text } = await generateText({
-  model: nimi.text('gemini/default'),
+  model: nimi.languageModel(process.env.NIMI_VERCEL_AI_MODEL || 'gemini/default'),
   prompt: 'Hello from Vercel AI SDK + Nimi',
 });
 
