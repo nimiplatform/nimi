@@ -45,7 +45,7 @@ Realm 与 Runtime 是 Nimi 工作的两半。它们被有意造成同侪关系�
 
 ## SDK 为什么把两半都桥上
 
-SDK 让「两个同侪」从 App 开发者视角看起来是一个平台。`createPlatformClient()` 一次性把 Realm 读取与 Runtime 调用呈现在同一个强类型面上。App 不必知道 Realm 是 REST + WebSocket、Runtime 是 gRPC；也不必知道当前是哪一种传输画像（`node-grpc`、`tauri-ipc`、`local-broker`）。
+SDK 让「两个同侪」从 App 开发者视角看起来是一个平台。`createNimiClient()` root client 一次性把 Realm 读取与 Runtime 调用呈现在同一个强类型面上。App 不必知道 Realm 是 REST + WebSocket、Runtime 是 gRPC；它只选择已准入的传输画像，例如 `node-grpc` 或 `tauri-ipc`。
 
 SDK 不会做的事：它不发明任何破坏同侪边界的捷径。没有哪一个 SDK 调用会经由 Runtime 路径去改 Realm 真相，也没有哪一个 SDK 调用会经由 Realm 路径去读 Runtime 本地状态。权威级的边界，在开发者面上同样保留。
 
@@ -55,6 +55,6 @@ SDK 不会做的事：它不发明任何破坏同侪边界的捷径。没有哪�
 - [`.nimi/spec/platform/kernel/architecture-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/architecture-contract.md)
 - [`.nimi/spec/runtime/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/index.md)
 - [`.nimi/spec/realm/README.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/README.md)
-- [`.nimi/spec/sdk/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/kernel/index.md)
-- [`.nimi/spec/sdk/kernel/transport-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/kernel/transport-contract.md)
+- [`.nimi/spec/sdks/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/index.md)
+- [`.nimi/spec/sdks/kernel/transport-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/transport-contract.md)
 - [`.nimi/spec/cognition/kernel/runtime-bridge-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/cognition/kernel/runtime-bridge-contract.md)

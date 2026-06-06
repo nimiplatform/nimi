@@ -71,7 +71,7 @@ can rely on as a stable promise:
 - public SDK sub-paths and exports;
 - documented runtime methods, world composition primitives, realm
   facade reads, scope projection;
-- typed shared building blocks under `sdk/types`.
+- typed shared building blocks under `@nimiplatform/sdk/types`.
 
 Outside the boundary lives everything that exists for runtime
 implementation reasons:
@@ -81,13 +81,13 @@ implementation reasons:
 - private realm internals;
 - desktop or cognition internals.
 
-The boundary itself is documented in `.nimi/spec/sdk/kernel/boundary-contract.md`
-and the import boundaries table.
+The boundary itself is documented in `.nimi/spec/sdks/kernel/boundary-contract.md`
+and the TypeScript target export map.
 
 ## Source Basis
 
-- [`.nimi/spec/sdk/kernel/boundary-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/kernel/boundary-contract.md)
-- [`.nimi/spec/sdk/kernel/surface-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/kernel/surface-contract.md)
-- [`.nimi/spec/sdk/kernel/tables/import-boundaries.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/kernel/tables/import-boundaries.yaml)
+- [`.nimi/spec/sdks/kernel/boundary-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/boundary-contract.md)
+- [`.nimi/spec/sdks/kernel/surface-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/surface-contract.md)
+- [`.nimi/spec/sdks/kernel/tables/typescript-target-export-map.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/tables/typescript-target-export-map.yaml)
 - [`.nimi/spec/platform/kernel/app-slice-admission-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/app-slice-admission-contract.md)
 - [`.nimi/spec/platform/kernel/package-authority-admission-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/package-authority-admission-contract.md)

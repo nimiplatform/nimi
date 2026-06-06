@@ -14,7 +14,7 @@ For schema-level definitions, see
 You are an app that wants the platform to generate a streamed
 multimodal response inside a world's context.
 
-1. **App → SDK.** Your app calls into `sdk/runtime`. You pass a
+1. **App → SDK.** Your app calls into `@nimiplatform/sdk/runtime`. You pass a
    typed request describing the modality, the context, and the
    destination. You do not import private runtime modules.
 2. **SDK → Runtime.** The SDK transports the call to Runtime via

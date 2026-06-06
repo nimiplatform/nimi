@@ -46,7 +46,7 @@ SDK 边界存在的目的，是让 App 接入既稳定又诚实。SDK 不只是�
 
 - 公开的 SDK 子路径与导出；
 - 已记录的 runtime 方法、世界组合基础协议、Realm 门面读取、作用域转换；
-- `sdk/types` 下的强类型共享构件。
+- `@nimiplatform/sdk/types` 下的强类型共享构件。
 
 边界外是出于 runtime 实现原因而存在的内容：
 
@@ -54,12 +54,12 @@ SDK 边界存在的目的，是让 App 接入既稳定又诚实。SDK 不只是�
 - 私有 Realm 内部；
 - 桌面端或 Cognition 的内部细节。
 
-边界本身记录在 `.nimi/spec/sdk/kernel/boundary-contract.md` 与导入边界表中。
+边界本身记录在 `.nimi/spec/sdks/kernel/boundary-contract.md` 与 TypeScript target export map 中。
 
 ## 来源依据
 
-- [`.nimi/spec/sdk/kernel/boundary-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/kernel/boundary-contract.md)
-- [`.nimi/spec/sdk/kernel/surface-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/kernel/surface-contract.md)
-- [`.nimi/spec/sdk/kernel/tables/import-boundaries.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/kernel/tables/import-boundaries.yaml)
+- [`.nimi/spec/sdks/kernel/boundary-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/boundary-contract.md)
+- [`.nimi/spec/sdks/kernel/surface-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/surface-contract.md)
+- [`.nimi/spec/sdks/kernel/tables/typescript-target-export-map.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/tables/typescript-target-export-map.yaml)
 - [`.nimi/spec/platform/kernel/app-slice-admission-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/app-slice-admission-contract.md)
 - [`.nimi/spec/platform/kernel/package-authority-admission-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/package-authority-admission-contract.md)

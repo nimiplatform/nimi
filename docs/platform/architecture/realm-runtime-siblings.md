@@ -78,12 +78,11 @@ client to the truth half.
 
 ## Why The SDK Bridges Both
 
-The SDK is what makes "two siblings" usable as one platform from an
-app developer's view. A single `createPlatformClient()` exposes
-realm reads and runtime calls through one typed surface. The app
-does not need to know that Realm is REST + WebSockets and Runtime is
-gRPC; it does not need to know which transport profile is in play
-(`node-grpc`, `tauri-ipc`, `local-broker`).
+The SDK is what makes "two siblings" usable as one platform from an app
+developer's view. A single `createNimiClient()` root client exposes Realm reads
+and Runtime calls through one typed surface. The app does not need to know that
+Realm is REST + WebSockets and Runtime is gRPC; it only chooses an admitted
+transport profile such as `node-grpc` or `tauri-ipc`.
 
 What the SDK does not do: it does not invent shortcuts that violate
 the sibling boundary. There is no SDK call that mutates Realm truth
@@ -97,6 +96,6 @@ authority level is preserved at the developer surface.
 - [`.nimi/spec/platform/kernel/architecture-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/architecture-contract.md)
 - [`.nimi/spec/runtime/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/index.md)
 - [`.nimi/spec/realm/README.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/README.md)
-- [`.nimi/spec/sdk/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/kernel/index.md)
-- [`.nimi/spec/sdk/kernel/transport-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/kernel/transport-contract.md)
+- [`.nimi/spec/sdks/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/index.md)
+- [`.nimi/spec/sdks/kernel/transport-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/transport-contract.md)
 - [`.nimi/spec/cognition/kernel/runtime-bridge-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/cognition/kernel/runtime-bridge-contract.md)

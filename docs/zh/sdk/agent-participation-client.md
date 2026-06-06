@@ -2,7 +2,7 @@
 
 ## 状态：已准入，正在构建中
 
-运行时代理参与客户端合约 (`runtime-agent-participation-client-contract.md`) 已在 SDK 内核级别被准入。方法注册表和行为检查已在合约级别提供；客户端流畅的表面接口正处于积极构建中。
+运行时代理参与合约 (`runtime-agent-participation-contract.md`) 已在 SDK 内核级别被准入。方法注册表和行为检查已在合约级别提供；客户端流畅的表面接口正处于积极构建中。
 
 ## 该客户端的作用
 
@@ -23,7 +23,7 @@
 
 ## 行为检查
 
-`tables/sdk-runtime-behavioral-checks.yaml` 中包含了 SDK 在提交前强制执行的行为检查：
+参与合约中包含了 SDK 在提交前强制执行的行为检查：
 
 | 检查 | 目的 |
 | --- | --- |
@@ -53,7 +53,6 @@
 
 ## 来源依据
 
-- [`.nimi/spec/sdk/kernel/runtime-agent-participation-client-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/kernel/runtime-agent-participation-client-contract.md)
-- [`.nimi/spec/sdk/kernel/tables/runtime-agent-participation-methods.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/kernel/tables/runtime-agent-participation-methods.yaml)
-- [`.nimi/spec/sdk/kernel/tables/sdk-runtime-behavioral-checks.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/kernel/tables/sdk-runtime-behavioral-checks.yaml)
+- [`.nimi/spec/sdks/kernel/runtime-agent-participation-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/runtime-agent-participation-contract.md)
+- [`.nimi/spec/sdks/kernel/tables/runtime-agent-participation-methods.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/tables/runtime-agent-participation-methods.yaml)
 - [`.nimi/spec/runtime/kernel/runtime-agent-participation-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/runtime-agent-participation-contract.md)

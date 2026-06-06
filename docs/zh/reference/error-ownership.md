@@ -9,7 +9,7 @@
 | 平台协议 | `.nimi/spec/platform/kernel/protocol-contract.md` | `P-PROTO-*` | 跨世界协议错误码、动作提示、审计事件分类 |
 | Runtime | `.nimi/spec/runtime/kernel/error-model.md` | `K-ERR-*` | reason code、错误分类、retry 与契约失败的区分 |
 | Runtime 流式 | `.nimi/spec/runtime/kernel/streaming-contract.md` | `K-STREAM-*` | 终态帧、流级失败语义 |
-| SDK | `.nimi/spec/sdk/kernel/error-projection.md` | `S-ERROR-*` | 面向 App 的错误呈现、强类型错误形态 |
+| SDK | `.nimi/spec/sdks/kernel/error-projection.md` | `S-ERROR-*` | 面向 App 的错误呈现、强类型错误形态 |
 | 桌面端 | `.nimi/spec/desktop/kernel/error-boundary-contract.md` | `D-*` | UI 错误边界、retry 策略、用户侧错误渲染 |
 
 ## 翻译表
@@ -23,7 +23,7 @@
 | `platform/kernel/tables/protocol-error-codes.yaml` | 平台 |
 | `runtime/kernel/tables/reason-codes.yaml` | Runtime |
 | `runtime/kernel/tables/error-mapping-matrix.yaml` | Runtime 跨层 |
-| `sdk/kernel/tables/sdk-error-codes.yaml` | SDK |
+| `.nimi/spec/sdks/kernel/tables/sdk-error-codes.yaml` | SDK |
 | `desktop/kernel/tables/retry-status-codes.yaml` | 桌面端 |
 
 ## 区分"传输恢复"和"契约失败"
@@ -62,8 +62,8 @@ retry 和 auth refresh 是传输机制，不能用来悄悄恢复 decode、conte
 - [`.nimi/spec/runtime/kernel/audit-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/audit-contract.md)
 - [`.nimi/spec/runtime/kernel/tables/reason-codes.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/tables/reason-codes.yaml)
 - [`.nimi/spec/runtime/kernel/tables/error-mapping-matrix.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/tables/error-mapping-matrix.yaml)
-- [`.nimi/spec/sdk/kernel/error-projection.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/kernel/error-projection.md)
-- [`.nimi/spec/sdk/kernel/tables/sdk-error-codes.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/kernel/tables/sdk-error-codes.yaml)
+- [`.nimi/spec/sdks/kernel/error-projection.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/error-projection.md)
+- [`.nimi/spec/sdks/kernel/tables/sdk-error-codes.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/tables/sdk-error-codes.yaml)
 - [`.nimi/spec/desktop/kernel/error-boundary-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/kernel/error-boundary-contract.md)
 - [`.nimi/spec/desktop/kernel/network-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/kernel/network-contract.md)
 - [`.nimi/spec/desktop/kernel/tables/retry-status-codes.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/kernel/tables/retry-status-codes.yaml)

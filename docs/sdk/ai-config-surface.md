@@ -3,7 +3,7 @@
 ## Status: Admitted, in build-out
 
 The SDK AI config surface contract
-(`sdk/kernel/ai-config-surface-contract.md`) is admitted. It pins
+(`.nimi/spec/sdks/kernel/ai-config-surface-contract.md`) is admitted. It pins
 how app developers configure AI profiles via SDK; the developer-facing
 surface is in active build-out.
 
@@ -61,6 +61,6 @@ App wants to apply a profile to an app-owned workspace.
 
 ## Source Basis
 
-- [`.nimi/spec/sdk/kernel/ai-config-surface-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/kernel/ai-config-surface-contract.md)
+- [`.nimi/spec/sdks/kernel/ai-config-surface-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/ai-config-surface-contract.md)
 - [`.nimi/spec/platform/kernel/ai-scope-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/ai-scope-contract.md)
 - [`.nimi/spec/runtime/kernel/ai-profile-execution-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/ai-profile-execution-contract.md)

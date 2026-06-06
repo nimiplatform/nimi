@@ -56,14 +56,15 @@ Two things follow from that diagram:
 Suppose an app needs to ask Runtime to generate a streamed multimodal
 response inside a world's context. The architecture says:
 
-1. The app uses `sdk/runtime` to issue the request. It doesn't import
-   private runtime modules; the SDK is the boundary.
+1. The app uses `@nimiplatform/sdk/runtime` or the root SDK client to issue
+   the request. It doesn't import private runtime modules; the SDK is the
+   boundary.
 2. Runtime owns the workflow and the streaming lifecycle. It knows when
    the request is `ACCEPTED`, when streaming starts, when terminal
    frames are emitted, and when the workflow is `COMPLETED`.
 3. If the app also needs to read world truth (for example, to know what
-   participants are present), it uses `sdk/realm` or `sdk/world`, which
-   project Realm contracts. It doesn't import Realm internals.
+   participants are present), it uses `@nimiplatform/sdk/realm` or root-client
+   Realm composition. It doesn't import Realm internals.
 4. If the workflow needs memory, Runtime bridges to Cognition under the
    bridge contract. The app does not see Cognition's internals.
 5. If the response includes a multimodal artifact, it travels under
@@ -103,4 +104,4 @@ expectation can drift from the contract and become silent local truth.
 - [`.nimi/spec/platform/kernel/app-slice-admission-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/app-slice-admission-contract.md)
 - [`.nimi/spec/platform/kernel/package-authority-admission-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/package-authority-admission-contract.md)
 - [`.nimi/spec/runtime/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/index.md)
-- [`.nimi/spec/sdk/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/kernel/index.md)
+- [`.nimi/spec/sdks/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/index.md)

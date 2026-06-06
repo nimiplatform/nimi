@@ -8,7 +8,7 @@
 | --- | --- |
 | 平台 | `.nimi/spec/platform/**` |
 | Runtime | `.nimi/spec/runtime/**` |
-| SDK | `.nimi/spec/sdk/**` |
+| SDK | `.nimi/spec/sdks/**` |
 | 桌面端与网页端 | `.nimi/spec/desktop/**` |
 | Realm | `.nimi/spec/realm/**` |
 | Avatar | `.nimi/spec/avatar/**` |

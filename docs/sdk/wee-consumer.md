@@ -49,6 +49,6 @@ App wants to propose a typed world event on user action.
 
 ## Source Basis
 
-- [`.nimi/spec/sdk/kernel/world-evolution-engine-consumer-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/kernel/world-evolution-engine-consumer-contract.md)
+- [`.nimi/spec/sdks/kernel/world-evolution-engine-consumer-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/world-evolution-engine-consumer-contract.md)
 - [`.nimi/spec/runtime/kernel/world-evolution-engine-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/world-evolution-engine-contract.md)
 - [`.nimi/spec/realm/kernel/world-state-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/kernel/world-state-contract.md)

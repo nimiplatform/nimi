@@ -8,7 +8,7 @@
 
 你在做一款应用，想让平台在某个世界的上下文里生成一份流式多模态响应。
 
-1. **应用 → SDK**。应用调用 `sdk/runtime`，传入一份强类型请求（模态、上下文、目的地），不 import 私有 Runtime 模块。
+1. **应用 → SDK**。应用调用 `@nimiplatform/sdk/runtime`，传入一份强类型请求（模态、上下文、目的地），不 import 私有 Runtime 模块。
 2. **SDK → Runtime**。SDK 通过当前传输画像（桌面端的 `tauri-ipc`、Node 上的 `node-grpc` 等）把调用送到 Runtime。
 3. **Runtime 工作流生命周期**。请求变成一个工作流。工作流走 `ACCEPTED → QUEUED → RUNNING`。如果涉及下游 Provider，Provider 异步任务走 `queued → running → succeeded | failed | expired`，归一化进工作流状态机。
 4. **流式语义**。流式分片按四种模式（A/B/C/D）之一到达 SDK。阶段边界、结尾帧、错误语义都是强类型契约；违反契约的分片失败拒绝。

@@ -65,7 +65,7 @@ You install Nimi on a fresh laptop with a discrete GPU.
 3. You optionally add a cloud connector for a provider you have a
    subscription to. The connector is a managed identity with
    scoped credentials.
-4. You open an app. The app uses `sdk/runtime` to call generation.
+4. You open an app. The app uses `@nimiplatform/sdk/runtime` to call generation.
    Runtime decides whether to route to your local model or your
    cloud connector based on the request shape and your config.
 5. Audit lands in your runtime-local ledger. If you later sign in
@@ -84,7 +84,7 @@ You have a laptop and a desktop. Your desktop has the powerful GPU.
   are tied to your account through Realm; runtime state is local.
 - Future: a federation surface lets your laptop request capability
   from your desktop's Runtime under a scoped token. The laptop's
-  app sees a normal `sdk/runtime` call; the actual inference runs
+  app sees a normal `@nimiplatform/sdk/runtime` call; the actual inference runs
   on the desktop. Audit is preserved across both ledgers.
 
 This federation flow is admitted as a future direction in the

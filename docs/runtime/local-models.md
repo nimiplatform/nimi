@@ -107,7 +107,7 @@ You want to run a local text model on your machine.
 5. **Activate.** The model becomes the active model for this
    engine. Local capability for text generation is now
    available.
-6. **Use.** An app issues a text request through `sdk/runtime`.
+6. **Use.** An app issues a text request through `@nimiplatform/sdk/runtime`.
    Runtime routes the request to the local engine and streams
    the result back through the normalized streaming shape.
 

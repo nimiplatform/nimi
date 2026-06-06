@@ -78,11 +78,11 @@ The team admits the first wave.
   state: admitted
   primary_closure_goal: |
     Update `.nimi/spec/runtime/kernel/auth-service.md` and
-    `.nimi/spec/sdk/kernel/error-projection.md` to admit the
+    `.nimi/spec/sdks/kernel/error-projection.md` to admit the
     SessionBearer contract alongside JWT. Explicit
     dual-admission with cutover date.
   deps: []
-  owner_domain: .nimi/spec/runtime/kernel/auth-service.md and .nimi/spec/sdk/kernel/error-projection.md
+  owner_domain: .nimi/spec/runtime/kernel/auth-service.md and .nimi/spec/sdks/kernel/error-projection.md
   parallelizable_after: stable_authority_contract
   selected: true
 ```
@@ -112,7 +112,7 @@ Worker (the AI host) executes within packet boundary:
 
 - Reads `.nimi/spec/runtime/kernel/auth-service.md`.
 - Edits the file to admit `SessionBearer` contract.
-- Reads `.nimi/spec/sdk/kernel/error-projection.md`.
+- Reads `.nimi/spec/sdks/kernel/error-projection.md`.
 - Edits to add SessionBearer error reason codes.
 - Stops at packet boundary; does not touch other surfaces.
 

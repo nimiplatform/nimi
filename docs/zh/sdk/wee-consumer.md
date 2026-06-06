@@ -8,7 +8,7 @@ SDK WEE 消费者合约已在内核级别被准入。可运行的消费者表面
 
 SDK WEE 消费者是应用程序用来**驱动**WEE状态的接口——提交事件提案、请求类型化的阶段转换、参与提交请求的暂存——通过已准入的运行时侧WEE引擎。
 
-读取WEE状态是[WEE 投影](/sdk/wee-projection)的角色；驱动则在这里进行。
+读取WEE状态是[WEE 投影](/zh/sdk/wee-projection)的角色；驱动则在这里进行。
 
 ## 职责划分
 
@@ -39,6 +39,6 @@ SDK WEE 消费者是应用程序用来**驱动**WEE状态的接口——提交�
 
 ## 来源依据
 
-- [`.nimi/spec/sdk/kernel/world-evolution-engine-consumer-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/kernel/world-evolution-engine-consumer-contract.md)
+- [`.nimi/spec/sdks/kernel/world-evolution-engine-consumer-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/world-evolution-engine-consumer-contract.md)
 - [`.nimi/spec/runtime/kernel/world-evolution-engine-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/world-evolution-engine-contract.md)
 - [`.nimi/spec/realm/kernel/world-state-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/kernel/world-state-contract.md)

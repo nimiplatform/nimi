@@ -2,8 +2,8 @@
 
 ## Status: Admitted, in build-out
 
-The runtime agent participation client contract
-(`runtime-agent-participation-client-contract.md`) is admitted at the
+The runtime agent participation contract
+(`runtime-agent-participation-contract.md`) is admitted at the
 SDK kernel level. The methods registry + behavioral checks are
 shipped at the contract level; client-side fluent surface is in
 active build-out.
@@ -34,8 +34,8 @@ exposes the admitted methods as typed calls.
 
 ## Behavioral Checks
 
-`tables/sdk-runtime-behavioral-checks.yaml` admits behavioral
-checks the SDK enforces before submission:
+The participation contract admits behavioral checks the SDK enforces before
+submission:
 
 | Check | Purpose |
 | --- | --- |
@@ -71,7 +71,6 @@ An app wants its agent to participate in a Realm group thread.
 
 ## Source Basis
 
-- [`.nimi/spec/sdk/kernel/runtime-agent-participation-client-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/kernel/runtime-agent-participation-client-contract.md)
-- [`.nimi/spec/sdk/kernel/tables/runtime-agent-participation-methods.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/kernel/tables/runtime-agent-participation-methods.yaml)
-- [`.nimi/spec/sdk/kernel/tables/sdk-runtime-behavioral-checks.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/kernel/tables/sdk-runtime-behavioral-checks.yaml)
+- [`.nimi/spec/sdks/kernel/runtime-agent-participation-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/runtime-agent-participation-contract.md)
+- [`.nimi/spec/sdks/kernel/tables/runtime-agent-participation-methods.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/tables/runtime-agent-participation-methods.yaml)
 - [`.nimi/spec/runtime/kernel/runtime-agent-participation-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/runtime-agent-participation-contract.md)

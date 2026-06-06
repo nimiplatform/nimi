@@ -7,7 +7,7 @@ SDK WEE 投影合约已在内核级别被准入。
 
 ## 该呈现是什么
 
-SDK WEE 投影表面允许应用程序**读取** WEE 状态——即世界演化引擎的运行时本地执行证据，这些证据被转换为应用程序可以使用的类型化形状。读取是这个表面的作用；驱动 WEE 是 [WEE 消费者](/sdk/wee-consumer) 的作用。
+SDK WEE 投影表面允许应用程序**读取** WEE 状态——即世界演化引擎的运行时本地执行证据，这些证据被转换为应用程序可以使用的类型化形状。读取是这个表面的作用；驱动 WEE 是 [WEE 消费者](/zh/sdk/wee-consumer) 的作用。
 
 ## 职责划分
 
@@ -36,5 +36,5 @@ WEE 状态是**运行时本地执行证据**，而不是领域的规范真相。
 
 ## 来源依据
 
-- [`.nimi/spec/sdk/kernel/world-evolution-engine-projection-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/kernel/world-evolution-engine-projection-contract.md)
+- [`.nimi/spec/sdks/kernel/world-evolution-engine-projection-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/world-evolution-engine-projection-contract.md)
 - [`.nimi/spec/runtime/kernel/world-evolution-engine-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/world-evolution-engine-contract.md)

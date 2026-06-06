@@ -2,7 +2,7 @@
 
 ## 状态：已准入，正在构建中
 
-SDK 的 AI 配置界面合同 (`sdk/kernel/ai-config-surface-contract.md`) 已被准入。它规定了应用开发者如何通过 SDK 配置 AI 配置文件；面向开发者的界面正处于积极构建中。
+SDK 的 AI 配置界面合同 (`.nimi/spec/sdks/kernel/ai-config-surface-contract.md`) 已被准入。它规定了应用开发者如何通过 SDK 配置 AI 配置文件；面向开发者的界面正处于积极构建中。
 
 ## 该界面的作用
 
@@ -49,6 +49,6 @@ SDK 是类型化访问界面。范围所有者拥有 AIConfig 意图；运行时
 
 ## 来源依据
 
-- [`.nimi/spec/sdk/kernel/ai-config-surface-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/kernel/ai-config-surface-contract.md)
+- [`.nimi/spec/sdks/kernel/ai-config-surface-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/ai-config-surface-contract.md)
 - [`.nimi/spec/platform/kernel/ai-scope-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/ai-scope-contract.md)
 - [`.nimi/spec/runtime/kernel/ai-profile-execution-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/ai-profile-execution-contract.md)

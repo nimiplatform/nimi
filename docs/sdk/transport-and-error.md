@@ -2,7 +2,8 @@
 
 > Status: Running today. The SDK transport contract and the SDK
 > error projection contract are shipped under
-> `sdk/kernel/transport-contract.md` + `sdk/kernel/error-projection.md`.
+> `.nimi/spec/sdks/kernel/transport-contract.md` +
+> `.nimi/spec/sdks/kernel/error-projection.md`.
 
 The SDK Transport And Error surface covers how the SDK talks to
 runtime over admitted transports + how runtime errors project into
@@ -12,7 +13,7 @@ typed SDK errors that apps can handle predictably.
 
 | Concern | Authority |
 | --- | --- |
-| Transport bindings | `sdk/kernel/transport-contract.md` |
+| Transport bindings | `.nimi/spec/sdks/kernel/transport-contract.md` |
 | Connection lifecycle | Per admitted transport |
 | Reconnect strategy | Transport-level only (does NOT rescue contract failure) |
 
@@ -24,7 +25,7 @@ responsible for "fixing" contract-level errors.
 
 | Concern | Authority |
 | --- | --- |
-| Error projection from runtime to SDK | `sdk/kernel/error-projection.md` |
+| Error projection from runtime to SDK | `.nimi/spec/sdks/kernel/error-projection.md` |
 | Reason code surfacing | Typed; never silently dropped |
 | Decode / content-type / schema failures | Surface as typed SDK errors; not retried |
 | Auth / transport failures | Surface as typed SDK errors; may retry per transport policy |
@@ -66,6 +67,6 @@ Runtime daemon enters STOPPING; SDK transport disconnects.
 
 ## Source Basis
 
-- [`.nimi/spec/sdk/kernel/transport-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/kernel/transport-contract.md)
-- [`.nimi/spec/sdk/kernel/error-projection.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/kernel/error-projection.md)
+- [`.nimi/spec/sdks/kernel/transport-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/transport-contract.md)
+- [`.nimi/spec/sdks/kernel/error-projection.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/error-projection.md)
 - [`.nimi/spec/runtime/kernel/streaming-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/streaming-contract.md)

@@ -136,8 +136,8 @@ const sdkGroups: DefaultTheme.SidebarItem[] = [
     text: 'Sub-Paths',
     items: [
       { text: 'Runtime Client', link: '/sdk/runtime-client' },
-      { text: 'Realm And World Client', link: '/sdk/realm-world-client' },
-      { text: 'AI Provider', link: '/sdk/ai-provider' },
+      { text: 'Realm And Composition', link: '/sdk/realm-world-client' },
+      { text: 'Adapters', link: '/sdk/adapters' },
       { text: 'Shared Types', link: '/sdk/types' },
     ],
   },

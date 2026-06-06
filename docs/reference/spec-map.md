@@ -9,7 +9,7 @@ authority and for navigating the spec directly.
 | --- | --- |
 | Platform | `.nimi/spec/platform/**` |
 | Runtime | `.nimi/spec/runtime/**` |
-| SDK | `.nimi/spec/sdk/**` |
+| SDK | `.nimi/spec/sdks/**` |
 | Desktop and Web | `.nimi/spec/desktop/**` |
 | Realm | `.nimi/spec/realm/**` |
 | Avatar | `.nimi/spec/avatar/**` |

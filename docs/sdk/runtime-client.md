@@ -14,7 +14,7 @@ surface: transport, metadata, streaming behavior, errors, and grouped
 runtime methods. It lets applications call Runtime in a way that follows
 the same authority boundary as the rest of the platform.
 
-That means an app written against `sdk/runtime` does not have to know
+That means an app written against `@nimiplatform/sdk/runtime` does not have to know
 which package implements a runtime method, how the transport handles
 retries, or how runtime audit is recorded. Those concerns are handled
 by the SDK projection.
@@ -51,7 +51,7 @@ a sign that the boundary should be bypassed.
 
 ## Reader Scenario: A Streaming Generation Through The Client
 
-Suppose an app issues a streaming generation through `sdk/runtime`:
+Suppose an app issues a streaming generation through `@nimiplatform/sdk/runtime`:
 
 1. The app calls the runtime client's generation method with a typed
    request.
@@ -83,12 +83,11 @@ silent surfaces that nothing can vouch for.
 
 ## Source Basis
 
-- [`.nimi/spec/sdk/runtime.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/runtime.md)
-- [`.nimi/spec/sdk/kernel/runtime-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/kernel/runtime-contract.md)
-- [`.nimi/spec/sdk/kernel/transport-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/kernel/transport-contract.md)
-- [`.nimi/spec/sdk/kernel/error-projection.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/kernel/error-projection.md)
-- [`.nimi/spec/sdk/kernel/surface-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/kernel/surface-contract.md)
-- [`.nimi/spec/sdk/kernel/boundary-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/kernel/boundary-contract.md)
-- [`.nimi/spec/sdk/kernel/runtime-route-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/kernel/runtime-route-contract.md)
-- [`.nimi/spec/sdk/kernel/runtime-delegation-client-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/kernel/runtime-delegation-client-contract.md)
+- [`.nimi/spec/sdks/kernel/runtime-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/runtime-contract.md)
+- [`.nimi/spec/sdks/kernel/transport-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/transport-contract.md)
+- [`.nimi/spec/sdks/kernel/error-projection.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/error-projection.md)
+- [`.nimi/spec/sdks/kernel/surface-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/surface-contract.md)
+- [`.nimi/spec/sdks/kernel/boundary-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/boundary-contract.md)
+- [`.nimi/spec/sdks/kernel/runtime-route-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/runtime-route-contract.md)
+- [`.nimi/spec/sdks/kernel/runtime-delegation-client-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/runtime-delegation-client-contract.md)
 - [`.nimi/spec/runtime/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/index.md)

@@ -18,7 +18,7 @@ imports. Apps do not duplicate what Kit covers.
 | --- | --- |
 | Authority package | `@nimiplatform/kit` (single) |
 | Subpath exports | `/ui`, `/auth`, `/core/*`, `/telemetry/*`, `/features/*` |
-| Source location | `kit/` at repo root, peer to `apps/`, `sdk/`, `runtime/` |
+| Source location | `kit/` at repo root, peer to `apps/`, `sdks/`, `runtime/` |
 | Sub-module workspace manifests | NOT permitted (single workspace package) |
 | Apps may duplicate Kit capabilities? | No |
 

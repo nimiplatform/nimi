@@ -70,11 +70,11 @@ topic 已存在，但还没有 wave。
   state: admitted
   primary_closure_goal: |
     Update `.nimi/spec/runtime/kernel/auth-service.md` and
-    `.nimi/spec/sdk/kernel/error-projection.md` to admit the
+    `.nimi/spec/sdks/kernel/error-projection.md` to admit the
     SessionBearer contract alongside JWT. Explicit
     dual-admission with cutover date.
   deps: []
-  owner_domain: .nimi/spec/runtime/kernel/auth-service.md and .nimi/spec/sdk/kernel/error-projection.md
+  owner_domain: .nimi/spec/runtime/kernel/auth-service.md and .nimi/spec/sdks/kernel/error-projection.md
   parallelizable_after: stable_authority_contract
   selected: true
 ```
@@ -101,7 +101,7 @@ worker（AI 宿主）在 packet 边界内执行：
 
 - 读取 `.nimi/spec/runtime/kernel/auth-service.md`。
 - 修改文件，准入 `SessionBearer` 契约。
-- 读取 `.nimi/spec/sdk/kernel/error-projection.md`。
+- 读取 `.nimi/spec/sdks/kernel/error-projection.md`。
 - 修改文件，新增 SessionBearer 的 error reason code。
 - 抵达 packet 边界即停，不动其他表面。
 

@@ -44,7 +44,7 @@ Runtime 把云端 AI provider 当成受治理的 runtime 数据，而不是宣�
 | 规整化 | 统一流式、错误、元数据形态 |
 | 审计 | 每次调用按强类型 reason code 记账 |
 
-适配器层正是"换 provider 不必改应用"这句话的真实依据。用 `sdk/runtime` 的应用不关心调用通过的哪家 provider，看到的就是规整后的形态。
+适配器层正是"换 provider 不必改应用"这句话的真实依据。用 `@nimiplatform/sdk/runtime` 的应用不关心调用通过的哪家 provider，看到的就是规整后的形态。
 
 ## Provider 健康
 
@@ -77,7 +77,7 @@ Provider 状态机准入在 `runtime/kernel/provider-health-contract.md`。状�
 2. **凭据。** 连接器把凭据持在 daemon-config 面。
 3. **校验。** 连接器校验凭据，并报告该身份能路由到的模型清单。
 4. **能力矩阵。** Runtime 知道这个连接器提供哪些能力（文本 / 图 / 嵌入 等），锚定在准入的能力矩阵上。
-5. **使用。** 应用经 `sdk/runtime` 发请求，Runtime 经连接器转发，流式按规整形态返回，错误以强类型形态返回。
+5. **使用。** 应用经 `@nimiplatform/sdk/runtime` 发请求，Runtime 经连接器转发，流式按规整形态返回，错误以强类型形态返回。
 
 注意**没有发生**的事：文档没把 provider 名字当宣传词写出来。Provider 名单是准入的目录数据。
 

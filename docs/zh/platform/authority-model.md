@@ -81,7 +81,7 @@ App 在声明时就要表明自己是哪一类公民。模式决定 App 能写�
 - 你不需要写世界真相，世界状态变更不属于这个 App。
 - 你能与其它 App 并存，不应该挡住别的 extension-app 绑定。
 
-这正是 `render-app` 的画像。你通过 `sdk/world` 与 `sdk/realm` 读世界数据，聊天编写走聊天 API，App 不需要成为世界真相的写权威。
+这正是 `render-app` 的画像。你通过 `@nimiplatform/sdk/realm` 或 root-client Realm composition 读世界数据，聊天编写走已准入的聊天 API，App 不需要成为世界真相的写权威。
 
 如果以后你加了一个会改世界规则的功能，就要切到 `extension-app` 模式并绑定到世界。每个世界仅一个激活 extension-app，你要么走专属准入，要么把这个功能放到别处。
 

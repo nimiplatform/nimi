@@ -156,7 +156,9 @@ desktop 发布前置契约（Zero-Bundle）：
 
 1. `release-desktop` job 不得 checkout 或打包任何外部 mod 仓产物。
 2. 发布包必须允许在零已安装 mod 状态启动。
-3. 构建 desktop 前必须先执行 `pnpm build:sdk`，确保 `@nimiplatform/sdk-*` 的 `dist/*` 产物可被 Vite 解析。
+3. 构建 desktop 前必须先执行 `pnpm build:sdk`，确保 `sdks/typescript`
+   中 `@nimiplatform/sdk` 的 `dist/*` 产物可被 Vite 解析；独立 adapter
+   package 如参与发布，也必须先完成各自 build。
 4. 如需做安装链验证，只能使用预构建 mod 包作为测试输入，不得把其打进桌面发布产物。
 
 支持 dry-run：

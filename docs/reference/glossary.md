@@ -98,9 +98,12 @@ capability semantics for local execution.
 
 ## SDK Vocabulary
 
-**Surface.** A named SDK sub-path with its own export and boundary
-contract (`sdk/runtime`, `sdk/realm`, `sdk/world`, `sdk/ai-provider`,
-`sdk/scope`, `sdk/types`).
+**Surface.** A named SDK public entry with its own export and boundary
+contract. vNext examples include `@nimiplatform/sdk`,
+`@nimiplatform/sdk/runtime`, `@nimiplatform/sdk/realm`,
+`@nimiplatform/sdk/ai`, `@nimiplatform/sdk/agent`,
+`@nimiplatform/sdk/types`, and feature modules. Framework adapters are
+independent packages.
 
 **Boundary.** A spec-admitted import or call rule that prevents apps from
 crossing into private Runtime, Realm, or Cognition internals.
@@ -198,7 +201,7 @@ selected, not full-mirror.
 - [`.nimi/spec/platform/protocol.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/protocol.md)
 - [`.nimi/spec/platform/kernel/tables/protocol-primitives.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/tables/protocol-primitives.yaml)
 - [`.nimi/spec/runtime/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/index.md)
-- [`.nimi/spec/sdk/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/kernel/index.md)
+- [`.nimi/spec/sdks/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/index.md)
 - [`.nimi/spec/realm/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/kernel/index.md)
 - [`.nimi/spec/desktop/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/kernel/index.md)
 - [`.nimi/spec/avatar/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/kernel/index.md)

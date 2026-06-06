@@ -12,7 +12,7 @@
 | --- | --- |
 | 权威包 | `@nimiplatform/kit`（单一） |
 | 子路径导出 | `/ui`, `/auth`, `/core/*`, `/telemetry/*`, `/features/*` |
-| 源位置 | 仓库根目录下的 `kit/`，与 `apps/`, `sdk/`, `runtime/` 同级 |
+| 源位置 | 仓库根目录下的 `kit/`，与 `apps/`, `sdks/`, `runtime/` 同级 |
 | 子模块工作区清单 | 不允许（单个工作区包） |
 | 应用程序可以复制工具包的功能吗？ | 不可以 |
 

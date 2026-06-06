@@ -84,8 +84,9 @@ first walkthrough:
    streaming, and multimodal artifacts follow Runtime contracts, not
    app code.
 3. Read [SDK](/sdk/) to find that your app should consume those
-   contracts through `sdk/runtime`, `sdk/world`, `sdk/realm`,
-   `sdk/ai-provider`, and `sdk/scope`, not by importing private
+   contracts through the root `@nimiplatform/sdk` client, vNext subpaths such
+   as `@nimiplatform/sdk/runtime` and `@nimiplatform/sdk/realm`, feature
+   modules, and independent adapter packages, not by importing private
    internals.
 4. Read [Desktop](/desktop/) and [Web Mode](/desktop/web-mode) to
    learn why Desktop and Web do not have the same capability envelope
@@ -104,6 +105,6 @@ precise enough.
 - [`.nimi/spec/platform/vision.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/vision.md)
 - [`.nimi/spec/platform/architecture.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/architecture.md)
 - [`.nimi/spec/runtime/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/index.md)
-- [`.nimi/spec/sdk/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/kernel/index.md)
+- [`.nimi/spec/sdks/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/index.md)
 - [`.nimi/spec/desktop/web-adapter.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/web-adapter.md)
 - [`nimi-coding/spec/product-scope.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/spec/product-scope.yaml)

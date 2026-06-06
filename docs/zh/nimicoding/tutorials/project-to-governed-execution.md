@@ -87,7 +87,7 @@ I will create a topic for a fresh full audit. Proposed waves:
 4. closeout
 
 Proposed owner domains:
-.nimi/spec/**, docs/**, runtime/**, sdk/**, apps/**
+.nimi/spec/**, docs/**, runtime/**, sdks/**, apps/**
 External package boundary:
 @nimiplatform/nimi-coding via the nimicoding CLI and injected .nimi files
 

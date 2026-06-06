@@ -40,9 +40,9 @@ nimi-runtime <-> nimi-cognition   : Runtime 桥 / 消费重叠
 
 某个 App 需要请 Runtime 在某个世界的上下文里生成一段流式多模态响应。架构告诉它：
 
-1. App 通过 `sdk/runtime` 发请求。它不导入 Runtime 私有模块；SDK 是边界。
+1. App 通过 `@nimiplatform/sdk/runtime` 或 SDK root client 发请求。它不导入 Runtime 私有模块；SDK 是边界。
 2. Runtime 持有工作流与流式生命周期。它知道请求何时 `ACCEPTED`、流何时开始、终态帧何时给出、工作流何时 `COMPLETED`。
-3. 如果 App 同时需要读世界真相（比如想知道有哪些参与者），它走 `sdk/realm` 或 `sdk/world`，那是 Realm 契约的呈现面。它不导入 Realm 内部。
+3. 如果 App 同时需要读世界真相（比如想知道有哪些参与者），它走 `@nimiplatform/sdk/realm` 或 root-client Realm composition。它不导入 Realm 内部。
 4. 如果工作流需要 memory，Runtime 在桥契约下接入 Cognition。App 看不到 Cognition 的内部。
 5. 如果响应里包含多模态制品，制品走 Runtime 的 artifact 契约，而不是临时拼出来的 URL。
 
@@ -67,4 +67,4 @@ App 越过这道边界会出两件事。第一，它绑死在会改变的内部�
 - [`.nimi/spec/platform/kernel/app-slice-admission-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/app-slice-admission-contract.md)
 - [`.nimi/spec/platform/kernel/package-authority-admission-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/package-authority-admission-contract.md)
 - [`.nimi/spec/runtime/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/index.md)
-- [`.nimi/spec/sdk/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/kernel/index.md)
+- [`.nimi/spec/sdks/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/index.md)

@@ -191,7 +191,7 @@ original Chinese content, not sentence-by-sentence translation.
 | `.nimi/contracts/` | Machine contracts for reconstruction, audit, admission |
 | `.nimi/topics/` | Human-authored topic lifecycle artifacts |
 | `runtime/` | Go runtime daemon and CLI (`runtime/cmd/nimi`) |
-| `sdk/` | TypeScript SDK (`@nimiplatform/sdk`) |
+| `sdks/` | SDK family root; TypeScript vNext publishes as `@nimiplatform/sdk` |
 | `kit/` | Cross-app design system, auth, telemetry, and feature modules |
 | `proto/` | Protocol Buffers and gRPC definitions |
 | `apps/` | Active apps (Desktop, Web, Avatar, install gateway) |
@@ -264,7 +264,7 @@ Nimi is multi-licensed by component:
 
 | Path | License |
 | --- | --- |
-| `runtime/`, `sdk/`, `proto/` | Apache-2.0 |
+| `runtime/`, `sdks/`, `proto/` | Apache-2.0 |
 | `apps/desktop/`, `apps/web/`, `apps/_libs/` | MIT |
 | `docs/` | CC-BY-4.0 |
 

@@ -59,7 +59,7 @@ cloud is behind the call.
 | Audit | Records every call under typed reason codes |
 
 The adapter layer is what makes "swap providers without rewriting
-your app" a real claim. An app that uses `sdk/runtime` does not
+your app" a real claim. An app that uses `@nimiplatform/sdk/runtime` does not
 care which provider is behind the call; the normalized shape is
 what the app sees.
 
@@ -110,7 +110,7 @@ an account with.
 4. **Capability matrix.** Runtime knows which capabilities (text /
    image / embedding / etc.) this connector offers, anchored in
    the admitted capability matrix.
-5. **Use.** An app issues a request through `sdk/runtime`. Runtime
+5. **Use.** An app issues a request through `@nimiplatform/sdk/runtime`. Runtime
    routes the request through the connector. Streaming arrives
    normalized; errors arrive typed.
 

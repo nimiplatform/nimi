@@ -136,8 +136,8 @@ const sdkGroups: DefaultTheme.SidebarItem[] = [
     text: '子路径',
     items: [
       { text: 'Runtime Client', link: '/zh/sdk/runtime-client' },
-      { text: 'Realm 与世界 Client', link: '/zh/sdk/realm-world-client' },
-      { text: 'AI Provider', link: '/zh/sdk/ai-provider' },
+      { text: 'Realm 与组合', link: '/zh/sdk/realm-world-client' },
+      { text: '适配器', link: '/zh/sdk/adapters' },
       { text: '共享类型', link: '/zh/sdk/types' },
     ],
   },

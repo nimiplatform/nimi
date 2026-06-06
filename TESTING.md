@@ -52,8 +52,7 @@ buf breaking --against ../runtime/proto/runtime-v1.baseline.binpb
 ## SDK (TypeScript)
 
 ```bash
-cd sdk
-pnpm test
+pnpm --filter @nimiplatform/sdk test
 ```
 
 ### Test framework
@@ -64,13 +63,12 @@ pnpm test
 ```ts
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Runtime } from '@nimiplatform/sdk/runtime';
+import { createNimiClient } from '@nimiplatform/sdk';
 
-test('Runtime constructor requires appId', () => {
-  assert.throws(() => new Runtime({
-    appId: '',
-    transport: { type: 'tauri-ipc' },
-  }));
+test('Nimi client preserves explicit app identity', () => {
+  const client = createNimiClient({ appId: 'nimi.example.test' });
+
+  assert.equal(client.appId, 'nimi.example.test');
 });
 ```
 
@@ -128,12 +126,12 @@ SDK ↔ Runtime gRPC contract tests verify:
 | Go test | `go test ./...` | runtime |
 | Go vet | `go vet ./...` | runtime |
 | golangci-lint | `pnpm check:runtime-golangci-lint` | runtime |
-| TypeScript check | `tsc --noEmit` | sdk, desktop, web |
-| TSX tests | `pnpm test` | sdk, desktop, web |
-| ESLint | `pnpm lint` | sdk, desktop, web |
+| TypeScript check | `tsc --noEmit` | sdks/typescript, desktop, web |
+| TSX tests | `pnpm test` | sdks/typescript, desktop, web |
+| ESLint | `pnpm lint` | sdks/typescript, desktop, web |
 | Buf lint | `buf lint proto/` | proto |
 | Buf breaking | `buf breaking proto/ --against .git#branch=main` | proto |
-| Codegen drift | `buf generate && git diff --exit-code` | proto → sdk, runtime |
+| Codegen drift | `buf generate && git diff --exit-code` | proto -> sdks, runtime |
 
 ## Writing New Tests
 

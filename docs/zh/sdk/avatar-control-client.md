@@ -46,6 +46,6 @@ SDK调用通过运行时进行；运行时发出类型化的`runtime.agent.prese
 
 ## 来源依据
 
-- [`.nimi/spec/sdk/kernel/runtime-avatar-control-client-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/kernel/runtime-avatar-control-client-contract.md)
+- [`.nimi/spec/sdks/kernel/runtime-avatar-control-client-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/runtime-avatar-control-client-contract.md)
 - [`.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md)
 - [`.nimi/spec/avatar/kernel/embodiment-projection-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/kernel/embodiment-projection-contract.md)

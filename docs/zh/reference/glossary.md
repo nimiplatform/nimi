@@ -58,7 +58,7 @@
 
 ## SDK 词汇
 
-**Surface（接入面）**。SDK 的命名子路径，自己有一份导出与边界契约（`sdk/runtime`、`sdk/realm`、`sdk/world`、`sdk/ai-provider`、`sdk/scope`、`sdk/types`）。
+**Surface（接入面）**。SDK 的命名公开入口，自己有一份导出与边界契约。vNext 示例包括 `@nimiplatform/sdk`、`@nimiplatform/sdk/runtime`、`@nimiplatform/sdk/realm`、`@nimiplatform/sdk/ai`、`@nimiplatform/sdk/agent`、`@nimiplatform/sdk/types` 以及 feature module。框架适配器是独立 package。
 
 **边界（Boundary）**。规范准入的导入或调用规则，让 App 不能跨入 Runtime、Realm、Cognition 的私有内部。
 
@@ -122,7 +122,7 @@
 - [`.nimi/spec/platform/protocol.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/protocol.md)
 - [`.nimi/spec/platform/kernel/tables/protocol-primitives.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/tables/protocol-primitives.yaml)
 - [`.nimi/spec/runtime/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/index.md)
-- [`.nimi/spec/sdk/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/kernel/index.md)
+- [`.nimi/spec/sdks/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/kernel/index.md)
 - [`.nimi/spec/realm/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/kernel/index.md)
 - [`.nimi/spec/desktop/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/kernel/index.md)
 - [`.nimi/spec/avatar/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/kernel/index.md)

@@ -109,10 +109,10 @@ it nicely, and let users compose chat messages.
 - You can run alongside other apps — your app should not block other
   extension-apps from binding.
 
-That is exactly the `render-app` profile. You read world data
-through `sdk/world` and `sdk/realm`, and chat composition flows
-through the chat APIs without your app being a write authority on
-world truth.
+That is exactly the `render-app` profile. You read world data through
+`@nimiplatform/sdk/realm` or root-client Realm composition, and chat
+composition flows through the admitted chat APIs without your app being a write
+authority on world truth.
 
 If you later add a feature that mutates world rules, you need to
 move to `extension-app` mode and bind to the world. Only one
