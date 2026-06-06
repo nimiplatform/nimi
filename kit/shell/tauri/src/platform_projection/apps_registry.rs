@@ -128,7 +128,7 @@ fn project_row(row: &PlatformNimiAppRegistryRow) -> Result<AppsRegistryRow, Stri
         install_state: project_install_state(row)?.to_string(),
         package_ref: row.release_descriptor_ref.to_string(),
         manifest_ref: row.release_descriptor_ref.to_string(),
-        recommended_profile_ref: None,
+        recommended_profile_ref: Some(row.ai_profile_selection_ref.to_string()),
         requirements_ref: row.source_rule.to_string(),
     })
 }

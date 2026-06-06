@@ -129,6 +129,8 @@ const appClient = createNimiAppClient({
       displayName: 'Surface',
       trustTier: 'nimi-community',
       publisher: 'Nimi',
+      aiProfileSelectionRef: 'local-standard',
+      capabilitySet: ['text.generate'],
       releaseDescriptorRef: 'release',
       installStoragePolicyRef: 'storage',
       sourceRule: 'test',

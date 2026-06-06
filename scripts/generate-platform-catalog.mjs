@@ -99,6 +99,8 @@ function normalizeNimiAppRegistryRows(doc) {
       publisher: asString(row?.publisher, `${appId}.publisher`),
       trustTier: asString(row?.trust_tier_ref, `${appId}.trust_tier_ref`),
       ordinaryVisibility: asString(row?.ordinary_visibility, `${appId}.ordinary_visibility`),
+      aiProfileSelectionRef: asString(row?.ai_profile_selection_ref, `${appId}.ai_profile_selection_ref`),
+      capabilitySet: stringArray(row?.capability_set_refs, `${appId}.capability_set_refs`),
       releaseDescriptorRef: asString(row?.release_descriptor_ref, `${appId}.release_descriptor_ref`),
       installStoragePolicyRef: asString(row?.install_storage_policy_ref, `${appId}.install_storage_policy_ref`),
       sourceRule: asString(row?.source_rule, `${appId}.source_rule`),
@@ -145,9 +147,19 @@ function normalizeNimiAppReleaseDescriptorRows(doc) {
   });
 }
 
-function assertAppRegistryRefsResolve(appRows, releaseDescriptorRows) {
+function assertAppRegistryRefsResolve(appRows, releaseDescriptorRows, referenceDocs) {
   const descriptorIds = new Set(releaseDescriptorRows.map((row) => row.descriptorId));
+  const factoryAliases = new Set(referenceDocs.factoryRows.map((row) => row.alias));
+  const capabilityIds = idSetFromRows(
+    referenceDocs.canonicalCapabilities?.capabilities,
+    'capabilityId',
+    'canonical capability rows',
+  );
   for (const row of appRows) {
+    if (!factoryAliases.has(row.aiProfileSelectionRef)) {
+      throw new Error(`${row.appId}.ai_profile_selection_ref does not resolve: ${row.aiProfileSelectionRef}`);
+    }
+    assertRefsResolve(row.capabilitySet, capabilityIds, row.appId, 'capability_set_refs');
     if (!descriptorIds.has(row.releaseDescriptorRef)) {
       throw new Error(`${row.appId}.release_descriptor_ref does not resolve: ${row.releaseDescriptorRef}`);
     }
@@ -421,6 +433,8 @@ function renderRustAppRegistry(appRegistryDoc, releaseDescriptorDoc, appRows, re
     `        publisher: ${rustString(row.publisher)},`,
     `        trust_tier: ${rustString(row.trustTier)},`,
     `        ordinary_visibility: ${rustString(row.ordinaryVisibility)},`,
+    `        ai_profile_selection_ref: ${rustString(row.aiProfileSelectionRef)},`,
+    `        capability_set_refs: ${rustStringSlice(row.capabilitySet)},`,
     `        release_descriptor_ref: ${rustString(row.releaseDescriptorRef)},`,
     `        install_storage_policy_ref: ${rustString(row.installStoragePolicyRef)},`,
     `        admission_status: ${rustString(row.admissionStatus)},`,
@@ -463,6 +477,8 @@ function renderRustAppRegistry(appRegistryDoc, releaseDescriptorDoc, appRows, re
     "    pub publisher: &'static str,",
     "    pub trust_tier: &'static str,",
     "    pub ordinary_visibility: &'static str,",
+    "    pub ai_profile_selection_ref: &'static str,",
+    "    pub capability_set_refs: &'static [&'static str],",
     "    pub release_descriptor_ref: &'static str,",
     "    pub install_storage_policy_ref: &'static str,",
     "    pub admission_status: &'static str,",
@@ -548,7 +564,10 @@ async function main() {
   });
   const appRows = normalizeNimiAppRegistryRows(appRegistryDoc);
   const releaseDescriptorRows = normalizeNimiAppReleaseDescriptorRows(releaseDescriptorDoc);
-  assertAppRegistryRefsResolve(appRows, releaseDescriptorRows);
+  assertAppRegistryRefsResolve(appRows, releaseDescriptorRows, {
+    factoryRows,
+    canonicalCapabilities: canonicalCapabilityDoc,
+  });
   const aiProfiles = deriveAiProfiles(factoryRows);
   const renderedVNextApp = renderVNextApp(factoryRows, appRows, releaseDescriptorRows, aiProfiles);
   const renderedRust = formatRust(renderRust(profileDoc, factoryRows));

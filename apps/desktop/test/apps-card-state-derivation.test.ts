@@ -258,7 +258,6 @@ describe('routeCardAction — every action routes onto the lifecycle bridge', ()
   const cases: Array<[AppCardActionId, string, unknown]> = [
     ['install', 'install', { appId: 'nimi.notes', confirmed: true }],
     ['retry', 'install', { appId: 'nimi.notes', confirmed: true }],
-    ['open', 'open', { appId: 'nimi.notes', scope: appLaunchScopeRef('nimi.notes') }],
     ['update', 'update', { appId: 'nimi.notes', confirmed: true }],
     ['repair', 'healthRepair', { appId: 'nimi.notes', action: 'repair' }],
     ['cancel', 'healthRepair', { appId: 'nimi.notes', action: 'cancel' }],
@@ -278,7 +277,70 @@ describe('routeCardAction — every action routes onto the lifecycle bridge', ()
       assert.equal(calls[0]!.method, method);
       assert.deepEqual(calls[0]!.input, expectedInput);
     });
-  }
+	  }
+
+  it('routes "open" only after app-scope AIConfig initialization succeeds', async () => {
+    const { bridge, calls } = recordingLifecycle();
+    const ensureCalls: unknown[] = [];
+    await routeCardAction(bridge, 'nimi.notes', 'open', {
+      appClient: makeClient(),
+      ensureAIConfig: async (input) => {
+        ensureCalls.push(input);
+        assert.equal(calls.length, 0, 'Runtime open must not happen before AIConfig ensure');
+        return {
+          outcome: 'already-initialized' as const,
+          scopeRef: { kind: 'app' as const, ownerId: input.appId },
+          config: {} as never,
+        };
+      },
+    });
+    assert.equal(ensureCalls.length, 1);
+    assert.deepEqual(ensureCalls[0], {
+      appId: 'nimi.notes',
+      recommendedProfileRef: 'local-standard',
+      requirementDeclarations: [{
+        requirementId: 'nimi.notes.app-launch.ai.requirements',
+        scopeRef: { kind: 'app', ownerId: 'nimi.notes' },
+        requiredSlices: [{
+          requirementSliceId: 'nimi.notes.text.generate',
+          capability: 'text.generate',
+          profileSliceRef: 'capabilities.text.generate',
+          readinessPolicy: 'required',
+        }],
+        setupProjectionPolicy: 'setup-required',
+      }],
+    });
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0]!.method, 'open');
+    assert.deepEqual(calls[0]!.input, { appId: 'nimi.notes', scope: appLaunchScopeRef('nimi.notes') });
+  });
+
+  it('blocks Runtime open when app AIConfig setup is required', async () => {
+    const { bridge, calls } = recordingLifecycle();
+    await assert.rejects(
+      () => routeCardAction(bridge, 'nimi.notes', 'open', {
+        appClient: makeClient(),
+        ensureAIConfig: async (input) => ({
+          outcome: 'setup-required-no-live-config' as const,
+          scopeRef: { kind: 'app' as const, ownerId: input.appId },
+          config: null,
+          profileSource: 'recommended-profile' as const,
+          profileId: 'local-standard',
+          setupRepairPlan: {
+            unmetRequirements: [{ requirementId: 'text.generate', detail: 'product_state_proposed' }],
+            setupProjection: {
+              outcome: 'setup_required_no_live_config',
+              blockingCapabilities: ['text.generate'],
+              reasonCodes: ['product_state_proposed'],
+              actionRefs: ['open_app_ai_profile_repair_surface'],
+            },
+          },
+        }),
+      }),
+      (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_APP_AI_CONFIG_SETUP_REQUIRED',
+    );
+    assert.equal(calls.length, 0, 'Runtime open must not run when AIConfig setup is required');
+  });
 
   it('rejects renderer-only flows as bridge actions (no silent collapse)', async () => {
     const { bridge, calls } = recordingLifecycle();
@@ -324,6 +386,8 @@ function buildRow(): NimiAppRow {
     displayName: 'Notes',
     trustTier: 'nimi-first-party',
     publisher: 'Nimi',
+    aiProfileSelectionRef: 'local-standard',
+    capabilitySet: ['text.generate'],
     releaseDescriptorRef: 'nimi.notes.bundled',
     installStoragePolicyRef: 'nimi-data-app-roots',
     sourceRule: 'P-NAPP-004',

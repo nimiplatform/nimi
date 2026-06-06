@@ -46,6 +46,12 @@ function writeConsumerFiles() {
   writeFileSync(path.join(tempRoot, 'consumer.mjs'), `
 import assert from 'node:assert/strict';
 import {
+  createNimiAIConfigStore,
+  createNimiAIHostSurface,
+  createNimiAISnapshotRecord,
+  createNimiAISnapshotStore,
+} from '@nimiplatform/sdk/ai';
+import {
   NimiAppClient,
   PermissionClient,
   createAppScopeRef,
@@ -62,6 +68,8 @@ const row = {
   displayName: 'Example App',
   trustTier: 'nimi-first-party',
   publisher: 'Nimi',
+  aiProfileSelectionRef: 'local-standard',
+  capabilitySet: ['text.generate'],
   releaseDescriptorRef: 'nimi.example-app.bundled',
   installStoragePolicyRef: 'nimi-data-app-roots',
   sourceRule: 'P-NAPP-004',
@@ -79,6 +87,7 @@ for (const retired of ['install', 'update', 'uninstall', 'launch', 'healthRepair
 }
 
 const scopeRef = createAppScopeRef({ appId: 'tester.app', surfaceId: 'settings' });
+const launchScopeRef = createAppScopeRef({ appId: 'tester.app' });
 const permissionScope = {
   appId: 'tester.app',
   scopeFamily: 'account',
@@ -118,6 +127,56 @@ catalog.registerAppScopes({
 });
 assert.equal(catalog.publishCatalog().status, 'published');
 
+const appProfile = {
+  profileId: 'tester-app-profile',
+  title: 'Tester App Profile',
+  capabilities: {
+    'text.generate': {
+      targetRef: {
+        kind: 'local-runtime',
+        readinessRef: 'tester-app-local-text',
+      },
+    },
+  },
+};
+const hostAI = createNimiAIHostSurface({
+  profiles: [appProfile],
+  configStore: createNimiAIConfigStore({ enableEphemeralStore: true }),
+  snapshotStore: createNimiAISnapshotStore({ enableEphemeralStore: true }),
+  now: () => '2026-06-06T00:00:00.000Z',
+});
+const appRequirementDeclarations = [{
+  requirementId: 'tester.app.ai.requirements',
+  scopeRef: launchScopeRef,
+  requiredSlices: [{
+    requirementSliceId: 'tester.app.text.generate',
+    capability: 'text.generate',
+    profileSliceRef: 'capabilities.text.generate',
+    readinessPolicy: 'required',
+  }],
+  setupProjectionPolicy: 'setup-required',
+}];
+const applyResult = await hostAI.aiProfile.apply(launchScopeRef, appProfile.profileId, {
+  requirementDeclarations: appRequirementDeclarations,
+});
+assert.equal(applyResult.success, true);
+const appConfig = hostAI.aiConfig.get(launchScopeRef);
+assert.equal(appConfig.scopeRef.kind, 'app');
+assert.equal(appConfig.scopeRef.ownerId, 'tester.app');
+assert.equal(appConfig.profileOrigin?.profileId, appProfile.profileId);
+assert.equal(appConfig.capabilities.targetRefs['text.generate']?.kind, 'local-runtime');
+const appSnapshot = createNimiAISnapshotRecord({
+  executionId: 'app-consumer-text-generate-1',
+  config: appConfig,
+  capability: 'text.generate',
+  selectedTargetRef: appConfig.capabilities.targetRefs['text.generate'] ?? null,
+  metadata: { consumer: 'sdk-vnext-app-consumer-smoke' },
+  createdAt: '2026-06-06T00:00:01.000Z',
+});
+hostAI.aiSnapshot.record(launchScopeRef, appSnapshot);
+assert.equal(hostAI.aiSnapshot.getLatest(launchScopeRef)?.configEvidence.profileOrigin?.profileId, appProfile.profileId);
+assert.equal(hostAI.aiSnapshot.get('app-consumer-text-generate-1')?.scopeRef.ownerId, 'tester.app');
+
 const localProfile = {
   alias: 'local-small',
   privacyPosture: 'local-preferred',
@@ -137,6 +196,15 @@ assert.equal(selectNimiAppFactoryAIProfileForFirstRun([localProfile])?.alias, 'l
 `);
 
   writeFileSync(path.join(tempRoot, 'consumer.ts'), `
+import {
+  createNimiAIConfigStore,
+  createNimiAIHostSurface,
+  createNimiAISnapshotRecord,
+  createNimiAISnapshotStore,
+  type NimiAICapabilityRequirementDeclaration,
+  type NimiAIHostSurface,
+  type NimiAIProfile,
+} from '@nimiplatform/sdk/ai';
 import {
   NimiAppClient,
   PermissionClient,
@@ -158,6 +226,8 @@ const row: NimiAppRow = {
   displayName: 'Example App',
   trustTier: 'nimi-first-party',
   publisher: 'Nimi',
+  aiProfileSelectionRef: 'local-standard',
+  capabilitySet: ['text.generate'],
   releaseDescriptorRef: 'nimi.example-app.bundled',
   installStoragePolicyRef: 'nimi-data-app-roots',
   sourceRule: 'P-NAPP-004',
@@ -169,6 +239,7 @@ const appClient: NimiAppClient = createNimiAppClient({
   async status() { return status; },
 });
 const scopeRef: NimiAppScopeRef = createAppScopeRef({ appId: 'tester.app', surfaceId: 'settings' });
+const launchScopeRef: NimiAppScopeRef = createAppScopeRef({ appId: 'tester.app' });
 const permissionScope: PermissionScopeRef = {
   appId: 'tester.app',
   scopeFamily: 'account',
@@ -198,12 +269,49 @@ const profile: NimiAppAIProfileFactoryRow = {
   materializationConfirmationRequired: true,
   sourceRule: 'consumer-smoke',
 };
+const appProfile: NimiAIProfile = {
+  profileId: 'tester-app-profile',
+  title: 'Tester App Profile',
+  capabilities: {
+    'text.generate': {
+      targetRef: {
+        kind: 'local-runtime',
+        readinessRef: 'tester-app-local-text',
+      },
+    },
+  },
+};
+const hostAI: NimiAIHostSurface = createNimiAIHostSurface({
+  profiles: [appProfile],
+  configStore: createNimiAIConfigStore({ enableEphemeralStore: true }),
+  snapshotStore: createNimiAISnapshotStore({ enableEphemeralStore: true }),
+});
+const appRequirements: NimiAICapabilityRequirementDeclaration[] = [{
+  requirementId: 'tester.app.ai.requirements',
+  scopeRef: launchScopeRef,
+  requiredSlices: [{
+    requirementSliceId: 'tester.app.text.generate',
+    capability: 'text.generate',
+    profileSliceRef: 'capabilities.text.generate',
+    readinessPolicy: 'required',
+  }],
+  setupProjectionPolicy: 'setup-required',
+}];
+const appConfig = hostAI.aiConfig.get(launchScopeRef);
+const snapshot = createNimiAISnapshotRecord({
+  config: appConfig,
+  capability: 'text.generate',
+  selectedTargetRef: appConfig.capabilities.targetRefs['text.generate'] ?? null,
+});
 
 void appClient;
 void permissionClient;
 void grantSpec;
 void catalog;
 void profile;
+void hostAI;
+void appRequirements;
+void snapshot;
 `);
 
   writeFileSync(path.join(tempRoot, 'tsconfig.json'), JSON.stringify({

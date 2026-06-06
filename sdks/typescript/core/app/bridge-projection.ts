@@ -78,6 +78,14 @@ export function parseNimiAppBridgeRegistryRow(value: unknown, index: number): Ni
     trustTier: requireNimiAppBridgeString(record.trustTier, `registryRows[${index}].trustTier`) as
       NimiAppRegistrySourceRow['trustTier'],
     ordinaryVisibility: ordinaryVisibility as NimiAppRegistrySourceRow['ordinaryVisibility'],
+    aiProfileSelectionRef: requireNimiAppBridgeString(
+      record.aiProfileSelectionRef,
+      `registryRows[${index}].aiProfileSelectionRef`,
+    ),
+    capabilitySet: requireNimiAppBridgeStringArray(
+      record.capabilitySet,
+      `registryRows[${index}].capabilitySet`,
+    ),
     releaseDescriptorRef: requireNimiAppBridgeString(
       record.releaseDescriptorRef,
       `registryRows[${index}].releaseDescriptorRef`,
@@ -166,6 +174,11 @@ function asNimiAppBridgeArray(value: unknown, label: string): readonly unknown[]
     throw new Error(`${label} must be an array`);
   }
   return value;
+}
+
+function requireNimiAppBridgeStringArray(value: unknown, label: string): readonly string[] {
+  return asNimiAppBridgeArray(value, label).map((item, index) =>
+    requireNimiAppBridgeString(item, `${label}[${index}]`));
 }
 
 function requireNimiAppBridgeString(value: unknown, label: string): string {

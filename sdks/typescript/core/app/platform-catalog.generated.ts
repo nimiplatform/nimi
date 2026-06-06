@@ -223,6 +223,13 @@ export const NIMI_APP_REGISTRY_ROWS = [
     "publisher": "nimi-first-party",
     "trustTier": "nimi-first-party",
     "ordinaryVisibility": "hidden-internal",
+    "aiProfileSelectionRef": "local-gpu",
+    "capabilitySet": [
+      "text.generate",
+      "audio.synthesize",
+      "audio.transcribe",
+      "image.generate"
+    ],
     "releaseDescriptorRef": "nimi.avatar.bundled-with-nimi",
     "installStoragePolicyRef": "nimi-data-app-roots",
     "sourceRule": "P-NAPP-011",

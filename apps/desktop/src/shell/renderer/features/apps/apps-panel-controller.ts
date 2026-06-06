@@ -23,6 +23,10 @@ import {
 } from './apps-lifecycle-bridge.js';
 import type { AppCardActionId } from './apps-card-actions.js';
 import { createDesktopAppsLiveBridge } from './apps-live-bridge.js';
+import {
+  ensureAppOpenAIConfig,
+  type DesktopAppsOpenAIConfigGateDeps,
+} from './apps-open-ai-config-gate.js';
 import { projectAppsPanel, type DesktopAppsPanelProjection } from './apps-panel-projection.js';
 
 /** A pending destructive-confirm flow (uninstall-with-data-delete / retry-cleanup). */
@@ -42,6 +46,8 @@ export interface AppsPanelState {
   readonly pendingConfirm: AppsPendingConfirm | null;
   /** The last card-action failure detail (typed, single-line), or `null`. */
   readonly actionError: string | null;
+  /** The appId that produced `actionError`, or `null` for panel/global errors. */
+  readonly actionErrorAppId: string | null;
   /** The appId of an in-flight card action (disables that card's buttons). */
   readonly busyAppId: string | null;
 }
@@ -78,6 +84,7 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps = {}): Apps
   const [detailAppId, setDetailAppId] = useState<string | null>(null);
   const [pendingConfirm, setPendingConfirm] = useState<AppsPendingConfirm | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [actionErrorAppId, setActionErrorAppId] = useState<string | null>(null);
   const [busyAppId, setBusyAppId] = useState<string | null>(null);
 
   // A monotonically increasing token guards against a stale re-projection
@@ -150,6 +157,7 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps = {}): Apps
         // renders from `listJobs`. Surface it as a single-line action error.
         if (!stopped) {
           setActionError(formatAppLifecycleErrorDetail(error));
+          setActionErrorAppId(null);
         }
       }
     })();
@@ -162,17 +170,19 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps = {}): Apps
   const performAction = useCallback(
     async (appId: string, action: AppCardActionId): Promise<void> => {
       setActionError(null);
+      setActionErrorAppId(null);
       setBusyAppId(appId);
       try {
-        await routeCardAction(lifecycle, appId, action);
+        await routeCardAction(lifecycle, appId, action, { appClient: liveBridge.appClient });
         await reload({ includeJobs: true });
       } catch (error) {
         setActionError(formatAppLifecycleErrorDetail(error));
+        setActionErrorAppId(appId);
       } finally {
         setBusyAppId((current) => (current === appId ? null : current));
       }
     },
-    [lifecycle, reload],
+    [lifecycle, liveBridge.appClient, reload],
   );
 
   const runCardAction = useCallback(
@@ -212,6 +222,7 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps = {}): Apps
     detailAppId,
     pendingConfirm,
     actionError,
+    actionErrorAppId,
     busyAppId,
     runCardAction,
     confirmPending,
@@ -255,6 +266,7 @@ export async function routeCardAction(
   lifecycle: DesktopAppLifecycleBridge,
   appId: string,
   action: AppCardActionId,
+  deps?: DesktopAppsOpenAIConfigGateDeps,
 ): Promise<void> {
   switch (action) {
     case 'install':
@@ -267,6 +279,10 @@ export async function routeCardAction(
       await lifecycle.install({ appId, confirmed: true });
       return;
     case 'open':
+      if (!deps) {
+        throw new Error('routeCardAction: open requires Desktop Apps AIConfig gate dependencies');
+      }
+      await ensureAppOpenAIConfig(appId, deps);
       await lifecycle.open({ appId, scope: appLaunchScopeRef(appId) });
       return;
     case 'update':

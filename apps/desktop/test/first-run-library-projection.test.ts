@@ -46,6 +46,8 @@ function buildRow(appId: string, displayName: string): NimiAppRow {
     displayName,
     trustTier: 'nimi-first-party',
     publisher: 'Nimi',
+    aiProfileSelectionRef: 'local-standard',
+    capabilitySet: ['text.generate'],
     releaseDescriptorRef: `${appId}.bundled`,
     installStoragePolicyRef: 'nimi-data-app-roots',
     sourceRule: 'P-NAPP-004',

@@ -2,6 +2,7 @@ import type { ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ConfirmDialog, ScrollArea, Surface } from '@nimiplatform/kit/ui';
 import { useAppsPanelController } from './apps-panel-controller.js';
+import { AppsAIProfileSection } from './apps-ai-profile-section.js';
 import { AppsDetailView } from './apps-detail-view.js';
 import { AppsPanelView } from './apps-panel-view.js';
 
@@ -22,6 +23,7 @@ export function AppsPanel(): ReactElement {
     detailAppId,
     pendingConfirm,
     actionError,
+    actionErrorAppId,
     busyAppId,
     runCardAction,
     confirmPending,
@@ -62,7 +64,17 @@ export function AppsPanel(): ReactElement {
         </Surface>
       </ScrollArea>
 
-      <AppsDetailView entry={detailEntry} onCardAction={runCardAction} onClose={closeDetail} />
+      <AppsDetailView
+        entry={detailEntry}
+        aiProfileSection={detailEntry ? (
+          <AppsAIProfileSection
+            entry={detailEntry}
+            actionError={actionErrorAppId === detailEntry.app.appId ? actionError : null}
+          />
+        ) : null}
+        onCardAction={runCardAction}
+        onClose={closeDetail}
+      />
 
       {pendingConfirm ? (
         <ConfirmDialog

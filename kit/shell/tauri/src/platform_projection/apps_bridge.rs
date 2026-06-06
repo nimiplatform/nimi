@@ -16,6 +16,8 @@ pub struct BridgeRegistryRow {
     pub publisher: String,
     pub trust_tier: String,
     pub ordinary_visibility: String,
+    pub ai_profile_selection_ref: String,
+    pub capability_set: Vec<String>,
     pub release_descriptor_ref: String,
     pub install_storage_policy_ref: String,
     pub source_rule: String,
@@ -72,6 +74,12 @@ fn project_registry_row(row: &PlatformNimiAppRegistryRow) -> BridgeRegistryRow {
         publisher: row.publisher.to_string(),
         trust_tier: row.trust_tier.to_string(),
         ordinary_visibility: row.ordinary_visibility.to_string(),
+        ai_profile_selection_ref: row.ai_profile_selection_ref.to_string(),
+        capability_set: row
+            .capability_set_refs
+            .iter()
+            .map(|capability| capability.to_string())
+            .collect(),
         release_descriptor_ref: row.release_descriptor_ref.to_string(),
         install_storage_policy_ref: row.install_storage_policy_ref.to_string(),
         source_rule: row.source_rule.to_string(),

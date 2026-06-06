@@ -25,6 +25,8 @@ export interface NimiAppRegistrySourceRow {
   readonly publisher: string;
   readonly trustTier: TrustTierId;
   readonly ordinaryVisibility: NimiAppOrdinaryVisibility;
+  readonly aiProfileSelectionRef: string;
+  readonly capabilitySet: readonly string[];
   readonly releaseDescriptorRef: string;
   readonly installStoragePolicyRef: string;
   readonly sourceRule: string;
@@ -159,6 +161,8 @@ function toClientRow(row: NimiAppRegistrySourceRow): NimiAppRow {
     displayName: row.displayName,
     trustTier: row.trustTier,
     publisher: row.publisher,
+    aiProfileSelectionRef: row.aiProfileSelectionRef,
+    capabilitySet: [...row.capabilitySet],
     releaseDescriptorRef: row.releaseDescriptorRef,
     installStoragePolicyRef: row.installStoragePolicyRef,
     sourceRule: row.sourceRule,

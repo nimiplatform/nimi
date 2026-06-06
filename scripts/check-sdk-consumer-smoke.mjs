@@ -188,7 +188,7 @@ assert.equal(normalizeNimiRealmBaseUrl('https://realm.nimi.ai/'), 'https://realm
 
 const app = createNimiAppClient({
   async list() { return []; },
-  async get(appId) { return { appId, appKind: 'nimi-app', displayName: 'Smoke', trustTier: 'nimi-first-party', publisher: 'Nimi', releaseDescriptorRef: 'release', installStoragePolicyRef: 'storage', sourceRule: 'smoke' }; },
+  async get(appId) { return { appId, appKind: 'nimi-app', displayName: 'Smoke', trustTier: 'nimi-first-party', publisher: 'Nimi', aiProfileSelectionRef: 'local-standard', capabilitySet: ['text.generate'], releaseDescriptorRef: 'release', installStoragePolicyRef: 'storage', sourceRule: 'smoke' }; },
   async status(appId) { return { appId, launchReadiness: 'ready' }; },
 });
 assert.equal((await app.status('app.nimi.sdk-smoke')).launchReadiness, 'ready');

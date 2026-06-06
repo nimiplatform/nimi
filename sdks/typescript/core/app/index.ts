@@ -83,6 +83,8 @@ export interface NimiAppRow {
   readonly displayName: string;
   readonly trustTier: TrustTierId;
   readonly publisher: string;
+  readonly aiProfileSelectionRef: string;
+  readonly capabilitySet: readonly string[];
   readonly releaseDescriptorRef: string;
   readonly installStoragePolicyRef: string;
   readonly sourceRule: string;
@@ -649,11 +651,23 @@ function validateNimiAppRow(row: NimiAppRow | null | undefined): void {
   }
   for (const [field, value] of [
     ['publisher', row.publisher],
+    ['aiProfileSelectionRef', row.aiProfileSelectionRef],
     ['releaseDescriptorRef', row.releaseDescriptorRef],
     ['installStoragePolicyRef', row.installStoragePolicyRef],
     ['sourceRule', row.sourceRule],
   ] as const) {
     requireText(value, `Nimi app row missing ${field}`, 'SDK_APP_RESPONSE_INVALID', 'fix_app_registry_row');
+  }
+  if (!Array.isArray(row.capabilitySet) || row.capabilitySet.length === 0) {
+    appError('SDK_APP_RESPONSE_INVALID', 'Nimi app row missing capabilitySet', 'fix_app_registry_row');
+  }
+  for (const [index, capability] of row.capabilitySet.entries()) {
+    requireText(
+      capability,
+      `Nimi app row capabilitySet[${index}] is empty`,
+      'SDK_APP_RESPONSE_INVALID',
+      'fix_app_registry_row',
+    );
   }
 }
 

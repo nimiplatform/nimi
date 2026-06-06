@@ -46,6 +46,9 @@ import {
   getAccountDefaultProfileForScopeInit,
   getBuiltInAIConfigForScopeInit,
 } from '@renderer/bridge/runtime-bridge/product-control.js';
+import {
+  listAccountProfileLibrary,
+} from '@renderer/bridge/runtime-bridge/account-profile-library.js';
 
 import { createDesktopAISnapshotStore } from './desktop-ai-config-snapshot-store.js';
 import {
@@ -284,6 +287,36 @@ function resolveFactoryAIProfile(profileId: string): NimiAIProfile | null {
     .find((profile) => profile.profileId === normalizedProfileId) ?? null;
 }
 
+async function resolveAccountDefaultAIProfile(profileId: string): Promise<NimiAIProfile | null> {
+  try {
+    const profile = await getAccountDefaultProfileForScopeInit();
+    return profile.profileId === profileId ? profile : null;
+  } catch {
+    return null;
+  }
+}
+
+async function resolveAccountLibraryAIProfile(profileId: string): Promise<NimiAIProfile | null> {
+  try {
+    const projection = await listAccountProfileLibrary();
+    return projection.profiles
+      .map((entry) => entry.profile)
+      .find((profile) => profile.profileId === profileId) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function resolveDesktopAIProfile(profileId: string): Promise<NimiAIProfile | null> {
+  const normalizedProfileId = String(profileId || '').trim();
+  if (!normalizedProfileId) {
+    return null;
+  }
+  return resolveFactoryAIProfile(normalizedProfileId)
+    ?? await resolveAccountDefaultAIProfile(normalizedProfileId)
+    ?? await resolveAccountLibraryAIProfile(normalizedProfileId);
+}
+
 function createMissingProfileApplyResult(profileId: string): NimiAIProfileApplyResult {
   return {
     success: false,
@@ -300,7 +333,7 @@ function createAIProfileSurface(): DesktopAIProfileSurface {
     profileId: string,
     previewOptions: NimiAIProfilePreviewOptions,
   ): Promise<NimiAIProfilePreviewResult> {
-    const profile = resolveFactoryAIProfile(profileId);
+    const profile = await resolveDesktopAIProfile(profileId);
     if (!profile) {
       return {
         before: scopeHasPersistedConfig(scopeRef) ? getConfigForScope(scopeRef) : null,
@@ -320,12 +353,16 @@ function createAIProfileSurface(): DesktopAIProfileSurface {
   }
 
   return {
+    // `list` intentionally returns factory profiles only. Runtime Config and
+    // Apps pass Account Default / account-library profiles through the Kit
+    // controller's user profile source, while `get` / `previewApply` / `apply`
+    // resolve those host-owned profiles by id when the user selects them.
     async list(): Promise<NimiAIProfile[]> {
       return [...loadNimiAppAIProfileFactoryCatalog()];
     },
 
     async get(profileId: string): Promise<NimiAIProfile | null> {
-      return resolveFactoryAIProfile(profileId);
+      return resolveDesktopAIProfile(profileId);
     },
 
     validate(profile: NimiAIProfile): NimiAIProfileValidationResult {

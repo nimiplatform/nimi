@@ -8,7 +8,7 @@
 //
 // It reads only already-typed projections — no app-local spec/asset read.
 
-import type { ReactElement } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, OverlayShell } from '@nimiplatform/kit/ui';
 import {
@@ -26,13 +26,20 @@ import type { DesktopAppsEntry } from './apps-panel-projection.js';
 export interface AppsDetailViewProps {
   /** The entry to detail, or `null` to close the overlay. */
   readonly entry: DesktopAppsEntry | null;
+  /** Optional app-scope AIProfile repair/apply surface. */
+  readonly aiProfileSection?: ReactNode;
   /** Run a card action. */
   readonly onCardAction: (appId: string, action: AppCardActionId) => void;
   /** Close the detail view. */
   readonly onClose: () => void;
 }
 
-export function AppsDetailView({ entry, onCardAction, onClose }: AppsDetailViewProps): ReactElement | null {
+export function AppsDetailView({
+  entry,
+  aiProfileSection,
+  onCardAction,
+  onClose,
+}: AppsDetailViewProps): ReactElement | null {
   const { t } = useTranslation();
   if (!entry) {
     return null;
@@ -123,6 +130,8 @@ export function AppsDetailView({ entry, onCardAction, onClose }: AppsDetailViewP
             ) : null}
           </ul>
         </div>
+
+        {aiProfileSection}
 
         {storageRoots ? (
           <div data-testid="apps-detail-storage" className="flex flex-col gap-1">
