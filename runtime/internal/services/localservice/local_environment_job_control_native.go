@@ -41,12 +41,16 @@ func (s *Service) executeNativeLlamaEnvironmentDependencyJob(ctx context.Context
 		CompatibilityEvidence: []string{strings.TrimSpace(status.Detail), "asset=" + strings.TrimSpace(status.AssetName), "accelerator_plane=" + strings.TrimSpace(status.AcceleratorPlane)},
 		VerifiedArtifacts:     normalizeStringSlice([]string{strings.TrimSpace(status.BinaryPath)}),
 		Hashes:                map[string]string{"sha256": strings.TrimSpace(status.SHA256)},
-		SelectedConsumers:     nativeLlamaSelectedConsumers(job.EnvironmentKey),
+		SelectedConsumers:     nativeLlamaSelectedConsumers(job),
 		AuditReasonCode:       "LOCAL_ENVIRONMENT_DEPENDENCY_READY_MANAGED",
 	}, nil
 }
 
-func nativeLlamaSelectedConsumers(environmentKey string) []string {
+func nativeLlamaSelectedConsumers(job localEnvironmentDependencyJobState) []string {
+	if consumer := strings.TrimSpace(job.ConsumerScope); consumer != "" {
+		return []string{consumer}
+	}
+	environmentKey := strings.TrimSpace(job.EnvironmentKey)
 	switch {
 	case strings.Contains(environmentKey, "|llama.cpp.cuda"):
 		return []string{"llama.cpp.cuda"}
@@ -67,15 +71,26 @@ func (s *Service) executeNativeSDCPPEnvironmentDependencyJob(ctx context.Context
 			AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_UNSUPPORTED",
 		}, nil
 	}
+	consumer := strings.TrimSpace(job.ConsumerScope)
+	contract, ok := nativeSDCPPPackageContractForEnvironment(job.EnvironmentKey, consumer)
+	if !ok {
+		return localEnvironmentDependencyJobResult{
+			State:           localEnvironmentStateRepairRequired,
+			SourceKind:      localEnvironmentSourceManaged,
+			FailureDetail:   "stable-diffusion.cpp package source cannot be resolved for selected host/consumer",
+			AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_REPAIR_REQUIRED",
+		}, nil
+	}
 	mgr := s.engineManagerOrNil()
 	if mgr == nil {
 		return localEnvironmentDependencyJobResult{}, errors.New("runtime engine manager unavailable")
 	}
 	reportLocalEnvironmentJobProgress(report, localEnvironmentStateDownloading)
 	status, err := mgr.EnsureManagedImageBackendDependency(ctx, &engine.ManagedImageBackendConfig{
-		Mode:        engine.ManagedImageBackendOfficial,
-		BackendName: "stablediffusion-ggml",
-		Address:     "127.0.0.1:50052",
+		Mode:          engine.ManagedImageBackendOfficial,
+		BackendName:   "stablediffusion-ggml",
+		PackageSource: contract.PackageSource,
+		Address:       "127.0.0.1:50052",
 	})
 	if err != nil {
 		return localEnvironmentDependencyJobResult{}, err
@@ -88,27 +103,77 @@ func (s *Service) executeNativeSDCPPEnvironmentDependencyJob(ctx context.Context
 			AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_REPAIR_REQUIRED",
 		}, nil
 	}
+	if !nativeSDCPPPackageStatusMatchesContract(status, contract) {
+		return localEnvironmentDependencyJobResult{
+			State:           localEnvironmentStateRepairRequired,
+			SourceKind:      localEnvironmentSourceManaged,
+			FailureDetail:   "stable-diffusion.cpp package source does not match selected host/consumer contract",
+			AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_REPAIR_REQUIRED",
+		}, nil
+	}
 	return localEnvironmentDependencyJobResult{
-		State:                 localEnvironmentStateReadyManaged,
-		SourceKind:            localEnvironmentSourceManaged,
-		CanonicalRoot:         strings.TrimSpace(status.CanonicalRoot),
-		Version:               strings.TrimSpace(status.PackageSource),
-		CompatibilityEvidence: []string{strings.TrimSpace(status.Detail)},
-		VerifiedArtifacts:     normalizeStringSlice(status.VerifiedArtifacts),
-		SelectedConsumers:     nativeSDCPPSelectedConsumers(job.EnvironmentKey),
-		AuditReasonCode:       "LOCAL_ENVIRONMENT_DEPENDENCY_READY_MANAGED",
+		State:         localEnvironmentStateReadyManaged,
+		SourceKind:    localEnvironmentSourceManaged,
+		CanonicalRoot: strings.TrimSpace(status.CanonicalRoot),
+		Version:       strings.TrimSpace(status.PackageSource),
+		CompatibilityEvidence: []string{
+			strings.TrimSpace(status.Detail),
+			"package_source=" + strings.TrimSpace(status.PackageSource),
+			"package_format=" + strings.TrimSpace(status.PackageFormat),
+			"launch_mode=" + strings.TrimSpace(status.LaunchMode),
+		},
+		VerifiedArtifacts: normalizeStringSlice(status.VerifiedArtifacts),
+		SelectedConsumers: []string{contract.Consumer},
+		AuditReasonCode:   "LOCAL_ENVIRONMENT_DEPENDENCY_READY_MANAGED",
 	}, nil
 }
 
-func nativeSDCPPSelectedConsumers(environmentKey string) []string {
-	switch {
-	case strings.Contains(environmentKey, "|stable-diffusion.cpp.cuda"):
-		return []string{"stable-diffusion.cpp.cuda"}
-	case strings.Contains(environmentKey, "|stable-diffusion.cpp.metal"):
-		return []string{"stable-diffusion.cpp.metal"}
-	case strings.Contains(environmentKey, "|stable-diffusion.cpp.cpu"):
-		return []string{"stable-diffusion.cpp.cpu"}
-	default:
-		return []string{"stable-diffusion.cpp"}
+type nativeSDCPPPackageContract struct {
+	Consumer      string
+	PackageSource string
+	PackageFormat string
+	LaunchMode    string
+}
+
+func nativeSDCPPPackageContractForEnvironment(environmentKey string, consumer string) (nativeSDCPPPackageContract, bool) {
+	hostOS := nativeSDCPPEnvironmentHostOS(environmentKey)
+	switch strings.TrimSpace(consumer) {
+	case "stable-diffusion.cpp.metal":
+		if hostOS == "darwin" {
+			return nativeSDCPPPackageContract{
+				Consumer:      "stable-diffusion.cpp.metal",
+				PackageSource: "canonical_localai_derived",
+				PackageFormat: "oci_payload",
+				LaunchMode:    "package_entrypoint",
+			}, true
+		}
+	case "stable-diffusion.cpp.cuda":
+		if hostOS == "windows" {
+			return nativeSDCPPPackageContract{
+				Consumer:      "stable-diffusion.cpp.cuda",
+				PackageSource: "canonical_runtime_wrapper",
+				PackageFormat: "direct_archive",
+				LaunchMode:    "runtime_wrapper",
+			}, true
+		}
 	}
+	return nativeSDCPPPackageContract{}, false
+}
+
+func nativeSDCPPPackageStatusMatchesContract(status engine.ManagedImageBackendDependencyStatus, contract nativeSDCPPPackageContract) bool {
+	return strings.TrimSpace(status.PackageSource) == contract.PackageSource &&
+		strings.TrimSpace(status.PackageFormat) == contract.PackageFormat &&
+		strings.TrimSpace(status.LaunchMode) == contract.LaunchMode
+}
+
+func nativeSDCPPEnvironmentHostOS(environmentKey string) string {
+	parts := strings.Split(strings.TrimSpace(environmentKey), "|")
+	if len(parts) < 4 {
+		return ""
+	}
+	platform := strings.TrimSpace(parts[3])
+	if before, _, ok := strings.Cut(platform, "/"); ok {
+		return strings.ToLower(strings.TrimSpace(before))
+	}
+	return strings.ToLower(platform)
 }

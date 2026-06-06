@@ -301,8 +301,9 @@ func TestRuntimeCognitionKnowledgeIngestTaskPreservesSlugAndTitle(t *testing.T) 
 	defer cleanup()
 
 	ctx := context.Background()
+	reqCtx := &runtimev1.KnowledgeRequestContext{AppId: "app-test"}
 	createResp, err := svc.CreateKnowledgeBank(ctx, &runtimev1.CreateKnowledgeBankRequest{
-		Context: &runtimev1.KnowledgeRequestContext{AppId: "app-test"},
+		Context: reqCtx,
 		Locator: &runtimev1.PublicKnowledgeBankLocator{
 			Locator: &runtimev1.PublicKnowledgeBankLocator_AppPrivate{
 				AppPrivate: &runtimev1.KnowledgeAppPrivateOwner{AppId: "app-test"},
@@ -315,7 +316,7 @@ func TestRuntimeCognitionKnowledgeIngestTaskPreservesSlugAndTitle(t *testing.T) 
 	}
 
 	ingestResp, err := svc.IngestDocument(ctx, &runtimev1.IngestDocumentRequest{
-		Context: &runtimev1.KnowledgeRequestContext{AppId: "app-test"},
+		Context: reqCtx,
 		BankId:  createResp.GetBank().GetBankId(),
 		Slug:    "runtime-cognition-ingest",
 		Title:   "Runtime Cognition Ingest",
@@ -326,7 +327,7 @@ func TestRuntimeCognitionKnowledgeIngestTaskPreservesSlugAndTitle(t *testing.T) 
 	}
 
 	taskResp, err := svc.GetIngestTask(ctx, &runtimev1.GetIngestTaskRequest{
-		Context: &runtimev1.KnowledgeRequestContext{AppId: "app-test"},
+		Context: reqCtx,
 		TaskId:  ingestResp.GetTaskId(),
 	})
 	if err != nil {
@@ -338,6 +339,7 @@ func TestRuntimeCognitionKnowledgeIngestTaskPreservesSlugAndTitle(t *testing.T) 
 	if taskResp.GetTask().GetTitle() != "Runtime Cognition Ingest" {
 		t.Fatalf("unexpected ingest task title: %q", taskResp.GetTask().GetTitle())
 	}
+	waitWorkspaceIngestTaskTerminal(t, svc, ctx, reqCtx, ingestResp.GetTaskId())
 }
 
 func TestRuntimeCognitionTraverseGraphRequiresExplicitBoundedDepth(t *testing.T) {

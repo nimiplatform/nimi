@@ -44,7 +44,7 @@ func (s *Service) readProductControlProjection(ctx context.Context) (productCont
 	if record.State == productControlStateReadyForUse {
 		state, message := s.verifyProductControlReadyRecord(ctx, record)
 		if message != "" {
-			return productControlRecordProjection{Path: path, Exists: true, State: state, Error: &message}, nil
+			return productControlRecordProjection{Path: path, Exists: true, State: state, Record: record, Error: &message}, nil
 		}
 	}
 	return productControlRecordProjection{Path: path, Exists: true, State: record.State, Record: record}, nil

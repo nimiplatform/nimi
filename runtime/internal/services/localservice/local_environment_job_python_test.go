@@ -787,6 +787,7 @@ func TestPythonPrerequisiteOrderingConvergesUnderConcurrentUnorderedStart(t *tes
 
 func TestStartNativeSDCPPDependencyJobRepairRequiredWithoutEvidence(t *testing.T) {
 	svc := newTestService(t)
+	dep := nativeSDCPPPlanDependencyForTest(t, svc, "stable-diffusion.cpp.metal", localEnvironmentAppleSilicon128GBProfile())
 	svc.SetEngineManager(&mockEngineManager{
 		managedImageBackendStatus: &engine.ManagedImageBackendDependencyStatus{
 			BackendName: "stablediffusion-ggml",
@@ -794,9 +795,9 @@ func TestStartNativeSDCPPDependencyJobRepairRequiredWithoutEvidence(t *testing.T
 	})
 
 	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
-		EnvironmentKey:   "env",
-		DependencyFamily: localEnvironmentFamilyNativeSDCPP,
-		DependencyId:     "stable-diffusion.cpp.package",
+		EnvironmentKey:   dep.EnvironmentKey,
+		DependencyFamily: dep.DependencyFamily,
+		DependencyId:     dep.DependencyID,
 		Confirmed:        true,
 	})
 	if err != nil {

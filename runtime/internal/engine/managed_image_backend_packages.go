@@ -60,7 +60,7 @@ var managedImageBackendPackageSpecs = []managedImageBackendPackageSpec{
 		InstallDirName: "metal-stablediffusion-ggml",
 		PackageFormat:  managedImageBackendPackageFormatOCIPayload,
 		ImageRef:       "quay.io/go-skynet/local-ai-backends:latest-metal-darwin-arm64-stablediffusion-ggml",
-		OCILayerDigest: "sha256:2a86268d6c75d765711ffe872077efc4e9e7f2dc4996cbc7f1f4bc9011d21575",
+		OCILayerDigest: "sha256:89cdb483a81a98a4cd46d178d23c3540d15e7a27e53ff940984d848e16767b5e",
 		LaunchMode:     managedImageBackendLaunchModePackageEntrypoint,
 		Supported:      true,
 	},

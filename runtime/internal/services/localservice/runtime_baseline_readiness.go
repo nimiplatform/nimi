@@ -351,7 +351,7 @@ func (s *Service) runtimeBaselineDependencyEvidence(dep localEnvironmentPlanDepe
 		return runtimeBaselineActivationDependencyEvidence{}, runtimeBaselineReasonNotReady,
 			"ready dependency has no backing selected source record id"
 	}
-	record, ok := s.localEnvironmentSelectedSourceRecord(dep.EnvironmentKey)
+	record, ok := s.localEnvironmentSelectedSourceRecordForDependency(dep.EnvironmentKey, dep.DependencyFamily, dep.DependencyID, dep.ConsumerScope)
 	if !ok || strings.TrimSpace(record.RecordID) != recordID {
 		return runtimeBaselineActivationDependencyEvidence{}, runtimeBaselineReasonNotReady,
 			"ready dependency has no resolvable durable selected source record"

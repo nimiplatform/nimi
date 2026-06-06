@@ -27,6 +27,9 @@ func (s *Service) executeCUDAEnvironmentDependencyJob(ctx context.Context, job l
 	}
 	reportLocalEnvironmentJobProgress(report, localEnvironmentStateVerifying)
 	if strings.TrimSpace(status.ConsumerID) == "" {
+		status.ConsumerID = strings.TrimSpace(job.ConsumerScope)
+	}
+	if strings.TrimSpace(status.ConsumerID) == "" {
 		status.ConsumerID = cudaSelectedConsumer(job.EnvironmentKey)
 	}
 	return localEnvironmentDependencyJobResultFromSharedAcceleratorStatus(status), nil

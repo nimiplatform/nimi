@@ -241,6 +241,7 @@ func (s *Service) planModelAssetFailCloseFamily(
 	return []localEnvironmentPlanDependency{{
 		DependencyFamily:     family,
 		DependencyID:         dependencyID,
+		ConsumerScope:        strings.TrimSpace(planConsumerScope(def, req)),
 		Required:             required,
 		EnvironmentKey:       environmentKey,
 		State:                localEnvironmentStateUnsupported,

@@ -186,7 +186,7 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 	modelSvc := modelservice.New(logger, modelRegistry)                            // Phase 2 Draft
 	modelSvc.SetPersistencePath(registryPath)
 	runtimev1.RegisterRuntimeModelServiceServer(g, modelSvc) // Phase 2 Draft
-	localSvc, err := localservice.New(logger, auditStore, cfg.LocalStatePath, cfg.LocalAuditCapacity, cfg.LocalModelsPath)
+	localSvc, err := localservice.New(logger, auditStore, cfg.LocalStatePath, cfg.LocalAuditCapacity, cfg.LocalModelsPath, cfg.DataRootRef)
 	if err != nil {
 		return nil, fmt.Errorf("init local service: %w", err)
 	}

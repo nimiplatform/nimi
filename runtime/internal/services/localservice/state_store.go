@@ -1,13 +1,9 @@
 package localservice
 
 import (
-	"encoding/json"
-	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 
@@ -23,17 +19,19 @@ const (
 // the legacy models[] + artifacts[] dual structure. SchemaVersion must be 2.
 // Runtime does NOT read v1 state — hard cut per plan §0.
 type localStateSnapshot struct {
-	SchemaVersion                    int                                         `json:"schemaVersion"`
-	SavedAt                          string                                      `json:"savedAt"`
-	Assets                           []localStateAssetState                      `json:"assets"`
-	Services                         []localStateServiceState                    `json:"services"`
-	Transfers                        []localStateTransferState                   `json:"transfers,omitempty"`
-	Audits                           []localStateAuditState                      `json:"audits,omitempty"`
-	LocalEnvironmentHostProfiles     []localEnvironmentHostProfileState          `json:"localEnvironmentHostProfiles,omitempty"`
-	LocalEnvironmentSelectedSources  []localEnvironmentSelectedSourceRecordState `json:"localEnvironmentSelectedSourceRecords,omitempty"`
-	LocalEnvironmentDependencyJobs   []localEnvironmentDependencyJobState        `json:"localEnvironmentDependencyJobs,omitempty"`
-	RuntimeBaselineReadinessRecords  []runtimeBaselineReadinessRecord            `json:"runtimeBaselineReadinessRecords,omitempty"`
-	FirstRunExecutionEvidenceRecords []firstRunExecutionEvidenceRecord           `json:"firstRunExecutionEvidenceRecords,omitempty"`
+	SchemaVersion                       int                                                 `json:"schemaVersion"`
+	SavedAt                             string                                              `json:"savedAt"`
+	Assets                              []localStateAssetState                              `json:"assets"`
+	Services                            []localStateServiceState                            `json:"services"`
+	Transfers                           []localStateTransferState                           `json:"transfers,omitempty"`
+	Audits                              []localStateAuditState                              `json:"audits,omitempty"`
+	LocalEnvironmentHostProfiles        []localEnvironmentHostProfileState                  `json:"localEnvironmentHostProfiles,omitempty"`
+	LocalEnvironmentSelectedSources     []localEnvironmentSelectedSourceRecordState         `json:"localEnvironmentSelectedSourceRecords,omitempty"`
+	LocalEnvironmentDependencyJobs      []localEnvironmentDependencyJobState                `json:"localEnvironmentDependencyJobs,omitempty"`
+	LocalEnvironmentPlanContracts       []localEnvironmentPlanDependencyContractState       `json:"localEnvironmentPlanDependencyContracts,omitempty"`
+	ManagedImageProfileMaterializations []localStateManagedImageProfileMaterializationState `json:"managedImageProfileMaterializations,omitempty"`
+	RuntimeBaselineReadinessRecords     []runtimeBaselineReadinessRecord                    `json:"runtimeBaselineReadinessRecords,omitempty"`
+	FirstRunExecutionEvidenceRecords    []firstRunExecutionEvidenceRecord                   `json:"firstRunExecutionEvidenceRecords,omitempty"`
 }
 
 // localStateAssetState is the unified persistence row for all asset kinds.
@@ -121,6 +119,22 @@ type localStateTransferState struct {
 	Retryable        bool   `json:"retryable,omitempty"`
 	CreatedAt        string `json:"createdAt"`
 	UpdatedAt        string `json:"updatedAt"`
+}
+
+type localStateManagedImageProfileMaterializationState struct {
+	LocalAssetID            string                                              `json:"localAssetId"`
+	MaterializationKey      string                                              `json:"materializationKey,omitempty"`
+	MaterializationResolved bool                                                `json:"materializationResolved"`
+	MaterializationBindings []localStateManagedImageMaterializationBindingState `json:"materializationBindings,omitempty"`
+}
+
+type localStateManagedImageMaterializationBindingState struct {
+	AssetID          string `json:"assetId,omitempty"`
+	LocalAssetID     string `json:"localAssetId,omitempty"`
+	CompanionKind    string `json:"companionKind,omitempty"`
+	EngineSlot       string `json:"engineSlot,omitempty"`
+	CompanionAssetID string `json:"companionAssetId,omitempty"`
+	ParentAssetID    string `json:"parentAssetId,omitempty"`
 }
 
 func resolveLocalStatePath(configuredPath string) string {
@@ -295,7 +309,11 @@ func (s *Service) restoreState() error {
 		if strings.TrimSpace(item.EnvironmentKey) == "" {
 			continue
 		}
-		s.localEnvironmentSelectedSources[item.EnvironmentKey] = item
+		key := localEnvironmentSelectedSourceRecordKey(item)
+		if key == "" {
+			key = strings.TrimSpace(item.EnvironmentKey)
+		}
+		s.localEnvironmentSelectedSources[key] = item
 	}
 	s.localEnvironmentDependencyJobs = make(map[string]localEnvironmentDependencyJobState, len(snapshot.LocalEnvironmentDependencyJobs))
 	for _, item := range snapshot.LocalEnvironmentDependencyJobs {
@@ -303,6 +321,29 @@ func (s *Service) restoreState() error {
 			continue
 		}
 		s.localEnvironmentDependencyJobs[item.JobID] = item
+	}
+	s.localEnvironmentPlanDependencyContracts = make(map[string]localEnvironmentPlanDependencyContractState, len(snapshot.LocalEnvironmentPlanContracts))
+	for _, item := range snapshot.LocalEnvironmentPlanContracts {
+		if strings.TrimSpace(item.EnvironmentKey) == "" {
+			continue
+		}
+		key := localEnvironmentPlanDependencyContractKey(item.EnvironmentKey, item.DependencyFamily, item.DependencyID, item.ConsumerScope)
+		if key == "" {
+			continue
+		}
+		s.localEnvironmentPlanDependencyContracts[key] = item
+	}
+	s.managedImageProfiles = make(map[string]managedImageProfileState, len(snapshot.ManagedImageProfileMaterializations))
+	for _, item := range snapshot.ManagedImageProfileMaterializations {
+		localAssetID, materializationKey, bindings, ok := restoreManagedImageProfileMaterialization(item, s.assets)
+		if !ok {
+			continue
+		}
+		s.managedImageProfiles[localAssetID] = managedImageProfileState{
+			Alias:                   materializationKey,
+			MaterializationResolved: true,
+			MaterializationBindings: bindings,
+		}
 	}
 	// Crash recovery: a job persisted at a non-terminal state across a daemon
 	// restart has no background goroutine driving it. Fail every orphan closed
@@ -338,17 +379,19 @@ func (s *Service) persistStateLocked() {
 	}
 
 	snapshot := localStateSnapshot{
-		SchemaVersion:                    localStateSchemaVersion,
-		SavedAt:                          time.Now().UTC().Format(time.RFC3339Nano),
-		Assets:                           make([]localStateAssetState, 0, len(s.assets)),
-		Services:                         make([]localStateServiceState, 0, len(s.services)),
-		Transfers:                        make([]localStateTransferState, 0, len(s.transfers)),
-		Audits:                           make([]localStateAuditState, 0, len(s.audits)),
-		LocalEnvironmentHostProfiles:     make([]localEnvironmentHostProfileState, 0, len(s.localEnvironmentHostProfiles)),
-		LocalEnvironmentSelectedSources:  make([]localEnvironmentSelectedSourceRecordState, 0, len(s.localEnvironmentSelectedSources)),
-		LocalEnvironmentDependencyJobs:   make([]localEnvironmentDependencyJobState, 0, len(s.localEnvironmentDependencyJobs)),
-		RuntimeBaselineReadinessRecords:  make([]runtimeBaselineReadinessRecord, 0, len(s.runtimeBaselineReadinessRecords)),
-		FirstRunExecutionEvidenceRecords: make([]firstRunExecutionEvidenceRecord, 0, len(s.firstRunExecutionEvidenceRecords)),
+		SchemaVersion:                       localStateSchemaVersion,
+		SavedAt:                             time.Now().UTC().Format(time.RFC3339Nano),
+		Assets:                              make([]localStateAssetState, 0, len(s.assets)),
+		Services:                            make([]localStateServiceState, 0, len(s.services)),
+		Transfers:                           make([]localStateTransferState, 0, len(s.transfers)),
+		Audits:                              make([]localStateAuditState, 0, len(s.audits)),
+		LocalEnvironmentHostProfiles:        make([]localEnvironmentHostProfileState, 0, len(s.localEnvironmentHostProfiles)),
+		LocalEnvironmentSelectedSources:     make([]localEnvironmentSelectedSourceRecordState, 0, len(s.localEnvironmentSelectedSources)),
+		LocalEnvironmentDependencyJobs:      make([]localEnvironmentDependencyJobState, 0, len(s.localEnvironmentDependencyJobs)),
+		LocalEnvironmentPlanContracts:       make([]localEnvironmentPlanDependencyContractState, 0, len(s.localEnvironmentPlanDependencyContracts)),
+		ManagedImageProfileMaterializations: make([]localStateManagedImageProfileMaterializationState, 0, len(s.managedImageProfiles)),
+		RuntimeBaselineReadinessRecords:     make([]runtimeBaselineReadinessRecord, 0, len(s.runtimeBaselineReadinessRecords)),
+		FirstRunExecutionEvidenceRecords:    make([]firstRunExecutionEvidenceRecord, 0, len(s.firstRunExecutionEvidenceRecords)),
 	}
 
 	assetIDs := make([]string, 0, len(s.assets))
@@ -503,6 +546,37 @@ func (s *Service) persistStateLocked() {
 		snapshot.LocalEnvironmentDependencyJobs = append(snapshot.LocalEnvironmentDependencyJobs, s.localEnvironmentDependencyJobs[id])
 	}
 
+	planContractKeys := make([]string, 0, len(s.localEnvironmentPlanDependencyContracts))
+	for key := range s.localEnvironmentPlanDependencyContracts {
+		planContractKeys = append(planContractKeys, key)
+	}
+	sort.Strings(planContractKeys)
+	for _, key := range planContractKeys {
+		snapshot.LocalEnvironmentPlanContracts = append(snapshot.LocalEnvironmentPlanContracts, s.localEnvironmentPlanDependencyContracts[key])
+	}
+
+	managedImageProfileIDs := make([]string, 0, len(s.managedImageProfiles))
+	for localAssetID, profile := range s.managedImageProfiles {
+		if !profile.MaterializationResolved || len(profile.MaterializationBindings) == 0 {
+			continue
+		}
+		managedImageProfileIDs = append(managedImageProfileIDs, localAssetID)
+	}
+	sort.Strings(managedImageProfileIDs)
+	for _, localAssetID := range managedImageProfileIDs {
+		profile := s.managedImageProfiles[localAssetID]
+		bindings := managedImageMaterializationBindingsToLocalState(profile.MaterializationBindings)
+		if len(bindings) == 0 {
+			continue
+		}
+		snapshot.ManagedImageProfileMaterializations = append(snapshot.ManagedImageProfileMaterializations, localStateManagedImageProfileMaterializationState{
+			LocalAssetID:            localAssetID,
+			MaterializationKey:      strings.TrimSpace(profile.Alias),
+			MaterializationResolved: true,
+			MaterializationBindings: bindings,
+		})
+	}
+
 	runtimeBaselineRefs := make([]string, 0, len(s.runtimeBaselineReadinessRecords))
 	for ref := range s.runtimeBaselineReadinessRecords {
 		runtimeBaselineRefs = append(runtimeBaselineRefs, ref)
@@ -524,110 +598,4 @@ func (s *Service) persistStateLocked() {
 	if err := saveLocalStateSnapshot(path, snapshot); err != nil {
 		s.logger.Warn("persist local runtime state failed", "path", path, "error", err)
 	}
-}
-
-func parseProjectionReasonCode(raw string) runtimev1.ReasonCode {
-	trimmed := strings.TrimSpace(raw)
-	if trimmed == "" {
-		return runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED
-	}
-	value, ok := runtimev1.ReasonCode_value[trimmed]
-	if !ok {
-		return runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED
-	}
-	return runtimev1.ReasonCode(value)
-}
-
-func formatProjectionReasonCode(reason runtimev1.ReasonCode) string {
-	if reason == runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
-		return ""
-	}
-	return reason.String()
-}
-
-func loadLocalStateSnapshot(path string) (localStateSnapshot, error) {
-	result := localStateSnapshot{
-		Assets:    []localStateAssetState{},
-		Services:  []localStateServiceState{},
-		Transfers: []localStateTransferState{},
-		Audits:    []localStateAuditState{},
-	}
-
-	payload, err := os.ReadFile(path)
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return result, nil
-		}
-		return result, err
-	}
-	if len(payload) == 0 {
-		return result, nil
-	}
-	if err := json.Unmarshal(payload, &result); err != nil {
-		return result, err
-	}
-	if result.SchemaVersion != 0 && result.SchemaVersion != localStateSchemaVersion {
-		return result, fmt.Errorf("unsupported local-state.json schemaVersion=%d (expected %d); delete local-state.json before starting Runtime", result.SchemaVersion, localStateSchemaVersion)
-	}
-	return result, nil
-}
-
-func saveLocalStateSnapshot(path string, snapshot localStateSnapshot) error {
-	if strings.TrimSpace(path) == "" {
-		return nil
-	}
-	payload, err := json.MarshalIndent(snapshot, "", "  ")
-	if err != nil {
-		return err
-	}
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		return err
-	}
-	tmpPath := path + ".tmp." + strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
-	if err := os.WriteFile(tmpPath, payload, 0o600); err != nil {
-		return err
-	}
-	return os.Rename(tmpPath, path)
-}
-
-func hostRequirementsToMap(input *runtimev1.LocalHostRequirements) map[string]any {
-	if input == nil {
-		return nil
-	}
-	return map[string]any{
-		"gpuRequired":           input.GetGpuRequired(),
-		"pythonRuntimeRequired": input.GetPythonRuntimeRequired(),
-		"supportedPlatforms":    append([]string(nil), input.GetSupportedPlatforms()...),
-		"requiredBackends":      append([]string(nil), input.GetRequiredBackends()...),
-	}
-}
-
-func hostRequirementsFromMap(input map[string]any) *runtimev1.LocalHostRequirements {
-	if len(input) == 0 {
-		return nil
-	}
-	requirements := &runtimev1.LocalHostRequirements{}
-	if value, ok := input["gpuRequired"].(bool); ok {
-		requirements.GpuRequired = value
-	}
-	if value, ok := input["pythonRuntimeRequired"].(bool); ok {
-		requirements.PythonRuntimeRequired = value
-	}
-	if values, ok := input["supportedPlatforms"].([]any); ok {
-		requirements.SupportedPlatforms = anySliceToStrings(values)
-	}
-	if values, ok := input["requiredBackends"].([]any); ok {
-		requirements.RequiredBackends = anySliceToStrings(values)
-	}
-	return requirements
-}
-
-func anySliceToStrings(values []any) []string {
-	out := make([]string, 0, len(values))
-	for _, value := range values {
-		if text, ok := value.(string); ok && strings.TrimSpace(text) != "" {
-			out = append(out, strings.TrimSpace(text))
-		}
-	}
-	return out
 }

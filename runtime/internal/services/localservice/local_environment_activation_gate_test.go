@@ -199,6 +199,7 @@ func TestLocalEnvironmentActivationGatePreservesCancelledAndFailedJobs(t *testin
 				EnvironmentKey:   dep.EnvironmentKey,
 				DependencyFamily: dep.DependencyFamily,
 				DependencyID:     dep.DependencyID,
+				ConsumerScope:    dep.ConsumerScope,
 				State:            tc.jobState,
 				SourceKind:       localEnvironmentSourceManaged,
 				UpdatedAt:        nowISO(),

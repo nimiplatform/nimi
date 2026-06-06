@@ -66,7 +66,7 @@ func (s *Service) executeModelAssetEnvironmentDependencyJob(ctx context.Context,
 			"asset_id":       strings.TrimSpace(model.GetAssetId()),
 			"local_asset_id": strings.TrimSpace(model.GetLocalAssetId()),
 		}),
-		SelectedConsumers: modelAssetSelectedConsumers(job.EnvironmentKey),
+		SelectedConsumers: modelAssetSelectedConsumers(job),
 		AuditReasonCode:   "LOCAL_ENVIRONMENT_DEPENDENCY_READY_MANAGED",
 	}, nil
 }
@@ -142,7 +142,7 @@ func (s *Service) executeModelCompanionEnvironmentDependencyJob(ctx context.Cont
 			"companion_local_asset_id":  strings.TrimSpace(model.GetLocalAssetId()),
 			"parent_model_asset_record": strings.TrimSpace(parentRecord.RecordID),
 		}),
-		SelectedConsumers: modelAssetSelectedConsumers(job.EnvironmentKey),
+		SelectedConsumers: modelAssetSelectedConsumers(job),
 		AuditReasonCode:   "LOCAL_ENVIRONMENT_DEPENDENCY_READY_MANAGED",
 	}, nil
 }
@@ -436,7 +436,11 @@ func localEnvironmentSourceKindForAsset(model *runtimev1.LocalAssetRecord) strin
 	}
 }
 
-func modelAssetSelectedConsumers(environmentKey string) []string {
+func modelAssetSelectedConsumers(job localEnvironmentDependencyJobState) []string {
+	if consumer := strings.TrimSpace(job.ConsumerScope); consumer != "" {
+		return []string{consumer}
+	}
+	environmentKey := strings.TrimSpace(job.EnvironmentKey)
 	for _, consumer := range []string{
 		"llama.cpp.cuda",
 		"llama.cpp.vulkan",

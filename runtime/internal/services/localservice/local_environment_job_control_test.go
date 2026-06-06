@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -235,6 +236,66 @@ func TestRetryLocalEnvironmentDependencyJobReexecutesFailedJob(t *testing.T) {
 	}
 }
 
+func TestRetryLocalEnvironmentDependencyJobRestoresConsumerScopeAfterRestart(t *testing.T) {
+	dir := t.TempDir()
+	statePath := filepath.Join(dir, "local-state.json")
+	runtimeDataRoot := filepath.Join(dir, "runtime-data")
+	svc, err := New(slog.Default(), nil, statePath, 10, runtimeDataRoot)
+	if err != nil {
+		t.Fatalf("new service: %v", err)
+	}
+	dep := nativeSDCPPPlanDependencyForTest(t, svc, "stable-diffusion.cpp.metal", localEnvironmentAppleSilicon128GBProfile())
+	startResp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
+		EnvironmentKey:   dep.EnvironmentKey,
+		DependencyFamily: dep.DependencyFamily,
+		DependencyId:     dep.DependencyID,
+		Confirmed:        true,
+	})
+	if err != nil {
+		t.Fatalf("StartLocalEnvironmentDependencyJob: %v", err)
+	}
+	startTerminal := awaitLocalEnvironmentDependencyJobTerminal(t, svc, startResp.GetJob().GetJobId())
+	if startTerminal.GetState() != localEnvironmentStateFailed || !startTerminal.GetRetryable() {
+		t.Fatalf("start job = %+v, want retryable failed", startTerminal)
+	}
+	svc.Close()
+
+	restored, err := New(slog.Default(), nil, statePath, 10, runtimeDataRoot)
+	if err != nil {
+		t.Fatalf("restore service: %v", err)
+	}
+	defer func() { restored.Close() }()
+	restored.SetEngineManager(&mockEngineManager{
+		managedImageBackendStatus: &engine.ManagedImageBackendDependencyStatus{
+			BackendName:       "stablediffusion-ggml",
+			PackageSource:     "canonical_localai_derived",
+			PackageFormat:     "oci_payload",
+			LaunchMode:        "package_entrypoint",
+			CanonicalRoot:     filepath.Join(runtimeDataRoot, "managed-image-backends", "metal-stablediffusion-ggml"),
+			VerifiedArtifacts: []string{"run.sh", "metadata.json"},
+			Detail:            "managed image backend package verified from canonical_localai_derived",
+		},
+	})
+	retryResp, err := restored.RetryLocalEnvironmentDependencyJob(context.Background(), &runtimev1.RetryLocalEnvironmentDependencyJobRequest{
+		JobId:     startTerminal.GetJobId(),
+		Confirmed: true,
+	})
+	if err != nil {
+		t.Fatalf("RetryLocalEnvironmentDependencyJob after restore: %v", err)
+	}
+	retryTerminal := awaitLocalEnvironmentDependencyJobTerminal(t, restored, retryResp.GetJob().GetJobId())
+	if retryTerminal.GetState() != localEnvironmentStateReadyManaged {
+		t.Fatalf("retry job state = %q, want ready_managed: %+v", retryTerminal.GetState(), retryTerminal)
+	}
+	source, ok := restored.localEnvironmentSelectedSourceRecordForDependency(dep.EnvironmentKey, dep.DependencyFamily, dep.DependencyID, "stable-diffusion.cpp.metal")
+	if !ok {
+		t.Fatalf("missing restored retry selected source for metal consumer")
+	}
+	if !stringSliceContains(source.SelectedConsumers, "stable-diffusion.cpp.metal") {
+		t.Fatalf("selected source consumers = %v, want metal", source.SelectedConsumers)
+	}
+}
+
 func TestRepairLocalEnvironmentDependencyReverifiesSelectedSource(t *testing.T) {
 	svc := newTestService(t)
 	environmentKey := "native-engine-package.llama|llama.cpp.package|host|windows/amd64|root|llama.cpp.cuda"
@@ -245,6 +306,9 @@ func TestRepairLocalEnvironmentDependencyReverifiesSelectedSource(t *testing.T) 
 		SourceKind:       localEnvironmentSourceManaged,
 		CanonicalRoot:    `C:\nimi\engines\llama\old`,
 		RepairState:      localEnvironmentRepairRequired,
+		SelectedConsumers: []string{
+			"llama.cpp.cuda",
+		},
 	})
 	svc.SetEngineManager(&mockEngineManager{
 		engineBinaryDependencyStatus: &engine.EngineBinaryDependencyStatus{
@@ -289,22 +353,46 @@ func TestRepairLocalEnvironmentDependencyReverifiesSelectedSource(t *testing.T) 
 	}
 }
 
-func TestStartNativeSDCPPDependencyJobPromotesVerifiedSelectedSource(t *testing.T) {
+func nativeSDCPPPlanDependencyForTest(t *testing.T, svc *Service, consumer string, profile *runtimev1.LocalDeviceProfile) localEnvironmentPlanDependency {
+	t.Helper()
+	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+		PackID:           "local-image-native",
+		ConsumerScope:    consumer,
+		HostProfile:      profile,
+		RuntimeDataRoot:  filepath.Join(t.TempDir(), "runtime-data"),
+		AssetID:          "image/test-sd",
+		CompanionAssetID: "image/test-lora",
+		ParentAssetID:    "image/test-sd",
+	})
+	dep := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyNativeSDCPP)
+	if dep.ConsumerScope != consumer {
+		t.Fatalf("plan native SDCPP consumer = %q, want %q", dep.ConsumerScope, consumer)
+	}
+	if strings.Count(dep.EnvironmentKey, "|") != 4 {
+		t.Fatalf("plan-generated EnvironmentKey must use five-part schema, got %q", dep.EnvironmentKey)
+	}
+	return dep
+}
+
+func TestStartNativeSDCPPDependencyJobPromotesDarwinLocalAIOCISelectedSource(t *testing.T) {
 	svc := newTestService(t)
+	dep := nativeSDCPPPlanDependencyForTest(t, svc, "stable-diffusion.cpp.metal", localEnvironmentAppleSilicon128GBProfile())
 	svc.SetEngineManager(&mockEngineManager{
 		managedImageBackendStatus: &engine.ManagedImageBackendDependencyStatus{
 			BackendName:       "stablediffusion-ggml",
-			PackageSource:     "canonical_runtime_wrapper",
-			CanonicalRoot:     `C:\nimi\runtime\managed-image-backends\sd-win-cuda12-x64-stablediffusion-ggml`,
-			VerifiedArtifacts: []string{"sd.exe", "metadata.json"},
-			Detail:            "managed image backend package verified from canonical_runtime_wrapper",
+			PackageSource:     "canonical_localai_derived",
+			PackageFormat:     "oci_payload",
+			LaunchMode:        "package_entrypoint",
+			CanonicalRoot:     `/tmp/nimi/runtime/managed-image-backends/metal-stablediffusion-ggml`,
+			VerifiedArtifacts: []string{"run.sh", "metadata.json"},
+			Detail:            "managed image backend package verified from canonical_localai_derived",
 		},
 	})
 
 	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
-		EnvironmentKey:   "native-engine-package.stablediffusion-ggml|stable-diffusion.cpp.package|host|windows/amd64|root|stable-diffusion.cpp.cuda",
-		DependencyFamily: localEnvironmentFamilyNativeSDCPP,
-		DependencyId:     "stable-diffusion.cpp.package",
+		EnvironmentKey:   dep.EnvironmentKey,
+		DependencyFamily: dep.DependencyFamily,
+		DependencyId:     dep.DependencyID,
 		Confirmed:        true,
 	})
 	if err != nil {
@@ -317,6 +405,12 @@ func TestStartNativeSDCPPDependencyJobPromotesVerifiedSelectedSource(t *testing.
 	if job.GetSelectedSourceRecordId() == "" {
 		t.Fatal("expected selected source record id")
 	}
+	if got := svc.engineManagerOrNil().(*mockEngineManager).managedImageBackendConfigs[0].PackageSource; got != "canonical_localai_derived" {
+		t.Fatalf("requested package source = %q, want canonical_localai_derived", got)
+	}
+	if job.GetEnvironmentKey() != dep.EnvironmentKey {
+		t.Fatalf("job EnvironmentKey = %q, want plan key %q", job.GetEnvironmentKey(), dep.EnvironmentKey)
+	}
 
 	sources, err := svc.ListLocalEnvironmentSelectedSources(context.Background(), &runtimev1.ListLocalEnvironmentSelectedSourcesRequest{
 		DependencyFamily: localEnvironmentFamilyNativeSDCPP,
@@ -328,11 +422,129 @@ func TestStartNativeSDCPPDependencyJobPromotesVerifiedSelectedSource(t *testing.
 		t.Fatalf("selected sources len = %d, want 1", len(sources.GetSources()))
 	}
 	source := sources.GetSources()[0]
+	if source.GetEnvironmentKey() != dep.EnvironmentKey {
+		t.Fatalf("selected source EnvironmentKey = %q, want plan key %q", source.GetEnvironmentKey(), dep.EnvironmentKey)
+	}
 	if source.GetCanonicalRoot() == "" || len(source.GetVerifiedArtifacts()) == 0 {
 		t.Fatalf("selected source missing verification evidence: %+v", source)
 	}
-	if got := source.GetSelectedConsumers(); len(got) != 1 || got[0] != "stable-diffusion.cpp.cuda" {
+	if got := source.GetSelectedConsumers(); len(got) != 1 || got[0] != "stable-diffusion.cpp.metal" {
+		t.Fatalf("selected consumers = %v, want stable-diffusion.cpp.metal", got)
+	}
+	if source.GetVersion() != "canonical_localai_derived" ||
+		!stringSliceContains(source.GetCompatibilityEvidence(), "package_format=oci_payload") {
+		t.Fatalf("selected source is not canonical LocalAI OCI evidence: %+v", source)
+	}
+}
+
+func TestStartLocalEnvironmentDependencyJobFailsClosedForAmbiguousConsumerContract(t *testing.T) {
+	svc := newTestService(t)
+	runtimeDataRoot := filepath.Join(t.TempDir(), "runtime-data")
+	profile := localEnvironmentAppleSilicon128GBProfile()
+	metalPlan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+		PackID:           "local-image-native",
+		ConsumerScope:    "stable-diffusion.cpp.metal",
+		HostProfile:      profile,
+		RuntimeDataRoot:  runtimeDataRoot,
+		AssetID:          "image/test-sd",
+		CompanionAssetID: "image/test-lora",
+		ParentAssetID:    "image/test-sd",
+	})
+	metalDep := findLocalEnvironmentDependency(t, metalPlan, localEnvironmentFamilyNativeSDCPP)
+	cpuDep := metalDep
+	cpuDep.ConsumerScope = "stable-diffusion.cpp.cpu"
+	svc.rememberLocalEnvironmentPlanDependencyContracts([]localEnvironmentPlanDependency{cpuDep})
+
+	_, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
+		EnvironmentKey:   metalDep.EnvironmentKey,
+		DependencyFamily: metalDep.DependencyFamily,
+		DependencyId:     metalDep.DependencyID,
+		Confirmed:        true,
+	})
+	if status.Code(err) != codes.FailedPrecondition {
+		t.Fatalf("StartLocalEnvironmentDependencyJob error = %v, want FailedPrecondition for ambiguous shared key", err)
+	}
+}
+
+func TestStartNativeSDCPPDependencyJobPromotesWindowsRuntimeWrapperSelectedSource(t *testing.T) {
+	svc := newTestService(t)
+	dep := nativeSDCPPPlanDependencyForTest(t, svc, stableDiffusionCUDAConsumerID, localEnvironmentNvidiaProfile())
+	svc.SetEngineManager(&mockEngineManager{
+		managedImageBackendStatus: &engine.ManagedImageBackendDependencyStatus{
+			BackendName:       "stablediffusion-ggml",
+			PackageSource:     "canonical_runtime_wrapper",
+			PackageFormat:     "direct_archive",
+			LaunchMode:        "runtime_wrapper",
+			CanonicalRoot:     `C:\nimi\runtime\managed-image-backends\sd-win-cuda12-x64-stablediffusion-ggml`,
+			VerifiedArtifacts: []string{"sd.exe", "metadata.json"},
+			Detail:            "managed image backend package verified from canonical_runtime_wrapper",
+		},
+	})
+
+	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
+		EnvironmentKey:   dep.EnvironmentKey,
+		DependencyFamily: dep.DependencyFamily,
+		DependencyId:     dep.DependencyID,
+		Confirmed:        true,
+	})
+	if err != nil {
+		t.Fatalf("StartLocalEnvironmentDependencyJob: %v", err)
+	}
+	job := awaitLocalEnvironmentDependencyJobTerminal(t, svc, resp.GetJob().GetJobId())
+	if job.GetState() != localEnvironmentStateReadyManaged {
+		t.Fatalf("job state = %q, want ready_managed", job.GetState())
+	}
+	mgr := svc.engineManagerOrNil().(*mockEngineManager)
+	if got := mgr.managedImageBackendConfigs[0].PackageSource; got != "canonical_runtime_wrapper" {
+		t.Fatalf("requested package source = %q, want canonical_runtime_wrapper", got)
+	}
+	source, ok := svc.localEnvironmentSelectedSourceRecord(job.GetEnvironmentKey())
+	if !ok {
+		t.Fatal("expected selected source record")
+	}
+	if source.EnvironmentKey != dep.EnvironmentKey {
+		t.Fatalf("selected source EnvironmentKey = %q, want plan key %q", source.EnvironmentKey, dep.EnvironmentKey)
+	}
+	if got := source.SelectedConsumers; len(got) != 1 || got[0] != "stable-diffusion.cpp.cuda" {
 		t.Fatalf("selected consumers = %v, want stable-diffusion.cpp.cuda", got)
+	}
+	if source.Version != "canonical_runtime_wrapper" ||
+		!stringSliceContains(source.CompatibilityEvidence, "package_format=direct_archive") ||
+		!stringSliceContains(source.CompatibilityEvidence, "launch_mode=runtime_wrapper") {
+		t.Fatalf("selected source is not canonical Windows runtime-wrapper evidence: %+v", source)
+	}
+}
+
+func TestStartNativeSDCPPDependencyJobRejectsOfficialDirectArchiveSource(t *testing.T) {
+	svc := newTestService(t)
+	dep := nativeSDCPPPlanDependencyForTest(t, svc, "stable-diffusion.cpp.metal", localEnvironmentAppleSilicon128GBProfile())
+	svc.SetEngineManager(&mockEngineManager{
+		managedImageBackendStatus: &engine.ManagedImageBackendDependencyStatus{
+			BackendName:       "stablediffusion-ggml",
+			PackageSource:     "experimental_official_sdcpp",
+			PackageFormat:     "direct_archive",
+			LaunchMode:        "runtime_wrapper",
+			CanonicalRoot:     `/tmp/nimi/runtime/managed-image-backends/official-sdcpp`,
+			VerifiedArtifacts: []string{"sd-cli"},
+			Detail:            "official stable-diffusion.cpp archive should not satisfy W6 native chain",
+		},
+	})
+
+	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
+		EnvironmentKey:   dep.EnvironmentKey,
+		DependencyFamily: dep.DependencyFamily,
+		DependencyId:     dep.DependencyID,
+		Confirmed:        true,
+	})
+	if err != nil {
+		t.Fatalf("StartLocalEnvironmentDependencyJob: %v", err)
+	}
+	job := awaitLocalEnvironmentDependencyJobTerminal(t, svc, resp.GetJob().GetJobId())
+	if job.GetState() != localEnvironmentStateRepairRequired || job.GetSelectedSourceRecordId() != "" {
+		t.Fatalf("official direct archive must not promote selected source, got %+v", job)
+	}
+	if _, ok := svc.localEnvironmentSelectedSourceRecord(job.GetEnvironmentKey()); ok {
+		t.Fatal("official direct archive must not leave a ready selected source record")
 	}
 }
 
@@ -394,7 +606,7 @@ func TestStartNativeLlamaDependencyJobRepairRequiredWithoutHash(t *testing.T) {
 	})
 
 	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
-		EnvironmentKey:   "env",
+		EnvironmentKey:   "native-engine-package.llama|llama.cpp.package|host|windows/amd64|root|llama.cpp.cuda",
 		DependencyFamily: localEnvironmentFamilyNativeLlama,
 		DependencyId:     "llama.cpp.package",
 		Confirmed:        true,
@@ -465,7 +677,7 @@ func TestStartPythonUVDependencyJobRepairRequiredWithoutVersion(t *testing.T) {
 	})
 
 	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
-		EnvironmentKey:   "env",
+		EnvironmentKey:   "python.tool.uv|uv|host|windows/amd64|root|speech.qwen3-tts.python",
 		DependencyFamily: localEnvironmentFamilyPythonUV,
 		DependencyId:     "uv",
 		Confirmed:        true,
@@ -607,6 +819,12 @@ func TestStartModelAssetDependencyJobDownloadsVerifiesAndReachesReadyManaged(t *
 		"darwin/arm64",
 		dataRoot,
 	)
+	svc.rememberLocalEnvironmentPlanDependencyContracts([]localEnvironmentPlanDependency{{
+		EnvironmentKey:   environmentKey,
+		DependencyFamily: localEnvironmentFamilyModelAsset,
+		DependencyID:     dependencyID,
+		ConsumerScope:    "llama.cpp.cuda",
+	}})
 
 	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
 		EnvironmentKey:   environmentKey,
@@ -787,10 +1005,17 @@ func TestStartModelAssetDependencyJobAdoptsExistingBundleReachesReadyManaged(t *
 	writeResolvedModelBundleForTest(t, modelsRoot, logicalModelID, assetID, entry, payload)
 
 	dependencyID := "asset-id:" + assetID
+	environmentKey := localEnvironmentKey(
+		localEnvironmentFamilyModelAsset, dependencyID, "host_adopt_test", "darwin/arm64", t.TempDir(),
+	)
+	svc.rememberLocalEnvironmentPlanDependencyContracts([]localEnvironmentPlanDependency{{
+		EnvironmentKey:   environmentKey,
+		DependencyFamily: localEnvironmentFamilyModelAsset,
+		DependencyID:     dependencyID,
+		ConsumerScope:    "llama.cpp.cuda",
+	}})
 	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
-		EnvironmentKey: localEnvironmentKey(
-			localEnvironmentFamilyModelAsset, dependencyID, "host_adopt_test", "darwin/arm64", t.TempDir(),
-		),
+		EnvironmentKey:   environmentKey,
 		DependencyFamily: localEnvironmentFamilyModelAsset,
 		DependencyId:     dependencyID,
 		Confirmed:        true,

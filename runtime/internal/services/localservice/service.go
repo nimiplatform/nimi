@@ -64,6 +64,7 @@ type Service struct {
 	localAuditCap                  int
 	productVersion                 string
 	localModelsPath                string
+	runtimeDataRoot                string
 	managedLlamaModelsConfigPath   string
 	managedLlamaEnabled            bool
 	managedLlamaEndpointValue      string
@@ -101,6 +102,7 @@ type Service struct {
 	localEnvironmentHostProfiles            map[string]localEnvironmentHostProfileState
 	localEnvironmentSelectedSources         map[string]localEnvironmentSelectedSourceRecordState
 	localEnvironmentDependencyJobs          map[string]localEnvironmentDependencyJobState
+	localEnvironmentPlanDependencyContracts map[string]localEnvironmentPlanDependencyContractState
 	localEnvironmentJobCancels              map[string]context.CancelFunc
 	localEnvironmentJobWG                   sync.WaitGroup
 	localEnvironmentPrerequisiteWaitTimeout time.Duration
@@ -156,6 +158,10 @@ func New(logger *slog.Logger, store *auditlog.Store, stateStorePath string, loca
 	if len(localModelsPathOverride) > 0 {
 		localModelsPath = localModelsPathOverride[0]
 	}
+	runtimeDataRoot := ""
+	if len(localModelsPathOverride) > 1 {
+		runtimeDataRoot = localModelsPathOverride[1]
+	}
 	localProviderCatalog, catalogErr := catalog.LoadBuiltInLocalProviderCatalog()
 	if catalogErr != nil {
 		return nil, fmt.Errorf("local service: load local provider catalog: %w", catalogErr)
@@ -165,57 +171,59 @@ func New(logger *slog.Logger, store *auditlog.Store, stateStorePath string, loca
 		return nil, fmt.Errorf("local service: load verified assets: %w", verifiedErr)
 	}
 	svc := &Service{
-		logger:                           logger,
-		auditStore:                       store,
-		localProviderCatalog:             localProviderCatalog,
-		stateStorePath:                   resolveLocalStatePath(stateStorePath),
-		localAuditCap:                    localAuditCapacity,
-		localModelsPath:                  resolveLocalModelsPath(localModelsPath),
-		managedLlamaModelsConfigPath:     resolveGeneratedLlamaModelsConfigPath(""),
-		assets:                           make(map[string]*runtimev1.LocalAssetRecord),
-		assetRuntimeModes:                make(map[string]runtimev1.LocalEngineRuntimeMode),
-		services:                         make(map[string]*runtimev1.LocalServiceDescriptor),
-		serviceRuntimeModes:              make(map[string]runtimev1.LocalEngineRuntimeMode),
-		audits:                           make([]*runtimev1.LocalAuditEvent, 0, localAuditCapacity),
-		verified:                         verified,
-		catalog:                          make([]*runtimev1.LocalCatalogModelDescriptor, 0, len(verified)),
-		managedImageProfiles:             make(map[string]managedImageProfileState),
-		managedImageLoadCache:            make(map[string]managedImageLoadedState),
-		managedImageLoadInflight:         make(map[string]*managedImageLoadInflight),
-		localAssetProbeInflight:          make(map[string]*localAssetProbeInflight),
-		managedLlamaRegistrations:        make(map[string]managedLlamaRegistration),
-		warmedModelKeys:                  make(map[string]struct{}),
-		warmedModelOrder:                 make([]string, 0, 512),
-		assetResidency:                   make(map[string]localAssetResidencyState),
-		engineResidency:                  make(map[string]localEngineResidencyState),
-		localEnvironmentHostProfiles:     make(map[string]localEnvironmentHostProfileState),
-		localEnvironmentSelectedSources:  make(map[string]localEnvironmentSelectedSourceRecordState),
-		localEnvironmentDependencyJobs:   make(map[string]localEnvironmentDependencyJobState),
-		localEnvironmentJobCancels:       make(map[string]context.CancelFunc),
-		runtimeBaselineReadinessRecords:  make(map[string]runtimeBaselineReadinessRecord),
-		firstRunExecutionEvidenceRecords: make(map[string]firstRunExecutionEvidenceRecord),
-		profileRegistry:                  NewProfileRegistry(),
-		endpointProbe:                    defaultEndpointProbe,
-		hfCatalogSearch:                  defaultHFCatalogSearch,
-		hfCatalogVariants:                defaultHFCatalogVariants,
-		hfDownloadBaseURL:                defaultHFDownloadBaseURL,
-		artifactDownloadTimeout:          localArtifactDownloadTimeout,
-		artifactDownloadMaxBodyBytes:     localArtifactDownloadMaxBodyBytes,
-		modelDownloadTimeout:             localModelDownloadTimeout,
-		modelDownloadMaxBodyBytes:        localModelDownloadMaxBodyBytes,
-		modelDownloadMaxAttempts:         localModelDownloadMaxAttempts,
-		modelDownloadRetryBackoff:        localModelDownloadRetryBackoff,
-		managedImageLoadModel:            managedimagebackend.LoadModel,
-		managedImageFreeModel:            managedimagebackend.FreeModel,
-		assetProbeState:                  make(map[string]*probeRecoveryState),
-		serviceProbeState:                make(map[string]*probeRecoveryState),
-		transfers:                        make(map[string]*runtimev1.LocalTransferSessionSummary),
-		transferControls:                 make(map[string]*localTransferControl),
-		transferRates:                    make(map[string]*transferRateTracker),
-		transferSubscribers:              make(map[uint64]chan *runtimev1.LocalTransferProgressEvent),
-		entryHashCache:                   make(map[string]entryHashCacheState),
-		localModelKeepAlive:              defaultLocalModelKeepAlive,
-		managedPortAvailable:             loopbackPortAvailable,
+		logger:                                  logger,
+		auditStore:                              store,
+		localProviderCatalog:                    localProviderCatalog,
+		stateStorePath:                          resolveLocalStatePath(stateStorePath),
+		localAuditCap:                           localAuditCapacity,
+		localModelsPath:                         resolveLocalModelsPath(localModelsPath),
+		runtimeDataRoot:                         resolveLocalEnvironmentRuntimeDataRoot(runtimeDataRoot, localModelsPath),
+		managedLlamaModelsConfigPath:            resolveGeneratedLlamaModelsConfigPath(""),
+		assets:                                  make(map[string]*runtimev1.LocalAssetRecord),
+		assetRuntimeModes:                       make(map[string]runtimev1.LocalEngineRuntimeMode),
+		services:                                make(map[string]*runtimev1.LocalServiceDescriptor),
+		serviceRuntimeModes:                     make(map[string]runtimev1.LocalEngineRuntimeMode),
+		audits:                                  make([]*runtimev1.LocalAuditEvent, 0, localAuditCapacity),
+		verified:                                verified,
+		catalog:                                 make([]*runtimev1.LocalCatalogModelDescriptor, 0, len(verified)),
+		managedImageProfiles:                    make(map[string]managedImageProfileState),
+		managedImageLoadCache:                   make(map[string]managedImageLoadedState),
+		managedImageLoadInflight:                make(map[string]*managedImageLoadInflight),
+		localAssetProbeInflight:                 make(map[string]*localAssetProbeInflight),
+		managedLlamaRegistrations:               make(map[string]managedLlamaRegistration),
+		warmedModelKeys:                         make(map[string]struct{}),
+		warmedModelOrder:                        make([]string, 0, 512),
+		assetResidency:                          make(map[string]localAssetResidencyState),
+		engineResidency:                         make(map[string]localEngineResidencyState),
+		localEnvironmentHostProfiles:            make(map[string]localEnvironmentHostProfileState),
+		localEnvironmentSelectedSources:         make(map[string]localEnvironmentSelectedSourceRecordState),
+		localEnvironmentDependencyJobs:          make(map[string]localEnvironmentDependencyJobState),
+		localEnvironmentPlanDependencyContracts: make(map[string]localEnvironmentPlanDependencyContractState),
+		localEnvironmentJobCancels:              make(map[string]context.CancelFunc),
+		runtimeBaselineReadinessRecords:         make(map[string]runtimeBaselineReadinessRecord),
+		firstRunExecutionEvidenceRecords:        make(map[string]firstRunExecutionEvidenceRecord),
+		profileRegistry:                         NewProfileRegistry(),
+		endpointProbe:                           defaultEndpointProbe,
+		hfCatalogSearch:                         defaultHFCatalogSearch,
+		hfCatalogVariants:                       defaultHFCatalogVariants,
+		hfDownloadBaseURL:                       defaultHFDownloadBaseURL,
+		artifactDownloadTimeout:                 localArtifactDownloadTimeout,
+		artifactDownloadMaxBodyBytes:            localArtifactDownloadMaxBodyBytes,
+		modelDownloadTimeout:                    localModelDownloadTimeout,
+		modelDownloadMaxBodyBytes:               localModelDownloadMaxBodyBytes,
+		modelDownloadMaxAttempts:                localModelDownloadMaxAttempts,
+		modelDownloadRetryBackoff:               localModelDownloadRetryBackoff,
+		managedImageLoadModel:                   managedimagebackend.LoadModel,
+		managedImageFreeModel:                   managedimagebackend.FreeModel,
+		assetProbeState:                         make(map[string]*probeRecoveryState),
+		serviceProbeState:                       make(map[string]*probeRecoveryState),
+		transfers:                               make(map[string]*runtimev1.LocalTransferSessionSummary),
+		transferControls:                        make(map[string]*localTransferControl),
+		transferRates:                           make(map[string]*transferRateTracker),
+		transferSubscribers:                     make(map[uint64]chan *runtimev1.LocalTransferProgressEvent),
+		entryHashCache:                          make(map[string]entryHashCacheState),
+		localModelKeepAlive:                     defaultLocalModelKeepAlive,
+		managedPortAvailable:                    loopbackPortAvailable,
 	}
 	jobCtx, jobCancel := context.WithCancel(context.Background())
 	svc.jobLifetimeCtx = jobCtx

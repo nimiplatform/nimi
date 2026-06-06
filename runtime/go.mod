@@ -1,6 +1,6 @@
 module github.com/nimiplatform/nimi/runtime
 
-go 1.25.0
+go 1.26.4
 
 require (
 	github.com/fsnotify/fsnotify v1.9.0

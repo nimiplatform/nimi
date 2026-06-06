@@ -25,6 +25,16 @@ func (s *Service) ResolveLocalEnvironmentPlan(_ context.Context, req *runtimev1.
 	}, nil
 }
 
+func (s *Service) PrepareProfileRuntimeDescriptor(ctx context.Context, req *runtimev1.PrepareProfileRuntimeDescriptorRequest) (*runtimev1.PrepareProfileRuntimeDescriptorResponse, error) {
+	result, err := s.prepareProfileRuntimeDescriptor(ctx, ProfileRuntimeDescriptorPrepareRequest{
+		DescriptorJSON: req.GetDescriptorJson(),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return profileRuntimeDescriptorPrepareResultToProto(result), nil
+}
+
 func (s *Service) ListLocalEnvironmentSelectedSources(_ context.Context, req *runtimev1.ListLocalEnvironmentSelectedSourcesRequest) (*runtimev1.ListLocalEnvironmentSelectedSourcesResponse, error) {
 	familyFilter := strings.TrimSpace(req.GetDependencyFamily())
 	consumerFilter := strings.TrimSpace(req.GetConsumerScope())
@@ -76,6 +86,30 @@ func (s *Service) ListLocalEnvironmentDependencyJobs(_ context.Context, req *run
 		out = append(out, localEnvironmentDependencyJobToProto(job))
 	}
 	return &runtimev1.ListLocalEnvironmentDependencyJobsResponse{Jobs: out}, nil
+}
+
+func profileRuntimeDescriptorPrepareResultToProto(result *ProfileRuntimeDescriptorPrepareResult) *runtimev1.PrepareProfileRuntimeDescriptorResponse {
+	if result == nil {
+		return &runtimev1.PrepareProfileRuntimeDescriptorResponse{}
+	}
+	out := &runtimev1.PrepareProfileRuntimeDescriptorResponse{
+		DescriptorId:   result.DescriptorID,
+		ProfileId:      result.ProfileID,
+		RequirementIds: append([]string(nil), result.RequirementIDs...),
+		SliceResults:   make([]*runtimev1.ProfileRuntimeDescriptorSlicePrepareResult, 0, len(result.SliceResults)),
+	}
+	for _, item := range result.SliceResults {
+		out.SliceResults = append(out.SliceResults, &runtimev1.ProfileRuntimeDescriptorSlicePrepareResult{
+			SliceId:              item.SliceID,
+			Capability:           item.Capability,
+			Outcome:              item.Outcome,
+			ReasonCodes:          append([]string(nil), item.ReasonCodes...),
+			MaterializationKey:   item.MaterializationKey,
+			WorkflowBindingId:    item.WorkflowBindingID,
+			ReusableAssetHealthy: item.ReusableAssetHealthy,
+		})
+	}
+	return out
 }
 
 func (s *Service) ResolveLocalEnvironmentActivationGate(_ context.Context, req *runtimev1.ResolveLocalEnvironmentActivationGateRequest) (*runtimev1.ResolveLocalEnvironmentActivationGateResponse, error) {

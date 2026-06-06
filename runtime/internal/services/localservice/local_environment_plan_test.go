@@ -23,6 +23,68 @@ func TestLocalEnvironmentServiceConstructionDoesNotResolveLocalCompute(t *testin
 	}
 }
 
+func TestResolveLocalEnvironmentRuntimeDataRootIdentity(t *testing.T) {
+	dataRoot := filepath.Join(t.TempDir(), "Nimi")
+	customModelsRoot := filepath.Join(t.TempDir(), "custom-model-store")
+	cases := []struct {
+		name               string
+		configuredDataRoot string
+		configuredModels   string
+		want               string
+	}{
+		{
+			name:               "configured data root wins",
+			configuredDataRoot: dataRoot,
+			configuredModels:   customModelsRoot,
+			want:               dataRoot,
+		},
+		{
+			name:             "default models child maps to data root",
+			configuredModels: filepath.Join(dataRoot, "models"),
+			want:             dataRoot,
+		},
+		{
+			name:             "data root caller remains data root",
+			configuredModels: dataRoot,
+			want:             dataRoot,
+		},
+		{
+			name:             "custom models root without models suffix remains itself",
+			configuredModels: customModelsRoot,
+			want:             customModelsRoot,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := resolveLocalEnvironmentRuntimeDataRoot(tc.configuredDataRoot, tc.configuredModels); got != tc.want {
+				t.Fatalf("runtime data root = %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestResolveLocalEnvironmentPlanDefaultRuntimeDataRootUsesServiceDataRootIdentity(t *testing.T) {
+	svc := newLocalEnvironmentTestService(t)
+	defer func() { svc.Close() }()
+
+	modelsRoot := svc.resolvedLocalModelsPath()
+	dataRoot := filepath.Dir(modelsRoot)
+	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+		PackID:        "local-text",
+		ConsumerScope: "llama.cpp.cuda",
+		HostProfile:   localEnvironmentNvidiaProfile(),
+		AssetID:       "text/test-model",
+	})
+	if plan.RuntimeDataRoot != dataRoot {
+		t.Fatalf("default runtime data root = %q, want data root %q", plan.RuntimeDataRoot, dataRoot)
+	}
+	dep := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyNativeLlama)
+	wantKey := localEnvironmentKey(dep.DependencyFamily, dep.DependencyID, plan.HostProfileID, plan.PlatformTuple, dataRoot)
+	if dep.EnvironmentKey != wantKey {
+		t.Fatalf("dependency environment key = %q, want %q", dep.EnvironmentKey, wantKey)
+	}
+}
+
 func TestResolveLocalEnvironmentPlanIncludesPythonManagedFamilies(t *testing.T) {
 	svc := newLocalEnvironmentTestService(t)
 	defer func() { svc.Close() }()
@@ -253,6 +315,9 @@ func TestResolveLocalEnvironmentPlanRestoresReadySelectedSourceRecord(t *testing
 		EnvironmentKey:   dep.EnvironmentKey,
 		SourceKind:       localEnvironmentSourceManaged,
 		CanonicalRoot:    filepath.Join(runtimeDataRoot, "engines", "llama"),
+		SelectedConsumers: []string{
+			"llama.cpp.cuda",
+		},
 	})
 	writeSelectedSourceLocalArtifactsForTest(t, record)
 	svc.upsertLocalEnvironmentSelectedSourceRecord(record)
@@ -359,6 +424,9 @@ func TestResolveLocalEnvironmentPlanRejectsSelectedSourceWithoutVerificationEvid
 		EnvironmentKey:   dep.EnvironmentKey,
 		SourceKind:       localEnvironmentSourceManaged,
 		CanonicalRoot:    filepath.Join(runtimeDataRoot, "engines", "llama"),
+		SelectedConsumers: []string{
+			"llama.cpp.cuda",
+		},
 	})
 
 	stalePlan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
@@ -395,6 +463,9 @@ func TestResolveLocalEnvironmentPlanRepairRecordBlocksDependency(t *testing.T) {
 		EnvironmentKey:   dep.EnvironmentKey,
 		SourceKind:       localEnvironmentSourceManaged,
 		RepairState:      localEnvironmentRepairRequired,
+		SelectedConsumers: []string{
+			"llama.cpp.cuda",
+		},
 	}))
 
 	repairPlan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
@@ -430,6 +501,7 @@ func TestResolveLocalEnvironmentPlanProjectsLatestFailedJob(t *testing.T) {
 		EnvironmentKey:   dep.EnvironmentKey,
 		DependencyFamily: dep.DependencyFamily,
 		DependencyID:     dep.DependencyID,
+		ConsumerScope:    dep.ConsumerScope,
 		SourceKind:       localEnvironmentSourceManaged,
 	}, nil)
 	if err != nil {
@@ -455,6 +527,99 @@ func TestResolveLocalEnvironmentPlanProjectsLatestFailedJob(t *testing.T) {
 	}
 	if failedPlan.State != localEnvironmentStateFailed {
 		t.Fatalf("plan state = %q, want failed", failedPlan.State)
+	}
+}
+
+func TestResolveLocalEnvironmentPlanDoesNotReuseSelectedSourceAcrossConsumers(t *testing.T) {
+	svc := newLocalEnvironmentTestService(t)
+	defer func() { svc.Close() }()
+	runtimeDataRoot := filepath.Join(t.TempDir(), "runtime-data")
+	profile := localEnvironmentAppleSilicon128GBProfile()
+
+	metalPlan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+		PackID:           "local-image-native",
+		ConsumerScope:    "stable-diffusion.cpp.metal",
+		HostProfile:      profile,
+		RuntimeDataRoot:  runtimeDataRoot,
+		AssetID:          "image/test-sd",
+		CompanionAssetID: "image/test-lora",
+		ParentAssetID:    "image/test-sd",
+	})
+	metalDep := findLocalEnvironmentDependency(t, metalPlan, localEnvironmentFamilyNativeSDCPP)
+	record := verifiedSelectedSourceRecordForTest(localEnvironmentSelectedSourceRecordState{
+		DependencyFamily:  metalDep.DependencyFamily,
+		DependencyID:      metalDep.DependencyID,
+		EnvironmentKey:    metalDep.EnvironmentKey,
+		SourceKind:        localEnvironmentSourceManaged,
+		CanonicalRoot:     filepath.Join(runtimeDataRoot, "native-sdcpp-metal"),
+		SelectedConsumers: []string{"stable-diffusion.cpp.metal"},
+	})
+	writeSelectedSourceLocalArtifactsForTest(t, record)
+	svc.upsertLocalEnvironmentSelectedSourceRecord(record)
+
+	unknownPlan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+		PackID:           "local-image-native",
+		ConsumerScope:    "stable-diffusion.cpp.unknown",
+		HostProfile:      profile,
+		RuntimeDataRoot:  runtimeDataRoot,
+		AssetID:          "image/test-sd",
+		CompanionAssetID: "image/test-lora",
+		ParentAssetID:    "image/test-sd",
+	})
+	unknownDep := findLocalEnvironmentDependency(t, unknownPlan, localEnvironmentFamilyNativeSDCPP)
+	if unknownDep.EnvironmentKey != metalDep.EnvironmentKey {
+		t.Fatalf("test requires shared five-part EnvironmentKey, got metal=%q unknown=%q", metalDep.EnvironmentKey, unknownDep.EnvironmentKey)
+	}
+	if unknownDep.State == localEnvironmentStateReadyManaged || unknownDep.State == localEnvironmentStateReadySystem {
+		t.Fatalf("unknown consumer reused metal selected source: %+v", unknownDep)
+	}
+	if unknownDep.State != localEnvironmentStateUnsupported {
+		t.Fatalf("unknown consumer state = %q, want unsupported: %+v", unknownDep.State, unknownDep)
+	}
+}
+
+func TestResolveLocalEnvironmentPlanDoesNotProjectLatestJobAcrossConsumers(t *testing.T) {
+	svc := newLocalEnvironmentTestService(t)
+	defer func() { svc.Close() }()
+	runtimeDataRoot := filepath.Join(t.TempDir(), "runtime-data")
+	profile := localEnvironmentAppleSilicon128GBProfile()
+
+	metalPlan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+		PackID:           "local-image-native",
+		ConsumerScope:    "stable-diffusion.cpp.metal",
+		HostProfile:      profile,
+		RuntimeDataRoot:  runtimeDataRoot,
+		AssetID:          "image/test-sd",
+		CompanionAssetID: "image/test-lora",
+		ParentAssetID:    "image/test-sd",
+	})
+	metalDep := findLocalEnvironmentDependency(t, metalPlan, localEnvironmentFamilyNativeSDCPP)
+	unknownJob, err := svc.startLocalEnvironmentDependencyJob(context.Background(), localEnvironmentDependencyJobRequest{
+		EnvironmentKey:   metalDep.EnvironmentKey,
+		DependencyFamily: metalDep.DependencyFamily,
+		DependencyID:     metalDep.DependencyID,
+		ConsumerScope:    "stable-diffusion.cpp.unknown",
+		SourceKind:       localEnvironmentSourceManaged,
+	}, nil)
+	if err != nil {
+		t.Fatalf("start unknown failed job seed: %v", err)
+	}
+	if _, ok := svc.transitionLocalEnvironmentDependencyJob(unknownJob.JobID, localEnvironmentStateFailed, "unknown consumer package failed", true); !ok {
+		t.Fatalf("failed to transition unknown job")
+	}
+
+	nextMetalPlan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+		PackID:           "local-image-native",
+		ConsumerScope:    "stable-diffusion.cpp.metal",
+		HostProfile:      profile,
+		RuntimeDataRoot:  runtimeDataRoot,
+		AssetID:          "image/test-sd",
+		CompanionAssetID: "image/test-lora",
+		ParentAssetID:    "image/test-sd",
+	})
+	nextMetalDep := findLocalEnvironmentDependency(t, nextMetalPlan, localEnvironmentFamilyNativeSDCPP)
+	if nextMetalDep.State == localEnvironmentStateFailed || strings.Contains(nextMetalDep.Detail, "unknown consumer package failed") {
+		t.Fatalf("metal plan consumed unknown consumer failed job: %+v", nextMetalDep)
 	}
 }
 

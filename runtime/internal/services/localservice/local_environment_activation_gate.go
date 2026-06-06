@@ -103,7 +103,7 @@ func (s *Service) resolveLocalEnvironmentActivationDependency(dep localEnvironme
 		dep = s.resolveLocalEnvironmentCUDAProjection(dep, consumerID)
 	}
 	if localEnvironmentDependencyBlocksActivation(dep.State) {
-		if job, ok := s.latestLocalEnvironmentDependencyJobForEnvironment(dep.EnvironmentKey); ok {
+		if job, ok := s.latestLocalEnvironmentDependencyJobForDependency(dep.EnvironmentKey, dep.DependencyFamily, dep.DependencyID, consumerID); ok {
 			switch strings.TrimSpace(job.State) {
 			case localEnvironmentStateQueued, localEnvironmentStateDownloading, localEnvironmentStateVerifying, localEnvironmentStateInstalling,
 				localEnvironmentStateRepairRequired, localEnvironmentStateFailed, localEnvironmentStateCancelled, localEnvironmentStateUnsupported:
@@ -154,8 +154,11 @@ func (s *Service) resolveLocalEnvironmentCUDAProjection(dep localEnvironmentPlan
 	return dep
 }
 
-func (s *Service) latestLocalEnvironmentDependencyJobForEnvironment(environmentKey string) (localEnvironmentDependencyJobState, bool) {
+func (s *Service) latestLocalEnvironmentDependencyJobForDependency(environmentKey string, dependencyFamily string, dependencyID string, consumerScope string) (localEnvironmentDependencyJobState, bool) {
 	key := strings.TrimSpace(environmentKey)
+	family := strings.TrimSpace(dependencyFamily)
+	id := strings.TrimSpace(dependencyID)
+	consumer := strings.TrimSpace(consumerScope)
 	if key == "" {
 		return localEnvironmentDependencyJobState{}, false
 	}
@@ -163,7 +166,16 @@ func (s *Service) latestLocalEnvironmentDependencyJobForEnvironment(environmentK
 	defer s.mu.RUnlock()
 	var latest localEnvironmentDependencyJobState
 	for _, job := range s.localEnvironmentDependencyJobs {
-		if job.EnvironmentKey != key {
+		if strings.TrimSpace(job.EnvironmentKey) != key {
+			continue
+		}
+		if family != "" && strings.TrimSpace(job.DependencyFamily) != family {
+			continue
+		}
+		if id != "" && strings.TrimSpace(job.DependencyID) != id {
+			continue
+		}
+		if consumer != "" && strings.TrimSpace(job.ConsumerScope) != consumer {
 			continue
 		}
 		if latest.JobID == "" || localEnvironmentDependencyJobNewer(job, latest) {

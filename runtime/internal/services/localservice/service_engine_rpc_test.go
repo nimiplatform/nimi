@@ -232,7 +232,9 @@ func (m *mockEngineManager) EnsureManagedImageBackendDependency(_ context.Contex
 	}
 	return engine.ManagedImageBackendDependencyStatus{
 		BackendName:       "stablediffusion-ggml",
-		PackageSource:     "test",
+		PackageSource:     "canonical_localai_derived",
+		PackageFormat:     "oci_payload",
+		LaunchMode:        "package_entrypoint",
 		CanonicalRoot:     "test-root",
 		VerifiedArtifacts: []string{"sd.exe"},
 		Detail:            "test managed image backend ready",

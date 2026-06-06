@@ -54,7 +54,7 @@ func (s *Service) cacheManagedMediaImageProfileResolution(
 	bindings []managedMediaProfileMaterializationBinding,
 ) {
 	id := strings.TrimSpace(localAssetID)
-	if s == nil || id == "" || len(profile) == 0 {
+	if s == nil || id == "" || (len(profile) == 0 && !materializationResolved) {
 		return
 	}
 	s.mu.Lock()
@@ -67,6 +67,9 @@ func (s *Service) cacheManagedMediaImageProfileResolution(
 		Profile:                 cloneAnyMap(profile),
 		MaterializationResolved: materializationResolved,
 		MaterializationBindings: cloneManagedMediaProfileMaterializationBindings(bindings),
+	}
+	if materializationResolved && len(bindings) > 0 {
+		s.persistStateLocked()
 	}
 }
 

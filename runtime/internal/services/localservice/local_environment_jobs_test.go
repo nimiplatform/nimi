@@ -640,6 +640,7 @@ func localEnvironmentJobRequestForTestWithRoot(t *testing.T, svc *Service, runti
 		EnvironmentKey:   dep.EnvironmentKey,
 		DependencyFamily: dep.DependencyFamily,
 		DependencyID:     dep.DependencyID,
+		ConsumerScope:    dep.ConsumerScope,
 		SourceKind:       localEnvironmentSourceManaged,
 	}
 }

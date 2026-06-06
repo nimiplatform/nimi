@@ -14,10 +14,15 @@ func (s *Service) StartLocalEnvironmentDependencyJob(ctx context.Context, req *r
 	if !req.GetConfirmed() {
 		return nil, localEnvironmentJobControlError(codes.FailedPrecondition, "local environment dependency setup requires explicit confirmation", "confirm_local_environment_dependency")
 	}
+	consumerScope := s.localEnvironmentDependencyJobConsumerScope(req.GetEnvironmentKey(), req.GetDependencyFamily(), req.GetDependencyId(), "")
+	if strings.TrimSpace(consumerScope) == "" {
+		return nil, localEnvironmentJobControlError(codes.FailedPrecondition, "local environment dependency consumer scope is ambiguous", "refresh_local_environment_plan")
+	}
 	job, err := s.startLocalEnvironmentDependencyJob(ctx, localEnvironmentDependencyJobRequest{
 		EnvironmentKey:   req.GetEnvironmentKey(),
 		DependencyFamily: req.GetDependencyFamily(),
 		DependencyID:     req.GetDependencyId(),
+		ConsumerScope:    consumerScope,
 		SourceKind:       req.GetSourceKind(),
 	}, s.localEnvironmentDependencyJobExecutor(req.GetDependencyFamily()))
 	if err != nil {
@@ -51,10 +56,15 @@ func (s *Service) RetryLocalEnvironmentDependencyJob(ctx context.Context, req *r
 	if !previous.Retryable {
 		return nil, localEnvironmentJobControlError(codes.FailedPrecondition, "local environment dependency job is not retryable", "inspect_local_environment_dependency")
 	}
+	consumerScope := s.localEnvironmentDependencyJobConsumerScope(previous.EnvironmentKey, previous.DependencyFamily, previous.DependencyID, previous.ConsumerScope)
+	if strings.TrimSpace(consumerScope) == "" {
+		return nil, localEnvironmentJobControlError(codes.FailedPrecondition, "local environment dependency retry has no consumer scope", "refresh_local_environment_plan")
+	}
 	job, err := s.startLocalEnvironmentDependencyJob(ctx, localEnvironmentDependencyJobRequest{
 		EnvironmentKey:   previous.EnvironmentKey,
 		DependencyFamily: previous.DependencyFamily,
 		DependencyID:     previous.DependencyID,
+		ConsumerScope:    consumerScope,
 		SourceKind:       previous.SourceKind,
 	}, s.localEnvironmentDependencyJobExecutor(previous.DependencyFamily))
 	if err != nil {
@@ -71,15 +81,19 @@ func (s *Service) RepairLocalEnvironmentDependency(ctx context.Context, req *run
 		return nil, localEnvironmentJobControlError(codes.FailedPrecondition, "local environment dependency repair requires explicit confirmation", "confirm_local_environment_dependency_repair")
 	}
 	environmentKey := strings.TrimSpace(req.GetEnvironmentKey())
-	record, ok := s.markLocalEnvironmentDependencyRepairRequired(environmentKey, req.GetReasonCode())
+	family := strings.TrimSpace(req.GetDependencyFamily())
+	dependencyID := strings.TrimSpace(req.GetDependencyId())
+	consumerScope := s.localEnvironmentDependencyJobConsumerScope(environmentKey, family, dependencyID, "")
+	if strings.TrimSpace(consumerScope) == "" {
+		return nil, localEnvironmentJobControlError(codes.FailedPrecondition, "local environment dependency repair consumer scope is ambiguous", "refresh_local_environment_plan")
+	}
+	record, ok := s.markLocalEnvironmentDependencyRepairRequired(environmentKey, family, dependencyID, consumerScope, req.GetReasonCode())
 	if !ok {
 		return nil, localEnvironmentJobControlError(codes.FailedPrecondition, "local environment dependency has no selected source record to repair", "refresh_local_environment_plan")
 	}
-	family := strings.TrimSpace(req.GetDependencyFamily())
 	if family == "" {
 		family = record.DependencyFamily
 	}
-	dependencyID := strings.TrimSpace(req.GetDependencyId())
 	if dependencyID == "" {
 		dependencyID = record.DependencyID
 	}
@@ -87,6 +101,7 @@ func (s *Service) RepairLocalEnvironmentDependency(ctx context.Context, req *run
 		EnvironmentKey:   environmentKey,
 		DependencyFamily: family,
 		DependencyID:     dependencyID,
+		ConsumerScope:    consumerScope,
 		SourceKind:       record.SourceKind,
 	}, s.localEnvironmentDependencyJobExecutor(family))
 	if err != nil {
@@ -96,6 +111,36 @@ func (s *Service) RepairLocalEnvironmentDependency(ctx context.Context, req *run
 		return nil, localEnvironmentJobControlError(codes.FailedPrecondition, err.Error(), "inspect_local_environment_dependency")
 	}
 	return &runtimev1.RepairLocalEnvironmentDependencyResponse{Job: localEnvironmentDependencyJobToProto(job)}, nil
+}
+
+func (s *Service) localEnvironmentDependencyJobConsumerScope(environmentKey string, dependencyFamily string, dependencyID string, preferred string) string {
+	if consumer := strings.TrimSpace(preferred); consumer != "" {
+		return consumer
+	}
+	key := strings.TrimSpace(environmentKey)
+	if contract, ok := s.localEnvironmentPlanDependencyContractForStart(key, dependencyFamily, dependencyID); ok {
+		return strings.TrimSpace(contract.ConsumerScope)
+	}
+	switch strings.TrimSpace(dependencyFamily) {
+	case localEnvironmentFamilyPythonUV,
+		localEnvironmentFamilyPythonRuntime,
+		localEnvironmentFamilyPythonVenv,
+		localEnvironmentFamilyPythonPackageSet,
+		localEnvironmentFamilyPythonTorchWheel:
+		if consumers := pythonSelectedConsumersForDependency(dependencyID); len(consumers) == 1 {
+			return consumers[0]
+		}
+	}
+	if record, ok := s.localEnvironmentSelectedSourceRecordForRepair(key, dependencyFamily, dependencyID, ""); ok {
+		consumers := normalizeStringSlice(record.SelectedConsumers)
+		if len(consumers) == 1 {
+			return consumers[0]
+		}
+	}
+	if consumer := localEnvironmentConsumerScopeFromKey(key); consumer != "" {
+		return consumer
+	}
+	return ""
 }
 
 func (s *Service) localEnvironmentDependencyJob(reqID string) (localEnvironmentDependencyJobState, bool) {

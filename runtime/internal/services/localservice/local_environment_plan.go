@@ -80,6 +80,7 @@ type localEnvironmentPlan struct {
 type localEnvironmentPlanDependency struct {
 	DependencyFamily       string
 	DependencyID           string
+	ConsumerScope          string
 	Required               bool
 	State                  string
 	SourceKind             string
@@ -127,7 +128,7 @@ func (s *Service) resolveLocalEnvironmentPlan(req localEnvironmentPlanRequest) l
 	hostState := localEnvironmentHostProfileFromDeviceProfile(profile)
 	runtimeDataRoot := strings.TrimSpace(req.RuntimeDataRoot)
 	if runtimeDataRoot == "" {
-		runtimeDataRoot = strings.TrimSpace(s.localModelsPath)
+		runtimeDataRoot = s.localEnvironmentRuntimeDataRoot()
 	}
 	consumerScope := strings.TrimSpace(req.ConsumerScope)
 	if consumerScope == "" {
@@ -190,6 +191,7 @@ func (s *Service) resolveLocalEnvironmentPlan(req localEnvironmentPlanRequest) l
 	for i := range dependencies {
 		dependencies[i] = s.resolveLocalEnvironmentPlanDependencyJobProjection(dependencies[i])
 	}
+	s.rememberLocalEnvironmentPlanDependencyContracts(dependencies)
 
 	state, reasonCode := localEnvironmentPlanState(dependencies)
 
@@ -212,7 +214,7 @@ func (s *Service) resolveLocalEnvironmentPlanDependencyJobProjection(dep localEn
 	if !localEnvironmentDependencyBlocksActivation(dep.State) {
 		return dep
 	}
-	job, ok := s.latestLocalEnvironmentDependencyJobForEnvironment(dep.EnvironmentKey)
+	job, ok := s.latestLocalEnvironmentDependencyJobForDependency(dep.EnvironmentKey, dep.DependencyFamily, dep.DependencyID, dep.ConsumerScope)
 	if !ok {
 		return dep
 	}
@@ -339,6 +341,7 @@ func localEnvironmentImageProfileBindingsRequiredDependency(
 	return localEnvironmentPlanDependency{
 		DependencyFamily:     localEnvironmentFamilyModelCompanion,
 		DependencyID:         dependencyID,
+		ConsumerScope:        strings.TrimSpace(consumerScope),
 		Required:             planModelFamilyRequired(def, localEnvironmentFamilyModelCompanion),
 		State:                localEnvironmentStateUnsupported,
 		SourceKind:           localEnvironmentSourceUnavailable,
@@ -354,6 +357,7 @@ func (s *Service) resolveLocalEnvironmentDependencyWithID(def localComputePackDe
 	dep := localEnvironmentPlanDependency{
 		DependencyFamily: family,
 		DependencyID:     dependencyID,
+		ConsumerScope:    strings.TrimSpace(consumerScope),
 		Required:         required,
 		EnvironmentKey:   environmentKey,
 		State:            localEnvironmentStateNeedsConfirmation,
@@ -377,8 +381,17 @@ func (s *Service) resolveLocalEnvironmentDependencyWithID(def localComputePackDe
 		dep.ReasonCode = "LOCAL_ENVIRONMENT_DEPENDENCY_UNSUPPORTED"
 		return dep
 	}
+	if family == localEnvironmentFamilyNativeSDCPP && strings.TrimSpace(dependencyID) == "stable-diffusion.cpp.package" {
+		if _, ok := nativeSDCPPPackageContractForEnvironment(environmentKey, dep.ConsumerScope); !ok {
+			dep.State = localEnvironmentStateUnsupported
+			dep.SourceKind = localEnvironmentSourceUnavailable
+			dep.ConfirmationRequired = false
+			dep.ReasonCode = "LOCAL_ENVIRONMENT_DEPENDENCY_UNSUPPORTED"
+			return dep
+		}
+	}
 
-	if record, ok := s.localEnvironmentSelectedSourceRecord(environmentKey); ok {
+	if record, ok := s.localEnvironmentSelectedSourceRecordForDependency(environmentKey, family, dependencyID, dep.ConsumerScope); ok {
 		dep.SourceKind = record.SourceKind
 		dep.SelectedSourceRecordID = record.RecordID
 		dep.CanonicalRoot = record.CanonicalRoot

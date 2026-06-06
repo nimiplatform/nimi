@@ -257,6 +257,7 @@ func TestIsWriteMethodScenarioSurface(t *testing.T) {
 		"/nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts",
 		"/nimi.runtime.v1.RuntimeAiService/ListScenarioProfiles",
 		"/nimi.runtime.v1.RuntimeConnectorService/ListProviderCatalog",
+		"/nimi.runtime.v1.RuntimeLocalService/PrepareProfileRuntimeDescriptor",
 		"/nimi.runtime.v1.RuntimeWorkflowService/GetWorkflow",
 	}
 	for _, method := range readMethods {
@@ -311,6 +312,7 @@ func generatedRuntimeFullMethods() []string {
 func isKnownReadOperation(operation string) bool {
 	switch operation {
 	case "OpenCompanionParticipationReplay",
+		"PrepareProfileRuntimeDescriptor",
 		"ResolveAvatarLiveInstanceBinding",
 		"ResolveLocalEnvironmentPlan",
 		"ResolveModelInstallPlan",

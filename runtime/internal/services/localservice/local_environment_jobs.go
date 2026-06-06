@@ -27,6 +27,7 @@ type localEnvironmentDependencyJobState struct {
 	EnvironmentKey         string `json:"environmentKey"`
 	DependencyFamily       string `json:"dependencyFamily"`
 	DependencyID           string `json:"dependencyId"`
+	ConsumerScope          string `json:"consumerScope,omitempty"`
 	State                  string `json:"state"`
 	SourceKind             string `json:"sourceKind"`
 	CanonicalRoot          string `json:"canonicalRoot,omitempty"`
@@ -63,6 +64,7 @@ type localEnvironmentDependencyJobRequest struct {
 	EnvironmentKey   string
 	DependencyFamily string
 	DependencyID     string
+	ConsumerScope    string
 	SourceKind       string
 }
 
@@ -124,7 +126,11 @@ func (s *Service) startLocalEnvironmentDependencyJob(_ context.Context, req loca
 		s.localEnvironmentJobCancels = make(map[string]context.CancelFunc)
 	}
 	for _, job := range s.localEnvironmentDependencyJobs {
-		if job.EnvironmentKey == normalized.EnvironmentKey && !localEnvironmentDependencyJobTerminal(job.State) {
+		if job.EnvironmentKey == normalized.EnvironmentKey &&
+			job.DependencyFamily == normalized.DependencyFamily &&
+			job.DependencyID == normalized.DependencyID &&
+			strings.TrimSpace(job.ConsumerScope) == strings.TrimSpace(normalized.ConsumerScope) &&
+			!localEnvironmentDependencyJobTerminal(job.State) {
 			s.mu.Unlock()
 			return job, nil
 		}
@@ -134,6 +140,7 @@ func (s *Service) startLocalEnvironmentDependencyJob(_ context.Context, req loca
 		EnvironmentKey:   normalized.EnvironmentKey,
 		DependencyFamily: normalized.DependencyFamily,
 		DependencyID:     normalized.DependencyID,
+		ConsumerScope:    normalized.ConsumerScope,
 		State:            localEnvironmentStateQueued,
 		SourceKind:       normalized.SourceKind,
 		Retryable:        true,
@@ -251,6 +258,10 @@ func (s *Service) runLocalEnvironmentDependencyJob(ctx context.Context, jobID st
 	}
 	if err := validateLocalEnvironmentDependencyJobReadyEvidence(job, result); err != nil {
 		failed, _ := s.transitionLocalEnvironmentDependencyJob(jobID, localEnvironmentStateFailed, err.Error(), true)
+		return failed, nil
+	}
+	if !stringSliceContains(result.SelectedConsumers, job.ConsumerScope) {
+		failed, _ := s.transitionLocalEnvironmentDependencyJob(jobID, localEnvironmentStateFailed, "LOCAL_ENVIRONMENT_SELECTED_SOURCE_CONSUMER_SCOPE_MISMATCH", true)
 		return failed, nil
 	}
 	// Promote the job to its terminal ready state, write the selected-source
@@ -596,17 +607,58 @@ func (s *Service) cancelLocalEnvironmentDependencyJob(jobID string) (localEnviro
 	return s.transitionLocalEnvironmentDependencyJob(jobID, localEnvironmentStateCancelled, "", true)
 }
 
-func (s *Service) markLocalEnvironmentDependencyRepairRequired(environmentKey string, reason string) (localEnvironmentSelectedSourceRecordState, bool) {
+func (s *Service) markLocalEnvironmentDependencyRepairRequired(environmentKey string, identityAndReason ...string) (localEnvironmentSelectedSourceRecordState, bool) {
+	dependencyFamily := ""
+	dependencyID := ""
+	consumerScope := ""
+	reason := ""
+	switch len(identityAndReason) {
+	case 1:
+		reason = identityAndReason[0]
+	default:
+		if len(identityAndReason) > 0 {
+			dependencyFamily = identityAndReason[0]
+		}
+		if len(identityAndReason) > 1 {
+			dependencyID = identityAndReason[1]
+		}
+		if len(identityAndReason) > 2 {
+			consumerScope = identityAndReason[2]
+		}
+		if len(identityAndReason) > 3 {
+			reason = identityAndReason[3]
+		}
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	record, ok := s.localEnvironmentSelectedSources[strings.TrimSpace(environmentKey)]
-	if !ok {
+	var recordKey string
+	var record localEnvironmentSelectedSourceRecordState
+	for key, candidate := range s.localEnvironmentSelectedSources {
+		if strings.TrimSpace(candidate.EnvironmentKey) != strings.TrimSpace(environmentKey) {
+			continue
+		}
+		if strings.TrimSpace(dependencyFamily) != "" && strings.TrimSpace(candidate.DependencyFamily) != strings.TrimSpace(dependencyFamily) {
+			continue
+		}
+		if strings.TrimSpace(dependencyID) != "" && strings.TrimSpace(candidate.DependencyID) != strings.TrimSpace(dependencyID) {
+			continue
+		}
+		if strings.TrimSpace(consumerScope) != "" && !stringSliceContains(candidate.SelectedConsumers, strings.TrimSpace(consumerScope)) {
+			continue
+		}
+		if recordKey != "" {
+			return localEnvironmentSelectedSourceRecordState{}, false
+		}
+		recordKey = key
+		record = candidate
+	}
+	if recordKey == "" {
 		return localEnvironmentSelectedSourceRecordState{}, false
 	}
 	record.RepairState = localEnvironmentRepairRequired
 	record.AuditReasonCode = strings.TrimSpace(reason)
 	record.LastVerifiedAt = time.Now().UTC().Format(time.RFC3339Nano)
-	s.localEnvironmentSelectedSources[record.EnvironmentKey] = record
+	s.localEnvironmentSelectedSources[recordKey] = record
 	s.persistStateLocked()
 	return record, true
 }
@@ -934,6 +986,9 @@ func localEnvironmentDependencyJobMatchesConsumer(job localEnvironmentDependency
 	if trimmedConsumer == "" {
 		return true
 	}
+	if strings.TrimSpace(job.ConsumerScope) == trimmedConsumer {
+		return true
+	}
 	if localEnvironmentConsumerScopeFromKey(job.EnvironmentKey) == trimmedConsumer {
 		return true
 	}
@@ -1147,6 +1202,7 @@ func normalizeLocalEnvironmentDependencyJobRequest(req localEnvironmentDependenc
 		EnvironmentKey:   strings.TrimSpace(req.EnvironmentKey),
 		DependencyFamily: strings.TrimSpace(req.DependencyFamily),
 		DependencyID:     strings.TrimSpace(req.DependencyID),
+		ConsumerScope:    strings.TrimSpace(req.ConsumerScope),
 		SourceKind:       sourceKind,
 	}
 }

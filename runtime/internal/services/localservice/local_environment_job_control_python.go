@@ -420,7 +420,7 @@ func pythonMaterializerConsumerForJob(job localEnvironmentDependencyJobState) st
 
 func localEnvironmentConsumerScopeFromKey(environmentKey string) string {
 	parts := strings.Split(strings.TrimSpace(environmentKey), "|")
-	if len(parts) == 0 {
+	if len(parts) <= 5 {
 		return ""
 	}
 	return strings.TrimSpace(parts[len(parts)-1])
