@@ -1,0 +1,26 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "rootDir": ".",
+    "noEmit": true,
+    "paths": {}
+  },
+  "include": [
+    "index.ts",
+    "runtime/**/*.ts",
+    "realm/**/*.ts",
+    "types/**/*.ts",
+    "contracts/**/*.ts",
+    "core/**/*.ts",
+    "features/**/*.ts"
+  ],
+  "exclude": [
+    "dist",
+    "**/*.test.ts",
+    "**/*.test-helper.ts",
+    "**/*.example.ts",
+    "adapters/**",
+    "migration-proofs/**"
+  ]
+}

@@ -1,0 +1,118 @@
+{
+  "name": "@nimiplatform/sdk",
+  "version": "0.0.0-vnext.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nimiplatform/nimi",
+    "directory": "sdks/typescript"
+  },
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./runtime": {
+      "types": "./dist/runtime/index.d.ts",
+      "default": "./dist/runtime/index.js"
+    },
+    "./runtime/generated": {
+      "types": "./dist/runtime/generated.d.ts",
+      "default": "./dist/runtime/generated.js"
+    },
+    "./realm": {
+      "types": "./dist/realm/index.d.ts",
+      "default": "./dist/realm/index.js"
+    },
+    "./realm/generated": {
+      "types": "./dist/realm/generated.d.ts",
+      "default": "./dist/realm/generated.js"
+    },
+    "./app": {
+      "types": "./dist/core/app/index.d.ts",
+      "default": "./dist/core/app/index.js"
+    },
+    "./types": {
+      "types": "./dist/types/index.d.ts",
+      "default": "./dist/types/index.js"
+    },
+    "./contracts": {
+      "types": "./dist/core/contracts/index.d.ts",
+      "default": "./dist/core/contracts/index.js"
+    },
+    "./ai": {
+      "types": "./dist/core/ai/index.d.ts",
+      "default": "./dist/core/ai/index.js"
+    },
+    "./agent": {
+      "types": "./dist/core/agent/index.d.ts",
+      "default": "./dist/core/agent/index.js"
+    },
+    "./testing": {
+      "types": "./dist/core/testing/index.d.ts",
+      "default": "./dist/core/testing/index.js"
+    },
+    "./features/conversation": {
+      "types": "./dist/features/conversation/index.d.ts",
+      "default": "./dist/features/conversation/index.js"
+    },
+    "./features/knowledge-context": {
+      "types": "./dist/features/knowledge-context/index.d.ts",
+      "default": "./dist/features/knowledge-context/index.js"
+    },
+    "./features/memory-context": {
+      "types": "./dist/features/memory-context/index.d.ts",
+      "default": "./dist/features/memory-context/index.js"
+    },
+    "./features/generation": {
+      "types": "./dist/features/generation/index.d.ts",
+      "default": "./dist/features/generation/index.js"
+    },
+    "./features/workflow": {
+      "types": "./dist/features/workflow/index.d.ts",
+      "default": "./dist/features/workflow/index.js"
+    },
+    "./features/evaluation": {
+      "types": "./dist/features/evaluation/index.d.ts",
+      "default": "./dist/features/evaluation/index.js"
+    },
+    "./features/toolkits": {
+      "types": "./dist/features/toolkits/index.d.ts",
+      "default": "./dist/features/toolkits/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "dependencies": {
+    "@protobuf-ts/runtime": "2.11.1"
+  },
+  "peerDependencies": {
+    "@grpc/grpc-js": "^1.14.4"
+  },
+  "peerDependenciesMeta": {
+    "@grpc/grpc-js": {
+      "optional": true
+    }
+  },
+  "scripts": {
+    "build": "node ../../scripts/build-typescript-package.mjs --tsconfig tsconfig.build.json --out-dir dist",
+    "lint": "pnpm exec tsc -p tsconfig.json",
+    "test": "node ../../scripts/run-sdk-vnext-typescript-tests.mjs"
+  },
+  "devDependencies": {
+    "@grpc/grpc-js": "^1.14.4",
+    "@types/node": "^25.9.1",
+    "tsx": "^4.22.3",
+    "typescript": "^5.9.3"
+  },
+  "nimi": {
+    "preCutover": true,
+    "targetPackage": "@nimiplatform/sdk",
+    "workspaceCutover": "active-local-hardcut",
+    "adapterPackageNames": "independent-packages"
+  }
+}

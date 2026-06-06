@@ -1,0 +1,686 @@
+import {
+  AgentEventType,
+  AvatarDebugProbeKind,
+  AvatarDebugRequestedBy,
+  CompanionParticipationStatus,
+  CompanionParticipationSurfaceKind,
+  CompanionParticipationTriggerSource,
+  ConversationAnchorStatus,
+  type AgentEvent,
+  type AppMessageEvent,
+  type CompanionParticipationProjection,
+  type RuntimeTypedCallOptions,
+} from '../core-generated/runtime-typed-client';
+import {
+  buildRuntimeAgentRequestContext,
+  projectRuntimeLocalAgentIdentity,
+} from './agent-local-identity';
+import {
+  toNimiRuntimeIsoFromTimestamp,
+  toNimiRuntimeProtoStruct,
+} from './runtime-agent-values';
+import {
+  asRecord,
+  normalizeText,
+  optionalNumber,
+  requireText,
+  runtimeAgentError,
+} from './runtime-agent-consume-internal';
+import {
+  parseNimiRuntimeAgentSessionSnapshot,
+  projectNimiRuntimeAgentAppMessageEvent,
+  projectNimiRuntimeAgentServiceEvent,
+} from './runtime-agent-consume-projection';
+import type {
+  NimiRuntimeAgentCompanionParticipationInput,
+  NimiRuntimeAgentConsumeClient,
+  NimiRuntimeAgentConsumeClientOptions,
+  NimiRuntimeAgentConsumeContext,
+  NimiRuntimeAgentConsumeContextInput,
+  NimiRuntimeAgentConsumeEvent,
+  NimiRuntimeAgentCompanionParticipationProjection,
+} from './runtime-agent-consume-types';
+
+const RUNTIME_AGENT_APP_ID = 'runtime.agent';
+
+export function buildNimiRuntimeAgentConsumeContext(input: NimiRuntimeAgentConsumeContextInput): NimiRuntimeAgentConsumeContext {
+  const runtimeAppId = requireText(input.runtimeAppId, 'runtimeAppId');
+  const identity = projectRuntimeLocalAgentIdentity(input);
+  const subjectUserId = normalizeText(input.subjectUserId) || identity.ownerUserId;
+  const requestContext = buildRuntimeAgentRequestContext({
+    runtimeAppId,
+    subjectUserId,
+    localAgentRef: identity.localAgentRef,
+    scopedBinding: input.scopedBinding,
+  });
+  return {
+    ...identity,
+    runtimeAppId,
+    subjectUserId,
+    requestContext,
+    ...(input.scopedBinding ? { scopedBinding: input.scopedBinding } : {}),
+  };
+}
+
+export function createNimiRuntimeAgentConsumeClient(
+  options: NimiRuntimeAgentConsumeClientOptions,
+): NimiRuntimeAgentConsumeClient {
+  const runtimeAppId = requireText(options.runtimeAppId, 'runtimeAppId');
+  const runtime = options.runtime;
+  return {
+    anchors: {
+      open: async (input, callOptions) => {
+        const context = buildNimiRuntimeAgentConsumeContext({ ...input, runtimeAppId });
+        const response = await runtime.agents.openConversationAnchor({
+          context: context.requestContext,
+          agentId: context.localAgentRef,
+          subjectUserId: context.subjectUserId,
+          localAgentRef: context.localAgentRef,
+          ownerUserId: context.ownerUserId,
+          realmAgentId: context.realmAgentId,
+          ...(input.metadata ? { metadata: toNimiRuntimeProtoStruct(input.metadata) } : {}),
+        }, callOptions);
+        return requireProjection(response.snapshot, 'Runtime Agent open conversation anchor returned no snapshot');
+      },
+      getSnapshot: async (input, callOptions) => {
+        const context = buildNimiRuntimeAgentConsumeContext({ ...input, runtimeAppId });
+        const response = await runtime.agents.getConversationAnchorSnapshot({
+          context: context.requestContext,
+          agentId: context.localAgentRef,
+          conversationAnchorId: requireText(input.conversationAnchorId, 'conversationAnchorId'),
+        }, callOptions);
+        return requireProjection(response.snapshot, 'Runtime Agent conversation anchor snapshot is missing');
+      },
+      listSummaries: async (input, callOptions) => {
+        const context = buildNimiRuntimeAgentConsumeContext({ ...input, runtimeAppId });
+        const listSummaries = requireAgentMethod(
+          runtime.agents.listAgentConversationSummaries,
+          'listAgentConversationSummaries',
+        );
+        const response = await listSummaries({
+          context: context.requestContext,
+          agentId: context.localAgentRef,
+          statusFilter: conversationAnchorStatusFilter(input.statusFilter),
+          pageSize: nonNegativeInt(input.pageSize),
+          pageToken: pageToken(input.pageToken),
+        }, callOptions);
+        if (!Array.isArray(response.summaries)) {
+          runtimeAgentError(
+            'Runtime Agent conversation summaries response missing summaries',
+            'SDK_RUNTIME_AGENT_RESPONSE_INVALID',
+            'check_runtime_agent_conversation_summaries',
+          );
+        }
+        const nextPageToken = normalizeText(response.nextPageToken);
+        return {
+          summaries: response.summaries,
+          ...(nextPageToken ? { nextPageToken } : {}),
+        };
+      },
+      registerAvatarLiveInstance: async (input, callOptions) => {
+        const context = buildNimiRuntimeAgentConsumeContext({ ...input, runtimeAppId });
+        const response = await runtime.agents.registerAvatarLiveInstanceBinding({
+          context: context.requestContext,
+          avatarInstanceId: requireText(input.avatarInstanceId, 'avatarInstanceId'),
+          conversationAnchorId: requireText(input.conversationAnchorId, 'conversationAnchorId'),
+        }, callOptions);
+        return {
+          binding: requireProjection(response.binding, 'Runtime Agent Avatar live instance binding is missing'),
+          snapshot: requireProjection(response.snapshot, 'Runtime Agent Avatar live instance snapshot is missing'),
+        };
+      },
+      resolveAvatarLiveInstance: async (input, callOptions) => {
+        const context = buildNimiRuntimeAgentConsumeContext({ ...input, runtimeAppId });
+        const response = await runtime.agents.resolveAvatarLiveInstanceBinding({
+          context: context.requestContext,
+          avatarInstanceId: requireText(input.avatarInstanceId, 'avatarInstanceId'),
+        }, callOptions);
+        return {
+          binding: requireProjection(response.binding, 'Runtime Agent Avatar live instance binding is missing'),
+          snapshot: requireProjection(response.snapshot, 'Runtime Agent Avatar live instance snapshot is missing'),
+        };
+      },
+    },
+    turns: {
+      getSessionSnapshot: async (input, callOptions) => {
+        const context = buildNimiRuntimeAgentConsumeContext({ ...input, runtimeAppId });
+        const response = await runtime.agents.getPublicChatSessionSnapshot({
+          context: context.requestContext,
+          agentId: context.localAgentRef,
+          conversationAnchorId: requireText(input.conversationAnchorId, 'conversationAnchorId'),
+          requestId: normalizeText(input.requestId),
+          worldId: normalizeText(input.worldId),
+        }, callOptions);
+        return parseNimiRuntimeAgentSessionSnapshot(response.snapshot);
+      },
+      subscribe: async (input, callOptions) => {
+        const context = buildNimiRuntimeAgentConsumeContext({ ...input, runtimeAppId });
+        const streams: AsyncIterable<NimiRuntimeAgentConsumeEvent>[] = [];
+        const conversationAnchorId = normalizeText(input.conversationAnchorId);
+        if (!runtime.appMessages) {
+          runtimeAgentError(
+            'Runtime Agent turn consume requires Runtime appMessages module',
+            'SDK_RUNTIME_AGENT_APP_MESSAGES_REQUIRED',
+            'provide_runtime_app_messages_module',
+          );
+        }
+        streams.push(projectAppMessageStream(runtime.appMessages.subscribeAppMessages({
+          appId: context.runtimeAppId,
+          subjectUserId: context.scopedBinding ? '' : context.subjectUserId,
+          ...(context.scopedBinding ? { scopedBinding: context.scopedBinding } : {}),
+          cursor: normalizeCursor(input.cursor),
+          fromAppIds: [RUNTIME_AGENT_APP_ID],
+        }, callOptions), input));
+
+        if (input.includeAgentEvents !== false) {
+          streams.push(projectAgentEventStream(runtime.agents.subscribeAgentEvents({
+            context: context.requestContext,
+            agentId: context.localAgentRef,
+            cursor: normalizeCursor(input.cursor),
+            eventFilters: [
+              AgentEventType.HOOK,
+              AgentEventType.STATE,
+              AgentEventType.PRESENTATION,
+            ],
+          }, callOptions), conversationAnchorId));
+        }
+        return mergeNimiRuntimeAgentStreams(streams);
+      },
+    },
+    companionParticipation: {
+      getProjection: async (input, callOptions) => {
+        const context = buildNimiRuntimeAgentConsumeContext({ ...input, runtimeAppId });
+        const getProjection = requireAgentMethod(
+          runtime.agents.getCompanionParticipationProjection,
+          'getCompanionParticipationProjection',
+        );
+        const response = await getProjection(companionParticipationRequest(context, input), callOptions);
+        return decodeNimiRuntimeAgentCompanionParticipationProjection(response.projection);
+      },
+      request: async (input, callOptions) => {
+        const context = buildNimiRuntimeAgentConsumeContext({ ...input, runtimeAppId });
+        const response = await runtime.agents.requestCompanionParticipation({
+          ...companionParticipationRequest(context, input),
+          text: requireText(input.text, 'text'),
+          threadId: normalizeText(input.threadId),
+          worldId: normalizeText(input.worldId),
+          maxOutputTokens: nonNegativeInt(input.maxOutputTokens),
+        }, callOptions);
+        return decodeNimiRuntimeAgentCompanionParticipationProjection(response.projection);
+      },
+      cancel: async (input, callOptions) => {
+        const context = buildNimiRuntimeAgentConsumeContext({ ...input, runtimeAppId });
+        const response = await runtime.agents.cancelCompanionParticipation({
+          ...companionParticipationRequest(context, input),
+          projectionId: normalizeText(input.projectionId),
+          turnId: normalizeText(input.turnId),
+          reason: normalizeText(input.reason),
+        }, callOptions);
+        return decodeNimiRuntimeAgentCompanionParticipationProjection(response.projection);
+      },
+      openReplay: async (input, callOptions) => {
+        const context = buildNimiRuntimeAgentConsumeContext({ ...input, runtimeAppId });
+        const openReplay = requireAgentMethod(
+          runtime.agents.openCompanionParticipationReplay,
+          'openCompanionParticipationReplay',
+        );
+        const response = await openReplay({
+          ...companionParticipationRequest(context, input),
+          projectionId: requireText(input.projectionId, 'projectionId'),
+        }, callOptions);
+        return {
+          replayRef: requireText(response.replayRef, 'replayRef'),
+          projection: decodeNimiRuntimeAgentCompanionParticipationProjection(response.projection),
+        };
+      },
+    },
+    avatarDebug: {
+      snapshot: async (input, callOptions) => {
+        const context = buildNimiRuntimeAgentConsumeContext({ ...input, runtimeAppId });
+        const snapshot = requireAgentMethod(runtime.agents.getAvatarDebugSnapshot, 'getAvatarDebugSnapshot');
+        return snapshot({
+          context: context.requestContext,
+          agentId: context.localAgentRef,
+          conversationAnchorId: requireText(input.conversationAnchorId, 'conversationAnchorId'),
+        }, callOptions);
+      },
+      requestProbe: async (input, callOptions) => {
+        const context = buildNimiRuntimeAgentConsumeContext({ ...input, runtimeAppId });
+        const requestProbe = requireAgentMethod(runtime.agents.requestAvatarDebugProbe, 'requestAvatarDebugProbe');
+        return requestProbe({
+          context: context.requestContext,
+          agentId: context.localAgentRef,
+          conversationAnchorId: requireText(input.conversationAnchorId, 'conversationAnchorId'),
+          probeKind: avatarDebugProbeKind(input.probeKind, { allowUnspecified: false }),
+          requestedBy: avatarDebugRequestedBy(input.requestedBy),
+          probeId: normalizeText(input.probeId),
+          turnId: normalizeText(input.turnId),
+          streamId: normalizeText(input.streamId),
+          avatarInstanceId: normalizeText(input.avatarInstanceId),
+          replayRequested: Boolean(input.replayRequested),
+        }, callOptions);
+      },
+      listProbeResults: async (input, callOptions) => {
+        const context = buildNimiRuntimeAgentConsumeContext({ ...input, runtimeAppId });
+        const listProbeResults = requireAgentMethod(
+          runtime.agents.listAvatarDebugProbeResults,
+          'listAvatarDebugProbeResults',
+        );
+        return listProbeResults({
+          context: context.requestContext,
+          agentId: context.localAgentRef,
+          conversationAnchorId: requireText(input.conversationAnchorId, 'conversationAnchorId'),
+          probeKind: avatarDebugProbeKind(input.probeKind, {
+            allowUnspecified: true,
+            fallback: AvatarDebugProbeKind.UNSPECIFIED,
+          }),
+        }, callOptions);
+      },
+      getReplay: async (input, callOptions) => {
+        const context = buildNimiRuntimeAgentConsumeContext({ ...input, runtimeAppId });
+        const getReplay = requireAgentMethod(runtime.agents.getAvatarDebugReplay, 'getAvatarDebugReplay');
+        return getReplay({
+          context: context.requestContext,
+          agentId: context.localAgentRef,
+          conversationAnchorId: requireText(input.conversationAnchorId, 'conversationAnchorId'),
+          probeId: requireText(input.probeId, 'probeId'),
+        }, callOptions);
+      },
+    },
+  };
+}
+
+export function decodeNimiRuntimeAgentCompanionParticipationProjection(
+  projection: CompanionParticipationProjection | undefined,
+): NimiRuntimeAgentCompanionParticipationProjection {
+  if (!projection) {
+    runtimeAgentError(
+      'Runtime Agent companion participation projection is missing',
+      'SDK_RUNTIME_AGENT_RESPONSE_INVALID',
+      'check_runtime_agent_companion_projection',
+    );
+  }
+  const status = companionStatus(projection.status);
+  const candidateRef = normalizeText(projection.candidateRef);
+  const commitRef = normalizeText(projection.commitRef);
+  if (status === 'candidate_ready' && !candidateRef) {
+    runtimeAgentError(
+      'Runtime Agent companion participation candidate_ready projection missing candidateRef',
+      'SDK_RUNTIME_AGENT_RESPONSE_INVALID',
+      'check_runtime_agent_companion_projection',
+    );
+  }
+  if (status === 'committed_by_owner' && !commitRef) {
+    runtimeAgentError(
+      'Runtime Agent companion participation committed_by_owner projection missing commitRef',
+      'SDK_RUNTIME_AGENT_RESPONSE_INVALID',
+      'check_runtime_agent_companion_projection',
+    );
+  }
+  const observedAt = toNimiRuntimeIsoFromTimestamp(projection.observedAt);
+  return {
+    projectionId: requiredProjectionText(projection.projectionId, 'projectionId'),
+    agentId: requiredProjectionText(projection.agentId, 'agentId'),
+    surfaceKind: companionSurfaceKindId(projection.surfaceKind),
+    profileRef: requiredProjectionText(projection.profileRef, 'profileRef'),
+    roomOrchestrationRef: requiredProjectionText(projection.roomOrchestrationRef, 'roomOrchestrationRef'),
+    triggerSource: companionTriggerSourceId(projection.triggerSource),
+    status,
+    ...(candidateRef ? { candidateRef } : {}),
+    ...(commitRef ? { commitRef } : {}),
+    ...(normalizeText(projection.refusalReason) ? { refusalReason: normalizeText(projection.refusalReason) } : {}),
+    ...(normalizeText(projection.presentationRef) ? { presentationRef: normalizeText(projection.presentationRef) } : {}),
+    auditRef: requiredProjectionText(projection.auditRef, 'auditRef'),
+    ...(observedAt ? { observedAt } : {}),
+    conversationAnchorId: requiredProjectionText(projection.conversationAnchorId, 'conversationAnchorId'),
+    ...(normalizeText(projection.turnId) ? { turnId: normalizeText(projection.turnId) } : {}),
+    ...(normalizeText(projection.streamId) ? { streamId: normalizeText(projection.streamId) } : {}),
+  };
+}
+
+function requireProjection<T>(value: T | undefined | null, message: string): T {
+  if (!value) {
+    runtimeAgentError(message, 'SDK_RUNTIME_AGENT_RESPONSE_INVALID', 'check_runtime_agent_projection_shape');
+  }
+  return value;
+}
+
+function companionParticipationRequest(
+  context: NimiRuntimeAgentConsumeContext,
+  input: NimiRuntimeAgentCompanionParticipationInput,
+) {
+  return {
+    context: context.requestContext,
+    agentId: context.localAgentRef,
+    conversationAnchorId: requireText(input.conversationAnchorId, 'conversationAnchorId'),
+    surfaceKind: companionSurfaceKind(input.surfaceKind),
+    triggerSource: companionTriggerSource(input.triggerSource),
+    profileRef: normalizeText(input.profileRef),
+    roomOrchestrationRef: normalizeText(input.roomOrchestrationRef),
+    requestId: normalizeText(input.requestId),
+  };
+}
+
+function conversationAnchorStatusFilter(values: unknown): ConversationAnchorStatus[] {
+  if (values === undefined || values === null) return [];
+  if (!Array.isArray(values)) {
+    runtimeAgentError(
+      'Runtime Agent conversation summaries statusFilter must be an array',
+      'SDK_RUNTIME_AGENT_INPUT_INVALID',
+      'provide_runtime_agent_conversation_status_filter',
+    );
+  }
+  return values.map((value) => conversationAnchorStatus(value));
+}
+
+function conversationAnchorStatus(value: unknown): ConversationAnchorStatus {
+  if (value === ConversationAnchorStatus.ACTIVE || value === 'active') {
+    return ConversationAnchorStatus.ACTIVE;
+  }
+  if (value === ConversationAnchorStatus.CLOSED || value === 'closed') {
+    return ConversationAnchorStatus.CLOSED;
+  }
+  runtimeAgentError(
+    'Runtime Agent conversation summaries statusFilter contains unsupported status',
+    'SDK_RUNTIME_AGENT_INPUT_INVALID',
+    'provide_runtime_agent_conversation_status_filter',
+  );
+}
+
+function companionSurfaceKind(value: unknown): CompanionParticipationSurfaceKind {
+  if (value === CompanionParticipationSurfaceKind.AVATAR_COMPANION || value === 'avatar_companion') {
+    return CompanionParticipationSurfaceKind.AVATAR_COMPANION;
+  }
+  if (value === CompanionParticipationSurfaceKind.DESKTOP_COMPANION_PANEL || value === 'desktop_companion_panel') {
+    return CompanionParticipationSurfaceKind.DESKTOP_COMPANION_PANEL;
+  }
+  if (value === CompanionParticipationSurfaceKind.AVATAR_DEBUG_WORKBENCH || value === 'avatar_debug_workbench') {
+    return CompanionParticipationSurfaceKind.AVATAR_DEBUG_WORKBENCH;
+  }
+  if (value === undefined || value === null || value === '') {
+    return CompanionParticipationSurfaceKind.AVATAR_COMPANION;
+  }
+  runtimeAgentError(
+    'Runtime Agent companion participation surfaceKind is unsupported',
+    'SDK_RUNTIME_AGENT_INPUT_INVALID',
+    'provide_supported_companion_surface_kind',
+  );
+}
+
+function companionTriggerSource(value: unknown): CompanionParticipationTriggerSource {
+  if (value === CompanionParticipationTriggerSource.USER_EXPLICIT || value === 'user_explicit') {
+    return CompanionParticipationTriggerSource.USER_EXPLICIT;
+  }
+  if (value === CompanionParticipationTriggerSource.SCHEDULED_PROACTIVE || value === 'scheduled_proactive') {
+    return CompanionParticipationTriggerSource.SCHEDULED_PROACTIVE;
+  }
+  if (value === CompanionParticipationTriggerSource.DOMAIN_EVENT || value === 'domain_event') {
+    return CompanionParticipationTriggerSource.DOMAIN_EVENT;
+  }
+  if (value === undefined || value === null || value === '') {
+    return CompanionParticipationTriggerSource.USER_EXPLICIT;
+  }
+  runtimeAgentError(
+    'Runtime Agent companion participation triggerSource is unsupported',
+    'SDK_RUNTIME_AGENT_INPUT_INVALID',
+    'provide_supported_companion_trigger_source',
+  );
+}
+
+function companionSurfaceKindId(value: CompanionParticipationSurfaceKind) {
+  switch (value) {
+    case CompanionParticipationSurfaceKind.AVATAR_COMPANION:
+      return 'avatar_companion';
+    case CompanionParticipationSurfaceKind.DESKTOP_COMPANION_PANEL:
+      return 'desktop_companion_panel';
+    case CompanionParticipationSurfaceKind.AVATAR_DEBUG_WORKBENCH:
+      return 'avatar_debug_workbench';
+    default:
+      runtimeAgentError(
+        'Runtime Agent companion participation projection has unsupported surfaceKind',
+        'SDK_RUNTIME_AGENT_RESPONSE_INVALID',
+        'check_runtime_agent_companion_projection',
+      );
+  }
+}
+
+function companionTriggerSourceId(value: CompanionParticipationTriggerSource) {
+  switch (value) {
+    case CompanionParticipationTriggerSource.USER_EXPLICIT:
+      return 'user_explicit';
+    case CompanionParticipationTriggerSource.SCHEDULED_PROACTIVE:
+      return 'scheduled_proactive';
+    case CompanionParticipationTriggerSource.DOMAIN_EVENT:
+      return 'domain_event';
+    default:
+      runtimeAgentError(
+        'Runtime Agent companion participation projection has unsupported triggerSource',
+        'SDK_RUNTIME_AGENT_RESPONSE_INVALID',
+        'check_runtime_agent_companion_projection',
+      );
+  }
+}
+
+function companionStatus(value: CompanionParticipationStatus) {
+  switch (value) {
+    case CompanionParticipationStatus.IDLE:
+      return 'idle';
+    case CompanionParticipationStatus.ADMISSION_PENDING:
+      return 'admission_pending';
+    case CompanionParticipationStatus.BLOCKED:
+      return 'blocked';
+    case CompanionParticipationStatus.RUNNING:
+      return 'running';
+    case CompanionParticipationStatus.CANDIDATE_READY:
+      return 'candidate_ready';
+    case CompanionParticipationStatus.COMMITTED_BY_OWNER:
+      return 'committed_by_owner';
+    case CompanionParticipationStatus.FAILED:
+      return 'failed';
+    case CompanionParticipationStatus.CANCELED:
+      return 'canceled';
+    default:
+      runtimeAgentError(
+        'Runtime Agent companion participation projection has unsupported status',
+        'SDK_RUNTIME_AGENT_RESPONSE_INVALID',
+        'check_runtime_agent_companion_projection',
+      );
+  }
+}
+
+function requiredProjectionText(value: unknown, field: string): string {
+  const text = normalizeText(value);
+  if (!text) {
+    runtimeAgentError(
+      `Runtime Agent companion participation projection missing ${field}`,
+      'SDK_RUNTIME_AGENT_RESPONSE_INVALID',
+      'check_runtime_agent_companion_projection',
+    );
+  }
+  return text;
+}
+
+function avatarDebugProbeKind(
+  value: unknown,
+  options: { readonly allowUnspecified: boolean; readonly fallback?: AvatarDebugProbeKind },
+): AvatarDebugProbeKind {
+  if (value === undefined || value === null || value === '') {
+    if (options.fallback !== undefined) return options.fallback;
+    runtimeAgentError(
+      'Runtime Agent avatar debug probeKind is required',
+      'SDK_RUNTIME_AGENT_INPUT_INVALID',
+      'provide_runtime_agent_avatar_debug_probe_kind',
+    );
+  }
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || !isAvatarDebugProbeKind(parsed)) {
+    runtimeAgentError(
+      'Runtime Agent avatar debug probeKind is unsupported',
+      'SDK_RUNTIME_AGENT_INPUT_INVALID',
+      'provide_runtime_agent_avatar_debug_probe_kind',
+    );
+  }
+  if (parsed === AvatarDebugProbeKind.UNSPECIFIED && !options.allowUnspecified) {
+    runtimeAgentError(
+      'Runtime Agent avatar debug probeKind must name a concrete probe',
+      'SDK_RUNTIME_AGENT_INPUT_INVALID',
+      'provide_runtime_agent_avatar_debug_probe_kind',
+    );
+  }
+  return parsed as AvatarDebugProbeKind;
+}
+
+function avatarDebugRequestedBy(value: unknown): AvatarDebugRequestedBy {
+  if (value === AvatarDebugRequestedBy.DESKTOP_DEBUG_WORKBENCH || value === AvatarDebugRequestedBy.RUNTIME_POLICY) {
+    return value;
+  }
+  runtimeAgentError(
+    'Runtime Agent avatar debug requestedBy is unsupported',
+    'SDK_RUNTIME_AGENT_INPUT_INVALID',
+    'provide_runtime_agent_avatar_debug_requested_by',
+  );
+}
+
+function isAvatarDebugProbeKind(value: number): value is AvatarDebugProbeKind {
+  switch (value) {
+    case AvatarDebugProbeKind.UNSPECIFIED:
+    case AvatarDebugProbeKind.PACKAGE_VALIDATION:
+    case AvatarDebugProbeKind.LAUNCH_READINESS:
+    case AvatarDebugProbeKind.BACKEND_LOAD:
+    case AvatarDebugProbeKind.CAPABILITY_PROFILE:
+    case AvatarDebugProbeKind.ROUTE_SUPPORT_MATRIX:
+    case AvatarDebugProbeKind.GENERATED_MOTION:
+    case AvatarDebugProbeKind.EMOTION_EXPRESSION:
+    case AvatarDebugProbeKind.SPEECH_LIPSYNC:
+    case AvatarDebugProbeKind.WINDOW_HIT_REGION:
+      return true;
+    default:
+      return false;
+  }
+}
+
+function requireAgentMethod<Response>(
+  method: ((request: unknown, options?: RuntimeTypedCallOptions) => Promise<Response>) | undefined,
+  methodName: string,
+): (request: unknown, options?: RuntimeTypedCallOptions) => Promise<Response> {
+  if (!method) {
+    runtimeAgentError(
+      `Runtime Agent consume requires ${methodName}`,
+      'SDK_RUNTIME_AGENT_METHOD_REQUIRED',
+      'provide_runtime_agent_method',
+    );
+  }
+  return method;
+}
+
+function nonNegativeInt(value: unknown): number {
+  const parsed = optionalNumber(value);
+  if (parsed === undefined) return 0;
+  if (!Number.isInteger(parsed) || parsed < 0) {
+    runtimeAgentError(
+      'Runtime Agent maxOutputTokens must be a non-negative integer',
+      'SDK_RUNTIME_AGENT_INPUT_INVALID',
+      'provide_non_negative_max_output_tokens',
+    );
+  }
+  return parsed;
+}
+
+function pageToken(value: unknown): string {
+  if (value === undefined || value === null || value === '') return '';
+  if (typeof value !== 'string') {
+    runtimeAgentError(
+      'Runtime Agent pageToken must be a Runtime returned string',
+      'SDK_RUNTIME_AGENT_INPUT_INVALID',
+      'use_runtime_returned_page_token',
+    );
+  }
+  return value.trim();
+}
+
+function normalizeCursor(value: unknown): string {
+  const cursor = normalizeText(value);
+  if (!cursor) return '';
+  if (!/^\d+$/u.test(cursor)) {
+    runtimeAgentError(
+      'Runtime Agent stream cursor must be a non-negative integer string',
+      'SDK_RUNTIME_AGENT_INPUT_INVALID',
+      'use_runtime_agent_returned_cursor',
+    );
+  }
+  return cursor;
+}
+
+function projectAppMessageStream(
+  stream: AsyncIterable<AppMessageEvent>,
+  request: { readonly conversationAnchorId?: unknown },
+): AsyncIterable<NimiRuntimeAgentConsumeEvent> {
+  return {
+    async *[Symbol.asyncIterator]() {
+      for await (const event of stream) {
+        const projected = projectNimiRuntimeAgentAppMessageEvent(event);
+        if (!projected) continue;
+        const expectedAnchorId = normalizeText(request.conversationAnchorId);
+        if (expectedAnchorId && projected.conversationAnchorId !== expectedAnchorId) {
+          continue;
+        }
+        yield projected;
+      }
+    },
+  };
+}
+
+function projectAgentEventStream(
+  stream: AsyncIterable<AgentEvent>,
+  conversationAnchorId: string,
+): AsyncIterable<NimiRuntimeAgentConsumeEvent> {
+  return {
+    async *[Symbol.asyncIterator]() {
+      for await (const event of stream) {
+        const projected = projectNimiRuntimeAgentServiceEvent(event);
+        if (conversationAnchorId && projected.conversationAnchorId && projected.conversationAnchorId !== conversationAnchorId) {
+          continue;
+        }
+        yield projected;
+      }
+    },
+  };
+}
+
+function mergeNimiRuntimeAgentStreams(
+  sources: readonly AsyncIterable<NimiRuntimeAgentConsumeEvent>[],
+): AsyncIterable<NimiRuntimeAgentConsumeEvent> {
+  return {
+    async *[Symbol.asyncIterator]() {
+      const entries = sources.map((source, index) => ({
+        index,
+        iterator: source[Symbol.asyncIterator](),
+        next: undefined as Promise<{
+          readonly index: number;
+          readonly result: IteratorResult<NimiRuntimeAgentConsumeEvent>;
+        }> | undefined,
+      }));
+      for (const entry of entries) {
+        entry.next = entry.iterator.next().then((result) => ({
+          index: entry.index,
+          result,
+        }));
+      }
+      while (entries.length > 0) {
+        const next = await Promise.race(entries.map((entry) => entry.next!));
+        const entryIndex = entries.findIndex((entry) => entry.index === next.index);
+        if (entryIndex < 0) continue;
+        if (next.result.done) {
+          entries.splice(entryIndex, 1);
+          continue;
+        }
+        const entry = entries[entryIndex];
+        entry.next = entry.iterator.next().then((result) => ({
+          index: entry.index,
+          result,
+        }));
+        yield next.result.value;
+      }
+    },
+  };
+}

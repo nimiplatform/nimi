@@ -1,0 +1,175 @@
+import {
+  AgentPresentationBackendKind,
+  type RuntimeTypedCallOptions,
+  type SetAgentPresentationProfileRequest,
+  type SetAgentPresentationProfileResponse,
+} from '../core-generated/runtime-typed-client';
+import { createNimiError } from '../types';
+import { buildRuntimeAgentRequestContext } from './agent-local-identity';
+import {
+  resolveNimiRuntimeAgentSubjectUserId,
+  withNimiRuntimeAgentScopes,
+  type NimiRuntimeAgentAppAuthClient,
+  type NimiRuntimeAgentAuthClient,
+  type NimiRuntimeAgentScopeRunner,
+} from './runtime-agent-protected';
+import { normalizeNimiRuntimeAgentText } from './runtime-agent-values';
+
+export interface NimiRuntimeAgentPresentationProfileInput {
+  readonly backendKind?: unknown;
+  readonly avatarAssetRef?: unknown;
+  readonly expressionProfileRef?: unknown;
+  readonly idlePreset?: unknown;
+  readonly interactionPolicyRef?: unknown;
+  readonly defaultVoiceReference?: unknown;
+}
+
+export interface NimiRuntimeAgentPresentationProfileContext {
+  readonly appId: string;
+  readonly subjectUserId: string;
+}
+
+export interface NimiRuntimeAgentPresentationProfileSurface {
+  setPresentationProfile(agentId: string, profile: NimiRuntimeAgentPresentationProfileInput | null): Promise<void>;
+}
+
+export interface NimiHostRuntimeAgentPresentationProfileClient {
+  readonly appId: string;
+  readonly auth: NimiRuntimeAgentAuthClient;
+  readonly appAuth: NimiRuntimeAgentAppAuthClient;
+  readonly agent: {
+    setAgentPresentationProfile(
+      request: SetAgentPresentationProfileRequest,
+      options?: RuntimeTypedCallOptions,
+    ): Promise<SetAgentPresentationProfileResponse>;
+  };
+}
+
+export interface NimiHostRuntimeAgentPresentationProfileSurfaceOptions {
+  readonly getRuntime: () => NimiHostRuntimeAgentPresentationProfileClient;
+  readonly getSubjectUserId: () => string | Promise<string | undefined> | undefined;
+  readonly withScopes?: NimiRuntimeAgentScopeRunner;
+}
+
+const RUNTIME_AGENT_PRESENTATION_VOICE_REFERENCE_PREFIXES = [
+  'preset_voice_id:',
+  'voice_asset_id:',
+  'provider_voice_ref:',
+];
+
+export function normalizeNimiRuntimeAgentPresentationBackendKind(
+  value: unknown,
+): AgentPresentationBackendKind | null {
+  switch (normalizeNimiRuntimeAgentText(value).toLowerCase()) {
+    case 'vrm':
+      return AgentPresentationBackendKind.VRM;
+    case 'live2d':
+      return AgentPresentationBackendKind.LIVE2D;
+    default:
+      return null;
+  }
+}
+
+export function normalizeNimiRuntimeAgentPresentationDefaultVoiceReference(value: unknown): string {
+  const normalized = normalizeNimiRuntimeAgentText(value);
+  if (!normalized) {
+    return '';
+  }
+  return RUNTIME_AGENT_PRESENTATION_VOICE_REFERENCE_PREFIXES.some((prefix) => normalized.startsWith(prefix))
+    ? normalized
+    : '';
+}
+
+function presentationError(message: string, reasonCode: string, actionHint: string): never {
+  throw createNimiError({
+    message,
+    reasonCode,
+    actionHint,
+    source: 'sdk',
+  });
+}
+
+export function buildNimiSetRuntimeAgentPresentationProfileRequest(input: {
+  readonly context: NimiRuntimeAgentPresentationProfileContext;
+  readonly agentId: unknown;
+  readonly profile: NimiRuntimeAgentPresentationProfileInput | null | undefined;
+}): SetAgentPresentationProfileRequest {
+  const agentId = normalizeNimiRuntimeAgentText(input.agentId);
+  const appId = normalizeNimiRuntimeAgentText(input.context.appId);
+  const subjectUserId = normalizeNimiRuntimeAgentText(input.context.subjectUserId);
+  if (!agentId) {
+    presentationError('Runtime Agent presentation profile requires agent id.', 'SDK_RUNTIME_AGENT_ID_REQUIRED', 'provide_runtime_agent_id');
+  }
+  if (!appId || !subjectUserId) {
+    presentationError(
+      'Runtime Agent presentation profile requires app id and subject user id.',
+      'SDK_RUNTIME_AGENT_PRESENTATION_CONTEXT_REQUIRED',
+      'provide_runtime_agent_context',
+    );
+  }
+  const context = buildRuntimeAgentRequestContext({
+    runtimeAppId: appId,
+    subjectUserId,
+    localAgentRef: agentId,
+  });
+  if (!input.profile) {
+    return {
+      context,
+      agentId,
+      mutation: {
+        oneofKind: 'clear',
+        clear: {},
+      },
+    };
+  }
+  const backendKind = normalizeNimiRuntimeAgentPresentationBackendKind(input.profile.backendKind);
+  const avatarAssetRef = normalizeNimiRuntimeAgentText(input.profile.avatarAssetRef);
+  if (!backendKind || !avatarAssetRef) {
+    presentationError(
+      'Runtime Agent presentation profile requires backend kind and avatar asset ref.',
+      'SDK_RUNTIME_AGENT_PRESENTATION_PROFILE_INVALID',
+      'provide_runtime_agent_presentation_profile',
+    );
+  }
+  return {
+    context,
+    agentId,
+    mutation: {
+      oneofKind: 'profile',
+      profile: {
+        backendKind,
+        avatarAssetRef,
+        expressionProfileRef: normalizeNimiRuntimeAgentText(input.profile.expressionProfileRef),
+        idlePreset: normalizeNimiRuntimeAgentText(input.profile.idlePreset),
+        interactionPolicyRef: normalizeNimiRuntimeAgentText(input.profile.interactionPolicyRef),
+        defaultVoiceReference: normalizeNimiRuntimeAgentPresentationDefaultVoiceReference(input.profile.defaultVoiceReference),
+      },
+    },
+  };
+}
+
+export function createNimiHostRuntimeAgentPresentationProfileSurface(
+  options: NimiHostRuntimeAgentPresentationProfileSurfaceOptions,
+): NimiRuntimeAgentPresentationProfileSurface {
+  return {
+    async setPresentationProfile(agentId, profile) {
+      const runtime = options.getRuntime();
+      const subjectUserId = await resolveNimiRuntimeAgentSubjectUserId(
+        options.getSubjectUserId,
+        'Runtime Agent presentation profile requires authenticated subject user id.',
+      );
+      await withNimiRuntimeAgentScopes({
+        runtime,
+        subjectUserId,
+        withScopes: options.withScopes,
+      }, ['runtime.agent.write'], (callOptions) => runtime.agent.setAgentPresentationProfile(
+        buildNimiSetRuntimeAgentPresentationProfileRequest({
+          context: { appId: runtime.appId, subjectUserId },
+          agentId,
+          profile,
+        }),
+        callOptions,
+      ));
+    },
+  };
+}
