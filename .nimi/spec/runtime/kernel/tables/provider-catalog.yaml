@@ -89,7 +89,7 @@ providers:
     source_rule: K-MCAT-027
   - provider: dashscope
     default_endpoint: https://dashscope.aliyuncs.com/compatible-mode/v1
-    default_text_model: qwen3-max
+    default_text_model: qwen3.7-max
     requires_explicit_endpoint: false
     inventory_mode: static_source
     source_rule: K-MCAT-027

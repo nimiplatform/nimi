@@ -338,6 +338,14 @@ func runLocalSpeechHostPreflight(t *testing.T, baseURL string, apiKey string, mo
 
 func resolveLiveTTSVoiceRef(t *testing.T, svc *Service, providerID string, modelID string) string {
 	t.Helper()
+	token := liveProviderEnvToken(providerID)
+	if voiceID := liveEnvFirst(
+		"NIMI_LIVE_"+token+"_TTS_VOICE_ID",
+		"NIMI_LIVE_"+token+"_VOICE_ID",
+		"NIMI_LIVE_TTS_VOICE_ID",
+	); voiceID != "" {
+		return voiceID
+	}
 	if svc == nil || svc.speechCatalog == nil {
 		return ""
 	}
@@ -451,6 +459,18 @@ func resolveLiveTranscriptionAudioSource(t *testing.T) (*runtimev1.SpeechTranscr
 func resolveLiveVoiceCloneInput(t *testing.T, providerToken string) *runtimev1.VoiceV2VInput {
 	t.Helper()
 	liveText := resolveLiveVoiceCloneText(providerToken)
+	if strings.EqualFold(strings.TrimSpace(providerToken), "DASHSCOPE") {
+		if audioURI := liveEnvFirst(
+			"NIMI_LIVE_"+providerToken+"_VOICE_REFERENCE_AUDIO_URI",
+			"NIMI_LIVE_VOICE_REFERENCE_AUDIO_URI",
+		); audioURI != "" {
+			return &runtimev1.VoiceV2VInput{
+				ReferenceAudioUri:  audioURI,
+				ReferenceAudioMime: resolveLiveAudioMIME(audioURI),
+				Text:               liveText,
+			}
+		}
+	}
 	audioPath := liveEnvFirst(
 		"NIMI_LIVE_"+providerToken+"_VOICE_REFERENCE_AUDIO_PATH",
 		"NIMI_LIVE_VOICE_REFERENCE_AUDIO_PATH",
@@ -653,7 +673,15 @@ func runLiveSmokeMediaForProvider(t *testing.T, providerID string, record provid
 		if providerID == "local" {
 			modelID = qualifyLocalSpeechLiveModelID(modelID)
 		}
-		speechSpec := &runtimev1.SpeechSynthesizeScenarioSpec{Text: "Hello from Nimi live smoke."}
+		speechText := "Hello from Nimi live smoke."
+		language := ""
+		audioFormat := ""
+		if strings.EqualFold(strings.TrimSpace(providerID), "dashscope") {
+			speechText = liveEnvFirstOrDefault("你好，这是 Nimi DashScope CosyVoice live smoke。", "NIMI_LIVE_DASHSCOPE_TTS_TEXT")
+			language = liveEnvFirstOrDefault("zh", "NIMI_LIVE_DASHSCOPE_TTS_LANGUAGE")
+			audioFormat = liveEnvFirstOrDefault("mp3", "NIMI_LIVE_DASHSCOPE_TTS_AUDIO_FORMAT")
+		}
+		speechSpec := &runtimev1.SpeechSynthesizeScenarioSpec{Text: speechText, Language: language, AudioFormat: audioFormat}
 		if voiceRef := resolveLiveTTSVoiceRef(t, svc, providerID, modelID); voiceRef != "" {
 			speechSpec.VoiceRef = &runtimev1.VoiceReference{
 				Kind: runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PRESET,

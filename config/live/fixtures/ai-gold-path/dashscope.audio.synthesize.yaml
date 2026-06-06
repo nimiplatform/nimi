@@ -4,10 +4,10 @@ provider: dashscope
 model_id: "${NIMI_LIVE_DASHSCOPE_TTS_MODEL_ID}"
 voice_ref:
   kind: preset_voice_id
-  id: Cherry
+  id: longanyang
 request:
-  text: "Hello from the Nimi DashScope gold path."
-  language: zh-CN
+  text: "你好，这是 Nimi DashScope CosyVoice 测试。"
+  language: zh
   audio_format: mp3
 expected_assertions:
   route_policy: token-api

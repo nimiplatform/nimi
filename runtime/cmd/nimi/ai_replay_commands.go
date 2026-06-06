@@ -61,6 +61,8 @@ func runRuntimeAIReplay(args []string) error {
 	surfaceID := fs.String("surface-id", "runtime-cli", "surface id metadata")
 	traceID := fs.String("trace-id", "", "trace id metadata")
 	subjectUserID := fs.String("subject-user-id", strings.TrimSpace(os.Getenv("NIMI_LIVE_GOLD_SUBJECT_USER_ID")), "subject user id for gold replay auth context")
+	accessTokenID := fs.String("access-token-id", strings.TrimSpace(os.Getenv("NIMI_LIVE_GOLD_ACCESS_TOKEN_ID")), "protected access token id")
+	accessTokenSecret := fs.String("access-token-secret", strings.TrimSpace(os.Getenv("NIMI_LIVE_GOLD_ACCESS_TOKEN_SECRET")), "protected access token secret")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -77,6 +79,8 @@ func runRuntimeAIReplay(args []string) error {
 		return fmt.Errorf("parse timeout: %w", err)
 	}
 	callerMeta := runtimeAICallerMetadataFromFlags(*callerKind, *callerID, *surfaceID, *traceID)
+	callerMeta.AccessTokenID = strings.TrimSpace(*accessTokenID)
+	callerMeta.AccessTokenSecret = strings.TrimSpace(*accessTokenSecret)
 	payload, err := executeRuntimeReplay(*grpcAddr, timeout, fixture, callerMeta, *subjectUserID)
 	if err != nil {
 		return err

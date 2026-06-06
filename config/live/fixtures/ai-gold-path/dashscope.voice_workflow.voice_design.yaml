@@ -5,6 +5,7 @@ model_id: "${NIMI_LIVE_DASHSCOPE_VOICE_DESIGN_MODEL_ID}"
 target_model_id: "${NIMI_LIVE_DASHSCOPE_VOICE_DESIGN_MODEL_ID_TARGET_MODEL_ID}"
 request:
   instruction_text: "Warm, calm and natural documentary narrator voice."
+  preview_text: "Hello from Nimi DashScope CosyVoice design."
 expected_assertions:
   route_policy: token-api
   fallback_policy: deny

@@ -109,7 +109,10 @@ function toChannelCredentials(grpc: GrpcModule, options: RuntimeNodeGrpcTranspor
 }
 
 function toChannelOptions(options: RuntimeNodeGrpcTransportOptions): ChannelOptions {
-  const channelOptions: ChannelOptions = {};
+  const channelOptions: ChannelOptions = {
+    'grpc.max_receive_message_length': 64 * 1024 * 1024,
+    'grpc.max_send_message_length': 64 * 1024 * 1024,
+  };
   const serverName = String(options.tls?.serverName || '').trim();
   if (serverName) {
     channelOptions['grpc.ssl_target_name_override'] = serverName;

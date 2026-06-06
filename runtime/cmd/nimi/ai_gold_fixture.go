@@ -46,6 +46,7 @@ type aiGoldFixtureRequest struct {
 	AudioPath       string   `yaml:"audio_path,omitempty"`
 	MimeType        string   `yaml:"mime_type,omitempty"`
 	InstructionText string   `yaml:"instruction_text,omitempty"`
+	PreviewText     string   `yaml:"preview_text,omitempty"`
 }
 
 func loadAIGoldFixture(path string) (*aiGoldFixture, error) {
@@ -440,6 +441,7 @@ func (f *aiGoldFixture) buildSubmitScenarioJobRequest(appID string, subjectUserI
 					TargetModelId: strings.TrimSpace(f.TargetModelID),
 					Input: &runtimev1.VoiceT2VInput{
 						InstructionText: strings.TrimSpace(f.Request.InstructionText),
+						PreviewText:     strings.TrimSpace(firstNonEmptyString(f.Request.PreviewText, f.Request.Text, f.Request.InstructionText)),
 					},
 				},
 			},

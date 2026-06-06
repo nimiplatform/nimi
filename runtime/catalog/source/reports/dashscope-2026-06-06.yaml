@@ -1,0 +1,109 @@
+provider: dashscope
+report_date: 2026-06-06
+audit_mode: provider_wide
+families_in_scope:
+  - text
+  - vision_language
+  - tts
+  - realtime_tts
+  - voice_workflow
+taxonomy_axes:
+  product_family: [qwen, cosyvoice]
+  capability_family: [text, vision_language, tts, realtime_tts, voice_workflow]
+  lineage_or_track: [max, plus, flash, preview, realtime, voice_clone, voice_design]
+refresh_policy:
+  keep_latest_generations: 2
+  authority_home: runtime/catalog/source/providers/dashscope.source.yaml
+evidence_urls:
+  official:
+    - https://help.aliyun.com/zh/model-studio/newly-released-models
+    - https://help.aliyun.com/zh/model-studio/model-pricing
+    - https://help.aliyun.com/zh/model-studio/models
+    - https://help.aliyun.com/zh/model-studio/speech-synthesis/
+    - https://help.aliyun.com/zh/model-studio/non-realtime-cosyvoice-api/
+    - https://help.aliyun.com/zh/model-studio/cosyvoice-voice-list
+    - https://help.aliyun.com/zh/model-studio/cosyvoice-clone-design-api
+  official_product: []
+  aggregate_hints: []
+current_source_inventory:
+  qwen_text:
+    stable: [qwen3-max, qwen3.6-plus, qwen3.6-flash, qwen3.5-plus, qwen3.5-flash]
+    vision_language: [qwen3.6-plus, qwen3.6-flash, qwen3-vl-plus, qwen3-vl-flash, qwen-vl-max-latest]
+  qwen_tts:
+    non_realtime: [qwen3-tts-instruct-flash, qwen3-tts-flash, qwen3-tts-vc, qwen3-tts-vd]
+    realtime: [qwen3-tts-instruct-flash-realtime, qwen3-tts-flash-realtime, qwen3-tts-vc-realtime-2026-01-15, qwen3-tts-vd-realtime-2026-01-15]
+  cosyvoice_tts: []
+official_current_inventory:
+  qwen_text:
+    stable:
+      - qwen3.7-max
+      - qwen3.7-max-2026-05-20
+      - qwen3.7-plus
+      - qwen3.7-plus-2026-05-26
+    preview:
+      - qwen3.7-max-preview
+      - qwen3.7-max-2026-05-17
+    previous_generation_tail:
+      - qwen3.6-plus
+      - qwen3.6-flash
+  cosyvoice_tts:
+    recommended_replacement:
+      - cosyvoice-v3-flash
+    active:
+      - cosyvoice-v3.5-plus
+      - cosyvoice-v3.5-flash
+      - cosyvoice-v3-plus
+      - cosyvoice-v3-flash
+    workflow_model:
+      - voice-enrollment
+  qwen_tts:
+    active_qwen3:
+      - qwen3-tts-instruct-flash
+      - qwen3-tts-flash
+      - qwen3-tts-vc
+      - qwen3-tts-vd
+    pending_deprecation_notice_from_user:
+      - qwen-tts-latest
+      - qwen-tts-2025-05-22
+      - qwen-tts-2025-04-10
+      - qwen-tts-realtime-latest
+      - qwen-tts-realtime-2025-07-15
+gap_summary:
+  missing_in_source:
+    - qwen3.7-max
+    - qwen3.7-plus
+    - qwen3.7-max-preview
+    - cosyvoice-v3-flash
+    - cosyvoice-v3-plus
+    - cosyvoice-v3.5-plus
+    - cosyvoice-v3.5-flash
+    - voice-enrollment workflow bindings for CosyVoice target synthesis models
+  stale_in_source:
+    - defaults.default_text_model points to qwen3-max instead of current Qwen3.7 max line.
+    - selection_profiles[text.general] points to qwen3-max instead of current Qwen3.7 max line.
+  extra_legacy_in_source: []
+  uncertain_items:
+    - The user-provided Alibaba Cloud notice lists qwen-tts historical rows to be removed on 2026-07-06; those rows are already absent from source, so no source removal is required.
+    - CosyVoice v3.5 rows have no system voices in official docs, so source should represent them as dynamic-user-scoped voice rows only.
+curation_decision:
+  keep:
+    - qwen3.6-plus and qwen3.6-flash as previous-generation and fast route rows.
+    - qwen3 TTS rows because official docs still list them separately from the deprecated qwen-tts historical line.
+  add:
+    - qwen3.7-max with snapshot alias qwen3.7-max-2026-05-20.
+    - qwen3.7-plus with snapshot alias qwen3.7-plus-2026-05-26.
+    - qwen3.7-max-preview with snapshot alias qwen3.7-max-2026-05-17.
+    - CosyVoice v3/v3.5 synthesis rows and static v3 system voice set for v3-flash/v3-plus.
+    - CosyVoice voice clone/design workflow row using voice-enrollment.
+  defer:
+    - Realtime WebSocket adapter support for CosyVoice, because current runtime scenario job path is HTTP job execution.
+  reject_or_noise:
+    - qwen-tts-latest and qwen-tts-realtime-latest reintroduction.
+review_actions:
+  selection_profiles_review_required: true
+  defaults_review_required: true
+  capability_review_required: true
+notes:
+  - CosyVoice HTTP synthesis uses /api/v1/services/audio/tts/SpeechSynthesizer, not the Qwen-TTS multimodal-generation endpoint.
+  - CosyVoice clone/design uses /api/v1/services/audio/tts/customization with model voice-enrollment and action create_voice.
+confidence: high

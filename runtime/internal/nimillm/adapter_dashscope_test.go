@@ -134,6 +134,121 @@ func TestExecuteAlibabaNativeTTSPreservesRequestedVoice(t *testing.T) {
 	}
 }
 
+func TestExecuteAlibabaNativeCosyVoiceTTSUsesSpeechSynthesizerContract(t *testing.T) {
+	var capturedPayload map[string]any
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.URL.Path != "/api/v1/services/audio/tts/SpeechSynthesizer" {
+			http.NotFound(w, r)
+			return
+		}
+		_ = json.NewDecoder(r.Body).Decode(&capturedPayload)
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"output": map[string]any{
+				"audio": map[string]any{
+					"data": base64.StdEncoding.EncodeToString([]byte("cosyvoice-tts-bytes")),
+				},
+			},
+		})
+	}))
+	defer func() { server.Close() }()
+
+	artifacts, _, _, err := ExecuteAlibabaNative(
+		context.Background(),
+		MediaAdapterConfig{
+			BaseURL:               server.URL + "/compatible-mode/v1",
+			AllowLoopbackEndpoint: true,
+			APIKey:                "test-api-key",
+		},
+		nil,
+		"job-cosyvoice-test",
+		&runtimev1.SubmitScenarioJobRequest{
+			ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
+			Extensions: []*runtimev1.ScenarioExtension{
+				{
+					Namespace: "nimi.scenario.speech_synthesize.request",
+					Payload: mustStructPBForNimillmTest(t, map[string]any{
+						"instruction":            "用温柔的语气，语速稍慢。",
+						"word_timestamp_enabled": true,
+						"seed":                   17,
+					}),
+				},
+			},
+			Spec: &runtimev1.ScenarioSpec{
+				Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{
+					SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{
+						Text:         "你好，Nimi。",
+						Language:     "zh",
+						AudioFormat:  "wav",
+						SampleRateHz: 24000,
+						Speed:        0.9,
+						Pitch:        1.1,
+						Volume:       50,
+						TimingMode:   runtimev1.SpeechTimingMode_SPEECH_TIMING_MODE_WORD,
+						VoiceRef: &runtimev1.VoiceReference{
+							Kind: runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PROVIDER_VOICE_REF,
+							Reference: &runtimev1.VoiceReference_ProviderVoiceRef{
+								ProviderVoiceRef: "longanyang",
+							},
+						},
+					},
+				},
+			},
+		},
+		"cosyvoice-v3-flash",
+	)
+	if err != nil {
+		t.Fatalf("ExecuteAlibabaNative cosyvoice tts failed: %v", err)
+	}
+	if len(artifacts) != 1 {
+		t.Fatalf("expected 1 artifact, got=%d", len(artifacts))
+	}
+	if got := string(artifacts[0].GetBytes()); got != "cosyvoice-tts-bytes" {
+		t.Fatalf("unexpected artifact bytes: %q", got)
+	}
+	if got := strings.TrimSpace(toString(capturedPayload["model"])); got != "cosyvoice-v3-flash" {
+		t.Fatalf("unexpected model: %q", got)
+	}
+	input, ok := capturedPayload["input"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected input payload, got=%T", capturedPayload["input"])
+	}
+	if _, exists := capturedPayload["parameters"]; exists {
+		t.Fatalf("cosyvoice payload must not use qwen parameters envelope: %#v", capturedPayload["parameters"])
+	}
+	if got := strings.TrimSpace(toString(input["text"])); got != "你好，Nimi。" {
+		t.Fatalf("unexpected text: %q", got)
+	}
+	if got := strings.TrimSpace(toString(input["voice"])); got != "longanyang" {
+		t.Fatalf("unexpected voice: %q", got)
+	}
+	if got := strings.TrimSpace(toString(input["format"])); got != "wav" {
+		t.Fatalf("unexpected format: %q", got)
+	}
+	if got := ValueAsInt64(input["sample_rate"]); got != 24000 {
+		t.Fatalf("unexpected sample_rate: %#v", input["sample_rate"])
+	}
+	if got := ValueAsFloat64(input["rate"]); got != 0.9 {
+		t.Fatalf("unexpected rate: %#v", input["rate"])
+	}
+	if got := ValueAsFloat64(input["pitch"]); got != 1.1 {
+		t.Fatalf("unexpected pitch: %#v", input["pitch"])
+	}
+	if got := ValueAsFloat64(input["volume"]); got != 50 {
+		t.Fatalf("unexpected volume: %#v", input["volume"])
+	}
+	if got := strings.TrimSpace(toString(input["instruction"])); got != "用温柔的语气，语速稍慢。" {
+		t.Fatalf("unexpected instruction: %q", got)
+	}
+	if !ValueAsBool(input["word_timestamp_enabled"]) {
+		t.Fatalf("expected word_timestamp_enabled=true, got=%#v", input["word_timestamp_enabled"])
+	}
+	hints, ok := input["language_hints"].([]any)
+	if !ok || len(hints) != 1 || strings.TrimSpace(toString(hints[0])) != "zh" {
+		t.Fatalf("unexpected language_hints: %#v", input["language_hints"])
+	}
+}
+
 func TestExecuteAlibabaNativeRejectsMissingAPIKey(t *testing.T) {
 	_, _, _, err := ExecuteAlibabaNative(
 		context.Background(),
@@ -731,6 +846,229 @@ func TestExecuteDashScopeVoiceWorkflowUsesCustomizationContractForDesign(t *test
 	}
 	if got := strings.TrimSpace(toString(input["preferred_name"])); got != "nimi_voice" {
 		t.Fatalf("unexpected preferred_name: %q", got)
+	}
+}
+
+func TestExecuteDashScopeVoiceWorkflowUsesCosyVoiceEnrollmentContractForClone(t *testing.T) {
+	var capturedPayload map[string]any
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.URL.Path != "/api/v1/services/audio/tts/customization" {
+			http.NotFound(w, r)
+			return
+		}
+		_ = json.NewDecoder(r.Body).Decode(&capturedPayload)
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"output": map[string]any{
+				"voice_id": "cosyvoice-v3-flash-nimivoice-abc123",
+			},
+		})
+	}))
+	defer func() { server.Close() }()
+
+	result, err := executeDashScopeVoiceWorkflow(context.Background(), VoiceWorkflowRequest{
+		Provider:        "dashscope",
+		WorkflowType:    "voice_clone",
+		WorkflowModelID: "voice-enrollment-clone",
+		ModelID:         "cosyvoice-v3-flash",
+		Payload: map[string]any{
+			"target_model_id": "cosyvoice-v3-flash",
+			"input": map[string]any{
+				"reference_audio_uri": "https://example.com/reference.wav",
+				"preferred_name":      "Nimi Voice 123",
+				"language":            "zh",
+				"sample_rate_hz":      24000,
+				"response_format":     "wav",
+			},
+		},
+	}, MediaAdapterConfig{
+		BaseURL:               server.URL + "/compatible-mode/v1",
+		AllowLoopbackEndpoint: true,
+		APIKey:                "test-api-key",
+	})
+	if err != nil {
+		t.Fatalf("executeDashScopeVoiceWorkflow cosyvoice clone failed: %v", err)
+	}
+	if got := strings.TrimSpace(result.ProviderVoiceRef); got != "cosyvoice-v3-flash-nimivoice-abc123" {
+		t.Fatalf("unexpected provider voice ref: %q", got)
+	}
+	if got := strings.TrimSpace(toString(capturedPayload["model"])); got != "voice-enrollment" {
+		t.Fatalf("unexpected workflow model: %q", got)
+	}
+	input, ok := capturedPayload["input"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected input map, got=%T", capturedPayload["input"])
+	}
+	if got := strings.TrimSpace(toString(input["action"])); got != "create_voice" {
+		t.Fatalf("unexpected action: %q", got)
+	}
+	if got := strings.TrimSpace(toString(input["target_model"])); got != "cosyvoice-v3-flash" {
+		t.Fatalf("unexpected target model: %q", got)
+	}
+	if got := strings.TrimSpace(toString(input["url"])); got != "https://example.com/reference.wav" {
+		t.Fatalf("unexpected url: %q", got)
+	}
+	if _, exists := input["audio"]; exists {
+		t.Fatalf("cosyvoice clone must use url, not qwen audio envelope: %#v", input["audio"])
+	}
+	if _, exists := input["preferred_name"]; exists {
+		t.Fatalf("cosyvoice clone must use prefix, not preferred_name: %#v", input["preferred_name"])
+	}
+	if got := strings.TrimSpace(toString(input["prefix"])); got != "nimivoice" {
+		t.Fatalf("unexpected prefix: %q", got)
+	}
+	hints, ok := input["language_hints"].([]any)
+	if !ok || len(hints) != 1 || strings.TrimSpace(toString(hints[0])) != "zh" {
+		t.Fatalf("unexpected language_hints: %#v", input["language_hints"])
+	}
+	parameters, ok := capturedPayload["parameters"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected parameters map, got=%T", capturedPayload["parameters"])
+	}
+	if got := ValueAsInt64(parameters["sample_rate"]); got != 24000 {
+		t.Fatalf("unexpected sample_rate: %#v", parameters["sample_rate"])
+	}
+	if got := strings.TrimSpace(toString(parameters["response_format"])); got != "wav" {
+		t.Fatalf("unexpected response_format: %q", got)
+	}
+}
+
+func TestExecuteDashScopeVoiceWorkflowUsesCosyVoiceEnrollmentContractForDesign(t *testing.T) {
+	var capturedPayload map[string]any
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.URL.Path != "/api/v1/services/audio/tts/customization" {
+			http.NotFound(w, r)
+			return
+		}
+		_ = json.NewDecoder(r.Body).Decode(&capturedPayload)
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"output": map[string]any{
+				"voice": "cosyvoice-v3p-announcer-abc123",
+			},
+		})
+	}))
+	defer func() { server.Close() }()
+
+	result, err := executeDashScopeVoiceWorkflow(context.Background(), VoiceWorkflowRequest{
+		Provider:        "dashscope",
+		WorkflowType:    "voice_design",
+		WorkflowModelID: "voice-enrollment-design",
+		ModelID:         "cosyvoice-v3.5-plus",
+		Payload: map[string]any{
+			"target_model_id": "cosyvoice-v3.5-plus",
+			"input": map[string]any{
+				"instruction_text": "Warm documentary announcer with clear pacing.",
+				"preview_text":     "Hello from the CosyVoice design contract.",
+				"language":         "en",
+				"preferred_name":   "announcer",
+				"sample_rate":      24000,
+				"response_format":  "wav",
+			},
+		},
+	}, MediaAdapterConfig{
+		BaseURL:               server.URL + "/compatible-mode/v1",
+		AllowLoopbackEndpoint: true,
+		APIKey:                "test-api-key",
+	})
+	if err != nil {
+		t.Fatalf("executeDashScopeVoiceWorkflow cosyvoice design failed: %v", err)
+	}
+	if got := strings.TrimSpace(result.ProviderVoiceRef); got != "cosyvoice-v3p-announcer-abc123" {
+		t.Fatalf("unexpected provider voice ref: %q", got)
+	}
+	if got := strings.TrimSpace(toString(capturedPayload["model"])); got != "voice-enrollment" {
+		t.Fatalf("unexpected workflow model: %q", got)
+	}
+	input, ok := capturedPayload["input"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected input map, got=%T", capturedPayload["input"])
+	}
+	if got := strings.TrimSpace(toString(input["action"])); got != "create_voice" {
+		t.Fatalf("unexpected action: %q", got)
+	}
+	if got := strings.TrimSpace(toString(input["target_model"])); got != "cosyvoice-v3.5-plus" {
+		t.Fatalf("unexpected target model: %q", got)
+	}
+	if got := strings.TrimSpace(toString(input["voice_prompt"])); got != "Warm documentary announcer with clear pacing." {
+		t.Fatalf("unexpected voice prompt: %q", got)
+	}
+	if got := strings.TrimSpace(toString(input["preview_text"])); got != "Hello from the CosyVoice design contract." {
+		t.Fatalf("unexpected preview text: %q", got)
+	}
+	if got := strings.TrimSpace(toString(input["prefix"])); got != "announcer" {
+		t.Fatalf("unexpected prefix: %q", got)
+	}
+	if _, exists := input["preferred_name"]; exists {
+		t.Fatalf("cosyvoice design must use prefix, not preferred_name: %#v", input["preferred_name"])
+	}
+	if _, exists := input["language"]; exists {
+		t.Fatalf("cosyvoice design must use language_hints, not language: %#v", input["language"])
+	}
+	hints, ok := input["language_hints"].([]any)
+	if !ok || len(hints) != 1 || strings.TrimSpace(toString(hints[0])) != "en" {
+		t.Fatalf("unexpected language_hints: %#v", input["language_hints"])
+	}
+	parameters, ok := capturedPayload["parameters"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected parameters map, got=%T", capturedPayload["parameters"])
+	}
+	if got := ValueAsInt64(parameters["sample_rate"]); got != 24000 {
+		t.Fatalf("unexpected sample_rate: %#v", parameters["sample_rate"])
+	}
+	if got := strings.TrimSpace(toString(parameters["response_format"])); got != "wav" {
+		t.Fatalf("unexpected response_format: %q", got)
+	}
+}
+
+func TestExecuteDashScopeVoiceWorkflowRejectsCosyVoiceCloneBytes(t *testing.T) {
+	_, err := executeDashScopeVoiceWorkflow(context.Background(), VoiceWorkflowRequest{
+		Provider:        "dashscope",
+		WorkflowType:    "voice_clone",
+		WorkflowModelID: "voice-enrollment-clone",
+		ModelID:         "cosyvoice-v3-flash",
+		Payload: map[string]any{
+			"target_model_id": "cosyvoice-v3-flash",
+			"input": map[string]any{
+				"reference_audio_base64": base64.StdEncoding.EncodeToString([]byte("RIFF....")),
+				"reference_audio_mime":   "audio/wav",
+				"preferred_name":         "nimi",
+			},
+		},
+	}, MediaAdapterConfig{
+		BaseURL:               "https://dashscope.aliyuncs.com/compatible-mode/v1",
+		AllowLoopbackEndpoint: true,
+		APIKey:                "test-api-key",
+	})
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_INPUT_INVALID {
+		t.Fatalf("expected AI_INPUT_INVALID, got err=%v reason=%v ok=%v", err, reason, ok)
+	}
+}
+
+func TestBuildDashScopeCosyVoiceEnrollmentUsesEntropyForAutoGeneratedPrefix(t *testing.T) {
+	payload, err := buildDashScopeVoiceWorkflowPayload(VoiceWorkflowRequest{
+		Provider:        "dashscope",
+		WorkflowType:    "voice_design",
+		WorkflowModelID: "voice-enrollment-design",
+		ModelID:         "cosyvoice-v3-flash",
+		Payload: map[string]any{
+			"target_model_id": "cosyvoice-v3-flash",
+			"input": map[string]any{
+				"instruction_text": "Warm natural narrator voice.",
+				"preview_text":     "Hello from Nimi.",
+				"preferred_name":   "nimi-voice-01ktek-live",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("buildDashScopeVoiceWorkflowPayload: %v", err)
+	}
+	input, ok := payload["input"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected input map, got=%T", payload["input"])
+	}
+	if got := strings.TrimSpace(toString(input["prefix"])); got != "nv01ktekl" {
+		t.Fatalf("unexpected auto-generated CosyVoice prefix: %q", got)
 	}
 }
 

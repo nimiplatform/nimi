@@ -192,37 +192,9 @@ func ExecuteAlibabaNative(
 		}
 		requestedVoice := strings.TrimSpace(scenarioVoiceRef(spec))
 		scenarioExtensions := scenarioExtensionPayloadForScenario(req)
-		sampleRateHz := spec.GetSampleRateHz()
-		parameters := map[string]any{
-			"voice":    requestedVoice,
-			"language": strings.TrimSpace(spec.GetLanguage()),
-			"emotion":  strings.TrimSpace(spec.GetEmotion()),
-			"speed":    spec.GetSpeed(),
-			"pitch":    spec.GetPitch(),
-			"volume":   spec.GetVolume(),
-			"format":   strings.TrimSpace(spec.GetAudioFormat()),
-		}
-		if sampleRateHz > 0 {
-			parameters["sample_rate"] = sampleRateHz
-		}
-		applyAlibabaTTSScenarioExtensions(parameters, scenarioExtensions)
-		payload := map[string]any{
-			"model": modelResolved,
-			"input": map[string]any{
-				"text":  strings.TrimSpace(spec.GetText()),
-				"voice": requestedVoice,
-			},
-			"parameters":   parameters,
-			"text":         strings.TrimSpace(spec.GetText()),
-			"audio_format": strings.TrimSpace(spec.GetAudioFormat()),
-		}
-		if sampleRateHz > 0 {
-			payload["sample_rate_hz"] = sampleRateHz
-		}
-		if len(scenarioExtensions) > 0 {
-			payload["extensions"] = scenarioExtensions
-		}
-		ttsPath := resolveAlibabaTTSPath(scenarioExtensions)
+		ttsContract := resolveDashScopeTTSRequestContract(modelResolved)
+		payload := buildAlibabaTTSPayload(modelResolved, spec, requestedVoice, scenarioExtensions, ttsContract)
+		ttsPath := resolveAlibabaTTSPath(scenarioExtensions, ttsContract)
 		body, err := DoJSONOrBinaryRequest(ctx, http.MethodPost, JoinURL(baseURL, ttsPath), apiKey, payload, nil)
 		if err != nil {
 			return nil, nil, "", err
@@ -235,13 +207,14 @@ func ExecuteAlibabaNative(
 			mimeType = ResolveSpeechArtifactMIME(spec, artifactBytes)
 		}
 		artifact := BinaryArtifact(mimeType, artifactBytes, map[string]any{
-			"adapter":      AdapterAlibabaNative,
-			"endpoint":     ttsPath,
-			"voice":        requestedVoice,
-			"language":     strings.TrimSpace(spec.GetLanguage()),
-			"audio_format": strings.TrimSpace(spec.GetAudioFormat()),
-			"emotion":      strings.TrimSpace(spec.GetEmotion()),
-			"extensions":   scenarioExtensions,
+			"adapter":          AdapterAlibabaNative,
+			"endpoint":         ttsPath,
+			"request_contract": ttsContract.String(),
+			"voice":            requestedVoice,
+			"language":         strings.TrimSpace(spec.GetLanguage()),
+			"audio_format":     strings.TrimSpace(spec.GetAudioFormat()),
+			"emotion":          strings.TrimSpace(spec.GetEmotion()),
+			"extensions":       scenarioExtensions,
 		})
 		ApplySpeechSpecMetadata(artifact, spec)
 		return []*runtimev1.ScenarioArtifact{artifact}, ArtifactUsage(spec.GetText(), artifactBytes, 120), "", nil
@@ -398,37 +371,6 @@ func resolveAlibabaTaskQueryPathTemplate(scenarioExtensions map[string]any) stri
 		[]string{"task_query_paths", "query_paths", "task_query_path_templates"},
 		[]string{"/api/v1/tasks/{task_id}"},
 	)
-}
-
-func resolveAlibabaTTSPath(scenarioExtensions map[string]any) string {
-	return FirstProviderEndpointPath(
-		scenarioExtensions,
-		[]string{"tts_path", "speech_path"},
-		[]string{"tts_paths", "speech_paths"},
-		[]string{"/api/v1/services/aigc/multimodal-generation/generation"},
-	)
-}
-
-func applyAlibabaTTSScenarioExtensions(parameters map[string]any, scenarioExtensions map[string]any) {
-	if parameters == nil || len(scenarioExtensions) == 0 {
-		return
-	}
-
-	instructions := strings.TrimSpace(FirstNonEmpty(
-		ValueAsString(scenarioExtensions["instructions"]),
-		ValueAsString(scenarioExtensions["instruct"]),
-		ValueAsString(scenarioExtensions["instruction_text"]),
-	))
-	if instructions != "" {
-		parameters["instructions"] = instructions
-	}
-
-	if optimizeValue := FirstNonNil(
-		scenarioExtensions["optimize_instructions"],
-		scenarioExtensions["optimizeInstructions"],
-	); optimizeValue != nil {
-		parameters["optimize_instructions"] = ValueAsBool(optimizeValue)
-	}
 }
 
 func resolveAlibabaSTTPath(scenarioExtensions map[string]any) string {

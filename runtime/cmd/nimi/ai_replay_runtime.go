@@ -75,7 +75,11 @@ func submitAndCollectRuntimeReplay(grpcAddr string, timeout time.Duration, req *
 	defer cancel()
 	ctx = entrypoint.WithNimiOutgoingMetadata(ctx, req.GetHead().GetAppId(), callerMeta)
 
-	conn, err := grpc.NewClient(strings.TrimSpace(grpcAddr), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient(
+		strings.TrimSpace(grpcAddr),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(64*1024*1024)),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("dial grpc %s: %w", grpcAddr, err)
 	}

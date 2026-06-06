@@ -357,7 +357,7 @@ var Records = map[string]ProviderRecord{
 		ManagedConnectorSupported: true,
 		InlineSupported: true,
 		DefaultEndpoint: "https://dashscope.aliyuncs.com/compatible-mode/v1",
-		DefaultTextModel: "qwen3-max",
+		DefaultTextModel: "qwen3.7-max",
 		RequiresExplicitEndpoint: false,
 		InventoryMode: "static_source",
 		DynamicDiscoveryTransport: "",

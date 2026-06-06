@@ -414,9 +414,10 @@ func runLiveSmokeVoiceWorkflowForProvider(t *testing.T, providerID string, recor
 			Input:         resolveLiveVoiceCloneInput(t, token),
 		}}
 	} else {
+		previewText := liveEnvFirstOrDefault("Hello from Nimi DashScope CosyVoice design.", "NIMI_LIVE_"+token+"_VOICE_DESIGN_PREVIEW_TEXT", "NIMI_LIVE_VOICE_DESIGN_PREVIEW_TEXT")
 		spec.Spec = &runtimev1.ScenarioSpec_VoiceDesign{VoiceDesign: &runtimev1.VoiceDesignScenarioSpec{
 			TargetModelId: targetModelID,
-			Input:         &runtimev1.VoiceT2VInput{InstructionText: liveSmokeVoiceDesignInstruction},
+			Input:         &runtimev1.VoiceT2VInput{InstructionText: liveSmokeVoiceDesignInstruction, PreviewText: previewText},
 		}}
 	}
 	maybeSkipFishAudioBalancePreflight(t, svc, providerID, modelID)

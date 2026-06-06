@@ -1,6 +1,6 @@
 schema_version: 3
 provider: dashscope
-catalog_version: 2026-04-18-dashscope-v5
+catalog_version: 2026-06-06-dashscope-v6
 generated_target: runtime/catalog/providers/dashscope.yaml
 runtime:
   runtime_plane: remote
@@ -11,7 +11,7 @@ runtime:
 resolution_mode: model_anchor_v2
 defaults:
   provider: dashscope
-  default_text_model: qwen3-max
+  default_text_model: qwen3.7-max
   model_type: tts
   capabilities: []
   pricing:
@@ -29,23 +29,23 @@ sources:
     note: dashscope official model documentation
   - source_id: dashscope_models_pricing_doc
     url: https://help.aliyun.com/zh/model-studio/model-pricing
-    retrieved_at: 2026-04-18
+    retrieved_at: 2026-06-06
     note: DashScope official model pricing and current model listing overview.
   - source_id: dashscope_model_updates_doc
     url: https://help.aliyun.com/zh/model-studio/newly-released-models
-    retrieved_at: 2026-04-18
+    retrieved_at: 2026-06-06
     note: Official DashScope model release and snapshot update feed.
   - source_id: dashscope_models_catalog_doc
     url: https://help.aliyun.com/zh/model-studio/models
-    retrieved_at: 2026-04-18
+    retrieved_at: 2026-06-06
     note: Official DashScope stable and snapshot model catalog.
   - source_id: dashscope_qwen_api_doc
     url: https://help.aliyun.com/zh/model-studio/qwen-api-via-dashscope
-    retrieved_at: 2026-04-18
+    retrieved_at: 2026-06-06
     note: Qwen model access through DashScope-compatible APIs.
   - source_id: dashscope_qwen_vl_doc
     url: https://help.aliyun.com/zh/model-studio/vision/
-    retrieved_at: 2026-04-18
+    retrieved_at: 2026-06-06
     note: Qwen vision-language documentation and current VL model guidance.
   - source_id: dashscope_embedding_doc
     url: https://help.aliyun.com/zh/model-studio/developer-reference/qwen-long-text-embedding
@@ -79,6 +79,22 @@ sources:
     url: https://help.aliyun.com/zh/model-studio/qwen-tts-realtime
     retrieved_at: 2026-04-18
     note: Qwen realtime speech synthesis documentation covering stable and snapshot realtime models.
+  - source_id: dashscope_speech_synthesis_doc
+    url: https://help.aliyun.com/zh/model-studio/speech-synthesis/
+    retrieved_at: 2026-06-06
+    note: Official speech synthesis model selection and current model matrix.
+  - source_id: dashscope_cosyvoice_http_doc
+    url: https://help.aliyun.com/zh/model-studio/non-realtime-cosyvoice-api/
+    retrieved_at: 2026-06-06
+    note: CosyVoice HTTP SpeechSynthesizer API covering current CosyVoice v3/v3.5 models.
+  - source_id: dashscope_cosyvoice_voice_list_doc
+    url: https://help.aliyun.com/zh/model-studio/cosyvoice-voice-list
+    retrieved_at: 2026-06-06
+    note: Official CosyVoice system voice list for v3 flash.
+  - source_id: dashscope_cosyvoice_clone_design_doc
+    url: https://help.aliyun.com/zh/model-studio/cosyvoice-clone-design-api
+    retrieved_at: 2026-06-06
+    note: CosyVoice voice clone/design API and target model compatibility.
   - source_id: dashscope_wan_image_doc
     url: https://help.aliyun.com/zh/model-studio/wan-image-generation-and-editing-api-reference
     retrieved_at: 2026-04-18
@@ -99,26 +115,29 @@ sources:
 language_profiles:
   region_v1: [zh-cn, en-us, fr-fr, de-de, ru-ru, it-it, es-es, pt-pt, ja-jp, ko-kr]
   short_v1: [zh, en, de, it, pt, es, ja, ko, fr, ru]
+  cosyvoice_v3_multi: [zh, en, fr, de, ja, ko, ru, pt, th, id, vi]
+  cosyvoice_v3_system: [zh, en, ja, ko]
+  cosyvoice_design_v1: [zh, en]
 
 selection_profiles:
   - profile_id: text.general
     capability: text.generate
-    model_id: qwen3-max
-    reviewed_at: 2026-06-03
+    model_id: qwen3.7-max
+    reviewed_at: 2026-06-06
     freshness_sla_days: 21
-    rationale: Highest-tier provider-native DashScope text route in the admitted set.
+    rationale: Current provider-native Qwen Max flagship line on DashScope.
   - profile_id: text.fast
     capability: text.generate
     model_id: qwen3.6-flash
-    reviewed_at: 2026-06-03
+    reviewed_at: 2026-06-06
     freshness_sla_days: 21
-    rationale: Current flash-tier provider-native DashScope text route for latency-sensitive tasks.
+    rationale: Current admitted flash-tier provider-native DashScope text route for latency-sensitive tasks.
   - profile_id: text.reasoning
     capability: text.generate
-    model_id: kimi-k2-thinking
-    reviewed_at: 2026-06-03
+    model_id: qwen3.7-max
+    reviewed_at: 2026-06-06
     freshness_sla_days: 21
-    rationale: Explicit thinking-oriented text route in the current DashScope catalog set.
+    rationale: Current Qwen Max line is documented as text-only with thinking mode enabled by default.
 
 voice_sets:
   - voice_set_id: tts_voice_set
@@ -199,94 +218,36 @@ voice_sets:
     voices:
       - voice_id: aiden
         name: Aiden
-      - voice_id: alek
-        name: Alek
-      - voice_id: andre
-        name: Andre
       - voice_id: arthur
         name: Arthur
       - voice_id: bella
         name: Bella
-      - voice_id: bellona
-        name: Bellona
-      - voice_id: bodega
-        name: Bodega
-      - voice_id: bunny
-        name: Bunny
       - voice_id: chelsie
         name: Chelsie
       - voice_id: cherry
         name: Cherry
-      - voice_id: dolce
-        name: Dolce
       - voice_id: dylan
         name: Dylan
-      - voice_id: ebona
-        name: Ebona
-      - voice_id: eldric_sage
-        name: Eldric Sage
-      - voice_id: elias
-        name: Elias
-      - voice_id: emilien
-        name: Emilien
-      - voice_id: eric
-        name: Eric
       - voice_id: ethan
         name: Ethan
       - voice_id: jada
         name: Jada
-      - voice_id: jennifer
-        name: Jennifer
       - voice_id: kai
         name: Kai
-      - voice_id: katerina
-        name: Katerina
-      - voice_id: kiki
-        name: Kiki
-      - voice_id: lenn
-        name: Lenn
-      - voice_id: li
-        name: Li
       - voice_id: maia
         name: Maia
-      - voice_id: marcus
-        name: Marcus
       - voice_id: mia
         name: Mia
-      - voice_id: mochi
-        name: Mochi
       - voice_id: momo
         name: Momo
       - voice_id: moon
         name: Moon
       - voice_id: neil
         name: Neil
-      - voice_id: nini
-        name: Nini
-      - voice_id: nofish
-        name: Nofish
       - voice_id: ono_anna
         name: Ono Anna
-      - voice_id: peter
-        name: Peter
-      - voice_id: pip
-        name: Pip
-      - voice_id: radio_gol
-        name: Radio Gol
-      - voice_id: rocky
-        name: Rocky
-      - voice_id: roy
-        name: Roy
-      - voice_id: ryan
-        name: Ryan
-      - voice_id: seren
-        name: Seren
       - voice_id: serena
         name: Serena
-      - voice_id: sohee
-        name: Sohee
-      - voice_id: sonrisa
-        name: Sonrisa
       - voice_id: stella
         name: Stella
       - voice_id: sunny
@@ -295,8 +256,114 @@ voice_sets:
         name: Vincent
       - voice_id: vivian
         name: Vivian
+  - voice_set_id: cosyvoice_v3_flash_voice_set
+    langs_ref: cosyvoice_v3_system
+    source_ids: [dashscope_cosyvoice_voice_list_doc]
+    voices:
+      - voice_id: longanyang
+        name: 龙安洋
+      - voice_id: longanhuan
+        name: 龙安欢
+      - voice_id: longanhuan_v3
+        name: 龙安欢（V3）
+      - voice_id: longhuhu_v3
+        name: 龙呼呼
+      - voice_id: longpaopao_v3
+        name: 龙泡泡
+      - voice_id: longanyue_v3
+        name: 龙安粤
+      - voice_id: longlaotie_v3
+        name: 龙老铁
+      - voice_id: loongriko_v3
+        name: Riko
+      - voice_id: loongdavid_v3
+        name: loongdavid
+      - voice_id: loongyuuna_v3
+        name: Yuuna
+      - voice_id: loongjihun_v3
+        name: Jihun
+      - voice_id: loongindah_v3
+        name: loongindah
+      - voice_id: longxiaochun_v3
+        name: 龙小淳
+      - voice_id: loongbella_v3
+        name: Bella3.0
+  - voice_set_id: cosyvoice_v3_plus_voice_set
+    langs_ref: cosyvoice_v3_system
+    source_ids: [dashscope_cosyvoice_voice_list_doc]
+    voices:
+      - voice_id: longanyang
+        name: 龙安洋
+      - voice_id: longanhuan
+        name: 龙安欢
 
 models:
+  - model_id: cosyvoice-v3.5-plus
+    updated_at: 2026-03-02
+    capabilities: [audio.synthesize]
+    source_ids: [dashscope_speech_synthesis_doc, dashscope_cosyvoice_http_doc, dashscope_cosyvoice_clone_design_doc]
+    voice:
+      discovery_mode: dynamic_user_scoped
+      supports_voice_ref_kinds: [voice_asset_id, provider_voice_ref]
+      langs_ref: cosyvoice_v3_multi
+      request_options:
+        timing_modes: [none]
+        audio_formats: [mp3, pcm, wav, opus]
+        supports_language: true
+        provider_extensions:
+          namespace: nimi.scenario.speech_synthesize.request
+          schema_version: dashscope-cosyvoice-v1
+
+  - model_id: cosyvoice-v3.5-flash
+    updated_at: 2026-03-02
+    capabilities: [audio.synthesize]
+    source_ids: [dashscope_speech_synthesis_doc, dashscope_cosyvoice_http_doc, dashscope_cosyvoice_clone_design_doc]
+    voice:
+      discovery_mode: dynamic_user_scoped
+      supports_voice_ref_kinds: [voice_asset_id, provider_voice_ref]
+      langs_ref: cosyvoice_v3_multi
+      request_options:
+        timing_modes: [none]
+        audio_formats: [mp3, pcm, wav, opus]
+        supports_language: true
+        provider_extensions:
+          namespace: nimi.scenario.speech_synthesize.request
+          schema_version: dashscope-cosyvoice-v1
+
+  - model_id: cosyvoice-v3-plus
+    updated_at: 2025-12-11
+    capabilities: [audio.synthesize]
+    source_ids: [dashscope_speech_synthesis_doc, dashscope_cosyvoice_http_doc, dashscope_cosyvoice_voice_list_doc, dashscope_cosyvoice_clone_design_doc]
+    voice:
+      discovery_mode: static_catalog
+      voice_set_ref: cosyvoice_v3_plus_voice_set
+      supports_voice_ref_kinds: [preset_voice_id, voice_asset_id, provider_voice_ref]
+      langs_ref: cosyvoice_v3_multi
+      request_options:
+        timing_modes: [none, word]
+        audio_formats: [mp3, pcm, wav, opus]
+        supports_language: true
+        provider_extensions:
+          namespace: nimi.scenario.speech_synthesize.request
+          schema_version: dashscope-cosyvoice-v1
+
+  - model_id: cosyvoice-v3-flash
+    updated_at: 2025-12-11
+    capabilities: [audio.synthesize]
+    source_ids: [dashscope_speech_synthesis_doc, dashscope_cosyvoice_http_doc, dashscope_cosyvoice_voice_list_doc, dashscope_cosyvoice_clone_design_doc]
+    voice:
+      discovery_mode: static_catalog
+      voice_set_ref: cosyvoice_v3_flash_voice_set
+      supports_voice_ref_kinds: [preset_voice_id, voice_asset_id, provider_voice_ref]
+      langs_ref: cosyvoice_v3_multi
+      request_options:
+        timing_modes: [none, word]
+        audio_formats: [mp3, pcm, wav, opus]
+        supports_language: true
+        provider_extensions:
+          namespace: nimi.scenario.speech_synthesize.request
+          schema_version: dashscope-cosyvoice-v1
+
   - model_id: qwen3-tts-instruct-flash
     updated_at: 2026-01-26
     capabilities: [audio.synthesize]
@@ -397,6 +464,51 @@ models:
         supports_language: true
     aliases:
       - qwen3-tts-vd-realtime-2025-12-16
+
+  - model_id: qwen3.7-max
+    model_type: chat
+    updated_at: 2026-05-21
+    capabilities: [text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-06-06
+      notes: Current Qwen Max flagship route on DashScope. Pricing varies by context size, thinking mode, cache use, and account plan.
+    source_ids: [dashscope_model_updates_doc, dashscope_models_catalog_doc, dashscope_qwen_api_doc, dashscope_models_pricing_doc]
+    aliases:
+      - qwen3.7-max-2026-05-20
+
+  - model_id: qwen3.7-plus
+    model_type: chat
+    updated_at: 2026-06-01
+    capabilities: [text.generate, text.generate.vision]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-06-06
+      notes: Current Qwen Plus route on DashScope with upgraded vision-language and agent workflow capabilities. Pricing varies by context size, thinking mode, cache use, and account plan.
+    source_ids: [dashscope_model_updates_doc, dashscope_models_catalog_doc, dashscope_qwen_api_doc, dashscope_qwen_vl_doc, dashscope_models_pricing_doc]
+    aliases:
+      - qwen3.7-plus-2026-05-26
+
+  - model_id: qwen3.7-max-preview
+    model_type: chat
+    updated_at: 2026-05-25
+    capabilities: [text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-06-06
+      notes: Qwen Max preview route on DashScope; preview rows are not the default text route.
+    source_ids: [dashscope_model_updates_doc, dashscope_qwen_api_doc, dashscope_models_pricing_doc]
+    aliases:
+      - qwen3.7-max-2026-05-17
 
   - model_id: qwen3-max
     model_type: chat
@@ -1112,6 +1224,46 @@ voice_workflow_models:
       - qwen3-tts-vd-realtime-2026-01-15
     langs_ref: short_v1
     source_ids: [dashscope_voice_design_doc, dashscope_qwen_realtime_tts_doc]
+  - workflow_model_id: voice-enrollment-clone
+    workflow_type: voice_clone
+    input_contract_ref: dashscope_cosyvoice_voice_clone_input_v1
+    output_persistence: provider_persistent
+    request_options:
+      text_prompt_mode: unsupported
+      supports_language_hints: true
+      supports_preferred_name: true
+      reference_audio_uri_input: true
+      reference_audio_bytes_input: false
+      allowed_reference_audio_mime_types: [audio/wav, audio/mpeg, audio/ogg, audio/flac, audio/mp4, audio/m4a]
+      provider_extensions:
+        namespace: nimi.scenario.voice_workflow.request
+        schema_version: dashscope-cosyvoice-voice-enrollment-v1
+    target_model_refs:
+      - cosyvoice-v3.5-plus
+      - cosyvoice-v3.5-flash
+      - cosyvoice-v3-plus
+      - cosyvoice-v3-flash
+    langs_ref: cosyvoice_v3_multi
+    source_ids: [dashscope_cosyvoice_clone_design_doc, dashscope_speech_synthesis_doc]
+  - workflow_model_id: voice-enrollment-design
+    workflow_type: voice_design
+    input_contract_ref: dashscope_cosyvoice_voice_design_input_v1
+    output_persistence: provider_persistent
+    request_options:
+      instruction_text_mode: required
+      preview_text_mode: required
+      supports_language: true
+      supports_preferred_name: true
+      provider_extensions:
+        namespace: nimi.scenario.voice_workflow.request
+        schema_version: dashscope-cosyvoice-voice-enrollment-v1
+    target_model_refs:
+      - cosyvoice-v3.5-plus
+      - cosyvoice-v3.5-flash
+      - cosyvoice-v3-plus
+      - cosyvoice-v3-flash
+    langs_ref: cosyvoice_design_v1
+    source_ids: [dashscope_cosyvoice_clone_design_doc, dashscope_speech_synthesis_doc]
 
 model_workflow_bindings:
   - model_id: qwen3-tts-vc
@@ -1132,6 +1284,18 @@ model_workflow_bindings:
   - model_id: qwen3-tts-vd-realtime-2026-01-15
     workflow_model_refs: [qwen-voice-design]
     workflow_types: [voice_design]
+  - model_id: cosyvoice-v3.5-plus
+    workflow_model_refs: [voice-enrollment-clone, voice-enrollment-design]
+    workflow_types: [voice_clone, voice_design]
+  - model_id: cosyvoice-v3.5-flash
+    workflow_model_refs: [voice-enrollment-clone, voice-enrollment-design]
+    workflow_types: [voice_clone, voice_design]
+  - model_id: cosyvoice-v3-plus
+    workflow_model_refs: [voice-enrollment-clone, voice-enrollment-design]
+    workflow_types: [voice_clone, voice_design]
+  - model_id: cosyvoice-v3-flash
+    workflow_model_refs: [voice-enrollment-clone, voice-enrollment-design]
+    workflow_types: [voice_clone, voice_design]
 
 voice_handle_policies:
   - policy_id: dashscope_provider_persistent_default
@@ -1141,7 +1305,7 @@ voice_handle_policies:
     scope: user_scoped
     delete_semantics: best_effort_provider_delete
     runtime_reconciliation_required: true
-    source_ids: [dashscope_voice_cloning_doc, dashscope_voice_design_doc]
+    source_ids: [dashscope_voice_cloning_doc, dashscope_voice_design_doc, dashscope_cosyvoice_clone_design_doc]
 
 overrides:
   models: []

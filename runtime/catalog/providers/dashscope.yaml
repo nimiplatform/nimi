@@ -1,9 +1,149 @@
 version: 1
 provider: dashscope
-catalog_version: 2026-04-18-dashscope-v5
+catalog_version: 2026-06-06-dashscope-v6
 inventory_mode: static_source
-default_text_model: qwen3-max
+default_text_model: qwen3.7-max
 models:
+  - model_id: cosyvoice-v3.5-plus
+    provider: dashscope
+    model_type: tts
+    updated_at: 2026-03-02
+    capabilities:
+      - audio.synthesize
+    pricing:
+      unit: char
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Official document does not provide stable public pricing in a unified schema.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/speech-synthesis/
+      retrieved_at: 2026-06-06
+      note: Official speech synthesis model selection and current model matrix.
+    voice_set_id: dashscope:cosyvoice-v3-5-plus-dynamic
+    voice_discovery_mode: dynamic_user_scoped
+    voice_request_options:
+      timing_modes:
+        - none
+      audio_formats:
+        - mp3
+        - pcm
+        - wav
+        - opus
+      supports_language: true
+      provider_extensions:
+        namespace: nimi.scenario.speech_synthesize.request
+        schema_version: dashscope-cosyvoice-v1
+    voice_ref_kinds:
+      - voice_asset_id
+      - provider_voice_ref
+  - model_id: cosyvoice-v3.5-flash
+    provider: dashscope
+    model_type: tts
+    updated_at: 2026-03-02
+    capabilities:
+      - audio.synthesize
+    pricing:
+      unit: char
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Official document does not provide stable public pricing in a unified schema.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/speech-synthesis/
+      retrieved_at: 2026-06-06
+      note: Official speech synthesis model selection and current model matrix.
+    voice_set_id: dashscope:cosyvoice-v3-5-flash-dynamic
+    voice_discovery_mode: dynamic_user_scoped
+    voice_request_options:
+      timing_modes:
+        - none
+      audio_formats:
+        - mp3
+        - pcm
+        - wav
+        - opus
+      supports_language: true
+      provider_extensions:
+        namespace: nimi.scenario.speech_synthesize.request
+        schema_version: dashscope-cosyvoice-v1
+    voice_ref_kinds:
+      - voice_asset_id
+      - provider_voice_ref
+  - model_id: cosyvoice-v3-plus
+    provider: dashscope
+    model_type: tts
+    updated_at: 2025-12-11
+    capabilities:
+      - audio.synthesize
+    pricing:
+      unit: char
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Official document does not provide stable public pricing in a unified schema.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/speech-synthesis/
+      retrieved_at: 2026-06-06
+      note: Official speech synthesis model selection and current model matrix.
+    voice_set_id: dashscope:cosyvoice_v3_plus_voice_set
+    voice_discovery_mode: static_catalog
+    voice_request_options:
+      timing_modes:
+        - none
+        - word
+      audio_formats:
+        - mp3
+        - pcm
+        - wav
+        - opus
+      supports_language: true
+      provider_extensions:
+        namespace: nimi.scenario.speech_synthesize.request
+        schema_version: dashscope-cosyvoice-v1
+    voice_ref_kinds:
+      - preset_voice_id
+      - voice_asset_id
+      - provider_voice_ref
+  - model_id: cosyvoice-v3-flash
+    provider: dashscope
+    model_type: tts
+    updated_at: 2025-12-11
+    capabilities:
+      - audio.synthesize
+    pricing:
+      unit: char
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Official document does not provide stable public pricing in a unified schema.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/speech-synthesis/
+      retrieved_at: 2026-06-06
+      note: Official speech synthesis model selection and current model matrix.
+    voice_set_id: dashscope:cosyvoice_v3_flash_voice_set
+    voice_discovery_mode: static_catalog
+    voice_request_options:
+      timing_modes:
+        - none
+        - word
+      audio_formats:
+        - mp3
+        - pcm
+        - wav
+        - opus
+      supports_language: true
+      provider_extensions:
+        namespace: nimi.scenario.speech_synthesize.request
+        schema_version: dashscope-cosyvoice-v1
+    voice_ref_kinds:
+      - preset_voice_id
+      - voice_asset_id
+      - provider_voice_ref
   - model_id: qwen3-tts-instruct-flash
     provider: dashscope
     model_type: tts
@@ -425,6 +565,110 @@ models:
     voice_discovery_mode: dynamic_user_scoped
     voice_request_options: *a11
     voice_ref_kinds: *a12
+  - model_id: qwen3.7-max
+    provider: dashscope
+    model_type: chat
+    updated_at: 2026-05-21
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-06-06
+      notes: Current Qwen Max flagship route on DashScope. Pricing varies by context size, thinking mode, cache use, and account plan.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/newly-released-models
+      retrieved_at: 2026-06-06
+      note: Official DashScope model release and snapshot update feed.
+  - model_id: qwen3.7-max-2026-05-20
+    provider: dashscope
+    model_type: chat
+    updated_at: 2026-05-20
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-06-06
+      notes: Current Qwen Max flagship route on DashScope. Pricing varies by context size, thinking mode, cache use, and account plan.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/newly-released-models
+      retrieved_at: 2026-06-06
+      note: Official DashScope model release and snapshot update feed.
+  - model_id: qwen3.7-plus
+    provider: dashscope
+    model_type: chat
+    updated_at: 2026-06-01
+    capabilities:
+      - text.generate
+      - text.generate.vision
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-06-06
+      notes: Current Qwen Plus route on DashScope with upgraded vision-language and agent workflow capabilities. Pricing varies by context size, thinking mode, cache use, and account plan.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/newly-released-models
+      retrieved_at: 2026-06-06
+      note: Official DashScope model release and snapshot update feed.
+  - model_id: qwen3.7-plus-2026-05-26
+    provider: dashscope
+    model_type: chat
+    updated_at: 2026-05-26
+    capabilities:
+      - text.generate
+      - text.generate.vision
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-06-06
+      notes: Current Qwen Plus route on DashScope with upgraded vision-language and agent workflow capabilities. Pricing varies by context size, thinking mode, cache use, and account plan.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/newly-released-models
+      retrieved_at: 2026-06-06
+      note: Official DashScope model release and snapshot update feed.
+  - model_id: qwen3.7-max-preview
+    provider: dashscope
+    model_type: chat
+    updated_at: 2026-05-25
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-06-06
+      notes: Qwen Max preview route on DashScope; preview rows are not the default text route.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/newly-released-models
+      retrieved_at: 2026-06-06
+      note: Official DashScope model release and snapshot update feed.
+  - model_id: qwen3.7-max-2026-05-17
+    provider: dashscope
+    model_type: chat
+    updated_at: 2026-05-17
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-06-06
+      notes: Qwen Max preview route on DashScope; preview rows are not the default text route.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/newly-released-models
+      retrieved_at: 2026-06-06
+      note: Official DashScope model release and snapshot update feed.
   - model_id: qwen3-max
     provider: dashscope
     model_type: chat
@@ -440,7 +684,7 @@ models:
       notes: Chat token pricing varies by account plan and model revision.
     source_ref:
       url: https://help.aliyun.com/zh/model-studio/model-pricing
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-06-06
       note: DashScope official model pricing and current model listing overview.
   - model_id: qwen3.6-plus
     provider: dashscope
@@ -458,7 +702,7 @@ models:
       notes: Current Plus-generation Qwen 3.6 route on DashScope. Pricing varies by account plan and request mode.
     source_ref:
       url: https://help.aliyun.com/zh/model-studio/newly-released-models
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-06-06
       note: Official DashScope model release and snapshot update feed.
   - model_id: qwen3.6-plus-2026-04-02
     provider: dashscope
@@ -476,7 +720,7 @@ models:
       notes: Current Plus-generation Qwen 3.6 route on DashScope. Pricing varies by account plan and request mode.
     source_ref:
       url: https://help.aliyun.com/zh/model-studio/newly-released-models
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-06-06
       note: Official DashScope model release and snapshot update feed.
   - model_id: qwen3.5-plus
     provider: dashscope
@@ -493,7 +737,7 @@ models:
       notes: Chat token pricing varies by account plan and model revision.
     source_ref:
       url: https://help.aliyun.com/zh/model-studio/model-pricing
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-06-06
       note: DashScope official model pricing and current model listing overview.
   - model_id: qwen3.6-flash
     provider: dashscope
@@ -511,7 +755,7 @@ models:
       notes: Current Flash-generation Qwen 3.6 route on DashScope. Pricing varies by account plan and request mode.
     source_ref:
       url: https://help.aliyun.com/zh/model-studio/newly-released-models
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-06-06
       note: Official DashScope model release and snapshot update feed.
   - model_id: qwen3.6-flash-2026-04-16
     provider: dashscope
@@ -529,7 +773,7 @@ models:
       notes: Current Flash-generation Qwen 3.6 route on DashScope. Pricing varies by account plan and request mode.
     source_ref:
       url: https://help.aliyun.com/zh/model-studio/newly-released-models
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-06-06
       note: Official DashScope model release and snapshot update feed.
   - model_id: qwen3.5-flash
     provider: dashscope
@@ -546,7 +790,7 @@ models:
       notes: Chat token pricing varies by account plan and model revision.
     source_ref:
       url: https://help.aliyun.com/zh/model-studio/model-pricing
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-06-06
       note: DashScope official model pricing and current model listing overview.
   - model_id: qwen-vl-max-latest
     provider: dashscope
@@ -564,7 +808,7 @@ models:
       notes: Vision-language model pricing varies by account plan and token class.
     source_ref:
       url: https://help.aliyun.com/zh/model-studio/model-pricing
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-06-06
       note: DashScope official model pricing and current model listing overview.
   - model_id: qwen3-vl-plus
     provider: dashscope
@@ -582,7 +826,7 @@ models:
       notes: Current Qwen 3 vision-language plus route on DashScope.
     source_ref:
       url: https://help.aliyun.com/zh/model-studio/vision/
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-06-06
       note: Qwen vision-language documentation and current VL model guidance.
   - model_id: qwen3-vl-flash
     provider: dashscope
@@ -600,7 +844,7 @@ models:
       notes: Current Qwen 3 vision-language flash route on DashScope.
     source_ref:
       url: https://help.aliyun.com/zh/model-studio/vision/
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-06-06
       note: Qwen vision-language documentation and current VL model guidance.
   - model_id: deepseek-v3.2
     provider: dashscope
@@ -617,7 +861,7 @@ models:
       notes: DashScope-hosted DeepSeek text pricing varies by request mode and account tier.
     source_ref:
       url: https://help.aliyun.com/zh/model-studio/model-pricing
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-06-06
       note: DashScope official model pricing and current model listing overview.
   - model_id: deepseek-v3.2-exp
     provider: dashscope
@@ -634,7 +878,7 @@ models:
       notes: DashScope-hosted DeepSeek text pricing varies by request mode and account tier.
     source_ref:
       url: https://help.aliyun.com/zh/model-studio/model-pricing
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-06-06
       note: DashScope official model pricing and current model listing overview.
   - model_id: deepseek-v3.1
     provider: dashscope
@@ -651,7 +895,7 @@ models:
       notes: DashScope-hosted DeepSeek text pricing varies by request mode and account tier.
     source_ref:
       url: https://help.aliyun.com/zh/model-studio/model-pricing
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-06-06
       note: DashScope official model pricing and current model listing overview.
   - model_id: deepseek-r1
     provider: dashscope
@@ -668,7 +912,7 @@ models:
       notes: DashScope-hosted DeepSeek text pricing varies by request mode and account tier.
     source_ref:
       url: https://help.aliyun.com/zh/model-studio/model-pricing
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-06-06
       note: DashScope official model pricing and current model listing overview.
   - model_id: deepseek-r1-0528
     provider: dashscope
@@ -685,7 +929,7 @@ models:
       notes: DashScope-hosted DeepSeek text pricing varies by request mode and account tier.
     source_ref:
       url: https://help.aliyun.com/zh/model-studio/model-pricing
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-06-06
       note: DashScope official model pricing and current model listing overview.
   - model_id: deepseek-v3
     provider: dashscope
@@ -702,7 +946,7 @@ models:
       notes: DashScope-hosted DeepSeek text pricing varies by request mode and account tier.
     source_ref:
       url: https://help.aliyun.com/zh/model-studio/model-pricing
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-06-06
       note: DashScope official model pricing and current model listing overview.
   - model_id: siliconflow/deepseek-v3.2
     provider: dashscope
@@ -719,7 +963,7 @@ models:
       notes: SiliconFlow-hosted DeepSeek pricing on DashScope varies by request mode and account tier.
     source_ref:
       url: https://help.aliyun.com/zh/model-studio/model-pricing
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-06-06
       note: DashScope official model pricing and current model listing overview.
   - model_id: siliconflow/deepseek-v3.1-terminus
     provider: dashscope
@@ -736,7 +980,7 @@ models:
       notes: SiliconFlow-hosted DeepSeek pricing on DashScope varies by request mode and account tier.
     source_ref:
       url: https://help.aliyun.com/zh/model-studio/model-pricing
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-06-06
       note: DashScope official model pricing and current model listing overview.
   - model_id: siliconflow/deepseek-r1-0528
     provider: dashscope
@@ -753,7 +997,7 @@ models:
       notes: SiliconFlow-hosted DeepSeek pricing on DashScope varies by request mode and account tier.
     source_ref:
       url: https://help.aliyun.com/zh/model-studio/model-pricing
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-06-06
       note: DashScope official model pricing and current model listing overview.
   - model_id: siliconflow/deepseek-v3-0324
     provider: dashscope
@@ -770,7 +1014,7 @@ models:
       notes: SiliconFlow-hosted DeepSeek pricing on DashScope varies by request mode and account tier.
     source_ref:
       url: https://help.aliyun.com/zh/model-studio/model-pricing
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-06-06
       note: DashScope official model pricing and current model listing overview.
   - model_id: kimi/kimi-k2.5
     provider: dashscope
@@ -787,7 +1031,7 @@ models:
       notes: Kimi pricing on DashScope varies by model mode and account tier.
     source_ref:
       url: https://help.aliyun.com/zh/model-studio/model-pricing
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-06-06
       note: DashScope official model pricing and current model listing overview.
   - model_id: kimi-k2.5
     provider: dashscope
@@ -804,7 +1048,7 @@ models:
       notes: Kimi pricing on DashScope varies by model mode and account tier.
     source_ref:
       url: https://help.aliyun.com/zh/model-studio/model-pricing
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-06-06
       note: DashScope official model pricing and current model listing overview.
   - model_id: kimi-k2-thinking
     provider: dashscope
@@ -821,7 +1065,7 @@ models:
       notes: Kimi pricing on DashScope varies by model mode and account tier.
     source_ref:
       url: https://help.aliyun.com/zh/model-studio/model-pricing
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-06-06
       note: DashScope official model pricing and current model listing overview.
   - model_id: Moonshot-Kimi-K2-Instruct
     provider: dashscope
@@ -838,7 +1082,7 @@ models:
       notes: Kimi pricing on DashScope varies by model mode and account tier.
     source_ref:
       url: https://help.aliyun.com/zh/model-studio/model-pricing
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-06-06
       note: DashScope official model pricing and current model listing overview.
   - model_id: glm-5
     provider: dashscope
@@ -855,7 +1099,7 @@ models:
       notes: GLM pricing on DashScope varies by model tier and account plan.
     source_ref:
       url: https://help.aliyun.com/zh/model-studio/model-pricing
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-06-06
       note: DashScope official model pricing and current model listing overview.
   - model_id: glm-4.7
     provider: dashscope
@@ -872,7 +1116,7 @@ models:
       notes: GLM pricing on DashScope varies by model tier and account plan.
     source_ref:
       url: https://help.aliyun.com/zh/model-studio/model-pricing
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-06-06
       note: DashScope official model pricing and current model listing overview.
   - model_id: glm-4.6
     provider: dashscope
@@ -889,7 +1133,7 @@ models:
       notes: GLM pricing on DashScope varies by model tier and account plan.
     source_ref:
       url: https://help.aliyun.com/zh/model-studio/model-pricing
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-06-06
       note: DashScope official model pricing and current model listing overview.
   - model_id: glm-4.5
     provider: dashscope
@@ -906,7 +1150,7 @@ models:
       notes: GLM pricing on DashScope varies by model tier and account plan.
     source_ref:
       url: https://help.aliyun.com/zh/model-studio/model-pricing
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-06-06
       note: DashScope official model pricing and current model listing overview.
   - model_id: glm-4.5-air
     provider: dashscope
@@ -923,7 +1167,7 @@ models:
       notes: GLM pricing on DashScope varies by model tier and account plan.
     source_ref:
       url: https://help.aliyun.com/zh/model-studio/model-pricing
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-06-06
       note: DashScope official model pricing and current model listing overview.
   - model_id: MiniMax/MiniMax-M2.5
     provider: dashscope
@@ -940,7 +1184,7 @@ models:
       notes: MiniMax pricing on DashScope varies by model tier and account plan.
     source_ref:
       url: https://help.aliyun.com/zh/model-studio/model-pricing
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-06-06
       note: DashScope official model pricing and current model listing overview.
   - model_id: MiniMax-M2.5
     provider: dashscope
@@ -957,7 +1201,7 @@ models:
       notes: MiniMax pricing on DashScope varies by model tier and account plan.
     source_ref:
       url: https://help.aliyun.com/zh/model-studio/model-pricing
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-06-06
       note: DashScope official model pricing and current model listing overview.
   - model_id: MiniMax/MiniMax-M2.1
     provider: dashscope
@@ -974,7 +1218,7 @@ models:
       notes: MiniMax pricing on DashScope varies by model tier and account plan.
     source_ref:
       url: https://help.aliyun.com/zh/model-studio/model-pricing
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-06-06
       note: DashScope official model pricing and current model listing overview.
   - model_id: MiniMax-M2.1
     provider: dashscope
@@ -991,7 +1235,7 @@ models:
       notes: MiniMax pricing on DashScope varies by model tier and account plan.
     source_ref:
       url: https://help.aliyun.com/zh/model-studio/model-pricing
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-06-06
       note: DashScope official model pricing and current model listing overview.
   - model_id: text-embedding-v4
     provider: dashscope
@@ -1212,7 +1456,7 @@ models:
       notes: DashScope image generation pricing varies by quality, resolution, and account tier.
     source_ref:
       url: https://help.aliyun.com/zh/model-studio/model-pricing
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-06-06
       note: DashScope official model pricing and current model listing overview.
   - model_id: qwen-image-2.0-pro-2026-03-03
     provider: dashscope
@@ -1229,7 +1473,7 @@ models:
       notes: DashScope image generation pricing varies by quality, resolution, and account tier.
     source_ref:
       url: https://help.aliyun.com/zh/model-studio/model-pricing
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-06-06
       note: DashScope official model pricing and current model listing overview.
   - model_id: qwen-image-2.0
     provider: dashscope
@@ -1246,7 +1490,7 @@ models:
       notes: DashScope image generation pricing varies by quality, resolution, and account tier.
     source_ref:
       url: https://help.aliyun.com/zh/model-studio/model-pricing
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-06-06
       note: DashScope official model pricing and current model listing overview.
   - model_id: qwen-image-2.0-2026-03-03
     provider: dashscope
@@ -1263,7 +1507,7 @@ models:
       notes: DashScope image generation pricing varies by quality, resolution, and account tier.
     source_ref:
       url: https://help.aliyun.com/zh/model-studio/model-pricing
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-06-06
       note: DashScope official model pricing and current model listing overview.
   - model_id: z-image-turbo
     provider: dashscope
@@ -1280,7 +1524,7 @@ models:
       notes: DashScope image generation pricing varies by quality, resolution, and account tier.
     source_ref:
       url: https://help.aliyun.com/zh/model-studio/model-pricing
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-06-06
       note: DashScope official model pricing and current model listing overview.
   - model_id: wan2.7-image-pro
     provider: dashscope
@@ -1331,7 +1575,7 @@ models:
       notes: Image generation pricing varies by quality and tier.
     source_ref:
       url: https://help.aliyun.com/zh/model-studio/model-pricing
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-06-06
       note: DashScope official model pricing and current model listing overview.
   - model_id: wan2.7-t2v
     provider: dashscope
@@ -1514,7 +1758,7 @@ models:
       notes: DashScope image generation pricing varies by quality, resolution, and account tier.
     source_ref:
       url: https://help.aliyun.com/zh/model-studio/model-pricing
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-06-06
       note: DashScope official model pricing and current model listing overview.
   - model_id: flux-dev
     provider: dashscope
@@ -1531,7 +1775,7 @@ models:
       notes: DashScope image generation pricing varies by quality, resolution, and account tier.
     source_ref:
       url: https://help.aliyun.com/zh/model-studio/model-pricing
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-06-06
       note: DashScope official model pricing and current model listing overview.
   - model_id: flux-merged
     provider: dashscope
@@ -1548,9 +1792,249 @@ models:
       notes: DashScope image generation pricing varies by quality, resolution, and account tier.
     source_ref:
       url: https://help.aliyun.com/zh/model-studio/model-pricing
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-06-06
       note: DashScope official model pricing and current model listing overview.
 voices:
+  - voice_id: longanyang
+    voice_set_id: dashscope:cosyvoice_v3_plus_voice_set
+    provider: dashscope
+    name: 龙安洋
+    langs:
+      - zh
+      - en
+      - ja
+      - ko
+    model_ids:
+      - cosyvoice-v3-plus
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/cosyvoice-voice-list
+      retrieved_at: 2026-06-06
+      note: Official CosyVoice system voice list for v3 flash.
+  - voice_id: longanhuan
+    voice_set_id: dashscope:cosyvoice_v3_plus_voice_set
+    provider: dashscope
+    name: 龙安欢
+    langs:
+      - zh
+      - en
+      - ja
+      - ko
+    model_ids:
+      - cosyvoice-v3-plus
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/cosyvoice-voice-list
+      retrieved_at: 2026-06-06
+      note: Official CosyVoice system voice list for v3 flash.
+  - voice_id: longanyang
+    voice_set_id: dashscope:cosyvoice_v3_flash_voice_set
+    provider: dashscope
+    name: 龙安洋
+    langs:
+      - zh
+      - en
+      - ja
+      - ko
+    model_ids:
+      - cosyvoice-v3-flash
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/cosyvoice-voice-list
+      retrieved_at: 2026-06-06
+      note: Official CosyVoice system voice list for v3 flash.
+  - voice_id: longanhuan
+    voice_set_id: dashscope:cosyvoice_v3_flash_voice_set
+    provider: dashscope
+    name: 龙安欢
+    langs:
+      - zh
+      - en
+      - ja
+      - ko
+    model_ids:
+      - cosyvoice-v3-flash
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/cosyvoice-voice-list
+      retrieved_at: 2026-06-06
+      note: Official CosyVoice system voice list for v3 flash.
+  - voice_id: longanhuan_v3
+    voice_set_id: dashscope:cosyvoice_v3_flash_voice_set
+    provider: dashscope
+    name: 龙安欢（V3）
+    langs:
+      - zh
+      - en
+      - ja
+      - ko
+    model_ids:
+      - cosyvoice-v3-flash
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/cosyvoice-voice-list
+      retrieved_at: 2026-06-06
+      note: Official CosyVoice system voice list for v3 flash.
+  - voice_id: longhuhu_v3
+    voice_set_id: dashscope:cosyvoice_v3_flash_voice_set
+    provider: dashscope
+    name: 龙呼呼
+    langs:
+      - zh
+      - en
+      - ja
+      - ko
+    model_ids:
+      - cosyvoice-v3-flash
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/cosyvoice-voice-list
+      retrieved_at: 2026-06-06
+      note: Official CosyVoice system voice list for v3 flash.
+  - voice_id: longpaopao_v3
+    voice_set_id: dashscope:cosyvoice_v3_flash_voice_set
+    provider: dashscope
+    name: 龙泡泡
+    langs:
+      - zh
+      - en
+      - ja
+      - ko
+    model_ids:
+      - cosyvoice-v3-flash
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/cosyvoice-voice-list
+      retrieved_at: 2026-06-06
+      note: Official CosyVoice system voice list for v3 flash.
+  - voice_id: longanyue_v3
+    voice_set_id: dashscope:cosyvoice_v3_flash_voice_set
+    provider: dashscope
+    name: 龙安粤
+    langs:
+      - zh
+      - en
+      - ja
+      - ko
+    model_ids:
+      - cosyvoice-v3-flash
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/cosyvoice-voice-list
+      retrieved_at: 2026-06-06
+      note: Official CosyVoice system voice list for v3 flash.
+  - voice_id: longlaotie_v3
+    voice_set_id: dashscope:cosyvoice_v3_flash_voice_set
+    provider: dashscope
+    name: 龙老铁
+    langs:
+      - zh
+      - en
+      - ja
+      - ko
+    model_ids:
+      - cosyvoice-v3-flash
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/cosyvoice-voice-list
+      retrieved_at: 2026-06-06
+      note: Official CosyVoice system voice list for v3 flash.
+  - voice_id: loongriko_v3
+    voice_set_id: dashscope:cosyvoice_v3_flash_voice_set
+    provider: dashscope
+    name: Riko
+    langs:
+      - zh
+      - en
+      - ja
+      - ko
+    model_ids:
+      - cosyvoice-v3-flash
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/cosyvoice-voice-list
+      retrieved_at: 2026-06-06
+      note: Official CosyVoice system voice list for v3 flash.
+  - voice_id: loongdavid_v3
+    voice_set_id: dashscope:cosyvoice_v3_flash_voice_set
+    provider: dashscope
+    name: loongdavid
+    langs:
+      - zh
+      - en
+      - ja
+      - ko
+    model_ids:
+      - cosyvoice-v3-flash
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/cosyvoice-voice-list
+      retrieved_at: 2026-06-06
+      note: Official CosyVoice system voice list for v3 flash.
+  - voice_id: loongyuuna_v3
+    voice_set_id: dashscope:cosyvoice_v3_flash_voice_set
+    provider: dashscope
+    name: Yuuna
+    langs:
+      - zh
+      - en
+      - ja
+      - ko
+    model_ids:
+      - cosyvoice-v3-flash
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/cosyvoice-voice-list
+      retrieved_at: 2026-06-06
+      note: Official CosyVoice system voice list for v3 flash.
+  - voice_id: loongjihun_v3
+    voice_set_id: dashscope:cosyvoice_v3_flash_voice_set
+    provider: dashscope
+    name: Jihun
+    langs:
+      - zh
+      - en
+      - ja
+      - ko
+    model_ids:
+      - cosyvoice-v3-flash
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/cosyvoice-voice-list
+      retrieved_at: 2026-06-06
+      note: Official CosyVoice system voice list for v3 flash.
+  - voice_id: loongindah_v3
+    voice_set_id: dashscope:cosyvoice_v3_flash_voice_set
+    provider: dashscope
+    name: loongindah
+    langs:
+      - zh
+      - en
+      - ja
+      - ko
+    model_ids:
+      - cosyvoice-v3-flash
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/cosyvoice-voice-list
+      retrieved_at: 2026-06-06
+      note: Official CosyVoice system voice list for v3 flash.
+  - voice_id: longxiaochun_v3
+    voice_set_id: dashscope:cosyvoice_v3_flash_voice_set
+    provider: dashscope
+    name: 龙小淳
+    langs:
+      - zh
+      - en
+      - ja
+      - ko
+    model_ids:
+      - cosyvoice-v3-flash
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/cosyvoice-voice-list
+      retrieved_at: 2026-06-06
+      note: Official CosyVoice system voice list for v3 flash.
+  - voice_id: loongbella_v3
+    voice_set_id: dashscope:cosyvoice_v3_flash_voice_set
+    provider: dashscope
+    name: Bella3.0
+    langs:
+      - zh
+      - en
+      - ja
+      - ko
+    model_ids:
+      - cosyvoice-v3-flash
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/cosyvoice-voice-list
+      retrieved_at: 2026-06-06
+      note: Official CosyVoice system voice list for v3 flash.
   - voice_id: arthur
     voice_set_id: dashscope:instruct_flash_voice_set
     provider: dashscope
@@ -2177,58 +2661,6 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: alek
-    voice_set_id: dashscope:flash_voice_set
-    provider: dashscope
-    name: Alek
-    langs:
-      - zh-cn
-      - en-us
-      - fr-fr
-      - de-de
-      - ru-ru
-      - it-it
-      - es-es
-      - pt-pt
-      - ja-jp
-      - ko-kr
-    model_ids:
-      - qwen3-tts-flash
-      - qwen3-tts-flash-2025-09-18
-      - qwen3-tts-flash-2025-11-27
-      - qwen3-tts-flash-realtime
-      - qwen3-tts-flash-realtime-2025-11-27
-      - qwen3-tts-flash-realtime-2025-09-18
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
-  - voice_id: andre
-    voice_set_id: dashscope:flash_voice_set
-    provider: dashscope
-    name: Andre
-    langs:
-      - zh-cn
-      - en-us
-      - fr-fr
-      - de-de
-      - ru-ru
-      - it-it
-      - es-es
-      - pt-pt
-      - ja-jp
-      - ko-kr
-    model_ids:
-      - qwen3-tts-flash
-      - qwen3-tts-flash-2025-09-18
-      - qwen3-tts-flash-2025-11-27
-      - qwen3-tts-flash-realtime
-      - qwen3-tts-flash-realtime-2025-11-27
-      - qwen3-tts-flash-realtime-2025-09-18
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
   - voice_id: arthur
     voice_set_id: dashscope:flash_voice_set
     provider: dashscope
@@ -2259,84 +2691,6 @@ voices:
     voice_set_id: dashscope:flash_voice_set
     provider: dashscope
     name: Bella
-    langs:
-      - zh-cn
-      - en-us
-      - fr-fr
-      - de-de
-      - ru-ru
-      - it-it
-      - es-es
-      - pt-pt
-      - ja-jp
-      - ko-kr
-    model_ids:
-      - qwen3-tts-flash
-      - qwen3-tts-flash-2025-09-18
-      - qwen3-tts-flash-2025-11-27
-      - qwen3-tts-flash-realtime
-      - qwen3-tts-flash-realtime-2025-11-27
-      - qwen3-tts-flash-realtime-2025-09-18
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
-  - voice_id: bellona
-    voice_set_id: dashscope:flash_voice_set
-    provider: dashscope
-    name: Bellona
-    langs:
-      - zh-cn
-      - en-us
-      - fr-fr
-      - de-de
-      - ru-ru
-      - it-it
-      - es-es
-      - pt-pt
-      - ja-jp
-      - ko-kr
-    model_ids:
-      - qwen3-tts-flash
-      - qwen3-tts-flash-2025-09-18
-      - qwen3-tts-flash-2025-11-27
-      - qwen3-tts-flash-realtime
-      - qwen3-tts-flash-realtime-2025-11-27
-      - qwen3-tts-flash-realtime-2025-09-18
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
-  - voice_id: bodega
-    voice_set_id: dashscope:flash_voice_set
-    provider: dashscope
-    name: Bodega
-    langs:
-      - zh-cn
-      - en-us
-      - fr-fr
-      - de-de
-      - ru-ru
-      - it-it
-      - es-es
-      - pt-pt
-      - ja-jp
-      - ko-kr
-    model_ids:
-      - qwen3-tts-flash
-      - qwen3-tts-flash-2025-09-18
-      - qwen3-tts-flash-2025-11-27
-      - qwen3-tts-flash-realtime
-      - qwen3-tts-flash-realtime-2025-11-27
-      - qwen3-tts-flash-realtime-2025-09-18
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
-  - voice_id: bunny
-    voice_set_id: dashscope:flash_voice_set
-    provider: dashscope
-    name: Bunny
     langs:
       - zh-cn
       - en-us
@@ -2411,166 +2765,10 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: dolce
-    voice_set_id: dashscope:flash_voice_set
-    provider: dashscope
-    name: Dolce
-    langs:
-      - zh-cn
-      - en-us
-      - fr-fr
-      - de-de
-      - ru-ru
-      - it-it
-      - es-es
-      - pt-pt
-      - ja-jp
-      - ko-kr
-    model_ids:
-      - qwen3-tts-flash
-      - qwen3-tts-flash-2025-09-18
-      - qwen3-tts-flash-2025-11-27
-      - qwen3-tts-flash-realtime
-      - qwen3-tts-flash-realtime-2025-11-27
-      - qwen3-tts-flash-realtime-2025-09-18
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
   - voice_id: dylan
     voice_set_id: dashscope:flash_voice_set
     provider: dashscope
     name: Dylan
-    langs:
-      - zh-cn
-      - en-us
-      - fr-fr
-      - de-de
-      - ru-ru
-      - it-it
-      - es-es
-      - pt-pt
-      - ja-jp
-      - ko-kr
-    model_ids:
-      - qwen3-tts-flash
-      - qwen3-tts-flash-2025-09-18
-      - qwen3-tts-flash-2025-11-27
-      - qwen3-tts-flash-realtime
-      - qwen3-tts-flash-realtime-2025-11-27
-      - qwen3-tts-flash-realtime-2025-09-18
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
-  - voice_id: ebona
-    voice_set_id: dashscope:flash_voice_set
-    provider: dashscope
-    name: Ebona
-    langs:
-      - zh-cn
-      - en-us
-      - fr-fr
-      - de-de
-      - ru-ru
-      - it-it
-      - es-es
-      - pt-pt
-      - ja-jp
-      - ko-kr
-    model_ids:
-      - qwen3-tts-flash
-      - qwen3-tts-flash-2025-09-18
-      - qwen3-tts-flash-2025-11-27
-      - qwen3-tts-flash-realtime
-      - qwen3-tts-flash-realtime-2025-11-27
-      - qwen3-tts-flash-realtime-2025-09-18
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
-  - voice_id: eldric_sage
-    voice_set_id: dashscope:flash_voice_set
-    provider: dashscope
-    name: Eldric Sage
-    langs:
-      - zh-cn
-      - en-us
-      - fr-fr
-      - de-de
-      - ru-ru
-      - it-it
-      - es-es
-      - pt-pt
-      - ja-jp
-      - ko-kr
-    model_ids:
-      - qwen3-tts-flash
-      - qwen3-tts-flash-2025-09-18
-      - qwen3-tts-flash-2025-11-27
-      - qwen3-tts-flash-realtime
-      - qwen3-tts-flash-realtime-2025-11-27
-      - qwen3-tts-flash-realtime-2025-09-18
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
-  - voice_id: elias
-    voice_set_id: dashscope:flash_voice_set
-    provider: dashscope
-    name: Elias
-    langs:
-      - zh-cn
-      - en-us
-      - fr-fr
-      - de-de
-      - ru-ru
-      - it-it
-      - es-es
-      - pt-pt
-      - ja-jp
-      - ko-kr
-    model_ids:
-      - qwen3-tts-flash
-      - qwen3-tts-flash-2025-09-18
-      - qwen3-tts-flash-2025-11-27
-      - qwen3-tts-flash-realtime
-      - qwen3-tts-flash-realtime-2025-11-27
-      - qwen3-tts-flash-realtime-2025-09-18
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
-  - voice_id: emilien
-    voice_set_id: dashscope:flash_voice_set
-    provider: dashscope
-    name: Emilien
-    langs:
-      - zh-cn
-      - en-us
-      - fr-fr
-      - de-de
-      - ru-ru
-      - it-it
-      - es-es
-      - pt-pt
-      - ja-jp
-      - ko-kr
-    model_ids:
-      - qwen3-tts-flash
-      - qwen3-tts-flash-2025-09-18
-      - qwen3-tts-flash-2025-11-27
-      - qwen3-tts-flash-realtime
-      - qwen3-tts-flash-realtime-2025-11-27
-      - qwen3-tts-flash-realtime-2025-09-18
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
-  - voice_id: eric
-    voice_set_id: dashscope:flash_voice_set
-    provider: dashscope
-    name: Eric
     langs:
       - zh-cn
       - en-us
@@ -2645,140 +2843,10 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: jennifer
-    voice_set_id: dashscope:flash_voice_set
-    provider: dashscope
-    name: Jennifer
-    langs:
-      - zh-cn
-      - en-us
-      - fr-fr
-      - de-de
-      - ru-ru
-      - it-it
-      - es-es
-      - pt-pt
-      - ja-jp
-      - ko-kr
-    model_ids:
-      - qwen3-tts-flash
-      - qwen3-tts-flash-2025-09-18
-      - qwen3-tts-flash-2025-11-27
-      - qwen3-tts-flash-realtime
-      - qwen3-tts-flash-realtime-2025-11-27
-      - qwen3-tts-flash-realtime-2025-09-18
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
   - voice_id: kai
     voice_set_id: dashscope:flash_voice_set
     provider: dashscope
     name: Kai
-    langs:
-      - zh-cn
-      - en-us
-      - fr-fr
-      - de-de
-      - ru-ru
-      - it-it
-      - es-es
-      - pt-pt
-      - ja-jp
-      - ko-kr
-    model_ids:
-      - qwen3-tts-flash
-      - qwen3-tts-flash-2025-09-18
-      - qwen3-tts-flash-2025-11-27
-      - qwen3-tts-flash-realtime
-      - qwen3-tts-flash-realtime-2025-11-27
-      - qwen3-tts-flash-realtime-2025-09-18
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
-  - voice_id: katerina
-    voice_set_id: dashscope:flash_voice_set
-    provider: dashscope
-    name: Katerina
-    langs:
-      - zh-cn
-      - en-us
-      - fr-fr
-      - de-de
-      - ru-ru
-      - it-it
-      - es-es
-      - pt-pt
-      - ja-jp
-      - ko-kr
-    model_ids:
-      - qwen3-tts-flash
-      - qwen3-tts-flash-2025-09-18
-      - qwen3-tts-flash-2025-11-27
-      - qwen3-tts-flash-realtime
-      - qwen3-tts-flash-realtime-2025-11-27
-      - qwen3-tts-flash-realtime-2025-09-18
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
-  - voice_id: kiki
-    voice_set_id: dashscope:flash_voice_set
-    provider: dashscope
-    name: Kiki
-    langs:
-      - zh-cn
-      - en-us
-      - fr-fr
-      - de-de
-      - ru-ru
-      - it-it
-      - es-es
-      - pt-pt
-      - ja-jp
-      - ko-kr
-    model_ids:
-      - qwen3-tts-flash
-      - qwen3-tts-flash-2025-09-18
-      - qwen3-tts-flash-2025-11-27
-      - qwen3-tts-flash-realtime
-      - qwen3-tts-flash-realtime-2025-11-27
-      - qwen3-tts-flash-realtime-2025-09-18
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
-  - voice_id: lenn
-    voice_set_id: dashscope:flash_voice_set
-    provider: dashscope
-    name: Lenn
-    langs:
-      - zh-cn
-      - en-us
-      - fr-fr
-      - de-de
-      - ru-ru
-      - it-it
-      - es-es
-      - pt-pt
-      - ja-jp
-      - ko-kr
-    model_ids:
-      - qwen3-tts-flash
-      - qwen3-tts-flash-2025-09-18
-      - qwen3-tts-flash-2025-11-27
-      - qwen3-tts-flash-realtime
-      - qwen3-tts-flash-realtime-2025-11-27
-      - qwen3-tts-flash-realtime-2025-09-18
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
-  - voice_id: li
-    voice_set_id: dashscope:flash_voice_set
-    provider: dashscope
-    name: Li
     langs:
       - zh-cn
       - en-us
@@ -2827,62 +2895,10 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: marcus
-    voice_set_id: dashscope:flash_voice_set
-    provider: dashscope
-    name: Marcus
-    langs:
-      - zh-cn
-      - en-us
-      - fr-fr
-      - de-de
-      - ru-ru
-      - it-it
-      - es-es
-      - pt-pt
-      - ja-jp
-      - ko-kr
-    model_ids:
-      - qwen3-tts-flash
-      - qwen3-tts-flash-2025-09-18
-      - qwen3-tts-flash-2025-11-27
-      - qwen3-tts-flash-realtime
-      - qwen3-tts-flash-realtime-2025-11-27
-      - qwen3-tts-flash-realtime-2025-09-18
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
   - voice_id: mia
     voice_set_id: dashscope:flash_voice_set
     provider: dashscope
     name: Mia
-    langs:
-      - zh-cn
-      - en-us
-      - fr-fr
-      - de-de
-      - ru-ru
-      - it-it
-      - es-es
-      - pt-pt
-      - ja-jp
-      - ko-kr
-    model_ids:
-      - qwen3-tts-flash
-      - qwen3-tts-flash-2025-09-18
-      - qwen3-tts-flash-2025-11-27
-      - qwen3-tts-flash-realtime
-      - qwen3-tts-flash-realtime-2025-11-27
-      - qwen3-tts-flash-realtime-2025-09-18
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
-  - voice_id: mochi
-    voice_set_id: dashscope:flash_voice_set
-    provider: dashscope
-    name: Mochi
     langs:
       - zh-cn
       - en-us
@@ -2983,58 +2999,6 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: nini
-    voice_set_id: dashscope:flash_voice_set
-    provider: dashscope
-    name: Nini
-    langs:
-      - zh-cn
-      - en-us
-      - fr-fr
-      - de-de
-      - ru-ru
-      - it-it
-      - es-es
-      - pt-pt
-      - ja-jp
-      - ko-kr
-    model_ids:
-      - qwen3-tts-flash
-      - qwen3-tts-flash-2025-09-18
-      - qwen3-tts-flash-2025-11-27
-      - qwen3-tts-flash-realtime
-      - qwen3-tts-flash-realtime-2025-11-27
-      - qwen3-tts-flash-realtime-2025-09-18
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
-  - voice_id: nofish
-    voice_set_id: dashscope:flash_voice_set
-    provider: dashscope
-    name: Nofish
-    langs:
-      - zh-cn
-      - en-us
-      - fr-fr
-      - de-de
-      - ru-ru
-      - it-it
-      - es-es
-      - pt-pt
-      - ja-jp
-      - ko-kr
-    model_ids:
-      - qwen3-tts-flash
-      - qwen3-tts-flash-2025-09-18
-      - qwen3-tts-flash-2025-11-27
-      - qwen3-tts-flash-realtime
-      - qwen3-tts-flash-realtime-2025-11-27
-      - qwen3-tts-flash-realtime-2025-09-18
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
   - voice_id: ono_anna
     voice_set_id: dashscope:flash_voice_set
     provider: dashscope
@@ -3061,244 +3025,10 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: peter
-    voice_set_id: dashscope:flash_voice_set
-    provider: dashscope
-    name: Peter
-    langs:
-      - zh-cn
-      - en-us
-      - fr-fr
-      - de-de
-      - ru-ru
-      - it-it
-      - es-es
-      - pt-pt
-      - ja-jp
-      - ko-kr
-    model_ids:
-      - qwen3-tts-flash
-      - qwen3-tts-flash-2025-09-18
-      - qwen3-tts-flash-2025-11-27
-      - qwen3-tts-flash-realtime
-      - qwen3-tts-flash-realtime-2025-11-27
-      - qwen3-tts-flash-realtime-2025-09-18
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
-  - voice_id: pip
-    voice_set_id: dashscope:flash_voice_set
-    provider: dashscope
-    name: Pip
-    langs:
-      - zh-cn
-      - en-us
-      - fr-fr
-      - de-de
-      - ru-ru
-      - it-it
-      - es-es
-      - pt-pt
-      - ja-jp
-      - ko-kr
-    model_ids:
-      - qwen3-tts-flash
-      - qwen3-tts-flash-2025-09-18
-      - qwen3-tts-flash-2025-11-27
-      - qwen3-tts-flash-realtime
-      - qwen3-tts-flash-realtime-2025-11-27
-      - qwen3-tts-flash-realtime-2025-09-18
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
-  - voice_id: radio_gol
-    voice_set_id: dashscope:flash_voice_set
-    provider: dashscope
-    name: Radio Gol
-    langs:
-      - zh-cn
-      - en-us
-      - fr-fr
-      - de-de
-      - ru-ru
-      - it-it
-      - es-es
-      - pt-pt
-      - ja-jp
-      - ko-kr
-    model_ids:
-      - qwen3-tts-flash
-      - qwen3-tts-flash-2025-09-18
-      - qwen3-tts-flash-2025-11-27
-      - qwen3-tts-flash-realtime
-      - qwen3-tts-flash-realtime-2025-11-27
-      - qwen3-tts-flash-realtime-2025-09-18
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
-  - voice_id: rocky
-    voice_set_id: dashscope:flash_voice_set
-    provider: dashscope
-    name: Rocky
-    langs:
-      - zh-cn
-      - en-us
-      - fr-fr
-      - de-de
-      - ru-ru
-      - it-it
-      - es-es
-      - pt-pt
-      - ja-jp
-      - ko-kr
-    model_ids:
-      - qwen3-tts-flash
-      - qwen3-tts-flash-2025-09-18
-      - qwen3-tts-flash-2025-11-27
-      - qwen3-tts-flash-realtime
-      - qwen3-tts-flash-realtime-2025-11-27
-      - qwen3-tts-flash-realtime-2025-09-18
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
-  - voice_id: roy
-    voice_set_id: dashscope:flash_voice_set
-    provider: dashscope
-    name: Roy
-    langs:
-      - zh-cn
-      - en-us
-      - fr-fr
-      - de-de
-      - ru-ru
-      - it-it
-      - es-es
-      - pt-pt
-      - ja-jp
-      - ko-kr
-    model_ids:
-      - qwen3-tts-flash
-      - qwen3-tts-flash-2025-09-18
-      - qwen3-tts-flash-2025-11-27
-      - qwen3-tts-flash-realtime
-      - qwen3-tts-flash-realtime-2025-11-27
-      - qwen3-tts-flash-realtime-2025-09-18
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
-  - voice_id: ryan
-    voice_set_id: dashscope:flash_voice_set
-    provider: dashscope
-    name: Ryan
-    langs:
-      - zh-cn
-      - en-us
-      - fr-fr
-      - de-de
-      - ru-ru
-      - it-it
-      - es-es
-      - pt-pt
-      - ja-jp
-      - ko-kr
-    model_ids:
-      - qwen3-tts-flash
-      - qwen3-tts-flash-2025-09-18
-      - qwen3-tts-flash-2025-11-27
-      - qwen3-tts-flash-realtime
-      - qwen3-tts-flash-realtime-2025-11-27
-      - qwen3-tts-flash-realtime-2025-09-18
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
-  - voice_id: seren
-    voice_set_id: dashscope:flash_voice_set
-    provider: dashscope
-    name: Seren
-    langs:
-      - zh-cn
-      - en-us
-      - fr-fr
-      - de-de
-      - ru-ru
-      - it-it
-      - es-es
-      - pt-pt
-      - ja-jp
-      - ko-kr
-    model_ids:
-      - qwen3-tts-flash
-      - qwen3-tts-flash-2025-09-18
-      - qwen3-tts-flash-2025-11-27
-      - qwen3-tts-flash-realtime
-      - qwen3-tts-flash-realtime-2025-11-27
-      - qwen3-tts-flash-realtime-2025-09-18
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
   - voice_id: serena
     voice_set_id: dashscope:flash_voice_set
     provider: dashscope
     name: Serena
-    langs:
-      - zh-cn
-      - en-us
-      - fr-fr
-      - de-de
-      - ru-ru
-      - it-it
-      - es-es
-      - pt-pt
-      - ja-jp
-      - ko-kr
-    model_ids:
-      - qwen3-tts-flash
-      - qwen3-tts-flash-2025-09-18
-      - qwen3-tts-flash-2025-11-27
-      - qwen3-tts-flash-realtime
-      - qwen3-tts-flash-realtime-2025-11-27
-      - qwen3-tts-flash-realtime-2025-09-18
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
-  - voice_id: sohee
-    voice_set_id: dashscope:flash_voice_set
-    provider: dashscope
-    name: Sohee
-    langs:
-      - zh-cn
-      - en-us
-      - fr-fr
-      - de-de
-      - ru-ru
-      - it-it
-      - es-es
-      - pt-pt
-      - ja-jp
-      - ko-kr
-    model_ids:
-      - qwen3-tts-flash
-      - qwen3-tts-flash-2025-09-18
-      - qwen3-tts-flash-2025-11-27
-      - qwen3-tts-flash-realtime
-      - qwen3-tts-flash-realtime-2025-11-27
-      - qwen3-tts-flash-realtime-2025-09-18
-    source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
-      retrieved_at: 2026-03-05
-      note: dashscope official model documentation
-  - voice_id: sonrisa
-    voice_set_id: dashscope:flash_voice_set
-    provider: dashscope
-    name: Sonrisa
     langs:
       - zh-cn
       - en-us
@@ -3426,6 +3156,50 @@ voices:
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
   - voice_id: user-custom
+    voice_set_id: dashscope:cosyvoice-v3-5-plus-dynamic
+    provider: dashscope
+    name: User Custom Voice
+    langs:
+      - zh
+      - en
+      - fr
+      - de
+      - ja
+      - ko
+      - ru
+      - pt
+      - th
+      - id
+      - vi
+    model_ids:
+      - cosyvoice-v3.5-plus
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/speech-synthesis/
+      retrieved_at: 2026-06-06
+      note: Official speech synthesis model selection and current model matrix.
+  - voice_id: user-custom
+    voice_set_id: dashscope:cosyvoice-v3-5-flash-dynamic
+    provider: dashscope
+    name: User Custom Voice
+    langs:
+      - zh
+      - en
+      - fr
+      - de
+      - ja
+      - ko
+      - ru
+      - pt
+      - th
+      - id
+      - vi
+    model_ids:
+      - cosyvoice-v3.5-flash
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/speech-synthesis/
+      retrieved_at: 2026-06-06
+      note: Official speech synthesis model selection and current model matrix.
+  - voice_id: user-custom
     voice_set_id: dashscope:qwen3-tts-vc-dynamic
     provider: dashscope
     name: User Custom Voice
@@ -3517,24 +3291,24 @@ selection_profiles:
   - provider: dashscope
     profile_id: text.general
     capability: text.generate
-    model_id: qwen3-max
-    reviewed_at: 2026-06-03
+    model_id: qwen3.7-max
+    reviewed_at: 2026-06-06
     freshness_sla_days: 21
-    rationale: Highest-tier provider-native DashScope text route in the admitted set.
+    rationale: Current provider-native Qwen Max flagship line on DashScope.
   - provider: dashscope
     profile_id: text.fast
     capability: text.generate
     model_id: qwen3.6-flash
-    reviewed_at: 2026-06-03
+    reviewed_at: 2026-06-06
     freshness_sla_days: 21
-    rationale: Current flash-tier provider-native DashScope text route for latency-sensitive tasks.
+    rationale: Current admitted flash-tier provider-native DashScope text route for latency-sensitive tasks.
   - provider: dashscope
     profile_id: text.reasoning
     capability: text.generate
-    model_id: kimi-k2-thinking
-    reviewed_at: 2026-06-03
+    model_id: qwen3.7-max
+    reviewed_at: 2026-06-06
     freshness_sla_days: 21
-    rationale: Explicit thinking-oriented text route in the current DashScope catalog set.
+    rationale: Current Qwen Max line is documented as text-only with thinking mode enabled by default.
 voice_workflow_models:
   - workflow_model_id: qwen-voice-enrollment
     workflow_type: voice_clone
@@ -3600,6 +3374,71 @@ voice_workflow_models:
       - ko
       - fr
       - ru
+  - workflow_model_id: voice-enrollment-clone
+    workflow_type: voice_clone
+    input_contract_ref: dashscope_cosyvoice_voice_clone_input_v1
+    output_persistence: provider_persistent
+    request_options:
+      text_prompt_mode: unsupported
+      supports_language_hints: true
+      supports_preferred_name: true
+      reference_audio_uri_input: true
+      reference_audio_bytes_input: false
+      allowed_reference_audio_mime_types:
+        - audio/wav
+        - audio/mpeg
+        - audio/ogg
+        - audio/flac
+        - audio/mp4
+        - audio/m4a
+      provider_extensions:
+        namespace: nimi.scenario.voice_workflow.request
+        schema_version: dashscope-cosyvoice-voice-enrollment-v1
+    target_model_refs:
+      - cosyvoice-v3.5-plus
+      - cosyvoice-v3.5-flash
+      - cosyvoice-v3-plus
+      - cosyvoice-v3-flash
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/cosyvoice-clone-design-api
+      retrieved_at: 2026-06-06
+      note: CosyVoice voice clone/design API and target model compatibility.
+    langs:
+      - zh
+      - en
+      - fr
+      - de
+      - ja
+      - ko
+      - ru
+      - pt
+      - th
+      - id
+      - vi
+  - workflow_model_id: voice-enrollment-design
+    workflow_type: voice_design
+    input_contract_ref: dashscope_cosyvoice_voice_design_input_v1
+    output_persistence: provider_persistent
+    request_options:
+      instruction_text_mode: required
+      preview_text_mode: required
+      supports_language: true
+      supports_preferred_name: true
+      provider_extensions:
+        namespace: nimi.scenario.voice_workflow.request
+        schema_version: dashscope-cosyvoice-voice-enrollment-v1
+    target_model_refs:
+      - cosyvoice-v3.5-plus
+      - cosyvoice-v3.5-flash
+      - cosyvoice-v3-plus
+      - cosyvoice-v3-flash
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/cosyvoice-clone-design-api
+      retrieved_at: 2026-06-06
+      note: CosyVoice voice clone/design API and target model compatibility.
+    langs:
+      - zh
+      - en
 model_workflow_bindings:
   - model_id: qwen3-tts-vc
     workflow_model_refs:
@@ -3630,6 +3469,34 @@ model_workflow_bindings:
     workflow_model_refs:
       - qwen-voice-design
     workflow_types:
+      - voice_design
+  - model_id: cosyvoice-v3.5-plus
+    workflow_model_refs:
+      - voice-enrollment-clone
+      - voice-enrollment-design
+    workflow_types:
+      - voice_clone
+      - voice_design
+  - model_id: cosyvoice-v3.5-flash
+    workflow_model_refs:
+      - voice-enrollment-clone
+      - voice-enrollment-design
+    workflow_types:
+      - voice_clone
+      - voice_design
+  - model_id: cosyvoice-v3-plus
+    workflow_model_refs:
+      - voice-enrollment-clone
+      - voice-enrollment-design
+    workflow_types:
+      - voice_clone
+      - voice_design
+  - model_id: cosyvoice-v3-flash
+    workflow_model_refs:
+      - voice-enrollment-clone
+      - voice-enrollment-design
+    workflow_types:
+      - voice_clone
       - voice_design
 voice_handle_policies:
   - policy_id: dashscope_provider_persistent_default

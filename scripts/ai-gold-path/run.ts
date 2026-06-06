@@ -3,9 +3,19 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
+import { randomUUID } from 'node:crypto';
 import YAML from 'yaml';
 
-import { withRuntimeDaemon } from '../../sdk/test/runtime/contract/helpers/runtime-daemon.js';
+import {
+  AuthorizationPreset,
+  ExternalPrincipalType,
+  PolicyMode,
+} from '../../sdks/typescript/runtime/generated.js';
+import { Runtime } from '../../sdks/typescript/runtime/index.js';
+import { createNimiRuntimeFullAppRegistration } from '../../sdks/typescript/runtime/app-session.js';
+import { withNimiRuntimeIdempotencyMetadata } from '../../sdks/typescript/runtime/scenario-jobs.js';
+import { toNimiRuntimeTimestamp } from '../../sdks/typescript/runtime/runtime-agent-values.js';
+import { withRuntimeDaemon } from '../../sdks/typescript/runtime/live-runtime-daemon.test-helper.js';
 import {
   GOLD_REPORT_PATH,
   loadGoldFixture,
@@ -46,6 +56,12 @@ type FixtureRecord = {
   first_failing_layer: string | null;
   layers: Record<string, LayerResult>;
 };
+
+const GOLD_APP_ID = 'nimi.gold-path';
+const GOLD_APP_INSTANCE_ID = 'gold-path-live';
+const GOLD_DEVICE_ID = 'gold-path-live';
+const GOLD_SCOPE_CATALOG_VERSION = 'sdk-v2';
+const GOLD_SUBJECT_USER_ID = String(process.env.NIMI_LIVE_GOLD_SUBJECT_USER_ID || 'gold-user').trim();
 
 function readArg(flag: string): string {
   const index = process.argv.indexOf(flag);
@@ -165,10 +181,13 @@ function summarizeOutput(label: string, value: string): string {
   return `${label}=${head}\n...\n${tail}`;
 }
 
-function runJsonCommand(command: string, args: string[], cwd: string): JsonCommandResult {
+function runJsonCommand(command: string, args: string[], cwd: string, extraEnv: Record<string, string> = {}): JsonCommandResult {
   const result = spawnSync(command, args, {
     cwd,
-    env: process.env,
+    env: {
+      ...process.env,
+      ...extraEnv,
+    },
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe'],
     timeout: 12 * 60 * 1000,
@@ -204,8 +223,8 @@ function runJsonCommand(command: string, args: string[], cwd: string): JsonComma
   }
 }
 
-function runCommandLayer(command: string, args: string[], cwd: string): LayerResult {
-  const result = runJsonCommand(command, args, cwd);
+function runCommandLayer(command: string, args: string[], cwd: string, extraEnv: Record<string, string> = {}): LayerResult {
+  const result = runJsonCommand(command, args, cwd, extraEnv);
   if (!result.ok) {
     return failedLayer(result.error);
   }
@@ -238,6 +257,62 @@ function toFirstFailingLayer(record: FixtureRecord): string | null {
     }
   }
   return null;
+}
+
+function createRuntimeModule(endpoint: string): Runtime {
+  return new Runtime({
+    appId: GOLD_APP_ID,
+    transport: {
+      type: 'node-grpc',
+      endpoint,
+    },
+  });
+}
+
+async function issueGoldPathAccessEnv(endpoint: string): Promise<Record<string, string>> {
+  const runtime = createRuntimeModule(endpoint);
+  const ensureRegistered = createNimiRuntimeFullAppRegistration(
+    () => ({ auth: runtime.auth }),
+    {
+      appId: GOLD_APP_ID,
+      appInstanceId: GOLD_APP_INSTANCE_ID,
+      deviceId: GOLD_DEVICE_ID,
+      capabilities: ['ai.spend.meter'],
+      developerRegistration: true,
+    },
+  );
+  await ensureRegistered();
+  const token = await runtime.grants.authorizeExternalPrincipal({
+    domain: 'app-auth',
+    appId: GOLD_APP_ID,
+    externalPrincipalId: GOLD_APP_ID,
+    externalPrincipalType: ExternalPrincipalType.APP,
+    subjectUserId: GOLD_SUBJECT_USER_ID,
+    consentId: 'gold-path-live',
+    consentVersion: 'v1',
+    decisionAt: toNimiRuntimeTimestamp(new Date()),
+    policyVersion: 'gold-path-live-v1',
+    policyMode: PolicyMode.CUSTOM,
+    preset: AuthorizationPreset.UNSPECIFIED,
+    scopes: ['ai.spend.meter'],
+    resourceSelectors: { conversationIds: [], messageIds: [], documentIds: [], labels: {} },
+    canDelegate: false,
+    maxDelegationDepth: 0,
+    ttlSeconds: 3600,
+    scopeCatalogVersion: GOLD_SCOPE_CATALOG_VERSION,
+    policyOverride: false,
+  }, withNimiRuntimeIdempotencyMetadata({
+    metadata: { domain: 'app-auth' },
+  }, randomUUID()));
+  const tokenID = String(token.tokenId || '').trim();
+  const secret = String(token.secret || '').trim();
+  if (!tokenID || !secret) {
+    throw new Error('gold-path protected access token response was empty');
+  }
+  return {
+    NIMI_LIVE_GOLD_ACCESS_TOKEN_ID: tokenID,
+    NIMI_LIVE_GOLD_ACCESS_TOKEN_SECRET: secret,
+  };
 }
 
 async function evaluateFixture(fixture: ReturnType<typeof loadGoldFixture>): Promise<FixtureRecord> {
@@ -279,7 +354,7 @@ async function evaluateFixture(fixture: ReturnType<typeof loadGoldFixture>): Pro
   const runtimeDir = path.join(repoRoot, 'runtime');
   const sdkGoldRunnerPath = path.join(
     repoRoot,
-    'sdk/test/runtime/contract/helpers/ai-gold-path-runner.ts',
+    'scripts/ai-gold-path/sdk-vnext-runner.ts',
   );
 
   record.layers.L0 = runCommandLayer(
@@ -290,13 +365,15 @@ async function evaluateFixture(fixture: ReturnType<typeof loadGoldFixture>): Pro
 
   try {
     await withRuntimeDaemon({
-      appId: 'nimi.gold-path.runner',
+      appId: GOLD_APP_ID,
       runtimeEnv: runtimeEnvForFixture(fixture),
       run: async ({ endpoint }) => {
+        const protectedAccessEnv = await issueGoldPathAccessEnv(endpoint);
         record.layers.L1 = runCommandLayer(
           'go',
           ['run', './cmd/nimi', 'ai', 'replay', '--grpc-addr', endpoint, '--fixture', fixture.path],
           runtimeDir,
+          protectedAccessEnv,
         );
         record.layers.L2 = runCommandLayer(
           'pnpm',
@@ -311,7 +388,8 @@ async function evaluateFixture(fixture: ReturnType<typeof loadGoldFixture>): Pro
             '--fixture',
             fixture.path,
           ],
-          path.join(repoRoot, 'sdk'),
+          repoRoot,
+          protectedAccessEnv,
         );
         record.layers.L3 = reservedLayer('legacy desktop bridge replay layer removed');
         record.layers.L4 = reservedLayer('legacy mod consumer layer removed');

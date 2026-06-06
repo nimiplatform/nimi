@@ -476,13 +476,23 @@ function resolveLiveVoiceCloneInput(provider: string):
     'NIMI_LIVE_VOICE_CLONE_TEXT',
   ]) || LIVE_VOICE_CLONE_TEXT;
 
+  if (provider.toLowerCase() === 'dashscope' && audioUri) {
+    return {
+      referenceAudioBytes: new Uint8Array(),
+      referenceAudioUri: audioUri,
+      referenceAudioMime: resolveLiveAudioMime(audioUri),
+      languageHints: [],
+      preferredName: '',
+      text,
+    };
+  }
   if (audioPath) {
     return {
       referenceAudioBytes: loadLiveAudioBytes(audioPath),
       referenceAudioUri: '',
       referenceAudioMime: resolveLiveAudioMime(audioPath),
       languageHints: [],
-      preferredName: 'Nimi SDK vNext voice clone smoke',
+      preferredName: '',
       text,
     };
   }
@@ -492,7 +502,7 @@ function resolveLiveVoiceCloneInput(provider: string):
     referenceAudioUri: audioUri,
     referenceAudioMime: resolveLiveAudioMime(audioUri),
     languageHints: [],
-    preferredName: 'Nimi SDK vNext voice clone smoke',
+    preferredName: '',
     text,
   };
 }
@@ -758,7 +768,7 @@ async function runSdkVNextCapabilityLiveSmoke(endpoint: string, provider: string
             instructionText: LIVE_VOICE_DESIGN_INSTRUCTION,
             previewText: LIVE_VOICE_CLONE_TEXT,
             language: '',
-            preferredName: 'Nimi SDK vNext voice design smoke',
+            preferredName: '',
           },
         },
       },

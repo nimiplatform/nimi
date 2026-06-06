@@ -12,6 +12,7 @@ const OUTPUT_DIR = path.join(REPO_ROOT, '.local', 'report', 'live-audio-fixtures
 const PREBUILT_DIR = path.join(REPO_ROOT, 'config', 'live', 'fixtures', 'live-audio-fixtures');
 const DEFAULT_HOST = '127.0.0.1';
 const DEFAULT_PORT = 18456;
+const DASHSCOPE_PUBLIC_VOICE_REFERENCE_AUDIO_URI = 'https://dashscope.oss-cn-beijing.aliyuncs.com/samples/audio/cosyvoice/cosyvoice-zeroshot-sample.wav';
 
 const STT_TEXT = 'Hello from Nimi gold path. DashScope speech transcription should hear this sentence clearly.';
 const VOICE_CLONE_TEXT = [
@@ -194,22 +195,25 @@ function buildFixtureExportPayload(host, port, fixtureFiles) {
   const voiceClonePath = fixtureFiles.get(FIXTURES[1].pathName) || '';
   const sttURI = `${baseURL}${FIXTURES[0].pathName}`;
   const voiceCloneURI = `${baseURL}${FIXTURES[1].pathName}`;
+  const dashscopeVoiceCloneURI = String(process.env.NIMI_LIVE_DASHSCOPE_VOICE_REFERENCE_AUDIO_URI || '').trim()
+    || DASHSCOPE_PUBLIC_VOICE_REFERENCE_AUDIO_URI;
   return {
     baseURL,
     sttPath,
     voiceClonePath,
     sttURI,
     voiceCloneURI,
+    dashscopeVoiceCloneURI,
     env: {
       NIMI_LIVE_STT_AUDIO_PATH: sttPath,
       NIMI_LIVE_VOICE_REFERENCE_AUDIO_PATH: voiceClonePath,
       NIMI_LIVE_DASHSCOPE_VOICE_REFERENCE_AUDIO_PATH: voiceClonePath,
       NIMI_LIVE_STT_AUDIO_URI: sttURI,
       NIMI_LIVE_VOICE_REFERENCE_AUDIO_URI: voiceCloneURI,
-      NIMI_LIVE_DASHSCOPE_VOICE_REFERENCE_AUDIO_URI: voiceCloneURI,
+      NIMI_LIVE_DASHSCOPE_VOICE_REFERENCE_AUDIO_URI: dashscopeVoiceCloneURI,
       NIMI_LIVE_DASHSCOPE_STT_MODEL_ID: 'qwen3-asr-flash-2026-02-10',
-      NIMI_LIVE_DASHSCOPE_VOICE_CLONE_MODEL_ID: 'qwen3-tts-vc',
-      NIMI_LIVE_DASHSCOPE_VOICE_CLONE_MODEL_ID_TARGET_MODEL_ID: 'qwen3-tts-vc-2026-01-22',
+      NIMI_LIVE_DASHSCOPE_VOICE_CLONE_MODEL_ID: 'cosyvoice-v3-flash',
+      NIMI_LIVE_DASHSCOPE_VOICE_CLONE_MODEL_ID_TARGET_MODEL_ID: 'cosyvoice-v3-flash',
     },
   };
 }
