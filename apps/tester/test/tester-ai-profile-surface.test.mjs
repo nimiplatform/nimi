@@ -92,7 +92,20 @@ test('Tester consumes the SDK host AIProfile surface for preview and apply', asy
 
     assert.equal(store.importTesterAIProfileJson(JSON.stringify(profile)).ok, true);
     const service = store.createTesterAIConfigService();
-    const preview = await service.aiProfile.previewApply(scopeRef, profile.profileId);
+    const requirementDeclarations = [{
+      requirementId: 'tester-shared-profile-surface:text',
+      scopeRef,
+      requiredSlices: [{
+        requirementSliceId: 'tester:text.generate',
+        capability: 'text.generate',
+        profileSliceRef: 'tester:text.generate',
+        readinessPolicy: 'required',
+      }],
+      setupProjectionPolicy: 'sdk-ai-config-setup-projection',
+    }];
+    const preview = await service.aiProfile.previewApply(scopeRef, profile.profileId, {
+      requirementDeclarations,
+    });
     assert.equal(preview.before, null);
     assert.equal(preview.outcome, 'ready_to_apply');
     assert.equal(preview.after.scopeRef.ownerId, scopeRef.ownerId);
@@ -101,10 +114,13 @@ test('Tester consumes the SDK host AIProfile surface for preview and apply', asy
 
     const apply = await service.aiProfile.apply(scopeRef, profile.profileId, {
       expectedBaseVersion: preview.baseVersion,
+      requirementDeclarations,
     });
     assert.equal(apply.success, true);
     assert.equal(store.loadTesterAIConfig(scopeRef).profileOrigin.profileId, profile.profileId);
-    const stalePreview = await service.aiProfile.previewApply(scopeRef, profile.profileId);
+    const stalePreview = await service.aiProfile.previewApply(scopeRef, profile.profileId, {
+      requirementDeclarations,
+    });
     service.aiConfig.update(scopeRef, {
       ...store.loadTesterAIConfig(scopeRef),
       profileOrigin: {
@@ -115,10 +131,13 @@ test('Tester consumes the SDK host AIProfile surface for preview and apply', asy
     });
     const staleApply = await service.aiProfile.apply(scopeRef, profile.profileId, {
       expectedBaseVersion: stalePreview.baseVersion,
+      requirementDeclarations,
     });
     assert.equal(staleApply.success, false);
     assert.equal(staleApply.outcome, 'stale_base');
-    assert.equal((await service.aiProfile.apply(scopeRef, 'missing-profile')).success, false);
+    assert.equal((await service.aiProfile.apply(scopeRef, 'missing-profile', {
+      requirementDeclarations,
+    })).success, false);
   } finally {
     if (previousWindow === undefined) {
       delete globalThis.window;

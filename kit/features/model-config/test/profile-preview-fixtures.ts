@@ -8,6 +8,7 @@
 import type {
   NimiAIConfig,
   NimiAIProfile,
+  NimiAIProfilePreviewOptions,
   NimiAIProfilePreviewResult,
   NimiAIScopeRef,
 } from '@nimiplatform/kit/core/sdk-contract';
@@ -47,8 +48,15 @@ export const previewCopyFields: Pick<
 export function makePreviewApplyStub(input: {
   readonly currentConfig: () => NimiAIConfig;
   readonly profilesById: ReadonlyArray<NimiAIProfile>;
-}): (scopeRef: NimiAIScopeRef, profileId: string) => Promise<NimiAIProfilePreviewResult> {
-  return async (_scopeRef, profileId) => {
+}): (
+  scopeRef: NimiAIScopeRef,
+  profileId: string,
+  options: NimiAIProfilePreviewOptions,
+) => Promise<NimiAIProfilePreviewResult> {
+  return async (_scopeRef, profileId, options) => {
+    if (options.requirementDeclarations.length === 0) {
+      throw new Error('requirementDeclarations are required');
+    }
     const profile = input.profilesById.find((entry) => entry.profileId === profileId);
     if (!profile) {
       throw new Error(`Profile not found: ${profileId}`);

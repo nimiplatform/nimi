@@ -1,6 +1,7 @@
 import {
   assertNimiAppAIScopeRef,
   ensureNimiAppFirstLaunchAIConfig,
+  type NimiAICapabilityRequirementDeclaration,
   type NimiAIConfig,
   type NimiAIProfile,
   type NimiAIScopeRef,
@@ -28,6 +29,7 @@ export interface EnsureAppFirstLaunchAIConfigInput {
    * when the app's manifest requirements are not met by the recommended one.
    */
   readonly recommendedProfileManifestSatisfied?: boolean;
+  readonly requirementDeclarations: readonly NimiAICapabilityRequirementDeclaration[];
   /**
    * Optional manifest validation of the materialized AIConfig. Returns the
    * unmet requirement gaps (empty when satisfied). Unmet gaps surface as a
@@ -104,6 +106,7 @@ export async function ensureDesktopAppFirstLaunchAIConfig(
       };
     },
     resolveAccountDefaultProfile: resolveAccountDefault,
+    resolveRequirementDeclarations: () => input.requirementDeclarations,
     applyHostAIConfig: (ref, config) => {
       const committed: NimiAIConfig = { ...config, scopeRef: ref };
       host.commitConfig(committed);

@@ -178,7 +178,11 @@ export interface NimiAIProfileApplyResult {
   readonly probeWarnings: readonly string[];
 }
 
-export interface NimiAIProfileApplyOptions {
+export interface NimiAIProfilePreviewOptions {
+  readonly requirementDeclarations: readonly NimiAICapabilityRequirementDeclaration[];
+}
+
+export interface NimiAIProfileApplyOptions extends NimiAIProfilePreviewOptions {
   readonly expectedBaseVersion?: string;
 }
 
@@ -526,8 +530,16 @@ export interface NimiAIHostSurface {
     list(): Promise<readonly NimiAIProfile[]>;
     get(profileId: string): Promise<NimiAIProfile | null>;
     validate(profile: NimiAIProfile): NimiAIProfileValidationResult;
-    previewApply(scopeRef: NimiAIScopeRef, profileId: string): Promise<NimiAIProfilePreviewResult>;
-    apply(scopeRef: NimiAIScopeRef, profileId: string, options?: NimiAIProfileApplyOptions): Promise<NimiAIProfileApplyResult>;
+    previewApply(
+      scopeRef: NimiAIScopeRef,
+      profileId: string,
+      options: NimiAIProfilePreviewOptions,
+    ): Promise<NimiAIProfilePreviewResult>;
+    apply(
+      scopeRef: NimiAIScopeRef,
+      profileId: string,
+      options: NimiAIProfileApplyOptions,
+    ): Promise<NimiAIProfileApplyResult>;
     formRuntimeDescriptor(input: {
       readonly profileId: string;
       readonly requirementDeclarations: readonly NimiAICapabilityRequirementDeclaration[];
@@ -643,6 +655,11 @@ export interface NimiEnsureAppFirstLaunchAIConfigOptions {
   readonly getExistingAppAIConfig: (scopeRef: NimiAIScopeRef) => Awaitable<NimiAIConfig | null>;
   readonly resolveRecommendedProfile: (scopeRef: NimiAIScopeRef) => Awaitable<NimiResolvedRecommendedAIProfile | null>;
   readonly resolveAccountDefaultProfile: () => Awaitable<NimiAIProfile | null>;
+  readonly resolveRequirementDeclarations: (input: {
+    readonly scopeRef: NimiAIScopeRef;
+    readonly profile: NimiAIProfile;
+    readonly profileSource: NimiAppFirstLaunchProfileSource;
+  }) => Awaitable<readonly NimiAICapabilityRequirementDeclaration[]>;
   readonly applyHostAIConfig: (scopeRef: NimiAIScopeRef, config: NimiAIConfig) => Awaitable<NimiAIConfig>;
   readonly validateManifestRequirements?: (
     scopeRef: NimiAIScopeRef,

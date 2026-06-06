@@ -15,10 +15,12 @@ import {
   previewNimiAIProfileApply,
   validateNimiAIProfile,
   versionNimiAIConfig,
+  type NimiAICapabilityRequirementDeclaration,
   type NimiAIConfig,
   type NimiAIConfigProbeResult,
   type NimiAIProfile,
   type NimiAIProfileApplyOptions,
+  type NimiAIProfilePreviewOptions,
   type NimiAIProfileApplyResult,
   type NimiAIProfilePreviewResult,
   type NimiAIProfileValidationResult,
@@ -86,11 +88,15 @@ export type DesktopAIProfileSurface = {
   list(): Promise<NimiAIProfile[]>;
   get(profileId: string): Promise<NimiAIProfile | null>;
   validate(profile: NimiAIProfile): NimiAIProfileValidationResult;
-  previewApply(scopeRef: NimiAIScopeRef, profileId: string): Promise<NimiAIProfilePreviewResult>;
+  previewApply(
+    scopeRef: NimiAIScopeRef,
+    profileId: string,
+    options: NimiAIProfilePreviewOptions,
+  ): Promise<NimiAIProfilePreviewResult>;
   apply(
     scopeRef: NimiAIScopeRef,
     profileId: string,
-    options?: NimiAIProfileApplyOptions,
+    options: NimiAIProfileApplyOptions,
   ): Promise<NimiAIProfileApplyResult>;
   resolveLocalDependencies(profileId: string): Promise<readonly unknown[]>;
 };
@@ -218,6 +224,7 @@ export function pushDesktopAIConfigToBoundStore(scopeRef: NimiAIScopeRef): void 
  */
 export async function initializeScopeFromAccountDefaultProfile(
   scopeRef: NimiAIScopeRef,
+  requirementDeclarations: readonly NimiAICapabilityRequirementDeclaration[],
 ): Promise<boolean> {
   // Never re-initialize / overwrite a scope that already has an NimiAIConfig.
   if (scopeHasPersistedConfig(scopeRef)) {
@@ -242,7 +249,11 @@ export async function initializeScopeFromAccountDefaultProfile(
   if (scopeHasPersistedConfig(scopeRef)) {
     return false;
   }
-  const initialConfig = applyNimiAIProfileToConfig(createEmptyNimiAIConfig(scopeRef), profile);
+  const initialConfig = applyNimiAIProfileToConfig({
+    config: createEmptyNimiAIConfig(scopeRef),
+    profile,
+    requirementDeclarations,
+  });
   commitConfig(initialConfig);
   return true;
 }
@@ -345,6 +356,7 @@ function createAIProfileSurface(): DesktopAIProfileSurface {
   async function previewApply(
     scopeRef: NimiAIScopeRef,
     profileId: string,
+    previewOptions: NimiAIProfilePreviewOptions,
   ): Promise<NimiAIProfilePreviewResult> {
     const profile = resolveFactoryAIProfile(profileId);
     if (!profile) {
@@ -361,6 +373,7 @@ function createAIProfileSurface(): DesktopAIProfileSurface {
       before: scopeHasPersistedConfig(scopeRef) ? getConfigForScope(scopeRef) : null,
       scopeRef,
       profile,
+      requirementDeclarations: previewOptions.requirementDeclarations,
     });
   }
 
@@ -382,9 +395,11 @@ function createAIProfileSurface(): DesktopAIProfileSurface {
     async apply(
       scopeRef: NimiAIScopeRef,
       profileId: string,
-      options: NimiAIProfileApplyOptions = {},
+      options: NimiAIProfileApplyOptions,
     ): Promise<NimiAIProfileApplyResult> {
-      const preview = await previewApply(scopeRef, profileId);
+      const preview = await previewApply(scopeRef, profileId, {
+        requirementDeclarations: options.requirementDeclarations,
+      });
       if (preview.outcome === 'failed') {
         return createMissingProfileApplyResult(profileId);
       }

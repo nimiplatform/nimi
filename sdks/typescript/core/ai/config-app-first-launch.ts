@@ -38,8 +38,17 @@ export async function ensureNimiAppFirstLaunchAIConfig(
       config: concurrent,
     };
   }
+  const requirementDeclarations = await options.resolveRequirementDeclarations({
+    scopeRef,
+    profile: selected.profile,
+    profileSource: selected.profileSource,
+  });
 
-  const projection = projectNimiAIProfileApply(selected.profile);
+  const projection = projectNimiAIProfileApply({
+    scopeRef,
+    profile: selected.profile,
+    requirementDeclarations,
+  });
   if (projection.outcome !== 'ready_to_apply') {
     return {
       outcome: 'setup-required-no-live-config',
@@ -57,11 +66,12 @@ export async function ensureNimiAppFirstLaunchAIConfig(
     };
   }
 
-  const materialized = applyNimiAIProfileToConfig(
-    createEmptyNimiAIConfig(scopeRef),
-    selected.profile,
-    options.now,
-  );
+  const materialized = applyNimiAIProfileToConfig({
+    config: createEmptyNimiAIConfig(scopeRef),
+    profile: selected.profile,
+    requirementDeclarations,
+    now: options.now,
+  });
   let committed: NimiAIConfig;
   try {
     committed = await options.applyHostAIConfig(scopeRef, materialized);
@@ -97,11 +107,12 @@ function assertFirstLaunchAuthorities(options: NimiEnsureAppFirstLaunchAIConfigO
   if (typeof options.getExistingAppAIConfig !== 'function'
     || typeof options.resolveRecommendedProfile !== 'function'
     || typeof options.resolveAccountDefaultProfile !== 'function'
+    || typeof options.resolveRequirementDeclarations !== 'function'
     || typeof options.applyHostAIConfig !== 'function') {
     throw aiConfigError(
       'SDK_AI_INPUT_INVALID',
-      'ensureNimiAppFirstLaunchAIConfig requires explicit host profile/config authorities',
-      'provide_existing_config_recommended_default_and_apply_authorities',
+      'ensureNimiAppFirstLaunchAIConfig requires explicit host profile/config/requirement authorities',
+      'provide_existing_config_profiles_requirements_and_apply_authorities',
     );
   }
 }

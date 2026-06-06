@@ -195,6 +195,7 @@ export function ProfileCatalogPage() {
   const profile = useModelConfigProfileController({
     scopeRef: aiConfig.scopeRef,
     aiConfigService,
+    requirementDeclaration: modelConfigRequirementDeclaration(aiConfig.scopeRef, RUNTIME_ENABLED_CAPABILITIES),
     copy: profileCopy,
     userProfilesSource,
     currentOrigin,

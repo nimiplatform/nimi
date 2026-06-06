@@ -18,9 +18,9 @@ import type {
   NimiRuntimeProfileDescriptorSliceInput,
   NimiRuntimeProfileDescriptorWire,
 } from './config-types';
-import { assertNimiAIScopeRef } from './config-scope';
 import { validateNimiAIProfile } from './config-profile';
 import { aiConfigError, collectForbiddenPayloadErrors, requireNonEmptyText } from './config-internal';
+import { assertNimiAICapabilityRequirementDeclaration } from './config-requirements';
 
 export function formNimiRuntimeProfileDescriptor(input: {
   readonly profile: NimiAIProfile;
@@ -45,7 +45,7 @@ export function formNimiRuntimeProfileDescriptor(input: {
   const requirementRefs: string[] = [];
   const capabilitySlices: NimiRuntimeProfileDescriptorCapabilitySlice[] = [];
   for (const declaration of input.requirementDeclarations) {
-    validateRequirementDeclaration(declaration);
+    assertNimiAICapabilityRequirementDeclaration(declaration);
     requirementRefs.push(declaration.requirementId);
     const slices = [
       ...declaration.requiredSlices,
@@ -98,46 +98,6 @@ export function formNimiRuntimeProfileDescriptor(input: {
     ...(input.profile.contractStates ? { contractStates: input.profile.contractStates } : {}),
     ...(input.profile.projectionWarnings ? { projectionWarnings: input.profile.projectionWarnings } : {}),
   };
-}
-
-function validateRequirementDeclaration(declaration: NimiAICapabilityRequirementDeclaration): void {
-  const errors = collectForbiddenPayloadErrors(declaration, 'requirementDeclaration');
-  requireNonEmptyText(declaration.requirementId, 'requirementId is required', 'provide_ai_requirement_id');
-  assertNimiAIScopeRef(declaration.scopeRef);
-  requireNonEmptyText(declaration.setupProjectionPolicy, 'setupProjectionPolicy is required', 'provide_setup_projection_policy');
-  if (!Array.isArray(declaration.requiredSlices)) {
-    throw aiConfigError('SDK_AI_REQUIREMENT_INVALID', 'requiredSlices must be an array', 'provide_required_ai_slices');
-  }
-  if (declaration.optionalSlices !== undefined && !Array.isArray(declaration.optionalSlices)) {
-    errors.push('optionalSlices must be an array when provided');
-  }
-  for (const [index, slice] of declaration.requiredSlices.entries()) {
-    errors.push(...validateRequirementSlice(slice, `requiredSlices[${index}]`));
-  }
-  if (Array.isArray(declaration.optionalSlices)) {
-    for (const [index, slice] of declaration.optionalSlices.entries()) {
-      errors.push(...validateRequirementSlice(slice, `optionalSlices[${index}]`));
-    }
-  }
-  validateOptionalTextArray(declaration.editableFields, 'editableFields', errors);
-  validateOptionalTextArray(declaration.readinessProjectionRefs, 'readinessProjectionRefs', errors);
-  if (declaration.runtimeActivationConsumers !== undefined && !Array.isArray(declaration.runtimeActivationConsumers)) {
-    errors.push('runtimeActivationConsumers must be an array when provided');
-  }
-  if (Array.isArray(declaration.runtimeActivationConsumers)) {
-    for (const [index, consumer] of declaration.runtimeActivationConsumers.entries()) {
-      if (!isRuntimeActivationConsumer(consumer)) {
-        errors.push(`runtimeActivationConsumers[${index}] must include consumerId`);
-      }
-    }
-  }
-  if (errors.length > 0) {
-    throw aiConfigError(
-      'SDK_AI_REQUIREMENT_INVALID',
-      `AI capability requirement declaration is invalid: ${errors.join('; ')}`,
-      'fix_ai_requirement_declaration',
-    );
-  }
 }
 
 function formRuntimeDescriptorSlice(
@@ -411,25 +371,6 @@ function assertDescriptorPortable(descriptor: NimiRuntimeProfileDescriptor): voi
   }
 }
 
-function validateRequirementSlice(slice: NimiAICapabilityRequirementSlice, path: string): string[] {
-  const errors = collectForbiddenPayloadErrors(slice, path);
-  if (!slice || typeof slice !== 'object') {
-    errors.push(`${path} must be an object`);
-    return errors;
-  }
-  if (!isNonEmptyText(slice.requirementSliceId)) errors.push(`${path}.requirementSliceId is required`);
-  if (!isNonEmptyText(slice.capability)) errors.push(`${path}.capability is required`);
-  if (!isNonEmptyText(slice.profileSliceRef)) errors.push(`${path}.profileSliceRef is required`);
-  if (slice.readinessPolicy !== 'required' && slice.readinessPolicy !== 'optional') {
-    errors.push(`${path}.readinessPolicy is invalid`);
-  }
-  validateOptionalTextArray(slice.editableFieldRefs, `${path}.editableFieldRefs`, errors);
-  if (slice.runtimeDescriptorRef !== undefined && !isNonEmptyText(slice.runtimeDescriptorRef)) {
-    errors.push(`${path}.runtimeDescriptorRef must be a non-empty string when provided`);
-  }
-  return errors;
-}
-
 function resolveRuntimeActivationConsumers(
   declaration: NimiAICapabilityRequirementDeclaration,
   slices: readonly NimiAICapabilityRequirementSlice[],
@@ -467,10 +408,6 @@ function resolveRuntimeActivationConsumers(
     out.set(targetSliceId, consumer);
   }
   return out;
-}
-
-function isRuntimeActivationConsumer(value: NimiAIRuntimeActivationConsumerRef): boolean {
-  return Boolean(value && typeof value === 'object' && isNonEmptyText(value.consumerId));
 }
 
 function assertOrderedCompanionOccurrences(slice: NimiRuntimeProfileDescriptorCapabilitySlice): void {

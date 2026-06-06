@@ -264,8 +264,8 @@ export function createTesterAIConfigService(): SharedAIConfigService {
       async list() {
         return [...await surface.aiProfile.list()];
       },
-      async previewApply(scopeRef: NimiAIScopeRef, profileId: string) {
-        return surface.aiProfile.previewApply(scopeRef, profileId);
+      async previewApply(scopeRef: NimiAIScopeRef, profileId: string, options) {
+        return surface.aiProfile.previewApply(scopeRef, profileId, options);
       },
       async apply(scopeRef: NimiAIScopeRef, profileId: string, options) {
         return surface.aiProfile.apply(scopeRef, profileId, options);

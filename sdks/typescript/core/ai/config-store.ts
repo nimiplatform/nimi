@@ -6,6 +6,8 @@ import type {
   NimiAIConfigSubscriptionRegistry,
   NimiAIHostSurface,
   NimiAIProfile,
+  NimiAIProfileApplyOptions,
+  NimiAIProfilePreviewOptions,
   NimiAIProfilePreviewResult,
   NimiAIScopeRef,
   NimiAISnapshot,
@@ -171,7 +173,11 @@ export function createNimiAIHostSurface(options: CreateNimiAIHostSurfaceOptions)
     return normalized ? cloneJson(profiles.get(normalized) ?? null) as NimiAIProfile | null : null;
   }
 
-  async function previewApply(scopeRef: NimiAIScopeRef, profileId: string): Promise<NimiAIProfilePreviewResult> {
+  async function previewApply(
+    scopeRef: NimiAIScopeRef,
+    profileId: string,
+    previewOptions: NimiAIProfilePreviewOptions,
+  ): Promise<NimiAIProfilePreviewResult> {
     const profile = await resolveProfile(profileId);
     if (!profile) {
       return missingHostProfilePreview(scopeRef, options.configStore.loadOrNull(scopeRef), profileId);
@@ -180,6 +186,7 @@ export function createNimiAIHostSurface(options: CreateNimiAIHostSurfaceOptions)
       before: options.configStore.loadOrNull(scopeRef),
       scopeRef,
       profile,
+      requirementDeclarations: previewOptions.requirementDeclarations,
       now,
     });
   }
@@ -192,8 +199,10 @@ export function createNimiAIHostSurface(options: CreateNimiAIHostSurfaceOptions)
       get: resolveProfile,
       validate: validateNimiAIProfile,
       previewApply,
-      async apply(scopeRef, profileId, applyOptions = {}) {
-        const preview = await previewApply(scopeRef, profileId);
+      async apply(scopeRef, profileId, applyOptions: NimiAIProfileApplyOptions) {
+        const preview = await previewApply(scopeRef, profileId, {
+          requirementDeclarations: applyOptions.requirementDeclarations,
+        });
         if (preview.outcome !== 'ready_to_apply' || !preview.after) {
           return {
             success: false,

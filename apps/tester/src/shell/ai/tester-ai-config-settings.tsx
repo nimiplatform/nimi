@@ -219,6 +219,7 @@ export function TesterAiConfigSettings({
   const profileController = useModelConfigProfileController({
     scopeRef,
     aiConfigService: service,
+    requirementDeclaration: surface.requirementDeclaration,
     copy: profileCopy,
     currentOrigin,
   });

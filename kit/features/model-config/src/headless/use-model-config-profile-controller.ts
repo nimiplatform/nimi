@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type {
+  NimiAICapabilityRequirementDeclaration,
   NimiAIProfile,
   NimiAIProfileApplyResult,
   NimiAIProfilePreviewResult,
@@ -21,6 +22,7 @@ import type {
 export interface UseModelConfigProfileControllerInput {
   readonly scopeRef: NimiAIScopeRef;
   readonly aiConfigService: SharedAIConfigService;
+  readonly requirementDeclaration: NimiAICapabilityRequirementDeclaration;
   readonly copy: ModelConfigProfileCopy;
   readonly userProfilesSource?: UserProfilesSource;
   readonly currentOrigin: {
@@ -103,6 +105,7 @@ export function useModelConfigProfileController(
     userProfilesSource,
     copy,
     currentOrigin,
+    requirementDeclaration,
     onManage,
   } = input;
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
@@ -182,7 +185,9 @@ export function useModelConfigProfileController(
     setPreview(null);
     setPendingPreview(null);
     const currentScopeRef = scopeRefRef.current;
-    void aiConfigService.aiProfile.previewApply(currentScopeRef, profileId)
+    void aiConfigService.aiProfile.previewApply(currentScopeRef, profileId, {
+      requirementDeclarations: [requirementDeclaration],
+    })
       .then((previewResult: NimiAIProfilePreviewResult) => {
         setPendingPreview(previewResult);
         setPreview(toDisplayPreview(profileId, profileTitleFor(profileId), previewResult));
@@ -193,7 +198,7 @@ export function useModelConfigProfileController(
       .finally(() => {
         setPreviewing(false);
       });
-  }, [aiConfigService, profileTitleFor]);
+  }, [aiConfigService, profileTitleFor, requirementDeclaration]);
 
   // Step 2 — commit (D-AIPC-005), only on explicit confirm of the preview.
   const handleConfirmApply = useCallback(() => {
@@ -205,6 +210,7 @@ export function useModelConfigProfileController(
     const currentScopeRef = scopeRefRef.current;
     void aiConfigService.aiProfile.apply(currentScopeRef, profileId, {
       expectedBaseVersion: pendingPreview.baseVersion,
+      requirementDeclarations: [requirementDeclaration],
     })
       .then((remoteResult: NimiAIProfileApplyResult) => {
         const resolution = core.resolveRemoteApply({
@@ -228,7 +234,7 @@ export function useModelConfigProfileController(
       .finally(() => {
         setApplying(false);
       });
-  }, [aiConfigService, core, pendingPreview, preview]);
+  }, [aiConfigService, core, pendingPreview, preview, requirementDeclaration]);
 
   const handleCancelPreview = useCallback(() => {
     setPreview(null);

@@ -3,6 +3,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it } from 'vitest';
 import { useModelConfigProfileController } from '../src/headless.js';
 import type {
+  NimiAICapabilityRequirementDeclaration,
   NimiAIConfig,
   NimiAIProfile,
   NimiAIScopeRef,
@@ -50,6 +51,18 @@ async function render(node: ReactNode) {
 
 const scopeRef: NimiAIScopeRef = { kind: 'app', ownerId: 'desktop', surfaceId: 'chat' };
 
+const requirementDeclaration: NimiAICapabilityRequirementDeclaration = {
+  requirementId: 'desktop-chat-text',
+  scopeRef,
+  requiredSlices: [{
+    requirementSliceId: 'chat:text.generate',
+    capability: 'text.generate',
+    profileSliceRef: 'chat:text.generate',
+    readinessPolicy: 'required',
+  }],
+  setupProjectionPolicy: 'sdk-ai-config-setup-projection',
+};
+
 const baseConfig: NimiAIConfig = {
   scopeRef,
   capabilities: { targetRefs: {}, selectedParams: {} },
@@ -94,6 +107,7 @@ function HookHarness(props: {
   const controller = useModelConfigProfileController({
     scopeRef,
     aiConfigService: props.service,
+    requirementDeclaration,
     copy,
     currentOrigin: null,
   });

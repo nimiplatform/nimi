@@ -130,6 +130,7 @@ export type {
   NimiAIProfileApplyOptions,
   NimiAIProfileApplyResult,
   NimiAIProfileOriginRef,
+  NimiAIProfilePreviewOptions,
   NimiAIProfilePreviewResult,
   NimiAIScopeRef,
 } from '@nimiplatform/sdk/ai';

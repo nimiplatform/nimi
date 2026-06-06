@@ -4,6 +4,8 @@ import type {
   NimiAccountProfileLibraryIndexEntry,
   NimiAccountProfileLibraryProfile,
   NimiAccountProfileLibraryProjection,
+  NimiAICapabilityRequirementDeclaration,
+  NimiAICapabilityRequirementSlice,
   NimiAIConfig,
   NimiAIConfigApplyOutcome,
   NimiAIConfigSetupProjection,
@@ -28,6 +30,22 @@ import {
   requireNonEmptyText,
   requireString,
 } from './config-internal';
+import {
+  assertNimiAIRequirementDeclarationsForScope,
+  listNimiAIRequirementSlices,
+} from './config-requirements';
+
+interface NimiAIReadyRequirementSlice {
+  readonly requirementId: string;
+  readonly slice: NimiAICapabilityRequirementSlice;
+  readonly intent: NimiAIProfileCapabilityIntent & { readonly targetRef: NimiAIConfigTargetRef };
+}
+
+interface NimiAIProfileRequirementApplyEvaluation {
+  readonly outcome: NimiAIConfigApplyOutcome;
+  readonly setupProjection: NimiAIConfigSetupProjection | null;
+  readonly readySlices: readonly NimiAIReadyRequirementSlice[];
+}
 
 export function validateNimiAIProfile(profile: unknown): NimiAIProfileValidationResult {
   const errors: string[] = [];
@@ -194,38 +212,59 @@ export function parseExportedNimiAccountProfileLibraryProfiles(value: unknown): 
   }));
 }
 
-export function projectNimiAIProfileApply(profile: NimiAIProfile): {
+export function projectNimiAIProfileApply(input: {
+  readonly scopeRef: NimiAIScopeRef;
+  readonly profile: NimiAIProfile;
+  readonly requirementDeclarations: readonly NimiAICapabilityRequirementDeclaration[];
+}): {
   readonly outcome: NimiAIConfigApplyOutcome;
   readonly setupProjection: NimiAIConfigSetupProjection | null;
 } {
+  const evaluation = evaluateNimiAIProfileRequirementApply(input);
+  return {
+    outcome: evaluation.outcome,
+    setupProjection: evaluation.setupProjection,
+  };
+}
+
+function evaluateNimiAIProfileRequirementApply(input: {
+  readonly scopeRef: NimiAIScopeRef;
+  readonly profile: NimiAIProfile;
+  readonly requirementDeclarations: readonly NimiAICapabilityRequirementDeclaration[];
+}): NimiAIProfileRequirementApplyEvaluation {
+  const declarations = assertNimiAIRequirementDeclarationsForScope({
+    scopeRef: input.scopeRef,
+    requirementDeclarations: input.requirementDeclarations,
+  });
+  const selections = listNimiAIRequirementSlices(declarations);
   const blockingCapabilities: string[] = [];
+  const actionRefs: string[] = [];
   const reasonCodes: string[] = [];
-  for (const [capability, intent] of Object.entries(profile.capabilities)) {
-    if (!intent) {
+  const readySlices: NimiAIReadyRequirementSlice[] = [];
+  const readyCapabilities = new Set<string>();
+
+  for (const selection of selections.required) {
+    const intent = input.profile.capabilities[selection.slice.capability] ?? null;
+    const blockedReason = classifyRequirementSliceBlocker(selection.slice, intent);
+    if (blockedReason) {
+      blockingCapabilities.push(selection.slice.capability);
+      actionRefs.push(`setup:${selection.slice.requirementSliceId}`);
+      reasonCodes.push(blockedReason);
       continue;
     }
-    const readinessPolicy = intent.readinessPolicy ?? 'required';
-    const contractState = intent.contractState ?? 'declared';
-    if (readinessPolicy !== 'required') {
-      continue;
-    }
-    if (contractState === 'unsupported') {
-      blockingCapabilities.push(capability);
-      reasonCodes.push('product_state_unsupported');
-      continue;
-    }
-    if (contractState === 'proposed') {
-      blockingCapabilities.push(capability);
-      reasonCodes.push('product_state_proposed');
-      continue;
-    }
-    if (!intent.targetRef) {
-      blockingCapabilities.push(capability);
-      reasonCodes.push('required_slice_unresolved');
-    }
+    addReadyRequirementSlice(readySlices, readyCapabilities, selection.requirementId, selection.slice, intent);
   }
+
+  for (const selection of selections.optional) {
+    const intent = input.profile.capabilities[selection.slice.capability] ?? null;
+    if (classifyRequirementSliceBlocker(selection.slice, intent)) {
+      continue;
+    }
+    addReadyRequirementSlice(readySlices, readyCapabilities, selection.requirementId, selection.slice, intent);
+  }
+
   if (blockingCapabilities.length === 0) {
-    return { outcome: 'ready_to_apply', setupProjection: null };
+    return { outcome: 'ready_to_apply', setupProjection: null, readySlices };
   }
   const unsupported = reasonCodes.includes('product_state_unsupported');
   const outcome = unsupported ? 'unsupported_no_live_config' : 'setup_required_no_live_config';
@@ -235,17 +274,19 @@ export function projectNimiAIProfileApply(profile: NimiAIProfile): {
       outcome,
       blockingCapabilities,
       reasonCodes: [...new Set(reasonCodes)],
-      actionRefs: blockingCapabilities.map((capability) => `setup:${capability}`),
+      actionRefs,
     },
+    readySlices,
   };
 }
 
-export function applyNimiAIProfileToConfig(
-  config: NimiAIConfig,
-  profile: NimiAIProfile,
-  now: () => string = () => new Date().toISOString(),
-): NimiAIConfig {
-  const validation = validateNimiAIProfile(profile);
+export function applyNimiAIProfileToConfig(input: {
+  readonly config: NimiAIConfig;
+  readonly profile: NimiAIProfile;
+  readonly requirementDeclarations: readonly NimiAICapabilityRequirementDeclaration[];
+  readonly now?: () => string;
+}): NimiAIConfig {
+  const validation = validateNimiAIProfile(input.profile);
   if (!validation.valid) {
     throw aiConfigError(
       'SDK_AI_PROFILE_INVALID',
@@ -253,35 +294,36 @@ export function applyNimiAIProfileToConfig(
       'fix_ai_profile_contract',
     );
   }
-  const projection = projectNimiAIProfileApply(profile);
-  if (projection.outcome !== 'ready_to_apply') {
+  const evaluation = evaluateNimiAIProfileRequirementApply({
+    scopeRef: input.config.scopeRef,
+    profile: input.profile,
+    requirementDeclarations: input.requirementDeclarations,
+  });
+  if (evaluation.outcome !== 'ready_to_apply') {
     throw aiConfigError(
       'SDK_AI_PROFILE_NOT_APPLYABLE',
-      `AI profile cannot produce live config: ${projection.setupProjection?.reasonCodes.join(', ')}`,
+      `AI profile cannot produce live config: ${evaluation.setupProjection?.reasonCodes.join(', ')}`,
       'resolve_required_ai_profile_slices',
     );
   }
   const targetRefs: Record<string, NimiAIConfigTargetRef> = {};
   const selectedParams: Record<string, NimiJsonValue> = {};
-  for (const [capability, intent] of Object.entries(profile.capabilities)) {
-    if (!intent) continue;
-    if (intent.targetRef) {
-      targetRefs[capability] = intent.targetRef;
-    }
+  for (const { slice, intent } of evaluation.readySlices) {
+    targetRefs[slice.capability] = intent.targetRef;
     if (intent.params !== undefined) {
-      selectedParams[capability] = intent.params;
+      selectedParams[slice.capability] = intent.params;
     }
   }
   return {
-    scopeRef: assertNimiAIScopeRef(config.scopeRef),
+    scopeRef: assertNimiAIScopeRef(input.config.scopeRef),
     capabilities: {
       targetRefs,
       selectedParams,
     },
     profileOrigin: {
-      profileId: profile.profileId,
-      title: profile.title,
-      appliedAt: now(),
+      profileId: input.profile.profileId,
+      title: input.profile.title,
+      appliedAt: (input.now ?? (() => new Date().toISOString()))(),
     },
   };
 }
@@ -290,6 +332,7 @@ export function previewNimiAIProfileApply(input: {
   readonly before: NimiAIConfig | null;
   readonly scopeRef: NimiAIScopeRef;
   readonly profile: NimiAIProfile;
+  readonly requirementDeclarations: readonly NimiAICapabilityRequirementDeclaration[];
   readonly now?: () => string;
 }): NimiAIProfilePreviewResult {
   const validation = validateNimiAIProfile(input.profile);
@@ -303,7 +346,11 @@ export function previewNimiAIProfileApply(input: {
       probeWarnings: validation.errors,
     };
   }
-  const projection = projectNimiAIProfileApply(input.profile);
+  const projection = projectNimiAIProfileApply({
+    scopeRef: input.scopeRef,
+    profile: input.profile,
+    requirementDeclarations: input.requirementDeclarations,
+  });
   const base = input.before ?? createEmptyNimiAIConfig(input.scopeRef);
   if (projection.outcome !== 'ready_to_apply') {
     return {
@@ -316,7 +363,12 @@ export function previewNimiAIProfileApply(input: {
       probeWarnings: [],
     };
   }
-  const after = applyNimiAIProfileToConfig(base, input.profile, input.now);
+  const after = applyNimiAIProfileToConfig({
+    config: base,
+    profile: input.profile,
+    requirementDeclarations: input.requirementDeclarations,
+    now: input.now,
+  });
   return {
     before: input.before,
     after,
@@ -326,6 +378,48 @@ export function previewNimiAIProfileApply(input: {
     baseVersion: versionNimiAIConfig(base),
     probeWarnings: [],
   };
+}
+
+function classifyRequirementSliceBlocker(
+  slice: NimiAICapabilityRequirementSlice,
+  intent: NimiAIProfileCapabilityIntent | null | undefined,
+): 'required_slice_unresolved' | 'product_state_unsupported' | 'product_state_proposed' | null {
+  if (!intent) {
+    return 'required_slice_unresolved';
+  }
+  const contractState = intent.contractState ?? 'declared';
+  if (contractState === 'unsupported') {
+    return 'product_state_unsupported';
+  }
+  if (contractState === 'proposed') {
+    return 'product_state_proposed';
+  }
+  if (!intent.targetRef) {
+    return 'required_slice_unresolved';
+  }
+  return null;
+}
+
+function addReadyRequirementSlice(
+  readySlices: NimiAIReadyRequirementSlice[],
+  readyCapabilities: Set<string>,
+  requirementId: string,
+  slice: NimiAICapabilityRequirementSlice,
+  intent: NimiAIProfileCapabilityIntent | null | undefined,
+): void {
+  const targetRef = intent?.targetRef;
+  if (!intent || !targetRef) {
+    return;
+  }
+  if (readyCapabilities.has(slice.capability)) {
+    throw aiConfigError(
+      'SDK_AI_REQUIREMENT_INVALID',
+      `AIConfig cannot materialize duplicate ready slices for capability: ${slice.capability}`,
+      'deduplicate_ai_requirement_capability_slices',
+    );
+  }
+  readyCapabilities.add(slice.capability);
+  readySlices.push({ requirementId, slice, intent: { ...intent, targetRef } });
 }
 
 function validateRuntimeDescriptorSliceInput(slice: unknown, path: string): readonly string[] {

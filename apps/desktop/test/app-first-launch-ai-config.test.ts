@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import type { NimiAIProfile } from '@nimiplatform/sdk/ai';
+import type {
+  NimiAICapabilityRequirementDeclaration,
+  NimiAIProfile,
+} from '@nimiplatform/sdk/ai';
 import type { NimiError } from '@nimiplatform/sdk/types';
 
 /**
@@ -86,6 +89,20 @@ const ACCOUNT_DEFAULT_PROFILE: NimiAIProfile = {
   },
 };
 
+function requirementDeclarations(appId: string): readonly NimiAICapabilityRequirementDeclaration[] {
+  return [{
+    requirementId: `${appId}.chat.requirements`,
+    scopeRef: { kind: 'app', ownerId: appId },
+    requiredSlices: [{
+      requirementSliceId: 'chat.text.generate',
+      capability: 'text.generate',
+      profileSliceRef: 'capabilities.text.generate',
+      readinessPolicy: 'required',
+    }],
+    setupProjectionPolicy: 'setup-required',
+  }];
+}
+
 async function loadService() {
   // Dynamic import after the storage shim is installed — the service module
   // hydrates persisted scopes lazily, not at import time.
@@ -109,7 +126,11 @@ test('desktop first launch initializes the app scope from the recommended profil
   const appId = freshAppId();
 
   const result = await ensureAppFirstLaunchAIConfig(
-    { appId, recommendedProfileRef: RECOMMENDED_PROFILE.profileId },
+    {
+      appId,
+      recommendedProfileRef: RECOMMENDED_PROFILE.profileId,
+      requirementDeclarations: requirementDeclarations(appId),
+    },
     {
       resolveRecommendedFactoryProfile: (ref) =>
         ref === RECOMMENDED_PROFILE.profileId ? RECOMMENDED_PROFILE : null,
@@ -134,7 +155,7 @@ test('desktop first launch falls back to the Account Default Profile when no rec
   const appId = freshAppId();
 
   const result = await ensureAppFirstLaunchAIConfig(
-    { appId, recommendedProfileRef: null },
+    { appId, recommendedProfileRef: null, requirementDeclarations: requirementDeclarations(appId) },
     {
       resolveRecommendedFactoryProfile: () => null,
       resolveAccountDefaultProfile: () => ACCOUNT_DEFAULT_PROFILE,
@@ -155,7 +176,7 @@ test('desktop first launch fails closed when neither profile resolves', async ()
   await assert.rejects(
     () =>
       ensureAppFirstLaunchAIConfig(
-        { appId },
+        { appId, requirementDeclarations: requirementDeclarations(appId) },
         {
           resolveRecommendedFactoryProfile: () => null,
           resolveAccountDefaultProfile: () => null,
@@ -178,7 +199,11 @@ test('desktop never overwrites an existing per-app AIConfig on a later launch', 
   const appId = freshAppId();
 
   const first = await ensureAppFirstLaunchAIConfig(
-    { appId, recommendedProfileRef: RECOMMENDED_PROFILE.profileId },
+    {
+      appId,
+      recommendedProfileRef: RECOMMENDED_PROFILE.profileId,
+      requirementDeclarations: requirementDeclarations(appId),
+    },
     {
       resolveRecommendedFactoryProfile: () => RECOMMENDED_PROFILE,
       resolveAccountDefaultProfile: () => ACCOUNT_DEFAULT_PROFILE,
@@ -191,7 +216,11 @@ test('desktop never overwrites an existing per-app AIConfig on a later launch', 
   const changedRecommended: NimiAIProfile = { ...RECOMMENDED_PROFILE, profileId: 'factory:changed' };
   const changedDefault: NimiAIProfile = { ...ACCOUNT_DEFAULT_PROFILE, profileId: 'default-v2' };
   const second = await ensureAppFirstLaunchAIConfig(
-    { appId, recommendedProfileRef: changedRecommended.profileId },
+    {
+      appId,
+      recommendedProfileRef: changedRecommended.profileId,
+      requirementDeclarations: requirementDeclarations(appId),
+    },
     {
       resolveRecommendedFactoryProfile: () => changedRecommended,
       resolveAccountDefaultProfile: () => changedDefault,
@@ -213,6 +242,7 @@ test('desktop unmet manifest requirements surface a typed setup/repair plan', as
     {
       appId,
       recommendedProfileRef: RECOMMENDED_PROFILE.profileId,
+      requirementDeclarations: requirementDeclarations(appId),
       validateManifestRequirements: () => [
         { requirementId: 'local-pack.text', detail: 'local text pack not installed' },
       ],
@@ -238,7 +268,7 @@ test('desktop first-launch init builds the canonical P-AISC-007 app scope and re
   await assert.rejects(
     () =>
       ensureAppFirstLaunchAIConfig(
-        { appId: '   ' },
+        { appId: '   ', requirementDeclarations: [] },
         {
           resolveRecommendedFactoryProfile: () => null,
           resolveAccountDefaultProfile: () => ACCOUNT_DEFAULT_PROFILE,

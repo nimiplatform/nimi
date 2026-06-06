@@ -337,6 +337,7 @@ function AiModeSettings(props: {
   const profile = useModelConfigProfileController({
     scopeRef: aiConfig.scopeRef,
     aiConfigService,
+    requirementDeclaration: chatRequirementDeclaration(aiConfig.scopeRef),
     copy: profileCopy,
     userProfilesSource,
     currentOrigin,

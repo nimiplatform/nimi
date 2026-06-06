@@ -64,6 +64,19 @@ const storage = {
 };
 
 const scopeRef = createNimiAIScopeRef({ kind: 'app', ownerId: 'dev.nimi.consumer', surfaceId: 'chat' });
+function requirementDeclarations(ref) {
+  return [{
+    requirementId: ref.surfaceId ? ref.ownerId + '.' + ref.surfaceId + '.requirements' : ref.ownerId + '.requirements',
+    scopeRef: ref,
+    requiredSlices: [{
+      requirementSliceId: 'chat.text.generate',
+      capability: 'text.generate',
+      profileSliceRef: 'capabilities.text.generate',
+      readinessPolicy: 'required',
+    }],
+    setupProjectionPolicy: 'setup-required',
+  }];
+}
 const profile = {
   profileId: 'profile-chat',
   title: 'Consumer profile',
@@ -87,11 +100,15 @@ const surface = createNimiAIHostSurface({
   now: () => '2026-06-04T00:00:00.000Z',
 });
 
-const preview = await surface.aiProfile.previewApply(scopeRef, 'profile-chat');
+const requirements = requirementDeclarations(scopeRef);
+const preview = await surface.aiProfile.previewApply(scopeRef, 'profile-chat', {
+  requirementDeclarations: requirements,
+});
 assert.equal(preview.outcome, 'ready_to_apply');
 assert.equal(configStore.has(scopeRef), false);
 
 const applied = await surface.aiProfile.apply(scopeRef, 'profile-chat', {
+  requirementDeclarations: requirements,
   expectedBaseVersion: preview.baseVersion,
 });
 assert.equal(applied.success, true);
@@ -199,6 +216,7 @@ const firstLaunch = await ensureNimiAppFirstLaunchAIConfig({
   getExistingAppAIConfig: () => firstLaunchStored,
   resolveRecommendedProfile: () => ({ profile, manifestSatisfied: true }),
   resolveAccountDefaultProfile: () => null,
+  resolveRequirementDeclarations: () => requirementDeclarations(firstLaunchScope),
   applyHostAIConfig: (_scopeRef, config) => {
     firstLaunchStored = config;
     return config;
@@ -257,15 +275,30 @@ import {
   createNimiRuntimeAISchedulingClient,
   createNimiRuntimeAIModel,
   createNimiRuntimeEmbeddingClient,
-  ensureNimiAppFirstLaunchAIConfig,
-  type NimiAIConfig,
-  type NimiAIProfile,
+	  ensureNimiAppFirstLaunchAIConfig,
+	  type NimiAICapabilityRequirementDeclaration,
+	  type NimiAIConfig,
+	  type NimiAIProfile,
+	  type NimiAIScopeRef,
   type NimiRuntimeEmbeddingSurface,
   type NimiRuntimeAISchedulingProjectionClient,
   type NimiRuntimeAIScenarioClient,
 } from '@nimiplatform/sdk/ai';
 
 const scopeRef = createNimiAIScopeRef({ kind: 'app', ownerId: 'dev.nimi.typed' });
+function requirementDeclarations(ref: NimiAIScopeRef): readonly NimiAICapabilityRequirementDeclaration[] {
+  return [{
+    requirementId: 'typed.requirements',
+    scopeRef: ref,
+    requiredSlices: [{
+      requirementSliceId: 'typed.text.generate',
+      capability: 'text.generate',
+      profileSliceRef: 'capabilities.text.generate',
+      readinessPolicy: 'required',
+    }],
+    setupProjectionPolicy: 'setup-required',
+  }];
+}
 const profile: NimiAIProfile = {
   profileId: 'profile',
   title: 'Typed profile',
@@ -312,6 +345,7 @@ const firstLaunch = ensureNimiAppFirstLaunchAIConfig({
   getExistingAppAIConfig: () => null,
   resolveRecommendedProfile: () => ({ profile, manifestSatisfied: true }),
   resolveAccountDefaultProfile: () => null,
+  resolveRequirementDeclarations: ({ scopeRef: firstLaunchScope }) => requirementDeclarations(firstLaunchScope),
   applyHostAIConfig: (_scopeRef, nextConfig) => nextConfig,
 });
 void config;

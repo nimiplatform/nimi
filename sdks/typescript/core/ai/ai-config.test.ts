@@ -89,6 +89,25 @@ const READY_PROFILE: NimiAIProfile = {
   },
 };
 
+function requirementDeclaration(
+  capabilities: readonly string[] = ['text.generate'],
+  scopeRef = SCOPE,
+) {
+  return {
+    requirementId: `requirement:${scopeRef.ownerId}:${scopeRef.surfaceId ?? 'default'}:${capabilities.join('+')}`,
+    scopeRef,
+    requiredSlices: capabilities.map((capability) => ({
+      requirementSliceId: `slice:${capability}`,
+      capability,
+      profileSliceRef: `slice:${capability}`,
+      readinessPolicy: 'required' as const,
+    })),
+    setupProjectionPolicy: 'sdk-ai-config-setup-projection',
+  };
+}
+
+const CHAT_REQUIREMENT = requirementDeclaration();
+
 test('Nimi AI scope keys are explicit and reversible', () => {
   const key = encodeNimiAIScopeRef(SCOPE);
 
@@ -209,7 +228,11 @@ test('Nimi AI profile parsing and runtime descriptor projection cover failure bo
       'audio.synthesize': { readinessPolicy: 'optional' },
     },
   };
-  const projection = projectNimiAIProfileApply(unsupportedProfile);
+  const projection = projectNimiAIProfileApply({
+    scopeRef: SCOPE,
+    profile: unsupportedProfile,
+    requirementDeclarations: [requirementDeclaration(['text.generate', 'image.generate'])],
+  });
   assert.equal(projection.outcome, 'unsupported_no_live_config');
   assert.deepEqual(projection.setupProjection?.reasonCodes, ['product_state_unsupported', 'product_state_proposed']);
   assert.equal(previewNimiAIProfileApply({
@@ -220,12 +243,17 @@ test('Nimi AI profile parsing and runtime descriptor projection cover failure bo
       title: '',
       capabilities: {},
     },
+    requirementDeclarations: [CHAT_REQUIREMENT],
   }).outcome, 'invalid_profile');
   assert.throws(
-    () => applyNimiAIProfileToConfig(createEmptyNimiAIConfig(SCOPE), {
-      profileId: '',
-      title: '',
-      capabilities: {},
+    () => applyNimiAIProfileToConfig({
+      config: createEmptyNimiAIConfig(SCOPE),
+      profile: {
+        profileId: '',
+        title: '',
+        capabilities: {},
+      },
+      requirementDeclarations: [CHAT_REQUIREMENT],
     }),
     (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_AI_PROFILE_INVALID',
   );
@@ -480,6 +508,50 @@ test('Nimi runtime profile descriptor serialization emits Runtime wire JSON byte
   assert.deepEqual(JSON.parse(new TextDecoder().decode(runtimePrepareRequest.descriptorJson)), wire);
 });
 
+test('Nimi AI profile apply is scoped to declared ready requirement slices', () => {
+  const scopedProfile: NimiAIProfile = {
+    profileId: 'profile-scoped',
+    title: 'Scoped profile',
+    capabilities: {
+      'text.generate': {
+        targetRef: {
+          kind: 'local-runtime',
+          targetId: 'runtime-text',
+          profileId: 'runtime-profile-text',
+        },
+        params: { temperature: 0.1 },
+      },
+      'image.generate': {
+        readinessPolicy: 'required',
+      },
+    },
+  };
+  const textRequirement = requirementDeclaration(['text.generate']);
+  const imageRequirement = requirementDeclaration(['image.generate']);
+
+  const textPreview = previewNimiAIProfileApply({
+    before: null,
+    scopeRef: SCOPE,
+    profile: scopedProfile,
+    requirementDeclarations: [textRequirement],
+    now: () => '2026-06-06T00:00:00.000Z',
+  });
+  assert.equal(textPreview.outcome, 'ready_to_apply');
+  assert.deepEqual(Object.keys(textPreview.after?.capabilities.targetRefs ?? {}), ['text.generate']);
+  assert.equal(textPreview.after?.capabilities.targetRefs['text.generate']?.kind, 'local-runtime');
+  assert.equal('image.generate' in (textPreview.after?.capabilities.targetRefs ?? {}), false);
+
+  const imagePreview = previewNimiAIProfileApply({
+    before: null,
+    scopeRef: SCOPE,
+    profile: scopedProfile,
+    requirementDeclarations: [imageRequirement],
+  });
+  assert.equal(imagePreview.outcome, 'setup_required_no_live_config');
+  assert.deepEqual(imagePreview.setupProjection?.blockingCapabilities, ['image.generate']);
+  assert.deepEqual(imagePreview.setupProjection?.reasonCodes, ['required_slice_unresolved']);
+});
+
 test('Nimi runtime profile descriptor serialization rejects Runtime evidence and ambiguous consumers', () => {
   assert.throws(
     () => formNimiRuntimeProfileDescriptor({
@@ -626,7 +698,9 @@ test('Nimi AI host surface previews and applies profiles without implicit storag
     notifications.push(versionNimiAIConfig(config));
   });
 
-  const preview = await surface.aiProfile.previewApply(SCOPE, 'profile-chat');
+  const preview = await surface.aiProfile.previewApply(SCOPE, 'profile-chat', {
+    requirementDeclarations: [CHAT_REQUIREMENT],
+  });
 
   assert.equal(preview.outcome, 'ready_to_apply');
   assert.equal(preview.before, null);
@@ -636,6 +710,7 @@ test('Nimi AI host surface previews and applies profiles without implicit storag
 
   const applied = await surface.aiProfile.apply(SCOPE, 'profile-chat', {
     expectedBaseVersion: preview.baseVersion,
+    requirementDeclarations: [CHAT_REQUIREMENT],
   });
 
   assert.equal(applied.success, true);
@@ -645,6 +720,7 @@ test('Nimi AI host surface previews and applies profiles without implicit storag
 
   const stale = await surface.aiProfile.apply(SCOPE, 'profile-chat', {
     expectedBaseVersion: preview.baseVersion,
+    requirementDeclarations: [CHAT_REQUIREMENT],
   });
   assert.equal(stale.success, false);
   assert.equal(stale.outcome, 'stale_base');
@@ -717,7 +793,12 @@ test('Nimi AI config and snapshot stores validate stored state and host boundari
   const unsubscribe = registry.subscribe(SCOPE, (config) => {
     notifications.push(versionNimiAIConfig(config));
   });
-  const config = applyNimiAIProfileToConfig(createEmptyNimiAIConfig(SCOPE), READY_PROFILE, () => '2026-06-05T00:00:00.000Z');
+  const config = applyNimiAIProfileToConfig({
+    config: createEmptyNimiAIConfig(SCOPE),
+    profile: READY_PROFILE,
+    requirementDeclarations: [CHAT_REQUIREMENT],
+    now: () => '2026-06-05T00:00:00.000Z',
+  });
   registry.notify(config);
   unsubscribe();
   registry.notify(config);
@@ -791,12 +872,18 @@ test('Nimi AI profile apply and runtime descriptor formation fail closed on unre
     configStore: store,
   });
 
-  const preview = await surface.aiProfile.previewApply(SCOPE, 'profile-unresolved');
+  const preview = await surface.aiProfile.previewApply(SCOPE, 'profile-unresolved', {
+    requirementDeclarations: [CHAT_REQUIREMENT],
+  });
   assert.equal(preview.outcome, 'setup_required_no_live_config');
   assert.equal(preview.after, null);
 
   assert.throws(
-    () => applyNimiAIProfileToConfig(createEmptyNimiAIConfig(SCOPE), unresolvedProfile),
+    () => applyNimiAIProfileToConfig({
+      config: createEmptyNimiAIConfig(SCOPE),
+      profile: unresolvedProfile,
+      requirementDeclarations: [CHAT_REQUIREMENT],
+    }),
     (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_AI_PROFILE_NOT_APPLYABLE',
   );
 
@@ -925,6 +1012,7 @@ test('Nimi AI first-launch app config initializes through explicit host authorit
     getExistingAppAIConfig: () => stored,
     resolveRecommendedProfile: () => ({ profile: READY_PROFILE, manifestSatisfied: true }),
     resolveAccountDefaultProfile: () => null,
+    resolveRequirementDeclarations: () => [requirementDeclaration(['text.generate'], scopeRef)],
     applyHostAIConfig: (_scope, config) => {
       committed.push(READY_PROFILE);
       stored = config;
@@ -943,6 +1031,7 @@ test('Nimi AI first-launch app config initializes through explicit host authorit
     getExistingAppAIConfig: () => stored,
     resolveRecommendedProfile: () => null,
     resolveAccountDefaultProfile: () => READY_PROFILE,
+    resolveRequirementDeclarations: () => [requirementDeclaration(['text.generate'], scopeRef)],
     applyHostAIConfig: (_scope, config) => config,
   });
   assert.equal(already.outcome, 'already-initialized');
@@ -959,13 +1048,18 @@ test('Nimi AI first-launch app config initializes through explicit host authorit
       manifestSatisfied: true,
     }),
     resolveAccountDefaultProfile: () => null,
+    resolveRequirementDeclarations: ({ scopeRef: setupScope }) => [requirementDeclaration(['text.generate'], setupScope)],
     applyHostAIConfig: (_scope, config) => config,
   });
   assert.equal(setupRequired.outcome, 'setup-required-no-live-config');
 });
 
 test('Nimi AI scheduling projection calls Runtime peekScheduling without embedding live bindings in AIConfig', async () => {
-  const config = applyNimiAIProfileToConfig(createEmptyNimiAIConfig(SCOPE), READY_PROFILE);
+  const config = applyNimiAIProfileToConfig({
+    config: createEmptyNimiAIConfig(SCOPE),
+    profile: READY_PROFILE,
+    requirementDeclarations: [CHAT_REQUIREMENT],
+  });
   const requests: ReturnType<typeof buildNimiRuntimeAISchedulingRequest>[] = [];
   const scheduling = createNimiRuntimeAISchedulingClient({
     appId: 'dev.nimi.wave4',

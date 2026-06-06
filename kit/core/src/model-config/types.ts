@@ -16,6 +16,7 @@ import type {
   NimiAIProfile,
   NimiAIProfileApplyOptions,
   NimiAIProfileApplyResult,
+  NimiAIProfilePreviewOptions,
   NimiAIProfilePreviewResult,
   NimiAIProfileOriginRef,
   NimiAICapabilityRequirementDeclaration,
@@ -52,11 +53,15 @@ export interface SharedAIConfigService {
      * typed before→after NimiAIConfig diff without mutating live config. The kit
      * apply flow gates `apply` behind an explicit confirm of this preview.
      */
-    previewApply(scopeRef: NimiAIScopeRef, profileId: string): Promise<NimiAIProfilePreviewResult>;
+    previewApply(
+      scopeRef: NimiAIScopeRef,
+      profileId: string,
+      options: NimiAIProfilePreviewOptions,
+    ): Promise<NimiAIProfilePreviewResult>;
     apply(
       scopeRef: NimiAIScopeRef,
       profileId: string,
-      options?: NimiAIProfileApplyOptions,
+      options: NimiAIProfileApplyOptions,
     ): Promise<NimiAIProfileApplyResult>;
   };
 }
