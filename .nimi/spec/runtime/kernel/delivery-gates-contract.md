@@ -34,9 +34,9 @@ SDK 投影、边界、错误语义、P-MOEX anti-target hard-cut 与文档漂移
 
 执行命令（PR 必须通过）：
 
-- `pnpm exec nimicoding validate-spec-governance --profile nimi --scope sdk-consistency`
-- `pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope sdk --check`
-- `pnpm check:runtime-bridge-method-drift`
+- `pnpm exec nimicoding validate-spec-governance --profile nimi --scope sdks-consistency`
+- `pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope sdks --check`
+- `pnpm check:runtime-bridge-generated-drift`
 - `pnpm check:p-moex-anti-targets`
 
 ## K-GATE-040 G3 Provider Gate

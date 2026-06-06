@@ -154,6 +154,8 @@
 - `tables/runtime-proto-governance-gates.yaml`
 - `tables/capability-vocabulary-mapping.yaml`
 - `tables/config-schema.yaml`
+- `tables/profile-runtime-descriptor-schema.yaml`
+- `tables/profile-workflow-contracts.yaml`
 - `tables/rule-evidence.yaml`
 
 Runtime provider model/voice default data is maintained outside `spec/` at:

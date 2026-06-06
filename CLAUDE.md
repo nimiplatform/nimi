@@ -49,7 +49,7 @@ If the module has sub-level `AGENTS.md` files, read the nearest one to the file 
 ## Repo-Wide Hard Boundaries
 
 - `/.nimi/spec/**` is the only normative contract source. Retired pre-cutover authority history lives in Git only. Nimicoding package authority lives outside this host repo and is consumed only through `pnpm exec nimicoding` plus injected `.nimi/{config,contracts,methodology}/**` projections. Host-project bootstrap truth lives under `.nimi/**`. Local-only execution workspaces and reports may live under `.local/**`; tracked support inputs live under `config/**`. `dev/**` is not an active execution-doc surface.
-- Layer debug order: `runtime` → `sdk` → `apps/desktop` / `apps/web`.
+- Layer debug order: `runtime` → `sdks/typescript` → `apps/desktop` / `apps/web`.
 - Reuse `@nimiplatform/kit` first for app UI and interaction work. If a matching kit surface already covers the baseline styling and baseline interaction behavior, extend or compose it instead of recreating a parallel app-local shell.
 - No legacy shims, compatibility shells, hardcoded provider/model lists, or downstream workarounds.
 - No fallback that hides contract violations. Missing typed output, MIME type, discriminator, required JSON shape, or schema fields must fail-close.
@@ -64,7 +64,7 @@ If the module has sub-level `AGENTS.md` files, read the nearest one to the file 
 
 ## Retrieval Defaults
 
-- Start with: `runtime/internal`, `runtime/cmd/nimi`, `sdk/src`, `apps/**/src`, `apps/**/src-tauri/src`, `.nimi/spec/*/kernel`, `scripts`, `.local/**`, `.nimi/**`, `config/**`.
+- Start with: `runtime/internal`, `runtime/cmd/nimi`, `sdks/typescript`, `apps/**/src`, `apps/**/src-tauri/src`, `.nimi/spec/*/kernel`, `scripts`, `.local/**`, `.nimi/**`, `config/**`.
 - Skip: `_external/**`, `.iterate/**`, `.cache/**`, `archive/**`, `docs/**`, `**/generated/**`, `**/gen/**`, lockfiles, large assets.
 
 `.local/**` is the active local execution workspace family. It is local-only and non-authoritative. Do not use `.iterate/**` or `.cache/**` as execution-state substitutes.

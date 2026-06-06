@@ -109,5 +109,5 @@ cache；session lifecycle 结束后必须 release projection。
 - `.nimi/spec/cognition/kernel/knowledge-service-contract.md` — `C-COG-*` knowledge subset
 - `.nimi/spec/cognition/kernel/skill-service-contract.md` — `C-COG-*` skill subset
 - `.nimi/spec/runtime/kernel/runtime-agent-service-contract.md` — `K-AGCORE-*`
-- `.nimi/spec/sdk/kernel/nimi-permission-client-contract.md` — `S-PERM-001..S-PERM-008`
+- `.nimi/spec/sdks/kernel/nimi-permission-client-contract.md` — `S-PERM-001..S-PERM-008`
 - `.nimi/spec/desktop/kernel/nimi-home-shell-contract.md` — `D-HOME-001..D-HOME-012`

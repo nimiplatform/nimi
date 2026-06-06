@@ -11,7 +11,15 @@ Phase 1 本地执行引擎固定为：
 - `speech`：本地语音引擎族；baseline `Qwen3` family line 与 workflow 边界由 `local-engine-speech-contract.md` 的 `Speech Engine Family Line` 拥有。
 - `sidecar`：外部自托管 music sidecar，使用 Nimi music canonical HTTP 协议；当前仅支持 `ATTACHED_ENDPOINT`
 
-`media.diffusers` 仅允许作为 `media` 的 runtime 内部 fallback driver；不是 public engine target。若要把 `media.diffusers` 升格为 matrix-supported canonical backend family，必须在同一轮 cutover 中同步修订 `K-LENG-004`、`K-MMPROV-010`、`K-PROV-002` 的对应规则。
+`media.diffusers` 仅允许作为 `media` 的 runtime 内部 backend driver；不是
+public engine target。For descriptor-backed profile workflows, diffusers is
+addressed through public `execution.backend=diffusers` plus `model.family`
+validation (`K-AIEXEC-008`, `K-AIEXEC-012`) and mapped by Runtime registries to
+runtime-private `backend_class=python_pipeline` / `backend_family=diffusers`.
+It must not be silently selected as fallback when a profile declares another
+backend/family. 若要把 `media.diffusers` 升格为 matrix-supported canonical
+backend family，必须在同一轮 cutover 中同步修订 `K-LENG-004`、
+`K-MMPROV-010`、`K-PROV-002` 的对应规则。
 `LocalAI / Nexa / nimi_media` 不再属于规范引擎枚举，也不得作为新的本地执行事实源。
 
 引擎类型值域以 `tables/local-engine-catalog.yaml` 为唯一事实源。
@@ -76,7 +84,13 @@ Speech product posture 由 `local-engine-speech-contract.md` 的 `Speech Runtime
 - `llama`：管理 `llama.cpp` / `llama-server`、GPU layers、context/batch policy、warmup。
 - `media`：管理 image/video 执行 backend。`engine=media` 不能按引擎名整体决定 host support；必须结合 `asset_family`、`backend_class`、`backend_family` 与 `tables/local-image-supervised-backend-matrix.yaml` v2 matrix resolver 输出判断真实受管 backend。
 - `speech`：baseline supervised families、ordinary-user readiness layers、capability materialization 懒加载与 local speech bundle download/init flow 由 `local-engine-speech-contract.md` 的 `Speech Supervised Baseline` 拥有。
-- `media.diffusers`：只在 `media` 不支持 family / artifact completeness / pipeline variant 时作为内部 fallback 启动。当前 kernel 基线仍规定 `media.diffusers` 不得作为 public engine target，不得在未完成规范修订前直接升格为 matrix-supported canonical path。
+- `media.diffusers`：在 descriptor-backed profile workflows 中只能作为
+  runtime-private implementation selected by validated public
+  `execution.backend=diffusers` / `model.family` constraints. It is not a
+  replaceable fallback target for profile-declared `stablediffusion-ggml` or any
+  other authored backend/family. 当前 kernel 基线仍规定 `media.diffusers` 不得作为
+  public engine target，不得在未完成规范修订前直接升格为 matrix-supported
+  canonical path。
 
 资产级 supervised 规则：
 
@@ -90,7 +104,12 @@ Speech product posture 由 `local-engine-speech-contract.md` 的 `Speech Runtime
 - v2 matrix 当前定义三类 image asset family topology：
   - `gguf_image`：GGUF 单文件主模型，`artifact_formats=[gguf]`，`profile_kind=single_binary_model`，`backend_family=stablediffusion-ggml`
   - `safetensors_native_image`：单文件 safetensors 主模型（不含 `model_index.json` 或 workflow bundle marker），`artifact_formats=[safetensors]`，`profile_kind=single_binary_model`，`backend_family=stablediffusion-ggml`
-  - `workflow_safetensors_image`：由 `model_index.json` / workflow bundle 驱动的 pipeline bundle，`artifact_formats=[safetensors, json_config]`，`profile_kind=workflow_pipeline`，`backend_family=diffusers`
+  - `workflow_safetensors_image`：由 `model_index.json` / workflow bundle 驱动的
+    pipeline bundle，`artifact_formats=[safetensors, json_config]`，
+    `profile_kind=workflow_pipeline`，`backend_family=diffusers`。This topology
+    is a workflow contract shape, not a product-ready label by itself; required
+    profile slices still fail closed when product_state is proposed/unsupported
+    or environment/materializer readiness is missing.
 - `safetensors_native_image` 与 `workflow_safetensors_image` 的边界判据：`model_index.json` 存在或 workflow bundle completeness 满足时归入 `workflow_safetensors_image`；仅有单文件 `.safetensors` 且不满足 workflow bundle 判据时归入 `safetensors_native_image`。仅因 `artifact_roles` 非空不得自动升级为 workflow topology。
 - v2 matrix 按 `entry_id` 索引，每个 entry 以 `platform + asset_family + backend_family + profile_kind` 组合标识一个 topology 槽位。
 - `topology_state` 与 `product_state` 分离：
@@ -157,6 +176,13 @@ Resolver 输入分为两层：
 
 - canonical inputs（驱动 canonical resolution）：host platform、asset manifest / runtime-native facts、`kind`、`capabilities`、`asset_family`、`artifact_formats`、`profile_kind`、bundle completeness、slot / materialization truth
 - legacy hints（仅用于 migration normalization，不得主导 canonical resolution）：`engine_config.backend`、`preferred_engine`
+- descriptor-authored constraints（仅用于 profile workflow validation, never
+  as resolver fallback）：public `execution.backend` and `model.family` from
+  `K-AIEXEC-008`. Runtime maps them to admitted backend/profile/model-lineage
+  registry rows before resolution. If authored constraints conflict with matrix
+  resolver output, dependency family, or asset topology, Runtime must fail
+  closed; it must not overwrite the authored constraint with inferred
+  `backend_family`, `asset_family`, or derived `Family`.
 
 Resolver 输出至少包含：`entry_id`、`product_state`、`backend_class`、`backend_family`、`control_plane`、`execution_plane`、`supported_capabilities`、catalog comparable identity、compatibility detail。
 
@@ -165,6 +191,11 @@ Resolver 输出至少包含：`entry_id`、`product_state`、`backend_class`、`
 - canonical topology resolution 必须由 runtime-native asset facts 驱动，不得由 legacy routing hints 决定。
 - `preferred_engine` 是公开摘要/展示字段，不是 topology fact。
 - `engine_config.backend` 仅允许作为导入旧资产时的过渡线索；一旦 family / profile / materialization 已归一化，就必须失效。
+- `execution.backend` and `model.family` are the only admitted public authored
+  local backend/model-lineage inputs for profile-owned workflows. Bare public
+  `family`, `asset_family`, `backend_family`, `dependency_family`, or
+  `preferred_engine` fields must not be accepted as substitute authoring
+  fields.
 - 若 canonical facts 缺失，resolver 必须 fail-close 或进入 migration-needed / repair-required 语义；不得把 legacy hint 直接提升为 truth。
 
 Admission gate contract 注册：
@@ -318,6 +349,10 @@ v1 固定 internal reason key 集合（audit / health / structured error detail 
 | `python_dependency_install_failed` | torch wheel 安装失败 / ABI 不兼容 |
 | `pipeline_load_timeout` | diffusers pipeline load 超时 |
 | `catalog_identity_mismatch` | catalog ready 但 target identity 不可比较 |
+| `profile_backend_mismatch` | descriptor-authored execution.backend conflicts with runtime registry/resolver |
+| `profile_model_family_mismatch` | descriptor-authored model.family conflicts with runtime registry/resolver |
+| `workflow_required_component_missing` | required workflow component or companion occurrence is absent/unready |
+| `workflow_backend_unsupported` | profile workflow shape is recognized but product/runtime support is unsupported/proposed |
 
 入口级失败映射：
 
@@ -410,7 +445,12 @@ v1 固定 internal reason key 集合（audit / health / structured error detail 
 
 - `/healthz` 返回 ready 且 `/v1/catalog` 存在至少一个与目标 `logical_model_id` 可比对的 ready entry，才算健康。
 - catalog 不得暴露静态伪 model list。
-- `media.diffusers` 作为 fallback 时，必须在探测结果中暴露 fallback 原因，不得静默替换。
+- `media.diffusers` 作为 runtime-private implementation detail 时，必须在探测结果
+  中暴露 selected backend/family support reason，不得静默替换
+  descriptor-authored `execution.backend` / `model.family`。Under
+  profile-declared constraints, backend mismatch, model-family mismatch,
+  unsupported product_state, or missing environment readiness is fail-closed
+  readiness, not fallback success.
 - `engine=media` 的 image 资产若 backend/profile 解析到 `stablediffusion-ggml` 或其它实际受管 native-binary image backend，则 health 归因、bootstrap 目标与 host support 判断必须跟随实际受管 backend；不得因为 public engine 仍是 `media` 就错误要求 attached endpoint。
 - 若 host 不满足 daemon-managed image backend 的硬件前提，health / registration detail 必须直接暴露 canonical matrix compatibility 原因，不得仅返回 `managed diffusers backend unavailable` 或其它泛化 backend 缺失错误。
 

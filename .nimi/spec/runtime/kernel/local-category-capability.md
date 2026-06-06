@@ -308,7 +308,7 @@ Node 的 `adapter` 字段按以下规则确定（以 `tables/local-adapter-routi
    - `adapter`：按 `K-LOCAL-017` 路由。
    - `available`：健康且未被策略门控（`K-LOCAL-018`）。
    - `llama` node 必须同时满足 bundle 可解析、主 artifact 完整、以及对应能力 probe 成功。
-   - `media` node 必须通过 canonical media catalog probe；若 `/v1/catalog` 中缺失与目标 `logical_model_id` 可比对的 ready entry，则 node 必须 `available=false` + fail-close。若 runtime 内部回退到 `media.diffusers`，必须在 `provider_hints.media` 中暴露 fallback driver 与原因。
+   - `media` node 必须通过 canonical media catalog probe；若 `/v1/catalog` 中缺失与目标 `logical_model_id` 可比对的 ready entry，则 node 必须 `available=false` + fail-close。For descriptor-backed profile workflows, selected backend/family must match the validated descriptor; runtime may expose selected runtime-private implementation detail in `provider_hints.media`, but must not silently substitute `media.diffusers` for a different authored backend/family.
    - `speech` node 必须通过 canonical speech catalog probe；若 `/v1/catalog` 中缺失与目标 `logical_model_id` 可比对的 ready entry，则 node 必须 `available=false` + fail-close。
    - `media` node 的 `provider_hints.extra` 必须暴露 runtime host 支持面（如 `runtime_support_class=supported_supervised|attached_only|unsupported`），供目录层解释为何当前 host 只能 attached；该判定必须基于实际受管 backend，而不是仅按 public engine=`media` 粗暴复用统一 host classification。对于 `image.generate` / `image.edit` 且 backend/profile 解析到 `stablediffusion-ggml` 或其它实际受管 native-binary image backend 的资产，host support 必须跟随对应 managed image supervised 支持面。
    - `provider_hints.extra.local_default_rank` 必须暴露当前 host + capability 下的默认 local engine 排序，供 Desktop/SDK 与 runtime 对齐默认路由。
@@ -325,7 +325,7 @@ Node 的 `adapter` 字段按以下规则确定（以 `tables/local-adapter-routi
 | `media/` | 仅匹配 `media` 引擎的已安装模型 |
 | `speech/` | 仅匹配 `speech` 引擎的已安装模型 |
 | `sidecar/` | 仅匹配 `sidecar` 引擎的已安装模型 |
-| `local/` | 按 host + capability 做 engine-first 路由：`text.generate/text.embed/image.understand/audio.understand -> llama`，`image.generate/image.edit/video.generate/i2v -> media`，`audio.transcribe/audio.synthesize -> speech`，仅当 `media` 不支持当前 family 或 artifact completeness 不满足时，才允许 runtime 内部回退到 `media.diffusers`；`voice_workflow.voice_clone/voice_workflow.voice_design` 在显式 local workflow admission 前不得被 `local/*` 投影为 canonical local speech success |
+| `local/` | 按 host + capability 做 engine-first 路由：`text.generate/text.embed/image.understand/audio.understand -> llama`，`image.generate/image.edit/video.generate/i2v -> media`，`audio.transcribe/audio.synthesize -> speech`。For descriptor-backed profile workflows, backend/family selection is pinned by validated `execution.backend` / `model.family` and cannot fallback to another backend. Legacy non-profile routing may expose runtime-private implementation detail, but must fail closed when no admitted implementation satisfies the current model/capability. `voice_workflow.voice_clone/voice_workflow.voice_design` 在显式 local workflow admission 前不得被 `local/*` 投影为 canonical local speech success |
 | 无前缀 | 按已安装模型的 `model_id` 精确匹配 |
 
 前缀在匹配时剥除（`llama/qwen2.5-7b-instruct` 匹配 `model_id=qwen2.5-7b-instruct` 且 `engine=llama`；`media/flux.1-schnell` 匹配 `model_id=flux.1-schnell` 且 `engine=media`；`sidecar/musicgen` 匹配 `model_id=musicgen` 且 `engine=sidecar`）。
@@ -341,7 +341,12 @@ Node 的 `adapter` 字段按以下规则确定（以 `tables/local-adapter-routi
 fallback 补充：
 
 - `local/*` 默认路由不得跨 family 静默换模型；fallback 只允许在同一 logical model 的声明引擎集合内发生。
-- 若 `media` 与其内部 `media.diffusers` fallback 都不可执行，runtime 必须 fail-close，不得伪装 ready 或静默退回 cloud/provider alias。
+- descriptor-backed profile workflows do not admit implicit backend fallback.
+  If the validated authored backend/family cannot execute, runtime must
+  fail-close with profile/workflow readiness detail and no live AIConfig write
+  for required slices.
+- 若 `media` 路径不可执行，runtime 必须 fail-close，不得伪装 ready 或静默退回
+  cloud/provider alias。
 
 未知前缀（如 `ollama/`）视为无前缀，按 `model_id` 全文精确匹配（不剥除前缀）。
 
@@ -452,6 +457,28 @@ Runtime 允许在 catalog surface 之外暴露 capability-scoped `GetRecommendat
 - 采用**直接 REST API 调用**（reqwest HTTP 客户端），**不引入** `hf-hub` crate 或 `@huggingface/hub` SDK。理由：最小化二进制体积与供应链风险。
 - HF repo 标识规范化：接受 `hf://org/model`、`https://huggingface.co/org/model`、`org/model` 三种格式，内部统一为 `org/model`。
 - 下载 URL 构造：`https://huggingface.co/{repo}/resolve/{revision}/{file_path}`
+- AIProfile asset source binding may declare exactly one Hugging Face source
+  object with repo id, repo type, revision, file/directory/manifest entries,
+  access policy (`public | requires_auth | gated | unknown`), format/variant
+  hints, and optional expected integrity. It is a portable source requirement,
+  not runtime selected-source evidence.
+- Runtime owns HF access/readiness. Auth token custody, gated repository access,
+  terms/access approval, selected-source records, observed integrity, transfer
+  state, and access-denied evidence are Runtime facts and must not be stored in
+  AIProfile or AIConfig.
+- A profile-owned downloader is forbidden. Descriptor prepare must route HF
+  source readiness through Runtime local asset/materializer/source surfaces and
+  fail closed when the Runtime cannot satisfy auth/gated/terms requirements.
+- 401/403 or provider-equivalent auth/access denial must be classified as
+  `source.hf_auth_required`, `source.hf_gated_unaccepted`, or
+  `source.hf_access_denied` readiness, not generic download success/failure and
+  not asset-health poisoning.
+- Declared `expected_integrity` is a hard verification requirement. Absent
+  `expected_integrity` is risk context only; it does not become
+  provenance-verified evidence by implication.
+- Manual import association may satisfy a source binding only as user-selected
+  local association evidence. It must not imply HF provenance verification
+  unless expected integrity or equivalent Runtime verification succeeds.
 - 能力推断映射（`pipeline_tag` / `tags` → capability）：
 
 | pipeline_tag | capability |
@@ -600,16 +627,52 @@ hashes:                        # 必填，所有文件须有对应 hash
 - 所有 list/search RPC 必须保持 read-snapshot 语义。特别是 `ListLocalAssets` 只能读取 runtime 已持久化或内存中已承认的 local asset inventory projection；它不得为了“normalize”或“freshen”结果同步执行 health probe、engine bootstrap、warm、status mutation 或 persistence side effect。
 - 需要 fresh health truth 的 caller 必须使用显式 health/warm/start RPC 或等待 runtime-owned background health maintainer 的投影更新；不得把 `ListLocalAssets` 作为隐式 health refresh API。
 
-## K-LOCAL-031 engineSlot 规则
+## K-LOCAL-031 Ordered Companion Occurrence Rules
 
-`engineSlot` 是 passive asset 在 workflow 执行时的槽位标识，决定 runtime 将该 asset 的解析路径注入到 engine 请求的哪个参数位置：
+Profile workflow companion binding is occurrence-based. `engineSlot` remains a
+runtime-private backend injection role, not occurrence identity.
 
-- passive asset（`kind` 为 `vae`、`clip`、`lora`、`controlnet`、`auxiliary`）必须声明 `engineSlot`。缺失 `engineSlot` 的 passive asset 在 `ResolveProfile` / workflow profile 渲染时必须 fail-close（`AI_LOCAL_ASSET_SLOT_MISSING`）。
-- runnable asset（`kind` 为 `chat`、`image`、`video`、`tts`、`stt`，即 workflow 的主执行 asset）禁止声明 `engineSlot`。设置 `engineSlot` 的 runnable asset 在 `ResolveProfile` / workflow profile 渲染时必须 fail-close（`AI_LOCAL_ASSET_SLOT_FORBIDDEN`）。
-- `engineSlot` 值域由 engine 定义，典型值包括但不限于：`vae_path`、`llm_path`、`lora_path`、`controlnet_path`、`clip_path`。
-- 同一 profile 内，同一 `engineSlot` 不得出现重复绑定；冲突时 `ResolveProfile` 必须 fail-close（`AI_LOCAL_PROFILE_SLOT_CONFLICT`）。
-- runtime 在 workflow 执行前，必须从当前 profile 的已安装 passive asset 中按 `engineSlot` 解析路径，注入到 engine 请求参数中。未安装或 `UNHEALTHY` 的 passive asset 对应的 slot 必须 fail-close，不得静默跳过或使用默认值。
-- passive asset 的 slot path 解析必须使用该 asset 的 manifest parent 与 `entry`；不得使用 `asset_id`、`logical_model_id` 或 `local-import/*` source repo 推导 `resolved/` 路径。
+Occurrence fields:
+
+| Field | Meaning |
+|---|---|
+| `occurrence_id` | Stable profile-local id or stable generated index. |
+| `order` | Explicit application/load order. |
+| `role` | Admitted role such as `lora`, `vae`, `clip`, `controlnet`, `encoder`, `decoder`, or backend-specific component role. |
+| `engineSlot` | Runtime-private backend injection role for the occurrence. |
+| `asset_binding_ref` | Portable profile asset/source binding ref. |
+| `required` | Required/optional readiness policy. |
+| `weight` / `options` | Backend-admitted occurrence options. |
+| `applies_to` | Optional backend/model-family/capability constraint. |
+
+Rules:
+
+- passive asset（`kind` 为 `vae`、`clip`、`lora`、`controlnet`、`auxiliary`）must
+  appear through an occurrence when used by a profile workflow. Missing
+  occurrence role/slot for a required passive asset fails closed
+  (`AI_LOCAL_ASSET_SLOT_MISSING`).
+- runnable asset（`kind` 为 `chat`、`image`、`video`、`tts`、`stt`，即 workflow 的主执行 asset）
+  must not be represented as a companion occurrence. Setting companion slot
+  semantics on a runnable asset fails closed (`AI_LOCAL_ASSET_SLOT_FORBIDDEN`).
+- The same `engineSlot` may appear more than once only when each use has a
+  distinct `occurrence_id` and explicit `order`. This admits repeated asset use
+  such as two LoRA occurrences with different weights. A slot-map keyed only by
+  `engineSlot` is no longer authoritative for descriptor-backed workflows.
+- `engineSlot` value domain is backend-defined and validated against the
+  descriptor's `execution.backend` / `model.family`. Unsupported roles/options
+  fail closed; runtime must not silently skip or default them.
+- runtime 在 workflow 执行前，必须 resolve ordered occurrences into backend
+  injection parameters, preserving occurrence order, duplicate use, required
+  policy, weight, and options. 未安装或 `UNHEALTHY` 的 required occurrence asset
+  fails workflow readiness but must not mark the shared reusable main asset
+  globally unhealthy.
+- passive asset 的 path 解析必须使用该 asset 的 manifest parent 与 `entry`；
+  不得使用 `asset_id`、`logical_model_id` 或 `local-import/*` source repo 推导
+  `resolved/` 路径。
+- Legacy unordered slot-map profile entries may be consumed only as migration
+  input and must be normalized into ordered occurrences before prepare,
+  materialization, cache-key calculation, or execution. If normalization cannot
+  preserve identity/order, runtime must fail closed.
 
 ## K-LOCAL-032 Profile Entry Override 规则
 

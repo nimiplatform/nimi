@@ -310,6 +310,12 @@ dependency_families:
       - asset_id
       - model_family
       - runtime_data_root
+    environment_key_semantics:
+      model_family: >-
+        Runtime model-lineage key component consumed by dependency identity.
+        It may be validated against descriptor-authored `model.family`, but it
+        is not itself a public AIProfile field and must not replace the
+        authored `model.family` constraint.
     source_policy: verified-asset-catalog-or-explicit-import
     source_candidates:
       - source_kind: managed

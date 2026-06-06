@@ -110,7 +110,7 @@ capabilities: &avatar_capability_matrix_entries
       - embodiment-projection-contract.md
       - carrier-visual-acceptance-contract.md
       - .nimi/spec/runtime/kernel/runtime-artifact-contract.md
-      - .nimi/spec/sdk/kernel/runtime-contract.md
+      - .nimi/spec/sdks/kernel/runtime-contract.md
     requires:
       - shell_surface_authority
       - voice_lipsync

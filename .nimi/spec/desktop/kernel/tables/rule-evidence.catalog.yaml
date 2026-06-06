@@ -88,12 +88,12 @@ desktop_e2e_journey_gate:
   description: Desktop WebDriver journey matrix for release/nightly key path coverage.
 desktop_rust_test_gate:
   type: rust_test_gate
-  command: cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml
+  command: pnpm --filter @nimiplatform/desktop run check:cargo:test
   path: apps/desktop/src-tauri/Cargo.toml
   description: Tauri backend integration test gate for desktop runtime boundary behavior.
 desktop_rust_clippy_gate:
   type: rust_static_gate
-  command: cargo clippy --manifest-path apps/desktop/src-tauri/Cargo.toml --all-targets
+  command: pnpm --filter @nimiplatform/desktop run check:cargo:clippy
   path: apps/desktop/src-tauri/Cargo.toml
   description: Tauri backend static analysis gate for desktop runtime boundary behavior.
 desktop_macos_manual_smoke_policy:

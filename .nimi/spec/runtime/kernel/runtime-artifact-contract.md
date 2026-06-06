@@ -129,8 +129,8 @@ media result projection / voice asset library).
 ## Drift Resistance
 
 - ReasonCode ARTIFACT family must be admitted in three places synchronously
-  (proto `common.proto` enum + `tables/reason-codes.yaml` + SDK
-  `sdk/src/types/index.ts` ReasonCode const); spec validator enforces.
+  (proto `common.proto` enum + `tables/reason-codes.yaml` + vNext SDK
+  `sdks/typescript/types/reason-code.ts` ReasonCode const); spec validator enforces.
 - emitter-side `Store.Put` must precede emit event; absence logs fatal.
 - runtime handler must use `grpcerr.WithReasonCode`, not status.Error
   message string.

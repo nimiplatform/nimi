@@ -20,7 +20,7 @@ gates:
     command: pnpm --filter @nimiplatform/desktop test
     source_rule: D-GATE-010
   - gate: rust_tauri_integration
-    command: cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml && cargo clippy --manifest-path apps/desktop/src-tauri/Cargo.toml --all-targets
+    command: pnpm --filter @nimiplatform/desktop run check:cargo:test && pnpm --filter @nimiplatform/desktop run check:cargo:clippy
     source_rule: D-GATE-020
   - gate: desktop_e2e_smoke
     command: pnpm check:desktop-e2e-smoke

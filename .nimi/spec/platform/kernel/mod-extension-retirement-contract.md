@@ -29,7 +29,7 @@ retirement execution。`.nimi/spec/desktop/kernel/mod-governance-contract.md`、
 `.nimi/spec/desktop/kernel/tables/mod-*`、
 `.nimi/spec/desktop/kernel/tables/hook-*`、
 `.nimi/spec/desktop/kernel/tables/turn-hook-points.yaml`、
-`.nimi/spec/sdk/kernel/mod-contract.md` 等存量 active authority 文件已撤回；
+`.nimi/spec/sdks/kernel/mod-contract.md` 等存量 active authority 文件已撤回；
 对应 SDK exports、runtime CLI、Desktop / Web consumer surfaces、scripts / CI
 guards 与 docs active references 已移除。
 

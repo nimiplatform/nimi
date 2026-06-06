@@ -53,7 +53,7 @@ surfaces:
     source_authority:
       - .nimi/spec/platform/kernel/nimi-home-contract.md
       - .nimi/spec/platform/kernel/nimi-app-admission-contract.md
-      - .nimi/spec/sdk/kernel/nimi-app-client-contract.md
+      - .nimi/spec/sdks/kernel/nimi-app-client-contract.md
     allowed_projection_scope:
       - ordinary_visible_nimi_app_listing_consumed_from_registry_projection
       - install_update_uninstall_card_states_consumed_from_sdk_projection
@@ -72,7 +72,7 @@ surfaces:
     source_authority:
       - .nimi/spec/platform/kernel/nimi-home-contract.md
       - .nimi/spec/desktop/kernel/agent-chat-projection-contract.md
-      - .nimi/spec/sdk/kernel/ai-config-surface-contract.md
+      - .nimi/spec/sdks/kernel/ai-config-surface-contract.md
     allowed_projection_scope:
       - in_shell_reference_surface_placement_per_P_HOME_006
       - aiscoperef_enforced_per_D_HOME_007
@@ -88,7 +88,7 @@ surfaces:
     owner: desktop_nimi_home_shell
     source_authority:
       - .nimi/spec/runtime/kernel/local-engine-contract.md
-      - .nimi/spec/sdk/kernel/local-environment-projection-contract.md
+      - .nimi/spec/sdks/kernel/local-environment-projection-contract.md
     allowed_projection_scope:
       - daemon_lifecycle_state
       - host_capability_profile_projection
@@ -146,7 +146,7 @@ surfaces:
     owner: desktop_nimi_home_shell
     source_authority:
       - .nimi/spec/runtime/kernel/local-engine-contract.md
-      - .nimi/spec/sdk/kernel/local-environment-projection-contract.md
+      - .nimi/spec/sdks/kernel/local-environment-projection-contract.md
     allowed_projection_scope:
       - runtime_diagnostic_reports
       - dependency_job_state_projection

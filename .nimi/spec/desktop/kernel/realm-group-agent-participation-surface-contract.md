@@ -73,7 +73,7 @@ participation execution truth is introduced.
 
 ## Traceability
 
-- `.nimi/spec/sdk/kernel/realm-group-agent-participation-client-contract.md`
+- `.nimi/spec/sdks/kernel/realm-group-agent-participation-client-contract.md`
 - `.nimi/spec/realm/kernel/group-agent-participation-contract.md`
 - `.nimi/spec/runtime/kernel/realm-group-participation-consumer-contract.md`
 - `.nimi/spec/runtime/kernel/multi-agent-room-orchestration-contract.md`

@@ -143,7 +143,7 @@ existing Desktop kernel hosted-shell 合同（`D-HOME-*`、`D-SHELL-*` 等）
 
 ## P-ARCH-029 — Consumer API Contract Home
 
-`MUST`: World Evolution Engine 的 app consumer-facing API contract 落点固定为 `.nimi/spec/sdk/kernel/**` 中的 downstream consumer seam contract。
+`MUST`: World Evolution Engine 的 app consumer-facing API contract 落点固定为 `.nimi/spec/sdks/kernel/**` 中的 downstream consumer seam contract。
 
 该 contract 只拥有：
 

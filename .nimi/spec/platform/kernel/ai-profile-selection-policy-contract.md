@@ -106,19 +106,27 @@ factory `AIProfile` 的 apply 链固定为：
 ```
 selection policy (P-AIPS-004) over Runtime evidence + user posture
   -> typed factory AIProfile reference (alias / profileId)
+  -> descriptor formation + Runtime prepare/readiness (S-AICONF-004, K-AIEXEC-008..009)
   -> aiProfile.apply(scopeRef, profileId)              (S-AICONF-001)
   -> atomic overwrite scope-bound AIConfig             (D-AIPC-005)
   -> execution freezes per-turn AISnapshot             (D-AIPC-004)
-  -> Runtime materializes local dependency plan        (K-LENV-MAT-*, K-LENV-ACT-*)
+  -> Runtime execution consumes materialization evidence (K-LENV-MAT-*, K-LENV-ACT-*)
 ```
 
 `MUST`:
 
 - 写入的 `AIConfig` 必须是 full materialized config（`D-AIPC-003`），不允许
-  partial overlay 或 scope-fallback chain（`P-AISC-003`）。
+  partial overlay、scope-fallback chain（`P-AISC-003`）、or placeholder disabled
+  capability.
 - alias 接受不立即代表 execution readiness：UI / SDK / app 必须分别消费
-  Runtime activation gate（`K-LENV-ACT-004` / `K-LENV-ACT-005`）才能投影
-  execution readiness。
+  Runtime descriptor prepare/readiness and activation gate（`K-AIEXEC-009`,
+  `K-LENV-ACT-004` / `K-LENV-ACT-005`）才能投影 execution readiness or apply
+  eligibility.
+- required slice readiness/apply eligibility must be proven before live AIConfig
+  write. If required slices are unresolved, unsupported, missing credentials,
+  missing manual association, or environment/materializer readiness is unmet,
+  the result is setup-required/no-live-config and any existing valid AIConfig is
+  preserved.
 - 用户在 scope 内对 `AIConfig` 的后续微调（`D-AIPC-011` `Local
   customization`）不反向污染 `AIProfile`，更不修改 factory catalog row。
 
@@ -128,6 +136,9 @@ selection policy (P-AIPS-004) over Runtime evidence + user posture
 - 不得在 `AIConfig` apply 失败时静默降级到 partial config 或猜测的 cloud /
   local fallback；失败必须按 `D-AIPC-005` apply probe / failure 规则与
   `S-AICONF-002` typed error 上报。
+- 不得 apply-first：未满足 required readiness 的 alias acceptance、preview、
+  probe, or prepare cannot write a syntactically valid but non-executable
+  AIConfig.
 - 不得在 first-run、profile apply、或 first-party app hint 路径上直接产生
   selected source record，或绕过 `K-LENV-ACT-001..K-LENV-ACT-010` 的
   activation request/response 形状。
@@ -329,7 +340,9 @@ Nimi Home first-run 与任何 scope-bound apply 路径都必须以下列封闭�
 | 状态 | 含义 | 触发条件 |
 |---|---|---|
 | `ai-profile-pending` | 尚未接受任何 alias | first-run 进入；或之前的 alias 被显式撤销 |
-| `ai-profile-accepted` | alias 已接受，`AIConfig` 已原子写入 | `aiProfile.apply` 成功（`D-AIPC-005`） |
+| `ai-profile-accepted` | alias 已接受，但 required readiness/apply eligibility 仍在验证；live AIConfig 不一定已写入 | 用户接受 typed alias/profile ref |
+| `ai-profile-setup-required` | required slice 尚未 ready；没有写入新的 live AIConfig | `K-AIEXEC-009` / `D-AIPC-005` 返回 setup-required/no-live-config |
+| `ai-profile-applied` | `AIConfig` 已原子写入 | `aiProfile.apply` 成功（`D-AIPC-005`） |
 | `ai-profile-materializing` | Runtime job 处于 `K-LENV-ACT-005` 中除 ready 与 hard-fail 之外的任一状态 | activation 答复显示 `queued`/`downloading`/`verifying`/`installing`/`needs_confirmation` |
 | `ai-profile-active` | 所有 required dependency `ready_system` / `ready_managed` | `K-LENV-ACT-004` 完整 ready |
 | `ai-profile-failed` | activation 答复显示 `failed` / `repair_required` / `unsupported` / `cancelled` | 必须显式区分 reason code 来源（`K-LENV-ACT-007`） |
@@ -340,10 +353,13 @@ SDK 必须以 typed enum 暴露上述状态（`S-AICONF-002` no fallback rule）
 `MUST`:
 
 - 任何"alias 已接受但 Runtime 尚未 ready"的情境必须显式投影
-  `ai-profile-materializing` 或 `ai-profile-failed`；不得直接跳到
+  `ai-profile-setup-required`、`ai-profile-materializing` 或
+  `ai-profile-failed`；不得直接跳到
   `ai-profile-active`。
 - 任何 `ai-profile-failed` 必须保留可恢复路径（cancel / retry / repair /
   切换 alias）。
+- `ai-profile-setup-required` and `ai-profile-materializing` must preserve any
+  existing valid AIConfig and must not write placeholder AIConfig.
 
 `MUST NOT`:
 
@@ -454,9 +470,9 @@ Account Default Profile content source。
 - `.nimi/spec/runtime/kernel/tables/local-environment-dependencies.yaml`
 - `.nimi/spec/runtime/kernel/tables/local-environment-materializers.yaml`
 - `.nimi/spec/runtime/kernel/tables/activation-gate-reason-codes.yaml`
-- `.nimi/spec/sdk/kernel/ai-config-surface-contract.md` —
+- `.nimi/spec/sdks/kernel/ai-config-surface-contract.md` —
   `S-AICONF-001..S-AICONF-006` SDK AI config typed surface
-- `.nimi/spec/sdk/kernel/local-environment-projection-contract.md` —
+- `.nimi/spec/sdks/kernel/local-environment-projection-contract.md` —
   `S-RUNTIME-119` SDK local environment projection
 - `.nimi/spec/platform/kernel/tables/ai-profile-factory-catalog.yaml` —
   admitted factory `AIProfile` rows

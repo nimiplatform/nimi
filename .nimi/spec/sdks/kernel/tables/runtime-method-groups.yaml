@@ -1,0 +1,430 @@
+version: 1
+table_family: product_catalog
+owner: sdks
+catalog_id: sdks_typescript_runtime_method_groups
+scope_note: >
+  TypeScript vNext app-facing Runtime facade projection only. This table is
+  not a cross-language core method source and must not be used as selective
+  omission authority for generated Runtime bindings; generated Runtime core
+  method truth comes from Runtime proto plus admitted generator/spec inputs.
+entries:
+  - AIService
+  - ConnectorService
+  - RuntimeAiRealtimeService
+  - RuntimeLocalService
+  - RuntimeAuthService
+  - RuntimeGrantService
+  - RuntimeExternalAgentService
+  - RuntimeAccountService
+  - RuntimeWorkflowService
+  - RuntimeAuditService
+  - RuntimeModelService
+  - RuntimeCognitionService
+  - RuntimeAppService
+  - RuntimeAgentService
+groups:
+  - group: ai_service_projection
+    service: AIService
+    phase: 1
+    status: active
+    source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
+    methods:
+      - ExecuteScenario
+      - StreamScenario
+      - SubmitScenarioJob
+      - GetScenarioJob
+      - CancelScenarioJob
+      - SubscribeScenarioJobEvents
+      - GetScenarioArtifacts
+      - ListScenarioProfiles
+      - GetVoiceAsset
+      - ListVoiceAssets
+      - DeleteVoiceAsset
+      - ListPresetVoices
+    excluded:
+      - name: UploadArtifact
+        reason: >
+          client_stream RPC; current SDK transport (unary + server_stream only)
+          does not support client-initiated streaming. Excluded per S-SURFACE-009
+          selective projection policy.
+    source_rule: S-SURFACE-002
+  - group: connector_service_projection
+    service: ConnectorService
+    phase: 1
+    status: active
+    source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
+    methods:
+      - CreateConnector
+      - GetConnector
+      - ListConnectors
+      - UpdateConnector
+      - DeleteConnector
+      - TestConnector
+      - ListConnectorModels
+      - ListProviderCatalog
+      - ListModelCatalogProviders
+      - UpsertModelCatalogProvider
+      - DeleteModelCatalogProvider
+      - ListCatalogProviderModels
+      - GetCatalogModelDetail
+      - UpsertCatalogModelOverlay
+      - DeleteCatalogModelOverlay
+    source_rule: S-SURFACE-002
+  - group: ai_realtime_service_projection
+    service: RuntimeAiRealtimeService
+    phase: 1
+    status: active
+    source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
+    methods:
+      - OpenRealtimeSession
+      - AppendRealtimeInput
+      - ReadRealtimeEvents
+      - CloseRealtimeSession
+    source_rule: S-SURFACE-002
+  - group: local_service_projection
+    service: RuntimeLocalService
+    phase: 1
+    status: active
+    source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
+    methods:
+      - ListLocalAssets
+      - RemoveLocalAsset
+      - StartLocalAsset
+      - StopLocalAsset
+      - CheckLocalAssetHealth
+      - WarmLocalAsset
+      - ListVerifiedAssets
+      - SearchCatalogModels
+      - ListCatalogVariants
+      - GetRecommendationFeed
+      - ResolveModelInstallPlan
+      - InstallModelFromPlan
+      - InstallVerifiedAsset
+      - ImportLocalAsset
+      - ImportLocalAssetFile
+      - ImportLocalAssetBundle
+      - RescanLocalAssetBundle
+      - ListLocalTransfers
+      - PauseLocalTransfer
+      - ResumeLocalTransfer
+      - CancelLocalTransfer
+      - WatchLocalTransfers
+      - CollectDeviceProfile
+      - ListLocalServices
+      - InstallLocalService
+      - StartLocalService
+      - StopLocalService
+      - CheckLocalServiceHealth
+      - RemoveLocalService
+      - ListNodeCatalog
+      - ScanUnregisteredAssets
+      - ScaffoldOrphanAsset
+      - ResolveProfile
+      - ApplyProfile
+      - ListLocalAudits
+      - AppendInferenceAudit
+      - AppendRuntimeAudit
+      - ListEngines
+      - EnsureEngine
+      - StartEngine
+      - StopEngine
+      - GetEngineStatus
+      - ResolveLocalEnvironmentPlan
+      - PrepareProfileRuntimeDescriptor
+      - ListLocalEnvironmentSelectedSources
+      - ListLocalEnvironmentDependencyJobs
+      - ResolveLocalEnvironmentActivationGate
+      - StartLocalEnvironmentDependencyJob
+      - CancelLocalEnvironmentDependencyJob
+      - RetryLocalEnvironmentDependencyJob
+      - RepairLocalEnvironmentDependency
+    excluded:
+      - name: ResolveLocalStateReconciliation
+        reason: >
+          removed local-state cutover compatibility path; runtime returns
+          not-required guidance and SDK must not re-admit cutover as an active
+          operation.
+      - name: ExecuteLocalStateCutover
+        reason: >
+          removed local-state cutover operation; runtime fails closed with
+          unimplemented guidance, so SDK keeps the method unavailable.
+    source_rule: S-SURFACE-002
+  - group: auth_service_projection
+    service: RuntimeAuthService
+    phase: 1
+    status: active
+    source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
+    methods:
+      - RegisterApp
+      - OpenSession
+      - RefreshSession
+      - RevokeSession
+      - RegisterExternalPrincipal
+      - OpenExternalPrincipalSession
+      - RevokeExternalPrincipalSession
+    source_rule: S-SURFACE-002
+  - group: grant_service_projection
+    service: RuntimeGrantService
+    phase: 1
+    status: active
+    source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
+    methods:
+      - AuthorizeExternalPrincipal
+      - ValidateAppAccessToken
+      - RevokeAppAccessToken
+      - IssueDelegatedAccessToken
+      - ListTokenChain
+    source_rule: S-SURFACE-002
+  - group: external_agent_service_projection
+    service: RuntimeExternalAgentService
+    phase: 1
+    status: active
+    note: >
+      RuntimeExternalAgentService is the only admitted External Agent gateway,
+      token ledger, action registry, and audit projection surface. The SDK
+      exposes the typed projection even while Runtime fails closed with
+      EXTERNAL_AGENT_ACTION_REGISTRY_EMPTY until the Runtime-owned action
+      registry/server lands; apps must not preserve a Desktop/Tauri-local token
+      ledger or renderer-local action descriptor truth.
+    source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
+    methods:
+      - GetExternalAgentGatewayStatus
+      - IssueExternalAgentToken
+      - RevokeExternalAgentToken
+      - ListExternalAgentTokens
+    source_rule: S-SURFACE-002
+  - group: account_service_projection
+    service: RuntimeAccountService
+    phase: 1
+    status: active
+    note: >
+      Runtime account authority is admitted by K-ACCSVC-* as the local
+      first-party custody source, with K-ACCSVC-002 defining the frozen method
+      set. SDK projection is required by S-RUNTIME-109 / S-RUNTIME-110 for
+      account projection, login/logout, scoped binding, Runtime-issued
+      short-lived Realm access tokens, and the login adapter surface;
+      Desktop/app code must not own refresh tokens, session stores, shared auth
+      files, or direct token refresh seams.
+    source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
+    methods:
+      - GetAccountSessionStatus
+      - SubscribeAccountSessionEvents
+      - BeginLogin
+      - CompleteLogin
+      - GetAccessToken
+      - RefreshAccountSession
+      - Logout
+      - SwitchAccount
+      - IssueScopedAppBinding
+      - RevokeScopedAppBinding
+      - IssueWorkspaceBinding
+      - RevokeWorkspaceBinding
+    source_rule: S-RUNTIME-109
+  - group: workflow_service_projection
+    service: RuntimeWorkflowService
+    phase: 2
+    status: deferred
+    note: >
+      Runtime implementation complete (~4.2K LOC): DAG executor, AI/media
+      node orchestration, event streaming. Not exposed through SDK/Desktop
+      consumption layers. Deferred per pre-launch audit 2026-03-18.
+    source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
+    methods:
+      - SubmitWorkflow
+      - GetWorkflow
+      - CancelWorkflow
+      - SubscribeWorkflowEvents
+    source_rule: S-SURFACE-002
+  - group: health_monitoring_projection
+    service: RuntimeAuditService
+    phase: 1
+    status: active
+    note: >
+      Health monitoring RPCs are Phase 1 frozen (K-DAEMON-001~010, K-PROV-003).
+      Desktop consumes via IPC bridge (D-IPC-002); SDK projection enables
+      standalone SDK consumers to subscribe to health events.
+      Split from audit_service_projection per cross-domain audit C-2.
+    source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
+    methods:
+      - GetRuntimeHealth
+      - ListAIProviderHealth
+      - SubscribeAIProviderHealthEvents
+      - SubscribeRuntimeHealthEvents
+    source_rule: S-SURFACE-002
+  - group: audit_service_projection
+    service: RuntimeAuditService
+    phase: 1
+    status: active
+    note: >
+      Promoted from Phase 2 to Phase 1 during pre-launch audit (2026-03-18).
+      Desktop actively consumes ExportAuditEvents and ListUsageStats via
+      runtime-config-audit-sdk-service.ts. Runtime implementation complete
+      with streaming export (JSON/NDJSON + gzip), paginated query, and
+      time-windowed usage statistics.
+    source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
+    methods:
+      - ListAuditEvents
+      - ExportAuditEvents
+      - ListUsageStats
+    source_rule: S-SURFACE-002
+  - group: model_service_projection
+    service: RuntimeModelService
+    phase: 2
+    status: deferred
+    note: >
+      Runtime implementation complete (~500 LOC): registry enumeration,
+      async model pull, removal, health check. Not consumed by Desktop UI.
+      Deferred per pre-launch audit 2026-03-18.
+    source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
+    methods:
+      - ListModels
+      - PullModel
+      - RemoveModel
+      - CheckModelHealth
+    source_rule: S-SURFACE-002
+  - group: knowledge_service_projection
+    service: RuntimeCognitionService
+    phase: 2
+    status: active
+    forbidden_service_bindings:
+      - RuntimeKnowledgeService
+    note: >
+      Runtime-facing knowledge projection is carried by
+      `RuntimeCognitionService`, not a standalone `RuntimeKnowledgeService`.
+      Future SDK code generation, method-id tables, generated clients, or
+      transport routing must not bind any method in this group to
+      `RuntimeKnowledgeService` under any condition; that service identifier
+      is retired by K-KNOW-001 and its internal implementation package is
+      retired by K-KNOW-001a. The `forbidden_service_bindings` field above
+      is the machine-readable form of the same constraint.
+      The baseline runtime-local knowledge projection is admitted and landed.
+      Hybrid retrieval extends the same projection with explicit hybrid recall
+      while keeping `SearchKeyword` stable and lexical-only. Graph/backlink
+      extends the same projection with same-bank graph / backlink reads and
+      writes. Ingest/progress extends the same projection with single-document
+      async ingest plus explicit task polling.
+      Consumer surfaces must not imply cross-service citation, AgentCore, or
+      shared-truth behavior.
+      SDK projection must stay aligned with runtime proto, reason-code, and
+      pagination semantics. Desktop product UI may still lag behind.
+    source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
+    methods:
+      - CreateKnowledgeBank
+      - GetKnowledgeBank
+      - ListKnowledgeBanks
+      - DeleteKnowledgeBank
+      - PutPage
+      - GetPage
+      - ListPages
+      - DeletePage
+      - SearchKeyword
+      - SearchHybrid
+      - AddLink
+      - RemoveLink
+      - ListLinks
+      - ListBacklinks
+      - TraverseGraph
+      - IngestDocument
+      - GetIngestTask
+    source_rule: S-SURFACE-002
+  - group: app_service_projection
+    service: RuntimeAppService
+    phase: 2
+    status: active
+    note: >
+      Runtime implementation complete (~900 LOC) with production-grade
+      security baseline (K-APP-005): rate limiting, loop detection, payload
+      size enforcement. SDK projection is landed. Desktop must not treat
+      RuntimeAppService as a same-process message bus.
+    source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
+    methods:
+      - SendAppMessage
+      - SubscribeAppMessages
+    source_rule: S-SURFACE-002
+  - group: memory_service_projection
+    service: RuntimeCognitionService
+    phase: 1
+    status: active
+    note: >
+      Runtime-facing memory projection is carried by `RuntimeCognitionService`,
+      not a standalone `RuntimeMemoryService`. Public projection is reserved
+      for Nimi-owned bank/retain/recall/history operations only; provider wire
+      shape remains internal. Default engine is the runtime-managed Hindsight
+      daemon. App-private and workspace-private scopes may project here, but
+      canonical agent memory writes do not route through this service directly.
+      Memory embedding runtime methods are host/runtime typed logical methods
+      backed by retained runtime-private memory depth; they are listed here
+      only because the SDK public namespace remains `runtime.memory.*` while
+      the underlying RPC owner is `RuntimeCognitionService`.
+    source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
+    methods:
+      - CreateBank
+      - GetBank
+      - ListBanks
+      - DeleteBank
+      - Retain
+      - Recall
+      - History
+      - DeleteMemory
+      - GetMemoryEmbeddingRuntimeIntent
+      - SetMemoryEmbeddingRuntimeIntent
+      - InspectMemoryEmbeddingRuntime
+      - RequestMemoryEmbeddingRuntimeBind
+      - RequestMemoryEmbeddingRuntimeCutover
+      - SubscribeMemoryEvents
+    source_rule: S-SURFACE-002
+  - group: agent_service_projection
+    service: RuntimeAgentService
+    phase: 1
+    status: active
+    note: >
+      Final-state runtime-owned live agent substrate belongs to
+      RuntimeAgentService. The admitted SDK public projection namespace is
+      runtime.agent.*, and canonical agent memory writes must remain unified on
+      that runtime-owned agent projection rather than drifting to direct Realm
+      memory mutation or raw MemoryService scope writes.
+    source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
+    methods:
+      - InitializeAgent
+      - TerminateAgent
+      - GetAgent
+      - ListAgents
+      - OpenConversationAnchor
+      - GetConversationAnchorSnapshot
+      - ListAgentConversationSummaries
+      - RegisterAvatarLiveInstanceBinding
+      - ResolveAvatarLiveInstanceBinding
+      - GetPublicChatSessionSnapshot
+      - GetCompanionParticipationProjection
+      - RequestCompanionParticipation
+      - CancelCompanionParticipation
+      - OpenCompanionParticipationReplay
+      - CreateRealmGroupMessageCandidate
+      - GetRealmGroupMessageCandidateEvidence
+      - GetAvatarDebugSnapshot
+      - RequestAvatarDebugProbe
+      - ListAvatarDebugProbeResults
+      - GetAvatarDebugReplay
+      - ListDelegatedProviderProfiles
+      - UpsertDelegatedProviderProfile
+      - SetDelegatedProviderState
+      - ListDelegatedApprovalRequests
+      - SubmitDelegatedApprovalDecision
+      - ListDelegatedDiagnostics
+      - GetDelegatedReplayTrace
+      - GetDelegatedControlSurfaceSnapshot
+      - ExecuteDelegatedCapability
+      - GetAgentState
+      - UpdateAgentState
+      - SetAgentPresentationProfile
+      - EnableAutonomy
+      - DisableAutonomy
+      - SetAutonomyConfig
+      - ListPendingHooks
+      - CancelHook
+      - QueryAgentMemory
+      - WriteAgentMemory
+      - GetAgentCanonicalMemoryBankStatus
+      - RequestAgentCanonicalMemoryBankBind
+      - SubscribeAgentEvents
+    source_rule: S-SURFACE-002

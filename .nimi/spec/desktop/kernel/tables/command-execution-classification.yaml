@@ -489,4 +489,16 @@ registered_command_families:
       - sync_lock_contention
     source_rule: D-GATE-092
 
-dormant_command_families: []
+dormant_command_families:
+  - family: kit_shell_avatar_asset_resolvers_for_avatar_app
+    match:
+      exact:
+        - nimi_avatar_resolve_agent_center_avatar_asset
+        - nimi_avatar_resolve_local_avatar_asset
+    origin_crate: kit/shell/tauri
+    owner_domain: avatar-shell-local-asset-resolution
+    dormant_class: dormant_admitted
+    remediation_required: false
+    reason: Avatar app registers these shared Kit shell commands; Desktop scans
+      the shared Kit root but does not expose the Avatar resolver surface.
+    source_rule: D-GATE-095

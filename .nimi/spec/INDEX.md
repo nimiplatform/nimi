@@ -10,7 +10,7 @@ Nimi product authority is organized by active domain. Kernel markdown files and 
 - `platform`
 - `realm`
 - `runtime`
-- `sdk`
+- `sdks`
 
 ## Reading Order
 

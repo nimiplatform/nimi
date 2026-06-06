@@ -11,7 +11,7 @@ surfaces:
   - method_mappings
 services:
   - RuntimeLocalService
-method_count: 66
+method_count: 67
 method_mappings:
   - design_service: RuntimeLocalService
     design_method: ListLocalAssets
@@ -192,6 +192,11 @@ method_mappings:
     design_method: ResolveLocalEnvironmentPlan
     proto_service: RuntimeLocalService
     proto_method: ResolveLocalEnvironmentPlan
+    mapping_posture: aligned
+  - design_service: RuntimeLocalService
+    design_method: PrepareProfileRuntimeDescriptor
+    proto_service: RuntimeLocalService
+    proto_method: PrepareProfileRuntimeDescriptor
     mapping_posture: aligned
   - design_service: RuntimeLocalService
     design_method: ListLocalEnvironmentSelectedSources

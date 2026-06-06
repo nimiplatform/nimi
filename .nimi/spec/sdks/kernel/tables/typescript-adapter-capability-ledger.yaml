@@ -1,0 +1,265 @@
+version: 1
+table_family: protocol_surface
+owner: sdks
+protocol_id: sdks_typescript_adapter_capability_ledger
+scope:
+  target_root: sdks/typescript/adapters
+  package_posture: source-root-placeholders-until-public-package-names-are-owner-approved
+level_values:
+  - L0
+  - L1
+  - L2
+  - L3
+  - L4
+  - L5
+status_values:
+  - implemented
+  - deferred
+  - blocked
+capability_status_values:
+  - supported
+  - partial
+  - unsupported
+surfaces:
+  - id: vercel-ai
+    source_root: sdks/typescript/adapters/vercel-ai
+    minimum_capability_level: L2
+    implementation_level: L2
+    release_target_level: L3
+    release_target_status: blocked
+    implementation_status: implemented
+    manifest: sdks/typescript/adapters/vercel-ai/manifest.ts
+    test: sdks/typescript/adapters/vercel-ai/vercel-ai.test.ts
+    example: sdks/typescript/adapters/vercel-ai/vercel-ai.example.ts
+    unsupported_behavior: throw
+    production_core_binding: Maps Vercel LanguageModelV3-like calls to NimiAiModel; production Runtime-backed Nimi AI currently supports text generate/stream and fails closed for Runtime-unsupported tools, toolChoice, non-text response formats, and advanced params.
+    release_blocker: L3 cannot be claimed until structured output, tool execution or caller-owned loop semantics, approval, external execution, and trace mapping are implemented and tested over production vNext public surfaces.
+    capability_claims:
+      - capability: model.provider
+        status: supported
+      - capability: text.generate
+        status: supported
+      - capability: text.stream
+        status: supported
+      - capability: runEvents.text
+        status: supported
+      - capability: runEvents.finish
+        status: supported
+      - capability: runEvents.error
+        status: supported
+      - capability: runEvents.toolCallReturn
+        status: partial
+      - capability: structured.output.requestMapping
+        status: partial
+      - capability: tools.definitionMapping
+        status: partial
+      - capability: tools.toolChoiceMapping
+        status: partial
+      - capability: tools.execute
+        status: unsupported
+      - capability: multiStep
+        status: unsupported
+      - capability: approval
+        status: unsupported
+      - capability: externalExecution
+        status: unsupported
+      - capability: traces
+        status: unsupported
+      - capability: memoryContext
+        status: unsupported
+      - capability: knowledgeContext
+        status: unsupported
+      - capability: workflowCheckpoint
+        status: unsupported
+      - capability: migrationProof
+        status: unsupported
+    verification_gates:
+      - check:sdk-vnext-adapter-capability-ledger
+
+  - id: openai-compatible
+    source_root: sdks/typescript/adapters/openai-compatible
+    minimum_capability_level: L2
+    implementation_level: L2
+    release_target_level: L2
+    release_target_status: implemented
+    implementation_status: implemented
+    manifest: sdks/typescript/adapters/openai-compatible/index.ts
+    test: sdks/typescript/adapters/openai-compatible/openai-compatible.test.ts
+    example: sdks/typescript/adapters/openai-compatible/openai-compatible.example.ts
+    unsupported_behavior: throw
+    production_core_binding: Strict Chat Completions-compatible bridge over NimiAiModel with owner-approved boundary; no Runtime REST bypass, no tool execution, no broad OpenAI API promise.
+    capability_claims:
+      - capability: chat.completions.create
+        status: supported
+      - capability: chat.completions.stream
+        status: supported
+      - capability: tools.function.definitions
+        status: supported
+      - capability: tools.function.tool_choice
+        status: supported
+      - capability: tools.function.return_tool_calls
+        status: supported
+      - capability: tools.execute
+        status: unsupported
+      - capability: responsesApi
+        status: unsupported
+      - capability: completionsApi
+        status: unsupported
+      - capability: embeddingsApi
+        status: unsupported
+      - capability: runtimeRestBypass
+        status: unsupported
+    verification_gates:
+      - check:sdk-vnext-adapter-capability-ledger
+
+  - id: mcp
+    source_root: sdks/typescript/adapters/mcp
+    minimum_capability_level: L2
+    implementation_level: L2
+    release_target_level: L2
+    release_target_status: implemented
+    implementation_status: implemented
+    manifest: sdks/typescript/adapters/mcp/index.ts
+    test: sdks/typescript/adapters/mcp/mcp.test.ts
+    example: sdks/typescript/adapters/mcp/mcp.example.ts
+    unsupported_behavior: throw
+    production_core_binding: Converts explicit Nimi tools and run events to structural MCP tool and notification shapes; approval and external execution remain owner-gated L3 semantics.
+    capability_claims:
+      - capability: mcp.tools.list
+        status: supported
+      - capability: mcp.tools.call.auto
+        status: supported
+      - capability: mcp.runEvents
+        status: supported
+      - capability: mcp.resources
+        status: unsupported
+      - capability: approval
+        status: unsupported
+      - capability: externalExecution
+        status: unsupported
+      - capability: workflowCheckpoint
+        status: unsupported
+    verification_gates:
+      - check:sdk-vnext-adapter-capability-ledger
+
+  - id: mastra
+    source_root: sdks/typescript/adapters/mastra
+    minimum_capability_level: L1
+    implementation_level: L1
+    release_target_level: L1
+    release_target_status: implemented
+    implementation_status: implemented
+    manifest: sdks/typescript/adapters/mastra/index.ts
+    test: sdks/typescript/adapters/mastra/mastra.test.ts
+    example: sdks/typescript/adapters/mastra/mastra.example.ts
+    unsupported_behavior: throw
+    production_core_binding: Structural Mastra-like model generation over NimiAiModel; stream, tools, structured output, and workflow claims fail closed.
+    capability_claims:
+      - capability: model.generate
+        status: supported
+      - capability: model.stream
+        status: unsupported
+      - capability: tools.mapping
+        status: unsupported
+      - capability: structuredOutput
+        status: unsupported
+      - capability: workflowCheckpoint
+        status: unsupported
+    verification_gates:
+      - check:sdk-vnext-adapter-capability-ledger
+
+  - id: langgraph
+    source_root: sdks/typescript/adapters/langgraph
+    minimum_capability_level: L1
+    implementation_level: L1
+    release_target_level: L1
+    release_target_status: implemented
+    implementation_status: implemented
+    manifest: sdks/typescript/adapters/langgraph/index.ts
+    test: sdks/typescript/adapters/langgraph/langgraph.test.ts
+    example: sdks/typescript/adapters/langgraph/langgraph.example.ts
+    unsupported_behavior: throw
+    production_core_binding: Structural graph-node generation over NimiAiModel; checkpoint/resume and graph tool mapping are not claimed.
+    capability_claims:
+      - capability: node.generate
+        status: supported
+      - capability: node.toolMapping
+        status: unsupported
+      - capability: checkpointResume
+        status: unsupported
+      - capability: workflowCheckpoint
+        status: unsupported
+    verification_gates:
+      - check:sdk-vnext-adapter-capability-ledger
+
+  - id: llamaindex
+    source_root: sdks/typescript/adapters/llamaindex
+    minimum_capability_level: L1
+    implementation_level: L1
+    release_target_level: L1
+    release_target_status: implemented
+    implementation_status: implemented
+    manifest: sdks/typescript/adapters/llamaindex/index.ts
+    test: sdks/typescript/adapters/llamaindex/llamaindex.test.ts
+    example: sdks/typescript/adapters/llamaindex/llamaindex.example.ts
+    unsupported_behavior: throw
+    production_core_binding: Query/retrieval-reference interop over NimiAiModel and knowledge-context references; index mutation and tool calling are not claimed.
+    capability_claims:
+      - capability: query.generate
+        status: supported
+      - capability: retrievalReferences
+        status: supported
+      - capability: indexMutation
+        status: unsupported
+      - capability: toolCalling
+        status: unsupported
+    verification_gates:
+      - check:sdk-vnext-adapter-capability-ledger
+
+  - id: react
+    source_root: sdks/typescript/adapters/react
+    minimum_capability_level: L1
+    implementation_level: L1
+    release_target_level: L1
+    release_target_status: implemented
+    implementation_status: implemented
+    manifest: sdks/typescript/adapters/react/index.ts
+    test: sdks/typescript/adapters/react/react.test.ts
+    example: sdks/typescript/adapters/react/react.example.ts
+    unsupported_behavior: throw
+    production_core_binding: Headless conversation feature event state projection only; React runtime hooks and renderers remain adapter-package work.
+    capability_claims:
+      - capability: conversation.state
+        status: supported
+      - capability: conversation.events
+        status: supported
+      - capability: hooks
+        status: unsupported
+      - capability: renderer
+        status: unsupported
+    verification_gates:
+      - check:sdk-vnext-adapter-capability-ledger
+
+  - id: next
+    source_root: sdks/typescript/adapters/next
+    minimum_capability_level: L1
+    implementation_level: L1
+    release_target_level: L1
+    release_target_status: implemented
+    implementation_status: implemented
+    manifest: sdks/typescript/adapters/next/index.ts
+    test: sdks/typescript/adapters/next/next.test.ts
+    example: sdks/typescript/adapters/next/next.example.ts
+    unsupported_behavior: throw
+    production_core_binding: Structural JSON chat-completion route over the OpenAI-compatible Chat Completions bridge; streaming, middleware, and server actions are not claimed.
+    capability_claims:
+      - capability: route.chatCompletions.json
+        status: supported
+      - capability: route.chatCompletions.stream
+        status: unsupported
+      - capability: middleware
+        status: unsupported
+      - capability: serverActions
+        status: unsupported
+    verification_gates:
+      - check:sdk-vnext-adapter-capability-ledger

@@ -1,0 +1,29 @@
+version: 1
+table_family: product_catalog
+owner: sdks
+catalog_id: sdks_migration_targets
+entries:
+  - id: vercel-ai
+    name: Vercel AI SDK
+    semantics: First full adapter target.
+  - id: openai-compatible
+    name: OpenAI-compatible
+    semantics: Priority strict Chat Completions-compatible migration bridge.
+  - id: mcp
+    name: MCP
+    semantics: Tool/resource adapter after event semantics are proven.
+  - id: mastra
+    name: Mastra
+    semantics: Agent framework adapter after core agent contracts stabilize.
+  - id: langgraph
+    name: LangGraph
+    semantics: Graph workflow adapter after workflow events stabilize.
+  - id: llamaindex
+    name: LlamaIndex
+    semantics: Retrieval/query interop adapter after knowledge context stabilizes.
+  - id: react
+    name: React
+    semantics: Common app framework adapter after feature event contracts stabilize.
+  - id: next
+    name: Next
+    semantics: Common app framework adapter after feature event contracts stabilize.

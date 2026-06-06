@@ -12,7 +12,7 @@ registry_id: platform_release_gate_registry
 # file. Hand-edits in projection surfaces are a projection-drift fail.
 
 schema_version: release-gate-registry/v1
-registry_version: "1.0.0"
+registry_version: "1.3.0"
 profile_id: nimi
 # -----------------------------------------------------------------------
 # Tier definitions (P-RELG-012 tier membership constraint)
@@ -86,9 +86,9 @@ gates:
   # owner: cargo (Rust / Tauri verification chain in apps/desktop/src-tauri)
   # =====================================================================
   - id: gate.cargo.check
-    description: Rust cargo check on apps/desktop/src-tauri to validate compile.
-    command: cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml
-    runner: shell
+    description: Desktop Rust cargo check with generated bundled runtime release resources.
+    command: pnpm --filter @nimiplatform/desktop run check:cargo
+    runner: pnpm
     cwd: .
     tiers: [release, release-target:desktop]
     targets: [desktop]
@@ -96,7 +96,7 @@ gates:
     prerequisites: []
     requires_secrets: []
     requires_external_repo: []
-    requires_binaries: [cargo]
+    requires_binaries: [pnpm, go, cargo]
     blocker_semantics:
       on_binary_missing: blocked
     evidence:
@@ -106,13 +106,13 @@ gates:
     experimental: false
 
   - id: gate.cargo.test
-    description: cargo test on apps/desktop/src-tauri (full Rust test suite).
-    command: cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml
-    runner: shell
+    description: Desktop Rust cargo test with generated bundled runtime release resources.
+    command: pnpm --filter @nimiplatform/desktop run check:cargo:test
+    runner: pnpm
     tiers: [release, release-target:desktop]
     targets: [desktop]
     timeout_seconds: 1200
-    requires_binaries: [cargo]
+    requires_binaries: [pnpm, go, cargo]
     blocker_semantics:
       on_binary_missing: blocked
     evidence:
@@ -122,13 +122,13 @@ gates:
     experimental: false
 
   - id: gate.cargo.test-runtime-bridge
-    description: cargo test runtime_bridge (focused subset for runtime bridge contract).
-    command: cargo test runtime_bridge --manifest-path apps/desktop/src-tauri/Cargo.toml
-    runner: shell
+    description: Desktop Rust runtime_bridge focused tests with generated bundled runtime release resources.
+    command: pnpm --filter @nimiplatform/desktop run check:cargo:runtime-bridge
+    runner: pnpm
     tiers: [release, release-target:desktop]
     targets: [desktop]
     timeout_seconds: 600
-    requires_binaries: [cargo]
+    requires_binaries: [pnpm, go, cargo]
     blocker_semantics:
       on_binary_missing: blocked
     evidence:
@@ -138,13 +138,13 @@ gates:
     experimental: false
 
   - id: gate.cargo.clippy
-    description: cargo clippy on apps/desktop/src-tauri (all targets).
-    command: cargo clippy --manifest-path apps/desktop/src-tauri/Cargo.toml --all-targets
-    runner: shell
+    description: Desktop Rust cargo clippy with generated bundled runtime release resources.
+    command: pnpm --filter @nimiplatform/desktop run check:cargo:clippy
+    runner: pnpm
     tiers: [release, release-target:desktop]
     targets: [desktop]
     timeout_seconds: 900
-    requires_binaries: [cargo]
+    requires_binaries: [pnpm, go, cargo]
     blocker_semantics:
       on_binary_missing: blocked
     evidence:
@@ -226,13 +226,13 @@ gates:
 
   - id: gate.cognition.go-lint
     description: nimi-cognition golangci-lint (independent from runtime golangci-lint).
-    command: golangci-lint run ./...
-    runner: shell
-    cwd: nimi-cognition
+    command: pnpm check:cognition-golangci-lint
+    runner: pnpm
+    cwd: .
     tiers: [release]
     targets: [any]
     timeout_seconds: 600
-    requires_binaries: [golangci-lint]
+    requires_binaries: [pnpm, go]
     blocker_semantics:
       on_binary_missing: blocked
     evidence:
@@ -1027,20 +1027,6 @@ gates:
     parent_p_gov_anchors: [P-GOV-003]
     experimental: false
 
-  - id: gate.realm.no-create-nimi-client
-    description: Forbid legacy createNimiClient entry.
-    command: pnpm check:no-create-nimi-client
-    runner: pnpm
-    tiers: [fast, release]
-    targets: [sdk]
-    timeout_seconds: 60
-    requires_binaries: [pnpm]
-    evidence:
-      shape: command_exit
-    p_relg_anchors: [P-RELG-001]
-    parent_p_gov_anchors: [P-GOV-003]
-    experimental: false
-
   - id: gate.realm.no-openapi-base-assignment
     description: Forbid OpenAPI.BASE singleton assignment.
     command: pnpm check:no-openapi-base-assignment
@@ -1297,13 +1283,13 @@ gates:
 
   - id: gate.runtime.golangci-lint
     description: golangci-lint on runtime.
-    command: golangci-lint run
-    runner: shell
-    cwd: runtime
+    command: pnpm check:runtime-golangci-lint
+    runner: pnpm
+    cwd: .
     tiers: [fast, release, release-target:runtime]
     targets: [runtime]
     timeout_seconds: 600
-    requires_binaries: [golangci-lint]
+    requires_binaries: [pnpm, go]
     blocker_semantics:
       on_binary_missing: blocked
     evidence:
@@ -1314,13 +1300,13 @@ gates:
 
   - id: gate.runtime.govulncheck
     description: govulncheck against runtime Go module for known vulnerabilities.
-    command: govulncheck ./...
-    runner: shell
-    cwd: runtime
+    command: pnpm check:runtime-govulncheck
+    runner: pnpm
+    cwd: .
     tiers: [release, release-target:runtime]
     targets: [runtime]
     timeout_seconds: 300
-    requires_binaries: [govulncheck]
+    requires_binaries: [pnpm, go]
     blocker_semantics:
       on_binary_missing: blocked
     evidence:
@@ -1329,9 +1315,9 @@ gates:
     parent_p_gov_anchors: [P-GOV-003, P-GOV-011]
     experimental: false
 
-  - id: gate.runtime.bridge-method-drift
-    description: Runtime bridge method drift check (generated runtime bridge methods consistent).
-    command: pnpm check:runtime-bridge-method-drift
+  - id: gate.runtime.bridge-generated-drift
+    description: Runtime bridge generated drift check (method allowlist and tonic/prost Runtime proto projection consistent).
+    command: pnpm check:runtime-bridge-generated-drift
     runner: pnpm
     tiers: [fast, release]
     targets: [runtime, sdk]
@@ -1543,7 +1529,7 @@ gates:
     experimental: false
 
   # =====================================================================
-  # owner: sdk (TypeScript SDK)
+  # owner: sdks (TypeScript SDK)
   # =====================================================================
   - id: gate.sdk.build
     description: Build SDK surfaces (@nimiplatform/sdk).
@@ -1629,9 +1615,9 @@ gates:
     parent_p_gov_anchors: [P-GOV-003]
     experimental: false
 
-  - id: gate.sdk.import-boundary
-    description: SDK import boundary check (no app-level imports leaked).
-    command: pnpm check:sdk-import-boundary
+  - id: gate.sdk.vnext-root-composition-authority
+    description: Validate SDK vNext root composition authority and forbid legacy platform-client entries.
+    command: pnpm check:no-create-nimi-client
     runner: pnpm
     tiers: [fast, release]
     targets: [sdk]
@@ -1643,9 +1629,9 @@ gates:
     parent_p_gov_anchors: [P-GOV-003]
     experimental: false
 
-  - id: gate.sdk.single-package-layout
-    description: SDK single-package layout enforcement.
-    command: pnpm check:sdk-single-package-layout
+  - id: gate.sdk.vnext-package-contract
+    description: SDK vNext package export and boundary contract check.
+    command: pnpm check:sdk-vnext-package-contract
     runner: pnpm
     tiers: [fast, release]
     targets: [sdk]
@@ -1657,9 +1643,9 @@ gates:
     parent_p_gov_anchors: [P-GOV-003]
     experimental: false
 
-  - id: gate.sdk.public-naming
-    description: SDK public naming policy.
-    command: pnpm check:sdk-public-naming
+  - id: gate.sdk.vnext-public-surface-smoke
+    description: SDK vNext public surface consumer smoke check.
+    command: pnpm check:sdk-vnext-public-surface-smoke
     runner: pnpm
     tiers: [fast, release]
     targets: [sdk]
@@ -1671,9 +1657,9 @@ gates:
     parent_p_gov_anchors: [P-GOV-003]
     experimental: false
 
-  - id: gate.sdk.realm-legacy-clean
-    description: SDK Realm legacy cleanliness check.
-    command: pnpm check:sdk-realm-legacy-clean
+  - id: gate.sdk.vnext-runtime-facade
+    description: SDK vNext Runtime facade projection check.
+    command: pnpm check:sdk-vnext-runtime-facade
     runner: pnpm
     tiers: [fast, release]
     targets: [sdk]
@@ -1685,9 +1671,23 @@ gates:
     parent_p_gov_anchors: [P-GOV-003]
     experimental: false
 
-  - id: gate.sdk.generated-type-quality
-    description: SDK generated type quality gate.
-    command: pnpm check:sdk-generated-type-quality
+  - id: gate.sdk.vnext-realm-consumer-smoke
+    description: SDK vNext Realm consumer smoke check.
+    command: pnpm check:sdk-vnext-realm-consumer-smoke
+    runner: pnpm
+    tiers: [fast, release]
+    targets: [sdk]
+    timeout_seconds: 60
+    requires_binaries: [pnpm]
+    evidence:
+      shape: command_exit
+    p_relg_anchors: [P-RELG-001]
+    parent_p_gov_anchors: [P-GOV-003]
+    experimental: false
+
+  - id: gate.sdk.vnext-typed-core-conformance
+    description: SDKS generated typed-core conformance gate.
+    command: pnpm check:sdks-conformance-typed-core
     runner: pnpm
     tiers: [fast, release]
     targets: [sdk]
@@ -1699,9 +1699,9 @@ gates:
     parent_p_gov_anchors: [P-GOV-003]
     experimental: false
 
-  - id: gate.sdk.fallback-hardcut
-    description: SDK fallback hardcut check.
-    command: pnpm check:sdk-fallback-hardcut
+  - id: gate.sdk.vnext-ai-capability-ledger
+    description: SDK vNext AI capability ledger gate.
+    command: pnpm check:sdk-vnext-ai-capability-ledger
     runner: pnpm
     tiers: [fast, release]
     targets: [sdk]
@@ -1713,9 +1713,9 @@ gates:
     parent_p_gov_anchors: [P-GOV-003]
     experimental: false
 
-  - id: gate.sdk.unsafe-raw-usage
-    description: SDK unsafe raw usage check.
-    command: pnpm check:sdk-unsafe-raw-usage
+  - id: gate.sdk.vnext-replacement-acceptance
+    description: SDK vNext replacement acceptance gate.
+    command: pnpm check:sdk-vnext-replacement-acceptance
     runner: pnpm
     tiers: [fast, release]
     targets: [sdk]
@@ -1789,13 +1789,13 @@ gates:
   # owner: security (security and supply chain gates)
   # =====================================================================
   - id: gate.security.detect-secrets
-    description: detect-secrets baseline gate.
-    command: bash -c 'git ls-files -z | xargs -0 detect-secrets-hook --baseline .secrets.baseline'
+    description: Scoped detect-secrets baseline gate.
+    command: pnpm check:secrets
     runner: shell
     tiers: [release]
     targets: [any]
     timeout_seconds: 300
-    requires_binaries: [detect-secrets-hook, git]
+    requires_binaries: [pnpm, detect-secrets-hook, git]
     blocker_semantics:
       on_binary_missing: blocked
     evidence:
@@ -1872,12 +1872,13 @@ gates:
 
   - id: gate.security.runtime-release-signing
     description: Generate SBOM and sign runtime / desktop release artifacts (cosign + syft).
-    command: node scripts/release/sign-and-sbom-artifacts.mjs
-    runner: node
+    command: pnpm check:runtime-release-signing
+    runner: pnpm
     tiers: [release, release-target:desktop, release-target:runtime]
     targets: [desktop, runtime]
     timeout_seconds: 600
-    requires_binaries: [node, cosign, syft]
+    requires_binaries: [pnpm, node, go]
+    requires_env: [NIMI_ARTIFACT_PATHS_JSON]
     requires_secrets: [TAURI_SIGNING_PRIVATE_KEY, NIMI_SIGN_IDENTITY_REGEX]
     blocker_semantics:
       on_binary_missing: blocked
@@ -2139,12 +2140,12 @@ gates:
   # =====================================================================
   - id: gate.workflow.actionlint
     description: GitHub Actions workflow lint via actionlint.
-    command: actionlint -color
-    runner: shell
+    command: pnpm check:actionlint
+    runner: pnpm
     tiers: [fast, release]
     targets: [any]
     timeout_seconds: 60
-    requires_binaries: [actionlint]
+    requires_binaries: [pnpm, go]
     blocker_semantics:
       on_binary_missing: blocked
     evidence:
@@ -2171,12 +2172,12 @@ gates:
 
   - id: gate.workflow.runtime-goreleaser-snapshot
     description: Goreleaser snapshot dry-run for runtime release pipeline.
-    command: go run github.com/goreleaser/goreleaser/v2@latest release --clean --snapshot --skip=publish --skip=announce --config .goreleaser.yml
-    runner: shell
+    command: pnpm check:runtime-goreleaser-snapshot
+    runner: pnpm
     tiers: [release, release-target:runtime]
     targets: [runtime]
     timeout_seconds: 1800
-    requires_binaries: [go, cosign, syft]
+    requires_binaries: [pnpm, node, go]
     blocker_semantics:
       on_binary_missing: blocked
     evidence:
@@ -2184,6 +2185,11 @@ gates:
     p_relg_anchors: [P-RELG-001]
     parent_p_gov_anchors: [P-GOV-003]
     experimental: false
+    notes: |
+      The project wrapper skips Goreleaser sign/SBOM phases during this
+      snapshot dry-run. Artifact signing and SBOM validation are owned by
+      gate.security.runtime-release-signing, which requires real artifact
+      paths and release signing identity.
 
   - id: gate.workflow.install-gateway-build
     description: install-gateway package build.

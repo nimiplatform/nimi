@@ -305,7 +305,7 @@ feature as available package surface.
   `P-APP-001..P-APP-006`
 - `.nimi/spec/platform/kernel/app-permission-contract.md` -- `P-PERM-*`
 - `.nimi/spec/platform/kernel/kit-contract.md` -- `P-KIT-041`, `P-KIT-042`
-- `.nimi/spec/sdk/kernel/nimi-app-client-contract.md` -- `S-APP-*`
+- `.nimi/spec/sdks/kernel/nimi-app-client-contract.md` -- `S-APP-*`
 - `.nimi/spec/runtime/kernel/account-session-contract.md` -- `K-ACCSVC-*`
 - `.nimi/spec/runtime/kernel/scoped-app-binding-contract.md` -- `K-BIND-*`
 - `.nimi/spec/runtime/kernel/app-messaging-contract.md` -- `K-APP-*`

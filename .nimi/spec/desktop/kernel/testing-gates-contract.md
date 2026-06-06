@@ -27,8 +27,8 @@ Desktop E2E 的职责是覆盖真实桌面壳、启动时序、bridge、窗口�
 
 执行命令：
 
-- `cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml`
-- `cargo clippy --manifest-path apps/desktop/src-tauri/Cargo.toml --all-targets`
+- `pnpm --filter @nimiplatform/desktop run check:cargo:test`
+- `pnpm --filter @nimiplatform/desktop run check:cargo:clippy`
 
 ## D-GATE-030 Desktop E2E Smoke Gate
 

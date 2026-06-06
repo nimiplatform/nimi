@@ -152,5 +152,5 @@ health、Apps 等）。
 - `.nimi/spec/platform/kernel/web-release-contract.md` — `P-WEB-*`
 - `.nimi/spec/desktop/kernel/nimi-home-shell-contract.md` — `D-HOME-001..D-HOME-012`
 - `.nimi/spec/desktop/kernel/tables/nimi-home-surfaces.yaml`
-- `.nimi/spec/sdk/kernel/ai-config-surface-contract.md` — `S-AICONF-001..S-AICONF-006`
-- `.nimi/spec/sdk/kernel/local-environment-projection-contract.md` — `S-RUNTIME-119`
+- `.nimi/spec/sdks/kernel/ai-config-surface-contract.md` — `S-AICONF-001..S-AICONF-006`
+- `.nimi/spec/sdks/kernel/local-environment-projection-contract.md` — `S-RUNTIME-119`

@@ -144,6 +144,6 @@ upstream authority 非 ready 状态都必须经由该 surface 显式呈现给用
 - `.nimi/spec/desktop/kernel/self-update-contract.md` — desktop-host 实现细节
 - `.nimi/spec/desktop/kernel/ai-profile-config-contract.md` — `D-AIPC-001..D-AIPC-012`
 - `.nimi/spec/desktop/kernel/agent-chat-projection-contract.md` — `D-LLM-022..D-LLM-026`
-- `.nimi/spec/sdk/kernel/ai-config-surface-contract.md` — `S-AICONF-001..S-AICONF-006`
-- `.nimi/spec/sdk/kernel/local-environment-projection-contract.md` — `S-RUNTIME-119`
+- `.nimi/spec/sdks/kernel/ai-config-surface-contract.md` — `S-AICONF-001..S-AICONF-006`
+- `.nimi/spec/sdks/kernel/local-environment-projection-contract.md` — `S-RUNTIME-119`
 - `.nimi/spec/desktop/kernel/tables/nimi-home-surfaces.yaml`

@@ -68,7 +68,7 @@ Runtime Agent Participation method-family contracts may be admitted before an
 implementation-facing proto artifact exists only when all of the following hold:
 
 - `.nimi/spec/runtime/kernel/runtime-agent-participation-contract.md` and
-  `.nimi/spec/sdk/kernel/runtime-agent-participation-client-contract.md` remain
+  `.nimi/spec/sdks/kernel/runtime-agent-participation-contract.md` remain
   the semantic authorities.
 - SDK method registries are marked `semantic_contract_only_proto_unavailable` and do not
   claim generated stub availability.

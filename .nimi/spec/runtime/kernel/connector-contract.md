@@ -174,6 +174,39 @@ consume/probe 时解出最小执行凭据子集”，而不是“拥有第三方
 
 第三方 OAuth acquisition 的 browser/device-code orchestration 若被产品化，必须由
 SDK/host typed acquisition facade 拥有（见
-`.nimi/spec/sdk/kernel/connector-auth-acquisition-contract.md`），并通过现有
+`.nimi/spec/sdks/kernel/connector-auth-acquisition-contract.md`），并通过现有
 `CreateConnector` / `UpdateConnector` sealed write path 交付 `credential_json`。
 该 admission 不改变 Runtime ConnectorService 的 custody-only 边界。
+
+## K-CONN-019 AIProfile Cloud Connector Slice Boundary
+
+AIProfile cloud connector slices may declare non-secret cloud execution intent
+for any admitted canonical AI capability.
+
+Allowed portable/profile fields:
+
+- profile-local `slice_id`;
+- canonical Nimi capability;
+- provider id from Runtime provider catalog;
+- provider capability class;
+- provider model id;
+- non-secret connector selector / auth profile requirement;
+- credential policy category;
+- params and editable-field schema refs.
+
+Runtime readiness output may select a concrete non-secret connector target
+(`connector_id + model_id` or equivalent typed ref) for live AIConfig, but the
+connector's credential payload remains Runtime-custodied.
+
+`MUST NOT`:
+
+- AIProfile, AIConfig, SDK state, Desktop storage, app manifests, or Kit UI state
+  must not contain raw provider secret, API key, token, OAuth payload,
+  credential JSON, authorization header, provider health evidence, quota,
+  billing, or rate-limit state.
+- Cloud connector slices must not carry local asset refs, backend packages,
+  Python/Torch/CUDA requirements, selected source records, or local
+  materialization evidence.
+- Missing connector/credential/model/capability readiness produces
+  connector-readiness or setup-required/no-live-config projection for required
+  slices; it must not synthesize placeholder AIConfig.

@@ -1,0 +1,134 @@
+table_family: support_registry
+registry_id: sdk_rule_evidence_requirement_rules_nimi_app_client
+owner: sdks
+schema_ref: .nimi/contracts/table-family.schema.yaml#support_registry
+allowed_fields:
+  - rule_id
+  - evidence_requirement
+  - evidence_refs
+  - note
+  - na_reason
+  - evidence_scope_note
+forbidden_state_fields:
+  - done
+  - covered
+  - coverage_status
+  - audit_date
+  - evidence_report
+  - current
+  - proposed
+  - backlog_status
+  - migration_status
+  - mapping_status
+  - run_id
+  - ledger_ref
+entries:
+  - S-APP-001
+  - S-APP-002
+  - S-APP-003
+  - S-APP-004
+  - S-APP-005
+  - S-APP-006
+  - S-APP-007
+  - S-APP-008
+  - S-APP-009
+  - S-APP-010
+  - S-APP-011
+  - S-APP-012
+  - S-APP-013
+  - S-APP-014
+  - S-APP-015
+  - S-APP-016
+  - S-APP-017
+  - S-APP-018
+rules:
+  - rule_id: S-APP-001
+    evidence_refs:
+      - sdk_kernel_consistency
+    evidence_requirement: required
+  - rule_id: S-APP-002
+    evidence_refs:
+      - sdk_kernel_consistency
+    evidence_requirement: required
+  - rule_id: S-APP-003
+    evidence_refs:
+      - sdk_kernel_consistency
+    evidence_requirement: required
+  - rule_id: S-APP-004
+    evidence_refs:
+      - sdk_kernel_consistency
+    evidence_requirement: required
+  - rule_id: S-APP-005
+    evidence_refs:
+      - sdk_kernel_consistency
+    evidence_requirement: required
+  - rule_id: S-APP-006
+    evidence_refs:
+      - sdk_kernel_consistency
+    evidence_requirement: required
+  - rule_id: S-APP-007
+    evidence_refs:
+      - sdk_kernel_consistency
+    evidence_requirement: required
+  - rule_id: S-APP-008
+    evidence_refs:
+      - sdk_kernel_consistency
+    evidence_requirement: required
+  - rule_id: S-APP-009
+    evidence_refs:
+      - sdk_kernel_consistency
+    note: Ordinary-visible filter requires Apps registry/install/storage consumer validation.
+    evidence_requirement: required
+  - rule_id: S-APP-010
+    evidence_refs:
+      - sdk_kernel_consistency
+    note: Install descriptor sha256 verification requires SDK/Desktop install tests.
+    evidence_requirement: required
+  - rule_id: S-APP-011
+    evidence_refs:
+      - sdk_kernel_consistency
+    note: Install storage projection requires SDK/Desktop install and uninstall tests.
+    evidence_requirement: required
+  - rule_id: S-APP-012
+    evidence_refs:
+      - sdk_kernel_consistency
+    note: Declared nimi-API scopes carrier is transparency-only; enforcement remains in permission grant lifecycle and is not weakened by the SDK carrier. SDK install projection tests are required.
+    evidence_requirement: required
+  - rule_id: S-APP-013
+    evidence_refs:
+      - sdk_kernel_consistency
+    note: Uninstall data-retention prompt surface consumes Runtime K-APP-014; SDK/Desktop uninstall tests are required.
+    evidence_requirement: required
+  - rule_id: S-APP-014
+    evidence_refs:
+      - sdk_kernel_consistency
+    note: File-scope client is not admitted while Runtime K-APP-018 has no file-API method surface; SDK must not expose hidden bridge, REST, or filesystem fallback.
+    evidence_requirement: required
+  - rule_id: S-APP-015
+    evidence_refs:
+      - sdk_kernel_consistency
+    note: Review-evidence accessor cross-references P-NAPP-025 review decision schema and P-AUDIT-006 review-evidence shape without redefining either. SDK review-evidence accessor tests are required.
+    evidence_requirement: required
+  - rule_id: S-APP-016
+    evidence_refs:
+      - sdk_kernel_consistency
+    note: Generated-app Runtime platform client auth helper admits exact exported names and the local-first-party / third-party-nimi-app / dev-standalone mode split. SDK helper and generated scaffold auth tests are required.
+    evidence_requirement: required
+  - rule_id: S-APP-017
+    evidence_refs:
+      - sdk_kernel_consistency
+      - sdk_behavioral_test
+    note: SDK app storage truth accessor is backed by Runtime GetAppStorage and must not re-derive app storage roots locally.
+    evidence_requirement: required
+  - rule_id: S-APP-018
+    evidence_refs:
+      - sdk_kernel_consistency
+      - sdk_behavioral_test
+    note: SDK app package readiness accessor is backed by Runtime GetAppPackageReadiness and must not re-derive install evidence or active release truth locally.
+    evidence_requirement: required
+  - rule_id: S-APP-019
+    evidence_refs:
+      - sdk_kernel_consistency
+      - sdk_behavioral_test
+    note: SDK account app-library accessor is backed by Runtime GetAccountAppLibrary and must not read account-scoped projection files locally.
+    evidence_requirement: required

@@ -29,14 +29,14 @@ domain_admissions:
     forbidden_surface_classes: [derived_view, spec_generation_state, audit_evidence_state, lifecycle_progress_state, candidate_roadmap, methodology_authority]
     validation_commands: [pnpm exec nimicoding validate-spec-governance --profile nimi --scope runtime]
     migration_disposition_when_unadmitted: block
-  - domain_id: sdk
-    domain_root: .nimi/spec/sdk
+  - domain_id: sdks
+    domain_root: .nimi/spec/sdks
     authority_class: active_product
-    owner: sdk
-    admitted_by: existing_host_product_authority
+    owner: sdks
+    admitted_by: sdk_vnext_hardcut
     allowed_surface_classes: [product_authority, product_authority_table, thin_guidance, support_registry]
     forbidden_surface_classes: [derived_view, spec_generation_state, audit_evidence_state, lifecycle_progress_state, candidate_roadmap, methodology_authority]
-    validation_commands: [pnpm exec nimicoding validate-spec-governance --profile nimi --scope sdk]
+    validation_commands: [pnpm exec nimicoding validate-spec-governance --profile nimi --scope sdks]
     migration_disposition_when_unadmitted: block
   - domain_id: platform
     domain_root: .nimi/spec/platform

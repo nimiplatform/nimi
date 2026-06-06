@@ -347,6 +347,12 @@ methods:
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/PrepareProfileRuntimeDescriptor
+    posture: anonymous_read
+    rationale: profile runtime descriptor preparation writes Runtime-private materialization cache/local-state projection but the local Runtime handler performs no JWT validation; SDK classifies it as write for idempotency
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
   - method_id: /nimi.runtime.v1.RuntimeLocalService/ListLocalEnvironmentSelectedSources
     posture: anonymous_read
     rationale: local environment selected source enumeration; no JWT validation

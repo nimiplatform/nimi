@@ -298,7 +298,7 @@ These are **not** redefined here. App consumes them:
 | Runtime conversation anchor | `.nimi/spec/runtime/kernel/agent-conversation-anchor-contract.md` |
 | Runtime transient presentation seam | `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md` |
 | Event contract + app convention | `.nimi/spec/runtime/kernel/agent-hook-intent-contract.md`, `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md`, and this Avatar-local `avatar-event-contract.md` |
-| SDK Event API | `.nimi/spec/sdk/kernel/runtime-contract.md` |
+| SDK Event API | `.nimi/spec/sdks/kernel/runtime-contract.md` |
 | Presentation Timeline | Not admitted here unless later admitted by `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md`; current active surface is runtime turn/presentation/state projection |
 
 When upstream changes, impact on this kernel is reviewed and documented per-contract.

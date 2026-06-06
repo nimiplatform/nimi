@@ -9,7 +9,7 @@ entries:
   - spec-generation-audit-nimicoding-implementation
   - platform-repository-governance
   - runtime-proto-root-governance
-  - sdk-root-package-governance
+  - sdks-root-package-governance
 roots:
   - id: platform-web-release
     owner_domain: platform
@@ -64,10 +64,10 @@ roots:
     evidence_roots:
       - proto
     source_rule: P-GOV-022
-  - id: sdk-root-package-governance
-    owner_domain: sdk
+  - id: sdks-root-package-governance
+    owner_domain: sdks
     authority_refs:
-      - .nimi/spec/sdk/kernel/package-governance-contract.md
+      - .nimi/spec/sdks/kernel/package-governance-contract.md
     evidence_roots:
-      - sdk
+      - sdks/typescript
     source_rule: P-GOV-022

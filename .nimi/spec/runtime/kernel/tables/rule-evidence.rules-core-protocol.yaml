@@ -66,6 +66,7 @@ entries:
   - K-CONN-016
   - K-CONN-017
   - K-CONN-018
+  - K-CONN-019
   - K-MODEL-001
   - K-MODEL-002
   - K-MODEL-003
@@ -358,6 +359,12 @@ rules:
     evidence_refs:
       - runtime_kernel_consistency
       - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-CONN-019
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    note: AIProfile cloud connector slice boundary; executable coverage must prove no AIProfile/AIConfig/Desktop/app surface receives secret material.
     evidence_requirement: required
   - rule_id: K-MODEL-001
     evidence_refs:

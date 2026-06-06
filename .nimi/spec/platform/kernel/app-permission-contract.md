@@ -199,5 +199,5 @@ not admit an execution surface.
 - `.nimi/spec/realm/kernel/social-contract.md` — `R-SOC-*`
 - `.nimi/spec/realm/kernel/oauth-authority-contract.md` — `R-OAUTH-*`
 - `.nimi/spec/cognition/kernel/app-memory-access-contract.md` — `C-APMEM-001..C-APMEM-008`
-- `.nimi/spec/sdk/kernel/nimi-permission-client-contract.md` — `S-PERM-001..S-PERM-008`
+- `.nimi/spec/sdks/kernel/nimi-permission-client-contract.md` — `S-PERM-001..S-PERM-008`
 - `.nimi/spec/runtime/kernel/local-engine-contract.md` — `K-LENG-024..K-LENG-028`

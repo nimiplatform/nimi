@@ -37,6 +37,10 @@ admitted package kind set。当前仅 admit `nimi-app` package kind。
 - `capability_set_refs` — 引用
   `tables/canonical-capability-catalog.yaml` 中已 admit 的
   `CanonicalCapabilityId` 列表。
+- `ai_capability_requirement_refs` — 引用 SDK-owned app/module/feature
+  requirement declaration (`S-AICONF-010`) for each AI surface the app wants to
+  use. This is the required/optional/apply/setup declaration; it is distinct
+  from Runtime activation consumers.
 - `local_compute_pack_refs` — 引用
   `.nimi/spec/runtime/kernel/tables/local-compute-packs.yaml` 中已 admit 的
   pack；可为空。
@@ -74,11 +78,22 @@ engine id / model id 字符串常量。任何 vendor 倾向必须 alias-driven�
 `MUST NOT`：不得静默新增第四类 public trust tier；新增必须由显式
 authority admission 扩展。
 
-## P-NAPP-005 — Capability And Compute Pack Resolution
+## P-NAPP-005 — Capability Requirement And Compute Pack Resolution
 
-`MUST`：`capability_set_refs` 与 `local_compute_pack_refs` 必须解析到既有
-admitted Platform / Runtime row。Admission commit 时任何 unresolved ref 都视为
-admission failure。
+`MUST`：`capability_set_refs`、`ai_capability_requirement_refs` 与
+`local_compute_pack_refs` 必须解析到既有 admitted Platform / SDK / Runtime row。
+Admission commit 时任何 unresolved ref 都视为 admission failure。
+
+`MUST`：`capability_set_refs` declares the app's admitted capability vocabulary;
+`ai_capability_requirement_refs` declares app/module/feature required/optional
+AI slices and setup projection shape; `local_compute_pack_refs` declares local
+environment pack needs. These three fields must not be collapsed into one
+ambiguous "consumer" concept.
+
+`MUST NOT`：Nimi App registry rows, app manifests, or app-local spec slices must
+not carry Runtime activation `consumer_id` as the app requirement owner, nor may
+they declare local paths, selected source records, materialization evidence,
+route bindings, provider health, scheduler state, or connector secrets.
 
 ## P-NAPP-006 — Runtime Registration Ownership
 
@@ -739,6 +754,6 @@ admitted conjunction.
 - `.nimi/spec/platform/kernel/tables/nimi-app-registry.yaml`
 - `.nimi/spec/platform/kernel/tables/nimi-app-release-descriptors.yaml`
 - `.nimi/spec/platform/kernel/tables/nimi-app-trust-tiers.yaml`
-- `.nimi/spec/sdk/kernel/nimi-app-client-contract.md` — `S-APP-001..S-APP-008`
+- `.nimi/spec/sdks/kernel/nimi-app-client-contract.md` — `S-APP-001..S-APP-008`
 - `.nimi/spec/runtime/kernel/local-engine-contract.md` — `K-LENG-024..K-LENG-028`
 - `.nimi/spec/desktop/kernel/nimi-home-shell-contract.md` — `D-HOME-001..D-HOME-012`

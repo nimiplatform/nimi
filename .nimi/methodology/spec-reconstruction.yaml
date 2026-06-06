@@ -47,7 +47,7 @@ reconstruction:
     minimal_required_outputs:
       - .nimi/spec/INDEX.md
       - .nimi/spec/runtime/kernel/index.md
-      - .nimi/spec/sdk/kernel/index.md
+      - .nimi/spec/sdks/kernel/index.md
       - .nimi/spec/platform/kernel/index.md
       - .nimi/spec/realm/kernel/index.md
       - .nimi/spec/desktop/kernel/index.md

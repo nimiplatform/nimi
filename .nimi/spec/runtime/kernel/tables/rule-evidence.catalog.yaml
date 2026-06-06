@@ -47,9 +47,9 @@ runtime_go_test:
 sdk_runtime_test:
   type: test_gate
   command: pnpm --filter @nimiplatform/sdk test
-  path: sdk/test/runtime
+  path: sdks/typescript/runtime
   description: >-
-    SDK runtime projection tests verifying generated Runtime RPC method
+    vNext SDK runtime projection tests verifying generated Runtime RPC method
     coverage, auth posture classification, and typed client surfaces.
 desktop_boundary_test:
   type: test_gate

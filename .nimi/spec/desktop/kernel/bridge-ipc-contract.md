@@ -91,7 +91,7 @@ proxy and not platform truth. It may dispatch only:
 - configured Runtime / Realm origins from `runtime_defaults` / E2E runtime
   defaults; or
 - exact SDK connector-auth acquisition profile endpoints generated from
-  `.nimi/spec/sdk/kernel/tables/connector-auth-acquisition-profiles.yaml`.
+  `.nimi/spec/sdks/kernel/tables/connector-auth-acquisition-profiles.yaml`.
 
 Renderer-supplied `Authorization` is admitted only for configured Runtime /
 Realm origins. Provider acquisition endpoints must be selected by

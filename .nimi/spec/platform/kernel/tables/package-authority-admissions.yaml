@@ -13,7 +13,7 @@ admissions:
       - package://@nimiplatform/nimi-coding
     may_not_override:
       - .nimi/spec/runtime/**
-      - .nimi/spec/sdk/**
+      - .nimi/spec/sdks/**
       - .nimi/spec/realm/**
       - .nimi/spec/platform/**
       - .nimi/spec/desktop/**

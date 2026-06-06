@@ -507,9 +507,13 @@ local-plane block 的固定结构为：
   - `companion_kind`：被动资产种类，值域固定为 `K-LOCAL-007` passive-kind 枚举
     （`vae` / `clip` / `lora` / `controlnet` / `auxiliary`）。companion 是被动
     资产，不携带 `capabilities`、不携带 `fitness`。
-  - `engine_slot`：引擎定义的 workflow 槽位标识（`K-LOCAL-031`，典型值如
-    `vae_path` / `llm_path` / `clip_path`）。同一 parent row 内 `engine_slot`
-    不得重复。
+  - `engine_slot`：引擎定义的 workflow injection role（`K-LOCAL-031`，典型值如
+    `vae_path` / `llm_path` / `clip_path`）。It is not occurrence identity.
+    Descriptor-backed workflows may repeat the same `engine_slot` only through
+    distinct ordered companion occurrences.
+  - `occurrence_policy`（可选）：当一个 catalog row advertises repeatable
+    companion use, this field declares whether the backend admits
+    `single`, `repeatable_ordered`, or `forbidden` use for that companion role.
   - `install`（必填）：与主模型同构的可安装事实（`repo` / `revision` /
     `install_kind` / `entry` / `artifact_roles` / `preferred_engine`）。
   - `variants`（必填，1+）：与主模型同构的量化变体列表。每个 companion variant
@@ -539,6 +543,10 @@ local-plane block 的固定结构为：
   parent 各自建模为独立 dependency（`model.companion-asset` env key 以
   `parent_asset_id` 为键）。companion 因此 inline 建模在所属 model row 下，而不是
   作为独立共享 row。
+- catalog companion rows may constrain admitted roles and default occurrence
+  policy, but ordered occurrence identity is owned by profile descriptors
+  (`K-LOCAL-031`, `K-AIEXEC-008`). Catalog rows must not collapse repeated
+  companion use into an unordered `engine_slot -> asset` map.
 - local-plane block 覆盖所有 first-run capability tier：`text.generate` /
   `audio.transcribe` / `audio.synthesize` / `image.generate` / `video.generate`。
   schema 不按 tier 分叉；缺失某一 tier 的 row 不影响 schema 完整性。

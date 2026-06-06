@@ -1,0 +1,17 @@
+version: 1
+table_family: product_catalog
+owner: sdks
+catalog_id: sdks_owner_decision_gates
+entries:
+  - id: adapter-public-package-names
+    name: Adapter public package names
+    semantics: Resolved for Vercel AI as independent package `@nimiplatform/sdk-adapter-vercel-ai`; remaining adapters follow independent package ownership and require admission when implemented.
+  - id: openai-compatible-api-boundary
+    name: OpenAI-compatible API boundary
+    semantics: Resolved for v1 as strict Chat Completions-compatible migration bridge only.
+  - id: core-ai-substrate-dependency
+    name: Core AI substrate dependency
+    semantics: Resolved for vNext as isolated from Vercel AI SDK Core; external framework semantics live in adapter packages, starting with `@nimiplatform/sdk-adapter-vercel-ai`.
+  - id: public-interface-uncertainty
+    name: Public interface uncertainty
+    semantics: Stop for owner decision on hard-to-change release promises.

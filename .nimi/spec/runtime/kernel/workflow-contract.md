@@ -177,7 +177,7 @@ WorkflowEventType 枚举（12 种）：
 
 ### Cross-Domain Dependencies
 
-- SDK 方法投影缺口由 `.nimi/spec/sdk/kernel/runtime-contract.md` 的 `S-RUNTIME-023` 记录。
+- SDK 方法投影缺口由 `.nimi/spec/sdks/kernel/runtime-contract.md` 的 `S-RUNTIME-023` 记录。
 - Desktop 侧当前没有对应 Workflow consumer surface。DataSync facade is non-admitted by `D-DSYNC-000~013`; Workflow 消费面必须通过 SDK 方法投影、Desktop UI spec、以及 admitted Runtime bridge/streaming contracts 定义，不得创建 Desktop DataSync flow。
 
 Workflow 服务的跨域消费契约状态：

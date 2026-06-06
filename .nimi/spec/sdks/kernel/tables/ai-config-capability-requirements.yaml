@@ -1,0 +1,83 @@
+version: 1
+table_family: product_record_schema
+owner: sdks
+record_id: sdks_typescript_ai_config_capability_requirement_declaration
+path: .nimi/spec/sdks/kernel/tables/ai-config-capability-requirements.yaml
+source_rule: S-AICONF-010
+schema_version: 1
+required_top_level_fields:
+  - requirement_id
+  - scope_ref
+  - required_slices
+  - setup_projection_policy
+required_fields:
+  - requirement_id
+  - scope_ref
+  - required_slices
+  - setup_projection_policy
+optional_fields:
+  - optional_slices
+  - editable_fields
+  - runtime_activation_consumers
+  - kit_surface_hints
+  - readiness_projection_refs
+scope_ref_owner: P-AISC-001
+requirement_scope_kinds:
+  - app
+  - module
+  - feature
+slice_requirement_fields:
+  - requirement_slice_id
+  - capability
+  - profile_slice_ref
+  - readiness_policy
+  - editable_field_refs
+  - runtime_descriptor_ref
+readiness_policy_values:
+  - required
+  - optional
+setup_projection_outcomes:
+  - ready_to_apply
+  - setup_required_no_live_config
+  - unsupported_no_live_config
+  - failed_no_live_config
+  - optional_omitted
+runtime_activation_mapping:
+  runtime_consumer_field: consumer_id
+  owner_rule: K-LENV-ACT-001
+  semantics: downstream_activation_consumer_only
+forbidden_fields:
+  - RuntimeRouteBinding
+  - selectedBindings
+  - local_path
+  - endpoint
+  - selected_source_record
+  - install_evidence
+  - materialization_evidence
+  - workflow_binding_id
+  - backend_environment_evidence
+  - provider_health
+  - scheduler_state
+  - credential_payload
+kit_consumption_rules:
+  - Kit may trim visible controls from required_slices, optional_slices, and editable_fields.
+  - Kit must not infer readiness from runtimeReady booleans or flat enabledCapabilities lists.
+  - Kit must not own execution backend, model family, materialization, setup, or source evidence.
+rules:
+  - app/module/feature requirement identity is distinct from Runtime activation consumer identity
+  - required unresolved slices block live AIConfig writes
+  - optional unresolved slices are omitted rather than written as disabled placeholders
+  - requirement declarations are SDK-owned contract inputs, not app-local shadow truth
+invariants:
+  - id: requirement-identity-boundary
+    requirement: App, module, and feature requirement identity is distinct from Runtime activation consumer identity.
+  - id: unresolved-required-slices-block-live-writes
+    requirement: Required unresolved slices block live AIConfig writes.
+  - id: optional-unresolved-slices-omitted
+    requirement: Optional unresolved slices are omitted rather than written as disabled placeholders.
+  - id: sdk-owned-requirement-truth
+    requirement: Requirement declarations are SDK-owned contract inputs, not app-local shadow truth.
+  - id: kit-consumption-boundary
+    requirement: Kit may trim visible controls from declared slices and editable fields, but must not infer readiness from runtimeReady booleans or flat enabledCapabilities lists.
+  - id: forbidden-runtime-and-evidence-fields
+    requirement: Runtime route bindings, selected bindings, local endpoints or paths, setup evidence, scheduler/provider state, and credential payloads are forbidden requirement declaration fields.

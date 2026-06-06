@@ -19,6 +19,15 @@ values:
   - local_model_resolve_install_level_invalid
   - local_model_resolve_slot_omitted
   - local_model_resolve_host_unsupported
+  - source_hf_auth_required
+  - source_hf_gated_unaccepted
+  - source_hf_access_denied
+  - source_manual_association_required
+  - expected_integrity_mismatch
+  - profile_backend_mismatch
+  - profile_model_family_mismatch
+  - workflow_required_component_missing
+  - workflow_backend_unsupported
   - unsupported
   - repair_required
   - failed
@@ -140,6 +149,60 @@ reason_codes:
     owner_ref: K-MCAT-037
     activation_state: unsupported
     audit_shape: resolver_blocking
+
+  - reason_code: source_hf_auth_required
+    owner_kind: source_readiness
+    owner_ref: K-LOCAL-023
+    activation_state: setup_required
+    audit_shape: source_access_blocking
+
+  - reason_code: source_hf_gated_unaccepted
+    owner_kind: source_readiness
+    owner_ref: K-LOCAL-023
+    activation_state: setup_required
+    audit_shape: source_access_blocking
+
+  - reason_code: source_hf_access_denied
+    owner_kind: source_readiness
+    owner_ref: K-LOCAL-023
+    activation_state: failed
+    audit_shape: source_access_blocking
+
+  - reason_code: source_manual_association_required
+    owner_kind: source_readiness
+    owner_ref: K-LOCAL-023
+    activation_state: setup_required
+    audit_shape: manual_association_blocking
+
+  - reason_code: expected_integrity_mismatch
+    owner_kind: source_readiness
+    owner_ref: K-LOCAL-023
+    activation_state: failed
+    audit_shape: source_integrity_blocking
+
+  - reason_code: profile_backend_mismatch
+    owner_kind: profile_validation
+    owner_ref: K-AIEXEC-008
+    activation_state: unsupported
+    audit_shape: descriptor_validation_blocking
+
+  - reason_code: profile_model_family_mismatch
+    owner_kind: profile_validation
+    owner_ref: K-AIEXEC-008
+    activation_state: unsupported
+    audit_shape: descriptor_validation_blocking
+
+  - reason_code: workflow_required_component_missing
+    owner_kind: workflow_readiness
+    owner_ref: K-AIEXEC-010
+    activation_state: setup_required
+    audit_shape: workflow_blocking
+
+  - reason_code: workflow_backend_unsupported
+    owner_kind: workflow_readiness
+    owner_ref: K-AIEXEC-012
+    activation_state: unsupported
+    audit_shape: workflow_blocking
 
 state_priority:
   - unsupported

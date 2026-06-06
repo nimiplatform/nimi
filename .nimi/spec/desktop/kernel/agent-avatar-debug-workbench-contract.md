@@ -73,5 +73,5 @@ Desktop MUST NOT:
 
 - `.nimi/spec/runtime/kernel/avatar-debug-projection-contract.md`
 - `.nimi/spec/avatar/kernel/avatar-debug-session-contract.md`
-- `.nimi/spec/sdk/kernel/runtime-avatar-control-client-contract.md`
+- `.nimi/spec/sdks/kernel/runtime-avatar-control-client-contract.md`
 - `.nimi/spec/desktop/kernel/agent-delegation-control-surface-contract.md`

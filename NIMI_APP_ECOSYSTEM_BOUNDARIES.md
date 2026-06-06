@@ -112,15 +112,16 @@ spec/code/tests as the source of truth.
   vocabulary; SDK may expose typed S-PERM client/mocks without grant truth.
 - Chat and AI loops: Runtime Agent Chat belongs to Runtime Agent lifecycle.
   Ordinary Nimi Chat product session truth remains app/Realm unless spec
-  changes. `sdk/src/ai-app/**`, Runtime Agent turn runner, and Runtime
-  media/scenario job runners are SDK DX only; Runtime keeps execution, jobs,
-  routing, memory, audit, and fail-closed authority.
+  changes. `sdks/typescript/core/ai/**`, `sdks/typescript/core/agent/**`,
+  admitted feature helpers, and SDK Runtime projection helpers are SDK DX only;
+  Runtime keeps execution, jobs, routing, memory, audit, and fail-closed
+  authority.
 - Kit chat and model UI: Kit owns reusable chat/headless primitives, provider
   registration, session view state, SDK-runner mapping, and model picker UI
   preview. Pure app-AI stream/session runners and structured-output helpers
-  live under SDK `ai-app`; Kit may adapt them into composer/hooks but must not
-  publish a second runner surface. Kit must not synthesize route/model tokens
-  or own product session truth.
+  live under SDK core AI/Agent/features surfaces; Kit may adapt them into
+  composer/hooks but must not publish a second runner surface. Kit must not
+  synthesize route/model tokens or own product session truth.
 - Runtime/Cognition memory: host-local memory embedding config is not canonical
   memory. Runtime/Cognition own resolved state, bind/rebuild/cutover facts.
   RuntimeAgentService owns app-facing canonical agent memory bank status/bind;

@@ -161,3 +161,22 @@ binding resolution 必须复用 managed connector 路径语义，而不是发明
 - 本规则只冻结 remote credential/routing legality；resolved embedding profile、
   readiness、以及 canonical bank bind / cutover 结果仍由 runtime memory authority
   决定
+
+## K-KEYSRC-012 Generic AIProfile Cloud Connector Target Ref
+
+For AIProfile cloud connector slices (`K-CONN-019`), the live AIConfig target ref
+may carry only non-secret connector routing identity:
+
+- `connector_id`
+- `model_id`
+- provider/capability discriminator when needed for validation
+- profile slice / requirement ref needed for traceability
+
+Runtime must resolve the connector through managed connector owner/status/
+credential checks before execution. SDK/Desktop/App callers must not use inline
+credential metadata, inline endpoint, provider-native secret fields, or
+app-local connector stores as substitutes for the managed connector path.
+
+This rule does not own provider model catalog truth, readiness, quota, health,
+or execution result. Those remain Runtime connector/provider execution evidence
+outside AIProfile/AIConfig.

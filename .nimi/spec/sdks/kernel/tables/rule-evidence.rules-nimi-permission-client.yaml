@@ -1,0 +1,78 @@
+table_family: support_registry
+registry_id: sdk_rule_evidence_requirement_rules_nimi_permission_client
+owner: sdks
+schema_ref: .nimi/contracts/table-family.schema.yaml#support_registry
+allowed_fields:
+  - rule_id
+  - evidence_requirement
+  - evidence_refs
+  - note
+  - na_reason
+  - evidence_scope_note
+forbidden_state_fields:
+  - done
+  - covered
+  - coverage_status
+  - audit_date
+  - evidence_report
+  - current
+  - proposed
+  - backlog_status
+  - migration_status
+  - mapping_status
+  - run_id
+  - ledger_ref
+entries:
+  - S-PERM-001
+  - S-PERM-002
+  - S-PERM-003
+  - S-PERM-004
+  - S-PERM-005
+  - S-PERM-006
+  - S-PERM-007
+  - S-PERM-008
+  - S-PERM-009
+  - S-PERM-010
+rules:
+  - rule_id: S-PERM-001
+    evidence_refs:
+      - sdk_kernel_consistency
+    evidence_requirement: required
+  - rule_id: S-PERM-002
+    evidence_refs:
+      - sdk_kernel_consistency
+    evidence_requirement: required
+  - rule_id: S-PERM-003
+    evidence_refs:
+      - sdk_kernel_consistency
+    evidence_requirement: required
+  - rule_id: S-PERM-004
+    evidence_refs:
+      - sdk_kernel_consistency
+    evidence_requirement: required
+  - rule_id: S-PERM-005
+    evidence_refs:
+      - sdk_kernel_consistency
+    evidence_requirement: required
+  - rule_id: S-PERM-006
+    evidence_refs:
+      - sdk_kernel_consistency
+    evidence_requirement: required
+  - rule_id: S-PERM-007
+    evidence_refs:
+      - sdk_kernel_consistency
+    evidence_requirement: required
+  - rule_id: S-PERM-008
+    evidence_refs:
+      - sdk_kernel_consistency
+    evidence_requirement: required
+  - rule_id: S-PERM-009
+    evidence_refs:
+      - sdk_kernel_consistency
+    note: Cross-app access flow-shape admits no live behavior; cross_app_access_not_admitted fail-closes any premature consumer.
+    evidence_requirement: required
+  - rule_id: S-PERM-010
+    evidence_refs:
+      - sdk_kernel_consistency
+    note: Anti-target rule explicitly forbidding review-evidence accessor admission in S-PERM; the review-evidence accessor is admitted in S-APP-015. No behavior; structural placement guard only.
+    evidence_requirement: required

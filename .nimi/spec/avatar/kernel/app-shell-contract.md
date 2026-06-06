@@ -594,7 +594,7 @@ Minimum permission set for industrial baseline shell：
 
 ## 13. First-Party Runtime Boundary (K-NAV-SHELL-FIRST-PARTY-RUNTIME)
 
-> Upstream authority：`.nimi/spec/runtime/kernel/account-session-contract.md`（`K-ACCSVC-*`）、`.nimi/spec/sdk/kernel/runtime-contract.md`（`S-RUNTIME-109` / `S-RUNTIME-110`）、`.nimi/spec/runtime/kernel/scoped-app-binding-contract.md`（explicit binding-only modes only）。
+> Upstream authority：`.nimi/spec/runtime/kernel/account-session-contract.md`（`K-ACCSVC-*`）、`.nimi/spec/sdks/kernel/runtime-contract.md`（`S-RUNTIME-109` / `S-RUNTIME-110`）、`.nimi/spec/runtime/kernel/scoped-app-binding-contract.md`（explicit binding-only modes only）。
 
 ## K-NAV-SHELL-FIRST-PARTY-RUNTIME-001 默认 Avatar 禁止的能力
 

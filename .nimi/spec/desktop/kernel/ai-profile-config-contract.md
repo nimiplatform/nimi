@@ -47,9 +47,16 @@ scope config evidence 与 Runtime execution evidence slices，是执行期真相
 
 `AIProfile` 是 portable 标准配置包，最小语义包含：
 
-- capability route intent / binding intent（per canonical capability）
+- capability slice intent（per canonical capability），每个 slice 必须有稳定
+  `slice_id`、`execution_mode`、`contract_state`、required/optional readiness
+  policy、默认 params、可编辑字段边界，以及 local 或 cloud connector 的模式化
+  binding intent
 - generation params（per capability）
-- companion model intent
+- local media / local component source binding intent，包括 main asset、
+  component、ordered companion occurrence、manual association requirement、以及
+  optional expected integrity
+- cloud connector intent，包括 provider/model/capability/credential policy 与
+  non-secret connector selector
 - policy / style metadata
 - profile-level UX metadata（`title`、`description`、`tags`）
 
@@ -60,6 +67,11 @@ scope config evidence 与 Runtime execution evidence slices，是执行期真相
 - concrete install result / dependency resolution result
 - device-specific feasibility state / host-specific engine binary path
 - live health / availability state
+- `RuntimeRouteBinding`、`selectedBindings` runtime evidence、selected source
+  records、backend package / Python / Torch / CUDA / accelerator evidence、
+  local materialization evidence、workflow binding identity、scheduler state、
+  provider health、rate-limit、billing、quota、raw connector secret、token、API
+  key、or credential payload
 
 与 Runtime local profile projection 的关系：
 
@@ -67,14 +79,22 @@ scope config evidence 与 Runtime execution evidence slices，是执行期真相
 - 一个 `AIProfile` 可引用、组合或派生出一个或多个 runtime local profile。
 - `AIProfile` 与 runtime local profile 不假定一一对应。
 - portable profile payload 与 machine-local install state 之间的边界由 D-AIPC-007 定义。
+- `targetId/profileId` 这类 compact local logical refs 只有在被 SDK/Runtime
+  schema 明确验证为 portable、non-evidence、non-path、non-install-state
+  identifiers 时才可进入 profile payload；否则必须由 runtime-facing descriptor
+  和 Runtime readiness/materialization projection 替代，不得以
+  `RuntimeLocalProfileRef` 名称继续泄漏 runtime-local identity。
 
 ## D-AIPC-003 — AIConfig Semantics
 
-`AIConfig` 是某个 scope 当前实际生效的 AI 配置：
+`AIConfig` 是某个 scope 当前实际生效的 consumer-scoped AI 配置：
 
 - 必须绑定到 canonical `AIScopeRef`（P-AISC-001）。
 - scope 不限于 app；可为 app / module / feature。
-- `AIConfig` 必须是 full materialized config — 不允许 partial overlay 或 scope 间 fallback chain（P-AISC-003）。
+- `AIConfig` 必须是 full materialized config for that scope's declared
+  app/module/feature capability requirements — 不允许 partial overlay、scope 间
+  fallback chain（P-AISC-003）、placeholder disabled capability、或把未满足的
+  required slice 写成 live config。
 - `AIConfig` 可与 `AIProfile` 共享 schema subset；区别在于 owner 语义（bound vs template），不在字段形状。
 - `AIConfig` 的 canonical persistence / subscription / scope-keyed read-write
   owner 必须是对应 `AIScopeRef` 的 scope / app owner，通过 SDK typed
@@ -87,6 +107,26 @@ scope config evidence 与 Runtime execution evidence slices，是执行期真相
 - `scopeRef: AIScopeRef` — 所属 scope identity
 - `capabilities` — per-capability configuration（对齐 D-LLM-016 selection store schema，详见 D-AIPC-010）
 - `profileOrigin?: AIProfileRef | null` — 最近一次 apply 的 profile 来源（仅用于 UX 溯源展示，不构成 live reference）
+
+`AIConfig.capabilities` 的 admitted live payload 只能包含：
+
+- consumer requirement id / capability id / source profile ref / slice id；
+- mode-specific compact runtime target ref:
+  - `local`：opaque local readiness ref or validated `targetId/profileId`
+    compact logical ref，语义为 portable non-evidence logical identifier；
+  - `cloud_connector`：non-secret ready target ref，至少包含 runtime connector
+    `connector_id` + provider `model_id` 或等价 typed ref；
+- profile-authored or user-edited params constrained by the slice editable-field
+  contract；
+- profile origin and content/hash/version evidence needed by the scope owner.
+
+`AIConfig.capabilities` must not persist `RuntimeRouteBinding`,
+`selectedBindings` runtime evidence, route endpoints, local paths, selected
+source records, dependency selected-source evidence, install/materialization
+records, workflow binding ids, backend package/Python/Torch/CUDA details,
+provider health, scheduler state, raw connector secret, token, API key, or
+credential payload. Runtime may derive those facts during prepare/probe/execute,
+but they remain Runtime-owned evidence outside AIConfig.
 
 `AIConfig` 不得把 Agent Chat behavior settings、turn planning、message/action
 outputs、voice workflow semantics、or Runtime Agent execution projection 收编为新的
@@ -171,8 +211,19 @@ Apply 原子性规则：
 
 Apply probe / failure 规则：
 - schema invalid → apply 失败，config 不变。
-- runtime unavailable / dependency missing → 允许写入 syntactically valid config，但 UI 必须通过 projection / probe 明确标注不可执行（D-LLM-017 reason code 机制）。
+- required app/module/feature capability slice unresolved、runtime unavailable、
+  dependency missing、connector credential missing、manual association missing、
+  unsupported backend/family、or required source/readiness unmet → apply 失败并
+  返回 typed `setup_required_no_live_config` / equivalent no-live-config
+  outcome，config 不变。已有 valid AIConfig 必须保留直到 successful apply
+  replaces it.
+- optional slice unresolved → 该 optional slice 从 live AIConfig omit，并在
+  setup-required/optional-unavailable projection 中呈现；不得写入 disabled/null
+  placeholder capability。
 - 不允许在 apply 时删除失败 capability 字段形成 pseudo-success。
+- 不允许 apply-first：profile import、preview、probe、or prepare 未证明 required
+  slice readiness 时，不得把 syntactically valid but non-executable config
+  写入 live AIConfig。
 
 ## D-AIPC-006 — No Global Active Profile
 
@@ -188,9 +239,15 @@ Apply probe / failure 规则：
 
 **Portable fields**（可下载、分享、导入导出）：
 
-- capability route intent / binding intent
+- capability slice intent: `slice_id`、canonical capability、execution mode、
+  contract state、readiness policy、local execution constraints, cloud connector
+  constraints, asset/source binding refs, companion occurrence refs, params, and
+  editable-field declarations
 - generation params
-- companion model intent
+- ordered companion occurrence intent with occurrence id/index, role, order,
+  asset binding ref, required policy, weight/options, and applies-to constraints
+- portable source binding and manual association requirements, including
+  optional expected integrity when authored
 - policy / style metadata
 - profile-level UX metadata（`title` / `description` / `tags`）
 
@@ -202,19 +259,42 @@ Apply probe / failure 规则：
 - device-specific feasibility state
 - host-specific engine binary / dependency resolution result
 - live health / probe result
+- runtime route binding shape (`RuntimeRouteBinding` or equivalent endpoint /
+  localModelId / goRuntime* / providerHints fields)
+- live `selectedBindings` runtime evidence or reverse-copied AIConfig binding
+- selected source records, observed integrity evidence, source access proof,
+  HF auth/gated/terms result, manual import local path, transfer/job state
+- local materialization records, workflow binding id, prepared asset id,
+  scheduler/queue state, provider health/quota/rate-limit evidence
+- connector secrets, tokens, API keys, OAuth payloads, or credential material
 
 portable payload 的目标是：任何 profile 可在不同设备间迁移，接收端通过 runtime probe 独立判断可执行性。
 
+Live-config-to-profile export is allowed only through a portable-intent
+projection filter. The filter may copy profile refs, slice ids, editable params,
+and admitted compact logical refs, but must drop or fail closed on any
+RuntimeRouteBinding-like, selected-source, install, path, materialization,
+provider-health, scheduler, or credential evidence. A direct copy of live
+AIConfig.capabilities into AIProfile.capabilities is forbidden.
+
 ## D-AIPC-008 — imageProfileRef Retirement
 
-`imageProfileRef` 不再作为顶层产品概念独立存在：
+`imageProfileRef` 不再作为顶层产品概念独立存在，也不得被替换为
+localProfileRef-only image config：
 
-- `ConversationCapabilitySelectionStore.defaultRefs.imageProfileRef` 在 `AIConfig` 体系下收编为 `AIConfig.capabilities` 中 image-related capability 的 binding intent。
-- image 相关的 runtime local profile 需求下沉为 `AIConfig` 内部 capability configuration 的一部分，或 runtime execution dependency。
+- `ConversationCapabilitySelectionStore.defaultRefs.imageProfileRef` 在 `AIConfig`
+  体系下收编为 `AIConfig.capabilities` 中 image-related capability 的
+  workflow/capability slice binding intent。
+- image 相关的 runtime local profile 需求下沉为 `AIProfile` capability slice /
+  runtime-facing descriptor / Runtime prepare-readiness-materialization boundary，
+  live `AIConfig` 只保存 compact logical refs and params。
 - Desktop 用户不再面对"AI profile + 单独 image profile ref"双心智。
 
 迁移规则：
-- 现有 `imageProfileRef` 值迁移到 `AIConfig.capabilities['image.generate'].localProfileRef` 或等义字段。
+- 现有 `imageProfileRef` 值只能迁移到 admitted image workflow slice ref、
+  source profile ref、and mode-specific compact runtime target ref。若保留
+  `localProfileRef`/`targetId/profileId` 形状，必须满足 D-AIPC-002/D-AIPC-003
+  的 portable non-evidence logical-ref validator；否则必须被替换。
 - 迁移后 `defaultRefs.imageProfileRef` 从 selection store 中移除。
 - 此为 hard cut，不保留兼容层。
 
@@ -302,7 +382,9 @@ placement surface, not the global writer authority.
 `MUST`:
 
 - first-run must apply the selected local baseline factory `AIProfile` to both
-  canonical chat scopes through `D-AIPC-005` atomic apply semantics
+  canonical chat scopes through `D-AIPC-005` atomic apply semantics only after
+  required slice readiness/apply eligibility has been proven for each consumer
+  requirement
 - each built-in config evidence item must bind the exact canonical
   `scopeRef`, the applied `AIProfile` ref / hash, the committed `AIConfig`
   version or content hash, the responsible scope owner / SDK writer identity,
@@ -319,9 +401,14 @@ placement surface, not the global writer authority.
 - renderer-local state, localStorage, route health, current tab selection,
   conversation state, or string-only `scopeRef` values may serve as readiness
   truth for built-in AIConfig evidence
-- Desktop may not derive built-in AIConfig selected bindings from
-  `runtimeBaselineRef` activation consumers. Binding projection must consume
-  Runtime executionEvidenceRef proof through the shared SDK Runtime / Kit surface.
+- Desktop may not derive built-in AIConfig bindings from `runtimeBaselineRef`
+  activation consumers, `executionEvidenceRef` payload fields, route health, or
+  RuntimeRouteBinding-shaped selected binding projection. Runtime evidence refs
+  may verify readiness and built-in admission, but the committed AIConfig must
+  contain only compact slice refs and params allowed by D-AIPC-003.
+- first-run may not commit a placeholder or syntactically valid but unready
+  AIConfig for either required chat scope; failure projects setup-required /
+  no-live-config and fails finalization closed.
 - `desktop.chat.nimi` and `desktop.chat.agent` may not share a generic fallback
   chat scope, inherit config from one another, or be represented by a single
   global active profile
@@ -348,6 +435,10 @@ Preview 计算语义：
   materialization overwrite 语义 — 是 overwrite，不是 merge / partial patch。
   preview 与后续 commit 之间若使用同一 profile 版本与同一 config base version，
   产出的 `after` 必须与 commit 实际写入的 `AIConfig` 等价。
+- 若 required slice readiness/apply eligibility 不满足，preview 必须返回 typed
+  setup-required/no-live-config outcome，而不是构造一个不可提交的 placeholder
+  `after`。此时可包含 prospective diff only as explanatory projection, but it
+  is not an `after` config and must not be passed to commit.
 - `before` 是 preview 计算时该 `scopeRef` 的当前 `AIConfig`。若 scope 当前没有
   `AIConfig`（首次 apply），`before` 为显式 `null`，diff 表示 full creation。
 - diff 必须是 typed before→after 结构，覆盖 `capabilities`、`profileOrigin`、以及
@@ -372,6 +463,9 @@ Preview 失败规则（fail closed）：
 - preview 可附带 runtime availability / resource feasibility 的 probe / 可执行性
   warning（对齐 `D-AIPC-012` 的 probe taxonomy）；这些 warning 不阻止 preview
   返回 diff，但 commit 后的 config 是否可执行仍由 `D-AIPC-005` 的 probe 规则约束。
+- 当 warning 属于 required slice readiness/apply eligibility blocker 时，它必须
+  被升级为 setup-required/no-live-config outcome；不得留作 advisory warning 后
+  继续生成 live-config `after`。
 - preview 不得通过删除失败 capability 字段制造 pseudo-success 的 `after`。
 
 Preview 与 commit 之间发生的 live `AIConfig` 变更（其他 apply / update）会使

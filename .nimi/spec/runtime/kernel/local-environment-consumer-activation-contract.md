@@ -7,6 +7,13 @@ RuntimeLocalService owns consumer activation for Runtime local environment
 dependencies. This file defines how native engines, Python pipelines, SDK, and
 Desktop consume Runtime-selected source records without creating setup truth.
 
+Terminology boundary: `consumer_id` in this contract means Runtime local
+environment activation consumer. It is not an app/module/feature capability
+requirement owner, not an `AIScopeRef`, and not a Kit/Desktop UI consumer.
+App/module/feature requirement declarations are owned by SDK `S-AICONF-010`;
+Runtime activation consumers are downstream materialization/readiness consumers
+selected after descriptor validation.
+
 ## K-LENV-ACT-001 Activation Authority
 
 Activation is consumer-keyed and Runtime-owned. A caller may include `pack_id`
@@ -18,6 +25,13 @@ Consumers must not select sources, create selected source records, run
 installers, repair dependencies, mutate PATH or global Python/package-manager
 state, or project readiness. They may only consume activation gate responses
 and selected source record projections.
+
+Activation consumers must not be used as the identity of a live AIConfig slice
+or as the required/optional requirement declaration. Mapping from
+app/module/feature requirement to one or more activation consumers is explicit
+projection metadata owned by the descriptor/readiness boundary
+(`K-AIEXEC-008`, `K-AIEXEC-009`) and SDK requirement declaration
+(`S-AICONF-010`).
 
 ## K-LENV-ACT-002 Request Contract
 

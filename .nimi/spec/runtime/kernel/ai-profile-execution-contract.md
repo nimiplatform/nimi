@@ -6,42 +6,71 @@
 
 定义 runtime 侧对 `AIProfile`（D-AIPC-002）的 probe、materialization、execution snapshot 与 resource scheduling 的 canonical rules。本契约桥接 desktop portable `AIProfile` 与现有 `ResolveProfile`/`ApplyProfile` 本地执行管道（K-LOCAL-013~015, K-LOCAL-014a）。
 
-## K-AIEXEC-001 — AIProfile To Local Profile Projection
+## K-AIEXEC-001 — AIProfile Runtime-Facing Descriptor Boundary
 
-`AIProfile` 是 desktop-portable 配置包（D-AIPC-002），不直接等于 `LocalProfileDescriptor`（K-LOCAL-014a）。
+`AIProfile` 是 portable 配置包（D-AIPC-002），不直接等于 Runtime install /
+materialization facts, local asset records, local route bindings, or legacy
+`LocalProfileDescriptor` entry lists. Runtime-facing descriptor is the admitted
+validation input boundary between portable profile intent and Runtime
+prepare/readiness/materialization.
 
-projection 规则：
+Descriptor formation and validation rules:
 
-- `AIProfile` 中的每个 capability route intent，在目标设备上可能映射到零个或多个 `LocalProfileDescriptor` entries。
-- 映射由 desktop/SDK 在 profile apply 时执行，产出一个或多个 `ResolveProfile` RPC 调用所需的 `LocalProfileDescriptor`。
-- runtime 不负责理解 `AIProfile` portable schema；runtime 只接收并执行 `LocalProfileDescriptor`。
-- desktop/SDK 负责 portable-to-local projection；runtime 负责 local execution truth。
+- SDK/host forms a contract-bound descriptor from `AIProfile` capability
+  slices and app/module/feature requirement declarations (`S-AICONF-004`,
+  `S-AICONF-010`).
+- Runtime must independently validate the descriptor schema, source profile
+  digest, capability slices, authored `execution.backend`, authored
+  `model.family`, asset/source bindings, ordered companion occurrences,
+  connector refs, params, and requirement mapping before prepare or apply
+  eligibility can succeed.
+- Runtime may translate a validated descriptor into existing internal
+  `ResolveProfile` / `ApplyProfile` / materializer inputs, but that translation
+  is runtime-private and cannot become AIProfile or AIConfig payload.
+- Legacy `LocalProfileDescriptor` remains an internal/runtime execution adapter
+  shape only where reused by K-LOCAL-013~015. It is superseded as the public
+  AIProfile projection authority by the descriptor boundary in this rule.
+- Descriptor fields are validation inputs, not materialized execution facts.
+  Runtime outputs readiness, selected-source evidence, materialization evidence,
+  workflow binding identity, and execution facts separately.
 
 边界固定为：
 
 | 职责 | Owner |
 | --- | --- |
 | `AIProfile` portable schema 定义与验证 | Desktop Kernel (D-AIPC-002) |
-| portable -> local profile descriptor projection | Desktop / SDK |
-| `LocalProfileDescriptor` execution & install | Runtime (K-LOCAL-013~015) |
+| app/module/feature requirement declarations and descriptor request formation | SDK (`S-AICONF-004`, `S-AICONF-010`) |
+| descriptor validation, prepare, readiness, materialization, source evidence, backend/family validation | Runtime |
+| internal `LocalProfileDescriptor` / execution adapter translation | Runtime (K-LOCAL-013~015) |
 | device profile collection | Runtime (K-DEV-001~009) |
 | local asset resolution & health | Runtime (K-LOCAL-014a) |
 
+Descriptor MUST NOT contain local file paths, endpoint URLs, RuntimeRouteBinding
+or selectedBindings evidence, `localModelId`, `goRuntime*`, selected source
+records, install evidence, backend package/Python/Torch/CUDA evidence,
+materialization records, workflow binding ids, provider health, scheduler
+state, or connector secret material. Runtime must reject descriptors containing
+such fields with a typed forbidden-host-local-field failure.
+
 ## K-AIEXEC-002 — Probe Contract
 
-Runtime 对 `AIProfile` 相关 probe 请求的响应分为三层，对应 D-AIPC-012 probe taxonomy：
+Runtime 对 `AIProfile` / descriptor 相关 probe 请求的响应分为三层，对应
+D-AIPC-012 probe taxonomy：
 
 ### Static schema probe
 
-- 由 desktop/SDK 在本地执行，不需要 runtime RPC。
-- 验证 `AIProfile` portable schema 合法性。
-- runtime 不参与此层 probe。
+- SDK/Desktop may perform portable schema checks before descriptor formation.
+- Runtime must still validate the runtime-facing descriptor schema and reject
+  forbidden host-local/runtime evidence. A prior SDK static probe is advisory
+  and cannot replace Runtime descriptor validation.
 
 ### Runtime availability probe
 
 - 消费 `runtime.route.checkHealth(...)` 与 `runtime.route.describe(...)` 的现有 RPC。
 - 检查所需 provider / engine / route 是否在线可用。
 - runtime 不新增专用 probe RPC；availability probe 复用现有 route health surface。
+- availability probe is diagnostic/evidence only. It may not replace explicit
+  profile prepare or permit apply to write required unresolved slices.
 
 ### Resource feasibility probe
 
@@ -50,14 +79,22 @@ Runtime 对 `AIProfile` 相关 probe 请求的响应分为三层，对应 D-AIPC
 - 消费 runtime scheduler `Peek`（K-SCHED-002）获取动态并发 / scheduling judgement。
 - `ResolveProfile` 负责 local dependency / execution plan feasibility；`Peek` 负责 scheduling preflight。两者不可互相替代。
 - 当 caller 需要 scope-level feasibility 时，消费 K-SCHED-002 的 aggregate judgement；当 caller 需要 submit-specific execution truth 时，消费对应 target judgement。
+- resource feasibility consumes the validated descriptor and any existing
+  readiness projection. It must not infer backend/model family from resolver
+  output when the descriptor declares authored `execution.backend` /
+  `model.family`; mismatch fails closed unless a future profile-authored
+  fallback policy is admitted.
 
 ## K-AIEXEC-003 — Execution Snapshot Contract
 
 runtime 侧执行快照的最小要求：
 
 - 每次 `ExecuteScenario` / `StreamScenario` / `SubmitScenarioJob` 调用时，runtime 必须在 execution context 中固化以下 evidence：
-  - 调用方提供的 route binding evidence（provider / model / connector / endpoint）
+  - caller's AIConfig compact logical refs and the Runtime-resolved
+    materialization / connector / local route evidence derived from them
   - resolved effective capability（runtime 侧 resolve 结果）
+  - descriptor/readiness/materialization refs consumed for the selected
+    profile/config slice
   - device resource snapshot（调用时的 scheduler occupancy、可选 device profile summary）
   - scheduling preflight judgement（如果 caller 在 `Acquire` 前执行了 `Peek`（K-SCHED-002），其**submit-specific execution target judgement** 结果作为 optional evidence 附带）
 - 固化后的 evidence 不可被后续 config 变更覆盖。
@@ -75,6 +112,9 @@ runtime 侧执行快照的最小要求：
 - desktop 通过 `ConversationExecutionSnapshot`（D-LLM-019）或等效 snapshot slice 记录 app-facing execution evidence。
 - scheduling preflight judgement 通过 `AISnapshot.runtimeEvidence.schedulingJudgement` 传递到 desktop（D-AIPC-004），且该值始终对应 submit-specific execution target。
 - runtime 不感知 desktop 的 `AISnapshot` 或 `AIConfig` schema；runtime 只提供 execution evidence 数据。
+- execution may read AIConfig snapshot plus Runtime materialization evidence,
+  but neither probe nor execution may replace explicit descriptor prepare for a
+  profile-owned workflow.
 
 ## K-AIEXEC-004 — Scheduling Boundary
 
@@ -152,6 +192,159 @@ or route probes cannot satisfy `executionEvidenceRef`.
 Desktop `AISnapshot` may reference this Runtime execution evidence, but the
 Desktop snapshot cannot replace the Runtime evidence record as the verifier for
 product ready admission.
+
+## K-AIEXEC-008 — Descriptor Field Contract
+
+Runtime validates the descriptor shape recorded in
+`tables/profile-runtime-descriptor-schema.yaml`.
+
+Required descriptor fields:
+
+| Field | Meaning |
+|---|---|
+| `schema_version` | Runtime-supported descriptor schema version. |
+| `descriptor_id` | Stable id for this projected descriptor instance. |
+| `profile_ref` | Portable source profile id/version/revision. |
+| `source_profile_digest` | Digest of canonical source profile bytes. |
+| `projection_origin` | SDK/host projection component and timestamp. |
+| `requirement_refs[]` | App/module/feature requirement ids from S-AICONF-010. |
+| `capability_slices[]` | Profile-local slices with capability, mode, contract state, readiness policy, params, editable fields. |
+| `asset_bindings[]` | Local source/manual/component/companion requirements. |
+
+Local slice fields:
+
+- `execution.backend` and `model.family` are authored validation constraints,
+  not resolver outputs or hints.
+- `backend_profile`, `host_requirements`, and `environment_requirements` are
+  descriptor validation inputs owned by Runtime registries.
+- `fallback_policy` is not admitted in v1. Backend/family mismatch must fail
+  closed.
+
+Cloud connector slice fields:
+
+- provider, provider capability class, provider model id, non-secret connector
+  selector, credential policy, params, readiness policy.
+- connector readiness consumes K-CONN/K-KEYSRC custody and legality; descriptor
+  and AIConfig never contain raw credential material.
+
+Runtime outputs:
+
+- per-slice validation result;
+- source readiness and selected-source evidence;
+- profile prepare job state;
+- per-slice readiness projection;
+- per-requirement apply eligibility;
+- materialization/cache/workflow binding records;
+- execution evidence.
+
+These outputs are not descriptor fields and must not be persisted into
+AIProfile or AIConfig.
+
+## K-AIEXEC-009 — Profile Prepare, Readiness, And Apply Eligibility
+
+Runtime owns whole-profile prepare and per-slice readiness projection for
+descriptor-backed profile workflows.
+
+`MUST`:
+
+- prepare validates the complete descriptor before materialization.
+- readiness is computed per profile slice and per app/module/feature
+  requirement, preserving required vs optional semantics from S-AICONF-010.
+- apply eligibility can be `ready`, `setup_required_no_live_config`,
+  `unsupported_no_live_config`, `failed_no_live_config`, or
+  `optional_omitted`. Required non-ready slices block AIConfig write. Optional
+  non-ready slices may be omitted without placeholder config.
+- existing valid AIConfig must be preserved until a successful apply replaces
+  it.
+- prepare/readiness must reuse Runtime local environment materializers
+  (`K-LENG-028`, `K-LENV-MAT-*`) and activation gates (`K-LENV-ACT-*`), not
+  create a second downloader, Python manager, connector custody path, or source
+  selector.
+
+`MUST NOT`:
+
+- probe, route health, endpoint reachability, file existence, transfer
+  completion, previous health, or execution success may substitute for explicit
+  prepare/readiness.
+- required unresolved slices must not write live AIConfig.
+- unsupported/proposed future slices (including diffusers/video) must not be
+  treated as native image with extra params.
+
+## K-AIEXEC-010 — Failure Taxonomy And Identity Split
+
+Runtime failure classes for profile workflow binding are closed to the following
+axes:
+
+| Class | Owner | Meaning |
+|---|---|---|
+| `asset_health` | Runtime local asset | Reusable local asset existence, manifest, integrity, and registration. |
+| `source_readiness` | Runtime source/materializer | Download/manual/HF access/integrity readiness for a binding. |
+| `profile_validation` | Runtime descriptor validator | Descriptor/slice/schema/backend/family/params validation. |
+| `workflow_readiness` | Runtime workflow prepare | Required assets, components, companions, params, backend/family, and env ready for a slice. |
+| `environment_readiness` | Runtime local environment | Package/materializer/Python/Torch/CUDA/accelerator state. |
+| `connector_readiness` | Runtime connector | Cloud provider/model/credential readiness. |
+| `apply_eligibility` | Runtime projection from SDK requirement | Whether required consumer slices can write live AIConfig. |
+| `scheduling_failure` | Runtime scheduler | Queue/resource/concurrency denial. |
+| `execution_failure` | Runtime execution | Per-run backend/provider failure after readiness. |
+
+Identity split:
+
+- reusable asset identity (`local_asset_id` / `asset_id`) is not workflow
+  binding identity;
+- prepared asset identity and selected-source evidence are Runtime-owned;
+- profile slice identity (`slice_id`) and companion occurrence identity are
+  portable profile intent;
+- AIConfig slice identity is consumer-scoped live config;
+- workflow binding id and materialization cache key are Runtime-owned and must
+  not enter AIProfile/AIConfig.
+
+Workflow readiness failure, missing required companion, unsupported
+backend/family, environment failure, connector failure, scheduling denial, or
+execution failure must not poison reusable asset health unless the reusable
+asset itself fails asset-health validation.
+
+## K-AIEXEC-011 — Materialization Cache Key
+
+Runtime materialization/cache identity for profile workflows must include every
+dimension that can change executable semantics:
+
+- profile ref and source digest;
+- requirement id and `slice_id`;
+- authored `execution.backend` and `model.family`;
+- host tuple and relevant runtime support registry versions;
+- main prepared asset id;
+- required component prepared ids;
+- ordered companion occurrences, including occurrence id/order/role/prepared
+  asset id/weight/options;
+- params digest;
+- environment digest for backend/package/Python/Torch/CUDA/accelerator state.
+
+A cache key keyed only by main asset id is forbidden for descriptor-backed
+workflows. Stored workflow reuse and active runtime selection are distinct:
+multiple workflow bindings may reuse one healthy asset, while scheduler /
+activation controls decide concurrent execution or fail closed.
+
+## K-AIEXEC-012 — Future Local Media Workflow Contract Shapes
+
+Runtime admits first-class workflow contract shapes for future diffusers image
+and local video even when current runtime support state is proposed or
+unsupported. The shape is recorded in `tables/profile-workflow-contracts.yaml`.
+
+Rules:
+
+- diffusers image uses `execution.backend=diffusers`, model lineage such as
+  `sdxl`, `backend_class=python_pipeline`, and explicit components such as
+  tokenizer/text encoder/scheduler/VAE plus Python/Torch/diffusers environment
+  requirements.
+- video uses `capability=video.generate`, video-specific backend/model-family,
+  explicit video components such as motion module/decoder/scheduler, and
+  params including frame count, fps, duration, dimensions, guidance/steps/seed.
+- Unsupported/proposed runtime support state must project setup-required /
+  unsupported no-live-config for required slices.
+- Video must not be modeled as `image.generate` with an extra duration field.
+- `media.diffusers`, backend_class, and backend_family remain runtime-private
+  support/readiness detail unless explicitly mapped by Runtime validation
+  registry; they are not public engine targets.
 
 ## Fact Sources
 

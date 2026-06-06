@@ -1,0 +1,37 @@
+version: 1
+table_family: product_catalog
+owner: sdks
+catalog_id: sdks_adapter_source_roots
+entries:
+  - id: vercel-ai
+    name: Vercel AI SDK
+    owner: sdks/typescript/adapters/vercel-ai
+    semantics: Independent package `@nimiplatform/sdk-adapter-vercel-ai`; LanguageModelV3 adapter plus manifest-declared language-model provider factory, without claiming full ProviderV3 parity.
+  - id: openai-compatible
+    name: OpenAI-compatible
+    owner: sdks/typescript/adapters/openai-compatible
+    semantics: Strict Chat Completions-compatible migration bridge.
+  - id: mcp
+    name: MCP
+    owner: sdks/typescript/adapters/mcp
+    semantics: MCP tool/resource adapter; public package name remains owner-gated.
+  - id: mastra
+    name: Mastra
+    owner: sdks/typescript/adapters/mastra
+    semantics: Agent framework adapter; public package name remains owner-gated.
+  - id: langgraph
+    name: LangGraph
+    owner: sdks/typescript/adapters/langgraph
+    semantics: Graph workflow adapter; public package name remains owner-gated.
+  - id: llamaindex
+    name: LlamaIndex
+    owner: sdks/typescript/adapters/llamaindex
+    semantics: Retrieval/query interop adapter; public package name remains owner-gated.
+  - id: react
+    name: React
+    owner: sdks/typescript/adapters/react
+    semantics: Common React app framework adapter; public package name remains owner-gated.
+  - id: next
+    name: Next
+    owner: sdks/typescript/adapters/next
+    semantics: Common Next app framework adapter; public package name remains owner-gated.

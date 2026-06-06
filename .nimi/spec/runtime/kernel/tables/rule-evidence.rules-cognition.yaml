@@ -54,6 +54,7 @@ entries:
   - K-KEYSRC-009
   - K-KEYSRC-010
   - K-KEYSRC-011
+  - K-KEYSRC-012
   - K-KNOW-001
   - K-KNOW-001a
   - K-KNOW-002
@@ -249,6 +250,12 @@ rules:
   - rule_id: K-KEYSRC-011
     evidence_refs: []
     evidence_requirement: deferred
+  - rule_id: K-KEYSRC-012
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    note: Cloud connector target references carry connector/key-source identity only; secret custody remains with Runtime-owned key-source resolution.
+    evidence_requirement: required
   - rule_id: K-KNOW-001
     evidence_refs:
       - runtime_kernel_consistency
