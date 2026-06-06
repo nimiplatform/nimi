@@ -226,11 +226,11 @@ jobs:
       - name: Runtime spec kernel generated-doc drift check
         run: pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope runtime --check
 
-      - name: SDK spec kernel consistency check
-        run: pnpm exec nimicoding validate-spec-governance --profile nimi --scope sdk-consistency
+      - name: SDKS spec kernel consistency check
+        run: pnpm exec nimicoding validate-spec-governance --profile nimi --scope sdks-consistency
 
-      - name: SDK spec kernel generated-doc drift check
-        run: pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope sdk --check
+      - name: SDKS spec kernel generated-doc drift check
+        run: pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope sdks --check
 
       - name: Desktop spec kernel consistency check
         run: pnpm exec nimicoding validate-spec-governance --profile nimi --scope desktop-consistency
@@ -241,8 +241,8 @@ jobs:
       - name: ReasonCode constants policy check
         run: pnpm check:reason-code-constants
 
-      - name: Runtime bridge method drift check
-        run: pnpm check:runtime-bridge-method-drift
+      - name: Runtime bridge generated drift check
+        run: pnpm check:runtime-bridge-generated-drift
 
   sdk-quality:
     needs: changes
@@ -273,14 +273,14 @@ jobs:
       - name: Test SDK
         run: pnpm --filter @nimiplatform/sdk test
 
-      - name: SDK import boundary check
-        run: pnpm check:sdk-import-boundary
+      - name: SDK vNext package contract check
+        run: pnpm check:sdk-vnext-package-contract
 
-      - name: SDK single-package layout check
-        run: pnpm check:sdk-single-package-layout
+      - name: SDK vNext public surface smoke
+        run: pnpm check:sdk-vnext-public-surface-smoke
 
-      - name: SDK public naming check
-        run: pnpm check:sdk-public-naming
+      - name: SDK vNext Runtime facade check
+        run: pnpm check:sdk-vnext-runtime-facade
 
       - name: Scope catalog drift check
         run: pnpm check:scope-catalog-drift
@@ -308,7 +308,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
         with:
-          go-version: '1.25.6'
+          go-version: '1.26.4'
           cache-dependency-path: runtime/go.sum
 
       - name: Install dependencies
@@ -374,16 +374,16 @@ jobs:
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf webkit2gtk-driver xvfb
 
       - name: Cargo check
-        run: cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml
+        run: pnpm --filter @nimiplatform/desktop run check:cargo
 
       - name: Cargo clippy
-        run: cargo clippy --manifest-path apps/desktop/src-tauri/Cargo.toml --all-targets
+        run: pnpm --filter @nimiplatform/desktop run check:cargo:clippy
 
       - name: Cargo test
-        run: cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml
+        run: pnpm --filter @nimiplatform/desktop run check:cargo:test
 
       - name: Cargo runtime bridge tests
-        run: cargo test runtime_bridge --manifest-path apps/desktop/src-tauri/Cargo.toml
+        run: pnpm --filter @nimiplatform/desktop run check:cargo:runtime-bridge
 
       - name: Lint desktop
         run: pnpm --filter @nimiplatform/desktop lint

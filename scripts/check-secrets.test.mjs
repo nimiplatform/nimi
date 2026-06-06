@@ -16,12 +16,12 @@ test('generated protocol stubs are excluded from secret scanning', () => {
     'runtime Go protobuf stubs',
   );
   assert.equal(
-    generatedProtocolSecretScanExclusion('sdk/src/runtime/generated/runtime/v1/account.ts')?.label,
-    'SDK TypeScript protobuf stubs',
+    generatedProtocolSecretScanExclusion('sdks/typescript/core-generated/runtime-protobuf/runtime/v1/account.ts')?.label,
+    'SDK vNext TypeScript protobuf stubs',
   );
   assert.equal(
-    generatedProtocolSecretScanExclusion('sdk/src/runtime/generated/google/protobuf/timestamp.ts')?.label,
-    'SDK TypeScript protobuf stubs',
+    generatedProtocolSecretScanExclusion('sdks/typescript/core-generated/runtime-protobuf/google/protobuf/timestamp.ts')?.label,
+    'SDK vNext TypeScript protobuf stubs',
   );
 });
 
@@ -43,13 +43,13 @@ test('baseline hygiene rejects generated protocol stub entries', () => {
   const entries = generatedProtocolBaselineEntries({
     results: {
       'runtime/gen/runtime/v1/agent_service.pb.go': [],
-      'sdk/src/runtime/generated/runtime/v1/account.ts': [],
+      'sdks/typescript/core-generated/runtime-protobuf/runtime/v1/account.ts': [],
       'runtime/internal/auditlog/store.go': [],
     },
   });
 
   assert.deepEqual(entries, [
     'runtime/gen/runtime/v1/agent_service.pb.go',
-    'sdk/src/runtime/generated/runtime/v1/account.ts',
+    'sdks/typescript/core-generated/runtime-protobuf/runtime/v1/account.ts',
   ]);
 });

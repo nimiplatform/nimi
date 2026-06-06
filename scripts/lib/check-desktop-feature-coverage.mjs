@@ -46,7 +46,7 @@ export function checkDesktopTestingGateCoverage(fail, kernelRuleDefinitions) {
 
   const requiredGates = [
     ['unit_contract_mock', 'D-GATE-010', ['pnpm --filter @nimiplatform/desktop test']],
-    ['rust_tauri_integration', 'D-GATE-020', ['cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml', 'cargo clippy --manifest-path apps/desktop/src-tauri/Cargo.toml --all-targets']],
+    ['rust_tauri_integration', 'D-GATE-020', ['pnpm --filter @nimiplatform/desktop run check:cargo:test', 'pnpm --filter @nimiplatform/desktop run check:cargo:clippy']],
     ['desktop_e2e_smoke', 'D-GATE-030', ['pnpm check:desktop-e2e-smoke']],
     ['desktop_e2e_journeys', 'D-GATE-040', ['pnpm check:desktop-e2e-journeys']],
     ['selector_testability', 'D-GATE-050', ['pnpm --filter @nimiplatform/desktop lint', 'pnpm check:desktop-e2e-smoke']],

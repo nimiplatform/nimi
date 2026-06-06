@@ -7,9 +7,9 @@ const repoRoot = process.cwd();
 const featureModelConfigRoot = path.join(repoRoot, 'kit', 'features', 'model-config', 'src');
 const coreModelConfigRoot = path.join(repoRoot, 'kit', 'core', 'src', 'model-config');
 const bindingHelpersPath = path.join(featureModelConfigRoot, 'binding-helpers.ts');
-const routeBindingOwnerPath = path.join(coreModelConfigRoot, 'route-binding.ts');
-const routeBindingTypesPath = path.join(coreModelConfigRoot, 'types.ts');
-const routeBindingIndexPath = path.join(coreModelConfigRoot, 'index.ts');
+const targetRefOwnerPath = path.join(coreModelConfigRoot, 'target-ref.ts');
+const targetRefTypesPath = path.join(coreModelConfigRoot, 'types.ts');
+const targetRefIndexPath = path.join(coreModelConfigRoot, 'index.ts');
 const checkedExtensions = new Set(['.ts', '.tsx']);
 const ignoredDirectories = new Set(['dist', 'generated', 'gen', 'node_modules']);
 const violations = [];
@@ -45,38 +45,36 @@ function requireMatch(absPath, pattern, message) {
   }
 }
 
-const routeBindingHelpers = [
-  'normalizeModelConfigRouteBinding',
-  'bindingToPickerSelection',
-  'pickerSelectionToBinding',
-  'summarizeBinding',
-  'readModelConfigRouteBinding',
-  'hasModelConfigRouteBinding',
+const targetRefHelpers = [
+  'selectRequirementDescriptors',
+  'readModelConfigTargetRef',
+  'hasModelConfigTargetRef',
+  'summarizeTargetRef',
   'applyModelConfigCapabilityPatch',
 ];
 
 requireMatch(
-  routeBindingTypesPath,
-  /\bexport\s+type\s+ModelConfigRouteBinding\s*=\s*RuntimeRouteBinding\b/u,
-  'ModelConfigRouteBinding must be owned as a RuntimeRouteBinding alias in kit/core/model-config/types.ts',
+  targetRefTypesPath,
+  /\bexport\s+type\s+ModelConfigTargetRef\s*=\s*NimiAIConfigTargetRef\b/u,
+  'ModelConfigTargetRef must be owned as a NimiAIConfigTargetRef alias in kit/core/model-config/types.ts',
 );
 
-for (const helper of routeBindingHelpers) {
+for (const helper of targetRefHelpers) {
   requireMatch(
-    routeBindingOwnerPath,
+    targetRefOwnerPath,
     new RegExp(`\\bexport\\s+function\\s+${helper}\\b`, 'u'),
-    `${helper} must be implemented by kit/core/model-config/route-binding.ts`,
+    `${helper} must be implemented by kit/core/model-config/target-ref.ts`,
   );
   requireMatch(
-    routeBindingIndexPath,
+    targetRefIndexPath,
     new RegExp(`\\b${helper}\\b`, 'u'),
     `${helper} must be exported by kit/core/model-config/index.ts`,
   );
 }
 
-const expectedFeatureReexport = /^export\s+\{\s*bindingToPickerSelection,\s*pickerSelectionToBinding,\s*summarizeBinding,\s*\}\s+from\s+['"]@nimiplatform\/kit\/core\/model-config['"];\s*$/su;
+const expectedFeatureReexport = /^export\s+\{\s*summarizeTargetRef,\s*\}\s+from\s+['"]@nimiplatform\/kit\/core\/model-config['"];\s*$/su;
 if (!expectedFeatureReexport.test(read(bindingHelpersPath))) {
-  violations.push(`${rel(bindingHelpersPath)}: feature binding helpers must remain a thin core re-export`);
+  violations.push(`${rel(bindingHelpersPath)}: feature target-ref helpers must remain a thin core re-export`);
 }
 
 for (const filePath of walkFiles(featureModelConfigRoot)) {
@@ -84,27 +82,27 @@ for (const filePath of walkFiles(featureModelConfigRoot)) {
   const source = read(filePath);
 
   if (/\bcapabilities\s*\.\s*selectedBindings\b/u.test(source) || /\bselectedBindings\b/u.test(source)) {
-    violations.push(`${fileRel}: selectedBindings normalization is owned by kit/core/model-config/route-binding.ts`);
+    violations.push(`${fileRel}: selectedBindings must not return to model-config feature source`);
   }
 
-  if (/\b(?:export\s+)?type\s+ModelConfigRouteBinding\s*=/u.test(source)) {
-    if (!/\bexport\s+type\s+\{\s*ModelConfigRouteBinding\s*\}\s+from\s+['"]@nimiplatform\/kit\/core\/model-config['"]/u.test(source)) {
-      violations.push(`${fileRel}: ModelConfigRouteBinding type alias must not be declared in feature source`);
+  if (/\b(?:export\s+)?type\s+ModelConfigTargetRef\s*=/u.test(source)) {
+    if (!/\bexport\s+type\s+\{\s*ModelConfigTargetRef\s*\}\s+from\s+['"]@nimiplatform\/kit\/core\/model-config['"]/u.test(source)) {
+      violations.push(`${fileRel}: ModelConfigTargetRef type alias must not be declared in feature source`);
     }
   }
 
-  if (/\b(?:export\s+)?interface\s+ModelConfigRouteBinding\b/u.test(source)) {
-    violations.push(`${fileRel}: ModelConfigRouteBinding interface must not be declared in feature source`);
+  if (/\b(?:export\s+)?interface\s+ModelConfigTargetRef\b/u.test(source)) {
+    violations.push(`${fileRel}: ModelConfigTargetRef interface must not be declared in feature source`);
   }
 
   if (/\bRuntimeRouteBinding\b/u.test(source)) {
-    violations.push(`${fileRel}: feature model-config must consume ModelConfigRouteBinding, not RuntimeRouteBinding directly`);
+    violations.push(`${fileRel}: feature model-config must consume compact target refs, not RuntimeRouteBinding directly`);
   }
 
-  for (const helper of routeBindingHelpers) {
+  for (const helper of targetRefHelpers) {
     const declarationPattern = new RegExp(`\\b(?:export\\s+)?(?:async\\s+)?function\\s+${helper}\\b|\\b(?:export\\s+)?const\\s+${helper}\\s*=`, 'u');
     if (declarationPattern.test(source)) {
-      violations.push(`${fileRel}: ${helper} implementation must stay in kit/core/model-config/route-binding.ts`);
+      violations.push(`${fileRel}: ${helper} implementation must stay in kit/core/model-config/target-ref.ts`);
     }
   }
 }

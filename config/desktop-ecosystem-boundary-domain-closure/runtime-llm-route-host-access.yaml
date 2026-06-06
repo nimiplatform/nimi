@@ -5,8 +5,8 @@ migrated_in_this_commit: true
 authority_posture:
   spec_status: alignment
   authority_owner:
-    - .nimi/spec/sdk/kernel/runtime-contract.md
-    - .nimi/spec/sdk/kernel/surface-contract.md
+    - .nimi/spec/sdks/kernel/runtime-contract.md
+    - .nimi/spec/sdks/kernel/surface-contract.md
     - sdk/src/runtime/runtime-route-host-access.ts
     - sdk/src/runtime/runtime-route-host-facade.ts
     - sdk/src/runtime/runtime-route-provider-health.ts

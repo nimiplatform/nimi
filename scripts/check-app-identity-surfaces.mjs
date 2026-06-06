@@ -26,6 +26,52 @@ function exists(rel) {
   return fs.existsSync(path.join(root, rel));
 }
 
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function resolveLocalModule(rel, specifier) {
+  if (!specifier.startsWith('.')) return null;
+  const absBase = path.resolve(path.dirname(path.join(root, rel)), specifier);
+  const candidates = [
+    absBase,
+    absBase.endsWith('.js') ? `${absBase.slice(0, -3)}.ts` : `${absBase}.ts`,
+    path.join(absBase, 'index.ts'),
+  ];
+  for (const abs of candidates) {
+    const resolved = path.relative(root, abs);
+    if (resolved.startsWith('..') || path.isAbsolute(resolved)) continue;
+    if (exists(resolved)) return resolved;
+  }
+  return null;
+}
+
+function exportedName(exportItem) {
+  const [localName, aliasName] = exportItem.split(/\s+as\s+/).map((part) => part.trim());
+  return aliasName || localName;
+}
+
+function fileExportsAppId(rel, appId, seen = new Set()) {
+  if (seen.has(rel) || !exists(rel)) return false;
+  seen.add(rel);
+
+  const source = readText(rel);
+  const escapedAppId = escapeRegExp(appId);
+  if (new RegExp(`export\\s+const\\s+appId\\s*=\\s*['"]${escapedAppId}['"]`).test(source)) {
+    return true;
+  }
+
+  const reExportPattern = /export\s*\{([^}]+)\}\s*from\s*['"]([^'"]+)['"]/g;
+  for (const match of source.matchAll(reExportPattern)) {
+    const exportedItems = match[1].split(',').map((item) => item.trim()).filter(Boolean);
+    if (!exportedItems.some((item) => exportedName(item) === 'appId')) continue;
+    const resolved = resolveLocalModule(rel, match[2]);
+    if (resolved && fileExportsAppId(resolved, appId, seen)) return true;
+  }
+
+  return false;
+}
+
 function listFiles(relDir) {
   const absDir = path.join(root, relDir);
   if (!fs.existsSync(absDir)) return [];
@@ -104,12 +150,12 @@ for (const row of rows) {
   }
 
   const manifestPath = `${sourceRoot}/nimi.app.yaml`;
-  if (exists(manifestPath) && !new RegExp(`^app_id:\\s*${appId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`, 'm').test(readText(manifestPath))) {
+  if (exists(manifestPath) && !new RegExp(`^app_id:\\s*${escapeRegExp(appId)}\\s*$`, 'm').test(readText(manifestPath))) {
     fail(`${manifestPath}: app_id must be ${appId}`);
   }
 
   const runtimePlatformPath = `${sourceRoot}/src/shell/auth/runtime-platform.ts`;
-  if (exists(runtimePlatformPath) && !new RegExp(`export\\s+const\\s+appId\\s*=\\s*['"]${appId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}['"]`).test(readText(runtimePlatformPath))) {
+  if (exists(runtimePlatformPath) && !fileExportsAppId(runtimePlatformPath, appId)) {
     fail(`${runtimePlatformPath}: exported appId must be ${appId}`);
   }
 

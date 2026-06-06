@@ -6,7 +6,7 @@ authority_posture:
   spec_status: alignment
   authority_owner:
     - .nimi/spec/realm/**
-    - .nimi/spec/sdk/kernel/nimi-app-client-contract.md
+    - .nimi/spec/sdks/kernel/nimi-app-client-contract.md
     - sdk/src/realm/extensions/agent-profile.ts
   work_type: alignment
   parallel_truth: forbidden

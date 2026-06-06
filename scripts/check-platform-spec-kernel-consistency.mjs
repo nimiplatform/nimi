@@ -817,7 +817,7 @@ function checkAppSliceAdmissions(definedRuleIds) {
   const allowedPosture = new Set(['active', 'inactive']);
   const requiredMayNotOverride = [
     '.nimi/spec/runtime/**',
-    '.nimi/spec/sdk/**',
+    '.nimi/spec/sdks/**',
     '.nimi/spec/realm/**',
     '.nimi/spec/platform/**',
     '.nimi/spec/desktop/**',
@@ -955,7 +955,7 @@ function checkPackageAuthorityAdmissions(definedRuleIds) {
   const allowedPosture = new Set(['active', 'inactive']);
   const requiredMayNotOverride = [
     '.nimi/spec/runtime/**',
-    '.nimi/spec/sdk/**',
+    '.nimi/spec/sdks/**',
     '.nimi/spec/realm/**',
     '.nimi/spec/platform/**',
     '.nimi/spec/desktop/**',

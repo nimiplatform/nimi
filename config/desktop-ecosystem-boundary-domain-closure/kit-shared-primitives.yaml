@@ -6,7 +6,7 @@ authority_posture:
   authority_owner:
     - .nimi/spec/platform/kernel/kit-contract.md
     - .nimi/spec/platform/kernel/tables/nimi-kit-registry.yaml
-    - .nimi/spec/sdk/kernel/surface-contract.md
+    - .nimi/spec/sdks/kernel/surface-contract.md
     - kit/AGENTS.md
     - kit/README.md
     - kit/ui/README.md

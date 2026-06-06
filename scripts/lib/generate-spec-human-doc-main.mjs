@@ -60,7 +60,7 @@ async function main() {
 
   const rtTables = (name) => path.join(specDir, 'runtime', 'kernel', 'tables', name);
   const ctTables = (name) => path.join(specDir, 'cognition', 'kernel', 'tables', name);
-  const sdkTables = (name) => path.join(specDir, 'sdk', 'kernel', 'tables', name);
+  const sdkTables = (name) => path.join(specDir, 'sdks', 'kernel', 'tables', name);
   const dtTables = (name) => path.join(specDir, 'desktop', 'kernel', 'tables', name);
   const d = new DocBuilder(ruleMap);
 
@@ -156,11 +156,7 @@ async function main() {
 `);
   await d.yamlTable(sdkTables('sdk-error-codes.yaml'), renderSdkErrorCodes);
 
-  d.text(`### 12.21 SDK — 导入边界
-`);
-  await d.yamlTable(sdkTables('import-boundaries.yaml'), renderImportBoundaries);
-
-  d.text(`### 12.22 SDK — Runtime 方法投影分组
+  d.text(`### 12.21 SDK — Runtime 方法投影分组
 `);
   await d.yamlTable(sdkTables('runtime-method-groups.yaml'), renderMethodGroups);
 

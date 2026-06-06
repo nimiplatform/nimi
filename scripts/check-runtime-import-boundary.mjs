@@ -23,8 +23,8 @@ const SKIP_DIRS = new Set([
 
 const FORBIDDEN_IMPORTS = [
   {
-    name: 'sdk',
-    pattern: /^github\.com\/nimiplatform\/nimi\/sdk(?:\/|$)/,
+    name: 'sdks',
+    pattern: /^github\.com\/nimiplatform\/nimi\/sdks(?:\/|$)/,
   },
   {
     name: 'apps',
@@ -114,7 +114,7 @@ import (
 `, 'utf8');
   await fs.writeFile(badSdk, `package bad
 
-import sdk "github.com/nimiplatform/nimi/sdk/src/runtime"
+import sdk "github.com/nimiplatform/nimi/sdks/typescript/runtime"
 `, 'utf8');
   await fs.writeFile(badApps, `package bad
 

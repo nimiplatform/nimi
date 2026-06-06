@@ -22,8 +22,7 @@ const sourceProviderDir = path.join(repoRoot, 'runtime/catalog/source/providers'
 const providerRegistryPath = path.join(repoRoot, 'runtime/internal/providerregistry/generated.go');
 const runtimeLiveSmokePath = path.join(repoRoot, 'runtime/internal/services/ai/live_provider_smoke_matrix_test.go');
 const sdkLiveSmokePaths = [
-  path.join(repoRoot, 'sdk/test/runtime/contract/providers/nimi-sdk-ai-provider-live-smoke.test.ts'),
-  path.join(repoRoot, 'sdk/test/runtime/contract/providers/nimi-sdk-ai-provider-live-smoke-matrix.test.ts'),
+  path.join(repoRoot, 'sdks/typescript/runtime/live-provider-smoke.test.ts'),
 ];
 const workflowLiveConfigPaths = [
   '.github/workflows/live-smoke-matrix.yml',

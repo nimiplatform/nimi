@@ -13,7 +13,7 @@ import {
 
 const cwd = process.cwd();
 const runtimeRoot = path.join(cwd, '.nimi/spec/runtime');
-const sdkRoot = path.join(cwd, '.nimi/spec/sdk');
+const sdkRoot = path.join(cwd, '.nimi/spec/sdks');
 const protoRoot = path.join(cwd, 'proto/runtime/v1');
 const runtimeCatalogProvidersDir = path.join(cwd, 'runtime/catalog/providers');
 const runtimeCatalogSourceProvidersDir = path.join(cwd, 'runtime/catalog/source/providers');
@@ -289,7 +289,7 @@ function checkRuntimeDeliveryGateCoverage(kernelRuleSet) {
   const requiredGates = [
     ['G0', 'K-GATE-010', ['pnpm check:ai-scenario-hardcut-drift', 'pnpm exec nimicoding validate-spec-governance --profile nimi --scope runtime-consistency', 'pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope runtime --check']],
     ['G1', 'K-GATE-020', ['pnpm proto:lint', 'pnpm proto:breaking', 'pnpm proto:drift-check']],
-    ['G2', 'K-GATE-030', ['pnpm exec nimicoding validate-spec-governance --profile nimi --scope sdk-consistency', 'pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope sdk --check', 'pnpm check:runtime-bridge-method-drift']],
+    ['G2', 'K-GATE-030', ['pnpm exec nimicoding validate-spec-governance --profile nimi --scope sdks-consistency', 'pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope sdks --check', 'pnpm check:runtime-bridge-generated-drift']],
     ['G3', 'K-GATE-040', ['pnpm check:runtime-go-coverage', 'pnpm check:no-legacy-cloud-provider-keys', 'pnpm check:runtime-ai-scenario-coverage', 'pnpm check:live-provider-invariants']],
     ['G4', 'K-GATE-050', ['go test ./internal/services/ai/ -run Test.*ScenarioJob -count=1']],
     ['G5', 'K-GATE-060', ['node scripts/run-live-test-matrix.mjs']],
@@ -339,7 +339,7 @@ function checkRuntimeCatalogLoaderIsolation() {
 function checkA2AFutureSeamNegativeGates() {
   const sourceFiles = [
     ...walkA2ANegativeGateTree(path.join(cwd, 'runtime')),
-    ...walkA2ANegativeGateTree(path.join(cwd, 'sdk/src')),
+    ...walkA2ANegativeGateTree(path.join(cwd, 'sdks/typescript')),
     ...walkA2ANegativeGateTree(path.join(cwd, 'apps')),
   ]
     .map((abs) => path.relative(cwd, abs))
@@ -353,7 +353,7 @@ function checkA2AFutureSeamNegativeGates() {
 
   const runtimeAgentProjectionFiles = sourceFiles.filter((rel) => {
     const normalized = rel.replaceAll('\\', '/');
-    return normalized.startsWith('runtime/') || normalized.startsWith('sdk/src/') || normalized.startsWith('apps/');
+    return normalized.startsWith('runtime/') || normalized.startsWith('sdks/typescript/') || normalized.startsWith('apps/');
   });
   for (const rel of runtimeAgentProjectionFiles) {
     const content = read(rel);
@@ -396,7 +396,7 @@ function collectDependencyManifests() {
     'package.json',
     'runtime/go.mod',
     'runtime/go.sum',
-    'sdk/package.json',
+    'sdks/typescript/package.json',
     ...walkA2ANegativeGateTree(path.join(cwd, 'apps'))
       .map((abs) => path.relative(cwd, abs))
       .filter((rel) => rel.replaceAll('\\', '/').endsWith('/package.json')),

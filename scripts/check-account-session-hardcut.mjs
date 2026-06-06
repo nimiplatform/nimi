@@ -217,8 +217,7 @@ function walkFiles(root, output = []) {
 
 function collectRepoFiles() {
   const roots = [
-    'sdk/src',
-    'sdk/test',
+    'sdks/typescript',
     'apps/desktop/src',
     'apps/desktop/test',
     'apps/web/src',
@@ -392,8 +391,7 @@ function scanJwtSubjectAuthority(files, violations) {
     const matches = file.source.matchAll(/\bdecodeJwtSubject\b/g);
     for (const match of matches) {
       if (
-        file.relPath === 'sdk/src/platform-client.ts'
-        || file.relPath.startsWith('scripts/')
+        file.relPath.startsWith('scripts/')
         || isTestPath(file.relPath)
       ) {
         continue;

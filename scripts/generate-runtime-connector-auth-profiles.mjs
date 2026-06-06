@@ -9,7 +9,7 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
 const tablePath = path.join(repoRoot, '.nimi', 'spec', 'runtime', 'kernel', 'tables', 'connector-auth-profiles.yaml');
 const runtimeOutPath = path.join(repoRoot, 'runtime', 'internal', 'services', 'connector', 'auth_profiles.generated.go');
-const sdkOutPath = path.join(repoRoot, 'sdk', 'src', 'runtime', 'connector-auth-profiles.generated.ts');
+const sdkVnextOutPath = path.join(repoRoot, 'sdks', 'typescript', 'runtime', 'connector-auth-profiles.generated.ts');
 
 const allowedHeaderBehaviors = new Set(['none', 'codex_oauth', 'anthropic']);
 
@@ -132,18 +132,33 @@ async function main() {
   const profiles = parseProfiles(raw);
   const runtimeOut = renderGo(profiles);
   const sdkOut = renderTS(profiles);
+  const outputs = [
+    {
+      path: runtimeOutPath,
+      content: runtimeOut,
+      label: 'Runtime Go',
+    },
+    {
+      path: sdkVnextOutPath,
+      content: sdkOut,
+      label: 'vNext SDK TypeScript',
+    },
+  ];
 
   if (check) {
-    const currentRuntime = await fs.readFile(runtimeOutPath, 'utf8');
-    const currentSDK = await fs.readFile(sdkOutPath, 'utf8');
-    if (currentRuntime !== runtimeOut || currentSDK !== sdkOut) {
-      throw new Error('connector auth profile generated files are out of date');
+    for (const output of outputs) {
+      const current = await fs.readFile(output.path, 'utf8');
+      if (current !== output.content) {
+        throw new Error(`connector auth profile generated ${output.label} file is out of date`);
+      }
     }
     return;
   }
 
-  await fs.writeFile(runtimeOutPath, runtimeOut);
-  await fs.writeFile(sdkOutPath, sdkOut);
+  for (const output of outputs) {
+    await fs.mkdir(path.dirname(output.path), { recursive: true });
+    await fs.writeFile(output.path, output.content);
+  }
 }
 
 main().catch((error) => {

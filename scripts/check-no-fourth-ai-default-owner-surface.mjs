@@ -25,7 +25,7 @@ const TARGET_ROOTS = [
   '.nimi/spec',
   'runtime/internal',
   'runtime/cmd',
-  'sdk/src',
+  'sdks/typescript',
   'apps/desktop/src',
   'scripts',
   'package.json',

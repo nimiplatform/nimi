@@ -5,7 +5,7 @@ authority_posture:
   spec_status: alignment
   authority_owner:
     - .nimi/spec/runtime/kernel/runtime-agent-service-contract.md
-    - .nimi/spec/sdk/kernel/runtime-agent-participation-client-contract.md
+    - .nimi/spec/sdks/kernel/runtime-agent-participation-client-contract.md
     - sdk/src/runtime/**
     - kit/features/avatar/**
     - kit/features/chat/src/components/canonical-runtime-inspect-sidebar.tsx

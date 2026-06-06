@@ -11,7 +11,7 @@ const rootPackageJsonPath = path.join(repoRoot, 'package.json');
 const agentsSpecs = [
   { rel: 'AGENTS.md', maxLines: 40 },
   { rel: 'runtime/AGENTS.md', maxLines: 30 },
-  { rel: 'sdk/AGENTS.md', maxLines: 30 },
+  { rel: 'sdks/AGENTS.md', maxLines: 30 },
   { rel: 'scripts/AGENTS.md', maxLines: 30 },
   { rel: 'apps/desktop/AGENTS.md', maxLines: 30 },
   { rel: 'apps/web/AGENTS.md', maxLines: 30 },
@@ -43,6 +43,7 @@ const genericPnpmCommands = new Set([
   'preview',
   'check',
   'verify',
+  'exec',
 ]);
 
 function readJson(absPath) {
@@ -54,7 +55,7 @@ function collectKnownPnpmScripts() {
   const packageFiles = [
     'apps/desktop/package.json',
     'apps/web/package.json',
-    'sdk/package.json',
+    'sdks/typescript/package.json',
     'docs/package.json',
     'examples/package.json',
   ];

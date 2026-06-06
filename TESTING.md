@@ -80,7 +80,7 @@ CI runs `buf generate` and fails if the output differs from committed stubs:
 
 ```bash
 buf generate
-git diff --exit-code sdk/src/runtime/generated/
+git diff --exit-code runtime/gen/
 ```
 
 ## Desktop (Tauri + React)
@@ -127,7 +127,7 @@ SDK ↔ Runtime gRPC contract tests verify:
 |-------|---------|-------|
 | Go test | `go test ./...` | runtime |
 | Go vet | `go vet ./...` | runtime |
-| golangci-lint | `golangci-lint run` | runtime |
+| golangci-lint | `pnpm check:runtime-golangci-lint` | runtime |
 | TypeScript check | `tsc --noEmit` | sdk, desktop, web |
 | TSX tests | `pnpm test` | sdk, desktop, web |
 | ESLint | `pnpm lint` | sdk, desktop, web |

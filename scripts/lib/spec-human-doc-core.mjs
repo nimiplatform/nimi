@@ -486,7 +486,7 @@ export const sdkKernelFiles = [
   'surface-contract.md', 'transport-contract.md',
   'error-projection.md', 'boundary-contract.md',
   'runtime-contract.md', 'world-evolution-engine-projection-contract.md',
-  'realm-contract.md', 'ai-provider-contract.md',
+  'realm-contract.md', 'ai-adapter-contract.md',
   'scope-contract.md', 'testing-gates-contract.md',
   'ai-config-surface-contract.md',
 ];

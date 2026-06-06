@@ -7,48 +7,39 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'
 
 const checks = [
   {
-    description: 'sdk platform client must not use as never facade glue',
+    description: 'vNext SDK root facades must not use as never facade glue',
     pattern: 'as never',
-    paths: ['sdk/src/platform-client.ts'],
-  },
-  {
-    description: 'sdk public dynamic contracts must expose named JsonObject boundaries instead of raw record casts',
-    pattern: 'Record<string, unknown>|as unknown as',
     paths: [
-      'sdk/src/realm/client-types.ts',
-      'sdk/src/realm/client-helpers.ts',
-      'sdk/src/realm/extensions/account-data.ts',
-      'sdk/src/runtime/runtime-modules.ts',
-      'sdk/src/runtime/runtime-guards.ts',
-      'sdk/src/runtime/types.ts',
-      'sdk/src/runtime/errors.ts',
-      'sdk/src/runtime/internal-context.ts',
-      'sdk/src/runtime/runtime.ts',
-      'sdk/src/runtime/runtime-lifecycle.ts',
-      'sdk/src/runtime/types-media.ts',
-      'sdk/src/runtime/runtime-media.ts',
-      'sdk/src/runtime/runtime-scheduling.ts',
-      'sdk/src/ai/ai-config.ts',
-      'sdk/src/ai/ai-config-diff.ts',
-      'sdk/src/ai/app-ai-config.ts',
-      'sdk/src/ai/i18n.ts',
-      'sdk/src/runtime/runtime-route-host-facade.ts',
-      'sdk/src/runtime/runtime-route-options.ts',
-      'sdk/src/runtime/runtime-route.ts',
-      'sdk/src/runtime/runtime-route-types.ts',
+      'sdks/typescript/root-client.ts',
+      'sdks/typescript/core-client/index.ts',
+      'sdks/typescript/runtime/index.ts',
+      'sdks/typescript/realm/index.ts',
     ],
   },
   {
-    description: 'desktop data-sync must not erase callApi results to Promise<any>',
-    pattern: 'Promise<any>',
-    paths: ['apps/desktop/src/runtime/data-sync'],
+    description: 'vNext SDK public dynamic contracts must expose named JSON boundaries instead of raw record casts',
+    pattern: 'Record<string, unknown>|as unknown as',
+    paths: [
+      'sdks/typescript/types/json.ts',
+      'sdks/typescript/core/contracts/primitives.ts',
+      'sdks/typescript/core/ai/runtime-model.ts',
+      'sdks/typescript/core/ai/text-runner.ts',
+      'sdks/typescript/runtime/runtime-agent-consume-types.ts',
+      'sdks/typescript/features/generation/runtime-scenarios.ts',
+    ],
   },
   {
-    description: 'desktop world data-sync surfaces must not return record-based payload contracts',
-    pattern: 'Promise<Array<Record<string, unknown>>>|Promise<Record<string, unknown> \\| null>|items: Array<Record<string, unknown>>',
+    description: 'desktop SDK/Realm session boundaries must not erase SDK calls to Promise<any>',
+    pattern: 'Promise<any>',
     paths: [
-      'apps/desktop/src/runtime/data-sync/facade.ts',
-      'apps/desktop/src/runtime/data-sync/flows/world-flow.ts',
+      'apps/desktop/src/shell/renderer/infra/sdk',
+      'apps/desktop/src/shell/renderer/infra/realm/realm-platform-session.ts',
+    ],
+  },
+  {
+    description: 'desktop world projection surfaces must not return record-based payload contracts',
+    pattern: 'Promise<Array<Record<string, unknown>>>|Promise<Record<string, unknown> \\| null>|items: Array<Record<string, unknown>>|Array<Record<string, unknown>>',
+    paths: [
       'apps/desktop/src/shell/renderer/features/world/world-detail-queries.ts',
     ],
   },
@@ -58,8 +49,8 @@ const checks = [
     paths: [
       'apps/desktop/src/shell/renderer/bridge/runtime-bridge/types.ts',
       'apps/desktop/src/shell/renderer/bridge/runtime-bridge/runtime-types.ts',
-      'apps/desktop/src/shell/renderer/bridge/runtime-bridge/logging.ts',
-      'apps/desktop/src/shell/renderer/infra/telemetry/renderer-log.ts',
+      'apps/desktop/src/shell/renderer/bridge/runtime-bridge/shared.ts',
+      'apps/desktop/src/shell/renderer/bridge/runtime-bridge/runtime-parsers.ts',
     ],
   },
   {
@@ -92,9 +83,9 @@ const checks = [
     description: 'desktop agent detail surfaces must not restore typed payloads from raw record casts',
     pattern: 'Promise<unknown>|Record<string, unknown>|as unknown as',
     paths: [
-      'apps/desktop/src/runtime/data-sync/flows/agent-runtime-flow.ts',
       'apps/desktop/src/shell/renderer/features/agent-detail/agent-detail-model.ts',
       'apps/desktop/src/shell/renderer/features/agent-detail/agent-detail-panel.tsx',
+      'apps/desktop/src/shell/renderer/features/agent-detail/agent-detail-queries.ts',
     ],
   },
   {
@@ -104,7 +95,7 @@ const checks = [
       'apps/desktop/src/shell/renderer/features/relationship/relationship-model.ts',
       'apps/desktop/src/shell/renderer/features/relationship/agent-friend-limit.ts',
       'apps/desktop/src/shell/renderer/features/explore/explore-panel.tsx',
-      'apps/desktop/src/shell/renderer/features/notification/notification-model.ts',
+      'apps/desktop/src/shell/renderer/features/notification/notification-query.ts',
       'apps/desktop/src/shell/renderer/features/settings/settings-storage.ts',
       'apps/desktop/src/shell/renderer/features/settings/settings-advanced-panel.tsx',
       'apps/desktop/src/shell/renderer/features/settings/settings-account-panel.tsx',
@@ -124,12 +115,12 @@ const checks = [
 ];
 
 function runRipgrep(pattern, paths) {
-  const existingPaths = paths.filter((targetPath) => existsSync(path.join(repoRoot, targetPath)));
-  if (existingPaths.length === 0) {
-    return '';
+  const missingPaths = paths.filter((targetPath) => !existsSync(path.join(repoRoot, targetPath)));
+  if (missingPaths.length > 0) {
+    return `missing required typed-surface scan target(s): ${missingPaths.join(', ')}`;
   }
   try {
-    return execFileSync(path.join(repoRoot, 'scripts', 'rg.sh'), ['-n', pattern, ...existingPaths], {
+    return execFileSync(path.join(repoRoot, 'scripts', 'rg.sh'), ['-n', pattern, ...paths], {
       cwd: repoRoot,
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],

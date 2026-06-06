@@ -80,7 +80,7 @@ checkCrossDomainRuleReferences(
     },
     {
       label: 'SDK',
-      dir: '.nimi/spec/sdk/kernel',
+      dir: '.nimi/spec/sdks/kernel',
       headingPattern: /^##\s+(S-[A-Z]+-\d{3}[a-z]?)\b/gmu,
       refPattern: /\bS-[A-Z]+-\d{3}[a-z]?\b/gu,
     },
@@ -249,7 +249,7 @@ function checkAppTabsConsistency() {
 }
 
 function checkRetryStatusCodesConsistency() {
-  const retryPath = 'sdk/src/types/network-retry.ts';
+  const retryPath = 'sdks/typescript/types/network-retry.ts';
   if (!fileExists(retryPath)) {
     fail(`source file not found: ${retryPath}`);
     return;
@@ -475,12 +475,12 @@ function checkNoLegacyStoreImports() {
 }
 
 function checkRetryJitterPresence() {
-  const retryPath = 'sdk/src/types/network-retry.ts';
+  const retryPath = 'sdks/typescript/types/network-retry.ts';
   if (!fileExists(retryPath)) return;
 
   const content = read(retryPath);
   if (!content.includes('Math.random')) {
-    fail('D-NET-002 violation: sdk/src/types/network-retry.ts missing jitter (Math.random)');
+    fail('D-NET-002 violation: sdks/typescript/types/network-retry.ts missing jitter (Math.random)');
   }
 }
 
@@ -514,7 +514,7 @@ function checkStoreSliceCount() {
 
 function checkBridgeReasonCodeCoverage() {
   const invokePath = 'apps/desktop/src/shell/renderer/bridge/runtime-bridge/invoke.ts';
-  const sdkReasonProjectionPath = 'sdk/src/runtime/reason-code-messages.ts';
+  const sdkReasonProjectionPath = 'sdks/typescript/runtime/reason-messages.ts';
   const kitBridgeProjectionPath = 'kit/shell/renderer/src/bridge/nimi-error.ts';
   if (!fileExists(invokePath) || !fileExists(sdkReasonProjectionPath) || !fileExists(kitBridgeProjectionPath)) return;
 
@@ -525,7 +525,7 @@ function checkBridgeReasonCodeCoverage() {
   if (!invokeContent.includes('getShellBridgeUserMessageProjection')) {
     fail('D-ERR-007 bridge invoke.ts must consume the Kit shell bridge reason projection');
   }
-  if (!kitBridgeProjectionContent.includes('getRuntimeReasonCodeMessage')) {
+  if (!kitBridgeProjectionContent.includes('getNimiRuntimeReasonCodeMessage')) {
     fail('D-ERR-007 Kit shell bridge must consume the SDK Runtime reason-code projection');
   }
 

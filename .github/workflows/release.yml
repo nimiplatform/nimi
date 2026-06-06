@@ -125,7 +125,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
         with:
-          go-version: '1.25.6'
+          go-version: '1.26.4'
           cache: false
 
       - name: Install dependencies
@@ -188,13 +188,13 @@ jobs:
           node --input-type=module <<'NODE'
           import { readFileSync } from 'node:fs';
 
-          const pkg = JSON.parse(readFileSync('sdk/package.json', 'utf8'));
+          const pkg = JSON.parse(readFileSync('sdks/typescript/package.json', 'utf8'));
           const expectedVersion = process.env.RELEASE_VERSION;
           if (pkg.name !== '@nimiplatform/sdk') {
             throw new Error(`unexpected SDK package name: ${pkg.name}`);
           }
           if (pkg.version !== expectedVersion) {
-            throw new Error(`sdk/package.json version ${pkg.version} does not match release ${expectedVersion}`);
+            throw new Error(`sdks/typescript/package.json version ${pkg.version} does not match release ${expectedVersion}`);
           }
           if (pkg.private !== false) {
             throw new Error('@nimiplatform/sdk must remain public');
@@ -208,8 +208,8 @@ jobs:
           if (pkg.repository?.url !== 'https://github.com/nimiplatform/nimi') {
             throw new Error('@nimiplatform/sdk repository.url must match provenance repository');
           }
-          if (pkg.repository?.directory !== 'sdk') {
-            throw new Error('@nimiplatform/sdk repository.directory must be sdk');
+          if (pkg.repository?.directory !== 'sdks/typescript') {
+            throw new Error('@nimiplatform/sdk repository.directory must be sdks/typescript');
           }
           NODE
 
@@ -276,7 +276,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
         with:
-          go-version: '1.25.6'
+          go-version: '1.26.4'
           cache: false
 
       - name: Install Buf CLI
@@ -684,7 +684,7 @@ jobs:
           NIMI_SIGN_OUTPUT_MANIFEST: apps/desktop/signing-manifest-${{ matrix.platform }}.json
         run: |
           set -euo pipefail
-          node scripts/release/sign-and-sbom-artifacts.mjs
+          pnpm check:runtime-release-signing
           node <<'NODE'
           const fs = require('node:fs');
           const outputPath = process.env.GITHUB_OUTPUT;

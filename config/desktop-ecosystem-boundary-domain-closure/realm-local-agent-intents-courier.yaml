@@ -7,7 +7,7 @@ authority_posture:
   authority_owner:
     - .nimi/spec/realm/**
     - .nimi/spec/runtime/kernel/runtime-agent-service-contract.md
-    - .nimi/spec/sdk/kernel/nimi-app-client-contract.md
+    - .nimi/spec/sdks/kernel/nimi-app-client-contract.md
     - sdk/src/realm/extensions/local-agent-intents.ts
     - sdk/src/runtime/runtime-agent-lifecycle-surface.ts
   work_type: alignment

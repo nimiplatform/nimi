@@ -1,0 +1,311 @@
+version: 1
+table_family: protocol_surface
+owner: sdks
+protocol_id: sdks_typescript_ai_capability_ledger
+scope:
+  current_baseline: archive/sdk-pre-vnext-20260606/src
+  target_root: sdks/typescript
+decision_values:
+  - retain-redesign
+  - delete-hardcut
+  - defer-blocking
+status_values:
+  - implemented
+  - pending
+  - deferred
+  - hardcut
+surfaces:
+  - id: ai-public-entrypoint
+    current_sources:
+      - archive/sdk-pre-vnext-20260606/src/ai/index.ts
+    current_capability: Current public AI entrypoint reexports AI config, profile, host store, snapshot, first-launch, profile library, and prompt locale helpers.
+    decision: retain-redesign
+    implementation_status: implemented
+    vnext_exports:
+      - "@nimiplatform/sdk/ai"
+    vnext_owner: sdks/typescript/core/ai/index.ts
+    required_binding: Public entrypoint must compose vNext AI host and Runtime-backed consume surfaces without reexporting current sdk implementation.
+    verification_gates:
+      - check:sdk-vnext-package-contract
+      - check:sdk-vnext-ai-consumer-smoke
+
+  - id: ai-scope-and-first-launch-config
+    current_sources:
+      - archive/sdk-pre-vnext-20260606/src/ai/app-ai-config.ts
+      - archive/sdk-pre-vnext-20260606/src/ai/ai-config.ts
+    current_capability: Explicit app AIScopeRef creation/validation and first-launch AIConfig materialization from app recommended or account default profiles.
+    decision: retain-redesign
+    implementation_status: implemented
+    vnext_exports:
+      - "@nimiplatform/sdk/ai"
+      - "@nimiplatform/sdk/app"
+    vnext_owner: sdks/typescript/core/ai/config.ts
+    required_binding: App scoped AI setup must use explicit App scope refs and host-provided profile/config authorities; no omitted-scope inference or platform singleton.
+    verification_gates:
+      - check:sdk-vnext-ai-consumer-smoke
+      - check:sdk-vnext-app-consumer-smoke
+
+  - id: ai-config-profile-snapshot-contract
+    current_sources:
+      - archive/sdk-pre-vnext-20260606/src/ai/ai-config.ts
+      - archive/sdk-pre-vnext-20260606/src/ai/ai-config-diff.ts
+    current_capability: AIProfile, AIConfig, AISnapshot, target refs, capability requirements, profile apply projection, versioning, evidence, diff, validation, compact refs, and Runtime descriptor formation.
+    decision: retain-redesign
+    implementation_status: implemented
+    vnext_exports:
+      - "@nimiplatform/sdk/ai"
+    vnext_owner: sdks/typescript/core/ai/config.ts
+    required_binding: Host AI config must stay data-first and fail closed on hidden Runtime/private fields, credential material, route bindings, provider health, scheduler state, local paths, and local profile refs.
+    verification_gates:
+      - check:sdk-vnext-ai-consumer-smoke
+      - check:sdk-vnext-ai-capability-ledger
+
+  - id: account-profile-library-parsing
+    current_sources:
+      - archive/sdk-pre-vnext-20260606/src/ai/account-profile-library.ts
+    current_capability: Account profile library payload parsing, account-default/user/imported origin validation, editable/removable projection, and exported profile parsing.
+    decision: retain-redesign
+    implementation_status: implemented
+    vnext_exports:
+      - "@nimiplatform/sdk/ai"
+    vnext_owner: sdks/typescript/core/ai/config.ts
+    required_binding: Profile library parsing must become explicit host data validation for vNext profiles and must not embed filesystem layout authority in core AI.
+    verification_gates:
+      - check:sdk-vnext-ai-consumer-smoke
+
+  - id: host-ai-config-store-and-subscriptions
+    current_sources:
+      - archive/sdk-pre-vnext-20260606/src/ai/host-ai-config.ts
+    current_capability: Scoped AIConfig storage, parsing, cloning, compact-ref validation, subscription registry, scope isolation, and fail-closed no-storage behavior.
+    decision: retain-redesign
+    implementation_status: implemented
+    vnext_exports:
+      - "@nimiplatform/sdk/ai"
+    vnext_owner: sdks/typescript/core/ai/config.ts
+    required_binding: Host store must require explicit storage except test/dev ephemeral construction and must notify subscribers only after committed scoped writes.
+    verification_gates:
+      - check:sdk-vnext-ai-consumer-smoke
+
+  - id: host-ai-snapshot-store
+    current_sources:
+      - archive/sdk-pre-vnext-20260606/src/ai/host-ai-snapshot.ts
+    current_capability: Scoped AISnapshot storage, latest snapshot retrieval, scope validation, and execution evidence persistence boundary.
+    decision: retain-redesign
+    implementation_status: implemented
+    vnext_exports:
+      - "@nimiplatform/sdk/ai"
+    vnext_owner: sdks/typescript/core/ai/config.ts
+    required_binding: Snapshot writes must remain host-owned records and may not bypass Runtime execution evidence or infer scopes.
+    verification_gates:
+      - check:sdk-vnext-ai-consumer-smoke
+
+  - id: host-ai-profile-surface
+    current_sources:
+      - archive/sdk-pre-vnext-20260606/src/ai/host-ai-profile-surface.ts
+    current_capability: Host AIProfile listing, lookup, schema probe warnings, preview apply, CAS-style apply, local dependency resolution, and Runtime descriptor formation.
+    decision: retain-redesign
+    implementation_status: implemented
+    vnext_exports:
+      - "@nimiplatform/sdk/ai"
+    vnext_owner: sdks/typescript/core/ai/config.ts
+    required_binding: Preview must be non-committing, apply must use base-version guard, and Runtime descriptor formation must remain explicit profile capability intent projection.
+    verification_gates:
+      - check:sdk-vnext-ai-consumer-smoke
+
+  - id: ai-global-prompt-locale
+    current_sources:
+      - archive/sdk-pre-vnext-20260606/src/ai/i18n.ts
+    current_capability: Global mutable prompt locale binding.
+    decision: delete-hardcut
+    implementation_status: hardcut
+    vnext_exports:
+      - "@nimiplatform/sdk/ai"
+    vnext_owner: sdks/typescript/core/ai
+    required_binding: Prompt locale must be request/host data when needed; vNext core AI must not keep a global mutable i18n singleton.
+    hardcut_reason: Global prompt locale is hidden process state and conflicts with third-party host isolation.
+    verification_gates:
+      - check:sdk-vnext-ai-capability-ledger
+
+  - id: runtime-text-generate-stream
+    current_sources:
+      - archive/sdk-pre-vnext-20260606/src/runtime/runtime-ai-text.ts
+      - archive/sdk-pre-vnext-20260606/src/runtime/runtime-ai-codec.ts
+      - archive/sdk-pre-vnext-20260606/src/runtime/runtime-scenario-output-codec.ts
+      - archive/sdk-pre-vnext-20260606/src/runtime/types.ts
+    current_capability: Runtime Scenario text generate and stream mapping, message conversion, route policy, reasoning config, usage, trace, finish reason, stream error, and telemetry projection.
+    decision: retain-redesign
+    implementation_status: implemented
+    vnext_exports:
+      - "@nimiplatform/sdk/ai"
+    vnext_owner: sdks/typescript/core/ai/runtime-model.ts
+    required_binding: vNext AI model must call generated Runtime Scenario methods through public vNext Runtime typed clients; unsupported tools and non-text data must fail closed.
+    verification_gates:
+      - check:sdk-vnext-ai-consumer-smoke
+      - check:sdks-conformance-typed-core
+
+  - id: runtime-ai-route-and-scheduling
+    current_sources:
+      - archive/sdk-pre-vnext-20260606/src/runtime/runtime-route-types.ts
+      - archive/sdk-pre-vnext-20260606/src/runtime/runtime-route-bindings.ts
+      - archive/sdk-pre-vnext-20260606/src/runtime/runtime-route-capability-runtime.ts
+      - archive/sdk-pre-vnext-20260606/src/runtime/runtime-scheduling.ts
+      - archive/sdk-pre-vnext-20260606/src/runtime/ai-config-scheduling.ts
+    current_capability: Runtime route target binding, local/cloud connector selection, selectable local options, scheduling peek targets, and AIConfig scheduling projection.
+    decision: retain-redesign
+    implementation_status: implemented
+    vnext_exports:
+      - "@nimiplatform/sdk/ai"
+      - "@nimiplatform/sdk/runtime"
+    vnext_owner: sdks/typescript/core/ai/scheduling.ts + sdks/typescript/runtime/index.ts
+    required_binding: Route and scheduling state must be Runtime-owned projection data; AIConfig may describe target intent but must not carry live route bindings or provider health.
+    verification_gates:
+      - check:sdk-vnext-ai-consumer-smoke
+      - check:sdk-vnext-runtime-consumer-smoke
+      - check:sdk-vnext-runtime-facade
+
+  - id: memory-embedding-config-runtime
+    current_sources:
+      - archive/sdk-pre-vnext-20260606/src/runtime/memory-embedding-config.ts
+      - archive/sdk-pre-vnext-20260606/src/runtime/memory-embedding-runtime.ts
+    current_capability: Memory embedding config, runtime bind/cutover state projection, canonical bank status, source kind normalization, and protected host surfaces.
+    decision: retain-redesign
+    implementation_status: implemented
+    vnext_exports:
+      - "@nimiplatform/sdk/features/memory-context"
+      - "@nimiplatform/sdk/ai"
+    vnext_owner: sdks/typescript/features/memory-context
+    required_binding: Memory embedding state must bind to public Runtime memory methods and feature context surfaces; SDK AI config may reference capability intent only.
+    verification_gates:
+      - check:sdk-vnext-agent-consumer-smoke
+      - check:sdk-vnext-matrix
+
+  - id: generation-jobs-and-artifacts
+    current_sources:
+      - archive/sdk-pre-vnext-20260606/src/runtime/runtime-media-generation-job-runner.ts
+      - archive/sdk-pre-vnext-20260606/src/runtime/runtime-media-jobs.ts
+      - archive/sdk-pre-vnext-20260606/src/runtime/runtime-media-request.ts
+      - archive/sdk-pre-vnext-20260606/src/runtime/runtime-stream-codec.ts
+      - archive/sdk-pre-vnext-20260606/src/runtime/runtime-artifacts.ts
+    current_capability: Scenario job submit/get/cancel/subscribe/wait, scenario artifacts, artifact byte reads, and media generation terminal-state projection.
+    decision: retain-redesign
+    implementation_status: implemented
+    vnext_exports:
+      - "@nimiplatform/sdk/features/generation"
+    vnext_owner: sdks/typescript/features/generation
+    required_binding: Generation helpers must use generated Runtime Scenario job and artifact methods; no fake job completion or hidden Runtime REST bypass.
+    verification_gates:
+      - check:sdk-vnext-agent-consumer-smoke
+      - check:sdks-conformance-typed-core
+
+  - id: ai-app-public-subpath
+    current_sources:
+      - archive/sdk-pre-vnext-20260606/src/ai-app/index.ts
+    current_capability: Current AI App public subpath for chat, history, session loop, structured output, text generate/stream/turn, and local tool helpers.
+    decision: delete-hardcut
+    implementation_status: hardcut
+    vnext_exports:
+      - "@nimiplatform/sdk/agent"
+      - "@nimiplatform/sdk/features/conversation"
+      - "@nimiplatform/sdk/features/evaluation"
+      - "@nimiplatform/sdk/features/toolkits"
+    vnext_owner: sdks/typescript/core/agent + sdks/typescript/features
+    required_binding: Surviving AI App capabilities must move to Agent and feature exports; `@nimiplatform/sdk/ai-app` must not be restored.
+    hardcut_reason: The old subpath implies app-session convenience as a separate SDK authority; vNext needs agent and feature-owned boundaries.
+    verification_gates:
+      - check:sdk-vnext-package-contract
+      - check:sdk-vnext-ai-consumer-smoke
+
+  - id: ai-app-history-window
+    current_sources:
+      - archive/sdk-pre-vnext-20260606/src/ai-app/history-window.ts
+      - archive/sdk-pre-vnext-20260606/src/ai-app/session-loop.ts
+    current_capability: Session history filtering, role normalization, token/character budget measurement, completion reserve, committed-message projection, and assistant text mapping.
+    decision: retain-redesign
+    implementation_status: implemented
+    vnext_exports:
+      - "@nimiplatform/sdk/features/conversation"
+    vnext_owner: sdks/typescript/features/conversation
+    required_binding: Conversation history windows must be framework-neutral, deterministic, role-safe, and package-consumable as vNext conversation features.
+    verification_gates:
+      - check:sdk-vnext-agent-consumer-smoke
+
+  - id: ai-app-session-text-accumulator
+    current_sources:
+      - archive/sdk-pre-vnext-20260606/src/ai-app/session-loop.ts
+      - archive/sdk-pre-vnext-20260606/src/ai-app/text-stream-response.ts
+      - archive/sdk-pre-vnext-20260606/src/ai-app/text-turn.ts
+    current_capability: Text/reasoning delta accumulation, terminal completion/failure/cancel states, finish reason, usage, trace, stream handler snapshots, and missing terminal failure.
+    decision: retain-redesign
+    implementation_status: implemented
+    vnext_exports:
+      - "@nimiplatform/sdk/agent"
+      - "@nimiplatform/sdk/features/conversation"
+    vnext_owner: sdks/typescript/core/agent + sdks/typescript/features/conversation
+    required_binding: Agent and conversation streams must preserve reasoning, text, usage, trace, cancellation, and Runtime error details without pseudo-success.
+    verification_gates:
+      - check:sdk-vnext-agent-consumer-smoke
+
+  - id: ai-app-text-generate-stream-turn
+    current_sources:
+      - archive/sdk-pre-vnext-20260606/src/ai-app/text-generate.ts
+      - archive/sdk-pre-vnext-20260606/src/ai-app/text-stream-response.ts
+      - archive/sdk-pre-vnext-20260606/src/ai-app/text-turn.ts
+      - archive/sdk-pre-vnext-20260606/src/ai-app/chat.ts
+    current_capability: App text generate, stream response handlers, turn lifecycle events, chat metadata defaults, and platform chat convenience.
+    decision: retain-redesign
+    implementation_status: implemented
+    vnext_exports:
+      - "@nimiplatform/sdk/agent"
+      - "@nimiplatform/sdk/features/conversation"
+    vnext_owner: sdks/typescript/core/agent + sdks/typescript/features/conversation
+    required_binding: vNext must expose explicit agent/conversation helpers over Runtime-backed AI; hidden platform singleton chat helpers are hard-cut.
+    verification_gates:
+      - check:sdk-vnext-agent-consumer-smoke
+      - check:sdk-vnext-ai-consumer-smoke
+
+  - id: ai-app-structured-output
+    current_sources:
+      - archive/sdk-pre-vnext-20260606/src/ai-app/structured-output.ts
+      - archive/sdk-pre-vnext-20260606/src/ai-app/text-generate.ts
+      - archive/sdk-pre-vnext-20260606/src/ai-app/text-turn.ts
+    current_capability: JSON extraction, structured parse success/failure, expected-shape validation, validator failures, repair request construction, and required/optional structured output handling.
+    decision: retain-redesign
+    implementation_status: implemented
+    vnext_exports:
+      - "@nimiplatform/sdk/ai"
+      - "@nimiplatform/sdk/features/evaluation"
+    vnext_owner: sdks/typescript/core/ai + sdks/typescript/features/evaluation
+    required_binding: Structured output helpers must preserve parse/repair semantics and fail closed when required output is invalid; no silent text-only success.
+    verification_gates:
+      - check:sdk-vnext-ai-consumer-smoke
+      - check:sdk-vnext-agent-consumer-smoke
+
+  - id: ai-app-tool-registry
+    current_sources:
+      - archive/sdk-pre-vnext-20260606/src/ai-app/tools.ts
+    current_capability: Local tool definition, descriptor projection, include/exclude selection, approval-required failure, external-execution-required failure, executor-missing failure, local execution, and tool result flags.
+    decision: retain-redesign
+    implementation_status: implemented
+    vnext_exports:
+      - "@nimiplatform/sdk/agent"
+      - "@nimiplatform/sdk/features/toolkits"
+    vnext_owner: sdks/typescript/core/agent + sdks/typescript/features/toolkits
+    required_binding: Tools must be explicit agent/toolkit contracts; Runtime Scenario tool-call parity may not be faked and external execution must remain caller-owned.
+    verification_gates:
+      - check:sdk-vnext-agent-consumer-smoke
+
+  - id: runtime-agent-participation
+    current_sources:
+      - .nimi/spec/sdks/kernel/runtime-agent-participation-contract.md
+      - .nimi/spec/sdks/kernel/tables/runtime-agent-participation-methods.yaml
+    current_capability: Current SDK semantic contract for Runtime Agent Participation client methods.
+    decision: defer-blocking
+    implementation_status: deferred
+    vnext_exports:
+      - "@nimiplatform/sdk/agent"
+      - "@nimiplatform/sdk/runtime"
+    vnext_owner: sdks/typescript/core/agent + sdks/typescript/runtime
+    required_binding: Do not claim production Runtime Agent Participation until proto stubs and generated Runtime method gates admit it.
+    hardcut_reason: Production support is not admitted by current Runtime generated core; semantic contract only is not implementation evidence.
+    verification_gates:
+      - check:sdks-conformance-typed-core

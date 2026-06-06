@@ -152,7 +152,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
         with:
-          go-version: '1.25.6'
+          go-version: '1.26.4'
           cache-dependency-path: runtime/go.sum
 
       - name: Install dependencies
@@ -160,9 +160,6 @@ jobs:
 
       - name: Install Buf CLI
         run: go install github.com/bufbuild/buf/cmd/buf@v1.66.1
-
-      - name: Install govulncheck
-        run: go install golang.org/x/vuln/cmd/govulncheck@latest
 
       - name: Runtime proto lint assurance
         run: pnpm proto:lint
@@ -196,8 +193,7 @@ jobs:
         run: pnpm check:runtime-ai-scenario-coverage
 
       - name: Runtime vulnerability assurance
-        working-directory: runtime
-        run: govulncheck ./...
+        run: pnpm check:runtime-govulncheck
 
       - name: Runtime npm binary smoke assurance
         run: pnpm check:npm-binary-smoke
@@ -206,7 +202,7 @@ jobs:
         run: go run github.com/goreleaser/goreleaser/v2@latest check --config .goreleaser.yml
 
       - name: Goreleaser snapshot assurance
-        run: go run github.com/goreleaser/goreleaser/v2@latest release --clean --snapshot --skip=publish --skip=announce --config .goreleaser.yml
+        run: pnpm check:runtime-goreleaser-snapshot
 
   desktop-release-assurance:
     runs-on: ubuntu-22.04
@@ -255,16 +251,16 @@ jobs:
         run: cargo audit --file apps/desktop/src-tauri/Cargo.lock
 
       - name: Desktop Rust check assurance
-        run: cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml
+        run: pnpm --filter @nimiplatform/desktop run check:cargo
 
       - name: Desktop Rust clippy assurance
-        run: cargo clippy --manifest-path apps/desktop/src-tauri/Cargo.toml --all-targets
+        run: pnpm --filter @nimiplatform/desktop run check:cargo:clippy
 
       - name: Desktop Rust tests assurance
-        run: cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml
+        run: pnpm --filter @nimiplatform/desktop run check:cargo:test
 
       - name: Desktop runtime bridge tests assurance
-        run: cargo test runtime_bridge --manifest-path apps/desktop/src-tauri/Cargo.toml
+        run: pnpm --filter @nimiplatform/desktop run check:cargo:runtime-bridge
 
       - name: Desktop group chat contract assurance
         run: pnpm check:desktop-group-chat-contract

@@ -209,7 +209,7 @@ Prerequisites:
 
 - Node.js `>=24`
 - pnpm `>=10`
-- Go `1.24+`
+- Go `1.26.4+`
 - Rust toolchain (for Tauri-based apps)
 - Buf CLI (for proto changes)
 

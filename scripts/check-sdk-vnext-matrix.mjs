@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 
-import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -8,35 +7,14 @@ import { fileURLToPath } from 'node:url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '..');
-const sdkRoot = path.join(repoRoot, 'sdk');
-
-const SDK_VNEXT_TEST_FILES = [
-  'test/runtime/runtime-bridge-method-parity.test.ts',
-  'test/realm/realm-client-core.test.ts',
-  'test/scope/module.test.ts',
-  'test/ai-provider/provider-text.test.ts',
-  'test/world-evolution-selector-read-validation.test.ts',
-  'test/integration/runtime-realm-orchestration.test.ts',
-];
-
-function assertTestFilesExist() {
-  const missing = SDK_VNEXT_TEST_FILES.filter((file) => !existsSync(path.join(sdkRoot, file)));
-  if (missing.length > 0) {
-    throw new Error(
-      `[check-sdk-vnext-matrix] missing required test files:\n${missing.map((file) => `- sdk/${file}`).join('\n')}`,
-    );
-  }
-}
+const vnextRoot = path.join(repoRoot, 'sdks', 'typescript');
 
 function runMatrixTests() {
-  process.stdout.write(`[check-sdk-vnext-matrix] running ${SDK_VNEXT_TEST_FILES.length} fixed test suites\n`);
+  process.stdout.write('[check-sdk-vnext-matrix] running full sdks/typescript test suite\n');
   const result = spawnSync('pnpm', [
     '--dir',
-    sdkRoot,
-    'exec',
-    'tsx',
-    '--test',
-    ...SDK_VNEXT_TEST_FILES,
+    vnextRoot,
+    'test',
   ], {
     cwd: repoRoot,
     env: process.env,
@@ -49,10 +27,44 @@ function runMatrixTests() {
   }
 }
 
+function runVNextPackageContract() {
+  const checks = [
+    ['scripts/check-sdk-vnext-package-contract.mjs'],
+    ['scripts/check-sdk-vnext-runtime-facade.mjs'],
+    ['scripts/check-sdk-vnext-public-surface-smoke.mjs'],
+    ['scripts/check-sdk-vnext-runtime-consumer-smoke.mjs'],
+    ['scripts/check-sdk-vnext-app-consumer-smoke.mjs'],
+    ['scripts/check-sdk-vnext-realm-consumer-smoke.mjs'],
+    ['scripts/check-sdk-vnext-world-consumer-smoke.mjs'],
+    ['scripts/check-sdk-vnext-ai-consumer-smoke.mjs'],
+    ['scripts/check-sdk-vnext-agent-consumer-smoke.mjs'],
+    ['scripts/check-sdk-vnext-root-consumer-smoke.mjs'],
+    ['scripts/check-sdk-vnext-ai-capability-ledger.mjs'],
+    ['scripts/check-sdk-vnext-adapter-capability-ledger.mjs'],
+    ['scripts/check-sdk-vnext-migration-proofs.mjs'],
+    ['scripts/check-sdk-vnext-root-composition-decision.mjs'],
+    ['scripts/check-sdk-vnext-first-party-adaptation.mjs'],
+    ['scripts/check-sdk-vnext-replacement-ledger.mjs'],
+  ];
+
+  for (const args of checks) {
+    const result = spawnSync('node', args, {
+      cwd: repoRoot,
+      env: process.env,
+      stdio: 'inherit',
+    });
+
+    if (result.status !== 0) {
+      const code = result.status ?? 1;
+      throw new Error(`[check-sdk-vnext-matrix] vNext prerequisite failed with exit code ${String(code)}: node ${args.join(' ')}`);
+    }
+  }
+}
+
 function main() {
-  assertTestFilesExist();
+  runVNextPackageContract();
   runMatrixTests();
-  process.stdout.write('[check-sdk-vnext-matrix] all vNext matrix tests passed\n');
+  process.stdout.write('[check-sdk-vnext-matrix] all configured vNext prerequisite and honesty gates passed; Replacement coverage acceptance status is reported by the replacement ledger\n');
 }
 
 try {

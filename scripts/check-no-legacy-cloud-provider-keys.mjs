@@ -2,7 +2,7 @@
 
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { extname, resolve, relative } from 'node:path';
+import { basename, extname, resolve, relative } from 'node:path';
 
 const repoRoot = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const scanRoots = [
@@ -12,7 +12,7 @@ const scanRoots = [
   'apps/desktop/package.json',
   'apps/desktop/scripts',
   'apps/desktop/src-tauri/src/runtime_bridge',
-  'sdk/src',
+  'sdks/typescript',
   'runtime/README.md',
   'docs/getting-started/index.md',
 ];
@@ -29,6 +29,22 @@ const allowedExtensions = new Set([
   '.yaml',
   '.yml',
   '.proto',
+]);
+
+const skipDirs = new Set([
+  '.git',
+  '.next',
+  '.turbo',
+  '.vite',
+  'archive',
+  'build',
+  'coverage',
+  'dist',
+  'gen',
+  'generated',
+  'node_modules',
+  'target',
+  'tmp',
 ]);
 
 const allowedLegacyCloudNameFiles = new Set([
@@ -75,6 +91,9 @@ function isTestFile(relPath) {
 }
 
 function walk(absPath) {
+  if (skipDirs.has(basename(absPath))) {
+    return;
+  }
   const entryStat = statSync(absPath);
   if (entryStat.isDirectory()) {
     for (const name of readdirSync(absPath)) {

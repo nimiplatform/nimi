@@ -62,10 +62,10 @@ function parseNamedImportList(rawList) {
 }
 
 function classifySdkOrigin(specifier) {
-  if (specifier === '@nimiplatform/sdk/runtime' || specifier === '@nimiplatform/sdk/ai-app') {
+  if (specifier === '@nimiplatform/sdk/runtime' || specifier === '@nimiplatform/sdk/runtime/generated') {
     return 'runtime';
   }
-  if (specifier === '@nimiplatform/sdk/realm') {
+  if (specifier === '@nimiplatform/sdk/realm' || specifier === '@nimiplatform/sdk/realm/generated') {
     return 'realm';
   }
   if (specifier === '@nimiplatform/sdk') {
@@ -73,6 +73,12 @@ function classifySdkOrigin(specifier) {
   }
   if (specifier === '@nimiplatform/sdk/ai') {
     return 'ai-config';
+  }
+  if (specifier === '@nimiplatform/sdk/contracts') {
+    return 'ai-contracts';
+  }
+  if (specifier === '@nimiplatform/sdk/features/conversation') {
+    return 'conversation';
   }
   if (specifier === '@nimiplatform/sdk/types') {
     return 'error';

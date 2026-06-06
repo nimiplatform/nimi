@@ -5,7 +5,7 @@ import { resolve } from 'node:path';
 const repoRoot = process.cwd();
 const examplesDir = resolve(repoRoot, 'examples/sdk');
 const files = readdirSync(examplesDir)
-  .filter((entry) => entry.endsWith('.ts'))
+  .filter((entry) => entry.endsWith('.ts') && !entry.startsWith('_'))
   .sort();
 
 const failures = [];

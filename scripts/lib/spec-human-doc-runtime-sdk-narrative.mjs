@@ -129,37 +129,39 @@ Nimi 的错误由两层组成，二者正交：
 
 ## 9. SDK 架构
 
-在 Nimi 的整体架构中，SDK 扮演的角色是**唯一合法网关**：Desktop 和 Web 应用不直接发 gRPC 调用，也不直接拼 HTTP 请求，一切对 Runtime 和 Realm 的访问必须经过 \`@nimiplatform/sdk\`。这不是一个便利性选择——SDK 承担了传输声明、错误投影、导入隔离三项关键职责，把"调用底层服务"从一个全局不确定行为收窄为四条受控通道。
+在 Nimi 的整体架构中，SDK 扮演的角色是**唯一合法网关**：Desktop 和 Web 应用不直接发 gRPC 调用，也不直接拼 HTTP 请求，一切对 Runtime 和 Realm 的访问必须经过 \`@nimiplatform/sdk\`。这不是一个便利性选择——SDK 承担了传输声明、错误投影、导入隔离三项关键职责，把"调用底层服务"从一个全局不确定行为收窄为一组受控 surface。
 
 \`\`\`
 ┌─────────────────────────────────────────────────────────────┐
 │                   Desktop / Web / Kit                       │
 │                                                             │
 │  @nimiplatform/sdk                                          │
-│  ┌──────────┐ ┌────────────┐ ┌───────┐ ┌───────┐             │
-│  │ runtime  │ │ai-provider │ │ realm │ │ scope │             │
-│  └────┬─────┘ └─────┬──────┘ └───┬───┘ └───┬───┘             │
-│       │ gRPC/IPC     │ wraps     │ HTTP/WS  │ memory          │
+│  ┌──────────┐ ┌──────────┐ ┌───────┐ ┌────────┐ ┌─────────┐  │
+│  │  root    │ │ runtime  │ │ realm │ │core ai │ │features │  │
+│  │ NimiClient│ │ gRPC/IPC │ │HTTP/WS│ │agent   │ │app DX   │  │
+│  └────┬─────┘ └────┬─────┘ └───┬───┘ └───┬────┘ └────┬────┘  │
+│       │ explicit    │          │         │           │       │
 └───────┼──────────────┼───────────┼──────────┼────────────────┘
         ▼              ▼           ▼          ▼
-  ┌───────────┐   (delegates   ┌────────┐  (local)
-  │  Runtime  │    to runtime) │ Realm  │
+  ┌───────────┐   (delegates   ┌────────┐  (adapter packages)
+  │  Runtime  │    to runtime) │ Realm  │  @nimiplatform/sdk-adapter-*
   │   (Go)    │                │ Server │
   └───────────┘                └────────┘
 \`\`\`
 
-下面的规范从"为什么分四个子路径"出发，依次展开传输层设计、错误投影模型和导入边界，最后简述每个子路径的领域特征。
+下面的规范从"为什么分层公开 surface"出发，依次展开传输层设计、错误投影模型和导入边界，最后简述每个 surface 的领域特征。
 
-### 9.1 为什么是四个子路径？
+### 9.1 为什么是分层 surface？
 
-四个子路径看似只是目录划分，实际上反映了四种**根本不同的传输模型和信任假设**：
+公开 surface 看似只是目录划分，实际上反映了不同的**传输模型、信任假设和开发者意图**：
 
+- **root NimiClient** — app-owned 显式组合面，组合 Runtime、Realm、App、AI、Agent 与 feature surfaces，不提供全局 singleton
 - **runtime** — 通过 gRPC 或 Tauri IPC 与本地守护进程通信，延迟极低，但需要显式声明传输通道
-- **ai-provider** — 封装 AI SDK v3 协议，把标准化的 \`generateText\` / \`embed\` 调用翻译为 Runtime gRPC 方法；它是**协议适配层**，不做路由决策
 - **realm** — 通过 HTTP/WebSocket 与远程 Realm 服务器通信，延迟和可靠性特征与 gRPC 截然不同
-- **scope** — 纯 in-memory 权限目录，无网络通信，维护 register / publish / revoke 最小闭环
+- **core ai / agent / features** — Nimi-native DX 层，组合 Runtime/Realm 既有权威 surface，不新增 product truth
+- **independent adapters** — Vercel AI、OpenAI-compatible、MCP 等框架桥接属于独立 adapter package，不恢复 base SDK 的 \`ai-provider\` 或 \`ai-app\` 子路径
 
-如果把它们合并为一个入口，transport 切换逻辑、错误码映射、安全边界就会交织在一起，制造出"能调通但偶尔莫名失败"的隐藏耦合。四条子路径让每种通信模式有独立的初始化和失败语义。`);
+如果把它们合并为一个隐式入口，transport 切换逻辑、错误码映射、安全边界和框架适配语义就会交织在一起，制造出"能调通但偶尔莫名失败"的隐藏耦合。分层 surface 让每种通信模式和适配责任有独立的初始化、失败语义和 package 边界。`);
   d.blank();
   d.rule('S-SURFACE-001');
 
@@ -172,7 +174,7 @@ Nimi 的错误由两层组成，二者正交：
   d.blank();
   d.rule('S-SURFACE-003');
 
-  d.text(`Realm 与 Scope 子路径各有最小稳定导出面：Realm 使用实例化 facade 入口（无全局配置），Scope 暴露 in-memory catalog + publish/revoke 语义：`);
+  d.text(`Realm、App/Permissions 与 scope catalog surfaces 各有最小稳定导出面：Realm 使用实例化 facade 入口（无全局配置），App/Permissions 通过显式 host transport 注入，scope catalog 暴露 in-memory register / publish / revoke 语义：`);
   d.blank();
   d.rule('S-SURFACE-004');
 
@@ -181,13 +183,16 @@ Nimi 的错误由两层组成，二者正交：
 为什么 transport 必须显式声明？因为 \`node-grpc\` 和 \`tauri-ipc\` 的行为差异远超一个 adapter 能隐藏的范围：gRPC 有独立连接池、HTTP/2 多路复用、超时语义；IPC 走 Tauri 进程间通道，无网络栈。如果让 SDK "自动检测"使用哪种 transport，调用者在调试失败时将无法判断问题出在网络层还是 IPC 层。
 
 \`\`\`typescript
-import { createPlatformClient } from '@nimiplatform/sdk';
+import { createNimiClient } from '@nimiplatform/sdk';
 
-// app 主路径使用 createPlatformClient；底层 runtime 子路径保留为 escape hatch
-const { runtime } = await createPlatformClient({
+// app 主路径使用 NimiClient；底层 runtime 子路径保留为 escape hatch
+const client = createNimiClient({
   appId: 'my-app',
-  runtimeTransport: { type: 'tauri-ipc' },   // 或 node-grpc + endpoint
+  runtime: {
+    transport: { type: 'tauri-ipc' },   // 或 node-grpc + endpoint
+  },
 });
+const { runtime } = client;
 \`\`\``);
   d.blank();
   d.rule('S-TRANSPORT-001');
@@ -288,21 +293,23 @@ SDK 的公开子路径之间有**物理级导入隔离**，而非仅靠文档约
   d.blank();
   d.rule('S-BOUNDARY-003');
 
-  d.text(`作为迁移清理的一部分，以下旧入口被明确禁止：\`createNimiClient\`、全局 \`OpenAPI.BASE\` / \`OpenAPI.TOKEN\` 赋值。所有配置必须走现代的实例级模式。`);
+  d.text(`作为迁移清理的一部分，以下旧入口被明确禁止：\`createPlatformClient\`、\`createLocalFirstPartyRuntimePlatformClient\`、\`getPlatformClient\`、全局 \`OpenAPI.BASE\` / \`OpenAPI.TOKEN\` 赋值。所有配置必须走 \`createNimiClient()\` / \`NimiClient\` 或实例级子路径模式。`);
   d.blank();
   d.rule('S-BOUNDARY-004');
 
   d.text(`### 9.5 各子路径领域概述
 
-**SDK 根入口** \`createPlatformClient()\` 是 app 级组合面。它把 Runtime 与 Realm 的实例化、auth/session 注入和第一方高层 domains 收敛到一个入口，作为 docs/examples/第一方 app 的推荐主路径。
+**SDK 根入口** \`createNimiClient()\` / \`NimiClient\` 是 app-owned 显式组合面。它把 Runtime、Realm、App、AI、Agent 和 feature surfaces 组合到一个开发者友好的入口，但不创建全局 singleton，也不恢复 retired platform-client 语义。docs、examples 和第一方 app 的推荐主路径都应使用这个 vNext root。
 
 **Runtime SDK** 是最重的 low-level 子路径。\`new Runtime(options)\` 仍是允许的 escape hatch，用于显式 transport、测试和协议级控制；构造后提供与 Runtime 守护进程完整的方法投影：连接器 CRUD、AI 推理触发、认证管理、Grant 操作等。方法按 service 分组（如 S-SURFACE-002 / S-SURFACE-009 所定义），每个方法调用携带显式的 metadata/body 分离。重试策略按上述三层模型执行。
 
-**AI Provider** 是 Runtime SDK 上层的协议适配。它实现 AI SDK v3 的 \`LanguageModelV1\` / \`EmbeddingModelV1\` 接口，将标准化调用（\`generateText\`、\`embed\`、\`generateMedia\`）翻译为对应的 Runtime gRPC 方法。AI Provider **只做协议转换**——路由决策由 Desktop 的 LLM 适配器或调用方完成。
+**Core AI / Agent / Features** 是 Nimi-native DX 层。它们组合 Runtime AI consume、Agent lifecycle、Realm/App projection 和 feature-specific helpers，但不拥有 Runtime/Realm product truth，不伪造 unsupported capability，不把 app chat history 或 workflow truth 写成新的 Runtime method。
 
-**Realm SDK** 通过 HTTP/WebSocket 与远程 Realm 服务器通信。每个 \`new Realm(options)\` 实例独立配置 endpoint、token、headers（如 S-TRANSPORT-004 所定义）；它同样保留为 low-level escape hatch，而 app 主路径优先经由 \`createPlatformClient()\` 获取 Realm 实例。Realm SDK 的认证模型允许 \`NO_AUTH\` 模式用于公开数据读取。本地配置错误使用 \`SDK_REALM_*\` 族错误码。
+**Independent adapter packages** 是框架桥接层。Vercel AI、OpenAI-compatible、MCP、Mastra、LangGraph、LlamaIndex、React 和 Next 等适配必须作为独立 package 或独立 source root 声明能力级别；base SDK 不恢复 \`@nimiplatform/sdk/ai-provider\` 或 \`@nimiplatform/sdk/ai-app\` 子路径。
 
-**Scope SDK** 维护纯内存的权限目录。核心 API 是 \`register\` / \`publish\` / \`revoke\` 三操作，不涉及网络通信。Scope catalog 是进程级的——各 Runtime 实例共享同一个 catalog 实例。`);
+**Realm SDK** 通过 HTTP/WebSocket 与远程 Realm 服务器通信。每个 \`new Realm(options)\` 实例独立配置 endpoint、token、headers（如 S-TRANSPORT-004 所定义）；它保留为 low-level escape hatch，而 app 主路径优先经由显式 \`NimiClient\` 组合 Realm 实例。Realm SDK 的认证模型允许 \`NO_AUTH\` 模式用于公开数据读取。本地配置错误使用 \`SDK_REALM_*\` 族错误码。
+
+**App / Permissions / Scope catalog** 维护 host-injected app resource、permission 与纯内存权限目录。核心 scope catalog API 是 \`register\` / \`publish\` / \`revoke\` 三操作，不涉及网络通信。`);
 
   d.text(`---
 

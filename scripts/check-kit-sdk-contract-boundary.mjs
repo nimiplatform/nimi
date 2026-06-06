@@ -7,12 +7,18 @@ const repoRoot = process.cwd();
 const kitRoot = path.join(repoRoot, 'kit');
 const sdkContractRel = 'kit/core/src/sdk-contract.ts';
 const sdkContractAbs = path.join(repoRoot, sdkContractRel);
+// Keep this list narrow: Kit feature code must route all SDK usage through the
+// contract file, and each SDK subpath admitted here must be a public vNext
+// export used by that contract.
 const allowedSdkContractSpecifiers = new Set([
   '@nimiplatform/sdk',
   '@nimiplatform/sdk/ai',
-  '@nimiplatform/sdk/ai-app',
+  '@nimiplatform/sdk/contracts',
+  '@nimiplatform/sdk/features/conversation',
   '@nimiplatform/sdk/realm',
+  '@nimiplatform/sdk/realm/generated',
   '@nimiplatform/sdk/runtime',
+  '@nimiplatform/sdk/runtime/generated',
   '@nimiplatform/sdk/types',
 ]);
 const ignoredDirectories = new Set([

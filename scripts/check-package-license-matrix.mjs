@@ -9,7 +9,7 @@ const repoRoot = path.resolve(scriptDir, '..');
 
 const LICENSE_CHECKS = [
   { file: 'kit/package.json', expected: 'MIT' },
-  { file: 'sdk/package.json', expected: 'Apache-2.0' },
+  { file: 'sdks/typescript/package.json', expected: 'Apache-2.0' },
 ];
 
 async function main() {

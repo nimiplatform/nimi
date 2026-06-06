@@ -6,7 +6,7 @@ authority_posture:
   spec_status: alignment
   authority_owner:
     - .nimi/spec/runtime/kernel/config-contract.md
-    - .nimi/spec/sdk/kernel/runtime-contract.md
+    - .nimi/spec/sdks/kernel/runtime-contract.md
     - sdk/src/runtime/**
     - runtime/**
   work_type: alignment

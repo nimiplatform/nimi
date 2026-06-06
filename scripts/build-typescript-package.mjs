@@ -10,6 +10,7 @@ function parseArgs(argv) {
   const options = {
     tsconfig: 'tsconfig.build.json',
     outDir: 'dist',
+    tscCwd: '',
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -32,14 +33,24 @@ function parseArgs(argv) {
       index += 1;
       continue;
     }
+    if (token === '--tsc-cwd') {
+      const value = String(argv[index + 1] || '').trim();
+      if (!value || value.startsWith('--')) {
+        throw new Error('Missing value after --tsc-cwd');
+      }
+      options.tscCwd = value;
+      index += 1;
+      continue;
+    }
     if (token === '--help' || token === '-h') {
       process.stdout.write(
         [
-          'Usage: node scripts/build-typescript-package.mjs [--tsconfig <path>] [--out-dir <path>]',
+          'Usage: node scripts/build-typescript-package.mjs [--tsconfig <path>] [--out-dir <path>] [--tsc-cwd <path>]',
           '',
           'Defaults:',
           '  --tsconfig tsconfig.build.json',
           '  --out-dir dist',
+          '  --tsc-cwd <package root>',
           '',
         ].join('\n'),
       );
@@ -193,7 +204,7 @@ function main() {
   }
 
   fs.rmSync(outDirAbsolute, { recursive: true, force: true });
-  runTsc(packageRoot, tsconfigAbsolute);
+  runTsc(options.tscCwd ? path.resolve(packageRoot, options.tscCwd) : packageRoot, tsconfigAbsolute);
   const rewritten = rewriteDistImports(outDirAbsolute);
 
   process.stdout.write(

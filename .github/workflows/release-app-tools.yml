@@ -154,7 +154,7 @@ jobs:
 
           const proofDir = process.env.PROOF_DIR;
           const appPackage = JSON.parse(readFileSync(join(proofDir, 'package.json'), 'utf8'));
-          const sdkPackage = JSON.parse(readFileSync('sdk/package.json', 'utf8'));
+          const sdkPackage = JSON.parse(readFileSync('sdks/typescript/package.json', 'utf8'));
           const kitPackage = JSON.parse(readFileSync('kit/package.json', 'utf8'));
           const appToolsPackage = JSON.parse(readFileSync('app-tools/package.json', 'utf8'));
           const cargoToml = readFileSync('kit/shell/tauri/Cargo.toml', 'utf8');
@@ -200,7 +200,7 @@ jobs:
         if: env.PUBLISH == 'true'
         run: |
           set -euo pipefail
-          sdk_version="$(node -p "JSON.parse(require('node:fs').readFileSync('sdk/package.json', 'utf8')).version")"
+          sdk_version="$(node -p "JSON.parse(require('node:fs').readFileSync('sdks/typescript/package.json', 'utf8')).version")"
           kit_version="$(node -p "JSON.parse(require('node:fs').readFileSync('kit/package.json', 'utf8')).version")"
           shell_version="$(node -e "const fs=require('node:fs'); const m=fs.readFileSync('kit/shell/tauri/Cargo.toml','utf8').match(/^version = \"([^\"]+)\"/m); if (!m) process.exit(1); console.log(m[1]);")"
 

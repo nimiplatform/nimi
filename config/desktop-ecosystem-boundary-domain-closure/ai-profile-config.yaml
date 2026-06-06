@@ -8,7 +8,7 @@ authority_posture:
     - .nimi/spec/platform/kernel/tables/ai-profile-factory-catalog.yaml
     - .nimi/spec/platform/kernel/tables/local-config-file-registry.yaml
     - .nimi/spec/desktop/kernel/ai-profile-config-contract.md
-    - .nimi/spec/sdk/kernel/ai-config-surface-contract.md
+    - .nimi/spec/sdks/kernel/ai-config-surface-contract.md
     - sdk/src/ai/**
     - sdk/src/platform-catalog/**
     - kit/features/model-config/**
@@ -34,7 +34,7 @@ audited_globs:
   - .nimi/spec/platform/kernel/tables/ai-profile-factory-catalog.yaml
   - .nimi/spec/platform/kernel/tables/local-config-file-registry.yaml
   - .nimi/spec/desktop/kernel/ai-profile-config-contract.md
-  - .nimi/spec/sdk/kernel/ai-config-surface-contract.md
+  - .nimi/spec/sdks/kernel/ai-config-surface-contract.md
   - apps/desktop/src-tauri/src/desktop_ai_config_library.rs
   - apps/desktop/src-tauri/src/desktop_ai_config_library/**
   - apps/desktop/src-tauri/src/account_profile_library.rs

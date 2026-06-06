@@ -200,7 +200,8 @@ test('standalone scaffold forks the reference app with rewritten identity', () =
     // Identity is rewritten everywhere; no reference-app identity leaks through.
     assert.match(generated.read('nimi.app.yaml'), /app_id: acme\.widget/);
     assert.match(generated.read('nimi.app.yaml'), /profile: standalone/);
-    assert.match(generated.read('src/shell/auth/runtime-platform.ts'), /appId = 'acme\.widget'/);
+    assert.match(generated.read('src/shell/auth/app-identity.ts'), /appId = 'acme\.widget'/);
+    assert.match(generated.read('src/shell/auth/runtime-platform.ts'), /import \{ appId \} from '\.\/app-identity\.js'/);
     const tauri = JSON.parse(generated.read('src-tauri/tauri.conf.json'));
     assert.equal(tauri.identifier, 'ai.nimi.apps.acme.widget');
     assert.equal(tauri.productName, 'Acme Widget');
@@ -210,6 +211,7 @@ test('standalone scaffold forks the reference app with rewritten identity', () =
 
     const identityScannedFiles = [
       'nimi.app.yaml',
+      'src/shell/auth/app-identity.ts',
       'src/shell/auth/runtime-platform.ts',
       'src-tauri/tauri.conf.json',
       'src-tauri/Cargo.toml',
@@ -239,9 +241,12 @@ test('standalone scaffold forks the reference app with rewritten identity', () =
     assert.equal(Object.hasOwn(lock.managedFileHashes, 'src/tester/tester-workbench.tsx'), false);
 
     assertTauriIconSupport(generated);
-    assert.match(generated.read('src/shell/auth/runtime-platform.ts'), /createNimiAppRuntimePlatformClient/);
-    assert.match(generated.read('src/shell/auth/runtime-platform.ts'), /mode: 'local-first-party'/);
-    assert.doesNotMatch(generated.read('src/shell/auth/runtime-platform.ts'), /dev-standalone/);
+    const runtimePlatform = generated.read('src/shell/auth/runtime-platform.ts');
+    assert.match(runtimePlatform, /createNimiClient/);
+    assert.match(runtimePlatform, /createLocalFirstPartyRuntimeProjection/);
+    assert.match(runtimePlatform, /runtimeAccountLoginEnabled = true/);
+    assert.match(runtimePlatform, /source: 'runtime-local-first-party'/);
+    assert.doesNotMatch(runtimePlatform, /dev-standalone/);
     assert.match(generated.read('nimi.app.yaml'), /manifest_role: submitted-input/);
     assert.match(generated.read('.nimi/admission/submission.yaml'), /submission_role: developer-submitted-input/);
     assert.match(generated.read('.nimi/admission/build-profile.yaml'), /lockfile_policy: author-install-generates-lockfile/);
@@ -262,7 +267,7 @@ test('app id maps losslessly to the Tauri bundle identifier', () => {
   });
   try {
     assert.match(generated.read('nimi.app.yaml'), /app_id: acme-widget/);
-    assert.match(generated.read('src/shell/auth/runtime-platform.ts'), /appId = 'acme-widget'/);
+    assert.match(generated.read('src/shell/auth/app-identity.ts'), /appId = 'acme-widget'/);
     const tauri = JSON.parse(generated.read('src-tauri/tauri.conf.json'));
     assert.equal(tauri.identifier, 'ai.nimi.apps.acme-widget');
   } finally {
@@ -414,7 +419,7 @@ test('create accepts explicit identity and rewrites every reference identity lit
     assert.equal(intent.appId, 'studio.canvas');
 
     assert.match(readFileSync(path.join(target, 'nimi.app.yaml'), 'utf8'), /app_id: studio\.canvas/);
-    assert.match(readFileSync(path.join(target, 'src/shell/auth/runtime-platform.ts'), 'utf8'), /appId = 'studio\.canvas'/);
+    assert.match(readFileSync(path.join(target, 'src/shell/auth/app-identity.ts'), 'utf8'), /appId = 'studio\.canvas'/);
     assert.match(readFileSync(path.join(target, 'src-tauri/Cargo.toml'), 'utf8'), /name = "studio-canvas-shell"/);
 
     const doctor = runNimiApp(['doctor', '--dir', target], tempRoot, { env });

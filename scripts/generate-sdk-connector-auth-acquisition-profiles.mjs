@@ -7,9 +7,9 @@ import YAML from 'yaml';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
-const tablePath = path.join(repoRoot, '.nimi', 'spec', 'sdk', 'kernel', 'tables', 'connector-auth-acquisition-profiles.yaml');
+const tablePath = path.join(repoRoot, '.nimi', 'spec', 'sdks', 'kernel', 'tables', 'connector-auth-acquisition-profiles.yaml');
 const runtimeAuthProfilesPath = path.join(repoRoot, '.nimi', 'spec', 'runtime', 'kernel', 'tables', 'connector-auth-profiles.yaml');
-const sdkOutPath = path.join(repoRoot, 'sdk', 'src', 'runtime', 'connector-auth-acquisition-profiles.generated.ts');
+const sdkVnextOutPath = path.join(repoRoot, 'sdks', 'typescript', 'runtime', 'connector-auth-acquisition-profiles.generated.ts');
 const desktopTauriOutPath = path.join(
   repoRoot,
   'apps',
@@ -224,9 +224,9 @@ async function main() {
   const profiles = parseProfiles(raw, parseRuntimeAuthProfileIDs(runtimeAuthProfiles));
   const outputs = [
     {
-      path: sdkOutPath,
+      path: sdkVnextOutPath,
       content: renderTS(profiles),
-      label: 'SDK TypeScript',
+      label: 'vNext SDK TypeScript',
     },
     {
       path: desktopTauriOutPath,

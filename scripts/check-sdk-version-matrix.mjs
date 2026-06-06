@@ -12,16 +12,19 @@ import { fileURLToPath } from 'node:url';
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
 
+const SDK_PACKAGE_PATH = 'sdks/typescript';
+const ARCHIVED_SDK_PACKAGE_JSON = 'archive/sdk-pre-vnext-20260606/package.json';
+
 const SDK_PACKAGES = [
-  'sdk',
-  'kit',
-  'app-tools',
+  { id: 'sdk', path: SDK_PACKAGE_PATH },
+  { id: 'kit', path: 'kit' },
+  { id: 'app-tools', path: 'app-tools' },
 ];
 const PUBLIC_RUNTIME_SURFACE_PATHS = [
-  'sdk/src/runtime/index.ts',
-  'sdk/src/runtime/types.ts',
-  'sdk/src/runtime/types-runtime-modules.ts',
-  'sdk/src/types/index.ts',
+  'sdks/typescript/runtime/index.ts',
+  'sdks/typescript/runtime/runtime-types.ts',
+  'sdks/typescript/runtime/runtime-facade-types.ts',
+  'sdks/typescript/types/index.ts',
 ];
 
 function runGit(args) {
@@ -61,7 +64,7 @@ function readPackageVersionFromGit(ref) {
   if (!normalizedRef) {
     return '';
   }
-  const result = runGit(['show', `${normalizedRef}:sdk/package.json`]);
+  const result = runGit(['show', `${normalizedRef}:${SDK_PACKAGE_PATH}/package.json`]);
   if (result.status !== 0) {
     return '';
   }
@@ -74,7 +77,7 @@ function readPackageVersionFromGit(ref) {
 
 function detectRuntimeSurfaceVersionContext(currentVersion) {
   const baseRef = String(process.env.NIMI_BASE_SHA || '').trim() || 'HEAD~1';
-  const focusPaths = [...PUBLIC_RUNTIME_SURFACE_PATHS, 'sdk/package.json'];
+  const focusPaths = [...PUBLIC_RUNTIME_SURFACE_PATHS, `${SDK_PACKAGE_PATH}/package.json`];
 
   const worktreeChangedPaths = listGitPaths(['diff', '--name-only', 'HEAD', '--', ...focusPaths]);
   const worktreeSurfacePaths = worktreeChangedPaths.filter((filePath) => PUBLIC_RUNTIME_SURFACE_PATHS.includes(filePath));
@@ -115,16 +118,16 @@ async function main() {
 
   // Read all package.json files
   for (const pkg of SDK_PACKAGES) {
-    const pkgJsonPath = path.join(repoRoot, pkg, 'package.json');
+    const pkgJsonPath = path.join(repoRoot, pkg.path, 'package.json');
     let raw;
     try {
       raw = await fs.readFile(pkgJsonPath, 'utf8');
     } catch {
-      violations.push(`missing package.json: ${pkg}/package.json`);
+      violations.push(`missing package.json: ${pkg.path}/package.json`);
       continue;
     }
     const parsed = JSON.parse(raw);
-    packageVersions.set(parsed.name, { version: parsed.version, path: pkg, pkg: parsed });
+    packageVersions.set(parsed.name, { version: parsed.version, path: pkg.path, pkg: parsed });
   }
 
   // Check cross-references point to workspace protocol
@@ -158,17 +161,28 @@ async function main() {
     }
   }
 
-  const sdkVersion = packageVersions.get('@nimiplatform/sdk')?.version || '';
+  const sdkPackage = packageVersions.get('@nimiplatform/sdk');
+  const sdkVersion = sdkPackage?.version || '';
   const kitVersion = packageVersions.get('@nimiplatform/kit')?.version || '';
   const appToolsVersion = packageVersions.get('@nimiplatform/app-tools')?.version || '';
   const expectedSdkRange = sdkVersion ? `^${sdkVersion}` : '';
+  const sdkPreCutover = sdkPackage?.pkg?.nimi?.preCutover === true;
+  const archivedSdkPackage = JSON.parse(await fs.readFile(path.join(repoRoot, ARCHIVED_SDK_PACKAGE_JSON), 'utf8'));
+  const expectedPublicSdkRange = sdkPreCutover
+    ? `^${String(archivedSdkPackage.version || '').trim()}`
+    : expectedSdkRange;
   const expectedKitRange = kitVersion ? `^${kitVersion}` : '';
   const expectedAppToolsRange = appToolsVersion ? `^${appToolsVersion}` : '';
 
   const examplesAppTemplate = JSON.parse(await fs.readFile(path.join(repoRoot, 'examples/app-template/package.json'), 'utf8'));
-  if (examplesAppTemplate.dependencies?.['@nimiplatform/sdk'] !== expectedSdkRange) {
+  const examplesSdkRange = String(examplesAppTemplate.dependencies?.['@nimiplatform/sdk'] || '');
+  const allowedExampleSdkRanges = new Set([
+    expectedPublicSdkRange,
+    ...(sdkPreCutover ? ['workspace:*'] : []),
+  ]);
+  if (!allowedExampleSdkRanges.has(examplesSdkRange)) {
     violations.push(
-      `examples/app-template/package.json must depend on @nimiplatform/sdk as "${expectedSdkRange}"`,
+      `examples/app-template/package.json must depend on @nimiplatform/sdk as one of ${JSON.stringify([...allowedExampleSdkRanges])}`,
     );
   }
 
@@ -176,8 +190,8 @@ async function main() {
   const sdkVersionMatch = appToolsSource.match(/const SDK_VERSION = '([^']+)';/);
   const kitVersionMatch = appToolsSource.match(/const KIT_VERSION = '([^']+)';/);
   const appToolsVersionMatch = appToolsSource.match(/const APP_TOOLS_VERSION = '([^']+)';/);
-  if (!sdkVersionMatch || sdkVersionMatch[1] !== expectedSdkRange) {
-    violations.push(`app-tools/lib/index.mjs SDK_VERSION must be "${expectedSdkRange}"`);
+  if (!sdkVersionMatch || sdkVersionMatch[1] !== expectedPublicSdkRange) {
+    violations.push(`app-tools/lib/index.mjs SDK_VERSION must be "${expectedPublicSdkRange}"`);
   }
   if (!kitVersionMatch || kitVersionMatch[1] !== expectedKitRange) {
     violations.push(`app-tools/lib/index.mjs KIT_VERSION must be "${expectedKitRange}"`);
@@ -186,8 +200,7 @@ async function main() {
     violations.push(`app-tools/lib/index.mjs APP_TOOLS_VERSION must be "${expectedAppToolsRange}"`);
   }
 
-  const sdkPackage = packageVersions.get('@nimiplatform/sdk');
-  if (sdkPackage?.version) {
+  if (sdkPackage?.version && !sdkPreCutover) {
     const runtimeSurfaceContext = detectRuntimeSurfaceVersionContext(sdkPackage.version);
     if (
       runtimeSurfaceContext

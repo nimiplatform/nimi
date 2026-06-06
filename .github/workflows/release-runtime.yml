@@ -151,7 +151,7 @@ jobs:
           NIMI_ARTIFACT_PATHS_JSON: ${{ steps.runtime_archives.outputs.archives_json }}
           NIMI_SIGN_IDENTITY_REGEX: https://github.com/${{ github.repository }}/.github/workflows/release-runtime.yml@.*
           NIMI_SIGN_OUTPUT_MANIFEST: dist/runtime/signing-manifest.json
-        run: node scripts/release/sign-and-sbom-artifacts.mjs
+        run: pnpm check:runtime-release-signing
 
       - name: Sign and verify checksums.txt
         run: |

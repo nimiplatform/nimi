@@ -65,10 +65,6 @@ const ALLOW_FILES = [
   'runtime/internal/services/cognition/authorizer_test.go',
   'runtime/internal/services/cognition/workspace_denied_test.go',
   'runtime/internal/grpcserver/registration_invariant_test.go',
-  // Wave-4 SDK assertion test (K5.1): pins the retired token as a
-  // forbidden constant the test validates against; guarding it
-  // would defang the assertion.
-  'sdk/test/runtime-method-ids.test.ts',
 ];
 
 // Directories the walker never descends into.

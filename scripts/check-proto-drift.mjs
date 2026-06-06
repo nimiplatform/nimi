@@ -10,6 +10,8 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
 const targets = [
   'runtime/gen',
+];
+const forbiddenTargets = [
   'sdk/src/runtime/generated',
 ];
 
@@ -61,6 +63,17 @@ function diffSnapshots(before, after) {
 }
 
 async function main() {
+  for (const target of forbiddenTargets) {
+    try {
+      await fs.access(path.join(repoRoot, target));
+      process.stderr.write(`proto drift check failed: archived SDK output root exists before generation: ${target}\n`);
+      process.exitCode = 1;
+      return;
+    } catch {
+      // Expected before generation.
+    }
+  }
+
   const beforeSnapshots = new Map();
   for (const target of targets) {
     beforeSnapshots.set(target, await snapshotTarget(target));
@@ -94,6 +107,24 @@ async function main() {
     if (diff.length > 0) {
       drifted.push(...diff);
     }
+  }
+
+  const recreatedForbiddenTargets = [];
+  for (const target of forbiddenTargets) {
+    try {
+      await fs.access(path.join(repoRoot, target));
+      recreatedForbiddenTargets.push(target);
+    } catch {
+      // Expected: archived SDK generated roots must not be recreated.
+    }
+  }
+  if (recreatedForbiddenTargets.length > 0) {
+    process.stderr.write('proto drift check failed: proto generation recreated archived SDK output roots\n');
+    for (const target of recreatedForbiddenTargets) {
+      process.stderr.write(`  - ${target}\n`);
+    }
+    process.exitCode = 1;
+    return;
   }
 
   if (drifted.length > 0) {

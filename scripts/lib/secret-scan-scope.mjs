@@ -6,8 +6,8 @@ export const generatedProtocolSecretScanExcludes = [
     driftGate: 'pnpm proto:drift-check',
   },
   {
-    label: 'SDK TypeScript protobuf stubs',
-    pattern: /^sdk\/src\/runtime\/generated\/(?:google\/protobuf|runtime\/v1)\/[^/]+\.ts$/u,
+    label: 'SDK vNext TypeScript protobuf stubs',
+    pattern: /^sdks\/typescript\/core-generated\/runtime-protobuf\/(?:google\/protobuf|runtime\/v1)\/[^/]+\.ts$/u,
     source: 'proto/runtime/v1/*.proto and imported protobuf well-known types',
     driftGate: 'pnpm proto:drift-check',
   },

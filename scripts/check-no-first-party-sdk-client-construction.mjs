@@ -30,18 +30,25 @@ const IGNORED_FILE_PATTERNS = [
   /\.d\.ts$/,
 ];
 
-const ALLOWLIST = new Set();
+const ALLOWLIST = new Set([
+  // Desktop's single SDK session entry. Production callers must consume the
+  // exported accessors instead of constructing Runtime/Realm elsewhere.
+  'apps/desktop/src/shell/renderer/infra/sdk/desktop-nimi-client-session.ts',
+  // Public permalink page is a Realm read-only web entry, not an authenticated
+  // first-party app session.
+  'apps/web/src/post-permalink-page.tsx',
+]);
 
 const CHECKS = [
   {
     label: 'new Runtime',
     pattern: /\bnew\s+Runtime\s*\(/g,
-    message: 'first-party app production code must use createPlatformClient instead of new Runtime()',
+    message: 'first-party app production code must use an admitted vNext SDK session entry instead of constructing Runtime ad hoc',
   },
   {
     label: 'new Realm',
     pattern: /\bnew\s+Realm\s*\(/g,
-    message: 'first-party app production code must use createPlatformClient instead of new Realm()',
+    message: 'first-party app production code must use an admitted vNext SDK session entry instead of constructing Realm ad hoc',
   },
 ];
 

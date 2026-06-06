@@ -5,79 +5,33 @@ import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const repoRoot = resolve(fileURLToPath(new URL('..', import.meta.url)));
-const methodIdsFile = resolve(repoRoot, 'sdk/src/runtime/method-ids.ts');
+const manifestFile = resolve(repoRoot, 'sdks/typescript/core-generated/runtime-core.manifest.json');
 const outputFiles = [
   resolve(repoRoot, 'kit/shell/tauri/src/runtime_bridge/generated/method_ids.rs'),
 ];
-function parseRuntimeMethodMap(source) {
-  const lines = source.split('\n');
-  const map = new Map();
 
-  let inRuntimeMethodIds = false;
-  let currentService = '';
+const DENIED_METHOD_IDS = Object.freeze([
+  '/nimi.runtime.v1.RuntimeWorkflowService/SubmitWorkflow',
+  '/nimi.runtime.v1.RuntimeWorkflowService/GetWorkflow',
+  '/nimi.runtime.v1.RuntimeWorkflowService/CancelWorkflow',
+  '/nimi.runtime.v1.RuntimeWorkflowService/SubscribeWorkflowEvents',
+  '/nimi.runtime.v1.RuntimeModelService/ListModels',
+  '/nimi.runtime.v1.RuntimeModelService/PullModel',
+  '/nimi.runtime.v1.RuntimeModelService/RemoveModel',
+  '/nimi.runtime.v1.RuntimeModelService/CheckModelHealth',
+  '/nimi.runtime.v1.RuntimeLocalService/ResolveLocalStateReconciliation',
+  '/nimi.runtime.v1.RuntimeLocalService/ExecuteLocalStateCutover',
+]);
 
-  for (const rawLine of lines) {
-    const line = rawLine.trim();
-    if (!inRuntimeMethodIds) {
-      if (line.startsWith('export const RuntimeMethodIds = {')) {
-        inRuntimeMethodIds = true;
-      }
-      continue;
-    }
-
-    if (line === '} as const;') {
-      break;
-    }
-
-    const serviceMatch = line.match(/^([a-zA-Z0-9_]+): \{$/);
-    if (serviceMatch) {
-      currentService = serviceMatch[1];
-      continue;
-    }
-
-    if (line === '},') {
-      currentService = '';
-      continue;
-    }
-
-    if (!currentService) {
-      continue;
-    }
-
-    const methodMatch = line.match(
-      /^([a-zA-Z0-9_]+): '([/][^']+)'[,]?$/,
-    );
-    if (!methodMatch) {
-      continue;
-    }
-    const method = methodMatch[1];
-    const path = methodMatch[2];
-    map.set(`${currentService}.${method}`, path);
+function readManifest() {
+  const manifest = JSON.parse(readFileSync(manifestFile, 'utf8'));
+  if (!Array.isArray(manifest.method_ids)) {
+    throw new Error('runtime core manifest missing method_ids array');
   }
-
-  return map;
-}
-
-function parseMethodReferences(source, constName) {
-  const escapedName = constName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const blockPattern = new RegExp(
-    `export const ${escapedName}:[\\s\\S]*?Object\\.freeze\\(\\[([\\s\\S]*?)\\]\\);`,
-  );
-  const streamBlockMatch = source.match(blockPattern);
-  if (!streamBlockMatch) {
-    return [];
+  if (!Array.isArray(manifest.codec_maps)) {
+    throw new Error('runtime core manifest missing codec_maps array');
   }
-  const block = streamBlockMatch[1] || '';
-  const references = [];
-  const regex = /RuntimeMethodIds\.([a-zA-Z0-9_]+)\.([a-zA-Z0-9_]+)/g;
-  while (true) {
-    const match = regex.exec(block);
-    if (!match) {
-      break;
-    }
-    references.push(`${match[1]}.${match[2]}`);
-  }
-  return references;
+  return manifest;
 }
 
 function uniqueSorted(values) {
@@ -109,28 +63,24 @@ pub fn is_stream_method(method_id: &str) -> bool {
 
 function main() {
   const checkMode = process.argv.includes('--check');
-  const source = readFileSync(methodIdsFile, 'utf8');
-  const methodMap = parseRuntimeMethodMap(source);
-  const deniedReferences = parseMethodReferences(source, 'RuntimeMethodGroupDeniedMethodIds');
-  const deniedMethods = new Set(deniedReferences.map((reference) => {
-    const method = methodMap.get(reference);
-    if (!method) {
-      throw new Error(`failed to resolve denied method reference: ${reference}`);
-    }
-    return method;
-  }));
+  const manifest = readManifest();
+  const methodIds = manifest.method_ids.map((methodId) => String(methodId));
+  const methodIdSet = new Set(methodIds);
+  const deniedMethods = new Set(DENIED_METHOD_IDS);
+  const missingDeniedMethods = DENIED_METHOD_IDS.filter((methodId) => !methodIdSet.has(methodId));
+  if (missingDeniedMethods.length > 0) {
+    throw new Error(`runtime bridge denied methods missing from manifest: ${missingDeniedMethods.join(', ')}`);
+  }
   const allowlistedMethods = uniqueSorted(
-    Array.from(methodMap.values()).filter((method) => !deniedMethods.has(method)),
+    methodIds.filter((method) => !deniedMethods.has(method)),
   );
 
-  const streamReferences = parseMethodReferences(source, 'RuntimeStreamMethodIds');
-  const streamMethods = uniqueSorted(streamReferences.map((reference) => {
-    const method = methodMap.get(reference);
-    if (!method) {
-      throw new Error(`failed to resolve stream method reference: ${reference}`);
-    }
-    return method;
-  }));
+  const streamMethods = uniqueSorted(
+    manifest.codec_maps
+      .filter((entry) => entry?.kind === 'server_stream')
+      .map((entry) => String(entry.method_id || ''))
+      .filter((methodId) => methodId && !deniedMethods.has(methodId)),
+  );
 
   const unknownStreams = streamMethods.filter(
     (method) => !allowlistedMethods.includes(method),

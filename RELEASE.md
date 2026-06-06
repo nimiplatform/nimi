@@ -79,7 +79,7 @@ Runtime 版本不通过仓库内 `version.go` 固化，直接由 Git tag `runtim
 
 SDK 发布前必须更新：
 
-- `sdk/package.json`
+- `sdks/typescript/package.json`
 
 Kit 发布前必须更新：
 

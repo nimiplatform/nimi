@@ -366,36 +366,43 @@ function checkMemoryProtoAdmission() {
 }
 
 function checkRuntimeMemorySdkProjection() {
-  const methodIdsRel = 'sdk/src/runtime/method-ids.ts';
-  const methodIds = read(methodIdsRel);
-  const memoryBlock = methodIds.match(/\bmemory:\s*\{([\s\S]*?)\n\s*\},\n\s*agent:/)?.[1] || '';
-  if (!memoryBlock) {
-    fail(`${methodIdsRel} missing RuntimeMethodIds.memory block`);
+  const manifestRel = 'sdks/typescript/core-generated/runtime-core.manifest.json';
+  const manifest = JSON.parse(read(manifestRel));
+  const methodIds = new Set(Array.isArray(manifest.method_ids)
+    ? manifest.method_ids.map((methodId) => String(methodId))
+    : []);
+  if (methodIds.size === 0) {
+    fail(`${manifestRel} missing method_ids`);
   }
-  if (/RuntimeMemoryService/.test(memoryBlock)) {
-    fail(`${methodIdsRel} RuntimeMethodIds.memory must not point at retired RuntimeMemoryService`);
+  const runtimeTypedClientRel = 'sdks/typescript/core-generated/runtime-typed-client.ts';
+  const runtimeTypedClient = read(runtimeTypedClientRel);
+  if (/RuntimeMemoryService/.test(runtimeTypedClient)) {
+    fail(`${runtimeTypedClientRel} must not point at retired RuntimeMemoryService`);
   }
-  for (const [sdkMethod, rpcMethod] of [
-    ['createBank', 'CreateBank'],
-    ['getBank', 'GetBank'],
-    ['listBanks', 'ListBanks'],
-    ['deleteBank', 'DeleteBank'],
-    ['retain', 'Retain'],
-    ['recall', 'Recall'],
-    ['history', 'History'],
-    ['deleteMemory', 'DeleteMemory'],
-    ['inspectMemoryEmbeddingRuntime', 'InspectMemoryEmbeddingRuntime'],
-    ['requestMemoryEmbeddingRuntimeBind', 'RequestMemoryEmbeddingRuntimeBind'],
-    ['requestMemoryEmbeddingRuntimeCutover', 'RequestMemoryEmbeddingRuntimeCutover'],
-    ['subscribeEvents', 'SubscribeMemoryEvents'],
+  for (const rpcMethod of [
+    'CreateBank',
+    'GetBank',
+    'ListBanks',
+    'DeleteBank',
+    'Retain',
+    'Recall',
+    'History',
+    'DeleteMemory',
+    'InspectMemoryEmbeddingRuntime',
+    'RequestMemoryEmbeddingRuntimeBind',
+    'RequestMemoryEmbeddingRuntimeCutover',
+    'SubscribeMemoryEvents',
   ]) {
-    const expected = new RegExp(`${sdkMethod}:\\s*['"]/nimi\\.runtime\\.v1\\.RuntimeCognitionService/${rpcMethod}['"]`);
-    if (!expected.test(memoryBlock)) {
-      fail(`${methodIdsRel} RuntimeMethodIds.memory.${sdkMethod} must target RuntimeCognitionService/${rpcMethod}`);
+    const methodId = `/nimi.runtime.v1.RuntimeCognitionService/${rpcMethod}`;
+    if (!methodIds.has(methodId)) {
+      fail(`${manifestRel} missing ${methodId}`);
+    }
+    if (!runtimeTypedClient.includes(`methodId: "${methodId}"`)) {
+      fail(`${runtimeTypedClientRel} missing generated call for ${methodId}`);
     }
   }
 
-  const methodGroupsRel = '.nimi/spec/sdk/kernel/tables/runtime-method-groups.yaml';
+  const methodGroupsRel = '.nimi/spec/sdks/kernel/tables/runtime-method-groups.yaml';
   const methodGroups = YAML.parse(read(methodGroupsRel));
   const memoryGroup = methodGroups?.groups?.find((group) => group?.group === 'memory_service_projection');
   if (!memoryGroup) {

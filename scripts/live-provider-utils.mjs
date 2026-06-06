@@ -409,7 +409,7 @@ export function parseSdkLiveTestDefinitions(sdkLiveSmokePath) {
   const repoRoot = resolveRepoRoot(import.meta.url);
   const sourceProviderDir = path.join(repoRoot, 'runtime', 'catalog', 'source', 'providers');
   const definitions = new Map();
-  if (source.includes('registerSdkProviderCapabilityMatrixTests')) {
+  if (source.includes('registerSdkVNextProviderCapabilityMatrixTests')) {
     const matrix = loadSourceProviderCapabilityMatrix(sourceProviderDir);
     for (const [provider, capabilities] of matrix.entries()) {
       for (const iface of capabilities) {
@@ -417,12 +417,12 @@ export function parseSdkLiveTestDefinitions(sdkLiveSmokePath) {
           definitions,
           provider,
           iface,
-          `nimi sdk ai-provider live smoke: ${provider} ${iface}`,
+          `nimi sdk vnext live smoke: ${provider} ${iface}`,
         );
       }
     }
   }
-  const testRegex = /test\(\s*['"]nimi sdk ai-provider live smoke:\s*([^'"]+?)\s+generate text['"]/g;
+  const testRegex = /test\(\s*['"]nimi sdk vnext live smoke:\s*([^'"]+?)\s+generate text['"]/g;
   let match;
   while ((match = testRegex.exec(source)) !== null) {
     const label = String(match[1] || '').trim();
@@ -430,10 +430,10 @@ export function parseSdkLiveTestDefinitions(sdkLiveSmokePath) {
     if (!provider) {
       continue;
     }
-    const testName = `nimi sdk ai-provider live smoke: ${label} generate text`;
+    const testName = `nimi sdk vnext live smoke: ${label} generate text`;
     ensureNestedMapSet(definitions, provider, 'generate', testName);
   }
-  const capabilityRegex = /test\(\s*['"]nimi sdk ai-provider live smoke:\s*([^'"]+?)\s+(generate|embed|image|video|tts|stt|music|voice_clone|voice_design)['"]/g;
+  const capabilityRegex = /test\(\s*['"]nimi sdk vnext live smoke:\s*([^'"]+?)\s+(generate|embed|image|video|tts|stt|music|voice_clone|voice_design)['"]/g;
   while ((match = capabilityRegex.exec(source)) !== null) {
     const providerLabel = String(match[1] || '').trim();
     const provider = canonicalProviderId(providerLabel);
@@ -441,7 +441,7 @@ export function parseSdkLiveTestDefinitions(sdkLiveSmokePath) {
     if (!provider || !iface) {
       continue;
     }
-    const testName = `nimi sdk ai-provider live smoke: ${providerLabel} ${iface}`;
+    const testName = `nimi sdk vnext live smoke: ${providerLabel} ${iface}`;
     ensureNestedMapSet(definitions, provider, iface, testName);
   }
   return definitions;

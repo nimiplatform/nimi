@@ -6,13 +6,14 @@ import { fileURLToPath } from 'node:url';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
-const reasonCodeFile = path.join(repoRoot, 'sdk/src/types/reason-code.ts');
+const reasonCodeFile = path.join(repoRoot, 'sdks/typescript/types/reason-code.ts');
 
 const CODE_VALUE_PATTERN = /^[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)*$/;
 const SOURCE_ROOTS = [
   'apps',
-  'sdk/src',
-  'sdk/test',
+  'examples',
+  'kit',
+  'sdks/typescript',
 ];
 const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx', '.mts', '.cts', '.js', '.mjs', '.cjs']);
 const SKIP_DIRS = new Set([
@@ -21,6 +22,7 @@ const SKIP_DIRS = new Set([
   '.turbo',
   '.vercel',
   '.vite',
+  '.tmp',
   'build',
   'coverage',
   'dist',

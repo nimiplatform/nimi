@@ -5,8 +5,8 @@ migrated_in_this_commit: true
 authority_posture:
   spec_status: alignment
   authority_owner:
-    - .nimi/spec/sdk/kernel/runtime-contract.md
-    - .nimi/spec/sdk/kernel/surface-contract.md
+    - .nimi/spec/sdks/kernel/runtime-contract.md
+    - .nimi/spec/sdks/kernel/surface-contract.md
     - sdk/src/runtime/local-runtime-client/**
     - apps/desktop/src/shell/renderer/infra/bootstrap/runtime-local-runtime-client.ts
     - apps/desktop/src/shell/renderer/bridge/runtime-bridge/local-runtime-os-helpers.ts

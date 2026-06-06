@@ -1,9 +1,14 @@
 import assert from 'node:assert/strict';
-import { parseAppConsumeEvent } from '../sdk/src/runtime/runtime-agent-surface-parsers.ts';
-import { summarizeRuntimeAgentTimeline } from '../apps/desktop/src/shell/renderer/features/chat/chat-agent-runtime-agent-timeline.ts';
+import {
+  projectNimiRuntimeAgentAppMessageEvent,
+  summarizeNimiRuntimeAgentTimeline,
+  toNimiRuntimeProtoStruct,
+  type NimiRuntimeAgentConsumeClient,
+} from '../sdks/typescript/runtime/index.ts';
 import { SdkDriver } from '../apps/avatar/src/shell/renderer/sdk/SdkDriver.ts';
 import type { AgentDataBundle, AgentDataDriver, AppOriginEvent, DriverStatus } from '../apps/avatar/src/shell/renderer/driver/types.ts';
 import { wireAvatarVoiceLipsync } from '../apps/avatar/src/shell/renderer/voice-lipsync/avatar-voice-lipsync.ts';
+import type { AudioPlaybackState } from '@nimiplatform/kit/features/avatar/headless';
 
 const turnId = 'acceptance-turn-1';
 const streamId = 'acceptance-stream-1';
@@ -16,7 +21,7 @@ const runtimePayload = {
   conversation_anchor_id: 'anchor-acceptance',
   turn_id: turnId,
   stream_id: streamId,
-  timeline: {
+  runtime_timeline: {
     turn_id: turnId,
     stream_id: streamId,
     channel: 'text',
@@ -30,29 +35,21 @@ const runtimePayload = {
     provider_neutral: true,
     app_local_authority: false,
   },
-  detail: {
-    kind: 'avatar.voice_timing',
-    payload: {
-      voice_timing: {
-        adapter_id: 'runtime.voice.timeline-levels',
-        frames: [
-          { offset_ms: 0, mouth_open_y: 0.14 },
-          { offset_ms: 80, mouth_open_y: 0.82 },
-          { offset_ms: 160, mouth_open_y: 0.28 },
-        ],
-      },
-    },
+  structured: {
+    acceptance_marker: 'avatar-runtime-timeline',
   },
 };
 
-const sdkEvent = parseAppConsumeEvent('runtime.agent.turn.structured', runtimePayload);
+const sdkEvent = projectNimiRuntimeAgentAppMessageEvent({
+  messageType: 'runtime.agent.turn.structured',
+  payload: toNimiRuntimeProtoStruct(runtimePayload),
+});
+assert.ok(sdkEvent, 'Runtime Agent app message must project into an SDK consume event');
 assert.equal(sdkEvent.turnId, turnId);
 assert.equal(sdkEvent.streamId, streamId);
 assert.equal(sdkEvent.timeline?.timebaseOwner, 'runtime');
 assert.equal(sdkEvent.timeline?.appLocalAuthority, false);
-
-const desktopTimeline = summarizeRuntimeAgentTimeline(sdkEvent);
-assert.deepEqual(desktopTimeline, {
+assert.deepEqual(summarizeNimiRuntimeAgentTimeline(sdkEvent), {
   turnId,
   streamId,
   channel: 'text',
@@ -72,21 +69,19 @@ async function* streamRuntimeEvents() {
   await new Promise(() => {});
 }
 
-const runtime = {
-  agent: {
-    turns: {
-      getSessionSnapshot: async () => ({
-        sessionStatus: 'active',
-        transcriptMessageCount: 0,
-      }),
-      subscribe: async () => streamRuntimeEvents(),
-    },
+const runtimeAgent = {
+  turns: {
+    getSessionSnapshot: async () => ({
+      sessionStatus: 'active',
+      transcriptMessageCount: 0,
+    }),
+    subscribe: async () => streamRuntimeEvents(),
   },
-};
+} satisfies NimiRuntimeAgentConsumeClient;
 
 async function main(): Promise<void> {
   const driver = new SdkDriver({
-    runtime: runtime as never,
+    runtimeAgent,
     ownerUserId,
     realmAgentId,
     localAgentRef,
@@ -98,13 +93,33 @@ async function main(): Promise<void> {
   });
 
   const observedEvents: AppOriginEvent[] = [];
-  const parameterWrites: Array<{ signalId: string; value: number; weight?: number }> = [];
+  const playbackStates: AudioPlaybackState[] = [];
+  let stopReason: string | null = null;
   driver.onEvent((event) => {
     observedEvents.push({ name: event.name, detail: event.detail });
   });
 
   const unwire = wireAvatarVoiceLipsync({
     driver: driver as AgentDataDriver,
+    stateBus: {
+      publish(event) {
+        if (event.kind === 'audio_playback_state') {
+          playbackStates.push(event.state);
+        }
+      },
+      subscribe() {
+        return () => {};
+      },
+    },
+    audioPipeline: {
+      play: async () => {},
+      stop(reason) {
+        stopReason = reason;
+      },
+      registerLipsyncSink() {
+        return () => {};
+      },
+    },
   });
 
   await driver.start();
@@ -120,7 +135,6 @@ async function main(): Promise<void> {
     false,
   );
 
-  const canceledBefore = parameterWrites.length;
   driver.emit({
     name: 'runtime.agent.turn.interrupted',
     detail: {
@@ -137,7 +151,8 @@ async function main(): Promise<void> {
     detail: avatarPassthrough?.detail ?? {},
   });
 
-  assert.equal(parameterWrites.length, canceledBefore);
+  assert.equal(stopReason, 'interrupted');
+  assert.ok(playbackStates.includes('interrupted'));
 
   unwire();
   await driver.stop();

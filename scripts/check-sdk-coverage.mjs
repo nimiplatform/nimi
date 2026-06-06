@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '..');
-const sdkRoot = path.join(repoRoot, 'sdk');
+const sdkRoot = path.join(repoRoot, 'sdks', 'typescript');
 const pnpmBin = 'pnpm';
 
 function quoteCmdArg(value) {
@@ -35,20 +35,26 @@ function runPnpm(args) {
 
 const coverageChecks = [
   {
-    label: '@nimiplatform/sdk coverage',
+    label: '@nimiplatform/sdk vNext coverage',
     include: [
-      'sdk/src/ai-provider/**/*.ts',
-      'sdk/src/realm/index.ts',
-      'sdk/src/runtime/**/*.ts',
-      'sdk/src/scope/**/*.ts',
-      'sdk/src/types/index.ts',
+      'adapters/**/*.ts',
+      'core/**/*.ts',
+      'features/**/*.ts',
+      'realm/**/*.ts',
+      'runtime/**/*.ts',
+      'types/**/*.ts',
+      'index.ts',
+      'root-client.ts',
     ],
     exclude: [
-      'sdk/src/realm/generated/**/*.ts',
-      'sdk/src/runtime/generated/**/*.ts',
-      'sdk/src/runtime/types.ts',
+      '**/*.test.ts',
+      '**/*.test-helper.ts',
+      '**/*.generated.ts',
+      '**/*-types.ts',
+      'core-generated/**/*.ts',
+      'dist/**/*.ts',
     ],
-    tests: 'test/**/*.test.ts',
+    tests: '**/*.test.ts',
     thresholds: {
       lines: Number(process.env.NIMI_SDK_MIN_LINES_COVERAGE || '90'),
       branches: Number(process.env.NIMI_SDK_MIN_BRANCHES_COVERAGE || '70'),

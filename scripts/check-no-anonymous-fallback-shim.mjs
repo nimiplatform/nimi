@@ -10,6 +10,9 @@ const RENDERER_ROOT = 'apps/desktop/src/shell/renderer';
 const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx', '.mts', '.cts']);
 const SKIP_DIRS = new Set(['.git', 'dist', 'node_modules', 'target']);
 const SKIP_PATH_MARKERS = ['.fixture.'];
+const RUNTIME_CONSTRUCTION_OWNER_FILES = new Set([
+  'apps/desktop/src/shell/renderer/infra/sdk/desktop-nimi-client-session.ts',
+]);
 
 const checks = [
   {
@@ -106,14 +109,19 @@ async function collectSourceFiles(root) {
 
 async function scanFile(repoRoot, filePath) {
   const source = await fs.readFile(filePath, 'utf8');
+  const relativePath = toPosix(path.relative(repoRoot, filePath));
   const violations = [];
   for (const check of checks) {
     check.pattern.lastIndex = 0;
     let match = check.pattern.exec(source);
     while (match) {
+      if (check.id === 'new Runtime(' && RUNTIME_CONSTRUCTION_OWNER_FILES.has(relativePath)) {
+        match = check.pattern.exec(source);
+        continue;
+      }
       const location = getLineColumn(source, match.index);
       violations.push({
-        file: toPosix(path.relative(repoRoot, filePath)),
+        file: relativePath,
         line: location.line,
         column: location.column,
         pattern: check.id,

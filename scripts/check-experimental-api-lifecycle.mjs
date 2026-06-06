@@ -8,9 +8,9 @@
  * include a `@experimental` JSDoc tag with `@since <version>`.
  *
  * This script:
- * 1. Scans the unified sdk src dir for files under experimental paths
+ * 1. Scans the active vNext TypeScript SDK source roots for experimental paths
  * 2. Checks for @since annotations with version info
- * 3. Compares against the current sdk package version to detect overdue promotions
+ * 3. Compares against the active vNext SDK package version to detect overdue promotions
  */
 
 import { promises as fs } from 'node:fs';
@@ -20,8 +20,17 @@ import { fileURLToPath } from 'node:url';
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
 
-const SDK_ROOT = path.join(repoRoot, 'sdk');
-const SDK_SRC_ROOT = path.join(SDK_ROOT, 'src');
+const SDK_ROOT = path.join(repoRoot, 'sdks', 'typescript');
+const SDK_SRC_ROOTS = [
+  'root-client.ts',
+  'types',
+  'core',
+  'core-client',
+  'runtime',
+  'realm',
+  'features',
+  'adapters',
+].map((sourceRoot) => path.join(SDK_ROOT, sourceRoot));
 const SDK_PACKAGE_JSON = path.join(SDK_ROOT, 'package.json');
 const MAX_MINOR_VERSIONS = 2;
 
@@ -54,7 +63,10 @@ async function main() {
   const experimentalFiles = [];
 
   // Find all experimental paths
-  const files = await collectFiles(SDK_SRC_ROOT, /\.tsx?$/);
+  const files = [];
+  for (const sourceRoot of SDK_SRC_ROOTS) {
+    files.push(...(await collectFiles(sourceRoot, /\.tsx?$/)));
+  }
   for (const file of files) {
     const relative = path.relative(repoRoot, file);
     if (relative.includes('/experimental/') || relative.includes('\\experimental\\')) {
@@ -73,7 +85,7 @@ async function main() {
     const raw = await fs.readFile(SDK_PACKAGE_JSON, 'utf8');
     currentVersion = JSON.parse(raw).version;
   } catch {
-    violations.push('cannot read package version from sdk/package.json');
+    violations.push('cannot read package version from sdks/typescript/package.json');
   }
 
   for (const { file, relative } of experimentalFiles) {

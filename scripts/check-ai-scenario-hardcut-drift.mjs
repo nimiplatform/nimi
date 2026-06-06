@@ -12,11 +12,14 @@ const targets = [
   'runtime/internal/nimillm',
   'runtime/catalog/source/providers',
   'runtime/catalog/providers',
-  'sdk/src/runtime',
-  'sdk/src/ai-provider',
-  'apps/desktop/src/runtime',
+  'sdks/typescript/core/ai',
+  'sdks/typescript/features/generation',
+  'sdks/typescript/runtime',
+  'sdks/typescript/adapters',
+  'apps/desktop/src/shell/renderer/bridge/runtime-bridge',
+  'apps/desktop/src/shell/renderer/features/turns',
   '.nimi/spec/runtime',
-  '.nimi/spec/sdk',
+  '.nimi/spec/sdks',
   '.nimi/spec/desktop',
 ];
 
@@ -78,7 +81,13 @@ function walk(absPath, out) {
   }
   const entries = fs.readdirSync(absPath, { withFileTypes: true });
   for (const entry of entries) {
-    if (entry.name === 'generated' || entry.name === 'gen') {
+    if (
+      entry.name === 'generated'
+      || entry.name === 'gen'
+      || entry.name === 'dist'
+      || entry.name === 'node_modules'
+      || entry.name === '.cache'
+    ) {
       continue;
     }
     walk(path.join(absPath, entry.name), out);
@@ -131,6 +140,7 @@ for (const item of allowLineMatch) {
 for (const rel of targets) {
   const abs = path.join(cwd, rel);
   if (!fs.existsSync(abs)) {
+    failures.push(`required scan target is missing: ${rel}`);
     continue;
   }
   walk(abs, files);

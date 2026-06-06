@@ -40,14 +40,14 @@ test('runtime live smoke matrix edits infer provider-specific branches', () => {
   assert.deepEqual(result.unresolvedSmokeFiles, []);
 });
 
-test('sdk live smoke edits infer the touched provider from changed lines', () => {
+test('SDK vNext live smoke edits infer the touched provider from changed lines', () => {
   const result = evaluateChangedProviderEntries(
     new Set(['local', 'nimillm']),
     [{
-      filePath: 'sdk/test/runtime/contract/providers/nimi-sdk-ai-provider-live-smoke.test.ts',
+      filePath: 'sdks/typescript/runtime/live-provider-smoke.test.ts',
       changedLines: [
-        "test('nimi sdk ai-provider live smoke: nimillm generate text', {",
-        "const model = createSdkTextModel(endpoint, 'cloud', modelID, 'nimillm');",
+        "test('nimi sdk vnext live smoke: nimillm generate', {",
+        "const provider = 'nimillm';",
       ],
     }],
   );
