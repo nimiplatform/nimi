@@ -138,6 +138,15 @@ func firstPartyCaller() *runtimev1.AccountCaller {
 	}
 }
 
+func testerCaller() *runtimev1.AccountCaller {
+	return &runtimev1.AccountCaller{
+		AppId:         "nimi.tester",
+		AppInstanceId: "nimi.tester.local-first-party",
+		DeviceId:      "local-first-party-device",
+		Mode:          runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP,
+	}
+}
+
 func testAppRegistry(t *testing.T, callers ...*runtimev1.AccountCaller) *appregistry.Registry {
 	t.Helper()
 	registry := appregistry.New()
@@ -216,6 +225,34 @@ func TestStateMachineTransitionsAndSingleActiveAccountInvariant(t *testing.T) {
 	}
 	if second.GetAccepted() {
 		t.Fatalf("second active login must not overlap authenticated account")
+	}
+}
+
+func TestRegisteredLocalFirstPartyAppReadsSingleActiveAccountProjection(t *testing.T) {
+	custody := &memoryCustody{}
+	svc := newHarnessService(t, custody, WithAppRegistry(testAppRegistry(t, firstPartyCaller(), testerCaller())))
+	completeLogin(t, svc)
+
+	status, err := svc.GetAccountSessionStatus(context.Background(), &runtimev1.GetAccountSessionStatusRequest{
+		Caller: testerCaller(),
+	})
+	if err != nil {
+		t.Fatalf("tester GetAccountSessionStatus: %v", err)
+	}
+	if status.GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED ||
+		status.GetState() != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED ||
+		status.GetAccountProjection().GetAccountId() != "acct-1" {
+		t.Fatalf("registered tester caller should read the Runtime single active account projection: %+v", status)
+	}
+
+	token, err := svc.GetAccessToken(context.Background(), &runtimev1.GetAccessTokenRequest{
+		Caller: testerCaller(),
+	})
+	if err != nil {
+		t.Fatalf("tester GetAccessToken: %v", err)
+	}
+	if !token.GetAccepted() || token.GetAccessToken() != "access-1" {
+		t.Fatalf("registered tester caller should receive Runtime-issued short-lived access token: %+v", token)
 	}
 }
 

@@ -220,13 +220,19 @@ test('tester workbench is app-owned and rejects Desktop private imports', () => 
 test('tester auth and runtime bootstrap consume Kit shell bridge primitives', () => {
   const main = read('src/main.tsx');
   const runtimeAccountAuth = read('src/shell/auth/runtime-account-auth.ts');
+  const runtimePlatform = read('src/shell/auth/runtime-platform.ts');
 
   assert.match(main, /installNimiShellRuntimeBridge/);
   assert.match(main, /from '@nimiplatform\/kit\/shell\/renderer\/bridge'/);
+  assert.match(runtimePlatform, /createNimiRuntimeFullAppRegistration/);
+  assert.match(runtimePlatform, /const runtimeDeveloperRegistrationRequested = true/);
+  assert.match(runtimePlatform, /developerRegistration:\s*runtimeDeveloperRegistrationRequested/);
+  assert.doesNotMatch(runtimePlatform, /import\.meta[^;\n]*env|env\.DEV|metadata:\s*[^,\n]*developerRegistration/);
+  assert.match(runtimePlatform, /await client\.runtime\.ready\(\);\s*await registerLocalFirstPartyRuntimeAccountCaller\(client\);/s);
   assert.match(runtimeAccountAuth, /createTauriOAuthBridge/);
   assert.match(runtimeAccountAuth, /createRuntimeAccountBrowserBroker/);
-  assert.match(runtimeAccountAuth, /createNimiLocalFirstPartyRuntimeAccountCaller/);
-  assert.match(runtimeAccountAuth, /from '@nimiplatform\/sdk\/runtime'/);
+  assert.match(runtimePlatform, /createNimiLocalFirstPartyRuntimeAccountCaller/);
+  assert.match(runtimePlatform, /from '@nimiplatform\/sdk\/runtime'/);
   assert.match(runtimeAccountAuth, /from '@nimiplatform\/kit\/shell\/renderer\/bridge'/);
   assert.doesNotMatch(runtimeAccountAuth, /getPlatformClient\(/);
   assert.doesNotMatch(runtimeAccountAuth, /@renderer\/bridge|runtime-bridge/);

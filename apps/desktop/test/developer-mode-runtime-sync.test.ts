@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 import { ReasonCode, type JsonObject } from '@nimiplatform/sdk/types';
@@ -97,4 +98,15 @@ test('syncDeveloperModeRuntimeGate skips runtime config writes outside Tauri', a
   assert.equal(status, null);
   assert.equal(statusReads, 0);
   assert.equal(setCalls, 0);
+});
+
+test('Developer Mode toggle reconciles Runtime gate when already enabled', () => {
+  const source = readFileSync(
+    new URL('../src/shell/renderer/features/developer/developer-mode-toggle.tsx', import.meta.url),
+    'utf8',
+  );
+
+  assert.match(source, /developer-mode-reconcile-/);
+  assert.match(source, /if \(!enabled\) \{\s*return;\s*\}/s);
+  assert.match(source, /syncDeveloperModeRuntimeGate\(\{\s*enabled: true,\s*flowId\s*\}\)/s);
 });

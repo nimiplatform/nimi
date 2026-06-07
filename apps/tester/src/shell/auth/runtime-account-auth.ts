@@ -1,4 +1,3 @@
-import { createNimiLocalFirstPartyRuntimeAccountCaller } from '@nimiplatform/sdk/runtime';
 import { AccountSessionState } from '@nimiplatform/sdk/runtime/generated';
 import {
   createRuntimeAccountBrowserBroker,
@@ -7,9 +6,9 @@ import {
   type ShellAuthDesktopBrowserAuth,
 } from '@nimiplatform/kit/auth';
 import { createTauriOAuthBridge } from '@nimiplatform/kit/shell/renderer/bridge';
-import { appId, runtimeAccountLoginEnabled } from './runtime-platform.js';
+import { runtimeAccountCaller, runtimeAccountLoginEnabled } from './runtime-platform.js';
 
-export const runtimeAccountCaller = createNimiLocalFirstPartyRuntimeAccountCaller({ appId });
+export { runtimeAccountCaller };
 
 export const nimiAppTauriOAuthBridge = createTauriOAuthBridge();
 

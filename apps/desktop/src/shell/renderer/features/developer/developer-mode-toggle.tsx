@@ -41,6 +41,30 @@ export function DeveloperModeToggle() {
     });
   }, []);
 
+  useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+    let cancelled = false;
+    const flowId = `developer-mode-reconcile-${Date.now().toString(36)}`;
+    setSyncing(true);
+    setError(null);
+    void syncDeveloperModeRuntimeGate({ enabled: true, flowId })
+      .catch((syncError) => {
+        if (!cancelled) {
+          setError(describeDeveloperModeRuntimeSyncError(syncError));
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setSyncing(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [enabled]);
+
   const toggle = async () => {
     if (syncing) {
       return;

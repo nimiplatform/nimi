@@ -1,12 +1,16 @@
 import { createNimiClient, type NimiClient } from '@nimiplatform/sdk';
-import type { RuntimeOptions } from '@nimiplatform/sdk/runtime';
+import {
+  createNimiLocalFirstPartyRuntimeAccountCaller,
+  createNimiRuntimeFullAppRegistration,
+  type RuntimeOptions,
+} from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 export { appId, appTitle, scaffoldProfile } from './app-identity.js';
 import { appId } from './app-identity.js';
 
 export const runtimeAccountLoginEnabled = true;
-
-type RuntimeEnv = Record<string, string | boolean | undefined>;
+export const runtimeAccountCaller = createNimiLocalFirstPartyRuntimeAccountCaller({ appId });
+const runtimeDeveloperRegistrationRequested = true;
 
 export type TesterRuntimeAuthMode =
   | 'local-first-party'
@@ -35,10 +39,6 @@ export type TesterRuntimePlatformProjection =
   | TesterRuntimeAuthUnavailable;
 
 let runtimeProjection: Promise<TesterRuntimePlatformProjection> | null = null;
-
-function runtimeEnv(): RuntimeEnv {
-  return ((import.meta as ImportMeta & { env?: RuntimeEnv }).env || {});
-}
 
 function resolveRuntimeAuthMode(): TesterRuntimeAuthMode {
   // Single connection model: a local dev app connects exactly the way a shipped
@@ -80,6 +80,7 @@ async function createLocalFirstPartyRuntimeProjection(
       runtime: runtimeOptions(),
     });
     await client.runtime.ready();
+    await registerLocalFirstPartyRuntimeAccountCaller(client);
     return {
       status: 'ready',
       mode,
@@ -105,13 +106,22 @@ async function createLocalFirstPartyRuntimeProjection(
   }
 }
 
+async function registerLocalFirstPartyRuntimeAccountCaller(client: TesterRuntimePlatformClient): Promise<void> {
+  await createNimiRuntimeFullAppRegistration(
+    () => ({ auth: client.runtime.auth }),
+    {
+      appId,
+      appInstanceId: runtimeAccountCaller.appInstanceId,
+      deviceId: runtimeAccountCaller.deviceId,
+      developerRegistration: runtimeDeveloperRegistrationRequested,
+      rejectionLabel: 'Nimi Tester Runtime account caller registration rejected',
+    },
+  )();
+}
+
 function runtimeOptions(): RuntimeOptions {
-  const env = runtimeEnv();
   const base: RuntimeOptions = {
     appId,
-    metadata: env.DEV === true
-      ? { developerRegistration: 'true' }
-      : undefined,
   };
   return isNodeRuntime()
     ? base
