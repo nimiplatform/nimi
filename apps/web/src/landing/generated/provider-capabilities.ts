@@ -2,9 +2,9 @@
  * @generated
  * Sources:
  *   .nimi/spec/runtime/kernel/tables/provider-capabilities.yaml
- *     sha256: 76bced6afe2a42d57a7b35f1b2d13f9ab98173e33ab6096f89d9dfeba801c3c3
+ *     sha256: 35b551438417aaa00b46862be04bcdc869abef0a1a6c3487342526f9fb7e78c3
  *   .nimi/spec/runtime/kernel/tables/provider-catalog.yaml
- *     sha256: 80056592814f5472d3870b5e2b3fa786f20fb091ff299bc712170ba3e90195b8
+ *     sha256: 6b88f478de96e1a40e07b7d3e1b2c3b81febd3f111b6ce3cf5a3180fc5c71e4c
  * Generator: apps/web/scripts/generate-landing-data.mjs
  * DO NOT EDIT MANUALLY. Re-run generator (`pnpm prebuild` or
  * `node scripts/generate-landing-data.mjs` from apps/web/) to refresh.
@@ -330,6 +330,17 @@ export const PROVIDER_CAPABILITIES: readonly ProviderCapability[] = [
     endpointRequirement: "explicit_required",
     inventoryMode: "static_source",
     capabilities: ["video.generate"],
+    sources: ["K-CONN-008", "K-KEYSRC-001", "K-MCAT-027"],
+  },
+  {
+    provider: "mimo",
+    runtimePlane: "remote",
+    executionModule: "nimillm",
+    managedConnectorSupported: true,
+    inlineSupported: true,
+    endpointRequirement: "default_or_explicit",
+    inventoryMode: "static_source",
+    capabilities: ["audio.synthesize", "audio.transcribe", "text.generate", "text.generate.vision", "voice_workflow.voice_clone", "voice_workflow.voice_design"],
     sources: ["K-CONN-008", "K-KEYSRC-001", "K-MCAT-027"],
   },
   {

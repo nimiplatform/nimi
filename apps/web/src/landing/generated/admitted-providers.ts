@@ -1,7 +1,7 @@
 /**
  * @generated
  * Source: .nimi/spec/runtime/kernel/tables/provider-catalog.yaml
- *   sha256: 80056592814f5472d3870b5e2b3fa786f20fb091ff299bc712170ba3e90195b8
+ *   sha256: 6b88f478de96e1a40e07b7d3e1b2c3b81febd3f111b6ce3cf5a3180fc5c71e4c
  * Generator: apps/web/scripts/generate-landing-data.mjs
  * DO NOT EDIT MANUALLY. Re-run generator (`pnpm prebuild` or
  * `node scripts/generate-landing-data.mjs` from apps/web/) to refresh.
@@ -70,7 +70,7 @@ export const ADMITTED_PROVIDERS: readonly AdmittedProvider[] = [
   {
     provider: "dashscope",
     defaultEndpoint: "https://dashscope.aliyuncs.com/compatible-mode/v1",
-    defaultTextModel: "qwen3-max",
+    defaultTextModel: "qwen3.7-max",
     requiresExplicitEndpoint: false,
     inventoryMode: "static_source",
     sourceRule: "K-MCAT-027",
@@ -200,6 +200,14 @@ export const ADMITTED_PROVIDERS: readonly AdmittedProvider[] = [
     defaultEndpoint: null,
     defaultTextModel: null,
     requiresExplicitEndpoint: true,
+    inventoryMode: "static_source",
+    sourceRule: "K-MCAT-027",
+  },
+  {
+    provider: "mimo",
+    defaultEndpoint: "https://api.xiaomimimo.com/v1",
+    defaultTextModel: "mimo-v2.5-pro",
+    requiresExplicitEndpoint: false,
     inventoryMode: "static_source",
     sourceRule: "K-MCAT-027",
   },
