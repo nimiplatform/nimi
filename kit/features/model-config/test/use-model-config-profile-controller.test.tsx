@@ -14,6 +14,7 @@ import type {
   NimiAIConfig,
   NimiAIProfile,
   NimiAIProfileApplyResult,
+  NimiAIProfilePreviewResult,
   NimiAIScopeRef,
 } from '@nimiplatform/kit/core/sdk-contract';
 import type {
@@ -306,6 +307,79 @@ describe('useModelConfigProfileController apply paths', () => {
     expect(updates).toHaveLength(0);
     expect(captured.controller?.preview).toBeNull();
     expect(captured.controller?.error).toBe('remote unavailable');
+  });
+
+  it('path 2b — typed preview setup failure fails closed before confirm', async () => {
+    let currentConfig = baseConfig;
+    const updates: NimiAIConfig[] = [];
+    let applyCalls = 0;
+    const service: SharedAIConfigService = {
+      aiConfig: {
+        get: () => currentConfig,
+        update: (_scope, next) => {
+          currentConfig = next;
+          updates.push(next);
+        },
+        subscribe: () => () => undefined,
+      },
+      aiProfile: {
+        list: async () => [remoteProfile],
+        previewApply: async () => ({
+          before: null,
+          after: null,
+          outcome: 'setup_required_no_live_config',
+          setupProjection: {
+            outcome: 'setup_required_no_live_config',
+            blockingCapabilities: ['audio.synthesize'],
+            reasonCodes: ['required_slice_unresolved'],
+            actionRefs: ['setup:tester-settings.audio.synthesize'],
+          },
+          diff: { identical: true, fields: [] },
+          baseVersion: 'base-v1',
+          probeWarnings: [],
+        }) satisfies NimiAIProfilePreviewResult,
+        apply: async () => {
+          applyCalls += 1;
+          return {
+            success: true,
+            config: appliedConfig,
+            failureReason: null,
+            outcome: 'ready_to_apply',
+            probeWarnings: [],
+          } satisfies NimiAIProfileApplyResult;
+        },
+      },
+    };
+
+    const captured: HarnessProps['captured'] = { controller: null };
+    await render(
+      <Harness
+        service={service}
+        captured={captured}
+        profileId="remote-profile"
+      />,
+    );
+
+    const button = container?.querySelector('button');
+    await act(async () => {
+      button?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await flush();
+      await flush();
+    });
+
+    expect(captured.controller?.preview).toBeNull();
+    expect(captured.controller?.error).toContain('setup_required_no_live_config');
+    expect(captured.controller?.error).toContain('audio.synthesize');
+    expect(captured.controller?.error).toContain('required_slice_unresolved');
+
+    await act(async () => {
+      captured.controller?.onConfirmApply();
+      await flush();
+      await flush();
+    });
+
+    expect(applyCalls).toBe(0);
+    expect(updates).toHaveLength(0);
   });
 
   it('path 3 — preview without a known profile fails closed and never commits', async () => {

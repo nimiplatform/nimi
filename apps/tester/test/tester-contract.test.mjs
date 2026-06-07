@@ -514,18 +514,23 @@ test('tester AI config is the Kit model-config surface in Settings with real SDK
     'useModelConfigProfileController',
     'defaultModelConfigProfileCopy',
     'Import AIProfile JSON',
+    'Open Apply AI Profile to preview and confirm',
     'fail closed',
     'initialSection',
   ]) {
     assert.match(surface, new RegExp(required.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
   assert.doesNotMatch(surface, /applyAIProfileToConfig/);
+  assert.match(surface, /profileController\.onCancelPreview\(\)/);
+  assert.match(surface, /profileController\.onSelectedProfileChange\(result\.profileId\)/);
+  assert.doesNotMatch(surface, /profileController\.onApply\(result\.profileId\)/);
 
   // The tester wrapper injects app-scoped wiring into that surface.
   for (const required of [
     'TesterAiConfigSettings',
     'createTesterRuntimeModelPickerProvider',
     'importTesterAIProfileJson',
+    "'ModelConfig.profile.importLabel': 'Apply AI Profile'",
     "runtime?.status === 'ready'",
   ]) {
     assert.match(panel, new RegExp(required.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));

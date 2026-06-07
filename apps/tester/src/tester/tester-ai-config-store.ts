@@ -242,7 +242,7 @@ export function getLatestTesterAISnapshot(
 }
 
 export function createTesterAIConfigService(): SharedAIConfigService {
-  const surface = createNimiAIHostSurface({
+  const createSurface = () => createNimiAIHostSurface({
     profiles: listTesterAIProfiles(),
     configStore: aiConfigStore,
     snapshotStore: aiSnapshotStore,
@@ -262,13 +262,13 @@ export function createTesterAIConfigService(): SharedAIConfigService {
     },
     aiProfile: {
       async list() {
-        return [...await surface.aiProfile.list()];
+        return [...await createSurface().aiProfile.list()];
       },
       async previewApply(scopeRef: NimiAIScopeRef, profileId: string, options) {
-        return surface.aiProfile.previewApply(scopeRef, profileId, options);
+        return createSurface().aiProfile.previewApply(scopeRef, profileId, options);
       },
       async apply(scopeRef: NimiAIScopeRef, profileId: string, options) {
-        return surface.aiProfile.apply(scopeRef, profileId, options);
+        return createSurface().aiProfile.apply(scopeRef, profileId, options);
       },
     },
   };

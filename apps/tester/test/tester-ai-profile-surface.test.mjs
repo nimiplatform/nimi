@@ -146,3 +146,64 @@ test('Tester consumes the SDK host AIProfile surface for preview and apply', asy
     }
   }
 });
+
+test('Tester AIConfig service sees AIProfiles imported after service creation', async () => {
+  const previousWindow = globalThis.window;
+  globalThis.window = { localStorage: createMemoryStorage() };
+  try {
+    const store = await importStore();
+    const scopeRef = store.createTesterAppLabAIScopeRef();
+    const service = store.createTesterAIConfigService();
+    assert.deepEqual(await service.aiProfile.list(), []);
+
+    const profile = {
+      profileId: 'tester-post-service-import',
+      title: 'Tester Post-Service Import',
+      description: '',
+      tags: [],
+      capabilities: {
+        'text.generate': {
+          targetRef: {
+            kind: 'local-runtime',
+            targetId: 'runtime-local-chat',
+            profileId: 'local-chat',
+          },
+        },
+      },
+    };
+    assert.equal(store.importTesterAIProfileJson(JSON.stringify(profile)).ok, true);
+
+    const profileIds = (await service.aiProfile.list()).map((entry) => entry.profileId);
+    assert.deepEqual(profileIds, [profile.profileId]);
+
+    const requirementDeclarations = [{
+      requirementId: 'tester-post-service-import:text',
+      scopeRef,
+      requiredSlices: [{
+        requirementSliceId: 'tester:text.generate',
+        capability: 'text.generate',
+        profileSliceRef: 'tester:text.generate',
+        readinessPolicy: 'required',
+      }],
+      setupProjectionPolicy: 'sdk-ai-config-setup-projection',
+    }];
+    const preview = await service.aiProfile.previewApply(scopeRef, profile.profileId, {
+      requirementDeclarations,
+    });
+    assert.equal(preview.outcome, 'ready_to_apply');
+    assert.equal(preview.after.capabilities.targetRefs['text.generate'].profileId, 'local-chat');
+
+    const apply = await service.aiProfile.apply(scopeRef, profile.profileId, {
+      expectedBaseVersion: preview.baseVersion,
+      requirementDeclarations,
+    });
+    assert.equal(apply.success, true);
+    assert.equal(store.loadTesterAIConfig(scopeRef).profileOrigin.profileId, profile.profileId);
+  } finally {
+    if (previousWindow === undefined) {
+      delete globalThis.window;
+    } else {
+      globalThis.window = previousWindow;
+    }
+  }
+});

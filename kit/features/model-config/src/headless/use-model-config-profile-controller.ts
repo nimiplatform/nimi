@@ -54,6 +54,19 @@ function describeError(error: unknown): string {
   return 'Profile apply preview failed.';
 }
 
+function describePreviewFailure(preview: NimiAIProfilePreviewResult): string {
+  const setupProjection = preview.setupProjection;
+  const capabilities = setupProjection?.blockingCapabilities?.join(', ') || '';
+  const reasons = setupProjection?.reasonCodes?.join(', ') || '';
+  const details = [
+    capabilities ? `blocking capabilities: ${capabilities}` : '',
+    reasons ? `reason codes: ${reasons}` : '',
+  ].filter(Boolean).join('; ');
+  return details
+    ? `Profile apply preview is not ready (${preview.outcome}; ${details}).`
+    : `Profile apply preview is not ready (${preview.outcome}).`;
+}
+
 function findProfile(profiles: readonly NimiAIProfile[], profileId: string): NimiAIProfile | null {
   for (const profile of profiles) {
     if (profile.profileId === profileId) {
@@ -189,6 +202,10 @@ export function useModelConfigProfileController(
       requirementDeclarations: [requirementDeclaration],
     })
       .then((previewResult: NimiAIProfilePreviewResult) => {
+        if (previewResult.outcome !== 'ready_to_apply' || !previewResult.after) {
+          setApplyError(describePreviewFailure(previewResult));
+          return;
+        }
         setPendingPreview(previewResult);
         setPreview(toDisplayPreview(profileId, profileTitleFor(profileId), previewResult));
       })

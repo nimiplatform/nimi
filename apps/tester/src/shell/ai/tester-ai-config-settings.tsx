@@ -250,12 +250,14 @@ export function TesterAiConfigSettings({
     if (!onImportProfileJson) return;
     const result = onImportProfileJson(profileJson);
     setImportTone(result.ok ? 'success' : 'warning');
-    setImportMessage(result.ok ? result.message : `${result.message} ${(result.errors || []).join('; ')}`.trim());
+    setImportMessage(result.ok
+      ? `${result.message} Open Apply AI Profile to preview and confirm.`
+      : `${result.message} ${(result.errors || []).join('; ')}`.trim());
     if (result.ok && result.profileId) {
       setProfileJson('');
+      profileController.onCancelPreview();
       profileController.onReload?.();
       profileController.onSelectedProfileChange(result.profileId);
-      profileController.onApply(result.profileId);
     }
   }
 

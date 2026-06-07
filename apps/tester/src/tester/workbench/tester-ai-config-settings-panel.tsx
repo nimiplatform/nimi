@@ -41,6 +41,8 @@ const enabledCapabilities = [
 // with a few tester-specific phrasing overrides for the panel chrome.
 const copy: Record<string, string> = {
   ...testerModelConfigCopy,
+  'ModelConfig.profile.importLabel': 'Apply AI Profile',
+  'ModelConfig.profile.modalHint': 'Choose an imported profile, preview the App Lab AIConfig diff, then confirm.',
   'Tester.settings.title': 'AI model config',
   'Tester.settings.subtitle': 'Bind a Runtime model per capability for this app.',
   'Tester.settings.detailSubtitle': 'Configure models and defaults for this capability.',
