@@ -112,7 +112,7 @@ func resolveProductionConfig(cfg ProductionConfig) ProductionConfig {
 	redirectURI := firstNonEmpty(
 		cfg.RedirectURI,
 		os.Getenv("NIMI_RUNTIME_ACCOUNT_REDIRECT_URI"),
-		"http://localhost:46373/auth/callback",
+		"http://localhost:46373/oauth/callback",
 	)
 	custodyPartition := firstNonEmpty(
 		cfg.CustodyPartition,

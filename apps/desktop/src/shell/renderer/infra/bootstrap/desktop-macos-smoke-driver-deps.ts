@@ -238,7 +238,7 @@ export function createDomDriverDeps(options: DesktopMacosSmokeDriverDepsOptions 
         'Runtime account product-smoke login begin',
         accountRuntime.account.beginLogin({
           caller: accountCaller,
-          redirectUri: 'http://localhost:46373/auth/callback',
+          redirectUri: 'http://localhost:46373/oauth/callback',
           callbackOrigin: 'http://localhost:46373',
           requestedScopes: [],
           ttlSeconds: 60,
@@ -256,7 +256,7 @@ export function createDomDriverDeps(options: DesktopMacosSmokeDriverDepsOptions 
           code: 'e2e-runtime-product-smoke-code',
           state: begin.state,
           nonce: begin.nonce,
-          redirectUri: 'http://localhost:46373/auth/callback',
+          redirectUri: 'http://localhost:46373/oauth/callback',
           callbackOrigin: 'http://localhost:46373',
           uxTraceId: '',
           sealedCompletionTicket: '',

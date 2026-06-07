@@ -309,8 +309,8 @@ func TestProductionActivationCodeStateExchangeCustodyAndTokenProjection(t *testi
 		if r.Form.Get("code_verifier") == "" {
 			t.Fatalf("token exchange code_verifier missing")
 		}
-		if r.Form.Get("redirect_uri") != "http://localhost/callback" {
-			t.Fatalf("token exchange redirect_uri = %q, want http://localhost/callback (R-OAUTH-005)", r.Form.Get("redirect_uri"))
+		if r.Form.Get("redirect_uri") != "http://localhost:46373/oauth/callback" {
+			t.Fatalf("token exchange redirect_uri = %q, want http://localhost:46373/oauth/callback (R-OAUTH-005)", r.Form.Get("redirect_uri"))
 		}
 		if r.Form.Get("client_id") != "desktop-test" {
 			t.Fatalf("token exchange client_id = %q, want desktop-test", r.Form.Get("client_id"))
@@ -324,13 +324,13 @@ func TestProductionActivationCodeStateExchangeCustodyAndTokenProjection(t *testi
 		AuthorizationURL: authServer.URL + "/api/auth/oauth/authorize",
 		TokenURL:         authServer.URL + "/token",
 		ClientID:         "desktop-test",
-		RedirectURI:      "http://localhost/callback",
+		RedirectURI:      "http://localhost:46373/oauth/callback",
 		HTTPClient:       authServer.Client(),
 	}))
 	svc := newProductionHarnessService(t, custody, WithLoginExchanger(exchanger))
 	begin, err := svc.BeginLogin(context.Background(), &runtimev1.BeginLoginRequest{
 		Caller:      firstPartyCaller(),
-		RedirectUri: "http://localhost/callback",
+		RedirectUri: "http://localhost:46373/oauth/callback",
 	})
 	if err != nil {
 		t.Fatalf("BeginLogin: %v", err)
@@ -352,7 +352,7 @@ func TestProductionActivationCodeStateExchangeCustodyAndTokenProjection(t *testi
 	if got, want := authQuery.Get("client_id"), "desktop-test"; got != want {
 		t.Fatalf("authorize client_id = %q, want %q", got, want)
 	}
-	if got, want := authQuery.Get("redirect_uri"), "http://localhost/callback"; got != want {
+	if got, want := authQuery.Get("redirect_uri"), "http://localhost:46373/oauth/callback"; got != want {
 		t.Fatalf("authorize redirect_uri = %q, want %q", got, want)
 	}
 	if authQuery.Get("code_challenge") == "" {
@@ -376,7 +376,7 @@ func TestProductionActivationCodeStateExchangeCustodyAndTokenProjection(t *testi
 		Code:           "auth-code",
 		State:          begin.GetState(),
 		Nonce:          begin.GetNonce(),
-		RedirectUri:    "http://localhost/callback",
+		RedirectUri:    "http://localhost:46373/oauth/callback",
 	})
 	if err != nil {
 		t.Fatalf("CompleteLogin: %v", err)
@@ -466,13 +466,13 @@ func TestProductionCompleteLoginRejectsBrowserCallbackTokens(t *testing.T) {
 	exchanger := newRealmOAuthExchanger(resolveProductionConfig(ProductionConfig{
 		AuthorizationURL: "https://app.nimi.test/api/auth/oauth/authorize",
 		ClientID:         "desktop-test",
-		RedirectURI:      "http://localhost/callback",
+		RedirectURI:      "http://localhost:46373/oauth/callback",
 		HTTPClient:       http.DefaultClient,
 	}))
 	svc := newProductionHarnessService(t, custody, WithLoginExchanger(exchanger))
 	begin, err := svc.BeginLogin(context.Background(), &runtimev1.BeginLoginRequest{
 		Caller:      firstPartyCaller(),
-		RedirectUri: "http://localhost/callback",
+		RedirectUri: "http://localhost:46373/oauth/callback",
 	})
 	if err != nil {
 		t.Fatalf("BeginLogin: %v", err)
@@ -485,7 +485,7 @@ func TestProductionCompleteLoginRejectsBrowserCallbackTokens(t *testing.T) {
 		RefreshToken:   "refresh-web-callback",
 		State:          begin.GetState(),
 		Nonce:          begin.GetNonce(),
-		RedirectUri:    "http://localhost/callback",
+		RedirectUri:    "http://localhost:46373/oauth/callback",
 	})
 	if err != nil {
 		t.Fatalf("CompleteLogin: %v", err)
@@ -704,11 +704,11 @@ func TestProductionAuthorizationURLDefaultsToRealmAuthorizeEndpoint(t *testing.T
 	t.Setenv("NIMI_WEB_URL", "https://web.nimi.test")
 	t.Setenv("NIMI_RUNTIME_ACCOUNT_AUTHORIZATION_URL", "")
 	t.Setenv("NIMI_RUNTIME_ACCOUNT_REALM_BASE_URL", "")
+	t.Setenv("NIMI_RUNTIME_ACCOUNT_REDIRECT_URI", "")
 	t.Setenv("NIMI_REALM_URL", "")
 	resolved := resolveProductionConfig(ProductionConfig{
 		RealmBaseURL: "https://realm.nimi.test",
 		ClientID:     "nimi-desktop",
-		RedirectURI:  "http://127.0.0.1:34939/oauth/callback",
 		HTTPClient:   http.DefaultClient,
 	})
 	if resolved.AuthorizationURL != "https://realm.nimi.test/api/auth/oauth/authorize" {
@@ -716,6 +716,9 @@ func TestProductionAuthorizationURLDefaultsToRealmAuthorizeEndpoint(t *testing.T
 	}
 	if resolved.TokenURL != "https://realm.nimi.test/api/auth/oauth/token" {
 		t.Fatalf("default TokenURL = %q, want https://realm.nimi.test/api/auth/oauth/token", resolved.TokenURL)
+	}
+	if resolved.RedirectURI != "http://localhost:46373/oauth/callback" {
+		t.Fatalf("default RedirectURI = %q, want http://localhost:46373/oauth/callback", resolved.RedirectURI)
 	}
 }
 
