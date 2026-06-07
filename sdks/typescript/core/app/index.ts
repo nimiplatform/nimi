@@ -1,5 +1,23 @@
 import { createNimiError } from '../../types';
 import type { NimiAppAIProfileFactoryRow } from './platform-catalog.generated.js';
+import {
+  isCanonicalGrantState,
+  isCanonicalPermissionScopeFamily,
+  isCanonicalPermissionScopeName,
+} from './permission-types.js';
+import type {
+  GrantRequestAccepted,
+  GrantSpec,
+  GrantStatus,
+  NimiAppScopeRef,
+  PermissionGrantEvent,
+  PermissionScopeRef,
+  PermissionStatusSnapshot,
+  PermissionTransport,
+  ScopeCatalogEntry,
+  ScopeCatalogModule,
+  ScopeManifest,
+} from './permission-types.js';
 
 export {
   NIMI_APP_AI_PROFILE_FACTORY_CATALOG,
@@ -38,6 +56,35 @@ export type {
   NimiAppRegistrySourceRow,
   NimiAppRegistryTransportOptions,
 } from './registry-transport.js';
+export {
+  CANONICAL_GRANT_STATES,
+  CANONICAL_PERMISSION_SCOPE_FAMILIES,
+  CANONICAL_PERMISSION_SCOPE_NAMES,
+  isCanonicalGrantState,
+  isCanonicalPermissionScopeFamily,
+  isCanonicalPermissionScopeName,
+} from './permission-types.js';
+export type {
+  GrantRef,
+  GrantRequestAccepted,
+  GrantSpec,
+  GrantState,
+  GrantStatus,
+  NimiAppScopeKind,
+  NimiAppScopeRef,
+  PermissionGrantEvent,
+  PermissionScopeFamily,
+  PermissionScopeName,
+  PermissionScopeRef,
+  PermissionStatusSnapshot,
+  PermissionTransport,
+  ScopeCatalogDescriptor,
+  ScopeCatalogEntry,
+  ScopeCatalogModule,
+  ScopeCatalogPublishResult,
+  ScopeCatalogRevokeResult,
+  ScopeManifest,
+} from './permission-types.js';
 
 export type TrustTierId = 'nimi-first-party' | 'nimi-verified-partner' | 'nimi-community';
 export type AppKind = 'nimi-app';
@@ -177,190 +224,6 @@ export interface NimiAppTransport {
   status(appId: string): Promise<NimiAppStatus>;
 }
 
-export type NimiAppScopeKind = 'app';
-
-export interface NimiAppScopeRef {
-  readonly kind: NimiAppScopeKind;
-  readonly ownerId: string;
-  readonly surfaceId?: string;
-}
-
-export type PermissionScopeFamily =
-  | 'account'
-  | 'data'
-  | 'agent'
-  | 'ai_spend'
-  | 'memory'
-  | 'knowledge'
-  | 'notification'
-  | 'file_device'
-  | 'audit'
-  | 'ai_profile';
-
-export type PermissionScopeName =
-  | 'account.read'
-  | 'account.session.read'
-  | 'data.scope.read'
-  | 'data.scope.write'
-  | 'agent.identity.project'
-  | 'agent.identity.bind'
-  | 'ai.spend.meter'
-  | 'ai.spend.delegate'
-  | 'memory.read.bounded'
-  | 'memory.write.admitted'
-  | 'knowledge.read.bounded'
-  | 'knowledge.write.admitted'
-  | 'notification.send'
-  | 'notification.subscribe'
-  | 'file.read.scoped'
-  | 'file.write.scoped'
-  | 'device.use.scoped'
-  | 'audit.read.scoped'
-  | 'ai_profile.selection.consume';
-
-export type GrantState = 'pending' | 'granted' | 'denied' | 'expired' | 'revoked' | 'superseded';
-
-export const CANONICAL_PERMISSION_SCOPE_FAMILIES: readonly PermissionScopeFamily[] = [
-  'account',
-  'data',
-  'agent',
-  'ai_spend',
-  'memory',
-  'knowledge',
-  'notification',
-  'file_device',
-  'audit',
-  'ai_profile',
-];
-
-export const CANONICAL_PERMISSION_SCOPE_NAMES: readonly PermissionScopeName[] = [
-  'account.read',
-  'account.session.read',
-  'data.scope.read',
-  'data.scope.write',
-  'agent.identity.project',
-  'agent.identity.bind',
-  'ai.spend.meter',
-  'ai.spend.delegate',
-  'memory.read.bounded',
-  'memory.write.admitted',
-  'knowledge.read.bounded',
-  'knowledge.write.admitted',
-  'notification.send',
-  'notification.subscribe',
-  'file.read.scoped',
-  'file.write.scoped',
-  'device.use.scoped',
-  'audit.read.scoped',
-  'ai_profile.selection.consume',
-];
-
-export const CANONICAL_GRANT_STATES: readonly GrantState[] = [
-  'pending',
-  'granted',
-  'denied',
-  'expired',
-  'revoked',
-  'superseded',
-];
-
-export interface PermissionScopeRef {
-  readonly appId: string;
-  readonly scopeFamily: PermissionScopeFamily;
-  readonly scopeName: PermissionScopeName;
-  readonly qualifier?: string;
-}
-
-export interface GrantRef {
-  readonly grantId: string;
-  readonly permissionScope: PermissionScopeRef;
-  readonly subjectUserId?: string;
-}
-
-export interface GrantStatus {
-  readonly scopeRef: NimiAppScopeRef;
-  readonly grant: GrantRef;
-  readonly state: GrantState;
-  readonly issuedAt?: string;
-  readonly expiresAt?: string;
-  readonly detail?: string;
-}
-
-export interface GrantSpec {
-  readonly permissionScope: PermissionScopeRef;
-  readonly subjectUserId?: string;
-  readonly reason: string;
-}
-
-export interface GrantRequestAccepted {
-  readonly scopeRef: NimiAppScopeRef;
-  readonly accepted: true;
-  readonly grantId: string;
-  readonly state: 'pending';
-}
-
-export interface PermissionStatusSnapshot {
-  readonly scopeRef: NimiAppScopeRef;
-  readonly grants: readonly GrantStatus[];
-  readonly generatedAt?: string;
-}
-
-export interface PermissionGrantEvent {
-  readonly scopeRef: NimiAppScopeRef;
-  readonly grant: GrantStatus;
-  readonly eventId?: string;
-}
-
-export interface PermissionTransport {
-  list(scopeRef: NimiAppScopeRef): Promise<readonly GrantStatus[]>;
-  get(scopeRef: NimiAppScopeRef, grantId: string): Promise<GrantStatus>;
-  request(scopeRef: NimiAppScopeRef, grantSpec: GrantSpec): Promise<GrantRequestAccepted>;
-  revoke(scopeRef: NimiAppScopeRef, grantId: string): Promise<GrantStatus>;
-  status(scopeRef: NimiAppScopeRef): Promise<PermissionStatusSnapshot>;
-  subscribe(scopeRef: NimiAppScopeRef, callback: (event: PermissionGrantEvent) => void): () => void;
-}
-
-export interface ScopeManifest {
-  readonly manifestVersion: string;
-  readonly scopes: readonly string[];
-}
-
-export interface ScopeCatalogEntry {
-  readonly appId: string;
-  readonly manifestVersion: string;
-  readonly catalogHash: string;
-  readonly status: 'draft' | 'published' | 'revoked';
-  readonly scopes: readonly string[];
-}
-
-export interface ScopeCatalogDescriptor {
-  readonly appId: string;
-  readonly defaultRealmScopes: readonly string[];
-  readonly defaultRuntimeScopes: readonly string[];
-  readonly published: readonly ScopeCatalogEntry[];
-  readonly draft: ScopeCatalogEntry | null;
-}
-
-export interface ScopeCatalogPublishResult {
-  readonly appId: string;
-  readonly scopeCatalogVersion: string;
-  readonly catalogHash: string;
-  readonly status: 'published';
-}
-
-export interface ScopeCatalogRevokeResult {
-  readonly appId: string;
-  readonly revokedScopes: readonly string[];
-  readonly revokedVersions: readonly string[];
-}
-
-export interface ScopeCatalogModule {
-  listCatalog(): ScopeCatalogDescriptor;
-  registerAppScopes(input: { readonly manifest: ScopeManifest }): ScopeCatalogEntry;
-  publishCatalog(): ScopeCatalogPublishResult;
-  revokeAppScopes(input: { readonly scopes: readonly string[] }): ScopeCatalogRevokeResult;
-}
-
 export type NimiFirstRunInstallLevel = 'minimal' | 'recommended';
 
 export function isCanonicalTrustTier(value: unknown): value is TrustTierId {
@@ -373,18 +236,6 @@ export function isCanonicalAppKind(value: unknown): value is AppKind {
 
 export function isCanonicalLaunchReadiness(value: unknown): value is AppLaunchReadiness {
   return typeof value === 'string' && CANONICAL_LAUNCH_READINESS.includes(value as AppLaunchReadiness);
-}
-
-export function isCanonicalPermissionScopeFamily(value: unknown): value is PermissionScopeFamily {
-  return typeof value === 'string' && CANONICAL_PERMISSION_SCOPE_FAMILIES.includes(value as PermissionScopeFamily);
-}
-
-export function isCanonicalPermissionScopeName(value: unknown): value is PermissionScopeName {
-  return typeof value === 'string' && CANONICAL_PERMISSION_SCOPE_NAMES.includes(value as PermissionScopeName);
-}
-
-export function isCanonicalGrantState(value: unknown): value is GrantState {
-  return typeof value === 'string' && CANONICAL_GRANT_STATES.includes(value as GrantState);
 }
 
 export class NimiAppClient {

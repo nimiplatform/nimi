@@ -3,10 +3,12 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import YAML from 'yaml';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
 const reasonCodeFile = path.join(repoRoot, 'sdks/typescript/types/reason-code.ts');
+const sdkErrorCodesFile = path.join(repoRoot, '.nimi/spec/sdks/kernel/tables/sdk-error-codes.yaml');
 
 const CODE_VALUE_PATTERN = /^[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)*$/;
 const SOURCE_ROOTS = [
@@ -49,6 +51,11 @@ const TYPEOF_LITERAL_VALUES = new Set([
   'object',
   'function',
 ]);
+const SDK_SYNTHETIC_REASON_CODES = new Set([
+  'OPERATION_ABORTED',
+  'RUNTIME_UNAVAILABLE',
+  'RUNTIME_BRIDGE_DAEMON_UNAVAILABLE',
+]);
 
 function getLineColumn(source, index) {
   const prefix = source.slice(0, index);
@@ -78,6 +85,21 @@ function parseReasonCodeEntries(source) {
     throw new Error('no entries found in ReasonCode constant table');
   }
   return entries;
+}
+
+function parseSdkErrorCodeTable(source) {
+  const table = YAML.parse(source);
+  const values = Array.isArray(table?.values)
+    ? table.values.map((value) => String(value)).filter(Boolean)
+    : [];
+  const codeNames = Array.isArray(table?.codes)
+    ? table.codes.map((entry) => String(entry?.name || '')).filter(Boolean)
+    : [];
+  return { values, codeNames };
+}
+
+function isSdkLocalReasonCode(value) {
+  return value.startsWith('SDK_') || SDK_SYNTHETIC_REASON_CODES.has(value);
 }
 
 function shouldIgnoreReasonCodeLiteralMatch(source, matchIndex, literalValue) {
@@ -129,6 +151,10 @@ async function main() {
   const reasonCodeSource = await fs.readFile(reasonCodeFile, 'utf8');
   const reasonCodeEntries = parseReasonCodeEntries(reasonCodeSource);
   const reasonCodeValues = new Set(reasonCodeEntries.map((entry) => entry.value));
+  const sdkErrorCodeSource = await fs.readFile(sdkErrorCodesFile, 'utf8');
+  const sdkErrorCodeTable = parseSdkErrorCodeTable(sdkErrorCodeSource);
+  const sdkErrorCodeValues = new Set(sdkErrorCodeTable.values);
+  const sdkErrorCodeNames = new Set(sdkErrorCodeTable.codeNames);
 
   const keyCounts = new Map();
   const valueCounts = new Map();
@@ -151,6 +177,24 @@ async function main() {
   for (const [value, count] of valueCounts.entries()) {
     if (count > 1) {
       violations.push(`duplicate ReasonCode value: ${value}`);
+    }
+  }
+  for (const value of sdkErrorCodeValues) {
+    if (!sdkErrorCodeNames.has(value)) {
+      violations.push(`sdk-error-codes.yaml values entry missing matching codes row: ${value}`);
+    }
+    if (!reasonCodeValues.has(value)) {
+      violations.push(`sdk-error-codes.yaml value missing ReasonCode constant: ${value}`);
+    }
+  }
+  for (const name of sdkErrorCodeNames) {
+    if (!sdkErrorCodeValues.has(name)) {
+      violations.push(`sdk-error-codes.yaml codes row missing matching values entry: ${name}`);
+    }
+  }
+  for (const entry of reasonCodeEntries) {
+    if (isSdkLocalReasonCode(entry.value) && !sdkErrorCodeValues.has(entry.value)) {
+      violations.push(`SDK-local ReasonCode missing sdk-error-codes.yaml registration: ${entry.value}`);
     }
   }
 

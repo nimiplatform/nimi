@@ -172,6 +172,70 @@ test('tauri-ipc Runtime transport decodes protobuf server streams', async () => 
   }
 });
 
+test('tauri-ipc Runtime transport drains queued stream chunks before surfacing remote error', async () => {
+  const listeners = new Map<string, (event: { payload: unknown }) => void>();
+  const restore = installTauriTestHook({
+    invoke: async (command) => {
+      if (command === 'runtime_bridge_stream_open') {
+        const streamId = 'tauri-stream-error';
+        setTimeout(() => {
+          listeners.get(`runtime_bridge:stream:${streamId}`)?.({
+            payload: {
+              streamId,
+              eventType: 'next',
+              payloadBytesBase64: toBase64(AccountSessionEvent.toBinary(AccountSessionEvent.create({
+                eventId: 'event-before-error',
+                sequence: '43',
+                eventType: AccountEventType.LOGIN_COMPLETED,
+              }))),
+            },
+          });
+          listeners.get(`runtime_bridge:stream:${streamId}`)?.({
+            payload: {
+              streamId,
+              eventType: 'error',
+              error: {
+                reasonCode: ReasonCode.AI_STREAM_BROKEN,
+                message: 'remote stream failed',
+                actionHint: 'retry_stream',
+              },
+            },
+          });
+        }, 0);
+        return { streamId };
+      }
+      if (command === 'runtime_bridge_stream_close') {
+        return {};
+      }
+      throw new Error(`unexpected tauri command: ${command}`);
+    },
+    listen: (event, handler) => {
+      listeners.set(event, handler);
+      return () => {
+        listeners.delete(event);
+      };
+    },
+  });
+
+  try {
+    const runtime = new Runtime({
+      appId: 'nimi.tauri.test',
+      transport: { type: 'tauri-ipc' },
+    });
+    const iterator = runtime.account.subscribeAccountSessionEvents({ afterSequence: '42' })[Symbol.asyncIterator]();
+
+    const first = await iterator.next();
+    assert.equal(first.done, false);
+    assert.equal(first.value.eventId, 'event-before-error');
+    await assert.rejects(
+      () => iterator.next(),
+      (error: unknown) => (error as { reasonCode?: string }).reasonCode === ReasonCode.AI_STREAM_BROKEN,
+    );
+  } finally {
+    restore();
+  }
+});
+
 test('tauri-ipc Runtime transport fails closed when invoke is unavailable', async () => {
   const restore = installTauriTestHook({});
   try {

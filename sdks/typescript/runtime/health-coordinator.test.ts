@@ -23,12 +23,16 @@ class PushStream<T> implements AsyncIterable<T> {
     readonly reject: (error: unknown) => void;
   }> = [];
   private failure: unknown;
+  private closed = false;
+
+  returnCount = 0;
 
   push(value: T): void {
     this.deliver({ done: false, value });
   }
 
   close(): void {
+    this.closed = true;
     this.deliver({ done: true, value: undefined });
   }
 
@@ -41,19 +45,33 @@ class PushStream<T> implements AsyncIterable<T> {
     this.failure = error;
   }
 
-  async *[Symbol.asyncIterator](): AsyncIterator<T> {
-    while (true) {
-      if (this.failure) {
-        throw this.failure;
-      }
-      const queued = this.values.shift() ?? await new Promise<IteratorResult<T>>((resolve, reject) => {
-        this.waiters.push({ resolve, reject });
-      });
-      if (queued.done) {
-        return;
-      }
-      yield queued.value;
-    }
+  [Symbol.asyncIterator](): AsyncIterator<T> {
+    return {
+      next: async () => {
+        if (this.failure) {
+          throw this.failure;
+        }
+        const queued = this.values.shift();
+        if (queued) {
+          return queued;
+        }
+        if (this.closed) {
+          return { done: true, value: undefined };
+        }
+        return new Promise<IteratorResult<T>>((resolve, reject) => {
+          this.waiters.push({ resolve, reject });
+        });
+      },
+      return: async () => {
+        this.returnCount += 1;
+        this.closed = true;
+        this.values.length = 0;
+        while (this.waiters.length > 0) {
+          this.waiters.shift()?.resolve({ done: true, value: undefined });
+        }
+        return { done: true, value: undefined };
+      },
+    };
   }
 
   private deliver(result: IteratorResult<T>): void {
@@ -191,6 +209,8 @@ test('Runtime health coordinator fetches, merges streams, reconnects, refreshes 
   }
   await flushAsyncWork();
   assert.equal(coordinator.getSnapshot().streamConnected, false);
+  assert.equal(runtimeStreams[0]?.returnCount, 1);
+  assert.equal(providerStreams[0]?.returnCount, 1);
   intervals[0]?.();
   await flushAsyncWork();
   assert.equal(runtimeStreamSubscribes, 1);
@@ -206,8 +226,11 @@ test('Runtime health coordinator fetches, merges streams, reconnects, refreshes 
   coordinator.stop();
   assert.equal(coordinator.getSnapshot().started, true);
   coordinator.stop();
+  await flushAsyncWork();
   assert.equal(coordinator.getSnapshot().started, false);
   assert.equal(coordinator.getSnapshot().streamConnected, false);
+  assert.equal(runtimeStreams[1]?.returnCount, 1);
+  assert.equal(providerStreams[1]?.returnCount, 1);
   assert.equal(intervals.length, 0);
   unsubscribe();
   assert.ok(notifications > 0);

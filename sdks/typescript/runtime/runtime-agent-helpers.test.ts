@@ -6,6 +6,7 @@ import type {
   GetAgentRequest,
   GetRealmGroupMessageCandidateEvidenceRequest,
   InitializeAgentRequest,
+  type AppMessageEvent,
   RuntimeTypedCallOptions,
   SendAppMessageRequest,
   TerminateAgentRequest,
@@ -27,7 +28,7 @@ import {
   buildNimiRuntimeAgentTurnPayload,
   createNimiRuntimeAgentTurnsModule,
 } from './runtime-agent-turns';
-import { fromNimiRuntimeProtoStruct } from './runtime-agent-values';
+import { fromNimiRuntimeProtoStruct, toNimiRuntimeProtoStruct } from './runtime-agent-values';
 
 test('Runtime Agent turn helpers build explicit payloads and fail closed on invalid input', async () => {
   const baseTurn = {
@@ -158,6 +159,58 @@ test('Runtime Agent turn helpers build explicit payloads and fail closed on inva
   );
 });
 
+test('Runtime Agent turn subscription cancels sibling streams on early consumer exit', async () => {
+  const appStream = new CancellableStream<AppMessageEvent>([{
+    messageType: 'runtime.agent.turn.started',
+    payload: toNimiRuntimeProtoStruct({
+      local_agent_ref: 'local-agent:user-1:agent-1',
+      conversation_anchor_id: 'anchor-1',
+      turn_id: 'turn-1',
+      stream_id: 'stream-1',
+    }),
+  } as AppMessageEvent]);
+  const agentStream = new CancellableStream<unknown>([]);
+  const module = createNimiRuntimeAgentTurnsModule({
+    runtime: {
+      appId: 'desktop',
+      auth: protectedAuth(),
+      appAuth: protectedAppAuth(),
+      agents: {
+        async getPublicChatSessionSnapshot() {
+          return {};
+        },
+        subscribeAgentEvents() {
+          return agentStream;
+        },
+      },
+      appMessages: {
+        async sendAppMessage() {
+          return { messageId: 'unused', accepted: true, reasonCode: RuntimeGeneratedReasonCode.ACTION_EXECUTED };
+        },
+        subscribeAppMessages() {
+          return appStream;
+        },
+      },
+    },
+    getSubjectUserId: () => 'user-1',
+    withScopes: async (_scopes, operation) => operation({}),
+  });
+
+  const stream = await module.subscribe({
+    ownerUserId: 'user-1',
+    realmAgentId: 'agent-1',
+    conversationAnchorId: 'anchor-1',
+    includeAgentEvents: true,
+  });
+  for await (const event of stream) {
+    assert.equal(event.eventName, 'runtime.agent.turn.started');
+    break;
+  }
+
+  assert.equal(appStream.returnCount, 1);
+  assert.equal(agentStream.returnCount, 1);
+});
+
 test('Runtime Agent lifecycle surface initializes idempotently and terminates through scoped Runtime calls', async () => {
   const calls: Array<{ readonly method: string; readonly request: unknown; readonly options?: RuntimeTypedCallOptions }> = [];
   let lifecycleStatus = AgentLifecycleStatus.ACTIVE;
@@ -267,6 +320,43 @@ test('Runtime Realm group message candidate surface builds verified commit paylo
     /evidence does not match the candidate handle/,
   );
 });
+
+class CancellableStream<T> implements AsyncIterable<T> {
+  private readonly values: T[];
+  private readonly waiters: Array<(result: IteratorResult<T>) => void> = [];
+  private closed = false;
+
+  returnCount = 0;
+
+  constructor(values: readonly T[]) {
+    this.values = [...values];
+  }
+
+  [Symbol.asyncIterator](): AsyncIterator<T> {
+    return {
+      next: async () => {
+        if (this.values.length > 0) {
+          return { done: false, value: this.values.shift() as T };
+        }
+        if (this.closed) {
+          return { done: true, value: undefined };
+        }
+        return new Promise<IteratorResult<T>>((resolve) => {
+          this.waiters.push(resolve);
+        });
+      },
+      return: async () => {
+        this.returnCount += 1;
+        this.closed = true;
+        this.values.length = 0;
+        while (this.waiters.length > 0) {
+          this.waiters.shift()?.({ done: true, value: undefined });
+        }
+        return { done: true, value: undefined };
+      },
+    };
+  }
+}
 
 function agentIdentity() {
   return {

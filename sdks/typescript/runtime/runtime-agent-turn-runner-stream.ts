@@ -108,11 +108,16 @@ export function createNimiRuntimeAgentEventQueue(
 function delay(ms: number, signal?: AbortSignal): Promise<void> {
   if (signal?.aborted) return Promise.resolve();
   return new Promise((resolve) => {
-    const timeout = globalThis.setTimeout(resolve, ms);
-    signal?.addEventListener('abort', () => {
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
       globalThis.clearTimeout(timeout);
+      signal?.removeEventListener('abort', finish);
       resolve();
-    }, { once: true });
+    };
+    const timeout = globalThis.setTimeout(finish, ms);
+    signal?.addEventListener('abort', finish, { once: true });
   });
 }
 

@@ -214,6 +214,8 @@ export class NimiRuntimeHealthCoordinator {
 
   private runtimeEventUnsubscribers: Array<() => void> = [];
 
+  private streamCancellers: Array<() => void> = [];
+
   constructor(deps: NimiRuntimeHealthCoordinatorDeps) {
     this.deps = {
       ...deps,
@@ -243,6 +245,7 @@ export class NimiRuntimeHealthCoordinator {
       return;
     }
     this.streamGeneration += 1;
+    this.cancelStreams();
     if (this.watchdogHandle !== null) {
       this.deps.clearInterval(this.watchdogHandle);
       this.watchdogHandle = null;
@@ -352,6 +355,7 @@ export class NimiRuntimeHealthCoordinator {
   }
 
   private restartStreams(): void {
+    this.cancelStreams();
     const generation = ++this.streamGeneration;
     this.updateState((current) => ({
       ...current,
@@ -366,6 +370,7 @@ export class NimiRuntimeHealthCoordinator {
   private handleRuntimeDisconnected(): void {
     this.waitForRuntimeReconnect = true;
     this.streamGeneration += 1;
+    this.cancelStreams();
     this.updateState((current) => ({
       ...current,
       streamConnected: false,
@@ -387,31 +392,40 @@ export class NimiRuntimeHealthCoordinator {
   private startRuntimeHealthStream(generation: number): void {
     void this.deps.subscribeRuntimeHealth()
       .then(async (stream) => {
+        const iterator = stream[Symbol.asyncIterator]();
+        const untrack = this.trackStreamIterator(iterator);
         if (!this.isCurrentGeneration(generation)) {
+          untrack();
+          await Promise.resolve(iterator.return?.()).catch(() => undefined);
           return;
         }
-        this.updateState((current) => ({
-          ...current,
-          healthStreamConnected: true,
-          streamError: null,
-        }));
-        for await (const event of stream) {
-          if (!this.isCurrentGeneration(generation)) {
-            break;
-          }
+        try {
           this.updateState((current) => ({
             ...current,
-            runtimeHealth: mapRuntimeHealthEventToSnapshot(event),
-            lastStreamAt: toIsoString(this.deps.now()),
             healthStreamConnected: true,
             streamError: null,
           }));
-        }
-        if (this.isCurrentGeneration(generation)) {
-          this.updateState((current) => ({
-            ...current,
-            healthStreamConnected: false,
-          }));
+          while (this.isCurrentGeneration(generation)) {
+            const next = await iterator.next();
+            if (next.done) {
+              break;
+            }
+            this.updateState((current) => ({
+              ...current,
+              runtimeHealth: mapRuntimeHealthEventToSnapshot(next.value),
+              lastStreamAt: toIsoString(this.deps.now()),
+              healthStreamConnected: true,
+              streamError: null,
+            }));
+          }
+          if (this.isCurrentGeneration(generation)) {
+            this.updateState((current) => ({
+              ...current,
+              healthStreamConnected: false,
+            }));
+          }
+        } finally {
+          untrack();
         }
       })
       .catch((error) => {
@@ -429,32 +443,41 @@ export class NimiRuntimeHealthCoordinator {
   private startProviderHealthStream(generation: number): void {
     void this.deps.subscribeProviderHealth()
       .then(async (stream) => {
+        const iterator = stream[Symbol.asyncIterator]();
+        const untrack = this.trackStreamIterator(iterator);
         if (!this.isCurrentGeneration(generation)) {
+          untrack();
+          await Promise.resolve(iterator.return?.()).catch(() => undefined);
           return;
         }
-        this.updateState((current) => ({
-          ...current,
-          providerStreamConnected: true,
-          streamError: null,
-        }));
-        for await (const event of stream) {
-          if (!this.isCurrentGeneration(generation)) {
-            break;
-          }
-          const nextSnapshot = mapProviderHealthEventToSnapshot(event);
+        try {
           this.updateState((current) => ({
             ...current,
-            providerHealth: mergeProviderSnapshot(current.providerHealth, nextSnapshot),
-            lastStreamAt: toIsoString(this.deps.now()),
             providerStreamConnected: true,
             streamError: null,
           }));
-        }
-        if (this.isCurrentGeneration(generation)) {
-          this.updateState((current) => ({
-            ...current,
-            providerStreamConnected: false,
-          }));
+          while (this.isCurrentGeneration(generation)) {
+            const next = await iterator.next();
+            if (next.done) {
+              break;
+            }
+            const nextSnapshot = mapProviderHealthEventToSnapshot(next.value);
+            this.updateState((current) => ({
+              ...current,
+              providerHealth: mergeProviderSnapshot(current.providerHealth, nextSnapshot),
+              lastStreamAt: toIsoString(this.deps.now()),
+              providerStreamConnected: true,
+              streamError: null,
+            }));
+          }
+          if (this.isCurrentGeneration(generation)) {
+            this.updateState((current) => ({
+              ...current,
+              providerStreamConnected: false,
+            }));
+          }
+        } finally {
+          untrack();
         }
       })
       .catch((error) => {
@@ -471,6 +494,33 @@ export class NimiRuntimeHealthCoordinator {
 
   private isCurrentGeneration(generation: number): boolean {
     return this.state.started && this.streamGeneration === generation;
+  }
+
+  private trackStreamIterator(iterator: AsyncIterator<unknown>): () => void {
+    let active = true;
+    const cancel = () => {
+      if (!active) {
+        return;
+      }
+      active = false;
+      void Promise.resolve(iterator.return?.()).catch(() => undefined);
+    };
+    this.streamCancellers.push(cancel);
+    return () => {
+      active = false;
+      const index = this.streamCancellers.indexOf(cancel);
+      if (index >= 0) {
+        this.streamCancellers.splice(index, 1);
+      }
+    };
+  }
+
+  private cancelStreams(): void {
+    const cancellers = this.streamCancellers;
+    this.streamCancellers = [];
+    for (const cancel of cancellers) {
+      cancel();
+    }
   }
 
   private updateState(

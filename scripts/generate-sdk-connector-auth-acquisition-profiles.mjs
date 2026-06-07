@@ -30,6 +30,10 @@ const allowedProfileFields = new Set([
   'redirect_uri',
   'fallback_verification_url',
   'token_exchange_provider',
+  'account_id_claim_namespace',
+  'account_id_claim_field',
+  'credential_auth_mode',
+  'credential_source',
   'default_poll_interval_seconds',
   'min_poll_interval_seconds',
   'default_expires_in_seconds',
@@ -143,6 +147,10 @@ function parseProfiles(raw, runtimeAuthProfileIDs) {
       redirectUri: requireHttpsUrl(entry, 'redirect_uri', profileId),
       fallbackVerificationUrl: requireHttpsUrl(entry, 'fallback_verification_url', profileId),
       tokenExchangeProvider: requireNonEmptyString(entry, 'token_exchange_provider', profileId),
+      accountIdClaimNamespace: requireHttpsUrl(entry, 'account_id_claim_namespace', profileId),
+      accountIdClaimField: requireNonEmptyString(entry, 'account_id_claim_field', profileId),
+      credentialAuthMode: requireNonEmptyString(entry, 'credential_auth_mode', profileId),
+      credentialSource: requireNonEmptyString(entry, 'credential_source', profileId),
       defaultPollIntervalSeconds,
       minPollIntervalSeconds,
       defaultExpiresInSeconds,
@@ -173,6 +181,10 @@ function renderTS(profiles) {
     `    redirectUri: ${quoteTS(profile.redirectUri)},\n` +
     `    fallbackVerificationUrl: ${quoteTS(profile.fallbackVerificationUrl)},\n` +
     `    tokenExchangeProvider: ${quoteTS(profile.tokenExchangeProvider)},\n` +
+    `    accountIdClaimNamespace: ${quoteTS(profile.accountIdClaimNamespace)},\n` +
+    `    accountIdClaimField: ${quoteTS(profile.accountIdClaimField)},\n` +
+    `    credentialAuthMode: ${quoteTS(profile.credentialAuthMode)},\n` +
+    `    credentialSource: ${quoteTS(profile.credentialSource)},\n` +
     `    defaultPollIntervalSeconds: ${profile.defaultPollIntervalSeconds},\n` +
     `    minPollIntervalSeconds: ${profile.minPollIntervalSeconds},\n` +
     `    defaultExpiresInSeconds: ${profile.defaultExpiresInSeconds},\n` +
@@ -190,6 +202,10 @@ function renderTS(profiles) {
     `  redirectUri: string;\n` +
     `  fallbackVerificationUrl: string;\n` +
     `  tokenExchangeProvider: string;\n` +
+    `  accountIdClaimNamespace: string;\n` +
+    `  accountIdClaimField: string;\n` +
+    `  credentialAuthMode: string;\n` +
+    `  credentialSource: string;\n` +
     `  defaultPollIntervalSeconds: number;\n` +
     `  minPollIntervalSeconds: number;\n` +
     `  defaultExpiresInSeconds: number;\n` +

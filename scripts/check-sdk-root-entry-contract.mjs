@@ -119,7 +119,7 @@ async function collectFiles(dir) {
 
 async function collectLegacyRootViolations(files) {
   const violations = [];
-  const thisFile = path.join(repoRoot, 'scripts', 'check-no-create-nimi-client.mjs');
+  const thisFile = path.join(repoRoot, 'scripts', 'check-sdk-root-entry-contract.mjs');
   for (const file of files) {
     if (file === thisFile) {
       continue;
@@ -166,7 +166,7 @@ async function runSelfTest() {
       throw new Error('self-test failed: legacy platform-client fixture was not flagged');
     }
 
-    process.stdout.write('check-no-create-nimi-client self-test passed\n');
+    process.stdout.write('check-sdk-root-entry-contract self-test passed\n');
   } finally {
     await fs.rm(tempRoot, { recursive: true, force: true });
   }
@@ -198,6 +198,6 @@ async function main() {
 }
 
 main().catch((error) => {
-  process.stderr.write(`check-no-create-nimi-client failed: ${String(error)}\n`);
+  process.stderr.write(`check-sdk-root-entry-contract failed: ${String(error)}\n`);
   process.exitCode = 1;
 });

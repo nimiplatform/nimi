@@ -87,9 +87,9 @@ jobs:
             if [[ "${file}" =~ ${shared_regex} ]]; then
               shared_changed=true
             fi
-            if [[ "${file}" =~ ^sdk/ ]]; then
-              sdk_changed=true
-            fi
+          if [[ "${file}" =~ ^sdk/ || "${file}" =~ ^sdks/ || "${file}" =~ ^\.nimi/spec/sdks/ ]]; then
+            sdk_changed=true
+          fi
             if [[ "${file}" =~ ^runtime/ || "${file}" =~ ^proto/ || "${file}" == ".goreleaser.yml" ]]; then
               runtime_changed=true
             fi
@@ -100,6 +100,10 @@ jobs:
 
           if [[ "${shared_changed}" == "true" ]]; then
             core_changed=true
+          fi
+          if [[ "${sdk_changed}" == "true" ]]; then
+            core_changed=true
+            desktop_web_changed=true
           fi
 
           {
@@ -211,8 +215,8 @@ jobs:
       - name: Enforce desktop no private @client alias
         run: pnpm check:desktop-no-client-alias
 
-      - name: Enforce no createNimiClient legacy entry
-        run: pnpm check:no-create-nimi-client
+      - name: Enforce SDK root entry contract
+        run: pnpm check:sdk-root-entry-contract
 
       - name: Enforce no global OpenAPI singleton config
         run: pnpm check:no-global-openapi-config
@@ -269,6 +273,12 @@ jobs:
 
       - name: Build SDK
         run: pnpm build:sdk
+
+      - name: SDK generator drift check
+        run: PATH="${PWD}/node_modules/.bin:${PATH}" pnpm check:sdks-generators
+
+      - name: SDK typed-core conformance check
+        run: pnpm check:sdks-conformance-typed-core
 
       - name: Test SDK
         run: pnpm --filter @nimiplatform/sdk test
@@ -372,6 +382,9 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf webkit2gtk-driver xvfb
+
+      - name: Build SDK surfaces for Desktop/Web
+        run: pnpm build:sdk
 
       - name: Cargo check
         run: pnpm --filter @nimiplatform/desktop run check:cargo

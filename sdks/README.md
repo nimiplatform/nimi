@@ -1,50 +1,42 @@
 # SDKS Core Family
 
-`sdks/` is the Phase 1 multi-language Runtime/Realm core-family foundation.
-It is separate from the current `sdk/` TypeScript package, which remains active
-for existing Desktop/Web consumers.
+`sdks/` is the active SDK family source. `sdks/typescript` is the vNext
+implementation target for the next major `@nimiplatform/sdk` package.
 
-Phase 1 includes:
+The archived pre-vNext TypeScript SDK lives under
+`archive/sdk-pre-vnext-20260606/` as baseline evidence only. It is not an active
+package root and must not regain implementation or authority ownership.
 
-- shared Runtime core manifests generated from `proto/runtime/v1/*.proto`
-- shared Realm core manifests generated from Realm OpenAPI when available
-- per-language generated Runtime and Realm clients for TypeScript, Python, Go,
-  and Rust
-- shared spec-derived manifests for SDK error codes and export surfaces
-- minimal handwritten core-client glue for transport, auth metadata, timeout,
-  cancellation, streaming, and unsafe raw access
-- language-neutral conformance checks that execute generated clients through
-  fake transports
+Current scope:
+
+- TypeScript is the only full implementation target: Runtime, Realm, app, AI,
+  agent, features, adapters, testing, and migration proofs.
+- Python, Go, and Rust remain generated Runtime/Realm core only until the
+  TypeScript implementation is stable.
+- Generated files are produced through `sdks/generators`; do not hand-edit
+  generated outputs.
+- Adapter packages stay source-local/private until owner-approved public package
+  names and compatibility promises are accepted.
 
 Generation:
 
 ```bash
-node sdks/generators/generate.mjs
-node sdks/generators/generate.mjs --check
+PATH="${PWD}/node_modules/.bin:${PATH}" node sdks/generators/generate.mjs
+PATH="${PWD}/node_modules/.bin:${PATH}" node sdks/generators/generate.mjs --check
 ```
 
 Realm OpenAPI resolution uses `config/realm-openapi-source.json`, with relative
 paths resolved from the repo root. If that source is not present in a worktree,
 set `NIMI_REALM_OPENAPI_PATH` to the canonical OpenAPI file before running the
 generator. Realm typed-client generation fails closed when OpenAPI is
-unavailable; spec fallback records are not sufficient schema authority for
-generated Realm clients.
+unavailable; spec tables are not REST schema fallback authority.
 
 Conformance:
 
 ```bash
-node sdks/conformance/run.mjs --language all
+node sdks/conformance/run.mjs --language all --profile typed-core
 ```
 
-The conformance runner validates generated manifest parity and then runs
-per-language behavior checks for unary calls, server streams, Realm operations,
-metadata propagation, timeout/cancellation posture, error projection, and unsafe
-raw transport access. These commands are local Phase 1 foundation checks. They
-are not wired into the repo release gates until admitted by the SDK kernel.
-
-Phase 1B raises the completion bar from descriptor-driven generated clients to
-typed public core APIs. For Phase 1B, generated clients must expose named,
-typed Runtime methods and Realm operation functions in TypeScript, Python, Go,
-and Rust. Shared conformance must invoke those typed APIs through fake
-transports. Generic descriptor calls remain low-level support and are not
-normal core-ready proof.
+The conformance runner validates generated manifest parity and generated
+Runtime/Realm core behavior. TypeScript handwritten surfaces have their own
+package tests and SDK matrix gates.

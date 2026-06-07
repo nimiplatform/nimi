@@ -23,6 +23,10 @@ const GROUP_TO_FACADE_ARRAYS = [
     arrays: ['RUNTIME_AI_METHODS'],
   },
   {
+    groups: ['ai_scheduling_projection'],
+    arrays: ['RUNTIME_SCHEDULING_METHODS'],
+  },
+  {
     groups: ['connector_service_projection'],
     arrays: ['RUNTIME_CONNECTOR_METHODS'],
   },
@@ -63,6 +67,14 @@ const GROUP_TO_FACADE_ARRAYS = [
     arrays: ['RUNTIME_APP_MESSAGE_METHODS'],
   },
   {
+    groups: ['app_lifecycle_service_projection'],
+    arrays: ['RUNTIME_APP_LIFECYCLE_METHODS'],
+  },
+  {
+    groups: ['artifact_service_projection'],
+    arrays: ['RUNTIME_ARTIFACT_METHODS'],
+  },
+  {
     groups: ['memory_service_projection'],
     arrays: ['RUNTIME_MEMORY_METHODS'],
   },
@@ -75,14 +87,6 @@ const GROUP_TO_FACADE_ARRAYS = [
 const DEFERRED_OR_LOW_LEVEL_ONLY_GROUPS = [
   'workflow_service_projection',
   'model_service_projection',
-];
-
-const SDKS_WAVE4_ADMITTED_ARRAYS = [
-  {
-    array: 'RUNTIME_SCHEDULING_METHODS',
-    methods: ['peekScheduling'],
-    authority: 'config/sdk-vnext-migration/typescript-ai-capability-ledger.yaml#runtime-ai-route-and-scheduling',
-  },
 ];
 
 const FORBIDDEN_HIGH_LEVEL_METHODS = [
@@ -198,19 +202,6 @@ async function main() {
     const leaked = group.methods.filter((method) => allHighLevelMethods.includes(method));
     if (leaked.length > 0) {
       violations.push(`Runtime facade exposes deferred group ${groupName}: ${leaked.join(', ')}`);
-    }
-  }
-
-  for (const mapping of SDKS_WAVE4_ADMITTED_ARRAYS) {
-    const actual = uniqueSorted(facadeArrays.get(mapping.array) ?? []);
-    allHighLevelMethods.push(...actual);
-    const missingMethods = mapping.methods.filter((method) => !actual.includes(method));
-    const extraMethods = actual.filter((method) => !mapping.methods.includes(method));
-    if (missingMethods.length > 0) {
-      violations.push(`${mapping.array} missing AI capability admitted Runtime methods from ${mapping.authority}: ${missingMethods.join(', ')}`);
-    }
-    if (extraMethods.length > 0) {
-      violations.push(`${mapping.array} exposes methods outside ${mapping.authority}: ${extraMethods.join(', ')}`);
     }
   }
 

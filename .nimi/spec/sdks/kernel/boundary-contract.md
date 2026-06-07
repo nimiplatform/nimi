@@ -11,16 +11,25 @@
 
 SDK 内部禁止将 runtime transport 与 realm REST client 混合为单一私有入口；必须维持显式边界。
 
-## S-BOUNDARY-004 禁止旧入口
+## S-BOUNDARY-004 SDK Root Entry Contract
 
-禁止出现：
+SDK 根入口必须固定为 owner-approved vNext composition surface：
 
 - `createNimiClient`
+- `NimiClient`
+- `NimiClientConfig`
+
+禁止出现 retired platform-client / singleton 入口：
+
 - 全局 `OpenAPI.BASE` / `OpenAPI.TOKEN` 赋值
+- `createPlatformClient`
+- `createLocalFirstPartyRuntimePlatformClient`
+- `getPlatformClient`
+- `clearPlatformClient`
 
 执行命令：
 
-- `pnpm check:no-create-nimi-client`
+- `pnpm check:sdk-root-entry-contract`
 - `pnpm check:no-global-openapi-config`
 
 ## S-BOUNDARY-005 Developer Ergonomics Is Not Truth Ownership

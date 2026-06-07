@@ -21,6 +21,7 @@ entries:
   - RuntimeModelService
   - RuntimeCognitionService
   - RuntimeAppService
+  - RuntimeArtifactService
   - RuntimeAgentService
 groups:
   - group: ai_service_projection
@@ -48,6 +49,19 @@ groups:
           does not support client-initiated streaming. Excluded per S-SURFACE-009
           selective projection policy.
     source_rule: S-SURFACE-002
+  - group: ai_scheduling_projection
+    service: AIService
+    phase: 1
+    status: active
+    note: >
+      SDK AIConfig feasibility and submit-target probes consume Runtime
+      K-SCHED-002 PeekScheduling as a typed advisory preflight. This group
+      admits the public SDK Runtime facade projection; Runtime remains the
+      scheduling authority and Acquire remains authoritative slot admission.
+    source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
+    methods:
+      - PeekScheduling
+    source_rule: S-AICONF-001
   - group: connector_service_projection
     service: ConnectorService
     phase: 1
@@ -340,6 +354,40 @@ groups:
     methods:
       - SendAppMessage
       - SubscribeAppMessages
+    source_rule: S-SURFACE-002
+  - group: app_lifecycle_service_projection
+    service: RuntimeAppService
+    phase: 1
+    status: active
+    note: >
+      App install/update/open/readiness/storage/job operations are Runtime-owned
+      lifecycle surfaces projected by the vNext SDK. App message operations
+      remain in app_service_projection because they carry the app-message bus
+      semantics.
+    source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
+    methods:
+      - InstallApp
+      - UninstallApp
+      - GetAppStorage
+      - GetAppPackageReadiness
+      - GetAppInstallJob
+      - ListAppInstallJobs
+      - WatchAppInstallJobEvents
+      - UpdateApp
+      - HealthRepairApp
+      - OpenApp
+    source_rule: S-SURFACE-002
+  - group: artifact_service_projection
+    service: RuntimeArtifactService
+    phase: 1
+    status: active
+    note: >
+      ReadArtifactBytes is the SDK typed projection for Runtime-owned artifact
+      byte retrieval. Artifact identity, authorization, MIME, and size truth
+      remain Runtime-owned.
+    source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
+    methods:
+      - ReadArtifactBytes
     source_rule: S-SURFACE-002
   - group: memory_service_projection
     service: RuntimeCognitionService

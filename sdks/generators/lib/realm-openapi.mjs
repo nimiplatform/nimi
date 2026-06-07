@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import YAML from 'yaml';
-import { generatedBy, readText, readYaml, repoRoot } from './context.mjs';
+import { generatedBy, readText, repoRoot } from './context.mjs';
 
 function configuredRealmOpenApiSource() {
   const configRel = 'config/realm-openapi-source.json';
@@ -126,31 +126,6 @@ export function extractRealmCore() {
       name,
       schema: parseOpenApiSchema(schemas[name]),
     }));
-  } else {
-    const ruleCatalog = readYaml('.nimi/spec/realm/kernel/tables/rule-catalog.yaml');
-    const alignmentMap = readYaml('.nimi/spec/realm/kernel/tables/open-spec-alignment-map.yaml');
-    sourcePaths.push(
-      '.nimi/spec/realm/kernel/tables/rule-catalog.yaml',
-      '.nimi/spec/realm/kernel/tables/open-spec-alignment-map.yaml',
-    );
-    const alignedRules = new Set(
-      (alignmentMap?.mappings || [])
-        .filter((entry) => entry?.external_type === 'kernel_rule')
-        .map((entry) => String(entry.external_id)),
-    );
-    operations = (ruleCatalog?.entries || [])
-      .filter((ruleId) => alignedRules.has(String(ruleId)))
-      .sort()
-      .map((ruleId) => ({
-        operation_id: String(ruleId),
-        method: 'SPEC',
-        path: null,
-        service: String(ruleId).split('-').slice(0, 2).join('-'),
-        tags: ['realm-spec-fallback'],
-        request_schema_ref: null,
-        response_schema_refs: [],
-      }));
-    modelNames = [];
   }
 
   const services = new Map();
@@ -164,7 +139,7 @@ export function extractRealmCore() {
   return {
     contract: 'nimi.sdks.realm-core-manifest.v1',
     generated_by: generatedBy,
-    source_kind: sourceState === 'openapi_loaded' ? 'realm_openapi' : 'realm_spec_fallback',
+    source_kind: sourceState === 'openapi_loaded' ? 'realm_openapi' : 'realm_openapi_missing',
     source_state: sourceState,
     source_label: source.source_label,
     source_paths: sourcePaths,
@@ -173,7 +148,7 @@ export function extractRealmCore() {
       source_rule: 'S-SURFACE-019',
       notes: [
         'Realm core operation truth is derived from Realm OpenAPI when available.',
-        'Admitted Realm spec tables are used only when the configured OpenAPI file is unavailable in this worktree.',
+        'Configured Realm OpenAPI absence is fail-closed by the SDK generator; spec tables are not REST schema fallback authority.',
       ],
     },
     operations,

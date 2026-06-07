@@ -14,7 +14,7 @@
     "source_rule": "S-SURFACE-019",
     "notes": [
       "Realm core operation truth is derived from Realm OpenAPI when available.",
-      "Admitted Realm spec tables are used only when the configured OpenAPI file is unavailable in this worktree."
+      "Configured Realm OpenAPI absence is fail-closed by the SDK generator; spec tables are not REST schema fallback authority."
     ]
   },
   "operations": [

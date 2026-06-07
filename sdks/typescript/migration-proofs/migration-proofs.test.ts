@@ -3,11 +3,11 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
-import { NIMI_LANGGRAPH_ADAPTER_MANIFEST } from '../adapters/langgraph';
-import { NIMI_LLAMA_INDEX_ADAPTER_MANIFEST } from '../adapters/llamaindex';
-import { NIMI_MASTRA_ADAPTER_MANIFEST } from '../adapters/mastra';
-import { NIMI_MCP_ADAPTER_MANIFEST } from '../adapters/mcp';
-import { NIMI_OPENAI_COMPATIBLE_ADAPTER_MANIFEST } from '../adapters/openai-compatible';
+import { NIMI_LANGGRAPH_ADAPTER_MANIFEST } from '../adapters/langgraph/index.js';
+import { NIMI_LLAMA_INDEX_ADAPTER_MANIFEST } from '../adapters/llamaindex/index.js';
+import { NIMI_MASTRA_ADAPTER_MANIFEST } from '../adapters/mastra/index.js';
+import { NIMI_MCP_ADAPTER_MANIFEST } from '../adapters/mcp/index.js';
+import { NIMI_OPENAI_COMPATIBLE_ADAPTER_MANIFEST } from '../adapters/openai-compatible/index.js';
 import { NIMI_VERCEL_AI_ADAPTER_MANIFEST } from '../adapters/vercel-ai/manifest';
 import { runAIProfileRequirementFlowProof } from './ai-profile-requirement-flow';
 import { assertProofPassed } from './proof-contracts';

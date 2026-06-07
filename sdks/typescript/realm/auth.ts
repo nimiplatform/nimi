@@ -202,17 +202,7 @@ export function readNimiRealmOAuthLoginTokens(
 
 export function isNimiRealmExpectedAnonymousSessionError(error: unknown): boolean {
   const reasonCode = readReasonCode(error);
-  if (reasonCode && EXPECTED_ANONYMOUS_REASON_CODES.has(reasonCode)) {
-    return true;
-  }
-
-  const message = readErrorMessage(error).toUpperCase();
-  return (
-    message.includes('HTTP_401')
-    || message.includes('UNAUTHORIZED')
-    || message.includes('AUTH_TOKEN_INVALID')
-    || message.includes('SESSION_EXPIRED')
-  );
+  return Boolean(reasonCode && EXPECTED_ANONYMOUS_REASON_CODES.has(reasonCode));
 }
 
 export async function checkNimiRealmAuthEmail(
@@ -315,10 +305,6 @@ function readReasonCode(error: unknown): string {
   }
   const rawValue = (error as { readonly reasonCode?: unknown }).reasonCode;
   return typeof rawValue === 'string' ? rawValue.trim().toUpperCase() : '';
-}
-
-function readErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error || '');
 }
 
 function malformedNimiRealmAuthResponse(message: string): Error {

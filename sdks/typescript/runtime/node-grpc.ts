@@ -674,13 +674,13 @@ function nodeGrpcReadableStream(
     [Symbol.asyncIterator](): AsyncIterator<Uint8Array> {
       return {
         next: async () => {
+          if (queue.length > 0) {
+            return { done: false, value: queue.shift() as Uint8Array };
+          }
           if (pendingError) {
             const error = pendingError;
             pendingError = undefined;
             throw error;
-          }
-          if (queue.length > 0) {
-            return { done: false, value: queue.shift() as Uint8Array };
           }
           if (done) {
             return { done: true, value: undefined };

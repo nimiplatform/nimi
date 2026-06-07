@@ -1,6 +1,6 @@
 import type { NimiAICapabilityRequirementDeclaration } from '@nimiplatform/sdk/ai';
 import type { NimiAppClient, NimiAppRow } from '@nimiplatform/sdk/app';
-import { createNimiError, type JsonObject, type NimiError } from '@nimiplatform/sdk/types';
+import { createNimiError, ReasonCode, type JsonObject, type NimiError } from '@nimiplatform/sdk/types';
 import {
   ensureAppFirstLaunchAIConfig,
   type EnsureAppFirstLaunchAIConfigInput,
@@ -87,7 +87,7 @@ function normalizeAppId(appId: string): string {
   const normalized = String(appId || '').trim();
   if (!normalized) {
     throw appAIConfigGateError({
-      reasonCode: 'SDK_APP_ID_REQUIRED',
+      reasonCode: ReasonCode.SDK_APP_ID_REQUIRED,
       message: 'Desktop Apps open requires an appId before AIConfig initialization',
       actionHint: 'set_app_id',
     });

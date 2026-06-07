@@ -57,7 +57,7 @@ sdk_test_gate:
   description: SDK unit tests pass as a whole. Rules with this ref (without test_files) are indirectly validated by the suite.
 sdk_boundary_gate:
   type: static_gate
-  command: pnpm check:sdk-vnext-package-contract && pnpm check:no-create-nimi-client && pnpm check:no-global-openapi-config
+  command: pnpm check:sdk-vnext-package-contract && pnpm check:sdk-root-entry-contract && pnpm check:no-global-openapi-config
   path: scripts/check-sdk-vnext-package-contract.mjs
   description: Import boundary enforcement and legacy entry point prohibition.
 sdk_realm_consumer_gate:

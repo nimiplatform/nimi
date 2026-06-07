@@ -23,7 +23,7 @@ SDK 门禁分层：单元/模块、consumer smoke、合同/边界、runtime 投�
 
 - `pnpm check:sdk-vnext-package-contract`
 - `pnpm check:sdk-vnext-public-surface-smoke`
-- `pnpm check:no-create-nimi-client`
+- `pnpm check:sdk-root-entry-contract`
 - `pnpm check:no-global-openapi-config`
 - `pnpm check:sdk-vnext-realm-consumer-smoke`
 - `pnpm check:reason-code-constants`

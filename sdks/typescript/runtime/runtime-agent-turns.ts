@@ -273,17 +273,45 @@ function appMessageEvents(
   stream: AsyncIterable<AppMessageEvent>,
   request: NimiRuntimeAgentConsumeRequest,
 ): AsyncIterable<NimiRuntimeAgentConsumeEvent> {
+  return projectRuntimeAgentEventStream(stream, (event) => {
+    const projected = projectNimiRuntimeAgentAppMessageEvent(event);
+    if (!projected) return null;
+    const expectedAnchorId = optionalString(request.conversationAnchorId);
+    if (expectedAnchorId && projected.conversationAnchorId !== expectedAnchorId) {
+      return null;
+    }
+    return projected;
+  });
+}
+
+function projectRuntimeAgentEventStream<Input>(
+  stream: AsyncIterable<Input>,
+  project: (event: Input) => NimiRuntimeAgentConsumeEvent | null,
+): AsyncIterable<NimiRuntimeAgentConsumeEvent> {
   return {
-    async *[Symbol.asyncIterator]() {
-      for await (const event of stream) {
-        const projected = projectNimiRuntimeAgentAppMessageEvent(event);
-        if (!projected) continue;
-        const expectedAnchorId = optionalString(request.conversationAnchorId);
-        if (expectedAnchorId && projected.conversationAnchorId !== expectedAnchorId) {
-          continue;
-        }
-        yield projected;
-      }
+    [Symbol.asyncIterator](): AsyncIterator<NimiRuntimeAgentConsumeEvent> {
+      const iterator = stream[Symbol.asyncIterator]();
+      let closed = false;
+      return {
+        next: async () => {
+          while (!closed) {
+            const next = await iterator.next();
+            if (next.done) {
+              return { done: true, value: undefined };
+            }
+            const projected = project(next.value);
+            if (projected) {
+              return { done: false, value: projected };
+            }
+          }
+          return { done: true, value: undefined };
+        },
+        return: async () => {
+          closed = true;
+          await Promise.resolve(iterator.return?.()).catch(() => undefined);
+          return { done: true, value: undefined };
+        },
+      };
     },
   };
 }
@@ -292,36 +320,39 @@ function agentEvents(
   stream: AsyncIterable<unknown>,
   request: NimiRuntimeAgentConsumeRequest,
 ): AsyncIterable<NimiRuntimeAgentConsumeEvent> {
-  return {
-    async *[Symbol.asyncIterator]() {
-      for await (const event of stream) {
-        const projected = projectNimiRuntimeAgentServiceEvent(event as Parameters<typeof projectNimiRuntimeAgentServiceEvent>[0]);
-        const expectedAnchorId = optionalString(request.conversationAnchorId);
-        const projectedAnchorId = optionalString((projected as { readonly conversationAnchorId?: unknown }).conversationAnchorId);
-        if (expectedAnchorId && projectedAnchorId && projectedAnchorId !== expectedAnchorId) {
-          continue;
-        }
-        yield projected;
-      }
-    },
-  };
+  return projectRuntimeAgentEventStream(stream, (event) => {
+    const projected = projectNimiRuntimeAgentServiceEvent(event as Parameters<typeof projectNimiRuntimeAgentServiceEvent>[0]);
+    const expectedAnchorId = optionalString(request.conversationAnchorId);
+    const projectedAnchorId = optionalString((projected as { readonly conversationAnchorId?: unknown }).conversationAnchorId);
+    if (expectedAnchorId && projectedAnchorId && projectedAnchorId !== expectedAnchorId) {
+      return null;
+    }
+    return projected;
+  });
 }
 
 function mergeAsyncIterables<T>(sources: readonly AsyncIterable<T>[]): AsyncIterable<T> {
   return {
     async *[Symbol.asyncIterator]() {
       const iterators = sources.map((source) => source[Symbol.asyncIterator]());
+      const never = new Promise<{ index: number; result: IteratorResult<T> }>(() => undefined);
       const nexts = iterators.map((iterator, index) => iterator.next().then((result) => ({ index, result })));
       let active = iterators.length;
-      while (active > 0) {
-        const { index, result } = await Promise.race(nexts);
-        if (result.done) {
-          active -= 1;
-          nexts[index] = new Promise(() => undefined);
-          continue;
+      try {
+        while (active > 0) {
+          const { index, result } = await Promise.race(nexts);
+          if (result.done) {
+            active -= 1;
+            nexts[index] = never;
+            continue;
+          }
+          nexts[index] = iterators[index]!.next().then((nextResult) => ({ index, result: nextResult }));
+          yield result.value;
         }
-        nexts[index] = iterators[index]!.next().then((nextResult) => ({ index, result: nextResult }));
-        yield result.value;
+      } finally {
+        await Promise.allSettled(
+          iterators.map((iterator) => iterator.return?.()),
+        );
       }
     },
   };

@@ -14,7 +14,7 @@ test('Realm fetch transport maps generated operation requests to HTTP fetch', as
         attachments: [],
       }), {
         status: 200,
-        headers: { 'x-trace-id': 'trace-1' },
+        headers: { 'content-type': 'application/json', 'x-trace-id': 'trace-1' },
       });
     },
   });
@@ -41,7 +41,10 @@ test('Realm fetch transport expands query and JSON body request fields', async (
     baseUrl: 'https://realm.test',
     fetch: async (input, init = {}) => {
       calls.push({ url: String(input), init });
-      return new Response(JSON.stringify({ ok: true }), { status: 200 });
+      return new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
     },
   });
 
@@ -70,7 +73,7 @@ test('Realm fetch transport fails closed on HTTP errors and streaming calls', as
       reasonCode: 'REALM_POST_NOT_FOUND',
       actionHint: 'show_not_found',
       message: 'Post not found',
-    }), { status: 404 }),
+    }), { status: 404, headers: { 'content-type': 'application/json' } }),
   });
 
   await assert.rejects(
@@ -135,5 +138,55 @@ test('Realm fetch transport fails closed on malformed operation boundaries', asy
       assert.equal((error as { reasonCode?: string }).reasonCode, 'SDK_REALM_RESPONSE_DECODE_FAILED');
       return true;
     },
+  );
+});
+
+test('Realm fetch transport fails closed on non-JSON and empty successful responses', async () => {
+  const htmlTransport = createRealmFetchTransport({
+    baseUrl: 'https://realm.test',
+    fetch: async () => new Response('<html>ok</html>', {
+      status: 200,
+      headers: { 'content-type': 'text/html' },
+    }),
+  });
+  await assert.rejects(
+    htmlTransport.unary({
+      methodId: 'getPublicPost',
+      body: { path: { id: 'post-1' } },
+    }),
+    (error: unknown) => {
+      assert.equal((error as { reasonCode?: string }).reasonCode, 'SDK_REALM_RESPONSE_DECODE_FAILED');
+      return true;
+    },
+  );
+
+  const emptyTransport = createRealmFetchTransport({
+    baseUrl: 'https://realm.test',
+    fetch: async () => new Response('', {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    }),
+  });
+  await assert.rejects(
+    emptyTransport.unary({
+      methodId: 'getPublicPost',
+      body: { path: { id: 'post-1' } },
+    }),
+    (error: unknown) => {
+      assert.equal((error as { reasonCode?: string }).reasonCode, 'SDK_REALM_RESPONSE_DECODE_FAILED');
+      return true;
+    },
+  );
+
+  const noContentTransport = createRealmFetchTransport({
+    baseUrl: 'https://realm.test',
+    fetch: async () => new Response(null, { status: 204 }),
+  });
+  assert.deepEqual(
+    await noContentTransport.unary({
+      methodId: 'deletePost',
+      body: { path: { id: 'post-1' } },
+    }),
+    {},
   );
 });

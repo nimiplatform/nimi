@@ -169,6 +169,7 @@ test('Realm auth helpers map SDK-friendly calls to generated Realm auth requests
 
 test('Realm auth expected anonymous session classifier stays explicit', () => {
   assert.equal(isNimiRealmExpectedAnonymousSessionError({ reasonCode: ReasonCode.AUTH_TOKEN_INVALID }), true);
-  assert.equal(isNimiRealmExpectedAnonymousSessionError(new Error('HTTP_401 unauthorized')), true);
+  assert.equal(isNimiRealmExpectedAnonymousSessionError({ reasonCode: ReasonCode.SESSION_EXPIRED }), true);
+  assert.equal(isNimiRealmExpectedAnonymousSessionError(new Error('HTTP_401 unauthorized')), false);
   assert.equal(isNimiRealmExpectedAnonymousSessionError(new Error('contract mismatch')), false);
 });

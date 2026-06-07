@@ -227,7 +227,10 @@ function decodeBase64UrlJson(segment: string): JsonObject | null {
   }
 }
 
-function accountIdFromAccessToken(accessToken: string): string {
+function accountIdFromAccessToken(
+  accessToken: string,
+  profile: ConnectorAuthAcquisitionProfileSpec,
+): string {
   const parts = String(accessToken || '').trim().split('.');
   if (parts.length < 2 || !parts[1]) {
     return '';
@@ -236,11 +239,11 @@ function accountIdFromAccessToken(accessToken: string): string {
   if (!claims) {
     return '';
   }
-  const authClaims = claims['https://api.openai.com/auth'];
+  const authClaims = claims[profile.accountIdClaimNamespace];
   if (!authClaims || typeof authClaims !== 'object' || Array.isArray(authClaims)) {
     return '';
   }
-  return toTrimmedString((authClaims as Record<string, unknown>).chatgpt_account_id);
+  return toTrimmedString((authClaims as Record<string, unknown>)[profile.accountIdClaimField]);
 }
 
 function buildManagedCredentialJson(input: {
@@ -259,7 +262,7 @@ function buildManagedCredentialJson(input: {
   const refreshToken = toTrimmedString(input.refreshToken);
   const tokenType = toTrimmedString(input.tokenType);
   const scope = toTrimmedString(input.scope);
-  const accountId = accountIdFromAccessToken(accessToken);
+  const accountId = accountIdFromAccessToken(accessToken, input.profile);
   const expiresIn = Number.isFinite(input.expiresIn) && Number(input.expiresIn) > 0
     ? Math.trunc(Number(input.expiresIn))
     : undefined;
@@ -278,8 +281,8 @@ function buildManagedCredentialJson(input: {
       expires_in: expiresIn,
       expires_at: expiresAt,
       account_id: accountId || undefined,
-      auth_mode: 'chatgpt',
-      source: 'device-code',
+      auth_mode: input.profile.credentialAuthMode,
+      source: input.profile.credentialSource,
       issuer: input.profile.issuer,
       obtained_at: new Date(input.now).toISOString(),
     }),

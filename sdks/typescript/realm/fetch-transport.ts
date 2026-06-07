@@ -3,7 +3,7 @@ import {
   type RealmOperationDescriptor,
 } from '../core-generated/realm-client';
 import type { CoreTransport } from '../core-client';
-import { createNimiError, type CoreMetadata, type CoreStreamRequest, type CoreUnaryRequest, type JsonObject, type JsonValue } from '../types';
+import { createNimiError, ReasonCode, type CoreMetadata, type CoreStreamRequest, type CoreUnaryRequest, type JsonObject, type JsonValue } from '../types';
 
 export interface RealmFetchTransportOptions {
   readonly baseUrl: string;
@@ -22,7 +22,7 @@ export function createRealmFetchTransport(options: RealmFetchTransportOptions): 
   if (typeof fetchImpl !== 'function') {
     throw createNimiError({
       message: 'Realm fetch transport requires a fetch implementation.',
-      reasonCode: 'SDK_REALM_FETCH_UNAVAILABLE',
+      reasonCode: ReasonCode.SDK_REALM_FETCH_UNAVAILABLE,
       actionHint: 'provide_realm_fetch_transport_fetch',
       source: 'sdk',
     });
@@ -50,7 +50,7 @@ export function createRealmFetchTransport(options: RealmFetchTransportOptions): 
     ): AsyncIterable<Response> {
       throw createNimiError({
         message: `Realm fetch transport does not support server streams: ${request.methodId}`,
-        reasonCode: 'SDK_REALM_FETCH_STREAM_UNSUPPORTED',
+        reasonCode: ReasonCode.SDK_REALM_FETCH_STREAM_UNSUPPORTED,
         actionHint: 'use_unary_realm_operation',
         source: 'sdk',
       });
@@ -63,7 +63,7 @@ function normalizeBaseUrl(value: unknown): string {
   if (!text) {
     throw createNimiError({
       message: 'Realm fetch transport requires a baseUrl.',
-      reasonCode: 'SDK_REALM_BASE_URL_REQUIRED',
+      reasonCode: ReasonCode.SDK_REALM_BASE_URL_REQUIRED,
       actionHint: 'provide_realm_base_url',
       source: 'sdk',
     });
@@ -76,7 +76,7 @@ function describeRealmOperation(operationId: string): RealmOperationDescriptor {
   if (!descriptor || !descriptor.path) {
     throw createNimiError({
       message: `Unknown Realm operation: ${operationId}`,
-      reasonCode: 'SDK_REALM_OPERATION_UNKNOWN',
+      reasonCode: ReasonCode.SDK_REALM_OPERATION_UNKNOWN,
       actionHint: 'regenerate_realm_sdk',
       source: 'sdk',
       details: { operationId },
@@ -117,7 +117,7 @@ function createRealmFetchUrl(
     if (value === undefined || value === null || String(value).length === 0) {
       throw createNimiError({
         message: `Realm operation ${descriptor.operationId} missing path parameter ${key}.`,
-        reasonCode: 'SDK_REALM_PATH_PARAMETER_REQUIRED',
+        reasonCode: ReasonCode.SDK_REALM_PATH_PARAMETER_REQUIRED,
         actionHint: 'provide_realm_operation_path_parameter',
         source: 'sdk',
         details: { operationId: descriptor.operationId, parameter: key },
@@ -195,12 +195,17 @@ async function readRealmFetchResponse<Result>(
   descriptor: RealmOperationDescriptor,
 ): Promise<Result> {
   const text = await response.text();
-  const payload = text ? parseRealmFetchJson(text, descriptor.operationId) : {};
+  const jsonContentType = isRealmFetchJsonResponse(response);
   if (!response.ok) {
+    const payload = text && jsonContentType
+      ? parseRealmFetchJson(text, descriptor.operationId)
+      : text
+        ? { message: text }
+        : {};
     const errorRecord = asRecord(payload);
     throw createNimiError({
       message: readErrorMessage(errorRecord) || `Realm operation ${descriptor.operationId} failed with HTTP ${response.status}.`,
-      reasonCode: readErrorReasonCode(errorRecord) || 'SDK_REALM_HTTP_REQUEST_FAILED',
+      reasonCode: readErrorReasonCode(errorRecord) || ReasonCode.SDK_REALM_HTTP_REQUEST_FAILED,
       actionHint: readErrorActionHint(errorRecord) || 'inspect_realm_http_response',
       source: 'realm',
       retryable: response.status === 408 || response.status === 429 || response.status >= 500,
@@ -211,7 +216,33 @@ async function readRealmFetchResponse<Result>(
       },
     });
   }
+  if (response.status === 204 || response.status === 205 || descriptor.method === 'HEAD') {
+    return {} as Result;
+  }
+  if (!text) {
+    throw realmResponseDecodeError(descriptor.operationId, 'empty_body');
+  }
+  if (!jsonContentType) {
+    throw realmResponseDecodeError(descriptor.operationId, 'non_json_content_type');
+  }
+  const payload = parseRealmFetchJson(text, descriptor.operationId);
   return payload as Result;
+}
+
+function isRealmFetchJsonResponse(response: Response): boolean {
+  const contentType = response.headers.get('content-type')?.toLowerCase() ?? '';
+  const mime = contentType.split(';', 1)[0]?.trim() ?? '';
+  return mime === 'application/json' || mime.endsWith('+json');
+}
+
+function realmResponseDecodeError(operationId: string, cause: string): Error {
+  return createNimiError({
+    message: `Realm operation ${operationId} returned an invalid JSON response.`,
+    reasonCode: ReasonCode.SDK_REALM_RESPONSE_DECODE_FAILED,
+    actionHint: 'inspect_realm_http_response',
+    source: 'realm',
+    details: { operationId, cause },
+  });
 }
 
 function parseRealmFetchJson(text: string, operationId: string): unknown {
@@ -220,7 +251,7 @@ function parseRealmFetchJson(text: string, operationId: string): unknown {
   } catch {
     throw createNimiError({
       message: `Realm operation ${operationId} returned invalid JSON.`,
-      reasonCode: 'SDK_REALM_RESPONSE_DECODE_FAILED',
+      reasonCode: ReasonCode.SDK_REALM_RESPONSE_DECODE_FAILED,
       actionHint: 'inspect_realm_http_response',
       source: 'realm',
       details: { operationId },

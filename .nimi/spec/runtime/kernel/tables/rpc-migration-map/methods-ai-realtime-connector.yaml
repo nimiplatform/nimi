@@ -15,7 +15,7 @@ services:
   - AIService
   - RuntimeAiRealtimeService
   - ConnectorService
-method_count: 32
+method_count: 33
 method_mappings:
   - design_service: AIService
     design_method: ExecuteScenario
@@ -81,6 +81,11 @@ method_mappings:
     design_method: UploadArtifact
     proto_service: RuntimeAiService
     proto_method: UploadArtifact
+    mapping_posture: aligned
+  - design_service: AIService
+    design_method: PeekScheduling
+    proto_service: RuntimeAiService
+    proto_method: PeekScheduling
     mapping_posture: aligned
   - design_service: RuntimeAiRealtimeService
     design_method: OpenRealtimeSession
