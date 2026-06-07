@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -54,15 +54,53 @@ function applyRootRuntimeEnv(env) {
   return env;
 }
 
+function enableLocalDeveloperRegistrationGate(env) {
+  const command = String(process.argv[2] || '').trim();
+  if (command !== 'serve' && command !== 'start') {
+    return;
+  }
+  if (!fs.existsSync(devAppRegistryPath)) {
+    return;
+  }
+  const result = spawnSync(
+    binaryPath,
+    [
+      'config',
+      'set',
+      '--set',
+      'auth.developerRegistration.enabled=true',
+      '--json',
+    ],
+    {
+      cwd: repoRoot,
+      env,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    },
+  );
+  if (result.status === 0) {
+    return;
+  }
+  const detail = [result.stderr, result.stdout]
+    .map((value) => String(value || '').trim())
+    .filter(Boolean)
+    .join('\n');
+  process.stderr.write(`[run-runtime-dist] failed to enable local developer registration gate${detail ? `: ${detail}` : ''}\n`);
+  process.exit(result.status ?? 1);
+}
+
 if (!fs.existsSync(binaryPath)) {
   process.stderr.write(`[run-runtime-dist] missing ${path.relative(repoRoot, binaryPath)}; run 'pnpm build:runtime' first.\n`);
   process.exit(1);
 }
 
+const runtimeEnv = applyRootRuntimeEnv({ ...process.env });
+enableLocalDeveloperRegistrationGate(runtimeEnv);
+
 const child = spawn(binaryPath, process.argv.slice(2), {
   cwd: repoRoot,
   stdio: 'inherit',
-  env: applyRootRuntimeEnv({ ...process.env }),
+  env: runtimeEnv,
 });
 
 let childExited = false;
