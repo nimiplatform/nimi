@@ -45,6 +45,25 @@ func ensureAuthAccountConfig(fileCfg *config.FileConfig) *config.FileConfigAccou
 	return fileCfg.Auth.Account
 }
 
+func ensureAuthDeveloperRegistrationConfig(fileCfg *config.FileConfig) *config.FileConfigDeveloperRegistration {
+	if fileCfg == nil {
+		return &config.FileConfigDeveloperRegistration{}
+	}
+	if fileCfg.Auth == nil {
+		fileCfg.Auth = &config.FileConfigAuth{}
+	} else {
+		authCopy := *fileCfg.Auth
+		fileCfg.Auth = &authCopy
+	}
+	if fileCfg.Auth.DeveloperRegistration == nil {
+		fileCfg.Auth.DeveloperRegistration = &config.FileConfigDeveloperRegistration{}
+	} else {
+		developerRegistrationCopy := *fileCfg.Auth.DeveloperRegistration
+		fileCfg.Auth.DeveloperRegistration = &developerRegistrationCopy
+	}
+	return fileCfg.Auth.DeveloperRegistration
+}
+
 func ensureManagedRootsConfig(fileCfg *config.FileConfig) *config.FileConfigManagedRoots {
 	if fileCfg == nil {
 		return &config.FileConfigManagedRoots{}
@@ -90,7 +109,10 @@ func pruneEmptyAuthConfig(fileCfg *config.FileConfig) {
 			fileCfg.Auth.Account = nil
 		}
 	}
-	if fileCfg.Auth.JWT == nil && fileCfg.Auth.Account == nil {
+	if fileCfg.Auth.DeveloperRegistration != nil && fileCfg.Auth.DeveloperRegistration.Enabled == nil {
+		fileCfg.Auth.DeveloperRegistration = nil
+	}
+	if fileCfg.Auth.JWT == nil && fileCfg.Auth.Account == nil && fileCfg.Auth.DeveloperRegistration == nil {
 		fileCfg.Auth = nil
 	}
 }

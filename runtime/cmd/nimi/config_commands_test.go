@@ -399,6 +399,63 @@ func TestRunRuntimeConfigUnsetAuthJWTFieldsPrunesObject(t *testing.T) {
 	}
 }
 
+func TestRunRuntimeConfigSetDeveloperRegistrationGate(t *testing.T) {
+	homeDir := t.TempDir()
+	setCmdTestHome(t, homeDir)
+	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", "")
+	clearRuntimeConfigCommandEnv(t)
+
+	if err := runRuntimeConfig([]string{"init", "--json"}); err != nil {
+		t.Fatalf("init config: %v", err)
+	}
+
+	setOutput, err := captureStdoutFromRun(func() error {
+		return runRuntimeConfig([]string{
+			"set",
+			"--set", "auth.developerRegistration.enabled=true",
+			"--json",
+		})
+	})
+	if err != nil {
+		t.Fatalf("set auth.developerRegistration.enabled: %v", err)
+	}
+	setPayload := parseJSONMap(t, setOutput)
+	if asString(setPayload["reasonCode"]) != configReasonRestartRequired {
+		t.Fatalf("set reasonCode mismatch: %s", setOutput)
+	}
+
+	cfgPath := filepath.Join(homeDir, ".nimi/runtime/config.json")
+	cfg, loadErr := config.LoadFileConfig(cfgPath)
+	if loadErr != nil {
+		t.Fatalf("LoadFileConfig: %v", loadErr)
+	}
+	if cfg.Auth == nil || cfg.Auth.DeveloperRegistration == nil || cfg.Auth.DeveloperRegistration.Enabled == nil || !*cfg.Auth.DeveloperRegistration.Enabled {
+		t.Fatalf("developer registration gate should be enabled after set: %#v", cfg.Auth)
+	}
+
+	unsetOutput, err := captureStdoutFromRun(func() error {
+		return runRuntimeConfig([]string{
+			"set",
+			"--unset", "auth.developerRegistration.enabled",
+			"--json",
+		})
+	})
+	if err != nil {
+		t.Fatalf("unset auth.developerRegistration.enabled: %v", err)
+	}
+	unsetPayload := parseJSONMap(t, unsetOutput)
+	if asString(unsetPayload["reasonCode"]) != configReasonRestartRequired {
+		t.Fatalf("unset reasonCode mismatch: %s", unsetOutput)
+	}
+	cfg, loadErr = config.LoadFileConfig(cfgPath)
+	if loadErr != nil {
+		t.Fatalf("LoadFileConfig after unset: %v", loadErr)
+	}
+	if cfg.Auth != nil && cfg.Auth.DeveloperRegistration != nil {
+		t.Fatalf("developer registration block should be pruned after unset: %#v", cfg.Auth.DeveloperRegistration)
+	}
+}
+
 func TestRunRuntimeConfigSetRejectsInvalidJwksURL(t *testing.T) {
 	homeDir := t.TempDir()
 	setCmdTestHome(t, homeDir)
