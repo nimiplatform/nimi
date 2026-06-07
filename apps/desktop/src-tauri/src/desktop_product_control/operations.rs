@@ -236,8 +236,9 @@ pub(crate) fn complete_first_run_device_environment_scan_with_profile(
 }
 
 pub(crate) async fn authenticated_runtime_account_id() -> Result<String, String> {
+    let caller = product_control_runtime_account_caller();
     let request = crate::runtime_bridge::generated::GetAccountSessionStatusRequest {
-        caller: Some(product_control_runtime_account_caller()),
+        caller: Some(caller.clone()),
     };
     let response: crate::runtime_bridge::generated::GetAccountSessionStatusResponse =
         crate::runtime_bridge::invoke_unary_typed_with_metadata(
@@ -247,6 +248,9 @@ pub(crate) async fn authenticated_runtime_account_id() -> Result<String, String>
             Some(10_000),
         )
         .await?;
+    if let Some(error) = runtime_account_status_rejection_error(&response, &caller) {
+        return Err(error);
+    }
     if response.state != crate::runtime_bridge::generated::AccountSessionState::Authenticated as i32
     {
         return Err("authenticated Runtime account session is required".to_string());
@@ -260,6 +264,30 @@ pub(crate) async fn authenticated_runtime_account_id() -> Result<String, String>
             "authenticated Runtime account session did not include account_id".to_string()
         })?;
     Ok(account_id)
+}
+
+fn runtime_account_status_rejection_error(
+    response: &crate::runtime_bridge::generated::GetAccountSessionStatusResponse,
+    caller: &crate::runtime_bridge::generated::AccountCaller,
+) -> Option<String> {
+    let reason = crate::runtime_bridge::generated::ReasonCode::try_from(response.reason_code)
+        .unwrap_or(crate::runtime_bridge::generated::ReasonCode::Unspecified);
+    let account_reason =
+        crate::runtime_bridge::generated::AccountReasonCode::try_from(response.account_reason_code)
+            .unwrap_or(crate::runtime_bridge::generated::AccountReasonCode::Unspecified);
+    if reason == crate::runtime_bridge::generated::ReasonCode::ActionExecuted
+        && account_reason == crate::runtime_bridge::generated::AccountReasonCode::ActionExecuted
+    {
+        return None;
+    }
+    Some(format!(
+        "Runtime account session status rejected for desktop product-control caller app_id={} app_instance_id={} device_id={}: reason_code={} account_reason_code={}",
+        caller.app_id.trim(),
+        caller.app_instance_id.trim(),
+        caller.device_id.trim(),
+        reason.as_str_name(),
+        account_reason.as_str_name()
+    ))
 }
 
 fn product_control_runtime_account_caller() -> crate::runtime_bridge::generated::AccountCaller {
@@ -730,5 +758,41 @@ mod tests {
             caller.mode,
             crate::runtime_bridge::generated::AccountCallerMode::DesktopShell as i32
         );
+    }
+
+    #[test]
+    fn account_status_rejection_reports_runtime_reason_codes() {
+        let caller = super::product_control_runtime_account_caller();
+        let response = crate::runtime_bridge::generated::GetAccountSessionStatusResponse {
+            state: crate::runtime_bridge::generated::AccountSessionState::Authenticated as i32,
+            account_projection: None,
+            reason_code: crate::runtime_bridge::generated::ReasonCode::PrincipalUnauthorized as i32,
+            account_reason_code:
+                crate::runtime_bridge::generated::AccountReasonCode::CallerUnauthorized as i32,
+            production_inert: false,
+        };
+
+        let message =
+            super::runtime_account_status_rejection_error(&response, &caller).expect("rejection");
+
+        assert!(message.contains("app_id=nimi.desktop"));
+        assert!(message.contains("app_instance_id=nimi.desktop.local-first-party"));
+        assert!(message.contains("reason_code=PRINCIPAL_UNAUTHORIZED"));
+        assert!(message.contains("account_reason_code=ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED"));
+    }
+
+    #[test]
+    fn account_status_action_executed_is_not_rejection() {
+        let caller = super::product_control_runtime_account_caller();
+        let response = crate::runtime_bridge::generated::GetAccountSessionStatusResponse {
+            state: crate::runtime_bridge::generated::AccountSessionState::Anonymous as i32,
+            account_projection: None,
+            reason_code: crate::runtime_bridge::generated::ReasonCode::ActionExecuted as i32,
+            account_reason_code: crate::runtime_bridge::generated::AccountReasonCode::ActionExecuted
+                as i32,
+            production_inert: false,
+        };
+
+        assert!(super::runtime_account_status_rejection_error(&response, &caller).is_none());
     }
 }

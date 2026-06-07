@@ -81,6 +81,26 @@ test('Avatar asset diagnostics surfaces first blocking validation issue', () => 
   assert.equal(presentation.issueRows.length, 1);
 });
 
+test('Avatar asset diagnostics fails visible when backend capability evidence is missing', () => {
+  const presentation = buildAvatarAssetValidationPresentation({
+    config: buildConfig({
+      backend_capability_profile_ref: null,
+    }),
+    validation: buildValidation({
+      backend_capability_profile_ref: null,
+      status: 'valid',
+    }),
+    configured: true,
+    valid: false,
+    checking: false,
+  });
+
+  assert.equal(presentation.status, 'invalid');
+  assert.equal(presentation.validationStatus, 'valid');
+  assert.equal(presentation.selectedAssetId, 'live2d_ab12cd34ef56');
+  assert.match(presentation.message || '', /Backend capability profile evidence is missing/u);
+});
+
 test('Avatar asset diagnostics fails visible before a local asset is selected', () => {
   const presentation = buildAvatarAssetValidationPresentation({
     config: buildConfig({

@@ -37,6 +37,11 @@ export function buildAvatarAssetValidationPresentation(input: {
   const blockingIssues = input.validation?.errors || [];
   const warningIssues = input.validation?.warnings || [];
   const allIssues = [...blockingIssues, ...warningIssues];
+  const capabilityProfileMissing = Boolean(
+    input.configured
+      && input.validation?.status === 'valid'
+      && !input.config?.backend_capability_profile_ref,
+  );
   const status: AvatarAssetReadinessStatus = input.valid
     ? 'ready'
     : input.checking
@@ -44,11 +49,14 @@ export function buildAvatarAssetValidationPresentation(input: {
       : input.configured
         ? 'invalid'
         : 'missing';
-  const fallbackMessage = input.configured
-    ? input.validation?.status && input.validation.status !== 'valid'
-      ? `Avatar asset validation status: ${input.validation.status}`
-      : null
-    : 'Import a local Live2D folder or VRM file before opening Avatar.';
+  let fallbackMessage: string | null = null;
+  if (!input.configured) {
+    fallbackMessage = 'Import a local Live2D folder or VRM file before opening Avatar.';
+  } else if (capabilityProfileMissing) {
+    fallbackMessage = 'Backend capability profile evidence is missing. Avatar launch remains blocked until Runtime/Avatar links backend evidence for the selected local asset.';
+  } else if (input.validation?.status && input.validation.status !== 'valid') {
+    fallbackMessage = `Avatar asset validation status: ${input.validation.status}`;
+  }
 
   return {
     status,

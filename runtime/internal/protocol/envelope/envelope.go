@@ -85,7 +85,7 @@ func Validate(ctx context.Context, req any, requireIdempotency bool) (Metadata, 
 		return Metadata{}, err
 	}
 
-	if requestAppID := appIDFromRequest(req); requestAppID != "" && meta.AppID != "" && requestAppID != meta.AppID {
+	if requestAppID := callerAppIDFromRequest(req); requestAppID != "" && meta.AppID != "" && requestAppID != meta.AppID {
 		return Metadata{}, protocolError(runtimev1.ReasonCode_PROTOCOL_DOMAIN_FIELD_CONFLICT, "request app id conflicts with envelope app id")
 	}
 	if requestDomain := domainFromRequest(req); requestDomain != "" && meta.Domain != "" && requestDomain != meta.Domain {
@@ -166,8 +166,11 @@ func protocolError(reason runtimev1.ReasonCode, message string) error {
 	return grpcerr.WithReasonCodeOptions(codes.InvalidArgument, reason, grpcerr.ReasonOptions{Message: message})
 }
 
-func appIDFromRequest(req any) string {
+func callerAppIDFromRequest(req any) string {
 	if req == nil {
+		return ""
+	}
+	if RequestAppIDIsRuntimeAppLifecycleTarget(req) {
 		return ""
 	}
 	item, ok := req.(interface{ GetAppId() string })
@@ -180,6 +183,24 @@ func appIDFromRequest(req any) string {
 		return strings.TrimSpace(accountReq.GetCaller().GetAppId())
 	}
 	return ""
+}
+
+// RequestAppIDIsRuntimeAppLifecycleTarget reports RuntimeAppService requests
+// whose app_id names the lifecycle target app, not the caller app identity.
+func RequestAppIDIsRuntimeAppLifecycleTarget(req any) bool {
+	switch req.(type) {
+	case *runtimev1.GetAppStorageRequest,
+		*runtimev1.GetAppPackageReadinessRequest,
+		*runtimev1.ListAppInstallJobsRequest,
+		*runtimev1.InstallAppRequest,
+		*runtimev1.UninstallAppRequest,
+		*runtimev1.UpdateAppRequest,
+		*runtimev1.HealthRepairAppRequest,
+		*runtimev1.OpenAppRequest:
+		return true
+	default:
+		return false
+	}
 }
 
 func domainFromRequest(req any) string {

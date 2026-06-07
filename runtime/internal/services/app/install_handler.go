@@ -10,7 +10,6 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/appreleasecatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/appstorage"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
-	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
 	"google.golang.org/grpc/codes"
 )
 
@@ -284,22 +283,6 @@ func (s *Service) UninstallApp(ctx context.Context, req *runtimev1.UninstallAppR
 		},
 		Job: orJob(completed, job),
 	}, nil
-}
-
-// requireAppLifecycleSession enforces app-session credential validation for
-// non-internal lifecycle callers (K-AUTHN-006 authenticated_required posture).
-func (s *Service) requireAppLifecycleSession(ctx context.Context, appID string) error {
-	if contextAppID := appIDFromContext(ctx); contextAppID != "" && contextAppID != appID {
-		return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
-	}
-	if s.sessionValidator == nil || isTrustedInternalCaller(ctx, appID) {
-		return nil
-	}
-	sessionID, sessionToken, _ := envelope.ParseSessionFromContext(ctx)
-	if reasonCode, ok := s.sessionValidator.ValidateAppSession(appID, sessionID, sessionToken); !ok {
-		return grpcerr.WithReasonCode(codes.Unauthenticated, reasonCode)
-	}
-	return nil
 }
 
 func installResolveError(err error) error {

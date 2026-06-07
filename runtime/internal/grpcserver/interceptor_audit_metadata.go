@@ -82,7 +82,7 @@ func validateAppIDConflict(ctx context.Context, req any) error {
 	if metadataAppID == "" {
 		return nil
 	}
-	requestAppID := appIDFromRequest(req)
+	requestAppID := callerAppIDFromRequest(req)
 	if requestAppID == "" {
 		return nil
 	}
@@ -90,6 +90,13 @@ func validateAppIDConflict(ctx context.Context, req any) error {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_DOMAIN_FIELD_CONFLICT)
 	}
 	return nil
+}
+
+func callerAppIDFromRequest(req any) string {
+	if envelope.RequestAppIDIsRuntimeAppLifecycleTarget(req) {
+		return ""
+	}
+	return appIDFromRequest(req)
 }
 
 func appIDFromMetadata(ctx context.Context) string {

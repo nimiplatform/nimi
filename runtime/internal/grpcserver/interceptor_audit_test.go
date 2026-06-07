@@ -299,6 +299,48 @@ func TestUnaryAuditInterceptorRejectsMetadataAppIDConflict(t *testing.T) {
 	}
 }
 
+func TestUnaryAuditInterceptorAllowsRuntimeAppLifecycleTargetAppID(t *testing.T) {
+	store := auditlog.New(128, 128)
+	interceptor := newUnaryAuditInterceptor(store)
+
+	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
+		"x-nimi-app-id", "nimi.desktop",
+		"x-nimi-caller-kind", "desktop-core",
+		"x-nimi-caller-id", "desktop.avatar-handoff",
+		"x-nimi-trace-id", "trace-avatar-storage",
+	))
+	req := &runtimev1.GetAppStorageRequest{AppId: "nimi.avatar"}
+	info := &grpc.UnaryServerInfo{
+		FullMethod: "/nimi.runtime.v1.RuntimeAppService/GetAppStorage",
+	}
+	handlerCalled := false
+
+	_, err := interceptor(ctx, req, info, func(context.Context, any) (any, error) {
+		handlerCalled = true
+		return &runtimev1.GetAppStorageResponse{
+			Projection: &runtimev1.AppStorageProjection{
+				AppId:      "nimi.avatar",
+				State:      runtimev1.AppStorageState_APP_STORAGE_STATE_READY,
+				ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
+			},
+		}, nil
+	})
+	if err != nil {
+		t.Fatalf("target app id must not conflict with desktop audit envelope: %v", err)
+	}
+	if !handlerCalled {
+		t.Fatal("handler must run for lifecycle target app id")
+	}
+
+	events := mustListAuditEvents(t, store, &runtimev1.ListAuditEventsRequest{Domain: "runtime.app"})
+	if len(events.GetEvents()) != 1 {
+		t.Fatalf("expected 1 audit event, got=%d", len(events.GetEvents()))
+	}
+	if events.GetEvents()[0].GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED {
+		t.Fatalf("unexpected audit reason: %v", events.GetEvents()[0].GetReasonCode())
+	}
+}
+
 func TestStreamAuditInterceptorDoesNotDuplicateMetadataAppIDConflictValidation(t *testing.T) {
 	store := auditlog.New(128, 128)
 	interceptor := newStreamAuditInterceptor(store)

@@ -165,6 +165,45 @@ func TestValidateRejectsRequestDomainConflictForGenericGetDomain(t *testing.T) {
 	}
 }
 
+func TestValidateAllowsRuntimeAppLifecycleTargetAppIDMismatch(t *testing.T) {
+	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
+		"x-nimi-protocol-version", PlatformProtocolVersion,
+		"x-nimi-participant-protocol-version", PlatformProtocolVersion,
+		"x-nimi-participant-id", "desktop-shell",
+		"x-nimi-domain", "runtime.rpc",
+		"x-nimi-app-id", "nimi.desktop",
+		"x-nimi-caller-kind", "desktop-core",
+		"x-nimi-caller-id", "desktop.avatar-handoff",
+	))
+
+	meta, err := Validate(ctx, &runtimev1.GetAppStorageRequest{AppId: "nimi.avatar"}, false)
+	if err != nil {
+		t.Fatalf("target app id must not conflict with desktop envelope app id: %v", err)
+	}
+	if meta.AppID != "nimi.desktop" {
+		t.Fatalf("envelope app id = %q, want desktop caller", meta.AppID)
+	}
+}
+
+func TestValidateRejectsCallerAppIDMismatch(t *testing.T) {
+	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
+		"x-nimi-protocol-version", PlatformProtocolVersion,
+		"x-nimi-participant-protocol-version", PlatformProtocolVersion,
+		"x-nimi-participant-id", "desktop-shell",
+		"x-nimi-domain", "runtime.rpc",
+		"x-nimi-app-id", "nimi.desktop",
+	))
+
+	_, err := Validate(ctx, &runtimev1.RemoveModelRequest{AppId: "nimi.avatar"}, false)
+	if err == nil {
+		t.Fatal("caller app id mismatch must fail")
+	}
+	st, ok := status.FromError(err)
+	if !ok || st.Message() != "request app id conflicts with envelope app id" {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
 func TestParseMajorMinorSemver(t *testing.T) {
 	tests := []struct {
 		input string

@@ -45,6 +45,10 @@ test('Agent Center local config bridge parser accepts Rust store payload shape',
           evidence_ref: 'vrm_ab12cd34ef56',
         },
       },
+      local_history: {
+        schema_version: 1,
+        last_cleared_at: null,
+      },
       ui: {
         schema_version: 1,
         last_section: 'overview',
@@ -87,6 +91,10 @@ test('Agent Center local config bridge rejects retired selected package truth', 
           evidence_ref: 'vrm_ab12cd34ef56',
         },
       },
+      local_history: {
+        schema_version: 1,
+        last_cleared_at: null,
+      },
       ui: {
         schema_version: 1,
         last_section: 'overview',
@@ -117,6 +125,7 @@ test('Agent Center local config default includes closed avatar configuration fie
   assert.equal(config.modules.avatar_asset.launch_mode, 'manual');
   assert.equal(config.modules.avatar_asset.debug_profile, 'standard');
   assert.equal(config.modules.avatar_asset.provenance.source, 'runtime_projection');
+  assert.equal(config.modules.local_history.last_cleared_at, null);
   assert.equal(validateAgentCenterLocalConfig(config).ok, true);
 });
 
@@ -148,6 +157,10 @@ test('Agent Center local config bridge rejects retired launch package config fie
           evidence_ref: 'agent-center-avatar-config-default',
         },
         last_launch_local_asset_id: null,
+      },
+      local_history: {
+        schema_version: 1,
+        last_cleared_at: null,
       },
       ui: {
         schema_version: 1,
