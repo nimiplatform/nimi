@@ -65,6 +65,15 @@ results, and historical provenance belong in Git history, `.nimi/topics/**`, or
 `.nimi/local/**`. Spec may mention those surfaces only to state that they are not
 product authority.
 
+## P-GOV-025 — Cross-Domain Audit Evidence Root Admission
+
+`.nimi/spec/platform/kernel/tables/audit-evidence-roots.yaml` may admit exact
+implementation evidence roots for non-platform owner domains only when the row
+names the owning domain, names existing `.nimi/spec/**` authority refs owned by
+that domain, and keeps the admission as audit-planning metadata. This admission
+does not transfer semantic authority to Platform and must not be inferred from
+workspace layout, package names, or broad owner-domain defaults.
+
 ## Operational Refinement Reference
 
 `release-gate-contract.md` (`P-RELG-*`) is the operational refinement of `P-GOV-003`, `P-GOV-011`, `P-GOV-021`, and `P-GOV-023`. It declares a single release-gate registry (`tables/release-gate-registry.yaml`) as the source of release-gate identity, locks projection-only semantics for preflight / lint chain / CI workflow step blocks, and enforces traceability through a coherence checker plus a projection-drift checker. `P-RELG-*` rules cite their parent `P-GOV-*` anchors explicitly and never override them.

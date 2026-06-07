@@ -10,7 +10,7 @@ Desktop 自更新与 bundled runtime 发布契约。该契约是 `D-BOOT-001`、
 
 - packaged desktop release 必须将 desktop shell 与平台专属 bundled runtime 视为同一个原子发布单元。
 - packaged desktop 不得再依赖 `PATH`、用户手工安装 binary、或产品路径上的 `NIMI_RUNTIME_BINARY` 覆盖来发现 runtime。
-- `desktop-release-manifest.json`、`resources/runtime/manifest.json`、平台 runtime manifest、打包应用版本号必须保持同一 semver。
+- desktop release manifest、embedded runtime resource manifest、平台 runtime manifest、打包应用版本号必须保持同一 semver。
 - packaged desktop 的 desktop 版本与 runtime 版本必须 exact match。任何 drift 都视为发布错误或 runtime staging 失败，不允许受控降级为“部分可用”。
 - `NIMI_RUNTIME_BINARY` 只允许作为测试覆盖入口，不属于任何产品语义。
 

@@ -96,8 +96,8 @@ Realm 后端签发 JWT，Runtime 校验 JWT。两者的 claims 契约必须对�
 ## Reference Tests (informative, not normative)
 
 K-AUTHN-006 conformance is exercised by the runtime test suite at
-`nimi/runtime/internal/authn/validator_test.go` and
-`nimi/runtime/internal/authn/interceptor_test.go`. Tests cover all
+`runtime/internal/authn/validator_test.go` and
+`runtime/internal/authn/interceptor_test.go`. Tests cover all
 rows of the response decision matrix defined in the
 cross-referenced introspection contract, plus network-failure
 branches (HTTP 500, non-JSON body, missing fields, wrong

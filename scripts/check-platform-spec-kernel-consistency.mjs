@@ -46,6 +46,7 @@ const nimiKitRegistryTable = readYaml('.nimi/spec/platform/kernel/tables/nimi-ki
 const appSliceAdmissionsTable = readYaml('.nimi/spec/platform/kernel/tables/app-slice-admissions.yaml');
 const auditEvidenceRootsTable = readYaml('.nimi/spec/platform/kernel/tables/audit-evidence-roots.yaml');
 const packageAuthorityAdmissionsTable = readYaml('.nimi/spec/platform/kernel/tables/package-authority-admissions.yaml');
+const delegatedProjectionAdmissionsTable = readYaml('.nimi/spec/platform/kernel/tables/delegated-projection-admissions.yaml');
 const aiProfileFactoryCatalogTable = readYaml('.nimi/spec/platform/kernel/tables/ai-profile-factory-catalog.yaml');
 const nimiAppRegistryTable = readYaml('.nimi/spec/platform/kernel/tables/nimi-app-registry.yaml');
 const nimiAppTrustTiersTable = readYaml('.nimi/spec/platform/kernel/tables/nimi-app-trust-tiers.yaml');
@@ -364,6 +365,7 @@ const requiredKernelFiles = [
   'tables/app-slice-admissions.yaml',
   'tables/audit-evidence-roots.yaml',
   'tables/package-authority-admissions.yaml',
+  'tables/delegated-projection-admissions.yaml',
   'tables/ai-profile-factory-catalog.yaml',
   'tables/nimi-app-registry.yaml',
   'tables/nimi-app-trust-tiers.yaml',
@@ -473,6 +475,7 @@ const yamlTables = [
   { name: 'app-slice-admissions.yaml', data: appSliceAdmissionsTable },
   { name: 'audit-evidence-roots.yaml', data: auditEvidenceRootsTable },
   { name: 'package-authority-admissions.yaml', data: packageAuthorityAdmissionsTable },
+  { name: 'delegated-projection-admissions.yaml', data: delegatedProjectionAdmissionsTable },
   { name: 'ai-profile-factory-catalog.yaml', data: aiProfileFactoryCatalogTable },
   { name: 'nimi-app-registry.yaml', data: nimiAppRegistryTable },
   { name: 'nimi-app-trust-tiers.yaml', data: nimiAppTrustTiersTable },
@@ -505,6 +508,7 @@ checkNimiDesignTables({
 checkAppSliceAdmissions(definedRuleIds);
 checkAuditEvidenceRoots(definedRuleIds);
 checkPackageAuthorityAdmissions(definedRuleIds);
+checkDelegatedProjectionAdmissions(definedRuleIds);
 checkRuleEvidenceTraceability(definedRuleIds);
 
 // ========================================================
@@ -1040,6 +1044,107 @@ function checkPackageAuthorityAdmissions(definedRuleIds) {
           fail(`${rel}: ${id} duplicate host_authority_projection_refs host_ref ${hostRef}`);
         }
         seenHostProjectionRefs.add(hostRef);
+      }
+    }
+    if (!definedRuleIds.has(source)) {
+      fail(`${rel}: ${id} references unknown source_rule ${source || '<empty>'}`);
+    }
+  }
+}
+
+function isDelegatedSourceRef(ref) {
+  return ref.startsWith('parent://') || ref.startsWith('package://');
+}
+
+function isSafeRelativePathRef(ref) {
+  return Boolean(ref)
+    && !ref.includes('..')
+    && !path.isAbsolute(ref);
+}
+
+function checkDelegatedProjectionAdmissions(definedRuleIds) {
+  const rel = '.nimi/spec/platform/kernel/tables/delegated-projection-admissions.yaml';
+  const admissions = Array.isArray(delegatedProjectionAdmissionsTable?.admissions) ? delegatedProjectionAdmissionsTable.admissions : [];
+  if (admissions.length === 0) {
+    fail(`${rel} admissions must not be empty`);
+    return;
+  }
+  const seen = new Set();
+  const allowedPosture = new Set(['active', 'inactive']);
+  for (const row of admissions) {
+    const id = String(row?.id || '').trim();
+    const ownerDomain = String(row?.owner_domain || '').trim();
+    const admissionPosture = String(row?.admission_posture || '').trim();
+    const authorityRoot = String(row?.authority_root || '').trim();
+    const sourceAuthorityRoot = String(row?.source_authority_root || '').trim();
+    const source = String(row?.source_rule || '').trim();
+    const localProjectionEvidenceRoots = Array.isArray(row?.local_projection_evidence_roots)
+      ? row.local_projection_evidence_roots.map((item) => String(item || '').trim()).filter(Boolean)
+      : [];
+    const delegatedEvidenceRoots = Array.isArray(row?.delegated_evidence_roots)
+      ? row.delegated_evidence_roots.map((item) => String(item || '').trim()).filter(Boolean)
+      : [];
+    const delegatedPrefixes = Array.isArray(row?.delegated_declared_evidence_prefixes)
+      ? row.delegated_declared_evidence_prefixes.map((item) => String(item || '').trim()).filter(Boolean)
+      : [];
+    const hostOwnedRelativePaths = Array.isArray(row?.host_owned_relative_paths)
+      ? row.host_owned_relative_paths.map((item) => String(item || '').trim()).filter(Boolean)
+      : [];
+    const requiredCommands = Array.isArray(row?.required_verification_commands)
+      ? row.required_verification_commands.map((item) => String(item || '').trim()).filter(Boolean)
+      : [];
+    if (!id || seen.has(id)) {
+      fail(`${rel}: admissions require unique id`);
+      continue;
+    }
+    seen.add(id);
+    if (!ownerDomain) fail(`${rel}: ${id} missing owner_domain`);
+    if (!allowedPosture.has(admissionPosture)) fail(`${rel}: ${id} has invalid admission_posture ${admissionPosture || '<empty>'}`);
+    if (!authorityRoot.startsWith('.nimi/spec/') || authorityRoot.includes('..') || path.isAbsolute(authorityRoot) || !fs.existsSync(path.join(cwd, authorityRoot))) {
+      fail(`${rel}: ${id} invalid authority_root ${authorityRoot || '<empty>'}`);
+    }
+    if (!isDelegatedSourceRef(sourceAuthorityRoot)) {
+      fail(`${rel}: ${id} source_authority_root must use parent:// or package://`);
+    }
+    if (localProjectionEvidenceRoots.length === 0) {
+      fail(`${rel}: ${id} must declare local_projection_evidence_roots`);
+    }
+    for (const evidenceRoot of localProjectionEvidenceRoots) {
+      if (evidenceRoot.startsWith('.nimi/spec/') || evidenceRoot.includes('..') || path.isAbsolute(evidenceRoot) || !fs.existsSync(path.join(cwd, evidenceRoot))) {
+        fail(`${rel}: ${id} invalid local_projection_evidence_root ${evidenceRoot}`);
+      }
+    }
+    if (delegatedEvidenceRoots.length === 0) {
+      fail(`${rel}: ${id} must declare delegated_evidence_roots`);
+    }
+    for (const delegatedRoot of delegatedEvidenceRoots) {
+      if (!isDelegatedSourceRef(delegatedRoot)) {
+        fail(`${rel}: ${id} delegated_evidence_root must use parent:// or package://: ${delegatedRoot}`);
+      }
+    }
+    if (delegatedPrefixes.length === 0) {
+      fail(`${rel}: ${id} must declare delegated_declared_evidence_prefixes`);
+    }
+    for (const prefix of delegatedPrefixes) {
+      if (!isSafeRelativePathRef(prefix) || prefix.startsWith('.nimi/spec/')) {
+        fail(`${rel}: ${id} invalid delegated_declared_evidence_prefix ${prefix}`);
+      }
+    }
+    for (const hostOwnedPath of hostOwnedRelativePaths) {
+      if (!isSafeRelativePathRef(hostOwnedPath)) {
+        fail(`${rel}: ${id} invalid host_owned_relative_path ${hostOwnedPath}`);
+        continue;
+      }
+      if (authorityRoot && !fs.existsSync(path.join(cwd, authorityRoot, hostOwnedPath))) {
+        fail(`${rel}: ${id} host_owned_relative_path does not exist under authority_root: ${hostOwnedPath}`);
+      }
+    }
+    if (requiredCommands.length === 0) {
+      fail(`${rel}: ${id} must declare required_verification_commands`);
+    }
+    for (const command of requiredCommands) {
+      if (!command.startsWith('pnpm --dir .. spec:realm:check:')) {
+        fail(`${rel}: ${id} required_verification_command must be an explicit parent realm check: ${command}`);
       }
     }
     if (!definedRuleIds.has(source)) {

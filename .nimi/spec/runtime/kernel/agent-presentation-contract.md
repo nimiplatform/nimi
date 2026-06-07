@@ -125,5 +125,5 @@ Fixed rules:
 - `.nimi/spec/runtime/kernel/voice-contract.md` — runtime-owned `VoiceReference` and voice asset truth
 - `.nimi/spec/desktop/kernel/agent-avatar-surface-contract.md` — desktop-local carrier decommission and avatar-app handoff boundary
 - `.nimi/spec/avatar/kernel/index.md` — Avatar first-party carrier authority map
-- `docs/architecture/agent-companion-core-protocol.md` — reader guide and core presentation correspondence
-- `docs/architecture/live2d-companion.md` — reader guide and presentation correspondence
+- `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md` — runtime projection reader guide and core presentation correspondence
+- `.nimi/spec/avatar/kernel/live2d-render-contract.md` — Live2D companion reader guide and presentation correspondence

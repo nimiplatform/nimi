@@ -8,12 +8,12 @@ surfaces:
   - excluded_proto_methods
 fragments:
   method_mappings:
-    - rpc-migration-map/methods-ai-realtime-connector.yaml
-    - rpc-migration-map/methods-runtime-local.yaml
-    - rpc-migration-map/methods-identity-app.yaml
-    - rpc-migration-map/methods-agent-cognition.yaml
-    - rpc-migration-map/methods-model-workflow-audit.yaml
-  excluded_proto_methods: rpc-migration-map/excluded-proto-methods.yaml
+    - ./rpc-migration-map/methods-ai-realtime-connector.yaml
+    - ./rpc-migration-map/methods-runtime-local.yaml
+    - ./rpc-migration-map/methods-identity-app.yaml
+    - ./rpc-migration-map/methods-agent-cognition.yaml
+    - ./rpc-migration-map/methods-model-workflow-audit.yaml
+  excluded_proto_methods: ./rpc-migration-map/excluded-proto-methods.yaml
 service_mappings:
   - design_service: AIService
     proto_service: RuntimeAiService

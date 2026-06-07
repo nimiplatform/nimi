@@ -266,7 +266,7 @@ Avatar app 加载 model 流程：
 3. 扫描 runtime/*.model3.json，取 filename prefix 作为 model_id
 4. 通过 Cubism Web SDK 加载 <name>.model3.json
 5. 扫描 runtime/nimi/（若存在），发现并注册 handlers (§10)
-6. 读取 runtime/nimi/config.json（若存在）应用 feature flags
+6. 读取 `nas-package://runtime/nimi/config.json`（若存在）应用 feature flags
 7. Emit avatar.app.ready
 ```
 若 `runtime/nimi/` 不存在 → 所有 activity 走 default fallback（convention-based motion group naming，见 §7）。Model 仍可用，只是没有自定义行为。
@@ -289,7 +289,7 @@ Avatar app 加载 model 流程：
 ## 4. Handler Interface
 ### 4.1 Activity & Event Handler
 ```js
-// nimi/activity/happy.js
+// nas-package://nimi/activity/happy.js
 export default {
   // 可选：元数据（纯信息用途）
   meta: {
@@ -318,7 +318,7 @@ export default {
 ### 4.2 Continuous Handler ⚠️ [分叉 45 — Option B]
 **规则**: Handler 声明 `fps` 字段，runtime 按声明频率调度。
 ```js
-// nimi/continuous/eye_tracker.js
+// nas-package://nimi/continuous/eye_tracker.js
 export default {
   fps: 60,                              // 目标频率（default 60 if omitted）
   enabled: true,                        // 可选，默认 true
@@ -344,14 +344,14 @@ function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
 ### 4.3 共享 Utilities
 `nimi/lib/` 里的 `.js` **不被 runtime 自动加载**，只供其他 handlers import:
 ```js
-// nimi/lib/wave_sequence.js
+// nas-package://nimi/lib/wave_sequence.js
 export async function waveSequence(projection, { hand = "right", duration_ms = 3000 }) {
   const motion = hand === "right" ? "wave.right" : "wave.left";
   await projection.triggerMotion(motion, { priority: "high" });
   await projection.wait(duration_ms);
   await projection.triggerMotion("idle.default");
 }
-// nimi/activity/greet.js
+// nas-package://nimi/activity/greet.js
 import { waveSequence } from "../lib/wave_sequence.js";
 export default {
   async execute(ctx, projection) {
@@ -421,7 +421,7 @@ interface AgentDataBundle {
 ```
 Runtime 在每次触发 handler 前打包最新 bundle。
 ### 5.1 History Opt-in
-`history` 字段默认关闭（性能考量）。Package 通过 `nimi/config.json` 启用:
+`history` 字段默认关闭（性能考量）。Package 通过 `nas-package://nimi/config.json` 启用:
 ```json
 {
   "history_context": {
@@ -504,7 +504,7 @@ Dev + production 都支持。
 Avatar app 启动 Tauri `notify` file watcher 监听 `<model>/runtime/nimi/` 目录。任意 JS 文件变更 → 触发 reload。Watcher event 只作为 reload trigger；canonical handler truth 仍来自重新扫描目录与重新加载 handler source，不来自 watcher payload 推断。
 ### 8.2 Reload Flow
 ```
-File change detected (e.g. nimi/activity/happy.js)
+File change detected (e.g. nas-package://nimi/activity/happy.js)
   ↓
 Parse new module
       ├── Syntax error → reject, log, keep old handler
@@ -525,7 +525,7 @@ Continuous handler 的 `update` 被重载后，**下一帧**开始用新 handler
 avatar.model.script.reloaded:
   detail:
     model_id: string
-    changed_files: [string]          # e.g. ["activity/happy.js"]
+    changed_files: [string]          # e.g. ["nas-package://activity/happy.js"]
     reload_mode: "add" | "update" | "remove"
     applied: bool                    # false means old registry remains active
     validation_errors: [string]      # if any
@@ -587,7 +587,7 @@ Avatar app 加载 model 时：
 3. Scan <model>/runtime/nimi/continuous/*.js
    → Register as continuous handler
 4. (nimi/lib/ 不自动加载；只被其他 handler import)
-5. (nimi/config.json 读取 feature flags)
+5. (`nas-package://nimi/config.json` 读取 feature flags)
 ```
 ### 10.2 Denormalization (File → Event Name)
 反向映射 file name to event name:
@@ -600,7 +600,7 @@ Avatar app 加载 model 时：
 **规则**: `_` 替换为 `.`，但某些 event name 本身含 `_`（如 `focus_change`、`posture_changed`）—— 以 **event contract 注册表**为准。Avatar app 维护 known event names 表，file-to-event 解析走这张表。
 **冲突处理**：若 denormalized event name 不在 registry 中 → log warn + ignore handler。
 ### 10.3 Handler 冲突
-一个 activity / event 同时有多个 handler（如同时有 `nimi/activity/happy.js` 和重复模型 handler）：
+一个 activity / event 同时有多个 handler（如同时有 `nas-package://nimi/activity/happy.js` 和重复模型 handler）：
 **v1 规则**：Model-provided handler 优先，不允许其他 handler 覆盖。额外扩展机制需要单独 authority admission。
 ---
 ## 11. config.json (Optional Feature Flags)
@@ -624,7 +624,7 @@ Avatar app 加载 model 时：
 ```
 **所有字段可选**。不存在 config.json → 全部走 default。
 
-`runtime/nimi/live2d-adapter.json`, when present, is not NAS configuration and
+`nas-package://runtime/nimi/live2d-adapter.json`, when present, is not NAS configuration and
 does not change NAS 1.0 into a declarative DSL. It is governed by
 `live2d-asset-compatibility-contract.md` and only maps an existing Live2D
 package to Avatar carrier compatibility tiers.
@@ -669,7 +669,7 @@ my-model/
         happy.js               # 只有这个
 ```
 ```js
-// nimi/activity/happy.js
+// nas-package://nimi/activity/happy.js
 export default {
   async execute(ctx, projection) {
     await projection.triggerMotion("joy.custom");
@@ -680,7 +680,7 @@ export default {
 其他 19 个 core activity → current backend branch default fallback（当前 Live2D branch 使用 convention `Activity_<Name>`）。
 ### 13.2 Rich Model: Sequence + Continuous + Cross-app
 ```js
-// nimi/activity/greet.js
+// nas-package://nimi/activity/greet.js
 import { waveSequence } from "../lib/wave_sequence.js";
 export default {
   async execute(ctx, projection, { signal }) {
@@ -696,7 +696,7 @@ export default {
 };
 ```
 ```js
-// nimi/event/avatar_user_click.js — 连续点击 state machine
+// nas-package://nimi/event/avatar_user_click.js — 连续点击 state machine
 let clickCount = 0;
 let resetTimer = null;
 export default {
@@ -715,7 +715,7 @@ export default {
 };
 ```
 ```js
-// nimi/continuous/eye_tracker.js
+// nas-package://nimi/continuous/eye_tracker.js
 export default {
   fps: 60,
   update(ctx, projection) {

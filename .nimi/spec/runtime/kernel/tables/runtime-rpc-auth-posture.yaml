@@ -54,7 +54,7 @@ posture_decision_doctrine: |
   STOPS and overflows the packet; a fourth posture would require a kernel
   rule change, which is out of the current admitted scope.
 method_shards:
-  - path: runtime-rpc-auth-posture/identity-access.yaml
+  - path: ./runtime-rpc-auth-posture/identity-access.yaml
     id: nimicoding.runtime-rpc-auth-posture.identity-access.v1
     method_count: 41
     services:
@@ -62,7 +62,7 @@ method_shards:
       - RuntimeAuthService
       - RuntimeGrantService
       - RuntimeAppService
-  - path: runtime-rpc-auth-posture/agent-ai-cognition.yaml
+  - path: ./runtime-rpc-auth-posture/agent-ai-cognition.yaml
     id: nimicoding.runtime-rpc-auth-posture.agent-ai-cognition.v1
     method_count: 91
     services:
@@ -70,14 +70,14 @@ method_shards:
       - RuntimeAiService
       - RuntimeAiRealtimeService
       - RuntimeCognitionService
-  - path: runtime-rpc-auth-posture/local-connector-model.yaml
+  - path: ./runtime-rpc-auth-posture/local-connector-model.yaml
     id: nimicoding.runtime-rpc-auth-posture.local-connector-model.v1
     method_count: 86
     services:
       - RuntimeLocalService
       - RuntimeConnectorService
       - RuntimeModelService
-  - path: runtime-rpc-auth-posture/audit-artifact-workflow.yaml
+  - path: ./runtime-rpc-auth-posture/audit-artifact-workflow.yaml
     id: nimicoding.runtime-rpc-auth-posture.audit-artifact-workflow.v1
     method_count: 12
     services:

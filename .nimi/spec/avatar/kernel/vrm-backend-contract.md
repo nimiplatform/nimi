@@ -340,7 +340,7 @@ R3F `<Canvas>` 内 scene 结构：
 
 VRM hit region 实现：
 
-- `vrm/vrm-hit-region.ts`：alpha-mask via offscreen render-target
+- `kit/features/avatar/src/vrm-hit-region.ts`：alpha-mask via offscreen render-target
   + bbox snapshot（详 `app-shell-contract.md` §"Hit Region 双层结构"）
 - `vrm/vrm-render-target.ts`：airi render-target 算法 ref；offscreen FBO +
   readPixels（1/2 res，per-frame query budget 1ms）

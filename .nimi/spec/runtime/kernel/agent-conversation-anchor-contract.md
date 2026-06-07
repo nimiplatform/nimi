@@ -102,5 +102,5 @@ Fixed rules:
 - `.nimi/spec/desktop/kernel/agent-chat-projection-contract.md`
 - `.nimi/spec/desktop/kernel/agent-avatar-surface-contract.md`
 - `.nimi/spec/avatar/kernel/app-shell-contract.md`
-- `docs/architecture/agent-companion-core-protocol.md` — reader guide and dual-entry session correspondence
-- `docs/architecture/live2d-companion.md` — reader guide and conversation continuity correspondence
+- `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md` — runtime projection reader guide and dual-entry session correspondence
+- `.nimi/spec/avatar/kernel/live2d-render-contract.md` — Live2D companion reader guide and conversation continuity correspondence

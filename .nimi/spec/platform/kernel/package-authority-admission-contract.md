@@ -33,3 +33,7 @@ When a host `.nimi/spec/**` authority file is a projected copy or host admission
 ## P-PKG-008 — Authority-Specific Package Evidence Admission
 
 Host-generated `.nimi/spec/**` authority artifacts that are enforced by package implementation code must admit the exact package implementation files or host-local contract files as audit evidence through `.nimi/spec/**/kernel/tables/audit-evidence-roots.yaml`. Exact file evidence roots must be assigned to the named authority chunk before broad package evidence roots, so package-owned implementation evidence cannot be hidden inside a different package authority chunk.
+
+## P-PKG-009 — Delegated Source Projection Admission
+
+When a host `.nimi/spec/**` subtree is a projection from a parent or external source authority that owns implementation evidence outside the host worktree, `.nimi/spec/**/kernel/tables/delegated-projection-admissions.yaml` must name the projected authority root, source authority root, local projection evidence roots, delegated source evidence roots, delegated declared-evidence prefixes, and required parity checks. Spec-first host audit must audit the local projection/parity evidence and delegate matching declared implementation refs to the source authority; it must not resolve those refs through ad hoc parent paths or rewrite them to unrelated host evidence owners.

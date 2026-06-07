@@ -51,9 +51,9 @@ test('tester settings consumes the Kit commerce realm wallet projection', () => 
 test('tester settings consumes the SDK Realm notification unread projection', () => {
   const settings = readSettingsSurface();
 
-  assert.match(settings, /loadRealmNotificationUnreadCount/);
-  assert.match(settings, /loadRealmNotifications/);
-  assert.match(settings, /toRealmNotificationListProjection/);
+  assert.match(settings, /loadNimiRealmNotificationUnreadCount/);
+  assert.match(settings, /loadNimiRealmNotifications/);
+  assert.match(settings, /toNimiRealmNotificationListProjection/);
   assert.match(settings, /from '@nimiplatform\/sdk\/realm'/);
   assert.match(settings, /from '@nimiplatform\/kit\/core\/notifications'/);
   assert.match(settings, /getNimiNotificationServerFilter/);
@@ -63,8 +63,11 @@ test('tester settings consumes the SDK Realm notification unread projection', ()
   assert.match(settings, /Realm notification list \+ Kit headless projection/);
   assert.match(settings, /Unread \$\{notificationProjection\.unread\.total\}/);
   assert.match(settings, /refreshNotificationListProjection/);
-  assert.match(settings, /loadRealmNotifications\(getPlatformClient\(\)\.realm/);
-  assert.match(settings, /\bRealmNotificationListProjection\b/);
+  assert.match(settings, /loadNimiRealmNotifications\(await requireTesterRealm\(\)/);
+  assert.match(settings, /\bNotificationListProjectionState\b/);
+  assert.doesNotMatch(settings, /loadRealmNotificationUnreadCount/);
+  assert.doesNotMatch(settings, /loadRealmNotifications/);
+  assert.doesNotMatch(settings, /toRealmNotificationListProjection/);
   assert.doesNotMatch(settings, /@runtime\/data-sync|dataSync\.loadNotificationUnreadCount|dataSync\.loadNotifications/);
   assert.doesNotMatch(settings, /type RealmNotificationListResultDto/);
 });
@@ -72,11 +75,11 @@ test('tester settings consumes the SDK Realm notification unread projection', ()
 test('tester settings consumes the SDK Realm account-data export helper', () => {
   const settings = readSettingsSurface();
 
-  assert.match(settings, /requestDataExport/);
+  assert.match(settings, /requestNimiRealmDataExport/);
   assert.match(settings, /from '@nimiplatform\/sdk\/realm'/);
   assert.match(settings, /Realm account-data export projection/);
   assert.match(settings, /requestAccountDataExportProjection/);
-  assert.match(settings, /getPlatformClient\(\)\.realm/);
+  assert.match(settings, /requestNimiRealmDataExport\(await requireTesterRealm\(\)/);
   assert.doesNotMatch(settings, /@runtime\/data-sync|dataSync\.requestDataExport/);
   assert.doesNotMatch(settings, /requestAccountDeletion/);
 });
@@ -84,12 +87,11 @@ test('tester settings consumes the SDK Realm account-data export helper', () => 
 test('tester settings consumes the SDK Realm account settings helper', () => {
   const settings = readSettingsSurface();
 
-  assert.match(settings, /loadRealmCreatorEligibility/);
-  assert.match(settings, /\bRealmCreatorEligibilityDto\b/);
+  assert.match(settings, /loadNimiRealmCreatorEligibility/);
   assert.match(settings, /from '@nimiplatform\/sdk\/realm'/);
   assert.match(settings, /SDK Realm account settings projection/);
   assert.match(settings, /refreshAccountSettingsProjection/);
-  assert.match(settings, /loadRealmCreatorEligibility\(getPlatformClient\(\)\.realm\)/);
+  assert.match(settings, /loadNimiRealmCreatorEligibility\(await requireTesterRealm\(\)\)/);
   assert.doesNotMatch(settings, /@runtime\/data-sync|dataSync\.loadMyCreatorEligibility/);
 });
 
@@ -108,19 +110,18 @@ test('tester settings consumes the Kit Realm human chat helper', () => {
 test('tester settings consumes the SDK Realm group chat helper', () => {
   const settings = readSettingsSurface();
 
-  assert.match(settings, /listRealmGroupChats/);
-  assert.match(settings, /\bRealmGroupChatListResultDto\b/);
+  assert.match(settings, /listNimiRealmGroupChats/);
   assert.match(settings, /from '@nimiplatform\/sdk\/realm'/);
   assert.match(settings, /SDK Realm group chat projection/);
   assert.match(settings, /refreshGroupChatProjection/);
-  assert.match(settings, /listRealmGroupChats\(getPlatformClient\(\)\.realm, 20\)/);
+  assert.match(settings, /listNimiRealmGroupChats\(await requireTesterRealm\(\), 20\)/);
   assert.doesNotMatch(settings, /@runtime\/data-sync|dataSync\.loadGroupChats/);
 });
 
 test('tester settings consumes the SDK Realm media URL projection', () => {
   const settings = readSettingsSurface();
 
-  assert.match(settings, /resolveRealmMediaUrl/);
+  assert.match(settings, /resolveNimiRealmMediaUrl/);
   assert.match(settings, /from '@nimiplatform\/sdk\/realm'/);
   assert.match(settings, /Realm media URL projection/);
   assert.match(settings, /realmMediaUrlProjection/);
@@ -146,10 +147,10 @@ test('tester settings consumes the SDK Realm resource upload orchestration helpe
 test('tester settings consumes the SDK Realm endpoint projection', () => {
   const settings = readSettingsSurface();
 
-  assert.match(settings, /projectRealmBaseUrl/);
-  assert.match(settings, /projectRealmRealtimeUrl/);
-  assert.match(settings, /REALM_FEED_SCOPES/);
-  assert.match(settings, /isRealmFeedScope/);
+  assert.match(settings, /projectNimiRealmBaseUrl/);
+  assert.match(settings, /projectNimiRealmRealtimeUrl/);
+  assert.match(settings, /NIMI_REALM_FEED_SCOPES/);
+  assert.match(settings, /isNimiRealmFeedScope/);
   assert.match(settings, /from '@nimiplatform\/sdk\/realm'/);
   assert.match(settings, /Realm endpoint projection/);
   assert.match(settings, /Realm realtime projection/);
@@ -201,10 +202,10 @@ test('tester settings consumes neutral Kit avatar backend framing projections', 
 test('tester settings consumes SDK Runtime recommendation enum projections', () => {
   const settings = readSettingsSurface();
 
-  assert.match(settings, /normalizeLocalRecommendationFeedCacheStateId/);
-  assert.match(settings, /parseLocalRecommendationFeedSourceId/);
-  assert.match(settings, /summarizeLocalRecommendationFeedCacheState/);
-  assert.match(settings, /localRecommendationTierToRunGrade/);
+  assert.match(settings, /parseNimiRuntimeLocalRecommendationFeedCacheStateId/);
+  assert.match(settings, /parseNimiRuntimeLocalRecommendationFeedSourceId/);
+  assert.match(settings, /summarizeNimiRuntimeLocalRecommendationFeedCacheState/);
+  assert.match(settings, /nimiRuntimeLocalRecommendationTierToRunGrade/);
   assert.match(settings, /from '@nimiplatform\/sdk\/runtime'/);
   assert.match(settings, /Runtime recommendation projection/);
   assert.match(settings, /LOCAL_RECOMMENDATION_TIER_RUNNABLE/);
@@ -215,10 +216,10 @@ test('tester settings consumes SDK Runtime recommendation feed parser projection
   const settings = readSettingsSurface();
   const recommendationCopyProjection = read('src/tester/tester-local-recommendation-copy-projection.ts');
 
-  assert.match(settings, /parseRuntimeLocalRecommendationFeedDescriptor/);
+  assert.match(settings, /projectNimiRuntimeLocalRecommendationFeed/);
   assert.match(settings, /createTesterLocalRecommendationCopyProjection/);
-  assert.match(recommendationCopyProjection, /summarizeLocalCatalogRecommendation[\s\S]*formatLocalRecommendationReasonLabel[\s\S]*buildLocalRecommendationDetailItems/);
-  assert.match(recommendationCopyProjection, /collectLocalRecommendationFeedProviders[\s\S]*countLocalRecommendationRunGrades[\s\S]*filterLocalRecommendationFeedItems[\s\S]*parseLocalRecommendationLicenseShort[\s\S]*splitLocalRecommendationFeedItems/);
+  assert.match(recommendationCopyProjection, /summarizeNimiRuntimeLocalCatalogRecommendation[\s\S]*formatNimiRuntimeLocalRecommendationReasonLabel[\s\S]*buildNimiRuntimeLocalRecommendationDetailItems/);
+  assert.match(recommendationCopyProjection, /collectNimiRuntimeLocalRecommendationFeedProviders[\s\S]*countNimiRuntimeLocalRecommendationRunGrades[\s\S]*filterNimiRuntimeLocalRecommendationFeedItems[\s\S]*parseNimiRuntimeLocalRecommendationLicenseShort[\s\S]*splitNimiRuntimeLocalRecommendationFeedItems/);
   assert.match(settings, /from '@nimiplatform\/sdk\/runtime'/);
   assert.match(settings, /Runtime recommendation feed parser/);
   assert.doesNotMatch(settings, /function parseRecommendationFeedDescriptor/);
@@ -229,17 +230,17 @@ test('tester settings consumes SDK Runtime recommendation feed parser projection
 test('tester settings consumes SDK Runtime connector inventory projection', () => {
   const settings = readSettingsSurface();
 
-  assert.match(settings, /createRuntimeConnectorInventoryClient/);
+  assert.match(settings, /createNimiRuntimeConnectorInventoryClient/);
   assert.match(settings, /runtimeConnectorInventory\.listConnectors/);
   assert.match(settings, /Runtime connector projection/);
-  assert.match(settings, /runtimeAdmin: \(\) => getPlatformClient\(\)\.domains\.runtimeAdmin/);
-  assert.doesNotMatch(settings, /listProviderCatalog\(|listConnectorModels\(|ConnectorKind\.REMOTE_MANAGED/);
+  assert.match(settings, /satisfies NimiRuntimeConnectorClient/);
+  assert.doesNotMatch(settings, /runtimeAdmin: \(\) => getPlatformClient\(\)\.domains\.runtimeAdmin/);
 });
 
 test('tester settings consumes SDK Runtime model catalog projection', () => {
   const settings = readSettingsSurface();
 
-  assert.match(settings, /createRuntimeModelCatalogClient/);
+  assert.match(settings, /createNimiRuntimeModelCatalogClient/);
   assert.match(settings, /runtimeModelCatalogProjection\.listProviders/);
   assert.match(settings, /Runtime model catalog projection/);
   assert.match(settings, /ModelCatalogProviderSource\.CUSTOM/);
@@ -314,12 +315,12 @@ test('tester settings consumes Kit typed projection lifecycle hook', () => {
 test('tester settings consumes SDK Runtime dependency state projections', () => {
   const settings = readSettingsSurface();
 
-  assert.match(settings, /isLocalRuntimeEnvironmentDependencyStartableState/);
-  assert.match(settings, /isLocalRuntimeEnvironmentDependencyJobActiveState/);
-  assert.match(settings, /isLocalRuntimeEnvironmentDependencyJobRetryableState/);
-  assert.match(settings, /isLocalRuntimeEnvironmentDependencyJobTransferringState/);
-  assert.match(settings, /isLocalRuntimeEnvironmentDependencyRepairRequiredState/);
-  assert.match(settings, /buildLocalRuntimeImageNativeEnvironmentPlanPayload/);
+  assert.match(settings, /isNimiRuntimeLocalEnvironmentDependencyStartableState/);
+  assert.match(settings, /isNimiRuntimeLocalEnvironmentDependencyJobActiveState/);
+  assert.match(settings, /isNimiRuntimeLocalEnvironmentDependencyJobRetryableState/);
+  assert.match(settings, /isNimiRuntimeLocalEnvironmentDependencyJobTransferringState/);
+  assert.match(settings, /isNimiRuntimeLocalEnvironmentDependencyRepairRequiredState/);
+  assert.match(settings, /buildNimiRuntimeLocalImageNativeEnvironmentPlanInput/);
   assert.match(settings, /from '@nimiplatform\/sdk\/runtime'/);
   assert.match(settings, /Runtime dependency state projection/);
   assert.match(settings, /SDK local image runtime dependency projection/);
@@ -329,12 +330,12 @@ test('tester settings consumes SDK Runtime dependency state projections', () => 
 });
 test('tester settings consumes SDK Runtime dependency parser and first-run materialization projections', () => {
   const settings = readSettingsSurface();
-  assert.match(settings, /parseLocalRuntimeEnvironmentPlanProjection[\s\S]*parseLocalRuntimeEnvironmentDependencyJobProjection/);
-  assert.match(settings, /selectFactoryAIProfileForFirstRun[\s\S]*PLATFORM_AI_PROFILE_FACTORY_ROWS/);
-  assert.match(settings, /productStateForMaterializationStatus/);
+  assert.match(settings, /projectNimiRuntimeLocalEnvironmentPlan[\s\S]*projectNimiRuntimeLocalEnvironmentDependencyJob/);
+  assert.match(settings, /selectNimiAppFactoryAIProfileForFirstRun[\s\S]*NIMI_APP_AI_PROFILE_FACTORY_ROWS/);
+  assert.match(settings, /productStateForNimiFirstRunMaterializationStatus/);
   assert.match(settings, /recoveryDisposition: 'auto_retry_transient'/);
-  assert.match(settings, /aggregateMaterializationDownloadProgress[\s\S]*retryableInterruptedFirstRunMaterializationJobs[\s\S]*repairableFirstRunMaterializationDependencies/);
-  assert.match(settings, /from '@nimiplatform\/sdk\/platform-catalog'[\s\S]*from '@nimiplatform\/sdk\/runtime'/);
+  assert.match(settings, /aggregateNimiFirstRunMaterializationDownloadProgress[\s\S]*retryableInterruptedNimiFirstRunMaterializationJobs[\s\S]*repairableNimiFirstRunMaterializationDependencies/);
+  assert.match(settings, /from '@nimiplatform\/sdk\/app'[\s\S]*from '@nimiplatform\/sdk\/runtime'/);
   assert.match(settings, /Runtime dependency parser projection[\s\S]*First-run materialization projection/);
   assert.doesNotMatch(settings, /install-level-policy|JOB_TRANSFERRING_STATES/);
 });
@@ -342,8 +343,8 @@ test('tester settings consumes SDK local runtime asset id projection', () => {
   const settings = readSettingsSurface();
   const assetKindProjection = read('src/tester/tester-local-runtime-asset-kind-projection.ts');
 
-  assert.match(settings, /toCanonicalLocalRuntimeAssetId/);
-  assert.match(settings, /toCanonicalLocalRuntimeAssetLookupKey/);
+  assert.match(settings, /toCanonicalNimiRuntimeLocalAssetId/);
+  assert.match(settings, /toCanonicalNimiRuntimeLocalAssetLookupKey/);
   assert.match(settings, /createTesterLocalRuntimeAssetKindProjection/);
   assert.match(settings, /from '@nimiplatform\/sdk\/runtime'/);
   assert.match(settings, /Local runtime asset id projection/);
@@ -363,9 +364,9 @@ test('tester settings consumes SDK local runtime asset id projection', () => {
 test('tester settings consumes SDK local runtime facade DX surface', () => {
   const settings = readSettingsSurface();
 
-  assert.match(settings, /bindLocalRuntimeServiceClientProvider/);
-  assert.match(settings, /listRuntimeLocalAssetEntries/);
-  assert.match(settings, /localRuntime\.listAssets\(\{ kind: 'chat' \}\)/);
+  assert.match(settings, /NimiRuntimeHealthCoordinator/);
+  assert.match(settings, /listNimiRuntimeLocalAssetEntries/);
+  assert.match(settings, /listLocalAssets\(\)/);
   assert.match(settings, /SDK local runtime facade projection/);
   assert.match(settings, /tester\/local-facade-asset/);
   assert.match(settings, /from '@nimiplatform\/sdk\/runtime'/);
@@ -380,22 +381,21 @@ test('tester settings consumes SDK Realm data sync DX surface', () => {
   const realmAuth = read('src/tester/tester-realm-auth-projection.ts');
   const realmLocalAgentIntents = read('src/tester/tester-realm-local-agent-intents-projection.ts');
 
-  assert.match(settings, /loadRealmSocialSnapshot/);
-  assert.match(settings, /loadRealmWorldSemanticBundle/);
+  assert.match(settings, /loadNimiRealmSocialSnapshot/);
+  assert.match(settings, /loadNimiRealmWorldSemanticBundle/);
   assert.match(settings, /createTesterWorldDisplayProjection/);
-  assert.match(worldDisplayProjection, /worldDisplay\.toSemanticBundle[\s\S]*worldDisplay\.toData/);
+  assert.match(worldDisplayProjection, /toNimiRealmWorldDisplaySemanticBundle[\s\S]*toNimiRealmWorldDisplayData/);
   assert.match(settings, /SDK Realm data sync projection/);
   assert.match(settings, /from '@nimiplatform\/sdk\/realm'/);
   assert.match(settings, /SDK World Evolution selector-read projection/);
   assert.match(settings, /loadTesterWorldEvolutionSelectorReadProjection/);
-  assert.match(worldEvolutionSelectorRead, /createMissingWorldEvolutionSelectorReadProvider/);
   assert.match(worldEvolutionSelectorRead, /missingEvidenceCategory/);
-  assert.match(worldEvolutionSelectorRead, /from '@nimiplatform\/sdk\/runtime'/);
+  assert.match(worldEvolutionSelectorRead, /world_evolution_selector_read_provider_not_public_in_sdk_vnext/);
   assert.match(settings, /SDK Realm social\/feed projection/);
   assert.match(settings, /loadTesterRealmSocialFeedProjection/);
-  assert.match(realmSocialFeed, /loadRealmPostFeed/);
-  assert.match(realmSocialFeed, /loadRealmExploreFeedItems/);
-  assert.match(realmSocialFeed, /executeRealmSocialMutation/);
+  assert.match(realmSocialFeed, /loadNimiRealmPostFeed/);
+  assert.match(realmSocialFeed, /loadNimiRealmExploreFeedItems/);
+  assert.match(realmSocialFeed, /executeNimiRealmSocialMutation/);
   assert.match(realmSocialFeed, /from '@nimiplatform\/sdk\/realm'/);
   assert.match(settings, /SDK Realm agent profile projection/);
   assert.match(settings, /loadTesterRealmAgentProfileProjection/);
@@ -405,17 +405,17 @@ test('tester settings consumes SDK Realm data sync DX surface', () => {
   assert.match(realmAgentProfile, /from '@nimiplatform\/sdk\/realm'/);
   assert.match(settings, /SDK Realm auth projection/);
   assert.match(settings, /loadTesterRealmAuthProjection/);
-  assert.match(realmAuth, /checkRealmAuthEmail/);
-  assert.match(realmAuth, /loginRealmAuthPassword/);
-  assert.match(realmAuth, /loginRealmOAuth/);
-  assert.match(realmAuth, /toRealmOAuthLoginResultDto/);
+  assert.match(realmAuth, /checkNimiRealmAuthEmail/);
+  assert.match(realmAuth, /loginNimiRealmAuthPassword/);
+  assert.match(realmAuth, /loginNimiRealmOAuth/);
+  assert.match(realmAuth, /normalizeNimiRealmOAuthLoginResult/);
   assert.match(realmAuth, /from '@nimiplatform\/sdk\/realm'/);
   assert.match(settings, /SDK Realm local-agent intents projection/);
   assert.match(settings, /loadTesterRealmLocalAgentIntentsProjection/);
-  assert.match(realmLocalAgentIntents, /listRealmLocalAgentProvisionIntents/);
-  assert.match(realmLocalAgentIntents, /ackRealmLocalAgentProvisionIntent/);
-  assert.match(realmLocalAgentIntents, /listRealmLocalAgentTerminationIntents/);
-  assert.match(realmLocalAgentIntents, /ackRealmLocalAgentTerminationIntent/);
+  assert.match(realmLocalAgentIntents, /listNimiRealmLocalAgentProvisionIntents/);
+  assert.match(realmLocalAgentIntents, /ackNimiRealmLocalAgentProvisionIntent/);
+  assert.match(realmLocalAgentIntents, /listNimiRealmLocalAgentTerminationIntents/);
+  assert.match(realmLocalAgentIntents, /ackNimiRealmLocalAgentTerminationIntent/);
   assert.match(realmLocalAgentIntents, /from '@nimiplatform\/sdk\/realm'/);
 });
 
@@ -424,7 +424,7 @@ test('tester settings consumes SDK memory embedding route availability projectio
   const runtimeProjection = read('src/tester/tester-memory-embedding-runtime-projection.ts');
 
   assert.match(settings, /projectNimiMemoryEmbeddingRouteAvailability/);
-  assert.match(settings, /projectRuntimeAgentCanonicalMemoryBankStatus/);
+  assert.match(settings, /projectNimiRuntimeAgentCanonicalMemoryBankStatus/);
   assert.match(settings, /createEmptyNimiMemoryEmbeddingConfig/);
   assert.match(settings, /createTesterMemoryEmbeddingRuntimeProjection/);
   assert.match(runtimeProjection, /createNimiProtectedHostMemoryEmbeddingRuntimeSurface/);
@@ -442,7 +442,7 @@ test('tester settings consumes SDK memory embedding route availability projectio
 test('tester settings consumes SDK Runtime capability coverage projection', () => {
   const settings = readSettingsSurface();
 
-  assert.match(settings, /projectRuntimeRouteCapabilityCoverage/);
+  assert.match(settings, /projectNimiRuntimeRouteCapabilityCoverage/);
   assert.match(settings, /from '@nimiplatform\/sdk\/runtime'/);
   assert.match(settings, /Runtime capability coverage projection/);
   assert.match(settings, /runtimeCapabilityCoverageProjection/);
@@ -452,13 +452,13 @@ test('tester settings consumes SDK Runtime capability coverage projection', () =
 test('tester settings consumes SDK Runtime route capability projection builder', () => {
   const settings = readSettingsSurface();
 
-  assert.match(settings, /buildRuntimeRouteCapabilityProjection/);
-  assert.match(settings, /createDefaultRuntimeRouteCapabilitySelectionStore/);
+  assert.match(settings, /buildNimiRuntimeRouteCapabilityProjection/);
+  assert.match(settings, /createDefaultNimiRuntimeRouteCapabilitySelectionStore/);
   assert.match(settings, /findNimiRuntimeRouteModelProfile/);
   assert.doesNotMatch(settings, /findRuntimeRouteModelProfile/);
-  assert.match(settings, /getRuntimeRouteCapabilityProjectionIssueKind/);
-  assert.match(settings, /isRuntimeRouteCapabilityProjectionReady/);
-  assert.match(settings, /updateRuntimeRouteCapabilityBinding/);
+  assert.match(settings, /getNimiRuntimeRouteCapabilityProjectionIssueKind/);
+  assert.match(settings, /isNimiRuntimeRouteCapabilityProjectionReady/);
+  assert.match(settings, /updateNimiRuntimeRouteCapabilityBinding/);
   assert.match(settings, /from '@nimiplatform\/sdk\/runtime'/);
   assert.match(settings, /resolveConversationRuntimeRouteSetupStateFromProjection/);
   assert.match(settings, /from '@nimiplatform\/kit\/features\/chat\/headless'/);
@@ -467,26 +467,26 @@ test('tester settings consumes SDK Runtime route capability projection builder',
   assert.match(settings, /runtimeCapabilityProjection\.summary\.reasonCode/);
   assert.match(settings, /runtimeCapabilityProjection\.summary\.issueKind/);
   assert.match(settings, /runtimeCapabilityProjection\.summary\.setupStatus/);
-  assert.doesNotMatch(settings, /function buildRuntimeRouteCapabilityProjection/);
+  assert.doesNotMatch(settings, /function buildNimiRuntimeRouteCapabilityProjection/);
 });
 
 test('tester settings consumes SDK Runtime health coordinator diagnostics', () => {
   const settings = readSettingsSurface();
 
-  assert.match(settings, /RuntimeHealthCoordinator/);
+  assert.match(settings, /NimiRuntimeHealthCoordinator/);
   assert.match(settings, /CallerKind/);
   assert.match(settings, /RuntimeHealthStatus/);
   assert.match(settings, /UsageWindow/);
-  assert.match(settings, /bridgeLocalRuntimeProfile/);
-  assert.match(settings, /normalizeLocalRuntimeProfilesDeclaration/);
-  assert.match(settings, /parseLocalRuntimeExecutionPlan/);
-  assert.match(settings, /parseLocalRuntimeServiceDescriptor/);
-  assert.match(settings, /parseLocalRuntimeNodeDescriptor/);
-  assert.match(settings, /projectRuntimeAuditCallerKindName/);
-  assert.match(settings, /projectRuntimeHealthStatusName/);
-  assert.match(settings, /projectRuntimeHealthSummary/);
-  assert.match(settings, /projectRuntimeUsageWindowName/);
-  assert.match(settings, /toIsoFromTimestamp/);
+  assert.match(settings, /bridgeNimiRuntimeLocalProfile/);
+  assert.match(settings, /normalizeNimiRuntimeLocalProfilesDeclaration/);
+  assert.match(settings, /\bNimiRuntimeLocalExecutionPlan\b/);
+  assert.match(settings, /localRuntimeExecutionPlanProjection/);
+  assert.match(settings, /localRuntimeServiceNodeProjection/);
+  assert.match(settings, /projectNimiRuntimeAuditCallerKindName/);
+  assert.match(settings, /projectNimiRuntimeHealthStatusName/);
+  assert.match(settings, /projectNimiRuntimeHealthSummary/);
+  assert.match(settings, /projectNimiRuntimeUsageWindowName/);
+  assert.match(settings, /toNimiRuntimeIsoFromTimestamp/);
   assert.match(settings, /from '@nimiplatform\/sdk\/runtime'/);
   assert.match(settings, /SDK runtime health summary projection/);
   assert.match(settings, /SDK runtime health wire projection/);
@@ -562,12 +562,12 @@ test('tester settings consumes SDK Runtime agent inspect projections', () => {
   [/createHostRuntimeAgentInspectSurface/, /projectRuntimeAgentInspectSnapshot/, /projectRuntimeAgentInspectEventSummary/, /projectRuntimeAgentPendingHookInspect/, /buildRuntimeAgentStateMutations/, /readRuntimeAgentPresentationProfile/].forEach((pattern) => assert.doesNotMatch(helper, pattern));
 });
 test('tester settings consumes SDK Runtime agent presentation profile projection', () => { const settings = readSettingsSurface(); const helper = read('src/tester/tester-runtime-agent-presentation-profile.ts'); [/createTesterRuntimeAgentPresentationProfileProjection/, /Runtime agent presentation profile projection/, /runtimeAgentPresentationProfileProjection\.defaultVoiceReference/].forEach((pattern) => assert.match(settings, pattern)); [/buildNimiSetRuntimeAgentPresentationProfileRequest/, /parseRuntimeLocalAgentIdentity/, /normalizeNimiRuntimeAgentPresentationDefaultVoiceReference/, /from '@nimiplatform\/sdk\/runtime'/].forEach((pattern) => assert.match(helper, pattern)); [/buildSetRuntimeAgentPresentationProfileRequest/, /normalizeRuntimeAgentPresentationDefaultVoiceReference/].forEach((pattern) => assert.doesNotMatch(helper, pattern)); });
-test('tester settings consumes SDK Runtime external agent projections', () => { const settings = readSettingsSurface(); const helper = read('src/tester/tester-external-agent-projection.ts'); [/createTesterExternalAgentProjection/, /Runtime external agent projection/, /externalAgentProjection\.gateway\.actionCount/].forEach((pattern) => assert.match(settings, pattern)); [/createHostRuntimeExternalAgentAccessSurface/, /createTesterExternalAgentAccessSurface/, /loadTesterExternalAgentProjection/, /projectExternalAgentIssueTokenResult/, /parseExternalAgentTokenLedgerRecord/, /projectExternalAgentGatewayStatus/, /from '@nimiplatform\/sdk\/runtime'/].forEach((pattern) => assert.match(helper, pattern)); });
+test('tester settings consumes SDK Runtime external agent projections', () => { const settings = readSettingsSurface(); const helper = read('src/tester/tester-external-agent-projection.ts'); [/createTesterExternalAgentProjection/, /Runtime external agent projection/, /externalAgentProjection\.gateway\.actionCount/].forEach((pattern) => assert.match(settings, pattern)); [/createNimiRuntimeExternalAgentAccessSurface/, /createTesterExternalAgentAccessSurface/, /loadTesterExternalAgentProjection/, /projectNimiExternalAgentIssueTokenResult/, /parseNimiExternalAgentTokenLedgerRecord/, /projectNimiExternalAgentGatewayStatus/, /from '@nimiplatform\/sdk\/runtime'/].forEach((pattern) => assert.match(helper, pattern)); });
 test('tester settings consumes SDK Runtime struct codec projection', () => {
   const settings = readSettingsSurface();
   assert.match(settings, /toNimiRuntimeProtoStruct/);
-  assert.doesNotMatch(settings, /toProtoStruct/);
-  assert.match(settings, /fromProtoStruct/);
+  assert.doesNotMatch(settings, /\btoProtoStruct\(/);
+  assert.match(settings, /fromNimiRuntimeProtoStruct/);
   assert.match(settings, /from '@nimiplatform\/sdk\/runtime'/);
   assert.match(settings, /Runtime struct codec projection/);
   assert.match(settings, /runtimeStructProjection\.auditKind/);
@@ -592,8 +592,8 @@ test('tester settings consumes SDK local route option binding projection', () =>
 test('tester settings consumes SDK runtime route reasoning projection', () => {
   const settings = readSettingsSurface();
 
-  assert.match(settings, /resolveRuntimeTextRouteReasoningSupport/);
-  assert.match(settings, /resolveRuntimeRouteReasoningConfig/);
+  assert.match(settings, /reasoning_metadata_helper_not_public/);
+  assert.match(settings, /runtimeRouteReasoningProjection/);
   assert.match(settings, /from '@nimiplatform\/sdk\/runtime'/);
   assert.match(settings, /Runtime route reasoning projection/);
   assert.match(settings, /runtimeRouteReasoningProjection\.traceMode/);
@@ -603,27 +603,27 @@ test('tester settings consumes SDK runtime route reasoning projection', () => {
 test('tester settings consumes SDK runtime route DX helpers from runtime surface', () => {
   const settings = readSettingsSurface(); const runtimeConfigProjection = read('src/tester/tester-runtime-config-projection.ts'); const runtimeRouteHostAccess = read('src/tester/tester-runtime-route-host-access.ts');
 
-  assert.match(settings, /buildRuntimeTargetCallOptions/);
-  assert.match(settings, /buildRuntimeRequestMetadata/);
+  assert.match(settings, /buildNimiRuntimeRouteTargetCallOptions/);
+  assert.match(settings, /buildNimiRuntimeRouteRequestMetadata/);
   assert.match(settings, /loadTesterRuntimeRouteHostAccessProjection/);
   assert.match(settings, /Runtime route host access projection/);
-  assert.match(settings, /mapRuntimeErrorToLocalAiReasonCode/);
-  assert.match(settings, /checkRuntimeRouteProviderHealth/);
-  assert.match(settings, /ModelHealthStatus/);
+  assert.match(settings, /runtimeLocalAiReasonProjection/);
+  assert.match(settings, /testerRouteCapabilityRuntime\.checkHealth/);
+  assert.match(settings, /runtimeProviderHealthProjection/);
   assert.match(settings, /from '@nimiplatform\/sdk\/runtime'/);
   assert.match(settings, /Runtime call options projection/); assert.match(settings, /Runtime config projection/); assert.match(settings, /createTesterRuntimeConfigProjection/);
   assert.match(settings, /Runtime request metadata projection/);
   assert.match(settings, /Runtime local AI reason projection/);
   assert.match(settings, /Runtime route provider health projection/);
   assert.doesNotMatch(settings, /function buildRuntimeTargetCallOptions/);
-  assert.doesNotMatch(settings, /function checkRuntimeRouteProviderHealth/); [/createHostRuntimeRouteAccessSurface/, /buildCallOptions/, /checkLocalHealth/, /from '@nimiplatform\/sdk\/runtime'/].forEach((pattern) => assert.match(runtimeRouteHostAccess, pattern)); [/mergeRuntimeBridgeDataRootConfig/, /mergeRuntimeBridgeRealmJwtConfig/, /mergeRuntimeBridgeDeveloperRegistrationConfig/, /from '@nimiplatform\/sdk\/runtime'/].forEach((pattern) => assert.match(runtimeConfigProjection, pattern));
+  assert.doesNotMatch(settings, /function checkRuntimeRouteProviderHealth/); [/createNimiHostRuntimeRouteAccessSurface/, /buildCallOptions/, /checkLocalHealth/, /from '@nimiplatform\/sdk\/runtime'/].forEach((pattern) => assert.match(runtimeRouteHostAccess, pattern)); [/mergeNimiRuntimeBridgeDataRootConfig/, /mergeNimiRuntimeBridgeRealmJwtConfig/, /mergeNimiRuntimeBridgeDeveloperRegistrationConfig/, /from '@nimiplatform\/sdk\/runtime'/].forEach((pattern) => assert.match(runtimeConfigProjection, pattern));
 });
 
 test('tester settings consumes Kit model picker binding projection', () => {
   const settings = readSettingsSurface();
 
-  assert.match(settings, /pickerSelectionToBinding/);
-  assert.match(settings, /summarizeBinding/);
+  assert.match(settings, /summarizeTargetRef/);
+  assert.match(settings, /modelConfigBindingSummaryProjection/);
   assert.match(settings, /from '@nimiplatform\/kit\/features\/model-config\/headless'/);
   assert.match(settings, /Model picker binding projection/);
   assert.match(settings, /Kit model binding summary projection/);
@@ -633,8 +633,7 @@ test('tester settings consumes Kit model picker binding projection', () => {
 test('tester settings consumes SDK runtime voice schedule and Kit avatar cue projection', () => {
   const settings = readSettingsSurface();
 
-  assert.match(settings, /resolveRuntimeAgentVoicePlaybackDecision/);
-  assert.match(settings, /from '@nimiplatform\/sdk\/runtime'/);
+  assert.match(settings, /runtime_agent_voice_playback_decision_not_public_in_sdk_vnext/);
   assert.match(settings, /SDK runtime voice schedule projection/);
   assert.match(settings, /runtimeAvatarVoiceProjection\.cueCount/);
   assert.doesNotMatch(settings, /function resolveRuntimeAgentVoicePlaybackDecision/);

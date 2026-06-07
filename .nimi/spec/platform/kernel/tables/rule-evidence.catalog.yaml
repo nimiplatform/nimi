@@ -31,6 +31,7 @@ entries:
   - app_identity_surface_gate
   - audit_evidence_root_gate
   - package_authority_admission_gate
+  - delegated_projection_admission_gate
   - canonical_capability_catalog_gate
 platform_kernel_consistency:
   type: static_gate
@@ -80,6 +81,12 @@ package_authority_admission_gate:
   command: node scripts/check-platform-spec-kernel-consistency.mjs
   path: scripts/check-platform-spec-kernel-consistency.mjs
   description: Platform kernel gate validating package authority admissions, package-vs-host projection boundaries, authority roots, evidence roots, and source rule linkage.
+delegated_projection_admission_gate:
+  type: static_gate
+  evidence_type: structural
+  command: node scripts/check-platform-spec-kernel-consistency.mjs
+  path: scripts/check-platform-spec-kernel-consistency.mjs
+  description: Platform kernel gate validating delegated source projection admissions, local projection evidence roots, delegated source evidence roots, declared evidence prefixes, and required parity commands.
 canonical_capability_catalog_gate:
   type: static_gate
   evidence_type: structural

@@ -558,8 +558,8 @@ Fixed rules:
 - `.nimi/spec/avatar/kernel/index.md` — Avatar first-party authority map
 - `.nimi/spec/avatar/kernel/app-shell-contract.md` — Avatar shell launch, fail-closed, and foreground companion UX boundary
 - `.nimi/spec/avatar/kernel/carrier-visual-acceptance-contract.md` — Avatar carrier visual proof requirements
-- `docs/architecture/agent-companion-core-protocol.md` — core substrate reader guide and correspondence matrix
-- `docs/architecture/live2d-companion.md` — reader guide and first-30-second demo correspondence
+- `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md` — core substrate reader guide and correspondence matrix
+- `.nimi/spec/avatar/kernel/live2d-render-contract.md` — reader guide and first-30-second demo correspondence
 
 ## D-LLM-078a Cross-Reference — Configuration And Debug Workbench
 

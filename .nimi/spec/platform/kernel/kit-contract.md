@@ -74,7 +74,7 @@
 - Must not contain app-specific business logic, single-consumer menu bar logic,
   or realm/runtime typed API truth.
 - Shared `runtime_defaults` payload shape is owned here together with `shell/renderer`: canonical fields include `realmBaseUrl`, `jwksUrl`, `revocationUrl`, `jwtIssuer`, `jwtAudience`, and non-route target/upload hints. Provider, model, connector, and local endpoint route fields must not remain emitted truth; route selection is owned by the Runtime/SDK route projection.
-- Consumer Tauri apps that wire `nimi_shell_tauri::runtime_defaults` must not retain an app-local `src-tauri/src/defaults.rs` duplicate for the same payload shape.
+- Consumer Tauri apps that wire `nimi_shell_tauri::runtime_defaults` must not retain an app-local src-tauri defaults module duplicate for the same payload shape.
 - D-IPC-* rules continue to govern IPC contract semantics; this module provides the shared implementation.
 - App identity and session prefix must be parameterized; no hardcoded app branding in shared code.
 - Generated runtime bridge method IDs must have a single source owner in this module.
@@ -234,7 +234,7 @@ Fixed rules:
   - a feature `README.md` omits the kit-first reuse guidance section for local implementation decisions
   - a kit sub-module imports from `apps/**`
   - the core sub-module contains UI/CSS imports
-  - the telemetry sub-module contains Tauri/Node.js imports
+  - the telemetry sub-module contains Tauri or Node.js imports
   - the `shell/renderer` sub-module contains app-specific stores, navigation, or UI rendering
   - the `shell/renderer` sub-module re-owns auth session truth or telemetry normalization truth
   - the `core/runtime-capabilities` sub-module contains UI, CSS, or shell-specific imports

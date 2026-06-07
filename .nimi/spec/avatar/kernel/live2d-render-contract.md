@@ -96,8 +96,8 @@ Avatar app 接收 `model_path`（来自 `avatar.app.start.detail.model_path` 或
 5. 若存在 physics3.json / pose3.json / cdi3.json → 自动 attach
 6. 若存在 motions/*.motion3.json → 注册到 motion manager（group 名从 model3.json `Groups` / `FileReferences.Motions` 读）
 7. 若存在 expressions/*.exp3.json → 注册到 expression manager
-8. 若存在 runtime/nimi/ → 触发 NAS handler discovery（见 agent-script-contract §10）
-9. 若存在 runtime/nimi/config.json → 应用 feature flags
+8. 若存在 `nas-package://runtime/nimi/` → 触发 NAS handler discovery（见 agent-script-contract §10）
+9. 若存在 `nas-package://runtime/nimi/config.json` → 应用 feature flags
 10. Compute model bounds → emit avatar.model.load + 通知 shell 调整 window
 ```
 
@@ -203,7 +203,7 @@ Live2D branch 默认 activity fallback 查的 motion group 名：`Activity_<Came
 
 ### 5.3 Default Idle Motion
 
-`runtime/nimi/config.json` 的 `default_idle_motion`（default `"Idle"`）：
+`nas-package://runtime/nimi/config.json` 的 `default_idle_motion`（default `"Idle"`）：
 
 - 无 activity / event 驱动时，每 5 秒随机播一次 idle motion group 内的 motion
 - 由 Cubism 官方 idle motion selector 实现（`CubismMotionManager.startMotion(..., priority=PRIORITY_IDLE)`）

@@ -243,9 +243,11 @@ test('tester auth and runtime bootstrap consume Kit shell bridge primitives', ()
 
 test('Tester consumes SDK Runtime agent smoke verification surface as second app proof', () => {
   const helper = read('src/tester/tester-runtime-smoke-verification.ts');
-  assert.match(helper, /createRuntimeAgentSmokeVerificationSurface/);
+  assert.match(helper, /createNimiRuntimeAgentSmokeVerificationSurface/);
+  assert.match(helper, /NimiRuntimeAgentSmokeVerificationSurface/);
   assert.match(helper, /from '@nimiplatform\/sdk\/runtime'/);
   assert.match(helper, /getRuntimePlatformProjection/);
+  assert.doesNotMatch(helper, /createRuntimeAgentSmokeVerificationSurface/);
   assert.doesNotMatch(helper, /createRuntimeProtectedScopeHelper/);
   assert.doesNotMatch(helper, /withScopes\(/);
 });
@@ -347,9 +349,12 @@ test('tester run history is the per-capability evidence surface (no standalone E
   for (const helper of ['getTesterRunStatusLabel', 'getTesterRunStatusTone', 'formatTesterRunTimestamp', 'flattenTesterRunHistory']) {
     assert.match(historyStore, new RegExp(helper));
   }
-  assert.match(appStorage, /resolveRuntimeAppStorageRoots/);
-  assert.match(appStorage, /attachRuntimeAppDataStorageRoot/);
-  assert.match(appStorage, /attachRuntimeAppStorageRoots/);
+  assert.match(appStorage, /resolveNimiRuntimeAppStorageRoots/);
+  assert.match(appStorage, /attachNimiRuntimeAppDataStorageRoot/);
+  assert.match(appStorage, /attachNimiRuntimeAppStorageRoots/);
+  assert.doesNotMatch(appStorage, /resolveRuntimeAppStorageRoots/);
+  assert.doesNotMatch(appStorage, /attachRuntimeAppDataStorageRoot/);
+  assert.doesNotMatch(appStorage, /attachRuntimeAppStorageRoots/);
   assert.doesNotMatch(appStorage, /\.nimi|nimi\.json|runtime\/config|join\(/);
 
   // Single-level capability workspace: no app-lab / evidence / settings routes.
@@ -361,8 +366,11 @@ test('tester capability runs consume Kit renderer telemetry', () => {
   const workbench = read('src/tester/tester-workbench.tsx');
 
   assert.match(workbench, /from '@nimiplatform\/kit\/telemetry'/);
+  assert.match(workbench, /from '@nimiplatform\/sdk'/);
   assert.match(workbench, /from '@nimiplatform\/sdk\/types'/);
-  assert.match(workbench, /from '@nimiplatform\/sdk\/runtime'/);
+  assert.match(workbench, /loadTesterAIConfigSummary/);
+  assert.match(workbench, /from '\.\.\/shell\/auth\/runtime-platform\.js'/);
+  assert.doesNotMatch(workbench, /from '@nimiplatform\/sdk\/runtime'/);
   assert.match(workbench, /createNimiClientId\('run'\)/);
   assert.match(workbench, /requestWithRetry/);
   assert.match(workbench, /executor:\s*loadTesterRunHistory/);

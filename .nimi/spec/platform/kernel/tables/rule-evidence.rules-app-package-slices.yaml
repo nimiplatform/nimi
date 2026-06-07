@@ -43,6 +43,7 @@ entries:
   - P-PKG-006
   - P-PKG-007
   - P-PKG-008
+  - P-PKG-009
 rules:
   - rule_id: P-APP-001
     evidence_refs:
@@ -139,4 +140,9 @@ rules:
     evidence_refs:
       - platform_kernel_consistency
       - audit_evidence_root_gate
+    evidence_requirement: required
+  - rule_id: P-PKG-009
+    evidence_refs:
+      - platform_kernel_consistency
+      - delegated_projection_admission_gate
     evidence_requirement: required

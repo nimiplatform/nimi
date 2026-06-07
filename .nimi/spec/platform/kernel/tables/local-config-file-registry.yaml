@@ -22,7 +22,7 @@ rows:
     readiness paths
   - old schemaVersion values fail closed to repair unless a future admitted
     owner packet explicitly adds a migration capability
-  - runtime/config.json migration execution remains owned by K-CFG-014..016;
+  - runtime config JSON migration execution remains owned by K-CFG-014..016;
     this registry records membership and alignment only
   - unknown future schemaVersion or broken pointer in any governed file routes
     to repair_required or blocked per P-MIG-004, never a raw error

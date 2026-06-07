@@ -1,0 +1,36 @@
+version: 1
+table_family: product_catalog
+owner: platform
+catalog_id: platform_delegated_projection_admissions
+entries:
+  - realm-parent-spec-projection
+admissions:
+  - id: realm-parent-spec-projection
+    admission_posture: active
+    owner_domain: realm
+    authority_root: .nimi/spec/realm
+    source_authority_root: parent://nimi-realm/.nimi/spec/realm
+    local_projection_evidence_roots:
+      - package.json
+      - scripts/check-realm-spec-projection-guard.mjs
+      - scripts/generate-realm-spec-kernel-docs.mjs
+      - scripts/check-realm-spec-kernel-consistency.mjs
+    delegated_evidence_roots:
+      - parent://nimi-realm/.nimi/spec/realm
+      - parent://nimi-realm/.nimi/config/realm-projection-manifest.yaml
+      - parent://nimi-realm/scripts/spec/realm/sync-nimi-open-spec.ts
+      - parent://nimi-realm/nimi-backend
+      - parent://nimi-realm/tests
+    delegated_declared_evidence_prefixes:
+      - nimi-backend/
+      - tests/arch/
+    host_owned_relative_paths:
+      - README.md
+      - agent.md
+      - app-interconnect-model.md
+      - realm-interop-mapping.md
+    required_verification_commands:
+      - pnpm --dir .. spec:realm:check:nimi-sync
+      - pnpm --dir .. spec:realm:check:drift
+      - pnpm --dir .. spec:realm:check:nimi-generated
+    source_rule: P-PKG-009

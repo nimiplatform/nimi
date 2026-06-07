@@ -11,10 +11,9 @@ values:
   - auth
   - net
 # Desktop Log Areas
-# Source: apps/desktop/src/runtime/telemetry/logger.ts (area field)
-#         apps/desktop/src/shell/renderer/bridge/runtime-bridge/invoke.ts (bridge area)
-#         apps/desktop/src/shell/renderer/infra/bootstrap/runtime-bootstrap.ts (bootstrap area)
-#         apps/desktop/src/shell/renderer/infra/realm/realm-api.ts (realm-data area)
+# Source class: desktop renderer/runtime log area literals and typed bridge
+# telemetry projections. Implementation evidence is admitted through desktop
+# renderer and bridge roots, not through retired per-area file paths.
 
 areas:
   - area: runtime

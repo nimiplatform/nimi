@@ -58,7 +58,7 @@ extension channel、install surface、或 registry promise。
 
 - 翻译框架：`react-i18next`。
 - 导航 label 使用 `t('Navigation.${id}', { defaultValue: item.label })`。
-- locale 文件：`locales/en.json`、`locales/zh.json`。
+- locale 文件使用分片 bundle：`locales/en/*.json`、`locales/zh/*.json`。
 - 缺失翻译 key 时，renderer 必须发出可观测 issue（例如通过 i18n issue listener / diagnostics surface），并返回人类可读 fallback 文案；不得因 missing key 直接抛错或触发 render crash。
 - 缺失翻译属于内容完整性缺陷，不属于 renderer 可用性致命错误；Desktop 不得把 missing key 当作阻断 UI 渲染的 fail-close 条件。
 - bundle 加载失败仍必须记录 error 级 issue，并允许受控回退到 `en` 资源，但单个 key 缺失不得升级成 app-unavailable 故障。
@@ -182,7 +182,7 @@ World Detail 的视觉卡与 section surface 必须满足：
 
 Desktop renderer 的共享 UI 设计必须通过 renderer-level semantic token 与 primitive facade 收敛，而不是继续把重复 UI 常量分散在 feature-local 组件内。
 
-- baseline surface 的默认落点是 `components/design-tokens.ts`、`components/surface.tsx`、`components/action.tsx`、`components/overlay.tsx` 与 `styles.css` 中的语义 token。
+- baseline surface 的默认落点是 renderer `styles.css`、kit UI primitives、以及当前受治理的 renderer shared components；不得恢复旧的 standalone action/surface/overlay component truth。
 - 受治理的 secondary consumer 必须在 `tables/renderer-design-surfaces.yaml` 中显式登记；`secondary consumer` 不能只存在于 domain prose 或 code review 记忆里。
 - feature-local primitive 不得继续作为 `chat`、`runtime-config`、`settings` sidebar family 的事实源；内部左侧栏必须通过共享 sidebar primitive 与对应 fact table 治理。
 - design audit、spec、check 与 renderer implementation 必须围绕同一组 baseline primitive 演进。

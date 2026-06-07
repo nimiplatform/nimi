@@ -1148,7 +1148,7 @@ gates:
     notes: |
       Self-bootstrap row per P-RELG-009. Exempt from coherence pre-check
       (the checker cannot pre-validate itself; bootstrap order proof in
-      design/D9-drift-gate-self-bootstrap.md).
+      release-gate self-bootstrap design record).
 
   - id: gate.release-gate.projection-drift
     description: |
@@ -1885,7 +1885,7 @@ gates:
       on_secrets_missing: blocked
     evidence:
       shape: json_file
-      json_file_path: dist/runtime/signing-manifest.json
+      json_file_path: artifact://dist/runtime/signing-manifest.json
     p_relg_anchors: [P-RELG-001, P-RELG-006]
     parent_p_gov_anchors: [P-GOV-011, P-GOV-021, P-GOV-023]
     experimental: false
