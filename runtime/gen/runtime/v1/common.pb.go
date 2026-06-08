@@ -919,12 +919,14 @@ func (x *WorkspaceBindingAttachment) GetRealmEnvironmentId() string {
 }
 
 type UsageStats struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	InputTokens   int64                  `protobuf:"varint,1,opt,name=input_tokens,json=inputTokens,proto3" json:"input_tokens,omitempty"`
-	OutputTokens  int64                  `protobuf:"varint,2,opt,name=output_tokens,json=outputTokens,proto3" json:"output_tokens,omitempty"`
-	ComputeMs     int64                  `protobuf:"varint,3,opt,name=compute_ms,json=computeMs,proto3" json:"compute_ms,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                 protoimpl.MessageState `protogen:"open.v1"`
+	InputTokens           int64                  `protobuf:"varint,1,opt,name=input_tokens,json=inputTokens,proto3" json:"input_tokens,omitempty"`
+	OutputTokens          int64                  `protobuf:"varint,2,opt,name=output_tokens,json=outputTokens,proto3" json:"output_tokens,omitempty"`
+	ComputeMs             int64                  `protobuf:"varint,3,opt,name=compute_ms,json=computeMs,proto3" json:"compute_ms,omitempty"`
+	CachedInputTokens     int64                  `protobuf:"varint,4,opt,name=cached_input_tokens,json=cachedInputTokens,proto3" json:"cached_input_tokens,omitempty"`
+	ReasoningOutputTokens int64                  `protobuf:"varint,5,opt,name=reasoning_output_tokens,json=reasoningOutputTokens,proto3" json:"reasoning_output_tokens,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *UsageStats) Reset() {
@@ -974,6 +976,20 @@ func (x *UsageStats) GetOutputTokens() int64 {
 func (x *UsageStats) GetComputeMs() int64 {
 	if x != nil {
 		return x.ComputeMs
+	}
+	return 0
+}
+
+func (x *UsageStats) GetCachedInputTokens() int64 {
+	if x != nil {
+		return x.CachedInputTokens
+	}
+	return 0
+}
+
+func (x *UsageStats) GetReasoningOutputTokens() int64 {
+	if x != nil {
+		return x.ReasoningOutputTokens
 	}
 	return 0
 }
@@ -1249,13 +1265,15 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\x0eruntime_app_id\x18\x03 \x01(\tR\fruntimeAppId\x12&\n" +
 	"\x0fapp_instance_id\x18\x04 \x01(\tR\rappInstanceId\x12!\n" +
 	"\fworkspace_id\x18\x05 \x01(\tR\vworkspaceId\x120\n" +
-	"\x14realm_environment_id\x18\x06 \x01(\tR\x12realmEnvironmentId\"s\n" +
+	"\x14realm_environment_id\x18\x06 \x01(\tR\x12realmEnvironmentId\"\xdb\x01\n" +
 	"\n" +
 	"UsageStats\x12!\n" +
 	"\finput_tokens\x18\x01 \x01(\x03R\vinputTokens\x12#\n" +
 	"\routput_tokens\x18\x02 \x01(\x03R\foutputTokens\x12\x1d\n" +
 	"\n" +
-	"compute_ms\x18\x03 \x01(\x03R\tcomputeMs\"\x85\x02\n" +
+	"compute_ms\x18\x03 \x01(\x03R\tcomputeMs\x12.\n" +
+	"\x13cached_input_tokens\x18\x04 \x01(\x03R\x11cachedInputTokens\x126\n" +
+	"\x17reasoning_output_tokens\x18\x05 \x01(\x03R\x15reasoningOutputTokens\"\x85\x02\n" +
 	"\x11ResourceSelectors\x12)\n" +
 	"\x10conversation_ids\x18\x01 \x03(\tR\x0fconversationIds\x12\x1f\n" +
 	"\vmessage_ids\x18\x02 \x03(\tR\n" +

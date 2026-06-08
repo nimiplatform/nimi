@@ -59,6 +59,18 @@ enum DelegatedApprovalDecision {
   DELEGATED_APPROVAL_DECISION_REJECT = 2;
 }
 
+// EffectClass enumerates the K-DELEG-007 effect classification consumed by the
+// K-DELEG-091 approval request. Values mirror the effect_classes table in
+// delegation-provider-profiles.yaml (source_rule K-DELEG-007).
+enum EffectClass {
+  EFFECT_CLASS_UNSPECIFIED = 0;
+  EFFECT_CLASS_READ_ONLY = 1;
+  EFFECT_CLASS_LOCAL_SIDE_EFFECT = 2;
+  EFFECT_CLASS_EXTERNAL_SIDE_EFFECT = 3;
+  EFFECT_CLASS_SENSITIVE_READ = 4;
+  EFFECT_CLASS_UNSUPPORTED_EFFECT = 5;
+}
+
 enum DelegatedReplayOutcome {
   DELEGATED_REPLAY_OUTCOME_UNSPECIFIED = 0;
   DELEGATED_REPLAY_OUTCOME_RECONSTRUCTED = 1;
@@ -157,6 +169,13 @@ message DelegatedApprovalRequest {
   google.protobuf.Timestamp created_at = 12;
   google.protobuf.Timestamp updated_at = 13;
   google.protobuf.Timestamp expires_at = 14;
+  // K-DELEG-091 required approval-request fields. sensitivity_class is pending
+  // its spec-authority taxonomy definition and will be added as a typed enum
+  // (next field number) once the value set is admitted.
+  string delegation_request_id = 15;
+  EffectClass effect_class = 16;
+  string summary_ref = 17;
+  string policy_snapshot_id = 18;
 }
 
 message ListDelegatedApprovalRequestsRequest {

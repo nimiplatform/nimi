@@ -45,6 +45,9 @@ message AuditEventRecord {
   string policy_version = 21;
   string resource_selector_hash = 22;
   string scope_catalog_version = 23;
+  // K-AUDIT-003: request_id == trace_id baseline. Top-level fact surface; the
+  // payload request_id entry is a temporary compat mirror, not the truth face.
+  string request_id = 24;
 }
 
 message ListAuditEventsResponse {

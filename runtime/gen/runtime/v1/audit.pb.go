@@ -274,8 +274,11 @@ type AuditEventRecord struct {
 	PolicyVersion         string                 `protobuf:"bytes,21,opt,name=policy_version,json=policyVersion,proto3" json:"policy_version,omitempty"`
 	ResourceSelectorHash  string                 `protobuf:"bytes,22,opt,name=resource_selector_hash,json=resourceSelectorHash,proto3" json:"resource_selector_hash,omitempty"`
 	ScopeCatalogVersion   string                 `protobuf:"bytes,23,opt,name=scope_catalog_version,json=scopeCatalogVersion,proto3" json:"scope_catalog_version,omitempty"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
+	// K-AUDIT-003: request_id == trace_id baseline. Top-level fact surface; the
+	// payload request_id entry is a temporary compat mirror, not the truth face.
+	RequestId     string `protobuf:"bytes,24,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *AuditEventRecord) Reset() {
@@ -465,6 +468,13 @@ func (x *AuditEventRecord) GetResourceSelectorHash() string {
 func (x *AuditEventRecord) GetScopeCatalogVersion() string {
 	if x != nil {
 		return x.ScopeCatalogVersion
+	}
+	return ""
+}
+
+func (x *AuditEventRecord) GetRequestId() string {
+	if x != nil {
+		return x.RequestId
 	}
 	return ""
 }
@@ -1720,7 +1730,7 @@ const file_runtime_v1_audit_proto_rawDesc = "" +
 	"\vcaller_kind\x18\t \x01(\x0e2\x1b.nimi.runtime.v1.CallerKindR\n" +
 	"callerKind\x12\x1b\n" +
 	"\tcaller_id\x18\n" +
-	" \x01(\tR\bcallerId\"\xa0\a\n" +
+	" \x01(\tR\bcallerId\"\xbf\a\n" +
 	"\x10AuditEventRecord\x12\x19\n" +
 	"\baudit_id\x18\x01 \x01(\tR\aauditId\x12\x15\n" +
 	"\x06app_id\x18\x02 \x01(\tR\x05appId\x12&\n" +
@@ -1751,7 +1761,9 @@ const file_runtime_v1_audit_proto_rawDesc = "" +
 	"\x0fconsent_version\x18\x14 \x01(\tR\x0econsentVersion\x12%\n" +
 	"\x0epolicy_version\x18\x15 \x01(\tR\rpolicyVersion\x124\n" +
 	"\x16resource_selector_hash\x18\x16 \x01(\tR\x14resourceSelectorHash\x122\n" +
-	"\x15scope_catalog_version\x18\x17 \x01(\tR\x13scopeCatalogVersion\"|\n" +
+	"\x15scope_catalog_version\x18\x17 \x01(\tR\x13scopeCatalogVersion\x12\x1d\n" +
+	"\n" +
+	"request_id\x18\x18 \x01(\tR\trequestId\"|\n" +
 	"\x17ListAuditEventsResponse\x129\n" +
 	"\x06events\x18\x01 \x03(\v2!.nimi.runtime.v1.AuditEventRecordR\x06events\x12&\n" +
 	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xfb\x01\n" +

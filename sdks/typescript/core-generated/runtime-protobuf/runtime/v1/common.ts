@@ -97,6 +97,14 @@ export interface UsageStats {
      * @generated from protobuf field: int64 compute_ms = 3
      */
     computeMs: string;
+    /**
+     * @generated from protobuf field: int64 cached_input_tokens = 4
+     */
+    cachedInputTokens: string;
+    /**
+     * @generated from protobuf field: int64 reasoning_output_tokens = 5
+     */
+    reasoningOutputTokens: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ResourceSelectors
@@ -1189,7 +1197,9 @@ class UsageStats$Type extends MessageType<UsageStats> {
         super("nimi.runtime.v1.UsageStats", [
             { no: 1, name: "input_tokens", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
             { no: 2, name: "output_tokens", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
-            { no: 3, name: "compute_ms", kind: "scalar", T: 3 /*ScalarType.INT64*/ }
+            { no: 3, name: "compute_ms", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+            { no: 4, name: "cached_input_tokens", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+            { no: 5, name: "reasoning_output_tokens", kind: "scalar", T: 3 /*ScalarType.INT64*/ }
         ]);
     }
     create(value?: PartialMessage<UsageStats>): UsageStats {
@@ -1197,6 +1207,8 @@ class UsageStats$Type extends MessageType<UsageStats> {
         message.inputTokens = "0";
         message.outputTokens = "0";
         message.computeMs = "0";
+        message.cachedInputTokens = "0";
+        message.reasoningOutputTokens = "0";
         if (value !== undefined)
             reflectionMergePartial<UsageStats>(this, message, value);
         return message;
@@ -1214,6 +1226,12 @@ class UsageStats$Type extends MessageType<UsageStats> {
                     break;
                 case /* int64 compute_ms */ 3:
                     message.computeMs = reader.int64().toString();
+                    break;
+                case /* int64 cached_input_tokens */ 4:
+                    message.cachedInputTokens = reader.int64().toString();
+                    break;
+                case /* int64 reasoning_output_tokens */ 5:
+                    message.reasoningOutputTokens = reader.int64().toString();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1236,6 +1254,12 @@ class UsageStats$Type extends MessageType<UsageStats> {
         /* int64 compute_ms = 3; */
         if (message.computeMs !== "0")
             writer.tag(3, WireType.Varint).int64(message.computeMs);
+        /* int64 cached_input_tokens = 4; */
+        if (message.cachedInputTokens !== "0")
+            writer.tag(4, WireType.Varint).int64(message.cachedInputTokens);
+        /* int64 reasoning_output_tokens = 5; */
+        if (message.reasoningOutputTokens !== "0")
+            writer.tag(5, WireType.Varint).int64(message.reasoningOutputTokens);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

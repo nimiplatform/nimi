@@ -10,6 +10,7 @@ lint:
       - runtime/v1/agent_common.proto
       - runtime/v1/agent_group_message_candidate.proto
       - runtime/v1/ai.proto
+      - runtime/v1/ai_realtime.proto
       - runtime/v1/ai_scheduling.proto
       - runtime/v1/app.proto
       - runtime/v1/agent_service.proto
@@ -35,12 +36,14 @@ lint:
       - runtime/v1/workflow.proto
     ENUM_VALUE_PREFIX:
       - runtime/v1/ai.proto
+      - runtime/v1/ai_realtime.proto
       - runtime/v1/app.proto
       - runtime/v1/common.proto
       - runtime/v1/workflow.proto
     RPC_RESPONSE_STANDARD_NAME:
       - runtime/v1/account.proto
       - runtime/v1/ai.proto
+      - runtime/v1/ai_realtime.proto
       - runtime/v1/agent_service.proto
       - runtime/v1/app.proto
       - runtime/v1/audit.proto

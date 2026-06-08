@@ -156,6 +156,13 @@ export interface AuditEventRecord {
      * @generated from protobuf field: string scope_catalog_version = 23
      */
     scopeCatalogVersion: string;
+    /**
+     * K-AUDIT-003: request_id == trace_id baseline. Top-level fact surface; the
+     * payload request_id entry is a temporary compat mirror, not the truth face.
+     *
+     * @generated from protobuf field: string request_id = 24
+     */
+    requestId: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ListAuditEventsResponse
@@ -758,7 +765,8 @@ class AuditEventRecord$Type extends MessageType<AuditEventRecord> {
             { no: 20, name: "consent_version", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 21, name: "policy_version", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 22, name: "resource_selector_hash", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 23, name: "scope_catalog_version", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 23, name: "scope_catalog_version", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 24, name: "request_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<AuditEventRecord>): AuditEventRecord {
@@ -784,6 +792,7 @@ class AuditEventRecord$Type extends MessageType<AuditEventRecord> {
         message.policyVersion = "";
         message.resourceSelectorHash = "";
         message.scopeCatalogVersion = "";
+        message.requestId = "";
         if (value !== undefined)
             reflectionMergePartial<AuditEventRecord>(this, message, value);
         return message;
@@ -861,6 +870,9 @@ class AuditEventRecord$Type extends MessageType<AuditEventRecord> {
                     break;
                 case /* string scope_catalog_version */ 23:
                     message.scopeCatalogVersion = reader.string();
+                    break;
+                case /* string request_id */ 24:
+                    message.requestId = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -943,6 +955,9 @@ class AuditEventRecord$Type extends MessageType<AuditEventRecord> {
         /* string scope_catalog_version = 23; */
         if (message.scopeCatalogVersion !== "")
             writer.tag(23, WireType.LengthDelimited).string(message.scopeCatalogVersion);
+        /* string request_id = 24; */
+        if (message.requestId !== "")
+            writer.tag(24, WireType.LengthDelimited).string(message.requestId);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

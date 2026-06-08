@@ -537,6 +537,17 @@ const (
 	DELEGATEDTRANSPORTKINDSTDIOCOMMAND DelegatedTransportKind = "DELEGATED_TRANSPORT_KIND_STDIO_COMMAND"
 )
 
+type EffectClass string
+
+const (
+	EFFECTCLASSUNSPECIFIED EffectClass = "EFFECT_CLASS_UNSPECIFIED"
+	EFFECTCLASSREADONLY EffectClass = "EFFECT_CLASS_READ_ONLY"
+	EFFECTCLASSLOCALSIDEEFFECT EffectClass = "EFFECT_CLASS_LOCAL_SIDE_EFFECT"
+	EFFECTCLASSEXTERNALSIDEEFFECT EffectClass = "EFFECT_CLASS_EXTERNAL_SIDE_EFFECT"
+	EFFECTCLASSSENSITIVEREAD EffectClass = "EFFECT_CLASS_SENSITIVE_READ"
+	EFFECTCLASSUNSUPPORTEDEFFECT EffectClass = "EFFECT_CLASS_UNSUPPORTED_EFFECT"
+)
+
 type ExecutionMode string
 
 const (
@@ -1163,6 +1174,15 @@ const (
 	REASONINGTRACEMODESEPARATE ReasoningTraceMode = "REASONING_TRACE_MODE_SEPARATE"
 )
 
+type ResponseFormatKind string
+
+const (
+	RESPONSEFORMATKINDUNSPECIFIED ResponseFormatKind = "RESPONSE_FORMAT_KIND_UNSPECIFIED"
+	RESPONSEFORMATKINDTEXT ResponseFormatKind = "RESPONSE_FORMAT_KIND_TEXT"
+	RESPONSEFORMATKINDJSONOBJECT ResponseFormatKind = "RESPONSE_FORMAT_KIND_JSON_OBJECT"
+	RESPONSEFORMATKINDJSONSCHEMA ResponseFormatKind = "RESPONSE_FORMAT_KIND_JSON_SCHEMA"
+)
+
 type RoutePolicy string
 
 const (
@@ -1295,6 +1315,16 @@ const (
 	TOKENPROVIDERHEALTHSTATUSUNREACHABLE TokenProviderHealthStatus = "TOKEN_PROVIDER_HEALTH_STATUS_UNREACHABLE"
 	TOKENPROVIDERHEALTHSTATUSUNAUTHORIZED TokenProviderHealthStatus = "TOKEN_PROVIDER_HEALTH_STATUS_UNAUTHORIZED"
 	TOKENPROVIDERHEALTHSTATUSUNSUPPORTED TokenProviderHealthStatus = "TOKEN_PROVIDER_HEALTH_STATUS_UNSUPPORTED"
+)
+
+type ToolChoiceMode string
+
+const (
+	TOOLCHOICEMODEUNSPECIFIED ToolChoiceMode = "TOOL_CHOICE_MODE_UNSPECIFIED"
+	TOOLCHOICEMODEAUTO ToolChoiceMode = "TOOL_CHOICE_MODE_AUTO"
+	TOOLCHOICEMODENONE ToolChoiceMode = "TOOL_CHOICE_MODE_NONE"
+	TOOLCHOICEMODEREQUIRED ToolChoiceMode = "TOOL_CHOICE_MODE_REQUIRED"
+	TOOLCHOICEMODETOOL ToolChoiceMode = "TOOL_CHOICE_MODE_TOOL"
 )
 
 type UsageWindow string
@@ -2107,6 +2137,7 @@ type AuditEventRecord struct {
 	PolicyVersion string `json:"policy_version,omitempty"`
 	ResourceSelectorHash string `json:"resource_selector_hash,omitempty"`
 	ScopeCatalogVersion string `json:"scope_catalog_version,omitempty"`
+	RequestId string `json:"request_id,omitempty"`
 }
 
 type AuditExportChunk struct {
@@ -2447,6 +2478,8 @@ type ChatMessage struct {
 	Content string `json:"content,omitempty"`
 	Name string `json:"name,omitempty"`
 	Parts []ChatContentPart `json:"parts,omitempty"`
+	ToolCalls []ToolCall `json:"tool_calls,omitempty"`
+	ToolCallId string `json:"tool_call_id,omitempty"`
 }
 
 type CheckLocalAssetHealthRequest struct {
@@ -2672,6 +2705,10 @@ type DelegatedApprovalRequest struct {
 	CreatedAt string `json:"created_at,omitempty"`
 	UpdatedAt string `json:"updated_at,omitempty"`
 	ExpiresAt string `json:"expires_at,omitempty"`
+	DelegationRequestId string `json:"delegation_request_id,omitempty"`
+	EffectClass EffectClass `json:"effect_class,omitempty"`
+	SummaryRef string `json:"summary_ref,omitempty"`
+	PolicySnapshotId string `json:"policy_snapshot_id,omitempty"`
 }
 
 type DelegatedControlSurfaceSnapshot struct {
@@ -5847,6 +5884,14 @@ type ResourceSelectors struct {
 	Labels map[string]string `json:"labels,omitempty"`
 }
 
+type ResponseFormat struct {
+	Kind ResponseFormatKind `json:"kind,omitempty"`
+	JsonSchema map[string]any `json:"json_schema,omitempty"`
+	SchemaName string `json:"schema_name,omitempty"`
+	SchemaDescription string `json:"schema_description,omitempty"`
+	Strict bool `json:"strict,omitempty"`
+}
+
 type ResumeLocalTransferRequest struct {
 	InstallSessionId string `json:"install_session_id,omitempty"`
 }
@@ -6417,6 +6462,7 @@ type StreamScenarioEvent struct {
 	Usage *UsageStats `json:"usage,omitempty"`
 	Completed *ScenarioStreamCompleted `json:"completed,omitempty"`
 	Failed *ScenarioStreamFailed `json:"failed,omitempty"`
+	ToolCall *ToolCall `json:"tool_call,omitempty"`
 }
 
 type StreamScenarioRequest struct {
@@ -6558,6 +6604,7 @@ type TextEmbedScenarioSpec struct {
 
 type TextGenerateOutput struct {
 	Text string `json:"text,omitempty"`
+	ToolCalls []ToolCall `json:"tool_calls,omitempty"`
 }
 
 type TextGenerateScenarioSpec struct {
@@ -6568,6 +6615,14 @@ type TextGenerateScenarioSpec struct {
 	TopP float32 `json:"top_p,omitempty"`
 	MaxTokens int32 `json:"max_tokens,omitempty"`
 	Reasoning *ReasoningConfig `json:"reasoning,omitempty"`
+	ToolChoice ToolChoiceMode `json:"tool_choice,omitempty"`
+	ToolChoiceName string `json:"tool_choice_name,omitempty"`
+	ResponseFormat *ResponseFormat `json:"response_format,omitempty"`
+	TopK int32 `json:"top_k,omitempty"`
+	PresencePenalty float32 `json:"presence_penalty,omitempty"`
+	FrequencyPenalty float32 `json:"frequency_penalty,omitempty"`
+	Stop []string `json:"stop,omitempty"`
+	Seed int64 `json:"seed,omitempty"`
 }
 
 type TextStreamDelta struct {
@@ -6588,9 +6643,16 @@ type TokenChainEntry struct {
 	IssuedScopeCatalogVersion string `json:"issued_scope_catalog_version,omitempty"`
 }
 
+type ToolCall struct {
+	Id string `json:"id,omitempty"`
+	Name string `json:"name,omitempty"`
+	ArgumentsJson string `json:"arguments_json,omitempty"`
+}
+
 type ToolSpec struct {
 	Name string `json:"name,omitempty"`
 	InputSchema map[string]any `json:"input_schema,omitempty"`
+	Description string `json:"description,omitempty"`
 }
 
 type TraverseGraphRequest struct {
@@ -6731,6 +6793,8 @@ type UsageStats struct {
 	InputTokens int64 `json:"input_tokens,omitempty"`
 	OutputTokens int64 `json:"output_tokens,omitempty"`
 	ComputeMs int64 `json:"compute_ms,omitempty"`
+	CachedInputTokens int64 `json:"cached_input_tokens,omitempty"`
+	ReasoningOutputTokens int64 `json:"reasoning_output_tokens,omitempty"`
 }
 
 type ValidateAppAccessTokenRequest struct {

@@ -291,6 +291,8 @@ message UsageStats {
   int64 input_tokens = 1;
   int64 output_tokens = 2;
   int64 compute_ms = 3;
+  int64 cached_input_tokens = 4;
+  int64 reasoning_output_tokens = 5;
 }
 
 message ResourceSelectors {

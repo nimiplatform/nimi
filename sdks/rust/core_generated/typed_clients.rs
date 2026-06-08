@@ -802,6 +802,22 @@ impl Default for DelegatedTransportKind {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum EffectClass {
+    EFFECTCLASSUNSPECIFIED,
+    EFFECTCLASSREADONLY,
+    EFFECTCLASSLOCALSIDEEFFECT,
+    EFFECTCLASSEXTERNALSIDEEFFECT,
+    EFFECTCLASSSENSITIVEREAD,
+    EFFECTCLASSUNSUPPORTEDEFFECT,
+}
+
+impl Default for EffectClass {
+    fn default() -> Self {
+        Self::EFFECTCLASSUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ExecutionMode {
     EXECUTIONMODEUNSPECIFIED,
     EXECUTIONMODESYNC,
@@ -1668,6 +1684,20 @@ impl Default for ReasoningTraceMode {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ResponseFormatKind {
+    RESPONSEFORMATKINDUNSPECIFIED,
+    RESPONSEFORMATKINDTEXT,
+    RESPONSEFORMATKINDJSONOBJECT,
+    RESPONSEFORMATKINDJSONSCHEMA,
+}
+
+impl Default for ResponseFormatKind {
+    fn default() -> Self {
+        Self::RESPONSEFORMATKINDUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum RoutePolicy {
     ROUTEPOLICYUNSPECIFIED,
     ROUTEPOLICYLOCAL,
@@ -1858,6 +1888,21 @@ pub enum TokenProviderHealthStatus {
 impl Default for TokenProviderHealthStatus {
     fn default() -> Self {
         Self::TOKENPROVIDERHEALTHSTATUSUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ToolChoiceMode {
+    TOOLCHOICEMODEUNSPECIFIED,
+    TOOLCHOICEMODEAUTO,
+    TOOLCHOICEMODENONE,
+    TOOLCHOICEMODEREQUIRED,
+    TOOLCHOICEMODETOOL,
+}
+
+impl Default for ToolChoiceMode {
+    fn default() -> Self {
+        Self::TOOLCHOICEMODEUNSPECIFIED
     }
 }
 
@@ -4312,6 +4357,7 @@ pub struct AuditEventRecord {
     pub policy_version: Option<String>,
     pub resource_selector_hash: Option<String>,
     pub scope_catalog_version: Option<String>,
+    pub request_id: Option<String>,
 }
 
 impl AuditEventRecord {
@@ -4339,6 +4385,7 @@ impl AuditEventRecord {
         if let Some(value) = &self.policy_version { pairs.push(format!("policy_version={}", value)); }
         if let Some(value) = &self.resource_selector_hash { pairs.push(format!("resource_selector_hash={}", value)); }
         if let Some(value) = &self.scope_catalog_version { pairs.push(format!("scope_catalog_version={}", value)); }
+        if let Some(value) = &self.request_id { pairs.push(format!("request_id={}", value)); }
         pairs.join(";").into_bytes()
     }
 
@@ -4365,6 +4412,7 @@ impl AuditEventRecord {
         out.policy_version = pairs.get("policy_version").cloned();
         out.resource_selector_hash = pairs.get("resource_selector_hash").cloned();
         out.scope_catalog_version = pairs.get("scope_catalog_version").cloned();
+        out.request_id = pairs.get("request_id").cloned();
         out
     }
 }
@@ -5549,6 +5597,8 @@ pub struct ChatMessage {
     pub content: Option<String>,
     pub name: Option<String>,
     pub parts: Vec<Box<ChatContentPart>>,
+    pub tool_calls: Vec<Box<ToolCall>>,
+    pub tool_call_id: Option<String>,
 }
 
 impl ChatMessage {
@@ -5557,6 +5607,7 @@ impl ChatMessage {
         if let Some(value) = &self.role { pairs.push(format!("role={}", value)); }
         if let Some(value) = &self.content { pairs.push(format!("content={}", value)); }
         if let Some(value) = &self.name { pairs.push(format!("name={}", value)); }
+        if let Some(value) = &self.tool_call_id { pairs.push(format!("tool_call_id={}", value)); }
         pairs.join(";").into_bytes()
     }
 
@@ -5566,6 +5617,7 @@ impl ChatMessage {
         out.role = pairs.get("role").cloned();
         out.content = pairs.get("content").cloned();
         out.name = pairs.get("name").cloned();
+        out.tool_call_id = pairs.get("tool_call_id").cloned();
         out
     }
 }
@@ -6347,6 +6399,10 @@ pub struct DelegatedApprovalRequest {
     pub created_at: Option<String>,
     pub updated_at: Option<String>,
     pub expires_at: Option<String>,
+    pub delegation_request_id: Option<String>,
+    pub effect_class: Option<EffectClass>,
+    pub summary_ref: Option<String>,
+    pub policy_snapshot_id: Option<String>,
 }
 
 impl DelegatedApprovalRequest {
@@ -6365,6 +6421,10 @@ impl DelegatedApprovalRequest {
         if let Some(value) = &self.created_at { pairs.push(format!("created_at={}", value)); }
         if let Some(value) = &self.updated_at { pairs.push(format!("updated_at={}", value)); }
         if let Some(value) = &self.expires_at { pairs.push(format!("expires_at={}", value)); }
+        if let Some(value) = &self.delegation_request_id { pairs.push(format!("delegation_request_id={}", value)); }
+        if let Some(value) = &self.effect_class { pairs.push(format!("effect_class={:?}", value)); }
+        if let Some(value) = &self.summary_ref { pairs.push(format!("summary_ref={}", value)); }
+        if let Some(value) = &self.policy_snapshot_id { pairs.push(format!("policy_snapshot_id={}", value)); }
         pairs.join(";").into_bytes()
     }
 
@@ -6383,6 +6443,9 @@ impl DelegatedApprovalRequest {
         out.created_at = pairs.get("created_at").cloned();
         out.updated_at = pairs.get("updated_at").cloned();
         out.expires_at = pairs.get("expires_at").cloned();
+        out.delegation_request_id = pairs.get("delegation_request_id").cloned();
+        out.summary_ref = pairs.get("summary_ref").cloned();
+        out.policy_snapshot_id = pairs.get("policy_snapshot_id").cloned();
         out
     }
 }
@@ -17969,6 +18032,35 @@ impl ResourceSelectors {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct ResponseFormat {
+    pub kind: Option<ResponseFormatKind>,
+    pub json_schema: Option<BTreeMap<String, String>>,
+    pub schema_name: Option<String>,
+    pub schema_description: Option<String>,
+    pub strict: Option<bool>,
+}
+
+impl ResponseFormat {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.kind { pairs.push(format!("kind={:?}", value)); }
+        if let Some(value) = &self.schema_name { pairs.push(format!("schema_name={}", value)); }
+        if let Some(value) = &self.schema_description { pairs.push(format!("schema_description={}", value)); }
+        if let Some(value) = &self.strict { pairs.push(format!("strict={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.schema_name = pairs.get("schema_name").cloned();
+        out.schema_description = pairs.get("schema_description").cloned();
+        out.strict = pairs.get("strict").and_then(|value| value.parse().ok());
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ResumeLocalTransferRequest {
     pub install_session_id: Option<String>,
 }
@@ -20043,6 +20135,7 @@ pub struct StreamScenarioEvent {
     pub usage: Option<Box<UsageStats>>,
     pub completed: Option<Box<ScenarioStreamCompleted>>,
     pub failed: Option<Box<ScenarioStreamFailed>>,
+    pub tool_call: Option<Box<ToolCall>>,
 }
 
 impl StreamScenarioEvent {
@@ -20587,6 +20680,7 @@ impl TextEmbedScenarioSpec {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct TextGenerateOutput {
     pub text: Option<String>,
+    pub tool_calls: Vec<Box<ToolCall>>,
 }
 
 impl TextGenerateOutput {
@@ -20613,6 +20707,14 @@ pub struct TextGenerateScenarioSpec {
     pub top_p: Option<f32>,
     pub max_tokens: Option<i32>,
     pub reasoning: Option<Box<ReasoningConfig>>,
+    pub tool_choice: Option<ToolChoiceMode>,
+    pub tool_choice_name: Option<String>,
+    pub response_format: Option<Box<ResponseFormat>>,
+    pub top_k: Option<i32>,
+    pub presence_penalty: Option<f32>,
+    pub frequency_penalty: Option<f32>,
+    pub stop: Vec<String>,
+    pub seed: Option<i64>,
 }
 
 impl TextGenerateScenarioSpec {
@@ -20622,6 +20724,12 @@ impl TextGenerateScenarioSpec {
         if let Some(value) = &self.temperature { pairs.push(format!("temperature={}", value)); }
         if let Some(value) = &self.top_p { pairs.push(format!("top_p={}", value)); }
         if let Some(value) = &self.max_tokens { pairs.push(format!("max_tokens={}", value)); }
+        if let Some(value) = &self.tool_choice { pairs.push(format!("tool_choice={:?}", value)); }
+        if let Some(value) = &self.tool_choice_name { pairs.push(format!("tool_choice_name={}", value)); }
+        if let Some(value) = &self.top_k { pairs.push(format!("top_k={}", value)); }
+        if let Some(value) = &self.presence_penalty { pairs.push(format!("presence_penalty={}", value)); }
+        if let Some(value) = &self.frequency_penalty { pairs.push(format!("frequency_penalty={}", value)); }
+        if let Some(value) = &self.seed { pairs.push(format!("seed={}", value)); }
         pairs.join(";").into_bytes()
     }
 
@@ -20632,6 +20740,11 @@ impl TextGenerateScenarioSpec {
         out.temperature = pairs.get("temperature").and_then(|value| value.parse().ok());
         out.top_p = pairs.get("top_p").and_then(|value| value.parse().ok());
         out.max_tokens = pairs.get("max_tokens").and_then(|value| value.parse().ok());
+        out.tool_choice_name = pairs.get("tool_choice_name").cloned();
+        out.top_k = pairs.get("top_k").and_then(|value| value.parse().ok());
+        out.presence_penalty = pairs.get("presence_penalty").and_then(|value| value.parse().ok());
+        out.frequency_penalty = pairs.get("frequency_penalty").and_then(|value| value.parse().ok());
+        out.seed = pairs.get("seed").and_then(|value| value.parse().ok());
         out
     }
 }
@@ -20705,15 +20818,43 @@ impl TokenChainEntry {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct ToolCall {
+    pub id: Option<String>,
+    pub name: Option<String>,
+    pub arguments_json: Option<String>,
+}
+
+impl ToolCall {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.id { pairs.push(format!("id={}", value)); }
+        if let Some(value) = &self.name { pairs.push(format!("name={}", value)); }
+        if let Some(value) = &self.arguments_json { pairs.push(format!("arguments_json={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.id = pairs.get("id").cloned();
+        out.name = pairs.get("name").cloned();
+        out.arguments_json = pairs.get("arguments_json").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ToolSpec {
     pub name: Option<String>,
     pub input_schema: Option<BTreeMap<String, String>>,
+    pub description: Option<String>,
 }
 
 impl ToolSpec {
     pub fn to_transport(&self) -> Vec<u8> {
         let mut pairs: Vec<String> = Vec::new();
         if let Some(value) = &self.name { pairs.push(format!("name={}", value)); }
+        if let Some(value) = &self.description { pairs.push(format!("description={}", value)); }
         pairs.join(";").into_bytes()
     }
 
@@ -20721,6 +20862,7 @@ impl ToolSpec {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
         out.name = pairs.get("name").cloned();
+        out.description = pairs.get("description").cloned();
         out
     }
 }
@@ -21228,6 +21370,8 @@ pub struct UsageStats {
     pub input_tokens: Option<i64>,
     pub output_tokens: Option<i64>,
     pub compute_ms: Option<i64>,
+    pub cached_input_tokens: Option<i64>,
+    pub reasoning_output_tokens: Option<i64>,
 }
 
 impl UsageStats {
@@ -21236,6 +21380,8 @@ impl UsageStats {
         if let Some(value) = &self.input_tokens { pairs.push(format!("input_tokens={}", value)); }
         if let Some(value) = &self.output_tokens { pairs.push(format!("output_tokens={}", value)); }
         if let Some(value) = &self.compute_ms { pairs.push(format!("compute_ms={}", value)); }
+        if let Some(value) = &self.cached_input_tokens { pairs.push(format!("cached_input_tokens={}", value)); }
+        if let Some(value) = &self.reasoning_output_tokens { pairs.push(format!("reasoning_output_tokens={}", value)); }
         pairs.join(";").into_bytes()
     }
 
@@ -21245,6 +21391,8 @@ impl UsageStats {
         out.input_tokens = pairs.get("input_tokens").and_then(|value| value.parse().ok());
         out.output_tokens = pairs.get("output_tokens").and_then(|value| value.parse().ok());
         out.compute_ms = pairs.get("compute_ms").and_then(|value| value.parse().ok());
+        out.cached_input_tokens = pairs.get("cached_input_tokens").and_then(|value| value.parse().ok());
+        out.reasoning_output_tokens = pairs.get("reasoning_output_tokens").and_then(|value| value.parse().ok());
         out
     }
 }
@@ -25870,6 +26018,12 @@ impl From<Vec<u8>> for ResourceSelectors {
     }
 }
 
+impl From<Vec<u8>> for ResponseFormat {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for ResumeLocalTransferRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -26531,6 +26685,12 @@ impl From<Vec<u8>> for TextStreamDelta {
 }
 
 impl From<Vec<u8>> for TokenChainEntry {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for ToolCall {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }

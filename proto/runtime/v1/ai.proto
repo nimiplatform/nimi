@@ -96,15 +96,6 @@ enum StreamEventType {
   STREAM_EVENT_FAILED = 7;
 }
 
-enum RealtimeEventType {
-  REALTIME_EVENT_TYPE_UNSPECIFIED = 0;
-  REALTIME_EVENT_OPENED = 1;
-  REALTIME_EVENT_TEXT_DELTA = 2;
-  REALTIME_EVENT_AUDIO_CHUNK = 3;
-  REALTIME_EVENT_COMPLETED = 4;
-  REALTIME_EVENT_FAILED = 5;
-}
-
 enum VideoMode {
   VIDEO_MODE_UNSPECIFIED = 0;
   VIDEO_MODE_T2V = 1;
@@ -149,6 +140,10 @@ message ChatMessage {
   string content = 2;
   string name = 3;
   repeated ChatContentPart parts = 4;
+  // Tool calls emitted by an assistant turn (carried back for multi-step loops).
+  repeated ToolCall tool_calls = 5;
+  // Tool call id this message answers (set on tool-role messages).
+  string tool_call_id = 6;
 }
 
 enum ChatContentPartType {
@@ -186,6 +181,39 @@ message ChatContentPart {
 message ToolSpec {
   string name = 1;
   google.protobuf.Struct input_schema = 2;
+  string description = 3;
+}
+
+// How the model is allowed or required to select tools for a text scenario.
+enum ToolChoiceMode {
+  TOOL_CHOICE_MODE_UNSPECIFIED = 0;
+  TOOL_CHOICE_MODE_AUTO = 1;
+  TOOL_CHOICE_MODE_NONE = 2;
+  TOOL_CHOICE_MODE_REQUIRED = 3;
+  TOOL_CHOICE_MODE_TOOL = 4;
+}
+
+// Requested structured-output shape for a text scenario.
+enum ResponseFormatKind {
+  RESPONSE_FORMAT_KIND_UNSPECIFIED = 0;
+  RESPONSE_FORMAT_KIND_TEXT = 1;
+  RESPONSE_FORMAT_KIND_JSON_OBJECT = 2;
+  RESPONSE_FORMAT_KIND_JSON_SCHEMA = 3;
+}
+
+message ResponseFormat {
+  ResponseFormatKind kind = 1;
+  google.protobuf.Struct json_schema = 2;
+  string schema_name = 3;
+  string schema_description = 4;
+  bool strict = 5;
+}
+
+// A model-selected tool call returned by a text scenario.
+message ToolCall {
+  string id = 1;
+  string name = 2;
+  string arguments_json = 3;
 }
 
 message ScenarioRequestHead {
@@ -222,6 +250,14 @@ message TextGenerateScenarioSpec {
   float top_p = 5;
   int32 max_tokens = 6;
   ReasoningConfig reasoning = 7;
+  ToolChoiceMode tool_choice = 8;
+  string tool_choice_name = 9;
+  ResponseFormat response_format = 10;
+  int32 top_k = 11;
+  float presence_penalty = 12;
+  float frequency_penalty = 13;
+  repeated string stop = 14;
+  int64 seed = 15;
 }
 
 message TextEmbedScenarioSpec {
@@ -356,6 +392,7 @@ message ExecuteScenarioRequest {
 
 message TextGenerateOutput {
   string text = 1;
+  repeated ToolCall tool_calls = 2;
 }
 
 message EmbeddingVector {
@@ -486,6 +523,7 @@ message StreamScenarioEvent {
     UsageStats usage = 14;
     ScenarioStreamCompleted completed = 15;
     ScenarioStreamFailed failed = 16;
+    ToolCall tool_call = 17;
   }
 }
 
@@ -727,104 +765,6 @@ message UploadArtifactResponse {
   string trace_id = 2;
 }
 
-message OpenRealtimeSessionRequest {
-  ScenarioRequestHead head = 1;
-  string system_prompt = 2;
-  repeated ScenarioExtension extensions = 3;
-  string output_audio_format = 4;
-  int32 output_sample_rate_hz = 5;
-}
-
-message OpenRealtimeSessionResponse {
-  string session_id = 1;
-  RoutePolicy route_decision = 2;
-  string model_resolved = 3;
-  string trace_id = 4;
-}
-
-message RealtimeAudioInput {
-  oneof source {
-    bytes audio_bytes = 1;
-    string audio_uri = 2;
-    ChatContentArtifactRef artifact_ref = 3;
-  }
-  string mime_type = 4;
-  int32 sample_rate_hz = 5;
-  bool end_of_turn = 6;
-  reserved 7 to 15;
-}
-
-message RealtimeInputItem {
-  oneof item {
-    ChatMessage message = 1;
-    RealtimeAudioInput audio = 2;
-  }
-}
-
-message AppendRealtimeInputRequest {
-  string session_id = 1;
-  repeated RealtimeInputItem items = 2;
-}
-
-message AppendRealtimeInputResponse {
-  Ack ack = 1;
-  string trace_id = 2;
-}
-
-message ReadRealtimeEventsRequest {
-  string session_id = 1;
-  uint64 after_sequence = 2;
-}
-
-message RealtimeSessionOpened {
-  string session_id = 1;
-  string model_resolved = 2;
-  RoutePolicy route_decision = 3;
-}
-
-message RealtimeTextDelta {
-  string text = 1;
-}
-
-message RealtimeAudioChunk {
-  bytes chunk = 1;
-  string mime_type = 2;
-  int32 sample_rate_hz = 3;
-  bool eof = 4;
-}
-
-message RealtimeCompleted {
-  FinishReason finish_reason = 1;
-  UsageStats usage = 2;
-}
-
-message RealtimeFailed {
-  ReasonCode reason_code = 1;
-  string action_hint = 2;
-}
-
-message RealtimeEvent {
-  RealtimeEventType event_type = 1;
-  uint64 sequence = 2;
-  string trace_id = 3;
-  google.protobuf.Timestamp timestamp = 4;
-  oneof payload {
-    RealtimeSessionOpened opened = 10;
-    RealtimeTextDelta text_delta = 11;
-    RealtimeAudioChunk audio_chunk = 12;
-    RealtimeCompleted completed = 13;
-    RealtimeFailed failed = 14;
-  }
-}
-
-message CloseRealtimeSessionRequest {
-  string session_id = 1;
-}
-
-message CloseRealtimeSessionResponse {
-  Ack ack = 1;
-}
-
 // Removed messages: ListTokenProviderModelsRequest (fields 1-5),
 // TokenProviderModelDescriptor (fields 1-3), ListTokenProviderModelsResponse (fields 1-4),
 // CheckTokenProviderHealthRequest (fields 1-6), TokenProviderHealthSnapshot (fields 1-6),
@@ -846,11 +786,4 @@ service RuntimeAiService {
   rpc UploadArtifact(stream UploadArtifactRequest) returns (UploadArtifactResponse);
   // K-SCHED-002: Non-blocking scheduling preflight assessment.
   rpc PeekScheduling(PeekSchedulingRequest) returns (PeekSchedulingResponse);
-}
-
-service RuntimeAiRealtimeService {
-  rpc OpenRealtimeSession(OpenRealtimeSessionRequest) returns (OpenRealtimeSessionResponse);
-  rpc AppendRealtimeInput(AppendRealtimeInputRequest) returns (AppendRealtimeInputResponse);
-  rpc ReadRealtimeEvents(ReadRealtimeEventsRequest) returns (stream RealtimeEvent);
-  rpc CloseRealtimeSession(CloseRealtimeSessionRequest) returns (CloseRealtimeSessionResponse);
 }

@@ -8,6 +8,7 @@
     "proto/runtime/v1/agent_group_message_candidate.proto",
     "proto/runtime/v1/agent_service.proto",
     "proto/runtime/v1/ai.proto",
+    "proto/runtime/v1/ai_realtime.proto",
     "proto/runtime/v1/ai_scheduling.proto",
     "proto/runtime/v1/app.proto",
     "proto/runtime/v1/artifact_service.proto",
@@ -671,7 +672,7 @@
     },
     {
       "name": "RuntimeAiRealtimeService",
-      "source_file": "proto/runtime/v1/ai.proto",
+      "source_file": "proto/runtime/v1/ai_realtime.proto",
       "methods": [
         {
           "name": "OpenRealtimeSession",
@@ -6690,6 +6691,7 @@
       "ResolveRuntimeBaselineReadinessRequest",
       "ResolveRuntimeBaselineReadinessResponse",
       "ResourceSelectors",
+      "ResponseFormat",
       "ResumeLocalTransferRequest",
       "ResumeLocalTransferResponse",
       "RetainRequest",
@@ -6801,6 +6803,7 @@
       "TextGenerateScenarioSpec",
       "TextStreamDelta",
       "TokenChainEntry",
+      "ToolCall",
       "ToolSpec",
       "TraverseGraphRequest",
       "TraverseGraphResponse",
@@ -6918,6 +6921,7 @@
       "DelegatedReplayOutcome",
       "DelegatedTraceStageKind",
       "DelegatedTransportKind",
+      "EffectClass",
       "ExecutionMode",
       "ExternalPrincipalType",
       "ExternalProofType",
@@ -6966,6 +6970,7 @@
       "ReasonCode",
       "ReasoningMode",
       "ReasoningTraceMode",
+      "ResponseFormatKind",
       "RoutePolicy",
       "RuntimeHealthStatus",
       "ScenarioJobEventType",
@@ -6978,6 +6983,7 @@
       "SpeechTimingMode",
       "StreamEventType",
       "TokenProviderHealthStatus",
+      "ToolChoiceMode",
       "UsageWindow",
       "VideoContentRole",
       "VideoContentType",
@@ -9379,7 +9385,7 @@
             "number": 2
           }
         ],
-        "source_file": "proto/runtime/v1/ai.proto"
+        "source_file": "proto/runtime/v1/ai_realtime.proto"
       },
       {
         "name": "AppendRealtimeInputResponse",
@@ -9399,7 +9405,7 @@
             "number": 2
           }
         ],
-        "source_file": "proto/runtime/v1/ai.proto"
+        "source_file": "proto/runtime/v1/ai_realtime.proto"
       },
       {
         "name": "AppendRuntimeAuditRequest",
@@ -10352,6 +10358,13 @@
             "repeated": false,
             "optional": false,
             "number": 23
+          },
+          {
+            "name": "request_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 24
           }
         ],
         "source_file": "proto/runtime/v1/audit.proto"
@@ -12132,6 +12145,20 @@
             "repeated": true,
             "optional": false,
             "number": 4
+          },
+          {
+            "name": "tool_calls",
+            "type": "ToolCall",
+            "repeated": true,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "tool_call_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 6
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -12307,7 +12334,7 @@
             "number": 1
           }
         ],
-        "source_file": "proto/runtime/v1/ai.proto"
+        "source_file": "proto/runtime/v1/ai_realtime.proto"
       },
       {
         "name": "CloseRealtimeSessionResponse",
@@ -12320,7 +12347,7 @@
             "number": 1
           }
         ],
-        "source_file": "proto/runtime/v1/ai.proto"
+        "source_file": "proto/runtime/v1/ai_realtime.proto"
       },
       {
         "name": "CollectDeviceProfileRequest",
@@ -13257,6 +13284,34 @@
             "repeated": false,
             "optional": false,
             "number": 14
+          },
+          {
+            "name": "delegation_request_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 15
+          },
+          {
+            "name": "effect_class",
+            "type": "EffectClass",
+            "repeated": false,
+            "optional": false,
+            "number": 16
+          },
+          {
+            "name": "summary_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 17
+          },
+          {
+            "name": "policy_snapshot_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 18
           }
         ],
         "source_file": "proto/runtime/v1/delegated_control.proto"
@@ -26035,7 +26090,7 @@
             "number": 5
           }
         ],
-        "source_file": "proto/runtime/v1/ai.proto"
+        "source_file": "proto/runtime/v1/ai_realtime.proto"
       },
       {
         "name": "OpenRealtimeSessionResponse",
@@ -26069,7 +26124,7 @@
             "number": 4
           }
         ],
-        "source_file": "proto/runtime/v1/ai.proto"
+        "source_file": "proto/runtime/v1/ai_realtime.proto"
       },
       {
         "name": "OpenSessionRequest",
@@ -26766,7 +26821,7 @@
             "number": 2
           }
         ],
-        "source_file": "proto/runtime/v1/ai.proto"
+        "source_file": "proto/runtime/v1/ai_realtime.proto"
       },
       {
         "name": "RealmGroupMessageCandidateCommitHandle",
@@ -27085,7 +27140,7 @@
             "number": 4
           }
         ],
-        "source_file": "proto/runtime/v1/ai.proto"
+        "source_file": "proto/runtime/v1/ai_realtime.proto"
       },
       {
         "name": "RealtimeAudioInput",
@@ -27133,7 +27188,7 @@
             "number": 6
           }
         ],
-        "source_file": "proto/runtime/v1/ai.proto"
+        "source_file": "proto/runtime/v1/ai_realtime.proto"
       },
       {
         "name": "RealtimeCompleted",
@@ -27153,7 +27208,7 @@
             "number": 2
           }
         ],
-        "source_file": "proto/runtime/v1/ai.proto"
+        "source_file": "proto/runtime/v1/ai_realtime.proto"
       },
       {
         "name": "RealtimeEvent",
@@ -27222,7 +27277,7 @@
             "number": 14
           }
         ],
-        "source_file": "proto/runtime/v1/ai.proto"
+        "source_file": "proto/runtime/v1/ai_realtime.proto"
       },
       {
         "name": "RealtimeFailed",
@@ -27242,7 +27297,7 @@
             "number": 2
           }
         ],
-        "source_file": "proto/runtime/v1/ai.proto"
+        "source_file": "proto/runtime/v1/ai_realtime.proto"
       },
       {
         "name": "RealtimeInputItem",
@@ -27262,7 +27317,7 @@
             "number": 2
           }
         ],
-        "source_file": "proto/runtime/v1/ai.proto"
+        "source_file": "proto/runtime/v1/ai_realtime.proto"
       },
       {
         "name": "RealtimeSessionOpened",
@@ -27289,7 +27344,7 @@
             "number": 3
           }
         ],
-        "source_file": "proto/runtime/v1/ai.proto"
+        "source_file": "proto/runtime/v1/ai_realtime.proto"
       },
       {
         "name": "RealtimeTextDelta",
@@ -27302,7 +27357,7 @@
             "number": 1
           }
         ],
-        "source_file": "proto/runtime/v1/ai.proto"
+        "source_file": "proto/runtime/v1/ai_realtime.proto"
       },
       {
         "name": "ReasoningConfig",
@@ -28866,6 +28921,47 @@
           }
         ],
         "source_file": "proto/runtime/v1/common.proto"
+      },
+      {
+        "name": "ResponseFormat",
+        "fields": [
+          {
+            "name": "kind",
+            "type": "ResponseFormatKind",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "json_schema",
+            "type": "google.protobuf.Struct",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "schema_name",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "schema_description",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "strict",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
       },
       {
         "name": "ResumeLocalTransferRequest",
@@ -31614,6 +31710,13 @@
             "repeated": false,
             "optional": false,
             "number": 16
+          },
+          {
+            "name": "tool_call",
+            "type": "ToolCall",
+            "repeated": false,
+            "optional": false,
+            "number": 17
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -32211,6 +32314,13 @@
             "repeated": false,
             "optional": false,
             "number": 1
+          },
+          {
+            "name": "tool_calls",
+            "type": "ToolCall",
+            "repeated": true,
+            "optional": false,
+            "number": 2
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -32266,6 +32376,62 @@
             "repeated": false,
             "optional": false,
             "number": 7
+          },
+          {
+            "name": "tool_choice",
+            "type": "ToolChoiceMode",
+            "repeated": false,
+            "optional": false,
+            "number": 8
+          },
+          {
+            "name": "tool_choice_name",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 9
+          },
+          {
+            "name": "response_format",
+            "type": "ResponseFormat",
+            "repeated": false,
+            "optional": false,
+            "number": 10
+          },
+          {
+            "name": "top_k",
+            "type": "int32",
+            "repeated": false,
+            "optional": false,
+            "number": 11
+          },
+          {
+            "name": "presence_penalty",
+            "type": "float",
+            "repeated": false,
+            "optional": false,
+            "number": 12
+          },
+          {
+            "name": "frequency_penalty",
+            "type": "float",
+            "repeated": false,
+            "optional": false,
+            "number": 13
+          },
+          {
+            "name": "stop",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 14
+          },
+          {
+            "name": "seed",
+            "type": "int64",
+            "repeated": false,
+            "optional": false,
+            "number": 15
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -32367,6 +32533,33 @@
         "source_file": "proto/runtime/v1/grant.proto"
       },
       {
+        "name": "ToolCall",
+        "fields": [
+          {
+            "name": "id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "name",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "arguments_json",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
         "name": "ToolSpec",
         "fields": [
           {
@@ -32382,6 +32575,13 @@
             "repeated": false,
             "optional": false,
             "number": 2
+          },
+          {
+            "name": "description",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -33032,6 +33232,20 @@
             "repeated": false,
             "optional": false,
             "number": 3
+          },
+          {
+            "name": "cached_input_tokens",
+            "type": "int64",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "reasoning_output_tokens",
+            "type": "int64",
+            "repeated": false,
+            "optional": false,
+            "number": 5
           }
         ],
         "source_file": "proto/runtime/v1/common.proto"
@@ -35271,6 +35485,18 @@
         "source_file": "proto/runtime/v1/delegated_control.proto"
       },
       {
+        "name": "EffectClass",
+        "values": [
+          "EFFECT_CLASS_UNSPECIFIED",
+          "EFFECT_CLASS_READ_ONLY",
+          "EFFECT_CLASS_LOCAL_SIDE_EFFECT",
+          "EFFECT_CLASS_EXTERNAL_SIDE_EFFECT",
+          "EFFECT_CLASS_SENSITIVE_READ",
+          "EFFECT_CLASS_UNSUPPORTED_EFFECT"
+        ],
+        "source_file": "proto/runtime/v1/delegated_control.proto"
+      },
+      {
         "name": "ExecutionMode",
         "values": [
           "EXECUTION_MODE_UNSPECIFIED",
@@ -35743,7 +35969,7 @@
           "REALTIME_EVENT_COMPLETED",
           "REALTIME_EVENT_FAILED"
         ],
-        "source_file": "proto/runtime/v1/ai.proto"
+        "source_file": "proto/runtime/v1/ai_realtime.proto"
       },
       {
         "name": "ReasonCode",
@@ -35945,6 +36171,16 @@
         "source_file": "proto/runtime/v1/ai.proto"
       },
       {
+        "name": "ResponseFormatKind",
+        "values": [
+          "RESPONSE_FORMAT_KIND_UNSPECIFIED",
+          "RESPONSE_FORMAT_KIND_TEXT",
+          "RESPONSE_FORMAT_KIND_JSON_OBJECT",
+          "RESPONSE_FORMAT_KIND_JSON_SCHEMA"
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
         "name": "RoutePolicy",
         "values": [
           "ROUTE_POLICY_UNSPECIFIED",
@@ -36087,6 +36323,17 @@
           "TOKEN_PROVIDER_HEALTH_STATUS_UNREACHABLE",
           "TOKEN_PROVIDER_HEALTH_STATUS_UNAUTHORIZED",
           "TOKEN_PROVIDER_HEALTH_STATUS_UNSUPPORTED"
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "ToolChoiceMode",
+        "values": [
+          "TOOL_CHOICE_MODE_UNSPECIFIED",
+          "TOOL_CHOICE_MODE_AUTO",
+          "TOOL_CHOICE_MODE_NONE",
+          "TOOL_CHOICE_MODE_REQUIRED",
+          "TOOL_CHOICE_MODE_TOOL"
         ],
         "source_file": "proto/runtime/v1/ai.proto"
       },

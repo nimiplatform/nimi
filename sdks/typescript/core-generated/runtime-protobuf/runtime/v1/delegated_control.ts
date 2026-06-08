@@ -268,6 +268,26 @@ export interface DelegatedApprovalRequest {
      * @generated from protobuf field: google.protobuf.Timestamp expires_at = 14
      */
     expiresAt?: Timestamp;
+    /**
+     * K-DELEG-091 required approval-request fields. sensitivity_class is pending
+     * its spec-authority taxonomy definition and will be added as a typed enum
+     * (next field number) once the value set is admitted.
+     *
+     * @generated from protobuf field: string delegation_request_id = 15
+     */
+    delegationRequestId: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.EffectClass effect_class = 16
+     */
+    effectClass: EffectClass;
+    /**
+     * @generated from protobuf field: string summary_ref = 17
+     */
+    summaryRef: string;
+    /**
+     * @generated from protobuf field: string policy_snapshot_id = 18
+     */
+    policySnapshotId: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ListDelegatedApprovalRequestsRequest
@@ -798,6 +818,39 @@ export enum DelegatedApprovalDecision {
      * @generated from protobuf enum value: DELEGATED_APPROVAL_DECISION_REJECT = 2;
      */
     REJECT = 2
+}
+/**
+ * EffectClass enumerates the K-DELEG-007 effect classification consumed by the
+ * K-DELEG-091 approval request. Values mirror the effect_classes table in
+ * delegation-provider-profiles.yaml (source_rule K-DELEG-007).
+ *
+ * @generated from protobuf enum nimi.runtime.v1.EffectClass
+ */
+export enum EffectClass {
+    /**
+     * @generated from protobuf enum value: EFFECT_CLASS_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: EFFECT_CLASS_READ_ONLY = 1;
+     */
+    READ_ONLY = 1,
+    /**
+     * @generated from protobuf enum value: EFFECT_CLASS_LOCAL_SIDE_EFFECT = 2;
+     */
+    LOCAL_SIDE_EFFECT = 2,
+    /**
+     * @generated from protobuf enum value: EFFECT_CLASS_EXTERNAL_SIDE_EFFECT = 3;
+     */
+    EXTERNAL_SIDE_EFFECT = 3,
+    /**
+     * @generated from protobuf enum value: EFFECT_CLASS_SENSITIVE_READ = 4;
+     */
+    SENSITIVE_READ = 4,
+    /**
+     * @generated from protobuf enum value: EFFECT_CLASS_UNSUPPORTED_EFFECT = 5;
+     */
+    UNSUPPORTED_EFFECT = 5
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.DelegatedReplayOutcome
@@ -1515,7 +1568,11 @@ class DelegatedApprovalRequest$Type extends MessageType<DelegatedApprovalRequest
             { no: 11, name: "detail", kind: "message", T: () => Struct },
             { no: 12, name: "created_at", kind: "message", T: () => Timestamp },
             { no: 13, name: "updated_at", kind: "message", T: () => Timestamp },
-            { no: 14, name: "expires_at", kind: "message", T: () => Timestamp }
+            { no: 14, name: "expires_at", kind: "message", T: () => Timestamp },
+            { no: 15, name: "delegation_request_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 16, name: "effect_class", kind: "enum", T: () => ["nimi.runtime.v1.EffectClass", EffectClass, "EFFECT_CLASS_"] },
+            { no: 17, name: "summary_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 18, name: "policy_snapshot_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<DelegatedApprovalRequest>): DelegatedApprovalRequest {
@@ -1530,6 +1587,10 @@ class DelegatedApprovalRequest$Type extends MessageType<DelegatedApprovalRequest
         message.firewallVerdict = "";
         message.reasonCode = "";
         message.state = 0;
+        message.delegationRequestId = "";
+        message.effectClass = 0;
+        message.summaryRef = "";
+        message.policySnapshotId = "";
         if (value !== undefined)
             reflectionMergePartial<DelegatedApprovalRequest>(this, message, value);
         return message;
@@ -1580,6 +1641,18 @@ class DelegatedApprovalRequest$Type extends MessageType<DelegatedApprovalRequest
                     break;
                 case /* google.protobuf.Timestamp expires_at */ 14:
                     message.expiresAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.expiresAt);
+                    break;
+                case /* string delegation_request_id */ 15:
+                    message.delegationRequestId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.EffectClass effect_class */ 16:
+                    message.effectClass = reader.int32();
+                    break;
+                case /* string summary_ref */ 17:
+                    message.summaryRef = reader.string();
+                    break;
+                case /* string policy_snapshot_id */ 18:
+                    message.policySnapshotId = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1635,6 +1708,18 @@ class DelegatedApprovalRequest$Type extends MessageType<DelegatedApprovalRequest
         /* google.protobuf.Timestamp expires_at = 14; */
         if (message.expiresAt)
             Timestamp.internalBinaryWrite(message.expiresAt, writer.tag(14, WireType.LengthDelimited).fork(), options).join();
+        /* string delegation_request_id = 15; */
+        if (message.delegationRequestId !== "")
+            writer.tag(15, WireType.LengthDelimited).string(message.delegationRequestId);
+        /* nimi.runtime.v1.EffectClass effect_class = 16; */
+        if (message.effectClass !== 0)
+            writer.tag(16, WireType.Varint).int32(message.effectClass);
+        /* string summary_ref = 17; */
+        if (message.summaryRef !== "")
+            writer.tag(17, WireType.LengthDelimited).string(message.summaryRef);
+        /* string policy_snapshot_id = 18; */
+        if (message.policySnapshotId !== "")
+            writer.tag(18, WireType.LengthDelimited).string(message.policySnapshotId);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

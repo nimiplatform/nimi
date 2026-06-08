@@ -6,6 +6,23 @@ import { checkMode, repoRoot, relPath } from './context.mjs';
 
 const targetRelativeDir = 'sdks/typescript/core-generated/runtime-protobuf';
 const targetDir = path.join(repoRoot, targetRelativeDir);
+const localNodeBinDir = path.join(repoRoot, 'node_modules', '.bin');
+
+function pathEnvKey() {
+  if (process.platform !== 'win32') {
+    return 'PATH';
+  }
+  return Object.keys(process.env).find((key) => key.toLowerCase() === 'path') || 'Path';
+}
+
+function envWithLocalNodeBin() {
+  const key = pathEnvKey();
+  const current = process.env[key] || process.env.PATH || '';
+  return {
+    ...process.env,
+    [key]: current ? `${localNodeBinDir}${path.delimiter}${current}` : localNodeBinDir,
+  };
+}
 
 function listGeneratedTsFiles(rootDir) {
   if (!existsSync(rootDir)) {
@@ -55,6 +72,7 @@ function runBufGenerate(outDir) {
 
   const result = spawnSync('buf', ['generate', '--template', templatePath], {
     cwd: path.join(repoRoot, 'proto'),
+    env: envWithLocalNodeBin(),
     encoding: 'utf8',
     stdio: 'pipe',
     maxBuffer: 64 * 1024 * 1024,
