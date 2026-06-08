@@ -21,8 +21,8 @@ importers:
         version: 2.9.0
     devDependencies:
       '@nimiplatform/nimi-coding':
-        specifier: ^0.2.6
-        version: 0.2.6
+        specifier: ^0.2.7
+        version: 0.2.7
       '@protobuf-ts/plugin':
         specifier: 2.11.1
         version: 2.11.1
@@ -307,8 +307,8 @@ importers:
         specifier: workspace:*
         version: link:../../app-tools
       '@nimiplatform/nimi-coding':
-        specifier: 0.2.6
-        version: 0.2.6
+        specifier: 0.2.7
+        version: 0.2.7
       '@tailwindcss/vite':
         specifier: ^4.3.0
         version: 4.3.0(vite@7.3.1(@types/node@24.12.4)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.3)(yaml@2.9.0))
@@ -368,8 +368,8 @@ importers:
         specifier: workspace:*
         version: link:../../app-tools
       '@nimiplatform/nimi-coding':
-        specifier: 0.2.6
-        version: 0.2.6
+        specifier: 0.2.7
+        version: 0.2.7
       '@tailwindcss/vite':
         specifier: ^4.3.0
         version: 4.3.0(vite@7.3.1(@types/node@24.12.4)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.3)(yaml@2.9.0))
@@ -1667,8 +1667,8 @@ packages:
     peerDependencies:
       three: '>= 0.159.0'
 
-  '@nimiplatform/nimi-coding@0.2.6':
-    resolution: {integrity: sha512-eoLe6orn8x2NCnXBRw9mk0+bNeIR6ZcjmRGVliRcqDHoG+X+Vhrk1EINevFl2RPmBxXoZYlq//j6l3W/TgMlDA==}
+  '@nimiplatform/nimi-coding@0.2.7':
+    resolution: {integrity: sha512-rmW7w5uLSL3d+Q3NA7dyKiquXD53ovE95kaW1GKR5p+/Wzr0LkQ0g+VWfj3FX0xv+KQiQaQDPHdz4QEZlJwo4g==}
     engines: {node: '>=24.0.0', pnpm: '>=10.0.0'}
     hasBin: true
 
@@ -6799,7 +6799,7 @@ snapshots:
       promise-worker-transferable: 1.0.4
       three: 0.184.0
 
-  '@nimiplatform/nimi-coding@0.2.6':
+  '@nimiplatform/nimi-coding@0.2.7':
     dependencies:
       '@openai/codex-sdk': 0.124.0
       yaml: 2.9.0
