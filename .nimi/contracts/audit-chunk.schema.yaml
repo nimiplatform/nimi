@@ -22,11 +22,20 @@ optional_top_level_fields:
   - authority_kind
   - app_id
   - package_authority_id
+  - delegated_projection_id
   - admission_ref
   - authority_root
+  - source_authority_root
   - evidence_root_admission_refs
   - admitted_evidence_roots
   - host_authority_projection_refs
+  - delegated_evidence_roots
+  - delegated_declared_evidence_prefixes
+  - delegated_declared_evidence_refs
+  - declared_evidence_delegation
+  - required_verification_commands
+  - declared_evidence_targets
+  - declared_evidence_unresolved
   - evidence_roots
   - evidence_inventory
   - evidence_inventory_status
@@ -60,6 +69,10 @@ hard_constraints:
   - spec_authority_chunks_must_declare_coverage_contract
   - spec_authority_chunk_files_remain_authority_refs_only
   - admitted_package_authority_projection_refs_must_be_explicitly_mapped
+  - delegated_projection_authority_must_be_explicitly_admitted
+  - delegated_declared_evidence_must_name_source_authority_boundary
+  - delegated_projection_is_audit_modeling_only_not_source_repo_execution
+  - delegated_projection_must_not_resolve_or_mutate_source_authority_refs
   - spec_authority_ingest_requires_one_authority_outcome_per_authority_ref
   - spec_authority_ingest_requires_evidence_files_exactly_matching_evidence_inventory
   - spec_authority_authority_outcome_evidence_refs_must_belong_to_authority_refs_or_evidence_inventory

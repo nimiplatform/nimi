@@ -284,3 +284,18 @@ Participation replay views must be reconstructable from Runtime audit lineage
 and the `K-AGCORE-087` participation audit boundary. When delegated gateway
 evidence participates, replay may reference `K-DELEG-085` and `K-DELEG-086`;
 that reference does not create a second replay store.
+
+## K-AUDIT-023 Audit Context Metadata Header Mapping
+
+The Runtime audit ingress admits the audit-context gRPC metadata headers
+`x-nimi-caller-kind`, `x-nimi-caller-id`, `x-nimi-surface-id`, and
+`x-nimi-access-token-id`, and maps them onto the `K-AUDIT-006`
+`AuditEventRecord` fields `caller_kind`, `caller_id`, `surface_id`, and
+`token_id` respectively. These headers are part of the admitted
+`runtime_metadata_keys` closed enum (`metadata-keys.yaml`).
+
+`x-nimi-trace-id` is not introduced by this rule: it remains the `P-PROTO-011`
+L0 envelope field and is correlated under `K-AUDIT-020`. This rule governs only
+the audit-context header-to-field mapping; redaction and query semantics for the
+mapped fields remain owned by `K-AUDIT-017` and `K-AUDIT-019` through
+`K-AUDIT-021`.

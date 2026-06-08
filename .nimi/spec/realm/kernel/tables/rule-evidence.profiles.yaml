@@ -58,20 +58,20 @@ profiles:
       - WorldLorebook
       - Scene
     service_files:
-      - nimi-backend/apps/api/src/modules/@admin/world/admin-world-package.service.ts
-      - nimi-backend/libs/domains/world/src/world-control.service.ts
-      - nimi-backend/libs/domains/world/src/world-rule.service.ts
-      - nimi-backend/libs/domains/world/src/agent-rule.service.ts
-      - nimi-backend/libs/domains/world/src/world-release.service.ts
-      - nimi-backend/libs/domains/world/src/projection/projection.service.ts
+      - realm-backend://apps/api/src/modules/@admin/world/admin-world-package.service.ts
+      - realm-backend://libs/domains/world/src/world-control.service.ts
+      - realm-backend://libs/domains/world/src/world-rule.service.ts
+      - realm-backend://libs/domains/world/src/agent-rule.service.ts
+      - realm-backend://libs/domains/world/src/world-release.service.ts
+      - realm-backend://libs/domains/world/src/projection/projection.service.ts
     test_files:
-      - nimi-backend/apps/api/src/modules/@admin/world/admin-world-package.service.spec.ts
-      - nimi-backend/apps/api/src/modules/@admin/world/admin-world-package.controller.spec.ts
-      - nimi-backend/libs/domains/world/src/world-control.service.unit.spec.ts
-      - nimi-backend/libs/domains/world/src/world-rule.service.spec.ts
-      - nimi-backend/libs/domains/world/src/agent-rule.service.spec.ts
-      - nimi-backend/libs/domains/world/src/world-release.service.spec.ts
-      - tests/arch/world.spec.ts
+      - realm-backend://apps/api/src/modules/@admin/world/admin-world-package.service.spec.ts
+      - realm-backend://apps/api/src/modules/@admin/world/admin-world-package.controller.spec.ts
+      - realm-backend://libs/domains/world/src/world-control.service.unit.spec.ts
+      - realm-backend://libs/domains/world/src/world-rule.service.spec.ts
+      - realm-backend://libs/domains/world/src/agent-rule.service.spec.ts
+      - realm-backend://libs/domains/world/src/world-release.service.spec.ts
+      - realm-tests://arch/world.spec.ts
   projection:
     openapi:
       - GET /api/world/by-id/{id}/detail-with-agents
@@ -84,14 +84,14 @@ profiles:
       - Worldview
       - WorldLorebook
     service_files:
-      - nimi-backend/libs/domains/world/src/projection/projection.service.ts
-      - nimi-backend/libs/domains/world/src/world-release.service.ts
-      - nimi-backend/libs/domains/world/src/worldview.service.ts
+      - realm-backend://libs/domains/world/src/projection/projection.service.ts
+      - realm-backend://libs/domains/world/src/world-release.service.ts
+      - realm-backend://libs/domains/world/src/worldview.service.ts
     test_files:
-      - nimi-backend/libs/domains/world/src/world-release.service.spec.ts
-      - nimi-backend/libs/domains/world/src/projection/projection.service.spec.ts
-      - nimi-backend/libs/domains/world/src/world-projection.service.spec.ts
-      - tests/arch/world.spec.ts
+      - realm-backend://libs/domains/world/src/world-release.service.spec.ts
+      - realm-backend://libs/domains/world/src/projection/projection.service.spec.ts
+      - realm-backend://libs/domains/world/src/world-projection.service.spec.ts
+      - realm-tests://arch/world.spec.ts
   world_state:
     openapi:
       - GET /api/worlds/{worldId}/state
@@ -99,13 +99,13 @@ profiles:
     prisma_models:
       - WorldStateRecord
     service_files:
-      - nimi-backend/libs/common/src/realm-commit-policy.ts
-      - nimi-backend/libs/domains/world/src/world-control.service.ts
-      - nimi-backend/libs/domains/world/src/world-truth-validator.service.ts
+      - realm-backend://libs/common/src/realm-commit-policy.ts
+      - realm-backend://libs/domains/world/src/world-control.service.ts
+      - realm-backend://libs/domains/world/src/world-truth-validator.service.ts
     test_files:
-      - nimi-backend/libs/domains/world/src/world-control.service.unit.spec.ts
-      - nimi-backend/libs/domains/world/src/world-truth-validator.service.spec.ts
-      - tests/arch/world.spec.ts
+      - realm-backend://libs/domains/world/src/world-control.service.unit.spec.ts
+      - realm-backend://libs/domains/world/src/world-truth-validator.service.spec.ts
+      - realm-tests://arch/world.spec.ts
   world_history:
     openapi:
       - GET /api/worlds/{worldId}/history
@@ -113,11 +113,11 @@ profiles:
     prisma_models:
       - WorldHistoryEvent
     service_files:
-      - nimi-backend/libs/common/src/realm-commit-policy.ts
-      - nimi-backend/libs/domains/world/src/world-control.service.ts
+      - realm-backend://libs/common/src/realm-commit-policy.ts
+      - realm-backend://libs/domains/world/src/world-control.service.ts
     test_files:
-      - nimi-backend/libs/domains/world/src/world-control.service.unit.spec.ts
-      - tests/arch/world.spec.ts
+      - realm-backend://libs/domains/world/src/world-control.service.unit.spec.ts
+      - realm-tests://arch/world.spec.ts
   chat:
     openapi:
       - GET /api/human/chats
@@ -150,15 +150,15 @@ profiles:
       - ChatParticipant
       - Message
     service_files:
-      - nimi-backend/libs/domains/chat/src/domains/chat.service.ts
-      - nimi-backend/apps/api/src/modules/chat/chat.controller.ts
-      - nimi-backend/libs/domains/chat/src/domains/group-chat.service.ts
-      - nimi-backend/apps/api/src/modules/group-chat/group-chat.controller.ts
+      - realm-backend://libs/domains/chat/src/domains/chat.service.ts
+      - realm-backend://apps/api/src/modules/chat/chat.controller.ts
+      - realm-backend://libs/domains/chat/src/domains/group-chat.service.ts
+      - realm-backend://apps/api/src/modules/group-chat/group-chat.controller.ts
     test_files:
-      - nimi-backend/apps/api/src/modules/chat/chat.controller.spec.ts
-      - nimi-backend/libs/domains/chat/src/domains/chat.service.spec.ts
-      - nimi-backend/libs/domains/chat/src/domains/group-chat.service.spec.ts
-      - tests/arch/social.spec.ts
+      - realm-backend://apps/api/src/modules/chat/chat.controller.spec.ts
+      - realm-backend://libs/domains/chat/src/domains/chat.service.spec.ts
+      - realm-backend://libs/domains/chat/src/domains/group-chat.service.spec.ts
+      - realm-tests://arch/social.spec.ts
     notes:
       - Group admission/admin authority is owned by Chat; Social only gates human admission preconditions.
       - Agent-authored group posts require owner/slot validation to prevent spoofed authorship.
@@ -193,12 +193,12 @@ profiles:
       - PostAttachment
       - PostLike
     service_files:
-      - nimi-backend/libs/domains/content/src/domains/post.service.ts
-      - nimi-backend/apps/api/src/modules/post/post.controller.ts
+      - realm-backend://libs/domains/content/src/domains/post.service.ts
+      - realm-backend://apps/api/src/modules/post/post.controller.ts
     test_files:
-      - nimi-backend/apps/api/src/modules/post/post.controller.spec.ts
-      - nimi-backend/apps/api/src/modules/post/world-post.controller.spec.ts
-      - nimi-backend/libs/domains/content/src/domains/post.service.spec.ts
+      - realm-backend://apps/api/src/modules/post/post.controller.spec.ts
+      - realm-backend://apps/api/src/modules/post/world-post.controller.spec.ts
+      - realm-backend://libs/domains/content/src/domains/post.service.spec.ts
   attachment:
     openapi:
       - POST /api/world/posts
@@ -217,16 +217,16 @@ profiles:
       - PostAttachment
       - Message
     service_files:
-      - nimi-backend/libs/domains/resource/src/attachment-read-model.ts
-      - nimi-backend/libs/domains/content/src/domains/post.service.ts
-      - nimi-backend/libs/domains/chat/src/domains/chat.service.ts
-      - nimi-backend/libs/domains/discovery-engine/src/discovery/discovery-engine.service.ts
-      - nimi-backend/apps/api/src/modules/@admin/moderation/admin-moderation.service.ts
+      - realm-backend://libs/domains/resource/src/attachment-read-model.ts
+      - realm-backend://libs/domains/content/src/domains/post.service.ts
+      - realm-backend://libs/domains/chat/src/domains/chat.service.ts
+      - realm-backend://libs/domains/discovery-engine/src/discovery/discovery-engine.service.ts
+      - realm-backend://apps/api/src/modules/@admin/moderation/admin-moderation.service.ts
     test_files:
-      - nimi-backend/libs/domains/content/src/domains/post.service.spec.ts
-      - nimi-backend/libs/domains/chat/src/domains/chat.service.spec.ts
-      - nimi-backend/libs/domains/discovery-engine/src/discovery/discovery-engine.service.spec.ts
-      - nimi-backend/apps/api/src/modules/@admin/moderation/admin-moderation.service.spec.ts
+      - realm-backend://libs/domains/content/src/domains/post.service.spec.ts
+      - realm-backend://libs/domains/chat/src/domains/chat.service.spec.ts
+      - realm-backend://libs/domains/discovery-engine/src/discovery/discovery-engine.service.spec.ts
+      - realm-backend://apps/api/src/modules/@admin/moderation/admin-moderation.service.spec.ts
   binding:
     openapi:
       - GET /api/world/by-id/{id}/bindings
@@ -236,13 +236,13 @@ profiles:
     prisma_models:
       - Binding
     service_files:
-      - nimi-backend/libs/domains/binding/src/binding.service.ts
-      - nimi-backend/libs/domains/world/src/world.service.ts
-      - nimi-backend/libs/domains/world/src/world-control.service.ts
+      - realm-backend://libs/domains/binding/src/binding.service.ts
+      - realm-backend://libs/domains/world/src/world.service.ts
+      - realm-backend://libs/domains/world/src/world-control.service.ts
     test_files:
-      - nimi-backend/libs/domains/binding/src/binding.service.spec.ts
-      - nimi-backend/libs/domains/world/src/world-public-assets.service.spec.ts
-      - nimi-backend/libs/domains/world/src/world-control.service.unit.spec.ts
+      - realm-backend://libs/domains/binding/src/binding.service.spec.ts
+      - realm-backend://libs/domains/world/src/world-public-assets.service.spec.ts
+      - realm-backend://libs/domains/world/src/world-control.service.unit.spec.ts
   social:
     openapi:
       - GET /api/human/accounts/{id}/friends
@@ -254,13 +254,13 @@ profiles:
     prisma_models:
       - Friendship
     service_files:
-      - nimi-backend/libs/domains/relationship/src/friendship.service.ts
-      - nimi-backend/libs/domains/user/src/domains/user.service.ts
+      - realm-backend://libs/domains/relationship/src/friendship.service.ts
+      - realm-backend://libs/domains/user/src/domains/user.service.ts
     test_files:
-      - nimi-backend/apps/api/src/modules/user/user.controller.spec.ts
-      - nimi-backend/libs/domains/user/src/domains/user.service.spec.ts
-      - nimi-backend/libs/domains/relationship/src/friendship.service.spec.ts
-      - tests/arch/social.spec.ts
+      - realm-backend://apps/api/src/modules/user/user.controller.spec.ts
+      - realm-backend://libs/domains/user/src/domains/user.service.spec.ts
+      - realm-backend://libs/domains/relationship/src/friendship.service.spec.ts
+      - realm-tests://arch/social.spec.ts
   economy:
     openapi:
       - GET /api/economy/subscription
@@ -276,18 +276,18 @@ profiles:
       - Review
       - CurrencyTransaction
     service_files:
-      - nimi-backend/libs/domains/economy/src/gift/gift.service.ts
-      - nimi-backend/libs/domains/economy/src/review/review.service.ts
-      - nimi-backend/libs/domains/economy/src/revenue-share/revenue-share.service.ts
-      - nimi-backend/libs/domains/economy/src/subscription/subscription.service.ts
+      - realm-backend://libs/domains/economy/src/gift/gift.service.ts
+      - realm-backend://libs/domains/economy/src/review/review.service.ts
+      - realm-backend://libs/domains/economy/src/revenue-share/revenue-share.service.ts
+      - realm-backend://libs/domains/economy/src/subscription/subscription.service.ts
     test_files:
-      - nimi-backend/apps/api/src/modules/economy/economy.controller.spec.ts
-      - nimi-backend/apps/api/src/modules/economy/review.controller.spec.ts
-      - nimi-backend/libs/domains/economy/src/gift/gift.service.spec.ts
-      - nimi-backend/libs/domains/economy/src/review/review.service.spec.ts
-      - nimi-backend/libs/domains/economy/src/revenue-share/revenue-share.service.spec.ts
-      - nimi-backend/libs/domains/economy/src/subscription/subscription.service.spec.ts
-      - tests/arch/economy.spec.ts
+      - realm-backend://apps/api/src/modules/economy/economy.controller.spec.ts
+      - realm-backend://apps/api/src/modules/economy/review.controller.spec.ts
+      - realm-backend://libs/domains/economy/src/gift/gift.service.spec.ts
+      - realm-backend://libs/domains/economy/src/review/review.service.spec.ts
+      - realm-backend://libs/domains/economy/src/revenue-share/revenue-share.service.spec.ts
+      - realm-backend://libs/domains/economy/src/subscription/subscription.service.spec.ts
+      - realm-tests://arch/economy.spec.ts
   resource:
     openapi:
       - POST /api/resources/images/direct-upload
@@ -302,12 +302,12 @@ profiles:
     prisma_models:
       - Resource
     service_files:
-      - nimi-backend/libs/domains/resource/src/resource.service.ts
-      - nimi-backend/libs/infra/resource/src/infra/resource-infra.service.ts
+      - realm-backend://libs/domains/resource/src/resource.service.ts
+      - realm-backend://libs/infra/resource/src/infra/resource-infra.service.ts
     test_files:
-      - nimi-backend/apps/api/src/modules/resources/resources.controller.spec.ts
-      - nimi-backend/libs/infra/resource/src/infra/resource-infra.service.spec.ts
-      - nimi-backend/libs/domains/resource/src/resource.service.spec.ts
+      - realm-backend://apps/api/src/modules/resources/resources.controller.spec.ts
+      - realm-backend://libs/infra/resource/src/infra/resource-infra.service.spec.ts
+      - realm-backend://libs/domains/resource/src/resource.service.spec.ts
   asset:
     openapi:
       - GET /api/assets
@@ -318,10 +318,10 @@ profiles:
     prisma_models:
       - OwnableAsset
     service_files:
-      - nimi-backend/libs/domains/asset/src/ownable-asset.service.ts
+      - realm-backend://libs/domains/asset/src/ownable-asset.service.ts
     test_files:
-      - nimi-backend/apps/api/src/modules/assets/assets.controller.spec.ts
-      - nimi-backend/libs/domains/asset/src/ownable-asset.service.spec.ts
+      - realm-backend://apps/api/src/modules/assets/assets.controller.spec.ts
+      - realm-backend://libs/domains/asset/src/ownable-asset.service.spec.ts
   bundle:
     openapi:
       - GET /api/bundles
@@ -334,10 +334,10 @@ profiles:
       - Bundle
       - BundleMember
     service_files:
-      - nimi-backend/libs/domains/bundle/src/bundle.service.ts
+      - realm-backend://libs/domains/bundle/src/bundle.service.ts
     test_files:
-      - nimi-backend/apps/api/src/modules/bundles/bundles.controller.spec.ts
-      - nimi-backend/libs/domains/bundle/src/bundle.service.spec.ts
+      - realm-backend://apps/api/src/modules/bundles/bundles.controller.spec.ts
+      - realm-backend://libs/domains/bundle/src/bundle.service.spec.ts
   transit:
     openapi:
       - POST /api/world/by-id/{id}/transit
@@ -347,10 +347,10 @@ profiles:
     prisma_models:
       - Transit
     service_files:
-      - nimi-backend/libs/domains/world/src/transit.service.ts
+      - realm-backend://libs/domains/world/src/transit.service.ts
     test_files:
-      - nimi-backend/libs/domains/world/src/transit.service.spec.ts
-      - tests/arch/world.spec.ts
+      - realm-backend://libs/domains/world/src/transit.service.spec.ts
+      - realm-tests://arch/world.spec.ts
   oauth_authority:
     openapi:
       - GET /api/auth/oauth/authorize
@@ -358,8 +358,8 @@ profiles:
     prisma_models:
       - OauthAuthorizationCode
     service_files:
-      - nimi-backend/apps/api/src/modules/auth/auth.controller.ts
-      - nimi-backend/libs/infra/auth/src/oauth-authority.service.ts
+      - realm-backend://apps/api/src/modules/auth/auth.controller.ts
+      - realm-backend://libs/infra/auth/src/oauth-authority.service.ts
     test_files:
-      - nimi-backend/libs/infra/auth/src/oauth-authority.service.spec.ts
-      - nimi-backend/apps/api/src/modules/auth/auth.controller.spec.ts
+      - realm-backend://libs/infra/auth/src/oauth-authority.service.spec.ts
+      - realm-backend://apps/api/src/modules/auth/auth.controller.spec.ts

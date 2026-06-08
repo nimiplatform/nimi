@@ -163,6 +163,10 @@ entries:
   - K-AGCORE-131
   - K-AGCORE-132
   - K-AGCORE-138
+  - K-AGCORE-139
+  - K-AGCORE-140
+  - K-AGCORE-141
+  - K-AGCORE-142
 rules:
   - rule_id: K-AGCORE-001
     evidence_refs: []

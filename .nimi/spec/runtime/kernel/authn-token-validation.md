@@ -101,6 +101,7 @@ K-AUTHN-006 conformance is exercised by the runtime test suite at
 rows of the response decision matrix defined in the
 cross-referenced introspection contract, plus network-failure
 branches (HTTP 500, non-JSON body, missing fields, wrong
-content-type, request timeout, and revocationUrl-empty pass-
-without-HTTP-call). The test fixtures use real `httptest.NewServer`
+content-type, request timeout, and revocationUrl-empty
+fail-close per the K-AUTHN-006 restart config group). The test
+fixtures use real `httptest.NewServer`
 to exercise the contract under realistic transport behavior.

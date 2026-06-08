@@ -46,6 +46,7 @@ When `inventory_mode=dynamic_endpoint`, provider snapshot MAY omit static
 - when capability includes `audio.synthesize` and speech route-describe metadata is admitted: `voice_request_options` MAY be present.
 - when capability includes `audio.transcribe` and speech route-describe metadata is admitted: `transcription` MAY be present.
 - when capability includes `video.generate`: `video_generation` MUST be present.
+- when capability includes `text.embed` and the model has a single admitted output dimension: `embedding` MAY be present. `embedding.dimension` MUST be a positive integer and is the catalog authority for the runtime memory embedding profile dimension (`K-MEM-004`, `K-AIEXEC-006`). The `embedding` field MUST NOT appear on a model that does not declare `text.embed`. A `text.embed` model with variable or preview-only output dimension MAY omit `embedding`; runtime then fails closed when asked to resolve an embedding profile for that model rather than fabricating a dimension.
 
 `voices[]` entries MUST include:
 
@@ -431,7 +432,7 @@ workflow-capable speech family 的 source/catalog admission与验收必须保持
 source provider SSOT 可以声明两类受控扩展 truth：
 
 1. provider-level `selection_profiles`
-2. model-level `voice.request_options` / `transcription`
+2. model-level `voice.request_options` / `transcription` / `embedding`
 
 约束如下：
 
@@ -439,6 +440,7 @@ source provider SSOT 可以声明两类受控扩展 truth：
 - `selection_profiles` 只能引用同 provider 下已存在、且 capability 匹配的 model
 - `voice.request_options` 只能出现在 `audio.synthesize` model 上
 - `transcription` 只能出现在 `audio.transcribe` model 上
+- `embedding` 只能出现在 `text.embed` model 上；`embedding.dimension` 是该 model 输出维度的 catalog 权威，供 runtime memory embedding profile 解析消费（`K-MEM-004`、`K-AIEXEC-006`）。它必须 source-authored，且只承载 model-inherent 的维度事实；distance_metric / migration_policy 属于 runtime memory-bank policy，不是 model catalog 事实，不在此声明。
 - runtime route describe metadata 只能单向派生自这些 source-authored fields，不得由 Desktop/SDK/provider live probing 生成第二份语义真相
 
 ## K-MCAT-031 Baseline Local Qwen Speech Freeze

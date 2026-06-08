@@ -29,11 +29,11 @@ owner: '@team'
 sources:
   human_spec: ../oauth-authority-contract.md
   openapi:
-    - nimi-backend/api-nimi.yaml
-  prisma: nimi-backend/prisma/schema.prisma
+    - realm-backend://api-nimi.yaml
+  prisma: realm-backend://prisma/schema.prisma
   services:
-    - nimi-backend/apps/api/src/modules/auth/auth.controller.ts
-    - nimi-backend/libs/infra/auth/src/oauth-authority.service.ts
+    - realm-backend://apps/api/src/modules/auth/auth.controller.ts
+    - realm-backend://libs/infra/auth/src/oauth-authority.service.ts
 rule_id_prefix: R-OAUTH-
 rules:
   - rule_id: R-OAUTH-001

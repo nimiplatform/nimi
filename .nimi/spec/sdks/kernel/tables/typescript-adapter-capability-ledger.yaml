@@ -16,10 +16,20 @@ status_values:
   - implemented
   - deferred
   - blocked
-capability_status_values:
+capability_support_values:
   - supported
   - partial
   - unsupported
+  - not-applicable
+capability_mode_values:
+  - adapter-mapped
+  - framework-owned
+  - runtime-owned
+  - sdk-feature-owned
+  - caller-owned
+  - owner-gated
+  - governance-only
+  - out-of-domain
 surfaces:
   - id: vercel-ai
     source_root: sdks/typescript/adapters/vercel-ai
@@ -32,47 +42,96 @@ surfaces:
     test: sdks/typescript/adapters/vercel-ai/vercel-ai.test.ts
     example: sdks/typescript/adapters/vercel-ai/vercel-ai.example.ts
     unsupported_behavior: throw
-    production_core_binding: Maps Vercel LanguageModelV3-like calls to NimiAiModel; production Runtime-backed Nimi AI currently supports text generate/stream and fails closed for Runtime-unsupported tools, toolChoice, non-text response formats, and advanced params.
-    release_blocker: L3 cannot be claimed until structured output, tool execution or caller-owned loop semantics, approval, external execution, and trace mapping are implemented and tested over production vNext public surfaces.
+    production_core_binding: Maps Vercel LanguageModelV3 generate/stream calls onto NimiAiModel with target-library migration semantics (text, reasoning, function tool definitions, tool choice, tool-call return, streaming tool-input protocol, Vercel framework-owned execute callbacks, Vercel framework-owned multi-step loops, multimodal image/audio/video file input, and text/json-object/json-schema structured output), validated by a conformance suite that drives the real `ai` package (generateText, streamText, generateObject, streamObject, tool, stepCountIs) through the adapter. Adapter-owned NimiTool.execute, provider-defined tools, external execution, response sources, and raw chunks remain fail-closed; provider options project into visible request metadata without independently guaranteeing provider-side honoring.
+    release_blocker: L3 cannot be claimed until adapter-owned execute, Runtime-owned approval/external execution, provider-defined tools, and Nimi trace/source mapping land over admitted Runtime-owned surfaces. Framework-owned Vercel execute callbacks and Vercel multi-step orchestration are already target-library supported and must not be counted as L3 blockers.
     capability_claims:
       - capability: model.provider
-        status: supported
+        support: supported
+        mode: adapter-mapped
       - capability: text.generate
-        status: supported
+        support: supported
+        mode: adapter-mapped
       - capability: text.stream
-        status: supported
+        support: supported
+        mode: adapter-mapped
       - capability: runEvents.text
-        status: supported
+        support: supported
+        mode: adapter-mapped
+      - capability: runEvents.reasoning
+        support: supported
+        mode: adapter-mapped
       - capability: runEvents.finish
-        status: supported
+        support: supported
+        mode: adapter-mapped
       - capability: runEvents.error
-        status: supported
+        support: supported
+        mode: adapter-mapped
       - capability: runEvents.toolCallReturn
-        status: partial
+        support: supported
+        mode: adapter-mapped
       - capability: structured.output.requestMapping
-        status: partial
+        support: supported
+        mode: adapter-mapped
       - capability: tools.definitionMapping
-        status: partial
+        support: supported
+        mode: adapter-mapped
       - capability: tools.toolChoiceMapping
-        status: partial
+        support: supported
+        mode: adapter-mapped
+      - capability: tools.callerOwnedLoop
+        support: supported
+        mode: framework-owned
       - capability: tools.execute
-        status: unsupported
+        support: supported
+        mode: framework-owned
+      - capability: tools.adapterExecute
+        support: unsupported
+        mode: adapter-mapped
+      - capability: tools.providerDefined
+        support: unsupported
+        mode: runtime-owned
       - capability: multiStep
-        status: unsupported
+        support: supported
+        mode: framework-owned
       - capability: approval
-        status: unsupported
+        support: partial
+        mode: framework-owned
       - capability: externalExecution
-        status: unsupported
+        support: unsupported
+        mode: runtime-owned
       - capability: traces
-        status: unsupported
+        support: partial
+        mode: framework-owned
+      - capability: multimodalInput
+        support: partial
+        mode: adapter-mapped
+      - capability: multimodalOutput
+        support: partial
+        mode: adapter-mapped
+      - capability: sources
+        support: unsupported
+        mode: runtime-owned
+      - capability: rawChunks
+        support: unsupported
+        mode: adapter-mapped
+      - capability: providerOptions
+        support: partial
+        mode: adapter-mapped
+      - capability: usageTokenDetails
+        support: partial
+        mode: adapter-mapped
       - capability: memoryContext
-        status: unsupported
+        support: not-applicable
+        mode: out-of-domain
       - capability: knowledgeContext
-        status: unsupported
+        support: not-applicable
+        mode: out-of-domain
       - capability: workflowCheckpoint
-        status: unsupported
+        support: not-applicable
+        mode: out-of-domain
       - capability: migrationProof
-        status: unsupported
+        support: not-applicable
+        mode: governance-only
     verification_gates:
       - check:sdk-vnext-adapter-capability-ledger
 
@@ -90,25 +149,35 @@ surfaces:
     production_core_binding: Strict Chat Completions-compatible bridge over NimiAiModel with owner-approved boundary; no Runtime REST bypass, no tool execution, no broad OpenAI API promise.
     capability_claims:
       - capability: chat.completions.create
-        status: supported
+        support: supported
+        mode: adapter-mapped
       - capability: chat.completions.stream
-        status: supported
+        support: supported
+        mode: adapter-mapped
       - capability: tools.function.definitions
-        status: supported
+        support: supported
+        mode: adapter-mapped
       - capability: tools.function.tool_choice
-        status: supported
+        support: supported
+        mode: adapter-mapped
       - capability: tools.function.return_tool_calls
-        status: supported
+        support: supported
+        mode: adapter-mapped
       - capability: tools.execute
-        status: unsupported
+        support: not-applicable
+        mode: out-of-domain
       - capability: responsesApi
-        status: unsupported
+        support: unsupported
+        mode: out-of-domain
       - capability: completionsApi
-        status: unsupported
+        support: unsupported
+        mode: out-of-domain
       - capability: embeddingsApi
-        status: unsupported
+        support: unsupported
+        mode: out-of-domain
       - capability: runtimeRestBypass
-        status: unsupported
+        support: unsupported
+        mode: owner-gated
     verification_gates:
       - check:sdk-vnext-adapter-capability-ledger
 
@@ -126,19 +195,26 @@ surfaces:
     production_core_binding: Converts explicit Nimi tools and run events to structural MCP tool and notification shapes; approval and external execution remain owner-gated L3 semantics.
     capability_claims:
       - capability: mcp.tools.list
-        status: supported
+        support: supported
+        mode: adapter-mapped
       - capability: mcp.tools.call.auto
-        status: supported
+        support: supported
+        mode: adapter-mapped
       - capability: mcp.runEvents
-        status: supported
+        support: supported
+        mode: adapter-mapped
       - capability: mcp.resources
-        status: unsupported
+        support: unsupported
+        mode: adapter-mapped
       - capability: approval
-        status: unsupported
+        support: unsupported
+        mode: owner-gated
       - capability: externalExecution
-        status: unsupported
+        support: unsupported
+        mode: owner-gated
       - capability: workflowCheckpoint
-        status: unsupported
+        support: not-applicable
+        mode: out-of-domain
     verification_gates:
       - check:sdk-vnext-adapter-capability-ledger
 
@@ -156,15 +232,20 @@ surfaces:
     production_core_binding: Structural Mastra-like model generation over NimiAiModel; stream, tools, structured output, and workflow claims fail closed.
     capability_claims:
       - capability: model.generate
-        status: supported
+        support: supported
+        mode: adapter-mapped
       - capability: model.stream
-        status: unsupported
+        support: unsupported
+        mode: adapter-mapped
       - capability: tools.mapping
-        status: unsupported
+        support: unsupported
+        mode: adapter-mapped
       - capability: structuredOutput
-        status: unsupported
+        support: unsupported
+        mode: adapter-mapped
       - capability: workflowCheckpoint
-        status: unsupported
+        support: not-applicable
+        mode: out-of-domain
     verification_gates:
       - check:sdk-vnext-adapter-capability-ledger
 
@@ -182,13 +263,17 @@ surfaces:
     production_core_binding: Structural graph-node generation over NimiAiModel; checkpoint/resume and graph tool mapping are not claimed.
     capability_claims:
       - capability: node.generate
-        status: supported
+        support: supported
+        mode: adapter-mapped
       - capability: node.toolMapping
-        status: unsupported
+        support: unsupported
+        mode: adapter-mapped
       - capability: checkpointResume
-        status: unsupported
+        support: unsupported
+        mode: adapter-mapped
       - capability: workflowCheckpoint
-        status: unsupported
+        support: unsupported
+        mode: adapter-mapped
     verification_gates:
       - check:sdk-vnext-adapter-capability-ledger
 
@@ -206,13 +291,17 @@ surfaces:
     production_core_binding: Query/retrieval-reference interop over NimiAiModel and knowledge-context references; index mutation and tool calling are not claimed.
     capability_claims:
       - capability: query.generate
-        status: supported
+        support: supported
+        mode: adapter-mapped
       - capability: retrievalReferences
-        status: supported
+        support: supported
+        mode: adapter-mapped
       - capability: indexMutation
-        status: unsupported
+        support: unsupported
+        mode: adapter-mapped
       - capability: toolCalling
-        status: unsupported
+        support: unsupported
+        mode: adapter-mapped
     verification_gates:
       - check:sdk-vnext-adapter-capability-ledger
 
@@ -230,13 +319,17 @@ surfaces:
     production_core_binding: Headless conversation feature event state projection only; React runtime hooks and renderers remain adapter-package work.
     capability_claims:
       - capability: conversation.state
-        status: supported
+        support: supported
+        mode: adapter-mapped
       - capability: conversation.events
-        status: supported
+        support: supported
+        mode: adapter-mapped
       - capability: hooks
-        status: unsupported
+        support: unsupported
+        mode: adapter-mapped
       - capability: renderer
-        status: unsupported
+        support: unsupported
+        mode: adapter-mapped
     verification_gates:
       - check:sdk-vnext-adapter-capability-ledger
 
@@ -254,12 +347,16 @@ surfaces:
     production_core_binding: Structural JSON chat-completion route over the OpenAI-compatible Chat Completions bridge; streaming, middleware, and server actions are not claimed.
     capability_claims:
       - capability: route.chatCompletions.json
-        status: supported
+        support: supported
+        mode: adapter-mapped
       - capability: route.chatCompletions.stream
-        status: unsupported
+        support: unsupported
+        mode: adapter-mapped
       - capability: middleware
-        status: unsupported
+        support: unsupported
+        mode: adapter-mapped
       - capability: serverActions
-        status: unsupported
+        support: unsupported
+        mode: adapter-mapped
     verification_gates:
       - check:sdk-vnext-adapter-capability-ledger

@@ -23,17 +23,17 @@ entries:
   - no_group_local_scheduler
   - no_group_limited_capability_enum
   - Group lifecycle/admin, roster changes, and agent-auth anti-spoof are covered
-    by nimi-backend/libs/domains/chat/src/domains/group-chat.service.spec.ts;
+    by realm-backend://libs/domains/chat/src/domains/group-chat.service.spec.ts;
     Runtime participation integration is owned by K-AGCORE downstream evidence.
 owner: '@team'
 sources:
   human_spec: ../group-agent-participation-contract.md
   openapi:
-    - nimi-backend/api-nimi.yaml
-  prisma: nimi-backend/prisma/schema.prisma
+    - realm-backend://api-nimi.yaml
+  prisma: realm-backend://prisma/schema.prisma
   services:
-    - nimi-backend/libs/domains/chat/src/domains/group-chat.service.ts
-    - nimi-backend/apps/api/src/modules/group-chat/group-chat.controller.ts
+    - realm-backend://libs/domains/chat/src/domains/group-chat.service.ts
+    - realm-backend://apps/api/src/modules/group-chat/group-chat.controller.ts
 rule_id_prefix: R-CHAT-
 source_rules:
   - R-CHAT-008
@@ -101,4 +101,4 @@ negative_boundaries:
   - no_group_local_scheduler
   - no_group_limited_capability_enum
 test_evidence_notes:
-  - "Group lifecycle/admin, roster changes, and agent-auth anti-spoof are covered by nimi-backend/libs/domains/chat/src/domains/group-chat.service.spec.ts; Runtime participation integration is owned by K-AGCORE downstream evidence."
+  - "Group lifecycle/admin, roster changes, and agent-auth anti-spoof are covered by realm-backend://libs/domains/chat/src/domains/group-chat.service.spec.ts; Runtime participation integration is owned by K-AGCORE downstream evidence."

@@ -37,7 +37,17 @@ const LEVEL_ORDER = new Map([
   ['L5', 5],
 ]);
 const VALID_STATUSES = new Set(['implemented', 'deferred', 'blocked']);
-const VALID_CAPABILITY_STATUSES = new Set(['supported', 'partial', 'unsupported']);
+const VALID_CAPABILITY_SUPPORTS = new Set(['supported', 'partial', 'unsupported', 'not-applicable']);
+const VALID_CAPABILITY_MODES = new Set([
+  'adapter-mapped',
+  'framework-owned',
+  'runtime-owned',
+  'sdk-feature-owned',
+  'caller-owned',
+  'owner-gated',
+  'governance-only',
+  'out-of-domain',
+]);
 
 const REQUIRED_ADAPTER_IDS = [
   'vercel-ai',
@@ -66,17 +76,34 @@ function escapeRegex(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-function hasManifestCapability(manifestText, capability, status) {
+function hasManifestCapability(manifestText, capability, support, mode) {
   const quoted = `['"]${escapeRegex(capability)}['"]`;
   const bare = /^[A-Za-z_$][\w$]*$/u.test(capability)
     ? `\\b${escapeRegex(capability)}\\b`
     : null;
   const keyPattern = bare ? `(?:${quoted}|${bare})` : quoted;
-  return new RegExp(`${keyPattern}\\s*:\\s*['"]${escapeRegex(status)}['"]`, 'u').test(manifestText);
+  return new RegExp(
+    `${keyPattern}\\s*:\\s*\\{[\\s\\S]*?\\bsupport\\s*:\\s*['"]${escapeRegex(support)}['"][\\s\\S]*?\\bmode\\s*:\\s*['"]${escapeRegex(mode)}['"][\\s\\S]*?\\}`,
+    'u',
+  ).test(manifestText);
 }
 
 function hasScalar(manifestText, key, value) {
   return new RegExp(`\\b${escapeRegex(key)}\\s*:\\s*['"]${escapeRegex(value)}['"]`, 'u').test(manifestText);
+}
+
+function validateStringSet(violations, label, actualValues, expectedValues) {
+  const actual = new Set(Array.isArray(actualValues) ? actualValues.map((value) => String(value)) : []);
+  for (const expected of expectedValues) {
+    if (!actual.has(expected)) {
+      violations.push(`${label} missing ${expected}`);
+    }
+  }
+  for (const value of actual) {
+    if (!expectedValues.has(value)) {
+      violations.push(`${label} has invalid value ${value}`);
+    }
+  }
 }
 
 function runCommand(label, args) {
@@ -110,6 +137,18 @@ function validateLedger() {
   if (ledger?.scope?.target_root !== 'sdks/typescript/adapters') {
     violations.push('ledger scope.target_root must be sdks/typescript/adapters');
   }
+  validateStringSet(
+    violations,
+    'ledger capability_support_values',
+    ledger?.capability_support_values,
+    VALID_CAPABILITY_SUPPORTS,
+  );
+  validateStringSet(
+    violations,
+    'ledger capability_mode_values',
+    ledger?.capability_mode_values,
+    VALID_CAPABILITY_MODES,
+  );
 
   const rootRows = Array.isArray(sourceRoots?.entries) ? sourceRoots.entries : [];
   const sourceRootById = new Map(rootRows.map((row) => [String(row.id), String(row.owner)]));
@@ -192,17 +231,22 @@ function validateLedger() {
       }
       for (const claim of claims) {
         const capability = String(claim?.capability ?? '');
-        const status = String(claim?.status ?? '');
+        const support = String(claim?.support ?? '');
+        const mode = String(claim?.mode ?? '');
         if (!capability) {
           violations.push(`adapter ${id} has capability claim without capability`);
           continue;
         }
-        if (!VALID_CAPABILITY_STATUSES.has(status)) {
-          violations.push(`adapter ${id} capability ${capability} has invalid status ${status}`);
+        if (!VALID_CAPABILITY_SUPPORTS.has(support)) {
+          violations.push(`adapter ${id} capability ${capability} has invalid support ${support}`);
           continue;
         }
-        if (!hasManifestCapability(manifestText, capability, status)) {
-          violations.push(`adapter ${id} manifest does not declare ${capability}: ${status}`);
+        if (!VALID_CAPABILITY_MODES.has(mode)) {
+          violations.push(`adapter ${id} capability ${capability} has invalid mode ${mode}`);
+          continue;
+        }
+        if (!hasManifestCapability(manifestText, capability, support, mode)) {
+          violations.push(`adapter ${id} manifest does not declare ${capability}: ${support}/${mode}`);
         }
       }
     }
@@ -218,10 +262,18 @@ function validateLedger() {
   const vercel = adaptersById.get('vercel-ai');
   if (vercel) {
     const vercelManifest = readFileSync(path.join(repoRoot, String(vercel.manifest)), 'utf8');
-    for (const unsupportedClaim of ['approval', 'externalExecution', 'multiStep', 'traces', 'tools.execute']) {
-      if (hasManifestCapability(vercelManifest, unsupportedClaim, 'supported')) {
-        violations.push(`vercel-ai must not claim unsupported L3 capability ${unsupportedClaim} as supported`);
+    for (const frameworkOwnedClaim of ['multiStep', 'tools.execute']) {
+      if (!hasManifestCapability(vercelManifest, frameworkOwnedClaim, 'supported', 'framework-owned')) {
+        violations.push(`vercel-ai must claim ${frameworkOwnedClaim} as supported/framework-owned`);
       }
+    }
+    for (const runtimeOwnedClaim of ['externalExecution', 'tools.providerDefined']) {
+      if (!hasManifestCapability(vercelManifest, runtimeOwnedClaim, 'unsupported', 'runtime-owned')) {
+        violations.push(`vercel-ai must keep ${runtimeOwnedClaim} unsupported/runtime-owned`);
+      }
+    }
+    if (!hasManifestCapability(vercelManifest, 'tools.adapterExecute', 'unsupported', 'adapter-mapped')) {
+      violations.push('vercel-ai must keep tools.adapterExecute unsupported/adapter-mapped');
     }
     if (String(vercel.release_target_level) === 'L3' && !String(vercel.release_blocker ?? '').trim()) {
       violations.push('vercel-ai L3 release target must record release_blocker until implemented');

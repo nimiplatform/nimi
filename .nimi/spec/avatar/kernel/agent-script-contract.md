@@ -3,10 +3,10 @@
 > **Authority**: Avatar kernel contract
 > **Status**: Active NAS 1.0 authority
 > **Upstream platform refs**:
-> - [APML model-facing wire authority](.nimi/spec/runtime/kernel/agent-output-wire-contract.md)
-> - [Runtime presentation/activity projection seam](.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md)
-> - [Runtime HookIntent contract](.nimi/spec/runtime/kernel/agent-hook-intent-contract.md)
-> - [Runtime transient presentation seam](.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md)
+> - [APML model-facing wire authority](../../runtime/kernel/agent-output-wire-contract.md)
+> - [Runtime presentation/activity projection seam](../../runtime/kernel/agent-presentation-stream-contract.md)
+> - [Runtime HookIntent contract](../../runtime/kernel/agent-hook-intent-contract.md)
+> - [Runtime transient presentation seam](../../runtime/kernel/agent-presentation-stream-contract.md)
 > **Sibling kernel contracts**:
 > - [Avatar event contract](avatar-event-contract.md)
 > - [Embodiment projection contract](embodiment-projection-contract.md)

@@ -114,6 +114,15 @@ Fixed rules:
   runtime-owned create-new-bank-or-generation rebuild plus explicit cutover;
   silent in-place mutation is not admitted
 - runtime-owned embedding execution is the only admitted embedding authority
+- the resolved profile `dimension` authority is the runtime model catalog
+  (`model-catalog-contract.md` `K-MCAT-030` `embedding.dimension`), not the local
+  asset record and not a hardcoded constant; resolving an embedding profile for a
+  `text.embed` model with no admitted catalog dimension must fail close rather
+  than fabricate a dimension or silently retarget to another model
+- the embedding vector length returned by execution is used only for runtime
+  validation and drift evidence; on mismatch with the resolved profile dimension
+  runtime must fail close, and must never mutate the resolved profile to match an
+  observed length
 - when the default `Hindsight` substrate runs in supervised mode, runtime must inject the substrate's embedding path onto a runtime-owned llama OpenAI-compatible loopback rather than allowing direct external embedding provider configuration
 
 ## K-MEM-004a Desktop Live Config And Runtime Resolved Truth Split

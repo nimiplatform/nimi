@@ -8,6 +8,8 @@ const PROJECT_ROOT = process.cwd();
 const REALM_ROOT = path.join(PROJECT_ROOT, '.nimi', 'spec', 'realm');
 const KERNEL_ROOT = path.join(REALM_ROOT, 'kernel');
 const TABLES_DIR = path.join(KERNEL_ROOT, 'tables');
+const REALM_BACKEND_LOCATOR_PREFIX = 'realm-backend://';
+const REALM_TESTS_LOCATOR_PREFIX = 'realm-tests://';
 
 const RULE_FAMILIES = ['TRUTH', 'PROJ', 'WSTATE', 'WHIST', 'CHAT', 'SOC', 'ECON', 'ATTACH', 'ASSET', 'RSRC', 'BIND', 'BNDL', 'TRANSIT', 'OAUTH', 'FEED'];
 const EXPECTED_ID_PATTERN = `^R-(${RULE_FAMILIES.join('|')})-[0-9]{3}$`;
@@ -50,7 +52,34 @@ function rel(absPath) {
   return toPosix(path.relative(PROJECT_ROOT, absPath));
 }
 
+function locatorSuffix(value, prefix) {
+  if (!value.startsWith(prefix)) {
+    return null;
+  }
+  const suffix = value.slice(prefix.length).replace(/^\/+/u, '');
+  if (!suffix || suffix.includes('..') || path.isAbsolute(suffix)) {
+    return null;
+  }
+  return suffix;
+}
+
+function resolveRealmEvidenceLocator(filePath) {
+  const backendSuffix = locatorSuffix(filePath, REALM_BACKEND_LOCATOR_PREFIX);
+  if (backendSuffix) {
+    return path.join(PROJECT_ROOT, '..', 'nimi-backend', backendSuffix);
+  }
+  const testsSuffix = locatorSuffix(filePath, REALM_TESTS_LOCATOR_PREFIX);
+  if (testsSuffix) {
+    return path.join(PROJECT_ROOT, '..', 'tests', testsSuffix);
+  }
+  return null;
+}
+
 function resolveWorkspacePath(filePath) {
+  const locatorPath = resolveRealmEvidenceLocator(filePath);
+  if (locatorPath) {
+    return locatorPath;
+  }
   const candidates = [
     path.join(PROJECT_ROOT, filePath),
     path.join(PROJECT_ROOT, '..', filePath),

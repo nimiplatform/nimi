@@ -19,11 +19,9 @@ admissions:
       - parent://nimi-realm/.nimi/spec/realm
       - parent://nimi-realm/.nimi/config/realm-projection-manifest.yaml
       - parent://nimi-realm/scripts/spec/realm/sync-nimi-open-spec.ts
-      - parent://nimi-realm/nimi-backend
-      - parent://nimi-realm/tests
     delegated_declared_evidence_prefixes:
-      - nimi-backend/
-      - tests/arch/
+      - realm-backend://
+      - realm-tests://arch/
     host_owned_relative_paths:
       - README.md
       - agent.md

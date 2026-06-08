@@ -148,7 +148,7 @@ const manifest: NimiCapabilityManifest = {
   adapterId: 'surface',
   targetLibrary: 'surface',
   capabilityLevel: 'L1',
-  capabilities: { generate: 'supported' },
+  capabilities: { generate: { support: 'supported', mode: 'adapter-mapped' } },
   unsupportedBehavior: 'throw',
 };
 const model: NimiAiModel = createNimiMockModel({ text: 'ok' });

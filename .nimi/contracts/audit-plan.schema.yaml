@@ -22,6 +22,8 @@ optional_top_level_fields:
   - app_slice_admission_ref
   - app_slice_admissions
   - audit_evidence_root_refs
+  - delegated_projection_admission_refs
+  - delegated_projection_admissions
   - package_authority_admission_refs
   - package_authority_admissions
   - evidence_inventory_hash
@@ -52,11 +54,20 @@ chunk_optional_fields:
   - authority_kind
   - app_id
   - package_authority_id
+  - delegated_projection_id
   - admission_ref
   - authority_root
+  - source_authority_root
   - evidence_root_admission_refs
   - admitted_evidence_roots
   - host_authority_projection_refs
+  - delegated_evidence_roots
+  - delegated_declared_evidence_prefixes
+  - delegated_declared_evidence_refs
+  - declared_evidence_delegation
+  - required_verification_commands
+  - declared_evidence_targets
+  - declared_evidence_unresolved
   - evidence_roots
   - evidence_inventory
   - coverage_contract
@@ -112,6 +123,10 @@ hard_constraints:
   - risk_budget_pause_must_not_mark_unresolved_findings_as_closed
   - risk_budget_pause_blocks_further_dispatch_until_remediation_bundle_or_manager_action
   - admitted_package_authority_projection_refs_must_be_explicitly_mapped
+  - delegated_projection_authority_must_be_explicitly_admitted
+  - delegated_declared_evidence_must_name_source_authority_boundary
+  - delegated_projection_is_audit_modeling_only_not_source_repo_execution
+  - delegated_projection_must_not_resolve_or_mutate_source_authority_refs
   - spec_authority_plans_must_materialize_full_evidence_inventory
   - spec_authority_chunks_must_assign_evidence_inventory_to_every_matching_authority_chunk
   - spec_authority_evidence_inventory_files_may_be_reused_across_chunks_without_creating_parallel_truth

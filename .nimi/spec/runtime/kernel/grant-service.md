@@ -66,6 +66,7 @@
 | `runtime.*` | Runtime 服务访问 |
 | `realm.*` | Realm 服务访问 |
 | `app.*` | 应用自定义 scope |
+| `ai.*` | AI 能力访问 |
 | `read:*` | 读取权限 |
 | `write:*` | 写入权限 |
 | `grant:*` | 授权委托权限 |

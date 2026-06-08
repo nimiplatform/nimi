@@ -41,6 +41,7 @@ entries:
   - S-APP-016
   - S-APP-017
   - S-APP-018
+  - S-APP-019
 rules:
   - rule_id: S-APP-001
     evidence_refs:

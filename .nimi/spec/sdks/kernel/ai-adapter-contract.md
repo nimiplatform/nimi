@@ -68,3 +68,17 @@ They must not:
 Capability gaps must be typed and visible to the caller. Framework-specific
 ergonomics are allowed only while Runtime / Realm / Cognition authority remains
 the sole source for durable product state and enforcement.
+
+## S-AIP-008 Adapter Capability Manifest Semantics
+
+Adapter capability manifests describe target-library capabilities that are
+usable through a Nimi adapter. The `support` field answers whether a caller
+using the target library can exercise the named library capability through the
+adapter: `supported`, `partial`, `unsupported`, or `not-applicable`.
+
+Ownership and execution placement are recorded separately in `mode`. A
+framework-owned capability, such as a target library's caller-side tool execute
+callback or multi-step orchestration, must not be marked unsupported solely
+because Nimi Runtime does not own that orchestration. Conversely, Runtime-owned
+or adapter-owned gaps must remain explicit instead of being hidden behind a
+broader target-library capability claim.

@@ -4,10 +4,10 @@
 > **Authority**: Avatar kernel contract
 > **Status**: Baseline updated 2026-04-21 (consumer-aligned to mounted runtime substrate)
 > **Upstream platform refs**:
-> - [Runtime HookIntent contract](../../.nimi/spec/runtime/kernel/agent-hook-intent-contract.md)
-> - [Runtime presentation/activity projection seam](../../.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md)
-> - [Runtime transient presentation seam](../../.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md)
-> - [Conversation anchor contract](../../.nimi/spec/runtime/kernel/agent-conversation-anchor-contract.md)
+> - [Runtime HookIntent contract](../../runtime/kernel/agent-hook-intent-contract.md)
+> - [Runtime presentation/activity projection seam](../../runtime/kernel/agent-presentation-stream-contract.md)
+> - [Runtime transient presentation seam](../../runtime/kernel/agent-presentation-stream-contract.md)
+> - [Conversation anchor contract](../../runtime/kernel/agent-conversation-anchor-contract.md)
 > **Sibling kernel contracts**:
 > - [Agent script contract](agent-script-contract.md)
 > - [Embodiment projection contract](embodiment-projection-contract.md)

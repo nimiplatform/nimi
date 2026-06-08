@@ -46,6 +46,7 @@ entries:
   - K-AUDIT-020
   - K-AUDIT-021
   - K-AUDIT-022
+  - K-AUDIT-023
   - K-CLI-001
   - K-CLI-002
   - K-CLI-003
@@ -238,6 +239,14 @@ rules:
       - runtime_kernel_consistency
     note: Runtime Agent Participation audit projection admitted as contract truth; implementation
       evidence is owned by Runtime participation implementation authority.
+    evidence_requirement: deferred
+  - rule_id: K-AUDIT-023
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Audit-context metadata header-to-AuditEventRecord mapping admitted as contract
+      truth in audit-contract.md and the runtime_metadata_keys closed enum; ingress
+      header read evidence lives in runtime/internal/grpcserver/interceptor_audit_metadata.go
+      and is owned by Runtime audit implementation authority.
     evidence_requirement: deferred
   - rule_id: K-CLI-001
     evidence_refs:

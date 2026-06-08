@@ -13,6 +13,11 @@ values:
   - x-nimi-idempotency-key
   - authorization
   - x-nimi-runtime-version
+  - x-nimi-caller-kind
+  - x-nimi-caller-id
+  - x-nimi-surface-id
+  - x-nimi-access-token-id
+  - x-nimi-trace-id
 keys:
   - key: x-nimi-key-source
     allowed_values: [inline, managed]
@@ -45,3 +50,18 @@ keys:
   - key: x-nimi-runtime-version
     required_when: always (response header metadata)
     source_rule: K-DAEMON-011
+  - key: x-nimi-caller-kind
+    required_when: audit context propagation
+    source_rule: K-AUDIT-023
+  - key: x-nimi-caller-id
+    required_when: audit context propagation
+    source_rule: K-AUDIT-023
+  - key: x-nimi-surface-id
+    required_when: audit context propagation
+    source_rule: K-AUDIT-023
+  - key: x-nimi-access-token-id
+    required_when: audit context propagation
+    source_rule: K-AUDIT-023
+  - key: x-nimi-trace-id
+    required_when: L0 correlation envelope (correlated under K-AUDIT-020)
+    source_rule: P-PROTO-011
