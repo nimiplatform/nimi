@@ -134,6 +134,9 @@ models:
     model_type: embedding
     updated_at: 2023-12-11
     capabilities: [text.embed]
+    # K-MEM-004 / K-AIEXEC-006: mistral-embed emits 1024-dim vectors.
+    embedding:
+      dimension: 1024
     pricing:
       unit: token
       input: "0.10"

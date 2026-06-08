@@ -50,10 +50,10 @@ func executeProviderRawReplay(timeout time.Duration, fixture *aiGoldFixture) (*a
 	configValue := nimillm.MediaAdapterConfig{BaseURL: baseURL, APIKey: apiKey}
 	switch strings.TrimSpace(strings.ToLower(fixture.Capability)) {
 	case "text.generate":
-		text, usage, finishReason, err := backend.GenerateText(ctx, strings.TrimSpace(fixture.ModelID), []*runtimev1.ChatMessage{{
+		text, _, usage, finishReason, err := backend.GenerateText(ctx, strings.TrimSpace(fixture.ModelID), []*runtimev1.ChatMessage{{
 			Role:    "user",
 			Content: strings.TrimSpace(fixture.Request.Prompt),
-		}}, strings.TrimSpace(fixture.Request.SystemPrompt), 0, 0, 0)
+		}}, strings.TrimSpace(fixture.Request.SystemPrompt), 0, 0, 0, nimillm.BuildTextGenParams(nil))
 		if err != nil {
 			return withReplayFailure(payload, err), nil
 		}

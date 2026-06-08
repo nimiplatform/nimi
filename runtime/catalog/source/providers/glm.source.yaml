@@ -154,6 +154,11 @@ models:
     model_type: embedding
     updated_at: 2026-04-18
     capabilities: [text.embed]
+    # K-MEM-004 / K-AIEXEC-006: Zhipu embedding-3 default output dimension. The
+    # API accepts a `dimensions` selector; 2048 is the default recorded as
+    # profile identity.
+    embedding:
+      dimension: 2048
     pricing:
       unit: token
       input: "0.50"

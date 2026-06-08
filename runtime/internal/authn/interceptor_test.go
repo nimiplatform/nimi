@@ -104,6 +104,7 @@ func TestAuthenticateProjectsIdentityForValidBearerToken(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewValidator: %v", err)
 	}
+	v.SetRevocationURL(newActiveRevocationServer(t).URL)
 	token := signRS256(t, key, "kid-1", claims)
 
 	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(

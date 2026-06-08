@@ -203,7 +203,7 @@ func (s *Service) runFirstRunLocalBaselineScenario(
 			},
 			MaxTokens: firstRunBaselineMaxTokens,
 		}
-		text, _, finish, err := local.GenerateTextScenario(execCtx, modelResolved, spec, firstRunBaselineTextProbe)
+		text, _, _, finish, err := local.GenerateTextScenario(execCtx, modelResolved, spec, firstRunBaselineTextProbe)
 		if err != nil {
 			return err
 		}

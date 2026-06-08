@@ -157,6 +157,11 @@ func (s *Service) appendRuntimeAuditLocked(event *runtimev1.LocalAuditEvent) {
 		return
 	}
 	eventCopy := cloneLocalAuditEvent(event)
+	// K-AUDIT-005 / K-AUDIT-017: mask sensitive payload fields at the audit
+	// write layer before persistence, matching the global audit store.
+	if eventCopy.GetPayload() != nil {
+		maskLocalAuditFields(eventCopy.Payload.GetFields())
+	}
 	if eventCopy.GetId() == "" {
 		eventCopy.Id = "audit_" + ulid.Make().String()
 	}

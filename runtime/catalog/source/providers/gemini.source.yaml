@@ -147,6 +147,11 @@ models:
     model_type: embedding
     updated_at: 2026-04-18
     capabilities: [text.embed]
+    # K-MEM-004 / K-AIEXEC-006: native (default) output dimension. Gemini
+    # embedding supports Matryoshka truncation (e.g. 1536/768); 3072 is the
+    # native default recorded as profile identity.
+    embedding:
+      dimension: 3072
     pricing:
       unit: token
       input: "0.15"

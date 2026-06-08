@@ -31,9 +31,15 @@ type Gateway struct {
 }
 
 type GatewayError struct {
+	// ReasonCode is the admitted runtime_delegation_reason_codes table code
+	// (K-DELEG-064/114) carried into audit, replay, and public projection.
 	ReasonCode string
-	Message    string
-	Err        error
+	// GatewayDiagnosticCode is the adapter-level DELEG_GATEWAY_* diagnostic
+	// detail; it is not an admitted reason code and stays gateway evidence
+	// detail only (K-DELEG-114/116).
+	GatewayDiagnosticCode string
+	Message               string
+	Err                   error
 }
 
 func (e GatewayError) Error() string {
@@ -367,11 +373,39 @@ func decodeToolArguments(raw json.RawMessage) (map[string]json.RawMessage, error
 	return args, nil
 }
 
+// gatewayTableReasonCode maps an adapter-level gateway diagnostic code onto the
+// admitted runtime_delegation_reason_codes table code per K-DELEG-114 (gateway
+// connection / discovery / unlisted-tool / drift / tool-call / timeout /
+// lifecycle failures map onto K-DELEG-080 table failure semantics). Codes that
+// are already admitted table codes pass through unchanged.
+func gatewayTableReasonCode(code string) string {
+	switch code {
+	case ReasonGatewayProviderUnavailable, ReasonGatewayMCPConnectFailed, ReasonGatewayMCPDiscoveryFailed:
+		return ReasonProviderNotFound
+	case ReasonGatewayProviderInvalid, ReasonGatewayTransportInvalid, ReasonGatewayMCPArgumentsInvalid:
+		return ReasonRequestSchemaInvalid
+	case ReasonGatewayMCPToolNotAllowlisted:
+		return ReasonCapabilityNotAllowed
+	case ReasonGatewayMCPCredentialBlocked:
+		return ReasonProviderBlocked
+	case ReasonGatewayMCPToolCallFailed:
+		return ReasonStreamTerminalError
+	case ReasonGatewayMCPResultInvalid:
+		return ReasonProviderDrifted
+	case ReasonGatewayMCPTimeout:
+		return ReasonProviderTimeout
+	default:
+		return code
+	}
+}
+
 func gatewayFailure(reasonCode string, message string, err error, args ...any) GatewayError {
+	diagnostic := strings.TrimSpace(reasonCode)
 	return GatewayError{
-		ReasonCode: strings.TrimSpace(reasonCode),
-		Message:    fmt.Sprintf(message, args...),
-		Err:        err,
+		ReasonCode:            gatewayTableReasonCode(diagnostic),
+		GatewayDiagnosticCode: diagnostic,
+		Message:               fmt.Sprintf(message, args...),
+		Err:                   err,
 	}
 }
 

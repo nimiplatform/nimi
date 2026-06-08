@@ -140,6 +140,8 @@ models:
       url: https://cloud.baidu.com/doc/qianfan-docs/s/7m95lyy43
       retrieved_at: 2026-04-18
       note: Official Qianfan model list covering current ERNIE text, reasoning, vision, and embedding rows.
+    embedding:
+      dimension: 384
 voices: []
 selection_profiles:
   - provider: qianfan

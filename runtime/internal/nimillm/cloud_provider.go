@@ -180,7 +180,8 @@ func (p *CloudProvider) GenerateText(ctx context.Context, modelID string, spec *
 	if spec == nil {
 		return "", nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
-	return p.GenerateTextScenarioWithTarget(ctx, modelID, spec, inputText, nil)
+	text, _, usage, finish, err := p.GenerateTextScenarioWithTarget(ctx, modelID, spec, inputText, nil)
+	return text, usage, finish, err
 }
 
 // GenerateTextScenario routes a Scenario-native text generation request.
@@ -189,7 +190,7 @@ func (p *CloudProvider) GenerateTextScenario(
 	modelID string,
 	spec *runtimev1.TextGenerateScenarioSpec,
 	inputText string,
-) (string, *runtimev1.UsageStats, runtimev1.FinishReason, error) {
+) (string, []*runtimev1.ToolCall, *runtimev1.UsageStats, runtimev1.FinishReason, error) {
 	return p.GenerateTextScenarioWithTarget(ctx, modelID, spec, inputText, nil)
 }
 
@@ -200,20 +201,20 @@ func (p *CloudProvider) GenerateTextScenarioWithTarget(
 	spec *runtimev1.TextGenerateScenarioSpec,
 	_ string,
 	target *RemoteTarget,
-) (string, *runtimev1.UsageStats, runtimev1.FinishReason, error) {
+) (string, []*runtimev1.ToolCall, *runtimev1.UsageStats, runtimev1.FinishReason, error) {
 	if spec == nil {
-		return "", nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+		return "", nil, nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 	backend, resolvedModelID := p.resolveBackendForTarget(modelID, target)
 	if backend == nil {
-		return "", nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+		return "", nil, nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	p.rememberDecision(modelID, backend.Name)
-	text, usage, finish, err := backend.GenerateText(ctx, resolvedModelID, spec.GetInput(), spec.GetSystemPrompt(), spec.GetTemperature(), spec.GetTopP(), spec.GetMaxTokens())
+	text, toolCalls, usage, finish, err := backend.GenerateText(ctx, resolvedModelID, spec.GetInput(), spec.GetSystemPrompt(), spec.GetTemperature(), spec.GetTopP(), spec.GetMaxTokens(), BuildTextGenParams(spec))
 	if err != nil {
-		return "", nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
+		return "", nil, nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
 	}
-	return text, usage, finish, nil
+	return text, toolCalls, usage, finish, nil
 }
 
 // Embed routes an embedding request to the appropriate backend.
@@ -286,7 +287,7 @@ func (p *CloudProvider) StreamGenerateTextScenarioWithTarget(
 		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	p.rememberDecision(modelID, backend.Name)
-	return backend.StreamGenerateText(ctx, resolvedModelID, spec.GetInput(), spec.GetSystemPrompt(), spec.GetTemperature(), spec.GetTopP(), spec.GetMaxTokens(), onDelta)
+	return backend.StreamGenerateText(ctx, resolvedModelID, spec.GetInput(), spec.GetSystemPrompt(), spec.GetTemperature(), spec.GetTopP(), spec.GetMaxTokens(), BuildTextGenParams(spec), onDelta)
 }
 
 func (p *CloudProvider) StreamGenerateTextScenarioRich(
@@ -374,14 +375,10 @@ func (p *CloudProvider) PickBackend(modelID string) (*Backend, string, bool, boo
 		}
 	}
 
-	// 4. No healthy backend — return first configured backend for error path.
-	for _, providerID := range knownProviders {
-		if b := p.backends[providerID]; b != nil {
-			p.rememberHintDecision(id, "", providerID, false)
-			return b, id, false, true
-		}
-	}
-
+	// 4. No healthy backend. K-PROV-004: when all probe targets are unhealthy the
+	// consume path must surface UNAVAILABLE. Return not-available (ok=false) with
+	// no backend — the same fail-closed shape as the explicit-prefix and hint
+	// unhealthy paths above — instead of fail-open returning a usable backend.
 	return nil, id, false, false
 }
 

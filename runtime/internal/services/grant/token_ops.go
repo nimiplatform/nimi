@@ -146,6 +146,7 @@ func (s *Service) IssueDelegatedAccessToken(ctx context.Context, req *runtimev1.
 	appID := strings.TrimSpace(req.GetAppId())
 	parentID := strings.TrimSpace(req.GetParentTokenId())
 	if appID == "" || parentID == "" {
+		s.emitAudit(ctx, "IssueDelegatedAccessToken", appID, "", runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 
@@ -154,20 +155,25 @@ func (s *Service) IssueDelegatedAccessToken(ctx context.Context, req *runtimev1.
 
 	parent, exists := s.tokens[parentID]
 	if !exists || parent.AppID != appID {
+		s.emitAudit(ctx, "IssueDelegatedAccessToken", appID, "", runtimev1.ReasonCode_APP_GRANT_INVALID)
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_APP_GRANT_INVALID)
 	}
 	if parent.Revoked {
+		s.emitAudit(ctx, "IssueDelegatedAccessToken", parent.AppID, parent.SubjectUserID, runtimev1.ReasonCode_APP_TOKEN_REVOKED)
 		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_TOKEN_REVOKED)
 	}
 	if time.Now().UTC().After(parent.ExpiresAt) {
+		s.emitAudit(ctx, "IssueDelegatedAccessToken", parent.AppID, parent.SubjectUserID, runtimev1.ReasonCode_APP_TOKEN_EXPIRED)
 		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_TOKEN_EXPIRED)
 	}
 	if !parent.CanDelegate {
+		s.emitAudit(ctx, "IssueDelegatedAccessToken", parent.AppID, parent.SubjectUserID, runtimev1.ReasonCode_APP_DELEGATION_FORBIDDEN)
 		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_DELEGATION_FORBIDDEN)
 	}
 
 	childDepth := parent.DelegationDepth + 1
 	if parent.MaxDelegationDepth > 0 && childDepth > parent.MaxDelegationDepth {
+		s.emitAudit(ctx, "IssueDelegatedAccessToken", parent.AppID, parent.SubjectUserID, runtimev1.ReasonCode_APP_DELEGATION_DEPTH_EXCEEDED)
 		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_DELEGATION_DEPTH_EXCEEDED)
 	}
 
@@ -176,15 +182,19 @@ func (s *Service) IssueDelegatedAccessToken(ctx context.Context, req *runtimev1.
 		scopes = append([]string(nil), parent.Scopes...)
 	}
 	if hasInvalidScopePrefix(scopes) {
+		s.emitAudit(ctx, "IssueDelegatedAccessToken", parent.AppID, parent.SubjectUserID, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
 		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
 	}
 	if !scopesAllowed(parent.Scopes, scopes) {
+		s.emitAudit(ctx, "IssueDelegatedAccessToken", parent.AppID, parent.SubjectUserID, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
 		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
 	}
 	if hasRealmScope(scopes) {
+		s.emitAudit(ctx, "IssueDelegatedAccessToken", parent.AppID, parent.SubjectUserID, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
 		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
 	}
 	if validation := s.catalog.ValidateScopes(parent.IssuedScopeCatalog, scopes); validation != runtimev1.ReasonCode_ACTION_EXECUTED {
+		s.emitAudit(ctx, "IssueDelegatedAccessToken", parent.AppID, parent.SubjectUserID, validation)
 		return nil, grpcerr.WithReasonCodeOptions(codes.PermissionDenied, validation, grpcerr.ReasonOptions{
 			ActionHint: scopeValidationActionHint(validation),
 		})
@@ -195,6 +205,7 @@ func (s *Service) IssueDelegatedAccessToken(ctx context.Context, req *runtimev1.
 		selectors = cloneSelectors(parent.ResourceSelectors)
 	}
 	if !selectorsWithin(parent.ResourceSelectors, selectors) {
+		s.emitAudit(ctx, "IssueDelegatedAccessToken", parent.AppID, parent.SubjectUserID, runtimev1.ReasonCode_APP_RESOURCE_OUT_OF_SCOPE)
 		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_RESOURCE_OUT_OF_SCOPE)
 	}
 

@@ -73,6 +73,8 @@ models:
       url: https://docs.cohere.com/v1/docs/embeddings
       retrieved_at: 2026-04-18
       note: Cohere Embed v4 documentation.
+    embedding:
+      dimension: 1536
 voices: []
 selection_profiles:
   - provider: cohere

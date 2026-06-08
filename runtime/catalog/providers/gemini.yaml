@@ -83,6 +83,8 @@ models:
       url: https://ai.google.dev/gemini-api/docs/models/gemini-embedding-001
       retrieved_at: 2026-04-18
       note: Gemini embedding model card.
+    embedding:
+      dimension: 3072
   - model_id: gemini-embedding-2-preview
     provider: gemini
     model_type: embedding

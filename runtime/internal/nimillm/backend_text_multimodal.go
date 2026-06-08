@@ -34,9 +34,11 @@ type openAIInputAudio struct {
 }
 
 type openAIMultimodalMessage struct {
-	Role    string `json:"role"`
-	Content any    `json:"content"`
-	Name    string `json:"name,omitempty"`
+	Role       string           `json:"role"`
+	Content    any              `json:"content"`
+	Name       string           `json:"name,omitempty"`
+	ToolCalls  []openAIToolCall `json:"tool_calls,omitempty"`
+	ToolCallID string           `json:"tool_call_id,omitempty"`
 }
 
 type llamaMessage struct {
@@ -113,10 +115,20 @@ func hasUnsupportedLlamaTextChatParts(input []*runtimev1.ChatMessage) bool {
 	return false
 }
 
+// hasMultimodalParts reports whether any message carries a genuine non-text
+// content part (image/video/audio/artifact). Text-only parts do not select the
+// multimodal builders so that text — including multi-step tool round-trips whose
+// tool_calls/tool_call_id live on the chat message — stays on buildOpenAIMessages.
 func hasMultimodalParts(input []*runtimev1.ChatMessage) bool {
 	for _, msg := range input {
-		if len(msg.GetParts()) > 0 {
-			return true
+		for _, part := range msg.GetParts() {
+			switch part.GetType() {
+			case runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_IMAGE_URL,
+				runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_VIDEO_URL,
+				runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_AUDIO_URL,
+				runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_ARTIFACT_REF:
+				return true
+			}
 		}
 	}
 	return false
@@ -175,15 +187,21 @@ func buildOpenAIMultimodalMessages(systemPrompt string, input []*runtimev1.ChatM
 		if role == "" {
 			role = "user"
 		}
+		toolCalls := buildOpenAIToolCalls(item.GetToolCalls())
+		toolCallID := strings.TrimSpace(item.GetToolCallId())
 		if len(parts) == 0 {
 			content := strings.TrimSpace(item.GetContent())
-			if content == "" {
+			// Keep assistant tool-call turns and tool results even when their text
+			// content is empty so multimodal multi-step tool loops round-trip.
+			if content == "" && len(toolCalls) == 0 && toolCallID == "" {
 				continue
 			}
 			messages = append(messages, openAIMultimodalMessage{
-				Role:    role,
-				Content: content,
-				Name:    strings.TrimSpace(item.GetName()),
+				Role:       role,
+				Content:    content,
+				Name:       strings.TrimSpace(item.GetName()),
+				ToolCalls:  toolCalls,
+				ToolCallID: toolCallID,
 			})
 			continue
 		}
@@ -212,13 +230,15 @@ func buildOpenAIMultimodalMessages(systemPrompt string, input []*runtimev1.ChatM
 				}
 			}
 		}
-		if len(contentParts) == 0 {
+		if len(contentParts) == 0 && len(toolCalls) == 0 && toolCallID == "" {
 			continue
 		}
 		messages = append(messages, openAIMultimodalMessage{
-			Role:    role,
-			Content: contentParts,
-			Name:    strings.TrimSpace(item.GetName()),
+			Role:       role,
+			Content:    contentParts,
+			Name:       strings.TrimSpace(item.GetName()),
+			ToolCalls:  toolCalls,
+			ToolCallID: toolCallID,
 		})
 	}
 	return messages
@@ -303,15 +323,21 @@ func (b *Backend) buildOpenAIProviderNativeMessages(ctx context.Context, systemP
 		if role == "" {
 			role = "user"
 		}
+		toolCalls := buildOpenAIToolCalls(item.GetToolCalls())
+		toolCallID := strings.TrimSpace(item.GetToolCallId())
 		if len(item.GetParts()) == 0 {
 			content := strings.TrimSpace(item.GetContent())
-			if content == "" {
+			// Keep assistant tool-call turns and tool results even when their text
+			// content is empty so multimodal multi-step tool loops round-trip.
+			if content == "" && len(toolCalls) == 0 && toolCallID == "" {
 				continue
 			}
 			messages = append(messages, openAIMultimodalMessage{
-				Role:    role,
-				Content: content,
-				Name:    strings.TrimSpace(item.GetName()),
+				Role:       role,
+				Content:    content,
+				Name:       strings.TrimSpace(item.GetName()),
+				ToolCalls:  toolCalls,
+				ToolCallID: toolCallID,
 			})
 			continue
 		}
@@ -346,13 +372,15 @@ func (b *Backend) buildOpenAIProviderNativeMessages(ctx context.Context, systemP
 				return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 			}
 		}
-		if len(contentParts) == 0 {
+		if len(contentParts) == 0 && len(toolCalls) == 0 && toolCallID == "" {
 			continue
 		}
 		messages = append(messages, openAIMultimodalMessage{
-			Role:    role,
-			Content: contentParts,
-			Name:    strings.TrimSpace(item.GetName()),
+			Role:       role,
+			Content:    contentParts,
+			Name:       strings.TrimSpace(item.GetName()),
+			ToolCalls:  toolCalls,
+			ToolCallID: toolCallID,
 		})
 	}
 	return messages, nil

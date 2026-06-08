@@ -125,6 +125,11 @@ models:
     model_type: embedding
     updated_at: 2026-04-18
     capabilities: [text.embed]
+    # K-MEM-004 / K-AIEXEC-006: Azure OpenAI deploys the OpenAI
+    # text-embedding-3-large model; native (default) output dimension matches the
+    # upstream model.
+    embedding:
+      dimension: 3072
     pricing:
       unit: token
       input: unknown
@@ -138,6 +143,11 @@ models:
     model_type: embedding
     updated_at: 2026-04-18
     capabilities: [text.embed]
+    # K-MEM-004 / K-AIEXEC-006: Azure OpenAI deploys the OpenAI
+    # text-embedding-3-small model; native (default) output dimension matches the
+    # upstream model.
+    embedding:
+      dimension: 1536
     pricing:
       unit: token
       input: unknown

@@ -96,6 +96,15 @@ type VoiceRequestOptions struct {
 	ProviderExtensions *ProviderExtensionMetadata `yaml:"provider_extensions,omitempty" json:"provider_extensions,omitempty"`
 }
 
+// EmbeddingCapability is the K-MCAT-002 capability-conditional block carried by
+// `text.embed` models. It is the catalog authority for the model's output
+// embedding dimension (K-MEM-004 embedding-profile identity). Only `dimension`
+// is a model-inherent fact and therefore catalog-owned; distance_metric and
+// migration_policy remain runtime memory-bank policy, not model facts.
+type EmbeddingCapability struct {
+	Dimension int32 `yaml:"dimension" json:"dimension"`
+}
+
 type TranscriptionOptions struct {
 	Tiers               []string                   `yaml:"tiers,omitempty" json:"tiers,omitempty"`
 	ResponseFormats     []string                   `yaml:"response_formats,omitempty" json:"response_formats,omitempty"`
@@ -205,7 +214,11 @@ type ModelEntry struct {
 	VoiceRequestOptions *VoiceRequestOptions       `yaml:"voice_request_options,omitempty" json:"voice_request_options,omitempty"`
 	Transcription       *TranscriptionOptions      `yaml:"transcription,omitempty" json:"transcription,omitempty"`
 	VideoGeneration     *VideoGenerationCapability `yaml:"video_generation,omitempty" json:"video_generation,omitempty"`
-	SourceRef           SourceRef                  `yaml:"source_ref" json:"source_ref"`
+	// Embedding is the K-MCAT-002 capability-conditional block for `text.embed`
+	// models. It carries the catalog-authoritative output dimension consumed by
+	// the runtime memory embedding profile resolver (K-MEM-004, K-AIEXEC-006).
+	Embedding *EmbeddingCapability `yaml:"embedding,omitempty" json:"embedding,omitempty"`
+	SourceRef SourceRef            `yaml:"source_ref" json:"source_ref"`
 
 	// K-MCAT-032 local-plane block — present only on runtime_plane=local rows.
 	Install  *LocalPlaneInstall  `yaml:"install,omitempty" json:"install,omitempty"`

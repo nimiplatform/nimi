@@ -888,6 +888,11 @@ models:
     model_type: embedding
     updated_at: 2026-03-05
     capabilities: [text.embed]
+    # K-MEM-004 / K-AIEXEC-006: DashScope text-embedding-v4 default output
+    # dimension. The API allows selecting from a fixed set; 1024 is the default
+    # recorded as profile identity.
+    embedding:
+      dimension: 1024
     pricing:
       unit: token
       input: unknown

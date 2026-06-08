@@ -101,18 +101,38 @@ func inferModelResolved(resp any) (string, bool) {
 	return modelID, true
 }
 
-func addAIExecutionAuditPayload(payload map[string]any, req any, traceID string) {
+// aiExecutionAuditContext carries the K-AUDIT-018 AI execution audit fields that
+// originate from the interceptor context (envelope metadata and gRPC result)
+// rather than the request body.
+type aiExecutionAuditContext struct {
+	Provider      string // K-AUDIT-018 provider identity (x-nimi-provider-type), distinct from provider_endpoint
+	RequestSource string // K-AUDIT-018 request_source: the caller-kind origin category
+	ClientID      string // K-AUDIT-018 client_id == app_instance_id (x-nimi-app-instance-id)
+	GRPCCode      string // K-AUDIT-018 grpc_code, populated on failure only
+}
+
+// addAIExecutionAuditPayload enriches the audit payload with the AI execution
+// fields (K-AUDIT-018) and returns the resolved request_id. Per K-AUDIT-003 the
+// baseline request_id equals trace_id, so when the request carries no explicit
+// request_id the trace_id is used. The caller sets the returned request_id on the
+// top-level AuditEventRecord.request_id field; the payload entry is a compat
+// mirror. Non-AI paths are left unchanged and return "".
+func addAIExecutionAuditPayload(payload map[string]any, req any, traceID string, execCtx aiExecutionAuditContext) string {
 	if payload == nil {
-		return
+		return ""
 	}
 	details, ok := inferAIExecutionAuditDetails(req)
 	if !ok {
-		return
+		return ""
+	}
+	requestID := details.RequestID
+	if requestID == "" {
+		requestID = strings.TrimSpace(traceID)
 	}
 	payload["ai_execution"] = true
 	payload["trace_id"] = strings.TrimSpace(traceID)
-	if details.RequestID != "" {
-		payload["request_id"] = details.RequestID
+	if requestID != "" {
+		payload["request_id"] = requestID
 	}
 	if details.IdempotencyKey != "" {
 		payload["idempotency_key"] = details.IdempotencyKey
@@ -122,6 +142,15 @@ func addAIExecutionAuditPayload(payload map[string]any, req any, traceID string)
 	payload["route_policy"] = details.RoutePolicy
 	payload["fallback_policy"] = details.FallbackPolicy
 	payload["connector_id"] = details.ConnectorID
+	// K-AUDIT-018 fields sourced from interceptor context. provider is the
+	// provider identity (provider_endpoint is the separate network endpoint and
+	// is already recorded elsewhere in the payload).
+	payload["provider"] = strings.TrimSpace(execCtx.Provider)
+	payload["request_source"] = strings.TrimSpace(execCtx.RequestSource)
+	payload["client_id"] = strings.TrimSpace(execCtx.ClientID)
+	if grpcCode := strings.TrimSpace(execCtx.GRPCCode); grpcCode != "" {
+		payload["grpc_code"] = grpcCode
+	}
 	payload["extension_count"] = len(details.ExtensionNamespaces)
 	if len(details.ExtensionNamespaces) > 0 {
 		namespaces := make([]any, 0, len(details.ExtensionNamespaces))
@@ -130,6 +159,7 @@ func addAIExecutionAuditPayload(payload map[string]any, req any, traceID string)
 		}
 		payload["extension_namespaces"] = namespaces
 	}
+	return requestID
 }
 
 type aiExecutionAuditDetails struct {

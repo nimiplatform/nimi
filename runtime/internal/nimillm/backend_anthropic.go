@@ -29,21 +29,29 @@ var anthropicOAuthBetas = []string{
 }
 
 type anthropicMessageRequest struct {
-	Model       string `json:"model"`
-	System      string `json:"system,omitempty"`
-	Messages    any    `json:"messages"`
-	MaxTokens   int32  `json:"max_tokens"`
-	Temperature any    `json:"temperature,omitempty"`
-	TopP        any    `json:"top_p,omitempty"`
-	Stream      bool   `json:"stream,omitempty"`
+	Model       string           `json:"model"`
+	System      string           `json:"system,omitempty"`
+	Messages    any              `json:"messages"`
+	MaxTokens   int32            `json:"max_tokens"`
+	Temperature any              `json:"temperature,omitempty"`
+	TopP        any              `json:"top_p,omitempty"`
+	TopK        *int32           `json:"top_k,omitempty"`
+	Stream      bool             `json:"stream,omitempty"`
+	Tools       []map[string]any `json:"tools,omitempty"`
+	ToolChoice  any              `json:"tool_choice,omitempty"`
+}
+
+type anthropicContentBlock struct {
+	Type  string          `json:"type"`
+	Text  string          `json:"text"`
+	ID    string          `json:"id"`
+	Name  string          `json:"name"`
+	Input json.RawMessage `json:"input"`
 }
 
 type anthropicMessageResponse struct {
-	Content []struct {
-		Type string `json:"type"`
-		Text string `json:"text"`
-	} `json:"content"`
-	StopReason string `json:"stop_reason"`
+	Content    []anthropicContentBlock `json:"content"`
+	StopReason string                  `json:"stop_reason"`
 	Usage      struct {
 		InputTokens  int64 `json:"input_tokens"`
 		OutputTokens int64 `json:"output_tokens"`
@@ -94,10 +102,11 @@ func (b *Backend) generateTextAnthropicMessages(
 	temperature float32,
 	topP float32,
 	maxTokens int32,
-) (string, *runtimev1.UsageStats, runtimev1.FinishReason, error) {
+	params textGenParams,
+) (string, []*runtimev1.ToolCall, *runtimev1.UsageStats, runtimev1.FinishReason, error) {
 	messages, err := buildAnthropicMessages(input)
 	if err != nil {
-		return "", nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
+		return "", nil, nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
 	}
 	requestBody := anthropicMessageRequest{
 		Model:     strings.TrimSpace(modelID),
@@ -111,20 +120,31 @@ func (b *Backend) generateTextAnthropicMessages(
 	if topP > 0 {
 		requestBody.TopP = topP
 	}
+	if params.topK > 0 {
+		topK := params.topK
+		requestBody.TopK = &topK
+	}
+	if tools := anthropicToolsPayload(params.tools); len(tools) > 0 {
+		requestBody.Tools = tools
+		if choice := anthropicToolChoicePayload(params.toolChoice, params.toolChoiceName); choice != nil {
+			requestBody.ToolChoice = choice
+		}
+	}
 
 	var response anthropicMessageResponse
 	if err := b.postJSON(ctx, "/v1/messages", requestBody, &response); err != nil {
-		return "", nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
+		return "", nil, nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
 	}
+	toolCalls := parseAnthropicToolCalls(response.Content)
 	text := strings.TrimSpace(extractAnthropicText(response.Content))
-	if text == "" {
-		return "", nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+	if text == "" && len(toolCalls) == 0 {
+		return "", nil, nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
 	usage := anthropicUsage(response.Usage.InputTokens, response.Usage.OutputTokens)
 	if usage == nil {
 		usage = EstimateUsage(ComposeInputText(systemPrompt, input), text)
 	}
-	return text, usage, anthropicFinishReason(response.StopReason), nil
+	return text, toolCalls, usage, anthropicFinishReason(response.StopReason), nil
 }
 
 func (b *Backend) streamGenerateTextAnthropicMessages(
@@ -135,6 +155,7 @@ func (b *Backend) streamGenerateTextAnthropicMessages(
 	temperature float32,
 	topP float32,
 	maxTokens int32,
+	params textGenParams,
 	onDelta func(string) error,
 ) (*runtimev1.UsageStats, runtimev1.FinishReason, error) {
 	messages, err := buildAnthropicMessages(input)
@@ -153,6 +174,10 @@ func (b *Backend) streamGenerateTextAnthropicMessages(
 	}
 	if topP > 0 {
 		requestBody.TopP = topP
+	}
+	if params.topK > 0 {
+		topK := params.topK
+		requestBody.TopK = &topK
 	}
 	payload, err := json.Marshal(requestBody)
 	if err != nil {
@@ -175,7 +200,7 @@ func (b *Backend) streamGenerateTextAnthropicMessages(
 		_ = json.NewDecoder(response.Body).Decode(&errPayload)
 		_ = response.Body.Close()
 		if IsStreamUnsupported(response.StatusCode, errPayload) {
-			return b.fallbackStreamToNonStream(ctx, modelID, input, systemPrompt, temperature, topP, maxTokens, onDelta)
+			return b.fallbackStreamToNonStream(ctx, modelID, input, systemPrompt, temperature, topP, maxTokens, params, onDelta)
 		}
 		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, MapProviderHTTPError(response.StatusCode, errPayload)
 	}
@@ -257,9 +282,44 @@ func buildAnthropicMessages(input []*runtimev1.ChatMessage) ([]map[string]any, e
 		if role == "system" {
 			continue
 		}
+		// Tool results round-trip as a user message carrying a tool_result block.
+		if role == "tool" {
+			toolUseID := strings.TrimSpace(message.GetToolCallId())
+			result := strings.TrimSpace(message.GetContent())
+			if toolUseID == "" || result == "" {
+				continue
+			}
+			messages = append(messages, map[string]any{
+				"role": "user",
+				"content": []map[string]any{{
+					"type":        "tool_result",
+					"tool_use_id": toolUseID,
+					"content":     result,
+				}},
+			})
+			continue
+		}
 		content, err := buildAnthropicMessageContent(message)
 		if err != nil {
 			return nil, err
+		}
+		// Assistant tool calls round-trip as tool_use blocks.
+		if role == "assistant" {
+			for _, toolCall := range message.GetToolCalls() {
+				if toolCall == nil || strings.TrimSpace(toolCall.GetName()) == "" {
+					continue
+				}
+				var inputValue any = map[string]any{}
+				if raw := strings.TrimSpace(toolCall.GetArgumentsJson()); raw != "" {
+					_ = json.Unmarshal([]byte(raw), &inputValue)
+				}
+				content = append(content, map[string]any{
+					"type":  "tool_use",
+					"id":    toolCall.GetId(),
+					"name":  toolCall.GetName(),
+					"input": inputValue,
+				})
+			}
 		}
 		if len(content) == 0 {
 			continue
@@ -305,10 +365,7 @@ func anthropicMaxTokens(maxTokens int32) int32 {
 	return 4096
 }
 
-func extractAnthropicText(content []struct {
-	Type string `json:"type"`
-	Text string `json:"text"`
-}) string {
+func extractAnthropicText(content []anthropicContentBlock) string {
 	lines := make([]string, 0, len(content))
 	for _, block := range content {
 		if strings.TrimSpace(block.Type) != "text" {
@@ -319,6 +376,74 @@ func extractAnthropicText(content []struct {
 		}
 	}
 	return strings.Join(lines, "\n")
+}
+
+func anthropicToolsPayload(tools []*runtimev1.ToolSpec) []map[string]any {
+	if len(tools) == 0 {
+		return nil
+	}
+	out := make([]map[string]any, 0, len(tools))
+	for _, tool := range tools {
+		if tool == nil || strings.TrimSpace(tool.GetName()) == "" {
+			continue
+		}
+		entry := map[string]any{"name": tool.GetName()}
+		if description := strings.TrimSpace(tool.GetDescription()); description != "" {
+			entry["description"] = description
+		}
+		if schema := tool.GetInputSchema(); schema != nil {
+			entry["input_schema"] = schema.AsMap()
+		} else {
+			entry["input_schema"] = map[string]any{"type": "object"}
+		}
+		out = append(out, entry)
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
+}
+
+func anthropicToolChoicePayload(mode runtimev1.ToolChoiceMode, name string) any {
+	switch mode {
+	case runtimev1.ToolChoiceMode_TOOL_CHOICE_MODE_AUTO:
+		return map[string]any{"type": "auto"}
+	case runtimev1.ToolChoiceMode_TOOL_CHOICE_MODE_REQUIRED:
+		return map[string]any{"type": "any"}
+	case runtimev1.ToolChoiceMode_TOOL_CHOICE_MODE_TOOL:
+		if strings.TrimSpace(name) != "" {
+			return map[string]any{"type": "tool", "name": strings.TrimSpace(name)}
+		}
+		return map[string]any{"type": "any"}
+	default:
+		return nil
+	}
+}
+
+func parseAnthropicToolCalls(content []anthropicContentBlock) []*runtimev1.ToolCall {
+	calls := make([]*runtimev1.ToolCall, 0)
+	for _, block := range content {
+		if strings.TrimSpace(block.Type) != "tool_use" {
+			continue
+		}
+		name := strings.TrimSpace(block.Name)
+		if name == "" {
+			continue
+		}
+		arguments := "{}"
+		if len(block.Input) > 0 {
+			arguments = string(block.Input)
+		}
+		calls = append(calls, &runtimev1.ToolCall{
+			Id:            strings.TrimSpace(block.ID),
+			Name:          name,
+			ArgumentsJson: arguments,
+		})
+	}
+	if len(calls) == 0 {
+		return nil
+	}
+	return calls
 }
 
 func anthropicFinishReason(reason string) runtimev1.FinishReason {

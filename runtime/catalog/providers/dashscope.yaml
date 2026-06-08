@@ -1254,6 +1254,8 @@ models:
       url: https://help.aliyun.com/zh/model-studio/developer-reference/qwen-long-text-embedding
       retrieved_at: 2026-03-05
       note: DashScope long text embedding documentation.
+    embedding:
+      dimension: 1024
   - model_id: qwen3-asr-flash
     provider: dashscope
     model_type: stt

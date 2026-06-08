@@ -76,7 +76,7 @@ func TestGatewayRejectsUnlistedToolCall(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "not allowlisted") {
 		t.Fatalf("expected unlisted tool rejection, got %v", err)
 	}
-	assertGatewayReason(t, err, ReasonGatewayMCPToolNotAllowlisted)
+	assertGatewayReasonAndDiagnostic(t, err, ReasonCapabilityNotAllowed, ReasonGatewayMCPToolNotAllowlisted)
 }
 
 func TestGatewayFailsClosedOnSchemaDrift(t *testing.T) {
@@ -120,7 +120,7 @@ func TestGatewayRejectsCredentialMaterialInToolArguments(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "credential material") {
 		t.Fatalf("expected credential material rejection, got %v", err)
 	}
-	assertGatewayReason(t, err, ReasonGatewayMCPCredentialBlocked)
+	assertGatewayReasonAndDiagnostic(t, err, ReasonProviderBlocked, ReasonGatewayMCPCredentialBlocked)
 }
 
 func TestGatewayMapsMCPConnectFailureToTypedReason(t *testing.T) {
@@ -145,7 +145,7 @@ func TestGatewayMapsMCPConnectFailureToTypedReason(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected connect failure")
 	}
-	assertGatewayReason(t, err, ReasonGatewayMCPConnectFailed)
+	assertGatewayReasonAndDiagnostic(t, err, ReasonProviderNotFound, ReasonGatewayMCPConnectFailed)
 }
 
 func TestGatewayCallToolReturnsQuarantinedEvidence(t *testing.T) {
@@ -234,6 +234,23 @@ func assertGatewayReason(t *testing.T, err error, want string) {
 	}
 	if gatewayErr.ReasonCode != want {
 		t.Fatalf("gateway reason mismatch: got=%s want=%s err=%v", gatewayErr.ReasonCode, want, err)
+	}
+}
+
+// assertGatewayReasonAndDiagnostic verifies the K-DELEG-114 mapping: ReasonCode
+// is the admitted table code and GatewayDiagnosticCode preserves the original
+// adapter-level DELEG_GATEWAY_* detail.
+func assertGatewayReasonAndDiagnostic(t *testing.T, err error, wantReason, wantDiagnostic string) {
+	t.Helper()
+	var gatewayErr GatewayError
+	if !errors.As(err, &gatewayErr) {
+		t.Fatalf("expected GatewayError, got %T: %v", err, err)
+	}
+	if gatewayErr.ReasonCode != wantReason {
+		t.Fatalf("gateway reason mismatch: got=%s want=%s err=%v", gatewayErr.ReasonCode, wantReason, err)
+	}
+	if gatewayErr.GatewayDiagnosticCode != wantDiagnostic {
+		t.Fatalf("gateway diagnostic mismatch: got=%s want=%s err=%v", gatewayErr.GatewayDiagnosticCode, wantDiagnostic, err)
 	}
 }
 

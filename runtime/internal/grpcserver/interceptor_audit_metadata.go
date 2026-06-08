@@ -10,6 +10,7 @@ import (
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -121,6 +122,46 @@ func providerCredentialMetadata(ctx context.Context) (string, string, string) {
 		return "", "", ""
 	}
 	return credentialMeta.Source, credentialMeta.Endpoint, secretFingerprint(credentialMeta.APIKey)
+}
+
+// providerIdentityFromMetadata returns the provider identity (provider type)
+// carried in the request envelope. This is the K-AUDIT-018 `provider` field and
+// is distinct from the provider network endpoint.
+func providerIdentityFromMetadata(ctx context.Context) string {
+	credentialMeta, err := envelope.ParseCredentialMetadataFromContext(ctx)
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(credentialMeta.ProviderType)
+}
+
+// appInstanceIDFromMetadata returns the app instance id carried in the request
+// envelope. This is the K-AUDIT-018 `client_id` (== app_instance_id) and is
+// empty when the app did not declare an instance identifier.
+func appInstanceIDFromMetadata(ctx context.Context) string {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return ""
+	}
+	return firstMetadata(md, "x-nimi-app-instance-id")
+}
+
+// requestSourceFromCallerKind maps the caller kind to the K-AUDIT-018
+// `request_source` value (the origin category of the request).
+func requestSourceFromCallerKind(kind runtimev1.CallerKind) string {
+	if kind == runtimev1.CallerKind_CALLER_KIND_UNSPECIFIED {
+		return ""
+	}
+	return strings.ToLower(kind.String())
+}
+
+// grpcCodeOnFailure returns the gRPC status code name for a failed AI execution,
+// or empty on success (K-AUDIT-018 records grpc_code on failure only).
+func grpcCodeOnFailure(err error, success bool) string {
+	if success || err == nil {
+		return ""
+	}
+	return status.Code(err).String()
 }
 
 func secretFingerprint(value string) string {

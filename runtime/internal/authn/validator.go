@@ -40,8 +40,9 @@ const (
 )
 
 var (
-	errEmptyToken     = errors.New("empty token")
-	errSessionRevoked = errors.New("session revoked")
+	errEmptyToken          = errors.New("empty token")
+	errSessionRevoked      = errors.New("session revoked")
+	errRevocationNotConfig = errors.New("revocation url not configured for active jwt auth")
 )
 
 type revocationUnavailableError struct {
@@ -285,7 +286,13 @@ func (v *Validator) ValidateContext(ctx context.Context, tokenString string) (*I
 func (v *Validator) checkRevocation(ctx context.Context, identity *Identity) error {
 	revocationURL := v.currentRevocationURL()
 	if strings.TrimSpace(revocationURL) == "" {
-		return nil
+		// K-AUTHN-006: revocationUrl shares the bearer JWT restart config group
+		// with issuer/audience/jwksUrl. checkRevocation runs only after a token
+		// has passed signature + claims validation, which requires an active
+		// jwksUrl; an empty revocationUrl here means the config group is
+		// incomplete and the bearer JWT chain must fail-close rather than admit
+		// an unrevocable session.
+		return errRevocationNotConfig
 	}
 	if identity == nil || strings.TrimSpace(identity.SessionID) == "" {
 		return fmt.Errorf("token missing sid claim required for revocation")
@@ -668,6 +675,24 @@ func numericDateClaim(value any) (int64, error) {
 	default:
 		return 0, fmt.Errorf("invalid numeric date type %T", value)
 	}
+}
+
+// ValidateConfigGroup enforces the K-AUTHN-006 all-or-nothing bearer JWT
+// restart config group: jwksUrl, issuer, audience, and revocationUrl must be
+// supplied together or omitted together. A partial group fails closed so that
+// no active JWT chain can run without a configured revocation endpoint.
+func ValidateConfigGroup(jwksURL, issuer, audience, revocationURL string) error {
+	jwksURL = strings.TrimSpace(jwksURL)
+	issuer = strings.TrimSpace(issuer)
+	audience = strings.TrimSpace(audience)
+	revocationURL = strings.TrimSpace(revocationURL)
+	if jwksURL == "" && issuer == "" && audience == "" && revocationURL == "" {
+		return nil
+	}
+	if jwksURL == "" || issuer == "" || audience == "" || revocationURL == "" {
+		return fmt.Errorf("jwt auth config requires issuer, audience, jwks url, and revocation url together")
+	}
+	return validateConfig(jwksURL, issuer, audience)
 }
 
 func validateConfig(jwksURL, issuer, audience string) error {

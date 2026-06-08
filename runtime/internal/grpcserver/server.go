@@ -121,13 +121,19 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 		AppRegistry:      appRegistry,
 	})
 
-	// AuthN validator — JWKS mode (K-AUTHN-004)
+	// AuthN validator — JWKS mode (K-AUTHN-004). revocationUrl shares the
+	// bearer JWT restart config group with issuer/audience/jwksUrl, so the full
+	// group must validate together or the chain fails closed (K-AUTHN-006).
 	authnValidator, authnErr := authn.NewValidator(cfg.AuthJWTJWKSURL, cfg.AuthJWTIssuer, cfg.AuthJWTAudience)
+	if authnErr == nil {
+		authnErr = authn.ValidateConfigGroup(cfg.AuthJWTJWKSURL, cfg.AuthJWTIssuer, cfg.AuthJWTAudience, cfg.AuthJWTRevocationURL)
+	}
 	if authnErr != nil {
 		logger.Warn("JWT authn validator init failed; all JWT tokens will be rejected", "error", authnErr)
 		authnValidator, _ = authn.NewValidator("", "", "")
+	} else {
+		authnValidator.SetRevocationURL(cfg.AuthJWTRevocationURL)
 	}
-	authnValidator.SetRevocationURL(cfg.AuthJWTRevocationURL)
 
 	g := grpc.NewServer(
 		grpc.MaxRecvMsgSize(maxGRPCRecvMessageBytes),

@@ -77,6 +77,18 @@ func validateSnapshot(snapshot Snapshot) error {
 				return err
 			}
 		}
+		// K-MCAT-002 / K-MCAT-030 capability-conditional `embedding` block. It is
+		// the catalog authority for the runtime memory embedding profile dimension
+		// (K-MEM-004). It must only appear on `text.embed` models and must carry a
+		// positive dimension; malformed material fails closed at load time.
+		if model.Embedding != nil {
+			if !modelHasCapability(model, "text.embed") {
+				return fmt.Errorf("model %s:%s declares embedding metadata without text.embed support", provider, modelID)
+			}
+			if model.Embedding.Dimension <= 0 {
+				return fmt.Errorf("model %s:%s embedding.dimension must be a positive integer", provider, modelID)
+			}
+		}
 		if modelRequiresVideoGeneration(model) && model.VideoGeneration == nil {
 			return fmt.Errorf("model %s:%s missing video_generation", provider, modelID)
 		}

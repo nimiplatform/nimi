@@ -105,6 +105,10 @@ models:
     model_type: embedding
     updated_at: 2025-04-15
     capabilities: [text.embed]
+    # K-MEM-004 / K-AIEXEC-006: default `output_dimension`. embed-v4.0 supports
+    # 256/512/1024/1536; 1536 is the default recorded as profile identity.
+    embedding:
+      dimension: 1536
     pricing:
       unit: token
       input: "0.10"

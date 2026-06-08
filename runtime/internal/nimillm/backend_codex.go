@@ -57,8 +57,9 @@ func (b *Backend) generateTextCodexResponses(
 	temperature float32,
 	topP float32,
 	maxTokens int32,
+	params textGenParams,
 ) (string, *runtimev1.UsageStats, runtimev1.FinishReason, error) {
-	requestBody, err := b.buildCodexTextRequest(modelID, input, systemPrompt, temperature, topP, maxTokens, false)
+	requestBody, err := b.buildCodexTextRequest(modelID, input, systemPrompt, temperature, topP, maxTokens, params, false)
 	if err != nil {
 		return "", nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
 	}
@@ -87,9 +88,10 @@ func (b *Backend) streamGenerateTextCodexResponses(
 	temperature float32,
 	topP float32,
 	maxTokens int32,
+	params textGenParams,
 	onDelta func(string) error,
 ) (*runtimev1.UsageStats, runtimev1.FinishReason, error) {
-	requestBody, err := b.buildCodexTextRequest(modelID, input, systemPrompt, temperature, topP, maxTokens, true)
+	requestBody, err := b.buildCodexTextRequest(modelID, input, systemPrompt, temperature, topP, maxTokens, params, true)
 	if err != nil {
 		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
 	}
@@ -117,7 +119,7 @@ func (b *Backend) streamGenerateTextCodexResponses(
 		_ = json.NewDecoder(response.Body).Decode(&errPayload)
 		_ = response.Body.Close()
 		if IsStreamUnsupported(response.StatusCode, errPayload) {
-			return b.fallbackStreamToNonStream(ctx, modelID, input, systemPrompt, temperature, topP, maxTokens, onDelta)
+			return b.fallbackStreamToNonStream(ctx, modelID, input, systemPrompt, temperature, topP, maxTokens, params, onDelta)
 		}
 		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, MapProviderHTTPError(response.StatusCode, errPayload)
 	}
@@ -254,6 +256,7 @@ func (b *Backend) buildCodexTextRequest(
 	temperature float32,
 	topP float32,
 	maxTokens int32,
+	params textGenParams,
 	stream bool,
 ) (map[string]any, error) {
 	items, err := buildCodexResponsesInput(input)
@@ -277,6 +280,9 @@ func (b *Backend) buildCodexTextRequest(
 	}
 	if topP > 0 {
 		requestBody["top_p"] = topP
+	}
+	if params.topK > 0 {
+		requestBody["top_k"] = params.topK
 	}
 	// chatgpt.com/backend-api/codex rejects max_output_tokens even though the
 	// public Responses API accepts it. Hermes omits this field for Codex

@@ -20,18 +20,22 @@ func (s *Service) AuthorizeExternalPrincipal(ctx context.Context, req *runtimev1
 	externalID := strings.TrimSpace(req.GetExternalPrincipalId())
 	subjectUserID := strings.TrimSpace(req.GetSubjectUserId())
 	if appID == "" || externalID == "" || subjectUserID == "" {
+		s.emitAudit(ctx, "AuthorizeExternalPrincipal", appID, subjectUserID, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 
 	if strings.TrimSpace(req.GetConsentId()) == "" || strings.TrimSpace(req.GetConsentVersion()) == "" {
+		s.emitAudit(ctx, "AuthorizeExternalPrincipal", appID, subjectUserID, runtimev1.ReasonCode_APP_CONSENT_MISSING)
 		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_CONSENT_MISSING)
 	}
 	if req.GetDecisionAt() == nil || req.GetDecisionAt().AsTime().IsZero() {
+		s.emitAudit(ctx, "AuthorizeExternalPrincipal", appID, subjectUserID, runtimev1.ReasonCode_APP_CONSENT_INVALID)
 		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_CONSENT_INVALID)
 	}
 
 	record, exists := s.registry.Get(appID)
 	if !exists {
+		s.emitAudit(ctx, "AuthorizeExternalPrincipal", appID, subjectUserID, runtimev1.ReasonCode_APP_NOT_REGISTERED)
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_APP_NOT_REGISTERED)
 	}
 
@@ -39,31 +43,39 @@ func (s *Service) AuthorizeExternalPrincipal(ctx context.Context, req *runtimev1
 	switch policyMode {
 	case runtimev1.PolicyMode_POLICY_MODE_PRESET:
 		if req.GetPreset() == runtimev1.AuthorizationPreset_AUTHORIZATION_PRESET_UNSPECIFIED {
+			s.emitAudit(ctx, "AuthorizeExternalPrincipal", appID, subjectUserID, runtimev1.ReasonCode_APP_GRANT_INVALID)
 			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_APP_GRANT_INVALID)
 		}
 		if len(normalizeScopes(req.GetScopes())) > 0 {
+			s.emitAudit(ctx, "AuthorizeExternalPrincipal", appID, subjectUserID, runtimev1.ReasonCode_APP_GRANT_INVALID)
 			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_APP_GRANT_INVALID)
 		}
 	case runtimev1.PolicyMode_POLICY_MODE_CUSTOM:
 		if len(normalizeScopes(req.GetScopes())) == 0 || req.GetResourceSelectors() == nil {
+			s.emitAudit(ctx, "AuthorizeExternalPrincipal", appID, subjectUserID, runtimev1.ReasonCode_APP_GRANT_INVALID)
 			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_APP_GRANT_INVALID)
 		}
 	default:
+		s.emitAudit(ctx, "AuthorizeExternalPrincipal", appID, subjectUserID, runtimev1.ReasonCode_APP_GRANT_INVALID)
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_APP_GRANT_INVALID)
 	}
 
 	effectiveScopes := resolveScopes(req)
 	if len(effectiveScopes) == 0 {
+		s.emitAudit(ctx, "AuthorizeExternalPrincipal", appID, subjectUserID, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
 		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
 	}
 	if hasInvalidScopePrefix(effectiveScopes) {
+		s.emitAudit(ctx, "AuthorizeExternalPrincipal", appID, subjectUserID, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
 		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
 	}
 	if hasRealmScope(effectiveScopes) {
+		s.emitAudit(ctx, "AuthorizeExternalPrincipal", appID, subjectUserID, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
 		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
 	}
 
 	if reasonCode, actionHint, ok := appregistry.ValidateDomainAndScopes(record.Manifest, req.GetDomain(), effectiveScopes); !ok {
+		s.emitAudit(ctx, "AuthorizeExternalPrincipal", appID, subjectUserID, reasonCode)
 		return nil, grpcerr.WithReasonCodeOptions(codes.PermissionDenied, reasonCode, grpcerr.ReasonOptions{
 			ActionHint: actionHint,
 		})
@@ -71,10 +83,12 @@ func (s *Service) AuthorizeExternalPrincipal(ctx context.Context, req *runtimev1
 
 	scopeCatalogVersion := strings.TrimSpace(req.GetScopeCatalogVersion())
 	if scopeCatalogVersion == "" {
+		s.emitAudit(ctx, "AuthorizeExternalPrincipal", appID, subjectUserID, runtimev1.ReasonCode_APP_SCOPE_CATALOG_UNPUBLISHED)
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_APP_SCOPE_CATALOG_UNPUBLISHED)
 	}
 	scopeValidation := s.catalog.ValidateScopes(scopeCatalogVersion, effectiveScopes)
 	if scopeValidation != runtimev1.ReasonCode_ACTION_EXECUTED {
+		s.emitAudit(ctx, "AuthorizeExternalPrincipal", appID, subjectUserID, scopeValidation)
 		return nil, grpcerr.WithReasonCodeOptions(codes.PermissionDenied, scopeValidation, grpcerr.ReasonOptions{
 			ActionHint: scopeValidationActionHint(scopeValidation),
 		})

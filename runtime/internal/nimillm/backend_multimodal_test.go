@@ -35,7 +35,10 @@ func TestHasMultimodalParts(t *testing.T) {
 		}
 	})
 
-	t.Run("text-only parts returns true", func(t *testing.T) {
+	t.Run("text-only parts returns false", func(t *testing.T) {
+		// Text-only parts must NOT select the multimodal builders: those builders
+		// would drop tool_calls/tool_call_id, breaking multi-step tool loops whose
+		// messages carry redundant text parts. Routing stays on buildOpenAIMessages.
 		input := []*runtimev1.ChatMessage{
 			{
 				Role: "user",
@@ -44,8 +47,21 @@ func TestHasMultimodalParts(t *testing.T) {
 				},
 			},
 		}
-		if !hasMultimodalParts(input) {
-			t.Fatal("expected true when parts are present even if text-only")
+		if hasMultimodalParts(input) {
+			t.Fatal("expected false when only text parts are present")
+		}
+	})
+
+	t.Run("audio and video parts return true", func(t *testing.T) {
+		for _, part := range []*runtimev1.ChatContentPart{
+			audioPart("https://example.com/a.wav"),
+			videoPart("https://example.com/v.mp4"),
+			artifactRefPart(&runtimev1.ChatContentArtifactRef{ArtifactId: "art-1"}),
+		} {
+			input := []*runtimev1.ChatMessage{{Role: "user", Parts: []*runtimev1.ChatContentPart{part}}}
+			if !hasMultimodalParts(input) {
+				t.Fatalf("expected true for genuine multimodal part type %v", part.GetType())
+			}
 		}
 	})
 
@@ -359,6 +375,80 @@ func TestBuildOpenAIMultimodalMessages(t *testing.T) {
 	})
 }
 
+func TestBuildOpenAIMultimodalMessagesToolRoundTrip(t *testing.T) {
+	// A vision request whose model then calls a tool: the image keeps the request
+	// on the multimodal builder, which must still serialize the assistant
+	// tool_calls and the tool-role tool_call_id so the loop round-trips.
+	input := []*runtimev1.ChatMessage{
+		{
+			Role: "user",
+			Parts: []*runtimev1.ChatContentPart{
+				textPart("what is in this chart?"),
+				imagePart("https://example.com/chart.png"),
+			},
+		},
+		{Role: "assistant", Content: "", ToolCalls: []*runtimev1.ToolCall{
+			{Id: "call-9", Name: "lookup", ArgumentsJson: `{"series":"q3"}`},
+		}},
+		{Role: "tool", Content: `{"value":42}`, ToolCallId: "call-9"},
+	}
+
+	msgs := buildOpenAIMultimodalMessages("", input)
+	if len(msgs) != 3 {
+		t.Fatalf("expected 3 messages (user multimodal + assistant tool call + tool result), got %d", len(msgs))
+	}
+
+	if _, ok := msgs[0].Content.([]openAIContentPart); !ok {
+		t.Fatalf("expected user multimodal content array, got %T", msgs[0].Content)
+	}
+
+	assistant := msgs[1]
+	if assistant.Role != "assistant" || len(assistant.ToolCalls) != 1 {
+		t.Fatalf("expected assistant tool call preserved, got %+v", assistant)
+	}
+	if assistant.ToolCalls[0].ID != "call-9" || assistant.ToolCalls[0].Function.Name != "lookup" {
+		t.Fatalf("unexpected assistant tool call: %+v", assistant.ToolCalls[0])
+	}
+
+	tool := msgs[2]
+	if tool.Role != "tool" || tool.ToolCallID != "call-9" || tool.Content != `{"value":42}` {
+		t.Fatalf("unexpected tool message: %+v", tool)
+	}
+}
+
+func TestBuildOpenAIProviderNativeMessagesToolRoundTrip(t *testing.T) {
+	backend := newBackend("cloud-openai", "https://example.com", "", nil, 0, nil, false, true)
+	if backend == nil {
+		t.Fatal("expected backend")
+	}
+	input := []*runtimev1.ChatMessage{
+		{
+			Role: "user",
+			Parts: []*runtimev1.ChatContentPart{
+				textPart("describe and look up"),
+				imagePart("https://example.com/img.png"),
+			},
+		},
+		{Role: "assistant", Content: "", ToolCalls: []*runtimev1.ToolCall{
+			{Id: "call-1", Name: "lookup", ArgumentsJson: `{"q":"x"}`},
+		}},
+		{Role: "tool", Content: `{"ok":true}`, ToolCallId: "call-1"},
+	}
+	msgs, err := backend.buildOpenAIProviderNativeMessages(context.Background(), "", input)
+	if err != nil {
+		t.Fatalf("buildOpenAIProviderNativeMessages() error = %v", err)
+	}
+	if len(msgs) != 3 {
+		t.Fatalf("expected 3 messages, got %d", len(msgs))
+	}
+	if len(msgs[1].ToolCalls) != 1 || msgs[1].ToolCalls[0].ID != "call-1" {
+		t.Fatalf("expected assistant tool call preserved, got %+v", msgs[1])
+	}
+	if msgs[2].ToolCallID != "call-1" || msgs[2].Content != `{"ok":true}` {
+		t.Fatalf("expected tool result preserved, got %+v", msgs[2])
+	}
+}
+
 func TestBuildOpenAIMultimodalMessagesJSON(t *testing.T) {
 	t.Run("system message marshals as string content", func(t *testing.T) {
 		input := []*runtimev1.ChatMessage{
@@ -490,7 +580,7 @@ func TestGenerateTextRejectsUnsupportedOpenAITextChatParts(t *testing.T) {
 			},
 		},
 	}
-	_, _, _, err := backend.GenerateText(t.Context(), "openai/gpt-4o", input, "", 0, 0, 0)
+	_, _, _, _, err := backend.GenerateText(t.Context(), "openai/gpt-4o", input, "", 0, 0, 0, textGenParams{})
 	if err == nil {
 		t.Fatal("expected unsupported video input to reject before provider call")
 	}
@@ -518,7 +608,7 @@ func TestGenerateTextOpenAIProviderNativeAudioRequest(t *testing.T) {
 	if backend == nil {
 		t.Fatal("expected backend")
 	}
-	text, _, _, err := backend.GenerateText(context.Background(), "gpt-4o-audio-preview", []*runtimev1.ChatMessage{
+	text, _, _, _, err := backend.GenerateText(context.Background(), "gpt-4o-audio-preview", []*runtimev1.ChatMessage{
 		{
 			Role: "user",
 			Parts: []*runtimev1.ChatContentPart{
@@ -526,7 +616,7 @@ func TestGenerateTextOpenAIProviderNativeAudioRequest(t *testing.T) {
 				audioPart(server.URL + "/sample.wav"),
 			},
 		},
-	}, "", 0, 0, 0)
+	}, "", 0, 0, 0, textGenParams{})
 	if err != nil {
 		t.Fatalf("generate text: %v", err)
 	}
@@ -570,7 +660,7 @@ func TestGenerateTextGenericOpenAICompatibleRejectsAudioPart(t *testing.T) {
 	if backend == nil {
 		t.Fatal("expected backend")
 	}
-	_, _, _, err := backend.GenerateText(context.Background(), "generic-model", []*runtimev1.ChatMessage{
+	_, _, _, _, err := backend.GenerateText(context.Background(), "generic-model", []*runtimev1.ChatMessage{
 		{
 			Role: "user",
 			Parts: []*runtimev1.ChatContentPart{
@@ -578,7 +668,7 @@ func TestGenerateTextGenericOpenAICompatibleRejectsAudioPart(t *testing.T) {
 				audioPart("https://example.com/sample.wav"),
 			},
 		},
-	}, "", 0, 0, 0)
+	}, "", 0, 0, 0, textGenParams{})
 	if err == nil {
 		t.Fatal("expected generic openai-compatible path to reject audio")
 	}

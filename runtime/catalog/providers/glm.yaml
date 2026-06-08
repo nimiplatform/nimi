@@ -123,6 +123,8 @@ models:
       url: https://docs.bigmodel.cn/cn/guide/models/embedding/embedding-3
       retrieved_at: 2026-04-18
       note: Current Embedding-3 model card and pricing.
+    embedding:
+      dimension: 2048
   - model_id: glm-asr-2512
     provider: glm
     model_type: stt

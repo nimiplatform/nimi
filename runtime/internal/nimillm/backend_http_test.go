@@ -60,6 +60,7 @@ func TestBackendStreamGenerateTextBrokenChunkReturnsReasonCode(t *testing.T) {
 		0,
 		0,
 		0,
+		textGenParams{},
 		func(string) error { return nil },
 	)
 	if err == nil {
@@ -94,7 +95,7 @@ func TestBackendGenerateTextUsesFlexibleMessageExtraction(t *testing.T) {
 		t.Fatal("expected backend")
 	}
 
-	text, usage, finish, err := backend.GenerateText(
+	text, _, usage, finish, err := backend.GenerateText(
 		context.Background(),
 		"gpt-4o-mini",
 		[]*runtimev1.ChatMessage{{Role: "user", Content: "hello"}},
@@ -102,6 +103,7 @@ func TestBackendGenerateTextUsesFlexibleMessageExtraction(t *testing.T) {
 		0,
 		0,
 		0,
+		textGenParams{},
 	)
 	if err != nil {
 		t.Fatalf("unexpected generate error: %v", err)
@@ -134,7 +136,7 @@ func TestBackendGenerateTextUsesOpenAICompatibleRootPathForGeminiBase(t *testing
 		t.Fatal("expected backend")
 	}
 
-	text, _, _, err := backend.GenerateText(
+	text, _, _, _, err := backend.GenerateText(
 		context.Background(),
 		"gemini-2.5-flash",
 		[]*runtimev1.ChatMessage{{Role: "user", Content: "hello"}},
@@ -142,6 +144,7 @@ func TestBackendGenerateTextUsesOpenAICompatibleRootPathForGeminiBase(t *testing
 		0,
 		0,
 		0,
+		textGenParams{},
 	)
 	if err != nil {
 		t.Fatalf("unexpected generate error: %v", err)
@@ -156,8 +159,12 @@ func TestBackendGenerateTextUsesOpenAICompatibleRootPathForGeminiBase(t *testing
 
 func TestBackendStreamGenerateTextUsesOpenAICompatibleRootPathForGeminiBase(t *testing.T) {
 	var capturedPath string
+	var capturedRequestBody map[string]any
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		capturedPath = r.URL.Path
+		if err := json.NewDecoder(r.Body).Decode(&capturedRequestBody); err != nil {
+			t.Fatalf("decode request body: %v", err)
+		}
 		w.Header().Set("Content-Type", "text/event-stream")
 		_, _ = w.Write([]byte("data: {\"choices\":[{\"delta\":{\"content\":\"hello\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":2,\"completion_tokens\":1,\"total_tokens\":3}}\n\n"))
 		_, _ = w.Write([]byte("data: [DONE]\n\n"))
@@ -178,6 +185,7 @@ func TestBackendStreamGenerateTextUsesOpenAICompatibleRootPathForGeminiBase(t *t
 		0,
 		0,
 		0,
+		textGenParams{topK: 38},
 		func(part string) error {
 			full.WriteString(part)
 			return nil
@@ -189,8 +197,77 @@ func TestBackendStreamGenerateTextUsesOpenAICompatibleRootPathForGeminiBase(t *t
 	if capturedPath != "/openai/chat/completions" {
 		t.Fatalf("expected Gemini-compatible stream path, got %q", capturedPath)
 	}
+	if capturedRequestBody["top_k"] != float64(38) {
+		t.Fatalf("expected top_k pass-through, got %v", capturedRequestBody["top_k"])
+	}
 	if full.String() != "hello" {
 		t.Fatalf("unexpected stream text: %q", full.String())
+	}
+}
+
+func TestBackendStreamGenerateTextFallbackPreservesTopK(t *testing.T) {
+	var capturedBodies []map[string]any
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode request body: %v", err)
+		}
+		capturedBodies = append(capturedBodies, body)
+		w.Header().Set("Content-Type", "application/json")
+		if len(capturedBodies) == 1 {
+			_, _ = w.Write([]byte(`{"notice":"stream unsupported"}`))
+			return
+		}
+		_, _ = w.Write([]byte(`{
+			"choices":[{"finish_reason":"stop","message":{"content":"fallback text"}}],
+			"usage":{"prompt_tokens":2,"completion_tokens":3,"total_tokens":5}
+		}`))
+	}))
+	defer func() { server.Close() }()
+
+	backend := NewBackend("openai", server.URL, "", 5*time.Second)
+	if backend == nil {
+		t.Fatal("expected backend")
+	}
+
+	var full strings.Builder
+	usage, finish, err := backend.StreamGenerateText(
+		context.Background(),
+		"gpt-4o-mini",
+		[]*runtimev1.ChatMessage{{Role: "user", Content: "hello"}},
+		"",
+		0,
+		0,
+		0,
+		textGenParams{topK: 44},
+		func(part string) error {
+			full.WriteString(part)
+			return nil
+		},
+	)
+	if err != nil {
+		t.Fatalf("unexpected stream fallback error: %v", err)
+	}
+	if len(capturedBodies) != 2 {
+		t.Fatalf("expected stream request plus fallback request, got %d", len(capturedBodies))
+	}
+	if capturedBodies[0]["top_k"] != float64(44) || capturedBodies[1]["top_k"] != float64(44) {
+		t.Fatalf("expected top_k on stream and fallback requests, got %+v", capturedBodies)
+	}
+	if capturedBodies[0]["stream"] != true {
+		t.Fatalf("expected first request to be streaming, got %+v", capturedBodies[0]["stream"])
+	}
+	if capturedBodies[1]["stream"] != false {
+		t.Fatalf("expected fallback request to be non-streaming, got %+v", capturedBodies[1]["stream"])
+	}
+	if full.String() != "fallback text" {
+		t.Fatalf("unexpected fallback text: %q", full.String())
+	}
+	if usage == nil || usage.GetInputTokens() != 2 || usage.GetOutputTokens() != 3 {
+		t.Fatalf("unexpected usage: %+v", usage)
+	}
+	if finish != runtimev1.FinishReason_FINISH_REASON_STOP {
+		t.Fatalf("unexpected finish reason: %v", finish)
 	}
 }
 
@@ -217,6 +294,7 @@ func TestBackendStreamGenerateTextCountsNonContentChunksAsActivity(t *testing.T)
 		0,
 		0,
 		0,
+		textGenParams{},
 		func(part string) error {
 			callbacks = append(callbacks, part)
 			return nil
@@ -270,7 +348,7 @@ func TestBackendGenerateTextUsesCodexResponses(t *testing.T) {
 		t.Fatal("expected backend")
 	}
 
-	text, usage, finish, err := backend.GenerateText(
+	text, _, usage, finish, err := backend.GenerateText(
 		context.Background(),
 		"gpt-5.4",
 		[]*runtimev1.ChatMessage{{Role: "user", Content: "hello"}},
@@ -278,6 +356,7 @@ func TestBackendGenerateTextUsesCodexResponses(t *testing.T) {
 		0,
 		0,
 		4096,
+		textGenParams{topK: 52},
 	)
 	if err != nil {
 		t.Fatalf("unexpected generate error: %v", err)
@@ -296,6 +375,9 @@ func TestBackendGenerateTextUsesCodexResponses(t *testing.T) {
 	}
 	if _, exists := capturedRequestBody["max_output_tokens"]; exists {
 		t.Fatalf("expected Codex request to omit max_output_tokens, got %+v", capturedRequestBody)
+	}
+	if capturedRequestBody["top_k"] != float64(52) {
+		t.Fatalf("expected top_k pass-through, got %v", capturedRequestBody["top_k"])
 	}
 	input, ok := capturedRequestBody["input"].([]any)
 	if !ok || len(input) != 1 {
@@ -354,6 +436,7 @@ func TestBackendStreamGenerateTextUsesCodexResponsesSSE(t *testing.T) {
 		0,
 		0,
 		4096,
+		textGenParams{topK: 53},
 		func(part string) error {
 			full.WriteString(part)
 			return nil
@@ -370,6 +453,9 @@ func TestBackendStreamGenerateTextUsesCodexResponsesSSE(t *testing.T) {
 	}
 	if _, exists := capturedRequestBody["max_output_tokens"]; exists {
 		t.Fatalf("expected Codex stream request to omit max_output_tokens, got %+v", capturedRequestBody)
+	}
+	if capturedRequestBody["top_k"] != float64(53) {
+		t.Fatalf("expected top_k pass-through, got %v", capturedRequestBody["top_k"])
 	}
 	input, ok := capturedRequestBody["input"].([]any)
 	if !ok || len(input) != 1 {
@@ -428,6 +514,7 @@ func TestBackendStreamGenerateTextUsesCodexResponsesSSEDespiteUnexpectedContentT
 		0,
 		0,
 		4096,
+		textGenParams{},
 		func(part string) error {
 			full.WriteString(part)
 			return nil
@@ -498,7 +585,7 @@ func TestBackendGenerateTextUsesAnthropicMessagesAPI(t *testing.T) {
 		t.Fatal("expected backend")
 	}
 
-	text, usage, finish, err := backend.GenerateText(
+	text, _, usage, finish, err := backend.GenerateText(
 		context.Background(),
 		"claude-sonnet-4-6",
 		[]*runtimev1.ChatMessage{{Role: "user", Content: "hello"}},
@@ -506,6 +593,7 @@ func TestBackendGenerateTextUsesAnthropicMessagesAPI(t *testing.T) {
 		0,
 		0,
 		0,
+		textGenParams{},
 	)
 	if err != nil {
 		t.Fatalf("unexpected generate error: %v", err)
@@ -554,7 +642,7 @@ func TestBackendGenerateTextUsesAnthropicOAuthBearer(t *testing.T) {
 		t.Fatal("expected backend")
 	}
 
-	_, _, _, err := backend.GenerateText(
+	_, _, _, _, err := backend.GenerateText(
 		context.Background(),
 		"claude-sonnet-4-6",
 		[]*runtimev1.ChatMessage{{Role: "user", Content: "hello"}},
@@ -562,6 +650,7 @@ func TestBackendGenerateTextUsesAnthropicOAuthBearer(t *testing.T) {
 		0,
 		0,
 		0,
+		textGenParams{},
 	)
 	if err != nil {
 		t.Fatalf("unexpected generate error: %v", err)
@@ -596,7 +685,7 @@ func TestBackendGenerateTextUsesOpenAICompatibleOAuthBearer(t *testing.T) {
 		t.Fatal("expected backend")
 	}
 
-	text, usage, finish, err := backend.GenerateText(
+	text, _, usage, finish, err := backend.GenerateText(
 		context.Background(),
 		"qwen-max",
 		[]*runtimev1.ChatMessage{{Role: "user", Content: "hello"}},
@@ -604,6 +693,7 @@ func TestBackendGenerateTextUsesOpenAICompatibleOAuthBearer(t *testing.T) {
 		0,
 		0,
 		0,
+		textGenParams{},
 	)
 	if err != nil {
 		t.Fatalf("unexpected generate error: %v", err)
@@ -626,7 +716,11 @@ func TestBackendGenerateTextUsesOpenAICompatibleOAuthBearer(t *testing.T) {
 }
 
 func TestBackendStreamGenerateTextUsesAnthropicMessagesSSE(t *testing.T) {
+	var capturedRequestBody map[string]any
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := json.NewDecoder(r.Body).Decode(&capturedRequestBody); err != nil {
+			t.Fatalf("decode request body: %v", err)
+		}
 		w.Header().Set("Content-Type", "text/event-stream")
 		_, _ = w.Write([]byte("event: content_block_delta\n"))
 		_, _ = w.Write([]byte("data: {\"delta\":{\"type\":\"text_delta\",\"text\":\"hello \"}}\n\n"))
@@ -653,6 +747,7 @@ func TestBackendStreamGenerateTextUsesAnthropicMessagesSSE(t *testing.T) {
 		0,
 		0,
 		0,
+		textGenParams{topK: 29},
 		func(part string) error {
 			full.WriteString(part)
 			return nil
@@ -663,6 +758,9 @@ func TestBackendStreamGenerateTextUsesAnthropicMessagesSSE(t *testing.T) {
 	}
 	if full.String() != "hello anthropic" {
 		t.Fatalf("unexpected stream text: %q", full.String())
+	}
+	if capturedRequestBody["top_k"] != float64(29) {
+		t.Fatalf("expected top_k pass-through, got %v", capturedRequestBody["top_k"])
 	}
 	if usage == nil || usage.GetInputTokens() != 6 || usage.GetOutputTokens() != 2 {
 		t.Fatalf("unexpected usage: %+v", usage)

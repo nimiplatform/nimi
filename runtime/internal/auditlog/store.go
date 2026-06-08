@@ -9,6 +9,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/auditredaction"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/pagination"
 	"github.com/oklog/ulid/v2"
@@ -417,88 +418,16 @@ func cloneUsage(input *runtimev1.UsageStats) *runtimev1.UsageStats {
 	return statsCopy
 }
 
-// sensitiveKeyPatterns are patterns for keys whose values must be masked
-// per K-AUDIT-017.
-var sensitiveKeyPatterns = []string{
-	"api_key",
-	"credential",
-	"secret",
-	"authorization",
-	"password",
-	"private_key",
-	"privatekey",
-	"passphrase",
-	"cookie",
-	"bearer",
-	"signature",
-	"session_id",
-	"sessionid",
-}
-
-// exemptTokenKeys are token-related keys that should NOT be masked.
-var exemptTokenKeys = map[string]bool{
-	"token_id":        true,
-	"page_token":      true,
-	"next_page_token": true,
-}
-
-// isSensitiveKey returns true if the key matches any sensitive pattern
-// and is not in the exempt list.
 func isSensitiveKey(key string) bool {
-	lower := strings.ToLower(key)
-	if exemptTokenKeys[lower] {
-		return false
-	}
-	// Special handling for "token" pattern — only match if not exempt.
-	for _, pattern := range sensitiveKeyPatterns {
-		if strings.Contains(lower, pattern) {
-			return true
-		}
-	}
-	// Check "token" pattern separately (not in sensitiveKeyPatterns to avoid
-	// matching exempt keys above, but we already checked exemptions).
-	if strings.Contains(lower, "token") && !exemptTokenKeys[lower] {
-		return true
-	}
-	return false
+	return auditredaction.IsSensitiveKey(key)
 }
 
-// maskValue masks a sensitive string value per K-AUDIT-017:
-//   - len >= 12: first4 + "***" + last4
-//   - len < 12: "***"
 func maskValue(value string) string {
-	if len(value) >= 12 {
-		return value[:4] + "***" + value[len(value)-4:]
-	}
-	return "***"
+	return auditredaction.MaskValue(value)
 }
 
-// maskSensitiveFields recursively walks structpb fields and masks
-// string values of keys matching sensitive patterns.
 func maskSensitiveFields(fields map[string]*structpb.Value) {
-	for key, val := range fields {
-		if val == nil {
-			continue
-		}
-		switch v := val.GetKind().(type) {
-		case *structpb.Value_StringValue:
-			if isSensitiveKey(key) {
-				fields[key] = structpb.NewStringValue(maskValue(v.StringValue))
-			}
-		case *structpb.Value_StructValue:
-			if v.StructValue != nil {
-				maskSensitiveFields(v.StructValue.GetFields())
-			}
-		case *structpb.Value_ListValue:
-			if v.ListValue != nil {
-				for _, item := range v.ListValue.GetValues() {
-					if sv := item.GetStructValue(); sv != nil {
-						maskSensitiveFields(sv.GetFields())
-					}
-				}
-			}
-		}
-	}
+	auditredaction.MaskSensitiveFields(fields)
 }
 
 func eventFilterDigest(req *runtimev1.ListAuditEventsRequest) string {

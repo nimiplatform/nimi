@@ -159,6 +159,12 @@ func (s *Service) SubmitDelegatedApprovalDecision(_ context.Context, req *runtim
 	s.delegatedApprovalRequests[delegatedApprovalRequestKey(agentID, approvalID)] = proto.Clone(approval).(*runtimev1.DelegatedApprovalRequest)
 	out := proto.Clone(approval).(*runtimev1.DelegatedApprovalRequest)
 	s.delegatedMu.Unlock()
+
+	// K-DELEG-095 / K-DELEG-097: every approval decision (APPROVE and REJECT)
+	// must be audited and observable, linked to delegation/provider/capability/
+	// principal lineage. Emitted after the lock is released, mirroring the
+	// orchestration decision-recording path.
+	s.appendDelegatedApprovalDecisionAuditEvent(agentID, out, delegatedApprovalPrincipalID(req.GetContext()))
 	return &runtimev1.SubmitDelegatedApprovalDecisionResponse{ApprovalRequest: out}, nil
 }
 

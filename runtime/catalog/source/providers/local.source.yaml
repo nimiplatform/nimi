@@ -74,6 +74,10 @@ sources:
     url: https://huggingface.co/unsloth/Qwen3-4B-Instruct-2507-GGUF
     retrieved_at: 2026-05-21
     note: Z-Image-Turbo text-encoder companion source (Qwen3-4B-Instruct-2507, GGUF quants for the stable-diffusion.cpp --llm slot).
+  - source_id: nomic_embed_text_v15_modelcard
+    url: https://huggingface.co/nomic-ai/nomic-embed-text-v1.5
+    retrieved_at: 2026-06-08
+    note: Nomic Embed Text v1.5 model card declaring 8192 context and 768 native embedding dimension.
   - source_id: cosyvoice_repo
     url: https://github.com/FunAudioLLM/CosyVoice
     retrieved_at: 2026-03-05
@@ -503,6 +507,12 @@ models:
     model_type: embedding
     updated_at: 2026-03-15
     capabilities: [text.embed]
+    source_ids: [nomic_embed_text_v15_modelcard]
+    # K-MEM-004 / K-AIEXEC-006: catalog-authoritative output dimension for the
+    # runtime memory embedding profile. nomic-embed-text-v1.5 emits 768-dim
+    # vectors natively.
+    embedding:
+      dimension: 768
     aliases:
       - local/nomic-embed-text
       - llama/nomic-embed-text

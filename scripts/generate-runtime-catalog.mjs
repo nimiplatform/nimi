@@ -25,6 +25,7 @@ import {
   normalizeVoiceRequestOptions,
   normalizeVoiceWorkflowRequestOptions,
   normalizeWorkflowType,
+  normalizeEmbeddingCapability,
   normalizeLocalPlaneRow,
   normalizePresets,
   parseVoiceDefinition,
@@ -140,6 +141,7 @@ function generateProviderCatalog(doc) {
     const staticVoiceSetRef = normalizeString(voiceConfig.voice_set_ref || model?.preset_voice_set_ref || model?.voice_set_id);
     const voiceRequestOptions = normalizeVoiceRequestOptions(voiceConfig.request_options, provider, canonicalModelID);
     const transcription = normalizeTranscriptionOptions(model?.transcription, provider, canonicalModelID);
+    const embedding = normalizeEmbeddingCapability(model?.embedding, provider, canonicalModelID);
     const allowedDiscoveryModes = new Set(['static_catalog', 'dynamic_user_scoped']);
     if (discoveryMode && !allowedDiscoveryModes.has(discoveryMode)) {
       throw new Error(`${provider} model ${canonicalModelID} has unsupported voice discovery_mode: ${discoveryMode}`);
@@ -192,6 +194,9 @@ function generateProviderCatalog(doc) {
     if (transcription && !capabilities.map((value) => value.toLowerCase()).includes('audio.transcribe')) {
       throw new Error(`${provider} model ${canonicalModelID} declares transcription metadata without audio.transcribe support`);
     }
+    if (embedding && !capabilities.map((value) => value.toLowerCase()).includes('text.embed')) {
+      throw new Error(`${provider} model ${canonicalModelID} declares embedding metadata without text.embed support`);
+    }
 
     for (const entryModelID of expandedModelIDs) {
       const normalizedKey = entryModelID.toLowerCase();
@@ -222,6 +227,9 @@ function generateProviderCatalog(doc) {
       }
       if (transcription) {
         modelEntry.transcription = transcription;
+      }
+      if (embedding) {
+        modelEntry.embedding = embedding;
       }
       if (videoGeneration) {
         modelEntry.video_generation = videoGeneration;

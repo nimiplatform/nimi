@@ -163,6 +163,10 @@ models:
     model_type: embedding
     updated_at: 2026-04-18
     capabilities: [text.embed]
+    # K-MEM-004 / K-AIEXEC-006: Baidu Qianfan Embedding-V1 emits 384-dim vectors
+    # (see pricing notes below).
+    embedding:
+      dimension: 384
     pricing:
       unit: token
       input: "0.50"

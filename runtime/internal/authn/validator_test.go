@@ -198,6 +198,20 @@ func validClaims() jwt.MapClaims {
 	}
 }
 
+// newActiveRevocationServer returns a revocation endpoint that always reports an
+// active, non-revoked session. K-AUTHN-006 makes revocationUrl part of the
+// bearer JWT restart config group, so success-path tests must configure it for
+// the validator to admit a token.
+func newActiveRevocationServer(t *testing.T) *httptest.Server {
+	t.Helper()
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(revocationResponse{Active: true})
+	}))
+	t.Cleanup(server.Close)
+	return server
+}
+
 func TestValidateRS256ValidTokenWithJWKS(t *testing.T) {
 	key := generateRSAKey(t)
 	server := newJWKSTestServer(t, jwksDocument{Keys: []jwkEntry{rsaJWKFromPrivateKey(t, key, "kid-1")}})
@@ -207,6 +221,7 @@ func TestValidateRS256ValidTokenWithJWKS(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewValidator: %v", err)
 	}
+	validator.SetRevocationURL(newActiveRevocationServer(t).URL)
 
 	token := signRS256(t, key, "kid-1", validClaims())
 	identity, err := validator.Validate(token)
@@ -536,6 +551,7 @@ func TestValidateES256ValidTokenWithJWKS(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewValidator: %v", err)
 	}
+	validator.SetRevocationURL(newActiveRevocationServer(t).URL)
 
 	token := signES256(t, key, "ec-kid", validClaims())
 	identity, err := validator.Validate(token)
@@ -558,6 +574,7 @@ func TestValidateKidMissTriggersRefreshAndPasses(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewValidator: %v", err)
 	}
+	validator.SetRevocationURL(newActiveRevocationServer(t).URL)
 
 	firstToken := signRS256(t, key1, "kid-1", validClaims())
 	if _, err := validator.Validate(firstToken); err != nil {
@@ -585,6 +602,7 @@ func TestValidateAcceptsClockSkewWithinSixtySeconds(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewValidator: %v", err)
 	}
+	validator.SetRevocationURL(newActiveRevocationServer(t).URL)
 
 	now := time.Now()
 	token := signRS256(t, key, "kid-1", jwt.MapClaims{
@@ -594,6 +612,7 @@ func TestValidateAcceptsClockSkewWithinSixtySeconds(t *testing.T) {
 		"exp": now.Add(-30 * time.Second).Unix(),
 		"iat": now.Unix(),
 		"nbf": now.Add(30 * time.Second).Unix(),
+		"sid": "session-abc",
 	})
 	if _, err := validator.Validate(token); err != nil {
 		t.Fatalf("expected token within clock skew window accepted, got %v", err)
@@ -917,6 +936,7 @@ func TestValidateFallbackUsesCachedHistoricalKeyOnRefreshFailure(t *testing.T) {
 	}
 	validator.cacheTTL = 5 * time.Millisecond
 	validator.fallbackTTL = time.Second
+	validator.SetRevocationURL(newActiveRevocationServer(t).URL)
 
 	token := signRS256(t, key, "kid-1", validClaims())
 	if _, err := validator.Validate(token); err != nil {
@@ -1192,14 +1212,17 @@ func TestValidateRejectsIntrospectionTimeout(t *testing.T) {
 	}
 }
 
-// TestValidatePassesWithoutHTTPWhenRevocationURLEmpty — pass-without-HTTP
-// branch: per K-AUTHN-006 ("revocation only required when configured"), if
-// revocationURL is empty the validator passes a syntactically valid sid-bearing
-// JWT without making any introspection HTTP request. Verified by a fixture
-// counter showing zero hits even though a httptest server is live.
-func TestValidatePassesWithoutHTTPWhenRevocationURLEmpty(t *testing.T) {
+// TestValidateFailsClosedWhenRevocationURLEmpty — K-AUTHN-006 makes
+// revocationUrl part of the same bearer JWT restart config group as
+// issuer/audience/jwksUrl. When the JWKS chain is active but revocationUrl is
+// empty the config group is incomplete, so a signature-valid sid-bearing JWT
+// MUST fail closed rather than be admitted as an unrevocable session. No
+// introspection HTTP request is made because the validator denies before any
+// network call (verified by a fixture counter showing zero hits even though a
+// httptest server is live).
+func TestValidateFailsClosedWhenRevocationURLEmpty(t *testing.T) {
 	revocationServer, hits := newRevocationServer(t, func(w http.ResponseWriter, _ *http.Request) {
-		// If we reach here, the validator violated the contract.
+		// If we reach here, the validator violated the fail-close contract.
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(revocationResponse{Active: true})
 	})
@@ -1209,12 +1232,8 @@ func TestValidatePassesWithoutHTTPWhenRevocationURLEmpty(t *testing.T) {
 	_ = revocationServer
 	v, token := validatorWithJWKSAndRevocation(t, "")
 
-	identity, err := v.Validate(token)
-	if err != nil {
-		t.Fatalf("expected pass when revocationURL is empty, got %v", err)
-	}
-	if identity == nil {
-		t.Fatal("expected non-nil identity")
+	if _, err := v.Validate(token); err == nil || !strings.Contains(err.Error(), "revocation url not configured") {
+		t.Fatalf("expected fail-close when revocationURL is empty, got %v", err)
 	}
 	if *hits != 0 {
 		t.Fatalf("expected zero introspection hits when revocationURL is empty, got %d", *hits)

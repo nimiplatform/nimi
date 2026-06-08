@@ -29,6 +29,7 @@ func TestIsSensitiveKey(t *testing.T) {
 
 		// Exempt token keys
 		{"token_id", false},
+		{"parent_token_id", false},
 		{"page_token", false},
 		{"next_page_token", false},
 
@@ -53,14 +54,14 @@ func TestMaskValue(t *testing.T) {
 		input    string
 		expected string
 	}{
-		// len >= 12: first4 + "***" + last4
-		{"12345678", "***"},
+		// len >= 8: first4 + "***" + last4
+		{"12345678", "1234***5678"},
+		{"12345678901", "1234***8901"},
 		{"abcdefghijklmnop", "abcd***mnop"},
 		{"sk-1234567890abcdef", "sk-1***cdef"},
 
-		// len < 12: "***"
+		// len < 8: "***"
 		{"short", "***"},
-		{"12345678901", "***"},
 		{"1234567", "***"},
 		{"", "***"},
 		{"a", "***"},

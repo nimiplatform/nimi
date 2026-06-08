@@ -104,19 +104,20 @@ func executeTextGenerateScenario(ctx context.Context, s *Service, req *runtimev1
 
 	var (
 		outputText   string
+		toolCalls    []*runtimev1.ToolCall
 		usage        *runtimev1.UsageStats
 		finishReason runtimev1.FinishReason
 	)
 	if remoteTarget != nil {
 		if cp := s.selector.cloudProvider; cp != nil {
-			outputText, usage, finishReason, err = cp.GenerateTextScenarioWithTarget(requestCtx, modelResolved, resolved.spec, inputText, remoteTarget)
+			outputText, toolCalls, usage, finishReason, err = cp.GenerateTextScenarioWithTarget(requestCtx, modelResolved, resolved.spec, inputText, remoteTarget)
 		} else if scenarioProvider, ok := selectedProvider.(scenarioTextProvider); ok {
-			outputText, usage, finishReason, err = scenarioProvider.GenerateTextScenario(requestCtx, modelResolved, resolved.spec, inputText)
+			outputText, toolCalls, usage, finishReason, err = scenarioProvider.GenerateTextScenario(requestCtx, modelResolved, resolved.spec, inputText)
 		} else {
 			err = grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 		}
 	} else if scenarioProvider, ok := selectedProvider.(scenarioTextProvider); ok {
-		outputText, usage, finishReason, err = scenarioProvider.GenerateTextScenario(requestCtx, modelResolved, resolved.spec, inputText)
+		outputText, toolCalls, usage, finishReason, err = scenarioProvider.GenerateTextScenario(requestCtx, modelResolved, resolved.spec, inputText)
 	} else {
 		err = grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}
@@ -127,7 +128,8 @@ func executeTextGenerateScenario(ctx context.Context, s *Service, req *runtimev1
 		Output: &runtimev1.ScenarioOutput{
 			Output: &runtimev1.ScenarioOutput_TextGenerate{
 				TextGenerate: &runtimev1.TextGenerateOutput{
-					Text: outputText,
+					Text:      outputText,
+					ToolCalls: toolCalls,
 				},
 			},
 		},

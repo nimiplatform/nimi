@@ -22,6 +22,7 @@ type auditEventInput struct {
 	Capability            string
 	ReasonCode            runtimev1.ReasonCode
 	TraceID               string
+	RequestID             string
 	CallerKind            runtimev1.CallerKind
 	CallerID              string
 	SurfaceID             string
@@ -45,6 +46,10 @@ func appendAuditEvent(store *auditlog.Store, input auditEventInput) {
 	if input.TraceID == "" {
 		input.TraceID = ulid.Make().String()
 	}
+	// K-AUDIT-003: baseline request_id == trace_id when no explicit request_id is set.
+	if input.RequestID == "" {
+		input.RequestID = input.TraceID
+	}
 	payload := auditEventPayload(input.Payload)
 	store.AppendEvent(&runtimev1.AuditEventRecord{
 		AppId:                 input.AppID,
@@ -53,6 +58,7 @@ func appendAuditEvent(store *auditlog.Store, input auditEventInput) {
 		Operation:             input.Operation,
 		ReasonCode:            input.ReasonCode,
 		TraceId:               input.TraceID,
+		RequestId:             input.RequestID,
 		Timestamp:             timestamppb.New(time.Now().UTC()),
 		Payload:               payload,
 		CallerKind:            input.CallerKind,

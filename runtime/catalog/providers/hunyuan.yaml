@@ -89,6 +89,8 @@ models:
       url: https://cloud.tencent.com/document/product/1729/102832
       retrieved_at: 2026-04-18
       note: Tencent Hunyuan embedding API reference.
+    embedding:
+      dimension: 1024
   - model_id: hunyuan-dit
     provider: hunyuan
     model_type: image

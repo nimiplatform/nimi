@@ -32,7 +32,7 @@ type scenarioTextProvider interface {
 		modelID string,
 		spec *runtimev1.TextGenerateScenarioSpec,
 		inputText string,
-	) (string, *runtimev1.UsageStats, runtimev1.FinishReason, error)
+	) (string, []*runtimev1.ToolCall, *runtimev1.UsageStats, runtimev1.FinishReason, error)
 }
 
 // scenarioStreamingTextProvider defines Scenario-native stream text generation for providers.

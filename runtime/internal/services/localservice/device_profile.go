@@ -14,7 +14,20 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/engine"
 )
+
+// defaultEngineProbePorts returns the K-LENG-005 engine default ports used as
+// the baseline CollectDeviceProfile probe set (K-DEV-006). The values come from
+// the runtime engine default configs so the probe set stays aligned with the
+// authoritative engine catalog rather than a divergent hardcoded list.
+func defaultEngineProbePorts() []int32 {
+	return []int32{
+		int32(engine.DefaultLlamaConfig().Port),
+		int32(engine.DefaultMediaConfig().Port),
+		int32(engine.DefaultSpeechConfig().Port),
+	}
+}
 
 var (
 	localRuntimeGOOS         = runtime.GOOS
@@ -33,10 +46,16 @@ var (
 )
 
 func collectDeviceProfile(extraPorts ...int32) *runtimev1.LocalDeviceProfile {
-	portSet := map[int32]bool{
-		11434: true,
-		1234:  true,
-		8080:  true,
+	// K-DEV-006: default probe ports are the K-LENG-005 engine default ports.
+	// Source them from the runtime engine default configs (the same authoritative
+	// default-port surface the daemon/supervisor uses) rather than a divergent
+	// hardcoded literal.
+	portSet := map[int32]bool{}
+	for _, port := range defaultEngineProbePorts() {
+		if port <= 0 || port > 65535 {
+			continue
+		}
+		portSet[port] = true
 	}
 	for _, port := range extraPorts {
 		if port <= 0 || port > 65535 {
@@ -258,7 +277,9 @@ func probeDiskFreeBytes() int64 {
 }
 
 func portAvailable(port int) bool {
-	addr := fmt.Sprintf("127.0.0.1:%d", port)
+	// K-DEV-006: bind all interfaces (":<port>"), not just loopback, so a server
+	// bound to 0.0.0.0 is correctly observed as occupied (fail-closed).
+	addr := fmt.Sprintf(":%d", port)
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
 		return false

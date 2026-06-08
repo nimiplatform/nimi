@@ -354,6 +354,14 @@ func (s *Service) recordDelegatedApprovalRequestLocked(decision *runtimeAgentDel
 		TurnId:               strings.TrimSpace(decision.TurnID),
 		ProviderProfileId:    strings.TrimSpace(decision.ProviderID),
 		CapabilityId:         strings.TrimSpace(decision.CapabilityID),
+		// K-DELEG-091 typed approval fields promoted to top-level. effect_class,
+		// sensitivity_class, and summary_ref still require the orchestration to
+		// compute them (effect classification from the provider profile
+		// allowed_effect_classes, a firewall-reviewed summary_ref pointer, and the
+		// sensitivity_class taxonomy once admitted) and remain unset until that
+		// pipeline lands; the proto fields now exist to carry them.
+		DelegationRequestId:  strings.TrimSpace(decision.DelegationRequestID),
+		PolicySnapshotId:     policySnapshotID,
 		ToolName:             strings.TrimSpace(decision.ToolName),
 		FirewallVerdict:      strings.TrimSpace(decision.FirewallVerdict),
 		ReasonCode:           strings.TrimSpace(decision.ReasonCode),
@@ -412,6 +420,65 @@ func (s *Service) appendDelegatedDecisionAuditEvent(record delegatedCapabilityDe
 		SurfaceId:   "runtime.agent.delegation",
 		Capability:  "runtime.agent.delegation.execute",
 		PrincipalId: record.AgentID,
+	})
+}
+
+// appendDelegatedApprovalDecisionAuditEvent records an APPROVE/REJECT decision
+// on a delegated approval request to the Runtime audit store (K-DELEG-095,
+// K-DELEG-097). It reuses the same audit-store path and runtime.delegation
+// domain as the orchestration decision event but uses a distinct operation so
+// the decision-recorded replay reconstruction is unaffected. The lineage
+// (delegation_request_id, policy_snapshot_id, principal_id) is sourced from the
+// approval request Detail recorded at creation time.
+func (s *Service) appendDelegatedApprovalDecisionAuditEvent(agentID string, approval *runtimev1.DelegatedApprovalRequest, principalID string) {
+	if s == nil || s.auditStore == nil || approval == nil {
+		return
+	}
+	approvalID := strings.TrimSpace(approval.GetApprovalRequestId())
+	if approvalID == "" {
+		return
+	}
+	detail := approval.GetDetail().GetFields()
+	delegationRequestID := structStringField(detail, "delegation_request_id")
+	policySnapshotID := structStringField(detail, "policy_snapshot_id")
+	if strings.TrimSpace(principalID) == "" {
+		principalID = structStringField(detail, "principal_id")
+	}
+	decidedAt := approval.GetUpdatedAt().AsTime().UTC()
+	if decidedAt.IsZero() {
+		decidedAt = time.Now().UTC()
+	}
+	payload, err := structpb.NewStruct(map[string]any{
+		"approval_request_id":    approvalID,
+		"agent_id":               strings.TrimSpace(agentID),
+		"delegation_request_id":  delegationRequestID,
+		"conversation_anchor_id": strings.TrimSpace(approval.GetConversationAnchorId()),
+		"turn_id":                strings.TrimSpace(approval.GetTurnId()),
+		"provider_profile_id":    strings.TrimSpace(approval.GetProviderProfileId()),
+		"capability_id":          strings.TrimSpace(approval.GetCapabilityId()),
+		"tool_name":              strings.TrimSpace(approval.GetToolName()),
+		"policy_snapshot_id":     policySnapshotID,
+		"principal_id":           strings.TrimSpace(principalID),
+		"approval_state":         approvalStateName(approval.GetState()),
+		"reason_code_text":       strings.TrimSpace(approval.GetReasonCode()),
+		"recorded_at":            decidedAt.Format(time.RFC3339Nano),
+	})
+	if err != nil {
+		return
+	}
+	s.auditStore.AppendEvent(&runtimev1.AuditEventRecord{
+		AuditId:     approvalID + ":approval-decision",
+		AppId:       "runtime",
+		Domain:      "runtime.delegation",
+		Operation:   "runtime.agent.delegation.approval_decision",
+		ReasonCode:  runtimev1.ReasonCode_ACTION_EXECUTED,
+		TraceId:     firstNonEmpty(delegationRequestID, approvalID),
+		Timestamp:   timestamppb.New(decidedAt),
+		Payload:     payload,
+		CallerId:    "runtime.agent.service",
+		SurfaceId:   "runtime.agent.delegation",
+		Capability:  "runtime.agent.delegation.execute",
+		PrincipalId: firstNonEmpty(strings.TrimSpace(principalID), strings.TrimSpace(agentID)),
 	})
 }
 

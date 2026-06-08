@@ -30,9 +30,20 @@ func (s *Service) EmbedTextsForMemory(ctx context.Context, profile *runtimev1.Me
 	if err != nil {
 		return nil, err
 	}
+	// K-MEM-004 / K-AIEXEC-006: the resolved profile dimension is catalog
+	// authority. The observed embedding vector length is used ONLY for runtime
+	// validation + drift evidence: on mismatch we fail-close with a typed
+	// AI_OUTPUT_INVALID reason. We never mutate the resolved profile to match an
+	// observed length, and never emit a vector whose width contradicts the bound
+	// bank identity.
+	expectedDimension := int(profile.GetDimension())
 	out := make([][]float64, 0, len(vectors))
 	for _, vector := range vectors {
-		out = append(out, append([]float64(nil), vector.GetValues()...))
+		values := vector.GetValues()
+		if expectedDimension > 0 && len(values) != expectedDimension {
+			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+		}
+		out = append(out, append([]float64(nil), values...))
 	}
 	return out, nil
 }

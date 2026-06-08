@@ -35,10 +35,23 @@ type Backend struct {
 	allowLoopbackEndpoint   bool
 }
 
+type openAIToolCallFunction struct {
+	Name      string `json:"name"`
+	Arguments string `json:"arguments"`
+}
+
+type openAIToolCall struct {
+	ID       string                 `json:"id"`
+	Type     string                 `json:"type"`
+	Function openAIToolCallFunction `json:"function"`
+}
+
 type openAIMessage struct {
-	Role    string `json:"role"`
-	Content string `json:"content"`
-	Name    string `json:"name,omitempty"`
+	Role       string           `json:"role"`
+	Content    string           `json:"content"`
+	Name       string           `json:"name,omitempty"`
+	ToolCalls  []openAIToolCall `json:"tool_calls,omitempty"`
+	ToolCallID string           `json:"tool_call_id,omitempty"`
 }
 
 func buildOpenAIMessages(systemPrompt string, input []*runtimev1.ChatMessage) []openAIMessage {
@@ -48,7 +61,11 @@ func buildOpenAIMessages(systemPrompt string, input []*runtimev1.ChatMessage) []
 	}
 	for _, item := range input {
 		content := strings.TrimSpace(item.GetContent())
-		if content == "" {
+		toolCalls := buildOpenAIToolCalls(item.GetToolCalls())
+		toolCallID := strings.TrimSpace(item.GetToolCallId())
+		// Keep assistant tool-call turns and tool results even when their text
+		// content is empty so multi-step tool loops round-trip correctly.
+		if content == "" && len(toolCalls) == 0 && toolCallID == "" {
 			continue
 		}
 		role := strings.TrimSpace(item.GetRole())
@@ -56,12 +73,39 @@ func buildOpenAIMessages(systemPrompt string, input []*runtimev1.ChatMessage) []
 			role = "user"
 		}
 		messages = append(messages, openAIMessage{
-			Role:    role,
-			Content: content,
-			Name:    strings.TrimSpace(item.GetName()),
+			Role:       role,
+			Content:    content,
+			Name:       strings.TrimSpace(item.GetName()),
+			ToolCalls:  toolCalls,
+			ToolCallID: toolCallID,
 		})
 	}
 	return messages
+}
+
+func buildOpenAIToolCalls(toolCalls []*runtimev1.ToolCall) []openAIToolCall {
+	if len(toolCalls) == 0 {
+		return nil
+	}
+	out := make([]openAIToolCall, 0, len(toolCalls))
+	for _, toolCall := range toolCalls {
+		if toolCall == nil || strings.TrimSpace(toolCall.GetName()) == "" {
+			continue
+		}
+		arguments := strings.TrimSpace(toolCall.GetArgumentsJson())
+		if arguments == "" {
+			arguments = "{}"
+		}
+		out = append(out, openAIToolCall{
+			ID:       toolCall.GetId(),
+			Type:     "function",
+			Function: openAIToolCallFunction{Name: toolCall.GetName(), Arguments: arguments},
+		})
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
 }
 
 // NewBackend creates a new OpenAI-compatible backend.
@@ -286,27 +330,47 @@ func (b *Backend) applyAuthenticationHeaders(request *http.Request) {
 	request.Header.Set("Authorization", "Bearer "+apiKey)
 }
 
-// GenerateText sends a non-streaming chat completion request.
-func (b *Backend) GenerateText(ctx context.Context, modelID string, input []*runtimev1.ChatMessage, systemPrompt string, temperature float32, topP float32, maxTokens int32) (string, *runtimev1.UsageStats, runtimev1.FinishReason, error) {
+// GenerateText sends a non-streaming chat completion request. The OpenAI-compatible
+// path maps tools, tool choice, structured response formats, and the standard
+// advanced-sampling parameters and parses returned tool calls. The Anthropic and
+// Codex paths fail closed on tools / structured output until they are wired.
+func (b *Backend) GenerateText(ctx context.Context, modelID string, input []*runtimev1.ChatMessage, systemPrompt string, temperature float32, topP float32, maxTokens int32, params textGenParams) (string, []*runtimev1.ToolCall, *runtimev1.UsageStats, runtimev1.FinishReason, error) {
 	if b.supportsAnthropicMessages() {
-		return b.generateTextAnthropicMessages(ctx, modelID, input, systemPrompt, temperature, topP, maxTokens)
+		// Anthropic Messages has no native JSON response_format; structured output
+		// stays fail-closed while tools execute through tool_use blocks.
+		if params.wantsStructuredOutput() {
+			return "", nil, nil, runtimev1.FinishReason_FINISH_REASON_ERROR, providerToolUnsupportedError()
+		}
+		return b.generateTextAnthropicMessages(ctx, modelID, input, systemPrompt, temperature, topP, maxTokens, params)
 	}
 	if b.supportsCodexResponses() {
-		return b.generateTextCodexResponses(ctx, modelID, input, systemPrompt, temperature, topP, maxTokens)
+		if err := unsupportedToolSurface(params); err != nil {
+			return "", nil, nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
+		}
+		text, usage, finish, err := b.generateTextCodexResponses(ctx, modelID, input, systemPrompt, temperature, topP, maxTokens, params)
+		return text, nil, usage, finish, err
 	}
 	type chatRequest struct {
-		Model               string   `json:"model"`
-		Messages            any      `json:"messages"`
-		Temperature         *float32 `json:"temperature,omitempty"`
-		TopP                *float32 `json:"top_p,omitempty"`
-		MaxTokens           *int32   `json:"max_tokens,omitempty"`
-		MaxCompletionTokens *int32   `json:"max_completion_tokens,omitempty"`
-		Stream              bool     `json:"stream"`
+		Model               string           `json:"model"`
+		Messages            any              `json:"messages"`
+		Temperature         *float32         `json:"temperature,omitempty"`
+		TopP                *float32         `json:"top_p,omitempty"`
+		MaxTokens           *int32           `json:"max_tokens,omitempty"`
+		MaxCompletionTokens *int32           `json:"max_completion_tokens,omitempty"`
+		Stream              bool             `json:"stream"`
+		Tools               []map[string]any `json:"tools,omitempty"`
+		ToolChoice          any              `json:"tool_choice,omitempty"`
+		ResponseFormat      map[string]any   `json:"response_format,omitempty"`
+		PresencePenalty     *float32         `json:"presence_penalty,omitempty"`
+		FrequencyPenalty    *float32         `json:"frequency_penalty,omitempty"`
+		Stop                []string         `json:"stop,omitempty"`
+		Seed                *int64           `json:"seed,omitempty"`
+		TopK                *int32           `json:"top_k,omitempty"`
 	}
 
 	messages, err := buildTextChatMessages(ctx, systemPrompt, input, b)
 	if err != nil {
-		return "", nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
+		return "", nil, nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
 	}
 
 	reqBody := chatRequest{
@@ -330,18 +394,47 @@ func (b *Backend) GenerateText(ctx context.Context, modelID string, input []*run
 			reqBody.MaxTokens = &max
 		}
 	}
+	if tools := openAIToolsPayload(params.tools); len(tools) > 0 {
+		reqBody.Tools = tools
+		if choice := openAIToolChoicePayload(params.toolChoice, params.toolChoiceName); choice != nil {
+			reqBody.ToolChoice = choice
+		}
+	}
+	if responseFormat := openAIResponseFormatPayload(params.responseFormat); responseFormat != nil {
+		reqBody.ResponseFormat = responseFormat
+	}
+	if params.presencePenalty != 0 {
+		pp := params.presencePenalty
+		reqBody.PresencePenalty = &pp
+	}
+	if params.frequencyPenalty != 0 {
+		fp := params.frequencyPenalty
+		reqBody.FrequencyPenalty = &fp
+	}
+	if len(params.stop) > 0 {
+		reqBody.Stop = params.stop
+	}
+	if params.seed != 0 {
+		seed := params.seed
+		reqBody.Seed = &seed
+	}
+	if params.topK > 0 {
+		topK := params.topK
+		reqBody.TopK = &topK
+	}
 
 	respBody := map[string]any{}
 	if err := b.postJSON(ctx, resolveOpenAICompatiblePath(b.baseURL, "/chat/completions"), reqBody, &respBody); err != nil {
-		return "", nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
+		return "", nil, nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
 	}
 	choices, ok := respBody["choices"].([]any)
 	if !ok || len(choices) == 0 {
-		return "", nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+		return "", nil, nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
+	toolCalls := parseOpenAIToolCalls(respBody)
 	text := strings.TrimSpace(extractChatCompletionMessageText(respBody))
-	if text == "" {
-		return "", nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+	if text == "" && len(toolCalls) == 0 {
+		return "", nil, nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
 	usagePayload := MapField(respBody, "usage")
 	promptTokens := ValueAsInt64(MapField(usagePayload, "prompt_tokens"))
@@ -362,7 +455,7 @@ func (b *Backend) GenerateText(ctx context.Context, modelID string, input []*run
 	if rawFinish := extractChatCompletionFinishReason(respBody); rawFinish != "" {
 		finish = MapOpenAIFinishReason(rawFinish)
 	}
-	return text, usage, finish, nil
+	return text, toolCalls, usage, finish, nil
 }
 
 func extractChatCompletionFinishReason(payload map[string]any) string {
@@ -378,12 +471,12 @@ func extractChatCompletionFinishReason(payload map[string]any) string {
 }
 
 // StreamGenerateText sends a streaming chat completion request.
-func (b *Backend) StreamGenerateText(ctx context.Context, modelID string, input []*runtimev1.ChatMessage, systemPrompt string, temperature float32, topP float32, maxTokens int32, onDelta func(string) error) (*runtimev1.UsageStats, runtimev1.FinishReason, error) {
+func (b *Backend) StreamGenerateText(ctx context.Context, modelID string, input []*runtimev1.ChatMessage, systemPrompt string, temperature float32, topP float32, maxTokens int32, params textGenParams, onDelta func(string) error) (*runtimev1.UsageStats, runtimev1.FinishReason, error) {
 	if b.supportsAnthropicMessages() {
-		return b.streamGenerateTextAnthropicMessages(ctx, modelID, input, systemPrompt, temperature, topP, maxTokens, onDelta)
+		return b.streamGenerateTextAnthropicMessages(ctx, modelID, input, systemPrompt, temperature, topP, maxTokens, params, onDelta)
 	}
 	if b.supportsCodexResponses() {
-		return b.streamGenerateTextCodexResponses(ctx, modelID, input, systemPrompt, temperature, topP, maxTokens, onDelta)
+		return b.streamGenerateTextCodexResponses(ctx, modelID, input, systemPrompt, temperature, topP, maxTokens, params, onDelta)
 	}
 	type streamOptions struct {
 		IncludeUsage bool `json:"include_usage"`
@@ -397,6 +490,7 @@ func (b *Backend) StreamGenerateText(ctx context.Context, modelID string, input 
 		MaxCompletionTokens *int32         `json:"max_completion_tokens,omitempty"`
 		Stream              bool           `json:"stream"`
 		StreamOptions       *streamOptions `json:"stream_options,omitempty"`
+		TopK                *int32         `json:"top_k,omitempty"`
 	}
 	type streamResponse struct {
 		Choices []struct {
@@ -441,6 +535,10 @@ func (b *Backend) StreamGenerateText(ctx context.Context, modelID string, input 
 			reqBody.MaxTokens = &max
 		}
 	}
+	if params.topK > 0 {
+		topK := params.topK
+		reqBody.TopK = &topK
+	}
 
 	payload, err := json.Marshal(reqBody)
 	if err != nil {
@@ -466,7 +564,7 @@ func (b *Backend) StreamGenerateText(ctx context.Context, modelID string, input 
 		_ = json.NewDecoder(response.Body).Decode(&errPayload)
 		_ = response.Body.Close()
 		if IsStreamUnsupported(response.StatusCode, errPayload) {
-			return b.fallbackStreamToNonStream(ctx, modelID, input, systemPrompt, temperature, topP, maxTokens, onDelta)
+			return b.fallbackStreamToNonStream(ctx, modelID, input, systemPrompt, temperature, topP, maxTokens, params, onDelta)
 		}
 		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, MapProviderHTTPError(response.StatusCode, errPayload)
 	}
@@ -474,7 +572,7 @@ func (b *Backend) StreamGenerateText(ctx context.Context, modelID string, input 
 	contentType := strings.ToLower(strings.TrimSpace(response.Header.Get("Content-Type")))
 	if !strings.HasPrefix(contentType, "text/event-stream") {
 		_ = response.Body.Close()
-		return b.fallbackStreamToNonStream(ctx, modelID, input, systemPrompt, temperature, topP, maxTokens, onDelta)
+		return b.fallbackStreamToNonStream(ctx, modelID, input, systemPrompt, temperature, topP, maxTokens, params, onDelta)
 	}
 	defer func() { _ = response.Body.Close() }()
 
@@ -558,10 +656,13 @@ func (b *Backend) fallbackStreamToNonStream(
 	temperature float32,
 	topP float32,
 	maxTokens int32,
+	params textGenParams,
 	onDelta func(string) error,
 ) (*runtimev1.UsageStats, runtimev1.FinishReason, error) {
 	MarkStreamSimulated(ctx)
-	text, usage, finish, err := b.GenerateText(ctx, modelID, input, systemPrompt, temperature, topP, maxTokens)
+	// Streaming fall-back carries no tool surface: stream requests that request
+	// tools fail closed upstream before reaching this path.
+	text, _, usage, finish, err := b.GenerateText(ctx, modelID, input, systemPrompt, temperature, topP, maxTokens, params)
 	if err != nil {
 		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
 	}

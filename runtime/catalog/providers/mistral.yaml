@@ -92,6 +92,8 @@ models:
       url: https://docs.mistral.ai/studio-api/knowledge-rag/embeddings
       retrieved_at: 2026-04-18
       note: Mistral embeddings capability documentation.
+    embedding:
+      dimension: 1024
 voices: []
 selection_profiles:
   - provider: mistral

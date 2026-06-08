@@ -237,7 +237,7 @@ func (s *Service) performWarmLocalModelExecution(
 	}
 	switch result.capability {
 	case "chat", "text.generate":
-		if _, _, _, err := backend.GenerateText(
+		if _, _, _, _, err := backend.GenerateText(
 			ctx,
 			result.modelResolved,
 			[]*runtimev1.ChatMessage{{Role: "user", Content: "Respond with the single word ready."}},
@@ -245,6 +245,7 @@ func (s *Service) performWarmLocalModelExecution(
 			0,
 			0,
 			1,
+			nimillm.BuildTextGenParams(nil),
 		); err != nil {
 			return result, err
 		}

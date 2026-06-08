@@ -357,6 +357,8 @@ models:
       url: https://developers.openai.com/api/docs/models/text-embedding-3-large
       retrieved_at: 2026-04-18
       note: OpenAI text-embedding-3-large model card.
+    embedding:
+      dimension: 3072
   - model_id: text-embedding-3-small
     provider: openai
     model_type: embedding
@@ -374,6 +376,8 @@ models:
       url: https://developers.openai.com/api/docs/models/text-embedding-3-small
       retrieved_at: 2026-04-18
       note: OpenAI text-embedding-3-small model card.
+    embedding:
+      dimension: 1536
   - model_id: gpt-4o-mini
     provider: openai
     model_type: chat

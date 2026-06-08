@@ -779,9 +779,11 @@ models:
       as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
-      url: https://github.com/QwenLM/Qwen3-TTS
-      retrieved_at: 2026-03-05
-      note: Open-source Qwen3-TTS repository and examples.
+      url: https://huggingface.co/nomic-ai/nomic-embed-text-v1.5
+      retrieved_at: 2026-06-08
+      note: Nomic Embed Text v1.5 model card declaring 8192 context and 768 native embedding dimension.
+    embedding: &a5
+      dimension: 768
   - model_id: local/nomic-embed-text
     provider: local
     model_type: embedding
@@ -796,9 +798,10 @@ models:
       as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
-      url: https://github.com/QwenLM/Qwen3-TTS
-      retrieved_at: 2026-03-05
-      note: Open-source Qwen3-TTS repository and examples.
+      url: https://huggingface.co/nomic-ai/nomic-embed-text-v1.5
+      retrieved_at: 2026-06-08
+      note: Nomic Embed Text v1.5 model card declaring 8192 context and 768 native embedding dimension.
+    embedding: *a5
   - model_id: llama/nomic-embed-text
     provider: local
     model_type: embedding
@@ -813,9 +816,10 @@ models:
       as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
-      url: https://github.com/QwenLM/Qwen3-TTS
-      retrieved_at: 2026-03-05
-      note: Open-source Qwen3-TTS repository and examples.
+      url: https://huggingface.co/nomic-ai/nomic-embed-text-v1.5
+      retrieved_at: 2026-06-08
+      note: Nomic Embed Text v1.5 model card declaring 8192 context and 768 native embedding dimension.
+    embedding: *a5
   - model_id: whisper-large-v3-local
     provider: local
     model_type: stt
@@ -884,7 +888,7 @@ models:
       url: https://huggingface.co/Qwen/Qwen3-ASR-0.6B
       retrieved_at: 2026-04-17
       note: Default local STT checkpoint for first-wave local admission.
-    transcription: &a5
+    transcription: &a6
       tiers:
         - core_transcript
         - timed_transcript
@@ -948,7 +952,7 @@ models:
       url: https://huggingface.co/Qwen/Qwen3-ASR-0.6B
       retrieved_at: 2026-04-17
       note: Default local STT checkpoint for first-wave local admission.
-    transcription: *a5
+    transcription: *a6
   - model_id: speech/qwen3asr
     provider: local
     model_type: stt
@@ -966,7 +970,7 @@ models:
       url: https://huggingface.co/Qwen/Qwen3-ASR-0.6B
       retrieved_at: 2026-04-17
       note: Default local STT checkpoint for first-wave local admission.
-    transcription: *a5
+    transcription: *a6
   - model_id: Qwen/Qwen3-ASR-0.6B
     provider: local
     model_type: stt
@@ -984,7 +988,7 @@ models:
       url: https://huggingface.co/Qwen/Qwen3-ASR-0.6B
       retrieved_at: 2026-04-17
       note: Default local STT checkpoint for first-wave local admission.
-    transcription: *a5
+    transcription: *a6
   - model_id: flux.1-schnell-local
     provider: local
     model_type: image
@@ -1420,7 +1424,7 @@ models:
       url: https://huggingface.co/docs/diffusers/api/pipelines/wan
       retrieved_at: 2026-03-15
       note: Official Diffusers Wan text-to-video and image-to-video pipeline documentation.
-    video_generation: &a6
+    video_generation: &a7
       modes:
         - t2v
         - i2v_first_frame
@@ -1459,7 +1463,7 @@ models:
       url: https://huggingface.co/docs/diffusers/api/pipelines/wan
       retrieved_at: 2026-03-15
       note: Official Diffusers Wan text-to-video and image-to-video pipeline documentation.
-    video_generation: *a6
+    video_generation: *a7
   - model_id: media/wan2.1-video
     provider: local
     model_type: video
@@ -1477,7 +1481,7 @@ models:
       url: https://huggingface.co/docs/diffusers/api/pipelines/wan
       retrieved_at: 2026-03-15
       note: Official Diffusers Wan text-to-video and image-to-video pipeline documentation.
-    video_generation: *a6
+    video_generation: *a7
   - model_id: ace-step-local
     provider: local
     model_type: music

@@ -332,6 +332,11 @@ models:
     model_type: embedding
     updated_at: 2026-04-18
     capabilities: [text.embed]
+    # K-MEM-004 / K-AIEXEC-006: native (default) output dimension. The
+    # `dimensions` request param can shorten output, but the catalog records the
+    # native dimension as the embedding-profile identity authority.
+    embedding:
+      dimension: 3072
     pricing:
       unit: token
       input: "0.13"
@@ -345,6 +350,10 @@ models:
     model_type: embedding
     updated_at: 2026-04-18
     capabilities: [text.embed]
+    # K-MEM-004 / K-AIEXEC-006: native (default) output dimension (shortenable
+    # via the `dimensions` param; native value recorded as profile identity).
+    embedding:
+      dimension: 1536
     pricing:
       unit: token
       input: "0.02"

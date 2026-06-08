@@ -44,11 +44,21 @@ const (
 	ConfidenceReasonInsufficientEvidence = "INSUFFICIENT_EVIDENCE"
 	ConfidenceReasonPolicyDowngrade      = "POLICY_DOWNGRADE"
 
-	ReasonFirewallSchemaInvalid        = "DELEG_FIREWALL_SCHEMA_INVALID"
-	ReasonFirewallQuarantined          = "DELEG_FIREWALL_QUARANTINED"
-	ReasonProviderDrifted              = "DELEG_PROVIDER_DRIFTED"
-	ReasonApprovalRequired             = "DELEG_APPROVAL_REQUIRED"
-	ReasonStreamTerminalError          = "DELEG_STREAM_TERMINAL_ERROR"
+	ReasonFirewallSchemaInvalid = "DELEG_FIREWALL_SCHEMA_INVALID"
+	ReasonFirewallQuarantined   = "DELEG_FIREWALL_QUARANTINED"
+	ReasonProviderDrifted       = "DELEG_PROVIDER_DRIFTED"
+	ReasonApprovalRequired      = "DELEG_APPROVAL_REQUIRED"
+	ReasonStreamTerminalError   = "DELEG_STREAM_TERMINAL_ERROR"
+	// Admitted runtime_delegation_reason_codes table codes (delegation-reason-codes.yaml)
+	// that gateway/MCP adapter failures map onto per K-DELEG-114.
+	ReasonProviderNotFound     = "DELEG_PROVIDER_NOT_FOUND"
+	ReasonProviderBlocked      = "DELEG_PROVIDER_BLOCKED"
+	ReasonCapabilityNotAllowed = "DELEG_CAPABILITY_NOT_ALLOWED"
+	ReasonRequestSchemaInvalid = "DELEG_REQUEST_SCHEMA_INVALID"
+	ReasonProviderTimeout      = "DELEG_PROVIDER_TIMEOUT"
+	// Adapter-level gateway diagnostic codes. NOT admitted reason codes: they are
+	// mapped onto the table codes above before entering any governed reason_code
+	// (K-DELEG-114) and otherwise remain gateway evidence detail only.
 	ReasonGatewayProviderInvalid       = "DELEG_GATEWAY_PROVIDER_INVALID"
 	ReasonGatewayProviderUnavailable   = "DELEG_GATEWAY_PROVIDER_UNAVAILABLE"
 	ReasonGatewayTransportInvalid      = "DELEG_GATEWAY_TRANSPORT_INVALID"

@@ -63,7 +63,15 @@ func newUnaryAuditInterceptor(store *auditlog.Store) grpc.UnaryServerInterceptor
 			"provider_endpoint":            providerEndpoint,
 			"provider_api_key_fingerprint": providerAPIKeyFingerprint,
 		}
-		addAIExecutionAuditPayload(payload, req, traceID)
+		// request_id is set on the top-level AuditEventRecord.request_id field
+		// (K-AUDIT-003 baseline request_id == trace_id) and mirrored into the AI
+		// execution payload (K-AUDIT-018) for fan-out separation.
+		requestID := addAIExecutionAuditPayload(payload, req, traceID, aiExecutionAuditContext{
+			Provider:      providerIdentityFromMetadata(handlerCtx),
+			RequestSource: requestSourceFromCallerKind(callerKind),
+			ClientID:      appInstanceIDFromMetadata(handlerCtx),
+			GRPCCode:      grpcCodeOnFailure(err, success),
+		})
 		appendAuditEvent(store, auditEventInput{
 			AppID:                 appID,
 			SubjectUserID:         subjectUserID,
@@ -72,6 +80,7 @@ func newUnaryAuditInterceptor(store *auditlog.Store) grpc.UnaryServerInterceptor
 			Capability:            capability,
 			ReasonCode:            reasonCode,
 			TraceID:               traceID,
+			RequestID:             requestID,
 			CallerKind:            callerKind,
 			CallerID:              callerID,
 			SurfaceID:             surfaceID,
@@ -142,7 +151,15 @@ func newStreamAuditInterceptor(store *auditlog.Store) grpc.StreamServerIntercept
 			"provider_endpoint":            providerEndpoint,
 			"provider_api_key_fingerprint": providerAPIKeyFingerprint,
 		}
-		addAIExecutionAuditPayload(payload, request, traceID)
+		// request_id is set on the top-level AuditEventRecord.request_id field
+		// (K-AUDIT-003 baseline request_id == trace_id) and mirrored into the AI
+		// execution payload (K-AUDIT-018) for fan-out separation.
+		requestID := addAIExecutionAuditPayload(payload, request, traceID, aiExecutionAuditContext{
+			Provider:      providerIdentityFromMetadata(ss.Context()),
+			RequestSource: requestSourceFromCallerKind(callerKind),
+			ClientID:      appInstanceIDFromMetadata(ss.Context()),
+			GRPCCode:      grpcCodeOnFailure(err, success),
+		})
 		appendAuditEvent(store, auditEventInput{
 			AppID:         appID,
 			SubjectUserID: subjectUserID,
@@ -151,6 +168,7 @@ func newStreamAuditInterceptor(store *auditlog.Store) grpc.StreamServerIntercept
 			Capability:    capability,
 			ReasonCode:    reasonCode,
 			TraceID:       traceID,
+			RequestID:     requestID,
 			CallerKind:    callerKind,
 			CallerID:      callerID,
 			SurfaceID:     surfaceID,

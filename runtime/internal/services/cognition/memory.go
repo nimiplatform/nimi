@@ -3,6 +3,7 @@ package cognition
 import (
 	"context"
 	"encoding/json"
+	"strconv"
 	"strings"
 	"time"
 
@@ -42,7 +43,9 @@ func (s *Service) Retain(ctx context.Context, req *runtimev1.RetainRequest) (*ru
 		}
 		cognitionRecord.ScopeID = scopeID
 		if err := s.cognitionCore.MemoryService().Save(cognitionRecord); err != nil {
-			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+			// K-MEM-007: substrate/engine failure must fail-close as UNAVAILABLE,
+			// not be misclassified as a caller protocol error.
+			return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE)
 		}
 		records = append(records, record)
 	}
@@ -81,13 +84,21 @@ func (s *Service) Recall(ctx context.Context, req *runtimev1.RecallRequest) (*ru
 	scopeID := memoryScopeID(bankResp.GetBank().GetBankId())
 	views, err := s.cognitionCore.MemoryService().SearchViews(scopeID, req.GetQuery().GetQuery(), int(req.GetQuery().GetLimit()))
 	if err != nil {
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		// K-MEM-007: substrate/engine failure must fail-close as UNAVAILABLE, not
+		// be misclassified as a caller protocol error.
+		return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE)
 	}
+	includeInvalidated := req.GetQuery().GetIncludeInvalidated()
 	hits := make([]*runtimev1.MemoryRecallHit, 0, len(views))
 	for _, view := range views {
-		record, err := cognitionRecordToRuntime(bankResp.GetBank().GetLocator(), view.Record)
+		record, err := cognitionRecordToRuntimeWithInvalidation(bankResp.GetBank().GetLocator(), view.Record, len(view.InvalidationReasons) > 0)
 		if err != nil {
 			return nil, err
+		}
+		// K-MEM-009: invalidated records fail closed out of default recall
+		// visibility unless the caller explicitly opts in.
+		if recordIsInvalidated(record) && !includeInvalidated {
+			continue
 		}
 		if !matchesRecallQuery(record, req.GetQuery()) {
 			continue
@@ -122,13 +133,20 @@ func (s *Service) History(ctx context.Context, req *runtimev1.HistoryRequest) (*
 	scopeID := memoryScopeID(bankResp.GetBank().GetBankId())
 	items, err := s.cognitionCore.MemoryService().List(scopeID)
 	if err != nil {
-		return nil, err
+		// K-MEM-007: substrate/engine failure must fail-close as UNAVAILABLE.
+		return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE)
 	}
+	includeInvalidated := req.GetQuery().GetIncludeInvalidated()
 	records := make([]*runtimev1.MemoryRecord, 0, len(items))
 	for _, item := range items {
 		record, err := cognitionRecordToRuntime(bankResp.GetBank().GetLocator(), item)
 		if err != nil {
 			return nil, err
+		}
+		// K-MEM-009: invalidated records fail closed out of default history
+		// visibility unless the caller explicitly opts in.
+		if recordIsInvalidated(record) && !includeInvalidated {
+			continue
 		}
 		if !matchesHistoryQuery(record, req.GetQuery()) {
 			continue
@@ -164,8 +182,12 @@ func (s *Service) DeleteMemory(ctx context.Context, req *runtimev1.DeleteMemoryR
 	}
 	scopeID := memoryScopeID(bankResp.GetBank().GetBankId())
 	deleted := make([]string, 0, len(req.GetMemoryIds()))
+	var deleteFailed bool
 	for _, memoryID := range req.GetMemoryIds() {
 		if err := s.cognitionCore.MemoryService().Delete(scopeID, cognitionmemory.RecordID(strings.TrimSpace(memoryID))); err != nil {
+			// K-MEM-007: a substrate delete failure must surface, not be swallowed
+			// into a synthetic success that masks the failure.
+			deleteFailed = true
 			continue
 		}
 		deleted = append(deleted, strings.TrimSpace(memoryID))
@@ -182,6 +204,12 @@ func (s *Service) DeleteMemory(ctx context.Context, req *runtimev1.DeleteMemoryR
 				},
 			},
 		})
+	}
+	if deleteFailed {
+		// At least one requested delete did not commit. Fail-close rather than
+		// returning a synthetic okAck (K-MEM-007). The response carries no typed
+		// per-record failure field, so the failure is surfaced as the error.
+		return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE)
 	}
 	return &runtimev1.DeleteMemoryResponse{
 		Ack:              okAck(),
@@ -401,18 +429,25 @@ func buildStoredMemoryContent(record *runtimev1.MemoryRecord) (json.RawMessage, 
 }
 
 func cognitionRecordToRuntime(locator *runtimev1.MemoryBankLocator, record cognitionmemory.Record) (*runtimev1.MemoryRecord, error) {
+	return cognitionRecordToRuntimeWithInvalidation(locator, record, false)
+}
+
+// cognitionRecordToRuntimeWithInvalidation projects a stored cognition record
+// into a runtime MemoryRecord, mapping the committed substrate state into the
+// typed replication outcome (K-MEM-008/K-MEM-009). `invalidated` is the
+// caller-resolved invalidation signal (e.g. derived-lineage invalidation
+// reasons from the serving view) layered on top of the record's own lifecycle.
+func cognitionRecordToRuntimeWithInvalidation(locator *runtimev1.MemoryBankLocator, record cognitionmemory.Record, invalidated bool) (*runtimev1.MemoryRecord, error) {
 	var stored storedMemoryContent
 	if err := json.Unmarshal(record.Content, &stored); err != nil {
 		return nil, err
 	}
 	out := &runtimev1.MemoryRecord{
-		MemoryId:  string(record.RecordID),
-		Bank:      cloneMemoryLocator(locator),
-		CreatedAt: timestamppb.New(record.CreatedAt),
-		UpdatedAt: timestamppb.New(record.UpdatedAt),
-		Replication: &runtimev1.MemoryReplicationState{
-			Outcome: runtimev1.MemoryReplicationOutcome_MEMORY_REPLICATION_OUTCOME_UNSPECIFIED,
-		},
+		MemoryId:    string(record.RecordID),
+		Bank:        cloneMemoryLocator(locator),
+		CreatedAt:   timestamppb.New(record.CreatedAt),
+		UpdatedAt:   timestamppb.New(record.UpdatedAt),
+		Replication: cognitionReplicationState(record, invalidated),
 	}
 	switch record.Kind {
 	case cognitionmemory.RecordKindExperience:
@@ -443,6 +478,30 @@ func cognitionRecordToRuntime(locator *runtimev1.MemoryBankLocator, record cogni
 		}
 	}
 	return out, nil
+}
+
+// cognitionReplicationState maps the committed substrate state of a stored
+// cognition record into the typed runtime replication outcome
+// (K-MEM-008/K-MEM-009). The local cognition store is the operational authority
+// (K-MEM-005), so a live committed record is `SYNCED`; a removed record or one
+// carrying a resolved invalidation signal is `INVALIDATED`. The local version is
+// projected from the record version so the outcome carries an observable basis.
+func cognitionReplicationState(record cognitionmemory.Record, invalidated bool) *runtimev1.MemoryReplicationState {
+	outcome := runtimev1.MemoryReplicationOutcome_MEMORY_REPLICATION_OUTCOME_SYNCED
+	if invalidated || record.Lifecycle == cognitionmemory.RecordLifecycleRemoved {
+		outcome = runtimev1.MemoryReplicationOutcome_MEMORY_REPLICATION_OUTCOME_INVALIDATED
+	}
+	return &runtimev1.MemoryReplicationState{
+		Outcome:      outcome,
+		LocalVersion: strconv.Itoa(record.Version),
+	}
+}
+
+// recordIsInvalidated reports whether a projected runtime record is in the
+// terminal INVALIDATED replication state, which must fail closed out of default
+// recall/history visibility (K-MEM-009).
+func recordIsInvalidated(record *runtimev1.MemoryRecord) bool {
+	return record.GetReplication().GetOutcome() == runtimev1.MemoryReplicationOutcome_MEMORY_REPLICATION_OUTCOME_INVALIDATED
 }
 
 func matchesRecallQuery(record *runtimev1.MemoryRecord, query *runtimev1.MemoryRecallQuery) bool {

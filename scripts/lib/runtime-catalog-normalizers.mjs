@@ -516,6 +516,24 @@ export function normalizeTranscriptionOptions(raw, provider, modelID) {
   return out;
 }
 
+// normalizeEmbeddingCapability projects the K-MCAT-002 capability-conditional
+// `embedding` block for `text.embed` models. It is the catalog authority for the
+// model output dimension consumed by the runtime memory embedding profile
+// resolver (K-MEM-004, K-AIEXEC-006). `dimension` MUST be a positive integer;
+// missing or invalid material fails closed at generation time so the snapshot
+// never carries an unusable embedding row.
+export function normalizeEmbeddingCapability(raw, provider, modelID) {
+  if (!raw || typeof raw !== 'object') {
+    return null;
+  }
+  const dimensionRaw = raw.dimension;
+  const dimension = Number(dimensionRaw);
+  if (!Number.isInteger(dimension) || dimension <= 0) {
+    throw new Error(`${provider} model ${modelID} embedding.dimension must be a positive integer`);
+  }
+  return { dimension };
+}
+
 export function normalizeVoiceWorkflowRequestOptions(raw, provider, workflowModelID, workflowType) {
   if (!raw || typeof raw !== 'object') {
     throw new Error(`${provider} workflow model ${workflowModelID} missing request_options`);

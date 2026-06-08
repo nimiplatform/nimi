@@ -50,9 +50,9 @@ func TestNewSecuredBackendAllowsLoopbackEndpoint(t *testing.T) {
 		t.Fatal("expected secured backend to allow loopback endpoint with allowLoopback=true")
 	}
 
-	text, _, _, err := backend.GenerateText(context.Background(), "gpt-4o-mini", []*runtimev1.ChatMessage{
+	text, _, _, _, err := backend.GenerateText(context.Background(), "gpt-4o-mini", []*runtimev1.ChatMessage{
 		{Role: "user", Content: "hello"},
-	}, "", 0, 0, 0)
+	}, "", 0, 0, 0, textGenParams{})
 	if err != nil {
 		t.Fatalf("generate text failed: %v", err)
 	}
@@ -96,7 +96,7 @@ func TestCloudProviderWithTargetLoopbackPolicy(t *testing.T) {
 		Input: []*runtimev1.ChatMessage{{Role: "user", Content: "hello"}},
 	}
 
-	_, _, _, err := provider.GenerateTextScenarioWithTarget(context.Background(), "openai/gpt-4o-mini", req, "hello", &RemoteTarget{
+	_, _, _, _, err := provider.GenerateTextScenarioWithTarget(context.Background(), "openai/gpt-4o-mini", req, "hello", &RemoteTarget{
 		ProviderType:  "openai",
 		Endpoint:      server.URL,
 		APIKey:        "",
@@ -106,7 +106,7 @@ func TestCloudProviderWithTargetLoopbackPolicy(t *testing.T) {
 		t.Fatalf("expected unavailable when loopback not allowed, got: %v", err)
 	}
 
-	text, _, _, err := provider.GenerateTextScenarioWithTarget(context.Background(), "openai/gpt-4o-mini", req, "hello", &RemoteTarget{
+	text, _, _, _, err := provider.GenerateTextScenarioWithTarget(context.Background(), "openai/gpt-4o-mini", req, "hello", &RemoteTarget{
 		ProviderType:  "openai",
 		Endpoint:      server.URL,
 		APIKey:        "",

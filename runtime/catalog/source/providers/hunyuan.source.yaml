@@ -110,6 +110,10 @@ models:
     model_type: embedding
     updated_at: 2026-04-18
     capabilities: [text.embed]
+    # K-MEM-004 / K-AIEXEC-006: Hunyuan OpenAI-compatible embeddings fix
+    # dimensions=1024 (see pricing notes below).
+    embedding:
+      dimension: 1024
     pricing:
       unit: token
       input: "0.7"

@@ -387,7 +387,11 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 	richStreamer, canRichStreamScenario := selectedProvider.(scenarioRichStreamingTextProvider)
 	scenarioStreamer, canStreamScenario := selectedProvider.(scenarioStreamingTextProvider)
 	scenarioGenerator, canGenerateScenario := selectedProvider.(scenarioTextProvider)
-	if remoteTarget != nil && s.selector.cloudProvider != nil {
+	// Tool calls and structured output stream as a simulated stream over the sync
+	// scenario path, which executes them end-to-end and returns the tool calls.
+	usesToolSurface := nimillm.TextScenarioUsesToolSurface(resolved.spec)
+	var pendingToolCalls []*runtimev1.ToolCall
+	if !usesToolSurface && remoteTarget != nil && s.selector.cloudProvider != nil {
 		requestCtx = nimillm.WithStreamSimulationFlag(requestCtx, &streamSimulated)
 		usage, finishReason, err = s.selector.cloudProvider.StreamGenerateTextScenarioWithTarget(requestCtx, modelResolved, resolved.spec, func(part string) error {
 			recordFirstProviderCallback()
@@ -397,7 +401,7 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 		if err != nil {
 			return failAndStop(err)
 		}
-	} else if separateReasoning && canRichStreamScenario {
+	} else if !usesToolSurface && separateReasoning && canRichStreamScenario {
 		requestCtx = nimillm.WithStreamSimulationFlag(requestCtx, &streamSimulated)
 		usage, finishReason, err = richStreamer.StreamGenerateTextScenarioRich(requestCtx, modelResolved, resolved.spec, nimillm.TextStreamEventHandler{
 			OnText: func(part string) error {
@@ -414,7 +418,7 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 		if err != nil {
 			return failAndStop(err)
 		}
-	} else if canStreamScenario {
+	} else if !usesToolSurface && canStreamScenario {
 		requestCtx = nimillm.WithStreamSimulationFlag(requestCtx, &streamSimulated)
 		usage, finishReason, err = scenarioStreamer.StreamGenerateTextScenario(requestCtx, modelResolved, resolved.spec, func(part string) error {
 			recordFirstProviderCallback()
@@ -436,9 +440,9 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 			generateErr  error
 		)
 		if remoteTarget != nil && s.selector.cloudProvider != nil {
-			outputText, streamUsage, streamFinish, generateErr = s.selector.cloudProvider.GenerateTextScenarioWithTarget(requestCtx, modelResolved, resolved.spec, inputText, remoteTarget)
+			outputText, pendingToolCalls, streamUsage, streamFinish, generateErr = s.selector.cloudProvider.GenerateTextScenarioWithTarget(requestCtx, modelResolved, resolved.spec, inputText, remoteTarget)
 		} else {
-			outputText, streamUsage, streamFinish, generateErr = scenarioGenerator.GenerateTextScenario(requestCtx, modelResolved, resolved.spec, inputText)
+			outputText, pendingToolCalls, streamUsage, streamFinish, generateErr = scenarioGenerator.GenerateTextScenario(requestCtx, modelResolved, resolved.spec, inputText)
 		}
 		if generateErr != nil {
 			return failAndStop(generateErr)
@@ -460,6 +464,16 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 	}
 	if err := flushDelta(); err != nil {
 		return err
+	}
+	for _, toolCall := range pendingToolCalls {
+		if err := send(&runtimev1.StreamScenarioEvent{
+			EventType: runtimev1.StreamEventType_STREAM_EVENT_TOOL_CALL,
+			Payload: &runtimev1.StreamScenarioEvent_ToolCall{
+				ToolCall: toolCall,
+			},
+		}); err != nil {
+			return err
+		}
 	}
 	if streamSimulated {
 		s.recordStreamFallbackSimulated(

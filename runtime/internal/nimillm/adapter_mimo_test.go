@@ -37,7 +37,7 @@ func TestMimoGenerateTextUsesMaxCompletionTokens(t *testing.T) {
 	if backend == nil {
 		t.Fatal("expected backend")
 	}
-	text, usage, _, err := backend.GenerateText(
+	text, _, usage, _, err := backend.GenerateText(
 		context.Background(),
 		"mimo-v2.5-pro",
 		[]*runtimev1.ChatMessage{{Role: "user", Content: "hello"}},
@@ -45,6 +45,7 @@ func TestMimoGenerateTextUsesMaxCompletionTokens(t *testing.T) {
 		0,
 		0,
 		64,
+		textGenParams{},
 	)
 	if err != nil {
 		t.Fatalf("GenerateText failed: %v", err)
