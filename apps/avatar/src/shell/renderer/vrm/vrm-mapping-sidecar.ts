@@ -144,7 +144,7 @@ export function evaluateAvatarMappingSidecarSupport(
   if (sidecar.profileId !== profile.profileId) {
     return unsupported('mapping_profile_id_mismatch', evidence);
   }
-  if (!profile.supportedRoutes.includes(sidecar.routeId)) {
+  if (!profile.generatedMotion.supportedRoutes.includes(sidecar.routeId)) {
     return unsupported('capability_profile_route_unsupported', evidence);
   }
   if (sidecar.confidence < sidecar.threshold) {

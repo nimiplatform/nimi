@@ -56,12 +56,13 @@ describe('createMissingVrmGeneratedMotionProvider', () => {
     });
 
     expect(result).toEqual({
-      ok: false,
-      reason: 'generated_motion_provider_missing',
+      status: 'fail_closed',
+      routeId: 'idle_subtle',
+      reasonCode: 'missing_profile',
       evidence: {
         routeId: 'idle_subtle',
         providerKind: 'missing',
-        reasonCode: 'generated_motion_provider_missing',
+        reasonCode: 'missing_profile',
       },
     });
   });
@@ -76,7 +77,6 @@ describe('createVrmGeneratedMotionRuntime', () => {
       evidence: {
         routeId: 'idle_subtle',
         providerKind: 'runtime',
-        reasonCode: 'generated_motion_runtime_not_attached',
       },
     });
   });
@@ -89,7 +89,7 @@ describe('createVrmGeneratedMotionRuntime', () => {
 
     expect(result.played).toBe(false);
     if (!result.played) {
-      expect(result.reason).toBe('generated_motion_provider_missing');
+      expect(result.reason).toBe('missing_profile');
     }
     expect(runtime.snapshot()).toEqual({
       attached: true,
@@ -102,8 +102,9 @@ describe('createVrmGeneratedMotionRuntime', () => {
     const provider: VrmGeneratedMotionProvider = {
       generate(input) {
         return {
-          ok: true,
+          status: 'ok' as const,
           clip: { name: input.routeId } as never,
+          routeId: input.routeId,
           evidence: { routeId: input.routeId, providerKind: 'test' },
         };
       },
@@ -129,8 +130,9 @@ describe('createVrmGeneratedMotionRuntime', () => {
     const provider: VrmGeneratedMotionProvider = {
       generate(input) {
         return {
-          ok: true,
+          status: 'ok' as const,
           clip: { name: input.routeId } as never,
+          routeId: input.routeId,
           evidence: { routeId: input.routeId, providerKind: 'test' },
         };
       },

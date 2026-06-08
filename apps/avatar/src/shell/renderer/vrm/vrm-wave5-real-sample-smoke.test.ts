@@ -237,7 +237,7 @@ function makeEvidence(
     sampleBytes: sample.sizeBytes,
     gltfVersion: sample.gltf.asset?.version ?? null,
     vrmMetaName: readVrmMetaName(sample.gltf),
-    supportedRoutes: profile.supportedRoutes,
+    supportedRoutes: profile.generatedMotion.supportedRoutes,
     events,
     assertions,
   };
@@ -465,8 +465,8 @@ describe('wave-5 real VRM sample smoke matrix', () => {
       expect(sample.sizeBytes).toBeGreaterThan(9_000_000);
       expect(sample.gltf.asset?.version).toBe('2.0');
       expect(readVrmMetaName(sample.gltf)).toEqual(expect.any(String));
-      expect(profile.supportedRoutes.sort()).toEqual([...VRM_GENERATED_ROUTE_IDS].sort());
-      expect(profile.unsupportedRoutes).toEqual([]);
+      expect(profile.generatedMotion.supportedRoutes.sort()).toEqual([...VRM_GENERATED_ROUTE_IDS].sort());
+      expect(profile.generatedMotion.unsupportedRoutes).toEqual([]);
     }
   });
 
@@ -494,9 +494,9 @@ describe('wave-5 real VRM sample smoke matrix', () => {
       loop: false,
     });
 
-    expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.reason).toBe('missing_bones:rightHand');
+    expect(result.status).toBe('fail_closed');
+    if (result.status === 'fail_closed') {
+      expect(result.reasonCode).toBe('unsupported_capability');
     }
   });
 });

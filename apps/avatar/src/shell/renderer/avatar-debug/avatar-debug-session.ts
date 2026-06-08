@@ -193,7 +193,7 @@ function metadataStringList(meta: Record<string, unknown>, key: string): string[
 
 function supportedVrmRouteIds(input: AvatarDebugSessionInput): VrmGeneratedRouteId[] {
   if (input.vrmCapabilityProfile) {
-    return [...input.vrmCapabilityProfile.supportedRoutes];
+    return [...input.vrmCapabilityProfile.generatedMotion.supportedRoutes];
   }
   return metadataStringList(backendMetadata(input), 'generated_motion_routes')
     .filter(isVrmGeneratedRouteId);
@@ -201,7 +201,7 @@ function supportedVrmRouteIds(input: AvatarDebugSessionInput): VrmGeneratedRoute
 
 function unsupportedVrmRouteIds(input: AvatarDebugSessionInput): string[] {
   if (input.vrmCapabilityProfile) {
-    return input.vrmCapabilityProfile.unsupportedRoutes.map((route) => route.routeId);
+    return input.vrmCapabilityProfile.generatedMotion.unsupportedRoutes.map((route) => route.routeId);
   }
   return metadataStringList(backendMetadata(input), 'unsupported_generated_motion_routes');
 }

@@ -38,12 +38,13 @@ export function createMissingVrmGeneratedMotionProvider(): VrmGeneratedMotionPro
   return {
     generate(input) {
       return {
-        ok: false,
-        reason: 'generated_motion_provider_missing',
+        status: 'fail_closed',
+        routeId: input.routeId,
+        reasonCode: 'missing_profile',
         evidence: {
           routeId: input.routeId,
           providerKind: 'missing',
-          reasonCode: 'generated_motion_provider_missing',
+          reasonCode: 'missing_profile',
         },
       };
     },
@@ -75,7 +76,6 @@ export function createVrmGeneratedMotionRuntime(
         evidence: {
           routeId: input.routeId,
           providerKind: 'runtime',
-          reasonCode: 'generated_motion_runtime_not_attached',
         },
       };
     }
@@ -86,10 +86,10 @@ export function createVrmGeneratedMotionRuntime(
       intensity: input.intensity ?? null,
       loop,
     });
-    if (!generated.ok) {
+    if (generated.status !== 'ok') {
       return {
         played: false,
-        reason: generated.reason,
+        reason: generated.reasonCode,
         evidence: generated.evidence,
       };
     }

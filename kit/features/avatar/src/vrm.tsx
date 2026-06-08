@@ -35,6 +35,7 @@ export {
 } from './vrm-generated-motion.js';
 export type {
   GeneratedMotionEvidence,
+  GeneratedMotionReasonCode,
   GeneratedMotionRuntimeSnapshot,
   PlayGeneratedMotionInput,
   PlayGeneratedMotionResult,

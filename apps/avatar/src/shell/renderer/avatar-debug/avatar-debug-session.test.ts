@@ -73,10 +73,18 @@ function vrmProfile(): VrmCapabilityProfile {
       rightLowerLeg: true,
     },
     expressionManagerPresent: true,
-    supportedRoutes: ['idle_subtle', 'listen_lean', 'nod_yes', 'shake_no', 'greet_wave'],
-    unsupportedRoutes: [],
-    safetyLimits: {
-      maxRotationRad: 1.2,
+    modelFingerprint: 'vrm:bones=111111111111111;expr=1',
+    generatedMotion: {
+      supportedRoutes: ['idle_subtle', 'listen_lean', 'nod_yes', 'shake_no', 'greet_wave'],
+      unsupportedRoutes: [],
+      safetyLimits: {
+        maxRotationRad: 1.2,
+      },
+    },
+    evidence: {
+      source: 'runtime_probe' as const,
+      observedAt: '2026-01-01T00:00:00.000Z',
+      validator: 'test',
     },
   };
 }
@@ -126,8 +134,11 @@ describe('createAvatarDebugSession', () => {
       ...input(AvatarDebugProbeKind.GENERATED_MOTION),
       vrmCapabilityProfile: {
         ...vrmProfile(),
-        supportedRoutes: [],
-        unsupportedRoutes: [{ routeId: 'greet_wave', reason: 'missing_bones:rightHand' }],
+        generatedMotion: {
+          supportedRoutes: [],
+          unsupportedRoutes: [{ routeId: 'greet_wave', reason: 'missing_bones:rightHand' }],
+          safetyLimits: { maxRotationRad: 1.2 },
+        },
       },
     });
 

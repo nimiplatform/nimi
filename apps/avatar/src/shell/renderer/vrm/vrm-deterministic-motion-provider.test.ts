@@ -44,17 +44,17 @@ describe('createVrmCapabilityProfile', () => {
     const profile = createVrmCapabilityProfile(makeVrm());
 
     expect(profile.backendKind).toBe('vrm');
-    expect(profile.supportedRoutes.sort()).toEqual(
+    expect(profile.generatedMotion.supportedRoutes.sort()).toEqual(
       ['greet_wave', 'idle_subtle', 'listen_lean', 'nod_yes', 'shake_no'].sort(),
     );
-    expect(profile.unsupportedRoutes).toEqual([]);
+    expect(profile.generatedMotion.unsupportedRoutes).toEqual([]);
   });
 
   it('marks route unsupported when a required bone is missing', () => {
     const profile = createVrmCapabilityProfile(makeVrm(['rightHand']));
 
-    expect(profile.supportedRoutes).not.toContain('greet_wave');
-    expect(profile.unsupportedRoutes).toContainEqual({
+    expect(profile.generatedMotion.supportedRoutes).not.toContain('greet_wave');
+    expect(profile.generatedMotion.unsupportedRoutes).toContainEqual({
       routeId: 'greet_wave',
       reason: 'missing_bones:rightHand',
     });
@@ -71,12 +71,13 @@ describe('generateDeterministicVrmMotion', () => {
     });
 
     expect(result).toEqual({
-      ok: false,
-      reason: 'route_not_admitted',
+      status: 'fail_closed',
+      routeId: 'unknown_route',
+      reasonCode: 'missing_route',
       evidence: {
         routeId: 'unknown_route',
         providerKind: 'deterministic_vrm',
-        reasonCode: 'route_not_admitted',
+        reasonCode: 'missing_route',
       },
     });
   });
@@ -89,9 +90,9 @@ describe('generateDeterministicVrmMotion', () => {
       loop: false,
     });
 
-    expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.reason).toBe('missing_bones:head');
+    expect(result.status).toBe('fail_closed');
+    if (result.status === 'fail_closed') {
+      expect(result.reasonCode).toBe('unsupported_capability');
     }
   });
 
@@ -108,8 +109,8 @@ describe('generateDeterministicVrmMotion', () => {
     const second = provider.generate(input);
 
     expect(first).toEqual(second);
-    expect(first.ok).toBe(true);
-    if (first.ok) {
+    expect(first.status).toBe('ok');
+    if (first.status === 'ok') {
       expect((first.clip as { name: string }).name).toBe('nimi.shake_no');
     }
   });
@@ -122,8 +123,8 @@ describe('generateDeterministicVrmMotion', () => {
       loop: false,
     });
 
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    expect(result.status).toBe('ok');
+    if (result.status !== 'ok') return;
     const tracks = (result.clip as { tracks: Array<{ values: number[] }> }).tracks;
     const maxAbs = Math.max(...tracks.flatMap((track) => track.values.map(Math.abs)));
     expect(maxAbs).toBeLessThanOrEqual(1.2);
@@ -163,9 +164,9 @@ describe('generateDeterministicVrmMotion', () => {
       },
     );
 
-    expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.reason).toBe('mapping_confidence_below_threshold');
+    expect(result.status).toBe('fail_closed');
+    if (result.status === 'fail_closed') {
+      expect(result.reasonCode).toBe('mapping_confidence_below_threshold');
     }
   });
 });

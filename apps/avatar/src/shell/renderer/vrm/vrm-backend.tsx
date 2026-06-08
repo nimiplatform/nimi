@@ -284,9 +284,9 @@ export async function createVrmBackendBranch(
       vrma_position: 'interchange_only',
       lipsync_profile_present: profile !== null,
       capability_profile_id: latestCapabilityProfile?.profileId ?? null,
-      generated_motion_routes: latestCapabilityProfile?.supportedRoutes ?? [],
+      generated_motion_routes: latestCapabilityProfile?.generatedMotion.supportedRoutes ?? [],
       unsupported_generated_motion_routes:
-        latestCapabilityProfile?.unsupportedRoutes.map((route) => route.routeId) ?? [],
+        latestCapabilityProfile?.generatedMotion.unsupportedRoutes.map((route) => route.routeId) ?? [],
       expression_manager_present: latestCapabilityProfile?.expressionManagerPresent ?? false,
     }),
     shutdown() {

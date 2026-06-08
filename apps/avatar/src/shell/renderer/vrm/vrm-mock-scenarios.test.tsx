@@ -314,7 +314,7 @@ describe('scenario vrm-listening (chunk 3-E)', () => {
     );
     const result = playSpy.mock.results[0]?.value as { played: boolean; reason?: string };
     expect(result.played).toBe(false);
-    expect(result.reason).toBe('generated_motion_provider_missing');
+    expect(result.reason).toBe('missing_profile');
     expect(generatedMotionRuntime.snapshot().activeRouteId).toBeNull();
   });
 });
@@ -346,7 +346,7 @@ describe('scenario vrm-thinking (chunk 3-E)', () => {
     );
     const result = playSpy.mock.results[0]?.value as { played: boolean; reason?: string };
     expect(result.played).toBe(false);
-    expect(result.reason).toBe('generated_motion_provider_missing');
+    expect(result.reason).toBe('missing_profile');
     expect(generatedMotionRuntime.snapshot().activeRouteId).toBeNull();
   });
 });

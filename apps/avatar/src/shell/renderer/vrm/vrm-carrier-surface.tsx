@@ -312,8 +312,8 @@ export function createVrmCarrierSurface(
         provider_path: 'avatar_generated_motion',
         vrma_position: 'interchange_only',
         capability_profile_id: profile.profileId,
-        generated_motion_routes: profile.supportedRoutes,
-        unsupported_generated_motion_routes: profile.unsupportedRoutes.map((route) => route.routeId),
+        generated_motion_routes: profile.generatedMotion.supportedRoutes,
+        unsupported_generated_motion_routes: profile.generatedMotion.unsupportedRoutes.map((route) => route.routeId),
       });
     }, [vrm, props.onLifecycleEvidence]);
 

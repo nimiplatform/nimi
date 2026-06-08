@@ -142,7 +142,8 @@ function sampleVisiblePixels(input: {
       const green = pixel[1] ?? 0;
       const blue = pixel[2] ?? 0;
       const alpha = pixel[3] ?? 0;
-      if (alpha > 0 || red > 0 || green > 0 || blue > 0) {
+      // Contract §4: visible-pixel threshold = alpha > 0.5 normalized (UNSIGNED_BYTE range: > 127)
+      if (alpha > 127) {
         visiblePixels += 1;
       }
       sampledPixelChecksum = (sampledPixelChecksum + ((red * 3) + (green * 5) + (blue * 7) + (alpha * 11)) * sampledPixels) >>> 0;

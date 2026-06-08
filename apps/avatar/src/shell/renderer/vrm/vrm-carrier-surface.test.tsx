@@ -85,11 +85,11 @@ function generatedMotionRuntimeStub(): VrmGeneratedMotionRuntime<VRM> {
     attach() {},
     play: () => ({
       played: false,
-      reason: 'generated_motion_provider_missing',
+      reason: 'missing_route',
       evidence: {
         routeId: 'test',
         providerKind: 'missing',
-        reasonCode: 'generated_motion_provider_missing',
+        reasonCode: 'missing_route' as const,
       },
     }),
     stopAll() {},

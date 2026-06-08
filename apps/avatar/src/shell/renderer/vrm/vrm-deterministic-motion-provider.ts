@@ -3,6 +3,7 @@ import { AnimationClip, NumberKeyframeTrack } from 'three';
 import {
   GENERATED_MOTION_MAX_ROTATION_RAD,
   isVrmGeneratedRouteId,
+  type GeneratedMotionReasonCode,
   type VrmGeneratedMotionProvider,
   type VrmGeneratedMotionProviderInput,
   type VrmGeneratedMotionProviderResult,
@@ -95,7 +96,7 @@ export function generateDeterministicVrmMotion(
   options: DeterministicVrmGeneratedMotionProviderOptions = {},
 ): VrmGeneratedMotionProviderResult {
   if (!isVrmGeneratedRouteId(input.routeId)) {
-    return fail(input.routeId, 'route_not_admitted');
+    return fail(input.routeId, 'missing_route');
   }
 
   const profile = createVrmCapabilityProfile(input.vrm);
@@ -105,12 +106,12 @@ export function generateDeterministicVrmMotion(
     input.routeId,
   );
   if (!mappingSupport.supported) {
-    return fail(input.routeId, mappingSupport.reason);
+    return fail(input.routeId, mappingSidecarReasonToReasonCode(mappingSupport.reason));
   }
 
   const missing = getMissingRouteBones(input.vrm, input.routeId);
   if (missing.length > 0) {
-    return fail(input.routeId, `missing_bones:${missing.join(',')}`);
+    return fail(input.routeId, 'unsupported_capability');
   }
 
   const template = ROUTE_TEMPLATES[input.routeId];
@@ -120,18 +121,19 @@ export function generateDeterministicVrmMotion(
   for (const spec of template.tracks) {
     const node = getVrmBoneNode(input.vrm, spec.bone);
     if (!node) {
-      return fail(input.routeId, `missing_bones:${spec.bone}`);
+      return fail(input.routeId, 'unsupported_capability');
     }
     const trackName = `${node.name || spec.bone}.rotation[${spec.axis}]`;
     const values = spec.values.map((value) =>
-      clampRotation(value * intensity, profile.safetyLimits.maxRotationRad),
+      clampRotation(value * intensity, profile.generatedMotion.safetyLimits.maxRotationRad),
     );
     tracks.push(new NumberKeyframeTrack(trackName, template.times, values));
   }
 
   return {
-    ok: true,
+    status: 'ok',
     clip: new AnimationClip(`nimi.${input.routeId}`, template.duration, tracks as never),
+    routeId: input.routeId,
     evidence: {
       routeId: input.routeId,
       providerKind: 'deterministic_vrm',
@@ -139,16 +141,46 @@ export function generateDeterministicVrmMotion(
   };
 }
 
-function fail(routeId: string, reason: string): VrmGeneratedMotionProviderResult {
+function fail(routeId: string, reasonCode: GeneratedMotionReasonCode): VrmGeneratedMotionProviderResult {
   return {
-    ok: false,
-    reason,
+    status: 'fail_closed',
+    routeId,
+    reasonCode,
     evidence: {
       routeId,
       providerKind: 'deterministic_vrm',
-      reasonCode: reason,
+      reasonCode,
     },
   };
+}
+
+function mappingSidecarReasonToReasonCode(reason: string): GeneratedMotionReasonCode {
+  if (reason === 'mapping_confidence_below_threshold') {
+    return 'mapping_confidence_below_threshold';
+  }
+  if (
+    reason === 'mapping_unconfirmed' ||
+    reason === 'mapping_rejected' ||
+    reason === 'mapping_manual_confirmation_required'
+  ) {
+    return 'mapping_unconfirmed';
+  }
+  if (
+    reason === 'route_not_admitted'
+  ) {
+    return 'missing_route';
+  }
+  if (
+    reason === 'capability_profile_route_unsupported' ||
+    reason.startsWith('mapping_target_unknown_bone:') ||
+    reason.startsWith('mapping_target_missing_bone:') ||
+    reason.startsWith('mapping_target_unsupported_for_vrm:') ||
+    reason === 'mapping_target_expression_manager_missing'
+  ) {
+    return 'unsupported_capability';
+  }
+  // mapping_backend_kind_mismatch, mapping_profile_id_mismatch, mapping_sidecar_invalid:*, mapping_sidecar_missing
+  return 'missing_profile';
 }
 
 function clampIntensity01(raw: number | null): number {

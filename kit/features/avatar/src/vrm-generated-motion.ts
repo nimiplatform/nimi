@@ -15,10 +15,19 @@ export const VRM_GENERATED_ROUTE_IDS: readonly VrmGeneratedRouteId[] = Object.fr
 
 export const GENERATED_MOTION_MAX_ROTATION_RAD = 1.2;
 
+export type GeneratedMotionReasonCode =
+  | 'unsupported_capability'
+  | 'unsafe_pose'
+  | 'mapping_confidence_below_threshold'
+  | 'mapping_unconfirmed'
+  | 'missing_profile'
+  | 'missing_route'
+  | 'invalid_runtime_projection';
+
 export type GeneratedMotionEvidence = {
   routeId: string;
   providerKind: string;
-  reasonCode?: string;
+  reasonCode?: GeneratedMotionReasonCode;
 };
 
 export type VrmGeneratedMotionProviderInput<TVrm = unknown> = {
@@ -29,8 +38,8 @@ export type VrmGeneratedMotionProviderInput<TVrm = unknown> = {
 };
 
 export type VrmGeneratedMotionProviderResult<TClip = unknown> =
-  | { ok: true; clip: TClip; evidence: GeneratedMotionEvidence }
-  | { ok: false; reason: string; evidence: GeneratedMotionEvidence };
+  | { status: 'ok'; clip: TClip; routeId: string; evidence: GeneratedMotionEvidence }
+  | { status: 'fail_closed'; routeId: string; reasonCode: GeneratedMotionReasonCode; evidence: GeneratedMotionEvidence };
 
 export interface VrmGeneratedMotionProvider<TVrm = unknown, TClip = unknown> {
   generate(input: VrmGeneratedMotionProviderInput<TVrm>): VrmGeneratedMotionProviderResult<TClip>;
