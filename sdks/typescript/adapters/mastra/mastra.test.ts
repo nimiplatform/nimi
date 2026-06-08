@@ -39,9 +39,9 @@ test('mastra adapter fails closed for unsupported streaming', () => {
 });
 
 test('mastra manifest does not claim tool or structured-output parity', () => {
-  assert.equal(NIMI_MASTRA_ADAPTER_MANIFEST.capabilities['model.generate'], 'supported');
-  assert.equal(NIMI_MASTRA_ADAPTER_MANIFEST.capabilities['tools.mapping'], 'unsupported');
-  assert.equal(NIMI_MASTRA_ADAPTER_MANIFEST.capabilities.structuredOutput, 'unsupported');
+  assert.equal(NIMI_MASTRA_ADAPTER_MANIFEST.capabilities['model.generate'].support, 'supported');
+  assert.equal(NIMI_MASTRA_ADAPTER_MANIFEST.capabilities['tools.mapping'].support, 'unsupported');
+  assert.equal(NIMI_MASTRA_ADAPTER_MANIFEST.capabilities.structuredOutput.support, 'unsupported');
 });
 
 function createGenerateOnlyModel(modelId: string): NimiAiModel {

@@ -53,15 +53,94 @@ export type NimiRuntimeRouteMetadataKind =
   | 'audio.synthesize'
   | 'audio.transcribe'
   | 'voice_workflow.voice_clone'
-  | 'voice_workflow.voice_design'
-  | string;
+  | 'voice_workflow.voice_design';
 
-export interface NimiRuntimeRouteDescribeResult {
+export type NimiRuntimeRouteTextGenerateTraceModeSupport = 'none' | 'hide' | 'separate';
+export type NimiRuntimeRouteSpeechTimingMode = 'none' | 'word' | 'char';
+export type NimiRuntimeRouteVoiceWorkflowTextMode = 'unsupported' | 'optional' | 'required';
+
+export interface NimiRuntimeRouteTextGenerateMetadata {
+  readonly supportsThinking: boolean;
+  readonly traceModeSupport: NimiRuntimeRouteTextGenerateTraceModeSupport;
+  readonly supportsImageInput: boolean;
+  readonly supportsAudioInput: boolean;
+  readonly supportsVideoInput: boolean;
+  readonly supportsArtifactRefInput: boolean;
+}
+
+export interface NimiRuntimeRouteSpeechSynthesizeMetadata {
+  readonly supportedAudioFormats: readonly string[];
+  readonly supportedTimingModes: readonly NimiRuntimeRouteSpeechTimingMode[];
+  readonly supportsLanguage: boolean;
+  readonly supportsEmotion: boolean;
+  readonly defaultAudioFormat?: string;
+  readonly voiceRenderHints?: JsonObject;
+  readonly providerExtensionNamespace?: string;
+  readonly providerExtensionSchemaVersion?: string;
+}
+
+export interface NimiRuntimeRouteSpeechTranscribeMetadata {
+  readonly tiers: readonly string[];
+  readonly supportedResponseFormats: readonly string[];
+  readonly supportsLanguage: boolean;
+  readonly supportsPrompt: boolean;
+  readonly supportsTimestamps: boolean;
+  readonly supportsDiarization: boolean;
+  readonly maxSpeakerCount?: number;
+  readonly providerExtensionNamespace?: string;
+  readonly providerExtensionSchemaVersion?: string;
+}
+
+export interface NimiRuntimeRouteVoiceWorkflowVoiceCloneMetadata {
+  readonly workflowType: 'voice_clone';
+  readonly requiresTargetSynthesisBinding: boolean;
+  readonly textPromptMode: NimiRuntimeRouteVoiceWorkflowTextMode;
+  readonly supportsLanguageHints: boolean;
+  readonly supportsPreferredName: boolean;
+  readonly referenceAudioUriInput: boolean;
+  readonly referenceAudioBytesInput: boolean;
+  readonly allowedReferenceAudioMimeTypes: readonly string[];
+  readonly providerExtensionNamespace?: string;
+  readonly providerExtensionSchemaVersion?: string;
+}
+
+export interface NimiRuntimeRouteVoiceWorkflowVoiceDesignMetadata {
+  readonly workflowType: 'voice_design';
+  readonly requiresTargetSynthesisBinding: boolean;
+  readonly instructionTextMode: NimiRuntimeRouteVoiceWorkflowTextMode;
+  readonly previewTextMode: NimiRuntimeRouteVoiceWorkflowTextMode;
+  readonly supportsLanguage: boolean;
+  readonly supportsPreferredName: boolean;
+  readonly providerExtensionNamespace?: string;
+  readonly providerExtensionSchemaVersion?: string;
+}
+
+export type NimiRuntimeRouteDescribeResult =
+  | (NimiRuntimeRouteDescribeResultBase & {
+      readonly metadataKind: 'text.generate';
+      readonly metadata: NimiRuntimeRouteTextGenerateMetadata;
+    })
+  | (NimiRuntimeRouteDescribeResultBase & {
+      readonly metadataKind: 'audio.synthesize';
+      readonly metadata: NimiRuntimeRouteSpeechSynthesizeMetadata;
+    })
+  | (NimiRuntimeRouteDescribeResultBase & {
+      readonly metadataKind: 'audio.transcribe';
+      readonly metadata: NimiRuntimeRouteSpeechTranscribeMetadata;
+    })
+  | (NimiRuntimeRouteDescribeResultBase & {
+      readonly metadataKind: 'voice_workflow.voice_clone';
+      readonly metadata: NimiRuntimeRouteVoiceWorkflowVoiceCloneMetadata;
+    })
+  | (NimiRuntimeRouteDescribeResultBase & {
+      readonly metadataKind: 'voice_workflow.voice_design';
+      readonly metadata: NimiRuntimeRouteVoiceWorkflowVoiceDesignMetadata;
+    });
+
+interface NimiRuntimeRouteDescribeResultBase {
   readonly capability: NimiRuntimeCanonicalCapability;
   readonly metadataVersion: NimiRuntimeRouteMetadataVersion;
   readonly resolvedBindingRef: NimiRuntimeRouteResolvedBindingRef;
-  readonly metadataKind: NimiRuntimeRouteMetadataKind;
-  readonly metadata: JsonObject;
 }
 
 export interface NimiRuntimeRouteDescribeCallOptions {

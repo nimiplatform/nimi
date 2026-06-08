@@ -11,10 +11,10 @@ export const NIMI_LLAMA_INDEX_ADAPTER_MANIFEST = {
   targetVersionRange: 'structural-query-engine-v1',
   capabilityLevel: 'L1',
   capabilities: {
-    'query.generate': 'supported',
-    retrievalReferences: 'supported',
-    indexMutation: 'unsupported',
-    toolCalling: 'unsupported',
+    'query.generate': { support: 'supported', mode: 'adapter-mapped' },
+    retrievalReferences: { support: 'supported', mode: 'adapter-mapped' },
+    indexMutation: { support: 'unsupported', mode: 'adapter-mapped' },
+    toolCalling: { support: 'unsupported', mode: 'adapter-mapped' },
   },
   unsupportedBehavior: 'throw',
 } as const satisfies NimiCapabilityManifest;

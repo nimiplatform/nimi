@@ -36,9 +36,9 @@ test('llamaindex adapter fails closed for index mutation', () => {
 });
 
 test('llamaindex manifest does not claim index mutation or tool calling', () => {
-  assert.equal(NIMI_LLAMA_INDEX_ADAPTER_MANIFEST.capabilities['query.generate'], 'supported');
-  assert.equal(NIMI_LLAMA_INDEX_ADAPTER_MANIFEST.capabilities.indexMutation, 'unsupported');
-  assert.equal(NIMI_LLAMA_INDEX_ADAPTER_MANIFEST.capabilities.toolCalling, 'unsupported');
+  assert.equal(NIMI_LLAMA_INDEX_ADAPTER_MANIFEST.capabilities['query.generate'].support, 'supported');
+  assert.equal(NIMI_LLAMA_INDEX_ADAPTER_MANIFEST.capabilities.indexMutation.support, 'unsupported');
+  assert.equal(NIMI_LLAMA_INDEX_ADAPTER_MANIFEST.capabilities.toolCalling.support, 'unsupported');
 });
 
 function createModel(): NimiAiModel {

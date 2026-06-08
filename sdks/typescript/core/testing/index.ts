@@ -5,7 +5,7 @@ import {
   assertNimiCapability,
   textPart,
   type NimiCapabilityManifest,
-  type NimiCapabilityStatus,
+  type NimiCapabilitySupport,
   type NimiFinishReason,
   type NimiJsonObject,
   type NimiJsonValue,
@@ -116,7 +116,7 @@ export function assertNimiEventOrder(events: readonly NimiRunEvent[], expectedTy
 export function assertNimiCapabilitySupported(
   manifest: NimiCapabilityManifest,
   capability: string,
-  expected: NimiCapabilityStatus = 'supported',
+  expected: NimiCapabilitySupport = 'supported',
 ): void {
   assertNimiCapability(manifest, capability, expected);
 }

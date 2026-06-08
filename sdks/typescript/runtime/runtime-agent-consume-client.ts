@@ -427,65 +427,70 @@ function companionTriggerSource(value: unknown): CompanionParticipationTriggerSo
   );
 }
 
-function companionSurfaceKindId(value: CompanionParticipationSurfaceKind) {
-  switch (value) {
-    case CompanionParticipationSurfaceKind.AVATAR_COMPANION:
-      return 'avatar_companion';
-    case CompanionParticipationSurfaceKind.DESKTOP_COMPANION_PANEL:
-      return 'desktop_companion_panel';
-    case CompanionParticipationSurfaceKind.AVATAR_DEBUG_WORKBENCH:
-      return 'avatar_debug_workbench';
-    default:
-      runtimeAgentError(
-        'Runtime Agent companion participation projection has unsupported surfaceKind',
-        'SDK_RUNTIME_AGENT_RESPONSE_INVALID',
-        'check_runtime_agent_companion_projection',
-      );
+function companionSurfaceKindId(value: CompanionParticipationSurfaceKind | string) {
+  if (value === CompanionParticipationSurfaceKind.AVATAR_COMPANION || value === 'avatar_companion') {
+    return 'avatar_companion';
   }
+  if (value === CompanionParticipationSurfaceKind.DESKTOP_COMPANION_PANEL || value === 'desktop_companion_panel') {
+    return 'desktop_companion_panel';
+  }
+  if (value === CompanionParticipationSurfaceKind.AVATAR_DEBUG_WORKBENCH || value === 'avatar_debug_workbench') {
+    return 'avatar_debug_workbench';
+  }
+  runtimeAgentError(
+    'Runtime Agent companion participation projection has unsupported surfaceKind',
+    'SDK_RUNTIME_AGENT_RESPONSE_INVALID',
+    'check_runtime_agent_companion_projection',
+  );
 }
 
-function companionTriggerSourceId(value: CompanionParticipationTriggerSource) {
-  switch (value) {
-    case CompanionParticipationTriggerSource.USER_EXPLICIT:
-      return 'user_explicit';
-    case CompanionParticipationTriggerSource.SCHEDULED_PROACTIVE:
-      return 'scheduled_proactive';
-    case CompanionParticipationTriggerSource.DOMAIN_EVENT:
-      return 'domain_event';
-    default:
-      runtimeAgentError(
-        'Runtime Agent companion participation projection has unsupported triggerSource',
-        'SDK_RUNTIME_AGENT_RESPONSE_INVALID',
-        'check_runtime_agent_companion_projection',
-      );
+function companionTriggerSourceId(value: CompanionParticipationTriggerSource | string) {
+  if (value === CompanionParticipationTriggerSource.USER_EXPLICIT || value === 'user_explicit') {
+    return 'user_explicit';
   }
+  if (value === CompanionParticipationTriggerSource.SCHEDULED_PROACTIVE || value === 'scheduled_proactive') {
+    return 'scheduled_proactive';
+  }
+  if (value === CompanionParticipationTriggerSource.DOMAIN_EVENT || value === 'domain_event') {
+    return 'domain_event';
+  }
+  runtimeAgentError(
+    'Runtime Agent companion participation projection has unsupported triggerSource',
+    'SDK_RUNTIME_AGENT_RESPONSE_INVALID',
+    'check_runtime_agent_companion_projection',
+  );
 }
 
-function companionStatus(value: CompanionParticipationStatus) {
-  switch (value) {
-    case CompanionParticipationStatus.IDLE:
-      return 'idle';
-    case CompanionParticipationStatus.ADMISSION_PENDING:
-      return 'admission_pending';
-    case CompanionParticipationStatus.BLOCKED:
-      return 'blocked';
-    case CompanionParticipationStatus.RUNNING:
-      return 'running';
-    case CompanionParticipationStatus.CANDIDATE_READY:
-      return 'candidate_ready';
-    case CompanionParticipationStatus.COMMITTED_BY_OWNER:
-      return 'committed_by_owner';
-    case CompanionParticipationStatus.FAILED:
-      return 'failed';
-    case CompanionParticipationStatus.CANCELED:
-      return 'canceled';
-    default:
-      runtimeAgentError(
-        'Runtime Agent companion participation projection has unsupported status',
-        'SDK_RUNTIME_AGENT_RESPONSE_INVALID',
-        'check_runtime_agent_companion_projection',
-      );
+function companionStatus(value: CompanionParticipationStatus | string) {
+  if (value === CompanionParticipationStatus.IDLE || value === 'idle') {
+    return 'idle';
   }
+  if (value === CompanionParticipationStatus.ADMISSION_PENDING || value === 'admission_pending') {
+    return 'admission_pending';
+  }
+  if (value === CompanionParticipationStatus.BLOCKED || value === 'blocked') {
+    return 'blocked';
+  }
+  if (value === CompanionParticipationStatus.RUNNING || value === 'running') {
+    return 'running';
+  }
+  if (value === CompanionParticipationStatus.CANDIDATE_READY || value === 'candidate_ready') {
+    return 'candidate_ready';
+  }
+  if (value === CompanionParticipationStatus.COMMITTED_BY_OWNER || value === 'committed_by_owner') {
+    return 'committed_by_owner';
+  }
+  if (value === CompanionParticipationStatus.FAILED || value === 'failed') {
+    return 'failed';
+  }
+  if (value === CompanionParticipationStatus.CANCELED || value === 'canceled') {
+    return 'canceled';
+  }
+  runtimeAgentError(
+    'Runtime Agent companion participation projection has unsupported status',
+    'SDK_RUNTIME_AGENT_RESPONSE_INVALID',
+    'check_runtime_agent_companion_projection',
+  );
 }
 
 function requiredProjectionText(value: unknown, field: string): string {

@@ -3,6 +3,7 @@ import {
   FallbackPolicy,
   RoutePolicy,
   ScenarioType,
+  ToolChoiceMode,
   type ExecuteScenarioRequest,
   type ScenarioSpec,
 } from '../core-generated/runtime-typed-client';
@@ -23,6 +24,15 @@ import {
   type NimiRuntimeRouteDescribeCallOptionsBuilder,
   type NimiRuntimeRouteDescribeResult,
   type NimiRuntimeRouteExecuteScenario,
+  type NimiRuntimeRouteMetadataKind,
+  type NimiRuntimeRouteSpeechSynthesizeMetadata,
+  type NimiRuntimeRouteSpeechTimingMode,
+  type NimiRuntimeRouteSpeechTranscribeMetadata,
+  type NimiRuntimeRouteTextGenerateMetadata,
+  type NimiRuntimeRouteTextGenerateTraceModeSupport,
+  type NimiRuntimeRouteVoiceWorkflowTextMode,
+  type NimiRuntimeRouteVoiceWorkflowVoiceCloneMetadata,
+  type NimiRuntimeRouteVoiceWorkflowVoiceDesignMetadata,
 } from './route-capability-types';
 import type { NimiRuntimeCanonicalCapability } from './route-options';
 
@@ -78,12 +88,21 @@ function buildNimiRuntimeRouteDescribeScenarioProbe(input: {
               content: ROUTE_DESCRIBE_PROBE_TEXT,
               name: '',
               parts: [],
+              toolCalls: [],
+              toolCallId: '',
             }],
             systemPrompt: '',
             tools: [],
             temperature: 0,
             topP: 0,
             maxTokens: 0,
+            toolChoice: ToolChoiceMode.UNSPECIFIED,
+            toolChoiceName: '',
+            topK: 0,
+            presencePenalty: 0,
+            frequencyPenalty: 0,
+            stop: [],
+            seed: '0',
           },
         },
       },
@@ -238,10 +257,198 @@ function decodeBase64Text(input: string): string {
   return Buffer.from(input, 'base64').toString('utf8');
 }
 
+const NIMI_RUNTIME_ROUTE_METADATA_KINDS: readonly NimiRuntimeRouteMetadataKind[] = [
+  'text.generate',
+  'audio.synthesize',
+  'audio.transcribe',
+  'voice_workflow.voice_clone',
+  'voice_workflow.voice_design',
+];
+
+const NIMI_RUNTIME_ROUTE_TEXT_GENERATE_TRACE_MODES: readonly NimiRuntimeRouteTextGenerateTraceModeSupport[] = [
+  'none',
+  'hide',
+  'separate',
+];
+
+const NIMI_RUNTIME_ROUTE_SPEECH_TIMING_MODES: readonly NimiRuntimeRouteSpeechTimingMode[] = [
+  'none',
+  'word',
+  'char',
+];
+
+const NIMI_RUNTIME_ROUTE_VOICE_WORKFLOW_TEXT_MODES: readonly NimiRuntimeRouteVoiceWorkflowTextMode[] = [
+  'unsupported',
+  'optional',
+  'required',
+];
+
+function failNimiRuntimeRouteDescribeMetadata(message: string): never {
+  throw createNimiError({
+    message,
+    reasonCode: 'SDK_RUNTIME_ROUTE_DESCRIBE_METADATA_INVALID',
+    actionHint: 'check_runtime_route_describe_metadata',
+    source: 'sdk',
+  });
+}
+
+function requireRouteMetadataBoolean(metadata: JsonObject, field: string): boolean {
+  const value = metadata[field];
+  if (typeof value !== 'boolean') {
+    failNimiRuntimeRouteDescribeMetadata(`Runtime route describe metadata field "${field}" must be a boolean.`);
+  }
+  return value;
+}
+
+function requireRouteMetadataStringArray(metadata: JsonObject, field: string): readonly string[] {
+  const value = metadata[field];
+  if (!Array.isArray(value) || value.some((entry) => typeof entry !== 'string')) {
+    failNimiRuntimeRouteDescribeMetadata(`Runtime route describe metadata field "${field}" must be a string array.`);
+  }
+  return value as readonly string[];
+}
+
+function requireRouteMetadataEnum<T extends string>(
+  metadata: JsonObject,
+  field: string,
+  allowed: readonly T[],
+): T {
+  const value = metadata[field];
+  if (typeof value !== 'string' || !allowed.includes(value as T)) {
+    failNimiRuntimeRouteDescribeMetadata(
+      `Runtime route describe metadata field "${field}" must be one of ${allowed.join(', ')}.`,
+    );
+  }
+  return value as T;
+}
+
+function requireRouteMetadataEnumArray<T extends string>(
+  metadata: JsonObject,
+  field: string,
+  allowed: readonly T[],
+): readonly T[] {
+  const value = metadata[field];
+  if (!Array.isArray(value) || value.some((entry) => typeof entry !== 'string' || !allowed.includes(entry as T))) {
+    failNimiRuntimeRouteDescribeMetadata(
+      `Runtime route describe metadata field "${field}" must be an array of ${allowed.join(', ')}.`,
+    );
+  }
+  return value as readonly T[];
+}
+
+function readOptionalRouteMetadataString(metadata: JsonObject, field: string): string | undefined {
+  const value = metadata[field];
+  if (value === undefined) {
+    return undefined;
+  }
+  if (typeof value !== 'string') {
+    failNimiRuntimeRouteDescribeMetadata(`Runtime route describe metadata field "${field}" must be a string.`);
+  }
+  return value;
+}
+
+function assignOptionalRouteMetadata(
+  target: object,
+  field: string,
+  value: unknown,
+): void {
+  if (value !== undefined) {
+    (target as Record<string, unknown>)[field] = value;
+  }
+}
+
+function assignProviderExtensionRouteMetadata(
+  target: { providerExtensionNamespace?: string; providerExtensionSchemaVersion?: string },
+  metadata: JsonObject,
+): void {
+  assignOptionalRouteMetadata(target, 'providerExtensionNamespace', readOptionalRouteMetadataString(metadata, 'providerExtensionNamespace'));
+  assignOptionalRouteMetadata(target, 'providerExtensionSchemaVersion', readOptionalRouteMetadataString(metadata, 'providerExtensionSchemaVersion'));
+}
+
+function parseNimiRuntimeRouteTextGenerateMetadata(metadata: JsonObject): NimiRuntimeRouteTextGenerateMetadata {
+  return {
+    supportsThinking: requireRouteMetadataBoolean(metadata, 'supportsThinking'),
+    traceModeSupport: requireRouteMetadataEnum(metadata, 'traceModeSupport', NIMI_RUNTIME_ROUTE_TEXT_GENERATE_TRACE_MODES),
+    supportsImageInput: requireRouteMetadataBoolean(metadata, 'supportsImageInput'),
+    supportsAudioInput: requireRouteMetadataBoolean(metadata, 'supportsAudioInput'),
+    supportsVideoInput: requireRouteMetadataBoolean(metadata, 'supportsVideoInput'),
+    supportsArtifactRefInput: requireRouteMetadataBoolean(metadata, 'supportsArtifactRefInput'),
+  };
+}
+
+function parseNimiRuntimeRouteSpeechSynthesizeMetadata(metadata: JsonObject): NimiRuntimeRouteSpeechSynthesizeMetadata {
+  const voiceRenderHints = metadata.voiceRenderHints;
+  if (voiceRenderHints !== undefined && (typeof voiceRenderHints !== 'object' || voiceRenderHints === null || Array.isArray(voiceRenderHints))) {
+    failNimiRuntimeRouteDescribeMetadata('Runtime route describe metadata field "voiceRenderHints" must be an object.');
+  }
+  const result: NimiRuntimeRouteSpeechSynthesizeMetadata = {
+    supportedAudioFormats: requireRouteMetadataStringArray(metadata, 'supportedAudioFormats'),
+    supportedTimingModes: requireRouteMetadataEnumArray(metadata, 'supportedTimingModes', NIMI_RUNTIME_ROUTE_SPEECH_TIMING_MODES),
+    supportsLanguage: requireRouteMetadataBoolean(metadata, 'supportsLanguage'),
+    supportsEmotion: requireRouteMetadataBoolean(metadata, 'supportsEmotion'),
+  };
+  assignOptionalRouteMetadata(result, 'defaultAudioFormat', readOptionalRouteMetadataString(metadata, 'defaultAudioFormat'));
+  assignOptionalRouteMetadata(result, 'voiceRenderHints', voiceRenderHints as NimiRuntimeRouteSpeechSynthesizeMetadata['voiceRenderHints']);
+  assignProviderExtensionRouteMetadata(result, metadata);
+  return result;
+}
+
+function parseNimiRuntimeRouteSpeechTranscribeMetadata(metadata: JsonObject): NimiRuntimeRouteSpeechTranscribeMetadata {
+  const maxSpeakerCount = metadata.maxSpeakerCount;
+  if (maxSpeakerCount !== undefined && (typeof maxSpeakerCount !== 'number' || !Number.isFinite(maxSpeakerCount))) {
+    failNimiRuntimeRouteDescribeMetadata('Runtime route describe metadata field "maxSpeakerCount" must be a finite number.');
+  }
+  const result: NimiRuntimeRouteSpeechTranscribeMetadata = {
+    tiers: requireRouteMetadataStringArray(metadata, 'tiers'),
+    supportedResponseFormats: requireRouteMetadataStringArray(metadata, 'supportedResponseFormats'),
+    supportsLanguage: requireRouteMetadataBoolean(metadata, 'supportsLanguage'),
+    supportsPrompt: requireRouteMetadataBoolean(metadata, 'supportsPrompt'),
+    supportsTimestamps: requireRouteMetadataBoolean(metadata, 'supportsTimestamps'),
+    supportsDiarization: requireRouteMetadataBoolean(metadata, 'supportsDiarization'),
+  };
+  assignOptionalRouteMetadata(result, 'maxSpeakerCount', maxSpeakerCount as number | undefined);
+  assignProviderExtensionRouteMetadata(result, metadata);
+  return result;
+}
+
+function parseNimiRuntimeRouteVoiceCloneMetadata(metadata: JsonObject): NimiRuntimeRouteVoiceWorkflowVoiceCloneMetadata {
+  const result: NimiRuntimeRouteVoiceWorkflowVoiceCloneMetadata = {
+    workflowType: requireRouteMetadataEnum(metadata, 'workflowType', ['voice_clone'] as const),
+    requiresTargetSynthesisBinding: requireRouteMetadataBoolean(metadata, 'requiresTargetSynthesisBinding'),
+    textPromptMode: requireRouteMetadataEnum(metadata, 'textPromptMode', NIMI_RUNTIME_ROUTE_VOICE_WORKFLOW_TEXT_MODES),
+    supportsLanguageHints: requireRouteMetadataBoolean(metadata, 'supportsLanguageHints'),
+    supportsPreferredName: requireRouteMetadataBoolean(metadata, 'supportsPreferredName'),
+    referenceAudioUriInput: requireRouteMetadataBoolean(metadata, 'referenceAudioUriInput'),
+    referenceAudioBytesInput: requireRouteMetadataBoolean(metadata, 'referenceAudioBytesInput'),
+    allowedReferenceAudioMimeTypes: requireRouteMetadataStringArray(metadata, 'allowedReferenceAudioMimeTypes'),
+  };
+  assignProviderExtensionRouteMetadata(result, metadata);
+  return result;
+}
+
+function parseNimiRuntimeRouteVoiceDesignMetadata(metadata: JsonObject): NimiRuntimeRouteVoiceWorkflowVoiceDesignMetadata {
+  const result: NimiRuntimeRouteVoiceWorkflowVoiceDesignMetadata = {
+    workflowType: requireRouteMetadataEnum(metadata, 'workflowType', ['voice_design'] as const),
+    requiresTargetSynthesisBinding: requireRouteMetadataBoolean(metadata, 'requiresTargetSynthesisBinding'),
+    instructionTextMode: requireRouteMetadataEnum(metadata, 'instructionTextMode', NIMI_RUNTIME_ROUTE_VOICE_WORKFLOW_TEXT_MODES),
+    previewTextMode: requireRouteMetadataEnum(metadata, 'previewTextMode', NIMI_RUNTIME_ROUTE_VOICE_WORKFLOW_TEXT_MODES),
+    supportsLanguage: requireRouteMetadataBoolean(metadata, 'supportsLanguage'),
+    supportsPreferredName: requireRouteMetadataBoolean(metadata, 'supportsPreferredName'),
+  };
+  assignProviderExtensionRouteMetadata(result, metadata);
+  return result;
+}
+
 function parseNimiRuntimeRouteDescribeMetadata(
   metadataValue: string,
 ): NimiRuntimeRouteDescribeResult {
-  const parsed = JSON.parse(decodeBase64Text(metadataValue)) as Partial<NimiRuntimeRouteDescribeResult>;
+  const parsed = JSON.parse(decodeBase64Text(metadataValue)) as {
+    readonly capability?: unknown;
+    readonly metadataVersion?: unknown;
+    readonly resolvedBindingRef?: unknown;
+    readonly metadataKind?: unknown;
+    readonly metadata?: unknown;
+  };
   const capability = normalizeRequiredNimiRuntimeRouteCapability(parsed.capability);
   const metadataVersion = parsed.metadataVersion === 'v1' ? 'v1' : null;
   const resolvedBindingRef = normalizeText(parsed.resolvedBindingRef);
@@ -255,13 +462,28 @@ function parseNimiRuntimeRouteDescribeMetadata(
       source: 'sdk',
     });
   }
-  return {
-    capability,
-    metadataVersion,
-    resolvedBindingRef,
-    metadataKind,
-    metadata: metadata as JsonObject,
-  };
+  if (!NIMI_RUNTIME_ROUTE_METADATA_KINDS.includes(metadataKind as NimiRuntimeRouteMetadataKind)) {
+    throw createNimiError({
+      message: `Runtime route describe metadataKind "${metadataKind}" is not a supported route metadata kind.`,
+      reasonCode: 'SDK_RUNTIME_ROUTE_DESCRIBE_METADATA_KIND_UNSUPPORTED',
+      actionHint: 'check_runtime_route_describe_metadata',
+      source: 'sdk',
+    });
+  }
+  const base = { capability, metadataVersion, resolvedBindingRef } as const;
+  const metadataObject = metadata as JsonObject;
+  switch (metadataKind as NimiRuntimeRouteMetadataKind) {
+    case 'text.generate':
+      return { ...base, metadataKind: 'text.generate', metadata: parseNimiRuntimeRouteTextGenerateMetadata(metadataObject) };
+    case 'audio.synthesize':
+      return { ...base, metadataKind: 'audio.synthesize', metadata: parseNimiRuntimeRouteSpeechSynthesizeMetadata(metadataObject) };
+    case 'audio.transcribe':
+      return { ...base, metadataKind: 'audio.transcribe', metadata: parseNimiRuntimeRouteSpeechTranscribeMetadata(metadataObject) };
+    case 'voice_workflow.voice_clone':
+      return { ...base, metadataKind: 'voice_workflow.voice_clone', metadata: parseNimiRuntimeRouteVoiceCloneMetadata(metadataObject) };
+    case 'voice_workflow.voice_design':
+      return { ...base, metadataKind: 'voice_workflow.voice_design', metadata: parseNimiRuntimeRouteVoiceDesignMetadata(metadataObject) };
+  }
 }
 
 export async function describeNimiRuntimeRouteWithHost(input: {
@@ -310,7 +532,11 @@ export async function describeNimiRuntimeRouteWithHost(input: {
     });
   }
   const result = parseNimiRuntimeRouteDescribeMetadata(encoded);
-  if (result.capability !== input.capability || result.resolvedBindingRef !== input.resolvedBindingRef) {
+  if (
+    result.capability !== input.capability
+    || result.metadataKind !== input.capability
+    || result.resolvedBindingRef !== input.resolvedBindingRef
+  ) {
     throw createNimiError({
       message: 'Runtime route describe metadata does not match the requested route.',
       reasonCode: 'SDK_RUNTIME_ROUTE_DESCRIBE_METADATA_MISMATCH',

@@ -164,7 +164,7 @@ export const NIMI_CONTRACT_INVENTORY = [
   {
     id: 'NimiCapabilityManifest',
     owner: 'sdks/typescript/core/contracts',
-    semantics: 'Manifest-driven adapter capability level and unsupported behavior.',
+    semantics: 'Manifest-driven target-library adapter capability support, ownership mode, capability level, and unsupported behavior.',
   },
 ] as const satisfies readonly NimiContractInventoryEntry[];
 

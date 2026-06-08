@@ -173,9 +173,10 @@ test('openai-compatible adapter fails closed on unsupported OpenAI compatibility
 
 test('openai-compatible manifest declares migration bridge boundaries', () => {
   assert.equal(NIMI_OPENAI_COMPATIBLE_ADAPTER_MANIFEST.capabilityLevel, 'L2');
-  assert.equal(NIMI_OPENAI_COMPATIBLE_ADAPTER_MANIFEST.capabilities['chat.completions.create'], 'supported');
-  assert.equal(NIMI_OPENAI_COMPATIBLE_ADAPTER_MANIFEST.capabilities.responsesApi, 'unsupported');
-  assert.equal(NIMI_OPENAI_COMPATIBLE_ADAPTER_MANIFEST.capabilities.runtimeRestBypass, 'unsupported');
+  assert.equal(NIMI_OPENAI_COMPATIBLE_ADAPTER_MANIFEST.capabilities['chat.completions.create'].support, 'supported');
+  assert.equal(NIMI_OPENAI_COMPATIBLE_ADAPTER_MANIFEST.capabilities.responsesApi.support, 'unsupported');
+  assert.equal(NIMI_OPENAI_COMPATIBLE_ADAPTER_MANIFEST.capabilities.runtimeRestBypass.support, 'unsupported');
+  assert.equal(NIMI_OPENAI_COMPATIBLE_ADAPTER_MANIFEST.capabilities.runtimeRestBypass.mode, 'owner-gated');
   assert.equal(NIMI_OPENAI_COMPATIBLE_ADAPTER_MANIFEST.unsupportedBehavior, 'throw');
 });
 

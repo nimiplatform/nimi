@@ -74,7 +74,10 @@ test('schema and capability assertions fail visibly', () => {
     adapterId: 'unit-test',
     targetLibrary: 'unit',
     capabilityLevel: 'L1',
-    capabilities: { textGeneration: 'supported', streaming: 'unsupported' },
+    capabilities: {
+      textGeneration: { support: 'supported', mode: 'adapter-mapped' },
+      streaming: { support: 'unsupported', mode: 'adapter-mapped' },
+    },
     unsupportedBehavior: 'throw',
   } as const;
 

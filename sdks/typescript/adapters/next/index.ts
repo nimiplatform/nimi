@@ -13,10 +13,10 @@ export const NIMI_NEXT_ADAPTER_MANIFEST = {
   targetVersionRange: 'structural-route-v1',
   capabilityLevel: 'L1',
   capabilities: {
-    'route.chatCompletions.json': 'supported',
-    'route.chatCompletions.stream': 'unsupported',
-    middleware: 'unsupported',
-    serverActions: 'unsupported',
+    'route.chatCompletions.json': { support: 'supported', mode: 'adapter-mapped' },
+    'route.chatCompletions.stream': { support: 'unsupported', mode: 'adapter-mapped' },
+    middleware: { support: 'unsupported', mode: 'adapter-mapped' },
+    serverActions: { support: 'unsupported', mode: 'adapter-mapped' },
   },
   unsupportedBehavior: 'throw',
 } as const satisfies NimiCapabilityManifest;

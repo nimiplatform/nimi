@@ -13,6 +13,7 @@ import type {
 export interface NimiAiRequestParameters {
   readonly temperature?: number;
   readonly topP?: number;
+  readonly topK?: number;
   readonly maxTokens?: number;
   readonly presencePenalty?: number;
   readonly frequencyPenalty?: number;

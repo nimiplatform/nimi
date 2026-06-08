@@ -10,10 +10,10 @@ export const NIMI_LANGGRAPH_ADAPTER_MANIFEST = {
   targetVersionRange: 'structural-node-v1',
   capabilityLevel: 'L1',
   capabilities: {
-    'node.generate': 'supported',
-    'node.toolMapping': 'unsupported',
-    checkpointResume: 'unsupported',
-    workflowCheckpoint: 'unsupported',
+    'node.generate': { support: 'supported', mode: 'adapter-mapped' },
+    'node.toolMapping': { support: 'unsupported', mode: 'adapter-mapped' },
+    checkpointResume: { support: 'unsupported', mode: 'adapter-mapped' },
+    workflowCheckpoint: { support: 'unsupported', mode: 'adapter-mapped' },
   },
   unsupportedBehavior: 'throw',
 } as const satisfies NimiCapabilityManifest;

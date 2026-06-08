@@ -115,9 +115,9 @@ test('adapter manifests match observed proof behavior', async () => {
       assert.ok(manifestByAdapter.has(adapterId), adapterId);
     }
   }
-  assert.equal(NIMI_MCP_ADAPTER_MANIFEST.capabilities['mcp.tools.call.auto'], 'supported');
-  assert.equal(NIMI_MASTRA_ADAPTER_MANIFEST.capabilities['model.generate'], 'supported');
-  assert.equal(NIMI_LANGGRAPH_ADAPTER_MANIFEST.capabilities['node.generate'], 'supported');
-  assert.equal(NIMI_LLAMA_INDEX_ADAPTER_MANIFEST.capabilities['query.generate'], 'supported');
-  assert.equal(NIMI_OPENAI_COMPATIBLE_ADAPTER_MANIFEST.capabilities['chat.completions.create'], 'supported');
+  assert.equal(NIMI_MCP_ADAPTER_MANIFEST.capabilities['mcp.tools.call.auto'].support, 'supported');
+  assert.equal(NIMI_MASTRA_ADAPTER_MANIFEST.capabilities['model.generate'].support, 'supported');
+  assert.equal(NIMI_LANGGRAPH_ADAPTER_MANIFEST.capabilities['node.generate'].support, 'supported');
+  assert.equal(NIMI_LLAMA_INDEX_ADAPTER_MANIFEST.capabilities['query.generate'].support, 'supported');
+  assert.equal(NIMI_OPENAI_COMPATIBLE_ADAPTER_MANIFEST.capabilities['chat.completions.create'].support, 'supported');
 });

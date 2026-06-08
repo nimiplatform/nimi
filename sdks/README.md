@@ -21,8 +21,8 @@ Current scope:
 Generation:
 
 ```bash
-PATH="${PWD}/node_modules/.bin:${PATH}" node sdks/generators/generate.mjs
-PATH="${PWD}/node_modules/.bin:${PATH}" node sdks/generators/generate.mjs --check
+node sdks/generators/generate.mjs
+node sdks/generators/generate.mjs --check
 ```
 
 Realm OpenAPI resolution uses `config/realm-openapi-source.json`, with relative

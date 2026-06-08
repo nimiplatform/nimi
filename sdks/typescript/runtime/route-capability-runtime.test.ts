@@ -36,6 +36,27 @@ function encodeRouteDescribePayload(payload: unknown): string {
   return Buffer.from(JSON.stringify(payload), 'utf8').toString('base64');
 }
 
+function createTextGenerateRouteMetadata(
+  overrides: Partial<{
+    supportsThinking: boolean;
+    traceModeSupport: 'none' | 'hide' | 'separate';
+    supportsImageInput: boolean;
+    supportsAudioInput: boolean;
+    supportsVideoInput: boolean;
+    supportsArtifactRefInput: boolean;
+  }> = {},
+): Record<string, unknown> {
+  return {
+    supportsThinking: false,
+    traceModeSupport: 'none',
+    supportsImageInput: false,
+    supportsAudioInput: false,
+    supportsVideoInput: false,
+    supportsArtifactRefInput: false,
+    ...overrides,
+  };
+}
+
 test('Runtime route capability runtime resolves, checks health, and describes host metadata', async () => {
   const binding: NimiRuntimeRouteBinding = {
     source: 'cloud',
@@ -100,9 +121,7 @@ test('Runtime route capability runtime resolves, checks health, and describes ho
             metadataVersion: 'v1',
             resolvedBindingRef: 'cloud:text.generate:tester-cloud:tester-model',
             metadataKind: 'text.generate',
-            metadata: {
-              supportsThinking: true,
-            },
+            metadata: createTextGenerateRouteMetadata({ supportsThinking: true }),
           }),
         });
         return {};
@@ -185,7 +204,7 @@ test('Runtime route capability projection resolves selected bindings through can
             metadataVersion: 'v1',
             resolvedBindingRef: 'cloud:text.generate:tester-cloud:tester-model',
             metadataKind: 'text.generate',
-            metadata: {},
+            metadata: createTextGenerateRouteMetadata(),
           }),
         });
         return {};
@@ -632,11 +651,64 @@ test('Runtime route describe builds non-text scenario probes and validates metad
     readonly scenarioType: ScenarioType;
     readonly oneofKind: string;
     readonly modelId: string;
+    readonly metadata: Record<string, unknown>;
   }> = [
-    { capability: 'audio.synthesize', scenarioType: ScenarioType.SPEECH_SYNTHESIZE, oneofKind: 'speechSynthesize', modelId: 'tts-model' },
-    { capability: 'audio.transcribe', scenarioType: ScenarioType.SPEECH_TRANSCRIBE, oneofKind: 'speechTranscribe', modelId: 'stt-model' },
-    { capability: 'voice_workflow.voice_clone', scenarioType: ScenarioType.VOICE_CLONE, oneofKind: 'voiceClone', modelId: 'voice-clone-model' },
-    { capability: 'voice_workflow.voice_design', scenarioType: ScenarioType.VOICE_DESIGN, oneofKind: 'voiceDesign', modelId: 'voice-design-model' },
+    {
+      capability: 'audio.synthesize',
+      scenarioType: ScenarioType.SPEECH_SYNTHESIZE,
+      oneofKind: 'speechSynthesize',
+      modelId: 'tts-model',
+      metadata: {
+        supportedAudioFormats: ['mp3'],
+        supportedTimingModes: ['none'],
+        supportsLanguage: true,
+        supportsEmotion: false,
+      },
+    },
+    {
+      capability: 'audio.transcribe',
+      scenarioType: ScenarioType.SPEECH_TRANSCRIBE,
+      oneofKind: 'speechTranscribe',
+      modelId: 'stt-model',
+      metadata: {
+        tiers: ['standard'],
+        supportedResponseFormats: ['json'],
+        supportsLanguage: true,
+        supportsPrompt: false,
+        supportsTimestamps: true,
+        supportsDiarization: false,
+      },
+    },
+    {
+      capability: 'voice_workflow.voice_clone',
+      scenarioType: ScenarioType.VOICE_CLONE,
+      oneofKind: 'voiceClone',
+      modelId: 'voice-clone-model',
+      metadata: {
+        workflowType: 'voice_clone',
+        requiresTargetSynthesisBinding: true,
+        textPromptMode: 'unsupported',
+        supportsLanguageHints: true,
+        supportsPreferredName: true,
+        referenceAudioUriInput: true,
+        referenceAudioBytesInput: true,
+        allowedReferenceAudioMimeTypes: ['audio/wav'],
+      },
+    },
+    {
+      capability: 'voice_workflow.voice_design',
+      scenarioType: ScenarioType.VOICE_DESIGN,
+      oneofKind: 'voiceDesign',
+      modelId: 'voice-design-model',
+      metadata: {
+        workflowType: 'voice_design',
+        requiresTargetSynthesisBinding: true,
+        instructionTextMode: 'required',
+        previewTextMode: 'optional',
+        supportsLanguage: true,
+        supportsPreferredName: true,
+      },
+    },
   ];
 
   for (const item of cases) {
@@ -679,14 +751,16 @@ test('Runtime route describe builds non-text scenario probes and validates metad
             metadataVersion: 'v1',
             resolvedBindingRef,
             metadataKind: item.capability,
-            metadata: { modelId: item.modelId },
+            metadata: item.metadata,
           }),
         });
         return {};
       },
       timeoutMs: 12345,
     });
-    assert.equal(result.metadata.modelId, item.modelId);
+    assert.equal(result.capability, item.capability);
+    assert.equal(result.metadataKind, item.capability);
+    assert.deepEqual(result.metadata, item.metadata);
     assert.equal(observedMetadata.length, 1);
   }
 
@@ -769,7 +843,12 @@ test('Runtime route describe builds non-text scenario probes and validates metad
             metadataVersion: 'v1',
             resolvedBindingRef: 'local:text.generate:runtime:text-model',
             metadataKind: 'audio.synthesize',
-            metadata: {},
+            metadata: {
+              supportedAudioFormats: ['mp3'],
+              supportedTimingModes: ['none'],
+              supportsLanguage: true,
+              supportsEmotion: false,
+            },
           }),
         });
         return {};
@@ -800,6 +879,103 @@ test('Runtime route describe builds non-text scenario probes and validates metad
     }),
     hasRouteReasonCode('SDK_RUNTIME_ROUTE_DESCRIBE_UNSUPPORTED'),
   );
+});
+
+test('Runtime route describe validates K-RPC-017 typed metadata variants and fails closed', async () => {
+  function describeTextGenerateWithMetadata(metadata: unknown): Promise<unknown> {
+    return describeNimiRuntimeRouteWithHost({
+      appId: 'nimi.route.test',
+      targetId: 'route.describe',
+      capability: 'text.generate',
+      resolvedBindingRef: 'local:text.generate:runtime:text-model',
+      resolved: {
+        capability: 'text.generate',
+        source: 'local',
+        connectorId: '',
+        provider: 'runtime',
+        engine: 'runtime',
+        model: 'text-model',
+        modelId: 'text-model',
+        localModelId: 'asset-text-model',
+      },
+      buildCallOptions: () => ({}),
+      async executeScenario(_request, options) {
+        options.responseMetadataObserver?.({
+          [NIMI_RUNTIME_ROUTE_DESCRIBE_RESULT_RESPONSE_METADATA_KEY]: encodeRouteDescribePayload({
+            capability: 'text.generate',
+            metadataVersion: 'v1',
+            resolvedBindingRef: 'local:text.generate:runtime:text-model',
+            metadataKind: 'text.generate',
+            metadata,
+          }),
+        });
+        return {};
+      },
+    });
+  }
+
+  // Missing required typed field (supportsArtifactRefInput omitted) fails closed.
+  await assert.rejects(
+    () => describeTextGenerateWithMetadata(createTextGenerateRouteMetadata({ supportsArtifactRefInput: undefined as unknown as boolean })),
+    hasRouteReasonCode('SDK_RUNTIME_ROUTE_DESCRIBE_METADATA_INVALID'),
+  );
+
+  // Out-of-domain enum value for a typed field fails closed.
+  await assert.rejects(
+    () => describeTextGenerateWithMetadata(createTextGenerateRouteMetadata({ traceModeSupport: 'verbose' as 'none' })),
+    hasRouteReasonCode('SDK_RUNTIME_ROUTE_DESCRIBE_METADATA_INVALID'),
+  );
+
+  // Wrong-typed required field fails closed.
+  await assert.rejects(
+    () => describeTextGenerateWithMetadata(createTextGenerateRouteMetadata({ supportsThinking: 'yes' as unknown as boolean })),
+    hasRouteReasonCode('SDK_RUNTIME_ROUTE_DESCRIBE_METADATA_INVALID'),
+  );
+
+  // Out-of-domain metadataKind fails closed before variant validation.
+  await assert.rejects(
+    () => describeNimiRuntimeRouteWithHost({
+      appId: 'nimi.route.test',
+      targetId: 'route.describe',
+      capability: 'text.generate',
+      resolvedBindingRef: 'local:text.generate:runtime:text-model',
+      resolved: {
+        capability: 'text.generate',
+        source: 'local',
+        connectorId: '',
+        provider: 'runtime',
+        engine: 'runtime',
+        model: 'text-model',
+        modelId: 'text-model',
+        localModelId: 'asset-text-model',
+      },
+      buildCallOptions: () => ({}),
+      async executeScenario(_request, options) {
+        options.responseMetadataObserver?.({
+          [NIMI_RUNTIME_ROUTE_DESCRIBE_RESULT_RESPONSE_METADATA_KEY]: encodeRouteDescribePayload({
+            capability: 'text.generate',
+            metadataVersion: 'v1',
+            resolvedBindingRef: 'local:text.generate:runtime:text-model',
+            metadataKind: 'image.generate',
+            metadata: createTextGenerateRouteMetadata(),
+          }),
+        });
+        return {};
+      },
+    }),
+    hasRouteReasonCode('SDK_RUNTIME_ROUTE_DESCRIBE_METADATA_KIND_UNSUPPORTED'),
+  );
+
+  // A fully valid typed text.generate payload round-trips with typed field access.
+  const valid = await describeTextGenerateWithMetadata(
+    createTextGenerateRouteMetadata({ supportsThinking: true, traceModeSupport: 'separate' }),
+  );
+  const validResult = valid as Awaited<ReturnType<typeof describeNimiRuntimeRouteWithHost>>;
+  assert.equal(validResult.metadataKind, 'text.generate');
+  if (validResult.metadataKind === 'text.generate') {
+    assert.equal(validResult.metadata.supportsThinking, true);
+    assert.equal(validResult.metadata.traceModeSupport, 'separate');
+  }
 });
 
 function hasRouteReasonCode(reasonCode: string): (error: unknown) => boolean {

@@ -10,10 +10,10 @@ export const NIMI_REACT_ADAPTER_MANIFEST = {
   targetVersionRange: 'headless-state-v1',
   capabilityLevel: 'L1',
   capabilities: {
-    'conversation.state': 'supported',
-    'conversation.events': 'supported',
-    hooks: 'unsupported',
-    renderer: 'unsupported',
+    'conversation.state': { support: 'supported', mode: 'adapter-mapped' },
+    'conversation.events': { support: 'supported', mode: 'adapter-mapped' },
+    hooks: { support: 'unsupported', mode: 'adapter-mapped' },
+    renderer: { support: 'unsupported', mode: 'adapter-mapped' },
   },
   unsupportedBehavior: 'throw',
 } as const satisfies NimiCapabilityManifest;

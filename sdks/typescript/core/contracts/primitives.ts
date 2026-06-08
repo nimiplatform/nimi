@@ -20,7 +20,19 @@ export interface NimiDataPart {
   readonly data: NimiJsonValue;
 }
 
-export type NimiMessagePart = NimiTextPart | NimiDataPart;
+export interface NimiFilePart {
+  readonly type: 'file';
+  // IANA media type of the file (e.g. `image/png`, `audio/wav`). Routing onto a
+  // Runtime multimodal channel is decided from this prefix.
+  readonly mediaType: string;
+  // File payload as a string: an `http(s)://` URL, a `data:` URI, or raw base64.
+  // Raw base64 is wrapped into a `data:<mediaType>;base64,<data>` URI when the
+  // request is projected onto the Runtime chat content protocol.
+  readonly data: string;
+  readonly filename?: string;
+}
+
+export type NimiMessagePart = NimiTextPart | NimiDataPart | NimiFilePart;
 
 export interface NimiToolCall {
   readonly id: string;
@@ -53,6 +65,8 @@ export interface NimiUsage {
   readonly promptTokens?: number;
   readonly completionTokens?: number;
   readonly totalTokens?: number;
+  readonly cachedInputTokens?: number;
+  readonly reasoningOutputTokens?: number;
 }
 
 export type NimiRunEvent =
@@ -122,4 +136,10 @@ export function textPart(text: string): NimiTextPart {
 
 export function dataPart(data: NimiJsonValue): NimiDataPart {
   return { type: 'data', data };
+}
+
+export function filePart(mediaType: string, data: string, filename?: string): NimiFilePart {
+  return filename === undefined
+    ? { type: 'file', mediaType, data }
+    : { type: 'file', mediaType, data, filename };
 }

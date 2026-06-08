@@ -69,6 +69,7 @@ test('mcp adapter maps Nimi run events to MCP notifications', () => {
 });
 
 test('mcp manifest declares unsupported L3 behavior explicitly', () => {
-  assert.equal(NIMI_MCP_ADAPTER_MANIFEST.capabilities.approval, 'unsupported');
-  assert.equal(NIMI_MCP_ADAPTER_MANIFEST.capabilities.externalExecution, 'unsupported');
+  assert.equal(NIMI_MCP_ADAPTER_MANIFEST.capabilities.approval.support, 'unsupported');
+  assert.equal(NIMI_MCP_ADAPTER_MANIFEST.capabilities.approval.mode, 'owner-gated');
+  assert.equal(NIMI_MCP_ADAPTER_MANIFEST.capabilities.externalExecution.support, 'unsupported');
 });

@@ -36,9 +36,9 @@ test('langgraph adapter fails closed for checkpoint resume', () => {
 });
 
 test('langgraph manifest leaves L2/L4 claims unsupported', () => {
-  assert.equal(NIMI_LANGGRAPH_ADAPTER_MANIFEST.capabilities['node.generate'], 'supported');
-  assert.equal(NIMI_LANGGRAPH_ADAPTER_MANIFEST.capabilities['node.toolMapping'], 'unsupported');
-  assert.equal(NIMI_LANGGRAPH_ADAPTER_MANIFEST.capabilities.checkpointResume, 'unsupported');
+  assert.equal(NIMI_LANGGRAPH_ADAPTER_MANIFEST.capabilities['node.generate'].support, 'supported');
+  assert.equal(NIMI_LANGGRAPH_ADAPTER_MANIFEST.capabilities['node.toolMapping'].support, 'unsupported');
+  assert.equal(NIMI_LANGGRAPH_ADAPTER_MANIFEST.capabilities.checkpointResume.support, 'unsupported');
 });
 
 function createModel(): NimiAiModel {

@@ -572,8 +572,8 @@ test('evaluation feature checks golden event order and adapter parity', () => {
       targetLibrary: 'test',
       capabilityLevel: 'L2',
       capabilities: {
-        'text.generate': 'supported',
-        'text.stream': 'supported',
+        'text.generate': { support: 'supported', mode: 'adapter-mapped' },
+        'text.stream': { support: 'supported', mode: 'adapter-mapped' },
       },
       unsupportedBehavior: 'throw',
     },

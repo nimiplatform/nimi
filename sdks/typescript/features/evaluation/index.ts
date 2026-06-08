@@ -1,4 +1,4 @@
-import type { NimiCapabilityManifest, NimiJsonValue, NimiRunEvent } from '../../core/contracts';
+import { getNimiCapabilityClaim, type NimiCapabilityManifest, type NimiJsonValue, type NimiRunEvent } from '../../core/contracts';
 
 export interface NimiGoldenRun {
   readonly id: string;
@@ -20,7 +20,7 @@ export function assertNimiAdapterCapabilityParity(
   manifest: NimiCapabilityManifest,
   requiredCapabilities: readonly string[],
 ): void {
-  const missing = requiredCapabilities.filter((capability) => manifest.capabilities[capability] !== 'supported');
+  const missing = requiredCapabilities.filter((capability) => getNimiCapabilityClaim(manifest, capability).support !== 'supported');
   if (missing.length > 0) {
     throw new Error(`adapter ${manifest.adapterId} missing capabilities: ${missing.join(', ')}`);
   }

@@ -60,9 +60,9 @@ test('next adapter fails closed for streaming route semantics', async () => {
 });
 
 test('next manifest does not claim middleware or server action parity', () => {
-  assert.equal(NIMI_NEXT_ADAPTER_MANIFEST.capabilities['route.chatCompletions.json'], 'supported');
-  assert.equal(NIMI_NEXT_ADAPTER_MANIFEST.capabilities.middleware, 'unsupported');
-  assert.equal(NIMI_NEXT_ADAPTER_MANIFEST.capabilities.serverActions, 'unsupported');
+  assert.equal(NIMI_NEXT_ADAPTER_MANIFEST.capabilities['route.chatCompletions.json'].support, 'supported');
+  assert.equal(NIMI_NEXT_ADAPTER_MANIFEST.capabilities.middleware.support, 'unsupported');
+  assert.equal(NIMI_NEXT_ADAPTER_MANIFEST.capabilities.serverActions.support, 'unsupported');
 });
 
 function createModel(): NimiAiModel {

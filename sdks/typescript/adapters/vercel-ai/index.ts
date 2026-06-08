@@ -14,8 +14,8 @@ import { NIMI_VERCEL_AI_ADAPTER_MANIFEST } from './manifest';
 import {
   toNimiGenerateTextRequest,
   toVercelFinishReason,
+  toVercelGenerateContent,
   toVercelReadableStream,
-  toVercelToolCallOutput,
   toVercelUsage,
   toVercelWarnings,
 } from './mappers';
@@ -59,21 +59,29 @@ export function throwUnsupportedVercelAiFeature(feature: string, detail?: string
   throw new NimiVercelAiUnsupportedFeatureError(feature, detail);
 }
 
+// Declare http(s) URL passthrough for the media types Nimi routes onto Runtime
+// content channels. Without this the Vercel framework downloads file URLs in the
+// app/SDK process before calling the model, which would bypass the Runtime's
+// endpoint security and inline-media limits. Keeping fetch + decode Runtime-owned
+// is required by S-AIP-001; the Runtime validates and fetches the URL itself.
+const NIMI_VERCEL_SUPPORTED_URLS: Record<string, RegExp[]> = {
+  'image/*': [/^https?:\/\//i],
+  'audio/*': [/^https?:\/\//i],
+  'video/*': [/^https?:\/\//i],
+};
+
 export function createNimiVercelLanguageModel(options: NimiVercelLanguageModelOptions): NimiVercelLanguageModel {
   return {
     specificationVersion: 'v3',
     provider: 'nimi',
     modelId: options.model.model.modelId,
-    supportedUrls: {},
+    supportedUrls: NIMI_VERCEL_SUPPORTED_URLS,
     async doGenerate(callOptions) {
       const result = await options.model.generateText(
         toNimiGenerateTextRequest(options.model, callOptions, throwUnsupportedVercelAiFeature),
       );
       return {
-        content: [
-          ...(result.text ? [{ type: 'text' as const, text: result.text }] : []),
-          ...(result.toolCalls?.map(toVercelToolCallOutput) ?? []),
-        ],
+        content: toVercelGenerateContent(result),
         finishReason: toVercelFinishReason(result.finishReason),
         usage: toVercelUsage(result.usage),
         warnings: toVercelWarnings(result.warnings),

@@ -10,11 +10,11 @@ export const NIMI_MASTRA_ADAPTER_MANIFEST = {
   targetVersionRange: 'structural-model-v1',
   capabilityLevel: 'L1',
   capabilities: {
-    'model.generate': 'supported',
-    'model.stream': 'unsupported',
-    'tools.mapping': 'unsupported',
-    structuredOutput: 'unsupported',
-    workflowCheckpoint: 'unsupported',
+    'model.generate': { support: 'supported', mode: 'adapter-mapped' },
+    'model.stream': { support: 'unsupported', mode: 'adapter-mapped' },
+    'tools.mapping': { support: 'unsupported', mode: 'adapter-mapped' },
+    structuredOutput: { support: 'unsupported', mode: 'adapter-mapped' },
+    workflowCheckpoint: { support: 'not-applicable', mode: 'out-of-domain' },
   },
   unsupportedBehavior: 'throw',
 } as const satisfies NimiCapabilityManifest;

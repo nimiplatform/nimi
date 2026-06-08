@@ -36,7 +36,7 @@ test('react adapter fails closed for hooks in base source root', () => {
 });
 
 test('react manifest is explicit about headless-only support', () => {
-  assert.equal(NIMI_REACT_ADAPTER_MANIFEST.capabilities['conversation.state'], 'supported');
-  assert.equal(NIMI_REACT_ADAPTER_MANIFEST.capabilities.hooks, 'unsupported');
-  assert.equal(NIMI_REACT_ADAPTER_MANIFEST.capabilities.renderer, 'unsupported');
+  assert.equal(NIMI_REACT_ADAPTER_MANIFEST.capabilities['conversation.state'].support, 'supported');
+  assert.equal(NIMI_REACT_ADAPTER_MANIFEST.capabilities.hooks.support, 'unsupported');
+  assert.equal(NIMI_REACT_ADAPTER_MANIFEST.capabilities.renderer.support, 'unsupported');
 });
