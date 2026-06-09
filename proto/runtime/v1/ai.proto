@@ -94,6 +94,7 @@ enum StreamEventType {
   STREAM_EVENT_USAGE = 5;
   STREAM_EVENT_COMPLETED = 6;
   STREAM_EVENT_FAILED = 7;
+  STREAM_EVENT_TOOL_APPROVAL_REQUEST = 8;
 }
 
 enum VideoMode {
@@ -144,6 +145,8 @@ message ChatMessage {
   repeated ToolCall tool_calls = 5;
   // Tool call id this message answers (set on tool-role messages).
   string tool_call_id = 6;
+  repeated ToolResult tool_results = 7;
+  repeated ToolApprovalResponse tool_approval_responses = 8;
 }
 
 enum ChatContentPartType {
@@ -182,6 +185,16 @@ message ToolSpec {
   string name = 1;
   google.protobuf.Struct input_schema = 2;
   string description = 3;
+  ToolSpecKind kind = 4;
+  string provider_tool_id = 5;
+  google.protobuf.Struct provider_args = 6;
+  google.protobuf.Struct provider_metadata = 7;
+}
+
+enum ToolSpecKind {
+  TOOL_SPEC_KIND_UNSPECIFIED = 0;
+  TOOL_SPEC_KIND_FUNCTION = 1;
+  TOOL_SPEC_KIND_PROVIDER = 2;
 }
 
 // How the model is allowed or required to select tools for a text scenario.
@@ -214,6 +227,52 @@ message ToolCall {
   string id = 1;
   string name = 2;
   string arguments_json = 3;
+  bool provider_executed = 4;
+  bool dynamic = 5;
+  google.protobuf.Struct provider_metadata = 6;
+}
+
+message ToolResult {
+  string tool_call_id = 1;
+  string tool_name = 2;
+  google.protobuf.Value result = 3;
+  bool is_error = 4;
+  bool preliminary = 5;
+  bool dynamic = 6;
+  google.protobuf.Struct provider_metadata = 7;
+}
+
+message ToolApprovalRequest {
+  string approval_id = 1;
+  string tool_call_id = 2;
+  google.protobuf.Struct provider_metadata = 3;
+}
+
+message ToolApprovalResponse {
+  string approval_id = 1;
+  bool approved = 2;
+  string reason = 3;
+  google.protobuf.Struct provider_metadata = 4;
+}
+
+message TextSource {
+  string id = 1;
+  TextSourceType source_type = 2;
+  string url = 3;
+  string title = 4;
+  string media_type = 5;
+  string filename = 6;
+  google.protobuf.Struct provider_metadata = 7;
+}
+
+enum TextSourceType {
+  TEXT_SOURCE_TYPE_UNSPECIFIED = 0;
+  TEXT_SOURCE_TYPE_URL = 1;
+  TEXT_SOURCE_TYPE_DOCUMENT = 2;
+}
+
+message RawChunk {
+  google.protobuf.Value value = 1;
 }
 
 message ScenarioRequestHead {
@@ -258,6 +317,7 @@ message TextGenerateScenarioSpec {
   float frequency_penalty = 13;
   repeated string stop = 14;
   int64 seed = 15;
+  bool include_raw_chunks = 16;
 }
 
 message TextEmbedScenarioSpec {
@@ -393,6 +453,10 @@ message ExecuteScenarioRequest {
 message TextGenerateOutput {
   string text = 1;
   repeated ToolCall tool_calls = 2;
+  repeated ToolResult tool_results = 3;
+  repeated ToolApprovalRequest tool_approval_requests = 4;
+  repeated TextSource sources = 5;
+  repeated RawChunk raw_chunks = 6;
 }
 
 message EmbeddingVector {
@@ -497,6 +561,8 @@ message ScenarioStreamDelta {
     TextStreamDelta text = 1;
     ArtifactStreamDelta artifact = 2;
     ReasoningStreamDelta reasoning = 3;
+    TextSource source = 4;
+    RawChunk raw = 5;
   }
 }
 
@@ -524,6 +590,8 @@ message StreamScenarioEvent {
     ScenarioStreamCompleted completed = 15;
     ScenarioStreamFailed failed = 16;
     ToolCall tool_call = 17;
+    ToolResult tool_result = 18;
+    ToolApprovalRequest tool_approval_request = 19;
   }
 }
 

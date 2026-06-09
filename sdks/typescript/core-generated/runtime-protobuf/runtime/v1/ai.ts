@@ -28,6 +28,7 @@ import { UsageStats } from "./common";
 import { VoiceT2VInput } from "./voice";
 import { VoiceV2VInput } from "./voice";
 import { VoiceReference } from "./voice";
+import { Value } from "../../google/protobuf/struct";
 import { Struct } from "../../google/protobuf/struct";
 /**
  * @generated from protobuf message nimi.runtime.v1.ChatMessage
@@ -61,6 +62,14 @@ export interface ChatMessage {
      * @generated from protobuf field: string tool_call_id = 6
      */
     toolCallId: string;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.ToolResult tool_results = 7
+     */
+    toolResults: ToolResult[];
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.ToolApprovalResponse tool_approval_responses = 8
+     */
+    toolApprovalResponses: ToolApprovalResponse[];
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ChatContentImageURL
@@ -157,6 +166,22 @@ export interface ToolSpec {
      * @generated from protobuf field: string description = 3
      */
     description: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ToolSpecKind kind = 4
+     */
+    kind: ToolSpecKind;
+    /**
+     * @generated from protobuf field: string provider_tool_id = 5
+     */
+    providerToolId: string;
+    /**
+     * @generated from protobuf field: google.protobuf.Struct provider_args = 6
+     */
+    providerArgs?: Struct;
+    /**
+     * @generated from protobuf field: google.protobuf.Struct provider_metadata = 7
+     */
+    providerMetadata?: Struct;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ResponseFormat
@@ -201,6 +226,131 @@ export interface ToolCall {
      * @generated from protobuf field: string arguments_json = 3
      */
     argumentsJson: string;
+    /**
+     * @generated from protobuf field: bool provider_executed = 4
+     */
+    providerExecuted: boolean;
+    /**
+     * @generated from protobuf field: bool dynamic = 5
+     */
+    dynamic: boolean;
+    /**
+     * @generated from protobuf field: google.protobuf.Struct provider_metadata = 6
+     */
+    providerMetadata?: Struct;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ToolResult
+ */
+export interface ToolResult {
+    /**
+     * @generated from protobuf field: string tool_call_id = 1
+     */
+    toolCallId: string;
+    /**
+     * @generated from protobuf field: string tool_name = 2
+     */
+    toolName: string;
+    /**
+     * @generated from protobuf field: google.protobuf.Value result = 3
+     */
+    result?: Value;
+    /**
+     * @generated from protobuf field: bool is_error = 4
+     */
+    isError: boolean;
+    /**
+     * @generated from protobuf field: bool preliminary = 5
+     */
+    preliminary: boolean;
+    /**
+     * @generated from protobuf field: bool dynamic = 6
+     */
+    dynamic: boolean;
+    /**
+     * @generated from protobuf field: google.protobuf.Struct provider_metadata = 7
+     */
+    providerMetadata?: Struct;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ToolApprovalRequest
+ */
+export interface ToolApprovalRequest {
+    /**
+     * @generated from protobuf field: string approval_id = 1
+     */
+    approvalId: string;
+    /**
+     * @generated from protobuf field: string tool_call_id = 2
+     */
+    toolCallId: string;
+    /**
+     * @generated from protobuf field: google.protobuf.Struct provider_metadata = 3
+     */
+    providerMetadata?: Struct;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ToolApprovalResponse
+ */
+export interface ToolApprovalResponse {
+    /**
+     * @generated from protobuf field: string approval_id = 1
+     */
+    approvalId: string;
+    /**
+     * @generated from protobuf field: bool approved = 2
+     */
+    approved: boolean;
+    /**
+     * @generated from protobuf field: string reason = 3
+     */
+    reason: string;
+    /**
+     * @generated from protobuf field: google.protobuf.Struct provider_metadata = 4
+     */
+    providerMetadata?: Struct;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.TextSource
+ */
+export interface TextSource {
+    /**
+     * @generated from protobuf field: string id = 1
+     */
+    id: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.TextSourceType source_type = 2
+     */
+    sourceType: TextSourceType;
+    /**
+     * @generated from protobuf field: string url = 3
+     */
+    url: string;
+    /**
+     * @generated from protobuf field: string title = 4
+     */
+    title: string;
+    /**
+     * @generated from protobuf field: string media_type = 5
+     */
+    mediaType: string;
+    /**
+     * @generated from protobuf field: string filename = 6
+     */
+    filename: string;
+    /**
+     * @generated from protobuf field: google.protobuf.Struct provider_metadata = 7
+     */
+    providerMetadata?: Struct;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.RawChunk
+ */
+export interface RawChunk {
+    /**
+     * @generated from protobuf field: google.protobuf.Value value = 1
+     */
+    value?: Value;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ScenarioRequestHead
@@ -342,6 +492,10 @@ export interface TextGenerateScenarioSpec {
      * @generated from protobuf field: int64 seed = 15
      */
     seed: string;
+    /**
+     * @generated from protobuf field: bool include_raw_chunks = 16
+     */
+    includeRawChunks: boolean;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.TextEmbedScenarioSpec
@@ -787,6 +941,22 @@ export interface TextGenerateOutput {
      * @generated from protobuf field: repeated nimi.runtime.v1.ToolCall tool_calls = 2
      */
     toolCalls: ToolCall[];
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.ToolResult tool_results = 3
+     */
+    toolResults: ToolResult[];
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.ToolApprovalRequest tool_approval_requests = 4
+     */
+    toolApprovalRequests: ToolApprovalRequest[];
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.TextSource sources = 5
+     */
+    sources: TextSource[];
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.RawChunk raw_chunks = 6
+     */
+    rawChunks: RawChunk[];
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.EmbeddingVector
@@ -1106,6 +1276,18 @@ export interface ScenarioStreamDelta {
          */
         reasoning: ReasoningStreamDelta;
     } | {
+        oneofKind: "source";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.TextSource source = 4
+         */
+        source: TextSource;
+    } | {
+        oneofKind: "raw";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.RawChunk raw = 5
+         */
+        raw: RawChunk;
+    } | {
         oneofKind: undefined;
     };
 }
@@ -1198,6 +1380,18 @@ export interface StreamScenarioEvent {
          * @generated from protobuf field: nimi.runtime.v1.ToolCall tool_call = 17
          */
         toolCall: ToolCall;
+    } | {
+        oneofKind: "toolResult";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.ToolResult tool_result = 18
+         */
+        toolResult: ToolResult;
+    } | {
+        oneofKind: "toolApprovalRequest";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.ToolApprovalRequest tool_approval_request = 19
+         */
+        toolApprovalRequest: ToolApprovalRequest;
     } | {
         oneofKind: undefined;
     };
@@ -2136,7 +2330,11 @@ export enum StreamEventType {
     /**
      * @generated from protobuf enum value: STREAM_EVENT_FAILED = 7;
      */
-    STREAM_EVENT_FAILED = 7
+    STREAM_EVENT_FAILED = 7,
+    /**
+     * @generated from protobuf enum value: STREAM_EVENT_TOOL_APPROVAL_REQUEST = 8;
+     */
+    STREAM_EVENT_TOOL_APPROVAL_REQUEST = 8
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.VideoMode
@@ -2289,6 +2487,23 @@ export enum ChatContentPartType {
     ARTIFACT_REF = 5
 }
 /**
+ * @generated from protobuf enum nimi.runtime.v1.ToolSpecKind
+ */
+export enum ToolSpecKind {
+    /**
+     * @generated from protobuf enum value: TOOL_SPEC_KIND_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: TOOL_SPEC_KIND_FUNCTION = 1;
+     */
+    FUNCTION = 1,
+    /**
+     * @generated from protobuf enum value: TOOL_SPEC_KIND_PROVIDER = 2;
+     */
+    PROVIDER = 2
+}
+/**
  * How the model is allowed or required to select tools for a text scenario.
  *
  * @generated from protobuf enum nimi.runtime.v1.ToolChoiceMode
@@ -2337,6 +2552,23 @@ export enum ResponseFormatKind {
      * @generated from protobuf enum value: RESPONSE_FORMAT_KIND_JSON_SCHEMA = 3;
      */
     JSON_SCHEMA = 3
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.TextSourceType
+ */
+export enum TextSourceType {
+    /**
+     * @generated from protobuf enum value: TEXT_SOURCE_TYPE_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: TEXT_SOURCE_TYPE_URL = 1;
+     */
+    URL = 1,
+    /**
+     * @generated from protobuf enum value: TEXT_SOURCE_TYPE_DOCUMENT = 2;
+     */
+    DOCUMENT = 2
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ScenarioJobStatus
@@ -2421,7 +2653,9 @@ class ChatMessage$Type extends MessageType<ChatMessage> {
             { no: 3, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "parts", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ChatContentPart },
             { no: 5, name: "tool_calls", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ToolCall },
-            { no: 6, name: "tool_call_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 6, name: "tool_call_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "tool_results", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ToolResult },
+            { no: 8, name: "tool_approval_responses", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ToolApprovalResponse }
         ]);
     }
     create(value?: PartialMessage<ChatMessage>): ChatMessage {
@@ -2432,6 +2666,8 @@ class ChatMessage$Type extends MessageType<ChatMessage> {
         message.parts = [];
         message.toolCalls = [];
         message.toolCallId = "";
+        message.toolResults = [];
+        message.toolApprovalResponses = [];
         if (value !== undefined)
             reflectionMergePartial<ChatMessage>(this, message, value);
         return message;
@@ -2458,6 +2694,12 @@ class ChatMessage$Type extends MessageType<ChatMessage> {
                     break;
                 case /* string tool_call_id */ 6:
                     message.toolCallId = reader.string();
+                    break;
+                case /* repeated nimi.runtime.v1.ToolResult tool_results */ 7:
+                    message.toolResults.push(ToolResult.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* repeated nimi.runtime.v1.ToolApprovalResponse tool_approval_responses */ 8:
+                    message.toolApprovalResponses.push(ToolApprovalResponse.internalBinaryRead(reader, reader.uint32(), options));
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2489,6 +2731,12 @@ class ChatMessage$Type extends MessageType<ChatMessage> {
         /* string tool_call_id = 6; */
         if (message.toolCallId !== "")
             writer.tag(6, WireType.LengthDelimited).string(message.toolCallId);
+        /* repeated nimi.runtime.v1.ToolResult tool_results = 7; */
+        for (let i = 0; i < message.toolResults.length; i++)
+            ToolResult.internalBinaryWrite(message.toolResults[i], writer.tag(7, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.ToolApprovalResponse tool_approval_responses = 8; */
+        for (let i = 0; i < message.toolApprovalResponses.length; i++)
+            ToolApprovalResponse.internalBinaryWrite(message.toolApprovalResponses[i], writer.tag(8, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -2729,13 +2977,19 @@ class ToolSpec$Type extends MessageType<ToolSpec> {
         super("nimi.runtime.v1.ToolSpec", [
             { no: 1, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "input_schema", kind: "message", T: () => Struct },
-            { no: 3, name: "description", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 3, name: "description", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "kind", kind: "enum", T: () => ["nimi.runtime.v1.ToolSpecKind", ToolSpecKind, "TOOL_SPEC_KIND_"] },
+            { no: 5, name: "provider_tool_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "provider_args", kind: "message", T: () => Struct },
+            { no: 7, name: "provider_metadata", kind: "message", T: () => Struct }
         ]);
     }
     create(value?: PartialMessage<ToolSpec>): ToolSpec {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.name = "";
         message.description = "";
+        message.kind = 0;
+        message.providerToolId = "";
         if (value !== undefined)
             reflectionMergePartial<ToolSpec>(this, message, value);
         return message;
@@ -2753,6 +3007,18 @@ class ToolSpec$Type extends MessageType<ToolSpec> {
                     break;
                 case /* string description */ 3:
                     message.description = reader.string();
+                    break;
+                case /* nimi.runtime.v1.ToolSpecKind kind */ 4:
+                    message.kind = reader.int32();
+                    break;
+                case /* string provider_tool_id */ 5:
+                    message.providerToolId = reader.string();
+                    break;
+                case /* google.protobuf.Struct provider_args */ 6:
+                    message.providerArgs = Struct.internalBinaryRead(reader, reader.uint32(), options, message.providerArgs);
+                    break;
+                case /* google.protobuf.Struct provider_metadata */ 7:
+                    message.providerMetadata = Struct.internalBinaryRead(reader, reader.uint32(), options, message.providerMetadata);
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2775,6 +3041,18 @@ class ToolSpec$Type extends MessageType<ToolSpec> {
         /* string description = 3; */
         if (message.description !== "")
             writer.tag(3, WireType.LengthDelimited).string(message.description);
+        /* nimi.runtime.v1.ToolSpecKind kind = 4; */
+        if (message.kind !== 0)
+            writer.tag(4, WireType.Varint).int32(message.kind);
+        /* string provider_tool_id = 5; */
+        if (message.providerToolId !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.providerToolId);
+        /* google.protobuf.Struct provider_args = 6; */
+        if (message.providerArgs)
+            Struct.internalBinaryWrite(message.providerArgs, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+        /* google.protobuf.Struct provider_metadata = 7; */
+        if (message.providerMetadata)
+            Struct.internalBinaryWrite(message.providerMetadata, writer.tag(7, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -2869,7 +3147,10 @@ class ToolCall$Type extends MessageType<ToolCall> {
         super("nimi.runtime.v1.ToolCall", [
             { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "arguments_json", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 3, name: "arguments_json", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "provider_executed", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 5, name: "dynamic", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 6, name: "provider_metadata", kind: "message", T: () => Struct }
         ]);
     }
     create(value?: PartialMessage<ToolCall>): ToolCall {
@@ -2877,6 +3158,8 @@ class ToolCall$Type extends MessageType<ToolCall> {
         message.id = "";
         message.name = "";
         message.argumentsJson = "";
+        message.providerExecuted = false;
+        message.dynamic = false;
         if (value !== undefined)
             reflectionMergePartial<ToolCall>(this, message, value);
         return message;
@@ -2894,6 +3177,15 @@ class ToolCall$Type extends MessageType<ToolCall> {
                     break;
                 case /* string arguments_json */ 3:
                     message.argumentsJson = reader.string();
+                    break;
+                case /* bool provider_executed */ 4:
+                    message.providerExecuted = reader.bool();
+                    break;
+                case /* bool dynamic */ 5:
+                    message.dynamic = reader.bool();
+                    break;
+                case /* google.protobuf.Struct provider_metadata */ 6:
+                    message.providerMetadata = Struct.internalBinaryRead(reader, reader.uint32(), options, message.providerMetadata);
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2916,6 +3208,15 @@ class ToolCall$Type extends MessageType<ToolCall> {
         /* string arguments_json = 3; */
         if (message.argumentsJson !== "")
             writer.tag(3, WireType.LengthDelimited).string(message.argumentsJson);
+        /* bool provider_executed = 4; */
+        if (message.providerExecuted !== false)
+            writer.tag(4, WireType.Varint).bool(message.providerExecuted);
+        /* bool dynamic = 5; */
+        if (message.dynamic !== false)
+            writer.tag(5, WireType.Varint).bool(message.dynamic);
+        /* google.protobuf.Struct provider_metadata = 6; */
+        if (message.providerMetadata)
+            Struct.internalBinaryWrite(message.providerMetadata, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -2926,6 +3227,371 @@ class ToolCall$Type extends MessageType<ToolCall> {
  * @generated MessageType for protobuf message nimi.runtime.v1.ToolCall
  */
 export const ToolCall = new ToolCall$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ToolResult$Type extends MessageType<ToolResult> {
+    constructor() {
+        super("nimi.runtime.v1.ToolResult", [
+            { no: 1, name: "tool_call_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "tool_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "result", kind: "message", T: () => Value },
+            { no: 4, name: "is_error", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 5, name: "preliminary", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 6, name: "dynamic", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 7, name: "provider_metadata", kind: "message", T: () => Struct }
+        ]);
+    }
+    create(value?: PartialMessage<ToolResult>): ToolResult {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.toolCallId = "";
+        message.toolName = "";
+        message.isError = false;
+        message.preliminary = false;
+        message.dynamic = false;
+        if (value !== undefined)
+            reflectionMergePartial<ToolResult>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ToolResult): ToolResult {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string tool_call_id */ 1:
+                    message.toolCallId = reader.string();
+                    break;
+                case /* string tool_name */ 2:
+                    message.toolName = reader.string();
+                    break;
+                case /* google.protobuf.Value result */ 3:
+                    message.result = Value.internalBinaryRead(reader, reader.uint32(), options, message.result);
+                    break;
+                case /* bool is_error */ 4:
+                    message.isError = reader.bool();
+                    break;
+                case /* bool preliminary */ 5:
+                    message.preliminary = reader.bool();
+                    break;
+                case /* bool dynamic */ 6:
+                    message.dynamic = reader.bool();
+                    break;
+                case /* google.protobuf.Struct provider_metadata */ 7:
+                    message.providerMetadata = Struct.internalBinaryRead(reader, reader.uint32(), options, message.providerMetadata);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ToolResult, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string tool_call_id = 1; */
+        if (message.toolCallId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.toolCallId);
+        /* string tool_name = 2; */
+        if (message.toolName !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.toolName);
+        /* google.protobuf.Value result = 3; */
+        if (message.result)
+            Value.internalBinaryWrite(message.result, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* bool is_error = 4; */
+        if (message.isError !== false)
+            writer.tag(4, WireType.Varint).bool(message.isError);
+        /* bool preliminary = 5; */
+        if (message.preliminary !== false)
+            writer.tag(5, WireType.Varint).bool(message.preliminary);
+        /* bool dynamic = 6; */
+        if (message.dynamic !== false)
+            writer.tag(6, WireType.Varint).bool(message.dynamic);
+        /* google.protobuf.Struct provider_metadata = 7; */
+        if (message.providerMetadata)
+            Struct.internalBinaryWrite(message.providerMetadata, writer.tag(7, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ToolResult
+ */
+export const ToolResult = new ToolResult$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ToolApprovalRequest$Type extends MessageType<ToolApprovalRequest> {
+    constructor() {
+        super("nimi.runtime.v1.ToolApprovalRequest", [
+            { no: 1, name: "approval_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "tool_call_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "provider_metadata", kind: "message", T: () => Struct }
+        ]);
+    }
+    create(value?: PartialMessage<ToolApprovalRequest>): ToolApprovalRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.approvalId = "";
+        message.toolCallId = "";
+        if (value !== undefined)
+            reflectionMergePartial<ToolApprovalRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ToolApprovalRequest): ToolApprovalRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string approval_id */ 1:
+                    message.approvalId = reader.string();
+                    break;
+                case /* string tool_call_id */ 2:
+                    message.toolCallId = reader.string();
+                    break;
+                case /* google.protobuf.Struct provider_metadata */ 3:
+                    message.providerMetadata = Struct.internalBinaryRead(reader, reader.uint32(), options, message.providerMetadata);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ToolApprovalRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string approval_id = 1; */
+        if (message.approvalId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.approvalId);
+        /* string tool_call_id = 2; */
+        if (message.toolCallId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.toolCallId);
+        /* google.protobuf.Struct provider_metadata = 3; */
+        if (message.providerMetadata)
+            Struct.internalBinaryWrite(message.providerMetadata, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ToolApprovalRequest
+ */
+export const ToolApprovalRequest = new ToolApprovalRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ToolApprovalResponse$Type extends MessageType<ToolApprovalResponse> {
+    constructor() {
+        super("nimi.runtime.v1.ToolApprovalResponse", [
+            { no: 1, name: "approval_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "approved", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 3, name: "reason", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "provider_metadata", kind: "message", T: () => Struct }
+        ]);
+    }
+    create(value?: PartialMessage<ToolApprovalResponse>): ToolApprovalResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.approvalId = "";
+        message.approved = false;
+        message.reason = "";
+        if (value !== undefined)
+            reflectionMergePartial<ToolApprovalResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ToolApprovalResponse): ToolApprovalResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string approval_id */ 1:
+                    message.approvalId = reader.string();
+                    break;
+                case /* bool approved */ 2:
+                    message.approved = reader.bool();
+                    break;
+                case /* string reason */ 3:
+                    message.reason = reader.string();
+                    break;
+                case /* google.protobuf.Struct provider_metadata */ 4:
+                    message.providerMetadata = Struct.internalBinaryRead(reader, reader.uint32(), options, message.providerMetadata);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ToolApprovalResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string approval_id = 1; */
+        if (message.approvalId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.approvalId);
+        /* bool approved = 2; */
+        if (message.approved !== false)
+            writer.tag(2, WireType.Varint).bool(message.approved);
+        /* string reason = 3; */
+        if (message.reason !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.reason);
+        /* google.protobuf.Struct provider_metadata = 4; */
+        if (message.providerMetadata)
+            Struct.internalBinaryWrite(message.providerMetadata, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ToolApprovalResponse
+ */
+export const ToolApprovalResponse = new ToolApprovalResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class TextSource$Type extends MessageType<TextSource> {
+    constructor() {
+        super("nimi.runtime.v1.TextSource", [
+            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "source_type", kind: "enum", T: () => ["nimi.runtime.v1.TextSourceType", TextSourceType, "TEXT_SOURCE_TYPE_"] },
+            { no: 3, name: "url", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "title", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "media_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "filename", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "provider_metadata", kind: "message", T: () => Struct }
+        ]);
+    }
+    create(value?: PartialMessage<TextSource>): TextSource {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.id = "";
+        message.sourceType = 0;
+        message.url = "";
+        message.title = "";
+        message.mediaType = "";
+        message.filename = "";
+        if (value !== undefined)
+            reflectionMergePartial<TextSource>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: TextSource): TextSource {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string id */ 1:
+                    message.id = reader.string();
+                    break;
+                case /* nimi.runtime.v1.TextSourceType source_type */ 2:
+                    message.sourceType = reader.int32();
+                    break;
+                case /* string url */ 3:
+                    message.url = reader.string();
+                    break;
+                case /* string title */ 4:
+                    message.title = reader.string();
+                    break;
+                case /* string media_type */ 5:
+                    message.mediaType = reader.string();
+                    break;
+                case /* string filename */ 6:
+                    message.filename = reader.string();
+                    break;
+                case /* google.protobuf.Struct provider_metadata */ 7:
+                    message.providerMetadata = Struct.internalBinaryRead(reader, reader.uint32(), options, message.providerMetadata);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: TextSource, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string id = 1; */
+        if (message.id !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.id);
+        /* nimi.runtime.v1.TextSourceType source_type = 2; */
+        if (message.sourceType !== 0)
+            writer.tag(2, WireType.Varint).int32(message.sourceType);
+        /* string url = 3; */
+        if (message.url !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.url);
+        /* string title = 4; */
+        if (message.title !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.title);
+        /* string media_type = 5; */
+        if (message.mediaType !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.mediaType);
+        /* string filename = 6; */
+        if (message.filename !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.filename);
+        /* google.protobuf.Struct provider_metadata = 7; */
+        if (message.providerMetadata)
+            Struct.internalBinaryWrite(message.providerMetadata, writer.tag(7, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.TextSource
+ */
+export const TextSource = new TextSource$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class RawChunk$Type extends MessageType<RawChunk> {
+    constructor() {
+        super("nimi.runtime.v1.RawChunk", [
+            { no: 1, name: "value", kind: "message", T: () => Value }
+        ]);
+    }
+    create(value?: PartialMessage<RawChunk>): RawChunk {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<RawChunk>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RawChunk): RawChunk {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* google.protobuf.Value value */ 1:
+                    message.value = Value.internalBinaryRead(reader, reader.uint32(), options, message.value);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RawChunk, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* google.protobuf.Value value = 1; */
+        if (message.value)
+            Value.internalBinaryWrite(message.value, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.RawChunk
+ */
+export const RawChunk = new RawChunk$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class ScenarioRequestHead$Type extends MessageType<ScenarioRequestHead> {
     constructor() {
@@ -3211,7 +3877,8 @@ class TextGenerateScenarioSpec$Type extends MessageType<TextGenerateScenarioSpec
             { no: 12, name: "presence_penalty", kind: "scalar", T: 2 /*ScalarType.FLOAT*/ },
             { no: 13, name: "frequency_penalty", kind: "scalar", T: 2 /*ScalarType.FLOAT*/ },
             { no: 14, name: "stop", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
-            { no: 15, name: "seed", kind: "scalar", T: 3 /*ScalarType.INT64*/ }
+            { no: 15, name: "seed", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+            { no: 16, name: "include_raw_chunks", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
         ]);
     }
     create(value?: PartialMessage<TextGenerateScenarioSpec>): TextGenerateScenarioSpec {
@@ -3229,6 +3896,7 @@ class TextGenerateScenarioSpec$Type extends MessageType<TextGenerateScenarioSpec
         message.frequencyPenalty = 0;
         message.stop = [];
         message.seed = "0";
+        message.includeRawChunks = false;
         if (value !== undefined)
             reflectionMergePartial<TextGenerateScenarioSpec>(this, message, value);
         return message;
@@ -3282,6 +3950,9 @@ class TextGenerateScenarioSpec$Type extends MessageType<TextGenerateScenarioSpec
                     break;
                 case /* int64 seed */ 15:
                     message.seed = reader.int64().toString();
+                    break;
+                case /* bool include_raw_chunks */ 16:
+                    message.includeRawChunks = reader.bool();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -3340,6 +4011,9 @@ class TextGenerateScenarioSpec$Type extends MessageType<TextGenerateScenarioSpec
         /* int64 seed = 15; */
         if (message.seed !== "0")
             writer.tag(15, WireType.Varint).int64(message.seed);
+        /* bool include_raw_chunks = 16; */
+        if (message.includeRawChunks !== false)
+            writer.tag(16, WireType.Varint).bool(message.includeRawChunks);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -4609,13 +5283,21 @@ class TextGenerateOutput$Type extends MessageType<TextGenerateOutput> {
     constructor() {
         super("nimi.runtime.v1.TextGenerateOutput", [
             { no: 1, name: "text", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "tool_calls", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ToolCall }
+            { no: 2, name: "tool_calls", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ToolCall },
+            { no: 3, name: "tool_results", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ToolResult },
+            { no: 4, name: "tool_approval_requests", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ToolApprovalRequest },
+            { no: 5, name: "sources", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => TextSource },
+            { no: 6, name: "raw_chunks", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => RawChunk }
         ]);
     }
     create(value?: PartialMessage<TextGenerateOutput>): TextGenerateOutput {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.text = "";
         message.toolCalls = [];
+        message.toolResults = [];
+        message.toolApprovalRequests = [];
+        message.sources = [];
+        message.rawChunks = [];
         if (value !== undefined)
             reflectionMergePartial<TextGenerateOutput>(this, message, value);
         return message;
@@ -4630,6 +5312,18 @@ class TextGenerateOutput$Type extends MessageType<TextGenerateOutput> {
                     break;
                 case /* repeated nimi.runtime.v1.ToolCall tool_calls */ 2:
                     message.toolCalls.push(ToolCall.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* repeated nimi.runtime.v1.ToolResult tool_results */ 3:
+                    message.toolResults.push(ToolResult.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* repeated nimi.runtime.v1.ToolApprovalRequest tool_approval_requests */ 4:
+                    message.toolApprovalRequests.push(ToolApprovalRequest.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* repeated nimi.runtime.v1.TextSource sources */ 5:
+                    message.sources.push(TextSource.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* repeated nimi.runtime.v1.RawChunk raw_chunks */ 6:
+                    message.rawChunks.push(RawChunk.internalBinaryRead(reader, reader.uint32(), options));
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -4649,6 +5343,18 @@ class TextGenerateOutput$Type extends MessageType<TextGenerateOutput> {
         /* repeated nimi.runtime.v1.ToolCall tool_calls = 2; */
         for (let i = 0; i < message.toolCalls.length; i++)
             ToolCall.internalBinaryWrite(message.toolCalls[i], writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.ToolResult tool_results = 3; */
+        for (let i = 0; i < message.toolResults.length; i++)
+            ToolResult.internalBinaryWrite(message.toolResults[i], writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.ToolApprovalRequest tool_approval_requests = 4; */
+        for (let i = 0; i < message.toolApprovalRequests.length; i++)
+            ToolApprovalRequest.internalBinaryWrite(message.toolApprovalRequests[i], writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.TextSource sources = 5; */
+        for (let i = 0; i < message.sources.length; i++)
+            TextSource.internalBinaryWrite(message.sources[i], writer.tag(5, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.RawChunk raw_chunks = 6; */
+        for (let i = 0; i < message.rawChunks.length; i++)
+            RawChunk.internalBinaryWrite(message.rawChunks[i], writer.tag(6, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -5701,7 +6407,9 @@ class ScenarioStreamDelta$Type extends MessageType<ScenarioStreamDelta> {
         super("nimi.runtime.v1.ScenarioStreamDelta", [
             { no: 1, name: "text", kind: "message", oneof: "delta", T: () => TextStreamDelta },
             { no: 2, name: "artifact", kind: "message", oneof: "delta", T: () => ArtifactStreamDelta },
-            { no: 3, name: "reasoning", kind: "message", oneof: "delta", T: () => ReasoningStreamDelta }
+            { no: 3, name: "reasoning", kind: "message", oneof: "delta", T: () => ReasoningStreamDelta },
+            { no: 4, name: "source", kind: "message", oneof: "delta", T: () => TextSource },
+            { no: 5, name: "raw", kind: "message", oneof: "delta", T: () => RawChunk }
         ]);
     }
     create(value?: PartialMessage<ScenarioStreamDelta>): ScenarioStreamDelta {
@@ -5734,6 +6442,18 @@ class ScenarioStreamDelta$Type extends MessageType<ScenarioStreamDelta> {
                         reasoning: ReasoningStreamDelta.internalBinaryRead(reader, reader.uint32(), options, (message.delta as any).reasoning)
                     };
                     break;
+                case /* nimi.runtime.v1.TextSource source */ 4:
+                    message.delta = {
+                        oneofKind: "source",
+                        source: TextSource.internalBinaryRead(reader, reader.uint32(), options, (message.delta as any).source)
+                    };
+                    break;
+                case /* nimi.runtime.v1.RawChunk raw */ 5:
+                    message.delta = {
+                        oneofKind: "raw",
+                        raw: RawChunk.internalBinaryRead(reader, reader.uint32(), options, (message.delta as any).raw)
+                    };
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -5755,6 +6475,12 @@ class ScenarioStreamDelta$Type extends MessageType<ScenarioStreamDelta> {
         /* nimi.runtime.v1.ReasoningStreamDelta reasoning = 3; */
         if (message.delta.oneofKind === "reasoning")
             ReasoningStreamDelta.internalBinaryWrite(message.delta.reasoning, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.TextSource source = 4; */
+        if (message.delta.oneofKind === "source")
+            TextSource.internalBinaryWrite(message.delta.source, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.RawChunk raw = 5; */
+        if (message.delta.oneofKind === "raw")
+            RawChunk.internalBinaryWrite(message.delta.raw, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -5895,7 +6621,9 @@ class StreamScenarioEvent$Type extends MessageType<StreamScenarioEvent> {
             { no: 14, name: "usage", kind: "message", oneof: "payload", T: () => UsageStats },
             { no: 15, name: "completed", kind: "message", oneof: "payload", T: () => ScenarioStreamCompleted },
             { no: 16, name: "failed", kind: "message", oneof: "payload", T: () => ScenarioStreamFailed },
-            { no: 17, name: "tool_call", kind: "message", oneof: "payload", T: () => ToolCall }
+            { no: 17, name: "tool_call", kind: "message", oneof: "payload", T: () => ToolCall },
+            { no: 18, name: "tool_result", kind: "message", oneof: "payload", T: () => ToolResult },
+            { no: 19, name: "tool_approval_request", kind: "message", oneof: "payload", T: () => ToolApprovalRequest }
         ]);
     }
     create(value?: PartialMessage<StreamScenarioEvent>): StreamScenarioEvent {
@@ -5961,6 +6689,18 @@ class StreamScenarioEvent$Type extends MessageType<StreamScenarioEvent> {
                         toolCall: ToolCall.internalBinaryRead(reader, reader.uint32(), options, (message.payload as any).toolCall)
                     };
                     break;
+                case /* nimi.runtime.v1.ToolResult tool_result */ 18:
+                    message.payload = {
+                        oneofKind: "toolResult",
+                        toolResult: ToolResult.internalBinaryRead(reader, reader.uint32(), options, (message.payload as any).toolResult)
+                    };
+                    break;
+                case /* nimi.runtime.v1.ToolApprovalRequest tool_approval_request */ 19:
+                    message.payload = {
+                        oneofKind: "toolApprovalRequest",
+                        toolApprovalRequest: ToolApprovalRequest.internalBinaryRead(reader, reader.uint32(), options, (message.payload as any).toolApprovalRequest)
+                    };
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -6003,6 +6743,12 @@ class StreamScenarioEvent$Type extends MessageType<StreamScenarioEvent> {
         /* nimi.runtime.v1.ToolCall tool_call = 17; */
         if (message.payload.oneofKind === "toolCall")
             ToolCall.internalBinaryWrite(message.payload.toolCall, writer.tag(17, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ToolResult tool_result = 18; */
+        if (message.payload.oneofKind === "toolResult")
+            ToolResult.internalBinaryWrite(message.payload.toolResult, writer.tag(18, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ToolApprovalRequest tool_approval_request = 19; */
+        if (message.payload.oneofKind === "toolApprovalRequest")
+            ToolApprovalRequest.internalBinaryWrite(message.payload.toolApprovalRequest, writer.tag(19, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

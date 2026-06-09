@@ -1304,6 +1304,15 @@ const (
 	STREAMEVENTUSAGE StreamEventType = "STREAM_EVENT_USAGE"
 	STREAMEVENTCOMPLETED StreamEventType = "STREAM_EVENT_COMPLETED"
 	STREAMEVENTFAILED StreamEventType = "STREAM_EVENT_FAILED"
+	STREAMEVENTTOOLAPPROVALREQUEST StreamEventType = "STREAM_EVENT_TOOL_APPROVAL_REQUEST"
+)
+
+type TextSourceType string
+
+const (
+	TEXTSOURCETYPEUNSPECIFIED TextSourceType = "TEXT_SOURCE_TYPE_UNSPECIFIED"
+	TEXTSOURCETYPEURL TextSourceType = "TEXT_SOURCE_TYPE_URL"
+	TEXTSOURCETYPEDOCUMENT TextSourceType = "TEXT_SOURCE_TYPE_DOCUMENT"
 )
 
 type TokenProviderHealthStatus string
@@ -1325,6 +1334,14 @@ const (
 	TOOLCHOICEMODENONE ToolChoiceMode = "TOOL_CHOICE_MODE_NONE"
 	TOOLCHOICEMODEREQUIRED ToolChoiceMode = "TOOL_CHOICE_MODE_REQUIRED"
 	TOOLCHOICEMODETOOL ToolChoiceMode = "TOOL_CHOICE_MODE_TOOL"
+)
+
+type ToolSpecKind string
+
+const (
+	TOOLSPECKINDUNSPECIFIED ToolSpecKind = "TOOL_SPEC_KIND_UNSPECIFIED"
+	TOOLSPECKINDFUNCTION ToolSpecKind = "TOOL_SPEC_KIND_FUNCTION"
+	TOOLSPECKINDPROVIDER ToolSpecKind = "TOOL_SPEC_KIND_PROVIDER"
 )
 
 type UsageWindow string
@@ -2480,6 +2497,8 @@ type ChatMessage struct {
 	Parts []ChatContentPart `json:"parts,omitempty"`
 	ToolCalls []ToolCall `json:"tool_calls,omitempty"`
 	ToolCallId string `json:"tool_call_id,omitempty"`
+	ToolResults []ToolResult `json:"tool_results,omitempty"`
+	ToolApprovalResponses []ToolApprovalResponse `json:"tool_approval_responses,omitempty"`
 }
 
 type CheckLocalAssetHealthRequest struct {
@@ -5428,6 +5447,10 @@ type QueryAgentMemoryResponse struct {
 	Narratives []NarrativeRecallHit `json:"narratives,omitempty"`
 }
 
+type RawChunk struct {
+	Value *google.protobuf.Value `json:"value,omitempty"`
+}
+
 type ReadArtifactBytesRequest struct {
 	ArtifactId string `json:"artifact_id,omitempty"`
 }
@@ -6138,6 +6161,8 @@ type ScenarioStreamDelta struct {
 	Text *TextStreamDelta `json:"text,omitempty"`
 	Artifact *ArtifactStreamDelta `json:"artifact,omitempty"`
 	Reasoning *ReasoningStreamDelta `json:"reasoning,omitempty"`
+	Source *TextSource `json:"source,omitempty"`
+	Raw *RawChunk `json:"raw,omitempty"`
 }
 
 type ScenarioStreamFailed struct {
@@ -6463,6 +6488,8 @@ type StreamScenarioEvent struct {
 	Completed *ScenarioStreamCompleted `json:"completed,omitempty"`
 	Failed *ScenarioStreamFailed `json:"failed,omitempty"`
 	ToolCall *ToolCall `json:"tool_call,omitempty"`
+	ToolResult *ToolResult `json:"tool_result,omitempty"`
+	ToolApprovalRequest *ToolApprovalRequest `json:"tool_approval_request,omitempty"`
 }
 
 type StreamScenarioRequest struct {
@@ -6605,6 +6632,10 @@ type TextEmbedScenarioSpec struct {
 type TextGenerateOutput struct {
 	Text string `json:"text,omitempty"`
 	ToolCalls []ToolCall `json:"tool_calls,omitempty"`
+	ToolResults []ToolResult `json:"tool_results,omitempty"`
+	ToolApprovalRequests []ToolApprovalRequest `json:"tool_approval_requests,omitempty"`
+	Sources []TextSource `json:"sources,omitempty"`
+	RawChunks []RawChunk `json:"raw_chunks,omitempty"`
 }
 
 type TextGenerateScenarioSpec struct {
@@ -6623,6 +6654,17 @@ type TextGenerateScenarioSpec struct {
 	FrequencyPenalty float32 `json:"frequency_penalty,omitempty"`
 	Stop []string `json:"stop,omitempty"`
 	Seed int64 `json:"seed,omitempty"`
+	IncludeRawChunks bool `json:"include_raw_chunks,omitempty"`
+}
+
+type TextSource struct {
+	Id string `json:"id,omitempty"`
+	SourceType TextSourceType `json:"source_type,omitempty"`
+	Url string `json:"url,omitempty"`
+	Title string `json:"title,omitempty"`
+	MediaType string `json:"media_type,omitempty"`
+	Filename string `json:"filename,omitempty"`
+	ProviderMetadata map[string]any `json:"provider_metadata,omitempty"`
 }
 
 type TextStreamDelta struct {
@@ -6643,16 +6685,46 @@ type TokenChainEntry struct {
 	IssuedScopeCatalogVersion string `json:"issued_scope_catalog_version,omitempty"`
 }
 
+type ToolApprovalRequest struct {
+	ApprovalId string `json:"approval_id,omitempty"`
+	ToolCallId string `json:"tool_call_id,omitempty"`
+	ProviderMetadata map[string]any `json:"provider_metadata,omitempty"`
+}
+
+type ToolApprovalResponse struct {
+	ApprovalId string `json:"approval_id,omitempty"`
+	Approved bool `json:"approved,omitempty"`
+	Reason string `json:"reason,omitempty"`
+	ProviderMetadata map[string]any `json:"provider_metadata,omitempty"`
+}
+
 type ToolCall struct {
 	Id string `json:"id,omitempty"`
 	Name string `json:"name,omitempty"`
 	ArgumentsJson string `json:"arguments_json,omitempty"`
+	ProviderExecuted bool `json:"provider_executed,omitempty"`
+	Dynamic bool `json:"dynamic,omitempty"`
+	ProviderMetadata map[string]any `json:"provider_metadata,omitempty"`
+}
+
+type ToolResult struct {
+	ToolCallId string `json:"tool_call_id,omitempty"`
+	ToolName string `json:"tool_name,omitempty"`
+	Result *google.protobuf.Value `json:"result,omitempty"`
+	IsError bool `json:"is_error,omitempty"`
+	Preliminary bool `json:"preliminary,omitempty"`
+	Dynamic bool `json:"dynamic,omitempty"`
+	ProviderMetadata map[string]any `json:"provider_metadata,omitempty"`
 }
 
 type ToolSpec struct {
 	Name string `json:"name,omitempty"`
 	InputSchema map[string]any `json:"input_schema,omitempty"`
 	Description string `json:"description,omitempty"`
+	Kind ToolSpecKind `json:"kind,omitempty"`
+	ProviderToolId string `json:"provider_tool_id,omitempty"`
+	ProviderArgs map[string]any `json:"provider_args,omitempty"`
+	ProviderMetadata map[string]any `json:"provider_metadata,omitempty"`
 }
 
 type TraverseGraphRequest struct {

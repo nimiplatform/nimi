@@ -1867,11 +1867,25 @@ pub enum StreamEventType {
     STREAMEVENTUSAGE,
     STREAMEVENTCOMPLETED,
     STREAMEVENTFAILED,
+    STREAMEVENTTOOLAPPROVALREQUEST,
 }
 
 impl Default for StreamEventType {
     fn default() -> Self {
         Self::STREAMEVENTTYPEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum TextSourceType {
+    TEXTSOURCETYPEUNSPECIFIED,
+    TEXTSOURCETYPEURL,
+    TEXTSOURCETYPEDOCUMENT,
+}
+
+impl Default for TextSourceType {
+    fn default() -> Self {
+        Self::TEXTSOURCETYPEUNSPECIFIED
     }
 }
 
@@ -1903,6 +1917,19 @@ pub enum ToolChoiceMode {
 impl Default for ToolChoiceMode {
     fn default() -> Self {
         Self::TOOLCHOICEMODEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ToolSpecKind {
+    TOOLSPECKINDUNSPECIFIED,
+    TOOLSPECKINDFUNCTION,
+    TOOLSPECKINDPROVIDER,
+}
+
+impl Default for ToolSpecKind {
+    fn default() -> Self {
+        Self::TOOLSPECKINDUNSPECIFIED
     }
 }
 
@@ -5599,6 +5626,8 @@ pub struct ChatMessage {
     pub parts: Vec<Box<ChatContentPart>>,
     pub tool_calls: Vec<Box<ToolCall>>,
     pub tool_call_id: Option<String>,
+    pub tool_results: Vec<Box<ToolResult>>,
+    pub tool_approval_responses: Vec<Box<ToolApprovalResponse>>,
 }
 
 impl ChatMessage {
@@ -16324,6 +16353,22 @@ impl QueryAgentMemoryResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct RawChunk {
+    pub value: Option<Box<google.protobuf.Value>>,
+}
+
+impl RawChunk {
+    pub fn to_transport(&self) -> Vec<u8> {
+        Vec::new()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let _ = raw;
+        Self::default()
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ReadArtifactBytesRequest {
     pub artifact_id: Option<String>,
 }
@@ -18903,6 +18948,8 @@ pub struct ScenarioStreamDelta {
     pub text: Option<Box<TextStreamDelta>>,
     pub artifact: Option<Box<ArtifactStreamDelta>>,
     pub reasoning: Option<Box<ReasoningStreamDelta>>,
+    pub source: Option<Box<TextSource>>,
+    pub raw: Option<Box<RawChunk>>,
 }
 
 impl ScenarioStreamDelta {
@@ -20136,6 +20183,8 @@ pub struct StreamScenarioEvent {
     pub completed: Option<Box<ScenarioStreamCompleted>>,
     pub failed: Option<Box<ScenarioStreamFailed>>,
     pub tool_call: Option<Box<ToolCall>>,
+    pub tool_result: Option<Box<ToolResult>>,
+    pub tool_approval_request: Option<Box<ToolApprovalRequest>>,
 }
 
 impl StreamScenarioEvent {
@@ -20681,6 +20730,10 @@ impl TextEmbedScenarioSpec {
 pub struct TextGenerateOutput {
     pub text: Option<String>,
     pub tool_calls: Vec<Box<ToolCall>>,
+    pub tool_results: Vec<Box<ToolResult>>,
+    pub tool_approval_requests: Vec<Box<ToolApprovalRequest>>,
+    pub sources: Vec<Box<TextSource>>,
+    pub raw_chunks: Vec<Box<RawChunk>>,
 }
 
 impl TextGenerateOutput {
@@ -20715,6 +20768,7 @@ pub struct TextGenerateScenarioSpec {
     pub frequency_penalty: Option<f32>,
     pub stop: Vec<String>,
     pub seed: Option<i64>,
+    pub include_raw_chunks: Option<bool>,
 }
 
 impl TextGenerateScenarioSpec {
@@ -20730,6 +20784,7 @@ impl TextGenerateScenarioSpec {
         if let Some(value) = &self.presence_penalty { pairs.push(format!("presence_penalty={}", value)); }
         if let Some(value) = &self.frequency_penalty { pairs.push(format!("frequency_penalty={}", value)); }
         if let Some(value) = &self.seed { pairs.push(format!("seed={}", value)); }
+        if let Some(value) = &self.include_raw_chunks { pairs.push(format!("include_raw_chunks={}", value)); }
         pairs.join(";").into_bytes()
     }
 
@@ -20745,6 +20800,42 @@ impl TextGenerateScenarioSpec {
         out.presence_penalty = pairs.get("presence_penalty").and_then(|value| value.parse().ok());
         out.frequency_penalty = pairs.get("frequency_penalty").and_then(|value| value.parse().ok());
         out.seed = pairs.get("seed").and_then(|value| value.parse().ok());
+        out.include_raw_chunks = pairs.get("include_raw_chunks").and_then(|value| value.parse().ok());
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct TextSource {
+    pub id: Option<String>,
+    pub source_type: Option<TextSourceType>,
+    pub url: Option<String>,
+    pub title: Option<String>,
+    pub media_type: Option<String>,
+    pub filename: Option<String>,
+    pub provider_metadata: Option<BTreeMap<String, String>>,
+}
+
+impl TextSource {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.id { pairs.push(format!("id={}", value)); }
+        if let Some(value) = &self.source_type { pairs.push(format!("source_type={:?}", value)); }
+        if let Some(value) = &self.url { pairs.push(format!("url={}", value)); }
+        if let Some(value) = &self.title { pairs.push(format!("title={}", value)); }
+        if let Some(value) = &self.media_type { pairs.push(format!("media_type={}", value)); }
+        if let Some(value) = &self.filename { pairs.push(format!("filename={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.id = pairs.get("id").cloned();
+        out.url = pairs.get("url").cloned();
+        out.title = pairs.get("title").cloned();
+        out.media_type = pairs.get("media_type").cloned();
+        out.filename = pairs.get("filename").cloned();
         out
     }
 }
@@ -20818,10 +20909,64 @@ impl TokenChainEntry {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct ToolApprovalRequest {
+    pub approval_id: Option<String>,
+    pub tool_call_id: Option<String>,
+    pub provider_metadata: Option<BTreeMap<String, String>>,
+}
+
+impl ToolApprovalRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.approval_id { pairs.push(format!("approval_id={}", value)); }
+        if let Some(value) = &self.tool_call_id { pairs.push(format!("tool_call_id={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.approval_id = pairs.get("approval_id").cloned();
+        out.tool_call_id = pairs.get("tool_call_id").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ToolApprovalResponse {
+    pub approval_id: Option<String>,
+    pub approved: Option<bool>,
+    pub reason: Option<String>,
+    pub provider_metadata: Option<BTreeMap<String, String>>,
+}
+
+impl ToolApprovalResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.approval_id { pairs.push(format!("approval_id={}", value)); }
+        if let Some(value) = &self.approved { pairs.push(format!("approved={}", value)); }
+        if let Some(value) = &self.reason { pairs.push(format!("reason={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.approval_id = pairs.get("approval_id").cloned();
+        out.approved = pairs.get("approved").and_then(|value| value.parse().ok());
+        out.reason = pairs.get("reason").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ToolCall {
     pub id: Option<String>,
     pub name: Option<String>,
     pub arguments_json: Option<String>,
+    pub provider_executed: Option<bool>,
+    pub dynamic: Option<bool>,
+    pub provider_metadata: Option<BTreeMap<String, String>>,
 }
 
 impl ToolCall {
@@ -20830,6 +20975,8 @@ impl ToolCall {
         if let Some(value) = &self.id { pairs.push(format!("id={}", value)); }
         if let Some(value) = &self.name { pairs.push(format!("name={}", value)); }
         if let Some(value) = &self.arguments_json { pairs.push(format!("arguments_json={}", value)); }
+        if let Some(value) = &self.provider_executed { pairs.push(format!("provider_executed={}", value)); }
+        if let Some(value) = &self.dynamic { pairs.push(format!("dynamic={}", value)); }
         pairs.join(";").into_bytes()
     }
 
@@ -20839,6 +20986,42 @@ impl ToolCall {
         out.id = pairs.get("id").cloned();
         out.name = pairs.get("name").cloned();
         out.arguments_json = pairs.get("arguments_json").cloned();
+        out.provider_executed = pairs.get("provider_executed").and_then(|value| value.parse().ok());
+        out.dynamic = pairs.get("dynamic").and_then(|value| value.parse().ok());
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ToolResult {
+    pub tool_call_id: Option<String>,
+    pub tool_name: Option<String>,
+    pub result: Option<Box<google.protobuf.Value>>,
+    pub is_error: Option<bool>,
+    pub preliminary: Option<bool>,
+    pub dynamic: Option<bool>,
+    pub provider_metadata: Option<BTreeMap<String, String>>,
+}
+
+impl ToolResult {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.tool_call_id { pairs.push(format!("tool_call_id={}", value)); }
+        if let Some(value) = &self.tool_name { pairs.push(format!("tool_name={}", value)); }
+        if let Some(value) = &self.is_error { pairs.push(format!("is_error={}", value)); }
+        if let Some(value) = &self.preliminary { pairs.push(format!("preliminary={}", value)); }
+        if let Some(value) = &self.dynamic { pairs.push(format!("dynamic={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.tool_call_id = pairs.get("tool_call_id").cloned();
+        out.tool_name = pairs.get("tool_name").cloned();
+        out.is_error = pairs.get("is_error").and_then(|value| value.parse().ok());
+        out.preliminary = pairs.get("preliminary").and_then(|value| value.parse().ok());
+        out.dynamic = pairs.get("dynamic").and_then(|value| value.parse().ok());
         out
     }
 }
@@ -20848,6 +21031,10 @@ pub struct ToolSpec {
     pub name: Option<String>,
     pub input_schema: Option<BTreeMap<String, String>>,
     pub description: Option<String>,
+    pub kind: Option<ToolSpecKind>,
+    pub provider_tool_id: Option<String>,
+    pub provider_args: Option<BTreeMap<String, String>>,
+    pub provider_metadata: Option<BTreeMap<String, String>>,
 }
 
 impl ToolSpec {
@@ -20855,6 +21042,8 @@ impl ToolSpec {
         let mut pairs: Vec<String> = Vec::new();
         if let Some(value) = &self.name { pairs.push(format!("name={}", value)); }
         if let Some(value) = &self.description { pairs.push(format!("description={}", value)); }
+        if let Some(value) = &self.kind { pairs.push(format!("kind={:?}", value)); }
+        if let Some(value) = &self.provider_tool_id { pairs.push(format!("provider_tool_id={}", value)); }
         pairs.join(";").into_bytes()
     }
 
@@ -20863,6 +21052,7 @@ impl ToolSpec {
         let mut out = Self::default();
         out.name = pairs.get("name").cloned();
         out.description = pairs.get("description").cloned();
+        out.provider_tool_id = pairs.get("provider_tool_id").cloned();
         out
     }
 }
@@ -25610,6 +25800,12 @@ impl From<Vec<u8>> for QueryAgentMemoryResponse {
     }
 }
 
+impl From<Vec<u8>> for RawChunk {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for ReadArtifactBytesRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -26678,6 +26874,12 @@ impl From<Vec<u8>> for TextGenerateScenarioSpec {
     }
 }
 
+impl From<Vec<u8>> for TextSource {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for TextStreamDelta {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -26690,7 +26892,25 @@ impl From<Vec<u8>> for TokenChainEntry {
     }
 }
 
+impl From<Vec<u8>> for ToolApprovalRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for ToolApprovalResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for ToolCall {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for ToolResult {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }

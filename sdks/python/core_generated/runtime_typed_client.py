@@ -141,9 +141,11 @@ ScopedAppBindingPurpose = Literal["SCOPED_APP_BINDING_PURPOSE_UNSPECIFIED", "SCO
 ScopedAppBindingState = Literal["SCOPED_APP_BINDING_STATE_UNSPECIFIED", "SCOPED_APP_BINDING_STATE_ISSUED", "SCOPED_APP_BINDING_STATE_ACTIVE", "SCOPED_APP_BINDING_STATE_SUSPENDED", "SCOPED_APP_BINDING_STATE_REVOKED", "SCOPED_APP_BINDING_STATE_EXPIRED", "SCOPED_APP_BINDING_STATE_SUPERSEDED"]
 SpeechAlignmentUnit = Literal["SPEECH_ALIGNMENT_UNIT_UNSPECIFIED", "SPEECH_ALIGNMENT_UNIT_WORD", "SPEECH_ALIGNMENT_UNIT_CHAR"]
 SpeechTimingMode = Literal["SPEECH_TIMING_MODE_UNSPECIFIED", "SPEECH_TIMING_MODE_NONE", "SPEECH_TIMING_MODE_WORD", "SPEECH_TIMING_MODE_CHAR"]
-StreamEventType = Literal["STREAM_EVENT_TYPE_UNSPECIFIED", "STREAM_EVENT_STARTED", "STREAM_EVENT_DELTA", "STREAM_EVENT_TOOL_CALL", "STREAM_EVENT_TOOL_RESULT", "STREAM_EVENT_USAGE", "STREAM_EVENT_COMPLETED", "STREAM_EVENT_FAILED"]
+StreamEventType = Literal["STREAM_EVENT_TYPE_UNSPECIFIED", "STREAM_EVENT_STARTED", "STREAM_EVENT_DELTA", "STREAM_EVENT_TOOL_CALL", "STREAM_EVENT_TOOL_RESULT", "STREAM_EVENT_USAGE", "STREAM_EVENT_COMPLETED", "STREAM_EVENT_FAILED", "STREAM_EVENT_TOOL_APPROVAL_REQUEST"]
+TextSourceType = Literal["TEXT_SOURCE_TYPE_UNSPECIFIED", "TEXT_SOURCE_TYPE_URL", "TEXT_SOURCE_TYPE_DOCUMENT"]
 TokenProviderHealthStatus = Literal["TOKEN_PROVIDER_HEALTH_STATUS_UNSPECIFIED", "TOKEN_PROVIDER_HEALTH_STATUS_HEALTHY", "TOKEN_PROVIDER_HEALTH_STATUS_DEGRADED", "TOKEN_PROVIDER_HEALTH_STATUS_UNREACHABLE", "TOKEN_PROVIDER_HEALTH_STATUS_UNAUTHORIZED", "TOKEN_PROVIDER_HEALTH_STATUS_UNSUPPORTED"]
 ToolChoiceMode = Literal["TOOL_CHOICE_MODE_UNSPECIFIED", "TOOL_CHOICE_MODE_AUTO", "TOOL_CHOICE_MODE_NONE", "TOOL_CHOICE_MODE_REQUIRED", "TOOL_CHOICE_MODE_TOOL"]
+ToolSpecKind = Literal["TOOL_SPEC_KIND_UNSPECIFIED", "TOOL_SPEC_KIND_FUNCTION", "TOOL_SPEC_KIND_PROVIDER"]
 UsageWindow = Literal["USAGE_WINDOW_UNSPECIFIED", "USAGE_WINDOW_MINUTE", "USAGE_WINDOW_HOUR", "USAGE_WINDOW_DAY"]
 VideoContentRole = Literal["VIDEO_CONTENT_ROLE_UNSPECIFIED", "VIDEO_CONTENT_ROLE_PROMPT", "VIDEO_CONTENT_ROLE_FIRST_FRAME", "VIDEO_CONTENT_ROLE_LAST_FRAME", "VIDEO_CONTENT_ROLE_REFERENCE_IMAGE", "VIDEO_CONTENT_ROLE_REFERENCE_VIDEO", "VIDEO_CONTENT_ROLE_REFERENCE_AUDIO"]
 VideoContentType = Literal["VIDEO_CONTENT_TYPE_UNSPECIFIED", "VIDEO_CONTENT_TYPE_TEXT", "VIDEO_CONTENT_TYPE_IMAGE_URL", "VIDEO_CONTENT_TYPE_VIDEO_URL", "VIDEO_CONTENT_TYPE_AUDIO_URL"]
@@ -1136,6 +1138,8 @@ class ChatMessage:
     parts: tuple[ChatContentPart, ...] = field(default_factory=tuple)
     tool_calls: tuple[ToolCall, ...] = field(default_factory=tuple)
     tool_call_id: str | None = None
+    tool_results: tuple[ToolResult, ...] = field(default_factory=tuple)
+    tool_approval_responses: tuple[ToolApprovalResponse, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
 class CheckLocalAssetHealthRequest:
@@ -4084,6 +4088,10 @@ class QueryAgentMemoryResponse:
     narratives: tuple[NarrativeRecallHit, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
+class RawChunk:
+    value: google.protobuf.Value | None = None
+
+@dataclass(frozen=True)
 class ReadArtifactBytesRequest:
     artifact_id: str | None = None
 
@@ -4794,6 +4802,8 @@ class ScenarioStreamDelta:
     text: TextStreamDelta | None = None
     artifact: ArtifactStreamDelta | None = None
     reasoning: ReasoningStreamDelta | None = None
+    source: TextSource | None = None
+    raw: RawChunk | None = None
 
 @dataclass(frozen=True)
 class ScenarioStreamFailed:
@@ -5119,6 +5129,8 @@ class StreamScenarioEvent:
     completed: ScenarioStreamCompleted | None = None
     failed: ScenarioStreamFailed | None = None
     tool_call: ToolCall | None = None
+    tool_result: ToolResult | None = None
+    tool_approval_request: ToolApprovalRequest | None = None
 
 @dataclass(frozen=True)
 class StreamScenarioRequest:
@@ -5261,6 +5273,10 @@ class TextEmbedScenarioSpec:
 class TextGenerateOutput:
     text: str | None = None
     tool_calls: tuple[ToolCall, ...] = field(default_factory=tuple)
+    tool_results: tuple[ToolResult, ...] = field(default_factory=tuple)
+    tool_approval_requests: tuple[ToolApprovalRequest, ...] = field(default_factory=tuple)
+    sources: tuple[TextSource, ...] = field(default_factory=tuple)
+    raw_chunks: tuple[RawChunk, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
 class TextGenerateScenarioSpec:
@@ -5279,6 +5295,17 @@ class TextGenerateScenarioSpec:
     frequency_penalty: float | None = None
     stop: tuple[str, ...] = field(default_factory=tuple)
     seed: int | None = None
+    include_raw_chunks: bool | None = None
+
+@dataclass(frozen=True)
+class TextSource:
+    id: str | None = None
+    source_type: TextSourceType | None = None
+    url: str | None = None
+    title: str | None = None
+    media_type: str | None = None
+    filename: str | None = None
+    provider_metadata: Mapping[str, object] | None = None
 
 @dataclass(frozen=True)
 class TextStreamDelta:
@@ -5299,16 +5326,46 @@ class TokenChainEntry:
     issued_scope_catalog_version: str | None = None
 
 @dataclass(frozen=True)
+class ToolApprovalRequest:
+    approval_id: str | None = None
+    tool_call_id: str | None = None
+    provider_metadata: Mapping[str, object] | None = None
+
+@dataclass(frozen=True)
+class ToolApprovalResponse:
+    approval_id: str | None = None
+    approved: bool | None = None
+    reason: str | None = None
+    provider_metadata: Mapping[str, object] | None = None
+
+@dataclass(frozen=True)
 class ToolCall:
     id: str | None = None
     name: str | None = None
     arguments_json: str | None = None
+    provider_executed: bool | None = None
+    dynamic: bool | None = None
+    provider_metadata: Mapping[str, object] | None = None
+
+@dataclass(frozen=True)
+class ToolResult:
+    tool_call_id: str | None = None
+    tool_name: str | None = None
+    result: google.protobuf.Value | None = None
+    is_error: bool | None = None
+    preliminary: bool | None = None
+    dynamic: bool | None = None
+    provider_metadata: Mapping[str, object] | None = None
 
 @dataclass(frozen=True)
 class ToolSpec:
     name: str | None = None
     input_schema: Mapping[str, object] | None = None
     description: str | None = None
+    kind: ToolSpecKind | None = None
+    provider_tool_id: str | None = None
+    provider_args: Mapping[str, object] | None = None
+    provider_metadata: Mapping[str, object] | None = None
 
 @dataclass(frozen=True)
 class TraverseGraphRequest:

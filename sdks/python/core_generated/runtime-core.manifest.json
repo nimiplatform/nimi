@@ -6623,6 +6623,7 @@
       "PutPageResponse",
       "QueryAgentMemoryRequest",
       "QueryAgentMemoryResponse",
+      "RawChunk",
       "ReadArtifactBytesRequest",
       "ReadArtifactBytesResponse",
       "ReadRealtimeEventsRequest",
@@ -6801,9 +6802,13 @@
       "TextEmbedScenarioSpec",
       "TextGenerateOutput",
       "TextGenerateScenarioSpec",
+      "TextSource",
       "TextStreamDelta",
       "TokenChainEntry",
+      "ToolApprovalRequest",
+      "ToolApprovalResponse",
       "ToolCall",
+      "ToolResult",
       "ToolSpec",
       "TraverseGraphRequest",
       "TraverseGraphResponse",
@@ -6982,8 +6987,10 @@
       "SpeechAlignmentUnit",
       "SpeechTimingMode",
       "StreamEventType",
+      "TextSourceType",
       "TokenProviderHealthStatus",
       "ToolChoiceMode",
+      "ToolSpecKind",
       "UsageWindow",
       "VideoContentRole",
       "VideoContentType",
@@ -12159,6 +12166,20 @@
             "repeated": false,
             "optional": false,
             "number": 6
+          },
+          {
+            "name": "tool_results",
+            "type": "ToolResult",
+            "repeated": true,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "tool_approval_responses",
+            "type": "ToolApprovalResponse",
+            "repeated": true,
+            "optional": false,
+            "number": 8
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -26757,6 +26778,19 @@
         "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
+        "name": "RawChunk",
+        "fields": [
+          {
+            "name": "value",
+            "type": "google.protobuf.Value",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
         "name": "ReadArtifactBytesRequest",
         "fields": [
           {
@@ -30207,6 +30241,20 @@
             "repeated": false,
             "optional": false,
             "number": 3
+          },
+          {
+            "name": "source",
+            "type": "TextSource",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "raw",
+            "type": "RawChunk",
+            "repeated": false,
+            "optional": false,
+            "number": 5
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -31717,6 +31765,20 @@
             "repeated": false,
             "optional": false,
             "number": 17
+          },
+          {
+            "name": "tool_result",
+            "type": "ToolResult",
+            "repeated": false,
+            "optional": false,
+            "number": 18
+          },
+          {
+            "name": "tool_approval_request",
+            "type": "ToolApprovalRequest",
+            "repeated": false,
+            "optional": false,
+            "number": 19
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -32321,6 +32383,34 @@
             "repeated": true,
             "optional": false,
             "number": 2
+          },
+          {
+            "name": "tool_results",
+            "type": "ToolResult",
+            "repeated": true,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "tool_approval_requests",
+            "type": "ToolApprovalRequest",
+            "repeated": true,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "sources",
+            "type": "TextSource",
+            "repeated": true,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "raw_chunks",
+            "type": "RawChunk",
+            "repeated": true,
+            "optional": false,
+            "number": 6
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -32432,6 +32522,68 @@
             "repeated": false,
             "optional": false,
             "number": 15
+          },
+          {
+            "name": "include_raw_chunks",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 16
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "TextSource",
+        "fields": [
+          {
+            "name": "id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "source_type",
+            "type": "TextSourceType",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "url",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "title",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "media_type",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "filename",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "provider_metadata",
+            "type": "google.protobuf.Struct",
+            "repeated": false,
+            "optional": false,
+            "number": 7
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -32533,6 +32685,67 @@
         "source_file": "proto/runtime/v1/grant.proto"
       },
       {
+        "name": "ToolApprovalRequest",
+        "fields": [
+          {
+            "name": "approval_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "tool_call_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "provider_metadata",
+            "type": "google.protobuf.Struct",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "ToolApprovalResponse",
+        "fields": [
+          {
+            "name": "approval_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "approved",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "reason",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "provider_metadata",
+            "type": "google.protobuf.Struct",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
         "name": "ToolCall",
         "fields": [
           {
@@ -32555,6 +32768,82 @@
             "repeated": false,
             "optional": false,
             "number": 3
+          },
+          {
+            "name": "provider_executed",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "dynamic",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "provider_metadata",
+            "type": "google.protobuf.Struct",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "ToolResult",
+        "fields": [
+          {
+            "name": "tool_call_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "tool_name",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "result",
+            "type": "google.protobuf.Value",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "is_error",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "preliminary",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "dynamic",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "provider_metadata",
+            "type": "google.protobuf.Struct",
+            "repeated": false,
+            "optional": false,
+            "number": 7
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -32582,6 +32871,34 @@
             "repeated": false,
             "optional": false,
             "number": 3
+          },
+          {
+            "name": "kind",
+            "type": "ToolSpecKind",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "provider_tool_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "provider_args",
+            "type": "google.protobuf.Struct",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "provider_metadata",
+            "type": "google.protobuf.Struct",
+            "repeated": false,
+            "optional": false,
+            "number": 7
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -36310,7 +36627,17 @@
           "STREAM_EVENT_TOOL_RESULT",
           "STREAM_EVENT_USAGE",
           "STREAM_EVENT_COMPLETED",
-          "STREAM_EVENT_FAILED"
+          "STREAM_EVENT_FAILED",
+          "STREAM_EVENT_TOOL_APPROVAL_REQUEST"
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "TextSourceType",
+        "values": [
+          "TEXT_SOURCE_TYPE_UNSPECIFIED",
+          "TEXT_SOURCE_TYPE_URL",
+          "TEXT_SOURCE_TYPE_DOCUMENT"
         ],
         "source_file": "proto/runtime/v1/ai.proto"
       },
@@ -36334,6 +36661,15 @@
           "TOOL_CHOICE_MODE_NONE",
           "TOOL_CHOICE_MODE_REQUIRED",
           "TOOL_CHOICE_MODE_TOOL"
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "ToolSpecKind",
+        "values": [
+          "TOOL_SPEC_KIND_UNSPECIFIED",
+          "TOOL_SPEC_KIND_FUNCTION",
+          "TOOL_SPEC_KIND_PROVIDER"
         ],
         "source_file": "proto/runtime/v1/ai.proto"
       },
