@@ -1,4 +1,10 @@
-import type { NimiJsonObject, NimiJsonValue, NimiTool } from '../../core/contracts';
+import type {
+  NimiFunctionTool,
+  NimiJsonObject,
+  NimiJsonValue,
+  NimiProviderTool,
+  NimiTool,
+} from '../../core/contracts';
 
 export interface NimiToolExecutionContext {
   readonly runId?: string;
@@ -26,6 +32,7 @@ export interface NimiToolCallInput {
 
 export type NimiToolFailureReason =
   | 'tool-not-found'
+  | 'provider-tool-not-local'
   | 'approval-required'
   | 'external-execution-required'
   | 'executor-missing'
@@ -64,6 +71,9 @@ export function defineNimiTool(tool: NimiTool): NimiTool {
   const name = normalizeToolName(tool.name);
   if (!name) {
     throw new Error('Nimi tool name is required.');
+  }
+  if (isNimiProviderTool(tool)) {
+    return { ...tool, name };
   }
   const description = normalizeToolDescription(tool.description);
   if (!description) {
@@ -133,6 +143,13 @@ export async function executeNimiToolCall(
       message: `Nimi tool "${toolName}" is not registered.`,
     });
   }
+  if (isNimiProviderTool(tool)) {
+    return createToolFailure(tool.name, {
+      callId: input.callId,
+      reason: 'provider-tool-not-local',
+      message: `Nimi provider tool "${tool.name}" must be executed by the model provider, not the local tool registry.`,
+    });
+  }
 
   if (tool.policy === 'approval-required' && input.approved !== true) {
     return createToolFailure(tool.name, {
@@ -183,8 +200,9 @@ export function createNimiApprovalTool(input: {
   readonly name: string;
   readonly description: string;
   readonly inputSchema?: NimiJsonObject;
-}): NimiTool {
+}): NimiFunctionTool {
   return {
+    type: 'function',
     name: input.name,
     description: input.description,
     inputSchema: input.inputSchema ?? {},
@@ -197,8 +215,9 @@ export function createNimiExternalExecutionTool(input: {
   readonly name: string;
   readonly description: string;
   readonly inputSchema?: NimiJsonObject;
-}): NimiTool {
+}): NimiFunctionTool {
   return {
+    type: 'function',
     name: input.name,
     description: input.description,
     inputSchema: input.inputSchema ?? {},
@@ -211,8 +230,9 @@ export function createNimiArtifactTool(input: {
   readonly name: string;
   readonly description: string;
   readonly artifactKind: string;
-}): NimiTool {
+}): NimiFunctionTool {
   return {
+    type: 'function',
     name: input.name,
     description: input.description,
     inputSchema: {
@@ -225,8 +245,9 @@ export function createNimiArtifactTool(input: {
 export function createNimiFileDescriptorTool(input: {
   readonly name: string;
   readonly description: string;
-}): NimiTool {
+}): NimiFunctionTool {
   return {
+    type: 'function',
     name: input.name,
     description: input.description,
     inputSchema: {
@@ -242,8 +263,9 @@ export function createNimiMcpTool(input: {
   readonly description: string;
   readonly serverId: string;
   readonly inputSchema?: NimiJsonObject;
-}): NimiTool {
+}): NimiFunctionTool {
   return {
+    type: 'function',
     name: input.name,
     description: input.description,
     inputSchema: input.inputSchema ?? {},
@@ -260,11 +282,21 @@ export function createNimiConstantToolResult(value: NimiJsonValue): () => NimiJs
 }
 
 function toNimiToolDescriptor(tool: NimiTool): NimiToolDescriptor {
+  if (isNimiProviderTool(tool)) {
+    return {
+      ...tool,
+      hasLocalExecutor: false,
+    };
+  }
   const { execute: _execute, ...descriptor } = tool;
   return {
     ...descriptor,
     hasLocalExecutor: typeof tool.execute === 'function',
   };
+}
+
+function isNimiProviderTool(tool: NimiTool): tool is NimiProviderTool {
+  return tool.type === 'provider';
 }
 
 function createToolFailure(

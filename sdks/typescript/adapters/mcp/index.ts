@@ -1,4 +1,11 @@
-import type { NimiCapabilityManifest, NimiJsonObject, NimiJsonValue, NimiRunEvent, NimiTool } from '../../core/contracts';
+import type {
+  NimiCapabilityManifest,
+  NimiFunctionTool,
+  NimiJsonObject,
+  NimiJsonValue,
+  NimiRunEvent,
+  NimiTool,
+} from '../../core/contracts';
 
 export const NIMI_MCP_ADAPTER_ID = 'mcp' as const;
 export const NIMI_MCP_UNSUPPORTED_FEATURE_CODE = 'unsupported_mcp_adapter_feature' as const;
@@ -68,12 +75,13 @@ export interface NimiMcpAdapter {
 }
 
 export function createNimiMcpAdapter(options: { readonly tools: readonly NimiTool[] }): NimiMcpAdapter {
-  const toolsByName = new Map(options.tools.map((tool) => [tool.name, tool]));
+  const tools = options.tools.map((tool) => requireMcpFunctionTool(tool));
+  const toolsByName = new Map(tools.map((tool) => [tool.name, tool]));
 
   return {
     manifest: NIMI_MCP_ADAPTER_MANIFEST,
     listTools() {
-      return options.tools.map((tool) => ({
+      return tools.map((tool) => ({
         name: tool.name,
         description: tool.description,
         inputSchema: tool.inputSchema,
@@ -103,6 +111,13 @@ export function createNimiMcpAdapter(options: { readonly tools: readonly NimiToo
       return toMcpRunEventNotifications(events, progressToken);
     },
   };
+}
+
+function requireMcpFunctionTool(tool: NimiTool): NimiFunctionTool {
+  if (tool.type === 'provider') {
+    throwUnsupportedMcpFeature('mcp.tools.providerDefined', 'provider tools cannot be exposed as MCP local tools');
+  }
+  return tool;
 }
 
 export function toMcpRunEventNotifications(

@@ -126,6 +126,14 @@ function appendModelResultEvents(events: NimiAgentEvent[], result: NimiGenerateT
   for (const toolCall of result.toolCalls ?? []) {
     events.push({ type: 'tool-call', toolCall });
   }
+  for (const toolResult of result.toolResults ?? []) {
+    events.push({
+      type: 'tool-result',
+      toolCallId: toolResult.toolCallId,
+      name: toolResult.toolName,
+      result: toolResult.result,
+    });
+  }
 }
 
 async function appendToolLifecycleEvents(
@@ -135,9 +143,15 @@ async function appendToolLifecycleEvents(
 ): Promise<void> {
   const toolsByName = new Map(tools.map((tool) => [tool.name, tool]));
   for (const toolCall of result.toolCalls ?? []) {
+    if (toolCall.providerExecuted) {
+      continue;
+    }
     const tool = toolsByName.get(toolCall.name);
     if (!tool) {
       events.push({ type: 'error', code: 'unknown_tool', message: `tool ${toolCall.name} was not registered` });
+      continue;
+    }
+    if (tool.type === 'provider') {
       continue;
     }
     if (tool.policy === 'approval-required') {

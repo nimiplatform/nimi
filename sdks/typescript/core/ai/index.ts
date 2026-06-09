@@ -4,9 +4,13 @@ import type {
   NimiJsonValue,
   NimiMessage,
   NimiModelRef,
+  NimiRawChunk,
   NimiRunEvent,
+  NimiSource,
   NimiTool,
+  NimiToolApprovalRequest,
   NimiToolCall,
+  NimiToolResult,
   NimiUsage,
 } from '../contracts';
 
@@ -21,7 +25,17 @@ export interface NimiAiRequestParameters {
   readonly seed?: number;
   readonly user?: string;
   readonly metadata?: NimiJsonObject;
+  readonly includeRawChunks?: boolean;
 }
+
+export type NimiGenerateTextContent =
+  | { readonly type: 'text'; readonly text: string }
+  | { readonly type: 'reasoning'; readonly text: string }
+  | NimiSource
+  | { readonly type: 'tool-call'; readonly toolCall: NimiToolCall }
+  | { readonly type: 'tool-result'; readonly toolResult: NimiToolResult }
+  | { readonly type: 'tool-approval-request'; readonly toolApprovalRequest: NimiToolApprovalRequest }
+  | NimiRawChunk;
 
 export interface NimiResponseFormat {
   readonly type: 'text' | 'json-object' | 'json-schema';
@@ -46,6 +60,11 @@ export interface NimiGenerateTextResult {
   readonly finishReason: NimiFinishReason;
   readonly usage?: NimiUsage;
   readonly toolCalls?: readonly NimiToolCall[];
+  readonly toolResults?: readonly NimiToolResult[];
+  readonly toolApprovalRequests?: readonly NimiToolApprovalRequest[];
+  readonly sources?: readonly NimiSource[];
+  readonly rawChunks?: readonly NimiRawChunk[];
+  readonly content?: readonly NimiGenerateTextContent[];
   readonly warnings?: readonly { readonly code: string; readonly message: string }[];
   readonly raw?: NimiJsonValue;
 }
@@ -62,6 +81,10 @@ export async function collectNimiTextStream(events: AsyncIterable<NimiRunEvent>)
   let finishReason: NimiFinishReason = 'unknown';
   let usage: NimiUsage | undefined;
   const toolCalls: NimiToolCall[] = [];
+  const toolResults: NimiToolResult[] = [];
+  const toolApprovalRequests: NimiToolApprovalRequest[] = [];
+  const sources: NimiSource[] = [];
+  const rawChunks: NimiRawChunk[] = [];
   const warnings: { code: string; message: string }[] = [];
   const artifacts: { mimeType: string; sizeBytes: number }[] = [];
 
@@ -74,6 +97,14 @@ export async function collectNimiTextStream(events: AsyncIterable<NimiRunEvent>)
       artifacts.push({ mimeType: event.mimeType, sizeBytes: event.chunk.byteLength });
     } else if (event.type === 'tool-call') {
       toolCalls.push(event.toolCall);
+    } else if (event.type === 'tool-result') {
+      toolResults.push(event.toolResult);
+    } else if (event.type === 'tool-approval-request') {
+      toolApprovalRequests.push(event.toolApprovalRequest);
+    } else if (event.type === 'source') {
+      sources.push(event);
+    } else if (event.type === 'raw') {
+      rawChunks.push(event);
     } else if (event.type === 'warning') {
       warnings.push({ code: event.code, message: event.message });
     } else if (event.type === 'done') {
@@ -96,6 +127,22 @@ export async function collectNimiTextStream(events: AsyncIterable<NimiRunEvent>)
     finishReason,
     usage,
     toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
+    toolResults: toolResults.length > 0 ? toolResults : undefined,
+    toolApprovalRequests: toolApprovalRequests.length > 0 ? toolApprovalRequests : undefined,
+    sources: sources.length > 0 ? sources : undefined,
+    rawChunks: rawChunks.length > 0 ? rawChunks : undefined,
+    content: [
+      ...(reasoning ? [{ type: 'reasoning' as const, text: reasoning }] : []),
+      ...(text ? [{ type: 'text' as const, text }] : []),
+      ...sources,
+      ...toolCalls.map((toolCall) => ({ type: 'tool-call' as const, toolCall })),
+      ...toolResults.map((toolResult) => ({ type: 'tool-result' as const, toolResult })),
+      ...toolApprovalRequests.map((toolApprovalRequest) => ({
+        type: 'tool-approval-request' as const,
+        toolApprovalRequest,
+      })),
+      ...rawChunks,
+    ],
     warnings: warnings.length > 0 ? warnings : undefined,
     ...(raw ? { raw } : {}),
   };

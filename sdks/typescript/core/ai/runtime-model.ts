@@ -8,34 +8,40 @@ import {
   RoutePolicy,
   ScenarioType,
   ToolChoiceMode,
-  ChatContentPartType,
-  type ChatContentPart,
-  type ChatMessage,
   type ExecuteScenarioRequest,
   type ExecuteScenarioResponse,
   type ResponseFormat,
   type StreamScenarioEvent,
   type StreamScenarioRequest,
-  type ToolCall,
-  type ToolSpec,
 } from '../../core-generated/runtime-protobuf/runtime/v1/ai';
 import type { UsageStats } from '../../core-generated/runtime-protobuf/runtime/v1/common';
 import type { RuntimeTypedCallOptions } from '../../core-generated/runtime-typed-client';
-import { toNimiRuntimeProtoStruct } from '../../runtime/runtime-agent-values';
 import { withNimiRuntimeIdempotencyMetadata } from '../../runtime/scenario-jobs';
 import { createNimiClientId, createNimiError } from '../../types';
 import type {
   NimiFinishReason,
   NimiJsonObject,
   NimiJsonValue,
-  NimiMessage,
-  NimiMessagePart,
   NimiModelRef,
   NimiRunEvent,
-  NimiToolCall,
   NimiUsage,
 } from '../contracts';
-import type { NimiAiModel, NimiGenerateTextRequest, NimiGenerateTextResult } from './index';
+import type { NimiAiModel, NimiGenerateTextContent, NimiGenerateTextRequest, NimiGenerateTextResult } from './index';
+import {
+  toNimiRawChunk,
+  toNimiRawChunks,
+  toNimiSource,
+  toNimiSources,
+  toNimiToolApprovalRequest,
+  toNimiToolApprovalRequests,
+  toNimiToolCall,
+  toNimiToolCalls,
+  toNimiToolResult,
+  toNimiToolResults,
+  toRuntimeMessages,
+  toRuntimeStruct,
+  toRuntimeTools,
+} from './runtime-model-text-projection';
 
 export type NimiRuntimeAIRoutePolicy = 'local' | 'cloud' | 'unspecified';
 export type NimiRuntimeAIReasoningMode = 'off' | 'on';
@@ -148,6 +154,7 @@ export function buildRuntimeTextScenarioRequest(input: {
           frequencyPenalty: Number(input.request.parameters?.frequencyPenalty ?? 0),
           stop: toRuntimeStop(input.request.parameters?.stop),
           seed: input.request.parameters?.seed !== undefined ? String(input.request.parameters.seed) : '0',
+          includeRawChunks: input.request.parameters?.includeRawChunks ?? false,
         },
       },
     },
@@ -190,6 +197,10 @@ export async function* runtimeScenarioStreamToNimiEvents(
           chunk: delta.artifact.chunk,
           mimeType: requireRuntimeArtifactMimeType(delta.artifact.mimeType),
         };
+      } else if (delta.oneofKind === 'source') {
+        yield toNimiSource(delta.source);
+      } else if (delta.oneofKind === 'raw') {
+        yield toNimiRawChunk(delta.raw);
       }
       continue;
     }
@@ -199,6 +210,17 @@ export async function* runtimeScenarioStreamToNimiEvents(
     }
     if (event.payload.oneofKind === 'toolCall') {
       yield { type: 'tool-call', toolCall: toNimiToolCall(event.payload.toolCall) };
+      continue;
+    }
+    if (event.payload.oneofKind === 'toolResult') {
+      yield { type: 'tool-result', toolResult: toNimiToolResult(event.payload.toolResult) };
+      continue;
+    }
+    if (event.payload.oneofKind === 'toolApprovalRequest') {
+      yield {
+        type: 'tool-approval-request',
+        toolApprovalRequest: toNimiToolApprovalRequest(event.payload.toolApprovalRequest),
+      };
       continue;
     }
     if (event.payload.oneofKind === 'completed') {
@@ -244,11 +266,33 @@ function toGenerateTextResult(response: ExecuteScenarioResponse): NimiGenerateTe
       source: 'sdk',
     });
   }
+  const output = textOutput.textGenerate;
+  const toolCalls = toNimiToolCalls(output.toolCalls);
+  const toolResults = toNimiToolResults(output.toolResults);
+  const toolApprovalRequests = toNimiToolApprovalRequests(output.toolApprovalRequests);
+  const sources = toNimiSources(output.sources);
+  const rawChunks = toNimiRawChunks(output.rawChunks);
+  const content: NimiGenerateTextContent[] = [
+    ...(output.text ? [{ type: 'text' as const, text: output.text }] : []),
+    ...(sources ?? []),
+    ...(toolCalls ?? []).map((toolCall) => ({ type: 'tool-call' as const, toolCall })),
+    ...(toolResults ?? []).map((toolResult) => ({ type: 'tool-result' as const, toolResult })),
+    ...(toolApprovalRequests ?? []).map((toolApprovalRequest) => ({
+      type: 'tool-approval-request' as const,
+      toolApprovalRequest,
+    })),
+    ...(rawChunks ?? []),
+  ];
   return {
-    text: textOutput.textGenerate.text,
+    text: output.text,
     finishReason: toNimiFinishReason(response.finishReason),
     usage: toNimiUsage(response.usage),
-    toolCalls: toNimiToolCalls(textOutput.textGenerate.toolCalls),
+    toolCalls,
+    toolResults,
+    toolApprovalRequests,
+    sources,
+    rawChunks,
+    content: content.length > 0 ? content : undefined,
     raw: {
       traceId: response.traceId,
       modelResolved: response.modelResolved,
@@ -273,17 +317,6 @@ function assertRuntimeSupportedTextRequest(request: NimiGenerateTextRequest): vo
       }
     }
   }
-}
-
-function toRuntimeTools(tools: NimiGenerateTextRequest['tools']): ToolSpec[] {
-  if (!tools || tools.length === 0) {
-    return [];
-  }
-  return tools.map((tool) => ({
-    name: tool.name,
-    description: tool.description ?? '',
-    inputSchema: toRuntimeStruct(tool.inputSchema),
-  }));
 }
 
 function toRuntimeToolChoiceMode(toolChoice: NimiGenerateTextRequest['toolChoice']): ToolChoiceMode {
@@ -337,140 +370,6 @@ function toRuntimeStop(stop: string | readonly string[] | undefined): string[] {
     return [];
   }
   return Array.isArray(stop) ? [...stop] : [stop as string];
-}
-
-function toRuntimeStruct(value: NimiJsonObject): ReturnType<typeof toNimiRuntimeProtoStruct> {
-  return toNimiRuntimeProtoStruct(value as unknown as Parameters<typeof toNimiRuntimeProtoStruct>[0]);
-}
-
-function toNimiToolCalls(toolCalls: readonly ToolCall[] | undefined): readonly NimiToolCall[] | undefined {
-  if (!toolCalls || toolCalls.length === 0) {
-    return undefined;
-  }
-  return toolCalls.map(toNimiToolCall);
-}
-
-function toNimiToolCall(toolCall: ToolCall): NimiToolCall {
-  return {
-    id: toolCall.id,
-    name: toolCall.name,
-    arguments: parseToolArguments(toolCall.argumentsJson),
-  };
-}
-
-function parseToolArguments(argumentsJson: string): NimiJsonValue {
-  const trimmed = normalizeText(argumentsJson);
-  if (!trimmed) {
-    return {};
-  }
-  try {
-    return JSON.parse(trimmed) as NimiJsonValue;
-  } catch (error) {
-    throw createNimiError({
-      message: 'Runtime Scenario tool call argumentsJson is not valid JSON',
-      code: 'SDK_AI_RUNTIME_OUTPUT_INVALID',
-      reasonCode: 'SDK_AI_RUNTIME_OUTPUT_INVALID',
-      actionHint: 'check_runtime_tool_call_arguments_json',
-      source: 'sdk',
-      details: { cause: error instanceof Error ? error.message : String(error) },
-    });
-  }
-}
-
-function toRuntimeMessages(messages: readonly NimiMessage[]): ChatMessage[] {
-  if (messages.length === 0) {
-    unsupportedRuntimeAI('messages', 'Runtime-backed text model requires at least one message');
-  }
-  let hasContent = false;
-  const runtimeMessages = messages.map((message): ChatMessage => {
-    const text = message.content.map((part) => part.type === 'text' ? part.text : '').join('');
-    const parts = toRuntimeContentParts(message.content);
-    if (text.trim() || parts.some((part) => part.type !== ChatContentPartType.TEXT)) {
-      hasContent = true;
-    }
-    return {
-      role: message.role,
-      content: text,
-      name: normalizeText(message.name),
-      parts,
-      toolCalls: toRuntimeMessageToolCalls(message.toolCalls),
-      toolCallId: normalizeText(message.toolCallId),
-    };
-  });
-  if (!hasContent) {
-    throw createNimiError({
-      message: 'Runtime-backed text model requires at least one non-empty text or file message part',
-      code: 'SDK_AI_INPUT_INVALID',
-      reasonCode: 'SDK_AI_INPUT_INVALID',
-      actionHint: 'provide_text_message_content',
-      source: 'sdk',
-    });
-  }
-  return runtimeMessages;
-}
-
-// Projects Nimi message content onto the Runtime chat content protocol. Text
-// parts become text content parts; file parts route onto the image/audio/video
-// content channels selected from the media type. Unsupported media types fail
-// closed — the Runtime owns multimodal request validation (S-AIP-001).
-function toRuntimeContentParts(content: readonly NimiMessagePart[]): ChatContentPart[] {
-  const parts: ChatContentPart[] = [];
-  for (const part of content) {
-    if (part.type === 'text') {
-      if (part.text) {
-        parts.push({ type: ChatContentPartType.TEXT, content: { oneofKind: 'text', text: part.text } });
-      }
-      continue;
-    }
-    if (part.type === 'file') {
-      parts.push(toRuntimeFileContentPart(part.mediaType, part.data));
-    }
-  }
-  return parts;
-}
-
-function toRuntimeFileContentPart(mediaType: string, data: string): ChatContentPart {
-  const location = toRuntimeMediaLocation(mediaType, data);
-  const normalizedType = mediaType.trim().toLowerCase();
-  if (normalizedType.startsWith('image/')) {
-    return {
-      type: ChatContentPartType.IMAGE_URL,
-      content: { oneofKind: 'imageUrl', imageUrl: { url: location, detail: '' } },
-    };
-  }
-  if (normalizedType.startsWith('audio/')) {
-    return { type: ChatContentPartType.AUDIO_URL, content: { oneofKind: 'audioUrl', audioUrl: location } };
-  }
-  if (normalizedType.startsWith('video/')) {
-    return { type: ChatContentPartType.VIDEO_URL, content: { oneofKind: 'videoUrl', videoUrl: location } };
-  }
-  unsupportedRuntimeAI(
-    'message.content.file.mediaType',
-    `Runtime-backed text model does not accept file media type ${mediaType}`,
-  );
-}
-
-function toRuntimeMediaLocation(mediaType: string, data: string): string {
-  const trimmed = data.trim();
-  if (trimmed === '') {
-    unsupportedRuntimeAI('message.content.file.data', 'file message part requires non-empty data');
-  }
-  const lower = trimmed.toLowerCase();
-  if (lower.startsWith('http://') || lower.startsWith('https://') || lower.startsWith('data:')) {
-    return trimmed;
-  }
-  return `data:${mediaType};base64,${trimmed}`;
-}
-
-function toRuntimeMessageToolCalls(toolCalls: NimiMessage['toolCalls']): ToolCall[] {
-  if (!toolCalls || toolCalls.length === 0) {
-    return [];
-  }
-  return toolCalls.map((toolCall) => ({
-    id: toolCall.id,
-    name: toolCall.name,
-    argumentsJson: JSON.stringify(toolCall.arguments),
-  }));
 }
 
 function toRuntimeReasoningConfig(reasoning: NimiRuntimeAIReasoningOptions | undefined) {

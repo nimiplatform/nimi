@@ -38,6 +38,56 @@ export interface NimiToolCall {
   readonly id: string;
   readonly name: string;
   readonly arguments: NimiJsonValue;
+  readonly providerExecuted?: boolean;
+  readonly dynamic?: boolean;
+  readonly providerMetadata?: NimiJsonObject;
+}
+
+export interface NimiToolResult {
+  readonly toolCallId: string;
+  readonly toolName: string;
+  readonly result: NimiJsonValue;
+  readonly isError?: boolean;
+  readonly preliminary?: boolean;
+  readonly dynamic?: boolean;
+  readonly providerMetadata?: NimiJsonObject;
+}
+
+export interface NimiToolApprovalRequest {
+  readonly approvalId: string;
+  readonly toolCallId: string;
+  readonly providerMetadata?: NimiJsonObject;
+}
+
+export interface NimiToolApprovalResponse {
+  readonly approvalId: string;
+  readonly approved: boolean;
+  readonly reason?: string;
+  readonly providerMetadata?: NimiJsonObject;
+}
+
+export type NimiSource =
+  | {
+      readonly type: 'source';
+      readonly sourceType: 'url';
+      readonly id: string;
+      readonly url: string;
+      readonly title?: string;
+      readonly providerMetadata?: NimiJsonObject;
+    }
+  | {
+      readonly type: 'source';
+      readonly sourceType: 'document';
+      readonly id: string;
+      readonly mediaType: string;
+      readonly title: string;
+      readonly filename?: string;
+      readonly providerMetadata?: NimiJsonObject;
+    };
+
+export interface NimiRawChunk {
+  readonly type: 'raw';
+  readonly value: NimiJsonValue;
 }
 
 export interface NimiMessage {
@@ -46,10 +96,13 @@ export interface NimiMessage {
   readonly name?: string;
   readonly toolCallId?: string;
   readonly toolCalls?: readonly NimiToolCall[];
+  readonly toolResults?: readonly NimiToolResult[];
+  readonly toolApprovalResponses?: readonly NimiToolApprovalResponse[];
   readonly metadata?: NimiJsonObject;
 }
 
-export interface NimiTool {
+export interface NimiFunctionTool {
+  readonly type?: 'function';
   readonly name: string;
   readonly description?: string;
   readonly inputSchema: NimiJsonObject;
@@ -58,6 +111,16 @@ export interface NimiTool {
   readonly adapterMetadata?: NimiJsonObject;
   readonly execute?: (input: NimiJsonValue) => Promise<NimiJsonValue> | NimiJsonValue;
 }
+
+export interface NimiProviderTool {
+  readonly type: 'provider';
+  readonly id: string;
+  readonly name: string;
+  readonly args: NimiJsonObject;
+  readonly providerMetadata?: NimiJsonObject;
+}
+
+export type NimiTool = NimiFunctionTool | NimiProviderTool;
 
 export type NimiFinishReason = 'stop' | 'length' | 'tool-calls' | 'content-filter' | 'error' | 'unknown';
 
@@ -92,6 +155,16 @@ export type NimiRunEvent =
       readonly type: 'tool-call';
       readonly toolCall: NimiToolCall;
     }
+  | {
+      readonly type: 'tool-result';
+      readonly toolResult: NimiToolResult;
+    }
+  | {
+      readonly type: 'tool-approval-request';
+      readonly toolApprovalRequest: NimiToolApprovalRequest;
+    }
+  | NimiSource
+  | NimiRawChunk
   | {
       readonly type: 'warning';
       readonly code: string;

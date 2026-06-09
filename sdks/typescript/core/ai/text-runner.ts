@@ -94,6 +94,30 @@ export type NimiTextTurnEvent<TStructured = unknown> =
     readonly runEvent: Extract<NimiRunEvent, { readonly type: 'tool-call' }>;
   }
   | {
+    readonly type: 'tool-result';
+    readonly turnId?: string;
+    readonly snapshot: NimiConversationTextAccumulatorSnapshot;
+    readonly runEvent: Extract<NimiRunEvent, { readonly type: 'tool-result' }>;
+  }
+  | {
+    readonly type: 'tool-approval-request';
+    readonly turnId?: string;
+    readonly snapshot: NimiConversationTextAccumulatorSnapshot;
+    readonly runEvent: Extract<NimiRunEvent, { readonly type: 'tool-approval-request' }>;
+  }
+  | {
+    readonly type: 'source';
+    readonly turnId?: string;
+    readonly snapshot: NimiConversationTextAccumulatorSnapshot;
+    readonly runEvent: Extract<NimiRunEvent, { readonly type: 'source' }>;
+  }
+  | {
+    readonly type: 'raw';
+    readonly turnId?: string;
+    readonly snapshot: NimiConversationTextAccumulatorSnapshot;
+    readonly runEvent: Extract<NimiRunEvent, { readonly type: 'raw' }>;
+  }
+  | {
     readonly type: 'warning';
     readonly turnId?: string;
     readonly snapshot: NimiConversationTextAccumulatorSnapshot;
@@ -222,6 +246,14 @@ export async function* runNimiTextTurn<TStructured = unknown>(
         yield { type: 'text-delta', turnId: input.turnId, textDelta: event.text, snapshot, runEvent: event };
       } else if (event.type === 'tool-call') {
         yield { type: 'tool-call', turnId: input.turnId, snapshot, runEvent: event };
+      } else if (event.type === 'tool-result') {
+        yield { type: 'tool-result', turnId: input.turnId, snapshot, runEvent: event };
+      } else if (event.type === 'tool-approval-request') {
+        yield { type: 'tool-approval-request', turnId: input.turnId, snapshot, runEvent: event };
+      } else if (event.type === 'source') {
+        yield { type: 'source', turnId: input.turnId, snapshot, runEvent: event };
+      } else if (event.type === 'raw') {
+        yield { type: 'raw', turnId: input.turnId, snapshot, runEvent: event };
       } else if (event.type === 'warning') {
         yield { type: 'warning', turnId: input.turnId, snapshot, runEvent: event };
       } else if (event.type === 'artifact') {
