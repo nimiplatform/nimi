@@ -335,6 +335,12 @@ func (b *Backend) applyAuthenticationHeaders(request *http.Request) {
 // advanced-sampling parameters and parses returned tool calls. The Anthropic and
 // Codex paths fail closed on tools / structured output until they are wired.
 func (b *Backend) GenerateText(ctx context.Context, modelID string, input []*runtimev1.ChatMessage, systemPrompt string, temperature float32, topP float32, maxTokens int32, params textGenParams) (string, []*runtimev1.ToolCall, *runtimev1.UsageStats, runtimev1.FinishReason, error) {
+	if params.includeRawChunks {
+		return "", nil, nil, runtimev1.FinishReason_FINISH_REASON_ERROR, providerRawChunksUnsupportedError()
+	}
+	if params.hasProviderTools() {
+		return "", nil, nil, runtimev1.FinishReason_FINISH_REASON_ERROR, providerToolUnsupportedError()
+	}
 	if b.supportsAnthropicMessages() {
 		// Anthropic Messages has no native JSON response_format; structured output
 		// stays fail-closed while tools execute through tool_use blocks.
@@ -472,6 +478,9 @@ func extractChatCompletionFinishReason(payload map[string]any) string {
 
 // StreamGenerateText sends a streaming chat completion request.
 func (b *Backend) StreamGenerateText(ctx context.Context, modelID string, input []*runtimev1.ChatMessage, systemPrompt string, temperature float32, topP float32, maxTokens int32, params textGenParams, onDelta func(string) error) (*runtimev1.UsageStats, runtimev1.FinishReason, error) {
+	if err := unsupportedToolSurface(params); err != nil {
+		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
+	}
 	if b.supportsAnthropicMessages() {
 		return b.streamGenerateTextAnthropicMessages(ctx, modelID, input, systemPrompt, temperature, topP, maxTokens, params, onDelta)
 	}

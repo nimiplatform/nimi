@@ -7,14 +7,91 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func TestBuildTextGenParamsCarriesTopK(t *testing.T) {
-	spec := &runtimev1.TextGenerateScenarioSpec{TopK: 19}
+	spec := &runtimev1.TextGenerateScenarioSpec{
+		TopK:             19,
+		IncludeRawChunks: true,
+		Tools: []*runtimev1.ToolSpec{{
+			Name:           "web_search",
+			Kind:           runtimev1.ToolSpecKind_TOOL_SPEC_KIND_PROVIDER,
+			ProviderToolId: "test.web_search",
+		}},
+	}
 	params := BuildTextGenParams(spec)
 	if params.topK != 19 {
 		t.Fatalf("expected topK 19, got %d", params.topK)
+	}
+	if !params.includeRawChunks {
+		t.Fatal("expected includeRawChunks to be preserved")
+	}
+	if !params.hasProviderTools() {
+		t.Fatal("expected provider tool detection")
+	}
+}
+
+func TestOpenAIToolsPayloadDoesNotCoerceProviderTools(t *testing.T) {
+	payload := openAIToolsPayload([]*runtimev1.ToolSpec{{
+		Name:           "web_search",
+		Kind:           runtimev1.ToolSpecKind_TOOL_SPEC_KIND_PROVIDER,
+		ProviderToolId: "test.web_search",
+	}})
+	if len(payload) != 0 {
+		t.Fatalf("provider tools must not be coerced into function tools: %+v", payload)
+	}
+}
+
+func TestGenerateTextOpenAIProviderToolsFailClosed(t *testing.T) {
+	backend := newBackend("cloud-openai", "https://api.openai.test", "", nil, 0, nil, false, true)
+	if backend == nil {
+		t.Fatal("expected backend")
+	}
+	params := textGenParams{
+		tools: []*runtimev1.ToolSpec{{
+			Name:           "web_search",
+			Kind:           runtimev1.ToolSpecKind_TOOL_SPEC_KIND_PROVIDER,
+			ProviderToolId: "test.web_search",
+		}},
+	}
+	_, _, _, _, err := backend.GenerateText(
+		context.Background(),
+		"gpt-4o-mini",
+		[]*runtimev1.ChatMessage{{Role: "user", Content: "search"}},
+		"",
+		0, 0, 0,
+		params,
+	)
+	if err == nil {
+		t.Fatal("expected provider tool request to fail closed")
+	}
+	reason, ok := grpcerr.ExtractReasonCode(err)
+	if !ok || reason != runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED {
+		t.Fatalf("unexpected reason: %v ok=%v err=%v", reason, ok, err)
+	}
+}
+
+func TestGenerateTextOpenAIRawChunksFailClosed(t *testing.T) {
+	backend := newBackend("cloud-openai", "https://api.openai.test", "", nil, 0, nil, false, true)
+	if backend == nil {
+		t.Fatal("expected backend")
+	}
+	_, _, _, _, err := backend.GenerateText(
+		context.Background(),
+		"gpt-4o-mini",
+		[]*runtimev1.ChatMessage{{Role: "user", Content: "raw"}},
+		"",
+		0, 0, 0,
+		textGenParams{includeRawChunks: true},
+	)
+	if err == nil {
+		t.Fatal("expected raw chunk request to fail closed")
+	}
+	reason, ok := grpcerr.ExtractReasonCode(err)
+	if !ok || reason != runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED {
+		t.Fatalf("unexpected reason: %v ok=%v err=%v", reason, ok, err)
 	}
 }
 

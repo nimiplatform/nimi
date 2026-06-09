@@ -23,6 +23,7 @@ type textGenParams struct {
 	stop             []string
 	seed             int64
 	topK             int32
+	includeRawChunks bool
 }
 
 // BuildTextGenParams projects the scenario spec onto the backend tool/sampling
@@ -42,6 +43,7 @@ func BuildTextGenParams(spec *runtimev1.TextGenerateScenarioSpec) textGenParams 
 		stop:             append([]string(nil), spec.GetStop()...),
 		seed:             spec.GetSeed(),
 		topK:             spec.GetTopK(),
+		includeRawChunks: spec.GetIncludeRawChunks(),
 	}
 }
 
@@ -49,12 +51,22 @@ func (p textGenParams) hasTools() bool {
 	return len(p.tools) > 0
 }
 
+func (p textGenParams) hasProviderTools() bool {
+	for _, tool := range p.tools {
+		if tool != nil && tool.GetKind() == runtimev1.ToolSpecKind_TOOL_SPEC_KIND_PROVIDER {
+			return true
+		}
+	}
+	return false
+}
+
 // TextScenarioUsesToolSurface reports whether the spec requests tools or a
-// non-text response format. The streaming text path does not yet execute these
-// end-to-end and fails closed when they are present.
+// non-text response format or raw chunks. The streaming text path simulates
+// unsupported surfaces over the sync path, which must fail closed when the
+// selected provider cannot preserve the requested semantics.
 func TextScenarioUsesToolSurface(spec *runtimev1.TextGenerateScenarioSpec) bool {
 	params := BuildTextGenParams(spec)
-	return params.hasTools() || params.wantsStructuredOutput()
+	return params.hasTools() || params.wantsStructuredOutput() || params.includeRawChunks
 }
 
 // wantsStructuredOutput reports whether a non-text response format was requested.
@@ -79,6 +91,9 @@ func openAIToolsPayload(tools []*runtimev1.ToolSpec) []map[string]any {
 	out := make([]map[string]any, 0, len(tools))
 	for _, tool := range tools {
 		if tool == nil || strings.TrimSpace(tool.GetName()) == "" {
+			continue
+		}
+		if tool.GetKind() == runtimev1.ToolSpecKind_TOOL_SPEC_KIND_PROVIDER {
 			continue
 		}
 		function := map[string]any{"name": tool.GetName()}
@@ -191,13 +206,27 @@ func parseOpenAIToolCalls(respBody map[string]any) []*runtimev1.ToolCall {
 // providerToolUnsupportedError is the typed fail-closed error for provider
 // paths that do not yet execute tools or structured output end-to-end.
 func providerToolUnsupportedError() error {
-	return grpcerr.WithReasonCode(codes.Unimplemented, runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED)
+	return grpcerr.WithReasonCodeOptions(codes.Unimplemented, runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED, grpcerr.ReasonOptions{
+		ActionHint: "provider_defined_tools_require_provider_native_runtime_adapter",
+	})
+}
+
+func providerRawChunksUnsupportedError() error {
+	return grpcerr.WithReasonCodeOptions(codes.Unimplemented, runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED, grpcerr.ReasonOptions{
+		ActionHint: "raw_chunks_require_true_provider_stream_chunk_capture",
+	})
 }
 
 // unsupportedToolSurface returns a typed fail-closed error when tools or
 // structured output are requested on a provider path that does not yet
 // execute them. It returns nil when the request carries neither.
 func unsupportedToolSurface(params textGenParams) error {
+	if params.includeRawChunks {
+		return providerRawChunksUnsupportedError()
+	}
+	if params.hasProviderTools() {
+		return providerToolUnsupportedError()
+	}
 	if params.hasTools() || params.wantsStructuredOutput() {
 		return providerToolUnsupportedError()
 	}
