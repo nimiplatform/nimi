@@ -267,16 +267,30 @@ function validateLedger() {
         violations.push(`vercel-ai must claim ${frameworkOwnedClaim} as supported/framework-owned`);
       }
     }
-    for (const runtimeOwnedClaim of ['externalExecution', 'tools.providerDefined']) {
-      if (!hasManifestCapability(vercelManifest, runtimeOwnedClaim, 'unsupported', 'runtime-owned')) {
-        violations.push(`vercel-ai must keep ${runtimeOwnedClaim} unsupported/runtime-owned`);
+    for (const adapterMappedClaim of [
+      'tools.providerDefined',
+      'tools.providerExecuted',
+      'tools.providerToolResults',
+      'tools.providerApproval',
+      'deferredResults',
+      'sources',
+      'rawChunks',
+    ]) {
+      if (!hasManifestCapability(vercelManifest, adapterMappedClaim, 'supported', 'adapter-mapped')) {
+        violations.push(`vercel-ai must claim ${adapterMappedClaim} as supported/adapter-mapped`);
       }
     }
-    if (!hasManifestCapability(vercelManifest, 'tools.adapterExecute', 'unsupported', 'adapter-mapped')) {
-      violations.push('vercel-ai must keep tools.adapterExecute unsupported/adapter-mapped');
+    for (const notApplicableClaim of ['tools.adapterExecute', 'externalExecution']) {
+      if (!hasManifestCapability(vercelManifest, notApplicableClaim, 'not-applicable', 'framework-owned')) {
+        violations.push(`vercel-ai must keep ${notApplicableClaim} not-applicable/framework-owned`);
+      }
     }
-    if (String(vercel.release_target_level) === 'L3' && !String(vercel.release_blocker ?? '').trim()) {
-      violations.push('vercel-ai L3 release target must record release_blocker until implemented');
+    if (
+      String(vercel.release_target_level) === 'L3'
+      && String(vercel.release_target_status) !== 'implemented'
+      && !String(vercel.release_blocker ?? '').trim()
+    ) {
+      violations.push('vercel-ai non-implemented L3 release target must record release_blocker');
     }
   }
 

@@ -6,7 +6,7 @@ export const NIMI_VERCEL_AI_ADAPTER_MANIFEST = {
   adapterId: NIMI_VERCEL_AI_ADAPTER_ID,
   targetLibrary: 'Vercel AI SDK',
   targetVersionRange: 'ai@^6.0.0 || @ai-sdk/provider@^3.0.0',
-  capabilityLevel: 'L2',
+  capabilityLevel: 'L3',
   capabilities: {
     'model.provider': { support: 'supported', mode: 'adapter-mapped' },
     'text.generate': { support: 'supported', mode: 'adapter-mapped' },
@@ -30,14 +30,34 @@ export const NIMI_VERCEL_AI_ADAPTER_MANIFEST = {
       note: 'Vercel tool execute callbacks run in the caller/framework; Nimi supplies compatible model calls.',
     },
     'tools.adapterExecute': {
-      support: 'unsupported',
-      mode: 'adapter-mapped',
-      note: 'The Vercel adapter does not execute NimiTool.execute callbacks by itself.',
+      support: 'not-applicable',
+      mode: 'framework-owned',
+      note: 'LanguageModelV3 providers do not execute caller tool callbacks; Vercel owns tool({ execute }) orchestration above the model adapter.',
     },
     'tools.providerDefined': {
-      support: 'unsupported',
-      mode: 'runtime-owned',
-      note: 'Provider-defined tools are fail-closed until Runtime/provider tool ownership is admitted.',
+      support: 'supported',
+      mode: 'adapter-mapped',
+      note: 'LanguageModelV3 provider tools are projected onto Nimi provider tools with id/name/args preserved.',
+    },
+    'tools.providerExecuted': {
+      support: 'supported',
+      mode: 'adapter-mapped',
+      note: 'Provider-executed tool-call flags and dynamic/provider metadata are preserved in generate content and stream parts.',
+    },
+    'tools.providerToolResults': {
+      support: 'supported',
+      mode: 'adapter-mapped',
+      note: 'Provider-executed tool-result content, preliminary/error/dynamic flags, and provider metadata are mapped both directions.',
+    },
+    'tools.providerApproval': {
+      support: 'supported',
+      mode: 'adapter-mapped',
+      note: 'Provider approval requests and prompt approval responses are preserved through formal Nimi contracts.',
+    },
+    deferredResults: {
+      support: 'supported',
+      mode: 'adapter-mapped',
+      note: 'Deferred/preliminary provider tool results are preserved via the Vercel preliminary flag.',
     },
     multiStep: {
       support: 'supported',
@@ -45,14 +65,14 @@ export const NIMI_VERCEL_AI_ADAPTER_MANIFEST = {
       note: 'Vercel stopWhen/multi-step orchestration is usable through repeated adapter-backed model calls.',
     },
     approval: {
-      support: 'partial',
+      support: 'supported',
       mode: 'framework-owned',
-      gaps: ['Runtime-owned delegated approval and provider-executed approval are not mapped by this adapter.'],
+      note: 'Caller-owned Vercel approvals remain framework-owned; provider approval request/response parts are adapter-mapped.',
     },
     externalExecution: {
-      support: 'unsupported',
-      mode: 'runtime-owned',
-      note: 'External/provider execution requires Runtime-owned semantics and is fail-closed here.',
+      support: 'not-applicable',
+      mode: 'framework-owned',
+      note: 'External caller execution is a Vercel framework/tool-loop concern, not a LanguageModelV3 provider interface.',
     },
     traces: {
       support: 'partial',
@@ -70,14 +90,14 @@ export const NIMI_VERCEL_AI_ADAPTER_MANIFEST = {
       gaps: ['Artifact-like output is mapped only for supported Nimi run-event shapes.'],
     },
     sources: {
-      support: 'unsupported',
-      mode: 'runtime-owned',
-      note: 'Nimi does not currently expose source run-events for this adapter to map.',
+      support: 'supported',
+      mode: 'adapter-mapped',
+      note: 'Vercel URL and document source content/stream parts map to Nimi source events and generate content.',
     },
     rawChunks: {
-      support: 'unsupported',
+      support: 'supported',
       mode: 'adapter-mapped',
-      note: 'Vercel includeRawChunks is explicitly rejected because raw provider chunks are not exposed.',
+      note: 'includeRawChunks is forwarded; raw stream parts are emitted only from Nimi raw events carrying provider raw chunks.',
     },
     providerOptions: {
       support: 'partial',

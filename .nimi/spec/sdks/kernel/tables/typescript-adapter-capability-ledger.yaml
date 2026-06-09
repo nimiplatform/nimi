@@ -34,16 +34,16 @@ surfaces:
   - id: vercel-ai
     source_root: sdks/typescript/adapters/vercel-ai
     minimum_capability_level: L2
-    implementation_level: L2
+    implementation_level: L3
     release_target_level: L3
-    release_target_status: blocked
+    release_target_status: implemented
     implementation_status: implemented
     manifest: sdks/typescript/adapters/vercel-ai/manifest.ts
     test: sdks/typescript/adapters/vercel-ai/vercel-ai.test.ts
     example: sdks/typescript/adapters/vercel-ai/vercel-ai.example.ts
     unsupported_behavior: throw
-    production_core_binding: Maps Vercel LanguageModelV3 generate/stream calls onto NimiAiModel with target-library migration semantics (text, reasoning, function tool definitions, tool choice, tool-call return, streaming tool-input protocol, Vercel framework-owned execute callbacks, Vercel framework-owned multi-step loops, multimodal image/audio/video file input, and text/json-object/json-schema structured output), validated by a conformance suite that drives the real `ai` package (generateText, streamText, generateObject, streamObject, tool, stepCountIs) through the adapter. Adapter-owned NimiTool.execute, provider-defined tools, external execution, response sources, and raw chunks remain fail-closed; provider options project into visible request metadata without independently guaranteeing provider-side honoring.
-    release_blocker: L3 cannot be claimed until adapter-owned execute, Runtime-owned approval/external execution, provider-defined tools, and Nimi trace/source mapping land over admitted Runtime-owned surfaces. Framework-owned Vercel execute callbacks and Vercel multi-step orchestration are already target-library supported and must not be counted as L3 blockers.
+    production_core_binding: Maps Vercel LanguageModelV3 generate/stream calls onto NimiAiModel with target-library migration semantics (text, reasoning, function and provider tool definitions, tool choice, client and provider tool-call return, provider-executed tool results, provider approval request/response rounds, streaming tool-input protocol, Vercel framework-owned execute callbacks, Vercel framework-owned multi-step loops, multimodal image/audio/video file input, URL/document sources, raw provider chunk events, and text/json-object/json-schema structured output), validated by a conformance suite that drives the real `ai` package (generateText, streamText, generateObject, streamObject, tool, stepCountIs) through the adapter plus L3 adapter tests for provider tools, provider-executed results, approvals, sources, and raw chunks. Runtime provider backends fail closed when a real provider route cannot preserve provider tools or true raw chunks; adapter support describes Vercel target-library interface coverage per S-AIP-008.
+    release_blocker: none
     capability_claims:
       - capability: model.provider
         support: supported
@@ -85,20 +85,32 @@ surfaces:
         support: supported
         mode: framework-owned
       - capability: tools.adapterExecute
-        support: unsupported
-        mode: adapter-mapped
+        support: not-applicable
+        mode: framework-owned
       - capability: tools.providerDefined
-        support: unsupported
-        mode: runtime-owned
+        support: supported
+        mode: adapter-mapped
+      - capability: tools.providerExecuted
+        support: supported
+        mode: adapter-mapped
+      - capability: tools.providerToolResults
+        support: supported
+        mode: adapter-mapped
+      - capability: tools.providerApproval
+        support: supported
+        mode: adapter-mapped
+      - capability: deferredResults
+        support: supported
+        mode: adapter-mapped
       - capability: multiStep
         support: supported
         mode: framework-owned
       - capability: approval
-        support: partial
+        support: supported
         mode: framework-owned
       - capability: externalExecution
-        support: unsupported
-        mode: runtime-owned
+        support: not-applicable
+        mode: framework-owned
       - capability: traces
         support: partial
         mode: framework-owned
@@ -109,10 +121,10 @@ surfaces:
         support: partial
         mode: adapter-mapped
       - capability: sources
-        support: unsupported
-        mode: runtime-owned
+        support: supported
+        mode: adapter-mapped
       - capability: rawChunks
-        support: unsupported
+        support: supported
         mode: adapter-mapped
       - capability: providerOptions
         support: partial

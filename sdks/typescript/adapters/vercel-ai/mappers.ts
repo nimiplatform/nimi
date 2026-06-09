@@ -9,14 +9,19 @@ import type {
   LanguageModelV3Prompt,
   LanguageModelV3ProviderTool,
   LanguageModelV3Reasoning,
+  LanguageModelV3Source,
   LanguageModelV3StreamPart,
   LanguageModelV3TextPart,
+  LanguageModelV3ToolApprovalRequest,
+  LanguageModelV3ToolApprovalResponsePart,
   LanguageModelV3ToolCall,
   LanguageModelV3ToolCallPart,
   LanguageModelV3ToolChoice,
+  LanguageModelV3ToolResult,
   LanguageModelV3ToolResultOutput,
   LanguageModelV3ToolResultPart,
   LanguageModelV3Usage,
+  SharedV3ProviderMetadata,
   SharedV3ProviderOptions,
   SharedV3Warning,
 } from '@ai-sdk/provider';
@@ -34,9 +39,14 @@ import {
   type NimiJsonValue,
   type NimiMessage,
   type NimiMessagePart,
+  type NimiRawChunk,
   type NimiRunEvent,
+  type NimiSource,
   type NimiTool,
+  type NimiToolApprovalRequest,
+  type NimiToolApprovalResponse,
   type NimiToolCall,
+  type NimiToolResult,
   type NimiUsage,
 } from '@nimiplatform/sdk/contracts';
 
@@ -72,6 +82,7 @@ export function toNimiGenerateTextRequest(
       stop: options.stopSequences,
       seed: options.seed,
       metadata: toVercelCallMetadata(options, throwUnsupported),
+      includeRawChunks: options.includeRawChunks,
     },
     signal: options.abortSignal,
   };
@@ -81,9 +92,8 @@ function assertSupportedCallOptions(
   options: LanguageModelV3CallOptions,
   throwUnsupported: NimiVercelUnsupportedFeatureThrower,
 ): void {
-  if (options.includeRawChunks) {
-    throwUnsupported('stream.includeRawChunks', 'Nimi run events do not carry provider raw chunks');
-  }
+  void options;
+  void throwUnsupported;
 }
 
 function toNimiResponseFormat(
@@ -164,22 +174,35 @@ function toNimiMessageList(
     return [{ role: 'system', content: [textPart(message.content)] }];
   }
   if (message.role === 'tool') {
-    // One Nimi tool message per tool-result so each tool-call id is preserved.
+    // One Nimi tool message per tool-result / approval response so each provider
+    // continuation id is preserved across Vercel-owned tool loops.
     return message.content.map((part) => {
-      if (part.type !== 'tool-result') {
-        throwUnsupported(`prompt.${part.type}`, 'only tool-result parts are supported in tool messages');
+      if (part.type === 'tool-approval-response') {
+        const response = part as LanguageModelV3ToolApprovalResponsePart;
+        return {
+          role: 'tool',
+          content: [],
+          toolApprovalResponses: [toNimiToolApprovalResponseFromPrompt(response, throwUnsupported)],
+        } satisfies NimiMessage;
       }
       const result = part as LanguageModelV3ToolResultPart;
+      if (result.type !== 'tool-result') {
+        throwUnsupported(`prompt.${part.type}`, 'only tool-result and tool-approval-response parts are supported in tool messages');
+      }
       return {
         role: 'tool',
         content: [textPart(toolOutputText(result.output, throwUnsupported))],
         toolCallId: result.toolCallId,
+        toolResults: [toNimiToolResultFromPrompt(result, throwUnsupported)],
       } satisfies NimiMessage;
     });
   }
   if (message.role === 'assistant') {
     const toolCalls = message.content.filter(
       (part): part is LanguageModelV3ToolCallPart => part.type === 'tool-call',
+    );
+    const toolResults = message.content.filter(
+      (part): part is LanguageModelV3ToolResultPart => part.type === 'tool-result',
     );
     return [{
       role: 'assistant',
@@ -188,7 +211,12 @@ function toNimiMessageList(
         id: toolCall.toolCallId,
         name: toolCall.toolName,
         arguments: toNimiJsonValue(toolCall.input, throwUnsupported, 'prompt.toolCall.input'),
+        ...(toolCall.providerExecuted ? { providerExecuted: true } : {}),
+        ...(toolCall.providerOptions
+          ? { providerMetadata: toNimiProviderOptions(toolCall.providerOptions, throwUnsupported, 'prompt.toolCall.providerOptions') }
+          : {}),
       })),
+      toolResults: toolResults.map((toolResult) => toNimiToolResultFromPrompt(toolResult, throwUnsupported)),
     }];
   }
   return [{
@@ -208,10 +236,9 @@ function toNimiContentParts(
     if (part.type === 'file') {
       return [toNimiFilePart(part as LanguageModelV3FilePart, throwUnsupported)];
     }
-    // Tool calls are carried on the assistant message `toolCalls` field; assistant
-    // tool-result parts only appear for provider-executed tools, which this adapter
-    // does not support.
-    if (part.type === 'tool-call' || part.type === 'tool-result') {
+    // Tool calls, provider-executed tool results, and approval responses are
+    // carried on structured Nimi message fields.
+    if (part.type === 'tool-call' || part.type === 'tool-result' || part.type === 'tool-approval-response') {
       return [];
     }
     throwUnsupported(`prompt.${part.type}`);
@@ -293,19 +320,90 @@ function toolOutputText(
   if (output.type === 'execution-denied') {
     return output.reason ?? 'execution denied';
   }
-  // `content` (multimodal tool output) cannot be projected onto a text part.
-  throwUnsupported('toolResult.output', `unsupported tool result output ${output.type}`);
+  return JSON.stringify(toolOutputJson(output, throwUnsupported));
+}
+
+function toNimiToolResultFromPrompt(
+  part: LanguageModelV3ToolResultPart,
+  throwUnsupported: NimiVercelUnsupportedFeatureThrower,
+): NimiToolResult {
+  const providerOptions = mergeProviderOptions(part.providerOptions, getToolOutputProviderOptions(part.output));
+  const providerMetadata = providerOptions
+    ? toNimiProviderOptions(providerOptions, throwUnsupported, 'prompt.toolResult.providerOptions')
+    : undefined;
+  return {
+    toolCallId: part.toolCallId,
+    toolName: part.toolName,
+    result: toolOutputJson(part.output, throwUnsupported),
+    ...(part.output.type === 'error-text' || part.output.type === 'error-json' ? { isError: true } : {}),
+    ...(providerMetadata ? { providerMetadata } : {}),
+  };
+}
+
+function toNimiToolApprovalResponseFromPrompt(
+  part: LanguageModelV3ToolApprovalResponsePart,
+  throwUnsupported: NimiVercelUnsupportedFeatureThrower,
+): NimiToolApprovalResponse {
+  const providerMetadata = toNimiProviderOptions(part.providerOptions, throwUnsupported, 'prompt.toolApprovalResponse.providerOptions');
+  return {
+    approvalId: part.approvalId,
+    approved: part.approved,
+    ...(part.reason ? { reason: part.reason } : {}),
+    ...(providerMetadata ? { providerMetadata } : {}),
+  };
+}
+
+function toolOutputJson(
+  output: LanguageModelV3ToolResultOutput,
+  throwUnsupported: NimiVercelUnsupportedFeatureThrower,
+): NimiJsonValue {
+  if (output.type === 'text' || output.type === 'error-text') {
+    return { type: output.type, value: output.value };
+  }
+  if (output.type === 'json' || output.type === 'error-json') {
+    return {
+      type: output.type,
+      value: toNimiJsonValue(output.value, throwUnsupported, `toolResult.output.${output.type}`),
+    };
+  }
+  if (output.type === 'execution-denied') {
+    return {
+      type: output.type,
+      ...(output.reason ? { reason: output.reason } : {}),
+    };
+  }
+  return toNimiJsonValue(output, throwUnsupported, `toolResult.output.${output.type}`);
+}
+
+function getToolOutputProviderOptions(output: LanguageModelV3ToolResultOutput): SharedV3ProviderOptions | undefined {
+  return 'providerOptions' in output ? output.providerOptions : undefined;
+}
+
+function mergeProviderOptions(
+  left: SharedV3ProviderOptions | undefined,
+  right: SharedV3ProviderOptions | undefined,
+): SharedV3ProviderOptions | undefined {
+  if (!left && !right) {
+    return undefined;
+  }
+  return { ...(left ?? {}), ...(right ?? {}) };
 }
 
 function toNimiTool(
   tool: LanguageModelV3FunctionTool | LanguageModelV3ProviderTool,
   throwUnsupported: NimiVercelUnsupportedFeatureThrower,
 ): NimiTool {
-  if (tool.type !== 'function') {
-    throwUnsupported('tools.provider-defined', `provider tool ${String((tool as { id?: unknown }).id ?? '')} requires Runtime-owned execution`);
+  if (tool.type === 'provider') {
+    return {
+      type: 'provider',
+      id: tool.id,
+      name: tool.name,
+      args: toNimiJsonObject(tool.args, throwUnsupported, `tools.${tool.name}.args`),
+    };
   }
   const functionTool = tool as LanguageModelV3FunctionTool;
   return {
+    type: 'function',
     name: functionTool.name,
     description: functionTool.description,
     inputSchema: toNimiJsonObject(functionTool.inputSchema, throwUnsupported, `tools.${functionTool.name}.inputSchema`),
@@ -338,6 +436,9 @@ function toNimiToolChoice(
 // ---------------------------------------------------------------------------
 
 export function toVercelGenerateContent(result: NimiGenerateTextResult): LanguageModelV3Content[] {
+  if (result.content) {
+    return result.content.flatMap((content) => toVercelContent(content));
+  }
   const content: LanguageModelV3Content[] = [];
   const reasoning = extractReasoningText(result.raw);
   if (reasoning) {
@@ -346,10 +447,41 @@ export function toVercelGenerateContent(result: NimiGenerateTextResult): Languag
   if (result.text) {
     content.push({ type: 'text', text: result.text });
   }
+  for (const source of result.sources ?? []) {
+    content.push(toVercelSource(source));
+  }
   for (const toolCall of result.toolCalls ?? []) {
     content.push(toVercelToolCallOutput(toolCall));
   }
+  for (const toolResult of result.toolResults ?? []) {
+    content.push(toVercelToolResult(toolResult));
+  }
+  for (const approvalRequest of result.toolApprovalRequests ?? []) {
+    content.push(toVercelToolApprovalRequest(approvalRequest));
+  }
   return content;
+}
+
+function toVercelContent(content: NonNullable<NimiGenerateTextResult['content']>[number]): LanguageModelV3Content[] {
+  if (content.type === 'text') {
+    return [{ type: 'text', text: content.text }];
+  }
+  if (content.type === 'reasoning') {
+    return [{ type: 'reasoning', text: content.text } satisfies LanguageModelV3Reasoning];
+  }
+  if (content.type === 'source') {
+    return [toVercelSource(content)];
+  }
+  if (content.type === 'tool-call') {
+    return [toVercelToolCallOutput(content.toolCall)];
+  }
+  if (content.type === 'tool-result') {
+    return [toVercelToolResult(content.toolResult)];
+  }
+  if (content.type === 'tool-approval-request') {
+    return [toVercelToolApprovalRequest(content.toolApprovalRequest)];
+  }
+  return [];
 }
 
 export function toVercelToolCallOutput(toolCall: NimiToolCall): LanguageModelV3ToolCall {
@@ -358,7 +490,63 @@ export function toVercelToolCallOutput(toolCall: NimiToolCall): LanguageModelV3T
     toolCallId: toolCall.id,
     toolName: toolCall.name,
     input: JSON.stringify(toolCall.arguments),
+    ...(toolCall.providerExecuted ? { providerExecuted: true } : {}),
+    ...(toolCall.dynamic ? { dynamic: true } : {}),
+    ...(toolCall.providerMetadata ? { providerMetadata: toVercelProviderMetadata(toolCall.providerMetadata) } : {}),
   };
+}
+
+function toVercelToolResult(toolResult: NimiToolResult): LanguageModelV3ToolResult {
+  if (toolResult.result === null) {
+    throw new Error('Nimi tool result cannot be null for Vercel LanguageModelV3 tool-result content');
+  }
+  return {
+    type: 'tool-result',
+    toolCallId: toolResult.toolCallId,
+    toolName: toolResult.toolName,
+    result: toolResult.result as LanguageModelV3ToolResult['result'],
+    ...(toolResult.isError ? { isError: true } : {}),
+    ...(toolResult.preliminary ? { preliminary: true } : {}),
+    ...(toolResult.dynamic ? { dynamic: true } : {}),
+    ...(toolResult.providerMetadata ? { providerMetadata: toVercelProviderMetadata(toolResult.providerMetadata) } : {}),
+  };
+}
+
+function toVercelToolApprovalRequest(
+  approvalRequest: NimiToolApprovalRequest,
+): LanguageModelV3ToolApprovalRequest {
+  return {
+    type: 'tool-approval-request',
+    approvalId: approvalRequest.approvalId,
+    toolCallId: approvalRequest.toolCallId,
+    ...(approvalRequest.providerMetadata ? { providerMetadata: toVercelProviderMetadata(approvalRequest.providerMetadata) } : {}),
+  };
+}
+
+function toVercelSource(source: NimiSource): LanguageModelV3Source {
+  if (source.sourceType === 'url') {
+    return {
+      type: 'source',
+      sourceType: 'url',
+      id: source.id,
+      url: source.url,
+      ...(source.title ? { title: source.title } : {}),
+      ...(source.providerMetadata ? { providerMetadata: toVercelProviderMetadata(source.providerMetadata) } : {}),
+    };
+  }
+  return {
+    type: 'source',
+    sourceType: 'document',
+    id: source.id,
+    mediaType: source.mediaType,
+    title: source.title,
+    ...(source.filename ? { filename: source.filename } : {}),
+    ...(source.providerMetadata ? { providerMetadata: toVercelProviderMetadata(source.providerMetadata) } : {}),
+  };
+}
+
+function toVercelProviderMetadata(metadata: NimiJsonObject): SharedV3ProviderMetadata {
+  return metadata as unknown as SharedV3ProviderMetadata;
 }
 
 export function toVercelFinishReason(reason: NimiFinishReason): LanguageModelV3FinishReason {
@@ -431,13 +619,16 @@ export function toVercelReadableStream(
             controller.enqueue({ type: 'reasoning-delta', id: STREAM_REASONING_ID, delta: event.text });
           } else if (event.type === 'artifact') {
             controller.enqueue({ type: 'file', mediaType: event.mimeType, data: event.chunk });
+          } else if (event.type === 'source') {
+            controller.enqueue(toVercelSource(event));
           } else if (event.type === 'tool-call') {
             enqueueToolCall(controller, event.toolCall);
-          } else if (event.type === 'warning') {
-            controller.enqueue({
-              type: 'raw',
-              rawValue: { warning: toVercelWarning(event.code, event.message) },
-            });
+          } else if (event.type === 'tool-result') {
+            controller.enqueue(toVercelToolResult(event.toolResult));
+          } else if (event.type === 'tool-approval-request') {
+            controller.enqueue(toVercelToolApprovalRequest(event.toolApprovalRequest));
+          } else if (event.type === 'raw') {
+            controller.enqueue(toVercelRawChunk(event));
           } else if (event.type === 'done') {
             if (textStarted) {
               controller.enqueue({ type: 'text-end', id: STREAM_TEXT_ID });
@@ -467,15 +658,22 @@ function enqueueToolCall(
   toolCall: NimiToolCall,
 ): void {
   const input = JSON.stringify(toolCall.arguments);
-  controller.enqueue({ type: 'tool-input-start', id: toolCall.id, toolName: toolCall.name });
-  controller.enqueue({ type: 'tool-input-delta', id: toolCall.id, delta: input });
-  controller.enqueue({ type: 'tool-input-end', id: toolCall.id });
+  const providerMetadata = toolCall.providerMetadata ? toVercelProviderMetadata(toolCall.providerMetadata) : undefined;
   controller.enqueue({
-    type: 'tool-call',
-    toolCallId: toolCall.id,
+    type: 'tool-input-start',
+    id: toolCall.id,
     toolName: toolCall.name,
-    input,
+    ...(toolCall.providerExecuted ? { providerExecuted: true } : {}),
+    ...(toolCall.dynamic ? { dynamic: true } : {}),
+    ...(providerMetadata ? { providerMetadata } : {}),
   });
+  controller.enqueue({ type: 'tool-input-delta', id: toolCall.id, delta: input, ...(providerMetadata ? { providerMetadata } : {}) });
+  controller.enqueue({ type: 'tool-input-end', id: toolCall.id, ...(providerMetadata ? { providerMetadata } : {}) });
+  controller.enqueue(toVercelToolCallOutput(toolCall));
+}
+
+function toVercelRawChunk(rawChunk: NimiRawChunk): Extract<LanguageModelV3StreamPart, { type: 'raw' }> {
+  return { type: 'raw', rawValue: rawChunk.value };
 }
 
 export function toVercelWarnings(

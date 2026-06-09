@@ -30,7 +30,8 @@
     "@types/node": "^25.9.1",
     "ai": "6.0.190",
     "tsx": "^4.22.3",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "zod": "4.4.3"
   },
   "scripts": {
     "build": "pnpm --dir ../../../../ --filter @nimiplatform/sdk build && node ../../../../scripts/build-typescript-package.mjs --tsconfig tsconfig.build.json --out-dir dist",

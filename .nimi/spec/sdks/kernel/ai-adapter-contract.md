@@ -82,3 +82,10 @@ callback or multi-step orchestration, must not be marked unsupported solely
 because Nimi Runtime does not own that orchestration. Conversely, Runtime-owned
 or adapter-owned gaps must remain explicit instead of being hidden behind a
 broader target-library capability claim.
+
+Provider-defined tools, provider-executed tool calls/results, provider approval
+rounds, sources, and raw stream chunks are evaluated as target-library
+interfaces. They may be marked supported by an adapter when the adapter
+faithfully maps the interface to admitted Nimi SDK/Runtime contracts, while
+individual Runtime provider routes still fail closed if they cannot preserve the
+provider-specific semantics.

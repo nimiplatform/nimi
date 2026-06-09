@@ -5,13 +5,18 @@ import type { LanguageModelV3 } from '@ai-sdk/provider';
 import { generateText } from 'ai';
 
 import type { NimiClient, NimiClientRuntimeModelOptions } from '@nimiplatform/sdk';
-import type { NimiAiModel, NimiGenerateTextRequest } from '@nimiplatform/sdk/ai';
-import type { NimiFinishReason, NimiRunEvent, NimiToolCall } from '@nimiplatform/sdk/contracts';
+import type { NimiAiModel, NimiGenerateTextRequest, NimiGenerateTextResult } from '@nimiplatform/sdk/ai';
+import type {
+  NimiFinishReason,
+  NimiRunEvent,
+  NimiSource,
+  NimiToolApprovalRequest,
+  NimiToolCall,
+  NimiToolResult,
+} from '@nimiplatform/sdk/contracts';
 import {
   createNimiVercelLanguageModel,
   createNimiVercelProvider,
-  NIMI_VERCEL_AI_UNSUPPORTED_FEATURE_CODE,
-  NimiVercelAiUnsupportedFeatureError,
 } from './index';
 import { NIMI_VERCEL_AI_ADAPTER_MANIFEST } from './manifest';
 
@@ -20,6 +25,7 @@ const VERCEL_AI_METADATA_KEY = 'x-nimi-vercel-ai-metadata';
 // Conformance suite driving the real Vercel AI SDK through the adapter. Imported
 // here so it runs inside the single-file adapter capability ledger gate.
 import './vercel-ai.conformance.test';
+import './vercel-ai.upstream-compat.test';
 
 test('vercel-ai adapter maps LanguageModelV3 generate calls to Nimi model requests', async () => {
   const calls: NimiGenerateTextRequest[] = [];
@@ -84,7 +90,70 @@ test('vercel-ai adapter returns Nimi tool calls without adapter-owned execution'
   assert.equal(result.finishReason.unified, 'tool-calls');
   assert.equal(NIMI_VERCEL_AI_ADAPTER_MANIFEST.capabilities['tools.execute'].support, 'supported');
   assert.equal(NIMI_VERCEL_AI_ADAPTER_MANIFEST.capabilities['tools.execute'].mode, 'framework-owned');
-  assert.equal(NIMI_VERCEL_AI_ADAPTER_MANIFEST.capabilities['tools.adapterExecute'].support, 'unsupported');
+  assert.equal(NIMI_VERCEL_AI_ADAPTER_MANIFEST.capabilities['tools.adapterExecute'].support, 'not-applicable');
+});
+
+test('vercel-ai adapter maps L3 generate content surfaces', async () => {
+  const calls: NimiGenerateTextRequest[] = [];
+  const providerToolCall: NimiToolCall = {
+    id: 'provider-call-1',
+    name: 'web_search',
+    arguments: { query: 'nimi' },
+    providerExecuted: true,
+    dynamic: true,
+    providerMetadata: { test: { call: 'provider' } },
+  };
+  const source: NimiSource = {
+    type: 'source',
+    sourceType: 'url',
+    id: 'source-1',
+    url: 'https://example.com/nimi',
+    title: 'Nimi',
+    providerMetadata: { test: { source: 'url' } },
+  };
+  const toolResult: NimiToolResult = {
+    toolCallId: 'provider-call-1',
+    toolName: 'web_search',
+    result: { items: [{ title: 'Nimi' }] },
+    preliminary: true,
+    dynamic: true,
+    providerMetadata: { test: { result: 'preliminary' } },
+  };
+  const approvalRequest: NimiToolApprovalRequest = {
+    approvalId: 'approval-1',
+    toolCallId: 'provider-call-1',
+    providerMetadata: { test: { approval: 'required' } },
+  };
+  const model = createNimiVercelLanguageModel({
+    model: createModel(calls, {
+      text: '',
+      content: [
+        source,
+        { type: 'tool-call', toolCall: providerToolCall },
+        { type: 'tool-result', toolResult },
+        { type: 'tool-approval-request', toolApprovalRequest: approvalRequest },
+        { type: 'raw', value: { ignoredInGenerateContent: true } },
+      ],
+    }),
+  });
+
+  const result = await model.doGenerate({
+    prompt: [{ role: 'user', content: [{ type: 'text', text: 'search' }] }],
+  });
+
+  assert.deepEqual(result.content.map((part) => part.type), [
+    'source',
+    'tool-call',
+    'tool-result',
+    'tool-approval-request',
+  ]);
+  const toolCallPart = result.content.find((part) => part.type === 'tool-call');
+  assert.equal(toolCallPart?.type === 'tool-call' ? toolCallPart.providerExecuted : false, true);
+  assert.deepEqual(toolCallPart?.type === 'tool-call' ? toolCallPart.providerMetadata : undefined, { test: { call: 'provider' } });
+  const toolResultPart = result.content.find((part) => part.type === 'tool-result');
+  assert.equal(toolResultPart?.type === 'tool-result' ? toolResultPart.preliminary : false, true);
+  const approvalPart = result.content.find((part) => part.type === 'tool-approval-request');
+  assert.equal(approvalPart?.type === 'tool-approval-request' ? approvalPart.approvalId : '', 'approval-1');
 });
 
 test('vercel-ai adapter maps system tool-result headers and text response format', async () => {
@@ -103,7 +172,21 @@ test('vercel-ai adapter maps system tool-result headers and text response format
         role: 'assistant',
         content: [
           { type: 'text', text: 'I will call a tool.' },
-          { type: 'tool-call', toolCallId: 'call-prev', toolName: 'lookup', input: { query: 'nimi' } },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-prev',
+            toolName: 'lookup',
+            input: { query: 'nimi' },
+            providerExecuted: true,
+            providerOptions: { test: { turn: 'assistant' } },
+          },
+          {
+            type: 'tool-result',
+            toolCallId: 'provider-call-prev',
+            toolName: 'provider_lookup',
+            output: { type: 'json', value: { providerOk: true } },
+            providerOptions: { test: { turn: 'assistant-result' } },
+          },
         ],
       },
       {
@@ -113,6 +196,13 @@ test('vercel-ai adapter maps system tool-result headers and text response format
           toolCallId: 'call-prev',
           toolName: 'lookup',
           output: { type: 'json', value: { ok: true } },
+          providerOptions: { test: { turn: 'tool-result' } },
+        }, {
+          type: 'tool-approval-response',
+          approvalId: 'approval-prev',
+          approved: true,
+          reason: 'allowed',
+          providerOptions: { test: { turn: 'approval-response' } },
         }],
       },
       { role: 'user', content: [{ type: 'text', text: 'continue' }] },
@@ -127,7 +217,20 @@ test('vercel-ai adapter maps system tool-result headers and text response format
 
   assert.equal(calls[0]?.messages[0]?.role, 'system');
   assert.equal(calls[0]?.messages[1]?.toolCalls?.[0]?.name, 'lookup');
+  assert.equal(calls[0]?.messages[1]?.toolCalls?.[0]?.providerExecuted, true);
+  assert.deepEqual(calls[0]?.messages[1]?.toolCalls?.[0]?.providerMetadata, { test: { turn: 'assistant' } });
+  assert.deepEqual(calls[0]?.messages[1]?.toolResults?.[0]?.result, {
+    type: 'json',
+    value: { providerOk: true },
+  });
   assert.equal(calls[0]?.messages[2]?.toolCallId, 'call-prev');
+  assert.deepEqual(calls[0]?.messages[2]?.toolResults?.[0]?.result, { type: 'json', value: { ok: true } });
+  assert.deepEqual(calls[0]?.messages[3]?.toolApprovalResponses?.[0], {
+    approvalId: 'approval-prev',
+    approved: true,
+    reason: 'allowed',
+    providerMetadata: { test: { turn: 'approval-response' } },
+  });
   assert.equal(calls[0]?.toolChoice, 'required');
   assert.equal(calls[0]?.responseFormat?.type, 'text');
   assert.deepEqual(
@@ -184,6 +287,77 @@ test('vercel-ai adapter streams returned tool-call events as partial run-event m
   assert.ok(parts.some((part) => part.type === 'finish' && part.finishReason.unified === 'tool-calls'));
 });
 
+test('vercel-ai adapter streams source provider tool result approval and raw chunks', async () => {
+  const model = createNimiVercelLanguageModel({
+    model: createModel([], {
+      stream: [
+        {
+          type: 'source',
+          sourceType: 'document',
+          id: 'doc-1',
+          mediaType: 'application/pdf',
+          title: 'Spec',
+          filename: 'spec.pdf',
+        },
+        {
+          type: 'tool-call',
+          toolCall: {
+            id: 'provider-call-stream',
+            name: 'web_search',
+            arguments: { query: 'nimi' },
+            providerExecuted: true,
+          },
+        },
+        {
+          type: 'tool-result',
+          toolResult: {
+            toolCallId: 'provider-call-stream',
+            toolName: 'web_search',
+            result: { ok: true },
+            providerMetadata: { test: { result: 'stream' } },
+          },
+        },
+        {
+          type: 'tool-approval-request',
+          toolApprovalRequest: { approvalId: 'approval-stream', toolCallId: 'provider-call-stream' },
+        },
+        { type: 'raw', value: { provider: 'raw-chunk' } },
+        { type: 'done', finishReason: 'stop' },
+      ],
+    }),
+  });
+  const result = await model.doStream({
+    prompt: [{ role: 'user', content: [{ type: 'text', text: 'stream L3' }] }],
+    includeRawChunks: true,
+  });
+
+  const parts = [];
+  const reader = result.stream.getReader();
+  for (;;) {
+    const next = await reader.read();
+    if (next.done) {
+      break;
+    }
+    parts.push(next.value);
+  }
+
+  assert.deepEqual(parts.map((part) => part.type), [
+    'stream-start',
+    'source',
+    'tool-input-start',
+    'tool-input-delta',
+    'tool-input-end',
+    'tool-call',
+    'tool-result',
+    'tool-approval-request',
+    'raw',
+    'finish',
+  ]);
+  assert.equal(parts.some((part) => part.type === 'tool-input-start' && part.providerExecuted === true), true);
+  const rawPart = parts.find((part) => part.type === 'raw');
+  assert.deepEqual(rawPart?.type === 'raw' ? rawPart.rawValue : undefined, { provider: 'raw-chunk' });
+});
+
 test('vercel-ai adapter maps non-text stream events without inventing parity', async () => {
   const model = createNimiVercelLanguageModel({
     model: createModel([], {
@@ -215,7 +389,6 @@ test('vercel-ai adapter maps non-text stream events without inventing parity', a
     'reasoning-start',
     'reasoning-delta',
     'file',
-    'raw',
     'error',
     'reasoning-end',
     'finish',
@@ -224,33 +397,33 @@ test('vercel-ai adapter maps non-text stream events without inventing parity', a
   assert.equal(finish?.type === 'finish' ? finish.finishReason.unified : '', 'other');
 });
 
-test('vercel-ai adapter fails closed for unsupported provider-defined tools', async () => {
-  const model = createNimiVercelLanguageModel({ model: createModel([]) });
+test('vercel-ai adapter maps provider-defined tools to Nimi provider tools', async () => {
+  const calls: NimiGenerateTextRequest[] = [];
+  const model = createNimiVercelLanguageModel({ model: createModel(calls) });
 
-  await assert.rejects(
-    async () => await model.doGenerate({
-      prompt: [{ role: 'user', content: [{ type: 'text', text: 'hello' }] }],
-      tools: [{ type: 'provider', id: 'nimi.web_search', name: 'web_search', args: {} }],
-    }),
-    (error: unknown) => {
-      assert.ok(error instanceof NimiVercelAiUnsupportedFeatureError);
-      assert.equal(error.code, NIMI_VERCEL_AI_UNSUPPORTED_FEATURE_CODE);
-      assert.equal(error.feature, 'tools.provider-defined');
-      return true;
-    },
-  );
+  await model.doGenerate({
+    prompt: [{ role: 'user', content: [{ type: 'text', text: 'hello' }] }],
+    tools: [{ type: 'provider', id: 'test.web_search', name: 'web_search', args: { maxResults: 3 } }],
+  });
+
+  assert.deepEqual(calls[0]?.tools?.[0], {
+    type: 'provider',
+    id: 'test.web_search',
+    name: 'web_search',
+    args: { maxResults: 3 },
+  });
 });
 
-test('vercel-ai adapter fails closed for unsupported call options and prompt parts', async () => {
-  const model = createNimiVercelLanguageModel({ model: createModel([]) });
+test('vercel-ai adapter maps includeRawChunks to Nimi request parameters', async () => {
+  const calls: NimiGenerateTextRequest[] = [];
+  const model = createNimiVercelLanguageModel({ model: createModel(calls) });
 
-  await assert.rejects(
-    async () => await model.doStream({
-      prompt: [{ role: 'user', content: [{ type: 'text', text: 'hello' }] }],
-      includeRawChunks: true,
-    }),
-    { feature: 'stream.includeRawChunks' },
-  );
+  await model.doStream({
+    prompt: [{ role: 'user', content: [{ type: 'text', text: 'hello' }] }],
+    includeRawChunks: true,
+  });
+
+  assert.equal(calls[0]?.parameters?.includeRawChunks, true);
 });
 
 test('vercel-ai adapter maps file prompt parts onto Nimi file parts', async () => {
@@ -281,7 +454,7 @@ test('vercel-ai adapter maps file prompt parts onto Nimi file parts', async () =
   assert.deepEqual(content[3], { type: 'file', mediaType: 'video/mp4', data: 'https://example.com/clip.mp4' });
 });
 
-test('vercel-ai adapter fails closed when streaming is not available', async () => {
+test('vercel-ai adapter fails closed when streaming is unsupported by the Nimi model', async () => {
   const model = createNimiVercelLanguageModel({
     model: {
       model: { providerId: 'test', modelId: 'no-stream' },
@@ -340,7 +513,7 @@ test('vercel-ai provider can create Runtime-backed models from a Nimi client', (
 });
 
 test('vercel-ai manifest claims protocol mapping support and types every gap', () => {
-  assert.equal(NIMI_VERCEL_AI_ADAPTER_MANIFEST.capabilityLevel, 'L2');
+  assert.equal(NIMI_VERCEL_AI_ADAPTER_MANIFEST.capabilityLevel, 'L3');
   assert.equal(NIMI_VERCEL_AI_ADAPTER_MANIFEST.capabilities['text.generate'].support, 'supported');
   assert.equal(NIMI_VERCEL_AI_ADAPTER_MANIFEST.capabilities['text.stream'].support, 'supported');
   // Protocol mapping fidelity proven by the conformance suite against the real Vercel AI SDK.
@@ -356,9 +529,14 @@ test('vercel-ai manifest claims protocol mapping support and types every gap', (
   assert.equal(NIMI_VERCEL_AI_ADAPTER_MANIFEST.capabilities['tools.execute'].mode, 'framework-owned');
   assert.equal(NIMI_VERCEL_AI_ADAPTER_MANIFEST.capabilities.multiStep.support, 'supported');
   assert.equal(NIMI_VERCEL_AI_ADAPTER_MANIFEST.capabilities.multiStep.mode, 'framework-owned');
-  assert.equal(NIMI_VERCEL_AI_ADAPTER_MANIFEST.capabilities['tools.adapterExecute'].support, 'unsupported');
-  assert.equal(NIMI_VERCEL_AI_ADAPTER_MANIFEST.capabilities.approval.support, 'partial');
-  assert.equal(NIMI_VERCEL_AI_ADAPTER_MANIFEST.capabilities.externalExecution.support, 'unsupported');
+  assert.equal(NIMI_VERCEL_AI_ADAPTER_MANIFEST.capabilities['tools.adapterExecute'].support, 'not-applicable');
+  assert.equal(NIMI_VERCEL_AI_ADAPTER_MANIFEST.capabilities['tools.providerDefined'].support, 'supported');
+  assert.equal(NIMI_VERCEL_AI_ADAPTER_MANIFEST.capabilities['tools.providerExecuted'].support, 'supported');
+  assert.equal(NIMI_VERCEL_AI_ADAPTER_MANIFEST.capabilities['tools.providerToolResults'].support, 'supported');
+  assert.equal(NIMI_VERCEL_AI_ADAPTER_MANIFEST.capabilities['tools.providerApproval'].support, 'supported');
+  assert.equal(NIMI_VERCEL_AI_ADAPTER_MANIFEST.capabilities.deferredResults.support, 'supported');
+  assert.equal(NIMI_VERCEL_AI_ADAPTER_MANIFEST.capabilities.approval.support, 'supported');
+  assert.equal(NIMI_VERCEL_AI_ADAPTER_MANIFEST.capabilities.externalExecution.support, 'not-applicable');
   assert.equal(NIMI_VERCEL_AI_ADAPTER_MANIFEST.capabilities.traces.support, 'partial');
   // Partial capabilities: claims reflect the bounded reality proven by the conformance suite.
   // multimodalInput maps image/audio/video; other media types and route-dependent paths fail closed.
@@ -368,10 +546,8 @@ test('vercel-ai manifest claims protocol mapping support and types every gap', (
   // usageTokenDetails projects cache-read + reasoning tokens; cache-write detail is unavailable.
   assert.equal(NIMI_VERCEL_AI_ADAPTER_MANIFEST.capabilities.usageTokenDetails.support, 'partial');
   assert.equal(NIMI_VERCEL_AI_ADAPTER_MANIFEST.capabilities.providerOptions.support, 'partial');
-  // Gaps bounded by the base Nimi contract are typed and visible, never silently dropped.
-  assert.equal(NIMI_VERCEL_AI_ADAPTER_MANIFEST.capabilities.sources.support, 'unsupported');
-  assert.equal(NIMI_VERCEL_AI_ADAPTER_MANIFEST.capabilities.rawChunks.support, 'unsupported');
-  assert.equal(NIMI_VERCEL_AI_ADAPTER_MANIFEST.capabilities['tools.providerDefined'].support, 'unsupported');
+  assert.equal(NIMI_VERCEL_AI_ADAPTER_MANIFEST.capabilities.sources.support, 'supported');
+  assert.equal(NIMI_VERCEL_AI_ADAPTER_MANIFEST.capabilities.rawChunks.support, 'supported');
 });
 
 function createModel(
@@ -382,6 +558,10 @@ function createModel(
     readonly finishReason?: NimiFinishReason;
     readonly warnings?: readonly { readonly code: string; readonly message: string }[];
     readonly toolCalls?: readonly NimiToolCall[];
+    readonly toolResults?: readonly NimiToolResult[];
+    readonly toolApprovalRequests?: readonly NimiToolApprovalRequest[];
+    readonly sources?: readonly NimiSource[];
+    readonly content?: NimiGenerateTextResult['content'];
     readonly stream?: readonly NimiRunEvent[];
   } = {},
 ): NimiAiModel {
@@ -398,10 +578,15 @@ function createModel(
           totalTokens: 4,
         },
         toolCalls: fixture.toolCalls,
+        toolResults: fixture.toolResults,
+        toolApprovalRequests: fixture.toolApprovalRequests,
+        sources: fixture.sources,
+        content: fixture.content,
         warnings: fixture.warnings,
       };
     },
-    async *streamText() {
+    async *streamText(request) {
+      calls.push(request);
       if (fixture.stream) {
         yield* fixture.stream;
       } else {

@@ -19,6 +19,11 @@ import {
   toVercelUsage,
   toVercelWarnings,
 } from './mappers';
+import {
+  toVercelRequestMetadata,
+  toVercelResponseMetadata,
+  toVercelTopLevelProviderMetadata,
+} from './raw-metadata';
 
 export const NIMI_VERCEL_AI_UNSUPPORTED_FEATURE_CODE = 'unsupported_vercel_ai_adapter_feature' as const;
 
@@ -80,11 +85,17 @@ export function createNimiVercelLanguageModel(options: NimiVercelLanguageModelOp
       const result = await options.model.generateText(
         toNimiGenerateTextRequest(options.model, callOptions, throwUnsupportedVercelAiFeature),
       );
+      const providerMetadata = toVercelTopLevelProviderMetadata(result.raw);
+      const request = toVercelRequestMetadata(result.raw);
+      const response = toVercelResponseMetadata(result.raw);
       return {
         content: toVercelGenerateContent(result),
         finishReason: toVercelFinishReason(result.finishReason),
         usage: toVercelUsage(result.usage),
         warnings: toVercelWarnings(result.warnings),
+        ...(providerMetadata ? { providerMetadata } : {}),
+        ...(request ? { request } : {}),
+        ...(response ? { response } : {}),
       };
     },
     async doStream(callOptions) {
