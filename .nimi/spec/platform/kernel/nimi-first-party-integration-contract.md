@@ -10,17 +10,10 @@ Runtime 集成的产品级 authority。本契约不实现 app 代码、Tauri pac
 Runtime 集成本身；它锁定 first-party 集成的 contract 关系与"hard cut 之后
 无 standalone ordinary-user product truth"的边界。
 
-ParentOS 已 retire 出 first-party admission，转为外部 nimi-app（不在
-`tables/nimi-app-registry.yaml` row 集合中）；本契约相关条款收缩到
-Avatar-only。
-
 ## P-FPI-001 — First-Party Hardcut Targets
 
-`MUST`：first-party hardcut target 仅限 Avatar（`nimi.avatar`）。
-
-`MUST NOT`：不得把 ParentOS 视作 first-party hardcut target；ParentOS 已退
-出 first-party admission，转为外部 nimi-app（不在
-`tables/nimi-app-registry.yaml` row 集合中）。
+`MUST`：first-party hardcut target 仅限当前 admitted
+`tables/nimi-app-registry.yaml` row 集合（现为 Avatar，`nimi.avatar`）。
 
 `MUST NOT`：不得在 first-party hardcut closeout 中使用 deferred first-party app
 作为 evidence；只能使用当前 admitted registry rows 或明确准入的 app slice。

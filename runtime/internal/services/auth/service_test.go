@@ -465,11 +465,9 @@ func TestRegisterAppDeveloperRegistrationFailureAuditMarksIntent(t *testing.T) {
 }
 
 // Migration-gate behavior is unit-tested in
-// runtime/internal/firstpartymigration/launch_gate_test.go. The auth-service
-// integration of that gate used to be exercised via parentos in a now-retired
-// test; parentos has exited first-party admission
-// (topic 2026-05-25-parentos-first-party-admission-exit) and avatar's
-// admitted/gated path is covered by TestRegisterAppChecksNimiAppRegistryProjection.
+// runtime/internal/firstpartymigration/launch_gate_test.go; the auth-service
+// admitted/gated registry path is covered by
+// TestRegisterAppChecksNimiAppRegistryProjection.
 
 func TestRegisterAppKeepsDesktopHostOutsideNimiAppRegistry(t *testing.T) {
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))

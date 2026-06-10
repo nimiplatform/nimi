@@ -10,9 +10,6 @@ install path 迁移到 Nimi App registry 行的 product 级 migration authority�
 migration failure fail-closed 状态机、source-development marker rule 与
 no-silent-user-state-reset rule。
 
-ParentOS 已 retire 出 first-party admission；本契约的 migration 状态机不再
-覆盖 parentos-standalone-to-nimi-app 路径。
-
 ## P-FPM-001 — Required Migration Questions
 
 `MUST`：first-party hardcut implementation 必须为每个 hardcut target 显式回答以下
