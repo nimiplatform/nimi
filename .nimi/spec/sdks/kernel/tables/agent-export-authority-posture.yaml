@@ -1,0 +1,270 @@
+version: 1
+table_family: support_registry
+registry_id: sdk_agent_export_authority_posture
+owner: sdks
+schema_ref: .nimi/contracts/table-family.schema.yaml#support_registry
+allowed_fields:
+  - symbol
+  - module
+  - kind
+  - posture
+  - authority_ref
+  - note
+forbidden_state_fields:
+  - done
+  - covered
+  - coverage_status
+  - audit_date
+  - evidence_report
+  - current
+  - proposed
+  - backlog_status
+  - migration_status
+  - mapping_status
+  - run_id
+  - ledger_ref
+source_rules:
+  - S-SURFACE-015
+  - S-SURFACE-016
+  - S-BOUNDARY-005
+semantics: >-
+  Per-export authority posture registry for SDK agent-facing public surfaces.
+  Every public export under an enforced coverage root must declare exactly one
+  posture. The registry does not create new authority semantics; it makes the
+  existing S-SURFACE-015/S-SURFACE-016/S-BOUNDARY-005 distinction mechanically
+  checkable so client-side agent helpers cannot drift into an unbacked second
+  agent ontology. Enforced by scripts/check-sdk-agent-export-posture.mjs.
+  Mechanical checks verify reference resolvability, not semantic backing:
+  whether a cited authority actually defines the projected vocabulary remains
+  a review obligation on every new runtime-projection entry.
+postures:
+  - id: runtime-projection
+    semantics: >-
+      Projects an admitted Runtime/Realm/Cognition/Platform surface. Must cite
+      at least one authority_ref whose target defines the projected vocabulary.
+      Must not own canonical truth, infer routing, or synthesize authority
+      evidence.
+  - id: ephemeral-client-orchestration
+    semantics: >-
+      Non-authoritative client orchestration per S-SURFACE-016. Process-local
+      state only. Output is ephemeral consumer state or an explicit request to
+      an authoritative service. Subject to the S-BOUNDARY-006 promotion rule.
+  - id: pure-sugar
+    semantics: >-
+      Stateless developer ergonomics: type utilities, builders, parsers,
+      converters, validators. No orchestration loop, no state, no authority.
+authority_ref_formats:
+  - prefix: 'rule:'
+    semantics: >-
+      Spec rule ID, pattern rule:<DOMAIN>-<FAMILY>-<NUMBER>; must resolve to a
+      rule heading in a kernel contract under .nimi/spec/.
+  - prefix: 'group:'
+    semantics: Runtime method group id resolvable in runtime-method-groups.yaml.
+  - prefix: 'contract:'
+    semantics: Spec contract path relative to .nimi/spec/, must exist on disk.
+coverage_roots:
+  - root: sdks/typescript/core/agent
+    entry: index.ts
+    status: enforced
+entries:
+  # --- index.ts ---
+  - symbol: NimiAgentEvent
+    module: sdks/typescript/core/agent/index.ts
+    kind: type
+    posture: ephemeral-client-orchestration
+  - symbol: NimiAgentSpec
+    module: sdks/typescript/core/agent/index.ts
+    kind: type
+    posture: ephemeral-client-orchestration
+  - symbol: NimiAgentContextProviderInput
+    module: sdks/typescript/core/agent/index.ts
+    kind: type
+    posture: ephemeral-client-orchestration
+  - symbol: NimiAgentInstructionPack
+    module: sdks/typescript/core/agent/index.ts
+    kind: type
+    posture: ephemeral-client-orchestration
+  - symbol: NimiAgentContextProvider
+    module: sdks/typescript/core/agent/index.ts
+    kind: type
+    posture: ephemeral-client-orchestration
+  - symbol: NimiAgentContextQuery
+    module: sdks/typescript/core/agent/index.ts
+    kind: type
+    posture: ephemeral-client-orchestration
+  - symbol: NimiAgentContextMaterial
+    module: sdks/typescript/core/agent/index.ts
+    kind: type
+    posture: ephemeral-client-orchestration
+  - symbol: NimiAgentRunRequest
+    module: sdks/typescript/core/agent/index.ts
+    kind: type
+    posture: ephemeral-client-orchestration
+  - symbol: NimiAgentRunResult
+    module: sdks/typescript/core/agent/index.ts
+    kind: type
+    posture: ephemeral-client-orchestration
+  - symbol: runNimiAgent
+    module: sdks/typescript/core/agent/index.ts
+    kind: value
+    posture: ephemeral-client-orchestration
+  - symbol: streamNimiAgent
+    module: sdks/typescript/core/agent/index.ts
+    kind: value
+    posture: ephemeral-client-orchestration
+  - symbol: resolveNimiAgentContextQuery
+    module: sdks/typescript/core/agent/index.ts
+    kind: value
+    posture: pure-sugar
+  # --- runner.ts ---
+  - symbol: NimiAgentRunner
+    module: sdks/typescript/core/agent/runner.ts
+    kind: type
+    posture: ephemeral-client-orchestration
+  - symbol: NimiAgentRunnerResult
+    module: sdks/typescript/core/agent/runner.ts
+    kind: type
+    posture: ephemeral-client-orchestration
+  - symbol: createNimiAgentRunner
+    module: sdks/typescript/core/agent/runner.ts
+    kind: value
+    posture: ephemeral-client-orchestration
+  - symbol: buildNimiAgentModelRequest
+    module: sdks/typescript/core/agent/runner.ts
+    kind: value
+    posture: ephemeral-client-orchestration
+  - symbol: toNimiAgentTrace
+    module: sdks/typescript/core/agent/runner.ts
+    kind: value
+    posture: pure-sugar
+    note: >-
+      Mints local trace/step identity for debugging only. If NimiAgentTrace
+      ever feeds an audit-adjacent or persisted surface, this entry must be
+      re-postured; S-SURFACE-016 forbids presenting client state as audit
+      truth.
+  # --- app-ai.ts ---
+  - symbol: NimiAgentTextRuntime
+    module: sdks/typescript/core/agent/app-ai.ts
+    kind: type
+    posture: ephemeral-client-orchestration
+  - symbol: NimiAgentStructuredOutputOptions
+    module: sdks/typescript/core/agent/app-ai.ts
+    kind: type
+    posture: ephemeral-client-orchestration
+  - symbol: NimiAgentTextGenerateInput
+    module: sdks/typescript/core/agent/app-ai.ts
+    kind: type
+    posture: ephemeral-client-orchestration
+  - symbol: NimiAgentTextGenerateSuccess
+    module: sdks/typescript/core/agent/app-ai.ts
+    kind: type
+    posture: ephemeral-client-orchestration
+  - symbol: NimiAgentTextGenerateFailure
+    module: sdks/typescript/core/agent/app-ai.ts
+    kind: type
+    posture: ephemeral-client-orchestration
+  - symbol: NimiAgentTextGenerateResult
+    module: sdks/typescript/core/agent/app-ai.ts
+    kind: type
+    posture: ephemeral-client-orchestration
+  - symbol: NimiAgentTextTurnInput
+    module: sdks/typescript/core/agent/app-ai.ts
+    kind: type
+    posture: ephemeral-client-orchestration
+  - symbol: NimiAgentTextError
+    module: sdks/typescript/core/agent/app-ai.ts
+    kind: type
+    posture: pure-sugar
+  - symbol: NimiAgentTextTurnEvent
+    module: sdks/typescript/core/agent/app-ai.ts
+    kind: type
+    posture: ephemeral-client-orchestration
+  - symbol: NimiAgentTextStreamResponseResult
+    module: sdks/typescript/core/agent/app-ai.ts
+    kind: type
+    posture: ephemeral-client-orchestration
+  - symbol: NimiAgentTextStreamHandlers
+    module: sdks/typescript/core/agent/app-ai.ts
+    kind: type
+    posture: ephemeral-client-orchestration
+  - symbol: runNimiAgentTextGenerate
+    module: sdks/typescript/core/agent/app-ai.ts
+    kind: value
+    posture: ephemeral-client-orchestration
+  - symbol: runNimiAgentTextTurn
+    module: sdks/typescript/core/agent/app-ai.ts
+    kind: value
+    posture: ephemeral-client-orchestration
+  - symbol: streamNimiAgentTextResponse
+    module: sdks/typescript/core/agent/app-ai.ts
+    kind: value
+    posture: ephemeral-client-orchestration
+  # --- runtime-client.ts ---
+  - symbol: NimiRuntimeAgentClientRuntime
+    module: sdks/typescript/core/agent/runtime-client.ts
+    kind: type
+    posture: runtime-projection
+    authority_ref:
+      - group:agent_service_projection
+  - symbol: NimiRuntimeAgentClientAgentModule
+    module: sdks/typescript/core/agent/runtime-client.ts
+    kind: type
+    posture: runtime-projection
+    authority_ref:
+      - group:agent_service_projection
+  - symbol: NimiRuntimeAgentClientAppMessagesModule
+    module: sdks/typescript/core/agent/runtime-client.ts
+    kind: type
+    posture: runtime-projection
+    authority_ref:
+      - rule:S-SURFACE-002
+  - symbol: NimiRuntimeAgentClientOptions
+    module: sdks/typescript/core/agent/runtime-client.ts
+    kind: type
+    posture: runtime-projection
+    authority_ref:
+      - rule:S-SURFACE-021
+  - symbol: NimiRuntimeAgentIdentityInput
+    module: sdks/typescript/core/agent/runtime-client.ts
+    kind: type
+    posture: runtime-projection
+    authority_ref:
+      - rule:S-SURFACE-002
+  - symbol: NimiRuntimeAgentOpenConversationInput
+    module: sdks/typescript/core/agent/runtime-client.ts
+    kind: type
+    posture: runtime-projection
+    authority_ref:
+      - rule:S-SURFACE-002
+  - symbol: NimiRuntimeAgentClient
+    module: sdks/typescript/core/agent/runtime-client.ts
+    kind: type
+    posture: runtime-projection
+    authority_ref:
+      - rule:S-SURFACE-002
+      - rule:S-SURFACE-021
+  - symbol: NimiRuntimeAgentClientStreamTurnOptions
+    module: sdks/typescript/core/agent/runtime-client.ts
+    kind: type
+    posture: runtime-projection
+    authority_ref:
+      - rule:S-SURFACE-021
+  - symbol: NimiRuntimeAgentQueryMemoryInput
+    module: sdks/typescript/core/agent/runtime-client.ts
+    kind: type
+    posture: runtime-projection
+    authority_ref:
+      - rule:S-SURFACE-002
+  - symbol: NimiRuntimeAgentWriteMemoryInput
+    module: sdks/typescript/core/agent/runtime-client.ts
+    kind: type
+    posture: runtime-projection
+    authority_ref:
+      - rule:S-SURFACE-002
+  - symbol: createNimiRuntimeAgentClient
+    module: sdks/typescript/core/agent/runtime-client.ts
+    kind: value
+    posture: runtime-projection
+    authority_ref:
+      - group:agent_service_projection
+      - rule:S-SURFACE-021

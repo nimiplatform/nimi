@@ -218,6 +218,9 @@ jobs:
       - name: Enforce SDK root entry contract
         run: pnpm check:sdk-root-entry-contract
 
+      - name: Enforce SDK agent export authority posture
+        run: pnpm check:sdk-agent-export-posture && node --test scripts/check-sdk-agent-export-posture.test.mjs
+
       - name: Enforce no global OpenAPI singleton config
         run: pnpm check:no-global-openapi-config
 

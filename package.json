@@ -94,6 +94,7 @@
     "check:realm-sdk-generator-smoke": "pnpm check:sdks-generators && pnpm check:sdks-conformance-typed-core",
     "check:sdk-runtime-capability-vocabulary": "pnpm check:sdk-vnext-runtime-facade",
     "check:sdk-root-entry-contract": "node scripts/check-sdk-root-entry-contract.mjs",
+    "check:sdk-agent-export-posture": "node scripts/check-sdk-agent-export-posture.mjs",
     "check:no-ai-profile-provider-model-constants": "node scripts/check-no-ai-profile-provider-model-constants.mjs",
     "check:no-fourth-ai-default-owner-surface": "node scripts/check-no-fourth-ai-default-owner-surface.mjs",
     "check:no-desktop-as-user-facing-name": "node scripts/check-no-desktop-as-user-facing-name.mjs",

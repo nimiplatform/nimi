@@ -124,6 +124,5 @@ function latestUserText(messages: readonly NimiMessage[]): string {
 }
 
 export * from './runner';
-export * from './identity';
 export * from './app-ai';
 export * from './runtime-client';
