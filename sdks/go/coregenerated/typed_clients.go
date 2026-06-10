@@ -2948,6 +2948,8 @@ type ExecuteDelegatedCapabilityRequest struct {
 type ExecuteDelegatedCapabilityResponse struct {
 	Diagnostic *DelegatedDiagnostic `json:"diagnostic,omitempty"`
 	ReplayTrace *DelegatedReplayTrace `json:"replay_trace,omitempty"`
+	ModelOutput map[string]any `json:"model_output,omitempty"`
+	ApprovalRequest *DelegatedApprovalRequest `json:"approval_request,omitempty"`
 }
 
 type ExecuteLocalStateCutoverRequest struct {
@@ -5915,6 +5917,19 @@ type ResponseFormat struct {
 	Strict bool `json:"strict,omitempty"`
 }
 
+type ResumeDelegatedCapabilityRequest struct {
+	Context *AgentRequestContext `json:"context,omitempty"`
+	AgentId string `json:"agent_id,omitempty"`
+	ApprovalRequestId string `json:"approval_request_id,omitempty"`
+}
+
+type ResumeDelegatedCapabilityResponse struct {
+	Diagnostic *DelegatedDiagnostic `json:"diagnostic,omitempty"`
+	ReplayTrace *DelegatedReplayTrace `json:"replay_trace,omitempty"`
+	ModelOutput map[string]any `json:"model_output,omitempty"`
+	ApprovalRequest *DelegatedApprovalRequest `json:"approval_request,omitempty"`
+}
+
 type ResumeLocalTransferRequest struct {
 	InstallSessionId string `json:"install_session_id,omitempty"`
 }
@@ -7601,6 +7616,14 @@ func (c RuntimeTypedClient) ResolveAvatarLiveInstanceBinding(ctx context.Context
 		return ResolveAvatarLiveInstanceBindingResponse{}, err
 	}
 	return decodeTypedResponse[ResolveAvatarLiveInstanceBindingResponse](raw)
+}
+
+func (c RuntimeTypedClient) ResumeDelegatedCapability(ctx context.Context, request ResumeDelegatedCapabilityRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ResumeDelegatedCapabilityResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/ResumeDelegatedCapability", request, metadata, timeoutMS)
+	if err != nil {
+		return ResumeDelegatedCapabilityResponse{}, err
+	}
+	return decodeTypedResponse[ResumeDelegatedCapabilityResponse](raw)
 }
 
 func (c RuntimeTypedClient) SetAgentPresentationProfile(ctx context.Context, request SetAgentPresentationProfileRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SetAgentPresentationProfileResponse, error) {

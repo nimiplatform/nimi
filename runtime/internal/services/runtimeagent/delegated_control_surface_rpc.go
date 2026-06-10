@@ -54,6 +54,16 @@ func (s *Service) UpsertDelegatedProviderProfile(_ context.Context, req *runtime
 		s.delegatedMu.Unlock()
 		return nil, status.Errorf(codes.InvalidArgument, "delegated provider profile cannot configure gateway: %v", err)
 	}
+	if err := s.persistDelegatedControlStateLocked(); err != nil {
+		if existing != nil {
+			s.delegatedProviderProfiles[key] = proto.Clone(existing).(*runtimev1.DelegatedProviderProfile)
+		} else {
+			delete(s.delegatedProviderProfiles, key)
+		}
+		_ = s.rebuildDelegatedGatewayLocked()
+		s.delegatedMu.Unlock()
+		return nil, status.Errorf(codes.FailedPrecondition, "delegated provider profile persistence failed: %v", err)
+	}
 	out := proto.Clone(profile).(*runtimev1.DelegatedProviderProfile)
 	s.delegatedMu.Unlock()
 	return &runtimev1.UpsertDelegatedProviderProfileResponse{ProviderProfile: out}, nil
@@ -107,6 +117,12 @@ func (s *Service) SetDelegatedProviderState(_ context.Context, req *runtimev1.Se
 		s.delegatedMu.Unlock()
 		return nil, status.Errorf(codes.InvalidArgument, "delegated provider state cannot configure gateway: %v", err)
 	}
+	if err := s.persistDelegatedControlStateLocked(); err != nil {
+		s.delegatedProviderProfiles[delegatedProviderProfileKey(agentID, profileID)] = previous
+		_ = s.rebuildDelegatedGatewayLocked()
+		s.delegatedMu.Unlock()
+		return nil, status.Errorf(codes.FailedPrecondition, "delegated provider state persistence failed: %v", err)
+	}
 	out := proto.Clone(profile).(*runtimev1.DelegatedProviderProfile)
 	s.delegatedMu.Unlock()
 	return &runtimev1.SetDelegatedProviderStateResponse{ProviderProfile: out}, nil
@@ -150,13 +166,20 @@ func (s *Service) SubmitDelegatedApprovalDecision(_ context.Context, req *runtim
 		return nil, status.Error(codes.FailedPrecondition, "delegated approval request is not pending")
 	}
 	if err := s.validateDelegatedApprovalResumeLocked(req.GetContext(), agentID, approval, time.Now().UTC()); err != nil {
+		err = s.persistDelegatedApprovalExpiryIfNeededLocked(approval, err)
 		s.delegatedMu.Unlock()
 		return nil, err
 	}
+	previous := proto.Clone(approval).(*runtimev1.DelegatedApprovalRequest)
 	approval = proto.Clone(approval).(*runtimev1.DelegatedApprovalRequest)
 	approval.State = nextState
 	approval.UpdatedAt = timestamppb.New(time.Now().UTC())
 	s.delegatedApprovalRequests[delegatedApprovalRequestKey(agentID, approvalID)] = proto.Clone(approval).(*runtimev1.DelegatedApprovalRequest)
+	if err := s.persistDelegatedControlStateLocked(); err != nil {
+		s.delegatedApprovalRequests[delegatedApprovalRequestKey(agentID, approvalID)] = previous
+		s.delegatedMu.Unlock()
+		return nil, status.Errorf(codes.FailedPrecondition, "delegated approval decision persistence failed: %v", err)
+	}
 	out := proto.Clone(approval).(*runtimev1.DelegatedApprovalRequest)
 	s.delegatedMu.Unlock()
 
@@ -166,86 +189,6 @@ func (s *Service) SubmitDelegatedApprovalDecision(_ context.Context, req *runtim
 	// orchestration decision-recording path.
 	s.appendDelegatedApprovalDecisionAuditEvent(agentID, out, delegatedApprovalPrincipalID(req.GetContext()))
 	return &runtimev1.SubmitDelegatedApprovalDecisionResponse{ApprovalRequest: out}, nil
-}
-
-func (s *Service) validateDelegatedApprovalResumeLocked(ctx *runtimev1.AgentRequestContext, agentID string, approval *runtimev1.DelegatedApprovalRequest, now time.Time) error {
-	if approval == nil {
-		return status.Error(codes.NotFound, "delegated approval request not found")
-	}
-	if approval.GetExpiresAt() == nil {
-		return status.Error(codes.FailedPrecondition, "delegated approval request expiry is required")
-	}
-	if !approval.GetExpiresAt().AsTime().After(now) {
-		approval.State = runtimev1.DelegatedApprovalRequestState_DELEGATED_APPROVAL_REQUEST_STATE_EXPIRED
-		approval.UpdatedAt = timestamppb.New(now)
-		return status.Error(codes.FailedPrecondition, "delegated approval request expired")
-	}
-	fields := approval.GetDetail().GetFields()
-	descriptorHash := structStringField(fields, "descriptor_hash")
-	policySnapshotID := structStringField(fields, "policy_snapshot_id")
-	principalID := structStringField(fields, "principal_id")
-	if descriptorHash == "" || policySnapshotID == "" || principalID == "" {
-		return status.Error(codes.FailedPrecondition, "delegated approval request missing policy snapshot, descriptor, or principal lineage")
-	}
-	currentPrincipal := delegatedApprovalPrincipalID(ctx)
-	if currentPrincipal == "" || currentPrincipal != principalID {
-		return status.Error(codes.PermissionDenied, "delegated approval principal is not authorized for this request")
-	}
-	profile := s.delegatedProviderProfiles[delegatedProviderProfileKey(agentID, approval.GetProviderProfileId())]
-	if profile == nil {
-		return status.Error(codes.FailedPrecondition, "delegated approval provider profile is unavailable")
-	}
-	if profile.GetState() != runtimev1.DelegatedProviderState_DELEGATED_PROVIDER_STATE_READY {
-		return status.Error(codes.FailedPrecondition, "delegated approval provider profile is not ready")
-	}
-	currentDescriptor := delegatedProviderToolDescriptorHash(profile, approval.GetToolName())
-	if currentDescriptor == "" {
-		return status.Error(codes.FailedPrecondition, "delegated approval capability descriptor is unavailable")
-	}
-	if currentDescriptor != descriptorHash {
-		return status.Error(codes.FailedPrecondition, "delegated approval descriptor drifted")
-	}
-	expectedPolicySnapshotID := delegatedApprovalPolicySnapshotID(
-		approval.GetProviderProfileId(),
-		approval.GetCapabilityId(),
-		approval.GetToolName(),
-		descriptorHash,
-	)
-	if policySnapshotID != expectedPolicySnapshotID {
-		return status.Error(codes.FailedPrecondition, "delegated approval policy snapshot drifted")
-	}
-	return nil
-}
-
-func delegatedApprovalPrincipalID(ctx *runtimev1.AgentRequestContext) string {
-	if ctx == nil {
-		return ""
-	}
-	return firstNonEmpty(strings.TrimSpace(ctx.GetSubjectUserId()), strings.TrimSpace(ctx.GetAppId()))
-}
-
-func delegatedApprovalPolicySnapshotID(providerID string, capabilityID string, toolName string, descriptorHash string) string {
-	providerID = strings.TrimSpace(providerID)
-	capabilityID = strings.TrimSpace(capabilityID)
-	toolName = strings.TrimSpace(toolName)
-	descriptorHash = strings.TrimSpace(descriptorHash)
-	if providerID == "" || capabilityID == "" || toolName == "" || descriptorHash == "" {
-		return ""
-	}
-	return strings.Join([]string{"deleg-policy", providerID, capabilityID, toolName, descriptorHash}, ":")
-}
-
-func delegatedProviderToolDescriptorHash(profile *runtimev1.DelegatedProviderProfile, toolName string) string {
-	toolName = strings.TrimSpace(toolName)
-	if profile == nil || toolName == "" {
-		return ""
-	}
-	for _, tool := range profile.GetAllowedTools() {
-		if strings.TrimSpace(tool.GetToolName()) == toolName {
-			return strings.TrimSpace(tool.GetInputSchemaDigest())
-		}
-	}
-	return ""
 }
 
 func (s *Service) ListDelegatedDiagnostics(_ context.Context, req *runtimev1.ListDelegatedDiagnosticsRequest) (*runtimev1.ListDelegatedDiagnosticsResponse, error) {
@@ -526,6 +469,9 @@ func (s *Service) ensureDelegatedControlStoresLocked() {
 	if s.delegatedApprovalRequests == nil {
 		s.delegatedApprovalRequests = map[string]*runtimev1.DelegatedApprovalRequest{}
 	}
+	if s.delegatedPausedRequests == nil {
+		s.delegatedPausedRequests = map[string]*runtimeAgentPausedDelegatedCapabilityRequest{}
+	}
 }
 
 func (s *Service) listDelegatedProviderProfiles(agentID string) []*runtimev1.DelegatedProviderProfile {
@@ -618,19 +564,40 @@ func (s *Service) findDelegatedReplayAuditRecord(agentID string, decisionID stri
 }
 
 func (s *Service) buildDelegatedReplayTrace(agentID string, record delegatedCapabilityDecisionAuditRecord) (*runtimev1.DelegatedReplayTrace, error) {
-	if missing := missingDelegatedReplayJoinKeys(record); len(missing) > 0 {
+	missing := missingDelegatedReplayJoinKeys(record)
+	approvalKind := ""
+	var approval *runtimev1.DelegatedApprovalRequest
+	if record.RuntimeDecision == "approval_required" {
+		approval = s.delegatedApprovalRequest(agentID, record.DecisionID)
+		if approval == nil {
+			return nil, status.Error(codes.FailedPrecondition, "delegated replay invalid lineage: missing approval_request")
+		}
+		approvalKind = delegatedApprovalKind(approval)
+		if approvalKind == delegatedPausedModePostFirewall {
+			missing = missingDelegatedPostFirewallApprovalReplayJoinKeys(record)
+		} else {
+			missing = missingDelegatedApprovalReplayJoinKeys(record)
+		}
+	}
+	if len(missing) > 0 {
 		return nil, status.Errorf(codes.FailedPrecondition, "delegated replay invalid lineage: missing %s", strings.Join(missing, ","))
 	}
 	observedAt := timestamppb.New(record.RecordedAt.UTC())
 	stages := []*runtimev1.DelegatedReplayTraceStage{
 		delegatedReplayStage(runtimev1.DelegatedTraceStageKind_DELEGATED_TRACE_STAGE_KIND_REQUEST, record.DelegationRequestID, "recorded", "", "Runtime delegation request recorded", observedAt),
-		delegatedReplayStage(runtimev1.DelegatedTraceStageKind_DELEGATED_TRACE_STAGE_KIND_GATEWAY_EVIDENCE, record.GatewayEvidenceID, "quarantined", "", "Gateway evidence retained by Runtime; raw provider output is redacted", observedAt),
-		delegatedReplayStage(runtimev1.DelegatedTraceStageKind_DELEGATED_TRACE_STAGE_KIND_FIREWALL_VERDICT, record.FirewallInputID, record.FirewallVerdict, record.ReasonCode, "Firewall verdict recorded before Runtime decision", observedAt),
+	}
+	if record.RuntimeDecision != "approval_required" {
+		stages = append(stages,
+			delegatedReplayStage(runtimev1.DelegatedTraceStageKind_DELEGATED_TRACE_STAGE_KIND_GATEWAY_EVIDENCE, record.GatewayEvidenceID, "quarantined", "", "Gateway evidence retained by Runtime; raw provider output is redacted", observedAt),
+			delegatedReplayStage(runtimev1.DelegatedTraceStageKind_DELEGATED_TRACE_STAGE_KIND_FIREWALL_VERDICT, record.FirewallInputID, record.FirewallVerdict, record.ReasonCode, "Firewall verdict recorded before Runtime decision", observedAt),
+		)
 	}
 	if record.RuntimeDecision == "approval_required" {
-		approval := s.delegatedApprovalRequest(agentID, record.DecisionID)
-		if approval == nil {
-			return nil, status.Error(codes.FailedPrecondition, "delegated replay invalid lineage: missing approval_request")
+		if approvalKind == delegatedPausedModePostFirewall {
+			stages = append(stages,
+				delegatedReplayStage(runtimev1.DelegatedTraceStageKind_DELEGATED_TRACE_STAGE_KIND_GATEWAY_EVIDENCE, record.GatewayEvidenceID, "quarantined", "", "Gateway evidence retained by Runtime before approval; raw provider output is redacted", observedAt),
+				delegatedReplayStage(runtimev1.DelegatedTraceStageKind_DELEGATED_TRACE_STAGE_KIND_FIREWALL_VERDICT, record.FirewallInputID, record.FirewallVerdict, record.ReasonCode, "Firewall verdict required approval after provider execution", observedAt),
+			)
 		}
 		stages = append(stages, delegatedReplayStage(
 			runtimev1.DelegatedTraceStageKind_DELEGATED_TRACE_STAGE_KIND_APPROVAL_DECISION,
@@ -688,6 +655,68 @@ func missingDelegatedReplayJoinKeys(record delegatedCapabilityDecisionAuditRecor
 		}
 	}
 	return missing
+}
+
+func missingDelegatedApprovalReplayJoinKeys(record delegatedCapabilityDecisionAuditRecord) []string {
+	required := []struct {
+		name  string
+		value string
+	}{
+		{"decision_id", record.DecisionID},
+		{"delegation_request_id", record.DelegationRequestID},
+		{"turn_id", record.TurnID},
+		{"provider_profile_id", record.ProviderID},
+		{"capability_id", record.CapabilityID},
+		{"firewall_verdict", record.FirewallVerdict},
+		{"runtime_decision", record.RuntimeDecision},
+		{"projection_disposition", record.ProjectionDisposition},
+		{"action_disposition", record.ActionDisposition},
+	}
+	var missing []string
+	for _, field := range required {
+		if strings.TrimSpace(field.value) == "" {
+			missing = append(missing, field.name)
+		}
+	}
+	return missing
+}
+
+func missingDelegatedPostFirewallApprovalReplayJoinKeys(record delegatedCapabilityDecisionAuditRecord) []string {
+	required := []struct {
+		name  string
+		value string
+	}{
+		{"decision_id", record.DecisionID},
+		{"delegation_request_id", record.DelegationRequestID},
+		{"delegation_result_id", record.DelegationResultID},
+		{"turn_id", record.TurnID},
+		{"provider_profile_id", record.ProviderID},
+		{"capability_id", record.CapabilityID},
+		{"gateway_evidence_id", record.GatewayEvidenceID},
+		{"firewall_input_id", record.FirewallInputID},
+		{"firewall_verdict", record.FirewallVerdict},
+		{"runtime_decision", record.RuntimeDecision},
+		{"projection_disposition", record.ProjectionDisposition},
+		{"action_disposition", record.ActionDisposition},
+	}
+	var missing []string
+	for _, field := range required {
+		if strings.TrimSpace(field.value) == "" {
+			missing = append(missing, field.name)
+		}
+	}
+	return missing
+}
+
+func delegatedApprovalKind(approval *runtimev1.DelegatedApprovalRequest) string {
+	if approval == nil {
+		return delegatedPausedModePreinvoke
+	}
+	kind := structStringField(approval.GetDetail().GetFields(), "approval_kind")
+	if kind == delegatedPausedModePostFirewall {
+		return delegatedPausedModePostFirewall
+	}
+	return delegatedPausedModePreinvoke
 }
 
 func delegatedReplayStage(kind runtimev1.DelegatedTraceStageKind, stageID string, state string, reasonCode string, summary string, observedAt *timestamppb.Timestamp) *runtimev1.DelegatedReplayTraceStage {

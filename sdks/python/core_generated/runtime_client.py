@@ -368,6 +368,14 @@ RUNTIME_METHODS = [
     "response_type": "ResolveAvatarLiveInstanceBindingResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/ResumeDelegatedCapability",
+    "service": "RuntimeAgentService",
+    "method": "ResumeDelegatedCapability",
+    "kind": "unary",
+    "request_type": "ResumeDelegatedCapabilityRequest",
+    "response_type": "ResumeDelegatedCapabilityResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile",
     "service": "RuntimeAgentService",
     "method": "SetAgentPresentationProfile",

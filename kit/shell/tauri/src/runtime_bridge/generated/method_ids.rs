@@ -47,6 +47,7 @@ pub const RUNTIME_BRIDGE_ALLOWLISTED_METHODS: &[&str] = &[
     "/nimi.runtime.v1.RuntimeAgentService/RequestAvatarDebugProbe",
     "/nimi.runtime.v1.RuntimeAgentService/RequestCompanionParticipation",
     "/nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding",
+    "/nimi.runtime.v1.RuntimeAgentService/ResumeDelegatedCapability",
     "/nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile",
     "/nimi.runtime.v1.RuntimeAgentService/SetAutonomyConfig",
     "/nimi.runtime.v1.RuntimeAgentService/SetDelegatedProviderState",

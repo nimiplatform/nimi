@@ -142,6 +142,7 @@ func isWriteMethod(fullMethod string) bool {
 		"/nimi.runtime.v1.RuntimeAgentService/InitializeAgent",
 		"/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor",
 		"/nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding",
+		"/nimi.runtime.v1.RuntimeAgentService/ResumeDelegatedCapability",
 		"/nimi.runtime.v1.RuntimeAgentService/RequestAgentCanonicalMemoryBankBind",
 		"/nimi.runtime.v1.RuntimeAgentService/RequestCompanionParticipation",
 		"/nimi.runtime.v1.RuntimeAgentService/RequestAvatarDebugProbe",

@@ -3,6 +3,7 @@ package runtimeagent
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -11,6 +12,8 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/services/delegation"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -19,11 +22,15 @@ type fakeDelegatedGateway struct {
 	called bool
 	last   delegation.ToolCallRequest
 	out    *delegation.QuarantinedEvidence
+	err    error
 }
 
 func (g *fakeDelegatedGateway) CallTool(_ context.Context, req delegation.ToolCallRequest) (*delegation.QuarantinedEvidence, error) {
 	g.called = true
 	g.last = req
+	if g.err != nil {
+		return nil, g.err
+	}
 	return g.out, nil
 }
 
@@ -181,6 +188,403 @@ func TestRuntimeAgentDelegatedCapabilityPreinvokeApprovalDoesNotCallProvider(t *
 	}
 	if approvals[0].GetExpiresAt() == nil || approvals[0].GetDetail().GetFields()["descriptor_hash"].GetStringValue() == "" {
 		t.Fatalf("pre-invocation approval request lost expiry or descriptor lineage: %+v", approvals[0])
+	}
+}
+
+func TestRuntimeAgentDelegatedCapabilityResumeExecutesApprovedPausedRequest(t *testing.T) {
+	svc := testDelegatedControlSurfaceService()
+	svc.chatAnchors = map[string]*publicChatAnchorState{
+		"anchor-1": {
+			ConversationAnchorID: "anchor-1",
+			AgentID:              "agent-1",
+			CallerAppID:          "nimi.desktop",
+			SubjectUserID:        "user-1",
+			ThreadID:             "thread-1",
+		},
+	}
+	_, err := svc.UpsertDelegatedProviderProfile(context.Background(), &runtimev1.UpsertDelegatedProviderProfileRequest{
+		Context: testDelegatedControlContext(),
+		AgentId: "agent-1",
+		ProviderProfile: &runtimev1.DelegatedProviderProfile{
+			ProviderProfileId: "provider-1",
+			DisplayName:       "Controlled provider",
+			ProviderKind:      runtimev1.DelegatedProviderKind_DELEGATED_PROVIDER_KIND_MCP_TOOL_PROVIDER,
+			TransportKind:     runtimev1.DelegatedTransportKind_DELEGATED_TRANSPORT_KIND_STDIO_COMMAND,
+			State:             runtimev1.DelegatedProviderState_DELEGATED_PROVIDER_STATE_READY,
+			TrustTier:         runtimev1.DelegatedProviderTrustTier_DELEGATED_PROVIDER_TRUST_TIER_CONTROLLED_LOCAL,
+			AllowedTools: []*runtimev1.DelegatedToolAllowlistEntry{{
+				ToolName:          "calendar_lookup",
+				InputSchemaDigest: "sha256:descriptor",
+			}},
+			TransportRef: "runtime-transport://controlled-provider",
+			Command:      "controlled-provider",
+			Timeout:      durationpb.New(time.Second),
+		},
+	})
+	if err != nil {
+		t.Fatalf("upsert delegated provider profile: %v", err)
+	}
+	gateway := &fakeDelegatedGateway{out: cleanRuntimeAgentDelegatedEvidence(t)}
+	firewall := &fakeDelegatedFirewall{out: &delegation.FirewallDecision{
+		Verdict:          delegation.FirewallVerdictAcceptedObservation,
+		NormalizedOutput: json.RawMessage(`{"content":[{"type":"text","text":"calendar has three events tomorrow"}]}`),
+	}}
+	svc.SetDelegatedCapabilityRuntime(gateway, firewall)
+	args, err := structpb.NewStruct(map[string]any{"day": "tomorrow"})
+	if err != nil {
+		t.Fatalf("build args: %v", err)
+	}
+	pending, err := svc.ExecuteDelegatedCapability(context.Background(), &runtimev1.ExecuteDelegatedCapabilityRequest{
+		Context:              testDelegatedControlContext(),
+		AgentId:              "agent-1",
+		ConversationAnchorId: "anchor-1",
+		TurnId:               "turn-1",
+		StreamId:             "stream-1",
+		RequestId:            "request-1",
+		ProviderProfileId:    "provider-1",
+		CapabilityId:         "calendar.read",
+		ToolName:             "calendar_lookup",
+		Arguments:            args,
+		DescriptorHash:       "sha256:descriptor",
+		ProtocolRevision:     "2025-06-18",
+		OutputKind:           delegation.OutputKindObservation,
+		RequiresApproval:     true,
+	})
+	if err != nil {
+		t.Fatalf("ExecuteDelegatedCapability approval request: %v", err)
+	}
+	if gateway.called || firewall.called {
+		t.Fatalf("pre-invocation approval must not call gateway/firewall: gateway=%v firewall=%v", gateway.called, firewall.called)
+	}
+	if pending.GetDiagnostic().GetRuntimeDecision() != "approval_required" || pending.GetModelOutput() != nil {
+		t.Fatalf("expected approval_required without model output, got %+v", pending)
+	}
+	approvalID := pending.GetApprovalRequest().GetApprovalRequestId()
+	if approvalID == "" {
+		t.Fatal("approval request id is required")
+	}
+	if approvalID != pending.GetDiagnostic().GetDiagnosticId() ||
+		pending.GetApprovalRequest().GetState() != runtimev1.DelegatedApprovalRequestState_DELEGATED_APPROVAL_REQUEST_STATE_PENDING {
+		t.Fatalf("execute response did not return pending approval lineage: %+v", pending.GetApprovalRequest())
+	}
+	approved, err := svc.SubmitDelegatedApprovalDecision(context.Background(), &runtimev1.SubmitDelegatedApprovalDecisionRequest{
+		Context:           testDelegatedControlContext(),
+		AgentId:           "agent-1",
+		ApprovalRequestId: approvalID,
+		Decision:          runtimev1.DelegatedApprovalDecision_DELEGATED_APPROVAL_DECISION_APPROVE,
+		DecisionReason:    "user approved",
+	})
+	if err != nil {
+		t.Fatalf("SubmitDelegatedApprovalDecision: %v", err)
+	}
+	if approved.GetApprovalRequest().GetState() != runtimev1.DelegatedApprovalRequestState_DELEGATED_APPROVAL_REQUEST_STATE_APPROVED {
+		t.Fatalf("approval state mismatch: %+v", approved.GetApprovalRequest())
+	}
+	resumed, err := svc.ResumeDelegatedCapability(context.Background(), &runtimev1.ResumeDelegatedCapabilityRequest{
+		Context:           testDelegatedControlContext(),
+		AgentId:           "agent-1",
+		ApprovalRequestId: approvalID,
+	})
+	if err != nil {
+		t.Fatalf("ResumeDelegatedCapability: %v", err)
+	}
+	if !gateway.called || !firewall.called {
+		t.Fatalf("resume must call gateway and firewall: gateway=%v firewall=%v", gateway.called, firewall.called)
+	}
+	if firewall.last.RequiresApproval {
+		t.Fatal("approved resume must clear pre-invocation approval flag before firewall evaluation")
+	}
+	modelOutput, err := json.Marshal(resumed.GetModelOutput().AsMap())
+	if err != nil {
+		t.Fatalf("marshal model output: %v", err)
+	}
+	if !strings.Contains(string(modelOutput), "calendar has three events tomorrow") {
+		t.Fatalf("model output did not expose firewall-normalized result: %s", modelOutput)
+	}
+	if resumed.GetApprovalRequest().GetState() != runtimev1.DelegatedApprovalRequestState_DELEGATED_APPROVAL_REQUEST_STATE_APPROVED {
+		t.Fatalf("resume did not return approved request lineage: %+v", resumed.GetApprovalRequest())
+	}
+	_, err = svc.ResumeDelegatedCapability(context.Background(), &runtimev1.ResumeDelegatedCapabilityRequest{
+		Context:           testDelegatedControlContext(),
+		AgentId:           "agent-1",
+		ApprovalRequestId: approvalID,
+	})
+	if status.Code(err) != codes.FailedPrecondition {
+		t.Fatalf("second resume must fail closed after paused request consumption, got %v", err)
+	}
+}
+
+func TestRuntimeAgentDelegatedCapabilityPostFirewallApprovalResumeUsesCachedOutput(t *testing.T) {
+	svc := testDelegatedControlSurfaceService()
+	svc.chatAnchors = map[string]*publicChatAnchorState{
+		"anchor-1": {
+			ConversationAnchorID: "anchor-1",
+			AgentID:              "agent-1",
+			CallerAppID:          "nimi.desktop",
+			SubjectUserID:        "user-1",
+			ThreadID:             "thread-1",
+		},
+	}
+	upsertDelegatedApprovalTestProfile(t, svc, "sha256:descriptor")
+	gateway := &fakeDelegatedGateway{out: cleanRuntimeAgentDelegatedEvidence(t)}
+	firewall := &fakeDelegatedFirewall{out: &delegation.FirewallDecision{
+		Verdict:          delegation.FirewallVerdictApprovalRequired,
+		ReasonCode:       delegation.ReasonApprovalRequired,
+		NormalizedOutput: json.RawMessage(`{"content":[{"type":"text","text":"cached approved calendar result"}]}`),
+	}}
+	svc.SetDelegatedCapabilityRuntime(gateway, firewall)
+	args, err := structpb.NewStruct(map[string]any{"day": "tomorrow"})
+	if err != nil {
+		t.Fatalf("build args: %v", err)
+	}
+	pending, err := svc.ExecuteDelegatedCapability(context.Background(), &runtimev1.ExecuteDelegatedCapabilityRequest{
+		Context:              testDelegatedControlContext(),
+		AgentId:              "agent-1",
+		ConversationAnchorId: "anchor-1",
+		TurnId:               "turn-1",
+		StreamId:             "stream-1",
+		RequestId:            "request-1",
+		ProviderProfileId:    "calendar-mcp",
+		CapabilityId:         "calendar.read",
+		ToolName:             "calendar_lookup",
+		Arguments:            args,
+		DescriptorHash:       "sha256:descriptor",
+		ProtocolRevision:     "2025-06-18",
+		OutputKind:           delegation.OutputKindObservation,
+	})
+	if err != nil {
+		t.Fatalf("ExecuteDelegatedCapability post-firewall approval: %v", err)
+	}
+	if !gateway.called || !firewall.called {
+		t.Fatalf("post-firewall approval should have executed provider once: gateway=%v firewall=%v", gateway.called, firewall.called)
+	}
+	approvalID := pending.GetApprovalRequest().GetApprovalRequestId()
+	if approvalID == "" || pending.GetModelOutput() != nil {
+		t.Fatalf("pending post-firewall approval must hide model output and carry approval id: %+v", pending)
+	}
+	if got := delegatedApprovalKind(pending.GetApprovalRequest()); got != delegatedPausedModePostFirewall {
+		t.Fatalf("approval kind mismatch: %s", got)
+	}
+	if _, err := svc.SubmitDelegatedApprovalDecision(context.Background(), &runtimev1.SubmitDelegatedApprovalDecisionRequest{
+		Context:           testDelegatedControlContext(),
+		AgentId:           "agent-1",
+		ApprovalRequestId: approvalID,
+		Decision:          runtimev1.DelegatedApprovalDecision_DELEGATED_APPROVAL_DECISION_APPROVE,
+	}); err != nil {
+		t.Fatalf("SubmitDelegatedApprovalDecision: %v", err)
+	}
+	gateway.called = false
+	firewall.called = false
+	resumed, err := svc.ResumeDelegatedCapability(context.Background(), &runtimev1.ResumeDelegatedCapabilityRequest{
+		Context:           testDelegatedControlContext(),
+		AgentId:           "agent-1",
+		ApprovalRequestId: approvalID,
+	})
+	if err != nil {
+		t.Fatalf("ResumeDelegatedCapability post-firewall approval: %v", err)
+	}
+	if gateway.called || firewall.called {
+		t.Fatalf("post-firewall resume must not repeat provider/firewall: gateway=%v firewall=%v", gateway.called, firewall.called)
+	}
+	modelOutput, err := json.Marshal(resumed.GetModelOutput().AsMap())
+	if err != nil {
+		t.Fatalf("marshal model output: %v", err)
+	}
+	if !strings.Contains(string(modelOutput), "cached approved calendar result") {
+		t.Fatalf("resume did not return cached normalized output: %s", modelOutput)
+	}
+}
+
+func TestRuntimeAgentDelegatedCapabilityResumeFailureKeepsPausedRequestRetryable(t *testing.T) {
+	svc := testDelegatedControlSurfaceService()
+	svc.chatAnchors = map[string]*publicChatAnchorState{
+		"anchor-1": {
+			ConversationAnchorID: "anchor-1",
+			AgentID:              "agent-1",
+			CallerAppID:          "nimi.desktop",
+			SubjectUserID:        "user-1",
+			ThreadID:             "thread-1",
+		},
+	}
+	upsertDelegatedApprovalTestProfile(t, svc, "sha256:descriptor")
+	gateway := &fakeDelegatedGateway{out: cleanRuntimeAgentDelegatedEvidence(t)}
+	firewall := &fakeDelegatedFirewall{out: &delegation.FirewallDecision{
+		Verdict:          delegation.FirewallVerdictAcceptedObservation,
+		NormalizedOutput: json.RawMessage(`{"content":[{"type":"text","text":"retry succeeded"}]}`),
+	}}
+	svc.SetDelegatedCapabilityRuntime(gateway, firewall)
+	args, err := structpb.NewStruct(map[string]any{"day": "tomorrow"})
+	if err != nil {
+		t.Fatalf("build args: %v", err)
+	}
+	pending, err := svc.ExecuteDelegatedCapability(context.Background(), &runtimev1.ExecuteDelegatedCapabilityRequest{
+		Context:              testDelegatedControlContext(),
+		AgentId:              "agent-1",
+		ConversationAnchorId: "anchor-1",
+		TurnId:               "turn-1",
+		StreamId:             "stream-1",
+		RequestId:            "request-1",
+		ProviderProfileId:    "calendar-mcp",
+		CapabilityId:         "calendar.read",
+		ToolName:             "calendar_lookup",
+		Arguments:            args,
+		DescriptorHash:       "sha256:descriptor",
+		ProtocolRevision:     "2025-06-18",
+		OutputKind:           delegation.OutputKindObservation,
+		RequiresApproval:     true,
+	})
+	if err != nil {
+		t.Fatalf("ExecuteDelegatedCapability approval request: %v", err)
+	}
+	approvalID := pending.GetApprovalRequest().GetApprovalRequestId()
+	if _, err := svc.SubmitDelegatedApprovalDecision(context.Background(), &runtimev1.SubmitDelegatedApprovalDecisionRequest{
+		Context:           testDelegatedControlContext(),
+		AgentId:           "agent-1",
+		ApprovalRequestId: approvalID,
+		Decision:          runtimev1.DelegatedApprovalDecision_DELEGATED_APPROVAL_DECISION_APPROVE,
+	}); err != nil {
+		t.Fatalf("SubmitDelegatedApprovalDecision: %v", err)
+	}
+	gateway.err = errors.New("transient delegated provider failure")
+	_, err = svc.ResumeDelegatedCapability(context.Background(), &runtimev1.ResumeDelegatedCapabilityRequest{
+		Context:           testDelegatedControlContext(),
+		AgentId:           "agent-1",
+		ApprovalRequestId: approvalID,
+	})
+	if status.Code(err) != codes.FailedPrecondition {
+		t.Fatalf("expected failed resume to fail closed, got %v", err)
+	}
+	gateway.err = nil
+	resumed, err := svc.ResumeDelegatedCapability(context.Background(), &runtimev1.ResumeDelegatedCapabilityRequest{
+		Context:           testDelegatedControlContext(),
+		AgentId:           "agent-1",
+		ApprovalRequestId: approvalID,
+	})
+	if err != nil {
+		t.Fatalf("retry ResumeDelegatedCapability: %v", err)
+	}
+	modelOutput, err := json.Marshal(resumed.GetModelOutput().AsMap())
+	if err != nil {
+		t.Fatalf("marshal model output: %v", err)
+	}
+	if !strings.Contains(string(modelOutput), "retry succeeded") {
+		t.Fatalf("retry resume did not return output: %s", modelOutput)
+	}
+}
+
+func TestRuntimeAgentDelegatedControlStatePersistsApprovedPausedRequestAcrossRestart(t *testing.T) {
+	localStatePath := t.TempDir() + "/local-state.json"
+	svc, closeFn := newRuntimeAgentServiceForPublicChatStatePathWithClose(t, localStatePath)
+	agentID := testRuntimeAgentLocalRef("agent-alpha")
+	ctx := testRuntimeAgentIdentityContext("agent-alpha")
+	svc.SetAuditStore(auditlog.New(128, 128))
+	svc.chatSurfaceMu.Lock()
+	svc.chatAnchors["anchor-1"] = &publicChatAnchorState{
+		ConversationAnchorID: "anchor-1",
+		AgentID:              agentID,
+		LocalAgentRef:        agentID,
+		OwnerUserID:          "user-1",
+		RealmAgentID:         "agent-alpha",
+		CallerAppID:          ctx.GetAppId(),
+		SubjectUserID:        "user-1",
+		ThreadID:             "thread-1",
+		Status:               runtimev1.ConversationAnchorStatus_CONVERSATION_ANCHOR_STATUS_ACTIVE,
+	}
+	svc.chatSurfaceMu.Unlock()
+	svc.persistCurrentPublicChatSurfaceState()
+	_, err := svc.UpsertDelegatedProviderProfile(context.Background(), &runtimev1.UpsertDelegatedProviderProfileRequest{
+		Context: ctx,
+		AgentId: agentID,
+		ProviderProfile: &runtimev1.DelegatedProviderProfile{
+			ProviderProfileId: "calendar-mcp",
+			DisplayName:       "Calendar MCP",
+			ProviderKind:      runtimev1.DelegatedProviderKind_DELEGATED_PROVIDER_KIND_MCP_TOOL_PROVIDER,
+			TransportKind:     runtimev1.DelegatedTransportKind_DELEGATED_TRANSPORT_KIND_STDIO_COMMAND,
+			State:             runtimev1.DelegatedProviderState_DELEGATED_PROVIDER_STATE_READY,
+			TrustTier:         runtimev1.DelegatedProviderTrustTier_DELEGATED_PROVIDER_TRUST_TIER_USER_ADDED_REVIEWED,
+			AllowedTools: []*runtimev1.DelegatedToolAllowlistEntry{{
+				ToolName:          "calendar_lookup",
+				InputSchemaDigest: "sha256:descriptor",
+			}},
+			TransportRef: "runtime-transport://calendar-mcp",
+			Command:      "calendar-mcp",
+			Timeout:      durationpb.New(time.Second),
+		},
+	})
+	if err != nil {
+		t.Fatalf("upsert delegated provider profile: %v", err)
+	}
+	gateway := &fakeDelegatedGateway{out: cleanRuntimeAgentDelegatedEvidence(t)}
+	firewall := &fakeDelegatedFirewall{out: &delegation.FirewallDecision{
+		Verdict:          delegation.FirewallVerdictAcceptedObservation,
+		NormalizedOutput: json.RawMessage(`{"content":[{"type":"text","text":"restored resume output"}]}`),
+	}}
+	svc.SetDelegatedCapabilityRuntime(gateway, firewall)
+	args, err := structpb.NewStruct(map[string]any{"day": "tomorrow"})
+	if err != nil {
+		t.Fatalf("build args: %v", err)
+	}
+	pending, err := svc.ExecuteDelegatedCapability(context.Background(), &runtimev1.ExecuteDelegatedCapabilityRequest{
+		Context:              ctx,
+		AgentId:              agentID,
+		ConversationAnchorId: "anchor-1",
+		TurnId:               "turn-1",
+		StreamId:             "stream-1",
+		RequestId:            "request-1",
+		ProviderProfileId:    "calendar-mcp",
+		CapabilityId:         "calendar.read",
+		ToolName:             "calendar_lookup",
+		Arguments:            args,
+		DescriptorHash:       "sha256:descriptor",
+		ProtocolRevision:     "2025-06-18",
+		OutputKind:           delegation.OutputKindObservation,
+		RequiresApproval:     true,
+	})
+	if err != nil {
+		t.Fatalf("ExecuteDelegatedCapability approval request: %v", err)
+	}
+	approvalID := pending.GetApprovalRequest().GetApprovalRequestId()
+	if _, err := svc.SubmitDelegatedApprovalDecision(context.Background(), &runtimev1.SubmitDelegatedApprovalDecisionRequest{
+		Context:           ctx,
+		AgentId:           agentID,
+		ApprovalRequestId: approvalID,
+		Decision:          runtimev1.DelegatedApprovalDecision_DELEGATED_APPROVAL_DECISION_APPROVE,
+	}); err != nil {
+		t.Fatalf("SubmitDelegatedApprovalDecision: %v", err)
+	}
+	closeFn()
+
+	restarted, restartClose := newRuntimeAgentServiceForPublicChatStatePathWithClose(t, localStatePath)
+	defer restartClose()
+	restarted.SetAuditStore(auditlog.New(128, 128))
+	restartGateway := &fakeDelegatedGateway{out: cleanRuntimeAgentDelegatedEvidence(t)}
+	restartFirewall := &fakeDelegatedFirewall{out: &delegation.FirewallDecision{
+		Verdict:          delegation.FirewallVerdictAcceptedObservation,
+		NormalizedOutput: json.RawMessage(`{"content":[{"type":"text","text":"restored resume output"}]}`),
+	}}
+	restarted.SetDelegatedCapabilityRuntime(restartGateway, restartFirewall)
+	if approvals := restarted.listDelegatedApprovalRequests(agentID, "anchor-1"); len(approvals) != 1 ||
+		approvals[0].GetApprovalRequestId() != approvalID ||
+		approvals[0].GetState() != runtimev1.DelegatedApprovalRequestState_DELEGATED_APPROVAL_REQUEST_STATE_APPROVED {
+		t.Fatalf("restart did not restore approved request: %+v", approvals)
+	}
+	resumed, err := restarted.ResumeDelegatedCapability(context.Background(), &runtimev1.ResumeDelegatedCapabilityRequest{
+		Context:           ctx,
+		AgentId:           agentID,
+		ApprovalRequestId: approvalID,
+	})
+	if err != nil {
+		t.Fatalf("ResumeDelegatedCapability after restart: %v", err)
+	}
+	if !restartGateway.called || !restartFirewall.called {
+		t.Fatalf("restart resume did not execute persisted preinvoke request: gateway=%v firewall=%v", restartGateway.called, restartFirewall.called)
+	}
+	modelOutput, err := json.Marshal(resumed.GetModelOutput().AsMap())
+	if err != nil {
+		t.Fatalf("marshal model output: %v", err)
+	}
+	if !strings.Contains(string(modelOutput), "restored resume output") {
+		t.Fatalf("restart resume output mismatch: %s", modelOutput)
 	}
 }
 

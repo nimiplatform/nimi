@@ -13,6 +13,8 @@ import {
   type GetDelegatedControlSurfaceSnapshotResponse,
   type GetDelegatedReplayTraceRequest,
   type GetDelegatedReplayTraceResponse,
+  type ResumeDelegatedCapabilityRequest,
+  type ResumeDelegatedCapabilityResponse,
   type RuntimeTypedCallOptions,
   type SetDelegatedProviderStateRequest,
   type SetDelegatedProviderStateResponse,
@@ -30,7 +32,8 @@ import {
   type NimiRuntimeAgentAuthClient,
   type NimiRuntimeAgentScopeRunner,
 } from './runtime-agent-protected';
-import { normalizeNimiRuntimeAgentText } from './runtime-agent-values';
+import { normalizeNimiRuntimeAgentText, toNimiRuntimeProtoStruct } from './runtime-agent-values';
+import type { NimiJsonObject } from '../core/contracts';
 
 const READ_SCOPE = 'runtime.agent.delegation.read';
 const WRITE_SCOPE = 'runtime.agent.delegation.write';
@@ -51,6 +54,22 @@ export interface NimiRuntimeAgentDelegatedProviderProfileDraft {
 export interface NimiRuntimeAgentDelegatedControlSurfaceQuery {
   readonly agentId: string;
   readonly conversationAnchorId?: string;
+}
+
+export interface NimiRuntimeAgentDelegatedCapabilityExecutionInput {
+  readonly agentId: string;
+  readonly conversationAnchorId: string;
+  readonly turnId: string;
+  readonly streamId?: string;
+  readonly requestId?: string;
+  readonly providerProfileId: string;
+  readonly capabilityId: string;
+  readonly toolName: string;
+  readonly arguments?: NimiJsonObject;
+  readonly descriptorHash: string;
+  readonly protocolRevision?: string;
+  readonly outputKind?: string;
+  readonly requiresApproval?: boolean;
 }
 
 export interface NimiRuntimeAgentDelegatedCapabilitySurface {
@@ -75,6 +94,13 @@ export interface NimiRuntimeAgentDelegatedCapabilitySurface {
     decision: 'approve' | 'reject',
     decisionReason?: string,
   ): Promise<SubmitDelegatedApprovalDecisionResponse>;
+  executeCapability(
+    input: NimiRuntimeAgentDelegatedCapabilityExecutionInput,
+  ): Promise<ExecuteDelegatedCapabilityResponse>;
+  resumeApprovedCapability(
+    agentId: string,
+    approvalRequestId: string,
+  ): Promise<ResumeDelegatedCapabilityResponse>;
 }
 
 export interface NimiHostRuntimeAgentDelegatedCapabilityClient {
@@ -86,6 +112,10 @@ export interface NimiHostRuntimeAgentDelegatedCapabilityClient {
       request: ExecuteDelegatedCapabilityRequest,
       options?: RuntimeTypedCallOptions,
     ): Promise<ExecuteDelegatedCapabilityResponse>;
+    resumeDelegatedCapability?(
+      request: ResumeDelegatedCapabilityRequest,
+      options?: RuntimeTypedCallOptions,
+    ): Promise<ResumeDelegatedCapabilityResponse>;
     getDelegatedControlSurfaceSnapshot(
       request: GetDelegatedControlSurfaceSnapshotRequest,
       options?: RuntimeTypedCallOptions,
@@ -131,6 +161,20 @@ function requireText(value: unknown, field: string): string {
     delegatedError(`Runtime Agent delegated capability requires ${field}.`, 'SDK_RUNTIME_AGENT_DELEGATED_INPUT_INVALID', `provide_${field}`);
   }
   return normalized;
+}
+
+function requireRuntimeMethod<T extends (...args: never[]) => unknown>(
+  method: T | undefined,
+  methodName: string,
+): T {
+  if (!method) {
+    delegatedError(
+      `Runtime Agent delegated capability requires ${methodName}.`,
+      'SDK_RUNTIME_AGENT_DELEGATED_RUNTIME_METHOD_UNAVAILABLE',
+      `enable_${methodName}`,
+    );
+  }
+  return method;
 }
 
 export function buildNimiRuntimeAgentDelegatedProviderProfileFromDraft(
@@ -241,6 +285,56 @@ export function createNimiHostRuntimeAgentDelegatedCapabilitySurface(
           ? DelegatedApprovalDecision.APPROVE
           : DelegatedApprovalDecision.REJECT,
         decisionReason: normalizeNimiRuntimeAgentText(decisionReason),
+      }, callOptions));
+    },
+    async executeCapability(input) {
+      const conversationAnchorId = requireText(input.conversationAnchorId, 'conversation_anchor_id');
+      const turnId = requireText(input.turnId, 'turn_id');
+      const providerProfileId = requireText(input.providerProfileId, 'provider_profile_id');
+      const capabilityId = requireText(input.capabilityId, 'capability_id');
+      const toolName = requireText(input.toolName, 'tool_name');
+      const descriptorHash = requireText(input.descriptorHash, 'descriptor_hash');
+      const { runtime, subjectUserId, agentId, context } = await buildContext(input.agentId);
+      const executeDelegatedCapability = requireRuntimeMethod(
+        runtime.agent.executeDelegatedCapability,
+        'executeDelegatedCapability',
+      );
+      return withNimiRuntimeAgentScopes({
+        runtime,
+        subjectUserId,
+        withScopes: options.withScopes,
+      }, [WRITE_SCOPE], (callOptions) => executeDelegatedCapability({
+        context,
+        agentId,
+        conversationAnchorId,
+        turnId,
+        streamId: normalizeNimiRuntimeAgentText(input.streamId),
+        requestId: normalizeNimiRuntimeAgentText(input.requestId),
+        providerProfileId,
+        capabilityId,
+        toolName,
+        arguments: input.arguments ? toNimiRuntimeProtoStruct(input.arguments) : undefined,
+        descriptorHash,
+        protocolRevision: normalizeNimiRuntimeAgentText(input.protocolRevision),
+        outputKind: normalizeNimiRuntimeAgentText(input.outputKind),
+        requiresApproval: input.requiresApproval === true,
+      }, callOptions));
+    },
+    async resumeApprovedCapability(agentIdInput, approvalRequestIdInput) {
+      const approvalRequestId = requireText(approvalRequestIdInput, 'approval_request_id');
+      const { runtime, subjectUserId, agentId, context } = await buildContext(agentIdInput);
+      const resumeDelegatedCapability = requireRuntimeMethod(
+        runtime.agent.resumeDelegatedCapability,
+        'resumeDelegatedCapability',
+      );
+      return withNimiRuntimeAgentScopes({
+        runtime,
+        subjectUserId,
+        withScopes: options.withScopes,
+      }, [WRITE_SCOPE], (callOptions) => resumeDelegatedCapability({
+        context,
+        agentId,
+        approvalRequestId,
       }, callOptions));
     },
     async loadReplayTrace(agentIdInput, decisionIdInput, conversationAnchorIdInput = '', turnIdInput = '') {

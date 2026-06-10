@@ -143,6 +143,7 @@ export const RUNTIME_AGENT_METHODS = [
   'getDelegatedReplayTrace',
   'getDelegatedControlSurfaceSnapshot',
   'executeDelegatedCapability',
+  'resumeDelegatedCapability',
   'getAgentState',
   'updateAgentState',
   'setAgentPresentationProfile',

@@ -102,6 +102,7 @@ surfaces:
   - methods_89
   - methods_90
   - methods_91
+  - methods_92
 description: Agent, AI, realtime, and cognition posture entries.
 services:
   - RuntimeAgentService
@@ -331,6 +332,12 @@ methods:
   - method_id: /nimi.runtime.v1.RuntimeAgentService/ExecuteDelegatedCapability
     posture: anonymous_read
     rationale: delegated capability execution; no JWT validation in handler
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/ResumeDelegatedCapability
+    posture: anonymous_read
+    rationale: delegated capability approved-request resume execution; no JWT validation in handler
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001

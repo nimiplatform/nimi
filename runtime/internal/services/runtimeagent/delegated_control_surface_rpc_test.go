@@ -317,6 +317,66 @@ func TestDelegatedApprovalDecisionFailsClosedOnExpiredApproval(t *testing.T) {
 	}
 }
 
+func TestDelegatedApprovalExpiryPersistsAcrossRestart(t *testing.T) {
+	localStatePath := t.TempDir() + "/local-state.json"
+	svc, closeFn := newRuntimeAgentServiceForPublicChatStatePathWithClose(t, localStatePath)
+	agentID := testRuntimeAgentLocalRef("agent-alpha")
+	ctx := testRuntimeAgentIdentityContext("agent-alpha")
+	upsertDelegatedApprovalTestProfileForAgent(t, svc, ctx, agentID, "sha256:calendar")
+	svc.recordDelegatedCapabilityDecision(&runtimeAgentDelegatedCapabilityDecision{
+		DecisionID:           "deleg-decision-expiry-persist",
+		AgentID:              agentID,
+		DelegationRequestID:  "deleg-request-expiry-persist",
+		DelegationResultID:   "deleg-result-expiry-persist",
+		ConversationAnchorID: "anchor-expiry-persist",
+		TurnID:               "turn-expiry-persist",
+		ProviderID:           "calendar-mcp",
+		CapabilityID:         "calendar.read",
+		ToolName:             "calendar_lookup",
+		DescriptorHash:       "sha256:calendar",
+		PolicySnapshotID:     delegatedApprovalPolicySnapshotID("calendar-mcp", "calendar.read", "calendar_lookup", "sha256:calendar"),
+		ApprovalPrincipalID:  "user-1",
+		ApprovalExpiresAt:    time.Now().UTC().Add(defaultDelegatedApprovalTTL),
+		GatewayEvidenceID:    "evidence-expiry-persist",
+		FirewallInputID:      "fw-expiry-persist",
+		FirewallVerdict:      "approval_required",
+		ReasonCode:           "requires_human_approval",
+		RuntimeDecision:      "approval_required",
+	})
+	svc.delegatedMu.Lock()
+	approval := svc.delegatedApprovalRequests[delegatedApprovalRequestKey(agentID, "deleg-decision-expiry-persist")]
+	approval.ExpiresAt = timestamppb.New(time.Now().UTC().Add(-time.Minute))
+	svc.delegatedMu.Unlock()
+
+	_, err := svc.SubmitDelegatedApprovalDecision(context.Background(), &runtimev1.SubmitDelegatedApprovalDecisionRequest{
+		Context:           ctx,
+		AgentId:           agentID,
+		ApprovalRequestId: "deleg-decision-expiry-persist",
+		Decision:          runtimev1.DelegatedApprovalDecision_DELEGATED_APPROVAL_DECISION_APPROVE,
+	})
+	if status.Code(err) != codes.FailedPrecondition {
+		t.Fatalf("expected expired approval to fail closed, got %v", err)
+	}
+	closeFn()
+
+	restarted, restartClose := newRuntimeAgentServiceForPublicChatStatePathWithClose(t, localStatePath)
+	defer restartClose()
+	listed, err := restarted.ListDelegatedApprovalRequests(context.Background(), &runtimev1.ListDelegatedApprovalRequestsRequest{
+		Context:              ctx,
+		AgentId:              agentID,
+		ConversationAnchorId: "anchor-expiry-persist",
+	})
+	if err != nil {
+		t.Fatalf("list approvals after restart: %v", err)
+	}
+	if len(listed.GetApprovalRequests()) != 1 {
+		t.Fatalf("expected one persisted approval after restart, got %+v", listed.GetApprovalRequests())
+	}
+	if got := listed.GetApprovalRequests()[0].GetState(); got != runtimev1.DelegatedApprovalRequestState_DELEGATED_APPROVAL_REQUEST_STATE_EXPIRED {
+		t.Fatalf("expected persisted expired approval, got %s", got)
+	}
+}
+
 func TestDelegatedApprovalDecisionFailsClosedOnDescriptorDrift(t *testing.T) {
 	svc := testDelegatedControlSurfaceService()
 	ctx := testDelegatedControlContext()
@@ -511,11 +571,22 @@ func TestDelegatedReplayTraceIncludesApprovalState(t *testing.T) {
 	if err != nil {
 		t.Fatalf("get delegated approval replay trace: %v", err)
 	}
-	if len(replay.GetTrace().GetStages()) != 6 {
-		t.Fatalf("expected approval replay stage, got %+v", replay.GetTrace().GetStages())
+	stages := replay.GetTrace().GetStages()
+	if len(stages) != 4 {
+		t.Fatalf("expected approval-only replay stages, got %+v", stages)
 	}
-	if replay.GetTrace().GetStages()[3].GetKind() != runtimev1.DelegatedTraceStageKind_DELEGATED_TRACE_STAGE_KIND_APPROVAL_DECISION {
-		t.Fatalf("expected approval stage, got %+v", replay.GetTrace().GetStages()[3])
+	hasApprovalStage := false
+	for _, stage := range stages {
+		switch stage.GetKind() {
+		case runtimev1.DelegatedTraceStageKind_DELEGATED_TRACE_STAGE_KIND_APPROVAL_DECISION:
+			hasApprovalStage = true
+		case runtimev1.DelegatedTraceStageKind_DELEGATED_TRACE_STAGE_KIND_GATEWAY_EVIDENCE,
+			runtimev1.DelegatedTraceStageKind_DELEGATED_TRACE_STAGE_KIND_FIREWALL_VERDICT:
+			t.Fatalf("pre-invocation approval replay must not claim execution-stage evidence: %+v", stages)
+		}
+	}
+	if !hasApprovalStage {
+		t.Fatalf("expected approval stage, got %+v", stages)
 	}
 }
 
@@ -535,14 +606,20 @@ func testDelegatedControlSurfaceServiceWithoutAudit() *Service {
 		},
 		delegatedProviderProfiles: map[string]*runtimev1.DelegatedProviderProfile{},
 		delegatedApprovalRequests: map[string]*runtimev1.DelegatedApprovalRequest{},
+		delegatedPausedRequests:   map[string]*runtimeAgentPausedDelegatedCapabilityRequest{},
 	}
 }
 
 func upsertDelegatedApprovalTestProfile(t *testing.T, svc *Service, descriptorHash string) {
 	t.Helper()
+	upsertDelegatedApprovalTestProfileForAgent(t, svc, testDelegatedControlContext(), "agent-1", descriptorHash)
+}
+
+func upsertDelegatedApprovalTestProfileForAgent(t *testing.T, svc *Service, ctx *runtimev1.AgentRequestContext, agentID string, descriptorHash string) {
+	t.Helper()
 	_, err := svc.UpsertDelegatedProviderProfile(context.Background(), &runtimev1.UpsertDelegatedProviderProfileRequest{
-		Context: testDelegatedControlContext(),
-		AgentId: "agent-1",
+		Context: ctx,
+		AgentId: agentID,
 		ProviderProfile: &runtimev1.DelegatedProviderProfile{
 			ProviderProfileId: "calendar-mcp",
 			DisplayName:       "Calendar MCP",

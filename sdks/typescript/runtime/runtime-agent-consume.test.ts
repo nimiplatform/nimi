@@ -389,6 +389,14 @@ test('Runtime Agent delegated helpers build scoped provider, approval, and repla
         },
       },
       agent: {
+        async executeDelegatedCapability(request, options) {
+          calls.push({ method: 'execute', request, options });
+          return { modelOutput: toNimiRuntimeProtoStruct({ text: 'runtime-owned result' }) };
+        },
+        async resumeDelegatedCapability(request, options) {
+          calls.push({ method: 'resume', request, options });
+          return { modelOutput: toNimiRuntimeProtoStruct({ text: 'resumed result' }) };
+        },
         async getDelegatedControlSurfaceSnapshot(request, options) {
           calls.push({ method: 'snapshot', request, options });
           return { snapshot: { providerProfiles: [] } };
@@ -409,7 +417,7 @@ test('Runtime Agent delegated helpers build scoped provider, approval, and repla
         },
         async submitDelegatedApprovalDecision(request, options) {
           calls.push({ method: 'approval', request, options });
-          return { accepted: true, decision: request.decision };
+          return { approvalRequest: undefined };
         },
         async getDelegatedReplayTrace(request, options) {
           calls.push({ method: 'replay', request, options });
@@ -440,7 +448,26 @@ test('Runtime Agent delegated helpers build scoped provider, approval, and repla
     'approval-1',
     'approve',
     'approved by user',
-  )).decision, DelegatedApprovalDecision.APPROVE);
+  )).approvalRequest, undefined);
+  assert.deepEqual((await surface.executeCapability({
+    agentId: 'local-agent:owner-1:agent-1',
+    conversationAnchorId: 'anchor-1',
+    turnId: 'turn-1',
+    streamId: 'stream-1',
+    requestId: 'request-1',
+    providerProfileId: 'provider-1',
+    capabilityId: 'calendar.lookup',
+    toolName: 'search',
+    arguments: { query: 'hello' },
+    descriptorHash: 'sha256:abc',
+    protocolRevision: 'v1',
+    outputKind: 'observation',
+    requiresApproval: true,
+  })).modelOutput, toNimiRuntimeProtoStruct({ text: 'runtime-owned result' }));
+  assert.deepEqual((await surface.resumeApprovedCapability(
+    'local-agent:owner-1:agent-1',
+    'approval-1',
+  )).modelOutput, toNimiRuntimeProtoStruct({ text: 'resumed result' }));
   assert.deepEqual(await surface.loadReplayTrace(
     'local-agent:owner-1:agent-1',
     'decision-1',
@@ -453,6 +480,8 @@ test('Runtime Agent delegated helpers build scoped provider, approval, and repla
     ['runtime.agent.delegation.write'],
     ['runtime.agent.delegation.write'],
     ['runtime.agent.delegation.write'],
+    ['runtime.agent.delegation.write'],
+    ['runtime.agent.delegation.write'],
     ['runtime.agent.delegation.read'],
   ]);
   const stateCall = calls.find((call) => call.method === 'state') as { readonly request?: { readonly state?: number; readonly lifecycleReasonCode?: string } };
@@ -461,6 +490,28 @@ test('Runtime Agent delegated helpers build scoped provider, approval, and repla
   const approvalCall = calls.find((call) => call.method === 'approval') as { readonly request?: { readonly decision?: number; readonly decisionReason?: string } };
   assert.equal(approvalCall.request?.decision, DelegatedApprovalDecision.APPROVE);
   assert.equal(approvalCall.request?.decisionReason, 'approved by user');
+  const executeCall = calls.find((call) => call.method === 'execute') as {
+    readonly request?: {
+      readonly conversationAnchorId?: string;
+      readonly turnId?: string;
+      readonly providerProfileId?: string;
+      readonly capabilityId?: string;
+      readonly toolName?: string;
+      readonly arguments?: unknown;
+      readonly descriptorHash?: string;
+      readonly requiresApproval?: boolean;
+    };
+  };
+  assert.equal(executeCall.request?.conversationAnchorId, 'anchor-1');
+  assert.equal(executeCall.request?.turnId, 'turn-1');
+  assert.equal(executeCall.request?.providerProfileId, 'provider-1');
+  assert.equal(executeCall.request?.capabilityId, 'calendar.lookup');
+  assert.equal(executeCall.request?.toolName, 'search');
+  assert.deepEqual(executeCall.request?.arguments, toNimiRuntimeProtoStruct({ query: 'hello' }));
+  assert.equal(executeCall.request?.descriptorHash, 'sha256:abc');
+  assert.equal(executeCall.request?.requiresApproval, true);
+  const resumeCall = calls.find((call) => call.method === 'resume') as { readonly request?: { readonly approvalRequestId?: string } };
+  assert.equal(resumeCall.request?.approvalRequestId, 'approval-1');
   const replayCall = calls.find((call) => call.method === 'replay') as { readonly request?: { readonly conversationAnchorId?: string; readonly turnId?: string } };
   assert.equal(replayCall.request?.conversationAnchorId, 'anchor-1');
   assert.equal(replayCall.request?.turnId, 'turn-1');

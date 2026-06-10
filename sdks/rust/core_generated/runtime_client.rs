@@ -376,6 +376,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ResolveAvatarLiveInstanceBindingResponse",
     },
     RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/ResumeDelegatedCapability",
+        service: "RuntimeAgentService",
+        method: "ResumeDelegatedCapability",
+        kind: "unary",
+        request_type: "ResumeDelegatedCapabilityRequest",
+        response_type: "ResumeDelegatedCapabilityResponse",
+    },
+    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile",
         service: "RuntimeAgentService",
         method: "SetAgentPresentationProfile",

@@ -286,6 +286,11 @@ method_mappings:
     proto_method: ExecuteDelegatedCapability
     mapping_posture: aligned
   - design_service: RuntimeAgentService
+    design_method: ResumeDelegatedCapability
+    proto_service: RuntimeAgentService
+    proto_method: ResumeDelegatedCapability
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
     design_method: GetAvatarDebugSnapshot
     proto_service: RuntimeAgentService
     proto_method: GetAvatarDebugSnapshot

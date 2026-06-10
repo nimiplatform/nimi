@@ -294,4 +294,19 @@ message ExecuteDelegatedCapabilityRequest {
 message ExecuteDelegatedCapabilityResponse {
   DelegatedDiagnostic diagnostic = 1;
   DelegatedReplayTrace replay_trace = 2;
+  google.protobuf.Struct model_output = 3;
+  DelegatedApprovalRequest approval_request = 4;
+}
+
+message ResumeDelegatedCapabilityRequest {
+  AgentRequestContext context = 1;
+  string agent_id = 2;
+  string approval_request_id = 3;
+}
+
+message ResumeDelegatedCapabilityResponse {
+  DelegatedDiagnostic diagnostic = 1;
+  DelegatedReplayTrace replay_trace = 2;
+  google.protobuf.Struct model_output = 3;
+  DelegatedApprovalRequest approval_request = 4;
 }

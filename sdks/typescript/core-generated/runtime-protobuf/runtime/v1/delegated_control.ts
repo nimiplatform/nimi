@@ -655,6 +655,52 @@ export interface ExecuteDelegatedCapabilityResponse {
      * @generated from protobuf field: nimi.runtime.v1.DelegatedReplayTrace replay_trace = 2
      */
     replayTrace?: DelegatedReplayTrace;
+    /**
+     * @generated from protobuf field: google.protobuf.Struct model_output = 3
+     */
+    modelOutput?: Struct;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.DelegatedApprovalRequest approval_request = 4
+     */
+    approvalRequest?: DelegatedApprovalRequest;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ResumeDelegatedCapabilityRequest
+ */
+export interface ResumeDelegatedCapabilityRequest {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentRequestContext context = 1
+     */
+    context?: AgentRequestContext;
+    /**
+     * @generated from protobuf field: string agent_id = 2
+     */
+    agentId: string;
+    /**
+     * @generated from protobuf field: string approval_request_id = 3
+     */
+    approvalRequestId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ResumeDelegatedCapabilityResponse
+ */
+export interface ResumeDelegatedCapabilityResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.DelegatedDiagnostic diagnostic = 1
+     */
+    diagnostic?: DelegatedDiagnostic;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.DelegatedReplayTrace replay_trace = 2
+     */
+    replayTrace?: DelegatedReplayTrace;
+    /**
+     * @generated from protobuf field: google.protobuf.Struct model_output = 3
+     */
+    modelOutput?: Struct;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.DelegatedApprovalRequest approval_request = 4
+     */
+    approvalRequest?: DelegatedApprovalRequest;
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.DelegatedProviderKind
@@ -2836,7 +2882,9 @@ class ExecuteDelegatedCapabilityResponse$Type extends MessageType<ExecuteDelegat
     constructor() {
         super("nimi.runtime.v1.ExecuteDelegatedCapabilityResponse", [
             { no: 1, name: "diagnostic", kind: "message", T: () => DelegatedDiagnostic },
-            { no: 2, name: "replay_trace", kind: "message", T: () => DelegatedReplayTrace }
+            { no: 2, name: "replay_trace", kind: "message", T: () => DelegatedReplayTrace },
+            { no: 3, name: "model_output", kind: "message", T: () => Struct },
+            { no: 4, name: "approval_request", kind: "message", T: () => DelegatedApprovalRequest }
         ]);
     }
     create(value?: PartialMessage<ExecuteDelegatedCapabilityResponse>): ExecuteDelegatedCapabilityResponse {
@@ -2856,6 +2904,12 @@ class ExecuteDelegatedCapabilityResponse$Type extends MessageType<ExecuteDelegat
                 case /* nimi.runtime.v1.DelegatedReplayTrace replay_trace */ 2:
                     message.replayTrace = DelegatedReplayTrace.internalBinaryRead(reader, reader.uint32(), options, message.replayTrace);
                     break;
+                case /* google.protobuf.Struct model_output */ 3:
+                    message.modelOutput = Struct.internalBinaryRead(reader, reader.uint32(), options, message.modelOutput);
+                    break;
+                case /* nimi.runtime.v1.DelegatedApprovalRequest approval_request */ 4:
+                    message.approvalRequest = DelegatedApprovalRequest.internalBinaryRead(reader, reader.uint32(), options, message.approvalRequest);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -2874,6 +2928,12 @@ class ExecuteDelegatedCapabilityResponse$Type extends MessageType<ExecuteDelegat
         /* nimi.runtime.v1.DelegatedReplayTrace replay_trace = 2; */
         if (message.replayTrace)
             DelegatedReplayTrace.internalBinaryWrite(message.replayTrace, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* google.protobuf.Struct model_output = 3; */
+        if (message.modelOutput)
+            Struct.internalBinaryWrite(message.modelOutput, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.DelegatedApprovalRequest approval_request = 4; */
+        if (message.approvalRequest)
+            DelegatedApprovalRequest.internalBinaryWrite(message.approvalRequest, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -2884,3 +2944,132 @@ class ExecuteDelegatedCapabilityResponse$Type extends MessageType<ExecuteDelegat
  * @generated MessageType for protobuf message nimi.runtime.v1.ExecuteDelegatedCapabilityResponse
  */
 export const ExecuteDelegatedCapabilityResponse = new ExecuteDelegatedCapabilityResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ResumeDelegatedCapabilityRequest$Type extends MessageType<ResumeDelegatedCapabilityRequest> {
+    constructor() {
+        super("nimi.runtime.v1.ResumeDelegatedCapabilityRequest", [
+            { no: 1, name: "context", kind: "message", T: () => AgentRequestContext },
+            { no: 2, name: "agent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "approval_request_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ResumeDelegatedCapabilityRequest>): ResumeDelegatedCapabilityRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.agentId = "";
+        message.approvalRequestId = "";
+        if (value !== undefined)
+            reflectionMergePartial<ResumeDelegatedCapabilityRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ResumeDelegatedCapabilityRequest): ResumeDelegatedCapabilityRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AgentRequestContext context */ 1:
+                    message.context = AgentRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
+                    break;
+                case /* string agent_id */ 2:
+                    message.agentId = reader.string();
+                    break;
+                case /* string approval_request_id */ 3:
+                    message.approvalRequestId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ResumeDelegatedCapabilityRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AgentRequestContext context = 1; */
+        if (message.context)
+            AgentRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string agent_id = 2; */
+        if (message.agentId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.agentId);
+        /* string approval_request_id = 3; */
+        if (message.approvalRequestId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.approvalRequestId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ResumeDelegatedCapabilityRequest
+ */
+export const ResumeDelegatedCapabilityRequest = new ResumeDelegatedCapabilityRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ResumeDelegatedCapabilityResponse$Type extends MessageType<ResumeDelegatedCapabilityResponse> {
+    constructor() {
+        super("nimi.runtime.v1.ResumeDelegatedCapabilityResponse", [
+            { no: 1, name: "diagnostic", kind: "message", T: () => DelegatedDiagnostic },
+            { no: 2, name: "replay_trace", kind: "message", T: () => DelegatedReplayTrace },
+            { no: 3, name: "model_output", kind: "message", T: () => Struct },
+            { no: 4, name: "approval_request", kind: "message", T: () => DelegatedApprovalRequest }
+        ]);
+    }
+    create(value?: PartialMessage<ResumeDelegatedCapabilityResponse>): ResumeDelegatedCapabilityResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<ResumeDelegatedCapabilityResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ResumeDelegatedCapabilityResponse): ResumeDelegatedCapabilityResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.DelegatedDiagnostic diagnostic */ 1:
+                    message.diagnostic = DelegatedDiagnostic.internalBinaryRead(reader, reader.uint32(), options, message.diagnostic);
+                    break;
+                case /* nimi.runtime.v1.DelegatedReplayTrace replay_trace */ 2:
+                    message.replayTrace = DelegatedReplayTrace.internalBinaryRead(reader, reader.uint32(), options, message.replayTrace);
+                    break;
+                case /* google.protobuf.Struct model_output */ 3:
+                    message.modelOutput = Struct.internalBinaryRead(reader, reader.uint32(), options, message.modelOutput);
+                    break;
+                case /* nimi.runtime.v1.DelegatedApprovalRequest approval_request */ 4:
+                    message.approvalRequest = DelegatedApprovalRequest.internalBinaryRead(reader, reader.uint32(), options, message.approvalRequest);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ResumeDelegatedCapabilityResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.DelegatedDiagnostic diagnostic = 1; */
+        if (message.diagnostic)
+            DelegatedDiagnostic.internalBinaryWrite(message.diagnostic, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.DelegatedReplayTrace replay_trace = 2; */
+        if (message.replayTrace)
+            DelegatedReplayTrace.internalBinaryWrite(message.replayTrace, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* google.protobuf.Struct model_output = 3; */
+        if (message.modelOutput)
+            Struct.internalBinaryWrite(message.modelOutput, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.DelegatedApprovalRequest approval_request = 4; */
+        if (message.approvalRequest)
+            DelegatedApprovalRequest.internalBinaryWrite(message.approvalRequest, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ResumeDelegatedCapabilityResponse
+ */
+export const ResumeDelegatedCapabilityResponse = new ResumeDelegatedCapabilityResponse$Type();

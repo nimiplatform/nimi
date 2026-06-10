@@ -492,6 +492,15 @@
           "response_stream": false
         },
         {
+          "name": "ResumeDelegatedCapability",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/ResumeDelegatedCapability",
+          "kind": "unary",
+          "request_type": "ResumeDelegatedCapabilityRequest",
+          "response_type": "ResumeDelegatedCapabilityResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
           "name": "QueryAgentMemory",
           "method_id": "/nimi.runtime.v1.RuntimeAgentService/QueryAgentMemory",
           "kind": "unary",
@@ -2247,6 +2256,7 @@
     "/nimi.runtime.v1.RuntimeAgentService/RequestAvatarDebugProbe",
     "/nimi.runtime.v1.RuntimeAgentService/RequestCompanionParticipation",
     "/nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding",
+    "/nimi.runtime.v1.RuntimeAgentService/ResumeDelegatedCapability",
     "/nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile",
     "/nimi.runtime.v1.RuntimeAgentService/SetAutonomyConfig",
     "/nimi.runtime.v1.RuntimeAgentService/SetDelegatedProviderState",
@@ -2793,6 +2803,14 @@
       "kind": "unary",
       "request_type": "ResolveAvatarLiveInstanceBindingRequest",
       "response_type": "ResolveAvatarLiveInstanceBindingResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/ResumeDelegatedCapability",
+      "service": "RuntimeAgentService",
+      "method": "ResumeDelegatedCapability",
+      "kind": "unary",
+      "request_type": "ResumeDelegatedCapabilityRequest",
+      "response_type": "ResumeDelegatedCapabilityResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile",
@@ -4635,6 +4653,14 @@
       "kind": "unary",
       "request_type": "ResolveAvatarLiveInstanceBindingRequest",
       "response_type": "ResolveAvatarLiveInstanceBindingResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/ResumeDelegatedCapability",
+      "service": "RuntimeAgentService",
+      "method": "ResumeDelegatedCapability",
+      "kind": "unary",
+      "request_type": "ResumeDelegatedCapabilityRequest",
+      "response_type": "ResumeDelegatedCapabilityResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile",
@@ -6693,6 +6719,8 @@
       "ResolveRuntimeBaselineReadinessResponse",
       "ResourceSelectors",
       "ResponseFormat",
+      "ResumeDelegatedCapabilityRequest",
+      "ResumeDelegatedCapabilityResponse",
       "ResumeLocalTransferRequest",
       "ResumeLocalTransferResponse",
       "RetainRequest",
@@ -14355,6 +14383,20 @@
             "repeated": false,
             "optional": false,
             "number": 2
+          },
+          {
+            "name": "model_output",
+            "type": "google.protobuf.Struct",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "approval_request",
+            "type": "DelegatedApprovalRequest",
+            "repeated": false,
+            "optional": false,
+            "number": 4
           }
         ],
         "source_file": "proto/runtime/v1/delegated_control.proto"
@@ -28996,6 +29038,67 @@
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "ResumeDelegatedCapabilityRequest",
+        "fields": [
+          {
+            "name": "context",
+            "type": "AgentRequestContext",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "agent_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "approval_request_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/delegated_control.proto"
+      },
+      {
+        "name": "ResumeDelegatedCapabilityResponse",
+        "fields": [
+          {
+            "name": "diagnostic",
+            "type": "DelegatedDiagnostic",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "replay_trace",
+            "type": "DelegatedReplayTrace",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "model_output",
+            "type": "google.protobuf.Struct",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "approval_request",
+            "type": "DelegatedApprovalRequest",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/delegated_control.proto"
       },
       {
         "name": "ResumeLocalTransferRequest",

@@ -851,6 +851,7 @@ service RuntimeAgentService {
   rpc GetDelegatedReplayTrace(GetDelegatedReplayTraceRequest) returns (GetDelegatedReplayTraceResponse);
   rpc GetDelegatedControlSurfaceSnapshot(GetDelegatedControlSurfaceSnapshotRequest) returns (GetDelegatedControlSurfaceSnapshotResponse);
   rpc ExecuteDelegatedCapability(ExecuteDelegatedCapabilityRequest) returns (ExecuteDelegatedCapabilityResponse);
+  rpc ResumeDelegatedCapability(ResumeDelegatedCapabilityRequest) returns (ResumeDelegatedCapabilityResponse);
   rpc QueryAgentMemory(QueryAgentMemoryRequest) returns (QueryAgentMemoryResponse);
   rpc WriteAgentMemory(WriteAgentMemoryRequest) returns (WriteAgentMemoryResponse);
   rpc GetAgentCanonicalMemoryBankStatus(GetAgentCanonicalMemoryBankStatusRequest) returns (GetAgentCanonicalMemoryBankStatusResponse);

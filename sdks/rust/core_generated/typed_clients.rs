@@ -7290,6 +7290,8 @@ impl ExecuteDelegatedCapabilityRequest {
 pub struct ExecuteDelegatedCapabilityResponse {
     pub diagnostic: Option<Box<DelegatedDiagnostic>>,
     pub replay_trace: Option<Box<DelegatedReplayTrace>>,
+    pub model_output: Option<BTreeMap<String, String>>,
+    pub approval_request: Option<Box<DelegatedApprovalRequest>>,
 }
 
 impl ExecuteDelegatedCapabilityResponse {
@@ -18106,6 +18108,49 @@ impl ResponseFormat {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct ResumeDelegatedCapabilityRequest {
+    pub context: Option<Box<AgentRequestContext>>,
+    pub agent_id: Option<String>,
+    pub approval_request_id: Option<String>,
+}
+
+impl ResumeDelegatedCapabilityRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.agent_id { pairs.push(format!("agent_id={}", value)); }
+        if let Some(value) = &self.approval_request_id { pairs.push(format!("approval_request_id={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.agent_id = pairs.get("agent_id").cloned();
+        out.approval_request_id = pairs.get("approval_request_id").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ResumeDelegatedCapabilityResponse {
+    pub diagnostic: Option<Box<DelegatedDiagnostic>>,
+    pub replay_trace: Option<Box<DelegatedReplayTrace>>,
+    pub model_output: Option<BTreeMap<String, String>>,
+    pub approval_request: Option<Box<DelegatedApprovalRequest>>,
+}
+
+impl ResumeDelegatedCapabilityResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        Vec::new()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let _ = raw;
+        Self::default()
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ResumeLocalTransferRequest {
     pub install_session_id: Option<String>,
 }
@@ -26220,6 +26265,18 @@ impl From<Vec<u8>> for ResponseFormat {
     }
 }
 
+impl From<Vec<u8>> for ResumeDelegatedCapabilityRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for ResumeDelegatedCapabilityResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for ResumeLocalTransferRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -27768,6 +27825,16 @@ where
             timeout,
         })?;
         Ok(ResolveAvatarLiveInstanceBindingResponse::from_transport(&raw))
+    }
+
+    pub fn resume_delegated_capability(&self, request: ResumeDelegatedCapabilityRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ResumeDelegatedCapabilityResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/ResumeDelegatedCapability".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(ResumeDelegatedCapabilityResponse::from_transport(&raw))
     }
 
     pub fn set_agent_presentation_profile(&self, request: SetAgentPresentationProfileRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<SetAgentPresentationProfileResponse, T::Error> {

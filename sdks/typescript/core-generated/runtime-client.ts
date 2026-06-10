@@ -375,6 +375,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ResolveAvatarLiveInstanceBindingResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/ResumeDelegatedCapability",
+    "service": "RuntimeAgentService",
+    "method": "ResumeDelegatedCapability",
+    "kind": "unary",
+    "requestType": "ResumeDelegatedCapabilityRequest",
+    "responseType": "ResumeDelegatedCapabilityResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile",
     "service": "RuntimeAgentService",
     "method": "SetAgentPresentationProfile",

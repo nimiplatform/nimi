@@ -253,6 +253,8 @@ func protectedCapabilityForUnary(fullMethod string, req any) (string, bool) {
 		return "runtime.agent.delegation.read", true
 	case "/nimi.runtime.v1.RuntimeAgentService/ExecuteDelegatedCapability":
 		return "runtime.agent.delegation.write", true
+	case "/nimi.runtime.v1.RuntimeAgentService/ResumeDelegatedCapability":
+		return "runtime.agent.delegation.write", true
 	case "/nimi.runtime.v1.RuntimeAgentService/GetAgentState":
 		return "runtime.agent.read", true
 	case "/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState":

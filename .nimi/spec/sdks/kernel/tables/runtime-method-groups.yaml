@@ -462,6 +462,7 @@ groups:
       - GetDelegatedReplayTrace
       - GetDelegatedControlSurfaceSnapshot
       - ExecuteDelegatedCapability
+      - ResumeDelegatedCapability
       - GetAgentState
       - UpdateAgentState
       - SetAgentPresentationProfile

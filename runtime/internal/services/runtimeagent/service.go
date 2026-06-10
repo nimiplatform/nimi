@@ -46,24 +46,25 @@ type scopedBindingValidator interface {
 type Service struct {
 	runtimev1.UnimplementedRuntimeAgentServiceServer
 
-	logger                          *slog.Logger
-	memorySvc                       *memoryservice.Service
-	backend                         *runtimepersistence.Backend
-	stateRepo                       *runtimeAgentStateRepository
-	chatStateRepo                   *publicChatSurfaceStateRepository
-	reviews                         reviewPersistence
-	postures                        behavioralPosturePersistence
-	chatAppEmit                     publicChatAppMessageEmitter
-	bindingValidator                scopedBindingValidator
-	aiBridgeMu                      sync.RWMutex
-	aiBridge                        *RuntimePrivateAIBridge
-	auditStore                      *auditlog.Store
-	delegatedMu                     sync.RWMutex
-	delegatedGateway                delegatedCapabilityGateway
-	delegatedFirewall               delegatedOutputFirewall
-	delegatedTransportFactory       delegation.TransportFactory
-	delegatedProviderProfiles       map[string]*runtimev1.DelegatedProviderProfile
-	delegatedApprovalRequests       map[string]*runtimev1.DelegatedApprovalRequest
+	logger                    *slog.Logger
+	memorySvc                 *memoryservice.Service
+	backend                   *runtimepersistence.Backend
+	stateRepo                 *runtimeAgentStateRepository
+	chatStateRepo             *publicChatSurfaceStateRepository
+	reviews                   reviewPersistence
+	postures                  behavioralPosturePersistence
+	chatAppEmit               publicChatAppMessageEmitter
+	bindingValidator          scopedBindingValidator
+	aiBridgeMu                sync.RWMutex
+	aiBridge                  *RuntimePrivateAIBridge
+	auditStore                *auditlog.Store
+	delegatedMu               sync.RWMutex
+	delegatedGateway          delegatedCapabilityGateway
+	delegatedFirewall         delegatedOutputFirewall
+	delegatedTransportFactory delegation.TransportFactory
+	delegatedProviderProfiles map[string]*runtimev1.DelegatedProviderProfile
+	delegatedApprovalRequests map[string]*runtimev1.DelegatedApprovalRequest
+	delegatedPausedRequests   map[string]*runtimeAgentPausedDelegatedCapabilityRequest
 	// voiceLipsync is the K-AGCORE-051 synthesizer that turns committed
 	// assistant text into runtime-owned lipsync frames. Constructor injects
 	// the deterministic synthetic adapter; real TTS providers can implement
@@ -153,11 +154,15 @@ func New(logger *slog.Logger, localStatePath string, memorySvc *memoryservice.Se
 		runtimeArtifacts:               runtimeartifact.NewMemoryStore(),
 		delegatedProviderProfiles:      make(map[string]*runtimev1.DelegatedProviderProfile),
 		delegatedApprovalRequests:      make(map[string]*runtimev1.DelegatedApprovalRequest),
+		delegatedPausedRequests:        make(map[string]*runtimeAgentPausedDelegatedCapabilityRequest),
 	}
 	if err := svc.loadState(); err != nil {
 		return nil, err
 	}
 	if err := svc.loadRealmGroupMessageCandidateStateFromDB(); err != nil {
+		return nil, err
+	}
+	if err := svc.loadDelegatedControlStateFromDB(); err != nil {
 		return nil, err
 	}
 	svc.memorySvc.RegisterReplicationObserver(svc.handleCommittedMemoryReplication)

@@ -1589,6 +1589,8 @@ class ExecuteDelegatedCapabilityRequest:
 class ExecuteDelegatedCapabilityResponse:
     diagnostic: DelegatedDiagnostic | None = None
     replay_trace: DelegatedReplayTrace | None = None
+    model_output: Mapping[str, object] | None = None
+    approval_request: DelegatedApprovalRequest | None = None
 
 @dataclass(frozen=True)
 class ExecuteLocalStateCutoverRequest:
@@ -4556,6 +4558,19 @@ class ResponseFormat:
     strict: bool | None = None
 
 @dataclass(frozen=True)
+class ResumeDelegatedCapabilityRequest:
+    context: AgentRequestContext | None = None
+    agent_id: str | None = None
+    approval_request_id: str | None = None
+
+@dataclass(frozen=True)
+class ResumeDelegatedCapabilityResponse:
+    diagnostic: DelegatedDiagnostic | None = None
+    replay_trace: DelegatedReplayTrace | None = None
+    model_output: Mapping[str, object] | None = None
+    approval_request: DelegatedApprovalRequest | None = None
+
+@dataclass(frozen=True)
 class ResumeLocalTransferRequest:
     install_session_id: str | None = None
 
@@ -6021,6 +6036,10 @@ class RuntimeTypedClient:
     async def resolve_avatar_live_instance_binding(self, request: ResolveAvatarLiveInstanceBindingRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ResolveAvatarLiveInstanceBindingResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ResolveAvatarLiveInstanceBindingResponse, raw)
+
+    async def resume_delegated_capability(self, request: ResumeDelegatedCapabilityRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ResumeDelegatedCapabilityResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ResumeDelegatedCapability", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(ResumeDelegatedCapabilityResponse, raw)
 
     async def set_agent_presentation_profile(self, request: SetAgentPresentationProfileRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> SetAgentPresentationProfileResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))

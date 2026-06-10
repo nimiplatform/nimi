@@ -34,6 +34,34 @@ type runtimeAgentDelegatedCapabilityRequest struct {
 	RequiresApproval bool
 }
 
+const (
+	delegatedPausedModePreinvoke    = "preinvoke"
+	delegatedPausedModePostFirewall = "postfirewall"
+	delegatedResumeStatePending     = "pending"
+	delegatedResumeStateExecuting   = "executing"
+)
+
+type runtimeAgentPausedDelegatedCapabilityRequest struct {
+	AgentID              string
+	ApprovalRequestID    string
+	Mode                 string
+	ResumeState          string
+	ConversationAnchorID string
+	TurnID               string
+	StreamID             string
+	RequestID            string
+	Request              runtimeAgentDelegatedCapabilityRequest
+	DelegationRequestID  string
+	DelegationResultID   string
+	GatewayEvidenceID    string
+	FirewallInputID      string
+	FirewallVerdict      string
+	ReasonCode           string
+	RuntimeDecision      string
+	ModelOutputJSON      json.RawMessage
+	DecidedAt            time.Time
+}
+
 type runtimeAgentDelegatedCapabilityDecision struct {
 	DecisionID           string
 	AgentID              string
@@ -57,6 +85,8 @@ type runtimeAgentDelegatedCapabilityDecision struct {
 	ModelContextAdmitted bool
 	ProjectionAdmitted   bool
 	ActionAdmitted       bool
+	ModelOutputJSON      json.RawMessage
+	PausedRequest        *runtimeAgentPausedDelegatedCapabilityRequest
 	DecidedAt            time.Time
 }
 
@@ -164,6 +194,46 @@ func normalizeRuntimeAgentDelegatedCapabilityRequest(req runtimeAgentDelegatedCa
 	return req, nil
 }
 
+func cloneRuntimeAgentDelegatedCapabilityRequest(req runtimeAgentDelegatedCapabilityRequest) runtimeAgentDelegatedCapabilityRequest {
+	req.Arguments = cloneJSONRawMessage(req.Arguments)
+	return req
+}
+
+func cloneRuntimeAgentPausedDelegatedCapabilityRequest(req *runtimeAgentPausedDelegatedCapabilityRequest) *runtimeAgentPausedDelegatedCapabilityRequest {
+	if req == nil {
+		return nil
+	}
+	return &runtimeAgentPausedDelegatedCapabilityRequest{
+		AgentID:              strings.TrimSpace(req.AgentID),
+		ApprovalRequestID:    strings.TrimSpace(req.ApprovalRequestID),
+		Mode:                 firstNonEmpty(strings.TrimSpace(req.Mode), delegatedPausedModePreinvoke),
+		ResumeState:          firstNonEmpty(strings.TrimSpace(req.ResumeState), delegatedResumeStatePending),
+		ConversationAnchorID: strings.TrimSpace(req.ConversationAnchorID),
+		TurnID:               strings.TrimSpace(req.TurnID),
+		StreamID:             strings.TrimSpace(req.StreamID),
+		RequestID:            strings.TrimSpace(req.RequestID),
+		Request:              cloneRuntimeAgentDelegatedCapabilityRequest(req.Request),
+		DelegationRequestID:  strings.TrimSpace(req.DelegationRequestID),
+		DelegationResultID:   strings.TrimSpace(req.DelegationResultID),
+		GatewayEvidenceID:    strings.TrimSpace(req.GatewayEvidenceID),
+		FirewallInputID:      strings.TrimSpace(req.FirewallInputID),
+		FirewallVerdict:      strings.TrimSpace(req.FirewallVerdict),
+		ReasonCode:           strings.TrimSpace(req.ReasonCode),
+		RuntimeDecision:      strings.TrimSpace(req.RuntimeDecision),
+		ModelOutputJSON:      cloneJSONRawMessage(req.ModelOutputJSON),
+		DecidedAt:            req.DecidedAt,
+	}
+}
+
+func cloneJSONRawMessage(input json.RawMessage) json.RawMessage {
+	if len(input) == 0 {
+		return nil
+	}
+	out := make([]byte, len(input))
+	copy(out, input)
+	return json.RawMessage(out)
+}
+
 func runtimeAgentPreinvokeApprovalDecision(
 	session publicChatAnchorState,
 	turn publicChatTurnState,
@@ -187,7 +257,23 @@ func runtimeAgentPreinvokeApprovalDecision(
 		FirewallVerdict:      delegation.FirewallVerdictApprovalRequired,
 		ReasonCode:           delegation.ReasonApprovalRequired,
 		RuntimeDecision:      "approval_required",
-		DecidedAt:            now,
+		PausedRequest: &runtimeAgentPausedDelegatedCapabilityRequest{
+			AgentID:              strings.TrimSpace(session.AgentID),
+			ApprovalRequestID:    "",
+			Mode:                 delegatedPausedModePreinvoke,
+			ResumeState:          delegatedResumeStatePending,
+			ConversationAnchorID: strings.TrimSpace(session.ConversationAnchorID),
+			TurnID:               strings.TrimSpace(turn.TurnID),
+			StreamID:             strings.TrimSpace(turn.StreamID),
+			RequestID:            firstNonEmpty(strings.TrimSpace(turn.RequestID), strings.TrimSpace(turn.TurnID)),
+			Request:              cloneRuntimeAgentDelegatedCapabilityRequest(req),
+			DelegationRequestID:  firstNonEmpty(strings.TrimSpace(turn.RequestID), strings.TrimSpace(turn.TurnID)),
+			FirewallVerdict:      delegation.FirewallVerdictApprovalRequired,
+			ReasonCode:           delegation.ReasonApprovalRequired,
+			RuntimeDecision:      "",
+			DecidedAt:            now,
+		},
+		DecidedAt: now,
 	}
 }
 
@@ -270,14 +356,45 @@ func runtimeAgentDecisionFromFirewall(
 	switch verdict.Verdict {
 	case delegation.FirewallVerdictAcceptedObservation:
 		decision.RuntimeDecision = "context_candidate"
+		decision.ModelOutputJSON = cloneJSONRawMessage(verdict.NormalizedOutput)
 	case delegation.FirewallVerdictAcceptedSuggestion:
 		decision.RuntimeDecision = "suggestion_candidate"
+		decision.ModelOutputJSON = cloneJSONRawMessage(verdict.NormalizedOutput)
 	case delegation.FirewallVerdictApprovalRequired:
 		decision.RuntimeDecision = "approval_required"
+		decision.PausedRequest = &runtimeAgentPausedDelegatedCapabilityRequest{
+			AgentID:              strings.TrimSpace(session.AgentID),
+			ApprovalRequestID:    "",
+			Mode:                 delegatedPausedModePostFirewall,
+			ResumeState:          delegatedResumeStatePending,
+			ConversationAnchorID: strings.TrimSpace(session.ConversationAnchorID),
+			TurnID:               strings.TrimSpace(turn.TurnID),
+			StreamID:             strings.TrimSpace(turn.StreamID),
+			RequestID:            firstNonEmpty(strings.TrimSpace(turn.RequestID), strings.TrimSpace(turn.TurnID)),
+			Request:              cloneRuntimeAgentDelegatedCapabilityRequest(req),
+			DelegationRequestID:  strings.TrimSpace(input.Provenance.DelegationRequestID),
+			DelegationResultID:   strings.TrimSpace(input.DelegationResultID),
+			GatewayEvidenceID:    evidenceID(evidence),
+			FirewallInputID:      strings.TrimSpace(input.FirewallInputID),
+			FirewallVerdict:      strings.TrimSpace(verdict.Verdict),
+			ReasonCode:           strings.TrimSpace(verdict.ReasonCode),
+			RuntimeDecision:      runtimeDecisionForApprovedDelegatedOutputKind(req.OutputKind),
+			ModelOutputJSON:      cloneJSONRawMessage(verdict.NormalizedOutput),
+			DecidedAt:            decision.DecidedAt,
+		}
 	default:
 		decision.RuntimeDecision = "rejected"
 	}
 	return decision
+}
+
+func runtimeDecisionForApprovedDelegatedOutputKind(outputKind string) string {
+	switch strings.TrimSpace(outputKind) {
+	case delegation.OutputKindSuggestedIntent, delegation.OutputKindSuggestedPresentation, delegation.OutputKindSuggestedToolRequest:
+		return "suggestion_candidate"
+	default:
+		return "context_candidate"
+	}
 }
 
 func (s *Service) recordDelegatedCapabilityDecision(decision *runtimeAgentDelegatedCapabilityDecision) {
@@ -308,9 +425,37 @@ func (s *Service) recordDelegatedCapabilityDecision(decision *runtimeAgentDelega
 	s.ensureDelegatedControlStoresLocked()
 	if record.RuntimeDecision == "approval_required" {
 		s.recordDelegatedApprovalRequestLocked(decision)
+		s.recordDelegatedPausedCapabilityRequestLocked(decision)
+		if err := s.persistDelegatedControlStateLocked(); err != nil && s.logger != nil {
+			s.logger.Warn("persist delegated control state failed", "decision_id", record.DecisionID, "error", err)
+		}
 	}
 	s.delegatedMu.Unlock()
 	s.appendDelegatedDecisionAuditEvent(record)
+}
+
+func (s *Service) recordDelegatedPausedCapabilityRequestLocked(decision *runtimeAgentDelegatedCapabilityDecision) {
+	if s == nil || decision == nil || decision.PausedRequest == nil {
+		return
+	}
+	agentID := strings.TrimSpace(decision.AgentID)
+	approvalID := strings.TrimSpace(decision.DecisionID)
+	if agentID == "" || approvalID == "" {
+		return
+	}
+	key := delegatedApprovalRequestKey(agentID, approvalID)
+	if existing := s.delegatedPausedRequests[key]; existing != nil {
+		return
+	}
+	paused := cloneRuntimeAgentPausedDelegatedCapabilityRequest(decision.PausedRequest)
+	paused.ApprovalRequestID = approvalID
+	if paused.Mode == "" {
+		paused.Mode = delegatedPausedModePreinvoke
+	}
+	if paused.ResumeState == "" {
+		paused.ResumeState = delegatedResumeStatePending
+	}
+	s.delegatedPausedRequests[key] = paused
 }
 
 func (s *Service) recordDelegatedApprovalRequestLocked(decision *runtimeAgentDelegatedCapabilityDecision) {
@@ -346,6 +491,7 @@ func (s *Service) recordDelegatedApprovalRequestLocked(decision *runtimeAgentDel
 		"descriptor_hash":       strings.TrimSpace(decision.DescriptorHash),
 		"policy_snapshot_id":    policySnapshotID,
 		"principal_id":          strings.TrimSpace(decision.ApprovalPrincipalID),
+		"approval_kind":         delegatedApprovalKindFromDecision(decision),
 	})
 	s.delegatedApprovalRequests[key] = &runtimev1.DelegatedApprovalRequest{
 		ApprovalRequestId:    approvalID,
@@ -360,16 +506,28 @@ func (s *Service) recordDelegatedApprovalRequestLocked(decision *runtimeAgentDel
 		// allowed_effect_classes, a firewall-reviewed summary_ref pointer, and the
 		// sensitivity_class taxonomy once admitted) and remain unset until that
 		// pipeline lands; the proto fields now exist to carry them.
-		DelegationRequestId:  strings.TrimSpace(decision.DelegationRequestID),
-		PolicySnapshotId:     policySnapshotID,
-		ToolName:             strings.TrimSpace(decision.ToolName),
-		FirewallVerdict:      strings.TrimSpace(decision.FirewallVerdict),
-		ReasonCode:           strings.TrimSpace(decision.ReasonCode),
-		State:                runtimev1.DelegatedApprovalRequestState_DELEGATED_APPROVAL_REQUEST_STATE_PENDING,
-		Detail:               detail,
-		CreatedAt:            timestamppb.New(decidedAt),
-		UpdatedAt:            timestamppb.New(decidedAt),
-		ExpiresAt:            timestamppb.New(expiresAt),
+		DelegationRequestId: strings.TrimSpace(decision.DelegationRequestID),
+		PolicySnapshotId:    policySnapshotID,
+		ToolName:            strings.TrimSpace(decision.ToolName),
+		FirewallVerdict:     strings.TrimSpace(decision.FirewallVerdict),
+		ReasonCode:          strings.TrimSpace(decision.ReasonCode),
+		State:               runtimev1.DelegatedApprovalRequestState_DELEGATED_APPROVAL_REQUEST_STATE_PENDING,
+		Detail:              detail,
+		CreatedAt:           timestamppb.New(decidedAt),
+		UpdatedAt:           timestamppb.New(decidedAt),
+		ExpiresAt:           timestamppb.New(expiresAt),
+	}
+}
+
+func delegatedApprovalKindFromDecision(decision *runtimeAgentDelegatedCapabilityDecision) string {
+	if decision == nil || decision.PausedRequest == nil {
+		return delegatedPausedModePreinvoke
+	}
+	switch strings.TrimSpace(decision.PausedRequest.Mode) {
+	case delegatedPausedModePostFirewall:
+		return delegatedPausedModePostFirewall
+	default:
+		return delegatedPausedModePreinvoke
 	}
 }
 

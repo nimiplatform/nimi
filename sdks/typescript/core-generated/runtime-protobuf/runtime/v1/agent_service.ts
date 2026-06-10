@@ -2,6 +2,8 @@
 // @generated from protobuf file "runtime/v1/agent_service.proto" (package "nimi.runtime.v1", syntax proto3)
 // tslint:disable
 // @ts-nocheck
+import { ResumeDelegatedCapabilityResponse } from "./delegated_control";
+import { ResumeDelegatedCapabilityRequest } from "./delegated_control";
 import { ExecuteDelegatedCapabilityResponse } from "./delegated_control";
 import { ExecuteDelegatedCapabilityRequest } from "./delegated_control";
 import { GetDelegatedControlSurfaceSnapshotResponse } from "./delegated_control";
