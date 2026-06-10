@@ -5,6 +5,7 @@ import { mkdtempSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from 'node
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { withSdkDistLock } from './lib/sdk-dist-lock.mjs';
 
 const PNPM_BIN = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
@@ -156,7 +157,7 @@ function main() {
 }
 
 try {
-  main();
+  await withSdkDistLock('check-sdk-vnext-world-consumer-smoke build+consumer', main);
 } catch (error) {
   const message = error instanceof Error ? error.message : String(error);
   process.stderr.write(`check-sdk-vnext-world-consumer-smoke failed: ${message}\n`);

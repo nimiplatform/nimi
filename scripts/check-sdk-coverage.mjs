@@ -4,6 +4,7 @@ import { spawnSync } from 'node:child_process';
 import { globSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { withSdkDistLock } from './lib/sdk-dist-lock.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -114,7 +115,7 @@ function main() {
 }
 
 try {
-  main();
+  await withSdkDistLock('check-sdk-coverage build+coverage', main);
 } catch (error) {
   const message = error instanceof Error ? error.message : String(error);
   process.stderr.write(`${message}\n`);

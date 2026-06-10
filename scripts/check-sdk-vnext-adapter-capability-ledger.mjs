@@ -5,6 +5,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import YAML from 'yaml';
+import { withSdkDistLock } from './lib/sdk-dist-lock.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
@@ -305,7 +306,7 @@ function validateLedger() {
   return adapters;
 }
 
-function main() {
+async function main() {
   const adapters = validateLedger();
   const testFiles = adapters.map((adapter) => (
     path.relative(vnextRoot, path.join(repoRoot, String(adapter.test))).replaceAll(path.sep, '/')
@@ -317,41 +318,43 @@ function main() {
     path.relative(vnextRoot, path.join(repoRoot, String(adapter.test))).replaceAll(path.sep, '/'),
   ]);
 
-  runCommand('building vNext SDK package for adapter workspace resolution', [
-    'pnpm',
-    '--filter',
-    '@nimiplatform/sdk',
-    'build',
-  ]);
-  runCommand('running adapter tests', [
-    'pnpm',
-    '--dir',
-    vnextRoot,
-    'exec',
-    'tsx',
-    '--test',
-    '--test-concurrency=1',
-    ...testFiles,
-  ]);
-  runCommand('typechecking adapter sources, examples, and tests', [
-    'pnpm',
-    '--dir',
-    vnextRoot,
-    'exec',
-    'tsc',
-    '--noEmit',
-    '--target',
-    'ES2022',
-    '--module',
-    'ESNext',
-    '--moduleResolution',
-    'Bundler',
-    '--strict',
-    '--types',
-    'node',
-    '--skipLibCheck',
-    ...typecheckFiles,
-  ]);
+  await withSdkDistLock('check-sdk-vnext-adapter-capability-ledger build+test+typecheck', async () => {
+    runCommand('building vNext SDK package for adapter workspace resolution', [
+      'pnpm',
+      '--filter',
+      '@nimiplatform/sdk',
+      'build',
+    ]);
+    runCommand('running adapter tests', [
+      'pnpm',
+      '--dir',
+      vnextRoot,
+      'exec',
+      'tsx',
+      '--test',
+      '--test-concurrency=1',
+      ...testFiles,
+    ]);
+    runCommand('typechecking adapter sources, examples, and tests', [
+      'pnpm',
+      '--dir',
+      vnextRoot,
+      'exec',
+      'tsc',
+      '--noEmit',
+      '--target',
+      'ES2022',
+      '--module',
+      'ESNext',
+      '--moduleResolution',
+      'Bundler',
+      '--strict',
+      '--types',
+      'node',
+      '--skipLibCheck',
+      ...typecheckFiles,
+    ]);
+  });
 
   process.stdout.write(
     `SDK vNext adapter capability ledger check passed (${adapters.length} adapter row(s))\n`,
@@ -359,7 +362,7 @@ function main() {
 }
 
 try {
-  main();
+  await main();
 } catch (error) {
   const message = error instanceof Error ? error.message : String(error);
   process.stderr.write(`check-sdk-vnext-adapter-capability-ledger failed: ${message}\n`);

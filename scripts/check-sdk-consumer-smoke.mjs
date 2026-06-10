@@ -5,6 +5,7 @@ import { promises as fs } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { withSdkDistLock } from './lib/sdk-dist-lock.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
@@ -300,10 +301,11 @@ async function main() {
   await fs.mkdir(appDir, { recursive: true });
   await fs.mkdir(authorDir, { recursive: true });
 
-  // Always build before packing so smoke validates current sources, not stale dist artifacts.
-  runCommand('pnpm', ['--filter', SDK_PACKAGE.name, 'build'], repoRoot);
-
-  const sdkTarball = await packPackage(packDir, SDK_PACKAGE);
+  const sdkTarball = await withSdkDistLock('check-sdk-consumer-smoke build+pack SDK', async () => {
+    // Always build before packing so smoke validates current sources, not stale dist artifacts.
+    runCommand('pnpm', ['--filter', SDK_PACKAGE.name, 'build'], repoRoot);
+    return packPackage(packDir, SDK_PACKAGE);
+  });
   const appToolsTarball = await packPackage(packDir, APP_TOOLS_PACKAGE);
   const kitTarball = await packPackage(packDir, KIT_PACKAGE);
   const nimicodingDependencySpec = await readRootDependencySpec('@nimiplatform/nimi-coding');

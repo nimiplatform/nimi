@@ -99,7 +99,7 @@
     }
   },
   "scripts": {
-    "build": "node ../../scripts/build-typescript-package.mjs --tsconfig tsconfig.build.json --out-dir dist",
+    "build": "node ../../scripts/with-sdk-dist-lock.mjs -- node ../../scripts/build-typescript-package.mjs --tsconfig tsconfig.build.json --out-dir dist",
     "lint": "pnpm exec tsc -p tsconfig.json",
     "test": "node ../../scripts/run-sdk-vnext-typescript-tests.mjs"
   },

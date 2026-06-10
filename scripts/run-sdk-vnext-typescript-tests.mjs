@@ -4,6 +4,7 @@ import { spawnSync } from 'node:child_process';
 import { globSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { withSdkDistLock } from './lib/sdk-dist-lock.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
@@ -50,4 +51,10 @@ function main() {
   process.exitCode = result.status ?? 1;
 }
 
-main();
+try {
+  await withSdkDistLock('run-sdk-vnext-typescript-tests build+test', main);
+} catch (error) {
+  const message = error instanceof Error ? error.message : String(error);
+  process.stderr.write(`[run-sdk-vnext-typescript-tests] failed: ${message}\n`);
+  process.exitCode = 1;
+}
