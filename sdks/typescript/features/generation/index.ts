@@ -30,6 +30,7 @@ import {
   type NimiRuntimeScenarioJobClient,
 } from '../../runtime/scenario-jobs';
 import {
+  createNimiSpeechSynthesisScenario,
   createNimiSpeechTranscriptionScenario,
   toRuntimeScenario,
 } from './runtime-scenarios';
@@ -201,8 +202,47 @@ export interface NimiRuntimeGenerationSurface {
   events(jobId: string): AsyncIterable<NimiRuntimeGenerationJobEvent>;
 }
 
+type NimiRuntimeSpeechScenarioRuntime = NimiRuntimeScenarioJobClient | { readonly ai: NimiRuntimeScenarioJobClient };
+type NimiRuntimeSpeechSynthesisScenarioInput = Extract<
+  NimiRuntimeGenerationScenario,
+  { readonly kind: 'speech-synthesize' }
+>;
+
+export interface NimiRuntimeSpeechSynthesisInput {
+  readonly runtime: NimiRuntimeSpeechScenarioRuntime;
+  readonly head: NimiRuntimeGenerationHeadInput;
+  readonly text: string;
+  readonly voiceRef?: NimiRuntimeSpeechSynthesisScenarioInput['voiceRef'];
+  readonly language?: string;
+  readonly audioFormat?: string;
+  readonly sampleRateHz?: number;
+  readonly speed?: number;
+  readonly pitch?: number;
+  readonly volume?: number;
+  readonly emotion?: string;
+  readonly timingMode?: NimiRuntimeSpeechSynthesisScenarioInput['timingMode'];
+  readonly requestId: string;
+  readonly idempotencyKey: string;
+  readonly labels?: Readonly<Record<string, string>>;
+  readonly extensions?: readonly ScenarioExtension[];
+  readonly callOptions?: RuntimeTypedCallOptions;
+  readonly signal?: AbortSignal;
+  readonly abortReason?: string;
+  readonly onJobUpdate?: (job: ScenarioJob) => void;
+}
+
+export interface NimiRuntimeSpeechSynthesisOutput {
+  readonly artifacts: readonly ScenarioArtifact[];
+}
+
+export interface NimiRuntimeSpeechSynthesisResult extends NimiRuntimeSpeechSynthesisOutput {
+  readonly job: ScenarioJob;
+  readonly traceId?: string;
+  readonly output?: ScenarioOutput;
+}
+
 export interface NimiRuntimeSpeechTranscriptionInput {
-  readonly runtime: NimiRuntimeScenarioJobClient | { readonly ai: NimiRuntimeScenarioJobClient };
+  readonly runtime: NimiRuntimeSpeechScenarioRuntime;
   readonly head: NimiRuntimeGenerationHeadInput;
   readonly audio: NimiRuntimeSpeechTranscriptionAudioSource;
   readonly mimeType: string;
@@ -291,10 +331,77 @@ export function createNimiRuntimeGenerationClient(
   };
 }
 
+export async function runNimiRuntimeSpeechSynthesis(
+  input: NimiRuntimeSpeechSynthesisInput,
+): Promise<NimiRuntimeSpeechSynthesisResult> {
+  const ai = getRuntimeSpeechScenarioClient(input.runtime);
+  const result = await runNimiRuntimeScenarioJob({
+    ai,
+    request: buildNimiRuntimeGenerationSubmitRequest(input.head, {
+      scenario: createNimiSpeechSynthesisScenario({
+        kind: 'speech-synthesize',
+        text: input.text,
+        voiceRef: input.voiceRef,
+        language: input.language,
+        audioFormat: input.audioFormat,
+        sampleRateHz: input.sampleRateHz,
+        speed: input.speed,
+        pitch: input.pitch,
+        volume: input.volume,
+        emotion: input.emotion,
+        timingMode: input.timingMode,
+      }),
+      requestId: input.requestId,
+      idempotencyKey: input.idempotencyKey,
+      labels: input.labels,
+      extensions: input.extensions,
+    }),
+    callOptions: input.callOptions,
+    signal: input.signal,
+    abortReason: input.abortReason,
+    onJobUpdate: input.onJobUpdate,
+  });
+  const synthesis = extractNimiRuntimeSpeechSynthesisOutput(result.output);
+  return {
+    artifacts: synthesis.artifacts,
+    job: result.job,
+    traceId: result.traceId || result.job.traceId || undefined,
+    output: result.output,
+  };
+}
+
+export function extractNimiRuntimeSpeechSynthesisOutput(
+  output: ScenarioOutput | undefined,
+): NimiRuntimeSpeechSynthesisOutput {
+  const variant = output?.output;
+  if (variant?.oneofKind !== 'speechSynthesize') {
+    throw generationError(
+      'SDK_RUNTIME_RESPONSE_DECODE_FAILED',
+      'Runtime speech synthesis output is missing typed speechSynthesize result',
+      'check_runtime_speech_synthesis_output',
+    );
+  }
+  const artifacts = Array.isArray(variant.speechSynthesize.artifacts)
+    ? variant.speechSynthesize.artifacts
+    : [];
+  const audioArtifacts = artifacts.filter(isRuntimeSpeechAudioArtifact);
+  if (audioArtifacts.length === 0) {
+    throw createNimiError({
+      message: 'Runtime speech synthesis returned no audio artifact',
+      reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
+      actionHint: 'retry_speech_synthesis',
+      source: 'runtime',
+    });
+  }
+  return {
+    artifacts: audioArtifacts,
+  };
+}
+
 export async function runNimiRuntimeSpeechTranscription(
   input: NimiRuntimeSpeechTranscriptionInput,
 ): Promise<NimiRuntimeSpeechTranscriptionResult> {
-  const ai = getRuntimeSpeechTranscriptionClient(input.runtime);
+  const ai = getRuntimeSpeechScenarioClient(input.runtime);
   const result = await runNimiRuntimeScenarioJob({
     ai,
     request: buildNimiRuntimeGenerationSubmitRequest(input.head, {
@@ -355,6 +462,15 @@ export function extractNimiRuntimeSpeechTranscriptionOutput(
       ? variant.speechTranscribe.artifacts
       : [],
   };
+}
+
+function isRuntimeSpeechAudioArtifact(artifact: ScenarioArtifact): boolean {
+  return normalizeText(artifact.mimeType).startsWith('audio/')
+    && (
+      normalizeText(artifact.artifactId).length > 0
+      || normalizeText(artifact.uri).length > 0
+      || artifact.bytes.length > 0
+    );
 }
 
 export function buildNimiRuntimeGenerationSubmitRequest(
@@ -533,9 +649,7 @@ function getRuntimeGenerationClients(options: NimiRuntimeGenerationClientOptions
   };
 }
 
-function getRuntimeSpeechTranscriptionClient(
-  runtime: NimiRuntimeSpeechTranscriptionInput['runtime'],
-): NimiRuntimeScenarioJobClient {
+function getRuntimeSpeechScenarioClient(runtime: NimiRuntimeSpeechScenarioRuntime): NimiRuntimeScenarioJobClient {
   if ('ai' in runtime) {
     return runtime.ai;
   }

@@ -36,6 +36,12 @@ export interface NimiAgentSpec {
   readonly metadata?: NimiJsonObject;
 }
 
+export interface NimiAgentContextProviderInput {
+  readonly agent: NimiAgentSpec;
+  readonly model: NimiAiModel;
+  readonly messages: readonly NimiMessage[];
+}
+
 export interface NimiAgentInstructionPack {
   readonly id: string;
   readonly content: string;
@@ -43,8 +49,12 @@ export interface NimiAgentInstructionPack {
 
 export interface NimiAgentContextProvider {
   readonly id: string;
-  load(): Promise<NimiAgentContextMaterial> | NimiAgentContextMaterial;
+  load(input?: NimiAgentContextProviderInput): Promise<NimiAgentContextMaterial> | NimiAgentContextMaterial;
 }
+
+export type NimiAgentContextQuery =
+  | string
+  | ((input: NimiAgentContextProviderInput) => string | Promise<string | undefined> | undefined);
 
 export type NimiAgentContextMaterial =
   | string
@@ -82,6 +92,38 @@ export async function* streamNimiAgent(request: NimiAgentRunRequest): AsyncItera
   });
 }
 
+export async function resolveNimiAgentContextQuery(
+  query: NimiAgentContextQuery | undefined,
+  input: NimiAgentContextProviderInput | undefined,
+): Promise<string> {
+  if (typeof query === 'string') {
+    return query.trim();
+  }
+  if (typeof query === 'function' && input) {
+    return String(await query(input) ?? '').trim();
+  }
+  return input ? latestUserText(input.messages) : '';
+}
+
+function latestUserText(messages: readonly NimiMessage[]): string {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index];
+    if (message?.role !== 'user') {
+      continue;
+    }
+    const text = message.content
+      .filter((part) => part.type === 'text')
+      .map((part) => (part.type === 'text' ? part.text.trim() : ''))
+      .filter(Boolean)
+      .join('\n\n');
+    if (text) {
+      return text;
+    }
+  }
+  return '';
+}
+
 export * from './runner';
 export * from './identity';
 export * from './app-ai';
+export * from './runtime-client';

@@ -18,7 +18,7 @@ entries:
   - id: mastra
     name: Mastra
     owner: sdks/typescript/adapters/mastra
-    semantics: Agent framework adapter; public package name remains owner-gated.
+    semantics: Independent package `@nimiplatform/sdk-adapter-mastra` with its own Nimi -> LanguageModelV3 mapping (no sibling-adapter dependency); a NimiAiModel becomes a Mastra `MastraModelConfig` accepted by Agents, and the same package exposes Runtime-backed embedding and non-realtime voice helper surfaces for Mastra RAG/STT/TTS migration while Runtime/Cognition remain owner of route, credentials, Memory/Knowledge, voice assets, artifacts, and caller-supplied speech submit idempotency keys.
   - id: langgraph
     name: LangGraph
     owner: sdks/typescript/adapters/langgraph

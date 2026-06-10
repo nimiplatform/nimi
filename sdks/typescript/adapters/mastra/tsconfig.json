@@ -1,0 +1,59 @@
+{
+  "extends": "../../../../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "paths": {
+      "@nimiplatform/sdk": [
+        "../../index.ts"
+      ],
+      "@nimiplatform/sdk/features/knowledge-context": [
+        "../../features/knowledge-context/index.ts"
+      ],
+      "@nimiplatform/sdk/features/memory-context": [
+        "../../features/memory-context/index.ts"
+      ],
+      "@nimiplatform/sdk/features/generation": [
+        "../../features/generation/index.ts"
+      ],
+      "@nimiplatform/sdk/ai": [
+        "../../core/ai/index.ts"
+      ],
+      "@nimiplatform/sdk/contracts": [
+        "../../core/contracts/index.ts"
+      ],
+      "@nimiplatform/sdk/runtime": [
+        "../../runtime/index.ts"
+      ],
+      "@nimiplatform/sdk/runtime/generated": [
+        "../../runtime/generated.ts"
+      ]
+    }
+  },
+  "include": [
+    "index.ts",
+    "context.ts",
+    "embedding.ts",
+    "errors.ts",
+    "manifest.ts",
+    "mappers.ts",
+    "raw-metadata.ts",
+    "runtime-delegated-tools.ts",
+    "voice.ts",
+    "mastra.fixtures.ts",
+    "mastra.example.ts",
+    "mastra.test.ts",
+    "mastra.boundary.test.ts",
+    "mastra.context.test.ts",
+    "mastra.embedding-voice.test.ts",
+    "mastra.runtime-delegated-tools.test.ts",
+    "mastra.conformance.test.ts",
+    "mastra.upstream-compat.test.ts",
+    "mastra.upstream-text-compat.test.ts",
+    "mastra.upstream-tool-compat.test.ts",
+    "mastra.upstream-object-compat.test.ts",
+    "mastra.upstream-runtime-surface.test.ts"
+  ],
+  "exclude": [
+    "dist"
+  ]
+}

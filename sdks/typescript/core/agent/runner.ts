@@ -8,7 +8,13 @@ import {
   type NimiMessagePart,
   type NimiTool,
 } from '../contracts';
-import type { NimiAgentContextMaterial, NimiAgentEvent, NimiAgentRunRequest, NimiAgentSpec } from './index';
+import type {
+  NimiAgentContextMaterial,
+  NimiAgentContextProviderInput,
+  NimiAgentEvent,
+  NimiAgentRunRequest,
+  NimiAgentSpec,
+} from './index';
 
 export interface NimiAgentRunner {
   run(request: NimiAgentRunRequest): Promise<NimiAgentRunnerResult>;
@@ -54,11 +60,12 @@ export async function buildNimiAgentModelRequest(
   model: NimiAiModel,
   messages: readonly NimiMessage[],
 ): Promise<NimiGenerateTextRequest> {
+  const contextInput: NimiAgentContextProviderInput = { agent, model, messages };
   return {
     model: model.model,
     messages: [
       ...materializeInstructionMessages(agent),
-      ...(await materializeContextMessages(agent)),
+      ...(await materializeContextMessages(agent, contextInput)),
       ...messages,
     ],
     tools: agent.tools,
@@ -83,10 +90,13 @@ function materializeInstructionMessages(agent: NimiAgentSpec): readonly NimiMess
   ];
 }
 
-async function materializeContextMessages(agent: NimiAgentSpec): Promise<readonly NimiMessage[]> {
+async function materializeContextMessages(
+  agent: NimiAgentSpec,
+  input: NimiAgentContextProviderInput,
+): Promise<readonly NimiMessage[]> {
   const messages: NimiMessage[] = [];
   for (const provider of agent.contextProviders ?? []) {
-    const material = await provider.load();
+    const material = await provider.load(input);
     messages.push(toContextMessage(material));
   }
   return messages;

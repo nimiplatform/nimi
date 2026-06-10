@@ -1,0 +1,47 @@
+{
+  "name": "@nimiplatform/sdk-adapter-mastra",
+  "version": "0.0.0-vnext.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nimiplatform/nimi",
+    "directory": "sdks/typescript/adapters/mastra"
+  },
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "peerDependencies": {
+    "@ai-sdk/provider": "^3.0.0",
+    "@mastra/core": "^1.41.0",
+    "@nimiplatform/sdk": "0.0.0-vnext.0"
+  },
+  "devDependencies": {
+    "@ai-sdk/provider": "3.0.10",
+    "@mastra/core": "1.41.0",
+    "@nimiplatform/sdk": "workspace:*",
+    "@types/node": "^25.9.1",
+    "tsx": "^4.22.3",
+    "typescript": "^5.9.3",
+    "zod": "4.4.3"
+  },
+  "scripts": {
+    "build": "pnpm --dir ../../../../ --filter @nimiplatform/sdk build && node ../../../../scripts/build-typescript-package.mjs --tsconfig tsconfig.build.json --out-dir dist",
+    "lint": "pnpm exec tsc -p tsconfig.json",
+    "test": "pnpm exec tsx --test mastra.test.ts"
+  },
+  "nimi": {
+    "preCutover": true,
+    "adapterId": "mastra",
+    "targetPackage": "@nimiplatform/sdk-adapter-mastra",
+    "basePackage": "@nimiplatform/sdk"
+  }
+}

@@ -21,7 +21,11 @@ import {
   createNimiConversationTextAccumulator,
   measureNimiConversationHistoryWindow,
 } from './conversation';
+import type { NimiGenerateTextRequest } from '../core/ai';
+import { createNimiAgentRunner } from '../core/agent';
+import { textPart } from '../core/contracts';
 import {
+  createNimiRuntimeKnowledgeAgentContextProvider,
   createNimiRuntimeKnowledgeContextClient,
   createNimiKnowledgeContextBundle,
   selectNimiKnowledgeContext,
@@ -30,6 +34,7 @@ import {
 import {
   buildNimiMemoryContextWindow,
   createNimiAppPrivateMemoryBankLocator,
+  createNimiRuntimeMemoryAgentContextProvider,
   createNimiRuntimeMemoryContextClient,
   toNimiMemoryContextPart,
 } from './memory-context';
@@ -41,6 +46,7 @@ import {
   createNimiSpeechSynthesisScenario,
   createNimiSpeechTranscriptionScenario,
   createNimiVideoGenerationScenario,
+  runNimiRuntimeSpeechSynthesis,
   runNimiRuntimeSpeechTranscription,
   transitionNimiGenerationJob,
 } from './generation';
@@ -261,6 +267,34 @@ test('Runtime-bound memory and knowledge context clients project Runtime-owned d
     () => knowledge.search({ query: 'guide', bankIds: ['a', 'b'], mode: 'hybrid' }),
     (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_KNOWLEDGE_HYBRID_BANK_SCOPE_UNSUPPORTED',
   );
+
+  const agentRequests: NimiGenerateTextRequest[] = [];
+  await createNimiAgentRunner().run({
+    agent: {
+      id: 'context-agent',
+      name: 'Context Agent',
+      contextProviders: [
+        createNimiRuntimeMemoryAgentContextProvider({ client: memory, recall: { limit: 1 } }),
+        createNimiRuntimeKnowledgeAgentContextProvider({ client: knowledge, search: { bankIds: ['kb-1'], limit: 1 } }),
+      ],
+    },
+    model: {
+      model: { modelId: 'context-model' },
+      async generateText(request) {
+        agentRequests.push(request);
+        return { text: 'context ok', finishReason: 'stop' };
+      },
+    },
+    messages: [{ role: 'user', content: [textPart('green tea guide')] }],
+  });
+
+  assert.equal((memoryRequests.at(-1) as { query?: { query?: string } }).query?.query, 'green tea guide');
+  assert.equal((knowledgeRequests.at(-1) as { query?: string }).query, 'green tea guide');
+  const contextKinds = agentRequests[0]?.messages
+    .flatMap((message) => message.content)
+    .filter((part) => part.type === 'data')
+    .map((part) => (part.type === 'data' ? (part.data as { kind?: string }).kind : undefined));
+  assert.deepEqual(contextKinds, ['memory-context', 'knowledge-context']);
 });
 
 test('generation feature transitions jobs and collects artifacts', () => {
@@ -477,6 +511,149 @@ test('Runtime speech transcription helper runs Scenario job and extracts typed t
     assert.equal(submitRequests[0].spec.spec.speechTranscribe.mimeType, 'audio/webm');
     assert.equal(submitRequests[0].spec.spec.speechTranscribe.audioSource?.source.oneofKind, 'audioBytes');
   }
+});
+
+test('Runtime speech synthesis helper runs Scenario job and requires typed audio artifacts', async () => {
+  const submitRequests: ReturnType<typeof buildNimiRuntimeGenerationSubmitRequest>[] = [];
+  const submitOptions: RuntimeTypedCallOptions[] = [];
+  const runtimeJob = {
+    jobId: 'job-tts-1',
+    scenarioType: ScenarioType.SPEECH_SYNTHESIZE,
+    executionMode: ExecutionMode.ASYNC_JOB,
+    routeDecision: RoutePolicy.LOCAL,
+    modelResolved: 'tts-1',
+    status: ScenarioJobStatus.SUBMITTED,
+    providerJobId: 'provider-tts-1',
+    reasonCode: ReasonCode.UNSPECIFIED,
+    reasonDetail: '',
+    retryCount: 0,
+    artifacts: [],
+    traceId: 'trace-submit',
+    ignoredExtensions: [],
+    progressPercent: 0,
+    progressCurrentStep: 0,
+    progressTotalSteps: 0,
+  };
+  const runtime = {
+    async submitScenarioJob(
+      request: ReturnType<typeof buildNimiRuntimeGenerationSubmitRequest>,
+      options?: RuntimeTypedCallOptions,
+    ) {
+      submitRequests.push(request);
+      submitOptions.push(options ?? {});
+      return { job: runtimeJob };
+    },
+    async getScenarioJob() {
+      return { job: { ...runtimeJob, status: ScenarioJobStatus.COMPLETED, progressPercent: 100 } };
+    },
+    async cancelScenarioJob() {
+      return { job: { ...runtimeJob, status: ScenarioJobStatus.CANCELED } };
+    },
+    async *subscribeScenarioJobEvents() {
+      yield {
+        eventType: ScenarioJobEventType.SCENARIO_JOB_EVENT_COMPLETED,
+        sequence: '1',
+        traceId: 'trace-event',
+        job: { ...runtimeJob, status: ScenarioJobStatus.COMPLETED, traceId: 'trace-job' },
+      };
+    },
+    async getScenarioArtifacts() {
+      return {
+        jobId: 'job-tts-1',
+        traceId: 'trace-artifacts',
+        artifacts: [],
+        output: {
+          output: {
+            oneofKind: 'speechSynthesize' as const,
+            speechSynthesize: {
+              artifacts: [{
+                artifactId: 'audio-1',
+                mimeType: 'audio/wav',
+                bytes: Uint8Array.from([1, 2, 3]),
+                uri: '',
+                sha256: 'sha',
+                sizeBytes: '3',
+                durationMs: '1000',
+                fps: 0,
+                width: 0,
+                height: 0,
+                sampleRateHz: 24000,
+                channels: 1,
+              }],
+            },
+          },
+        },
+      };
+    },
+  };
+
+  const result = await runNimiRuntimeSpeechSynthesis({
+    runtime,
+    head: { appId: 'app-1', modelId: 'tts-1', routePolicy: 'local' },
+    text: 'hello from tts',
+    audioFormat: 'wav',
+    requestId: 'req-tts',
+    idempotencyKey: 'idem-tts',
+  });
+
+  assert.equal(result.artifacts[0]?.artifactId, 'audio-1');
+  assert.equal(result.traceId, 'trace-artifacts');
+  assert.equal(submitRequests[0]?.scenarioType, ScenarioType.SPEECH_SYNTHESIZE);
+  assert.equal(submitOptions[0]?.metadata?.idempotencyKey, 'idem-tts');
+  assert.equal(submitRequests[0]?.spec.spec.oneofKind, 'speechSynthesize');
+  if (submitRequests[0]?.spec.spec.oneofKind === 'speechSynthesize') {
+    assert.equal(submitRequests[0].spec.spec.speechSynthesize.text, 'hello from tts');
+    assert.equal(submitRequests[0].spec.spec.speechSynthesize.audioFormat, 'wav');
+  }
+
+  const invalidOutputRuntime = {
+    ...runtime,
+    async getScenarioArtifacts() {
+      return {
+        jobId: 'job-tts-1',
+        traceId: 'trace-invalid',
+        artifacts: [],
+        output: { output: { oneofKind: undefined } },
+      };
+    },
+  };
+  await assert.rejects(
+    () => runNimiRuntimeSpeechSynthesis({
+      runtime: invalidOutputRuntime,
+      head: { appId: 'app-1', modelId: 'tts-1' },
+      text: 'hello',
+      requestId: 'req-invalid',
+      idempotencyKey: 'idem-invalid',
+    }),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_RUNTIME_RESPONSE_DECODE_FAILED',
+  );
+
+  const noAudioRuntime = {
+    ...runtime,
+    async getScenarioArtifacts() {
+      return {
+        jobId: 'job-tts-1',
+        traceId: 'trace-no-audio',
+        artifacts: [],
+        output: {
+          output: {
+            oneofKind: 'speechSynthesize' as const,
+            speechSynthesize: { artifacts: [] },
+          },
+        },
+      };
+    },
+  };
+  await assert.rejects(
+    () => runNimiRuntimeSpeechSynthesis({
+      runtime: noAudioRuntime,
+      head: { appId: 'app-1', modelId: 'tts-1' },
+      text: 'hello',
+      requestId: 'req-no-audio',
+      idempotencyKey: 'idem-no-audio',
+    }),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'RUNTIME_CALL_FAILED',
+  );
 });
 
 test('generation feature builds video speech and transcription Runtime scenarios', () => {

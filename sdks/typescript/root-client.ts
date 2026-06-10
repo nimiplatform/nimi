@@ -20,9 +20,11 @@ import {
   type NimiRuntimeEmbeddingClientOptions,
 } from './core/ai';
 import {
+  createNimiRuntimeAgentClient,
   createNimiAgentRunner,
   runNimiAgent,
   streamNimiAgent,
+  type NimiRuntimeAgentClientOptions,
   type NimiAgentRunRequest,
   type NimiAgentRunResult,
 } from './core/agent';
@@ -32,11 +34,15 @@ import {
   type NimiRuntimeGenerationHeadInput,
 } from './features/generation';
 import {
+  createNimiRuntimeKnowledgeAgentContextProvider,
   createNimiRuntimeKnowledgeContextClient,
+  type NimiRuntimeKnowledgeAgentContextProviderOptions,
   type NimiRuntimeKnowledgeContextClientOptions,
 } from './features/knowledge-context';
 import {
+  createNimiRuntimeMemoryAgentContextProvider,
   createNimiRuntimeMemoryContextClient,
+  type NimiRuntimeMemoryAgentContextProviderOptions,
   type NimiRuntimeMemoryContextClientOptions,
 } from './features/memory-context';
 import {
@@ -93,6 +99,26 @@ export type NimiClientMemoryOptions =
     readonly context?: Partial<NimiRuntimeMemoryContextClientOptions['context']>;
   };
 
+export type NimiClientRuntimeAgentOptions =
+  Omit<NimiRuntimeAgentClientOptions, 'runtime' | 'appId'> & {
+    readonly runtime?: NimiRuntimeAgentClientOptions['runtime'];
+    readonly appId?: string;
+  };
+
+export type NimiClientAgentMemoryContextProviderOptions =
+  Omit<NimiRuntimeMemoryAgentContextProviderOptions, 'client'> &
+  Omit<NimiRuntimeMemoryContextClientOptions, 'runtime' | 'context'> & {
+    readonly runtime?: NimiRuntimeMemoryContextClientOptions['runtime'];
+    readonly context?: Partial<NimiRuntimeMemoryContextClientOptions['context']>;
+  };
+
+export type NimiClientAgentKnowledgeContextProviderOptions =
+  Omit<NimiRuntimeKnowledgeAgentContextProviderOptions, 'client'> &
+  Omit<NimiRuntimeKnowledgeContextClientOptions, 'runtime' | 'context'> & {
+    readonly runtime?: NimiRuntimeKnowledgeContextClientOptions['runtime'];
+    readonly context?: Partial<NimiRuntimeKnowledgeContextClientOptions['context']>;
+  };
+
 export interface NimiClientAiSurface {
   createRuntimeModel(options: NimiClientRuntimeModelOptions): ReturnType<typeof createNimiRuntimeAIModel>;
   createRuntimeEmbeddingClient(options: NimiClientEmbeddingOptions): ReturnType<typeof createNimiRuntimeEmbeddingClient>;
@@ -100,9 +126,14 @@ export interface NimiClientAiSurface {
 }
 
 export interface NimiClientAgentSurface {
-  createRunner: typeof createNimiAgentRunner;
-  run(request: NimiAgentRunRequest): Promise<NimiAgentRunResult>;
-  stream: typeof streamNimiAgent;
+  createRuntimeClient(options: NimiClientRuntimeAgentOptions): ReturnType<typeof createNimiRuntimeAgentClient>;
+  createMemoryContextProvider(options: NimiClientAgentMemoryContextProviderOptions): ReturnType<typeof createNimiRuntimeMemoryAgentContextProvider>;
+  createKnowledgeContextProvider(options: NimiClientAgentKnowledgeContextProviderOptions): ReturnType<typeof createNimiRuntimeKnowledgeAgentContextProvider>;
+  readonly localModelRunner: {
+    createRunner: typeof createNimiAgentRunner;
+    run(request: NimiAgentRunRequest): Promise<NimiAgentRunResult>;
+    stream: typeof streamNimiAgent;
+  };
 }
 
 export interface NimiClientFeatureSurface {
@@ -139,11 +170,7 @@ export class NimiClient {
     this.permissions = createOptionalPermissionClient(config.permissions);
     this.scopes = createOptionalScopeCatalog(config.scopeCatalog, this.appId);
     this.ai = createAiSurface(this);
-    this.agent = {
-      createRunner: createNimiAgentRunner,
-      run: runNimiAgent,
-      stream: streamNimiAgent,
-    };
+    this.agent = createAgentSurface(this);
     this.features = createFeatureSurface(this);
   }
 
@@ -203,6 +230,54 @@ function createAiSurface(client: NimiClient): NimiClientAiSurface {
         runtime: options.runtime ?? client.runtime,
       });
     },
+  };
+}
+
+function createAgentSurface(client: NimiClient): NimiClientAgentSurface {
+  const localModelRunner = {
+    createRunner: createNimiAgentRunner,
+    run: runNimiAgent,
+    stream: streamNimiAgent,
+  };
+  return {
+    createRuntimeClient(options) {
+      return createNimiRuntimeAgentClient({
+        ...options,
+        appId: resolveAppId(client, options.appId, 'provide_runtime_agent_app_id'),
+        runtime: options.runtime ?? client.runtime,
+      });
+    },
+    createMemoryContextProvider(options) {
+      return createNimiRuntimeMemoryAgentContextProvider({
+        id: options.id,
+        query: options.query,
+        recall: options.recall,
+        client: createNimiRuntimeMemoryContextClient({
+          ...options,
+          runtime: options.runtime ?? client.runtime,
+          context: {
+            ...options.context,
+            appId: resolveAppId(client, options.context?.appId, 'provide_memory_context_app_id'),
+          },
+        }),
+      });
+    },
+    createKnowledgeContextProvider(options) {
+      return createNimiRuntimeKnowledgeAgentContextProvider({
+        id: options.id,
+        query: options.query,
+        search: options.search,
+        client: createNimiRuntimeKnowledgeContextClient({
+          ...options,
+          runtime: options.runtime ?? client.runtime,
+          context: {
+            ...options.context,
+            appId: resolveAppId(client, options.context?.appId, 'provide_knowledge_context_app_id'),
+          },
+        }),
+      });
+    },
+    localModelRunner,
   };
 }
 

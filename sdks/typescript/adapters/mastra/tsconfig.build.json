@@ -1,0 +1,24 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "declaration": true,
+    "declarationMap": true,
+    "emitDeclarationOnly": false,
+    "rootDir": ".",
+    "outDir": "dist",
+    "sourceMap": true,
+    "paths": {}
+  },
+  "include": [
+    "index.ts",
+    "context.ts",
+    "embedding.ts",
+    "errors.ts",
+    "manifest.ts",
+    "mappers.ts",
+    "raw-metadata.ts",
+    "runtime-delegated-tools.ts",
+    "voice.ts"
+  ]
+}

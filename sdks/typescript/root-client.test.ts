@@ -95,3 +95,22 @@ test('NimiClient fail-closes optional composition surfaces until configured', ()
   );
   assert.equal(client.requireScopes().listCatalog().appId, 'dev.nimi.root');
 });
+
+test('NimiClient agent surface hard-cuts generic local runner aliases', () => {
+  const transport: CoreTransport = {
+    async unary() {
+      return {};
+    },
+    async *serverStream() {},
+  };
+  const client = createNimiClient({ appId: 'dev.nimi.root', runtime: { transport } });
+  const agentSurface = client.agent as unknown as Record<string, unknown>;
+
+  assert.equal(typeof client.agent.createRuntimeClient({ getSubjectUserId: () => 'user-1' }).sendTurn, 'function');
+  assert.equal(typeof client.agent.createMemoryContextProvider, 'function');
+  assert.equal(typeof client.agent.createKnowledgeContextProvider, 'function');
+  assert.equal(typeof client.agent.localModelRunner.run, 'function');
+  assert.equal(agentSurface.run, undefined);
+  assert.equal(agentSurface.stream, undefined);
+  assert.equal(agentSurface.createRunner, undefined);
+});

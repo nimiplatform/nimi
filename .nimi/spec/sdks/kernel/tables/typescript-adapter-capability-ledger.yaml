@@ -232,30 +232,124 @@ surfaces:
 
   - id: mastra
     source_root: sdks/typescript/adapters/mastra
-    minimum_capability_level: L1
-    implementation_level: L1
-    release_target_level: L1
+    minimum_capability_level: L2
+    implementation_level: L3
+    release_target_level: L3
     release_target_status: implemented
     implementation_status: implemented
-    manifest: sdks/typescript/adapters/mastra/index.ts
+    manifest: sdks/typescript/adapters/mastra/manifest.ts
     test: sdks/typescript/adapters/mastra/mastra.test.ts
     example: sdks/typescript/adapters/mastra/mastra.example.ts
     unsupported_behavior: throw
-    production_core_binding: Structural Mastra-like model generation over NimiAiModel; stream, tools, structured output, and workflow claims fail closed.
+    release_blocker: none
+    production_core_binding: Self-owned Mastra migration adapter suite. Mastra's text model boundary is the AI SDK provider LanguageModelV3 admitted by MastraModelConfig (Mastra @ai-sdk/provider-v6 alias), so this adapter owns its own Nimi -> LanguageModelV3 mapping (sdks/typescript/adapters/mastra/mappers.ts, raw-metadata.ts) with no sibling-adapter dependency; Runtime-backed non-text surfaces are exposed separately through createNimiMastraEmbeddingModel (AI SDK EmbeddingModelV3 over Runtime TEXT_EMBED) and createNimiMastraVoice (Mastra speak/listen/getSpeakers over Runtime speech synthesis, speech transcription, voice catalog, artifact bytes, and caller-supplied Runtime Scenario idempotency keys). Validated by a conformance suite driving the real @mastra/core Agent/createTool/structuredOutput public API where those surfaces call the model (generate, stream, tool definition/execution/result-propagation, multi-step, structured output, sources, reasoning, abort, onFinish/onStepFinish callbacks, requireToolApproval suspension plus fail-closed resume without snapshot storage, structured-output no-object fail-closed, dynamic model resolution, raw chunks, file input, Runtime-routed provider), a Nimi Runtime context bridge test that injects Runtime memory/knowledge provider material through Mastra context without configuring Mastra Memory, Runtime-owned delegated tool tests proving createNimiMastraRuntimeDelegatedTool executes through Runtime ExecuteDelegatedCapability, embedding/voice tests proving Runtime-owned RAG embedding and STT/TTS adapter surfaces, split upstream-compat suites, typed-error tests asserting NimiMastraUnsupportedFeatureError and NimiMastraVoiceUnsupportedFeatureError behavior, and package-boundary tests asserting no vercel-ai import/dependency/dist copy. Mastra-owned orchestration is supported only when it drives repeated model calls or consumes explicit Runtime-backed helper surfaces. Memory, workflows, and agent networks are compatibility-only until bound to Nimi Runtime/Cognition owner surfaces; this adapter must not persist or canonize Mastra-owned memory/workflow/vector/voice state as Nimi truth. Partial/pending clusters tracked in UPSTREAM_COMPAT.md and marked partial in the claims are Mastra native requireToolApproval approve/deny snapshot ownership (toolApproval), tool suspend/resume orchestration (toolSuspendResume), structured-output repair exhaustiveness (structuredOutputRepair), reasoning/providerMetadata/providerOptions/multimodal route-dependence, Mastra Memory writeback/thread lifecycle, Mastra realtime voice, and Nimi-owned workflow/agent-network bridging; telemetry is out-of-domain. Capability support describes Mastra target-library LLM interface coverage plus per-turn Runtime-owned context injection, Runtime-owned delegated tool execution/approval resume, Runtime-owned embedding, and Runtime-owned non-realtime voice with caller-supplied speech submit idempotency, without claiming complete Nimi-owned agent lifecycle/memory persistence.
     capability_claims:
-      - capability: model.generate
+      - capability: model.config
         support: supported
         mode: adapter-mapped
-      - capability: model.stream
-        support: unsupported
+      - capability: agent.generate
+        support: supported
         mode: adapter-mapped
-      - capability: tools.mapping
-        support: unsupported
+      - capability: agent.stream
+        support: supported
         mode: adapter-mapped
+      - capability: tools.definition
+        support: supported
+        mode: adapter-mapped
+      - capability: tools.toolChoice
+        support: supported
+        mode: adapter-mapped
+      - capability: tools.execution
+        support: supported
+        mode: framework-owned
+      - capability: tools.resultPropagation
+        support: supported
+        mode: framework-owned
+      - capability: multiStep
+        support: supported
+        mode: framework-owned
+      - capability: agentCallbacks
+        support: supported
+        mode: framework-owned
       - capability: structuredOutput
-        support: unsupported
+        support: supported
         mode: adapter-mapped
+      - capability: structuredOutputFailure
+        support: supported
+        mode: framework-owned
+      - capability: dynamicResolution
+        support: supported
+        mode: framework-owned
+      - capability: runtimeContext
+        support: supported
+        mode: runtime-owned
+      - capability: runtimeDelegatedTools
+        support: supported
+        mode: runtime-owned
+      - capability: usage
+        support: supported
+        mode: adapter-mapped
+      - capability: finishReason
+        support: supported
+        mode: adapter-mapped
+      - capability: sources
+        support: supported
+        mode: adapter-mapped
+      - capability: rawChunks
+        support: supported
+        mode: adapter-mapped
+      - capability: abort
+        support: supported
+        mode: adapter-mapped
+      - capability: errors
+        support: supported
+        mode: adapter-mapped
+      - capability: reasoning
+        support: partial
+        mode: adapter-mapped
+      - capability: providerMetadata
+        support: partial
+        mode: adapter-mapped
+      - capability: providerOptions
+        support: partial
+        mode: adapter-mapped
+      - capability: multimodalInput
+        support: partial
+        mode: adapter-mapped
+      - capability: toolApproval
+        support: partial
+        mode: adapter-mapped
+      - capability: toolSuspendResume
+        support: partial
+        mode: framework-owned
+      - capability: structuredOutputRepair
+        support: partial
+        mode: framework-owned
+      - capability: memory
+        support: partial
+        mode: framework-owned
+      - capability: workflows
+        support: partial
+        mode: framework-owned
+      - capability: agentNetwork
+        support: partial
+        mode: framework-owned
       - capability: workflowCheckpoint
+        support: not-applicable
+        mode: out-of-domain
+      - capability: ragEmbeddings
+        support: supported
+        mode: runtime-owned
+      - capability: voice
+        support: partial
+        mode: runtime-owned
+      - capability: telemetry
+        support: not-applicable
+        mode: out-of-domain
+      - capability: legacyV1Api
+        support: not-applicable
+        mode: out-of-domain
+      - capability: modelRouterString
         support: not-applicable
         mode: out-of-domain
     verification_gates:
