@@ -1431,6 +1431,245 @@ impl Default for ModelStatus {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ParticipationCapabilityScope {
+    PARTICIPATIONCAPABILITYSCOPEUNSPECIFIED,
+    PARTICIPATIONCAPABILITYSCOPECANONICALAGENTSCOPE,
+    PARTICIPATIONCAPABILITYSCOPEPROFILELIMITED,
+    PARTICIPATIONCAPABILITYSCOPEDOMAINLIMITED,
+    PARTICIPATIONCAPABILITYSCOPEDIAGNOSTICREADONLY,
+    PARTICIPATIONCAPABILITYSCOPEEXTERNALGATEWAYLIMITED,
+    PARTICIPATIONCAPABILITYSCOPENONE,
+}
+
+impl Default for ParticipationCapabilityScope {
+    fn default() -> Self {
+        Self::PARTICIPATIONCAPABILITYSCOPEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ParticipationExecutionConcurrency {
+    PARTICIPATIONEXECUTIONCONCURRENCYUNSPECIFIED,
+    PARTICIPATIONEXECUTIONCONCURRENCYCANONICALCHATBUDGET,
+    PARTICIPATIONEXECUTIONCONCURRENCYPERAGENTPARTICIPATIONQUEUE,
+    PARTICIPATIONEXECUTIONCONCURRENCYPROFILEISOLATEDBUDGET,
+    PARTICIPATIONEXECUTIONCONCURRENCYDOMAINTRIGGERQUEUE,
+    PARTICIPATIONEXECUTIONCONCURRENCYREJECTWHILEACTIVE,
+    PARTICIPATIONEXECUTIONCONCURRENCYGATEWAYBUDGETQUEUE,
+    PARTICIPATIONEXECUTIONCONCURRENCYLOWPRIORITYCANCELABLE,
+}
+
+impl Default for ParticipationExecutionConcurrency {
+    fn default() -> Self {
+        Self::PARTICIPATIONEXECUTIONCONCURRENCYUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ParticipationExecutionOwner {
+    PARTICIPATIONEXECUTIONOWNERUNSPECIFIED,
+    PARTICIPATIONEXECUTIONOWNERRUNTIME,
+    PARTICIPATIONEXECUTIONOWNEREXTERNALRUNTIMEVIAADMITTEDGATEWAY,
+    PARTICIPATIONEXECUTIONOWNERNOTADMITTED,
+}
+
+impl Default for ParticipationExecutionOwner {
+    fn default() -> Self {
+        Self::PARTICIPATIONEXECUTIONOWNERUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ParticipationExternalProtocolKind {
+    PARTICIPATIONEXTERNALPROTOCOLKINDUNSPECIFIED,
+    PARTICIPATIONEXTERNALPROTOCOLKINDMCP,
+    PARTICIPATIONEXTERNALPROTOCOLKINDA2A,
+}
+
+impl Default for ParticipationExternalProtocolKind {
+    fn default() -> Self {
+        Self::PARTICIPATIONEXTERNALPROTOCOLKINDUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ParticipationIdentitySource {
+    PARTICIPATIONIDENTITYSOURCEUNSPECIFIED,
+    PARTICIPATIONIDENTITYSOURCEUSEROWNEDNIMIAGENT,
+    PARTICIPATIONIDENTITYSOURCEEXTERNALA2AAGENT,
+    PARTICIPATIONIDENTITYSOURCEMCPBACKEDAICAPABILITY,
+    PARTICIPATIONIDENTITYSOURCESANDBOXPROJECTION,
+    PARTICIPATIONIDENTITYSOURCENPCWORLDACTOR,
+}
+
+impl Default for ParticipationIdentitySource {
+    fn default() -> Self {
+        Self::PARTICIPATIONIDENTITYSOURCEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ParticipationInputTrust {
+    PARTICIPATIONINPUTTRUSTUNSPECIFIED,
+    PARTICIPATIONINPUTTRUSTTRUSTEDUSER,
+    PARTICIPATIONINPUTTRUSTUNTRUSTEDMULTIPARTYTRANSCRIPT,
+    PARTICIPATIONINPUTTRUSTSANDBOXSCRIPT,
+    PARTICIPATIONINPUTTRUSTEXTERNALA2APAYLOAD,
+    PARTICIPATIONINPUTTRUSTTOOLPROVIDERPAYLOAD,
+    PARTICIPATIONINPUTTRUSTWORLDCONTEXT,
+    PARTICIPATIONINPUTTRUSTDIAGNOSTICINPUT,
+}
+
+impl Default for ParticipationInputTrust {
+    fn default() -> Self {
+        Self::PARTICIPATIONINPUTTRUSTUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ParticipationMemoryReadScope {
+    PARTICIPATIONMEMORYREADSCOPEUNSPECIFIED,
+    PARTICIPATIONMEMORYREADSCOPECANONICALOWNERPOLICY,
+    PARTICIPATIONMEMORYREADSCOPEDYADICPRIVATEALLOWED,
+    PARTICIPATIONMEMORYREADSCOPEDYADICPRIVATEEXCLUDED,
+    PARTICIPATIONMEMORYREADSCOPEPUBLICSHAREDONLY,
+    PARTICIPATIONMEMORYREADSCOPEDOMAINSHAREDONLY,
+    PARTICIPATIONMEMORYREADSCOPENOMEMORYREAD,
+}
+
+impl Default for ParticipationMemoryReadScope {
+    fn default() -> Self {
+        Self::PARTICIPATIONMEMORYREADSCOPEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ParticipationMemoryWriteDefault {
+    PARTICIPATIONMEMORYWRITEDEFAULTUNSPECIFIED,
+    PARTICIPATIONMEMORYWRITEDEFAULTCANONICALWRITEALLOWED,
+    PARTICIPATIONMEMORYWRITEDEFAULTWRITENONE,
+    PARTICIPATIONMEMORYWRITEDEFAULTPROMOTIONGATED,
+}
+
+impl Default for ParticipationMemoryWriteDefault {
+    fn default() -> Self {
+        Self::PARTICIPATIONMEMORYWRITEDEFAULTUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ParticipationOutputDestination {
+    PARTICIPATIONOUTPUTDESTINATIONUNSPECIFIED,
+    PARTICIPATIONOUTPUTDESTINATIONCANONICALCHAT,
+    PARTICIPATIONOUTPUTDESTINATIONREALMGROUPMESSAGECANDIDATE,
+    PARTICIPATIONOUTPUTDESTINATIONSCENARIOTURNCANDIDATE,
+    PARTICIPATIONOUTPUTDESTINATIONWORLDEVENTCANDIDATE,
+    PARTICIPATIONOUTPUTDESTINATIONEXTERNALREPLYCANDIDATE,
+    PARTICIPATIONOUTPUTDESTINATIONDIAGNOSTICCANDIDATE,
+    PARTICIPATIONOUTPUTDESTINATIONEPHEMERAL,
+}
+
+impl Default for ParticipationOutputDestination {
+    fn default() -> Self {
+        Self::PARTICIPATIONOUTPUTDESTINATIONUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ParticipationProfileKind {
+    PARTICIPATIONPROFILEKINDUNSPECIFIED,
+    PARTICIPATIONPROFILEKINDCANONICALAGENTCHAT,
+    PARTICIPATIONPROFILEKINDREALMGROUPAGENT,
+    PARTICIPATIONPROFILEKINDSCENARIOSANDBOX,
+    PARTICIPATIONPROFILEKINDOASISWORLDPARTICIPATION,
+    PARTICIPATIONPROFILEKINDEXTERNALAGENTENTRY,
+    PARTICIPATIONPROFILEKINDDEBUGORPROBE,
+}
+
+impl Default for ParticipationProfileKind {
+    fn default() -> Self {
+        Self::PARTICIPATIONPROFILEKINDUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ParticipationPromotionPosture {
+    PARTICIPATIONPROMOTIONPOSTUREUNSPECIFIED,
+    PARTICIPATIONPROMOTIONPOSTURENOTALLOWED,
+    PARTICIPATIONPROMOTIONPOSTUREEXPLICITCANDIDATE,
+    PARTICIPATIONPROMOTIONPOSTUREEXPLICITCOMMITFLOW,
+    PARTICIPATIONPROMOTIONPOSTUREEXISTINGCANONICALPOLICY,
+}
+
+impl Default for ParticipationPromotionPosture {
+    fn default() -> Self {
+        Self::PARTICIPATIONPROMOTIONPOSTUREUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ParticipationReplayOutcome {
+    PARTICIPATIONREPLAYOUTCOMEUNSPECIFIED,
+    PARTICIPATIONREPLAYOUTCOMECOMPLETED,
+    PARTICIPATIONREPLAYOUTCOMEPARTIALREDACTED,
+    PARTICIPATIONREPLAYOUTCOMEFAILED,
+}
+
+impl Default for ParticipationReplayOutcome {
+    fn default() -> Self {
+        Self::PARTICIPATIONREPLAYOUTCOMEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ParticipationStatus {
+    PARTICIPATIONSTATUSUNSPECIFIED,
+    PARTICIPATIONSTATUSADMISSIONPENDING,
+    PARTICIPATIONSTATUSBLOCKED,
+    PARTICIPATIONSTATUSRUNNING,
+    PARTICIPATIONSTATUSCANDIDATEREADY,
+    PARTICIPATIONSTATUSCOMMITTEDBYOWNER,
+    PARTICIPATIONSTATUSFAILED,
+    PARTICIPATIONSTATUSCANCELED,
+}
+
+impl Default for ParticipationStatus {
+    fn default() -> Self {
+        Self::PARTICIPATIONSTATUSUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ParticipationTranscriptOwner {
+    PARTICIPATIONTRANSCRIPTOWNERUNSPECIFIED,
+    PARTICIPATIONTRANSCRIPTOWNERRUNTIME,
+    PARTICIPATIONTRANSCRIPTOWNERREALM,
+    PARTICIPATIONTRANSCRIPTOWNERSCENARIOMODULE,
+    PARTICIPATIONTRANSCRIPTOWNEROASISWORLDDOMAIN,
+    PARTICIPATIONTRANSCRIPTOWNEREXTERNALDOMAIN,
+    PARTICIPATIONTRANSCRIPTOWNEREPHEMERAL,
+}
+
+impl Default for ParticipationTranscriptOwner {
+    fn default() -> Self {
+        Self::PARTICIPATIONTRANSCRIPTOWNERUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ParticipationVerdictDecision {
+    PARTICIPATIONVERDICTDECISIONUNSPECIFIED,
+    PARTICIPATIONVERDICTDECISIONALLOW,
+    PARTICIPATIONVERDICTDECISIONDENY,
+}
+
+impl Default for ParticipationVerdictDecision {
+    fn default() -> Self {
+        Self::PARTICIPATIONVERDICTDECISIONUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum PolicyMode {
     POLICYMODEUNSPECIFIED,
     POLICYMODEPRESET,
@@ -3155,6 +3394,29 @@ impl AgentRequestContext {
         out.owner_user_id = pairs.get("owner_user_id").cloned();
         out.realm_agent_id = pairs.get("realm_agent_id").cloned();
         out.local_agent_ref = pairs.get("local_agent_ref").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AgentSlotProjectionBlock {
+    pub agent_id: Option<String>,
+    pub slot_ref: Option<String>,
+}
+
+impl AgentSlotProjectionBlock {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.agent_id { pairs.push(format!("agent_id={}", value)); }
+        if let Some(value) = &self.slot_ref { pairs.push(format!("slot_ref={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.agent_id = pairs.get("agent_id").cloned();
+        out.slot_ref = pairs.get("slot_ref").cloned();
         out
     }
 }
@@ -7058,6 +7320,95 @@ impl DeleteVoiceAssetResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct DescribeParticipationContextBlocksRequest {
+    pub profile_kind: Option<ParticipationProfileKind>,
+}
+
+impl DescribeParticipationContextBlocksRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.profile_kind { pairs.push(format!("profile_kind={:?}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let _ = raw;
+        Self::default()
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct DescribeParticipationContextBlocksResponse {
+    pub context_blocks: Vec<Box<ParticipationContextBlockDescriptor>>,
+}
+
+impl DescribeParticipationContextBlocksResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        Vec::new()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let _ = raw;
+        Self::default()
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct DescribeParticipationProfilesRequest {
+
+}
+
+impl DescribeParticipationProfilesRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        Vec::new()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let _ = raw;
+        Self::default()
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct DescribeParticipationProfilesResponse {
+    pub profiles: Vec<Box<ParticipationProfileDescriptor>>,
+}
+
+impl DescribeParticipationProfilesResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        Vec::new()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let _ = raw;
+        Self::default()
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct DiagnosticProbeRefBlock {
+    pub probe_id: Option<String>,
+    pub probe_kind: Option<String>,
+}
+
+impl DiagnosticProbeRefBlock {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.probe_id { pairs.push(format!("probe_id={}", value)); }
+        if let Some(value) = &self.probe_kind { pairs.push(format!("probe_kind={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.probe_id = pairs.get("probe_id").cloned();
+        out.probe_kind = pairs.get("probe_kind").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct DisableAutonomyRequest {
     pub context: Option<Box<AgentRequestContext>>,
     pub agent_id: Option<String>,
@@ -7094,6 +7445,28 @@ impl DisableAutonomyResponse {
     pub fn from_transport(raw: &[u8]) -> Self {
         let _ = raw;
         Self::default()
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct DomainContextRefBlock {
+    pub domain_ref: Option<String>,
+    pub transcript_owner: Option<ParticipationTranscriptOwner>,
+}
+
+impl DomainContextRefBlock {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.domain_ref { pairs.push(format!("domain_ref={}", value)); }
+        if let Some(value) = &self.transcript_owner { pairs.push(format!("transcript_owner={:?}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.domain_ref = pairs.get("domain_ref").cloned();
+        out
     }
 }
 
@@ -7368,6 +7741,53 @@ impl ExecuteLocalStateCutoverResponse {
     pub fn from_transport(raw: &[u8]) -> Self {
         let _ = raw;
         Self::default()
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ExecuteParticipationRequest {
+    pub spec: Option<Box<ParticipationRequestSpec>>,
+}
+
+impl ExecuteParticipationRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        Vec::new()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let _ = raw;
+        Self::default()
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ExecuteParticipationResponse {
+    pub participation_id: Option<String>,
+    pub status: Option<ParticipationStatus>,
+    pub candidate_ref: Option<String>,
+    pub refusal_reason: Option<String>,
+    pub audit_id: Option<String>,
+}
+
+impl ExecuteParticipationResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.participation_id { pairs.push(format!("participation_id={}", value)); }
+        if let Some(value) = &self.status { pairs.push(format!("status={:?}", value)); }
+        if let Some(value) = &self.candidate_ref { pairs.push(format!("candidate_ref={}", value)); }
+        if let Some(value) = &self.refusal_reason { pairs.push(format!("refusal_reason={}", value)); }
+        if let Some(value) = &self.audit_id { pairs.push(format!("audit_id={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.participation_id = pairs.get("participation_id").cloned();
+        out.candidate_ref = pairs.get("candidate_ref").cloned();
+        out.refusal_reason = pairs.get("refusal_reason").cloned();
+        out.audit_id = pairs.get("audit_id").cloned();
+        out
     }
 }
 
@@ -7844,6 +8264,50 @@ impl ExternalAgentTokenRecord {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct ExternalParticipantIdentityRefBlock {
+    pub external_participant_id: Option<String>,
+    pub identity_source: Option<ParticipationIdentitySource>,
+}
+
+impl ExternalParticipantIdentityRefBlock {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.external_participant_id { pairs.push(format!("external_participant_id={}", value)); }
+        if let Some(value) = &self.identity_source { pairs.push(format!("identity_source={:?}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.external_participant_id = pairs.get("external_participant_id").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ExternalPayloadRefBlock {
+    pub payload_ref: Option<String>,
+    pub protocol_kind: Option<ParticipationExternalProtocolKind>,
+}
+
+impl ExternalPayloadRefBlock {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.payload_ref { pairs.push(format!("payload_ref={}", value)); }
+        if let Some(value) = &self.protocol_kind { pairs.push(format!("protocol_kind={:?}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.payload_ref = pairs.get("payload_ref").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ExtractNodeConfig {
     pub json_path: Option<String>,
     pub source_input: Option<String>,
@@ -7862,6 +8326,26 @@ impl ExtractNodeConfig {
         let mut out = Self::default();
         out.json_path = pairs.get("json_path").cloned();
         out.source_input = pairs.get("source_input").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GatewayVerdictRefBlock {
+    pub gateway_verdict_id: Option<String>,
+}
+
+impl GatewayVerdictRefBlock {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.gateway_verdict_id { pairs.push(format!("gateway_verdict_id={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.gateway_verdict_id = pairs.get("gateway_verdict_id").cloned();
         out
     }
 }
@@ -8794,6 +9278,122 @@ impl GetPageResponse {
     pub fn from_transport(raw: &[u8]) -> Self {
         let _ = raw;
         Self::default()
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetParticipationCandidateRequest {
+    pub participation_id: Option<String>,
+}
+
+impl GetParticipationCandidateRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.participation_id { pairs.push(format!("participation_id={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.participation_id = pairs.get("participation_id").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetParticipationCandidateResponse {
+    pub candidate: Option<Box<ParticipationCandidateRecord>>,
+    pub status: Option<ParticipationStatus>,
+}
+
+impl GetParticipationCandidateResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.status { pairs.push(format!("status={:?}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let _ = raw;
+        Self::default()
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetParticipationReplayRequest {
+    pub participation_id: Option<String>,
+}
+
+impl GetParticipationReplayRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.participation_id { pairs.push(format!("participation_id={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.participation_id = pairs.get("participation_id").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetParticipationReplayResponse {
+    pub replay: Option<Box<ParticipationReplay>>,
+}
+
+impl GetParticipationReplayResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        Vec::new()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let _ = raw;
+        Self::default()
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetParticipationVerdictsRequest {
+    pub participation_id: Option<String>,
+}
+
+impl GetParticipationVerdictsRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.participation_id { pairs.push(format!("participation_id={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.participation_id = pairs.get("participation_id").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetParticipationVerdictsResponse {
+    pub verdicts: Option<Box<ParticipationVerdictSet>>,
+    pub policy_verdict_ref: Option<String>,
+}
+
+impl GetParticipationVerdictsResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.policy_verdict_ref { pairs.push(format!("policy_verdict_ref={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.policy_verdict_ref = pairs.get("policy_verdict_ref").cloned();
+        out
     }
 }
 
@@ -11758,6 +12358,56 @@ pub struct ListPagesResponse {
 }
 
 impl ListPagesResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.next_page_token { pairs.push(format!("next_page_token={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.next_page_token = pairs.get("next_page_token").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ListParticipationAuditEventsRequest {
+    pub participation_id: Option<String>,
+    pub agent_id: Option<String>,
+    pub page_size: Option<i32>,
+    pub page_token: Option<String>,
+}
+
+impl ListParticipationAuditEventsRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.participation_id { pairs.push(format!("participation_id={}", value)); }
+        if let Some(value) = &self.agent_id { pairs.push(format!("agent_id={}", value)); }
+        if let Some(value) = &self.page_size { pairs.push(format!("page_size={}", value)); }
+        if let Some(value) = &self.page_token { pairs.push(format!("page_token={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.participation_id = pairs.get("participation_id").cloned();
+        out.agent_id = pairs.get("agent_id").cloned();
+        out.page_size = pairs.get("page_size").and_then(|value| value.parse().ok());
+        out.page_token = pairs.get("page_token").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ListParticipationAuditEventsResponse {
+    pub events: Vec<Box<ParticipationAuditEvent>>,
+    pub next_page_token: Option<String>,
+}
+
+impl ListParticipationAuditEventsResponse {
     pub fn to_transport(&self) -> Vec<u8> {
         let mut pairs: Vec<String> = Vec::new();
         if let Some(value) = &self.next_page_token { pairs.push(format!("next_page_token={}", value)); }
@@ -15928,6 +16578,367 @@ impl OpenSessionResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct ParticipantProjectionBlock {
+    pub participant_ref: Option<String>,
+    pub identity_source: Option<ParticipationIdentitySource>,
+}
+
+impl ParticipantProjectionBlock {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.participant_ref { pairs.push(format!("participant_ref={}", value)); }
+        if let Some(value) = &self.identity_source { pairs.push(format!("identity_source={:?}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.participant_ref = pairs.get("participant_ref").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ParticipationAuditEvent {
+    pub audit_id: Option<String>,
+    pub participation_id: Option<String>,
+    pub event_kind: Option<String>,
+    pub reason_code: Option<String>,
+    pub actor_ref: Option<String>,
+    pub observed_at: Option<String>,
+}
+
+impl ParticipationAuditEvent {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.audit_id { pairs.push(format!("audit_id={}", value)); }
+        if let Some(value) = &self.participation_id { pairs.push(format!("participation_id={}", value)); }
+        if let Some(value) = &self.event_kind { pairs.push(format!("event_kind={}", value)); }
+        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={}", value)); }
+        if let Some(value) = &self.actor_ref { pairs.push(format!("actor_ref={}", value)); }
+        if let Some(value) = &self.observed_at { pairs.push(format!("observed_at={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.audit_id = pairs.get("audit_id").cloned();
+        out.participation_id = pairs.get("participation_id").cloned();
+        out.event_kind = pairs.get("event_kind").cloned();
+        out.reason_code = pairs.get("reason_code").cloned();
+        out.actor_ref = pairs.get("actor_ref").cloned();
+        out.observed_at = pairs.get("observed_at").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ParticipationCandidateRecord {
+    pub participation_id: Option<String>,
+    pub profile_kind: Option<ParticipationProfileKind>,
+    pub identity_source: Option<ParticipationIdentitySource>,
+    pub participant_ref: Option<String>,
+    pub trigger_ref: Option<String>,
+    pub context_block_refs: Vec<String>,
+    pub output_destination: Option<ParticipationOutputDestination>,
+    pub candidate_ref: Option<String>,
+    pub policy_verdict_ref: Option<String>,
+    pub memory_read_verdict: Option<Box<ParticipationVerdict>>,
+    pub memory_write_verdict: Option<Box<ParticipationVerdict>>,
+    pub capability_scope_verdict: Option<Box<ParticipationVerdict>>,
+    pub audit_id: Option<String>,
+    pub created_at: Option<String>,
+}
+
+impl ParticipationCandidateRecord {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.participation_id { pairs.push(format!("participation_id={}", value)); }
+        if let Some(value) = &self.profile_kind { pairs.push(format!("profile_kind={:?}", value)); }
+        if let Some(value) = &self.identity_source { pairs.push(format!("identity_source={:?}", value)); }
+        if let Some(value) = &self.participant_ref { pairs.push(format!("participant_ref={}", value)); }
+        if let Some(value) = &self.trigger_ref { pairs.push(format!("trigger_ref={}", value)); }
+        if let Some(value) = &self.output_destination { pairs.push(format!("output_destination={:?}", value)); }
+        if let Some(value) = &self.candidate_ref { pairs.push(format!("candidate_ref={}", value)); }
+        if let Some(value) = &self.policy_verdict_ref { pairs.push(format!("policy_verdict_ref={}", value)); }
+        if let Some(value) = &self.audit_id { pairs.push(format!("audit_id={}", value)); }
+        if let Some(value) = &self.created_at { pairs.push(format!("created_at={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.participation_id = pairs.get("participation_id").cloned();
+        out.participant_ref = pairs.get("participant_ref").cloned();
+        out.trigger_ref = pairs.get("trigger_ref").cloned();
+        out.candidate_ref = pairs.get("candidate_ref").cloned();
+        out.policy_verdict_ref = pairs.get("policy_verdict_ref").cloned();
+        out.audit_id = pairs.get("audit_id").cloned();
+        out.created_at = pairs.get("created_at").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ParticipationContextBlock {
+    pub runtime_conversation_anchor_ref: Option<Box<RuntimeConversationAnchorRefBlock>>,
+    pub realm_group_thread_ref: Option<Box<RealmGroupThreadRefBlock>>,
+    pub trigger_message_ref: Option<Box<TriggerMessageRefBlock>>,
+    pub participant_projection: Option<Box<ParticipantProjectionBlock>>,
+    pub recent_group_transcript_projection: Option<Box<RecentGroupTranscriptProjectionBlock>>,
+    pub agent_slot_projection: Option<Box<AgentSlotProjectionBlock>>,
+    pub scenario_package_ref: Option<Box<ScenarioPackageRefBlock>>,
+    pub scenario_run_ref: Option<Box<ScenarioRunRefBlock>>,
+    pub scenario_branch_ref: Option<Box<ScenarioBranchRefBlock>>,
+    pub visible_scene_state: Option<Box<VisibleSceneStateBlock>>,
+    pub recent_sandbox_transcript_projection: Option<Box<RecentSandboxTranscriptProjectionBlock>>,
+    pub world_context_ref: Option<Box<WorldContextRefBlock>>,
+    pub world_event_ref: Option<Box<WorldEventRefBlock>>,
+    pub visible_world_state_projection: Option<Box<VisibleWorldStateProjectionBlock>>,
+    pub recent_world_transcript_or_event_projection: Option<Box<RecentWorldTranscriptOrEventProjectionBlock>>,
+    pub external_participant_identity_ref: Option<Box<ExternalParticipantIdentityRefBlock>>,
+    pub external_payload_ref: Option<Box<ExternalPayloadRefBlock>>,
+    pub gateway_verdict_ref: Option<Box<GatewayVerdictRefBlock>>,
+    pub domain_context_ref: Option<Box<DomainContextRefBlock>>,
+    pub tool_or_capability_projection: Option<Box<ToolOrCapabilityProjectionBlock>>,
+    pub diagnostic_probe_ref: Option<Box<DiagnosticProbeRefBlock>>,
+}
+
+impl ParticipationContextBlock {
+    pub fn to_transport(&self) -> Vec<u8> {
+        Vec::new()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let _ = raw;
+        Self::default()
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ParticipationContextBlockDescriptor {
+    pub block_kind: Option<String>,
+    pub allowed_profile_kinds: Vec<ParticipationProfileKind>,
+    pub required_fields: Vec<String>,
+}
+
+impl ParticipationContextBlockDescriptor {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.block_kind { pairs.push(format!("block_kind={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.block_kind = pairs.get("block_kind").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ParticipationProfileDescriptor {
+    pub profile_kind: Option<ParticipationProfileKind>,
+    pub transcript_owner: Option<ParticipationTranscriptOwner>,
+    pub identity_source: Option<ParticipationIdentitySource>,
+    pub additional_identity_sources: Vec<ParticipationIdentitySource>,
+    pub execution_owner: Option<ParticipationExecutionOwner>,
+    pub memory_read_scope: Option<ParticipationMemoryReadScope>,
+    pub memory_write_default: Option<ParticipationMemoryWriteDefault>,
+    pub capability_scope: Option<ParticipationCapabilityScope>,
+    pub input_trust: Option<ParticipationInputTrust>,
+    pub additional_input_trust: Vec<ParticipationInputTrust>,
+    pub output_destination: Option<ParticipationOutputDestination>,
+    pub promotion_posture: Option<ParticipationPromotionPosture>,
+    pub execution_concurrency: Option<ParticipationExecutionConcurrency>,
+    pub posture: Option<String>,
+}
+
+impl ParticipationProfileDescriptor {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.profile_kind { pairs.push(format!("profile_kind={:?}", value)); }
+        if let Some(value) = &self.transcript_owner { pairs.push(format!("transcript_owner={:?}", value)); }
+        if let Some(value) = &self.identity_source { pairs.push(format!("identity_source={:?}", value)); }
+        if let Some(value) = &self.execution_owner { pairs.push(format!("execution_owner={:?}", value)); }
+        if let Some(value) = &self.memory_read_scope { pairs.push(format!("memory_read_scope={:?}", value)); }
+        if let Some(value) = &self.memory_write_default { pairs.push(format!("memory_write_default={:?}", value)); }
+        if let Some(value) = &self.capability_scope { pairs.push(format!("capability_scope={:?}", value)); }
+        if let Some(value) = &self.input_trust { pairs.push(format!("input_trust={:?}", value)); }
+        if let Some(value) = &self.output_destination { pairs.push(format!("output_destination={:?}", value)); }
+        if let Some(value) = &self.promotion_posture { pairs.push(format!("promotion_posture={:?}", value)); }
+        if let Some(value) = &self.execution_concurrency { pairs.push(format!("execution_concurrency={:?}", value)); }
+        if let Some(value) = &self.posture { pairs.push(format!("posture={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.posture = pairs.get("posture").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ParticipationReplay {
+    pub replay_id: Option<String>,
+    pub participation_id: Option<String>,
+    pub agent_id: Option<String>,
+    pub profile_kind: Option<ParticipationProfileKind>,
+    pub outcome: Option<ParticipationReplayOutcome>,
+    pub reason_code: Option<String>,
+    pub stages: Vec<Box<ParticipationReplayStage>>,
+    pub redacted: Option<bool>,
+    pub observed_at: Option<String>,
+}
+
+impl ParticipationReplay {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.replay_id { pairs.push(format!("replay_id={}", value)); }
+        if let Some(value) = &self.participation_id { pairs.push(format!("participation_id={}", value)); }
+        if let Some(value) = &self.agent_id { pairs.push(format!("agent_id={}", value)); }
+        if let Some(value) = &self.profile_kind { pairs.push(format!("profile_kind={:?}", value)); }
+        if let Some(value) = &self.outcome { pairs.push(format!("outcome={:?}", value)); }
+        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={}", value)); }
+        if let Some(value) = &self.redacted { pairs.push(format!("redacted={}", value)); }
+        if let Some(value) = &self.observed_at { pairs.push(format!("observed_at={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.replay_id = pairs.get("replay_id").cloned();
+        out.participation_id = pairs.get("participation_id").cloned();
+        out.agent_id = pairs.get("agent_id").cloned();
+        out.reason_code = pairs.get("reason_code").cloned();
+        out.redacted = pairs.get("redacted").and_then(|value| value.parse().ok());
+        out.observed_at = pairs.get("observed_at").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ParticipationReplayStage {
+    pub stage_id: Option<String>,
+    pub state: Option<String>,
+    pub reason_code: Option<String>,
+    pub redacted_summary: Option<String>,
+    pub observed_at: Option<String>,
+}
+
+impl ParticipationReplayStage {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.stage_id { pairs.push(format!("stage_id={}", value)); }
+        if let Some(value) = &self.state { pairs.push(format!("state={}", value)); }
+        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={}", value)); }
+        if let Some(value) = &self.redacted_summary { pairs.push(format!("redacted_summary={}", value)); }
+        if let Some(value) = &self.observed_at { pairs.push(format!("observed_at={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.stage_id = pairs.get("stage_id").cloned();
+        out.state = pairs.get("state").cloned();
+        out.reason_code = pairs.get("reason_code").cloned();
+        out.redacted_summary = pairs.get("redacted_summary").cloned();
+        out.observed_at = pairs.get("observed_at").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ParticipationRequestSpec {
+    pub profile_kind: Option<ParticipationProfileKind>,
+    pub agent_id: Option<String>,
+    pub participant_ref: Option<String>,
+    pub trigger_ref: Option<String>,
+    pub context_blocks: Vec<Box<ParticipationContextBlock>>,
+    pub request_id: Option<String>,
+}
+
+impl ParticipationRequestSpec {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.profile_kind { pairs.push(format!("profile_kind={:?}", value)); }
+        if let Some(value) = &self.agent_id { pairs.push(format!("agent_id={}", value)); }
+        if let Some(value) = &self.participant_ref { pairs.push(format!("participant_ref={}", value)); }
+        if let Some(value) = &self.trigger_ref { pairs.push(format!("trigger_ref={}", value)); }
+        if let Some(value) = &self.request_id { pairs.push(format!("request_id={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.agent_id = pairs.get("agent_id").cloned();
+        out.participant_ref = pairs.get("participant_ref").cloned();
+        out.trigger_ref = pairs.get("trigger_ref").cloned();
+        out.request_id = pairs.get("request_id").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ParticipationVerdict {
+    pub decision: Option<ParticipationVerdictDecision>,
+    pub reason_code: Option<String>,
+}
+
+impl ParticipationVerdict {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.decision { pairs.push(format!("decision={:?}", value)); }
+        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.reason_code = pairs.get("reason_code").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ParticipationVerdictSet {
+    pub memory_read: Option<Box<ParticipationVerdict>>,
+    pub memory_write: Option<Box<ParticipationVerdict>>,
+    pub capability_scope: Option<Box<ParticipationVerdict>>,
+    pub concurrency: Option<Box<ParticipationVerdict>>,
+    pub resolved_memory_read_scope: Option<ParticipationMemoryReadScope>,
+    pub resolved_memory_write_default: Option<ParticipationMemoryWriteDefault>,
+    pub resolved_capability_scope: Option<ParticipationCapabilityScope>,
+    pub resolved_concurrency: Option<ParticipationExecutionConcurrency>,
+}
+
+impl ParticipationVerdictSet {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.resolved_memory_read_scope { pairs.push(format!("resolved_memory_read_scope={:?}", value)); }
+        if let Some(value) = &self.resolved_memory_write_default { pairs.push(format!("resolved_memory_write_default={:?}", value)); }
+        if let Some(value) = &self.resolved_capability_scope { pairs.push(format!("resolved_capability_scope={:?}", value)); }
+        if let Some(value) = &self.resolved_concurrency { pairs.push(format!("resolved_concurrency={:?}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let _ = raw;
+        Self::default()
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct PauseLocalTransferRequest {
     pub install_session_id: Option<String>,
 }
@@ -16613,6 +17624,26 @@ impl RealmGroupMessageCandidateEvidence {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGroupThreadRefBlock {
+    pub thread_id: Option<String>,
+}
+
+impl RealmGroupThreadRefBlock {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.thread_id { pairs.push(format!("thread_id={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.thread_id = pairs.get("thread_id").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealtimeAudioChunk {
     pub chunk: Option<Vec<u8>>,
     pub mime_type: Option<String>,
@@ -16882,6 +17913,75 @@ impl RecallResponse {
     pub fn from_transport(raw: &[u8]) -> Self {
         let _ = raw;
         Self::default()
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RecentGroupTranscriptProjectionBlock {
+    pub transcript_ref: Option<String>,
+    pub trust_posture: Option<ParticipationInputTrust>,
+}
+
+impl RecentGroupTranscriptProjectionBlock {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.transcript_ref { pairs.push(format!("transcript_ref={}", value)); }
+        if let Some(value) = &self.trust_posture { pairs.push(format!("trust_posture={:?}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.transcript_ref = pairs.get("transcript_ref").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RecentSandboxTranscriptProjectionBlock {
+    pub transcript_ref: Option<String>,
+    pub branch_ref: Option<String>,
+    pub trust_posture: Option<ParticipationInputTrust>,
+}
+
+impl RecentSandboxTranscriptProjectionBlock {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.transcript_ref { pairs.push(format!("transcript_ref={}", value)); }
+        if let Some(value) = &self.branch_ref { pairs.push(format!("branch_ref={}", value)); }
+        if let Some(value) = &self.trust_posture { pairs.push(format!("trust_posture={:?}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.transcript_ref = pairs.get("transcript_ref").cloned();
+        out.branch_ref = pairs.get("branch_ref").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RecentWorldTranscriptOrEventProjectionBlock {
+    pub event_or_transcript_ref: Option<String>,
+    pub trust_posture: Option<ParticipationInputTrust>,
+}
+
+impl RecentWorldTranscriptOrEventProjectionBlock {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.event_or_transcript_ref { pairs.push(format!("event_or_transcript_ref={}", value)); }
+        if let Some(value) = &self.trust_posture { pairs.push(format!("trust_posture={:?}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.event_or_transcript_ref = pairs.get("event_or_transcript_ref").cloned();
+        out
     }
 }
 
@@ -18588,6 +19688,26 @@ impl RuntimeBaselineReadinessRef {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct RuntimeConversationAnchorRefBlock {
+    pub conversation_anchor_id: Option<String>,
+}
+
+impl RuntimeConversationAnchorRefBlock {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.conversation_anchor_id { pairs.push(format!("conversation_anchor_id={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.conversation_anchor_id = pairs.get("conversation_anchor_id").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RuntimeHealthEvent {
     pub sequence: Option<u64>,
     pub status: Option<RuntimeHealthStatus>,
@@ -18764,6 +19884,26 @@ impl ScenarioArtifact {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct ScenarioBranchRefBlock {
+    pub scenario_branch_id: Option<String>,
+}
+
+impl ScenarioBranchRefBlock {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.scenario_branch_id { pairs.push(format!("scenario_branch_id={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.scenario_branch_id = pairs.get("scenario_branch_id").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ScenarioExtension {
     pub namespace: Option<String>,
     pub payload: Option<BTreeMap<String, String>>,
@@ -18905,6 +20045,26 @@ impl ScenarioOutput {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct ScenarioPackageRefBlock {
+    pub scenario_package_id: Option<String>,
+}
+
+impl ScenarioPackageRefBlock {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.scenario_package_id { pairs.push(format!("scenario_package_id={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.scenario_package_id = pairs.get("scenario_package_id").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ScenarioProfile {
     pub scenario_type: Option<ScenarioType>,
     pub supported_execution_modes: Vec<ExecutionMode>,
@@ -18959,6 +20119,26 @@ impl ScenarioRequestHead {
         out.model_id = pairs.get("model_id").cloned();
         out.timeout_ms = pairs.get("timeout_ms").and_then(|value| value.parse().ok());
         out.connector_id = pairs.get("connector_id").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ScenarioRunRefBlock {
+    pub scenario_run_id: Option<String>,
+}
+
+impl ScenarioRunRefBlock {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.scenario_run_id { pairs.push(format!("scenario_run_id={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.scenario_run_id = pairs.get("scenario_run_id").cloned();
         out
     }
 }
@@ -21061,6 +22241,28 @@ impl ToolCall {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct ToolOrCapabilityProjectionBlock {
+    pub capability_ref: Option<String>,
+    pub effect_class: Option<EffectClass>,
+}
+
+impl ToolOrCapabilityProjectionBlock {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.capability_ref { pairs.push(format!("capability_ref={}", value)); }
+        if let Some(value) = &self.effect_class { pairs.push(format!("effect_class={:?}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.capability_ref = pairs.get("capability_ref").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ToolResult {
     pub tool_call_id: Option<String>,
     pub tool_name: Option<String>,
@@ -21176,6 +22378,26 @@ impl TraverseGraphResponse {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
         out.next_page_token = pairs.get("next_page_token").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct TriggerMessageRefBlock {
+    pub message_id: Option<String>,
+}
+
+impl TriggerMessageRefBlock {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.message_id { pairs.push(format!("message_id={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.message_id = pairs.get("message_id").cloned();
         out
     }
 }
@@ -21719,6 +22941,48 @@ impl ValidateAppAccessTokenResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct ValidateParticipationRequest {
+    pub spec: Option<Box<ParticipationRequestSpec>>,
+}
+
+impl ValidateParticipationRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        Vec::new()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let _ = raw;
+        Self::default()
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ValidateParticipationResponse {
+    pub admitted: Option<bool>,
+    pub verdicts: Option<Box<ParticipationVerdictSet>>,
+    pub resolved_output_destination: Option<ParticipationOutputDestination>,
+    pub refusal_reason: Option<String>,
+}
+
+impl ValidateParticipationResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.admitted { pairs.push(format!("admitted={}", value)); }
+        if let Some(value) = &self.resolved_output_destination { pairs.push(format!("resolved_output_destination={:?}", value)); }
+        if let Some(value) = &self.refusal_reason { pairs.push(format!("refusal_reason={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.admitted = pairs.get("admitted").and_then(|value| value.parse().ok());
+        out.refusal_reason = pairs.get("refusal_reason").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct VideoContentAudioURL {
     pub url: Option<String>,
 }
@@ -21900,6 +23164,46 @@ impl VideoGenerationOptions {
         out.service_tier = pairs.get("service_tier").cloned();
         out.execution_expires_after_sec = pairs.get("execution_expires_after_sec").and_then(|value| value.parse().ok());
         out.return_last_frame = pairs.get("return_last_frame").and_then(|value| value.parse().ok());
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct VisibleSceneStateBlock {
+    pub scene_state_ref: Option<String>,
+}
+
+impl VisibleSceneStateBlock {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.scene_state_ref { pairs.push(format!("scene_state_ref={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.scene_state_ref = pairs.get("scene_state_ref").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct VisibleWorldStateProjectionBlock {
+    pub world_state_ref: Option<String>,
+}
+
+impl VisibleWorldStateProjectionBlock {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.world_state_ref { pairs.push(format!("world_state_ref={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.world_state_ref = pairs.get("world_state_ref").cloned();
         out
     }
 }
@@ -22575,6 +23879,46 @@ impl WorkspacePrivateBankOwner {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldContextRefBlock {
+    pub world_context_id: Option<String>,
+}
+
+impl WorldContextRefBlock {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.world_context_id { pairs.push(format!("world_context_id={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.world_context_id = pairs.get("world_context_id").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldEventRefBlock {
+    pub world_event_id: Option<String>,
+}
+
+impl WorldEventRefBlock {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.world_event_id { pairs.push(format!("world_event_id={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.world_event_id = pairs.get("world_event_id").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct WorldGenerateAssetSource {
     pub uri: Option<String>,
     pub media_asset_id: Option<String>,
@@ -23019,6 +24363,12 @@ impl From<Vec<u8>> for AgentReplicationEventDetail {
 }
 
 impl From<Vec<u8>> for AgentRequestContext {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for AgentSlotProjectionBlock {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -23810,6 +25160,36 @@ impl From<Vec<u8>> for DeleteVoiceAssetResponse {
     }
 }
 
+impl From<Vec<u8>> for DescribeParticipationContextBlocksRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for DescribeParticipationContextBlocksResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for DescribeParticipationProfilesRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for DescribeParticipationProfilesResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for DiagnosticProbeRefBlock {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for DisableAutonomyRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -23817,6 +25197,12 @@ impl From<Vec<u8>> for DisableAutonomyRequest {
 }
 
 impl From<Vec<u8>> for DisableAutonomyResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for DomainContextRefBlock {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -23889,6 +25275,18 @@ impl From<Vec<u8>> for ExecuteLocalStateCutoverRequest {
 }
 
 impl From<Vec<u8>> for ExecuteLocalStateCutoverResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for ExecuteParticipationRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for ExecuteParticipationResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -23984,7 +25382,25 @@ impl From<Vec<u8>> for ExternalAgentTokenRecord {
     }
 }
 
+impl From<Vec<u8>> for ExternalParticipantIdentityRefBlock {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for ExternalPayloadRefBlock {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for ExtractNodeConfig {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for GatewayVerdictRefBlock {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -24261,6 +25677,42 @@ impl From<Vec<u8>> for GetPageRequest {
 }
 
 impl From<Vec<u8>> for GetPageResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for GetParticipationCandidateRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for GetParticipationCandidateResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for GetParticipationReplayRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for GetParticipationReplayResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for GetParticipationVerdictsRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for GetParticipationVerdictsResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -25016,6 +26468,18 @@ impl From<Vec<u8>> for ListPagesResponse {
     }
 }
 
+impl From<Vec<u8>> for ListParticipationAuditEventsRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for ListParticipationAuditEventsResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for ListPendingHooksRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -25754,6 +27218,72 @@ impl From<Vec<u8>> for OpenSessionResponse {
     }
 }
 
+impl From<Vec<u8>> for ParticipantProjectionBlock {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for ParticipationAuditEvent {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for ParticipationCandidateRecord {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for ParticipationContextBlock {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for ParticipationContextBlockDescriptor {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for ParticipationProfileDescriptor {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for ParticipationReplay {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for ParticipationReplayStage {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for ParticipationRequestSpec {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for ParticipationVerdict {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for ParticipationVerdictSet {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for PauseLocalTransferRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -25904,6 +27434,12 @@ impl From<Vec<u8>> for RealmGroupMessageCandidateEvidence {
     }
 }
 
+impl From<Vec<u8>> for RealmGroupThreadRefBlock {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for RealtimeAudioChunk {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -25971,6 +27507,24 @@ impl From<Vec<u8>> for RecallRequest {
 }
 
 impl From<Vec<u8>> for RecallResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for RecentGroupTranscriptProjectionBlock {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for RecentSandboxTranscriptProjectionBlock {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for RecentWorldTranscriptOrEventProjectionBlock {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -26402,6 +27956,12 @@ impl From<Vec<u8>> for RuntimeBaselineReadinessRef {
     }
 }
 
+impl From<Vec<u8>> for RuntimeConversationAnchorRefBlock {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for RuntimeHealthEvent {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -26438,6 +27998,12 @@ impl From<Vec<u8>> for ScenarioArtifact {
     }
 }
 
+impl From<Vec<u8>> for ScenarioBranchRefBlock {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for ScenarioExtension {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -26462,6 +28028,12 @@ impl From<Vec<u8>> for ScenarioOutput {
     }
 }
 
+impl From<Vec<u8>> for ScenarioPackageRefBlock {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for ScenarioProfile {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -26469,6 +28041,12 @@ impl From<Vec<u8>> for ScenarioProfile {
 }
 
 impl From<Vec<u8>> for ScenarioRequestHead {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for ScenarioRunRefBlock {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -26990,6 +28568,12 @@ impl From<Vec<u8>> for ToolCall {
     }
 }
 
+impl From<Vec<u8>> for ToolOrCapabilityProjectionBlock {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for ToolResult {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -27009,6 +28593,12 @@ impl From<Vec<u8>> for TraverseGraphRequest {
 }
 
 impl From<Vec<u8>> for TraverseGraphResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for TriggerMessageRefBlock {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -27146,6 +28736,18 @@ impl From<Vec<u8>> for ValidateAppAccessTokenResponse {
     }
 }
 
+impl From<Vec<u8>> for ValidateParticipationRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for ValidateParticipationResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for VideoContentAudioURL {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -27183,6 +28785,18 @@ impl From<Vec<u8>> for VideoGenerateScenarioSpec {
 }
 
 impl From<Vec<u8>> for VideoGenerationOptions {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for VisibleSceneStateBlock {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for VisibleWorldStateProjectionBlock {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -27309,6 +28923,18 @@ impl From<Vec<u8>> for WorkspaceMembershipProjection {
 }
 
 impl From<Vec<u8>> for WorkspacePrivateBankOwner {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for WorldContextRefBlock {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for WorldEventRefBlock {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -27550,6 +29176,26 @@ where
         Ok(CreateRealmGroupMessageCandidateResponse::from_transport(&raw))
     }
 
+    pub fn describe_participation_context_blocks(&self, request: DescribeParticipationContextBlocksRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<DescribeParticipationContextBlocksResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/DescribeParticipationContextBlocks".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(DescribeParticipationContextBlocksResponse::from_transport(&raw))
+    }
+
+    pub fn describe_participation_profiles(&self, request: DescribeParticipationProfilesRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<DescribeParticipationProfilesResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/DescribeParticipationProfiles".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(DescribeParticipationProfilesResponse::from_transport(&raw))
+    }
+
     pub fn disable_autonomy(&self, request: DisableAutonomyRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<DisableAutonomyResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy".to_string(),
@@ -27578,6 +29224,16 @@ where
             timeout,
         })?;
         Ok(ExecuteDelegatedCapabilityResponse::from_transport(&raw))
+    }
+
+    pub fn execute_participation(&self, request: ExecuteParticipationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ExecuteParticipationResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/ExecuteParticipation".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(ExecuteParticipationResponse::from_transport(&raw))
     }
 
     pub fn get_agent(&self, request: GetAgentRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetAgentResponse, T::Error> {
@@ -27670,6 +29326,36 @@ where
         Ok(GetDelegatedReplayTraceResponse::from_transport(&raw))
     }
 
+    pub fn get_participation_candidate(&self, request: GetParticipationCandidateRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetParticipationCandidateResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/GetParticipationCandidate".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(GetParticipationCandidateResponse::from_transport(&raw))
+    }
+
+    pub fn get_participation_replay(&self, request: GetParticipationReplayRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetParticipationReplayResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/GetParticipationReplay".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(GetParticipationReplayResponse::from_transport(&raw))
+    }
+
+    pub fn get_participation_verdicts(&self, request: GetParticipationVerdictsRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetParticipationVerdictsResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/GetParticipationVerdicts".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(GetParticipationVerdictsResponse::from_transport(&raw))
+    }
+
     pub fn get_public_chat_session_snapshot(&self, request: GetPublicChatSessionSnapshotRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetPublicChatSessionSnapshotResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot".to_string(),
@@ -27758,6 +29444,16 @@ where
             timeout,
         })?;
         Ok(ListDelegatedProviderProfilesResponse::from_transport(&raw))
+    }
+
+    pub fn list_participation_audit_events(&self, request: ListParticipationAuditEventsRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListParticipationAuditEventsResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/ListParticipationAuditEvents".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(ListParticipationAuditEventsResponse::from_transport(&raw))
     }
 
     pub fn list_pending_hooks(&self, request: ListPendingHooksRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListPendingHooksResponse, T::Error> {
@@ -27941,6 +29637,16 @@ where
             timeout,
         })?;
         Ok(UpsertDelegatedProviderProfileResponse::from_transport(&raw))
+    }
+
+    pub fn validate_participation(&self, request: ValidateParticipationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ValidateParticipationResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/ValidateParticipation".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(ValidateParticipationResponse::from_transport(&raw))
     }
 
     pub fn write_agent_memory(&self, request: WriteAgentMemoryRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<WriteAgentMemoryResponse, T::Error> {

@@ -135,6 +135,22 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "CreateRealmGroupMessageCandidateResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/DescribeParticipationContextBlocks",
+    "service": "RuntimeAgentService",
+    "method": "DescribeParticipationContextBlocks",
+    "kind": "unary",
+    "requestType": "DescribeParticipationContextBlocksRequest",
+    "responseType": "DescribeParticipationContextBlocksResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/DescribeParticipationProfiles",
+    "service": "RuntimeAgentService",
+    "method": "DescribeParticipationProfiles",
+    "kind": "unary",
+    "requestType": "DescribeParticipationProfilesRequest",
+    "responseType": "DescribeParticipationProfilesResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy",
     "service": "RuntimeAgentService",
     "method": "DisableAutonomy",
@@ -157,6 +173,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "unary",
     "requestType": "ExecuteDelegatedCapabilityRequest",
     "responseType": "ExecuteDelegatedCapabilityResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/ExecuteParticipation",
+    "service": "RuntimeAgentService",
+    "method": "ExecuteParticipation",
+    "kind": "unary",
+    "requestType": "ExecuteParticipationRequest",
+    "responseType": "ExecuteParticipationResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeAgentService/GetAgent",
@@ -231,6 +255,30 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "GetDelegatedReplayTraceResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/GetParticipationCandidate",
+    "service": "RuntimeAgentService",
+    "method": "GetParticipationCandidate",
+    "kind": "unary",
+    "requestType": "GetParticipationCandidateRequest",
+    "responseType": "GetParticipationCandidateResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/GetParticipationReplay",
+    "service": "RuntimeAgentService",
+    "method": "GetParticipationReplay",
+    "kind": "unary",
+    "requestType": "GetParticipationReplayRequest",
+    "responseType": "GetParticipationReplayResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/GetParticipationVerdicts",
+    "service": "RuntimeAgentService",
+    "method": "GetParticipationVerdicts",
+    "kind": "unary",
+    "requestType": "GetParticipationVerdictsRequest",
+    "responseType": "GetParticipationVerdictsResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot",
     "service": "RuntimeAgentService",
     "method": "GetPublicChatSessionSnapshot",
@@ -301,6 +349,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "unary",
     "requestType": "ListDelegatedProviderProfilesRequest",
     "responseType": "ListDelegatedProviderProfilesResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/ListParticipationAuditEvents",
+    "service": "RuntimeAgentService",
+    "method": "ListParticipationAuditEvents",
+    "kind": "unary",
+    "requestType": "ListParticipationAuditEventsRequest",
+    "responseType": "ListParticipationAuditEventsResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeAgentService/ListPendingHooks",
@@ -445,6 +501,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "unary",
     "requestType": "UpsertDelegatedProviderProfileRequest",
     "responseType": "UpsertDelegatedProviderProfileResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/ValidateParticipation",
+    "service": "RuntimeAgentService",
+    "method": "ValidateParticipation",
+    "kind": "unary",
+    "requestType": "ValidateParticipationRequest",
+    "responseType": "ValidateParticipationResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeAgentService/WriteAgentMemory",

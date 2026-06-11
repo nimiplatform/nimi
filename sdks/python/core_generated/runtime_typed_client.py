@@ -124,6 +124,21 @@ Modal = Literal["MODAL_UNSPECIFIED", "MODAL_TEXT", "MODAL_IMAGE", "MODAL_VIDEO",
 ModelCatalogProviderSource = Literal["MODEL_CATALOG_PROVIDER_SOURCE_UNSPECIFIED", "MODEL_CATALOG_PROVIDER_SOURCE_BUILTIN", "MODEL_CATALOG_PROVIDER_SOURCE_CUSTOM", "MODEL_CATALOG_PROVIDER_SOURCE_REMOTE", "MODEL_CATALOG_PROVIDER_SOURCE_OVERRIDDEN"]
 ModelHealthStatus = Literal["MODEL_HEALTH_STATUS_UNSPECIFIED", "MODEL_HEALTH_STATUS_HEALTHY", "MODEL_HEALTH_STATUS_DEGRADED", "MODEL_HEALTH_STATUS_UNSUPPORTED", "MODEL_HEALTH_STATUS_UNREACHABLE"]
 ModelStatus = Literal["MODEL_STATUS_UNSPECIFIED", "MODEL_STATUS_INSTALLED", "MODEL_STATUS_PULLING", "MODEL_STATUS_FAILED", "MODEL_STATUS_REMOVED"]
+ParticipationCapabilityScope = Literal["PARTICIPATION_CAPABILITY_SCOPE_UNSPECIFIED", "PARTICIPATION_CAPABILITY_SCOPE_CANONICAL_AGENT_SCOPE", "PARTICIPATION_CAPABILITY_SCOPE_PROFILE_LIMITED", "PARTICIPATION_CAPABILITY_SCOPE_DOMAIN_LIMITED", "PARTICIPATION_CAPABILITY_SCOPE_DIAGNOSTIC_READ_ONLY", "PARTICIPATION_CAPABILITY_SCOPE_EXTERNAL_GATEWAY_LIMITED", "PARTICIPATION_CAPABILITY_SCOPE_NONE"]
+ParticipationExecutionConcurrency = Literal["PARTICIPATION_EXECUTION_CONCURRENCY_UNSPECIFIED", "PARTICIPATION_EXECUTION_CONCURRENCY_CANONICAL_CHAT_BUDGET", "PARTICIPATION_EXECUTION_CONCURRENCY_PER_AGENT_PARTICIPATION_QUEUE", "PARTICIPATION_EXECUTION_CONCURRENCY_PROFILE_ISOLATED_BUDGET", "PARTICIPATION_EXECUTION_CONCURRENCY_DOMAIN_TRIGGER_QUEUE", "PARTICIPATION_EXECUTION_CONCURRENCY_REJECT_WHILE_ACTIVE", "PARTICIPATION_EXECUTION_CONCURRENCY_GATEWAY_BUDGET_QUEUE", "PARTICIPATION_EXECUTION_CONCURRENCY_LOW_PRIORITY_CANCELABLE"]
+ParticipationExecutionOwner = Literal["PARTICIPATION_EXECUTION_OWNER_UNSPECIFIED", "PARTICIPATION_EXECUTION_OWNER_RUNTIME", "PARTICIPATION_EXECUTION_OWNER_EXTERNAL_RUNTIME_VIA_ADMITTED_GATEWAY", "PARTICIPATION_EXECUTION_OWNER_NOT_ADMITTED"]
+ParticipationExternalProtocolKind = Literal["PARTICIPATION_EXTERNAL_PROTOCOL_KIND_UNSPECIFIED", "PARTICIPATION_EXTERNAL_PROTOCOL_KIND_MCP", "PARTICIPATION_EXTERNAL_PROTOCOL_KIND_A2A"]
+ParticipationIdentitySource = Literal["PARTICIPATION_IDENTITY_SOURCE_UNSPECIFIED", "PARTICIPATION_IDENTITY_SOURCE_USER_OWNED_NIMI_AGENT", "PARTICIPATION_IDENTITY_SOURCE_EXTERNAL_A2A_AGENT", "PARTICIPATION_IDENTITY_SOURCE_MCP_BACKED_AI_CAPABILITY", "PARTICIPATION_IDENTITY_SOURCE_SANDBOX_PROJECTION", "PARTICIPATION_IDENTITY_SOURCE_NPC_WORLD_ACTOR"]
+ParticipationInputTrust = Literal["PARTICIPATION_INPUT_TRUST_UNSPECIFIED", "PARTICIPATION_INPUT_TRUST_TRUSTED_USER", "PARTICIPATION_INPUT_TRUST_UNTRUSTED_MULTI_PARTY_TRANSCRIPT", "PARTICIPATION_INPUT_TRUST_SANDBOX_SCRIPT", "PARTICIPATION_INPUT_TRUST_EXTERNAL_A2A_PAYLOAD", "PARTICIPATION_INPUT_TRUST_TOOL_PROVIDER_PAYLOAD", "PARTICIPATION_INPUT_TRUST_WORLD_CONTEXT", "PARTICIPATION_INPUT_TRUST_DIAGNOSTIC_INPUT"]
+ParticipationMemoryReadScope = Literal["PARTICIPATION_MEMORY_READ_SCOPE_UNSPECIFIED", "PARTICIPATION_MEMORY_READ_SCOPE_CANONICAL_OWNER_POLICY", "PARTICIPATION_MEMORY_READ_SCOPE_DYADIC_PRIVATE_ALLOWED", "PARTICIPATION_MEMORY_READ_SCOPE_DYADIC_PRIVATE_EXCLUDED", "PARTICIPATION_MEMORY_READ_SCOPE_PUBLIC_SHARED_ONLY", "PARTICIPATION_MEMORY_READ_SCOPE_DOMAIN_SHARED_ONLY", "PARTICIPATION_MEMORY_READ_SCOPE_NO_MEMORY_READ"]
+ParticipationMemoryWriteDefault = Literal["PARTICIPATION_MEMORY_WRITE_DEFAULT_UNSPECIFIED", "PARTICIPATION_MEMORY_WRITE_DEFAULT_CANONICAL_WRITE_ALLOWED", "PARTICIPATION_MEMORY_WRITE_DEFAULT_WRITE_NONE", "PARTICIPATION_MEMORY_WRITE_DEFAULT_PROMOTION_GATED"]
+ParticipationOutputDestination = Literal["PARTICIPATION_OUTPUT_DESTINATION_UNSPECIFIED", "PARTICIPATION_OUTPUT_DESTINATION_CANONICAL_CHAT", "PARTICIPATION_OUTPUT_DESTINATION_REALM_GROUP_MESSAGE_CANDIDATE", "PARTICIPATION_OUTPUT_DESTINATION_SCENARIO_TURN_CANDIDATE", "PARTICIPATION_OUTPUT_DESTINATION_WORLD_EVENT_CANDIDATE", "PARTICIPATION_OUTPUT_DESTINATION_EXTERNAL_REPLY_CANDIDATE", "PARTICIPATION_OUTPUT_DESTINATION_DIAGNOSTIC_CANDIDATE", "PARTICIPATION_OUTPUT_DESTINATION_EPHEMERAL"]
+ParticipationProfileKind = Literal["PARTICIPATION_PROFILE_KIND_UNSPECIFIED", "PARTICIPATION_PROFILE_KIND_CANONICAL_AGENT_CHAT", "PARTICIPATION_PROFILE_KIND_REALM_GROUP_AGENT", "PARTICIPATION_PROFILE_KIND_SCENARIO_SANDBOX", "PARTICIPATION_PROFILE_KIND_OASIS_WORLD_PARTICIPATION", "PARTICIPATION_PROFILE_KIND_EXTERNAL_AGENT_ENTRY", "PARTICIPATION_PROFILE_KIND_DEBUG_OR_PROBE"]
+ParticipationPromotionPosture = Literal["PARTICIPATION_PROMOTION_POSTURE_UNSPECIFIED", "PARTICIPATION_PROMOTION_POSTURE_NOT_ALLOWED", "PARTICIPATION_PROMOTION_POSTURE_EXPLICIT_CANDIDATE", "PARTICIPATION_PROMOTION_POSTURE_EXPLICIT_COMMIT_FLOW", "PARTICIPATION_PROMOTION_POSTURE_EXISTING_CANONICAL_POLICY"]
+ParticipationReplayOutcome = Literal["PARTICIPATION_REPLAY_OUTCOME_UNSPECIFIED", "PARTICIPATION_REPLAY_OUTCOME_COMPLETED", "PARTICIPATION_REPLAY_OUTCOME_PARTIAL_REDACTED", "PARTICIPATION_REPLAY_OUTCOME_FAILED"]
+ParticipationStatus = Literal["PARTICIPATION_STATUS_UNSPECIFIED", "PARTICIPATION_STATUS_ADMISSION_PENDING", "PARTICIPATION_STATUS_BLOCKED", "PARTICIPATION_STATUS_RUNNING", "PARTICIPATION_STATUS_CANDIDATE_READY", "PARTICIPATION_STATUS_COMMITTED_BY_OWNER", "PARTICIPATION_STATUS_FAILED", "PARTICIPATION_STATUS_CANCELED"]
+ParticipationTranscriptOwner = Literal["PARTICIPATION_TRANSCRIPT_OWNER_UNSPECIFIED", "PARTICIPATION_TRANSCRIPT_OWNER_RUNTIME", "PARTICIPATION_TRANSCRIPT_OWNER_REALM", "PARTICIPATION_TRANSCRIPT_OWNER_SCENARIO_MODULE", "PARTICIPATION_TRANSCRIPT_OWNER_OASIS_WORLD_DOMAIN", "PARTICIPATION_TRANSCRIPT_OWNER_EXTERNAL_DOMAIN", "PARTICIPATION_TRANSCRIPT_OWNER_EPHEMERAL"]
+ParticipationVerdictDecision = Literal["PARTICIPATION_VERDICT_DECISION_UNSPECIFIED", "PARTICIPATION_VERDICT_DECISION_ALLOW", "PARTICIPATION_VERDICT_DECISION_DENY"]
 PolicyMode = Literal["POLICY_MODE_UNSPECIFIED", "POLICY_MODE_PRESET", "POLICY_MODE_CUSTOM"]
 RealmGroupMessageCandidateCommitDisposition = Literal["REALM_GROUP_MESSAGE_CANDIDATE_COMMIT_DISPOSITION_UNSPECIFIED", "REALM_GROUP_MESSAGE_CANDIDATE_COMMIT_DISPOSITION_MESSAGE_CANDIDATE", "REALM_GROUP_MESSAGE_CANDIDATE_COMMIT_DISPOSITION_REFUSAL_CANDIDATE"]
 RealtimeEventType = Literal["REALTIME_EVENT_TYPE_UNSPECIFIED", "REALTIME_EVENT_OPENED", "REALTIME_EVENT_TEXT_DELTA", "REALTIME_EVENT_AUDIO_CHUNK", "REALTIME_EVENT_COMPLETED", "REALTIME_EVENT_FAILED"]
@@ -428,6 +443,11 @@ class AgentRequestContext:
     owner_user_id: str | None = None
     realm_agent_id: str | None = None
     local_agent_ref: str | None = None
+
+@dataclass(frozen=True)
+class AgentSlotProjectionBlock:
+    agent_id: str | None = None
+    slot_ref: str | None = None
 
 @dataclass(frozen=True)
 class AgentStateClearDyadicContext:
@@ -1525,6 +1545,27 @@ class DeleteVoiceAssetResponse:
     ack: Ack | None = None
 
 @dataclass(frozen=True)
+class DescribeParticipationContextBlocksRequest:
+    profile_kind: ParticipationProfileKind | None = None
+
+@dataclass(frozen=True)
+class DescribeParticipationContextBlocksResponse:
+    context_blocks: tuple[ParticipationContextBlockDescriptor, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class DescribeParticipationProfilesRequest:
+    pass
+
+@dataclass(frozen=True)
+class DescribeParticipationProfilesResponse:
+    profiles: tuple[ParticipationProfileDescriptor, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class DiagnosticProbeRefBlock:
+    probe_id: str | None = None
+    probe_kind: str | None = None
+
+@dataclass(frozen=True)
 class DisableAutonomyRequest:
     context: AgentRequestContext | None = None
     agent_id: str | None = None
@@ -1533,6 +1574,11 @@ class DisableAutonomyRequest:
 @dataclass(frozen=True)
 class DisableAutonomyResponse:
     autonomy: AgentAutonomyState | None = None
+
+@dataclass(frozen=True)
+class DomainContextRefBlock:
+    domain_ref: str | None = None
+    transcript_owner: ParticipationTranscriptOwner | None = None
 
 @dataclass(frozen=True)
 class EmbeddingVector:
@@ -1606,6 +1652,18 @@ class ExecuteLocalStateCutoverRequest:
 class ExecuteLocalStateCutoverResponse:
     plan: LocalStateReconciliationPlan | None = None
     transfer: LocalTransferSessionSummary | None = None
+
+@dataclass(frozen=True)
+class ExecuteParticipationRequest:
+    spec: ParticipationRequestSpec | None = None
+
+@dataclass(frozen=True)
+class ExecuteParticipationResponse:
+    participation_id: str | None = None
+    status: ParticipationStatus | None = None
+    candidate_ref: str | None = None
+    refusal_reason: str | None = None
+    audit_id: str | None = None
 
 @dataclass(frozen=True)
 class ExecuteScenarioRequest:
@@ -1741,9 +1799,23 @@ class ExternalAgentTokenRecord:
     issuer: str | None = None
 
 @dataclass(frozen=True)
+class ExternalParticipantIdentityRefBlock:
+    external_participant_id: str | None = None
+    identity_source: ParticipationIdentitySource | None = None
+
+@dataclass(frozen=True)
+class ExternalPayloadRefBlock:
+    payload_ref: str | None = None
+    protocol_kind: ParticipationExternalProtocolKind | None = None
+
+@dataclass(frozen=True)
 class ExtractNodeConfig:
     json_path: str | None = None
     source_input: str | None = None
+
+@dataclass(frozen=True)
+class GatewayVerdictRefBlock:
+    gateway_verdict_id: str | None = None
 
 @dataclass(frozen=True)
 class GetAccessTokenRequest:
@@ -1981,6 +2053,32 @@ class GetPageRequest:
 @dataclass(frozen=True)
 class GetPageResponse:
     page: KnowledgePage | None = None
+
+@dataclass(frozen=True)
+class GetParticipationCandidateRequest:
+    participation_id: str | None = None
+
+@dataclass(frozen=True)
+class GetParticipationCandidateResponse:
+    candidate: ParticipationCandidateRecord | None = None
+    status: ParticipationStatus | None = None
+
+@dataclass(frozen=True)
+class GetParticipationReplayRequest:
+    participation_id: str | None = None
+
+@dataclass(frozen=True)
+class GetParticipationReplayResponse:
+    replay: ParticipationReplay | None = None
+
+@dataclass(frozen=True)
+class GetParticipationVerdictsRequest:
+    participation_id: str | None = None
+
+@dataclass(frozen=True)
+class GetParticipationVerdictsResponse:
+    verdicts: ParticipationVerdictSet | None = None
+    policy_verdict_ref: str | None = None
 
 @dataclass(frozen=True)
 class GetProductControlRecordRequest:
@@ -2761,6 +2859,18 @@ class ListPagesRequest:
 @dataclass(frozen=True)
 class ListPagesResponse:
     pages: tuple[KnowledgePage, ...] = field(default_factory=tuple)
+    next_page_token: str | None = None
+
+@dataclass(frozen=True)
+class ListParticipationAuditEventsRequest:
+    participation_id: str | None = None
+    agent_id: str | None = None
+    page_size: int | None = None
+    page_token: str | None = None
+
+@dataclass(frozen=True)
+class ListParticipationAuditEventsResponse:
+    events: tuple[ParticipationAuditEvent, ...] = field(default_factory=tuple)
     next_page_token: str | None = None
 
 @dataclass(frozen=True)
@@ -3975,6 +4085,129 @@ class OpenSessionResponse:
     reason_code: ReasonCode | None = None
 
 @dataclass(frozen=True)
+class ParticipantProjectionBlock:
+    participant_ref: str | None = None
+    identity_source: ParticipationIdentitySource | None = None
+
+@dataclass(frozen=True)
+class ParticipationAuditEvent:
+    audit_id: str | None = None
+    participation_id: str | None = None
+    event_kind: str | None = None
+    reason_code: str | None = None
+    actor_ref: str | None = None
+    observed_at: str | None = None
+
+@dataclass(frozen=True)
+class ParticipationCandidateRecord:
+    participation_id: str | None = None
+    profile_kind: ParticipationProfileKind | None = None
+    identity_source: ParticipationIdentitySource | None = None
+    participant_ref: str | None = None
+    trigger_ref: str | None = None
+    context_block_refs: tuple[str, ...] = field(default_factory=tuple)
+    output_destination: ParticipationOutputDestination | None = None
+    candidate_ref: str | None = None
+    policy_verdict_ref: str | None = None
+    memory_read_verdict: ParticipationVerdict | None = None
+    memory_write_verdict: ParticipationVerdict | None = None
+    capability_scope_verdict: ParticipationVerdict | None = None
+    audit_id: str | None = None
+    created_at: str | None = None
+
+@dataclass(frozen=True)
+class ParticipationContextBlock:
+    runtime_conversation_anchor_ref: RuntimeConversationAnchorRefBlock | None = None
+    realm_group_thread_ref: RealmGroupThreadRefBlock | None = None
+    trigger_message_ref: TriggerMessageRefBlock | None = None
+    participant_projection: ParticipantProjectionBlock | None = None
+    recent_group_transcript_projection: RecentGroupTranscriptProjectionBlock | None = None
+    agent_slot_projection: AgentSlotProjectionBlock | None = None
+    scenario_package_ref: ScenarioPackageRefBlock | None = None
+    scenario_run_ref: ScenarioRunRefBlock | None = None
+    scenario_branch_ref: ScenarioBranchRefBlock | None = None
+    visible_scene_state: VisibleSceneStateBlock | None = None
+    recent_sandbox_transcript_projection: RecentSandboxTranscriptProjectionBlock | None = None
+    world_context_ref: WorldContextRefBlock | None = None
+    world_event_ref: WorldEventRefBlock | None = None
+    visible_world_state_projection: VisibleWorldStateProjectionBlock | None = None
+    recent_world_transcript_or_event_projection: RecentWorldTranscriptOrEventProjectionBlock | None = None
+    external_participant_identity_ref: ExternalParticipantIdentityRefBlock | None = None
+    external_payload_ref: ExternalPayloadRefBlock | None = None
+    gateway_verdict_ref: GatewayVerdictRefBlock | None = None
+    domain_context_ref: DomainContextRefBlock | None = None
+    tool_or_capability_projection: ToolOrCapabilityProjectionBlock | None = None
+    diagnostic_probe_ref: DiagnosticProbeRefBlock | None = None
+
+@dataclass(frozen=True)
+class ParticipationContextBlockDescriptor:
+    block_kind: str | None = None
+    allowed_profile_kinds: tuple[ParticipationProfileKind, ...] = field(default_factory=tuple)
+    required_fields: tuple[str, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class ParticipationProfileDescriptor:
+    profile_kind: ParticipationProfileKind | None = None
+    transcript_owner: ParticipationTranscriptOwner | None = None
+    identity_source: ParticipationIdentitySource | None = None
+    additional_identity_sources: tuple[ParticipationIdentitySource, ...] = field(default_factory=tuple)
+    execution_owner: ParticipationExecutionOwner | None = None
+    memory_read_scope: ParticipationMemoryReadScope | None = None
+    memory_write_default: ParticipationMemoryWriteDefault | None = None
+    capability_scope: ParticipationCapabilityScope | None = None
+    input_trust: ParticipationInputTrust | None = None
+    additional_input_trust: tuple[ParticipationInputTrust, ...] = field(default_factory=tuple)
+    output_destination: ParticipationOutputDestination | None = None
+    promotion_posture: ParticipationPromotionPosture | None = None
+    execution_concurrency: ParticipationExecutionConcurrency | None = None
+    posture: str | None = None
+
+@dataclass(frozen=True)
+class ParticipationReplay:
+    replay_id: str | None = None
+    participation_id: str | None = None
+    agent_id: str | None = None
+    profile_kind: ParticipationProfileKind | None = None
+    outcome: ParticipationReplayOutcome | None = None
+    reason_code: str | None = None
+    stages: tuple[ParticipationReplayStage, ...] = field(default_factory=tuple)
+    redacted: bool | None = None
+    observed_at: str | None = None
+
+@dataclass(frozen=True)
+class ParticipationReplayStage:
+    stage_id: str | None = None
+    state: str | None = None
+    reason_code: str | None = None
+    redacted_summary: str | None = None
+    observed_at: str | None = None
+
+@dataclass(frozen=True)
+class ParticipationRequestSpec:
+    profile_kind: ParticipationProfileKind | None = None
+    agent_id: str | None = None
+    participant_ref: str | None = None
+    trigger_ref: str | None = None
+    context_blocks: tuple[ParticipationContextBlock, ...] = field(default_factory=tuple)
+    request_id: str | None = None
+
+@dataclass(frozen=True)
+class ParticipationVerdict:
+    decision: ParticipationVerdictDecision | None = None
+    reason_code: str | None = None
+
+@dataclass(frozen=True)
+class ParticipationVerdictSet:
+    memory_read: ParticipationVerdict | None = None
+    memory_write: ParticipationVerdict | None = None
+    capability_scope: ParticipationVerdict | None = None
+    concurrency: ParticipationVerdict | None = None
+    resolved_memory_read_scope: ParticipationMemoryReadScope | None = None
+    resolved_memory_write_default: ParticipationMemoryWriteDefault | None = None
+    resolved_capability_scope: ParticipationCapabilityScope | None = None
+    resolved_concurrency: ParticipationExecutionConcurrency | None = None
+
+@dataclass(frozen=True)
 class PauseLocalTransferRequest:
     install_session_id: str | None = None
 
@@ -4159,6 +4392,10 @@ class RealmGroupMessageCandidateEvidence:
     refusal_hash: str | None = None
 
 @dataclass(frozen=True)
+class RealmGroupThreadRefBlock:
+    thread_id: str | None = None
+
+@dataclass(frozen=True)
 class RealtimeAudioChunk:
     chunk: bytes | None = None
     mime_type: str | None = None
@@ -4231,6 +4468,22 @@ class RecallRequest:
 class RecallResponse:
     hits: tuple[MemoryRecallHit, ...] = field(default_factory=tuple)
     narrative_hits: tuple[NarrativeRecallHit, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class RecentGroupTranscriptProjectionBlock:
+    transcript_ref: str | None = None
+    trust_posture: ParticipationInputTrust | None = None
+
+@dataclass(frozen=True)
+class RecentSandboxTranscriptProjectionBlock:
+    transcript_ref: str | None = None
+    branch_ref: str | None = None
+    trust_posture: ParticipationInputTrust | None = None
+
+@dataclass(frozen=True)
+class RecentWorldTranscriptOrEventProjectionBlock:
+    event_or_transcript_ref: str | None = None
+    trust_posture: ParticipationInputTrust | None = None
 
 @dataclass(frozen=True)
 class ReconcileProductControlFirstRunSetupStateRequest:
@@ -4683,6 +4936,10 @@ class RuntimeBaselineReadinessRef:
     runtime_audit_sequence: tuple[str, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
+class RuntimeConversationAnchorRefBlock:
+    conversation_anchor_id: str | None = None
+
+@dataclass(frozen=True)
 class RuntimeHealthEvent:
     sequence: int | None = None
     status: RuntimeHealthStatus | None = None
@@ -4731,6 +4988,10 @@ class ScenarioArtifact:
     channels: int | None = None
     speech_alignment: SpeechAlignment | None = None
     metadata: Mapping[str, object] | None = None
+
+@dataclass(frozen=True)
+class ScenarioBranchRefBlock:
+    scenario_branch_id: str | None = None
 
 @dataclass(frozen=True)
 class ScenarioExtension:
@@ -4782,6 +5043,10 @@ class ScenarioOutput:
     world_generate: WorldGenerateResult | None = None
 
 @dataclass(frozen=True)
+class ScenarioPackageRefBlock:
+    scenario_package_id: str | None = None
+
+@dataclass(frozen=True)
 class ScenarioProfile:
     scenario_type: ScenarioType | None = None
     supported_execution_modes: tuple[ExecutionMode, ...] = field(default_factory=tuple)
@@ -4796,6 +5061,10 @@ class ScenarioRequestHead:
     fallback: FallbackPolicy | None = None
     timeout_ms: int | None = None
     connector_id: str | None = None
+
+@dataclass(frozen=True)
+class ScenarioRunRefBlock:
+    scenario_run_id: str | None = None
 
 @dataclass(frozen=True)
 class ScenarioSpec:
@@ -5367,6 +5636,11 @@ class ToolCall:
     provider_metadata: Mapping[str, object] | None = None
 
 @dataclass(frozen=True)
+class ToolOrCapabilityProjectionBlock:
+    capability_ref: str | None = None
+    effect_class: EffectClass | None = None
+
+@dataclass(frozen=True)
 class ToolResult:
     tool_call_id: str | None = None
     tool_name: str | None = None
@@ -5400,6 +5674,10 @@ class TraverseGraphRequest:
 class TraverseGraphResponse:
     nodes: tuple[KnowledgeGraphNode, ...] = field(default_factory=tuple)
     next_page_token: str | None = None
+
+@dataclass(frozen=True)
+class TriggerMessageRefBlock:
+    message_id: str | None = None
 
 @dataclass(frozen=True)
 class UninstallAppRequest:
@@ -5547,6 +5825,17 @@ class ValidateAppAccessTokenResponse:
     action_hint: str | None = None
 
 @dataclass(frozen=True)
+class ValidateParticipationRequest:
+    spec: ParticipationRequestSpec | None = None
+
+@dataclass(frozen=True)
+class ValidateParticipationResponse:
+    admitted: bool | None = None
+    verdicts: ParticipationVerdictSet | None = None
+    resolved_output_destination: ParticipationOutputDestination | None = None
+    refusal_reason: str | None = None
+
+@dataclass(frozen=True)
 class VideoContentAudioURL:
     url: str | None = None
 
@@ -5594,6 +5883,14 @@ class VideoGenerationOptions:
     service_tier: str | None = None
     execution_expires_after_sec: int | None = None
     return_last_frame: bool | None = None
+
+@dataclass(frozen=True)
+class VisibleSceneStateBlock:
+    scene_state_ref: str | None = None
+
+@dataclass(frozen=True)
+class VisibleWorldStateProjectionBlock:
+    world_state_ref: str | None = None
 
 @dataclass(frozen=True)
 class VoiceAsset:
@@ -5788,6 +6085,14 @@ class WorkspacePrivateBankOwner:
     workspace_id: str | None = None
 
 @dataclass(frozen=True)
+class WorldContextRefBlock:
+    world_context_id: str | None = None
+
+@dataclass(frozen=True)
+class WorldEventRefBlock:
+    world_event_id: str | None = None
+
+@dataclass(frozen=True)
 class WorldGenerateAssetSource:
     uri: str | None = None
     media_asset_id: str | None = None
@@ -5921,6 +6226,14 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/CreateRealmGroupMessageCandidate", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(CreateRealmGroupMessageCandidateResponse, raw)
 
+    async def describe_participation_context_blocks(self, request: DescribeParticipationContextBlocksRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> DescribeParticipationContextBlocksResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/DescribeParticipationContextBlocks", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(DescribeParticipationContextBlocksResponse, raw)
+
+    async def describe_participation_profiles(self, request: DescribeParticipationProfilesRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> DescribeParticipationProfilesResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/DescribeParticipationProfiles", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(DescribeParticipationProfilesResponse, raw)
+
     async def disable_autonomy(self, request: DisableAutonomyRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> DisableAutonomyResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(DisableAutonomyResponse, raw)
@@ -5932,6 +6245,10 @@ class RuntimeTypedClient:
     async def execute_delegated_capability(self, request: ExecuteDelegatedCapabilityRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ExecuteDelegatedCapabilityResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ExecuteDelegatedCapability", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ExecuteDelegatedCapabilityResponse, raw)
+
+    async def execute_participation(self, request: ExecuteParticipationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ExecuteParticipationResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ExecuteParticipation", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(ExecuteParticipationResponse, raw)
 
     async def get_agent(self, request: GetAgentRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetAgentResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetAgent", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
@@ -5969,6 +6286,18 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetDelegatedReplayTrace", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetDelegatedReplayTraceResponse, raw)
 
+    async def get_participation_candidate(self, request: GetParticipationCandidateRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetParticipationCandidateResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetParticipationCandidate", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(GetParticipationCandidateResponse, raw)
+
+    async def get_participation_replay(self, request: GetParticipationReplayRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetParticipationReplayResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetParticipationReplay", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(GetParticipationReplayResponse, raw)
+
+    async def get_participation_verdicts(self, request: GetParticipationVerdictsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetParticipationVerdictsResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetParticipationVerdicts", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(GetParticipationVerdictsResponse, raw)
+
     async def get_public_chat_session_snapshot(self, request: GetPublicChatSessionSnapshotRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetPublicChatSessionSnapshotResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetPublicChatSessionSnapshotResponse, raw)
@@ -6004,6 +6333,10 @@ class RuntimeTypedClient:
     async def list_delegated_provider_profiles(self, request: ListDelegatedProviderProfilesRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListDelegatedProviderProfilesResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ListDelegatedProviderProfiles", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListDelegatedProviderProfilesResponse, raw)
+
+    async def list_participation_audit_events(self, request: ListParticipationAuditEventsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListParticipationAuditEventsResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ListParticipationAuditEvents", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(ListParticipationAuditEventsResponse, raw)
 
     async def list_pending_hooks(self, request: ListPendingHooksRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListPendingHooksResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ListPendingHooks", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
@@ -6075,6 +6408,10 @@ class RuntimeTypedClient:
     async def upsert_delegated_provider_profile(self, request: UpsertDelegatedProviderProfileRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> UpsertDelegatedProviderProfileResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/UpsertDelegatedProviderProfile", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(UpsertDelegatedProviderProfileResponse, raw)
+
+    async def validate_participation(self, request: ValidateParticipationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ValidateParticipationResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ValidateParticipation", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(ValidateParticipationResponse, raw)
 
     async def write_agent_memory(self, request: WriteAgentMemoryRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> WriteAgentMemoryResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/WriteAgentMemory", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))

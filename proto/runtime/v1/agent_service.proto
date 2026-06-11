@@ -6,6 +6,7 @@ import "google/protobuf/struct.proto";
 import "google/protobuf/timestamp.proto";
 import "runtime/v1/agent_common.proto";
 import "runtime/v1/agent_group_message_candidate.proto";
+import "runtime/v1/agent_participation.proto";
 import "runtime/v1/common.proto";
 import "runtime/v1/delegated_control.proto";
 import "runtime/v1/memory.proto";
@@ -856,5 +857,14 @@ service RuntimeAgentService {
   rpc WriteAgentMemory(WriteAgentMemoryRequest) returns (WriteAgentMemoryResponse);
   rpc GetAgentCanonicalMemoryBankStatus(GetAgentCanonicalMemoryBankStatusRequest) returns (GetAgentCanonicalMemoryBankStatusResponse);
   rpc RequestAgentCanonicalMemoryBankBind(RequestAgentCanonicalMemoryBankBindRequest) returns (RequestAgentCanonicalMemoryBankBindResponse);
+  // Runtime Agent Participation surface (K-AGCORE-061..088, K-PROTO-012).
+  rpc DescribeParticipationProfiles(DescribeParticipationProfilesRequest) returns (DescribeParticipationProfilesResponse);
+  rpc DescribeParticipationContextBlocks(DescribeParticipationContextBlocksRequest) returns (DescribeParticipationContextBlocksResponse);
+  rpc ValidateParticipation(ValidateParticipationRequest) returns (ValidateParticipationResponse);
+  rpc ExecuteParticipation(ExecuteParticipationRequest) returns (ExecuteParticipationResponse);
+  rpc GetParticipationCandidate(GetParticipationCandidateRequest) returns (GetParticipationCandidateResponse);
+  rpc GetParticipationVerdicts(GetParticipationVerdictsRequest) returns (GetParticipationVerdictsResponse);
+  rpc ListParticipationAuditEvents(ListParticipationAuditEventsRequest) returns (ListParticipationAuditEventsResponse);
+  rpc GetParticipationReplay(GetParticipationReplayRequest) returns (GetParticipationReplayResponse);
   rpc SubscribeAgentEvents(SubscribeAgentEventsRequest) returns (stream AgentEvent);
 }

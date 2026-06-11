@@ -516,5 +516,21 @@ services:
         type: unary
       - name: RequestAgentCanonicalMemoryBankBind
         type: unary
+      - name: DescribeParticipationProfiles
+        type: unary
+      - name: DescribeParticipationContextBlocks
+        type: unary
+      - name: ValidateParticipation
+        type: unary
+      - name: ExecuteParticipation
+        type: unary
+      - name: GetParticipationCandidate
+        type: unary
+      - name: GetParticipationVerdicts
+        type: unary
+      - name: ListParticipationAuditEvents
+        type: unary
+      - name: GetParticipationReplay
+        type: unary
       - name: SubscribeAgentEvents
         type: server_stream

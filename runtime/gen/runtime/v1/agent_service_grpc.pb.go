@@ -61,6 +61,14 @@ const (
 	RuntimeAgentService_WriteAgentMemory_FullMethodName                      = "/nimi.runtime.v1.RuntimeAgentService/WriteAgentMemory"
 	RuntimeAgentService_GetAgentCanonicalMemoryBankStatus_FullMethodName     = "/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus"
 	RuntimeAgentService_RequestAgentCanonicalMemoryBankBind_FullMethodName   = "/nimi.runtime.v1.RuntimeAgentService/RequestAgentCanonicalMemoryBankBind"
+	RuntimeAgentService_DescribeParticipationProfiles_FullMethodName         = "/nimi.runtime.v1.RuntimeAgentService/DescribeParticipationProfiles"
+	RuntimeAgentService_DescribeParticipationContextBlocks_FullMethodName    = "/nimi.runtime.v1.RuntimeAgentService/DescribeParticipationContextBlocks"
+	RuntimeAgentService_ValidateParticipation_FullMethodName                 = "/nimi.runtime.v1.RuntimeAgentService/ValidateParticipation"
+	RuntimeAgentService_ExecuteParticipation_FullMethodName                  = "/nimi.runtime.v1.RuntimeAgentService/ExecuteParticipation"
+	RuntimeAgentService_GetParticipationCandidate_FullMethodName             = "/nimi.runtime.v1.RuntimeAgentService/GetParticipationCandidate"
+	RuntimeAgentService_GetParticipationVerdicts_FullMethodName              = "/nimi.runtime.v1.RuntimeAgentService/GetParticipationVerdicts"
+	RuntimeAgentService_ListParticipationAuditEvents_FullMethodName          = "/nimi.runtime.v1.RuntimeAgentService/ListParticipationAuditEvents"
+	RuntimeAgentService_GetParticipationReplay_FullMethodName                = "/nimi.runtime.v1.RuntimeAgentService/GetParticipationReplay"
 	RuntimeAgentService_SubscribeAgentEvents_FullMethodName                  = "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents"
 )
 
@@ -110,6 +118,15 @@ type RuntimeAgentServiceClient interface {
 	WriteAgentMemory(ctx context.Context, in *WriteAgentMemoryRequest, opts ...grpc.CallOption) (*WriteAgentMemoryResponse, error)
 	GetAgentCanonicalMemoryBankStatus(ctx context.Context, in *GetAgentCanonicalMemoryBankStatusRequest, opts ...grpc.CallOption) (*GetAgentCanonicalMemoryBankStatusResponse, error)
 	RequestAgentCanonicalMemoryBankBind(ctx context.Context, in *RequestAgentCanonicalMemoryBankBindRequest, opts ...grpc.CallOption) (*RequestAgentCanonicalMemoryBankBindResponse, error)
+	// Runtime Agent Participation surface (K-AGCORE-061..088, K-PROTO-012).
+	DescribeParticipationProfiles(ctx context.Context, in *DescribeParticipationProfilesRequest, opts ...grpc.CallOption) (*DescribeParticipationProfilesResponse, error)
+	DescribeParticipationContextBlocks(ctx context.Context, in *DescribeParticipationContextBlocksRequest, opts ...grpc.CallOption) (*DescribeParticipationContextBlocksResponse, error)
+	ValidateParticipation(ctx context.Context, in *ValidateParticipationRequest, opts ...grpc.CallOption) (*ValidateParticipationResponse, error)
+	ExecuteParticipation(ctx context.Context, in *ExecuteParticipationRequest, opts ...grpc.CallOption) (*ExecuteParticipationResponse, error)
+	GetParticipationCandidate(ctx context.Context, in *GetParticipationCandidateRequest, opts ...grpc.CallOption) (*GetParticipationCandidateResponse, error)
+	GetParticipationVerdicts(ctx context.Context, in *GetParticipationVerdictsRequest, opts ...grpc.CallOption) (*GetParticipationVerdictsResponse, error)
+	ListParticipationAuditEvents(ctx context.Context, in *ListParticipationAuditEventsRequest, opts ...grpc.CallOption) (*ListParticipationAuditEventsResponse, error)
+	GetParticipationReplay(ctx context.Context, in *GetParticipationReplayRequest, opts ...grpc.CallOption) (*GetParticipationReplayResponse, error)
 	SubscribeAgentEvents(ctx context.Context, in *SubscribeAgentEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AgentEvent], error)
 }
 
@@ -541,6 +558,86 @@ func (c *runtimeAgentServiceClient) RequestAgentCanonicalMemoryBankBind(ctx cont
 	return out, nil
 }
 
+func (c *runtimeAgentServiceClient) DescribeParticipationProfiles(ctx context.Context, in *DescribeParticipationProfilesRequest, opts ...grpc.CallOption) (*DescribeParticipationProfilesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DescribeParticipationProfilesResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_DescribeParticipationProfiles_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAgentServiceClient) DescribeParticipationContextBlocks(ctx context.Context, in *DescribeParticipationContextBlocksRequest, opts ...grpc.CallOption) (*DescribeParticipationContextBlocksResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DescribeParticipationContextBlocksResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_DescribeParticipationContextBlocks_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAgentServiceClient) ValidateParticipation(ctx context.Context, in *ValidateParticipationRequest, opts ...grpc.CallOption) (*ValidateParticipationResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ValidateParticipationResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_ValidateParticipation_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAgentServiceClient) ExecuteParticipation(ctx context.Context, in *ExecuteParticipationRequest, opts ...grpc.CallOption) (*ExecuteParticipationResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ExecuteParticipationResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_ExecuteParticipation_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAgentServiceClient) GetParticipationCandidate(ctx context.Context, in *GetParticipationCandidateRequest, opts ...grpc.CallOption) (*GetParticipationCandidateResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetParticipationCandidateResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_GetParticipationCandidate_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAgentServiceClient) GetParticipationVerdicts(ctx context.Context, in *GetParticipationVerdictsRequest, opts ...grpc.CallOption) (*GetParticipationVerdictsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetParticipationVerdictsResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_GetParticipationVerdicts_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAgentServiceClient) ListParticipationAuditEvents(ctx context.Context, in *ListParticipationAuditEventsRequest, opts ...grpc.CallOption) (*ListParticipationAuditEventsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListParticipationAuditEventsResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_ListParticipationAuditEvents_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAgentServiceClient) GetParticipationReplay(ctx context.Context, in *GetParticipationReplayRequest, opts ...grpc.CallOption) (*GetParticipationReplayResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetParticipationReplayResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_GetParticipationReplay_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *runtimeAgentServiceClient) SubscribeAgentEvents(ctx context.Context, in *SubscribeAgentEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AgentEvent], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	stream, err := c.cc.NewStream(ctx, &RuntimeAgentService_ServiceDesc.Streams[0], RuntimeAgentService_SubscribeAgentEvents_FullMethodName, cOpts...)
@@ -606,6 +703,15 @@ type RuntimeAgentServiceServer interface {
 	WriteAgentMemory(context.Context, *WriteAgentMemoryRequest) (*WriteAgentMemoryResponse, error)
 	GetAgentCanonicalMemoryBankStatus(context.Context, *GetAgentCanonicalMemoryBankStatusRequest) (*GetAgentCanonicalMemoryBankStatusResponse, error)
 	RequestAgentCanonicalMemoryBankBind(context.Context, *RequestAgentCanonicalMemoryBankBindRequest) (*RequestAgentCanonicalMemoryBankBindResponse, error)
+	// Runtime Agent Participation surface (K-AGCORE-061..088, K-PROTO-012).
+	DescribeParticipationProfiles(context.Context, *DescribeParticipationProfilesRequest) (*DescribeParticipationProfilesResponse, error)
+	DescribeParticipationContextBlocks(context.Context, *DescribeParticipationContextBlocksRequest) (*DescribeParticipationContextBlocksResponse, error)
+	ValidateParticipation(context.Context, *ValidateParticipationRequest) (*ValidateParticipationResponse, error)
+	ExecuteParticipation(context.Context, *ExecuteParticipationRequest) (*ExecuteParticipationResponse, error)
+	GetParticipationCandidate(context.Context, *GetParticipationCandidateRequest) (*GetParticipationCandidateResponse, error)
+	GetParticipationVerdicts(context.Context, *GetParticipationVerdictsRequest) (*GetParticipationVerdictsResponse, error)
+	ListParticipationAuditEvents(context.Context, *ListParticipationAuditEventsRequest) (*ListParticipationAuditEventsResponse, error)
+	GetParticipationReplay(context.Context, *GetParticipationReplayRequest) (*GetParticipationReplayResponse, error)
 	SubscribeAgentEvents(*SubscribeAgentEventsRequest, grpc.ServerStreamingServer[AgentEvent]) error
 }
 
@@ -741,6 +847,30 @@ func (UnimplementedRuntimeAgentServiceServer) GetAgentCanonicalMemoryBankStatus(
 }
 func (UnimplementedRuntimeAgentServiceServer) RequestAgentCanonicalMemoryBankBind(context.Context, *RequestAgentCanonicalMemoryBankBindRequest) (*RequestAgentCanonicalMemoryBankBindResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method RequestAgentCanonicalMemoryBankBind not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) DescribeParticipationProfiles(context.Context, *DescribeParticipationProfilesRequest) (*DescribeParticipationProfilesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DescribeParticipationProfiles not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) DescribeParticipationContextBlocks(context.Context, *DescribeParticipationContextBlocksRequest) (*DescribeParticipationContextBlocksResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DescribeParticipationContextBlocks not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) ValidateParticipation(context.Context, *ValidateParticipationRequest) (*ValidateParticipationResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ValidateParticipation not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) ExecuteParticipation(context.Context, *ExecuteParticipationRequest) (*ExecuteParticipationResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ExecuteParticipation not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) GetParticipationCandidate(context.Context, *GetParticipationCandidateRequest) (*GetParticipationCandidateResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetParticipationCandidate not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) GetParticipationVerdicts(context.Context, *GetParticipationVerdictsRequest) (*GetParticipationVerdictsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetParticipationVerdicts not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) ListParticipationAuditEvents(context.Context, *ListParticipationAuditEventsRequest) (*ListParticipationAuditEventsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListParticipationAuditEvents not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) GetParticipationReplay(context.Context, *GetParticipationReplayRequest) (*GetParticipationReplayResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetParticipationReplay not implemented")
 }
 func (UnimplementedRuntimeAgentServiceServer) SubscribeAgentEvents(*SubscribeAgentEventsRequest, grpc.ServerStreamingServer[AgentEvent]) error {
 	return status.Error(codes.Unimplemented, "method SubscribeAgentEvents not implemented")
@@ -1521,6 +1651,150 @@ func _RuntimeAgentService_RequestAgentCanonicalMemoryBankBind_Handler(srv interf
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RuntimeAgentService_DescribeParticipationProfiles_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DescribeParticipationProfilesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).DescribeParticipationProfiles(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_DescribeParticipationProfiles_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).DescribeParticipationProfiles(ctx, req.(*DescribeParticipationProfilesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAgentService_DescribeParticipationContextBlocks_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DescribeParticipationContextBlocksRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).DescribeParticipationContextBlocks(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_DescribeParticipationContextBlocks_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).DescribeParticipationContextBlocks(ctx, req.(*DescribeParticipationContextBlocksRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAgentService_ValidateParticipation_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ValidateParticipationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).ValidateParticipation(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_ValidateParticipation_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).ValidateParticipation(ctx, req.(*ValidateParticipationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAgentService_ExecuteParticipation_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ExecuteParticipationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).ExecuteParticipation(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_ExecuteParticipation_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).ExecuteParticipation(ctx, req.(*ExecuteParticipationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAgentService_GetParticipationCandidate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetParticipationCandidateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).GetParticipationCandidate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_GetParticipationCandidate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).GetParticipationCandidate(ctx, req.(*GetParticipationCandidateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAgentService_GetParticipationVerdicts_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetParticipationVerdictsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).GetParticipationVerdicts(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_GetParticipationVerdicts_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).GetParticipationVerdicts(ctx, req.(*GetParticipationVerdictsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAgentService_ListParticipationAuditEvents_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListParticipationAuditEventsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).ListParticipationAuditEvents(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_ListParticipationAuditEvents_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).ListParticipationAuditEvents(ctx, req.(*ListParticipationAuditEventsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAgentService_GetParticipationReplay_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetParticipationReplayRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).GetParticipationReplay(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_GetParticipationReplay_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).GetParticipationReplay(ctx, req.(*GetParticipationReplayRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _RuntimeAgentService_SubscribeAgentEvents_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(SubscribeAgentEventsRequest)
 	if err := stream.RecvMsg(m); err != nil {
@@ -1706,6 +1980,38 @@ var RuntimeAgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RequestAgentCanonicalMemoryBankBind",
 			Handler:    _RuntimeAgentService_RequestAgentCanonicalMemoryBankBind_Handler,
+		},
+		{
+			MethodName: "DescribeParticipationProfiles",
+			Handler:    _RuntimeAgentService_DescribeParticipationProfiles_Handler,
+		},
+		{
+			MethodName: "DescribeParticipationContextBlocks",
+			Handler:    _RuntimeAgentService_DescribeParticipationContextBlocks_Handler,
+		},
+		{
+			MethodName: "ValidateParticipation",
+			Handler:    _RuntimeAgentService_ValidateParticipation_Handler,
+		},
+		{
+			MethodName: "ExecuteParticipation",
+			Handler:    _RuntimeAgentService_ExecuteParticipation_Handler,
+		},
+		{
+			MethodName: "GetParticipationCandidate",
+			Handler:    _RuntimeAgentService_GetParticipationCandidate_Handler,
+		},
+		{
+			MethodName: "GetParticipationVerdicts",
+			Handler:    _RuntimeAgentService_GetParticipationVerdicts_Handler,
+		},
+		{
+			MethodName: "ListParticipationAuditEvents",
+			Handler:    _RuntimeAgentService_ListParticipationAuditEvents_Handler,
+		},
+		{
+			MethodName: "GetParticipationReplay",
+			Handler:    _RuntimeAgentService_GetParticipationReplay_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

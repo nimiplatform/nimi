@@ -366,6 +366,46 @@ method_mappings:
     proto_method: RequestAgentCanonicalMemoryBankBind
     mapping_posture: aligned
   - design_service: RuntimeAgentService
+    design_method: DescribeParticipationProfiles
+    proto_service: RuntimeAgentService
+    proto_method: DescribeParticipationProfiles
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: DescribeParticipationContextBlocks
+    proto_service: RuntimeAgentService
+    proto_method: DescribeParticipationContextBlocks
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: ValidateParticipation
+    proto_service: RuntimeAgentService
+    proto_method: ValidateParticipation
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: ExecuteParticipation
+    proto_service: RuntimeAgentService
+    proto_method: ExecuteParticipation
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: GetParticipationCandidate
+    proto_service: RuntimeAgentService
+    proto_method: GetParticipationCandidate
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: GetParticipationVerdicts
+    proto_service: RuntimeAgentService
+    proto_method: GetParticipationVerdicts
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: ListParticipationAuditEvents
+    proto_service: RuntimeAgentService
+    proto_method: ListParticipationAuditEvents
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: GetParticipationReplay
+    proto_service: RuntimeAgentService
+    proto_method: GetParticipationReplay
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
     design_method: SetAgentPresentationProfile
     proto_service: RuntimeAgentService
     proto_method: SetAgentPresentationProfile

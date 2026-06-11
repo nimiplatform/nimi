@@ -6,6 +6,7 @@
     "proto/runtime/v1/account.proto",
     "proto/runtime/v1/agent_common.proto",
     "proto/runtime/v1/agent_group_message_candidate.proto",
+    "proto/runtime/v1/agent_participation.proto",
     "proto/runtime/v1/agent_service.proto",
     "proto/runtime/v1/ai.proto",
     "proto/runtime/v1/ai_realtime.proto",

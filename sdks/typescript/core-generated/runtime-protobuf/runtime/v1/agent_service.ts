@@ -2,6 +2,22 @@
 // @generated from protobuf file "runtime/v1/agent_service.proto" (package "nimi.runtime.v1", syntax proto3)
 // tslint:disable
 // @ts-nocheck
+import { GetParticipationReplayResponse } from "./agent_participation";
+import { GetParticipationReplayRequest } from "./agent_participation";
+import { ListParticipationAuditEventsResponse } from "./agent_participation";
+import { ListParticipationAuditEventsRequest } from "./agent_participation";
+import { GetParticipationVerdictsResponse } from "./agent_participation";
+import { GetParticipationVerdictsRequest } from "./agent_participation";
+import { GetParticipationCandidateResponse } from "./agent_participation";
+import { GetParticipationCandidateRequest } from "./agent_participation";
+import { ExecuteParticipationResponse } from "./agent_participation";
+import { ExecuteParticipationRequest } from "./agent_participation";
+import { ValidateParticipationResponse } from "./agent_participation";
+import { ValidateParticipationRequest } from "./agent_participation";
+import { DescribeParticipationContextBlocksResponse } from "./agent_participation";
+import { DescribeParticipationContextBlocksRequest } from "./agent_participation";
+import { DescribeParticipationProfilesResponse } from "./agent_participation";
+import { DescribeParticipationProfilesRequest } from "./agent_participation";
 import { ResumeDelegatedCapabilityResponse } from "./delegated_control";
 import { ResumeDelegatedCapabilityRequest } from "./delegated_control";
 import { ExecuteDelegatedCapabilityResponse } from "./delegated_control";

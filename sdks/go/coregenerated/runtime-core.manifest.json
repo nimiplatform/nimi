@@ -6,6 +6,7 @@
     "proto/runtime/v1/account.proto",
     "proto/runtime/v1/agent_common.proto",
     "proto/runtime/v1/agent_group_message_candidate.proto",
+    "proto/runtime/v1/agent_participation.proto",
     "proto/runtime/v1/agent_service.proto",
     "proto/runtime/v1/ai.proto",
     "proto/runtime/v1/ai_realtime.proto",
@@ -533,6 +534,78 @@
           "kind": "unary",
           "request_type": "RequestAgentCanonicalMemoryBankBindRequest",
           "response_type": "RequestAgentCanonicalMemoryBankBindResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "DescribeParticipationProfiles",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/DescribeParticipationProfiles",
+          "kind": "unary",
+          "request_type": "DescribeParticipationProfilesRequest",
+          "response_type": "DescribeParticipationProfilesResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "DescribeParticipationContextBlocks",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/DescribeParticipationContextBlocks",
+          "kind": "unary",
+          "request_type": "DescribeParticipationContextBlocksRequest",
+          "response_type": "DescribeParticipationContextBlocksResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "ValidateParticipation",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/ValidateParticipation",
+          "kind": "unary",
+          "request_type": "ValidateParticipationRequest",
+          "response_type": "ValidateParticipationResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "ExecuteParticipation",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/ExecuteParticipation",
+          "kind": "unary",
+          "request_type": "ExecuteParticipationRequest",
+          "response_type": "ExecuteParticipationResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "GetParticipationCandidate",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetParticipationCandidate",
+          "kind": "unary",
+          "request_type": "GetParticipationCandidateRequest",
+          "response_type": "GetParticipationCandidateResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "GetParticipationVerdicts",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetParticipationVerdicts",
+          "kind": "unary",
+          "request_type": "GetParticipationVerdictsRequest",
+          "response_type": "GetParticipationVerdictsResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "ListParticipationAuditEvents",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListParticipationAuditEvents",
+          "kind": "unary",
+          "request_type": "ListParticipationAuditEventsRequest",
+          "response_type": "ListParticipationAuditEventsResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "GetParticipationReplay",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetParticipationReplay",
+          "kind": "unary",
+          "request_type": "GetParticipationReplayRequest",
+          "response_type": "GetParticipationReplayResponse",
           "request_stream": false,
           "response_stream": false
         },
@@ -2226,9 +2299,12 @@
     "/nimi.runtime.v1.RuntimeAgentService/CancelCompanionParticipation",
     "/nimi.runtime.v1.RuntimeAgentService/CancelHook",
     "/nimi.runtime.v1.RuntimeAgentService/CreateRealmGroupMessageCandidate",
+    "/nimi.runtime.v1.RuntimeAgentService/DescribeParticipationContextBlocks",
+    "/nimi.runtime.v1.RuntimeAgentService/DescribeParticipationProfiles",
     "/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy",
     "/nimi.runtime.v1.RuntimeAgentService/EnableAutonomy",
     "/nimi.runtime.v1.RuntimeAgentService/ExecuteDelegatedCapability",
+    "/nimi.runtime.v1.RuntimeAgentService/ExecuteParticipation",
     "/nimi.runtime.v1.RuntimeAgentService/GetAgent",
     "/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus",
     "/nimi.runtime.v1.RuntimeAgentService/GetAgentState",
@@ -2238,6 +2314,9 @@
     "/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot",
     "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedControlSurfaceSnapshot",
     "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedReplayTrace",
+    "/nimi.runtime.v1.RuntimeAgentService/GetParticipationCandidate",
+    "/nimi.runtime.v1.RuntimeAgentService/GetParticipationReplay",
+    "/nimi.runtime.v1.RuntimeAgentService/GetParticipationVerdicts",
     "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot",
     "/nimi.runtime.v1.RuntimeAgentService/GetRealmGroupMessageCandidateEvidence",
     "/nimi.runtime.v1.RuntimeAgentService/InitializeAgent",
@@ -2247,6 +2326,7 @@
     "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedApprovalRequests",
     "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedDiagnostics",
     "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedProviderProfiles",
+    "/nimi.runtime.v1.RuntimeAgentService/ListParticipationAuditEvents",
     "/nimi.runtime.v1.RuntimeAgentService/ListPendingHooks",
     "/nimi.runtime.v1.RuntimeAgentService/OpenCompanionParticipationReplay",
     "/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor",
@@ -2265,6 +2345,7 @@
     "/nimi.runtime.v1.RuntimeAgentService/TerminateAgent",
     "/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState",
     "/nimi.runtime.v1.RuntimeAgentService/UpsertDelegatedProviderProfile",
+    "/nimi.runtime.v1.RuntimeAgentService/ValidateParticipation",
     "/nimi.runtime.v1.RuntimeAgentService/WriteAgentMemory",
     "/nimi.runtime.v1.RuntimeAiRealtimeService/AppendRealtimeInput",
     "/nimi.runtime.v1.RuntimeAiRealtimeService/CloseRealtimeSession",
@@ -2565,6 +2646,22 @@
       "response_type": "CreateRealmGroupMessageCandidateResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/DescribeParticipationContextBlocks",
+      "service": "RuntimeAgentService",
+      "method": "DescribeParticipationContextBlocks",
+      "kind": "unary",
+      "request_type": "DescribeParticipationContextBlocksRequest",
+      "response_type": "DescribeParticipationContextBlocksResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/DescribeParticipationProfiles",
+      "service": "RuntimeAgentService",
+      "method": "DescribeParticipationProfiles",
+      "kind": "unary",
+      "request_type": "DescribeParticipationProfilesRequest",
+      "response_type": "DescribeParticipationProfilesResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy",
       "service": "RuntimeAgentService",
       "method": "DisableAutonomy",
@@ -2587,6 +2684,14 @@
       "kind": "unary",
       "request_type": "ExecuteDelegatedCapabilityRequest",
       "response_type": "ExecuteDelegatedCapabilityResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/ExecuteParticipation",
+      "service": "RuntimeAgentService",
+      "method": "ExecuteParticipation",
+      "kind": "unary",
+      "request_type": "ExecuteParticipationRequest",
+      "response_type": "ExecuteParticipationResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetAgent",
@@ -2661,6 +2766,30 @@
       "response_type": "GetDelegatedReplayTraceResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetParticipationCandidate",
+      "service": "RuntimeAgentService",
+      "method": "GetParticipationCandidate",
+      "kind": "unary",
+      "request_type": "GetParticipationCandidateRequest",
+      "response_type": "GetParticipationCandidateResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetParticipationReplay",
+      "service": "RuntimeAgentService",
+      "method": "GetParticipationReplay",
+      "kind": "unary",
+      "request_type": "GetParticipationReplayRequest",
+      "response_type": "GetParticipationReplayResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetParticipationVerdicts",
+      "service": "RuntimeAgentService",
+      "method": "GetParticipationVerdicts",
+      "kind": "unary",
+      "request_type": "GetParticipationVerdictsRequest",
+      "response_type": "GetParticipationVerdictsResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot",
       "service": "RuntimeAgentService",
       "method": "GetPublicChatSessionSnapshot",
@@ -2731,6 +2860,14 @@
       "kind": "unary",
       "request_type": "ListDelegatedProviderProfilesRequest",
       "response_type": "ListDelegatedProviderProfilesResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListParticipationAuditEvents",
+      "service": "RuntimeAgentService",
+      "method": "ListParticipationAuditEvents",
+      "kind": "unary",
+      "request_type": "ListParticipationAuditEventsRequest",
+      "response_type": "ListParticipationAuditEventsResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListPendingHooks",
@@ -2875,6 +3012,14 @@
       "kind": "unary",
       "request_type": "UpsertDelegatedProviderProfileRequest",
       "response_type": "UpsertDelegatedProviderProfileResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/ValidateParticipation",
+      "service": "RuntimeAgentService",
+      "method": "ValidateParticipation",
+      "kind": "unary",
+      "request_type": "ValidateParticipationRequest",
+      "response_type": "ValidateParticipationResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/WriteAgentMemory",
@@ -4415,6 +4560,22 @@
       "response_type": "CreateRealmGroupMessageCandidateResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/DescribeParticipationContextBlocks",
+      "service": "RuntimeAgentService",
+      "method": "DescribeParticipationContextBlocks",
+      "kind": "unary",
+      "request_type": "DescribeParticipationContextBlocksRequest",
+      "response_type": "DescribeParticipationContextBlocksResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/DescribeParticipationProfiles",
+      "service": "RuntimeAgentService",
+      "method": "DescribeParticipationProfiles",
+      "kind": "unary",
+      "request_type": "DescribeParticipationProfilesRequest",
+      "response_type": "DescribeParticipationProfilesResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy",
       "service": "RuntimeAgentService",
       "method": "DisableAutonomy",
@@ -4437,6 +4598,14 @@
       "kind": "unary",
       "request_type": "ExecuteDelegatedCapabilityRequest",
       "response_type": "ExecuteDelegatedCapabilityResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/ExecuteParticipation",
+      "service": "RuntimeAgentService",
+      "method": "ExecuteParticipation",
+      "kind": "unary",
+      "request_type": "ExecuteParticipationRequest",
+      "response_type": "ExecuteParticipationResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetAgent",
@@ -4511,6 +4680,30 @@
       "response_type": "GetDelegatedReplayTraceResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetParticipationCandidate",
+      "service": "RuntimeAgentService",
+      "method": "GetParticipationCandidate",
+      "kind": "unary",
+      "request_type": "GetParticipationCandidateRequest",
+      "response_type": "GetParticipationCandidateResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetParticipationReplay",
+      "service": "RuntimeAgentService",
+      "method": "GetParticipationReplay",
+      "kind": "unary",
+      "request_type": "GetParticipationReplayRequest",
+      "response_type": "GetParticipationReplayResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetParticipationVerdicts",
+      "service": "RuntimeAgentService",
+      "method": "GetParticipationVerdicts",
+      "kind": "unary",
+      "request_type": "GetParticipationVerdictsRequest",
+      "response_type": "GetParticipationVerdictsResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot",
       "service": "RuntimeAgentService",
       "method": "GetPublicChatSessionSnapshot",
@@ -4581,6 +4774,14 @@
       "kind": "unary",
       "request_type": "ListDelegatedProviderProfilesRequest",
       "response_type": "ListDelegatedProviderProfilesResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListParticipationAuditEvents",
+      "service": "RuntimeAgentService",
+      "method": "ListParticipationAuditEvents",
+      "kind": "unary",
+      "request_type": "ListParticipationAuditEventsRequest",
+      "response_type": "ListParticipationAuditEventsResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListPendingHooks",
@@ -4725,6 +4926,14 @@
       "kind": "unary",
       "request_type": "UpsertDelegatedProviderProfileRequest",
       "response_type": "UpsertDelegatedProviderProfileResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/ValidateParticipation",
+      "service": "RuntimeAgentService",
+      "method": "ValidateParticipation",
+      "kind": "unary",
+      "request_type": "ValidateParticipationRequest",
+      "response_type": "ValidateParticipationResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/WriteAgentMemory",
@@ -6175,6 +6384,7 @@
       "AgentRecord",
       "AgentReplicationEventDetail",
       "AgentRequestContext",
+      "AgentSlotProjectionBlock",
       "AgentStateClearDyadicContext",
       "AgentStateClearWorldContext",
       "AgentStateEventDetail",
@@ -6306,8 +6516,14 @@
       "DeletePageResponse",
       "DeleteVoiceAssetRequest",
       "DeleteVoiceAssetResponse",
+      "DescribeParticipationContextBlocksRequest",
+      "DescribeParticipationContextBlocksResponse",
+      "DescribeParticipationProfilesRequest",
+      "DescribeParticipationProfilesResponse",
+      "DiagnosticProbeRefBlock",
       "DisableAutonomyRequest",
       "DisableAutonomyResponse",
+      "DomainContextRefBlock",
       "EmbeddingVector",
       "EnableAutonomyRequest",
       "EnableAutonomyResponse",
@@ -6320,6 +6536,8 @@
       "ExecuteDelegatedCapabilityResponse",
       "ExecuteLocalStateCutoverRequest",
       "ExecuteLocalStateCutoverResponse",
+      "ExecuteParticipationRequest",
+      "ExecuteParticipationResponse",
       "ExecuteScenarioRequest",
       "ExecuteScenarioResponse",
       "ExecutionBaselineCapabilityProof",
@@ -6335,7 +6553,10 @@
       "ExternalAgentListTokensResponse",
       "ExternalAgentRevokeTokenRequest",
       "ExternalAgentTokenRecord",
+      "ExternalParticipantIdentityRefBlock",
+      "ExternalPayloadRefBlock",
       "ExtractNodeConfig",
+      "GatewayVerdictRefBlock",
       "GetAccessTokenRequest",
       "GetAccessTokenResponse",
       "GetAccountAppLibraryRequest",
@@ -6382,6 +6603,12 @@
       "GetMemoryEmbeddingRuntimeIntentResponse",
       "GetPageRequest",
       "GetPageResponse",
+      "GetParticipationCandidateRequest",
+      "GetParticipationCandidateResponse",
+      "GetParticipationReplayRequest",
+      "GetParticipationReplayResponse",
+      "GetParticipationVerdictsRequest",
+      "GetParticipationVerdictsResponse",
       "GetProductControlRecordRequest",
       "GetProductControlSelectedDataRootRequest",
       "GetPublicChatSessionSnapshotRequest",
@@ -6507,6 +6734,8 @@
       "ListNodeCatalogResponse",
       "ListPagesRequest",
       "ListPagesResponse",
+      "ListParticipationAuditEventsRequest",
+      "ListParticipationAuditEventsResponse",
       "ListPendingHooksRequest",
       "ListPendingHooksResponse",
       "ListPresetVoicesRequest",
@@ -6630,6 +6859,17 @@
       "OpenRealtimeSessionResponse",
       "OpenSessionRequest",
       "OpenSessionResponse",
+      "ParticipantProjectionBlock",
+      "ParticipationAuditEvent",
+      "ParticipationCandidateRecord",
+      "ParticipationContextBlock",
+      "ParticipationContextBlockDescriptor",
+      "ParticipationProfileDescriptor",
+      "ParticipationReplay",
+      "ParticipationReplayStage",
+      "ParticipationRequestSpec",
+      "ParticipationVerdict",
+      "ParticipationVerdictSet",
       "PauseLocalTransferRequest",
       "PauseLocalTransferResponse",
       "PeekSchedulingRequest",
@@ -6655,6 +6895,7 @@
       "ReadRealtimeEventsRequest",
       "RealmGroupMessageCandidateCommitHandle",
       "RealmGroupMessageCandidateEvidence",
+      "RealmGroupThreadRefBlock",
       "RealtimeAudioChunk",
       "RealtimeAudioInput",
       "RealtimeCompleted",
@@ -6667,6 +6908,9 @@
       "ReasoningStreamDelta",
       "RecallRequest",
       "RecallResponse",
+      "RecentGroupTranscriptProjectionBlock",
+      "RecentSandboxTranscriptProjectionBlock",
+      "RecentWorldTranscriptOrEventProjectionBlock",
       "ReconcileProductControlFirstRunSetupStateRequest",
       "RecordProductControlAccountDefaultProfileEvidenceRequest",
       "RecordProductControlFirstRunLocalAiReadyEvidenceRequest",
@@ -6738,18 +6982,22 @@
       "RuntimeBaselineActivationDependencyEvidence",
       "RuntimeBaselineConsumerBinding",
       "RuntimeBaselineReadinessRef",
+      "RuntimeConversationAnchorRefBlock",
       "RuntimeHealthEvent",
       "ScaffoldOrphanAssetRequest",
       "ScaffoldOrphanAssetResponse",
       "ScanUnregisteredAssetsRequest",
       "ScanUnregisteredAssetsResponse",
       "ScenarioArtifact",
+      "ScenarioBranchRefBlock",
       "ScenarioExtension",
       "ScenarioJob",
       "ScenarioJobEvent",
       "ScenarioOutput",
+      "ScenarioPackageRefBlock",
       "ScenarioProfile",
       "ScenarioRequestHead",
+      "ScenarioRunRefBlock",
       "ScenarioSpec",
       "ScenarioStreamCompleted",
       "ScenarioStreamDelta",
@@ -6836,10 +7084,12 @@
       "ToolApprovalRequest",
       "ToolApprovalResponse",
       "ToolCall",
+      "ToolOrCapabilityProjectionBlock",
       "ToolResult",
       "ToolSpec",
       "TraverseGraphRequest",
       "TraverseGraphResponse",
+      "TriggerMessageRefBlock",
       "UninstallAppRequest",
       "UninstallAppResponse",
       "UpdateAgentStateRequest",
@@ -6862,6 +7112,8 @@
       "UsageStats",
       "ValidateAppAccessTokenRequest",
       "ValidateAppAccessTokenResponse",
+      "ValidateParticipationRequest",
+      "ValidateParticipationResponse",
       "VideoContentAudioURL",
       "VideoContentImageURL",
       "VideoContentItem",
@@ -6869,6 +7121,8 @@
       "VideoGenerateResult",
       "VideoGenerateScenarioSpec",
       "VideoGenerationOptions",
+      "VisibleSceneStateBlock",
+      "VisibleWorldStateProjectionBlock",
       "VoiceAsset",
       "VoiceCloneScenarioSpec",
       "VoiceDesignScenarioSpec",
@@ -6890,6 +7144,8 @@
       "WorkspaceBindingRelation",
       "WorkspaceMembershipProjection",
       "WorkspacePrivateBankOwner",
+      "WorldContextRefBlock",
+      "WorldEventRefBlock",
       "WorldGenerateAssetSource",
       "WorldGenerateImagePrompt",
       "WorldGenerateMultiImagePrompt",
@@ -6997,6 +7253,21 @@
       "ModelCatalogProviderSource",
       "ModelHealthStatus",
       "ModelStatus",
+      "ParticipationCapabilityScope",
+      "ParticipationExecutionConcurrency",
+      "ParticipationExecutionOwner",
+      "ParticipationExternalProtocolKind",
+      "ParticipationIdentitySource",
+      "ParticipationInputTrust",
+      "ParticipationMemoryReadScope",
+      "ParticipationMemoryWriteDefault",
+      "ParticipationOutputDestination",
+      "ParticipationProfileKind",
+      "ParticipationPromotionPosture",
+      "ParticipationReplayOutcome",
+      "ParticipationStatus",
+      "ParticipationTranscriptOwner",
+      "ParticipationVerdictDecision",
       "PolicyMode",
       "RealmGroupMessageCandidateCommitDisposition",
       "RealtimeEventType",
@@ -8271,6 +8542,26 @@
           }
         ],
         "source_file": "proto/runtime/v1/agent_common.proto"
+      },
+      {
+        "name": "AgentSlotProjectionBlock",
+        "fields": [
+          {
+            "name": "agent_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "slot_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
       },
       {
         "name": "AgentStateClearDyadicContext",
@@ -14108,6 +14399,70 @@
         "source_file": "proto/runtime/v1/voice.proto"
       },
       {
+        "name": "DescribeParticipationContextBlocksRequest",
+        "fields": [
+          {
+            "name": "profile_kind",
+            "type": "ParticipationProfileKind",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
+      },
+      {
+        "name": "DescribeParticipationContextBlocksResponse",
+        "fields": [
+          {
+            "name": "context_blocks",
+            "type": "ParticipationContextBlockDescriptor",
+            "repeated": true,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
+      },
+      {
+        "name": "DescribeParticipationProfilesRequest",
+        "fields": [],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
+      },
+      {
+        "name": "DescribeParticipationProfilesResponse",
+        "fields": [
+          {
+            "name": "profiles",
+            "type": "ParticipationProfileDescriptor",
+            "repeated": true,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
+      },
+      {
+        "name": "DiagnosticProbeRefBlock",
+        "fields": [
+          {
+            "name": "probe_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "probe_kind",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
+      },
+      {
         "name": "DisableAutonomyRequest",
         "fields": [
           {
@@ -14146,6 +14501,26 @@
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "DomainContextRefBlock",
+        "fields": [
+          {
+            "name": "domain_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "transcript_owner",
+            "type": "ParticipationTranscriptOwner",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
       },
       {
         "name": "EmbeddingVector",
@@ -14469,6 +14844,60 @@
           }
         ],
         "source_file": "proto/runtime/v1/local_runtime.proto"
+      },
+      {
+        "name": "ExecuteParticipationRequest",
+        "fields": [
+          {
+            "name": "spec",
+            "type": "ParticipationRequestSpec",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
+      },
+      {
+        "name": "ExecuteParticipationResponse",
+        "fields": [
+          {
+            "name": "participation_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "status",
+            "type": "ParticipationStatus",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "candidate_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "refusal_reason",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "audit_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
       },
       {
         "name": "ExecuteScenarioRequest",
@@ -15169,6 +15598,46 @@
         "source_file": "proto/runtime/v1/external_agent.proto"
       },
       {
+        "name": "ExternalParticipantIdentityRefBlock",
+        "fields": [
+          {
+            "name": "external_participant_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "identity_source",
+            "type": "ParticipationIdentitySource",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
+      },
+      {
+        "name": "ExternalPayloadRefBlock",
+        "fields": [
+          {
+            "name": "payload_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "protocol_kind",
+            "type": "ParticipationExternalProtocolKind",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
+      },
+      {
         "name": "ExtractNodeConfig",
         "fields": [
           {
@@ -15187,6 +15656,19 @@
           }
         ],
         "source_file": "proto/runtime/v1/workflow.proto"
+      },
+      {
+        "name": "GatewayVerdictRefBlock",
+        "fields": [
+          {
+            "name": "gateway_verdict_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
       },
       {
         "name": "GetAccessTokenRequest",
@@ -16148,6 +16630,98 @@
           }
         ],
         "source_file": "proto/runtime/v1/knowledge.proto"
+      },
+      {
+        "name": "GetParticipationCandidateRequest",
+        "fields": [
+          {
+            "name": "participation_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
+      },
+      {
+        "name": "GetParticipationCandidateResponse",
+        "fields": [
+          {
+            "name": "candidate",
+            "type": "ParticipationCandidateRecord",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "status",
+            "type": "ParticipationStatus",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
+      },
+      {
+        "name": "GetParticipationReplayRequest",
+        "fields": [
+          {
+            "name": "participation_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
+      },
+      {
+        "name": "GetParticipationReplayResponse",
+        "fields": [
+          {
+            "name": "replay",
+            "type": "ParticipationReplay",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
+      },
+      {
+        "name": "GetParticipationVerdictsRequest",
+        "fields": [
+          {
+            "name": "participation_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
+      },
+      {
+        "name": "GetParticipationVerdictsResponse",
+        "fields": [
+          {
+            "name": "verdicts",
+            "type": "ParticipationVerdictSet",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "policy_verdict_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
       },
       {
         "name": "GetProductControlRecordRequest",
@@ -19668,6 +20242,60 @@
           }
         ],
         "source_file": "proto/runtime/v1/knowledge.proto"
+      },
+      {
+        "name": "ListParticipationAuditEventsRequest",
+        "fields": [
+          {
+            "name": "participation_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "agent_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "page_size",
+            "type": "int32",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "page_token",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
+      },
+      {
+        "name": "ListParticipationAuditEventsResponse",
+        "fields": [
+          {
+            "name": "events",
+            "type": "ParticipationAuditEvent",
+            "repeated": true,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "next_page_token",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
       },
       {
         "name": "ListPendingHooksRequest",
@@ -26294,6 +26922,702 @@
         "source_file": "proto/runtime/v1/auth.proto"
       },
       {
+        "name": "ParticipantProjectionBlock",
+        "fields": [
+          {
+            "name": "participant_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "identity_source",
+            "type": "ParticipationIdentitySource",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
+      },
+      {
+        "name": "ParticipationAuditEvent",
+        "fields": [
+          {
+            "name": "audit_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "participation_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "event_kind",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "reason_code",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "actor_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "observed_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
+      },
+      {
+        "name": "ParticipationCandidateRecord",
+        "fields": [
+          {
+            "name": "participation_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "profile_kind",
+            "type": "ParticipationProfileKind",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "identity_source",
+            "type": "ParticipationIdentitySource",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "participant_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "trigger_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "context_block_refs",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "output_destination",
+            "type": "ParticipationOutputDestination",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "candidate_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 8
+          },
+          {
+            "name": "policy_verdict_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 9
+          },
+          {
+            "name": "memory_read_verdict",
+            "type": "ParticipationVerdict",
+            "repeated": false,
+            "optional": false,
+            "number": 10
+          },
+          {
+            "name": "memory_write_verdict",
+            "type": "ParticipationVerdict",
+            "repeated": false,
+            "optional": false,
+            "number": 11
+          },
+          {
+            "name": "capability_scope_verdict",
+            "type": "ParticipationVerdict",
+            "repeated": false,
+            "optional": false,
+            "number": 12
+          },
+          {
+            "name": "audit_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 13
+          },
+          {
+            "name": "created_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 14
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
+      },
+      {
+        "name": "ParticipationContextBlock",
+        "fields": [
+          {
+            "name": "runtime_conversation_anchor_ref",
+            "type": "RuntimeConversationAnchorRefBlock",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "realm_group_thread_ref",
+            "type": "RealmGroupThreadRefBlock",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "trigger_message_ref",
+            "type": "TriggerMessageRefBlock",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "participant_projection",
+            "type": "ParticipantProjectionBlock",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "recent_group_transcript_projection",
+            "type": "RecentGroupTranscriptProjectionBlock",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "agent_slot_projection",
+            "type": "AgentSlotProjectionBlock",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "scenario_package_ref",
+            "type": "ScenarioPackageRefBlock",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "scenario_run_ref",
+            "type": "ScenarioRunRefBlock",
+            "repeated": false,
+            "optional": false,
+            "number": 8
+          },
+          {
+            "name": "scenario_branch_ref",
+            "type": "ScenarioBranchRefBlock",
+            "repeated": false,
+            "optional": false,
+            "number": 9
+          },
+          {
+            "name": "visible_scene_state",
+            "type": "VisibleSceneStateBlock",
+            "repeated": false,
+            "optional": false,
+            "number": 10
+          },
+          {
+            "name": "recent_sandbox_transcript_projection",
+            "type": "RecentSandboxTranscriptProjectionBlock",
+            "repeated": false,
+            "optional": false,
+            "number": 11
+          },
+          {
+            "name": "world_context_ref",
+            "type": "WorldContextRefBlock",
+            "repeated": false,
+            "optional": false,
+            "number": 12
+          },
+          {
+            "name": "world_event_ref",
+            "type": "WorldEventRefBlock",
+            "repeated": false,
+            "optional": false,
+            "number": 13
+          },
+          {
+            "name": "visible_world_state_projection",
+            "type": "VisibleWorldStateProjectionBlock",
+            "repeated": false,
+            "optional": false,
+            "number": 14
+          },
+          {
+            "name": "recent_world_transcript_or_event_projection",
+            "type": "RecentWorldTranscriptOrEventProjectionBlock",
+            "repeated": false,
+            "optional": false,
+            "number": 15
+          },
+          {
+            "name": "external_participant_identity_ref",
+            "type": "ExternalParticipantIdentityRefBlock",
+            "repeated": false,
+            "optional": false,
+            "number": 16
+          },
+          {
+            "name": "external_payload_ref",
+            "type": "ExternalPayloadRefBlock",
+            "repeated": false,
+            "optional": false,
+            "number": 17
+          },
+          {
+            "name": "gateway_verdict_ref",
+            "type": "GatewayVerdictRefBlock",
+            "repeated": false,
+            "optional": false,
+            "number": 18
+          },
+          {
+            "name": "domain_context_ref",
+            "type": "DomainContextRefBlock",
+            "repeated": false,
+            "optional": false,
+            "number": 19
+          },
+          {
+            "name": "tool_or_capability_projection",
+            "type": "ToolOrCapabilityProjectionBlock",
+            "repeated": false,
+            "optional": false,
+            "number": 20
+          },
+          {
+            "name": "diagnostic_probe_ref",
+            "type": "DiagnosticProbeRefBlock",
+            "repeated": false,
+            "optional": false,
+            "number": 21
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
+      },
+      {
+        "name": "ParticipationContextBlockDescriptor",
+        "fields": [
+          {
+            "name": "block_kind",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "allowed_profile_kinds",
+            "type": "ParticipationProfileKind",
+            "repeated": true,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "required_fields",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
+      },
+      {
+        "name": "ParticipationProfileDescriptor",
+        "fields": [
+          {
+            "name": "profile_kind",
+            "type": "ParticipationProfileKind",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "transcript_owner",
+            "type": "ParticipationTranscriptOwner",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "identity_source",
+            "type": "ParticipationIdentitySource",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "additional_identity_sources",
+            "type": "ParticipationIdentitySource",
+            "repeated": true,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "execution_owner",
+            "type": "ParticipationExecutionOwner",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "memory_read_scope",
+            "type": "ParticipationMemoryReadScope",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "memory_write_default",
+            "type": "ParticipationMemoryWriteDefault",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "capability_scope",
+            "type": "ParticipationCapabilityScope",
+            "repeated": false,
+            "optional": false,
+            "number": 8
+          },
+          {
+            "name": "input_trust",
+            "type": "ParticipationInputTrust",
+            "repeated": false,
+            "optional": false,
+            "number": 9
+          },
+          {
+            "name": "additional_input_trust",
+            "type": "ParticipationInputTrust",
+            "repeated": true,
+            "optional": false,
+            "number": 10
+          },
+          {
+            "name": "output_destination",
+            "type": "ParticipationOutputDestination",
+            "repeated": false,
+            "optional": false,
+            "number": 11
+          },
+          {
+            "name": "promotion_posture",
+            "type": "ParticipationPromotionPosture",
+            "repeated": false,
+            "optional": false,
+            "number": 12
+          },
+          {
+            "name": "execution_concurrency",
+            "type": "ParticipationExecutionConcurrency",
+            "repeated": false,
+            "optional": false,
+            "number": 13
+          },
+          {
+            "name": "posture",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 14
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
+      },
+      {
+        "name": "ParticipationReplay",
+        "fields": [
+          {
+            "name": "replay_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "participation_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "agent_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "profile_kind",
+            "type": "ParticipationProfileKind",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "outcome",
+            "type": "ParticipationReplayOutcome",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "reason_code",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "stages",
+            "type": "ParticipationReplayStage",
+            "repeated": true,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "redacted",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 8
+          },
+          {
+            "name": "observed_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 9
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
+      },
+      {
+        "name": "ParticipationReplayStage",
+        "fields": [
+          {
+            "name": "stage_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "state",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "reason_code",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "redacted_summary",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "observed_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
+      },
+      {
+        "name": "ParticipationRequestSpec",
+        "fields": [
+          {
+            "name": "profile_kind",
+            "type": "ParticipationProfileKind",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "agent_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "participant_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "trigger_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "context_blocks",
+            "type": "ParticipationContextBlock",
+            "repeated": true,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "request_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
+      },
+      {
+        "name": "ParticipationVerdict",
+        "fields": [
+          {
+            "name": "decision",
+            "type": "ParticipationVerdictDecision",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "reason_code",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
+      },
+      {
+        "name": "ParticipationVerdictSet",
+        "fields": [
+          {
+            "name": "memory_read",
+            "type": "ParticipationVerdict",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "memory_write",
+            "type": "ParticipationVerdict",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "capability_scope",
+            "type": "ParticipationVerdict",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "concurrency",
+            "type": "ParticipationVerdict",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "resolved_memory_read_scope",
+            "type": "ParticipationMemoryReadScope",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "resolved_memory_write_default",
+            "type": "ParticipationMemoryWriteDefault",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "resolved_capability_scope",
+            "type": "ParticipationCapabilityScope",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "resolved_concurrency",
+            "type": "ParticipationExecutionConcurrency",
+            "repeated": false,
+            "optional": false,
+            "number": 8
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
+      },
+      {
         "name": "PauseLocalTransferRequest",
         "fields": [
           {
@@ -27207,6 +28531,19 @@
         "source_file": "proto/runtime/v1/agent_group_message_candidate.proto"
       },
       {
+        "name": "RealmGroupThreadRefBlock",
+        "fields": [
+          {
+            "name": "thread_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
+      },
+      {
         "name": "RealtimeAudioChunk",
         "fields": [
           {
@@ -27543,6 +28880,73 @@
           }
         ],
         "source_file": "proto/runtime/v1/memory.proto"
+      },
+      {
+        "name": "RecentGroupTranscriptProjectionBlock",
+        "fields": [
+          {
+            "name": "transcript_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "trust_posture",
+            "type": "ParticipationInputTrust",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
+      },
+      {
+        "name": "RecentSandboxTranscriptProjectionBlock",
+        "fields": [
+          {
+            "name": "transcript_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "branch_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "trust_posture",
+            "type": "ParticipationInputTrust",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
+      },
+      {
+        "name": "RecentWorldTranscriptOrEventProjectionBlock",
+        "fields": [
+          {
+            "name": "event_or_transcript_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "trust_posture",
+            "type": "ParticipationInputTrust",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
       },
       {
         "name": "ReconcileProductControlFirstRunSetupStateRequest",
@@ -29624,6 +31028,19 @@
         "source_file": "proto/runtime/v1/local_runtime_device_environment.proto"
       },
       {
+        "name": "RuntimeConversationAnchorRefBlock",
+        "fields": [
+          {
+            "name": "conversation_anchor_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
+      },
+      {
         "name": "RuntimeHealthEvent",
         "fields": [
           {
@@ -29874,6 +31291,19 @@
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "ScenarioBranchRefBlock",
+        "fields": [
+          {
+            "name": "scenario_branch_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
       },
       {
         "name": "ScenarioExtension",
@@ -30159,6 +31589,19 @@
         "source_file": "proto/runtime/v1/ai.proto"
       },
       {
+        "name": "ScenarioPackageRefBlock",
+        "fields": [
+          {
+            "name": "scenario_package_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
+      },
+      {
         "name": "ScenarioProfile",
         "fields": [
           {
@@ -30239,6 +31682,19 @@
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "ScenarioRunRefBlock",
+        "fields": [
+          {
+            "name": "scenario_run_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
       },
       {
         "name": "ScenarioSpec",
@@ -32919,6 +34375,26 @@
         "source_file": "proto/runtime/v1/ai.proto"
       },
       {
+        "name": "ToolOrCapabilityProjectionBlock",
+        "fields": [
+          {
+            "name": "capability_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "effect_class",
+            "type": "EffectClass",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
+      },
+      {
         "name": "ToolResult",
         "fields": [
           {
@@ -33102,6 +34578,19 @@
           }
         ],
         "source_file": "proto/runtime/v1/knowledge.proto"
+      },
+      {
+        "name": "TriggerMessageRefBlock",
+        "fields": [
+          {
+            "name": "message_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
       },
       {
         "name": "UninstallAppRequest",
@@ -33789,6 +35278,53 @@
         "source_file": "proto/runtime/v1/grant.proto"
       },
       {
+        "name": "ValidateParticipationRequest",
+        "fields": [
+          {
+            "name": "spec",
+            "type": "ParticipationRequestSpec",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
+      },
+      {
+        "name": "ValidateParticipationResponse",
+        "fields": [
+          {
+            "name": "admitted",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "verdicts",
+            "type": "ParticipationVerdictSet",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "resolved_output_destination",
+            "type": "ParticipationOutputDestination",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "refusal_reason",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
+      },
+      {
         "name": "VideoContentAudioURL",
         "fields": [
           {
@@ -34025,6 +35561,32 @@
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "VisibleSceneStateBlock",
+        "fields": [
+          {
+            "name": "scene_state_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
+      },
+      {
+        "name": "VisibleWorldStateProjectionBlock",
+        "fields": [
+          {
+            "name": "world_state_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
       },
       {
         "name": "VoiceAsset",
@@ -35048,6 +36610,32 @@
           }
         ],
         "source_file": "proto/runtime/v1/memory.proto"
+      },
+      {
+        "name": "WorldContextRefBlock",
+        "fields": [
+          {
+            "name": "world_context_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
+      },
+      {
+        "name": "WorldEventRefBlock",
+        "fields": [
+          {
+            "name": "world_event_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
       },
       {
         "name": "WorldGenerateAssetSource",
@@ -36382,6 +37970,185 @@
           "MODEL_STATUS_REMOVED"
         ],
         "source_file": "proto/runtime/v1/model.proto"
+      },
+      {
+        "name": "ParticipationCapabilityScope",
+        "values": [
+          "PARTICIPATION_CAPABILITY_SCOPE_UNSPECIFIED",
+          "PARTICIPATION_CAPABILITY_SCOPE_CANONICAL_AGENT_SCOPE",
+          "PARTICIPATION_CAPABILITY_SCOPE_PROFILE_LIMITED",
+          "PARTICIPATION_CAPABILITY_SCOPE_DOMAIN_LIMITED",
+          "PARTICIPATION_CAPABILITY_SCOPE_DIAGNOSTIC_READ_ONLY",
+          "PARTICIPATION_CAPABILITY_SCOPE_EXTERNAL_GATEWAY_LIMITED",
+          "PARTICIPATION_CAPABILITY_SCOPE_NONE"
+        ],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
+      },
+      {
+        "name": "ParticipationExecutionConcurrency",
+        "values": [
+          "PARTICIPATION_EXECUTION_CONCURRENCY_UNSPECIFIED",
+          "PARTICIPATION_EXECUTION_CONCURRENCY_CANONICAL_CHAT_BUDGET",
+          "PARTICIPATION_EXECUTION_CONCURRENCY_PER_AGENT_PARTICIPATION_QUEUE",
+          "PARTICIPATION_EXECUTION_CONCURRENCY_PROFILE_ISOLATED_BUDGET",
+          "PARTICIPATION_EXECUTION_CONCURRENCY_DOMAIN_TRIGGER_QUEUE",
+          "PARTICIPATION_EXECUTION_CONCURRENCY_REJECT_WHILE_ACTIVE",
+          "PARTICIPATION_EXECUTION_CONCURRENCY_GATEWAY_BUDGET_QUEUE",
+          "PARTICIPATION_EXECUTION_CONCURRENCY_LOW_PRIORITY_CANCELABLE"
+        ],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
+      },
+      {
+        "name": "ParticipationExecutionOwner",
+        "values": [
+          "PARTICIPATION_EXECUTION_OWNER_UNSPECIFIED",
+          "PARTICIPATION_EXECUTION_OWNER_RUNTIME",
+          "PARTICIPATION_EXECUTION_OWNER_EXTERNAL_RUNTIME_VIA_ADMITTED_GATEWAY",
+          "PARTICIPATION_EXECUTION_OWNER_NOT_ADMITTED"
+        ],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
+      },
+      {
+        "name": "ParticipationExternalProtocolKind",
+        "values": [
+          "PARTICIPATION_EXTERNAL_PROTOCOL_KIND_UNSPECIFIED",
+          "PARTICIPATION_EXTERNAL_PROTOCOL_KIND_MCP",
+          "PARTICIPATION_EXTERNAL_PROTOCOL_KIND_A2A"
+        ],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
+      },
+      {
+        "name": "ParticipationIdentitySource",
+        "values": [
+          "PARTICIPATION_IDENTITY_SOURCE_UNSPECIFIED",
+          "PARTICIPATION_IDENTITY_SOURCE_USER_OWNED_NIMI_AGENT",
+          "PARTICIPATION_IDENTITY_SOURCE_EXTERNAL_A2A_AGENT",
+          "PARTICIPATION_IDENTITY_SOURCE_MCP_BACKED_AI_CAPABILITY",
+          "PARTICIPATION_IDENTITY_SOURCE_SANDBOX_PROJECTION",
+          "PARTICIPATION_IDENTITY_SOURCE_NPC_WORLD_ACTOR"
+        ],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
+      },
+      {
+        "name": "ParticipationInputTrust",
+        "values": [
+          "PARTICIPATION_INPUT_TRUST_UNSPECIFIED",
+          "PARTICIPATION_INPUT_TRUST_TRUSTED_USER",
+          "PARTICIPATION_INPUT_TRUST_UNTRUSTED_MULTI_PARTY_TRANSCRIPT",
+          "PARTICIPATION_INPUT_TRUST_SANDBOX_SCRIPT",
+          "PARTICIPATION_INPUT_TRUST_EXTERNAL_A2A_PAYLOAD",
+          "PARTICIPATION_INPUT_TRUST_TOOL_PROVIDER_PAYLOAD",
+          "PARTICIPATION_INPUT_TRUST_WORLD_CONTEXT",
+          "PARTICIPATION_INPUT_TRUST_DIAGNOSTIC_INPUT"
+        ],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
+      },
+      {
+        "name": "ParticipationMemoryReadScope",
+        "values": [
+          "PARTICIPATION_MEMORY_READ_SCOPE_UNSPECIFIED",
+          "PARTICIPATION_MEMORY_READ_SCOPE_CANONICAL_OWNER_POLICY",
+          "PARTICIPATION_MEMORY_READ_SCOPE_DYADIC_PRIVATE_ALLOWED",
+          "PARTICIPATION_MEMORY_READ_SCOPE_DYADIC_PRIVATE_EXCLUDED",
+          "PARTICIPATION_MEMORY_READ_SCOPE_PUBLIC_SHARED_ONLY",
+          "PARTICIPATION_MEMORY_READ_SCOPE_DOMAIN_SHARED_ONLY",
+          "PARTICIPATION_MEMORY_READ_SCOPE_NO_MEMORY_READ"
+        ],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
+      },
+      {
+        "name": "ParticipationMemoryWriteDefault",
+        "values": [
+          "PARTICIPATION_MEMORY_WRITE_DEFAULT_UNSPECIFIED",
+          "PARTICIPATION_MEMORY_WRITE_DEFAULT_CANONICAL_WRITE_ALLOWED",
+          "PARTICIPATION_MEMORY_WRITE_DEFAULT_WRITE_NONE",
+          "PARTICIPATION_MEMORY_WRITE_DEFAULT_PROMOTION_GATED"
+        ],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
+      },
+      {
+        "name": "ParticipationOutputDestination",
+        "values": [
+          "PARTICIPATION_OUTPUT_DESTINATION_UNSPECIFIED",
+          "PARTICIPATION_OUTPUT_DESTINATION_CANONICAL_CHAT",
+          "PARTICIPATION_OUTPUT_DESTINATION_REALM_GROUP_MESSAGE_CANDIDATE",
+          "PARTICIPATION_OUTPUT_DESTINATION_SCENARIO_TURN_CANDIDATE",
+          "PARTICIPATION_OUTPUT_DESTINATION_WORLD_EVENT_CANDIDATE",
+          "PARTICIPATION_OUTPUT_DESTINATION_EXTERNAL_REPLY_CANDIDATE",
+          "PARTICIPATION_OUTPUT_DESTINATION_DIAGNOSTIC_CANDIDATE",
+          "PARTICIPATION_OUTPUT_DESTINATION_EPHEMERAL"
+        ],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
+      },
+      {
+        "name": "ParticipationProfileKind",
+        "values": [
+          "PARTICIPATION_PROFILE_KIND_UNSPECIFIED",
+          "PARTICIPATION_PROFILE_KIND_CANONICAL_AGENT_CHAT",
+          "PARTICIPATION_PROFILE_KIND_REALM_GROUP_AGENT",
+          "PARTICIPATION_PROFILE_KIND_SCENARIO_SANDBOX",
+          "PARTICIPATION_PROFILE_KIND_OASIS_WORLD_PARTICIPATION",
+          "PARTICIPATION_PROFILE_KIND_EXTERNAL_AGENT_ENTRY",
+          "PARTICIPATION_PROFILE_KIND_DEBUG_OR_PROBE"
+        ],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
+      },
+      {
+        "name": "ParticipationPromotionPosture",
+        "values": [
+          "PARTICIPATION_PROMOTION_POSTURE_UNSPECIFIED",
+          "PARTICIPATION_PROMOTION_POSTURE_NOT_ALLOWED",
+          "PARTICIPATION_PROMOTION_POSTURE_EXPLICIT_CANDIDATE",
+          "PARTICIPATION_PROMOTION_POSTURE_EXPLICIT_COMMIT_FLOW",
+          "PARTICIPATION_PROMOTION_POSTURE_EXISTING_CANONICAL_POLICY"
+        ],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
+      },
+      {
+        "name": "ParticipationReplayOutcome",
+        "values": [
+          "PARTICIPATION_REPLAY_OUTCOME_UNSPECIFIED",
+          "PARTICIPATION_REPLAY_OUTCOME_COMPLETED",
+          "PARTICIPATION_REPLAY_OUTCOME_PARTIAL_REDACTED",
+          "PARTICIPATION_REPLAY_OUTCOME_FAILED"
+        ],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
+      },
+      {
+        "name": "ParticipationStatus",
+        "values": [
+          "PARTICIPATION_STATUS_UNSPECIFIED",
+          "PARTICIPATION_STATUS_ADMISSION_PENDING",
+          "PARTICIPATION_STATUS_BLOCKED",
+          "PARTICIPATION_STATUS_RUNNING",
+          "PARTICIPATION_STATUS_CANDIDATE_READY",
+          "PARTICIPATION_STATUS_COMMITTED_BY_OWNER",
+          "PARTICIPATION_STATUS_FAILED",
+          "PARTICIPATION_STATUS_CANCELED"
+        ],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
+      },
+      {
+        "name": "ParticipationTranscriptOwner",
+        "values": [
+          "PARTICIPATION_TRANSCRIPT_OWNER_UNSPECIFIED",
+          "PARTICIPATION_TRANSCRIPT_OWNER_RUNTIME",
+          "PARTICIPATION_TRANSCRIPT_OWNER_REALM",
+          "PARTICIPATION_TRANSCRIPT_OWNER_SCENARIO_MODULE",
+          "PARTICIPATION_TRANSCRIPT_OWNER_OASIS_WORLD_DOMAIN",
+          "PARTICIPATION_TRANSCRIPT_OWNER_EXTERNAL_DOMAIN",
+          "PARTICIPATION_TRANSCRIPT_OWNER_EPHEMERAL"
+        ],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
+      },
+      {
+        "name": "ParticipationVerdictDecision",
+        "values": [
+          "PARTICIPATION_VERDICT_DECISION_UNSPECIFIED",
+          "PARTICIPATION_VERDICT_DECISION_ALLOW",
+          "PARTICIPATION_VERDICT_DECISION_DENY"
+        ],
+        "source_file": "proto/runtime/v1/agent_participation.proto"
       },
       {
         "name": "PolicyMode",

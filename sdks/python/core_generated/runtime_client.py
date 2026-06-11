@@ -128,6 +128,22 @@ RUNTIME_METHODS = [
     "response_type": "CreateRealmGroupMessageCandidateResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/DescribeParticipationContextBlocks",
+    "service": "RuntimeAgentService",
+    "method": "DescribeParticipationContextBlocks",
+    "kind": "unary",
+    "request_type": "DescribeParticipationContextBlocksRequest",
+    "response_type": "DescribeParticipationContextBlocksResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/DescribeParticipationProfiles",
+    "service": "RuntimeAgentService",
+    "method": "DescribeParticipationProfiles",
+    "kind": "unary",
+    "request_type": "DescribeParticipationProfilesRequest",
+    "response_type": "DescribeParticipationProfilesResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy",
     "service": "RuntimeAgentService",
     "method": "DisableAutonomy",
@@ -150,6 +166,14 @@ RUNTIME_METHODS = [
     "kind": "unary",
     "request_type": "ExecuteDelegatedCapabilityRequest",
     "response_type": "ExecuteDelegatedCapabilityResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/ExecuteParticipation",
+    "service": "RuntimeAgentService",
+    "method": "ExecuteParticipation",
+    "kind": "unary",
+    "request_type": "ExecuteParticipationRequest",
+    "response_type": "ExecuteParticipationResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetAgent",
@@ -224,6 +248,30 @@ RUNTIME_METHODS = [
     "response_type": "GetDelegatedReplayTraceResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetParticipationCandidate",
+    "service": "RuntimeAgentService",
+    "method": "GetParticipationCandidate",
+    "kind": "unary",
+    "request_type": "GetParticipationCandidateRequest",
+    "response_type": "GetParticipationCandidateResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetParticipationReplay",
+    "service": "RuntimeAgentService",
+    "method": "GetParticipationReplay",
+    "kind": "unary",
+    "request_type": "GetParticipationReplayRequest",
+    "response_type": "GetParticipationReplayResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetParticipationVerdicts",
+    "service": "RuntimeAgentService",
+    "method": "GetParticipationVerdicts",
+    "kind": "unary",
+    "request_type": "GetParticipationVerdictsRequest",
+    "response_type": "GetParticipationVerdictsResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot",
     "service": "RuntimeAgentService",
     "method": "GetPublicChatSessionSnapshot",
@@ -294,6 +342,14 @@ RUNTIME_METHODS = [
     "kind": "unary",
     "request_type": "ListDelegatedProviderProfilesRequest",
     "response_type": "ListDelegatedProviderProfilesResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListParticipationAuditEvents",
+    "service": "RuntimeAgentService",
+    "method": "ListParticipationAuditEvents",
+    "kind": "unary",
+    "request_type": "ListParticipationAuditEventsRequest",
+    "response_type": "ListParticipationAuditEventsResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListPendingHooks",
@@ -438,6 +494,14 @@ RUNTIME_METHODS = [
     "kind": "unary",
     "request_type": "UpsertDelegatedProviderProfileRequest",
     "response_type": "UpsertDelegatedProviderProfileResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/ValidateParticipation",
+    "service": "RuntimeAgentService",
+    "method": "ValidateParticipation",
+    "kind": "unary",
+    "request_type": "ValidateParticipationRequest",
+    "response_type": "ValidateParticipationResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/WriteAgentMemory",

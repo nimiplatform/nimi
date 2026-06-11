@@ -1,0 +1,439 @@
+syntax = "proto3";
+package nimi.runtime.v1;
+option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
+import "google/protobuf/timestamp.proto";
+import "runtime/v1/delegated_control.proto";
+
+// Runtime Agent Participation wire surface.
+// Semantic authority: K-AGCORE-061..K-AGCORE-088 plus the
+// agent-participation-* tables under .nimi/spec/runtime/kernel/tables/.
+// K-PROTO-012: no raw prompt blobs, no protocol-native external-agent
+// protocol payloads, no raw provider payloads, no raw memory payloads
+// (the closed protocol families are enumerated by K-PROTO-012 itself).
+// Candidate content is
+// read through the owning destination surface via candidate_ref; this
+// surface carries refs and typed verdict/audit projections only.
+
+// K-AGCORE-074 closed profile registry.
+enum ParticipationProfileKind {
+  PARTICIPATION_PROFILE_KIND_UNSPECIFIED = 0;
+  PARTICIPATION_PROFILE_KIND_CANONICAL_AGENT_CHAT = 1;
+  PARTICIPATION_PROFILE_KIND_REALM_GROUP_AGENT = 2;
+  PARTICIPATION_PROFILE_KIND_SCENARIO_SANDBOX = 3;
+  PARTICIPATION_PROFILE_KIND_OASIS_WORLD_PARTICIPATION = 4;
+  PARTICIPATION_PROFILE_KIND_EXTERNAL_AGENT_ENTRY = 5;
+  PARTICIPATION_PROFILE_KIND_DEBUG_OR_PROBE = 6;
+}
+
+// K-AGCORE-064 transcript_owner axis.
+enum ParticipationTranscriptOwner {
+  PARTICIPATION_TRANSCRIPT_OWNER_UNSPECIFIED = 0;
+  PARTICIPATION_TRANSCRIPT_OWNER_RUNTIME = 1;
+  PARTICIPATION_TRANSCRIPT_OWNER_REALM = 2;
+  PARTICIPATION_TRANSCRIPT_OWNER_SCENARIO_MODULE = 3;
+  PARTICIPATION_TRANSCRIPT_OWNER_OASIS_WORLD_DOMAIN = 4;
+  PARTICIPATION_TRANSCRIPT_OWNER_EXTERNAL_DOMAIN = 5;
+  PARTICIPATION_TRANSCRIPT_OWNER_EPHEMERAL = 6;
+}
+
+// K-AGCORE-065 identity_source axis. SANDBOX_PROJECTION and NPC_WORLD_ACTOR
+// are not aliases (K-AGCORE-065, sandbox_projection_npc_alias: forbidden).
+enum ParticipationIdentitySource {
+  PARTICIPATION_IDENTITY_SOURCE_UNSPECIFIED = 0;
+  PARTICIPATION_IDENTITY_SOURCE_USER_OWNED_NIMI_AGENT = 1;
+  PARTICIPATION_IDENTITY_SOURCE_EXTERNAL_A2A_AGENT = 2;
+  PARTICIPATION_IDENTITY_SOURCE_MCP_BACKED_AI_CAPABILITY = 3;
+  PARTICIPATION_IDENTITY_SOURCE_SANDBOX_PROJECTION = 4;
+  PARTICIPATION_IDENTITY_SOURCE_NPC_WORLD_ACTOR = 5;
+}
+
+// K-AGCORE-066 execution_owner axis.
+enum ParticipationExecutionOwner {
+  PARTICIPATION_EXECUTION_OWNER_UNSPECIFIED = 0;
+  PARTICIPATION_EXECUTION_OWNER_RUNTIME = 1;
+  PARTICIPATION_EXECUTION_OWNER_EXTERNAL_RUNTIME_VIA_ADMITTED_GATEWAY = 2;
+  PARTICIPATION_EXECUTION_OWNER_NOT_ADMITTED = 3;
+}
+
+// K-AGCORE-067 memory_read_scope axis.
+enum ParticipationMemoryReadScope {
+  PARTICIPATION_MEMORY_READ_SCOPE_UNSPECIFIED = 0;
+  PARTICIPATION_MEMORY_READ_SCOPE_CANONICAL_OWNER_POLICY = 1;
+  PARTICIPATION_MEMORY_READ_SCOPE_DYADIC_PRIVATE_ALLOWED = 2;
+  PARTICIPATION_MEMORY_READ_SCOPE_DYADIC_PRIVATE_EXCLUDED = 3;
+  PARTICIPATION_MEMORY_READ_SCOPE_PUBLIC_SHARED_ONLY = 4;
+  PARTICIPATION_MEMORY_READ_SCOPE_DOMAIN_SHARED_ONLY = 5;
+  PARTICIPATION_MEMORY_READ_SCOPE_NO_MEMORY_READ = 6;
+}
+
+// K-AGCORE-068 memory_write_default axis.
+enum ParticipationMemoryWriteDefault {
+  PARTICIPATION_MEMORY_WRITE_DEFAULT_UNSPECIFIED = 0;
+  PARTICIPATION_MEMORY_WRITE_DEFAULT_CANONICAL_WRITE_ALLOWED = 1;
+  PARTICIPATION_MEMORY_WRITE_DEFAULT_WRITE_NONE = 2;
+  PARTICIPATION_MEMORY_WRITE_DEFAULT_PROMOTION_GATED = 3;
+}
+
+// K-AGCORE-069 capability_scope axis.
+enum ParticipationCapabilityScope {
+  PARTICIPATION_CAPABILITY_SCOPE_UNSPECIFIED = 0;
+  PARTICIPATION_CAPABILITY_SCOPE_CANONICAL_AGENT_SCOPE = 1;
+  PARTICIPATION_CAPABILITY_SCOPE_PROFILE_LIMITED = 2;
+  PARTICIPATION_CAPABILITY_SCOPE_DOMAIN_LIMITED = 3;
+  PARTICIPATION_CAPABILITY_SCOPE_DIAGNOSTIC_READ_ONLY = 4;
+  PARTICIPATION_CAPABILITY_SCOPE_EXTERNAL_GATEWAY_LIMITED = 5;
+  PARTICIPATION_CAPABILITY_SCOPE_NONE = 6;
+}
+
+// K-AGCORE-070 input_trust axis.
+enum ParticipationInputTrust {
+  PARTICIPATION_INPUT_TRUST_UNSPECIFIED = 0;
+  PARTICIPATION_INPUT_TRUST_TRUSTED_USER = 1;
+  PARTICIPATION_INPUT_TRUST_UNTRUSTED_MULTI_PARTY_TRANSCRIPT = 2;
+  PARTICIPATION_INPUT_TRUST_SANDBOX_SCRIPT = 3;
+  PARTICIPATION_INPUT_TRUST_EXTERNAL_A2A_PAYLOAD = 4;
+  PARTICIPATION_INPUT_TRUST_TOOL_PROVIDER_PAYLOAD = 5;
+  PARTICIPATION_INPUT_TRUST_WORLD_CONTEXT = 6;
+  PARTICIPATION_INPUT_TRUST_DIAGNOSTIC_INPUT = 7;
+}
+
+// K-AGCORE-071 output_destination axis. Direct domain commit from runtime
+// participation is forbidden; every non-canonical destination is
+// candidate-first (K-AGCORE-062).
+enum ParticipationOutputDestination {
+  PARTICIPATION_OUTPUT_DESTINATION_UNSPECIFIED = 0;
+  PARTICIPATION_OUTPUT_DESTINATION_CANONICAL_CHAT = 1;
+  PARTICIPATION_OUTPUT_DESTINATION_REALM_GROUP_MESSAGE_CANDIDATE = 2;
+  PARTICIPATION_OUTPUT_DESTINATION_SCENARIO_TURN_CANDIDATE = 3;
+  PARTICIPATION_OUTPUT_DESTINATION_WORLD_EVENT_CANDIDATE = 4;
+  PARTICIPATION_OUTPUT_DESTINATION_EXTERNAL_REPLY_CANDIDATE = 5;
+  PARTICIPATION_OUTPUT_DESTINATION_DIAGNOSTIC_CANDIDATE = 6;
+  PARTICIPATION_OUTPUT_DESTINATION_EPHEMERAL = 7;
+}
+
+// K-AGCORE-072 promotion_posture axis.
+enum ParticipationPromotionPosture {
+  PARTICIPATION_PROMOTION_POSTURE_UNSPECIFIED = 0;
+  PARTICIPATION_PROMOTION_POSTURE_NOT_ALLOWED = 1;
+  PARTICIPATION_PROMOTION_POSTURE_EXPLICIT_CANDIDATE = 2;
+  PARTICIPATION_PROMOTION_POSTURE_EXPLICIT_COMMIT_FLOW = 3;
+  PARTICIPATION_PROMOTION_POSTURE_EXISTING_CANONICAL_POLICY = 4;
+}
+
+// K-AGCORE-073 execution_concurrency axis.
+enum ParticipationExecutionConcurrency {
+  PARTICIPATION_EXECUTION_CONCURRENCY_UNSPECIFIED = 0;
+  PARTICIPATION_EXECUTION_CONCURRENCY_CANONICAL_CHAT_BUDGET = 1;
+  PARTICIPATION_EXECUTION_CONCURRENCY_PER_AGENT_PARTICIPATION_QUEUE = 2;
+  PARTICIPATION_EXECUTION_CONCURRENCY_PROFILE_ISOLATED_BUDGET = 3;
+  PARTICIPATION_EXECUTION_CONCURRENCY_DOMAIN_TRIGGER_QUEUE = 4;
+  PARTICIPATION_EXECUTION_CONCURRENCY_REJECT_WHILE_ACTIVE = 5;
+  PARTICIPATION_EXECUTION_CONCURRENCY_GATEWAY_BUDGET_QUEUE = 6;
+  PARTICIPATION_EXECUTION_CONCURRENCY_LOW_PRIORITY_CANCELABLE = 7;
+}
+
+// Participation execution lifecycle, aligned with the companion
+// participation status family. COMMITTED_BY_OWNER is reported only from
+// owning-domain commit evidence, never inferred from candidate text
+// (K-AGCORE-062, S-RUNTIME-230 posture).
+enum ParticipationStatus {
+  PARTICIPATION_STATUS_UNSPECIFIED = 0;
+  PARTICIPATION_STATUS_ADMISSION_PENDING = 1;
+  PARTICIPATION_STATUS_BLOCKED = 2;
+  PARTICIPATION_STATUS_RUNNING = 3;
+  PARTICIPATION_STATUS_CANDIDATE_READY = 4;
+  PARTICIPATION_STATUS_COMMITTED_BY_OWNER = 5;
+  PARTICIPATION_STATUS_FAILED = 6;
+  PARTICIPATION_STATUS_CANCELED = 7;
+}
+
+enum ParticipationVerdictDecision {
+  PARTICIPATION_VERDICT_DECISION_UNSPECIFIED = 0;
+  PARTICIPATION_VERDICT_DECISION_ALLOW = 1;
+  PARTICIPATION_VERDICT_DECISION_DENY = 2;
+}
+
+// External payload protocol family for external_agent_entry context.
+// Closed to the two admitted identity-source protocol families
+// (K-AGCORE-065, K-AGCORE-079); K-DELEG remains reference-only boundary.
+enum ParticipationExternalProtocolKind {
+  PARTICIPATION_EXTERNAL_PROTOCOL_KIND_UNSPECIFIED = 0;
+  PARTICIPATION_EXTERNAL_PROTOCOL_KIND_MCP = 1;
+  PARTICIPATION_EXTERNAL_PROTOCOL_KIND_A2A = 2;
+}
+
+// K-AGCORE-085 replay outcome family, aligned with DelegatedReplayOutcome.
+enum ParticipationReplayOutcome {
+  PARTICIPATION_REPLAY_OUTCOME_UNSPECIFIED = 0;
+  PARTICIPATION_REPLAY_OUTCOME_COMPLETED = 1;
+  PARTICIPATION_REPLAY_OUTCOME_PARTIAL_REDACTED = 2;
+  PARTICIPATION_REPLAY_OUTCOME_FAILED = 3;
+}
+
+// ---------------------------------------------------------------------------
+// Context blocks (K-AGCORE-081). Closed typed set; raw prompt blobs are not
+// admissible public input. Field sets mirror required_fields in
+// agent-participation-context-blocks.yaml one to one.
+// ---------------------------------------------------------------------------
+
+message RuntimeConversationAnchorRefBlock { string conversation_anchor_id = 1; }
+message RealmGroupThreadRefBlock { string thread_id = 1; }
+message TriggerMessageRefBlock { string message_id = 1; }
+message ParticipantProjectionBlock {
+  string participant_ref = 1;
+  ParticipationIdentitySource identity_source = 2;
+}
+message RecentGroupTranscriptProjectionBlock {
+  string transcript_ref = 1;
+  ParticipationInputTrust trust_posture = 2;
+}
+message AgentSlotProjectionBlock {
+  string agent_id = 1;
+  string slot_ref = 2;
+}
+message ScenarioPackageRefBlock { string scenario_package_id = 1; }
+message ScenarioRunRefBlock { string scenario_run_id = 1; }
+message ScenarioBranchRefBlock { string scenario_branch_id = 1; }
+message VisibleSceneStateBlock { string scene_state_ref = 1; }
+message RecentSandboxTranscriptProjectionBlock {
+  string transcript_ref = 1;
+  string branch_ref = 2;
+  ParticipationInputTrust trust_posture = 3;
+}
+message WorldContextRefBlock { string world_context_id = 1; }
+message WorldEventRefBlock { string world_event_id = 1; }
+message VisibleWorldStateProjectionBlock { string world_state_ref = 1; }
+message RecentWorldTranscriptOrEventProjectionBlock {
+  string event_or_transcript_ref = 1;
+  ParticipationInputTrust trust_posture = 2;
+}
+message ExternalParticipantIdentityRefBlock {
+  string external_participant_id = 1;
+  ParticipationIdentitySource identity_source = 2;
+}
+message ExternalPayloadRefBlock {
+  string payload_ref = 1;
+  ParticipationExternalProtocolKind protocol_kind = 2;
+}
+message GatewayVerdictRefBlock { string gateway_verdict_id = 1; }
+message DomainContextRefBlock {
+  string domain_ref = 1;
+  ParticipationTranscriptOwner transcript_owner = 2;
+}
+message ToolOrCapabilityProjectionBlock {
+  string capability_ref = 1;
+  // K-DELEG-007 effect classification, reference-only boundary
+  // (agent-participation-capability-scopes.yaml k_deleg_boundary).
+  EffectClass effect_class = 2;
+}
+message DiagnosticProbeRefBlock {
+  string probe_id = 1;
+  string probe_kind = 2;
+}
+
+message ParticipationContextBlock {
+  oneof block {
+    RuntimeConversationAnchorRefBlock runtime_conversation_anchor_ref = 1;
+    RealmGroupThreadRefBlock realm_group_thread_ref = 2;
+    TriggerMessageRefBlock trigger_message_ref = 3;
+    ParticipantProjectionBlock participant_projection = 4;
+    RecentGroupTranscriptProjectionBlock recent_group_transcript_projection = 5;
+    AgentSlotProjectionBlock agent_slot_projection = 6;
+    ScenarioPackageRefBlock scenario_package_ref = 7;
+    ScenarioRunRefBlock scenario_run_ref = 8;
+    ScenarioBranchRefBlock scenario_branch_ref = 9;
+    VisibleSceneStateBlock visible_scene_state = 10;
+    RecentSandboxTranscriptProjectionBlock recent_sandbox_transcript_projection = 11;
+    WorldContextRefBlock world_context_ref = 12;
+    WorldEventRefBlock world_event_ref = 13;
+    VisibleWorldStateProjectionBlock visible_world_state_projection = 14;
+    RecentWorldTranscriptOrEventProjectionBlock recent_world_transcript_or_event_projection = 15;
+    ExternalParticipantIdentityRefBlock external_participant_identity_ref = 16;
+    ExternalPayloadRefBlock external_payload_ref = 17;
+    GatewayVerdictRefBlock gateway_verdict_ref = 18;
+    DomainContextRefBlock domain_context_ref = 19;
+    ToolOrCapabilityProjectionBlock tool_or_capability_projection = 20;
+    DiagnosticProbeRefBlock diagnostic_probe_ref = 21;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Descriptors (read models for DescribeParticipationProfiles /
+// DescribeParticipationContextBlocks).
+// ---------------------------------------------------------------------------
+
+// One row of agent-participation-profiles.yaml (K-AGCORE-074..080).
+message ParticipationProfileDescriptor {
+  ParticipationProfileKind profile_kind = 1;
+  ParticipationTranscriptOwner transcript_owner = 2;
+  ParticipationIdentitySource identity_source = 3;
+  repeated ParticipationIdentitySource additional_identity_sources = 4;
+  ParticipationExecutionOwner execution_owner = 5;
+  ParticipationMemoryReadScope memory_read_scope = 6;
+  ParticipationMemoryWriteDefault memory_write_default = 7;
+  ParticipationCapabilityScope capability_scope = 8;
+  ParticipationInputTrust input_trust = 9;
+  repeated ParticipationInputTrust additional_input_trust = 10;
+  ParticipationOutputDestination output_destination = 11;
+  ParticipationPromotionPosture promotion_posture = 12;
+  ParticipationExecutionConcurrency execution_concurrency = 13;
+  string posture = 14;
+}
+
+// One row of agent-participation-context-blocks.yaml. block_kind values are
+// the table ids and match ParticipationContextBlock oneof field names.
+message ParticipationContextBlockDescriptor {
+  string block_kind = 1;
+  repeated ParticipationProfileKind allowed_profile_kinds = 2;
+  repeated string required_fields = 3;
+}
+
+// ---------------------------------------------------------------------------
+// Request / verdict / candidate / audit / replay projections.
+// ---------------------------------------------------------------------------
+
+message ParticipationRequestSpec {
+  ParticipationProfileKind profile_kind = 1;
+  string agent_id = 2;
+  string participant_ref = 3;
+  string trigger_ref = 4;
+  repeated ParticipationContextBlock context_blocks = 5;
+  // Caller-supplied idempotency key; replays of the same request_id must not
+  // create a second execution.
+  string request_id = 6;
+}
+
+message ParticipationVerdict {
+  ParticipationVerdictDecision decision = 1;
+  string reason_code = 2;
+}
+
+// Resolved verdict set for one participation (K-AGCORE-067..069, 073, 084).
+message ParticipationVerdictSet {
+  ParticipationVerdict memory_read = 1;
+  ParticipationVerdict memory_write = 2;
+  ParticipationVerdict capability_scope = 3;
+  ParticipationVerdict concurrency = 4;
+  ParticipationMemoryReadScope resolved_memory_read_scope = 5;
+  ParticipationMemoryWriteDefault resolved_memory_write_default = 6;
+  ParticipationCapabilityScope resolved_capability_scope = 7;
+  ParticipationExecutionConcurrency resolved_concurrency = 8;
+}
+
+// K-AGCORE-082 candidate record. candidate_ref points into the owning
+// destination surface; candidate content is never inlined here.
+message ParticipationCandidateRecord {
+  string participation_id = 1;
+  ParticipationProfileKind profile_kind = 2;
+  ParticipationIdentitySource identity_source = 3;
+  string participant_ref = 4;
+  string trigger_ref = 5;
+  repeated string context_block_refs = 6;
+  ParticipationOutputDestination output_destination = 7;
+  string candidate_ref = 8;
+  string policy_verdict_ref = 9;
+  ParticipationVerdict memory_read_verdict = 10;
+  ParticipationVerdict memory_write_verdict = 11;
+  ParticipationVerdict capability_scope_verdict = 12;
+  string audit_id = 13;
+  google.protobuf.Timestamp created_at = 14;
+}
+
+// Audit read projection (K-AGCORE-083, K-AUDIT boundary reference-only).
+message ParticipationAuditEvent {
+  string audit_id = 1;
+  string participation_id = 2;
+  string event_kind = 3;
+  string reason_code = 4;
+  string actor_ref = 5;
+  google.protobuf.Timestamp observed_at = 6;
+}
+
+message ParticipationReplayStage {
+  string stage_id = 1;
+  string state = 2;
+  string reason_code = 3;
+  string redacted_summary = 4;
+  google.protobuf.Timestamp observed_at = 5;
+}
+
+// Replay projection aligned with the delegated replay envelope posture:
+// redaction is preserved, lineage failures surface as FAILED, sensitive
+// stages carry redacted_summary only.
+message ParticipationReplay {
+  string replay_id = 1;
+  string participation_id = 2;
+  string agent_id = 3;
+  ParticipationProfileKind profile_kind = 4;
+  ParticipationReplayOutcome outcome = 5;
+  string reason_code = 6;
+  repeated ParticipationReplayStage stages = 7;
+  bool redacted = 8;
+  google.protobuf.Timestamp observed_at = 9;
+}
+
+// ---------------------------------------------------------------------------
+// RPC request/response pairs.
+// ---------------------------------------------------------------------------
+
+message DescribeParticipationProfilesRequest {}
+message DescribeParticipationProfilesResponse {
+  repeated ParticipationProfileDescriptor profiles = 1;
+}
+
+message DescribeParticipationContextBlocksRequest {
+  // Optional filter; UNSPECIFIED returns all blocks.
+  ParticipationProfileKind profile_kind = 1;
+}
+message DescribeParticipationContextBlocksResponse {
+  repeated ParticipationContextBlockDescriptor context_blocks = 1;
+}
+
+message ValidateParticipationRequest {
+  ParticipationRequestSpec spec = 1;
+}
+message ValidateParticipationResponse {
+  bool admitted = 1;
+  ParticipationVerdictSet verdicts = 2;
+  ParticipationOutputDestination resolved_output_destination = 3;
+  string refusal_reason = 4;
+}
+
+message ExecuteParticipationRequest {
+  ParticipationRequestSpec spec = 1;
+}
+message ExecuteParticipationResponse {
+  string participation_id = 1;
+  ParticipationStatus status = 2;
+  string candidate_ref = 3;
+  string refusal_reason = 4;
+  string audit_id = 5;
+}
+
+message GetParticipationCandidateRequest { string participation_id = 1; }
+message GetParticipationCandidateResponse {
+  ParticipationCandidateRecord candidate = 1;
+  ParticipationStatus status = 2;
+}
+
+message GetParticipationVerdictsRequest { string participation_id = 1; }
+message GetParticipationVerdictsResponse {
+  ParticipationVerdictSet verdicts = 1;
+  string policy_verdict_ref = 2;
+}
+
+message ListParticipationAuditEventsRequest {
+  string participation_id = 1;
+  string agent_id = 2;
+  int32 page_size = 3;
+  string page_token = 4;
+}
+message ListParticipationAuditEventsResponse {
+  repeated ParticipationAuditEvent events = 1;
+  string next_page_token = 2;
+}
+
+message GetParticipationReplayRequest { string participation_id = 1; }
+message GetParticipationReplayResponse {
+  ParticipationReplay replay = 1;
+}

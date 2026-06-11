@@ -5,6 +5,7 @@ import { CoreClient } from '../core-client';
 import type { CoreMetadata } from '../types';
 import type { AccountSessionEvent, BeginLoginRequest, BeginLoginResponse, CompleteLoginRequest, CompleteLoginResponse, GetAccessTokenRequest, GetAccessTokenResponse, GetAccountSessionStatusRequest, GetAccountSessionStatusResponse, IssueScopedAppBindingRequest, IssueScopedAppBindingResponse, IssueWorkspaceBindingRequest, IssueWorkspaceBindingResponse, LogoutRequest, LogoutResponse, RefreshAccountSessionRequest, RefreshAccountSessionResponse, RevokeScopedAppBindingRequest, RevokeScopedAppBindingResponse, RevokeWorkspaceBindingRequest, RevokeWorkspaceBindingResponse, SubscribeAccountSessionEventsRequest, SwitchAccountRequest, SwitchAccountResponse } from "./runtime-protobuf/runtime/v1/account";
 import type { CreateRealmGroupMessageCandidateRequest, CreateRealmGroupMessageCandidateResponse, GetRealmGroupMessageCandidateEvidenceRequest, GetRealmGroupMessageCandidateEvidenceResponse } from "./runtime-protobuf/runtime/v1/agent_group_message_candidate";
+import type { DescribeParticipationContextBlocksRequest, DescribeParticipationContextBlocksResponse, DescribeParticipationProfilesRequest, DescribeParticipationProfilesResponse, ExecuteParticipationRequest, ExecuteParticipationResponse, GetParticipationCandidateRequest, GetParticipationCandidateResponse, GetParticipationReplayRequest, GetParticipationReplayResponse, GetParticipationVerdictsRequest, GetParticipationVerdictsResponse, ListParticipationAuditEventsRequest, ListParticipationAuditEventsResponse, ValidateParticipationRequest, ValidateParticipationResponse } from "./runtime-protobuf/runtime/v1/agent_participation";
 import type { AgentEvent, CancelCompanionParticipationRequest, CancelCompanionParticipationResponse, CancelHookRequest, CancelHookResponse, DisableAutonomyRequest, DisableAutonomyResponse, EnableAutonomyRequest, EnableAutonomyResponse, GetAgentCanonicalMemoryBankStatusRequest, GetAgentCanonicalMemoryBankStatusResponse, GetAgentRequest, GetAgentResponse, GetAgentStateRequest, GetAgentStateResponse, GetAvatarDebugReplayRequest, GetAvatarDebugReplayResponse, GetAvatarDebugSnapshotRequest, GetAvatarDebugSnapshotResponse, GetCompanionParticipationProjectionRequest, GetCompanionParticipationProjectionResponse, GetConversationAnchorSnapshotRequest, GetConversationAnchorSnapshotResponse, GetPublicChatSessionSnapshotRequest, GetPublicChatSessionSnapshotResponse, InitializeAgentRequest, InitializeAgentResponse, ListAgentConversationSummariesRequest, ListAgentConversationSummariesResponse, ListAgentsRequest, ListAgentsResponse, ListAvatarDebugProbeResultsRequest, ListAvatarDebugProbeResultsResponse, ListPendingHooksRequest, ListPendingHooksResponse, OpenCompanionParticipationReplayRequest, OpenCompanionParticipationReplayResponse, OpenConversationAnchorRequest, OpenConversationAnchorResponse, QueryAgentMemoryRequest, QueryAgentMemoryResponse, RegisterAvatarLiveInstanceBindingRequest, RegisterAvatarLiveInstanceBindingResponse, RequestAgentCanonicalMemoryBankBindRequest, RequestAgentCanonicalMemoryBankBindResponse, RequestAvatarDebugProbeRequest, RequestAvatarDebugProbeResponse, RequestCompanionParticipationRequest, RequestCompanionParticipationResponse, ResolveAvatarLiveInstanceBindingRequest, ResolveAvatarLiveInstanceBindingResponse, SetAgentPresentationProfileRequest, SetAgentPresentationProfileResponse, SetAutonomyConfigRequest, SetAutonomyConfigResponse, SubscribeAgentEventsRequest, TerminateAgentRequest, TerminateAgentResponse, UpdateAgentStateRequest, UpdateAgentStateResponse, WriteAgentMemoryRequest, WriteAgentMemoryResponse } from "./runtime-protobuf/runtime/v1/agent_service";
 import type { CancelScenarioJobRequest, CancelScenarioJobResponse, ExecuteScenarioRequest, ExecuteScenarioResponse, GetScenarioArtifactsRequest, GetScenarioArtifactsResponse, GetScenarioJobRequest, GetScenarioJobResponse, ListScenarioProfilesRequest, ListScenarioProfilesResponse, ScenarioJobEvent, StreamScenarioEvent, StreamScenarioRequest, SubmitScenarioJobRequest, SubmitScenarioJobResponse, SubscribeScenarioJobEventsRequest, UploadArtifactRequest, UploadArtifactResponse } from "./runtime-protobuf/runtime/v1/ai";
 import type { AppendRealtimeInputRequest, AppendRealtimeInputResponse, CloseRealtimeSessionRequest, CloseRealtimeSessionResponse, OpenRealtimeSessionRequest, OpenRealtimeSessionResponse, ReadRealtimeEventsRequest, RealtimeEvent } from "./runtime-protobuf/runtime/v1/ai_realtime";
@@ -35,6 +36,7 @@ export interface RuntimeTypedCallOptions {
 export type { AccountCaller, AccountProjection, AccountSessionEvent, BeginLoginRequest, BeginLoginResponse, CompleteLoginRequest, CompleteLoginResponse, GetAccessTokenRequest, GetAccessTokenResponse, GetAccountSessionStatusRequest, GetAccountSessionStatusResponse, IssueScopedAppBindingRequest, IssueScopedAppBindingResponse, IssueWorkspaceBindingRequest, IssueWorkspaceBindingResponse, LogoutRequest, LogoutResponse, RefreshAccountSessionRequest, RefreshAccountSessionResponse, RevokeScopedAppBindingRequest, RevokeScopedAppBindingResponse, RevokeWorkspaceBindingRequest, RevokeWorkspaceBindingResponse, ScopedAppBindingRelation, SubscribeAccountSessionEventsRequest, SwitchAccountRequest, SwitchAccountResponse, WorkspaceBindingRelation, WorkspaceMembershipProjection } from "./runtime-protobuf/runtime/v1/account";
 export type { AgentRequestContext } from "./runtime-protobuf/runtime/v1/agent_common";
 export type { CreateRealmGroupMessageCandidateRequest, CreateRealmGroupMessageCandidateResponse, GetRealmGroupMessageCandidateEvidenceRequest, GetRealmGroupMessageCandidateEvidenceResponse, RealmGroupMessageCandidateCommitHandle, RealmGroupMessageCandidateEvidence } from "./runtime-protobuf/runtime/v1/agent_group_message_candidate";
+export type { AgentSlotProjectionBlock, DescribeParticipationContextBlocksRequest, DescribeParticipationContextBlocksResponse, DescribeParticipationProfilesRequest, DescribeParticipationProfilesResponse, DiagnosticProbeRefBlock, DomainContextRefBlock, ExecuteParticipationRequest, ExecuteParticipationResponse, ExternalParticipantIdentityRefBlock, ExternalPayloadRefBlock, GatewayVerdictRefBlock, GetParticipationCandidateRequest, GetParticipationCandidateResponse, GetParticipationReplayRequest, GetParticipationReplayResponse, GetParticipationVerdictsRequest, GetParticipationVerdictsResponse, ListParticipationAuditEventsRequest, ListParticipationAuditEventsResponse, ParticipantProjectionBlock, ParticipationAuditEvent, ParticipationCandidateRecord, ParticipationContextBlock, ParticipationContextBlockDescriptor, ParticipationProfileDescriptor, ParticipationReplay, ParticipationReplayStage, ParticipationRequestSpec, ParticipationVerdict, ParticipationVerdictSet, RealmGroupThreadRefBlock, RecentGroupTranscriptProjectionBlock, RecentSandboxTranscriptProjectionBlock, RecentWorldTranscriptOrEventProjectionBlock, RuntimeConversationAnchorRefBlock, ScenarioBranchRefBlock, ScenarioPackageRefBlock, ScenarioRunRefBlock, ToolOrCapabilityProjectionBlock, TriggerMessageRefBlock, ValidateParticipationRequest, ValidateParticipationResponse, VisibleSceneStateBlock, VisibleWorldStateProjectionBlock, WorldContextRefBlock, WorldEventRefBlock } from "./runtime-protobuf/runtime/v1/agent_participation";
 export type { AgentAutonomyConfig, AgentAutonomyState, AgentAvatarDebugEventDetail, AgentBudgetEventDetail, AgentCanonicalMemoryBankStatus, AgentConversationSummary, AgentEvent, AgentHookEventDetail, AgentLifecycleEventDetail, AgentMemoryEventDetail, AgentPostureProjection, AgentPresentationEventDetail, AgentPresentationProfile, AgentRecord, AgentReplicationEventDetail, AgentStateClearDyadicContext, AgentStateClearWorldContext, AgentStateEventDetail, AgentStateMutation, AgentStateProjection, AgentStatePutAttribute, AgentStateRemoveAttribute, AgentStateSetDyadicContext, AgentStateSetStatusText, AgentStateSetWorldContext, AvatarDebugProbeRequestEnvelope, AvatarDebugProbeResultEnvelope, AvatarDebugReplayRef, AvatarLiveInstanceBinding, CancelCompanionParticipationRequest, CancelCompanionParticipationResponse, CancelHookRequest, CancelHookResponse, CanonicalMemoryCandidate, CanonicalMemoryRejection, CanonicalMemoryView, ClearAgentPresentationProfile, CompanionParticipationProjection, ConversationAnchor, ConversationAnchorSnapshot, DisableAutonomyRequest, DisableAutonomyResponse, EnableAutonomyRequest, EnableAutonomyResponse, GetAgentCanonicalMemoryBankStatusRequest, GetAgentCanonicalMemoryBankStatusResponse, GetAgentRequest, GetAgentResponse, GetAgentStateRequest, GetAgentStateResponse, GetAvatarDebugReplayRequest, GetAvatarDebugReplayResponse, GetAvatarDebugSnapshotRequest, GetAvatarDebugSnapshotResponse, GetCompanionParticipationProjectionRequest, GetCompanionParticipationProjectionResponse, GetConversationAnchorSnapshotRequest, GetConversationAnchorSnapshotResponse, GetPublicChatSessionSnapshotRequest, GetPublicChatSessionSnapshotResponse, HookExecutionOutcome, HookIntent, HookTriggerDetail, HookTriggerEventChatEndedDetail, HookTriggerEventUserIdleDetail, HookTriggerTimeDetail, InitializeAgentRequest, InitializeAgentResponse, ListAgentConversationSummariesRequest, ListAgentConversationSummariesResponse, ListAgentsRequest, ListAgentsResponse, ListAvatarDebugProbeResultsRequest, ListAvatarDebugProbeResultsResponse, ListPendingHooksRequest, ListPendingHooksResponse, OpenCompanionParticipationReplayRequest, OpenCompanionParticipationReplayResponse, OpenConversationAnchorRequest, OpenConversationAnchorResponse, PendingHook, QueryAgentMemoryRequest, QueryAgentMemoryResponse, RegisterAvatarLiveInstanceBindingRequest, RegisterAvatarLiveInstanceBindingResponse, RequestAgentCanonicalMemoryBankBindRequest, RequestAgentCanonicalMemoryBankBindResponse, RequestAvatarDebugProbeRequest, RequestAvatarDebugProbeResponse, RequestCompanionParticipationRequest, RequestCompanionParticipationResponse, ResolveAvatarLiveInstanceBindingRequest, ResolveAvatarLiveInstanceBindingResponse, SetAgentPresentationProfileRequest, SetAgentPresentationProfileResponse, SetAutonomyConfigRequest, SetAutonomyConfigResponse, SubscribeAgentEventsRequest, TerminateAgentRequest, TerminateAgentResponse, UpdateAgentStateRequest, UpdateAgentStateResponse, WriteAgentMemoryRequest, WriteAgentMemoryResponse } from "./runtime-protobuf/runtime/v1/agent_service";
 export type { ArtifactChunk, ArtifactStreamDelta, AudioChunks, CancelScenarioJobRequest, CancelScenarioJobResponse, ChatContentArtifactRef, ChatContentImageURL, ChatContentPart, ChatMessage, EmbeddingVector, ExecuteScenarioRequest, ExecuteScenarioResponse, GetScenarioArtifactsRequest, GetScenarioArtifactsResponse, GetScenarioJobRequest, GetScenarioJobResponse, IgnoredScenarioExtension, ImageGenerateResult, ImageGenerateScenarioSpec, ListScenarioProfilesRequest, ListScenarioProfilesResponse, MusicGenerateResult, MusicGenerateScenarioSpec, RawChunk, ReasoningConfig, ReasoningStreamDelta, ResponseFormat, ScenarioArtifact, ScenarioExtension, ScenarioJob, ScenarioJobEvent, ScenarioOutput, ScenarioProfile, ScenarioRequestHead, ScenarioSpec, ScenarioStreamCompleted, ScenarioStreamDelta, ScenarioStreamFailed, ScenarioStreamStarted, SpeechAlignment, SpeechAlignmentToken, SpeechSynthesizeResult, SpeechSynthesizeScenarioSpec, SpeechTranscribeResult, SpeechTranscribeScenarioSpec, SpeechTranscriptionAudioSource, StreamScenarioEvent, StreamScenarioRequest, SubmitScenarioJobRequest, SubmitScenarioJobResponse, SubscribeScenarioJobEventsRequest, TextEmbedOutput, TextEmbedScenarioSpec, TextGenerateOutput, TextGenerateScenarioSpec, TextSource, TextStreamDelta, ToolApprovalRequest, ToolApprovalResponse, ToolCall, ToolResult, ToolSpec, UploadArtifactChunk, UploadArtifactMetadata, UploadArtifactRequest, UploadArtifactResponse, VideoContentAudioURL, VideoContentImageURL, VideoContentItem, VideoContentVideoURL, VideoGenerateResult, VideoGenerateScenarioSpec, VideoGenerationOptions, VoiceCloneScenarioSpec, VoiceDesignScenarioSpec, VoiceRenderHints, WorldGenerateAssetSource, WorldGenerateImagePrompt, WorldGenerateMultiImagePrompt, WorldGenerateMultiImageReference, WorldGenerateResult, WorldGenerateScenarioSpec, WorldGenerateSemanticsMetadata, WorldGenerateVideoPrompt } from "./runtime-protobuf/runtime/v1/ai";
 export type { AppendRealtimeInputRequest, AppendRealtimeInputResponse, CloseRealtimeSessionRequest, CloseRealtimeSessionResponse, OpenRealtimeSessionRequest, OpenRealtimeSessionResponse, ReadRealtimeEventsRequest, RealtimeAudioChunk, RealtimeAudioInput, RealtimeCompleted, RealtimeEvent, RealtimeFailed, RealtimeInputItem, RealtimeSessionOpened, RealtimeTextDelta } from "./runtime-protobuf/runtime/v1/ai_realtime";
@@ -62,6 +64,7 @@ export type { AiEmbedNodeConfig, AiGenerateNodeConfig, AiImageNodeConfig, AiStre
 
 export { AccountCallerMode, AccountEventType, AccountReasonCode, AccountSessionState, ScopedAppBindingPurpose, ScopedAppBindingState, WorkspaceBindingPurpose, WorkspaceBindingState, WorkspaceMembershipState } from "./runtime-protobuf/runtime/v1/account";
 export { RealmGroupMessageCandidateCommitDisposition } from "./runtime-protobuf/runtime/v1/agent_group_message_candidate";
+export { ParticipationCapabilityScope, ParticipationExecutionConcurrency, ParticipationExecutionOwner, ParticipationExternalProtocolKind, ParticipationIdentitySource, ParticipationInputTrust, ParticipationMemoryReadScope, ParticipationMemoryWriteDefault, ParticipationOutputDestination, ParticipationProfileKind, ParticipationPromotionPosture, ParticipationReplayOutcome, ParticipationStatus, ParticipationTranscriptOwner, ParticipationVerdictDecision } from "./runtime-protobuf/runtime/v1/agent_participation";
 export { AgentAutonomyMode, AgentCanonicalMemoryBankMode, AgentEventType, AgentExecutionState, AgentLifecycleStatus, AgentPresentationBackendKind, AgentPresentationEventFamily, AgentStateEventFamily, AgentTrackType, AvatarDebugEventFamily, AvatarDebugProbeKind, AvatarDebugProbeStatus, AvatarDebugReplayRedactionState, AvatarDebugReplayVisibility, AvatarDebugRequestedBy, CompanionParticipationStatus, CompanionParticipationSurfaceKind, CompanionParticipationTriggerSource, ConversationAnchorStatus, HookAdmissionState, HookEffect, HookTriggerFamily } from "./runtime-protobuf/runtime/v1/agent_service";
 export { ChatContentPartType, ExecutionMode, FallbackPolicy, FinishReason, Modal, ReasoningMode, ReasoningTraceMode, ResponseFormatKind, RoutePolicy, ScenarioJobEventType, ScenarioJobStatus, ScenarioType, SpeechAlignmentUnit, SpeechTimingMode, StreamEventType, TextSourceType, TokenProviderHealthStatus, ToolChoiceMode, ToolSpecKind, VideoContentRole, VideoContentType, VideoMode } from "./runtime-protobuf/runtime/v1/ai";
 export { RealtimeEventType } from "./runtime-protobuf/runtime/v1/ai_realtime";
@@ -236,6 +239,26 @@ export class RuntimeTypedClient {
     });
   }
 
+  async describeParticipationContextBlocks(request: DescribeParticipationContextBlocksRequest, options: RuntimeTypedCallOptions = {}): Promise<DescribeParticipationContextBlocksResponse> {
+    return this.core.unary<DescribeParticipationContextBlocksResponse, DescribeParticipationContextBlocksRequest>({
+      methodId: "/nimi.runtime.v1.RuntimeAgentService/DescribeParticipationContextBlocks",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+    });
+  }
+
+  async describeParticipationProfiles(request: DescribeParticipationProfilesRequest, options: RuntimeTypedCallOptions = {}): Promise<DescribeParticipationProfilesResponse> {
+    return this.core.unary<DescribeParticipationProfilesResponse, DescribeParticipationProfilesRequest>({
+      methodId: "/nimi.runtime.v1.RuntimeAgentService/DescribeParticipationProfiles",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+    });
+  }
+
   async disableAutonomy(request: DisableAutonomyRequest, options: RuntimeTypedCallOptions = {}): Promise<DisableAutonomyResponse> {
     return this.core.unary<DisableAutonomyResponse, DisableAutonomyRequest>({
       methodId: "/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy",
@@ -259,6 +282,16 @@ export class RuntimeTypedClient {
   async executeDelegatedCapability(request: ExecuteDelegatedCapabilityRequest, options: RuntimeTypedCallOptions = {}): Promise<ExecuteDelegatedCapabilityResponse> {
     return this.core.unary<ExecuteDelegatedCapabilityResponse, ExecuteDelegatedCapabilityRequest>({
       methodId: "/nimi.runtime.v1.RuntimeAgentService/ExecuteDelegatedCapability",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+    });
+  }
+
+  async executeParticipation(request: ExecuteParticipationRequest, options: RuntimeTypedCallOptions = {}): Promise<ExecuteParticipationResponse> {
+    return this.core.unary<ExecuteParticipationResponse, ExecuteParticipationRequest>({
+      methodId: "/nimi.runtime.v1.RuntimeAgentService/ExecuteParticipation",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -356,6 +389,36 @@ export class RuntimeTypedClient {
     });
   }
 
+  async getParticipationCandidate(request: GetParticipationCandidateRequest, options: RuntimeTypedCallOptions = {}): Promise<GetParticipationCandidateResponse> {
+    return this.core.unary<GetParticipationCandidateResponse, GetParticipationCandidateRequest>({
+      methodId: "/nimi.runtime.v1.RuntimeAgentService/GetParticipationCandidate",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+    });
+  }
+
+  async getParticipationReplay(request: GetParticipationReplayRequest, options: RuntimeTypedCallOptions = {}): Promise<GetParticipationReplayResponse> {
+    return this.core.unary<GetParticipationReplayResponse, GetParticipationReplayRequest>({
+      methodId: "/nimi.runtime.v1.RuntimeAgentService/GetParticipationReplay",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+    });
+  }
+
+  async getParticipationVerdicts(request: GetParticipationVerdictsRequest, options: RuntimeTypedCallOptions = {}): Promise<GetParticipationVerdictsResponse> {
+    return this.core.unary<GetParticipationVerdictsResponse, GetParticipationVerdictsRequest>({
+      methodId: "/nimi.runtime.v1.RuntimeAgentService/GetParticipationVerdicts",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+    });
+  }
+
   async getPublicChatSessionSnapshot(request: GetPublicChatSessionSnapshotRequest, options: RuntimeTypedCallOptions = {}): Promise<GetPublicChatSessionSnapshotResponse> {
     return this.core.unary<GetPublicChatSessionSnapshotResponse, GetPublicChatSessionSnapshotRequest>({
       methodId: "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot",
@@ -439,6 +502,16 @@ export class RuntimeTypedClient {
   async listDelegatedProviderProfiles(request: ListDelegatedProviderProfilesRequest, options: RuntimeTypedCallOptions = {}): Promise<ListDelegatedProviderProfilesResponse> {
     return this.core.unary<ListDelegatedProviderProfilesResponse, ListDelegatedProviderProfilesRequest>({
       methodId: "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedProviderProfiles",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+    });
+  }
+
+  async listParticipationAuditEvents(request: ListParticipationAuditEventsRequest, options: RuntimeTypedCallOptions = {}): Promise<ListParticipationAuditEventsResponse> {
+    return this.core.unary<ListParticipationAuditEventsResponse, ListParticipationAuditEventsRequest>({
+      methodId: "/nimi.runtime.v1.RuntimeAgentService/ListParticipationAuditEvents",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -619,6 +692,16 @@ export class RuntimeTypedClient {
   async upsertDelegatedProviderProfile(request: UpsertDelegatedProviderProfileRequest, options: RuntimeTypedCallOptions = {}): Promise<UpsertDelegatedProviderProfileResponse> {
     return this.core.unary<UpsertDelegatedProviderProfileResponse, UpsertDelegatedProviderProfileRequest>({
       methodId: "/nimi.runtime.v1.RuntimeAgentService/UpsertDelegatedProviderProfile",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+    });
+  }
+
+  async validateParticipation(request: ValidateParticipationRequest, options: RuntimeTypedCallOptions = {}): Promise<ValidateParticipationResponse> {
+    return this.core.unary<ValidateParticipationResponse, ValidateParticipationRequest>({
+      methodId: "/nimi.runtime.v1.RuntimeAgentService/ValidateParticipation",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,

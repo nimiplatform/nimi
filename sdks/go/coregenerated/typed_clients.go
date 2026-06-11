@@ -951,6 +951,170 @@ const (
 	MODELSTATUSREMOVED ModelStatus = "MODEL_STATUS_REMOVED"
 )
 
+type ParticipationCapabilityScope string
+
+const (
+	PARTICIPATIONCAPABILITYSCOPEUNSPECIFIED ParticipationCapabilityScope = "PARTICIPATION_CAPABILITY_SCOPE_UNSPECIFIED"
+	PARTICIPATIONCAPABILITYSCOPECANONICALAGENTSCOPE ParticipationCapabilityScope = "PARTICIPATION_CAPABILITY_SCOPE_CANONICAL_AGENT_SCOPE"
+	PARTICIPATIONCAPABILITYSCOPEPROFILELIMITED ParticipationCapabilityScope = "PARTICIPATION_CAPABILITY_SCOPE_PROFILE_LIMITED"
+	PARTICIPATIONCAPABILITYSCOPEDOMAINLIMITED ParticipationCapabilityScope = "PARTICIPATION_CAPABILITY_SCOPE_DOMAIN_LIMITED"
+	PARTICIPATIONCAPABILITYSCOPEDIAGNOSTICREADONLY ParticipationCapabilityScope = "PARTICIPATION_CAPABILITY_SCOPE_DIAGNOSTIC_READ_ONLY"
+	PARTICIPATIONCAPABILITYSCOPEEXTERNALGATEWAYLIMITED ParticipationCapabilityScope = "PARTICIPATION_CAPABILITY_SCOPE_EXTERNAL_GATEWAY_LIMITED"
+	PARTICIPATIONCAPABILITYSCOPENONE ParticipationCapabilityScope = "PARTICIPATION_CAPABILITY_SCOPE_NONE"
+)
+
+type ParticipationExecutionConcurrency string
+
+const (
+	PARTICIPATIONEXECUTIONCONCURRENCYUNSPECIFIED ParticipationExecutionConcurrency = "PARTICIPATION_EXECUTION_CONCURRENCY_UNSPECIFIED"
+	PARTICIPATIONEXECUTIONCONCURRENCYCANONICALCHATBUDGET ParticipationExecutionConcurrency = "PARTICIPATION_EXECUTION_CONCURRENCY_CANONICAL_CHAT_BUDGET"
+	PARTICIPATIONEXECUTIONCONCURRENCYPERAGENTPARTICIPATIONQUEUE ParticipationExecutionConcurrency = "PARTICIPATION_EXECUTION_CONCURRENCY_PER_AGENT_PARTICIPATION_QUEUE"
+	PARTICIPATIONEXECUTIONCONCURRENCYPROFILEISOLATEDBUDGET ParticipationExecutionConcurrency = "PARTICIPATION_EXECUTION_CONCURRENCY_PROFILE_ISOLATED_BUDGET"
+	PARTICIPATIONEXECUTIONCONCURRENCYDOMAINTRIGGERQUEUE ParticipationExecutionConcurrency = "PARTICIPATION_EXECUTION_CONCURRENCY_DOMAIN_TRIGGER_QUEUE"
+	PARTICIPATIONEXECUTIONCONCURRENCYREJECTWHILEACTIVE ParticipationExecutionConcurrency = "PARTICIPATION_EXECUTION_CONCURRENCY_REJECT_WHILE_ACTIVE"
+	PARTICIPATIONEXECUTIONCONCURRENCYGATEWAYBUDGETQUEUE ParticipationExecutionConcurrency = "PARTICIPATION_EXECUTION_CONCURRENCY_GATEWAY_BUDGET_QUEUE"
+	PARTICIPATIONEXECUTIONCONCURRENCYLOWPRIORITYCANCELABLE ParticipationExecutionConcurrency = "PARTICIPATION_EXECUTION_CONCURRENCY_LOW_PRIORITY_CANCELABLE"
+)
+
+type ParticipationExecutionOwner string
+
+const (
+	PARTICIPATIONEXECUTIONOWNERUNSPECIFIED ParticipationExecutionOwner = "PARTICIPATION_EXECUTION_OWNER_UNSPECIFIED"
+	PARTICIPATIONEXECUTIONOWNERRUNTIME ParticipationExecutionOwner = "PARTICIPATION_EXECUTION_OWNER_RUNTIME"
+	PARTICIPATIONEXECUTIONOWNEREXTERNALRUNTIMEVIAADMITTEDGATEWAY ParticipationExecutionOwner = "PARTICIPATION_EXECUTION_OWNER_EXTERNAL_RUNTIME_VIA_ADMITTED_GATEWAY"
+	PARTICIPATIONEXECUTIONOWNERNOTADMITTED ParticipationExecutionOwner = "PARTICIPATION_EXECUTION_OWNER_NOT_ADMITTED"
+)
+
+type ParticipationExternalProtocolKind string
+
+const (
+	PARTICIPATIONEXTERNALPROTOCOLKINDUNSPECIFIED ParticipationExternalProtocolKind = "PARTICIPATION_EXTERNAL_PROTOCOL_KIND_UNSPECIFIED"
+	PARTICIPATIONEXTERNALPROTOCOLKINDMCP ParticipationExternalProtocolKind = "PARTICIPATION_EXTERNAL_PROTOCOL_KIND_MCP"
+	PARTICIPATIONEXTERNALPROTOCOLKINDA2A ParticipationExternalProtocolKind = "PARTICIPATION_EXTERNAL_PROTOCOL_KIND_A2A"
+)
+
+type ParticipationIdentitySource string
+
+const (
+	PARTICIPATIONIDENTITYSOURCEUNSPECIFIED ParticipationIdentitySource = "PARTICIPATION_IDENTITY_SOURCE_UNSPECIFIED"
+	PARTICIPATIONIDENTITYSOURCEUSEROWNEDNIMIAGENT ParticipationIdentitySource = "PARTICIPATION_IDENTITY_SOURCE_USER_OWNED_NIMI_AGENT"
+	PARTICIPATIONIDENTITYSOURCEEXTERNALA2AAGENT ParticipationIdentitySource = "PARTICIPATION_IDENTITY_SOURCE_EXTERNAL_A2A_AGENT"
+	PARTICIPATIONIDENTITYSOURCEMCPBACKEDAICAPABILITY ParticipationIdentitySource = "PARTICIPATION_IDENTITY_SOURCE_MCP_BACKED_AI_CAPABILITY"
+	PARTICIPATIONIDENTITYSOURCESANDBOXPROJECTION ParticipationIdentitySource = "PARTICIPATION_IDENTITY_SOURCE_SANDBOX_PROJECTION"
+	PARTICIPATIONIDENTITYSOURCENPCWORLDACTOR ParticipationIdentitySource = "PARTICIPATION_IDENTITY_SOURCE_NPC_WORLD_ACTOR"
+)
+
+type ParticipationInputTrust string
+
+const (
+	PARTICIPATIONINPUTTRUSTUNSPECIFIED ParticipationInputTrust = "PARTICIPATION_INPUT_TRUST_UNSPECIFIED"
+	PARTICIPATIONINPUTTRUSTTRUSTEDUSER ParticipationInputTrust = "PARTICIPATION_INPUT_TRUST_TRUSTED_USER"
+	PARTICIPATIONINPUTTRUSTUNTRUSTEDMULTIPARTYTRANSCRIPT ParticipationInputTrust = "PARTICIPATION_INPUT_TRUST_UNTRUSTED_MULTI_PARTY_TRANSCRIPT"
+	PARTICIPATIONINPUTTRUSTSANDBOXSCRIPT ParticipationInputTrust = "PARTICIPATION_INPUT_TRUST_SANDBOX_SCRIPT"
+	PARTICIPATIONINPUTTRUSTEXTERNALA2APAYLOAD ParticipationInputTrust = "PARTICIPATION_INPUT_TRUST_EXTERNAL_A2A_PAYLOAD"
+	PARTICIPATIONINPUTTRUSTTOOLPROVIDERPAYLOAD ParticipationInputTrust = "PARTICIPATION_INPUT_TRUST_TOOL_PROVIDER_PAYLOAD"
+	PARTICIPATIONINPUTTRUSTWORLDCONTEXT ParticipationInputTrust = "PARTICIPATION_INPUT_TRUST_WORLD_CONTEXT"
+	PARTICIPATIONINPUTTRUSTDIAGNOSTICINPUT ParticipationInputTrust = "PARTICIPATION_INPUT_TRUST_DIAGNOSTIC_INPUT"
+)
+
+type ParticipationMemoryReadScope string
+
+const (
+	PARTICIPATIONMEMORYREADSCOPEUNSPECIFIED ParticipationMemoryReadScope = "PARTICIPATION_MEMORY_READ_SCOPE_UNSPECIFIED"
+	PARTICIPATIONMEMORYREADSCOPECANONICALOWNERPOLICY ParticipationMemoryReadScope = "PARTICIPATION_MEMORY_READ_SCOPE_CANONICAL_OWNER_POLICY"
+	PARTICIPATIONMEMORYREADSCOPEDYADICPRIVATEALLOWED ParticipationMemoryReadScope = "PARTICIPATION_MEMORY_READ_SCOPE_DYADIC_PRIVATE_ALLOWED"
+	PARTICIPATIONMEMORYREADSCOPEDYADICPRIVATEEXCLUDED ParticipationMemoryReadScope = "PARTICIPATION_MEMORY_READ_SCOPE_DYADIC_PRIVATE_EXCLUDED"
+	PARTICIPATIONMEMORYREADSCOPEPUBLICSHAREDONLY ParticipationMemoryReadScope = "PARTICIPATION_MEMORY_READ_SCOPE_PUBLIC_SHARED_ONLY"
+	PARTICIPATIONMEMORYREADSCOPEDOMAINSHAREDONLY ParticipationMemoryReadScope = "PARTICIPATION_MEMORY_READ_SCOPE_DOMAIN_SHARED_ONLY"
+	PARTICIPATIONMEMORYREADSCOPENOMEMORYREAD ParticipationMemoryReadScope = "PARTICIPATION_MEMORY_READ_SCOPE_NO_MEMORY_READ"
+)
+
+type ParticipationMemoryWriteDefault string
+
+const (
+	PARTICIPATIONMEMORYWRITEDEFAULTUNSPECIFIED ParticipationMemoryWriteDefault = "PARTICIPATION_MEMORY_WRITE_DEFAULT_UNSPECIFIED"
+	PARTICIPATIONMEMORYWRITEDEFAULTCANONICALWRITEALLOWED ParticipationMemoryWriteDefault = "PARTICIPATION_MEMORY_WRITE_DEFAULT_CANONICAL_WRITE_ALLOWED"
+	PARTICIPATIONMEMORYWRITEDEFAULTWRITENONE ParticipationMemoryWriteDefault = "PARTICIPATION_MEMORY_WRITE_DEFAULT_WRITE_NONE"
+	PARTICIPATIONMEMORYWRITEDEFAULTPROMOTIONGATED ParticipationMemoryWriteDefault = "PARTICIPATION_MEMORY_WRITE_DEFAULT_PROMOTION_GATED"
+)
+
+type ParticipationOutputDestination string
+
+const (
+	PARTICIPATIONOUTPUTDESTINATIONUNSPECIFIED ParticipationOutputDestination = "PARTICIPATION_OUTPUT_DESTINATION_UNSPECIFIED"
+	PARTICIPATIONOUTPUTDESTINATIONCANONICALCHAT ParticipationOutputDestination = "PARTICIPATION_OUTPUT_DESTINATION_CANONICAL_CHAT"
+	PARTICIPATIONOUTPUTDESTINATIONREALMGROUPMESSAGECANDIDATE ParticipationOutputDestination = "PARTICIPATION_OUTPUT_DESTINATION_REALM_GROUP_MESSAGE_CANDIDATE"
+	PARTICIPATIONOUTPUTDESTINATIONSCENARIOTURNCANDIDATE ParticipationOutputDestination = "PARTICIPATION_OUTPUT_DESTINATION_SCENARIO_TURN_CANDIDATE"
+	PARTICIPATIONOUTPUTDESTINATIONWORLDEVENTCANDIDATE ParticipationOutputDestination = "PARTICIPATION_OUTPUT_DESTINATION_WORLD_EVENT_CANDIDATE"
+	PARTICIPATIONOUTPUTDESTINATIONEXTERNALREPLYCANDIDATE ParticipationOutputDestination = "PARTICIPATION_OUTPUT_DESTINATION_EXTERNAL_REPLY_CANDIDATE"
+	PARTICIPATIONOUTPUTDESTINATIONDIAGNOSTICCANDIDATE ParticipationOutputDestination = "PARTICIPATION_OUTPUT_DESTINATION_DIAGNOSTIC_CANDIDATE"
+	PARTICIPATIONOUTPUTDESTINATIONEPHEMERAL ParticipationOutputDestination = "PARTICIPATION_OUTPUT_DESTINATION_EPHEMERAL"
+)
+
+type ParticipationProfileKind string
+
+const (
+	PARTICIPATIONPROFILEKINDUNSPECIFIED ParticipationProfileKind = "PARTICIPATION_PROFILE_KIND_UNSPECIFIED"
+	PARTICIPATIONPROFILEKINDCANONICALAGENTCHAT ParticipationProfileKind = "PARTICIPATION_PROFILE_KIND_CANONICAL_AGENT_CHAT"
+	PARTICIPATIONPROFILEKINDREALMGROUPAGENT ParticipationProfileKind = "PARTICIPATION_PROFILE_KIND_REALM_GROUP_AGENT"
+	PARTICIPATIONPROFILEKINDSCENARIOSANDBOX ParticipationProfileKind = "PARTICIPATION_PROFILE_KIND_SCENARIO_SANDBOX"
+	PARTICIPATIONPROFILEKINDOASISWORLDPARTICIPATION ParticipationProfileKind = "PARTICIPATION_PROFILE_KIND_OASIS_WORLD_PARTICIPATION"
+	PARTICIPATIONPROFILEKINDEXTERNALAGENTENTRY ParticipationProfileKind = "PARTICIPATION_PROFILE_KIND_EXTERNAL_AGENT_ENTRY"
+	PARTICIPATIONPROFILEKINDDEBUGORPROBE ParticipationProfileKind = "PARTICIPATION_PROFILE_KIND_DEBUG_OR_PROBE"
+)
+
+type ParticipationPromotionPosture string
+
+const (
+	PARTICIPATIONPROMOTIONPOSTUREUNSPECIFIED ParticipationPromotionPosture = "PARTICIPATION_PROMOTION_POSTURE_UNSPECIFIED"
+	PARTICIPATIONPROMOTIONPOSTURENOTALLOWED ParticipationPromotionPosture = "PARTICIPATION_PROMOTION_POSTURE_NOT_ALLOWED"
+	PARTICIPATIONPROMOTIONPOSTUREEXPLICITCANDIDATE ParticipationPromotionPosture = "PARTICIPATION_PROMOTION_POSTURE_EXPLICIT_CANDIDATE"
+	PARTICIPATIONPROMOTIONPOSTUREEXPLICITCOMMITFLOW ParticipationPromotionPosture = "PARTICIPATION_PROMOTION_POSTURE_EXPLICIT_COMMIT_FLOW"
+	PARTICIPATIONPROMOTIONPOSTUREEXISTINGCANONICALPOLICY ParticipationPromotionPosture = "PARTICIPATION_PROMOTION_POSTURE_EXISTING_CANONICAL_POLICY"
+)
+
+type ParticipationReplayOutcome string
+
+const (
+	PARTICIPATIONREPLAYOUTCOMEUNSPECIFIED ParticipationReplayOutcome = "PARTICIPATION_REPLAY_OUTCOME_UNSPECIFIED"
+	PARTICIPATIONREPLAYOUTCOMECOMPLETED ParticipationReplayOutcome = "PARTICIPATION_REPLAY_OUTCOME_COMPLETED"
+	PARTICIPATIONREPLAYOUTCOMEPARTIALREDACTED ParticipationReplayOutcome = "PARTICIPATION_REPLAY_OUTCOME_PARTIAL_REDACTED"
+	PARTICIPATIONREPLAYOUTCOMEFAILED ParticipationReplayOutcome = "PARTICIPATION_REPLAY_OUTCOME_FAILED"
+)
+
+type ParticipationStatus string
+
+const (
+	PARTICIPATIONSTATUSUNSPECIFIED ParticipationStatus = "PARTICIPATION_STATUS_UNSPECIFIED"
+	PARTICIPATIONSTATUSADMISSIONPENDING ParticipationStatus = "PARTICIPATION_STATUS_ADMISSION_PENDING"
+	PARTICIPATIONSTATUSBLOCKED ParticipationStatus = "PARTICIPATION_STATUS_BLOCKED"
+	PARTICIPATIONSTATUSRUNNING ParticipationStatus = "PARTICIPATION_STATUS_RUNNING"
+	PARTICIPATIONSTATUSCANDIDATEREADY ParticipationStatus = "PARTICIPATION_STATUS_CANDIDATE_READY"
+	PARTICIPATIONSTATUSCOMMITTEDBYOWNER ParticipationStatus = "PARTICIPATION_STATUS_COMMITTED_BY_OWNER"
+	PARTICIPATIONSTATUSFAILED ParticipationStatus = "PARTICIPATION_STATUS_FAILED"
+	PARTICIPATIONSTATUSCANCELED ParticipationStatus = "PARTICIPATION_STATUS_CANCELED"
+)
+
+type ParticipationTranscriptOwner string
+
+const (
+	PARTICIPATIONTRANSCRIPTOWNERUNSPECIFIED ParticipationTranscriptOwner = "PARTICIPATION_TRANSCRIPT_OWNER_UNSPECIFIED"
+	PARTICIPATIONTRANSCRIPTOWNERRUNTIME ParticipationTranscriptOwner = "PARTICIPATION_TRANSCRIPT_OWNER_RUNTIME"
+	PARTICIPATIONTRANSCRIPTOWNERREALM ParticipationTranscriptOwner = "PARTICIPATION_TRANSCRIPT_OWNER_REALM"
+	PARTICIPATIONTRANSCRIPTOWNERSCENARIOMODULE ParticipationTranscriptOwner = "PARTICIPATION_TRANSCRIPT_OWNER_SCENARIO_MODULE"
+	PARTICIPATIONTRANSCRIPTOWNEROASISWORLDDOMAIN ParticipationTranscriptOwner = "PARTICIPATION_TRANSCRIPT_OWNER_OASIS_WORLD_DOMAIN"
+	PARTICIPATIONTRANSCRIPTOWNEREXTERNALDOMAIN ParticipationTranscriptOwner = "PARTICIPATION_TRANSCRIPT_OWNER_EXTERNAL_DOMAIN"
+	PARTICIPATIONTRANSCRIPTOWNEREPHEMERAL ParticipationTranscriptOwner = "PARTICIPATION_TRANSCRIPT_OWNER_EPHEMERAL"
+)
+
+type ParticipationVerdictDecision string
+
+const (
+	PARTICIPATIONVERDICTDECISIONUNSPECIFIED ParticipationVerdictDecision = "PARTICIPATION_VERDICT_DECISION_UNSPECIFIED"
+	PARTICIPATIONVERDICTDECISIONALLOW ParticipationVerdictDecision = "PARTICIPATION_VERDICT_DECISION_ALLOW"
+	PARTICIPATIONVERDICTDECISIONDENY ParticipationVerdictDecision = "PARTICIPATION_VERDICT_DECISION_DENY"
+)
+
 type PolicyMode string
 
 const (
@@ -1798,6 +1962,11 @@ type AgentRequestContext struct {
 	OwnerUserId string `json:"owner_user_id,omitempty"`
 	RealmAgentId string `json:"realm_agent_id,omitempty"`
 	LocalAgentRef string `json:"local_agent_ref,omitempty"`
+}
+
+type AgentSlotProjectionBlock struct {
+	AgentId string `json:"agent_id,omitempty"`
+	SlotRef string `json:"slot_ref,omitempty"`
 }
 
 type AgentStateClearDyadicContext struct {
@@ -2895,6 +3064,27 @@ type DeleteVoiceAssetResponse struct {
 	Ack *Ack `json:"ack,omitempty"`
 }
 
+type DescribeParticipationContextBlocksRequest struct {
+	ProfileKind ParticipationProfileKind `json:"profile_kind,omitempty"`
+}
+
+type DescribeParticipationContextBlocksResponse struct {
+	ContextBlocks []ParticipationContextBlockDescriptor `json:"context_blocks,omitempty"`
+}
+
+type DescribeParticipationProfilesRequest struct {
+
+}
+
+type DescribeParticipationProfilesResponse struct {
+	Profiles []ParticipationProfileDescriptor `json:"profiles,omitempty"`
+}
+
+type DiagnosticProbeRefBlock struct {
+	ProbeId string `json:"probe_id,omitempty"`
+	ProbeKind string `json:"probe_kind,omitempty"`
+}
+
 type DisableAutonomyRequest struct {
 	Context *AgentRequestContext `json:"context,omitempty"`
 	AgentId string `json:"agent_id,omitempty"`
@@ -2903,6 +3093,11 @@ type DisableAutonomyRequest struct {
 
 type DisableAutonomyResponse struct {
 	Autonomy *AgentAutonomyState `json:"autonomy,omitempty"`
+}
+
+type DomainContextRefBlock struct {
+	DomainRef string `json:"domain_ref,omitempty"`
+	TranscriptOwner ParticipationTranscriptOwner `json:"transcript_owner,omitempty"`
 }
 
 type EmbeddingVector struct {
@@ -2976,6 +3171,18 @@ type ExecuteLocalStateCutoverRequest struct {
 type ExecuteLocalStateCutoverResponse struct {
 	Plan *LocalStateReconciliationPlan `json:"plan,omitempty"`
 	Transfer *LocalTransferSessionSummary `json:"transfer,omitempty"`
+}
+
+type ExecuteParticipationRequest struct {
+	Spec *ParticipationRequestSpec `json:"spec,omitempty"`
+}
+
+type ExecuteParticipationResponse struct {
+	ParticipationId string `json:"participation_id,omitempty"`
+	Status ParticipationStatus `json:"status,omitempty"`
+	CandidateRef string `json:"candidate_ref,omitempty"`
+	RefusalReason string `json:"refusal_reason,omitempty"`
+	AuditId string `json:"audit_id,omitempty"`
 }
 
 type ExecuteScenarioRequest struct {
@@ -3111,9 +3318,23 @@ type ExternalAgentTokenRecord struct {
 	Issuer string `json:"issuer,omitempty"`
 }
 
+type ExternalParticipantIdentityRefBlock struct {
+	ExternalParticipantId string `json:"external_participant_id,omitempty"`
+	IdentitySource ParticipationIdentitySource `json:"identity_source,omitempty"`
+}
+
+type ExternalPayloadRefBlock struct {
+	PayloadRef string `json:"payload_ref,omitempty"`
+	ProtocolKind ParticipationExternalProtocolKind `json:"protocol_kind,omitempty"`
+}
+
 type ExtractNodeConfig struct {
 	JsonPath string `json:"json_path,omitempty"`
 	SourceInput string `json:"source_input,omitempty"`
+}
+
+type GatewayVerdictRefBlock struct {
+	GatewayVerdictId string `json:"gateway_verdict_id,omitempty"`
 }
 
 type GetAccessTokenRequest struct {
@@ -3351,6 +3572,32 @@ type GetPageRequest struct {
 
 type GetPageResponse struct {
 	Page *KnowledgePage `json:"page,omitempty"`
+}
+
+type GetParticipationCandidateRequest struct {
+	ParticipationId string `json:"participation_id,omitempty"`
+}
+
+type GetParticipationCandidateResponse struct {
+	Candidate *ParticipationCandidateRecord `json:"candidate,omitempty"`
+	Status ParticipationStatus `json:"status,omitempty"`
+}
+
+type GetParticipationReplayRequest struct {
+	ParticipationId string `json:"participation_id,omitempty"`
+}
+
+type GetParticipationReplayResponse struct {
+	Replay *ParticipationReplay `json:"replay,omitempty"`
+}
+
+type GetParticipationVerdictsRequest struct {
+	ParticipationId string `json:"participation_id,omitempty"`
+}
+
+type GetParticipationVerdictsResponse struct {
+	Verdicts *ParticipationVerdictSet `json:"verdicts,omitempty"`
+	PolicyVerdictRef string `json:"policy_verdict_ref,omitempty"`
 }
 
 type GetProductControlRecordRequest struct {
@@ -4131,6 +4378,18 @@ type ListPagesRequest struct {
 
 type ListPagesResponse struct {
 	Pages []KnowledgePage `json:"pages,omitempty"`
+	NextPageToken string `json:"next_page_token,omitempty"`
+}
+
+type ListParticipationAuditEventsRequest struct {
+	ParticipationId string `json:"participation_id,omitempty"`
+	AgentId string `json:"agent_id,omitempty"`
+	PageSize int32 `json:"page_size,omitempty"`
+	PageToken string `json:"page_token,omitempty"`
+}
+
+type ListParticipationAuditEventsResponse struct {
+	Events []ParticipationAuditEvent `json:"events,omitempty"`
 	NextPageToken string `json:"next_page_token,omitempty"`
 }
 
@@ -5345,6 +5604,129 @@ type OpenSessionResponse struct {
 	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 }
 
+type ParticipantProjectionBlock struct {
+	ParticipantRef string `json:"participant_ref,omitempty"`
+	IdentitySource ParticipationIdentitySource `json:"identity_source,omitempty"`
+}
+
+type ParticipationAuditEvent struct {
+	AuditId string `json:"audit_id,omitempty"`
+	ParticipationId string `json:"participation_id,omitempty"`
+	EventKind string `json:"event_kind,omitempty"`
+	ReasonCode string `json:"reason_code,omitempty"`
+	ActorRef string `json:"actor_ref,omitempty"`
+	ObservedAt string `json:"observed_at,omitempty"`
+}
+
+type ParticipationCandidateRecord struct {
+	ParticipationId string `json:"participation_id,omitempty"`
+	ProfileKind ParticipationProfileKind `json:"profile_kind,omitempty"`
+	IdentitySource ParticipationIdentitySource `json:"identity_source,omitempty"`
+	ParticipantRef string `json:"participant_ref,omitempty"`
+	TriggerRef string `json:"trigger_ref,omitempty"`
+	ContextBlockRefs []string `json:"context_block_refs,omitempty"`
+	OutputDestination ParticipationOutputDestination `json:"output_destination,omitempty"`
+	CandidateRef string `json:"candidate_ref,omitempty"`
+	PolicyVerdictRef string `json:"policy_verdict_ref,omitempty"`
+	MemoryReadVerdict *ParticipationVerdict `json:"memory_read_verdict,omitempty"`
+	MemoryWriteVerdict *ParticipationVerdict `json:"memory_write_verdict,omitempty"`
+	CapabilityScopeVerdict *ParticipationVerdict `json:"capability_scope_verdict,omitempty"`
+	AuditId string `json:"audit_id,omitempty"`
+	CreatedAt string `json:"created_at,omitempty"`
+}
+
+type ParticipationContextBlock struct {
+	RuntimeConversationAnchorRef *RuntimeConversationAnchorRefBlock `json:"runtime_conversation_anchor_ref,omitempty"`
+	RealmGroupThreadRef *RealmGroupThreadRefBlock `json:"realm_group_thread_ref,omitempty"`
+	TriggerMessageRef *TriggerMessageRefBlock `json:"trigger_message_ref,omitempty"`
+	ParticipantProjection *ParticipantProjectionBlock `json:"participant_projection,omitempty"`
+	RecentGroupTranscriptProjection *RecentGroupTranscriptProjectionBlock `json:"recent_group_transcript_projection,omitempty"`
+	AgentSlotProjection *AgentSlotProjectionBlock `json:"agent_slot_projection,omitempty"`
+	ScenarioPackageRef *ScenarioPackageRefBlock `json:"scenario_package_ref,omitempty"`
+	ScenarioRunRef *ScenarioRunRefBlock `json:"scenario_run_ref,omitempty"`
+	ScenarioBranchRef *ScenarioBranchRefBlock `json:"scenario_branch_ref,omitempty"`
+	VisibleSceneState *VisibleSceneStateBlock `json:"visible_scene_state,omitempty"`
+	RecentSandboxTranscriptProjection *RecentSandboxTranscriptProjectionBlock `json:"recent_sandbox_transcript_projection,omitempty"`
+	WorldContextRef *WorldContextRefBlock `json:"world_context_ref,omitempty"`
+	WorldEventRef *WorldEventRefBlock `json:"world_event_ref,omitempty"`
+	VisibleWorldStateProjection *VisibleWorldStateProjectionBlock `json:"visible_world_state_projection,omitempty"`
+	RecentWorldTranscriptOrEventProjection *RecentWorldTranscriptOrEventProjectionBlock `json:"recent_world_transcript_or_event_projection,omitempty"`
+	ExternalParticipantIdentityRef *ExternalParticipantIdentityRefBlock `json:"external_participant_identity_ref,omitempty"`
+	ExternalPayloadRef *ExternalPayloadRefBlock `json:"external_payload_ref,omitempty"`
+	GatewayVerdictRef *GatewayVerdictRefBlock `json:"gateway_verdict_ref,omitempty"`
+	DomainContextRef *DomainContextRefBlock `json:"domain_context_ref,omitempty"`
+	ToolOrCapabilityProjection *ToolOrCapabilityProjectionBlock `json:"tool_or_capability_projection,omitempty"`
+	DiagnosticProbeRef *DiagnosticProbeRefBlock `json:"diagnostic_probe_ref,omitempty"`
+}
+
+type ParticipationContextBlockDescriptor struct {
+	BlockKind string `json:"block_kind,omitempty"`
+	AllowedProfileKinds []ParticipationProfileKind `json:"allowed_profile_kinds,omitempty"`
+	RequiredFields []string `json:"required_fields,omitempty"`
+}
+
+type ParticipationProfileDescriptor struct {
+	ProfileKind ParticipationProfileKind `json:"profile_kind,omitempty"`
+	TranscriptOwner ParticipationTranscriptOwner `json:"transcript_owner,omitempty"`
+	IdentitySource ParticipationIdentitySource `json:"identity_source,omitempty"`
+	AdditionalIdentitySources []ParticipationIdentitySource `json:"additional_identity_sources,omitempty"`
+	ExecutionOwner ParticipationExecutionOwner `json:"execution_owner,omitempty"`
+	MemoryReadScope ParticipationMemoryReadScope `json:"memory_read_scope,omitempty"`
+	MemoryWriteDefault ParticipationMemoryWriteDefault `json:"memory_write_default,omitempty"`
+	CapabilityScope ParticipationCapabilityScope `json:"capability_scope,omitempty"`
+	InputTrust ParticipationInputTrust `json:"input_trust,omitempty"`
+	AdditionalInputTrust []ParticipationInputTrust `json:"additional_input_trust,omitempty"`
+	OutputDestination ParticipationOutputDestination `json:"output_destination,omitempty"`
+	PromotionPosture ParticipationPromotionPosture `json:"promotion_posture,omitempty"`
+	ExecutionConcurrency ParticipationExecutionConcurrency `json:"execution_concurrency,omitempty"`
+	Posture string `json:"posture,omitempty"`
+}
+
+type ParticipationReplay struct {
+	ReplayId string `json:"replay_id,omitempty"`
+	ParticipationId string `json:"participation_id,omitempty"`
+	AgentId string `json:"agent_id,omitempty"`
+	ProfileKind ParticipationProfileKind `json:"profile_kind,omitempty"`
+	Outcome ParticipationReplayOutcome `json:"outcome,omitempty"`
+	ReasonCode string `json:"reason_code,omitempty"`
+	Stages []ParticipationReplayStage `json:"stages,omitempty"`
+	Redacted bool `json:"redacted,omitempty"`
+	ObservedAt string `json:"observed_at,omitempty"`
+}
+
+type ParticipationReplayStage struct {
+	StageId string `json:"stage_id,omitempty"`
+	State string `json:"state,omitempty"`
+	ReasonCode string `json:"reason_code,omitempty"`
+	RedactedSummary string `json:"redacted_summary,omitempty"`
+	ObservedAt string `json:"observed_at,omitempty"`
+}
+
+type ParticipationRequestSpec struct {
+	ProfileKind ParticipationProfileKind `json:"profile_kind,omitempty"`
+	AgentId string `json:"agent_id,omitempty"`
+	ParticipantRef string `json:"participant_ref,omitempty"`
+	TriggerRef string `json:"trigger_ref,omitempty"`
+	ContextBlocks []ParticipationContextBlock `json:"context_blocks,omitempty"`
+	RequestId string `json:"request_id,omitempty"`
+}
+
+type ParticipationVerdict struct {
+	Decision ParticipationVerdictDecision `json:"decision,omitempty"`
+	ReasonCode string `json:"reason_code,omitempty"`
+}
+
+type ParticipationVerdictSet struct {
+	MemoryRead *ParticipationVerdict `json:"memory_read,omitempty"`
+	MemoryWrite *ParticipationVerdict `json:"memory_write,omitempty"`
+	CapabilityScope *ParticipationVerdict `json:"capability_scope,omitempty"`
+	Concurrency *ParticipationVerdict `json:"concurrency,omitempty"`
+	ResolvedMemoryReadScope ParticipationMemoryReadScope `json:"resolved_memory_read_scope,omitempty"`
+	ResolvedMemoryWriteDefault ParticipationMemoryWriteDefault `json:"resolved_memory_write_default,omitempty"`
+	ResolvedCapabilityScope ParticipationCapabilityScope `json:"resolved_capability_scope,omitempty"`
+	ResolvedConcurrency ParticipationExecutionConcurrency `json:"resolved_concurrency,omitempty"`
+}
+
 type PauseLocalTransferRequest struct {
 	InstallSessionId string `json:"install_session_id,omitempty"`
 }
@@ -5529,6 +5911,10 @@ type RealmGroupMessageCandidateEvidence struct {
 	RefusalHash string `json:"refusal_hash,omitempty"`
 }
 
+type RealmGroupThreadRefBlock struct {
+	ThreadId string `json:"thread_id,omitempty"`
+}
+
 type RealtimeAudioChunk struct {
 	Chunk []byte `json:"chunk,omitempty"`
 	MimeType string `json:"mime_type,omitempty"`
@@ -5601,6 +5987,22 @@ type RecallRequest struct {
 type RecallResponse struct {
 	Hits []MemoryRecallHit `json:"hits,omitempty"`
 	NarrativeHits []NarrativeRecallHit `json:"narrative_hits,omitempty"`
+}
+
+type RecentGroupTranscriptProjectionBlock struct {
+	TranscriptRef string `json:"transcript_ref,omitempty"`
+	TrustPosture ParticipationInputTrust `json:"trust_posture,omitempty"`
+}
+
+type RecentSandboxTranscriptProjectionBlock struct {
+	TranscriptRef string `json:"transcript_ref,omitempty"`
+	BranchRef string `json:"branch_ref,omitempty"`
+	TrustPosture ParticipationInputTrust `json:"trust_posture,omitempty"`
+}
+
+type RecentWorldTranscriptOrEventProjectionBlock struct {
+	EventOrTranscriptRef string `json:"event_or_transcript_ref,omitempty"`
+	TrustPosture ParticipationInputTrust `json:"trust_posture,omitempty"`
 }
 
 type ReconcileProductControlFirstRunSetupStateRequest struct {
@@ -6053,6 +6455,10 @@ type RuntimeBaselineReadinessRef struct {
 	RuntimeAuditSequence []string `json:"runtime_audit_sequence,omitempty"`
 }
 
+type RuntimeConversationAnchorRefBlock struct {
+	ConversationAnchorId string `json:"conversation_anchor_id,omitempty"`
+}
+
 type RuntimeHealthEvent struct {
 	Sequence uint64 `json:"sequence,omitempty"`
 	Status RuntimeHealthStatus `json:"status,omitempty"`
@@ -6101,6 +6507,10 @@ type ScenarioArtifact struct {
 	Channels int32 `json:"channels,omitempty"`
 	SpeechAlignment *SpeechAlignment `json:"speech_alignment,omitempty"`
 	Metadata map[string]any `json:"metadata,omitempty"`
+}
+
+type ScenarioBranchRefBlock struct {
+	ScenarioBranchId string `json:"scenario_branch_id,omitempty"`
 }
 
 type ScenarioExtension struct {
@@ -6152,6 +6562,10 @@ type ScenarioOutput struct {
 	WorldGenerate *WorldGenerateResult `json:"world_generate,omitempty"`
 }
 
+type ScenarioPackageRefBlock struct {
+	ScenarioPackageId string `json:"scenario_package_id,omitempty"`
+}
+
 type ScenarioProfile struct {
 	ScenarioType ScenarioType `json:"scenario_type,omitempty"`
 	SupportedExecutionModes []ExecutionMode `json:"supported_execution_modes,omitempty"`
@@ -6166,6 +6580,10 @@ type ScenarioRequestHead struct {
 	Fallback FallbackPolicy `json:"fallback,omitempty"`
 	TimeoutMs int32 `json:"timeout_ms,omitempty"`
 	ConnectorId string `json:"connector_id,omitempty"`
+}
+
+type ScenarioRunRefBlock struct {
+	ScenarioRunId string `json:"scenario_run_id,omitempty"`
 }
 
 type ScenarioSpec struct {
@@ -6737,6 +7155,11 @@ type ToolCall struct {
 	ProviderMetadata map[string]any `json:"provider_metadata,omitempty"`
 }
 
+type ToolOrCapabilityProjectionBlock struct {
+	CapabilityRef string `json:"capability_ref,omitempty"`
+	EffectClass EffectClass `json:"effect_class,omitempty"`
+}
+
 type ToolResult struct {
 	ToolCallId string `json:"tool_call_id,omitempty"`
 	ToolName string `json:"tool_name,omitempty"`
@@ -6770,6 +7193,10 @@ type TraverseGraphRequest struct {
 type TraverseGraphResponse struct {
 	Nodes []KnowledgeGraphNode `json:"nodes,omitempty"`
 	NextPageToken string `json:"next_page_token,omitempty"`
+}
+
+type TriggerMessageRefBlock struct {
+	MessageId string `json:"message_id,omitempty"`
 }
 
 type UninstallAppRequest struct {
@@ -6917,6 +7344,17 @@ type ValidateAppAccessTokenResponse struct {
 	ActionHint string `json:"action_hint,omitempty"`
 }
 
+type ValidateParticipationRequest struct {
+	Spec *ParticipationRequestSpec `json:"spec,omitempty"`
+}
+
+type ValidateParticipationResponse struct {
+	Admitted bool `json:"admitted,omitempty"`
+	Verdicts *ParticipationVerdictSet `json:"verdicts,omitempty"`
+	ResolvedOutputDestination ParticipationOutputDestination `json:"resolved_output_destination,omitempty"`
+	RefusalReason string `json:"refusal_reason,omitempty"`
+}
+
 type VideoContentAudioURL struct {
 	Url string `json:"url,omitempty"`
 }
@@ -6964,6 +7402,14 @@ type VideoGenerationOptions struct {
 	ServiceTier string `json:"service_tier,omitempty"`
 	ExecutionExpiresAfterSec int32 `json:"execution_expires_after_sec,omitempty"`
 	ReturnLastFrame bool `json:"return_last_frame,omitempty"`
+}
+
+type VisibleSceneStateBlock struct {
+	SceneStateRef string `json:"scene_state_ref,omitempty"`
+}
+
+type VisibleWorldStateProjectionBlock struct {
+	WorldStateRef string `json:"world_state_ref,omitempty"`
 }
 
 type VoiceAsset struct {
@@ -7156,6 +7602,14 @@ type WorkspaceMembershipProjection struct {
 type WorkspacePrivateBankOwner struct {
 	AccountId string `json:"account_id,omitempty"`
 	WorkspaceId string `json:"workspace_id,omitempty"`
+}
+
+type WorldContextRefBlock struct {
+	WorldContextId string `json:"world_context_id,omitempty"`
+}
+
+type WorldEventRefBlock struct {
+	WorldEventId string `json:"world_event_id,omitempty"`
 }
 
 type WorldGenerateAssetSource struct {
@@ -7393,6 +7847,22 @@ func (c RuntimeTypedClient) CreateRealmGroupMessageCandidate(ctx context.Context
 	return decodeTypedResponse[CreateRealmGroupMessageCandidateResponse](raw)
 }
 
+func (c RuntimeTypedClient) DescribeParticipationContextBlocks(ctx context.Context, request DescribeParticipationContextBlocksRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (DescribeParticipationContextBlocksResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/DescribeParticipationContextBlocks", request, metadata, timeoutMS)
+	if err != nil {
+		return DescribeParticipationContextBlocksResponse{}, err
+	}
+	return decodeTypedResponse[DescribeParticipationContextBlocksResponse](raw)
+}
+
+func (c RuntimeTypedClient) DescribeParticipationProfiles(ctx context.Context, request DescribeParticipationProfilesRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (DescribeParticipationProfilesResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/DescribeParticipationProfiles", request, metadata, timeoutMS)
+	if err != nil {
+		return DescribeParticipationProfilesResponse{}, err
+	}
+	return decodeTypedResponse[DescribeParticipationProfilesResponse](raw)
+}
+
 func (c RuntimeTypedClient) DisableAutonomy(ctx context.Context, request DisableAutonomyRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (DisableAutonomyResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy", request, metadata, timeoutMS)
 	if err != nil {
@@ -7415,6 +7885,14 @@ func (c RuntimeTypedClient) ExecuteDelegatedCapability(ctx context.Context, requ
 		return ExecuteDelegatedCapabilityResponse{}, err
 	}
 	return decodeTypedResponse[ExecuteDelegatedCapabilityResponse](raw)
+}
+
+func (c RuntimeTypedClient) ExecuteParticipation(ctx context.Context, request ExecuteParticipationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ExecuteParticipationResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/ExecuteParticipation", request, metadata, timeoutMS)
+	if err != nil {
+		return ExecuteParticipationResponse{}, err
+	}
+	return decodeTypedResponse[ExecuteParticipationResponse](raw)
 }
 
 func (c RuntimeTypedClient) GetAgent(ctx context.Context, request GetAgentRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAgentResponse, error) {
@@ -7489,6 +7967,30 @@ func (c RuntimeTypedClient) GetDelegatedReplayTrace(ctx context.Context, request
 	return decodeTypedResponse[GetDelegatedReplayTraceResponse](raw)
 }
 
+func (c RuntimeTypedClient) GetParticipationCandidate(ctx context.Context, request GetParticipationCandidateRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetParticipationCandidateResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/GetParticipationCandidate", request, metadata, timeoutMS)
+	if err != nil {
+		return GetParticipationCandidateResponse{}, err
+	}
+	return decodeTypedResponse[GetParticipationCandidateResponse](raw)
+}
+
+func (c RuntimeTypedClient) GetParticipationReplay(ctx context.Context, request GetParticipationReplayRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetParticipationReplayResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/GetParticipationReplay", request, metadata, timeoutMS)
+	if err != nil {
+		return GetParticipationReplayResponse{}, err
+	}
+	return decodeTypedResponse[GetParticipationReplayResponse](raw)
+}
+
+func (c RuntimeTypedClient) GetParticipationVerdicts(ctx context.Context, request GetParticipationVerdictsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetParticipationVerdictsResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/GetParticipationVerdicts", request, metadata, timeoutMS)
+	if err != nil {
+		return GetParticipationVerdictsResponse{}, err
+	}
+	return decodeTypedResponse[GetParticipationVerdictsResponse](raw)
+}
+
 func (c RuntimeTypedClient) GetPublicChatSessionSnapshot(ctx context.Context, request GetPublicChatSessionSnapshotRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetPublicChatSessionSnapshotResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot", request, metadata, timeoutMS)
 	if err != nil {
@@ -7559,6 +8061,14 @@ func (c RuntimeTypedClient) ListDelegatedProviderProfiles(ctx context.Context, r
 		return ListDelegatedProviderProfilesResponse{}, err
 	}
 	return decodeTypedResponse[ListDelegatedProviderProfilesResponse](raw)
+}
+
+func (c RuntimeTypedClient) ListParticipationAuditEvents(ctx context.Context, request ListParticipationAuditEventsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListParticipationAuditEventsResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/ListParticipationAuditEvents", request, metadata, timeoutMS)
+	if err != nil {
+		return ListParticipationAuditEventsResponse{}, err
+	}
+	return decodeTypedResponse[ListParticipationAuditEventsResponse](raw)
 }
 
 func (c RuntimeTypedClient) ListPendingHooks(ctx context.Context, request ListPendingHooksRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListPendingHooksResponse, error) {
@@ -7703,6 +8213,14 @@ func (c RuntimeTypedClient) UpsertDelegatedProviderProfile(ctx context.Context, 
 		return UpsertDelegatedProviderProfileResponse{}, err
 	}
 	return decodeTypedResponse[UpsertDelegatedProviderProfileResponse](raw)
+}
+
+func (c RuntimeTypedClient) ValidateParticipation(ctx context.Context, request ValidateParticipationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ValidateParticipationResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/ValidateParticipation", request, metadata, timeoutMS)
+	if err != nil {
+		return ValidateParticipationResponse{}, err
+	}
+	return decodeTypedResponse[ValidateParticipationResponse](raw)
 }
 
 func (c RuntimeTypedClient) WriteAgentMemory(ctx context.Context, request WriteAgentMemoryRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WriteAgentMemoryResponse, error) {
