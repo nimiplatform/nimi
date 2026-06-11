@@ -152,7 +152,7 @@ func newWorkspaceAuthorizedCognitionService(t *testing.T, scopes ...string) (*Se
 		t.Fatalf("memoryservice.New: %v", err)
 	}
 	setMemoryEmbeddingVectorExecutorForTest(memorySvc)
-	svc, err := New(logger, cfg, memorySvc, NewAccountKnowledgeAuthorizer(logger, accountSvc))
+	svc, err := New(logger, cfg, memorySvc, NewAccountKnowledgeAuthorizer(logger, accountSvc), nil)
 	if err != nil {
 		_ = memorySvc.Close()
 		t.Fatalf("cognition.New: %v", err)

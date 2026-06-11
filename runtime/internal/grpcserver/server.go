@@ -327,7 +327,19 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 	logger.Info("runtime in-process mode enabled")
 
 	knowledgeAuthorizer := cognitionservice.NewAccountKnowledgeAuthorizer(logger, accountSvc)
-	cognitionSvc, err := cognitionservice.New(logger, cfg, memorySvc, knowledgeAuthorizer)
+	// C-APMEM-001: Cognition owns the app memory/knowledge/skill access
+	// policy decision; the realm grant lifecycle decides scope usability
+	// through the AppMemoryGrantChecker seam. No real checker is bindable
+	// yet: grant.Service token state (internal/services/grant) carries no
+	// agent persona dimension and no per-grant realm audit event id, and
+	// its validation surfaces (ValidateAppAccessToken /
+	// ValidateProtectedCapability) require the caller-held token secret,
+	// which the cognition memory wire surface does not carry. Until the
+	// realm grant projection wave binds a real checker, the seam stays
+	// unbound (nil) and the app-facing memory gate fails closed with
+	// deny reason apmem_grant_checker_unbound (C-APMEM-004
+	// no-implicit-allow) instead of fake-allowing.
+	cognitionSvc, err := cognitionservice.New(logger, cfg, memorySvc, knowledgeAuthorizer, nil)
 	if err != nil {
 		_ = memorySvc.Close()
 		localSvc.Close()

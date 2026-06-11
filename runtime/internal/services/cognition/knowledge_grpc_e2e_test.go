@@ -308,7 +308,7 @@ func startKnowledgeGRPCHarness(t *testing.T, cfg config.Config) *knowledgeGRPCHa
 		t.Fatalf("memoryservice.New: %v", err)
 	}
 	setMemoryEmbeddingVectorExecutorForTest(memorySvc)
-	svc, err := New(logger, cfg, memorySvc, NewAccountKnowledgeAuthorizer(logger))
+	svc, err := New(logger, cfg, memorySvc, NewAccountKnowledgeAuthorizer(logger), nil)
 	if err != nil {
 		_ = memorySvc.Close()
 		t.Fatalf("cognition.New: %v", err)

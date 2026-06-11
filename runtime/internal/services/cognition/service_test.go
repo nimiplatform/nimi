@@ -32,7 +32,11 @@ func TestRuntimeCognitionMemoryUsesNimiCognitionMainline(t *testing.T) {
 		t.Fatalf("CreateBank: %v", err)
 	}
 
-	retainResp, err := svc.Retain(ctx, &runtimev1.RetainRequest{
+	// Pipeline mechanics are exercised through the package-internal
+	// admitted delegates: the public Retain/Recall handlers are gated by
+	// the C-APMEM app-memory authorizer (see apmem_gate_test.go) and the
+	// wire surface cannot yet present an admitted policy + scope refs.
+	retainResp, err := svc.retainAdmitted(ctx, &runtimev1.RetainRequest{
 		Context: &runtimev1.MemoryRequestContext{AppId: "app-test"},
 		Bank:    createResp.GetBank().GetLocator(),
 		Records: []*runtimev1.MemoryRecordInput{{
@@ -45,19 +49,19 @@ func TestRuntimeCognitionMemoryUsesNimiCognitionMainline(t *testing.T) {
 		}},
 	})
 	if err != nil {
-		t.Fatalf("Retain: %v", err)
+		t.Fatalf("retainAdmitted: %v", err)
 	}
 	if len(retainResp.GetRecords()) != 1 {
 		t.Fatalf("retain records mismatch: got=%d want=1", len(retainResp.GetRecords()))
 	}
 
-	recallResp, err := svc.Recall(ctx, &runtimev1.RecallRequest{
+	recallResp, err := svc.recallAdmitted(ctx, &runtimev1.RecallRequest{
 		Context: &runtimev1.MemoryRequestContext{AppId: "app-test"},
 		Bank:    createResp.GetBank().GetLocator(),
 		Query:   &runtimev1.MemoryRecallQuery{Query: "bridge", Limit: 5},
 	})
 	if err != nil {
-		t.Fatalf("Recall: %v", err)
+		t.Fatalf("recallAdmitted: %v", err)
 	}
 	if len(recallResp.GetHits()) != 1 {
 		t.Fatalf("recall hits mismatch: got=%d want=1", len(recallResp.GetHits()))
@@ -136,7 +140,10 @@ func TestRuntimeCognitionMemoryHonorsBoundEmbeddingProfileAvailability(t *testin
 		t.Fatalf("CreateBank: %v", err)
 	}
 
-	_, err = svc.Retain(ctx, &runtimev1.RetainRequest{
+	// Embedding-availability mechanics live behind the C-APMEM gate; use
+	// the package-internal admitted delegates (see apmem_gate_test.go for
+	// the public-surface gate coverage).
+	_, err = svc.retainAdmitted(ctx, &runtimev1.RetainRequest{
 		Context: &runtimev1.MemoryRequestContext{AppId: "app-test"},
 		Bank:    createResp.GetBank().GetLocator(),
 		Records: []*runtimev1.MemoryRecordInput{{
@@ -151,7 +158,7 @@ func TestRuntimeCognitionMemoryHonorsBoundEmbeddingProfileAvailability(t *testin
 	}
 
 	memorySvc.SetManagedEmbeddingProfile(profile)
-	if _, err := svc.Retain(ctx, &runtimev1.RetainRequest{
+	if _, err := svc.retainAdmitted(ctx, &runtimev1.RetainRequest{
 		Context: &runtimev1.MemoryRequestContext{AppId: "app-test"},
 		Bank:    createResp.GetBank().GetLocator(),
 		Records: []*runtimev1.MemoryRecordInput{{
@@ -161,16 +168,16 @@ func TestRuntimeCognitionMemoryHonorsBoundEmbeddingProfileAvailability(t *testin
 			},
 		}},
 	}); err != nil {
-		t.Fatalf("Retain with managed embedding profile: %v", err)
+		t.Fatalf("retainAdmitted with managed embedding profile: %v", err)
 	}
 
-	recallResp, err := svc.Recall(ctx, &runtimev1.RecallRequest{
+	recallResp, err := svc.recallAdmitted(ctx, &runtimev1.RecallRequest{
 		Context: &runtimev1.MemoryRequestContext{AppId: "app-test"},
 		Bank:    createResp.GetBank().GetLocator(),
 		Query:   &runtimev1.MemoryRecallQuery{Query: "satisfied", Limit: 5},
 	})
 	if err != nil {
-		t.Fatalf("Recall with managed embedding profile: %v", err)
+		t.Fatalf("recallAdmitted with managed embedding profile: %v", err)
 	}
 	if len(recallResp.GetHits()) != 1 {
 		t.Fatalf("recall hits mismatch: got=%d want=1", len(recallResp.GetHits()))
@@ -410,7 +417,12 @@ func newTestService(t *testing.T) (*Service, *memoryservice.Service, func()) {
 	})
 	setMemoryEmbeddingVectorExecutorForTest(memorySvc)
 	authorizer := NewAccountKnowledgeAuthorizer(logger)
-	svc, err := New(logger, cfg, memorySvc, authorizer)
+	// The app-memory grant checker seam stays unbound (nil) here, matching
+	// production wiring: the public Retain/Recall surface fails closed
+	// (C-APMEM-004). Pipeline tests exercise the package-internal
+	// retainAdmitted/recallAdmitted delegates; gate behavior is covered in
+	// apmem_gate_test.go.
+	svc, err := New(logger, cfg, memorySvc, authorizer, nil)
 	if err != nil {
 		_ = memorySvc.Close()
 		t.Fatalf("cognition.New: %v", err)
