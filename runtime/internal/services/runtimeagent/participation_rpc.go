@@ -21,11 +21,12 @@ import (
 // participation_refusal_execution_engine_not_bound (K-AGCORE-062).
 
 const (
-	participationRefusalCanonicalChat      = "canonical_chat_uses_runtime_agent_service"
-	participationRefusalNotConsumable      = "profile_not_yet_consumable"
-	participationRefusalEngineNotBound     = "execution_engine_not_bound"
-	participationRefusalEntryNotAdmitted   = "external_entry_not_admitted"
-	participationRefusalGatewayVerdictMiss = "gateway_verdict_ref_required"
+	participationRefusalCanonicalChat       = "canonical_chat_uses_runtime_agent_service"
+	participationRefusalNotConsumable       = "profile_not_yet_consumable"
+	participationRefusalEngineNotBound      = "execution_engine_not_bound"
+	participationRefusalRealmGroupDedicated = "use_create_realm_group_message_candidate"
+	participationRefusalEntryNotAdmitted    = "external_entry_not_admitted"
+	participationRefusalGatewayVerdictMiss  = "gateway_verdict_ref_required"
 )
 
 func participationAllow() *runtimev1.ParticipationVerdict {
@@ -288,10 +289,14 @@ func (s *Service) ExecuteParticipation(_ context.Context, req *runtimev1.Execute
 				refusal = participationRefusalEngineNotBound
 			}
 		case "candidate_first_realm_commit":
-			// The realm_group execution engine binding lands with the group
-			// candidate generation wave; fabricating a candidate here would
-			// violate K-AGCORE-062, so fail closed until the engine is bound.
-			refusal = participationRefusalEngineNotBound
+			// K-AGCORE-076 blocks carry no Realm identity evidence
+			// (owner/realm-agent/local-agent refs with subject verification),
+			// which the shared candidate executor requires. The admitted
+			// execution entry for this profile is CreateRealmGroupMessageCandidate
+			// with full caller-held identity evidence; refusing here with a
+			// routing reason keeps one execution truth (K-AGCORE-062) instead
+			// of a second identity-less path.
+			refusal = participationRefusalRealmGroupDedicated
 		case "diagnostic_only":
 			record.Status = runtimev1.ParticipationStatus_PARTICIPATION_STATUS_CANDIDATE_READY
 			record.Candidate = participationDiagnosticCandidate(record, now)
@@ -309,20 +314,20 @@ func (s *Service) ExecuteParticipation(_ context.Context, req *runtimev1.Execute
 
 func participationDiagnosticCandidate(record *participationRecord, now time.Time) *runtimev1.ParticipationCandidateRecord {
 	return &runtimev1.ParticipationCandidateRecord{
-		ParticipationId:       record.ParticipationID,
-		ProfileKind:           record.ProfileKind,
-		IdentitySource:        record.IdentitySource,
-		ParticipantRef:        record.ParticipantRef,
-		TriggerRef:            record.TriggerRef,
-		ContextBlockRefs:      record.ContextBlockRefs,
-		OutputDestination:     runtimev1.ParticipationOutputDestination_PARTICIPATION_OUTPUT_DESTINATION_DIAGNOSTIC_CANDIDATE,
-		CandidateRef:          "diagnostic-candidate/" + record.ParticipationID,
-		PolicyVerdictRef:      record.PolicyVerdictRef,
-		MemoryReadVerdict:     record.Verdicts.GetMemoryRead(),
-		MemoryWriteVerdict:    record.Verdicts.GetMemoryWrite(),
+		ParticipationId:        record.ParticipationID,
+		ProfileKind:            record.ProfileKind,
+		IdentitySource:         record.IdentitySource,
+		ParticipantRef:         record.ParticipantRef,
+		TriggerRef:             record.TriggerRef,
+		ContextBlockRefs:       record.ContextBlockRefs,
+		OutputDestination:      runtimev1.ParticipationOutputDestination_PARTICIPATION_OUTPUT_DESTINATION_DIAGNOSTIC_CANDIDATE,
+		CandidateRef:           "diagnostic-candidate/" + record.ParticipationID,
+		PolicyVerdictRef:       record.PolicyVerdictRef,
+		MemoryReadVerdict:      record.Verdicts.GetMemoryRead(),
+		MemoryWriteVerdict:     record.Verdicts.GetMemoryWrite(),
 		CapabilityScopeVerdict: record.Verdicts.GetCapabilityScope(),
-		AuditId:               record.AuditID,
-		CreatedAt:             timestamppb.New(now),
+		AuditId:                record.AuditID,
+		CreatedAt:              timestamppb.New(now),
 	}
 }
 

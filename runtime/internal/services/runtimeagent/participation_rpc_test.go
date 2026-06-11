@@ -217,8 +217,8 @@ func TestParticipationExecuteRefusalReasonsLockExecutionBoundaries(t *testing.T)
 			ContextBlocks: groupBlocks,
 		},
 	})
-	if err != nil || group.GetRefusalReason() != "execution_engine_not_bound" {
-		t.Fatalf("realm_group execute must fail closed until engine bound, got %v %v", group, err)
+	if err != nil || group.GetRefusalReason() != "use_create_realm_group_message_candidate" {
+		t.Fatalf("realm_group execute must route to the identity-bearing dedicated entry, got %v %v", group, err)
 	}
 	if candidate, getErr := svc.GetParticipationCandidate(ctx, &runtimev1.GetParticipationCandidateRequest{ParticipationId: group.GetParticipationId()}); getErr != nil || candidate.GetCandidate() != nil {
 		t.Fatalf("refused realm_group must have no fabricated candidate: %v %v", candidate, getErr)

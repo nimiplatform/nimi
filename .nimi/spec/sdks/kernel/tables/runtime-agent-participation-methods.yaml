@@ -89,12 +89,20 @@ runtime_implementation: runtime/internal/services/runtimeagent/participation_rpc
 sdk_projection: sdks/typescript/runtime/runtime-agent-participation.ts
 execution_engine_bound_profiles:
   - debug_or_probe
-execution_engine_pending_profiles:
-  # realm_group_agent / external_agent_entry execute fail closed with typed
-  # refusals (execution_engine_not_bound / external_entry_not_admitted) until
-  # their engines are bound; scenario_sandbox and oasis_world_participation
-  # remain future_consumer_only per K-AGCORE-077/078.
+execution_routed_profiles:
+  # realm_group_agent execution is served by the dedicated
+  # CreateRealmGroupMessageCandidate entry, which carries the caller-held
+  # Realm identity evidence (owner/realm-agent/local-agent refs with subject
+  # verification) that K-AGCORE-076 context blocks intentionally do not
+  # include. participation.execute refuses with
+  # use_create_realm_group_message_candidate to keep one execution truth
+  # (K-AGCORE-062); this is a routing decision, not a pending engine.
   - realm_group_agent
+execution_engine_pending_profiles:
+  # external_agent_entry execute fails closed with typed refusals
+  # (gateway_verdict_ref_required / external_entry_not_admitted) until its
+  # gateway execution is admitted; scenario_sandbox and
+  # oasis_world_participation remain future_consumer_only per K-AGCORE-077/078.
   - external_agent_entry
   - scenario_sandbox
   - oasis_world_participation
