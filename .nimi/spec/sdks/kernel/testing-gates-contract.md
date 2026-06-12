@@ -30,6 +30,7 @@ agent-facing export authority posture 必须通过一致性检查。
 - `pnpm check:reason-code-constants`
 - `pnpm check:sdk-vnext-runtime-facade`
 - `pnpm check:sdk-agent-export-posture`
+- `pnpm check:sdk-doctor`
 
 agent-facing 公开 export 的 authority posture 必须与
 `tables/agent-export-authority-posture.yaml` 注册表一致：enforced coverage
@@ -37,6 +38,11 @@ root 下每个公开符号必须声明 `runtime-projection`、
 `ephemeral-client-orchestration`、`pure-sugar` 三类之一；`runtime-projection`
 必须携带可解析的 `authority_ref`。新增公开 export 未登记 posture 时该 gate
 必须失败。
+
+`tables/framework-api-capability-map.yaml` 中每个 capability 引用必须 verbatim
+解析到对应 adapter 在 `tables/typescript-adapter-capability-ledger.yaml` 的
+`capability_claims`；`check:sdk-doctor` 套件承载该一致性断言，map 与 ledger
+漂移时必须失败。
 
 ## S-GATE-030 vNext Matrix Gate
 

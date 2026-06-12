@@ -1,0 +1,20 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": [
+    "index.ts",
+    "map.ts",
+    "ledger.ts",
+    "scanner.ts",
+    "assess.ts",
+    "report.ts",
+    "cli.ts",
+    "doctor.fixtures.ts",
+    "doctor.test.ts"
+  ],
+  "exclude": [
+    "dist"
+  ]
+}

@@ -22,3 +22,4 @@
 - `pnpm --filter @nimiplatform/sdk test`
 - `pnpm check:sdk-vnext-matrix`
 - `pnpm check:sdk-agent-export-posture` (required after editing `sdks/typescript/core/agent/**` public exports; registry: `.nimi/spec/sdks/kernel/tables/agent-export-authority-posture.yaml`)
+- `pnpm check:sdk-doctor` (required after editing `sdks/typescript/doctor/**`, adapter manifests, or `.nimi/spec/sdks/kernel/tables/framework-api-capability-map.yaml`)

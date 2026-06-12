@@ -1,0 +1,324 @@
+version: 1
+table_family: support_registry
+registry_id: sdks_framework_api_capability_map
+owner: sdks
+schema_ref: .nimi/contracts/table-family.schema.yaml#support_registry
+allowed_fields:
+  - id
+  - upstream_package
+  - status
+  - api
+  - api_entries
+  - detection
+  - kind
+  - package
+  - symbol
+  - constructor
+  - member
+  - chain
+  - capabilities
+  - capability
+  - when
+  - note
+forbidden_state_fields:
+  - done
+  - covered
+  - coverage_status
+  - audit_date
+  - evidence_report
+  - current
+  - proposed
+  - backlog_status
+  - migration_status
+  - mapping_status
+  - run_id
+  - ledger_ref
+semantics: >-
+  Pre-migration framework-API to nimi-capability map. Each entry binds an
+  EXTERNAL framework API call shape (what an unmigrated app invokes) to the
+  adapter capability keys it would exercise after migration. Capability keys
+  must exist verbatim in the matching adapter's capability_claims in
+  typescript-adapter-capability-ledger.yaml; support/mode truth stays in that
+  ledger and in adapter manifests — this map never records support levels.
+  The sdk-doctor scanner is the only admitted consumer. A framework marked
+  pending-upstream-binding is detectable but not assessable: the doctor must
+  report it as pending, never synthesize an assessment. Detected APIs absent
+  from a mapped framework's entries must surface as unknown-api.
+detection_kinds:
+  - id: import-call
+    semantics: Named import from upstream_package that is invoked as a function.
+  - id: constructor
+    semantics: Named import from upstream_package instantiated with new.
+  - id: member-call
+    semantics: >-
+      Method invoked on an instance constructed (file-locally) from the named
+      constructor import of upstream_package.
+  - id: member-chain
+    semantics: >-
+      Property chain ending in a call, rooted at an instance constructed from
+      the named constructor import of upstream_package. A package default
+      export used as the constructor is referenced by the canonical name
+      "default".
+  - id: member-name
+    semantics: >-
+      Heuristic: method name matched on any receiver. Lowest-confidence
+      detection; every hit must be reported with a heuristic marker.
+when_conditions:
+  - id: 'option:<key>'
+    semantics: Activates only when the call's options object carries <key>.
+  - id: 'option-function:<key>'
+    semantics: >-
+      Activates only when the call's options object carries <key> with a
+      function-valued expression (function/arrow). Key presence with a
+      non-function value does not activate.
+entries:
+  - frameworks
+frameworks:
+  - id: vercel-ai
+    upstream_package: ai
+    status: mapped
+    api_entries:
+      - api: generateText
+        detection: { kind: import-call, package: ai, symbol: generateText }
+        capabilities:
+          - { capability: text.generate }
+          - { capability: tools.definitionMapping, when: 'option:tools' }
+          - { capability: tools.toolChoiceMapping, when: 'option:toolChoice' }
+          - { capability: tools.execute, when: 'option:tools' }
+          - { capability: tools.callerOwnedLoop, when: 'option:tools' }
+          - { capability: multiStep, when: 'option:stopWhen' }
+          - { capability: providerOptions, when: 'option:providerOptions' }
+      - api: streamText
+        detection: { kind: import-call, package: ai, symbol: streamText }
+        capabilities:
+          - { capability: text.stream }
+          - { capability: runEvents.text }
+          - { capability: runEvents.reasoning }
+          - { capability: runEvents.finish }
+          - { capability: runEvents.error }
+          - { capability: tools.definitionMapping, when: 'option:tools' }
+          - { capability: tools.callerOwnedLoop, when: 'option:tools' }
+          - { capability: tools.execute, when: 'option:tools' }
+          - { capability: multiStep, when: 'option:stopWhen' }
+          - { capability: rawChunks, when: 'option:includeRawChunks' }
+          - { capability: providerOptions, when: 'option:providerOptions' }
+      - api: generateObject
+        detection: { kind: import-call, package: ai, symbol: generateObject }
+        capabilities:
+          - { capability: structured.output.requestMapping }
+      - api: jsonSchema
+        detection: { kind: import-call, package: ai, symbol: jsonSchema }
+        capabilities:
+          - { capability: structured.output.requestMapping }
+        note: >-
+          Schema-construction helper feeding generateObject/streamObject and
+          tool inputSchema; verbatim from the conformance and upstream-compat
+          suites.
+      - api: stepCountIs
+        detection: { kind: import-call, package: ai, symbol: stepCountIs }
+        capabilities:
+          - { capability: multiStep }
+        note: >-
+          stopWhen step-count condition helper for multi-step loops; verbatim
+          from the conformance and upstream-tool-compat suites.
+      - api: convertReadableStreamToArray
+        detection: { kind: import-call, package: ai, symbol: convertReadableStreamToArray }
+        capabilities: []
+        note: >-
+          Upstream stream test utility; carries no adapter surface by itself.
+          Reported as informational.
+      - api: streamObject
+        detection: { kind: import-call, package: ai, symbol: streamObject }
+        capabilities:
+          - { capability: structured.output.requestMapping }
+          - { capability: text.stream }
+      - api: tool
+        detection: { kind: import-call, package: ai, symbol: tool }
+        capabilities:
+          - { capability: tools.definitionMapping }
+          - { capability: tools.execute, when: 'option:execute' }
+      - api: ToolLoopAgent
+        detection: { kind: constructor, package: ai, symbol: ToolLoopAgent }
+        capabilities:
+          - { capability: tools.callerOwnedLoop }
+          - { capability: multiStep }
+          - { capability: tools.execute }
+      - api: ToolLoopAgent.generate
+        detection: { kind: member-call, package: ai, constructor: ToolLoopAgent, member: generate }
+        capabilities:
+          - { capability: text.generate }
+          - { capability: tools.callerOwnedLoop }
+          - { capability: multiStep }
+      - api: ToolLoopAgent.stream
+        detection: { kind: member-call, package: ai, constructor: ToolLoopAgent, member: stream }
+        capabilities:
+          - { capability: text.stream }
+          - { capability: tools.callerOwnedLoop }
+          - { capability: multiStep }
+      - api: LanguageModel.doGenerate
+        detection: { kind: member-name, package: ai, member: doGenerate }
+        note: >-
+          Low-level LanguageModelV3 provider-interface invocation observed in
+          migration proofs; member-name detection is heuristic by definition.
+        capabilities:
+          - { capability: text.generate }
+      - api: LanguageModel.doStream
+        detection: { kind: member-name, package: ai, member: doStream }
+        capabilities:
+          - { capability: text.stream }
+  - id: mastra
+    upstream_package: '@mastra/core'
+    status: mapped
+    api_entries:
+      - api: Agent
+        detection: { kind: constructor, package: '@mastra/core', symbol: Agent }
+        capabilities:
+          - { capability: model.config }
+          - { capability: dynamicResolution, when: 'option-function:model' }
+          - { capability: dynamicResolution, when: 'option-function:instructions' }
+      - api: Agent.generate
+        detection: { kind: member-call, package: '@mastra/core', constructor: Agent, member: generate }
+        capabilities:
+          - { capability: agent.generate }
+          - { capability: tools.execution, when: 'option:tools' }
+          - { capability: tools.resultPropagation, when: 'option:tools' }
+          - { capability: multiStep, when: 'option:maxSteps' }
+          - { capability: multiStep, when: 'option:stopWhen' }
+          - { capability: structuredOutput, when: 'option:structuredOutput' }
+          - { capability: toolApproval, when: 'option:requireToolApproval' }
+          - { capability: agentCallbacks, when: 'option:onFinish' }
+          - { capability: agentCallbacks, when: 'option:onStepFinish' }
+          - { capability: abort, when: 'option:abortSignal' }
+      - api: Agent.stream
+        detection: { kind: member-call, package: '@mastra/core', constructor: Agent, member: stream }
+        capabilities:
+          - { capability: agent.stream }
+          - { capability: tools.execution, when: 'option:tools' }
+          - { capability: tools.resultPropagation, when: 'option:tools' }
+          - { capability: multiStep, when: 'option:maxSteps' }
+          - { capability: multiStep, when: 'option:stopWhen' }
+          - { capability: structuredOutput, when: 'option:structuredOutput' }
+          - { capability: toolApproval, when: 'option:requireToolApproval' }
+          - { capability: agentCallbacks, when: 'option:onFinish' }
+          - { capability: agentCallbacks, when: 'option:onStepFinish' }
+          - { capability: rawChunks, when: 'option:includeRawChunks' }
+          - { capability: abort, when: 'option:abortSignal' }
+      - api: createTool
+        detection: { kind: import-call, package: '@mastra/core', symbol: createTool }
+        capabilities:
+          - { capability: tools.definition }
+          - { capability: tools.execution, when: 'option:execute' }
+          - { capability: toolApproval, when: 'option:requireApproval' }
+      - api: Mastra
+        detection: { kind: constructor, package: '@mastra/core', symbol: Mastra }
+        capabilities: []
+        note: >-
+          Framework-owned orchestration container; carries no adapter surface
+          by itself. Reported as informational.
+      - api: Memory
+        detection: { kind: constructor, package: '@mastra/memory', symbol: Memory }
+        capabilities:
+          - { capability: memory }
+        note: >-
+          Mastra-native memory is compatibility-only and is not nimi canonical
+          truth; the ledger records the partial cluster.
+      - api: createWorkflow
+        detection: { kind: import-call, package: '@mastra/core', symbol: createWorkflow }
+        capabilities:
+          - { capability: workflows }
+      - api: createStep
+        detection: { kind: import-call, package: '@mastra/core', symbol: createStep }
+        capabilities:
+          - { capability: workflows }
+      - api: MockMemory
+        detection: { kind: constructor, package: '@mastra/core', symbol: MockMemory }
+        capabilities:
+          - { capability: memory }
+        note: >-
+          Upstream test mock of Mastra-native memory; same compatibility-only
+          posture as Memory (S-AIP-009 framework-owned-non-canonical).
+      - api: SemanticRecall
+        detection: { kind: constructor, package: '@mastra/core', symbol: SemanticRecall }
+        capabilities:
+          - { capability: memory }
+        note: >-
+          Mastra-native recall processor over Mastra-owned message history;
+          compatibility-only, not nimi canonical recall.
+      - api: SemanticRecall.processInput
+        detection: { kind: member-chain, package: '@mastra/core', constructor: SemanticRecall, chain: processInput }
+        capabilities:
+          - { capability: memory }
+      - api: MessageList
+        detection: { kind: constructor, package: '@mastra/core', symbol: MessageList }
+        capabilities:
+          - { capability: memory }
+        note: >-
+          Mastra-native message-history container; framework-owned-non-canonical
+          per the S-AIP-009 memory cluster classification.
+      - api: MessageList.add
+        detection: { kind: member-chain, package: '@mastra/core', constructor: MessageList, chain: add }
+        capabilities:
+          - { capability: memory }
+      - api: RequestContext
+        detection: { kind: constructor, package: '@mastra/core', symbol: RequestContext }
+        capabilities:
+          - { capability: runtimeContext }
+      - api: RequestContext.set
+        detection: { kind: member-chain, package: '@mastra/core', constructor: RequestContext, chain: set }
+        capabilities:
+          - { capability: runtimeContext }
+      - api: Agent.voice
+        detection: { kind: member-chain, package: '@mastra/core', constructor: Agent, chain: voice.speak }
+        capabilities:
+          - { capability: voice }
+  - id: openai-compatible
+    upstream_package: openai
+    status: mapped
+    api_entries:
+      - api: OpenAI
+        detection: { kind: constructor, package: openai, symbol: default }
+        capabilities: []
+        note: >-
+          Client entry-point constructor; carries no capability by itself.
+          Reported as informational, not unknown-api.
+      - api: OpenAI.chat.completions.create
+        detection: { kind: member-chain, package: openai, constructor: default, chain: chat.completions.create }
+        capabilities:
+          - { capability: chat.completions.create }
+          - { capability: chat.completions.stream, when: 'option:stream' }
+          - { capability: tools.function.definitions, when: 'option:tools' }
+          - { capability: tools.function.tool_choice, when: 'option:tool_choice' }
+          - { capability: tools.function.return_tool_calls, when: 'option:tools' }
+      - api: OpenAI.responses.create
+        detection: { kind: member-chain, package: openai, constructor: default, chain: responses.create }
+        capabilities:
+          - { capability: responsesApi }
+        note: Bridged as unsupported by the adapter; the doctor reports the gap.
+      - api: OpenAI.embeddings.create
+        detection: { kind: member-chain, package: openai, constructor: default, chain: embeddings.create }
+        capabilities:
+          - { capability: embeddingsApi }
+        note: Bridged as unsupported by the adapter; the doctor reports the gap.
+      - api: OpenAI.completions.create
+        detection: { kind: member-chain, package: openai, constructor: default, chain: completions.create }
+        capabilities:
+          - { capability: completionsApi }
+        note: Bridged as unsupported by the adapter; the doctor reports the gap.
+  - id: mcp
+    upstream_package: '@modelcontextprotocol/sdk'
+    status: pending-upstream-binding
+    note: >-
+      Direction mismatch: the SDK mcp adapter serves nimi tools as MCP shapes
+      (server direction); an external MCP-client app's consumption calls
+      (Client.listTools/callTool) migrate to the Runtime delegated MCP gateway
+      (K-DELEG-100..119), not to this adapter. Assessment activates when the
+      delegated-gateway migration surface is admitted into this map.
+    api_entries: []
+  - id: langgraph
+    upstream_package: '@langchain/langgraph'
+    status: pending-upstream-binding
+    api_entries: []
+  - id: llamaindex
+    upstream_package: llamaindex
+    status: pending-upstream-binding
+    api_entries: []

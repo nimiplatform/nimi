@@ -7,3 +7,4 @@ packages:
   - 'nimi-cognition'
   - 'sdks/typescript'
   - 'sdks/typescript/adapters/*'
+  - 'sdks/typescript/doctor'

@@ -26,6 +26,22 @@ Public source-root targets:
 - `adapters/llamaindex`
 - `adapters/react`
 - `adapters/next`
+- `doctor`
+
+Doctor boundary:
+
+- `doctor` is the independent migration-assessment package
+  (`@nimiplatform/sdk-doctor`), not a base SDK subpath and not an adapter.
+- It performs read-only static analysis of an external app: it must not
+  execute target code, reach the network, or mutate the scanned project.
+- Its only framework-API-to-capability authority is
+  `tables/framework-api-capability-map.yaml`; adapter capability truth stays
+  in adapter manifests and `tables/typescript-adapter-capability-ledger.yaml`.
+  The doctor must not carry private mappings or infer capabilities.
+- A detected target-framework API absent from the map must be reported as
+  `unknown-api`; it must never be silently skipped or counted as supported.
+- Doctor output is a developer assessment projection only. It is not an
+  admission evidence surface and creates no capability claim.
 
 OpenAI-compatible boundary:
 

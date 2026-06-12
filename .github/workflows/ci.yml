@@ -221,6 +221,9 @@ jobs:
       - name: Enforce SDK agent export authority posture
         run: pnpm check:sdk-agent-export-posture && node --test scripts/check-sdk-agent-export-posture.test.mjs
 
+      - name: SDK doctor framework-api map and assessment suite
+        run: pnpm check:sdk-doctor
+
       - name: Enforce no global OpenAPI singleton config
         run: pnpm check:no-global-openapi-config
 
