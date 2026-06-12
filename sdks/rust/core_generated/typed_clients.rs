@@ -1831,6 +1831,23 @@ impl Default for ScopedAppBindingState {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum SensitivityClass {
+    SENSITIVITYCLASSUNSPECIFIED,
+    SENSITIVITYCLASSNONE,
+    SENSITIVITYCLASSUSERPRIVATE,
+    SENSITIVITYCLASSCREDENTIALLIKE,
+    SENSITIVITYCLASSORGPRIVATE,
+    SENSITIVITYCLASSREGULATED,
+    SENSITIVITYCLASSUNKNOWNSENSITIVE,
+}
+
+impl Default for SensitivityClass {
+    fn default() -> Self {
+        Self::SENSITIVITYCLASSUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum SpeechAlignmentUnit {
     SPEECHALIGNMENTUNITUNSPECIFIED,
     SPEECHALIGNMENTUNITWORD,
@@ -6432,6 +6449,7 @@ pub struct DelegatedApprovalRequest {
     pub effect_class: Option<EffectClass>,
     pub summary_ref: Option<String>,
     pub policy_snapshot_id: Option<String>,
+    pub sensitivity_class: Option<SensitivityClass>,
 }
 
 impl DelegatedApprovalRequest {
@@ -6454,6 +6472,7 @@ impl DelegatedApprovalRequest {
         if let Some(value) = &self.effect_class { pairs.push(format!("effect_class={:?}", value)); }
         if let Some(value) = &self.summary_ref { pairs.push(format!("summary_ref={}", value)); }
         if let Some(value) = &self.policy_snapshot_id { pairs.push(format!("policy_snapshot_id={}", value)); }
+        if let Some(value) = &self.sensitivity_class { pairs.push(format!("sensitivity_class={:?}", value)); }
         pairs.join(";").into_bytes()
     }
 
@@ -6714,6 +6733,8 @@ impl DelegatedReplayTraceStage {
 pub struct DelegatedToolAllowlistEntry {
     pub tool_name: Option<String>,
     pub input_schema_digest: Option<String>,
+    pub effect_class: Option<EffectClass>,
+    pub expected_sensitivity_class: Option<SensitivityClass>,
 }
 
 impl DelegatedToolAllowlistEntry {
@@ -6721,6 +6742,8 @@ impl DelegatedToolAllowlistEntry {
         let mut pairs: Vec<String> = Vec::new();
         if let Some(value) = &self.tool_name { pairs.push(format!("tool_name={}", value)); }
         if let Some(value) = &self.input_schema_digest { pairs.push(format!("input_schema_digest={}", value)); }
+        if let Some(value) = &self.effect_class { pairs.push(format!("effect_class={:?}", value)); }
+        if let Some(value) = &self.expected_sensitivity_class { pairs.push(format!("expected_sensitivity_class={:?}", value)); }
         pairs.join(";").into_bytes()
     }
 

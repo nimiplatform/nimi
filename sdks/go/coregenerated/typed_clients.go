@@ -1276,6 +1276,18 @@ const (
 	SCOPEDAPPBINDINGSTATESUPERSEDED ScopedAppBindingState = "SCOPED_APP_BINDING_STATE_SUPERSEDED"
 )
 
+type SensitivityClass string
+
+const (
+	SENSITIVITYCLASSUNSPECIFIED SensitivityClass = "SENSITIVITY_CLASS_UNSPECIFIED"
+	SENSITIVITYCLASSNONE SensitivityClass = "SENSITIVITY_CLASS_NONE"
+	SENSITIVITYCLASSUSERPRIVATE SensitivityClass = "SENSITIVITY_CLASS_USER_PRIVATE"
+	SENSITIVITYCLASSCREDENTIALLIKE SensitivityClass = "SENSITIVITY_CLASS_CREDENTIAL_LIKE"
+	SENSITIVITYCLASSORGPRIVATE SensitivityClass = "SENSITIVITY_CLASS_ORG_PRIVATE"
+	SENSITIVITYCLASSREGULATED SensitivityClass = "SENSITIVITY_CLASS_REGULATED"
+	SENSITIVITYCLASSUNKNOWNSENSITIVE SensitivityClass = "SENSITIVITY_CLASS_UNKNOWN_SENSITIVE"
+)
+
 type SpeechAlignmentUnit string
 
 const (
@@ -2728,6 +2740,7 @@ type DelegatedApprovalRequest struct {
 	EffectClass EffectClass `json:"effect_class,omitempty"`
 	SummaryRef string `json:"summary_ref,omitempty"`
 	PolicySnapshotId string `json:"policy_snapshot_id,omitempty"`
+	SensitivityClass SensitivityClass `json:"sensitivity_class,omitempty"`
 }
 
 type DelegatedControlSurfaceSnapshot struct {
@@ -2803,6 +2816,8 @@ type DelegatedReplayTraceStage struct {
 type DelegatedToolAllowlistEntry struct {
 	ToolName string `json:"tool_name,omitempty"`
 	InputSchemaDigest string `json:"input_schema_digest,omitempty"`
+	EffectClass EffectClass `json:"effect_class,omitempty"`
+	ExpectedSensitivityClass SensitivityClass `json:"expected_sensitivity_class,omitempty"`
 }
 
 type DeleteBankRequest struct {

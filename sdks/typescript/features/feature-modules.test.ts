@@ -24,6 +24,7 @@ import {
 import type { NimiGenerateTextRequest } from '../core/ai';
 import { createNimiAgentRunner } from '../core/agent';
 import { textPart } from '../core/contracts';
+import { ReasonCode } from '../types';
 import {
   createNimiRuntimeKnowledgeAgentContextProvider,
   createNimiRuntimeKnowledgeContextClient,
@@ -625,7 +626,7 @@ test('Runtime speech synthesis helper runs Scenario job and requires typed audio
       requestId: 'req-invalid',
       idempotencyKey: 'idem-invalid',
     }),
-    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_RUNTIME_RESPONSE_DECODE_FAILED',
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED,
   );
 
   const noAudioRuntime = {
@@ -652,7 +653,7 @@ test('Runtime speech synthesis helper runs Scenario job and requires typed audio
       requestId: 'req-no-audio',
       idempotencyKey: 'idem-no-audio',
     }),
-    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'RUNTIME_CALL_FAILED',
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === ReasonCode.RUNTIME_CALL_FAILED,
   );
 });
 

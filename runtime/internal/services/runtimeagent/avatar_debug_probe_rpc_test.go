@@ -164,6 +164,53 @@ func TestAvatarDebugProbeRejectsInvalidEnvelope(t *testing.T) {
 	}
 }
 
+func TestGetAvatarDebugSnapshotAggregatesRuntimeAuditProjection(t *testing.T) {
+	svc := testAvatarDebugService()
+	if _, err := svc.RequestAvatarDebugProbe(context.Background(), &runtimev1.RequestAvatarDebugProbeRequest{
+		Context:              testDelegatedControlContext(),
+		AgentId:              "agent-1",
+		ConversationAnchorId: "anchor-1",
+		ProbeKind:            runtimev1.AvatarDebugProbeKind_AVATAR_DEBUG_PROBE_KIND_BACKEND_LOAD,
+		RequestedBy:          runtimev1.AvatarDebugRequestedBy_AVATAR_DEBUG_REQUESTED_BY_DESKTOP_DEBUG_WORKBENCH,
+		ProbeId:              "probe-snapshot-1",
+		ReplayRequested:      true,
+	}); err != nil {
+		t.Fatalf("seed avatar debug probe: %v", err)
+	}
+
+	snapshot, err := svc.GetAvatarDebugSnapshot(context.Background(), &runtimev1.GetAvatarDebugSnapshotRequest{
+		Context:              testDelegatedControlContext(),
+		AgentId:              "agent-1",
+		ConversationAnchorId: "anchor-1",
+	})
+	if err != nil {
+		t.Fatalf("get avatar debug snapshot: %v", err)
+	}
+	if snapshot.GetAgentId() != "agent-1" || snapshot.GetConversationAnchorId() != "anchor-1" {
+		t.Fatalf("snapshot identity mismatch: %+v", snapshot)
+	}
+	if len(snapshot.GetProbeResults()) != 1 || snapshot.GetProbeResults()[0].GetProbeId() != "probe-snapshot-1" {
+		t.Fatalf("snapshot did not aggregate the recorded probe result: %+v", snapshot.GetProbeResults())
+	}
+	if len(snapshot.GetReplayRefs()) != 1 {
+		t.Fatalf("snapshot did not aggregate the replay ref: %+v", snapshot.GetReplayRefs())
+	}
+	if snapshot.GetObservedAt() == nil {
+		t.Fatalf("snapshot must carry observed_at")
+	}
+}
+
+func TestGetAvatarDebugSnapshotRequiresConversationAnchor(t *testing.T) {
+	svc := testAvatarDebugService()
+	_, err := svc.GetAvatarDebugSnapshot(context.Background(), &runtimev1.GetAvatarDebugSnapshotRequest{
+		Context: testDelegatedControlContext(),
+		AgentId: "agent-1",
+	})
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("expected missing conversation_anchor_id rejection, got %v", err)
+	}
+}
+
 func testAvatarDebugService() *Service {
 	svc := testDelegatedControlSurfaceServiceWithoutAudit()
 	svc.auditStore = auditlog.New(128, 128)

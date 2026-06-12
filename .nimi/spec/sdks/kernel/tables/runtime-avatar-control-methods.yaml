@@ -8,13 +8,8 @@ surfaces:
   - runtime.avatarDebug.requestProbe
   - runtime.avatarDebug.listProbeResults
   - runtime.avatarDebug.getReplay
-  - any
-  - Record<string, unknown>
-  - free_form_map
-  - raw_apml
-  - raw_mcp
-  - raw_a2a
-  - raw_backend_payload
+  - runtime.agent.anchors.registerAvatarLiveInstance
+  - runtime.agent.anchors.resolveAvatarLiveInstance
 owner: .nimi/spec/sdks
 source_rule: S-RUNTIME-116
 status: active
@@ -24,31 +19,63 @@ methods:
     input_ref: agent-avatar-configuration.schema.yaml
     output_ref: agent-avatar-configuration.schema.yaml
     semantic_owner: desktop_control_surface
+    transport: host_typed_logical_surface
+    implementation_status: host_surface_implemented
+    implementation: sdks/typescript/runtime/runtime-avatar-configuration.ts
+    test: sdks/typescript/runtime/runtime-avatar-configuration.test.ts
   - name: runtime.avatarConfiguration.upsert
     category: command
     input_ref: agent-avatar-configuration.schema.yaml
     output_ref: agent-avatar-configuration.schema.yaml
     semantic_owner: desktop_control_surface
+    transport: host_typed_logical_surface
+    implementation_status: host_surface_implemented
+    implementation: sdks/typescript/runtime/runtime-avatar-configuration.ts
+    test: sdks/typescript/runtime/runtime-avatar-configuration.test.ts
   - name: runtime.avatarDebug.snapshot
     category: read
+    method_id: /nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugSnapshot
     input_ref: avatar-debug-probe-events.yaml
     output_ref: agent-avatar-debug-workbench-probes.yaml
     semantic_owner: runtime_probe
+    implementation_status: runtime_rpc_implemented
+    implementation: runtime/internal/services/runtimeagent/avatar_debug_probe_rpc.go
+    test: runtime/internal/services/runtimeagent/avatar_debug_probe_rpc_test.go
+    sdk_client: sdks/typescript/runtime/runtime-agent-consume-client.ts
+    sdk_test: sdks/typescript/runtime/runtime-agent-consume-events.test.ts
   - name: runtime.avatarDebug.requestProbe
     category: command
+    method_id: /nimi.runtime.v1.RuntimeAgentService/RequestAvatarDebugProbe
     input_ref: avatar-debug-probe-events.yaml
     output_ref: avatar-debug-probe-events.yaml
     semantic_owner: runtime_probe
+    implementation_status: runtime_rpc_implemented
+    implementation: runtime/internal/services/runtimeagent/avatar_debug_probe_rpc.go
+    test: runtime/internal/services/runtimeagent/avatar_debug_probe_rpc_test.go
+    sdk_client: sdks/typescript/runtime/runtime-agent-consume-client.ts
+    sdk_test: sdks/typescript/runtime/runtime-agent-consume.test.ts
   - name: runtime.avatarDebug.listProbeResults
     category: read
+    method_id: /nimi.runtime.v1.RuntimeAgentService/ListAvatarDebugProbeResults
     input_ref: avatar-debug-probe-events.yaml
     output_ref: avatar-debug-probe-events.yaml
     semantic_owner: runtime_probe
+    implementation_status: runtime_rpc_implemented
+    implementation: runtime/internal/services/runtimeagent/avatar_debug_probe_rpc.go
+    test: runtime/internal/services/runtimeagent/avatar_debug_probe_rpc_test.go
+    sdk_client: sdks/typescript/runtime/runtime-agent-consume-client.ts
+    sdk_test: sdks/typescript/runtime/runtime-agent-consume-events.test.ts
   - name: runtime.avatarDebug.getReplay
     category: read
+    method_id: /nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugReplay
     input_ref: avatar-debug-replay-keys.yaml
     output_ref: avatar-debug-replay-keys.yaml
     semantic_owner: runtime_audit
+    implementation_status: runtime_rpc_implemented
+    implementation: runtime/internal/services/runtimeagent/avatar_debug_probe_rpc.go
+    test: runtime/internal/services/runtimeagent/avatar_debug_probe_rpc_test.go
+    sdk_client: sdks/typescript/runtime/runtime-agent-consume-client.ts
+    sdk_test: sdks/typescript/runtime/runtime-agent-consume-events.test.ts
   - name: runtime.agent.anchors.registerAvatarLiveInstance
     category: write
     method_id: /nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding
@@ -56,7 +83,11 @@ methods:
     output_ref: .nimi/spec/runtime/kernel/agent-conversation-anchor-contract.md#K-AGCORE-138
     semantic_owner: runtime_conversation_anchor
     auth_scope: runtime.agent.write
-    implementation_status: runtime_emit_rpc_available
+    implementation_status: runtime_rpc_implemented
+    implementation: runtime/internal/services/runtimeagent/avatar_live_instance_binding_rpc.go
+    test: runtime/internal/services/runtimeagent/avatar_live_instance_binding_rpc_test.go
+    sdk_client: sdks/typescript/runtime/runtime-agent-consume-client.ts
+    sdk_test: sdks/typescript/runtime/runtime-agent-consume.test.ts
   - name: runtime.agent.anchors.resolveAvatarLiveInstance
     category: read
     method_id: /nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding
@@ -64,7 +95,11 @@ methods:
     output_ref: .nimi/spec/runtime/kernel/agent-conversation-anchor-contract.md#K-AGCORE-138
     semantic_owner: runtime_conversation_anchor
     auth_scope: runtime.agent.read
-    implementation_status: runtime_emit_rpc_available
+    implementation_status: runtime_rpc_implemented
+    implementation: runtime/internal/services/runtimeagent/avatar_live_instance_binding_rpc.go
+    test: runtime/internal/services/runtimeagent/avatar_live_instance_binding_rpc_test.go
+    sdk_client: sdks/typescript/runtime/runtime-agent-consume-client.ts
+    sdk_test: sdks/typescript/runtime/runtime-agent-consume.test.ts
 
 forbidden_type_shapes:
   - any
@@ -75,4 +110,13 @@ forbidden_type_shapes:
   - raw_a2a
   - raw_backend_payload
 
-implementation_status: semantic_contract_only_proto_unavailable
+implementation_status: implemented
+proto_boundary_note: >-
+  The six runtime-owned methods ride daemon RPCs already admitted in
+  proto/runtime/v1/agent_service.proto with runtime handlers and tests. The two
+  runtime.avatarConfiguration methods are host-typed logical surfaces over the
+  Desktop-owned closed configuration record (semantic_owner
+  desktop_control_surface, D-LLM-079): reads and writes go through a
+  caller-injected host persistence adapter following the S-AICONF-005 /
+  S-RUNTIME-120 host-surface pattern and never become daemon RPC truth, so the
+  proto-stub precondition does not apply to them.

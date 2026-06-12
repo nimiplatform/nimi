@@ -7012,6 +7012,7 @@
       "SchedulingState",
       "ScopedAppBindingPurpose",
       "ScopedAppBindingState",
+      "SensitivityClass",
       "SpeechAlignmentUnit",
       "SpeechTimingMode",
       "StreamEventType",
@@ -13361,6 +13362,13 @@
             "repeated": false,
             "optional": false,
             "number": 18
+          },
+          {
+            "name": "sensitivity_class",
+            "type": "SensitivityClass",
+            "repeated": false,
+            "optional": false,
+            "number": 19
           }
         ],
         "source_file": "proto/runtime/v1/delegated_control.proto"
@@ -13796,6 +13804,20 @@
             "repeated": false,
             "optional": false,
             "number": 2
+          },
+          {
+            "name": "effect_class",
+            "type": "EffectClass",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "expected_sensitivity_class",
+            "type": "SensitivityClass",
+            "repeated": false,
+            "optional": false,
+            "number": 4
           }
         ],
         "source_file": "proto/runtime/v1/delegated_control.proto"
@@ -36700,6 +36722,19 @@
           "SCOPED_APP_BINDING_STATE_SUPERSEDED"
         ],
         "source_file": "proto/runtime/v1/account.proto"
+      },
+      {
+        "name": "SensitivityClass",
+        "values": [
+          "SENSITIVITY_CLASS_UNSPECIFIED",
+          "SENSITIVITY_CLASS_NONE",
+          "SENSITIVITY_CLASS_USER_PRIVATE",
+          "SENSITIVITY_CLASS_CREDENTIAL_LIKE",
+          "SENSITIVITY_CLASS_ORG_PRIVATE",
+          "SENSITIVITY_CLASS_REGULATED",
+          "SENSITIVITY_CLASS_UNKNOWN_SENSITIVE"
+        ],
+        "source_file": "proto/runtime/v1/delegated_control.proto"
       },
       {
         "name": "SpeechAlignmentUnit",
