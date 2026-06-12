@@ -114,6 +114,14 @@ entries:
   - R-FEED-008
   - R-FEED-009
   - R-FEED-010
+  - R-PERM-001
+  - R-PERM-002
+  - R-PERM-003
+  - R-PERM-004
+  - R-PERM-005
+  - R-PERM-006
+  - R-PERM-007
+  - R-PERM-008
   - R-ECON-001
   - R-ECON-002
   - R-ECON-003
@@ -155,6 +163,8 @@ entries:
   - R-OAUTH-010
   - R-OAUTH-011
   - R-OAUTH-012
+  - R-ADMIT-001
+  - R-ADMIT-002
 description: Rule-to-evidence map for the Realm kernel. Executable backend/code provenance paths are support evidence paths; repo-aware checks may resolve them from the current repository root or its parent workspace root. Spec-local links such as `sources.human_spec` remain contract-local.
 fragments:
   profiles: rule-evidence.profiles.yaml

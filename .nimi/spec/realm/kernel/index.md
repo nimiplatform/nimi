@@ -21,11 +21,13 @@ updated: 2026-04-18
 - `binding-contract.md` (`R-BIND-*`)
 - `resource-contract.md` (`R-RSRC-*`)
 - `social-contract.md` (`R-SOC-*`)
+- `permission-grant-contract.md` (`R-PERM-*`)
 - `economy-contract.md` (`R-ECON-*`)
 - `asset-contract.md` (`R-ASSET-*`)
 - `bundle-contract.md` (`R-BNDL-*`)
 - `transit-contract.md` (`R-TRANSIT-*`)
 - `oauth-authority-contract.md` (`R-OAUTH-*`)
+- `admission-discipline-contract.md` (`R-ADMIT-*`)
 
 ## Tables
 
@@ -47,6 +49,8 @@ updated: 2026-04-18
 - `tables/binding-contract.yaml`
 - `tables/resource-contract.yaml`
 - `tables/social-contract.yaml`
+- `tables/permission-grant-contract.yaml`
+- `tables/admission-discipline-contract.yaml`
 - `tables/economy-contract.yaml`
 - `tables/asset-contract.yaml`
 - `tables/bundle-contract.yaml`

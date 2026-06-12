@@ -36,6 +36,7 @@ entries:
   - bundle
   - transit
   - oauth_authority
+  - permission_grant
 profiles:
   truth:
     openapi:
@@ -363,3 +364,29 @@ profiles:
     test_files:
       - realm-backend://libs/infra/auth/src/oauth-authority.service.spec.ts
       - realm-backend://apps/api/src/modules/auth/auth.controller.spec.ts
+  permission_grant:
+    openapi:
+      - GET /api/human/me/permission-grants
+      - POST /api/human/me/permission-grants
+      - GET /api/human/me/permission-grants/status
+      - GET /api/human/me/permission-grants/projection
+      - GET /api/human/me/permission-grants/{grantId}
+      - POST /api/human/me/permission-grants/{grantId}/grant
+      - POST /api/human/me/permission-grants/{grantId}/deny
+      - POST /api/human/me/permission-grants/{grantId}/revoke
+      - POST /api/human/me/permission-grants/{grantId}/expire
+      - POST /api/human/me/permission-grants/{grantId}/supersede
+    prisma_models:
+      - AppPermissionGrant
+      - AppPermissionGrantAuditEvent
+    service_files:
+      - realm-backend://apps/api/src/modules/user/me-permission-grants.controller.ts
+      - realm-backend://libs/domains/user/src/dtos/app-permission-grant.dto.ts
+      - realm-backend://libs/domains/user/src/domains/app-permission-grant.service.ts
+      - realm-backend://libs/domains/user/src/domains/user.module.ts
+    test_files:
+      - realm-backend://apps/api/src/modules/user/me-permission-grants.controller.spec.ts
+      - realm-backend://libs/domains/user/src/domains/app-permission-grant.service.spec.ts
+  admission_discipline:
+    governance_only: true
+    note: governance-only meta-rule domain; no API or persistence surface.

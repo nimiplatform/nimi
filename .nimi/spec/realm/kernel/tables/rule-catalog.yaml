@@ -73,6 +73,14 @@ entries:
   - R-SOC-007
   - R-SOC-008
   - R-SOC-009
+  - R-PERM-001
+  - R-PERM-002
+  - R-PERM-003
+  - R-PERM-004
+  - R-PERM-005
+  - R-PERM-006
+  - R-PERM-007
+  - R-PERM-008
   - R-ECON-001
   - R-ECON-002
   - R-ECON-003
@@ -130,7 +138,9 @@ entries:
   - R-FEED-008
   - R-FEED-009
   - R-FEED-010
-id_pattern: ^R-(TRUTH|PROJ|WSTATE|WHIST|CHAT|SOC|ECON|ATTACH|ASSET|RSRC|BIND|BNDL|TRANSIT|OAUTH|FEED)-[0-9]{3}$
+  - R-ADMIT-001
+  - R-ADMIT-002
+id_pattern: ^R-(TRUTH|PROJ|WSTATE|WHIST|CHAT|SOC|PERM|ECON|ATTACH|ASSET|RSRC|BIND|BNDL|TRANSIT|OAUTH|FEED|ADMIT)-[0-9]{3}$
 generated_at: derived-from-contract-tables
 generated_from: kernel/tables/*-contract.yaml
 rules:
@@ -560,6 +570,54 @@ rules:
     title: agentfriend-creation-localagent-establishment-linkage
     statement: AgentFriend creation and LocalAgent establishment are one server-authoritative canonical linkage, the creation counterpart to R-SOC-007. Committing an agent-variant Friendship row, whether through a direct add or the acceptance of a received agent friend request, must deterministically establish the one-to-one LocalAgent projection; the AgentFriend creation is not complete until that projection exists or its durable provision intent is persisted. The creation linkage trigger is backend / Realm social admission owned and the renderer must not own it. Creation executes as one fail-closed ordered unit that commits the agent-variant Friendship and resolves the owner and RealmAgent pair, persists exactly one durable LocalAgentProvisionIntent for the deterministic localAgentRef in the same database transaction, then has the device courier deliver runtime InitializeAgent. The LocalAgentProvisionIntent carries the owner user, RealmAgent account, deterministic localAgentRef, created-Friendship provenance, status, substrate-failure attempt counter, last error, backoff availability time, and acknowledgement metadata, is unique per localAgentRef so a repeated creation converges onto the same record, and must never coexist live with a LocalAgentTerminationIntent for the same localAgentRef because re-add supersedes a non-terminal termination intent and removal supersedes a non-terminal provision intent. The lifecycle is the typed set OPEN, ACKED, FAILED, where ACKED is terminal success including the K-AGCORE-139 already-exists idempotent no-op and FAILED is a reopenable needs-attention state that must not be silently dropped. The intent record must be written in the same database transaction as the canonical Friendship row creation so both commit or both roll back. The backend must expose a viewer-scoped list/ack API that returns only the caller's own intents and applies acknowledgement as a backend-owned idempotent state transition; only typed runtime substrate failures charge the attempt counter toward the maximum ten attempts while transport and offline failures never charge an attempt or move a record toward FAILED. The desktop reconciliation courier is pure transport that pulls open intents, delivers runtime InitializeAgent, and reports a typed outcome; it owns no decision, is stateless with no desktop-local intent queue, is idempotent against the K-AGCORE-139 no-op, must not synthesize success, and must not drive renderer-local linkage state. The backend table is the sole durable store and a long-offline or cross-device device converges when its courier next processes the server-owned open intent. The linkage is idempotent so repeated creation, retry after transport failure, or acceptance for an already-established LocalAgent converges to exactly one LocalAgent and one AgentFriend. Creation must not leave a half-applied state, must not be projected as renderer-synthesized success, must not be satisfied by a renderer-owned two-call create-then-ensure sequence, and must not mutate the corresponding RealmAgent canonical truth.
     source: .nimi/spec/realm/kernel/social-contract.md
+  - rule_id: R-PERM-001
+    domain: permission-grant
+    level: must
+    title: realm-owns-app-permission-grant-lifecycle
+    statement: Realm owns account-scoped app permission grant lifecycle truth for ecosystem apps; SDK, Desktop, Runtime, and apps may consume Realm projections or bridge tokens but must not own canonical lifecycle truth or define parallel grant state.
+    source: .nimi/spec/realm/kernel/permission-grant-contract.md
+  - rule_id: R-PERM-002
+    domain: permission-grant
+    level: must
+    title: grant-state-closed-set
+    statement: Grant state is the closed set PENDING, GRANTED, DENIED, EXPIRED, REVOKED, SUPERSEDED; unknown states fail closed; only current GRANTED records authorize grant-dependent operations, and every other state is non-authorizing.
+    source: .nimi/spec/realm/kernel/permission-grant-contract.md
+  - rule_id: R-PERM-003
+    domain: permission-grant
+    level: must
+    title: authenticated-account-is-subject-authority
+    statement: Actor and subject identity come from authenticated Realm account context; app/client-provided subject identifiers are request hints only; cross-subject issue, revoke, and list operations fail closed unless a separate admitted Realm administrative authority governs that surface.
+    source: .nimi/spec/realm/kernel/permission-grant-contract.md
+  - rule_id: R-PERM-004
+    domain: permission-grant
+    level: must
+    title: grant-record-canonical-shape-no-secrets
+    statement: Canonical grant records carry grantId, subjectAccountId, appId, scopeFamily, scopeName, qualifier, state, reason, requestedAt/requestedByAccountId, grantedAt/grantedByAccountId, deniedAt/deniedByAccountId, revokedAt/revokedByAccountId, expiredAt, supersededAt/supersededByAccountId, supersededByGrantId, expiresAt, and version; records and projections must not carry raw credentials, bearer tokens, HMAC token bytes, OAuth tokens, provider secrets, or app-local secret material.
+    source: .nimi/spec/realm/kernel/permission-grant-contract.md
+  - rule_id: R-PERM-005
+    domain: permission-grant
+    level: must
+    title: mutation-explicit-idempotent-auditable
+    statement: Grant mutation is explicit, idempotent, versioned, and auditable; request, grant, deny, expire, revoke, and supersede mutations identify target grant or deterministic idempotency identity, authenticated actor, lifecycle action, reason, and expected version or equivalent concurrency guard; repeated admitted mutations may return the existing canonical result while conflicting intent fails closed.
+    source: .nimi/spec/realm/kernel/permission-grant-contract.md
+  - rule_id: R-PERM-006
+    domain: permission-grant
+    level: must
+    title: validation-reads-canonical-record-fail-closed
+    statement: Grant validation reads the canonical Realm grant record and current version; missing grants, unsupported scope family, unsupported scope name, expired, revoked, denied, pending, superseded, and version-mismatched grants fail closed and must not degrade to app-local allowlists, stateless bridge tokens, default grants, or partial success.
+    source: .nimi/spec/realm/kernel/permission-grant-contract.md
+  - rule_id: R-PERM-007
+    domain: permission-grant
+    level: must
+    title: typed-projection-consumer-boundary
+    statement: Realm may expose a typed permission-grant projection for Runtime, Desktop, and SDK consumption; projection is a consumer contract over canonical Realm grant truth, contains no raw credentials or secret material, and does not transfer lifecycle ownership to Runtime, Desktop, SDK, or apps; Runtime owns local spend/session/audit semantics only.
+    source: .nimi/spec/realm/kernel/permission-grant-contract.md
+  - rule_id: R-PERM-008
+    domain: permission-grant
+    level: must
+    title: stateless-runtime-bridge-is-partial
+    statement: The existing /api/runtime/realm-grants/issue stateless HMAC token bridge remains a partial runtime bridge that may mint short-lived typed bridge material for an authenticated subject but is not canonical permission grant lifecycle, does not persist grant state, and must not be confused with Realm-owned app permission grant truth; OASIS/world/app interconnect remains future motivation, not public multi-world readiness.
+    source: .nimi/spec/realm/kernel/permission-grant-contract.md
   - rule_id: R-ECON-001
     domain: economy
     level: must
@@ -902,3 +960,15 @@ rules:
     title: feed-does-not-own-ai-execution
     statement: Realm Feed projection does not own AI execution, prompt assembly, model routing, turn execution, or LocalAgent session truth; Create Post and feed reads are Realm social content operations and must not carry prompt text, provider/model selection, AIScopeRef, or runtime turn payload, and how RealmAgent public activity content is generated stays outside this contract while this contract only fixes how that content, once canonical Post truth, enters the agent_activity feed scope.
     source: .nimi/spec/realm/kernel/feed-contract.md
+  - rule_id: R-ADMIT-001
+    domain: admission-discipline
+    level: must
+    title: protocol-family-admission-requires-multi-party-semantics
+    statement: A capability is admissible into a Realm protocol family only when its semantic substance is inherently multi-party, cross-device, or cross-account; implementation convenience, login-rate or engagement objectives, and cloud-side operational preference are not admissible justifications, and a capability whose semantics are satisfiable runtime-locally must remain runtime- or app-local truth.
+    source: .nimi/spec/realm/kernel/admission-discipline-contract.md
+  - rule_id: R-ADMIT-002
+    domain: admission-discipline
+    level: must
+    title: core-layer-permanently-minimal-protocols-opt-in
+    statement: The Realm core layer is permanently limited to identity, authentication, account, and permission-grant authority (R-OAUTH and R-PERM families); every other Realm capability family is an opt-in protocol family whose obligations bind only declared consumers, and core admission requires demonstrating identity or grant semantics are unsatisfiable without the capability.
+    source: .nimi/spec/realm/kernel/admission-discipline-contract.md

@@ -851,3 +851,109 @@ rules:
     spec_anchor: .nimi/spec/realm/kernel/oauth-authority-contract.md#R-OAUTH-012
     profile_refs:
       - oauth_authority
+  R-PERM-001:
+    domain: permission-grant
+    spec_anchor: .nimi/spec/realm/kernel/permission-grant-contract.md#R-PERM-001
+    profile_refs:
+      - permission_grant
+    openapi:
+      - realm-backend://api-nimi.yaml
+    prisma_models:
+      - AppPermissionGrant
+    service_files:
+      - realm-backend://libs/domains/user/src/domains/app-permission-grant.service.ts
+    test_files:
+      - realm-backend://libs/domains/user/src/domains/app-permission-grant.service.spec.ts
+  R-PERM-002:
+    domain: permission-grant
+    spec_anchor: .nimi/spec/realm/kernel/permission-grant-contract.md#R-PERM-002
+    profile_refs:
+      - permission_grant
+    prisma_models:
+      - AppPermissionGrant
+    service_files:
+      - realm-backend://libs/domains/user/src/domains/app-permission-grant.service.ts
+    test_files:
+      - realm-backend://libs/domains/user/src/domains/app-permission-grant.service.spec.ts
+  R-PERM-003:
+    domain: permission-grant
+    spec_anchor: .nimi/spec/realm/kernel/permission-grant-contract.md#R-PERM-003
+    profile_refs:
+      - permission_grant
+    openapi:
+      - realm-backend://api-nimi.yaml
+    service_files:
+      - realm-backend://apps/api/src/modules/user/me-permission-grants.controller.ts
+      - realm-backend://libs/domains/user/src/domains/app-permission-grant.service.ts
+    test_files:
+      - realm-backend://apps/api/src/modules/user/me-permission-grants.controller.spec.ts
+      - realm-backend://libs/domains/user/src/domains/app-permission-grant.service.spec.ts
+  R-PERM-004:
+    domain: permission-grant
+    spec_anchor: .nimi/spec/realm/kernel/permission-grant-contract.md#R-PERM-004
+    profile_refs:
+      - permission_grant
+    prisma_models:
+      - AppPermissionGrant
+    service_files:
+      - realm-backend://libs/domains/user/src/domains/app-permission-grant.service.ts
+  R-PERM-005:
+    domain: permission-grant
+    spec_anchor: .nimi/spec/realm/kernel/permission-grant-contract.md#R-PERM-005
+    profile_refs:
+      - permission_grant
+    prisma_models:
+      - AppPermissionGrant
+      - AppPermissionGrantAuditEvent
+    service_files:
+      - realm-backend://libs/domains/user/src/domains/app-permission-grant.service.ts
+    test_files:
+      - realm-backend://libs/domains/user/src/domains/app-permission-grant.service.spec.ts
+  R-PERM-006:
+    domain: permission-grant
+    spec_anchor: .nimi/spec/realm/kernel/permission-grant-contract.md#R-PERM-006
+    profile_refs:
+      - permission_grant
+    service_files:
+      - realm-backend://libs/domains/user/src/domains/app-permission-grant.service.ts
+    test_files:
+      - realm-backend://libs/domains/user/src/domains/app-permission-grant.service.spec.ts
+  R-PERM-007:
+    domain: permission-grant
+    spec_anchor: .nimi/spec/realm/kernel/permission-grant-contract.md#R-PERM-007
+    profile_refs:
+      - permission_grant
+    openapi:
+      - realm-backend://api-nimi.yaml
+    service_files:
+      - realm-backend://apps/api/src/modules/user/me-permission-grants.controller.ts
+      - realm-backend://libs/domains/user/src/domains/app-permission-grant.service.ts
+    test_files:
+      - realm-backend://apps/api/src/modules/user/me-permission-grants.controller.spec.ts
+      - realm-backend://libs/domains/user/src/domains/app-permission-grant.service.spec.ts
+  R-PERM-008:
+    domain: permission-grant
+    spec_anchor: .nimi/spec/realm/kernel/permission-grant-contract.md#R-PERM-008
+    profile_refs:
+      - permission_grant
+    openapi:
+      - realm-backend://api-nimi.yaml
+      - POST /api/runtime/realm-grants/issue
+    service_files:
+      - realm-backend://apps/api/src/modules/runtime-surface/runtime-realm-grants.controller.ts
+      - realm-backend://apps/api/src/modules/runtime-surface/runtime-realm-grants.dto.ts
+      - realm-backend://libs/runtime/control-plane/src/control-plane.service.ts
+      - realm-backend://libs/runtime/control-plane/src/runtime-realm-grant-scope.ts
+    test_files:
+      - realm-backend://apps/api/src/modules/runtime-surface/runtime-realm-grants.controller.spec.ts
+      - realm-backend://libs/runtime/control-plane/src/control-plane.service.spec.ts
+  R-ADMIT-001:
+    domain: admission-discipline
+    spec_anchor: .nimi/spec/realm/kernel/admission-discipline-contract.md#R-ADMIT-001
+    profile_refs:
+      - admission_discipline
+  R-ADMIT-002:
+    domain: admission-discipline
+    spec_anchor: .nimi/spec/realm/kernel/admission-discipline-contract.md#R-ADMIT-002
+    profile_refs:
+      - admission_discipline
