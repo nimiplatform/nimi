@@ -19,6 +19,9 @@ entries:
   - cloud-glm
   - cloud-deepseek
   - cloud-openrouter
+  - cloud-openai
+  - cloud-openai-compatible
+  - cloud-openai-codex
 targets:
   - name: local
     base_url_env: NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL
@@ -98,5 +101,20 @@ targets:
   - name: cloud-openrouter
     base_url_env: NIMI_RUNTIME_CLOUD_OPENROUTER_BASE_URL
     api_key_env: NIMI_RUNTIME_CLOUD_OPENROUTER_API_KEY
+    category: cloud
+    source_rule: K-PROV-002
+  - name: cloud-openai
+    base_url_env: NIMI_RUNTIME_CLOUD_OPENAI_BASE_URL
+    api_key_env: NIMI_RUNTIME_CLOUD_OPENAI_API_KEY
+    category: cloud
+    source_rule: K-PROV-002
+  - name: cloud-openai-compatible
+    base_url_env: NIMI_RUNTIME_CLOUD_OPENAI_COMPATIBLE_BASE_URL
+    api_key_env: NIMI_RUNTIME_CLOUD_OPENAI_COMPATIBLE_API_KEY
+    category: cloud
+    source_rule: K-PROV-002
+  - name: cloud-openai-codex
+    base_url_env: NIMI_RUNTIME_CLOUD_OPENAI_CODEX_BASE_URL
+    api_key_env: NIMI_RUNTIME_CLOUD_OPENAI_CODEX_API_KEY
     category: cloud
     source_rule: K-PROV-002

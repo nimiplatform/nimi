@@ -57,6 +57,15 @@ surfaces:
     capability_concerns: []
     notes: Typed registry for runtime_knowledge_bank scope kind (C-COG-059).
     source_rule: C-COG-059
+  - surface_id: cognition.app_memory_access_service
+    surface_kind: facade_accessor
+    entrypoint: AppMemoryAccessService
+    owner_surface: Cognition
+    family_scope: app_memory_access
+    return_contract: "*AppMemoryAccessService"
+    capability_concerns: []
+    notes: Sole C-APMEM app-facing facade for admitted app memory, knowledge, and skill access.
+    source_rule: C-COG-027
   - surface_id: cognition.skill_service
     surface_kind: facade_accessor
     entrypoint: SkillService

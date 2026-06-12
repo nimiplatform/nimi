@@ -4,6 +4,10 @@ owner: runtime
 enum_id: runtime_metadata_keys
 values:
   - x-nimi-key-source
+  - x-nimi-protocol-version
+  - x-nimi-participant-protocol-version
+  - x-nimi-participant-id
+  - x-nimi-domain
   - x-nimi-provider-type
   - x-nimi-provider-endpoint
   - x-nimi-provider-api-key
@@ -17,12 +21,27 @@ values:
   - x-nimi-caller-id
   - x-nimi-surface-id
   - x-nimi-access-token-id
+  - x-nimi-access-token-secret
+  - x-nimi-session-id
+  - x-nimi-session-token
   - x-nimi-trace-id
 keys:
   - key: x-nimi-key-source
     allowed_values: [inline, managed]
     required_when: inline routing or explicit managed override (managed requires connector_id)
     source_rule: K-KEYSRC-003
+  - key: x-nimi-protocol-version
+    required_when: runtime entrypoint protocol context propagation
+    source_rule: K-AUDIT-023
+  - key: x-nimi-participant-protocol-version
+    required_when: runtime entrypoint participant protocol context propagation
+    source_rule: K-AUDIT-023
+  - key: x-nimi-participant-id
+    required_when: runtime entrypoint participant context propagation
+    source_rule: K-AUDIT-023
+  - key: x-nimi-domain
+    required_when: runtime entrypoint domain context propagation
+    source_rule: K-AUDIT-023
   - key: x-nimi-provider-type
     required_when: inline
     source_rule: K-KEYSRC-003
@@ -62,6 +81,15 @@ keys:
   - key: x-nimi-access-token-id
     required_when: audit context propagation
     source_rule: K-AUDIT-023
+  - key: x-nimi-access-token-secret
+    required_when: loopback runtime entrypoint token-authenticated call
+    source_rule: K-AUTHN-001
+  - key: x-nimi-session-id
+    required_when: loopback runtime entrypoint session-authenticated app call
+    source_rule: K-AUTHN-001
+  - key: x-nimi-session-token
+    required_when: loopback runtime entrypoint session-authenticated app call
+    source_rule: K-AUTHN-001
   - key: x-nimi-trace-id
     required_when: L0 correlation envelope (correlated under K-AUDIT-020)
     source_rule: P-PROTO-011

@@ -89,15 +89,7 @@ apps:
       - local-image-native
       - local-gpu-support
     runtime_registration_mode: app-managed
-    permission_scope_ref:
-      - { appId: nimi.avatar, scopeFamily: account, scopeName: account.session.read }
-      - { appId: nimi.avatar, scopeFamily: agent, scopeName: agent.identity.project }
-      - { appId: nimi.avatar, scopeFamily: memory, scopeName: memory.read.bounded, qualifier: persona-scoped }
-      - { appId: nimi.avatar, scopeFamily: memory, scopeName: memory.write.admitted, qualifier: session-scoped }
-      - { appId: nimi.avatar, scopeFamily: ai_spend, scopeName: ai.spend.meter }
-      - { appId: nimi.avatar, scopeFamily: file_device, scopeName: device.use.scoped }
-      - { appId: nimi.avatar, scopeFamily: file_device, scopeName: file.read.scoped }
-      - { appId: nimi.avatar, scopeFamily: ai_profile, scopeName: ai_profile.selection.consume }
+    permission_scope_ref: permission_fabric_pending
     health_repair_projection:
       - unavailable
       - setup-required

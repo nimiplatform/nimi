@@ -43,6 +43,9 @@ Provider 探测目标从配置（`K-DAEMON-009`）与环境变量解析，固定
 | `cloud-glm` | `NIMI_RUNTIME_CLOUD_GLM_BASE_URL` | `NIMI_RUNTIME_CLOUD_GLM_API_KEY` |
 | `cloud-deepseek` | `NIMI_RUNTIME_CLOUD_DEEPSEEK_BASE_URL` | `NIMI_RUNTIME_CLOUD_DEEPSEEK_API_KEY` |
 | `cloud-openrouter` | `NIMI_RUNTIME_CLOUD_OPENROUTER_BASE_URL` | `NIMI_RUNTIME_CLOUD_OPENROUTER_API_KEY` |
+| `cloud-openai` | `NIMI_RUNTIME_CLOUD_OPENAI_BASE_URL` | `NIMI_RUNTIME_CLOUD_OPENAI_API_KEY` |
+| `cloud-openai-compatible` | `NIMI_RUNTIME_CLOUD_OPENAI_COMPATIBLE_BASE_URL` | `NIMI_RUNTIME_CLOUD_OPENAI_COMPATIBLE_API_KEY` |
+| `cloud-openai-codex` | `NIMI_RUNTIME_CLOUD_OPENAI_CODEX_BASE_URL` | `NIMI_RUNTIME_CLOUD_OPENAI_CODEX_API_KEY` |
 
 仅 Base URL 非空的目标参与探测。
 
@@ -109,6 +112,7 @@ Provider 探测目标从配置（`K-DAEMON-009`）与环境变量解析，固定
 - `openai`
 - `anthropic`
 - `openai_compatible`
+- `openai_codex`
 
 非 canonical 名称（包含历史 alias 与 legacy 名称）在配置校验时拒绝。
 
@@ -142,8 +146,11 @@ Gemini 默认：当配置了 `NIMI_RUNTIME_CLOUD_GEMINI_API_KEY` 且未配置 Ba
 | `cloud-glm` | `glm` | 智谱 GLM |
 | `cloud-deepseek` | `deepseek` | DeepSeek |
 | `cloud-openrouter` | `openrouter` | OpenRouter |
+| `cloud-openai` | `openai` | OpenAI |
+| `cloud-openai-compatible` | `openai_compatible` | OpenAI-compatible endpoint |
+| `cloud-openai-codex` | `openai_codex` | OpenAI Codex OAuth endpoint |
 
-`openai`/`anthropic` 为直连 provider，不经过 Nimi 适配层，无独立探测目标。
+`anthropic` 为直连 provider，不经过 Nimi 适配层，无独立探测目标。
 ## K-PROV-007 Managed Image Health Admission
 
 - `tables/managed-image-backend-packages.yaml` gates whether a recognized `native_binary + stablediffusion-ggml` tuple may ever become healthy.

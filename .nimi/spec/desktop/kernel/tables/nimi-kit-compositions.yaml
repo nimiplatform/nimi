@@ -4,6 +4,9 @@ owner: desktop
 catalog_id: desktop_nimi_kit_compositions
 entries:
   - desktop.chat.relationship_rail
+  - desktop.shell.main_layout_view
+  - desktop.shell.main_layout_topbar
+  - desktop.shell.settings_menu
 app: desktop
 components:
   - id: desktop.chat.relationship_rail
@@ -14,3 +17,36 @@ components:
     shared_families: []
     shared_targets: []
     source_rule: P-DESIGN-019
+  - id: desktop.shell.main_layout_view
+    app: desktop
+    module: apps/desktop/src/shell/renderer/app-shell/layouts/main-layout-view.tsx
+    component: MainLayoutView
+    classification: app_owned_composition
+    shared_families:
+      - ambient_background
+      - scroll_area
+      - tooltip
+    shared_targets:
+      - '@nimiplatform/kit/ui'
+    source_rule: D-SHELL-090
+  - id: desktop.shell.main_layout_topbar
+    app: desktop
+    module: apps/desktop/src/shell/renderer/app-shell/layouts/main-layout-topbar.tsx
+    component: MainLayoutTopBar
+    classification: app_owned_composition
+    shared_families:
+      - tooltip
+    shared_targets:
+      - '@nimiplatform/kit/ui'
+    source_rule: D-SHELL-090
+  - id: desktop.shell.settings_menu
+    app: desktop
+    module: apps/desktop/src/shell/renderer/app-shell/layouts/main-layout-settings-menu.tsx
+    component: MainLayoutSettingsMenu
+    classification: app_owned_composition
+    shared_families:
+      - scroll_area
+      - surface
+    shared_targets:
+      - '@nimiplatform/kit/ui'
+    source_rule: D-SHELL-090

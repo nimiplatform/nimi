@@ -13,7 +13,7 @@ surfaces:
 services:
   - RuntimeCognitionService
   - RuntimeAgentService
-method_count: 73
+method_count: 82
 method_mappings:
   - design_service: RuntimeCognitionService
     design_method: CreateKnowledgeBank

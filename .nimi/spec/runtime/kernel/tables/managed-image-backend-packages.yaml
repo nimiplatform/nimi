@@ -28,6 +28,9 @@ entries:
     install_dir_name: metal-stablediffusion-ggml
     image_ref: quay.io/go-skynet/local-ai-backends:latest-metal-darwin-arm64-stablediffusion-ggml
     oci_layer_digest: sha256:89cdb483a81a98a4cd46d178d23c3540d15e7a27e53ff940984d848e16767b5e
+    executable_candidates: [run.sh]
+    launch_mode: package_entrypoint
+    wrapper_driver: localai-package-entrypoint
     product_state: supported
 
   - entry_id: macos-apple-silicon-stablediffusion-ggml-official-sdcpp
@@ -50,7 +53,8 @@ entries:
     detail: >-
       Runtime-private experimental source only. It may be selected explicitly for
       diagnostic comparison, but it is not the canonical supported macOS package
-      source and must never be auto-selected or used as an implicit fallback.
+      source, is not admitted as a supported runtime-owned package source, and
+      must never be auto-selected or used as an implicit fallback.
 
   - entry_id: windows-x64-nvidia-stablediffusion-ggml
     host_match:

@@ -11,8 +11,10 @@ description: >
   but uses it as the VRM expression preset for ontology emotions like `shy`
   and `confused`).
 
-  This table admits the initial 11 emote bundles. Primary expression weights stay <= 0.8 to avoid
-  the "smiles too much" effect (lineage: airi useVRMEmote pattern).
+  This table admits the initial 11 emote bundles. Primary expressive weights
+  stay <= 0.8 to avoid the "smiles too much" effect (lineage: airi useVRMEmote
+  pattern). The `neutral` preset is the explicit reset/baseline exception and
+  may use weight 1.0.
 
   Apps/avatar consumes this table at runtime and skips entries whose
   preset name is missing on the loaded VRM (partial degrade is allowed;
@@ -118,9 +120,11 @@ emotes: &vrm_emote_state_values
 
 constraints:
   - description: >
-      Primary expression weight (the highest-weight entry per emote) MUST
-      stay <= 0.8. This prevents over-extreme emotion display (lineage:
-      airi useVRMEmote 0.8 cap; see design-04 + design-11).
+      Primary expressive weight (the highest-weight non-neutral entry per
+      emote) MUST stay <= 0.8. The `neutral` preset is exempt as the admitted
+      reset/baseline expression and MAY use weight 1.0. This prevents
+      over-extreme emotion display while keeping the neutral reset complete
+      (lineage: airi useVRMEmote 0.8 cap; see design-04 + design-11).
   - description: >
       Viseme expression entries (aa/ih/ou/ee/oh) here are emote "garnish";
       when wLipSync is active (lipsyncActive=true in vrm-emote-state tick),

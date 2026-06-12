@@ -54,7 +54,7 @@ menu bar 的页面跳转必须遵循：
 
 Phase 1 的 app event 固定为 `menu-bar://open-tab`，payload 仅允许：
 
-- `{ tab: 'runtime', page?: 'overview' | 'local' | 'cloud' | 'catalog' | 'runtime' }`
+- `{ tab: 'runtime', page?: 'overview' | 'profiles' | 'models' | 'cloud' | 'environment' | 'advanced' }`
 - `{ tab: 'settings' }`
 
 menu bar 不得直接耦合具体 React 组件实例。

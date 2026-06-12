@@ -268,6 +268,12 @@ Profiles describe model/backend support and fail closed on missing capability.
 Avatar debug session intake/evidence schema. It consumes Runtime probe ids and
 Avatar backend refs; it does not own public Runtime probe status.
 
+### [`tables/i18n-keys.yaml`](tables/i18n-keys.yaml)
+
+Avatar renderer i18n key authority. Bundled locale JSON resources are runtime
+resources downstream of this table and must not become an app-local key truth
+source.
+
 Mapping sidecar schema for route-to-backend/model name correspondence with
 confidence, evidence, threshold, and manual confirmation semantics.
 

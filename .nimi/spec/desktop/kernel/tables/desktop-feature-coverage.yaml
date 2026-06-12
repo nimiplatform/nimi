@@ -96,6 +96,24 @@ features:
       - scenario_id: settings.release-strip-and-preferences
         source_rule: D-GATE-040
         spec_path: apps/desktop/e2e/specs/settings.release-strip-and-preferences.e2e.mjs
+  - feature: support-updates
+    risk_tier: P1
+    required_layers:
+      - unit_contract
+      - desktop_e2e_journey
+    covers_tabs:
+      - support
+    covers_bootstrap_phases: []
+    covers_ipc_commands:
+      - desktop_release_info_get
+    covers_runtime_pages: []
+    scenarios:
+      - scenario_id: support.updates-release-projection
+        source_rule: D-GATE-010
+        spec_path: apps/desktop/test/support-surface-contract.test.ts
+      - scenario_id: settings.release-strip-and-preferences
+        source_rule: D-GATE-040
+        spec_path: apps/desktop/e2e/specs/settings.release-strip-and-preferences.e2e.mjs
   - feature: chat-core
     risk_tier: P1
     required_layers:
@@ -125,6 +143,20 @@ features:
       - scenario_id: chat.memory-standard-bind
         source_rule: D-GATE-040
         spec_path: apps/desktop/e2e/specs/chat.memory-standard-bind.e2e.mjs
+  - feature: chat-avatar-rendering
+    risk_tier: P1
+    required_layers:
+      - unit_contract
+      - desktop_e2e_journey
+    covers_tabs:
+      - chat
+    covers_bootstrap_phases: []
+    covers_ipc_commands: []
+    covers_runtime_pages: []
+    scenarios:
+      - scenario_id: chat.live2d-render-smoke
+        source_rule: D-GATE-040
+        spec_path: apps/desktop/e2e/specs/chat.live2d-render-smoke.e2e.mjs
   - feature: explore-entry
     risk_tier: P1
     required_layers:
@@ -139,6 +171,21 @@ features:
       - scenario_id: explore.panel-load
         source_rule: D-GATE-040
         spec_path: apps/desktop/e2e/specs/explore.panel-load.e2e.mjs
+  - feature: explore-feed-profile-modal
+    risk_tier: P1
+    required_layers:
+      - unit_contract
+      - desktop_e2e_journey
+    covers_tabs:
+      - explore
+      - profile
+    covers_bootstrap_phases: []
+    covers_ipc_commands: []
+    covers_runtime_pages: []
+    scenarios:
+      - scenario_id: explore.feed-profile-modal
+        source_rule: D-GATE-040
+        spec_path: apps/desktop/e2e/specs/explore.feed-profile-modal.e2e.mjs
   - feature: world-detail-surface
     risk_tier: P1
     required_layers:

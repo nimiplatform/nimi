@@ -331,7 +331,7 @@ registered_command_families:
         - get_system_resource_snapshot
     origin_crate: apps/desktop/src-tauri
     owner_domain: desktop-device-profile
-    execution_class: request_response_async
+    execution_class: bounded_blocking_with_admission
     remediation_required: false
     admitted_risks:
       - process_command
@@ -388,6 +388,7 @@ registered_command_families:
     admitted_risks:
       - std_fs
       - cpu_hash_or_codec
+      - spawn_blocking
       - runtime_bridge_block_on
       - block_on_variants
       - sync_lock_contention
@@ -450,11 +451,12 @@ registered_command_families:
       prefix: account_profile_library_
     origin_crate: apps/desktop/src-tauri
     owner_domain: desktop-account-profile-library
-    execution_class: request_response_async
+    execution_class: bounded_blocking_with_admission
     remediation_required: false
     admitted_risks:
       - std_fs
       - cpu_hash_or_codec
+      - spawn_blocking
       - runtime_bridge_block_on
       - block_on_variants
       - sync_lock_contention
@@ -471,25 +473,11 @@ registered_command_families:
     admitted_risks:
       - std_fs
       - cpu_hash_or_codec
+      - spawn_blocking
       - runtime_bridge_block_on
       - block_on_variants
       - sync_lock_contention
     source_rule: D-GATE-092
-
-  - family: desktop_agent_center_avatar_assets
-    match:
-      prefix: desktop_agent_center_avatar_
-    origin_crate: apps/desktop/src-tauri
-    owner_domain: desktop-agent-center-resource-store
-    execution_class: bounded_blocking_with_admission
-    remediation_required: false
-    admitted_risks:
-      - std_fs
-      - cpu_hash_or_codec
-      - native_dialog
-      - spawn_blocking
-      - sync_lock_contention
-    source_rule: D-GATE-094
 
   - family: world_tour_launch_and_acceptance
     match:

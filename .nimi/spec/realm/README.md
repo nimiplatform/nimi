@@ -9,7 +9,14 @@
 
 This guide points to Realm authority surfaces for README. It does not define product rules.
 
+## Canonical Inventory
+
+The complete Realm authority inventory is the active file tree under the normative imports above, with `.nimi/spec/realm/kernel/index.md` as the canonical human entrypoint. Do not treat any hand-authored list in this README as an exhaustive authority catalog.
+
 ## Reading Path
+
+- Start at `.nimi/spec/realm/kernel/index.md`.
+- The following files are orientation entrypoints, not the complete authority inventory:
 
 - `.nimi/spec/realm/kernel/index.md`
 - `.nimi/spec/realm/kernel/asset-contract.md`
@@ -26,6 +33,9 @@ This guide points to Realm authority surfaces for README. It does not define pro
 - `.nimi/spec/realm/kernel/transit-contract.md`
 
 ## Tables
+
+- The complete table inventory is `.nimi/spec/realm/kernel/tables/*`.
+- The following files are common entrypoints, not the complete authority inventory:
 
 - `.nimi/spec/realm/kernel/tables/asset-contract.yaml`
 - `.nimi/spec/realm/kernel/tables/attachment-contract.yaml`

@@ -10,12 +10,14 @@ surfaces:
   - RuntimeWorkflowService
   - RuntimeAuditService
   - RuntimeModelService
+  - RuntimeArtifactService
   - method_mappings
 services:
   - RuntimeWorkflowService
   - RuntimeAuditService
   - RuntimeModelService
-method_count: 15
+  - RuntimeArtifactService
+method_count: 16
 method_mappings:
   - design_service: RuntimeWorkflowService
     design_method: SubmitWorkflow
@@ -91,4 +93,9 @@ method_mappings:
     design_method: CheckModelHealth
     proto_service: RuntimeModelService
     proto_method: CheckModelHealth
+    mapping_posture: aligned
+  - design_service: RuntimeArtifactService
+    design_method: ReadArtifactBytes
+    proto_service: RuntimeArtifactService
+    proto_method: ReadArtifactBytes
     mapping_posture: aligned

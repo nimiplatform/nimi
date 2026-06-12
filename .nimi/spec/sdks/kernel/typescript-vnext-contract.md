@@ -57,5 +57,4 @@ OpenAI-compatible boundary:
   OpenAI built-in tools, file search, web search, code interpreter, stored chat
   completion CRUD, logprobs, `n > 1`, general OpenAI API compatibility, and
   Runtime REST bypass promises.
-- Unsupported behavior: fail closed with
-  `unsupported_openai_compat_feature`.
+- Unsupported behavior: fail closed with `SDK_ADAPTER_FEATURE_UNSUPPORTED`.

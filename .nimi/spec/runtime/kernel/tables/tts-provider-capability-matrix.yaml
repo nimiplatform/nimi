@@ -56,7 +56,7 @@ entries:
     supports_tts_synthesize: true
     supports_voice_clone: false
     supports_voice_design: false
-    supports_timing_alignment: true
+    supports_timing_alignment: false
     voice_discovery_mode: static_catalog
     activation_state: active
     source_rule: K-MCAT-023

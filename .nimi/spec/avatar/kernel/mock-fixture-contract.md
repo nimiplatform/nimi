@@ -124,7 +124,7 @@ type MockEvent =
 interface TimeBasedEvent {
   kind: "time";
   at_ms: number;                    // Absolute offset from scenario start
-  type: string;                     // e.g. "runtime.agent.presentation.activity_requested"
+  type: string;                     // e.g. "avatar.fixture.presentation.activity_requested"
   detail: Record<string, any>;
 }
 
@@ -184,7 +184,7 @@ interface MockTrigger {
     {
       "kind": "time",
       "at_ms": 0,
-      "type": "runtime.agent.presentation.activity_requested",
+      "type": "avatar.fixture.presentation.activity_requested",
       "detail": {
         "activity_name": "neutral",
         "category": "emotion",
@@ -195,7 +195,7 @@ interface MockTrigger {
     {
       "kind": "time",
       "at_ms": 3000,
-      "type": "runtime.agent.presentation.activity_requested",
+      "type": "avatar.fixture.presentation.activity_requested",
       "detail": {
         "activity_name": "happy",
         "category": "emotion",
@@ -211,7 +211,7 @@ interface MockTrigger {
       "on": "avatar.user.click",
       "filter": { "region": "head" },
       "emit": {
-        "type": "runtime.agent.presentation.activity_requested",
+        "type": "avatar.fixture.presentation.activity_requested",
         "detail": {
           "activity_name": "shy",
           "category": "emotion",
@@ -223,6 +223,12 @@ interface MockTrigger {
   ]
 }
 ```
+
+Runtime-owned presentation activity/expression event names are not valid mock
+fixture activity names. Mock fixtures that drive activity/expression state MUST
+use `avatar.fixture.presentation.activity_requested`; runtime presentation
+events may only enter through the SDK/runtime consume chain with Runtime
+admission evidence.
 
 ---
 

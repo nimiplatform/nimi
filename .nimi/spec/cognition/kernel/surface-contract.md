@@ -22,6 +22,8 @@ Fixed rules:
   - `KernelService`
   - `MemoryService`
   - `KnowledgeService`
+  - `KnowledgeScopeRegistry`
+  - `AppMemoryAccessService`
   - `SkillService`
   - `WorkingService`
   - `PromptService`

@@ -56,7 +56,7 @@ entries:
 # and reason-codes.yaml (K-ERR-*) by defining the formal correspondence.
 #
 # Direction: Platform protocol error → Runtime reason code
-# Source rules: P-PROTO-020, P-PROTO-030, P-PROTO-040, P-PROTO-050, P-PROTO-060, P-PROTO-070, K-ERR-004, K-AUTHSVC-013
+# Source rules: P-PROTO-020, P-PROTO-030, P-PROTO-035, P-PROTO-040, P-PROTO-050, P-PROTO-060, P-PROTO-070, P-PROTO-010, K-ERR-004, K-AUTHSVC-013
 #
 # Categories:
 #   mapped — same or equivalent code exists in both layers
@@ -105,26 +105,27 @@ mappings:
   # ── mapped: Auth errors → runtime AUTH family ──
   - platform_error: PRINCIPAL_UNAUTHORIZED
     platform_source: P-PROTO-020
-    runtime_reason_code: AUTH_TOKEN_INVALID
-    runtime_code_number: 300
-    runtime_source: K-AUTHN-007
+    runtime_reason_code: PRINCIPAL_UNAUTHORIZED
+    runtime_code_number: 8
+    runtime_source: K-AUTH-001
     category: mapped
-    note: Platform uses generic principal error; runtime specifies token-level reason
+    note: Exact Runtime reason code exists; do not broaden to token-invalid semantics
 
   - platform_error: EXTERNAL_PRINCIPAL_PROOF_INVALID
     platform_source: P-PROTO-020
-    runtime_reason_code: AUTH_UNSUPPORTED_PROOF_TYPE
-    runtime_code_number: 302
-    runtime_source: K-AUTHSVC-013
+    runtime_reason_code: EXTERNAL_PRINCIPAL_PROOF_INVALID
+    runtime_code_number: 114
+    runtime_source: K-AUTHSVC-006
     category: mapped
+    note: Exact Runtime reason code exists; unsupported proof type remains a different auth-service error
 
   - platform_error: APP_TOKEN_EXPIRED
     platform_source: P-PROTO-030
-    runtime_reason_code: AUTH_TOKEN_EXPIRED
-    runtime_code_number: 301
-    runtime_source: K-AUTHSVC-013
+    runtime_reason_code: APP_TOKEN_EXPIRED
+    runtime_code_number: 102
+    runtime_source: K-AUTHSVC-004
     category: mapped
-    note: Platform token expiry maps to runtime auth token expiry
+    note: Exact Runtime reason code exists; external proof JWT expiry remains AUTH_TOKEN_EXPIRED
 
   # ── realm_only: Version negotiation (protocol-layer only) ──
   - platform_error: PROTOCOL_MAJOR_MISMATCH
@@ -172,9 +173,11 @@ mappings:
 
   - platform_error: CAPABILITY_CATALOG_MISMATCH
     platform_source: P-PROTO-002
-    runtime_reason_code: null
-    category: realm_only
-    note: Capability catalog is protocol-only
+    runtime_reason_code: CAPABILITY_CATALOG_MISMATCH
+    runtime_code_number: 4
+    runtime_source: K-ERR-006
+    category: mapped
+    note: Exact Runtime reason code exists for capability catalog mismatch
 
   - platform_error: REALM_PRIMITIVE_PROVIDER_FORBIDDEN
     platform_source: P-PROTO-003
@@ -191,15 +194,19 @@ mappings:
   # ── realm_only: Protocol envelope (protocol-layer only) ──
   - platform_error: PROTOCOL_ENVELOPE_INVALID
     platform_source: P-PROTO-010
-    runtime_reason_code: null
-    category: realm_only
-    note: Envelope validation is protocol-layer
+    runtime_reason_code: PROTOCOL_ENVELOPE_INVALID
+    runtime_code_number: 2
+    runtime_source: K-ERR-003
+    category: mapped
+    note: Exact Runtime reason code exists for envelope validation failure
 
   - platform_error: PROTOCOL_DOMAIN_FIELD_CONFLICT
     platform_source: P-PROTO-010
-    runtime_reason_code: null
-    category: realm_only
-    note: Domain-field consistency is protocol-layer
+    runtime_reason_code: PROTOCOL_DOMAIN_FIELD_CONFLICT
+    runtime_code_number: 3
+    runtime_source: K-ERR-003
+    category: mapped
+    note: Exact Runtime reason code exists for domain-field consistency failure
 
   # ── realm_only: Realm primitive errors ──
   - platform_error: ECONOMY_CONSERVATION_FAILED
@@ -281,48 +288,62 @@ mappings:
     category: realm_only
     note: World-App binding is Realm product model
 
-  # ── unmapped_v1: App auth errors without runtime equivalent yet ──
+  # ── mapped: App auth/grant/delegation/resource/consent errors with exact Runtime equivalents ──
   - platform_error: APP_AUTHORIZATION_DENIED
     platform_source: P-PROTO-030
-    runtime_reason_code: null
-    category: unmapped_v1
-    note: Authorization decision at app/realm level; no runtime-side code in V1
+    runtime_reason_code: APP_AUTHORIZATION_DENIED
+    runtime_code_number: 100
+    runtime_source: K-GRANT-003
+    category: mapped
+    note: Exact Runtime reason code exists for app authorization denial
 
   - platform_error: APP_GRANT_INVALID
     platform_source: P-PROTO-030
-    runtime_reason_code: null
-    category: unmapped_v1
-    note: Grant validation at protocol layer; runtime grant codes cover different semantics
+    runtime_reason_code: APP_GRANT_INVALID
+    runtime_code_number: 101
+    runtime_source: K-GRANT-004
+    category: mapped
+    note: Exact Runtime reason code exists for app grant invalidity
 
   - platform_error: APP_TOKEN_REVOKED
     platform_source: P-PROTO-030
-    runtime_reason_code: null
-    category: unmapped_v1
-    note: Token revocation at protocol layer; runtime handles via session expiry
+    runtime_reason_code: APP_TOKEN_REVOKED
+    runtime_code_number: 103
+    runtime_source: K-AUTHSVC-005
+    category: mapped
+    note: Exact Runtime reason code exists for app token revocation
 
   - platform_error: APP_DELEGATION_FORBIDDEN
     platform_source: P-PROTO-035
-    runtime_reason_code: null
-    category: unmapped_v1
-    note: Delegation policy is protocol-layer; runtime has no delegation enforcement
+    runtime_reason_code: APP_DELEGATION_FORBIDDEN
+    runtime_code_number: 107
+    runtime_source: K-GRANT-005
+    category: mapped
+    note: Exact Runtime reason code exists for delegation policy denial
 
   - platform_error: APP_DELEGATION_DEPTH_EXCEEDED
     platform_source: P-PROTO-035
-    runtime_reason_code: null
-    category: unmapped_v1
-    note: Delegation depth is protocol-layer; runtime has no delegation enforcement
+    runtime_reason_code: APP_DELEGATION_DEPTH_EXCEEDED
+    runtime_code_number: 108
+    runtime_source: K-GRANT-005
+    category: mapped
+    note: Exact Runtime reason code exists for delegation depth failure
 
   - platform_error: EXTERNAL_PRINCIPAL_PROOF_MISSING
     platform_source: P-PROTO-020
-    runtime_reason_code: null
-    category: unmapped_v1
-    note: Proof requirement is protocol-layer; distinct from runtime AUTH_TOKEN_INVALID
+    runtime_reason_code: EXTERNAL_PRINCIPAL_PROOF_MISSING
+    runtime_code_number: 113
+    runtime_source: K-AUTHSVC-006
+    category: mapped
+    note: Exact Runtime reason code exists for missing external principal proof
 
   - platform_error: APP_MODE_WORLD_RELATION_FORBIDDEN
     platform_source: P-PROTO-060
-    runtime_reason_code: null
-    category: unmapped_v1
-    note: World relation mode check; runtime mode codes cover domain/scope only
+    runtime_reason_code: APP_MODE_WORLD_RELATION_FORBIDDEN
+    runtime_code_number: 117
+    runtime_source: K-AUTHSVC-010
+    category: mapped
+    note: Exact Runtime reason code exists for world-relation mode denial
 
   # ── unmapped_v1: Scope extension errors ──
   - platform_error: APP_SCOPE_MANIFEST_INVALID
@@ -345,34 +366,44 @@ mappings:
 
   - platform_error: APP_SCOPE_CATALOG_UNPUBLISHED
     platform_source: P-PROTO-040
-    runtime_reason_code: null
-    category: unmapped_v1
-    note: Catalog publication status at protocol layer
+    runtime_reason_code: APP_SCOPE_CATALOG_UNPUBLISHED
+    runtime_code_number: 105
+    runtime_source: K-GRANT-008
+    category: mapped
+    note: Exact Runtime reason code exists for unpublished app scope catalog
 
   # ── unmapped_v1: App resource/consent errors ──
   - platform_error: APP_RESOURCE_SELECTOR_INVALID
     platform_source: P-PROTO-030
-    runtime_reason_code: null
-    category: unmapped_v1
-    note: Resource selector validation at protocol layer
+    runtime_reason_code: APP_RESOURCE_SELECTOR_INVALID
+    runtime_code_number: 109
+    runtime_source: K-GRANT-003
+    category: mapped
+    note: Exact Runtime reason code exists for invalid app resource selector
 
   - platform_error: APP_RESOURCE_OUT_OF_SCOPE
     platform_source: P-PROTO-030
-    runtime_reason_code: null
-    category: unmapped_v1
-    note: Resource scope enforcement at protocol layer
+    runtime_reason_code: APP_RESOURCE_OUT_OF_SCOPE
+    runtime_code_number: 110
+    runtime_source: K-GRANT-005
+    category: mapped
+    note: Exact Runtime reason code exists for out-of-scope app resource
 
   - platform_error: APP_CONSENT_MISSING
     platform_source: P-PROTO-030
-    runtime_reason_code: null
-    category: unmapped_v1
-    note: Consent requirement at protocol layer
+    runtime_reason_code: APP_CONSENT_MISSING
+    runtime_code_number: 111
+    runtime_source: K-GRANT-003
+    category: mapped
+    note: Exact Runtime reason code exists for missing app consent
 
   - platform_error: APP_CONSENT_INVALID
     platform_source: P-PROTO-030
-    runtime_reason_code: null
-    category: unmapped_v1
-    note: Consent validation at protocol layer
+    runtime_reason_code: APP_CONSENT_INVALID
+    runtime_code_number: 112
+    runtime_source: K-GRANT-003
+    category: mapped
+    note: Exact Runtime reason code exists for invalid app consent
 
   # ── unmapped_v1: Permission errors ──
   - platform_error: ACTION_FORBIDDEN

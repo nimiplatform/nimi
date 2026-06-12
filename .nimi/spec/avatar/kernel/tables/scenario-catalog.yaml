@@ -157,19 +157,19 @@ scenarios: &avatar_scenario_catalog_entries
       (loop=true, fade=0.3). The route is handled by generatedMotionProvider,
       not by built-in `.vrma` interchange assets. With the missing-provider
       test path, generatedMotionRuntime.play returns {played: false,
-      reason: 'generated_motion_provider_missing'}; no `.vrma` fallback is
+      reason: 'missing_profile'}; no `.vrma` fallback is
       treated as runtime support proof.
     tags: ["vrm", "lifecycle", "generated-motion"]
     model_kind: "vrm"
     requires_assets: []
     validates:
       - "applyActivity('listening') -> generatedMotionProvider.play({routeId: 'listen_lean'})"
-      - "generated_motion_provider_missing fail-close when provider is absent"
+      - "missing_profile fail-close when provider is absent"
       - "no .vrma fallback is counted as runtime motion support"
       - "Carrier surface remains visible (no fail_closed)"
 
   - id: "vrm-thinking"
-    title: "VRM thinking activity (idle_subtle fallback)"
+    title: "VRM thinking activity (generated provider fail-close)"
     file: "src/shell/renderer/mock/scenarios/vrm-thinking.mock.json"
     duration_ms: 6000
     loop: false
@@ -177,12 +177,15 @@ scenarios: &avatar_scenario_catalog_entries
       Drives applyActivity('thinking') through the VRM projection chain. Per
       activity-mapping.yaml v2 thinking → vrm.motion='idle_subtle'. The route
       is handled by generatedMotionProvider; the physical idle_subtle.vrma file
-      remains interchange-only evidence, not APML runtime support proof.
+      remains interchange-only evidence, not APML runtime support proof. With
+      the missing-provider test path, generatedMotionRuntime.play returns
+      {played: false, reason: 'missing_profile'}.
     tags: ["vrm", "lifecycle", "generated-motion"]
     model_kind: "vrm"
     requires_assets: ["idle_subtle"]
     validates:
       - "applyActivity('thinking') -> generatedMotionProvider.play({routeId: 'idle_subtle'})"
+      - "missing_profile fail-close when provider is absent"
       - "generated motion route support does not depend on the .vrma registry"
 
   - id: "vrm-speaking-with-audio"

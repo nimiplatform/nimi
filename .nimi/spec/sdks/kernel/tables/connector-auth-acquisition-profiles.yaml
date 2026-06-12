@@ -15,10 +15,6 @@ profiles:
     redirect_uri: https://auth.openai.com/deviceauth/callback
     fallback_verification_url: https://auth.openai.com/codex/device
     token_exchange_provider: CODEX
-    account_id_claim_namespace: https://api.openai.com/auth
-    account_id_claim_field: chatgpt_account_id
-    credential_auth_mode: chatgpt
-    credential_source: device-code
     default_poll_interval_seconds: 5
     min_poll_interval_seconds: 3
     default_expires_in_seconds: 900

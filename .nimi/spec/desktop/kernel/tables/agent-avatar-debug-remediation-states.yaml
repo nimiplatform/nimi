@@ -14,9 +14,6 @@ values:
   - route_unsupported
   - generated_motion_provider_missing
   - replay_unavailable
-  - Terminal states must not be rendered as success.
-  - User remediation may propose actions but may not mutate Runtime or Avatar
-    truth locally.
 owner: .nimi/spec/desktop
 source_rule: D-LLM-085
 status: active

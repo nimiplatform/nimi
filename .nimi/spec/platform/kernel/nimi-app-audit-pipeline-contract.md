@@ -45,7 +45,10 @@ This contract does not own and MUST NOT redefine:
 - the non-gate posture of the developer-side `nimi audit` dry-run
   command (`P-AUDIT-005`);
 - the review-evidence shape on the admitted release descriptor's
-  review block (`P-AUDIT-006`).
+  review block (`P-AUDIT-006`);
+- the review-state transition audit-event admission surface
+  (`P-AUDIT-007`), which records transitions that consume `P-ECO-004`
+  states but does not redefine those states.
 
 `P-AUDIT-*` DOES NOT OWN:
 
@@ -56,7 +59,7 @@ This contract does not own and MUST NOT redefine:
   `nimi-ecosystem-contract.md`;
 - the `P-NAPP-025` review-decision schema — owned by
   `nimi-app-admission-contract.md` and cross-referenced from
-  `P-AUDIT-006`.
+  `P-AUDIT-006` and `P-AUDIT-007`.
 
 `P-AUDIT-*` is additive on TOP of the already-admitted `P-ECO-003`,
 `P-ECO-004`, `P-NAPP-013`, `P-NAPP-014`, and `P-NAPP-018..030`. It
@@ -464,4 +467,6 @@ and do not redefine them.
   `P-DEV-003` (developer-side `nimi audit` command; cross-referenced from
   `P-AUDIT-005`)
 - This contract is the active authority for publish-to-admission gate sequence,
-  audit pipeline, tier-review posture, review states, and solo-reviewer lever.
+  audit pipeline, tier-review posture, review-state transition audit events,
+  and solo-reviewer lever. `P-ECO-004` remains the active authority for the
+  review-state set and tier-to-adjudicator mapping.

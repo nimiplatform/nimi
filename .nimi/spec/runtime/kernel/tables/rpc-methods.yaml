@@ -16,6 +16,7 @@ surfaces:
   - RuntimeModelService
   - RuntimeCognitionService
   - RuntimeAppService
+  - RuntimeArtifactService
   - RuntimeAgentService
 services:
   - name: AIService
@@ -428,6 +429,11 @@ services:
       - name: HealthRepairApp
         type: unary
       - name: OpenApp
+        type: unary
+  - name: RuntimeArtifactService
+    source_rule: K-AGCORE-053
+    methods:
+      - name: ReadArtifactBytes
         type: unary
   - name: RuntimeAgentService
     source_rule: K-RPC-004b
