@@ -3,13 +3,17 @@ use crate::agent_center_avatar_asset::{
     nimi_avatar_resolve_local_avatar_asset, AgentCenterAvatarAssetResolvePayload,
     LocalAvatarAssetResolvePayload,
 };
+use crate::runtime_bridge::{set_runtime_bridge_host_hooks, RuntimeBridgeHostHooks};
 use crate::test_support::test_guard;
 use serde_json::json;
 use sha2::{Digest, Sha256};
 use std::future::Future;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::{Arc, Once};
 use std::time::{SystemTime, UNIX_EPOCH};
+
+const TEST_DATA_ROOT_ENV: &str = "NIMI_AGENT_CENTER_AVATAR_TEST_DATA_ROOT";
 
 fn unique_temp_dir(prefix: &str) -> PathBuf {
     let unique = SystemTime::now()
@@ -19,17 +23,52 @@ fn unique_temp_dir(prefix: &str) -> PathBuf {
     std::env::temp_dir().join(format!("nimi-shell-avatar-asset-{prefix}-{unique}"))
 }
 
-async fn with_home<R, F, Fut>(home: &Path, run: F) -> R
+fn install_data_root_hook() {
+    static INIT: Once = Once::new();
+    INIT.call_once(|| {
+        let _ = set_runtime_bridge_host_hooks(RuntimeBridgeHostHooks {
+            resolve_nimi_data_dir: Some(Arc::new(|| {
+                std::env::var_os(TEST_DATA_ROOT_ENV)
+                    .map(PathBuf::from)
+                    .ok_or_else(|| {
+                        "test data-root hook requires NIMI_AGENT_CENTER_AVATAR_TEST_DATA_ROOT"
+                            .to_string()
+                    })
+            })),
+            ..Default::default()
+        });
+    });
+}
+
+async fn with_admitted_data_root<R, F, Fut>(home: &Path, run: F) -> R
 where
     F: FnOnce() -> Fut,
     Fut: Future<Output = R>,
 {
-    let previous_home = std::env::var("HOME").ok();
-    std::env::set_var("HOME", home);
+    install_data_root_hook();
+    let data_root = home.join(".nimi").join("data");
+    let previous_data_root = std::env::var(TEST_DATA_ROOT_ENV).ok();
+    std::env::set_var(TEST_DATA_ROOT_ENV, &data_root);
     let result = run().await;
-    match previous_home {
-        Some(value) => std::env::set_var("HOME", value),
-        None => std::env::remove_var("HOME"),
+    match previous_data_root {
+        Some(value) => std::env::set_var(TEST_DATA_ROOT_ENV, value),
+        None => std::env::remove_var(TEST_DATA_ROOT_ENV),
+    }
+    result
+}
+
+async fn without_admitted_data_root<R, F, Fut>(run: F) -> R
+where
+    F: FnOnce() -> Fut,
+    Fut: Future<Output = R>,
+{
+    install_data_root_hook();
+    let previous_data_root = std::env::var(TEST_DATA_ROOT_ENV).ok();
+    std::env::remove_var(TEST_DATA_ROOT_ENV);
+    let result = run().await;
+    match previous_data_root {
+        Some(value) => std::env::set_var(TEST_DATA_ROOT_ENV, value),
+        None => std::env::remove_var(TEST_DATA_ROOT_ENV),
     }
     result
 }
@@ -204,7 +243,7 @@ async fn resolves_agent_center_live2d_asset_with_canonical_runtime_dir() {
         br#"{"Version":3}"#,
     );
 
-    let manifest = with_home(&home, || async {
+    let manifest = with_admitted_data_root(&home, || async {
         nimi_avatar_resolve_agent_center_avatar_asset(resolve_payload(
             "account_1",
             "owner_1",
@@ -257,7 +296,7 @@ async fn resolves_local_avatar_asset_from_agent_center_config_selection() {
         "live2d_ab12cd34ef56",
     );
 
-    let manifest = with_home(&home, || async {
+    let manifest = with_admitted_data_root(&home, || async {
         nimi_avatar_resolve_local_avatar_asset(LocalAvatarAssetResolvePayload {
             account_id: "owner_1".to_string(),
             owner_user_id: "owner_1".to_string(),
@@ -294,7 +333,7 @@ async fn rejects_digest_mismatch_before_projecting_runtime_manifest() {
     fs::write(package_dir.join("files/ren.model3.json"), br#"{"Version":4}"#)
         .expect("mutate entry");
 
-    let error = with_home(&home, || async {
+    let error = with_admitted_data_root(&home, || async {
         nimi_avatar_resolve_agent_center_avatar_asset(resolve_payload(
             "account_1",
             "owner_1",
@@ -338,13 +377,54 @@ async fn rejects_materialization_ref_that_does_not_match_scope() {
     payload.materialization_ref = "agent-center-avatar-asset:wrong:wrong:live2d:live2d_ab12cd34ef56"
         .to_string();
 
-    let error = with_home(&home, || async {
+    let error = with_admitted_data_root(&home, || async {
         nimi_avatar_resolve_agent_center_avatar_asset(payload).await
     })
     .await
     .expect_err("materialization mismatch");
 
     assert!(error.contains("materialization_ref does not match"));
+
+    let _ = fs::remove_dir_all(&home);
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn rejects_home_data_root_without_admitted_host_hook() {
+    let _guard = test_guard();
+    let home = unique_temp_dir("no-hook");
+    fs::create_dir_all(&home).expect("home");
+    write_avatar_asset_package(
+        &home,
+        "account_1",
+        "owner_1",
+        "agent_1",
+        "live2d",
+        "live2d_ab12cd34ef56",
+        "files/ren.model3.json",
+        "application/json",
+        br#"{"Version":3}"#,
+    );
+
+    let previous_home = std::env::var("HOME").ok();
+    std::env::set_var("HOME", &home);
+    let error = without_admitted_data_root(|| async {
+        nimi_avatar_resolve_agent_center_avatar_asset(resolve_payload(
+            "account_1",
+            "owner_1",
+            "agent_1",
+            "live2d",
+            "live2d_ab12cd34ef56",
+        ))
+        .await
+    })
+    .await
+    .expect_err("missing admitted data-root hook");
+    match previous_home {
+        Some(value) => std::env::set_var("HOME", value),
+        None => std::env::remove_var("HOME"),
+    }
+
+    assert!(error.contains("requires NIMI_AGENT_CENTER_AVATAR_TEST_DATA_ROOT"));
 
     let _ = fs::remove_dir_all(&home);
 }

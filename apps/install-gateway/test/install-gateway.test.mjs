@@ -91,7 +91,7 @@ test('selectLatestRelease prefers stable releases and falls back to prereleases'
   );
 });
 
-test('githubReleaseApiUrl uses repo defaults and optional overrides', () => {
+test('githubReleaseApiUrl uses the admitted release source and ignores deployment overrides', () => {
   assert.equal(
     githubReleaseApiUrl(),
     'https://api.github.com/repos/nimiplatform/nimi/releases?per_page=50',
@@ -102,7 +102,7 @@ test('githubReleaseApiUrl uses repo defaults and optional overrides', () => {
       GITHUB_REPO_OWNER: 'example',
       GITHUB_REPO_NAME: 'custom',
     }),
-    'https://api.example.com/repos/example/custom/releases?per_page=50',
+    'https://api.github.com/repos/nimiplatform/nimi/releases?per_page=50',
   );
 });
 

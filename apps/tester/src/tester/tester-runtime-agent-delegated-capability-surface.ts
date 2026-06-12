@@ -1,5 +1,5 @@
 import { createNimiHostRuntimeAgentDelegatedCapabilitySurface } from '@nimiplatform/sdk/runtime';
-import { DelegatedApprovalMode, DelegatedProviderKind, DelegatedProviderState, DelegatedProviderTrustTier, DelegatedReplayOutcome, DelegatedTransportKind } from '@nimiplatform/sdk/runtime/generated';
+import { DelegatedApprovalMode, DelegatedProviderKind, DelegatedProviderState, DelegatedProviderTrustTier, DelegatedReplayOutcome, DelegatedTransportKind, EffectClass } from '@nimiplatform/sdk/runtime/generated';
 
 export async function inspectTesterRuntimeAgentDelegatedCapabilitySurface(): Promise<{
   snapshotAgentId: string;
@@ -76,6 +76,7 @@ export async function inspectTesterRuntimeAgentDelegatedCapabilitySurface(): Pro
     args: '',
     toolName: 'tester-tool',
     inputSchemaDigest: '',
+    effectClass: EffectClass.READ_ONLY,
   });
   const replay = await surface.loadReplayTrace('local-agent:tester-user:tester-agent', 'tester-decision');
   return {

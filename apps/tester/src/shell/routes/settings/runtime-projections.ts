@@ -299,10 +299,10 @@ export function createTesterSettingsRuntimeProjections() {
     model: 'local/tester-embedding',
     localModelId: 'tester-local-embedding',
   });
-  const localRuntimeImageNativeEnvironmentPlanPayload = buildNimiRuntimeLocalImageNativeEnvironmentPlanInput(
-    { assetId: 'tester-image-asset', localAssetId: 'tester-local-image-asset' },
-    { os: 'linux', arch: 'x64', gpu: { vendor: 'nvidia' } },
-  );
+  const localRuntimeImageNativeEnvironmentPlanPayload = buildNimiRuntimeLocalImageNativeEnvironmentPlanInput({
+    assetId: 'tester-image-asset',
+    localAssetId: 'tester-local-image-asset',
+  });
   const runtimeCapabilityCoverageProjection = projectNimiRuntimeRouteCapabilityCoverage({
     capability: 'image',
     localNodes: [],

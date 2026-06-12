@@ -298,12 +298,8 @@ fn sha256_file_hex(path: &Path) -> Result<(u64, String), String> {
     Ok((size, format!("{:x}", hasher.finalize())))
 }
 
-fn resolve_home_data_root() -> Result<PathBuf, String> {
-    let home = std::env::var_os("HOME")
-        .map(PathBuf::from)
-        .or_else(dirs::home_dir)
-        .ok_or_else(|| "home directory is unavailable".to_string())?;
-    Ok(home.join(".nimi").join("data"))
+fn resolve_admitted_data_root() -> Result<PathBuf, String> {
+    crate::desktop_paths::resolve_nimi_data_dir()
 }
 
 fn resolve_agent_center_avatar_asset_dir(
@@ -375,7 +371,7 @@ pub async fn nimi_avatar_resolve_agent_center_avatar_asset(
     .map_err(|_| {
         "local_agent_ref must equal local-agent:${owner_user_id}:${realm_agent_id}".to_string()
     })?;
-    let data_root = resolve_home_data_root()?;
+    let data_root = resolve_admitted_data_root()?;
     let materialization_ref =
         validate_handoff_ref(&payload.materialization_ref, "materialization_ref")?;
     let expected_ref = expected_materialization_ref(
@@ -619,7 +615,7 @@ pub async fn nimi_avatar_resolve_local_avatar_asset(
         "local Avatar asset local_agent_ref must equal local-agent:${owner_user_id}:${realm_agent_id}"
             .to_string()
     })?;
-    let data_root = resolve_home_data_root()?;
+    let data_root = resolve_admitted_data_root()?;
     let selection = read_local_avatar_asset_selection(
         &data_root,
         &account_id,

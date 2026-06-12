@@ -1,6 +1,6 @@
-const DEFAULT_GITHUB_API_ORIGIN = 'https://api.github.com';
-const DEFAULT_REPO_OWNER = 'nimiplatform';
-const DEFAULT_REPO_NAME = 'nimi';
+const ADMITTED_GITHUB_API_ORIGIN = 'https://api.github.com';
+const ADMITTED_REPO_OWNER = 'nimiplatform';
+const ADMITTED_REPO_NAME = 'nimi';
 const DEFAULT_CACHE_MAX_AGE_SECONDS = 300;
 
 const REQUIRED_RUNTIME_ARCHIVES = [
@@ -14,19 +14,6 @@ const REQUIRED_RUNTIME_ARCHIVES = [
 
 function normalizeText(value) {
   return String(value || '').trim();
-}
-
-function normalizeApiOrigin(raw) {
-  const value = normalizeText(raw) || DEFAULT_GITHUB_API_ORIGIN;
-  return value.replace(/\/+$/u, '');
-}
-
-function normalizeRepoOwner(raw) {
-  return normalizeText(raw) || DEFAULT_REPO_OWNER;
-}
-
-function normalizeRepoName(raw) {
-  return normalizeText(raw) || DEFAULT_REPO_NAME;
 }
 
 function releasePublishedTimestamp(release) {
@@ -51,10 +38,8 @@ function isTruthyBoolean(value) {
 }
 
 export function githubReleaseApiUrl(env = {}) {
-  const apiOrigin = normalizeApiOrigin(env.GITHUB_API_ORIGIN);
-  const owner = normalizeRepoOwner(env.GITHUB_REPO_OWNER);
-  const repo = normalizeRepoName(env.GITHUB_REPO_NAME);
-  return `${apiOrigin}/repos/${owner}/${repo}/releases?per_page=50`;
+  void env;
+  return `${ADMITTED_GITHUB_API_ORIGIN}/repos/${ADMITTED_REPO_OWNER}/${ADMITTED_REPO_NAME}/releases?per_page=50`;
 }
 
 export function githubApiHeaders(env = {}) {

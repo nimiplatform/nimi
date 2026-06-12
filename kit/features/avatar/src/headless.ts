@@ -103,20 +103,6 @@ export {
   fromLive2DLocalModelManifest,
   fromTauriAvatarModelManifest,
 } from './avatar-model-manifest.js';
-export type {
-  BackendAudioConsumer,
-  BackendBranch,
-  BackendBranchBase,
-  BackendHitRegion,
-  BackendKind,
-  BackendMetadata,
-  BackendNominalBounds,
-  BackendProjection,
-  BackendSurface,
-  BackendSurfaceProps,
-  Live2DBackendExtension,
-  WLipSyncSnapshot,
-} from './backend-branch.js';
 export {
   assertLive2DCompatibilitySupported,
   DEFAULT_MOUTH_OPEN_PARAMETER,
@@ -169,12 +155,6 @@ export type {
   Live2DNominalBoundsModel,
 } from './live2d-nominal-bounds.js';
 export { activityIdToMotionGroup } from './avatar-activity-naming.js';
-export { createLive2DProjectionAdapter } from './live2d-projection-adapter.js';
-export type {
-  Live2DProjectionAdapterDeps,
-  Live2DProjectionCommandBus,
-  Live2DProjectionCommandEvent,
-} from './live2d-projection-adapter.js';
 
 import type {
   AvatarBackendKind,
