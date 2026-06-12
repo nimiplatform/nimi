@@ -104,6 +104,12 @@ type Service struct {
 	realmGroupCandidates           map[string]*realmGroupMessageCandidateEvidenceRecord
 	realmGroupCandidateIdempotency map[string]string
 
+	// participationState is the K-AGCORE-061..088 participation record store
+	// (lazy-initialized through participationStore()); audit/replay lineage
+	// stays in auditStore per K-AGCORE-087.
+	participationOnce  sync.Once
+	participationState *participationStore
+
 	lifeLoopMu     sync.Mutex
 	lifeLoopCancel context.CancelFunc
 	lifeLoopDone   chan struct{}

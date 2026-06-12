@@ -322,6 +322,7 @@ func isKnownReadOperation(operation string) bool {
 	readPrefixes := []string{
 		"Check",
 		"Collect",
+		"Describe",
 		"Get",
 		"History",
 		"Inspect",
