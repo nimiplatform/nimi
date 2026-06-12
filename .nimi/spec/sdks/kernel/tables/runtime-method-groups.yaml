@@ -421,6 +421,29 @@ groups:
       - RequestMemoryEmbeddingRuntimeCutover
       - SubscribeMemoryEvents
     source_rule: S-SURFACE-002
+  - group: agent_participation_projection
+    service: RuntimeAgentService
+    phase: 1
+    status: active
+    note: >
+      Runtime Agent Participation typed projection family
+      (S-RUNTIME-211 through S-RUNTIME-220). SDK exposes
+      runtime.agentParticipation.* as typed clients for the K-AGCORE-061
+      through K-AGCORE-088 participation contracts. Projection only: no
+      prompt construction, no provider/model selection, no verdict
+      decisions, no domain commits. Canonical 1:1 Agent Chat remains on
+      runtime.agent.*; participation output stays candidate-first with
+      direct domain commit forbidden.
+    source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
+    methods:
+      - DescribeParticipationProfiles
+      - DescribeParticipationContextBlocks
+      - ValidateParticipation
+      - ExecuteParticipation
+      - GetParticipationCandidate
+      - GetParticipationVerdicts
+      - ListParticipationAuditEvents
+      - GetParticipationReplay
   - group: agent_service_projection
     service: RuntimeAgentService
     phase: 1

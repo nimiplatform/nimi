@@ -79,7 +79,7 @@ const GROUP_TO_FACADE_ARRAYS = [
     arrays: ['RUNTIME_MEMORY_METHODS'],
   },
   {
-    groups: ['agent_service_projection'],
+    groups: ['agent_service_projection', 'agent_participation_projection'],
     arrays: ['RUNTIME_AGENT_METHODS'],
   },
 ];

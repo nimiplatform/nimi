@@ -503,7 +503,20 @@ function isA2ADependencyName(value) {
 }
 
 function stripA2ANegativeGateGuardTokens(value) {
-  return value.replace(/(['"`])raw_a2a\1/giu, '');
+  return value
+    .replace(/(['"`])raw_a2a\1/giu, '')
+    // K-AGCORE-065 closed axis identifiers: EXTERNAL_A2A_AGENT (identity
+    // source) and PARTICIPATION_EXTERNAL_PROTOCOL_KIND_A2A are admitted
+    // spec-table mirrors whose runtime entry stays fail-closed
+    // (agent-participation-external-entry-boundaries production claim is
+    // MCP-only). Registering the closed enum is not a production A2A
+    // implementation or claim, so the identifiers are guard tokens.
+    .replace(/[A-Za-z0-9_.]*EXTERNAL_A2A_(?:AGENT|PAYLOAD)[A-Za-z0-9_.]*/giu, '')
+    .replace(/[A-Za-z0-9_.]*PROTOCOL_KIND_A2A[A-Za-z0-9_.]*/giu, '')
+    // protobuf-ts strips the shared enum prefix, so the closed
+    // ParticipationExternalProtocolKind member surfaces as `A2A = <n>` in
+    // generated TypeScript; same admitted-spec-mirror reasoning as above.
+    .replace(/\bA2A = \d+\b/gu, '');
 }
 
 function checkConnectorRpcFieldRulesCoverage() {

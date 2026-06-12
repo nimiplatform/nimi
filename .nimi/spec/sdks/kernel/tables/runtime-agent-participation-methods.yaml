@@ -81,9 +81,23 @@ forbidden_type_shapes:
   - raw_provider_payload
   - raw_memory_payload
 
-implementation_status: semantic_contract_only_proto_unavailable
-production_claim_allowed: false
-proto_stub_required_before_production_claim: true
+implementation_status: implemented
+production_claim_allowed: true
+proto_stub_required_before_production_claim: false
+proto_artifact: proto/runtime/v1/agent_participation.proto
+runtime_implementation: runtime/internal/services/runtimeagent/participation_rpc.go
+sdk_projection: sdks/typescript/runtime/runtime-agent-participation.ts
+execution_engine_bound_profiles:
+  - debug_or_probe
+execution_engine_pending_profiles:
+  # realm_group_agent / external_agent_entry execute fail closed with typed
+  # refusals (execution_engine_not_bound / external_entry_not_admitted) until
+  # their engines are bound; scenario_sandbox and oasis_world_participation
+  # remain future_consumer_only per K-AGCORE-077/078.
+  - realm_group_agent
+  - external_agent_entry
+  - scenario_sandbox
+  - oasis_world_participation
 proto_boundary_ref: K-PROTO-012
 audit_boundary_ref: K-AUDIT-022
 source_rules:

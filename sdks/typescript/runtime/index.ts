@@ -73,6 +73,7 @@ export * from './runtime-agent-memory';
 export * from './runtime-agent-presentation';
 export * from './runtime-agent-lifecycle';
 export * from './runtime-agent-delegated';
+export * from './runtime-agent-participation';
 export * from './runtime-agent-group-message';
 export * from './runtime-agent-inspect';
 export * from './runtime-agent-smoke-verification';
@@ -157,6 +158,14 @@ export const RUNTIME_AGENT_METHODS = [
   'writeAgentMemory',
   'getAgentCanonicalMemoryBankStatus',
   'requestAgentCanonicalMemoryBankBind',
+  'describeParticipationProfiles',
+  'describeParticipationContextBlocks',
+  'validateParticipation',
+  'executeParticipation',
+  'getParticipationCandidate',
+  'getParticipationVerdicts',
+  'listParticipationAuditEvents',
+  'getParticipationReplay',
   'subscribeAgentEvents',
 ] as const satisfies readonly RuntimeTypedMethodName[];
 

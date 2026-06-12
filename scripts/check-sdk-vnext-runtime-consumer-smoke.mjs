@@ -65,10 +65,6 @@ import {
   RuntimeHealthStatus,
 } from '@nimiplatform/sdk/runtime/generated';
 import {
-  createAgentIdentityProjectionClient,
-  isCanonicalAgentTier,
-} from '@nimiplatform/sdk/agent';
-import {
   asNimiError,
   createNimiError,
   isNimiError,
@@ -137,17 +133,6 @@ assert.equal(buildRuntimeAgentRequestContext({
   subjectUserId: 'user-1',
   localAgentRef: 'local-agent:user-1:agent-1',
 }).appId, 'consumer.app');
-assert.equal(isCanonicalAgentTier('account-scoped'), true);
-const identity = createAgentIdentityProjectionClient({
-  async getAgentReference(refId) {
-    return { agentRefId: refId, tier: 'account-scoped', subjectUserId: 'user-1' };
-  },
-  async listAgentReferencesForUser(subjectUserId) {
-    return [{ agentRefId: 'ref-1', tier: 'account-scoped', subjectUserId }];
-  },
-});
-assert.equal((await identity.getAgentReference('ref-1')).tier, 'account-scoped');
-
 const health = await runtime.ready({ metadata: { traceId: 'trace-consumer' } });
 assert.equal(health.status, 3);
 assert.equal(lastUnaryRequest.metadata.appId, 'consumer.app');
@@ -222,10 +207,6 @@ import {
   type GetRuntimeHealthResponse,
 } from '@nimiplatform/sdk/runtime/generated';
 import {
-  createAgentIdentityProjectionClient,
-  type AgentReference,
-} from '@nimiplatform/sdk/agent';
-import {
   createNimiError,
   type NimiError,
 } from '@nimiplatform/sdk/types';
@@ -258,15 +239,6 @@ const firstRunMaterialization: NimiFirstRunMaterializationProjection = {
   missingDependencyFamilies: [],
   dependencies: [],
 };
-const agentIdentityClient = createAgentIdentityProjectionClient({
-  async getAgentReference(refId) {
-    return { agentRefId: refId, tier: 'account-scoped', subjectUserId: 'user-1' };
-  },
-  async listAgentReferencesForUser(subjectUserId) {
-    return [{ agentRefId: 'ref-1', tier: 'account-scoped', subjectUserId }];
-  },
-});
-const agentReference: Promise<AgentReference> = agentIdentityClient.getAgentReference('ref-1');
 const error: NimiError = createNimiError({
   message: 'timeout',
   reasonCode: 'AI_PROVIDER_TIMEOUT',
@@ -280,7 +252,6 @@ void localIdentity;
 void firstRunMaterialization;
 void NIMI_FIRST_RUN_MATERIALIZATION_CONSUMER_SCOPE;
 void NIMI_FIRST_RUN_PHASES;
-void agentReference;
 void error;
 `);
 

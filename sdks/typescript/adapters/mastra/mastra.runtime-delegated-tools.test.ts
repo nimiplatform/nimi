@@ -6,6 +6,7 @@ import { z } from 'zod';
 import {
   DelegatedApprovalRequestState,
   EffectClass,
+  SensitivityClass,
 } from '@nimiplatform/sdk/runtime/generated';
 import {
   toNimiRuntimeProtoStruct,
@@ -198,6 +199,7 @@ test('Mastra Runtime delegated tool fails closed on Runtime approval-required re
           state: DelegatedApprovalRequestState.PENDING,
           delegationRequestId: 'delegation-1',
           effectClass: EffectClass.EXTERNAL_SIDE_EFFECT,
+          sensitivityClass: SensitivityClass.UNKNOWN_SENSITIVE,
           summaryRef: 'summary-1',
           policySnapshotId: 'policy-1',
         },
