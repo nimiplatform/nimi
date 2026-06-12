@@ -63,7 +63,9 @@ jobs:
             fi
           fi
 
-          git diff --name-only "${base_sha}" "${head_sha}" > /tmp/nimi_changed_files.txt || true
+          git rev-parse --verify "${base_sha}^{commit}" >/dev/null
+          git rev-parse --verify "${head_sha}^{commit}" >/dev/null
+          git diff --name-only "${base_sha}" "${head_sha}" > /tmp/nimi_changed_files.txt
 
           docs_changed=false
           core_changed=false
@@ -87,9 +89,9 @@ jobs:
             if [[ "${file}" =~ ${shared_regex} ]]; then
               shared_changed=true
             fi
-          if [[ "${file}" =~ ^sdk/ || "${file}" =~ ^sdks/ || "${file}" =~ ^\.nimi/spec/sdks/ ]]; then
-            sdk_changed=true
-          fi
+            if [[ "${file}" =~ ^sdk/ || "${file}" =~ ^sdks/ || "${file}" =~ ^\.nimi/spec/sdks/ ]]; then
+              sdk_changed=true
+            fi
             if [[ "${file}" =~ ^runtime/ || "${file}" =~ ^proto/ || "${file}" == ".goreleaser.yml" ]]; then
               runtime_changed=true
             fi

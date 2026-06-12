@@ -493,10 +493,14 @@ function main() {
   if (skippedRequiredLanes.length > 0) {
     process.stdout.write(`[live-test-matrix] ERROR: required live matrix lanes skipped: ${skippedRequiredLanes.join(', ')}\n`);
   }
+  if (summary.no_test > 0) {
+    process.stdout.write(`[live-test-matrix] ERROR: live matrix contains ${summary.no_test} declared cells with no test result\n`);
+  }
 
   if (
     skippedRequiredLanes.length > 0
     || summary.failed > 0
+    || summary.no_test > 0
     || runtimeExitStatus !== 0
     || sdkExitStatus !== 0
     || goldExitStatus !== 0

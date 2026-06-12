@@ -29,6 +29,23 @@ import {
   isKnownProjectionKey,
 } from './lib/release-gate/projector-ci-step-block.mjs';
 
+const REQUIRED_WORKFLOW_PROJECTION_KEYS = {
+  'assurance.yml': [
+    'release-target-sdk-static-checks',
+    'release-target-proto-checks',
+    'release-target-runtime-static-checks',
+    'release-target-desktop-static-checks',
+  ],
+  'live-smoke-matrix.yml': ['live-smoke-checks'],
+  'release-runtime.yml': ['live-smoke-checks', 'release-target-runtime-static-checks'],
+  'release.yml': [
+    'live-smoke-checks',
+    'release-target-sdk-static-checks',
+    'release-target-proto-checks',
+    'release-target-desktop-release-checks',
+  ],
+};
+
 function parseArgs(argv) {
   const opts = {
     registryPath: undefined,
@@ -201,6 +218,7 @@ function checkWorkflowFenceDrift(registry, workflowsDir) {
   }
 
   let totalFences = 0;
+  const observedKeysByFile = new Map();
   for (const fileName of entries) {
     const fullPath = path.join(workflowsDir, fileName);
     let text;
@@ -213,6 +231,7 @@ function checkWorkflowFenceDrift(registry, workflowsDir) {
       continue;
     }
     const fences = extractFences(text);
+    observedKeysByFile.set(fileName, fences.map((fence) => fence.key));
     totalFences += fences.length;
     for (const fence of fences) {
       if (!isKnownProjectionKey(fence.key)) {
@@ -239,6 +258,20 @@ function checkWorkflowFenceDrift(registry, workflowsDir) {
           `${fileName}:${fence.headLine}: PROJECTION_DRIFT for key "${fence.key}" — ` +
             `fence content does not match registry projection. Re-run: ` +
             `pnpm exec node scripts/generate-ci-workflow-steps.mjs (lands in W5).`
+        );
+      }
+    }
+  }
+  for (const [fileName, requiredKeys] of Object.entries(REQUIRED_WORKFLOW_PROJECTION_KEYS)) {
+    if (!entries.includes(fileName)) {
+      errors.push(`${fileName}: REQUIRED_WORKFLOW_MISSING`);
+      continue;
+    }
+    const observed = new Set(observedKeysByFile.get(fileName) ?? []);
+    for (const key of requiredKeys) {
+      if (!observed.has(key)) {
+        errors.push(
+          `${fileName}: MISSING_REQUIRED_PROJECTION_KEY "${key}" — release gate coverage is partial`
         );
       }
     }

@@ -161,48 +161,49 @@ jobs:
       - name: Install Buf CLI
         run: go install github.com/bufbuild/buf/cmd/buf@v1.66.1
 
-      - name: Runtime proto lint assurance
-        run: pnpm proto:lint
-
-      - name: Runtime proto breaking assurance
+      # >>> nimi-release-gate-projection: release-target-proto-checks >>>
+      - name: gate.proto.baseline-exists
+        run: test -s runtime/proto/runtime-v1.baseline.binpb
+      - name: gate.proto.breaking
         run: pnpm proto:breaking
-
-      - name: Runtime proto drift assurance
+      - name: gate.proto.drift-check
         run: pnpm proto:drift-check
+      - name: gate.proto.generate
+        run: pnpm proto:generate
+      - name: gate.proto.lint
+        run: pnpm proto:lint
+      # <<< nimi-release-gate-projection: release-target-proto-checks <<<
 
-      - name: Runtime compliance assurance
+      # >>> nimi-release-gate-projection: release-target-runtime-static-checks >>>
+      - name: gate.proto.baseline-exists
+        run: test -s runtime/proto/runtime-v1.baseline.binpb
+      - name: gate.runtime.ai-scenario-coverage
+        run: pnpm check:runtime-ai-scenario-coverage
+      - name: gate.runtime.compliance
         working-directory: runtime
         run: go run ./cmd/runtime-compliance --gate
-
-      - name: Runtime build assurance
+      - name: gate.runtime.go-build
         working-directory: runtime
         run: go build ./...
-
-      - name: Runtime test assurance
+      - name: gate.runtime.go-coverage
+        run: pnpm check:runtime-go-coverage
+      - name: gate.runtime.go-test
         working-directory: runtime
         run: go test ./...
-
-      - name: Runtime vet assurance
+      - name: gate.runtime.go-vet
         working-directory: runtime
         run: go vet ./...
-
-      - name: Runtime Go coverage assurance
-        run: pnpm check:runtime-go-coverage
-
-      - name: Runtime AI scenario coverage assurance
-        run: pnpm check:runtime-ai-scenario-coverage
-
-      - name: Runtime vulnerability assurance
+      - name: gate.runtime.golangci-lint
+        run: pnpm check:runtime-golangci-lint
+      - name: gate.runtime.govulncheck
         run: pnpm check:runtime-govulncheck
-
-      - name: Runtime npm binary smoke assurance
+      - name: gate.sdk.npm-binary-smoke
         run: pnpm check:npm-binary-smoke
-
-      - name: Goreleaser config assurance
+      - name: gate.workflow.runtime-goreleaser-check
         run: go run github.com/goreleaser/goreleaser/v2@latest check --config .goreleaser.yml
-
-      - name: Goreleaser snapshot assurance
+      - name: gate.workflow.runtime-goreleaser-snapshot
         run: pnpm check:runtime-goreleaser-snapshot
+      # <<< nimi-release-gate-projection: release-target-runtime-static-checks <<<
 
   desktop-release-assurance:
     runs-on: ubuntu-22.04
@@ -247,23 +248,30 @@ jobs:
       - name: Build SDK surfaces
         run: pnpm build:sdk
 
-      - name: Desktop Rust audit assurance
+      # >>> nimi-release-gate-projection: release-target-desktop-static-checks >>>
+      - name: gate.cargo.audit
         run: cargo audit --file apps/desktop/src-tauri/Cargo.lock
-
-      - name: Desktop Rust check assurance
+      - name: gate.cargo.check
         run: pnpm --filter @nimiplatform/desktop run check:cargo
-
-      - name: Desktop Rust clippy assurance
+      - name: gate.cargo.clippy
         run: pnpm --filter @nimiplatform/desktop run check:cargo:clippy
-
-      - name: Desktop Rust tests assurance
+      - name: gate.cargo.test
         run: pnpm --filter @nimiplatform/desktop run check:cargo:test
-
-      - name: Desktop runtime bridge tests assurance
+      - name: gate.cargo.test-runtime-bridge
         run: pnpm --filter @nimiplatform/desktop run check:cargo:runtime-bridge
-
-      - name: Desktop group chat contract assurance
+      - name: gate.desktop.group-chat-contract
         run: pnpm check:desktop-group-chat-contract
+      - name: gate.desktop.lint
+        run: pnpm --filter @nimiplatform/desktop lint
+      - name: gate.desktop.release-sync
+        run: pnpm --filter @nimiplatform/desktop run check:desktop-release-sync
+      - name: gate.desktop.test
+        run: pnpm --filter @nimiplatform/desktop test
+      - name: gate.desktop.typecheck
+        run: pnpm --filter @nimiplatform/desktop typecheck
+      - name: gate.desktop.version-sync
+        run: pnpm --filter @nimiplatform/desktop run check:version-sync
+      # <<< nimi-release-gate-projection: release-target-desktop-static-checks <<<
 
       - name: Desktop E2E smoke assurance
         id: desktop_e2e_smoke

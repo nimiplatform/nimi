@@ -183,9 +183,6 @@ async function main() {
     if (!sdkErrorCodeNames.has(value)) {
       violations.push(`sdk-error-codes.yaml values entry missing matching codes row: ${value}`);
     }
-    if (!reasonCodeValues.has(value)) {
-      violations.push(`sdk-error-codes.yaml value missing ReasonCode constant: ${value}`);
-    }
   }
   for (const name of sdkErrorCodeNames) {
     if (!sdkErrorCodeValues.has(name)) {

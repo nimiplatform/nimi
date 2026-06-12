@@ -19,7 +19,7 @@ on:
         required: true
         type: string
       publish:
-        description: Publish to npm instead of running a dry-run
+        description: Dry-run selector for manual dispatch; workflow_dispatch cannot publish
         required: true
         type: boolean
         default: false
@@ -49,6 +49,12 @@ jobs:
           node-version: 24
           registry-url: https://registry.npmjs.org
 
+      - name: Setup Go
+        uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
+        with:
+          go-version-file: runtime/go.mod
+          cache: false
+
       - name: Resolve runtime release tag
         id: tag
         env:
@@ -62,6 +68,10 @@ jobs:
           if [[ "${EVENT_NAME}" == "workflow_dispatch" ]]; then
             TAG="${INPUT_TAG}"
             PUBLISH="${INPUT_PUBLISH}"
+            if [[ "${PUBLISH}" == "true" ]]; then
+              echo "workflow_dispatch may only run the npm binary dry-run; publish requires release-runtime workflow_call" >&2
+              exit 1
+            fi
           else
             TAG="${CALL_TAG}"
             PUBLISH="${CALL_PUBLISH}"
@@ -70,8 +80,8 @@ jobs:
             echo "runtime tag is required" >&2
             exit 1
           fi
-          if [[ "${TAG}" != v* ]]; then
-            echo "runtime tag must start with v: ${TAG}" >&2
+          if ! [[ "${TAG}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
+            echo "runtime tag must be an exact v-prefixed semver tag: ${TAG}" >&2
             exit 1
           fi
           {
@@ -89,9 +99,52 @@ jobs:
           mkdir -p dist/npm-binary
           gh release download "${RELEASE_TAG}" \
             --dir dist/npm-binary \
+            --pattern 'checksums.txt' \
+            --pattern 'checksums.txt.sig' \
+            --pattern 'checksums.txt.pem' \
+            --pattern 'signing-manifest.json' \
             --pattern 'nimi-runtime_*_macos_*.tar.gz' \
             --pattern 'nimi-runtime_*_linux_*.tar.gz' \
             --pattern 'nimi-runtime_*_windows_*.zip'
+
+      - name: Verify runtime release authority chain
+        env:
+          RELEASE_TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          set -euo pipefail
+          test -s dist/npm-binary/checksums.txt
+          test -s dist/npm-binary/checksums.txt.sig
+          test -s dist/npm-binary/checksums.txt.pem
+          test -s dist/npm-binary/signing-manifest.json
+
+          GOBIN="$(go env GOPATH)/bin"
+          echo "${GOBIN}" >> "${GITHUB_PATH}"
+          go install github.com/sigstore/cosign/v2/cmd/cosign@v2.6.2
+          "${GOBIN}/cosign" verify-blob \
+            --certificate dist/npm-binary/checksums.txt.pem \
+            --signature dist/npm-binary/checksums.txt.sig \
+            --certificate-identity-regexp "https://github.com/${{ github.repository }}/.github/workflows/release-runtime.yml@.*" \
+            --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+            dist/npm-binary/checksums.txt
+
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const manifest = JSON.parse(fs.readFileSync('dist/npm-binary/signing-manifest.json', 'utf8'));
+          if (!Array.isArray(manifest) || manifest.length === 0) {
+            throw new Error('runtime signing-manifest.json must be a non-empty array');
+          }
+          const names = new Set(manifest.map((entry) => path.basename(String(entry))));
+          const archives = fs.readdirSync('dist/npm-binary')
+            .filter((name) => /^nimi-runtime_.*(\.tar\.gz|\.zip)$/.test(name));
+          if (archives.length === 0) {
+            throw new Error('no runtime archives were downloaded');
+          }
+          const missing = archives.filter((name) => !names.has(name));
+          if (missing.length > 0) {
+            throw new Error(`runtime archives missing from signing manifest: ${missing.join(', ')}`);
+          }
+          NODE
 
       - name: Stamp npm package versions
         env:

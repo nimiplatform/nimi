@@ -51,7 +51,7 @@ export const PROJECTION_KEY_CATALOG = {
     description: 'ci.yml desktop-web-quality static checks (excluding E2E)',
     tierFilter: 'release-target:desktop',
     targetFilter: 'desktop',
-    excludeIdSubstrings: ['e2e', 'runtime-release-signing'],
+    excludeIdSubstrings: ['e2e', 'macos-smoke', 'runtime-release-signing', 'updater-artifacts'],
   },
   'release-target-desktop-release-checks': {
     description: 'release.yml release-desktop pre-bundle gates',

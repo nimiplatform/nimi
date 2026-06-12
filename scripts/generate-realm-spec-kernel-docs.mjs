@@ -339,13 +339,22 @@ function ensureDerivedRuleCatalog() {
   const catalogPath = path.join(TABLES_DIR, 'rule-catalog.yaml');
   const expected = renderDerivedRuleCatalogYaml();
   const existing = fs.existsSync(catalogPath) ? fs.readFileSync(catalogPath, 'utf8') : '';
-  if (CHECK_MODE) {
-    if (normalizeYaml(existing) !== expected) {
-      throw new Error(`Realm rule catalog drift detected: ${relativeToRoot(catalogPath)} must be regenerated from contract tables`);
+  if (normalizeYaml(existing) !== expected) {
+    const message = `Realm rule catalog drift detected: ${relativeToRoot(catalogPath)} must be regenerated from parent Realm authority`;
+    if (CHECK_MODE) {
+      throw new Error(message);
     }
+    throw new Error(
+      [
+        message,
+        'nested nimi cannot write .nimi/spec/realm/** as source authority',
+        'run the parent Realm workflow: pnpm --dir .. spec:realm:generate && pnpm --dir .. spec:realm:sync:nimi && pnpm --dir .. spec:realm:check:nimi-sync',
+      ].join('\n')
+    );
+  }
+  if (CHECK_MODE) {
     return;
   }
-  writeFile(catalogPath, expected);
 }
 
 function buildRenderTargets() {

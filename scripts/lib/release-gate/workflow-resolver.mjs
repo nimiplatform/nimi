@@ -126,7 +126,10 @@ function tokenize(input) {
       if (c === ' ' || c === '\t') break;
       // Stop at shell separators — anything after is a follow-up
       // command, not pnpm argv.
-      if (c === '|' || c === '&' || c === ';' || c === '>') break;
+      if (c === '|' || c === '&' || c === ';' || c === '>') {
+        i = input.length;
+        break;
+      }
       token += c;
       i += 1;
     }

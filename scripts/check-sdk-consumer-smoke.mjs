@@ -152,7 +152,7 @@ class FakeRuntimeTransport {
 }
 
 const transport = new FakeRuntimeTransport();
-const runtime = createRuntime({ transport, authMetadata: () => ({ authorization: 'Bearer smoke-token' }) });
+const runtime = createRuntime({ transport, authMetadata: () => ({ 'x-nimi-access-token-id': 'smoke-token-id' }) });
 const client = createNimiClient({ appId: 'app.nimi.sdk-smoke', runtime, realm: false });
 
 assert.equal(client.appId, 'app.nimi.sdk-smoke');

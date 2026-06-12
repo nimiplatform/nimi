@@ -141,6 +141,22 @@ test('extractPnpmReferences: script with trailing flags', () => {
   }
 });
 
+test('extractPnpmReferences: shell separators terminate the pnpm argv', () => {
+  const root = makeRoot();
+  try {
+    writeWorkflow(
+      root,
+      'a.yml',
+      'jobs:\n  j:\n    steps:\n      - run: pnpm check:foo && pnpm build\n'
+    );
+    const refs = extractPnpmReferences(path.join(root, '.github', 'workflows', 'a.yml'));
+    assert.equal(refs.length, 1);
+    assert.equal(refs[0].script, 'check:foo');
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test('extractPnpmReferences: --filter @pkg <script>', () => {
   const root = makeRoot();
   try {

@@ -1,10 +1,15 @@
 #!/usr/bin/env node
 
+import fs from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import process from 'node:process';
+import YAML from 'yaml';
 
 const REALM_SPEC_ROOT = '.nimi/spec/realm';
 const BYPASS_ENV = 'NIMI_ALLOW_REALM_SPEC_PROJECTION_SYNC';
+const DELEGATED_PROJECTION_ADMISSIONS =
+  '.nimi/spec/platform/kernel/tables/delegated-projection-admissions.yaml';
+const REALM_ADMISSION_ID = 'realm-parent-spec-projection';
 
 function runGit(args) {
   const result = spawnSync('git', args, {
@@ -17,6 +22,50 @@ function runGit(args) {
     throw new Error(`git ${args.join(' ')} failed${detail ? `: ${detail}` : ''}`);
   }
   return String(result.stdout || '');
+}
+
+function runShell(command) {
+  const result = spawnSync(command, {
+    cwd: process.cwd(),
+    shell: true,
+    stdio: 'inherit',
+  });
+  if (result.error) {
+    throw result.error;
+  }
+  if (result.status !== 0) {
+    throw new Error(`delegated Realm projection verification failed: ${command}`);
+  }
+}
+
+function loadRealmProjectionAdmission() {
+  const text = fs.readFileSync(DELEGATED_PROJECTION_ADMISSIONS, 'utf8');
+  const document = YAML.parse(text);
+  const admissions = Array.isArray(document?.admissions) ? document.admissions : [];
+  const admission = admissions.find((item) => item?.id === REALM_ADMISSION_ID);
+  if (!admission) {
+    throw new Error(`${DELEGATED_PROJECTION_ADMISSIONS}: missing ${REALM_ADMISSION_ID}`);
+  }
+  if (admission.admission_posture !== 'active') {
+    throw new Error(`${REALM_ADMISSION_ID} admission_posture must be active`);
+  }
+  if (admission.authority_root !== REALM_SPEC_ROOT) {
+    throw new Error(`${REALM_ADMISSION_ID} authority_root must be ${REALM_SPEC_ROOT}`);
+  }
+  const commands = Array.isArray(admission.required_verification_commands)
+    ? admission.required_verification_commands.map((item) => String(item || '').trim()).filter(Boolean)
+    : [];
+  if (commands.length === 0) {
+    throw new Error(`${REALM_ADMISSION_ID} must declare required_verification_commands`);
+  }
+  return { commands };
+}
+
+function runRequiredProjectionVerification() {
+  const admission = loadRealmProjectionAdmission();
+  for (const command of admission.commands) {
+    runShell(command);
+  }
 }
 
 function listRealmSpecChanges() {
@@ -62,15 +111,16 @@ function printBlockedMessage(paths) {
 }
 
 function main() {
+  runRequiredProjectionVerification();
   const paths = listRealmSpecChanges();
   if (paths.length === 0) {
-    process.stdout.write('realm spec projection guard passed\n');
+    process.stdout.write('realm spec projection guard passed with delegated verification\n');
     return;
   }
 
   if (process.env[BYPASS_ENV] === '1') {
     process.stdout.write(
-      `realm spec projection guard bypassed by ${BYPASS_ENV}=1 for ${paths.length} projected file change(s)\n`,
+      `realm spec projection guard verified and acknowledged by ${BYPASS_ENV}=1 for ${paths.length} projected file change(s)\n`,
     );
     return;
   }

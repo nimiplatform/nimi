@@ -58,16 +58,28 @@ test('--filter glob value', () => {
   assert.equal(r.options.filter, 'gate.runtime.*');
 });
 
+test('--require-release combined with --filter is rejected', () => {
+  const r = parseArgs(['--require-release', '--filter', 'gate.runtime.*']);
+  assert.equal(r.ok, false);
+  assert.match(r.error, /forbids --filter/);
+});
+
 test('--no-color flips color flag', () => {
   const r = parseArgs(['--no-color']);
   assert.equal(r.ok, true);
   assert.equal(r.options.color, false);
 });
 
-test('--evidence-out value', () => {
+test('--evidence-out is rejected', () => {
   const r = parseArgs(['--evidence-out', '/tmp/x.json']);
-  assert.equal(r.ok, true);
-  assert.equal(r.options.evidenceOut, '/tmp/x.json');
+  assert.equal(r.ok, false);
+  assert.match(r.error, /unknown argument/);
+});
+
+test('--registry-path is rejected', () => {
+  const r = parseArgs(['--registry-path', '/tmp/registry.yaml']);
+  assert.equal(r.ok, false);
+  assert.match(r.error, /unknown argument/);
 });
 
 test('unknown argument rejected', () => {

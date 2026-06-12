@@ -273,21 +273,41 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
+        with:
+          version: 10.32.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+
       - name: Setup Go
         uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
         with:
           go-version: '1.26.4'
           cache: false
 
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
       - name: Install Buf CLI
         run: go install github.com/bufbuild/buf/cmd/buf@v1.66.1
 
-      - name: Validate proto contracts
-        run: |
-          set -euo pipefail
-          BUF_BIN="$(go env GOPATH)/bin/buf"
-          "${BUF_BIN}" lint proto
-          "${BUF_BIN}" breaking proto --against runtime/proto/runtime-v1.baseline.binpb
+      # >>> nimi-release-gate-projection: release-target-proto-checks >>>
+      - name: gate.proto.baseline-exists
+        run: test -s runtime/proto/runtime-v1.baseline.binpb
+      - name: gate.proto.breaking
+        run: pnpm proto:breaking
+      - name: gate.proto.drift-check
+        run: pnpm proto:drift-check
+      - name: gate.proto.generate
+        run: pnpm proto:generate
+      - name: gate.proto.lint
+        run: pnpm proto:lint
+      # <<< nimi-release-gate-projection: release-target-proto-checks <<<
 
       - name: Push proto module (or dry-run)
         run: |
@@ -507,7 +527,7 @@ jobs:
 
       - name: Write desktop updater Tauri config
         env:
-          NIMI_DESKTOP_UPDATER_ENDPOINT: ${{ vars.NIMI_DESKTOP_UPDATER_ENDPOINT || 'https://install.nimi.ai/desktop/latest.json' }}
+          NIMI_DESKTOP_UPDATER_ENDPOINT: ${{ vars.NIMI_DESKTOP_UPDATER_ENDPOINT }}
         run: |
           node apps/desktop/scripts/write-updater-tauri-config.mjs \
             --output apps/desktop/src-tauri/target/ci-updater.conf.json
@@ -517,10 +537,6 @@ jobs:
           set -euo pipefail
           if [[ -z "${NIMI_DESKTOP_UPDATER_PUBLIC_KEY:-}" ]]; then
             echo "NIMI_DESKTOP_UPDATER_PUBLIC_KEY is required" >&2
-            exit 1
-          fi
-          if [[ -z "${NIMI_DESKTOP_UPDATER_ENDPOINT:-}" ]]; then
-            echo "NIMI_DESKTOP_UPDATER_ENDPOINT is required" >&2
             exit 1
           fi
           if [[ -z "${TAURI_SIGNING_PRIVATE_KEY:-}" ]]; then
@@ -564,7 +580,6 @@ jobs:
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           MACOS_SIGNING_MODE: ${{ steps.macos_signing.outputs.mode }}
-          NIMI_DESKTOP_UPDATER_ENDPOINT: ${{ vars.NIMI_DESKTOP_UPDATER_ENDPOINT || 'https://install.nimi.ai/desktop/latest.json' }}
           REQUIRE_APPLE_CREDENTIALS: ${{ steps.macos_signing.outputs.require_apple_credentials }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
 
@@ -575,19 +590,13 @@ jobs:
             --channel stable \
             --commit "${GITHUB_SHA}"
 
-      - name: Validate desktop version sync
-        run: pnpm --filter @nimiplatform/desktop run check:version-sync -- --expected "${RELEASE_VERSION}"
-
-      - name: Validate bundled runtime manifest
-        run: pnpm --filter @nimiplatform/desktop run check:desktop-release-sync -- --expected "${RELEASE_VERSION}"
-
       - name: Build desktop artifacts (non-macOS)
         id: tauri_build_non_macos
         if: matrix.platform != 'macos-latest'
         uses: tauri-apps/tauri-action@73fb865345c54760d875b94642314f8c0c894afa # action-v0.6.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NIMI_DESKTOP_UPDATER_ENDPOINT: ${{ vars.NIMI_DESKTOP_UPDATER_ENDPOINT || 'https://install.nimi.ai/desktop/latest.json' }}
+          NIMI_DESKTOP_UPDATER_ENDPOINT: ${{ vars.NIMI_DESKTOP_UPDATER_ENDPOINT }}
           NIMI_DESKTOP_MACOS_SIGNING_MODE: ${{ steps.macos_signing.outputs.mode }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
@@ -608,7 +617,7 @@ jobs:
         uses: tauri-apps/tauri-action@73fb865345c54760d875b94642314f8c0c894afa # action-v0.6.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NIMI_DESKTOP_UPDATER_ENDPOINT: ${{ vars.NIMI_DESKTOP_UPDATER_ENDPOINT || 'https://install.nimi.ai/desktop/latest.json' }}
+          NIMI_DESKTOP_UPDATER_ENDPOINT: ${{ vars.NIMI_DESKTOP_UPDATER_ENDPOINT }}
           NIMI_DESKTOP_MACOS_SIGNING_MODE: ${{ steps.macos_signing.outputs.mode }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
@@ -630,7 +639,7 @@ jobs:
         uses: tauri-apps/tauri-action@73fb865345c54760d875b94642314f8c0c894afa # action-v0.6.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NIMI_DESKTOP_UPDATER_ENDPOINT: ${{ vars.NIMI_DESKTOP_UPDATER_ENDPOINT || 'https://install.nimi.ai/desktop/latest.json' }}
+          NIMI_DESKTOP_UPDATER_ENDPOINT: ${{ vars.NIMI_DESKTOP_UPDATER_ENDPOINT }}
           NIMI_DESKTOP_MACOS_SIGNING_MODE: ${{ steps.macos_signing.outputs.mode }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
@@ -670,21 +679,38 @@ jobs:
             echo '__NIMI_ARTIFACT_PATHS__'
           } >> "${GITHUB_OUTPUT}"
 
-      - name: Validate desktop updater artifacts
-        env:
-          NIMI_ARTIFACT_PATHS_JSON: ${{ steps.tauri_build.outputs.artifactPaths }}
-          NIMI_EXPECTED_BUNDLE: ${{ matrix.extra_args }}
-        run: pnpm --filter @nimiplatform/desktop run check:desktop-updater-artifacts
-
-      - name: Generate SBOM + sign desktop artifacts
-        id: desktop_supply_chain
+      - name: Project desktop release gate environment
         env:
           NIMI_ARTIFACT_PATHS_JSON: ${{ steps.tauri_build.outputs.artifactPaths }}
           NIMI_SIGN_IDENTITY_REGEX: https://github.com/${{ github.repository }}/.github/workflows/release.yml@.*
           NIMI_SIGN_OUTPUT_MANIFEST: apps/desktop/signing-manifest-${{ matrix.platform }}.json
+          NIMI_EXPECTED_BUNDLE: ${{ matrix.extra_args }}
         run: |
           set -euo pipefail
-          pnpm check:runtime-release-signing
+          {
+            echo 'NIMI_ARTIFACT_PATHS_JSON<<__NIMI_ARTIFACT_PATHS_JSON__'
+            printf '%s\n' "${NIMI_ARTIFACT_PATHS_JSON}"
+            echo '__NIMI_ARTIFACT_PATHS_JSON__'
+            echo "NIMI_SIGN_IDENTITY_REGEX=${NIMI_SIGN_IDENTITY_REGEX}"
+            echo "NIMI_SIGN_OUTPUT_MANIFEST=${NIMI_SIGN_OUTPUT_MANIFEST}"
+            echo "NIMI_EXPECTED_BUNDLE=${NIMI_EXPECTED_BUNDLE}"
+          } >> "${GITHUB_ENV}"
+
+      # >>> nimi-release-gate-projection: release-target-desktop-release-checks >>>
+      - name: gate.desktop.release-sync
+        run: pnpm --filter @nimiplatform/desktop run check:desktop-release-sync
+      - name: gate.desktop.updater-artifacts
+        run: pnpm --filter @nimiplatform/desktop run check:desktop-updater-artifacts
+      - name: gate.desktop.version-sync
+        run: pnpm --filter @nimiplatform/desktop run check:version-sync
+      - name: gate.security.runtime-release-signing
+        run: pnpm check:runtime-release-signing
+      # <<< nimi-release-gate-projection: release-target-desktop-release-checks <<<
+
+      - name: Collect desktop supply chain outputs
+        id: desktop_supply_chain
+        run: |
+          set -euo pipefail
           node <<'NODE'
           const fs = require('node:fs');
           const outputPath = process.env.GITHUB_OUTPUT;

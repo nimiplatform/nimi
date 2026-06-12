@@ -85,14 +85,18 @@ export function checkDesktopFeatureCoverage(fail, kernelRuleDefinitions) {
   }
 
   const doc = readYaml(tablePath) || {};
+  const entries = Array.isArray(doc?.entries) ? doc.entries.map((value) => String(value || '').trim()).filter(Boolean) : [];
   const features = Array.isArray(doc?.features) ? doc.features : [];
   if (features.length === 0) {
     fail(`${tablePath} must define at least one feature`);
     return;
   }
+  if (entries.length !== features.length) {
+    fail(`${tablePath} entries length ${entries.length} must match features length ${features.length}`);
+  }
 
   const featureMap = new Map();
-  for (const featureEntry of features) {
+  for (const [index, featureEntry] of features.entries()) {
     const feature = String(featureEntry?.feature || '').trim();
     const riskTier = String(featureEntry?.risk_tier || '').trim();
     const requiredLayers = Array.isArray(featureEntry?.required_layers) ? featureEntry.required_layers : [];
@@ -104,6 +108,10 @@ export function checkDesktopFeatureCoverage(fail, kernelRuleDefinitions) {
     if (!feature) {
       fail(`${tablePath} contains feature entry with empty feature id`);
       continue;
+    }
+    const expectedEntryId = `features_${index + 1}`;
+    if (entries[index] !== expectedEntryId) {
+      fail(`${tablePath} entry index ${index + 1} must be ${expectedEntryId}, got ${entries[index] || '<missing>'}`);
     }
     if (featureMap.has(feature)) {
       fail(`${tablePath} contains duplicate feature id: ${feature}`);

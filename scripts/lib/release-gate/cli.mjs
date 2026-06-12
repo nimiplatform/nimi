@@ -41,14 +41,12 @@ const USAGE = [
   '                              Forbidden together with --require-release.',
   '  --require-release           Treat blocked verdicts as fail in summary',
   '                              (CI release path uses this)',
-  '  --filter <glob>             Filter gate ids by glob (e.g. gate.runtime.*)',
+  '  --filter <glob>             Filter gate ids by glob for local diagnostic runs',
+  '                              (forbidden together with --require-release)',
   '  --json                      Print evidence JSON to stdout in addition',
   '                              to writing the evidence file',
-  '  --evidence-out <path>       Override evidence JSON output path',
-  '                              (default: .local/report/release/preflight-evidence-<ISO8601>.json)',
+  '                              (default evidence path: .local/report/release/preflight-evidence-<ISO8601>.json)',
   '  --no-color                  Disable TTY colour output',
-  '  --registry-path <path>      Override registry yaml path',
-  '                              (default: .nimi/spec/platform/kernel/tables/release-gate-registry.yaml)',
   '  --help                      Print this help and exit',
   '',
   'Verdict semantics (P-RELG-005):',
@@ -86,9 +84,7 @@ export function parseArgs(argv) {
     requireRelease: false,
     filter: null,
     json: false,
-    evidenceOut: null,
     color: true,
-    registryPath: null,
     help: false,
   };
 
@@ -129,20 +125,8 @@ export function parseArgs(argv) {
       case '--json':
         options.json = true;
         break;
-      case '--evidence-out':
-        options.evidenceOut = argv[++i];
-        if (typeof options.evidenceOut !== 'string') {
-          return { ok: false, error: '--evidence-out requires a value' };
-        }
-        break;
       case '--no-color':
         options.color = false;
-        break;
-      case '--registry-path':
-        options.registryPath = argv[++i];
-        if (typeof options.registryPath !== 'string') {
-          return { ok: false, error: '--registry-path requires a value' };
-        }
         break;
       default:
         return { ok: false, error: `unknown argument: ${arg}` };
@@ -155,6 +139,13 @@ export function parseArgs(argv) {
       ok: false,
       error:
         '--require-release forbids --allow-blocked-tiers (release path treats blocked as fail)',
+    };
+  }
+
+  if (options.requireRelease && options.filter != null) {
+    return {
+      ok: false,
+      error: '--require-release forbids --filter (release evidence must cover the full selected release tier/target)',
     };
   }
 

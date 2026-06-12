@@ -50,7 +50,7 @@ async function main() {
     options.color && (process.stdout.isTTY ?? false) && process.env.NO_COLOR == null;
 
   // 1. Load registry
-  const loadResult = loadRegistry(options.registryPath ?? undefined);
+  const loadResult = loadRegistry();
   if (!loadResult.ok) {
     for (const err of loadResult.errors) {
       process.stderr.write(`registry-load error: ${err}\n`);
@@ -114,7 +114,7 @@ async function main() {
   assertEvidenceShape(document);
 
   // 7. Write evidence
-  const evidencePath = options.evidenceOut ?? defaultEvidencePath(startedAt);
+  const evidencePath = defaultEvidencePath(startedAt);
   writeEvidenceFile(document, evidencePath);
 
   // 8. Print summary

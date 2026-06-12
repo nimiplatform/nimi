@@ -80,6 +80,11 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
+        with:
+          version: 10.32.1
+
       - name: Setup Go
         uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
         with:
@@ -92,6 +97,9 @@ jobs:
           node-version: 24
           package-manager-cache: false
 
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
       - name: Resolve runtime semver tag
         id: runtime_tag
         run: |
@@ -100,6 +108,37 @@ jobs:
             exit 1
           fi
           echo "tag=${GITHUB_REF_NAME#runtime/}" >> "${GITHUB_OUTPUT}"
+
+      # >>> nimi-release-gate-projection: release-target-runtime-static-checks >>>
+      - name: gate.proto.baseline-exists
+        run: test -s runtime/proto/runtime-v1.baseline.binpb
+      - name: gate.runtime.ai-scenario-coverage
+        run: pnpm check:runtime-ai-scenario-coverage
+      - name: gate.runtime.compliance
+        working-directory: runtime
+        run: go run ./cmd/runtime-compliance --gate
+      - name: gate.runtime.go-build
+        working-directory: runtime
+        run: go build ./...
+      - name: gate.runtime.go-coverage
+        run: pnpm check:runtime-go-coverage
+      - name: gate.runtime.go-test
+        working-directory: runtime
+        run: go test ./...
+      - name: gate.runtime.go-vet
+        working-directory: runtime
+        run: go vet ./...
+      - name: gate.runtime.golangci-lint
+        run: pnpm check:runtime-golangci-lint
+      - name: gate.runtime.govulncheck
+        run: pnpm check:runtime-govulncheck
+      - name: gate.sdk.npm-binary-smoke
+        run: pnpm check:npm-binary-smoke
+      - name: gate.workflow.runtime-goreleaser-check
+        run: go run github.com/goreleaser/goreleaser/v2@latest check --config .goreleaser.yml
+      - name: gate.workflow.runtime-goreleaser-snapshot
+        run: pnpm check:runtime-goreleaser-snapshot
+      # <<< nimi-release-gate-projection: release-target-runtime-static-checks <<<
 
       - name: Goreleaser release
         uses: goreleaser/goreleaser-action@ec59f474b9834571250b370d4735c50f8e2d1e29 # v7.0.0
