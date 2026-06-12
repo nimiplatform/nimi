@@ -185,3 +185,24 @@ presentation, or action surfaces.
 Only an admitted closed firewall surface may transform quarantined gateway
 evidence into accepted observation, suggestion, artifact, failure, approval, or
 action input semantics.
+
+## K-DELEG-130 MCP Protocol Revision Result Boundary
+
+The 2026-07-28 MCP revision introduces negotiated extensions, model-requested
+tool results (`inputRequests`), and task handles. None of them is admitted
+into the Runtime MCP adapter surface.
+
+Fixed rules:
+
+- the Runtime MCP gateway advertises no MCP extensions during connect and
+  treats extension negotiation results as quarantined adapter evidence only
+  (`K-DELEG-044`)
+- a `tools/call` result carrying MRTR `inputRequests`, an unsolicited task
+  handle, or any extension-negotiated continuation is not a supported result
+  shape; it must fail closed as result-invalid (`K-DELEG-108`, `K-DELEG-114`)
+  instead of being partially accepted, deferred, or silently stripped
+- the gateway must not poll, resume, or acknowledge task handles; task
+  lifecycle participation is not admitted by this contract
+- a future remote-HTTP transport admission must satisfy the stateless
+  no-session-affinity model and the revision's required request headers, and
+  requires its own packet; nothing in this rule pre-admits it

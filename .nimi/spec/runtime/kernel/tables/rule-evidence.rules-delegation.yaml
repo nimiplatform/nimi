@@ -123,6 +123,7 @@ entries:
   - K-DELEG-127
   - K-DELEG-128
   - K-DELEG-129
+  - K-DELEG-130
 rules:
   - rule_id: K-DELEG-001
     evidence_refs:
@@ -519,4 +520,9 @@ rules:
   - rule_id: K-DELEG-129
     evidence_refs:
       - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-DELEG-130
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: 2026-07-28 MCP revision boundary — no extension advertisement, MRTR inputRequests and unsolicited task handles fail closed as result-invalid, task lifecycle not admitted, remote-HTTP needs its own packet
     evidence_requirement: required
