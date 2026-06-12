@@ -5,6 +5,7 @@ import {
   loadChatAgentAvatarLive2dModelSource,
   parseChatAgentAvatarLive2dMocVersion,
   parseChatAgentAvatarLive2dModelSettings,
+  resolveChatAgentAvatarLive2dAssetUrl,
   resolvePreferredLive2dIdleMotionGroup,
   resolvePreferredLive2dSpeechMotionGroup,
 } from '../src/shell/renderer/features/chat/chat-agent-avatar-live2d-viewport-state.js';
@@ -53,5 +54,16 @@ test('live2d viewport state fails closed when stale desktop-avatar source loadin
       'desktop-avatar://resource-live2d/airi.model3.json',
     ),
     /desktop-avatar:\/\/ asset references are decommissioned/i,
+  );
+});
+
+test('live2d viewport state rejects raw renderer asset references', async () => {
+  assert.equal(resolveChatAgentAvatarLive2dAssetUrl('https://assets.example.test/airi.model3.json'), null);
+  assert.equal(resolveChatAgentAvatarLive2dAssetUrl('file:///Users/example/airi.model3.json'), null);
+  assert.equal(resolveChatAgentAvatarLive2dAssetUrl('data:application/json;base64,e30='), null);
+
+  await assert.rejects(
+    () => loadChatAgentAvatarLive2dModelSource('https://assets.example.test/airi.model3.json'),
+    /Avatar-owned carrier/i,
   );
 });

@@ -290,6 +290,7 @@
   "agentCenterAvatarAssetMissing": "Avatar 启动前需要选择本地 Avatar 资源。",
   "agentCenterAvatarImportAgentRequired": "请先选择 Agent，再导入 Avatar 资源。",
   "agentCenterAvatarImportDesktopOnly": "Avatar 资源导入仅在桌面应用中可用。",
+  "agentCenterAvatarCarrierDecommissioned": "桌面本地 Live2D/VRM carrier 资源已停用。请改为启动 Avatar 拥有的 carrier。",
   "agentCenterAvatarImporting": "导入中...",
   "agentCenterImportLive2d": "导入 Live2D 文件夹",
   "agentCenterImportVrm": "导入 VRM 文件",

@@ -74,7 +74,7 @@ pub fn handle_menu_event(app: &AppHandle, menu_id: &str) -> Result<(), String> {
             set_window_visible(app, true);
         }
         MENU_ID_OPEN_RUNTIME_DASHBOARD => open_tab(app, "runtime", Some("overview"))?,
-        MENU_ID_OPEN_LOCAL_MODELS => open_tab(app, "runtime", Some("local"))?,
+        MENU_ID_OPEN_LOCAL_MODELS => open_tab(app, "runtime", Some("models"))?,
         MENU_ID_OPEN_CLOUD_CONNECTORS => open_tab(app, "runtime", Some("cloud"))?,
         MENU_ID_OPEN_SETTINGS => open_tab(app, "settings", None)?,
         MENU_ID_START_RUNTIME => {
@@ -126,6 +126,9 @@ fn open_tab(app: &AppHandle, tab: &str, page: Option<&str>) -> Result<(), String
 }
 
 pub fn request_quit(app: &AppHandle) -> Result<(), String> {
+    if !super::is_enabled() {
+        return Err("menu bar shell is disabled".to_string());
+    }
     let store = app.state::<MenuBarShellStore>();
     if store.quit_pending() {
         return Ok(());
@@ -147,7 +150,9 @@ fn runtime_action_enabled(status: &RuntimeBridgeDaemonStatus, action: RuntimeAct
 
 pub fn force_complete_quit(app: &AppHandle) -> Result<(), String> {
     let store = app.state::<MenuBarShellStore>();
-    store.mark_quit_pending(false);
+    if !store.take_quit_pending() {
+        return Err("menu bar quit completion requires a pending quit request".to_string());
+    }
     menu::apply_state(app);
 
     let daemon_status = runtime_bridge::current_daemon_status();
@@ -201,5 +206,12 @@ mod tests {
         assert!(!source.contains(&["thread", "::spawn(move ||"].concat()));
         assert!(!source.contains(&["Duration", "::from_millis(2500)"].concat()));
         assert!(!source.contains(&["force_complete_quit", "(&app_handle)"].concat()));
+    }
+
+    #[test]
+    fn quit_completion_requires_pending_quit_state() {
+        let source = include_str!("actions.rs");
+        assert!(source.contains("take_quit_pending()"));
+        assert!(source.contains("requires a pending quit request"));
     }
 }

@@ -1,5 +1,12 @@
 import type { Realm } from '@nimiplatform/sdk/realm';
-import type { RealmGetExploreFeedOperationResponse, RealmSearchIndexedUsersOperationResponse } from '@nimiplatform/sdk/realm/generated';
+import {
+  loadNimiRealmExploreAgents,
+  loadNimiRealmExploreFeedItems,
+} from '@nimiplatform/sdk/realm';
+import type {
+  RealmGetExploreFeedOperationResponse,
+  RealmSearchIndexedUsersOperationResponse,
+} from '@nimiplatform/sdk/realm/generated';
 import { callRealmApi, emitRealmDataError } from '@renderer/infra/realm/realm-api';
 
 export type LoadExploreAgentsInput = {
@@ -32,23 +39,10 @@ export async function loadExploreAgents(
   const tag = normalizeText(input.tag);
   const query = normalizeText(input.query);
   const limit = input.limit ?? 20;
-  try {
-    return await callApi(
-      (realm) => realm.generated.searchIndexedUsers({
-        path: {},
-        query: {
-          isAgent: true,
-          limit,
-          q: query,
-          tag,
-        },
-      }),
-      '加载探索 Agent 失败',
-    );
-  } catch (error) {
-    emitRealmExploreError('load-explore-agents', error, { tag, query, limit });
-    throw error;
-  }
+  return callApi(
+    (realm) => loadNimiRealmExploreAgents(realm, emitRealmExploreError, { tag, query, limit }),
+    '加载探索 Agent 失败',
+  );
 }
 
 export async function loadExploreFeedItems(
@@ -58,21 +52,10 @@ export async function loadExploreFeedItems(
   limit: number,
 ): Promise<RealmGetExploreFeedOperationResponse> {
   const normalizedTag = normalizeText(tag);
-  try {
-    return await callApi(
-      (realm) => realm.generated.getExploreFeed({
-        path: {},
-        query: {
-          limit,
-          tag: normalizedTag,
-        },
-      }),
-      '加载探索流失败',
-    );
-  } catch (error) {
-    emitRealmExploreError('load-explore-feed', error, { tag: normalizedTag, limit });
-    throw error;
-  }
+  return callApi(
+    (realm) => loadNimiRealmExploreFeedItems(realm, emitRealmExploreError, normalizedTag ?? null, limit),
+    '加载探索流失败',
+  );
 }
 
 export async function loadMoreExploreFeedItems(
@@ -84,22 +67,10 @@ export async function loadMoreExploreFeedItems(
 ): Promise<RealmGetExploreFeedOperationResponse | undefined> {
   if (!cursor) return undefined;
   const normalizedTag = normalizeText(tag);
-  try {
-    return await callApi(
-      (realm) => realm.generated.getExploreFeed({
-        path: {},
-        query: {
-          cursor,
-          limit,
-          tag: normalizedTag,
-        },
-      }),
-      '加载更多探索流失败',
-    );
-  } catch (error) {
-    emitRealmExploreError('load-more-explore-feed', error, { tag: normalizedTag, limit });
-    throw error;
-  }
+  return callApi(
+    (realm) => loadNimiRealmExploreFeedItems(realm, emitRealmExploreError, normalizedTag ?? null, limit, cursor),
+    '加载更多探索流失败',
+  );
 }
 
 export const realmExploreData = {

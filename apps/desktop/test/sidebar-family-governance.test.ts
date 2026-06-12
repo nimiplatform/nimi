@@ -16,6 +16,9 @@ const chatAiModeContentSource = readWorkspace('src/shell/renderer/features/chat/
 const chatAgentModeContentSource = readWorkspace('src/shell/renderer/features/chat/chat-agent-mode-content.tsx');
 const chatHumanModeContentSource = readWorkspace('src/shell/renderer/features/chat/chat-human-mode-content.tsx');
 const chatRelationshipRailSource = readWorkspace('src/shell/renderer/features/chat/chat-relationship-rail.tsx');
+const mainLayoutViewSource = readWorkspace('src/shell/renderer/app-shell/layouts/main-layout-view.tsx');
+const mainLayoutTopbarSource = readWorkspace('src/shell/renderer/app-shell/layouts/main-layout-topbar.tsx');
+const mainLayoutSettingsMenuSource = readWorkspace('src/shell/renderer/app-shell/layouts/main-layout-settings-menu.tsx');
 const runtimePanelSource = readWorkspace('src/shell/renderer/features/runtime-config/runtime-config-panel-view.tsx');
 const settingsPanelSource = readWorkspace('src/shell/renderer/features/settings/settings-panel-body.tsx');
 const desktopStylesSource = readWorkspace('src/shell/renderer/styles.css');
@@ -36,6 +39,15 @@ test('desktop kit registries align with the desktop chat relationship rail refac
   assert.match(compositionsTable, /module: apps\/desktop\/src\/shell\/renderer\/features\/chat\/chat-relationship-rail\.tsx/);
   assert.match(compositionsTable, /component: ChatRelationshipRail/);
   assert.match(compositionsTable, /classification: app_owned_composition/);
+  assert.match(compositionsTable, /id: desktop\.shell\.main_layout_view/);
+  assert.match(compositionsTable, /module: apps\/desktop\/src\/shell\/renderer\/app-shell\/layouts\/main-layout-view\.tsx/);
+  assert.match(compositionsTable, /component: MainLayoutView/);
+  assert.match(compositionsTable, /id: desktop\.shell\.main_layout_topbar/);
+  assert.match(compositionsTable, /module: apps\/desktop\/src\/shell\/renderer\/app-shell\/layouts\/main-layout-topbar\.tsx/);
+  assert.match(compositionsTable, /component: MainLayoutTopBar/);
+  assert.match(compositionsTable, /id: desktop\.shell\.settings_menu/);
+  assert.match(compositionsTable, /module: apps\/desktop\/src\/shell\/renderer\/app-shell\/layouts\/main-layout-settings-menu\.tsx/);
+  assert.match(compositionsTable, /component: MainLayoutSettingsMenu/);
 });
 
 test('sidebar family contract is anchored in platform design authority', () => {
@@ -75,6 +87,20 @@ test('chat surface composes the canonical shell with an app-owned relationship r
   assert.match(chatRelationshipRailSource, /E2E_IDS\.chatList/);
   assert.match(chatRelationshipRailSource, /E2E_IDS\.chatRow/);
   assert.doesNotMatch(chatRelationshipRailSource, /components\/sidebar\.js/);
+});
+
+test('app shell kit compositions are registered with their direct kit imports', () => {
+  assert.match(mainLayoutViewSource, /@nimiplatform\/kit\/ui/);
+  assert.match(mainLayoutViewSource, /AmbientBackground/);
+  assert.match(mainLayoutViewSource, /ScrollArea/);
+  assert.match(mainLayoutViewSource, /Tooltip/);
+
+  assert.match(mainLayoutTopbarSource, /@nimiplatform\/kit\/ui/);
+  assert.match(mainLayoutTopbarSource, /Tooltip/);
+
+  assert.match(mainLayoutSettingsMenuSource, /@nimiplatform\/kit\/ui/);
+  assert.match(mainLayoutSettingsMenuSource, /ScrollArea/);
+  assert.match(mainLayoutSettingsMenuSource, /Surface/);
 });
 
 test('desktop renderer stylesheet does not redefine shared .nimi authorities', () => {

@@ -60,6 +60,7 @@
   "updatesCheckButton": "立即检查",
   "updatesInstallButton": "下载并安装",
   "updatesRestartButton": "立即重启",
+  "updatesProjectionMissing": "Desktop release projection 不可用。",
   "updatesUnavailableFallback": "当前环境不支持 desktop 更新。",
   "updateStatus_idle": "空闲",
   "updateStatus_checking": "检查中",

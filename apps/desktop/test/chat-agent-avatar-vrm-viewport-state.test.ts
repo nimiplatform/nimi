@@ -187,10 +187,12 @@ test('avatar vrm viewport state exposes explicit listening posture defaults', ()
   assert.equal(state.blinkSpeed, 3.6);
 });
 
-test('avatar vrm viewport state resolves concrete asset urls only for non-fallback refs', () => {
+test('avatar vrm viewport state rejects raw asset urls in Desktop', () => {
   assert.equal(resolveChatAgentAvatarVrmAssetUrl('fallback://airi-shell'), null);
   assert.equal(resolveChatAgentAvatarVrmAssetUrl('desktop-avatar://resource-1/AliciaSolid.vrm'), null);
-  assert.equal(resolveChatAgentAvatarVrmAssetUrl(' https://cdn.nimi.test/avatars/airi.vrm '), 'https://cdn.nimi.test/avatars/airi.vrm');
+  assert.equal(resolveChatAgentAvatarVrmAssetUrl(' https://cdn.nimi.test/avatars/airi.vrm '), null);
+  assert.equal(resolveChatAgentAvatarVrmAssetUrl('file:///Users/snwozy/Downloads/AliciaSolid.vrm'), null);
+  assert.equal(resolveChatAgentAvatarVrmAssetUrl('data:model/gltf-binary;base64,AAAA'), null);
 });
 
 test('avatar vrm viewport state exposes stronger playful expression weights by default', () => {
@@ -228,37 +230,6 @@ test('avatar vrm viewport state parses desktop-local avatar refs', () => {
     },
   );
   assert.equal(parseDesktopAgentAvatarAssetRef('https://cdn.nimi.test/avatars/airi.vrm'), null);
-});
-
-test('avatar vrm viewport state converts file urls to tauri asset urls when tauri runtime is present', () => {
-  const runtimeGlobal = globalThis as typeof globalThis & {
-    __NIMI_TAURI_RUNTIME__?: unknown;
-    window?: Window & typeof globalThis;
-  };
-  const previousRuntime = runtimeGlobal.__NIMI_TAURI_RUNTIME__;
-  const previousWindow = runtimeGlobal.window;
-  try {
-    runtimeGlobal.__NIMI_TAURI_RUNTIME__ = {};
-    runtimeGlobal.window = {
-      __TAURI_INTERNALS__: {
-        invoke: () => Promise.resolve(null),
-        convertFileSrc: (path: string, protocol = 'asset') => `${protocol}://localhost/${path}`,
-      },
-    } as unknown as Window & typeof globalThis;
-    const resolved = resolveChatAgentAvatarVrmAssetUrl('file:///Users/snwozy/Downloads/AliciaSolid.vrm');
-    assert.equal(resolved, 'asset://localhost//Users/snwozy/Downloads/AliciaSolid.vrm');
-  } finally {
-    if (previousRuntime === undefined) {
-      delete runtimeGlobal.__NIMI_TAURI_RUNTIME__;
-    } else {
-      runtimeGlobal.__NIMI_TAURI_RUNTIME__ = previousRuntime;
-    }
-    if (previousWindow === undefined) {
-      Reflect.deleteProperty(runtimeGlobal as Record<string, unknown>, 'window');
-    } else {
-      runtimeGlobal.window = previousWindow;
-    }
-  }
 });
 
 test('avatar vrm viewport state maps emotion and viseme cues into expression weights', () => {

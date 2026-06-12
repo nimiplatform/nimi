@@ -21,13 +21,15 @@ test('desktop managed OAuth adapter delegates acquisition truth to SDK', () => {
   assert.doesNotMatch(adapterSource, /app_EMoamEEZ73f0CkXaXp7hrann/);
 });
 
-test('desktop cloud page persists SDK-managed OAuth payload through existing connector save callback', () => {
+test('desktop cloud page lets SDK persist managed OAuth payload through Runtime connector writer', () => {
   const pageSource = readRepoFile(
     'apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-page-cloud.tsx',
   );
 
-  assert.match(pageSource, /persistCredential:\s*async/);
-  assert.match(pageSource, /credentialJson:\s*credential\.credentialJson/);
+  assert.match(pageSource, /runtime:\s*runtimeConnectors/);
+  assert.match(pageSource, /connectorId:\s*selectedConnectorId/);
+  assert.doesNotMatch(pageSource, /persistCredential/);
+  assert.doesNotMatch(pageSource, /credentialJson:\s*credential\.credentialJson/);
   assert.doesNotMatch(pageSource, /acquired\.credentialJson/);
   assert.doesNotMatch(pageSource, /acquired\.accessToken/);
 });

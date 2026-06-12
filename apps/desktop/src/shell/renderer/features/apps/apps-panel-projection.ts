@@ -14,8 +14,8 @@
 // W5 hard-cut: there is no longer a 12th `status_unavailable` card state. A
 // per-app `client.status()` failure resolves to one of the 11 canonical
 // product card states via `resolveAppStatusFailure` (per-reason-code mapping,
-// `repair_required` default) — `P-NAPP-008` / manual line 962 forbid
-// collapsing distinct failures into a single "Unavailable" card.
+// `repair_required` default) — D-HOME-005 and P-NAPP-008 forbid collapsing
+// distinct failures into a single "Unavailable" card.
 
 import type {
   AppLaunchReadiness,

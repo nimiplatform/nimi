@@ -92,15 +92,17 @@ test('T5 acceptance: Explore exposes the three-section discovery IA with Worlds 
 
 test('T5 acceptance: Add Friend creates the AgentFriend relation AND the idempotent LocalAgent projection', () => {
   // D-EXPL-007 dual effect. Effect 1 — `requestOrAcceptFriend` creates the
-  // AgentFriend Realm social relation. Effect 2 — `ensureRuntimeAgentExists`
-  // ensures the one account-scoped LocalAgent projection at Add Friend time
-  // (K-AGCORE-139 idempotent), not deferred to a lazy first chat-open.
+  // AgentFriend Realm social relation. Effect 2 — that backend transaction
+  // authors the durable LocalAgentProvisionIntent consumed by the R-SOC-009
+  // desktop courier; Add Friend must not call the local runtime synchronously.
   const addFriendBody = friendActionsSource.slice(
     friendActionsSource.indexOf('export async function addRealmAgentFriend'),
     friendActionsSource.indexOf('export async function openRealmAgentLocalChat'),
   );
   assert.match(addFriendBody, /realmSocialData\.requestOrAcceptFriend\(/);
-  assert.match(addFriendBody, /ensureRuntimeAgentExists\(localAgentTarget\)/);
+  assert.doesNotMatch(addFriendBody, /ensureRuntimeAgentExists\(/);
+  assert.match(friendActionsSource, /durable LocalAgentProvisionIntent/);
+  assert.match(friendActionsSource, /R-SOC-009/);
 
   // The LocalAgent projection is keyed by the deterministic owner-scoped ref —
   // a repeated Add Friend / retry resolves the same LocalAgent (idempotent).

@@ -1,11 +1,12 @@
 import { useCallback, useMemo, useState } from 'react';
 import { createNimiRuntimeAgentConsumeClient, type NimiRuntimeAgentCompanionParticipationProjection, type NimiRuntimeAgentCompanionParticipationSurfaceKind } from '@nimiplatform/sdk/runtime';
-import { AvatarDebugProbeKind, AvatarDebugRequestedBy, type AvatarDebugProbeResultEnvelope, type AvatarDebugReplayRef, type GetAvatarDebugSnapshotResponse } from '@nimiplatform/sdk/runtime/generated';
 import { getDesktopAppId, getDesktopRuntime } from '@renderer/infra/sdk/desktop-nimi-client-session';
 import type { UseAgentConversationPresentationInput } from './chat-agent-shell-presentation-types';
 import type { AgentCenterAvatarAssetModule } from './chat-agent-center-avatar-config-types';
 import {
   AVATAR_DEBUG_WORKBENCH_PROBES,
+  AvatarDebugProbeKind,
+  AvatarDebugProbeStatus,
   avatarDebugProbePresentationStatusLabel,
   avatarDebugProbeRemediation,
   buildAvatarDebugWorkbenchDiagnostics,
@@ -13,10 +14,21 @@ import {
   buildDesktopCompanionParticipationProjectionRequest,
   desktopCompanionParticipationRemediation,
   desktopCompanionParticipationStatusLabel,
+  type AvatarDebugProbeResultEnvelope,
+  type AvatarDebugReplayRef,
 } from './chat-agent-center-avatar-debug-workbench-model';
+
+const AVATAR_DEBUG_REQUESTED_BY_DESKTOP_DEBUG_WORKBENCH = 1;
+
+type AvatarDebugSnapshotResponse = {
+  probeResults: AvatarDebugProbeResultEnvelope[];
+  replayRefs: AvatarDebugReplayRef[];
+};
 
 export {
   AVATAR_DEBUG_WORKBENCH_PROBES,
+  AvatarDebugProbeKind,
+  AvatarDebugProbeStatus,
   avatarDebugProbeFailClosedReason,
   avatarDebugProbePresentationStatus,
   avatarDebugProbePresentationStatusLabel,
@@ -30,6 +42,8 @@ export {
   type AvatarDebugWorkbenchDiagnostics,
   type AvatarDebugWorkbenchLaunchHealth,
   type AvatarDebugWorkbenchProbe,
+  type AvatarDebugProbeResultEnvelope,
+  type AvatarDebugReplayRef,
   type DesktopCompanionParticipationProjectionRequest,
 } from './chat-agent-center-avatar-debug-workbench-model';
 
@@ -66,7 +80,7 @@ export async function requestAvatarDebugWorkbenchProbe(input: {
     localAgentRef: input.localAgentRef,
     conversationAnchorId: input.conversationAnchorId,
     probeKind: input.probeKind,
-    requestedBy: AvatarDebugRequestedBy.DESKTOP_DEBUG_WORKBENCH,
+    requestedBy: AVATAR_DEBUG_REQUESTED_BY_DESKTOP_DEBUG_WORKBENCH,
     replayRequested: true,
   });
 }
@@ -80,7 +94,7 @@ function createDesktopAvatarDebugRuntimeAgentClient() {
 
 export function AgentCenterAvatarDebugWorkbench(props: AgentCenterAvatarDebugWorkbenchProps) {
   const { input, avatarAssetConfig, avatarAssetValid, avatarAssetChecking, validationMessage } = props;
-  const [snapshot, setSnapshot] = useState<GetAvatarDebugSnapshotResponse | null>(null);
+  const [snapshot, setSnapshot] = useState<AvatarDebugSnapshotResponse | null>(null);
   const [latestResult, setLatestResult] = useState<AvatarDebugProbeResultEnvelope | null>(null);
   const [latestReplay, setLatestReplay] = useState<AvatarDebugReplayRef | null>(null);
   const [latestParticipationProjection, setLatestParticipationProjection] = useState<NimiRuntimeAgentCompanionParticipationProjection | null>(null);
@@ -122,9 +136,9 @@ export function AgentCenterAvatarDebugWorkbench(props: AgentCenterAvatarDebugWor
         localAgentRef,
         conversationAnchorId,
       });
-      setSnapshot(nextSnapshot);
-      setLatestResult(nextSnapshot.probeResults[0] || null);
-      setLatestReplay(nextSnapshot.replayRefs[0] || null);
+      setSnapshot(nextSnapshot as AvatarDebugSnapshotResponse);
+      setLatestResult((nextSnapshot.probeResults[0] as AvatarDebugProbeResultEnvelope | undefined) || null);
+      setLatestReplay((nextSnapshot.replayRefs[0] as AvatarDebugReplayRef | undefined) || null);
       setLatestParticipationProjection(await requestDesktopCompanionParticipationProjection({
         ownerUserId,
         realmAgentId,
@@ -153,15 +167,15 @@ export function AgentCenterAvatarDebugWorkbench(props: AgentCenterAvatarDebugWor
         conversationAnchorId,
         probeKind,
       });
-      setLatestResult(response.result || null);
-      setLatestReplay(response.replayRef || null);
+      setLatestResult((response.result as AvatarDebugProbeResultEnvelope | undefined) || null);
+      setLatestReplay((response.replayRef as AvatarDebugReplayRef | undefined) || null);
       const nextSnapshot = await createDesktopAvatarDebugRuntimeAgentClient().avatarDebug.snapshot({
         ownerUserId,
         realmAgentId,
         localAgentRef,
         conversationAnchorId,
       });
-      setSnapshot(nextSnapshot);
+      setSnapshot(nextSnapshot as AvatarDebugSnapshotResponse);
       setLatestParticipationProjection(await requestDesktopCompanionParticipationProjection({
         ownerUserId,
         realmAgentId,
@@ -190,8 +204,8 @@ export function AgentCenterAvatarDebugWorkbench(props: AgentCenterAvatarDebugWor
         conversationAnchorId,
         probeId,
       });
-      setLatestResult(replay.result || latestResult);
-      setLatestReplay(replay.replayRef || latestReplay);
+      setLatestResult((replay.result as AvatarDebugProbeResultEnvelope | undefined) || latestResult);
+      setLatestReplay((replay.replayRef as AvatarDebugReplayRef | undefined) || latestReplay);
       setLatestParticipationProjection(await requestDesktopCompanionParticipationProjection({
         ownerUserId,
         realmAgentId,
@@ -207,7 +221,7 @@ export function AgentCenterAvatarDebugWorkbench(props: AgentCenterAvatarDebugWor
 
   const latestStatus = avatarDebugProbePresentationStatusLabel(latestResult, latestReplay);
   const participationStatus = desktopCompanionParticipationStatusLabel(latestParticipationProjection);
-  const latestEvidence = latestResult?.evidenceRefs.length ? latestResult.evidenceRefs.join(', ') : input.t('Chat.agentCenterAvatarDebugNoEvidence', { defaultValue: 'No evidence linked yet' });
+  const latestEvidence = latestResult?.evidenceRefs?.length ? latestResult.evidenceRefs.join(', ') : input.t('Chat.agentCenterAvatarDebugNoEvidence', { defaultValue: 'No evidence linked yet' });
   const snapshotCount = snapshot?.probeResults.length || 0;
 
   return (
@@ -257,11 +271,17 @@ export function AgentCenterAvatarDebugWorkbench(props: AgentCenterAvatarDebugWor
             key={probe.kind}
             type="button"
             title={probe.summary}
-            disabled={!canRequestProbe || pendingKind !== null}
-            onClick={() => { void runProbe(probe.kind); }}
+            disabled={!probe.runtimeProbeKind || !canRequestProbe || pendingKind !== null}
+            onClick={() => {
+              if (probe.runtimeProbeKind) {
+                void runProbe(probe.runtimeProbeKind);
+              }
+            }}
             className="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 transition-colors hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {pendingKind === probe.kind ? input.t('Chat.agentCenterAvatarDebugRunning', { defaultValue: 'Running' }) : probe.label}
+            {probe.runtimeProbeKind && pendingKind === probe.runtimeProbeKind
+              ? input.t('Chat.agentCenterAvatarDebugRunning', { defaultValue: 'Running' })
+              : probe.label}
           </button>
         ))}
       </div>

@@ -6,6 +6,20 @@ export type TokenMode = 'delegated' | 'autonomous';
 export type TokenFilter = 'all' | 'active' | 'revoked';
 export type TokenStatus = 'active' | 'expired' | 'revoked';
 
+export interface ExternalAgentTokenActionPlaneState {
+  readonly busy: boolean;
+  readonly enabled: boolean;
+  readonly loading: boolean;
+  readonly actionCount: number | null | undefined;
+}
+
+export function isExternalAgentTokenActionPlaneAvailable(state: ExternalAgentTokenActionPlaneState): boolean {
+  return !state.busy
+    && state.enabled
+    && !state.loading
+    && (state.actionCount ?? 0) > 0;
+}
+
 export const TOKEN_TEXT_PRIMARY = 'text-[var(--nimi-text-primary)]';
 export const TOKEN_TEXT_SECONDARY = 'text-[var(--nimi-text-secondary)]';
 export const TOKEN_TEXT_MUTED = 'text-[var(--nimi-text-muted)]';

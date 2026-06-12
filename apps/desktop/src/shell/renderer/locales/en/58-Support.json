@@ -60,6 +60,7 @@
   "updatesCheckButton": "Check now",
   "updatesInstallButton": "Download and install",
   "updatesRestartButton": "Restart now",
+  "updatesProjectionMissing": "Desktop release projection is unavailable.",
   "updatesUnavailableFallback": "Desktop updates are unavailable in the current environment.",
   "updateStatus_idle": "Idle",
   "updateStatus_checking": "Checking",

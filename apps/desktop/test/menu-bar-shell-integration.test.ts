@@ -6,6 +6,7 @@ import { resolve } from 'node:path';
 const EXIT_HANDLER_PATH = resolve(import.meta.dirname, '../src/shell/renderer/infra/bootstrap/exit-handler.ts');
 const RUNTIME_BRIDGE_PATH = resolve(import.meta.dirname, '../src/shell/renderer/bridge/runtime-bridge.ts');
 const APP_BOOTSTRAP_PATH = resolve(import.meta.dirname, '../src-tauri/src/main_parts/app_bootstrap.rs');
+const MENU_BAR_ACTIONS_PATH = resolve(import.meta.dirname, '../src-tauri/src/menu_bar_shell/actions.rs');
 const MENU_BAR_NAVIGATION_PATH = resolve(import.meta.dirname, '../src/shell/renderer/infra/menu-bar/menu-bar-navigation-listener.ts');
 const RUNTIME_PANEL_CONTROLLER_PATH = resolve(import.meta.dirname, '../src/shell/renderer/features/runtime-config/runtime-config-panel-controller.ts');
 
@@ -43,9 +44,12 @@ test('renderer bridge exposes menu bar health sync and quit finalize actions', (
 
 test('menu bar runtime navigation updates both persisted state and live runtime page', () => {
   const listenerSource = readFileSync(MENU_BAR_NAVIGATION_PATH, 'utf-8');
+  const actionsSource = readFileSync(MENU_BAR_ACTIONS_PATH, 'utf-8');
   const controllerSource = readFileSync(RUNTIME_PANEL_CONTROLLER_PATH, 'utf-8');
   assert.match(listenerSource, /dispatchRuntimeConfigOpenPage/);
   assert.match(controllerSource, /addRuntimeConfigOpenPageListener/);
+  assert.doesNotMatch(listenerSource, /page:\s*'local'/);
+  assert.match(actionsSource, /Some\("models"\)/);
 });
 
 test('tauri bootstrap intercepts close requests and exit requests for menu bar shell', () => {
@@ -54,4 +58,5 @@ test('tauri bootstrap intercepts close requests and exit requests for menu bar s
   assert.match(source, /window_for_close\.hide/);
   assert.match(source, /RunEvent::ExitRequested/);
   assert.match(source, /menu_bar_shell::request_quit/);
+  assert.match(source, /menu_bar_shell::is_enabled\(\)/);
 });

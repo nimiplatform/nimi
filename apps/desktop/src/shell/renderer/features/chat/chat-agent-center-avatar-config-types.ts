@@ -1,5 +1,4 @@
-import type { AgentCenterAvatarAssetKind } from './chat-agent-center-local-config';
-
+export type AgentCenterAvatarAssetKind = 'live2d' | 'vrm';
 export type AgentCenterAvatarBackendKind = AgentCenterAvatarAssetKind | 'future';
 export type AgentCenterAvatarConversationAnchorScope = 'current_anchor' | 'explicit_debug_anchor' | 'no_anchor';
 export type AgentCenterAvatarInstancePolicy = 'reuse_active_instance' | 'launch_new_instance' | 'require_user_selection';

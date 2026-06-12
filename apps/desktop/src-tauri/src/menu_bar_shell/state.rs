@@ -148,6 +148,16 @@ impl MenuBarShellStore {
             .quit_pending
     }
 
+    pub fn take_quit_pending(&self) -> bool {
+        let mut inner = self
+            .inner
+            .lock()
+            .expect("menu bar shell state lock poisoned");
+        let pending = inner.quit_pending;
+        inner.quit_pending = false;
+        pending
+    }
+
     pub fn with_handles<F>(&self, callback: F)
     where
         F: FnOnce(&MenuBarMenuHandles, &MenuBarShellStateSnapshot, bool, bool),
@@ -214,7 +224,7 @@ impl MenuBarShellStateSnapshot {
         };
 
         let providers_line = if renderer_stale {
-            "Providers: stale".to_string()
+            "Providers: renderer refresh pending".to_string()
         } else if let Some(summary) = self.provider_summary.as_ref() {
             format!(
                 "Providers: {} healthy / {} unhealthy / {} unknown",
@@ -267,10 +277,14 @@ impl MenuBarShellStateSnapshot {
         };
         let last_check_line = format!(
             "Last check: {}",
-            self.last_updated_at
-                .as_deref()
-                .filter(|value| !value.trim().is_empty())
-                .unwrap_or("-")
+            if renderer_stale {
+                "-"
+            } else {
+                self.last_updated_at
+                    .as_deref()
+                    .filter(|value| !value.trim().is_empty())
+                    .unwrap_or("-")
+            }
         );
 
         let busy = self.action_in_flight.is_some() || quit_pending;

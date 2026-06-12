@@ -8,7 +8,6 @@ import {
   resolvePreferredLive2dSpeechMotionGroup,
 } from '@nimiplatform/kit/features/avatar/live2d';
 import { formatAvatarVrmAssetLabel } from '@nimiplatform/kit/features/avatar/vrm';
-import { convertTauriFileSrc, hasTauriRuntime } from '@nimiplatform/kit/shell/renderer/bridge';
 
 type GlobalBase64Decoder = {
   atob?: (value: string) => string;
@@ -115,25 +114,8 @@ export { resolvePreferredLive2dIdleMotionGroup, resolvePreferredLive2dSpeechMoti
 
 export function resolveChatAgentAvatarLive2dAssetUrl(assetRef: string): string | null {
   const normalized = assetRef.trim();
-  if (!normalized || normalized.startsWith('fallback://') || normalized.startsWith('desktop-avatar://')) {
-    return null;
-  }
-  if (normalized.toLowerCase().startsWith('file://') && hasTauriRuntime()) {
-    try {
-      const parsed = new URL(normalized);
-      const pathname = decodeURIComponent(parsed.pathname || '');
-      if (!pathname) {
-        return normalized;
-      }
-      const resolvedPath = parsed.hostname
-        ? `//${parsed.hostname}${pathname}`
-        : pathname;
-      return convertTauriFileSrc(resolvedPath);
-    } catch {
-      return normalized;
-    }
-  }
-  return normalized;
+  void normalized;
+  return null;
 }
 
 export async function loadChatAgentAvatarLive2dModelSource(assetRef: string): Promise<ChatAgentAvatarLive2dModelSource> {
@@ -143,7 +125,7 @@ export async function loadChatAgentAvatarLive2dModelSource(assetRef: string): Pr
   }
   const modelUrl = resolveChatAgentAvatarLive2dAssetUrl(assetRef);
   if (!modelUrl) {
-    throw new Error('Live2D asset reference is invalid');
+    throw new Error('Live2D asset references must be materialized by the Avatar-owned carrier.');
   }
   return {
     resourceId: null,

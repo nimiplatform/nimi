@@ -32,8 +32,10 @@ import type {
   NimiAISnapshot,
 } from '@nimiplatform/sdk/ai';
 import {
+  createEmptyNimiAIConfig,
   createNimiAISnapshotExecutionId,
   createNimiAISnapshotRecord,
+  validateNimiAIConfigTargetRef,
 } from '@nimiplatform/sdk/ai';
 import type {
   NimiRuntimeResolvedBinding,
@@ -259,23 +261,106 @@ export function aiConfigFromSelectionStore(
   store: ConversationCapabilitySelectionStore,
   scopeRef: NimiAIScopeRef,
   ): NimiAIConfig {
-  void store;
+  const targetRefs: Record<string, NimiAIConfigTargetRef> = {};
+  for (const [capability, binding] of Object.entries(store.selectedBindings)) {
+    if (binding === null || binding === undefined) {
+      continue;
+    }
+    const targetRef = targetRefFromRuntimeRouteBinding(binding);
+    if (targetRef) {
+      targetRefs[capability] = targetRef;
+    }
+  }
   return {
-    scopeRef,
-  capabilities: {
-      targetRefs: {},
-  selectedParams: {},
-  },
-  profileOrigin: null,
+    ...createEmptyNimiAIConfig(scopeRef),
+    capabilities: {
+      targetRefs,
+      selectedParams: {},
+    },
   };
 }
 
 export function selectionStoreFromAIConfig(config: NimiAIConfig): ConversationCapabilitySelectionStore {
-  void config;
+  const selectedBindings: ConversationCapabilitySelectionStore['selectedBindings'] = {};
+  for (const capability of CONVERSATION_CAPABILITIES) {
+    if (!Object.prototype.hasOwnProperty.call(config.capabilities.targetRefs, capability)) {
+      continue;
+    }
+    const targetRef = config.capabilities.targetRefs[capability];
+    if (!targetRef) {
+      selectedBindings[capability] = null;
+      continue;
+    }
+    const binding = runtimeRouteBindingFromTargetRef(targetRef);
+    selectedBindings[capability] = binding;
+  }
   return {
     version: createDefaultConversationCapabilitySelectionStore().version,
-  selectedBindings: {},
+    selectedBindings,
   };
+}
+
+function targetRefFromRuntimeRouteBinding(binding: NimiRuntimeRouteBinding): NimiAIConfigTargetRef | null {
+  const source = String(binding.source || '').trim();
+  const connectorId = String(binding.connectorId || '').trim();
+  const model = String(binding.model || binding.modelId || binding.localModelId || '').trim();
+  if (source === 'cloud') {
+    if (!connectorId || !model) {
+      return null;
+    }
+    const targetRef: NimiAIConfigTargetRef = {
+      kind: 'cloud-connector',
+      connectorId,
+      providerModelId: model,
+      ...(binding.provider ? { provider: binding.provider } : {}),
+    };
+    return validateNimiAIConfigTargetRef(targetRef, 'targetRef').length === 0 ? targetRef : null;
+  }
+
+  if (source === 'local') {
+    const targetId = connectorId || binding.localModelId || binding.goRuntimeLocalModelId || binding.engine || '';
+    const profileId = binding.localModelId || binding.goRuntimeLocalModelId || binding.modelId || model;
+    const readinessRef = [
+      'runtime-route',
+      source,
+      targetId || 'local-runtime',
+      profileId || model,
+    ].filter(Boolean).join(':');
+    const targetRef: NimiAIConfigTargetRef = {
+      kind: 'local-runtime',
+      ...(targetId ? { targetId } : {}),
+      ...(profileId ? { profileId } : {}),
+      readinessRef,
+    };
+    return validateNimiAIConfigTargetRef(targetRef, 'targetRef').length === 0 ? targetRef : null;
+  }
+
+  return null;
+}
+
+function runtimeRouteBindingFromTargetRef(targetRef: NimiAIConfigTargetRef): NimiRuntimeRouteBinding | null {
+  if (validateNimiAIConfigTargetRef(targetRef, 'targetRef').length > 0) {
+    return null;
+  }
+  if (targetRef.kind === 'cloud-connector') {
+    return {
+      source: 'cloud',
+      connectorId: targetRef.connectorId,
+      model: targetRef.providerModelId,
+      provider: targetRef.provider,
+    };
+  }
+  if (targetRef.kind === 'local-runtime') {
+    const targetId = targetRef.targetId || targetRef.readinessRef || 'local-runtime';
+    const profileId = targetRef.profileId || targetRef.readinessRef || targetId;
+    return {
+      source: 'local',
+      connectorId: targetId,
+      model: profileId,
+      localModelId: targetRef.profileId,
+    };
+  }
+  return null;
 }
 
 // ---------------------------------------------------------------------------

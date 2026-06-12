@@ -93,6 +93,16 @@ function upsertRuntimeDependencyJob(
   return dedupeRuntimeDependencyJobs([nextJob, ...jobs]);
 }
 
+function runtimeDependencyErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error && error.message.trim()) {
+    return error.message.trim();
+  }
+  if (typeof error === 'string' && error.trim()) {
+    return error.trim();
+  }
+  return fallback;
+}
+
 export function useLocalModelCenterRuntimeDependencies({
   assets,
   refreshAssetInventorySections,
@@ -101,6 +111,7 @@ export function useLocalModelCenterRuntimeDependencies({
   const mountedRef = useRef(true);
   const [sharedRuntimeEnvironmentPlan, setSharedRuntimeEnvironmentPlan] = useState<NimiRuntimeLocalEnvironmentPlan | undefined>(undefined);
   const [sharedRuntimeDependencyJobs, setSharedRuntimeDependencyJobs] = useState<NimiRuntimeLocalEnvironmentDependencyJob[]>([]);
+  const [runtimeDependencyError, setRuntimeDependencyError] = useState('');
   const [dependencyResolutionNonce, setDependencyResolutionNonce] = useState(0);
 
   useEffect(() => {
@@ -127,10 +138,11 @@ export function useLocalModelCenterRuntimeDependencies({
     void resolvePlan().then((dependency) => {
       if (!cancelled && mountedRef.current) {
         setSharedRuntimeEnvironmentPlan(dependency);
+        setRuntimeDependencyError('');
       }
-    }).catch(() => {
+    }).catch((error: unknown) => {
       if (!cancelled && mountedRef.current) {
-        setSharedRuntimeEnvironmentPlan(undefined);
+        setRuntimeDependencyError(runtimeDependencyErrorMessage(error, 'Runtime environment dependency plan failed.'));
       }
     });
     return () => {
@@ -158,10 +170,11 @@ export function useLocalModelCenterRuntimeDependencies({
       ));
       if (mountedRef.current) {
         setSharedRuntimeDependencyJobs(jobs);
+        setRuntimeDependencyError('');
       }
-    } catch {
+    } catch (error) {
       if (mountedRef.current) {
-        setSharedRuntimeDependencyJobs([]);
+        setRuntimeDependencyError(runtimeDependencyErrorMessage(error, 'Runtime environment dependency jobs failed.'));
       }
     }
   }, []);
@@ -278,13 +291,15 @@ export function useLocalModelCenterRuntimeDependencies({
         .filter((dependency) => dependency.environmentKey)
         .map((dependency) => runtimeConfigLocalModelCenterClient.listEnvironmentDependencyJobs({ environmentKey: dependency.environmentKey })));
       const jobs = jobGroups.flat();
-      const startable = plan.dependencies.filter((dependency) => dependencyStartable(dependency, jobs));
+      const startable = plan.dependencies.filter((dependency) => (
+        dependencyStartable(dependency, jobs) && !dependency.confirmationRequired
+      ));
       await Promise.all(startable.map((dependency) => runtimeConfigLocalModelCenterClient.startEnvironmentDependencyJob({
         environmentKey: dependency.environmentKey,
         dependencyFamily: dependency.dependencyFamily,
         dependencyId: dependency.dependencyId,
         sourceKind: dependency.sourceKind,
-        confirmed: true,
+        confirmed: false,
         consumerScope: dependency.consumerScope,
       }, { caller: 'core' })));
       refreshRuntimeDependencies();
@@ -356,6 +371,7 @@ export function useLocalModelCenterRuntimeDependencies({
     prepareAssetRuntimeDependencies,
     retryRuntimeDependencyJob,
     runtimeDependencyByAssetId,
+    runtimeDependencyError,
     setupRuntimeDependency,
     sharedRuntimeDependency,
     sharedRuntimeDependencyJobs,

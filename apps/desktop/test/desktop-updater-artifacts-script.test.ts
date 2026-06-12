@@ -99,6 +99,34 @@ test('desktop updater artifact validation rejects missing signatures and bundle 
   }
 });
 
+test('desktop updater artifact validation rejects unsupported expected bundle types', () => {
+  const fixture = makeArtifactFixture();
+  try {
+    const violations = collectDesktopUpdaterArtifactViolations({
+      artifacts: fixture.artifacts,
+      expectedBundle: 'dmg',
+    });
+
+    assert.ok(violations.some((line: string) => line.includes('unsupported expected updater bundle type dmg')));
+  } finally {
+    fixture.cleanup();
+  }
+});
+
+test('desktop updater artifact validation rejects missing expected bundle type', () => {
+  const fixture = makeArtifactFixture();
+  try {
+    const violations = collectDesktopUpdaterArtifactViolations({
+      artifacts: fixture.artifacts,
+      expectedBundle: '',
+    });
+
+    assert.ok(violations.some((line: string) => line.includes('expected updater bundle type is required')));
+  } finally {
+    fixture.cleanup();
+  }
+});
+
 test('desktop updater artifact validation rejects invalid latest.json payloads', () => {
   const fixture = makeArtifactFixture();
   try {

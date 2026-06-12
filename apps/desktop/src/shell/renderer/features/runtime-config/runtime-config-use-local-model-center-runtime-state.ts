@@ -39,6 +39,16 @@ type UseLocalModelCenterRuntimeStateInput = {
   props: LocalModelCenterProps;
 };
 
+function runtimeInventoryErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error && error.message.trim()) {
+    return error.message.trim();
+  }
+  if (typeof error === 'string' && error.trim()) {
+    return error.trim();
+  }
+  return fallback;
+}
+
 export function useLocalModelCenterRuntimeState({ isProfileTargetMode, props }: UseLocalModelCenterRuntimeStateInput) {
   const [installing, setInstalling] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -53,6 +63,7 @@ export function useLocalModelCenterRuntimeState({ isProfileTargetMode, props }: 
   const [loadingInstalledAssets, setLoadingInstalledAssets] = useState(false);
   const [verifiedAssets, setVerifiedAssets] = useState<NimiRuntimeLocalVerifiedAssetDescriptor[]>([]);
   const [loadingVerifiedAssets, setLoadingVerifiedAssets] = useState(false);
+  const [runtimeInventoryError, setRuntimeInventoryError] = useState('');
   const [assetKindFilter, setAssetKindFilter] = useState<'all' | NimiRuntimeLocalAssetKind>('all');
   const [assetBusy, setAssetBusy] = useState(false);
   const [showImportMenu, setShowImportMenu] = useState(false);
@@ -161,11 +172,12 @@ export function useLocalModelCenterRuntimeState({ isProfileTargetMode, props }: 
         return;
       }
       setCatalogItems(rows.filter((item) => !isRunnableAssetInstalled(item.modelId)));
-    } catch {
+      setRuntimeInventoryError('');
+    } catch (error) {
       if (!mountedRef.current || requestId !== catalogRequestSeqRef.current) {
         return;
       }
-      setCatalogItems([]);
+      setRuntimeInventoryError(runtimeInventoryErrorMessage(error, 'Runtime catalog discovery failed.'));
     } finally {
       if (mountedRef.current && requestId === catalogRequestSeqRef.current) {
         setLoadingCatalog(false);
@@ -184,11 +196,12 @@ export function useLocalModelCenterRuntimeState({ isProfileTargetMode, props }: 
       setVerifiedModels(sortVerifiedAssetsForDisplay(rows.filter((item) => (
         isRunnableAssetKind(item.kind) && !isRunnableAssetInstalled(item.assetId)
       ))).slice(0, 5));
-    } catch {
+      setRuntimeInventoryError('');
+    } catch (error) {
       if (!mountedRef.current || requestId !== verifiedModelsRequestSeqRef.current) {
         return;
       }
-      setVerifiedModels([]);
+      setRuntimeInventoryError(runtimeInventoryErrorMessage(error, 'Runtime verified model discovery failed.'));
     } finally {
       if (mountedRef.current && requestId === verifiedModelsRequestSeqRef.current) {
         setLoadingVerifiedModels(false);
@@ -205,11 +218,12 @@ export function useLocalModelCenterRuntimeState({ isProfileTargetMode, props }: 
         return;
       }
       setInstalledAssets([...rows]);
-    } catch {
+      setRuntimeInventoryError('');
+    } catch (error) {
       if (!mountedRef.current || requestId !== installedAssetsRequestSeqRef.current) {
         return;
       }
-      setInstalledAssets([]);
+      setRuntimeInventoryError(runtimeInventoryErrorMessage(error, 'Runtime installed asset discovery failed.'));
     } finally {
       if (mountedRef.current && requestId === installedAssetsRequestSeqRef.current) {
         setLoadingInstalledAssets(false);
@@ -226,11 +240,12 @@ export function useLocalModelCenterRuntimeState({ isProfileTargetMode, props }: 
         return;
       }
       setVerifiedAssets([...rows]);
-    } catch {
+      setRuntimeInventoryError('');
+    } catch (error) {
       if (!mountedRef.current || requestId !== verifiedAssetsRequestSeqRef.current) {
         return;
       }
-      setVerifiedAssets([]);
+      setRuntimeInventoryError(runtimeInventoryErrorMessage(error, 'Runtime verified asset discovery failed.'));
     } finally {
       if (mountedRef.current && requestId === verifiedAssetsRequestSeqRef.current) {
         setLoadingVerifiedAssets(false);
@@ -322,6 +337,7 @@ export function useLocalModelCenterRuntimeState({ isProfileTargetMode, props }: 
     prepareAssetRuntimeDependencies,
     retryRuntimeDependencyJob,
     runtimeDependencyByAssetId,
+    runtimeDependencyError,
     setupRuntimeDependency,
     sharedRuntimeDependency,
     sharedRuntimeDependencyJobs,
@@ -482,7 +498,7 @@ export function useLocalModelCenterRuntimeState({ isProfileTargetMode, props }: 
     refreshAssetSections, refreshUnregisteredAssets, refreshVerifiedModels,
     repairInstalledAsset, relatedAssetsByModelTemplate, removeInstalledAsset,
     cancelRuntimeDependencyJob, repairRuntimeDependency, retryRuntimeDependencyJob,
-    runtimeDependencyByAssetId,
+    runtimeDependencyByAssetId, runtimeDependencyError, runtimeInventoryError,
     resolveUnregisteredAssetDraft, searchQuery, selectedCatalogCapability,
     setAssetKindFilter, setCatalogCapability, setCatalogCapabilityOverrides,
     setCatalogDisplayCount,

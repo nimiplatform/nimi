@@ -5,7 +5,7 @@ import { type ProviderCatalogEntry } from '@nimiplatform/sdk/runtime/generated';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { getVendorLabelV11, randomIdV11, type ApiVendor } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { connectorAuthProfileForId, defaultConnectorAuthOptionForProvider, listConnectorAuthOptionsForProvider, providerToVendor, resolveProviderEndpoint, sdkCreateConnector, sdkDeleteConnector, sdkListConnectors, sdkListProviderCatalog, sdkUpdateConnector, vendorToProvider } from './runtime-config-connector-sdk-service';
+import { connectorAuthProfileForId, defaultConnectorAuthOptionForProvider, listConnectorAuthOptionsForProvider, providerToVendor, resolveProviderEndpoint, runtimeConnectors, sdkCreateConnector, sdkDeleteConnector, sdkListConnectors, sdkListProviderCatalog, sdkUpdateConnector, vendorToProvider } from './runtime-config-connector-sdk-service';
 import { addConnectorToState, removeSelectedConnector, replaceConnectorsInState, updateConnectorField } from './runtime-config-connector-actions';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { RuntimePageShell } from './runtime-config-page-shell';
@@ -276,24 +276,26 @@ export function CloudPage({ model, state }: CloudPageProps) {
     try {
       const acquired = await acquireCodexManagedCredential({
         profileId,
+        runtime: runtimeConnectors,
+        connectorId: selectedConnectorId,
+        provider: selectedConnector.provider,
+        endpoint: selectedConnector.endpoint,
+        label: selectedConnector.label,
         onPending: (pending) => {
           setCodexOAuthPending(pending);
         },
-        persistCredential: async (credential) => ({
-          connectorId: await onSaveConnectorCredential({
-            credentialJson: credential.credentialJson,
-          }),
-        }),
       });
       setTokenDraft('');
       setCodexOAuthPending(null);
       setTokenSavedConnectorId(acquired.connectorId || selectedConnectorId);
+      updateState((prev) => updateConnectorField(prev, acquired.connectorId || selectedConnectorId, { hasCredential: true }));
+      model.onVaultChanged();
     } catch (error) {
       setTokenSaveError(error instanceof Error ? error.message : String(error || 'Codex sign-in failed'));
     } finally {
       setCodexOAuthBusy(false);
     }
-  }, [isCodexManagedConnector, onSaveConnectorCredential, selectedConnector, selectedConnectorId]);
+  }, [isCodexManagedConnector, model, selectedConnector, selectedConnectorId, updateState]);
   const onChangeConnectorVendor = useCallback(async (vendor: string) => {
     if (!selectedConnector || !canEditVendor) return;
     const previousConnector = selectedConnector;

@@ -55,7 +55,9 @@ pub struct AccountProfileLibraryDeletePayload {
 #[tauri::command]
 pub async fn account_profile_library_list() -> Result<AccountProfileLibraryProjection, String> {
     let account_id = authenticated_runtime_account_id().await?;
-    list_account_profile_library(&account_id)
+    tauri::async_runtime::spawn_blocking(move || list_account_profile_library(&account_id))
+        .await
+        .map_err(|error| format!("account_profile_library_list worker failed: {error}"))?
 }
 
 /// Create a new user-authored library profile under `user/`.
@@ -64,7 +66,11 @@ pub async fn account_profile_library_create(
     payload: AccountProfileLibraryEntryPayload,
 ) -> Result<AccountProfileLibraryProjection, String> {
     let account_id = authenticated_runtime_account_id().await?;
-    create_account_profile_library_entry(&account_id, payload.profile)
+    tauri::async_runtime::spawn_blocking(move || {
+        create_account_profile_library_entry(&account_id, payload.profile)
+    })
+    .await
+    .map_err(|error| format!("account_profile_library_create worker failed: {error}"))?
 }
 
 /// Edit an existing editable library profile in place.
@@ -73,7 +79,11 @@ pub async fn account_profile_library_edit(
     payload: AccountProfileLibraryEntryPayload,
 ) -> Result<AccountProfileLibraryProjection, String> {
     let account_id = authenticated_runtime_account_id().await?;
-    edit_account_profile_library_entry(&account_id, payload.profile)
+    tauri::async_runtime::spawn_blocking(move || {
+        edit_account_profile_library_entry(&account_id, payload.profile)
+    })
+    .await
+    .map_err(|error| format!("account_profile_library_edit worker failed: {error}"))?
 }
 
 /// Import one or more profiles into the library `imported/` directory.
@@ -82,7 +92,11 @@ pub async fn account_profile_library_import(
     payload: AccountProfileLibraryImportPayload,
 ) -> Result<AccountProfileLibraryProjection, String> {
     let account_id = authenticated_runtime_account_id().await?;
-    import_account_profile_library_entries(&account_id, payload.profiles)
+    tauri::async_runtime::spawn_blocking(move || {
+        import_account_profile_library_entries(&account_id, payload.profiles)
+    })
+    .await
+    .map_err(|error| format!("account_profile_library_import worker failed: {error}"))?
 }
 
 /// Export editable library profiles as portable AIProfile payloads.
@@ -91,7 +105,11 @@ pub async fn account_profile_library_export(
     payload: AccountProfileLibraryExportPayload,
 ) -> Result<Vec<LibraryAIProfilePayload>, String> {
     let account_id = authenticated_runtime_account_id().await?;
-    export_account_profile_library_entries(&account_id, payload.profile_ids)
+    tauri::async_runtime::spawn_blocking(move || {
+        export_account_profile_library_entries(&account_id, payload.profile_ids)
+    })
+    .await
+    .map_err(|error| format!("account_profile_library_export worker failed: {error}"))?
 }
 
 /// Delete an editable library profile.
@@ -100,5 +118,9 @@ pub async fn account_profile_library_delete(
     payload: AccountProfileLibraryDeletePayload,
 ) -> Result<AccountProfileLibraryProjection, String> {
     let account_id = authenticated_runtime_account_id().await?;
-    delete_account_profile_library_entry(&account_id, &payload.profile_id)
+    tauri::async_runtime::spawn_blocking(move || {
+        delete_account_profile_library_entry(&account_id, &payload.profile_id)
+    })
+    .await
+    .map_err(|error| format!("account_profile_library_delete worker failed: {error}"))?
 }

@@ -48,6 +48,8 @@ type LocalModelCenterRuntimeViewProps = {
   sharedRuntimeDependency?: NimiRuntimeLocalEnvironmentPlanDependency;
   sharedRuntimeDependencyJobs: NimiRuntimeLocalEnvironmentDependencyJob[];
   runtimeDependencyByAssetId: Record<string, NimiRuntimeLocalEnvironmentPlanDependency | undefined>;
+  runtimeDependencyError: string;
+  runtimeInventoryError: string;
   hasSearchQuery: boolean;
   importFileAssetKind: NimiRuntimeLocalAssetKind;
   importFileAuxiliaryEngine: AssetEngineOption | '';
@@ -139,6 +141,11 @@ export function LocalModelCenterRuntimeView(props: LocalModelCenterRuntimeViewPr
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <ScrollArea className="flex-1" contentClassName="mx-auto max-w-4xl space-y-8 p-6">
+        {props.runtimeInventoryError || props.runtimeDependencyError ? (
+          <div className="rounded-xl border border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_8%,transparent)] px-4 py-3 text-sm text-[var(--nimi-status-danger)]">
+            {props.runtimeInventoryError || props.runtimeDependencyError}
+          </div>
+        ) : null}
         <LocalModelCenterImportControls
           checkingHealth={props.checkingHealth}
           localHealthy={props.localHealthy}

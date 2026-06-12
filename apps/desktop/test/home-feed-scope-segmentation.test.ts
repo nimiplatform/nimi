@@ -8,6 +8,7 @@ function readWorkspaceFile(relativePath: string): string {
 
 const homeViewSource = readWorkspaceFile('src/shell/renderer/features/home/home-view.tsx');
 const homeFeedControlsSource = readWorkspaceFile('src/shell/renderer/features/home/home-feed-controls.tsx');
+const postFeedSource = readWorkspaceFile('src/shell/renderer/features/home/post-feed.tsx');
 const postFeedDataSource = readWorkspaceFile('src/shell/renderer/features/social/data/post-feed-data.ts');
 const mainLayoutViewSource = readWorkspaceFile('src/shell/renderer/app-shell/layouts/main-layout-view.tsx');
 const mainLayoutTitlebarContentSource = readWorkspaceFile('src/shell/renderer/app-shell/layouts/main-layout-titlebar-content.tsx');
@@ -33,6 +34,11 @@ test('HomeView reads each scope through the SDK typed feed projection (D-HOMEFEE
   // carrying the active scope. No renderer-local REST fetch.
   assert.match(homeViewSource, /realmSocialData\.loadPostFeed\(\{\s*scope:\s*props\.feedScope,/s);
   assert.doesNotMatch(homeViewSource, /\bfetch\(/);
+});
+
+test('PostFeed does not terminate pagination only because a filtered page is empty', () => {
+  assert.match(postFeedSource, /items\.length === 0 && nextCursor == null/);
+  assert.doesNotMatch(postFeedSource, /if \(items\.length === 0\) \{/);
 });
 
 test('HomeView remounts PostFeed per scope so scope reads are not cross-contaminated', () => {

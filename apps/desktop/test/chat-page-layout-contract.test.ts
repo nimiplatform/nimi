@@ -83,7 +83,8 @@ test('agent shell presentation disables stage panel props so desktop chat cannot
   assert.match(chatAgentPresentationSource, /stagePanelProps:\s*undefined/);
   assert.match(chatAgentPresentationSource, /topContent:\s*schedulingFeedbackNode/);
   assert.match(chatAgentPresentationSettingsSource, /AgentCenterPanel/);
-  assert.match(chatAgentLocalAvatarControlsSource, /importAgentCenterAvatarAsset/);
+  assert.doesNotMatch(chatAgentLocalAvatarControlsSource, /importAgentCenterAvatarAsset/);
+  assert.match(chatAgentLocalAvatarControlsSource, /Desktop-local Live2D\/VRM carrier assets are decommissioned/);
   assert.doesNotMatch(chatAgentPresentationSource, /chat-agent-avatar-store/);
   assert.match(chatAgentLocalAvatarControlsSource, /getAgentCenterBackgroundAsset/);
   assert.doesNotMatch(chatAgentPresentationSource, /ChatAgentAvatarSettingsPanel/u);
@@ -100,6 +101,8 @@ test('agent composer avatar action is keyboard reachable and package preview rem
   assert.match(chatAgentCanonicalComposerSource, /data-agent-composer-toolbar-groups="true"/);
   assert.match(chatAgentCanonicalComposerSource, /data-agent-composer-avatar-group="true"/);
   assert.match(chatAgentCanonicalComposerSource, /data-agent-composer-utility-group="true"/);
+  assert.doesNotMatch(chatAgentCanonicalComposerSource, /void props\.onSubmit/);
+  assert.doesNotMatch(chatAgentCanonicalComposerSource, /return Promise\.resolve\(\)/);
   assert.match(chatAgentPresentationSource, /onConfigure:\s*input\.onOpenAgentCenter/);
   assert.match(chatAgentPresentationSource, /onActivate:\s*localAvatar\.handleComposerAvatarAction/);
   assert.doesNotMatch(chatAgentPresentationSource, /previewLoader|PackagePreview|Preview Avatar/u);

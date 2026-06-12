@@ -99,7 +99,6 @@ export function MainLayoutView(props: MainLayoutViewProps) {
     });
   }, []);
   const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
-  const [collapsedSettingsMenuPosition, setCollapsedSettingsMenuPosition] = useState<{ top: number; left: number } | null>(null);
   const settingsTriggerRef = useRef<HTMLDivElement>(null);
   const settingsMenuRef = useRef<HTMLDivElement>(null);
   const sidebarWidthClass = 'w-[60px]';
@@ -177,50 +176,6 @@ export function MainLayoutView(props: MainLayoutViewProps) {
     setSettingsMenuOpen(false);
   }, [props.activeTab]);
 
-  useEffect(() => {
-    if (!settingsMenuOpen) {
-      return;
-    }
-    const updatePosition = () => {
-      const rect = settingsTriggerRef.current?.getBoundingClientRect();
-      if (!rect) {
-        return;
-      }
-      const menuWidth = 256; // w-64 = 16rem = 256px
-      const menuMaxHeight = Math.min(480, window.innerHeight - 100);
-      const viewportWidth = window.innerWidth;
-      const viewportHeight = window.innerHeight;
-      // Horizontal positioning
-      const clampedLeft = Math.min(
-        Math.max(12, rect.right - menuWidth),
-        Math.max(12, viewportWidth - menuWidth - 12),
-      );
-      // Vertical positioning - check if there's enough space below
-      const spaceBelow = viewportHeight - rect.bottom - 12;
-      const spaceAbove = rect.top - 12;
-
-      let top: number;
-      if (spaceBelow >= menuMaxHeight || spaceBelow >= spaceAbove) {
-        // Show below if there's enough space or more space than above
-        top = Math.max(12, Math.min(rect.bottom + 6, viewportHeight - menuMaxHeight - 12));
-      } else {
-        // Show above when there's not enough space below
-        top = Math.max(12, rect.top - menuMaxHeight - 6);
-      }
-      setCollapsedSettingsMenuPosition({
-        top,
-        left: clampedLeft,
-      });
-    };
-    updatePosition();
-    window.addEventListener('resize', updatePosition);
-    window.addEventListener('scroll', updatePosition, true);
-    return () => {
-      window.removeEventListener('resize', updatePosition);
-      window.removeEventListener('scroll', updatePosition, true);
-    };
-  }, [settingsMenuOpen]);
-
   const avatarNode = (
     <EntityAvatar
       imageUrl={props.userAvatarUrl}
@@ -235,8 +190,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
     <img
       src={logoImage}
       alt="Nimi"
-      className="h-9 w-9 shrink-0 object-cover"
-      style={{ mixBlendMode: 'multiply' }}
+      className="h-9 w-9 shrink-0 object-cover mix-blend-multiply"
     />
   );
   const currentSettingsSelection = props.activeTab === 'settings'
@@ -429,8 +383,6 @@ export function MainLayoutView(props: MainLayoutViewProps) {
       {settingsMenuOpen ? (
         <div ref={settingsMenuRef}>
           <MainLayoutSettingsMenu
-            top={collapsedSettingsMenuPosition?.top ?? 76}
-            left={collapsedSettingsMenuPosition?.left ?? 81}
             userAvatarUrl={props.userAvatarUrl}
             displayName={props.displayName}
             userEmail={props.userEmail}

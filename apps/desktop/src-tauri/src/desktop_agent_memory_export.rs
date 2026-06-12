@@ -37,9 +37,11 @@ pub struct AgentMemoryExportSaveResult {
 pub async fn desktop_agent_memory_export_save(
     envelope_json: String,
 ) -> Result<AgentMemoryExportSaveResult, String> {
-    tauri::async_runtime::spawn_blocking(move || save_envelope(&envelope_json)).await.map_err(
-        |join_error| format!("agent memory export save task failed to complete: {join_error}"),
-    )?
+    tauri::async_runtime::spawn_blocking(move || save_envelope(&envelope_json))
+        .await
+        .map_err(|join_error| {
+            format!("agent memory export save task failed to complete: {join_error}")
+        })?
 }
 
 fn save_envelope(envelope_json: &str) -> Result<AgentMemoryExportSaveResult, String> {
@@ -48,10 +50,12 @@ fn save_envelope(envelope_json: &str) -> Result<AgentMemoryExportSaveResult, Str
     }
     let parsed: serde_json::Value = serde_json::from_str(envelope_json)
         .map_err(|error| format!("agent memory export envelope is not valid JSON: {error}"))?;
-    if parsed.get("schemaVersion").and_then(serde_json::Value::as_u64).is_none() {
-        return Err(
-            "agent memory export envelope is missing the schemaVersion marker".to_string(),
-        );
+    if parsed
+        .get("schemaVersion")
+        .and_then(serde_json::Value::as_u64)
+        .is_none()
+    {
+        return Err("agent memory export envelope is missing the schemaVersion marker".to_string());
     }
     let downloads_dir = crate::desktop_logs_export::resolve_downloads_dir()?;
     let saved_at = chrono::Utc::now();
@@ -87,13 +91,16 @@ mod tests {
     #[test]
     fn rejects_invalid_json() {
         let error = save_envelope("{not json").expect_err("invalid JSON must fail closed");
-        assert!(error.contains("not valid JSON"), "unexpected error: {error}");
+        assert!(
+            error.contains("not valid JSON"),
+            "unexpected error: {error}"
+        );
     }
 
     #[test]
     fn rejects_envelope_without_schema_version() {
-        let error = save_envelope("{\"records\":[]}")
-            .expect_err("missing schemaVersion must fail closed");
+        let error =
+            save_envelope("{\"records\":[]}").expect_err("missing schemaVersion must fail closed");
         assert!(error.contains("schemaVersion"), "unexpected error: {error}");
     }
 }

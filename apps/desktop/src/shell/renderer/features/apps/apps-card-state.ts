@@ -1,8 +1,9 @@
 // Apps card-state derivation (T4-W4).
 //
-// The 11 canonical product card states (manual `#### Canonical Card States`,
-// `product-manual-full-authority.md` lines 945-962) are NOT a one-to-one
-// projection of the SDK `AppLaunchReadiness` floor. The manual is explicit:
+// The 11 canonical product card states are NOT a one-to-one projection of the
+// SDK `AppLaunchReadiness` floor. Current authority is
+// `.nimi/spec/desktop/kernel/nimi-home-shell-contract.md` D-HOME-005 plus
+// `.nimi/spec/platform/kernel/nimi-app-admission-contract.md` P-NAPP-008:
 // the product state *refines* the 7-value readiness floor with package
 // progress, update compatibility, and error details — those signals live in
 // the runtime-owned `NimiRuntimeAppInstallJob` projection, not in the readiness
@@ -16,7 +17,7 @@
 // collapses a distinct failure into a generic bucket (`P-NAPP-008`).
 //
 // Authority:
-//   - manual Apps `#### Canonical Card States` (11 states, verbatim)
+//   - D-HOME-005 canonical Apps card states
 //   - P-NAPP-008 (no collapsed `unavailable` card)
 //   - K-APP-011..K-APP-016 (NimiRuntimeAppInstallJob lifecycle)
 
@@ -27,8 +28,8 @@ import type {
 } from './apps-lifecycle-bridge.js';
 
 /**
- * The 11 canonical product card states, verbatim from the manual. This is the
- * exact, complete set — there is no 12th state. The historical
+ * The 11 canonical product card states from D-HOME-005. This is the exact,
+ * complete set — there is no 12th state. The historical
  * `status_unavailable` value in `apps-panel-projection.ts` is a separate
  * `status()`-failure bucket scheduled for the W5 hard-cut and is intentionally
  * NOT a member of this canonical set.
@@ -50,8 +51,8 @@ export const CANONICAL_APP_CARD_STATES = [
 export type CanonicalAppCardState = typeof CANONICAL_APP_CARD_STATES[number];
 
 /**
- * The visual posture for each canonical card state, verbatim from the manual
- * `#### Canonical Card States` table `Visual posture` column.
+ * The visual posture for each canonical card state from the D-HOME-005 card
+ * state table.
  */
 export type AppCardPosture =
   | 'greyed-selectable'
@@ -109,8 +110,8 @@ export interface AppCardStateInput {
  *  1. A live in-flight job pins the card to a progress state by `kind`:
  *     `install` -> `installing`, `update`/`repair` -> `installing` posture
  *     is not used; an in-flight `update` keeps `update_required` semantics is
- *     wrong — instead the manual gives `installing` only the install kind a
- *     Progress card. `update`/`repair` in-flight reuse the `installing`
+ *     wrong — D-HOME-005 gives `installing` only the install kind a Progress
+ *     card. `update`/`repair` in-flight reuse the `installing`
  *     Progress posture under their own product state below.
  *  2. A terminal `failed` install/update/repair job -> `install_failed`.
  *  3. A terminal `cancelled` job is not a card state on its own — the floor
@@ -169,7 +170,7 @@ function liveJobCardState(job: NimiRuntimeAppInstallJob): CanonicalAppCardState 
 
 /**
  * The Progress card state for an in-flight (`queued`/`in_progress`) job.
- * `install` and `update`/`repair` all surface as `installing` (the manual's
+ * `install` and `update`/`repair` all surface as `installing` (D-HOME-005's
  * single Progress-with-phase card for forward lifecycle work); `uninstall`
  * surfaces as the distinct `uninstalling` Progress card.
  */

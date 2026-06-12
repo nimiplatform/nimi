@@ -1,8 +1,16 @@
 import type { AgentCenterAvatarAssetModule } from './chat-agent-center-avatar-config-types';
-import type {
-  AgentCenterAvatarAssetValidationResult,
-  AgentCenterValidationIssue,
-} from './chat-agent-center-local-config';
+import type { AgentCenterValidationIssue } from './chat-agent-center-local-config';
+
+export type AvatarAssetValidationResult = {
+  status: string;
+  errors: AgentCenterValidationIssue[];
+  warnings: AgentCenterValidationIssue[];
+};
+
+export type DecommissionedAvatarAssetLibraryResult = {
+  selected_local_asset_id: null;
+  assets: [];
+};
 
 export type AvatarAssetReadinessStatus = 'ready' | 'checking' | 'missing' | 'invalid';
 
@@ -29,7 +37,7 @@ function issueMessage(issue: AgentCenterValidationIssue): string {
 
 export function buildAvatarAssetValidationPresentation(input: {
   config: AgentCenterAvatarAssetModule | null;
-  validation: AgentCenterAvatarAssetValidationResult | null;
+  validation: AvatarAssetValidationResult | null;
   configured: boolean;
   valid: boolean;
   checking: boolean;

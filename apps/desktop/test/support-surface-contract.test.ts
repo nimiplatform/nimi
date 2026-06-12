@@ -167,9 +167,11 @@ test('D-SUP-003: repair surfaces config pointers without recreating them', () =>
   assert.doesNotMatch(source, /selectProductDataRoot|setProductFirstRun/);
 });
 
-test('D-SUP-004: updates consumes the DesktopReleaseInfo projection, not synthesized data', () => {
+test('support.updates-release-projection: D-SUP-004 updates consumes the DesktopReleaseInfo projection, not synthesized data', () => {
   const source = readDesktop(SECTION_FILES.updates);
   assert.match(source, /desktopReleaseInfo/);
+  assert.match(source, /support-updates-fail-closed/);
+  assert.match(source, /updatesProjectionMissing/);
   assert.match(source, /runDesktopUpdateCheck/);
   // updaterAvailable=false must surface the typed reason and disable actions.
   assert.match(source, /updaterAvailable/);
@@ -189,6 +191,9 @@ test('D-SUP-006: logs consumes the log-areas table and exports via the typed IPC
   assert.match(source, /getDesktopStorageDirs/);
   // The typed `desktop_logs_export` IPC produces the user-locatable artifact.
   assert.match(source, /exportDesktopLogs/);
+  const exportBridge = readDesktop('src/shell/renderer/bridge/runtime-bridge/support-logs-export.ts');
+  assert.match(exportBridge, /requirePositiveInteger\(record\.fileCount, 'fileCount'\)/);
+  assert.match(exportBridge, /requirePositiveInteger\(record\.byteSize, 'byteSize'\)/);
   // The export action fails closed to a typed error state — it never
   // synthesizes an artifact path or a pseudo-success result.
   assert.match(source, /support-logs-export-failed/);

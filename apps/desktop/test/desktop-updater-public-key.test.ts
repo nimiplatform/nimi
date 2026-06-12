@@ -1,9 +1,16 @@
 import assert from 'node:assert/strict';
 import { Buffer } from 'node:buffer';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import test from 'node:test';
 
 import { normalizeDesktopUpdaterPublicKey } from '../scripts/lib/desktop-updater-public-key.mjs';
-import { createDesktopUpdaterTauriConfig } from '../scripts/lib/desktop-updater-tauri-config.mjs';
+import {
+  createDesktopUpdaterTauriConfig,
+  desktopUpdaterTauriConfigAuthority,
+  readRustDefaultUpdaterEndpoint,
+} from '../scripts/lib/desktop-updater-tauri-config.mjs';
 
 const rawPublicKey = 'RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3';
 const publicKeyText = `untrusted comment: minisign public key\n${rawPublicKey}\n`;
@@ -41,7 +48,7 @@ test('desktop updater public key normalizer rejects non-minisign material', () =
 });
 
 test('desktop updater Tauri config overlay carries normalized updater public key and endpoint', () => {
-  const endpoint = 'https://install.nimi.ai/desktop/latest.json';
+  const endpoint = 'https://updates.example.test/desktop/latest.json';
   const config = createDesktopUpdaterTauriConfig({
     publicKey: rawPublicKey,
     endpoint,
@@ -50,6 +57,38 @@ test('desktop updater Tauri config overlay carries normalized updater public key
   assert.equal(config.plugins.updater.pubkey, normalizeDesktopUpdaterPublicKey(rawPublicKey));
   assert.deepEqual(config.plugins.updater.endpoints, [endpoint]);
   assert.equal(config.plugins.updater.windows.installMode, 'passive');
+});
+
+test('desktop updater Tauri config default endpoint is read from Rust updater source', () => {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'nimi-updater-rust-source-'));
+  const rustSourcePath = path.join(tempRoot, 'desktop_updates.rs');
+  fs.writeFileSync(
+    rustSourcePath,
+    'const DEFAULT_UPDATE_ENDPOINT: &str = "https://updates.example.test/desktop/latest.json";\n',
+  );
+
+  try {
+    const config = createDesktopUpdaterTauriConfig({
+      publicKey: rawPublicKey,
+      rustSourcePath,
+    });
+
+    assert.equal(readRustDefaultUpdaterEndpoint(rustSourcePath), 'https://updates.example.test/desktop/latest.json');
+    assert.deepEqual(config.plugins.updater.endpoints, ['https://updates.example.test/desktop/latest.json']);
+    assert.match(desktopUpdaterTauriConfigAuthority.endpointSource, /desktop_updates\.rs::DEFAULT_UPDATE_ENDPOINT/u);
+  } finally {
+    fs.rmSync(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test('desktop updater Tauri config helper does not hardcode updater endpoint truth', () => {
+  const source = fs.readFileSync(
+    path.join(import.meta.dirname, '..', 'scripts/lib/desktop-updater-tauri-config.mjs'),
+    'utf8',
+  );
+
+  assert.doesNotMatch(source, /https:\/\/install\.nimi\.ai\/desktop\/latest\.json/u);
+  assert.match(source, /readRustDefaultUpdaterEndpoint/);
 });
 
 test('desktop updater Tauri config overlay rejects non-https updater endpoints', () => {

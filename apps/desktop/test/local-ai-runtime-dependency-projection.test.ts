@@ -27,6 +27,12 @@ const installedSectionProjectionSource = `${installedSectionSource}\n${installed
 const runtimeViewSource = readWorkspaceFile(
   'src/shell/renderer/features/runtime-config/runtime-config-local-model-center-runtime-view.tsx',
 );
+const bridgeErrorsEnSource = readWorkspaceFile(
+  'src/shell/renderer/locales/en/53-BridgeErrors.json',
+);
+const bridgeErrorsZhSource = readWorkspaceFile(
+  'src/shell/renderer/locales/zh/53-BridgeErrors.json',
+);
 
 test('local model center resolves shared runtime dependency readiness before any imported model is required', () => {
   assert.match(runtimeProjectionSources, /runtimeConfigLocalModelCenterClient\.resolveEnvironmentPlan/);
@@ -50,7 +56,33 @@ test('local model center resolves shared runtime dependency readiness before any
   assert.doesNotMatch(runtimeReadinessSource, /stable-diffusion\.cpp/);
   assert.match(runtimeReadinessSource, /asset,\s*\}/);
   assert.match(runtimeReadinessSource, /prepareAssetRuntimeDependencies/);
+  const prepareBody = runtimeReadinessSource.slice(
+    runtimeReadinessSource.indexOf('const prepareAssetRuntimeDependencies'),
+    runtimeReadinessSource.indexOf('const cancelRuntimeDependencyJob'),
+  );
+  assert.match(prepareBody, /!dependency\.confirmationRequired/);
+  assert.match(prepareBody, /confirmed:\s*false/);
+  assert.doesNotMatch(prepareBody, /confirmed:\s*true/);
   assert.match(runtimeProjectionSources, /runtimeDependencyByAssetId/);
+});
+
+test('local model center surfaces runtime inventory failures instead of replacing them with empty success', () => {
+  assert.match(runtimeProjectionSources, /runtimeInventoryError/);
+  assert.match(runtimeProjectionSources, /runtimeDependencyError/);
+  assert.match(runtimeViewSource, /props\.runtimeInventoryError \|\| props\.runtimeDependencyError/);
+  assert.doesNotMatch(runtimeStateSource, /catch\s*\{[\s\S]{0,180}setCatalogItems\(\[\]\)/);
+  assert.doesNotMatch(runtimeStateSource, /catch\s*\{[\s\S]{0,180}setVerifiedModels\(\[\]\)/);
+  assert.doesNotMatch(runtimeStateSource, /catch\s*\{[\s\S]{0,180}setInstalledAssets\(\[\]\)/);
+  assert.doesNotMatch(runtimeStateSource, /catch\s*\{[\s\S]{0,180}setVerifiedAssets\(\[\]\)/);
+  assert.doesNotMatch(runtimeReadinessSource, /catch\s*\([^)]*\)\s*\{[\s\S]{0,180}setSharedRuntimeEnvironmentPlan\(undefined\)/);
+  assert.doesNotMatch(runtimeReadinessSource, /catch\s*\([^)]*\)\s*\{[\s\S]{0,180}setSharedRuntimeDependencyJobs\(\[\]\)/);
+});
+
+test('BridgeErrors projects Local Speech failure families without Qwen-specific owner copy', () => {
+  const bridgeErrors = `${bridgeErrorsEnSource}\n${bridgeErrorsZhSource}`;
+  assert.match(bridgeErrors, /LOCAL_AI_SPEECH_GPU_REQUIRED/);
+  assert.match(bridgeErrors, /LOCAL_AI_SPEECH_BOOTSTRAP_FAILED/);
+  assert.doesNotMatch(bridgeErrors, /LOCAL_AI_QWEN|Qwen TTS/);
 });
 
 test('local model center setup CTA projects shared dependency resolver truth at page level', () => {

@@ -6,6 +6,7 @@ import {
   buildDesktopAvatarInstanceId,
   closeDesktopAvatarHandoff,
   launchDesktopAvatarHandoff,
+  parseDesktopAvatarCloseHandoffResult,
   parseDesktopAvatarLaunchHandoffResult,
   prepareDesktopAvatarLaunchHandoffPayload,
 } from '../src/shell/renderer/bridge/runtime-bridge/chat-agent-avatar-launcher';
@@ -224,5 +225,29 @@ test('desktop avatar launcher parses handoff results', () => {
       opened: true,
       handoffUri: 'nimi-avatar://launch?agent_id=local-agent%3Aowner-1%3Aagent-1',
     },
+  );
+});
+
+test('desktop avatar launcher rejects coerced handoff result shapes', () => {
+  assert.throws(
+    () => parseDesktopAvatarLaunchHandoffResult({
+      opened: 'false',
+      handoffUri: 'nimi-avatar://launch?agent_id=local-agent%3Aowner-1%3Aagent-1',
+    }),
+    /invalid opened/,
+  );
+  assert.throws(
+    () => parseDesktopAvatarLaunchHandoffResult({
+      opened: true,
+      handoffUri: 42,
+    }),
+    /invalid handoffUri/,
+  );
+  assert.throws(
+    () => parseDesktopAvatarCloseHandoffResult({
+      opened: 1,
+      handoffUri: 'nimi-avatar://close?avatar_instance_id=instance-1',
+    }),
+    /invalid opened/,
   );
 });

@@ -100,6 +100,13 @@ function ExternalAgentTokenRow(props: {
     : token.scopes.map((scope) => scope.actionId);
   const visibleScopes = displayScopes.slice(0, 3);
   const overflowCount = displayScopes.length - visibleScopes.length;
+  const revokeDisabled = props.busy || !props.canIssue;
+  const invokeRevoke = () => {
+    if (revokeDisabled) {
+      return;
+    }
+    props.onRevokeToken();
+  };
 
   return (
     <div className="group">
@@ -182,21 +189,22 @@ function ExternalAgentTokenRow(props: {
           {status !== 'revoked' ? (
             <span
               role="button"
-              tabIndex={0}
+              aria-disabled={revokeDisabled}
+              tabIndex={revokeDisabled ? -1 : 0}
               onClick={(event) => {
                 event.stopPropagation();
-                props.onRevokeToken();
+                invokeRevoke();
               }}
               onKeyDown={(event) => {
                 if (event.key === 'Enter' || event.key === ' ') {
                   event.preventDefault();
                   event.stopPropagation();
-                  props.onRevokeToken();
+                  invokeRevoke();
                 }
               }}
               className={cn(
                 'rounded-md px-2 py-1 text-[11px] font-medium transition-colors',
-                props.busy || !props.canIssue
+                revokeDisabled
                   ? 'cursor-not-allowed text-[color-mix(in_srgb,var(--nimi-text-muted)_70%,transparent)]'
                   : 'text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-status-danger)_10%,transparent)] hover:text-[var(--nimi-status-danger)]',
               )}

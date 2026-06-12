@@ -1,9 +1,55 @@
 import { type NimiRuntimeAgentCompanionParticipationProjection, type NimiRuntimeAgentCompanionParticipationSurfaceKind } from '@nimiplatform/sdk/runtime';
-import { AvatarDebugProbeKind, AvatarDebugProbeStatus, type AvatarDebugProbeResultEnvelope, type AvatarDebugReplayRef } from '@nimiplatform/sdk/runtime/generated';
 import type { AgentCenterAvatarAssetModule } from './chat-agent-center-avatar-config-types';
 
+export const AvatarDebugProbeKind = {
+  UNSPECIFIED: 0,
+  PACKAGE_VALIDATION: 1,
+  LAUNCH_READINESS: 2,
+  BACKEND_LOAD: 3,
+  CAPABILITY_PROFILE: 4,
+  ROUTE_SUPPORT_MATRIX: 5,
+  GENERATED_MOTION: 6,
+  EMOTION_EXPRESSION: 7,
+  SPEECH_LIPSYNC: 8,
+  WINDOW_HIT_REGION: 9,
+} as const;
+
+export type AvatarDebugProbeKind = typeof AvatarDebugProbeKind[keyof typeof AvatarDebugProbeKind];
+
+export const AvatarDebugProbeStatus = {
+  UNSPECIFIED: 0,
+  PASSED: 1,
+  FAILED: 2,
+  UNSUPPORTED: 3,
+  BLOCKED: 4,
+  INVALID: 5,
+} as const;
+
+export type AvatarDebugProbeStatus = typeof AvatarDebugProbeStatus[keyof typeof AvatarDebugProbeStatus];
+
+export type AvatarDebugProbeResultEnvelope = {
+  probeId: string;
+  agentId?: string;
+  conversationAnchorId?: string;
+  probeKind: AvatarDebugProbeKind;
+  status: AvatarDebugProbeStatus;
+  evidenceRefs?: readonly string[];
+  reasonCode?: string;
+  resultId?: string;
+};
+
+export type AvatarDebugReplayRef = {
+  probeId: string;
+  replayRef?: string | null;
+  redactionState?: number;
+  visibility?: number;
+};
+
+export type AvatarDebugWorkbenchProbeKind = AvatarDebugProbeKind | 'runtime_replay';
+
 export type AvatarDebugWorkbenchProbe = {
-  kind: AvatarDebugProbeKind;
+  kind: AvatarDebugWorkbenchProbeKind;
+  runtimeProbeKind?: AvatarDebugProbeKind;
   label: string;
   summary: string;
 };
@@ -34,63 +80,77 @@ export type DesktopCompanionParticipationProjectionRequest = {
 const PROBES: readonly AvatarDebugWorkbenchProbe[] = [
   {
     kind: AvatarDebugProbeKind.PACKAGE_VALIDATION,
+    runtimeProbeKind: AvatarDebugProbeKind.PACKAGE_VALIDATION,
     label: 'Local asset',
     summary: 'Validate the selected local Avatar asset record.',
   },
   {
     kind: AvatarDebugProbeKind.LAUNCH_READINESS,
+    runtimeProbeKind: AvatarDebugProbeKind.LAUNCH_READINESS,
     label: 'Launch',
     summary: 'Check readiness for the current conversation anchor.',
   },
   {
     kind: AvatarDebugProbeKind.BACKEND_LOAD,
+    runtimeProbeKind: AvatarDebugProbeKind.BACKEND_LOAD,
     label: 'Backend',
     summary: 'Ask Runtime for backend load evidence.',
   },
   {
     kind: AvatarDebugProbeKind.CAPABILITY_PROFILE,
+    runtimeProbeKind: AvatarDebugProbeKind.CAPABILITY_PROFILE,
     label: 'Profile',
     summary: 'Inspect capability profile evidence.',
   },
   {
     kind: AvatarDebugProbeKind.ROUTE_SUPPORT_MATRIX,
+    runtimeProbeKind: AvatarDebugProbeKind.ROUTE_SUPPORT_MATRIX,
     label: 'Routes',
     summary: 'Inspect route support for this backend.',
   },
   {
     kind: AvatarDebugProbeKind.GENERATED_MOTION,
+    runtimeProbeKind: AvatarDebugProbeKind.GENERATED_MOTION,
     label: 'Motion',
     summary: 'Check generated motion support.',
   },
   {
     kind: AvatarDebugProbeKind.EMOTION_EXPRESSION,
+    runtimeProbeKind: AvatarDebugProbeKind.EMOTION_EXPRESSION,
     label: 'Emotion',
     summary: 'Check emotion and expression support.',
   },
   {
     kind: AvatarDebugProbeKind.SPEECH_LIPSYNC,
+    runtimeProbeKind: AvatarDebugProbeKind.SPEECH_LIPSYNC,
     label: 'Speech',
     summary: 'Check speech and lipsync support.',
   },
   {
     kind: AvatarDebugProbeKind.WINDOW_HIT_REGION,
+    runtimeProbeKind: AvatarDebugProbeKind.WINDOW_HIT_REGION,
     label: 'Window',
     summary: 'Check carrier window diagnostics.',
+  },
+  {
+    kind: 'runtime_replay',
+    label: 'Replay',
+    summary: 'Inspect Runtime replay evidence coverage for debug probes.',
   },
 ];
 
 export const AVATAR_DEBUG_WORKBENCH_PROBES = PROBES;
 
-const REQUIRED_EVIDENCE_REF_COUNTS_BY_PROBE_KIND: Partial<Record<AvatarDebugProbeKind, number>> = {
-  [AvatarDebugProbeKind.PACKAGE_VALIDATION]: 2,
-  [AvatarDebugProbeKind.LAUNCH_READINESS]: 2,
-  [AvatarDebugProbeKind.BACKEND_LOAD]: 2,
-  [AvatarDebugProbeKind.CAPABILITY_PROFILE]: 2,
-  [AvatarDebugProbeKind.ROUTE_SUPPORT_MATRIX]: 2,
-  [AvatarDebugProbeKind.GENERATED_MOTION]: 2,
-  [AvatarDebugProbeKind.EMOTION_EXPRESSION]: 2,
-  [AvatarDebugProbeKind.SPEECH_LIPSYNC]: 2,
-  [AvatarDebugProbeKind.WINDOW_HIT_REGION]: 1,
+const REQUIRED_EVIDENCE_REFS_BY_PROBE_KIND: Partial<Record<AvatarDebugProbeKind, readonly string[]>> = {
+  [AvatarDebugProbeKind.PACKAGE_VALIDATION]: ['local_avatar_asset_ref', 'import_validation_ref'],
+  [AvatarDebugProbeKind.LAUNCH_READINESS]: ['runtime_authorization_ref', 'avatar_launch_payload_shape'],
+  [AvatarDebugProbeKind.BACKEND_LOAD]: ['avatar_debug_session_id', 'backend_load_evidence_ref'],
+  [AvatarDebugProbeKind.CAPABILITY_PROFILE]: ['backend_capability_profile_ref', 'profile_validation_evidence_ref'],
+  [AvatarDebugProbeKind.ROUTE_SUPPORT_MATRIX]: ['generated_motion_routes_ref', 'backend_capability_profile_ref'],
+  [AvatarDebugProbeKind.GENERATED_MOTION]: ['runtime_probe_id', 'avatar_backend_evidence_ref'],
+  [AvatarDebugProbeKind.EMOTION_EXPRESSION]: ['runtime_probe_id', 'avatar_backend_evidence_ref'],
+  [AvatarDebugProbeKind.SPEECH_LIPSYNC]: ['runtime_probe_id', 'avatar_backend_evidence_ref'],
+  [AvatarDebugProbeKind.WINDOW_HIT_REGION]: ['avatar_carrier_diagnostics_ref'],
 };
 
 export function buildAvatarDebugWorkbenchLaunchHealth(input: {
@@ -170,6 +230,11 @@ function normalizedEvidenceRefs(result: AvatarDebugProbeResultEnvelope | null | 
     : [];
 }
 
+function evidenceRefMatchesRequiredIdentity(ref: string, requiredIdentity: string): boolean {
+  const normalized = ref.trim();
+  return normalized === requiredIdentity || normalized.startsWith(`${requiredIdentity}:`);
+}
+
 export function avatarDebugProbeFailClosedReason(
   result: AvatarDebugProbeResultEnvelope | null | undefined,
   replayRef?: AvatarDebugReplayRef | null,
@@ -177,12 +242,21 @@ export function avatarDebugProbeFailClosedReason(
   if (result?.status !== AvatarDebugProbeStatus.PASSED) {
     return null;
   }
-  const requiredEvidenceCount = REQUIRED_EVIDENCE_REF_COUNTS_BY_PROBE_KIND[result.probeKind] ?? 1;
-  if (normalizedEvidenceRefs(result).length < requiredEvidenceCount) {
+  const evidenceRefs = normalizedEvidenceRefs(result);
+  const requiredEvidenceRefs = REQUIRED_EVIDENCE_REFS_BY_PROBE_KIND[result.probeKind] ?? [];
+  if (
+    requiredEvidenceRefs.length === 0
+    || requiredEvidenceRefs.some((requiredIdentity) => (
+      !evidenceRefs.some((ref) => evidenceRefMatchesRequiredIdentity(ref, requiredIdentity))
+    ))
+  ) {
     return 'required_probe_evidence_missing';
   }
   if (!replayRef?.replayRef?.trim()) {
     return 'runtime_replay_missing';
+  }
+  if (replayRef.probeId !== result.probeId) {
+    return 'runtime_replay_probe_mismatch';
   }
   return null;
 }
@@ -213,6 +287,9 @@ export function avatarDebugProbeRemediation(
   }
   if (failClosedReason === 'runtime_replay_missing') {
     return 'runtime_replay_missing: Runtime replay evidence is missing. Treat this probe as failed until Runtime returns a replay ref.';
+  }
+  if (failClosedReason === 'runtime_replay_probe_mismatch') {
+    return 'runtime_replay_probe_mismatch: Runtime replay evidence belongs to a different probe. Treat this probe as failed until Runtime returns the matching replay ref.';
   }
   switch (result?.status) {
     case AvatarDebugProbeStatus.PASSED:

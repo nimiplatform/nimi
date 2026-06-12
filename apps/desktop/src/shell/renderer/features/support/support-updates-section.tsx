@@ -33,9 +33,9 @@ export function SupportUpdatesSection() {
   const desktopUpdateState = useAppStore((state) => state.desktopUpdateState);
 
   // Fail closed: the release projection is the load-bearing typed input. If it
-  // is absent and an error was captured, the sub-area shows the typed failure
-  // rather than a fabricated "version unknown" success surface.
-  if (!desktopReleaseInfo && desktopReleaseError) {
+  // is absent, the sub-area shows the captured typed failure or an explicit
+  // missing-projection reason rather than fabricated "version unknown" data.
+  if (!desktopReleaseInfo) {
     return (
       <SupportSectionShell
         title={t('Support.updatesTitle')}
@@ -44,7 +44,7 @@ export function SupportUpdatesSection() {
       >
         <SupportFailClosed
           testId="support-updates-fail-closed"
-          reason={desktopReleaseError}
+          reason={desktopReleaseError || t('Support.updatesProjectionMissing')}
         />
       </SupportSectionShell>
     );

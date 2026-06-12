@@ -1,9 +1,8 @@
 import {
   acquireNimiManagedConnectorCredential,
   type NimiConnectorAuthAcquisitionPendingState,
+  type NimiManagedConnectorCredentialRuntime,
   type NimiManagedConnectorCredentialAcquisitionResult,
-  type NimiPersistManagedConnectorCredentialInput,
-  type NimiPersistManagedConnectorCredentialResult,
 } from '@nimiplatform/sdk/runtime';
 import type { JsonObject } from '@nimiplatform/sdk/types';
 import { desktopBridge, logRendererEvent } from '@renderer/bridge';
@@ -12,8 +11,12 @@ export type CodexOAuthPendingState = NimiConnectorAuthAcquisitionPendingState;
 
 type AcquireCodexManagedCredentialOptions = {
   profileId: string;
+  runtime: NimiManagedConnectorCredentialRuntime;
+  connectorId: string;
+  provider?: string;
+  endpoint?: string;
+  label?: string;
   onPending?: (state: CodexOAuthPendingState) => void;
-  persistCredential(input: NimiPersistManagedConnectorCredentialInput): Promise<NimiPersistManagedConnectorCredentialResult>;
 };
 
 function logCodexOAuth(
@@ -34,8 +37,12 @@ export async function acquireCodexManagedCredential(
 ): Promise<NimiManagedConnectorCredentialAcquisitionResult> {
   return acquireNimiManagedConnectorCredential({
     profileId: options.profileId,
+    runtime: options.runtime,
+    connectorId: options.connectorId,
+    provider: options.provider,
+    endpoint: options.endpoint,
+    label: options.label,
     onPending: options.onPending,
-    persistCredential: options.persistCredential,
     host: {
       proxyHttp: (request) => desktopBridge.proxyHttp({
         url: request.url,

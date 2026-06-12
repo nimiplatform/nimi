@@ -26,7 +26,32 @@ export function toBridgeUserMessage(error: unknown): string {
 }
 
 export function toBridgeNimiError(error: unknown): NimiError {
-  return toShellBridgeNimiError(error, { translate: translateBridgeMessage });
+  return scrubBridgeNimiError(toShellBridgeNimiError(error, { translate: translateBridgeMessage }));
+}
+
+const PROVIDER_API_KEY_REDACTION = '[REDACTED_PROVIDER_API_KEY]';
+
+function scrubProviderApiKey(value: string): string {
+  return value
+    .replace(/(x-nimi-provider-api-key\s*[:=]\s*)([^\s,;}"']+)/giu, `$1${PROVIDER_API_KEY_REDACTION}`)
+    .replace(/(provider_api_key\s*[:=]\s*)([^\s,;}"']+)/giu, `$1${PROVIDER_API_KEY_REDACTION}`)
+    .replace(/("providerApiKey"\s*:\s*")([^"]*)(")/gu, `$1${PROVIDER_API_KEY_REDACTION}$3`)
+    .replace(/(providerApiKey\s*[:=]\s*)([^\s,;}"']+)/gu, `$1${PROVIDER_API_KEY_REDACTION}`);
+}
+
+function scrubBridgeNimiError(error: NimiError): NimiError {
+  error.message = scrubProviderApiKey(error.message);
+  if (error.details) {
+    const details = { ...error.details };
+    if (typeof details.rawMessage === 'string') {
+      details.rawMessage = scrubProviderApiKey(details.rawMessage);
+    }
+    if (typeof details.userMessage === 'string') {
+      details.userMessage = scrubProviderApiKey(details.userMessage);
+    }
+    error.details = details;
+  }
+  return error;
 }
 
 function summarizeInvokePayload(command: string, payload: unknown): JsonObject {
@@ -112,7 +137,9 @@ export async function invoke(command: string, payload: unknown = {}): Promise<un
   } catch (error) {
     const bridgeError = toBridgeNimiError(error);
     const costMs = Number((performance.now() - startedAt).toFixed(2));
-    const rawMessage = String(bridgeError.details?.rawMessage || bridgeError.message || '').trim();
+    const rawMessage = scrubProviderApiKey(
+      String(bridgeError.details?.rawMessage || bridgeError.message || '').trim(),
+    );
     void emitRendererLog({
       level: 'error',
       area: 'bridge',

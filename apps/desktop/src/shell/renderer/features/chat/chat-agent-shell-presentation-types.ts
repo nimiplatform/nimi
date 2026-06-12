@@ -68,6 +68,7 @@ export type UseAgentConversationPresentationInput = {
   behaviorSettings: AgentChatExperienceSettings;
   setBehaviorSettings: (value: AgentChatExperienceSettings) => void;
   cognitionContent?: ReactNode;
+  developerModeEnabled: boolean;
   onDiagnosticsVisibilityChange?: (visible: boolean) => void;
   onOpenAgentCenter?: () => void;
   voiceSessionState: AgentVoiceSessionShellState;

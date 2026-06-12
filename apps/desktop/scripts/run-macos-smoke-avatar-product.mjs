@@ -14,6 +14,14 @@ export const LIVE2D_AVATAR_LOCAL_ASSET_MISSING_SMOKE_SCENARIO = 'chat.live2d-ava
 export const LIVE2D_AVATAR_PRODUCT_BOOTSTRAP_TIMEOUT_MS = 120000;
 export const AVATAR_PRODUCT_SMOKE_APP_REGISTRY_FILENAME = 'nimi-app-registry.yaml';
 export const AVATAR_PRODUCT_SMOKE_RELEASE_DESCRIPTORS_FILENAME = 'nimi-app-release-descriptors.yaml';
+export const AVATAR_PRODUCT_CANONICAL_APP_REGISTRY_PATH = path.join(
+  repoRoot,
+  '.nimi/spec/platform/kernel/tables/nimi-app-registry.yaml',
+);
+export const AVATAR_PRODUCT_CANONICAL_RELEASE_DESCRIPTORS_PATH = path.join(
+  repoRoot,
+  '.nimi/spec/platform/kernel/tables/nimi-app-release-descriptors.yaml',
+);
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
@@ -172,72 +180,45 @@ export function writeAvatarProductSmokeAppRegistryProjection(runtimeDir) {
   fs.mkdirSync(runtimeDir, { recursive: true });
   const registryPath = path.join(runtimeDir, AVATAR_PRODUCT_SMOKE_APP_REGISTRY_FILENAME);
   const releaseDescriptorsPath = path.join(runtimeDir, AVATAR_PRODUCT_SMOKE_RELEASE_DESCRIPTORS_FILENAME);
-  fs.writeFileSync(registryPath, `version: 1
-table_family: product_catalog
-owner: platform
-catalog_id: platform_nimi_app_registry_avatar_product_smoke
-apps:
-  - app_id: nimi.avatar
-    display_label: Avatar
-    publisher: nimi-first-party
-    trust_tier_ref: nimi-first-party
-    package_kind: nimi-app
-    package_signature_policy_ref: nimi-first-party-signature-policy
-    update_channel_ref: stable
-    ai_profile_selection_ref: local-gpu
-    capability_set_refs: [text.generate, audio.synthesize, audio.transcribe, image.generate]
-    local_compute_pack_refs: [local-text, local-speech, local-image-native, local-gpu-support]
-    runtime_registration_mode: app-managed
-    permission_scope_ref:
-      - { appId: nimi.avatar, scopeFamily: account, scopeName: account.session.read }
-      - { appId: nimi.avatar, scopeFamily: agent, scopeName: agent.identity.project }
-      - { appId: nimi.avatar, scopeFamily: memory, scopeName: memory.read.bounded, qualifier: persona-scoped }
-      - { appId: nimi.avatar, scopeFamily: memory, scopeName: memory.write.admitted, qualifier: session-scoped }
-      - { appId: nimi.avatar, scopeFamily: ai_spend, scopeName: ai.spend.meter }
-      - { appId: nimi.avatar, scopeFamily: file_device, scopeName: device.use.scoped }
-      - { appId: nimi.avatar, scopeFamily: file_device, scopeName: file.read.scoped }
-      - { appId: nimi.avatar, scopeFamily: ai_profile, scopeName: ai_profile.selection.consume }
-    health_repair_projection: unavailable
-    ordinary_visibility: hidden-internal
-    release_descriptor_ref: nimi.avatar.bundled-with-nimi
-    install_storage_policy_ref: nimi-data-app-roots
-    admission_status: admitted
-    source_rule: avatar-product-smoke-runtime-binding
-`);
-  fs.writeFileSync(releaseDescriptorsPath, `version: 1
-table_family: product_catalog
-owner: platform
-catalog_id: platform_nimi_app_release_descriptors_avatar_product_smoke
-descriptors:
-  - descriptor_id: nimi.avatar.bundled-with-nimi
-    app_id: nimi.avatar
-    version: bundled-with-current-nimi-release
-    descriptor_class: bundled-with-nimi
-    source:
-      kind: nimi-bundle
-      ref: current-atomic-nimi-release
-    artifact:
-      locator: current-nimi-release-bundle
-      digest_algorithm: sha256
-      sha256: inherited-from-atomic-nimi-release-manifest
-      size: inherited-from-atomic-nimi-release-manifest
-      signature_or_provenance_ref: nimi-first-party-signature-policy
-    runtime:
-      package_kind: nimi-app
-      entry_ref: avatar-runtime-registration
-      sandbox_ref: first-party-bundled-app
-    permissions_ref: nimi.avatar.permission_scope_ref
-    storage_policy_ref: nimi-data-app-roots
-    review:
-      admission_path: first-party-bundled-release
-      mutable_source_allowed: false
-      install_digest_verification_required: inherited_from_atomic_bundle
-    source_rule: avatar-product-smoke-runtime-binding
-`);
+  const registryText = readRequiredCanonicalProjection(
+    AVATAR_PRODUCT_CANONICAL_APP_REGISTRY_PATH,
+    [
+      'owner: platform',
+      'app_id: nimi.avatar',
+      'ordinary_visibility: hidden-internal',
+      'release_descriptor_ref: nimi.avatar.bundled-with-nimi',
+    ],
+  );
+  const releaseDescriptorsText = readRequiredCanonicalProjection(
+    AVATAR_PRODUCT_CANONICAL_RELEASE_DESCRIPTORS_PATH,
+    [
+      'owner: platform',
+      'descriptor_id: nimi.avatar.bundled-with-nimi',
+      'app_id: nimi.avatar',
+      'descriptor_class: bundled-with-nimi',
+    ],
+  );
+  fs.writeFileSync(registryPath, registryText, 'utf8');
+  fs.writeFileSync(releaseDescriptorsPath, releaseDescriptorsText, 'utf8');
   return {
     registryPath,
     releaseDescriptorsPath,
+    registrySourcePath: AVATAR_PRODUCT_CANONICAL_APP_REGISTRY_PATH,
+    releaseDescriptorsSourcePath: AVATAR_PRODUCT_CANONICAL_RELEASE_DESCRIPTORS_PATH,
   };
+}
+
+function readRequiredCanonicalProjection(filePath, requiredSnippets) {
+  if (!fs.existsSync(filePath)) {
+    throw new Error(`canonical avatar product projection is missing: ${filePath}`);
+  }
+  const text = fs.readFileSync(filePath, 'utf8');
+  for (const snippet of requiredSnippets) {
+    if (!text.includes(snippet)) {
+      throw new Error(`canonical avatar product projection ${filePath} is missing required identity: ${snippet}`);
+    }
+  }
+  return text;
 }
 
 function sha256FileHex(filePath) {

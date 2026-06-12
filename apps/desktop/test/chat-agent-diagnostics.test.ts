@@ -125,9 +125,11 @@ test('agent diagnostics view model shows runtime structured turn details', () =>
   assert.equal(viewModel.turnCards[4]?.value, 'Model profile');
   assert.match(viewModel.turnCards[4]?.detail || '', /Max output: 512 tokens/);
   assert.equal(viewModel.turnCards[5]?.label, 'Prompt');
-  assert.match(viewModel.turnCards[5]?.detail || '', /Messages:/);
+  assert.equal(viewModel.turnCards[5]?.value, 'Runtime redaction required');
+  assert.doesNotMatch(viewModel.turnCards[5]?.detail || '', /Messages:/);
   assert.equal(viewModel.turnCards[6]?.label, 'Returned Data');
-  assert.match(viewModel.turnCards[6]?.detail || '', /<message id="message-0">/);
+  assert.equal(viewModel.turnCards[6]?.value, 'Runtime redaction required');
+  assert.doesNotMatch(viewModel.turnCards[6]?.detail || '', /<message id="message-0">/);
 });
 
 test('agent diagnostics view model shows truncation diagnostics for failed turns', () => {
@@ -192,7 +194,9 @@ test('agent diagnostics view model shows truncation diagnostics for failed turns
   assert.match(viewModel.turnCards[4]?.detail || '', /Max output: 111 tokens/);
   assert.match(viewModel.turnCards[4]?.detail || '', /The prompt exceeded the available context window\./);
   assert.equal(viewModel.turnCards[5]?.label, 'Prompt');
+  assert.equal(viewModel.turnCards[5]?.value, 'Runtime redaction required');
   assert.equal(viewModel.turnCards[6]?.label, 'Returned Data');
+  assert.equal(viewModel.turnCards[6]?.value, 'Runtime redaction required');
 });
 
 test('agent diagnostics view model shows preflight rejection diagnostics for local prompt overflow failures', () => {
@@ -248,6 +252,7 @@ test('agent diagnostics view model shows preflight rejection diagnostics for loc
   assert.match(viewModel.turnCards[4]?.detail || '', /History: 220 tokens/);
   assert.match(viewModel.turnCards[4]?.detail || '', /User: 480 tokens/);
   assert.equal(viewModel.turnCards[5]?.label, 'Prompt');
+  assert.equal(viewModel.turnCards[5]?.value, 'Runtime redaction required');
   assert.equal(viewModel.turnCards[6], undefined);
 });
 

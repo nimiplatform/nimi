@@ -23,7 +23,14 @@ pub struct MenuBarRuntimeHealthSyncPayload {
     pub updated_at: Option<String>,
 }
 
+pub fn is_enabled() -> bool {
+    cfg!(target_os = "macos")
+}
+
 pub fn setup(app: &AppHandle) -> Result<(), String> {
+    if !is_enabled() {
+        return Ok(());
+    }
     refresh_from_daemon(app);
     #[cfg(target_os = "macos")]
     {
@@ -69,6 +76,9 @@ pub fn menu_bar_sync_runtime_health(
     payload: MenuBarRuntimeHealthSyncPayload,
     store: State<MenuBarShellStore>,
 ) {
+    if !is_enabled() {
+        return;
+    }
     store.sync_renderer_health(
         state::MenuBarRuntimeHealthSummary {
             status: payload.runtime_health_status,
@@ -85,6 +95,9 @@ pub fn menu_bar_complete_quit(
     app: AppHandle,
     store: State<MenuBarShellStore>,
 ) -> Result<(), String> {
+    if !is_enabled() {
+        return Err("menu bar shell is disabled".to_string());
+    }
     let _ = store;
     actions::force_complete_quit(&app)
 }
@@ -133,6 +146,44 @@ mod tests {
 
         let presentation = snapshot.presentation(false, false);
         assert_eq!(presentation.detail_line, "Detail: provider quorum lost");
+    }
+
+    #[test]
+    fn presentation_drops_renderer_health_details_when_stale() {
+        let snapshot = MenuBarShellStateSnapshot {
+            daemon_status: Some(RuntimeBridgeDaemonStatus {
+                running: true,
+                managed: true,
+                launch_mode: "RELEASE".to_string(),
+                grpc_addr: "127.0.0.1:46371".to_string(),
+                pid: Some(42),
+                version: None,
+                last_error: None,
+                debug_log_path: None,
+            }),
+            runtime_health: MenuBarRuntimeHealthSummary {
+                status: Some("DEGRADED".to_string()),
+                reason: Some("provider quorum lost".to_string()),
+            },
+            provider_summary: Some(super::state::MenuBarProviderSummary {
+                healthy: 1,
+                unhealthy: 2,
+                unknown: 3,
+                total: 6,
+            }),
+            last_updated_at: Some("2026-06-12T19:00:00Z".to_string()),
+            ..MenuBarShellStateSnapshot::default()
+        };
+
+        let presentation = snapshot.presentation(true, false);
+        assert_eq!(presentation.status_header, "Nimi Runtime is running");
+        assert_eq!(presentation.runtime_line, "Runtime: READY");
+        assert_eq!(
+            presentation.providers_line,
+            "Providers: renderer refresh pending"
+        );
+        assert!(!presentation.detail_line.contains("provider quorum lost"));
+        assert_eq!(presentation.last_check_line, "Last check: -");
     }
 
     #[test]

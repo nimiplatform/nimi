@@ -94,12 +94,14 @@ for (const section of SECTIONS) {
   });
 }
 
-test('D-SUP-004: updates renders the section even before the release projection arrives', () => {
+test('D-SUP-004: updates fails closed before the release projection arrives', () => {
   // The updates sub-area reads the release projection from the app store
   // (synchronously available, null on a cold store). It must render the
-  // section frame without crashing and without fabricating a version.
+  // section frame without crashing and without fabricating version rows.
   const markup = renderToStaticMarkup(React.createElement(SupportUpdatesSection));
   assert.match(markup, /data-testid="support-section-updates"/);
+  assert.match(markup, /data-testid="support-updates-fail-closed"/);
+  assert.doesNotMatch(markup, /data-testid="support-updates-versions"/);
 });
 
 test('D-SUP-008: the degraded entry renders only the trigger when closed', () => {

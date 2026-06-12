@@ -232,7 +232,9 @@ export function useAgentConversationPresentation(
     characterData,
     hostView,
   }), [canonicalMessages, characterData, hostView, input.activeThreadId, targetSummaries]);
-  const diagnosticsContent = <AgentConversationDiagnosticsContent input={input} />;
+  const diagnosticsContent = input.developerModeEnabled
+    ? <AgentConversationDiagnosticsContent input={input} />
+    : null;
   const hostFeedbackNode = input.hostFeedback ? (
     <InlineFeedback feedback={input.hostFeedback} onDismiss={input.onDismissHostFeedback} />
   ) : null;

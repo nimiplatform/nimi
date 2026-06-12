@@ -37,8 +37,6 @@ const SETTINGS_SUBMENU_I18N_KEYS: Record<SettingsSubmenuItemId, string> = {
 };
 
 type MainLayoutSettingsMenuProps = {
-  top: number;
-  left: number;
   userAvatarUrl?: string | null;
   displayName: string;
   userEmail?: string | null;
@@ -66,7 +64,7 @@ export function MainLayoutSettingsMenu(props: MainLayoutSettingsMenuProps) {
   ));
 
   return (
-    <div className="fixed z-[11010]" style={{ top: `${props.top}px`, left: `${props.left}px` }}>
+    <div className="fixed bottom-4 left-[72px] z-[11010]">
       <Surface tone="overlay" material="glass-thick" padding="none" className={`flex max-h-[calc(100vh-100px)] w-64 flex-col overflow-hidden py-2 ${SHELL_CHROME_OVERLAY_CLASS}`}>
         <div className="flex items-center gap-3 px-4 py-3">
           <EntityAvatar imageUrl={props.userAvatarUrl} name={props.displayName} kind="human" sizeClassName="h-10 w-10" textClassName="text-sm font-semibold" />

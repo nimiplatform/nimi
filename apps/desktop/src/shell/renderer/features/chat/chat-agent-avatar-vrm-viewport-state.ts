@@ -8,7 +8,6 @@ import {
   resolveAvatarVrmExpressionWeights,
   resolveAvatarVrmViewportState,
 } from '@nimiplatform/kit/features/avatar/vrm';
-import { convertTauriFileSrc, hasTauriRuntime } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { ChatAgentAvatarAttentionState } from './chat-agent-avatar-attention-state';
 
 export type ChatAgentAvatarVrmViewportState = AvatarVrmViewportState;
@@ -43,25 +42,8 @@ export function parseDesktopAgentAvatarAssetRef(assetRef: string): DesktopAgentA
 
 export function resolveChatAgentAvatarVrmAssetUrl(assetRef: string): string | null {
   const normalized = assetRef.trim();
-  if (!normalized || normalized.startsWith('fallback://') || normalized.startsWith('desktop-avatar://')) {
-    return null;
-  }
-  if (normalized.toLowerCase().startsWith('file://') && hasTauriRuntime()) {
-    try {
-      const parsed = new URL(normalized);
-      const pathname = decodeURIComponent(parsed.pathname || '');
-      if (!pathname) {
-        return normalized;
-      }
-      const resolvedPath = parsed.hostname
-        ? `//${parsed.hostname}${pathname}`
-        : pathname;
-      return convertTauriFileSrc(resolvedPath);
-    } catch {
-      return normalized;
-    }
-  }
-  return normalized;
+  void normalized;
+  return null;
 }
 
 export function resolveChatAgentAvatarVrmViewportState(

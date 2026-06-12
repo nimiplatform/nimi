@@ -1,8 +1,8 @@
 // Apps detail / requirement-preview view (T4-W4).
 //
-// The detail surface a card's `Details` action opens, and the Install flow's
-// step 1 ("show app detail / requirement preview" — manual `#### Install
-// Flow`). It projects the typed registry/status/job surfaces for one app:
+// The detail surface a card's `Details` action opens, and the D-HOME-005
+// Install flow's requirement preview step. It projects the typed
+// registry/status/job surfaces for one app:
 // identity, install + version state, the requirement summary, the install
 // storage roots, and the same primary/secondary actions as the card.
 //

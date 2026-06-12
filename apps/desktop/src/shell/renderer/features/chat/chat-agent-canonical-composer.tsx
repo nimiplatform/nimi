@@ -352,13 +352,12 @@ export function AgentCanonicalComposer(props: {
       <CanonicalComposer
         key={props.composerKey}
         adapter={{
-          submit: ({ text, attachments }) => {
-            void props.onSubmit({
+          submit: ({ text, attachments }) => (
+            props.onSubmit({
               text,
               attachments: attachments as readonly PendingAttachment[],
-            });
-            return Promise.resolve();
-          },
+            })
+          ),
         }}
         initialText={props.initialText}
         disabled={props.disabled}

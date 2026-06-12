@@ -147,6 +147,20 @@ function normalizeRequiredString(value: string, field: string): string {
   return normalized;
 }
 
+function normalizeRequiredPayloadString(value: unknown, field: string): string {
+  if (typeof value !== 'string') {
+    throw new Error(`desktop avatar handoff returned invalid ${field}`);
+  }
+  return normalizeRequiredString(value, field);
+}
+
+function normalizeRequiredPayloadBoolean(value: unknown, field: string): boolean {
+  if (typeof value !== 'boolean') {
+    throw new Error(`desktop avatar handoff returned invalid ${field}`);
+  }
+  return value;
+}
+
 function normalizeRequiredLocalAgentRef(value: string, field: string): string {
   const normalized = normalizeRequiredString(value, field);
   const rest = normalized.startsWith(LOCAL_AGENT_REF_PREFIX)
@@ -167,8 +181,8 @@ export function parseDesktopAvatarLaunchHandoffResult(value: unknown): DesktopAv
   }
   const record = value as Record<string, unknown>;
   return {
-    opened: Boolean(record.opened),
-    handoffUri: normalizeRequiredString(String(record.handoffUri || ''), 'handoffUri'),
+    opened: normalizeRequiredPayloadBoolean(record.opened, 'opened'),
+    handoffUri: normalizeRequiredPayloadString(record.handoffUri, 'handoffUri'),
   };
 }
 
@@ -178,8 +192,8 @@ export function parseDesktopAvatarCloseHandoffResult(value: unknown): DesktopAva
   }
   const record = value as Record<string, unknown>;
   return {
-    opened: Boolean(record.opened),
-    handoffUri: normalizeRequiredString(String(record.handoffUri || ''), 'handoffUri'),
+    opened: normalizeRequiredPayloadBoolean(record.opened, 'opened'),
+    handoffUri: normalizeRequiredPayloadString(record.handoffUri, 'handoffUri'),
   };
 }
 

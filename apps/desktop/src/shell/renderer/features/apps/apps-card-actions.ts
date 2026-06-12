@@ -1,15 +1,13 @@
 // Apps card actions (T4-W4).
 //
-// Maps each canonical card state to its primary + secondary actions, verbatim
-// from the manual `#### Canonical Card States` table (`Primary action` /
-// `Secondary action` columns). Every action token here routes onto the
-// `desktopAppLifecycleBridge` (the W2d SDK-path bridge) — there is no
+// Maps each canonical card state to its primary + secondary actions per
+// D-HOME-005 (`Primary action` / `Secondary action`). Every action token here
+// routes onto the `desktopAppLifecycleBridge` (the W2d SDK-path bridge) — there is no
 // renderer-local lifecycle. `details` is the only renderer-local action (it
 // opens the detail/preview view, which is itself a projection of the same
 // typed surfaces).
 //
-// Authority: manual Apps `#### Canonical Card States`; App Card Fields table
-// (`Primary action` / `Secondary actions` rows).
+// Authority: `.nimi/spec/desktop/kernel/nimi-home-shell-contract.md` D-HOME-005.
 
 import type { CanonicalAppCardState } from './apps-card-state.js';
 
@@ -70,8 +68,8 @@ const DETAILS = action('details');
  *  - `uninstalling`              : None           / Details
  *
  * `installed_ready` carries `delete_app_data` as a third secondary so the
- * separate destructive "Delete app data" flow (manual `#### Uninstall And
- * Data`) is always reachable from a ready card, not only mid-uninstall.
+ * separate destructive "Delete app data" flow is always reachable from a
+ * ready card, not only mid-uninstall.
  */
 const ACTION_PLANS: Record<CanonicalAppCardState, AppCardActionPlan> = {
   not_installed_installable: {

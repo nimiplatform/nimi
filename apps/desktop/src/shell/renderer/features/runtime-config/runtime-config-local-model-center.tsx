@@ -142,6 +142,8 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
       sharedRuntimeDependency={runtimeState.sharedRuntimeDependency}
       sharedRuntimeDependencyJobs={runtimeState.sharedRuntimeDependencyJobs}
       runtimeDependencyByAssetId={runtimeState.runtimeDependencyByAssetId}
+      runtimeDependencyError={runtimeState.runtimeDependencyError}
+      runtimeInventoryError={runtimeState.runtimeInventoryError}
       hasSearchQuery={hasSearchQuery}
       importFileAssetKind={runtimeState.importFileAssetKind}
       importFileAuxiliaryEngine={runtimeState.importFileAuxiliaryEngine}

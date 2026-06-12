@@ -14,31 +14,43 @@ export function normalizeArtifactPaths(artifacts) {
   )];
 }
 
+export function normalizeExpectedBundle(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+const SUPPORTED_EXPECTED_BUNDLES = new Set(['appimage', 'app', 'nsis']);
+
+export function isSupportedExpectedBundle(expectedBundle) {
+  return SUPPORTED_EXPECTED_BUNDLES.has(normalizeExpectedBundle(expectedBundle));
+}
+
 export function matchesExpectedBundle(artifacts, expectedBundle) {
-  if (expectedBundle === 'appimage') {
+  const normalizedExpectedBundle = normalizeExpectedBundle(expectedBundle);
+  if (normalizedExpectedBundle === 'appimage') {
     return artifacts.some((filePath) => path.basename(filePath).includes('.AppImage'));
   }
 
-  if (expectedBundle === 'app') {
+  if (normalizedExpectedBundle === 'app') {
     return artifacts.some((filePath) => path.basename(filePath).includes('.app.tar.gz'));
   }
 
-  if (expectedBundle === 'nsis') {
+  if (normalizedExpectedBundle === 'nsis') {
     return artifacts.some((filePath) => {
       const base = path.basename(filePath).toLowerCase();
       return base.endsWith('.exe') && base.includes('setup');
     });
   }
 
-  return true;
+  return false;
 }
 
 export function expectsLatestJsonArtifact(expectedBundle) {
-  return String(expectedBundle || '').trim() !== 'app';
+  return normalizeExpectedBundle(expectedBundle) !== 'app';
 }
 
 export function collectDesktopUpdaterArtifactViolations({ artifacts, expectedBundle }) {
   const normalizedArtifacts = normalizeArtifactPaths(artifacts);
+  const normalizedExpectedBundle = normalizeExpectedBundle(expectedBundle);
   const errors = [];
 
   if (normalizedArtifacts.length === 0) {
@@ -52,8 +64,14 @@ export function collectDesktopUpdaterArtifactViolations({ artifacts, expectedBun
     }
   }
 
+  if (!normalizedExpectedBundle) {
+    errors.push('expected updater bundle type is required');
+  } else if (!isSupportedExpectedBundle(normalizedExpectedBundle)) {
+    errors.push(`unsupported expected updater bundle type ${normalizedExpectedBundle}`);
+  }
+
   const latestJsonPath = normalizedArtifacts.find((filePath) => path.basename(filePath) === 'latest.json');
-  if (!latestJsonPath && expectsLatestJsonArtifact(expectedBundle)) {
+  if (!latestJsonPath && expectsLatestJsonArtifact(normalizedExpectedBundle)) {
     errors.push('latest.json is missing from tauri artifacts');
   }
 
@@ -62,8 +80,8 @@ export function collectDesktopUpdaterArtifactViolations({ artifacts, expectedBun
     errors.push('no updater signature artifacts (.sig) were produced');
   }
 
-  if (!matchesExpectedBundle(normalizedArtifacts, expectedBundle)) {
-    errors.push(`expected updater bundle type ${expectedBundle} was not found in tauri artifacts`);
+  if (isSupportedExpectedBundle(normalizedExpectedBundle) && !matchesExpectedBundle(normalizedArtifacts, normalizedExpectedBundle)) {
+    errors.push(`expected updater bundle type ${normalizedExpectedBundle} was not found in tauri artifacts`);
   }
 
   if (!latestJsonPath) {

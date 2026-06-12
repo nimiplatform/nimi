@@ -117,7 +117,7 @@ export function PostFeed({
 
         const { items, nextCursor } = await fetchPage(cursorArg);
 
-        if (items.length === 0) {
+        if (items.length === 0 && nextCursor == null) {
           setHasMore(false);
           setCursor(null);
           if (cursorArg) {

@@ -87,7 +87,13 @@ export function buildDesktopE2EEvidence(input) {
   const smokeScenarios = scenarios.filter((item) => item.suite_bucket === 'smoke');
   const journeyScenarios = scenarios.filter((item) => item.suite_bucket === 'journeys');
   const hasScenarioArtifacts = scenarios.length > 0;
-  const ok = smokeOutcome === 'success' && journeysOutcome === 'success' && hasScenarioArtifacts;
+  const hasSmokeScenarioArtifacts = smokeScenarios.length > 0;
+  const hasJourneyScenarioArtifacts = journeyScenarios.length > 0;
+  const ok = smokeOutcome === 'success'
+    && journeysOutcome === 'success'
+    && hasScenarioArtifacts
+    && hasSmokeScenarioArtifacts
+    && hasJourneyScenarioArtifacts;
   const residualRisks = [];
   if (smokeOutcome !== 'success') {
     residualRisks.push(`desktop E2E smoke outcome is ${smokeOutcome}`);
@@ -97,6 +103,12 @@ export function buildDesktopE2EEvidence(input) {
   }
   if (scenarios.length === 0) {
     residualRisks.push('no desktop E2E scenario artifacts were found under apps/desktop/reports/e2e');
+  }
+  if (!hasSmokeScenarioArtifacts) {
+    residualRisks.push('no desktop E2E smoke scenario artifacts were found under apps/desktop/reports/e2e');
+  }
+  if (!hasJourneyScenarioArtifacts) {
+    residualRisks.push('no desktop E2E journey scenario artifacts were found under apps/desktop/reports/e2e');
   }
   if (platform.includes('macos')) {
     residualRisks.push('macOS remains non-blocking manual smoke only per D-GATE-060');

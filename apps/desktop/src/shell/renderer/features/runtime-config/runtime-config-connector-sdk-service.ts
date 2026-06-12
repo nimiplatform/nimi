@@ -25,7 +25,7 @@ export type ApiConnectorAuthOption = {
 
 export type ConnectorModelInfo = NimiRuntimeConnectorModelInfo;
 
-const runtimeConnectors: NimiRuntimeConnectorClient = {
+export const runtimeConnectors: NimiRuntimeConnectorClient = {
   listProviderCatalog: (request, options) => getDesktopRuntime().connectors.listProviderCatalog(request, options),
   listConnectors: (request, options) => getDesktopRuntime().connectors.listConnectors(request, options),
   createConnector: (request, options) => getDesktopRuntime().connectors.createConnector(request, options),

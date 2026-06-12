@@ -1,7 +1,7 @@
 // Apps `status()`-failure → canonical card-state mapping (T4-W5).
 //
-// W5 hard-cuts the historical 12th `status_unavailable` card state. The manual
-// is explicit (`product-manual-full-authority.md` line 962): the Apps surface
+// W5 hard-cuts the historical 12th `status_unavailable` card state. D-HOME-005
+// and P-NAPP-008 are explicit: the Apps surface
 // "must not collapse distinct failure states into a single 'Unavailable'
 // card", and `P-NAPP-008` MUST NOT hide multiple fail-closed reasons behind a
 // single `unavailable` text. A 12th catch-all bucket is exactly that
@@ -17,7 +17,7 @@
 //   - Every other `status()` failure — a non-canonical or incomplete status
 //     projection, a stale registry projection, an opaque transport error —
 //     means the installed package/data/runtime evidence the panel can read is
-//     inconsistent. That is exactly the manual's `repair_required` rule
+//     inconsistent. That is exactly the D-HOME-005 `repair_required` rule
 //     ("Installed package/data/runtime evidence is inconsistent or
 //     corrupted"). `repair_required` is therefore the default bucket: it keeps
 //     the row visible, gives the user a Repair action, and carries the exact
@@ -42,7 +42,7 @@ export interface AppStatusFailureResolution {
 /**
  * Typed `NimiError.reasonCode` values that mean the host/runtime cannot
  * support the app at all. These resolve to `unsupported_on_this_device`
- * (manual: "Host/runtime evidence cannot support the app").
+ * per D-HOME-005.
  */
 const UNSUPPORTED_REASON_CODES: ReadonlySet<string> = new Set([
   'COMPAT_RUNTIME_TOO_OLD',
@@ -56,8 +56,7 @@ const UNSUPPORTED_REASON_CODES: ReadonlySet<string> = new Set([
 
 /**
  * Typed `NimiError.reasonCode` values that mean a policy / permission decision
- * is blocking the app. These resolve to `blocked_by_policy` (manual:
- * "Hidden/disabled by trust, age, region, master gate, or admission policy").
+ * is blocking the app. These resolve to `blocked_by_policy` per D-HOME-005.
  */
 const BLOCKED_REASON_CODES: ReadonlySet<string> = new Set([
   'APP_AUTHORIZATION_DENIED',

@@ -136,3 +136,73 @@ test('desktop E2E evidence fails closed when successful outcomes have no scenari
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
+
+test('desktop E2E evidence fails closed when successful outcomes only have smoke artifacts', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'nimi-desktop-e2e-evidence-smoke-only-'));
+  const desktopRoot = path.join(root, 'apps', 'desktop');
+  const artifactRoot = path.join(desktopRoot, 'reports', 'e2e');
+  fs.mkdirSync(artifactRoot, { recursive: true });
+
+  writeScenario(
+    artifactRoot,
+    '01-boot.anonymous.login-screen',
+    {
+      scenario_id: 'boot.anonymous.login-screen',
+      suite_bucket: 'smoke',
+    },
+    { scenarioId: 'boot.anonymous.login-screen' },
+  );
+
+  try {
+    const evidence = buildDesktopE2EEvidence({
+      desktopRoot,
+      artifactRoot,
+      platform: 'ubuntu-22.04',
+      smokeOutcome: 'success',
+      journeysOutcome: 'success',
+      nativeDriver: '/usr/bin/WebKitWebDriver',
+    });
+
+    assert.equal(evidence.ok, false);
+    assert.equal(evidence.scenarioCounts.smoke, 1);
+    assert.equal(evidence.scenarioCounts.journeys, 0);
+    assert.ok(evidence.residualRisks.some((risk: string) => risk.includes('no desktop E2E journey scenario artifacts')));
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('desktop E2E evidence fails closed when successful outcomes only have journey artifacts', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'nimi-desktop-e2e-evidence-journey-only-'));
+  const desktopRoot = path.join(root, 'apps', 'desktop');
+  const artifactRoot = path.join(desktopRoot, 'reports', 'e2e');
+  fs.mkdirSync(artifactRoot, { recursive: true });
+
+  writeScenario(
+    artifactRoot,
+    '08-chat.open-thread',
+    {
+      scenario_id: 'chat.open-thread',
+      suite_bucket: 'journeys',
+    },
+    { scenarioId: 'chat.open-thread' },
+  );
+
+  try {
+    const evidence = buildDesktopE2EEvidence({
+      desktopRoot,
+      artifactRoot,
+      platform: 'ubuntu-22.04',
+      smokeOutcome: 'success',
+      journeysOutcome: 'success',
+      nativeDriver: '/usr/bin/WebKitWebDriver',
+    });
+
+    assert.equal(evidence.ok, false);
+    assert.equal(evidence.scenarioCounts.smoke, 0);
+    assert.equal(evidence.scenarioCounts.journeys, 1);
+    assert.ok(evidence.residualRisks.some((risk: string) => risk.includes('no desktop E2E smoke scenario artifacts')));
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});

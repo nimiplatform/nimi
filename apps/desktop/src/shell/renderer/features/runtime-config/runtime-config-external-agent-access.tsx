@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   createNimiRuntimeExternalAgentAccessSurface,
@@ -17,6 +17,7 @@ import {
   TOKEN_PANEL_CARD,
   TOKEN_TEXT_MUTED,
   TOKEN_TEXT_PRIMARY,
+  isExternalAgentTokenActionPlaneAvailable,
   resolveTokenStatus,
   type GatewayStatusParsed,
   type TokenFilter,
@@ -56,6 +57,7 @@ export function ExternalAgentAccessPanel() {
   const [filter, setFilter] = useState<TokenFilter>('all');
   const [showIssueForm, setShowIssueForm] = useState(false);
   const [expandedTokenId, setExpandedTokenId] = useState<string>('');
+  const tokenMutationInFlightRef = useRef(false);
 
   const ttlRaw = Number(ttlSeconds);
   const ttlIsPositiveInteger = /^\d+$/.test(ttlSeconds.trim()) && Number.isInteger(ttlRaw) && ttlRaw > 0;
@@ -101,7 +103,18 @@ export function ExternalAgentAccessPanel() {
     void refreshGateway();
   }, []);
 
+  const tokenActionPlaneIsAvailable = () => isExternalAgentTokenActionPlaneAvailable({
+    busy: busy || tokenMutationInFlightRef.current,
+    enabled: gatewayStatus.enabled,
+    loading: gatewayStatus.loading,
+    actionCount: gatewayStatus.actionCount,
+  });
+
   const handleIssueToken = () => {
+    if (!tokenActionPlaneIsAvailable()) {
+      return;
+    }
+    tokenMutationInFlightRef.current = true;
     void (async () => {
       setBusy(true);
       setErrorMessage('');
@@ -131,15 +144,19 @@ export function ExternalAgentAccessPanel() {
       } catch (error) {
         setErrorMessage(error instanceof Error ? error.message : String(error || t('runtimeConfig.eaa.issueTokenFailed', { defaultValue: 'Issue token failed' })));
       } finally {
+        tokenMutationInFlightRef.current = false;
         setBusy(false);
       }
     })();
   };
 
   const handleRevokeToken = (targetTokenId?: string) => {
+    const resolvedTokenId = String(targetTokenId || tokenId).trim();
+    if (!resolvedTokenId || !tokenActionPlaneIsAvailable()) {
+      return;
+    }
+    tokenMutationInFlightRef.current = true;
     void (async () => {
-      const resolvedTokenId = String(targetTokenId || tokenId).trim();
-      if (!resolvedTokenId) return;
       setBusy(true);
       setErrorMessage('');
       try {
@@ -152,6 +169,7 @@ export function ExternalAgentAccessPanel() {
       } catch (error) {
         setErrorMessage(error instanceof Error ? error.message : String(error || t('runtimeConfig.eaa.revokeTokenFailed', { defaultValue: 'Revoke token failed' })));
       } finally {
+        tokenMutationInFlightRef.current = false;
         setBusy(false);
       }
     })();
@@ -167,9 +185,12 @@ export function ExternalAgentAccessPanel() {
     }).catch(() => undefined);
   };
 
-  const canIssue = gatewayStatus.enabled
-    && !gatewayStatus.loading
-    && (gatewayStatus.actionCount ?? 0) > 0;
+  const canIssue = isExternalAgentTokenActionPlaneAvailable({
+    busy: false,
+    enabled: gatewayStatus.enabled,
+    loading: gatewayStatus.loading,
+    actionCount: gatewayStatus.actionCount,
+  });
   const isActionRegistryDeferred = gatewayStatus.reasonCode === 'EXTERNAL_AGENT_ACTION_REGISTRY_EMPTY';
 
   const tokenCounts = useMemo(() => {

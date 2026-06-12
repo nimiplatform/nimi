@@ -68,7 +68,8 @@ const ICON_ADVANCED = (
 );
 
 /**
- * Canonical six-section Runtime IA (product manual "Runtime / AI Environment").
+ * Canonical six-section Runtime IA per
+ * `.nimi/spec/desktop/kernel/runtime-panel-contract.md`.
  * Developer-only surfaces are NOT ordinary entries — they
  * live behind admitted developer mode inside the Advanced section.
  */

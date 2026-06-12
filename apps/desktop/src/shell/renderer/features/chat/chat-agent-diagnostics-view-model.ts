@@ -280,20 +280,14 @@ function buildImageCard(lifecycle: AgentTurnLifecycleState): AgentDiagnosticsCar
 }
 
 function buildPromptCard(lifecycle: AgentTurnLifecycleState): AgentDiagnosticsCardData | null {
-  const prompt = normalizeText(lifecycle.diagnostics?.requestPrompt);
-  if (!prompt) {
+  if (!normalizeText(lifecycle.diagnostics?.requestPrompt) && !normalizeText(lifecycle.diagnostics?.requestSystemPrompt)) {
     return null;
   }
   return {
     key: 'turn-prompt',
     label: 'Prompt',
-    value: 'Captured',
-    detail: joinDetails([
-      lifecycle.diagnostics?.requestSystemPrompt
-        ? `systemPrompt:\n${lifecycle.diagnostics.requestSystemPrompt}`
-        : null,
-      `prompt:\n${prompt}`,
-    ]),
+    value: 'Runtime redaction required',
+    detail: 'Raw prompts are not rendered by Desktop diagnostics without Runtime-owned redacted replay evidence.',
   };
 }
 
@@ -306,13 +300,8 @@ function buildReturnDataCard(lifecycle: AgentTurnLifecycleState): AgentDiagnosti
   return {
     key: 'turn-return-data',
     label: 'Returned Data',
-    value: 'Captured',
-    detail: joinDetails([
-      rawModelOutputText ? `raw:\n${rawModelOutputText}` : null,
-      normalizedModelOutputText && normalizedModelOutputText !== rawModelOutputText
-        ? `normalized:\n${normalizedModelOutputText}`
-        : null,
-    ]),
+    value: 'Runtime redaction required',
+    detail: 'Raw provider output is not rendered by Desktop diagnostics without Runtime-owned redacted replay evidence.',
   };
 }
 

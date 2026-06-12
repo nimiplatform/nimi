@@ -290,6 +290,7 @@
   "agentCenterAvatarAssetMissing": "A selected local Avatar asset is required before avatar launch.",
   "agentCenterAvatarImportAgentRequired": "Select an agent before importing a local Avatar asset.",
   "agentCenterAvatarImportDesktopOnly": "Avatar asset import is available in the desktop app.",
+  "agentCenterAvatarCarrierDecommissioned": "Desktop-local Live2D/VRM carrier assets are decommissioned. Launch the Avatar-owned carrier instead.",
   "agentCenterAvatarImporting": "Importing...",
   "agentCenterImportLive2d": "Import Live2D folder",
   "agentCenterImportVrm": "Import VRM file",

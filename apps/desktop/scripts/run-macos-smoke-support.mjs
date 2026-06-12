@@ -245,8 +245,9 @@ export async function runScenario({ scenarioId, runIndex, runRoot, timeoutMs }) 
       ? {
           registry_path: path.relative(repoRoot, avatarProductAppRegistryProjection.registryPath),
           release_descriptors_path: path.relative(repoRoot, avatarProductAppRegistryProjection.releaseDescriptorsPath),
-          avatar_admission_status: 'admitted',
-          avatar_ordinary_visibility: 'hidden-internal',
+          registry_source_path: path.relative(repoRoot, avatarProductAppRegistryProjection.registrySourcePath),
+          release_descriptors_source_path: path.relative(repoRoot, avatarProductAppRegistryProjection.releaseDescriptorsSourcePath),
+          projection_mode: 'canonical-platform-copy',
         }
       : null,
     runtime_grpc_addr: runtimeGrpcAddr || null,

@@ -193,7 +193,7 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps = {}): Apps
       }
       if (action === 'delete_app_data') {
         // The separate destructive "Delete app data" flow always confirms
-        // first (manual `#### Uninstall And Data`).
+        // first per D-HOME-005.
         setPendingConfirm(buildPendingConfirm(projection, appId, 'delete_app_data'));
         return;
       }

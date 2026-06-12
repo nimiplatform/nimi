@@ -3,8 +3,8 @@ import test from 'node:test';
 
 import {
   buildAvatarAssetValidationPresentation,
+  type AvatarAssetValidationResult,
 } from '../src/shell/renderer/features/chat/chat-agent-shell-avatar-asset-diagnostics';
-import type { AgentCenterAvatarAssetValidationResult } from '../src/shell/renderer/features/chat/chat-agent-center-local-config';
 import type { AgentCenterAvatarAssetModule } from '../src/shell/renderer/features/chat/chat-agent-center-avatar-config-types';
 
 function buildConfig(overrides: Partial<AgentCenterAvatarAssetModule> = {}): AgentCenterAvatarAssetModule {
@@ -29,13 +29,8 @@ function buildConfig(overrides: Partial<AgentCenterAvatarAssetModule> = {}): Age
   };
 }
 
-function buildValidation(overrides: Partial<AgentCenterAvatarAssetValidationResult> = {}): AgentCenterAvatarAssetValidationResult {
+function buildValidation(overrides: Partial<AvatarAssetValidationResult> = {}): AvatarAssetValidationResult {
   return {
-    schema_version: 1,
-    local_asset_id: 'live2d_ab12cd34ef56',
-    backend_kind: 'live2d',
-    backend_capability_profile_ref: 'avatar_profile_live2d_ab12cd34ef56',
-    checked_at: '2026-05-17T00:00:00.000Z',
     status: 'valid',
     errors: [],
     warnings: [],
@@ -87,7 +82,6 @@ test('Avatar asset diagnostics fails visible when backend capability evidence is
       backend_capability_profile_ref: null,
     }),
     validation: buildValidation({
-      backend_capability_profile_ref: null,
       status: 'valid',
     }),
     configured: true,

@@ -1,7 +1,6 @@
 // Apps card fields (T4-W4).
 //
-// Derives the displayable card fields from the typed projections, verbatim
-// from the manual `#### App Card Fields` table:
+// Derives the displayable card fields from typed projections per D-HOME-005:
 //   - App name and icon
 //   - Publisher / trust tier
 //   - Install state
@@ -11,8 +10,8 @@
 //
 // Every field is a projection of an already-typed surface. The icon is a
 // stable, deterministic glyph keyed off the registry `appId` (no app-local
-// asset read — the manual forbids reading app-local files for the Apps
-// surface). The requirement summary names the AI / permission / data /
+// asset read — P-NAPP-008 forbids app-local files from becoming Apps surface
+// truth). The requirement summary names the AI / permission / data /
 // runtime requirement surfaces at a product level.
 
 import type { DesktopAppsEntry } from './apps-panel-projection.js';
@@ -64,7 +63,7 @@ export interface AppCardRequirementSummary {
  * AI/permission refs (those live on the lower-level registry source row), so
  * at the floor level `ai` / `permissions` are conservatively reported `true`
  * for every admitted app — every admitted Nimi App has an AIConfig lifecycle
- * (manual `App AIConfig lifecycle`) and a permission surface. `data` and
+ * and a permission surface. `data` and
  * `runtime` are always `true` for the same reason. The detail view refines
  * these from the richer projection.
  */
@@ -72,14 +71,13 @@ export function deriveRequirementSummary(entry: DesktopAppsEntry): AppCardRequir
   // Every admitted Nimi App has all four requirement surfaces at the product
   // level (AIConfig lifecycle, permission grants, durable data root, runtime
   // package). The card summarizes their presence; the detail view shows the
-  // concrete refs. This is not a guess — it is the manual's product model
-  // (`App AIConfig lifecycle`, `#### App Card Fields` Requirement summary row).
+  // concrete refs. This is the D-HOME-005 requirement summary model.
   void entry;
   return { ai: true, permissions: true, data: true, runtime: true };
 }
 
 /**
- * Deterministic app icon glyph. The manual requires "App name and icon" as a
+ * Deterministic app icon glyph. D-HOME-005 requires "App name and icon" as a
  * stable product identity from the registry projection. The Apps surface must
  * not read app-local asset files, so the icon is a stable initial derived from
  * the registry `displayName` — deterministic, projection-only, no file read.

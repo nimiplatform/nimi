@@ -160,6 +160,9 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
                     let app_handle_for_close = app.handle().clone();
                     let window_for_close = window.clone();
                     window.on_window_event(move |event| {
+                        if !crate::menu_bar_shell::is_enabled() {
+                            return;
+                        }
                         match event {
                             tauri::WindowEvent::CloseRequested { api, .. } => {
                                 api.prevent_close();
@@ -229,7 +232,9 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
                     }
                 }
             }
-            let _ = crate::menu_bar_shell::setup(app.handle());
+            if crate::menu_bar_shell::is_enabled() {
+                let _ = crate::menu_bar_shell::setup(app.handle());
+            }
 
             // RL-INTOP-004 — Deep-link URL scheme handler (nimi-desktop://runtime-config/{pageId})
             {
@@ -309,13 +314,6 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             chat_ai_store::chat_ai_delete_draft,
             desktop_agent_center_store::desktop_agent_center_account_local_resources_remove,
             desktop_agent_center_store::desktop_agent_center_agent_local_resources_remove,
-            desktop_agent_center_store::desktop_agent_center_avatar_asset_import,
-            desktop_agent_center_store::desktop_agent_center_avatar_asset_list,
-            desktop_agent_center_store::desktop_agent_center_avatar_asset_pick_live2d_source,
-            desktop_agent_center_store::desktop_agent_center_avatar_asset_pick_vrm_source,
-            desktop_agent_center_store::desktop_agent_center_avatar_asset_remove,
-            desktop_agent_center_store::desktop_agent_center_avatar_asset_select,
-            desktop_agent_center_store::desktop_agent_center_avatar_asset_validate,
             desktop_agent_center_store::desktop_agent_center_live2d_adapter_manifest_import,
             desktop_agent_center_store::desktop_agent_center_live2d_adapter_manifest_pick_source,
             desktop_agent_center_store::desktop_agent_center_background_asset_get,
@@ -408,6 +406,9 @@ pub(crate) fn run() {
         Ok(app) => {
             app.run(|app_handle, event| {
                 if let tauri::RunEvent::ExitRequested { api, .. } = event {
+                    if !crate::menu_bar_shell::is_enabled() {
+                        return;
+                    }
                     let store = app_handle.state::<crate::menu_bar_shell::MenuBarShellStore>();
                     if !store.quit_pending() {
                         api.prevent_exit();

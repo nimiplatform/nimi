@@ -84,9 +84,7 @@ test('greeting projects out of the ordinary Realm agentProfile projection', () =
   assert.equal(projectRealmAgentGreeting(null), null);
 });
 
-test('built-in docs corpus projects from the ordinary dna knowledge slot as context', () => {
-  // The corpus is carried on the ordinary AgentProfile.dna knowledge payload
-  // (K-AGCORE-142) and projected as a single static context block.
+test('built-in docs corpus is not projected by Desktop into per-turn context', () => {
   const agentProfile = {
     dna: {
       knowledge: {
@@ -102,24 +100,17 @@ test('built-in docs corpus projects from the ordinary dna knowledge slot as cont
       },
     },
   };
-  const docs = projectRealmAgentBuiltinDocsContext(agentProfile);
-  assert.ok(docs);
-  assert.match(docs as string, /## First-run setup/);
-  assert.match(docs as string, /## Runtime/);
+  assert.equal(projectRealmAgentBuiltinDocsContext(agentProfile), null);
 
-  // A RealmAgent with no docs knowledge payload projects null.
   assert.equal(projectRealmAgentBuiltinDocsContext({ dna: { identity: {} } }), null);
   assert.equal(projectRealmAgentBuiltinDocsContext({}), null);
-
-  // A non-docs knowledge format is not mistaken for the corpus.
   assert.equal(
     projectRealmAgentBuiltinDocsContext({ dna: { knowledge: { format: 'other' } } }),
     null,
   );
 });
 
-test('a target snapshot carries greeting and docs as ordinary projection fields', () => {
-  // Type-level + value-level proof the snapshot carries the ordinary fields.
+test('a target snapshot carries greeting but not Desktop-authored prompt docs', () => {
   const target: AgentLocalTargetSnapshot = {
     ownerUserId: 'user-1',
     realmAgentId: 'agent-1',
@@ -132,8 +123,8 @@ test('a target snapshot carries greeting and docs as ordinary projection fields'
     bio: null,
     ownershipType: null,
     greeting: MANUAL_ARCHIVIST_FLOOR,
-    builtinDocsContext: '## First-run setup\nSign in.',
+    builtinDocsContext: null,
   };
   assert.equal(target.greeting, MANUAL_ARCHIVIST_FLOOR);
-  assert.ok(target.builtinDocsContext);
+  assert.equal(target.builtinDocsContext, null);
 });

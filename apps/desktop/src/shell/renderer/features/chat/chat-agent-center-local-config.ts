@@ -21,21 +21,13 @@ export type {
   AgentCenterAvatarDebugProfile,
   AgentCenterAvatarInstancePolicy,
   AgentCenterAvatarLaunchMode,
+  AgentCenterAvatarAssetKind,
   AgentCenterAvatarAssetModule,
   AgentCenterGeneratedMotionProviderPolicy,
   AgentCenterLive2dAdapterManifestSource,
 } from './chat-agent-center-avatar-config-types';
 
 export type {
-  AgentCenterAvatarAssetImportParseResult,
-  AgentCenterAvatarAssetImportResult,
-  AgentCenterAvatarAssetListParseResult,
-  AgentCenterAvatarAssetListResult,
-  AgentCenterAvatarAssetRecord,
-  AgentCenterAvatarAssetKind,
-  AgentCenterAvatarAssetValidationParseResult,
-  AgentCenterAvatarAssetValidationResult,
-  AgentCenterAvatarAssetValidationStatus,
   AgentCenterBackgroundAssetParseResult,
   AgentCenterBackgroundAssetResult,
   AgentCenterBackgroundImportParseResult,
@@ -50,12 +42,6 @@ export type {
   AgentCenterValidationIssue,
   AgentCenterValidationIssueSeverity,
 } from './chat-agent-center-local-config-result-types';
-
-export {
-  validateAgentCenterAvatarAssetImportResult,
-  validateAgentCenterAvatarAssetListResult,
-  validateAgentCenterAvatarAssetValidationResult,
-} from './chat-agent-center-avatar-asset-result-validation';
 
 export const AGENT_CENTER_LOCAL_CONFIG_SCHEMA_VERSION = 1;
 export const AGENT_CENTER_LOCAL_CONFIG_KIND = 'agent_center_local_config';
@@ -139,7 +125,6 @@ const BACKGROUND_VALIDATION_STATUS_VALUES = new Set([
   'digest_mismatch',
 ]);
 const LOCAL_RESOURCE_KIND_VALUES = new Set([
-  'avatar_asset',
   'background',
   'agent_local_resources',
   'account_local_resources',
@@ -412,9 +397,6 @@ export function validateAgentCenterLocalResourceRemoveResult(
     errors.push('removeResult.resource_kind: invalid resource kind');
   }
   const resourceId = readString(root.resource_id, 'removeResult.resource_id', errors) || '';
-  if (resourceKind === 'avatar_asset' && !PACKAGE_ID_PATTERN.test(resourceId)) {
-    errors.push('removeResult.resource_id: invalid local Avatar asset id');
-  }
   if (resourceKind === 'background' && !BACKGROUND_ID_PATTERN.test(resourceId)) {
     errors.push('removeResult.resource_id: invalid background id');
   }

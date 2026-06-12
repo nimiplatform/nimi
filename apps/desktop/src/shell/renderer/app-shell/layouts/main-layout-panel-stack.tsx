@@ -93,8 +93,7 @@ export function MainLayoutPanelStack({
         <Suspense fallback={<div className="flex min-h-0 flex-1" />}>
           <div
             data-testid={E2E_IDS.panel('runtime')}
-            className="flex min-h-0 flex-1 flex-col"
-            style={{ display: runtimeActive ? undefined : 'none' }}
+            className={`min-h-0 flex-1 flex-col ${runtimeActive ? 'flex' : 'hidden'}`}
           >
             <RuntimeConfigPanelBody />
           </div>

@@ -19,7 +19,8 @@ import {
 } from './chat-agent-avatar-launch-arbitration';
 import { registerDesktopAvatarLiveInstanceBinding } from './chat-agent-avatar-live-instance-runtime-binding';
 import type { UseAgentConversationPresentationInput } from './chat-agent-shell-presentation-types';
-import type { AgentCenterAvatarAssetValidationResult, AgentCenterLocalConfig } from './chat-agent-center-local-config';
+import type { AgentCenterLocalConfig } from './chat-agent-center-local-config';
+import type { AvatarAssetValidationResult } from './chat-agent-shell-avatar-asset-diagnostics';
 
 type AvatarComposerActionState =
   | 'running'
@@ -53,7 +54,7 @@ export function resolveAvatarComposerActionState(input: {
 export function useAgentLocalAvatarLaunchControls(input: {
   presentation: UseAgentConversationPresentationInput;
   avatarAssetConfig: AgentCenterLocalConfig['modules']['avatar_asset'] | null;
-  avatarAssetValidation: AgentCenterAvatarAssetValidationResult | null;
+  avatarAssetValidation: AvatarAssetValidationResult | null;
   avatarConfigured: boolean;
   avatarAssetValid: boolean;
 }) {

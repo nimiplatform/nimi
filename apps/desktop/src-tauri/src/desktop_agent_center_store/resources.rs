@@ -17,10 +17,6 @@ use std::path::{Component, Path, PathBuf};
 use url::Url;
 
 const VALIDATION_SCHEMA_VERSION: u8 = 1;
-const MAX_AVATAR_ASSET_MANIFEST_BYTES: u64 = 262_144;
-const MAX_AVATAR_ASSET_BYTES: u64 = 524_288_000;
-const MAX_AVATAR_ASSET_FILE_BYTES: u64 = 104_857_600;
-const MAX_AVATAR_ASSET_FILE_COUNT: usize = 2_048;
 const MAX_LIVE2D_ADAPTER_MANIFEST_BYTES: u64 = 262_144;
 const MAX_BACKGROUND_BYTES: u64 = 20_971_520;
 const MAX_BACKGROUND_PIXELS: u32 = 8_192;
@@ -85,12 +81,6 @@ struct AgentCenterResourceOperationRecord {
     reason_code: String,
 }
 
-#[path = "resources_avatar_asset.rs"]
-mod resources_avatar_asset;
-#[path = "resources_avatar_asset_manifest.rs"]
-mod resources_avatar_asset_manifest;
-#[path = "resources_avatar_asset_source.rs"]
-mod resources_avatar_asset_source;
 #[path = "resources_commands.rs"]
 mod resources_commands;
 #[path = "resources_manifest_validation.rs"]
@@ -102,13 +92,10 @@ mod resources_remove_commands;
 #[path = "resources_validation.rs"]
 mod resources_validation;
 
-use resources_avatar_asset_manifest::*;
-use resources_avatar_asset_source::*;
 use resources_manifest_validation::*;
 use resources_operations::*;
 use resources_validation::*;
 
-pub(crate) use resources_avatar_asset::*;
 pub(crate) use resources_commands::*;
 pub(crate) use resources_manifest_validation::*;
 pub(crate) use resources_remove_commands::*;

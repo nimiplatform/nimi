@@ -3,9 +3,6 @@ import assert from 'node:assert/strict';
 
 import {
   createDefaultAgentCenterLocalConfig,
-  validateAgentCenterAvatarAssetImportResult,
-  validateAgentCenterAvatarAssetListResult,
-  validateAgentCenterAvatarAssetValidationResult,
   validateAgentCenterLive2dAdapterManifestImportResult,
   validateAgentCenterBackgroundAssetResult,
   validateAgentCenterBackgroundImportResult,
@@ -186,110 +183,6 @@ test('Agent Center Live2D adapter manifest import parser accepts Rust payload sh
   assert.equal(result.ok, true);
 });
 
-test('Agent Center avatar asset import parser accepts Rust payload shape', () => {
-  const live2dResult = validateAgentCenterAvatarAssetImportResult({
-    local_asset_id: 'live2d_ab12cd34ef56',
-    backend_kind: 'live2d',
-    backend_capability_profile_ref: null,
-    selected: true,
-    manifest_sha256: 'b'.repeat(64),
-    asset_bytes: 512,
-    file_count: 3,
-    imported_at: '2026-05-01T00:00:00Z',
-  });
-  const vrmResult = validateAgentCenterAvatarAssetImportResult({
-    local_asset_id: 'vrm_cd12ef34ab56',
-    backend_kind: 'vrm',
-    backend_capability_profile_ref: null,
-    selected: true,
-    manifest_sha256: 'c'.repeat(64),
-    asset_bytes: 4096,
-    file_count: 1,
-    imported_at: '2026-05-01T00:00:00Z',
-  });
-
-  assert.equal(live2dResult.ok, true);
-  assert.equal(vrmResult.ok, true);
-});
-
-test('Agent Center avatar asset validation parser accepts Rust payload shape', () => {
-  const result = validateAgentCenterAvatarAssetValidationResult({
-    schema_version: 1,
-    local_asset_id: 'live2d_ab12cd34ef56',
-    backend_kind: 'live2d',
-    backend_capability_profile_ref: null,
-    checked_at: '2026-05-01T00:00:00Z',
-    status: 'valid',
-    errors: [],
-    warnings: [],
-  });
-
-  assert.equal(result.ok, true);
-});
-
-test('Agent Center avatar asset list parser accepts Rust payload shape', () => {
-  const result = validateAgentCenterAvatarAssetListResult({
-    selected_local_asset_id: 'live2d_ab12cd34ef56',
-    assets: [
-      {
-        local_asset_id: 'live2d_ab12cd34ef56',
-        backend_kind: 'live2d',
-        display_name: 'Ren Live2D',
-        source_label: 'ren_pro_zh',
-        backend_capability_profile_ref: null,
-        asset_bytes: 512,
-        file_count: 3,
-        imported_at: '2026-05-01T00:00:00Z',
-        selected: true,
-        validation: {
-          schema_version: 1,
-          local_asset_id: 'live2d_ab12cd34ef56',
-          backend_kind: 'live2d',
-          backend_capability_profile_ref: null,
-          checked_at: '2026-05-01T00:00:00Z',
-          status: 'valid',
-          errors: [],
-          warnings: [],
-        },
-      },
-    ],
-  });
-
-  assert.equal(result.ok, true);
-});
-
-test('Agent Center avatar asset list parser rejects selected flag drift', () => {
-  const result = validateAgentCenterAvatarAssetListResult({
-    selected_local_asset_id: 'vrm_ab12cd34ef56',
-    assets: [
-      {
-        local_asset_id: 'vrm_ab12cd34ef56',
-        backend_kind: 'vrm',
-        display_name: 'Ren VRM',
-        source_label: 'ren.vrm',
-        backend_capability_profile_ref: null,
-        asset_bytes: 4096,
-        file_count: 1,
-        imported_at: '2026-05-01T00:00:00Z',
-        selected: false,
-        validation: {
-          schema_version: 1,
-          local_asset_id: 'vrm_ab12cd34ef56',
-          backend_kind: 'vrm',
-          backend_capability_profile_ref: null,
-          checked_at: '2026-05-01T00:00:00Z',
-          status: 'valid',
-          errors: [],
-          warnings: [],
-        },
-      },
-    ],
-  });
-
-  assert.equal(result.ok, false);
-  assert.match(result.errors.join('\n'), /matching asset must be marked selected/u);
-});
-
 test('Agent Center background validation parser accepts sidecar payload shape', () => {
   const result = validateAgentCenterBackgroundValidationResult({
     schema_version: 1,
@@ -337,14 +230,7 @@ test('Agent Center background asset parser accepts Rust payload shape', () => {
   assert.equal(result.ok, true);
 });
 
-test('Agent Center resource removal parser accepts quarantine payload shape', () => {
-  const avatarResult = validateAgentCenterLocalResourceRemoveResult({
-    resource_kind: 'avatar_asset',
-    resource_id: 'live2d_ab12cd34ef56',
-    quarantined: true,
-    operation_id: 'op_ab12cd34ef56',
-    status: 'completed',
-  });
+test('Agent Center resource removal parser accepts active quarantine payload shapes', () => {
   const backgroundResult = validateAgentCenterLocalResourceRemoveResult({
     resource_kind: 'background',
     resource_id: 'bg_ab12cd34ef56',
@@ -367,8 +253,20 @@ test('Agent Center resource removal parser accepts quarantine payload shape', ()
     status: 'completed',
   });
 
-  assert.equal(avatarResult.ok, true);
   assert.equal(backgroundResult.ok, true);
   assert.equal(agentResult.ok, true);
   assert.equal(accountResult.ok, true);
+});
+
+test('Agent Center resource removal parser rejects decommissioned avatar asset quarantine payloads', () => {
+  const result = validateAgentCenterLocalResourceRemoveResult({
+    resource_kind: 'avatar_asset',
+    resource_id: 'live2d_ab12cd34ef56',
+    quarantined: true,
+    operation_id: 'op_ab12cd34ef56',
+    status: 'completed',
+  });
+
+  assert.equal(result.ok, false);
+  assert.match(result.errors.join('\n'), /invalid resource kind/u);
 });

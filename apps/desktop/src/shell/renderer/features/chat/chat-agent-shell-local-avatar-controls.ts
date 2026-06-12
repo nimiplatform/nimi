@@ -5,21 +5,16 @@ import {
   agentCenterLocalConfigQueryKey,
   getAgentCenterBackgroundAsset,
   getAgentCenterLocalConfig,
-  importAgentCenterAvatarAsset,
   importAgentCenterBackground,
-  importAgentCenterLive2dAdapterManifest,
-  listAgentCenterAvatarAssets,
-  pickAgentCenterAvatarAssetSource,
   pickAgentCenterBackgroundSource,
-  pickAgentCenterLive2dAdapterManifestSource,
-  removeAgentCenterAvatarAsset,
   removeAgentCenterBackground,
-  selectAgentCenterAvatarAsset,
-  validateAgentCenterAvatarAsset,
 } from '@renderer/bridge/runtime-bridge/chat-agent-center-local-config-store';
-import type { AgentCenterAvatarAssetKind } from './chat-agent-center-local-config';
+import type { AgentCenterAvatarAssetKind } from './chat-agent-center-avatar-config-types';
 import { useAgentCenterAvatarConfigMutation } from './chat-agent-center-avatar-config-mutation';
-import { buildAvatarAssetValidationPresentation } from './chat-agent-shell-avatar-asset-diagnostics';
+import {
+  buildAvatarAssetValidationPresentation,
+  type DecommissionedAvatarAssetLibraryResult,
+} from './chat-agent-shell-avatar-asset-diagnostics';
 import { assetUrlFromFileUrl } from './chat-agent-shell-presentation-status';
 import type { UseAgentConversationPresentationInput } from './chat-agent-shell-presentation-types';
 import { useAgentLocalAvatarLaunchControls } from './chat-agent-local-avatar-launch-controls';
@@ -27,6 +22,9 @@ export { resolveAvatarComposerActionState } from './chat-agent-local-avatar-laun
 
 export function useAgentConversationLocalAvatarControls(input: UseAgentConversationPresentationInput) {
   const queryClient = useQueryClient();
+  const avatarCarrierDecommissionedMessage = input.t('Chat.agentCenterAvatarCarrierDecommissioned', {
+    defaultValue: 'Desktop-local Live2D/VRM carrier assets are decommissioned. Launch the Avatar-owned carrier instead.',
+  });
   const agentCenterLocalConfigQuery = useQuery({
     queryKey: input.accountId && input.activeTarget?.localAgentRef
       ? agentCenterLocalConfigQueryKey(input.accountId, input.activeTarget.localAgentRef)
@@ -71,42 +69,9 @@ export function useAgentConversationLocalAvatarControls(input: UseAgentConversat
   });
   const backdropImageUrl = assetUrlFromFileUrl(backgroundAssetQuery.data?.file_url);
   const avatarConfigured = Boolean(avatarAssetConfig?.local_avatar_asset_ref);
-  const avatarAssetValidationQuery = useQuery({
-    queryKey: input.accountId && input.activeTarget?.localAgentRef && avatarAssetConfig?.local_avatar_asset_ref
-      ? [
-        'agent-center-avatar-asset-validation',
-        input.accountId,
-        input.activeTarget.localAgentRef,
-        avatarAssetConfig.local_avatar_asset_ref,
-        avatarAssetConfig.backend_kind,
-        avatarAssetConfig.backend_capability_profile_ref,
-      ]
-      : ['agent-center-avatar-asset-validation', 'none'],
-    queryFn: async () => (
-      input.accountId && input.activeTarget?.localAgentRef && avatarAssetConfig?.local_avatar_asset_ref
-        ? validateAgentCenterAvatarAsset({
-          accountId: input.accountId,
-          ownerUserId: input.activeTarget.ownerUserId,
-          realmAgentId: input.activeTarget.realmAgentId,
-          localAgentRef: input.activeTarget.localAgentRef,
-        })
-        : null
-    ),
-    enabled: hasTauriInvoke() && Boolean(
-      input.accountId
-      && input.activeTarget?.localAgentRef
-      && input.activeTarget?.localAgentRef
-      && avatarAssetConfig?.local_avatar_asset_ref,
-    ),
-    staleTime: 15_000,
-  });
-  const avatarAssetValidation = avatarAssetValidationQuery.data || null;
-  const avatarAssetValid = Boolean(
-    avatarAssetConfig?.local_avatar_asset_ref
-      && avatarAssetConfig.backend_capability_profile_ref
-      && avatarAssetValidation?.status === 'valid',
-  );
-  const avatarAssetChecking = avatarAssetValidationQuery.isFetching;
+  const avatarAssetValidation = null;
+  const avatarAssetValid = false;
+  const avatarAssetChecking = false;
   const avatarAssetValidationPresentation = buildAvatarAssetValidationPresentation({
     config: avatarAssetConfig,
     validation: avatarAssetValidation,
@@ -114,155 +79,34 @@ export function useAgentConversationLocalAvatarControls(input: UseAgentConversat
     valid: avatarAssetValid,
     checking: avatarAssetChecking,
   });
-  const avatarAssetLibraryQuery = useQuery({
-    queryKey: input.accountId && input.activeTarget?.localAgentRef
-      ? ['agent-center-avatar-asset-library', input.accountId, input.activeTarget.localAgentRef]
-      : ['agent-center-avatar-asset-library', 'none'],
-    queryFn: async () => (
-      input.accountId && input.activeTarget?.localAgentRef
-        ? listAgentCenterAvatarAssets({
-          accountId: input.accountId,
-          ownerUserId: input.activeTarget.ownerUserId,
-          realmAgentId: input.activeTarget.realmAgentId,
-          localAgentRef: input.activeTarget.localAgentRef,
-        })
-        : { selected_local_asset_id: null, assets: [] }
-    ),
-    enabled: hasTauriInvoke() && Boolean(input.accountId && input.activeTarget?.localAgentRef),
+  const avatarAssetLibraryQuery = useQuery<DecommissionedAvatarAssetLibraryResult>({
+    queryKey: ['agent-center-avatar-asset-library', 'decommissioned'],
+    queryFn: async () => ({ selected_local_asset_id: null, assets: [] }),
+    enabled: true,
     staleTime: 15_000,
   });
   const avatarConfigMutation = useAgentCenterAvatarConfigMutation(input, queryClient, agentCenterLocalConfigQuery.data);
   const avatarAssetSelectMutation = useMutation({
-    mutationFn: async (localAssetId: string) => {
-      if (!input.accountId || !input.activeTarget?.localAgentRef) {
-        throw new Error(input.t('Chat.agentCenterAvatarImportAgentRequired', {
-          defaultValue: 'Select an agent before importing a local Avatar asset.',
-        }));
-      }
-      return selectAgentCenterAvatarAsset({
-        accountId: input.accountId,
-        ownerUserId: input.activeTarget.ownerUserId,
-        realmAgentId: input.activeTarget.realmAgentId,
-        localAgentRef: input.activeTarget.localAgentRef,
-        localAssetId,
-      });
-    },
-    onSuccess: async () => {
-      if (!input.accountId || !input.activeTarget?.localAgentRef) {
-        return;
-      }
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: agentCenterLocalConfigQueryKey(input.accountId, input.activeTarget.localAgentRef),
-        }),
-        queryClient.invalidateQueries({ queryKey: ['agent-center-avatar-asset-library'] }),
-        queryClient.invalidateQueries({ queryKey: ['agent-center-avatar-asset-validation'] }),
-        avatarLaunchControls.avatarLiveInstancesQuery.refetch(),
-      ]);
+    mutationFn: async (_localAssetId: string) => {
+      throw new Error(avatarCarrierDecommissionedMessage);
     },
   });
   const avatarAssetImportMutation = useMutation({
-    mutationFn: async (kind: AgentCenterAvatarAssetKind) => {
-      if (!input.accountId || !input.activeTarget?.localAgentRef) {
-        throw new Error(input.t('Chat.agentCenterAvatarImportAgentRequired', {
-          defaultValue: 'Select an agent before importing a local Avatar asset.',
-        }));
-      }
-      const sourcePath = await pickAgentCenterAvatarAssetSource(kind);
-      if (!sourcePath) {
-        return null;
-      }
-      return importAgentCenterAvatarAsset({
-        accountId: input.accountId,
-        ownerUserId: input.activeTarget.ownerUserId,
-        realmAgentId: input.activeTarget.realmAgentId,
-        localAgentRef: input.activeTarget.localAgentRef,
-        kind,
-        sourcePath,
-        select: true,
-      });
-    },
-    onSuccess: async (result) => {
-      if (!result || !input.accountId || !input.activeTarget?.localAgentRef) {
-        return;
-      }
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: agentCenterLocalConfigQueryKey(input.accountId, input.activeTarget.localAgentRef),
-        }),
-        queryClient.invalidateQueries({ queryKey: ['agent-center-avatar-asset-library'] }),
-        queryClient.invalidateQueries({ queryKey: ['agent-center-avatar-asset-validation'] }),
-        avatarLaunchControls.avatarLiveInstancesQuery.refetch(),
-      ]);
+    mutationFn: async (_kind: AgentCenterAvatarAssetKind) => {
+      throw new Error(avatarCarrierDecommissionedMessage);
     },
   });
   const live2dAdapterManifestImportMutation = useMutation({
     mutationFn: async () => {
-      if (!input.accountId || !input.activeTarget?.localAgentRef || !avatarAssetConfig?.local_avatar_asset_ref) {
-        throw new Error(input.t('Chat.agentCenterLive2dAdapterManifestAssetRequired', {
-          defaultValue: 'Import and select a Live2D Avatar asset before linking its adapter manifest.',
-        }));
-      }
-      if (avatarAssetConfig.backend_kind !== 'live2d') {
-        throw new Error(input.t('Chat.agentCenterLive2dAdapterImportLive2dRequired', {
-          defaultValue: 'Live2D adapter manifests can only be linked to Live2D Avatar assets.',
-        }));
-      }
-      const sourcePath = await pickAgentCenterLive2dAdapterManifestSource();
-      if (!sourcePath) {
-        return null;
-      }
-      return importAgentCenterLive2dAdapterManifest({
-        accountId: input.accountId,
-        ownerUserId: input.activeTarget.ownerUserId,
-        realmAgentId: input.activeTarget.realmAgentId,
-        localAgentRef: input.activeTarget.localAgentRef,
-        localAssetId: avatarAssetConfig.local_avatar_asset_ref,
-        sourcePath,
-        select: true,
-      });
-    },
-    onSuccess: async (result) => {
-      if (!result || !input.accountId || !input.activeTarget?.localAgentRef) {
-        return;
-      }
-      await queryClient.invalidateQueries({
-        queryKey: agentCenterLocalConfigQueryKey(input.accountId, input.activeTarget.localAgentRef),
-      });
-      await queryClient.invalidateQueries({ queryKey: ['agent-center-avatar-asset-validation'] });
+      throw new Error(avatarCarrierDecommissionedMessage);
     },
   });
   const clearAvatarAssetMutation = useMutation({
     mutationFn: async () => {
-      if (!input.accountId || !input.activeTarget?.localAgentRef || !avatarAssetConfig?.local_avatar_asset_ref) {
-        return null;
-      }
-      return removeAgentCenterAvatarAsset({
-        accountId: input.accountId,
-        ownerUserId: input.activeTarget.ownerUserId,
-        realmAgentId: input.activeTarget.realmAgentId,
-        localAgentRef: input.activeTarget.localAgentRef,
-        localAssetId: avatarAssetConfig.local_avatar_asset_ref,
-      });
-    },
-    onSuccess: async (result) => {
-      if (!result || !input.accountId || !input.activeTarget?.localAgentRef) {
-        return;
-      }
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: agentCenterLocalConfigQueryKey(input.accountId, input.activeTarget.localAgentRef),
-        }),
-        queryClient.invalidateQueries({ queryKey: ['agent-center-avatar-asset-library'] }),
-        queryClient.invalidateQueries({ queryKey: ['agent-center-avatar-asset-validation'] }),
-        avatarLaunchControls.avatarLiveInstancesQuery.refetch(),
-      ]);
+      throw new Error(avatarCarrierDecommissionedMessage);
     },
   });
-  const avatarImportDisabled = !hasTauriInvoke()
-    || !input.accountId
-    || !input.activeTarget?.localAgentRef
-    || avatarAssetImportMutation.isPending;
+  const avatarImportDisabled = true;
   const avatarImportError = avatarAssetImportMutation.error instanceof Error
     ? avatarAssetImportMutation.error.message
     : live2dAdapterManifestImportMutation.error instanceof Error

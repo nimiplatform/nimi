@@ -5,11 +5,10 @@ import { realmSocialData } from '@renderer/features/social/data/realm-social-dat
 // D-EXPL-007 and runtime `runtime-agent-service-contract.md` K-AGCORE-139.
 //
 // D-EXPL-007 dual-effect: `Add friend` on a RealmAgent must (1) create the
-// AgentFriend relation (ordinary Realm Friendship row) AND (2) ensure the one
-// idempotent account-scoped LocalAgent projection (K-AGCORE-139). The LocalAgent
-// projection is ensured on Add Friend here — not deferred to a lazy first
-// chat-open — so a befriended RealmAgent's `friend` → Open Agent Chat path is
-// always backed by an observable LocalAgent.
+// AgentFriend relation (ordinary Realm Friendship row) AND (2) enqueue the
+// durable LocalAgentProvisionIntent in that Realm transaction. Desktop then
+// converges the account-scoped LocalAgent projection through the R-SOC-009
+// courier; Add Friend must not synchronously call the local runtime.
 //
 // Add Friend never mutates RealmAgent canonical truth: it creates the
 // AgentFriend Friendship row and forks an owner-scoped LocalAgent projection.
@@ -77,23 +76,20 @@ function toLocalAgentTarget(
   };
 }
 
-// D-EXPL-007 Add Friend dual-effect. Creates the AgentFriend relation, then
-// ensures the idempotent account-scoped LocalAgent projection (K-AGCORE-139).
-// `ensureRuntimeAgentExists` is itself idempotent (swallows ALREADY_EXISTS), so
-// a repeated Add Friend / retry does not produce a second LocalAgent.
+// D-EXPL-007 Add Friend dual-effect. The backend AgentFriend transaction is
+// the only authority that creates the durable LocalAgentProvisionIntent; the
+// desktop social adapter kicks the R-SOC-009 courier after the transaction
+// returns. This function deliberately performs no synchronous runtime write.
 export async function addRealmAgentFriend(
   target: RealmAgentFriendTarget,
   message?: string,
 ): Promise<void> {
   const ownerUserId = requireOwnerUserId();
   const localAgentTarget = toLocalAgentTarget(target, ownerUserId);
-  // Effect 1 — create the AgentFriend Realm social relation.
+  // Effect 1 — create the AgentFriend Realm social relation. Effect 2 — the
+  // same backend transaction authors the durable LocalAgentProvisionIntent,
+  // which the desktop courier consumes for eventual LocalAgent convergence.
   await realmSocialData.requestOrAcceptFriend(localAgentTarget.realmAgentId, message);
-  // Effect 2 — ensure the one idempotent account-scoped LocalAgent projection.
-  // If the projection cannot be ensured the error propagates: the caller must
-  // surface it as a typed failure rather than projecting a usable `friend`
-  // state (D-EXPL-007 fail-closed).
-  await ensureRuntimeAgentExists(localAgentTarget);
 }
 
 // `friend` → Open Agent Chat. Opens the one-to-one LocalAgent Chat for the

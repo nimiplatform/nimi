@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { persistStoredSupportSection } from '@renderer/features/support/support-storage';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 
 export function resolveDesktopReleaseStripMessage(input: {
@@ -45,7 +46,8 @@ export function DesktopReleaseStrip() {
           data-testid={E2E_IDS.desktopReleaseOpenUpdates}
           className="rounded-lg border border-amber-300 px-3 py-1.5 text-xs font-medium text-amber-900 hover:bg-amber-100"
           onClick={() => {
-            setActiveTab('settings');
+            persistStoredSupportSection('updates');
+            setActiveTab('support');
           }}
         >
           {t('DesktopRelease.openUpdates')}

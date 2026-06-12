@@ -28,7 +28,14 @@ export interface LogsExportResult {
   readonly exportedAt: string;
 }
 
-function parseLogsExportResult(value: unknown): LogsExportResult {
+function requirePositiveInteger(value: unknown, fieldName: string): number {
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value <= 0) {
+    throw new Error(`desktop_logs_export returned invalid ${fieldName}`);
+  }
+  return value;
+}
+
+export function parseLogsExportResult(value: unknown): LogsExportResult {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     throw new Error('desktop_logs_export returned invalid payload');
   }
@@ -43,8 +50,8 @@ function parseLogsExportResult(value: unknown): LogsExportResult {
   }
   return {
     artifactPath,
-    fileCount: Number(record.fileCount || 0),
-    byteSize: Number(record.byteSize || 0),
+    fileCount: requirePositiveInteger(record.fileCount, 'fileCount'),
+    byteSize: requirePositiveInteger(record.byteSize, 'byteSize'),
     exportedAt,
   };
 }

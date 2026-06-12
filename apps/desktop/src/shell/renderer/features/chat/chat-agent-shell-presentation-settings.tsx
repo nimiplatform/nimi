@@ -3,13 +3,13 @@ import { AgentCenterPanel } from './chat-agent-center-panel';
 import type { UseAgentConversationPresentationInput } from './chat-agent-shell-presentation-types';
 import type {
   AgentCenterAvatarConfigPatch,
+  AgentCenterAvatarAssetKind,
   AgentCenterAvatarAssetModule,
 } from './chat-agent-center-avatar-config-types';
 import type {
-  AgentCenterAvatarAssetKind,
-  AgentCenterAvatarAssetListResult,
-} from './chat-agent-center-local-config';
-import type { AvatarAssetValidationPresentation } from './chat-agent-shell-avatar-asset-diagnostics';
+  AvatarAssetValidationPresentation,
+  DecommissionedAvatarAssetLibraryResult,
+} from './chat-agent-shell-avatar-asset-diagnostics';
 import { AgentConversationBackgroundSettingsContent } from './chat-agent-shell-background-settings-content';
 import { AgentConversationAvatarSettingsContent } from './chat-agent-shell-avatar-settings-content';
 
@@ -37,7 +37,7 @@ type BackgroundQueryLike = {
 };
 
 type AvatarAssetLibraryQueryLike = {
-  data?: AgentCenterAvatarAssetListResult | null;
+  data?: DecommissionedAvatarAssetLibraryResult | null;
   error?: unknown;
   isFetching: boolean;
 };

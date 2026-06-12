@@ -369,7 +369,8 @@
         "baselineCommitId": "e2e-fixture",
         "accountDefaultProfileRef": "account-default:e2e",
         "builtInAiConfigRefs": [
-          "ai-config:nimi-chat:e2e"
+          "ai-config:nimi-chat:e2e",
+          "ai-config:agent-chat:e2e"
         ],
         "runtimeBaselineRef": "runtime-baseline:e2e",
         "executionEvidenceRef": "e2e-ready-entry"

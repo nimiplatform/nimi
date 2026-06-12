@@ -9,7 +9,7 @@ function readDesktopFile(relativePath: string): string {
   return readFileSync(path.join(desktopDir, relativePath), 'utf8');
 }
 
-test('settings navigation exposes the existing Application Update surface', () => {
+test('settings navigation keeps preferences separate from the Support update host', () => {
   const assetsSource = readDesktopFile('src/shell/renderer/features/settings/settings-assets.tsx');
   const panelSource = readDesktopFile('src/shell/renderer/features/settings/settings-panel-body.tsx');
 
@@ -18,7 +18,14 @@ test('settings navigation exposes the existing Application Update surface', () =
   assert.match(panelSource, /performance:\s*'Settings\.menuPerformance'/);
 });
 
-test('settings page router renders PerformancePage for performance selection', () => {
+test('release strip routes update recovery to Support Updates, not Settings Performance', () => {
+  const releaseStripSource = readDesktopFile('src/shell/renderer/app-shell/layouts/desktop-release-strip.tsx');
+  assert.match(releaseStripSource, /persistStoredSupportSection\('updates'\)/);
+  assert.match(releaseStripSource, /setActiveTab\('support'\)/);
+  assert.doesNotMatch(releaseStripSource, /setActiveTab\('settings'\)/);
+});
+
+test('settings page router keeps PerformancePage as ordinary preferences only', () => {
   const pagesSource = readDesktopFile('src/shell/renderer/features/settings/settings-pages.tsx');
   const performanceSource = readDesktopFile('src/shell/renderer/features/settings/settings-performance-page.tsx');
 

@@ -342,16 +342,15 @@ export function useRuntimeConfigModelManagementActions(
         { localModelId },
       ),
     });
-    let stoppedModel: NimiRuntimeLocalAssetRecord | null = null;
     try {
-      stoppedModel = await runtimeConfigLocalModelCenterClient.stop(localModelId, { caller: 'core' }).catch((stopErr) => {
+      await runtimeConfigLocalModelCenterClient.stop(localModelId, { caller: 'core' }).catch((stopErr) => {
         emitRuntimeLog({
-          level: 'warn',
+          level: 'error',
           area: 'local-ai',
           message: 'action:restartLocalModel:stop-phase-failed',
           details: { localModelId, error: stopErr instanceof Error ? stopErr.message : String(stopErr) },
         });
-        return null;
+        throw stopErr;
       });
       const startedModel = await runtimeConfigLocalModelCenterClient.start(localModelId, { caller: 'core' });
       applyLocalModelSnapshotToState(updateState, startedModel);
@@ -365,9 +364,6 @@ export function useRuntimeConfigModelManagementActions(
         ),
       });
     } catch (error) {
-      if (stoppedModel) {
-        applyLocalModelSnapshotToState(updateState, stoppedModel);
-      }
       setLifecycleState(
         localModelId,
         'error',

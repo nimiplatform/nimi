@@ -3,9 +3,10 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import test from 'node:test';
 
-import { AvatarDebugProbeKind, AvatarDebugReplayRedactionState, AvatarDebugReplayVisibility, AvatarDebugProbeStatus, type AvatarDebugProbeResultEnvelope, type AvatarDebugReplayRef } from '@nimiplatform/sdk/runtime/generated';
 import {
   AVATAR_DEBUG_WORKBENCH_PROBES,
+  AvatarDebugProbeKind,
+  AvatarDebugProbeStatus,
   avatarDebugProbeFailClosedReason,
   avatarDebugProbePresentationStatusLabel,
   avatarDebugProbeRemediation,
@@ -15,6 +16,8 @@ import {
   buildAvatarDebugWorkbenchLaunchHealth,
   desktopCompanionParticipationRemediation,
   desktopCompanionParticipationStatusLabel,
+  type AvatarDebugProbeResultEnvelope,
+  type AvatarDebugReplayRef,
 } from '../src/shell/renderer/features/chat/chat-agent-center-avatar-debug-workbench.js';
 import type { AgentCenterAvatarAssetModule } from '../src/shell/renderer/features/chat/chat-agent-center-avatar-config-types.js';
 
@@ -62,10 +65,10 @@ function buildReplayRef(overrides: Partial<AvatarDebugReplayRef> = {}): AvatarDe
   return {
     probeId: 'probe-1',
     replayRef: 'runtime-replay:probe-1',
-    redactionState: AvatarDebugReplayRedactionState.REDACTED,
-    visibility: AvatarDebugReplayVisibility.DESKTOP_DEBUG_WORKBENCH,
+    redactionState: 1,
+    visibility: 1,
     ...overrides,
-  };
+  } as AvatarDebugReplayRef;
 }
 
 test('avatar debug workbench launch health is fail-closed before typed Runtime probes can run', () => {
@@ -127,8 +130,22 @@ test('avatar debug workbench status and remediation stay aligned to Runtime prob
   }), /supports this route/);
 });
 
-test('avatar debug workbench exposes the pinned emotion expression probe category', () => {
-  assert.ok(AVATAR_DEBUG_WORKBENCH_PROBES.some((probe) => probe.kind === AvatarDebugProbeKind.EMOTION_EXPRESSION));
+test('avatar debug workbench exposes every authority probe category', () => {
+  assert.deepEqual(
+    AVATAR_DEBUG_WORKBENCH_PROBES.map((probe) => probe.kind),
+    [
+      AvatarDebugProbeKind.PACKAGE_VALIDATION,
+      AvatarDebugProbeKind.LAUNCH_READINESS,
+      AvatarDebugProbeKind.BACKEND_LOAD,
+      AvatarDebugProbeKind.CAPABILITY_PROFILE,
+      AvatarDebugProbeKind.ROUTE_SUPPORT_MATRIX,
+      AvatarDebugProbeKind.GENERATED_MOTION,
+      AvatarDebugProbeKind.EMOTION_EXPRESSION,
+      AvatarDebugProbeKind.SPEECH_LIPSYNC,
+      AvatarDebugProbeKind.WINDOW_HIT_REGION,
+      'runtime_replay',
+    ],
+  );
 });
 
 test('avatar debug workbench fails closed when a passed probe lacks required evidence refs', () => {
@@ -141,12 +158,30 @@ test('avatar debug workbench fails closed when a passed probe lacks required evi
   assert.match(avatarDebugProbeRemediation(result, buildReplayRef()), /Required probe evidence is missing/);
 });
 
+test('avatar debug workbench fails closed when passed evidence refs have wrong identities', () => {
+  const result = buildProbeResult({
+    evidenceRefs: ['wrong_probe_id:probe-1', 'wrong_backend_ref:probe-1'],
+  });
+
+  assert.equal(avatarDebugProbeFailClosedReason(result, buildReplayRef()), 'required_probe_evidence_missing');
+  assert.equal(avatarDebugProbePresentationStatusLabel(result, buildReplayRef()), 'Failed');
+});
+
 test('avatar debug workbench fails closed when Runtime replay evidence is missing', () => {
   const result = buildProbeResult();
 
   assert.equal(avatarDebugProbeFailClosedReason(result, null), 'runtime_replay_missing');
   assert.equal(avatarDebugProbePresentationStatusLabel(result, null), 'Failed');
   assert.match(avatarDebugProbeRemediation(result, null), /runtime_replay_missing/);
+});
+
+test('avatar debug workbench fails closed when Runtime replay evidence belongs to another probe', () => {
+  const result = buildProbeResult();
+  const replayRef = buildReplayRef({ probeId: 'probe-other' });
+
+  assert.equal(avatarDebugProbeFailClosedReason(result, replayRef), 'runtime_replay_probe_mismatch');
+  assert.equal(avatarDebugProbePresentationStatusLabel(result, replayRef), 'Failed');
+  assert.match(avatarDebugProbeRemediation(result, replayRef), /runtime_replay_probe_mismatch/);
 });
 
 test('avatar debug workbench presents passed only when required evidence and replay refs exist', () => {
