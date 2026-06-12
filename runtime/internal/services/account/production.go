@@ -3,7 +3,6 @@ package account
 import (
 	"bytes"
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -66,6 +65,25 @@ type realmOAuthExchanger struct {
 type realmTokenRefresher struct {
 	httpClient *http.Client
 	tokenURL   string
+}
+
+type realmTokenResponse struct {
+	AccessToken          string                          `json:"access_token"`
+	RefreshToken         string                          `json:"refresh_token"`
+	TokenType            string                          `json:"token_type"`
+	ExpiresIn            *int64                          `json:"expires_in"`
+	AccountID            string                          `json:"account_id"`
+	DisplayName          string                          `json:"display_name"`
+	RealmEnvironmentID   string                          `json:"realm_environment_id"`
+	WorkspaceMemberships []realmWorkspaceMembershipShape `json:"workspace_memberships,omitempty"`
+}
+
+type realmWorkspaceMembershipShape struct {
+	WorkspaceID        string            `json:"workspace_id"`
+	MembershipState    string            `json:"membership_state"`
+	RealmEnvironmentID string            `json:"realm_environment_id"`
+	ObservedAt         string            `json:"observed_at"`
+	DisplayMetadata    map[string]string `json:"display_metadata,omitempty"`
 }
 
 func NewProduction(logger *slog.Logger, cfg ProductionConfig) *Service {
@@ -267,78 +285,68 @@ func materialFromTokenResponse(resp *http.Response) (AccountMaterial, error) {
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return AccountMaterial{}, fmt.Errorf("%w: http %d", ErrLoginExchangeFailure, resp.StatusCode)
 	}
-	var parsed map[string]any
+	var parsed realmTokenResponse
 	if err := json.Unmarshal(payload, &parsed); err != nil {
 		return AccountMaterial{}, fmt.Errorf("%w: decode response", ErrLoginExchangeFailure)
 	}
-	accessToken := readString(parsed, "access_token", "accessToken")
-	refreshToken := readString(parsed, "refresh_token", "refreshToken")
-	if accessToken == "" || refreshToken == "" {
-		if tokens, ok := parsed["tokens"].(map[string]any); ok {
-			accessToken = firstNonEmpty(accessToken, readString(tokens, "access_token", "accessToken"))
-			refreshToken = firstNonEmpty(refreshToken, readString(tokens, "refresh_token", "refreshToken"))
-		}
+	accessToken := strings.TrimSpace(parsed.AccessToken)
+	refreshToken := strings.TrimSpace(parsed.RefreshToken)
+	accountID := strings.TrimSpace(parsed.AccountID)
+	displayName := strings.TrimSpace(parsed.DisplayName)
+	realmEnvironmentID := strings.TrimSpace(parsed.RealmEnvironmentID)
+	if accessToken == "" ||
+		refreshToken == "" ||
+		parsed.TokenType != "Bearer" ||
+		parsed.ExpiresIn == nil ||
+		*parsed.ExpiresIn < 0 ||
+		accountID == "" ||
+		displayName == "" ||
+		realmEnvironmentID == "" {
+		return AccountMaterial{}, fmt.Errorf("%w: invalid token response", ErrLoginExchangeFailure)
 	}
-	expiresAt := time.Now().UTC().Add(5 * time.Minute)
-	if expiresIn := readNumber(parsed, "expires_in", "expiresIn"); expiresIn > 0 {
-		expiresAt = time.Now().UTC().Add(time.Duration(expiresIn) * time.Second)
+	expiresAt := time.Now().UTC().Add(time.Duration(*parsed.ExpiresIn) * time.Second)
+	memberships, err := workspaceMembershipsFromTokenPayload(parsed.WorkspaceMemberships, realmEnvironmentID)
+	if err != nil {
+		return AccountMaterial{}, err
 	}
-	accountID := readString(parsed, "account_id", "accountId", "user_id", "userId", "sub")
-	displayName := readString(parsed, "display_name", "displayName", "name")
-	if user, ok := parsed["user"].(map[string]any); ok {
-		accountID = firstNonEmpty(accountID, readString(user, "id", "account_id", "accountId", "userId"))
-		displayName = firstNonEmpty(displayName, readString(user, "displayName", "display_name", "name", "email"))
-	}
-	accountID = firstNonEmpty(accountID, jwtSubject(accessToken))
-	realmEnvironmentID := readString(parsed, "realm_environment_id", "realmEnvironmentId")
 	return AccountMaterial{
 		AccountID:            accountID,
 		DisplayName:          displayName,
 		RealmEnvironmentID:   realmEnvironmentID,
-		WorkspaceMemberships: workspaceMembershipsFromTokenPayload(parsed, realmEnvironmentID),
+		WorkspaceMemberships: memberships,
 		AccessToken:          accessToken,
 		AccessTokenExpires:   expiresAt,
 		RefreshToken:         refreshToken,
 	}, nil
 }
 
-func workspaceMembershipsFromTokenPayload(parsed map[string]any, defaultRealmEnvironmentID string) []*runtimev1.WorkspaceMembershipProjection {
-	for _, key := range []string{"workspace_memberships", "workspaceMemberships", "workspaces"} {
-		raw, ok := parsed[key]
-		if !ok {
-			continue
-		}
-		items, ok := raw.([]any)
-		if !ok {
-			continue
-		}
-		out := make([]*runtimev1.WorkspaceMembershipProjection, 0, len(items))
-		for _, item := range items {
-			record, ok := item.(map[string]any)
-			if !ok {
-				continue
-			}
-			workspaceID := readString(record, "workspace_id", "workspaceId", "id")
-			if strings.TrimSpace(workspaceID) == "" {
-				continue
-			}
-			var observedAt *timestamppb.Timestamp
-			if text := readString(record, "observed_at", "observedAt"); text != "" {
-				if parsedTime, err := time.Parse(time.RFC3339Nano, text); err == nil {
-					observedAt = timestamppb.New(parsedTime)
-				}
-			}
-			out = append(out, &runtimev1.WorkspaceMembershipProjection{
-				WorkspaceId:        workspaceID,
-				MembershipState:    workspaceMembershipStateFromString(readString(record, "membership_state", "membershipState", "state")),
-				RealmEnvironmentId: firstNonEmpty(readString(record, "realm_environment_id", "realmEnvironmentId"), defaultRealmEnvironmentID),
-				ObservedAt:         observedAt,
-				DisplayMetadata:    readStringMap(record, "display_metadata", "displayMetadata"),
-			})
-		}
-		return out
+func workspaceMembershipsFromTokenPayload(items []realmWorkspaceMembershipShape, defaultRealmEnvironmentID string) ([]*runtimev1.WorkspaceMembershipProjection, error) {
+	if len(items) == 0 {
+		return nil, nil
 	}
-	return nil
+	out := make([]*runtimev1.WorkspaceMembershipProjection, 0, len(items))
+	for _, item := range items {
+		workspaceID := strings.TrimSpace(item.WorkspaceID)
+		if workspaceID == "" {
+			return nil, fmt.Errorf("%w: invalid workspace membership response", ErrLoginExchangeFailure)
+		}
+		var observedAt *timestamppb.Timestamp
+		if text := strings.TrimSpace(item.ObservedAt); text != "" {
+			parsedTime, err := time.Parse(time.RFC3339Nano, text)
+			if err != nil {
+				return nil, fmt.Errorf("%w: invalid workspace membership response", ErrLoginExchangeFailure)
+			}
+			observedAt = timestamppb.New(parsedTime)
+		}
+		out = append(out, &runtimev1.WorkspaceMembershipProjection{
+			WorkspaceId:        workspaceID,
+			MembershipState:    workspaceMembershipStateFromString(item.MembershipState),
+			RealmEnvironmentId: firstNonEmpty(item.RealmEnvironmentID, defaultRealmEnvironmentID),
+			ObservedAt:         observedAt,
+			DisplayMetadata:    item.DisplayMetadata,
+		})
+	}
+	return out, nil
 }
 
 func workspaceMembershipsFromSnapshots(in []workspaceMembershipSnapshot) []*runtimev1.WorkspaceMembershipProjection {
@@ -466,53 +474,6 @@ func firstNonEmpty(values ...string) string {
 	return ""
 }
 
-func readString(values map[string]any, keys ...string) string {
-	for _, key := range keys {
-		if value, ok := values[key]; ok {
-			if text := strings.TrimSpace(fmt.Sprint(value)); text != "" && text != "<nil>" {
-				return text
-			}
-		}
-	}
-	return ""
-}
-
-func readNumber(values map[string]any, keys ...string) int64 {
-	for _, key := range keys {
-		switch value := values[key].(type) {
-		case float64:
-			return int64(value)
-		case int64:
-			return value
-		case json.Number:
-			parsed, _ := value.Int64()
-			return parsed
-		}
-	}
-	return 0
-}
-
-func readStringMap(values map[string]any, keys ...string) map[string]string {
-	for _, key := range keys {
-		raw, ok := values[key]
-		if !ok {
-			continue
-		}
-		items, ok := raw.(map[string]any)
-		if !ok {
-			continue
-		}
-		out := make(map[string]string, len(items))
-		for itemKey, itemValue := range items {
-			if trimmedKey := strings.TrimSpace(itemKey); trimmedKey != "" {
-				out[trimmedKey] = strings.TrimSpace(fmt.Sprint(itemValue))
-			}
-		}
-		return out
-	}
-	return nil
-}
-
 func workspaceMembershipStateFromString(value string) runtimev1.WorkspaceMembershipState {
 	switch strings.ToLower(strings.TrimSpace(value)) {
 	case "active":
@@ -537,21 +498,4 @@ func workspaceMembershipStateString(value runtimev1.WorkspaceMembershipState) st
 	default:
 		return "unknown"
 	}
-}
-
-func jwtSubject(token string) string {
-	raw := strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(token), "Bearer "))
-	parts := strings.Split(raw, ".")
-	if len(parts) < 2 {
-		return ""
-	}
-	payload, err := base64.RawURLEncoding.DecodeString(parts[1])
-	if err != nil {
-		return ""
-	}
-	var parsed map[string]any
-	if err := json.Unmarshal(payload, &parsed); err != nil {
-		return ""
-	}
-	return readString(parsed, "sub")
 }

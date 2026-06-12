@@ -96,6 +96,54 @@ test('NimiClient fail-closes optional composition surfaces until configured', ()
   assert.equal(client.requireScopes().listCatalog().appId, 'dev.nimi.root');
 });
 
+test('NimiClient uses Realm-owned permission grants when Realm is configured', async () => {
+  const runtimeTransport: CoreTransport = {
+    async unary() {
+      return {};
+    },
+    async *serverStream() {},
+  };
+  const realmCalls: string[] = [];
+  const realmTransport: CoreTransport = {
+    async unary(request) {
+      realmCalls.push(request.methodId);
+      if (request.methodId === 'listMyAppPermissionGrants') {
+        return {
+          items: [{
+            grantId: 'grant-1',
+            subjectAccountId: 'account-1',
+            appId: 'tester.app',
+            scopeFamily: 'account',
+            scopeName: 'account.read',
+            state: 'GRANTED',
+            reason: 'settings diagnostics',
+            version: 1,
+            requestedAt: '2026-06-10T00:00:00.000Z',
+            requestedByAccountId: 'account-1',
+          }],
+        };
+      }
+      throw createNimiError({
+        message: `unexpected Realm method ${request.methodId}`,
+        reasonCode: 'SDK_TEST_UNEXPECTED_METHOD',
+        actionHint: 'fix_test_transport',
+        source: 'sdk',
+      });
+    },
+    async *serverStream() {},
+  };
+  const client = createNimiClient({
+    appId: 'tester.app',
+    runtime: { transport: runtimeTransport },
+    realm: { transport: realmTransport },
+  });
+
+  const grants = await client.requirePermissions().list({ kind: 'app', ownerId: 'tester.app' });
+
+  assert.equal(grants[0]?.state, 'granted');
+  assert.deepEqual(realmCalls, ['listMyAppPermissionGrants']);
+});
+
 test('NimiClient agent surface hard-cuts generic local runner aliases', () => {
   const transport: CoreTransport = {
     async unary() {

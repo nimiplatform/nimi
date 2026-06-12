@@ -16,6 +16,24 @@ export interface AbilityDefinitionDto {
   readonly name: string;
   readonly tierRequired?: number;
 }
+export interface AccountGrantProjectionRowDto {
+  readonly appId: string;
+  readonly expiresAt?: string;
+  readonly grantId: string;
+  readonly qualifier?: string;
+  readonly scopeFamily: AppPermissionScopeFamily;
+  readonly scopeName: AppPermissionScopeName;
+  readonly state: AccountGrantProjectionState;
+  readonly subjectAccountId: string;
+  readonly version: number;
+}
+export type AccountGrantProjectionState = "pending" | "granted" | "denied" | "expired" | "revoked" | "superseded";
+export interface AccountGrantsProjectionDto {
+  readonly accountId: string;
+  readonly grants: readonly (AccountGrantProjectionRowDto)[];
+  readonly schemaVersion: number;
+  readonly updatedAt: string;
+}
 export type AccountRole = "USER" | "AGENT" | "SERVICE_ACC" | "SYSTEM_BOT" | "ADMIN";
 export type AccountStatus = "ONBOARDING" | "CHECK_INVITED" | "ACTIVE" | "SUSPENDED" | "BANNED";
 export interface AddFriendBodyDto {
@@ -260,6 +278,61 @@ export interface AgentVoiceConfigDto {
 }
 export type AgentWakeStrategy = "PASSIVE" | "PROACTIVE";
 export type ApiKeyType = "PERSONAL" | "ENTERPRISE";
+export interface AppPermissionGrantDecisionDto {
+  readonly expectedVersion: number;
+  readonly reason?: string;
+}
+export interface AppPermissionGrantDto {
+  readonly appId: string;
+  readonly deniedAt?: string;
+  readonly deniedByAccountId?: string;
+  readonly expiredAt?: string;
+  readonly expiresAt?: string;
+  readonly grantId: string;
+  readonly grantedAt?: string;
+  readonly grantedByAccountId?: string;
+  readonly qualifier?: string;
+  readonly reason: string;
+  readonly requestedAt: string;
+  readonly requestedByAccountId: string;
+  readonly revokedAt?: string;
+  readonly revokedByAccountId?: string;
+  readonly scopeFamily: AppPermissionScopeFamily;
+  readonly scopeName: AppPermissionScopeName;
+  readonly state: AppPermissionGrantState;
+  readonly subjectAccountId: string;
+  readonly supersededAt?: string;
+  readonly supersededByAccountId?: string;
+  readonly supersededByGrantId?: string;
+  readonly version: number;
+}
+export interface AppPermissionGrantGrantDto {
+  readonly expectedVersion: number;
+  readonly expiresAt?: string;
+  readonly reason?: string;
+}
+export interface AppPermissionGrantListDto {
+  readonly items: readonly (AppPermissionGrantDto)[];
+}
+export interface AppPermissionGrantRequestDto {
+  readonly appId: string;
+  readonly qualifier?: string;
+  readonly reason: string;
+  readonly scopeFamily: AppPermissionScopeFamily;
+  readonly scopeName: AppPermissionScopeName;
+}
+export type AppPermissionGrantState = "PENDING" | "GRANTED" | "DENIED" | "EXPIRED" | "REVOKED" | "SUPERSEDED";
+export interface AppPermissionGrantStatusDto {
+  readonly generatedAt: string;
+  readonly grants: readonly (AppPermissionGrantDto)[];
+}
+export interface AppPermissionGrantSupersedeDto {
+  readonly expectedVersion: number;
+  readonly reason?: string;
+  readonly supersededByGrantId?: string;
+}
+export type AppPermissionScopeFamily = "account" | "data" | "agent" | "ai_spend" | "memory" | "knowledge" | "notification" | "file_device" | "audit" | "ai_profile";
+export type AppPermissionScopeName = "account.read" | "account.session.read" | "data.scope.read" | "data.scope.write" | "agent.identity.project" | "agent.identity.bind" | "ai.spend.meter" | "ai.spend.delegate" | "memory.read.bounded" | "memory.write.admitted" | "knowledge.read.bounded" | "knowledge.write.admitted" | "notification.send" | "notification.subscribe" | "file.read.scoped" | "file.write.scoped" | "device.use.scoped" | "audit.read.scoped" | "ai_profile.selection.consume";
 export interface AppendWorldHistoryDto {
   readonly commit: MutationCommitEnvelopeDto;
   readonly historyAppends: readonly (WorldHistoryAppendItemDto)[];
@@ -3074,6 +3147,24 @@ export interface WorldviewTruthRuleSummaryDto {
   readonly version: number;
 }
 
+export const AccountGrantProjectionStateValues = [
+  "pending",
+  "granted",
+  "denied",
+  "expired",
+  "revoked",
+  "superseded",
+] as const satisfies readonly AccountGrantProjectionState[];
+
+export const AccountGrantProjectionStateValue = {
+  PENDING: "pending",
+  GRANTED: "granted",
+  DENIED: "denied",
+  EXPIRED: "expired",
+  REVOKED: "revoked",
+  SUPERSEDED: "superseded",
+} as const satisfies Record<string, AccountGrantProjectionState>;
+
 export const AccountRoleValues = [
   "USER",
   "AGENT",
@@ -3207,6 +3298,94 @@ export const ApiKeyTypeValue = {
   PERSONAL: "PERSONAL",
   ENTERPRISE: "ENTERPRISE",
 } as const satisfies Record<string, ApiKeyType>;
+
+export const AppPermissionGrantStateValues = [
+  "PENDING",
+  "GRANTED",
+  "DENIED",
+  "EXPIRED",
+  "REVOKED",
+  "SUPERSEDED",
+] as const satisfies readonly AppPermissionGrantState[];
+
+export const AppPermissionGrantStateValue = {
+  PENDING: "PENDING",
+  GRANTED: "GRANTED",
+  DENIED: "DENIED",
+  EXPIRED: "EXPIRED",
+  REVOKED: "REVOKED",
+  SUPERSEDED: "SUPERSEDED",
+} as const satisfies Record<string, AppPermissionGrantState>;
+
+export const AppPermissionScopeFamilyValues = [
+  "account",
+  "data",
+  "agent",
+  "ai_spend",
+  "memory",
+  "knowledge",
+  "notification",
+  "file_device",
+  "audit",
+  "ai_profile",
+] as const satisfies readonly AppPermissionScopeFamily[];
+
+export const AppPermissionScopeFamilyValue = {
+  ACCOUNT: "account",
+  DATA: "data",
+  AGENT: "agent",
+  AI_SPEND: "ai_spend",
+  MEMORY: "memory",
+  KNOWLEDGE: "knowledge",
+  NOTIFICATION: "notification",
+  FILE_DEVICE: "file_device",
+  AUDIT: "audit",
+  AI_PROFILE: "ai_profile",
+} as const satisfies Record<string, AppPermissionScopeFamily>;
+
+export const AppPermissionScopeNameValues = [
+  "account.read",
+  "account.session.read",
+  "data.scope.read",
+  "data.scope.write",
+  "agent.identity.project",
+  "agent.identity.bind",
+  "ai.spend.meter",
+  "ai.spend.delegate",
+  "memory.read.bounded",
+  "memory.write.admitted",
+  "knowledge.read.bounded",
+  "knowledge.write.admitted",
+  "notification.send",
+  "notification.subscribe",
+  "file.read.scoped",
+  "file.write.scoped",
+  "device.use.scoped",
+  "audit.read.scoped",
+  "ai_profile.selection.consume",
+] as const satisfies readonly AppPermissionScopeName[];
+
+export const AppPermissionScopeNameValue = {
+  ACCOUNT_READ: "account.read",
+  ACCOUNT_SESSION_READ: "account.session.read",
+  DATA_SCOPE_READ: "data.scope.read",
+  DATA_SCOPE_WRITE: "data.scope.write",
+  AGENT_IDENTITY_PROJECT: "agent.identity.project",
+  AGENT_IDENTITY_BIND: "agent.identity.bind",
+  AI_SPEND_METER: "ai.spend.meter",
+  AI_SPEND_DELEGATE: "ai.spend.delegate",
+  MEMORY_READ_BOUNDED: "memory.read.bounded",
+  MEMORY_WRITE_ADMITTED: "memory.write.admitted",
+  KNOWLEDGE_READ_BOUNDED: "knowledge.read.bounded",
+  KNOWLEDGE_WRITE_ADMITTED: "knowledge.write.admitted",
+  NOTIFICATION_SEND: "notification.send",
+  NOTIFICATION_SUBSCRIBE: "notification.subscribe",
+  FILE_READ_SCOPED: "file.read.scoped",
+  FILE_WRITE_SCOPED: "file.write.scoped",
+  DEVICE_USE_SCOPED: "device.use.scoped",
+  AUDIT_READ_SCOPED: "audit.read.scoped",
+  AI_PROFILE_SELECTION_CONSUME: "ai_profile.selection.consume",
+} as const satisfies Record<string, AppPermissionScopeName>;
 
 export const AttachmentDisplayKindValues = [
   "IMAGE",
@@ -3514,6 +3693,9 @@ export const WithdrawalStatusValue = {
 
 export interface RealmTypedModelMap {
   readonly "AbilityDefinitionDto": AbilityDefinitionDto;
+  readonly "AccountGrantProjectionRowDto": AccountGrantProjectionRowDto;
+  readonly "AccountGrantProjectionState": AccountGrantProjectionState;
+  readonly "AccountGrantsProjectionDto": AccountGrantsProjectionDto;
   readonly "AccountRole": AccountRole;
   readonly "AccountStatus": AccountStatus;
   readonly "AddFriendBodyDto": AddFriendBodyDto;
@@ -3552,6 +3734,16 @@ export interface RealmTypedModelMap {
   readonly "AgentVoiceConfigDto": AgentVoiceConfigDto;
   readonly "AgentWakeStrategy": AgentWakeStrategy;
   readonly "ApiKeyType": ApiKeyType;
+  readonly "AppPermissionGrantDecisionDto": AppPermissionGrantDecisionDto;
+  readonly "AppPermissionGrantDto": AppPermissionGrantDto;
+  readonly "AppPermissionGrantGrantDto": AppPermissionGrantGrantDto;
+  readonly "AppPermissionGrantListDto": AppPermissionGrantListDto;
+  readonly "AppPermissionGrantRequestDto": AppPermissionGrantRequestDto;
+  readonly "AppPermissionGrantState": AppPermissionGrantState;
+  readonly "AppPermissionGrantStatusDto": AppPermissionGrantStatusDto;
+  readonly "AppPermissionGrantSupersedeDto": AppPermissionGrantSupersedeDto;
+  readonly "AppPermissionScopeFamily": AppPermissionScopeFamily;
+  readonly "AppPermissionScopeName": AppPermissionScopeName;
   readonly "AppendWorldHistoryDto": AppendWorldHistoryDto;
   readonly "AssetDetailDto": AssetDetailDto;
   readonly "AssetListDto": AssetListDto;
@@ -4585,6 +4777,19 @@ export interface RealmDeleteResourceOperationRequest {
   readonly body?: Record<string, never>;
 }
 export type RealmDeleteResourceOperationResponse = Record<string, never>;
+export interface RealmDenyMyAppPermissionGrantOperationRequest {
+  readonly path: {
+    readonly grantId: string;
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body: AppPermissionGrantDecisionDto;
+}
+export type RealmDenyMyAppPermissionGrantOperationResponse = AppPermissionGrantDto;
 export interface RealmDisable2FaOperationRequest {
   readonly path: {
 
@@ -5009,6 +5214,19 @@ export interface RealmEnable2FaOperationRequest {
   readonly body: Me2faVerifyDto;
 }
 export type RealmEnable2FaOperationResponse = Me2faOperationResultDto;
+export interface RealmExpireMyAppPermissionGrantOperationRequest {
+  readonly path: {
+    readonly grantId: string;
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body: AppPermissionGrantDecisionDto;
+}
+export type RealmExpireMyAppPermissionGrantOperationResponse = AppPermissionGrantDto;
 export interface RealmExploreControllerCheckStatusOperationRequest {
   readonly path: {
 
@@ -5213,6 +5431,45 @@ export interface RealmGetMyAgentFriendLimitOperationRequest {
   readonly body?: Record<string, never>;
 }
 export type RealmGetMyAgentFriendLimitOperationResponse = AgentFriendLimitDto;
+export interface RealmGetMyAppPermissionGrantOperationRequest {
+  readonly path: {
+    readonly grantId: string;
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body?: Record<string, never>;
+}
+export type RealmGetMyAppPermissionGrantOperationResponse = AppPermissionGrantDto;
+export interface RealmGetMyAppPermissionGrantProjectionOperationRequest {
+  readonly path: {
+
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body?: Record<string, never>;
+}
+export type RealmGetMyAppPermissionGrantProjectionOperationResponse = AccountGrantsProjectionDto;
+export interface RealmGetMyAppPermissionGrantStatusOperationRequest {
+  readonly path: {
+
+  };
+  readonly query?: {
+    readonly appId?: string;
+  };
+  readonly headers?: {
+
+  };
+  readonly body?: Record<string, never>;
+}
+export type RealmGetMyAppPermissionGrantStatusOperationResponse = AppPermissionGrantStatusDto;
 export interface RealmGetMyBlockedUsersOperationRequest {
   readonly path: {
 
@@ -5478,6 +5735,19 @@ export interface RealmGetWorldScenesOperationRequest {
   readonly body?: Record<string, never>;
 }
 export type RealmGetWorldScenesOperationResponse = PublicWorldSceneListDto;
+export interface RealmGrantMyAppPermissionGrantOperationRequest {
+  readonly path: {
+    readonly grantId: string;
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body: AppPermissionGrantGrantDto;
+}
+export type RealmGrantMyAppPermissionGrantOperationResponse = AppPermissionGrantDto;
 export interface RealmHumanNsfwConsentControllerCanManageAgentNsfwOperationRequest {
   readonly path: {
 
@@ -5723,6 +5993,19 @@ export interface RealmListMessagesOperationRequest {
   readonly body?: Record<string, never>;
 }
 export type RealmListMessagesOperationResponse = ListMessagesResultDto;
+export interface RealmListMyAppPermissionGrantsOperationRequest {
+  readonly path: {
+
+  };
+  readonly query?: {
+    readonly appId?: string;
+  };
+  readonly headers?: {
+
+  };
+  readonly body?: Record<string, never>;
+}
+export type RealmListMyAppPermissionGrantsOperationResponse = AppPermissionGrantListDto;
 export interface RealmListMyFriendIdsOperationRequest {
   readonly path: {
 
@@ -6205,6 +6488,19 @@ export interface RealmRequestEmailOtpOperationRequest {
   readonly body: EmailOtpRequestDto;
 }
 export type RealmRequestEmailOtpOperationResponse = EmailOtpResponseDto;
+export interface RealmRequestMyAppPermissionGrantOperationRequest {
+  readonly path: {
+
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body: AppPermissionGrantRequestDto;
+}
+export type RealmRequestMyAppPermissionGrantOperationResponse = AppPermissionGrantDto;
 export interface RealmReviewControllerCreateReviewOperationRequest {
   readonly path: {
 
@@ -6231,6 +6527,19 @@ export interface RealmReviewControllerGetReviewsOperationRequest {
   readonly body?: Record<string, never>;
 }
 export type RealmReviewControllerGetReviewsOperationResponse = readonly (ReviewDto)[];
+export interface RealmRevokeMyAppPermissionGrantOperationRequest {
+  readonly path: {
+    readonly grantId: string;
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body: AppPermissionGrantDecisionDto;
+}
+export type RealmRevokeMyAppPermissionGrantOperationResponse = AppPermissionGrantDto;
 export interface RealmSearchHumanUsersOperationRequest {
   readonly path: {
 
@@ -6345,6 +6654,19 @@ export interface RealmStartChatOperationRequest {
   readonly body: StartChatInputDto;
 }
 export type RealmStartChatOperationResponse = StartChatResultDto;
+export interface RealmSupersedeMyAppPermissionGrantOperationRequest {
+  readonly path: {
+    readonly grantId: string;
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body: AppPermissionGrantSupersedeDto;
+}
+export type RealmSupersedeMyAppPermissionGrantOperationResponse = AppPermissionGrantDto;
 export interface RealmSyncChatEventsOperationRequest {
   readonly path: {
     readonly chatId: string;
@@ -7789,6 +8111,16 @@ export class RealmTypedClient {
     });
   }
 
+  async denyMyAppPermissionGrant(request: RealmDenyMyAppPermissionGrantOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmDenyMyAppPermissionGrantOperationResponse> {
+    return this.core.unary<RealmDenyMyAppPermissionGrantOperationResponse, RealmDenyMyAppPermissionGrantOperationRequest>({
+      methodId: "denyMyAppPermissionGrant",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+    });
+  }
+
   async disable2Fa(request: RealmDisable2FaOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmDisable2FaOperationResponse> {
     return this.core.unary<RealmDisable2FaOperationResponse, RealmDisable2FaOperationRequest>({
       methodId: "disable2Fa",
@@ -8109,6 +8441,16 @@ export class RealmTypedClient {
     });
   }
 
+  async expireMyAppPermissionGrant(request: RealmExpireMyAppPermissionGrantOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmExpireMyAppPermissionGrantOperationResponse> {
+    return this.core.unary<RealmExpireMyAppPermissionGrantOperationResponse, RealmExpireMyAppPermissionGrantOperationRequest>({
+      methodId: "expireMyAppPermissionGrant",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+    });
+  }
+
   async exploreControllerCheckStatus(request: RealmExploreControllerCheckStatusOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmExploreControllerCheckStatusOperationResponse> {
     return this.core.unary<RealmExploreControllerCheckStatusOperationResponse, RealmExploreControllerCheckStatusOperationRequest>({
       methodId: "ExploreController_checkStatus",
@@ -8252,6 +8594,36 @@ export class RealmTypedClient {
   async getMyAgentFriendLimit(request: RealmGetMyAgentFriendLimitOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetMyAgentFriendLimitOperationResponse> {
     return this.core.unary<RealmGetMyAgentFriendLimitOperationResponse, RealmGetMyAgentFriendLimitOperationRequest>({
       methodId: "getMyAgentFriendLimit",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+    });
+  }
+
+  async getMyAppPermissionGrant(request: RealmGetMyAppPermissionGrantOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetMyAppPermissionGrantOperationResponse> {
+    return this.core.unary<RealmGetMyAppPermissionGrantOperationResponse, RealmGetMyAppPermissionGrantOperationRequest>({
+      methodId: "getMyAppPermissionGrant",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+    });
+  }
+
+  async getMyAppPermissionGrantProjection(request: RealmGetMyAppPermissionGrantProjectionOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetMyAppPermissionGrantProjectionOperationResponse> {
+    return this.core.unary<RealmGetMyAppPermissionGrantProjectionOperationResponse, RealmGetMyAppPermissionGrantProjectionOperationRequest>({
+      methodId: "getMyAppPermissionGrantProjection",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+    });
+  }
+
+  async getMyAppPermissionGrantStatus(request: RealmGetMyAppPermissionGrantStatusOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetMyAppPermissionGrantStatusOperationResponse> {
+    return this.core.unary<RealmGetMyAppPermissionGrantStatusOperationResponse, RealmGetMyAppPermissionGrantStatusOperationRequest>({
+      methodId: "getMyAppPermissionGrantStatus",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -8459,6 +8831,16 @@ export class RealmTypedClient {
     });
   }
 
+  async grantMyAppPermissionGrant(request: RealmGrantMyAppPermissionGrantOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGrantMyAppPermissionGrantOperationResponse> {
+    return this.core.unary<RealmGrantMyAppPermissionGrantOperationResponse, RealmGrantMyAppPermissionGrantOperationRequest>({
+      methodId: "grantMyAppPermissionGrant",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+    });
+  }
+
   async humanNsfwConsentControllerCanManageAgentNsfw(request: RealmHumanNsfwConsentControllerCanManageAgentNsfwOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmHumanNsfwConsentControllerCanManageAgentNsfwOperationResponse> {
     return this.core.unary<RealmHumanNsfwConsentControllerCanManageAgentNsfwOperationResponse, RealmHumanNsfwConsentControllerCanManageAgentNsfwOperationRequest>({
       methodId: "HumanNsfwConsentController_canManageAgentNsfw",
@@ -8632,6 +9014,16 @@ export class RealmTypedClient {
   async listMessages(request: RealmListMessagesOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmListMessagesOperationResponse> {
     return this.core.unary<RealmListMessagesOperationResponse, RealmListMessagesOperationRequest>({
       methodId: "listMessages",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+    });
+  }
+
+  async listMyAppPermissionGrants(request: RealmListMyAppPermissionGrantsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmListMyAppPermissionGrantsOperationResponse> {
+    return this.core.unary<RealmListMyAppPermissionGrantsOperationResponse, RealmListMyAppPermissionGrantsOperationRequest>({
+      methodId: "listMyAppPermissionGrants",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -8999,6 +9391,16 @@ export class RealmTypedClient {
     });
   }
 
+  async requestMyAppPermissionGrant(request: RealmRequestMyAppPermissionGrantOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmRequestMyAppPermissionGrantOperationResponse> {
+    return this.core.unary<RealmRequestMyAppPermissionGrantOperationResponse, RealmRequestMyAppPermissionGrantOperationRequest>({
+      methodId: "requestMyAppPermissionGrant",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+    });
+  }
+
   async reviewControllerCreateReview(request: RealmReviewControllerCreateReviewOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmReviewControllerCreateReviewOperationResponse> {
     return this.core.unary<RealmReviewControllerCreateReviewOperationResponse, RealmReviewControllerCreateReviewOperationRequest>({
       methodId: "ReviewController_createReview",
@@ -9012,6 +9414,16 @@ export class RealmTypedClient {
   async reviewControllerGetReviews(request: RealmReviewControllerGetReviewsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmReviewControllerGetReviewsOperationResponse> {
     return this.core.unary<RealmReviewControllerGetReviewsOperationResponse, RealmReviewControllerGetReviewsOperationRequest>({
       methodId: "ReviewController_getReviews",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+    });
+  }
+
+  async revokeMyAppPermissionGrant(request: RealmRevokeMyAppPermissionGrantOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmRevokeMyAppPermissionGrantOperationResponse> {
+    return this.core.unary<RealmRevokeMyAppPermissionGrantOperationResponse, RealmRevokeMyAppPermissionGrantOperationRequest>({
+      methodId: "revokeMyAppPermissionGrant",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -9072,6 +9484,16 @@ export class RealmTypedClient {
   async startChat(request: RealmStartChatOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmStartChatOperationResponse> {
     return this.core.unary<RealmStartChatOperationResponse, RealmStartChatOperationRequest>({
       methodId: "startChat",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+    });
+  }
+
+  async supersedeMyAppPermissionGrant(request: RealmSupersedeMyAppPermissionGrantOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmSupersedeMyAppPermissionGrantOperationResponse> {
+    return this.core.unary<RealmSupersedeMyAppPermissionGrantOperationResponse, RealmSupersedeMyAppPermissionGrantOperationRequest>({
+      methodId: "supersedeMyAppPermissionGrant",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,

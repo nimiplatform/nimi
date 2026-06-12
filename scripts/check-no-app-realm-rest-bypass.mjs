@@ -54,6 +54,16 @@ const CHECKS = [
     pattern: /\bfetch\s*\(\s*['"`]\/api\//g,
     message: 'app production code must not fetch literal /api routes',
   },
+  {
+    label: 'direct Realm permission grant method',
+    pattern: /\b(?:listMyAppPermissionGrants|getMyAppPermissionGrant(?:Status|Projection)?|requestMyAppPermissionGrant|revokeMyAppPermissionGrant)\s*\(/g,
+    message: 'app production code must use the SDK PermissionClient instead of direct Realm permission grant methods',
+  },
+  {
+    label: 'direct Realm permission grant module',
+    pattern: /\.permissionGrants\./g,
+    message: 'app production code must use the SDK PermissionClient instead of Realm permissionGrants module access',
+  },
 ];
 
 function getLine(source, index) {

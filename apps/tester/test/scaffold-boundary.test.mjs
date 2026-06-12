@@ -137,6 +137,9 @@ test('generated shell rejects placeholder and private Desktop imports', () => {
 test('manifest remains submitted input', () => {
   assert.match(manifest, /manifest_role: submitted-input/);
   assert.match(manifest, /declared_nimi_api_scopes/);
+  assert.match(manifest, /scope: file\.read\.scoped/);
+  assert.match(manifest, /scope: file\.write\.scoped/);
+  assert.doesNotMatch(manifest, /scope: app\.local\.drafts/);
 });
 
 test('admission request remains submitted input', () => {

@@ -35,6 +35,7 @@ const versions = {
   tauriCliVersion: '2.0.0-cli',
   nimiShellTauriVersion: '0.1.0',
   typescriptVersion: '5.0.0',
+  yamlVersion: '2.0.0-yaml',
 };
 
 const REFERENCE_IDENTITY_LITERALS = [
@@ -193,6 +194,7 @@ test('standalone scaffold forks the reference app with rewritten identity', () =
     assert.equal(packageJson.dependencies['lucide-react'], versions.lucideReactVersion);
     assert.equal(packageJson.devDependencies['@nimiplatform/app-tools'], versions.appToolsVersion);
     assert.equal(packageJson.devDependencies['@types/three'], versions.threeTypesVersion);
+    assert.equal(packageJson.devDependencies.yaml, versions.yamlVersion);
     assert.match(packageJson.scripts['dev:renderer'], /^vite --host 127\.0\.0\.1 --port \d+ --strictPort$/);
     const devPort = devPortFromScript(packageJson.scripts['dev:renderer']);
     assert.ok(devPort >= 1430 && devPort < 1530);
@@ -208,6 +210,9 @@ test('standalone scaffold forks the reference app with rewritten identity', () =
     assert.equal(tauri.build.devUrl, `http://127.0.0.1:${devPort}`);
     assert.match(generated.read('src-tauri/Cargo.toml'), /name = "acme-widget-shell"/);
     assert.match(generated.read('src-tauri/Cargo.toml'), /nimi-shell-tauri = "0\.1\.0"/);
+    assert.match(generated.read('nimi.app.yaml'), /scope: file\.read\.scoped/);
+    assert.match(generated.read('nimi.app.yaml'), /scope: file\.write\.scoped/);
+    assert.doesNotMatch(generated.read('nimi.app.yaml'), /scope: app\.local\.drafts/);
 
     const identityScannedFiles = [
       'nimi.app.yaml',
@@ -367,6 +372,7 @@ test('workspace-app scaffold uses workspace + path deps and writes an app-slice 
     assert.equal(packageJson.dependencies['@nimiplatform/kit'], 'workspace:*');
     assert.equal(packageJson.devDependencies['@nimiplatform/app-tools'], 'workspace:*');
     assert.equal(packageJson.devDependencies['@nimiplatform/nimi-coding'], 'workspace:*');
+    assert.equal(packageJson.devDependencies.yaml, versions.yamlVersion);
     assert.match(generated.read('src-tauri/Cargo.toml'), /nimi-shell-tauri = \{ path = "\.\.\/\.\.\/\.\.\/kit\/shell\/tauri" \}/);
     assert.match(generated.read('nimi.app.yaml'), /profile: workspace-app/);
     assert.match(generated.read('apps/acme-widget/spec/app-slice.md'), /not public Nimi App admission/);
@@ -389,8 +395,10 @@ test('cli standalone scaffold uses current public dependency version sources', (
     assert.equal(packageJson.dependencies['@nimiplatform/kit'], '^0.2.0');
     assert.equal(packageJson.devDependencies['@nimiplatform/app-tools'], expectedAppToolsVersion);
     assert.equal(packageJson.devDependencies['@nimiplatform/nimi-coding'], '0.2.5');
+    assert.equal(packageJson.devDependencies.yaml, '^2.9.0');
     assert.equal(lock.dependencyMatrix.npm['@nimiplatform/sdk'], '^0.6.0');
     assert.equal(lock.dependencyMatrix.npm['@nimiplatform/app-tools'], expectedAppToolsVersion);
+    assert.equal(lock.dependencyMatrix.npm.yaml, '^2.9.0');
   } finally {
     generated.cleanup();
   }
@@ -610,6 +618,60 @@ test('doctor fails closed on provider/model hardcoding in product code but not i
   }
 });
 
+test('doctor fails closed on app-owned Realm permission grant shortcuts', () => {
+  const cases = [
+    { source: "export const endpoint = '/api/human/me/permission-grants';\n", pattern: /Realm permission grant/ },
+    { source: 'export async function bypass(realm) { return realm.permissionGrants.requestMyAppPermissionGrant({ path: {}, body: {} }); }\n', pattern: /Realm permission grant/ },
+    { source: 'export async function bypass(realm) { return realm.requestMyAppPermissionGrant({ path: {}, body: {} }); }\n', pattern: /Realm permission grant/ },
+    { source: "export async function bypass() { return fetch('/api/human/me'); }\n", pattern: /Realm API/ },
+    { source: "export const route = '/v1/chat/completions';\n", pattern: /OpenAI-compatible Runtime REST/ },
+  ];
+  for (const { source, pattern } of cases) {
+    const generated = cliScaffold('standalone');
+    try {
+      writeFileSync(path.join(generated.target, 'src/shell/routes/product-area.tsx'), source);
+      const result = runNimiApp(['doctor', '--dir', generated.target], generated.tempRoot, { env: generated.env });
+      assert.notEqual(result.status, 0, source);
+      assert.match(result.stderr, pattern, source);
+    } finally {
+      generated.cleanup();
+    }
+  }
+});
+
+test('doctor fails closed on non-canonical submitted permission declarations', () => {
+  const cases = [
+    {
+      replace: /scope: file\.read\.scoped/,
+      with: 'scope: app.local.drafts',
+      pattern: /non-canonical scope: app\.local\.drafts/,
+    },
+    {
+      replace: /scope: file\.read\.scoped/,
+      with: 'scope: account.read',
+      pattern: /app-local-drafts qualifier is only admitted/,
+    },
+    {
+      replace: /purpose: Read drafts owned by this app during author testing\./,
+      with: 'purpose: Read drafts owned by this app during author testing.\n      state: granted',
+      pattern: /grant lifecycle field state/,
+    },
+  ];
+  for (const testCase of cases) {
+    const generated = cliScaffold('standalone');
+    try {
+      const manifestPath = path.join(generated.target, 'nimi.app.yaml');
+      const nextManifest = generated.read('nimi.app.yaml').replace(testCase.replace, testCase.with);
+      writeFileSync(manifestPath, nextManifest);
+      const result = runNimiApp(['doctor', '--dir', generated.target], generated.tempRoot, { env: generated.env });
+      assert.notEqual(result.status, 0, testCase.with);
+      assert.match(result.stderr, testCase.pattern, testCase.with);
+    } finally {
+      generated.cleanup();
+    }
+  }
+});
+
 test('update fails closed on unsupported locks and classification conflicts', () => {
   const unsupported = cliScaffold('standalone');
   try {
@@ -695,6 +757,10 @@ test('generated scaffold mechanically excludes forbidden shortcuts', () => {
       'createLocalFirstPartyRuntimePlatformClient',
       '/api/auth/login',
       '/api/auth/refresh',
+      '/api/human/me/permission-grants',
+      'requestMyAppPermissionGrant(',
+      "fetch('/api/",
+      '/v1/chat/completions',
       'sessionStore',
       'refreshTokenProvider',
       'raw JWT',

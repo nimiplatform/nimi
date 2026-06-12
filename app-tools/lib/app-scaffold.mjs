@@ -230,6 +230,7 @@ function buildPackageJson(profile, versions, identity) {
       tailwindcss: versions.tailwindcssVersion,
       typescript: versions.typescriptVersion,
       vite: versions.viteVersion,
+      yaml: versions.yamlVersion,
     },
   };
   if (identity.author) {
@@ -455,6 +456,7 @@ function buildDependencyMatrix(profile, versions) {
       '@tailwindcss/vite': versions.tailwindcssViteVersion,
       '@types/three': versions.threeTypesVersion,
       '@vitejs/plugin-react': versions.viteReactPluginVersion,
+      yaml: versions.yamlVersion,
     },
     cargo: {
       'nimi-shell-tauri': profile === 'workspace-app'

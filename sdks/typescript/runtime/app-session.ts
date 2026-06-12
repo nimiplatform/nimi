@@ -32,7 +32,6 @@ export interface NimiRuntimeAppRegistrationInput {
 
 export interface NimiRuntimeAppSessionMetadataProviderInput extends NimiRuntimeAppRegistrationInput {
   readonly auth: NimiRuntimeAppRegistrationClient & NimiRuntimeAppSessionClient;
-  readonly getSubjectUserId: () => string | Promise<string | undefined> | undefined;
   readonly ttlSeconds?: number;
   readonly refreshSkewMs?: number;
 }
@@ -42,7 +41,6 @@ export type NimiRuntimeAppSessionMetadataProvider = () => Promise<CoreMetadata>;
 type RuntimeResolver = () => { readonly auth: NimiRuntimeAppRegistrationClient };
 
 type CachedRuntimeAppSession = {
-  readonly subjectUserId: string;
   readonly sessionId: string;
   readonly sessionToken: string;
   readonly expiresAtMs: number;
@@ -96,20 +94,11 @@ export function createNimiRuntimeAppSessionMetadataProvider(
   let inflight: Promise<CachedRuntimeAppSession> | null = null;
 
   return async () => {
-    const subjectUserId = normalizeText(await input.getSubjectUserId());
-    if (!subjectUserId) {
-      throw createNimiError({
-        message: 'Runtime app session requires subjectUserId.',
-        reasonCode: 'SDK_RUNTIME_APP_SESSION_SUBJECT_REQUIRED',
-        actionHint: 'provide_runtime_app_session_subject_user_id',
-        source: 'sdk',
-      });
-    }
-    if (cached && cached.subjectUserId === subjectUserId && cached.expiresAtMs - Date.now() > refreshSkewMs) {
+    if (cached && cached.expiresAtMs - Date.now() > refreshSkewMs) {
       return runtimeAppSessionMetadata(cached);
     }
     if (!inflight) {
-      inflight = openNimiRuntimeAppSession(input, ensureRegistered, subjectUserId, ttlSeconds);
+      inflight = openNimiRuntimeAppSession(input, ensureRegistered, ttlSeconds);
     }
     try {
       cached = await inflight;
@@ -140,7 +129,6 @@ function createNimiRuntimeRegisterAppRequest(input: NimiRuntimeAppRegistrationIn
 async function openNimiRuntimeAppSession(
   input: NimiRuntimeAppSessionMetadataProviderInput,
   ensureRegistered: () => Promise<void>,
-  subjectUserId: string,
   ttlSeconds: number,
 ): Promise<CachedRuntimeAppSession> {
   await ensureRegistered();
@@ -148,7 +136,7 @@ async function openNimiRuntimeAppSession(
     appId: requireText(input.appId, 'appId'),
     appInstanceId: requireText(input.appInstanceId, 'appInstanceId'),
     deviceId: requireText(input.deviceId, 'deviceId'),
-    subjectUserId,
+    subjectUserId: '',
     ttlSeconds,
   }, withNimiRuntimeIdempotencyMetadata(input.callOptions, createNimiClientId('runtime-open-session')));
   const sessionId = normalizeText(response.sessionId);
@@ -162,7 +150,6 @@ async function openNimiRuntimeAppSession(
     });
   }
   return {
-    subjectUserId,
     sessionId,
     sessionToken,
     expiresAtMs: timestampToMillis(response.expiresAt) || Date.now() + ttlSeconds * 1000,

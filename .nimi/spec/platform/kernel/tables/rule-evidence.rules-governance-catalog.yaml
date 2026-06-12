@@ -38,6 +38,7 @@ entries:
   - P-GOV-023
   - P-GOV-024
   - P-GOV-025
+  - P-GOV-026
 rules:
   - rule_id: P-CAPCAT-001
     evidence_refs:
@@ -101,3 +102,8 @@ rules:
       - platform_kernel_consistency
       - audit_evidence_root_gate
     evidence_requirement: required
+  - rule_id: P-GOV-026
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: required
+    evidence_scope_note: release promise boundary is carried by `tables/release-promise-freeze.yaml`

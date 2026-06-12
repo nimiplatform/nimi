@@ -46,16 +46,43 @@ import {
   Realm,
   RealmCore,
   createRealm,
+  createNimiRealmPermissionTransport,
   REALM_AUTH_METHODS,
   REALM_WORLD_METHODS,
 } from '@nimiplatform/sdk/realm';
+import {
+  createAppScopeRef,
+  createPermissionClient,
+} from '@nimiplatform/sdk/app';
 
 let lastRequest;
+function grant(input = {}) {
+  return {
+    grantId: 'grant-1',
+    subjectAccountId: 'account-1',
+    appId: 'tester.app',
+    scopeFamily: 'account',
+    scopeName: 'account.read',
+    state: 'GRANTED',
+    reason: 'realm consumer smoke',
+    version: 3,
+    requestedAt: '2026-06-10T00:00:00.000Z',
+    requestedByAccountId: 'account-1',
+    ...input,
+  };
+}
 const transport = {
   async unary(request) {
     lastRequest = request;
     if (request.methodId === 'getMe') return { id: 'user-1', status: 'ACTIVE' };
     if (request.methodId === 'WorldController_getMainWorld') return { id: 'world-1' };
+    if (request.methodId === 'listMyAppPermissionGrants') return { items: [grant()] };
+    if (request.methodId === 'getMyAppPermissionGrantStatus') {
+      return { generatedAt: '2026-06-10T00:00:01.000Z', grants: [grant()] };
+    }
+    if (request.methodId === 'requestMyAppPermissionGrant') {
+      return grant({ grantId: 'grant-requested', state: 'PENDING' });
+    }
     return { ok: true, methodId: request.methodId };
   },
   async *serverStream() {
@@ -77,6 +104,24 @@ assert.equal(lastRequest.metadata.authorization, 'Bearer token');
 await realm.world.worldControllerGetMainWorld({ path: {} });
 assert.equal(lastRequest.methodId, 'WorldController_getMainWorld');
 
+const scopeRef = createAppScopeRef({ appId: 'tester.app', surfaceId: 'settings' });
+const permissionScope = {
+  appId: 'tester.app',
+  scopeFamily: 'account',
+  scopeName: 'account.read',
+};
+const permission = createPermissionClient(createNimiRealmPermissionTransport(realm));
+assert.equal((await permission.list(scopeRef))[0]?.state, 'granted');
+assert.equal(lastRequest.methodId, 'listMyAppPermissionGrants');
+assert.equal((await permission.status(scopeRef)).grants[0]?.grant.grantId, 'grant-1');
+assert.equal(lastRequest.methodId, 'getMyAppPermissionGrantStatus');
+assert.equal((await permission.request(scopeRef, { permissionScope, reason: 'realm consumer smoke' })).state, 'pending');
+assert.equal(lastRequest.methodId, 'requestMyAppPermissionGrant');
+await assert.rejects(
+  permission.request(scopeRef, { permissionScope, subjectUserId: 'other-account', reason: 'subject override' }),
+  (error) => error?.reasonCode === 'SDK_REALM_PERMISSION_SUBJECT_NOT_ADMITTED',
+);
+
 const core = new RealmCore(realm.core);
 await core.operation({ operationId: 'getMe', body: { path: {} } });
 assert.equal(lastRequest.methodId, 'getMe');
@@ -87,8 +132,15 @@ import {
   Realm,
   RealmCore,
   createRealm,
+  createNimiRealmPermissionTransport,
   type CoreTransport,
 } from '@nimiplatform/sdk/realm';
+import {
+  createAppScopeRef,
+  createPermissionClient,
+  type GrantStatus,
+  type PermissionClient,
+} from '@nimiplatform/sdk/app';
 import {
   type RealmGetMeOperationResponse,
   type RealmWorldControllerGetMainWorldOperationResponse,
@@ -105,13 +157,18 @@ const transport: CoreTransport = {
 
 const realm: Realm = createRealm({ transport });
 const core: RealmCore = new RealmCore(realm.core);
+const permission: PermissionClient = createPermissionClient(createNimiRealmPermissionTransport(realm));
 const me: Promise<RealmGetMeOperationResponse> = realm.me();
 const world: Promise<RealmWorldControllerGetMainWorldOperationResponse> =
   realm.world.worldControllerGetMainWorld({ path: {} });
+const grants: Promise<readonly GrantStatus[]> = permission.list(
+  createAppScopeRef({ appId: 'tester.app', surfaceId: 'settings' }),
+);
 
 void core;
 void me;
 void world;
+void grants;
 `);
 
   writeFileSync(path.join(tempRoot, 'tsconfig.json'), JSON.stringify({

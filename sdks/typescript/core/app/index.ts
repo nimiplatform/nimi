@@ -6,7 +6,6 @@ import {
   isCanonicalPermissionScopeName,
 } from './permission-types.js';
 import type {
-  GrantRequestAccepted,
   GrantSpec,
   GrantStatus,
   NimiAppScopeRef,
@@ -66,7 +65,6 @@ export {
 } from './permission-types.js';
 export type {
   GrantRef,
-  GrantRequestAccepted,
   GrantSpec,
   GrantState,
   GrantStatus,
@@ -318,16 +316,14 @@ export class PermissionClient {
     }
   }
 
-  async request(scopeRef: NimiAppScopeRef, grantSpec: GrantSpec): Promise<GrantRequestAccepted> {
+  async request(scopeRef: NimiAppScopeRef, grantSpec: GrantSpec): Promise<GrantStatus> {
     validateScopeRef(scopeRef);
     validateGrantSpec(grantSpec);
+    validateGrantSpecMatchesScopeRef(scopeRef, grantSpec);
     try {
-      const accepted = await this.transport.request(scopeRef, grantSpec);
-      if (!accepted || accepted.accepted !== true || accepted.state !== 'pending' || !normalizeText(accepted.grantId)) {
-        appError('SDK_PERMISSION_RESPONSE_INVALID', 'permission request response must be pending accepted', 'fix_permission_transport_response');
-      }
-      validateMatchingScopeRef(accepted.scopeRef, scopeRef);
-      return accepted;
+      const grant = await this.transport.request(scopeRef, grantSpec);
+      validateGrantStatus(grant, scopeRef);
+      return grant;
     } catch (error) {
       throw wrapTransportError(error, 'request permission grant');
     }
@@ -555,6 +551,16 @@ function validateGrantSpec(spec: GrantSpec | null | undefined): void {
   requireText(spec.reason, 'grant reason is required', 'SDK_PERMISSION_GRANT_SPEC_INVALID', 'provide_permission_reason');
 }
 
+function validateGrantSpecMatchesScopeRef(scopeRef: NimiAppScopeRef, spec: GrantSpec): void {
+  if (normalizeText(spec.permissionScope.appId) !== normalizeText(scopeRef.ownerId)) {
+    appError(
+      'SDK_PERMISSION_CROSS_APP_ACCESS_NOT_ADMITTED',
+      'cross-app permission request is not admitted on permission.request',
+      'use_non_live_cross_app_permission_flow_shape',
+    );
+  }
+}
+
 function validatePermissionScopeRef(scope: PermissionScopeRef | null | undefined): void {
   if (!scope || typeof scope !== 'object') {
     appError('SDK_PERMISSION_SCOPE_INVALID', 'permissionScope is required', 'provide_permission_scope');
@@ -577,6 +583,9 @@ function validateGrantStatus(status: GrantStatus | null | undefined, expectedSco
     appError('SDK_PERMISSION_RESPONSE_INVALID', 'grant status missing grant id', 'fix_permission_transport_response');
   }
   validatePermissionScopeRef(status.grant.permissionScope);
+  if (normalizeText(status.grant.permissionScope.appId) !== normalizeText(expectedScopeRef.ownerId)) {
+    appError('SDK_PERMISSION_RESPONSE_INVALID', 'grant permissionScope appId does not match request scopeRef', 'fix_permission_transport_response');
+  }
   if (!isCanonicalGrantState(status.state)) {
     appError('SDK_PERMISSION_RESPONSE_INVALID', `grant state "${String(status.state)}" is not canonical`, 'fix_permission_transport_response');
   }

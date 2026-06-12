@@ -26,6 +26,7 @@ This guide points to the Platform authority surfaces for open-source-governance.
 - `.nimi/spec/platform/kernel/package-authority-admission-contract.md`
 - `.nimi/spec/platform/kernel/protocol-contract.md`
 - `.nimi/spec/platform/kernel/release-gate-contract.md`
+- `.nimi/spec/platform/kernel/tables/release-promise-freeze.yaml`
 
 ## Tables
 
@@ -39,3 +40,4 @@ This guide points to the Platform authority surfaces for open-source-governance.
 - `.nimi/spec/platform/kernel/tables/nimi-kit-registry.yaml`
 - `.nimi/spec/platform/kernel/tables/nimi-ui-adoption.yaml`
 - `.nimi/spec/platform/kernel/tables/nimi-ui-allowlists.yaml`
+- `.nimi/spec/platform/kernel/tables/release-promise-freeze.yaml`

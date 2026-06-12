@@ -2739,6 +2739,64 @@
       "response_schema_refs": []
     },
     {
+      "operation_id": "denyMyAppPermissionGrant",
+      "method": "POST",
+      "path": "/api/human/me/permission-grants/{grantId}/deny",
+      "service": "Me / Permission Grants",
+      "tags": [
+        "Me / Permission Grants"
+      ],
+      "parameters": [
+        {
+          "name": "grantId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "path_parameters": [
+        {
+          "name": "grantId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "ref",
+        "ref": "#/components/schemas/AppPermissionGrantDecisionDto",
+        "ref_name": "AppPermissionGrantDecisionDto"
+      },
+      "request_schema_ref": "#/components/schemas/AppPermissionGrantDecisionDto",
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AppPermissionGrantDto",
+            "ref_name": "AppPermissionGrantDto"
+          },
+          "schema_ref": "#/components/schemas/AppPermissionGrantDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/AppPermissionGrantDto"
+        }
+      ]
+    },
+    {
       "operation_id": "disable2Fa",
       "method": "POST",
       "path": "/api/auth/me/2fa/disable",
@@ -4274,6 +4332,64 @@
       ]
     },
     {
+      "operation_id": "expireMyAppPermissionGrant",
+      "method": "POST",
+      "path": "/api/human/me/permission-grants/{grantId}/expire",
+      "service": "Me / Permission Grants",
+      "tags": [
+        "Me / Permission Grants"
+      ],
+      "parameters": [
+        {
+          "name": "grantId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "path_parameters": [
+        {
+          "name": "grantId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "ref",
+        "ref": "#/components/schemas/AppPermissionGrantDecisionDto",
+        "ref_name": "AppPermissionGrantDecisionDto"
+      },
+      "request_schema_ref": "#/components/schemas/AppPermissionGrantDecisionDto",
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AppPermissionGrantDto",
+            "ref_name": "AppPermissionGrantDto"
+          },
+          "schema_ref": "#/components/schemas/AppPermissionGrantDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/AppPermissionGrantDto"
+        }
+      ]
+    },
+    {
       "operation_id": "ExploreController_checkStatus",
       "method": "GET",
       "path": "/api/explore/status",
@@ -5365,6 +5481,152 @@
         {
           "status": "200",
           "schema_ref": "#/components/schemas/AgentFriendLimitDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "getMyAppPermissionGrant",
+      "method": "GET",
+      "path": "/api/human/me/permission-grants/{grantId}",
+      "service": "Me / Permission Grants",
+      "tags": [
+        "Me / Permission Grants"
+      ],
+      "parameters": [
+        {
+          "name": "grantId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "path_parameters": [
+        {
+          "name": "grantId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AppPermissionGrantDto",
+            "ref_name": "AppPermissionGrantDto"
+          },
+          "schema_ref": "#/components/schemas/AppPermissionGrantDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/AppPermissionGrantDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "getMyAppPermissionGrantProjection",
+      "method": "GET",
+      "path": "/api/human/me/permission-grants/projection",
+      "service": "Me / Permission Grants",
+      "tags": [
+        "Me / Permission Grants"
+      ],
+      "parameters": [],
+      "path_parameters": [],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AccountGrantsProjectionDto",
+            "ref_name": "AccountGrantsProjectionDto"
+          },
+          "schema_ref": "#/components/schemas/AccountGrantsProjectionDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/AccountGrantsProjectionDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "getMyAppPermissionGrantStatus",
+      "method": "GET",
+      "path": "/api/human/me/permission-grants/status",
+      "service": "Me / Permission Grants",
+      "tags": [
+        "Me / Permission Grants"
+      ],
+      "parameters": [
+        {
+          "name": "appId",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "path_parameters": [],
+      "query_parameters": [
+        {
+          "name": "appId",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AppPermissionGrantStatusDto",
+            "ref_name": "AppPermissionGrantStatusDto"
+          },
+          "schema_ref": "#/components/schemas/AppPermissionGrantStatusDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/AppPermissionGrantStatusDto"
         }
       ]
     },
@@ -6609,6 +6871,64 @@
       ]
     },
     {
+      "operation_id": "grantMyAppPermissionGrant",
+      "method": "POST",
+      "path": "/api/human/me/permission-grants/{grantId}/grant",
+      "service": "Me / Permission Grants",
+      "tags": [
+        "Me / Permission Grants"
+      ],
+      "parameters": [
+        {
+          "name": "grantId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "path_parameters": [
+        {
+          "name": "grantId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "ref",
+        "ref": "#/components/schemas/AppPermissionGrantGrantDto",
+        "ref_name": "AppPermissionGrantGrantDto"
+      },
+      "request_schema_ref": "#/components/schemas/AppPermissionGrantGrantDto",
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AppPermissionGrantDto",
+            "ref_name": "AppPermissionGrantDto"
+          },
+          "schema_ref": "#/components/schemas/AppPermissionGrantDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/AppPermissionGrantDto"
+        }
+      ]
+    },
+    {
       "operation_id": "HumanNsfwConsentController_canManageAgentNsfw",
       "method": "GET",
       "path": "/api/human/nsfw-consent/can-manage",
@@ -7597,6 +7917,62 @@
         {
           "status": "200",
           "schema_ref": "#/components/schemas/ListMessagesResultDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "listMyAppPermissionGrants",
+      "method": "GET",
+      "path": "/api/human/me/permission-grants",
+      "service": "Me / Permission Grants",
+      "tags": [
+        "Me / Permission Grants"
+      ],
+      "parameters": [
+        {
+          "name": "appId",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "path_parameters": [],
+      "query_parameters": [
+        {
+          "name": "appId",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AppPermissionGrantListDto",
+            "ref_name": "AppPermissionGrantListDto"
+          },
+          "schema_ref": "#/components/schemas/AppPermissionGrantListDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/AppPermissionGrantListDto"
         }
       ]
     },
@@ -9271,6 +9647,42 @@
       ]
     },
     {
+      "operation_id": "requestMyAppPermissionGrant",
+      "method": "POST",
+      "path": "/api/human/me/permission-grants",
+      "service": "Me / Permission Grants",
+      "tags": [
+        "Me / Permission Grants"
+      ],
+      "parameters": [],
+      "path_parameters": [],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "ref",
+        "ref": "#/components/schemas/AppPermissionGrantRequestDto",
+        "ref_name": "AppPermissionGrantRequestDto"
+      },
+      "request_schema_ref": "#/components/schemas/AppPermissionGrantRequestDto",
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AppPermissionGrantDto",
+            "ref_name": "AppPermissionGrantDto"
+          },
+          "schema_ref": "#/components/schemas/AppPermissionGrantDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/AppPermissionGrantDto"
+        }
+      ]
+    },
+    {
       "operation_id": "ReviewController_createReview",
       "method": "POST",
       "path": "/api/economy/reviews",
@@ -9359,6 +9771,64 @@
         }
       ],
       "response_schema_refs": []
+    },
+    {
+      "operation_id": "revokeMyAppPermissionGrant",
+      "method": "POST",
+      "path": "/api/human/me/permission-grants/{grantId}/revoke",
+      "service": "Me / Permission Grants",
+      "tags": [
+        "Me / Permission Grants"
+      ],
+      "parameters": [
+        {
+          "name": "grantId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "path_parameters": [
+        {
+          "name": "grantId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "ref",
+        "ref": "#/components/schemas/AppPermissionGrantDecisionDto",
+        "ref_name": "AppPermissionGrantDecisionDto"
+      },
+      "request_schema_ref": "#/components/schemas/AppPermissionGrantDecisionDto",
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AppPermissionGrantDto",
+            "ref_name": "AppPermissionGrantDto"
+          },
+          "schema_ref": "#/components/schemas/AppPermissionGrantDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/AppPermissionGrantDto"
+        }
+      ]
     },
     {
       "operation_id": "searchHumanUsers",
@@ -10397,6 +10867,64 @@
         {
           "status": "201",
           "schema_ref": "#/components/schemas/StartChatResultDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "supersedeMyAppPermissionGrant",
+      "method": "POST",
+      "path": "/api/human/me/permission-grants/{grantId}/supersede",
+      "service": "Me / Permission Grants",
+      "tags": [
+        "Me / Permission Grants"
+      ],
+      "parameters": [
+        {
+          "name": "grantId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "path_parameters": [
+        {
+          "name": "grantId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "ref",
+        "ref": "#/components/schemas/AppPermissionGrantSupersedeDto",
+        "ref_name": "AppPermissionGrantSupersedeDto"
+      },
+      "request_schema_ref": "#/components/schemas/AppPermissionGrantSupersedeDto",
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AppPermissionGrantDto",
+            "ref_name": "AppPermissionGrantDto"
+          },
+          "schema_ref": "#/components/schemas/AppPermissionGrantDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/AppPermissionGrantDto"
         }
       ]
     },
@@ -14763,6 +15291,12 @@
       "path": "/api/resources/{resourceId}"
     },
     {
+      "operation_id": "denyMyAppPermissionGrant",
+      "service": "Me / Permission Grants",
+      "method": "POST",
+      "path": "/api/human/me/permission-grants/{grantId}/deny"
+    },
+    {
       "operation_id": "disable2Fa",
       "service": "Me2fa",
       "method": "POST",
@@ -14955,6 +15489,12 @@
       "path": "/api/auth/me/2fa/enable"
     },
     {
+      "operation_id": "expireMyAppPermissionGrant",
+      "service": "Me / Permission Grants",
+      "method": "POST",
+      "path": "/api/human/me/permission-grants/{grantId}/expire"
+    },
+    {
       "operation_id": "ExploreController_checkStatus",
       "service": "Explore",
       "method": "GET",
@@ -15043,6 +15583,24 @@
       "service": "Me",
       "method": "GET",
       "path": "/api/human/me/friends/agent-limit"
+    },
+    {
+      "operation_id": "getMyAppPermissionGrant",
+      "service": "Me / Permission Grants",
+      "method": "GET",
+      "path": "/api/human/me/permission-grants/{grantId}"
+    },
+    {
+      "operation_id": "getMyAppPermissionGrantProjection",
+      "service": "Me / Permission Grants",
+      "method": "GET",
+      "path": "/api/human/me/permission-grants/projection"
+    },
+    {
+      "operation_id": "getMyAppPermissionGrantStatus",
+      "service": "Me / Permission Grants",
+      "method": "GET",
+      "path": "/api/human/me/permission-grants/status"
     },
     {
       "operation_id": "getMyBlockedUsers",
@@ -15165,6 +15723,12 @@
       "path": "/api/world/by-id/{id}/scenes"
     },
     {
+      "operation_id": "grantMyAppPermissionGrant",
+      "service": "Me / Permission Grants",
+      "method": "POST",
+      "path": "/api/human/me/permission-grants/{grantId}/grant"
+    },
+    {
       "operation_id": "HumanNsfwConsentController_canManageAgentNsfw",
       "service": "Human NSFW Consent",
       "method": "GET",
@@ -15271,6 +15835,12 @@
       "service": "Human Chats",
       "method": "GET",
       "path": "/api/human/chats/{chatId}/messages"
+    },
+    {
+      "operation_id": "listMyAppPermissionGrants",
+      "service": "Me / Permission Grants",
+      "method": "GET",
+      "path": "/api/human/me/permission-grants"
     },
     {
       "operation_id": "listMyFriendIds",
@@ -15489,6 +16059,12 @@
       "path": "/api/auth/email/otp/request"
     },
     {
+      "operation_id": "requestMyAppPermissionGrant",
+      "service": "Me / Permission Grants",
+      "method": "POST",
+      "path": "/api/human/me/permission-grants"
+    },
+    {
       "operation_id": "ReviewController_createReview",
       "service": "Reviews (Economy/Trust)",
       "method": "POST",
@@ -15499,6 +16075,12 @@
       "service": "Reviews (Economy/Trust)",
       "method": "GET",
       "path": "/api/economy/reviews"
+    },
+    {
+      "operation_id": "revokeMyAppPermissionGrant",
+      "service": "Me / Permission Grants",
+      "method": "POST",
+      "path": "/api/human/me/permission-grants/{grantId}/revoke"
     },
     {
       "operation_id": "searchHumanUsers",
@@ -15535,6 +16117,12 @@
       "service": "Human Chats",
       "method": "POST",
       "path": "/api/human/chats"
+    },
+    {
+      "operation_id": "supersedeMyAppPermissionGrant",
+      "service": "Me / Permission Grants",
+      "method": "POST",
+      "path": "/api/human/me/permission-grants/{grantId}/supersede"
     },
     {
       "operation_id": "syncChatEvents",
@@ -16198,6 +16786,21 @@
       ]
     },
     {
+      "name": "Me / Permission Grants",
+      "operation_ids": [
+        "denyMyAppPermissionGrant",
+        "expireMyAppPermissionGrant",
+        "getMyAppPermissionGrant",
+        "getMyAppPermissionGrantProjection",
+        "getMyAppPermissionGrantStatus",
+        "grantMyAppPermissionGrant",
+        "listMyAppPermissionGrants",
+        "requestMyAppPermissionGrant",
+        "revokeMyAppPermissionGrant",
+        "supersedeMyAppPermissionGrant"
+      ]
+    },
+    {
       "name": "Me2fa",
       "operation_ids": [
         "disable2Fa",
@@ -16390,6 +16993,15 @@
       "name": "AbilityDefinitionDto"
     },
     {
+      "name": "AccountGrantProjectionRowDto"
+    },
+    {
+      "name": "AccountGrantProjectionState"
+    },
+    {
+      "name": "AccountGrantsProjectionDto"
+    },
+    {
       "name": "AccountRole"
     },
     {
@@ -16502,6 +17114,36 @@
     },
     {
       "name": "ApiKeyType"
+    },
+    {
+      "name": "AppPermissionGrantDecisionDto"
+    },
+    {
+      "name": "AppPermissionGrantDto"
+    },
+    {
+      "name": "AppPermissionGrantGrantDto"
+    },
+    {
+      "name": "AppPermissionGrantListDto"
+    },
+    {
+      "name": "AppPermissionGrantRequestDto"
+    },
+    {
+      "name": "AppPermissionGrantState"
+    },
+    {
+      "name": "AppPermissionGrantStatusDto"
+    },
+    {
+      "name": "AppPermissionGrantSupersedeDto"
+    },
+    {
+      "name": "AppPermissionScopeFamily"
+    },
+    {
+      "name": "AppPermissionScopeName"
     },
     {
       "name": "AppendWorldHistoryDto"
@@ -17663,6 +18305,173 @@
               "kind": "scalar",
               "type": "number",
               "format": null
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "AccountGrantProjectionRowDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "appId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "expiresAt",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "grantId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "qualifier",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "scopeFamily",
+            "required": true,
+            "schema": {
+              "kind": "union",
+              "variants": [
+                {
+                  "kind": "ref",
+                  "ref": "#/components/schemas/AppPermissionScopeFamily",
+                  "ref_name": "AppPermissionScopeFamily"
+                }
+              ]
+            }
+          },
+          {
+            "name": "scopeName",
+            "required": true,
+            "schema": {
+              "kind": "union",
+              "variants": [
+                {
+                  "kind": "ref",
+                  "ref": "#/components/schemas/AppPermissionScopeName",
+                  "ref_name": "AppPermissionScopeName"
+                }
+              ]
+            }
+          },
+          {
+            "name": "state",
+            "required": true,
+            "schema": {
+              "kind": "union",
+              "variants": [
+                {
+                  "kind": "ref",
+                  "ref": "#/components/schemas/AccountGrantProjectionState",
+                  "ref_name": "AccountGrantProjectionState"
+                }
+              ]
+            }
+          },
+          {
+            "name": "subjectAccountId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "version",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "AccountGrantProjectionState",
+      "schema": {
+        "kind": "enum",
+        "values": [
+          "pending",
+          "granted",
+          "denied",
+          "expired",
+          "revoked",
+          "superseded"
+        ]
+      }
+    },
+    {
+      "name": "AccountGrantsProjectionDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "accountId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "grants",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "ref",
+                "ref": "#/components/schemas/AccountGrantProjectionRowDto",
+                "ref_name": "AccountGrantProjectionRowDto"
+              }
+            }
+          },
+          {
+            "name": "schemaVersion",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "updatedAt",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "date-time"
             }
           }
         ],
@@ -19816,6 +20625,501 @@
         "values": [
           "PERSONAL",
           "ENTERPRISE"
+        ]
+      }
+    },
+    {
+      "name": "AppPermissionGrantDecisionDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "expectedVersion",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "reason",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "AppPermissionGrantDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "appId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "deniedAt",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "deniedByAccountId",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "expiredAt",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "expiresAt",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "grantId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "grantedAt",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "grantedByAccountId",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "qualifier",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "reason",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "requestedAt",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "requestedByAccountId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "revokedAt",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "revokedByAccountId",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "scopeFamily",
+            "required": true,
+            "schema": {
+              "kind": "union",
+              "variants": [
+                {
+                  "kind": "ref",
+                  "ref": "#/components/schemas/AppPermissionScopeFamily",
+                  "ref_name": "AppPermissionScopeFamily"
+                }
+              ]
+            }
+          },
+          {
+            "name": "scopeName",
+            "required": true,
+            "schema": {
+              "kind": "union",
+              "variants": [
+                {
+                  "kind": "ref",
+                  "ref": "#/components/schemas/AppPermissionScopeName",
+                  "ref_name": "AppPermissionScopeName"
+                }
+              ]
+            }
+          },
+          {
+            "name": "state",
+            "required": true,
+            "schema": {
+              "kind": "union",
+              "variants": [
+                {
+                  "kind": "ref",
+                  "ref": "#/components/schemas/AppPermissionGrantState",
+                  "ref_name": "AppPermissionGrantState"
+                }
+              ]
+            }
+          },
+          {
+            "name": "subjectAccountId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "supersededAt",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "supersededByAccountId",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "supersededByGrantId",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "version",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "AppPermissionGrantGrantDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "expectedVersion",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "expiresAt",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "reason",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "AppPermissionGrantListDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "items",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "ref",
+                "ref": "#/components/schemas/AppPermissionGrantDto",
+                "ref_name": "AppPermissionGrantDto"
+              }
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "AppPermissionGrantRequestDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "appId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "qualifier",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "reason",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "scopeFamily",
+            "required": true,
+            "schema": {
+              "kind": "union",
+              "variants": [
+                {
+                  "kind": "ref",
+                  "ref": "#/components/schemas/AppPermissionScopeFamily",
+                  "ref_name": "AppPermissionScopeFamily"
+                }
+              ]
+            }
+          },
+          {
+            "name": "scopeName",
+            "required": true,
+            "schema": {
+              "kind": "union",
+              "variants": [
+                {
+                  "kind": "ref",
+                  "ref": "#/components/schemas/AppPermissionScopeName",
+                  "ref_name": "AppPermissionScopeName"
+                }
+              ]
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "AppPermissionGrantState",
+      "schema": {
+        "kind": "enum",
+        "values": [
+          "PENDING",
+          "GRANTED",
+          "DENIED",
+          "EXPIRED",
+          "REVOKED",
+          "SUPERSEDED"
+        ]
+      }
+    },
+    {
+      "name": "AppPermissionGrantStatusDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "generatedAt",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "grants",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "ref",
+                "ref": "#/components/schemas/AppPermissionGrantDto",
+                "ref_name": "AppPermissionGrantDto"
+              }
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "AppPermissionGrantSupersedeDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "expectedVersion",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "reason",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "supersededByGrantId",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "AppPermissionScopeFamily",
+      "schema": {
+        "kind": "enum",
+        "values": [
+          "account",
+          "data",
+          "agent",
+          "ai_spend",
+          "memory",
+          "knowledge",
+          "notification",
+          "file_device",
+          "audit",
+          "ai_profile"
+        ]
+      }
+    },
+    {
+      "name": "AppPermissionScopeName",
+      "schema": {
+        "kind": "enum",
+        "values": [
+          "account.read",
+          "account.session.read",
+          "data.scope.read",
+          "data.scope.write",
+          "agent.identity.project",
+          "agent.identity.bind",
+          "ai.spend.meter",
+          "ai.spend.delegate",
+          "memory.read.bounded",
+          "memory.write.admitted",
+          "knowledge.read.bounded",
+          "knowledge.write.admitted",
+          "notification.send",
+          "notification.subscribe",
+          "file.read.scoped",
+          "file.write.scoped",
+          "device.use.scoped",
+          "audit.read.scoped",
+          "ai_profile.selection.consume"
         ]
       }
     },

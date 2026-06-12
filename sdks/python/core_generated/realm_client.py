@@ -308,6 +308,12 @@ REALM_OPERATIONS = [
     "path": "/api/resources/{resourceId}"
   },
   {
+    "operation_id": "denyMyAppPermissionGrant",
+    "service": "Me / Permission Grants",
+    "method": "POST",
+    "path": "/api/human/me/permission-grants/{grantId}/deny"
+  },
+  {
     "operation_id": "disable2Fa",
     "service": "Me2fa",
     "method": "POST",
@@ -500,6 +506,12 @@ REALM_OPERATIONS = [
     "path": "/api/auth/me/2fa/enable"
   },
   {
+    "operation_id": "expireMyAppPermissionGrant",
+    "service": "Me / Permission Grants",
+    "method": "POST",
+    "path": "/api/human/me/permission-grants/{grantId}/expire"
+  },
+  {
     "operation_id": "ExploreController_checkStatus",
     "service": "Explore",
     "method": "GET",
@@ -588,6 +600,24 @@ REALM_OPERATIONS = [
     "service": "Me",
     "method": "GET",
     "path": "/api/human/me/friends/agent-limit"
+  },
+  {
+    "operation_id": "getMyAppPermissionGrant",
+    "service": "Me / Permission Grants",
+    "method": "GET",
+    "path": "/api/human/me/permission-grants/{grantId}"
+  },
+  {
+    "operation_id": "getMyAppPermissionGrantProjection",
+    "service": "Me / Permission Grants",
+    "method": "GET",
+    "path": "/api/human/me/permission-grants/projection"
+  },
+  {
+    "operation_id": "getMyAppPermissionGrantStatus",
+    "service": "Me / Permission Grants",
+    "method": "GET",
+    "path": "/api/human/me/permission-grants/status"
   },
   {
     "operation_id": "getMyBlockedUsers",
@@ -710,6 +740,12 @@ REALM_OPERATIONS = [
     "path": "/api/world/by-id/{id}/scenes"
   },
   {
+    "operation_id": "grantMyAppPermissionGrant",
+    "service": "Me / Permission Grants",
+    "method": "POST",
+    "path": "/api/human/me/permission-grants/{grantId}/grant"
+  },
+  {
     "operation_id": "HumanNsfwConsentController_canManageAgentNsfw",
     "service": "Human NSFW Consent",
     "method": "GET",
@@ -816,6 +852,12 @@ REALM_OPERATIONS = [
     "service": "Human Chats",
     "method": "GET",
     "path": "/api/human/chats/{chatId}/messages"
+  },
+  {
+    "operation_id": "listMyAppPermissionGrants",
+    "service": "Me / Permission Grants",
+    "method": "GET",
+    "path": "/api/human/me/permission-grants"
   },
   {
     "operation_id": "listMyFriendIds",
@@ -1034,6 +1076,12 @@ REALM_OPERATIONS = [
     "path": "/api/auth/email/otp/request"
   },
   {
+    "operation_id": "requestMyAppPermissionGrant",
+    "service": "Me / Permission Grants",
+    "method": "POST",
+    "path": "/api/human/me/permission-grants"
+  },
+  {
     "operation_id": "ReviewController_createReview",
     "service": "Reviews (Economy/Trust)",
     "method": "POST",
@@ -1044,6 +1092,12 @@ REALM_OPERATIONS = [
     "service": "Reviews (Economy/Trust)",
     "method": "GET",
     "path": "/api/economy/reviews"
+  },
+  {
+    "operation_id": "revokeMyAppPermissionGrant",
+    "service": "Me / Permission Grants",
+    "method": "POST",
+    "path": "/api/human/me/permission-grants/{grantId}/revoke"
   },
   {
     "operation_id": "searchHumanUsers",
@@ -1080,6 +1134,12 @@ REALM_OPERATIONS = [
     "service": "Human Chats",
     "method": "POST",
     "path": "/api/human/chats"
+  },
+  {
+    "operation_id": "supersedeMyAppPermissionGrant",
+    "service": "Me / Permission Grants",
+    "method": "POST",
+    "path": "/api/human/me/permission-grants/{grantId}/supersede"
   },
   {
     "operation_id": "syncChatEvents",

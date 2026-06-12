@@ -113,13 +113,6 @@ export interface GrantSpec {
   readonly reason: string;
 }
 
-export interface GrantRequestAccepted {
-  readonly scopeRef: NimiAppScopeRef;
-  readonly accepted: true;
-  readonly grantId: string;
-  readonly state: 'pending';
-}
-
 export interface PermissionStatusSnapshot {
   readonly scopeRef: NimiAppScopeRef;
   readonly grants: readonly GrantStatus[];
@@ -135,7 +128,7 @@ export interface PermissionGrantEvent {
 export interface PermissionTransport {
   list(scopeRef: NimiAppScopeRef): Promise<readonly GrantStatus[]>;
   get(scopeRef: NimiAppScopeRef, grantId: string): Promise<GrantStatus>;
-  request(scopeRef: NimiAppScopeRef, grantSpec: GrantSpec): Promise<GrantRequestAccepted>;
+  request(scopeRef: NimiAppScopeRef, grantSpec: GrantSpec): Promise<GrantStatus>;
   revoke(scopeRef: NimiAppScopeRef, grantId: string): Promise<GrantStatus>;
   status(scopeRef: NimiAppScopeRef): Promise<PermissionStatusSnapshot>;
   subscribe(scopeRef: NimiAppScopeRef, callback: (event: PermissionGrantEvent) => void): () => void;

@@ -10,7 +10,7 @@ that responds to you" and "an agent that has its own life."
 | Track | Driven by | Owner |
 | --- | --- | --- |
 | Chat Track | Reactive — user or app input | Runtime |
-| Life Track | Proactive — agent autonomy + Runtime hook scheduling | Runtime |
+| Life Track | Partial — Runtime-owned narrow follow-up-turn hooks only in the first release promise | Runtime |
 
 The two tracks share the agent's state — same Soul, same Memory,
 same Worldview — but their scheduling surfaces never collapse into
@@ -18,16 +18,17 @@ one.
 
 | Property | Chat Track | Life Track |
 | --- | --- | --- |
-| Trigger | User / app input | Runtime hook scheduling |
+| Trigger | User / app input | Runtime-owned narrow follow-up-turn hook |
 | Default | Always available | Default off; opt-in |
-| Cadence | Per-input | `off` / `low` / `medium` / `high` |
+| Cadence | Per-input | Future broader cadence model; not a first release promise |
 | Token budget | Per-request semantics | Daily by default |
-| Output | Chat reply, possibly streamed | Life-turn output, possibly persistent |
+| Output | Chat reply, possibly streamed | Follow-up turn projection only in the first release promise |
 | Behavior when other track is busy | Available | Suspended if Chat is in flight (admitted by runtime) |
 
-The Life Track is opt-in for a reason: a proactive agent consumes
-tokens whether or not anyone is talking to it. The default-off
-posture makes that opt-in explicit.
+The Life Track is partial in the first release promise. Runtime may
+admit narrow follow-up-turn hooks, but general reminders, appointments,
+host automation, broad event bus behavior, and app scheduler ownership
+are outside this promise.
 
 ## Why Two Tracks Are A Hard Architectural Cleavage
 
@@ -49,7 +50,10 @@ Splitting them means the disambiguation is built into the platform.
 
 ## Cadence
 
-The Life Track has four cadences:
+The broader cadence model is architectural direction, not a first
+release promise. The first release promise is narrow follow-up-turn only.
+
+Future cadence vocabulary:
 
 | Cadence | Meaning |
 | --- | --- |
@@ -58,8 +62,8 @@ The Life Track has four cadences:
 | `medium` | More frequent autonomous moments |
 | `high` | Most aggressive autonomous behavior; daily budget likely consumed |
 
-Default is `off`. The user (or host product) chooses whether to
-turn Life on, and at what cadence.
+Default is `off`. Broader user-controlled cadence remains outside the
+first release promise until explicitly admitted.
 
 Life cadence is not "how smart" the agent is. It is "how often the
 agent acts on its own initiative." A `high`-cadence agent consumes
@@ -67,9 +71,9 @@ more tokens; it does not become a different agent.
 
 ## Token Budget
 
-Life Track has a daily token budget by default. When the budget is
-exhausted, the Life Track stops dispatching new turns until the
-budget resets.
+The narrow follow-up-turn path has Runtime-owned budget checks. A
+broader daily Life Track budget model remains outside the first release
+promise until explicitly admitted.
 
 Chat Track does not share this budget. A chat reply happens
 regardless of Life budget state.
@@ -77,42 +81,38 @@ regardless of Life budget state.
 The user (or host product) can adjust the budget; the platform's
 default is intentionally conservative.
 
-## Reader Scenario: Chat And Life Both Active
+## Reader Scenario: Chat And Narrow Follow-Up Both Active
 
-A user has an agent named Yuki. Yuki's Life Track is enabled at
-`medium` cadence.
+A user has an agent named Yuki. Yuki is in reactive chat, and Runtime
+has admitted one narrow follow-up-turn hook.
 
 Throughout the day:
 
 - Morning: user asks Yuki for the weather. Chat Track activates;
   Yuki replies. Token budget for the chat reply is per-request.
-- Afternoon: user is away. Yuki's Life Track is dispatched by the
-  hook scheduler. Yuki notices a memory she has — the user
-  mentioned an interview tomorrow. Yuki emits a typed `HookIntent`
-  for "remind to wish good luck tomorrow at 8am." That intent
-  enters the hook lifecycle.
+- Afternoon: Runtime dispatches the admitted narrow follow-up-turn hook.
+  Yuki produces a bounded follow-up turn. That intent enters the hook
+  lifecycle.
 - Evening: user returns. Yuki's chat is responsive — the Life
   Track activity in the afternoon did not interrupt chat
   availability.
-- Next morning at 8am: the hook fires. Yuki's Life Track produces
-  a brief good-luck message. The user sees it as a proactive
-  message in chat.
+- Later: the hook fires through Runtime. The user sees a bounded
+  follow-up message in chat.
 
 Two tracks; one agent. The user experiences the agent as
 continuous; the platform tracks the audit and budget separately.
 
-## Reader Scenario: Life Track Saturated, Chat Still Works
+## Reader Scenario: Follow-Up Budget Denied, Chat Still Works
 
-Suppose Yuki's Life Track has consumed her daily token budget by
-late afternoon — perhaps the cadence was `high` and several
-autonomous moments were dispatched.
+Suppose Runtime denies a narrow follow-up-turn hook because the admitted
+budget is exhausted.
 
-- Life Track stops dispatching new turns until the budget resets.
+- Runtime refuses the follow-up-turn dispatch with a typed state.
 - Chat Track is unaffected. Any input from the user gets a chat
   reply.
 - The user does not experience any visible saturation; what they
-  see is "I can talk to Yuki normally." What does not happen is
-  any further autonomous moments today.
+  see is "I can talk to Yuki normally." What does not happen is a
+  pseudo-success follow-up.
 
 This separation is the architectural payoff. Reactive availability
 is not held hostage by proactive cost.
@@ -122,11 +122,11 @@ is not held hostage by proactive cost.
 A new user installs Nimi and creates their first agent.
 
 - Life Track is `off` by default. The agent is reactive only.
-- The user has not yet decided whether they want a proactive
-  agent. The platform does not start spending tokens autonomously
-  without explicit consent.
-- The user can later turn Life on at `low`, observe behavior,
-  decide to raise to `medium`, etc.
+- The user has not yet decided whether they want broader Life behavior.
+  The platform does not start spending tokens autonomously without
+  explicit consent.
+- The user can later opt into admitted Life surfaces after they are
+  explicitly release-promised.
 
 If the default were `on`, every new agent would immediately start
 consuming budget and producing autonomous moments. The opt-in

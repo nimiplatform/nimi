@@ -52,20 +52,21 @@ test('Runtime app registration helper registers full Runtime/Realm mode once', a
   assert.match(registrationOptions[0]?.metadata?.idempotencyKey ?? '', /^runtime-register-app-/);
 });
 
-test('Runtime app session metadata provider caches session by subject and emits session headers', async () => {
+test('Runtime app session metadata provider opens app-only session and emits session headers', async () => {
   const registrations: RegisterAppRequest[] = [];
   const sessions: OpenSessionRequest[] = [];
   const registrationOptions: RuntimeTypedCallOptions[] = [];
   const sessionOptions: RuntimeTypedCallOptions[] = [];
-  let subjectUserId = 'user-1';
   let sessionCounter = 0;
-  const provider = createNimiRuntimeAppSessionMetadataProvider({
+  const inputWithRetiredSubjectProvider = {
     appId: 'nimi.desktop',
     appInstanceId: 'nimi.desktop.runtime-session',
     deviceId: 'desktop-shell',
-    getSubjectUserId: () => subjectUserId,
+    getSubjectUserId() {
+      throw new Error('retired subject provider must not be called');
+    },
     auth: {
-      async registerApp(request, options) {
+      async registerApp(request: RegisterAppRequest, options?: RuntimeTypedCallOptions) {
         registrations.push(request);
         registrationOptions.push(options ?? {});
         return {
@@ -74,7 +75,7 @@ test('Runtime app session metadata provider caches session by subject and emits 
           reasonCode: RuntimeGeneratedReasonCode.ACTION_EXECUTED,
         };
       },
-      async openSession(request, options) {
+      async openSession(request: OpenSessionRequest, options?: RuntimeTypedCallOptions) {
         sessions.push(request);
         sessionOptions.push(options ?? {});
         sessionCounter += 1;
@@ -87,7 +88,8 @@ test('Runtime app session metadata provider caches session by subject and emits 
         };
       },
     },
-  });
+  };
+  const provider = createNimiRuntimeAppSessionMetadataProvider(inputWithRetiredSubjectProvider);
 
   assert.deepEqual(await provider(), {
     'x-nimi-session-id': 'session-1',
@@ -98,44 +100,22 @@ test('Runtime app session metadata provider caches session by subject and emits 
     'x-nimi-session-token': 'token-1',
   });
 
-  subjectUserId = 'user-2';
   assert.deepEqual(await provider(), {
-    'x-nimi-session-id': 'session-2',
-    'x-nimi-session-token': 'token-2',
+    'x-nimi-session-id': 'session-1',
+    'x-nimi-session-token': 'token-1',
   });
 
   assert.equal(registrations.length, 1);
   assert.match(registrationOptions[0]?.metadata?.idempotencyKey ?? '', /^runtime-register-app-/);
   assert.match(sessionOptions[0]?.metadata?.idempotencyKey ?? '', /^runtime-open-session-/);
-  assert.deepEqual(sessions.map((request) => request.subjectUserId), ['user-1', 'user-2']);
+  assert.deepEqual(sessions.map((request) => request.subjectUserId), ['']);
 });
 
-test('Runtime app session metadata provider fails closed without subject or session token', async () => {
-  const missingSubject = createNimiRuntimeAppSessionMetadataProvider({
-    appId: 'nimi.desktop',
-    appInstanceId: 'nimi.desktop.runtime-session',
-    deviceId: 'desktop-shell',
-    getSubjectUserId: () => '',
-    auth: {
-      async registerApp() {
-        throw new Error('registerApp should not be called without subject');
-      },
-      async openSession() {
-        throw new Error('openSession should not be called without subject');
-      },
-    },
-  });
-
-  await assert.rejects(
-    missingSubject(),
-    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_RUNTIME_APP_SESSION_SUBJECT_REQUIRED',
-  );
-
+test('Runtime app session metadata provider fails closed without session token', async () => {
   const missingToken = createNimiRuntimeAppSessionMetadataProvider({
     appId: 'nimi.desktop',
     appInstanceId: 'nimi.desktop.runtime-session',
     deviceId: 'desktop-shell',
-    getSubjectUserId: () => 'user-1',
     auth: {
       async registerApp(request) {
         return {

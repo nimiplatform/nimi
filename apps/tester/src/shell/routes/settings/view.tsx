@@ -63,7 +63,7 @@ export type SettingsRouteViewProps = {
   readonly runtimeAgentTurnRunnerProjection: RuntimeAgentTurnRunnerProjectionState;
   readonly runtimeMediaGenerationRunnerProjection: RuntimeMediaGenerationRunnerProjectionState;
   readonly localRuntimeFacadeProjection: TypedProjectionState<string>;
-  readonly permissionClientProjection: TypedProjectionState<{ scopeOwner: string; grantCount: number; firstState: string }>;
+  readonly permissionClientProjection: TypedProjectionState<{ scopeOwner: string; grantCount: number; firstState: string; requestState: string; revokeState: string }>;
   readonly realmDataSyncProjection: TypedProjectionState<string>;
   readonly worldEvolutionSelectorReadProjection: TypedProjectionState<TesterWorldEvolutionSelectorReadProjection>;
   readonly realmSocialFeedProjection: TypedProjectionState<TesterRealmSocialFeedProjection>;

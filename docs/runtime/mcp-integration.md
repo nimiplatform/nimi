@@ -1,8 +1,9 @@
 # MCP Integration
 
-> Status: Mixed. Per-section labels below: stdio transport
-> (running today), remote transports (admitted as platform
-> direction).
+> Status: Partial. The first release promise covers SDK adapter
+> migration shapes and Runtime contract evidence. Production MCP
+> transport, MCP resources, raw MCP ontology promotion, and external
+> execution are not promised.
 
 MCP (Model Context Protocol) is admitted in Nimi as a **protocol
 adapter source**. It is not Runtime semantic authority. Runtime owns
@@ -14,7 +15,7 @@ objects do **not** become public Runtime ontology.
 
 | Concern | Owner |
 | --- | --- |
-| MCP adapter admission + provider profile binding | Runtime (`K-DELEG-100..K-DELEG-110`) |
+| MCP adapter admission + provider profile binding | Runtime contract evidence (`K-DELEG-100..K-DELEG-110`) |
 | Server lifecycle (start, connect, monitor, timeout, close) | Runtime |
 | Tool discovery + allowlisting | Runtime |
 | Tool schema drift detection | Runtime |
@@ -24,10 +25,12 @@ objects do **not** become public Runtime ontology.
 No Desktop, Avatar, Web, or app layer may
 instantiate an MCP client or server session directly. Runtime owns it.
 
-## Stdio Transport (running)
+## Stdio Transport Contract
 
-Wave-2 admits `stdio_command` as the production MCP transport class.
-That is the running, shipped surface.
+`stdio_command` is contract evidence for a Runtime-owned MCP adapter
+shape. It is not a production MCP transport promise in the first public
+release. Runtime / SDK callers must treat unsupported MCP resources,
+raw ontology promotion, and external execution as fail-closed.
 
 | Property | Value |
 | --- | --- |
@@ -36,13 +39,13 @@ That is the running, shipped surface.
 | Server lifecycle | Runtime starts / connects / monitors / closes |
 | Tool listing | Runtime calls MCP discovery via the official adapter |
 
-## Remote Transports (admitted as platform direction)
+## Remote Transports (deferred)
 
-Remote HTTP transports are admitted as direction. They require a later
-admission packet that proves target-resource authorization, credential
-custody, timeout behavior, and response quarantine against the
-delegated MCP adapter contract. Until that packet lands, the remote
-HTTP path does not ship.
+Remote HTTP transports are deferred. They require a later admission
+packet that proves target-resource authorization, credential custody,
+timeout behavior, and response quarantine against the delegated MCP
+adapter contract. Until that packet lands, the remote HTTP path does not
+ship.
 
 ## Official SDK Adapter Dependency
 
@@ -104,9 +107,11 @@ Instead, Runtime normalizes MCP outputs into the admitted
 wave admits them to model context, projection, or action paths. The
 adapter boundary is what protects Runtime ontology.
 
-## Reader Scenario: An App Author Wires Up An MCP Tool Provider
+## Reader Scenario: Future App Author Wires Up An MCP Tool Provider
 
-An app author wants to expose an MCP-backed tool to their agent.
+This is a future contract scenario, not a current production MCP
+transport promise. An app author wants to expose an MCP-backed tool to
+their agent after the required Runtime admission lands.
 
 1. **Provider profile.** The app descriptor declares an MCP provider
    profile binding with `provider_kind: MCP_TOOL_PROVIDER`,
@@ -149,7 +154,7 @@ An MCP provider updates one of its tool schemas mid-session.
   session directly.
 - It does not allow tool calls to bypass the delegated output
   firewall.
-- It does not allow remote HTTP transport to ship without the later
+- It does not allow production MCP transport to ship without the later
   admission packet.
 - It does not let the official SDK adapter define Nimi semantic
   authority.

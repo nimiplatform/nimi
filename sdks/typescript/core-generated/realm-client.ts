@@ -313,6 +313,12 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/resources/{resourceId}"
   },
   {
+    "operationId": "denyMyAppPermissionGrant",
+    "service": "Me / Permission Grants",
+    "method": "POST",
+    "path": "/api/human/me/permission-grants/{grantId}/deny"
+  },
+  {
     "operationId": "disable2Fa",
     "service": "Me2fa",
     "method": "POST",
@@ -505,6 +511,12 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/auth/me/2fa/enable"
   },
   {
+    "operationId": "expireMyAppPermissionGrant",
+    "service": "Me / Permission Grants",
+    "method": "POST",
+    "path": "/api/human/me/permission-grants/{grantId}/expire"
+  },
+  {
     "operationId": "ExploreController_checkStatus",
     "service": "Explore",
     "method": "GET",
@@ -593,6 +605,24 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "service": "Me",
     "method": "GET",
     "path": "/api/human/me/friends/agent-limit"
+  },
+  {
+    "operationId": "getMyAppPermissionGrant",
+    "service": "Me / Permission Grants",
+    "method": "GET",
+    "path": "/api/human/me/permission-grants/{grantId}"
+  },
+  {
+    "operationId": "getMyAppPermissionGrantProjection",
+    "service": "Me / Permission Grants",
+    "method": "GET",
+    "path": "/api/human/me/permission-grants/projection"
+  },
+  {
+    "operationId": "getMyAppPermissionGrantStatus",
+    "service": "Me / Permission Grants",
+    "method": "GET",
+    "path": "/api/human/me/permission-grants/status"
   },
   {
     "operationId": "getMyBlockedUsers",
@@ -715,6 +745,12 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/world/by-id/{id}/scenes"
   },
   {
+    "operationId": "grantMyAppPermissionGrant",
+    "service": "Me / Permission Grants",
+    "method": "POST",
+    "path": "/api/human/me/permission-grants/{grantId}/grant"
+  },
+  {
     "operationId": "HumanNsfwConsentController_canManageAgentNsfw",
     "service": "Human NSFW Consent",
     "method": "GET",
@@ -821,6 +857,12 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "service": "Human Chats",
     "method": "GET",
     "path": "/api/human/chats/{chatId}/messages"
+  },
+  {
+    "operationId": "listMyAppPermissionGrants",
+    "service": "Me / Permission Grants",
+    "method": "GET",
+    "path": "/api/human/me/permission-grants"
   },
   {
     "operationId": "listMyFriendIds",
@@ -1039,6 +1081,12 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/auth/email/otp/request"
   },
   {
+    "operationId": "requestMyAppPermissionGrant",
+    "service": "Me / Permission Grants",
+    "method": "POST",
+    "path": "/api/human/me/permission-grants"
+  },
+  {
     "operationId": "ReviewController_createReview",
     "service": "Reviews (Economy/Trust)",
     "method": "POST",
@@ -1049,6 +1097,12 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "service": "Reviews (Economy/Trust)",
     "method": "GET",
     "path": "/api/economy/reviews"
+  },
+  {
+    "operationId": "revokeMyAppPermissionGrant",
+    "service": "Me / Permission Grants",
+    "method": "POST",
+    "path": "/api/human/me/permission-grants/{grantId}/revoke"
   },
   {
     "operationId": "searchHumanUsers",
@@ -1085,6 +1139,12 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "service": "Human Chats",
     "method": "POST",
     "path": "/api/human/chats"
+  },
+  {
+    "operationId": "supersedeMyAppPermissionGrant",
+    "service": "Me / Permission Grants",
+    "method": "POST",
+    "path": "/api/human/me/permission-grants/{grantId}/supersede"
   },
   {
     "operationId": "syncChatEvents",

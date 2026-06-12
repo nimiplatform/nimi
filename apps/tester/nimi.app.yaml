@@ -4,6 +4,9 @@ profile: standalone
 manifest_role: submitted-input
 permissions:
   declared_nimi_api_scopes:
-    - scope: app.local.drafts
+    - scope: file.read.scoped
+      qualifier: app-local-drafts
+      purpose: Read drafts owned by this app during author testing.
+    - scope: file.write.scoped
       qualifier: app-local-drafts
       purpose: Store drafts owned by this app during author testing.

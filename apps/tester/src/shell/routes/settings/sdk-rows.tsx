@@ -67,7 +67,7 @@ export function SettingsSdkRows(props: SettingsRouteViewProps) {
         <span>SDK permission client projection</span>
         <StatusBadge tone={permissionClientProjection.status === 'ready' ? 'success' : permissionClientProjection.status === 'failed' ? 'danger' : 'warning'}>
           {permissionClientProjection.status === 'ready' && permissionClientProjection.data
-            ? `${permissionClientProjection.data.scopeOwner}: ${permissionClientProjection.data.firstState} (${permissionClientProjection.data.grantCount})`
+            ? `${permissionClientProjection.data.scopeOwner}: ${permissionClientProjection.data.firstState}/${permissionClientProjection.data.requestState}/${permissionClientProjection.data.revokeState} (${permissionClientProjection.data.grantCount})`
             : permissionClientProjection.error ?? 'loading'}
         </StatusBadge>
       </div>

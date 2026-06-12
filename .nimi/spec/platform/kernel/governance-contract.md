@@ -74,6 +74,36 @@ that domain, and keeps the admission as audit-planning metadata. This admission
 does not transfer semantic authority to Platform and must not be inferred from
 workspace layout, package names, or broad owner-domain defaults.
 
+## P-GOV-026 — Release Promise Freeze
+
+`.nimi/spec/platform/kernel/tables/release-promise-freeze.yaml` is the
+cross-domain release-promise freeze for the first publishable Nimi capability
+set. The table records each public capability promise with its canonical owner,
+login requirement, failure behavior, partial or deferred reason, and authority
+references.
+
+This rule does not transfer Runtime, Realm, Cognition, SDK, Desktop, Avatar, or
+Kit semantic ownership to Platform. Platform owns only the promise boundary and
+the requirement that a public claim must resolve to an existing owner authority.
+
+Fixed rules:
+
+- Public capabilities must not be advertised outside the table unless they are
+  represented by an active row or explicitly covered by an active row family.
+- `semantic_contract_only_proto_unavailable`, source-root-only, fixture-only,
+  design-only, or adapter-placeholder capabilities are not release promises.
+- `supported` rows must name an owner authority, login requirement, failure
+  behavior, and verification reference.
+- `partial`, `unsupported`, and `deferred` rows must name the product reason and
+  the fail-closed behavior.
+- App, adapter, Kit, and renderer surfaces may project or consume an admitted
+  capability, but they must not become canonical owners for agent lifecycle,
+  memory, credential, Realm world/social/chat, provider/model routing, or
+  runtime audit truth by appearing in this table.
+- The public positioning string for the first publishable capability set is:
+  "Nimi is an open-source, local-first, multi-provider personal AI runtime with
+  Realm-owned ecosystem identity."
+
 ## Operational Refinement Reference
 
 `release-gate-contract.md` (`P-RELG-*`) is the operational refinement of `P-GOV-003`, `P-GOV-011`, `P-GOV-021`, and `P-GOV-023`. It declares a single release-gate registry (`tables/release-gate-registry.yaml`) as the source of release-gate identity, locks projection-only semantics for preflight / lint chain / CI workflow step blocks, and enforces traceability through a coherence checker plus a projection-drift checker. `P-RELG-*` rules cite their parent `P-GOV-*` anchors explicitly and never override them.

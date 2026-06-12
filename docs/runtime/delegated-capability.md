@@ -1,14 +1,14 @@
 # Delegated Capability
 
-> Status: Running today. Runtime delegated session, gateway,
-> output firewall, and audit / replay extension are shipped under
-> `K-DELEG-*`. MCP adapter ships at `stdio_command`; remote
-> transports admitted as direction.
+> Status: Partial. Runtime delegated session, gateway, approval/resume,
+> output firewall, and audit lineage are release-promised for admitted
+> delegated capability requests. MCP remains partial contract evidence;
+> production MCP transport, MCP resources, raw MCP ontology promotion,
+> and external execution are not promised. A2A production is deferred.
 
-Runtime owns the gateway and the output firewall through which
-external AI hosts (a separate AI provider, an MCP-tooled agent, a
-future A2A peer) take action on the platform. This page covers the
-runtime side of delegation. For the product framing, see
+Runtime owns the gateway and the output firewall through which admitted
+external AI hosts can propose action on the platform. This page covers
+the runtime side of delegation. For the product framing, see
 [Platform → AI Last Mile](/platform/ai-last-mile),
 [Platform → Execution Protocol](/platform/execution-protocol), and
 [Runtime → MCP Integration](/runtime/mcp-integration).
@@ -131,10 +131,12 @@ proceeds. The approval is recorded as evidence.
 | Approval decision | Recorded against the session |
 | Resume | Session resumes from `PAUSED_FOR_APPROVAL` |
 
-## Delegated MCP Adapter
+## Delegated MCP Adapter (Partial)
 
-Runtime admits MCP (Model Context Protocol) tools as a particular
-kind of delegated capability. The MCP adapter has its own lifecycle:
+Runtime tracks MCP (Model Context Protocol) adapter semantics as a
+partial delegated capability contract. It does not promote MCP wire
+objects into Nimi ontology, and it does not promise production MCP
+transport or MCP resources in the first public release.
 
 | Property | Value |
 | --- | --- |

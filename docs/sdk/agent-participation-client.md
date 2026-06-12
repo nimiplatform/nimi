@@ -1,29 +1,30 @@
 # Agent Participation Client
 
-## Status: Admitted, in build-out
+## Status: Deferred; semantic-contract-only
 
 The runtime agent participation contract
-(`runtime-agent-participation-contract.md`) is admitted at the
-SDK kernel level. The methods registry + behavioral checks are
-shipped at the contract level; client-side fluent surface is in
-active build-out.
+(`runtime-agent-participation-contract.md`) is admitted as a
+semantic-contract-only boundary. The methods registry and behavioral
+checks document the intended shape, but proto stubs and a public
+production participation SDK surface are deferred and proto-unavailable.
 
 ## What This Client Does
 
-The Agent Participation Client is the SDK surface for app developers
-who want their app to participate in agent execution under
-an admitted participation profile (see
+The Agent Participation Client page describes the deferred contract for
+apps that may later participate in agent execution under an admitted
+participation profile (see
 [Platform → Agents → Participation Authority](/platform/agents/participation-authority)).
 
-It is **not** a way to invent new participation profiles. The closed
-profile set lives in runtime spec; the SDK lets you submit against
-admitted profiles.
+It is **not** a public production SDK surface today, and it is not a way
+to invent new participation profiles. The closed profile set lives in
+runtime spec; future SDK calls must submit against admitted profiles only
+after the deferred surface is implemented.
 
 ## Method Surface
 
 The methods registry lives in
-`tables/runtime-agent-participation-methods.yaml`. The SDK surface
-exposes the admitted methods as typed calls.
+`tables/runtime-agent-participation-methods.yaml`. It is contract
+evidence, not public production callable SDK surface.
 
 | Method family | Purpose |
 | --- | --- |
@@ -44,12 +45,15 @@ submission:
 | Capability scope | Refuse calls outside the profile's `capability_scope` |
 | Output destination | Refuse outputs to non-admitted destinations |
 
-These are SDK-side guards. Runtime still validates server-side; SDK
-simply fails fast on detectable violations.
+These are planned SDK-side guards. Runtime still validates server-side;
+until the deferred client exists, callers must receive unavailable or
+unsupported behavior rather than a pseudo-success.
 
-## Reader Scenario: App Submits An Output Candidate
+## Reader Scenario: Future App Submits An Output Candidate
 
-An app wants its agent to participate in a Realm group thread.
+This is a future contract scenario, not a current public production
+SDK promise. An app wants its agent to participate in a Realm group
+thread after the deferred participation SDK is admitted.
 
 1. **Profile attach.** SDK call attaches the agent under
    `realm_group_participation`.

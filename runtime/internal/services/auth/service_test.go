@@ -142,9 +142,10 @@ func testNimiAppRegistryCatalogWithAvatarAdmitted() *appregistrycatalog.Registry
 func TestAppSessionLifecycle(t *testing.T) {
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	ctx := context.Background()
+	appID := "third.party.runtime"
 
 	registerResp, err := svc.RegisterApp(ctx, &runtimev1.RegisterAppRequest{
-		AppId:    "nimi.desktop",
+		AppId:    appID,
 		DeviceId: "local-device",
 		ModeManifest: &runtimev1.AppModeManifest{
 			AppMode:         runtimev1.AppMode_APP_MODE_FULL,
@@ -161,7 +162,7 @@ func TestAppSessionLifecycle(t *testing.T) {
 	}
 
 	openResp, err := svc.OpenSession(ctx, &runtimev1.OpenSessionRequest{
-		AppId:         "nimi.desktop",
+		AppId:         appID,
 		AppInstanceId: registerResp.AppInstanceId,
 		DeviceId:      "local-device",
 		SubjectUserId: "user-001",
@@ -202,6 +203,56 @@ func TestAppSessionLifecycle(t *testing.T) {
 	}
 	if refreshAfterRevoke.ReasonCode != runtimev1.ReasonCode_APP_TOKEN_REVOKED {
 		t.Fatalf("expected APP_TOKEN_REVOKED, got %v", refreshAfterRevoke.ReasonCode)
+	}
+}
+
+func TestOpenSessionLocalFirstPartyRejectsCallerProvidedSubject(t *testing.T) {
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	ctx := context.Background()
+
+	registerResp, err := svc.RegisterApp(ctx, &runtimev1.RegisterAppRequest{
+		AppId:        "nimi.desktop",
+		DeviceId:     "local-device",
+		ModeManifest: validFullAppModeManifest(),
+	})
+	if err != nil {
+		t.Fatalf("register app: %v", err)
+	}
+	if !registerResp.GetAccepted() {
+		t.Fatalf("register app rejected: %v", registerResp.GetReasonCode())
+	}
+
+	rejected, err := svc.OpenSession(ctx, &runtimev1.OpenSessionRequest{
+		AppId:         "nimi.desktop",
+		AppInstanceId: registerResp.GetAppInstanceId(),
+		DeviceId:      "local-device",
+		SubjectUserId: "caller-user-001",
+		TtlSeconds:    600,
+	})
+	if err != nil {
+		t.Fatalf("open local first-party session with caller subject should return reason, got error: %v", err)
+	}
+	if rejected.GetReasonCode() != runtimev1.ReasonCode_APP_AUTHORIZATION_DENIED {
+		t.Fatalf("expected caller subject rejected, got %v", rejected.GetReasonCode())
+	}
+	if rejected.GetSessionId() != "" || rejected.GetSessionToken() != "" {
+		t.Fatalf("rejected local first-party session must not issue credentials: %+v", rejected)
+	}
+
+	accepted, err := svc.OpenSession(ctx, &runtimev1.OpenSessionRequest{
+		AppId:         "nimi.desktop",
+		AppInstanceId: registerResp.GetAppInstanceId(),
+		DeviceId:      "local-device",
+		TtlSeconds:    600,
+	})
+	if err != nil {
+		t.Fatalf("open local first-party app-only session: %v", err)
+	}
+	if accepted.GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED {
+		t.Fatalf("expected local first-party app-only session accepted, got %v", accepted.GetReasonCode())
+	}
+	if accepted.GetSessionId() == "" || accepted.GetSessionToken() == "" {
+		t.Fatalf("local first-party app-only session must issue app session credentials: %+v", accepted)
 	}
 }
 
@@ -555,9 +606,10 @@ func TestRegisterExternalPrincipalRequiresSignatureKey(t *testing.T) {
 func TestOpenSessionRejectsTTLBounds(t *testing.T) {
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	ctx := context.Background()
+	appID := "third.party.runtime"
 
 	registerResp, err := svc.RegisterApp(ctx, &runtimev1.RegisterAppRequest{
-		AppId:    "nimi.desktop",
+		AppId:    appID,
 		DeviceId: "local-device",
 		ModeManifest: &runtimev1.AppModeManifest{
 			AppMode:         runtimev1.AppMode_APP_MODE_FULL,
@@ -572,7 +624,7 @@ func TestOpenSessionRejectsTTLBounds(t *testing.T) {
 
 	for _, ttl := range []int32{-1, 59, 86401} {
 		_, err := svc.OpenSession(ctx, &runtimev1.OpenSessionRequest{
-			AppId:         "nimi.desktop",
+			AppId:         appID,
 			AppInstanceId: registerResp.GetAppInstanceId(),
 			DeviceId:      "local-device",
 			SubjectUserId: "user-001",
@@ -595,9 +647,10 @@ func TestOpenSessionRejectsTTLBounds(t *testing.T) {
 func TestAuthSessionRejectsNegativeTTLOnRefreshAndExternalOpen(t *testing.T) {
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	ctx := context.Background()
+	appID := "third.party.runtime"
 
 	registerResp, err := svc.RegisterApp(ctx, &runtimev1.RegisterAppRequest{
-		AppId:    "nimi.desktop",
+		AppId:    appID,
 		DeviceId: "local-device",
 		ModeManifest: &runtimev1.AppModeManifest{
 			AppMode:         runtimev1.AppMode_APP_MODE_FULL,
@@ -610,7 +663,7 @@ func TestAuthSessionRejectsNegativeTTLOnRefreshAndExternalOpen(t *testing.T) {
 		t.Fatalf("register app: %v", err)
 	}
 	openResp, err := svc.OpenSession(ctx, &runtimev1.OpenSessionRequest{
-		AppId:         "nimi.desktop",
+		AppId:         appID,
 		AppInstanceId: registerResp.GetAppInstanceId(),
 		DeviceId:      "local-device",
 		SubjectUserId: "user-001",
@@ -680,9 +733,10 @@ func TestOpenSessionDefaultTTL3600(t *testing.T) {
 	// K-AUTHSVC-011: omitted ttl_seconds uses the default 3600s TTL.
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	ctx := context.Background()
+	appID := "third.party.runtime"
 
 	registerResp, err := svc.RegisterApp(ctx, &runtimev1.RegisterAppRequest{
-		AppId:    "nimi.desktop",
+		AppId:    appID,
 		DeviceId: "local-device",
 		ModeManifest: &runtimev1.AppModeManifest{
 			AppMode:         runtimev1.AppMode_APP_MODE_FULL,
@@ -696,7 +750,7 @@ func TestOpenSessionDefaultTTL3600(t *testing.T) {
 	}
 
 	openResp, err := svc.OpenSession(ctx, &runtimev1.OpenSessionRequest{
-		AppId:         "nimi.desktop",
+		AppId:         appID,
 		AppInstanceId: registerResp.GetAppInstanceId(),
 		DeviceId:      "local-device",
 		SubjectUserId: "user-001",
@@ -713,9 +767,10 @@ func TestSessionLostAfterServiceReset(t *testing.T) {
 	// K-AUTHSVC-012: sessions are memory-only and disappear after service reset.
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	ctx := context.Background()
+	appID := "third.party.runtime"
 
 	registerResp, err := svc.RegisterApp(ctx, &runtimev1.RegisterAppRequest{
-		AppId:    "nimi.desktop",
+		AppId:    appID,
 		DeviceId: "local-device",
 		ModeManifest: &runtimev1.AppModeManifest{
 			AppMode:         runtimev1.AppMode_APP_MODE_FULL,
@@ -728,7 +783,7 @@ func TestSessionLostAfterServiceReset(t *testing.T) {
 		t.Fatalf("register app: %v", err)
 	}
 	openResp, err := svc.OpenSession(ctx, &runtimev1.OpenSessionRequest{
-		AppId:         "nimi.desktop",
+		AppId:         appID,
 		AppInstanceId: registerResp.GetAppInstanceId(),
 		DeviceId:      "local-device",
 		SubjectUserId: "user-001",
@@ -904,9 +959,10 @@ func TestRevokeSessionIdempotent(t *testing.T) {
 	// K-AUTHSVC-005: revoking a session twice returns OK both times.
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	ctx := context.Background()
+	appID := "third.party.runtime"
 
 	registerResp, err := svc.RegisterApp(ctx, &runtimev1.RegisterAppRequest{
-		AppId:    "nimi.desktop",
+		AppId:    appID,
 		DeviceId: "local-device",
 		ModeManifest: &runtimev1.AppModeManifest{
 			AppMode:         runtimev1.AppMode_APP_MODE_FULL,
@@ -920,7 +976,7 @@ func TestRevokeSessionIdempotent(t *testing.T) {
 	}
 
 	openResp, err := svc.OpenSession(ctx, &runtimev1.OpenSessionRequest{
-		AppId:         "nimi.desktop",
+		AppId:         appID,
 		AppInstanceId: registerResp.GetAppInstanceId(),
 		DeviceId:      "local-device",
 		SubjectUserId: "user-001",
@@ -1011,9 +1067,10 @@ func TestAuthWritePathsPruneExpiredSessions(t *testing.T) {
 
 func TestRefreshSessionRejectsMissingSessionMetadata(t *testing.T) {
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	appID := "third.party.runtime"
 
 	registerResp, err := svc.RegisterApp(context.Background(), &runtimev1.RegisterAppRequest{
-		AppId:    "nimi.desktop",
+		AppId:    appID,
 		DeviceId: "local-device",
 		ModeManifest: &runtimev1.AppModeManifest{
 			AppMode:         runtimev1.AppMode_APP_MODE_FULL,
@@ -1026,7 +1083,7 @@ func TestRefreshSessionRejectsMissingSessionMetadata(t *testing.T) {
 		t.Fatalf("register app: %v", err)
 	}
 	openResp, err := svc.OpenSession(context.Background(), &runtimev1.OpenSessionRequest{
-		AppId:         "nimi.desktop",
+		AppId:         appID,
 		AppInstanceId: registerResp.GetAppInstanceId(),
 		DeviceId:      "local-device",
 		SubjectUserId: "user-001",

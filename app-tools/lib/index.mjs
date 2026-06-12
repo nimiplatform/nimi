@@ -24,6 +24,7 @@ const TAILWINDCSS_VERSION = '^4.3.0';
 const TAILWINDCSS_VITE_VERSION = '^4.3.0';
 const TAURI_API_VERSION = '^2.9.1';
 const TAURI_CLI_VERSION = '^2.11.2';
+const YAML_VERSION = '^2.9.0';
 const NIMI_SHELL_TAURI_VERSION = '0.1.0';
 const AI_SDK_VERSION = '^6.0.85';
 const APP_TOOLS_VERSION = '^0.1.4';
@@ -78,6 +79,7 @@ function appScaffoldVersions() {
     tailwindcssViteVersion: TAILWINDCSS_VITE_VERSION,
     tauriApiVersion: TAURI_API_VERSION,
     tauriCliVersion: TAURI_CLI_VERSION,
+    yamlVersion: YAML_VERSION,
     nimiShellTauriVersion: NIMI_SHELL_TAURI_VERSION,
   };
 }

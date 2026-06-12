@@ -9110,6 +9110,27 @@ type AbilityDefinitionDto struct {
 	TierRequired float64 `json:"tierRequired,omitempty"`
 }
 
+type AccountGrantProjectionRowDto struct {
+	AppId string `json:"appId,omitempty"`
+	ExpiresAt string `json:"expiresAt,omitempty"`
+	GrantId string `json:"grantId,omitempty"`
+	Qualifier string `json:"qualifier,omitempty"`
+	ScopeFamily any `json:"scopeFamily,omitempty"`
+	ScopeName any `json:"scopeName,omitempty"`
+	State any `json:"state,omitempty"`
+	SubjectAccountId string `json:"subjectAccountId,omitempty"`
+	Version float64 `json:"version,omitempty"`
+}
+
+type AccountGrantProjectionState string
+
+type AccountGrantsProjectionDto struct {
+	AccountId string `json:"accountId,omitempty"`
+	Grants []AccountGrantProjectionRowDto `json:"grants,omitempty"`
+	SchemaVersion float64 `json:"schemaVersion,omitempty"`
+	UpdatedAt string `json:"updatedAt,omitempty"`
+}
+
 type AccountRole string
 
 type AccountStatus string
@@ -9391,6 +9412,71 @@ type AgentVoiceConfigDto struct {
 type AgentWakeStrategy string
 
 type ApiKeyType string
+
+type AppPermissionGrantDecisionDto struct {
+	ExpectedVersion float64 `json:"expectedVersion,omitempty"`
+	Reason string `json:"reason,omitempty"`
+}
+
+type AppPermissionGrantDto struct {
+	AppId string `json:"appId,omitempty"`
+	DeniedAt string `json:"deniedAt,omitempty"`
+	DeniedByAccountId string `json:"deniedByAccountId,omitempty"`
+	ExpiredAt string `json:"expiredAt,omitempty"`
+	ExpiresAt string `json:"expiresAt,omitempty"`
+	GrantId string `json:"grantId,omitempty"`
+	GrantedAt string `json:"grantedAt,omitempty"`
+	GrantedByAccountId string `json:"grantedByAccountId,omitempty"`
+	Qualifier string `json:"qualifier,omitempty"`
+	Reason string `json:"reason,omitempty"`
+	RequestedAt string `json:"requestedAt,omitempty"`
+	RequestedByAccountId string `json:"requestedByAccountId,omitempty"`
+	RevokedAt string `json:"revokedAt,omitempty"`
+	RevokedByAccountId string `json:"revokedByAccountId,omitempty"`
+	ScopeFamily any `json:"scopeFamily,omitempty"`
+	ScopeName any `json:"scopeName,omitempty"`
+	State any `json:"state,omitempty"`
+	SubjectAccountId string `json:"subjectAccountId,omitempty"`
+	SupersededAt string `json:"supersededAt,omitempty"`
+	SupersededByAccountId string `json:"supersededByAccountId,omitempty"`
+	SupersededByGrantId string `json:"supersededByGrantId,omitempty"`
+	Version float64 `json:"version,omitempty"`
+}
+
+type AppPermissionGrantGrantDto struct {
+	ExpectedVersion float64 `json:"expectedVersion,omitempty"`
+	ExpiresAt string `json:"expiresAt,omitempty"`
+	Reason string `json:"reason,omitempty"`
+}
+
+type AppPermissionGrantListDto struct {
+	Items []AppPermissionGrantDto `json:"items,omitempty"`
+}
+
+type AppPermissionGrantRequestDto struct {
+	AppId string `json:"appId,omitempty"`
+	Qualifier string `json:"qualifier,omitempty"`
+	Reason string `json:"reason,omitempty"`
+	ScopeFamily any `json:"scopeFamily,omitempty"`
+	ScopeName any `json:"scopeName,omitempty"`
+}
+
+type AppPermissionGrantState string
+
+type AppPermissionGrantStatusDto struct {
+	GeneratedAt string `json:"generatedAt,omitempty"`
+	Grants []AppPermissionGrantDto `json:"grants,omitempty"`
+}
+
+type AppPermissionGrantSupersedeDto struct {
+	ExpectedVersion float64 `json:"expectedVersion,omitempty"`
+	Reason string `json:"reason,omitempty"`
+	SupersededByGrantId string `json:"supersededByGrantId,omitempty"`
+}
+
+type AppPermissionScopeFamily string
+
+type AppPermissionScopeName string
 
 type AppendWorldHistoryDto struct {
 	Commit *MutationCommitEnvelopeDto `json:"commit,omitempty"`
@@ -13533,6 +13619,25 @@ type RealmDeleteResourceOperationRequest struct {
 	Body    struct{} `json:"body,omitempty"`
 }
 
+type RealmDenyMyAppPermissionGrantOperationPath struct {
+	GrantId string `json:"grantId,omitempty"`
+}
+
+type RealmDenyMyAppPermissionGrantOperationQuery struct {
+
+}
+
+type RealmDenyMyAppPermissionGrantOperationHeaders struct {
+
+}
+
+type RealmDenyMyAppPermissionGrantOperationRequest struct {
+	Path    RealmDenyMyAppPermissionGrantOperationPath `json:"path,omitempty"`
+	Query   RealmDenyMyAppPermissionGrantOperationQuery `json:"query,omitempty"`
+	Headers RealmDenyMyAppPermissionGrantOperationHeaders `json:"headers,omitempty"`
+	Body    AppPermissionGrantDecisionDto `json:"body,omitempty"`
+}
+
 type RealmDisable2FaOperationPath struct {
 
 }
@@ -14149,6 +14254,25 @@ type RealmEnable2FaOperationRequest struct {
 	Body    Me2faVerifyDto `json:"body,omitempty"`
 }
 
+type RealmExpireMyAppPermissionGrantOperationPath struct {
+	GrantId string `json:"grantId,omitempty"`
+}
+
+type RealmExpireMyAppPermissionGrantOperationQuery struct {
+
+}
+
+type RealmExpireMyAppPermissionGrantOperationHeaders struct {
+
+}
+
+type RealmExpireMyAppPermissionGrantOperationRequest struct {
+	Path    RealmExpireMyAppPermissionGrantOperationPath `json:"path,omitempty"`
+	Query   RealmExpireMyAppPermissionGrantOperationQuery `json:"query,omitempty"`
+	Headers RealmExpireMyAppPermissionGrantOperationHeaders `json:"headers,omitempty"`
+	Body    AppPermissionGrantDecisionDto `json:"body,omitempty"`
+}
+
 type RealmExploreControllerCheckStatusOperationPath struct {
 
 }
@@ -14440,6 +14564,63 @@ type RealmGetMyAgentFriendLimitOperationRequest struct {
 	Path    RealmGetMyAgentFriendLimitOperationPath `json:"path,omitempty"`
 	Query   RealmGetMyAgentFriendLimitOperationQuery `json:"query,omitempty"`
 	Headers RealmGetMyAgentFriendLimitOperationHeaders `json:"headers,omitempty"`
+	Body    struct{} `json:"body,omitempty"`
+}
+
+type RealmGetMyAppPermissionGrantOperationPath struct {
+	GrantId string `json:"grantId,omitempty"`
+}
+
+type RealmGetMyAppPermissionGrantOperationQuery struct {
+
+}
+
+type RealmGetMyAppPermissionGrantOperationHeaders struct {
+
+}
+
+type RealmGetMyAppPermissionGrantOperationRequest struct {
+	Path    RealmGetMyAppPermissionGrantOperationPath `json:"path,omitempty"`
+	Query   RealmGetMyAppPermissionGrantOperationQuery `json:"query,omitempty"`
+	Headers RealmGetMyAppPermissionGrantOperationHeaders `json:"headers,omitempty"`
+	Body    struct{} `json:"body,omitempty"`
+}
+
+type RealmGetMyAppPermissionGrantProjectionOperationPath struct {
+
+}
+
+type RealmGetMyAppPermissionGrantProjectionOperationQuery struct {
+
+}
+
+type RealmGetMyAppPermissionGrantProjectionOperationHeaders struct {
+
+}
+
+type RealmGetMyAppPermissionGrantProjectionOperationRequest struct {
+	Path    RealmGetMyAppPermissionGrantProjectionOperationPath `json:"path,omitempty"`
+	Query   RealmGetMyAppPermissionGrantProjectionOperationQuery `json:"query,omitempty"`
+	Headers RealmGetMyAppPermissionGrantProjectionOperationHeaders `json:"headers,omitempty"`
+	Body    struct{} `json:"body,omitempty"`
+}
+
+type RealmGetMyAppPermissionGrantStatusOperationPath struct {
+
+}
+
+type RealmGetMyAppPermissionGrantStatusOperationQuery struct {
+	AppId string `json:"appId,omitempty"`
+}
+
+type RealmGetMyAppPermissionGrantStatusOperationHeaders struct {
+
+}
+
+type RealmGetMyAppPermissionGrantStatusOperationRequest struct {
+	Path    RealmGetMyAppPermissionGrantStatusOperationPath `json:"path,omitempty"`
+	Query   RealmGetMyAppPermissionGrantStatusOperationQuery `json:"query,omitempty"`
+	Headers RealmGetMyAppPermissionGrantStatusOperationHeaders `json:"headers,omitempty"`
 	Body    struct{} `json:"body,omitempty"`
 }
 
@@ -14828,6 +15009,25 @@ type RealmGetWorldScenesOperationRequest struct {
 	Body    struct{} `json:"body,omitempty"`
 }
 
+type RealmGrantMyAppPermissionGrantOperationPath struct {
+	GrantId string `json:"grantId,omitempty"`
+}
+
+type RealmGrantMyAppPermissionGrantOperationQuery struct {
+
+}
+
+type RealmGrantMyAppPermissionGrantOperationHeaders struct {
+
+}
+
+type RealmGrantMyAppPermissionGrantOperationRequest struct {
+	Path    RealmGrantMyAppPermissionGrantOperationPath `json:"path,omitempty"`
+	Query   RealmGrantMyAppPermissionGrantOperationQuery `json:"query,omitempty"`
+	Headers RealmGrantMyAppPermissionGrantOperationHeaders `json:"headers,omitempty"`
+	Body    AppPermissionGrantGrantDto `json:"body,omitempty"`
+}
+
 type RealmHumanNsfwConsentControllerCanManageAgentNsfwOperationPath struct {
 
 }
@@ -15178,6 +15378,25 @@ type RealmListMessagesOperationRequest struct {
 	Path    RealmListMessagesOperationPath `json:"path,omitempty"`
 	Query   RealmListMessagesOperationQuery `json:"query,omitempty"`
 	Headers RealmListMessagesOperationHeaders `json:"headers,omitempty"`
+	Body    struct{} `json:"body,omitempty"`
+}
+
+type RealmListMyAppPermissionGrantsOperationPath struct {
+
+}
+
+type RealmListMyAppPermissionGrantsOperationQuery struct {
+	AppId string `json:"appId,omitempty"`
+}
+
+type RealmListMyAppPermissionGrantsOperationHeaders struct {
+
+}
+
+type RealmListMyAppPermissionGrantsOperationRequest struct {
+	Path    RealmListMyAppPermissionGrantsOperationPath `json:"path,omitempty"`
+	Query   RealmListMyAppPermissionGrantsOperationQuery `json:"query,omitempty"`
+	Headers RealmListMyAppPermissionGrantsOperationHeaders `json:"headers,omitempty"`
 	Body    struct{} `json:"body,omitempty"`
 }
 
@@ -15879,6 +16098,25 @@ type RealmRequestEmailOtpOperationRequest struct {
 	Body    EmailOtpRequestDto `json:"body,omitempty"`
 }
 
+type RealmRequestMyAppPermissionGrantOperationPath struct {
+
+}
+
+type RealmRequestMyAppPermissionGrantOperationQuery struct {
+
+}
+
+type RealmRequestMyAppPermissionGrantOperationHeaders struct {
+
+}
+
+type RealmRequestMyAppPermissionGrantOperationRequest struct {
+	Path    RealmRequestMyAppPermissionGrantOperationPath `json:"path,omitempty"`
+	Query   RealmRequestMyAppPermissionGrantOperationQuery `json:"query,omitempty"`
+	Headers RealmRequestMyAppPermissionGrantOperationHeaders `json:"headers,omitempty"`
+	Body    AppPermissionGrantRequestDto `json:"body,omitempty"`
+}
+
 type RealmReviewControllerCreateReviewOperationPath struct {
 
 }
@@ -15915,6 +16153,25 @@ type RealmReviewControllerGetReviewsOperationRequest struct {
 	Query   RealmReviewControllerGetReviewsOperationQuery `json:"query,omitempty"`
 	Headers RealmReviewControllerGetReviewsOperationHeaders `json:"headers,omitempty"`
 	Body    struct{} `json:"body,omitempty"`
+}
+
+type RealmRevokeMyAppPermissionGrantOperationPath struct {
+	GrantId string `json:"grantId,omitempty"`
+}
+
+type RealmRevokeMyAppPermissionGrantOperationQuery struct {
+
+}
+
+type RealmRevokeMyAppPermissionGrantOperationHeaders struct {
+
+}
+
+type RealmRevokeMyAppPermissionGrantOperationRequest struct {
+	Path    RealmRevokeMyAppPermissionGrantOperationPath `json:"path,omitempty"`
+	Query   RealmRevokeMyAppPermissionGrantOperationQuery `json:"query,omitempty"`
+	Headers RealmRevokeMyAppPermissionGrantOperationHeaders `json:"headers,omitempty"`
+	Body    AppPermissionGrantDecisionDto `json:"body,omitempty"`
 }
 
 type RealmSearchHumanUsersOperationPath struct {
@@ -16065,6 +16322,25 @@ type RealmStartChatOperationRequest struct {
 	Query   RealmStartChatOperationQuery `json:"query,omitempty"`
 	Headers RealmStartChatOperationHeaders `json:"headers,omitempty"`
 	Body    StartChatInputDto `json:"body,omitempty"`
+}
+
+type RealmSupersedeMyAppPermissionGrantOperationPath struct {
+	GrantId string `json:"grantId,omitempty"`
+}
+
+type RealmSupersedeMyAppPermissionGrantOperationQuery struct {
+
+}
+
+type RealmSupersedeMyAppPermissionGrantOperationHeaders struct {
+
+}
+
+type RealmSupersedeMyAppPermissionGrantOperationRequest struct {
+	Path    RealmSupersedeMyAppPermissionGrantOperationPath `json:"path,omitempty"`
+	Query   RealmSupersedeMyAppPermissionGrantOperationQuery `json:"query,omitempty"`
+	Headers RealmSupersedeMyAppPermissionGrantOperationHeaders `json:"headers,omitempty"`
+	Body    AppPermissionGrantSupersedeDto `json:"body,omitempty"`
 }
 
 type RealmSyncChatEventsOperationPath struct {
@@ -17849,6 +18125,14 @@ func (c RealmTypedClient) DeleteResource(ctx context.Context, request RealmDelet
 	return decodeTypedResponse[struct{}](raw)
 }
 
+func (c RealmTypedClient) DenyMyAppPermissionGrant(ctx context.Context, request RealmDenyMyAppPermissionGrantOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AppPermissionGrantDto, error) {
+	raw, err := c.operationTyped(ctx, "denyMyAppPermissionGrant", request, metadata, timeoutMS)
+	if err != nil {
+		return AppPermissionGrantDto{}, err
+	}
+	return decodeTypedResponse[AppPermissionGrantDto](raw)
+}
+
 func (c RealmTypedClient) Disable2Fa(ctx context.Context, request RealmDisable2FaOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (Me2faOperationResultDto, error) {
 	raw, err := c.operationTyped(ctx, "disable2Fa", request, metadata, timeoutMS)
 	if err != nil {
@@ -18105,6 +18389,14 @@ func (c RealmTypedClient) Enable2Fa(ctx context.Context, request RealmEnable2FaO
 	return decodeTypedResponse[Me2faOperationResultDto](raw)
 }
 
+func (c RealmTypedClient) ExpireMyAppPermissionGrant(ctx context.Context, request RealmExpireMyAppPermissionGrantOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AppPermissionGrantDto, error) {
+	raw, err := c.operationTyped(ctx, "expireMyAppPermissionGrant", request, metadata, timeoutMS)
+	if err != nil {
+		return AppPermissionGrantDto{}, err
+	}
+	return decodeTypedResponse[AppPermissionGrantDto](raw)
+}
+
 func (c RealmTypedClient) ExploreControllerCheckStatus(ctx context.Context, request RealmExploreControllerCheckStatusOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (struct{}, error) {
 	raw, err := c.operationTyped(ctx, "ExploreController_checkStatus", request, metadata, timeoutMS)
 	if err != nil {
@@ -18223,6 +18515,30 @@ func (c RealmTypedClient) GetMyAgentFriendLimit(ctx context.Context, request Rea
 		return AgentFriendLimitDto{}, err
 	}
 	return decodeTypedResponse[AgentFriendLimitDto](raw)
+}
+
+func (c RealmTypedClient) GetMyAppPermissionGrant(ctx context.Context, request RealmGetMyAppPermissionGrantOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AppPermissionGrantDto, error) {
+	raw, err := c.operationTyped(ctx, "getMyAppPermissionGrant", request, metadata, timeoutMS)
+	if err != nil {
+		return AppPermissionGrantDto{}, err
+	}
+	return decodeTypedResponse[AppPermissionGrantDto](raw)
+}
+
+func (c RealmTypedClient) GetMyAppPermissionGrantProjection(ctx context.Context, request RealmGetMyAppPermissionGrantProjectionOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AccountGrantsProjectionDto, error) {
+	raw, err := c.operationTyped(ctx, "getMyAppPermissionGrantProjection", request, metadata, timeoutMS)
+	if err != nil {
+		return AccountGrantsProjectionDto{}, err
+	}
+	return decodeTypedResponse[AccountGrantsProjectionDto](raw)
+}
+
+func (c RealmTypedClient) GetMyAppPermissionGrantStatus(ctx context.Context, request RealmGetMyAppPermissionGrantStatusOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AppPermissionGrantStatusDto, error) {
+	raw, err := c.operationTyped(ctx, "getMyAppPermissionGrantStatus", request, metadata, timeoutMS)
+	if err != nil {
+		return AppPermissionGrantStatusDto{}, err
+	}
+	return decodeTypedResponse[AppPermissionGrantStatusDto](raw)
 }
 
 func (c RealmTypedClient) GetMyBlockedUsers(ctx context.Context, request RealmGetMyBlockedUsersOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (map[string]any, error) {
@@ -18385,6 +18701,14 @@ func (c RealmTypedClient) GetWorldScenes(ctx context.Context, request RealmGetWo
 	return decodeTypedResponse[PublicWorldSceneListDto](raw)
 }
 
+func (c RealmTypedClient) GrantMyAppPermissionGrant(ctx context.Context, request RealmGrantMyAppPermissionGrantOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AppPermissionGrantDto, error) {
+	raw, err := c.operationTyped(ctx, "grantMyAppPermissionGrant", request, metadata, timeoutMS)
+	if err != nil {
+		return AppPermissionGrantDto{}, err
+	}
+	return decodeTypedResponse[AppPermissionGrantDto](raw)
+}
+
 func (c RealmTypedClient) HumanNsfwConsentControllerCanManageAgentNsfw(ctx context.Context, request RealmHumanNsfwConsentControllerCanManageAgentNsfwOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CanManageNsfwResponseDto, error) {
 	raw, err := c.operationTyped(ctx, "HumanNsfwConsentController_canManageAgentNsfw", request, metadata, timeoutMS)
 	if err != nil {
@@ -18527,6 +18851,14 @@ func (c RealmTypedClient) ListMessages(ctx context.Context, request RealmListMes
 		return ListMessagesResultDto{}, err
 	}
 	return decodeTypedResponse[ListMessagesResultDto](raw)
+}
+
+func (c RealmTypedClient) ListMyAppPermissionGrants(ctx context.Context, request RealmListMyAppPermissionGrantsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AppPermissionGrantListDto, error) {
+	raw, err := c.operationTyped(ctx, "listMyAppPermissionGrants", request, metadata, timeoutMS)
+	if err != nil {
+		return AppPermissionGrantListDto{}, err
+	}
+	return decodeTypedResponse[AppPermissionGrantListDto](raw)
 }
 
 func (c RealmTypedClient) ListMyFriendIds(ctx context.Context, request RealmListMyFriendIdsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (struct{}, error) {
@@ -18817,6 +19149,14 @@ func (c RealmTypedClient) RequestEmailOtp(ctx context.Context, request RealmRequ
 	return decodeTypedResponse[EmailOtpResponseDto](raw)
 }
 
+func (c RealmTypedClient) RequestMyAppPermissionGrant(ctx context.Context, request RealmRequestMyAppPermissionGrantOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AppPermissionGrantDto, error) {
+	raw, err := c.operationTyped(ctx, "requestMyAppPermissionGrant", request, metadata, timeoutMS)
+	if err != nil {
+		return AppPermissionGrantDto{}, err
+	}
+	return decodeTypedResponse[AppPermissionGrantDto](raw)
+}
+
 func (c RealmTypedClient) ReviewControllerCreateReview(ctx context.Context, request RealmReviewControllerCreateReviewOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ReviewDto, error) {
 	raw, err := c.operationTyped(ctx, "ReviewController_createReview", request, metadata, timeoutMS)
 	if err != nil {
@@ -18831,6 +19171,14 @@ func (c RealmTypedClient) ReviewControllerGetReviews(ctx context.Context, reques
 		return []ReviewDto{}, err
 	}
 	return decodeTypedResponse[[]ReviewDto](raw)
+}
+
+func (c RealmTypedClient) RevokeMyAppPermissionGrant(ctx context.Context, request RealmRevokeMyAppPermissionGrantOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AppPermissionGrantDto, error) {
+	raw, err := c.operationTyped(ctx, "revokeMyAppPermissionGrant", request, metadata, timeoutMS)
+	if err != nil {
+		return AppPermissionGrantDto{}, err
+	}
+	return decodeTypedResponse[AppPermissionGrantDto](raw)
 }
 
 func (c RealmTypedClient) SearchHumanUsers(ctx context.Context, request RealmSearchHumanUsersOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UserSearchResponseDto, error) {
@@ -18879,6 +19227,14 @@ func (c RealmTypedClient) StartChat(ctx context.Context, request RealmStartChatO
 		return StartChatResultDto{}, err
 	}
 	return decodeTypedResponse[StartChatResultDto](raw)
+}
+
+func (c RealmTypedClient) SupersedeMyAppPermissionGrant(ctx context.Context, request RealmSupersedeMyAppPermissionGrantOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AppPermissionGrantDto, error) {
+	raw, err := c.operationTyped(ctx, "supersedeMyAppPermissionGrant", request, metadata, timeoutMS)
+	if err != nil {
+		return AppPermissionGrantDto{}, err
+	}
+	return decodeTypedResponse[AppPermissionGrantDto](raw)
 }
 
 func (c RealmTypedClient) SyncChatEvents(ctx context.Context, request RealmSyncChatEventsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ChatSyncResultDto, error) {

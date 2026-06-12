@@ -29727,6 +29727,29 @@ pub struct AbilityDefinitionDto {
     pub tier_required: f64,
 }
 
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AccountGrantProjectionRowDto {
+    pub app_id: String,
+    pub expires_at: String,
+    pub grant_id: String,
+    pub qualifier: String,
+    pub scope_family: String,
+    pub scope_name: String,
+    pub state: String,
+    pub subject_account_id: String,
+    pub version: f64,
+}
+
+pub type AccountGrantProjectionState = String;
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AccountGrantsProjectionDto {
+    pub account_id: String,
+    pub grants: Vec<AccountGrantProjectionRowDto>,
+    pub schema_version: f64,
+    pub updated_at: String,
+}
+
 pub type AccountRole = String;
 
 pub type AccountStatus = String;
@@ -30036,6 +30059,78 @@ pub struct AgentVoiceConfigDto {
 pub type AgentWakeStrategy = String;
 
 pub type ApiKeyType = String;
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AppPermissionGrantDecisionDto {
+    pub expected_version: f64,
+    pub reason: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AppPermissionGrantDto {
+    pub app_id: String,
+    pub denied_at: String,
+    pub denied_by_account_id: String,
+    pub expired_at: String,
+    pub expires_at: String,
+    pub grant_id: String,
+    pub granted_at: String,
+    pub granted_by_account_id: String,
+    pub qualifier: String,
+    pub reason: String,
+    pub requested_at: String,
+    pub requested_by_account_id: String,
+    pub revoked_at: String,
+    pub revoked_by_account_id: String,
+    pub scope_family: String,
+    pub scope_name: String,
+    pub state: String,
+    pub subject_account_id: String,
+    pub superseded_at: String,
+    pub superseded_by_account_id: String,
+    pub superseded_by_grant_id: String,
+    pub version: f64,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AppPermissionGrantGrantDto {
+    pub expected_version: f64,
+    pub expires_at: String,
+    pub reason: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AppPermissionGrantListDto {
+    pub items: Vec<AppPermissionGrantDto>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AppPermissionGrantRequestDto {
+    pub app_id: String,
+    pub qualifier: String,
+    pub reason: String,
+    pub scope_family: String,
+    pub scope_name: String,
+}
+
+pub type AppPermissionGrantState = String;
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AppPermissionGrantStatusDto {
+    pub generated_at: String,
+    pub grants: Vec<AppPermissionGrantDto>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AppPermissionGrantSupersedeDto {
+    pub expected_version: f64,
+    pub reason: String,
+    pub superseded_by_grant_id: String,
+}
+
+pub type AppPermissionScopeFamily = String;
+
+pub type AppPermissionScopeName = String;
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct AppendWorldHistoryDto {
@@ -34727,6 +34822,29 @@ pub struct RealmDeleteResourceOperationRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmDenyMyAppPermissionGrantOperationPath {
+    pub grant_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmDenyMyAppPermissionGrantOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmDenyMyAppPermissionGrantOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmDenyMyAppPermissionGrantOperationRequest {
+    pub path: RealmDenyMyAppPermissionGrantOperationPath,
+    pub query: RealmDenyMyAppPermissionGrantOperationQuery,
+    pub headers: RealmDenyMyAppPermissionGrantOperationHeaders,
+    pub body: AppPermissionGrantDecisionDto,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmDisable2FaOperationPath {
 
 }
@@ -35471,6 +35589,29 @@ pub struct RealmEnable2FaOperationRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmExpireMyAppPermissionGrantOperationPath {
+    pub grant_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmExpireMyAppPermissionGrantOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmExpireMyAppPermissionGrantOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmExpireMyAppPermissionGrantOperationRequest {
+    pub path: RealmExpireMyAppPermissionGrantOperationPath,
+    pub query: RealmExpireMyAppPermissionGrantOperationQuery,
+    pub headers: RealmExpireMyAppPermissionGrantOperationHeaders,
+    pub body: AppPermissionGrantDecisionDto,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmExploreControllerCheckStatusOperationPath {
 
 }
@@ -35821,6 +35962,75 @@ pub struct RealmGetMyAgentFriendLimitOperationRequest {
     pub path: RealmGetMyAgentFriendLimitOperationPath,
     pub query: RealmGetMyAgentFriendLimitOperationQuery,
     pub headers: RealmGetMyAgentFriendLimitOperationHeaders,
+    pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetMyAppPermissionGrantOperationPath {
+    pub grant_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetMyAppPermissionGrantOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetMyAppPermissionGrantOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetMyAppPermissionGrantOperationRequest {
+    pub path: RealmGetMyAppPermissionGrantOperationPath,
+    pub query: RealmGetMyAppPermissionGrantOperationQuery,
+    pub headers: RealmGetMyAppPermissionGrantOperationHeaders,
+    pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetMyAppPermissionGrantProjectionOperationPath {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetMyAppPermissionGrantProjectionOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetMyAppPermissionGrantProjectionOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetMyAppPermissionGrantProjectionOperationRequest {
+    pub path: RealmGetMyAppPermissionGrantProjectionOperationPath,
+    pub query: RealmGetMyAppPermissionGrantProjectionOperationQuery,
+    pub headers: RealmGetMyAppPermissionGrantProjectionOperationHeaders,
+    pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetMyAppPermissionGrantStatusOperationPath {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetMyAppPermissionGrantStatusOperationQuery {
+    pub app_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetMyAppPermissionGrantStatusOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetMyAppPermissionGrantStatusOperationRequest {
+    pub path: RealmGetMyAppPermissionGrantStatusOperationPath,
+    pub query: RealmGetMyAppPermissionGrantStatusOperationQuery,
+    pub headers: RealmGetMyAppPermissionGrantStatusOperationHeaders,
     pub body: (),
 }
 
@@ -36290,6 +36500,29 @@ pub struct RealmGetWorldScenesOperationRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGrantMyAppPermissionGrantOperationPath {
+    pub grant_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGrantMyAppPermissionGrantOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGrantMyAppPermissionGrantOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGrantMyAppPermissionGrantOperationRequest {
+    pub path: RealmGrantMyAppPermissionGrantOperationPath,
+    pub query: RealmGrantMyAppPermissionGrantOperationQuery,
+    pub headers: RealmGrantMyAppPermissionGrantOperationHeaders,
+    pub body: AppPermissionGrantGrantDto,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmHumanNsfwConsentControllerCanManageAgentNsfwOperationPath {
 
 }
@@ -36711,6 +36944,29 @@ pub struct RealmListMessagesOperationRequest {
     pub path: RealmListMessagesOperationPath,
     pub query: RealmListMessagesOperationQuery,
     pub headers: RealmListMessagesOperationHeaders,
+    pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmListMyAppPermissionGrantsOperationPath {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmListMyAppPermissionGrantsOperationQuery {
+    pub app_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmListMyAppPermissionGrantsOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmListMyAppPermissionGrantsOperationRequest {
+    pub path: RealmListMyAppPermissionGrantsOperationPath,
+    pub query: RealmListMyAppPermissionGrantsOperationQuery,
+    pub headers: RealmListMyAppPermissionGrantsOperationHeaders,
     pub body: (),
 }
 
@@ -37557,6 +37813,29 @@ pub struct RealmRequestEmailOtpOperationRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmRequestMyAppPermissionGrantOperationPath {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmRequestMyAppPermissionGrantOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmRequestMyAppPermissionGrantOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmRequestMyAppPermissionGrantOperationRequest {
+    pub path: RealmRequestMyAppPermissionGrantOperationPath,
+    pub query: RealmRequestMyAppPermissionGrantOperationQuery,
+    pub headers: RealmRequestMyAppPermissionGrantOperationHeaders,
+    pub body: AppPermissionGrantRequestDto,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmReviewControllerCreateReviewOperationPath {
 
 }
@@ -37600,6 +37879,29 @@ pub struct RealmReviewControllerGetReviewsOperationRequest {
     pub query: RealmReviewControllerGetReviewsOperationQuery,
     pub headers: RealmReviewControllerGetReviewsOperationHeaders,
     pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmRevokeMyAppPermissionGrantOperationPath {
+    pub grant_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmRevokeMyAppPermissionGrantOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmRevokeMyAppPermissionGrantOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmRevokeMyAppPermissionGrantOperationRequest {
+    pub path: RealmRevokeMyAppPermissionGrantOperationPath,
+    pub query: RealmRevokeMyAppPermissionGrantOperationQuery,
+    pub headers: RealmRevokeMyAppPermissionGrantOperationHeaders,
+    pub body: AppPermissionGrantDecisionDto,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -37774,6 +38076,29 @@ pub struct RealmStartChatOperationRequest {
     pub query: RealmStartChatOperationQuery,
     pub headers: RealmStartChatOperationHeaders,
     pub body: StartChatInputDto,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmSupersedeMyAppPermissionGrantOperationPath {
+    pub grant_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmSupersedeMyAppPermissionGrantOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmSupersedeMyAppPermissionGrantOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmSupersedeMyAppPermissionGrantOperationRequest {
+    pub path: RealmSupersedeMyAppPermissionGrantOperationPath,
+    pub query: RealmSupersedeMyAppPermissionGrantOperationQuery,
+    pub headers: RealmSupersedeMyAppPermissionGrantOperationHeaders,
+    pub body: AppPermissionGrantSupersedeDto,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -39993,6 +40318,17 @@ where
         Ok(<()>::default())
     }
 
+    pub fn deny_my_app_permission_grant(&self, request: RealmDenyMyAppPermissionGrantOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<AppPermissionGrantDto, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "denyMyAppPermissionGrant".to_string(),
+            metadata,
+            body: format!("{:?}", request).into_bytes(),
+            timeout,
+        })?;
+        let _ = raw;
+        Ok(AppPermissionGrantDto::default())
+    }
+
     pub fn disable2_fa(&self, request: RealmDisable2FaOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<Me2faOperationResultDto, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "disable2Fa".to_string(),
@@ -40345,6 +40681,17 @@ where
         Ok(Me2faOperationResultDto::default())
     }
 
+    pub fn expire_my_app_permission_grant(&self, request: RealmExpireMyAppPermissionGrantOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<AppPermissionGrantDto, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "expireMyAppPermissionGrant".to_string(),
+            metadata,
+            body: format!("{:?}", request).into_bytes(),
+            timeout,
+        })?;
+        let _ = raw;
+        Ok(AppPermissionGrantDto::default())
+    }
+
     pub fn explore_controller_check_status(&self, request: RealmExploreControllerCheckStatusOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "ExploreController_checkStatus".to_string(),
@@ -40508,6 +40855,39 @@ where
         })?;
         let _ = raw;
         Ok(AgentFriendLimitDto::default())
+    }
+
+    pub fn get_my_app_permission_grant(&self, request: RealmGetMyAppPermissionGrantOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<AppPermissionGrantDto, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "getMyAppPermissionGrant".to_string(),
+            metadata,
+            body: format!("{:?}", request).into_bytes(),
+            timeout,
+        })?;
+        let _ = raw;
+        Ok(AppPermissionGrantDto::default())
+    }
+
+    pub fn get_my_app_permission_grant_projection(&self, request: RealmGetMyAppPermissionGrantProjectionOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<AccountGrantsProjectionDto, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "getMyAppPermissionGrantProjection".to_string(),
+            metadata,
+            body: format!("{:?}", request).into_bytes(),
+            timeout,
+        })?;
+        let _ = raw;
+        Ok(AccountGrantsProjectionDto::default())
+    }
+
+    pub fn get_my_app_permission_grant_status(&self, request: RealmGetMyAppPermissionGrantStatusOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<AppPermissionGrantStatusDto, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "getMyAppPermissionGrantStatus".to_string(),
+            metadata,
+            body: format!("{:?}", request).into_bytes(),
+            timeout,
+        })?;
+        let _ = raw;
+        Ok(AppPermissionGrantStatusDto::default())
     }
 
     pub fn get_my_blocked_users(&self, request: RealmGetMyBlockedUsersOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<BTreeMap<String, String>, T::Error> {
@@ -40730,6 +41110,17 @@ where
         Ok(PublicWorldSceneListDto::default())
     }
 
+    pub fn grant_my_app_permission_grant(&self, request: RealmGrantMyAppPermissionGrantOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<AppPermissionGrantDto, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "grantMyAppPermissionGrant".to_string(),
+            metadata,
+            body: format!("{:?}", request).into_bytes(),
+            timeout,
+        })?;
+        let _ = raw;
+        Ok(AppPermissionGrantDto::default())
+    }
+
     pub fn human_nsfw_consent_controller_can_manage_agent_nsfw(&self, request: RealmHumanNsfwConsentControllerCanManageAgentNsfwOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CanManageNsfwResponseDto, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "HumanNsfwConsentController_canManageAgentNsfw".to_string(),
@@ -40926,6 +41317,17 @@ where
         })?;
         let _ = raw;
         Ok(ListMessagesResultDto::default())
+    }
+
+    pub fn list_my_app_permission_grants(&self, request: RealmListMyAppPermissionGrantsOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<AppPermissionGrantListDto, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "listMyAppPermissionGrants".to_string(),
+            metadata,
+            body: format!("{:?}", request).into_bytes(),
+            timeout,
+        })?;
+        let _ = raw;
+        Ok(AppPermissionGrantListDto::default())
     }
 
     pub fn list_my_friend_ids(&self, request: RealmListMyFriendIdsOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
@@ -41324,6 +41726,17 @@ where
         Ok(EmailOtpResponseDto::default())
     }
 
+    pub fn request_my_app_permission_grant(&self, request: RealmRequestMyAppPermissionGrantOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<AppPermissionGrantDto, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "requestMyAppPermissionGrant".to_string(),
+            metadata,
+            body: format!("{:?}", request).into_bytes(),
+            timeout,
+        })?;
+        let _ = raw;
+        Ok(AppPermissionGrantDto::default())
+    }
+
     pub fn review_controller_create_review(&self, request: RealmReviewControllerCreateReviewOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ReviewDto, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "ReviewController_createReview".to_string(),
@@ -41344,6 +41757,17 @@ where
         })?;
         let _ = raw;
         Ok(Vec::<ReviewDto>::default())
+    }
+
+    pub fn revoke_my_app_permission_grant(&self, request: RealmRevokeMyAppPermissionGrantOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<AppPermissionGrantDto, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "revokeMyAppPermissionGrant".to_string(),
+            metadata,
+            body: format!("{:?}", request).into_bytes(),
+            timeout,
+        })?;
+        let _ = raw;
+        Ok(AppPermissionGrantDto::default())
     }
 
     pub fn search_human_users(&self, request: RealmSearchHumanUsersOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<UserSearchResponseDto, T::Error> {
@@ -41410,6 +41834,17 @@ where
         })?;
         let _ = raw;
         Ok(StartChatResultDto::default())
+    }
+
+    pub fn supersede_my_app_permission_grant(&self, request: RealmSupersedeMyAppPermissionGrantOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<AppPermissionGrantDto, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "supersedeMyAppPermissionGrant".to_string(),
+            metadata,
+            body: format!("{:?}", request).into_bytes(),
+            timeout,
+        })?;
+        let _ = raw;
+        Ok(AppPermissionGrantDto::default())
     }
 
     pub fn sync_chat_events(&self, request: RealmSyncChatEventsOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ChatSyncResultDto, T::Error> {

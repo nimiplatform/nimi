@@ -322,17 +322,30 @@ func (s *Service) OpenSession(ctx context.Context, req *runtimev1.OpenSessionReq
 	deviceID := strings.TrimSpace(req.GetDeviceId())
 	subjectUserID := strings.TrimSpace(req.GetSubjectUserId())
 
-	if appID == "" || instanceID == "" || subjectUserID == "" {
+	if appID == "" || instanceID == "" {
 		s.emitAudit(ctx, "OpenSession", appID, subjectUserID, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 		return &runtimev1.OpenSessionResponse{ReasonCode: runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID}, nil
 	}
 
 	s.mu.RLock()
-	_, exists := s.apps[appID+"::"+instanceID]
+	registration, exists := s.apps[appID+"::"+instanceID]
 	s.mu.RUnlock()
 	if !exists {
 		s.emitAudit(ctx, "OpenSession", appID, subjectUserID, runtimev1.ReasonCode_APP_NOT_REGISTERED)
 		return &runtimev1.OpenSessionResponse{ReasonCode: runtimev1.ReasonCode_APP_NOT_REGISTERED}, nil
+	}
+	localFirstParty := isPlatformGovernedNimiAppID(normalizeNimiAppRegistryID(appID)) &&
+		isLocalFirstPartyModeManifest(registration.ModeManifest)
+	if localFirstParty && subjectUserID != "" {
+		s.emitAuditWithPayload(ctx, "OpenSession", appID, subjectUserID, runtimev1.ReasonCode_APP_AUTHORIZATION_DENIED, map[string]any{
+			"subject_source": "caller_provided",
+			"session_mode":   "local_first_party",
+		})
+		return &runtimev1.OpenSessionResponse{ReasonCode: runtimev1.ReasonCode_APP_AUTHORIZATION_DENIED}, nil
+	}
+	if !localFirstParty && subjectUserID == "" {
+		s.emitAudit(ctx, "OpenSession", appID, subjectUserID, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		return &runtimev1.OpenSessionResponse{ReasonCode: runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID}, nil
 	}
 
 	now := time.Now().UTC()
@@ -374,6 +387,12 @@ func (s *Service) OpenSession(ctx context.Context, req *runtimev1.OpenSessionReq
 		SessionToken: sessionToken,
 		ReasonCode:   runtimev1.ReasonCode_ACTION_EXECUTED,
 	}, nil
+}
+
+func isLocalFirstPartyModeManifest(manifest *runtimev1.AppModeManifest) bool {
+	return manifest.GetAppMode() == runtimev1.AppMode_APP_MODE_FULL &&
+		manifest.GetRuntimeRequired() &&
+		manifest.GetRealmRequired()
 }
 
 func (s *Service) RefreshSession(ctx context.Context, req *runtimev1.RefreshSessionRequest) (*runtimev1.RefreshSessionResponse, error) {

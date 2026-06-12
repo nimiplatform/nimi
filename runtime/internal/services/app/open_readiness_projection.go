@@ -137,7 +137,7 @@ func (v *accountProjectionOpenReadinessVerifier) VerifyOpenPermissions(ctx conte
 		return OpenAppReadinessDecision{Allowed: false, Detail: err.Error()}, nil
 	}
 	for _, required := range app.PermissionScopeRefs {
-		if !record.hasGrantedScope(app.AppID, required) {
+		if !record.hasGrantedScope(required) {
 			return OpenAppReadinessDecision{
 				Allowed: false,
 				Detail:  fmt.Sprintf("permission grant is missing for scope %s", requiredPermissionScope(required)),
@@ -170,12 +170,15 @@ type accountGrantsRecord struct {
 }
 
 type accountGrantRow struct {
-	GrantID   string  `json:"grantId"`
-	Subject   string  `json:"subject"`
-	Scope     string  `json:"scope"`
-	State     string  `json:"state"`
-	CreatedAt string  `json:"createdAt"`
-	ExpiresAt *string `json:"expiresAt"`
+	GrantID          string  `json:"grantId"`
+	SubjectAccountID string  `json:"subjectAccountId"`
+	AppID            string  `json:"appId"`
+	ScopeFamily      string  `json:"scopeFamily"`
+	ScopeName        string  `json:"scopeName"`
+	Qualifier        *string `json:"qualifier"`
+	State            string  `json:"state"`
+	ExpiresAt        *string `json:"expiresAt"`
+	Version          *uint64 `json:"version"`
 }
 
 func (v *accountProjectionOpenReadinessVerifier) readAccountAppLibrary(accountID string) (accountAppLibraryRecord, error) {
@@ -213,8 +216,22 @@ func (v *accountProjectionOpenReadinessVerifier) readAccountGrants(accountID str
 	}
 	now := v.now().UTC()
 	for _, row := range record.Grants {
-		if strings.TrimSpace(row.GrantID) == "" || strings.TrimSpace(row.Subject) == "" || strings.TrimSpace(row.Scope) == "" || strings.TrimSpace(row.CreatedAt) == "" {
-			return accountGrantsRecord{}, errors.New("grants.json grant row requires grantId, subject, scope, and createdAt")
+		if strings.TrimSpace(row.GrantID) == "" ||
+			strings.TrimSpace(row.SubjectAccountID) == "" ||
+			strings.TrimSpace(row.AppID) == "" ||
+			strings.TrimSpace(row.ScopeFamily) == "" ||
+			strings.TrimSpace(row.ScopeName) == "" ||
+			row.Version == nil {
+			return accountGrantsRecord{}, errors.New("grants.json grant row requires grantId, subjectAccountId, appId, scopeFamily, scopeName, state, and version")
+		}
+		if !knownAccountGrantState(row.State) {
+			return accountGrantsRecord{}, fmt.Errorf("grants.json grant %s has an unknown state: %s", row.GrantID, row.State)
+		}
+		if row.SubjectAccountID != accountID {
+			return accountGrantsRecord{}, fmt.Errorf("grants.json grant %s subjectAccountId does not match the authenticated Runtime account", row.GrantID)
+		}
+		if row.Qualifier != nil && strings.TrimSpace(*row.Qualifier) == "" {
+			return accountGrantsRecord{}, fmt.Errorf("grants.json grant %s qualifier must be omitted or a non-empty value", row.GrantID)
 		}
 		if row.State == accountGrantStateGranted && row.ExpiresAt != nil {
 			expiresAt, err := time.Parse(time.RFC3339, strings.TrimSpace(*row.ExpiresAt))
@@ -259,23 +276,41 @@ func readRequiredJSON(path string, out any) error {
 	return nil
 }
 
-func (r accountGrantsRecord) hasGrantedScope(appID string, required appregistrycatalog.PermissionScopeRef) bool {
-	if strings.TrimSpace(required.Qualifier) != "" {
-		return false
-	}
-	requiredScope := requiredPermissionScope(required)
+func (r accountGrantsRecord) hasGrantedScope(required appregistrycatalog.PermissionScopeRef) bool {
 	for _, grant := range r.Grants {
-		if strings.TrimSpace(grant.Subject) != strings.TrimSpace(appID) {
+		if grant.State != accountGrantStateGranted {
 			continue
 		}
-		if strings.TrimSpace(grant.State) != accountGrantStateGranted {
+		if strings.TrimSpace(grant.AppID) != strings.TrimSpace(required.AppID) {
 			continue
 		}
-		if strings.TrimSpace(grant.Scope) == requiredScope {
+		if strings.TrimSpace(grant.ScopeFamily) != strings.TrimSpace(required.ScopeFamily) {
+			continue
+		}
+		if strings.TrimSpace(grant.ScopeName) != strings.TrimSpace(required.ScopeName) {
+			continue
+		}
+		if grantQualifier(grant) == strings.TrimSpace(required.Qualifier) {
 			return true
 		}
 	}
 	return false
+}
+
+func knownAccountGrantState(state string) bool {
+	switch state {
+	case "pending", "granted", "denied", "expired", "revoked", "superseded":
+		return true
+	default:
+		return false
+	}
+}
+
+func grantQualifier(grant accountGrantRow) string {
+	if grant.Qualifier == nil {
+		return ""
+	}
+	return strings.TrimSpace(*grant.Qualifier)
 }
 
 func requiredPermissionScope(scope appregistrycatalog.PermissionScopeRef) string {

@@ -1,10 +1,12 @@
 import {
-  PermissionClient,
-  type GrantStatus,
   type NimiAppScopeRef,
   type PermissionScopeRef,
-  type PermissionTransport,
 } from '@nimiplatform/sdk/app';
+import {
+  createNimiClient,
+  type CoreStreamRequest,
+  type CoreUnaryRequest,
+} from '@nimiplatform/sdk';
 import { createNimiRuntimeConnectorInventoryClient, createNimiRuntimeModelCatalogClient, listNimiRuntimeLocalAssetEntries, NimiRuntimeHealthCoordinator, normalizeNimiRuntimeRouteCapabilityToken, type NimiRuntimeConnectorClient, type NimiRuntimeModelCatalogConnectorClient, type NimiRuntimeRouteCapabilityRuntime } from '@nimiplatform/sdk/runtime';
 import { CatalogModelSource, ConnectorAuthKind, ConnectorKind, ConnectorOwnerType, ConnectorStatus, LocalAssetKind, LocalAssetStatus, ModelCatalogProviderSource, type LocalAssetRecord, type ProviderCatalogEntry } from '@nimiplatform/sdk/runtime/generated';
 import {
@@ -18,6 +20,7 @@ import type {
   RealmGiftCatalogResponse,
   RealmReceivedGiftsResponse,
 } from '@nimiplatform/kit/features/commerce/realm';
+import { appId } from '../../auth/app-identity.js';
 import { createTesterWorldDisplayProjection } from '../../../tester/tester-world-display-projection';
 import { createTesterAppLabAIScopeRef } from '../../../tester/tester-ai-config-store';
 
@@ -60,7 +63,7 @@ export async function resolveTesterLocalRuntimeFacadeProjection(): Promise<strin
   return entry?.assetId ?? 'none';
 }
 
-export async function resolveTesterPermissionClientProjection(): Promise<{ scopeOwner: string; grantCount: number; firstState: string }> {
+export async function resolveTesterPermissionClientProjection(): Promise<{ scopeOwner: string; grantCount: number; firstState: string; requestState: string; revokeState: string }> {
   const aiScopeRef = createTesterAppLabAIScopeRef();
   const scopeRef: NimiAppScopeRef = {
     kind: 'app',
@@ -68,61 +71,85 @@ export async function resolveTesterPermissionClientProjection(): Promise<{ scope
     surfaceId: aiScopeRef.surfaceId,
   };
   const permissionScope: PermissionScopeRef = {
-    appId: 'tester.app',
+    appId,
     scopeFamily: 'account',
     scopeName: 'account.read',
   };
-  const grant: GrantStatus = {
-    scopeRef,
-    grant: {
-      grantId: 'tester-settings-grant',
-      permissionScope,
-      subjectUserId: 'tester-user',
-    },
-    state: 'granted' as const,
-  };
-  const transport: PermissionTransport = {
-    async list(inputScopeRef) {
-      return [{ ...grant, scopeRef: inputScopeRef }];
-    },
-    async get(inputScopeRef, grantId) {
-      return { ...grant, scopeRef: inputScopeRef, grant: { ...grant.grant, grantId } };
-    },
-    async request(inputScopeRef, _grantSpec) {
-      return {
-        scopeRef: inputScopeRef,
-        accepted: true,
-        grantId: 'tester-settings-pending-grant',
-        state: 'pending',
-      };
-    },
-    async revoke(inputScopeRef, grantId) {
-      return {
-        ...grant,
-        scopeRef: inputScopeRef,
-        grant: { ...grant.grant, grantId },
-        state: 'revoked',
-      };
-    },
-    subscribe(inputScopeRef, callback) {
-      callback({ scopeRef: inputScopeRef, grant: { ...grant, scopeRef: inputScopeRef } });
-      return () => {};
-    },
-    async status(inputScopeRef) {
-      return {
-        scopeRef: inputScopeRef,
-        grants: [{ ...grant, scopeRef: inputScopeRef }],
-        generatedAt: '2026-06-01T00:00:00Z',
-      };
-    },
-  };
-  const client = new PermissionClient(transport);
-  const snapshot = await client.status(scopeRef);
-  const grants = await client.list(scopeRef);
+  const realmTransport = createTesterPermissionRealmTransport();
+  const client = createNimiClient({
+    appId,
+    runtime: { transport: testerNoopCoreTransport },
+    realm: { transport: realmTransport },
+  });
+  const permissions = client.requirePermissions();
+  const snapshot = await permissions.status(scopeRef);
+  const grants = await permissions.list(scopeRef);
+  const requested = await permissions.request(scopeRef, {
+    permissionScope,
+    reason: 'Tester settings permission projection',
+  });
+  const revoked = await permissions.revoke(scopeRef, 'tester-settings-grant');
   return {
     scopeOwner: snapshot.scopeRef.ownerId,
     grantCount: grants.length,
     firstState: snapshot.grants[0]?.state ?? 'none',
+    requestState: requested.state,
+    revokeState: revoked.state,
+  };
+}
+
+function testerRealmPermissionGrant(input: Record<string, unknown> = {}) {
+  return {
+    grantId: 'tester-settings-grant',
+    subjectAccountId: 'tester-user',
+    appId,
+    scopeFamily: 'account',
+    scopeName: 'account.read',
+    state: 'GRANTED',
+    reason: 'Tester settings permission projection',
+    version: 7,
+    requestedAt: '2026-06-10T00:00:00.000Z',
+    requestedByAccountId: 'tester-user',
+    ...input,
+  };
+}
+
+const testerNoopCoreTransport = {
+  async unary<Response = unknown>(_request: CoreUnaryRequest): Promise<Response> {
+    throw new Error('Tester permission projection does not call Runtime transport.');
+  },
+  async *serverStream<Response = unknown>(_request: CoreStreamRequest): AsyncIterable<Response> {
+    throw new Error('Tester permission projection does not call Runtime streaming transport.');
+  },
+};
+
+function createTesterPermissionRealmTransport() {
+  return {
+    async unary<Response = unknown>(request: CoreUnaryRequest): Promise<Response> {
+      switch (request.methodId) {
+        case 'listMyAppPermissionGrants':
+          return { items: [testerRealmPermissionGrant()] } as Response;
+        case 'getMyAppPermissionGrantStatus':
+          return {
+            generatedAt: '2026-06-10T00:00:01.000Z',
+            grants: [testerRealmPermissionGrant()],
+          } as Response;
+        case 'requestMyAppPermissionGrant':
+          return testerRealmPermissionGrant({
+            grantId: 'tester-settings-requested-grant',
+            state: 'PENDING',
+          }) as Response;
+        case 'getMyAppPermissionGrant':
+          return testerRealmPermissionGrant() as Response;
+        case 'revokeMyAppPermissionGrant':
+          return testerRealmPermissionGrant({ state: 'REVOKED' }) as Response;
+        default:
+          throw new Error(`Unexpected Realm permission method in tester projection: ${request.methodId}`);
+      }
+    },
+    async *serverStream<Response = unknown>(_request: CoreStreamRequest): AsyncIterable<Response> {
+      throw new Error('Tester permission projection does not call Realm streaming transport.');
+    },
   };
 }
 

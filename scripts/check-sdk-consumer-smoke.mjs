@@ -96,6 +96,7 @@ import {
   Realm,
   Runtime,
   collectNimiTextStream,
+  createAppScopeRef,
   createNimiAppClient,
   createNimiClient,
   createNimiClientId,
@@ -183,9 +184,72 @@ const streamResult = await collectNimiTextStream((async function* () {
 assert.equal(streamResult.text, 'hello stream');
 assert.equal(streamResult.finishReason, 'stop');
 
-const realm = createRealm({ baseUrl: 'https://realm.nimi.ai', transport: { async unary() { return {}; }, async *serverStream() {} } });
+const realmCalls = [];
+function realmGrant(input = {}) {
+  return {
+    grantId: 'grant-1',
+    subjectAccountId: 'account-1',
+    appId: 'tester.app',
+    scopeFamily: 'account',
+    scopeName: 'account.read',
+    state: 'GRANTED',
+    reason: 'consumer smoke',
+    version: 5,
+    requestedAt: '2026-06-10T00:00:00.000Z',
+    requestedByAccountId: 'account-1',
+    ...input,
+  };
+}
+const realmTransport = {
+  async unary(request) {
+    realmCalls.push(request.methodId);
+    if (request.methodId === 'listMyAppPermissionGrants') return { items: [realmGrant()] };
+    if (request.methodId === 'getMyAppPermissionGrantStatus') {
+      return { generatedAt: '2026-06-10T00:00:01.000Z', grants: [realmGrant()] };
+    }
+    if (request.methodId === 'requestMyAppPermissionGrant') {
+      return realmGrant({ grantId: 'grant-requested', state: 'PENDING' });
+    }
+    if (request.methodId === 'getMyAppPermissionGrant') return realmGrant();
+    if (request.methodId === 'revokeMyAppPermissionGrant') return realmGrant({ state: 'REVOKED' });
+    return {};
+  },
+  async *serverStream() {},
+};
+const realm = createRealm({ baseUrl: 'https://realm.nimi.ai', transport: realmTransport });
 assert.ok(realm instanceof Realm);
 assert.equal(normalizeNimiRealmBaseUrl('https://realm.nimi.ai/'), 'https://realm.nimi.ai');
+
+const permissionClient = createNimiClient({
+  appId: 'tester.app',
+  runtime,
+  realm: { transport: realmTransport },
+}).requirePermissions();
+const permissionScopeRef = createAppScopeRef({ appId: 'tester.app', surfaceId: 'settings' });
+const permissionScope = {
+  appId: 'tester.app',
+  scopeFamily: 'account',
+  scopeName: 'account.read',
+};
+assert.equal((await permissionClient.list(permissionScopeRef))[0]?.state, 'granted');
+assert.equal((await permissionClient.status(permissionScopeRef)).grants[0]?.grant.grantId, 'grant-1');
+assert.equal((await permissionClient.request(permissionScopeRef, { permissionScope, reason: 'consumer smoke' })).state, 'pending');
+assert.equal((await permissionClient.revoke(permissionScopeRef, 'grant-1')).state, 'revoked');
+assert.deepEqual(realmCalls, [
+  'listMyAppPermissionGrants',
+  'getMyAppPermissionGrantStatus',
+  'requestMyAppPermissionGrant',
+  'getMyAppPermissionGrant',
+  'revokeMyAppPermissionGrant',
+]);
+await assert.rejects(
+  permissionClient.request(permissionScopeRef, {
+    permissionScope,
+    subjectUserId: 'other-account',
+    reason: 'subject override',
+  }),
+  (error) => error?.reasonCode === 'SDK_REALM_PERMISSION_SUBJECT_NOT_ADMITTED',
+);
 
 const app = createNimiAppClient({
   async list() { return []; },

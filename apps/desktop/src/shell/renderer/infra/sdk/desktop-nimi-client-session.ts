@@ -98,7 +98,6 @@ export async function configureDesktopRuntimeRealmSession(
     ttlSeconds: PLATFORM_RUNTIME_SESSION_TTL_SECONDS,
     refreshSkewMs: PLATFORM_RUNTIME_SESSION_REFRESH_SKEW_MS,
     auth: accountRuntime.auth,
-    getSubjectUserId: getRuntimeSubjectUserId,
   });
   const runtimeSessionMetadata = async (): Promise<CoreMetadata> => {
     if (!(await getRuntimeSubjectUserId())) {

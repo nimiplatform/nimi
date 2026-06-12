@@ -1,19 +1,21 @@
 # Hook Intent
 
 A `HookIntent` is the typed contract by which an agent requests
-future scheduled action. Models cannot emit free-form scheduling
-logic; they emit typed hook intents that Runtime validates and
-admits.
+future follow-up-turn action. Models cannot emit free-form scheduling
+logic; they emit typed hook intents that Runtime validates and admits.
+For the first release promise this is narrow follow-up-turn only; general
+reminders, appointments, broad automation, and app scheduler ownership are
+not promised.
 
-This is what makes "an agent who decides to follow up with you
-tomorrow" a real capability instead of a free-form prompt.
+This is what makes "an agent proposes a bounded follow-up turn" a typed
+Runtime decision instead of a free-form prompt.
 
 ## What Hook Intent Solves
 
-A naive agent design lets the model say something like "remind the
-user tomorrow at 9am about the interview." That string is not
-itself a real schedule — it is a model output that some downstream
-code needs to interpret and turn into an actual scheduled call.
+A naive agent design lets the model emit arbitrary future-action text.
+That string is not itself an admitted hook — it is a model output that
+some downstream code would need to interpret and turn into an actual
+call.
 
 Two failure modes follow:
 
@@ -35,9 +37,9 @@ A typed intent record describes:
 
 | Field | Meaning |
 | --- | --- |
-| Intent kind | What sort of future action is requested |
+| Intent kind | What sort of follow-up-turn action is requested |
 | Parameters | Typed arguments specific to the kind |
-| Schedule | When to fire (absolute, relative, conditional) |
+| Schedule | When the narrow follow-up-turn hook is eligible to fire |
 | Scope | Within whose context this intent runs |
 | Approval requirement | Whether user approval is needed before firing |
 
@@ -61,30 +63,28 @@ Once admitted, an intent enters the hook lifecycle:
 The state machine is the same for any agent's hooks. An intent that
 never reaches `pending` is one Runtime refused to admit.
 
-## Reader Scenario: An Agent Schedules A Follow-Up
+## Reader Scenario: An Agent Requests A Follow-Up Turn
 
-A user mentions an interview tomorrow at 9am. The agent decides to
-remind the user.
+A user mentions an interview. The agent proposes a bounded follow-up turn.
 
 1. **Agent emits typed intent.** Through APML wire format, the
-   model produces a typed `HookIntent` record: kind = `remind`,
-   parameters = `{ subject: "interview", target: <user>, message:
-   "good luck" }`, schedule = `tomorrow at 8am`, scope = `chat
-   conversation X`.
-2. **Runtime validates.** The kind `remind` is admitted. The
-   parameters fit the contract. The schedule is within the
-   agent's life-track budget allotment.
+   model produces a typed `HookIntent` record for a narrow
+   follow-up-turn effect, scoped to `chat conversation X`.
+2. **Runtime validates.** The follow-up-turn effect is admitted. The
+   parameters fit the contract. The hook is within the agent's
+   life-track budget allotment.
 3. **Admission.** Runtime admits the intent. The hook moves from
-   `pending → running` at fire time.
-4. **Fire.** Tomorrow at 8am, the hook runs. The agent's
-   life-track produces the reminder under its admitted cadence
-   and budget.
+   `pending → running` only when Runtime dispatches the narrow
+   follow-up-turn.
+4. **Fire.** The hook runs through Runtime. The agent's life-track
+   produces a follow-up turn under its admitted budget.
 5. **Terminal.** The hook completes. Audit records the firing.
 
 What did **not** happen:
 
 - The model did not emit a free-form scheduling string.
-- The user did not have to grant any new permission for this hook.
+- The user did not grant a general scheduler or app-authored automation
+  surface.
 - The hook did not bypass the daily token budget.
 
 The typed contract is what makes this safe and predictable.
@@ -134,7 +134,7 @@ see why.
 | Replay | Replay can step through the intent record without re-inferring |
 | Approval | Sensitivity is derivable from the typed kind |
 | Budget | Token budget is enforced on admission, not at firing |
-| Schedule reliability | Runtime owns the scheduler; the model does not invent timing semantics |
+| Schedule reliability | Runtime owns the narrow follow-up-turn scheduler; the model does not invent timing semantics |
 
 A platform that lets the model emit free-form scheduling strings
 has none of these. A platform that requires typed intents has all

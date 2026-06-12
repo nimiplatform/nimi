@@ -12,7 +12,7 @@ registry_id: platform_release_gate_registry
 # file. Hand-edits in projection surfaces are a projection-drift fail.
 
 schema_version: release-gate-registry/v1
-registry_version: "1.3.0"
+registry_version: "1.4.0"
 profile_id: nimi
 # -----------------------------------------------------------------------
 # Tier definitions (P-RELG-012 tier membership constraint)
@@ -22,6 +22,8 @@ tiers:
     semantic: instant_no_network_per_staged_file
   - id: fast
     semantic: dev_laptop_under_60s_no_secrets
+  - id: first-public-existence
+    semantic: named_first_public_existence_proof_bundle
   - id: release
     semantic: full_release_blocking_set
   - id: release-target:sdk
@@ -660,6 +662,20 @@ gates:
     parent_p_gov_anchors: [P-GOV-003]
     experimental: false
 
+  - id: gate.docs.release-promise-public-copy
+    description: Public copy must stay inside the P-GOV-026 release promise freeze.
+    command: pnpm check:release-promise-public-copy
+    runner: pnpm
+    tiers: [fast, first-public-existence, release]
+    targets: [any]
+    timeout_seconds: 60
+    requires_binaries: [pnpm]
+    evidence:
+      shape: command_exit
+    p_relg_anchors: [P-RELG-001]
+    parent_p_gov_anchors: [P-GOV-003, P-GOV-026]
+    experimental: false
+
   - id: gate.docs.docs-build
     description: VitePress docs portal build.
     command: pnpm docs:build
@@ -1017,7 +1033,7 @@ gates:
     description: Forbid apps bypassing Realm REST surface.
     command: pnpm check:no-app-realm-rest-bypass
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [fast, first-public-existence, release]
     targets: [any]
     timeout_seconds: 60
     requires_binaries: [pnpm]
@@ -1136,7 +1152,7 @@ gates:
       are real gate ids, no orphan rows. P-RELG-001 / P-RELG-008 / P-RELG-012 enforcement entry point.
     command: node scripts/check-release-gate-registry-coherence.mjs
     runner: node
-    tiers: [pre-commit, fast, release]
+    tiers: [pre-commit, fast, first-public-existence, release]
     targets: [any]
     timeout_seconds: 30
     requires_binaries: [node]
@@ -1158,7 +1174,7 @@ gates:
       W2 mode validates registry-coherent-with-current-lint only.
     command: node scripts/check-release-gate-projection-drift.mjs
     runner: node
-    tiers: [fast, release]
+    tiers: [fast, first-public-existence, release]
     targets: [any]
     timeout_seconds: 30
     prerequisites: [gate.release-gate.registry-coherence]
@@ -1602,10 +1618,10 @@ gates:
     experimental: false
 
   - id: gate.sdk.consumer-smoke
-    description: SDK consumer smoke (npm pack + node import).
+    description: SDK/app-tools consumer smoke (npm pack, root Realm permission proof, scaffold create/init/doctor/update, generated app install/typecheck).
     command: pnpm check:sdk-consumer-smoke
     runner: pnpm
-    tiers: [release, release-target:sdk]
+    tiers: [first-public-existence, release, release-target:sdk]
     targets: [sdk]
     timeout_seconds: 600
     requires_binaries: [pnpm]
@@ -1617,9 +1633,9 @@ gates:
 
   - id: gate.sdk.vnext-root-composition-authority
     description: Validate SDK vNext root composition authority and forbid legacy platform-client entries.
-    command: pnpm check:no-create-nimi-client
+    command: pnpm check:sdk-root-entry-contract
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [fast, first-public-existence, release]
     targets: [sdk]
     timeout_seconds: 60
     requires_binaries: [pnpm]
@@ -1633,7 +1649,7 @@ gates:
     description: SDK vNext package export and boundary contract check.
     command: pnpm check:sdk-vnext-package-contract
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [fast, first-public-existence, release]
     targets: [sdk]
     timeout_seconds: 60
     requires_binaries: [pnpm]
@@ -1647,7 +1663,7 @@ gates:
     description: SDK vNext public surface consumer smoke check.
     command: pnpm check:sdk-vnext-public-surface-smoke
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [fast, first-public-existence, release]
     targets: [sdk]
     timeout_seconds: 60
     requires_binaries: [pnpm]
@@ -1661,7 +1677,7 @@ gates:
     description: SDK vNext Runtime facade projection check.
     command: pnpm check:sdk-vnext-runtime-facade
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [fast, first-public-existence, release]
     targets: [sdk]
     timeout_seconds: 60
     requires_binaries: [pnpm]
@@ -1675,7 +1691,7 @@ gates:
     description: SDK vNext Realm consumer smoke check.
     command: pnpm check:sdk-vnext-realm-consumer-smoke
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [fast, first-public-existence, release]
     targets: [sdk]
     timeout_seconds: 60
     requires_binaries: [pnpm]
@@ -1703,7 +1719,7 @@ gates:
     description: SDK vNext AI capability ledger gate.
     command: pnpm check:sdk-vnext-ai-capability-ledger
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [fast, first-public-existence, release]
     targets: [sdk]
     timeout_seconds: 60
     requires_binaries: [pnpm]
@@ -1908,7 +1924,7 @@ gates:
       the missing-10-scopes gap captured in D0.B.3.
     command: pnpm exec nimicoding validate-spec-governance --profile nimi --scope all
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [fast, first-public-existence, release]
     targets: [any]
     timeout_seconds: 600
     requires_binaries: [pnpm]
@@ -1922,7 +1938,7 @@ gates:
     description: Generate-spec-derived-docs --scope all --check (drift detection across all configured scopes including spec-human-doc).
     command: pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope all --check
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [fast, first-public-existence, release]
     targets: [any]
     timeout_seconds: 300
     requires_binaries: [pnpm]
@@ -1950,7 +1966,7 @@ gates:
     description: Validate AI governance (--scope all covers agents-freshness, context-budget, structure-budget, high-risk-doc-metadata).
     command: pnpm exec nimicoding validate-ai-governance --profile nimi --scope all
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [fast, first-public-existence, release]
     targets: [any]
     timeout_seconds: 60
     requires_binaries: [pnpm]
@@ -1964,7 +1980,7 @@ gates:
     description: Spec semantic completeness check.
     command: pnpm check:spec-semantic-completeness
     runner: pnpm
-    tiers: [fast, release]
+    tiers: [fast, first-public-existence, release]
     targets: [any]
     timeout_seconds: 60
     requires_binaries: [pnpm]

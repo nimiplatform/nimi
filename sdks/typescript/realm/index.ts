@@ -161,6 +161,14 @@ export type {
   NimiRealmRequestDataExportOutput,
 } from './account-data';
 export {
+  createNimiRealmPermissionTransport,
+} from './permission-grants';
+export type {
+  NimiRealmPermissionGrantApi,
+  NimiRealmPermissionGrantModule,
+  NimiRealmPermissionTransportOptions,
+} from './permission-grants';
+export {
   buildNimiRealmWorldDetailWithAgentsCacheKey,
   buildNimiRealmWorldHistorySummary,
   formatNimiRealmWorldDisplayLabel,
@@ -379,6 +387,14 @@ export const REALM_ACCOUNT_METHODS = [
   'updateMySettings',
 ] as const satisfies readonly RealmTypedMethodName[];
 
+export const REALM_PERMISSION_GRANT_METHODS = [
+  'getMyAppPermissionGrant',
+  'getMyAppPermissionGrantStatus',
+  'listMyAppPermissionGrants',
+  'requestMyAppPermissionGrant',
+  'revokeMyAppPermissionGrant',
+] as const satisfies readonly RealmTypedMethodName[];
+
 export const REALM_SOCIAL_METHODS = [
   'addFriend',
   'blockUser',
@@ -507,6 +523,7 @@ export const REALM_WORLD_METHODS = [
 
 export type RealmAuthModule = RealmMethodModule<typeof REALM_AUTH_METHODS>;
 export type RealmAccountModule = RealmMethodModule<typeof REALM_ACCOUNT_METHODS>;
+export type RealmPermissionGrantModule = RealmMethodModule<typeof REALM_PERMISSION_GRANT_METHODS>;
 export type RealmSocialModule = RealmMethodModule<typeof REALM_SOCIAL_METHODS>;
 export type RealmGroupChatModule = RealmMethodModule<typeof REALM_GROUP_CHAT_METHODS>;
 export type RealmHumanChatModule = RealmMethodModule<typeof REALM_HUMAN_CHAT_METHODS>;
@@ -523,6 +540,7 @@ export class Realm {
   readonly generated: RealmTypedClient;
   readonly auth: RealmAuthModule;
   readonly account: RealmAccountModule;
+  readonly permissionGrants: RealmPermissionGrantModule;
   readonly social: RealmSocialModule;
   readonly groupChat: RealmGroupChatModule;
   readonly humanChats: RealmHumanChatModule;
@@ -540,6 +558,7 @@ export class Realm {
     this.generated = generated;
     this.auth = bindRealmModule(generated, REALM_AUTH_METHODS);
     this.account = bindRealmModule(generated, REALM_ACCOUNT_METHODS);
+    this.permissionGrants = bindRealmModule(generated, REALM_PERMISSION_GRANT_METHODS);
     this.social = bindRealmModule(generated, REALM_SOCIAL_METHODS);
     this.groupChat = bindRealmModule(generated, REALM_GROUP_CHAT_METHODS);
     this.humanChats = bindRealmModule(generated, REALM_HUMAN_CHAT_METHODS);

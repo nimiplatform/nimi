@@ -23,7 +23,6 @@ import {
   parseNimiAppBridgeProjection,
   parseOptionalNimiAppAccountLibraryRecord,
   selectNimiAppFactoryAIProfileForFirstRun,
-  type GrantRequestAccepted,
   type GrantSpec,
   type GrantStatus,
   type NimiAppRow,
@@ -178,7 +177,7 @@ class StubPermissionTransport implements PermissionTransport {
   constructor(private readonly behavior: {
     readonly list?: readonly GrantStatus[] | Error | null;
     readonly get?: GrantStatus | Error | null;
-    readonly request?: GrantRequestAccepted | Error | null;
+    readonly request?: GrantStatus | Error | null;
     readonly revoke?: GrantStatus | Error | null;
     readonly status?: PermissionStatusSnapshot | Error | null;
     readonly subscribe?: PermissionGrantEvent | Error | null;
@@ -198,11 +197,11 @@ class StubPermissionTransport implements PermissionTransport {
     return this.behavior.get ?? grantStatus('granted', grantId);
   }
 
-  async request(inputScopeRef: NimiAppScopeRef): Promise<GrantRequestAccepted> {
+  async request(inputScopeRef: NimiAppScopeRef): Promise<GrantStatus> {
     this.calls.push(`request:${inputScopeRef.ownerId}`);
     if (this.behavior.request instanceof Error) throw this.behavior.request;
-    if (this.behavior.request === null) return null as unknown as GrantRequestAccepted;
-    return this.behavior.request ?? { scopeRef: inputScopeRef, accepted: true, grantId: 'grant-1', state: 'pending' };
+    if (this.behavior.request === null) return null as unknown as GrantStatus;
+    return this.behavior.request ?? { ...grantStatus('pending'), scopeRef: inputScopeRef };
   }
 
   async revoke(inputScopeRef: NimiAppScopeRef, grantId: string): Promise<GrantStatus> {

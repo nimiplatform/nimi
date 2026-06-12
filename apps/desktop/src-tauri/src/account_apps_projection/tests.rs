@@ -46,18 +46,25 @@ fn grants_valid_projection_reads_back() {
                 "updatedAt": "2026-05-21T00:00:00.000Z",
                 "grants": [{
                     "grantId": "grant-1",
-                    "subject": "nimi.example-app",
-                    "scope": "account.session.read",
+                    "subjectAccountId": "account_1",
+                    "appId": "nimi.example-app",
+                    "scopeFamily": "account",
+                    "scopeName": "account.session.read",
+                    "qualifier": null,
                     "state": "granted",
-                    "createdAt": "2026-05-21T00:00:00.000Z",
-                    "expiresAt": null
+                    "expiresAt": null,
+                    "version": 1
                 }]
             }),
         );
         let projection =
             read_account_grants_fail_closed("account_1").expect("valid grants read back");
+        assert_eq!(projection.schema_version, ACCOUNT_GRANTS_SCHEMA_VERSION);
+        assert_eq!(projection.account_id, "account_1");
         assert_eq!(projection.grants.len(), 1);
         assert_eq!(projection.grants[0].state, "granted");
+        assert_eq!(projection.grants[0].scope_family, "account");
+        assert_eq!(projection.grants[0].scope_name, "account.session.read");
     });
 }
 
@@ -74,11 +81,14 @@ fn grants_superseded_state_is_canonical_projection_state() {
                 "updatedAt": "2026-05-21T00:00:00.000Z",
                 "grants": [{
                     "grantId": "grant-1",
-                    "subject": "nimi.example-app",
-                    "scope": "account.session.read",
+                    "subjectAccountId": "account_1",
+                    "appId": "nimi.example-app",
+                    "scopeFamily": "account",
+                    "scopeName": "account.session.read",
+                    "qualifier": null,
                     "state": "superseded",
-                    "createdAt": "2026-05-21T00:00:00.000Z",
-                    "expiresAt": "2020-01-02T00:00:00.000Z"
+                    "expiresAt": "2020-01-02T00:00:00.000Z",
+                    "version": 1
                 }]
             }),
         );
@@ -102,11 +112,14 @@ fn grants_expired_granted_row_fails_closed_as_stale() {
                 "updatedAt": "2026-05-21T00:00:00.000Z",
                 "grants": [{
                     "grantId": "grant-1",
-                    "subject": "nimi.example-app",
-                    "scope": "account.session.read",
+                    "subjectAccountId": "account_1",
+                    "appId": "nimi.example-app",
+                    "scopeFamily": "account",
+                    "scopeName": "account.session.read",
+                    "qualifier": null,
                     "state": "granted",
-                    "createdAt": "2020-01-01T00:00:00.000Z",
-                    "expiresAt": "2020-01-02T00:00:00.000Z"
+                    "expiresAt": "2020-01-02T00:00:00.000Z",
+                    "version": 1
                 }]
             }),
         );
@@ -153,5 +166,34 @@ fn grants_corrupt_and_unknown_schema_route_repair_required() {
             }
             other => panic!("expected repair_required, got {other:?}"),
         }
+    });
+}
+
+#[test]
+fn grants_missing_required_version_fails_closed() {
+    let home = temp_home("grants-missing-version");
+    with_env(&[("HOME", home.to_str())], || {
+        let path = account_grants_path("account_1").expect("path");
+        write_json(
+            &path,
+            serde_json::json!({
+                "schemaVersion": ACCOUNT_GRANTS_SCHEMA_VERSION,
+                "accountId": "account_1",
+                "updatedAt": "2026-05-21T00:00:00.000Z",
+                "grants": [{
+                    "grantId": "grant-1",
+                    "subjectAccountId": "account_1",
+                    "appId": "nimi.example-app",
+                    "scopeFamily": "account",
+                    "scopeName": "account.session.read",
+                    "qualifier": null,
+                    "state": "granted",
+                    "expiresAt": null
+                }]
+            }),
+        );
+        let error = read_account_grants_fail_closed("account_1")
+            .expect_err("missing grant version fails closed");
+        assert!(error.contains("version"));
     });
 }

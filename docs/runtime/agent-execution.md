@@ -1,12 +1,16 @@
 # Agent Execution
 
-> Status: Running today. `RuntimeAgentService` is the shipped
-> runtime authority for agent execution.
+> Status: Mixed. `RuntimeAgentService` is the runtime authority for
+> supported agent chat and lifecycle. Life Track and hooks are partial:
+> the first release promise covers narrow follow-up-turn only, not
+> general reminders or app scheduler ownership.
 
 `RuntimeAgentService` is the runtime-owned authority for agent
 execution. It owns multi-agent lifecycle, conversation continuity,
-the Chat / Life two-track model, hook scheduling, memory write
-admission, and presentation projection.
+supported Chat Track execution, narrow follow-up-turn hook admission,
+memory admission policy, and presentation projection. Broader Life Track
+autonomy, general reminders, appointments, and app-authored scheduling
+are outside the first release promise.
 
 This page is the runtime-side overview. For depth see:
 
@@ -21,8 +25,8 @@ This page is the runtime-side overview. For depth see:
 | --- | --- |
 | Multi-agent lifecycle | Concurrent `agent_id` lifecycles |
 | Conversation continuity | `ConversationAnchor` per agent + per conversation |
-| Chat / Life track execution | Reactive + proactive scheduling |
-| Hook scheduling | Typed `HookIntent` admission and dispatch |
+| Chat / Life track execution | Reactive chat + partial narrow follow-up-turn path |
+| Hook scheduling | Typed `HookIntent` admission and dispatch for narrow follow-up-turn only |
 | Memory write admission | Bounded by admitted memory contracts |
 | Presentation projection | Persistent profile + transient stream |
 | APML output parsing | Typed event projection from APML wire format |
@@ -97,9 +101,9 @@ typed events that cannot encode shapes the runtime did not admit.
 
 ## Hook Intent Admission
 
-Agents request future scheduled action through typed `HookIntent`
-records, not free-form scheduling strings. Runtime validates and
-admits.
+Agents request narrow follow-up-turn action through typed `HookIntent`
+records, not free-form scheduling strings. Runtime validates and admits
+only the release-promised follow-up-turn path.
 
 | Lifecycle state | Meaning |
 | --- | --- |
@@ -122,10 +126,10 @@ that wants to interact with a specific agent provides the
 
 | Concurrency | Detail |
 | --- | --- |
-| Per-agent state | Each agent has its own anchor set, hook scheduler, presentation profile |
+| Per-agent state | Each agent has its own anchor set, partial follow-up-turn hook state, presentation profile |
 | Per-conversation state | Each conversation has its own anchor |
 | Cross-agent isolation | Memory bank scopes (`AGENT_CORE` / `AGENT_DYADIC`) keep agents from reading each other's private state |
-| Concurrent execution | Multiple agents can run Chat or Life in parallel under runtime budget |
+| Concurrent execution | Multiple agents can run supported Chat paths; broader Life concurrency is outside the first release promise |
 
 ## Reader Scenario: Two Agents In One Surface
 

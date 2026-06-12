@@ -3,11 +3,10 @@
 //!
 //! Product owners (product manual):
 //! - `grants.json`: permission/grant projection consumer. The canonical
-//!   permission/grant authority is the deferred permission fabric
-//!   (`permission_scope_ref` is `permission_fabric_pending` in the registry table). T4
-//!   owns only the projection schema + a fail-closed reader (T4 Fork B). This
-//!   module does NOT implement a canonical grant service; it reads a projection
-//!   and fails closed when it is stale, missing, or inconsistent.
+//!   permission/grant lifecycle authority is Realm-owned `AppPermissionGrant`
+//!   truth. T4 owns only the local projection schema + a fail-closed reader.
+//!   This module does NOT implement a canonical grant service; it reads a
+//!   projection and fails closed when it is stale, missing, or inconsistent.
 //!
 //! The file is account-scoped, fixed under the `~/.nimi` CONTROL root. The
 //! account id is percent-encoded into the directory segment, mirroring the
@@ -15,7 +14,8 @@
 //!
 //! Runtime app lifecycle owns account app-library reads/writes. Desktop consumes
 //! that projection through Runtime RPC and keeps only the permission/grant
-//! projection reader here until the deferred permission fabric lands.
+//! projection reader here; it never mints, refreshes, revokes, or persists grant
+//! truth.
 
 use crate::desktop_paths::resolve_nimi_dir;
 use nimi_shell_tauri::governed_config::{
@@ -71,27 +71,29 @@ fn account_path_segment(account_id: &str) -> String {
 
 // === Permission/grant projection (`grants.json`) ===
 
-/// One projected permission/grant row. Minimum product fields fixed by the
-/// manual: `grantId, subject, scope, state, createdAt, expiresAt`.
+/// One Realm-projected permission/grant row.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
-pub struct AccountGrantRow {
+pub struct AccountGrantProjectionRowDto {
     pub grant_id: String,
-    pub subject: String,
-    pub scope: String,
+    pub subject_account_id: String,
+    pub app_id: String,
+    pub scope_family: String,
+    pub scope_name: String,
+    pub qualifier: Option<String>,
     pub state: String,
-    pub created_at: String,
     pub expires_at: Option<String>,
+    pub version: Option<u64>,
 }
 
 /// `~/.nimi/accounts/<account-id>/permissions/grants.json` record shape.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
-pub struct AccountGrantsRecord {
+pub struct AccountGrantsProjectionDto {
     pub schema_version: u32,
     pub account_id: String,
     pub updated_at: String,
-    pub grants: Vec<AccountGrantRow>,
+    pub grants: Vec<AccountGrantProjectionRowDto>,
 }
 
 /// On-disk path of an account's permission/grant projection.
@@ -104,7 +106,10 @@ pub fn account_grants_path(account_id: &str) -> Result<PathBuf, String> {
         .join("grants.json"))
 }
 
-fn validate_grants_record(record: &AccountGrantsRecord, account_id: &str) -> Result<(), String> {
+fn validate_grants_record(
+    record: &AccountGrantsProjectionDto,
+    account_id: &str,
+) -> Result<(), String> {
     if record.schema_version != ACCOUNT_GRANTS_SCHEMA_VERSION {
         return Err(format!(
             "unsupported grants.json schemaVersion={} expected={ACCOUNT_GRANTS_SCHEMA_VERSION}",
@@ -121,13 +126,14 @@ fn validate_grants_record(record: &AccountGrantsRecord, account_id: &str) -> Res
     }
     for grant in &record.grants {
         if grant.grant_id.trim().is_empty()
-            || grant.subject.trim().is_empty()
-            || grant.scope.trim().is_empty()
-            || grant.created_at.trim().is_empty()
+            || grant.subject_account_id.trim().is_empty()
+            || grant.app_id.trim().is_empty()
+            || grant.scope_family.trim().is_empty()
+            || grant.scope_name.trim().is_empty()
+            || grant.state.trim().is_empty()
+            || grant.version.is_none()
         {
-            return Err(
-                "grants.json grant row requires grantId, subject, scope, and createdAt".to_string(),
-            );
+            return Err("grants.json grant row requires grantId, subjectAccountId, appId, scopeFamily, scopeName, state, and version".to_string());
         }
         if !matches!(
             grant.state.as_str(),
@@ -141,6 +147,22 @@ fn validate_grants_record(record: &AccountGrantsRecord, account_id: &str) -> Res
             return Err(format!(
                 "grants.json grant row {} has an unknown state: {}",
                 grant.grant_id, grant.state
+            ));
+        }
+        if grant.subject_account_id != account_id {
+            return Err(format!(
+                "grants.json grant row {} subjectAccountId does not match the authenticated Runtime account",
+                grant.grant_id
+            ));
+        }
+        if grant
+            .qualifier
+            .as_deref()
+            .is_some_and(|value| value.trim().is_empty())
+        {
+            return Err(format!(
+                "grants.json grant row {} qualifier must be omitted or a non-empty value",
+                grant.grant_id
             ));
         }
         if grant
@@ -157,22 +179,14 @@ fn validate_grants_record(record: &AccountGrantsRecord, account_id: &str) -> Res
     Ok(())
 }
 
-/// The result of a fail-closed grant projection read.
+/// Structural + staleness validation of a grants record.
 ///
-/// The canonical permission/grant authority is the deferred wave-4 permission
-/// fabric. This reader never asserts a grant is valid — it only projects what
+/// The canonical permission/grant authority is Realm-owned grant lifecycle
+/// truth. This reader never asserts a grant is valid — it only projects what
 /// the local cache file says, and fails closed (`Err`) when the file is
 /// missing, unparseable, schema-incompatible, account-mismatched, or carries a
 /// grant that is already expired by the wall clock. A consumer that cannot get
 /// an `Ok` projection must treat the grant surface as not satisfied.
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct AccountGrantsProjection {
-    pub account_id: String,
-    pub grants: Vec<AccountGrantRow>,
-}
-
-/// Structural + staleness validation of a grants record.
 ///
 /// `schemaVersion` fail-closed / migration routing is owned by the
 /// shared governed-config framework; this checks the account-id binding,
@@ -180,7 +194,7 @@ pub struct AccountGrantsProjection {
 /// expired `granted` row makes the whole projection stale). A failure routes
 /// the read to `repair_required`.
 fn validate_grants_record_freshness(
-    record: &AccountGrantsRecord,
+    record: &AccountGrantsProjectionDto,
     account_id: &str,
 ) -> Result<(), String> {
     validate_grants_record(record, account_id)?;
@@ -219,17 +233,14 @@ fn validate_grants_record_freshness(
 #[allow(dead_code)]
 pub fn read_account_grants_governed(
     account_id: &str,
-) -> Result<ConfigReadOutcome<AccountGrantsProjection>, String> {
+) -> Result<ConfigReadOutcome<AccountGrantsProjectionDto>, String> {
     let normalized = validate_account_id(account_id)?;
     let path = account_grants_path(&normalized)?;
     read_governed_config(&GRANTS_CONFIG_FILE, &path, |document| {
-        let record: AccountGrantsRecord = serde_json::from_value(document.clone())
+        let record: AccountGrantsProjectionDto = serde_json::from_value(document.clone())
             .map_err(|error| format!("grants.json cannot be deserialized: {error}"))?;
         validate_grants_record_freshness(&record, &normalized)?;
-        Ok(AccountGrantsProjection {
-            account_id: record.account_id,
-            grants: record.grants,
-        })
+        Ok(record)
     })
 }
 
@@ -242,11 +253,11 @@ pub fn read_account_grants_governed(
 /// is not satisfied), so both `Absent` and `Repair` collapse to `Err` here.
 ///
 /// This is a projection reader only. It does not mint, refresh, or revoke
-/// grants — the canonical grant authority is the deferred wave-4 fabric.
+/// grants — the canonical grant authority is Realm-owned grant lifecycle truth.
 #[allow(dead_code)]
 pub fn read_account_grants_fail_closed(
     account_id: &str,
-) -> Result<AccountGrantsProjection, String> {
+) -> Result<AccountGrantsProjectionDto, String> {
     match read_account_grants_governed(account_id)? {
         ConfigReadOutcome::Ready(projection) => Ok(projection),
         ConfigReadOutcome::Absent => Err(

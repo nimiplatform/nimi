@@ -1,6 +1,8 @@
 # Nimi
 
-**Nimi is an AI open world platform.** It is built for long-lived worlds
+**Nimi is an open-source, local-first, multi-provider personal AI runtime with
+Realm-owned ecosystem identity.** The broader project is an AI open world
+platform. It is built for long-lived worlds
 where people, AI agents, applications, and runtime services share the
 same social and semantic environment, instead of meeting only inside one
 isolated chat box or one isolated app.
@@ -51,9 +53,9 @@ memory, and the AI development methodology that ships with all of them.
 | Product | What it owns |
 | --- | --- |
 | **Platform** | The open world model, the six protocol primitives, the cross-domain authority rules. |
-| **Runtime** | AI execution: providers, model catalogs, workflows, streaming, multimodal output, local routing, delegated capabilities, audit, and runtime-owned agent participation. |
-| **SDK** | The TypeScript app boundary into Runtime, Realm, world semantics, AI providers, scope, and mods, without importing private internals. |
-| **Desktop and Web** | First-party user surfaces. Desktop is the native shell with local and mod capabilities; Web is the constrained browser projection. |
+| **Runtime** | AI execution: providers, model catalogs, workflows, streaming, multimodal output, local routing, delegated capabilities, audit, supported agent chat, and narrow follow-up-turn hooks. |
+| **SDK** | The TypeScript app boundary into Runtime, Realm, world semantics, AI providers, and governed scopes, without importing private internals. |
+| **Desktop and Web** | First-party user surfaces. Desktop is the native shell for local runtime interaction; Web is the constrained browser projection. |
 | **Realm** | Semantic truth — world state, world history, chat, social and economy, asset binding, transit, creator economy. |
 | **Avatar** | Embodied agent presentation as its own first-class authority surface. |
 | **Cognition** | Standalone memory, knowledge, prompt serving, references, and completion. |
@@ -98,7 +100,7 @@ Runtime can bridge to but cannot absorb.
 
 ## Apps That Showcase The Platform
 
-The `apps/` directory contains extension apps that demonstrate what the
+The `apps/` directory contains first-party and reference apps that demonstrate what the
 platform can do. They consume Runtime, Realm, SDK, and the public
 surfaces; they do not extend the platform's authority. If you are
 reading an `apps/<name>/` directory, you are looking at a Nimi-powered
@@ -113,7 +115,8 @@ app, not the platform itself.
 
 ## What's Installable Today
 
-Nimi Coding is the AI-native development methodology, distributed as the
+The current public installable surface is the governance and app-authoring
+tooling. Nimi Coding is the AI-native development methodology, distributed as the
 host-agnostic npm package
 [`@nimiplatform/nimi-coding`](https://www.npmjs.com/package/@nimiplatform/nimi-coding).
 It governs how authority, semantics, consumers, and drift-prevention
@@ -123,14 +126,21 @@ closures, and the methodology is built around catching them. Adoption
 guidance lives in
 [docs/nimicoding/installation.md](docs/nimicoding/installation.md).
 
+`@nimiplatform/app-tools` is the app-authoring CLI for generated Nimi App
+developer repositories. It creates scaffold inputs and local checks only; it
+does not create public app admission, permission grants, release descriptors,
+registry visibility, or installed-app update truth.
+
 The Platform, Runtime, SDK, Desktop, Web, Realm, Avatar, and Cognition
 surfaces are documented at the contract level under `docs/` and authored
-under `.nimi/spec/`. Their public release channels are not yet open.
+under `.nimi/spec/`. Their stable public product release channels remain
+release-gated and are not opened by the source checkout itself.
 
-## Quickstart
+## Source Checkout Quickstart
 
-Once the runtime CLI is on `PATH`, three commands cover the
-zero-config first-run path:
+These commands are for a source checkout or locally built runtime binary.
+Once the runtime CLI is on `PATH`, three commands cover the zero-config
+first-run path:
 
 ```sh
 # Start the local runtime daemon (background).
@@ -151,6 +161,21 @@ nimi provider set gemini --api-key-env GEMINI_API_KEY
 ```
 
 `nimi doctor` reports environment, daemon, and provider readiness.
+
+## Public Existence Proof
+
+For the first public existence event, run the named release-gate proof:
+
+```bash
+pnpm release:proof:first-public
+```
+
+This runs the `first-public-existence` tier from the release-gate registry and
+writes `release-gate-evidence/v1` output under `.local/report/release/`. A pass
+proves the frozen public promise boundary, SDK/app-tools developer entry, and
+spec governance checks for this source checkout. It does not open product
+release channels, app admission, permission grants, release descriptors, or
+installed-app update truth.
 
 ## Documentation
 

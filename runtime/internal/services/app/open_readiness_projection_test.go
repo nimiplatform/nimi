@@ -72,11 +72,14 @@ func TestOpenAppReadinessVerifierAllowsEnabledInstalledAppAndGrantedPermissions(
   "updatedAt": "2026-06-02T00:00:00.000Z",
   "grants": [{
     "grantId": "grant-1",
-    "subject": "nimi.example-app",
-    "scope": "account.session.read",
+    "subjectAccountId": "account/one",
+    "appId": "nimi.example-app",
+    "scopeFamily": "account",
+    "scopeName": "account.session.read",
+    "qualifier": null,
     "state": "granted",
-    "createdAt": "2026-06-02T00:00:00.000Z",
-    "expiresAt": null
+    "expiresAt": null,
+    "version": 1
   }]
 }`)
 	app := appregistrycatalog.App{
@@ -128,11 +131,14 @@ func TestOpenAppReadinessVerifierFailsClosedOnMissingLibraryAndExpiredGrant(t *t
   "updatedAt": "2026-06-02T00:00:00.000Z",
   "grants": [{
     "grantId": "grant-1",
-    "subject": "nimi.example-app",
-    "scope": "account.session.read",
+    "subjectAccountId": "account_1",
+    "appId": "nimi.example-app",
+    "scopeFamily": "account",
+    "scopeName": "account.session.read",
+    "qualifier": null,
     "state": "granted",
-    "createdAt": "2026-06-01T00:00:00.000Z",
-    "expiresAt": "2026-06-01T00:00:00.000Z"
+    "expiresAt": "2026-06-01T00:00:00.000Z",
+    "version": 1
   }]
 }`)
 	permissions, err := verifier.VerifyOpenPermissions(context.Background(), app)
@@ -144,7 +150,7 @@ func TestOpenAppReadinessVerifierFailsClosedOnMissingLibraryAndExpiredGrant(t *t
 	}
 }
 
-func TestOpenAppReadinessVerifierFailsClosedForQualifiedScopeUntilProjectionCarriesQualifier(t *testing.T) {
+func TestOpenAppReadinessVerifierMatchesQualifiedScopeExactly(t *testing.T) {
 	verifier, nimiDir := newProjectionOpenReadinessVerifierForTest(t, "account_1")
 	accountDir := filepath.Join(nimiDir, "accounts", runtimeProjectionAccountSegment("account_1"))
 	writeRuntimeProjectionJSON(t, filepath.Join(accountDir, "permissions", "grants.json"), `{
@@ -153,14 +159,17 @@ func TestOpenAppReadinessVerifierFailsClosedForQualifiedScopeUntilProjectionCarr
   "updatedAt": "2026-06-02T00:00:00.000Z",
   "grants": [{
     "grantId": "grant-1",
-    "subject": "nimi.example-app",
-    "scope": "memory.read.bounded",
+    "subjectAccountId": "account_1",
+    "appId": "nimi.example-app",
+    "scopeFamily": "memory",
+    "scopeName": "memory.read.bounded",
+    "qualifier": null,
     "state": "granted",
-    "createdAt": "2026-06-02T00:00:00.000Z",
-    "expiresAt": null
+    "expiresAt": null,
+    "version": 1
   }]
 }`)
-	decision, err := verifier.VerifyOpenPermissions(context.Background(), appregistrycatalog.App{
+	app := appregistrycatalog.App{
 		AppID: "nimi.example-app",
 		PermissionScopeRefs: []appregistrycatalog.PermissionScopeRef{{
 			AppID:       "nimi.example-app",
@@ -168,12 +177,107 @@ func TestOpenAppReadinessVerifierFailsClosedForQualifiedScopeUntilProjectionCarr
 			ScopeName:   "memory.read.bounded",
 			Qualifier:   "persona-scoped",
 		}},
-	})
+	}
+	decision, err := verifier.VerifyOpenPermissions(context.Background(), app)
 	if err != nil {
 		t.Fatalf("VerifyOpenPermissions: %v", err)
 	}
 	if decision.Allowed || !strings.Contains(decision.Detail, "qualifier persona-scoped") {
-		t.Fatalf("expected qualified scope to fail closed, got %+v", decision)
+		t.Fatalf("expected missing qualifier to fail closed, got %+v", decision)
+	}
+
+	writeRuntimeProjectionJSON(t, filepath.Join(accountDir, "permissions", "grants.json"), `{
+  "schemaVersion": 1,
+  "accountId": "account_1",
+  "updatedAt": "2026-06-02T00:00:00.000Z",
+  "grants": [{
+    "grantId": "grant-1",
+    "subjectAccountId": "account_1",
+    "appId": "nimi.example-app",
+    "scopeFamily": "memory",
+    "scopeName": "memory.read.bounded",
+    "qualifier": "persona-scoped",
+    "state": "granted",
+    "expiresAt": null,
+    "version": 2
+  }]
+}`)
+	decision, err = verifier.VerifyOpenPermissions(context.Background(), app)
+	if err != nil {
+		t.Fatalf("VerifyOpenPermissions: %v", err)
+	}
+	if !decision.Allowed {
+		t.Fatalf("expected exact qualified scope to pass, got %+v", decision)
+	}
+}
+
+func TestOpenAppReadinessVerifierFailsClosedForUnknownGrantState(t *testing.T) {
+	verifier, nimiDir := newProjectionOpenReadinessVerifierForTest(t, "account_1")
+	accountDir := filepath.Join(nimiDir, "accounts", runtimeProjectionAccountSegment("account_1"))
+	writeRuntimeProjectionJSON(t, filepath.Join(accountDir, "permissions", "grants.json"), `{
+  "schemaVersion": 1,
+  "accountId": "account_1",
+  "updatedAt": "2026-06-02T00:00:00.000Z",
+  "grants": [{
+    "grantId": "grant-1",
+    "subjectAccountId": "account_1",
+    "appId": "nimi.example-app",
+    "scopeFamily": "account",
+    "scopeName": "account.session.read",
+    "qualifier": null,
+    "state": "active",
+    "expiresAt": null,
+    "version": 1
+  }]
+}`)
+	decision, err := verifier.VerifyOpenPermissions(context.Background(), appregistrycatalog.App{
+		AppID: "nimi.example-app",
+		PermissionScopeRefs: []appregistrycatalog.PermissionScopeRef{{
+			AppID:       "nimi.example-app",
+			ScopeFamily: "account",
+			ScopeName:   "account.session.read",
+		}},
+	})
+	if err != nil {
+		t.Fatalf("VerifyOpenPermissions: %v", err)
+	}
+	if decision.Allowed || !strings.Contains(decision.Detail, "unknown state") {
+		t.Fatalf("expected unknown grant state to fail closed, got %+v", decision)
+	}
+}
+
+func TestOpenAppReadinessVerifierFailsClosedForEmptyGrantQualifier(t *testing.T) {
+	verifier, nimiDir := newProjectionOpenReadinessVerifierForTest(t, "account_1")
+	accountDir := filepath.Join(nimiDir, "accounts", runtimeProjectionAccountSegment("account_1"))
+	writeRuntimeProjectionJSON(t, filepath.Join(accountDir, "permissions", "grants.json"), `{
+  "schemaVersion": 1,
+  "accountId": "account_1",
+  "updatedAt": "2026-06-02T00:00:00.000Z",
+  "grants": [{
+    "grantId": "grant-1",
+    "subjectAccountId": "account_1",
+    "appId": "nimi.example-app",
+    "scopeFamily": "account",
+    "scopeName": "account.session.read",
+    "qualifier": "",
+    "state": "granted",
+    "expiresAt": null,
+    "version": 1
+  }]
+}`)
+	decision, err := verifier.VerifyOpenPermissions(context.Background(), appregistrycatalog.App{
+		AppID: "nimi.example-app",
+		PermissionScopeRefs: []appregistrycatalog.PermissionScopeRef{{
+			AppID:       "nimi.example-app",
+			ScopeFamily: "account",
+			ScopeName:   "account.session.read",
+		}},
+	})
+	if err != nil {
+		t.Fatalf("VerifyOpenPermissions: %v", err)
+	}
+	if decision.Allowed || !strings.Contains(decision.Detail, "qualifier must be omitted or a non-empty value") {
+		t.Fatalf("expected empty qualifier to fail closed, got %+v", decision)
 	}
 }
 

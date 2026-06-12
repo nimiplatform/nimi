@@ -316,7 +316,7 @@ func TestProductionActivationCodeStateExchangeCustodyAndTokenProjection(t *testi
 			t.Fatalf("token exchange client_id = %q, want desktop-test", r.Form.Get("client_id"))
 		}
 		w.Header().Set("content-type", "application/json")
-		_, _ = w.Write([]byte(`{"access_token":"access-prod","refresh_token":"refresh-prod","expires_in":300,"user":{"id":"acct-prod","displayName":"Prod User"}}`))
+		_, _ = w.Write([]byte(`{"access_token":"access-prod","refresh_token":"refresh-prod","token_type":"Bearer","expires_in":300,"account_id":"acct-prod","display_name":"Prod User","realm_environment_id":"realm-prod"}`))
 	}))
 	defer func() { authServer.Close() }()
 	exchanger := newRealmOAuthExchanger(resolveProductionConfig(ProductionConfig{
@@ -384,6 +384,9 @@ func TestProductionActivationCodeStateExchangeCustodyAndTokenProjection(t *testi
 	if !complete.GetAccepted() || complete.GetAccountProjection().GetAccountId() != "acct-prod" {
 		t.Fatalf("production CompleteLogin failed: %+v", complete)
 	}
+	if complete.GetAccountProjection().GetDisplayName() != "Prod User" || complete.GetAccountProjection().GetRealmEnvironmentId() != "realm-prod" {
+		t.Fatalf("canonical account projection missing fields: %+v", complete.GetAccountProjection())
+	}
 	if exchangeCalls != 1 || !custody.has || custody.material.RefreshToken != "refresh-prod" {
 		t.Fatalf("exchange/custody mismatch calls=%d custody=%+v", exchangeCalls, custody.material)
 	}
@@ -393,6 +396,81 @@ func TestProductionActivationCodeStateExchangeCustodyAndTokenProjection(t *testi
 	}
 	if !token.GetAccepted() || token.GetAccessToken() != "access-prod" {
 		t.Fatalf("Runtime token projection mismatch: %+v", token)
+	}
+}
+
+func TestProductionCompleteLoginRejectsNonCanonicalOAuthTokenResponses(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		body string
+	}{
+		{
+			name: "camelCase aliases",
+			body: `{"accessToken":"access-alias","refreshToken":"refresh-alias","tokenType":"Bearer","expiresIn":300,"accountId":"acct-alias","displayName":"Alias User","realmEnvironmentId":"realm-prod"}`,
+		},
+		{
+			name: "nested tokens and user",
+			body: `{"tokens":{"access_token":"access-nested","refresh_token":"refresh-nested"},"token_type":"Bearer","expires_in":300,"user":{"id":"acct-nested","displayName":"Nested User"},"realm_environment_id":"realm-prod"}`,
+		},
+		{
+			name: "user_id fallback",
+			body: `{"access_token":"access-user-id","refresh_token":"refresh-user-id","token_type":"Bearer","expires_in":300,"user_id":"acct-user-id","display_name":"User ID","realm_environment_id":"realm-prod"}`,
+		},
+		{
+			name: "jwt subject fallback",
+			body: `{"access_token":"` + unsignedTestJWT("acct-jwt") + `","refresh_token":"refresh-jwt","token_type":"Bearer","expires_in":300,"display_name":"JWT User","realm_environment_id":"realm-prod"}`,
+		},
+		{
+			name: "non Bearer token type",
+			body: `{"access_token":"access-basic","refresh_token":"refresh-basic","token_type":"Basic","expires_in":300,"account_id":"acct-basic","display_name":"Basic User","realm_environment_id":"realm-prod"}`,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			custody := &memoryCustody{}
+			authServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("content-type", "application/json")
+				_, _ = w.Write([]byte(tc.body))
+			}))
+			defer authServer.Close()
+			exchanger := newRealmOAuthExchanger(resolveProductionConfig(ProductionConfig{
+				RealmBaseURL:     authServer.URL,
+				AuthorizationURL: authServer.URL + "/api/auth/oauth/authorize",
+				TokenURL:         authServer.URL + "/token",
+				ClientID:         "desktop-test",
+				RedirectURI:      "http://localhost:46373/oauth/callback",
+				HTTPClient:       authServer.Client(),
+			}))
+			svc := newProductionHarnessService(t, custody, WithLoginExchanger(exchanger))
+			begin, err := svc.BeginLogin(context.Background(), &runtimev1.BeginLoginRequest{
+				Caller:      firstPartyCaller(),
+				RedirectUri: "http://localhost:46373/oauth/callback",
+			})
+			if err != nil {
+				t.Fatalf("BeginLogin: %v", err)
+			}
+			if !begin.GetAccepted() {
+				t.Fatalf("BeginLogin not accepted: %+v", begin)
+			}
+			complete, err := svc.CompleteLogin(context.Background(), &runtimev1.CompleteLoginRequest{
+				Caller:         firstPartyCaller(),
+				LoginAttemptId: begin.GetLoginAttemptId(),
+				Code:           "auth-code",
+				State:          begin.GetState(),
+				Nonce:          begin.GetNonce(),
+				RedirectUri:    "http://localhost:46373/oauth/callback",
+			})
+			if err != nil {
+				t.Fatalf("CompleteLogin: %v", err)
+			}
+			if complete.GetAccepted() ||
+				complete.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_LOGIN_EXCHANGE_UNAVAILABLE ||
+				complete.GetState() != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REAUTH_REQUIRED {
+				t.Fatalf("non-canonical token response must fail closed: %+v", complete)
+			}
+			if custody.has {
+				t.Fatalf("non-canonical token response must not be stored in Runtime custody: %+v", custody.material)
+			}
+		})
 	}
 }
 

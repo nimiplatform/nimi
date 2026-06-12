@@ -103,7 +103,7 @@ const permission = createPermissionClient({
   async list() { return [grant]; },
   async get() { return grant; },
   async request(inputScopeRef) {
-    return { scopeRef: inputScopeRef, accepted: true, grantId: 'grant-1', state: 'pending' };
+    return { ...grant, scopeRef: inputScopeRef, state: 'pending' };
   },
   async revoke() { return { ...grant, state: 'revoked' }; },
   async status(inputScopeRef) { return { scopeRef: inputScopeRef, grants: [grant] }; },
@@ -250,7 +250,7 @@ const grantSpec: GrantSpec = { permissionScope, reason: 'consumer smoke' };
 const permissionClient: PermissionClient = createPermissionClient({
   async list() { return []; },
   async get() { return { scopeRef, grant: { grantId: 'grant-1', permissionScope }, state: 'granted' }; },
-  async request() { return { scopeRef, accepted: true, grantId: 'grant-1', state: 'pending' }; },
+  async request() { return { scopeRef, grant: { grantId: 'grant-1', permissionScope }, state: 'pending' }; },
   async revoke() { return { scopeRef, grant: { grantId: 'grant-1', permissionScope }, state: 'revoked' }; },
   async status() { return { scopeRef, grants: [] }; },
   subscribe() { return () => {}; },

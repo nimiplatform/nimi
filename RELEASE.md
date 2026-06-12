@@ -25,11 +25,26 @@ requirement.
 | nimi-shell-tauri | crates.io | `nimi-shell-tauri` |
 | proto | buf.build (`nimiplatform`) | Proto schema |
 | desktop | GitHub Releases | macOS / Windows / Linux installers |
-| mods catalog (future repo) | GitHub Pages / static hosting | `index/v1/*.json` static registry |
 
 ## Release Steps
 
 ### 1. Pre-release Checks
+
+For the first public existence event, run the named proof bundle:
+
+```bash
+pnpm release:proof:first-public
+```
+
+This command is a thin alias over `pnpm preflight --tier first-public-existence
+--target any --require-release`. The tier is declared in
+`.nimi/spec/platform/kernel/tables/release-gate-registry.yaml`, and the output
+is the same `release-gate-evidence/v1` document as any other preflight run. A
+passing first-public proof means the frozen public promise copy, SDK/app-tools
+developer entry, Realm bypass guard, adapter ledger, and spec governance checks
+passed for the source checkout. It does not open a product-channel release,
+app admission, permission grant, release descriptor, or installed-app update
+event.
 
 ```bash
 pnpm preflight --require-release
@@ -171,22 +186,6 @@ desktop 本地 dry-run（用于复现 release-desktop 构建输入）：
 pnpm build:sdk
 pnpm -C apps/desktop run build
 ```
-
-3. 若需要验证远程安装，再额外回放 install/update/uninstall 生命周期。
-
-official mod package / catalog dry-run：
-
-1. 手动触发 `.github/workflows/release-mod-package.yml`
-2. 设 `publish=false`
-3. CI 仍会打包 mod、生成 `release.manifest.json`、更新 catalog working tree，并上传 patch preview artifact，但不会创建 GitHub Release 或 catalog PR
-
-official mod package / catalog publish：
-
-1. 手动触发 `.github/workflows/release-mod-package.yml`
-2. 设 `publish=true`
-3. workflow 会创建或复用 mod GitHub Release、上传 zip 与 `release.manifest.json`
-4. workflow 会 checkout catalog repo、运行 `scripts/update-mod-catalog.mjs` 与 signer/catalog 校验
-5. workflow 会 force-update `codex/catalog-<packageId>-<version>` 分支，并创建或更新对应 catalog PR
 
 ### 5. Post-release
 
