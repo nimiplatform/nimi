@@ -18,12 +18,13 @@ import {
   DEFAULT_DIRECT_MOTION_FADE_SEC,
   type ActivityMapping,
 } from './vrm-projection-adapter.js';
-import type { BackendProjection, VrmActivityRoute } from '@nimiplatform/kit/features/avatar/headless';
+import type { VrmActivityRoute } from './vrm-activity-mapping.js';
+import type { BackendProjection } from '../carrier/backend-branch.js';
 import type {
   PlayGeneratedMotionResult,
-  VrmEmoteState,
   VrmGeneratedMotionRuntime,
-} from '@nimiplatform/kit/features/avatar/vrm';
+} from './vrm-generated-motion-contract.js';
+import type { VrmEmoteState } from './vrm-emote-state.js';
 
 function createMocks(routesByName: Record<string, VrmActivityRoute | null>): {
   vrm: VRM;

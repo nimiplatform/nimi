@@ -147,6 +147,24 @@ function seedFixtureState(): void {
     fixturePlaying: true,
   });
   useAvatarStore.getState().setLaunchContext(launchContext());
+  useAvatarStore.getState().setRuntimeBinding({
+    avatarInstanceId: 'avatar-instance-01',
+    conversationAnchorId: 'anchor-01',
+    agentId: 'local-agent:owner-product:agent-product-01',
+    worldId: 'world-01',
+  });
+  useAvatarStore.getState().setDriverStatus('running');
+}
+
+function seedFixtureWithoutRuntimeBinding(): void {
+  useAvatarStore.getState().markShellReady({ width: 360, height: 640 });
+  useAvatarStore.getState().setConsumeMode({
+    mode: 'mock',
+    authority: 'fixture',
+    fixtureId: 'default',
+    fixturePlaying: true,
+  });
+  useAvatarStore.getState().setLaunchContext(launchContext());
   useAvatarStore.getState().setDriverStatus('running');
 }
 
@@ -251,6 +269,23 @@ describe('App composition state machine', () => {
       expect(screen.getByTestId('avatar-companion-surface')).toBeTruthy();
     });
     expect(screen.getByTestId('avatar-root').getAttribute('data-composition')).toBe('fixture_active');
+  });
+
+  it('does not treat fixture mode as ready without active runtime binding', async () => {
+    bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle());
+
+    render(<App />);
+
+    act(() => {
+      seedFixtureWithoutRuntimeBinding();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('avatar-degraded-surface')).toBeTruthy();
+    });
+    expect(screen.queryByTestId('avatar-embodiment-stage')).toBeNull();
+    expect(screen.queryByTestId('avatar-companion-surface')).toBeNull();
+    expect(screen.getByTestId('avatar-root').getAttribute('data-composition')).toBe('degraded_runtime_unavailable');
   });
 
   it('mounts ONLY degraded-surface under degraded:runtime-unavailable', async () => {

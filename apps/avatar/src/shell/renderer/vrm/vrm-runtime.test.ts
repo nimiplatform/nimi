@@ -6,7 +6,7 @@
 
 import type { VRM } from '@pixiv/three-vrm';
 import { describe, expect, it, vi } from 'vitest';
-import type { VrmAvatarModelManifest } from '@nimiplatform/kit/features/avatar/headless';
+import type { VrmAvatarModelManifest } from './vrm-model-manifest.js';
 import {
   createVrmRuntime,
   VRM_CONTEXT_LOST_RETRY_MS,
@@ -159,7 +159,7 @@ describe('createVrmRuntime', () => {
     );
   });
 
-  it('context_lost -> notifyContextRestored before timer -> ready, timer cancelled', async () => {
+  it('context_lost -> notifyContextRestored before timer does not skip mandatory retry reload', async () => {
     const vrm = stubVrm();
     const evidence = vi.fn();
     const timer = makeFakeTimer();
@@ -178,11 +178,22 @@ describe('createVrmRuntime', () => {
     expect(timer.pending()).toBe(true);
     nowMs += 200; // browser auto-recovery well before 1500ms
     runtime.notifyContextRestored();
-    expect(timer.pending()).toBe(false);
+    expect(timer.pending()).toBe(true);
+    expect(runtime.getState().kind).toBe('context_lost');
+    expect(evidence).not.toHaveBeenCalledWith(
+      'context_restored',
+      expect.objectContaining({ restoreDurationMs: 200 }),
+    );
+
+    nowMs += VRM_CONTEXT_LOST_RETRY_MS - 200;
+    timer.fire();
+    await Promise.resolve();
+    await Promise.resolve();
+
     expect(runtime.getState().kind).toBe('ready');
     expect(evidence).toHaveBeenCalledWith(
       'context_restored',
-      expect.objectContaining({ restoreDurationMs: 200 }),
+      expect.objectContaining({ restoreDurationMs: VRM_CONTEXT_LOST_RETRY_MS }),
     );
   });
 

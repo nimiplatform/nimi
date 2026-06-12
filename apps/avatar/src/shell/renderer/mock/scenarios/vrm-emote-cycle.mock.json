@@ -21,11 +21,11 @@
   },
 
   "events": [
-    { "kind": "time", "at_ms": 0,    "type": "runtime.agent.presentation.activity_requested", "detail": { "activity_name": "neutral",  "category": "emotion", "intensity": null, "source": "mock" } },
-    { "kind": "time", "at_ms": 400,  "type": "runtime.agent.presentation.activity_requested", "detail": { "activity_name": "happy",    "category": "emotion", "intensity": "moderate", "source": "mock" } },
-    { "kind": "time", "at_ms": 800,  "type": "runtime.agent.presentation.activity_requested", "detail": { "activity_name": "sad",      "category": "emotion", "intensity": "moderate", "source": "mock" } },
-    { "kind": "time", "at_ms": 1200, "type": "runtime.agent.presentation.activity_requested", "detail": { "activity_name": "relaxed",  "category": "emotion", "intensity": "moderate", "source": "mock" } },
-    { "kind": "time", "at_ms": 1600, "type": "runtime.agent.presentation.activity_requested", "detail": { "activity_name": "neutral",  "category": "emotion", "intensity": null, "source": "mock" } }
+    { "kind": "time", "at_ms": 0,    "type": "avatar.fixture.presentation.activity_requested", "detail": { "activity_name": "neutral",  "category": "emotion", "intensity": null, "source": "mock" } },
+    { "kind": "time", "at_ms": 400,  "type": "avatar.fixture.presentation.activity_requested", "detail": { "activity_name": "happy",    "category": "emotion", "intensity": "moderate", "source": "mock" } },
+    { "kind": "time", "at_ms": 800,  "type": "avatar.fixture.presentation.activity_requested", "detail": { "activity_name": "sad",      "category": "emotion", "intensity": "moderate", "source": "mock" } },
+    { "kind": "time", "at_ms": 1200, "type": "avatar.fixture.presentation.activity_requested", "detail": { "activity_name": "relaxed",  "category": "emotion", "intensity": "moderate", "source": "mock" } },
+    { "kind": "time", "at_ms": 1600, "type": "avatar.fixture.presentation.activity_requested", "detail": { "activity_name": "neutral",  "category": "emotion", "intensity": null, "source": "mock" } }
   ],
 
   "vrm_mock_scenario": {

@@ -3,8 +3,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { VRM } from '@pixiv/three-vrm';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
-import type { WLipSyncSnapshot } from '@nimiplatform/kit/features/avatar/headless';
-import type { VrmAvatarModelManifest } from '@nimiplatform/kit/features/avatar/headless';
+import type { WLipSyncSnapshot } from '../carrier/backend-branch.js';
+import type { VrmAvatarModelManifest } from './vrm-model-manifest.js';
 
 const threeMocks = vi.hoisted(() => ({
   createAction: () => ({
@@ -50,22 +50,21 @@ vi.mock('three', () => ({
   },
 }));
 
-import { createActivityMappingResolver } from '@nimiplatform/kit/features/avatar/headless';
+import { createVrmActivityMappingResolver } from './vrm-activity-mapping.js';
 import { loadVrmEmoteTable } from './load-vrm-emote-table.js';
 import {
   VRM_GENERATED_ROUTE_IDS,
   type VrmGeneratedRouteId,
-} from '@nimiplatform/kit/features/avatar/vrm';
+} from './vrm-generated-motion-contract.js';
 import {
   createVrmCapabilityProfile,
 } from './vrm-capability-profile.js';
 import { createDeterministicVrmGeneratedMotionProvider } from './vrm-deterministic-motion-provider.js';
-import { createVrmEmoteState } from '@nimiplatform/kit/features/avatar/vrm';
+import { createVrmEmoteState, type VrmEmoteState } from './vrm-emote-state.js';
 import { createVrmGeneratedMotionRuntime } from './vrm-generated-motion-runtime.js';
 import { createVrmLipsyncDriver } from './vrm-lipsync-driver.js';
 import { createVrmProjectionAdapter } from './vrm-projection-adapter.js';
 import { createVrmRuntime, VRM_CONTEXT_LOST_RETRY_MS } from './vrm-runtime.js';
-import type { VrmEmoteState } from '@nimiplatform/kit/features/avatar/vrm';
 import {
   resolveSamplePath,
   VRM_SAMPLE_DEFINITIONS,
@@ -352,7 +351,7 @@ function runMotionActivity(
     vrm,
     emoteState: makeEmoteState(),
     generatedMotionRuntime: runtime,
-    activityMapping: createActivityMappingResolver(),
+    activityMapping: createVrmActivityMappingResolver(),
   });
 
   adapter.applyActivity({ name: activityName, intensity: 1 });

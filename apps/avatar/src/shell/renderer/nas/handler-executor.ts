@@ -12,9 +12,7 @@
 // they reach the executor.
 
 import type { AgentDataBundle } from '../driver/types.js';
-import type {
-  EmbodimentProjectionApi,
-} from '@nimiplatform/kit/features/avatar/headless';
+import type { BackendProjection } from '../carrier/backend-branch.js';
 import type { ActivityOrEventHandler, NasHandlerExtension } from './handler-types.js';
 
 export type HandlerRunStatus = 'success' | 'error' | 'timeout' | 'cancelled' | 'shutdown';
@@ -42,7 +40,7 @@ export class HandlerExecutor {
     key: string,
     handler: ActivityOrEventHandler,
     ctx: AgentDataBundle,
-    projection: EmbodimentProjectionApi,
+    projection: BackendProjection,
     options: HandlerRunOptions = {},
   ): Promise<HandlerRunResult> {
     const prev = this.inFlight.get(key);

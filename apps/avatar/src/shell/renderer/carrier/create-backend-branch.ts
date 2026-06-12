@@ -9,10 +9,7 @@
 // `_exhaustive: never` check intact (per backend-branch-contract §3.1).
 
 import type { AvatarModelManifest } from '@nimiplatform/kit/features/avatar/headless';
-import type { BackendAudioConsumer, BackendBranch } from '@nimiplatform/kit/features/avatar/headless';
-import type { Live2DBackendSession } from '../live2d/backend-session.js';
-import type { Live2DCommandBus } from '../live2d/plugin-api.js';
-import type { EmbodimentProjectionApi } from '@nimiplatform/kit/features/avatar/headless';
+import type { BackendAudioConsumer, BackendBranch } from './backend-branch.js';
 import { createLive2DBackendBranch } from '../live2d/live2d-backend-branch.js';
 import { createVrmBackendBranch } from '../vrm/vrm-backend.js';
 
@@ -22,10 +19,8 @@ import { createVrmBackendBranch } from '../vrm/vrm-backend.js';
 export type BackendBranchHandle = {
   branch: BackendBranch;
   audioConsumer: BackendAudioConsumer;
+  recordBootstrapVisualProof?: () => Promise<void>;
   shutdown(): void;
-  commandBus: Live2DCommandBus | null;
-  backendSession: Live2DBackendSession | null;
-  cueProjection: EmbodimentProjectionApi | null;
 };
 
 export async function createBackendBranch(
@@ -37,10 +32,8 @@ export async function createBackendBranch(
       return {
         branch: handle.branch,
         audioConsumer: handle.audioConsumer,
+        recordBootstrapVisualProof: handle.recordBootstrapVisualProof,
         shutdown: handle.shutdown,
-        commandBus: handle.commandBus,
-        backendSession: handle.backendSession,
-        cueProjection: handle.cueProjection,
       };
     }
     case 'vrm': {
@@ -49,9 +42,6 @@ export async function createBackendBranch(
         branch: handle.branch,
         audioConsumer: handle.audioConsumer,
         shutdown: handle.shutdown,
-        commandBus: null,
-        backendSession: null,
-        cueProjection: null,
       };
     }
     default: {

@@ -22,6 +22,12 @@ export type AvatarEvidenceKind =
   | 'avatar.runtime.consume-ready'
   | 'avatar.model.load'
   | 'avatar.carrier.visual'
+  | 'avatar.carrier.lifecycle.context_lost'
+  | 'avatar.carrier.lifecycle.context_restored'
+  | 'avatar.carrier.lifecycle.failed_closed'
+  | 'avatar.audio.pipeline.ready'
+  | 'avatar.audio.pipeline.failed'
+  | 'avatar.hit_region.degraded'
   | 'avatar.carrier.interaction'
   | 'avatar.debug.session-evidence'
   // Wave 1 K-NAV-SHELL-COMPOSITION-004 — composition state machine evidence.

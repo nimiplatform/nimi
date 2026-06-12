@@ -24,7 +24,7 @@ import type {
 } from '../driver/types.js';
 import { createAvatarVoiceLipsyncPipeline } from './avatar-voice-lipsync.js';
 import { AudioPipelineController } from '@nimiplatform/kit/features/avatar/headless';
-import type { BackendBranch } from '@nimiplatform/kit/features/avatar/headless';
+import type { BackendBranch } from '../carrier/backend-branch.js';
 
 function createDriver(): AgentDataDriver & { emitted: AppOriginEvent[] } {
   const emitted: AppOriginEvent[] = [];

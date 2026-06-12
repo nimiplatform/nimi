@@ -210,7 +210,7 @@ export class MockDriver implements AgentDataDriver {
   }
 
   private updateBundleForEvent(event: AgentEvent): void {
-    if (event.name === 'runtime.agent.presentation.activity_requested') {
+    if (event.name === 'avatar.fixture.presentation.activity_requested') {
       const detail = event.detail;
       const activityName = typeof detail['activity_name'] === 'string' ? detail['activity_name'] : null;
       const category = typeof detail['category'] === 'string' ? detail['category'] : null;

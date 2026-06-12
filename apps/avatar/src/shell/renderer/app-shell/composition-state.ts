@@ -150,22 +150,6 @@ export function deriveCompositionState(input: CompositionInput): CompositionDeri
     };
   }
 
-  // Bootstrap completed in fixture mode → fixture_active. Mock authority is explicit.
-  if (input.consume.authority === 'fixture' || input.consume.mode === 'mock') {
-    return {
-      state: 'fixture_active',
-      variant: 'fixture',
-      reason: null,
-      reasonCode: null,
-      accountReasonCode: null,
-      actionHint: null,
-      stage: null,
-      source: null,
-      retryable: null,
-      ready: true,
-    };
-  }
-
   // Bootstrap completed but runtime binding is not active → degraded.
   if (input.runtimeBinding.status !== 'active') {
     const reason = readNormalizedString(input.runtimeBinding.reason);
@@ -183,6 +167,8 @@ export function deriveCompositionState(input: CompositionInput): CompositionDeri
     };
   }
 
+  const fixtureMode = input.consume.authority === 'fixture' || input.consume.mode === 'mock';
+
   // Bootstrap completed, binding active, but driver not running → degraded.
   if (!READY_DRIVER_STATUSES.has(input.driver.status)) {
     return {
@@ -196,6 +182,21 @@ export function deriveCompositionState(input: CompositionInput): CompositionDeri
       source: null,
       retryable: null,
       ready: false,
+    };
+  }
+
+  if (fixtureMode) {
+    return {
+      state: 'fixture_active',
+      variant: 'fixture',
+      reason: null,
+      reasonCode: null,
+      accountReasonCode: null,
+      actionHint: null,
+      stage: null,
+      source: null,
+      retryable: null,
+      ready: true,
     };
   }
 

@@ -28,7 +28,7 @@ import type {
   BackendAudioConsumer,
   BackendBranch,
   BackendHitRegion,
-} from '@nimiplatform/kit/features/avatar/headless';
+} from '../carrier/backend-branch.js';
 import { getSharedAudioPipelineController } from '@nimiplatform/kit/features/avatar/headless';
 import { createThrottledCursorEvents } from '../app-shell/throttled-cursor-events.js';
 import { createThrottledEmit } from '../app-shell/throttled-emit.js';
@@ -53,6 +53,15 @@ export type EmbodimentStageProps = {
 };
 
 const CLICK_THROUGH_RECOVERY_POLL_INTERVAL_MS = 50;
+const ADMITTED_BACKEND_LIFECYCLE_EVIDENCE = new Set([
+  'context_lost',
+  'context_restored',
+  'failed_closed',
+  'load_failed',
+  'audio_pipeline_ready',
+  'audio_pipeline_failed',
+  'hit_region_degraded',
+]);
 
 export function EmbodimentStage(props: EmbodimentStageProps) {
   const {
@@ -138,22 +147,66 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
 
   const handleLifecycleEvidence = useCallback(
     (kind: string, detail: Record<string, unknown>) => {
-      // BackendSurface lifecycle events flow through the existing
-      // `avatar.carrier.visual` evidence kind; the surface lifecycle
-      // phase (`mounted` / `unmounted` / `failed_closed` / …) is
-      // carried in `detail.lifecycle` so consumers don't need a new
-      // event-contract admit at this wave.
+      if (!ADMITTED_BACKEND_LIFECYCLE_EVIDENCE.has(kind)) {
+        recordAvatarEvidenceEventually({
+          kind: 'avatar.carrier.lifecycle.failed_closed',
+          detail: {
+            source: 'embodiment-stage',
+            model_kind: backend?.kind ?? 'unknown',
+            reason_code: 'unadmitted_lifecycle_evidence_kind',
+            lifecycle: kind,
+            closed_at: new Date().toISOString(),
+          },
+        });
+        return;
+      }
+      if (kind === 'audio_pipeline_ready') {
+        recordAvatarEvidenceEventually({
+          kind: 'avatar.audio.pipeline.ready',
+          detail: {
+            source: 'embodiment-stage',
+            ...detail,
+            ready_at: new Date().toISOString(),
+          },
+        });
+        return;
+      }
+      if (kind === 'audio_pipeline_failed') {
+        recordAvatarEvidenceEventually({
+          kind: 'avatar.audio.pipeline.failed',
+          detail: {
+            source: 'embodiment-stage',
+            ...detail,
+            failed_at: new Date().toISOString(),
+          },
+        });
+        return;
+      }
+      if (kind === 'hit_region_degraded') {
+        recordAvatarEvidenceEventually({
+          kind: 'avatar.hit_region.degraded',
+          detail: {
+            source: 'embodiment-stage',
+            model_kind: backend?.kind ?? 'unknown',
+            ...detail,
+            recorded_at: new Date().toISOString(),
+          },
+        });
+        return;
+      }
+      const lifecycleKind = kind === 'load_failed' ? 'failed_closed' : kind;
       recordAvatarEvidenceEventually({
-        kind: 'avatar.carrier.visual',
+        kind: `avatar.carrier.lifecycle.${lifecycleKind}`,
         detail: {
           source: 'embodiment-stage',
+          model_kind: backend?.kind ?? 'unknown',
           lifecycle: kind,
           composition_state: compositionState,
           ...detail,
         },
       });
     },
-    [compositionState],
+    [backend?.kind, compositionState],
   );
 
   // Sink unregistration + throttle disposal on unmount / backend swap.

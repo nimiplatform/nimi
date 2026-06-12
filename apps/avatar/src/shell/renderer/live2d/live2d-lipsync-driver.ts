@@ -16,7 +16,7 @@
 // hardcoded -0.6/0.4/0.8/-0.2/-0.8 literals across the codebase are a
 // drift violation.
 
-import type { WLipSyncSnapshot } from '@nimiplatform/kit/features/avatar/headless';
+import type { WLipSyncSnapshot } from '../carrier/backend-branch.js';
 
 // ── envelope constants (mirror VRM driver; see design-05) ──────────────
 const ATTACK_RATE = 50;

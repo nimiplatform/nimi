@@ -1,5 +1,4 @@
 import type { AgentDataBundle } from '../driver/types.js';
-import type { PlayMotionOptions, ProjectionBounds } from '@nimiplatform/kit/features/avatar/headless';
 import { validateSandboxSourcePolicy } from './handler-sandbox-policy.js';
 
 type SandboxHandlerKind = 'activity-event' | 'continuous';
@@ -61,44 +60,35 @@ type WorkerResponse =
     };
 
 type ProjectionRpcMethod =
-  | 'triggerMotion'
-  | 'stopMotion'
-  | 'setSignal'
-  | 'addSignal'
-  | 'setExpression'
-  | 'clearExpression'
-  | 'setPose'
-  | 'clearPose'
-  | 'runDefaultActivity';
+  | 'applyActivity'
+  | 'applyEmotion'
+  | 'applyMotion'
+  | 'applyExpression'
+  | 'reset';
 
 type SandboxProjectionSnapshot = {
-  surfaceBounds: ProjectionBounds;
+  surfaceBounds: { x: number; y: number; width: number; height: number };
 };
 
 type ActivityEventModule = {
   meta?: unknown;
+  requires?: unknown;
   execute(ctx: AgentDataBundle, projection: WorkerProjectionApi, options: { signal: AbortSignal }): Promise<void> | void;
 };
 
 type ContinuousModule = {
   meta?: unknown;
+  requires?: unknown;
   fps?: number;
   update(ctx: AgentDataBundle, projection: WorkerProjectionApi): Promise<void> | void;
 };
 
 type WorkerProjectionApi = {
-  triggerMotion(motionId: string, opts?: PlayMotionOptions): Promise<void>;
-  stopMotion(): void;
-  setSignal(signalId: string, value: number, weight?: number): void;
-  getSignal(signalId: string): number;
-  addSignal(signalId: string, delta: number): void;
-  setExpression(expressionId: string): Promise<void>;
-  clearExpression(): void;
-  setPose(poseId: string, loop?: boolean): void;
-  clearPose(): void;
-  wait(ms: number): Promise<void>;
-  getSurfaceBounds(): ProjectionBounds;
-  runDefaultActivity?(activityId: string): Promise<void>;
+  applyActivity(input: { name: string; intensity: number | null }): void;
+  applyEmotion(input: { current: string; previous: string | null }): void;
+  applyMotion(input: { routeId: string; fade?: number; loop?: boolean }): void;
+  applyExpression(input: { name: string; weight?: number; fade?: number }): void;
+  reset(): void;
 };
 
 const disabledGlobals = [
@@ -184,54 +174,22 @@ function rpc(requestId: string, method: ProjectionRpcMethod, args: unknown[]): P
 }
 
 function createProjection(requestId: string, snapshot: SandboxProjectionSnapshot): WorkerProjectionApi {
-  const signals = new Map<string, number>();
+  void snapshot;
   return {
-    async triggerMotion(motionId, opts) {
-      await rpc(requestId, 'triggerMotion', [motionId, opts]);
+    applyActivity(input) {
+      void rpc(requestId, 'applyActivity', [input.name, input.intensity]);
     },
-    stopMotion() {
-      void rpc(requestId, 'stopMotion', []);
+    applyEmotion(input) {
+      void rpc(requestId, 'applyEmotion', [input.current, input.previous]);
     },
-    setSignal(signalId, value, weight = 1) {
-      signals.set(signalId, value);
-      void rpc(requestId, 'setSignal', [signalId, value, weight]);
+    applyMotion(input) {
+      void rpc(requestId, 'applyMotion', [input.routeId, input.fade, input.loop]);
     },
-    getSignal(signalId) {
-      return signals.get(signalId) ?? 0;
+    applyExpression(input) {
+      void rpc(requestId, 'applyExpression', [input.name, input.weight, input.fade]);
     },
-    addSignal(signalId, delta) {
-      const next = (signals.get(signalId) ?? 0) + delta;
-      signals.set(signalId, next);
-      void rpc(requestId, 'addSignal', [signalId, delta]);
-    },
-    async setExpression(expressionId) {
-      await rpc(requestId, 'setExpression', [expressionId]);
-    },
-    clearExpression() {
-      void rpc(requestId, 'clearExpression', []);
-    },
-    setPose(poseId, loop = false) {
-      void rpc(requestId, 'setPose', [poseId, loop]);
-    },
-    clearPose() {
-      void rpc(requestId, 'clearPose', []);
-    },
-    async wait(ms) {
-      const controller = abortControllers.get(requestId);
-      if (controller?.signal.aborted) return;
-      await new Promise<void>((resolve) => {
-        const timer = globalThis.setTimeout(resolve, Math.max(0, Number(ms) || 0));
-        controller?.signal.addEventListener('abort', () => {
-          globalThis.clearTimeout(timer);
-          resolve();
-        }, { once: true });
-      });
-    },
-    getSurfaceBounds() {
-      return snapshot.surfaceBounds;
-    },
-    async runDefaultActivity(activityId) {
-      await rpc(requestId, 'runDefaultActivity', [activityId]);
+    reset() {
+      void rpc(requestId, 'reset', []);
     },
   };
 }
@@ -249,7 +207,14 @@ async function handleLoad(message: Extract<WorkerRequest, { type: 'load' }>): Pr
     }
     loadedHandler = module;
     loadedKind = message.handlerKind;
-    post({ type: 'ready', requestId: message.requestId, meta: module.meta });
+    post({
+      type: 'ready',
+      requestId: message.requestId,
+      meta: {
+        meta: module.meta,
+        requires: module.requires,
+      },
+    });
     return;
   }
   if (!isContinuousModule(module)) {
@@ -260,7 +225,10 @@ async function handleLoad(message: Extract<WorkerRequest, { type: 'load' }>): Pr
   post({
     type: 'ready',
     requestId: message.requestId,
-    meta: module.meta,
+    meta: {
+      meta: module.meta,
+      requires: module.requires,
+    },
     fps: typeof module.fps === 'number' && module.fps > 0 ? module.fps : 60,
   });
 }

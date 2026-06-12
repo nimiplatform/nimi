@@ -1,0 +1,93 @@
+import { activityIdToMotionGroup } from '@nimiplatform/kit/features/avatar/headless';
+import type { Live2DCompatibilityReport } from '@nimiplatform/kit/features/avatar/headless';
+import type { BackendProjection } from '../carrier/backend-branch.js';
+
+export type Live2DProjectionCommandEvent =
+  | { kind: 'motion'; group: string; options: { priority: 'low' | 'normal' | 'high' } }
+  | { kind: 'motion-stop' }
+  | { kind: 'expression'; id: string }
+  | { kind: 'expression-clear' }
+  | { kind: 'pose-clear' };
+
+export type Live2DProjectionCommandBus = {
+  emit(eventName: 'command', event: Live2DProjectionCommandEvent): void;
+};
+
+export type Live2DProjectionAdapterDeps = {
+  commandBus: Live2DProjectionCommandBus;
+  compatibility: Live2DCompatibilityReport | null;
+};
+
+function emitMotion(
+  bus: Live2DProjectionCommandBus,
+  group: string,
+  priority: 'low' | 'normal' | 'high',
+): void {
+  bus.emit('command', {
+    kind: 'motion',
+    group,
+    options: { priority },
+  });
+}
+
+function resolveActivityMotionGroup(
+  compatibility: Live2DCompatibilityReport | null,
+  activityName: string,
+  intensity: number | null,
+): string {
+  const mapping = compatibility?.activityMotionGroups.get(activityName);
+  if (mapping) {
+    if (intensity !== null) {
+      if (intensity <= 0.34 && mapping.weak_group) return mapping.weak_group;
+      if (intensity >= 0.67 && mapping.strong_group) return mapping.strong_group;
+    }
+    if (mapping.group) return mapping.group;
+  }
+  return activityIdToMotionGroup(activityName);
+}
+
+function resolveIdleMotionGroup(
+  compatibility: Live2DCompatibilityReport | null,
+): string {
+  return compatibility?.idleMotionGroup ?? 'Idle';
+}
+
+function resolveExpressionId(
+  compatibility: Live2DCompatibilityReport | null,
+  name: string,
+): string {
+  return compatibility?.adapter?.semantics?.expressions?.map?.[name] ?? name;
+}
+
+export function createLive2DProjectionAdapter(
+  deps: Live2DProjectionAdapterDeps,
+): BackendProjection {
+  const { commandBus, compatibility } = deps;
+  return {
+    applyActivity({ name, intensity }) {
+      if (!name) return;
+      emitMotion(commandBus, resolveActivityMotionGroup(compatibility, name, intensity), 'normal');
+    },
+    applyEmotion({ current }) {
+      if (!current) return;
+      const expressionId =
+        compatibility?.adapter?.semantics?.expressions?.map?.[current];
+      if (!expressionId) return;
+      commandBus.emit('command', { kind: 'expression', id: expressionId });
+    },
+    applyMotion({ routeId }) {
+      if (!routeId) return;
+      emitMotion(commandBus, routeId, 'normal');
+    },
+    applyExpression({ name }) {
+      if (!name) return;
+      commandBus.emit('command', { kind: 'expression', id: resolveExpressionId(compatibility, name) });
+    },
+    reset() {
+      commandBus.emit('command', { kind: 'expression-clear' });
+      commandBus.emit('command', { kind: 'pose-clear' });
+      commandBus.emit('command', { kind: 'motion-stop' });
+      emitMotion(commandBus, resolveIdleMotionGroup(compatibility), 'low');
+    },
+  };
+}

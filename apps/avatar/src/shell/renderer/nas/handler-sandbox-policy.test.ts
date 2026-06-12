@@ -6,11 +6,25 @@ describe('validateSandboxSourcePolicy', () => {
     expect(validateSandboxSourcePolicy(`
       export default {
         async execute(ctx, projection) {
-          projection.setSignal("gaze.x", 0.25);
-          await projection.triggerMotion(ctx.activity?.name ?? "Idle");
+          projection.applyExpression({ name: "focus" });
+          projection.applyMotion({ routeId: ctx.activity?.name ?? "Idle" });
         }
       };
     `)).toEqual({ ok: true });
+  });
+
+  it('rejects direct parameter writes on the neutral projection surface', () => {
+    const result = validateSandboxSourcePolicy(`
+      export default {
+        async execute(ctx, projection) {
+          projection.setSignal("ParamMouthOpenY", 1);
+        }
+      };
+    `);
+    expect(result).toEqual({
+      ok: false,
+      reason: 'NAS handler projection forbids direct signal/parameter access; declare live2d-extension and use extension.live2d.setParameter',
+    });
   });
 
   it.each([
@@ -47,6 +61,21 @@ describe('validateSandboxSourcePolicy', () => {
     },
   );
 
+  it('rejects computed ambient global access', () => {
+    const result = validateSandboxSourcePolicy(`
+      export default {
+        async execute() {
+          const makeFn = ({})["constructor"]["constructor"];
+          return makeFn("return 1")();
+        }
+      };
+    `);
+    expect(result).toEqual({
+      ok: false,
+      reason: 'NAS sandbox forbids computed ambient global access: constructor',
+    });
+  });
+
   it('rejects package, side-effect, dynamic, and out-of-tree imports', () => {
     expect(validateSandboxSourcePolicy('import x from "x"; export default { execute() {} };').ok).toBe(false);
     expect(validateSandboxSourcePolicy('import "x"; export default { execute() {} };').ok).toBe(false);
@@ -70,7 +99,7 @@ describe('validateSandboxSourcePolicy', () => {
 
   it('allows ctx.app.window without admitting ambient window access', () => {
     expect(validateSandboxSourcePolicy(
-      'export default { update(ctx, projection) { projection.setSignal("x", ctx.app.window.width); } };',
+      'export default { update(ctx, projection) { projection.applyMotion({ routeId: String(ctx.app.window.width) }); } };',
       { sourcePath: '/model/runtime/nimi/continuous/eye_tracker.js' },
     )).toEqual({ ok: true });
     expect(validateSandboxSourcePolicy(

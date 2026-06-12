@@ -7,6 +7,7 @@ import type {
   AgentDataBundle,
   AgentBundleHistory,
   AgentEvent,
+  RuntimePresentationAdmissionEvidence,
 } from '../driver/types.js';
 import { ulid } from '../infra/ids.js';
 
@@ -62,6 +63,14 @@ type BundleActivityCategory = NonNullable<AgentDataBundle['activity']>['category
 type BundleActivityIntensity = NonNullable<AgentDataBundle['activity']>['intensity'];
 type BundleCurrentEmotion = NonNullable<AgentDataBundle['emotion']>['current'];
 
+export type RuntimePresentationAdmissionDetail = RuntimePresentationAdmissionEvidence & {
+  runtime_admission_ref: string;
+  gateway_verdict_ref: string;
+  firewall_verdict_ref: string;
+  audit_ref: string;
+  credential_verdict_ref: string;
+};
+
 export function mapExecutionState(value?: RuntimeAgentExecutionStateValue): AgentDataBundle['execution_state'] {
   switch (value) {
     case 'chat_active':
@@ -100,6 +109,56 @@ export function requireRuntimeProjectionSource(value: unknown, label: string): E
     return value;
   }
   throw new Error(`avatar sdk driver received malformed ${label} source`);
+}
+
+function readRequiredRef(record: Record<string, unknown>, camelKey: string, snakeKey: string, label: string): string {
+  const value = record[camelKey] ?? record[snakeKey];
+  if (typeof value === 'string' && value.trim()) {
+    return value.trim();
+  }
+  throw new Error(`avatar sdk driver received runtime presentation without ${label}`);
+}
+
+export function requireRuntimePresentationAdmissionEvidence(
+  detail: Record<string, unknown>,
+): RuntimePresentationAdmissionDetail {
+  const runtimeAdmissionRef = readRequiredRef(
+    detail,
+    'runtimeAdmissionRef',
+    'runtime_admission_ref',
+    'runtime admission evidence ref',
+  );
+  const gatewayVerdictRef = readRequiredRef(
+    detail,
+    'gatewayVerdictRef',
+    'gateway_verdict_ref',
+    'gateway verdict ref',
+  );
+  const firewallVerdictRef = readRequiredRef(
+    detail,
+    'firewallVerdictRef',
+    'firewall_verdict_ref',
+    'firewall verdict ref',
+  );
+  const auditRef = readRequiredRef(detail, 'auditRef', 'audit_ref', 'audit ref');
+  const credentialVerdictRef = readRequiredRef(
+    detail,
+    'credentialVerdictRef',
+    'credential_verdict_ref',
+    'credential verdict ref',
+  );
+  return {
+    runtimeAdmissionRef,
+    gatewayVerdictRef,
+    firewallVerdictRef,
+    auditRef,
+    credentialVerdictRef,
+    runtime_admission_ref: runtimeAdmissionRef,
+    gateway_verdict_ref: gatewayVerdictRef,
+    firewall_verdict_ref: firewallVerdictRef,
+    audit_ref: auditRef,
+    credential_verdict_ref: credentialVerdictRef,
+  };
 }
 
 export function requireRuntimeSourceText(value: unknown, label: string): string {
@@ -251,6 +310,7 @@ export function readSnapshotStatusCue(snapshot: RuntimeAgentSessionSnapshot): {
   activityName: string;
   activityCategory: BundleActivityCategory | '';
   activityIntensity: BundleActivityIntensity;
+  admission: RuntimePresentationAdmissionDetail;
 } | null {
   const turn = snapshot.lastTurn;
   const turnId = typeof turn?.turnId === 'string' ? turn.turnId.trim() : '';
@@ -276,6 +336,10 @@ export function readSnapshotStatusCue(snapshot: RuntimeAgentSessionSnapshot): {
     : typeof statusCue.activityIntensity === 'string'
       ? statusCue.activityIntensity.trim()
       : '';
+  if (!expressionId && !activityName) {
+    return null;
+  }
+  const admission = requireRuntimePresentationAdmissionEvidence(statusCue);
   return {
     turnId,
     streamId,
@@ -283,5 +347,6 @@ export function readSnapshotStatusCue(snapshot: RuntimeAgentSessionSnapshot): {
     activityName,
     activityCategory: activityCategory as BundleActivityCategory | '',
     activityIntensity: activityIntensity as BundleActivityIntensity,
+    admission,
   };
 }

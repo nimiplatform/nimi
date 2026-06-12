@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 
 function normalize(value) {
   return String(value || '').trim();
@@ -21,6 +21,18 @@ function scopePathSegment(value) {
 
 function readJson(path) {
   return JSON.parse(readFileSync(path, 'utf8'));
+}
+
+function assertSafeRelativeFileRef(root, ref, label) {
+  if (!ref || ref.includes('\0') || isAbsolute(ref)) {
+    throw new Error(`${label} must be a relative file ref: ${ref}`);
+  }
+  const resolved = resolve(root, ref);
+  const rel = relative(root, resolved);
+  if (rel === '' || rel.startsWith('..') || rel.split(sep).includes('..')) {
+    throw new Error(`${label} escapes asset root: ${ref}`);
+  }
+  return resolved;
 }
 
 function findConfiguredAgent(dataRoot, explicitAccountId, explicitAgentId) {
@@ -76,6 +88,9 @@ function main() {
   if (selected?.backend_kind !== 'live2d' || !localAssetRef) {
     throw new Error(`Agent Center config has no selected Live2D local Avatar asset: ${target.configPath}`);
   }
+  if (!canUseRawPathSegment(localAssetRef)) {
+    throw new Error(`Live2D local Avatar asset ref is not a safe package segment: ${localAssetRef}`);
+  }
   const assetRoot = join(
     dataRoot,
     'accounts',
@@ -98,7 +113,11 @@ function main() {
   if (!entryFile.startsWith('files/') || !entryFile.endsWith('.model3.json')) {
     throw new Error(`Live2D manifest entry_file is not a model3 entry under files/: ${entryFile}`);
   }
-  const model3Path = join(assetRoot, entryFile);
+  const filesRoot = resolve(assetRoot, 'files');
+  const model3Path = assertSafeRelativeFileRef(assetRoot, entryFile, 'Live2D manifest entry_file');
+  if (!model3Path.startsWith(`${filesRoot}${sep}`)) {
+    throw new Error(`Live2D manifest entry_file escapes files/: ${entryFile}`);
+  }
   if (!existsSync(model3Path)) {
     throw new Error(`Live2D model3 entry is missing: ${model3Path}`);
   }

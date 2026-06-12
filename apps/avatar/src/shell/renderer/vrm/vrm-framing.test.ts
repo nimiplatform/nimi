@@ -1,6 +1,6 @@
 // Wave 2 chunk 2-E of topic 2026-04-30-avatar-vrm-backend-branch.
 //
-// Verifies the Three.js -> Kit pure-domain glue: applyVrmFraming computes a
+// Verifies the Three.js -> local pure-domain glue: applyVrmFraming computes a
 // scene bbox via Box3.setFromObject and forwards plain-numeric vectors
 // to computeVrmCameraFraming. The results must match the pure domain output
 // for the same bbox + return the bbox vectors alongside.
@@ -8,8 +8,7 @@
 import type { VRM } from '@pixiv/three-vrm';
 import { BoxGeometry, Mesh, MeshBasicMaterial, Object3D } from 'three';
 import { describe, expect, it } from 'vitest';
-import { computeVrmCameraFraming } from '@nimiplatform/kit/features/avatar/vrm';
-import { applyVrmFraming } from './vrm-framing.js';
+import { applyVrmFraming, computeVrmCameraFraming } from './vrm-framing.js';
 
 function makeStubVrm(min: { x: number; y: number; z: number }, max: { x: number; y: number; z: number }): VRM {
   const root = new Object3D();

@@ -140,6 +140,48 @@ describe('CompanionSurface — composition evidence emit', () => {
 });
 
 describe('CompanionSurface — participation controls', () => {
+  it('fails closed when companion participation returns an incomplete projection', async () => {
+    const bootstrapHandle = {
+      ...createBootstrapHandle(),
+      requestCompanionParticipation: vi.fn(async () => ({
+        projectionId: 'companion_participation_projection/agent_anchor_TEST/avatar_companion/turn-1',
+        agentId: baseBinding.agentId,
+        surfaceKind: 'avatar_companion',
+        profileRef: 'runtime.agent.profile/agent-test',
+        roomOrchestrationRef: 'runtime.room_orchestration/avatar_companion_presentation_room',
+        triggerSource: 'user_explicit',
+        status: 'running',
+        conversationAnchorId: baseBinding.conversationAnchorId,
+        turnId: 'turn-1',
+      })),
+    } as unknown as BootstrapHandle;
+    const setCompanion = vi.fn();
+    render(
+      <CompanionSurface
+        {...makeProps({
+          bootstrapHandle,
+          companion: { ...initialCompanionState, draft: 'hello' },
+          setCompanion,
+        })}
+      />,
+    );
+
+    fireEvent.submit(screen.getByTestId('avatar-companion-composer'));
+
+    await waitFor(() => {
+      const finalUpdater = setCompanion.mock.calls.at(-1)?.[0];
+      expect(typeof finalUpdater).toBe('function');
+      const finalState = finalUpdater({
+        ...initialCompanionState,
+        sendState: 'sending',
+        draft: '',
+      });
+      expect(finalState.sendState).toBe('error');
+      expect(finalState.sendError).toContain('missing auditRef');
+      expect(finalState.draft).toBe('hello');
+    });
+  });
+
   it('routes interrupt through companion participation cancel', async () => {
     const bootstrapHandle = createBootstrapHandle();
     render(

@@ -129,7 +129,7 @@ export function createWindowBoundsRecomputer(deps: WindowBoundsRecomputerDeps): 
   let pendingHandle: unknown = null;
   let disposed = false;
 
-  function performRecompute(reason: WindowBoundsTrigger): void {
+  async function performRecompute(reason: WindowBoundsTrigger): Promise<void> {
     if (disposed) return;
     const embodimentBounds = deps.getEmbodimentBounds();
     if (!embodimentBounds) {
@@ -142,7 +142,8 @@ export function createWindowBoundsRecomputer(deps: WindowBoundsRecomputerDeps): 
       embodimentBounds,
       companionFootprint,
     });
-    void deps.applySize({ width: result.width, height: result.height });
+    await deps.applySize({ width: result.width, height: result.height });
+    if (disposed) return;
     deps.onRecomputed?.({
       trigger: reason,
       width: result.width,
@@ -163,7 +164,9 @@ export function createWindowBoundsRecomputer(deps: WindowBoundsRecomputerDeps): 
           clearTimer(pendingHandle);
           pendingHandle = null;
         }
-        performRecompute(reason);
+        void performRecompute(reason).catch((error: unknown) => {
+          console.warn(`[avatar:shell] window bounds apply failed: ${error instanceof Error ? error.message : String(error)}`);
+        });
         return;
       }
       if (pendingHandle !== null) {
@@ -171,7 +174,9 @@ export function createWindowBoundsRecomputer(deps: WindowBoundsRecomputerDeps): 
       }
       pendingHandle = setTimer(() => {
         pendingHandle = null;
-        performRecompute('companion_footprint_change');
+        void performRecompute('companion_footprint_change').catch((error: unknown) => {
+          console.warn(`[avatar:shell] window bounds apply failed: ${error instanceof Error ? error.message : String(error)}`);
+        });
       }, COMPANION_FOOTPRINT_DEBOUNCE_MS);
     },
     dispose() {

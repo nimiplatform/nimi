@@ -158,6 +158,27 @@ describe('createThrottledCursorEvents — flush + dispose', () => {
     expect(ipc).toHaveBeenLastCalledWith(false);
   });
 
+  it('does not mark a failed IPC value as applied', async () => {
+    const ipc = vi
+      .fn<(...args: unknown[]) => Promise<void>>()
+      .mockRejectedValueOnce(new Error('native ipc failed'))
+      .mockResolvedValue(undefined);
+    let now = 0;
+    const handle = createThrottledCursorEvents({
+      ipcOverride: (value) => ipc(value),
+      nowMsFn: () => now,
+    });
+    handle.setIgnore(true);
+    await Promise.resolve();
+    now = 100;
+    handle.setIgnore(true);
+    await Promise.resolve();
+
+    expect(ipc).toHaveBeenCalledTimes(2);
+    expect(ipc).toHaveBeenNthCalledWith(1, true);
+    expect(ipc).toHaveBeenNthCalledWith(2, true);
+  });
+
   it('dispose() cancels pending timer + drops further calls', () => {
     const ipc = vi.fn(async () => undefined);
     let now = 0;

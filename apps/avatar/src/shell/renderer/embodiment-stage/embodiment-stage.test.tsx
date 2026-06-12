@@ -22,7 +22,7 @@ import type {
   BackendBranch,
   BackendHitRegion,
   BackendSurfaceProps,
-} from '@nimiplatform/kit/features/avatar/headless';
+} from '../carrier/backend-branch.js';
 
 const recordAvatarEvidenceEventuallyMock = vi.fn();
 const setIgnoreCursorEventsMock = vi.fn();
@@ -91,7 +91,7 @@ function createMockBackend(input?: {
     useEffect(() => {
       props.onAudioConsumerReady?.(audioConsumer);
       props.onHitRegionChange?.(hitRegion);
-      props.onLifecycleEvidence?.('mounted', { test_marker: true });
+      props.onLifecycleEvidence?.('context_lost', { context_kind: 'webgl', test_marker: true });
     }, [
       props.onAudioConsumerReady,
       props.onHitRegionChange,
@@ -223,15 +223,15 @@ describe('EmbodimentStage — BackendBranch surface mount (wave_1 step_4)', () =
     expect(setIgnoreCursorEventsMock).toHaveBeenCalledWith(false);
   });
 
-  it('forwards onLifecycleEvidence as avatar.carrier.visual evidence with lifecycle phase', () => {
+  it('forwards admitted onLifecycleEvidence as carrier lifecycle evidence', () => {
     const backend = createMockBackend();
     render(<EmbodimentStage {...baseProps} backend={backend} />);
     expect(recordAvatarEvidenceEventuallyMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        kind: 'avatar.carrier.visual',
+        kind: 'avatar.carrier.lifecycle.context_lost',
         detail: expect.objectContaining({
           source: 'embodiment-stage',
-          lifecycle: 'mounted',
+          lifecycle: 'context_lost',
           test_marker: true,
         }),
       }),

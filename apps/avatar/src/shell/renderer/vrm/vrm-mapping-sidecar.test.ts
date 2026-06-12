@@ -97,6 +97,12 @@ evidence:
       normalizeAvatarMappingSidecar(validSidecar({ threshold: 0.5 })),
     ).toThrow(/threshold must be >= default threshold 0\.82/);
   });
+
+  it('rejects sidecars that omit required threshold', () => {
+    const raw = validSidecar();
+    delete raw.threshold;
+    expect(() => normalizeAvatarMappingSidecar(raw)).toThrow(/threshold must be in \[0, 1\]/);
+  });
 });
 
 describe('evaluateAvatarMappingSidecarSupport', () => {
@@ -146,6 +152,45 @@ describe('evaluateAvatarMappingSidecarSupport', () => {
     expect(result.supported).toBe(false);
     if (!result.supported) {
       expect(result.reason).toBe('capability_profile_route_unsupported');
+    }
+  });
+
+  it('fails closed when expression target names are not proven by the capability profile', () => {
+    const profile = {
+      ...createVrmCapabilityProfile(makeVrm()),
+      expressionPresets: {
+        present: true,
+        names: ['neutral'],
+      },
+    };
+    const result = evaluateAvatarMappingSidecarSupport(
+      normalizeAvatarMappingSidecar(validSidecar({
+        target_fields: [
+          { target_kind: 'expression_preset', name: 'happy' },
+        ],
+      })),
+      profile,
+    );
+
+    expect(result.supported).toBe(false);
+    if (!result.supported) {
+      expect(result.reason).toBe('mapping_target_unknown_expression_preset:happy');
+    }
+  });
+
+  it('fails closed when a sidecar relies on an incomplete capability profile', () => {
+    const profile = {
+      ...createVrmCapabilityProfile(makeVrm()),
+      lookat: undefined,
+    };
+    const result = evaluateAvatarMappingSidecarSupport(
+      normalizeAvatarMappingSidecar(validSidecar()),
+      profile as never,
+    );
+
+    expect(result.supported).toBe(false);
+    if (!result.supported) {
+      expect(result.reason).toMatch(/^capability_profile_invalid:/);
     }
   });
 });

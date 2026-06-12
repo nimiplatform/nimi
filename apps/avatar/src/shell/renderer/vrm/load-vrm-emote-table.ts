@@ -6,7 +6,7 @@ import emoteTableYaml from '../../../../../../.nimi/spec/avatar/kernel/tables/vr
 import {
   normalizeVrmEmoteTable,
   type VrmEmoteTable,
-} from '@nimiplatform/kit/features/avatar/vrm';
+} from './vrm-table-normalizers.js';
 
 let cached: VrmEmoteTable | null = null;
 

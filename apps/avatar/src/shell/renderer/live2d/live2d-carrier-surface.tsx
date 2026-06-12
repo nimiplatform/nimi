@@ -26,7 +26,7 @@ import type {
   BackendAudioConsumer,
   BackendSurface,
   BackendSurfaceProps,
-} from '@nimiplatform/kit/features/avatar/headless';
+} from '../carrier/backend-branch.js';
 import { createLive2DHitRegion } from '@nimiplatform/kit/features/avatar/headless';
 import type { Live2DBackendSession } from './backend-session.js';
 import { Live2DCarrierVisualSurface } from './Live2DCarrierVisualSurface.js';
@@ -35,6 +35,7 @@ import { getCachedDeviceTier } from '../app-shell/device-tier-detector.js';
 export type Live2DCarrierSurfaceDeps = {
   session: Live2DBackendSession;
   audioConsumer: BackendAudioConsumer;
+  paramMouthFormSupported: boolean;
 };
 
 export function createLive2DCarrierSurface(
@@ -44,20 +45,6 @@ export function createLive2DCarrierSurface(
     const announcedAudioRef = useRef(false);
     const announcedRegionRef = useRef(false);
     const hostRef = useRef<HTMLDivElement | null>(null);
-
-    useEffect(() => {
-      props.onLifecycleEvidence?.('mounted', {
-        source: 'live2d-carrier-surface',
-        embodied: props.embodied,
-        width: props.width,
-        height: props.height,
-      });
-      return () => {
-        props.onLifecycleEvidence?.('unmounted', {
-          source: 'live2d-carrier-surface',
-        });
-      };
-    }, [props.embodied, props.height, props.onLifecycleEvidence, props.width]);
 
     useEffect(() => {
       if (announcedAudioRef.current) return;
@@ -107,7 +94,11 @@ export function createLive2DCarrierSurface(
 
     return (
       <div ref={hostRef} style={{ width: '100%', height: '100%' }}>
-        <Live2DCarrierVisualSurface session={deps.session} />
+        <Live2DCarrierVisualSurface
+          session={deps.session}
+          audioConsumer={deps.audioConsumer}
+          paramMouthFormSupported={deps.paramMouthFormSupported}
+        />
       </div>
     );
   };

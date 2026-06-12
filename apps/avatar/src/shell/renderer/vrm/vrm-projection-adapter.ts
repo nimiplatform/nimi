@@ -23,8 +23,10 @@
 //     (each is independently optional per design-04 schema).
 
 import type { VRM } from '@pixiv/three-vrm';
-import type { BackendProjection, VrmActivityRoute } from '@nimiplatform/kit/features/avatar/headless';
-import type { VrmEmoteState, VrmGeneratedMotionRuntime } from '@nimiplatform/kit/features/avatar/vrm';
+import type { VrmActivityRoute } from './vrm-activity-mapping.js';
+import type { BackendProjection } from '../carrier/backend-branch.js';
+import type { VrmEmoteState } from './vrm-emote-state.js';
+import type { VrmGeneratedMotionRuntime } from './vrm-generated-motion-contract.js';
 
 /** Minimal contract the adapter consumes from the activity-mapping
  *  resolver. Kit's resolver implements this method; tests may inject

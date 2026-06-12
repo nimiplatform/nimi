@@ -1,11 +1,17 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { AgentDataBundle } from '../driver/types.js';
-import type { EmbodimentProjectionApi } from '@nimiplatform/kit/features/avatar/headless';
+import type { BackendProjection } from '../carrier/backend-branch.js';
 import { ContinuousScheduler } from './continuous-scheduler.js';
 import { createHandlerRegistry } from './handler-registry.js';
 
 const bundle = { app: { cursor_x: 10, cursor_y: 20, window: { width: 100, height: 100 } } } as AgentDataBundle;
-const projection = { setSignal: vi.fn() } as unknown as EmbodimentProjectionApi;
+const projection = {
+  applyActivity: vi.fn(),
+  applyEmotion: vi.fn(),
+  applyMotion: vi.fn(),
+  applyExpression: vi.fn(),
+  reset: vi.fn(),
+} as BackendProjection;
 
 function setNow(value: number): void {
   vi.spyOn(performance, 'now').mockReturnValue(value);

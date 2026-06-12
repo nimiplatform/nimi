@@ -12,6 +12,16 @@ const LOCAL_IDENTITY = {
   localAgentRef: 'local-agent:owner-1:agent-1',
 };
 
+function admissionDetail() {
+  return {
+    runtimeAdmissionRef: 'runtime.admission/avatar-presentation-1',
+    gatewayVerdictRef: 'runtime.gateway/avatar-presentation-1',
+    firewallVerdictRef: 'runtime.firewall/avatar-presentation-1',
+    auditRef: 'runtime.audit/avatar-presentation-1',
+    credentialVerdictRef: 'runtime.credential/avatar-presentation-1',
+  };
+}
+
 describe('SdkDriver', () => {
   it('consumes runtime snapshot and presentation/state events into bundle and agent events', async () => {
     async function* stream() {
@@ -26,6 +36,7 @@ describe('SdkDriver', () => {
           category: 'emotion',
           intensity: 'moderate',
           source: 'apml_output',
+          ...admissionDetail(),
         },
       };
       yield {
@@ -127,6 +138,7 @@ describe('SdkDriver', () => {
           category: 'renderer-local',
           intensity: 'moderate',
           source: 'apml_output',
+          ...admissionDetail(),
         },
       } as never;
       await new Promise(() => {});
@@ -288,6 +300,7 @@ describe('SdkDriver', () => {
                 mood: 'joy',
                 action_cue: 'greet',
                 activity_category: 'interaction',
+                ...admissionDetail(),
               },
             },
           },

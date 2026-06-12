@@ -1,6 +1,6 @@
 import { AvatarDebugProbeKind } from '@nimiplatform/sdk/runtime/generated';
 import { recordAvatarEvidenceEventually } from '../app-shell/avatar-evidence.js';
-import type { BackendBranch } from '@nimiplatform/kit/features/avatar/headless';
+import type { BackendBranch } from '../carrier/backend-branch.js';
 import {
   isVrmGeneratedRouteId,
   type VrmGeneratedRouteId,
@@ -113,6 +113,18 @@ function optionalString(value: string | null | undefined): string | null {
   return normalized || null;
 }
 
+function normalizeObservedAt(value: string | null | undefined): string {
+  const normalized = optionalString(value);
+  if (!normalized) {
+    return new Date().toISOString();
+  }
+  const timestamp = Date.parse(normalized);
+  if (!Number.isFinite(timestamp)) {
+    throw new Error('avatar debug session observed_at is invalid');
+  }
+  return new Date(timestamp).toISOString();
+}
+
 function assertNoForbiddenFields(value: unknown, path = 'debug_session'): void {
   if (!value || typeof value !== 'object') {
     return;
@@ -191,6 +203,19 @@ function metadataStringList(meta: Record<string, unknown>, key: string): string[
   return value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0);
 }
 
+function isAdmittedCapabilityProfileId(value: string | null | undefined): value is string {
+  const normalized = optionalString(value);
+  if (!normalized) return false;
+  const lowered = normalized.toLowerCase();
+  return !(
+    lowered.includes('placeholder')
+    || lowered.includes('mock')
+    || lowered.includes('fixture')
+    || lowered.includes('todo')
+    || lowered === 'unknown'
+  );
+}
+
 function supportedVrmRouteIds(input: AvatarDebugSessionInput): VrmGeneratedRouteId[] {
   if (input.vrmCapabilityProfile) {
     return [...input.vrmCapabilityProfile.generatedMotion.supportedRoutes];
@@ -206,6 +231,23 @@ function unsupportedVrmRouteIds(input: AvatarDebugSessionInput): string[] {
   return metadataStringList(backendMetadata(input), 'unsupported_generated_motion_routes');
 }
 
+function resolverFailureReason(input: AvatarDebugSessionInput): string | null {
+  const resolved = input.resolverEvidence ?? null;
+  if (!resolved?.packageResolved) {
+    return 'package_descriptor_not_resolved';
+  }
+  const requiresCapabilityProfile =
+    input.runtimeProbe.probeKind === AvatarDebugProbeKind.CAPABILITY_PROFILE
+    || input.runtimeProbe.probeKind === AvatarDebugProbeKind.ROUTE_SUPPORT_MATRIX
+    || input.runtimeProbe.probeKind === AvatarDebugProbeKind.GENERATED_MOTION
+    || input.runtimeProbe.probeKind === AvatarDebugProbeKind.EMOTION_EXPRESSION
+    || input.runtimeProbe.probeKind === AvatarDebugProbeKind.SPEECH_LIPSYNC;
+  if (requiresCapabilityProfile && !resolved.capabilityProfileResolved) {
+    return 'backend_capability_profile_not_resolved';
+  }
+  return null;
+}
+
 function evaluateStatus(input: AvatarDebugSessionInput): {
   status: AvatarDebugEvidenceStatus;
   reasonCode: string | null;
@@ -217,7 +259,11 @@ function evaluateStatus(input: AvatarDebugSessionInput): {
     return { status: 'unsupported', reasonCode: 'future_backend_not_admitted' };
   }
 
-  const resolved = input.resolverEvidence ?? null;
+  const resolverFailure = resolverFailureReason(input);
+  if (resolverFailure) {
+    return { status: 'failed', reasonCode: resolverFailure };
+  }
+
   const meta = backendMetadata(input);
   const profile = input.vrmCapabilityProfile ?? null;
   const hasBackend = backendMatches(input);
@@ -234,8 +280,9 @@ function evaluateStatus(input: AvatarDebugSessionInput): {
         : { status: 'failed', reasonCode: 'backend_not_loaded' };
     case AvatarDebugProbeKind.CAPABILITY_PROFILE:
       if (input.backendKind === 'vrm') {
-        return (profile?.backendKind === 'vrm' && profile.profileId.trim())
-          || metadataString(meta, 'capability_profile_id')
+        return profile?.backendKind === 'vrm'
+          && isAdmittedCapabilityProfileId(profile.profileId)
+          && hasProfileRef
           ? { status: 'passed', reasonCode: null }
           : { status: 'failed', reasonCode: 'vrm_capability_profile_missing' };
       }
@@ -295,6 +342,7 @@ export function createAvatarDebugSession(input: AvatarDebugSessionInput): Avatar
   const refs = routeRefs(input);
   const avatarPackageRef = optionalString(input.avatarPackageRef);
   const backendCapabilityProfileRef = optionalString(input.backendCapabilityProfileRef);
+  const observedAt = normalizeObservedAt(input.observedAt);
   return {
     debugSessionId,
     runtimeProbeId,
@@ -316,7 +364,7 @@ export function createAvatarDebugSession(input: AvatarDebugSessionInput): Avatar
         backendCapabilityProfileRef,
       },
     },
-    observedAt: optionalString(input.observedAt) ?? new Date().toISOString(),
+    observedAt,
   };
 }
 

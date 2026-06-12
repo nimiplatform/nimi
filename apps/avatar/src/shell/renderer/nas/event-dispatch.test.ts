@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { AgentDataBundle, AgentDataDriver, AgentEvent, DriverStatus } from '../driver/types.js';
-import type { EmbodimentProjectionApi } from '@nimiplatform/kit/features/avatar/headless';
+import type { BackendProjection } from '../carrier/backend-branch.js';
 import { HandlerExecutor } from './handler-executor.js';
 import { createHandlerRegistry } from './handler-registry.js';
 import { handlerFilenameToEventName } from './activity-naming.js';
@@ -69,23 +69,26 @@ function createDriver(bundle = createBundle()) {
   return driver;
 }
 
-function createProjection(): EmbodimentProjectionApi & {
-  runDefaultActivity: ReturnType<typeof vi.fn>;
-  setExpression: ReturnType<typeof vi.fn>;
+function createProjection(): BackendProjection & {
+  applyActivity: ReturnType<typeof vi.fn>;
+  applyExpression: ReturnType<typeof vi.fn>;
 } {
   return {
-    triggerMotion: vi.fn(async () => undefined),
-    stopMotion: vi.fn(),
-    setSignal: vi.fn(),
-    getSignal: vi.fn(() => 0),
-    addSignal: vi.fn(),
-    setExpression: vi.fn(async () => undefined),
-    clearExpression: vi.fn(),
-    setPose: vi.fn(),
-    clearPose: vi.fn(),
-    wait: vi.fn(async () => undefined),
-    getSurfaceBounds: vi.fn(() => ({ x: 0, y: 0, width: 400, height: 600 })),
-    runDefaultActivity: vi.fn(async () => undefined),
+    applyActivity: vi.fn(),
+    applyEmotion: vi.fn(),
+    applyMotion: vi.fn(),
+    applyExpression: vi.fn(),
+    reset: vi.fn(),
+  };
+}
+
+function admissionDetail(): Record<string, string> {
+  return {
+    runtime_admission_ref: 'runtime.admission/avatar-presentation-1',
+    gateway_verdict_ref: 'runtime.gateway/avatar-presentation-1',
+    firewall_verdict_ref: 'runtime.firewall/avatar-presentation-1',
+    audit_ref: 'runtime.audit/avatar-presentation-1',
+    credential_verdict_ref: 'runtime.credential/avatar-presentation-1',
   };
 }
 
@@ -115,23 +118,12 @@ describe('Avatar NAS runtime event dispatch', () => {
       category: 'emotion',
       intensity: 'strong',
       source: 'apml_output',
+      ...admissionDetail(),
     }));
     await Promise.resolve();
     await new Promise<void>((resolve) => setTimeout(resolve, 0));
 
-    expect(projection.runDefaultActivity).toHaveBeenCalledWith(
-      'happy',
-      expect.objectContaining({
-        bundle: expect.objectContaining({
-          activity: {
-            name: 'happy',
-            category: 'emotion',
-            intensity: 'strong',
-            source: 'apml_output',
-          },
-        }),
-      }),
-    );
+    expect(projection.applyActivity).toHaveBeenCalledWith({ name: 'happy', intensity: 0.85 });
     expect(driver.emitted).toContainEqual({
       name: 'avatar.activity.start',
       detail: {
@@ -147,6 +139,46 @@ describe('Avatar NAS runtime event dispatch', () => {
         activity_name: 'happy',
         source: 'default_fallback',
       },
+    });
+
+    unwire();
+  });
+
+  it('honors avatar.before.activity.start cancellation before running activity fallback', async () => {
+    const driver = createDriver();
+    const projection = createProjection();
+    const originalEmit = driver.emit.bind(driver);
+    driver.emit = (event) => {
+      if (event.name === 'avatar.before.activity.start') {
+        event.detail.cancelled = true;
+      }
+      originalEmit(event);
+    };
+    const registry = createHandlerRegistry();
+    const unwire = wireEventDispatch({
+      driver,
+      registry,
+      executor: new HandlerExecutor(),
+      projection,
+    });
+
+    driver.trigger(runtimeActivityEvent({
+      activity_name: 'happy',
+      category: 'emotion',
+      intensity: 'strong',
+      source: 'apml_output',
+      ...admissionDetail(),
+    }));
+    await Promise.resolve();
+
+    expect(projection.applyActivity).not.toHaveBeenCalled();
+    expect(driver.emitted.map((event) => event.name)).toEqual([
+      'avatar.before.activity.start',
+      'avatar.activity.cancel',
+    ]);
+    expect(driver.emitted.at(-1)?.detail).toMatchObject({
+      activity_name: 'happy',
+      reason: 'before_event_cancelled',
     });
 
     unwire();
@@ -179,12 +211,13 @@ describe('Avatar NAS runtime event dispatch', () => {
       category: 'emotion',
       intensity: 'strong',
       source: 'apml_output',
+      ...admissionDetail(),
     }));
     await Promise.resolve();
     await Promise.resolve();
 
     expect(handler.execute).toHaveBeenCalledOnce();
-    expect(projection.runDefaultActivity).not.toHaveBeenCalled();
+    expect(projection.applyActivity).not.toHaveBeenCalled();
     expect(driver.emitted).toContainEqual({
       name: 'avatar.activity.start',
       detail: {
@@ -199,7 +232,7 @@ describe('Avatar NAS runtime event dispatch', () => {
     unwire();
   });
 
-  it('keeps explicit mock fixture activity events on the same carrier fallback path', async () => {
+  it('rejects explicit mock fixture activity events before carrier fallback', async () => {
     const driver = createDriver();
     const projection = createProjection();
     const unwire = wireEventDispatch({
@@ -214,31 +247,12 @@ describe('Avatar NAS runtime event dispatch', () => {
       category: 'interaction',
       intensity: null,
       source: 'mock',
+      ...admissionDetail(),
     }));
     await Promise.resolve();
 
-    expect(projection.runDefaultActivity).toHaveBeenCalledWith(
-      'greet',
-      expect.objectContaining({
-        bundle: expect.objectContaining({
-          activity: {
-            name: 'greet',
-            category: 'interaction',
-            intensity: null,
-            source: 'mock',
-          },
-        }),
-      }),
-    );
-    expect(driver.emitted).toContainEqual({
-      name: 'avatar.activity.start',
-      detail: {
-        activity_name: 'greet',
-        category: 'interaction',
-        intensity: null,
-        source: 'mock',
-      },
-    });
+    expect(projection.applyActivity).not.toHaveBeenCalled();
+    expect(driver.emitted).toEqual([]);
 
     unwire();
   });
@@ -265,10 +279,11 @@ describe('Avatar NAS runtime event dispatch', () => {
       category: 'renderer-local',
       intensity: 'strong',
       source: 'apml_output',
+      ...admissionDetail(),
     }));
     await Promise.resolve();
 
-    expect(projection.runDefaultActivity).not.toHaveBeenCalled();
+    expect(projection.applyActivity).not.toHaveBeenCalled();
     expect(driver.emitted).toEqual([]);
 
     unwire();
@@ -290,11 +305,13 @@ describe('Avatar NAS runtime event dispatch', () => {
       timestamp: '2026-04-26T00:00:02.000Z',
       detail: {
         expression_id: 'smile.default',
+        source: 'apml_output',
+        ...admissionDetail(),
       },
     });
     await Promise.resolve();
 
-    expect(projection.setExpression).toHaveBeenCalledWith('smile.default');
+    expect(projection.applyExpression).toHaveBeenCalledWith({ name: 'smile.default' });
     expect(driver.emitted).toContainEqual({
       name: 'avatar.expression.change',
       detail: {
@@ -308,14 +325,14 @@ describe('Avatar NAS runtime event dispatch', () => {
 
   it('admits NAS event handlers for runtime emotion projection without treating emotion as activity', async () => {
     const handler = {
-      execute: vi.fn(async (ctx: AgentDataBundle, projection: EmbodimentProjectionApi) => {
+      execute: vi.fn(async (ctx: AgentDataBundle, projection: BackendProjection) => {
         expect(ctx.activity).toBeUndefined();
         expect(ctx.emotion).toEqual({
           current: 'joy',
           previous: 'neutral',
           source: 'chat_status_cue',
         });
-        await projection.setExpression('smile.default');
+        projection.applyExpression({ name: 'smile.default' });
       }),
     };
     const registry = createHandlerRegistry();
@@ -353,7 +370,7 @@ describe('Avatar NAS runtime event dispatch', () => {
     await Promise.resolve();
 
     expect(handler.execute).toHaveBeenCalledOnce();
-    expect(projection.setExpression).toHaveBeenCalledWith('smile.default');
+    expect(projection.applyExpression).toHaveBeenCalledWith({ name: 'smile.default' });
     expect(handlerFilenameToEventName('runtime_agent_state_emotion_changed.js')).toBe('runtime.agent.state.emotion_changed');
     expect(handlerFilenameToEventName('runtime_agent_presentation_expression_requested.js')).toBe('runtime.agent.presentation.expression_requested');
 
@@ -362,12 +379,12 @@ describe('Avatar NAS runtime event dispatch', () => {
 
   it('routes admitted avatar.user events to renderer-local physics and exact NAS handlers', async () => {
     const handler = {
-      execute: vi.fn(async (ctx: AgentDataBundle, projection: EmbodimentProjectionApi) => {
+      execute: vi.fn(async (ctx: AgentDataBundle, projection: BackendProjection) => {
         expect(ctx.event).toMatchObject({
           event_name: 'avatar.user.click',
           detail: { region: 'face', x: 24, y: 48, button: 'left' },
         });
-        projection.setSignal('ParamInteractionSmile', 1);
+        projection.applyExpression({ name: 'interaction_smile' });
       }),
     };
     const registry = createHandlerRegistry();
@@ -399,7 +416,7 @@ describe('Avatar NAS runtime event dispatch', () => {
 
     expect(interactionPhysics.handle).toHaveBeenCalledWith(event, driver.getBundle());
     expect(handler.execute).toHaveBeenCalledOnce();
-    expect(projection.setSignal).toHaveBeenCalledWith('ParamInteractionSmile', 1);
+    expect(projection.applyExpression).toHaveBeenCalledWith({ name: 'interaction_smile' });
     expect(handlerFilenameToEventName('avatar_user_click.js')).toBe('avatar.user.click');
     expect(handlerFilenameToEventName('avatar_user_drag_end.js')).toBe('avatar.user.drag.end');
 
@@ -433,7 +450,7 @@ describe('Avatar NAS runtime event dispatch', () => {
     await Promise.resolve();
 
     expect(interactionPhysics.handle).toHaveBeenCalledTimes(1);
-    expect(projection.setSignal).not.toHaveBeenCalled();
+    expect(projection.applyExpression).not.toHaveBeenCalled();
     expect(driver.emitted).toEqual([]);
     expect(handlerFilenameToEventName('avatar_user_poke.js')).toBeNull();
 
@@ -443,7 +460,7 @@ describe('Avatar NAS runtime event dispatch', () => {
   it('cancels the prior in-flight handler for the same avatar.user event key', async () => {
     const startedSignals: AbortSignal[] = [];
     const handler = {
-      execute: vi.fn(async (_ctx: AgentDataBundle, _projection: EmbodimentProjectionApi, options: { signal: AbortSignal }) => {
+      execute: vi.fn(async (_ctx: AgentDataBundle, _projection: BackendProjection, options: { signal: AbortSignal }) => {
         startedSignals.push(options.signal);
         if (startedSignals.length === 1) {
           await new Promise<void>((resolve) => {

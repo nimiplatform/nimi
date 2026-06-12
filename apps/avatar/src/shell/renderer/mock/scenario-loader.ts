@@ -3,6 +3,12 @@ import type { MockEvent, MockScenario, MockTrigger } from './scenario-types.js';
 const ACTION_FAMILIES = ['observe', 'engage', 'support', 'assist', 'reflect', 'rest'] as const;
 const INTERRUPT_MODES = ['welcome', 'cautious', 'focused'] as const;
 const EXECUTION_STATES = ['IDLE', 'CHAT_ACTIVE', 'LIFE_PENDING', 'LIFE_RUNNING', 'SUSPENDED'] as const;
+const FIXTURE_ACTIVITY_EVENT = 'avatar.fixture.presentation.activity_requested';
+const RUNTIME_ACTIVITY_EVENT = 'runtime.agent.presentation.activity_requested';
+const RUNTIME_EXPRESSION_EVENT = 'runtime.agent.presentation.expression_requested';
+const RUNTIME_VOICE_PLAYBACK_EVENT = 'runtime.agent.presentation.voice_playback_requested';
+const ACTIVITY_CATEGORIES = ['emotion', 'interaction', 'state'] as const;
+const ACTIVITY_INTENSITIES = ['weak', 'moderate', 'strong'] as const;
 
 export class ScenarioValidationError extends Error {
   readonly path: string;
@@ -53,6 +59,62 @@ function assertIn<T extends string>(
   }
 }
 
+function assertOptionalActivityIntensity(value: unknown, path: string): void {
+  if (value === null || value === undefined) return;
+  assertIn(value, ACTIVITY_INTENSITIES, path);
+}
+
+function assertMockSource(detail: Record<string, unknown>, path: string): void {
+  if (detail['source'] !== 'mock') {
+    throw new ScenarioValidationError('fixture event source must be mock', `${path}.source`);
+  }
+}
+
+function assertFixtureActivityDetail(detail: Record<string, unknown>, path: string): void {
+  assertString(detail['activity_name'], `${path}.activity_name`);
+  if (!detail['activity_name'].trim()) {
+    throw new ScenarioValidationError('activity_name must be non-empty', `${path}.activity_name`);
+  }
+  assertIn(detail['category'], ACTIVITY_CATEGORIES, `${path}.category`);
+  assertOptionalActivityIntensity(detail['intensity'], `${path}.intensity`);
+  assertMockSource(detail, path);
+}
+
+function assertRuntimeVoicePlaybackDetail(detail: Record<string, unknown>, path: string): void {
+  assertString(detail['audio_artifact_id'], `${path}.audio_artifact_id`);
+  assertString(detail['audio_mime_type'], `${path}.audio_mime_type`);
+  if (!detail['audio_artifact_id'].trim()) {
+    throw new ScenarioValidationError('audio_artifact_id must be non-empty', `${path}.audio_artifact_id`);
+  }
+  if (!detail['audio_mime_type'].trim()) {
+    throw new ScenarioValidationError('audio_mime_type must be non-empty', `${path}.audio_mime_type`);
+  }
+  if (detail['duration_ms'] !== undefined) {
+    assertNumber(detail['duration_ms'], `${path}.duration_ms`);
+    if ((detail['duration_ms'] as number) < 0) {
+      throw new ScenarioValidationError('duration_ms must be >= 0', `${path}.duration_ms`);
+    }
+  }
+  assertMockSource(detail, path);
+}
+
+function validateEventDetail(type: string, detail: Record<string, unknown>, path: string): void {
+  if (type === FIXTURE_ACTIVITY_EVENT) {
+    assertFixtureActivityDetail(detail, path);
+    return;
+  }
+  if (type === RUNTIME_VOICE_PLAYBACK_EVENT) {
+    assertRuntimeVoicePlaybackDetail(detail, path);
+    return;
+  }
+  if (type === RUNTIME_ACTIVITY_EVENT || type === RUNTIME_EXPRESSION_EVENT) {
+    throw new ScenarioValidationError(
+      'mock fixtures must not emit runtime presentation activity/expression events',
+      path,
+    );
+  }
+}
+
 function parseEvent(raw: unknown, path: string): MockEvent {
   assertObject(raw, path);
   const kind = raw['kind'];
@@ -63,6 +125,7 @@ function parseEvent(raw: unknown, path: string): MockEvent {
 
   const detail = raw['detail'];
   assertObject(detail, `${path}.detail`);
+  validateEventDetail(type, detail, `${path}.detail`);
 
   if (kind === 'time') {
     const atMs = raw['at_ms'];
@@ -120,6 +183,7 @@ function parseTrigger(raw: unknown, path: string): MockTrigger {
   assertString(emitType, `${path}.emit.type`);
   const emitDetail = emit['detail'];
   assertObject(emitDetail, `${path}.emit.detail`);
+  validateEventDetail(emitType, emitDetail, `${path}.emit.detail`);
   const emitDelay = emit['delay_ms'];
   if (emitDelay !== undefined) {
     assertNumber(emitDelay, `${path}.emit.delay_ms`);
@@ -145,6 +209,16 @@ export function parseScenario(raw: unknown, source: string): MockScenario {
 
   const scenarioId = raw['scenario_id'];
   assertString(scenarioId, `${source}.scenario_id`);
+  if (!scenarioId.trim()) {
+    throw new ScenarioValidationError('scenario_id must be non-empty', `${source}.scenario_id`);
+  }
+  const expectedScenarioId = scenarioIdFromSource(source);
+  if (expectedScenarioId && scenarioId !== expectedScenarioId) {
+    throw new ScenarioValidationError(
+      `scenario_id must match fixture filename "${expectedScenarioId}"`,
+      `${source}.scenario_id`,
+    );
+  }
 
   const version = raw['version'];
   if (version !== '1') {
@@ -248,4 +322,11 @@ export function loadScenarioFromJson(json: string, source = 'inline'): MockScena
     );
   }
   return parseScenario(parsed, source);
+}
+
+function scenarioIdFromSource(source: string): string | null {
+  const normalized = source.replace(/\\/g, '/');
+  const filename = normalized.split('/').pop() ?? '';
+  if (!filename.endsWith('.mock.json')) return null;
+  return filename.slice(0, -'.mock.json'.length) || null;
 }

@@ -6,7 +6,7 @@ import motionPresetsYaml from '../../../../../../.nimi/spec/avatar/kernel/tables
 import {
   normalizeVrmMotionPresetTable,
   type VrmMotionPresetTable,
-} from '@nimiplatform/kit/features/avatar/vrm';
+} from './vrm-table-normalizers.js';
 
 let cached: VrmMotionPresetTable | null = null;
 

@@ -7,9 +7,13 @@ import {
   type Live2DCarrierVisualHost,
 } from './carrier-visual-host.js';
 import { recordAvatarEvidenceEventually, writeAvatarEvidenceArtifact } from '../app-shell/avatar-evidence.js';
+import type { BackendAudioConsumer } from '../carrier/backend-branch.js';
+import { createLive2DLipsyncDriver } from './live2d-lipsync-driver.js';
 
 type Live2DCarrierVisualSurfaceProps = {
   session: Live2DBackendSession | null;
+  audioConsumer: BackendAudioConsumer;
+  paramMouthFormSupported: boolean;
 };
 
 function describeError(error: unknown): string {
@@ -46,8 +50,14 @@ async function writeVisibleFrameArtifact(input: {
   });
 }
 
-export function Live2DCarrierVisualSurface({ session }: Live2DCarrierVisualSurfaceProps) {
+export function Live2DCarrierVisualSurface({
+  session,
+  audioConsumer,
+  paramMouthFormSupported,
+}: Live2DCarrierVisualSurfaceProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
+  const lipsyncDriverRef = useRef(createLive2DLipsyncDriver());
+  const lastFrameTimeRef = useRef<number | null>(null);
   const [status, setStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState<Live2DCarrierVisualFrameStats | null>(null);
@@ -63,6 +73,7 @@ export function Live2DCarrierVisualSurface({ session }: Live2DCarrierVisualSurfa
       recordedInteractionRef.current = false;
       artifactWritePendingRef.current = false;
       artifactFailureRecordedRef.current = false;
+      lastFrameTimeRef.current = null;
       setStatus('idle');
       setError(null);
       setStats(null);
@@ -75,6 +86,7 @@ export function Live2DCarrierVisualSurface({ session }: Live2DCarrierVisualSurfa
     let resizeObserver: ResizeObserver | null = null;
     let visualHost: Live2DCarrierVisualHost | null = null;
     let visualProofAttempts = 0;
+    lastFrameTimeRef.current = null;
     setStatus('loading');
     setError(null);
     setStats(null);
@@ -83,6 +95,7 @@ export function Live2DCarrierVisualSurface({ session }: Live2DCarrierVisualSurfa
       detail: {
         status: 'loading',
         source: 'avatar-live2d-carrier-surface',
+        model_kind: 'live2d',
       },
     });
 
@@ -92,6 +105,17 @@ export function Live2DCarrierVisualSurface({ session }: Live2DCarrierVisualSurfa
       }
       try {
         visualProofAttempts += 1;
+        const now = performance.now();
+        const previous = lastFrameTimeRef.current ?? now;
+        lastFrameTimeRef.current = now;
+        lipsyncDriverRef.current.tick({
+          deltaSec: Math.max(1 / 120, Math.min(0.1, (now - previous) / 1000)),
+          lipsyncSnapshot: audioConsumer.snapshot(),
+          paramMouthFormSupported,
+          setParameter: (id, value) => {
+            session.applyCommand({ kind: 'parameter', id, value, weight: 1 });
+          },
+        });
         const nextStats = visualHost.renderFrame();
         setStats(nextStats);
         setStatus('ready');
@@ -109,6 +133,7 @@ export function Live2DCarrierVisualSurface({ session }: Live2DCarrierVisualSurfa
             detail: {
               status: 'ready',
               source: 'live2d-carrier-surface',
+              model_kind: 'live2d',
               active_motion_group: nextStats.activeMotionGroup,
               active_expression_id: nextStats.activeExpressionId,
               motion_frame_applied: nextStats.motionFrameApplied,
@@ -137,6 +162,7 @@ export function Live2DCarrierVisualSurface({ session }: Live2DCarrierVisualSurfa
                 detail: {
                   status: 'ready',
                   source: 'live2d-carrier-surface',
+                  model_kind: 'live2d',
                   visible_pixels: nextStats.visiblePixels,
                   visible_drawable_count: nextStats.visibleDrawableCount,
                   texture_binding_count: nextStats.textureBindingCount,
@@ -162,6 +188,7 @@ export function Live2DCarrierVisualSurface({ session }: Live2DCarrierVisualSurfa
                   detail: {
                     status: 'error',
                     source: 'live2d-carrier-surface',
+                    model_kind: 'live2d',
                     reason: 'human_visible_artifact_write_failed',
                     error: describeError(artifactError),
                     visible_pixels: nextStats.visiblePixels,
@@ -188,6 +215,7 @@ export function Live2DCarrierVisualSurface({ session }: Live2DCarrierVisualSurfa
           kind: 'avatar.carrier.visual',
           detail: {
             status: 'error',
+            model_kind: 'live2d',
             error: message,
           },
         });
@@ -239,6 +267,7 @@ export function Live2DCarrierVisualSurface({ session }: Live2DCarrierVisualSurfa
           kind: 'avatar.carrier.visual',
           detail: {
             status: 'error',
+            model_kind: 'live2d',
             error: message,
           },
         });
@@ -256,7 +285,7 @@ export function Live2DCarrierVisualSurface({ session }: Live2DCarrierVisualSurfa
       visualHost = null;
       host.replaceChildren();
     };
-  }, [session]);
+  }, [audioConsumer, paramMouthFormSupported, session]);
 
   return (
     <div

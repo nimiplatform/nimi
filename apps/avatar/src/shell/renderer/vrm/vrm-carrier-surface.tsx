@@ -41,8 +41,8 @@ import type {
   BackendAudioConsumer,
   BackendProjection,
   BackendSurfaceProps,
-} from '@nimiplatform/kit/features/avatar/headless';
-import type { VrmAvatarModelManifest } from '@nimiplatform/kit/features/avatar/headless';
+} from '../carrier/backend-branch.js';
+import type { VrmAvatarModelManifest } from './vrm-model-manifest.js';
 import {
   attachVrmDiagnostics,
   updateVrmDiagnosticsFrameStats,
@@ -55,13 +55,14 @@ import {
   type VrmRuntimeOptions,
 } from './vrm-runtime.js';
 import { VrmScene } from './vrm-scene.js';
-import type { VrmEmoteState, VrmGeneratedMotionRuntime } from '@nimiplatform/kit/features/avatar/vrm';
+import type { VrmEmoteState } from './vrm-emote-state.js';
+import type { VrmGeneratedMotionRuntime } from './vrm-generated-motion-contract.js';
 import type { VrmLipsyncDriver } from './vrm-lipsync-driver.js';
 import {
   createVrmProjectionAdapter,
   type ActivityMapping,
 } from './vrm-projection-adapter.js';
-import { createVrmHitRegion } from '@nimiplatform/kit/features/avatar/headless';
+import { createVrmHitRegion } from './vrm-hit-region.js';
 import type { VrmRenderTarget } from './vrm-render-target.js';
 import {
   createVrmCapabilityProfile,
@@ -204,10 +205,6 @@ export function createVrmCarrierSurface(
       runtimeRef = runtime;
       const detachDiagnostics = attachVrmDiagnostics(runtime);
       const unsubscribe = runtime.subscribe((next) => setState(next));
-      props.onLifecycleEvidence?.('load_started', {
-        source: 'vrm-carrier-surface',
-        vrm_file: input.manifest.vrm.vrmFile,
-      });
       void runtime.start();
       return () => {
         unsubscribe();
@@ -308,13 +305,6 @@ export function createVrmCarrierSurface(
       input.setProjectionAdapter(adapter);
       const profile = createVrmCapabilityProfile(vrm);
       input.onCapabilityProfile?.(profile);
-      props.onLifecycleEvidence?.('generated_motion_runtime_attached', {
-        provider_path: 'avatar_generated_motion',
-        vrma_position: 'interchange_only',
-        capability_profile_id: profile.profileId,
-        generated_motion_routes: profile.generatedMotion.supportedRoutes,
-        unsupported_generated_motion_routes: profile.generatedMotion.unsupportedRoutes.map((route) => route.routeId),
-      });
     }, [vrm, props.onLifecycleEvidence]);
 
     // Wave 2 chunk 2-E: derive camera framing from the loaded VRM scene
@@ -397,49 +387,14 @@ export function createVrmCarrierSurface(
                 renderTarget={input.renderTarget}
                 onVisualAcceptance={(stats, artifact) => {
                   setVisualStats(stats);
-                  props.onLifecycleEvidence?.('visible_pixels', {
-                    status: 'ready',
-                    model_kind: stats.modelKind,
-                    visible_pixels: stats.visiblePixels,
-                    canvas_width: stats.canvasWidth,
-                    canvas_height: stats.canvasHeight,
-                    sampled_pixels: stats.sampledPixels,
-                    sampled_pixel_checksum: stats.sampledPixelChecksum,
-                    sample_grid: `${stats.gridSize}x${stats.gridSize}`,
-                    source: 'avatar-vrm-carrier-surface',
-                    human_visible_artifact_path: artifact.artifactPath,
-                    artifact_mime_type: artifact.artifactMimeType,
-                    artifact_byte_length: artifact.artifactByteLength,
-                  });
+                  void artifact;
                 }}
                 onVisualAcceptanceArtifactFailure={(stats, error) => {
-                  props.onLifecycleEvidence?.('visible_pixels_artifact_failed', {
-                    status: 'error',
-                    model_kind: stats.modelKind,
-                    visible_pixels: stats.visiblePixels,
-                    canvas_width: stats.canvasWidth,
-                    canvas_height: stats.canvasHeight,
-                    sampled_pixels: stats.sampledPixels,
-                    sampled_pixel_checksum: stats.sampledPixelChecksum,
-                    sample_grid: `${stats.gridSize}x${stats.gridSize}`,
-                    source: 'avatar-vrm-carrier-surface',
-                    reason: 'human_visible_artifact_write_failed',
-                    error: error instanceof Error ? error.message : String(error || 'VRM carrier visual artifact failed'),
-                  });
+                  void stats;
+                  void error;
                 }}
                 onVisualAcceptanceMissing={(stats) => {
                   setVisualStats(stats);
-                  props.onLifecycleEvidence?.('visible_pixels_missing', {
-                    status: 'error',
-                    model_kind: stats.modelKind,
-                    visible_pixels: stats.visiblePixels,
-                    canvas_width: stats.canvasWidth,
-                    canvas_height: stats.canvasHeight,
-                    sampled_pixels: stats.sampledPixels,
-                    sampled_pixel_checksum: stats.sampledPixelChecksum,
-                    sample_grid: `${stats.gridSize}x${stats.gridSize}`,
-                    source: 'avatar-vrm-carrier-surface',
-                  });
                 }}
               />
             </>

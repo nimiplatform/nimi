@@ -1,6 +1,6 @@
 // Wave 2 chunk 2-E of topic 2026-04-30-avatar-vrm-backend-branch.
 //
-// Glue layer between Three.js (`Box3` / `Vector3`) and the Kit-owned pure
+// Glue layer between Three.js (`Box3` / `Vector3`) and the Avatar-owned pure
 // `computeVrmCameraFraming` domain function.
 // This module is the ONLY VRM file that imports both Three.js and the pure
 // domain — it computes the scene bounding box once per call and forwards
@@ -24,14 +24,17 @@ import type { VRM } from '@pixiv/three-vrm';
 // VRM loader). The carrier surface only consumes the plain numeric fields
 // (x/y/z, framedHeight, framedWidth), so the loose typing is acceptable.
 import { Box3, Vector3 } from 'three';
-import {
-  computeVrmCameraFraming,
-  type VrmCameraFramingIntent,
-  type VrmCameraFramingResult,
-} from '@nimiplatform/kit/features/avatar/vrm';
 
-export type VrmFramingIntent = VrmCameraFramingIntent;
-export type VrmFramingResult = VrmCameraFramingResult;
+export type VrmFramingIntent = 'full-body' | 'bottom-companion' | 'head-shoulders';
+
+export type VrmFramingResult = {
+  cameraPosition: Vector3Like;
+  cameraLookAt: Vector3Like;
+  cameraFov: number;
+  framedHeight: number;
+  framedWidth: number;
+  framedCenterY: number;
+};
 
 /** Minimal Vector3-shape returned by applyVrmFraming (subset of THREE.Vector3). */
 export interface Vector3Like {
@@ -47,12 +50,82 @@ export type ApplyFramingInputs = {
   aspect: number;
 };
 
+export type VrmCameraFramingInput = {
+  sceneBboxMin: Vector3Like;
+  sceneBboxMax: Vector3Like;
+  intent: VrmFramingIntent;
+  aspect: number;
+};
+
+const FOV_DEGREES = 30;
+const FOV_RADIANS = (FOV_DEGREES * Math.PI) / 180;
+const CAMERA_DISTANCE_FACTOR = 1.05;
+const FULL_BODY_HEIGHT_MARGIN = 1.05;
+const HUMANOID_BODY_WIDTH_RATIO = 0.45;
+const HORIZONTAL_SAFETY = 1.05;
+
+const INTENT_PARAMS: Record<
+  VrmFramingIntent,
+  { cameraYOffsetRatio: number | 'center'; framedHeightRatio: number }
+> = {
+  'full-body': {
+    cameraYOffsetRatio: 'center',
+    framedHeightRatio: FULL_BODY_HEIGHT_MARGIN,
+  },
+  'bottom-companion': {
+    cameraYOffsetRatio: 0.55,
+    framedHeightRatio: 1,
+  },
+  'head-shoulders': {
+    cameraYOffsetRatio: 0.85,
+    framedHeightRatio: 0.3,
+  },
+};
+
 export type ApplyFramingResult = VrmFramingResult & {
   /** THREE.Vector3 instance — minimal interface (x/y/z) since `three` types are opaque. */
   sceneBboxMin: Vector3Like;
   /** THREE.Vector3 instance — minimal interface (x/y/z) since `three` types are opaque. */
   sceneBboxMax: Vector3Like;
 };
+
+export function computeVrmCameraFraming(input: VrmCameraFramingInput): VrmFramingResult {
+  const { sceneBboxMin, sceneBboxMax, intent, aspect } = input;
+  const totalHeight = sceneBboxMax.y - sceneBboxMin.y;
+  const rawTotalWidth = sceneBboxMax.x - sceneBboxMin.x;
+  const totalWidth = Math.min(rawTotalWidth, totalHeight * HUMANOID_BODY_WIDTH_RATIO);
+  const bboxCenterX = (sceneBboxMin.x + sceneBboxMax.x) / 2;
+  const bboxCenterY = (sceneBboxMin.y + sceneBboxMax.y) / 2;
+  const bboxCenterZ = (sceneBboxMin.z + sceneBboxMax.z) / 2;
+  const params = INTENT_PARAMS[intent];
+  const cameraY = params.cameraYOffsetRatio === 'center'
+    ? bboxCenterY
+    : sceneBboxMin.y + totalHeight * params.cameraYOffsetRatio;
+  const intentFramedHeight = totalHeight * params.framedHeightRatio;
+  const horizontalFitFramedHeight =
+    aspect > 0 ? (totalWidth * HORIZONTAL_SAFETY) / aspect : intentFramedHeight;
+  const framedHeight = Math.max(intentFramedHeight, horizontalFitFramedHeight);
+  const framedWidth = framedHeight * aspect;
+  const cameraDistance =
+    (CAMERA_DISTANCE_FACTOR * framedHeight) / (2 * Math.tan(FOV_RADIANS / 2));
+
+  return {
+    cameraPosition: {
+      x: bboxCenterX,
+      y: cameraY,
+      z: bboxCenterZ + cameraDistance,
+    },
+    cameraLookAt: {
+      x: bboxCenterX,
+      y: cameraY,
+      z: bboxCenterZ,
+    },
+    cameraFov: FOV_DEGREES,
+    framedHeight,
+    framedWidth,
+    framedCenterY: cameraY,
+  };
+}
 
 /**
  * Compute a Three.js scene bbox from `vrm.scene` and feed it into the pure

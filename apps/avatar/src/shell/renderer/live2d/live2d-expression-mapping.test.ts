@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Live2DCompatibilityReport } from '@nimiplatform/kit/features/avatar/headless';
-import { createCommandBus, createLive2DBackendApi, type Live2DCommandEvent } from './plugin-api.js';
-import { createLive2DProjectionAdapter } from '@nimiplatform/kit/features/avatar/headless';
+import { createCommandBus, type Live2DCommandEvent } from './plugin-api.js';
+import { createLive2DProjectionAdapter } from './live2d-projection-adapter.js';
 
 function createCompatibility(): Live2DCompatibilityReport {
   return {
@@ -61,22 +61,6 @@ function createCompatibility(): Live2DCompatibilityReport {
 }
 
 describe('Live2D semantic expression mapping', () => {
-  it('maps cue-level expression ids through the adapter before writing Cubism commands', async () => {
-    const commands: Live2DCommandEvent[] = [];
-    const commandBus = createCommandBus();
-    commandBus.on('command', (command) => commands.push(command));
-    const api = createLive2DBackendApi({
-      commandBus,
-      compatibility: createCompatibility(),
-      parameterState: new Map(),
-      bounds: () => ({ x: 0, y: 0, width: 400, height: 600 }),
-    });
-
-    await api.setExpression('joy');
-
-    expect(commands).toContainEqual({ kind: 'expression', id: 'exp_01' });
-  });
-
   it('maps backend projection expression names through the adapter', () => {
     const commands: Live2DCommandEvent[] = [];
     const commandBus = createCommandBus();

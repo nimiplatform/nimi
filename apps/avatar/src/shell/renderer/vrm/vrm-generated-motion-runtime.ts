@@ -12,7 +12,7 @@ import type {
   PlayGeneratedMotionResult,
   VrmGeneratedMotionProvider,
   VrmGeneratedMotionRuntime,
-} from '@nimiplatform/kit/features/avatar/vrm';
+} from './vrm-generated-motion-contract.js';
 
 export const GENERATED_MOTION_INTENSITY_MIN = 0.5;
 export const GENERATED_MOTION_INTENSITY_MAX = 1.4;

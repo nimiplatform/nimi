@@ -49,6 +49,7 @@ export class AvatarInteractionController {
   private pointerInside = false;
   private lastClick: { atMs: number; clientX: number; clientY: number } | null = null;
   private clickThrough = false;
+  private clickThroughInFlight: boolean | null = null;
 
   constructor(private readonly deps: AvatarInteractionControllerDeps) {}
 
@@ -242,9 +243,18 @@ export class AvatarInteractionController {
   }
 
   private setClickThrough(ignore: boolean): void {
-    if (!this.deps.isTauriRuntime() || this.clickThrough === ignore) return;
-    this.clickThrough = ignore;
-    void Promise.resolve(this.deps.setClickThrough(ignore)).catch(() => {});
+    if (!this.deps.isTauriRuntime() || this.clickThrough === ignore || this.clickThroughInFlight === ignore) return;
+    this.clickThroughInFlight = ignore;
+    void Promise.resolve(this.deps.setClickThrough(ignore))
+      .then(() => {
+        this.clickThrough = ignore;
+      })
+      .catch((error: unknown) => {
+        console.warn(`[avatar:interaction] set click-through failed: ${error instanceof Error ? error.message : String(error)}`);
+      })
+      .finally(() => {
+        if (this.clickThroughInFlight === ignore) this.clickThroughInFlight = null;
+      });
   }
 }
 

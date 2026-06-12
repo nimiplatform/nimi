@@ -17,8 +17,7 @@ import type {
   BackendBranch,
   BackendHitRegion,
   Live2DBackendExtension,
-} from '@nimiplatform/kit/features/avatar/headless';
-import type { EmbodimentProjectionApi } from '@nimiplatform/kit/features/avatar/headless';
+} from '../carrier/backend-branch.js';
 import type { Profile } from 'wlipsync';
 import type { Live2DAdapterManifestV1 } from '@nimiplatform/kit/features/avatar/headless';
 import { parseLive2DAdapterManifest } from '@nimiplatform/kit/features/avatar/headless';
@@ -30,19 +29,130 @@ import {
 } from './backend-session.js';
 import {
   createCommandBus,
-  createLive2DBackendApi,
   type Live2DCommandBus,
 } from './plugin-api.js';
 import {
   readTextFile,
   type ModelManifest as Live2DTauriManifest,
 } from './model-loader.js';
+import { recordAvatarEvidenceEventually } from '../app-shell/avatar-evidence.js';
+import {
+  createLive2DCarrierVisualHost,
+  Live2DCarrierVisualFrameError,
+  type Live2DCarrierVisualFrameStats,
+  type Live2DCarrierVisualHost,
+} from './carrier-visual-host.js';
 
 import { computeLive2DNominalBounds } from '@nimiplatform/kit/features/avatar/headless';
 import { computeLive2DHitRegion } from '@nimiplatform/kit/features/avatar/headless';
 import { createLive2DAudioConsumer } from './live2d-audio-consumer.js';
-import { createLive2DProjectionAdapter } from '@nimiplatform/kit/features/avatar/headless';
+import { createLive2DProjectionAdapter } from './live2d-projection-adapter.js';
 import { createLive2DCarrierSurface } from './live2d-carrier-surface.js';
+
+function timeoutAfter<T>(ms: number, message: string): Promise<T> {
+  return new Promise((_, reject) => {
+    window.setTimeout(() => reject(new Error(message)), ms);
+  });
+}
+
+function waitForNextCarrierVisualFrame(attempt: number): Promise<void> {
+  return new Promise((resolve) => {
+    if (typeof window.requestAnimationFrame === 'function') {
+      window.requestAnimationFrame(() => resolve());
+      return;
+    }
+    window.setTimeout(resolve, Math.min(120, 16 + attempt * 8));
+  });
+}
+
+async function renderCarrierVisualFrameWithRetry(
+  visualHost: Live2DCarrierVisualHost,
+): Promise<{ attempts: number; stats: Live2DCarrierVisualFrameStats }> {
+  const maxAttempts = 12;
+  let lastError: unknown = null;
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      return {
+        attempts: attempt,
+        stats: visualHost.renderFrame({
+          deltaTimeSeconds: attempt / 60,
+          seconds: performance.now() / 1000,
+        }),
+      };
+    } catch (error) {
+      lastError = error;
+      if (attempt >= maxAttempts) break;
+      await waitForNextCarrierVisualFrame(attempt);
+    }
+  }
+  throw lastError instanceof Error
+    ? lastError
+    : new Error(String(lastError || 'Live2D bootstrap carrier visual proof failed'));
+}
+
+function toCarrierVisualFailureDetail(error: unknown, attempts: number | null): Record<string, unknown> {
+  const detail: Record<string, unknown> = {
+    status: 'error',
+    source: 'avatar-visual-carrier-bootstrap',
+    model_kind: 'live2d',
+    error: error instanceof Error ? error.message : String(error || 'Live2D bootstrap carrier visual proof failed'),
+  };
+  if (typeof attempts === 'number') detail.attempts = attempts;
+  if (error instanceof Live2DCarrierVisualFrameError) detail.frame_stats = error.stats;
+  return detail;
+}
+
+async function recordBootstrapCarrierVisualProof(
+  session: Live2DBackendSession,
+  source = 'avatar-visual-carrier-bootstrap',
+): Promise<void> {
+  if (typeof document === 'undefined' || !session.execution?.loaded) return;
+  let visualHost: Live2DCarrierVisualHost | null = null;
+  let attempts: number | null = null;
+  try {
+    recordAvatarEvidenceEventually({
+      kind: 'avatar.carrier.visual',
+      detail: { status: 'loading', source, model_kind: 'live2d' },
+    });
+    const canvas = document.createElement('canvas');
+    visualHost = await Promise.race([
+      createLive2DCarrierVisualHost({
+        canvas,
+        session,
+        width: 360,
+        height: 480,
+      }),
+      timeoutAfter<Live2DCarrierVisualHost>(8_000, 'Live2D bootstrap carrier visual proof timed out'),
+    ]);
+    attempts = 12;
+    const result = await renderCarrierVisualFrameWithRetry(visualHost);
+    attempts = result.attempts;
+    const stats = result.stats;
+    recordAvatarEvidenceEventually({
+      kind: 'avatar.carrier.visual',
+      detail: {
+        status: 'ready',
+        source,
+        model_kind: 'live2d',
+        visible_pixels: stats.visiblePixels,
+        visible_drawable_count: stats.visibleDrawableCount,
+        canvas_width: stats.width,
+        canvas_height: stats.height,
+        sampled_pixels: stats.sampledPixels,
+        sampled_pixel_checksum: stats.sampledPixelChecksum,
+        texture_binding_count: stats.textureBindingCount,
+        attempts,
+      },
+    });
+  } catch (error) {
+    recordAvatarEvidenceEventually({
+      kind: 'avatar.carrier.visual',
+      detail: toCarrierVisualFailureDetail(error, attempts),
+    });
+  } finally {
+    visualHost?.unload();
+  }
+}
 
 function toLive2DTauriManifest(
   manifest: Live2DAvatarModelManifest,
@@ -90,14 +200,19 @@ function createLive2DExtension(
   };
 }
 
+function isParamMouthFormSupported(
+  adapter: Live2DAdapterManifestV1 | null | undefined,
+): boolean {
+  const lipsync = adapter?.semantics?.lipsync as
+    | { paramMouthForm?: unknown }
+    | undefined;
+  return lipsync?.paramMouthForm === 'supported';
+}
+
 export type Live2DBackendBranchHandle = {
   branch: BackendBranch & { kind: 'live2d' };
-  // Branch cue/signal surfaces used by carrier orchestration and tests that
-  // need command-level evidence outside the BackendBranch projection.
-  backendSession: Live2DBackendSession;
-  commandBus: Live2DCommandBus;
-  cueProjection: EmbodimentProjectionApi;
   audioConsumer: BackendAudioConsumer;
+  recordBootstrapVisualProof(): Promise<void>;
   shutdown(): void;
 };
 
@@ -119,7 +234,6 @@ export async function createLive2DBackendBranch(
     backendSession.applyCommand(command);
   });
 
-  const parameterState = new Map<string, number>();
   const nominalBounds = computeLive2DNominalBounds({ model: null });
   // Wave 4 chunk 4-C: dynamic hit-region (alpha-mask on tier A/B,
   // bbox-only fallback on tier C) is constructed inside the surface
@@ -128,18 +242,6 @@ export async function createLive2DBackendBranch(
   // retained in metadata() for back-compat / diagnostics consumers.
   const staticHitRegionSnapshot: BackendHitRegion = computeLive2DHitRegion({
     compatibility: backendSession.compatibility,
-  });
-
-  const cueProjection = createLive2DBackendApi({
-    commandBus,
-    parameterState,
-    compatibility: backendSession.compatibility,
-    bounds: () => ({
-      x: 0,
-      y: 0,
-      width: nominalBounds.width,
-      height: nominalBounds.height,
-    }),
   });
 
   const profile = await loadLipsyncProfile();
@@ -153,6 +255,7 @@ export async function createLive2DBackendBranch(
   const surface = createLive2DCarrierSurface({
     session: backendSession,
     audioConsumer,
+    paramMouthFormSupported: isParamMouthFormSupported(backendSession.compatibility.adapter),
   });
 
   const live2dExtension = createLive2DExtension(commandBus);
@@ -166,9 +269,7 @@ export async function createLive2DBackendBranch(
       model_kind: 'live2d',
       compatibility_tier: backendSession.compatibility.tier,
       adapter_id: backendSession.compatibility.adapter?.adapter_id ?? null,
-      param_mouth_form_supported:
-        backendSession.compatibility.adapter?.semantics?.lipsync?.disposition?.status ===
-        'supported',
+      param_mouth_form_supported: isParamMouthFormSupported(backendSession.compatibility.adapter),
       hit_region_default: staticHitRegionSnapshot,
       lipsync_profile_present: profile !== null,
     }),
@@ -182,10 +283,8 @@ export async function createLive2DBackendBranch(
 
   return {
     branch,
-    backendSession,
-    commandBus,
-    cueProjection,
     audioConsumer,
+    recordBootstrapVisualProof: () => recordBootstrapCarrierVisualProof(backendSession),
     shutdown: branch.shutdown,
   };
 }

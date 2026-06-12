@@ -22,7 +22,7 @@
 // a contract evolution — out of scope here.
 
 import type { VRM } from '@pixiv/three-vrm';
-import type { BackendNominalBounds } from '@nimiplatform/kit/features/avatar/headless';
+import type { BackendNominalBounds } from '../carrier/backend-branch.js';
 import type { VrmFramingIntent } from './vrm-framing.js';
 import { applyVrmFraming } from './vrm-framing.js';
 

@@ -24,7 +24,7 @@ import { VRMLoaderPlugin, VRMUtils, type VRM } from '@pixiv/three-vrm';
 import { VRMAnimationLoaderPlugin } from '@pixiv/three-vrm-animation';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
-import type { VrmAvatarModelManifest } from '@nimiplatform/kit/features/avatar/headless';
+import type { VrmAvatarModelManifest } from './vrm-model-manifest.js';
 import { getCachedVrm, setCachedVrm } from './vrm-instance-cache.js';
 import { createMToonMaterialLoaderPlugin } from './vrm-mtoon-outline-policy.js';
 import { applyIdlePose } from './vrm-pose.js';

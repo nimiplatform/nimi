@@ -20,7 +20,10 @@ vi.mock('three', () => {
   };
 });
 
-import { createVrmCapabilityProfile } from './vrm-capability-profile.js';
+import {
+  createVrmCapabilityProfile,
+  validateVrmCapabilityProfile,
+} from './vrm-capability-profile.js';
 import {
   createDeterministicVrmGeneratedMotionProvider,
   generateDeterministicVrmMotion,
@@ -48,6 +51,10 @@ describe('createVrmCapabilityProfile', () => {
       ['greet_wave', 'idle_subtle', 'listen_lean', 'nod_yes', 'shake_no'].sort(),
     );
     expect(profile.generatedMotion.unsupportedRoutes).toEqual([]);
+    expect(profile.expressionPresets.present).toBe(true);
+    expect(profile.lookat.supported).toBe(false);
+    expect(profile.poseLimits.maxRotationDeg).toBeGreaterThan(0);
+    expect(() => validateVrmCapabilityProfile(profile)).not.toThrow();
   });
 
   it('marks route unsupported when a required bone is missing', () => {
@@ -58,6 +65,18 @@ describe('createVrmCapabilityProfile', () => {
       routeId: 'greet_wave',
       reason: 'missing_bones:rightHand',
     });
+  });
+
+  it('fails closed for incomplete capability profiles', () => {
+    const profile = createVrmCapabilityProfile(makeVrm());
+    expect(() => validateVrmCapabilityProfile({
+      ...profile,
+      expressionPresets: undefined,
+    } as unknown as typeof profile)).toThrow(/expressionPresets is required/);
+    expect(() => validateVrmCapabilityProfile({
+      ...profile,
+      poseLimits: undefined,
+    } as unknown as typeof profile)).toThrow(/poseLimits\.maxRotationDeg is required/);
   });
 });
 

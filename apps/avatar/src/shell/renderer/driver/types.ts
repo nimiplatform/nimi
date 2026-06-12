@@ -6,6 +6,14 @@ export type ActivityIntensity = 'weak' | 'moderate' | 'strong';
 export type ActivitySource = 'apml_output' | 'direct_api' | 'mock';
 export type CurrentEmotion = 'neutral' | 'joy' | 'focus' | 'calm' | 'playful' | 'concerned' | 'surprised';
 
+export type RuntimePresentationAdmissionEvidence = {
+  runtimeAdmissionRef: string;
+  gatewayVerdictRef: string;
+  firewallVerdictRef: string;
+  auditRef: string;
+  credentialVerdictRef: string;
+};
+
 export type PostureSnapshot = {
   posture_class: string;
   action_family: ActionFamily;
@@ -42,6 +50,7 @@ export type AgentDataBundle = {
     category: ActivityCategory;
     intensity: ActivityIntensity | null;
     source: ActivitySource;
+    admission?: RuntimePresentationAdmissionEvidence;
   };
   emotion?: {
     current: CurrentEmotion;

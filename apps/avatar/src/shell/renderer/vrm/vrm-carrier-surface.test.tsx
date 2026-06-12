@@ -9,12 +9,13 @@ import { act, render } from '@testing-library/react';
 import type { VRM } from '@pixiv/three-vrm';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ReactNode } from 'react';
-import type { VrmAvatarModelManifest } from '@nimiplatform/kit/features/avatar/headless';
+import type { VrmAvatarModelManifest } from './vrm-model-manifest.js';
 import type {
   BackendAudioConsumer,
   BackendProjection,
-} from '@nimiplatform/kit/features/avatar/headless';
-import type { VrmEmoteState, VrmGeneratedMotionRuntime } from '@nimiplatform/kit/features/avatar/vrm';
+} from '../carrier/backend-branch.js';
+import type { VrmEmoteState } from './vrm-emote-state.js';
+import type { VrmGeneratedMotionRuntime } from './vrm-generated-motion-contract.js';
 import type { VrmLipsyncDriver } from './vrm-lipsync-driver.js';
 import type { ActivityMapping } from './vrm-projection-adapter.js';
 import { createVrmRenderTarget } from './vrm-render-target.js';
@@ -233,17 +234,12 @@ describe('createVrmCarrierSurface', () => {
     expect(root.getAttribute('data-avatar-vrm-state')).toBe('ready');
     expect(result!.getByTestId('r3f-canvas')).toBeTruthy();
 
-    // load_started fires on mount; concrete `ready` is read off the data
-    // attribute (the runtime emits context_restored only after a context
-    // loss recovery, not on initial load).
-    expect(evidence).toHaveBeenCalledWith(
-      'load_started',
-      expect.objectContaining({ source: 'vrm-carrier-surface' }),
-    );
-    expect(evidence).toHaveBeenCalledWith(
-      'generated_motion_runtime_attached',
-      expect.objectContaining({ vrma_position: 'interchange_only' }),
-    );
+    // Initial load success is represented by the ready state. Tier-C
+    // hit-region degradation may emit evidence, but load/context/fail-close
+    // evidence must not be fabricated on the success path.
+    expect(evidence).not.toHaveBeenCalledWith('load_failed', expect.anything());
+    expect(evidence).not.toHaveBeenCalledWith('context_lost', expect.anything());
+    expect(evidence).not.toHaveBeenCalledWith('failed_closed', expect.anything());
 
     // Audio consumer announced exactly once.
     expect(onAudio).toHaveBeenCalledTimes(1);
@@ -305,16 +301,22 @@ describe('createVrmCarrierSurface', () => {
     );
   });
 
-  it('does not announce audio consumer twice across context_lost -> ready bounce', async () => {
+  it('does not announce audio consumer twice across context_lost -> mandatory retry reload', async () => {
     const { createVrmCarrierSurface } = await import('./vrm-carrier-surface.js');
+    let retryHandler: (() => void) | null = null;
     const handle = createVrmCarrierSurface({
       manifest: manifest(),
       audioConsumer: audioConsumer(),
       ...commonExtras(),
       runtimeOptions: {
         loaderOverride: async () => stubVrm(),
-        setTimeoutFn: () => 1,
-        clearTimeoutFn: () => {},
+        setTimeoutFn: (handler) => {
+          retryHandler = handler;
+          return 1;
+        },
+        clearTimeoutFn: () => {
+          retryHandler = null;
+        },
       },
     });
     const onAudio = vi.fn();
@@ -339,9 +341,16 @@ describe('createVrmCarrierSurface', () => {
     await act(async () => {
       canvas.dispatchEvent(new Event('webglcontextlost', { cancelable: true }));
       await Promise.resolve();
-      // Browser auto-recovery dispatches webglcontextrestored before our
-      // 1500ms timer fires, returning the surface to `ready`.
       canvas.dispatchEvent(new Event('webglcontextrestored'));
+      await Promise.resolve();
+    });
+    expect(
+      result!.getByTestId('avatar-vrm-carrier').getAttribute('data-avatar-vrm-state'),
+    ).toBe('context_lost');
+
+    await act(async () => {
+      retryHandler?.();
+      await Promise.resolve();
       await Promise.resolve();
     });
 

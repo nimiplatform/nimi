@@ -37,9 +37,9 @@ import {
 import type {
   BackendAudioConsumer,
   WLipSyncSnapshot,
-} from '@nimiplatform/kit/features/avatar/headless';
+} from '../carrier/backend-branch.js';
 import { createVrmAudioConsumer } from './vrm-audio-consumer.js';
-import { createVrmEmoteState } from '@nimiplatform/kit/features/avatar/vrm';
+import { createVrmEmoteState, type VrmEmoteTable } from './vrm-emote-state.js';
 import { createVrmLipsyncDriver } from './vrm-lipsync-driver.js';
 import {
   createMissingVrmGeneratedMotionProvider,
@@ -50,8 +50,7 @@ import { createVrmProjectionAdapter } from './vrm-projection-adapter.js';
 import type {
   VrmMotionPresetEntry,
   VrmMotionPresetTable,
-} from '@nimiplatform/kit/features/avatar/vrm';
-import type { VrmEmoteTable } from '@nimiplatform/kit/features/avatar/vrm';
+} from './vrm-table-normalizers.js';
 import type { ActivityMapping } from './vrm-projection-adapter.js';
 
 // Mock `three` AnimationMixer / loop constants — same shape as
@@ -200,6 +199,108 @@ function makeActivityMapping(): ActivityMapping {
 
 const TEST_PROFILE: Profile = { mfcc: [], visemes: [] } as unknown as Profile;
 
+type VrmMockScenarioExpected = {
+  kind?: unknown;
+  where?: unknown;
+  details?: unknown;
+};
+
+type VrmMockScenarioDrive = {
+  kind?: unknown;
+  input?: unknown;
+};
+
+type VrmMockScenarioFixture = {
+  vrm_mock_scenario?: {
+    drives?: VrmMockScenarioDrive[];
+    expected?: VrmMockScenarioExpected[];
+  };
+};
+
+function expectedEntries(json: unknown): VrmMockScenarioExpected[] {
+  const fixture = json as VrmMockScenarioFixture;
+  const expected = fixture.vrm_mock_scenario?.expected;
+  if (!Array.isArray(expected)) {
+    throw new Error('VRM mock scenario fixture is missing expected entries');
+  }
+  return expected;
+}
+
+function expectedEntry(
+  json: unknown,
+  kind: string,
+  whereIncludes?: string,
+): VrmMockScenarioExpected {
+  const entry = expectedEntries(json).find((candidate) => {
+    return (
+      candidate.kind === kind &&
+      (whereIncludes === undefined ||
+        (typeof candidate.where === 'string' && candidate.where.includes(whereIncludes)))
+    );
+  });
+  if (!entry) {
+    throw new Error(`VRM mock scenario fixture is missing expected ${kind}`);
+  }
+  return entry;
+}
+
+function expectedDetails(
+  json: unknown,
+  kind: string,
+  whereIncludes?: string,
+): Record<string, unknown> {
+  const details = expectedEntry(json, kind, whereIncludes).details;
+  if (!isRecord(details)) {
+    throw new Error(`VRM mock scenario expected ${kind} has invalid details`);
+  }
+  return details;
+}
+
+function expectedRouteId(json: unknown, kind: string): string {
+  const where = expectedEntry(json, kind, 'generatedMotionRuntime.play').where;
+  if (typeof where !== 'string') {
+    throw new Error(`VRM mock scenario expected ${kind} is missing where`);
+  }
+  const match = /routeId:\s*'([^']+)'/.exec(where);
+  if (!match) {
+    throw new Error(`VRM mock scenario expected ${kind} is missing routeId`);
+  }
+  return match[1];
+}
+
+function driveInput(json: unknown, kind: string): Record<string, unknown> {
+  const fixture = json as VrmMockScenarioFixture;
+  const drive = fixture.vrm_mock_scenario?.drives?.find((candidate) => candidate.kind === kind);
+  if (!drive || !isRecord(drive.input)) {
+    throw new Error(`VRM mock scenario fixture is missing drive input ${kind}`);
+  }
+  return drive.input;
+}
+
+function readString(input: Record<string, unknown>, key: string): string {
+  const value = input[key];
+  if (typeof value !== 'string' || value.length === 0) {
+    throw new Error(`VRM mock scenario fixture field ${key} must be a non-empty string`);
+  }
+  return value;
+}
+
+function readNullableNumber(input: Record<string, unknown>, key: string): number | null {
+  const value = input[key];
+  if (value === null || typeof value === 'number') return value;
+  throw new Error(`VRM mock scenario fixture field ${key} must be number|null`);
+}
+
+function readBoolean(input: Record<string, unknown>, key: string): boolean {
+  const value = input[key];
+  if (typeof value === 'boolean') return value;
+  throw new Error(`VRM mock scenario fixture field ${key} must be boolean`);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
 /** Fake AudioWorkletNode-like with mutable weights/volume. */
 function fakeWLipSyncNode(): AudioWorkletNode & {
   weights: Record<string, number>;
@@ -272,6 +373,11 @@ describe('chunk 3-E scenario JSON files (fixture sanity)', () => {
       expect(vrmBlock.category).toEqual(expect.any(String));
       expect((vrmBlock.model_manifest as { kind?: string }).kind).toBe('vrm');
       expect(Array.isArray(vrmBlock.expected)).toBe(true);
+      for (const expected of expectedEntries(json)) {
+        expect(expected.kind).toEqual(expect.any(String));
+        expect(expected.where).toEqual(expect.any(String));
+        expect(isRecord(expected.details)).toBe(true);
+      }
     });
   }
 });
@@ -292,7 +398,7 @@ describe('scenario vrm-listening (chunk 3-E)', () => {
     expect(failedById.get('shake_no')).toBe('animation_load_failed');
   });
 
-  it('applyActivity("listening") routes to generatedMotionRuntime.play(listen_lean) and fails closed when provider is missing', async () => {
+  it('fixture applyActivity drive routes to expected generatedMotionRuntime.play result', async () => {
     const vrm = makeFakeVrm();
     const generatedMotionRuntime = createVrmGeneratedMotionRuntime(
       createMissingVrmGeneratedMotionProvider(),
@@ -307,14 +413,19 @@ describe('scenario vrm-listening (chunk 3-E)', () => {
     });
 
     const playSpy = vi.spyOn(generatedMotionRuntime, 'play');
-    adapter.applyActivity({ name: 'listening', intensity: null });
+    const drive = driveInput(listeningScenario, 'applyActivity');
+    const expected = expectedDetails(listeningScenario, 'motion_play_result');
+    adapter.applyActivity({
+      name: readString(drive, 'name'),
+      intensity: readNullableNumber(drive, 'intensity'),
+    });
 
     expect(playSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ routeId: 'listen_lean', fade: 0.3 }),
+      expect.objectContaining({ routeId: expectedRouteId(listeningScenario, 'motion_play_result') }),
     );
     const result = playSpy.mock.results[0]?.value as { played: boolean; reason?: string };
-    expect(result.played).toBe(false);
-    expect(result.reason).toBe('missing_profile');
+    expect(result.played).toBe(readBoolean(expected, 'played'));
+    expect(result.reason).toBe(readString(expected, 'reason'));
     expect(generatedMotionRuntime.snapshot().activeRouteId).toBeNull();
   });
 });
@@ -324,7 +435,7 @@ describe('scenario vrm-listening (chunk 3-E)', () => {
 // ────────────────────────────────────────────────────────────────────
 
 describe('scenario vrm-thinking (chunk 3-E)', () => {
-  it('applyActivity("thinking") routes to generatedMotionRuntime.play(idle_subtle) and fails closed when provider is missing', async () => {
+  it('fixture applyActivity drive routes to expected generatedMotionRuntime.play result', async () => {
     const vrm = makeFakeVrm();
     const generatedMotionRuntime = createVrmGeneratedMotionRuntime(
       createMissingVrmGeneratedMotionProvider(),
@@ -339,20 +450,55 @@ describe('scenario vrm-thinking (chunk 3-E)', () => {
     });
 
     const playSpy = vi.spyOn(generatedMotionRuntime, 'play');
-    adapter.applyActivity({ name: 'thinking', intensity: null });
+    const drive = driveInput(thinkingScenario, 'applyActivity');
+    const expected = expectedDetails(thinkingScenario, 'motion_play_result');
+    adapter.applyActivity({
+      name: readString(drive, 'name'),
+      intensity: readNullableNumber(drive, 'intensity'),
+    });
 
     expect(playSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ routeId: 'idle_subtle', fade: 0.4 }),
+      expect.objectContaining({ routeId: expectedRouteId(thinkingScenario, 'motion_play_result') }),
     );
     const result = playSpy.mock.results[0]?.value as { played: boolean; reason?: string };
-    expect(result.played).toBe(false);
-    expect(result.reason).toBe('missing_profile');
-    expect(generatedMotionRuntime.snapshot().activeRouteId).toBeNull();
+    expect(result.played).toBe(readBoolean(expected, 'played'));
+    expect(result.reason).toBe(readString(expected, 'reason'));
+    const snapshot = expectedDetails(thinkingScenario, 'generated_motion_snapshot');
+    expect(generatedMotionRuntime.snapshot().activeRouteId).toBe(snapshot.activeRouteId);
   });
 });
 
 // ────────────────────────────────────────────────────────────────────
-// Scenario 3: vrm-speaking-with-audio — non-synthetic mime, lipsync coordination.
+// Scenario 3: vrm-context-lost — expected evidence is fixture-owned.
+// ────────────────────────────────────────────────────────────────────
+
+describe('scenario vrm-context-lost (chunk 3-E)', () => {
+  it('expected block contains recovery and second-loss fail-closed evidence', () => {
+    const expected = expectedEntries(contextLostScenario);
+    expect(expected).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: 'lifecycle_evidence',
+          details: expect.objectContaining({ kind: 'context_lost' }),
+        }),
+        expect.objectContaining({
+          kind: 'lifecycle_evidence',
+          details: expect.objectContaining({ kind: 'context_restored' }),
+        }),
+        expect.objectContaining({
+          kind: 'lifecycle_evidence',
+          details: expect.objectContaining({
+            kind: 'failed_closed',
+            reason: 'context_lost_twice',
+          }),
+        }),
+      ]),
+    );
+  });
+});
+
+// ────────────────────────────────────────────────────────────────────
+// Scenario 4: vrm-speaking-with-audio — non-synthetic mime, lipsync coordination.
 // ────────────────────────────────────────────────────────────────────
 
 describe('scenario vrm-speaking-with-audio (chunk 3-E)', () => {
@@ -456,7 +602,7 @@ describe('scenario vrm-speaking-with-audio (chunk 3-E)', () => {
 });
 
 // ────────────────────────────────────────────────────────────────────
-// Scenario 4: vrm-speaking-silent-audio — synthetic mime fast-path.
+// Scenario 5: vrm-speaking-silent-audio — synthetic mime fast-path.
 // ────────────────────────────────────────────────────────────────────
 
 describe('scenario vrm-speaking-silent-audio (chunk 3-E)', () => {
@@ -504,7 +650,7 @@ describe('scenario vrm-speaking-silent-audio (chunk 3-E)', () => {
 });
 
 // ────────────────────────────────────────────────────────────────────
-// Scenario 5: vrm-emote-cycle — crossfade + cap + skipped_count invariants.
+// Scenario 6: vrm-emote-cycle — crossfade + cap + skipped_count invariants.
 // ────────────────────────────────────────────────────────────────────
 
 describe('scenario vrm-emote-cycle (chunk 3-E)', () => {

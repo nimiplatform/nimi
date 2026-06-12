@@ -2,8 +2,12 @@ import { parse as parseYaml } from 'yaml';
 import {
   isVrmGeneratedRouteId,
   type VrmGeneratedRouteId,
-} from '@nimiplatform/kit/features/avatar/vrm';
-import type { VrmBoneName, VrmCapabilityProfile } from './vrm-capability-profile.js';
+} from './vrm-generated-motion-contract.js';
+import {
+  validateVrmCapabilityProfile,
+  type VrmBoneName,
+  type VrmCapabilityProfile,
+} from './vrm-capability-profile.js';
 
 export type AvatarMappingSourceKind =
   | 'deterministic_manifest'
@@ -138,6 +142,11 @@ export function evaluateAvatarMappingSidecarSupport(
   profile: VrmCapabilityProfile,
 ): AvatarMappingSupportResult {
   const evidence = baseEvidence(sidecar);
+  try {
+    validateVrmCapabilityProfile(profile);
+  } catch (error) {
+    return unsupported(`capability_profile_invalid:${toErrorMessage(error)}`, evidence);
+  }
   if (sidecar.backendKind !== profile.backendKind) {
     return unsupported('mapping_backend_kind_mismatch', evidence);
   }
@@ -253,9 +262,16 @@ function evaluateTargetField(
     return profile.humanoidBones[target.name] ? null : `mapping_target_missing_bone:${target.name}`;
   }
   if (target.targetKind === 'expression_preset') {
-    return profile.expressionManagerPresent ? null : 'mapping_target_expression_manager_missing';
+    if (!profile.expressionManagerPresent || !profile.expressionPresets.present) {
+      return 'mapping_target_expression_manager_missing';
+    }
+    return profile.expressionPresets.names.includes(target.name)
+      ? null
+      : `mapping_target_unknown_expression_preset:${target.name}`;
   }
-  if (target.targetKind === 'manifest_entry') return null;
+  if (target.targetKind === 'lookat') {
+    return profile.lookat.supported ? null : 'mapping_target_lookat_missing';
+  }
   return `mapping_target_unsupported_for_vrm:${target.targetKind}`;
 }
 
@@ -312,16 +328,8 @@ function readProbability(raw: Record<string, unknown>, key: string): number {
   return value;
 }
 
-function readOptionalProbability(
-  raw: Record<string, unknown>,
-  key: string,
-  fallback: number,
-): number {
-  return raw[key] === undefined ? fallback : readProbability(raw, key);
-}
-
 function readMappingThreshold(raw: Record<string, unknown>): number {
-  const threshold = readOptionalProbability(raw, 'threshold', DEFAULT_MAPPING_CONFIDENCE_THRESHOLD);
+  const threshold = readProbability(raw, 'threshold');
   if (threshold < DEFAULT_MAPPING_CONFIDENCE_THRESHOLD) {
     throw new Error(
       `vrm-mapping-sidecar: threshold must be >= default threshold ${DEFAULT_MAPPING_CONFIDENCE_THRESHOLD}`,

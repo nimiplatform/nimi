@@ -1,13 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { AgentDataBundle } from '../driver/types.js';
-import type { EmbodimentProjectionApi } from '@nimiplatform/kit/features/avatar/headless';
+import type { BackendProjection } from '../carrier/backend-branch.js';
 import { createSandboxedActivityOrEventHandler, type SandboxWorkerFactory } from './handler-sandbox.js';
 
 type WorkerListener = (event: MessageEvent<Record<string, unknown>>) => void;
 
 class FakeWorker {
   readonly projectionResults: Array<Record<string, unknown>> = [];
-  method = 'setSignal';
+  method = 'applyExpression';
   private readonly listeners = new Set<WorkerListener>();
 
   addEventListener(type: string, listener: EventListenerOrEventListenerObject): void {
@@ -35,7 +35,7 @@ class FakeWorker {
         requestId: message['requestId'],
         callId: 'call-1',
         method: this.method,
-        args: ['gaze.x', 0.5, 1],
+        args: ['joy', 1, 0.1],
       });
       return;
     }
@@ -53,19 +53,13 @@ class FakeWorker {
   }
 }
 
-function createProjection(): EmbodimentProjectionApi {
+function createProjection(): BackendProjection {
   return {
-    triggerMotion: vi.fn(async () => undefined),
-    stopMotion: vi.fn(),
-    setSignal: vi.fn(),
-    getSignal: vi.fn(() => 0),
-    addSignal: vi.fn(),
-    setExpression: vi.fn(async () => undefined),
-    clearExpression: vi.fn(),
-    setPose: vi.fn(),
-    clearPose: vi.fn(),
-    wait: vi.fn(async () => undefined),
-    getSurfaceBounds: vi.fn(() => ({ x: 0, y: 0, width: 120, height: 240 })),
+    applyActivity: vi.fn(),
+    applyEmotion: vi.fn(),
+    applyMotion: vi.fn(),
+    applyExpression: vi.fn(),
+    reset: vi.fn(),
   };
 }
 
@@ -102,7 +96,7 @@ describe('createSandboxedActivityOrEventHandler', () => {
     const worker = new FakeWorker();
     const createWorker: SandboxWorkerFactory = () => worker;
     const handler = await createSandboxedActivityOrEventHandler(
-      'export default { async execute(ctx, projection) { projection.setSignal("gaze.x", 0.5); } };',
+      'export default { async execute(ctx, projection) { projection.applyExpression({ name: "joy", weight: 1, fade: 0.1 }); } };',
       '/model/runtime/nimi/activity/happy.js',
       createWorker,
     );
@@ -110,7 +104,7 @@ describe('createSandboxedActivityOrEventHandler', () => {
 
     await handler.execute(bundle, projection, { signal: new AbortController().signal });
 
-    expect(projection.setSignal).toHaveBeenCalledWith('gaze.x', 0.5, 1);
+    expect(projection.applyExpression).toHaveBeenCalledWith({ name: 'joy', weight: 1, fade: 0.1 });
     expect(worker.projectionResults).toMatchObject([{ type: 'projection-result', callId: 'call-1', ok: true }]);
     handler.dispose?.();
   });
@@ -134,7 +128,7 @@ describe('createSandboxedActivityOrEventHandler', () => {
       ok: false,
       error: 'unsupported projection method: unknownCapability',
     }]);
-    expect(projection.setSignal).not.toHaveBeenCalled();
+    expect(projection.applyExpression).not.toHaveBeenCalled();
     handler.dispose?.();
   });
 });

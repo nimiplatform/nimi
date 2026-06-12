@@ -20,11 +20,12 @@ import { act, render } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useWindowBoundsSync } from './use-window-bounds-sync.js';
 import { useAvatarStore } from './app-store.js';
+import { recordAvatarEvidenceEventually } from './avatar-evidence.js';
 import {
   COMPANION_FOOTPRINT_MIN_HEIGHT_PX,
   WINDOW_BOUNDS_PADDING_PX,
 } from './window-bounds.js';
-import type { BackendNominalBounds } from '@nimiplatform/kit/features/avatar/headless';
+import type { BackendNominalBounds } from '../carrier/backend-branch.js';
 
 const setWindowSizeMock = vi.fn<(...args: unknown[]) => Promise<void>>();
 let tauriRuntime = true;
@@ -79,6 +80,7 @@ function resetModelState() {
 beforeEach(() => {
   setWindowSizeMock.mockReset();
   setWindowSizeMock.mockResolvedValue();
+  vi.mocked(recordAvatarEvidenceEventually).mockReset();
   tauriRuntime = true;
   resetModelState();
 });
@@ -203,5 +205,24 @@ describe('useWindowBoundsSync — BackendBranch.nominalBounds → set_window_siz
     });
 
     expect(setWindowSizeMock).not.toHaveBeenCalled();
+  });
+
+  it('does not record bounds evidence or store size when set_window_size IPC fails', async () => {
+    setWindowSizeMock.mockRejectedValueOnce(new Error('native resize failed'));
+    renderWithBackend({
+      width: 360,
+      height: 720,
+      bodyCenterX: 0.5,
+      bodyCenterY: 0.55,
+    });
+
+    await act(async () => {
+      useAvatarStore.getState().setModelLoaded('vrm-model-fail');
+      await Promise.resolve();
+    });
+
+    expect(setWindowSizeMock).toHaveBeenCalledTimes(1);
+    expect(recordAvatarEvidenceEventually).not.toHaveBeenCalled();
+    expect(useAvatarStore.getState().shell.windowSize).toEqual({ width: 400, height: 600 });
   });
 });

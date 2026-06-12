@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AvatarDebugProbeKind } from '@nimiplatform/sdk/runtime/generated';
+import type { AvatarModelManifest } from '@nimiplatform/kit/features/avatar/headless';
 import type { AgentDataBundle, AgentDataDriver, AgentEvent, DriverStatus } from '../driver/types.js';
 import { useAvatarStore } from '../app-shell/app-store.js';
 
@@ -14,6 +15,16 @@ const loadOfficialCubismFrameworkRuntimeMock = vi.fn();
 const createLive2DBackendSessionMock = vi.fn();
 const backendApplyCommandMock = vi.fn();
 const backendUnloadMock = vi.fn();
+
+function admissionDetail(): Record<string, string> {
+  return {
+    runtime_admission_ref: 'runtime.admission/avatar-presentation-1',
+    gateway_verdict_ref: 'runtime.gateway/avatar-presentation-1',
+    firewall_verdict_ref: 'runtime.firewall/avatar-presentation-1',
+    audit_ref: 'runtime.audit/avatar-presentation-1',
+    credential_verdict_ref: 'runtime.credential/avatar-presentation-1',
+  };
+}
 
 vi.mock('../live2d/model-loader.js', () => ({
   resolveModelManifest: (...args: unknown[]) => resolveModelManifestMock(...args),
@@ -110,6 +121,27 @@ function createDriver() {
   return driver;
 }
 
+function live2dManifest(input: {
+  modelId?: string;
+  runtimeDir?: string;
+  nimiDir?: string | null;
+  adapterManifestPath?: string | null;
+} = {}): AvatarModelManifest {
+  const runtimeDir = input.runtimeDir ?? '/models/ren/runtime';
+  const modelId = input.modelId ?? 'ren';
+  return {
+    kind: 'live2d',
+    runtimeDir,
+    modelId,
+    nimiDir: input.nimiDir ?? null,
+    posterPath: null,
+    live2d: {
+      modelJson: `${runtimeDir}/${modelId}.model3.json`,
+      adapterManifestPath: input.adapterManifestPath ?? null,
+    },
+  };
+}
+
 describe('avatar runtime carrier', () => {
   beforeEach(() => {
     useAvatarStore.setState(useAvatarStore.getInitialState(), true);
@@ -124,13 +156,6 @@ describe('avatar runtime carrier', () => {
     createLive2DBackendSessionMock.mockReset();
     backendApplyCommandMock.mockReset();
     backendUnloadMock.mockReset();
-    resolveModelManifestMock.mockResolvedValue({
-      runtimeDir: '/models/ren/runtime',
-      modelId: 'ren',
-      model3JsonPath: '/models/ren/runtime/ren.model3.json',
-      nimiDir: null,
-      adapterManifestPath: null,
-    });
     scanNasHandlersMock.mockResolvedValue({
       activity: [],
       event: [],
@@ -158,13 +183,6 @@ describe('avatar runtime carrier', () => {
   });
 
   it('loads an embedded Live2D adapter manifest and passes compatibility into the backend session', async () => {
-    resolveModelManifestMock.mockResolvedValue({
-      runtimeDir: '/models/ren/runtime',
-      modelId: 'ren',
-      model3JsonPath: '/models/ren/runtime/ren.model3.json',
-      nimiDir: '/models/ren/runtime/nimi',
-      adapterManifestPath: '/models/ren/runtime/nimi/live2d-adapter.json',
-    });
     readTextFileMock.mockResolvedValue(JSON.stringify({
       manifest_kind: 'nimi.avatar.live2d.adapter',
       schema_version: 1,
@@ -203,7 +221,10 @@ describe('avatar runtime carrier', () => {
     const driver = createDriver();
     const carrier = await startAvatarRuntimeCarrier({
       driver,
-      modelPath: '/models/ren',
+      modelManifest: live2dManifest({
+        nimiDir: '/models/ren/runtime/nimi',
+        adapterManifestPath: '/models/ren/runtime/nimi/live2d-adapter.json',
+      }),
     });
 
     expect(readTextFileMock).toHaveBeenCalledWith('/models/ren/runtime/nimi/live2d-adapter.json');
@@ -222,7 +243,7 @@ describe('avatar runtime carrier', () => {
     const driver = createDriver();
     const carrier = await startAvatarRuntimeCarrier({
       driver,
-      modelPath: '/models/ren',
+      modelManifest: live2dManifest(),
     });
     backendApplyCommandMock.mockClear();
 
@@ -235,6 +256,7 @@ describe('avatar runtime carrier', () => {
         category: 'emotion',
         intensity: 'moderate',
         source: 'apml_output',
+        ...admissionDetail(),
       },
     });
     await Promise.resolve();
@@ -243,10 +265,9 @@ describe('avatar runtime carrier', () => {
       .filter((command) => command.kind === 'motion')
       .map((command) => command.group ?? '');
 
-    expect(resolveModelManifestMock).toHaveBeenCalledWith('/models/ren');
     expect(scanNasHandlersMock).not.toHaveBeenCalled();
     expect(useAvatarStore.getState().model).toEqual(expect.objectContaining({
-      modelPath: '/models/ren',
+      modelPath: '/models/ren/runtime',
       modelId: 'ren',
       loadState: 'loaded',
       error: null,
@@ -255,8 +276,11 @@ describe('avatar runtime carrier', () => {
       name: 'avatar.model.load',
       detail: expect.objectContaining({
         model_id: 'ren',
+        model_kind: 'live2d',
         nas_handler_count: 0,
-        compatibility_tier: 'render_only',
+        backend_meta: expect.objectContaining({
+          compatibility_tier: 'render_only',
+        }),
       }),
     });
     expect(commands).toEqual(['Activity_Happy']);
@@ -284,7 +308,7 @@ describe('avatar runtime carrier', () => {
     const driver = createDriver();
     const carrier = await startAvatarRuntimeCarrier({
       driver,
-      modelPath: '/models/ren',
+      modelManifest: live2dManifest(),
     });
     backendApplyCommandMock.mockClear();
 
@@ -297,6 +321,7 @@ describe('avatar runtime carrier', () => {
         category: 'interaction',
         intensity: 'moderate',
         source: 'apml_output',
+        ...admissionDetail(),
       },
     });
     await Promise.resolve();
@@ -315,7 +340,7 @@ describe('avatar runtime carrier', () => {
     const driver = createDriver();
     const carrier = await startAvatarRuntimeCarrier({
       driver,
-      modelPath: '/models/ren',
+      modelManifest: live2dManifest(),
     });
 
     const session = carrier.createDebugSession({
@@ -359,17 +384,11 @@ describe('avatar runtime carrier', () => {
         sourcePath: '/models/ren/runtime/nimi/event/runtime_agent_hook_running.js',
       });
     });
-    resolveModelManifestMock.mockResolvedValue({
-      runtimeDir: '/models/ren/runtime',
-      modelId: 'ren',
-      model3JsonPath: '/models/ren/runtime/ren.model3.json',
-      nimiDir: '/models/ren/runtime/nimi',
-    });
     const { startAvatarRuntimeCarrier } = await import('./avatar-carrier.js');
     const driver = createDriver();
     const carrier = await startAvatarRuntimeCarrier({
       driver,
-      modelPath: '/models/ren',
+      modelManifest: live2dManifest({ nimiDir: '/models/ren/runtime/nimi' }),
     });
 
     driver.trigger({
@@ -422,17 +441,11 @@ describe('avatar runtime carrier', () => {
         sourcePath: '/models/ren/runtime/nimi/event/runtime_agent_hook_running.js',
       });
     });
-    resolveModelManifestMock.mockResolvedValue({
-      runtimeDir: '/models/ren/runtime',
-      modelId: 'ren',
-      model3JsonPath: '/models/ren/runtime/ren.model3.json',
-      nimiDir: '/models/ren/runtime/nimi',
-    });
     const { startAvatarRuntimeCarrier } = await import('./avatar-carrier.js');
     const driver = createDriver();
     const carrier = await startAvatarRuntimeCarrier({
       driver,
-      modelPath: '/models/ren',
+      modelManifest: live2dManifest({ nimiDir: '/models/ren/runtime/nimi' }),
     });
 
     driver.trigger({
@@ -467,20 +480,23 @@ describe('avatar runtime carrier', () => {
   // wLipSync e2e test fixture (see voice-lipsync/lipsync-e2e.test.ts) which
   // is the new authority for end-to-end Live2D + VRM mouth proof.
 
-  it('fails closed and records model error when model manifest resolution fails', async () => {
-    resolveModelManifestMock.mockRejectedValue(new Error('no *.model3.json found'));
+  it('fails closed and records model error when backend branch creation fails', async () => {
+    createLive2DBackendSessionMock.mockRejectedValue(new Error('Live2D backend load failed'));
     const { startAvatarRuntimeCarrier } = await import('./avatar-carrier.js');
     const driver = createDriver();
 
     await expect(startAvatarRuntimeCarrier({
       driver,
-      modelPath: '/models/broken',
-    })).rejects.toThrow('no *.model3.json found');
+      modelManifest: live2dManifest({
+        modelId: 'broken',
+        runtimeDir: '/models/broken/runtime',
+      }),
+    })).rejects.toThrow('Live2D backend load failed');
 
     expect(useAvatarStore.getState().model).toEqual(expect.objectContaining({
-      modelPath: '/models/broken',
+      modelPath: '/models/broken/runtime',
       loadState: 'error',
-      error: 'no *.model3.json found',
+      error: 'Live2D backend load failed',
     }));
     expect(driver.emitted).toEqual([]);
   });

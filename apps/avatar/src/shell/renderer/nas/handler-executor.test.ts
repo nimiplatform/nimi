@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { AgentDataBundle } from '../driver/types.js';
-import type { EmbodimentProjectionApi } from '@nimiplatform/kit/features/avatar/headless';
+import type { BackendProjection } from '../carrier/backend-branch.js';
 import { HandlerExecutor } from './handler-executor.js';
 import type { ActivityOrEventHandler } from './handler-types.js';
 
 const bundle = {} as AgentDataBundle;
-const projection = {} as EmbodimentProjectionApi;
+const projection = {} as BackendProjection;
 
 describe('NAS handler executor results', () => {
   it('reports success and handler errors without placeholder success', async () => {

@@ -22,6 +22,12 @@ const FORBIDDEN_GLOBAL_IDENTIFIERS = [
   'constructor',
 ] as const;
 
+const FORBIDDEN_COMPUTED_GLOBAL_KEYS = [
+  ...FORBIDDEN_GLOBAL_IDENTIFIERS,
+  'prototype',
+  '__proto__',
+] as const;
+
 export type SandboxPolicyResult =
   | { ok: true }
   | { ok: false; reason: string };
@@ -209,6 +215,10 @@ function validateImportBindings(bindings: string): string | null {
   return null;
 }
 
+function declaresLive2DExtensionRequirement(code: string): boolean {
+  return /\brequires\s*:\s*\[[^\]]*['"]live2d-extension['"][^\]]*\]/.test(code);
+}
+
 export function validateSandboxSourcePolicy(
   source: string,
   options: SandboxSourcePolicyOptions = {},
@@ -218,6 +228,7 @@ export function validateSandboxSourcePolicy(
     return { ok: false, reason: `NAS sandbox source path is outside runtime/nimi or not .js: ${options.sourcePath}` };
   }
   const code = stripCommentsAndStrings(source);
+  const sourceWithoutComments = stripCommentsOnly(source);
   if (kind === 'handler' && !/\bexport\s+default\b/.test(code)) {
     return { ok: false, reason: 'NAS handler must use export default' };
   }
@@ -227,7 +238,7 @@ export function validateSandboxSourcePolicy(
   if (/\bimport\s*\(/.test(code)) {
     return { ok: false, reason: 'NAS sandbox does not allow dynamic import' };
   }
-  if (/\bimport\s+['"]/.test(stripCommentsOnly(source))) {
+  if (/\bimport\s+['"]/.test(sourceWithoutComments)) {
     return { ok: false, reason: 'NAS sandbox does not allow side-effect imports' };
   }
   const staticImports = collectStaticImports(source);
@@ -248,6 +259,28 @@ export function validateSandboxSourcePolicy(
   if (kind === 'handler' && /\bexport\s+(?!default\b)/.test(code)) {
     return { ok: false, reason: 'NAS sandbox only allows export default' };
   }
+  if (kind === 'handler' && /\bprojection\s*\.\s*(?:setSignal|addSignal|getSignal)\s*\(/.test(code)) {
+    return {
+      ok: false,
+      reason: 'NAS handler projection forbids direct signal/parameter access; declare live2d-extension and use extension.live2d.setParameter',
+    };
+  }
+  if (
+    kind === 'handler'
+    && /\bextension\s*\.\s*live2d\b/.test(code)
+    && !declaresLive2DExtensionRequirement(sourceWithoutComments)
+  ) {
+    return {
+      ok: false,
+      reason: "NAS handler uses extension.live2d without requires: ['live2d-extension']",
+    };
+  }
+  for (const key of FORBIDDEN_COMPUTED_GLOBAL_KEYS) {
+    const computedPattern = new RegExp(`\\[\\s*['"]${escapeRegExp(key)}['"]\\s*\\]`);
+    if (computedPattern.test(sourceWithoutComments)) {
+      return { ok: false, reason: `NAS sandbox forbids computed ambient global access: ${key}` };
+    }
+  }
   if (kind === 'lib' && !/\bexport\s+(?:async\s+)?(?:function|const|let)\s+/.test(code)) {
     return { ok: false, reason: 'NAS lib helper must export named functions or values' };
   }
@@ -259,6 +292,10 @@ export function validateSandboxSourcePolicy(
     }
   }
   return { ok: true };
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 export function assertSandboxSourcePolicy(source: string, options: SandboxSourcePolicyOptions = {}): void {

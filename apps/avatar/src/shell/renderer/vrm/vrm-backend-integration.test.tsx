@@ -16,7 +16,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createQueuedProjection } from './vrm-backend.js';
-import type { BackendProjection } from '@nimiplatform/kit/features/avatar/headless';
+import type { BackendProjection } from '../carrier/backend-branch.js';
 
 beforeEach(() => {
   vi.resetModules();

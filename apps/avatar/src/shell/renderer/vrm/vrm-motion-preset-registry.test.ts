@@ -69,7 +69,7 @@ import {
 import type {
   VrmMotionPresetEntry,
   VrmMotionPresetTable,
-} from '@nimiplatform/kit/features/avatar/vrm';
+} from './vrm-table-normalizers.js';
 
 function makeTable(): VrmMotionPresetTable {
   return {

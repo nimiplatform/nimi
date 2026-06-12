@@ -1,14 +1,17 @@
-import type { ActivitySource, AgentDataBundle, AgentDataDriver, AgentEvent } from '../driver/types.js';
+import type {
+  ActivitySource,
+  AgentDataBundle,
+  AgentDataDriver,
+  AgentEvent,
+  RuntimePresentationAdmissionEvidence,
+} from '../driver/types.js';
 import type {
   BackendProjection,
   Live2DBackendExtension,
-} from '@nimiplatform/kit/features/avatar/headless';
+} from '../carrier/backend-branch.js';
 import { isAvatarUserInteractionEvent, type InteractionPhysicsController } from '../live2d/interaction-physics.js';
 import { activityHandlerKey } from './activity-naming.js';
 import { createDefaultActivityHandler } from './default-fallback.js';
-import type {
-  EmbodimentProjectionApi,
-} from '@nimiplatform/kit/features/avatar/headless';
 import { HandlerExecutor } from './handler-executor.js';
 import type { HandlerRegistry } from './handler-registry.js';
 import type { NasHandlerExtension } from './handler-types.js';
@@ -18,15 +21,8 @@ export type DispatchContext = {
   driver: AgentDataDriver;
   registry: HandlerRegistry;
   executor: HandlerExecutor;
-  /** Backend-neutral cue surface passed through to handlers, the sandbox,
-   *  and default-activity fallback. */
-  projection: EmbodimentProjectionApi;
-  /** Ontology surface (BackendProjection). When provided, runtime
-   *  expression / activity events are projected through this surface
-   *  before falling back to the cue-level `setExpression` path. New
-   *  callers MUST supply this; existing tests omit it for
-   *  behavior-equivalent dispatch. */
-  backendProjection?: BackendProjection;
+  /** Backend-neutral ontology surface passed through to NAS handlers. */
+  projection: BackendProjection;
   /** Live2D-only extension surface. Passed through to the executor
    *  only when a registered handler entry's
    *  `requiresLive2DExtension` flag is true. The registry rejects
@@ -48,6 +44,40 @@ function bundleForEvent(base: AgentDataBundle, event: AgentEvent): AgentDataBund
   };
 }
 
+function readRuntimeAdmissionRef(
+  detail: Record<string, unknown>,
+  key: string,
+): string | null {
+  const value = detail[key];
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function parseRuntimePresentationAdmission(
+  detail: Record<string, unknown>,
+): RuntimePresentationAdmissionEvidence | null {
+  const runtimeAdmissionRef = readRuntimeAdmissionRef(detail, 'runtime_admission_ref');
+  const gatewayVerdictRef = readRuntimeAdmissionRef(detail, 'gateway_verdict_ref');
+  const firewallVerdictRef = readRuntimeAdmissionRef(detail, 'firewall_verdict_ref');
+  const auditRef = readRuntimeAdmissionRef(detail, 'audit_ref');
+  const credentialVerdictRef = readRuntimeAdmissionRef(detail, 'credential_verdict_ref');
+  if (
+    !runtimeAdmissionRef
+    || !gatewayVerdictRef
+    || !firewallVerdictRef
+    || !auditRef
+    || !credentialVerdictRef
+  ) {
+    return null;
+  }
+  return {
+    runtimeAdmissionRef,
+    gatewayVerdictRef,
+    firewallVerdictRef,
+    auditRef,
+    credentialVerdictRef,
+  };
+}
+
 function parseRuntimeActivityProjection(event: AgentEvent): NonNullable<AgentDataBundle['activity']> | null {
   const activityName = typeof event.detail['activity_name'] === 'string' ? event.detail['activity_name'].trim() : '';
   const category = event.detail['category'];
@@ -56,10 +86,14 @@ function parseRuntimeActivityProjection(event: AgentEvent): NonNullable<AgentDat
   if (!activityName || (category !== 'emotion' && category !== 'interaction' && category !== 'state')) {
     return null;
   }
-  if (source !== 'apml_output' && source !== 'direct_api' && source !== 'mock') {
+  if (source !== 'apml_output' && source !== 'direct_api') {
     return null;
   }
   if (intensity !== undefined && intensity !== null && intensity !== 'weak' && intensity !== 'moderate' && intensity !== 'strong') {
+    return null;
+  }
+  const admission = parseRuntimePresentationAdmission(event.detail);
+  if (!admission) {
     return null;
   }
   return {
@@ -67,14 +101,18 @@ function parseRuntimeActivityProjection(event: AgentEvent): NonNullable<AgentDat
     category,
     intensity: intensity === undefined ? null : intensity,
     source,
+    admission,
   };
 }
 
 function parseRuntimeProjectionSource(value: unknown): ActivitySource {
-  return value === 'direct_api' || value === 'mock' ? value : 'apml_output';
+  return value === 'direct_api' ? value : 'apml_output';
 }
 
 function parseRuntimeExpressionProjection(event: AgentEvent): string | null {
+  if (!parseRuntimePresentationAdmission(event.detail)) {
+    return null;
+  }
   const expressionId = typeof event.detail['expression_id'] === 'string'
     ? event.detail['expression_id'].trim()
     : '';
@@ -90,10 +128,6 @@ export function wireEventDispatch(context: DispatchContext): () => void {
     live2dExtension,
     interactionPhysics,
   } = context;
-  // `backendProjection` is part of DispatchContext for ontology-level
-  // dispatch. Ignore at runtime here to keep behavior equivalence with the
-  // cue-level command-bus path used by the current handler sandbox.
-  void context.backendProjection;
   const defaultActivity = createDefaultActivityHandler();
   const extensionBag: NasHandlerExtension | undefined = live2dExtension
     ? { live2d: live2dExtension }
@@ -116,6 +150,27 @@ export function wireEventDispatch(context: DispatchContext): () => void {
       const activity = parseRuntimeActivityProjection(event);
       if (!activity) return;
       const ctx = bundleForEvent({ ...driver.getBundle(), activity }, event);
+      const beforeEvent = {
+        name: 'avatar.before.activity.start',
+        detail: {
+          activity_name: activity.name,
+          category: activity.category,
+          intensity: activity.intensity,
+          source: activity.source,
+          cancelled: false,
+        },
+      };
+      driver.emit(beforeEvent);
+      if (beforeEvent.detail.cancelled === true) {
+        driver.emit({
+          name: 'avatar.activity.cancel',
+          detail: {
+            activity_name: activity.name,
+            reason: 'before_event_cancelled',
+          },
+        });
+        return;
+      }
       driver.emit({
         name: 'avatar.activity.start',
         detail: {
@@ -129,13 +184,6 @@ export function wireEventDispatch(context: DispatchContext): () => void {
       const entry = registry.activity.get(activityHandlerKey(activityName)) ?? null;
       const handler = entry?.handler ?? defaultActivity;
       const key = `activity:${activityName}`;
-      // BackendProjection.applyActivity is intentionally not invoked here:
-      // the default-activity fallback already routes through the Live2D
-      // plugin-api command bus, and the Live2D BackendProjection adapter writes
-      // to the same bus. Calling both would produce duplicate motion commands.
-      // The BackendProjection surface is exposed to NAS handlers through the
-      // executor; only `applyExpression` short-circuits the cue-level fallback
-      // below.
       void executor.run(key, handler, ctx, projection, runOptionsFor(entry)).then((result) => {
         if (result.status === 'success') {
           driver.emit({
@@ -175,12 +223,8 @@ export function wireEventDispatch(context: DispatchContext): () => void {
         );
         return;
       }
-      // Behavior-equivalent path: continue routing through the cue-level
-      // setExpression (which writes the same Cubism command-bus event
-      // the BackendProjection adapter would emit). Switching this
-      // dispatch path to BackendProjection.applyExpression requires the
-      // projection adapter and plugin API to share one owner.
-      void projection.setExpression(expressionId).then(() => {
+      try {
+        projection.applyExpression({ name: expressionId });
         driver.emit({
           name: 'avatar.expression.change',
           detail: {
@@ -188,9 +232,9 @@ export function wireEventDispatch(context: DispatchContext): () => void {
             source: parseRuntimeProjectionSource(event.detail['source']),
           },
         });
-      }).catch((err: unknown) => {
+      } catch (err) {
         console.warn(`[nas:fallback] runtime expression projection failed for ${expressionId}: ${err instanceof Error ? err.message : String(err)}`);
-      });
+      }
       return;
     }
 

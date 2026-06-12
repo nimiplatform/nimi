@@ -10,21 +10,12 @@
 
 import { invoke } from '@tauri-apps/api/core';
 import {
-  fromLive2DLocalModelManifest,
   fromTauriAvatarModelManifest,
   type AgentCenterLocalAvatarAssetReference,
   type AvatarModelManifest,
   type LocalAvatarAssetReference,
   type TauriAvatarModelManifest,
 } from '@nimiplatform/kit/features/avatar/headless';
-import {
-  resolveModelManifest as resolveLive2DTauriManifest,
-} from '../live2d/model-loader.js';
-
-export async function resolveAvatarModelManifest(modelPath: string): Promise<AvatarModelManifest> {
-  const raw = await resolveLive2DTauriManifest(modelPath);
-  return fromLive2DLocalModelManifest(raw);
-}
 
 export async function resolveAgentCenterAvatarAssetManifest(
   reference: AgentCenterLocalAvatarAssetReference,

@@ -11,7 +11,7 @@ import {
 } from './load-vrm-motion-preset-table.js';
 import {
   ADMITTED_INTERCHANGE_PRESET_IDS,
-} from '@nimiplatform/kit/features/avatar/vrm';
+} from './vrm-table-normalizers.js';
 
 afterEach(() => {
   __resetVrmMotionPresetTableForTests();

@@ -1,6 +1,6 @@
 import { AvatarDebugProbeKind } from '@nimiplatform/sdk/runtime/generated';
 import { describe, expect, it } from 'vitest';
-import type { BackendBranch } from '@nimiplatform/kit/features/avatar/headless';
+import type { BackendBranch } from '../carrier/backend-branch.js';
 import type { VrmCapabilityProfile } from '../vrm/vrm-capability-profile.js';
 import {
   createAvatarDebugSession,
@@ -73,6 +73,16 @@ function vrmProfile(): VrmCapabilityProfile {
       rightLowerLeg: true,
     },
     expressionManagerPresent: true,
+    expressionPresets: {
+      present: true,
+      names: ['neutral', 'happy', 'sad', 'aa', 'oh'],
+    },
+    lookat: {
+      supported: false,
+    },
+    poseLimits: {
+      maxRotationDeg: 68.75493541569878,
+    },
     modelFingerprint: 'vrm:bones=111111111111111;expr=1',
     generatedMotion: {
       supportedRoutes: ['idle_subtle', 'listen_lean', 'nod_yes', 'shake_no', 'greet_wave'],
@@ -145,6 +155,72 @@ describe('createAvatarDebugSession', () => {
     expect(session.evidence.status).toBe('unsupported');
     expect(session.evidence.reasonCode).toBe('generated_motion_route_support_missing');
     expect(session.evidence.refs.unsupportedRouteIds).toEqual(['greet_wave']);
+  });
+
+  it('fails closed when resolver evidence did not resolve the package descriptor', () => {
+    const session = createAvatarDebugSession({
+      ...input(AvatarDebugProbeKind.GENERATED_MOTION),
+      resolverEvidence: {
+        packageResolved: false,
+        capabilityProfileResolved: true,
+      },
+    });
+
+    expect(session.evidence.status).toBe('failed');
+    expect(session.evidence.reasonCode).toBe('package_descriptor_not_resolved');
+  });
+
+  it('fails closed when observed_at is invalid', () => {
+    expect(() => createAvatarDebugSession({
+      ...input(AvatarDebugProbeKind.GENERATED_MOTION),
+      observedAt: 'not-a-date',
+    })).toThrow('observed_at is invalid');
+  });
+
+  it('fails closed when capability-profile resolver evidence is missing for capability probes', () => {
+    const session = createAvatarDebugSession({
+      ...input(AvatarDebugProbeKind.SPEECH_LIPSYNC),
+      resolverEvidence: {
+        packageResolved: true,
+        capabilityProfileResolved: false,
+      },
+    });
+
+    expect(session.evidence.status).toBe('failed');
+    expect(session.evidence.reasonCode).toBe('backend_capability_profile_not_resolved');
+  });
+
+  it('fails closed when capability-profile probes only have backend metadata', () => {
+    const session = createAvatarDebugSession({
+      ...input(AvatarDebugProbeKind.CAPABILITY_PROFILE),
+      vrmCapabilityProfile: null,
+    });
+
+    expect(session.evidence.status).toBe('failed');
+    expect(session.evidence.reasonCode).toBe('vrm_capability_profile_missing');
+  });
+
+  it('fails closed when capability-profile probes use placeholder profile ids', () => {
+    const session = createAvatarDebugSession({
+      ...input(AvatarDebugProbeKind.CAPABILITY_PROFILE),
+      vrmCapabilityProfile: {
+        ...vrmProfile(),
+        profileId: 'placeholder-vrm-profile',
+      },
+    });
+
+    expect(session.evidence.status).toBe('failed');
+    expect(session.evidence.reasonCode).toBe('vrm_capability_profile_missing');
+  });
+
+  it('fails closed when capability-profile probes lack an admitted backend profile ref', () => {
+    const session = createAvatarDebugSession({
+      ...input(AvatarDebugProbeKind.CAPABILITY_PROFILE),
+      backendCapabilityProfileRef: null,
+    });
+
+    expect(session.evidence.status).toBe('failed');
+    expect(session.evidence.reasonCode).toBe('vrm_capability_profile_missing');
   });
 
   it('reports Live2D generated motion as unsupported instead of success', () => {

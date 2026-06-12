@@ -1,5 +1,5 @@
 import type { AgentDataBundle } from '../driver/types.js';
-import type { EmbodimentProjectionApi } from '@nimiplatform/kit/features/avatar/headless';
+import type { BackendProjection } from '../carrier/backend-branch.js';
 import type { HandlerRegistry } from './handler-registry.js';
 
 export type ContinuousUpdateStatus = 'success' | 'error' | 'async_contract_violation' | 'over_budget' | 'skipped_reentrant';
@@ -25,7 +25,7 @@ export class ContinuousScheduler {
   constructor(
     private readonly registry: HandlerRegistry,
     private readonly getBundle: () => AgentDataBundle | null,
-    private readonly projection: EmbodimentProjectionApi,
+    private readonly projection: BackendProjection,
   ) {}
 
   start(): void {

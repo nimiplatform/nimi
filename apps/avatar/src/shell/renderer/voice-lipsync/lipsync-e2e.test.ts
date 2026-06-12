@@ -38,7 +38,7 @@ import {
 import type {
   BackendAudioConsumer,
   BackendBranch,
-} from '@nimiplatform/kit/features/avatar/headless';
+} from '../carrier/backend-branch.js';
 
 const FIXTURE_TURN_ID = 'turn-e2e';
 const FIXTURE_STREAM_ID = 'stream-e2e';

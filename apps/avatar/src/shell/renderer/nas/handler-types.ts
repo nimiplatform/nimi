@@ -1,8 +1,5 @@
 import type { AgentDataBundle } from '../driver/types.js';
-import type {
-  EmbodimentProjectionApi,
-  Live2DBackendExtension,
-} from '@nimiplatform/kit/features/avatar/headless';
+import type { BackendProjection, Live2DBackendExtension } from '../carrier/backend-branch.js';
 
 export type HandlerMeta = {
   description?: string;
@@ -30,7 +27,7 @@ export type ActivityOrEventHandler = {
   dispose?(): void;
   execute(
     ctx: AgentDataBundle,
-    projection: EmbodimentProjectionApi,
+    projection: BackendProjection,
     options: {
       signal: AbortSignal;
       /** Branch-specific extension surface (e.g. Live2D
@@ -50,7 +47,7 @@ export type ContinuousHandler = {
   dispose?(): void;
   update(
     ctx: AgentDataBundle,
-    projection: EmbodimentProjectionApi,
+    projection: BackendProjection,
     options?: { extension?: NasHandlerExtension },
   ): Promise<void> | void;
 };

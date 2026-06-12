@@ -3,10 +3,11 @@ import type { AppOriginEvent } from '../driver/types.js';
 import { createAvatarHitRegionSnapshot } from '@nimiplatform/kit/features/avatar/headless';
 import { AvatarInteractionController } from './avatar-interaction-controller.js';
 
-function createController(input: { tauri?: boolean; dragRejects?: boolean } = {}) {
+function createController(input: { tauri?: boolean; dragRejects?: boolean; clickThroughRejectsOnce?: boolean } = {}) {
   let now = 1000;
   const emitted: AppOriginEvent[] = [];
   const clickThrough: boolean[] = [];
+  let clickThroughRejectsOnce = input.clickThroughRejectsOnce === true;
   const pointerInside: boolean[] = [];
   const pointerContact: boolean[] = [];
   const constrainWindowToVisibleArea = vi.fn();
@@ -29,8 +30,12 @@ function createController(input: { tauri?: boolean; dragRejects?: boolean } = {}
     setPointerContact: (contact) => {
       pointerContact.push(contact);
     },
-    setClickThrough: (ignore) => {
+    setClickThrough: async (ignore) => {
       clickThrough.push(ignore);
+      if (clickThroughRejectsOnce) {
+        clickThroughRejectsOnce = false;
+        throw new Error('native click-through failed');
+      }
     },
     startWindowDrag,
     constrainWindowToVisibleArea,
@@ -133,5 +138,16 @@ describe('AvatarInteractionController', () => {
     expect(fixture.clickThrough).toEqual([true, false]);
     expect(fixture.pointerInside.at(-1)).toBe(false);
     expect(fixture.pointerContact.at(-1)).toBe(false);
+  });
+
+  it('does not treat failed click-through IPC as applied', async () => {
+    const fixture = createController({ tauri: true, clickThroughRejectsOnce: true });
+
+    fixture.controller.pointerMove({ clientX: 5, clientY: 180, button: 0 });
+    await Promise.resolve();
+    fixture.controller.pointerMove({ clientX: 5, clientY: 180, button: 0 });
+    await Promise.resolve();
+
+    expect(fixture.clickThrough).toEqual([true, true]);
   });
 });

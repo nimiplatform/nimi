@@ -68,16 +68,20 @@ export function createThrottledCursorEvents(
   let lastSentAtMs = -Infinity;
   let pendingTimer: ReturnType<typeof setTimeout> | null = null;
   let pendingValue: boolean | null = null;
+  let inFlightValue: boolean | null = null;
   let disposed = false;
 
   const fireNow = (value: boolean): Promise<void> => {
-    lastSentValue = value;
-    lastSentAtMs = nowMs();
-    try {
-      return Promise.resolve(ipc(value)).catch(() => undefined);
-    } catch {
-      return Promise.resolve();
-    }
+    const sentAtMs = nowMs();
+    inFlightValue = value;
+    return Promise.resolve(ipc(value))
+      .then(() => {
+        lastSentValue = value;
+        lastSentAtMs = sentAtMs;
+      })
+      .finally(() => {
+        if (inFlightValue === value) inFlightValue = null;
+      });
   };
 
   const flushPending = (): Promise<void> => {
@@ -99,7 +103,7 @@ export function createThrottledCursorEvents(
     setIgnore(value: boolean): void {
       if (disposed) return;
       // Dedup against either the last sent OR the currently-pending value.
-      const effectiveLast = pendingValue !== null ? pendingValue : lastSentValue;
+      const effectiveLast = pendingValue !== null ? pendingValue : inFlightValue ?? lastSentValue;
       if (effectiveLast === value) {
         // If the pending timer would resend the same value as last sent
         // we can clear it (saves a no-op IPC).
@@ -115,7 +119,9 @@ export function createThrottledCursorEvents(
       const now = nowMs();
       const elapsed = now - lastSentAtMs;
       if (elapsed >= minIntervalMs && pendingTimer === null) {
-        void fireNow(value);
+        void fireNow(value).catch((error: unknown) => {
+          console.warn(`[avatar:shell] set_ignore_cursor_events failed: ${error instanceof Error ? error.message : String(error)}`);
+        });
         return;
       }
       // Either we're inside the rate-limit window OR a timer is already
@@ -125,7 +131,9 @@ export function createThrottledCursorEvents(
         const remaining = Math.max(0, minIntervalMs - elapsed);
         pendingTimer = setTimeout(() => {
           pendingTimer = null;
-          void flushPending();
+          void flushPending().catch((error: unknown) => {
+            console.warn(`[avatar:shell] set_ignore_cursor_events failed: ${error instanceof Error ? error.message : String(error)}`);
+          });
         }, remaining);
       }
     },
@@ -140,6 +148,7 @@ export function createThrottledCursorEvents(
         pendingTimer = null;
       }
       pendingValue = null;
+      inFlightValue = null;
     },
   };
 }

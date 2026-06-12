@@ -35,7 +35,7 @@ import {
   parseNimiRuntimeAgentTimeline,
   type NimiRuntimeAgentTimelineEnvelope,
 } from '@nimiplatform/sdk/runtime';
-import type { BackendBranch } from '@nimiplatform/kit/features/avatar/headless';
+import type { BackendAudioConsumer, BackendBranch } from '../carrier/backend-branch.js';
 import {
   AudioPipelineController,
   getSharedAudioPipelineController,
@@ -247,7 +247,7 @@ function getBackendAudioConsumer(backend: BackendBranch) {
     typeof (consumer as { silent?: unknown }).silent === 'function' &&
     typeof (consumer as { snapshot?: unknown }).snapshot === 'function'
   ) {
-    return consumer as import('@nimiplatform/kit/features/avatar/headless').BackendAudioConsumer;
+    return consumer as BackendAudioConsumer;
   }
   throw new Error(
     'avatar-voice-lipsync: backend.audioConsumer missing (BackendAudioConsumer) — wave_1 carrier wiring required',

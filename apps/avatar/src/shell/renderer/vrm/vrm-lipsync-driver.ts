@@ -26,7 +26,7 @@
 // `vrm-emote-state.ts` enforces (see `safeSetExpression` there).
 
 import type { VRM } from '@pixiv/three-vrm';
-import type { WLipSyncSnapshot } from '@nimiplatform/kit/features/avatar/headless';
+import type { WLipSyncSnapshot } from '../carrier/backend-branch.js';
 
 /** Attack-rate exponential coefficient (1/sec). Used when the target
  *  weight for a viseme is rising. Higher → snappier mouth open. */

@@ -21,6 +21,7 @@ import {
   requireRuntimeActivityIntensity,
   requireRuntimeCurrentEmotion,
   requireRuntimeDetailText,
+  requireRuntimePresentationAdmissionEvidence,
   requireRuntimePostureDetail,
   requireRuntimeProjectionSource,
   requireRuntimeSourceText,
@@ -360,6 +361,11 @@ export class SdkDriver implements AgentDataDriver {
         stream_id: cue.streamId,
         source: 'apml_output',
         catchup_source: 'session_snapshot',
+        runtime_admission_ref: cue.admission.runtime_admission_ref,
+        gateway_verdict_ref: cue.admission.gateway_verdict_ref,
+        firewall_verdict_ref: cue.admission.firewall_verdict_ref,
+        audit_ref: cue.admission.audit_ref,
+        credential_verdict_ref: cue.admission.credential_verdict_ref,
       }, timestampNow));
     }
     if (cue.activityName) {
@@ -375,6 +381,11 @@ export class SdkDriver implements AgentDataDriver {
         turn_id: cue.turnId,
         stream_id: cue.streamId,
         catchup_source: 'session_snapshot',
+        runtime_admission_ref: cue.admission.runtime_admission_ref,
+        gateway_verdict_ref: cue.admission.gateway_verdict_ref,
+        firewall_verdict_ref: cue.admission.firewall_verdict_ref,
+        audit_ref: cue.admission.audit_ref,
+        credential_verdict_ref: cue.admission.credential_verdict_ref,
       }, timestampNow));
     }
   }
@@ -411,6 +422,7 @@ export class SdkDriver implements AgentDataDriver {
         const category = requireRuntimeActivityCategory(event.detail.category);
         const intensity = requireRuntimeActivityIntensity(event.detail.intensity);
         const runtimeSource = requireRuntimeProjectionSource(event.detail.source, 'runtime activity projection');
+        const admission = requireRuntimePresentationAdmissionEvidence(event.detail as Record<string, unknown>);
         this.bundle = {
           ...this.bundle,
           activity: {
@@ -418,6 +430,7 @@ export class SdkDriver implements AgentDataDriver {
             category,
             intensity,
             source: runtimeSource,
+            admission,
           },
           history: mergeHistory(this.bundle.history, {
             last_activity: {
@@ -442,6 +455,11 @@ export class SdkDriver implements AgentDataDriver {
           conversation_anchor_id: event.conversationAnchorId,
           turn_id: event.turnId,
           stream_id: event.streamId,
+          runtime_admission_ref: admission.runtime_admission_ref,
+          gateway_verdict_ref: admission.gateway_verdict_ref,
+          firewall_verdict_ref: admission.firewall_verdict_ref,
+          audit_ref: admission.audit_ref,
+          credential_verdict_ref: admission.credential_verdict_ref,
         }, timestampNow));
         return;
       }
@@ -460,6 +478,7 @@ export class SdkDriver implements AgentDataDriver {
         const timestampNow = this.now();
         const at = new Date(timestampNow).toISOString();
         const expressionId = requireRuntimeDetailText(event.detail.expressionId, 'runtime expression id');
+        const admission = requireRuntimePresentationAdmissionEvidence(event.detail as Record<string, unknown>);
         this.bundle = {
           ...this.bundle,
           history: mergeHistory(this.bundle.history, {
@@ -475,6 +494,11 @@ export class SdkDriver implements AgentDataDriver {
           conversation_anchor_id: event.conversationAnchorId,
           turn_id: event.turnId,
           stream_id: event.streamId,
+          runtime_admission_ref: admission.runtime_admission_ref,
+          gateway_verdict_ref: admission.gateway_verdict_ref,
+          firewall_verdict_ref: admission.firewall_verdict_ref,
+          audit_ref: admission.audit_ref,
+          credential_verdict_ref: admission.credential_verdict_ref,
         }, timestampNow));
         return;
       }

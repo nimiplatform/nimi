@@ -74,10 +74,7 @@ export function useWindowBoundsSync(input: UseWindowBoundsSyncInput): void {
       getCompanionFootprint: readCompanionFootprint,
       applySize: (size) => {
         if (!isTauriRuntime()) return;
-        void setWindowSize(size.width, size.height).catch(() => {
-          // Resize is advisory; failure does not flip composition state.
-          // Errors surface in Tauri logs.
-        });
+        return setWindowSize(size.width, size.height);
       },
       onRecomputed: ({ trigger, width, height, clamped, embodimentBounds, companionFootprint }) => {
         recordAvatarEvidenceEventually({

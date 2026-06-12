@@ -1,5 +1,5 @@
 import type { AgentDataBundle } from '../driver/types.js';
-import type { EmbodimentProjectionApi, ProjectionBounds } from '@nimiplatform/kit/features/avatar/headless';
+import type { BackendProjection } from '../carrier/backend-branch.js';
 import type { ActivityOrEventHandler, ContinuousHandler } from './handler-types.js';
 import { assertSandboxSourcePolicy } from './handler-sandbox-policy.js';
 
@@ -62,19 +62,15 @@ type WorkerResponse =
     };
 
 type SandboxProjectionSnapshot = {
-  surfaceBounds: ProjectionBounds;
+  surfaceBounds: { x: number; y: number; width: number; height: number };
 };
 
 type ProjectionRpcMethod =
-  | 'triggerMotion'
-  | 'stopMotion'
-  | 'setSignal'
-  | 'addSignal'
-  | 'setExpression'
-  | 'clearExpression'
-  | 'setPose'
-  | 'clearPose'
-  | 'runDefaultActivity';
+  | 'applyActivity'
+  | 'applyEmotion'
+  | 'applyMotion'
+  | 'applyExpression'
+  | 'reset';
 
 type SandboxWorker = Pick<Worker, 'postMessage' | 'terminate' | 'addEventListener' | 'removeEventListener'>;
 
@@ -112,38 +108,35 @@ function errorFromUnknown(err: unknown): Error {
 }
 
 function callProjection(
-  projection: EmbodimentProjectionApi,
+  projection: BackendProjection,
   method: ProjectionRpcMethod,
   args: unknown[],
-  ctx: AgentDataBundle,
-  signal: AbortSignal | undefined,
 ): Promise<unknown> | unknown {
   switch (method) {
-    case 'triggerMotion':
-      return projection.triggerMotion(String(args[0] ?? ''), typeof args[1] === 'object' && args[1] !== null ? args[1] : undefined);
-    case 'stopMotion':
-      return projection.stopMotion();
-    case 'setSignal':
-      return projection.setSignal(String(args[0] ?? ''), Number(args[1] ?? 0), args[2] === undefined ? undefined : Number(args[2]));
-    case 'addSignal':
-      return projection.addSignal(String(args[0] ?? ''), Number(args[1] ?? 0));
-    case 'setExpression':
-      return projection.setExpression(String(args[0] ?? ''));
-    case 'clearExpression':
-      return projection.clearExpression();
-    case 'setPose':
-      return projection.setPose(String(args[0] ?? ''), Boolean(args[1]));
-    case 'clearPose':
-      return projection.clearPose();
-    case 'runDefaultActivity': {
-      if (typeof projection.runDefaultActivity !== 'function') {
-        throw new Error('projection.runDefaultActivity is not available');
-      }
-      return projection.runDefaultActivity(String(args[0] ?? ''), {
-        bundle: ctx,
-        signal: signal ?? new AbortController().signal,
+    case 'applyActivity':
+      return projection.applyActivity({
+        name: String(args[0] ?? ''),
+        intensity: typeof args[1] === 'number' ? args[1] : null,
       });
-    }
+    case 'applyEmotion':
+      return projection.applyEmotion({
+        current: String(args[0] ?? ''),
+        previous: typeof args[1] === 'string' ? args[1] : null,
+      });
+    case 'applyMotion':
+      return projection.applyMotion({
+        routeId: String(args[0] ?? ''),
+        fade: typeof args[1] === 'number' ? args[1] : undefined,
+        loop: typeof args[2] === 'boolean' ? args[2] : undefined,
+      });
+    case 'applyExpression':
+      return projection.applyExpression({
+        name: String(args[0] ?? ''),
+        weight: typeof args[1] === 'number' ? args[1] : undefined,
+        fade: typeof args[2] === 'number' ? args[2] : undefined,
+      });
+    case 'reset':
+      return projection.reset();
     default:
       throw new Error(`unsupported projection method: ${method}`);
   }
@@ -190,11 +183,11 @@ class NasWorkerSandbox {
     return response;
   }
 
-  async execute(ctx: AgentDataBundle, projection: EmbodimentProjectionApi, signal: AbortSignal): Promise<void> {
+  async execute(ctx: AgentDataBundle, projection: BackendProjection, signal: AbortSignal): Promise<void> {
     await this.run('execute', ctx, projection, signal, EXECUTE_TIMEOUT_MS);
   }
 
-  async update(ctx: AgentDataBundle, projection: EmbodimentProjectionApi): Promise<void> {
+  async update(ctx: AgentDataBundle, projection: BackendProjection): Promise<void> {
     await this.run('update', ctx, projection, undefined, UPDATE_TIMEOUT_MS);
   }
 
@@ -213,7 +206,7 @@ class NasWorkerSandbox {
   private async run(
     type: 'execute' | 'update',
     ctx: AgentDataBundle,
-    projection: EmbodimentProjectionApi,
+    projection: BackendProjection,
     signal: AbortSignal | undefined,
     timeoutMs: number,
   ): Promise<void> {
@@ -224,7 +217,12 @@ class NasWorkerSandbox {
       requestId,
       ctx,
       snapshot: {
-        surfaceBounds: projection.getSurfaceBounds(),
+        surfaceBounds: {
+          x: ctx.app.window.x,
+          y: ctx.app.window.y,
+          width: ctx.app.window.width,
+          height: ctx.app.window.height,
+        },
       },
     }, timeoutMs, signal, projection, ctx);
     if (response.type !== 'done') {
@@ -242,7 +240,7 @@ class NasWorkerSandbox {
     message: WorkerRequest,
     timeoutMs: number,
     signal?: AbortSignal,
-    projection?: EmbodimentProjectionApi,
+    projection?: BackendProjection,
     ctx?: AgentDataBundle,
   ): Promise<WorkerResponse> {
     this.ensureWorker();
@@ -314,7 +312,7 @@ class NasWorkerSandbox {
       return;
     }
     try {
-      const value = await callProjection(context.projection, message.method, message.args, context.ctx, context.signal);
+      const value = await callProjection(context.projection, message.method, message.args);
       this.worker?.postMessage({
         type: 'projection-result',
         requestId: message.requestId,
@@ -335,7 +333,7 @@ class NasWorkerSandbox {
 }
 
 const activeProjectionContexts = new Map<string, {
-  projection: EmbodimentProjectionApi;
+  projection: BackendProjection;
   ctx: AgentDataBundle;
   signal?: AbortSignal;
 }>();
@@ -346,8 +344,15 @@ export async function createSandboxedActivityOrEventHandler(
   createWorker: SandboxWorkerFactory = defaultWorkerFactory,
 ): Promise<ActivityOrEventHandler & { dispose(): void }> {
   const sandbox = new NasWorkerSandbox(source, sourcePath, 'activity-event', createWorker);
-  await sandbox.load();
+  const loaded = await sandbox.load();
+  const loadedMeta = loaded.meta && typeof loaded.meta === 'object'
+    ? loaded.meta as { meta?: unknown; requires?: unknown }
+    : {};
   return {
+    meta: loadedMeta.meta as never,
+    requires: Array.isArray(loadedMeta.requires)
+      ? loadedMeta.requires.filter((value): value is 'live2d-extension' => value === 'live2d-extension')
+      : undefined,
     async execute(ctx, projection, options) {
       await sandbox.execute(ctx, projection, options.signal);
     },
@@ -364,7 +369,14 @@ export async function createSandboxedContinuousHandler(
 ): Promise<(ContinuousHandler & { dispose(): void }) & { fps: number }> {
   const sandbox = new NasWorkerSandbox(source, sourcePath, 'continuous', createWorker);
   const loaded = await sandbox.load();
+  const loadedMeta = loaded.meta && typeof loaded.meta === 'object'
+    ? loaded.meta as { meta?: unknown; requires?: unknown }
+    : {};
   return {
+    meta: loadedMeta.meta as never,
+    requires: Array.isArray(loadedMeta.requires)
+      ? loadedMeta.requires.filter((value): value is 'live2d-extension' => value === 'live2d-extension')
+      : undefined,
     fps: typeof loaded.fps === 'number' && loaded.fps > 0 ? loaded.fps : 60,
     async update(ctx, projection) {
       await sandbox.update(ctx, projection);

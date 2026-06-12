@@ -8,7 +8,7 @@ import {
   type VrmGeneratedMotionProviderInput,
   type VrmGeneratedMotionProviderResult,
   type VrmGeneratedRouteId,
-} from '@nimiplatform/kit/features/avatar/vrm';
+} from './vrm-generated-motion-contract.js';
 import {
   createVrmCapabilityProfile,
   getMissingRouteBones,

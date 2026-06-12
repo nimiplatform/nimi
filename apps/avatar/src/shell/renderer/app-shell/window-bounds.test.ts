@@ -152,7 +152,7 @@ describe('createWindowBoundsRecomputer — recompute_triggers', () => {
     };
   }
 
-  it('model_load fires synchronously (debounce_ms=0)', () => {
+  it('model_load applies size synchronously and emits after native apply succeeds', async () => {
     const ctx = makeDeps();
     const recomputer = createWindowBoundsRecomputer(ctx.deps);
     recomputer.trigger('model_load');
@@ -161,23 +161,41 @@ describe('createWindowBoundsRecomputer — recompute_triggers', () => {
       width: 320 + 2 * WINDOW_BOUNDS_PADDING_PX,
       height: 480 + 120 + 2 * WINDOW_BOUNDS_PADDING_PX,
     });
+    await Promise.resolve();
     expect(ctx.onRecomputed).toHaveBeenCalledWith(
       expect.objectContaining({ trigger: 'model_load', clamped: false }),
     );
     expect(ctx.setTimer).not.toHaveBeenCalled();
   });
 
-  it('model_switch fires synchronously', () => {
+  it('model_switch applies size synchronously and emits after native apply succeeds', async () => {
     const ctx = makeDeps();
     const recomputer = createWindowBoundsRecomputer(ctx.deps);
     recomputer.trigger('model_switch');
     expect(ctx.applySize).toHaveBeenCalledTimes(1);
+    await Promise.resolve();
     expect(ctx.onRecomputed).toHaveBeenCalledWith(
       expect.objectContaining({ trigger: 'model_switch' }),
     );
   });
 
-  it('companion_footprint_change is debounced via setTimer with policy delay', () => {
+  it('does not emit recomputed success when native applySize fails', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const ctx = makeDeps({
+      applySize: vi.fn(async () => {
+        throw new Error('native set_size failed');
+      }),
+    });
+    const recomputer = createWindowBoundsRecomputer(ctx.deps);
+    recomputer.trigger('model_load');
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(ctx.onRecomputed).not.toHaveBeenCalled();
+    warnSpy.mockRestore();
+  });
+
+  it('companion_footprint_change is debounced via setTimer with policy delay', async () => {
     const ctx = makeDeps();
     const recomputer = createWindowBoundsRecomputer(ctx.deps);
     recomputer.trigger('companion_footprint_change');
@@ -190,6 +208,7 @@ describe('createWindowBoundsRecomputer — recompute_triggers', () => {
 
     ctx.flushTimer();
     expect(ctx.applySize).toHaveBeenCalledTimes(1);
+    await Promise.resolve();
     expect(ctx.onRecomputed).toHaveBeenCalledWith(
       expect.objectContaining({ trigger: 'companion_footprint_change' }),
     );

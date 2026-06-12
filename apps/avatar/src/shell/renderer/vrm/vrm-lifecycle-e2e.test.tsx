@@ -27,15 +27,15 @@
 //   5. Second context loss before retry fires -> failed_closed
 //      (`context_lost_twice`).
 //   6. avatar.carrier.visual visible-pixel evidence is owned by the carrier
-//      visual acceptance path. This lifecycle test emits load_started +
-//      lifecycle hooks only.
+//      visual acceptance path. This lifecycle test emits admitted lifecycle
+//      hooks only.
 
 import { act, render } from '@testing-library/react';
 import type { VRM } from '@pixiv/three-vrm';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ReactNode } from 'react';
 import scenarioJson from '../mock/scenarios/vrm-lifecycle.mock.json';
-import type { VrmAvatarModelManifest } from '@nimiplatform/kit/features/avatar/headless';
+import type { VrmAvatarModelManifest } from './vrm-model-manifest.js';
 
 vi.mock('@react-three/fiber', () => ({
   // Same Canvas mock pattern as vrm-carrier-surface.test.tsx — gives us
@@ -138,8 +138,7 @@ describe('VRM lifecycle end-to-end (chunk 2-D)', () => {
     expect(root.getAttribute('data-avatar-vrm-state')).toBe('ready');
     expect(onAudio).toHaveBeenCalledTimes(1);
 
-    const loadStarted = evidence.find((e) => e.kind === 'load_started');
-    expect(loadStarted?.detail.vrm_file).toBe(manifest.vrm.vrmFile);
+    expect(evidence).toEqual([]);
 
     handle.shutdown();
   });
@@ -243,11 +242,7 @@ describe('VRM lifecycle end-to-end (chunk 2-D)', () => {
     // hit because each manifest has a distinct vrmFile).
     expect(loaderCalls).toEqual([manifestA.modelId, manifestB.modelId]);
 
-    // Two distinct load_started evidence emits (one per surface mount).
-    const starts = evidence.filter((e) => e.kind === 'load_started');
-    expect(starts).toHaveLength(2);
-    expect(starts[0]?.detail.vrm_file).toBe(manifestA.vrm.vrmFile);
-    expect(starts[1]?.detail.vrm_file).toBe(manifestB.vrm.vrmFile);
+    expect(evidence).toEqual([]);
 
     handleB.shutdown();
   });
@@ -387,11 +382,10 @@ describe('VRM lifecycle end-to-end (chunk 2-D)', () => {
     const data = scenarioJson as unknown as ScenarioVrmLifecycle;
     expect(data.vrm_lifecycle.model_manifest.kind).toBe('vrm');
     expect(data.vrm_lifecycle.model_manifest.modelId).toBe('vrm1-constraint-twist');
-    expect(data.vrm_lifecycle.expected_evidence).toContain('load_started');
     expect(data.vrm_lifecycle.expected_evidence).toContain('context_restored');
   });
 });
 
 // avatar.carrier.visual visible_pixels evidence is owned by the carrier visual
-// acceptance path. This lifecycle test covers carrier-surface lifecycle wiring
-// (load_started / context_lost / context_restored / failed_closed).
+// acceptance path. This lifecycle test covers admitted carrier-surface lifecycle
+// wiring (context_lost / context_restored / failed_closed).

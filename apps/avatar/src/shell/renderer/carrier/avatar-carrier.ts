@@ -1,5 +1,4 @@
 import type { AgentDataDriver } from '../driver/types.js';
-import type { Live2DBackendSession } from '../live2d/backend-session.js';
 import { ContinuousScheduler, wireEventDispatch } from '../nas/event-dispatch.js';
 import { HandlerExecutor } from '../nas/handler-executor.js';
 import {
@@ -14,19 +13,11 @@ import { useAvatarStore } from '../app-shell/app-store.js';
 import { wireAvatarVoiceLipsync } from '../voice-lipsync/avatar-voice-lipsync.js';
 import { recordAvatarEvidenceEventually } from '../app-shell/avatar-evidence.js';
 import { createInteractionPhysicsController } from '../live2d/interaction-physics.js';
-import {
-  createLive2DCarrierVisualHost,
-  Live2DCarrierVisualFrameError,
-  type Live2DCarrierVisualFrameStats,
-  type Live2DCarrierVisualHost,
-} from '../live2d/carrier-visual-host.js';
 import type { EmbodimentProjectionApi } from '@nimiplatform/kit/features/avatar/headless';
 import { createSmoothedProjection, type ProjectionSmoothingHandle } from '@nimiplatform/kit/features/avatar/headless';
-import {
-  resolveAvatarModelManifest,
-} from './model-resolver.js';
 import { createBackendBranch, type BackendBranchHandle } from './create-backend-branch.js';
-import type { AvatarModelManifest, BackendBranch } from '@nimiplatform/kit/features/avatar/headless';
+import type { AvatarModelManifest } from '@nimiplatform/kit/features/avatar/headless';
+import type { BackendBranch } from './backend-branch.js';
 import {
   createAvatarDebugSession,
   recordAvatarDebugSessionEvidence,
@@ -58,127 +49,80 @@ function countHandlers(registry: HandlerRegistry): number {
   return registry.activity.size + registry.event.size + registry.continuous.size;
 }
 
-function timeoutAfter<T>(ms: number, message: string): Promise<T> {
-  return new Promise((_, reject) => {
-    window.setTimeout(() => reject(new Error(message)), ms);
-  });
+function activityIntensity(value: string | null | undefined): number | null {
+  if (value === 'weak') return 0.25;
+  if (value === 'moderate') return 0.5;
+  if (value === 'strong') return 0.85;
+  return null;
 }
 
-function waitForNextCarrierVisualFrame(attempt: number): Promise<void> {
-  return new Promise((resolve) => {
-    if (typeof window.requestAnimationFrame === 'function') {
-      window.requestAnimationFrame(() => resolve());
-      return;
+function createBackendCueProjection(branch: BackendBranch): EmbodimentProjectionApi {
+  const signalState = new Map<string, number>();
+  const setSignalValue = (signalId: string, value: number): void => {
+    if (branch.kind !== 'live2d') {
+      throw new Error(`backend signal surface is not available for ${branch.kind}`);
     }
-    window.setTimeout(resolve, Math.min(120, 16 + attempt * 8));
-  });
-}
-
-async function renderCarrierVisualFrameWithRetry(
-  visualHost: Live2DCarrierVisualHost,
-): Promise<{ attempts: number; stats: Live2DCarrierVisualFrameStats }> {
-  const maxAttempts = 12;
-  let lastError: unknown = null;
-  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-    try {
-      return {
-        attempts: attempt,
-        stats: visualHost.renderFrame({
-          deltaTimeSeconds: attempt / 60,
-          seconds: performance.now() / 1000,
-        }),
-      };
-    } catch (error) {
-      lastError = error;
-      if (attempt >= maxAttempts) {
-        break;
-      }
-      await waitForNextCarrierVisualFrame(attempt);
-    }
-  }
-  throw lastError instanceof Error
-    ? lastError
-    : new Error(String(lastError || 'Live2D bootstrap carrier visual proof failed'));
-}
-
-function toCarrierVisualFailureDetail(error: unknown, attempts: number | null): Record<string, unknown> {
-  const detail: Record<string, unknown> = {
-    status: 'error',
-    source: 'avatar-visual-carrier-bootstrap',
-    error: error instanceof Error ? error.message : String(error || 'Live2D bootstrap carrier visual proof failed'),
+    signalState.set(signalId, value);
+    branch.live2dExtension.setParameter(signalId, value);
   };
-  if (typeof attempts === 'number') {
-    detail.attempts = attempts;
-  }
-  if (error instanceof Live2DCarrierVisualFrameError) {
-    detail.frame_stats = error.stats;
-  }
-  return detail;
-}
-
-async function recordBootstrapCarrierVisualProof(
-  session: Live2DBackendSession,
-  source = 'avatar-visual-carrier-bootstrap',
-): Promise<void> {
-  if (typeof document === 'undefined' || !session.execution?.loaded) {
-    return;
-  }
-  let visualHost: Live2DCarrierVisualHost | null = null;
-  let attempts: number | null = null;
-  try {
-    recordAvatarEvidenceEventually({
-      kind: 'avatar.carrier.visual',
-      detail: {
-        status: 'loading',
-        source,
-      },
-    });
-    const canvas = document.createElement('canvas');
-    visualHost = await Promise.race([
-      createLive2DCarrierVisualHost({
-        canvas,
-        session,
-        width: 360,
-        height: 480,
-      }),
-        timeoutAfter<Live2DCarrierVisualHost>(8_000, 'Live2D bootstrap carrier visual proof timed out'),
-      ]);
-    attempts = 12;
-    const result = await renderCarrierVisualFrameWithRetry(visualHost);
-    attempts = result.attempts;
-    const stats = result.stats;
-    recordAvatarEvidenceEventually({
-      kind: 'avatar.carrier.visual',
-      detail: {
-        status: 'ready',
-        source,
-        visible_pixels: stats.visiblePixels,
-        visible_drawable_count: stats.visibleDrawableCount,
-        canvas_width: stats.width,
-        canvas_height: stats.height,
-        sampled_pixels: stats.sampledPixels,
-        sampled_pixel_checksum: stats.sampledPixelChecksum,
-        texture_binding_count: stats.textureBindingCount,
-        attempts,
-      },
-    });
-  } catch (error) {
-    recordAvatarEvidenceEventually({
-      kind: 'avatar.carrier.visual',
-      detail: toCarrierVisualFailureDetail(error, attempts),
-    });
-  } finally {
-    visualHost?.unload();
-  }
+  return {
+    async triggerMotion(motionId, opts) {
+      branch.projection.applyMotion({
+        routeId: motionId,
+        loop: opts?.loop,
+        fade: opts?.fadeIn,
+      });
+    },
+    stopMotion() {
+      branch.projection.reset();
+    },
+    setSignal(signalId, value) {
+      setSignalValue(signalId, value);
+    },
+    getSignal(signalId) {
+      return signalState.get(signalId) ?? 0;
+    },
+    addSignal(signalId, delta) {
+      setSignalValue(signalId, (signalState.get(signalId) ?? 0) + delta);
+    },
+    async setExpression(expressionId) {
+      branch.projection.applyExpression({ name: expressionId });
+    },
+    clearExpression() {
+      branch.projection.reset();
+    },
+    setPose(poseId, loop) {
+      branch.projection.applyMotion({ routeId: poseId, loop });
+    },
+    clearPose() {
+      branch.projection.reset();
+    },
+    wait(ms) {
+      return new Promise((resolve) => window.setTimeout(resolve, ms));
+    },
+    getSurfaceBounds() {
+      return {
+        x: 0,
+        y: 0,
+        width: branch.nominalBounds.width,
+        height: branch.nominalBounds.height,
+      };
+    },
+    async runDefaultActivity(activityId, options) {
+      if (options.signal.aborted) return;
+      branch.projection.applyActivity({
+        name: activityId,
+        intensity: activityIntensity(options.bundle.activity?.intensity),
+      });
+    },
+  };
 }
 
 export async function startAvatarRuntimeCarrier(input: {
   driver: AgentDataDriver;
-  modelPath?: string;
-  modelManifest?: AvatarModelManifest;
+  modelManifest: AvatarModelManifest;
 }): Promise<AvatarRuntimeCarrier> {
   const carrier = await startAvatarVisualCarrier({
-    modelPath: input.modelPath,
     modelManifest: input.modelManifest,
   });
   await carrier.attachRuntimeDriver(input.driver);
@@ -186,12 +130,11 @@ export async function startAvatarRuntimeCarrier(input: {
 }
 
 export async function startAvatarVisualCarrier(input: {
-  modelPath?: string;
-  modelManifest?: AvatarModelManifest;
+  modelManifest: AvatarModelManifest;
 }): Promise<AvatarRuntimeCarrier> {
-  const modelPath = input.modelPath?.trim() || input.modelManifest?.runtimeDir.trim() || '';
+  const modelPath = input.modelManifest.runtimeDir.trim();
   if (!modelPath) {
-    throw new Error('avatar visual carrier requires configured model_path');
+    throw new Error('avatar visual carrier requires a typed model manifest with runtimeDir');
   }
   const store = useAvatarStore.getState();
   store.setModelPath(modelPath);
@@ -199,7 +142,7 @@ export async function startAvatarVisualCarrier(input: {
 
   let model: AvatarModelManifest;
   try {
-    model = input.modelManifest ?? await resolveAvatarModelManifest(modelPath);
+    model = input.modelManifest;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     store.setModelError(message);
@@ -223,10 +166,8 @@ export async function startAvatarVisualCarrier(input: {
     throw error;
   }
 
-  const commandBus = backendHandle.commandBus;
-  const backendSession = backendHandle.backendSession;
-  const cueProjection = backendHandle.cueProjection;
   const executor = new HandlerExecutor();
+  const backendCueProjection = createBackendCueProjection(backendHandle.branch);
 
   let unwireDispatch: (() => void) | null = null;
   let unwireVoiceLipsync: (() => void) | null = null;
@@ -254,16 +195,10 @@ export async function startAvatarVisualCarrier(input: {
   store.setModelLoaded(model.modelId);
   const modelLoadDetail = {
     model_id: model.modelId,
-    model_path: modelPath,
-    runtime_dir: model.runtimeDir,
+    model_kind: backendHandle.branch.kind,
+    backend_meta: backendHandle.branch.metadata(),
     nas_handler_count: countHandlers(registry),
-    backend_kind: backendHandle.branch.kind,
-    backend_metadata: backendHandle.branch.metadata(),
-    // Branch metadata remains the canonical backend evidence surface; these
-    // fields keep model-load evidence easy to query.
-    compatibility_tier:
-      backendSession?.compatibility.tier ?? null,
-    adapter_id: backendSession?.compatibility.adapter?.adapter_id ?? null,
+    loaded_at: new Date().toISOString(),
   };
   recordAvatarEvidenceEventually({
     kind: 'avatar.visual.model-loaded',
@@ -277,9 +212,7 @@ export async function startAvatarVisualCarrier(input: {
     name: 'avatar.model.load',
     detail: modelLoadDetail,
   };
-  if (backendSession) {
-    void recordBootstrapCarrierVisualProof(backendSession);
-  }
+  void backendHandle.recordBootstrapVisualProof?.();
 
   return {
     model,
@@ -316,20 +249,17 @@ export async function startAvatarVisualCarrier(input: {
           backendKind: model.kind,
         });
       }
-      projectionSmoothing = cueProjection
-        ? createSmoothedProjection({ projection: cueProjection })
-        : null;
+      projectionSmoothing = createSmoothedProjection({ projection: backendCueProjection });
       const runtimeCueProjection = projectionSmoothing?.projection ?? null;
-      interactionPhysics = runtimeCueProjection
+      interactionPhysics = runtimeCueProjection && backendHandle.branch.kind === 'live2d'
         ? createInteractionPhysicsController({ projection: runtimeCueProjection })
         : null;
-      if (runtimeCueProjection && interactionPhysics) {
+      if (runtimeCueProjection) {
         unwireDispatch = wireEventDispatch({
           driver,
           registry,
           executor,
-          projection: runtimeCueProjection,
-          backendProjection: backendHandle.branch.projection,
+          projection: backendHandle.branch.projection,
           live2dExtension:
             backendHandle.branch.kind === 'live2d'
               ? backendHandle.branch.live2dExtension
@@ -351,7 +281,7 @@ export async function startAvatarVisualCarrier(input: {
         continuous = new ContinuousScheduler(
           registry,
           () => driver.getBundle(),
-          runtimeCueProjection,
+          backendHandle.branch.projection,
         );
         continuous.start();
       }

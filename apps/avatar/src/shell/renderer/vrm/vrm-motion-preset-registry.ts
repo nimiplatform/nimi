@@ -31,7 +31,7 @@ import { clipFromVRMAnimation, loadVrmAnimation } from './vrm-animation-loader.j
 import type {
   VrmMotionPresetEntry,
   VrmMotionPresetTable,
-} from '@nimiplatform/kit/features/avatar/vrm';
+} from './vrm-table-normalizers.js';
 
 // `three` is shimmed via `declare module 'three'` (no @types/three at this
 // wave), so AnimationMixer / AnimationAction / AnimationClip are exposed

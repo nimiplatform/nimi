@@ -1,7 +1,7 @@
 {
   "scenario_id": "vrm-listening",
   "version": "1",
-  "description": "Wave 3 chunk 3-E fixture updated for topic 2026-05-01-avatar-apml-auto-adapter. Drives applyActivity('listening') through typed runtime projection into Avatar generated motion routing. The listening route resolves to vrm.motion='listen_lean' (fade=0.3). With the missing-provider test path, generatedMotionRuntime.play returns {played: false, reason: 'generated_motion_provider_missing'}; no .vrma fallback is treated as APML runtime support proof.",
+  "description": "Wave 3 chunk 3-E fixture updated for topic 2026-05-01-avatar-apml-auto-adapter. Drives applyActivity('listening') through typed runtime projection into Avatar generated motion routing. The listening route resolves to vrm.motion='listen_lean' (fade=0.3). With the missing-provider test path, generatedMotionRuntime.play returns {played: false, reason: 'missing_profile'}; no .vrma fallback is treated as APML runtime support proof.",
   "duration_ms": 6000,
   "loop": false,
 
@@ -21,7 +21,7 @@
   },
 
   "events": [
-    { "kind": "time", "at_ms": 0,    "type": "runtime.agent.presentation.activity_requested", "detail": { "activity_name": "listening", "category": "interaction", "intensity": null, "source": "mock" } }
+    { "kind": "time", "at_ms": 0,    "type": "avatar.fixture.presentation.activity_requested", "detail": { "activity_name": "listening", "category": "interaction", "intensity": null, "source": "mock" } }
   ],
 
   "vrm_mock_scenario": {
@@ -41,16 +41,14 @@
       { "atMs": 0, "kind": "applyActivity", "input": { "name": "listening", "intensity": null } }
     ],
     "expected": [
-      { "kind": "lifecycle_evidence", "where": "carrier-surface", "details": { "kind": "load_started" } },
       { "kind": "lifecycle_state", "where": "carrier-surface", "details": { "kind": "ready" } },
-      { "kind": "lifecycle_evidence", "where": "carrier-surface", "details": { "kind": "generated_motion_runtime_attached", "provider_path": "avatar_generated_motion" } },
-      { "kind": "motion_play_result", "where": "generatedMotionRuntime.play({routeId: 'listen_lean'})", "details": { "played": false, "reason": "generated_motion_provider_missing" } },
+      { "kind": "motion_play_result", "where": "generatedMotionRuntime.play({routeId: 'listen_lean'})", "details": { "played": false, "reason": "missing_profile" } },
       { "kind": "surface_visible", "where": "avatar-vrm-carrier", "details": { "data_avatar_vrm_state": "ready" } }
     ],
     "human_acceptance_checks": [
       "missing provider path fails closed without .vrma fallback",
       "carrier surface 仍可见且未 fail_close（fail-closed projection 正确）",
-      "generated_motion_runtime_attached evidence shows .vrma is interchange-only"
+      ".vrma remains interchange-only metadata, not lifecycle evidence"
     ]
   }
 }

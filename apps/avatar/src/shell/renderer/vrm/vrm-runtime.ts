@@ -23,8 +23,6 @@
 //                                   ╲──loader rejects──▶  failed_closed
 //                                                          (context_lost_recovery_failed)
 //
-//     context_lost  ──notifyContextRestored()──▶ ready (timer cancelled)
-//
 //     context_lost  ──notifyContextLost() (second loss)──▶ failed_closed
 //                                                          (context_lost_twice)
 //
@@ -33,7 +31,7 @@
 // layer when forwarding to recordAvatarEvidenceEventually.
 
 import type { VRM } from '@pixiv/three-vrm';
-import type { VrmAvatarModelManifest } from '@nimiplatform/kit/features/avatar/headless';
+import type { VrmAvatarModelManifest } from './vrm-model-manifest.js';
 import { loadVrmFromManifest } from './vrm-loader.js';
 
 /** WebGL context-lost retry window in ms (vrm-backend-contract.md §2.3). */
@@ -78,9 +76,9 @@ export type VrmRuntime = {
    *  1500ms single-retry timer; a second loss before the timer fires
    *  promotes to fail-close (context_lost_twice). */
   notifyContextLost(): void;
-  /** Surface callback when canvas fires `webglcontextrestored` (browser
-   *  auto-recovery before the retry timer fires). Cancels the timer and
-   *  re-enters ready without re-running the loader. */
+  /** Surface callback when canvas fires `webglcontextrestored`. Browser
+   *  auto-recovery does not prove the admitted reload path, so this must not
+   *  cancel the 1500ms retry or promote the stale VRM back to ready. */
   notifyContextRestored(): void;
   subscribe(listener: (state: VrmLifecycleState) => void): () => void;
 };
@@ -203,11 +201,11 @@ export function createVrmRuntime(opts: VrmRuntimeOptions): VrmRuntime {
       // late-bound listener should not reset the machine).
     },
     notifyContextRestored(): void {
-      if (state.kind !== 'context_lost') return;
-      clearRetry();
-      const restoreDurationMs = now() - state.lostAt;
-      onEvidence('context_restored', { restoreDurationMs });
-      setState({ kind: 'ready', manifest: state.manifest, vrm: state.vrm });
+      // Contract authority requires context_restored evidence only after the
+      // 1500ms single retry reloads the VRM scene/textures/animations. A
+      // browser-level restored event can arrive earlier, but it is not
+      // sufficient recovery proof and therefore cannot change lifecycle state.
+      return;
     },
     subscribe(listener: (s: VrmLifecycleState) => void): () => void {
       listeners.add(listener);

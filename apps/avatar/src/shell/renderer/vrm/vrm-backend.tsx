@@ -7,17 +7,10 @@
 // product path; physical `.vrma` assets are interchange-only and missing
 // deterministic generation fails closed rather than falling back.
 //
-// Default product mode (`VITE_AVATAR_DEV_VRM_PREVIEW !== 'true'`):
-// - surface.Component is the real BackendBranch surface — drives the
-//   VrmRuntime lifecycle, mounts <Canvas> + <VrmScene>, and runs the
-//   useFrame tick chain (lipsync driver → emote state → motion mixer
-//   → vrm.update)
-// - metadata().mode === 'real_render'
-//
-// Dev preview mode (`VITE_AVATAR_DEV_VRM_PREVIEW === 'true'`; non-prod
-// builds only): mounts the placeholder surface from
-// `vrm-dev-preview-surface.tsx` for debugging without spinning up the
-// real Three.js renderer. metadata().mode === 'dev_preview'.
+// Product mode always mounts the real BackendBranch surface: VrmRuntime
+// lifecycle, <Canvas> + <VrmScene>, and the useFrame tick chain
+// (lipsync driver → emote state → motion mixer → vrm.update). Environment
+// selected placeholder branches are not admitted VRM success evidence.
 //
 // Queued projection adapter:
 //   At factory time the VRM instance does not exist yet — the projection
@@ -28,24 +21,20 @@
 //   closed), queued calls remain queued indefinitely — matches the
 //   fail-close lifecycle (no projection delivery is correct).
 
-import type { ComponentType } from 'react';
-import { useEffect } from 'react';
 import type { Profile } from 'wlipsync';
-import type { VrmAvatarModelManifest } from '@nimiplatform/kit/features/avatar/headless';
+import type { VrmAvatarModelManifest } from './vrm-model-manifest.js';
 import type {
   BackendAudioConsumer,
   BackendBranch,
   BackendProjection,
   BackendSurface,
-  BackendSurfaceProps,
-} from '@nimiplatform/kit/features/avatar/headless';
-import { createActivityMappingResolver } from '@nimiplatform/kit/features/avatar/headless';
+} from '../carrier/backend-branch.js';
+import { createVrmActivityMappingResolver } from './vrm-activity-mapping.js';
 import { createVrmCarrierSurface } from './vrm-carrier-surface.js';
-import { createVrmDevPreviewSurfaceComponent } from './vrm-dev-preview-surface.js';
 import { VRM_DEFAULT_NOMINAL_BOUNDS } from './vrm-nominal-bounds.js';
 import type { VrmRuntimeOptions } from './vrm-runtime.js';
 import { createVrmAudioConsumer } from './vrm-audio-consumer.js';
-import { createVrmEmoteState } from '@nimiplatform/kit/features/avatar/vrm';
+import { createVrmEmoteState } from './vrm-emote-state.js';
 import { loadVrmEmoteTable } from './load-vrm-emote-table.js';
 import { createVrmGeneratedMotionRuntime } from './vrm-generated-motion-runtime.js';
 import { createDeterministicVrmGeneratedMotionProvider } from './vrm-deterministic-motion-provider.js';
@@ -56,6 +45,7 @@ import {
   type VrmRenderTarget,
 } from './vrm-render-target.js';
 import type { VrmCapabilityProfile } from './vrm-capability-profile.js';
+import { recordAvatarEvidenceEventually } from '../app-shell/avatar-evidence.js';
 
 // Wave 2 chunk 2-E: nominalBounds is the BOOT placeholder used by
 // embodiment-stage for the very first window-resize tick (before VRM
@@ -65,40 +55,7 @@ import type { VrmCapabilityProfile } from './vrm-capability-profile.js';
 // sourced from window-bounds-policy.yaml backends.vrm (360x720 +
 // bottom-companion default bodyCenterY=0.55).
 
-type VrmRuntimeMode = 'real_render' | 'dev_preview';
-
-function readDevPreviewFlag(env: Record<string, unknown> | undefined): boolean {
-  if (!env) return false;
-  const raw = env['VITE_AVATAR_DEV_VRM_PREVIEW'];
-  return raw === 'true' || raw === true;
-}
-
-function resolveRuntimeMode(): VrmRuntimeMode {
-  // `import.meta.env` is statically replaced by Vite at build time;
-  // accessing it through an indirection keeps the read testable
-  // (jsdom test runs without Vite-bundled env).
-  const meta = (import.meta as unknown as { env?: Record<string, unknown> });
-  return readDevPreviewFlag(meta.env) ? 'dev_preview' : 'real_render';
-}
-
-function createVrmDevPreviewBackendSurface(manifest: VrmAvatarModelManifest): BackendSurface {
-  const Component: ComponentType<BackendSurfaceProps> = createVrmDevPreviewSurfaceComponent({
-    manifest,
-  });
-  // Wrap so dev-preview surface still emits a transparent ack effect that
-  // mirrors the real surface's `load_started` evidence shape, keeping
-  // embodiment-stage behaviour comparable across the two paths.
-  const Wrapper: ComponentType<BackendSurfaceProps> = (props) => {
-    useEffect(() => {
-      props.onLifecycleEvidence?.('dev_preview_active', {
-        source: 'vrm-backend.ts',
-        vrm_file: manifest.vrm.vrmFile,
-      });
-    }, [props.onLifecycleEvidence]);
-    return <Component {...props} />;
-  };
-  return { Component: Wrapper };
-}
+type VrmRuntimeMode = 'real_render';
 
 /** Method-record form used by the queued projection adapter so we can
  *  replay queued calls without per-method casts. */
@@ -211,7 +168,7 @@ export async function createVrmBackendBranch(
   manifest: VrmAvatarModelManifest,
   options: CreateVrmBackendBranchOptions = {},
 ): Promise<VrmBackendBranchHandle> {
-  const mode = resolveRuntimeMode();
+  const mode: VrmRuntimeMode = 'real_render';
 
   // Synchronous emote table load throws if the YAML drifts from spec
   // invariants. Motion generation no longer loads vrm-motion-presets.yaml on
@@ -223,6 +180,15 @@ export async function createVrmBackendBranch(
   // attach).
   const profileLoader = options.loadProfileOverride ?? loadLipsyncProfile;
   const profile = await profileLoader();
+  if (profile === null) {
+    recordAvatarEvidenceEventually({
+      kind: 'avatar.audio.pipeline.failed',
+      detail: {
+        reason_code: 'wlipsync_profile_missing',
+        failed_at: new Date().toISOString(),
+      },
+    });
+  }
 
   const audioConsumer = createVrmAudioConsumer({ profile });
   const emoteState = createVrmEmoteState({ emoteTable });
@@ -231,9 +197,7 @@ export async function createVrmBackendBranch(
   );
   const lipsyncDriver = createVrmLipsyncDriver();
 
-  // Kit resolver wraps the admitted activity-mapping table; the adapter
-  // consumes the `resolveVrmRoute` shape only.
-  const resolver = createActivityMappingResolver();
+  const resolver = createVrmActivityMappingResolver();
   const activityMapping: ActivityMapping = {
     resolveVrmRoute: (name) => resolver.resolveVrmRoute(name),
   };
@@ -248,28 +212,23 @@ export async function createVrmBackendBranch(
     options.renderTargetOverride ?? createVrmRenderTarget();
   let latestCapabilityProfile: VrmCapabilityProfile | null = null;
 
-  let surface: BackendSurface;
   let surfaceShutdown: () => void = () => {};
-  if (mode === 'dev_preview') {
-    surface = createVrmDevPreviewBackendSurface(manifest);
-  } else {
-    const handle = createVrmCarrierSurface({
-      manifest,
-      audioConsumer,
-      emoteState,
-      generatedMotionRuntime,
-      lipsyncDriver,
-      activityMapping,
-      setProjectionAdapter: queuedProjection.setAdapter,
-      runtimeOptions: options.runtimeOptions,
-      renderTarget,
-      onCapabilityProfile: (nextProfile) => {
-        latestCapabilityProfile = nextProfile;
-      },
-    });
-    surface = { Component: handle.Component };
-    surfaceShutdown = handle.shutdown;
-  }
+  const handle = createVrmCarrierSurface({
+    manifest,
+    audioConsumer,
+    emoteState,
+    generatedMotionRuntime,
+    lipsyncDriver,
+    activityMapping,
+    setProjectionAdapter: queuedProjection.setAdapter,
+    runtimeOptions: options.runtimeOptions,
+    renderTarget,
+    onCapabilityProfile: (nextProfile) => {
+      latestCapabilityProfile = nextProfile;
+    },
+  });
+  const surface: BackendSurface = { Component: handle.Component };
+  surfaceShutdown = handle.shutdown;
 
   const branch: BackendBranch & { kind: 'vrm' } = {
     kind: 'vrm',

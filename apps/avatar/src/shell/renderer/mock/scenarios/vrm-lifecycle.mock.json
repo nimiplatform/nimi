@@ -21,8 +21,8 @@
   },
 
   "events": [
-    { "kind": "time", "at_ms": 0,    "type": "runtime.agent.presentation.activity_requested", "detail": { "activity_name": "neutral", "category": "emotion", "intensity": null, "source": "mock" } },
-    { "kind": "time", "at_ms": 4000, "type": "runtime.agent.presentation.activity_requested", "detail": { "activity_name": "happy",   "category": "emotion", "intensity": "moderate", "source": "mock" } }
+    { "kind": "time", "at_ms": 0,    "type": "avatar.fixture.presentation.activity_requested", "detail": { "activity_name": "neutral", "category": "emotion", "intensity": null, "source": "mock" } },
+    { "kind": "time", "at_ms": 4000, "type": "avatar.fixture.presentation.activity_requested", "detail": { "activity_name": "happy",   "category": "emotion", "intensity": "moderate", "source": "mock" } }
   ],
 
   "vrm_lifecycle": {
@@ -38,12 +38,10 @@
       "posterPath": null
     },
     "expected_evidence": [
-      "load_started",
       "context_lost",
       "context_restored"
     ],
     "fixture_steps": [
-      { "atMs": 0,    "kind": "load_started" },
       { "atMs": 1500, "kind": "ready_expected" },
       { "atMs": 5000, "kind": "inject_webglcontextlost" },
       { "atMs": 5500, "kind": "context_lost_recorded_expected" },
