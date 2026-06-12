@@ -65,7 +65,7 @@ pub async fn desktop_logs_export() -> Result<LogsExportResult, String> {
 /// Resolve the operating-system Downloads directory. Fails closed when no
 /// Downloads directory can be determined — the renderer surfaces the typed
 /// reason rather than guessing a path.
-fn resolve_downloads_dir() -> Result<PathBuf, String> {
+pub(crate) fn resolve_downloads_dir() -> Result<PathBuf, String> {
     let dir = dirs::download_dir()
         .or_else(dirs::home_dir)
         .ok_or_else(|| "LOGS_EXPORT_NO_DOWNLOADS_DIR: 无法定位系统下载目录".to_string())?;
@@ -210,7 +210,7 @@ fn collect_log_files(root: &Path, dir: &Path, out: &mut Vec<LogFileEntry>) -> Re
 /// Reveal the produced artifact in the OS file manager. Best-effort: a failure
 /// here does not invalidate the already-produced artifact, so it is not
 /// surfaced as a typed export error.
-fn reveal_in_os(path: &Path) {
+pub(crate) fn reveal_in_os(path: &Path) {
     #[cfg(target_os = "macos")]
     {
         let _ = std::process::Command::new("open")

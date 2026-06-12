@@ -1,8 +1,10 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { AppCardSurface, cn, CompactAction } from '@nimiplatform/kit/ui';
 import { useTranslation } from 'react-i18next';
 import { confirmDialog } from '@nimiplatform/kit/shell/renderer/bridge';
+import type { NimiRuntimeAgentCanonicalMemoryInspect } from '@nimiplatform/sdk/runtime';
 import type { CanonicalMemoryBankStatus } from '@renderer/infra/runtime-agent-memory';
+import type { DesktopAgentMemoryExportOutcome } from '@renderer/infra/runtime-agent-memory-export';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 
 type ChatAgentCognitionPanelProps = {
@@ -12,10 +14,36 @@ type ChatAgentCognitionPanelProps = {
   memoryLoading?: boolean;
   onUpgradeStandardMemory?: () => unknown;
   allowMemoryUpgrade?: boolean;
+  recentMemories?: readonly NimiRuntimeAgentCanonicalMemoryInspect[] | null;
+  onExportMemory?: () => Promise<DesktopAgentMemoryExportOutcome>;
 };
+
+type MemoryExportState =
+  | { status: 'idle' }
+  | { status: 'exporting' }
+  | { status: 'done'; result: DesktopAgentMemoryExportOutcome }
+  | { status: 'error'; message: string };
+
+const MEMORY_PREVIEW_LIMIT = 8;
 
 export function ChatAgentCognitionPanel(props: ChatAgentCognitionPanelProps) {
   const { t } = useTranslation();
+  const [exportState, setExportState] = useState<MemoryExportState>({ status: 'idle' });
+
+  const onExportMemory = props.onExportMemory;
+  const handleExportMemory = useCallback(() => {
+    if (!onExportMemory) {
+      return;
+    }
+    setExportState({ status: 'exporting' });
+    onExportMemory().then(
+      (result) => setExportState({ status: 'done', result }),
+      (error: unknown) => setExportState({
+        status: 'error',
+        message: error instanceof Error ? error.message : String(error),
+      }),
+    );
+  }, [onExportMemory]);
 
   const handleUpgradeStandardMemory = useCallback(() => {
     void (async () => {
@@ -117,6 +145,85 @@ export function ChatAgentCognitionPanel(props: ChatAgentCognitionPanelProps) {
               >
                 {t('Chat.memoryModeUpgradeAction', { defaultValue: 'Upgrade to Standard memory' })}
               </CompactAction>
+            </div>
+          ) : null}
+        </AppCardSurface>
+      ) : null}
+      {props.recentMemories ? (
+        <AppCardSurface
+          kind="operational-solid"
+          as="section"
+          data-testid={E2E_IDS.chatMemorySovereigntyCard}
+          className="flex flex-col px-5 py-5 text-left"
+        >
+          <div className="flex items-center gap-2">
+            <p className="text-[11px] font-bold uppercase tracking-[0.05em] text-slate-950">
+              {t('Chat.memorySovereigntyTitle', { defaultValue: 'Memory records' })}
+            </p>
+            <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.05em] text-slate-500">
+              {props.recentMemories.length}
+            </span>
+          </div>
+          <p className="mt-2 text-[12px] leading-6 text-slate-500">
+            {t('Chat.memorySovereigntyHint', {
+              defaultValue: 'Canonical memories live on your machine. Inspect recent records and export the full set as a JSON artifact you own.',
+            })}
+          </p>
+          {props.recentMemories.length > 0 ? (
+            <ul className="mt-3 divide-y divide-slate-100">
+              {props.recentMemories.slice(0, MEMORY_PREVIEW_LIMIT).map((memory) => (
+                <li key={memory.memoryId} className="py-2">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.05em] text-slate-500">
+                      {memory.kind || memory.canonicalClass || 'memory'}
+                    </span>
+                    <span className="text-[10px] text-slate-400">{memory.updatedAt}</span>
+                  </div>
+                  <p className="mt-1 truncate text-[12px] leading-5 text-slate-600">
+                    {memory.summary}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-3 text-[12px] text-slate-400">
+              {t('Chat.memorySovereigntyEmpty', { defaultValue: 'No canonical memories recorded yet.' })}
+            </p>
+          )}
+          {props.onExportMemory ? (
+            <div className="mt-4 flex flex-col gap-2">
+              <CompactAction
+                data-testid={E2E_IDS.chatMemoryExportButton}
+                disabled={props.disabled || exportState.status === 'exporting'}
+                onClick={handleExportMemory}
+                tone="neutral"
+                fullWidth
+              >
+                {exportState.status === 'exporting'
+                  ? t('Chat.memoryExportRunning', { defaultValue: 'Exporting...' })
+                  : t('Chat.memoryExportAction', { defaultValue: 'Export memory as JSON' })}
+              </CompactAction>
+              {exportState.status === 'done' ? (
+                <p
+                  data-testid={E2E_IDS.chatMemoryExportResult}
+                  className="break-words text-[11px] leading-5 text-[var(--nimi-status-positive)]"
+                >
+                  {t('Chat.memoryExportDone', {
+                    defaultValue: 'Exported {{records}} records across {{banks}} banks to {{path}}',
+                    records: exportState.result.recordCount,
+                    banks: exportState.result.bankCount,
+                    path: exportState.result.artifactPath,
+                  })}
+                </p>
+              ) : null}
+              {exportState.status === 'error' ? (
+                <p
+                  data-testid={E2E_IDS.chatMemoryExportResult}
+                  className="break-words text-[11px] leading-5 text-[var(--nimi-status-warning)]"
+                >
+                  {exportState.message}
+                </p>
+              ) : null}
             </div>
           ) : null}
         </AppCardSurface>

@@ -418,6 +418,20 @@ registered_command_families:
       - spawn_blocking
     source_rule: D-GATE-092
 
+  - family: desktop_agent_memory_export
+    match:
+      exact:
+        - desktop_agent_memory_export_save
+    origin_crate: apps/desktop/src-tauri
+    owner_domain: desktop-agent-memory-export
+    execution_class: bounded_blocking_with_admission
+    remediation_required: false
+    admitted_risks:
+      - std_fs
+      - process_command
+      - spawn_blocking
+    source_rule: D-GATE-092
+
   - family: apps_projection
     match:
       exact:

@@ -278,6 +278,7 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             crate::desktop_product_control_admission::product_control_record_admit_ready_for_use,
             crate::nimi_data_directory::nimi_data_cleanup_plan,
             crate::nimi_data_directory::nimi_data_cleanup_execute,
+            crate::desktop_agent_memory_export::desktop_agent_memory_export_save,
             crate::desktop_logs_export::desktop_logs_export,
             crate::apps_bridge_projection::apps_bridge_projection_get,
             crate::account_apps_library_commands::account_app_library_get,

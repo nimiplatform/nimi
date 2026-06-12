@@ -70,6 +70,7 @@ export * from './runtime-agent-turn-runner';
 export * from './runtime-agent-turns';
 export * from './runtime-agent-protected';
 export * from './runtime-agent-memory';
+export * from './runtime-agent-memory-export';
 export * from './runtime-agent-presentation';
 export * from './runtime-agent-lifecycle';
 export * from './runtime-agent-delegated';

@@ -15,6 +15,7 @@ import {
 } from '@nimiplatform/kit/features/chat/headless';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { exportDesktopAgentMemory } from '@renderer/infra/runtime-agent-memory-export';
 import type { RuntimeFieldMap } from '@renderer/app-shell/providers/store-types';
 import type { DesktopConversationModeHost } from './chat-shared-mode-host-types';
 import {
@@ -431,6 +432,8 @@ export function useAgentConversationModeHost(
         memoryLoading={canonicalMemoryLoading}
         onUpgradeStandardMemory={handleUpgradeStandardMemory}
         allowMemoryUpgrade
+        recentMemories={runtimeInspect?.recentCanonicalMemories ?? null}
+        onExportMemory={() => exportDesktopAgentMemory(activeTarget.localAgentRef)}
       />
     ) : null
   ), [
@@ -438,6 +441,7 @@ export function useAgentConversationModeHost(
     canonicalMemoryLoading,
     canonicalMemoryStatus,
     handleUpgradeStandardMemory,
+    runtimeInspect,
     submittingThreadId,
   ]);
 
