@@ -18,7 +18,11 @@ export const NIMI_MASTRA_ADAPTER_MANIFEST = {
   adapterId: NIMI_MASTRA_ADAPTER_ID,
   targetLibrary: 'Mastra',
   targetVersionRange: '@mastra/core@^1.41.0',
-  capabilityLevel: 'L3',
+  // L4 (Context): per-turn Runtime-owned memory/knowledge context injection
+  // plus Runtime-owned RAG embeddings are conformance-verified, and every
+  // durable framework-state cluster carries an explicit S-AIP-009
+  // lifetime/reconstructibility classification (see partial-cluster gaps).
+  capabilityLevel: 'L4',
   capabilities: {
     'model.config': {
       support: 'supported',
@@ -143,17 +147,26 @@ export const NIMI_MASTRA_ADAPTER_MANIFEST = {
     toolApproval: {
       support: 'partial',
       mode: 'adapter-mapped',
-      gaps: ['Model-level tool-approval-request/response parts are mapped; Mastra native requireToolApproval suspension is verified, but approve/deny resume requires Mastra snapshot storage and is not bound to Nimi Runtime-owned lifecycle state. Use runtimeDelegatedTools for the Nimi Runtime-owned approval/resume path.'],
+      gaps: [
+        'Model-level tool-approval-request/response parts are mapped; Mastra native requireToolApproval suspension is verified, but approve/deny resume requires Mastra snapshot storage and is not bound to Nimi Runtime-owned lifecycle state. Use runtimeDelegatedTools for the Nimi Runtime-owned approval/resume path.',
+        'S-AIP-009: persisted approval snapshots live in Mastra storage (cross-process lifetime, not reconstructible from Nimi truth) and are framework-owned-non-canonical; the adapter holds no approval state itself and never writes it into Nimi surfaces.',
+      ],
     },
     toolSuspendResume: {
       support: 'partial',
       mode: 'framework-owned',
-      gaps: ['Model tool-calls are mapped; Mastra createTool suspend/resume orchestration is not yet exercised through Nimi.'],
+      gaps: [
+        'Model tool-calls are mapped; Mastra createTool suspend/resume orchestration is not yet exercised through Nimi.',
+        'S-AIP-009: suspended-tool state persisted by Mastra storage is durable framework state (cross-process, not reconstructible from Nimi truth) and stays framework-owned-non-canonical.',
+      ],
     },
     structuredOutputRepair: {
       support: 'partial',
       mode: 'framework-owned',
-      gaps: ['No-object failure is verified fail-closed; Mastra structured-output repair retry paths are not yet exhaustively exercised.'],
+      gaps: [
+        'No-object failure is verified fail-closed; Mastra structured-output repair retry paths are not yet exhaustively exercised.',
+        'S-AIP-009: repair loops are in-process and reconstructible from the caller request — orchestration ephemera, no durable framework state in this cluster.',
+      ],
     },
     memory: {
       support: 'partial',
@@ -161,6 +174,7 @@ export const NIMI_MASTRA_ADAPTER_MANIFEST = {
       gaps: [
         'A Mastra-Memory-enabled agent can thread prior-turn context into a Nimi text-model call (verified with MockMemory), but this adapter does not bind Mastra memory to Nimi Runtime/Cognition canonical memory.',
         'NimiMastraContextBridge supports per-turn Nimi Runtime-owned memory/knowledge context injection through Mastra context, but it does not yet own conversation writeback, thread/resource lifecycle, or a Mastra Memory-compatible persistence contract.',
+        'S-AIP-009: Mastra Memory threads/messages persist in Mastra storage — cross-process lifetime, not reconstructible from Nimi truth — and are declared framework-owned-non-canonical: they must never be read or written as Nimi session/memory truth. Nimi-owned context flows only through the per-turn bridge and runtime.agent.* surfaces.',
       ],
     },
     workflows: {
@@ -169,12 +183,16 @@ export const NIMI_MASTRA_ADAPTER_MANIFEST = {
       gaps: [
         'A Nimi-backed text model can be called inside a Mastra Workflow step (verified with createWorkflow/createStep), but workflow lifecycle/checkpoint ownership remains Mastra-owned and is not Nimi Runtime workflow state.',
         'A Nimi-owned agent/workflow bridge must use Runtime agent/workflow owner surfaces; this adapter only supplies the model each step drives.',
+        'S-AIP-009: workflow run/suspend/checkpoint state persists in Mastra storage — durable framework state, not reconstructible from Nimi truth — declared framework-owned-non-canonical.',
       ],
     },
     agentNetwork: {
       support: 'partial',
       mode: 'framework-owned',
-      gaps: ['A Mastra network can use Nimi-backed text models per member, but multi-agent lifecycle, routing, hand-off, and shared state are not yet bound to Nimi Runtime/Cognition owner surfaces.'],
+      gaps: [
+        'A Mastra network can use Nimi-backed text models per member, but multi-agent lifecycle, routing, hand-off, and shared state are not yet bound to Nimi Runtime/Cognition owner surfaces.',
+        'S-AIP-009: any persisted network routing/shared state lives in Mastra storage as durable framework state (not reconstructible from Nimi truth) and stays framework-owned-non-canonical.',
+      ],
     },
     workflowCheckpoint: {
       support: 'not-applicable',

@@ -30,6 +30,8 @@ entries:
   - S-AIP-005
   - S-AIP-006
   - S-AIP-007
+  - S-AIP-008
+  - S-AIP-009
   - S-AICONF-001
   - S-AICONF-002
   - S-AICONF-003
@@ -150,6 +152,16 @@ rules:
     evidence_refs:
       - sdk_kernel_consistency
     note: External AI framework adapters are protocol adapters over admitted public surfaces; structural governance prevents provider-routing or agent-truth ownership drift
+    evidence_requirement: required
+  - rule_id: S-AIP-008
+    evidence_refs:
+      - sdk_kernel_consistency
+    note: Capability manifests separate target-library support from ownership mode; the typescript adapter capability ledger and per-adapter manifests carry the dual-dimension claims
+    evidence_requirement: required
+  - rule_id: S-AIP-009
+    evidence_refs:
+      - sdk_kernel_consistency
+    note: Framework state is classified by lifetime and reconstructibility; durable framework state must be promoted through admitted typed operations or declared partial framework-owned-non-canonical in the manifest, and L4 context admission fails closed on unclassified durable clusters
     evidence_requirement: required
   - rule_id: S-AICONF-001
     evidence_refs:

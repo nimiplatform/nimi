@@ -89,3 +89,33 @@ interfaces. They may be marked supported by an adapter when the adapter
 faithfully maps the interface to admitted Nimi SDK/Runtime contracts, while
 individual Runtime provider routes still fail closed if they cannot preserve the
 provider-specific semantics.
+
+## S-AIP-009 Framework State Lifetime And Reconstructibility Boundary
+
+This rule specializes `S-BOUNDARY-006` for external framework adapters and
+adds the reconstructibility dimension. Framework-held state is classified by
+two tests:
+
+- lifetime: does the state survive beyond the current process or app session?
+- reconstructibility: can the state be fully rebuilt from Nimi canonical
+  truth plus caller-supplied input, or is its loss a real loss?
+
+Classification outcomes are closed:
+
+- in-process, reconstructible state is orchestration ephemera; the framework
+  may hold it freely and the adapter needs no manifest claim for it.
+- state that survives across process or app-session boundaries, or that
+  cannot be rebuilt from Nimi truth, is durable framework state. It must
+  either be promoted to the owning Runtime / Realm / Cognition service
+  through an admitted typed operation (`S-BOUNDARY-006`), or be declared in
+  the adapter capability manifest as `partial` with an explicit
+  framework-owned, non-canonical gap note. Undeclared durable framework
+  state is a contract violation, not a default.
+- adapters must not read or write durable framework state into Nimi
+  surfaces, and must not present it as Nimi session, memory, event, or
+  agent-state truth (`S-AIP-007`).
+
+L4 (`Context`) capability admission is gated on this rule: any claim that
+binds framework memory or context to Nimi Cognition owner surfaces must
+first classify every durable framework state cluster under these tests, and
+the admission fails closed while any durable cluster remains unclassified.

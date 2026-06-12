@@ -131,7 +131,7 @@ test('mastra provider fails closed on an unknown model id with a typed error', (
 
 test('mastra manifest answers Mastra interface coverage and types every gap', () => {
   const capabilities = NIMI_MASTRA_ADAPTER_MANIFEST.capabilities;
-  assert.equal(NIMI_MASTRA_ADAPTER_MANIFEST.capabilityLevel, 'L3');
+  assert.equal(NIMI_MASTRA_ADAPTER_MANIFEST.capabilityLevel, 'L4');
   assert.equal(NIMI_MASTRA_ADAPTER_MANIFEST.targetLibrary, 'Mastra');
 
   // Adapter-mapped model interface coverage, proven by the conformance suite.
