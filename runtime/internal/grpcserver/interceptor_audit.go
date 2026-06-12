@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
@@ -15,6 +17,9 @@ import (
 
 func newUnaryAuditInterceptor(store *auditlog.Store) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
+		if store == nil {
+			return nil, status.Error(codes.Internal, "audit store is required")
+		}
 		startedAt := time.Now().UTC()
 		handlerCtx, queueWaitRecorder := usagemetrics.WithQueueWaitRecorder(ctx)
 		var (
@@ -29,6 +34,9 @@ func newUnaryAuditInterceptor(store *auditlog.Store) grpc.UnaryServerInterceptor
 
 		domain, operation, capability := methodDescriptor(info.FullMethod)
 		appID, subjectUserID, modelID := inferRequestIdentity(req)
+		if appID == "" {
+			appID = appIDFromMetadata(handlerCtx)
+		}
 		// K-AUDIT-018: prefer JWT subject_user_id over request body (WP-6)
 		if identity := authn.IdentityFromContext(handlerCtx); identity != nil {
 			subjectUserID = identity.SubjectUserID
@@ -114,6 +122,9 @@ func newUnaryAuditInterceptor(store *auditlog.Store) grpc.UnaryServerInterceptor
 
 func newStreamAuditInterceptor(store *auditlog.Store) grpc.StreamServerInterceptor {
 	return func(srv any, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+		if store == nil {
+			return status.Error(codes.Internal, "audit store is required")
+		}
 		startedAt := time.Now().UTC()
 		streamCtx, queueWaitRecorder := usagemetrics.WithQueueWaitRecorder(ss.Context())
 		wrapped := &auditStream{
@@ -125,6 +136,9 @@ func newStreamAuditInterceptor(store *auditlog.Store) grpc.StreamServerIntercept
 
 		domain, operation, capability := methodDescriptor(info.FullMethod)
 		appID, subjectUserID, modelID := inferRequestIdentity(request)
+		if appID == "" {
+			appID = appIDFromMetadata(streamCtx)
+		}
 		// K-AUDIT-018: prefer JWT subject_user_id over request body (WP-6)
 		if identity := authn.IdentityFromContext(streamCtx); identity != nil {
 			subjectUserID = identity.SubjectUserID

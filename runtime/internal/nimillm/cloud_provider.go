@@ -113,12 +113,7 @@ func NewCloudProvider(cfg CloudConfig, registry *modelregistry.Registry, health 
 			continue
 		}
 		backendName := "cloud-" + canonical
-		var b *Backend
-		if cfg.EnforceEndpointSecurity {
-			b = NewSecuredBackendWithHeaders(backendName, creds.BaseURL, creds.APIKey, creds.Headers, cfg.HTTPTimeout, cfg.AllowLoopbackEndpoint)
-		} else {
-			b = NewBackendWithHeaders(backendName, creds.BaseURL, creds.APIKey, creds.Headers, cfg.HTTPTimeout)
-		}
+		b := NewSecuredBackendWithHeaders(backendName, creds.BaseURL, creds.APIKey, creds.Headers, cfg.HTTPTimeout, cfg.AllowLoopbackEndpoint)
 		if b != nil {
 			if model := strings.TrimSpace(creds.DefaultModel); model != "" {
 				b.defaultModel = model
@@ -130,7 +125,7 @@ func NewCloudProvider(cfg CloudConfig, registry *modelregistry.Registry, health 
 		backends:                backends,
 		registry:                registry,
 		health:                  health,
-		enforceEndpointSecurity: cfg.EnforceEndpointSecurity,
+		enforceEndpointSecurity: true,
 		allowLoopbackEndpoint:   cfg.AllowLoopbackEndpoint,
 	}
 }
@@ -233,11 +228,10 @@ func (p *CloudProvider) Embed(ctx context.Context, modelID string, inputs []stri
 // EmbedWithTarget routes an embedding request, optionally using a RemoteTarget override.
 func (p *CloudProvider) EmbedWithTarget(ctx context.Context, modelID string, inputs []string, target *RemoteTarget) ([]*structpb.ListValue, *runtimev1.UsageStats, error) {
 	if target != nil {
-		backend := p.backendFromTarget(target)
+		backend, resolvedModelID := p.resolveBackendForTarget(modelID, target)
 		if backend == nil {
 			return nil, nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 		}
-		resolvedModelID := stripModelPrefix(modelID)
 		p.rememberDecision(modelID, backend.Name)
 		return backend.Embed(ctx, resolvedModelID, inputs)
 	}
@@ -323,7 +317,10 @@ func (p *CloudProvider) PickBackend(modelID string) (*Backend, string, bool, boo
 	id := strings.TrimSpace(modelID)
 	if id == "" {
 		if b := p.backends["nimillm"]; b != nil {
-			return b, "cloud-default", false, true
+			if p.isBackendHealthy(b.Name) {
+				return b, "cloud-default", false, true
+			}
+			return nil, "cloud-default", false, false
 		}
 		return nil, "cloud-default", false, false
 	}
@@ -441,8 +438,15 @@ func (p *CloudProvider) Backends() map[string]*Backend {
 // resolveBackendForTarget selects a backend for the given model, optionally overriding with a RemoteTarget.
 func (p *CloudProvider) resolveBackendForTarget(modelID string, target *RemoteTarget) (*Backend, string) {
 	if target != nil {
+		canonical := ResolveProviderAlias(target.ProviderType)
+		if canonical == "" {
+			return nil, ""
+		}
+		resolvedModelID, ok := resolveRemoteTargetModelID(modelID, canonical)
+		if !ok {
+			return nil, resolvedModelID
+		}
 		backend := p.backendFromTarget(target)
-		resolvedModelID := stripModelPrefix(modelID)
 		return backend, resolvedModelID
 	}
 	backend, resolvedModelID, explicit, ok := p.PickBackend(modelID)
@@ -450,6 +454,36 @@ func (p *CloudProvider) resolveBackendForTarget(modelID string, target *RemoteTa
 		return nil, resolvedModelID
 	}
 	return backend, resolvedModelID
+}
+
+func resolveRemoteTargetModelID(modelID string, canonicalProvider string) (string, bool) {
+	id := strings.TrimSpace(modelID)
+	for {
+		next := strings.TrimSpace(strings.TrimPrefix(strings.TrimPrefix(id, "cloud/"), "token/"))
+		if next == id {
+			break
+		}
+		id = next
+	}
+	if id == "" {
+		return "cloud-default", true
+	}
+	segments := strings.SplitN(id, "/", 2)
+	if len(segments) != 2 {
+		return id, true
+	}
+	prefix := strings.ToLower(strings.TrimSpace(segments[0]))
+	rest := strings.TrimSpace(segments[1])
+	if rest == "" {
+		rest = "default"
+	}
+	if providerID, ok := prefixToProvider[prefix]; ok {
+		return rest, providerID == canonicalProvider
+	}
+	if _, forbidden := forbiddenPrefixToProvider[prefix]; forbidden {
+		return rest, false
+	}
+	return id, true
 }
 
 // stripModelPrefix removes cloud/, token/, and provider prefixes (e.g. "deepseek/deepseek-chat" -> "deepseek-chat").
@@ -485,8 +519,5 @@ func (p *CloudProvider) backendFromTarget(target *RemoteTarget) *Backend {
 		return nil
 	}
 	timeout := p.probeTimeout()
-	if p.enforceEndpointSecurity {
-		return NewSecuredBackendWithHeaders("cloud-"+target.ProviderType, target.Endpoint, target.APIKey, target.Headers, timeout, allowLoopback)
-	}
-	return NewBackendWithHeaders("cloud-"+target.ProviderType, target.Endpoint, target.APIKey, target.Headers, timeout)
+	return NewSecuredBackendWithHeaders("cloud-"+target.ProviderType, target.Endpoint, target.APIKey, target.Headers, timeout, allowLoopback)
 }

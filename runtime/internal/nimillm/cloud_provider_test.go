@@ -1,9 +1,13 @@
 package nimillm
 
 import (
+	"context"
 	"testing"
 
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func TestCloudProviderPickBackendRoutesByPrefix(t *testing.T) {
@@ -82,6 +86,61 @@ func TestCloudProviderPickBackendRejectsLegacyAliasPrefix(t *testing.T) {
 	}
 	if ok {
 		t.Fatal("expected legacy alias prefix to stay unavailable")
+	}
+}
+
+func TestCloudProviderPickBackendEmptyModelHonorsProviderHealth(t *testing.T) {
+	health := providerhealth.New()
+	if err := health.Mark("cloud-nimillm", false, "down"); err != nil {
+		t.Fatalf("Mark nimillm unhealthy: %v", err)
+	}
+	provider := NewCloudProvider(CloudConfig{
+		Providers: map[string]ProviderCredentials{
+			"nimillm": {BaseURL: "https://api.nimillm.dev/v1"},
+		},
+	}, nil, health)
+	backend, resolvedModelID, explicit, ok := provider.PickBackend("")
+	if backend != nil {
+		t.Fatalf("expected unhealthy implicit default to return no backend, got %q", backend.Name)
+	}
+	if resolvedModelID != "cloud-default" {
+		t.Fatalf("resolved model = %q", resolvedModelID)
+	}
+	if explicit {
+		t.Fatal("empty model should not be explicit")
+	}
+	if ok {
+		t.Fatal("expected unhealthy implicit default to fail closed")
+	}
+}
+
+func TestCloudProviderRemoteTargetRejectsMismatchedProviderPrefix(t *testing.T) {
+	provider := NewCloudProvider(CloudConfig{
+		Providers: map[string]ProviderCredentials{
+			"openai": {BaseURL: "https://api.openai.com/v1"},
+		},
+	}, nil, nil)
+	spec := &runtimev1.TextGenerateScenarioSpec{
+		Input: []*runtimev1.ChatMessage{{Role: "user", Content: "hello"}},
+	}
+	_, _, _, _, err := provider.GenerateTextScenarioWithTarget(context.Background(), "dashscope/qwen-max", spec, "hello", &RemoteTarget{
+		ProviderType: "openai",
+		Endpoint:     "https://api.openai.com/v1",
+	})
+	if status.Code(err) != codes.Unavailable {
+		t.Fatalf("expected unavailable for mismatched target/model provider prefix, got %v", err)
+	}
+}
+
+func TestCloudProviderAlwaysEnforcesEndpointSecurity(t *testing.T) {
+	provider := NewCloudProvider(CloudConfig{
+		Providers: map[string]ProviderCredentials{
+			"openai": {BaseURL: "http://example.com/v1"},
+		},
+		EnforceEndpointSecurity: false,
+	}, nil, nil)
+	if backend := provider.Backends()["openai"]; backend != nil {
+		t.Fatalf("expected insecure remote endpoint to be rejected even when EnforceEndpointSecurity=false, got %q", backend.Name)
 	}
 }
 

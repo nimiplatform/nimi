@@ -82,6 +82,34 @@ func TestLocalImportManifestValidation(t *testing.T) {
 		t.Fatalf("local_invoke_profile_id should be imported from manifest")
 	}
 
+	missingHashPath := filepath.Join(tmpDir, "resolved", "nimi", "missing-hash", "asset.manifest.json")
+	missingHashManifest := map[string]any{
+		"asset_id":         "local/missing-hash",
+		"kind":             "image",
+		"logical_model_id": "nimi/missing-hash",
+		"engine":           "media",
+		"capabilities":     []string{"image"},
+		"entry":            "z_image_turbo-Q4_K.gguf",
+		"files":            []string{"z_image_turbo-Q4_K.gguf"},
+		"engine_config": map[string]any{
+			"backend": "stablediffusion-ggml",
+		},
+	}
+	missingHashRaw, _ := json.Marshal(missingHashManifest)
+	if err := os.MkdirAll(filepath.Dir(missingHashPath), 0o755); err != nil {
+		t.Fatalf("create missing hash manifest dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(filepath.Dir(missingHashPath), "z_image_turbo-Q4_K.gguf"), validImageTestGGUF(), 0o600); err != nil {
+		t.Fatalf("write missing hash entry: %v", err)
+	}
+	if err := os.WriteFile(missingHashPath, missingHashRaw, 0o600); err != nil {
+		t.Fatalf("write missing hash manifest: %v", err)
+	}
+	_, err = svc.ImportLocalAsset(context.Background(), &runtimev1.ImportLocalAssetRequest{ManifestPath: missingHashPath})
+	if err == nil || !strings.Contains(err.Error(), "requires non-empty sha256 hash") {
+		t.Fatalf("expected missing manifest hash to fail closed, got %v", err)
+	}
+
 	legacyPath := filepath.Join(tmpDir, "resolved", "nimi", "legacy-import", "asset.manifest.json")
 	legacyManifest := map[string]any{
 		"model_id":         "local/legacy-import",
@@ -171,6 +199,8 @@ func TestLocalImportImageModelDefaultsToSupervisedOnLlamaSupportedHost(t *testin
 		"engine":           "media",
 		"capabilities":     []string{"image"},
 		"entry":            "z_image_turbo-Q4_K.gguf",
+		"files":            []string{"z_image_turbo-Q4_K.gguf"},
+		"hashes":           map[string]string{"z_image_turbo-Q4_K.gguf": "sha256:" + validImageTestGGUFHash()},
 		"engineConfig": map[string]any{
 			"backend": "stablediffusion-ggml",
 		},
@@ -233,6 +263,8 @@ func TestLocalImportImageModelSupportsAppleSiliconManagedImageHost(t *testing.T)
 		"engine":           "media",
 		"capabilities":     []string{"image"},
 		"entry":            "z_image_turbo-Q4_K.gguf",
+		"files":            []string{"z_image_turbo-Q4_K.gguf"},
+		"hashes":           map[string]string{"z_image_turbo-Q4_K.gguf": "sha256:" + validImageTestGGUFHash()},
 		"engineConfig": map[string]any{
 			"backend": "stablediffusion-ggml",
 		},
@@ -273,6 +305,8 @@ func TestLocalImportImageModelUnsupportedHostRegistersUnhealthyAsset(t *testing.
 		"engine":           "media",
 		"capabilities":     []string{"image"},
 		"entry":            "z_image_turbo-Q4_K.gguf",
+		"files":            []string{"z_image_turbo-Q4_K.gguf"},
+		"hashes":           map[string]string{"z_image_turbo-Q4_K.gguf": "sha256:" + validImageTestGGUFHash()},
 	})
 	if err != nil {
 		t.Fatalf("marshal manifest: %v", err)
@@ -327,6 +361,11 @@ func TestImportLocalAssetAutoDetectsMMProjAndGemma4ArchitectureWithoutManifestFi
 		"engine":           "llama",
 		"capabilities":     []string{"text.generate", "text.generate.vision"},
 		"entry":            "weights/model.gguf",
+		"files":            []string{"weights/model.gguf", "mmproj-vision.gguf"},
+		"hashes": map[string]string{
+			"weights/model.gguf": "sha256:" + validGemma4TestGGUFHash(),
+			"mmproj-vision.gguf": "sha256:" + validTestGGUFHash(),
+		},
 	})
 	if err != nil {
 		t.Fatalf("marshal manifest: %v", err)
@@ -376,6 +415,8 @@ func TestLocalStartManagedImageModelSkipsMediaProxyForNativeBinaryDirectBackend(
 		"engine":           "media",
 		"capabilities":     []string{"image"},
 		"entry":            "z_image_turbo-Q4_K.gguf",
+		"files":            []string{"z_image_turbo-Q4_K.gguf"},
+		"hashes":           map[string]string{"z_image_turbo-Q4_K.gguf": "sha256:" + validImageTestGGUFHash()},
 	})
 	if err != nil {
 		t.Fatalf("marshal manifest: %v", err)
@@ -526,6 +567,8 @@ func TestStartLocalAssetFailsClosedForUnsupportedImportedGGUFImage(t *testing.T)
 		"engine":           "media",
 		"capabilities":     []string{"image"},
 		"entry":            "z_image_turbo-Q4_K.gguf",
+		"files":            []string{"z_image_turbo-Q4_K.gguf"},
+		"hashes":           map[string]string{"z_image_turbo-Q4_K.gguf": "sha256:" + validImageTestGGUFHash()},
 	})
 	if err != nil {
 		t.Fatalf("marshal manifest: %v", err)
@@ -592,6 +635,8 @@ func TestStartLocalAssetFailsClosedWhenManagedImageBackendTargetUnavailable(t *t
 		"engine":           "media",
 		"capabilities":     []string{"image"},
 		"entry":            "z_image_turbo-Q4_K.gguf",
+		"files":            []string{"z_image_turbo-Q4_K.gguf"},
+		"hashes":           map[string]string{"z_image_turbo-Q4_K.gguf": "sha256:" + validImageTestGGUFHash()},
 		"source": map[string]any{
 			"repo": "file://" + filepath.ToSlash(manifestPath),
 		},
@@ -712,6 +757,8 @@ func TestCheckLocalAssetHealthFailsClosedForUnsupportedImportedGGUFImage(t *test
 		"engine":           "media",
 		"capabilities":     []string{"image"},
 		"entry":            "z_image_turbo-Q4_K.gguf",
+		"files":            []string{"z_image_turbo-Q4_K.gguf"},
+		"hashes":           map[string]string{"z_image_turbo-Q4_K.gguf": "sha256:" + validImageTestGGUFHash()},
 	})
 	if err != nil {
 		t.Fatalf("marshal manifest: %v", err)

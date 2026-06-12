@@ -12,6 +12,9 @@ import (
 )
 
 func (d *Digest) applyAccess(scopeID string, analysis AnalysisReport, now time.Time, access routine.ArtifactAccess, graph routine.GraphAccess) ([]AppliedTransition, []BlockedTransition, error) {
+	if err := requireServiceEquivalentArtifactAccess(access); err != nil {
+		return nil, nil, err
+	}
 	_, previousCandidates, err := previousDigestState(scopeID, access)
 	if err != nil {
 		return nil, nil, err

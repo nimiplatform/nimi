@@ -5,6 +5,7 @@ import (
 	"errors"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -139,7 +140,7 @@ func TestRuntimeAgentInitializeWriteQueryAndHooks(t *testing.T) {
 					},
 				},
 				SourceEventId: "evt-1",
-				Extensions:    completePromotionEvidence(t),
+				Extensions:    completePromotionEvidence(t, svc),
 				Record: &runtimev1.MemoryRecordInput{
 					Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_SEMANTIC,
 					Payload: &runtimev1.MemoryRecordInput_Semantic{
@@ -160,7 +161,7 @@ func TestRuntimeAgentInitializeWriteQueryAndHooks(t *testing.T) {
 					},
 				},
 				SourceEventId: "evt-2",
-				Extensions:    completePromotionEvidence(t),
+				Extensions:    completePromotionEvidence(t, svc),
 				Record: &runtimev1.MemoryRecordInput{
 					Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_OBSERVATIONAL,
 					Payload: &runtimev1.MemoryRecordInput_Observational{
@@ -184,6 +185,10 @@ func TestRuntimeAgentInitializeWriteQueryAndHooks(t *testing.T) {
 		AgentId: "agent-alpha",
 		Query:   "What do you know?",
 		Limit:   10,
+		CanonicalClasses: []runtimev1.MemoryCanonicalClass{
+			runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_PUBLIC_SHARED,
+			runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_DYADIC,
+		},
 	})
 	if err != nil {
 		t.Fatalf("QueryAgentMemory: %v", err)
@@ -300,6 +305,76 @@ func TestRuntimeAgentSubscribeAgentEventsSendsHeadersBeforeFirstEvent(t *testing
 		}
 	case <-time.After(time.Second):
 		t.Fatal("SubscribeAgentEvents did not stop after context cancellation")
+	}
+}
+
+func TestRuntimeAgentSubscribeAgentEventsEmitsBindingRevokedWhileIdle(t *testing.T) {
+	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	requestContext := testRuntimeAgentIdentityContext("agent-alpha")
+	requestContext.AppId = "nimi.desktop"
+	requestContext.ScopedBinding = &runtimev1.ScopedRuntimeBindingAttachment{
+		BindingId:            "binding-idle-revoke",
+		RuntimeAppId:         "nimi.desktop",
+		AgentId:              requestContext.GetLocalAgentRef(),
+		ConversationAnchorId: "anchor-idle-revoke",
+	}
+	var allowed atomic.Bool
+	allowed.Store(true)
+	svc.SetScopedBindingValidator(stubScopedBindingValidator{
+		validate: func(bindingID string, actual *runtimev1.ScopedAppBindingRelation, requiredScope string) (runtimev1.AccountReasonCode, bool) {
+			if !allowed.Load() {
+				return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BINDING_NOT_FOUND, false
+			}
+			if bindingID != "binding-idle-revoke" ||
+				actual.GetRuntimeAppId() != "nimi.desktop" ||
+				actual.GetAgentId() != requestContext.GetLocalAgentRef() ||
+				actual.GetConversationAnchorId() != "anchor-idle-revoke" ||
+				requiredScope != runtimeAgentEventReadScope {
+				return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BINDING_NOT_FOUND, false
+			}
+			return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_UNSPECIFIED, true
+		},
+	})
+
+	streamCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	stream := newAgentEventCaptureStreamLimit(streamCtx, 1)
+	stream.headerSent = make(chan struct{}, 1)
+	done := make(chan error, 1)
+	go func() {
+		done <- svc.SubscribeAgentEvents(&runtimev1.SubscribeAgentEventsRequest{
+			Context:      requestContext,
+			AgentId:      requestContext.GetLocalAgentRef(),
+			EventFilters: []runtimev1.AgentEventType{runtimev1.AgentEventType_AGENT_EVENT_TYPE_MEMORY},
+		}, stream)
+	}()
+
+	select {
+	case <-stream.headerSent:
+	case err := <-done:
+		t.Fatalf("SubscribeAgentEvents returned before initial binding admission: %v", err)
+	case <-time.After(time.Second):
+		t.Fatal("expected subscribe agent events to admit the initial binding")
+	}
+	allowed.Store(false)
+
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("SubscribeAgentEvents returned unexpected error after binding revocation event: %v", err)
+		}
+	case <-time.After(2500 * time.Millisecond):
+		t.Fatal("SubscribeAgentEvents did not close after idle binding revocation")
+	}
+	if len(stream.events) != 1 {
+		t.Fatalf("expected one binding.revoked event, got=%d", len(stream.events))
+	}
+	event := stream.events[0]
+	if event.GetEventType() != runtimev1.AgentEventType_AGENT_EVENT_TYPE_STATE {
+		t.Fatalf("binding revocation must be a state event, got=%s", event.GetEventType())
+	}
+	if got := event.GetState().GetCurrentStatusText(); got != "binding.revoked" {
+		t.Fatalf("expected binding.revoked status, got=%q event=%+v", got, event)
 	}
 }
 

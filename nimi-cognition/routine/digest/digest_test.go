@@ -584,6 +584,18 @@ func TestDigestApply_RejectsShortFamilyAlias(t *testing.T) {
 	}
 }
 
+func TestDigestApplyRequiresServiceEquivalentArtifactAccess(t *testing.T) {
+	store := newDigestStore(t)
+	d := New(Config{})
+	access := struct{ routine.ArtifactAccess }{
+		ArtifactAccess: &storageArtifactAccess{store: store, graph: nil},
+	}
+	_, _, err := d.applyAccess("a1", AnalysisReport{GeneratedAt: ts}, ts, access, nil)
+	if err == nil || !strings.Contains(err.Error(), "service-equivalent artifact lifecycle access is required") {
+		t.Fatalf("expected service-equivalent access rejection, got %v", err)
+	}
+}
+
 func TestDigestPersistence_RejectsShortFamilyAlias(t *testing.T) {
 	store := newDigestStore(t)
 

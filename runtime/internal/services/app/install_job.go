@@ -294,7 +294,9 @@ func (m *installJobManager) listJobs(appID string) []*runtimev1.AppInstallJob {
 	return out
 }
 
-// subscribe registers a watch subscriber. An empty jobID streams every job.
+// subscribe registers a watch subscriber for one job and enqueues the current
+// snapshot so callers that subscribe after job creation still observe typed
+// state before later progress frames.
 func (m *installJobManager) subscribe(jobID string) installJobSubscriber {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -308,6 +310,14 @@ func (m *installJobManager) subscribe(jobID string) installJobSubscriber {
 		}),
 	}
 	m.subscribers[sub.id] = sub
+	if job := m.jobs[jobID]; job != nil {
+		m.nextSeq++
+		_ = sub.relay.Enqueue(&runtimev1.AppInstallJobEvent{
+			Sequence:  m.nextSeq,
+			Job:       cloneInstallJob(job),
+			Timestamp: timestamppb.New(m.now().UTC()),
+		})
+	}
 	return sub
 }
 

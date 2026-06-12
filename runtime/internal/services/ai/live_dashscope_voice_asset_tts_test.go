@@ -96,8 +96,9 @@ func runLiveSmokeDashScopeVoiceAssetBackedTTS(
 	if voiceAssetID == "" {
 		t.Fatalf("DashScope voice workflow must return voice asset")
 	}
+	ownerCtx := scenarioJobUserContext(liveSmokeMatrixAppID, liveSmokeMatrixUserID)
 	defer func() {
-		deleteResp, deleteErr := svc.DeleteVoiceAsset(context.Background(), &runtimev1.DeleteVoiceAssetRequest{VoiceAssetId: voiceAssetID})
+		deleteResp, deleteErr := svc.DeleteVoiceAsset(ownerCtx, &runtimev1.DeleteVoiceAssetRequest{VoiceAssetId: voiceAssetID})
 		if deleteErr != nil {
 			t.Errorf("DeleteVoiceAsset(%s): %v", voiceAssetID, deleteErr)
 			return
@@ -111,7 +112,7 @@ func runLiveSmokeDashScopeVoiceAssetBackedTTS(
 	if workflowJob.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
 		t.Fatalf("DashScope voice workflow job status not completed: %s reason=%s detail=%s", workflowJob.GetStatus().String(), workflowJob.GetReasonCode().String(), workflowJob.GetReasonDetail())
 	}
-	assetResp, err := svc.GetVoiceAsset(context.Background(), &runtimev1.GetVoiceAssetRequest{VoiceAssetId: voiceAssetID})
+	assetResp, err := svc.GetVoiceAsset(ownerCtx, &runtimev1.GetVoiceAssetRequest{VoiceAssetId: voiceAssetID})
 	if err != nil {
 		t.Fatalf("GetVoiceAsset(%s): %v", voiceAssetID, err)
 	}

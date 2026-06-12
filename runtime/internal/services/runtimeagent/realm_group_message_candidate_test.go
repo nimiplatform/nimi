@@ -24,6 +24,24 @@ type testRealmGroupMessageCandidateAI struct {
 	inspect func(*runtimev1.ExecuteScenarioRequest)
 }
 
+type testRealmGroupMessageCandidateBindingResolver struct {
+	modelID     string
+	routePolicy runtimev1.RoutePolicy
+	calls       int
+	inspect     func(PublicChatBindingResolutionRequest)
+}
+
+func (r *testRealmGroupMessageCandidateBindingResolver) ResolvePublicChatBinding(_ context.Context, req PublicChatBindingResolutionRequest) (PublicChatBindingResolution, error) {
+	r.calls++
+	if r.inspect != nil {
+		r.inspect(req)
+	}
+	return PublicChatBindingResolution{
+		ModelID:     strings.TrimSpace(r.modelID),
+		RoutePolicy: r.routePolicy,
+	}, nil
+}
+
 func (e *testRealmGroupMessageCandidateExecutor) CreateRealmGroupMessageCandidate(_ context.Context, input RealmGroupMessageCandidateExecutionInput) (RealmGroupMessageCandidateExecutionOutput, error) {
 	e.calls++
 	output := e.output
@@ -38,6 +56,33 @@ func (e *testRealmGroupMessageCandidateExecutor) CreateRealmGroupMessageCandidat
 	}
 	if output.PolicyVerdictRef == "" {
 		output.PolicyVerdictRef = "runtime-policy:" + input.CandidateID
+	}
+	if output.ProfileKind == "" {
+		output.ProfileKind = "realm_group_agent"
+	}
+	if output.IdentitySource == "" {
+		output.IdentitySource = "runtime_local_agent_identity"
+	}
+	if output.ParticipantRef == "" {
+		output.ParticipantRef = input.LocalAgentRef
+	}
+	if len(output.ContextBlockRefs) == 0 {
+		output.ContextBlockRefs = realmGroupCandidateContextBlockRefs(input.ContextRefs)
+	}
+	if output.OutputDestination == "" {
+		output.OutputDestination = "realm_group_thread:" + input.RealmGroupThreadID
+	}
+	if output.MemoryReadVerdict == "" {
+		output.MemoryReadVerdict = "PASS"
+	}
+	if output.MemoryWriteVerdict == "" {
+		output.MemoryWriteVerdict = "PASS"
+	}
+	if output.CapabilityScopeVerdict == "" {
+		output.CapabilityScopeVerdict = "PASS"
+	}
+	if output.AuditID == "" {
+		output.AuditID = "runtime-audit:" + input.CandidateID
 	}
 	return output, nil
 }
@@ -135,6 +180,12 @@ func TestAIBackedRealmGroupMessageCandidateExecutorCreatesMessageEvidence(t *tes
 			if req.GetHead().GetFallback() != runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY {
 				t.Fatalf("expected fallback deny, got %v", req.GetHead().GetFallback())
 			}
+			if req.GetHead().GetModelId() != "realm-group-routing-model" {
+				t.Fatalf("executor model id = %q", req.GetHead().GetModelId())
+			}
+			if req.GetHead().GetRoutePolicy() != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
+				t.Fatalf("executor route policy = %v", req.GetHead().GetRoutePolicy())
+			}
 			spec := req.GetSpec().GetTextGenerate()
 			if spec == nil {
 				t.Fatal("expected text generate scenario spec")
@@ -147,7 +198,19 @@ func TestAIBackedRealmGroupMessageCandidateExecutorCreatesMessageEvidence(t *tes
 			}
 		},
 	}
-	svc.SetRealmGroupMessageCandidateExecutor(NewAIBackedRealmGroupMessageCandidateExecutor(ai))
+	binding := &testRealmGroupMessageCandidateBindingResolver{
+		modelID:     "realm-group-routing-model",
+		routePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+		inspect: func(req PublicChatBindingResolutionRequest) {
+			if req.ModelID != realmGroupMessageCandidateRoutingProfile {
+				t.Fatalf("routing model token = %q", req.ModelID)
+			}
+			if req.SubjectUserID != "user-01" {
+				t.Fatalf("routing subject = %q", req.SubjectUserID)
+			}
+		},
+	}
+	svc.SetRealmGroupMessageCandidateExecutor(NewAIBackedRealmGroupMessageCandidateExecutorWithBinding(ai, binding))
 	req := validRealmGroupMessageCandidateRequestWithTypedRefs("idem-ai-message")
 	resp, err := svc.CreateRealmGroupMessageCandidate(context.Background(), req)
 	if err != nil {
@@ -155,6 +218,9 @@ func TestAIBackedRealmGroupMessageCandidateExecutorCreatesMessageEvidence(t *tes
 	}
 	if ai.calls != 1 {
 		t.Fatalf("expected one AI execution call, got %d", ai.calls)
+	}
+	if binding.calls != 1 {
+		t.Fatalf("expected one routing resolver call, got %d", binding.calls)
 	}
 	candidate := resp.GetCandidate()
 	if candidate.GetRuntimeTraceRef() != "trace-rgmc-1" {
@@ -185,11 +251,11 @@ func TestAIBackedRealmGroupMessageCandidateExecutorCreatesMessageEvidence(t *tes
 
 func TestAIBackedRealmGroupMessageCandidateExecutorCreatesRefusalEvidence(t *testing.T) {
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
-	svc.SetRealmGroupMessageCandidateExecutor(NewAIBackedRealmGroupMessageCandidateExecutor(&testRealmGroupMessageCandidateAI{
+	svc.SetRealmGroupMessageCandidateExecutor(NewAIBackedRealmGroupMessageCandidateExecutorWithBinding(&testRealmGroupMessageCandidateAI{
 		t:       t,
 		output:  `<realm-group-message-candidate><refusal code="insufficient_context">Realm context refs are insufficient.</refusal></realm-group-message-candidate>`,
 		traceID: "trace-rgmc-refusal",
-	}))
+	}, &testRealmGroupMessageCandidateBindingResolver{modelID: "realm-group-routing-model", routePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL}))
 	req := validRealmGroupMessageCandidateRequestWithTypedRefs("idem-ai-refusal")
 	resp, err := svc.CreateRealmGroupMessageCandidate(context.Background(), req)
 	if err != nil {
@@ -224,27 +290,29 @@ func TestAIBackedRealmGroupMessageCandidateExecutorCreatesRefusalEvidence(t *tes
 
 func TestAIBackedRealmGroupMessageCandidateExecutorFailsClosed(t *testing.T) {
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
-	svc.SetRealmGroupMessageCandidateExecutor(NewAIBackedRealmGroupMessageCandidateExecutor(&testRealmGroupMessageCandidateAI{
+	svc.SetRealmGroupMessageCandidateExecutor(NewAIBackedRealmGroupMessageCandidateExecutorWithBinding(&testRealmGroupMessageCandidateAI{
 		t:      t,
 		output: `<realm-group-message-candidate><message>hello</message></realm-group-message-candidate>`,
-	}))
-	if _, err := svc.CreateRealmGroupMessageCandidate(context.Background(), validRealmGroupMessageCandidateRequest("idem-ai-missing-refs")); status.Code(err) != codes.InvalidArgument {
+	}, &testRealmGroupMessageCandidateBindingResolver{modelID: "realm-group-routing-model", routePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL}))
+	missingTypedRefsReq := validRealmGroupMessageCandidateRequest("idem-ai-missing-refs")
+	missingTypedRefsReq.ContextRefs = nil
+	if _, err := svc.CreateRealmGroupMessageCandidate(context.Background(), missingTypedRefsReq); status.Code(err) != codes.InvalidArgument {
 		t.Fatalf("expected InvalidArgument for missing typed refs, got %v", err)
 	}
 
-	svc.SetRealmGroupMessageCandidateExecutor(NewAIBackedRealmGroupMessageCandidateExecutor(&testRealmGroupMessageCandidateAI{
+	svc.SetRealmGroupMessageCandidateExecutor(NewAIBackedRealmGroupMessageCandidateExecutorWithBinding(&testRealmGroupMessageCandidateAI{
 		t:       t,
 		output:  `plain text is not admitted`,
 		traceID: "trace-rgmc-invalid-output",
-	}))
+	}, &testRealmGroupMessageCandidateBindingResolver{modelID: "realm-group-routing-model", routePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL}))
 	if _, err := svc.CreateRealmGroupMessageCandidate(context.Background(), validRealmGroupMessageCandidateRequestWithTypedRefs("idem-ai-invalid-output")); status.Code(err) != codes.InvalidArgument {
 		t.Fatalf("expected InvalidArgument for invalid APML output, got %v", err)
 	}
 
-	svc.SetRealmGroupMessageCandidateExecutor(NewAIBackedRealmGroupMessageCandidateExecutor(&testRealmGroupMessageCandidateAI{
+	svc.SetRealmGroupMessageCandidateExecutor(NewAIBackedRealmGroupMessageCandidateExecutorWithBinding(&testRealmGroupMessageCandidateAI{
 		t:      t,
 		output: `<realm-group-message-candidate><message>hello</message></realm-group-message-candidate>`,
-	}))
+	}, &testRealmGroupMessageCandidateBindingResolver{modelID: "realm-group-routing-model", routePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL}))
 	if _, err := svc.CreateRealmGroupMessageCandidate(context.Background(), validRealmGroupMessageCandidateRequestWithTypedRefs("idem-ai-missing-trace")); status.Code(err) != codes.InvalidArgument {
 		t.Fatalf("expected InvalidArgument for missing runtime trace, got %v", err)
 	}
@@ -259,6 +327,12 @@ func TestAIBackedRealmGroupMessageCandidateExecutorFailsClosed(t *testing.T) {
 	rawTopLevelRefReq.TriggerRef = "please answer this group message"
 	if _, err := svc.CreateRealmGroupMessageCandidate(context.Background(), rawTopLevelRefReq); status.Code(err) != codes.InvalidArgument {
 		t.Fatalf("expected InvalidArgument for raw top-level ref content, got %v", err)
+	}
+
+	realmOwnedOrchestrationReq := validRealmGroupMessageCandidateRequestWithTypedRefs("idem-ai-realm-owned-orchestration")
+	realmOwnedOrchestrationReq.RoomOrchestrationRef = "realm://group-chats/chat-01/orchestration/current"
+	if _, err := svc.CreateRealmGroupMessageCandidate(context.Background(), realmOwnedOrchestrationReq); status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("expected InvalidArgument for realm-owned room orchestration ref, got %v", err)
 	}
 
 	rawLocalAgentRefReq := validRealmGroupMessageCandidateRequestWithTypedRefs("idem-ai-raw-local-agent-ref")
@@ -276,6 +350,15 @@ func TestAIBackedRealmGroupMessageCandidateExecutorFailsClosed(t *testing.T) {
 	oversizedLocalAgentRefReq.LocalAgentRef = "local-agent:" + oversizedOwnerID + ":agent-01"
 	if _, err := svc.CreateRealmGroupMessageCandidate(context.Background(), oversizedLocalAgentRefReq); status.Code(err) != codes.InvalidArgument {
 		t.Fatalf("expected InvalidArgument for oversized local agent ref, got %v", err)
+	}
+
+	svc.SetRealmGroupMessageCandidateExecutor(NewAIBackedRealmGroupMessageCandidateExecutor(&testRealmGroupMessageCandidateAI{
+		t:       t,
+		output:  `<realm-group-message-candidate><message>hello</message></realm-group-message-candidate>`,
+		traceID: "trace-rgmc-no-routing",
+	}))
+	if _, err := svc.CreateRealmGroupMessageCandidate(context.Background(), validRealmGroupMessageCandidateRequestWithTypedRefs("idem-ai-no-routing-resolver")); status.Code(err) != codes.FailedPrecondition {
+		t.Fatalf("expected FailedPrecondition without routing resolver, got %v", err)
 	}
 }
 
@@ -347,16 +430,81 @@ func TestRealmGroupMessageCandidateFailsClosed(t *testing.T) {
 	if status.Code(err) != codes.InvalidArgument {
 		t.Fatalf("expected InvalidArgument for local agent mismatch, got %v", err)
 	}
+
+	wrongContext := &runtimev1.AgentRequestContext{AppId: "realm", SubjectUserId: "user-other"}
+	_, err = svc.GetRealmGroupMessageCandidateEvidence(context.Background(), &runtimev1.GetRealmGroupMessageCandidateEvidenceRequest{
+		Context:                       wrongContext,
+		CandidateId:                   resp.GetCandidate().GetCandidateId(),
+		CandidateKind:                 resp.GetCandidate().GetCandidateKind(),
+		CandidateEvidenceRef:          resp.GetCandidate().GetCandidateEvidenceRef(),
+		EvidenceHash:                  resp.GetCandidate().GetEvidenceHash(),
+		RuntimeTraceRef:               resp.GetCandidate().GetRuntimeTraceRef(),
+		ExpectedRealmGroupAgentSlotId: req.GetRealmGroupAgentSlotId(),
+		ExpectedLocalAgentRef:         req.GetLocalAgentRef(),
+		TriggerRef:                    req.GetTriggerRef(),
+		TargetRealmGroupThreadId:      req.GetRealmGroupThreadId(),
+	})
+	if status.Code(err) != codes.PermissionDenied {
+		t.Fatalf("expected PermissionDenied for mismatched evidence context, got %v", err)
+	}
+}
+
+func TestRealmGroupMessageCandidateRejectsBoundedRefsWithoutAuthorityEvidenceClass(t *testing.T) {
+	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	executor := &testRealmGroupMessageCandidateExecutor{
+		output: RealmGroupMessageCandidateExecutionOutput{
+			CommitDisposition: runtimev1.RealmGroupMessageCandidateCommitDisposition_REALM_GROUP_MESSAGE_CANDIDATE_COMMIT_DISPOSITION_MESSAGE_CANDIDATE,
+			MessageType:       "TEXT",
+			Body:              "must not execute",
+		},
+	}
+	svc.SetRealmGroupMessageCandidateExecutor(executor)
+
+	cases := []struct {
+		name   string
+		mutate func(*runtimev1.CreateRealmGroupMessageCandidateRequest)
+	}{
+		{
+			name: "trigger_ref_without_admitted_trigger_class",
+			mutate: func(req *runtimev1.CreateRealmGroupMessageCandidateRequest) {
+				req.TriggerRef = "realm://group-chats/chat-01/triggers/message-01"
+			},
+		},
+		{
+			name: "membership_snapshot_ref_without_membership_snapshot_class",
+			mutate: func(req *runtimev1.CreateRealmGroupMessageCandidateRequest) {
+				req.MembershipSnapshotRef = "runtime-context://realm-group/chat-01/context/current"
+			},
+		},
+		{
+			name: "read_cursor_ref_without_read_cursor_class",
+			mutate: func(req *runtimev1.CreateRealmGroupMessageCandidateRequest) {
+				req.ReadCursorRef = "runtime-context://realm-group/chat-01/context/user-01"
+			},
+		},
+		{
+			name: "context_ref_without_typed_evidence_class",
+			mutate: func(req *runtimev1.CreateRealmGroupMessageCandidateRequest) {
+				req.ContextRefs[realmGroupCandidateContextRecentMessages] = "runtime-context://realm-group/chat-01/context/current"
+			},
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			req := validRealmGroupMessageCandidateRequestWithTypedRefs("idem-" + tc.name)
+			tc.mutate(req)
+			if _, err := svc.CreateRealmGroupMessageCandidate(context.Background(), req); status.Code(err) != codes.InvalidArgument {
+				t.Fatalf("expected InvalidArgument, got %v", err)
+			}
+		})
+	}
+	if executor.calls != 0 {
+		t.Fatalf("authority evidence rejection must happen before executor dispatch, calls=%d", executor.calls)
+	}
 }
 
 func validRealmGroupMessageCandidateRequestWithTypedRefs(idempotencyKey string) *runtimev1.CreateRealmGroupMessageCandidateRequest {
 	req := validRealmGroupMessageCandidateRequest(idempotencyKey)
-	req.ContextRefs = map[string]string{
-		realmGroupCandidateContextThreadSnapshot: "runtime-context://realm-group/chat-01/thread",
-		realmGroupCandidateContextSlotSnapshot:   "runtime-context://realm-group/chat-01/slot-01",
-		realmGroupCandidateContextRecentMessages: "runtime-context://realm-group/chat-01/recent-messages",
-		realmGroupCandidateContextPolicy:         "runtime-context://realm-group/chat-01/policy",
-	}
 	return req
 }
 
@@ -380,10 +528,16 @@ func validRealmGroupMessageCandidateRequest(idempotencyKey string) *runtimev1.Cr
 		OwnerUserId:           "user-01",
 		RealmAgentId:          "agent-01",
 		LocalAgentRef:         "local-agent:user-01:agent-01",
-		TriggerRef:            "realm://group-chats/chat-01/triggers/message-01",
-		MembershipSnapshotRef: "realm://group-chats/chat-01/membership-snapshots/current",
-		ReadCursorRef:         "realm://group-chats/chat-01/read-cursors/user-01",
-		RoomOrchestrationRef:  "realm://group-chats/chat-01/orchestration/current",
+		TriggerRef:            "runtime://room-orchestration/realm-group/chat-01/trigger-event/canonical_user_turn/message-01",
+		MembershipSnapshotRef: "runtime-context://realm-group/chat-01/membership-snapshots/current",
+		ReadCursorRef:         "runtime-context://realm-group/chat-01/read-cursors/user-01",
+		RoomOrchestrationRef:  "runtime://realm-group/chat-01/orchestration/current",
 		IdempotencyKey:        idempotencyKey,
+		ContextRefs: map[string]string{
+			realmGroupCandidateContextThreadSnapshot: "runtime-context://realm-group/chat-01/thread",
+			realmGroupCandidateContextSlotSnapshot:   "runtime-context://realm-group/chat-01/slot-01",
+			realmGroupCandidateContextRecentMessages: "runtime-context://realm-group/chat-01/recent-messages",
+			realmGroupCandidateContextPolicy:         "runtime-context://realm-group/chat-01/policy",
+		},
 	}
 }

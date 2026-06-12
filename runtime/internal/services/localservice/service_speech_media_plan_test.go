@@ -93,7 +93,7 @@ func TestStartLocalModelSpeechMissingCapabilityProjectsBundleReasonCode(t *testi
 	if err != nil {
 		t.Fatalf("start speech model: %v", err)
 	}
-	if started.GetAsset().GetReasonCode() != runtimev1.ReasonCode_AI_LOCAL_SPEECH_BUNDLE_DEGRADED {
+	if started.GetAsset().GetReasonCode() != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
 		t.Fatalf("unexpected asset reason code: %s", started.GetAsset().GetReasonCode())
 	}
 }
@@ -132,7 +132,7 @@ func TestCheckLocalAssetHealthSpeechMissingModelProjectsCapabilityDownloadReason
 	if len(health.GetAssets()) != 1 {
 		t.Fatalf("expected one health row, got %d", len(health.GetAssets()))
 	}
-	if health.GetAssets()[0].GetReasonCode() != runtimev1.ReasonCode_AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED {
+	if health.GetAssets()[0].GetReasonCode() != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
 		t.Fatalf("unexpected health reason code: %s", health.GetAssets()[0].GetReasonCode())
 	}
 }

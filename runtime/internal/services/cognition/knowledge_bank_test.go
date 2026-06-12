@@ -1,7 +1,6 @@
 package cognition
 
 import (
-	"context"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -16,7 +15,7 @@ func TestCreateKnowledgeBankAppPrivateRegistersTypedScope(t *testing.T) {
 	svc, _, cleanup := newTestService(t)
 	defer cleanup()
 
-	ctx := context.Background()
+	ctx := testKnowledgeEnvelopeContext("app.s2-1")
 	resp, err := svc.CreateKnowledgeBank(ctx, &runtimev1.CreateKnowledgeBankRequest{
 		Context: &runtimev1.KnowledgeRequestContext{AppId: "app.s2-1"},
 		Locator: &runtimev1.PublicKnowledgeBankLocator{
@@ -56,7 +55,7 @@ func TestCreateKnowledgeBankDuplicateReasonCode(t *testing.T) {
 	svc, _, cleanup := newTestService(t)
 	defer cleanup()
 
-	ctx := context.Background()
+	ctx := testKnowledgeEnvelopeContext("app.s2-2")
 	first := &runtimev1.CreateKnowledgeBankRequest{
 		Context: &runtimev1.KnowledgeRequestContext{AppId: "app.s2-2"},
 		Locator: &runtimev1.PublicKnowledgeBankLocator{
@@ -90,7 +89,7 @@ func TestGetKnowledgeBankMissingReasonCode(t *testing.T) {
 	svc, _, cleanup := newTestService(t)
 	defer cleanup()
 
-	ctx := context.Background()
+	ctx := testKnowledgeEnvelopeContext("app.s2-2-miss")
 	_, err := svc.GetKnowledgeBank(ctx, &runtimev1.GetKnowledgeBankRequest{
 		Context: &runtimev1.KnowledgeRequestContext{AppId: "app.s2-2-miss"},
 		BankId:  "nonexistent01JXYZ12345678901234567",
@@ -113,8 +112,8 @@ func TestGetKnowledgeBankCrossAppDenied(t *testing.T) {
 	svc, _, cleanup := newTestService(t)
 	defer cleanup()
 
-	ctx := context.Background()
-	resp, err := svc.CreateKnowledgeBank(ctx, &runtimev1.CreateKnowledgeBankRequest{
+	ownerCtx := testKnowledgeEnvelopeContext("app.owner")
+	resp, err := svc.CreateKnowledgeBank(ownerCtx, &runtimev1.CreateKnowledgeBankRequest{
 		Context: &runtimev1.KnowledgeRequestContext{AppId: "app.owner"},
 		Locator: &runtimev1.PublicKnowledgeBankLocator{
 			Locator: &runtimev1.PublicKnowledgeBankLocator_AppPrivate{
@@ -126,12 +125,48 @@ func TestGetKnowledgeBankCrossAppDenied(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create: %v", err)
 	}
-	_, err = svc.GetKnowledgeBank(ctx, &runtimev1.GetKnowledgeBankRequest{
+	intruderCtx := testKnowledgeEnvelopeContext("app.intruder")
+	_, err = svc.GetKnowledgeBank(intruderCtx, &runtimev1.GetKnowledgeBankRequest{
 		Context: &runtimev1.KnowledgeRequestContext{AppId: "app.intruder"},
 		BankId:  resp.GetBank().GetBankId(),
 	})
 	if err == nil {
 		t.Fatalf("expected cross-app deny")
+	}
+	if status.Code(err) != codes.PermissionDenied {
+		t.Fatalf("expected PermissionDenied, got %v", err)
+	}
+	reason, ok := grpcerr.ExtractReasonCode(err)
+	if !ok || reason != runtimev1.ReasonCode_KNOWLEDGE_BANK_ACCESS_DENIED {
+		t.Fatalf("expected KNOWLEDGE_BANK_ACCESS_DENIED, got reason=%v ok=%v", reason, ok)
+	}
+}
+
+func TestGetKnowledgeBankIgnoresForgedRequestContextAppID(t *testing.T) {
+	svc, _, cleanup := newTestService(t)
+	defer cleanup()
+
+	ownerCtx := testKnowledgeEnvelopeContext("app.owner")
+	resp, err := svc.CreateKnowledgeBank(ownerCtx, &runtimev1.CreateKnowledgeBankRequest{
+		Context: &runtimev1.KnowledgeRequestContext{AppId: "app.owner"},
+		Locator: &runtimev1.PublicKnowledgeBankLocator{
+			Locator: &runtimev1.PublicKnowledgeBankLocator_AppPrivate{
+				AppPrivate: &runtimev1.KnowledgeAppPrivateOwner{AppId: "app.owner"},
+			},
+		},
+		DisplayName: "Owner Bank",
+	})
+	if err != nil {
+		t.Fatalf("create: %v", err)
+	}
+
+	intruderCtx := testKnowledgeEnvelopeContext("app.intruder")
+	_, err = svc.GetKnowledgeBank(intruderCtx, &runtimev1.GetKnowledgeBankRequest{
+		Context: &runtimev1.KnowledgeRequestContext{AppId: "app.owner"},
+		BankId:  resp.GetBank().GetBankId(),
+	})
+	if err == nil {
+		t.Fatalf("expected forged request context app_id to be denied")
 	}
 	if status.Code(err) != codes.PermissionDenied {
 		t.Fatalf("expected PermissionDenied, got %v", err)

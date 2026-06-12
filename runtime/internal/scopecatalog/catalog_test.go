@@ -76,9 +76,9 @@ func TestHasRevokedScopeEmptyInputs(t *testing.T) {
 	}
 }
 
-func TestValidateScopesRecognizedPrefixes(t *testing.T) {
+func TestValidateScopesAdmittedMembership(t *testing.T) {
 	c := New()
-	recognized := []string{
+	admitted := []string{
 		"runtime.health",
 		"realm.settings",
 		"app.messages",
@@ -87,7 +87,7 @@ func TestValidateScopesRecognizedPrefixes(t *testing.T) {
 		"write:data",
 		"grant:admin",
 	}
-	code := c.ValidateScopes("sdk-v1", recognized)
+	code := c.ValidateScopes("sdk-v1", admitted)
 	if code != runtimev1.ReasonCode_ACTION_EXECUTED {
 		t.Fatalf("valid scopes should return ACTION_EXECUTED, got=%v", code)
 	}
@@ -103,7 +103,7 @@ func TestValidateScopesUnrecognizedPrefix(t *testing.T) {
 
 func TestValidateScopesRejectsMalformedRecognizedPrefix(t *testing.T) {
 	c := New()
-	for _, scope := range []string{"runtime.", "realm..settings", "app. ", "read:", "write:bad:extra"} {
+	for _, scope := range []string{"runtime.", "realm..settings", "app. ", "read:", "write:bad:extra", "runtime.well_formed_but_unpublished"} {
 		if code := c.ValidateScopes("sdk-v1", []string{scope}); code != runtimev1.ReasonCode_CAPABILITY_CATALOG_MISMATCH {
 			t.Fatalf("malformed scope %q should return CAPABILITY_CATALOG_MISMATCH, got=%v", scope, code)
 		}

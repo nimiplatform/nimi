@@ -3,6 +3,7 @@ package localservice
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -86,6 +87,11 @@ func (s *Service) ImportLocalAsset(_ context.Context, req *runtimev1.ImportLocal
 		collectDeviceProfile(),
 	)
 	binding = normalizeLocalImportRuntimeBinding(engine, capabilities, kind, binding)
+	if err := validateImportManifestDeclaredFileHashes(manifest, manifestPath, hashes, normalizeRuntimeMode(binding.mode) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED); err != nil {
+		return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID, grpcerr.ReasonOptions{
+			Message: err.Error(),
+		})
+	}
 	deviceProfile := collectDeviceProfile()
 	importCompatibilityDetail := ""
 	if isCanonicalSupervisedImageAsset(engine, capabilities, kind) {
@@ -259,6 +265,32 @@ func (s *Service) ImportLocalAsset(_ context.Context, req *runtimev1.ImportLocal
 		return nil, err
 	}
 	return &runtimev1.ImportLocalAssetResponse{Asset: record}, nil
+}
+
+func validateImportManifestDeclaredFileHashes(manifest map[string]any, manifestPath string, hashes map[string]string, supervised bool) error {
+	files := normalizeStringSlice(valueAsStringSlice(manifest["files"]))
+	if len(files) == 0 {
+		if !supervised {
+			return nil
+		}
+		discovered, err := listManagedBundleRelativeFiles(filepath.Dir(manifestPath))
+		if err != nil {
+			return err
+		}
+		files = normalizeStringSlice(discovered)
+	}
+	if supervised && len(files) == 0 {
+		return fmt.Errorf("supervised import manifest files are required")
+	}
+	for _, file := range files {
+		if strings.TrimSpace(file) == "" {
+			continue
+		}
+		if expectedModelSHA256(hashes, file) == "" {
+			return fmt.Errorf("manifest file %q requires non-empty sha256 hash", file)
+		}
+	}
+	return nil
 }
 
 func (s *Service) finalizeImportedCanonicalImageRecord(record *runtimev1.LocalAssetRecord, compatibilityDetail string) (*runtimev1.LocalAssetRecord, error) {

@@ -171,6 +171,11 @@ func (s *scenarioJobStore) transition(
 		s.mu.Unlock()
 		return nil, false
 	}
+	if isTerminalScenarioJobStatus(record.job.GetStatus()) {
+		job := cloneScenarioJob(record.job)
+		s.mu.Unlock()
+		return job, false
+	}
 	if mutate != nil {
 		mutate(record.job)
 	}

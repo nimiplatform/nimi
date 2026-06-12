@@ -529,6 +529,19 @@ func apmlHookIntentValue(input *apmlHookIntent) (*runtimev1.HookIntent, error) {
 	if input == nil {
 		return nil, nil
 	}
+	triggerChildren := 0
+	if input.Time != nil {
+		triggerChildren++
+	}
+	if input.EventUserIdle != nil {
+		triggerChildren++
+	}
+	if input.EventChatEnded != nil {
+		triggerChildren++
+	}
+	if triggerChildren != 1 {
+		return nil, fmt.Errorf("APML hook must include exactly one time, event-user-idle, or event-chat-ended trigger")
+	}
 	intent := &runtimev1.HookIntent{
 		IntentId:       strings.TrimSpace(input.IntentID),
 		Effect:         runtimev1.HookEffect_HOOK_EFFECT_FOLLOW_UP_TURN,

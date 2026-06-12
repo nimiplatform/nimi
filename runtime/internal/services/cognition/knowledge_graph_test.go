@@ -1,7 +1,6 @@
 package cognition
 
 import (
-	"context"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -15,7 +14,7 @@ import (
 func TestAddLinkCrossBankInvalid(t *testing.T) {
 	svc, _, cleanup := newTestService(t)
 	defer cleanup()
-	ctx := context.Background()
+	ctx := testKnowledgeEnvelopeContext("app.s2-12")
 	reqCtx := &runtimev1.KnowledgeRequestContext{AppId: "app.s2-12"}
 	bankA := newAppPrivateBank(t, svc, "app.s2-12", "Bank A")
 	bankB := newAppPrivateBank(t, svc, "app.s2-12", "Bank B")
@@ -55,7 +54,7 @@ func TestAddLinkCrossBankInvalid(t *testing.T) {
 func TestRemoveLinkReflectedInBacklinks(t *testing.T) {
 	svc, _, cleanup := newTestService(t)
 	defer cleanup()
-	ctx := context.Background()
+	ctx := testKnowledgeEnvelopeContext("app.s2-13")
 	reqCtx := &runtimev1.KnowledgeRequestContext{AppId: "app.s2-13"}
 	bankID := newAppPrivateBank(t, svc, "app.s2-13", "S2.13 Bank")
 

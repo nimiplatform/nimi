@@ -90,8 +90,15 @@ func TestQwenSpeechDriversResolveManagedBundleDirectory(t *testing.T) {
 	if got := runPythonDriverResolveModelRef(t, "qwen3_asr_driver.py", speechQwen3ASRDriverScript, request, "Qwen/Qwen3-ASR-0.6B"); got != bundleDir {
 		t.Fatalf("asr resolve_model_ref = %q, want managed bundle dir %q", got, bundleDir)
 	}
-	if got := runPythonDriverResolveModelRef(t, "qwen3_tts_driver.py", speechQwen3TTSDriverScript, request, "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice"); got != bundleDir {
+	if got := runPythonDriverResolveModelRef(t, "qwen3_tts_driver.py", speechQwen3TTSDriverScript, request, "unused-explicit-model-ref"); got != bundleDir {
 		t.Fatalf("tts resolve_model_ref = %q, want managed bundle dir %q", got, bundleDir)
+	}
+}
+
+func TestQwenTTSDriverRequiresExplicitModelRef(t *testing.T) {
+	got := runPythonDriverResolveModelRefExpectFailure(t, "qwen3_tts_driver.py", speechQwen3TTSDriverScript, `{}`, "")
+	if !strings.Contains(got, "qwen3_tts model_ref is required") {
+		t.Fatalf("expected explicit qwen3_tts model_ref failure, got %q", got)
 	}
 }
 

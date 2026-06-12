@@ -147,12 +147,18 @@ func (s *Service) SubmitDelegatedApprovalDecision(_ context.Context, req *runtim
 	}
 	var nextState runtimev1.DelegatedApprovalRequestState
 	switch req.GetDecision() {
-	case runtimev1.DelegatedApprovalDecision_DELEGATED_APPROVAL_DECISION_APPROVE:
-		nextState = runtimev1.DelegatedApprovalRequestState_DELEGATED_APPROVAL_REQUEST_STATE_APPROVED
-	case runtimev1.DelegatedApprovalDecision_DELEGATED_APPROVAL_DECISION_REJECT:
+	case runtimev1.DelegatedApprovalDecision_DELEGATED_APPROVAL_DECISION_APPROVED_ONCE:
+		nextState = runtimev1.DelegatedApprovalRequestState_DELEGATED_APPROVAL_REQUEST_STATE_APPROVED_ONCE
+	case runtimev1.DelegatedApprovalDecision_DELEGATED_APPROVAL_DECISION_REJECTED:
 		nextState = runtimev1.DelegatedApprovalRequestState_DELEGATED_APPROVAL_REQUEST_STATE_REJECTED
+	case runtimev1.DelegatedApprovalDecision_DELEGATED_APPROVAL_DECISION_APPROVED_FOR_SESSION:
+		nextState = runtimev1.DelegatedApprovalRequestState_DELEGATED_APPROVAL_REQUEST_STATE_APPROVED_FOR_SESSION
+	case runtimev1.DelegatedApprovalDecision_DELEGATED_APPROVAL_DECISION_POLICY_BLOCKED:
+		nextState = runtimev1.DelegatedApprovalRequestState_DELEGATED_APPROVAL_REQUEST_STATE_POLICY_BLOCKED
+	case runtimev1.DelegatedApprovalDecision_DELEGATED_APPROVAL_DECISION_EXPIRED:
+		nextState = runtimev1.DelegatedApprovalRequestState_DELEGATED_APPROVAL_REQUEST_STATE_EXPIRED
 	default:
-		return nil, status.Error(codes.InvalidArgument, "delegated approval decision must be APPROVE or REJECT")
+		return nil, status.Error(codes.InvalidArgument, "delegated approval decision is required")
 	}
 	s.delegatedMu.Lock()
 	s.ensureDelegatedControlStoresLocked()
@@ -174,6 +180,11 @@ func (s *Service) SubmitDelegatedApprovalDecision(_ context.Context, req *runtim
 	approval = proto.Clone(approval).(*runtimev1.DelegatedApprovalRequest)
 	approval.State = nextState
 	approval.UpdatedAt = timestamppb.New(time.Now().UTC())
+	auditEvent, err := s.delegatedApprovalDecisionAuditEvent(agentID, approval, delegatedApprovalPrincipalID(req.GetContext()))
+	if err != nil {
+		s.delegatedMu.Unlock()
+		return nil, status.Errorf(codes.FailedPrecondition, "delegated approval decision audit linkage failed: %v", err)
+	}
 	s.delegatedApprovalRequests[delegatedApprovalRequestKey(agentID, approvalID)] = proto.Clone(approval).(*runtimev1.DelegatedApprovalRequest)
 	if err := s.persistDelegatedControlStateLocked(); err != nil {
 		s.delegatedApprovalRequests[delegatedApprovalRequestKey(agentID, approvalID)] = previous
@@ -183,11 +194,11 @@ func (s *Service) SubmitDelegatedApprovalDecision(_ context.Context, req *runtim
 	out := proto.Clone(approval).(*runtimev1.DelegatedApprovalRequest)
 	s.delegatedMu.Unlock()
 
-	// K-DELEG-095 / K-DELEG-097: every approval decision (APPROVE and REJECT)
+	// K-DELEG-095 / K-DELEG-097: every approval decision
 	// must be audited and observable, linked to delegation/provider/capability/
 	// principal lineage. Emitted after the lock is released, mirroring the
 	// orchestration decision-recording path.
-	s.appendDelegatedApprovalDecisionAuditEvent(agentID, out, delegatedApprovalPrincipalID(req.GetContext()))
+	s.auditStore.AppendEvent(auditEvent)
 	return &runtimev1.SubmitDelegatedApprovalDecisionResponse{ApprovalRequest: out}, nil
 }
 
@@ -259,11 +270,15 @@ func (s *Service) validateDelegatedControlRequest(ctx *runtimev1.AgentRequestCon
 	if callerAppID == "" {
 		return "", status.Error(codes.InvalidArgument, "context.app_id is required")
 	}
-	if scopedBinding := ctx.GetScopedBinding(); scopedBinding != nil {
+	if strings.TrimSpace(requiredScope) != "" {
+		scopedBinding := ctx.GetScopedBinding()
+		if scopedBinding == nil {
+			return "", runtimeAgentBindingError(runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BINDING_NOT_FOUND)
+		}
 		if err := s.validateScopedBindingAttachment(scopedBinding, callerAppID, trimmedAgentID, requiredScope); err != nil {
 			return "", err
 		}
-	} else if strings.TrimSpace(ctx.GetSubjectUserId()) == "" {
+	} else if ctx.GetScopedBinding() == nil && strings.TrimSpace(ctx.GetSubjectUserId()) == "" {
 		return "", runtimeAgentBindingError(runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BINDING_NOT_FOUND)
 	}
 	return trimmedAgentID, nil
@@ -707,108 +722,6 @@ func missingDelegatedApprovalReplayJoinKeys(record delegatedCapabilityDecisionAu
 		}
 	}
 	return missing
-}
-
-func missingDelegatedPostFirewallApprovalReplayJoinKeys(record delegatedCapabilityDecisionAuditRecord) []string {
-	required := []struct {
-		name  string
-		value string
-	}{
-		{"decision_id", record.DecisionID},
-		{"delegation_request_id", record.DelegationRequestID},
-		{"delegation_result_id", record.DelegationResultID},
-		{"turn_id", record.TurnID},
-		{"provider_profile_id", record.ProviderID},
-		{"capability_id", record.CapabilityID},
-		{"gateway_evidence_id", record.GatewayEvidenceID},
-		{"firewall_input_id", record.FirewallInputID},
-		{"firewall_verdict", record.FirewallVerdict},
-		{"runtime_decision", record.RuntimeDecision},
-		{"projection_disposition", record.ProjectionDisposition},
-		{"action_disposition", record.ActionDisposition},
-	}
-	var missing []string
-	for _, field := range required {
-		if strings.TrimSpace(field.value) == "" {
-			missing = append(missing, field.name)
-		}
-	}
-	return missing
-}
-
-func delegatedApprovalKind(approval *runtimev1.DelegatedApprovalRequest) string {
-	if approval == nil {
-		return delegatedPausedModePreinvoke
-	}
-	kind := structStringField(approval.GetDetail().GetFields(), "approval_kind")
-	if kind == delegatedPausedModePostFirewall {
-		return delegatedPausedModePostFirewall
-	}
-	return delegatedPausedModePreinvoke
-}
-
-func delegatedReplayStage(kind runtimev1.DelegatedTraceStageKind, stageID string, state string, reasonCode string, summary string, observedAt *timestamppb.Timestamp) *runtimev1.DelegatedReplayTraceStage {
-	return &runtimev1.DelegatedReplayTraceStage{
-		Kind:            kind,
-		StageId:         strings.TrimSpace(stageID),
-		State:           strings.TrimSpace(state),
-		ReasonCode:      strings.TrimSpace(reasonCode),
-		RedactedSummary: summary,
-		ObservedAt:      cloneTimestamp(observedAt),
-	}
-}
-
-func delegatedReplayOutcome(record delegatedCapabilityDecisionAuditRecord) runtimev1.DelegatedReplayOutcome {
-	if record.RuntimeDecision == "rejected" {
-		if record.FirewallVerdict == "POLICY_BLOCKED" || record.ReasonCode == "DELEG_FIREWALL_QUARANTINED" {
-			return runtimev1.DelegatedReplayOutcome_DELEGATED_REPLAY_OUTCOME_BLOCKED_BY_POLICY
-		}
-		return runtimev1.DelegatedReplayOutcome_DELEGATED_REPLAY_OUTCOME_PARTIAL_REDACTED
-	}
-	// K-DELEG-087: a reconstructed trace whose underlying output carried
-	// sensitive content (classified non-NONE by the firewall) is reported as
-	// PARTIAL_REDACTED so the consumer knows protected content was withheld.
-	if sensitiveDelegatedOutputClass(record.SensitivityClass) {
-		return runtimev1.DelegatedReplayOutcome_DELEGATED_REPLAY_OUTCOME_PARTIAL_REDACTED
-	}
-	return runtimev1.DelegatedReplayOutcome_DELEGATED_REPLAY_OUTCOME_RECONSTRUCTED
-}
-
-// sensitiveDelegatedOutputClass reports whether a recorded sensitivity class
-// represents content that must be redacted from replay views (K-DELEG-087).
-// NONE and an empty/unclassified value are not redaction-bearing.
-func sensitiveDelegatedOutputClass(class string) bool {
-	switch strings.TrimSpace(class) {
-	case "", delegation.SensitivityClassNone:
-		return false
-	default:
-		return true
-	}
-}
-
-func (s *Service) delegatedApprovalRequest(agentID string, approvalID string) *runtimev1.DelegatedApprovalRequest {
-	s.delegatedMu.RLock()
-	defer s.delegatedMu.RUnlock()
-	approval := s.delegatedApprovalRequests[delegatedApprovalRequestKey(agentID, approvalID)]
-	if approval == nil {
-		return nil
-	}
-	return proto.Clone(approval).(*runtimev1.DelegatedApprovalRequest)
-}
-
-func approvalStateName(state runtimev1.DelegatedApprovalRequestState) string {
-	switch state {
-	case runtimev1.DelegatedApprovalRequestState_DELEGATED_APPROVAL_REQUEST_STATE_PENDING:
-		return "pending"
-	case runtimev1.DelegatedApprovalRequestState_DELEGATED_APPROVAL_REQUEST_STATE_APPROVED:
-		return "approved"
-	case runtimev1.DelegatedApprovalRequestState_DELEGATED_APPROVAL_REQUEST_STATE_REJECTED:
-		return "rejected"
-	case runtimev1.DelegatedApprovalRequestState_DELEGATED_APPROVAL_REQUEST_STATE_EXPIRED:
-		return "expired"
-	default:
-		return "unspecified"
-	}
 }
 
 func delegatedProviderProfileKey(agentID string, profileID string) string {

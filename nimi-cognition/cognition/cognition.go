@@ -37,6 +37,7 @@ type Cognition struct {
 	workingSvc      *WorkingService
 	promptSvc       *PromptService
 	knowledgeScopes KnowledgeScopeRegistry
+	appAccess       *AppMemoryAccessService
 }
 
 // KernelService handles kernel access and mutation.
@@ -125,6 +126,7 @@ func New(rootDir string, opts ...Option) (*Cognition, error) {
 	c.workingSvc = &WorkingService{store: workingStore}
 	c.promptSvc = &PromptService{store: store, refgraph: graph}
 	c.knowledgeScopes = newKnowledgeScopeRegistry(store, clk)
+	c.appAccess = &AppMemoryAccessService{core: c}
 	if err := c.knowledgeSvc.markInterruptedIngestTasks(); err != nil {
 		_ = store.Close()
 		return nil, fmt.Errorf("cognition: %w", err)
@@ -166,6 +168,11 @@ func (c *Cognition) PromptService() *PromptService { return c.promptSvc }
 // constructing scope ids by ad-hoc string concatenation. See C-COG-059
 // and K-KNOW-001a in the spec authority.
 func (c *Cognition) KnowledgeScopeRegistry() KnowledgeScopeRegistry { return c.knowledgeScopes }
+
+// AppMemoryAccessService returns the C-APMEM app-facing cognition facade.
+// App/runtime consumers must use this surface for app-private memory,
+// knowledge, and skill access instead of calling substrate services directly.
+func (c *Cognition) AppMemoryAccessService() *AppMemoryAccessService { return c.appAccess }
 
 // KernelEngine exposes the kernel mutation surface for direct use.
 func (c *Cognition) KernelEngine() *kernelops.Engine { return c.engine }

@@ -25,26 +25,26 @@ func projectionSpeechReasonCodeFromDetail(detail string) runtimev1.ReasonCode {
 		strings.Contains(lower, "requires windows x64"),
 		strings.Contains(lower, "requires an nvidia gpu"),
 		strings.Contains(lower, "requires a cuda-ready nvidia runtime"):
-		return runtimev1.ReasonCode_AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED
+		return runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED
 	case strings.Contains(lower, "explicit download confirmation"),
 		strings.Contains(lower, "download confirmation required"),
 		strings.Contains(lower, "confirm download before continuing"):
-		return runtimev1.ReasonCode_AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED
+		return runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED
 	case strings.Contains(lower, "ensure uv for speech"),
 		strings.Contains(lower, "ensure managed python for speech"),
 		strings.Contains(lower, "write speech server script"),
 		strings.Contains(lower, "install speech dependencies"),
 		strings.Contains(lower, "write speech dependency stamp"):
-		return runtimev1.ReasonCode_AI_LOCAL_SPEECH_ENV_INIT_FAILED
+		return runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED
 	case strings.Contains(lower, "speech probe missing expected model"):
-		return runtimev1.ReasonCode_AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED
+		return runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED
 	case strings.Contains(lower, "speech probe missing required capability"),
 		strings.Contains(lower, "managed bundle file"),
 		strings.Contains(lower, "managed local model entry missing"),
 		strings.Contains(lower, "managed speech endpoint missing"),
 		strings.Contains(lower, "managed speech voices invalid"),
 		strings.Contains(lower, "voices.json"):
-		return runtimev1.ReasonCode_AI_LOCAL_SPEECH_BUNDLE_DEGRADED
+		return runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED
 	case strings.Contains(lower, "speech") &&
 		(strings.Contains(lower, "probe request failed") ||
 			strings.Contains(lower, "probe status not ok") ||
@@ -54,7 +54,7 @@ func projectionSpeechReasonCodeFromDetail(detail string) runtimev1.ReasonCode {
 			strings.Contains(lower, "connect") ||
 			strings.Contains(lower, "timed out") ||
 			strings.Contains(lower, "engine not ready")):
-		return runtimev1.ReasonCode_AI_LOCAL_SPEECH_HOST_INIT_FAILED
+		return runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED
 	default:
 		return runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED
 	}

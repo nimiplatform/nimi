@@ -3,6 +3,8 @@ package runtimeagent
 import (
 	"context"
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"testing"
 	"time"
 )
@@ -57,7 +59,7 @@ func TestPublicChatTurnInterruptCancelsActiveTurn(t *testing.T) {
 	started := capture.waitForMessageType(t, publicChatTurnStartedType)
 	acceptedPayload := publicChatPayloadMap(t, accepted)
 	turnID := acceptedPayload["turn_id"].(string)
-	err = svc.ConsumePublicChatAppMessage(context.Background(), &runtimev1.AppMessageEvent{
+	if err := svc.ConsumePublicChatAppMessage(context.Background(), &runtimev1.AppMessageEvent{
 		ToAppId:       publicChatRuntimeAppID,
 		FromAppId:     "desktop.app",
 		SubjectUserId: "user-1",
@@ -66,6 +68,19 @@ func TestPublicChatTurnInterruptCancelsActiveTurn(t *testing.T) {
 			"conversation_anchor_id": anchorID,
 			"turn_id":                turnID,
 			"reason":                 "user_cancelled",
+		}),
+	}); status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("expected InvalidArgument for non-canonical interrupt reason, got %v", err)
+	}
+	err = svc.ConsumePublicChatAppMessage(context.Background(), &runtimev1.AppMessageEvent{
+		ToAppId:       publicChatRuntimeAppID,
+		FromAppId:     "desktop.app",
+		SubjectUserId: "user-1",
+		MessageType:   publicChatTurnInterruptType,
+		Payload: publicChatStructPayload(t, map[string]any{
+			"conversation_anchor_id": anchorID,
+			"turn_id":                turnID,
+			"reason":                 "user_cancel",
 		}),
 	})
 	if err != nil {
@@ -79,7 +94,7 @@ func TestPublicChatTurnInterruptCancelsActiveTurn(t *testing.T) {
 		t.Fatalf("expected interrupt_ack.detail.interrupted_turn_id=%q, got=%v", turnID, ackDetail)
 	}
 	interruptedDetail := publicChatTurnDetail(t, interrupted)
-	if got := interruptedDetail["reason"]; got != "user_cancelled" {
+	if got := interruptedDetail["reason"]; got != "user_cancel" {
 		t.Fatalf("unexpected interrupted.detail.reason: %v", got)
 	}
 	stateResp, err := svc.GetAgentState(context.Background(), &runtimev1.GetAgentStateRequest{
@@ -245,8 +260,8 @@ func TestPublicChatSessionSnapshotReportsLiveAndTerminalState(t *testing.T) {
 		t.Fatalf("expected structured schema id, got=%v", structured)
 	}
 	assistantMemory := lastTurn["assistant_memory"].(map[string]any)
-	if got := assistantMemory["status"]; got != "applied" {
-		t.Fatalf("expected assistant memory applied in last turn snapshot, got=%v", assistantMemory)
+	if got := assistantMemory["status"]; got != "skipped" {
+		t.Fatalf("expected assistant memory skipped without committed verdict evidence, got=%v", assistantMemory)
 	}
 	followUp := lastTurn["follow_up"].(map[string]any)
 	if got := followUp["status"]; got != "skipped" {

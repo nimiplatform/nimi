@@ -121,8 +121,9 @@ func validateJWTProof(token string, principal externalPrincipal) error {
 		}
 	}
 
-	// Check issuer matches registered principal.
-	if principal.Issuer != "" && claims.Iss != principal.Issuer {
+	// Issuer binding is part of the registered principal identity; an empty
+	// stored issuer would otherwise disable the JWT issuer check.
+	if strings.TrimSpace(principal.Issuer) == "" || strings.TrimSpace(claims.Iss) == "" || claims.Iss != principal.Issuer {
 		return fmt.Errorf("%w: JWT issuer mismatch", ErrTokenInvalid)
 	}
 

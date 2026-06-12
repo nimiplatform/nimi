@@ -450,7 +450,7 @@ func (b *Backend) readInlineMediaBytes(ctx context.Context, location string) ([]
 		return nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 	if strings.HasPrefix(strings.ToLower(value), "data:") {
-		return decodeInlineDataURL(value)
+		return nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}
 	if isRemoteHTTPURL(value) {
 		if err := endpointsec.ValidateEndpoint(ctx, value, b != nil && b.allowLoopbackEndpoint); err != nil {

@@ -3,6 +3,7 @@ provider: volcengine
 catalog_version: 2026-04-18-volcengine-ark-v4
 generated_target: runtime/catalog/providers/volcengine.yaml
 runtime:
+  inventory_mode: static_source
   runtime_plane: remote
   managed_connector_supported: true
   inline_supported: true

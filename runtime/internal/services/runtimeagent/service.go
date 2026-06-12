@@ -103,6 +103,7 @@ type Service struct {
 	realmGroupCandidateExecutor    RealmGroupMessageCandidateExecutor
 	realmGroupCandidates           map[string]*realmGroupMessageCandidateEvidenceRecord
 	realmGroupCandidateIdempotency map[string]string
+	memoryPromotionEvidence        map[string]runtimeMemoryPromotionEvidence
 
 	// participationState is the K-AGCORE-061..088 participation record store
 	// (lazy-initialized through participationStore()); audit/replay lineage
@@ -156,6 +157,7 @@ func New(logger *slog.Logger, localStatePath string, memorySvc *memoryservice.Se
 		chatActiveByAgent:              make(map[string]string),
 		realmGroupCandidates:           make(map[string]*realmGroupMessageCandidateEvidenceRecord),
 		realmGroupCandidateIdempotency: make(map[string]string),
+		memoryPromotionEvidence:        make(map[string]runtimeMemoryPromotionEvidence),
 		voiceLipsync:                   newSyntheticVoiceLipsyncSynthesizer(),
 		runtimeArtifacts:               runtimeartifact.NewMemoryStore(),
 		delegatedProviderProfiles:      make(map[string]*runtimev1.DelegatedProviderProfile),

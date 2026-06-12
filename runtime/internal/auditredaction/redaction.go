@@ -23,10 +23,11 @@ var sensitiveKeyPatterns = []string{
 }
 
 var exemptTokenKeys = map[string]bool{
-	"token_id":        true,
-	"parent_token_id": true,
-	"page_token":      true,
-	"next_page_token": true,
+	"authorization_verdict_id": true,
+	"token_id":                 true,
+	"parent_token_id":          true,
+	"page_token":               true,
+	"next_page_token":          true,
 }
 
 // IsSensitiveKey reports whether a payload key matches K-AUDIT-017 sensitive

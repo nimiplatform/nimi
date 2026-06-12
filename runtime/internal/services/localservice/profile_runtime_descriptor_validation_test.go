@@ -239,6 +239,8 @@ func TestImportLocalAssetStoresReusableFactsOnly(t *testing.T) {
 		"engine":           "media",
 		"capabilities":     []string{"image"},
 		"entry":            "z_image_turbo-Q4_K.gguf",
+		"files":            []string{"z_image_turbo-Q4_K.gguf"},
+		"hashes":           map[string]string{"z_image_turbo-Q4_K.gguf": "sha256:" + validImageTestGGUFHash()},
 		"engineConfig": map[string]any{
 			"backend": "stablediffusion-ggml",
 		},

@@ -34,6 +34,7 @@ func TestAccountKnowledgeAuthorizerTable(t *testing.T) {
 		res, err := authz.Authorize(ctx, KnowledgeAuthRequest{
 			Action:  action,
 			Context: &runtimev1.KnowledgeRequestContext{AppId: "app.x"},
+			Caller:  &runtimev1.AccountCaller{AppId: "app.x"},
 			Owner:   cognitionpkg.KnowledgeScopeOwner{Kind: cognitionpkg.KnowledgeScopeOwnerKindAppPrivate, AppID: "app.x"},
 		})
 		if err != nil {
@@ -47,6 +48,7 @@ func TestAccountKnowledgeAuthorizerTable(t *testing.T) {
 		res, err = authz.Authorize(ctx, KnowledgeAuthRequest{
 			Action:  action,
 			Context: &runtimev1.KnowledgeRequestContext{AppId: "app.intruder"},
+			Caller:  &runtimev1.AccountCaller{AppId: "app.intruder"},
 			Owner:   cognitionpkg.KnowledgeScopeOwner{Kind: cognitionpkg.KnowledgeScopeOwnerKindAppPrivate, AppID: "app.x"},
 		})
 		if err != nil {
@@ -99,11 +101,13 @@ func TestAccountKnowledgeAuthorizerTable(t *testing.T) {
 	res1, _ := authz.Authorize(ctx, KnowledgeAuthRequest{
 		Action:  KnowledgeActionReadBank,
 		Context: &runtimev1.KnowledgeRequestContext{AppId: "app.x", SubjectUserId: "user-1"},
+		Caller:  &runtimev1.AccountCaller{AppId: "app.x"},
 		Owner:   cognitionpkg.KnowledgeScopeOwner{Kind: cognitionpkg.KnowledgeScopeOwnerKindAppPrivate, AppID: "app.x"},
 	})
 	res2, _ := authz.Authorize(ctx, KnowledgeAuthRequest{
 		Action:  KnowledgeActionReadBank,
 		Context: &runtimev1.KnowledgeRequestContext{AppId: "app.x", SubjectUserId: "user-2"},
+		Caller:  &runtimev1.AccountCaller{AppId: "app.x"},
 		Owner:   cognitionpkg.KnowledgeScopeOwner{Kind: cognitionpkg.KnowledgeScopeOwnerKindAppPrivate, AppID: "app.x"},
 	})
 	if res1.Decision != res2.Decision {

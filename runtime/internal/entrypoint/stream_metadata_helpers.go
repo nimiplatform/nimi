@@ -181,13 +181,22 @@ func prepareInsecureOutgoingContext(
 }
 
 func validateInsecureTransportMetadata(grpcAddr string, metadataOverride *ClientMetadata) error {
-	if metadataOverride == nil || strings.TrimSpace(metadataOverride.ProviderAPIKey) == "" {
+	if metadataOverride == nil || !metadataOverrideCarriesInsecureTransportSecret(metadataOverride) {
 		return nil
 	}
 	if insecureGRPCTargetIsLocal(grpcAddr) {
 		return nil
 	}
-	return errors.New("provider_api_key requires loopback or unix gRPC target when using insecure transport")
+	return errors.New("runtime credential metadata requires loopback or unix gRPC target when using insecure transport")
+}
+
+func metadataOverrideCarriesInsecureTransportSecret(metadataOverride *ClientMetadata) bool {
+	if metadataOverride == nil {
+		return false
+	}
+	return strings.TrimSpace(metadataOverride.ProviderAPIKey) != "" ||
+		strings.TrimSpace(metadataOverride.AccessTokenSecret) != "" ||
+		strings.TrimSpace(metadataOverride.SessionToken) != ""
 }
 
 func insecureGRPCTargetIsLocal(grpcAddr string) bool {

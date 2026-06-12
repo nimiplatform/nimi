@@ -3,6 +3,7 @@ package cognition
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 
 	cognitionpkg "github.com/nimiplatform/nimi/nimi-cognition/cognition"
@@ -76,14 +77,16 @@ func (s *Service) loadAuthorizedScope(ctx context.Context, requestCtx *runtimev1
 // listAuthorizedScopes returns every scope the caller can read. Used
 // by SearchKeyword (default empty bank list) and GetIngestTask.
 func (s *Service) listAuthorizedScopes(ctx context.Context, requestCtx *runtimev1.KnowledgeRequestContext) ([]cognitionpkg.KnowledgeScope, error) {
+	callerAppID := callerAppIDFromEnvelope(ctx)
 	filter := cognitionpkg.KnowledgeScopeFilter{
 		OwnerKinds: []string{cognitionpkg.KnowledgeScopeOwnerKindAppPrivate},
 		Owners: []cognitionpkg.KnowledgeScopeOwner{{
 			Kind:  cognitionpkg.KnowledgeScopeOwnerKindAppPrivate,
-			AppID: trimContextAppID(requestCtx),
+			AppID: callerAppID,
 		}},
 	}
-	scopes, _, err := s.cognitionCore.KnowledgeScopeRegistry().ListKnowledgeScopes(ctx, filter)
+	access := appAccessForAuthorizedKnowledge(ctx, KnowledgeActionReadBank, requestCtx, cognitionpkg.KnowledgeScope{Owner: cognitionpkg.KnowledgeScopeOwner{Kind: cognitionpkg.KnowledgeScopeOwnerKindAppPrivate, AppID: callerAppID}}, "runtime list authorized knowledge scopes")
+	scopes, _, err := s.cognitionCore.AppMemoryAccessService().ListKnowledgeScopes(ctx, access, filter)
 	if err != nil {
 		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE)
 	}
@@ -100,7 +103,7 @@ func (s *Service) listAuthorizedScopes(ctx context.Context, requestCtx *runtimev
 // buildScopeFilterFromList narrows the registry list by request
 // owner_filters / scope_filters; defaults to caller's app_private
 // when neither is provided (per design D3 ListKnowledgeBanks).
-func (s *Service) buildScopeFilterFromList(req *runtimev1.ListKnowledgeBanksRequest) cognitionpkg.KnowledgeScopeFilter {
+func (s *Service) buildScopeFilterFromList(ctx context.Context, req *runtimev1.ListKnowledgeBanksRequest) cognitionpkg.KnowledgeScopeFilter {
 	filter := cognitionpkg.KnowledgeScopeFilter{
 		PageSize:  int(req.GetPageSize()),
 		PageToken: req.GetPageToken(),
@@ -131,10 +134,51 @@ func (s *Service) buildScopeFilterFromList(req *runtimev1.ListKnowledgeBanksRequ
 		filter.OwnerKinds = []string{cognitionpkg.KnowledgeScopeOwnerKindAppPrivate}
 		filter.Owners = []cognitionpkg.KnowledgeScopeOwner{{
 			Kind:  cognitionpkg.KnowledgeScopeOwnerKindAppPrivate,
-			AppID: trimContextAppID(req.GetContext()),
+			AppID: callerAppIDFromEnvelope(ctx),
 		}}
 	}
 	return filter
+}
+
+func callerAppIDFromEnvelope(ctx context.Context) string {
+	meta, ok := envelope.MetadataFromContext(ctx)
+	if !ok {
+		return ""
+	}
+	return strings.TrimSpace(meta.AppID)
+}
+
+func appAccessForAuthorizedKnowledge(ctx context.Context, action KnowledgeAction, requestCtx *runtimev1.KnowledgeRequestContext, scope cognitionpkg.KnowledgeScope, reason string) cognitionpkg.AppMemoryAccess {
+	appID := callerAppIDFromEnvelope(ctx)
+	if appID == "" {
+		appID = trimContextAppID(requestCtx)
+	}
+	policy := cognitionpkg.AppMemoryPolicyKnowledgeReadBounded
+	switch action {
+	case KnowledgeActionCreateBank, KnowledgeActionDeleteBank, KnowledgeActionWritePage, KnowledgeActionDeletePage, KnowledgeActionWriteLink, KnowledgeActionIngest:
+		policy = cognitionpkg.AppMemoryPolicyKnowledgeWriteAdmitted
+	}
+	auditID := "runtime-knowledge:" + string(action) + ":" + strings.TrimSpace(scope.ScopeID)
+	if auditID == "runtime-knowledge:"+string(action)+":" {
+		auditID = "runtime-knowledge:" + string(action) + ":" + strings.TrimSpace(scope.Owner.AppID)
+	}
+	knowledgeBaseID := strings.TrimSpace(scope.ScopeID)
+	if knowledgeBaseID == "" {
+		knowledgeBaseID = strings.TrimSpace(scope.Owner.AppID)
+	}
+	if knowledgeBaseID == "" {
+		knowledgeBaseID = strings.TrimSpace(scope.Owner.WorkspaceID)
+	}
+	if knowledgeBaseID == "" {
+		knowledgeBaseID = string(action)
+	}
+	return cognitionpkg.AppMemoryAccess{
+		PolicyClass:     policy,
+		Grant:           cognitionpkg.AppMemoryGrantEvidence{GrantRef: fmt.Sprintf("runtime-knowledge-authorized:%s", action), RealmAuditEventID: auditID, Active: true},
+		SourceAppID:     appID,
+		KnowledgeBaseID: knowledgeBaseID,
+		AuditReason:     reason,
+	}
 }
 
 func explicitWorkspaceOwnerFromList(req *runtimev1.ListKnowledgeBanksRequest) (cognitionpkg.KnowledgeScopeOwner, bool) {

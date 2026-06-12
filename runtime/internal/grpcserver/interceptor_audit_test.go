@@ -34,6 +34,42 @@ func mustListUsageStats(t *testing.T, store *auditlog.Store, req *runtimev1.List
 	return resp
 }
 
+func TestAuditInterceptorFailsClosedWithoutStore(t *testing.T) {
+	unaryCalled := false
+	_, err := newUnaryAuditInterceptor(nil)(
+		context.Background(),
+		&runtimev1.ExecuteScenarioRequest{},
+		&grpc.UnaryServerInfo{FullMethod: "/nimi.runtime.v1.RuntimeAiService/ExecuteScenario"},
+		func(ctx context.Context, req any) (any, error) {
+			unaryCalled = true
+			return &runtimev1.ExecuteScenarioResponse{}, nil
+		},
+	)
+	if status.Code(err) != codes.Internal {
+		t.Fatalf("expected Internal for missing unary audit store, got %v", err)
+	}
+	if unaryCalled {
+		t.Fatal("unary handler ran without audit store")
+	}
+
+	streamCalled := false
+	err = newStreamAuditInterceptor(nil)(
+		struct{}{},
+		&recordingServerStream{ctx: context.Background()},
+		&grpc.StreamServerInfo{FullMethod: "/nimi.runtime.v1.RuntimeAiService/StreamScenario", IsServerStream: true},
+		func(_ any, _ grpc.ServerStream) error {
+			streamCalled = true
+			return nil
+		},
+	)
+	if status.Code(err) != codes.Internal {
+		t.Fatalf("expected Internal for missing stream audit store, got %v", err)
+	}
+	if streamCalled {
+		t.Fatal("stream handler ran without audit store")
+	}
+}
+
 func TestUnaryAuditInterceptorCapturesCallerMetadataForAI(t *testing.T) {
 	store := auditlog.New(128, 128)
 	interceptor := newUnaryAuditInterceptor(store)

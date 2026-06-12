@@ -6,6 +6,8 @@ import (
 
 	"github.com/nimiplatform/nimi/runtime/internal/rpcctx"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type rpcShutdownDisposition string
@@ -61,7 +63,7 @@ func (s *trackedServerStream) RecvMsg(m any) error {
 func newUnaryActivityInterceptor(registry *activeRPCRegistry) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 		if registry == nil {
-			return handler(ctx, req)
+			return nil, status.Error(codes.Internal, "active RPC registry is required")
 		}
 		trackedCtx, finish := registry.TrackUnary(ctx, info.FullMethod)
 		defer finish()
@@ -72,7 +74,7 @@ func newUnaryActivityInterceptor(registry *activeRPCRegistry) grpc.UnaryServerIn
 func newStreamActivityInterceptor(registry *activeRPCRegistry) grpc.StreamServerInterceptor {
 	return func(srv any, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 		if registry == nil {
-			return handler(srv, ss)
+			return status.Error(codes.Internal, "active RPC registry is required")
 		}
 		trackedCtx, signal, finish, touch := registry.TrackStream(ss.Context(), info.FullMethod, info)
 		defer finish()

@@ -40,16 +40,28 @@ func TestMatchProfile_DarwinArm64(t *testing.T) {
 	}
 }
 
-func TestMatchProfile_WindowsAmd64FirstMatchWins(t *testing.T) {
+func TestMatchProfile_WindowsAmd64WithoutCUDAEvidenceSelectsCPU(t *testing.T) {
 	catalog := loadTestCatalog(t)
-	// Catalog has windows-amd64-nvidia-cuda first, then windows-amd64-cpu.
-	// First-match-in-catalog-order: deterministic selection of the cuda row.
 	profile, err := MatchProfile(catalog, PlatformTuple{OS: "windows", Arch: "amd64"})
 	if err != nil {
 		t.Fatalf("MatchProfile returned error: %v", err)
 	}
+	if profile.ProfileID != "windows-amd64-cpu" {
+		t.Errorf("ProfileID = %q, want windows-amd64-cpu without CUDA evidence", profile.ProfileID)
+	}
+}
+
+func TestMatchProfile_WindowsAmd64WithCUDAEvidenceSelectsCUDA(t *testing.T) {
+	catalog := loadTestCatalog(t)
+	profile, err := MatchProfileWithEvidence(catalog, PlatformTuple{OS: "windows", Arch: "amd64"}, []string{
+		"nvidia_driver_api",
+		"accelerator.cuda.runtime",
+	})
+	if err != nil {
+		t.Fatalf("MatchProfileWithEvidence returned error: %v", err)
+	}
 	if profile.ProfileID != "windows-amd64-nvidia-cuda" {
-		t.Errorf("ProfileID = %q, want windows-amd64-nvidia-cuda (first in catalog order)", profile.ProfileID)
+		t.Errorf("ProfileID = %q, want windows-amd64-nvidia-cuda with CUDA evidence", profile.ProfileID)
 	}
 }
 

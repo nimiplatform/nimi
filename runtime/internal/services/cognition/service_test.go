@@ -19,7 +19,7 @@ func TestRuntimeCognitionMemoryUsesNimiCognitionMainline(t *testing.T) {
 	svc, _, cleanup := newTestService(t)
 	defer cleanup()
 
-	ctx := context.Background()
+	ctx := testKnowledgeEnvelopeContext("app-test")
 	createResp, err := svc.CreateBank(ctx, &runtimev1.CreateBankRequest{
 		Context: &runtimev1.MemoryRequestContext{AppId: "app-test"},
 		Locator: &runtimev1.PublicMemoryBankLocator{
@@ -72,7 +72,7 @@ func TestRuntimeCognitionKnowledgeUsesNimiCognitionMainline(t *testing.T) {
 	svc, _, cleanup := newTestService(t)
 	defer cleanup()
 
-	ctx := context.Background()
+	ctx := testKnowledgeEnvelopeContext("app-test")
 	createResp, err := svc.CreateKnowledgeBank(ctx, &runtimev1.CreateKnowledgeBankRequest{
 		Context: &runtimev1.KnowledgeRequestContext{AppId: "app-test"},
 		Locator: &runtimev1.PublicKnowledgeBankLocator{
@@ -118,7 +118,7 @@ func TestRuntimeCognitionMemoryHonorsBoundEmbeddingProfileAvailability(t *testin
 	svc, memorySvc, cleanup := newTestService(t)
 	defer cleanup()
 
-	ctx := context.Background()
+	ctx := testKnowledgeEnvelopeContext("app-test")
 	profile := &runtimev1.MemoryEmbeddingProfile{
 		Provider:        "test-provider",
 		ModelId:         "embed-small",
@@ -184,93 +184,55 @@ func TestRuntimeCognitionMemoryHonorsBoundEmbeddingProfileAvailability(t *testin
 	}
 }
 
-func TestRuntimeCognitionMemoryEmbeddingRuntimeProjectionBindsAndCutovers(t *testing.T) {
-	svc, memorySvc, cleanup := newTestService(t)
+func TestRuntimeCognitionMemoryEmbeddingRuntimeProjectionIsPrivate(t *testing.T) {
+	svc, _, cleanup := newTestService(t)
 	defer cleanup()
 
-	ctx := context.Background()
+	ctx := testKnowledgeEnvelopeContext("app-test")
 	locator := testAgentCoreMemoryLocator("agent-runtime-embedding")
-	oldProfile := testRuntimeEmbeddingProfile("local/embed-old")
-	newProfile := testRuntimeEmbeddingProfile("local/embed-new")
+	checkDenied := func(name string, err error) {
+		t.Helper()
+		if status.Code(err) != codes.PermissionDenied {
+			t.Fatalf("%s: expected PermissionDenied, got %v", name, err)
+		}
+		if got := status.Convert(err).Message(); got != "runtime memory embedding lifecycle is runtime-private" {
+			t.Fatalf("%s: deny reason mismatch: %q", name, got)
+		}
+	}
 
-	memorySvc.SetManagedEmbeddingProfile(oldProfile)
-	if _, err := svc.SetMemoryEmbeddingRuntimeIntent(ctx, &runtimev1.SetMemoryEmbeddingRuntimeIntentRequest{
+	_, err := svc.SetMemoryEmbeddingRuntimeIntent(ctx, &runtimev1.SetMemoryEmbeddingRuntimeIntentRequest{
 		Context:       &runtimev1.MemoryRequestContext{AppId: "desktop"},
 		Locator:       locator,
 		BindingIntent: testRuntimeLocalEmbeddingIntent("local/embed-old"),
-	}); err != nil {
-		t.Fatalf("SetMemoryEmbeddingRuntimeIntent(old): %v", err)
-	}
-	bindResp, err := svc.RequestMemoryEmbeddingRuntimeBind(ctx, &runtimev1.RequestMemoryEmbeddingRuntimeBindRequest{
+	})
+	checkDenied("SetMemoryEmbeddingRuntimeIntent", err)
+	_, err = svc.GetMemoryEmbeddingRuntimeIntent(ctx, &runtimev1.GetMemoryEmbeddingRuntimeIntentRequest{
 		Context: &runtimev1.MemoryRequestContext{AppId: "desktop"},
 		Locator: locator,
 	})
-	if err != nil {
-		t.Fatalf("RequestMemoryEmbeddingRuntimeBind(old): %v", err)
-	}
-	if bindResp.GetOutcome() != "bound" {
-		t.Fatalf("expected bound outcome, got %q", bindResp.GetOutcome())
-	}
-	if bindResp.GetCanonicalBankStatusAfter() != "bound_equivalent" {
-		t.Fatalf("expected bound_equivalent after bind, got %q", bindResp.GetCanonicalBankStatusAfter())
-	}
-
-	inspectResp, err := svc.InspectMemoryEmbeddingRuntime(ctx, &runtimev1.InspectMemoryEmbeddingRuntimeRequest{
+	checkDenied("GetMemoryEmbeddingRuntimeIntent", err)
+	_, err = svc.InspectMemoryEmbeddingRuntime(ctx, &runtimev1.InspectMemoryEmbeddingRuntimeRequest{
 		Context: &runtimev1.MemoryRequestContext{AppId: "desktop"},
 		Locator: locator,
 	})
-	if err != nil {
-		t.Fatalf("InspectMemoryEmbeddingRuntime(old): %v", err)
-	}
-	if inspectResp.GetResolvedProfile().GetModelId() != "local/embed-old" {
-		t.Fatalf("expected old resolved profile, got %#v", inspectResp.GetResolvedProfile())
-	}
-	if inspectResp.GetOperationReadiness().GetBindAllowed() {
-		t.Fatal("bind should not be allowed when canonical bank is equivalent")
-	}
-
-	memorySvc.SetManagedEmbeddingProfile(newProfile)
-	if _, err := svc.SetMemoryEmbeddingRuntimeIntent(ctx, &runtimev1.SetMemoryEmbeddingRuntimeIntentRequest{
-		Context:       &runtimev1.MemoryRequestContext{AppId: "desktop"},
-		Locator:       locator,
-		BindingIntent: testRuntimeLocalEmbeddingIntent("local/embed-new"),
-	}); err != nil {
-		t.Fatalf("SetMemoryEmbeddingRuntimeIntent(new): %v", err)
-	}
-	stageResp, err := svc.RequestMemoryEmbeddingRuntimeBind(ctx, &runtimev1.RequestMemoryEmbeddingRuntimeBindRequest{
+	checkDenied("InspectMemoryEmbeddingRuntime", err)
+	_, err = svc.RequestMemoryEmbeddingRuntimeBind(ctx, &runtimev1.RequestMemoryEmbeddingRuntimeBindRequest{
 		Context: &runtimev1.MemoryRequestContext{AppId: "desktop"},
 		Locator: locator,
 	})
-	if err != nil {
-		t.Fatalf("RequestMemoryEmbeddingRuntimeBind(new): %v", err)
-	}
-	if stageResp.GetOutcome() != "staged_rebuild" {
-		t.Fatalf("expected staged_rebuild outcome, got %q", stageResp.GetOutcome())
-	}
-	if !stageResp.GetPendingCutover() {
-		t.Fatal("expected pending cutover after staged rebuild")
-	}
-
-	cutoverResp, err := svc.RequestMemoryEmbeddingRuntimeCutover(ctx, &runtimev1.RequestMemoryEmbeddingRuntimeCutoverRequest{
+	checkDenied("RequestMemoryEmbeddingRuntimeBind", err)
+	_, err = svc.RequestMemoryEmbeddingRuntimeCutover(ctx, &runtimev1.RequestMemoryEmbeddingRuntimeCutoverRequest{
 		Context: &runtimev1.MemoryRequestContext{AppId: "desktop"},
 		Locator: locator,
 	})
-	if err != nil {
-		t.Fatalf("RequestMemoryEmbeddingRuntimeCutover: %v", err)
-	}
-	if cutoverResp.GetOutcome() != "cutover_committed" {
-		t.Fatalf("expected cutover_committed outcome, got %q", cutoverResp.GetOutcome())
-	}
-	if cutoverResp.GetCanonicalBankStatusAfter() != "bound_equivalent" {
-		t.Fatalf("expected bound_equivalent after cutover, got %q", cutoverResp.GetCanonicalBankStatusAfter())
-	}
+	checkDenied("RequestMemoryEmbeddingRuntimeCutover", err)
 }
 
 func TestRuntimeCognitionKnowledgeIngestRejectsInvalidEnvelope(t *testing.T) {
 	svc, _, cleanup := newTestService(t)
 	defer cleanup()
 
-	ctx := context.Background()
+	ctx := testKnowledgeEnvelopeContext("app-test")
 	createResp, err := svc.CreateKnowledgeBank(ctx, &runtimev1.CreateKnowledgeBankRequest{
 		Context: &runtimev1.KnowledgeRequestContext{AppId: "app-test"},
 		Locator: &runtimev1.PublicKnowledgeBankLocator{
@@ -307,7 +269,7 @@ func TestRuntimeCognitionKnowledgeIngestTaskPreservesSlugAndTitle(t *testing.T) 
 	svc, _, cleanup := newTestService(t)
 	defer cleanup()
 
-	ctx := context.Background()
+	ctx := testKnowledgeEnvelopeContext("app-test")
 	reqCtx := &runtimev1.KnowledgeRequestContext{AppId: "app-test"}
 	createResp, err := svc.CreateKnowledgeBank(ctx, &runtimev1.CreateKnowledgeBankRequest{
 		Context: reqCtx,
@@ -353,7 +315,7 @@ func TestRuntimeCognitionTraverseGraphRequiresExplicitBoundedDepth(t *testing.T)
 	svc, _, cleanup := newTestService(t)
 	defer cleanup()
 
-	ctx := context.Background()
+	ctx := testKnowledgeEnvelopeContext("app-test")
 	reqCtx := &runtimev1.KnowledgeRequestContext{AppId: "app-test"}
 	createResp, err := svc.CreateKnowledgeBank(ctx, &runtimev1.CreateKnowledgeBankRequest{
 		Context: reqCtx,

@@ -47,6 +47,215 @@ func TestSQLiteBackend_MemorySchemaOmitsServiceMetadataColumns(t *testing.T) {
 	}
 }
 
+func TestSQLiteBackend_KernelCommitIDsAreScopeLocal(t *testing.T) {
+	b, err := NewSQLiteBackend(t.TempDir())
+	if err != nil {
+		t.Fatalf("new sqlite backend: %v", err)
+	}
+	defer closeInTest(t, b)
+
+	now := time.Date(2026, 4, 16, 12, 0, 0, 0, time.UTC)
+	for _, scopeID := range []string{"a1", "a2"} {
+		raw, err := json.Marshal(map[string]any{
+			"commit_id":   "commit_same",
+			"kernel_type": "agent_model",
+			"scope_id":    scopeID,
+			"created_at":  now.Format(time.RFC3339Nano),
+		})
+		if err != nil {
+			t.Fatalf("marshal commit: %v", err)
+		}
+		if err := b.Save(scopeID, KindCommit, "commit_same", raw); err != nil {
+			t.Fatalf("save commit %s: %v", scopeID, err)
+		}
+	}
+	for _, scopeID := range []string{"a1", "a2"} {
+		raw, err := b.Load(scopeID, KindCommit, "commit_same")
+		if err != nil {
+			t.Fatalf("load commit %s: %v", scopeID, err)
+		}
+		if !strings.Contains(string(raw), scopeID) {
+			t.Fatalf("scope %s loaded mismatched commit payload %s", scopeID, string(raw))
+		}
+	}
+}
+
+func TestSQLiteBackend_DigestRunIDsAreScopeLocal(t *testing.T) {
+	b, err := NewSQLiteBackend(t.TempDir())
+	if err != nil {
+		t.Fatalf("new sqlite backend: %v", err)
+	}
+	defer closeInTest(t, b)
+
+	now := time.Date(2026, 4, 16, 12, 0, 0, 0, time.UTC)
+	for _, scopeID := range []string{"a1", "a2"} {
+		if err := b.SaveDigestRun(scopeID, "run_same", map[string]string{"scope_id": scopeID}, []DigestCandidate{{
+			RunID:        "run_same",
+			Family:       "memory_substrate",
+			ArtifactKind: "memory_record",
+			ArtifactID:   "m1",
+			Action:       "archive",
+			Status:       "candidate",
+			Reason:       "scope-local run evidence",
+			Detail:       json.RawMessage(`{}`),
+			CreatedAt:    now,
+			UpdatedAt:    now,
+		}}, now); err != nil {
+			t.Fatalf("save digest run %s: %v", scopeID, err)
+		}
+	}
+	if err := b.SaveDigestRun("a2", "run_same", map[string]string{"scope_id": "a2", "replacement": "true"}, []DigestCandidate{{
+		RunID:        "run_same",
+		Family:       "knowledge_projections",
+		ArtifactKind: string(artifactref.KindKnowledgePage),
+		ArtifactID:   "p2",
+		Action:       "remove",
+		Status:       "blocked",
+		Reason:       "scope-local replacement evidence",
+		Detail:       json.RawMessage(`{"blocked_by":["archive_first"]}`),
+		CreatedAt:    now,
+		UpdatedAt:    now,
+	}}, now); err != nil {
+		t.Fatalf("replace digest run a2: %v", err)
+	}
+	for _, scopeID := range []string{"a1", "a2"} {
+		raw, err := b.LoadDigestRun(scopeID, "run_same")
+		if err != nil {
+			t.Fatalf("load digest run %s: %v", scopeID, err)
+		}
+		if !strings.Contains(string(raw), scopeID) {
+			t.Fatalf("scope %s loaded mismatched digest payload %s", scopeID, string(raw))
+		}
+		candidates, err := b.LoadDigestCandidates(scopeID, "run_same")
+		if err != nil {
+			t.Fatalf("load digest candidates %s: %v", scopeID, err)
+		}
+		if len(candidates) != 1 || candidates[0].RunID != "run_same" {
+			t.Fatalf("scope %s loaded mismatched candidates %+v", scopeID, candidates)
+		}
+		switch scopeID {
+		case "a1":
+			if candidates[0].ArtifactID != "m1" || candidates[0].Family != "memory_substrate" {
+				t.Fatalf("scope a1 candidate was overwritten by cross-scope replacement: %+v", candidates)
+			}
+		case "a2":
+			if candidates[0].ArtifactID != "p2" || candidates[0].Family != "knowledge_projections" {
+				t.Fatalf("scope a2 candidate was not replaced in-scope: %+v", candidates)
+			}
+		}
+	}
+}
+
+func TestSQLiteBackend_SaveDigestRunRejectsMalformedCandidateEvidence(t *testing.T) {
+	b, err := NewSQLiteBackend(t.TempDir())
+	if err != nil {
+		t.Fatalf("new sqlite backend: %v", err)
+	}
+	defer closeInTest(t, b)
+
+	now := time.Date(2026, 4, 16, 12, 0, 0, 0, time.UTC)
+	valid := DigestCandidate{
+		RunID:        "run_001",
+		Family:       "memory_substrate",
+		ArtifactKind: string(artifactref.KindMemoryRecord),
+		ArtifactID:   "m1",
+		Action:       "archive",
+		Status:       "candidate",
+		Reason:       "candidate evidence must be complete",
+		Detail:       json.RawMessage(`{"support_score":0}`),
+		CreatedAt:    now,
+		UpdatedAt:    now,
+	}
+	tests := []struct {
+		name    string
+		mutate  func(*DigestCandidate)
+		wantErr string
+	}{
+		{
+			name: "run id mismatch",
+			mutate: func(candidate *DigestCandidate) {
+				candidate.RunID = "run_other"
+			},
+			wantErr: "does not match digest run_id",
+		},
+		{
+			name: "wrong artifact kind for family",
+			mutate: func(candidate *DigestCandidate) {
+				candidate.ArtifactKind = string(artifactref.KindKnowledgePage)
+			},
+			wantErr: "requires artifact_kind",
+		},
+		{
+			name: "empty artifact id",
+			mutate: func(candidate *DigestCandidate) {
+				candidate.ArtifactID = ""
+			},
+			wantErr: "artifact_id",
+		},
+		{
+			name: "unsupported status action",
+			mutate: func(candidate *DigestCandidate) {
+				candidate.Status = "applied"
+				candidate.Action = "remove"
+			},
+			wantErr: `status "applied" does not admit action "remove"`,
+		},
+		{
+			name: "blank reason",
+			mutate: func(candidate *DigestCandidate) {
+				candidate.Reason = " "
+			},
+			wantErr: "reason is required",
+		},
+		{
+			name: "invalid detail json",
+			mutate: func(candidate *DigestCandidate) {
+				candidate.Detail = json.RawMessage(`{`)
+			},
+			wantErr: "detail_json must be valid JSON",
+		},
+		{
+			name: "non-object detail json",
+			mutate: func(candidate *DigestCandidate) {
+				candidate.Detail = json.RawMessage(`[]`)
+			},
+			wantErr: "detail_json must be a JSON object",
+		},
+		{
+			name: "zero created at",
+			mutate: func(candidate *DigestCandidate) {
+				candidate.CreatedAt = time.Time{}
+			},
+			wantErr: "created_at is required",
+		},
+		{
+			name: "updated before created",
+			mutate: func(candidate *DigestCandidate) {
+				candidate.UpdatedAt = now.Add(-time.Second)
+			},
+			wantErr: "updated_at must not be before created_at",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			candidate := valid
+			tt.mutate(&candidate)
+			err := b.SaveDigestRun("a1", "run_001", map[string]string{"run_id": "run_001"}, []DigestCandidate{candidate}, now)
+			if err == nil || !strings.Contains(err.Error(), tt.wantErr) {
+				t.Fatalf("expected %q, got %v", tt.wantErr, err)
+			}
+			runIDs, listErr := b.ListDigestRunIDs("a1")
+			if listErr != nil {
+				t.Fatalf("list digest runs: %v", listErr)
+			}
+			if len(runIDs) != 0 {
+				t.Fatalf("malformed candidate persisted digest run ids: %+v", runIDs)
+			}
+		})
+	}
+}
+
 func TestSQLiteBackend_SkillSearchDoesNotIndexUnadmittedMetadata(t *testing.T) {
 	b, err := NewSQLiteBackend(t.TempDir())
 	if err != nil {

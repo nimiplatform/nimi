@@ -85,11 +85,15 @@ func (r publicChatRuntime) handleTurnInterrupt(
 	if err != nil {
 		return err
 	}
+	reason, err := normalizePublicChatCancellationReason(req.Reason)
+	if err != nil {
+		return err
+	}
 	var cancel context.CancelFunc
 	r.svc.chatSurfaceMu.Lock()
 	if current := r.svc.chatTurns[turn.TurnID]; current != nil {
 		current.Interrupted = true
-		current.InterruptReason = firstNonEmpty(strings.TrimSpace(req.Reason), "interrupt_requested")
+		current.InterruptReason = reason
 		cancel = current.Cancel
 	}
 	r.svc.chatSurfaceMu.Unlock()

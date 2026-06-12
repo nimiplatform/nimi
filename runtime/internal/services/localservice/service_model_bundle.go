@@ -528,6 +528,7 @@ func (s *Service) healManagedSupervisedRuntimeMode(localModelID string) (*runtim
 		EventType:    "runtime_model_runtime_binding_healed",
 		OccurredAt:   nowISO(),
 		Source:       "local",
+		ReasonCode:   "LOCAL_MANAGED_SPEECH_RUNTIME_BINDING_HEALED",
 		ModelId:      cloned.GetAssetId(),
 		LocalModelId: cloned.GetLocalAssetId(),
 		Detail:       managedSupervisedRuntimeBindingHealDetail(cloned),

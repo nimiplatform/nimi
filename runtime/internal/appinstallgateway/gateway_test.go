@@ -70,13 +70,30 @@ func testGateway(t *testing.T, payload []byte, unpacker *recordingUnpacker) (*Ga
 	return gateway, planner
 }
 
-func TestGatewayInstallRequiresStoragePlannerAfterDigestVerification(t *testing.T) {
+func TestGatewayInstallRequiresEvidenceWriterBeforeStoragePlanner(t *testing.T) {
 	payload := []byte("nimi app package")
 	descriptor := externalDescriptor(payload)
 	unpacker := &recordingUnpacker{}
 	gateway := New(downloaderFunc(func(context.Context, appreleasecatalog.Descriptor) ([]byte, error) {
 		return payload, nil
 	}), unpacker)
+
+	_, err := gateway.Install(context.Background(), descriptor)
+	if !errors.Is(err, ErrEvidenceWriterRequired) {
+		t.Fatalf("Install error = %v, want ErrEvidenceWriterRequired", err)
+	}
+	if unpacker.called {
+		t.Fatal("unpacker must not run without evidence writer")
+	}
+}
+
+func TestGatewayInstallRequiresStoragePlannerAfterEvidenceWriter(t *testing.T) {
+	payload := []byte("nimi app package")
+	descriptor := externalDescriptor(payload)
+	unpacker := &recordingUnpacker{}
+	gateway := New(downloaderFunc(func(context.Context, appreleasecatalog.Descriptor) ([]byte, error) {
+		return payload, nil
+	}), unpacker, WithEvidenceWriter(fileEvidenceWriter{}))
 
 	_, err := gateway.Install(context.Background(), descriptor)
 	if !errors.Is(err, ErrStoragePlannerRequired) {
@@ -87,7 +104,7 @@ func TestGatewayInstallRequiresStoragePlannerAfterDigestVerification(t *testing.
 	}
 }
 
-func TestGatewayInstallRequiresEvidenceWriterAfterUnpack(t *testing.T) {
+func TestGatewayInstallRequiresEvidenceWriterBeforeMaterialize(t *testing.T) {
 	payload := []byte("nimi app package")
 	descriptor := externalDescriptor(payload)
 	unpacker := &recordingUnpacker{}
@@ -100,8 +117,11 @@ func TestGatewayInstallRequiresEvidenceWriterAfterUnpack(t *testing.T) {
 	if !errors.Is(err, ErrEvidenceWriterRequired) {
 		t.Fatalf("Install error = %v, want ErrEvidenceWriterRequired", err)
 	}
-	if !unpacker.called {
-		t.Fatal("unpacker should run before missing evidence writer is reported")
+	if unpacker.called {
+		t.Fatal("unpacker must not run without evidence writer")
+	}
+	if planner.called {
+		t.Fatal("planner must not run without evidence writer")
 	}
 }
 

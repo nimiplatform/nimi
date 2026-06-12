@@ -112,10 +112,19 @@ func (s *Service) validateScenarioCapability(
 			if !localrouting.ProviderSupportsCapability(providerType, capability) {
 				return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 			}
+			if s == nil || s.speechCatalog == nil {
+				return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
+			}
 			return nil
 		}
 	}
-	if !providerregistry.Contains(providerType) {
+	if isAdmittedLocalQwen3TTSWorkflow(scenarioType, modelResolved) {
+		if s == nil || s.speechCatalog == nil {
+			return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
+		}
+		return nil
+	}
+	if !localrouting.IsKnownProvider(providerType) && !providerregistry.Contains(providerType) {
 		return nil
 	}
 	if s == nil || s.speechCatalog == nil {
@@ -132,6 +141,40 @@ func (s *Service) validateScenarioCapability(
 		return s.validateCatalogAwareScenarioSupport(ctx, scenarioType, providerType, modelResolved, req.GetSpec())
 	}
 	return grpcerr.WithReasonCode(codes.InvalidArgument, unsupportedCapabilityReasonCode(scenarioType))
+}
+
+func isAdmittedLocalQwen3TTSWorkflow(scenarioType runtimev1.ScenarioType, modelResolved string) bool {
+	normalized := strings.ToLower(strings.TrimSpace(modelResolved))
+	switch scenarioType {
+	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE:
+		return isAdmittedLocalQwen3TTSWorkflowModel(normalized, []string{
+			"qwen3-tts-base-local",
+			"local/qwen3-tts-base",
+			"speech/qwen3tts-base",
+			"qwen/qwen3-tts-12hz-0.6b-base",
+		})
+	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN:
+		return isAdmittedLocalQwen3TTSWorkflowModel(normalized, []string{
+			"qwen3-tts-voicedesign-local",
+			"local/qwen3-tts-voicedesign",
+			"speech/qwen3tts-design",
+			"qwen/qwen3-tts-12hz-1.7b-voicedesign",
+		})
+	default:
+		return false
+	}
+}
+
+func isAdmittedLocalQwen3TTSWorkflowModel(normalized string, admitted []string) bool {
+	if normalized == "" {
+		return false
+	}
+	for _, modelID := range admitted {
+		if normalized == modelID {
+			return true
+		}
+	}
+	return false
 }
 
 func requiredTextGenerateCapabilities(input []*runtimev1.ChatMessage) []string {

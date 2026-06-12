@@ -5,14 +5,12 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
-	"strings"
 
 	"github.com/nimiplatform/nimi/nimi-cognition/artifactref"
 	"github.com/nimiplatform/nimi/nimi-cognition/internal/clock"
 	"github.com/nimiplatform/nimi/nimi-cognition/internal/identity"
 	"github.com/nimiplatform/nimi/nimi-cognition/internal/storage"
 	"github.com/nimiplatform/nimi/nimi-cognition/kernel"
-	"github.com/nimiplatform/nimi/nimi-cognition/knowledge"
 )
 
 // Engine provides the 6 Git-like operations over kernel state.
@@ -26,7 +24,6 @@ type kernelRepository interface {
 	Load(scopeID string, kind storage.ArtifactKind, itemID string) ([]byte, error)
 	List(scopeID string, kind storage.ArtifactKind) ([]string, error)
 	IsArtifactRefTargetLive(scopeID string, kind artifactref.Kind, itemID string) (bool, error)
-	ListKnowledgeCitationSources(scopeID string, targetKind string, targetID string) ([]storage.KnowledgeCitationSource, error)
 }
 
 type kernelStateLoader interface {
@@ -284,9 +281,6 @@ func (e *Engine) Commit(rp ResolvedPatch) (*CommitRecord, error) {
 	if err := validateArtifactRefTargets(e.backend, rp.ScopeID, newRules); err != nil {
 		return nil, fmt.Errorf("commit: %w", err)
 	}
-	if err := validateKnowledgeCitationTargets(e.backend, rp.ScopeID, beforeRules, newRules); err != nil {
-		return nil, fmt.Errorf("commit: %w", err)
-	}
 
 	commitID, err := identity.NewPrefixed("commit")
 	if err != nil {
@@ -493,37 +487,6 @@ func validateArtifactRefTargets(backend kernelRepository, scopeID string, rules 
 		}
 	}
 	return nil
-}
-
-func validateKnowledgeCitationTargets(backend kernelRepository, scopeID string, beforeRules []kernel.Rule, afterRules []kernel.Rule) error {
-	afterByID := indexRules(afterRules)
-	for _, before := range beforeRules {
-		if before.Lifecycle != kernel.RuleLifecycleActive {
-			continue
-		}
-		after, ok := afterByID[before.RuleID]
-		if ok && after.Lifecycle == kernel.RuleLifecycleActive {
-			continue
-		}
-		sources, err := backend.ListKnowledgeCitationSources(scopeID, knowledge.CitationTargetKindKernelRule, string(before.RuleID))
-		if err != nil {
-			return err
-		}
-		if len(sources) == 0 {
-			continue
-		}
-		return fmt.Errorf("rule %s cannot transition out of active while cited by knowledge pages %s", before.RuleID, formatKnowledgeCitationSources(sources))
-	}
-	return nil
-}
-
-func formatKnowledgeCitationSources(sources []storage.KnowledgeCitationSource) string {
-	parts := make([]string, 0, len(sources))
-	for _, source := range sources {
-		parts = append(parts, fmt.Sprintf("%s(%s)", source.PageID, source.Lifecycle))
-	}
-	sort.Strings(parts)
-	return strings.Join(parts, ", ")
 }
 
 func indexRules(rules []kernel.Rule) map[kernel.RuleID]kernel.Rule {

@@ -12,10 +12,12 @@ import (
 
 func TestAvatarDebugProbeRecordsRuntimeAuditReplayAndProjection(t *testing.T) {
 	svc := testAvatarDebugService()
+	agentID := avatarDebugTestAgentID()
+	anchorID := avatarDebugTestAnchorID()
 	resp, err := svc.RequestAvatarDebugProbe(context.Background(), &runtimev1.RequestAvatarDebugProbeRequest{
-		Context:              testDelegatedControlContext(),
-		AgentId:              "agent-1",
-		ConversationAnchorId: "anchor-1",
+		Context:              testAvatarDebugContext(anchorID),
+		AgentId:              agentID,
+		ConversationAnchorId: anchorID,
 		ProbeKind:            runtimev1.AvatarDebugProbeKind_AVATAR_DEBUG_PROBE_KIND_BACKEND_LOAD,
 		RequestedBy:          runtimev1.AvatarDebugRequestedBy_AVATAR_DEBUG_REQUESTED_BY_DESKTOP_DEBUG_WORKBENCH,
 		ProbeId:              "probe-1",
@@ -49,9 +51,9 @@ func TestAvatarDebugProbeRecordsRuntimeAuditReplayAndProjection(t *testing.T) {
 	}
 
 	listed, err := svc.ListAvatarDebugProbeResults(context.Background(), &runtimev1.ListAvatarDebugProbeResultsRequest{
-		Context:              testDelegatedControlContext(),
-		AgentId:              "agent-1",
-		ConversationAnchorId: "anchor-1",
+		Context:              testAvatarDebugContext(anchorID),
+		AgentId:              agentID,
+		ConversationAnchorId: anchorID,
 	})
 	if err != nil {
 		t.Fatalf("list avatar debug probe results: %v", err)
@@ -61,9 +63,9 @@ func TestAvatarDebugProbeRecordsRuntimeAuditReplayAndProjection(t *testing.T) {
 	}
 
 	replay, err := svc.GetAvatarDebugReplay(context.Background(), &runtimev1.GetAvatarDebugReplayRequest{
-		Context:              testDelegatedControlContext(),
-		AgentId:              "agent-1",
-		ConversationAnchorId: "anchor-1",
+		Context:              testAvatarDebugContext(anchorID),
+		AgentId:              agentID,
+		ConversationAnchorId: anchorID,
 		ProbeId:              "probe-1",
 	})
 	if err != nil {
@@ -103,7 +105,7 @@ func TestAvatarDebugProbeRecordsRuntimeAuditReplayAndProjection(t *testing.T) {
 			if fields["result_event_id"].GetStringValue() != avatarDebugResultOperation+":probe-1" {
 				t.Fatalf("avatar debug replay missing result event id: %+v", event)
 			}
-			if fields["authorization_verdict_id"].GetStringValue() == "" {
+			if fields["authorization_verdict_id"].GetStringValue() != avatarDebugAuthorizationRefPrefix+"probe-1" {
 				t.Fatalf("avatar debug replay missing authorization verdict id: %+v", event)
 			}
 			if fields["projection_lineage_id"].GetStringValue() != avatarDebugProjectionRefPrefix+"probe-1" {
@@ -128,10 +130,12 @@ func containsString(values []string, expected string) bool {
 func TestAvatarDebugProbeFailsClosedWithoutAuditStore(t *testing.T) {
 	svc := testAvatarDebugService()
 	svc.auditStore = nil
+	agentID := avatarDebugTestAgentID()
+	anchorID := avatarDebugTestAnchorID()
 	_, err := svc.RequestAvatarDebugProbe(context.Background(), &runtimev1.RequestAvatarDebugProbeRequest{
-		Context:              testDelegatedControlContext(),
-		AgentId:              "agent-1",
-		ConversationAnchorId: "anchor-1",
+		Context:              testAvatarDebugContext(anchorID),
+		AgentId:              agentID,
+		ConversationAnchorId: anchorID,
 		ProbeKind:            runtimev1.AvatarDebugProbeKind_AVATAR_DEBUG_PROBE_KIND_BACKEND_LOAD,
 		RequestedBy:          runtimev1.AvatarDebugRequestedBy_AVATAR_DEBUG_REQUESTED_BY_DESKTOP_DEBUG_WORKBENCH,
 	})
@@ -142,10 +146,12 @@ func TestAvatarDebugProbeFailsClosedWithoutAuditStore(t *testing.T) {
 
 func TestAvatarDebugProbeRejectsInvalidEnvelope(t *testing.T) {
 	svc := testAvatarDebugService()
+	agentID := avatarDebugTestAgentID()
+	anchorID := avatarDebugTestAnchorID()
 	_, err := svc.RequestAvatarDebugProbe(context.Background(), &runtimev1.RequestAvatarDebugProbeRequest{
-		Context:              testDelegatedControlContext(),
-		AgentId:              "agent-1",
-		ConversationAnchorId: "anchor-1",
+		Context:              testAvatarDebugContext(anchorID),
+		AgentId:              agentID,
+		ConversationAnchorId: anchorID,
 		ProbeKind:            runtimev1.AvatarDebugProbeKind_AVATAR_DEBUG_PROBE_KIND_UNSPECIFIED,
 		RequestedBy:          runtimev1.AvatarDebugRequestedBy_AVATAR_DEBUG_REQUESTED_BY_DESKTOP_DEBUG_WORKBENCH,
 	})
@@ -153,9 +159,9 @@ func TestAvatarDebugProbeRejectsInvalidEnvelope(t *testing.T) {
 		t.Fatalf("expected invalid probe kind rejection, got %v", err)
 	}
 	_, err = svc.RequestAvatarDebugProbe(context.Background(), &runtimev1.RequestAvatarDebugProbeRequest{
-		Context:              testDelegatedControlContext(),
-		AgentId:              "agent-1",
-		ConversationAnchorId: "anchor-1",
+		Context:              testAvatarDebugContext(anchorID),
+		AgentId:              agentID,
+		ConversationAnchorId: anchorID,
 		ProbeKind:            runtimev1.AvatarDebugProbeKind_AVATAR_DEBUG_PROBE_KIND_BACKEND_LOAD,
 		RequestedBy:          runtimev1.AvatarDebugRequestedBy_AVATAR_DEBUG_REQUESTED_BY_UNSPECIFIED,
 	})
@@ -164,12 +170,48 @@ func TestAvatarDebugProbeRejectsInvalidEnvelope(t *testing.T) {
 	}
 }
 
+func TestAvatarDebugProbeRejectsBodyIdentityWithoutScopedBinding(t *testing.T) {
+	svc := testAvatarDebugService()
+	agentID := avatarDebugTestAgentID()
+	anchorID := avatarDebugTestAnchorID()
+	ctx := testAvatarDebugContext(anchorID)
+	ctx.ScopedBinding = nil
+
+	_, err := svc.RequestAvatarDebugProbe(context.Background(), &runtimev1.RequestAvatarDebugProbeRequest{
+		Context:              ctx,
+		AgentId:              agentID,
+		ConversationAnchorId: anchorID,
+		ProbeKind:            runtimev1.AvatarDebugProbeKind_AVATAR_DEBUG_PROBE_KIND_BACKEND_LOAD,
+		RequestedBy:          runtimev1.AvatarDebugRequestedBy_AVATAR_DEBUG_REQUESTED_BY_DESKTOP_DEBUG_WORKBENCH,
+		ProbeId:              "probe-forged-body",
+		ReplayRequested:      true,
+	})
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("expected missing scoped binding to fail closed, got %v", err)
+	}
+	auditEvents, listErr := svc.auditStore.ListEvents(&runtimev1.ListAuditEventsRequest{
+		Domain:   avatarDebugAuditDomain,
+		PageSize: 10,
+	})
+	if listErr != nil {
+		t.Fatalf("list avatar debug audit events: %v", listErr)
+	}
+	if len(auditEvents.GetEvents()) != 0 {
+		t.Fatalf("unauthorized avatar debug request must not write PASS audit events: %+v", auditEvents.GetEvents())
+	}
+	if len(svc.events) != 0 {
+		t.Fatalf("unauthorized avatar debug request must not project replay events: %+v", svc.events)
+	}
+}
+
 func TestGetAvatarDebugSnapshotAggregatesRuntimeAuditProjection(t *testing.T) {
 	svc := testAvatarDebugService()
+	agentID := avatarDebugTestAgentID()
+	anchorID := avatarDebugTestAnchorID()
 	if _, err := svc.RequestAvatarDebugProbe(context.Background(), &runtimev1.RequestAvatarDebugProbeRequest{
-		Context:              testDelegatedControlContext(),
-		AgentId:              "agent-1",
-		ConversationAnchorId: "anchor-1",
+		Context:              testAvatarDebugContext(anchorID),
+		AgentId:              agentID,
+		ConversationAnchorId: anchorID,
 		ProbeKind:            runtimev1.AvatarDebugProbeKind_AVATAR_DEBUG_PROBE_KIND_BACKEND_LOAD,
 		RequestedBy:          runtimev1.AvatarDebugRequestedBy_AVATAR_DEBUG_REQUESTED_BY_DESKTOP_DEBUG_WORKBENCH,
 		ProbeId:              "probe-snapshot-1",
@@ -179,14 +221,14 @@ func TestGetAvatarDebugSnapshotAggregatesRuntimeAuditProjection(t *testing.T) {
 	}
 
 	snapshot, err := svc.GetAvatarDebugSnapshot(context.Background(), &runtimev1.GetAvatarDebugSnapshotRequest{
-		Context:              testDelegatedControlContext(),
-		AgentId:              "agent-1",
-		ConversationAnchorId: "anchor-1",
+		Context:              testAvatarDebugContext(anchorID),
+		AgentId:              agentID,
+		ConversationAnchorId: anchorID,
 	})
 	if err != nil {
 		t.Fatalf("get avatar debug snapshot: %v", err)
 	}
-	if snapshot.GetAgentId() != "agent-1" || snapshot.GetConversationAnchorId() != "anchor-1" {
+	if snapshot.GetAgentId() != agentID || snapshot.GetConversationAnchorId() != anchorID {
 		t.Fatalf("snapshot identity mismatch: %+v", snapshot)
 	}
 	if len(snapshot.GetProbeResults()) != 1 || snapshot.GetProbeResults()[0].GetProbeId() != "probe-snapshot-1" {
@@ -203,8 +245,8 @@ func TestGetAvatarDebugSnapshotAggregatesRuntimeAuditProjection(t *testing.T) {
 func TestGetAvatarDebugSnapshotRequiresConversationAnchor(t *testing.T) {
 	svc := testAvatarDebugService()
 	_, err := svc.GetAvatarDebugSnapshot(context.Background(), &runtimev1.GetAvatarDebugSnapshotRequest{
-		Context: testDelegatedControlContext(),
-		AgentId: "agent-1",
+		Context: testAvatarDebugContext(""),
+		AgentId: avatarDebugTestAgentID(),
 	})
 	if status.Code(err) != codes.InvalidArgument {
 		t.Fatalf("expected missing conversation_anchor_id rejection, got %v", err)
@@ -212,7 +254,73 @@ func TestGetAvatarDebugSnapshotRequiresConversationAnchor(t *testing.T) {
 }
 
 func testAvatarDebugService() *Service {
-	svc := testDelegatedControlSurfaceServiceWithoutAudit()
+	agentID := avatarDebugTestAgentID()
+	anchorID := avatarDebugTestAnchorID()
+	svc := &Service{
+		agents: map[string]*agentEntry{
+			agentID: {
+				Agent: &runtimev1.AgentRecord{
+					AgentId:         agentID,
+					OwnerUserId:     "user-1",
+					RealmAgentId:    "agent-1",
+					LocalAgentRef:   agentID,
+					LifecycleStatus: runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_ACTIVE,
+				},
+				State: &runtimev1.AgentStateProjection{ActiveUserId: "user-1"},
+			},
+		},
+		events:        []*runtimev1.AgentEvent{},
+		subscribers:   map[uint64]*subscriber{},
+		chatAnchors:   map[string]*publicChatAnchorState{},
+		chatTurns:     map[string]*publicChatTurnState{},
+		chatFollowUps: map[string]*publicChatFollowUpState{},
+	}
+	svc.chatAnchors[anchorID] = &publicChatAnchorState{
+		ConversationAnchorID: anchorID,
+		AgentID:              agentID,
+		OwnerUserID:          "user-1",
+		RealmAgentID:         "agent-1",
+		LocalAgentRef:        agentID,
+		CallerAppID:          "nimi.desktop",
+		SubjectUserID:        "user-1",
+		Status:               runtimev1.ConversationAnchorStatus_CONVERSATION_ANCHOR_STATUS_ACTIVE,
+	}
 	svc.auditStore = auditlog.New(128, 128)
+	svc.SetScopedBindingValidator(stubScopedBindingValidator{
+		validate: func(bindingID string, actual *runtimev1.ScopedAppBindingRelation, requiredScope string) (runtimev1.AccountReasonCode, bool) {
+			if bindingID != "binding-avatar-debug" || actual.GetRuntimeAppId() != "nimi.desktop" || actual.GetAgentId() != agentID || actual.GetConversationAnchorId() != anchorID {
+				return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BINDING_NOT_FOUND, false
+			}
+			if requiredScope != avatarDebugReadScope && requiredScope != avatarDebugWriteScope {
+				return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED, false
+			}
+			return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_UNSPECIFIED, true
+		},
+	})
 	return svc
+}
+
+func avatarDebugTestAgentID() string {
+	return buildLocalAgentRef("user-1", "agent-1")
+}
+
+func avatarDebugTestAnchorID() string {
+	return "anchor-1"
+}
+
+func testAvatarDebugContext(anchorID string) *runtimev1.AgentRequestContext {
+	agentID := avatarDebugTestAgentID()
+	return &runtimev1.AgentRequestContext{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-1",
+		OwnerUserId:   "user-1",
+		RealmAgentId:  "agent-1",
+		LocalAgentRef: agentID,
+		ScopedBinding: &runtimev1.ScopedRuntimeBindingAttachment{
+			BindingId:            "binding-avatar-debug",
+			RuntimeAppId:         "nimi.desktop",
+			AgentId:              agentID,
+			ConversationAnchorId: anchorID,
+		},
+	}
 }

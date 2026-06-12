@@ -13,6 +13,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func TestLocalResolveAndApplyExecutionPlan(t *testing.T) {
@@ -267,13 +268,14 @@ func TestLocalAuditFilterByTargetID(t *testing.T) {
 	svc := newTestService(t)
 
 	if _, err := svc.AppendInferenceAudit(context.Background(), &runtimev1.AppendInferenceAuditRequest{
-		EventType: "inference_invoked",
-		TargetId:  "world.nimi.user-math-quiz",
-		Source:    "local",
-		Provider:  "llama",
-		Modality:  "chat",
-		Adapter:   "openai_compat_adapter",
-		Model:     "local/chat-default",
+		EventType:  "inference_invoked",
+		TargetId:   "world.nimi.user-math-quiz",
+		Source:     "local",
+		Provider:   "llama",
+		Modality:   "chat",
+		Adapter:    "openai_compat_adapter",
+		Model:      "local/chat-default",
+		ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED.String(),
 	}); err != nil {
 		t.Fatalf("append inference audit: %v", err)
 	}
@@ -281,6 +283,7 @@ func TestLocalAuditFilterByTargetID(t *testing.T) {
 	if _, err := svc.AppendRuntimeAudit(context.Background(), &runtimev1.AppendRuntimeAuditRequest{
 		EventType: "runtime_model_ready_after_install",
 		ModelId:   "local/chat-default",
+		Payload:   localAuditReasonPayload(runtimev1.ReasonCode_ACTION_EXECUTED),
 	}); err != nil {
 		t.Fatalf("append runtime audit: %v", err)
 	}
@@ -311,9 +314,10 @@ func TestLocalAuditContextEnvelopeAndFilters(t *testing.T) {
 	))
 
 	if _, err := svc.AppendInferenceAudit(ctx, &runtimev1.AppendInferenceAuditRequest{
-		EventType: "ctx_audit",
-		Source:    "local",
-		Model:     "local/ctx-model",
+		EventType:  "ctx_audit",
+		Source:     "local",
+		Model:      "local/ctx-model",
+		ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED.String(),
 	}); err != nil {
 		t.Fatalf("append inference audit: %v", err)
 	}
@@ -346,6 +350,11 @@ func TestLocalAuditContextEnvelopeAndFilters(t *testing.T) {
 	if event.GetSubjectUserId() != "subject-ctx" {
 		t.Fatalf("unexpected subject_user_id: %s", event.GetSubjectUserId())
 	}
+}
+
+func localAuditReasonPayload(reason runtimev1.ReasonCode) *structpb.Struct {
+	payload, _ := structpb.NewStruct(map[string]any{"reason_code": reason.String()})
+	return payload
 }
 
 func TestLocalNodeCatalogFiltersByCapabilityAndProvider(t *testing.T) {

@@ -305,6 +305,8 @@ func importWindowsNativeImageForActivationGateTest(t *testing.T, svc *Service) *
 		"engine":           "media",
 		"capabilities":     []string{"image"},
 		"entry":            "z_image_turbo-Q4_K.gguf",
+		"files":            []string{"z_image_turbo-Q4_K.gguf"},
+		"hashes":           map[string]string{"z_image_turbo-Q4_K.gguf": "sha256:" + validImageTestGGUFHash()},
 		"source": map[string]any{
 			"repo": "file://" + filepath.ToSlash(manifestPath),
 		},

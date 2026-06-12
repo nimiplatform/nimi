@@ -16,14 +16,12 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-// K-AGCORE-041 / K-AGCORE-043 narrow-admission vocabulary.
-// Admitted trigger matrix is:
-//   - time(delay)        family = TIME
-//   - event(user_idle)   family = EVENT, event_user_idle detail
-//   - event(chat_ended)  family = EVENT, event_chat_ended detail
-// Admitted effect is: follow-up-turn.
-// No absolute scheduled time, turn_completed, state_condition, world_event,
-// or compound trigger is admitted. No cadence-interaction blob is admitted.
+// K-AGCORE-041 / K-AGCORE-043 admitted hook trigger vocabulary.
+// This mirrors runtime-memory-hook-trigger.yaml:
+//   - SCHEDULED_TIME => time(delay), optionally bounded by not_before
+//   - USER_IDLE      => event(user_idle)
+//   - CHAT_ENDED     => event(chat_ended)
+// Admitted effect is follow-up-turn. No cadence-interaction blob is admitted.
 
 const (
 	autonomyCadenceHookReason       = "runtime.autonomy.cadence_tick"

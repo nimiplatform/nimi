@@ -71,7 +71,7 @@ func TestKnowledgeScopeRegistry_CreateRejectsDuplicate(t *testing.T) {
 	registry := c.KnowledgeScopeRegistry()
 
 	desc := KnowledgeScopeDescriptor{
-		Owner:       KnowledgeScopeOwner{Kind: KnowledgeScopeOwnerKindAppPrivate, AppID: "nimi.desktop"},
+		Owner:       KnowledgeScopeOwner{Kind: KnowledgeScopeOwnerKindWorkspace, WorkspaceID: "ws-desktop"},
 		DisplayName: "Product Notes",
 	}
 	first, err := registry.CreateKnowledgeScope(context.Background(), desc)
@@ -118,13 +118,13 @@ func TestKnowledgeScopeRegistry_ListFiltersAndPaginates(t *testing.T) {
 	c := newTestCognition(t)
 	registry := c.KnowledgeScopeRegistry()
 
-	// Seed 3 app_private scopes for nimi.desktop + 2 workspace_private scopes.
+	// Seed 3 workspace scopes for ws-desktop + 2 workspace scopes for ws-7.
 	for _, name := range []string{"AAA Bank", "BBB Bank", "CCC Bank"} {
 		if _, err := registry.CreateKnowledgeScope(context.Background(), KnowledgeScopeDescriptor{
-			Owner:       KnowledgeScopeOwner{Kind: KnowledgeScopeOwnerKindAppPrivate, AppID: "nimi.desktop"},
+			Owner:       KnowledgeScopeOwner{Kind: KnowledgeScopeOwnerKindWorkspace, WorkspaceID: "ws-desktop"},
 			DisplayName: name,
 		}); err != nil {
-			t.Fatalf("seed app bank %s: %v", name, err)
+			t.Fatalf("seed workspace bank %s: %v", name, err)
 		}
 	}
 	for _, name := range []string{"WS One", "WS Two"} {
@@ -136,19 +136,19 @@ func TestKnowledgeScopeRegistry_ListFiltersAndPaginates(t *testing.T) {
 		}
 	}
 
-	// Filter by owner kind.
-	appScopes, _, err := registry.ListKnowledgeScopes(context.Background(), KnowledgeScopeFilter{
-		OwnerKinds: []string{KnowledgeScopeOwnerKindAppPrivate},
+	// Filter by owner identity.
+	desktopScopes, _, err := registry.ListKnowledgeScopes(context.Background(), KnowledgeScopeFilter{
+		Owners: []KnowledgeScopeOwner{{Kind: KnowledgeScopeOwnerKindWorkspace, WorkspaceID: "ws-desktop"}},
 	})
 	if err != nil {
-		t.Fatalf("list app: %v", err)
+		t.Fatalf("list desktop workspace: %v", err)
 	}
-	if len(appScopes) != 3 {
-		t.Fatalf("expected 3 app_private scopes, got %d", len(appScopes))
+	if len(desktopScopes) != 3 {
+		t.Fatalf("expected 3 workspace scopes, got %d", len(desktopScopes))
 	}
-	for _, s := range appScopes {
-		if s.OwnerKey != "app:nimi.desktop" {
-			t.Fatalf("expected owner_key app:nimi.desktop, got %s", s.OwnerKey)
+	for _, s := range desktopScopes {
+		if s.OwnerKey != "workspace:ws-desktop" {
+			t.Fatalf("expected owner_key workspace:ws-desktop, got %s", s.OwnerKey)
 		}
 	}
 
@@ -164,7 +164,7 @@ func TestKnowledgeScopeRegistry_ListFiltersAndPaginates(t *testing.T) {
 	}
 
 	// Pagination: page size 2 over 5 total.
-	page1, token, err := registry.ListKnowledgeScopes(context.Background(), KnowledgeScopeFilter{PageSize: 2})
+	page1, token, err := registry.ListKnowledgeScopes(context.Background(), KnowledgeScopeFilter{OwnerKinds: []string{KnowledgeScopeOwnerKindWorkspace}, PageSize: 2})
 	if err != nil {
 		t.Fatalf("page1: %v", err)
 	}
@@ -174,14 +174,14 @@ func TestKnowledgeScopeRegistry_ListFiltersAndPaginates(t *testing.T) {
 	if token == "" {
 		t.Fatalf("expected continuation token after page1")
 	}
-	page2, token2, err := registry.ListKnowledgeScopes(context.Background(), KnowledgeScopeFilter{PageSize: 2, PageToken: token})
+	page2, token2, err := registry.ListKnowledgeScopes(context.Background(), KnowledgeScopeFilter{OwnerKinds: []string{KnowledgeScopeOwnerKindWorkspace}, PageSize: 2, PageToken: token})
 	if err != nil {
 		t.Fatalf("page2: %v", err)
 	}
 	if len(page2) != 2 {
 		t.Fatalf("expected 2 results in page2, got %d", len(page2))
 	}
-	page3, token3, err := registry.ListKnowledgeScopes(context.Background(), KnowledgeScopeFilter{PageSize: 2, PageToken: token2})
+	page3, token3, err := registry.ListKnowledgeScopes(context.Background(), KnowledgeScopeFilter{OwnerKinds: []string{KnowledgeScopeOwnerKindWorkspace}, PageSize: 2, PageToken: token2})
 	if err != nil {
 		t.Fatalf("page3: %v", err)
 	}

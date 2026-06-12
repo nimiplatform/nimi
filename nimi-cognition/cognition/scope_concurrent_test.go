@@ -23,7 +23,7 @@ func TestKnowledgeScopeRegistry_ConcurrentCreateNoDuplicates(t *testing.T) {
 
 	const workers = 8
 	desc := KnowledgeScopeDescriptor{
-		Owner:       KnowledgeScopeOwner{Kind: KnowledgeScopeOwnerKindAppPrivate, AppID: "nimi.desktop"},
+		Owner:       KnowledgeScopeOwner{Kind: KnowledgeScopeOwnerKindWorkspace, WorkspaceID: "ws-race"},
 		DisplayName: "Race Bank",
 	}
 

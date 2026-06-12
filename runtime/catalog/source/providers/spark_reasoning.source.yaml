@@ -3,6 +3,7 @@ provider: spark_reasoning
 catalog_version: 2026-04-18-spark-reasoning-v1
 generated_target: runtime/catalog/providers/spark_reasoning.yaml
 runtime:
+  inventory_mode: static_source
   runtime_plane: remote
   managed_connector_supported: true
   inline_supported: true

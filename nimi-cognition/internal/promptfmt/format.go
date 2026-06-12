@@ -247,20 +247,14 @@ func formatCitationSummary(citations []knowledge.Citation) string {
 	if len(citations) == 0 {
 		return ""
 	}
-	var kernelRuleCount int
 	var memoryRecordCount int
 	for _, citation := range citations {
 		switch citation.TargetKind {
-		case knowledge.CitationTargetKindKernelRule:
-			kernelRuleCount++
 		case knowledge.CitationTargetKindMemoryRecord:
 			memoryRecordCount++
 		}
 	}
 	parts := []string{fmt.Sprintf("citations=%d", len(citations))}
-	if kernelRuleCount > 0 {
-		parts = append(parts, fmt.Sprintf("kernel_rules=%d", kernelRuleCount))
-	}
 	if memoryRecordCount > 0 {
 		parts = append(parts, fmt.Sprintf("memory_records=%d", memoryRecordCount))
 	}

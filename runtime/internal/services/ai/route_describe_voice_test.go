@@ -17,7 +17,7 @@ import (
 func TestExecuteScenarioVoiceCloneRouteDescribeProbeWritesHeaderForManagedCloudRoute(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		CloudProviders: map[string]nimillm.ProviderCredentials{
-			"dashscope": {BaseURL: "http://example.com", APIKey: "test-key"},
+			"dashscope": {BaseURL: "https://example.com", APIKey: "test-key"},
 		},
 	})
 
@@ -107,7 +107,7 @@ func TestExecuteScenarioVoiceCloneRouteDescribeProbeWritesHeaderForLocalQwenRout
 	svc.localModel = &fakeLocalModelLister{responses: []*runtimev1.ListLocalAssetsResponse{{
 		Assets: []*runtimev1.LocalAssetRecord{{
 			LocalAssetId: "local-qwen3-tts-001",
-			AssetId:      "speech/qwen3tts",
+			AssetId:      "speech/qwen3tts-base",
 			Engine:       "speech",
 			Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
 			Endpoint:     server.URL + "/v1",
@@ -120,7 +120,7 @@ func TestExecuteScenarioVoiceCloneRouteDescribeProbeWritesHeaderForLocalQwenRout
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			ModelId:       "speech/qwen3tts",
+			ModelId:       "speech/qwen3tts-base",
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     30_000,
@@ -137,7 +137,7 @@ func TestExecuteScenarioVoiceCloneRouteDescribeProbeWritesHeaderForLocalQwenRout
 		Spec: &runtimev1.ScenarioSpec{
 			Spec: &runtimev1.ScenarioSpec_VoiceClone{
 				VoiceClone: &runtimev1.VoiceCloneScenarioSpec{
-					TargetModelId: "speech/qwen3tts",
+					TargetModelId: "speech/qwen3tts-base",
 					Input: &runtimev1.VoiceV2VInput{
 						ReferenceAudioBytes: []byte{0x01},
 						ReferenceAudioMime:  "audio/wav",
@@ -150,7 +150,7 @@ func TestExecuteScenarioVoiceCloneRouteDescribeProbeWritesHeaderForLocalQwenRout
 	if err != nil {
 		t.Fatalf("execute scenario local qwen3 voice route describe probe: %v", err)
 	}
-	if got := resp.GetModelResolved(); got != "speech/qwen3tts" {
+	if got := resp.GetModelResolved(); got != "speech/qwen3tts-base" {
 		t.Fatalf("model resolved mismatch: got=%q", got)
 	}
 	payload := decodeRouteDescribeHeader(t, transport.header)

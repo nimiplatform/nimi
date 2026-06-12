@@ -1,13 +1,27 @@
 package localrouting
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/nimiplatform/nimi/runtime/internal/aicapabilities"
+	"gopkg.in/yaml.v3"
 )
 
-func knownProviders() []string {
-	return []string{"llama", "media", "speech", "sidecar"}
+var authorityRoutes = sync.OnceValues(loadAuthorityRoutes)
+
+type authorityRoute struct {
+	Provider   string
+	Capability string
+}
+
+type authorityRoutingDocument struct {
+	Routes []struct {
+		Provider   string `yaml:"provider"`
+		Capability string `yaml:"capability"`
+	} `yaml:"routes"`
 }
 
 func NormalizeCapability(capability string) string {
@@ -122,34 +136,88 @@ func supportedProvidersInOrder(capability string, providers ...string) []string 
 }
 
 func providersForNormalizedCapability(capability string) []string {
-	switch capability {
-	case "image.generate", "image.edit", "video.generate", "i2v":
-		return supportedProvidersInOrder(capability, "media")
-	case "audio.synthesize", "audio.transcribe", "voice_workflow.voice_clone", "voice_workflow.voice_design":
-		return supportedProvidersInOrder(capability, "speech")
-	case "text.generate", "text.embed", "image.understand", "audio.understand":
-		return supportedProvidersInOrder(capability, "llama")
-	case "music.generate":
-		return supportedProvidersInOrder(capability, "sidecar")
-	default:
-		return supportedProvidersInOrder(capability, knownProviders()...)
+	routes, err := authorityRoutes()
+	if err != nil {
+		return nil
 	}
+	providers := make([]string, 0, len(routes))
+	seen := map[string]struct{}{}
+	for _, route := range routes {
+		if route.Provider == "*" || route.Capability == "*" || route.Capability != capability {
+			continue
+		}
+		if _, ok := seen[route.Provider]; ok {
+			continue
+		}
+		seen[route.Provider] = struct{}{}
+		providers = append(providers, route.Provider)
+	}
+	return supportedProvidersInOrder(capability, providers...)
 }
 
 func providerSupportsNormalizedCapability(provider string, capability string) bool {
-	switch provider {
-	case "llama":
-		return capability == "text.generate" || capability == "text.embed" || capability == "image.understand" || capability == "audio.understand"
-	case "media":
-		return capability == "image.generate" || capability == "image.edit" || capability == "video.generate" || capability == "i2v"
-	case "speech":
-		return capability == "audio.synthesize" ||
-			capability == "audio.transcribe" ||
-			capability == "voice_workflow.voice_clone" ||
-			capability == "voice_workflow.voice_design"
-	case "sidecar":
-		return capability == "music.generate"
-	default:
+	normalizedProvider := NormalizeProvider(provider)
+	routes, err := authorityRoutes()
+	if err != nil {
 		return false
 	}
+	for _, route := range routes {
+		if route.Provider == normalizedProvider && route.Capability == capability {
+			return true
+		}
+	}
+	return false
+}
+
+func knownProviders() []string {
+	return []string{"llama", "media", "speech", "sidecar"}
+}
+
+func loadAuthorityRoutes() ([]authorityRoute, error) {
+	path, err := localAdapterRoutingAuthorityPath()
+	if err != nil {
+		return nil, err
+	}
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	var doc authorityRoutingDocument
+	if err := yaml.Unmarshal(raw, &doc); err != nil {
+		return nil, err
+	}
+	routes := make([]authorityRoute, 0, len(doc.Routes))
+	for _, route := range doc.Routes {
+		provider := NormalizeProvider(route.Provider)
+		capability := NormalizeCapability(route.Capability)
+		if provider == "" || capability == "" {
+			continue
+		}
+		routes = append(routes, authorityRoute{Provider: provider, Capability: capability})
+	}
+	return routes, nil
+}
+
+func localAdapterRoutingAuthorityPath() (string, error) {
+	const relative = ".nimi/spec/runtime/kernel/tables/local-adapter-routing.yaml"
+	var starts []string
+	if wd, err := os.Getwd(); err == nil {
+		starts = append(starts, wd)
+	}
+	if exe, err := os.Executable(); err == nil {
+		starts = append(starts, filepath.Dir(exe))
+	}
+	for _, start := range starts {
+		for dir := filepath.Clean(start); ; dir = filepath.Dir(dir) {
+			candidate := filepath.Join(dir, relative)
+			if _, err := os.Stat(candidate); err == nil {
+				return candidate, nil
+			}
+			parent := filepath.Dir(dir)
+			if parent == dir {
+				break
+			}
+		}
+	}
+	return "", os.ErrNotExist
 }

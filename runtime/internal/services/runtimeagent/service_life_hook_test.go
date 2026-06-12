@@ -309,7 +309,7 @@ func TestRuntimeAgentWorldSharedQueryAndWriteUseActiveWorldID(t *testing.T) {
 					},
 				},
 				SourceEventId: "evt-world-1",
-				Extensions:    completePromotionEvidence(t),
+				Extensions:    completePromotionEvidence(t, svc),
 				Record: &runtimev1.MemoryRecordInput{
 					Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_SEMANTIC,
 					Payload: &runtimev1.MemoryRecordInput_Semantic{
@@ -375,7 +375,7 @@ func TestRuntimeAgentWorldSharedWriteFailsClosedForMissingOrMismatchedWorld(t *t
 					},
 				},
 				SourceEventId: "evt-world-fail-1",
-				Extensions:    completePromotionEvidence(t),
+				Extensions:    completePromotionEvidence(t, svc),
 				Record: &runtimev1.MemoryRecordInput{
 					Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_SEMANTIC,
 					Payload: &runtimev1.MemoryRecordInput_Semantic{
@@ -422,7 +422,7 @@ func TestRuntimeAgentWorldSharedWriteFailsClosedForMissingOrMismatchedWorld(t *t
 					},
 				},
 				SourceEventId: "evt-world-fail-2",
-				Extensions:    completePromotionEvidence(t),
+				Extensions:    completePromotionEvidence(t, svc),
 				Record: &runtimev1.MemoryRecordInput{
 					Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_SEMANTIC,
 					Payload: &runtimev1.MemoryRecordInput_Semantic{
@@ -906,10 +906,11 @@ func TestRuntimeAgentWriteLifeTurnCandidatesRejectsSameBatchSemanticContradictio
 	}
 
 	queryResp, queryErr := svc.QueryAgentMemory(ctx, &runtimev1.QueryAgentMemoryRequest{
-		Context: testRuntimeAgentIdentityContext("agent-life-contradiction"),
-		AgentId: "agent-life-contradiction",
-		Query:   "likes",
-		Limit:   5,
+		Context:          testRuntimeAgentIdentityContext("agent-life-contradiction"),
+		AgentId:          "agent-life-contradiction",
+		Query:            "likes",
+		Limit:            5,
+		CanonicalClasses: []runtimev1.MemoryCanonicalClass{runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_PUBLIC_SHARED},
 	})
 	if queryErr != nil {
 		t.Fatalf("QueryAgentMemory: %v", queryErr)

@@ -112,16 +112,15 @@ func TestUninstallJobWatchStreamCarriesUninstallKind(t *testing.T) {
 	svc, _ := newBundledInstallService(t)
 	installBundledAppForOpen(t, svc)
 
-	stream := newRecordingInstallEventStream()
-	done := make(chan error, 1)
-	go func() {
-		done <- svc.WatchAppInstallJobEvents(&runtimev1.WatchAppInstallJobEventsRequest{}, stream)
-	}()
-
 	resp, err := svc.UninstallApp(context.Background(), &runtimev1.UninstallAppRequest{AppId: "nimi.example-app"})
 	if err != nil {
 		t.Fatalf("UninstallApp: %v", err)
 	}
+	stream := newRecordingInstallEventStream()
+	done := make(chan error, 1)
+	go func() {
+		done <- svc.WatchAppInstallJobEvents(&runtimev1.WatchAppInstallJobEventsRequest{JobId: resp.GetJob().GetJobId()}, stream)
+	}()
 
 	deadline := time.Now().Add(5 * time.Second)
 	for time.Now().Before(deadline) && !stream.terminalSeen() {

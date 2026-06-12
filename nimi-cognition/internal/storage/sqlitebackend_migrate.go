@@ -188,12 +188,88 @@ func (b *SQLiteBackend) migrateKnowledgeAuxState() (err error) {
 	return tx.Commit()
 }
 
+func (b *SQLiteBackend) migrateKernelCommitScopeSchema() (err error) {
+	scoped, err := tableColumnIsPrimaryKey(b.db, "kernel_commit", "scope_id")
+	if err != nil {
+		return err
+	}
+	if scoped {
+		return nil
+	}
+	tx, err := b.db.Begin()
+	if err != nil {
+		return fmt.Errorf("storage: migrate kernel_commit schema: begin tx: %w", err)
+	}
+	defer rollback(tx)
+	if _, err := tx.Exec(`ALTER TABLE kernel_commit RENAME TO kernel_commit_old`); err != nil {
+		return fmt.Errorf("storage: migrate kernel_commit schema: rename: %w", err)
+	}
+	if _, err := tx.Exec(`CREATE TABLE kernel_commit (
+		scope_id TEXT NOT NULL,
+		commit_id TEXT NOT NULL,
+		kernel_type TEXT,
+		created_at TEXT NOT NULL,
+		commit_json BLOB NOT NULL,
+		PRIMARY KEY (scope_id, commit_id)
+	)`); err != nil {
+		return fmt.Errorf("storage: migrate kernel_commit schema: create: %w", err)
+	}
+	if _, err := tx.Exec(`INSERT INTO kernel_commit
+		(scope_id, commit_id, kernel_type, created_at, commit_json)
+		SELECT scope_id, commit_id, kernel_type, created_at, commit_json
+		FROM kernel_commit_old`); err != nil {
+		return fmt.Errorf("storage: migrate kernel_commit schema: copy: %w", err)
+	}
+	if _, err := tx.Exec(`DROP TABLE kernel_commit_old`); err != nil {
+		return fmt.Errorf("storage: migrate kernel_commit schema: drop old: %w", err)
+	}
+	return tx.Commit()
+}
+
+func (b *SQLiteBackend) migrateDigestRunScopeSchema() (err error) {
+	scoped, err := tableColumnIsPrimaryKey(b.db, "digest_run", "scope_id")
+	if err != nil {
+		return err
+	}
+	if scoped {
+		return nil
+	}
+	tx, err := b.db.Begin()
+	if err != nil {
+		return fmt.Errorf("storage: migrate digest_run schema: begin tx: %w", err)
+	}
+	defer rollback(tx)
+	if _, err := tx.Exec(`ALTER TABLE digest_run RENAME TO digest_run_old`); err != nil {
+		return fmt.Errorf("storage: migrate digest_run schema: rename: %w", err)
+	}
+	if _, err := tx.Exec(`CREATE TABLE digest_run (
+		scope_id TEXT NOT NULL,
+		run_id TEXT NOT NULL,
+		report_json BLOB NOT NULL,
+		created_at TEXT NOT NULL,
+		PRIMARY KEY (scope_id, run_id)
+	)`); err != nil {
+		return fmt.Errorf("storage: migrate digest_run schema: create: %w", err)
+	}
+	if _, err := tx.Exec(`INSERT INTO digest_run
+		(scope_id, run_id, report_json, created_at)
+		SELECT scope_id, run_id, report_json, created_at
+		FROM digest_run_old`); err != nil {
+		return fmt.Errorf("storage: migrate digest_run schema: copy: %w", err)
+	}
+	if _, err := tx.Exec(`DROP TABLE digest_run_old`); err != nil {
+		return fmt.Errorf("storage: migrate digest_run schema: drop old: %w", err)
+	}
+	return tx.Commit()
+}
+
 func (b *SQLiteBackend) migrateDigestCandidateSchema() (err error) {
 	rows, err := b.db.Query(`PRAGMA table_info(digest_candidate)`)
 	if err != nil {
 		return fmt.Errorf("storage: inspect digest_candidate schema: %w", err)
 	}
 	defer closeRows(rows, &err, "storage: inspect digest_candidate schema")
+	var hasScopedPK bool
 	var hasStatusPK bool
 	for rows.Next() {
 		var cid int
@@ -205,6 +281,9 @@ func (b *SQLiteBackend) migrateDigestCandidateSchema() (err error) {
 		if err := rows.Scan(&cid, &name, &columnType, &notNull, &defaultValue, &pk); err != nil {
 			return fmt.Errorf("storage: inspect digest_candidate schema: %w", err)
 		}
+		if name == "scope_id" && pk > 0 {
+			hasScopedPK = true
+		}
 		if name == "status" && pk > 0 {
 			hasStatusPK = true
 		}
@@ -212,7 +291,7 @@ func (b *SQLiteBackend) migrateDigestCandidateSchema() (err error) {
 	if err := rows.Err(); err != nil {
 		return fmt.Errorf("storage: inspect digest_candidate schema: %w", err)
 	}
-	if hasStatusPK {
+	if hasScopedPK && hasStatusPK {
 		return nil
 	}
 
@@ -236,7 +315,7 @@ func (b *SQLiteBackend) migrateDigestCandidateSchema() (err error) {
 		detail_json BLOB,
 		created_at TEXT NOT NULL,
 		updated_at TEXT NOT NULL,
-		PRIMARY KEY (run_id, family, artifact_kind, artifact_id, action, status)
+		PRIMARY KEY (scope_id, run_id, family, artifact_kind, artifact_id, action, status)
 	)`); err != nil {
 		return fmt.Errorf("storage: migrate digest_candidate schema: create: %w", err)
 	}
@@ -250,6 +329,32 @@ func (b *SQLiteBackend) migrateDigestCandidateSchema() (err error) {
 		return fmt.Errorf("storage: migrate digest_candidate schema: drop old: %w", err)
 	}
 	return tx.Commit()
+}
+
+func tableColumnIsPrimaryKey(db *sql.DB, table string, column string) (bool, error) {
+	rows, err := db.Query(`PRAGMA table_info(` + table + `)`)
+	if err != nil {
+		return false, fmt.Errorf("storage: inspect %s schema: %w", table, err)
+	}
+	defer closeRows(rows, &err, "storage: inspect "+table+" schema")
+	for rows.Next() {
+		var cid int
+		var name string
+		var columnType string
+		var notNull int
+		var defaultValue sql.NullString
+		var pk int
+		if err := rows.Scan(&cid, &name, &columnType, &notNull, &defaultValue, &pk); err != nil {
+			return false, fmt.Errorf("storage: inspect %s schema: %w", table, err)
+		}
+		if name == column {
+			return pk > 0, nil
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return false, fmt.Errorf("storage: inspect %s schema: %w", table, err)
+	}
+	return false, fmt.Errorf("storage: inspect %s schema: column %s missing", table, column)
 }
 
 func (b *SQLiteBackend) rebuildSkillBundleFTS() error {

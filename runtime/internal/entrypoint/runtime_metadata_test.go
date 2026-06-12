@@ -154,15 +154,23 @@ func TestInsecureGRPCTargetIsLocal(t *testing.T) {
 	}
 }
 
-func TestPrepareInsecureOutgoingContextRejectsProviderKeyOnNonLoopback(t *testing.T) {
-	_, err := prepareInsecureOutgoingContext(context.Background(), "grpc.example.com:50051", "nimi.desktop", &ClientMetadata{
-		ProviderAPIKey: "sk-test",
-	})
-	if err == nil {
-		t.Fatal("expected non-loopback insecure target to be rejected")
+func TestPrepareInsecureOutgoingContextRejectsCredentialSecretsOnNonLoopback(t *testing.T) {
+	tests := []struct {
+		name     string
+		override *ClientMetadata
+	}{
+		{name: "provider api key", override: &ClientMetadata{ProviderAPIKey: "sk-test"}},
+		{name: "access token secret", override: &ClientMetadata{AccessTokenSecret: "access-secret"}},
+		{name: "session token", override: &ClientMetadata{SessionToken: "session-secret"}},
 	}
-	if err.Error() != "provider_api_key requires loopback or unix gRPC target when using insecure transport" {
-		t.Fatalf("unexpected error: %v", err)
+	for _, tt := range tests {
+		_, err := prepareInsecureOutgoingContext(context.Background(), "grpc.example.com:50051", "nimi.desktop", tt.override)
+		if err == nil {
+			t.Fatalf("%s: expected non-loopback insecure target to be rejected", tt.name)
+		}
+		if err.Error() != "runtime credential metadata requires loopback or unix gRPC target when using insecure transport" {
+			t.Fatalf("%s: unexpected error: %v", tt.name, err)
+		}
 	}
 }
 

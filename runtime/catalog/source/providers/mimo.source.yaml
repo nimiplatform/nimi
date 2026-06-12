@@ -3,6 +3,7 @@ provider: mimo
 catalog_version: 2026-06-06-mimo-v2-5
 generated_target: runtime/catalog/providers/mimo.yaml
 runtime:
+  inventory_mode: static_source
   runtime_plane: remote
   managed_connector_supported: true
   inline_supported: true

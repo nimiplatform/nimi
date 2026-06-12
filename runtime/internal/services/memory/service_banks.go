@@ -72,6 +72,9 @@ func (s *Service) GetBank(_ context.Context, req *runtimev1.GetBankRequest) (*ru
 	if req.GetLocator() == nil {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
+	if publicMemoryRequestContextPresent(req.GetContext()) && !memoryBankScopeDirectAppAccessible(req.GetLocator().GetScope()) {
+		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_RESOURCE_OUT_OF_SCOPE)
+	}
 	s.mu.RLock()
 	state := s.banks[locatorKey(req.GetLocator())]
 	s.mu.RUnlock()
@@ -82,10 +85,17 @@ func (s *Service) GetBank(_ context.Context, req *runtimev1.GetBankRequest) (*ru
 }
 
 func (s *Service) ListBanks(_ context.Context, req *runtimev1.ListBanksRequest) (*runtimev1.ListBanksResponse, error) {
+	publicAccess := publicMemoryRequestContextPresent(req.GetContext())
+	if publicAccess && memoryBankFiltersRequestRuntimeOwnedScope(req.GetScopeFilters(), req.GetOwnerFilters()) {
+		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_RESOURCE_OUT_OF_SCOPE)
+	}
 	s.mu.RLock()
 	items := make([]*runtimev1.MemoryBank, 0, len(s.banks))
 	for _, state := range s.banks {
 		if !matchesBankFilters(state.Bank, req.GetScopeFilters(), req.GetOwnerFilters()) {
+			continue
+		}
+		if publicAccess && !memoryBankScopeDirectAppAccessible(state.Bank.GetLocator().GetScope()) {
 			continue
 		}
 		items = append(items, cloneBank(state.Bank))
@@ -224,6 +234,34 @@ func matchesBankFilters(bank *runtimev1.MemoryBank, scopes []runtimev1.MemoryBan
 		return false
 	}
 	return true
+}
+
+func publicMemoryRequestContextPresent(ctx *runtimev1.MemoryRequestContext) bool {
+	return strings.TrimSpace(ctx.GetAppId()) != "" || strings.TrimSpace(ctx.GetSubjectUserId()) != ""
+}
+
+func memoryBankScopeDirectAppAccessible(scope runtimev1.MemoryBankScope) bool {
+	switch scope {
+	case runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_APP_PRIVATE,
+		runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_WORKSPACE_PRIVATE:
+		return true
+	default:
+		return false
+	}
+}
+
+func memoryBankFiltersRequestRuntimeOwnedScope(scopes []runtimev1.MemoryBankScope, owners []*runtimev1.MemoryBankOwnerFilter) bool {
+	for _, scope := range scopes {
+		if !memoryBankScopeDirectAppAccessible(scope) {
+			return true
+		}
+	}
+	for _, owner := range owners {
+		if owner.GetAgentCore() != nil || owner.GetAgentDyadic() != nil || owner.GetWorldShared() != nil {
+			return true
+		}
+	}
+	return false
 }
 
 func deriveBankID(locator *runtimev1.MemoryBankLocator) string {

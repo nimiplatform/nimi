@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"io"
 	"math/big"
+	"mime"
 	"net"
 	"net/http"
 	"net/url"
@@ -149,8 +150,8 @@ type revocationRequest struct {
 }
 
 type revocationResponse struct {
-	Active    bool   `json:"active"`
-	Revoked   bool   `json:"revoked"`
+	Active    *bool  `json:"active"`
+	Revoked   *bool  `json:"revoked"`
 	ExpiresAt string `json:"expires_at,omitempty"`
 }
 
@@ -389,12 +390,18 @@ func (v *Validator) requestRevocation(ctx context.Context, revocationURL string,
 	if resp.StatusCode != http.StatusOK {
 		return time.Time{}, newRevocationUnavailableError(fmt.Sprintf("revocation endpoint returned status %d", resp.StatusCode), nil)
 	}
+	if !isJSONContentType(resp.Header.Get("Content-Type")) {
+		return time.Time{}, newRevocationUnavailableError("revocation endpoint returned non-json content type", nil)
+	}
 	limited := io.LimitReader(resp.Body, maxRevocationBodyBytes)
 	var result revocationResponse
 	if err := json.NewDecoder(limited).Decode(&result); err != nil {
 		return time.Time{}, newRevocationUnavailableError("decode revocation response", err)
 	}
-	if result.Revoked || !result.Active {
+	if result.Active == nil || result.Revoked == nil {
+		return time.Time{}, newRevocationUnavailableError("revocation response missing active or revoked", nil)
+	}
+	if *result.Revoked || !*result.Active {
 		return time.Time{}, errSessionRevoked
 	}
 	var responseExpiry time.Time
@@ -406,6 +413,14 @@ func (v *Validator) requestRevocation(ctx context.Context, revocationURL string,
 		responseExpiry = parsed
 	}
 	return responseExpiry, nil
+}
+
+func isJSONContentType(value string) bool {
+	mediaType, _, err := mime.ParseMediaType(strings.TrimSpace(value))
+	if err != nil {
+		return false
+	}
+	return mediaType == "application/json"
 }
 
 func revocationCacheExpiry(now time.Time, ttl time.Duration, identity *Identity, responseExpiry time.Time) time.Time {

@@ -30,7 +30,7 @@ func TestDelegatedProviderProfilesAreRuntimeOwned(t *testing.T) {
 			TrustTier:         runtimev1.DelegatedProviderTrustTier_DELEGATED_PROVIDER_TRUST_TIER_USER_ADDED_REVIEWED,
 			AllowedTools: []*runtimev1.DelegatedToolAllowlistEntry{{
 				ToolName:          "calendar_lookup",
-				EffectClass: runtimev1.EffectClass_EFFECT_CLASS_READ_ONLY,
+				EffectClass:       runtimev1.EffectClass_EFFECT_CLASS_READ_ONLY,
 				InputSchemaDigest: "sha256:calendar",
 			}},
 			CredentialRef: "connector://calendar/oauth",
@@ -270,13 +270,13 @@ func TestDelegatedApprovalAndDiagnosticsSurfaceRuntimeDecisions(t *testing.T) {
 		Context:           ctx,
 		AgentId:           "agent-1",
 		ApprovalRequestId: "deleg-decision-1",
-		Decision:          runtimev1.DelegatedApprovalDecision_DELEGATED_APPROVAL_DECISION_APPROVE,
+		Decision:          runtimev1.DelegatedApprovalDecision_DELEGATED_APPROVAL_DECISION_APPROVED_ONCE,
 		DecisionReason:    "user confirmed",
 	})
 	if err != nil {
 		t.Fatalf("submit delegated approval: %v", err)
 	}
-	if approved.GetApprovalRequest().GetState() != runtimev1.DelegatedApprovalRequestState_DELEGATED_APPROVAL_REQUEST_STATE_APPROVED {
+	if approved.GetApprovalRequest().GetState() != runtimev1.DelegatedApprovalRequestState_DELEGATED_APPROVAL_REQUEST_STATE_APPROVED_ONCE {
 		t.Fatalf("expected approved request, got %+v", approved.GetApprovalRequest())
 	}
 
@@ -310,7 +310,7 @@ func TestDelegatedApprovalDecisionFailsClosedOnExpiredApproval(t *testing.T) {
 		Context:           ctx,
 		AgentId:           "agent-1",
 		ApprovalRequestId: "deleg-decision-1",
-		Decision:          runtimev1.DelegatedApprovalDecision_DELEGATED_APPROVAL_DECISION_APPROVE,
+		Decision:          runtimev1.DelegatedApprovalDecision_DELEGATED_APPROVAL_DECISION_APPROVED_ONCE,
 	})
 	if status.Code(err) != codes.FailedPrecondition {
 		t.Fatalf("expected expired approval to fail closed, got %v", err)
@@ -325,6 +325,8 @@ func TestDelegatedApprovalExpiryPersistsAcrossRestart(t *testing.T) {
 	svc, closeFn := newRuntimeAgentServiceForPublicChatStatePathWithClose(t, localStatePath)
 	agentID := testRuntimeAgentLocalRef("agent-alpha")
 	ctx := testRuntimeAgentIdentityContext("agent-alpha")
+	ctx.ScopedBinding = delegatedControlScopedBinding("binding-delegated-expiry-persist", agentID)
+	installDelegatedControlScopedBindingValidator(svc, "binding-delegated-expiry-persist", agentID)
 	upsertDelegatedApprovalTestProfileForAgent(t, svc, ctx, agentID, "sha256:calendar")
 	svc.recordDelegatedCapabilityDecision(&runtimeAgentDelegatedCapabilityDecision{
 		DecisionID:           "deleg-decision-expiry-persist",
@@ -355,7 +357,7 @@ func TestDelegatedApprovalExpiryPersistsAcrossRestart(t *testing.T) {
 		Context:           ctx,
 		AgentId:           agentID,
 		ApprovalRequestId: "deleg-decision-expiry-persist",
-		Decision:          runtimev1.DelegatedApprovalDecision_DELEGATED_APPROVAL_DECISION_APPROVE,
+		Decision:          runtimev1.DelegatedApprovalDecision_DELEGATED_APPROVAL_DECISION_APPROVED_ONCE,
 	})
 	if status.Code(err) != codes.FailedPrecondition {
 		t.Fatalf("expected expired approval to fail closed, got %v", err)
@@ -364,6 +366,7 @@ func TestDelegatedApprovalExpiryPersistsAcrossRestart(t *testing.T) {
 
 	restarted, restartClose := newRuntimeAgentServiceForPublicChatStatePathWithClose(t, localStatePath)
 	defer restartClose()
+	installDelegatedControlScopedBindingValidator(restarted, "binding-delegated-expiry-persist", agentID)
 	listed, err := restarted.ListDelegatedApprovalRequests(context.Background(), &runtimev1.ListDelegatedApprovalRequestsRequest{
 		Context:              ctx,
 		AgentId:              agentID,
@@ -391,7 +394,7 @@ func TestDelegatedApprovalDecisionFailsClosedOnDescriptorDrift(t *testing.T) {
 		Context:           ctx,
 		AgentId:           "agent-1",
 		ApprovalRequestId: "deleg-decision-1",
-		Decision:          runtimev1.DelegatedApprovalDecision_DELEGATED_APPROVAL_DECISION_APPROVE,
+		Decision:          runtimev1.DelegatedApprovalDecision_DELEGATED_APPROVAL_DECISION_APPROVED_ONCE,
 	})
 	if status.Code(err) != codes.FailedPrecondition {
 		t.Fatalf("expected descriptor drift to fail closed, got %v", err)
@@ -405,13 +408,14 @@ func TestDelegatedApprovalDecisionFailsClosedOnPrincipalMismatch(t *testing.T) {
 	ctx := &runtimev1.AgentRequestContext{
 		AppId:         "nimi.desktop",
 		SubjectUserId: "other-user",
+		ScopedBinding: delegatedControlScopedBinding("binding-delegated-control", "agent-1"),
 	}
 
 	_, err := svc.SubmitDelegatedApprovalDecision(context.Background(), &runtimev1.SubmitDelegatedApprovalDecisionRequest{
 		Context:           ctx,
 		AgentId:           "agent-1",
 		ApprovalRequestId: "deleg-decision-1",
-		Decision:          runtimev1.DelegatedApprovalDecision_DELEGATED_APPROVAL_DECISION_APPROVE,
+		Decision:          runtimev1.DelegatedApprovalDecision_DELEGATED_APPROVAL_DECISION_APPROVED_ONCE,
 	})
 	if status.Code(err) != codes.PermissionDenied {
 		t.Fatalf("expected principal mismatch to fail closed, got %v", err)
@@ -487,7 +491,7 @@ func TestDelegatedReplayTraceReconstructsApprovalDecisionFromAuditLineage(t *tes
 		Context:           ctx,
 		AgentId:           "agent-1",
 		ApprovalRequestId: "deleg-decision-1",
-		Decision:          runtimev1.DelegatedApprovalDecision_DELEGATED_APPROVAL_DECISION_APPROVE,
+		Decision:          runtimev1.DelegatedApprovalDecision_DELEGATED_APPROVAL_DECISION_APPROVED_ONCE,
 		DecisionReason:    "user confirmed",
 	}); err != nil {
 		t.Fatalf("submit delegated approval: %v", err)
@@ -511,7 +515,7 @@ func TestDelegatedReplayTraceReconstructsApprovalDecisionFromAuditLineage(t *tes
 	if approvalStage == nil {
 		t.Fatalf("replay trace missing approval decision stage: %+v", replay.GetTrace().GetStages())
 	}
-	if approvalStage.GetState() != "approved" {
+	if approvalStage.GetState() != "approved_once" {
 		t.Fatalf("approval stage status must come from the committed audit decision, got %q", approvalStage.GetState())
 	}
 	if !strings.Contains(approvalStage.GetRedactedSummary(), "reconstructed from audit lineage") {
@@ -521,7 +525,7 @@ func TestDelegatedReplayTraceReconstructsApprovalDecisionFromAuditLineage(t *tes
 	// The committed decision must be independently queryable by decision_id
 	// (the K-DELEG-086 join), not only via the in-memory approval object.
 	audited := svc.delegatedApprovalDecisionAuditRecord("deleg-decision-1")
-	if audited == nil || audited.ApprovalState != "approved" || audited.ApprovalID != "deleg-decision-1" {
+	if audited == nil || audited.ApprovalState != "approved_once" || audited.ApprovalID != "deleg-decision-1" {
 		t.Fatalf("approval decision audit record not joinable by decision_id: %+v", audited)
 	}
 }
@@ -705,7 +709,7 @@ func testDelegatedControlSurfaceService() *Service {
 }
 
 func testDelegatedControlSurfaceServiceWithoutAudit() *Service {
-	return &Service{
+	svc := &Service{
 		agents: map[string]*agentEntry{
 			"agent-1": {
 				Agent: &runtimev1.AgentRecord{AgentId: "agent-1"},
@@ -716,6 +720,8 @@ func testDelegatedControlSurfaceServiceWithoutAudit() *Service {
 		delegatedApprovalRequests: map[string]*runtimev1.DelegatedApprovalRequest{},
 		delegatedPausedRequests:   map[string]*runtimeAgentPausedDelegatedCapabilityRequest{},
 	}
+	installDelegatedControlScopedBindingValidator(svc, "binding-delegated-control", "agent-1")
+	return svc
 }
 
 func upsertDelegatedApprovalTestProfile(t *testing.T, svc *Service, descriptorHash string) {
@@ -737,7 +743,7 @@ func upsertDelegatedApprovalTestProfileForAgent(t *testing.T, svc *Service, ctx 
 			TrustTier:         runtimev1.DelegatedProviderTrustTier_DELEGATED_PROVIDER_TRUST_TIER_USER_ADDED_REVIEWED,
 			AllowedTools: []*runtimev1.DelegatedToolAllowlistEntry{{
 				ToolName:          "calendar_lookup",
-				EffectClass: runtimev1.EffectClass_EFFECT_CLASS_READ_ONLY,
+				EffectClass:       runtimev1.EffectClass_EFFECT_CLASS_READ_ONLY,
 				InputSchemaDigest: descriptorHash,
 			}},
 			TransportRef:        "runtime-transport://calendar-mcp",
@@ -779,5 +785,28 @@ func testDelegatedControlContext() *runtimev1.AgentRequestContext {
 	return &runtimev1.AgentRequestContext{
 		AppId:         "nimi.desktop",
 		SubjectUserId: "user-1",
+		ScopedBinding: delegatedControlScopedBinding("binding-delegated-control", "agent-1"),
 	}
+}
+
+func delegatedControlScopedBinding(bindingID string, agentID string) *runtimev1.ScopedRuntimeBindingAttachment {
+	return &runtimev1.ScopedRuntimeBindingAttachment{
+		BindingId:    bindingID,
+		RuntimeAppId: "nimi.desktop",
+		AgentId:      agentID,
+	}
+}
+
+func installDelegatedControlScopedBindingValidator(svc *Service, bindingID string, agentID string) {
+	svc.SetScopedBindingValidator(stubScopedBindingValidator{
+		validate: func(actualBindingID string, actual *runtimev1.ScopedAppBindingRelation, requiredScope string) (runtimev1.AccountReasonCode, bool) {
+			if actualBindingID != bindingID ||
+				actual.GetRuntimeAppId() != "nimi.desktop" ||
+				actual.GetAgentId() != agentID ||
+				!strings.HasPrefix(requiredScope, "runtime.agent.delegation.") {
+				return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BINDING_NOT_FOUND, false
+			}
+			return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_UNSPECIFIED, true
+		},
+	})
 }

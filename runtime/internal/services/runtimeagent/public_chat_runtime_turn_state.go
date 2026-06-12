@@ -108,7 +108,7 @@ func (r publicChatRuntime) reserveTurn(
 				resolved, err := r.svc.resolveRuntimeDefaultPublicChatBinding(
 					parent,
 					subjectUserID,
-					req.SystemPrompt,
+					"",
 					toProtoPublicChatMessages(req.Messages),
 					req.MaxOutputTokens,
 				)
@@ -152,7 +152,12 @@ func (r publicChatRuntime) reserveTurn(
 		turnID := "agent_turn_" + ulid.Make().String()
 		streamID := "agent_stream_" + ulid.Make().String()
 		timelineStartedAt := time.Now()
-		turnCtx, cancel := context.WithCancel(parent)
+		turnTimeout := time.Duration(publicChatDefaultTurnTimeoutMs) * time.Millisecond
+		if turnTimeout <= 0 {
+			r.svc.chatSurfaceMu.Unlock()
+			return publicChatAnchorState{}, publicChatTurnState{}, nil, status.Error(codes.FailedPrecondition, "public chat timeout policy is not configured")
+		}
+		turnCtx, cancel := context.WithTimeout(parent, turnTimeout)
 		turn := &publicChatTurnState{
 			ConversationAnchorID: session.ConversationAnchorID,
 			TurnID:               turnID,

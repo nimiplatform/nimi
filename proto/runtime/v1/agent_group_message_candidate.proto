@@ -45,6 +45,15 @@ message RealmGroupMessageCandidateCommitHandle {
   google.protobuf.Timestamp created_at = 15;
   google.protobuf.Timestamp expires_at = 16;
   RealmGroupMessageCandidateCommitDisposition commit_disposition = 17;
+  string profile_kind = 18;
+  string identity_source = 19;
+  string participant_ref = 20;
+  repeated string context_block_refs = 21;
+  string output_destination = 22;
+  string memory_read_verdict = 23;
+  string memory_write_verdict = 24;
+  string capability_scope_verdict = 25;
+  string audit_id = 26;
 }
 
 message CreateRealmGroupMessageCandidateResponse {
@@ -87,6 +96,15 @@ message RealmGroupMessageCandidateEvidence {
   string refusal_code = 20;
   string refusal_reason = 21;
   string refusal_hash = 22;
+  string profile_kind = 23;
+  string identity_source = 24;
+  string participant_ref = 25;
+  repeated string context_block_refs = 26;
+  string output_destination = 27;
+  string memory_read_verdict = 28;
+  string memory_write_verdict = 29;
+  string capability_scope_verdict = 30;
+  string audit_id = 31;
 }
 
 message GetRealmGroupMessageCandidateEvidenceResponse {

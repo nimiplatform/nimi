@@ -1,6 +1,13 @@
 package engine
 
-import "strings"
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+
+	"gopkg.in/yaml.v3"
+)
 
 type managedImageBackendPackageFormat string
 
@@ -50,63 +57,29 @@ type managedImageBackendPackageSpec struct {
 	Detail               string
 }
 
-var managedImageBackendPackageSpecs = []managedImageBackendPackageSpec{
-	{
-		BackendName:    "stablediffusion-ggml",
-		PackageSource:  managedImageBackendPackageSourceCanonicalLocalAIDerived,
-		OS:             "darwin",
-		Arch:           "arm64",
-		GPUVendor:      "apple",
-		InstallDirName: "metal-stablediffusion-ggml",
-		PackageFormat:  managedImageBackendPackageFormatOCIPayload,
-		ImageRef:       "quay.io/go-skynet/local-ai-backends:latest-metal-darwin-arm64-stablediffusion-ggml",
-		OCILayerDigest: "sha256:89cdb483a81a98a4cd46d178d23c3540d15e7a27e53ff940984d848e16767b5e",
-		LaunchMode:     managedImageBackendLaunchModePackageEntrypoint,
-		Supported:      true,
-	},
-	{
-		BackendName:    "stablediffusion-ggml",
-		PackageSource:  managedImageBackendPackageSourceExperimentalOfficialSDCPP,
-		OS:             "darwin",
-		Arch:           "arm64",
-		GPUVendor:      "apple",
-		InstallDirName: "metal-stablediffusion-ggml-official-sdcpp",
-		PackageFormat:  managedImageBackendPackageFormatDirectArchive,
-		ArchiveURL:     "https://github.com/leejet/stable-diffusion.cpp/releases/download/master-552-87ecb95/sd-master-87ecb95-bin-Darwin-macOS-15.7.4-arm64.zip",
-		ArchiveSHA256:  "f57c43020b172ae9e5095d7aea3c3c1c470717fbbd6b65118545c702053076b1",
-		ExecutableCandidates: []string{
-			"sd-cli",
-		},
-		LaunchMode:    managedImageBackendLaunchModeRuntimeWrapper,
-		WrapperDriver: "stable-diffusion.cpp",
-		Supported:     false,
-		Detail:        "experimental official stable-diffusion.cpp package source is proposed and not admitted as a supported runtime-owned package source",
-	},
-	{
-		BackendName:          "stablediffusion-ggml",
-		PackageSource:        managedImageBackendPackageSourceCanonicalRuntimeWrapper,
-		OS:                   "windows",
-		Arch:                 "amd64",
-		GPUVendor:            "nvidia",
-		InstallDirName:       "sd-win-cuda12-x64-stablediffusion-ggml",
-		PackageFormat:        managedImageBackendPackageFormatDirectArchive,
-		ArchiveURL:           "https://github.com/leejet/stable-diffusion.cpp/releases/download/master-552-87ecb95/sd-master-87ecb95-bin-win-cuda12-x64.zip",
-		ArchiveSHA256:        "011643ec700d6097b9537f0f75ffb26856cc56a5ce765ffe9a32f2b47844e080",
-		ExecutableCandidates: []string{"sd.exe", "sd-cli.exe"},
-		LaunchMode:           managedImageBackendLaunchModeRuntimeWrapper,
-		WrapperDriver:        "stable-diffusion.cpp",
-		Supported:            true,
-	},
-	{
-		BackendName:   "stablediffusion-ggml",
-		PackageSource: managedImageBackendPackageSourceCanonicalUnavailable,
-		OS:            "linux",
-		Arch:          "amd64",
-		GPUVendor:     "nvidia",
-		PackageFormat: managedImageBackendPackageFormatNone,
-		Supported:     false,
-		Detail:        "no published runtime-owned managed image backend package is available for linux/amd64+nvidia",
-	},
+type managedImageBackendPackagesDocument struct {
+	Entries []managedImageBackendPackageEntry `yaml:"entries"`
+}
+
+type managedImageBackendPackageEntry struct {
+	HostMatch struct {
+		OS        string `yaml:"os"`
+		Arch      string `yaml:"arch"`
+		GPUVendor string `yaml:"gpu_vendor"`
+	} `yaml:"host_match"`
+	BackendFamily        string   `yaml:"backend_family"`
+	PackageSource        string   `yaml:"package_source"`
+	PackageFormat        string   `yaml:"package_format"`
+	InstallDirName       string   `yaml:"install_dir_name"`
+	ImageRef             string   `yaml:"image_ref"`
+	OCILayerDigest       string   `yaml:"oci_layer_digest"`
+	ArchiveURL           string   `yaml:"archive_url"`
+	ArchiveSHA256        string   `yaml:"archive_sha256"`
+	ExecutableCandidates []string `yaml:"executable_candidates"`
+	LaunchMode           string   `yaml:"launch_mode"`
+	WrapperDriver        string   `yaml:"wrapper_driver"`
+	ProductState         string   `yaml:"product_state"`
+	Detail               string   `yaml:"detail"`
 }
 
 func resolveManagedImageBackendPackageSpecForCurrentHost(backendName string) (managedImageBackendPackageSpec, bool) {
@@ -130,6 +103,10 @@ func resolveManagedImageBackendPackageSpecForHost(backendName string, goos strin
 
 func resolveManagedImageBackendPackageSpecForHostWithSource(backendName string, source string, goos string, goarch string, gpuVendor string, cudaReady bool) (managedImageBackendPackageSpec, bool) {
 	_ = cudaReady // CUDA user-space readiness is resolved as a runtime dependency, not package admission.
+	specs, loadErr := managedImageBackendPackageSpecsFromAuthority()
+	if loadErr != nil {
+		return managedImageBackendPackageSpec{}, false
+	}
 	normalizedBackend := strings.ToLower(strings.TrimSpace(backendName))
 	rawSource := strings.TrimSpace(source)
 	normalizedSource := normalizeManagedImageBackendPackageSource(source)
@@ -137,8 +114,8 @@ func resolveManagedImageBackendPackageSpecForHostWithSource(backendName string, 
 		return managedImageBackendPackageSpec{}, false
 	}
 	hostGPUVendor := strings.ToLower(strings.TrimSpace(gpuVendor))
-	candidates := make([]managedImageBackendPackageSpec, 0, len(managedImageBackendPackageSpecs))
-	for _, entry := range managedImageBackendPackageSpecs {
+	candidates := make([]managedImageBackendPackageSpec, 0, len(specs))
+	for _, entry := range specs {
 		if !strings.EqualFold(strings.TrimSpace(entry.BackendName), normalizedBackend) {
 			continue
 		}
@@ -177,6 +154,99 @@ func resolveManagedImageBackendPackageSpecForHostWithSource(backendName string, 
 		return managedImageBackendPackageSpec{}, false
 	}
 	return candidates[0], true
+}
+
+func managedImageBackendPackageSpecsFromAuthority() ([]managedImageBackendPackageSpec, error) {
+	path, err := managedImageBackendPackagesAuthorityPath()
+	if err != nil {
+		return nil, err
+	}
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("read managed image backend package authority: %w", err)
+	}
+	var doc managedImageBackendPackagesDocument
+	if err := yaml.Unmarshal(raw, &doc); err != nil {
+		return nil, fmt.Errorf("parse managed image backend package authority: %w", err)
+	}
+	specs := make([]managedImageBackendPackageSpec, 0, len(doc.Entries))
+	for _, entry := range doc.Entries {
+		spec := managedImageBackendPackageSpec{
+			BackendName:          strings.TrimSpace(entry.BackendFamily),
+			PackageSource:        normalizeManagedImageBackendPackageSource(entry.PackageSource),
+			OS:                   strings.ToLower(strings.TrimSpace(entry.HostMatch.OS)),
+			Arch:                 strings.ToLower(strings.TrimSpace(entry.HostMatch.Arch)),
+			GPUVendor:            strings.ToLower(strings.TrimSpace(entry.HostMatch.GPUVendor)),
+			InstallDirName:       strings.TrimSpace(entry.InstallDirName),
+			PackageFormat:        managedImageBackendPackageFormat(strings.TrimSpace(entry.PackageFormat)),
+			ImageRef:             strings.TrimSpace(entry.ImageRef),
+			OCILayerDigest:       strings.TrimSpace(entry.OCILayerDigest),
+			ArchiveURL:           strings.TrimSpace(entry.ArchiveURL),
+			ArchiveSHA256:        strings.TrimSpace(entry.ArchiveSHA256),
+			ExecutableCandidates: append([]string(nil), entry.ExecutableCandidates...),
+			LaunchMode:           managedImageBackendLaunchMode(strings.TrimSpace(entry.LaunchMode)),
+			WrapperDriver:        strings.TrimSpace(entry.WrapperDriver),
+			Supported:            strings.TrimSpace(entry.ProductState) == "supported",
+			Detail:               strings.TrimSpace(entry.Detail),
+		}
+		if err := validateManagedImageBackendPackageSpec(spec); err != nil {
+			return nil, err
+		}
+		specs = append(specs, spec)
+	}
+	return specs, nil
+}
+
+func validateManagedImageBackendPackageSpec(spec managedImageBackendPackageSpec) error {
+	if !spec.Supported {
+		return nil
+	}
+	if spec.PackageSource == "" ||
+		spec.PackageFormat == "" ||
+		spec.PackageFormat == managedImageBackendPackageFormatNone ||
+		strings.TrimSpace(spec.InstallDirName) == "" ||
+		len(spec.ExecutableCandidates) == 0 ||
+		spec.LaunchMode == "" ||
+		strings.TrimSpace(spec.WrapperDriver) == "" {
+		return fmt.Errorf("supported managed image backend package %q is missing authority-owned launch metadata", spec.BackendName)
+	}
+	switch spec.PackageFormat {
+	case managedImageBackendPackageFormatOCIPayload:
+		if strings.TrimSpace(spec.ImageRef) == "" || strings.TrimSpace(spec.OCILayerDigest) == "" {
+			return fmt.Errorf("supported OCI managed image backend package %q is missing image digest proof", spec.BackendName)
+		}
+	case managedImageBackendPackageFormatDirectArchive:
+		if strings.TrimSpace(spec.ArchiveURL) == "" || strings.TrimSpace(spec.ArchiveSHA256) == "" {
+			return fmt.Errorf("supported archive managed image backend package %q is missing archive hash proof", spec.BackendName)
+		}
+	default:
+		return fmt.Errorf("supported managed image backend package %q has unsupported package format %q", spec.BackendName, spec.PackageFormat)
+	}
+	return nil
+}
+
+func managedImageBackendPackagesAuthorityPath() (string, error) {
+	const relative = ".nimi/spec/runtime/kernel/tables/managed-image-backend-packages.yaml"
+	var starts []string
+	if wd, err := os.Getwd(); err == nil {
+		starts = append(starts, wd)
+	}
+	if exe, err := os.Executable(); err == nil {
+		starts = append(starts, filepath.Dir(exe))
+	}
+	for _, start := range starts {
+		for dir := filepath.Clean(start); ; dir = filepath.Dir(dir) {
+			candidate := filepath.Join(dir, relative)
+			if _, err := os.Stat(candidate); err == nil {
+				return candidate, nil
+			}
+			parent := filepath.Dir(dir)
+			if parent == dir {
+				break
+			}
+		}
+	}
+	return "", fmt.Errorf("managed image backend package authority table not found")
 }
 
 func normalizeManagedImageBackendPackageSource(raw string) managedImageBackendPackageSource {

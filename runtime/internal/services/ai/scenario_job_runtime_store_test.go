@@ -94,6 +94,45 @@ func TestScenarioJobStorePrunesExpiredTerminalState(t *testing.T) {
 	}
 }
 
+func TestScenarioJobStoreTerminalTransitionIsLocked(t *testing.T) {
+	store := newScenarioJobStore()
+	job := &runtimev1.ScenarioJob{
+		JobId:        "job-terminal-lock",
+		Head:         &runtimev1.ScenarioRequestHead{AppId: "app", SubjectUserId: "user"},
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
+		Status:       runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED,
+		TraceId:      "trace-terminal-lock",
+	}
+	if snapshot := store.create(job, nil); snapshot == nil {
+		t.Fatalf("expected create snapshot")
+	}
+	if canceled, ok := store.transition(
+		"job-terminal-lock",
+		runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED,
+		runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_CANCELED,
+		nil,
+	); !ok || canceled.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
+		t.Fatalf("expected canceled terminal transition, ok=%v job=%+v", ok, canceled)
+	}
+	completed, ok := store.transition(
+		"job-terminal-lock",
+		runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED,
+		runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED,
+		func(job *runtimev1.ScenarioJob) {
+			job.Artifacts = []*runtimev1.ScenarioArtifact{{ArtifactId: "artifact-after-cancel"}}
+		},
+	)
+	if ok {
+		t.Fatalf("terminal job must reject later completion transition, got job=%+v", completed)
+	}
+	if completed.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
+		t.Fatalf("terminal job status changed after rejected transition: %+v", completed)
+	}
+	if len(completed.GetArtifacts()) != 0 {
+		t.Fatalf("rejected terminal transition must not run mutation, got artifacts=%+v", completed.GetArtifacts())
+	}
+}
+
 func TestScenarioJobStoreFindArtifactUsesJobArtifactIndex(t *testing.T) {
 	store := newScenarioJobStore()
 	job := &runtimev1.ScenarioJob{

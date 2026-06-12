@@ -107,10 +107,11 @@ func (b *SQLiteBackend) init() error {
 		);`,
 		`CREATE TABLE IF NOT EXISTS kernel_commit (
 			scope_id TEXT NOT NULL,
-			commit_id TEXT PRIMARY KEY,
+			commit_id TEXT NOT NULL,
 			kernel_type TEXT,
 			created_at TEXT NOT NULL,
-			commit_json BLOB NOT NULL
+			commit_json BLOB NOT NULL,
+			PRIMARY KEY (scope_id, commit_id)
 		);`,
 		`CREATE TABLE IF NOT EXISTS memory_record (
 			scope_id TEXT NOT NULL,
@@ -208,9 +209,10 @@ func (b *SQLiteBackend) init() error {
 		);`,
 		`CREATE TABLE IF NOT EXISTS digest_run (
 			scope_id TEXT NOT NULL,
-			run_id TEXT PRIMARY KEY,
+			run_id TEXT NOT NULL,
 			report_json BLOB NOT NULL,
-			created_at TEXT NOT NULL
+			created_at TEXT NOT NULL,
+			PRIMARY KEY (scope_id, run_id)
 		);`,
 		`CREATE TABLE IF NOT EXISTS digest_candidate (
 			scope_id TEXT NOT NULL,
@@ -224,7 +226,7 @@ func (b *SQLiteBackend) init() error {
 			detail_json BLOB,
 			created_at TEXT NOT NULL,
 			updated_at TEXT NOT NULL,
-			PRIMARY KEY (run_id, family, artifact_kind, artifact_id, action)
+			PRIMARY KEY (scope_id, run_id, family, artifact_kind, artifact_id, action, status)
 		);`,
 		`CREATE VIRTUAL TABLE IF NOT EXISTS memory_record_fts USING fts5(
 			scope_id UNINDEXED,
@@ -266,6 +268,12 @@ func (b *SQLiteBackend) init() error {
 		return err
 	}
 	if err := b.migrateKnowledgeAuxState(); err != nil {
+		return err
+	}
+	if err := b.migrateKernelCommitScopeSchema(); err != nil {
+		return err
+	}
+	if err := b.migrateDigestRunScopeSchema(); err != nil {
 		return err
 	}
 	if err := b.migrateDigestCandidateSchema(); err != nil {

@@ -8,7 +8,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
 
-func TestWave2PublicChatEventHookProjectsRejectedRuntimeHookTruth(t *testing.T) {
+func TestWave2PublicChatEventHookProjectsPendingRuntimeHookTruth(t *testing.T) {
 	t.Parallel()
 
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
@@ -100,8 +100,19 @@ func TestWave2PublicChatEventHookProjectsRejectedRuntimeHookTruth(t *testing.T) 
 	if got := hookIntent["trigger_family"]; got != "event" {
 		t.Fatalf("expected event trigger family, got=%v", hookIntent)
 	}
-	if got := hookIntent["admission_state"]; got != "rejected" {
-		t.Fatalf("expected rejected event hook indication, got=%v", hookIntent)
+	triggerDetail, ok := hookIntent["trigger_detail"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected event trigger detail object, got=%v", hookIntent)
+	}
+	eventDetail, ok := triggerDetail["event_user_idle"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected event_user_idle trigger detail, got=%v", triggerDetail)
+	}
+	if got := eventDetail["idle_ms"]; got != float64(120000) {
+		t.Fatalf("expected event_user_idle idle_ms=120000, got=%v", eventDetail)
+	}
+	if got := hookIntent["admission_state"]; got != "pending" {
+		t.Fatalf("expected pending event hook indication, got=%v", hookIntent)
 	}
 
 	hookStream := newAgentEventCaptureStreamLimit(context.Background(), 2)
@@ -118,7 +129,7 @@ func TestWave2PublicChatEventHookProjectsRejectedRuntimeHookTruth(t *testing.T) 
 	}
 	for index, want := range []runtimev1.HookAdmissionState{
 		runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PROPOSED,
-		runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_REJECTED,
+		runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING,
 	} {
 		detail := hookStream.events[index].GetHook()
 		if got := detail.GetFamily(); got != want {
@@ -138,9 +149,6 @@ func TestWave2PublicChatEventHookProjectsRejectedRuntimeHookTruth(t *testing.T) 
 			t.Fatalf("expected event/user-idle HookIntent projection, got %#v", intent)
 		}
 	}
-	if got := hookStream.events[1].GetHook().GetReasonCode(); got != runtimev1.ReasonCode_AI_OUTPUT_INVALID {
-		t.Fatalf("expected rejected event hook reason AI_OUTPUT_INVALID, got %s", got)
-	}
 
 	pendingResp, err := svc.ListPendingHooks(context.Background(), &runtimev1.ListPendingHooksRequest{
 		Context:              testRuntimeAgentIdentityContext("agent-alpha"),
@@ -151,23 +159,23 @@ func TestWave2PublicChatEventHookProjectsRejectedRuntimeHookTruth(t *testing.T) 
 		t.Fatalf("ListPendingHooks: %v", err)
 	}
 	if len(pendingResp.GetHooks()) != 0 {
-		t.Fatalf("event hook rejection must not create life-track pending hook truth, got %#v", pendingResp.GetHooks())
+		t.Fatalf("public chat event hook must not create life-track pending hook truth, got %#v", pendingResp.GetHooks())
 	}
 
 	snapshot := requestPublicChatSessionSnapshot(t, svc, capture, anchorID, "snapshot-wave2-event-hook")
 	snapshotDetail := publicChatSessionSnapshotDetail(t, snapshot)
-	if _, present := snapshotDetail["pending_follow_up"]; present {
-		t.Fatalf("event hook rejection must not create pending_follow_up, got=%v", snapshotDetail["pending_follow_up"])
+	if _, present := snapshotDetail["pending_follow_up"]; !present {
+		t.Fatalf("event hook scheduling must create pending_follow_up, got=%v", snapshotDetail)
 	}
 	lastTurn := publicChatLastTurnSnapshot(t, snapshot)
 	followUp, ok := lastTurn["follow_up"].(map[string]any)
 	if !ok {
-		t.Fatalf("expected last_turn.follow_up rejection truth, got=%v", lastTurn)
+		t.Fatalf("expected last_turn.follow_up scheduling truth, got=%v", lastTurn)
 	}
-	if got := followUp["status"]; got != "rejected" {
-		t.Fatalf("expected rejected follow_up status, got=%v", followUp)
+	if got := followUp["status"]; got != "scheduled" {
+		t.Fatalf("expected scheduled follow_up status, got=%v", followUp)
 	}
-	if got := followUp["reason_code"]; got != runtimev1.ReasonCode_AI_OUTPUT_INVALID.String() {
-		t.Fatalf("expected AI_OUTPUT_INVALID follow_up reason, got=%v", followUp)
+	if got := followUp["source_action_id"]; got != "action-wave2-event" {
+		t.Fatalf("expected action-wave2-event follow_up source_action_id, got=%v", followUp)
 	}
 }

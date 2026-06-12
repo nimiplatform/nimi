@@ -2,9 +2,7 @@ package runtimeagent
 
 import (
 	"context"
-	"crypto/sha256"
 	"database/sql"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"sort"
@@ -28,6 +26,8 @@ const (
 
 type RealmGroupMessageCandidateExecutionInput struct {
 	Context               *runtimev1.AgentRequestContext
+	AppID                 string
+	SubjectUserID         string
 	RealmGroupThreadID    string
 	RealmGroupAgentSlotID string
 	OwnerUserID           string
@@ -47,16 +47,25 @@ type RealmGroupMessageCandidateExecutionInput struct {
 }
 
 type RealmGroupMessageCandidateExecutionOutput struct {
-	RuntimeTraceRef    string
-	OutputCandidateRef string
-	AuditLineageRef    string
-	PolicyVerdictRef   string
-	CommitDisposition  runtimev1.RealmGroupMessageCandidateCommitDisposition
-	MessageType        string
-	Body               string
-	RefusalCode        string
-	RefusalReason      string
-	ExpiresAt          time.Time
+	RuntimeTraceRef        string
+	OutputCandidateRef     string
+	AuditLineageRef        string
+	PolicyVerdictRef       string
+	ProfileKind            string
+	IdentitySource         string
+	ParticipantRef         string
+	ContextBlockRefs       []string
+	OutputDestination      string
+	MemoryReadVerdict      string
+	MemoryWriteVerdict     string
+	CapabilityScopeVerdict string
+	AuditID                string
+	CommitDisposition      runtimev1.RealmGroupMessageCandidateCommitDisposition
+	MessageType            string
+	Body                   string
+	RefusalCode            string
+	RefusalReason          string
+	ExpiresAt              time.Time
 }
 
 type RealmGroupMessageCandidateExecutor interface {
@@ -84,30 +93,45 @@ func (s *Service) HasRealmGroupMessageCandidateExecutor() bool {
 }
 
 type realmGroupMessageCandidateEvidenceRecord struct {
-	CandidateID           string `json:"candidateId"`
-	CandidateKind         string `json:"candidateKind"`
-	CandidateEvidenceRef  string `json:"candidateEvidenceRef"`
-	EvidenceHash          string `json:"evidenceHash"`
-	RuntimeTraceRef       string `json:"runtimeTraceRef"`
-	RealmGroupThreadID    string `json:"realmGroupThreadId"`
-	RealmGroupAgentSlotID string `json:"realmGroupAgentSlotId"`
-	OwnerUserID           string `json:"ownerUserId"`
-	RealmAgentID          string `json:"realmAgentId"`
-	LocalAgentRef         string `json:"localAgentRef"`
-	TriggerRef            string `json:"triggerRef"`
-	OutputCandidateRef    string `json:"outputCandidateRef"`
-	AuditLineageRef       string `json:"auditLineageRef"`
-	PolicyVerdictRef      string `json:"policyVerdictRef"`
-	CreatedAt             string `json:"createdAt"`
-	ExpiresAt             string `json:"expiresAt"`
-	CommitDisposition     string `json:"commitDisposition"`
-	MessageType           string `json:"messageType,omitempty"`
-	Body                  string `json:"body,omitempty"`
-	BodyHash              string `json:"bodyHash,omitempty"`
-	RefusalCode           string `json:"refusalCode,omitempty"`
-	RefusalReason         string `json:"refusalReason,omitempty"`
-	RefusalHash           string `json:"refusalHash,omitempty"`
-	IdempotencyScope      string `json:"idempotencyScope"`
+	CandidateID            string   `json:"candidateId"`
+	CandidateKind          string   `json:"candidateKind"`
+	CandidateEvidenceRef   string   `json:"candidateEvidenceRef"`
+	EvidenceHash           string   `json:"evidenceHash"`
+	RuntimeTraceRef        string   `json:"runtimeTraceRef"`
+	AppID                  string   `json:"appId"`
+	SubjectUserID          string   `json:"subjectUserId"`
+	RealmGroupThreadID     string   `json:"realmGroupThreadId"`
+	RealmGroupAgentSlotID  string   `json:"realmGroupAgentSlotId"`
+	OwnerUserID            string   `json:"ownerUserId"`
+	RealmAgentID           string   `json:"realmAgentId"`
+	LocalAgentRef          string   `json:"localAgentRef"`
+	TriggerRef             string   `json:"triggerRef"`
+	MembershipSnapshotRef  string   `json:"membershipSnapshotRef"`
+	ReadCursorRef          string   `json:"readCursorRef"`
+	ReplyTargetRef         string   `json:"replyTargetRef,omitempty"`
+	RoomOrchestrationRef   string   `json:"roomOrchestrationRef"`
+	OutputCandidateRef     string   `json:"outputCandidateRef"`
+	AuditLineageRef        string   `json:"auditLineageRef"`
+	PolicyVerdictRef       string   `json:"policyVerdictRef"`
+	ProfileKind            string   `json:"profileKind"`
+	IdentitySource         string   `json:"identitySource"`
+	ParticipantRef         string   `json:"participantRef"`
+	ContextBlockRefs       []string `json:"contextBlockRefs"`
+	OutputDestination      string   `json:"outputDestination"`
+	MemoryReadVerdict      string   `json:"memoryReadVerdict"`
+	MemoryWriteVerdict     string   `json:"memoryWriteVerdict"`
+	CapabilityScopeVerdict string   `json:"capabilityScopeVerdict"`
+	AuditID                string   `json:"auditId"`
+	CreatedAt              string   `json:"createdAt"`
+	ExpiresAt              string   `json:"expiresAt"`
+	CommitDisposition      string   `json:"commitDisposition"`
+	MessageType            string   `json:"messageType,omitempty"`
+	Body                   string   `json:"body,omitempty"`
+	BodyHash               string   `json:"bodyHash,omitempty"`
+	RefusalCode            string   `json:"refusalCode,omitempty"`
+	RefusalReason          string   `json:"refusalReason,omitempty"`
+	RefusalHash            string   `json:"refusalHash,omitempty"`
+	IdempotencyScope       string   `json:"idempotencyScope"`
 }
 
 type persistedRealmGroupMessageCandidateState struct {
@@ -225,6 +249,9 @@ func validateRealmGroupMessageCandidateRequest(req *runtimev1.CreateRealmGroupMe
 		"realm_agent_id":            realmAgentID,
 		"local_agent_ref":           localAgentRef,
 		"trigger_ref":               triggerRef,
+		"membership_snapshot_ref":   strings.TrimSpace(req.GetMembershipSnapshotRef()),
+		"read_cursor_ref":           strings.TrimSpace(req.GetReadCursorRef()),
+		"room_orchestration_ref":    strings.TrimSpace(req.GetRoomOrchestrationRef()),
 		"idempotency_key":           idempotencyKey,
 	}
 	for field, value := range required {
@@ -239,8 +266,46 @@ func validateRealmGroupMessageCandidateRequest(req *runtimev1.CreateRealmGroupMe
 	if localAgentRef != expectedLocalAgentRef {
 		return RealmGroupMessageCandidateExecutionInput{}, "", status.Error(codes.InvalidArgument, "local_agent_ref does not match owner_user_id and realm_agent_id")
 	}
+	for field, value := range map[string]string{
+		"membership_snapshot_ref": strings.TrimSpace(req.GetMembershipSnapshotRef()),
+		"read_cursor_ref":         strings.TrimSpace(req.GetReadCursorRef()),
+	} {
+		if err := validateRealmGroupCandidateBoundedRef(field, value, []string{"runtime://", "runtime-context://"}); err != nil {
+			return RealmGroupMessageCandidateExecutionInput{}, "", err
+		}
+	}
+	if err := validateRealmGroupCandidateBoundedRef("room_orchestration_ref", strings.TrimSpace(req.GetRoomOrchestrationRef()), []string{"runtime://"}); err != nil {
+		return RealmGroupMessageCandidateExecutionInput{}, "", err
+	}
+	if err := validateRealmGroupCandidateAuthorityEvidenceRefs(
+		triggerRef,
+		strings.TrimSpace(req.GetMembershipSnapshotRef()),
+		strings.TrimSpace(req.GetReadCursorRef()),
+		strings.TrimSpace(req.GetRoomOrchestrationRef()),
+	); err != nil {
+		return RealmGroupMessageCandidateExecutionInput{}, "", err
+	}
+	contextRefs := cloneStringMap(req.GetContextRefs())
+	for _, key := range requiredRealmGroupCandidateContextRefs {
+		if strings.TrimSpace(contextRefs[key]) == "" {
+			return RealmGroupMessageCandidateExecutionInput{}, "", status.Errorf(codes.InvalidArgument, "context_refs.%s is required", key)
+		}
+	}
+	for key, value := range contextRefs {
+		if _, ok := allowedRealmGroupCandidateContextRefs[key]; !ok {
+			return RealmGroupMessageCandidateExecutionInput{}, "", status.Errorf(codes.InvalidArgument, "context_refs.%s is not admitted", key)
+		}
+		if err := validateRealmGroupCandidateBoundedRef("context_refs."+key, value, realmGroupCandidateContextRefPrefixes); err != nil {
+			return RealmGroupMessageCandidateExecutionInput{}, "", err
+		}
+		if err := validateRealmGroupCandidateContextEvidenceRef(key, value); err != nil {
+			return RealmGroupMessageCandidateExecutionInput{}, "", err
+		}
+	}
 	input := RealmGroupMessageCandidateExecutionInput{
 		Context:               ctx,
+		AppID:                 appID,
+		SubjectUserID:         subjectUserID,
 		RealmGroupThreadID:    threadID,
 		RealmGroupAgentSlotID: slotID,
 		OwnerUserID:           ownerUserID,
@@ -252,7 +317,7 @@ func validateRealmGroupMessageCandidateRequest(req *runtimev1.CreateRealmGroupMe
 		ReplyTargetRef:        strings.TrimSpace(req.GetReplyTargetRef()),
 		RoomOrchestrationRef:  strings.TrimSpace(req.GetRoomOrchestrationRef()),
 		IdempotencyKey:        idempotencyKey,
-		ContextRefs:           cloneStringMap(req.GetContextRefs()),
+		ContextRefs:           contextRefs,
 	}
 	idempotencyScope := strings.Join([]string{
 		appID,
@@ -270,14 +335,43 @@ func buildRealmGroupMessageCandidateRecord(input RealmGroupMessageCandidateExecu
 	outputCandidateRef := strings.TrimSpace(output.OutputCandidateRef)
 	auditLineageRef := strings.TrimSpace(output.AuditLineageRef)
 	policyVerdictRef := strings.TrimSpace(output.PolicyVerdictRef)
+	profileKind := strings.TrimSpace(output.ProfileKind)
+	identitySource := strings.TrimSpace(output.IdentitySource)
+	participantRef := strings.TrimSpace(output.ParticipantRef)
+	outputDestination := strings.TrimSpace(output.OutputDestination)
+	memoryReadVerdict := strings.TrimSpace(output.MemoryReadVerdict)
+	memoryWriteVerdict := strings.TrimSpace(output.MemoryWriteVerdict)
+	capabilityScopeVerdict := strings.TrimSpace(output.CapabilityScopeVerdict)
+	auditID := strings.TrimSpace(output.AuditID)
+	contextBlockRefs := normalizedRealmGroupCandidateContextBlockRefs(output.ContextBlockRefs)
 	for field, value := range map[string]string{
-		"runtime_trace_ref":    runtimeTraceRef,
-		"output_candidate_ref": outputCandidateRef,
-		"audit_lineage_ref":    auditLineageRef,
-		"policy_verdict_ref":   policyVerdictRef,
+		"runtime_trace_ref":        runtimeTraceRef,
+		"output_candidate_ref":     outputCandidateRef,
+		"audit_lineage_ref":        auditLineageRef,
+		"policy_verdict_ref":       policyVerdictRef,
+		"profile_kind":             profileKind,
+		"identity_source":          identitySource,
+		"participant_ref":          participantRef,
+		"output_destination":       outputDestination,
+		"memory_read_verdict":      memoryReadVerdict,
+		"memory_write_verdict":     memoryWriteVerdict,
+		"capability_scope_verdict": capabilityScopeVerdict,
+		"audit_id":                 auditID,
 	} {
 		if value == "" {
 			return nil, status.Errorf(codes.InvalidArgument, "%s is required", field)
+		}
+	}
+	if len(contextBlockRefs) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "context_block_refs are required")
+	}
+	for field, value := range map[string]string{
+		"memory_read_verdict":      memoryReadVerdict,
+		"memory_write_verdict":     memoryWriteVerdict,
+		"capability_scope_verdict": capabilityScopeVerdict,
+	} {
+		if !isPassVerdict(value) {
+			return nil, status.Errorf(codes.InvalidArgument, "%s must be PASS", field)
 		}
 	}
 	expiresAt := input.ExpiresAt
@@ -288,22 +382,37 @@ func buildRealmGroupMessageCandidateRecord(input RealmGroupMessageCandidateExecu
 		return nil, status.Error(codes.InvalidArgument, "candidate expires_at must be after created_at")
 	}
 	record := &realmGroupMessageCandidateEvidenceRecord{
-		CandidateID:           input.CandidateID,
-		CandidateKind:         realmGroupMessageCandidateKind,
-		CandidateEvidenceRef:  input.CandidateEvidenceRef,
-		RuntimeTraceRef:       runtimeTraceRef,
-		RealmGroupThreadID:    input.RealmGroupThreadID,
-		RealmGroupAgentSlotID: input.RealmGroupAgentSlotID,
-		OwnerUserID:           input.OwnerUserID,
-		RealmAgentID:          input.RealmAgentID,
-		LocalAgentRef:         input.LocalAgentRef,
-		TriggerRef:            input.TriggerRef,
-		OutputCandidateRef:    outputCandidateRef,
-		AuditLineageRef:       auditLineageRef,
-		PolicyVerdictRef:      policyVerdictRef,
-		CreatedAt:             canonicalRealmGroupCandidateTime(input.CreatedAt),
-		ExpiresAt:             canonicalRealmGroupCandidateTime(expiresAt),
-		IdempotencyScope:      idempotencyScope,
+		CandidateID:            input.CandidateID,
+		CandidateKind:          realmGroupMessageCandidateKind,
+		CandidateEvidenceRef:   input.CandidateEvidenceRef,
+		RuntimeTraceRef:        runtimeTraceRef,
+		AppID:                  input.AppID,
+		SubjectUserID:          input.SubjectUserID,
+		RealmGroupThreadID:     input.RealmGroupThreadID,
+		RealmGroupAgentSlotID:  input.RealmGroupAgentSlotID,
+		OwnerUserID:            input.OwnerUserID,
+		RealmAgentID:           input.RealmAgentID,
+		LocalAgentRef:          input.LocalAgentRef,
+		TriggerRef:             input.TriggerRef,
+		MembershipSnapshotRef:  input.MembershipSnapshotRef,
+		ReadCursorRef:          input.ReadCursorRef,
+		ReplyTargetRef:         input.ReplyTargetRef,
+		RoomOrchestrationRef:   input.RoomOrchestrationRef,
+		OutputCandidateRef:     outputCandidateRef,
+		AuditLineageRef:        auditLineageRef,
+		PolicyVerdictRef:       policyVerdictRef,
+		ProfileKind:            profileKind,
+		IdentitySource:         identitySource,
+		ParticipantRef:         participantRef,
+		ContextBlockRefs:       contextBlockRefs,
+		OutputDestination:      outputDestination,
+		MemoryReadVerdict:      memoryReadVerdict,
+		MemoryWriteVerdict:     memoryWriteVerdict,
+		CapabilityScopeVerdict: capabilityScopeVerdict,
+		AuditID:                auditID,
+		CreatedAt:              canonicalRealmGroupCandidateTime(input.CreatedAt),
+		ExpiresAt:              canonicalRealmGroupCandidateTime(expiresAt),
+		IdempotencyScope:       idempotencyScope,
 	}
 	switch output.CommitDisposition {
 	case runtimev1.RealmGroupMessageCandidateCommitDisposition_REALM_GROUP_MESSAGE_CANDIDATE_COMMIT_DISPOSITION_MESSAGE_CANDIDATE:
@@ -337,6 +446,15 @@ func buildRealmGroupMessageCandidateRecord(input RealmGroupMessageCandidateExecu
 }
 
 func (r *realmGroupMessageCandidateEvidenceRecord) matchesEvidenceRequest(req *runtimev1.GetRealmGroupMessageCandidateEvidenceRequest) error {
+	ctx := req.GetContext()
+	appID := strings.TrimSpace(ctx.GetAppId())
+	subjectUserID := strings.TrimSpace(ctx.GetSubjectUserId())
+	if appID == "" || subjectUserID == "" {
+		return status.Error(codes.InvalidArgument, "context.app_id and context.subject_user_id are required")
+	}
+	if r.AppID != appID || r.SubjectUserID != subjectUserID || r.OwnerUserID != subjectUserID {
+		return status.Error(codes.PermissionDenied, "realm group message candidate evidence context does not match owner")
+	}
 	checks := []struct {
 		ok      bool
 		message string
@@ -371,23 +489,32 @@ func (r *realmGroupMessageCandidateEvidenceRecord) toCommitHandle() *runtimev1.R
 	createdAt := parseRealmGroupCandidateTimestamp(r.CreatedAt)
 	expiresAt := parseRealmGroupCandidateTimestamp(r.ExpiresAt)
 	return &runtimev1.RealmGroupMessageCandidateCommitHandle{
-		CandidateId:           r.CandidateID,
-		CandidateKind:         r.CandidateKind,
-		CandidateEvidenceRef:  r.CandidateEvidenceRef,
-		EvidenceHash:          r.EvidenceHash,
-		RuntimeTraceRef:       r.RuntimeTraceRef,
-		RealmGroupThreadId:    r.RealmGroupThreadID,
-		RealmGroupAgentSlotId: r.RealmGroupAgentSlotID,
-		OwnerUserId:           r.OwnerUserID,
-		RealmAgentId:          r.RealmAgentID,
-		LocalAgentRef:         r.LocalAgentRef,
-		TriggerRef:            r.TriggerRef,
-		OutputCandidateRef:    r.OutputCandidateRef,
-		AuditLineageRef:       r.AuditLineageRef,
-		PolicyVerdictRef:      r.PolicyVerdictRef,
-		CreatedAt:             timestamppb.New(createdAt),
-		ExpiresAt:             timestamppb.New(expiresAt),
-		CommitDisposition:     realmGroupCandidateDispositionProto(r.CommitDisposition),
+		CandidateId:            r.CandidateID,
+		CandidateKind:          r.CandidateKind,
+		CandidateEvidenceRef:   r.CandidateEvidenceRef,
+		EvidenceHash:           r.EvidenceHash,
+		RuntimeTraceRef:        r.RuntimeTraceRef,
+		RealmGroupThreadId:     r.RealmGroupThreadID,
+		RealmGroupAgentSlotId:  r.RealmGroupAgentSlotID,
+		OwnerUserId:            r.OwnerUserID,
+		RealmAgentId:           r.RealmAgentID,
+		LocalAgentRef:          r.LocalAgentRef,
+		TriggerRef:             r.TriggerRef,
+		OutputCandidateRef:     r.OutputCandidateRef,
+		AuditLineageRef:        r.AuditLineageRef,
+		PolicyVerdictRef:       r.PolicyVerdictRef,
+		ProfileKind:            r.ProfileKind,
+		IdentitySource:         r.IdentitySource,
+		ParticipantRef:         r.ParticipantRef,
+		ContextBlockRefs:       append([]string(nil), r.ContextBlockRefs...),
+		OutputDestination:      r.OutputDestination,
+		MemoryReadVerdict:      r.MemoryReadVerdict,
+		MemoryWriteVerdict:     r.MemoryWriteVerdict,
+		CapabilityScopeVerdict: r.CapabilityScopeVerdict,
+		AuditId:                r.AuditID,
+		CreatedAt:              timestamppb.New(createdAt),
+		ExpiresAt:              timestamppb.New(expiresAt),
+		CommitDisposition:      realmGroupCandidateDispositionProto(r.CommitDisposition),
 	}
 }
 
@@ -398,28 +525,37 @@ func (r *realmGroupMessageCandidateEvidenceRecord) toEvidence() *runtimev1.Realm
 	createdAt := parseRealmGroupCandidateTimestamp(r.CreatedAt)
 	expiresAt := parseRealmGroupCandidateTimestamp(r.ExpiresAt)
 	return &runtimev1.RealmGroupMessageCandidateEvidence{
-		CandidateId:           r.CandidateID,
-		CandidateKind:         r.CandidateKind,
-		RealmGroupThreadId:    r.RealmGroupThreadID,
-		RealmGroupAgentSlotId: r.RealmGroupAgentSlotID,
-		OwnerUserId:           r.OwnerUserID,
-		RealmAgentId:          r.RealmAgentID,
-		LocalAgentRef:         r.LocalAgentRef,
-		TriggerRef:            r.TriggerRef,
-		OutputCandidateRef:    r.OutputCandidateRef,
-		EvidenceHash:          r.EvidenceHash,
-		RuntimeTraceRef:       r.RuntimeTraceRef,
-		AuditLineageRef:       r.AuditLineageRef,
-		PolicyVerdictRef:      r.PolicyVerdictRef,
-		CreatedAt:             timestamppb.New(createdAt),
-		ExpiresAt:             timestamppb.New(expiresAt),
-		CommitDisposition:     realmGroupCandidateDispositionProto(r.CommitDisposition),
-		MessageType:           r.MessageType,
-		Body:                  r.Body,
-		BodyHash:              r.BodyHash,
-		RefusalCode:           r.RefusalCode,
-		RefusalReason:         r.RefusalReason,
-		RefusalHash:           r.RefusalHash,
+		CandidateId:            r.CandidateID,
+		CandidateKind:          r.CandidateKind,
+		RealmGroupThreadId:     r.RealmGroupThreadID,
+		RealmGroupAgentSlotId:  r.RealmGroupAgentSlotID,
+		OwnerUserId:            r.OwnerUserID,
+		RealmAgentId:           r.RealmAgentID,
+		LocalAgentRef:          r.LocalAgentRef,
+		TriggerRef:             r.TriggerRef,
+		OutputCandidateRef:     r.OutputCandidateRef,
+		EvidenceHash:           r.EvidenceHash,
+		RuntimeTraceRef:        r.RuntimeTraceRef,
+		AuditLineageRef:        r.AuditLineageRef,
+		PolicyVerdictRef:       r.PolicyVerdictRef,
+		ProfileKind:            r.ProfileKind,
+		IdentitySource:         r.IdentitySource,
+		ParticipantRef:         r.ParticipantRef,
+		ContextBlockRefs:       append([]string(nil), r.ContextBlockRefs...),
+		OutputDestination:      r.OutputDestination,
+		MemoryReadVerdict:      r.MemoryReadVerdict,
+		MemoryWriteVerdict:     r.MemoryWriteVerdict,
+		CapabilityScopeVerdict: r.CapabilityScopeVerdict,
+		AuditId:                r.AuditID,
+		CreatedAt:              timestamppb.New(createdAt),
+		ExpiresAt:              timestamppb.New(expiresAt),
+		CommitDisposition:      realmGroupCandidateDispositionProto(r.CommitDisposition),
+		MessageType:            r.MessageType,
+		Body:                   r.Body,
+		BodyHash:               r.BodyHash,
+		RefusalCode:            r.RefusalCode,
+		RefusalReason:          r.RefusalReason,
+		RefusalHash:            r.RefusalHash,
 	}
 }
 
@@ -438,12 +574,17 @@ func realmGroupMessageCandidateEvidenceHash(record *realmGroupMessageCandidateEv
 	covered := map[string]any{
 		"candidateId":           record.CandidateID,
 		"candidateKind":         record.CandidateKind,
+		"appId":                 record.AppID,
+		"subjectUserId":         record.SubjectUserID,
 		"realmGroupThreadId":    record.RealmGroupThreadID,
 		"realmGroupAgentSlotId": record.RealmGroupAgentSlotID,
 		"ownerUserId":           record.OwnerUserID,
 		"realmAgentId":          record.RealmAgentID,
 		"localAgentRef":         record.LocalAgentRef,
 		"triggerRef":            record.TriggerRef,
+		"membershipSnapshotRef": record.MembershipSnapshotRef,
+		"readCursorRef":         record.ReadCursorRef,
+		"roomOrchestrationRef":  record.RoomOrchestrationRef,
 		"outputCandidateRef":    record.OutputCandidateRef,
 		"auditLineageRef":       record.AuditLineageRef,
 		"policyVerdictRef":      record.PolicyVerdictRef,
@@ -453,6 +594,9 @@ func realmGroupMessageCandidateEvidenceHash(record *realmGroupMessageCandidateEv
 	}
 	if record.MessageType != "" {
 		covered["messageType"] = record.MessageType
+	}
+	if record.ReplyTargetRef != "" {
+		covered["replyTargetRef"] = record.ReplyTargetRef
 	}
 	if record.Body != "" {
 		covered["body"] = record.Body
@@ -582,14 +726,6 @@ func (s *Service) loadRealmGroupMessageCandidateStateFromDB() error {
 	return nil
 }
 
-func cloneRealmGroupMessageCandidateRecord(input *realmGroupMessageCandidateEvidenceRecord) *realmGroupMessageCandidateEvidenceRecord {
-	if input == nil {
-		return nil
-	}
-	cloned := *input
-	return &cloned
-}
-
 func cloneStringMap(input map[string]string) map[string]string {
 	if len(input) == 0 {
 		return nil
@@ -603,30 +739,4 @@ func cloneStringMap(input map[string]string) map[string]string {
 		cloned[key] = strings.TrimSpace(value)
 	}
 	return cloned
-}
-
-func newRealmGroupMessageCandidateID(scope string, createdAt time.Time) string {
-	sum := sha256.Sum256([]byte(scope + "|" + canonicalRealmGroupCandidateTime(createdAt)))
-	return "rgmc_" + hex.EncodeToString(sum[:16])
-}
-
-func buildRealmGroupLocalAgentRef(ownerUserID string, realmAgentID string) string {
-	return "local-agent:" + strings.TrimSpace(ownerUserID) + ":" + strings.TrimSpace(realmAgentID)
-}
-
-func canonicalRealmGroupCandidateTime(value time.Time) string {
-	return value.UTC().Truncate(time.Millisecond).Format("2006-01-02T15:04:05.000Z")
-}
-
-func parseRealmGroupCandidateTimestamp(value string) time.Time {
-	parsed, err := time.Parse("2006-01-02T15:04:05.000Z", strings.TrimSpace(value))
-	if err != nil {
-		return time.Time{}
-	}
-	return parsed.UTC()
-}
-
-func sha256Hex(value string) string {
-	sum := sha256.Sum256([]byte(value))
-	return hex.EncodeToString(sum[:])
 }

@@ -59,6 +59,11 @@ type Page struct {
 	// Source references — links to upstream sources
 	SourceRefs []kernel.SourceRef `json:"source_refs,omitempty"`
 
+	// AppWrite records admitted app knowledge-write provenance. It is required
+	// for C-APMEM app-derived writes and omitted for standalone-local knowledge
+	// projections.
+	AppWrite *AppWriteProvenance `json:"app_write,omitempty"`
+
 	// ArtifactRefs carry the projection's owned links to supporting
 	// cognition artifacts such as memory records.
 	ArtifactRefs []artifactref.Ref `json:"artifact_refs,omitempty"`
@@ -93,10 +98,23 @@ type TraversalHit struct {
 
 // IngestEnvelope is the accepted standalone-local ingest input.
 type IngestEnvelope struct {
-	PageID PageID          `json:"page_id"`
-	Kind   ProjectionKind  `json:"kind"`
-	Title  string          `json:"title"`
-	Body   json.RawMessage `json:"body"`
+	PageID   PageID              `json:"page_id"`
+	Kind     ProjectionKind      `json:"kind"`
+	Title    string              `json:"title"`
+	Body     json.RawMessage     `json:"body"`
+	AppWrite *AppWriteProvenance `json:"app_write,omitempty"`
+}
+
+// AppWriteProvenance is the durable proof carried by app-derived knowledge
+// writes and ingest envelopes.
+type AppWriteProvenance struct {
+	PolicyClass       string `json:"policy_class"`
+	GrantRef          string `json:"grant_ref"`
+	RealmAuditEventID string `json:"realm_audit_event_id"`
+	KnowledgeBaseID   string `json:"knowledge_base_id"`
+	TargetScopeID     string `json:"target_scope_id"`
+	SourceAppID       string `json:"source_app_id"`
+	AuditReason       string `json:"audit_reason"`
 }
 
 // IngestTaskStatus is the local ingest progress state.

@@ -7,6 +7,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	catalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
+	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	connectorservice "github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	localservice "github.com/nimiplatform/nimi/runtime/internal/services/localservice"
 	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
@@ -30,7 +31,7 @@ func resolveRuntimeMemoryEmbeddingProfile(
 	case memoryservice.MemoryEmbeddingBindingSourceKindLocal:
 		return resolveLocalRuntimeMemoryEmbeddingProfile(ctx, normalized, localSvc, modelCatalog)
 	case memoryservice.MemoryEmbeddingBindingSourceKindCloud:
-		return resolveCloudRuntimeMemoryEmbeddingProfile(normalized, connStore, modelCatalog)
+		return resolveCloudRuntimeMemoryEmbeddingProfile(ctx, normalized, connStore, modelCatalog)
 	default:
 		return memoryservice.MemoryEmbeddingResolvedProfile{
 			ResolutionState:   "missing",
@@ -169,6 +170,7 @@ func resolveLocalRuntimeMemoryEmbeddingProfile(
 }
 
 func resolveCloudRuntimeMemoryEmbeddingProfile(
+	ctx context.Context,
 	snapshot *memoryservice.MemoryEmbeddingBindingIntentSnapshot,
 	connStore *connectorservice.ConnectorStore,
 	modelCatalog *catalog.Resolver,
@@ -195,6 +197,7 @@ func resolveCloudRuntimeMemoryEmbeddingProfile(
 		}
 	}
 	if !found ||
+		!memoryEmbeddingConnectorVisibleToCaller(ctx, record) ||
 		record.Kind != runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED ||
 		record.Status != runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE ||
 		!record.HasCredential {
@@ -248,6 +251,24 @@ func resolveCloudRuntimeMemoryEmbeddingProfile(
 		ResolutionState:   "resolved",
 		BlockedReasonCode: runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED,
 	}
+}
+
+func memoryEmbeddingConnectorVisibleToCaller(ctx context.Context, record connectorservice.ConnectorRecord) bool {
+	if record.AuthKind == runtimev1.ConnectorAuthKind_CONNECTOR_AUTH_KIND_OAUTH_MANAGED &&
+		record.OwnerType != runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER {
+		return false
+	}
+	if record.OwnerType == runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_SYSTEM {
+		return true
+	}
+	if record.Kind != runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED {
+		return true
+	}
+	identity := authn.IdentityFromContext(ctx)
+	if identity == nil {
+		return false
+	}
+	return strings.TrimSpace(identity.SubjectUserID) != "" && strings.TrimSpace(identity.SubjectUserID) == strings.TrimSpace(record.OwnerID)
 }
 
 // resolveCatalogEmbeddingDimension returns the catalog-authoritative output

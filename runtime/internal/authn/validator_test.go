@@ -28,6 +28,14 @@ func (e *testWriterError) Error() string {
 	return e.message
 }
 
+func revocationBool(value bool) *bool {
+	return &value
+}
+
+func testRevocationResponse(active bool, revoked bool) revocationResponse {
+	return revocationResponse{Active: revocationBool(active), Revoked: revocationBool(revoked)}
+}
+
 type jwksTestServer struct {
 	server   *httptest.Server
 	mu       sync.Mutex
@@ -206,7 +214,7 @@ func newActiveRevocationServer(t *testing.T) *httptest.Server {
 	t.Helper()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(revocationResponse{Active: true})
+		_ = json.NewEncoder(w).Encode(testRevocationResponse(true, false))
 	}))
 	t.Cleanup(server.Close)
 	return server
@@ -266,7 +274,7 @@ func TestValidateCallsRevocationEndpointAfterSuccessfulJWTValidation(t *testing.
 			t.Fatalf("Unmarshal: %v", err)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(revocationResponse{Active: true})
+		_ = json.NewEncoder(w).Encode(testRevocationResponse(true, false))
 	}))
 	defer func() { revocationServer.Close() }()
 
@@ -307,7 +315,7 @@ func TestValidateRejectsMissingSIDWhenRevocationConfigured(t *testing.T) {
 	revocationServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		revocationHits++
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(revocationResponse{Active: true})
+		_ = json.NewEncoder(w).Encode(testRevocationResponse(true, false))
 	}))
 	defer func() { revocationServer.Close() }()
 
@@ -335,7 +343,7 @@ func TestValidateRejectsRevokedSession(t *testing.T) {
 
 	revocationServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(revocationResponse{Active: true, Revoked: true})
+		_ = json.NewEncoder(w).Encode(testRevocationResponse(true, true))
 	}))
 	defer func() { revocationServer.Close() }()
 
@@ -358,7 +366,7 @@ func TestValidateRejectsInactiveSession(t *testing.T) {
 
 	revocationServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(revocationResponse{Active: false})
+		_ = json.NewEncoder(w).Encode(testRevocationResponse(false, false))
 	}))
 	defer func() { revocationServer.Close() }()
 
@@ -381,7 +389,7 @@ func TestValidateRejectsMalformedRevocationResponse(t *testing.T) {
 
 	revocationServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = io.WriteString(w, `{"active":true,"expires_at":"not-rfc3339"}`)
+		_, _ = io.WriteString(w, `{"active":true,"revoked":false,"expires_at":"not-rfc3339"}`)
 	}))
 	defer func() { revocationServer.Close() }()
 
@@ -431,7 +439,7 @@ func TestValidateCachesActiveRevocationResult(t *testing.T) {
 		hits++
 		mu.Unlock()
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(revocationResponse{Active: true})
+		_ = json.NewEncoder(w).Encode(testRevocationResponse(true, false))
 	}))
 	defer func() { revocationServer.Close() }()
 
@@ -470,7 +478,7 @@ func TestValidateCoalescesConcurrentRevocationChecks(t *testing.T) {
 		mu.Unlock()
 		time.Sleep(50 * time.Millisecond)
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(revocationResponse{Active: true})
+		_ = json.NewEncoder(w).Encode(testRevocationResponse(true, false))
 	}))
 	defer func() { revocationServer.Close() }()
 
@@ -1010,8 +1018,8 @@ func TestValidateRejectsExpiredRowDecisionMatrixRow3(t *testing.T) {
 	revocationServer, hits := newRevocationServer(t, func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(revocationResponse{
-			Active:    false,
-			Revoked:   false,
+			Active:    revocationBool(false),
+			Revoked:   revocationBool(false),
 			ExpiresAt: pastExpiry,
 		})
 	})
@@ -1049,8 +1057,8 @@ func TestValidateRejectsSubjectMismatchDecisionMatrixRow5(t *testing.T) {
 	revocationServer, hits := newRevocationServer(t, func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(revocationResponse{
-			Active:    false,
-			Revoked:   true,
+			Active:    revocationBool(false),
+			Revoked:   revocationBool(true),
 			ExpiresAt: futureExpiry,
 		})
 	})
@@ -1071,8 +1079,8 @@ func TestValidateRejectsIssuerMismatchDecisionMatrixRow6(t *testing.T) {
 	revocationServer, hits := newRevocationServer(t, func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(revocationResponse{
-			Active:    false,
-			Revoked:   true,
+			Active:    revocationBool(false),
+			Revoked:   revocationBool(true),
 			ExpiresAt: futureExpiry,
 		})
 	})
@@ -1092,8 +1100,8 @@ func TestValidateRejectsAudienceMismatchDecisionMatrixRow7(t *testing.T) {
 	revocationServer, hits := newRevocationServer(t, func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(revocationResponse{
-			Active:    false,
-			Revoked:   true,
+			Active:    revocationBool(false),
+			Revoked:   revocationBool(true),
 			ExpiresAt: futureExpiry,
 		})
 	})
@@ -1113,8 +1121,8 @@ func TestValidateRejectsIssuedAtMismatchDecisionMatrixRow8(t *testing.T) {
 	revocationServer, hits := newRevocationServer(t, func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(revocationResponse{
-			Active:    false,
-			Revoked:   true,
+			Active:    revocationBool(false),
+			Revoked:   revocationBool(true),
 			ExpiresAt: futureExpiry,
 		})
 	})
@@ -1156,7 +1164,7 @@ func TestValidateRejectsIntrospectionWrongContentType(t *testing.T) {
 		_, _ = io.WriteString(w, "OK")
 	})
 	v, token := validatorWithJWKSAndRevocation(t, revocationServer.URL)
-	if _, err := v.Validate(token); err == nil || !strings.Contains(err.Error(), "decode revocation response") {
+	if _, err := v.Validate(token); err == nil || !IsRevocationUnavailable(err) || !strings.Contains(err.Error(), "non-json content type") {
 		t.Fatalf("expected fail-close on wrong-content-type introspection, got %v", err)
 	}
 	if *hits != 1 {
@@ -1167,17 +1175,30 @@ func TestValidateRejectsIntrospectionWrongContentType(t *testing.T) {
 // TestValidateRejectsIntrospectionMissingActiveField — network-failure branch:
 // JSON body missing the required `active` field. Per Wave 1 decision matrix
 // every documented row populates `active`; a response that omits it violates
-// the contract. The validator decodes `active` as zero-value false, the same
-// fail-close path as active=false (row not found) catches it; no degradation
-// to anonymous.
+// the contract. The validator must classify the response as unavailable rather
+// than converting a missing fact into a revoked or active session.
 func TestValidateRejectsIntrospectionMissingActiveField(t *testing.T) {
 	revocationServer, hits := newRevocationServer(t, func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = io.WriteString(w, `{"revoked":false}`)
 	})
 	v, token := validatorWithJWKSAndRevocation(t, revocationServer.URL)
-	if _, err := v.Validate(token); err == nil || !strings.Contains(err.Error(), "session revoked") {
+	if _, err := v.Validate(token); err == nil || !IsRevocationUnavailable(err) || !strings.Contains(err.Error(), "missing active or revoked") {
 		t.Fatalf("expected fail-close on missing-active-field introspection, got %v", err)
+	}
+	if *hits != 1 {
+		t.Fatalf("expected exactly 1 introspection hit, got %d", *hits)
+	}
+}
+
+func TestValidateRejectsIntrospectionMissingRevokedField(t *testing.T) {
+	revocationServer, hits := newRevocationServer(t, func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"active":true}`)
+	})
+	v, token := validatorWithJWKSAndRevocation(t, revocationServer.URL)
+	if _, err := v.Validate(token); err == nil || !IsRevocationUnavailable(err) || !strings.Contains(err.Error(), "missing active or revoked") {
+		t.Fatalf("expected fail-close on missing-revoked-field introspection, got %v", err)
 	}
 	if *hits != 1 {
 		t.Fatalf("expected exactly 1 introspection hit, got %d", *hits)
@@ -1197,7 +1218,7 @@ func TestValidateRejectsIntrospectionTimeout(t *testing.T) {
 		case <-r.Context().Done():
 		}
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(revocationResponse{Active: true})
+		_ = json.NewEncoder(w).Encode(testRevocationResponse(true, false))
 	})
 	v, token := validatorWithJWKSAndRevocation(t, revocationServer.URL)
 
@@ -1224,7 +1245,7 @@ func TestValidateFailsClosedWhenRevocationURLEmpty(t *testing.T) {
 	revocationServer, hits := newRevocationServer(t, func(w http.ResponseWriter, _ *http.Request) {
 		// If we reach here, the validator violated the fail-close contract.
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(revocationResponse{Active: true})
+		_ = json.NewEncoder(w).Encode(testRevocationResponse(true, false))
 	})
 	// Pass an empty URL to validatorWithJWKSAndRevocation so SetRevocationURL
 	// is never called. revocationServer is live but unreferenced by the

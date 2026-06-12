@@ -12,6 +12,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -282,9 +283,7 @@ func (s *Service) RemoveLocalAsset(_ context.Context, req *runtimev1.RemoveLocal
 	}
 	current := s.modelByID(localModelID)
 	if current == nil {
-		return nil, grpcerr.WithReasonCodeOptions(codes.NotFound, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
-			ActionHint: "install_or_select_existing_local_model",
-		})
+		return nil, status.Error(codes.NotFound, "local asset not found")
 	}
 	if boundServiceID := s.findBoundServiceID(localModelID); boundServiceID != "" {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_INVALID_TRANSITION)

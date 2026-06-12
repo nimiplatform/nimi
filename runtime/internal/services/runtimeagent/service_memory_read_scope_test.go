@@ -44,7 +44,7 @@ func TestQueryAgentMemoryRejectsDyadicReadWithoutOwnerContext(t *testing.T) {
 						AgentDyadic: &runtimev1.AgentDyadicBankOwner{AgentId: testRuntimeAgentLocalRef("agent-read-scope"), UserId: "user-1"},
 					},
 				},
-				Extensions: completePromotionEvidence(t),
+				Extensions: completePromotionEvidence(t, svc),
 				Record: &runtimev1.MemoryRecordInput{
 					Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_OBSERVATIONAL,
 					Payload: &runtimev1.MemoryRecordInput_Observational{

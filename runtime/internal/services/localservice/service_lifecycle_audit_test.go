@@ -71,9 +71,10 @@ func TestLocalStateRestoresAfterRestart(t *testing.T) {
 		"x-nimi-domain", "runtime.local_runtime",
 	))
 	if _, err := svc.AppendInferenceAudit(ctx, &runtimev1.AppendInferenceAuditRequest{
-		EventType: "persist_audit",
-		Source:    "local",
-		Model:     "local/persisted-model",
+		EventType:  "persist_audit",
+		Source:     "local",
+		Model:      "local/persisted-model",
+		ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED.String(),
 	}); err != nil {
 		t.Fatalf("append persisted audit: %v", err)
 	}
@@ -217,8 +218,9 @@ func TestAppendInferenceAuditBoundsFieldLengths(t *testing.T) {
 		"x-nimi-domain", "runtime.local_runtime",
 	))
 	_, err := svc.AppendInferenceAudit(ctx, &runtimev1.AppendInferenceAuditRequest{
-		EventType: strings.Repeat("e", localAuditFieldMaxLen+10),
-		Detail:    strings.Repeat("d", localAuditFieldMaxLen+10),
+		EventType:  strings.Repeat("e", localAuditFieldMaxLen+10),
+		Detail:     strings.Repeat("d", localAuditFieldMaxLen+10),
+		ReasonCode: strings.Repeat("r", localAuditFieldMaxLen+10),
 	})
 	if err != nil {
 		t.Fatalf("AppendInferenceAudit: %v", err)
@@ -255,6 +257,7 @@ func TestLocalAuditCapacityRespectedAcrossPersistAndRestore(t *testing.T) {
 		if _, err := svc.AppendRuntimeAudit(context.Background(), &runtimev1.AppendRuntimeAuditRequest{
 			EventType: fmt.Sprintf("evt-%d", i),
 			ModelId:   fmt.Sprintf("local/model-%d", i),
+			Payload:   localAuditReasonPayload(runtimev1.ReasonCode_ACTION_EXECUTED),
 		}); err != nil {
 			t.Fatalf("append runtime audit #%d: %v", i, err)
 		}
@@ -301,6 +304,7 @@ func TestLocalAuditDoesNotReplicateIntoGlobalRuntimeAuditStore(t *testing.T) {
 	if _, err := svc.AppendRuntimeAudit(context.Background(), &runtimev1.AppendRuntimeAuditRequest{
 		EventType: "local_runtime_event",
 		ModelId:   "local/chat-default",
+		Payload:   localAuditReasonPayload(runtimev1.ReasonCode_ACTION_EXECUTED),
 	}); err != nil {
 		t.Fatalf("append local runtime audit: %v", err)
 	}

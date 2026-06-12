@@ -32,13 +32,9 @@ const (
 )
 
 func (s *Service) GetAvatarDebugSnapshot(_ context.Context, req *runtimev1.GetAvatarDebugSnapshotRequest) (*runtimev1.GetAvatarDebugSnapshotResponse, error) {
-	agentID, err := s.validateAvatarDebugControlRequest(req.GetContext(), req.GetAgentId(), avatarDebugReadScope)
+	agentID, anchorID, err := s.validateAvatarDebugControlRequest(req.GetContext(), req.GetAgentId(), req.GetConversationAnchorId(), avatarDebugReadScope)
 	if err != nil {
 		return nil, err
-	}
-	anchorID := strings.TrimSpace(req.GetConversationAnchorId())
-	if anchorID == "" {
-		return nil, status.Error(codes.InvalidArgument, "conversation_anchor_id is required")
 	}
 	results, replays, err := s.listAvatarDebugAuditProjection(agentID, anchorID, runtimev1.AvatarDebugProbeKind_AVATAR_DEBUG_PROBE_KIND_UNSPECIFIED)
 	if err != nil {
@@ -54,13 +50,9 @@ func (s *Service) GetAvatarDebugSnapshot(_ context.Context, req *runtimev1.GetAv
 }
 
 func (s *Service) RequestAvatarDebugProbe(_ context.Context, req *runtimev1.RequestAvatarDebugProbeRequest) (*runtimev1.RequestAvatarDebugProbeResponse, error) {
-	agentID, err := s.validateAvatarDebugControlRequest(req.GetContext(), req.GetAgentId(), avatarDebugWriteScope)
+	agentID, anchorID, err := s.validateAvatarDebugControlRequest(req.GetContext(), req.GetAgentId(), req.GetConversationAnchorId(), avatarDebugWriteScope)
 	if err != nil {
 		return nil, err
-	}
-	anchorID := strings.TrimSpace(req.GetConversationAnchorId())
-	if anchorID == "" {
-		return nil, status.Error(codes.InvalidArgument, "conversation_anchor_id is required")
 	}
 	if !isAdmittedAvatarDebugProbeKind(req.GetProbeKind()) {
 		return nil, status.Error(codes.InvalidArgument, "avatar debug probe_kind is not admitted")
@@ -127,13 +119,9 @@ func (s *Service) RequestAvatarDebugProbe(_ context.Context, req *runtimev1.Requ
 }
 
 func (s *Service) ListAvatarDebugProbeResults(_ context.Context, req *runtimev1.ListAvatarDebugProbeResultsRequest) (*runtimev1.ListAvatarDebugProbeResultsResponse, error) {
-	agentID, err := s.validateAvatarDebugControlRequest(req.GetContext(), req.GetAgentId(), avatarDebugReadScope)
+	agentID, anchorID, err := s.validateAvatarDebugControlRequest(req.GetContext(), req.GetAgentId(), req.GetConversationAnchorId(), avatarDebugReadScope)
 	if err != nil {
 		return nil, err
-	}
-	anchorID := strings.TrimSpace(req.GetConversationAnchorId())
-	if anchorID == "" {
-		return nil, status.Error(codes.InvalidArgument, "conversation_anchor_id is required")
 	}
 	if req.GetProbeKind() != runtimev1.AvatarDebugProbeKind_AVATAR_DEBUG_PROBE_KIND_UNSPECIFIED &&
 		!isAdmittedAvatarDebugProbeKind(req.GetProbeKind()) {
@@ -147,17 +135,13 @@ func (s *Service) ListAvatarDebugProbeResults(_ context.Context, req *runtimev1.
 }
 
 func (s *Service) GetAvatarDebugReplay(_ context.Context, req *runtimev1.GetAvatarDebugReplayRequest) (*runtimev1.GetAvatarDebugReplayResponse, error) {
-	agentID, err := s.validateAvatarDebugControlRequest(req.GetContext(), req.GetAgentId(), avatarDebugReadScope)
+	agentID, anchorID, err := s.validateAvatarDebugControlRequest(req.GetContext(), req.GetAgentId(), req.GetConversationAnchorId(), avatarDebugReadScope)
 	if err != nil {
 		return nil, err
 	}
 	probeID := strings.TrimSpace(req.GetProbeId())
 	if probeID == "" {
 		return nil, status.Error(codes.InvalidArgument, "probe_id is required")
-	}
-	anchorID := strings.TrimSpace(req.GetConversationAnchorId())
-	if anchorID == "" {
-		return nil, status.Error(codes.InvalidArgument, "conversation_anchor_id is required")
 	}
 	request, result, replay, err := s.findAvatarDebugReplay(agentID, anchorID, probeID)
 	if err != nil {
@@ -170,32 +154,67 @@ func (s *Service) GetAvatarDebugReplay(_ context.Context, req *runtimev1.GetAvat
 	}, nil
 }
 
-func (s *Service) validateAvatarDebugControlRequest(ctx *runtimev1.AgentRequestContext, agentID string, requiredScope string) (string, error) {
+func (s *Service) validateAvatarDebugControlRequest(ctx *runtimev1.AgentRequestContext, agentID string, anchorID string, requiredScope string) (string, string, error) {
 	if s == nil || s.isClosed() {
-		return "", status.Error(codes.FailedPrecondition, "runtime agent service unavailable")
+		return "", "", status.Error(codes.FailedPrecondition, "runtime agent service unavailable")
+	}
+	identity, entry, err := s.agentEntryForIdentityContext(ctx)
+	if err != nil {
+		return "", "", err
 	}
 	trimmedAgentID := strings.TrimSpace(agentID)
 	if trimmedAgentID == "" {
-		return "", status.Error(codes.InvalidArgument, "agent_id is required")
+		return "", "", status.Error(codes.InvalidArgument, "agent_id is required")
 	}
-	if _, err := s.agentByID(trimmedAgentID); err != nil {
-		return "", err
+	if trimmedAgentID != identity.LocalAgentRef {
+		return "", "", status.Error(codes.FailedPrecondition, "agent_id must match local_agent_ref")
 	}
 	callerAppID := strings.TrimSpace(ctx.GetAppId())
 	if callerAppID == "" {
-		return "", status.Error(codes.InvalidArgument, "context.app_id is required")
+		return "", "", status.Error(codes.InvalidArgument, "context.app_id is required")
 	}
-	if scopedBinding := ctx.GetScopedBinding(); scopedBinding != nil {
-		if err := s.validateScopedBindingAttachment(scopedBinding, callerAppID, trimmedAgentID, requiredScope); err != nil {
-			return "", err
-		}
-	} else if strings.TrimSpace(ctx.GetSubjectUserId()) == "" {
-		return "", runtimeAgentBindingError(runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BINDING_NOT_FOUND)
+	scopedBinding := ctx.GetScopedBinding()
+	if scopedBinding == nil {
+		return "", "", runtimeAgentBindingError(runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BINDING_NOT_FOUND)
+	}
+	trimmedAnchorID := strings.TrimSpace(anchorID)
+	if trimmedAnchorID == "" {
+		return "", "", status.Error(codes.InvalidArgument, "conversation_anchor_id is required")
+	}
+	if err := s.validateScopedBindingAttachment(scopedBinding, callerAppID, trimmedAgentID, requiredScope); err != nil {
+		return "", "", err
+	}
+	if err := s.validateAvatarDebugAnchor(identity, entry, trimmedAnchorID); err != nil {
+		return "", "", err
 	}
 	if s.auditStore == nil {
-		return "", status.Error(codes.FailedPrecondition, "runtime audit store is required for avatar debug replay")
+		return "", "", status.Error(codes.FailedPrecondition, "runtime audit store is required for avatar debug replay")
 	}
-	return trimmedAgentID, nil
+	return trimmedAgentID, trimmedAnchorID, nil
+}
+
+func (s *Service) validateAvatarDebugAnchor(identity localAgentIdentity, entry *agentEntry, anchorID string) error {
+	if entry == nil {
+		return status.Error(codes.NotFound, "agent not found")
+	}
+	if err := validateAgentRecordIdentity(entry.Agent, identity); err != nil {
+		return err
+	}
+	s.chatSurfaceMu.Lock()
+	anchor := s.chatAnchors[strings.TrimSpace(anchorID)]
+	if anchor == nil {
+		s.chatSurfaceMu.Unlock()
+		return status.Error(codes.NotFound, "conversation anchor not found")
+	}
+	cloned := *anchor
+	s.chatSurfaceMu.Unlock()
+	if cloned.AgentID != identity.LocalAgentRef ||
+		cloned.OwnerUserID != identity.OwnerUserID ||
+		cloned.RealmAgentID != identity.RealmAgentID ||
+		cloned.LocalAgentRef != identity.LocalAgentRef {
+		return status.Error(codes.FailedPrecondition, "conversation anchor local identity mismatch")
+	}
+	return nil
 }
 
 func (s *Service) appendAvatarDebugProjectionEvents(

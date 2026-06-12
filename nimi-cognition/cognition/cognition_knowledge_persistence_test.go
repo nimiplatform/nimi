@@ -381,9 +381,9 @@ func TestKnowledgeSaveRejectsInvalidCitationsAndPromptShowsSummary(t *testing.T)
 	if err := c.KnowledgeService().Save(missingTarget); err == nil || !strings.Contains(err.Error(), "does not exist or is removed") {
 		t.Fatalf("expected missing memory citation rejection, got %v", err)
 	}
-	inactiveKernelTarget := knowledge.Page{PageID: "p_inactive_rule", ScopeID: "a1", Kind: knowledge.ProjectionKindGuide, Version: 1, Title: "Inactive rule", Body: []byte(`"body"`), Lifecycle: knowledge.ProjectionLifecycleActive, CreatedAt: ts, UpdatedAt: ts, Citations: []knowledge.Citation{{TargetKind: knowledge.CitationTargetKindKernelRule, TargetID: "rule_old", Strength: "strong_ref"}}}
-	if err := c.KnowledgeService().Save(inactiveKernelTarget); err == nil || !strings.Contains(err.Error(), "is not active") {
-		t.Fatalf("expected inactive kernel rule citation rejection, got %v", err)
+	kernelTarget := knowledge.Page{PageID: "p_kernel_rule", ScopeID: "a1", Kind: knowledge.ProjectionKindGuide, Version: 1, Title: "Kernel rule", Body: []byte(`"body"`), Lifecycle: knowledge.ProjectionLifecycleActive, CreatedAt: ts, UpdatedAt: ts, Citations: []knowledge.Citation{{TargetKind: knowledge.CitationTargetKindKernelRule, TargetID: "rule_old", Strength: "strong_ref"}}}
+	if err := c.KnowledgeService().Save(kernelTarget); err == nil || !strings.Contains(err.Error(), "kernel_rule citations are not admitted") {
+		t.Fatalf("expected kernel rule citation rejection, got %v", err)
 	}
 	ctx, err := c.NewRoutineContext("a1")
 	if err != nil {
@@ -422,7 +422,6 @@ func TestKnowledgeSaveRejectsInvalidCitationsAndPromptShowsSummary(t *testing.T)
 		CreatedAt: ts,
 		UpdatedAt: ts,
 		Citations: []knowledge.Citation{
-			{TargetKind: knowledge.CitationTargetKindKernelRule, TargetID: "rule_1", Strength: "strong_ref"},
 			{TargetKind: knowledge.CitationTargetKindMemoryRecord, TargetID: "m2", Strength: "weak_ref"},
 		},
 	}
@@ -433,7 +432,7 @@ func TestKnowledgeSaveRejectsInvalidCitationsAndPromptShowsSummary(t *testing.T)
 	if err != nil {
 		t.Fatalf("format advisory: %v", err)
 	}
-	if !strings.Contains(advisory, "[citations=2 kernel_rules=1 memory_records=1]") {
+	if !strings.Contains(advisory, "[citations=1 memory_records=1]") {
 		t.Fatalf("expected citation summary in prompt, got %s", advisory)
 	}
 }
@@ -490,5 +489,56 @@ func TestKnowledgeStoredMalformedCitationFailsClosedAcrossReadPaths(t *testing.T
 	}
 	if _, err := c.PromptService().FormatAdvisory("a1"); err == nil || !strings.Contains(err.Error(), "invalid citation target_kind") {
 		t.Fatalf("expected prompt fail-close on malformed stored citation, got %v", err)
+	}
+}
+
+func TestKnowledgeStoredScopeMismatchFailsClosedAcrossReadPaths(t *testing.T) {
+	root := t.TempDir()
+	c := newTestCognitionAt(t, root)
+	raw, err := json.Marshal(knowledge.Page{
+		PageID:    "p_scope_mismatch",
+		ScopeID:   "other",
+		Kind:      knowledge.ProjectionKindGuide,
+		Version:   1,
+		Title:     "Scope mismatch page",
+		Body:      []byte(`"body"`),
+		Lifecycle: knowledge.ProjectionLifecycleActive,
+		CreatedAt: ts,
+		UpdatedAt: ts,
+	})
+	if err != nil {
+		t.Fatalf("marshal mismatched page: %v", err)
+	}
+	db, err := sql.Open("sqlite", cognitionDBPath(root))
+	if err != nil {
+		t.Fatalf("open sqlite: %v", err)
+	}
+	defer closeInTest(t, db)
+	if _, err := db.Exec(`INSERT INTO knowledge_page
+		(scope_id, page_id, kind, lifecycle, search_text, page_json, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		"a1", "p_scope_mismatch", "guide", "active", "Scope mismatch page body", raw,
+		"2026-04-16T12:00:00Z", "2026-04-16T12:00:00Z"); err != nil {
+		t.Fatalf("seed mismatched page: %v", err)
+	}
+	if _, err := db.Exec(`INSERT INTO knowledge_page_fts (scope_id, page_id, search_text) VALUES (?, ?, ?)`,
+		"a1", "p_scope_mismatch", "Scope mismatch page body"); err != nil {
+		t.Fatalf("seed mismatched search row: %v", err)
+	}
+	expected := "payload scope other does not match requested scope a1"
+	if _, err := c.KnowledgeService().Load("a1", "p_scope_mismatch"); err == nil || !strings.Contains(err.Error(), expected) {
+		t.Fatalf("expected knowledge load fail-close on scope mismatch, got %v", err)
+	}
+	if _, err := c.KnowledgeService().List("a1"); err == nil || !strings.Contains(err.Error(), expected) {
+		t.Fatalf("expected knowledge list fail-close on scope mismatch, got %v", err)
+	}
+	if _, err := c.KnowledgeService().SearchLexical("a1", "Scope mismatch", 10); err == nil || !strings.Contains(err.Error(), expected) {
+		t.Fatalf("expected knowledge search fail-close on scope mismatch, got %v", err)
+	}
+	if _, err := c.KnowledgeService().SearchHybrid("a1", "Scope mismatch", 10); err == nil || !strings.Contains(err.Error(), expected) {
+		t.Fatalf("expected knowledge hybrid fail-close on scope mismatch, got %v", err)
+	}
+	if _, err := c.PromptService().FormatAdvisory("a1"); err == nil || !strings.Contains(err.Error(), expected) {
+		t.Fatalf("expected prompt fail-close on scope mismatch, got %v", err)
 	}
 }

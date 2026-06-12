@@ -33,7 +33,8 @@ func TestStreamScenarioSpeechSynthesizeSuccess(t *testing.T) {
 	defer func() { server.Close() }()
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudProviders: map[string]nimillm.ProviderCredentials{"openai": {BaseURL: server.URL}},
+		CloudProviders:        map[string]nimillm.ProviderCredentials{"openai": {BaseURL: server.URL}},
+		AllowLoopbackEndpoint: true,
 	})
 	stream := &mockScenarioEventStream{ctx: context.Background()}
 	req := &runtimev1.StreamScenarioRequest{
@@ -131,7 +132,7 @@ func TestStreamScenarioSpeechSynthesizeValidation(t *testing.T) {
 
 func TestStreamScenarioSpeechSynthesizeCapabilityGuardFailsClosed(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudProviders: map[string]nimillm.ProviderCredentials{"anthropic": {BaseURL: "http://example.com"}},
+		CloudProviders: map[string]nimillm.ProviderCredentials{"anthropic": {BaseURL: "https://example.com"}},
 	})
 	stream := &mockScenarioEventStream{ctx: context.Background()}
 	req := &runtimev1.StreamScenarioRequest{
@@ -175,7 +176,8 @@ func TestStreamScenarioSpeechSynthesizeProviderErrorSendsFailedEvent(t *testing.
 
 	var logs bytes.Buffer
 	svc := newTestService(slog.New(slog.NewTextHandler(&logs, nil)), Config{
-		CloudProviders: map[string]nimillm.ProviderCredentials{"openai": {BaseURL: server.URL}},
+		CloudProviders:        map[string]nimillm.ProviderCredentials{"openai": {BaseURL: server.URL}},
+		AllowLoopbackEndpoint: true,
 	})
 	stream := &mockScenarioEventStream{ctx: context.Background()}
 	req := &runtimev1.StreamScenarioRequest{
@@ -233,7 +235,8 @@ func TestStreamSpeechDoneFrameConstraints(t *testing.T) {
 	defer func() { server.Close() }()
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudProviders: map[string]nimillm.ProviderCredentials{"openai": {BaseURL: server.URL}},
+		CloudProviders:        map[string]nimillm.ProviderCredentials{"openai": {BaseURL: server.URL}},
+		AllowLoopbackEndpoint: true,
 	})
 	stream := &mockScenarioEventStream{ctx: context.Background()}
 	req := &runtimev1.StreamScenarioRequest{
@@ -287,7 +290,8 @@ func TestStreamFirstPacketTimeout(t *testing.T) {
 	defer func() { server.Close() }()
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudProviders: map[string]nimillm.ProviderCredentials{"openai": {BaseURL: server.URL}},
+		CloudProviders:        map[string]nimillm.ProviderCredentials{"openai": {BaseURL: server.URL}},
+		AllowLoopbackEndpoint: true,
 	})
 	svc.streamFirstPacketTimeout = 20 * time.Millisecond
 
@@ -346,7 +350,8 @@ func TestStreamScenarioSpeechSynthesizeLargePayloadChunking(t *testing.T) {
 	defer func() { server.Close() }()
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudProviders: map[string]nimillm.ProviderCredentials{"openai": {BaseURL: server.URL}},
+		CloudProviders:        map[string]nimillm.ProviderCredentials{"openai": {BaseURL: server.URL}},
+		AllowLoopbackEndpoint: true,
 	})
 	stream := &mockScenarioEventStream{ctx: context.Background()}
 	req := &runtimev1.StreamScenarioRequest{
@@ -417,7 +422,8 @@ func TestStreamScenarioSpeechSynthesizeForwardsScenarioExtensions(t *testing.T) 
 	defer func() { server.Close() }()
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudProviders: map[string]nimillm.ProviderCredentials{"openai": {BaseURL: server.URL}},
+		CloudProviders:        map[string]nimillm.ProviderCredentials{"openai": {BaseURL: server.URL}},
+		AllowLoopbackEndpoint: true,
 	})
 	stream := &mockScenarioEventStream{ctx: context.Background()}
 	req := &runtimev1.StreamScenarioRequest{

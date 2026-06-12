@@ -184,7 +184,7 @@ func (c lifeTrackController) assembleRecall(ctx context.Context, entry *agentEnt
 		limit = lifeTurnRecallLimit
 	}
 	views := make([]*runtimev1.CanonicalMemoryView, 0)
-	for _, locator := range c.svc.queryLocatorsForAgent(entry, nil) {
+	for _, locator := range c.svc.queryLocatorsForAgent(entry, allCanonicalMemoryReadClasses()) {
 		if _, err := c.svc.memorySvc.GetBank(ctx, &runtimev1.GetBankRequest{Locator: locator}); err != nil {
 			if status.Code(err) == codes.NotFound {
 				continue

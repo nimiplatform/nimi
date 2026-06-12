@@ -1,7 +1,6 @@
 package cognition
 
 import (
-	"context"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -12,7 +11,7 @@ import (
 func TestSearchKeywordOrdersAndFiltersByEntityType(t *testing.T) {
 	svc, _, cleanup := newTestService(t)
 	defer cleanup()
-	ctx := context.Background()
+	ctx := testKnowledgeEnvelopeContext("app.s2-10")
 	reqCtx := &runtimev1.KnowledgeRequestContext{AppId: "app.s2-10"}
 	bankID := newAppPrivateBank(t, svc, "app.s2-10", "S2.10 Bank")
 
@@ -67,7 +66,7 @@ func TestSearchKeywordOrdersAndFiltersByEntityType(t *testing.T) {
 func TestSearchHybridReturnsHitsWithToken(t *testing.T) {
 	svc, _, cleanup := newTestService(t)
 	defer cleanup()
-	ctx := context.Background()
+	ctx := testKnowledgeEnvelopeContext("app.s2-11")
 	reqCtx := &runtimev1.KnowledgeRequestContext{AppId: "app.s2-11"}
 	bankID := newAppPrivateBank(t, svc, "app.s2-11", "S2.11 Bank")
 

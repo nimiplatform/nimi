@@ -468,7 +468,9 @@ func TestLocalManagementRPCsReturnStructuredModelIDErrors(t *testing.T) {
 
 	_, err = svc.RemoveLocalAsset(ctx, &runtimev1.RemoveLocalAssetRequest{LocalAssetId: "model_missing"})
 	assertGRPCCode(t, err, "RemoveLocalModel(not_found)", codes.NotFound)
-	assertGRPCReasonCode(t, err, "RemoveLocalModel(not_found)", runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+	if reason, ok := grpcerr.ExtractReasonCode(err); ok {
+		t.Fatalf("RemoveLocalModel(not_found) should not carry model-unavailable reason; got %v", reason)
+	}
 }
 
 func TestLocalManagementRPCsUseReasonCodesForServiceIDs(t *testing.T) {

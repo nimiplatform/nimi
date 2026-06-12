@@ -287,14 +287,14 @@ func buildCompanionParticipationProjection(
 	params companionParticipationProjectionParams,
 	refusalReason string,
 ) *runtimev1.CompanionParticipationProjection {
+	if strings.TrimSpace(refusalReason) != "" {
+		return buildCompanionParticipationProjectionWithStatus(session, nil, params, runtimev1.CompanionParticipationStatus_COMPANION_PARTICIPATION_STATUS_BLOCKED, refusalReason)
+	}
 	if activeTurn != nil && strings.TrimSpace(activeTurn.TurnID) != "" {
 		return buildCompanionParticipationProjectionFromTurn(session, activeTurn, params, refusalReason)
 	}
 	if lastTurn != nil && strings.TrimSpace(lastTurn.TurnID) != "" {
 		return buildCompanionParticipationProjectionFromTurn(session, lastTurn, params, refusalReason)
-	}
-	if strings.TrimSpace(refusalReason) != "" {
-		return buildCompanionParticipationProjectionWithStatus(session, nil, params, runtimev1.CompanionParticipationStatus_COMPANION_PARTICIPATION_STATUS_BLOCKED, refusalReason)
 	}
 	return buildCompanionParticipationProjectionWithStatus(session, nil, params, runtimev1.CompanionParticipationStatus_COMPANION_PARTICIPATION_STATUS_IDLE, "")
 }

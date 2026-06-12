@@ -407,7 +407,7 @@ func TestWave1ExecPack4InterruptIsolationRejectsWrongAnchor(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"conversation_anchor_id": anchorA1,
 			"turn_id":                turnID,
-			"reason":                 "user_cancelled",
+			"reason":                 "user_cancel",
 		}),
 	})
 	if err != nil {

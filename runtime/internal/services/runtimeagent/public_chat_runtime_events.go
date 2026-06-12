@@ -5,6 +5,8 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -53,11 +55,34 @@ func (r publicChatRuntime) setExecutionStateWithOrigin(agentID string, subjectUs
 // trace_id / model_resolved / route_decision belong to runtime execution
 // truth and surface only via the unary public chat session snapshot `last_turn`.
 func (r publicChatRuntime) emitTurnInterrupted(session publicChatAnchorState, turn publicChatTurnState, _ string, _ string, _ runtimev1.RoutePolicy, reason string) {
+	canonicalReason, err := normalizePublicChatCancellationReason(reason)
+	if err != nil {
+		canonicalReason = "policy_refusal"
+	}
 	payload := map[string]any{
-		"reason": firstNonEmpty(reason, "interrupt_requested"),
+		"reason": canonicalReason,
 	}
 	if err := r.emitTurnEvent(session, turn.TurnID, publicChatTurnInterruptedType, payload); err != nil && r.svc.logger != nil {
 		r.svc.logger.Warn("emit public chat interrupted event failed", "agent_id", session.AgentID, "turn_id", turn.TurnID, "error", err)
+	}
+}
+
+func normalizePublicChatCancellationReason(raw string) (string, error) {
+	reason := strings.TrimSpace(raw)
+	if reason == "" {
+		return "user_cancel", nil
+	}
+	switch reason {
+	case "user_cancel",
+		"room_closed",
+		"superseded_turn",
+		"budget_exhausted",
+		"timeout",
+		"gateway_revoked",
+		"policy_refusal":
+		return reason, nil
+	default:
+		return "", status.Errorf(codes.InvalidArgument, "public chat cancellation reason %q is not admitted", reason)
 	}
 }
 

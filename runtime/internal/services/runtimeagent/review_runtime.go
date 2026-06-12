@@ -222,7 +222,7 @@ func (r reviewRuntime) schedulingTargets() []scheduledCanonicalReviewTarget {
 		if entry.State.GetExecutionState() != runtimev1.AgentExecutionState_AGENT_EXECUTION_STATE_IDLE {
 			continue
 		}
-		for _, locator := range r.svc.memoryPolicyRuntime().queryLocators(entry, nil) {
+		for _, locator := range r.svc.memoryPolicyRuntime().queryLocators(entry, allCanonicalMemoryReadClasses()) {
 			if locator == nil {
 				continue
 			}

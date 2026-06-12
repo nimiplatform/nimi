@@ -536,7 +536,7 @@ func TestBuildManagedLlamaRegistrationsExcludesManagedMediaImageAssets(t *testin
 	}
 }
 
-func TestManagedLlamaModelProbeSucceededForDynamicProfileWhenEndpointResponds(t *testing.T) {
+func TestManagedLlamaModelProbeSucceededForDynamicProfileRequiresHealthyModelEvidence(t *testing.T) {
 	registration := managedLlamaRegistration{
 		Backend:        "stablediffusion-ggml",
 		DynamicProfile: true,
@@ -546,8 +546,16 @@ func TestManagedLlamaModelProbeSucceededForDynamicProfileWhenEndpointResponds(t 
 		responded: true,
 		detail:    "probe response missing valid models",
 	}
+	if managedLlamaModelProbeSucceeded(probe, registration) {
+		t.Fatalf("dynamic profile must not be considered healthy from endpoint response alone")
+	}
+	probe = endpointProbeResult{
+		healthy:   true,
+		responded: true,
+		models:    []string{"stablediffusion-ggml"},
+	}
 	if !managedLlamaModelProbeSucceeded(probe, registration) {
-		t.Fatalf("dynamic profile should be considered healthy when llama endpoint responds")
+		t.Fatalf("dynamic profile should be healthy with model evidence")
 	}
 }
 

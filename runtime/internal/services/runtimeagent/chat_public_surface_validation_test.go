@@ -110,6 +110,32 @@ func TestPublicChatTurnRequestAllowsExecutionBindingOmissionWhenRuntimeResolvesB
 		t.Fatalf("expected last_turn route_decision local, got=%v", lastTurn)
 	}
 }
+
+func TestPublicChatTurnRequestRejectsCallerSystemPrompt(t *testing.T) {
+	t.Parallel()
+	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
+	err := svc.ConsumePublicChatAppMessage(context.Background(), &runtimev1.AppMessageEvent{
+		ToAppId:       publicChatRuntimeAppID,
+		FromAppId:     "desktop.app",
+		SubjectUserId: "user-1",
+		MessageType:   publicChatTurnRequestType,
+		Payload: publicChatStructPayload(t, map[string]any{
+			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
+			"owner_user_id":          "user-1",
+			"realm_agent_id":         "agent-alpha",
+			"conversation_anchor_id": anchorID,
+			"thread_id":              "thread-reject-system-prompt",
+			"system_prompt":          "caller supplied raw prompt",
+			"messages": []any{
+				map[string]any{"role": "user", "content": "hello"},
+			},
+		}),
+	})
+	if err == nil || !strings.Contains(err.Error(), "must not include system_prompt") {
+		t.Fatalf("expected caller system_prompt rejection, got %v", err)
+	}
+}
 func TestPublicChatTurnInvalidStructuredOutputFailsClosed(t *testing.T) {
 	t.Parallel()
 	svc := newRuntimeAgentServiceForPublicChatTest(t)

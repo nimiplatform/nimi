@@ -2,6 +2,8 @@ package localservice
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/fs"
@@ -50,6 +52,15 @@ func prepareImportSourcePath(rawPath string) (string, fs.FileInfo, error) {
 		return "", nil, fmt.Errorf("path is not a regular file")
 	}
 	return canonicalPath, info, nil
+}
+
+func computeImportFileSHA256(path string) (string, error) {
+	raw, err := os.ReadFile(strings.TrimSpace(path))
+	if err != nil {
+		return "", err
+	}
+	sum := sha256.Sum256(raw)
+	return hex.EncodeToString(sum[:]), nil
 }
 
 func runtimeManagedResolvedModelDir(modelsRoot string, logicalModelID string) string {
@@ -267,6 +278,13 @@ func (s *Service) importLocalModelFile(
 			Message: fmt.Sprintf("stage managed model file: %v", err),
 		})
 	}
+	stageFileHash, err := computeImportFileSHA256(stageFilePath)
+	if err != nil {
+		s.failTransfer(transferID, fmt.Sprintf("hash staged managed model file: %v", err), false)
+		return nil, grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, grpcerr.ReasonOptions{
+			Message: fmt.Sprintf("hash staged managed model file: %v", err),
+		})
+	}
 	s.updateTransferProgress(transferID, transferPhase, 1, 1, "local model staged")
 	manifestPath := filepath.Join(stageDir, "asset.manifest.json")
 	kind := inferAssetKindFromCapabilities(capabilities)
@@ -292,7 +310,7 @@ func (s *Service) importLocalModelFile(
 			"revision": "local",
 		},
 		"integrity_mode": "local_unverified",
-		"hashes":         map[string]string{},
+		"hashes":         map[string]string{destFileName: "sha256:" + stageFileHash},
 	}
 	if strings.TrimSpace(binding.endpoint) != "" {
 		manifest["endpoint"] = binding.endpoint
@@ -430,6 +448,13 @@ func (s *Service) importLocalPassiveAssetFile(
 			Message: fmt.Sprintf("stage managed artifact file: %v", err),
 		})
 	}
+	destFileHash, err := computeImportFileSHA256(destFilePath)
+	if err != nil {
+		s.failTransfer(transferID, fmt.Sprintf("hash staged managed artifact file: %v", err), false)
+		return nil, grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, grpcerr.ReasonOptions{
+			Message: fmt.Sprintf("hash staged managed artifact file: %v", err),
+		})
+	}
 	s.updateTransferProgress(transferID, transferPhase, 1, 1, "local artifact staged")
 	manifestPath := runtimeManagedPassiveAssetManifestPath(modelsRoot, artifactID)
 	kindToken, err := localAssetKindToken(kind)
@@ -452,7 +477,7 @@ func (s *Service) importLocalPassiveAssetFile(
 			"revision": "local",
 		},
 		"integrity_mode": "local_unverified",
-		"hashes":         map[string]string{},
+		"hashes":         map[string]string{destFileName: "sha256:" + destFileHash},
 	}
 	if engine != "" {
 		manifest["preferred_engine"] = engine

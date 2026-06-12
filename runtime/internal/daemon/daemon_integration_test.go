@@ -6,6 +6,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -410,7 +411,7 @@ func TestDaemonRunStartsRuntimeAgentLifeTrackLoop(t *testing.T) {
 	}
 }
 
-func TestDaemonRunDoesNotStartMemoryReplicationLoopByDefault(t *testing.T) {
+func TestDaemonRunDoesNotRestoreLegacyMemoryReplicationBacklog(t *testing.T) {
 	localStatePath := filepath.Join(t.TempDir(), "local-state.json")
 	memoryID := "mem-daemon-replication"
 	if err := writePersistedMemoryState(localStatePath, "agent-daemon-replication", memoryID); err != nil {
@@ -443,10 +444,13 @@ func TestDaemonRunDoesNotStartMemoryReplicationLoopByDefault(t *testing.T) {
 	}()
 	waitForDaemonStatus(t, daemon, health.StatusReady, 2*time.Second)
 	time.Sleep(1200 * time.Millisecond)
-	assertMemoryReplicationAttemptCount(t, daemon.grpc.MemoryService(), memoryID, 0)
+	assertMemoryReplicationBacklogAbsent(t, daemon.grpc.MemoryService(), memoryID)
 	cancel()
 	if err := <-done; err != nil {
 		t.Fatalf("daemon run returned error: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(filepath.Dir(localStatePath), "memory-state.json")); err != nil {
+		t.Fatalf("legacy memory-state.json must remain inert after daemon run: %v", err)
 	}
 
 	daemon2, err := New(cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), "test")
@@ -464,7 +468,7 @@ func TestDaemonRunDoesNotStartMemoryReplicationLoopByDefault(t *testing.T) {
 	}()
 	waitForDaemonStatus(t, daemon2, health.StatusReady, 2*time.Second)
 	time.Sleep(1200 * time.Millisecond)
-	assertMemoryReplicationAttemptCount(t, daemon2.grpc.MemoryService(), memoryID, 0)
+	assertMemoryReplicationBacklogAbsent(t, daemon2.grpc.MemoryService(), memoryID)
 	cancel2()
 	if err := <-done2; err != nil {
 		t.Fatalf("daemon restart returned error: %v", err)

@@ -47,6 +47,21 @@ func inferReasonCodeFromResponse(resp any) (runtimev1.ReasonCode, bool) {
 	switch value := resp.(type) {
 	case *runtimev1.Ack:
 		return value.GetReasonCode(), true
+	case *runtimev1.InstallAppResponse:
+		return reasonCodeFromAppInstallJob(value.GetJob())
+	case *runtimev1.GetAppInstallJobResponse:
+		return reasonCodeFromAppInstallJob(value.GetJob())
+	case *runtimev1.UninstallAppResponse:
+		return reasonCodeFromAppInstallJob(value.GetJob())
+	case *runtimev1.UpdateAppResponse:
+		return reasonCodeFromAppInstallJob(value.GetJob())
+	case *runtimev1.HealthRepairAppResponse:
+		return reasonCodeFromAppInstallJob(value.GetJob())
+	case *runtimev1.OpenAppResponse:
+		if value.GetProjection() != nil {
+			return value.GetProjection().GetReasonCode(), true
+		}
+		return runtimev1.ReasonCode_ACTION_EXECUTED, false
 	case *runtimev1.SubmitWorkflowResponse:
 		return value.GetReasonCode(), true
 	case *runtimev1.GetWorkflowResponse:
@@ -69,6 +84,23 @@ func inferReasonCodeFromResponse(resp any) (runtimev1.ReasonCode, bool) {
 		return value.GetReasonCode(), true
 	default:
 		return runtimev1.ReasonCode_ACTION_EXECUTED, false
+	}
+}
+
+func reasonCodeFromAppInstallJob(job *runtimev1.AppInstallJob) (runtimev1.ReasonCode, bool) {
+	if job == nil {
+		return runtimev1.ReasonCode_ACTION_EXECUTED, false
+	}
+	if job.GetReasonCode() != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
+		return job.GetReasonCode(), true
+	}
+	switch job.GetState() {
+	case runtimev1.AppInstallJobState_APP_INSTALL_JOB_STATE_FAILED:
+		return runtimev1.ReasonCode_APP_INSTALL_INTERNAL, true
+	case runtimev1.AppInstallJobState_APP_INSTALL_JOB_STATE_CANCELLED:
+		return runtimev1.ReasonCode_APP_LIFECYCLE_JOB_CANCELLED, true
+	default:
+		return runtimev1.ReasonCode_ACTION_EXECUTED, true
 	}
 }
 

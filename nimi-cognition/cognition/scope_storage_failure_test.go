@@ -19,7 +19,7 @@ func TestKnowledgeScopeRegistry_StorageFailureSurfacesError(t *testing.T) {
 
 	// Confirm baseline: a valid create succeeds.
 	ok, err := registry.CreateKnowledgeScope(context.Background(), KnowledgeScopeDescriptor{
-		Owner:       KnowledgeScopeOwner{Kind: KnowledgeScopeOwnerKindAppPrivate, AppID: "nimi.desktop"},
+		Owner:       KnowledgeScopeOwner{Kind: KnowledgeScopeOwnerKindWorkspace, WorkspaceID: "ws-storage"},
 		DisplayName: "Sanity Bank",
 	})
 	if err != nil {
@@ -38,7 +38,7 @@ func TestKnowledgeScopeRegistry_StorageFailureSurfacesError(t *testing.T) {
 	// CreateKnowledgeScope after the DB is closed: must error, must not
 	// return a populated KnowledgeScope.
 	got, err := registry.CreateKnowledgeScope(context.Background(), KnowledgeScopeDescriptor{
-		Owner:       KnowledgeScopeOwner{Kind: KnowledgeScopeOwnerKindAppPrivate, AppID: "nimi.desktop"},
+		Owner:       KnowledgeScopeOwner{Kind: KnowledgeScopeOwnerKindWorkspace, WorkspaceID: "ws-storage"},
 		DisplayName: "Failure Bank",
 	})
 	if err == nil {
@@ -63,7 +63,7 @@ func TestKnowledgeScopeRegistry_StorageFailureSurfacesError(t *testing.T) {
 	}
 
 	// ListKnowledgeScopes after close: must error.
-	scopes, _, err := registry.ListKnowledgeScopes(context.Background(), KnowledgeScopeFilter{})
+	scopes, _, err := registry.ListKnowledgeScopes(context.Background(), KnowledgeScopeFilter{OwnerKinds: []string{KnowledgeScopeOwnerKindWorkspace}})
 	if err == nil {
 		t.Fatalf("expected storage error on List after Close, got nil (got %d scopes)", len(scopes))
 	}

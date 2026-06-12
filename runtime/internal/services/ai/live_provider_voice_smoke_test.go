@@ -248,7 +248,8 @@ func TestLiveSmokeLocalQwen3VoiceAssetLifecycle(t *testing.T) {
 	}
 
 	voiceAssetID := strings.TrimSpace(submitResp.GetAsset().GetVoiceAssetId())
-	assetResp, err := svc.GetVoiceAsset(context.Background(), &runtimev1.GetVoiceAssetRequest{VoiceAssetId: voiceAssetID})
+	ownerCtx := scenarioJobUserContext(liveSmokeMatrixAppID, liveSmokeMatrixUserID)
+	assetResp, err := svc.GetVoiceAsset(ownerCtx, &runtimev1.GetVoiceAssetRequest{VoiceAssetId: voiceAssetID})
 	if err != nil {
 		t.Fatalf("GetVoiceAsset(%s): %v", voiceAssetID, err)
 	}
@@ -334,7 +335,7 @@ func TestLiveSmokeLocalQwen3VoiceAssetLifecycle(t *testing.T) {
 		t.Fatalf("voice asset synth artifact must contain bytes or uri")
 	}
 
-	deleteResp, err := svc.DeleteVoiceAsset(context.Background(), &runtimev1.DeleteVoiceAssetRequest{VoiceAssetId: voiceAssetID})
+	deleteResp, err := svc.DeleteVoiceAsset(ownerCtx, &runtimev1.DeleteVoiceAssetRequest{VoiceAssetId: voiceAssetID})
 	if err != nil {
 		t.Fatalf("DeleteVoiceAsset(%s): %v", voiceAssetID, err)
 	}
@@ -342,7 +343,7 @@ func TestLiveSmokeLocalQwen3VoiceAssetLifecycle(t *testing.T) {
 		t.Fatalf("DeleteVoiceAsset(%s) ack must be ok", voiceAssetID)
 	}
 
-	deletedResp, err := svc.GetVoiceAsset(context.Background(), &runtimev1.GetVoiceAssetRequest{VoiceAssetId: voiceAssetID})
+	deletedResp, err := svc.GetVoiceAsset(ownerCtx, &runtimev1.GetVoiceAssetRequest{VoiceAssetId: voiceAssetID})
 	if err != nil {
 		t.Fatalf("GetVoiceAsset(after delete %s): %v", voiceAssetID, err)
 	}
@@ -444,8 +445,9 @@ func runLiveSmokeVoiceWorkflowForProvider(t *testing.T, providerID string, recor
 		t.Fatalf("voice workflow must return voice asset")
 	}
 	voiceAssetID := strings.TrimSpace(submitResp.GetAsset().GetVoiceAssetId())
+	ownerCtx := scenarioJobUserContext(liveSmokeMatrixAppID, liveSmokeMatrixUserID)
 	defer func() {
-		deleteResp, deleteErr := svc.DeleteVoiceAsset(context.Background(), &runtimev1.DeleteVoiceAssetRequest{VoiceAssetId: voiceAssetID})
+		deleteResp, deleteErr := svc.DeleteVoiceAsset(ownerCtx, &runtimev1.DeleteVoiceAssetRequest{VoiceAssetId: voiceAssetID})
 		if deleteErr != nil {
 			t.Errorf("DeleteVoiceAsset(%s): %v", voiceAssetID, deleteErr)
 			return

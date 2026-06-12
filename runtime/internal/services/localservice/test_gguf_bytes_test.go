@@ -2,7 +2,9 @@ package localservice
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/binary"
+	"encoding/hex"
 )
 
 func validTestGGUF() []byte {
@@ -19,12 +21,27 @@ func validGemma4TestGGUF() []byte {
 	}, []string{"tok_embeddings.weight"})
 }
 
+func validGemma4TestGGUFHash() string {
+	sum := sha256.Sum256(validGemma4TestGGUF())
+	return hex.EncodeToString(sum[:])
+}
+
+func validTestGGUFHash() string {
+	sum := sha256.Sum256(validTestGGUF())
+	return hex.EncodeToString(sum[:])
+}
+
 func validImageTestGGUF() []byte {
 	return buildImageTestGGUF([]ggufTestMetadataEntry{
 		{Key: "general.architecture", Type: 8, StringValue: "stable-diffusion"},
 		{Key: "general.name", Type: 8, StringValue: "z-image-turbo"},
 		{Key: "sd.version", Type: 8, StringValue: "sdxl"},
 	}, []string{"cap_embedder.0.weight"})
+}
+
+func validImageTestGGUFHash() string {
+	sum := sha256.Sum256(validImageTestGGUF())
+	return hex.EncodeToString(sum[:])
 }
 
 func validImageTestGGUFWithoutSDVersion() []byte {

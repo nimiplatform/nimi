@@ -438,14 +438,12 @@ func TestNonUserOwnedOAuthManagedConnectorsFailClosed(t *testing.T) {
 			t.Fatal("expected invalid oauth-managed connector to be hidden from ListConnectors")
 		}
 	}
-	testResp, err := svc.TestConnector(context.Background(), &runtimev1.TestConnectorRequest{
+	if _, err := svc.TestConnector(context.Background(), &runtimev1.TestConnectorRequest{
 		ConnectorId: "machine-codex",
-	})
-	if err != nil {
-		t.Fatalf("TestConnector: %v", err)
-	}
-	if testResp.GetAck().GetOk() || testResp.GetAck().GetReasonCode() != runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND {
-		t.Fatalf("expected TestConnector fail-closed not found, got %+v", testResp.GetAck())
+	}); err == nil {
+		t.Fatal("expected TestConnector to hide invalid oauth-managed connector")
+	} else if st, _ := status.FromError(err); st.Code() != codes.NotFound {
+		t.Fatalf("expected TestConnector NotFound, got %v", st.Code())
 	}
 	if _, err := svc.ListConnectorModels(context.Background(), &runtimev1.ListConnectorModelsRequest{
 		ConnectorId: "machine-codex",
@@ -739,17 +737,18 @@ func TestDeleteConnectorMissingReturnsNotFound(t *testing.T) {
 func TestTestConnectorNotFound(t *testing.T) {
 	svc := newTestService(t)
 	ctx := context.Background()
-	resp, err := svc.TestConnector(ctx, &runtimev1.TestConnectorRequest{
+	_, err := svc.TestConnector(ctx, &runtimev1.TestConnectorRequest{
 		ConnectorId: "nonexistent",
 	})
-	if err != nil {
-		t.Fatalf("TestConnector: %v", err)
+	if err == nil {
+		t.Fatal("expected NotFound for missing connector probe")
 	}
-	if resp.Ack.Ok {
-		t.Error("expected ack.ok=false for not found")
+	st, _ := status.FromError(err)
+	if st.Code() != codes.NotFound {
+		t.Fatalf("expected NotFound, got %v", st.Code())
 	}
-	if resp.Ack.ReasonCode != runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND {
-		t.Errorf("expected AI_CONNECTOR_NOT_FOUND, got %v", resp.Ack.ReasonCode)
+	if st.Message() != runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND.String() {
+		t.Fatalf("expected AI_CONNECTOR_NOT_FOUND, got %s", st.Message())
 	}
 }
 func TestTestConnectorDisabled(t *testing.T) {

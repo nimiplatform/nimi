@@ -19,6 +19,13 @@ import (
 )
 
 func (s *SkillService) Save(bundle skill.Bundle) error {
+	if err := rejectDirectAppPrivateScope(s.store, bundle.ScopeID, "skill save"); err != nil {
+		return err
+	}
+	return s.saveInternal(bundle)
+}
+
+func (s *SkillService) saveInternal(bundle skill.Bundle) error {
 	if err := skill.ValidateBundle(bundle); err != nil {
 		return fmt.Errorf("skill save: %w", err)
 	}
@@ -36,6 +43,13 @@ func (s *SkillService) Save(bundle skill.Bundle) error {
 }
 
 func (s *SkillService) Load(scopeID string, bundleID skill.BundleID) (*skill.Bundle, error) {
+	if err := rejectDirectAppPrivateScope(s.store, scopeID, "skill load"); err != nil {
+		return nil, err
+	}
+	return s.loadInternal(scopeID, bundleID)
+}
+
+func (s *SkillService) loadInternal(scopeID string, bundleID skill.BundleID) (*skill.Bundle, error) {
 	bundle, err := s.loadOptional(scopeID, bundleID)
 	if err != nil {
 		return nil, err
@@ -47,6 +61,13 @@ func (s *SkillService) Load(scopeID string, bundleID skill.BundleID) (*skill.Bun
 }
 
 func (s *SkillService) List(scopeID string) ([]skill.Bundle, error) {
+	if err := rejectDirectAppPrivateScope(s.store, scopeID, "skill list"); err != nil {
+		return nil, err
+	}
+	return s.listInternal(scopeID)
+}
+
+func (s *SkillService) listInternal(scopeID string) ([]skill.Bundle, error) {
 	if err := validateScopeID(scopeID); err != nil {
 		return nil, err
 	}
@@ -61,6 +82,13 @@ func (s *SkillService) List(scopeID string) ([]skill.Bundle, error) {
 }
 
 func (s *SkillService) Search(scopeID string, query string, limit int) ([]skill.Bundle, error) {
+	if err := rejectDirectAppPrivateScope(s.store, scopeID, "skill search"); err != nil {
+		return nil, err
+	}
+	return s.searchInternal(scopeID, query, limit)
+}
+
+func (s *SkillService) searchInternal(scopeID string, query string, limit int) ([]skill.Bundle, error) {
 	if err := validateScopeID(scopeID); err != nil {
 		return nil, err
 	}
@@ -78,6 +106,13 @@ func (s *SkillService) Search(scopeID string, query string, limit int) ([]skill.
 }
 
 func (s *SkillService) Delete(scopeID string, bundleID skill.BundleID) error {
+	if err := rejectDirectAppPrivateScope(s.store, scopeID, "skill delete"); err != nil {
+		return err
+	}
+	return s.deleteInternal(scopeID, bundleID)
+}
+
+func (s *SkillService) deleteInternal(scopeID string, bundleID skill.BundleID) error {
 	if err := validateScopeID(scopeID); err != nil {
 		return err
 	}
@@ -101,6 +136,9 @@ func (s *SkillService) Delete(scopeID string, bundleID skill.BundleID) error {
 }
 
 func (s *SkillService) History(scopeID string, bundleID skill.BundleID) ([]skill.HistoryEntry, error) {
+	if err := rejectDirectAppPrivateScope(s.store, scopeID, "skill history"); err != nil {
+		return nil, err
+	}
 	if err := validateScopeID(scopeID); err != nil {
 		return nil, err
 	}
@@ -124,10 +162,13 @@ func (s *SkillService) History(scopeID string, bundleID skill.BundleID) ([]skill
 }
 
 func (s *SkillService) ListIDs(scopeID string) ([]string, error) {
+	if err := rejectDirectAppPrivateScope(s.store, scopeID, "skill list ids"); err != nil {
+		return nil, err
+	}
 	if err := validateScopeID(scopeID); err != nil {
 		return nil, err
 	}
-	bundles, err := s.List(scopeID)
+	bundles, err := s.listInternal(scopeID)
 	if err != nil {
 		return nil, err
 	}
@@ -342,6 +383,16 @@ func loadScopeRulesStrict(store *storage.SQLiteBackend, scopeID string) ([]kerne
 		}
 		if loadedKernel == nil {
 			return nil, fmt.Errorf("prompt load rules: missing %s kernel for scope %s", kind, scopeID)
+		}
+		switch kind {
+		case kernel.KernelTypeAgentModel:
+			if err := kernel.ValidateAgentModelKernel(kernel.AgentModelKernel{Kernel: *loadedKernel, Rules: loadedRules}); err != nil {
+				return nil, fmt.Errorf("prompt load rules: invalid %s kernel for scope %s: %w", kind, scopeID, err)
+			}
+		case kernel.KernelTypeWorldModel:
+			if err := kernel.ValidateWorldModelKernel(kernel.WorldModelKernel{Kernel: *loadedKernel, Rules: loadedRules}); err != nil {
+				return nil, fmt.Errorf("prompt load rules: invalid %s kernel for scope %s: %w", kind, scopeID, err)
+			}
 		}
 		rules = append(rules, loadedRules...)
 	}

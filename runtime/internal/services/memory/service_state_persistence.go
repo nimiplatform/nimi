@@ -2,7 +2,6 @@ package memory
 
 import (
 	"context"
-	"crypto/sha256"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -26,9 +25,7 @@ func (s *Service) loadState() error {
 		return err
 	}
 	if initialized != "1" {
-		if err := s.importLegacyStateIfPresent(); err != nil {
-			return err
-		}
+		return s.markMemoryStateInitialized(0)
 	}
 	return s.loadStateFromDB()
 }
@@ -95,38 +92,6 @@ func (s *Service) persistLockedWithTxHook(txHook persistTxHook) error {
 	}
 	_ = payload
 	return s.persistSnapshotWithTxHook(snapshot, txHook)
-}
-func (s *Service) importLegacyStateIfPresent() error {
-	path := strings.TrimSpace(s.statePath)
-	if path == "" {
-		return s.markMemoryStateInitialized(0)
-	}
-	raw, err := os.ReadFile(path)
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return s.markMemoryStateInitialized(0)
-		}
-		return fmt.Errorf("read memory state: %w", err)
-	}
-	var snapshot persistedMemoryState
-	if err := json.Unmarshal(raw, &snapshot); err != nil {
-		return fmt.Errorf("parse memory state: %w", err)
-	}
-	if snapshot.SchemaVersion != memoryStateSchemaVersion {
-		return fmt.Errorf("unsupported memory state schemaVersion=%d", snapshot.SchemaVersion)
-	}
-	if err := s.persistSnapshot(snapshot); err != nil {
-		return err
-	}
-	if err := s.validateImportedSnapshot(snapshot); err != nil {
-		_ = s.resetImportedState()
-		return err
-	}
-	if err := s.recordLegacyImportMetadata(path, raw, snapshot.SchemaVersion); err != nil {
-		_ = s.resetImportedState()
-		return err
-	}
-	return renameImportedLegacyState(path)
 }
 func (s *Service) loadStateFromDB() error {
 	for key := range s.banks {
@@ -457,121 +422,6 @@ func (s *Service) loadPendingEmbeddingCutoverStateFromDB() error {
 		state.PendingEmbeddingCutover = pending
 	}
 	return rows.Err()
-}
-func (s *Service) validateImportedSnapshot(snapshot persistedMemoryState) error {
-	if s.backend == nil {
-		return nil
-	}
-	expectedBankCount := len(snapshot.Banks)
-	expectedRecordCount := 0
-	for _, bank := range snapshot.Banks {
-		expectedRecordCount += len(bank.Records)
-	}
-	expectedBacklogCount := len(snapshot.ReplicationBacklog)
-	var actualBankCount int
-	if err := s.backend.DB().QueryRow(`SELECT COUNT(*) FROM memory_bank`).Scan(&actualBankCount); err != nil {
-		return fmt.Errorf("validate imported memory banks: %w", err)
-	}
-	if actualBankCount != expectedBankCount {
-		return fmt.Errorf("validate imported memory banks: got %d want %d", actualBankCount, expectedBankCount)
-	}
-	var actualRecordCount int
-	if err := s.backend.DB().QueryRow(`SELECT COUNT(*) FROM memory_record`).Scan(&actualRecordCount); err != nil {
-		return fmt.Errorf("validate imported memory records: %w", err)
-	}
-	if actualRecordCount != expectedRecordCount {
-		return fmt.Errorf("validate imported memory records: got %d want %d", actualRecordCount, expectedRecordCount)
-	}
-	var actualBacklogCount int
-	if err := s.backend.DB().QueryRow(`SELECT COUNT(*) FROM memory_replication_backlog`).Scan(&actualBacklogCount); err != nil {
-		return fmt.Errorf("validate imported memory backlog: %w", err)
-	}
-	if actualBacklogCount != expectedBacklogCount {
-		return fmt.Errorf("validate imported memory backlog: got %d want %d", actualBacklogCount, expectedBacklogCount)
-	}
-	seq, err := s.memoryMetaValue("memory_event_sequence")
-	if err != nil {
-		return err
-	}
-	value, err := decodeSequenceValue(seq)
-	if err != nil {
-		return err
-	}
-	if value != snapshot.Sequence {
-		return fmt.Errorf("validate imported memory sequence: got %d want %d", value, snapshot.Sequence)
-	}
-	return nil
-}
-func (s *Service) recordLegacyImportMetadata(path string, raw []byte, schemaVersion int) error {
-	importedAt := time.Now().UTC().Format(time.RFC3339Nano)
-	digest := sha256.Sum256(raw)
-	return s.backend.WriteTx(context.Background(), func(tx *sql.Tx) error {
-		values := map[string]string{
-			memoryMetaLegacyImportSourcePathKey:          strings.TrimSpace(path),
-			memoryMetaLegacyImportSourceSHA256Key:        fmt.Sprintf("%x", digest[:]),
-			memoryMetaLegacyImportSourceSchemaVersionKey: fmt.Sprintf("%d", schemaVersion),
-			memoryMetaLegacyImportedAtKey:                importedAt,
-		}
-		for key, value := range values {
-			if _, err := tx.Exec(`INSERT INTO memory_meta(key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value`, key, value); err != nil {
-				return err
-			}
-		}
-		return nil
-	})
-}
-func (s *Service) resetImportedState() error {
-	if s.backend == nil {
-		return nil
-	}
-	return s.backend.WriteTx(context.Background(), func(tx *sql.Tx) error {
-		statements := []string{
-			`DELETE FROM memory_record_fts`,
-			`DELETE FROM memory_record_embedding`,
-			`DELETE FROM memory_narrative_embedding`,
-			`DELETE FROM memory_narrative_alias`,
-			`DELETE FROM memory_recall_feedback_event`,
-			`DELETE FROM memory_recall_feedback_summary`,
-			`DELETE FROM memory_replication_backlog`,
-			`DELETE FROM memory_record`,
-			`DELETE FROM memory_bank`,
-			`DELETE FROM memory_narrative`,
-			`DELETE FROM narrative_source`,
-			`DELETE FROM memory_relation`,
-			`DELETE FROM agent_truth`,
-			`DELETE FROM truth_source`,
-			`DELETE FROM memory_review_commit`,
-			`DELETE FROM memory_review_checkpoint`,
-			`DELETE FROM memory_meta WHERE key IN ('state_initialized', 'memory_event_sequence', ?, ?, ?, ?)`,
-		}
-		for idx, stmt := range statements {
-			if idx == len(statements)-1 {
-				if _, err := tx.Exec(stmt,
-					memoryMetaLegacyImportSourcePathKey,
-					memoryMetaLegacyImportSourceSHA256Key,
-					memoryMetaLegacyImportSourceSchemaVersionKey,
-					memoryMetaLegacyImportedAtKey,
-				); err != nil {
-					return err
-				}
-				continue
-			}
-			if _, err := tx.Exec(stmt); err != nil {
-				return err
-			}
-		}
-		return nil
-	})
-}
-func renameImportedLegacyState(path string) error {
-	if strings.TrimSpace(path) == "" {
-		return nil
-	}
-	backupPath := path + ".wave3-imported.json.bak"
-	if err := os.Rename(path, backupPath); err != nil && !errors.Is(err, os.ErrNotExist) {
-		return fmt.Errorf("rename legacy imported state: %w", err)
-	}
-	return nil
 }
 func memoryStatePath(localStatePath string) string {
 	if trimmed := strings.TrimSpace(localStatePath); trimmed != "" {

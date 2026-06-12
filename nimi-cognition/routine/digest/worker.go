@@ -30,6 +30,9 @@ func (w *Worker) Run(ctx routine.Context) (*routine.Result, error) {
 	if ctx.Graph == nil {
 		return nil, fmt.Errorf("digest worker: graph is required")
 	}
+	if err := requireServiceEquivalentArtifactAccess(ctx.Storage); err != nil {
+		return nil, fmt.Errorf("digest worker: %w", err)
+	}
 
 	now := ctx.Clock()
 	report, err := w.digest.runAccess(ctx.ScopeID, now, ctx.Storage, ctx.Graph)

@@ -135,7 +135,7 @@ func managedLlamaModelProbeSucceeded(probe endpointProbeResult, registration man
 		return false
 	}
 	if registration.DynamicProfile {
-		return probe.responded
+		return probe.healthy && len(probe.models) > 0
 	}
 	if !probe.healthy {
 		return false
@@ -157,7 +157,7 @@ func managedLlamaModelProbeFailureDetail(probe endpointProbeResult, registration
 		return detail
 	}
 	if registration.DynamicProfile {
-		if probe.responded {
+		if probe.healthy && len(probe.models) > 0 {
 			return "local media workflow ready"
 		}
 		return defaultString(probe.detail, "local media workflow unavailable")

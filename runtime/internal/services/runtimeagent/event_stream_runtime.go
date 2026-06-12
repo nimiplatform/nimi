@@ -2,11 +2,13 @@ package runtimeagent
 
 import (
 	"strings"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type eventStreamRuntime struct {
@@ -73,22 +75,28 @@ func (r eventStreamRuntime) subscribe(req *runtimev1.SubscribeAgentEventsRequest
 	}
 	for _, event := range backlog {
 		if err := r.validateSubscriberBinding(sub, requestContext.GetAppId()); err != nil {
-			return err
+			return r.sendBindingRevokedAndClose(stream, sub, err)
 		}
 		if err := stream.Send(event); err != nil {
 			return err
 		}
 	}
+	bindingTick := time.NewTicker(time.Second)
+	defer bindingTick.Stop()
 	for {
 		select {
 		case <-stream.Context().Done():
 			return stream.Context().Err()
+		case <-bindingTick.C:
+			if err := r.validateSubscriberBinding(sub, requestContext.GetAppId()); err != nil {
+				return r.sendBindingRevokedAndClose(stream, sub, err)
+			}
 		case event, ok := <-sub.ch:
 			if !ok {
 				return nil
 			}
 			if err := r.validateSubscriberBinding(sub, requestContext.GetAppId()); err != nil {
-				return err
+				return r.sendBindingRevokedAndClose(stream, sub, err)
 			}
 			if err := stream.Send(cloneAgentEvent(event)); err != nil {
 				return err
@@ -102,6 +110,34 @@ func (r eventStreamRuntime) validateSubscriberBinding(sub *subscriber, fallbackR
 		return nil
 	}
 	return r.svc.validateScopedBindingAttachment(sub.scopedBinding, fallbackRuntimeAppID, sub.agentID, runtimeAgentEventReadScope)
+}
+
+func (r eventStreamRuntime) sendBindingRevokedAndClose(stream runtimev1.RuntimeAgentService_SubscribeAgentEventsServer, sub *subscriber, validationErr error) error {
+	if stream == nil || sub == nil {
+		return nil
+	}
+	reason := "binding.revoked"
+	if validationErr != nil && strings.TrimSpace(validationErr.Error()) != "" {
+		reason = strings.TrimSpace(validationErr.Error())
+	}
+	event := &runtimev1.AgentEvent{
+		EventType:     runtimev1.AgentEventType_AGENT_EVENT_TYPE_STATE,
+		AgentId:       sub.agentID,
+		LocalAgentRef: sub.agentID,
+		Timestamp:     timestamppb.Now(),
+		Detail: &runtimev1.AgentEvent_State{
+			State: &runtimev1.AgentStateEventDetail{
+				Family:                runtimev1.AgentStateEventFamily_AGENT_STATE_EVENT_FAMILY_STATUS_TEXT_CHANGED,
+				CurrentStatusText:     "binding.revoked",
+				PreviousStatusText:    reason,
+				HasPreviousStatusText: true,
+			},
+		},
+	}
+	if err := stream.Send(event); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (r eventStreamRuntime) appendEventsLocked(events ...*runtimev1.AgentEvent) []*runtimev1.AgentEvent {

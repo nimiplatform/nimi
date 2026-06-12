@@ -48,30 +48,6 @@ func (s *Service) schedulePublicChatFollowUp(
 			Message:          message,
 		}
 	}
-	if firstNonEmpty(action.PromptPayload.TriggerFamily, "time") == "event" {
-		message := "event hook trigger execution is not admitted by runtime public chat follow-up scheduler"
-		emitErr := s.emitPublicChatFollowUpHookEvents(session, turn, action,
-			publicChatHookLifecycleTransition{state: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PROPOSED},
-			publicChatHookLifecycleTransition{
-				state:      runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_REJECTED,
-				reasonCode: runtimev1.ReasonCode_AI_OUTPUT_INVALID,
-				message:    message,
-			},
-		)
-		if emitErr != nil {
-			message = strings.TrimSpace(emitErr.Error())
-		}
-		return publicChatFollowUpOutcome{
-			Status:           "rejected",
-			ChainID:          turn.ChainID,
-			FollowUpDepth:    nextDepth,
-			MaxFollowUpTurns: maxTurns,
-			SourceTurnID:     turn.TurnID,
-			SourceActionID:   action.ActionID,
-			ReasonCode:       runtimev1.ReasonCode_AI_OUTPUT_INVALID,
-			Message:          message,
-		}
-	}
 	pendingIntent, err := publicChatFollowUpHookIntent(session, turn, action, runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING)
 	if err != nil {
 		return publicChatFollowUpOutcome{
@@ -90,7 +66,7 @@ func (s *Service) schedulePublicChatFollowUp(
 	if chainID == "" {
 		chainID = "agent_followup_chain_" + ulid.Make().String()
 	}
-	scheduledFor := time.Now().UTC().Add(time.Duration(action.PromptPayload.DelayMs) * time.Millisecond)
+	scheduledFor := publicChatFollowUpScheduledFor(time.Now().UTC(), action)
 	ctx, cancel := context.WithCancel(context.Background())
 	state := &publicChatFollowUpState{
 		FollowUpID:           followUpID,
@@ -167,4 +143,17 @@ func (s *Service) schedulePublicChatFollowUp(
 		SourceTurnID:     turn.TurnID,
 		SourceActionID:   action.ActionID,
 	}
+}
+
+func publicChatFollowUpScheduledFor(now time.Time, action *publicChatStructuredAction) time.Time {
+	if action == nil {
+		return now
+	}
+	if action.PromptPayload.TriggerFamily == "event" {
+		if action.PromptPayload.TriggerEvent == "user-idle" && action.PromptPayload.IdleMs > 0 {
+			return now.Add(time.Duration(action.PromptPayload.IdleMs) * time.Millisecond)
+		}
+		return now
+	}
+	return now.Add(time.Duration(action.PromptPayload.DelayMs) * time.Millisecond)
 }

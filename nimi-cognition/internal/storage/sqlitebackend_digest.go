@@ -5,7 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
+
+	"github.com/nimiplatform/nimi/nimi-cognition/artifactref"
 )
 
 // SaveDigestRun persists a digest report and candidate log.
@@ -16,9 +19,17 @@ func (b *SQLiteBackend) SaveDigestRun(scopeID string, runID string, report any, 
 	if err := validateItemID(runID); err != nil {
 		return err
 	}
+	if createdAt.IsZero() {
+		return errors.New("storage save digest run: created_at is required")
+	}
 	payload, err := json.Marshal(report)
 	if err != nil {
 		return fmt.Errorf("storage save digest run: marshal report: %w", err)
+	}
+	for _, candidate := range candidates {
+		if err := validateDigestCandidate(runID, candidate); err != nil {
+			return err
+		}
 	}
 	tx, err := b.db.Begin()
 	if err != nil {
@@ -30,17 +41,14 @@ func (b *SQLiteBackend) SaveDigestRun(scopeID string, runID string, report any, 
 	}
 	if _, err := tx.Exec(`INSERT INTO digest_run (scope_id, run_id, report_json, created_at)
 		VALUES (?, ?, ?, ?)
-		ON CONFLICT(run_id) DO UPDATE SET report_json = excluded.report_json, created_at = excluded.created_at`,
+		ON CONFLICT(scope_id, run_id) DO UPDATE SET report_json = excluded.report_json, created_at = excluded.created_at`,
 		scopeID, runID, payload, encodeTime(createdAt)); err != nil {
 		return fmt.Errorf("storage save digest run: %w", err)
 	}
-	if _, err := tx.Exec(`DELETE FROM digest_candidate WHERE run_id = ?`, runID); err != nil {
+	if _, err := tx.Exec(`DELETE FROM digest_candidate WHERE scope_id = ? AND run_id = ?`, scopeID, runID); err != nil {
 		return fmt.Errorf("storage save digest candidates: %w", err)
 	}
 	for _, candidate := range candidates {
-		if err := validateDigestCandidateFamily(candidate.Family); err != nil {
-			return err
-		}
 		if _, err := tx.Exec(`INSERT INTO digest_candidate
 			(scope_id, run_id, family, artifact_kind, artifact_id, action, status, reason, detail_json, created_at, updated_at)
 			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -52,6 +60,40 @@ func (b *SQLiteBackend) SaveDigestRun(scopeID string, runID string, report any, 
 	return tx.Commit()
 }
 
+func validateDigestCandidate(runID string, candidate DigestCandidate) error {
+	if candidate.RunID != runID {
+		return fmt.Errorf("storage save digest candidates: candidate run_id %q does not match digest run_id %q", candidate.RunID, runID)
+	}
+	if err := validateDigestCandidateFamily(candidate.Family); err != nil {
+		return err
+	}
+	if err := validateDigestCandidateArtifactKind(candidate.Family, candidate.ArtifactKind); err != nil {
+		return err
+	}
+	if err := validateItemID(candidate.ArtifactID); err != nil {
+		return fmt.Errorf("storage save digest candidates: artifact_id: %w", err)
+	}
+	if err := validateDigestCandidateStatusAction(candidate.Status, candidate.Action); err != nil {
+		return err
+	}
+	if strings.TrimSpace(candidate.Reason) == "" {
+		return errors.New("storage save digest candidates: reason is required")
+	}
+	if err := validateDigestCandidateDetail(candidate.Detail); err != nil {
+		return err
+	}
+	if candidate.CreatedAt.IsZero() {
+		return errors.New("storage save digest candidates: created_at is required")
+	}
+	if candidate.UpdatedAt.IsZero() {
+		return errors.New("storage save digest candidates: updated_at is required")
+	}
+	if candidate.UpdatedAt.Before(candidate.CreatedAt) {
+		return errors.New("storage save digest candidates: updated_at must not be before created_at")
+	}
+	return nil
+}
+
 func validateDigestCandidateFamily(family string) error {
 	switch family {
 	case "memory_substrate", "knowledge_projections", "skill_artifacts":
@@ -59,6 +101,58 @@ func validateDigestCandidateFamily(family string) error {
 	default:
 		return fmt.Errorf("storage save digest candidates: unsupported canonical family_id %q", family)
 	}
+}
+
+func validateDigestCandidateArtifactKind(family string, kind string) error {
+	expected := map[string]artifactref.Kind{
+		"memory_substrate":      artifactref.KindMemoryRecord,
+		"knowledge_projections": artifactref.KindKnowledgePage,
+		"skill_artifacts":       artifactref.KindSkillBundle,
+	}[family]
+	if kind == "" {
+		return errors.New("storage save digest candidates: artifact_kind is required")
+	}
+	if artifactref.Kind(kind) != expected {
+		return fmt.Errorf("storage save digest candidates: family %q requires artifact_kind %q, got %q", family, expected, kind)
+	}
+	return nil
+}
+
+func validateDigestCandidateStatusAction(status string, action string) error {
+	switch status {
+	case "candidate", "blocked":
+		switch action {
+		case "archive", "remove":
+			return nil
+		default:
+			return fmt.Errorf("storage save digest candidates: status %q does not admit action %q", status, action)
+		}
+	case "applied":
+		switch action {
+		case "archived", "removed":
+			return nil
+		default:
+			return fmt.Errorf("storage save digest candidates: status %q does not admit action %q", status, action)
+		}
+	case "":
+		return errors.New("storage save digest candidates: status is required")
+	default:
+		return fmt.Errorf("storage save digest candidates: unsupported status %q", status)
+	}
+}
+
+func validateDigestCandidateDetail(detail json.RawMessage) error {
+	if len(detail) == 0 {
+		return errors.New("storage save digest candidates: detail_json is required")
+	}
+	if !json.Valid(detail) {
+		return errors.New("storage save digest candidates: detail_json must be valid JSON")
+	}
+	var object map[string]any
+	if err := json.Unmarshal(detail, &object); err != nil || object == nil {
+		return errors.New("storage save digest candidates: detail_json must be a JSON object")
+	}
+	return nil
 }
 
 // LoadDigestRun returns one persisted digest report payload by run id.

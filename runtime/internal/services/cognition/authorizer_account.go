@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	cognitionpkg "github.com/nimiplatform/nimi/nimi-cognition/cognition"
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 )
 
@@ -34,7 +35,7 @@ func NewAccountKnowledgeAuthorizer(logger *slog.Logger, resolver ...accountservi
 
 // Authorize implements KnowledgeAuthorizer.
 func (a *accountKnowledgeAuthorizer) Authorize(ctx context.Context, req KnowledgeAuthRequest) (KnowledgeAuthResult, error) {
-	callerApp := trimContextAppID(req.Context)
+	callerApp := trimCallerAppID(req.Caller)
 	subjectUser := ""
 	if req.Context != nil {
 		subjectUser = strings.TrimSpace(req.Context.GetSubjectUserId())
@@ -69,6 +70,13 @@ func (a *accountKnowledgeAuthorizer) Authorize(ctx context.Context, req Knowledg
 		a.logDecision(req, callerApp, subjectUser, result)
 		return result, nil
 	}
+}
+
+func trimCallerAppID(caller *runtimev1.AccountCaller) string {
+	if caller == nil {
+		return ""
+	}
+	return strings.TrimSpace(caller.GetAppId())
 }
 
 func (a *accountKnowledgeAuthorizer) logDecision(req KnowledgeAuthRequest, callerApp, subjectUser string, result KnowledgeAuthResult) {

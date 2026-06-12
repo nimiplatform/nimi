@@ -216,6 +216,7 @@ func (s *Service) quarantineManagedModelBundle(
 		EventType:    "runtime_model_bundle_quarantined",
 		OccurredAt:   nowISO(),
 		Source:       "local",
+		ReasonCode:   "LOCAL_MODEL_BUNDLE_QUARANTINED",
 		ModelId:      strings.TrimSpace(modelID),
 		LocalModelId: strings.TrimSpace(localModelID),
 		Detail:       fmt.Sprintf("managed model bundle quarantined after %s failure", defaultString(strings.TrimSpace(operation), "runtime")),

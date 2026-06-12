@@ -34,7 +34,7 @@ func (s *Service) applyExecutionPlanStrict(ctx context.Context, plan *runtimev1.
 
 	result := &runtimev1.LocalExecutionApplyResult{
 		PlanId:             plan.GetPlanId(),
-		TargetId:              plan.GetTargetId(),
+		TargetId:           plan.GetTargetId(),
 		Entries:            make([]*runtimev1.LocalExecutionEntryDescriptor, 0, len(plan.GetEntries())),
 		InstalledAssets:    []*runtimev1.LocalAssetRecord{},
 		Services:           []*runtimev1.LocalServiceDescriptor{},
@@ -58,6 +58,16 @@ func (s *Service) applyExecutionPlanStrict(ctx context.Context, plan *runtimev1.
 		}
 	}
 	result.Capabilities = normalizeStringSlice(result.Capabilities)
+	if reason := unresolvedRequiredDependencyApplyReason(plan); reason != "" {
+		result.StageResults = append(result.StageResults, &runtimev1.LocalExecutionStageResult{
+			Stage:      applyStagePreflight,
+			Ok:         false,
+			ReasonCode: reason,
+			Detail:     "required dependency plan is unresolved",
+		})
+		result.ReasonCode = reason
+		return result
+	}
 
 	// Stage 1: preflight
 	preflightFailed := false
@@ -352,6 +362,21 @@ func (s *Service) applyExecutionPlanStrict(ctx context.Context, plan *runtimev1.
 
 	result.ReasonCode = "ACTION_EXECUTED"
 	return result
+}
+
+func unresolvedRequiredDependencyApplyReason(plan *runtimev1.LocalExecutionPlan) string {
+	if plan == nil {
+		return "LOCAL_DEPENDENCY_PLAN_REQUIRED"
+	}
+	if strings.TrimSpace(plan.GetReasonCode()) == "LOCAL_DEPENDENCY_REQUIRED_UNSATISFIED" {
+		return "LOCAL_DEPENDENCY_REQUIRED_UNSATISFIED"
+	}
+	for _, dep := range plan.GetEntries() {
+		if dep.GetRequired() && !dep.GetSelected() {
+			return "LOCAL_DEPENDENCY_REQUIRED_UNSATISFIED"
+		}
+	}
+	return ""
 }
 
 func (s *Service) runApplyPreflight(ctx context.Context, dep *runtimev1.LocalExecutionEntryDescriptor, profile *runtimev1.LocalDeviceProfile) *runtimev1.LocalPreflightDecision {

@@ -78,6 +78,24 @@ func (s *voiceAssetStore) deleteAssetWithResult(voiceAssetID string, result voic
 	return true
 }
 
+func (s *voiceAssetStore) updateAssetDeleteResult(voiceAssetID string, result voiceAssetDeleteResult) bool {
+	id := strings.TrimSpace(voiceAssetID)
+	if id == "" {
+		return false
+	}
+	s.mu.Lock()
+	asset, ok := s.assets[id]
+	if !ok || asset == nil {
+		s.mu.Unlock()
+		return false
+	}
+	nowTime := time.Now().UTC()
+	asset.UpdatedAt = timestamppb.New(nowTime)
+	applyVoiceAssetDeleteResultMetadata(asset, result, nowTime)
+	s.mu.Unlock()
+	return true
+}
+
 func (s *voiceAssetStore) updateDeletedAssetReconciliationResult(voiceAssetID string, result voiceAssetDeleteResult) bool {
 	id := strings.TrimSpace(voiceAssetID)
 	if id == "" {

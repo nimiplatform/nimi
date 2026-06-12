@@ -22,7 +22,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func TestDaemonNewImportsMemoryStateBeforeReadiness(t *testing.T) {
+func TestDaemonNewDoesNotImportLegacyMemoryStateBeforeReadiness(t *testing.T) {
 	localStatePath := filepath.Join(t.TempDir(), "local-state.json")
 	if err := writePersistedMemoryState(localStatePath, "agent-import", "mem-import"); err != nil {
 		t.Fatalf("writePersistedMemoryState: %v", err)
@@ -52,8 +52,26 @@ func TestDaemonNewImportsMemoryStateBeforeReadiness(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(runtimeDir, "memory.db")); err != nil {
 		t.Fatalf("expected memory.db before Run readiness: %v", err)
 	}
-	if _, err := os.Stat(filepath.Join(runtimeDir, "memory-state.json.wave3-imported.json.bak")); err != nil {
-		t.Fatalf("expected memory legacy rename before Run: %v", err)
+	if _, err := os.Stat(filepath.Join(runtimeDir, "memory-state.json")); err != nil {
+		t.Fatalf("legacy memory-state.json must remain inert evidence: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(runtimeDir, "memory-state.json.wave3-imported.json.bak")); !os.IsNotExist(err) {
+		t.Fatalf("legacy memory-state.json must not be imported or renamed, stat err=%v", err)
+	}
+	historyResp, err := daemon.grpc.MemoryService().History(context.Background(), &runtimev1.HistoryRequest{
+		Bank: &runtimev1.MemoryBankLocator{
+			Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
+			Owner: &runtimev1.MemoryBankLocator_AgentCore{
+				AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: "agent-import"},
+			},
+		},
+		Query: &runtimev1.MemoryHistoryQuery{PageSize: 10, IncludeInvalidated: true},
+	})
+	if err == nil {
+		t.Fatalf("legacy memory-state.json must not become active daemon memory truth, got response %#v", historyResp)
+	}
+	if got := daemon.grpc.MemoryService().ListReplicationBacklog(); len(got) != 0 {
+		t.Fatalf("legacy replication backlog must not become active daemon truth: %#v", got)
 	}
 }
 
@@ -354,6 +372,17 @@ func assertMemoryReplicationAttemptCount(t *testing.T, svc interface {
 		}
 	}
 	t.Fatalf("expected replication backlog item for memory %s", memoryID)
+}
+
+func assertMemoryReplicationBacklogAbsent(t *testing.T, svc interface {
+	ListReplicationBacklog() []*memoryservice.ReplicationBacklogItem
+}, memoryID string) {
+	t.Helper()
+	for _, item := range svc.ListReplicationBacklog() {
+		if item.MemoryID == memoryID {
+			t.Fatalf("legacy replication backlog item for memory %s must not become active runtime truth: %#v", memoryID, item)
+		}
+	}
 }
 
 func writePersistedMemoryState(localStatePath string, agentID string, memoryID string) error {

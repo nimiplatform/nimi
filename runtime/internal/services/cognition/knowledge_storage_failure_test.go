@@ -1,7 +1,6 @@
 package cognition
 
 import (
-	"context"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -15,7 +14,7 @@ import (
 func TestStorageFailureSurfacesStableReason(t *testing.T) {
 	svc, _, cleanup := newTestService(t)
 	defer cleanup()
-	ctx := context.Background()
+	ctx := testKnowledgeEnvelopeContext("app.s2-20")
 	reqCtx := &runtimev1.KnowledgeRequestContext{AppId: "app.s2-20"}
 	bankID := newAppPrivateBank(t, svc, "app.s2-20", "S2.20 Bank")
 

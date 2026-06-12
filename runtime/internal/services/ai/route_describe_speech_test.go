@@ -15,7 +15,7 @@ import (
 func TestExecuteScenarioSpeechSynthesizeRouteDescribeProbeWritesHeaderForManagedCloudRoute(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		CloudProviders: map[string]nimillm.ProviderCredentials{
-			"openai": {BaseURL: "http://example.com", APIKey: "test-key"},
+			"openai": {BaseURL: "https://example.com", APIKey: "test-key"},
 		},
 	})
 
@@ -72,7 +72,7 @@ func TestExecuteScenarioSpeechSynthesizeRouteDescribeProbeWritesHeaderForManaged
 func TestExecuteScenarioSpeechTranscribeRouteDescribeProbeWritesHeaderForManagedCloudRoute(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		CloudProviders: map[string]nimillm.ProviderCredentials{
-			"gemini": {BaseURL: "http://example.com", APIKey: "test-key"},
+			"gemini": {BaseURL: "https://example.com", APIKey: "test-key"},
 		},
 	})
 
@@ -133,7 +133,7 @@ func TestExecuteScenarioSpeechTranscribeRouteDescribeProbeWritesHeaderForManaged
 func TestWriteSpeechRouteDescribeHeaderFailsClosedWhenCatalogMetadataMissing(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		CloudProviders: map[string]nimillm.ProviderCredentials{
-			"dashscope": {BaseURL: "http://example.com", APIKey: "test-key"},
+			"dashscope": {BaseURL: "https://example.com", APIKey: "test-key"},
 		},
 	})
 

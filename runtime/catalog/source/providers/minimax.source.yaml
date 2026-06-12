@@ -3,6 +3,7 @@ provider: minimax
 catalog_version: 2026-04-18-minimax-v2
 generated_target: runtime/catalog/providers/minimax.yaml
 runtime:
+  inventory_mode: static_source
   runtime_plane: remote
   managed_connector_supported: true
   inline_supported: true

@@ -17,6 +17,13 @@ import (
 
 // Save persists a knowledge page after source-integrity checks.
 func (s *KnowledgeService) Save(page knowledge.Page) error {
+	if err := rejectDirectRuntimeKnowledgeBankScope(s.store, page.ScopeID, "knowledge save"); err != nil {
+		return err
+	}
+	return s.saveInternal(page)
+}
+
+func (s *KnowledgeService) saveInternal(page knowledge.Page) error {
 	if err := validateKnowledgePageForWrite(s.store, page); err != nil {
 		return fmt.Errorf("knowledge save: %w", err)
 	}
@@ -28,6 +35,13 @@ func (s *KnowledgeService) Save(page knowledge.Page) error {
 }
 
 func (s *KnowledgeService) Load(scopeID string, pageID knowledge.PageID) (*knowledge.Page, error) {
+	if err := rejectDirectRuntimeKnowledgeBankScope(s.store, scopeID, "knowledge load"); err != nil {
+		return nil, err
+	}
+	return s.loadInternal(scopeID, pageID)
+}
+
+func (s *KnowledgeService) loadInternal(scopeID string, pageID knowledge.PageID) (*knowledge.Page, error) {
 	page, err := s.loadOptional(scopeID, pageID)
 	if err != nil {
 		return nil, err
@@ -39,6 +53,13 @@ func (s *KnowledgeService) Load(scopeID string, pageID knowledge.PageID) (*knowl
 }
 
 func (s *KnowledgeService) List(scopeID string) ([]knowledge.Page, error) {
+	if err := rejectDirectRuntimeKnowledgeBankScope(s.store, scopeID, "knowledge list"); err != nil {
+		return nil, err
+	}
+	return s.listInternal(scopeID)
+}
+
+func (s *KnowledgeService) listInternal(scopeID string) ([]knowledge.Page, error) {
 	if err := validateScopeID(scopeID); err != nil {
 		return nil, err
 	}
@@ -46,10 +67,17 @@ func (s *KnowledgeService) List(scopeID string) ([]knowledge.Page, error) {
 	if err != nil {
 		return nil, err
 	}
-	return validateVisibleKnowledgePagesForService(s.store, pages)
+	return validateVisibleKnowledgePagesForService(s.store, scopeID, pages)
 }
 
 func (s *KnowledgeService) SearchLexical(scopeID string, query string, limit int) ([]knowledge.Page, error) {
+	if err := rejectDirectRuntimeKnowledgeBankScope(s.store, scopeID, "knowledge search"); err != nil {
+		return nil, err
+	}
+	return s.searchLexicalInternal(scopeID, query, limit)
+}
+
+func (s *KnowledgeService) searchLexicalInternal(scopeID string, query string, limit int) ([]knowledge.Page, error) {
 	if err := validateScopeID(scopeID); err != nil {
 		return nil, err
 	}
@@ -60,18 +88,25 @@ func (s *KnowledgeService) SearchLexical(scopeID string, query string, limit int
 	if err != nil {
 		return nil, err
 	}
-	return validateVisibleKnowledgePagesForService(s.store, pages)
+	return validateVisibleKnowledgePagesForService(s.store, scopeID, pages)
 }
 
 // SearchHybrid performs deterministic lexical+vector hybrid retrieval.
 func (s *KnowledgeService) SearchHybrid(scopeID string, query string, limit int) ([]knowledge.Page, error) {
+	if err := rejectDirectRuntimeKnowledgeBankScope(s.store, scopeID, "knowledge hybrid search"); err != nil {
+		return nil, err
+	}
+	return s.searchHybridInternal(scopeID, query, limit)
+}
+
+func (s *KnowledgeService) searchHybridInternal(scopeID string, query string, limit int) ([]knowledge.Page, error) {
 	if err := validateScopeID(scopeID); err != nil {
 		return nil, err
 	}
 	if err := validateQueryRequired("knowledge hybrid search", query); err != nil {
 		return nil, err
 	}
-	pages, err := s.List(scopeID)
+	pages, err := s.listInternal(scopeID)
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +133,7 @@ func (s *KnowledgeService) SearchHybrid(scopeID string, query string, limit int)
 	if err != nil {
 		return nil, err
 	}
-	lexicalHits, err = validateVisibleKnowledgePages(lexicalHits)
+	lexicalHits, err = validateVisibleKnowledgePagesForService(s.store, scopeID, lexicalHits)
 	if err != nil {
 		return nil, err
 	}
@@ -149,6 +184,13 @@ func (s *KnowledgeService) SearchHybrid(scopeID string, query string, limit int)
 }
 
 func (s *KnowledgeService) Delete(scopeID string, pageID knowledge.PageID) error {
+	if err := rejectDirectRuntimeKnowledgeBankScope(s.store, scopeID, "knowledge delete"); err != nil {
+		return err
+	}
+	return s.deleteInternal(scopeID, pageID)
+}
+
+func (s *KnowledgeService) deleteInternal(scopeID string, pageID knowledge.PageID) error {
 	if err := validateScopeID(scopeID); err != nil {
 		return err
 	}
@@ -172,6 +214,9 @@ func (s *KnowledgeService) Delete(scopeID string, pageID knowledge.PageID) error
 }
 
 func (s *KnowledgeService) History(scopeID string, pageID knowledge.PageID) ([]knowledge.HistoryEntry, error) {
+	if err := rejectDirectRuntimeKnowledgeBankScope(s.store, scopeID, "knowledge history"); err != nil {
+		return nil, err
+	}
 	if err := validateScopeID(scopeID); err != nil {
 		return nil, err
 	}
@@ -195,17 +240,24 @@ func (s *KnowledgeService) History(scopeID string, pageID knowledge.PageID) ([]k
 }
 
 func (s *KnowledgeService) PutRelation(rel knowledge.Relation) error {
+	if err := rejectDirectRuntimeKnowledgeBankScope(s.store, rel.ScopeID, "knowledge relation save"); err != nil {
+		return err
+	}
+	return s.putRelationInternal(rel)
+}
+
+func (s *KnowledgeService) putRelationInternal(rel knowledge.Relation) error {
 	if err := knowledge.ValidateRelation(rel); err != nil {
 		return fmt.Errorf("knowledge relation save: %w", err)
 	}
-	fromPage, err := s.Load(rel.ScopeID, rel.FromPageID)
+	fromPage, err := s.loadInternal(rel.ScopeID, rel.FromPageID)
 	if err != nil {
 		return err
 	}
 	if fromPage == nil {
 		return fmt.Errorf("knowledge relation save: source page %s does not exist", rel.FromPageID)
 	}
-	toPage, err := s.Load(rel.ScopeID, rel.ToPageID)
+	toPage, err := s.loadInternal(rel.ScopeID, rel.ToPageID)
 	if err != nil {
 		return err
 	}
@@ -234,6 +286,13 @@ func (s *KnowledgeService) PutRelation(rel knowledge.Relation) error {
 }
 
 func (s *KnowledgeService) DeleteRelation(scopeID string, fromPageID knowledge.PageID, toPageID knowledge.PageID, relationType string) error {
+	if err := rejectDirectRuntimeKnowledgeBankScope(s.store, scopeID, "knowledge relation delete"); err != nil {
+		return err
+	}
+	return s.deleteRelationInternal(scopeID, fromPageID, toPageID, relationType)
+}
+
+func (s *KnowledgeService) deleteRelationInternal(scopeID string, fromPageID knowledge.PageID, toPageID knowledge.PageID, relationType string) error {
 	if err := validateScopeID(scopeID); err != nil {
 		return err
 	}
@@ -243,7 +302,7 @@ func (s *KnowledgeService) DeleteRelation(scopeID string, fromPageID knowledge.P
 	if strings.TrimSpace(relationType) == "" {
 		return errors.New("knowledge relation delete: relation_type is required")
 	}
-	page, err := s.Load(scopeID, fromPageID)
+	page, err := s.loadInternal(scopeID, fromPageID)
 	if err != nil {
 		return err
 	}
@@ -268,13 +327,20 @@ func (s *KnowledgeService) DeleteRelation(scopeID string, fromPageID knowledge.P
 }
 
 func (s *KnowledgeService) ListRelations(scopeID string, pageID knowledge.PageID) ([]knowledge.Relation, error) {
+	if err := rejectDirectRuntimeKnowledgeBankScope(s.store, scopeID, "knowledge relation list"); err != nil {
+		return nil, err
+	}
+	return s.listRelationsInternal(scopeID, pageID)
+}
+
+func (s *KnowledgeService) listRelationsInternal(scopeID string, pageID knowledge.PageID) ([]knowledge.Relation, error) {
 	if err := validateScopeID(scopeID); err != nil {
 		return nil, err
 	}
 	if strings.TrimSpace(string(pageID)) == "" {
 		return nil, errors.New("knowledge list relations: page_id is required")
 	}
-	page, err := s.Load(scopeID, pageID)
+	page, err := s.loadInternal(scopeID, pageID)
 	if err != nil {
 		return nil, err
 	}
@@ -285,6 +351,13 @@ func (s *KnowledgeService) ListRelations(scopeID string, pageID knowledge.PageID
 }
 
 func (s *KnowledgeService) ListBacklinks(scopeID string, pageID knowledge.PageID) ([]knowledge.Relation, error) {
+	if err := rejectDirectRuntimeKnowledgeBankScope(s.store, scopeID, "knowledge backlink list"); err != nil {
+		return nil, err
+	}
+	return s.listBacklinksInternal(scopeID, pageID)
+}
+
+func (s *KnowledgeService) listBacklinksInternal(scopeID string, pageID knowledge.PageID) ([]knowledge.Relation, error) {
 	if err := validateScopeID(scopeID); err != nil {
 		return nil, err
 	}
@@ -302,6 +375,13 @@ func (s *KnowledgeService) ListBacklinks(scopeID string, pageID knowledge.PageID
 }
 
 func (s *KnowledgeService) Traverse(scopeID string, rootPageID knowledge.PageID, depth int) ([]knowledge.TraversalHit, error) {
+	if err := rejectDirectRuntimeKnowledgeBankScope(s.store, scopeID, "knowledge traverse"); err != nil {
+		return nil, err
+	}
+	return s.traverseInternal(scopeID, rootPageID, depth)
+}
+
+func (s *KnowledgeService) traverseInternal(scopeID string, rootPageID knowledge.PageID, depth int) ([]knowledge.TraversalHit, error) {
 	if err := validateScopeID(scopeID); err != nil {
 		return nil, err
 	}
@@ -311,7 +391,7 @@ func (s *KnowledgeService) Traverse(scopeID string, rootPageID knowledge.PageID,
 	if depth <= 0 {
 		return nil, errors.New("knowledge traverse: depth must be > 0")
 	}
-	root, err := s.Load(scopeID, rootPageID)
+	root, err := s.loadInternal(scopeID, rootPageID)
 	if err != nil {
 		return nil, err
 	}
@@ -343,7 +423,7 @@ func (s *KnowledgeService) Traverse(scopeID string, rootPageID knowledge.PageID,
 		if current.depth >= depth {
 			continue
 		}
-		rels, err := s.ListRelations(scopeID, current.pageID)
+		rels, err := s.listRelationsInternal(scopeID, current.pageID)
 		if err != nil {
 			return nil, err
 		}
@@ -366,6 +446,13 @@ func (s *KnowledgeService) Traverse(scopeID string, rootPageID knowledge.PageID,
 }
 
 func (s *KnowledgeService) IngestDocument(scopeID string, env knowledge.IngestEnvelope) (*knowledge.IngestTask, error) {
+	if err := rejectDirectRuntimeKnowledgeBankScope(s.store, scopeID, "knowledge ingest"); err != nil {
+		return nil, err
+	}
+	return s.ingestDocumentInternal(scopeID, env)
+}
+
+func (s *KnowledgeService) ingestDocumentInternal(scopeID string, env knowledge.IngestEnvelope) (*knowledge.IngestTask, error) {
 	if err := validateScopeID(scopeID); err != nil {
 		return nil, err
 	}
@@ -394,6 +481,13 @@ func (s *KnowledgeService) IngestDocument(scopeID string, env knowledge.IngestEn
 }
 
 func (s *KnowledgeService) GetIngestTask(scopeID string, taskID string) (*knowledge.IngestTask, error) {
+	if err := rejectDirectRuntimeKnowledgeBankScope(s.store, scopeID, "knowledge get ingest task"); err != nil {
+		return nil, err
+	}
+	return s.getIngestTaskInternal(scopeID, taskID)
+}
+
+func (s *KnowledgeService) getIngestTaskInternal(scopeID string, taskID string) (*knowledge.IngestTask, error) {
 	if err := validateScopeID(scopeID); err != nil {
 		return nil, err
 	}
@@ -411,10 +505,13 @@ func (s *KnowledgeService) GetIngestTask(scopeID string, taskID string) (*knowle
 }
 
 func (s *KnowledgeService) ListIDs(scopeID string) ([]string, error) {
+	if err := rejectDirectRuntimeKnowledgeBankScope(s.store, scopeID, "knowledge list ids"); err != nil {
+		return nil, err
+	}
 	if err := validateScopeID(scopeID); err != nil {
 		return nil, err
 	}
-	pages, err := s.List(scopeID)
+	pages, err := s.listInternal(scopeID)
 	if err != nil {
 		return nil, err
 	}
@@ -547,6 +644,7 @@ func (s *KnowledgeService) runIngestTask(task knowledge.IngestTask, env knowledg
 		Version:   1,
 		Title:     env.Title,
 		Body:      env.Body,
+		AppWrite:  env.AppWrite,
 		Lifecycle: knowledge.ProjectionLifecycleActive,
 		CreatedAt: now,
 		UpdatedAt: now,

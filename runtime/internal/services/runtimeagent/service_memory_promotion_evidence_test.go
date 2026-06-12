@@ -52,7 +52,7 @@ func TestWriteAgentMemoryAcceptsCompletePromotionEvidence(t *testing.T) {
 	resp, err := svc.WriteAgentMemory(ctx, &runtimev1.WriteAgentMemoryRequest{
 		Context:    testRuntimeAgentIdentityContext("agent-promotion-complete"),
 		AgentId:    "agent-promotion-complete",
-		Candidates: []*runtimev1.CanonicalMemoryCandidate{promotionEvidenceTestCandidate("agent-promotion-complete", completePromotionEvidence(t))},
+		Candidates: []*runtimev1.CanonicalMemoryCandidate{promotionEvidenceTestCandidate("agent-promotion-complete", completePromotionEvidence(t, svc))},
 	})
 	if err != nil {
 		t.Fatalf("WriteAgentMemory: %v", err)
@@ -72,7 +72,7 @@ func TestWriteAgentMemoryAcceptsCanonicalAgentChatPromotionEvidence(t *testing.T
 		t.Fatalf("InitializeAgent: %v", err)
 	}
 
-	evidence := completePromotionEvidenceWithSourceProfile(t, "canonical_agent_chat")
+	evidence := completePromotionEvidenceWithSourceProfile(t, svc, "canonical_agent_chat")
 	resp, err := svc.WriteAgentMemory(ctx, &runtimev1.WriteAgentMemoryRequest{
 		Context:    testRuntimeAgentIdentityContext("agent-promotion-canonical-chat"),
 		AgentId:    "agent-promotion-canonical-chat",
@@ -111,25 +111,30 @@ func promotionEvidenceTestCandidate(agentID string, evidence *structpb.Struct) *
 	}
 }
 
-func completePromotionEvidence(t *testing.T) *structpb.Struct {
-	return completePromotionEvidenceWithSourceProfile(t, "scenario_sandbox")
+func completePromotionEvidence(t *testing.T, svc *Service) *structpb.Struct {
+	return completePromotionEvidenceWithSourceProfile(t, svc, "scenario_sandbox")
 }
 
-func completePromotionEvidenceWithSourceProfile(t *testing.T, sourceProfile string) *structpb.Struct {
+func completePromotionEvidenceWithSourceProfile(t *testing.T, svc *Service, sourceProfile string) *structpb.Struct {
 	t.Helper()
+	ref := "runtime://memory-promotion-evidence/" + strings.NewReplacer("/", "-", " ", "-", ":", "-").Replace(t.Name()) + "/" + sourceProfile
+	svc.registerRuntimeMemoryPromotionEvidence(runtimeMemoryPromotionEvidence{
+		PromotionEvidenceRef:           ref,
+		ParticipationID:                ref + "/participation",
+		SourceProfile:                  sourceProfile,
+		OutputCandidateRef:             ref + "/output",
+		AuditID:                        ref + "/audit",
+		ProvenanceRef:                  ref + "/provenance",
+		PolicyVerdictRef:               ref + "/policy",
+		MemoryReadVerdict:              "PASS",
+		MemoryWriteVerdict:             "PASS",
+		CapabilityScopeVerdict:         "PASS",
+		TargetOwnerAuthorizationRef:    ref + "/target-owner-authorization",
+		ExplicitUserOrManagerIntentRef: ref + "/explicit-intent",
+	})
 	out, err := structpb.NewStruct(map[string]any{
-		"promotion_target_id":                 "RUNTIME_MEMORY_OR_COGNITION",
-		"participation_id":                    "participation-1",
-		"source_profile":                      sourceProfile,
-		"output_candidate_ref":                "candidate-1",
-		"audit_id":                            "audit-1",
-		"provenance_ref":                      "provenance-1",
-		"policy_verdict_ref":                  "policy-verdict-1",
-		"memory_read_verdict":                 "PASS",
-		"memory_write_verdict":                "PASS",
-		"capability_scope_verdict":            "PASS",
-		"target_owner_authorization_ref":      "target-owner-authorization-1",
-		"explicit_user_or_manager_intent_ref": "manager-intent-1",
+		"promotion_target_id":    "RUNTIME_MEMORY_OR_COGNITION",
+		"promotion_evidence_ref": ref,
 	})
 	if err != nil {
 		t.Fatalf("structpb.NewStruct: %v", err)

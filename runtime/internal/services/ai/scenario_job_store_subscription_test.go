@@ -114,7 +114,7 @@ func TestScenarioJobStoreDetachedVideoJobRemainsQueryableDuringLongPoll(t *testi
 func TestScenarioJobStoreVoiceFallbackPaths(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		CloudProviders: map[string]nimillm.ProviderCredentials{
-			"dashscope": {BaseURL: "http://example.com", APIKey: "test-key"},
+			"dashscope": {BaseURL: "https://example.com", APIKey: "test-key"},
 		},
 	})
 	ctx := scenarioJobContext("nimi.desktop")

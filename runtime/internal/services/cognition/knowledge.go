@@ -30,7 +30,8 @@ func (s *Service) CreateKnowledgeBank(ctx context.Context, req *runtimev1.Create
 		DisplayName: strings.TrimSpace(req.GetDisplayName()),
 		Metadata:    structToMap(req.GetMetadata()),
 	}
-	scope, err := s.cognitionCore.KnowledgeScopeRegistry().CreateKnowledgeScope(ctx, desc)
+	access := appAccessForAuthorizedKnowledge(ctx, KnowledgeActionCreateBank, req.GetContext(), cognitionpkg.KnowledgeScope{Owner: owner}, "runtime create knowledge bank")
+	scope, err := s.cognitionCore.AppMemoryAccessService().CreateKnowledgeScope(ctx, access, desc)
 	if err != nil {
 		if errors.Is(err, cognitionpkg.ErrScopeOwnerConflict) {
 			return nil, grpcerr.WithReasonCode(codes.AlreadyExists, runtimev1.ReasonCode_KNOWLEDGE_BANK_ALREADY_EXISTS)
@@ -67,7 +68,7 @@ func (s *Service) ListKnowledgeBanks(ctx context.Context, req *runtimev1.ListKno
 		if err := s.authorize(ctx, KnowledgeActionReadBank, req.GetContext(), owner); err != nil {
 			return nil, err
 		}
-		filter := s.buildScopeFilterFromList(req)
+		filter := s.buildScopeFilterFromList(ctx, req)
 		scopes, nextToken, err := s.cognitionCore.KnowledgeScopeRegistry().ListKnowledgeScopes(ctx, filter)
 		if err != nil {
 			return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE)
@@ -81,8 +82,9 @@ func (s *Service) ListKnowledgeBanks(ctx context.Context, req *runtimev1.ListKno
 		}
 		return &runtimev1.ListKnowledgeBanksResponse{Banks: banks, NextPageToken: nextToken}, nil
 	}
-	filter := s.buildScopeFilterFromList(req)
-	scopes, nextToken, err := s.cognitionCore.KnowledgeScopeRegistry().ListKnowledgeScopes(ctx, filter)
+	filter := s.buildScopeFilterFromList(ctx, req)
+	access := appAccessForAuthorizedKnowledge(ctx, KnowledgeActionReadBank, req.GetContext(), cognitionpkg.KnowledgeScope{Owner: cognitionpkg.KnowledgeScopeOwner{Kind: cognitionpkg.KnowledgeScopeOwnerKindAppPrivate, AppID: callerAppIDFromEnvelope(ctx)}}, "runtime list knowledge banks")
+	scopes, nextToken, err := s.cognitionCore.AppMemoryAccessService().ListKnowledgeScopes(ctx, access, filter)
 	if err != nil {
 		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE)
 	}
@@ -103,10 +105,12 @@ func (s *Service) DeleteKnowledgeBank(ctx context.Context, req *runtimev1.Delete
 	if err := validateKnowledgeContext(req.GetContext()); err != nil {
 		return nil, err
 	}
-	if _, err := s.loadAuthorizedScope(ctx, req.GetContext(), req.GetBankId(), KnowledgeActionDeleteBank); err != nil {
+	scope, err := s.loadAuthorizedScope(ctx, req.GetContext(), req.GetBankId(), KnowledgeActionDeleteBank)
+	if err != nil {
 		return nil, err
 	}
-	if err := s.cognitionCore.KnowledgeScopeRegistry().DeleteKnowledgeScope(ctx, strings.TrimSpace(req.GetBankId())); err != nil {
+	access := appAccessForAuthorizedKnowledge(ctx, KnowledgeActionDeleteBank, req.GetContext(), scope, "runtime delete knowledge bank")
+	if err := s.cognitionCore.AppMemoryAccessService().DeleteKnowledgeScope(ctx, access, strings.TrimSpace(req.GetBankId())); err != nil {
 		if errors.Is(err, cognitionpkg.ErrScopeNotFound) {
 			return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_KNOWLEDGE_BANK_NOT_FOUND)
 		}

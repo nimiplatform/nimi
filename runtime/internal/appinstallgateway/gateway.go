@@ -363,6 +363,9 @@ func (g *Gateway) materializeRelease(ctx context.Context, descriptor appreleasec
 			return InstalledApp{}, err
 		}
 		observer.ArtifactVerified(artifact)
+		if g.evidenceWriter == nil {
+			return InstalledApp{}, ErrEvidenceWriterRequired
+		}
 		observer.Phase(InstallPhaseMaterialize)
 		plan, err := g.planAndMaterialize(ctx, descriptor)
 		if err != nil {
@@ -387,6 +390,9 @@ func (g *Gateway) materializeRelease(ctx context.Context, descriptor appreleasec
 			return InstalledApp{}, err
 		}
 		observer.ArtifactVerified(artifact)
+		if g.evidenceWriter == nil {
+			return InstalledApp{}, ErrEvidenceWriterRequired
+		}
 		observer.Phase(InstallPhaseMaterialize)
 		plan, err := g.planAndMaterialize(ctx, descriptor)
 		if err != nil {

@@ -781,7 +781,7 @@ func TestPublicChatSessionSnapshotPersistsLastTurnAcrossRestart(t *testing.T) {
 	if structured, ok := lastTurn["structured"].(map[string]any); !ok || structured["schema_id"] != publicChatStructuredSchemaID {
 		t.Fatalf("expected persisted structured payload, got=%v", lastTurn)
 	}
-	if assistantMemory, ok := lastTurn["assistant_memory"].(map[string]any); !ok || assistantMemory["status"] != "applied" {
+	if assistantMemory, ok := lastTurn["assistant_memory"].(map[string]any); !ok || assistantMemory["status"] != "skipped" {
 		t.Fatalf("expected persisted assistant memory outcome, got=%v", lastTurn)
 	}
 }

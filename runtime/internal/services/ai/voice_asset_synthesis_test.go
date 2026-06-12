@@ -40,20 +40,27 @@ func TestLocalQwenVoiceAssetCreateUseDeleteLifecycle(t *testing.T) {
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{AllowLoopbackEndpoint: true})
 	svc.SetLocalProviderEndpoint("speech", server.URL+"/v1", "")
-	svc.localModel = &fakeLocalModelLister{responses: repeatedLocalAssetResponses(&runtimev1.LocalAssetRecord{
+	svc.localModel = &fakeLocalModelLister{responses: repeatedLocalAssetResponses(12, &runtimev1.LocalAssetRecord{
 		LocalAssetId: "local-qwen3-tts-001",
 		AssetId:      "speech/qwen3tts",
 		Engine:       "speech",
-		Capabilities: []string{"audio.synthesize", "voice_workflow.voice_clone", "voice_workflow.voice_design"},
+		Capabilities: []string{"audio.synthesize"},
 		Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
 		Endpoint:     server.URL + "/v1",
-	}, 12)}
+	}, &runtimev1.LocalAssetRecord{
+		LocalAssetId: "local-qwen3-tts-base-001",
+		AssetId:      "speech/qwen3tts-base",
+		Engine:       "speech",
+		Capabilities: []string{"audio.synthesize", "voice_workflow.voice_clone"},
+		Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+		Endpoint:     server.URL + "/v1",
+	})}
 
 	submitResp, err := svc.SubmitScenarioJob(context.Background(), &runtimev1.SubmitScenarioJobRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			ModelId:       "speech/qwen3tts",
+			ModelId:       "speech/qwen3tts-base",
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     30_000,
@@ -63,7 +70,7 @@ func TestLocalQwenVoiceAssetCreateUseDeleteLifecycle(t *testing.T) {
 		Spec: &runtimev1.ScenarioSpec{
 			Spec: &runtimev1.ScenarioSpec_VoiceClone{
 				VoiceClone: &runtimev1.VoiceCloneScenarioSpec{
-					TargetModelId: "speech/qwen3tts",
+					TargetModelId: "speech/qwen3tts-base",
 					Input: &runtimev1.VoiceV2VInput{
 						ReferenceAudioBytes: []byte{0x01},
 						ReferenceAudioMime:  "audio/wav",
@@ -81,7 +88,8 @@ func TestLocalQwenVoiceAssetCreateUseDeleteLifecycle(t *testing.T) {
 		t.Fatalf("voice workflow job status=%v reason=%v detail=%q", job.GetStatus(), job.GetReasonCode(), job.GetReasonDetail())
 	}
 	assetID := strings.TrimSpace(submitResp.GetAsset().GetVoiceAssetId())
-	stored, err := svc.GetVoiceAsset(context.Background(), &runtimev1.GetVoiceAssetRequest{VoiceAssetId: assetID})
+	ownerCtx := scenarioJobUserContext(submitResp.GetAsset().GetAppId(), submitResp.GetAsset().GetSubjectUserId())
+	stored, err := svc.GetVoiceAsset(ownerCtx, &runtimev1.GetVoiceAssetRequest{VoiceAssetId: assetID})
 	if err != nil {
 		t.Fatalf("GetVoiceAsset(local qwen3): %v", err)
 	}
@@ -93,7 +101,7 @@ func TestLocalQwenVoiceAssetCreateUseDeleteLifecycle(t *testing.T) {
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			ModelId:       "speech/qwen3tts",
+			ModelId:       "speech/qwen3tts-base",
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     30_000,
@@ -134,7 +142,7 @@ func TestLocalQwenVoiceAssetCreateUseDeleteLifecycle(t *testing.T) {
 		t.Fatalf("expected one speech synth artifact, got %d", len(artifactsResp.GetArtifacts()))
 	}
 
-	deleteResp, err := svc.DeleteVoiceAsset(context.Background(), &runtimev1.DeleteVoiceAssetRequest{VoiceAssetId: assetID})
+	deleteResp, err := svc.DeleteVoiceAsset(ownerCtx, &runtimev1.DeleteVoiceAssetRequest{VoiceAssetId: assetID})
 	if err != nil {
 		t.Fatalf("DeleteVoiceAsset(local qwen3): %v", err)
 	}
@@ -146,7 +154,7 @@ func TestLocalQwenVoiceAssetCreateUseDeleteLifecycle(t *testing.T) {
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			ModelId:       "speech/qwen3tts",
+			ModelId:       "speech/qwen3tts-base",
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     30_000,
@@ -179,11 +187,11 @@ func TestLocalQwenVoiceAssetCreateUseDeleteLifecycle(t *testing.T) {
 	}
 }
 
-func repeatedLocalAssetResponses(asset *runtimev1.LocalAssetRecord, n int) []*runtimev1.ListLocalAssetsResponse {
+func repeatedLocalAssetResponses(n int, assets ...*runtimev1.LocalAssetRecord) []*runtimev1.ListLocalAssetsResponse {
 	responses := make([]*runtimev1.ListLocalAssetsResponse, 0, n)
 	for i := 0; i < n; i++ {
 		responses = append(responses, &runtimev1.ListLocalAssetsResponse{
-			Assets: []*runtimev1.LocalAssetRecord{asset},
+			Assets: assets,
 		})
 	}
 	return responses

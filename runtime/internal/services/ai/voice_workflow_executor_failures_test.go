@@ -294,8 +294,8 @@ func TestSubmitScenarioJobLocalQwenWorkflowReturnsAssetWithHandlePolicyMetadata(
 	svc.SetLocalProviderEndpoint("speech", server.URL+"/v1", "")
 	svc.localModel = &fakeLocalModelLister{responses: []*runtimev1.ListLocalAssetsResponse{{
 		Assets: []*runtimev1.LocalAssetRecord{{
-			LocalAssetId: "local-qwen3-tts-001",
-			AssetId:      "speech/qwen3tts",
+			LocalAssetId: "local-qwen3-tts-base-001",
+			AssetId:      "speech/qwen3tts-base",
 			Engine:       "speech",
 			Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
 			Endpoint:     server.URL + "/v1",
@@ -306,7 +306,7 @@ func TestSubmitScenarioJobLocalQwenWorkflowReturnsAssetWithHandlePolicyMetadata(
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			ModelId:       "speech/qwen3tts",
+			ModelId:       "speech/qwen3tts-base",
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		},
@@ -315,7 +315,7 @@ func TestSubmitScenarioJobLocalQwenWorkflowReturnsAssetWithHandlePolicyMetadata(
 		Spec: &runtimev1.ScenarioSpec{
 			Spec: &runtimev1.ScenarioSpec_VoiceClone{
 				VoiceClone: &runtimev1.VoiceCloneScenarioSpec{
-					TargetModelId: "speech/qwen3tts",
+					TargetModelId: "speech/qwen3tts-base",
 					Input: &runtimev1.VoiceV2VInput{
 						ReferenceAudioBytes: []byte("voice-audio"),
 						ReferenceAudioMime:  "audio/wav",
@@ -349,14 +349,14 @@ func TestSubmitScenarioJobLocalQwenWorkflowReturnsAssetWithHandlePolicyMetadata(
 func TestExecuteVoiceWorkflowJobLocalQwenFailCloseUsesFamilySpecificDetail(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	req := voiceCloneRequest()
-	req.Head.ModelId = "speech/qwen3tts"
+	req.Head.ModelId = "speech/qwen3tts-base"
 	req.Head.RoutePolicy = runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL
-	req.Spec.GetVoiceClone().TargetModelId = "speech/qwen3tts"
+	req.Spec.GetVoiceClone().TargetModelId = "speech/qwen3tts-base"
 	req.Spec.GetVoiceClone().Input.ReferenceAudioBytes = []byte("voice-audio")
 	req.Spec.GetVoiceClone().Input.ReferenceAudioMime = "audio/wav"
 	req.Spec.GetVoiceClone().Input.ReferenceAudioUri = ""
 
-	resolution, err := svc.resolveVoiceWorkflow(context.Background(), "local", "speech/qwen3tts", "voice_clone")
+	resolution, err := svc.resolveVoiceWorkflow(context.Background(), "local", "speech/qwen3tts-base", "voice_clone")
 	if err != nil {
 		t.Fatalf("resolveVoiceWorkflow(local qwen3): %v", err)
 	}
@@ -364,7 +364,7 @@ func TestExecuteVoiceWorkflowJobLocalQwenFailCloseUsesFamilySpecificDetail(t *te
 		Head:              req.GetHead(),
 		ScenarioType:      req.GetScenarioType(),
 		Spec:              req.GetSpec(),
-		ModelResolved:     "speech/qwen3tts",
+		ModelResolved:     "speech/qwen3tts-base",
 		Provider:          "local",
 		WorkflowModelID:   resolution.WorkflowModelID,
 		WorkflowFamily:    resolution.WorkflowFamily,
@@ -419,7 +419,7 @@ func TestExecuteVoiceWorkflowJobLocalQwenSucceedsViaSpeechHost(t *testing.T) {
 		if err := json.Unmarshal(body, &payload); err != nil {
 			t.Fatalf("unmarshal body: %v", err)
 		}
-		if got := strings.TrimSpace(nimillm.ValueAsString(payload["target_model_id"])); got != "speech/qwen3tts" {
+		if got := strings.TrimSpace(nimillm.ValueAsString(payload["target_model_id"])); got != "speech/qwen3tts-base" {
 			t.Fatalf("unexpected target_model_id: %q", got)
 		}
 		input, ok := payload["input"].(map[string]any)
@@ -436,14 +436,14 @@ func TestExecuteVoiceWorkflowJobLocalQwenSucceedsViaSpeechHost(t *testing.T) {
 
 	svc.SetLocalProviderEndpoint("speech", server.URL+"/v1", "")
 	req := voiceCloneRequest()
-	req.Head.ModelId = "speech/qwen3tts"
+	req.Head.ModelId = "speech/qwen3tts-base"
 	req.Head.RoutePolicy = runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL
-	req.Spec.GetVoiceClone().TargetModelId = "speech/qwen3tts"
+	req.Spec.GetVoiceClone().TargetModelId = "speech/qwen3tts-base"
 	req.Spec.GetVoiceClone().Input.ReferenceAudioBytes = []byte("voice-audio")
 	req.Spec.GetVoiceClone().Input.ReferenceAudioMime = "audio/wav"
 	req.Spec.GetVoiceClone().Input.ReferenceAudioUri = ""
 
-	resolution, err := svc.resolveVoiceWorkflow(context.Background(), "local", "speech/qwen3tts", "voice_clone")
+	resolution, err := svc.resolveVoiceWorkflow(context.Background(), "local", "speech/qwen3tts-base", "voice_clone")
 	if err != nil {
 		t.Fatalf("resolveVoiceWorkflow(local qwen3): %v", err)
 	}
@@ -451,7 +451,7 @@ func TestExecuteVoiceWorkflowJobLocalQwenSucceedsViaSpeechHost(t *testing.T) {
 		Head:              req.GetHead(),
 		ScenarioType:      req.GetScenarioType(),
 		Spec:              req.GetSpec(),
-		ModelResolved:     "speech/qwen3tts",
+		ModelResolved:     "speech/qwen3tts-base",
 		Provider:          "local",
 		WorkflowModelID:   resolution.WorkflowModelID,
 		WorkflowFamily:    resolution.WorkflowFamily,

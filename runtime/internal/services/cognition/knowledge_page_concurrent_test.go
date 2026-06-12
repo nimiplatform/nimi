@@ -1,7 +1,6 @@
 package cognition
 
 import (
-	"context"
 	"sync"
 	"testing"
 
@@ -18,7 +17,7 @@ import (
 func TestPutPageConcurrentSameSlugConvergesOrConflicts(t *testing.T) {
 	svc, _, cleanup := newTestService(t)
 	defer cleanup()
-	ctx := context.Background()
+	ctx := testKnowledgeEnvelopeContext("app.s2-19")
 	reqCtx := &runtimev1.KnowledgeRequestContext{AppId: "app.s2-19"}
 	bankID := newAppPrivateBank(t, svc, "app.s2-19", "S2.19 Bank")
 

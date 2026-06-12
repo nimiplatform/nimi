@@ -232,10 +232,11 @@ func TestRuntimeAgentApplyChatTrackSidecarCancelsHooksAddsFollowUpAndWritesMemor
 	}
 
 	queryResp, err := svc.QueryAgentMemory(ctx, &runtimev1.QueryAgentMemoryRequest{
-		Context: testRuntimeAgentIdentityContext("agent-chat-sidecar-combined"),
-		AgentId: "agent-chat-sidecar-combined",
-		Query:   "chat sidecar memory",
-		Limit:   5,
+		Context:          testRuntimeAgentIdentityContext("agent-chat-sidecar-combined"),
+		AgentId:          "agent-chat-sidecar-combined",
+		Query:            "chat sidecar memory",
+		Limit:            5,
+		CanonicalClasses: []runtimev1.MemoryCanonicalClass{runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_PUBLIC_SHARED},
 	})
 	if err != nil {
 		t.Fatalf("QueryAgentMemory: %v", err)
@@ -324,10 +325,11 @@ func TestRuntimeAgentExecuteChatTrackSidecarWithAIBackedExecutorAppliesOutputs(t
 	}
 
 	queryResp, err := svc.QueryAgentMemory(ctx, &runtimev1.QueryAgentMemoryRequest{
-		Context: testRuntimeAgentIdentityContext("agent-chat-exec"),
-		AgentId: "agent-chat-exec",
-		Query:   "wave 6 posture patch",
-		Limit:   5,
+		Context:          testRuntimeAgentIdentityContext("agent-chat-exec"),
+		AgentId:          "agent-chat-exec",
+		Query:            "wave 6 posture patch",
+		Limit:            5,
+		CanonicalClasses: []runtimev1.MemoryCanonicalClass{runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_PUBLIC_SHARED},
 	})
 	if err != nil {
 		t.Fatalf("QueryAgentMemory: %v", err)
@@ -638,10 +640,11 @@ func TestRuntimeAgentApplyChatTrackSidecarRejectsSameBatchSemanticContradiction(
 	}
 
 	queryResp, queryErr := svc.QueryAgentMemory(ctx, &runtimev1.QueryAgentMemoryRequest{
-		Context: testRuntimeAgentIdentityContext("agent-chat-sidecar-contradiction"),
-		AgentId: "agent-chat-sidecar-contradiction",
-		Query:   "likes",
-		Limit:   5,
+		Context:          testRuntimeAgentIdentityContext("agent-chat-sidecar-contradiction"),
+		AgentId:          "agent-chat-sidecar-contradiction",
+		Query:            "likes",
+		Limit:            5,
+		CanonicalClasses: []runtimev1.MemoryCanonicalClass{runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_PUBLIC_SHARED},
 	})
 	if queryErr != nil {
 		t.Fatalf("QueryAgentMemory: %v", queryErr)

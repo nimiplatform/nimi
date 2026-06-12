@@ -4,20 +4,23 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"sort"
+	"strings"
 	"testing"
 
-	"github.com/nimiplatform/nimi/runtime/internal/providerregistry"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
 func TestNormalizeTokenProviderIDCanonicalOnly(t *testing.T) {
 	validCases := map[string]string{"": "nimillm"}
-	for _, providerID := range providerregistry.RemoteProviders {
+	for providerID := range admittedTokenProbeProviders {
 		validCases[providerID] = providerID
 	}
 	validCases["cloud-dashscope"] = "dashscope"
-	validCases["cloud_openai_compatible"] = "openai_compatible"
+	validCases["cloud-volcengine-openspeech"] = "volcengine_openspeech"
 	for raw, want := range validCases {
 		got, err := NormalizeTokenProviderID(raw)
 		if err != nil {
@@ -36,6 +39,7 @@ func TestNormalizeTokenProviderIDCanonicalOnly(t *testing.T) {
 		"moonshot",
 		"zhipu",
 		"bigmodel",
+		"anthropic",
 		"cloudnimillm",
 		"cloudbytedance",
 		"cloudalibaba",
@@ -49,6 +53,61 @@ func TestNormalizeTokenProviderIDCanonicalOnly(t *testing.T) {
 			t.Fatalf("NormalizeTokenProviderID(%q) error code mismatch: got=%v want=%v", raw, status.Code(err), codes.InvalidArgument)
 		}
 	}
+}
+
+func TestAdmittedTokenProbeProvidersMatchAuthorityTable(t *testing.T) {
+	raw, err := os.ReadFile(filepath.Join("..", "..", "..", ".nimi", "spec", "runtime", "kernel", "tables", "provider-probe-targets.yaml"))
+	if err != nil {
+		t.Fatalf("read provider probe target authority: %v", err)
+	}
+	want := map[string]struct{}{}
+	var currentName string
+	var currentCategory string
+	flush := func() {
+		if currentCategory == "cloud" && strings.HasPrefix(currentName, "cloud-") {
+			providerID := strings.ReplaceAll(strings.TrimPrefix(currentName, "cloud-"), "-", "_")
+			want[providerID] = struct{}{}
+		}
+		currentName = ""
+		currentCategory = ""
+	}
+	for _, line := range strings.Split(string(raw), "\n") {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "- name: ") {
+			flush()
+			currentName = strings.TrimSpace(strings.TrimPrefix(trimmed, "- name: "))
+			continue
+		}
+		if strings.HasPrefix(trimmed, "category: ") {
+			currentCategory = strings.TrimSpace(strings.TrimPrefix(trimmed, "category: "))
+			continue
+		}
+	}
+	flush()
+	if !sameStringSet(admittedTokenProbeProviders, want) {
+		t.Fatalf("admitted token probe providers do not match provider-probe-target authority: got=%v want=%v", sortedSetKeys(admittedTokenProbeProviders), sortedSetKeys(want))
+	}
+}
+
+func sameStringSet(got map[string]struct{}, want map[string]struct{}) bool {
+	if len(got) != len(want) {
+		return false
+	}
+	for key := range got {
+		if _, ok := want[key]; !ok {
+			return false
+		}
+	}
+	return true
+}
+
+func sortedSetKeys(values map[string]struct{}) []string {
+	keys := make([]string, 0, len(values))
+	for key := range values {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	return keys
 }
 
 func TestBackendProbeConnectorAndListModelsUseAnthropicAPI(t *testing.T) {

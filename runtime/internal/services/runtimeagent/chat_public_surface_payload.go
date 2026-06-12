@@ -75,6 +75,9 @@ func decodePublicChatTurnRequestPayload(payload any) (publicChatTurnRequestPaylo
 	if strings.TrimSpace(decoded.AgentID) != "" {
 		return publicChatTurnRequestPayload{}, status.Error(codes.InvalidArgument, "public chat turn payload must use local_agent_ref, not agent_id")
 	}
+	if strings.TrimSpace(decoded.SystemPrompt) != "" {
+		return publicChatTurnRequestPayload{}, status.Error(codes.InvalidArgument, "public chat turn payload must not include system_prompt")
+	}
 	if _, err := validateLocalAgentIdentity(decoded.OwnerUserID, decoded.RealmAgentID, decoded.LocalAgentRef); err != nil {
 		return publicChatTurnRequestPayload{}, err
 	}

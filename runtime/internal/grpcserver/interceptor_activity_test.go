@@ -7,7 +7,45 @@ import (
 	"time"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
+
+func TestActivityInterceptorFailsClosedWithoutRegistry(t *testing.T) {
+	unaryCalled := false
+	_, err := newUnaryActivityInterceptor(nil)(
+		context.Background(),
+		struct{}{},
+		&grpc.UnaryServerInfo{FullMethod: "/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth"},
+		func(ctx context.Context, req any) (any, error) {
+			unaryCalled = true
+			return struct{}{}, nil
+		},
+	)
+	if status.Code(err) != codes.Internal {
+		t.Fatalf("expected Internal for missing unary registry, got %v", err)
+	}
+	if unaryCalled {
+		t.Fatal("unary handler ran without active RPC registry")
+	}
+
+	streamCalled := false
+	err = newStreamActivityInterceptor(nil)(
+		struct{}{},
+		&recordingServerStream{ctx: context.Background()},
+		&grpc.StreamServerInfo{FullMethod: "/grpc.health.v1.Health/Watch", IsServerStream: true},
+		func(_ any, _ grpc.ServerStream) error {
+			streamCalled = true
+			return nil
+		},
+	)
+	if status.Code(err) != codes.Internal {
+		t.Fatalf("expected Internal for missing stream registry, got %v", err)
+	}
+	if streamCalled {
+		t.Fatal("stream handler ran without active RPC registry")
+	}
+}
 
 func TestStreamActivityInterceptorCancelsHealthWatchOnShutdown(t *testing.T) {
 	registry := newActiveRPCRegistry(nil)

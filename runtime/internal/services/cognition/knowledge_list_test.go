@@ -1,7 +1,6 @@
 package cognition
 
 import (
-	"context"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -12,7 +11,7 @@ import (
 func TestListKnowledgeBanksAuthFilter(t *testing.T) {
 	svc, _, cleanup := newTestService(t)
 	defer cleanup()
-	ctx := context.Background()
+	ctx := testKnowledgeEnvelopeContext("app.s2-6")
 
 	for _, name := range []string{"Bank A", "Bank B", "Bank C"} {
 		newAppPrivateBank(t, svc, "app.s2-6", name)

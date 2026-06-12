@@ -159,6 +159,13 @@ func (s *Service) recallAdmitted(ctx context.Context, req *runtimev1.RecallReque
 }
 
 func (s *Service) History(ctx context.Context, req *runtimev1.HistoryRequest) (*runtimev1.HistoryResponse, error) {
+	if result := s.apmemAuthorizer.AuthorizeMemoryRead(ctx, appMemoryReadRequestFromWire(req.GetContext())); result.Decision != AppMemoryAuthAllow {
+		return nil, status.Error(codes.PermissionDenied, result.Reason)
+	}
+	return s.historyAdmitted(ctx, req)
+}
+
+func (s *Service) historyAdmitted(ctx context.Context, req *runtimev1.HistoryRequest) (*runtimev1.HistoryResponse, error) {
 	if err := validatePublicRuntimeMemoryLocator(req.GetBank()); err != nil {
 		return nil, err
 	}
@@ -206,6 +213,13 @@ func (s *Service) History(ctx context.Context, req *runtimev1.HistoryRequest) (*
 }
 
 func (s *Service) DeleteMemory(ctx context.Context, req *runtimev1.DeleteMemoryRequest) (*runtimev1.DeleteMemoryResponse, error) {
+	if result := s.apmemAuthorizer.AuthorizeMemoryWrite(ctx, appMemoryWriteRequestFromWire(req.GetContext())); result.Decision != AppMemoryAuthAllow {
+		return nil, status.Error(codes.PermissionDenied, result.Reason)
+	}
+	return s.deleteMemoryAdmitted(ctx, req)
+}
+
+func (s *Service) deleteMemoryAdmitted(ctx context.Context, req *runtimev1.DeleteMemoryRequest) (*runtimev1.DeleteMemoryResponse, error) {
 	if err := validatePublicRuntimeMemoryLocator(req.GetBank()); err != nil {
 		return nil, err
 	}
@@ -257,6 +271,10 @@ func (s *Service) DeleteMemory(ctx context.Context, req *runtimev1.DeleteMemoryR
 }
 
 func (s *Service) InspectMemoryEmbeddingRuntime(ctx context.Context, req *runtimev1.InspectMemoryEmbeddingRuntimeRequest) (*runtimev1.InspectMemoryEmbeddingRuntimeResponse, error) {
+	return nil, status.Error(codes.PermissionDenied, "runtime memory embedding lifecycle is runtime-private")
+}
+
+func (s *Service) inspectMemoryEmbeddingRuntimePrivate(ctx context.Context, req *runtimev1.InspectMemoryEmbeddingRuntimeRequest) (*runtimev1.InspectMemoryEmbeddingRuntimeResponse, error) {
 	state, err := s.memorySvc.InspectMemoryEmbeddingState(ctx, memoryservice.InspectMemoryEmbeddingStateRequest{
 		Context: req.GetContext(),
 		Locator: cloneMemoryLocator(req.GetLocator()),
@@ -279,6 +297,10 @@ func (s *Service) InspectMemoryEmbeddingRuntime(ctx context.Context, req *runtim
 }
 
 func (s *Service) RequestMemoryEmbeddingRuntimeBind(ctx context.Context, req *runtimev1.RequestMemoryEmbeddingRuntimeBindRequest) (*runtimev1.RequestMemoryEmbeddingRuntimeBindResponse, error) {
+	return nil, status.Error(codes.PermissionDenied, "runtime memory embedding lifecycle is runtime-private")
+}
+
+func (s *Service) requestMemoryEmbeddingRuntimeBindPrivate(ctx context.Context, req *runtimev1.RequestMemoryEmbeddingRuntimeBindRequest) (*runtimev1.RequestMemoryEmbeddingRuntimeBindResponse, error) {
 	result, err := s.memorySvc.RequestCanonicalMemoryEmbeddingBind(ctx, memoryservice.RequestCanonicalMemoryEmbeddingBindRequest{
 		Context: req.GetContext(),
 		Locator: cloneMemoryLocator(req.GetLocator()),
@@ -295,6 +317,10 @@ func (s *Service) RequestMemoryEmbeddingRuntimeBind(ctx context.Context, req *ru
 }
 
 func (s *Service) RequestMemoryEmbeddingRuntimeCutover(ctx context.Context, req *runtimev1.RequestMemoryEmbeddingRuntimeCutoverRequest) (*runtimev1.RequestMemoryEmbeddingRuntimeCutoverResponse, error) {
+	return nil, status.Error(codes.PermissionDenied, "runtime memory embedding lifecycle is runtime-private")
+}
+
+func (s *Service) requestMemoryEmbeddingRuntimeCutoverPrivate(ctx context.Context, req *runtimev1.RequestMemoryEmbeddingRuntimeCutoverRequest) (*runtimev1.RequestMemoryEmbeddingRuntimeCutoverResponse, error) {
 	result, err := s.memorySvc.RequestMemoryEmbeddingCutover(ctx, memoryservice.RequestMemoryEmbeddingCutoverRequest{
 		Context: req.GetContext(),
 		Locator: cloneMemoryLocator(req.GetLocator()),
@@ -310,6 +336,10 @@ func (s *Service) RequestMemoryEmbeddingRuntimeCutover(ctx context.Context, req 
 }
 
 func (s *Service) GetMemoryEmbeddingRuntimeIntent(ctx context.Context, req *runtimev1.GetMemoryEmbeddingRuntimeIntentRequest) (*runtimev1.GetMemoryEmbeddingRuntimeIntentResponse, error) {
+	return nil, status.Error(codes.PermissionDenied, "runtime memory embedding lifecycle is runtime-private")
+}
+
+func (s *Service) getMemoryEmbeddingRuntimeIntentPrivate(ctx context.Context, req *runtimev1.GetMemoryEmbeddingRuntimeIntentRequest) (*runtimev1.GetMemoryEmbeddingRuntimeIntentResponse, error) {
 	result, err := s.memorySvc.GetMemoryEmbeddingBindingIntent(ctx, memoryservice.GetMemoryEmbeddingBindingIntentRequest{
 		Context: req.GetContext(),
 		Locator: cloneMemoryLocator(req.GetLocator()),
@@ -324,6 +354,10 @@ func (s *Service) GetMemoryEmbeddingRuntimeIntent(ctx context.Context, req *runt
 }
 
 func (s *Service) SetMemoryEmbeddingRuntimeIntent(ctx context.Context, req *runtimev1.SetMemoryEmbeddingRuntimeIntentRequest) (*runtimev1.SetMemoryEmbeddingRuntimeIntentResponse, error) {
+	return nil, status.Error(codes.PermissionDenied, "runtime memory embedding lifecycle is runtime-private")
+}
+
+func (s *Service) setMemoryEmbeddingRuntimeIntentPrivate(ctx context.Context, req *runtimev1.SetMemoryEmbeddingRuntimeIntentRequest) (*runtimev1.SetMemoryEmbeddingRuntimeIntentResponse, error) {
 	result, err := s.memorySvc.SetMemoryEmbeddingBindingIntent(ctx, memoryservice.SetMemoryEmbeddingBindingIntentRequest{
 		Context:       req.GetContext(),
 		Locator:       cloneMemoryLocator(req.GetLocator()),

@@ -64,7 +64,7 @@ func firstRunBaselineScenarioAllowed(scenario runtimev1.ScenarioType) bool {
 // minter consumes through the FirstRunLocalExecutor interface (K-AIEXEC-007).
 // It does not weaken the route-agnostic ExecuteScenario path.
 func (s *Service) ExecuteFirstRunLocalBaseline(ctx context.Context, req FirstRunLocalExecutionRequest) (FirstRunLocalExecutionResult, error) {
-	if s == nil || s.selector == nil {
+	if s == nil || s.selector == nil || s.scheduler == nil {
 		return FirstRunLocalExecutionResult{}, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	if !firstRunBaselineScenarioAllowed(req.ScenarioType) {
@@ -80,6 +80,16 @@ func (s *Service) ExecuteFirstRunLocalBaseline(ctx context.Context, req FirstRun
 	if modelID == "" {
 		return FirstRunLocalExecutionResult{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
+	releaseScheduler, _, err := s.scheduler.Acquire(ctx, "runtime.first_run")
+	if err != nil {
+		return FirstRunLocalExecutionResult{}, grpcerr.WithReasonCodeOptions(
+			codes.ResourceExhausted,
+			runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE,
+			grpcerr.ReasonOptions{Message: strings.TrimSpace(err.Error())},
+		)
+	}
+	defer releaseScheduler()
+
 	// Pin the resolved model to the local provider. The local provider's
 	// ResolveModelID strips the "local/" prefix; the prefix forces the route
 	// selector down the local path so a cloud preferred-route alias on the

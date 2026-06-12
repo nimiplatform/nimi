@@ -80,7 +80,7 @@ func TestGetAppPackageReadinessRepairsUnreadableEvidence(t *testing.T) {
 }
 
 func TestGetAppPackageReadinessFailsClosedWithoutRuntime(t *testing.T) {
-	svc := New(testLogger())
+	svc := New(testLogger(), WithSessionValidator(allowingAppSessionValidator{}))
 	resp, err := svc.GetAppPackageReadiness(context.Background(), &runtimev1.GetAppPackageReadinessRequest{AppId: "nimi.example-app"})
 	if err != nil {
 		t.Fatalf("GetAppPackageReadiness: %v", err)

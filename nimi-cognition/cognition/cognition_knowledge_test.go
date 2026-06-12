@@ -9,6 +9,7 @@ import (
 
 	"github.com/nimiplatform/nimi/nimi-cognition/artifactref"
 	"github.com/nimiplatform/nimi/nimi-cognition/internal/storage"
+	"github.com/nimiplatform/nimi/nimi-cognition/kernel"
 	"github.com/nimiplatform/nimi/nimi-cognition/knowledge"
 	"github.com/nimiplatform/nimi/nimi-cognition/memory"
 	"github.com/nimiplatform/nimi/nimi-cognition/routine/digest"
@@ -62,6 +63,77 @@ func TestKnowledgeRelationTraverseAndHistory(t *testing.T) {
 	history, err = c.KnowledgeService().History("a1", "p3")
 	if err != nil || len(history) < 2 || history[0].Action != knowledge.HistoryActionDeleted {
 		t.Fatalf("expected delete history entry, got %+v err=%v", history, err)
+	}
+}
+
+func TestKnowledgeRelationRejectsWhitespaceRelationType(t *testing.T) {
+	c := newTestCognition(t)
+	for _, page := range []knowledge.Page{
+		{PageID: "p1", ScopeID: "a1", Kind: knowledge.ProjectionKindExplainer, Version: 1, Title: "Root", Body: []byte(`"root page"`), Lifecycle: knowledge.ProjectionLifecycleActive, CreatedAt: ts, UpdatedAt: ts},
+		{PageID: "p2", ScopeID: "a1", Kind: knowledge.ProjectionKindGuide, Version: 1, Title: "Child", Body: []byte(`"child page"`), Lifecycle: knowledge.ProjectionLifecycleActive, CreatedAt: ts, UpdatedAt: ts},
+	} {
+		if err := c.KnowledgeService().Save(page); err != nil {
+			t.Fatalf("save page %s: %v", page.PageID, err)
+		}
+	}
+	err := c.KnowledgeService().PutRelation(knowledge.Relation{
+		ScopeID:      "a1",
+		FromPageID:   "p1",
+		ToPageID:     "p2",
+		RelationType: "   ",
+		Strength:     artifactref.StrengthStrong,
+		CreatedAt:    ts,
+		UpdatedAt:    ts,
+	})
+	if err == nil || !strings.Contains(err.Error(), "relation_type is required") {
+		t.Fatalf("expected whitespace relation_type rejection, got %v", err)
+	}
+}
+
+func TestPromptServingRevalidatesPersistedKernelAggregate(t *testing.T) {
+	root := t.TempDir()
+	c := newTestCognitionAt(t, root)
+	if err := c.InitScope("a1"); err != nil {
+		t.Fatalf("init scope: %v", err)
+	}
+	db, err := sql.Open("sqlite", "file:"+root+"/cognition.sqlite?_pragma=foreign_keys(on)")
+	if err != nil {
+		t.Fatalf("open sqlite: %v", err)
+	}
+	defer func() { _ = db.Close() }()
+	raw, err := json.Marshal(struct {
+		Kernel kernel.Kernel `json:"kernel"`
+		Rules  []kernel.Rule `json:"rules"`
+	}{
+		Kernel: kernel.Kernel{
+			KernelID:   "a1_agent_model",
+			ScopeID:    "a1",
+			KernelType: kernel.KernelTypeAgentModel,
+			Version:    1,
+			Status:     kernel.KernelStatusActive,
+			RuleRefs:   []kernel.RuleID{"r_world"},
+			CreatedAt:  ts,
+			UpdatedAt:  ts,
+		},
+		Rules: []kernel.Rule{{
+			RuleID:        "r_world",
+			Kind:          kernel.RuleKindWorldFacing,
+			Version:       1,
+			Statement:     "world-facing rule in agent lane",
+			AnchorBinding: kernel.AnchorBindingLocalOnly,
+			Lifecycle:     kernel.RuleLifecycleActive,
+			CreatedAt:     ts,
+			UpdatedAt:     ts,
+		}},
+	})
+	if err != nil {
+		t.Fatalf("marshal corrupt kernel: %v", err)
+	}
+	if _, err := db.Exec(`UPDATE kernel SET kernel_json = ? WHERE scope_id = ? AND kernel_type = ?`, raw, "a1", string(kernel.KernelTypeAgentModel)); err != nil {
+		t.Fatalf("corrupt kernel row: %v", err)
+	}
+	if _, err := c.PromptService().FormatCore("a1"); err == nil || !strings.Contains(err.Error(), "invalid agent_model kernel") {
+		t.Fatalf("expected prompt fail-close on corrupt kernel aggregate, got %v", err)
 	}
 }
 

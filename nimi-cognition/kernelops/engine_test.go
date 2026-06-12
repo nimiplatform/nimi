@@ -308,11 +308,8 @@ func TestCommit_RejectsForbiddenKernelArtifactRefTarget(t *testing.T) {
 	}
 }
 
-func TestCommit_RejectsRuleDeactivationWhenKnowledgeCitationExists(t *testing.T) {
-	engine, store := newTestEngine(t)
-	base := localRule("r1", "concise")
-	seedKernel(t, store, "a1", kernel.KernelTypeAgentModel, []kernel.Rule{base})
-
+func TestKnowledgePagesRejectIncomingKernelRuleCitations(t *testing.T) {
+	_, store := newTestEngine(t)
 	pageRaw, err := json.Marshal(knowledge.Page{
 		PageID:    "p1",
 		ScopeID:   "a1",
@@ -332,40 +329,8 @@ func TestCommit_RejectsRuleDeactivationWhenKnowledgeCitationExists(t *testing.T)
 	if err != nil {
 		t.Fatalf("marshal page: %v", err)
 	}
-	if err := store.Save("a1", storage.KindKnowledge, "p1", pageRaw); err != nil {
-		t.Fatalf("seed knowledge page: %v", err)
-	}
-
-	updated := localRule("r1", "superseded")
-	updated.Version = 2
-	updated.Lifecycle = kernel.RuleLifecycleSuperseded
-	updated.SupersededBy = "r2"
-	r2 := localRule("r2", "replacement")
-
-	_, err = engine.Commit(ResolvedPatch{
-		ResolvedPatchID: "rp_cited_rule",
-		TargetKernel:    kernel.KernelTypeAgentModel,
-		ScopeID:         "a1",
-		ResolvedBy:      "human",
-		ResolvedAt:      ts,
-		ResolvedChanges: []ResolvedChange{
-			{
-				RuleID:         "r2",
-				ChangeKind:     ChangeKindAdd,
-				ResolutionKind: ResolutionKindManualMerge,
-				FinalRule:      &r2,
-			},
-			{
-				RuleID:         "r1",
-				BaseVersion:    1,
-				ChangeKind:     ChangeKindUpdate,
-				ResolutionKind: ResolutionKindManualMerge,
-				FinalRule:      &updated,
-			},
-		},
-	})
-	if err == nil || !strings.Contains(err.Error(), "cannot transition out of active") {
-		t.Fatalf("expected cited rule deactivation rejection, got %v", err)
+	if err := store.Save("a1", storage.KindKnowledge, "p1", pageRaw); err == nil || !strings.Contains(err.Error(), "kernel_rule citations are not admitted") {
+		t.Fatalf("expected kernel citation rejection, got %v", err)
 	}
 }
 

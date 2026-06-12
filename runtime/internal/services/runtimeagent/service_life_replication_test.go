@@ -69,7 +69,7 @@ func TestRuntimeAgentProjectsCommittedMemoryReplicationEvents(t *testing.T) {
 					},
 				},
 				SourceEventId: "evt-core",
-				Extensions:    completePromotionEvidence(t),
+				Extensions:    completePromotionEvidence(t, svc),
 				Record: &runtimev1.MemoryRecordInput{
 					Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_OBSERVATIONAL,
 					Payload: &runtimev1.MemoryRecordInput_Observational{
@@ -100,7 +100,7 @@ func TestRuntimeAgentProjectsCommittedMemoryReplicationEvents(t *testing.T) {
 					},
 				},
 				SourceEventId: "evt-dyadic",
-				Extensions:    completePromotionEvidence(t),
+				Extensions:    completePromotionEvidence(t, svc),
 				Record: &runtimev1.MemoryRecordInput{
 					Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_OBSERVATIONAL,
 					Payload: &runtimev1.MemoryRecordInput_Observational{
@@ -131,7 +131,7 @@ func TestRuntimeAgentProjectsCommittedMemoryReplicationEvents(t *testing.T) {
 					},
 				},
 				SourceEventId: "evt-world",
-				Extensions:    completePromotionEvidence(t),
+				Extensions:    completePromotionEvidence(t, svc),
 				Record: &runtimev1.MemoryRecordInput{
 					Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_OBSERVATIONAL,
 					Payload: &runtimev1.MemoryRecordInput_Observational{
@@ -377,7 +377,7 @@ func TestRuntimeAgentProjectsBridgeDrivenMemoryReplicationEvents(t *testing.T) {
 					},
 				},
 				SourceEventId: "evt-bridge-core",
-				Extensions:    completePromotionEvidence(t),
+				Extensions:    completePromotionEvidence(t, svc),
 				Record: &runtimev1.MemoryRecordInput{
 					Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_OBSERVATIONAL,
 					Payload: &runtimev1.MemoryRecordInput_Observational{
@@ -403,7 +403,7 @@ func TestRuntimeAgentProjectsBridgeDrivenMemoryReplicationEvents(t *testing.T) {
 					},
 				},
 				SourceEventId: "evt-bridge-dyadic",
-				Extensions:    completePromotionEvidence(t),
+				Extensions:    completePromotionEvidence(t, svc),
 				Record: &runtimev1.MemoryRecordInput{
 					Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_OBSERVATIONAL,
 					Payload: &runtimev1.MemoryRecordInput_Observational{
@@ -429,7 +429,7 @@ func TestRuntimeAgentProjectsBridgeDrivenMemoryReplicationEvents(t *testing.T) {
 					},
 				},
 				SourceEventId: "evt-bridge-world",
-				Extensions:    completePromotionEvidence(t),
+				Extensions:    completePromotionEvidence(t, svc),
 				Record: &runtimev1.MemoryRecordInput{
 					Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_OBSERVATIONAL,
 					Payload: &runtimev1.MemoryRecordInput_Observational{

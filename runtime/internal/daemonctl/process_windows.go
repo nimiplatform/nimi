@@ -3,8 +3,11 @@
 package daemonctl
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"strings"
 	"syscall"
 
 	"golang.org/x/sys/windows"
@@ -44,13 +47,58 @@ func defaultProcessAlive(pid int) bool {
 	return exitCode == windowsProcessStillActive
 }
 
-func defaultStopProcess(pid int, _ string, _ bool) error {
+func defaultStopProcess(pid int, expectedExecutable string, force bool) error {
 	if pid <= 0 {
 		return nil
+	}
+	matches, verified := processMatchesExecutable(pid, expectedExecutable)
+	if !verified {
+		if strings.TrimSpace(expectedExecutable) == "" {
+			return fmt.Errorf("refusing to stop process %d without expected executable identity", pid)
+		}
+		return fmt.Errorf("refusing to stop process %d because executable identity could not be verified against %q", pid, expectedExecutable)
+	}
+	if !matches {
+		return fmt.Errorf("refusing to stop process %d because executable does not match %q", pid, expectedExecutable)
+	}
+	if !force {
+		return fmt.Errorf("runtime process %d requires --force on Windows because graceful process-group termination is unavailable", pid)
 	}
 	process, err := os.FindProcess(pid)
 	if err != nil {
 		return nil
 	}
 	return process.Kill()
+}
+
+func processMatchesExecutable(pid int, expectedExecutable string) (bool, bool) {
+	expected := canonicalExecutablePath(expectedExecutable)
+	if pid <= 0 || expected == "" {
+		return false, false
+	}
+
+	handle, err := windows.OpenProcess(windows.PROCESS_QUERY_LIMITED_INFORMATION, false, uint32(pid))
+	if err != nil {
+		return false, false
+	}
+	defer windows.CloseHandle(handle)
+
+	buffer := make([]uint16, windows.MAX_PATH)
+	size := uint32(len(buffer))
+	if err := windows.QueryFullProcessImageName(handle, 0, &buffer[0], &size); err != nil {
+		return false, false
+	}
+	actual := canonicalExecutablePath(windows.UTF16ToString(buffer[:size]))
+	if actual == "" {
+		return false, false
+	}
+	return strings.EqualFold(actual, expected), true
+}
+
+func canonicalExecutablePath(path string) string {
+	path = strings.TrimSpace(path)
+	if path == "" {
+		return ""
+	}
+	return filepath.Clean(path)
 }

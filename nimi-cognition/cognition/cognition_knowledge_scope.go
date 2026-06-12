@@ -95,6 +95,16 @@ func (r *knowledgeScopeRegistry) CreateKnowledgeScope(_ context.Context, desc Kn
 	if err := validateKnowledgeScopeDescriptor(desc); err != nil {
 		return KnowledgeScope{}, err
 	}
+	if desc.Owner.Kind == storage.KnowledgeScopeOwnerKindAppPrivate {
+		return KnowledgeScope{}, fmt.Errorf("cognition knowledge scope: app_private create requires AppMemoryAccessService with admitted C-APMEM policy")
+	}
+	return r.createKnowledgeScopeInternal(context.Background(), desc)
+}
+
+func (r *knowledgeScopeRegistry) createKnowledgeScopeInternal(_ context.Context, desc KnowledgeScopeDescriptor) (KnowledgeScope, error) {
+	if err := validateKnowledgeScopeDescriptor(desc); err != nil {
+		return KnowledgeScope{}, err
+	}
 	ownerKey, err := canonicalOwnerKey(desc.Owner)
 	if err != nil {
 		return KnowledgeScope{}, err
@@ -140,6 +150,13 @@ func (r *knowledgeScopeRegistry) GetKnowledgeScope(_ context.Context, scopeID st
 
 // ListKnowledgeScopes filters and paginates registry rows.
 func (r *knowledgeScopeRegistry) ListKnowledgeScopes(_ context.Context, filter KnowledgeScopeFilter) ([]KnowledgeScope, string, error) {
+	if filterIncludesAppPrivate(filter) {
+		return nil, "", fmt.Errorf("cognition knowledge scope: app_private list requires AppMemoryAccessService with admitted C-APMEM policy")
+	}
+	return r.listKnowledgeScopesInternal(context.Background(), filter)
+}
+
+func (r *knowledgeScopeRegistry) listKnowledgeScopesInternal(_ context.Context, filter KnowledgeScopeFilter) ([]KnowledgeScope, string, error) {
 	for _, kind := range filter.OwnerKinds {
 		if !isPublicOwnerKind(kind) {
 			return nil, "", fmt.Errorf("cognition knowledge scope: invalid owner kind %q", kind)
@@ -175,6 +192,13 @@ func (r *knowledgeScopeRegistry) ListKnowledgeScopes(_ context.Context, filter K
 // DeleteKnowledgeScope removes a scope and all scope-anchored rows in
 // the cognition store via SQLiteBackend.DeleteScope.
 func (r *knowledgeScopeRegistry) DeleteKnowledgeScope(_ context.Context, scopeID string) error {
+	if err := rejectDirectAppPrivateScope(r.store, scopeID, "knowledge scope delete"); err != nil {
+		return err
+	}
+	return r.deleteKnowledgeScopeInternal(context.Background(), scopeID)
+}
+
+func (r *knowledgeScopeRegistry) deleteKnowledgeScopeInternal(_ context.Context, scopeID string) error {
 	// Confirm the scope exists as a registered runtime_knowledge_bank
 	// before cascading; this is what makes the call idempotent and
 	// distinguishes a "registered scope delete" from a stray scope
@@ -193,6 +217,20 @@ func (r *knowledgeScopeRegistry) now() time.Time {
 		return r.clock.Now().UTC()
 	}
 	return time.Now().UTC()
+}
+
+func filterIncludesAppPrivate(filter KnowledgeScopeFilter) bool {
+	for _, kind := range filter.OwnerKinds {
+		if kind == storage.KnowledgeScopeOwnerKindAppPrivate {
+			return true
+		}
+	}
+	for _, owner := range filter.Owners {
+		if owner.Kind == storage.KnowledgeScopeOwnerKindAppPrivate {
+			return true
+		}
+	}
+	return len(filter.OwnerKinds) == 0 && len(filter.Owners) == 0
 }
 
 func validateKnowledgeScopeDescriptor(desc KnowledgeScopeDescriptor) error {

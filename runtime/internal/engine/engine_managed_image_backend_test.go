@@ -442,6 +442,12 @@ func TestResolveManagedImageBackendPackageSpecForHostDarwinApple(t *testing.T) {
 	if spec.LaunchMode != managedImageBackendLaunchModePackageEntrypoint {
 		t.Fatalf("expected package entrypoint launch mode, got %q", spec.LaunchMode)
 	}
+	if len(spec.ExecutableCandidates) == 0 {
+		t.Fatal("expected darwin package to declare executable candidates")
+	}
+	if strings.TrimSpace(spec.WrapperDriver) == "" {
+		t.Fatal("expected darwin package to declare wrapper driver authority")
+	}
 	if got := strings.TrimSpace(spec.ImageRef); got == "" {
 		t.Fatal("expected OCI image ref for darwin managed image backend package")
 	}
@@ -450,6 +456,22 @@ func TestResolveManagedImageBackendPackageSpecForHostDarwinApple(t *testing.T) {
 	}
 	if strings.TrimSpace(spec.ArchiveURL) != "" {
 		t.Fatalf("expected no archive URL for canonical darwin package, got %q", spec.ArchiveURL)
+	}
+}
+
+func TestValidateManagedImageBackendPackageSpecRejectsIncompleteSupportedPackage(t *testing.T) {
+	err := validateManagedImageBackendPackageSpec(managedImageBackendPackageSpec{
+		BackendName:    "stablediffusion-ggml",
+		PackageSource:  managedImageBackendPackageSourceCanonicalLocalAIDerived,
+		PackageFormat:  managedImageBackendPackageFormatOCIPayload,
+		InstallDirName: "metal-stablediffusion-ggml",
+		ImageRef:       "quay.io/example/backend:latest",
+		OCILayerDigest: "sha256:abc",
+		LaunchMode:     managedImageBackendLaunchModePackageEntrypoint,
+		Supported:      true,
+	})
+	if err == nil {
+		t.Fatal("expected incomplete supported package to be rejected")
 	}
 }
 

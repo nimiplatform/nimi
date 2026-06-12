@@ -93,11 +93,19 @@ func TestValidatePage_MissingFields(t *testing.T) {
 func TestValidatePage_WithCitations(t *testing.T) {
 	p := validPage()
 	p.Citations = []Citation{
-		{TargetKind: "kernel_rule", TargetID: "rule_001", Strength: kernel.RefStrong},
 		{TargetKind: "memory_record", TargetID: "mem_001", Strength: kernel.RefWeak},
 	}
 	if err := ValidatePage(p); err != nil {
 		t.Fatalf("page with citations should be valid: %v", err)
+	}
+}
+
+func TestValidatePage_RejectsKernelRuleCitation(t *testing.T) {
+	p := validPage()
+	p.Citations = []Citation{{TargetKind: CitationTargetKindKernelRule, TargetID: "rule_001", Strength: kernel.RefStrong}}
+	err := ValidatePage(p)
+	if err == nil || !strings.Contains(err.Error(), "kernel_rule citations are not admitted") {
+		t.Fatalf("expected kernel citation rejection, got: %v", err)
 	}
 }
 

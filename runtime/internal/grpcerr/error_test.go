@@ -39,6 +39,9 @@ func TestWithReasonCode_ErrorInfoPresent(t *testing.T) {
 		t.Fatalf("expected reason %s, got %s",
 			runtimev1.ReasonCode_AI_CONNECTOR_INVALID.String(), info.GetReason())
 	}
+	if info.GetMetadata()["action_hint"] == "" {
+		t.Fatalf("expected default action_hint metadata: %#v", info.GetMetadata())
+	}
 }
 
 func TestWithReasonCode_PreservesCode(t *testing.T) {

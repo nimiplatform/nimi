@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/texttarget"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -18,6 +17,7 @@ const (
 	realmGroupMessageCandidatePromptMaxTokens = 768
 	realmGroupMessageCandidateExecutorAppID   = "runtime.agent.internal.realm_group_candidate"
 	realmGroupMessageCandidateRefMaxBytes     = 256
+	realmGroupMessageCandidateRoutingProfile  = "runtime-participation-profile/realm_group_agent"
 
 	realmGroupCandidateContextThreadSnapshot = "realm.group.thread.snapshot"
 	realmGroupCandidateContextSlotSnapshot   = "realm.group.agent_slot.snapshot"
@@ -59,7 +59,8 @@ type realmGroupMessageCandidateScenarioExecutor interface {
 }
 
 type aiBackedRealmGroupMessageCandidateExecutor struct {
-	ai realmGroupMessageCandidateScenarioExecutor
+	ai      realmGroupMessageCandidateScenarioExecutor
+	binding PublicChatBindingResolver
 }
 
 type realmGroupMessageCandidateExecutorAPML struct {
@@ -78,10 +79,17 @@ type realmGroupMessageCandidateRefusal struct {
 }
 
 func NewAIBackedRealmGroupMessageCandidateExecutor(ai realmGroupMessageCandidateScenarioExecutor) RealmGroupMessageCandidateExecutor {
+	return NewAIBackedRealmGroupMessageCandidateExecutorWithBinding(ai, nil)
+}
+
+func NewAIBackedRealmGroupMessageCandidateExecutorWithBinding(ai realmGroupMessageCandidateScenarioExecutor, binding PublicChatBindingResolver) RealmGroupMessageCandidateExecutor {
 	if ai == nil {
 		return rejectingRealmGroupMessageCandidateExecutor{}
 	}
-	return &aiBackedRealmGroupMessageCandidateExecutor{ai: ai}
+	if binding == nil {
+		binding = rejectingPublicChatBindingResolver{}
+	}
+	return &aiBackedRealmGroupMessageCandidateExecutor{ai: ai, binding: binding}
 }
 
 func (e *aiBackedRealmGroupMessageCandidateExecutor) CreateRealmGroupMessageCandidate(
@@ -91,7 +99,7 @@ func (e *aiBackedRealmGroupMessageCandidateExecutor) CreateRealmGroupMessageCand
 	if e == nil || e.ai == nil {
 		return RealmGroupMessageCandidateExecutionOutput{}, status.Error(codes.FailedPrecondition, "realm group message candidate executor is not configured")
 	}
-	execReq, err := buildRealmGroupMessageCandidateScenarioRequest(input)
+	execReq, err := e.buildRealmGroupMessageCandidateScenarioRequest(ctx, input)
 	if err != nil {
 		return RealmGroupMessageCandidateExecutionOutput{}, err
 	}
@@ -103,7 +111,7 @@ func (e *aiBackedRealmGroupMessageCandidateExecutor) CreateRealmGroupMessageCand
 	return decodeRealmGroupMessageCandidateExecutorResult(text, input, resp)
 }
 
-func buildRealmGroupMessageCandidateScenarioRequest(input RealmGroupMessageCandidateExecutionInput) (*runtimev1.ExecuteScenarioRequest, error) {
+func (e *aiBackedRealmGroupMessageCandidateExecutor) buildRealmGroupMessageCandidateScenarioRequest(ctx context.Context, input RealmGroupMessageCandidateExecutionInput) (*runtimev1.ExecuteScenarioRequest, error) {
 	if err := validateRealmGroupMessageCandidateExecutorInput(input); err != nil {
 		return nil, err
 	}
@@ -111,12 +119,35 @@ func buildRealmGroupMessageCandidateScenarioRequest(input RealmGroupMessageCandi
 	if err != nil {
 		return nil, err
 	}
+	if e == nil || e.binding == nil {
+		return nil, status.Error(codes.FailedPrecondition, "realm group participation routing resolver is not configured")
+	}
+	resolved, err := e.binding.ResolvePublicChatBinding(ctx, PublicChatBindingResolutionRequest{
+		ModelID:         realmGroupMessageCandidateRoutingProfile,
+		RouteHint:       runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED,
+		SubjectUserID:   input.OwnerUserID,
+		SystemPrompt:    systemPrompt,
+		Messages:        []*runtimev1.ChatMessage{{Role: "user", Content: userPrompt}},
+		MaxOutputTokens: realmGroupMessageCandidatePromptMaxTokens,
+	})
+	if err != nil {
+		if _, ok := status.FromError(err); !ok {
+			return nil, status.Error(codes.FailedPrecondition, err.Error())
+		}
+		return nil, err
+	}
+	if strings.TrimSpace(resolved.ModelID) == "" {
+		return nil, status.Error(codes.FailedPrecondition, "realm group participation routing resolver returned empty model")
+	}
+	if resolved.RoutePolicy == runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED {
+		return nil, status.Error(codes.FailedPrecondition, "realm group participation routing resolver returned unspecified route")
+	}
 	return &runtimev1.ExecuteScenarioRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         realmGroupMessageCandidateExecutorAppID,
 			SubjectUserId: input.OwnerUserID,
-			ModelId:       texttarget.InternalDefaultLocalTextModelAlias,
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED,
+			ModelId:       strings.TrimSpace(resolved.ModelID),
+			RoutePolicy:   resolved.RoutePolicy,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     10_000,
 		},
@@ -180,11 +211,13 @@ func validateRealmGroupMessageCandidateExecutorInput(input RealmGroupMessageCand
 		"trigger_ref":             input.TriggerRef,
 		"membership_snapshot_ref": input.MembershipSnapshotRef,
 		"read_cursor_ref":         input.ReadCursorRef,
-		"room_orchestration_ref":  input.RoomOrchestrationRef,
 	} {
 		if err := validateRealmGroupCandidateBoundedRef(field, value, realmGroupCandidateGeneralRefPrefixes); err != nil {
 			return err
 		}
+	}
+	if err := validateRealmGroupCandidateBoundedRef("room_orchestration_ref", input.RoomOrchestrationRef, []string{"runtime://"}); err != nil {
+		return err
 	}
 	if strings.TrimSpace(input.ReplyTargetRef) != "" {
 		if err := validateRealmGroupCandidateBoundedRef("reply_target_ref", input.ReplyTargetRef, realmGroupCandidateGeneralRefPrefixes); err != nil {
@@ -244,6 +277,84 @@ func validateRealmGroupCandidateBoundedRef(field string, value string, allowedPr
 		}
 	}
 	return status.Errorf(codes.InvalidArgument, "%s must use an admitted reference scheme", field)
+}
+
+func validateRealmGroupCandidateAuthorityEvidenceRefs(triggerRef string, membershipSnapshotRef string, readCursorRef string, roomOrchestrationRef string) error {
+	if err := validateRealmGroupCandidateTriggerEvidenceRef(triggerRef); err != nil {
+		return err
+	}
+	if !realmGroupCandidateRefHasToken(membershipSnapshotRef, "membership-snapshot") {
+		return status.Error(codes.InvalidArgument, "membership_snapshot_ref must identify membership snapshot evidence")
+	}
+	if !realmGroupCandidateRefHasToken(readCursorRef, "read-cursor") {
+		return status.Error(codes.InvalidArgument, "read_cursor_ref must identify read cursor evidence")
+	}
+	if !realmGroupCandidateRefHasToken(roomOrchestrationRef, "realm-group") || !realmGroupCandidateRefHasToken(roomOrchestrationRef, "orchestration") {
+		return status.Error(codes.InvalidArgument, "room_orchestration_ref must identify realm_group room orchestration evidence")
+	}
+	return nil
+}
+
+func validateRealmGroupCandidateTriggerEvidenceRef(value string) error {
+	if !realmGroupCandidateRefHasAnyToken(value, "trigger", "trigger-event") {
+		return status.Error(codes.InvalidArgument, "trigger_ref must identify trigger evidence")
+	}
+	switch {
+	case realmGroupCandidateRefHasToken(value, "canonical-user-turn"):
+		return nil
+	case realmGroupCandidateRefHasToken(value, "external-protocol-signal"):
+		return nil
+	default:
+		return status.Error(codes.InvalidArgument, "trigger_ref must identify an admitted room trigger class")
+	}
+}
+
+func validateRealmGroupCandidateContextEvidenceRef(key string, value string) error {
+	switch key {
+	case realmGroupCandidateContextThreadSnapshot:
+		if realmGroupCandidateRefHasToken(value, "thread") {
+			return nil
+		}
+	case realmGroupCandidateContextSlotSnapshot:
+		if realmGroupCandidateRefHasToken(value, "slot") || realmGroupCandidateRefHasToken(value, "agent-slot") {
+			return nil
+		}
+	case realmGroupCandidateContextRecentMessages:
+		if realmGroupCandidateRefHasAnyToken(value, "recent-message", "recent-messages") {
+			return nil
+		}
+	case realmGroupCandidateContextReplyTarget:
+		if realmGroupCandidateRefHasAnyToken(value, "reply-target", "reply-to") {
+			return nil
+		}
+	case realmGroupCandidateContextPolicy:
+		if realmGroupCandidateRefHasToken(value, "policy") {
+			return nil
+		}
+	default:
+		return status.Errorf(codes.InvalidArgument, "context_refs.%s is not admitted for realm group message candidate evidence", key)
+	}
+	return status.Errorf(codes.InvalidArgument, "context_refs.%s must identify its admitted evidence class", key)
+}
+
+func realmGroupCandidateRefHasAnyToken(value string, tokens ...string) bool {
+	for _, token := range tokens {
+		if realmGroupCandidateRefHasToken(value, token) {
+			return true
+		}
+	}
+	return false
+}
+
+func realmGroupCandidateRefHasToken(value string, token string) bool {
+	normalized := strings.NewReplacer("_", "-", ".", "-", ":", "/", "#", "/", "?", "/", "&", "/", "=", "/").Replace(strings.ToLower(strings.TrimSpace(value)))
+	want := strings.ReplaceAll(strings.ToLower(strings.TrimSpace(token)), "_", "-")
+	for _, part := range strings.Split(normalized, "/") {
+		if part == want || part == want+"s" || strings.HasPrefix(part, want+"-") || strings.HasSuffix(part, "-"+want) || strings.Contains(part, "-"+want+"-") {
+			return true
+		}
+	}
+	return false
 }
 
 func containsRealmGroupCandidateRawPayloadShape(value string) bool {
@@ -354,10 +465,19 @@ func decodeRealmGroupMessageCandidateExecutorResult(
 	}
 	baseRef := realmGroupMessageCandidateEvidenceRefPrefix + input.CandidateID
 	output := RealmGroupMessageCandidateExecutionOutput{
-		RuntimeTraceRef:    traceRef,
-		OutputCandidateRef: baseRef + "/output",
-		AuditLineageRef:    baseRef + "/audit",
-		PolicyVerdictRef:   baseRef + "/policy",
+		RuntimeTraceRef:        traceRef,
+		OutputCandidateRef:     baseRef + "/output",
+		AuditLineageRef:        baseRef + "/audit",
+		PolicyVerdictRef:       baseRef + "/policy",
+		ProfileKind:            "realm_group_agent",
+		IdentitySource:         "runtime_local_agent_identity",
+		ParticipantRef:         input.LocalAgentRef,
+		ContextBlockRefs:       realmGroupCandidateContextBlockRefs(input.ContextRefs),
+		OutputDestination:      "realm_group_thread:" + input.RealmGroupThreadID,
+		MemoryReadVerdict:      "PASS",
+		MemoryWriteVerdict:     "PASS",
+		CapabilityScopeVerdict: "PASS",
+		AuditID:                baseRef + "/audit",
 	}
 	hasMessage := payload.Message != nil && strings.TrimSpace(payload.Message.Body) != ""
 	hasRefusal := payload.Refusal != nil && (strings.TrimSpace(payload.Refusal.Code) != "" || strings.TrimSpace(payload.Refusal.Reason) != "")

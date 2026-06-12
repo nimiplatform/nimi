@@ -7,7 +7,6 @@ import (
 	"log/slog"
 	"mime"
 	"net/http"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -513,18 +512,10 @@ func (b *Backend) materializeManagedMediaImage(ctx context.Context, source strin
 	}
 	lower := strings.ToLower(trimmed)
 	if strings.HasPrefix(lower, "data:") {
-		payload, mimeType, err := decodeInlineDataURL(trimmed)
-		if err != nil {
-			return "", err
-		}
-		return writeManagedMediaTempFile(tempDir, prefix, extensionForManagedMedia(mimeType, trimmed), payload)
+		return "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}
 	if strings.HasPrefix(lower, "file://") {
-		parsed, err := url.Parse(trimmed)
-		if err != nil || strings.TrimSpace(parsed.Path) == "" {
-			return "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
-		}
-		return parsed.Path, nil
+		return "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}
 	if isRemoteHTTPURL(trimmed) {
 		if err := endpointsec.ValidateEndpoint(ctx, trimmed, b != nil && b.allowLoopbackEndpoint); err != nil {
@@ -551,7 +542,10 @@ func (b *Backend) materializeManagedMediaImage(ctx context.Context, source strin
 		}
 		return writeManagedMediaTempFile(tempDir, prefix, extensionForManagedMedia(response.Header.Get("Content-Type"), trimmed), payload)
 	}
-	return trimmed, nil
+	if looksLikeLocalFilesystemPath(trimmed) {
+		return "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+	}
+	return "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 }
 
 func extensionForManagedMedia(mimeType string, source string) string {

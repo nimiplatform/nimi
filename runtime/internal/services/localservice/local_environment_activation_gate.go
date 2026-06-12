@@ -16,14 +16,14 @@ const (
 	localEnvironmentActivationStateFailed               = "failed"
 	localEnvironmentActivationStateCancelled            = "cancelled"
 	localEnvironmentActivationStateUnsupported          = "unsupported"
-	localEnvironmentActivationReasonReady               = "LOCAL_ENVIRONMENT_ACTIVATION_READY"
-	localEnvironmentActivationReasonSetupRequired       = "LOCAL_ENVIRONMENT_ACTIVATION_SETUP_REQUIRED"
-	localEnvironmentActivationReasonSetupInProgress     = "LOCAL_ENVIRONMENT_ACTIVATION_SETUP_IN_PROGRESS"
-	localEnvironmentActivationReasonRepairRequired      = "LOCAL_ENVIRONMENT_ACTIVATION_REPAIR_REQUIRED"
-	localEnvironmentActivationReasonFailed              = "LOCAL_ENVIRONMENT_ACTIVATION_FAILED"
-	localEnvironmentActivationReasonCancelled           = "LOCAL_ENVIRONMENT_ACTIVATION_CANCELLED"
-	localEnvironmentActivationReasonUnsupported         = "LOCAL_ENVIRONMENT_ACTIVATION_UNSUPPORTED"
-	localEnvironmentActivationReasonConsumerUnsupported = "LOCAL_ENVIRONMENT_CONSUMER_UNSUPPORTED"
+	localEnvironmentActivationReasonReady               = "ready"
+	localEnvironmentActivationReasonSetupRequired       = "setup_required"
+	localEnvironmentActivationReasonSetupInProgress     = "setup_in_progress"
+	localEnvironmentActivationReasonRepairRequired      = "repair_required"
+	localEnvironmentActivationReasonFailed              = "failed"
+	localEnvironmentActivationReasonCancelled           = "cancelled"
+	localEnvironmentActivationReasonUnsupported         = "unsupported"
+	localEnvironmentActivationReasonConsumerUnsupported = "unsupported"
 )
 
 type localEnvironmentConsumerActivationGateRequest struct {
@@ -136,7 +136,7 @@ func (s *Service) resolveLocalEnvironmentCUDAProjection(dep localEnvironmentPlan
 		dep.State = localEnvironmentStateNeedsConfirmation
 		dep.SourceKind = sourceKind
 		dep.ConfirmationRequired = true
-		dep.ReasonCode = "LOCAL_ENVIRONMENT_DEPENDENCY_CONFIRMATION_REQUIRED"
+		dep.ReasonCode = "accelerator_runtime_unconfirmed"
 	case engine.SharedAcceleratorDependencyRepairRequired:
 		dep.State = localEnvironmentStateRepairRequired
 		dep.SourceKind = localEnvironmentSourceManaged
@@ -246,21 +246,21 @@ func localEnvironmentActivationBlockDetail(blocking []localEnvironmentPlanDepend
 func localEnvironmentActivationDependencyReason(state string) string {
 	switch strings.TrimSpace(state) {
 	case localEnvironmentStateReadySystem:
-		return "LOCAL_ENVIRONMENT_DEPENDENCY_READY_SYSTEM"
+		return localEnvironmentActivationReasonReady
 	case localEnvironmentStateReadyManaged:
-		return "LOCAL_ENVIRONMENT_DEPENDENCY_READY_MANAGED"
+		return localEnvironmentActivationReasonReady
 	case localEnvironmentStateRepairRequired:
-		return "LOCAL_ENVIRONMENT_DEPENDENCY_REPAIR_REQUIRED"
+		return localEnvironmentActivationReasonRepairRequired
 	case localEnvironmentStateUnsupported:
-		return "LOCAL_ENVIRONMENT_DEPENDENCY_UNSUPPORTED"
+		return localEnvironmentActivationReasonUnsupported
 	case localEnvironmentStateFailed:
-		return "LOCAL_ENVIRONMENT_DEPENDENCY_FAILED"
+		return localEnvironmentActivationReasonFailed
 	case localEnvironmentStateCancelled:
-		return "LOCAL_ENVIRONMENT_DEPENDENCY_CANCELLED"
+		return localEnvironmentActivationReasonCancelled
 	case localEnvironmentStateQueued, localEnvironmentStateDownloading, localEnvironmentStateVerifying, localEnvironmentStateInstalling:
-		return "LOCAL_ENVIRONMENT_DEPENDENCY_SETUP_IN_PROGRESS"
+		return localEnvironmentActivationReasonSetupInProgress
 	default:
-		return "LOCAL_ENVIRONMENT_DEPENDENCY_CONFIRMATION_REQUIRED"
+		return localEnvironmentActivationReasonSetupRequired
 	}
 }
 

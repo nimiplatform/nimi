@@ -241,7 +241,7 @@ func (s *Service) loadApprovedDelegatedPausedRequest(
 	if approval == nil {
 		return nil, nil, status.Error(codes.NotFound, "delegated approval request not found")
 	}
-	if approval.GetState() != runtimev1.DelegatedApprovalRequestState_DELEGATED_APPROVAL_REQUEST_STATE_APPROVED {
+	if !delegatedApprovalStateAllowsResume(approval.GetState()) {
 		return nil, nil, status.Error(codes.FailedPrecondition, "delegated approval request is not approved")
 	}
 	if err := s.validateDelegatedApprovalResumeLocked(ctx, agentID, approval, now); err != nil {
@@ -268,7 +268,7 @@ func (s *Service) claimApprovedDelegatedPausedRequest(
 	if approval == nil {
 		return nil, nil, status.Error(codes.NotFound, "delegated approval request not found")
 	}
-	if approval.GetState() != runtimev1.DelegatedApprovalRequestState_DELEGATED_APPROVAL_REQUEST_STATE_APPROVED {
+	if !delegatedApprovalStateAllowsResume(approval.GetState()) {
 		return nil, nil, status.Error(codes.FailedPrecondition, "delegated approval request is not approved")
 	}
 	if err := s.validateDelegatedApprovalResumeLocked(ctx, agentID, approval, now); err != nil {
@@ -290,6 +290,11 @@ func (s *Service) claimApprovedDelegatedPausedRequest(
 		return nil, nil, status.Errorf(codes.FailedPrecondition, "delegated paused request claim persistence failed: %v", err)
 	}
 	return cloneRuntimeAgentPausedDelegatedCapabilityRequest(paused), proto.Clone(approval).(*runtimev1.DelegatedApprovalRequest), nil
+}
+
+func delegatedApprovalStateAllowsResume(state runtimev1.DelegatedApprovalRequestState) bool {
+	return state == runtimev1.DelegatedApprovalRequestState_DELEGATED_APPROVAL_REQUEST_STATE_APPROVED_ONCE ||
+		state == runtimev1.DelegatedApprovalRequestState_DELEGATED_APPROVAL_REQUEST_STATE_APPROVED_FOR_SESSION
 }
 
 func (s *Service) releaseDelegatedPausedRequestClaim(agentID string, approvalID string) error {

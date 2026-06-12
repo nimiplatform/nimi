@@ -212,26 +212,35 @@ func (x *CreateRealmGroupMessageCandidateRequest) GetContextRefs() map[string]st
 }
 
 type RealmGroupMessageCandidateCommitHandle struct {
-	state                 protoimpl.MessageState                      `protogen:"open.v1"`
-	CandidateId           string                                      `protobuf:"bytes,1,opt,name=candidate_id,json=candidateId,proto3" json:"candidate_id,omitempty"`
-	CandidateKind         string                                      `protobuf:"bytes,2,opt,name=candidate_kind,json=candidateKind,proto3" json:"candidate_kind,omitempty"`
-	CandidateEvidenceRef  string                                      `protobuf:"bytes,3,opt,name=candidate_evidence_ref,json=candidateEvidenceRef,proto3" json:"candidate_evidence_ref,omitempty"`
-	EvidenceHash          string                                      `protobuf:"bytes,4,opt,name=evidence_hash,json=evidenceHash,proto3" json:"evidence_hash,omitempty"`
-	RuntimeTraceRef       string                                      `protobuf:"bytes,5,opt,name=runtime_trace_ref,json=runtimeTraceRef,proto3" json:"runtime_trace_ref,omitempty"`
-	RealmGroupThreadId    string                                      `protobuf:"bytes,6,opt,name=realm_group_thread_id,json=realmGroupThreadId,proto3" json:"realm_group_thread_id,omitempty"`
-	RealmGroupAgentSlotId string                                      `protobuf:"bytes,7,opt,name=realm_group_agent_slot_id,json=realmGroupAgentSlotId,proto3" json:"realm_group_agent_slot_id,omitempty"`
-	OwnerUserId           string                                      `protobuf:"bytes,8,opt,name=owner_user_id,json=ownerUserId,proto3" json:"owner_user_id,omitempty"`
-	RealmAgentId          string                                      `protobuf:"bytes,9,opt,name=realm_agent_id,json=realmAgentId,proto3" json:"realm_agent_id,omitempty"`
-	LocalAgentRef         string                                      `protobuf:"bytes,10,opt,name=local_agent_ref,json=localAgentRef,proto3" json:"local_agent_ref,omitempty"`
-	TriggerRef            string                                      `protobuf:"bytes,11,opt,name=trigger_ref,json=triggerRef,proto3" json:"trigger_ref,omitempty"`
-	OutputCandidateRef    string                                      `protobuf:"bytes,12,opt,name=output_candidate_ref,json=outputCandidateRef,proto3" json:"output_candidate_ref,omitempty"`
-	AuditLineageRef       string                                      `protobuf:"bytes,13,opt,name=audit_lineage_ref,json=auditLineageRef,proto3" json:"audit_lineage_ref,omitempty"`
-	PolicyVerdictRef      string                                      `protobuf:"bytes,14,opt,name=policy_verdict_ref,json=policyVerdictRef,proto3" json:"policy_verdict_ref,omitempty"`
-	CreatedAt             *timestamppb.Timestamp                      `protobuf:"bytes,15,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	ExpiresAt             *timestamppb.Timestamp                      `protobuf:"bytes,16,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
-	CommitDisposition     RealmGroupMessageCandidateCommitDisposition `protobuf:"varint,17,opt,name=commit_disposition,json=commitDisposition,proto3,enum=nimi.runtime.v1.RealmGroupMessageCandidateCommitDisposition" json:"commit_disposition,omitempty"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
+	state                  protoimpl.MessageState                      `protogen:"open.v1"`
+	CandidateId            string                                      `protobuf:"bytes,1,opt,name=candidate_id,json=candidateId,proto3" json:"candidate_id,omitempty"`
+	CandidateKind          string                                      `protobuf:"bytes,2,opt,name=candidate_kind,json=candidateKind,proto3" json:"candidate_kind,omitempty"`
+	CandidateEvidenceRef   string                                      `protobuf:"bytes,3,opt,name=candidate_evidence_ref,json=candidateEvidenceRef,proto3" json:"candidate_evidence_ref,omitempty"`
+	EvidenceHash           string                                      `protobuf:"bytes,4,opt,name=evidence_hash,json=evidenceHash,proto3" json:"evidence_hash,omitempty"`
+	RuntimeTraceRef        string                                      `protobuf:"bytes,5,opt,name=runtime_trace_ref,json=runtimeTraceRef,proto3" json:"runtime_trace_ref,omitempty"`
+	RealmGroupThreadId     string                                      `protobuf:"bytes,6,opt,name=realm_group_thread_id,json=realmGroupThreadId,proto3" json:"realm_group_thread_id,omitempty"`
+	RealmGroupAgentSlotId  string                                      `protobuf:"bytes,7,opt,name=realm_group_agent_slot_id,json=realmGroupAgentSlotId,proto3" json:"realm_group_agent_slot_id,omitempty"`
+	OwnerUserId            string                                      `protobuf:"bytes,8,opt,name=owner_user_id,json=ownerUserId,proto3" json:"owner_user_id,omitempty"`
+	RealmAgentId           string                                      `protobuf:"bytes,9,opt,name=realm_agent_id,json=realmAgentId,proto3" json:"realm_agent_id,omitempty"`
+	LocalAgentRef          string                                      `protobuf:"bytes,10,opt,name=local_agent_ref,json=localAgentRef,proto3" json:"local_agent_ref,omitempty"`
+	TriggerRef             string                                      `protobuf:"bytes,11,opt,name=trigger_ref,json=triggerRef,proto3" json:"trigger_ref,omitempty"`
+	OutputCandidateRef     string                                      `protobuf:"bytes,12,opt,name=output_candidate_ref,json=outputCandidateRef,proto3" json:"output_candidate_ref,omitempty"`
+	AuditLineageRef        string                                      `protobuf:"bytes,13,opt,name=audit_lineage_ref,json=auditLineageRef,proto3" json:"audit_lineage_ref,omitempty"`
+	PolicyVerdictRef       string                                      `protobuf:"bytes,14,opt,name=policy_verdict_ref,json=policyVerdictRef,proto3" json:"policy_verdict_ref,omitempty"`
+	CreatedAt              *timestamppb.Timestamp                      `protobuf:"bytes,15,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	ExpiresAt              *timestamppb.Timestamp                      `protobuf:"bytes,16,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
+	CommitDisposition      RealmGroupMessageCandidateCommitDisposition `protobuf:"varint,17,opt,name=commit_disposition,json=commitDisposition,proto3,enum=nimi.runtime.v1.RealmGroupMessageCandidateCommitDisposition" json:"commit_disposition,omitempty"`
+	ProfileKind            string                                      `protobuf:"bytes,18,opt,name=profile_kind,json=profileKind,proto3" json:"profile_kind,omitempty"`
+	IdentitySource         string                                      `protobuf:"bytes,19,opt,name=identity_source,json=identitySource,proto3" json:"identity_source,omitempty"`
+	ParticipantRef         string                                      `protobuf:"bytes,20,opt,name=participant_ref,json=participantRef,proto3" json:"participant_ref,omitempty"`
+	ContextBlockRefs       []string                                    `protobuf:"bytes,21,rep,name=context_block_refs,json=contextBlockRefs,proto3" json:"context_block_refs,omitempty"`
+	OutputDestination      string                                      `protobuf:"bytes,22,opt,name=output_destination,json=outputDestination,proto3" json:"output_destination,omitempty"`
+	MemoryReadVerdict      string                                      `protobuf:"bytes,23,opt,name=memory_read_verdict,json=memoryReadVerdict,proto3" json:"memory_read_verdict,omitempty"`
+	MemoryWriteVerdict     string                                      `protobuf:"bytes,24,opt,name=memory_write_verdict,json=memoryWriteVerdict,proto3" json:"memory_write_verdict,omitempty"`
+	CapabilityScopeVerdict string                                      `protobuf:"bytes,25,opt,name=capability_scope_verdict,json=capabilityScopeVerdict,proto3" json:"capability_scope_verdict,omitempty"`
+	AuditId                string                                      `protobuf:"bytes,26,opt,name=audit_id,json=auditId,proto3" json:"audit_id,omitempty"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *RealmGroupMessageCandidateCommitHandle) Reset() {
@@ -381,6 +390,69 @@ func (x *RealmGroupMessageCandidateCommitHandle) GetCommitDisposition() RealmGro
 		return x.CommitDisposition
 	}
 	return RealmGroupMessageCandidateCommitDisposition_REALM_GROUP_MESSAGE_CANDIDATE_COMMIT_DISPOSITION_UNSPECIFIED
+}
+
+func (x *RealmGroupMessageCandidateCommitHandle) GetProfileKind() string {
+	if x != nil {
+		return x.ProfileKind
+	}
+	return ""
+}
+
+func (x *RealmGroupMessageCandidateCommitHandle) GetIdentitySource() string {
+	if x != nil {
+		return x.IdentitySource
+	}
+	return ""
+}
+
+func (x *RealmGroupMessageCandidateCommitHandle) GetParticipantRef() string {
+	if x != nil {
+		return x.ParticipantRef
+	}
+	return ""
+}
+
+func (x *RealmGroupMessageCandidateCommitHandle) GetContextBlockRefs() []string {
+	if x != nil {
+		return x.ContextBlockRefs
+	}
+	return nil
+}
+
+func (x *RealmGroupMessageCandidateCommitHandle) GetOutputDestination() string {
+	if x != nil {
+		return x.OutputDestination
+	}
+	return ""
+}
+
+func (x *RealmGroupMessageCandidateCommitHandle) GetMemoryReadVerdict() string {
+	if x != nil {
+		return x.MemoryReadVerdict
+	}
+	return ""
+}
+
+func (x *RealmGroupMessageCandidateCommitHandle) GetMemoryWriteVerdict() string {
+	if x != nil {
+		return x.MemoryWriteVerdict
+	}
+	return ""
+}
+
+func (x *RealmGroupMessageCandidateCommitHandle) GetCapabilityScopeVerdict() string {
+	if x != nil {
+		return x.CapabilityScopeVerdict
+	}
+	return ""
+}
+
+func (x *RealmGroupMessageCandidateCommitHandle) GetAuditId() string {
+	if x != nil {
+		return x.AuditId
+	}
+	return ""
 }
 
 type CreateRealmGroupMessageCandidateResponse struct {
@@ -544,31 +616,40 @@ func (x *GetRealmGroupMessageCandidateEvidenceRequest) GetTargetRealmGroupThread
 }
 
 type RealmGroupMessageCandidateEvidence struct {
-	state                 protoimpl.MessageState                      `protogen:"open.v1"`
-	CandidateId           string                                      `protobuf:"bytes,1,opt,name=candidate_id,json=candidateId,proto3" json:"candidate_id,omitempty"`
-	CandidateKind         string                                      `protobuf:"bytes,2,opt,name=candidate_kind,json=candidateKind,proto3" json:"candidate_kind,omitempty"`
-	RealmGroupThreadId    string                                      `protobuf:"bytes,3,opt,name=realm_group_thread_id,json=realmGroupThreadId,proto3" json:"realm_group_thread_id,omitempty"`
-	RealmGroupAgentSlotId string                                      `protobuf:"bytes,4,opt,name=realm_group_agent_slot_id,json=realmGroupAgentSlotId,proto3" json:"realm_group_agent_slot_id,omitempty"`
-	OwnerUserId           string                                      `protobuf:"bytes,5,opt,name=owner_user_id,json=ownerUserId,proto3" json:"owner_user_id,omitempty"`
-	RealmAgentId          string                                      `protobuf:"bytes,6,opt,name=realm_agent_id,json=realmAgentId,proto3" json:"realm_agent_id,omitempty"`
-	LocalAgentRef         string                                      `protobuf:"bytes,7,opt,name=local_agent_ref,json=localAgentRef,proto3" json:"local_agent_ref,omitempty"`
-	TriggerRef            string                                      `protobuf:"bytes,8,opt,name=trigger_ref,json=triggerRef,proto3" json:"trigger_ref,omitempty"`
-	OutputCandidateRef    string                                      `protobuf:"bytes,9,opt,name=output_candidate_ref,json=outputCandidateRef,proto3" json:"output_candidate_ref,omitempty"`
-	EvidenceHash          string                                      `protobuf:"bytes,10,opt,name=evidence_hash,json=evidenceHash,proto3" json:"evidence_hash,omitempty"`
-	RuntimeTraceRef       string                                      `protobuf:"bytes,11,opt,name=runtime_trace_ref,json=runtimeTraceRef,proto3" json:"runtime_trace_ref,omitempty"`
-	AuditLineageRef       string                                      `protobuf:"bytes,12,opt,name=audit_lineage_ref,json=auditLineageRef,proto3" json:"audit_lineage_ref,omitempty"`
-	PolicyVerdictRef      string                                      `protobuf:"bytes,13,opt,name=policy_verdict_ref,json=policyVerdictRef,proto3" json:"policy_verdict_ref,omitempty"`
-	CreatedAt             *timestamppb.Timestamp                      `protobuf:"bytes,14,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	ExpiresAt             *timestamppb.Timestamp                      `protobuf:"bytes,15,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
-	CommitDisposition     RealmGroupMessageCandidateCommitDisposition `protobuf:"varint,16,opt,name=commit_disposition,json=commitDisposition,proto3,enum=nimi.runtime.v1.RealmGroupMessageCandidateCommitDisposition" json:"commit_disposition,omitempty"`
-	MessageType           string                                      `protobuf:"bytes,17,opt,name=message_type,json=messageType,proto3" json:"message_type,omitempty"`
-	Body                  string                                      `protobuf:"bytes,18,opt,name=body,proto3" json:"body,omitempty"`
-	BodyHash              string                                      `protobuf:"bytes,19,opt,name=body_hash,json=bodyHash,proto3" json:"body_hash,omitempty"`
-	RefusalCode           string                                      `protobuf:"bytes,20,opt,name=refusal_code,json=refusalCode,proto3" json:"refusal_code,omitempty"`
-	RefusalReason         string                                      `protobuf:"bytes,21,opt,name=refusal_reason,json=refusalReason,proto3" json:"refusal_reason,omitempty"`
-	RefusalHash           string                                      `protobuf:"bytes,22,opt,name=refusal_hash,json=refusalHash,proto3" json:"refusal_hash,omitempty"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
+	state                  protoimpl.MessageState                      `protogen:"open.v1"`
+	CandidateId            string                                      `protobuf:"bytes,1,opt,name=candidate_id,json=candidateId,proto3" json:"candidate_id,omitempty"`
+	CandidateKind          string                                      `protobuf:"bytes,2,opt,name=candidate_kind,json=candidateKind,proto3" json:"candidate_kind,omitempty"`
+	RealmGroupThreadId     string                                      `protobuf:"bytes,3,opt,name=realm_group_thread_id,json=realmGroupThreadId,proto3" json:"realm_group_thread_id,omitempty"`
+	RealmGroupAgentSlotId  string                                      `protobuf:"bytes,4,opt,name=realm_group_agent_slot_id,json=realmGroupAgentSlotId,proto3" json:"realm_group_agent_slot_id,omitempty"`
+	OwnerUserId            string                                      `protobuf:"bytes,5,opt,name=owner_user_id,json=ownerUserId,proto3" json:"owner_user_id,omitempty"`
+	RealmAgentId           string                                      `protobuf:"bytes,6,opt,name=realm_agent_id,json=realmAgentId,proto3" json:"realm_agent_id,omitempty"`
+	LocalAgentRef          string                                      `protobuf:"bytes,7,opt,name=local_agent_ref,json=localAgentRef,proto3" json:"local_agent_ref,omitempty"`
+	TriggerRef             string                                      `protobuf:"bytes,8,opt,name=trigger_ref,json=triggerRef,proto3" json:"trigger_ref,omitempty"`
+	OutputCandidateRef     string                                      `protobuf:"bytes,9,opt,name=output_candidate_ref,json=outputCandidateRef,proto3" json:"output_candidate_ref,omitempty"`
+	EvidenceHash           string                                      `protobuf:"bytes,10,opt,name=evidence_hash,json=evidenceHash,proto3" json:"evidence_hash,omitempty"`
+	RuntimeTraceRef        string                                      `protobuf:"bytes,11,opt,name=runtime_trace_ref,json=runtimeTraceRef,proto3" json:"runtime_trace_ref,omitempty"`
+	AuditLineageRef        string                                      `protobuf:"bytes,12,opt,name=audit_lineage_ref,json=auditLineageRef,proto3" json:"audit_lineage_ref,omitempty"`
+	PolicyVerdictRef       string                                      `protobuf:"bytes,13,opt,name=policy_verdict_ref,json=policyVerdictRef,proto3" json:"policy_verdict_ref,omitempty"`
+	CreatedAt              *timestamppb.Timestamp                      `protobuf:"bytes,14,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	ExpiresAt              *timestamppb.Timestamp                      `protobuf:"bytes,15,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
+	CommitDisposition      RealmGroupMessageCandidateCommitDisposition `protobuf:"varint,16,opt,name=commit_disposition,json=commitDisposition,proto3,enum=nimi.runtime.v1.RealmGroupMessageCandidateCommitDisposition" json:"commit_disposition,omitempty"`
+	MessageType            string                                      `protobuf:"bytes,17,opt,name=message_type,json=messageType,proto3" json:"message_type,omitempty"`
+	Body                   string                                      `protobuf:"bytes,18,opt,name=body,proto3" json:"body,omitempty"`
+	BodyHash               string                                      `protobuf:"bytes,19,opt,name=body_hash,json=bodyHash,proto3" json:"body_hash,omitempty"`
+	RefusalCode            string                                      `protobuf:"bytes,20,opt,name=refusal_code,json=refusalCode,proto3" json:"refusal_code,omitempty"`
+	RefusalReason          string                                      `protobuf:"bytes,21,opt,name=refusal_reason,json=refusalReason,proto3" json:"refusal_reason,omitempty"`
+	RefusalHash            string                                      `protobuf:"bytes,22,opt,name=refusal_hash,json=refusalHash,proto3" json:"refusal_hash,omitempty"`
+	ProfileKind            string                                      `protobuf:"bytes,23,opt,name=profile_kind,json=profileKind,proto3" json:"profile_kind,omitempty"`
+	IdentitySource         string                                      `protobuf:"bytes,24,opt,name=identity_source,json=identitySource,proto3" json:"identity_source,omitempty"`
+	ParticipantRef         string                                      `protobuf:"bytes,25,opt,name=participant_ref,json=participantRef,proto3" json:"participant_ref,omitempty"`
+	ContextBlockRefs       []string                                    `protobuf:"bytes,26,rep,name=context_block_refs,json=contextBlockRefs,proto3" json:"context_block_refs,omitempty"`
+	OutputDestination      string                                      `protobuf:"bytes,27,opt,name=output_destination,json=outputDestination,proto3" json:"output_destination,omitempty"`
+	MemoryReadVerdict      string                                      `protobuf:"bytes,28,opt,name=memory_read_verdict,json=memoryReadVerdict,proto3" json:"memory_read_verdict,omitempty"`
+	MemoryWriteVerdict     string                                      `protobuf:"bytes,29,opt,name=memory_write_verdict,json=memoryWriteVerdict,proto3" json:"memory_write_verdict,omitempty"`
+	CapabilityScopeVerdict string                                      `protobuf:"bytes,30,opt,name=capability_scope_verdict,json=capabilityScopeVerdict,proto3" json:"capability_scope_verdict,omitempty"`
+	AuditId                string                                      `protobuf:"bytes,31,opt,name=audit_id,json=auditId,proto3" json:"audit_id,omitempty"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *RealmGroupMessageCandidateEvidence) Reset() {
@@ -755,6 +836,69 @@ func (x *RealmGroupMessageCandidateEvidence) GetRefusalHash() string {
 	return ""
 }
 
+func (x *RealmGroupMessageCandidateEvidence) GetProfileKind() string {
+	if x != nil {
+		return x.ProfileKind
+	}
+	return ""
+}
+
+func (x *RealmGroupMessageCandidateEvidence) GetIdentitySource() string {
+	if x != nil {
+		return x.IdentitySource
+	}
+	return ""
+}
+
+func (x *RealmGroupMessageCandidateEvidence) GetParticipantRef() string {
+	if x != nil {
+		return x.ParticipantRef
+	}
+	return ""
+}
+
+func (x *RealmGroupMessageCandidateEvidence) GetContextBlockRefs() []string {
+	if x != nil {
+		return x.ContextBlockRefs
+	}
+	return nil
+}
+
+func (x *RealmGroupMessageCandidateEvidence) GetOutputDestination() string {
+	if x != nil {
+		return x.OutputDestination
+	}
+	return ""
+}
+
+func (x *RealmGroupMessageCandidateEvidence) GetMemoryReadVerdict() string {
+	if x != nil {
+		return x.MemoryReadVerdict
+	}
+	return ""
+}
+
+func (x *RealmGroupMessageCandidateEvidence) GetMemoryWriteVerdict() string {
+	if x != nil {
+		return x.MemoryWriteVerdict
+	}
+	return ""
+}
+
+func (x *RealmGroupMessageCandidateEvidence) GetCapabilityScopeVerdict() string {
+	if x != nil {
+		return x.CapabilityScopeVerdict
+	}
+	return ""
+}
+
+func (x *RealmGroupMessageCandidateEvidence) GetAuditId() string {
+	if x != nil {
+		return x.AuditId
+	}
+	return ""
+}
+
 type GetRealmGroupMessageCandidateEvidenceResponse struct {
 	state         protoimpl.MessageState              `protogen:"open.v1"`
 	Evidence      *RealmGroupMessageCandidateEvidence `protobuf:"bytes,1,opt,name=evidence,proto3" json:"evidence,omitempty"`
@@ -822,7 +966,7 @@ const file_runtime_v1_agent_group_message_candidate_proto_rawDesc = "" +
 	"\fcontext_refs\x18\r \x03(\v2I.nimi.runtime.v1.CreateRealmGroupMessageCandidateRequest.ContextRefsEntryR\vcontextRefs\x1a>\n" +
 	"\x10ContextRefsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xe8\x06\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xf1\t\n" +
 	"&RealmGroupMessageCandidateCommitHandle\x12!\n" +
 	"\fcandidate_id\x18\x01 \x01(\tR\vcandidateId\x12%\n" +
 	"\x0ecandidate_kind\x18\x02 \x01(\tR\rcandidateKind\x124\n" +
@@ -844,7 +988,16 @@ const file_runtime_v1_agent_group_message_candidate_proto_rawDesc = "" +
 	"created_at\x18\x0f \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
 	"expires_at\x18\x10 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\x12k\n" +
-	"\x12commit_disposition\x18\x11 \x01(\x0e2<.nimi.runtime.v1.RealmGroupMessageCandidateCommitDispositionR\x11commitDisposition\"\x81\x01\n" +
+	"\x12commit_disposition\x18\x11 \x01(\x0e2<.nimi.runtime.v1.RealmGroupMessageCandidateCommitDispositionR\x11commitDisposition\x12!\n" +
+	"\fprofile_kind\x18\x12 \x01(\tR\vprofileKind\x12'\n" +
+	"\x0fidentity_source\x18\x13 \x01(\tR\x0eidentitySource\x12'\n" +
+	"\x0fparticipant_ref\x18\x14 \x01(\tR\x0eparticipantRef\x12,\n" +
+	"\x12context_block_refs\x18\x15 \x03(\tR\x10contextBlockRefs\x12-\n" +
+	"\x12output_destination\x18\x16 \x01(\tR\x11outputDestination\x12.\n" +
+	"\x13memory_read_verdict\x18\x17 \x01(\tR\x11memoryReadVerdict\x120\n" +
+	"\x14memory_write_verdict\x18\x18 \x01(\tR\x12memoryWriteVerdict\x128\n" +
+	"\x18capability_scope_verdict\x18\x19 \x01(\tR\x16capabilityScopeVerdict\x12\x19\n" +
+	"\baudit_id\x18\x1a \x01(\tR\aauditId\"\x81\x01\n" +
 	"(CreateRealmGroupMessageCandidateResponse\x12U\n" +
 	"\tcandidate\x18\x01 \x01(\v27.nimi.runtime.v1.RealmGroupMessageCandidateCommitHandleR\tcandidate\"\xa4\x04\n" +
 	",GetRealmGroupMessageCandidateEvidenceRequest\x12>\n" +
@@ -859,7 +1012,8 @@ const file_runtime_v1_agent_group_message_candidate_proto_rawDesc = "" +
 	"\vtrigger_ref\x18\t \x01(\tR\n" +
 	"triggerRef\x12>\n" +
 	"\x1ctarget_realm_group_thread_id\x18\n" +
-	" \x01(\tR\x18targetRealmGroupThreadId\"\xef\a\n" +
+	" \x01(\tR\x18targetRealmGroupThreadId\"\xf8\n" +
+	"\n" +
 	"\"RealmGroupMessageCandidateEvidence\x12!\n" +
 	"\fcandidate_id\x18\x01 \x01(\tR\vcandidateId\x12%\n" +
 	"\x0ecandidate_kind\x18\x02 \x01(\tR\rcandidateKind\x121\n" +
@@ -886,7 +1040,16 @@ const file_runtime_v1_agent_group_message_candidate_proto_rawDesc = "" +
 	"\tbody_hash\x18\x13 \x01(\tR\bbodyHash\x12!\n" +
 	"\frefusal_code\x18\x14 \x01(\tR\vrefusalCode\x12%\n" +
 	"\x0erefusal_reason\x18\x15 \x01(\tR\rrefusalReason\x12!\n" +
-	"\frefusal_hash\x18\x16 \x01(\tR\vrefusalHash\"\x80\x01\n" +
+	"\frefusal_hash\x18\x16 \x01(\tR\vrefusalHash\x12!\n" +
+	"\fprofile_kind\x18\x17 \x01(\tR\vprofileKind\x12'\n" +
+	"\x0fidentity_source\x18\x18 \x01(\tR\x0eidentitySource\x12'\n" +
+	"\x0fparticipant_ref\x18\x19 \x01(\tR\x0eparticipantRef\x12,\n" +
+	"\x12context_block_refs\x18\x1a \x03(\tR\x10contextBlockRefs\x12-\n" +
+	"\x12output_destination\x18\x1b \x01(\tR\x11outputDestination\x12.\n" +
+	"\x13memory_read_verdict\x18\x1c \x01(\tR\x11memoryReadVerdict\x120\n" +
+	"\x14memory_write_verdict\x18\x1d \x01(\tR\x12memoryWriteVerdict\x128\n" +
+	"\x18capability_scope_verdict\x18\x1e \x01(\tR\x16capabilityScopeVerdict\x12\x19\n" +
+	"\baudit_id\x18\x1f \x01(\tR\aauditId\"\x80\x01\n" +
 	"-GetRealmGroupMessageCandidateEvidenceResponse\x12O\n" +
 	"\bevidence\x18\x01 \x01(\v23.nimi.runtime.v1.RealmGroupMessageCandidateEvidenceR\bevidence*\xff\x01\n" +
 	"+RealmGroupMessageCandidateCommitDisposition\x12@\n" +

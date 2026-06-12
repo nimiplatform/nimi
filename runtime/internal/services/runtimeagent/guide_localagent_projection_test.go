@@ -74,16 +74,19 @@ func TestRuntimeAgentGuideProjectsAsOrdinaryLocalAgent(t *testing.T) {
 	}
 
 	// Idempotency gate (K-AGCORE-139 "one account-scoped LocalAgent projection
-	// ... idempotently"): re-init returns AlreadyExists, the ordinary gate.
-	_, err = svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+	// ... idempotently"): re-init is a typed no-op for the same LocalAgent.
+	reinitResp, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
 		Context:       guideCtx,
 		LocalAgentRef: wantLocalRef,
 		OwnerUserId:   ownerUserID,
 		RealmAgentId:  guideRealmAgentID,
 		DisplayName:   "Archivist",
 	})
-	if status.Code(err) != codes.AlreadyExists {
-		t.Fatalf("re-init guide: status = %s, want AlreadyExists (%v)", status.Code(err), err)
+	if err != nil {
+		t.Fatalf("re-init guide: %v", err)
+	}
+	if got := reinitResp.GetAgent().GetLocalAgentRef(); got != wantLocalRef {
+		t.Fatalf("re-init local_agent_ref = %q, want %q", got, wantLocalRef)
 	}
 
 	// Ordinary conversation anchor: opens through the same seam, no

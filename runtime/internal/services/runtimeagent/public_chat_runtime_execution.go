@@ -185,16 +185,29 @@ func (r publicChatRuntime) runTurn(
 		traceID = lastTraceID
 	}
 	if err != nil {
-		if interrupted || errors.Is(err, context.Canceled) {
+		if errors.Is(err, context.DeadlineExceeded) {
 			r.svc.finalizePublicChatTurnProjection(turn.TurnID, true, func(projection *publicChatTurnProjectionState) {
 				projection.Status = publicChatTurnStatusInterrupted
 				projection.TraceID = traceID
 				projection.ModelResolved = modelResolved
 				projection.RouteDecision = routeDecision
 				projection.ReasonCode = runtimev1.ReasonCode_AI_STREAM_BROKEN
-				projection.Message = firstNonEmpty(interruptReason, "interrupt_requested")
+				projection.Message = "timeout"
 			})
-			r.emitTurnInterrupted(session, turn, traceID, modelResolved, routeDecision, firstNonEmpty(interruptReason, "interrupt_requested"))
+			r.emitTurnInterrupted(session, turn, traceID, modelResolved, routeDecision, "timeout")
+			return
+		}
+		if interrupted || errors.Is(err, context.Canceled) {
+			reason := firstNonEmpty(interruptReason, "user_cancel")
+			r.svc.finalizePublicChatTurnProjection(turn.TurnID, true, func(projection *publicChatTurnProjectionState) {
+				projection.Status = publicChatTurnStatusInterrupted
+				projection.TraceID = traceID
+				projection.ModelResolved = modelResolved
+				projection.RouteDecision = routeDecision
+				projection.ReasonCode = runtimev1.ReasonCode_AI_STREAM_BROKEN
+				projection.Message = reason
+			})
+			r.emitTurnInterrupted(session, turn, traceID, modelResolved, routeDecision, reason)
 			return
 		}
 		failure := runtimeErrorDetailFromError(err)
@@ -211,15 +224,16 @@ func (r publicChatRuntime) runTurn(
 		return
 	}
 	if interrupted {
+		reason := firstNonEmpty(interruptReason, "user_cancel")
 		r.svc.finalizePublicChatTurnProjection(turn.TurnID, true, func(projection *publicChatTurnProjectionState) {
 			projection.Status = publicChatTurnStatusInterrupted
 			projection.TraceID = traceID
 			projection.ModelResolved = modelResolved
 			projection.RouteDecision = routeDecision
 			projection.ReasonCode = runtimev1.ReasonCode_AI_STREAM_BROKEN
-			projection.Message = firstNonEmpty(interruptReason, "interrupt_requested")
+			projection.Message = reason
 		})
-		r.emitTurnInterrupted(session, turn, traceID, modelResolved, routeDecision, firstNonEmpty(interruptReason, "interrupt_requested"))
+		r.emitTurnInterrupted(session, turn, traceID, modelResolved, routeDecision, reason)
 		return
 	}
 	if failed != nil {
@@ -317,8 +331,9 @@ func (r publicChatRuntime) runTurn(
 	// typed message text. It must never expose raw APML/model chunks.
 	if err := r.emitTurnEvent(session, turn.TurnID, publicChatTurnTextDeltaType, map[string]any{
 		"text": structured.Message.Text,
-	}); err != nil && r.svc.logger != nil {
-		r.svc.logger.Warn("emit public chat committed text_delta event failed", "agent_id", session.AgentID, "turn_id", turn.TurnID, "error", err)
+	}); err != nil {
+		r.failCommittedPublicChatTurn(session, turn, traceID, modelResolved, routeDecision, structured, usage, finish, runtimev1.ReasonCode_AI_STREAM_BROKEN, "emit public chat committed text_delta event failed: "+err.Error())
+		return
 	}
 	// Project committed runtime interpretation into state+presentation per
 	// K-AGCORE-037 / K-AGCORE-038 only after the commit point succeeds.
@@ -357,8 +372,9 @@ func (r publicChatRuntime) runTurn(
 	// chat_sidecar outcome, follow-up scheduling state, trace_id) lives on
 	// the unary public chat session snapshot `last_turn` only;
 	// canonical hook lifecycle remains on `runtime.agent.hook.*`.
-	if err := r.emitTurnEvent(session, turn.TurnID, publicChatTurnPostTurnType, publicChatPostTurnIndicationDetail(structured, postTurnOutcome.FollowUp)); err != nil && r.svc.logger != nil {
-		r.svc.logger.Warn("emit public chat post-turn event failed", "agent_id", session.AgentID, "turn_id", turn.TurnID, "error", err)
+	if err := r.emitTurnEvent(session, turn.TurnID, publicChatTurnPostTurnType, publicChatPostTurnIndicationDetail(structured, postTurnOutcome.FollowUp)); err != nil {
+		r.failCommittedPublicChatTurn(session, turn, traceID, modelResolved, routeDecision, structured, usage, finish, runtimev1.ReasonCode_AI_STREAM_BROKEN, "emit public chat post-turn event failed: "+err.Error())
+		return
 	}
 	r.svc.observeLatency("runtime.agent.turn.message_committed_to_post_turn_ms", messageCommitStartedAt,
 		"caller_app_id", session.CallerAppID,
@@ -394,8 +410,9 @@ func (r publicChatRuntime) runTurn(
 	// usage / finish_reason / stream_simulated / model_resolved /
 	// route_decision are runtime execution truth and live on
 	// the unary public chat session snapshot `last_turn` only.
-	if err := r.emitTurnEvent(session, turn.TurnID, publicChatTurnCompletedType, publicChatTurnCompletedDetail(finish.GetFinishReason())); err != nil && r.svc.logger != nil {
-		r.svc.logger.Warn("emit public chat completion failed", "agent_id", session.AgentID, "turn_id", turn.TurnID, "error", err)
+	if err := r.emitTurnEvent(session, turn.TurnID, publicChatTurnCompletedType, publicChatTurnCompletedDetail(finish.GetFinishReason())); err != nil {
+		r.failCommittedPublicChatTurn(session, turn, traceID, modelResolved, routeDecision, structured, usage, finish, runtimev1.ReasonCode_AI_STREAM_BROKEN, "emit public chat completion failed: "+err.Error())
+		return
 	}
 	r.svc.observeCounter("runtime_agent_turn_completed_total", 1,
 		"caller_app_id", session.CallerAppID,
@@ -419,4 +436,40 @@ func (r publicChatRuntime) runTurn(
 		"trace_id", traceID,
 		"finish_reason", finish.GetFinishReason().String(),
 	)
+}
+
+func (r publicChatRuntime) failCommittedPublicChatTurn(
+	session publicChatAnchorState,
+	turn publicChatTurnState,
+	traceID string,
+	modelResolved string,
+	routeDecision runtimev1.RoutePolicy,
+	structured *publicChatStructuredEnvelope,
+	usage *runtimev1.UsageStats,
+	finish *runtimev1.ScenarioStreamCompleted,
+	reasonCode runtimev1.ReasonCode,
+	message string,
+) {
+	r.svc.finalizePublicChatTurnProjection(turn.TurnID, true, func(projection *publicChatTurnProjectionState) {
+		projection.Status = publicChatTurnStatusFailed
+		projection.TraceID = traceID
+		projection.ModelResolved = modelResolved
+		projection.RouteDecision = routeDecision
+		projection.OutputObserved = true
+		if structured != nil {
+			projection.MessageID = structured.Message.MessageID
+			projection.AssistantText = structured.Message.Text
+			projection.Structured = clonePublicChatStructuredEnvelope(structured)
+		}
+		projection.ReasonCode = reasonCode
+		projection.Message = strings.TrimSpace(message)
+		if finish != nil {
+			projection.FinishReason = publicChatFinishReasonLabel(finish.GetFinishReason())
+			projection.StreamSimulated = finish.GetStreamSimulated()
+		}
+		if usage != nil {
+			projection.Usage = proto.Clone(usage).(*runtimev1.UsageStats)
+		}
+	})
+	r.emitTurnFailed(session, turn, traceID, modelResolved, routeDecision, reasonCode, message, "")
 }

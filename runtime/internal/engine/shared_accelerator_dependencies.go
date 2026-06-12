@@ -217,11 +217,11 @@ func verifiedSystemNVIDIACUDARuntimeRoot() (string, bool, string) {
 	}
 	for _, root := range systemNVIDIACUDARuntimeCandidates() {
 		if canonicalRoot, ok := verifiedNVIDIACUDARuntimeRoot(root); ok {
-			return canonicalRoot, true, ""
+			return canonicalRoot, false, "system CUDA user-space runtime candidates exist but runtime lacks admitted version, driver compatibility, and source identity proof"
 		}
 	}
 	if detectMediaCUDAReady() {
-		return "", false, "system CUDA signal exists but required CUDA user-space DLL set was not positively verified"
+		return "", false, "system CUDA signal exists but runtime lacks admitted CUDA user-space source identity proof"
 	}
 	return "", false, ""
 }
@@ -300,6 +300,9 @@ func artifactExistsCaseInsensitive(root string, artifactName string) (bool, erro
 }
 
 func installManagedNVIDIACUDAUserSpaceRuntime(ctx context.Context, dependenciesPath string, source sharedAcceleratorDependencyManagedSource) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	if strings.TrimSpace(source.InstallDirName) == "" {
 		return fmt.Errorf("managed CUDA dependency install dir name is required")
 	}
@@ -328,6 +331,9 @@ func installManagedNVIDIACUDAUserSpaceRuntime(ctx context.Context, dependenciesP
 	if archiveURL == "" {
 		return fmt.Errorf("managed CUDA dependency archive URL is required")
 	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	archiveName := filepath.Base(archiveURL)
 	if archiveName == "." || archiveName == "" {
 		archiveName = "payload.zip"
@@ -340,12 +346,18 @@ func installManagedNVIDIACUDAUserSpaceRuntime(ctx context.Context, dependenciesP
 	if expected := archiveSHA256; expected != "" && !strings.EqualFold(expected, archiveHash) {
 		return fmt.Errorf("%w: expected=%s actual=%s", ErrEngineBinaryHashMismatch, strings.ToLower(expected), archiveHash)
 	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	stagedDir := filepath.Join(tmpDir, "payload")
 	if err := os.MkdirAll(stagedDir, 0o755); err != nil {
 		return fmt.Errorf("create managed CUDA dependency staged dir: %w", err)
 	}
 	if err := extractManagedPayload(archivePath, stagedDir); err != nil {
 		return fmt.Errorf("extract managed CUDA dependency: %w", err)
+	}
+	if err := ctx.Err(); err != nil {
+		return err
 	}
 	for _, artifact := range nvidiaCUDAUserSpaceRuntimeRequiredArtifacts {
 		if ok, err := artifactExistsCaseInsensitive(stagedDir, artifact); err != nil {
@@ -354,14 +366,12 @@ func installManagedNVIDIACUDAUserSpaceRuntime(ctx context.Context, dependenciesP
 			return fmt.Errorf("managed CUDA dependency artifact missing: %s", artifact)
 		}
 	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	targetDir := filepath.Join(dependenciesPath, source.InstallDirName)
 	if err := installManagedBinaryPayload(targetDir, stagedDir); err != nil {
 		return fmt.Errorf("promote managed CUDA dependency: %w", err)
 	}
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	default:
-		return nil
-	}
+	return ctx.Err()
 }

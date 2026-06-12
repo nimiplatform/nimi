@@ -61,17 +61,51 @@ func TestRetainPublicSurfaceFailsClosedWithoutAppMemoryAdmission(t *testing.T) {
 		t.Fatalf("deny reason mismatch: got=%q want=%q", got, "apmem_scope_ambiguous")
 	}
 
-	// The denied write must not have committed anything: the admitted
-	// read pipeline over the same bank sees zero records.
-	historyResp, err := svc.History(ctx, &runtimev1.HistoryRequest{
+	// The denied write must not have committed anything. History is now gated
+	// by the same app-memory admission model, so this check inspects the
+	// substrate directly rather than using the public read surface as a bypass.
+	bankResp, err := svc.memorySvc.GetBank(ctx, &runtimev1.GetBankRequest{
+		Context: &runtimev1.MemoryRequestContext{AppId: "app-gate"},
+		Locator: locator,
+	})
+	if err != nil {
+		t.Fatalf("GetBank: %v", err)
+	}
+	items, err := svc.cognitionCore.MemoryService().List(memoryScopeID(bankResp.GetBank().GetBankId()))
+	if err != nil {
+		t.Fatalf("List substrate records: %v", err)
+	}
+	if len(items) != 0 {
+		t.Fatalf("denied retain leaked %d records into the bank", len(items))
+	}
+}
+
+func TestHistoryAndDeleteMemoryPublicSurfaceFailClosedWithoutAppMemoryAdmission(t *testing.T) {
+	svc, _, cleanup := newTestService(t)
+	defer cleanup()
+
+	locator := createGateTestBank(t, svc)
+	_, err := svc.History(context.Background(), &runtimev1.HistoryRequest{
 		Context: &runtimev1.MemoryRequestContext{AppId: "app-gate"},
 		Bank:    locator,
 	})
-	if err != nil {
-		t.Fatalf("History: %v", err)
+	if status.Code(err) != codes.PermissionDenied {
+		t.Fatalf("History: expected PermissionDenied, got %v", err)
 	}
-	if len(historyResp.GetRecords()) != 0 {
-		t.Fatalf("denied retain leaked %d records into the bank", len(historyResp.GetRecords()))
+	if got := status.Convert(err).Message(); got != "apmem_no_policy" {
+		t.Fatalf("History deny reason mismatch: got=%q want=%q", got, "apmem_no_policy")
+	}
+
+	_, err = svc.DeleteMemory(context.Background(), &runtimev1.DeleteMemoryRequest{
+		Context:   &runtimev1.MemoryRequestContext{AppId: "app-gate"},
+		Bank:      locator,
+		MemoryIds: []string{"memory-1"},
+	})
+	if status.Code(err) != codes.PermissionDenied {
+		t.Fatalf("DeleteMemory: expected PermissionDenied, got %v", err)
+	}
+	if got := status.Convert(err).Message(); got != "apmem_scope_ambiguous" {
+		t.Fatalf("DeleteMemory deny reason mismatch: got=%q want=%q", got, "apmem_scope_ambiguous")
 	}
 }
 

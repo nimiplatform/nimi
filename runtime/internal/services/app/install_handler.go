@@ -159,21 +159,32 @@ func (s *Service) ListAppInstallJobs(ctx context.Context, req *runtimev1.ListApp
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 	appID := strings.TrimSpace(req.GetAppId())
-	if appID != "" {
-		if err := s.requireAppLifecycleSession(ctx, appID); err != nil {
-			return nil, err
-		}
+	if appID == "" {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	if err := s.requireAppLifecycleSession(ctx, appID); err != nil {
+		return nil, err
 	}
 	return &runtimev1.ListAppInstallJobsResponse{Jobs: s.installJobs.listJobs(appID)}, nil
 }
 
-// WatchAppInstallJobEvents streams typed install job progress frames. An empty
-// job_id streams progress for every install job.
+// WatchAppInstallJobEvents streams typed install job progress frames for one
+// authorized install job.
 func (s *Service) WatchAppInstallJobEvents(req *runtimev1.WatchAppInstallJobEventsRequest, stream runtimev1.RuntimeAppService_WatchAppInstallJobEventsServer) error {
 	if req == nil {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 	jobID := strings.TrimSpace(req.GetJobId())
+	if jobID == "" {
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	job, ok := s.installJobs.getJob(jobID)
+	if !ok {
+		return grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_APP_INSTALL_DESCRIPTOR_NOT_FOUND)
+	}
+	if err := s.requireAppLifecycleSession(stream.Context(), job.GetAppId()); err != nil {
+		return err
+	}
 	sub := s.installJobs.subscribe(jobID)
 	defer s.installJobs.unsubscribe(sub.id)
 	return sub.relay.Run(stream.Context(), func(event *runtimev1.AppInstallJobEvent) error {

@@ -60,7 +60,7 @@ func (b *SQLiteBackend) ListKnowledgeCitationSources(scopeID string, targetKind 
 		return nil, err
 	}
 	switch targetKind {
-	case knowledge.CitationTargetKindKernelRule, knowledge.CitationTargetKindMemoryRecord:
+	case knowledge.CitationTargetKindMemoryRecord:
 	default:
 		return nil, fmt.Errorf("knowledge citation target kind %s is not admitted", targetKind)
 	}

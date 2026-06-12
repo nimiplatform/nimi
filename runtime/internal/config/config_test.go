@@ -686,12 +686,12 @@ func TestProviderEnvBindingsFollowProbeTargetFactSource(t *testing.T) {
 
 func TestResolveCloudProvidersIgnoresRegistryOnlyEnvWithoutProbeTarget(t *testing.T) {
 	clearRuntimeConfigEnv(t)
-	t.Setenv("NIMI_RUNTIME_CLOUD_OPENAI_API_KEY", "openai-key")
-	t.Setenv("NIMI_RUNTIME_CLOUD_OPENAI_BASE_URL", "https://api.openai.com/v1")
+	t.Setenv("NIMI_RUNTIME_CLOUD_ANTHROPIC_API_KEY", "anthropic-key")
+	t.Setenv("NIMI_RUNTIME_CLOUD_ANTHROPIC_BASE_URL", "https://api.anthropic.com/v1")
 
 	targets := ResolveCloudProviderTargets(nil)
 	for _, target := range targets {
-		if target.CanonicalID == "openai" {
+		if target.CanonicalID == "anthropic" {
 			t.Fatalf("registry-only provider env binding was admitted without probe-target fact source: %+v", target)
 		}
 	}

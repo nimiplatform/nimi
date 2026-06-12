@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 
+	cognitionpkg "github.com/nimiplatform/nimi/nimi-cognition/cognition"
 	cognitionknowledge "github.com/nimiplatform/nimi/nimi-cognition/knowledge"
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	grpcerr "github.com/nimiplatform/nimi/runtime/internal/grpcerr"
@@ -26,6 +27,7 @@ func (s *Service) IngestDocument(ctx context.Context, req *runtimev1.IngestDocum
 	if err != nil {
 		return nil, err
 	}
+	access := appAccessForAuthorizedKnowledge(ctx, KnowledgeActionIngest, req.GetContext(), scope, "runtime ingest knowledge document")
 	pageID := strings.TrimSpace(req.GetPageId())
 	if pageID == "" {
 		pageID = newULID()
@@ -46,7 +48,7 @@ func (s *Service) IngestDocument(ctx context.Context, req *runtimev1.IngestDocum
 		Title:  title,
 		Body:   mustMarshalJSON(storedKnowledgeBody{Content: content, Runtime: mustProtoJSON(runtimePage)}),
 	}
-	task, err := s.cognitionCore.KnowledgeService().IngestDocument(scope.ScopeID, env)
+	task, err := s.cognitionCore.AppMemoryAccessService().IngestKnowledge(ctx, access, scope.ScopeID, env)
 	if err != nil {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
@@ -90,22 +92,24 @@ func (s *Service) GetIngestTask(ctx context.Context, req *runtimev1.GetIngestTas
 		if err != nil {
 			return nil, err
 		}
-		task, err := s.cognitionCore.KnowledgeService().GetIngestTask(scope.ScopeID, taskID)
+		access := appAccessForAuthorizedKnowledge(ctx, KnowledgeActionReadBank, req.GetContext(), scope, "runtime get ingest task")
+		task, err := s.cognitionCore.AppMemoryAccessService().GetKnowledgeIngestTask(ctx, access, scope.ScopeID, taskID)
 		if err != nil {
 			return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_KNOWLEDGE_INGEST_TASK_NOT_FOUND)
 		}
-		return &runtimev1.GetIngestTaskResponse{Task: s.projectIngestTask(scope.ScopeID, task)}, nil
+		return &runtimev1.GetIngestTaskResponse{Task: s.projectIngestTask(ctx, access, scope.ScopeID, task)}, nil
 	}
 	scopes, err := s.listAuthorizedScopes(ctx, req.GetContext())
 	if err != nil {
 		return nil, err
 	}
 	for _, scope := range scopes {
-		task, err := s.cognitionCore.KnowledgeService().GetIngestTask(scope.ScopeID, taskID)
+		access := appAccessForAuthorizedKnowledge(ctx, KnowledgeActionReadBank, req.GetContext(), scope, "runtime scan ingest task")
+		task, err := s.cognitionCore.AppMemoryAccessService().GetKnowledgeIngestTask(ctx, access, scope.ScopeID, taskID)
 		if err != nil {
 			continue
 		}
-		return &runtimev1.GetIngestTaskResponse{Task: s.projectIngestTask(scope.ScopeID, task)}, nil
+		return &runtimev1.GetIngestTaskResponse{Task: s.projectIngestTask(ctx, access, scope.ScopeID, task)}, nil
 	}
 	return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_KNOWLEDGE_INGEST_TASK_NOT_FOUND)
 }
@@ -142,7 +146,7 @@ func cognitionTaskToRuntime(bankID string, task *cognitionknowledge.IngestTask) 
 	}
 }
 
-func (s *Service) projectIngestTask(bankID string, task *cognitionknowledge.IngestTask) *runtimev1.KnowledgeIngestTask {
+func (s *Service) projectIngestTask(ctx context.Context, access cognitionpkg.AppMemoryAccess, bankID string, task *cognitionknowledge.IngestTask) *runtimev1.KnowledgeIngestTask {
 	runtimeTask := cognitionTaskToRuntime(bankID, task)
 	if runtimeTask == nil {
 		return nil
@@ -159,7 +163,7 @@ func (s *Service) projectIngestTask(bankID string, task *cognitionknowledge.Inge
 		}
 	}
 	if runtimeTask.GetPageId() != "" && (runtimeTask.GetSlug() == "" || runtimeTask.GetTitle() == "") {
-		page, err := s.resolveKnowledgePage(bankID, bankID, runtimeTask.GetPageId(), "")
+		page, err := s.resolveKnowledgePage(ctx, access, bankID, bankID, runtimeTask.GetPageId(), "")
 		if err == nil && page != nil {
 			if runtimeTask.GetSlug() == "" {
 				runtimeTask.Slug = page.GetSlug()

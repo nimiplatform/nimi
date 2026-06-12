@@ -43,7 +43,7 @@ func (s *Service) executePythonUVEnvironmentDependencyJob(ctx context.Context, j
 		CompatibilityEvidence: []string{strings.TrimSpace(status.Detail), "asset=" + strings.TrimSpace(status.ArchiveAssetName), "platform=" + strings.TrimSpace(status.Platform)},
 		VerifiedArtifacts:     normalizeStringSlice([]string{strings.TrimSpace(status.ExecutablePath)}),
 		Hashes:                map[string]string{"archive_sha256": strings.TrimSpace(status.ArchiveSHA256)},
-		SelectedConsumers:     pythonSelectedConsumersForDependency(job.DependencyID),
+		SelectedConsumers:     pythonSelectedConsumersForJob(job),
 		AuditReasonCode:       "LOCAL_ENVIRONMENT_DEPENDENCY_READY_MANAGED",
 	}, nil
 }
@@ -98,7 +98,7 @@ func (s *Service) executePythonRuntimeEnvironmentDependencyJob(ctx context.Conte
 		CompatibilityEvidence: []string{strings.TrimSpace(status.Detail), "selected_uv_record=" + strings.TrimSpace(uvRecord.RecordID)},
 		VerifiedArtifacts:     normalizeStringSlice([]string{strings.TrimSpace(status.InterpreterPath), strings.TrimSpace(status.UVExecutable)}),
 		Hashes:                map[string]string{"selected_uv_record": strings.TrimSpace(uvRecord.RecordID)},
-		SelectedConsumers:     pythonSelectedConsumersForDependency(job.DependencyID),
+		SelectedConsumers:     pythonSelectedConsumersForJob(job),
 		AuditReasonCode:       "LOCAL_ENVIRONMENT_DEPENDENCY_READY_MANAGED",
 	}, nil
 }
@@ -164,7 +164,7 @@ func (s *Service) executePythonVenvEnvironmentDependencyJob(ctx context.Context,
 			"selected_uv_record":             strings.TrimSpace(uvRecord.RecordID),
 			"selected_python_runtime_record": strings.TrimSpace(runtimeRecord.RecordID),
 		},
-		SelectedConsumers: pythonSelectedConsumersForDependency(job.DependencyID),
+		SelectedConsumers: pythonSelectedConsumersForJob(job),
 		AuditReasonCode:   "LOCAL_ENVIRONMENT_DEPENDENCY_READY_MANAGED",
 	}, nil
 }
@@ -253,7 +253,7 @@ func (s *Service) executePythonPackageSetEnvironmentDependencyJob(ctx context.Co
 			"selected_uv_record":   strings.TrimSpace(uvRecord.RecordID),
 			"selected_venv_record": strings.TrimSpace(venvRecord.RecordID),
 		},
-		SelectedConsumers:  pythonSelectedConsumersForDependency(job.DependencyID),
+		SelectedConsumers:  pythonSelectedConsumersForJob(job),
 		ActivationEnvDelta: normalizeStringSlice(activationEnvDelta),
 		AuditReasonCode:    "LOCAL_ENVIRONMENT_DEPENDENCY_READY_MANAGED",
 	}, nil
@@ -346,7 +346,7 @@ func (s *Service) executePythonTorchWheelEnvironmentDependencyJob(ctx context.Co
 			strings.TrimSpace(status.TorchvisionSpec),
 		}),
 		Hashes:            hashes,
-		SelectedConsumers: pythonSelectedConsumersForDependency(job.DependencyID),
+		SelectedConsumers: pythonSelectedConsumersForJob(job),
 		AuditReasonCode:   "LOCAL_ENVIRONMENT_DEPENDENCY_READY_MANAGED",
 	}, nil
 }
@@ -380,6 +380,13 @@ func pythonSelectedConsumersForDependency(dependencyID string) []string {
 	default:
 		return []string{"python.pipeline"}
 	}
+}
+
+func pythonSelectedConsumersForJob(job localEnvironmentDependencyJobState) []string {
+	if consumer := pythonMaterializerConsumerForJob(job); strings.TrimSpace(consumer) != "" {
+		return []string{strings.TrimSpace(consumer)}
+	}
+	return pythonSelectedConsumersForDependency(job.DependencyID)
 }
 
 func pythonMaterializerConsumerForDependency(dependencyID string) string {

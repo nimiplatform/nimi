@@ -677,8 +677,8 @@ func TestStartPythonUVDependencyJobPromotesVerifiedSelectedSource(t *testing.T) 
 	if got := source.GetHashes()["archive_sha256"]; got != "c84629a56e0706b69a47ea35862208af827cb6fbfa1d0ca763c52c67594637e8" {
 		t.Fatalf("archive hash = %q, want pinned uv archive hash", got)
 	}
-	if got := source.GetSelectedConsumers(); !stringSliceContains(got, "media.diffusers.cuda") || !stringSliceContains(got, "speech.qwen3-tts.python") {
-		t.Fatalf("selected consumers = %v, want shared python consumers", got)
+	if got := source.GetSelectedConsumers(); len(got) != 1 || got[0] != "media.diffusers.cuda" {
+		t.Fatalf("selected consumers = %v, want media.diffusers.cuda", got)
 	}
 }
 

@@ -1,7 +1,6 @@
 package cognition
 
 import (
-	"context"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -17,7 +16,7 @@ import (
 func TestDeleteKnowledgeBankCascadeFromFacade(t *testing.T) {
 	svc, _, cleanup := newTestService(t)
 	defer cleanup()
-	ctx := context.Background()
+	ctx := testKnowledgeEnvelopeContext("app.s2-17")
 	reqCtx := &runtimev1.KnowledgeRequestContext{AppId: "app.s2-17"}
 	bankID := newAppPrivateBank(t, svc, "app.s2-17", "S2.17 Bank")
 

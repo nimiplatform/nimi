@@ -161,7 +161,7 @@ func kindFromBundleCapabilities(capabilities []string) runtimev1.LocalAssetKind 
 	return inferAssetKindFromCapabilities(normalized)
 }
 
-func normalizeExistingBundleManifest(sourceManifestPath string, managedManifestPath string, scan bundleDirectoryScan, identity bundleManifestIdentity) (map[string]any, error) {
+func normalizeExistingBundleManifest(sourceManifestPath string, managedManifestPath string, sourceDir string, scan bundleDirectoryScan, identity bundleManifestIdentity) (map[string]any, error) {
 	raw, err := os.ReadFile(sourceManifestPath)
 	if err != nil {
 		return nil, fmt.Errorf("read asset manifest: %w", err)
@@ -174,6 +174,11 @@ func normalizeExistingBundleManifest(sourceManifestPath string, managedManifestP
 		return nil, fmt.Errorf("bundle entry file is missing from disk: %s", identity.entry)
 	}
 	manifest["files"] = append([]string(nil), scan.files...)
+	hashes, err := bundleFileHashes(sourceDir, scan)
+	if err != nil {
+		return nil, err
+	}
+	manifest["hashes"] = hashes
 	manifest["source"] = map[string]any{
 		"repo":     bundleManifestRepo(managedManifestPath),
 		"revision": "local",
@@ -181,7 +186,7 @@ func normalizeExistingBundleManifest(sourceManifestPath string, managedManifestP
 	return manifest, nil
 }
 
-func scaffoldBundleManifest(manifestPath string, modelName string, capabilities []string, engine string, endpoint string, scan bundleDirectoryScan) (map[string]any, error) {
+func scaffoldBundleManifest(manifestPath string, modelName string, capabilities []string, engine string, endpoint string, sourceDir string, scan bundleDirectoryScan) (map[string]any, error) {
 	entry, err := requireSingleBundleEntry(scan)
 	if err != nil {
 		return nil, err
@@ -197,6 +202,10 @@ func scaffoldBundleManifest(manifestPath string, modelName string, capabilities 
 	}
 	assetID := "local-import/" + strings.TrimSpace(modelName)
 	normalizedEngine := defaultLocalEngine(strings.TrimSpace(engine), normalizedCapabilities)
+	hashes, err := bundleFileHashes(sourceDir, scan)
+	if err != nil {
+		return nil, err
+	}
 	manifest := map[string]any{
 		"schema_version":   "1.0.0",
 		"asset_id":         assetID,
@@ -212,12 +221,28 @@ func scaffoldBundleManifest(manifestPath string, modelName string, capabilities 
 			"revision": "local",
 		},
 		"integrity_mode": "local_unverified",
-		"hashes":         map[string]string{},
+		"hashes":         hashes,
 	}
 	if strings.TrimSpace(endpoint) != "" {
 		manifest["endpoint"] = strings.TrimSpace(endpoint)
 	}
 	return manifest, nil
+}
+
+func bundleFileHashes(sourceDir string, scan bundleDirectoryScan) (map[string]string, error) {
+	hashes := make(map[string]string, len(scan.files))
+	for _, file := range scan.files {
+		normalized := filepath.ToSlash(strings.TrimSpace(file))
+		if normalized == "" {
+			continue
+		}
+		hash, err := computeImportFileSHA256(filepath.Join(sourceDir, filepath.FromSlash(normalized)))
+		if err != nil {
+			return nil, fmt.Errorf("hash bundle file %s: %w", normalized, err)
+		}
+		hashes[normalized] = "sha256:" + hash
+	}
+	return hashes, nil
 }
 
 func writeBundleManifest(path string, manifest map[string]any) error {
@@ -339,7 +364,7 @@ func (s *Service) importLocalAssetBundleSync(ctx context.Context, transferID str
 			destDir = runtimeManagedPassiveAssetDir(modelsRoot, identity.assetID)
 		}
 		manifestPath = filepath.Join(destDir, localAssetManifestFileName)
-		manifest, err = normalizeExistingBundleManifest(sourceManifestPath, manifestPath, scan, identity)
+		manifest, err = normalizeExistingBundleManifest(sourceManifestPath, manifestPath, sourceDir, scan, identity)
 		if err != nil {
 			return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID, grpcerr.ReasonOptions{Message: err.Error()})
 		}
@@ -355,7 +380,7 @@ func (s *Service) importLocalAssetBundleSync(ctx context.Context, transferID str
 		logicalModelID = defaultLogicalModelID(assetID)
 		destDir = runtimeManagedResolvedModelDir(modelsRoot, logicalModelID)
 		manifestPath = filepath.Join(destDir, localAssetManifestFileName)
-		manifest, err = scaffoldBundleManifest(manifestPath, modelName, req.GetCapabilities(), req.GetEngine(), endpoint, scan)
+		manifest, err = scaffoldBundleManifest(manifestPath, modelName, req.GetCapabilities(), req.GetEngine(), endpoint, sourceDir, scan)
 		if err != nil {
 			return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID, grpcerr.ReasonOptions{Message: err.Error()})
 		}
@@ -465,9 +490,9 @@ func (s *Service) rescanLocalAssetBundleSync(ctx context.Context, transferID str
 	}
 	var manifest map[string]any
 	if fileExists(manifestPath) {
-		manifest, err = normalizeExistingBundleManifest(manifestPath, manifestPath, scan, identity)
+		manifest, err = normalizeExistingBundleManifest(manifestPath, manifestPath, bundleDir, scan, identity)
 	} else {
-		manifest, err = scaffoldBundleManifest(manifestPath, asset.GetAssetId(), asset.GetCapabilities(), asset.GetEngine(), asset.GetEndpoint(), scan)
+		manifest, err = scaffoldBundleManifest(manifestPath, asset.GetAssetId(), asset.GetCapabilities(), asset.GetEngine(), asset.GetEndpoint(), bundleDir, scan)
 	}
 	if err != nil {
 		return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID, grpcerr.ReasonOptions{Message: err.Error()})

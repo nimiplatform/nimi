@@ -191,6 +191,7 @@ func TestBackendGenerateImageUsesConfiguredCodexHostModel(t *testing.T) {
 				DefaultModel: "gpt-5.3-codex",
 			},
 		},
+		AllowLoopbackEndpoint: true,
 	}, nil, nil)
 	backend, toolModel := provider.ResolveMediaBackend("openai_codex/gpt-image-2")
 	if backend == nil {
@@ -207,6 +208,24 @@ func TestBackendGenerateImageUsesConfiguredCodexHostModel(t *testing.T) {
 	}
 	if got := strings.TrimSpace(ValueAsString(captured["model"])); got != "gpt-5.3-codex" {
 		t.Fatalf("expected configured codex host model, got=%q", got)
+	}
+}
+
+func TestMaterializeManagedMediaImageRejectsCallerControlledLocalInputs(t *testing.T) {
+	backend := NewBackend("local-managed-image", "https://example.com", "", time.Second)
+	if backend == nil {
+		t.Fatal("expected backend")
+	}
+	tempDir := t.TempDir()
+	for _, source := range []string{
+		"data:image/png;base64," + base64.StdEncoding.EncodeToString([]byte("png")),
+		"file:///etc/passwd",
+		"/etc/passwd",
+		`C:\Windows\win.ini`,
+	} {
+		if _, err := backend.materializeManagedMediaImage(context.Background(), source, tempDir, "ref"); err == nil {
+			t.Fatalf("expected source %q to fail closed", source)
+		}
 	}
 }
 

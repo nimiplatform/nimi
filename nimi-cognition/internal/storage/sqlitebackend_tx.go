@@ -305,7 +305,7 @@ func (b *SQLiteBackend) saveCommitTx(tx *sql.Tx, scopeID string, itemID string, 
 	}
 	if _, err := tx.Exec(`INSERT INTO kernel_commit (scope_id, commit_id, kernel_type, created_at, commit_json)
 		VALUES (?, ?, ?, ?, ?)
-		ON CONFLICT(commit_id) DO UPDATE SET
+		ON CONFLICT(scope_id, commit_id) DO UPDATE SET
 			kernel_type = excluded.kernel_type,
 			created_at = excluded.created_at,
 			commit_json = excluded.commit_json`,

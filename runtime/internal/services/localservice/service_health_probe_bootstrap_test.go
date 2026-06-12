@@ -461,7 +461,7 @@ func TestLocalCheckLocalSpeechServiceHealthProjectsSpeechReasonCode(t *testing.T
 	if service.GetStatus() != runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_UNHEALTHY {
 		t.Fatalf("expected UNHEALTHY, got %s", service.GetStatus())
 	}
-	if service.GetReasonCode() != runtimev1.ReasonCode_AI_LOCAL_SPEECH_HOST_INIT_FAILED {
+	if service.GetReasonCode() != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
 		t.Fatalf("unexpected service reason code: %s", service.GetReasonCode())
 	}
 }

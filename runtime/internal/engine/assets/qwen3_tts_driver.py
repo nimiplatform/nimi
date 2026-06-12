@@ -14,8 +14,6 @@ from typing import Any
 
 
 VOICE_DESIGN_PREFIX = "qwen3_tts:design:"
-VOICE_CLONE_PREFIX = "qwen3_tts:clone:"
-DEFAULT_TTS_MODEL = "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice"
 DEFAULT_MAX_NEW_TOKENS = 256
 
 _MODEL_CACHE: dict[tuple[str, str, str], Any] = {}
@@ -58,8 +56,8 @@ def decode_handle_payload(token: str) -> dict[str, Any]:
 def decode_voice_handle(value: str) -> tuple[str, dict[str, Any] | None]:
     if value.startswith(VOICE_DESIGN_PREFIX):
         return "design", decode_handle_payload(value[len(VOICE_DESIGN_PREFIX) :])
-    if value.startswith(VOICE_CLONE_PREFIX):
-        return "clone", decode_handle_payload(value[len(VOICE_CLONE_PREFIX) :])
+    if value.startswith("qwen3_tts:clone:"):
+        fail("qwen3_tts voice clone handles are not admitted without a runtime-owned opaque voice asset lifecycle")
     return "", None
 
 
@@ -208,7 +206,10 @@ def resolve_model_ref(request: dict[str, Any], cli_default: str) -> str:
     bundle_ref = local_bundle_model_ref(request)
     if bundle_ref:
         return bundle_ref
-    return str(cli_default or DEFAULT_TTS_MODEL).strip() or DEFAULT_TTS_MODEL
+    default_ref = str(cli_default or "").strip()
+    if default_ref:
+        return default_ref
+    fail("qwen3_tts model_ref is required from request, entry payload, managed bundle, or explicit --model")
 
 
 def qwen_tts_backend_name() -> str:
@@ -248,14 +249,7 @@ def materialize_model_ref(model_ref: str) -> str:
     if os.path.isdir(model_ref):
         _MODEL_PATH_CACHE[model_ref] = model_ref
         return model_ref
-    try:
-        from huggingface_hub import snapshot_download
-
-        resolved = snapshot_download(model_ref, cache_dir=resolve_hf_cache_dir())
-    except Exception as error:
-        fail(f"qwen3_tts snapshot download failed: {error}")
-    _MODEL_PATH_CACHE[model_ref] = resolved
-    return resolved
+    fail("qwen3_tts model_ref must resolve to a runtime-materialized local directory")
 
 
 def load_qwen_tts_model(model_ref: str):
@@ -291,7 +285,7 @@ def handle_preflight(model_ref: str) -> dict[str, Any]:
         "driver_family": "qwen3_tts",
         "driver_backend": qwen_tts_backend_name(),
         "model_ref": model_ref,
-        "supports": ["audio.synthesize", "voice_workflow.voice_design", "voice_workflow.voice_clone"],
+        "supports": ["audio.synthesize", "voice_workflow.voice_design"],
     }
     if version:
         response["qwen_tts_version"] = version
@@ -300,25 +294,6 @@ def handle_preflight(model_ref: str) -> dict[str, Any]:
 
 def normalized_speaker(value: str) -> str:
     return str(value or "").strip().lower().replace(" ", "_")
-
-
-def default_speaker(model: Any) -> str:
-    configured = normalized_speaker(str(os.environ.get("NIMI_RUNTIME_SPEECH_QWEN3_TTS_DEFAULT_SPEAKER") or ""))
-    if configured:
-        return configured
-    getter = getattr(model, "get_supported_speakers", None)
-    if getter is None:
-        return "serena"
-    try:
-        speakers = getter()
-    except Exception:
-        return "serena"
-    if isinstance(speakers, (list, tuple)):
-        for item in speakers:
-            speaker = normalized_speaker(str(item or ""))
-            if speaker:
-                return speaker
-    return "serena"
 
 
 def write_audio_artifact(wav: Any, sample_rate: int) -> tuple[str, str]:
@@ -364,28 +339,7 @@ def build_clone_handle(request: dict[str, Any]) -> dict[str, Any]:
     input_payload = request.get("input")
     if not isinstance(input_payload, dict):
         fail("voice_workflow.voice_clone requires input object")
-    reference_audio_base64 = require_string(input_payload, "reference_audio_base64")
-    handle = encode_voice_handle(
-        VOICE_CLONE_PREFIX,
-        {
-            "reference_audio_base64": reference_audio_base64,
-            "reference_audio_mime": optional_string(input_payload, "reference_audio_mime"),
-            "language_hints": input_payload.get("language_hints") if isinstance(input_payload.get("language_hints"), list) else [],
-            "preferred_name": optional_string(input_payload, "preferred_name"),
-            "text": optional_string(input_payload, "text"),
-            "target_model_id": optional_string(request, "target_model_id"),
-            "backend": qwen_tts_backend_name(),
-        },
-    )
-    return {
-        "voice_id": handle,
-        "metadata": {
-            "driver_family": "qwen3_tts",
-            "driver_backend": qwen_tts_backend_name(),
-            "handle_kind": "clone",
-            "preferred_name": optional_string(input_payload, "preferred_name"),
-        },
-    }
+    fail("qwen3_tts voice clone requires a runtime-owned opaque voice asset lifecycle before local handles are admitted")
 
 
 def model_mode(model_ref: str) -> str:
@@ -402,7 +356,7 @@ def synthesize_with_custom_voice(model: Any, request: dict[str, Any]) -> tuple[s
     language = normalized_language(optional_string(request, "language"))
     speaker = normalized_speaker(optional_string(request, "voice"))
     if speaker in {"", "user-custom", "default"}:
-        speaker = default_speaker(model)
+        fail("qwen3_tts synthesis requires an explicit admitted voice_ref or voice workflow handle")
     instruct = optional_string(request, "emotion")
     if not instruct and isinstance(request.get("extensions"), dict):
         instruct = optional_string(request["extensions"], "instruct")
@@ -443,58 +397,20 @@ def synthesize_with_design_handle(model: Any, request: dict[str, Any], handle_pa
     return write_audio_artifact(wavs[0], sample_rate)
 
 
-def synthesize_with_clone_handle(model: Any, request: dict[str, Any], handle_payload: dict[str, Any]) -> tuple[str, str]:
-    text = require_string(request, "input")
-    reference_audio_base64 = optional_string(handle_payload, "reference_audio_base64")
-    if not reference_audio_base64:
-        fail("voice clone handle missing reference_audio_base64")
-    ref_text = optional_string(handle_payload, "text")
-    language_hints = handle_payload.get("language_hints")
-    language = None
-    if isinstance(language_hints, list) and language_hints:
-        language = normalized_language(str(language_hints[0] or ""))
-    if language is None:
-        language = normalized_language(optional_string(request, "language"))
-    try:
-        audio_bytes = base64.b64decode(reference_audio_base64.encode("ascii"))
-    except Exception as error:
-        fail(f"voice clone handle audio invalid: {error}")
-    if not audio_bytes:
-        fail("voice clone handle reference audio is empty")
-    with tempfile.TemporaryDirectory(prefix="nimi-qwen3-tts-clone-") as temp_dir:
-        audio_path = pathlib.Path(temp_dir) / "reference.wav"
-        audio_path.write_bytes(audio_bytes)
-        try:
-            wavs, sample_rate = model.generate_voice_clone(
-                text=text,
-                language=language,
-                ref_audio=str(audio_path),
-                ref_text=ref_text or None,
-                x_vector_only_mode=not bool(ref_text),
-                max_new_tokens=max_new_tokens(),
-            )
-        except Exception as error:
-            fail(f"qwen3_tts voice clone generation failed: {error}")
-    if not wavs:
-        fail("qwen3_tts voice clone generation returned no audio")
-    return write_audio_artifact(wavs[0], sample_rate)
-
-
 def handle_synthesize(request: dict[str, Any], cli_default_model: str) -> dict[str, Any]:
     model_ref = resolve_model_ref(request, cli_default_model)
-    model = load_qwen_tts_model(model_ref)
     voice = optional_string(request, "voice")
     handle_kind, handle_payload = decode_voice_handle(voice) if voice else ("", None)
+    mode = model_mode(model_ref)
+    if handle_kind != "design":
+        if mode != "custom":
+            fail(f"qwen3_tts plain synthesis requires a voice workflow handle for model_ref={model_ref}")
+        if normalized_speaker(voice) in {"", "user-custom", "default"}:
+            fail("qwen3_tts synthesis requires an explicit admitted voice_ref or voice workflow handle")
+    model = load_qwen_tts_model(model_ref)
     if handle_kind == "design" and handle_payload is not None:
         audio_path, content_type = synthesize_with_design_handle(model, request, handle_payload)
         return {"audio_path": audio_path, "content_type": content_type}
-    if handle_kind == "clone" and handle_payload is not None:
-        audio_path, content_type = synthesize_with_clone_handle(model, request, handle_payload)
-        return {"audio_path": audio_path, "content_type": content_type}
-
-    mode = model_mode(model_ref)
-    if mode != "custom":
-        fail(f"qwen3_tts plain synthesis requires a voice workflow handle for model_ref={model_ref}")
     audio_path, content_type = synthesize_with_custom_voice(model, request)
     return {"audio_path": audio_path, "content_type": content_type}
 
@@ -517,7 +433,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--request", required=True)
     parser.add_argument("--response", required=True)
-    parser.add_argument("--model", default=DEFAULT_TTS_MODEL)
+    parser.add_argument("--model", default="")
     return parser.parse_args()
 
 
@@ -525,7 +441,7 @@ def main() -> int:
     args = parse_args()
     try:
         request = read_json(args.request)
-        response = handle_request(request, str(args.model).strip() or DEFAULT_TTS_MODEL)
+        response = handle_request(request, str(args.model).strip())
         write_json(args.response, response)
         return 0
     except Exception as error:

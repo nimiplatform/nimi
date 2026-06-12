@@ -156,6 +156,43 @@ func TestRuntimeAgentDelegatedCapabilityApprovalRequiredDoesNotExecute(t *testin
 	}
 }
 
+func TestRuntimeAgentDelegatedCapabilityApprovalStateFailsClosedOnPersistenceFailure(t *testing.T) {
+	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	if err := svc.backend.Close(); err != nil {
+		t.Fatalf("close backend: %v", err)
+	}
+
+	decision := runtimeAgentDelegatedCapabilityDecision{
+		DecisionID:           "delegated-persist-failure",
+		AgentID:              "agent-1",
+		ConversationAnchorID: "anchor-1",
+		TurnID:               "turn-1",
+		StreamID:             "stream-1",
+		ProviderID:           "provider-1",
+		CapabilityID:         "calendar.read",
+		ToolName:             "calendar_lookup",
+		FirewallVerdict:      delegation.FirewallVerdictApprovalRequired,
+		ReasonCode:           delegation.ReasonApprovalRequired,
+		RuntimeDecision:      "approval_required",
+		DecidedAt:            time.Now().UTC(),
+	}
+	err := svc.recordDelegatedCapabilityDecision(&decision)
+	if err == nil || !strings.Contains(err.Error(), "delegated approval state persistence failed") {
+		t.Fatalf("expected delegated approval persistence failure, got %v", err)
+	}
+	key := delegatedApprovalRequestKey("agent-1", "delegated-persist-failure")
+	svc.delegatedMu.Lock()
+	approval := svc.delegatedApprovalRequests[key]
+	paused := svc.delegatedPausedRequests[key]
+	svc.delegatedMu.Unlock()
+	if approval != nil || paused != nil {
+		t.Fatalf("approval-required state must roll back after persistence failure, approval=%+v paused=%+v", approval, paused)
+	}
+	if records := svc.delegatedCapabilityDecisionAuditSnapshot(); len(records) != 0 {
+		t.Fatalf("failed approval-required decision must not publish committed audit state, got=%+v", records)
+	}
+}
+
 func TestRuntimeAgentDelegatedCapabilityPreinvokeApprovalDoesNotCallProvider(t *testing.T) {
 	gateway := &fakeDelegatedGateway{out: cleanRuntimeAgentDelegatedEvidence(t)}
 	firewall := &fakeDelegatedFirewall{out: &delegation.FirewallDecision{
@@ -214,7 +251,7 @@ func TestRuntimeAgentDelegatedCapabilityResumeExecutesApprovedPausedRequest(t *t
 			TrustTier:         runtimev1.DelegatedProviderTrustTier_DELEGATED_PROVIDER_TRUST_TIER_CONTROLLED_LOCAL,
 			AllowedTools: []*runtimev1.DelegatedToolAllowlistEntry{{
 				ToolName:          "calendar_lookup",
-				EffectClass: runtimev1.EffectClass_EFFECT_CLASS_READ_ONLY,
+				EffectClass:       runtimev1.EffectClass_EFFECT_CLASS_READ_ONLY,
 				InputSchemaDigest: "sha256:descriptor",
 			}},
 			TransportRef: "runtime-transport://controlled-provider",
@@ -272,13 +309,13 @@ func TestRuntimeAgentDelegatedCapabilityResumeExecutesApprovedPausedRequest(t *t
 		Context:           testDelegatedControlContext(),
 		AgentId:           "agent-1",
 		ApprovalRequestId: approvalID,
-		Decision:          runtimev1.DelegatedApprovalDecision_DELEGATED_APPROVAL_DECISION_APPROVE,
+		Decision:          runtimev1.DelegatedApprovalDecision_DELEGATED_APPROVAL_DECISION_APPROVED_ONCE,
 		DecisionReason:    "user approved",
 	})
 	if err != nil {
 		t.Fatalf("SubmitDelegatedApprovalDecision: %v", err)
 	}
-	if approved.GetApprovalRequest().GetState() != runtimev1.DelegatedApprovalRequestState_DELEGATED_APPROVAL_REQUEST_STATE_APPROVED {
+	if approved.GetApprovalRequest().GetState() != runtimev1.DelegatedApprovalRequestState_DELEGATED_APPROVAL_REQUEST_STATE_APPROVED_ONCE {
 		t.Fatalf("approval state mismatch: %+v", approved.GetApprovalRequest())
 	}
 	resumed, err := svc.ResumeDelegatedCapability(context.Background(), &runtimev1.ResumeDelegatedCapabilityRequest{
@@ -302,7 +339,7 @@ func TestRuntimeAgentDelegatedCapabilityResumeExecutesApprovedPausedRequest(t *t
 	if !strings.Contains(string(modelOutput), "calendar has three events tomorrow") {
 		t.Fatalf("model output did not expose firewall-normalized result: %s", modelOutput)
 	}
-	if resumed.GetApprovalRequest().GetState() != runtimev1.DelegatedApprovalRequestState_DELEGATED_APPROVAL_REQUEST_STATE_APPROVED {
+	if resumed.GetApprovalRequest().GetState() != runtimev1.DelegatedApprovalRequestState_DELEGATED_APPROVAL_REQUEST_STATE_APPROVED_ONCE {
 		t.Fatalf("resume did not return approved request lineage: %+v", resumed.GetApprovalRequest())
 	}
 	_, err = svc.ResumeDelegatedCapability(context.Background(), &runtimev1.ResumeDelegatedCapabilityRequest{
@@ -370,7 +407,7 @@ func TestRuntimeAgentDelegatedCapabilityPostFirewallApprovalResumeUsesCachedOutp
 		Context:           testDelegatedControlContext(),
 		AgentId:           "agent-1",
 		ApprovalRequestId: approvalID,
-		Decision:          runtimev1.DelegatedApprovalDecision_DELEGATED_APPROVAL_DECISION_APPROVE,
+		Decision:          runtimev1.DelegatedApprovalDecision_DELEGATED_APPROVAL_DECISION_APPROVED_ONCE,
 	}); err != nil {
 		t.Fatalf("SubmitDelegatedApprovalDecision: %v", err)
 	}
@@ -442,7 +479,7 @@ func TestRuntimeAgentDelegatedCapabilityResumeFailureKeepsPausedRequestRetryable
 		Context:           testDelegatedControlContext(),
 		AgentId:           "agent-1",
 		ApprovalRequestId: approvalID,
-		Decision:          runtimev1.DelegatedApprovalDecision_DELEGATED_APPROVAL_DECISION_APPROVE,
+		Decision:          runtimev1.DelegatedApprovalDecision_DELEGATED_APPROVAL_DECISION_APPROVED_ONCE,
 	}); err != nil {
 		t.Fatalf("SubmitDelegatedApprovalDecision: %v", err)
 	}
@@ -478,6 +515,8 @@ func TestRuntimeAgentDelegatedControlStatePersistsApprovedPausedRequestAcrossRes
 	svc, closeFn := newRuntimeAgentServiceForPublicChatStatePathWithClose(t, localStatePath)
 	agentID := testRuntimeAgentLocalRef("agent-alpha")
 	ctx := testRuntimeAgentIdentityContext("agent-alpha")
+	ctx.ScopedBinding = delegatedControlScopedBinding("binding-delegated-persisted-paused", agentID)
+	installDelegatedControlScopedBindingValidator(svc, "binding-delegated-persisted-paused", agentID)
 	svc.SetAuditStore(auditlog.New(128, 128))
 	svc.chatSurfaceMu.Lock()
 	svc.chatAnchors["anchor-1"] = &publicChatAnchorState{
@@ -505,7 +544,7 @@ func TestRuntimeAgentDelegatedControlStatePersistsApprovedPausedRequestAcrossRes
 			TrustTier:         runtimev1.DelegatedProviderTrustTier_DELEGATED_PROVIDER_TRUST_TIER_USER_ADDED_REVIEWED,
 			AllowedTools: []*runtimev1.DelegatedToolAllowlistEntry{{
 				ToolName:          "calendar_lookup",
-				EffectClass: runtimev1.EffectClass_EFFECT_CLASS_READ_ONLY,
+				EffectClass:       runtimev1.EffectClass_EFFECT_CLASS_READ_ONLY,
 				InputSchemaDigest: "sha256:descriptor",
 			}},
 			TransportRef: "runtime-transport://calendar-mcp",
@@ -550,7 +589,7 @@ func TestRuntimeAgentDelegatedControlStatePersistsApprovedPausedRequestAcrossRes
 		Context:           ctx,
 		AgentId:           agentID,
 		ApprovalRequestId: approvalID,
-		Decision:          runtimev1.DelegatedApprovalDecision_DELEGATED_APPROVAL_DECISION_APPROVE,
+		Decision:          runtimev1.DelegatedApprovalDecision_DELEGATED_APPROVAL_DECISION_APPROVED_ONCE,
 	}); err != nil {
 		t.Fatalf("SubmitDelegatedApprovalDecision: %v", err)
 	}
@@ -558,6 +597,7 @@ func TestRuntimeAgentDelegatedControlStatePersistsApprovedPausedRequestAcrossRes
 
 	restarted, restartClose := newRuntimeAgentServiceForPublicChatStatePathWithClose(t, localStatePath)
 	defer restartClose()
+	installDelegatedControlScopedBindingValidator(restarted, "binding-delegated-persisted-paused", agentID)
 	restarted.SetAuditStore(auditlog.New(128, 128))
 	restartGateway := &fakeDelegatedGateway{out: cleanRuntimeAgentDelegatedEvidence(t)}
 	restartFirewall := &fakeDelegatedFirewall{out: &delegation.FirewallDecision{
@@ -567,7 +607,7 @@ func TestRuntimeAgentDelegatedControlStatePersistsApprovedPausedRequestAcrossRes
 	restarted.SetDelegatedCapabilityRuntime(restartGateway, restartFirewall)
 	if approvals := restarted.listDelegatedApprovalRequests(agentID, "anchor-1"); len(approvals) != 1 ||
 		approvals[0].GetApprovalRequestId() != approvalID ||
-		approvals[0].GetState() != runtimev1.DelegatedApprovalRequestState_DELEGATED_APPROVAL_REQUEST_STATE_APPROVED {
+		approvals[0].GetState() != runtimev1.DelegatedApprovalRequestState_DELEGATED_APPROVAL_REQUEST_STATE_APPROVED_ONCE {
 		t.Fatalf("restart did not restore approved request: %+v", approvals)
 	}
 	resumed, err := restarted.ResumeDelegatedCapability(context.Background(), &runtimev1.ResumeDelegatedCapabilityRequest{
@@ -796,7 +836,7 @@ func TestRuntimeAgentExecuteDelegatedCapabilityUsesControlSurfaceProfileAndRunti
 			TrustTier:         runtimev1.DelegatedProviderTrustTier_DELEGATED_PROVIDER_TRUST_TIER_CONTROLLED_LOCAL,
 			AllowedTools: []*runtimev1.DelegatedToolAllowlistEntry{{
 				ToolName:          "echo",
-				EffectClass: runtimev1.EffectClass_EFFECT_CLASS_READ_ONLY,
+				EffectClass:       runtimev1.EffectClass_EFFECT_CLASS_READ_ONLY,
 				InputSchemaDigest: descriptorHash,
 			}},
 			TransportRef: "runtime-transport://controlled-mcp",

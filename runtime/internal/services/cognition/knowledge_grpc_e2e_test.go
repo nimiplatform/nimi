@@ -12,6 +12,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/config"
 	grpcerr "github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
 	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -24,8 +25,8 @@ func TestRuntimeKnowledgeGRPCE2EAppPrivateLifecycle(t *testing.T) {
 	h := startKnowledgeGRPCHarness(t, config.Config{LocalStatePath: filepath.Join(t.TempDir(), "local-state.json")})
 	defer h.close()
 
-	ctx := context.Background()
 	reqCtx := &runtimev1.KnowledgeRequestContext{AppId: "app.g3"}
+	ctx := testKnowledgeGRPCContext(reqCtx.GetAppId())
 	createResp, err := h.client.CreateKnowledgeBank(ctx, &runtimev1.CreateKnowledgeBankRequest{
 		Context: reqCtx,
 		Locator: &runtimev1.PublicKnowledgeBankLocator{
@@ -165,8 +166,8 @@ func TestRuntimeKnowledgeGRPCE2EAppPrivateLifecycle(t *testing.T) {
 
 func TestRuntimeKnowledgeGRPCE2ERestartDurability(t *testing.T) {
 	cfg := config.Config{LocalStatePath: filepath.Join(t.TempDir(), "local-state.json")}
-	ctx := context.Background()
 	reqCtx := &runtimev1.KnowledgeRequestContext{AppId: "app.g3.restart"}
+	ctx := testKnowledgeGRPCContext(reqCtx.GetAppId())
 
 	h := startKnowledgeGRPCHarness(t, cfg)
 	createResp, err := h.client.CreateKnowledgeBank(ctx, &runtimev1.CreateKnowledgeBankRequest{
@@ -239,7 +240,7 @@ func TestRuntimeKnowledgeGRPCE2EWorkspacePrivateDeny(t *testing.T) {
 	h := startKnowledgeGRPCHarness(t, config.Config{LocalStatePath: filepath.Join(t.TempDir(), "local-state.json")})
 	defer h.close()
 
-	ctx := context.Background()
+	ctx := testKnowledgeGRPCContext("app.grpc")
 	scope, err := h.svc.cognitionCore.KnowledgeScopeRegistry().CreateKnowledgeScope(ctx, cognitionpkg.KnowledgeScopeDescriptor{
 		Owner:       cognitionpkg.KnowledgeScopeOwner{Kind: cognitionpkg.KnowledgeScopeOwnerKindWorkspace, WorkspaceID: "ws.grpc"},
 		DisplayName: "Workspace gRPC Bank",
@@ -314,7 +315,13 @@ func startKnowledgeGRPCHarness(t *testing.T, cfg config.Config) *knowledgeGRPCHa
 		t.Fatalf("cognition.New: %v", err)
 	}
 	listener := bufconn.Listen(1024 * 1024)
-	server := grpc.NewServer()
+	server := grpc.NewServer(grpc.UnaryInterceptor(func(ctx context.Context, req any, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
+		meta, err := envelope.Validate(ctx, req, false)
+		if err != nil {
+			return nil, err
+		}
+		return handler(envelope.WithMetadata(ctx, meta), req)
+	}))
 	runtimev1.RegisterRuntimeCognitionServiceServer(server, svc)
 	go func() {
 		_ = server.Serve(listener)
@@ -365,7 +372,7 @@ func (h *knowledgeGRPCHarness) close() {
 
 func putKnowledgePageGRPC(t *testing.T, client runtimev1.RuntimeCognitionServiceClient, reqCtx *runtimev1.KnowledgeRequestContext, bankID, slug, title, content string) *runtimev1.KnowledgePage {
 	t.Helper()
-	resp, err := client.PutPage(context.Background(), &runtimev1.PutPageRequest{
+	resp, err := client.PutPage(testKnowledgeGRPCContext(reqCtx.GetAppId()), &runtimev1.PutPageRequest{
 		Context: reqCtx,
 		BankId:  bankID,
 		Slug:    slug,
@@ -387,7 +394,7 @@ func waitKnowledgeIngestCompletedGRPC(t *testing.T, client runtimev1.RuntimeCogn
 	var last *runtimev1.GetIngestTaskResponse
 	var lastErr error
 	for time.Now().Before(deadline) {
-		resp, err := client.GetIngestTask(context.Background(), &runtimev1.GetIngestTaskRequest{Context: reqCtx, TaskId: taskID})
+		resp, err := client.GetIngestTask(testKnowledgeGRPCContext(reqCtx.GetAppId()), &runtimev1.GetIngestTaskRequest{Context: reqCtx, TaskId: taskID})
 		if err == nil {
 			last = resp
 			if resp.GetTask().GetStatus() == runtimev1.KnowledgeIngestTaskStatus_KNOWLEDGE_INGEST_TASK_STATUS_COMPLETED {

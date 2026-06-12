@@ -67,7 +67,7 @@ func collectPassingTestsOnce() (map[string]bool, int, error) {
 	if waitErr := cmd.Wait(); waitErr != nil {
 		var exitErr *exec.ExitError
 		if errors.As(waitErr, &exitErr) {
-			return passed, malformedEvents, nil
+			return passed, malformedEvents, fmt.Errorf("collectPassingTestsOnce go test exited nonzero: %w", waitErr)
 		}
 		return nil, malformedEvents, fmt.Errorf("collectPassingTestsOnce wait go test: %w", waitErr)
 	}

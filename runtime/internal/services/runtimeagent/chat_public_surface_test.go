@@ -562,7 +562,7 @@ func TestPublicChatTurnRequestInjectsRuntimePreTurnMemoryContext(t *testing.T) {
 					},
 				},
 				SourceEventId: "pre-turn-memory-seed",
-				Extensions:    completePromotionEvidenceWithSourceProfile(t, "canonical_agent_chat"),
+				Extensions:    completePromotionEvidenceWithSourceProfile(t, svc, "canonical_agent_chat"),
 				Record: &runtimev1.MemoryRecordInput{
 					Kind:           runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_OBSERVATIONAL,
 					CanonicalClass: runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_DYADIC,
@@ -633,7 +633,6 @@ func TestPublicChatTurnRequestInjectsRuntimePreTurnMemoryContext(t *testing.T) {
 			"conversation_anchor_id": anchorID,
 			"request_id":             "desktop-turn-memory-context",
 			"thread_id":              "thread-memory-context",
-			"system_prompt":          "You are Alpha.",
 			"messages": []any{
 				map[string]any{"role": "user", "content": "Can you help with cartography?"},
 			},
@@ -918,11 +917,8 @@ func TestPublicChatTurnRequestStreamsAndAppliesPostTurnEffects(t *testing.T) {
 	if err != nil {
 		t.Fatalf("QueryAgentMemory: %v", err)
 	}
-	if len(memoryResp.GetMemories()) == 0 {
-		t.Fatal("expected runtime public chat to write dyadic assistant memory")
-	}
-	if got := memoryResp.GetMemories()[0].GetRecord().GetPayload().(*runtimev1.MemoryRecord_Observational).Observational.GetObservation(); got != "hello from runtime" {
-		t.Fatalf("unexpected dyadic memory observation: %q", got)
+	if len(memoryResp.GetMemories()) != 0 {
+		t.Fatalf("public chat must not auto-write dyadic assistant memory without committed verdict evidence, got=%d", len(memoryResp.GetMemories()))
 	}
 	snapshot := requestPublicChatSessionSnapshot(t, svc, capture, anchorID, "snapshot-committed-transcript")
 	snapshotDetail := publicChatSessionSnapshotDetail(t, snapshot)
@@ -1046,6 +1042,95 @@ func TestPublicChatTurnMessageCommitFailureFailsClosed(t *testing.T) {
 	}
 	if got := lastTurn["reason_code"]; got != runtimev1.ReasonCode_AI_STREAM_BROKEN.String() {
 		t.Fatalf("expected snapshot last_turn.reason_code=AI_STREAM_BROKEN, got=%v", lastTurn)
+	}
+	waitForPublicChatAgentIdle(t, svc, "agent-alpha")
+}
+
+func TestPublicChatCompletedEmissionFailureFinalizesFailed(t *testing.T) {
+	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
+	capture := newPublicChatEmitCapture()
+	svc.SetPublicChatAppEmitter(func(ctx context.Context, req *runtimev1.SendAppMessageRequest) (*runtimev1.SendAppMessageResponse, error) {
+		if req.GetMessageType() == publicChatTurnCompletedType {
+			return nil, fmt.Errorf("completion delivery rejected")
+		}
+		return capture.emit(ctx, req)
+	})
+	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
+	svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{
+		stream: func(_ context.Context, _ *PublicChatTurnExecutionRequest, emit func(*runtimev1.StreamScenarioEvent) error) error {
+			if err := emit(&runtimev1.StreamScenarioEvent{
+				EventType: runtimev1.StreamEventType_STREAM_EVENT_STARTED,
+				TraceId:   "trace-completion-failure",
+				Payload: &runtimev1.StreamScenarioEvent_Started{
+					Started: &runtimev1.ScenarioStreamStarted{ModelResolved: "qwen3-chat", RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL},
+				},
+			}); err != nil {
+				return err
+			}
+			if err := emit(&runtimev1.StreamScenarioEvent{
+				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
+				TraceId:   "trace-completion-failure",
+				Payload: &runtimev1.StreamScenarioEvent_Delta{
+					Delta: &runtimev1.ScenarioStreamDelta{
+						Delta: &runtimev1.ScenarioStreamDelta_Text{
+							Text: &runtimev1.TextStreamDelta{Text: publicChatStructuredEnvelopeAPML("message-completion-failure", "committed but completion delivery fails")},
+						},
+					},
+				},
+			}); err != nil {
+				return err
+			}
+			return emit(&runtimev1.StreamScenarioEvent{
+				EventType: runtimev1.StreamEventType_STREAM_EVENT_COMPLETED,
+				TraceId:   "trace-completion-failure",
+				Payload: &runtimev1.StreamScenarioEvent_Completed{
+					Completed: &runtimev1.ScenarioStreamCompleted{FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP},
+				},
+			})
+		},
+	})
+	err := svc.ConsumePublicChatAppMessage(context.Background(), &runtimev1.AppMessageEvent{
+		ToAppId:       publicChatRuntimeAppID,
+		FromAppId:     "desktop.app",
+		SubjectUserId: "user-1",
+		MessageType:   publicChatTurnRequestType,
+		Payload: publicChatStructPayload(t, map[string]any{
+			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
+			"owner_user_id":          "user-1",
+			"realm_agent_id":         "agent-alpha",
+			"conversation_anchor_id": anchorID,
+			"messages": []any{
+				map[string]any{"role": "user", "content": "hello"},
+			},
+			"execution_binding": map[string]any{
+				"route":    "local",
+				"model_id": "local/default",
+			},
+		}),
+	})
+	if err != nil {
+		t.Fatalf("ConsumePublicChatAppMessage(request): %v", err)
+	}
+	_ = capture.waitForMessageType(t, publicChatTurnAcceptedType)
+	_ = capture.waitForMessageType(t, publicChatTurnStartedType)
+	_ = capture.waitForMessageType(t, publicChatTurnStructuredType)
+	_ = capture.waitForMessageType(t, publicChatTurnMessageCommittedType)
+	_ = capture.waitForMessageType(t, publicChatTurnPostTurnType)
+	failed := capture.waitForMessageType(t, publicChatTurnFailedType)
+	failedDetail := publicChatTurnDetail(t, failed)
+	if got := failedDetail["reason_code"]; got != runtimev1.ReasonCode_AI_STREAM_BROKEN.String() {
+		t.Fatalf("expected AI_STREAM_BROKEN failed.detail.reason_code, got=%v", failedDetail)
+	}
+	for _, messageType := range capture.messageTypes() {
+		if messageType == publicChatTurnCompletedType {
+			t.Fatalf("completion delivery failure must not capture completed event; emitted=%v", capture.messageTypes())
+		}
+	}
+	snapshot := requestPublicChatSessionSnapshot(t, svc, capture, anchorID, "snapshot-completion-failure")
+	lastTurn := publicChatLastTurnSnapshot(t, snapshot)
+	if got := lastTurn["status"]; got != publicChatTurnStatusFailed {
+		t.Fatalf("expected failed last_turn after completion delivery failure, got=%v", lastTurn)
 	}
 	waitForPublicChatAgentIdle(t, svc, "agent-alpha")
 }

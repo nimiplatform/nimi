@@ -34,8 +34,9 @@ func (r agentAdminRuntime) initialize(ctx context.Context, req *runtimev1.Initia
 	// gate; a re-add after removal re-materializes from an absent ref.
 	r.svc.mu.RLock()
 	if existing := r.svc.agents[localAgentRef]; existing != nil {
+		agent := cloneAgentRecord(existing.Agent)
 		r.svc.mu.RUnlock()
-		return nil, status.Error(codes.AlreadyExists, "agent already exists")
+		return &runtimev1.InitializeAgentResponse{Agent: agent}, nil
 	}
 	r.svc.mu.RUnlock()
 

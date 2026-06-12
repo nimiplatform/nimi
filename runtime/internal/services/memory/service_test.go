@@ -481,6 +481,66 @@ func TestMemoryServiceRetainSemanticDedupNormalizesCaseAndWhitespace(t *testing.
 	}
 }
 
+func TestMemoryServicePublicBankAccessRejectsRuntimeOwnedCanonicalScopes(t *testing.T) {
+	t.Parallel()
+
+	svc, err := New(nil, config.Config{
+		LocalStatePath:       filepath.Join(t.TempDir(), "local-state.json"),
+		AIHTTPTimeoutSeconds: 2,
+	})
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	closeMemoryServiceForTest(t, svc)
+
+	ctx := context.Background()
+	canonical := &runtimev1.MemoryBankLocator{
+		Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
+		Owner: &runtimev1.MemoryBankLocator_AgentCore{
+			AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: "agent-public-denied"},
+		},
+	}
+	if _, err := svc.EnsureCanonicalBank(ctx, canonical, "Agent Memory", nil); err != nil {
+		t.Fatalf("EnsureCanonicalBank: %v", err)
+	}
+	appResp, err := svc.CreateBank(ctx, &runtimev1.CreateBankRequest{
+		Context: &runtimev1.MemoryRequestContext{AppId: "app.test"},
+		Locator: &runtimev1.PublicMemoryBankLocator{
+			Locator: &runtimev1.PublicMemoryBankLocator_AppPrivate{
+				AppPrivate: &runtimev1.AppPrivateBankOwner{AccountId: "acct-1", AppId: "app.test"},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("CreateBank: %v", err)
+	}
+
+	if _, err := svc.GetBank(ctx, &runtimev1.GetBankRequest{Locator: canonical}); err != nil {
+		t.Fatalf("internal GetBank canonical: %v", err)
+	}
+	if _, err := svc.GetBank(ctx, &runtimev1.GetBankRequest{
+		Context: &runtimev1.MemoryRequestContext{AppId: "app.test", SubjectUserId: "user-1"},
+		Locator: canonical,
+	}); status.Code(err) != codes.PermissionDenied {
+		t.Fatalf("public GetBank canonical code=%v err=%v, want PermissionDenied", status.Code(err), err)
+	}
+	if _, err := svc.ListBanks(ctx, &runtimev1.ListBanksRequest{
+		Context:      &runtimev1.MemoryRequestContext{AppId: "app.test", SubjectUserId: "user-1"},
+		ScopeFilters: []runtimev1.MemoryBankScope{runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE},
+	}); status.Code(err) != codes.PermissionDenied {
+		t.Fatalf("public ListBanks canonical filter code=%v err=%v, want PermissionDenied", status.Code(err), err)
+	}
+	listResp, err := svc.ListBanks(ctx, &runtimev1.ListBanksRequest{
+		Context: &runtimev1.MemoryRequestContext{AppId: "app.test", SubjectUserId: "user-1"},
+	})
+	if err != nil {
+		t.Fatalf("public ListBanks: %v", err)
+	}
+	if len(listResp.GetBanks()) != 1 || listResp.GetBanks()[0].GetBankId() != appResp.GetBank().GetBankId() {
+		t.Fatalf("public ListBanks must only return direct app-accessible banks, got=%v", listResp.GetBanks())
+	}
+}
+
 func TestMemoryServiceRetainSemanticDedupDoesNotRunForNullProfileBanks(t *testing.T) {
 	t.Parallel()
 

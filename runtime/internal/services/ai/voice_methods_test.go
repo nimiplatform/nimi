@@ -39,7 +39,7 @@ func (p staticProvider) Embed(context.Context, string, []string) ([]*structpb.Li
 
 func TestListPresetVoicesReturnsCatalogVoices(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudProviders: map[string]nimillm.ProviderCredentials{"dashscope": {BaseURL: "http://example.com", APIKey: "test-key"}},
+		CloudProviders: map[string]nimillm.ProviderCredentials{"dashscope": {BaseURL: "https://example.com", APIKey: "test-key"}},
 	})
 
 	resp, err := svc.ListPresetVoices(context.Background(), &runtimev1.ListPresetVoicesRequest{
@@ -63,7 +63,7 @@ func TestListPresetVoicesReturnsCatalogVoices(t *testing.T) {
 
 func TestListPresetVoicesInfersProviderTypeForCloudAlias(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudProviders: map[string]nimillm.ProviderCredentials{"stepfun": {BaseURL: "http://example.com", APIKey: "test-key"}},
+		CloudProviders: map[string]nimillm.ProviderCredentials{"stepfun": {BaseURL: "https://example.com", APIKey: "test-key"}},
 	})
 
 	resp, err := svc.ListPresetVoices(context.Background(), &runtimev1.ListPresetVoicesRequest{
@@ -92,7 +92,7 @@ func TestPresetVoiceCatalogProviderTypeNormalizesLocalSpeechProviderType(t *test
 func TestVoiceAssetMethodsLifecycle(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		CloudProviders: map[string]nimillm.ProviderCredentials{
-			"dashscope": {BaseURL: "http://example.com", APIKey: "test-key"},
+			"dashscope": {BaseURL: "https://example.com", APIKey: "test-key"},
 		},
 	})
 
@@ -129,7 +129,7 @@ func TestVoiceAssetMethodsLifecycle(t *testing.T) {
 		t.Fatalf("voice asset id must be set")
 	}
 
-	getResp, err := svc.GetVoiceAsset(context.Background(), &runtimev1.GetVoiceAssetRequest{VoiceAssetId: assetID})
+	getResp, err := svc.GetVoiceAsset(ctx, &runtimev1.GetVoiceAssetRequest{VoiceAssetId: assetID})
 	if err != nil {
 		t.Fatalf("GetVoiceAsset: %v", err)
 	}
@@ -149,7 +149,7 @@ func TestVoiceAssetMethodsLifecycle(t *testing.T) {
 		t.Fatalf("expected at least one voice asset")
 	}
 
-	deleteResp, err := svc.DeleteVoiceAsset(context.Background(), &runtimev1.DeleteVoiceAssetRequest{VoiceAssetId: assetID})
+	deleteResp, err := svc.DeleteVoiceAsset(ctx, &runtimev1.DeleteVoiceAssetRequest{VoiceAssetId: assetID})
 	if err != nil {
 		t.Fatalf("DeleteVoiceAsset: %v", err)
 	}
@@ -157,12 +157,39 @@ func TestVoiceAssetMethodsLifecycle(t *testing.T) {
 		t.Fatalf("delete voice asset ack must be ok")
 	}
 
-	getAfterDelete, err := svc.GetVoiceAsset(context.Background(), &runtimev1.GetVoiceAssetRequest{VoiceAssetId: assetID})
+	getAfterDelete, err := svc.GetVoiceAsset(ctx, &runtimev1.GetVoiceAssetRequest{VoiceAssetId: assetID})
 	if err != nil {
 		t.Fatalf("GetVoiceAsset(after delete): %v", err)
 	}
 	if getAfterDelete.GetAsset().GetStatus() != runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_DELETED {
 		t.Fatalf("asset status mismatch after delete: got=%v", getAfterDelete.GetAsset().GetStatus())
+	}
+}
+
+func TestVoiceAssetGetAndDeleteRequireOwnerContext(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+
+	const assetID = "asset-owner-scope-1"
+	svc.voiceAssets.assets[assetID] = &runtimev1.VoiceAsset{
+		VoiceAssetId:  assetID,
+		AppId:         "owner.app",
+		SubjectUserId: "owner-user",
+		Provider:      "local",
+		Persistence:   runtimev1.VoiceAssetPersistence_VOICE_ASSET_PERSISTENCE_SESSION_EPHEMERAL,
+		Status:        runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE,
+	}
+
+	if _, err := svc.GetVoiceAsset(context.Background(), &runtimev1.GetVoiceAssetRequest{VoiceAssetId: assetID}); status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("GetVoiceAsset without owner context code=%v err=%v, want InvalidArgument", status.Code(err), err)
+	}
+	if _, err := svc.GetVoiceAsset(scenarioJobUserContext("intruder.app", "owner-user"), &runtimev1.GetVoiceAssetRequest{VoiceAssetId: assetID}); status.Code(err) != codes.PermissionDenied {
+		t.Fatalf("GetVoiceAsset cross-app code=%v err=%v, want PermissionDenied", status.Code(err), err)
+	}
+	if _, err := svc.DeleteVoiceAsset(scenarioJobUserContext("owner.app", "intruder-user"), &runtimev1.DeleteVoiceAssetRequest{VoiceAssetId: assetID}); status.Code(err) != codes.PermissionDenied {
+		t.Fatalf("DeleteVoiceAsset cross-user code=%v err=%v, want PermissionDenied", status.Code(err), err)
+	}
+	if _, err := svc.GetVoiceAsset(scenarioJobUserContext("owner.app", "owner-user"), &runtimev1.GetVoiceAssetRequest{VoiceAssetId: assetID}); err != nil {
+		t.Fatalf("GetVoiceAsset owner context: %v", err)
 	}
 }
 
@@ -188,15 +215,18 @@ func TestDeleteVoiceAssetDeletesProviderPersistentVoiceWhenSupported(t *testing.
 	})
 
 	const assetID = "asset-elevenlabs-1"
+	ctx := scenarioJobUserContext("nimi.desktop", "user-001")
 	svc.voiceAssets.assets[assetID] = &runtimev1.VoiceAsset{
 		VoiceAssetId:     assetID,
+		AppId:            "nimi.desktop",
+		SubjectUserId:    "user-001",
 		Provider:         "elevenlabs",
 		ProviderVoiceRef: "voice_123",
 		Persistence:      runtimev1.VoiceAssetPersistence_VOICE_ASSET_PERSISTENCE_PROVIDER_PERSISTENT,
 		Status:           runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE,
 	}
 
-	deleteResp, err := svc.DeleteVoiceAsset(context.Background(), &runtimev1.DeleteVoiceAssetRequest{VoiceAssetId: assetID})
+	deleteResp, err := svc.DeleteVoiceAsset(ctx, &runtimev1.DeleteVoiceAssetRequest{VoiceAssetId: assetID})
 	if err != nil {
 		t.Fatalf("DeleteVoiceAsset: %v", err)
 	}
@@ -212,7 +242,7 @@ func TestDeleteVoiceAssetDeletesProviderPersistentVoiceWhenSupported(t *testing.
 	if gotAPIKey != "test-key" {
 		t.Fatalf("unexpected provider delete api key: %q", gotAPIKey)
 	}
-	getAfterDelete, err := svc.GetVoiceAsset(context.Background(), &runtimev1.GetVoiceAssetRequest{VoiceAssetId: assetID})
+	getAfterDelete, err := svc.GetVoiceAsset(ctx, &runtimev1.GetVoiceAssetRequest{VoiceAssetId: assetID})
 	if err != nil {
 		t.Fatalf("GetVoiceAsset(after delete): %v", err)
 	}
@@ -253,15 +283,18 @@ func TestDeleteVoiceAssetDeletesFishAudioProviderModelWhenSupported(t *testing.T
 	})
 
 	const assetID = "asset-fish-1"
+	ctx := scenarioJobUserContext("nimi.desktop", "user-001")
 	svc.voiceAssets.assets[assetID] = &runtimev1.VoiceAsset{
 		VoiceAssetId:     assetID,
+		AppId:            "nimi.desktop",
+		SubjectUserId:    "user-001",
 		Provider:         "fish_audio",
 		ProviderVoiceRef: "model_123",
 		Persistence:      runtimev1.VoiceAssetPersistence_VOICE_ASSET_PERSISTENCE_PROVIDER_PERSISTENT,
 		Status:           runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE,
 	}
 
-	deleteResp, err := svc.DeleteVoiceAsset(context.Background(), &runtimev1.DeleteVoiceAssetRequest{VoiceAssetId: assetID})
+	deleteResp, err := svc.DeleteVoiceAsset(ctx, &runtimev1.DeleteVoiceAssetRequest{VoiceAssetId: assetID})
 	if err != nil {
 		t.Fatalf("DeleteVoiceAsset: %v", err)
 	}
@@ -283,8 +316,11 @@ func TestDeleteVoiceAssetMarksLocalRuntimeAuthoritativeDeleteMetadata(t *testing
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 
 	const assetID = "asset-local-qwen3-1"
+	ctx := scenarioJobUserContext("nimi.desktop", "user-001")
 	svc.voiceAssets.assets[assetID] = &runtimev1.VoiceAsset{
 		VoiceAssetId:  assetID,
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
 		Provider:      "local",
 		ModelId:       "speech/qwen3tts",
 		TargetModelId: "speech/qwen3tts",
@@ -297,10 +333,10 @@ func TestDeleteVoiceAssetMarksLocalRuntimeAuthoritativeDeleteMetadata(t *testing
 		}),
 	}
 
-	if _, err := svc.DeleteVoiceAsset(context.Background(), &runtimev1.DeleteVoiceAssetRequest{VoiceAssetId: assetID}); err != nil {
+	if _, err := svc.DeleteVoiceAsset(ctx, &runtimev1.DeleteVoiceAssetRequest{VoiceAssetId: assetID}); err != nil {
 		t.Fatalf("DeleteVoiceAsset(local): %v", err)
 	}
-	getAfterDelete, err := svc.GetVoiceAsset(context.Background(), &runtimev1.GetVoiceAssetRequest{VoiceAssetId: assetID})
+	getAfterDelete, err := svc.GetVoiceAsset(ctx, &runtimev1.GetVoiceAssetRequest{VoiceAssetId: assetID})
 	if err != nil {
 		t.Fatalf("GetVoiceAsset(after local delete): %v", err)
 	}
@@ -345,6 +381,7 @@ func TestDeleteVoiceAssetProviderFailureMarksPendingReconciliationAndRetryClears
 	svc.audit = auditlog.New(128, 128)
 
 	const assetID = "asset-elevenlabs-reconcile-1"
+	ctx := scenarioJobUserContext("nimi.desktop", "user-001")
 	svc.voiceAssets.assets[assetID] = &runtimev1.VoiceAsset{
 		VoiceAssetId:     assetID,
 		AppId:            "nimi.desktop",
@@ -359,14 +396,17 @@ func TestDeleteVoiceAssetProviderFailureMarksPendingReconciliationAndRetryClears
 		}),
 	}
 
-	if _, err := svc.DeleteVoiceAsset(context.Background(), &runtimev1.DeleteVoiceAssetRequest{VoiceAssetId: assetID}); err != nil {
-		t.Fatalf("DeleteVoiceAsset(first retryable failure): %v", err)
+	if _, err := svc.DeleteVoiceAsset(ctx, &runtimev1.DeleteVoiceAssetRequest{VoiceAssetId: assetID}); status.Code(err) != codes.Unavailable {
+		t.Fatalf("DeleteVoiceAsset(first retryable failure) code=%v err=%v, want Unavailable", status.Code(err), err)
 	}
-	firstDelete, err := svc.GetVoiceAsset(context.Background(), &runtimev1.GetVoiceAssetRequest{VoiceAssetId: assetID})
+	firstDelete, err := svc.GetVoiceAsset(ctx, &runtimev1.GetVoiceAssetRequest{VoiceAssetId: assetID})
 	if err != nil {
 		t.Fatalf("GetVoiceAsset(after first delete): %v", err)
 	}
 	firstFields := firstDelete.GetAsset().GetMetadata().GetFields()
+	if firstDelete.GetAsset().GetStatus() != runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE {
+		t.Fatalf("provider delete failure must not locally delete asset, status=%v", firstDelete.GetAsset().GetStatus())
+	}
 	if !firstFields["provider_delete_attempted"].GetBoolValue() {
 		t.Fatalf("expected provider_delete_attempted after failure")
 	}
@@ -389,10 +429,10 @@ func TestDeleteVoiceAssetProviderFailureMarksPendingReconciliationAndRetryClears
 		t.Fatalf("expected provider_delete_last_error after failure")
 	}
 
-	if _, err := svc.DeleteVoiceAsset(context.Background(), &runtimev1.DeleteVoiceAssetRequest{VoiceAssetId: assetID}); err != nil {
+	if _, err := svc.DeleteVoiceAsset(ctx, &runtimev1.DeleteVoiceAssetRequest{VoiceAssetId: assetID}); err != nil {
 		t.Fatalf("DeleteVoiceAsset(second retry success): %v", err)
 	}
-	secondDelete, err := svc.GetVoiceAsset(context.Background(), &runtimev1.GetVoiceAssetRequest{VoiceAssetId: assetID})
+	secondDelete, err := svc.GetVoiceAsset(ctx, &runtimev1.GetVoiceAssetRequest{VoiceAssetId: assetID})
 	if err != nil {
 		t.Fatalf("GetVoiceAsset(after second delete): %v", err)
 	}
@@ -423,20 +463,28 @@ func TestDeleteVoiceAssetProviderFailureMarksPendingReconciliationAndRetryClears
 	if len(events.GetEvents()) != 2 {
 		t.Fatalf("expected 2 delete audit events, got %d", len(events.GetEvents()))
 	}
-	firstEvent := events.GetEvents()[0]
-	if got := firstEvent.GetOperation(); got != "voice_asset.delete" {
-		t.Fatalf("operation=%q", got)
+	var failedEvent *runtimev1.AuditEventRecord
+	var successEvent *runtimev1.AuditEventRecord
+	for _, event := range events.GetEvents() {
+		switch event.GetOperation() {
+		case "voice_asset.delete_failed":
+			failedEvent = event
+		case "voice_asset.delete":
+			successEvent = event
+		}
 	}
-	firstPayload := firstEvent.GetPayload().GetFields()
-	if !firstPayload["provider_delete_succeeded"].GetBoolValue() {
-		t.Fatalf("expected second delete audit to record success")
+	if failedEvent == nil || successEvent == nil {
+		t.Fatalf("expected failed and success delete audit events, got=%v", events.GetEvents())
 	}
-	secondEvent := events.GetEvents()[1]
-	secondPayload := secondEvent.GetPayload().GetFields()
-	if secondPayload["provider_delete_succeeded"].GetBoolValue() {
+	successPayload := successEvent.GetPayload().GetFields()
+	if !successPayload["provider_delete_succeeded"].GetBoolValue() {
+		t.Fatalf("expected successful delete audit to record success")
+	}
+	failedPayload := failedEvent.GetPayload().GetFields()
+	if failedPayload["provider_delete_succeeded"].GetBoolValue() {
 		t.Fatalf("expected first delete audit to record failure")
 	}
-	if !secondPayload["provider_delete_reconciliation_pending"].GetBoolValue() {
+	if !failedPayload["provider_delete_reconciliation_pending"].GetBoolValue() {
 		t.Fatalf("expected first delete audit to record pending reconciliation")
 	}
 }

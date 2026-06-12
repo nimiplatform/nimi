@@ -40,7 +40,7 @@ func TestSearchCatalogModelsMergesVerifiedAndHuggingFaceSorted(t *testing.T) {
 	}
 
 	resp, err := svc.SearchCatalogModels(context.Background(), &runtimev1.SearchCatalogModelsRequest{
-		Query: "",
+		Query: "a",
 	})
 	if err != nil {
 		t.Fatalf("search catalog models: %v", err)
@@ -92,7 +92,7 @@ func TestSearchCatalogModelsDedupesByModelAndEngine(t *testing.T) {
 		}, nil
 	}
 
-	resp, err := svc.SearchCatalogModels(context.Background(), &runtimev1.SearchCatalogModelsRequest{})
+	resp, err := svc.SearchCatalogModels(context.Background(), &runtimev1.SearchCatalogModelsRequest{Query: "llama"})
 	if err != nil {
 		t.Fatalf("search catalog models: %v", err)
 	}
@@ -175,6 +175,41 @@ func TestSearchCatalogModelsPassesHFRequestShape(t *testing.T) {
 	}
 	if captured.Limit != 7 {
 		t.Fatalf("hf limit mismatch: got=%d want=7", captured.Limit)
+	}
+}
+
+func TestSearchCatalogModelsRejectsEmptyQueryBeforeExternalSearch(t *testing.T) {
+	svc := newTestService(t)
+	called := false
+	svc.hfCatalogSearch = func(_ context.Context, _ hfCatalogSearchRequest) ([]*runtimev1.LocalCatalogModelDescriptor, error) {
+		called = true
+		return nil, nil
+	}
+	_, err := svc.SearchCatalogModels(context.Background(), &runtimev1.SearchCatalogModelsRequest{PageSize: 500})
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("expected InvalidArgument for empty query, got %v", err)
+	}
+	if called {
+		t.Fatal("empty query must fail before external catalog search")
+	}
+}
+
+func TestSearchCatalogModelsClampsPageSizeBeforeExternalSearch(t *testing.T) {
+	svc := newTestService(t)
+	captured := hfCatalogSearchRequest{}
+	svc.hfCatalogSearch = func(_ context.Context, req hfCatalogSearchRequest) ([]*runtimev1.LocalCatalogModelDescriptor, error) {
+		captured = req
+		return nil, nil
+	}
+	_, err := svc.SearchCatalogModels(context.Background(), &runtimev1.SearchCatalogModelsRequest{
+		Query:    "llama",
+		PageSize: 500,
+	})
+	if err != nil {
+		t.Fatalf("search catalog models: %v", err)
+	}
+	if captured.Limit != 200 {
+		t.Fatalf("hf limit = %d, want 200", captured.Limit)
 	}
 }
 

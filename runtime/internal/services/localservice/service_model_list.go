@@ -115,6 +115,14 @@ func (s *Service) SearchCatalogModels(ctx context.Context, req *runtimev1.Search
 	capability := strings.ToLower(strings.TrimSpace(req.GetCapability()))
 	categoryFilter := strings.ToLower(strings.TrimSpace(req.GetCategoryFilter()))
 	engineFilter := strings.ToLower(strings.TrimSpace(req.GetEngineFilter()))
+	if query == "" {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	}
+	pageSize := normalizeCatalogSearchPageSize(req.GetPageSize())
+	filterDigest := pagination.FilterDigest(query, capability, categoryFilter, engineFilter)
+	if _, err := pagination.ValidatePageToken(req.GetPageToken(), filterDigest); err != nil {
+		return nil, err
+	}
 
 	localCatalog := s.catalogSnapshot()
 
@@ -126,13 +134,12 @@ func (s *Service) SearchCatalogModels(ctx context.Context, req *runtimev1.Search
 		items = append(items, item)
 	}
 
-	hfLimit := req.GetPageSize()
 	hfItems, err := s.searchHFCatalog(ctx, hfCatalogSearchRequest{
 		Query:          query,
 		Capability:     capability,
 		CategoryFilter: categoryFilter,
 		EngineFilter:   engineFilter,
-		Limit:          hfLimit,
+		Limit:          int32(pageSize),
 	})
 	if err != nil {
 		if strings.Contains(err.Error(), errHfRepoInvalid.Error()) {
@@ -158,12 +165,7 @@ func (s *Service) SearchCatalogModels(ctx context.Context, req *runtimev1.Search
 	})
 	items = dedupeCatalogItems(items)
 
-	pageSize := req.GetPageSize()
-	if pageSize <= 0 {
-		pageSize = 50
-	}
-	filterDigest := pagination.FilterDigest(query, capability, categoryFilter, engineFilter)
-	start, end, next, err := resolvePageBounds(req.GetPageToken(), filterDigest, pageSize, 50, 200, len(items))
+	start, end, next, err := resolvePageBounds(req.GetPageToken(), filterDigest, int32(pageSize), 50, 200, len(items))
 	if err != nil {
 		return nil, err
 	}
@@ -171,6 +173,16 @@ func (s *Service) SearchCatalogModels(ctx context.Context, req *runtimev1.Search
 		Items:         items[start:end],
 		NextPageToken: next,
 	}, nil
+}
+
+func normalizeCatalogSearchPageSize(raw int32) int {
+	if raw <= 0 {
+		return 50
+	}
+	if raw > 200 {
+		return 200
+	}
+	return int(raw)
 }
 
 func (s *Service) ListCatalogVariants(ctx context.Context, req *runtimev1.ListCatalogVariantsRequest) (*runtimev1.ListCatalogVariantsResponse, error) {

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -49,7 +50,7 @@ func defaultStableDiffusionCPPGenerateRequester(ctx context.Context, client *htt
 	if err := json.NewDecoder(response.Body).Decode(&respBody); err != nil {
 		return nil, fmt.Errorf("decode stable-diffusion.cpp generate response: %w", err)
 	}
-	return respBody.payload(ctx, client)
+	return respBody.payload(ctx, client, endpoint)
 }
 
 type stableDiffusionCPPGenerateResponse struct {
@@ -60,7 +61,7 @@ type stableDiffusionCPPGenerateResponse struct {
 	} `json:"data"`
 }
 
-func (r stableDiffusionCPPGenerateResponse) payload(ctx context.Context, client *http.Client) ([]byte, error) {
+func (r stableDiffusionCPPGenerateResponse) payload(ctx context.Context, client *http.Client, endpoint string) ([]byte, error) {
 	if len(r.Images) > 0 {
 		return decodeManagedImageBase64(r.Images[0])
 	}
@@ -69,7 +70,7 @@ func (r stableDiffusionCPPGenerateResponse) payload(ctx context.Context, client 
 			return decodeManagedImageBase64(r.Data[0].B64JSON)
 		}
 		if strings.TrimSpace(r.Data[0].URL) != "" {
-			return fetchManagedImageURL(ctx, client, r.Data[0].URL)
+			return fetchManagedImageURL(ctx, client, endpoint, r.Data[0].URL)
 		}
 	}
 	return nil, fmt.Errorf("stable-diffusion.cpp generate response did not include an image artifact")
@@ -173,11 +174,15 @@ func decodeManagedImageBase64(value string) ([]byte, error) {
 	return payload, nil
 }
 
-func fetchManagedImageURL(ctx context.Context, client *http.Client, target string) ([]byte, error) {
+func fetchManagedImageURL(ctx context.Context, client *http.Client, endpoint string, target string) ([]byte, error) {
 	if client == nil {
 		client = &http.Client{}
 	}
-	request, err := http.NewRequestWithContext(ctx, http.MethodGet, strings.TrimSpace(target), nil)
+	artifactURL, err := managedImageArtifactURL(endpoint, target)
+	if err != nil {
+		return nil, err
+	}
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, artifactURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("create managed image artifact request: %w", err)
 	}
@@ -197,6 +202,28 @@ func fetchManagedImageURL(ctx context.Context, client *http.Client, target strin
 		return nil, fmt.Errorf("managed image artifact is empty")
 	}
 	return payload, nil
+}
+
+func managedImageArtifactURL(endpoint string, target string) (string, error) {
+	base, err := url.Parse(strings.TrimRight(strings.TrimSpace(endpoint), "/") + "/")
+	if err != nil || base.Scheme == "" || base.Host == "" {
+		return "", fmt.Errorf("managed image resident endpoint is invalid")
+	}
+	if base.Scheme != "http" && base.Scheme != "https" {
+		return "", fmt.Errorf("managed image resident endpoint scheme is not allowed")
+	}
+	parsed, err := url.Parse(strings.TrimSpace(target))
+	if err != nil {
+		return "", fmt.Errorf("managed image artifact url is invalid: %w", err)
+	}
+	resolved := base.ResolveReference(parsed)
+	if resolved.Scheme != base.Scheme || resolved.Host != base.Host || resolved.User != nil || resolved.Fragment != "" {
+		return "", fmt.Errorf("managed image artifact url is outside resident endpoint scope")
+	}
+	if resolved.Path == "" || resolved.Path == "/" {
+		return "", fmt.Errorf("managed image artifact url path is required")
+	}
+	return resolved.String(), nil
 }
 
 func defaultManagedImageString(value string, fallback string) string {

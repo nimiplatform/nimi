@@ -9,6 +9,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localrouting"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
@@ -45,13 +46,16 @@ func presetVoiceCatalogProviderType(remoteTarget *nimillm.RemoteTarget, selected
 	return providerType
 }
 
-func (s *Service) GetVoiceAsset(_ context.Context, req *runtimev1.GetVoiceAssetRequest) (*runtimev1.GetVoiceAssetResponse, error) {
+func (s *Service) GetVoiceAsset(ctx context.Context, req *runtimev1.GetVoiceAssetRequest) (*runtimev1.GetVoiceAssetResponse, error) {
 	if req == nil || strings.TrimSpace(req.GetVoiceAssetId()) == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 	asset, ok := s.voiceAssets.getAsset(req.GetVoiceAssetId())
 	if !ok {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_VOICE_ASSET_NOT_FOUND)
+	}
+	if err := authorizeVoiceAssetOwner(ctx, asset); err != nil {
+		return nil, err
 	}
 	return &runtimev1.GetVoiceAssetResponse{Asset: asset}, nil
 }
@@ -119,7 +123,15 @@ func (s *Service) DeleteVoiceAsset(ctx context.Context, req *runtimev1.DeleteVoi
 	if !ok {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_VOICE_ASSET_NOT_FOUND)
 	}
+	if err := authorizeVoiceAssetOwner(ctx, asset); err != nil {
+		return nil, err
+	}
 	deleteResult := s.deleteProviderPersistentVoiceAsset(ctx, asset)
+	if deleteResult.Attempted && !deleteResult.Succeeded {
+		s.voiceAssets.updateAssetDeleteResult(req.GetVoiceAssetId(), deleteResult)
+		s.recordVoiceAssetDeleteAudit(asset, "voice_asset.delete_failed", deleteResult)
+		return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+	}
 	if ok := s.voiceAssets.deleteAssetWithResult(req.GetVoiceAssetId(), deleteResult); !ok {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_VOICE_ASSET_NOT_FOUND)
 	}
@@ -130,6 +142,34 @@ func (s *Service) DeleteVoiceAsset(ctx context.Context, req *runtimev1.DeleteVoi
 			ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
 		},
 	}, nil
+}
+
+func authorizeVoiceAssetOwner(ctx context.Context, asset *runtimev1.VoiceAsset) error {
+	if asset == nil {
+		return grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_VOICE_ASSET_NOT_FOUND)
+	}
+	callerAppID := voiceAssetCallerAppID(ctx)
+	identity := authn.IdentityFromContext(ctx)
+	callerSubjectID := ""
+	if identity != nil {
+		callerSubjectID = strings.TrimSpace(identity.SubjectUserID)
+	}
+	if callerAppID == "" || callerSubjectID == "" {
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	if callerAppID != strings.TrimSpace(asset.GetAppId()) || callerSubjectID != strings.TrimSpace(asset.GetSubjectUserId()) {
+		return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_AI_VOICE_ASSET_SCOPE_FORBIDDEN)
+	}
+	return nil
+}
+
+func voiceAssetCallerAppID(ctx context.Context) string {
+	if md, ok := metadata.FromIncomingContext(ctx); ok {
+		if values := md.Get("x-nimi-app-id"); len(values) > 0 {
+			return strings.TrimSpace(values[0])
+		}
+	}
+	return ""
 }
 
 func (s *Service) recordVoiceAssetDeleteAudit(asset *runtimev1.VoiceAsset, operation string, result voiceAssetDeleteResult) {

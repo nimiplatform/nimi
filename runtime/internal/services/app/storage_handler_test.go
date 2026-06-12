@@ -21,7 +21,7 @@ func (rejectingAppSessionValidator) ValidateAppSession(string, string, string) (
 
 func TestGetAppStorageMaterializesDeveloperAppRoots(t *testing.T) {
 	dataRoot := t.TempDir()
-	svc := New(testLogger(), WithAppStorageDataRoot(dataRoot))
+	svc := New(testLogger(), WithAppStorageDataRoot(dataRoot), WithSessionValidator(allowingAppSessionValidator{}))
 
 	resp, err := svc.GetAppStorage(context.Background(), &runtimev1.GetAppStorageRequest{AppId: "dev.nimi.tester"})
 	if err != nil {
@@ -87,7 +87,7 @@ func TestGetAppStorageReportsActiveReleaseAfterInstall(t *testing.T) {
 }
 
 func TestGetAppStorageFailsClosedWithoutDataRoot(t *testing.T) {
-	svc := New(testLogger())
+	svc := New(testLogger(), WithSessionValidator(allowingAppSessionValidator{}))
 	resp, err := svc.GetAppStorage(context.Background(), &runtimev1.GetAppStorageRequest{AppId: "dev.nimi.tester"})
 	if err != nil {
 		t.Fatalf("GetAppStorage: %v", err)
@@ -131,7 +131,7 @@ func TestGetAppStorageAllowsDesktopCoreAvatarTargetProjection(t *testing.T) {
 }
 
 func TestGetAppStorageRejectsNonDesktopCrossAppTargetProjection(t *testing.T) {
-	svc := New(testLogger(), WithAppStorageDataRoot(t.TempDir()))
+	svc := New(testLogger(), WithAppStorageDataRoot(t.TempDir()), WithSessionValidator(allowingAppSessionValidator{}))
 	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs("x-nimi-app-id", "nimi.desktop"))
 	ctx = envelope.WithMetadata(ctx, envelope.Metadata{
 		AppID:      "nimi.desktop",

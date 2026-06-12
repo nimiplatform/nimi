@@ -81,7 +81,7 @@ func TestResolveCloudRuntimeMemoryEmbeddingProfileFailsClosedWithoutCatalog(t *t
 	}
 	// connStore and modelCatalog nil -> unavailable fail-close, never a
 	// hardcoded resolved profile.
-	resolved := resolveCloudRuntimeMemoryEmbeddingProfile(snapshot, nil, nil)
+	resolved := resolveCloudRuntimeMemoryEmbeddingProfile(context.Background(), snapshot, nil, nil)
 	if resolved.Profile != nil {
 		t.Fatalf("expected no resolved profile on missing catalog, got %+v", resolved.Profile)
 	}

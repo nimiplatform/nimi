@@ -131,7 +131,7 @@ func (m memoryPolicyRuntime) write(ctx context.Context, req *runtimev1.WriteAgen
 	accepted := make([]*runtimev1.CanonicalMemoryView, 0, len(req.GetCandidates()))
 	rejected := make([]*runtimev1.CanonicalMemoryRejection, 0)
 	for _, candidate := range req.GetCandidates() {
-		if rejection := validateDirectMemoryPromotionEvidence(candidate); rejection != nil {
+		if rejection := m.validateDirectMemoryPromotionEvidence(candidate); rejection != nil {
 			rejected = append(rejected, rejection)
 			continue
 		}
@@ -162,21 +162,55 @@ func (m memoryPolicyRuntime) write(ctx context.Context, req *runtimev1.WriteAgen
 	return &runtimev1.WriteAgentMemoryResponse{Accepted: accepted, Rejected: rejected}, nil
 }
 
-var requiredDirectMemoryPromotionEvidenceFields = []string{
-	"participation_id",
-	"source_profile",
-	"output_candidate_ref",
-	"audit_id",
-	"provenance_ref",
-	"policy_verdict_ref",
-	"memory_read_verdict",
-	"memory_write_verdict",
-	"capability_scope_verdict",
-	"target_owner_authorization_ref",
-	"explicit_user_or_manager_intent_ref",
+type runtimeMemoryPromotionEvidence struct {
+	PromotionEvidenceRef           string
+	ParticipationID                string
+	SourceProfile                  string
+	OutputCandidateRef             string
+	AuditID                        string
+	ProvenanceRef                  string
+	PolicyVerdictRef               string
+	MemoryReadVerdict              string
+	MemoryWriteVerdict             string
+	CapabilityScopeVerdict         string
+	TargetOwnerAuthorizationRef    string
+	ExplicitUserOrManagerIntentRef string
 }
 
-func validateDirectMemoryPromotionEvidence(candidate *runtimev1.CanonicalMemoryCandidate) *runtimev1.CanonicalMemoryRejection {
+var directMemoryPromotionCallerEvidenceFields = map[string]struct{}{
+	"promotion_target_id":    {},
+	"promotion_evidence_ref": {},
+}
+
+func (s *Service) registerRuntimeMemoryPromotionEvidence(evidence runtimeMemoryPromotionEvidence) string {
+	if s == nil {
+		return ""
+	}
+	ref := strings.TrimSpace(evidence.PromotionEvidenceRef)
+	if ref == "" {
+		return ""
+	}
+	evidence.PromotionEvidenceRef = ref
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.memoryPromotionEvidence == nil {
+		s.memoryPromotionEvidence = make(map[string]runtimeMemoryPromotionEvidence)
+	}
+	s.memoryPromotionEvidence[ref] = evidence
+	return ref
+}
+
+func (s *Service) runtimeMemoryPromotionEvidence(ref string) (runtimeMemoryPromotionEvidence, bool) {
+	if s == nil {
+		return runtimeMemoryPromotionEvidence{}, false
+	}
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	evidence, ok := s.memoryPromotionEvidence[strings.TrimSpace(ref)]
+	return evidence, ok
+}
+
+func (m memoryPolicyRuntime) validateDirectMemoryPromotionEvidence(candidate *runtimev1.CanonicalMemoryCandidate) *runtimev1.CanonicalMemoryRejection {
 	if candidate == nil {
 		return rejection(candidate, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, "canonical memory candidate is required")
 	}
@@ -187,19 +221,57 @@ func validateDirectMemoryPromotionEvidence(candidate *runtimev1.CanonicalMemoryC
 	if got := strings.TrimSpace(extensionString(fields, "promotion_target_id")); got != "RUNTIME_MEMORY_OR_COGNITION" {
 		return rejection(candidate, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, "promotion_target_id must be RUNTIME_MEMORY_OR_COGNITION")
 	}
-	for _, key := range requiredDirectMemoryPromotionEvidenceFields {
-		if strings.TrimSpace(extensionString(fields, key)) == "" {
-			return rejection(candidate, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, fmt.Sprintf("direct WriteAgentMemory requires promotion evidence field %s", key))
+	for key := range fields {
+		if _, ok := directMemoryPromotionCallerEvidenceFields[key]; !ok {
+			return rejection(candidate, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, fmt.Sprintf("direct WriteAgentMemory field %s must be runtime-owned promotion evidence, not caller payload", key))
 		}
 	}
-	switch strings.TrimSpace(extensionString(fields, "source_profile")) {
+	evidenceRef := strings.TrimSpace(extensionString(fields, "promotion_evidence_ref"))
+	if evidenceRef == "" {
+		return rejection(candidate, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, "direct WriteAgentMemory requires runtime-owned promotion_evidence_ref")
+	}
+	evidence, ok := m.svc.runtimeMemoryPromotionEvidence(evidenceRef)
+	if !ok {
+		return rejection(candidate, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, "promotion_evidence_ref is not registered by Runtime")
+	}
+	if strings.TrimSpace(evidence.PromotionEvidenceRef) != evidenceRef {
+		return rejection(candidate, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, "promotion_evidence_ref mismatch")
+	}
+	for _, item := range []struct {
+		key   string
+		value string
+	}{
+		{"participation_id", evidence.ParticipationID},
+		{"source_profile", evidence.SourceProfile},
+		{"output_candidate_ref", evidence.OutputCandidateRef},
+		{"audit_id", evidence.AuditID},
+		{"provenance_ref", evidence.ProvenanceRef},
+		{"policy_verdict_ref", evidence.PolicyVerdictRef},
+		{"memory_read_verdict", evidence.MemoryReadVerdict},
+		{"memory_write_verdict", evidence.MemoryWriteVerdict},
+		{"capability_scope_verdict", evidence.CapabilityScopeVerdict},
+		{"target_owner_authorization_ref", evidence.TargetOwnerAuthorizationRef},
+		{"explicit_user_or_manager_intent_ref", evidence.ExplicitUserOrManagerIntentRef},
+	} {
+		if strings.TrimSpace(item.value) == "" {
+			return rejection(candidate, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, fmt.Sprintf("runtime promotion evidence missing field %s", item.key))
+		}
+	}
+	switch strings.TrimSpace(evidence.SourceProfile) {
 	case "canonical_agent_chat", "realm_group_agent", "scenario_sandbox", "oasis_world_participation":
 	default:
 		return rejection(candidate, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, "source_profile is not admitted for runtime memory promotion")
 	}
-	for _, key := range []string{"memory_read_verdict", "memory_write_verdict", "capability_scope_verdict"} {
-		if !isPassVerdict(extensionString(fields, key)) {
-			return rejection(candidate, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, fmt.Sprintf("%s must be PASS", key))
+	for _, item := range []struct {
+		key   string
+		value string
+	}{
+		{"memory_read_verdict", evidence.MemoryReadVerdict},
+		{"memory_write_verdict", evidence.MemoryWriteVerdict},
+		{"capability_scope_verdict", evidence.CapabilityScopeVerdict},
+	} {
+		if !isPassVerdict(item.value) {
+			return rejection(candidate, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, fmt.Sprintf("%s must be PASS", item.key))
 		}
 	}
 	return nil
@@ -219,6 +291,14 @@ func isPassVerdict(value string) bool {
 func validateMemoryReadScopeAdmission(entry *agentEntry, req *runtimev1.QueryAgentMemoryRequest) error {
 	if entry == nil {
 		return nil
+	}
+	if len(req.GetCanonicalClasses()) == 0 {
+		return grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, grpcerr.ReasonOptions{
+			ActionHint: "declare_canonical_memory_read_classes",
+			Metadata: map[string]string{
+				"required_read_scope": "CANONICAL_OWNER_POLICY",
+			},
+		})
 	}
 	explicitDyadicRead := requestsExplicitDyadicCanonicalMemory(req.GetCanonicalClasses())
 	if !explicitDyadicRead && len(req.GetCanonicalClasses()) > 0 {
@@ -250,6 +330,14 @@ func requestsExplicitDyadicCanonicalMemory(classes []runtimev1.MemoryCanonicalCl
 		}
 	}
 	return false
+}
+
+func allCanonicalMemoryReadClasses() []runtimev1.MemoryCanonicalClass {
+	return []runtimev1.MemoryCanonicalClass{
+		runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_PUBLIC_SHARED,
+		runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_DYADIC,
+		runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_WORLD_SHARED,
+	}
 }
 
 func (m memoryPolicyRuntime) writeCandidate(ctx context.Context, entry *agentEntry, candidate *runtimev1.CanonicalMemoryCandidate) (*runtimev1.CanonicalMemoryView, *runtimev1.CanonicalMemoryRejection) {
@@ -285,11 +373,7 @@ func (m memoryPolicyRuntime) writeCandidate(ctx context.Context, entry *agentEnt
 }
 
 func (m memoryPolicyRuntime) queryLocators(entry *agentEntry, classes []runtimev1.MemoryCanonicalClass) []*runtimev1.MemoryBankLocator {
-	includeAll := len(classes) == 0
 	include := func(class runtimev1.MemoryCanonicalClass) bool {
-		if includeAll {
-			return true
-		}
 		for _, item := range classes {
 			if item == class {
 				return true

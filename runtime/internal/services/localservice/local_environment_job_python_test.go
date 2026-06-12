@@ -112,8 +112,8 @@ func TestStartPythonRuntimeDependencyJobPromotesVerifiedSelectedSource(t *testin
 	if got := source.GetHashes()["selected_uv_record"]; got != uvRecord.RecordID {
 		t.Fatalf("selected uv record hash = %q, want %q", got, uvRecord.RecordID)
 	}
-	if got := source.GetSelectedConsumers(); !stringSliceContains(got, "media.diffusers.cuda") || !stringSliceContains(got, "media.diffusers.cpu") {
-		t.Fatalf("selected consumers = %v, want local-image python consumers", got)
+	if got := source.GetSelectedConsumers(); len(got) != 1 || got[0] != "media.diffusers.cuda" {
+		t.Fatalf("selected consumers = %v, want media.diffusers.cuda", got)
 	}
 }
 
@@ -249,8 +249,8 @@ func TestStartPythonVenvDependencyJobPromotesVerifiedSelectedSource(t *testing.T
 	if got := source.GetHashes()["selected_python_runtime_record"]; got != runtimeRecord.RecordID {
 		t.Fatalf("selected python runtime record hash = %q, want %q", got, runtimeRecord.RecordID)
 	}
-	if got := source.GetSelectedConsumers(); !stringSliceContains(got, "media.diffusers.cuda") || !stringSliceContains(got, "media.diffusers.cpu") {
-		t.Fatalf("selected consumers = %v, want local-image python consumers", got)
+	if got := source.GetSelectedConsumers(); len(got) != 1 || got[0] != "media.diffusers.cuda" {
+		t.Fatalf("selected consumers = %v, want media.diffusers.cuda", got)
 	}
 }
 
@@ -594,8 +594,8 @@ func TestStartPythonTorchWheelDependencyJobPromotesVerifiedSelectedSource(t *tes
 	if got := source.GetHashes()["selected_cuda_record"]; got != cudaRecord.RecordID {
 		t.Fatalf("selected cuda record hash = %q, want %q", got, cudaRecord.RecordID)
 	}
-	if got := source.GetSelectedConsumers(); !stringSliceContains(got, "media.diffusers.cuda") || !stringSliceContains(got, "media.diffusers.cpu") {
-		t.Fatalf("selected consumers = %v, want local-image python consumers", got)
+	if got := source.GetSelectedConsumers(); len(got) != 1 || got[0] != "media.diffusers.cuda" {
+		t.Fatalf("selected consumers = %v, want media.diffusers.cuda", got)
 	}
 }
 

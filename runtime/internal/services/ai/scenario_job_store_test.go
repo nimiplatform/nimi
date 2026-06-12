@@ -76,7 +76,8 @@ func TestSubmitScenarioJobSpeechSynthesizeCompletes(t *testing.T) {
 	defer func() { server.Close() }()
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudProviders: map[string]nimillm.ProviderCredentials{"openai": {BaseURL: server.URL}},
+		CloudProviders:        map[string]nimillm.ProviderCredentials{"openai": {BaseURL: server.URL}},
+		AllowLoopbackEndpoint: true,
 	})
 	req := &runtimev1.SubmitScenarioJobRequest{
 		Head: &runtimev1.ScenarioRequestHead{
@@ -263,7 +264,8 @@ func TestSubmitScenarioJobStoresScenarioNativeState(t *testing.T) {
 	defer func() { server.Close() }()
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudProviders: map[string]nimillm.ProviderCredentials{"openai": {BaseURL: server.URL}},
+		CloudProviders:        map[string]nimillm.ProviderCredentials{"openai": {BaseURL: server.URL}},
+		AllowLoopbackEndpoint: true,
 	})
 	submitResp, err := svc.SubmitScenarioJob(context.Background(), &runtimev1.SubmitScenarioJobRequest{
 		Head: &runtimev1.ScenarioRequestHead{
@@ -480,7 +482,8 @@ func TestSubscribeScenarioJobEventsForMediaScenario(t *testing.T) {
 	defer func() { server.Close() }()
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudProviders: map[string]nimillm.ProviderCredentials{"openai": {BaseURL: server.URL}},
+		CloudProviders:        map[string]nimillm.ProviderCredentials{"openai": {BaseURL: server.URL}},
+		AllowLoopbackEndpoint: true,
 	})
 	submitResp, err := svc.SubmitScenarioJob(context.Background(), &runtimev1.SubmitScenarioJobRequest{
 		Head: &runtimev1.ScenarioRequestHead{
@@ -548,7 +551,8 @@ func TestSubmitScenarioJobFailurePersistsStructuredReasonMetadata(t *testing.T) 
 	server.Close()
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudProviders: map[string]nimillm.ProviderCredentials{"openai": {BaseURL: serverURL}},
+		CloudProviders:        map[string]nimillm.ProviderCredentials{"openai": {BaseURL: serverURL}},
+		AllowLoopbackEndpoint: true,
 	})
 	submitResp, err := svc.SubmitScenarioJob(context.Background(), &runtimev1.SubmitScenarioJobRequest{
 		Head: &runtimev1.ScenarioRequestHead{

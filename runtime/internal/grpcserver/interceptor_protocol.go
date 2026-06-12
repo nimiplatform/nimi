@@ -56,8 +56,7 @@ func newUnaryProtocolInterceptor(store *idempotency.Store) grpc.UnaryServerInter
 
 func newStreamProtocolInterceptor() grpc.StreamServerInterceptor {
 	return func(srv any, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
-		requireIdempotency := isWriteMethod(info.FullMethod)
-		meta, err := envelope.Validate(ss.Context(), nil, requireIdempotency)
+		meta, err := envelope.Validate(ss.Context(), nil, false)
 		if err != nil {
 			return err
 		}

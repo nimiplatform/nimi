@@ -19,6 +19,10 @@ type knowledgeCitationBlockerAccess interface {
 	KnowledgeCitationBlockedBy(scopeID string, targetKind string, targetID string) ([]string, error)
 }
 
+type serviceEquivalentArtifactAccess interface {
+	ServiceEquivalentArtifactAccess()
+}
+
 func blockingRemoveBlockers(blockers []routine.Blocker) []routine.Blocker {
 	filtered := make([]routine.Blocker, 0, len(blockers))
 	for _, blocker := range blockers {
@@ -64,14 +68,23 @@ func knowledgeCitationBlockers(store *storage.SQLiteBackend, scopeID string, tar
 func knowledgeCitationBlockedBy(access routine.ArtifactAccess, scopeID string, targetKind string, targetID string) ([]string, error) {
 	blockerAccess, ok := access.(knowledgeCitationBlockerAccess)
 	if !ok {
-		return nil, nil
+		return nil, fmt.Errorf("digest access: knowledge citation blocker capability is required")
 	}
 	return blockerAccess.KnowledgeCitationBlockedBy(scopeID, targetKind, targetID)
+}
+
+func requireServiceEquivalentArtifactAccess(access routine.ArtifactAccess) error {
+	if _, ok := access.(serviceEquivalentArtifactAccess); !ok {
+		return fmt.Errorf("digest access: service-equivalent artifact lifecycle access is required")
+	}
+	return nil
 }
 
 func (a *storageArtifactAccess) KnowledgeCitationBlockedBy(scopeID string, targetKind string, targetID string) ([]string, error) {
 	return knowledgeCitationBlockers(a.store, scopeID, targetKind, targetID)
 }
+
+func (a *storageArtifactAccess) ServiceEquivalentArtifactAccess() {}
 
 func toRoutineBlockers(blockers []refgraph.Blocker) []routine.Blocker {
 	out := make([]routine.Blocker, 0, len(blockers))
@@ -107,9 +120,29 @@ func (a *storageArtifactAccess) LoadMemory(scopeID string, recordID memory.Recor
 }
 
 func (a *storageArtifactAccess) SaveMemory(record memory.Record) error {
+	if err := memory.ValidateRecord(record); err != nil {
+		return fmt.Errorf("digest save memory: %w", err)
+	}
+	existing, err := a.LoadMemory(record.ScopeID, record.RecordID)
+	if err != nil {
+		return err
+	}
+	if existing != nil && existing.Lifecycle != memory.RecordLifecycleActive {
+		return fmt.Errorf("digest save memory: record %s cannot be saved from %s outside lifecycle transition", record.RecordID, existing.Lifecycle)
+	}
+	if record.Lifecycle != memory.RecordLifecycleActive {
+		return fmt.Errorf("digest save memory: record %s save only admits active lifecycle, got %s", record.RecordID, record.Lifecycle)
+	}
+	return a.persistMemory(record)
+}
+
+func (a *storageArtifactAccess) persistMemory(record memory.Record) error {
+	if err := memory.ValidateRecord(record); err != nil {
+		return fmt.Errorf("digest persist memory: %w", err)
+	}
 	raw, err := json.Marshal(record)
 	if err != nil {
-		return fmt.Errorf("digest save memory: %w", err)
+		return fmt.Errorf("digest persist memory: %w", err)
 	}
 	return a.store.Save(record.ScopeID, storage.KindMemory, string(record.RecordID), raw)
 }
@@ -122,9 +155,12 @@ func (a *storageArtifactAccess) ArchiveMemory(scopeID string, recordID memory.Re
 	if record == nil {
 		return nil
 	}
+	if record.Lifecycle != memory.RecordLifecycleActive {
+		return fmt.Errorf("digest archive memory: record %s cannot transition from %s", recordID, record.Lifecycle)
+	}
 	record.Lifecycle = memory.RecordLifecycleArchived
 	record.UpdatedAt = now
-	return a.SaveMemory(*record)
+	return a.persistMemory(*record)
 }
 
 func (a *storageArtifactAccess) RemoveMemory(scopeID string, recordID memory.RecordID, now time.Time) error {
@@ -157,7 +193,7 @@ func (a *storageArtifactAccess) RemoveMemory(scopeID string, recordID memory.Rec
 	}
 	record.Lifecycle = memory.RecordLifecycleRemoved
 	record.UpdatedAt = now
-	return a.SaveMemory(*record)
+	return a.persistMemory(*record)
 }
 
 func (a *storageArtifactAccess) ListKnowledge(scopeID string) ([]knowledge.Page, error) {
@@ -177,9 +213,29 @@ func (a *storageArtifactAccess) LoadKnowledge(scopeID string, pageID knowledge.P
 }
 
 func (a *storageArtifactAccess) SaveKnowledge(page knowledge.Page) error {
+	if err := knowledge.ValidatePage(page); err != nil {
+		return fmt.Errorf("digest save knowledge: %w", err)
+	}
+	existing, err := a.LoadKnowledge(page.ScopeID, page.PageID)
+	if err != nil {
+		return err
+	}
+	if existing != nil && existing.Lifecycle != knowledge.ProjectionLifecycleActive && existing.Lifecycle != knowledge.ProjectionLifecycleStale {
+		return fmt.Errorf("digest save knowledge: page %s cannot be saved from %s outside lifecycle transition", page.PageID, existing.Lifecycle)
+	}
+	if page.Lifecycle != knowledge.ProjectionLifecycleActive && page.Lifecycle != knowledge.ProjectionLifecycleStale {
+		return fmt.Errorf("digest save knowledge: page %s save only admits active or stale lifecycle, got %s", page.PageID, page.Lifecycle)
+	}
+	return a.persistKnowledge(page)
+}
+
+func (a *storageArtifactAccess) persistKnowledge(page knowledge.Page) error {
+	if err := knowledge.ValidatePage(page); err != nil {
+		return fmt.Errorf("digest persist knowledge: %w", err)
+	}
 	raw, err := json.Marshal(page)
 	if err != nil {
-		return fmt.Errorf("digest save knowledge: %w", err)
+		return fmt.Errorf("digest persist knowledge: %w", err)
 	}
 	return a.store.Save(page.ScopeID, storage.KindKnowledge, string(page.PageID), raw)
 }
@@ -192,9 +248,12 @@ func (a *storageArtifactAccess) ArchiveKnowledge(scopeID string, pageID knowledg
 	if page == nil {
 		return nil
 	}
+	if page.Lifecycle != knowledge.ProjectionLifecycleActive && page.Lifecycle != knowledge.ProjectionLifecycleStale {
+		return fmt.Errorf("digest archive knowledge: page %s cannot transition from %s", pageID, page.Lifecycle)
+	}
 	page.Lifecycle = knowledge.ProjectionLifecycleArchived
 	page.UpdatedAt = now
-	return a.SaveKnowledge(*page)
+	return a.persistKnowledge(*page)
 }
 
 func (a *storageArtifactAccess) RemoveKnowledge(scopeID string, pageID knowledge.PageID, now time.Time) error {
@@ -218,7 +277,7 @@ func (a *storageArtifactAccess) RemoveKnowledge(scopeID string, pageID knowledge
 	}
 	page.Lifecycle = knowledge.ProjectionLifecycleRemoved
 	page.UpdatedAt = now
-	return a.SaveKnowledge(*page)
+	return a.persistKnowledge(*page)
 }
 
 func (a *storageArtifactAccess) ListSkills(scopeID string) ([]skill.Bundle, error) {
@@ -238,9 +297,29 @@ func (a *storageArtifactAccess) LoadSkill(scopeID string, bundleID skill.BundleI
 }
 
 func (a *storageArtifactAccess) SaveSkill(bundle skill.Bundle) error {
+	if err := skill.ValidateBundle(bundle); err != nil {
+		return fmt.Errorf("digest save skill: %w", err)
+	}
+	existing, err := a.LoadSkill(bundle.ScopeID, bundle.BundleID)
+	if err != nil {
+		return err
+	}
+	if existing != nil && existing.Status != skill.BundleStatusDraft && existing.Status != skill.BundleStatusActive {
+		return fmt.Errorf("digest save skill: bundle %s cannot be saved from %s outside lifecycle transition", bundle.BundleID, existing.Status)
+	}
+	if bundle.Status != skill.BundleStatusDraft && bundle.Status != skill.BundleStatusActive {
+		return fmt.Errorf("digest save skill: bundle %s save only admits draft or active status, got %s", bundle.BundleID, bundle.Status)
+	}
+	return a.persistSkill(bundle)
+}
+
+func (a *storageArtifactAccess) persistSkill(bundle skill.Bundle) error {
+	if err := skill.ValidateBundle(bundle); err != nil {
+		return fmt.Errorf("digest persist skill: %w", err)
+	}
 	raw, err := json.Marshal(bundle)
 	if err != nil {
-		return fmt.Errorf("digest save skill: %w", err)
+		return fmt.Errorf("digest persist skill: %w", err)
 	}
 	return a.store.Save(bundle.ScopeID, storage.KindSkill, string(bundle.BundleID), raw)
 }
@@ -253,9 +332,12 @@ func (a *storageArtifactAccess) ArchiveSkill(scopeID string, bundleID skill.Bund
 	if bundle == nil {
 		return nil
 	}
+	if bundle.Status != skill.BundleStatusDraft && bundle.Status != skill.BundleStatusActive {
+		return fmt.Errorf("digest archive skill: bundle %s cannot transition from %s", bundleID, bundle.Status)
+	}
 	bundle.Status = skill.BundleStatusArchived
 	bundle.UpdatedAt = now
-	return a.SaveSkill(*bundle)
+	return a.persistSkill(*bundle)
 }
 
 func (a *storageArtifactAccess) RemoveSkill(scopeID string, bundleID skill.BundleID, now time.Time) error {
@@ -279,7 +361,7 @@ func (a *storageArtifactAccess) RemoveSkill(scopeID string, bundleID skill.Bundl
 	}
 	bundle.Status = skill.BundleStatusRemoved
 	bundle.UpdatedAt = now
-	return a.SaveSkill(*bundle)
+	return a.persistSkill(*bundle)
 }
 
 func (a *storageArtifactAccess) SaveDigestRun(scopeID string, runID string, report any, candidates []storage.DigestCandidate, createdAt time.Time) error {

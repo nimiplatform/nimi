@@ -53,7 +53,7 @@ func TestRuntimeAgentRecordAgentMemoryRecallFeedbackAffectsQueryRanking(t *testi
 					},
 				},
 				SourceEventId: "evt-feedback-1",
-				Extensions:    completePromotionEvidence(t),
+				Extensions:    completePromotionEvidence(t, svc),
 				Record: &runtimev1.MemoryRecordInput{
 					Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_OBSERVATIONAL,
 					Payload: &runtimev1.MemoryRecordInput_Observational{
@@ -70,7 +70,7 @@ func TestRuntimeAgentRecordAgentMemoryRecallFeedbackAffectsQueryRanking(t *testi
 					},
 				},
 				SourceEventId: "evt-feedback-2",
-				Extensions:    completePromotionEvidence(t),
+				Extensions:    completePromotionEvidence(t, svc),
 				Record: &runtimev1.MemoryRecordInput{
 					Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_OBSERVATIONAL,
 					Payload: &runtimev1.MemoryRecordInput_Observational{
@@ -111,10 +111,11 @@ func TestRuntimeAgentRecordAgentMemoryRecallFeedbackAffectsQueryRanking(t *testi
 	}
 
 	queryResp, err := svc.QueryAgentMemory(ctx, &runtimev1.QueryAgentMemoryRequest{
-		Context: testRuntimeAgentIdentityContext("agent-feedback"),
-		AgentId: "agent-feedback",
-		Query:   "alpha",
-		Limit:   10,
+		Context:          testRuntimeAgentIdentityContext("agent-feedback"),
+		AgentId:          "agent-feedback",
+		Query:            "alpha",
+		Limit:            10,
+		CanonicalClasses: []runtimev1.MemoryCanonicalClass{runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_PUBLIC_SHARED},
 	})
 	if err != nil {
 		t.Fatalf("QueryAgentMemory: %v", err)

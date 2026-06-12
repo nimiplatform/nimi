@@ -197,6 +197,17 @@ func setManagedImageHostForTest(t *testing.T, chip string) {
 func mustImportManagedImageAssetForTest(t *testing.T, svc *Service, logicalModelID string) *runtimev1.LocalAssetRecord {
 	t.Helper()
 	manifestPath := filepath.Join(svc.localModelsPath, "resolved", filepath.FromSlash(logicalModelID), "asset.manifest.json")
+	if err := os.MkdirAll(filepath.Dir(manifestPath), 0o755); err != nil {
+		t.Fatalf("mkdir image manifest dir: %v", err)
+	}
+	entryPath := filepath.Join(filepath.Dir(manifestPath), "z_image_turbo-Q4_K.gguf")
+	if err := os.WriteFile(entryPath, validImageTestGGUF(), 0o600); err != nil {
+		t.Fatalf("write image entry: %v", err)
+	}
+	entryHash, err := computeImportFileSHA256(entryPath)
+	if err != nil {
+		t.Fatalf("hash image entry: %v", err)
+	}
 	rawManifest, err := json.Marshal(map[string]any{
 		"asset_id":         "local-import/z_image_turbo-Q4_K",
 		"kind":             "image",
@@ -204,19 +215,14 @@ func mustImportManagedImageAssetForTest(t *testing.T, svc *Service, logicalModel
 		"engine":           "media",
 		"capabilities":     []string{"image"},
 		"entry":            "z_image_turbo-Q4_K.gguf",
+		"files":            []string{"z_image_turbo-Q4_K.gguf"},
+		"hashes":           map[string]string{"z_image_turbo-Q4_K.gguf": "sha256:" + entryHash},
 		"engineConfig": map[string]any{
 			"backend": "stablediffusion-ggml",
 		},
 	})
 	if err != nil {
 		t.Fatalf("marshal image manifest: %v", err)
-	}
-	if err := os.MkdirAll(filepath.Dir(manifestPath), 0o755); err != nil {
-		t.Fatalf("mkdir image manifest dir: %v", err)
-	}
-	entryPath := filepath.Join(filepath.Dir(manifestPath), "z_image_turbo-Q4_K.gguf")
-	if err := os.WriteFile(entryPath, validImageTestGGUF(), 0o600); err != nil {
-		t.Fatalf("write image entry: %v", err)
 	}
 	if err := os.WriteFile(manifestPath, rawManifest, 0o600); err != nil {
 		t.Fatalf("write image manifest: %v", err)

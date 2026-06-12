@@ -48,6 +48,9 @@ func WithReasonCodeOptions(code codes.Code, reason runtimev1.ReasonCode, options
 	if options.ActionHint != "" {
 		metadata["action_hint"] = options.ActionHint
 	}
+	if metadata["action_hint"] == "" {
+		metadata["action_hint"] = defaultActionHint(reason)
+	}
 	if options.TraceID != "" {
 		metadata["trace_id"] = options.TraceID
 	}
@@ -89,6 +92,13 @@ func WithReasonCodeOptions(code codes.Code, reason runtimev1.ReasonCode, options
 		return fmt.Errorf("grpcerr.WithReasonCodeOptions: attach ErrorInfo: %w", err)
 	}
 	return detailed.Err()
+}
+
+func defaultActionHint(reason runtimev1.ReasonCode) string {
+	if reason == runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
+		return "inspect_error_and_retry_with_corrected_request"
+	}
+	return "inspect_reason_code_and_retry_with_corrected_request"
 }
 
 // ExtractReasonCode extracts the ReasonCode from a gRPC error's ErrorInfo

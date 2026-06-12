@@ -3,19 +3,92 @@ package scopecatalog
 import (
 	"strings"
 	"sync"
-	"unicode"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
 
 type versionState struct {
 	published bool
+	admitted  map[string]bool
 	revoked   map[string]bool
 }
 
 var defaultPublishedVersions = []string{
 	"sdk-v1",
 	"sdk-v2",
+}
+
+var defaultAdmittedScopes = map[string][]string{
+	"sdk-v1": {
+		"ai.spend.meter",
+		"app.messages",
+		"grant:admin",
+		"grant:delegate",
+		"read:*",
+		"read:chat",
+		"read:profile",
+		"realm.settings",
+		"runtime.agent.turn.read",
+		"runtime.agent.turn.write",
+		"runtime.agent.admin",
+		"runtime.agent.autonomy.write",
+		"runtime.agent.avatar_debug.read",
+		"runtime.agent.avatar_debug.write",
+		"runtime.agent.companion_participation.read",
+		"runtime.agent.companion_participation.write",
+		"runtime.agent.create_realm_group_message_candidate",
+		"runtime.agent.delegation.read",
+		"runtime.agent.delegation.write",
+		"runtime.agent.get_realm_group_message_candidate_evidence",
+		"runtime.agent.read",
+		"runtime.agent.write",
+		"runtime.health",
+		"runtime.knowledge.admin",
+		"runtime.knowledge.read",
+		"runtime.knowledge.write",
+		"runtime.memory.admin",
+		"runtime.memory.read",
+		"runtime.memory.write",
+		"runtime.model.remove",
+		"write:*",
+		"write:chat",
+		"write:data",
+	},
+	"sdk-v2": {
+		"ai.spend.meter",
+		"app.messages",
+		"grant:admin",
+		"grant:delegate",
+		"read:*",
+		"read:chat",
+		"read:profile",
+		"realm.settings",
+		"runtime.agent.turn.read",
+		"runtime.agent.turn.write",
+		"runtime.agent.admin",
+		"runtime.agent.autonomy.write",
+		"runtime.agent.avatar_debug.read",
+		"runtime.agent.avatar_debug.write",
+		"runtime.agent.companion_participation.read",
+		"runtime.agent.companion_participation.write",
+		"runtime.agent.create_realm_group_message_candidate",
+		"runtime.agent.delegation.read",
+		"runtime.agent.delegation.write",
+		"runtime.agent.get_realm_group_message_candidate_evidence",
+		"runtime.agent.read",
+		"runtime.agent.write",
+		"runtime.health",
+		"runtime.knowledge.admin",
+		"runtime.knowledge.read",
+		"runtime.knowledge.write",
+		"runtime.memory.admin",
+		"runtime.memory.read",
+		"runtime.memory.write",
+		"runtime.model.remove",
+		"write:*",
+		"write:chat",
+		"write:data",
+	},
 }
 
 // AuditCallback is invoked when the catalog performs an auditable operation.
@@ -38,6 +111,7 @@ func New(opts ...AuditCallback) *Catalog {
 	for _, version := range defaultPublishedVersions {
 		c.versions[version] = &versionState{
 			published: true,
+			admitted:  admittedScopeSet(defaultAdmittedScopes[version]),
 			revoked:   map[string]bool{},
 		}
 	}
@@ -58,6 +132,7 @@ func (c *Catalog) EnsurePublished(version string) bool {
 	}
 	c.versions[version] = &versionState{
 		published: true,
+		admitted:  map[string]bool{},
 		revoked:   map[string]bool{},
 	}
 	c.emitAudit("scope_catalog.version_published", version, runtimev1.ReasonCode_ACTION_EXECUTED)
@@ -85,7 +160,7 @@ func (c *Catalog) RevokeScope(version string, scope string) {
 	defer c.mu.Unlock()
 	state, ok := c.versions[version]
 	if !ok {
-		state = &versionState{published: true, revoked: map[string]bool{}}
+		state = &versionState{published: true, admitted: map[string]bool{}, revoked: map[string]bool{}}
 		c.versions[version] = state
 	}
 	state.revoked[scope] = true
@@ -115,7 +190,15 @@ func (c *Catalog) HasRevokedScope(version string, scopes []string) bool {
 }
 
 func (c *Catalog) ValidateScopes(version string, scopes []string) runtimev1.ReasonCode {
-	if !c.IsPublished(version) {
+	version = strings.TrimSpace(version)
+	if version == "" {
+		c.emitAudit("scope_catalog.validation_failed", version, runtimev1.ReasonCode_APP_SCOPE_CATALOG_UNPUBLISHED)
+		return runtimev1.ReasonCode_APP_SCOPE_CATALOG_UNPUBLISHED
+	}
+	c.mu.RLock()
+	state, ok := c.versions[version]
+	c.mu.RUnlock()
+	if !ok || !state.published {
 		c.emitAudit("scope_catalog.validation_failed", version, runtimev1.ReasonCode_APP_SCOPE_CATALOG_UNPUBLISHED)
 		return runtimev1.ReasonCode_APP_SCOPE_CATALOG_UNPUBLISHED
 	}
@@ -124,7 +207,7 @@ func (c *Catalog) ValidateScopes(version string, scopes []string) runtimev1.Reas
 		if scope == "" {
 			continue
 		}
-		if !isRecognizedScope(scope) {
+		if !state.admitted[scope] {
 			c.emitAudit("scope_catalog.validation_failed", version, runtimev1.ReasonCode_CAPABILITY_CATALOG_MISMATCH)
 			return runtimev1.ReasonCode_CAPABILITY_CATALOG_MISMATCH
 		}
@@ -142,45 +225,13 @@ func (c *Catalog) emitAudit(operation string, version string, code runtimev1.Rea
 	}
 }
 
-func isRecognizedScope(scope string) bool {
-	switch {
-	case strings.HasPrefix(scope, "runtime."):
-		return hasValidScopeSuffix(scope, "runtime.")
-	case strings.HasPrefix(scope, "realm."):
-		return hasValidScopeSuffix(scope, "realm.")
-	case strings.HasPrefix(scope, "app."):
-		return hasValidScopeSuffix(scope, "app.")
-	case strings.HasPrefix(scope, "ai."):
-		return hasValidScopeSuffix(scope, "ai.")
-	case strings.HasPrefix(scope, "read:"):
-		return hasValidScopeSuffix(scope, "read:")
-	case strings.HasPrefix(scope, "write:"):
-		return hasValidScopeSuffix(scope, "write:")
-	case strings.HasPrefix(scope, "grant:"):
-		return hasValidScopeSuffix(scope, "grant:")
-	default:
-		return false
-	}
-}
-
-func hasValidScopeSuffix(scope string, prefix string) bool {
-	suffix := strings.TrimSpace(strings.TrimPrefix(scope, prefix))
-	if suffix == "" {
-		return false
-	}
-	if strings.HasPrefix(suffix, ".") || strings.HasSuffix(suffix, ".") || strings.Contains(suffix, "..") {
-		return false
-	}
-	for _, r := range suffix {
-		if unicode.IsLetter(r) || unicode.IsDigit(r) {
-			continue
-		}
-		switch r {
-		case '.', '_', '-', '*':
-			continue
-		default:
-			return false
+func admittedScopeSet(scopes []string) map[string]bool {
+	out := make(map[string]bool, len(scopes))
+	for _, raw := range scopes {
+		scope := strings.TrimSpace(raw)
+		if scope != "" {
+			out[scope] = true
 		}
 	}
-	return true
+	return out
 }

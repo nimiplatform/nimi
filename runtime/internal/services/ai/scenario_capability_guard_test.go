@@ -94,7 +94,7 @@ func TestValidateScenarioCapabilityCatalogUnavailableFailsClosedForCloudProvider
 	}
 }
 
-func TestValidateScenarioCapabilityCatalogUnavailableAllowsLocalProvider(t *testing.T) {
+func TestValidateScenarioCapabilityCatalogUnavailableFailsClosedForLocalProvider(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	svc.speechCatalog = nil
 
@@ -105,8 +105,15 @@ func TestValidateScenarioCapabilityCatalogUnavailableAllowsLocalProvider(t *test
 		nil,
 		nil,
 	)
-	if err != nil {
-		t.Fatalf("expected local provider capability guard bypass, got error: %v", err)
+	if err == nil {
+		t.Fatal("expected local provider capability guard to fail closed without catalog")
+	}
+	reasonCode, ok := grpcerr.ExtractReasonCode(err)
+	if !ok {
+		t.Fatalf("expected grpc reason code, got error: %v", err)
+	}
+	if reasonCode != runtimev1.ReasonCode_AI_PROVIDER_INTERNAL {
+		t.Fatalf("reason code mismatch: got=%s want=%s", reasonCode.String(), runtimev1.ReasonCode_AI_PROVIDER_INTERNAL.String())
 	}
 }
 
@@ -138,7 +145,7 @@ func TestValidateScenarioCapabilityLocalVoiceWorkflowBoundedFamilyOnly(t *testin
 	if err := svc.validateScenarioCapability(
 		context.Background(),
 		&runtimev1.ExecuteScenarioRequest{ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE},
-		"speech/qwen3tts",
+		"speech/qwen3tts-base",
 		nil,
 		nil,
 	); err != nil {
@@ -161,6 +168,17 @@ func TestValidateScenarioCapabilityLocalVoiceWorkflowBoundedFamilyOnly(t *testin
 	}
 	if reasonCode != runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED {
 		t.Fatalf("reason code mismatch: got=%s want=%s", reasonCode.String(), runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED.String())
+	}
+
+	err = svc.validateScenarioCapability(
+		context.Background(),
+		&runtimev1.ExecuteScenarioRequest{ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE},
+		"speech/qwen3tts",
+		nil,
+		nil,
+	)
+	if err == nil {
+		t.Fatal("expected plain synth qwen3 lane to fail-close for voice clone")
 	}
 }
 

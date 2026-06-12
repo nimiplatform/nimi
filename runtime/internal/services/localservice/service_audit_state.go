@@ -6,12 +6,15 @@ import (
 	"sort"
 	"strings"
 
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/pagination"
 	"github.com/oklog/ulid/v2"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func (s *Service) ListLocalAudits(_ context.Context, req *runtimev1.ListLocalAuditsRequest) (*runtimev1.ListLocalAuditsResponse, error) {
@@ -89,6 +92,13 @@ func localAuditsFilterDigest(req *runtimev1.ListLocalAuditsRequest) string {
 }
 
 func (s *Service) AppendInferenceAudit(ctx context.Context, req *runtimev1.AppendInferenceAuditRequest) (*runtimev1.Ack, error) {
+	if req == nil {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	reasonCode := boundedLocalAuditField(req.GetReasonCode())
+	if reasonCode == "" {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
 	traceID, appID, domain, operation, subjectUserID := localAuditContextEnvelope(
 		ctx,
 		"append_inference_audit",
@@ -100,7 +110,7 @@ func (s *Service) AppendInferenceAudit(ctx context.Context, req *runtimev1.Appen
 		OccurredAt:    nowISO(),
 		Source:        boundedLocalAuditField(req.GetSource()),
 		Modality:      boundedLocalAuditField(req.GetModality()),
-		ReasonCode:    boundedLocalAuditField(req.GetReasonCode()),
+		ReasonCode:    reasonCode,
 		Detail:        boundedLocalAuditField(req.GetDetail()),
 		ModelId:       boundedLocalAuditField(req.GetModel()),
 		LocalModelId:  boundedLocalAuditField(req.GetLocalModelId()),
@@ -125,6 +135,13 @@ func (s *Service) AppendInferenceAudit(ctx context.Context, req *runtimev1.Appen
 }
 
 func (s *Service) AppendRuntimeAudit(ctx context.Context, req *runtimev1.AppendRuntimeAuditRequest) (*runtimev1.Ack, error) {
+	if req == nil {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	reasonCode := runtimeAuditReasonCodeFromPayload(req.GetPayload())
+	if reasonCode == "" {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
 	traceID, appID, domain, operation, subjectUserID := localAuditContextEnvelope(
 		ctx,
 		"append_runtime_audit",
@@ -135,7 +152,7 @@ func (s *Service) AppendRuntimeAudit(ctx context.Context, req *runtimev1.AppendR
 		EventType:     defaultString(boundedLocalAuditField(req.GetEventType()), "runtime_event"),
 		OccurredAt:    nowISO(),
 		Source:        "local",
-		ReasonCode:    "",
+		ReasonCode:    reasonCode,
 		Detail:        "",
 		ModelId:       boundedLocalAuditField(req.GetModelId()),
 		LocalModelId:  boundedLocalAuditField(req.GetLocalModelId()),
@@ -150,6 +167,19 @@ func (s *Service) AppendRuntimeAudit(ctx context.Context, req *runtimev1.AppendR
 	s.appendRuntimeAuditLocked(event)
 	s.mu.Unlock()
 	return &runtimev1.Ack{Ok: true, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}, nil
+}
+
+func runtimeAuditReasonCodeFromPayload(payload interface {
+	GetFields() map[string]*structpb.Value
+}) string {
+	if payload == nil {
+		return ""
+	}
+	value := payload.GetFields()["reason_code"]
+	if value == nil {
+		value = payload.GetFields()["reasonCode"]
+	}
+	return boundedLocalAuditField(value.GetStringValue())
 }
 
 func (s *Service) appendRuntimeAuditLocked(event *runtimev1.LocalAuditEvent) {
@@ -179,6 +209,9 @@ func (s *Service) appendRuntimeAuditLocked(event *runtimev1.LocalAuditEvent) {
 	}
 	if strings.TrimSpace(eventCopy.GetOperation()) == "" {
 		eventCopy.Operation = "local_runtime_event"
+	}
+	if strings.TrimSpace(eventCopy.GetReasonCode()) == "" {
+		eventCopy.ReasonCode = "LOCAL_AUDIT_REASON_CODE_REQUIRED"
 	}
 	s.audits = append([]*runtimev1.LocalAuditEvent{eventCopy}, s.audits...)
 	capacity := s.effectiveLocalAuditCapacity()

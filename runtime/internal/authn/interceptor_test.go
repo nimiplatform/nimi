@@ -169,7 +169,7 @@ func TestAuthenticateMapsRevokedSessionToSessionExpired(t *testing.T) {
 
 	revocationServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(revocationResponse{Active: false})
+		_ = json.NewEncoder(w).Encode(testRevocationResponse(false, false))
 	}))
 	defer func() { revocationServer.Close() }()
 

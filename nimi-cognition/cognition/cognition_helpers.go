@@ -9,7 +9,6 @@ import (
 
 	"github.com/nimiplatform/nimi/nimi-cognition/artifactref"
 	"github.com/nimiplatform/nimi/nimi-cognition/internal/storage"
-	"github.com/nimiplatform/nimi/nimi-cognition/kernel"
 	"github.com/nimiplatform/nimi/nimi-cognition/knowledge"
 	"github.com/nimiplatform/nimi/nimi-cognition/memory"
 	"github.com/nimiplatform/nimi/nimi-cognition/routine"
@@ -34,25 +33,31 @@ func validateVisibleMemoryRecords(records []memory.Record) ([]memory.Record, err
 	return visibleMemoryRecords(records), nil
 }
 
-func validateKnowledgePages(pages []knowledge.Page) ([]knowledge.Page, error) {
+func validateKnowledgePagesInScope(scopeID string, pages []knowledge.Page) ([]knowledge.Page, error) {
 	for _, page := range pages {
 		if err := knowledge.ValidatePage(page); err != nil {
+			return nil, err
+		}
+		if err := validateKnowledgePageScope(scopeID, page); err != nil {
 			return nil, err
 		}
 	}
 	return pages, nil
 }
 
-func validateVisibleKnowledgePages(pages []knowledge.Page) ([]knowledge.Page, error) {
-	pages, err := validateKnowledgePages(pages)
+func validateVisibleKnowledgePagesInScope(scopeID string, pages []knowledge.Page) ([]knowledge.Page, error) {
+	pages, err := validateKnowledgePagesInScope(scopeID, pages)
 	if err != nil {
 		return nil, err
 	}
 	return visibleKnowledgePages(pages), nil
 }
 
-func validateKnowledgePagesForService(store *storage.SQLiteBackend, pages []knowledge.Page) ([]knowledge.Page, error) {
+func validateKnowledgePagesForService(store *storage.SQLiteBackend, scopeID string, pages []knowledge.Page) ([]knowledge.Page, error) {
 	for _, page := range pages {
+		if err := validateKnowledgePageScope(scopeID, page); err != nil {
+			return nil, err
+		}
 		if err := validateKnowledgePageRelations(page); err != nil {
 			return nil, err
 		}
@@ -63,12 +68,12 @@ func validateKnowledgePagesForService(store *storage.SQLiteBackend, pages []know
 	return pages, nil
 }
 
-func validateVisibleKnowledgePagesForService(store *storage.SQLiteBackend, pages []knowledge.Page) ([]knowledge.Page, error) {
-	pages, err := validateVisibleKnowledgePages(pages)
+func validateVisibleKnowledgePagesForService(store *storage.SQLiteBackend, scopeID string, pages []knowledge.Page) ([]knowledge.Page, error) {
+	pages, err := validateVisibleKnowledgePagesInScope(scopeID, pages)
 	if err != nil {
 		return nil, err
 	}
-	return validateKnowledgePagesForService(store, pages)
+	return validateKnowledgePagesForService(store, scopeID, pages)
 }
 
 func validateSkillBundles(bundles []skill.Bundle) ([]skill.Bundle, error) {
@@ -135,7 +140,7 @@ func loadValidatedKnowledgePages(store *storage.SQLiteBackend, scopeID string) (
 	if err != nil {
 		return nil, err
 	}
-	return validateVisibleKnowledgePagesForService(store, pages)
+	return validateVisibleKnowledgePagesForService(store, scopeID, pages)
 }
 
 func loadValidatedSkillBundles(store *storage.SQLiteBackend, scopeID string) ([]skill.Bundle, error) {
@@ -243,16 +248,7 @@ func validateKnowledgePageCitations(store *storage.SQLiteBackend, page knowledge
 	for i, citation := range page.Citations {
 		switch citation.TargetKind {
 		case knowledge.CitationTargetKindKernelRule:
-			rule, err := store.LoadKernelRuleByID(page.ScopeID, citation.TargetID)
-			if err != nil {
-				return fmt.Errorf("page %s citations[%d]: %w", page.PageID, i, err)
-			}
-			if rule == nil {
-				return fmt.Errorf("page %s citations[%d]: kernel rule %s does not exist in scope %s", page.PageID, i, citation.TargetID, page.ScopeID)
-			}
-			if rule.Lifecycle != kernel.RuleLifecycleActive {
-				return fmt.Errorf("page %s citations[%d]: kernel rule %s is not active in scope %s", page.PageID, i, citation.TargetID, page.ScopeID)
-			}
+			return fmt.Errorf("page %s citations[%d]: kernel_rule citations are not admitted as incoming kernel references", page.PageID, i)
 		case knowledge.CitationTargetKindMemoryRecord:
 			live, err := store.IsArtifactRefTargetLive(page.ScopeID, artifactref.KindMemoryRecord, citation.TargetID)
 			if err != nil {
@@ -264,6 +260,13 @@ func validateKnowledgePageCitations(store *storage.SQLiteBackend, page knowledge
 		default:
 			return fmt.Errorf("page %s citations[%d]: invalid citation target_kind %q", page.PageID, i, citation.TargetKind)
 		}
+	}
+	return nil
+}
+
+func validateKnowledgePageScope(scopeID string, page knowledge.Page) error {
+	if page.ScopeID != scopeID {
+		return fmt.Errorf("knowledge page %s: payload scope %s does not match requested scope %s", page.PageID, page.ScopeID, scopeID)
 	}
 	return nil
 }
@@ -293,6 +296,9 @@ func loadOptionalKnowledgePage(store *storage.SQLiteBackend, scopeID string, pag
 		return nil, fmt.Errorf("knowledge load: %w", err)
 	}
 	if err := knowledge.ValidatePage(page); err != nil {
+		return nil, fmt.Errorf("knowledge load: %w", err)
+	}
+	if err := validateKnowledgePageScope(scopeID, page); err != nil {
 		return nil, fmt.Errorf("knowledge load: %w", err)
 	}
 	if err := validateKnowledgePageRelations(page); err != nil {
@@ -467,6 +473,8 @@ func (a *routineArtifactAccess) KnowledgeCitationBlockedBy(scopeID string, targe
 	}
 	return knowledgeCitationBlockerParts(a.store, scopeID, targetKind, targetID)
 }
+
+func (a *routineArtifactAccess) ServiceEquivalentArtifactAccess() {}
 
 func (a *routineArtifactAccess) ListKnowledge(scopeID string) ([]knowledge.Page, error) {
 	return a.knowledge.List(scopeID)

@@ -21,7 +21,7 @@ func TestKnowledgeScopeRegistry_DeleteCascadesIncludingFTS(t *testing.T) {
 	registry := c.KnowledgeScopeRegistry()
 
 	scope, err := registry.CreateKnowledgeScope(context.Background(), KnowledgeScopeDescriptor{
-		Owner:       KnowledgeScopeOwner{Kind: KnowledgeScopeOwnerKindAppPrivate, AppID: "nimi.desktop"},
+		Owner:       KnowledgeScopeOwner{Kind: KnowledgeScopeOwnerKindWorkspace, WorkspaceID: "ws-cascade"},
 		DisplayName: "Cascade Bank",
 	})
 	if err != nil {
@@ -54,10 +54,11 @@ func TestKnowledgeScopeRegistry_DeleteCascadesIncludingFTS(t *testing.T) {
 		CreatedAt: ts,
 		UpdatedAt: ts,
 	}
-	if err := c.KnowledgeService().Save(page1); err != nil {
+	writeAccess := validAppKnowledgeWriteAccess()
+	if err := c.AppMemoryAccessService().SaveKnowledge(context.Background(), writeAccess, page1); err != nil {
 		t.Fatalf("save page1: %v", err)
 	}
-	if err := c.KnowledgeService().Save(page2); err != nil {
+	if err := c.AppMemoryAccessService().SaveKnowledge(context.Background(), writeAccess, page2); err != nil {
 		t.Fatalf("save page2: %v", err)
 	}
 

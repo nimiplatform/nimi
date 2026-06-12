@@ -3,7 +3,6 @@ package memory
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"os"
 	"path/filepath"
 	"sync"
@@ -20,7 +19,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func TestMemoryServiceImportLegacyJSONIntoSQLiteAndRename(t *testing.T) {
+func TestMemoryServiceDoesNotImportLegacyJSONIntoSQLite(t *testing.T) {
 	t.Parallel()
 
 	dir := t.TempDir()
@@ -111,7 +110,7 @@ func TestMemoryServiceImportLegacyJSONIntoSQLiteAndRename(t *testing.T) {
 		AIHTTPTimeoutSeconds: 2,
 	})
 	if err != nil {
-		t.Fatalf("New(import): %v", err)
+		t.Fatalf("New: %v", err)
 	}
 	closeMemoryServiceForTest(t, svc)
 
@@ -119,36 +118,18 @@ func TestMemoryServiceImportLegacyJSONIntoSQLiteAndRename(t *testing.T) {
 		Bank:  locator,
 		Query: &runtimev1.MemoryHistoryQuery{PageSize: 10, IncludeInvalidated: true},
 	})
-	if err != nil {
-		t.Fatalf("History(imported): %v", err)
-	}
-	if len(historyResp.GetRecords()) != 1 || historyResp.GetRecords()[0].GetMemoryId() != record.GetMemoryId() {
-		t.Fatalf("unexpected imported history: %#v", historyResp.GetRecords())
+	if err == nil {
+		t.Fatalf("legacy memory-state.json must not become active runtime truth, got response %#v", historyResp)
 	}
 	backlogItems := svc.ListReplicationBacklog()
-	if len(backlogItems) != 1 || backlogItems[0].MemoryID != record.GetMemoryId() {
-		t.Fatalf("unexpected imported backlog: %#v", backlogItems)
+	if len(backlogItems) != 0 {
+		t.Fatalf("legacy replication backlog must not become active runtime truth: %#v", backlogItems)
 	}
 	if _, err := os.Stat(filepath.Join(dir, "memory.db")); err != nil {
 		t.Fatalf("expected memory.db: %v", err)
 	}
-	if _, err := os.Stat(legacyPath); !errors.Is(err, os.ErrNotExist) {
-		t.Fatalf("expected legacy path to be renamed, stat err=%v", err)
-	}
-	if _, err := os.Stat(legacyPath + ".wave3-imported.json.bak"); err != nil {
-		t.Fatalf("expected imported backup rename: %v", err)
-	}
-	if got, err := svc.memoryMetaValue(memoryMetaLegacyImportSourcePathKey); err != nil || got != legacyPath {
-		t.Fatalf("unexpected import source path metadata: got=%q err=%v", got, err)
-	}
-	if got, err := svc.memoryMetaValue(memoryMetaLegacyImportSourceSchemaVersionKey); err != nil || got != "1" {
-		t.Fatalf("unexpected import schema metadata: got=%q err=%v", got, err)
-	}
-	if got, err := svc.memoryMetaValue(memoryMetaLegacyImportSourceSHA256Key); err != nil || got == "" {
-		t.Fatalf("expected import sha metadata, got=%q err=%v", got, err)
-	}
-	if got, err := svc.memoryMetaValue(memoryMetaLegacyImportedAtKey); err != nil || got == "" {
-		t.Fatalf("expected import timestamp metadata, got=%q err=%v", got, err)
+	if _, err := os.Stat(legacyPath); err != nil {
+		t.Fatalf("legacy path must remain inert evidence, stat err=%v", err)
 	}
 
 	if err := svc.PersistenceBackend().Close(); err != nil {
@@ -173,14 +154,11 @@ func TestMemoryServiceImportLegacyJSONIntoSQLiteAndRename(t *testing.T) {
 		Bank:  locator,
 		Query: &runtimev1.MemoryHistoryQuery{PageSize: 10, IncludeInvalidated: true},
 	})
-	if err != nil {
-		t.Fatalf("History(restart): %v", err)
+	if err == nil {
+		t.Fatalf("legacy memory-state.json must remain inert after restart, got response %#v", historyResp)
 	}
-	if len(historyResp.GetRecords()) != 1 {
-		t.Fatalf("expected one imported record after restart, got %d", len(historyResp.GetRecords()))
-	}
-	if got := svc.ListReplicationBacklog(); len(got) != 1 {
-		t.Fatalf("expected one backlog item after restart, got %#v", got)
+	if got := svc.ListReplicationBacklog(); len(got) != 0 {
+		t.Fatalf("expected no backlog item after restart, got %#v", got)
 	}
 }
 

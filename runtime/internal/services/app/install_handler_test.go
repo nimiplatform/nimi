@@ -58,6 +58,12 @@ func testLogger() *slog.Logger {
 	return slog.New(slog.NewTextHandler(io.Discard, nil))
 }
 
+type allowingAppSessionValidator struct{}
+
+func (allowingAppSessionValidator) ValidateAppSession(string, string, string) (runtimev1.ReasonCode, bool) {
+	return runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, true
+}
+
 func bundledRegistry(t *testing.T) *appregistrycatalog.Registry {
 	t.Helper()
 	body := `version: 1
@@ -202,6 +208,7 @@ func newBundledInstallServiceWithRegistry(t *testing.T, registry *appregistrycat
 	nimiDir := filepath.Join(t.TempDir(), ".nimi")
 	svc := New(testLogger(),
 		WithInstallRuntime(runtime),
+		WithSessionValidator(allowingAppSessionValidator{}),
 		WithOpenAppReadinessVerifier(verifier),
 		WithRuntimeAccountProjectionProvider(testRuntimeAccountProjectionProvider{
 			projection: &runtimev1.AccountProjection{AccountId: "account_1"},
@@ -348,16 +355,15 @@ func TestUninstallAppRejectsUnconfirmedDestructiveDelete(t *testing.T) {
 
 func TestWatchAppInstallJobEventsStreamsProgress(t *testing.T) {
 	svc, _ := newBundledInstallService(t)
-	stream := newRecordingInstallEventStream()
-	done := make(chan error, 1)
-	go func() {
-		done <- svc.WatchAppInstallJobEvents(&runtimev1.WatchAppInstallJobEventsRequest{}, stream)
-	}()
-
 	resp, err := svc.InstallApp(context.Background(), &runtimev1.InstallAppRequest{AppId: "nimi.example-app", Confirmed: true})
 	if err != nil {
 		t.Fatalf("InstallApp: %v", err)
 	}
+	stream := newRecordingInstallEventStream()
+	done := make(chan error, 1)
+	go func() {
+		done <- svc.WatchAppInstallJobEvents(&runtimev1.WatchAppInstallJobEventsRequest{JobId: resp.GetJob().GetJobId()}, stream)
+	}()
 	waitForTerminalJob(t, svc, resp.GetJob().GetJobId())
 
 	deadline := time.Now().Add(2 * time.Second)

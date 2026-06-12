@@ -18,7 +18,7 @@ func TestKnowledgeScopeRegistry_DurableAcrossRestart(t *testing.T) {
 	// Phase 1: create scope + page, then explicitly Close to flush WAL.
 	c1 := newTestCognitionAt(t, root)
 	scope, err := c1.KnowledgeScopeRegistry().CreateKnowledgeScope(context.Background(), KnowledgeScopeDescriptor{
-		Owner:       KnowledgeScopeOwner{Kind: KnowledgeScopeOwnerKindAppPrivate, AppID: "nimi.desktop"},
+		Owner:       KnowledgeScopeOwner{Kind: KnowledgeScopeOwnerKindWorkspace, WorkspaceID: "ws-restart"},
 		DisplayName: "Restart Bank",
 	})
 	if err != nil {
@@ -37,7 +37,7 @@ func TestKnowledgeScopeRegistry_DurableAcrossRestart(t *testing.T) {
 		CreatedAt: ts,
 		UpdatedAt: ts,
 	}
-	if err := c1.KnowledgeService().Save(page); err != nil {
+	if err := c1.AppMemoryAccessService().SaveKnowledge(context.Background(), validAppKnowledgeWriteAccess(), page); err != nil {
 		t.Fatalf("save page: %v", err)
 	}
 
@@ -70,11 +70,11 @@ func TestKnowledgeScopeRegistry_DurableAcrossRestart(t *testing.T) {
 	if got.DisplayName != "Restart Bank" {
 		t.Fatalf("expected display_name preserved across restart, got %q", got.DisplayName)
 	}
-	if got.Owner.Kind != KnowledgeScopeOwnerKindAppPrivate || got.Owner.AppID != "nimi.desktop" {
+	if got.Owner.Kind != KnowledgeScopeOwnerKindWorkspace || got.Owner.WorkspaceID != "ws-restart" {
 		t.Fatalf("expected owner preserved across restart, got %+v", got.Owner)
 	}
 
-	loaded, err := c2.KnowledgeService().Load(scopeID, "page-restart-1")
+	loaded, err := c2.AppMemoryAccessService().LoadKnowledge(context.Background(), validAppKnowledgeReadAccess(), scopeID, "page-restart-1")
 	if err != nil {
 		t.Fatalf("load page after reopen: %v", err)
 	}

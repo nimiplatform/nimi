@@ -9,11 +9,7 @@ import (
 )
 
 const (
-	memoryMetaLegacyImportSourcePathKey          = "legacy_import_source_path"
-	memoryMetaLegacyImportSourceSHA256Key        = "legacy_import_source_sha256"
-	memoryMetaLegacyImportSourceSchemaVersionKey = "legacy_import_source_schema_version"
-	memoryMetaLegacyImportedAtKey                = "legacy_imported_at"
-	memoryMetaPendingEmbeddingCutoverPrefix      = "pending_embedding_cutover:"
+	memoryMetaPendingEmbeddingCutoverPrefix = "pending_embedding_cutover:"
 )
 
 func (s *Service) bankForLocator(locator *runtimev1.MemoryBankLocator) (*bankState, error) {

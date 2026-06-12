@@ -32,8 +32,11 @@ func (s *Service) requireAppLifecycleSession(ctx context.Context, appID string) 
 		}
 		return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
 	}
-	if s.sessionValidator == nil || isTrustedInternalCaller(ctx, appID) || isDesktopCoreLifecycleController(ctx) {
+	if isTrustedInternalCaller(ctx, appID) || isDesktopCoreLifecycleController(ctx) {
 		return nil
+	}
+	if s.sessionValidator == nil {
+		return grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_AUTH_TOKEN_INVALID)
 	}
 	sessionID, sessionToken, _ := envelope.ParseSessionFromContext(ctx)
 	if reasonCode, ok := s.sessionValidator.ValidateAppSession(appID, sessionID, sessionToken); !ok {

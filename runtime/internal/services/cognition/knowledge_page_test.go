@@ -1,7 +1,6 @@
 package cognition
 
 import (
-	"context"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -12,7 +11,7 @@ import (
 
 func newAppPrivateBank(t *testing.T, svc *Service, appID, displayName string) string {
 	t.Helper()
-	resp, err := svc.CreateKnowledgeBank(context.Background(), &runtimev1.CreateKnowledgeBankRequest{
+	resp, err := svc.CreateKnowledgeBank(testKnowledgeEnvelopeContext(appID), &runtimev1.CreateKnowledgeBankRequest{
 		Context: &runtimev1.KnowledgeRequestContext{AppId: appID},
 		Locator: &runtimev1.PublicKnowledgeBankLocator{
 			Locator: &runtimev1.PublicKnowledgeBankLocator_AppPrivate{
@@ -31,7 +30,7 @@ func newAppPrivateBank(t *testing.T, svc *Service, appID, displayName string) st
 func TestPutPageHappyAndSlugConflict(t *testing.T) {
 	svc, _, cleanup := newTestService(t)
 	defer cleanup()
-	ctx := context.Background()
+	ctx := testKnowledgeEnvelopeContext("app.s2-7")
 	reqCtx := &runtimev1.KnowledgeRequestContext{AppId: "app.s2-7"}
 	bankID := newAppPrivateBank(t, svc, "app.s2-7", "S2.7 Bank")
 
@@ -57,7 +56,7 @@ func TestPutPageHappyAndSlugConflict(t *testing.T) {
 func TestGetPageByIdAndBySlug(t *testing.T) {
 	svc, _, cleanup := newTestService(t)
 	defer cleanup()
-	ctx := context.Background()
+	ctx := testKnowledgeEnvelopeContext("app.s2-8")
 	reqCtx := &runtimev1.KnowledgeRequestContext{AppId: "app.s2-8"}
 	bankID := newAppPrivateBank(t, svc, "app.s2-8", "S2.8 Bank")
 
@@ -95,7 +94,7 @@ func TestGetPageByIdAndBySlug(t *testing.T) {
 func TestDeletePageRemovesOnlyTargetPage(t *testing.T) {
 	svc, _, cleanup := newTestService(t)
 	defer cleanup()
-	ctx := context.Background()
+	ctx := testKnowledgeEnvelopeContext("app.s2-9")
 	reqCtx := &runtimev1.KnowledgeRequestContext{AppId: "app.s2-9"}
 	bankID := newAppPrivateBank(t, svc, "app.s2-9", "S2.9 Bank")
 

@@ -428,7 +428,7 @@ func TestResolveVoiceWorkflowLocalQwenClone(t *testing.T) {
 		t.Fatalf("NewResolver: %v", err)
 	}
 
-	resolved, err := resolver.ResolveVoiceWorkflow("local", "qwen3-tts-local", "voice_clone")
+	resolved, err := resolver.ResolveVoiceWorkflow("local", "qwen3-tts-base-local", "voice_clone")
 	if err != nil {
 		t.Fatalf("ResolveVoiceWorkflow: %v", err)
 	}
@@ -467,7 +467,7 @@ func TestResolveVoiceWorkflowLocalQwenDesign(t *testing.T) {
 		t.Fatalf("NewResolver: %v", err)
 	}
 
-	resolved, err := resolver.ResolveVoiceWorkflow("local", "speech/qwen3tts", "voice_design")
+	resolved, err := resolver.ResolveVoiceWorkflow("local", "speech/qwen3tts-design", "voice_design")
 	if err != nil {
 		t.Fatalf("ResolveVoiceWorkflow: %v", err)
 	}
@@ -512,6 +512,28 @@ func TestResolveVoiceWorkflowLocalUnsupportedReturnsError(t *testing.T) {
 	_, err = resolver.ResolveVoiceWorkflow("local", "kokoro-local", "voice_clone")
 	if err == nil {
 		t.Fatalf("expected local voice workflow unsupported error")
+	}
+	if err != ErrVoiceWorkflowUnsupported {
+		t.Fatalf("expected ErrVoiceWorkflowUnsupported, got=%v", err)
+	}
+}
+
+func TestResolveVoiceWorkflowLocalPlainSynthLaneUnsupported(t *testing.T) {
+	resolver, err := NewResolver(ResolverConfig{})
+	if err != nil {
+		t.Fatalf("NewResolver: %v", err)
+	}
+
+	_, err = resolver.ResolveVoiceWorkflow("local", "speech/qwen3tts", "voice_clone")
+	if err == nil {
+		t.Fatalf("expected plain synth qwen3 lane to be unsupported for voice clone")
+	}
+	if err != ErrVoiceWorkflowUnsupported {
+		t.Fatalf("expected ErrVoiceWorkflowUnsupported, got=%v", err)
+	}
+	_, err = resolver.ResolveVoiceWorkflow("local", "speech/qwen3tts", "voice_design")
+	if err == nil {
+		t.Fatalf("expected plain synth qwen3 lane to be unsupported for voice design")
 	}
 	if err != ErrVoiceWorkflowUnsupported {
 		t.Fatalf("expected ErrVoiceWorkflowUnsupported, got=%v", err)

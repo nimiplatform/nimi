@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -674,14 +673,14 @@ func TestGenerateTextGenericOpenAICompatibleRejectsAudioPart(t *testing.T) {
 	}
 }
 
-func TestBuildOpenAIProviderNativeMessagesAcceptsDataURLImage(t *testing.T) {
+func TestBuildOpenAIProviderNativeMessagesRejectsDataURLImage(t *testing.T) {
 	backend := newBackend("cloud-openai", "https://example.com", "", nil, 0, nil, false, true)
 	if backend == nil {
 		t.Fatal("expected backend")
 	}
 
 	imageDataURL := "data:image/png;base64," + base64.StdEncoding.EncodeToString([]byte("png-bytes"))
-	messages, err := backend.buildOpenAIProviderNativeMessages(context.Background(), "", []*runtimev1.ChatMessage{
+	_, err := backend.buildOpenAIProviderNativeMessages(context.Background(), "", []*runtimev1.ChatMessage{
 		{
 			Role: "user",
 			Parts: []*runtimev1.ChatContentPart{
@@ -690,20 +689,7 @@ func TestBuildOpenAIProviderNativeMessagesAcceptsDataURLImage(t *testing.T) {
 			},
 		},
 	})
-	if err != nil {
-		t.Fatalf("buildOpenAIProviderNativeMessages() error = %v", err)
-	}
-	if len(messages) != 1 {
-		t.Fatalf("expected 1 message, got %d", len(messages))
-	}
-	content, ok := messages[0].Content.([]openAIContentPart)
-	if !ok || len(content) != 2 {
-		t.Fatalf("expected text+image content parts, got=%T len=%d", messages[0].Content, len(content))
-	}
-	if content[1].Type != "image_url" || content[1].ImageURL == nil {
-		t.Fatalf("unexpected image part: %+v", content[1])
-	}
-	if !strings.HasPrefix(content[1].ImageURL.URL, "data:image/png;base64,") {
-		t.Fatalf("expected normalized data URL image payload, got %q", content[1].ImageURL.URL)
+	if err == nil {
+		t.Fatal("expected data URL image to fail closed")
 	}
 }

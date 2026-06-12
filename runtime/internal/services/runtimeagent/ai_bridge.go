@@ -37,8 +37,8 @@ func NewAIBackedRuntimePrivateAIBridge(ai runtimePrivateAIBridgeAI) *RuntimePriv
 	bridge.lifeTrack = NewAIBackedLifeTrackExecutor(ai)
 	bridge.chatTrackSidecar = NewAIBackedChatTrackSidecarExecutor(ai)
 	bridge.canonicalReview = NewAIBackedCanonicalReviewExecutor(ai)
-	bridge.realmGroupCandidate = NewAIBackedRealmGroupMessageCandidateExecutor(ai)
 	bridge.publicChatBinding = NewAIBackedPublicChatBindingResolver(ai)
+	bridge.realmGroupCandidate = NewAIBackedRealmGroupMessageCandidateExecutorWithBinding(ai, bridge.publicChatBinding)
 	bridge.publicChatTurn = NewAIBackedPublicChatTurnExecutor(ai)
 	return bridge
 }

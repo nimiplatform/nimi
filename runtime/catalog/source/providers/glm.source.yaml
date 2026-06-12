@@ -3,6 +3,7 @@ provider: glm
 catalog_version: 2026-04-18-glm-provider-v2
 generated_target: runtime/catalog/providers/glm.yaml
 runtime:
+  inventory_mode: static_source
   runtime_plane: remote
   managed_connector_supported: true
   inline_supported: true
