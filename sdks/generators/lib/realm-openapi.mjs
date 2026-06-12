@@ -7,12 +7,7 @@ function configuredRealmOpenApiSource() {
   const configRel = 'config/realm-openapi-source.json';
   const config = JSON.parse(readText(configRel));
   if (process.env.NIMI_REALM_OPENAPI_PATH) {
-    return {
-      source_label: 'env:NIMI_REALM_OPENAPI_PATH',
-      abs_path: path.resolve(process.env.NIMI_REALM_OPENAPI_PATH),
-      config,
-      config_rel: configRel,
-    };
+    throw new Error('NIMI_REALM_OPENAPI_PATH is not an admitted Realm OpenAPI authority source');
   }
   return {
     source_label: config.source_path,
@@ -110,7 +105,7 @@ function parseOpenApiOperations(spec) {
 
 export function extractRealmCore() {
   const source = configuredRealmOpenApiSource();
-  const sourcePaths = [source.config_rel];
+  const sourcePaths = [source.config_rel, source.config.source_path].filter(Boolean);
   let sourceState = 'openapi_missing';
   let operations = [];
   let modelNames = [];

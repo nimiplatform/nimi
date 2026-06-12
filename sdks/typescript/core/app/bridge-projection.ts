@@ -2,8 +2,6 @@ import type { NimiAppReleaseDescriptorRow } from './index.js';
 import type { NimiAppRegistrySourceRow } from './registry-transport.js';
 
 export interface NimiAppBridgeProjection {
-  readonly registryPath: string;
-  readonly packagesPath: string;
   readonly registryRows: readonly NimiAppRegistrySourceRow[];
   readonly releaseDescriptors: readonly NimiAppReleaseDescriptorRow[];
 }
@@ -37,16 +35,16 @@ const NIMI_APP_ORDINARY_VISIBILITIES = new Set([
 
 export function parseNimiAppBridgeProjection(value: unknown): NimiAppBridgeProjection {
   const record = asNimiAppBridgeRecord(value, 'apps_bridge_projection_get');
+  const registryRows = asNimiAppBridgeArray(record.registryRows, 'apps_bridge_projection registryRows')
+    .map(parseNimiAppBridgeRegistryRow)
+    .filter(isOrdinaryVisibleAdmittedApp);
+  const admittedAppIds = new Set(registryRows.map((row) => row.appId));
   return {
-    registryPath: requireNimiAppBridgeString(record.registryPath, 'apps_bridge_projection registryPath'),
-    packagesPath: requireNimiAppBridgeString(record.packagesPath, 'apps_bridge_projection packagesPath'),
-    registryRows: asNimiAppBridgeArray(record.registryRows, 'apps_bridge_projection registryRows').map(
-      parseNimiAppBridgeRegistryRow,
-    ),
+    registryRows,
     releaseDescriptors: asNimiAppBridgeArray(
       record.releaseDescriptors,
       'apps_bridge_projection releaseDescriptors',
-    ).map(parseNimiAppBridgeReleaseDescriptorRow),
+    ).map(parseNimiAppBridgeReleaseDescriptorRow).filter((descriptor) => admittedAppIds.has(descriptor.appId)),
   };
 }
 
@@ -192,4 +190,8 @@ function requireNimiAppBridgeString(value: unknown, label: string): string {
 function optionalNimiAppBridgeString(value: unknown): string | undefined {
   const normalized = String(value ?? '').trim();
   return normalized || undefined;
+}
+
+function isOrdinaryVisibleAdmittedApp(row: NimiAppRegistrySourceRow): boolean {
+  return row.ordinaryVisibility === 'ordinary-visible' && row.admissionStatus === 'admitted';
 }

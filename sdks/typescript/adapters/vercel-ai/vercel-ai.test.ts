@@ -5,6 +5,7 @@ import type { LanguageModelV3 } from '@ai-sdk/provider';
 import { generateText } from 'ai';
 
 import type { NimiClient, NimiClientRuntimeModelOptions } from '@nimiplatform/sdk';
+import { isNimiError } from '@nimiplatform/sdk';
 import type { NimiAiModel, NimiGenerateTextRequest, NimiGenerateTextResult } from '@nimiplatform/sdk/ai';
 import type {
   NimiFinishReason,
@@ -260,6 +261,49 @@ test('vercel-ai adapter maps Nimi stream events to LanguageModelV3-like stream p
   assert.deepEqual(parts, ['stream-start', 'text-start', 'text-delta', 'text-end', 'finish']);
 });
 
+test('vercel-ai adapter fails closed when a Nimi stream ends without terminal evidence', async () => {
+  const model = createNimiVercelLanguageModel({
+    model: createModel([], {
+      stream: [{ type: 'text-delta', text: 'partial' }],
+    }),
+  });
+  const result = await model.doStream({
+    prompt: [{ role: 'user', content: [{ type: 'text', text: 'hello' }] }],
+  });
+  const reader = result.stream.getReader();
+  await assert.rejects(
+    async () => {
+      for (;;) {
+        await reader.read();
+      }
+    },
+    (error: unknown) => {
+      assert.equal(isNimiError(error), true);
+      assert.equal((error as { reasonCode?: string }).reasonCode, 'SDK_AI_STREAM_TERMINAL_EVIDENCE_MISSING');
+      return true;
+    },
+  );
+});
+
+test('vercel-ai runtime-backed provider requires route policy and explicit subject mode', () => {
+  const client = {
+    ai: {
+      createRuntimeModel() {
+        return createModel([]);
+      },
+    },
+  } as unknown as NimiClient;
+
+  assert.throws(
+    () => createNimiVercelProvider({ client } as never).languageModel('model-1'),
+    { feature: 'provider.routePolicy' },
+  );
+  assert.throws(
+    () => createNimiVercelProvider({ client, routePolicy: 'cloud', subjectUserId: 'user-1' }).languageModel('model-1'),
+    { feature: 'provider.subjectUserId' },
+  );
+});
+
 test('vercel-ai adapter streams returned tool-call events as partial run-event mapping', async () => {
   const model = createNimiVercelLanguageModel({
     model: createModel([], {
@@ -358,7 +402,7 @@ test('vercel-ai adapter streams source provider tool result approval and raw chu
   assert.deepEqual(rawPart?.type === 'raw' ? rawPart.rawValue : undefined, { provider: 'raw-chunk' });
 });
 
-test('vercel-ai adapter maps non-text stream events without inventing parity', async () => {
+test('vercel-ai adapter fails closed on stream errors and unknown terminal reasons', async () => {
   const model = createNimiVercelLanguageModel({
     model: createModel([], {
       stream: [
@@ -366,7 +410,6 @@ test('vercel-ai adapter maps non-text stream events without inventing parity', a
         { type: 'artifact', mimeType: 'text/plain', chunk: new Uint8Array([65]) },
         { type: 'warning', code: 'route-degraded', message: 'using fallback' },
         { type: 'error', code: 'partial-error', message: 'reported but stream continued' },
-        { type: 'done', finishReason: 'unknown' },
       ],
     }),
   });
@@ -390,11 +433,33 @@ test('vercel-ai adapter maps non-text stream events without inventing parity', a
     'reasoning-delta',
     'file',
     'error',
-    'reasoning-end',
-    'finish',
   ]);
-  const finish = parts.find((part) => part.type === 'finish');
-  assert.equal(finish?.type === 'finish' ? finish.finishReason.unified : '', 'other');
+  const errorPart = parts.find((part) => part.type === 'error');
+  const streamError = errorPart?.type === 'error' ? errorPart.error : undefined;
+  assert.equal(isNimiError(streamError), true);
+  assert.equal((streamError as { reasonCode?: string }).reasonCode, 'partial-error');
+
+  const unknownTerminalModel = createNimiVercelLanguageModel({
+    model: createModel([], {
+      stream: [{ type: 'done', finishReason: 'unknown' }],
+    }),
+  });
+  const unknownResult = await unknownTerminalModel.doStream({
+    prompt: [{ role: 'user', content: [{ type: 'text', text: 'stream' }] }],
+  });
+  const unknownReader = unknownResult.stream.getReader();
+  await assert.rejects(
+    async () => {
+      for (;;) {
+        await unknownReader.read();
+      }
+    },
+    (error: unknown) => {
+      assert.equal(isNimiError(error), true);
+      assert.equal((error as { reasonCode?: string }).reasonCode, 'SDK_AI_STREAM_FINISH_REASON_UNKNOWN');
+      return true;
+    },
+  );
 });
 
 test('vercel-ai adapter maps provider-defined tools to Nimi provider tools', async () => {
@@ -474,7 +539,7 @@ test('vercel-ai adapter fails closed when streaming is unsupported by the Nimi m
 
 test('vercel-ai provider fails closed on invalid configuration', () => {
   assert.throws(
-    () => createNimiVercelProvider({}),
+    () => createNimiVercelProvider({} as never),
     { feature: 'provider.configuration' },
   );
   assert.throws(
@@ -506,6 +571,7 @@ test('vercel-ai provider can create Runtime-backed models from a Nimi client', (
     } as unknown as NimiClient,
     routePolicy: 'cloud',
     subjectUserId: 'user-1',
+    subjectMode: 'external-principal',
   });
 
   assert.equal(provider.languageModel('gemini/default').modelId, 'gemini/default');

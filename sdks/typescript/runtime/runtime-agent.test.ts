@@ -24,7 +24,7 @@ import {
   MemoryRecordKind,
   RuntimeHealthStatus,
   type RuntimeTypedCallOptions,
-} from './generated';
+} from '../core-generated/runtime-typed-client';
 
 test('Runtime Agent projection reads presentation metadata and state snapshots', () => {
   const metadata = toNimiRuntimeProtoStruct({

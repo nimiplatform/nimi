@@ -45,7 +45,6 @@ import {
   projectNimiRuntimeLocalCatalogVariantDescriptor,
   projectNimiRuntimeLocalDeviceProfile,
   projectNimiRuntimeLocalEnvironmentDependencyJob,
-  projectNimiRuntimeLocalImageNativeConsumerScope,
   projectNimiRuntimeLocalRecommendationFeed,
   resolveNimiRuntimeLocalImageNativeEnvironmentPlan,
   sortNimiRuntimeLocalRecommendationFeedItems,
@@ -95,7 +94,7 @@ test('Runtime local model center client pages, dedupes, and projects generated l
           };
       },
     },
-    callOptions: { metadata: { authorization: 'Bearer local' } },
+    callOptions: { metadata: { 'x-nimi-access-token-id': 'local-token-id' } },
   });
 
   const assets = await client.listAssets({ kind: 'chat', status: 'active', engine: 'llama', pageSize: 50 });
@@ -109,7 +108,7 @@ test('Runtime local model center client pages, dedupes, and projects generated l
         pageSize: 50,
         pageToken: '',
       },
-      options: { metadata: { authorization: 'Bearer local' } },
+      options: { metadata: { 'x-nimi-access-token-id': 'local-token-id' } },
     },
     {
       request: {
@@ -119,7 +118,7 @@ test('Runtime local model center client pages, dedupes, and projects generated l
         pageSize: 50,
         pageToken: 'page-2',
       },
-      options: { metadata: { authorization: 'Bearer local' } },
+      options: { metadata: { 'x-nimi-access-token-id': 'local-token-id' } },
     },
   ]);
   assert.deepEqual(assets.map((asset) => ({
@@ -148,6 +147,15 @@ test('Runtime local model center write path fails closed for non-core callers', 
     local: emptyLocalRpc(),
   });
 
+  await assert.rejects(
+    client.remove('local-1'),
+    (error: unknown) => {
+      const record = error as { reasonCode?: string; details?: { caller?: string } };
+      assert.equal(record.reasonCode, 'SDK_RUNTIME_LOCAL_WRITE_DENIED');
+      assert.equal(record.details?.caller, '<missing>');
+      return true;
+    },
+  );
   await assert.rejects(
     client.remove('local-1', { caller: 'renderer' }),
     (error: unknown) => {
@@ -480,27 +488,12 @@ test('Runtime local environment dependency job projection preserves Runtime-owne
   });
 });
 
-test('Runtime local image native environment helper projects SDK-owned plan input', async () => {
-  assert.equal(
-    projectNimiRuntimeLocalImageNativeConsumerScope({ os: 'darwin', arch: 'arm64', gpu: { vendor: 'Apple' } }),
-    'stable-diffusion.cpp.metal',
-  );
-  assert.equal(
-    projectNimiRuntimeLocalImageNativeConsumerScope({ os: 'linux', arch: 'x64', gpu: { vendor: 'NVIDIA' } }),
-    'stable-diffusion.cpp.cuda',
-  );
-  assert.equal(
-    projectNimiRuntimeLocalImageNativeConsumerScope({ os: 'linux', arch: 'x64', gpu: { vendor: 'amd' } }),
-    'stable-diffusion.cpp.cpu',
-  );
-
+test('Runtime local image native environment helper delegates environment selection to Runtime', async () => {
   const planInput = buildNimiRuntimeLocalImageNativeEnvironmentPlanInput(
     { assetId: 'asset/image', localAssetId: 'local-image' },
-    { os: 'darwin', arch: 'arm64', gpu: { vendor: 'Apple' } },
   );
   assert.deepEqual(planInput, {
     packId: 'local-image-native',
-    consumerScope: 'stable-diffusion.cpp.metal',
     assetId: 'asset/image',
     localAssetId: 'local-image',
   });
@@ -508,9 +501,6 @@ test('Runtime local image native environment helper projects SDK-owned plan inpu
   const calls: unknown[] = [];
   const plan = await resolveNimiRuntimeLocalImageNativeEnvironmentPlan({
     runtime: {
-      async collectDeviceProfile() {
-        return { os: 'linux', arch: 'x64', gpu: { vendor: 'NVIDIA' } };
-      },
       async resolveEnvironmentPlan(input) {
         calls.push(input);
         return {
@@ -520,7 +510,7 @@ test('Runtime local image native environment helper projects SDK-owned plan inpu
           hostProfileId: 'host-1',
           platformTuple: 'linux-x64',
           runtimeDataRoot: '',
-          consumerScope: input.consumerScope ?? '',
+          consumerScope: 'stable-diffusion.cpp.cuda',
           cloudOnlyImpact: '',
           state: 'ready_system',
           dependencies: [],
@@ -532,7 +522,6 @@ test('Runtime local image native environment helper projects SDK-owned plan inpu
 
   assert.deepEqual(calls, [{
     packId: 'local-image-native',
-    consumerScope: 'stable-diffusion.cpp.cuda',
     assetId: 'asset/image',
     localAssetId: undefined,
   }]);
@@ -541,7 +530,7 @@ test('Runtime local image native environment helper projects SDK-owned plan inpu
 
 test('Runtime local model center client maps catalog, writes, transfers, profiles, and environment operations', async () => {
   const calls: Array<{ readonly method: string; readonly request: unknown; readonly options?: unknown }> = [];
-  const callOptions = { metadata: { authorization: 'Bearer local' } };
+  const callOptions = { metadata: { 'x-nimi-access-token-id': 'local-token-id' } };
   const writeOptions = { caller: 'core' as const, callOptions: { timeoutMs: 10 } };
   const asset = generatedAsset({
     localAssetId: 'local-image',

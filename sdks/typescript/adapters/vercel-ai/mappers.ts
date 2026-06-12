@@ -31,6 +31,7 @@ import type {
   NimiGenerateTextResult,
   NimiResponseFormat,
 } from '@nimiplatform/sdk/ai';
+import { createNimiError } from '@nimiplatform/sdk';
 import {
   filePart,
   textPart,
@@ -559,7 +560,13 @@ export function toVercelFinishReason(reason: NimiFinishReason): LanguageModelV3F
   if (reason === 'stop' || reason === 'length' || reason === 'error') {
     return { unified: reason, raw: reason };
   }
-  return { unified: 'other', raw: reason };
+  throw createNimiError({
+    message: `Unsupported Nimi finish reason for Vercel adapter: ${String(reason || 'unknown')}`,
+    code: 'SDK_AI_STREAM_FINISH_REASON_UNKNOWN',
+    reasonCode: 'SDK_AI_STREAM_FINISH_REASON_UNKNOWN',
+    actionHint: 'check_ai_stream_finish_reason',
+    source: 'sdk',
+  });
 }
 
 export function toVercelUsage(usage: NimiUsage | undefined): LanguageModelV3Usage {
@@ -593,6 +600,7 @@ export function toVercelReadableStream(
     async start(controller) {
       let textStarted = false;
       let reasoningStarted = false;
+      let sawTerminal = false;
       controller.enqueue({ type: 'stream-start', warnings: [] });
       try {
         for await (const event of events) {
@@ -630,6 +638,7 @@ export function toVercelReadableStream(
           } else if (event.type === 'raw') {
             controller.enqueue(toVercelRawChunk(event));
           } else if (event.type === 'done') {
+            sawTerminal = true;
             if (textStarted) {
               controller.enqueue({ type: 'text-end', id: STREAM_TEXT_ID });
             }
@@ -642,8 +651,27 @@ export function toVercelReadableStream(
               finishReason: toVercelFinishReason(event.finishReason),
             });
           } else if (event.type === 'error') {
-            controller.enqueue({ type: 'error', error: new Error(`${event.code}: ${event.message}`) });
+            sawTerminal = true;
+            controller.enqueue({
+              type: 'error',
+              error: createNimiError({
+                message: event.message,
+                code: event.code,
+                reasonCode: event.code,
+                actionHint: 'check_ai_stream_event',
+                source: 'sdk',
+              }),
+            });
           }
+        }
+        if (!sawTerminal) {
+          throw createNimiError({
+            message: 'Nimi stream ended without done or error',
+            code: 'SDK_AI_STREAM_TERMINAL_EVIDENCE_MISSING',
+            reasonCode: 'SDK_AI_STREAM_TERMINAL_EVIDENCE_MISSING',
+            actionHint: 'check_ai_stream_terminal_evidence',
+            source: 'sdk',
+          });
         }
         controller.close();
       } catch (error) {

@@ -13,6 +13,7 @@ import type {
   NimiToolResult,
   NimiUsage,
 } from '../contracts';
+import { createNimiError } from '../../types';
 
 export interface NimiAiRequestParameters {
   readonly temperature?: number;
@@ -87,6 +88,7 @@ export async function collectNimiTextStream(events: AsyncIterable<NimiRunEvent>)
   const rawChunks: NimiRawChunk[] = [];
   const warnings: { code: string; message: string }[] = [];
   const artifacts: { mimeType: string; sizeBytes: number }[] = [];
+  let observedTerminal = false;
 
   for await (const event of events) {
     if (event.type === 'text-delta') {
@@ -108,10 +110,17 @@ export async function collectNimiTextStream(events: AsyncIterable<NimiRunEvent>)
     } else if (event.type === 'warning') {
       warnings.push({ code: event.code, message: event.message });
     } else if (event.type === 'done') {
+      observedTerminal = true;
       finishReason = event.finishReason;
       usage = event.usage;
     } else if (event.type === 'error') {
-      throw new Error(`${event.code}: ${event.message}`);
+      throw createNimiError({
+        message: event.message,
+        code: event.code,
+        reasonCode: event.code,
+        actionHint: 'check_ai_stream_event',
+        source: 'sdk',
+      });
     }
   }
 
@@ -121,6 +130,25 @@ export async function collectNimiTextStream(events: AsyncIterable<NimiRunEvent>)
       ...(artifacts.length > 0 ? { artifacts } : {}),
     }
     : undefined;
+
+  if (!observedTerminal) {
+    throw createNimiError({
+      message: 'Nimi stream ended without done evidence',
+      code: 'SDK_AI_STREAM_TERMINAL_EVIDENCE_MISSING',
+      reasonCode: 'SDK_AI_STREAM_TERMINAL_EVIDENCE_MISSING',
+      actionHint: 'check_ai_stream_terminal_evidence',
+      source: 'sdk',
+    });
+  }
+  if (finishReason === 'unknown') {
+    throw createNimiError({
+      message: 'Nimi stream terminal evidence used an unknown finish reason',
+      code: 'SDK_AI_STREAM_FINISH_REASON_UNKNOWN',
+      reasonCode: 'SDK_AI_STREAM_FINISH_REASON_UNKNOWN',
+      actionHint: 'check_ai_stream_finish_reason',
+      source: 'sdk',
+    });
+  }
 
   return {
     text,

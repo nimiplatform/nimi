@@ -11,6 +11,7 @@ import type {
 
 type TauriInvoke = (command: string, payload?: unknown) => Promise<unknown>;
 type TauriListenUnsubscribe = () => void;
+const RUNTIME_TAURI_MAX_BUFFERED_STREAM_CHUNKS = 1024;
 type TauriListen = (
   event: string,
   handler: (event: { payload: unknown }) => void,
@@ -275,8 +276,16 @@ function splitRuntimeMetadata(metadata: CoreMetadata | undefined): {
     const key = rawKey.trim();
     const lookup = key.toLowerCase();
     if (lookup === 'authorization') {
-      authorization = value;
-      continue;
+      throw new RuntimeTauriIpcTransportError(
+        'SDK_TRANSPORT_INVALID',
+        'Runtime authorization must use the transport auth channel, not metadata.authorization',
+        { metadataKey: rawKey },
+        {
+          reasonCode: ReasonCode.SDK_TRANSPORT_INVALID,
+          actionHint: 'move_runtime_authorization_to_transport_auth',
+          retryable: false,
+        },
+      );
     }
     const compactLookup = lookup.replaceAll('-', '');
     if (lookup === 'x-nimi-session-id' || compactLookup === 'sessionid') {
@@ -463,6 +472,23 @@ export function createRuntimeTauriIpcTransport(
       flush();
     };
 
+    const failBackpressure = () => {
+      fail(new RuntimeTauriIpcTransportError(
+        ReasonCode.SDK_RUNTIME_TAURI_STREAM_BACKPRESSURE,
+        `${methodId} stream consumer is not draining fast enough`,
+        {
+          methodId,
+          bufferedChunks: queue.length,
+          maxBufferedChunks: RUNTIME_TAURI_MAX_BUFFERED_STREAM_CHUNKS,
+        },
+        {
+          reasonCode: ReasonCode.SDK_RUNTIME_TAURI_STREAM_BACKPRESSURE,
+          actionHint: 'consume_stream_events_or_cancel_the_stream',
+          retryable: false,
+        },
+      ));
+    };
+
     try {
       const opened = asObject(await invoke(createCommandName(options, 'stream_open'), {
         payload: {
@@ -487,6 +513,10 @@ export function createRuntimeTauriIpcTransport(
         const payload = asObject(event.payload) as RuntimeBridgeStreamEvent;
         const eventType = normalizeText(payload.eventType ?? payload.event_type);
         if (eventType === 'next') {
+          if (queue.length >= RUNTIME_TAURI_MAX_BUFFERED_STREAM_CHUNKS && waiters.length === 0) {
+            failBackpressure();
+            return;
+          }
           queue.push(fromBase64(normalizeText(payload.payloadBytesBase64 ?? payload.payload_bytes_base64) ?? ''));
           flush();
           return;

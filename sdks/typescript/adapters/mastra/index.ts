@@ -171,23 +171,31 @@ export function createNimiMastraModel(options: NimiMastraModelOptions): NimiMast
 
 export type NimiMastraRuntimeModelOptions =
   Omit<NimiClientRuntimeModelOptions, 'model' | 'routePolicy'> & {
-    readonly routePolicy?: NimiRuntimeAIRoutePolicy;
+    readonly routePolicy: NimiRuntimeAIRoutePolicy;
     readonly providerId?: string;
+    readonly subjectMode?: 'external-principal';
   };
 
 export type NimiMastraRuntimeEmbeddingOptions =
   Omit<NimiClientEmbeddingOptions, 'model'> & {
     readonly providerId?: string;
+    readonly subjectMode?: 'external-principal';
     readonly embedding?: NimiMastraEmbeddingModelOptions['embedding'];
     readonly maxEmbeddingsPerCall?: number;
     readonly supportsParallelCalls?: boolean;
   };
 
-export interface NimiMastraProviderOptions extends NimiMastraRuntimeModelOptions {
-  readonly client?: NimiClient;
-  readonly model?: NimiAiModel;
-  readonly embedding?: NimiMastraRuntimeEmbeddingOptions;
-}
+export type NimiMastraProviderOptions =
+  | (NimiMastraRuntimeModelOptions & {
+    readonly client: NimiClient;
+    readonly model?: never;
+    readonly embedding?: NimiMastraRuntimeEmbeddingOptions;
+  })
+  | {
+    readonly model: NimiAiModel;
+    readonly client?: never;
+    readonly embedding?: NimiMastraRuntimeEmbeddingOptions;
+  };
 
 export interface NimiMastraLanguageModelProvider {
   readonly manifest: NimiCapabilityManifest;
@@ -237,6 +245,7 @@ function resolveProviderModel(options: NimiMastraProviderOptions, modelId: strin
   if (!client) {
     throwUnsupportedMastraFeature('provider.configuration', 'missing NimiClient');
   }
+  assertRuntimeBackedModelOptions(options);
   return client.ai.createRuntimeModel({
     appId: options.appId,
     runtime: options.runtime,
@@ -258,6 +267,7 @@ function resolveProviderEmbeddingModel(options: NimiMastraProviderOptions, model
   if (!embedding) {
     throwUnsupportedMastraFeature('provider.embeddingModel', 'embedding configuration is required');
   }
+  assertRuntimeBackedEmbeddingOptions(embedding);
   const model = {
     modelId,
     ...(embedding.providerId ? { providerId: embedding.providerId } : {}),
@@ -301,4 +311,22 @@ function resolveProviderEmbeddingModel(options: NimiMastraProviderOptions, model
     maxEmbeddingsPerCall: embedding.maxEmbeddingsPerCall,
     supportsParallelCalls: embedding.supportsParallelCalls,
   });
+}
+
+function assertRuntimeBackedModelOptions(options: NimiMastraProviderOptions): void {
+  if (!options.routePolicy) {
+    throwUnsupportedMastraFeature('provider.routePolicy', 'runtime-backed providers require explicit routePolicy');
+  }
+  if (options.subjectUserId && options.subjectMode !== 'external-principal') {
+    throwUnsupportedMastraFeature('provider.subjectUserId', 'subjectUserId requires subjectMode external-principal');
+  }
+}
+
+function assertRuntimeBackedEmbeddingOptions(options: NimiMastraRuntimeEmbeddingOptions): void {
+  if (!options.routePolicy) {
+    throwUnsupportedMastraFeature('provider.embedding.routePolicy', 'runtime-backed embedding providers require explicit routePolicy');
+  }
+  if (options.subjectUserId && options.subjectMode !== 'external-principal') {
+    throwUnsupportedMastraFeature('provider.embedding.subjectUserId', 'embedding subjectUserId requires subjectMode external-principal');
+  }
 }

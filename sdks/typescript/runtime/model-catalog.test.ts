@@ -20,7 +20,7 @@ import {
 import {
   CatalogModelSource,
   ModelCatalogProviderSource,
-} from './generated';
+} from '../core-generated/runtime-typed-client';
 
 test('Runtime model catalog client projects generated catalog data to SDK DX shapes', async () => {
   const calls: Array<{ readonly method: string; readonly request: unknown; readonly options: unknown }> = [];

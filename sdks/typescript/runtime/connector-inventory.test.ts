@@ -16,7 +16,7 @@ import {
   ConnectorKind,
   ConnectorOwnerType,
   ConnectorStatus,
-} from './generated';
+} from '../core-generated/runtime-typed-client';
 
 const PROVIDER_CATALOG: ProviderCatalogEntry[] = [
   {

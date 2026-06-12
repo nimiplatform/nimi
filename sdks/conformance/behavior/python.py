@@ -120,8 +120,6 @@ async def main():
             assert getattr(error, "details") == FIXTURES["cases"]["structured_error"]["details"]
         else:
             raise AssertionError("typed structured error did not raise")
-        assert runtime.unsafe_raw() is transport
-        assert realm.unsafe_raw() is transport
         print("sdks behavior conformance: OK (python typed-core)")
         return
 
@@ -134,7 +132,7 @@ async def main():
     assert response == FIXTURES["cases"]["runtime_unary"]["response_body"]
     assert transport.unary_calls[0].body == FIXTURES["cases"]["runtime_unary"]["request_body"]
     assert transport.unary_calls[0].timeout_ms == FIXTURES["cases"]["timeout_ms"]
-    assert transport.unary_calls[0].metadata["authorization"] == FIXTURES["cases"]["metadata"]["auth"]["authorization"]
+    assert transport.unary_calls[0].metadata["x-nimi-access-token-id"] == FIXTURES["cases"]["metadata"]["auth"]["x-nimi-access-token-id"]
     assert transport.unary_calls[0].metadata["x-nimi-caller"] == FIXTURES["cases"]["metadata"]["caller"]["x-nimi-caller"]
 
     events = []
@@ -150,8 +148,6 @@ async def main():
         FIXTURES["cases"]["realm_operation"]["request_body"],
     )
     assert realm_response == FIXTURES["cases"]["realm_operation"]["response_body"]
-    assert runtime.unsafe_raw() is transport
-    assert realm.unsafe_raw() is transport
     print("sdks behavior conformance: OK (python)")
 
 

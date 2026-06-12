@@ -2,7 +2,7 @@ import type { NimiCapabilityManifest } from '../../core/contracts';
 import type { NimiConversationFeatureEvent } from '../../features/conversation';
 
 export const NIMI_REACT_ADAPTER_ID = 'react' as const;
-export const NIMI_REACT_UNSUPPORTED_FEATURE_CODE = 'unsupported_react_adapter_feature' as const;
+export const NIMI_REACT_UNSUPPORTED_FEATURE_CODE = 'SDK_ADAPTER_FEATURE_UNSUPPORTED' as const;
 
 export const NIMI_REACT_ADAPTER_MANIFEST = {
   adapterId: NIMI_REACT_ADAPTER_ID,

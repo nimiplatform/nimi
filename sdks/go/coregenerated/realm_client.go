@@ -68,7 +68,7 @@ var RealmOperations = []RealmOperationDescriptor{
 	{OperationID: "CreatorController_updateAgent", Service: "Creator", Method: "PATCH", Path: "/api/creator/agents/{agentId}"},
 	{OperationID: "deletePost", Service: "Posts", Method: "DELETE", Path: "/api/world/posts/by-id/{id}"},
 	{OperationID: "deleteResource", Service: "Resources", Method: "DELETE", Path: "/api/resources/{resourceId}"},
-	{OperationID: "denyMyAppPermissionGrant", Service: "Me / Permission Grants", Method: "POST", Path: "/api/human/me/permission-grants/{grantId}/deny"},
+	{OperationID: "denyMyAppPermissionGrant", Service: "Me / Permission Grants", Method: "POST", Path: "/api/human/me/permission-grants/by-id/{grantId}/deny"},
 	{OperationID: "disable2Fa", Service: "Me2fa", Method: "POST", Path: "/api/auth/me/2fa/disable"},
 	{OperationID: "EconomyController_acceptGift", Service: "Economy (Currency & Gifts)", Method: "POST", Path: "/api/economy/gifts/{id}/accept"},
 	{OperationID: "EconomyController_calculateWithdrawal", Service: "Economy (Currency & Gifts)", Method: "GET", Path: "/api/economy/withdrawals/calculate"},
@@ -101,7 +101,7 @@ var RealmOperations = []RealmOperationDescriptor{
 	{OperationID: "editGroupMessage", Service: "Group Chats", Method: "PATCH", Path: "/api/human/group-chats/{chatId}/messages/{messageId}"},
 	{OperationID: "editMessage", Service: "Human Chats", Method: "PATCH", Path: "/api/human/chats/{chatId}/messages/{messageId}"},
 	{OperationID: "enable2Fa", Service: "Me2fa", Method: "POST", Path: "/api/auth/me/2fa/enable"},
-	{OperationID: "expireMyAppPermissionGrant", Service: "Me / Permission Grants", Method: "POST", Path: "/api/human/me/permission-grants/{grantId}/expire"},
+	{OperationID: "expireMyAppPermissionGrant", Service: "Me / Permission Grants", Method: "POST", Path: "/api/human/me/permission-grants/by-id/{grantId}/expire"},
 	{OperationID: "ExploreController_checkStatus", Service: "Explore", Method: "GET", Path: "/api/explore/status"},
 	{OperationID: "finalizeResource", Service: "Resources", Method: "POST", Path: "/api/resources/{resourceId}/finalize"},
 	{OperationID: "getAgent", Service: "Agents", Method: "GET", Path: "/api/agent/accounts/{id}"},
@@ -117,7 +117,7 @@ var RealmOperations = []RealmOperationDescriptor{
 	{OperationID: "getMutualFriends", Service: "User", Method: "GET", Path: "/api/human/accounts/{id}/mutual-friends"},
 	{OperationID: "getMutualFriendsCount", Service: "User", Method: "GET", Path: "/api/human/accounts/{id}/mutual-friends/count"},
 	{OperationID: "getMyAgentFriendLimit", Service: "Me", Method: "GET", Path: "/api/human/me/friends/agent-limit"},
-	{OperationID: "getMyAppPermissionGrant", Service: "Me / Permission Grants", Method: "GET", Path: "/api/human/me/permission-grants/{grantId}"},
+	{OperationID: "getMyAppPermissionGrant", Service: "Me / Permission Grants", Method: "GET", Path: "/api/human/me/permission-grants/by-id/{grantId}"},
 	{OperationID: "getMyAppPermissionGrantProjection", Service: "Me / Permission Grants", Method: "GET", Path: "/api/human/me/permission-grants/projection"},
 	{OperationID: "getMyAppPermissionGrantStatus", Service: "Me / Permission Grants", Method: "GET", Path: "/api/human/me/permission-grants/status"},
 	{OperationID: "getMyBlockedUsers", Service: "Me", Method: "GET", Path: "/api/human/me/blocks"},
@@ -140,7 +140,7 @@ var RealmOperations = []RealmOperationDescriptor{
 	{OperationID: "getUserFriends", Service: "User", Method: "GET", Path: "/api/human/accounts/{id}/friends"},
 	{OperationID: "getWorldPosts", Service: "WorldPost", Method: "GET", Path: "/api/world/by-id/{worldId}/posts"},
 	{OperationID: "getWorldScenes", Service: "Worlds", Method: "GET", Path: "/api/world/by-id/{id}/scenes"},
-	{OperationID: "grantMyAppPermissionGrant", Service: "Me / Permission Grants", Method: "POST", Path: "/api/human/me/permission-grants/{grantId}/grant"},
+	{OperationID: "grantMyAppPermissionGrant", Service: "Me / Permission Grants", Method: "POST", Path: "/api/human/me/permission-grants/by-id/{grantId}/grant"},
 	{OperationID: "HumanNsfwConsentController_canManageAgentNsfw", Service: "Human NSFW Consent", Method: "GET", Path: "/api/human/nsfw-consent/can-manage"},
 	{OperationID: "HumanNsfwConsentController_checkConsent", Service: "Human NSFW Consent", Method: "GET", Path: "/api/human/nsfw-consent/check"},
 	{OperationID: "HumanNsfwConsentController_getConsentStatus", Service: "Human NSFW Consent", Method: "GET", Path: "/api/human/nsfw-consent/status"},
@@ -199,14 +199,14 @@ var RealmOperations = []RealmOperationDescriptor{
 	{OperationID: "requestMyAppPermissionGrant", Service: "Me / Permission Grants", Method: "POST", Path: "/api/human/me/permission-grants"},
 	{OperationID: "ReviewController_createReview", Service: "Reviews (Economy/Trust)", Method: "POST", Path: "/api/economy/reviews"},
 	{OperationID: "ReviewController_getReviews", Service: "Reviews (Economy/Trust)", Method: "GET", Path: "/api/economy/reviews"},
-	{OperationID: "revokeMyAppPermissionGrant", Service: "Me / Permission Grants", Method: "POST", Path: "/api/human/me/permission-grants/{grantId}/revoke"},
+	{OperationID: "revokeMyAppPermissionGrant", Service: "Me / Permission Grants", Method: "POST", Path: "/api/human/me/permission-grants/by-id/{grantId}/revoke"},
 	{OperationID: "searchHumanUsers", Service: "User", Method: "GET", Path: "/api/human/search"},
 	{OperationID: "searchIndexedUsers", Service: "Search", Method: "GET", Path: "/api/search/users"},
 	{OperationID: "searchPosts", Service: "Search", Method: "GET", Path: "/api/search/posts"},
 	{OperationID: "sendGroupMessage", Service: "Group Chats", Method: "POST", Path: "/api/human/group-chats/{chatId}/messages"},
 	{OperationID: "sendMessage", Service: "Human Chats", Method: "POST", Path: "/api/human/chats/{chatId}/messages"},
 	{OperationID: "startChat", Service: "Human Chats", Method: "POST", Path: "/api/human/chats"},
-	{OperationID: "supersedeMyAppPermissionGrant", Service: "Me / Permission Grants", Method: "POST", Path: "/api/human/me/permission-grants/{grantId}/supersede"},
+	{OperationID: "supersedeMyAppPermissionGrant", Service: "Me / Permission Grants", Method: "POST", Path: "/api/human/me/permission-grants/by-id/{grantId}/supersede"},
 	{OperationID: "syncChatEvents", Service: "Human Chats", Method: "GET", Path: "/api/human/chats/{chatId}/sync"},
 	{OperationID: "syncGroupEvents", Service: "Group Chats", Method: "GET", Path: "/api/human/group-chats/{chatId}/sync"},
 	{OperationID: "TransitController_abandon", Service: "Transits", Method: "POST", Path: "/api/world/transit/{id}/abandon"},
@@ -288,6 +288,10 @@ var RealmOperationByID = func() map[string]RealmOperationDescriptor {
 	return out
 }()
 
+var RealmTypedFacadeOnlyOperationIDs = map[string]struct{}{
+	"commitRealmGroupMessageCandidate": {},
+}
+
 type RealmGeneratedClient struct {
 	core coreclient.Client
 }
@@ -308,9 +312,8 @@ func (c RealmGeneratedClient) Operation(ctx context.Context, operationID string,
 	if _, err := c.Describe(operationID); err != nil {
 		return nil, err
 	}
+	if _, blocked := RealmTypedFacadeOnlyOperationIDs[operationID]; blocked {
+		return nil, fmt.Errorf("SDK_REALM_OPERATION_TYPED_FACADE_REQUIRED: Realm operation requires its admitted typed facade %s", operationID)
+	}
 	return c.core.Unary(ctx, sdkstypes.CoreUnaryRequest{Context: ctx, MethodID: operationID, Metadata: metadata, Body: body, TimeoutMS: timeoutMS})
-}
-
-func (c RealmGeneratedClient) UnsafeRaw() coreclient.Transport {
-	return c.core.UnsafeRaw()
 }

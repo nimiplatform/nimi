@@ -858,9 +858,9 @@ export enum DelegatedApprovalRequestState {
      */
     PENDING = 1,
     /**
-     * @generated from protobuf enum value: DELEGATED_APPROVAL_REQUEST_STATE_APPROVED = 2;
+     * @generated from protobuf enum value: DELEGATED_APPROVAL_REQUEST_STATE_APPROVED_ONCE = 2;
      */
-    APPROVED = 2,
+    APPROVED_ONCE = 2,
     /**
      * @generated from protobuf enum value: DELEGATED_APPROVAL_REQUEST_STATE_REJECTED = 3;
      */
@@ -868,7 +868,15 @@ export enum DelegatedApprovalRequestState {
     /**
      * @generated from protobuf enum value: DELEGATED_APPROVAL_REQUEST_STATE_EXPIRED = 4;
      */
-    EXPIRED = 4
+    EXPIRED = 4,
+    /**
+     * @generated from protobuf enum value: DELEGATED_APPROVAL_REQUEST_STATE_APPROVED_FOR_SESSION = 5;
+     */
+    APPROVED_FOR_SESSION = 5,
+    /**
+     * @generated from protobuf enum value: DELEGATED_APPROVAL_REQUEST_STATE_POLICY_BLOCKED = 6;
+     */
+    POLICY_BLOCKED = 6
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.DelegatedApprovalDecision
@@ -879,13 +887,25 @@ export enum DelegatedApprovalDecision {
      */
     UNSPECIFIED = 0,
     /**
-     * @generated from protobuf enum value: DELEGATED_APPROVAL_DECISION_APPROVE = 1;
+     * @generated from protobuf enum value: DELEGATED_APPROVAL_DECISION_APPROVED_ONCE = 1;
      */
-    APPROVE = 1,
+    APPROVED_ONCE = 1,
     /**
-     * @generated from protobuf enum value: DELEGATED_APPROVAL_DECISION_REJECT = 2;
+     * @generated from protobuf enum value: DELEGATED_APPROVAL_DECISION_REJECTED = 2;
      */
-    REJECT = 2
+    REJECTED = 2,
+    /**
+     * @generated from protobuf enum value: DELEGATED_APPROVAL_DECISION_APPROVED_FOR_SESSION = 3;
+     */
+    APPROVED_FOR_SESSION = 3,
+    /**
+     * @generated from protobuf enum value: DELEGATED_APPROVAL_DECISION_POLICY_BLOCKED = 4;
+     */
+    POLICY_BLOCKED = 4,
+    /**
+     * @generated from protobuf enum value: DELEGATED_APPROVAL_DECISION_EXPIRED = 5;
+     */
+    EXPIRED = 5
 }
 /**
  * EffectClass enumerates the K-DELEG-007 effect classification consumed by the

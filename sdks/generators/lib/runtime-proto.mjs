@@ -167,8 +167,8 @@ export function extractRuntimeProto() {
     provenance: {
       source_rule: 'S-SURFACE-019',
       notes: [
-        'Runtime core method truth is derived from Runtime proto.',
-        'The current sdk/ runtime-method-groups table is intentionally not used.',
+        'Runtime core descriptors are derived from Runtime proto.',
+        'Public facade availability is governed by .nimi/spec/sdks/kernel/tables/runtime-method-groups.yaml; generated core descriptors preserve proto coverage and generated clients fail closed for unsupported method kinds.',
       ],
     },
     services,

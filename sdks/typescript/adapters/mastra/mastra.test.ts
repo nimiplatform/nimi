@@ -5,6 +5,7 @@ import { Agent } from '@mastra/core/agent';
 import type { MastraModelConfig } from '@mastra/core/llm';
 
 import type { NimiClient } from '@nimiplatform/sdk';
+import { isNimiError } from '@nimiplatform/sdk';
 import type { NimiGenerateTextRequest } from '@nimiplatform/sdk/ai';
 import {
   createNimiMastraModel,
@@ -84,6 +85,75 @@ test('mastra adapter fails closed when the Nimi model cannot stream', async () =
   );
 });
 
+test('mastra adapter fails closed when a Nimi stream ends without terminal evidence', async () => {
+  const model = createNimiMastraModel({
+    model: createNimiFixtureModel({
+      stream: [{ type: 'text-delta', text: 'partial' }],
+    }).model,
+  });
+  const { stream } = await model.doStream({
+    prompt: [{ role: 'user', content: [{ type: 'text', text: 'stream' }] }],
+  });
+  const reader = stream.getReader();
+  await assert.rejects(
+    async () => {
+      for (;;) {
+        await reader.read();
+      }
+    },
+    (error: unknown) => {
+      assert.equal(isNimiError(error), true);
+      assert.equal((error as { reasonCode?: string }).reasonCode, 'SDK_AI_STREAM_TERMINAL_EVIDENCE_MISSING');
+      return true;
+    },
+  );
+});
+
+test('mastra adapter preserves structured stream failures and unknown terminal states', async () => {
+  const errorFixture = createNimiFixtureModel({
+    stream: [
+      { type: 'text-delta', text: 'partial' },
+      { type: 'error', code: 'SDK_MASTRA_STREAM_TEST_FAILURE', message: 'failed' },
+    ],
+  });
+  const streamResult = await createNimiMastraModel({ model: errorFixture.model }).doStream({
+    prompt: [{ role: 'user', content: [{ type: 'text', text: 'hello' }] }],
+  });
+  const parts = [];
+  const reader = streamResult.stream.getReader();
+  for (;;) {
+    const next = await reader.read();
+    if (next.done) {
+      break;
+    }
+    parts.push(next.value);
+  }
+  const errorPart = parts.find((part) => part.type === 'error');
+  const streamError = errorPart?.type === 'error' ? errorPart.error : undefined;
+  assert.equal(isNimiError(streamError), true);
+  assert.equal((streamError as { reasonCode?: string }).reasonCode, 'SDK_MASTRA_STREAM_TEST_FAILURE');
+
+  const unknownFixture = createNimiFixtureModel({
+    stream: [{ type: 'done', finishReason: 'unknown' }],
+  });
+  const unknownStream = await createNimiMastraModel({ model: unknownFixture.model }).doStream({
+    prompt: [{ role: 'user', content: [{ type: 'text', text: 'hello' }] }],
+  });
+  const unknownReader = unknownStream.stream.getReader();
+  await assert.rejects(
+    async () => {
+      for (;;) {
+        await unknownReader.read();
+      }
+    },
+    (error: unknown) => {
+      assert.equal(isNimiError(error), true);
+      assert.equal((error as { reasonCode?: string }).reasonCode, 'SDK_AI_STREAM_FINISH_REASON_UNKNOWN');
+      return true;
+    },
+  );
+});
+
 test('mastra adapter fails closed on a missing model', () => {
   // createNimiMastraModel requires a NimiAiModel and throws a typed adapter error
   // rather than returning an unsupported placeholder model.
@@ -110,8 +180,8 @@ test('mastra provider fails closed on invalid configuration with a typed error',
     });
   };
 
-  assertConfigError(() => createNimiMastraProvider({}));
-  assertConfigError(() => createNimiMastraProvider({ model: createNimiFixtureModel().model, client: {} as NimiClient }));
+  assertConfigError(() => createNimiMastraProvider({} as never));
+  assertConfigError(() => createNimiMastraProvider({ model: createNimiFixtureModel().model, client: {} as NimiClient } as never));
 });
 
 test('mastra provider fails closed on an unknown model id with a typed error', () => {
@@ -124,6 +194,59 @@ test('mastra provider fails closed on an unknown model id with a typed error', (
       assert.ok(error instanceof NimiMastraUnsupportedFeatureError);
       assert.equal(error.code, NIMI_MASTRA_UNSUPPORTED_FEATURE_CODE);
       assert.equal(error.feature, 'provider.languageModel');
+      return true;
+    },
+  );
+});
+
+test('mastra runtime-backed provider requires route policy and explicit subject mode', () => {
+  const client = {
+    ai: {
+      createRuntimeModel() {
+        return createNimiFixtureModel().model;
+      },
+      createRuntimeEmbeddingClient() {
+        return {
+          async embedText() {
+            return { embeddings: [[0]], raw: {} };
+          },
+        };
+      },
+    },
+  } as unknown as NimiClient;
+
+  assert.throws(
+    () => createNimiMastraProvider({ client } as never).languageModel('model-1'),
+    (error: unknown) => {
+      assert.ok(error instanceof NimiMastraUnsupportedFeatureError);
+      assert.equal(error.feature, 'provider.routePolicy');
+      return true;
+    },
+  );
+  assert.throws(
+    () => createNimiMastraProvider({ client, routePolicy: 'cloud', subjectUserId: 'user-1' }).languageModel('model-1'),
+    (error: unknown) => {
+      assert.ok(error instanceof NimiMastraUnsupportedFeatureError);
+      assert.equal(error.feature, 'provider.subjectUserId');
+      return true;
+    },
+  );
+  assert.throws(
+    () => createNimiMastraProvider({ client, embedding: { appId: 'app-1', subjectUserId: 'user-1' } }).embeddingModel('embed-1'),
+    (error: unknown) => {
+      assert.ok(error instanceof NimiMastraUnsupportedFeatureError);
+      assert.equal(error.feature, 'provider.embedding.routePolicy');
+      return true;
+    },
+  );
+  assert.throws(
+    () => createNimiMastraProvider({
+      client,
+      embedding: { appId: 'app-1', routePolicy: 'cloud', subjectUserId: 'user-1' },
+    }).embeddingModel('embed-1'),
+    (error: unknown) => {
+      assert.ok(error instanceof NimiMastraUnsupportedFeatureError);
+      assert.equal(error.feature, 'provider.embedding.subjectUserId');
       return true;
     },
   );

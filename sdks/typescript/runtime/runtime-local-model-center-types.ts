@@ -486,26 +486,17 @@ export interface NimiRuntimeLocalEnvironmentPlanInput {
   readonly installLevel?: string;
 }
 
-export interface NimiRuntimeLocalImageNativeDeviceProfileInput {
-  readonly os?: string;
-  readonly arch?: string;
-  readonly gpu?: {
-    readonly vendor?: string;
-  };
-}
-
 export interface NimiRuntimeLocalImageNativeAssetInput {
   readonly assetId?: string;
   readonly localAssetId?: string;
 }
 
-export type NimiRuntimeLocalImageNativeEnvironmentPlanInput = NimiRuntimeLocalEnvironmentPlanInput & {
+export type NimiRuntimeLocalImageNativeEnvironmentPlanInput = Omit<NimiRuntimeLocalEnvironmentPlanInput, 'consumerScope'> & {
   readonly packId: 'local-image-native';
-  readonly consumerScope: string;
+  readonly consumerScope?: never;
 };
 
 export interface NimiRuntimeLocalImageNativeEnvironmentPlanRuntime {
-  readonly collectDeviceProfile: () => Promise<NimiRuntimeLocalImageNativeDeviceProfileInput | undefined>;
   readonly resolveEnvironmentPlan: (input: NimiRuntimeLocalEnvironmentPlanInput) => Promise<NimiRuntimeLocalEnvironmentPlan>;
 }
 

@@ -46,9 +46,9 @@ export interface NimiRealmAccountDataApi {
   readonly account: Pick<RealmTypedClient, 'requestAccountDeletion' | 'requestDataExport'>;
 }
 
-function asRecord(value: unknown): Record<string, unknown> {
+function asRecord(value: unknown): Record<string, unknown> | undefined {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return {};
+    return undefined;
   }
   return value as Record<string, unknown>;
 }
@@ -81,7 +81,7 @@ function pickStatus(record: Record<string, unknown>, accepted: boolean): NimiRea
   return accepted ? 'PENDING' : 'FAILED';
 }
 
-function parseAccepted(record: Record<string, unknown>): boolean {
+function parseAccepted(record: Record<string, unknown>): boolean | undefined {
   const acceptedValue = record.accepted;
   if (typeof acceptedValue === 'boolean') {
     return acceptedValue;
@@ -90,7 +90,7 @@ function parseAccepted(record: Record<string, unknown>): boolean {
   if (typeof okValue === 'boolean') {
     return okValue;
   }
-  return true;
+  return undefined;
 }
 
 function parseTaskId(record: Record<string, unknown>): string {
@@ -98,8 +98,8 @@ function parseTaskId(record: Record<string, unknown>): string {
 }
 
 function normalizeNimiRealmDataExportOutput(payload: unknown): NimiRealmRequestDataExportOutput {
-  const record = asRecord(payload);
-  const accepted = parseAccepted(record);
+  const record = requireAccountDataRecord(payload, 'export');
+  const accepted = requireAcceptedEvidence(record, 'export');
   return {
     accepted,
     taskId: parseTaskId(record) || undefined,
@@ -112,8 +112,8 @@ function normalizeNimiRealmDataExportOutput(payload: unknown): NimiRealmRequestD
 }
 
 function normalizeNimiRealmAccountDeletionOutput(payload: unknown): NimiRealmRequestAccountDeletionOutput {
-  const record = asRecord(payload);
-  const accepted = parseAccepted(record);
+  const record = requireAccountDataRecord(payload, 'delete');
+  const accepted = requireAcceptedEvidence(record, 'delete');
   return {
     accepted,
     taskId: parseTaskId(record) || undefined,
@@ -126,6 +126,41 @@ function normalizeNimiRealmAccountDeletionOutput(payload: unknown): NimiRealmReq
       ['scheduledDeletionAt', 'scheduled_deletion_at', 'effectiveAt', 'effective_at'],
     ) || undefined,
   };
+}
+
+function requireAccountDataRecord(
+  payload: unknown,
+  operation: 'export' | 'delete',
+): Record<string, unknown> {
+  const record = asRecord(payload);
+  if (!record) {
+    throw invalidAccountDataResponse(operation, 'Realm account-data response must be an object.');
+  }
+  return record;
+}
+
+function requireAcceptedEvidence(
+  record: Record<string, unknown>,
+  operation: 'export' | 'delete',
+): boolean {
+  const accepted = parseAccepted(record);
+  if (accepted === undefined) {
+    throw invalidAccountDataResponse(
+      operation,
+      'Realm account-data response must include accepted or ok boolean evidence.',
+    );
+  }
+  return accepted;
+}
+
+function invalidAccountDataResponse(operation: 'export' | 'delete', message: string): Error {
+  return createNimiError({
+    message,
+    reasonCode: ReasonCode.SDK_REALM_RESPONSE_DECODE_FAILED,
+    actionHint: 'check_realm_account_data_response',
+    source: 'realm',
+    details: { operation },
+  });
 }
 
 function normalizeAccountDataError(operation: 'export' | 'delete', error: unknown): Error {

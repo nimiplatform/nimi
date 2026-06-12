@@ -1,11 +1,7 @@
 import { createTool, type Tool, type ToolAction, type ToolExecutionContext } from '@mastra/core/tools';
 
 import type { NimiJsonObject } from '@nimiplatform/sdk/contracts';
-import { fromNimiRuntimeProtoStruct, type NimiRuntimeAgentDelegatedCapabilitySurface } from '@nimiplatform/sdk/runtime';
-import type {
-  ExecuteDelegatedCapabilityResponse,
-  ResumeDelegatedCapabilityResponse,
-} from '@nimiplatform/sdk/runtime/generated';
+import { type NimiRuntimeAgentDelegatedCapabilitySurface } from '@nimiplatform/sdk/runtime';
 
 export const NIMI_MASTRA_RUNTIME_DELEGATED_TOOL_ERROR_CODE = 'runtime_delegated_tool_error' as const;
 export const NIMI_MASTRA_RUNTIME_DELEGATED_TOOL_APPROVAL_REQUIRED_CODE = 'runtime_delegated_tool_approval_required' as const;
@@ -78,15 +74,20 @@ export class NimiMastraRuntimeDelegatedToolError extends Error {
 export class NimiMastraRuntimeDelegatedToolApprovalRequiredError extends Error {
   readonly code = NIMI_MASTRA_RUNTIME_DELEGATED_TOOL_APPROVAL_REQUIRED_CODE;
   readonly approvalRequestId: string;
-  readonly response: ExecuteDelegatedCapabilityResponse;
+  readonly response: NimiMastraRuntimeDelegatedExecutionResponse;
 
-  constructor(approvalRequestId: string, response: ExecuteDelegatedCapabilityResponse) {
+  constructor(approvalRequestId: string, response: NimiMastraRuntimeDelegatedExecutionResponse) {
     super(`Runtime delegated tool approval required: ${approvalRequestId}`);
     this.name = 'NimiMastraRuntimeDelegatedToolApprovalRequiredError';
     this.approvalRequestId = approvalRequestId;
     this.response = response;
   }
 }
+
+type NimiMastraRuntimeDelegatedExecutionResponse =
+  Awaited<ReturnType<NimiRuntimeAgentDelegatedCapabilitySurface['executeCapability']>>;
+type NimiMastraRuntimeDelegatedResumeResponse =
+  Awaited<ReturnType<NimiRuntimeAgentDelegatedCapabilitySurface['resumeApprovedCapability']>>;
 
 export function createNimiMastraRuntimeDelegatedToolBinding<
   TInput extends NimiJsonObject = NimiJsonObject,
@@ -172,7 +173,7 @@ export async function resumeNimiMastraRuntimeDelegatedTool(
   return delegatedResumeOutput(response);
 }
 
-function delegatedExecutionOutput(response: ExecuteDelegatedCapabilityResponse): NimiJsonObject {
+function delegatedExecutionOutput(response: NimiMastraRuntimeDelegatedExecutionResponse): NimiJsonObject {
   if (response.approvalRequest || response.diagnostic?.runtimeDecision === 'approval_required') {
     const approvalRequestId = normalizeText(response.approvalRequest?.approvalRequestId);
     if (!approvalRequestId) {
@@ -183,21 +184,33 @@ function delegatedExecutionOutput(response: ExecuteDelegatedCapabilityResponse):
     }
     throw new NimiMastraRuntimeDelegatedToolApprovalRequiredError(approvalRequestId, response);
   }
-  return requireModelOutput(response.modelOutput, 'executeDelegatedCapability');
+  requireAcceptedFirewallVerdict(response.diagnostic?.firewallVerdict, 'executeDelegatedCapability');
+  return requireModelOutput(response.output, 'executeDelegatedCapability');
 }
 
-function delegatedResumeOutput(response: ResumeDelegatedCapabilityResponse): NimiJsonObject {
-  return requireModelOutput(response.modelOutput, 'resumeDelegatedCapability');
+function delegatedResumeOutput(response: NimiMastraRuntimeDelegatedResumeResponse): NimiJsonObject {
+  requireAcceptedFirewallVerdict(response.diagnostic?.firewallVerdict, 'resumeDelegatedCapability');
+  return requireModelOutput(response.output, 'resumeDelegatedCapability');
 }
 
-function requireModelOutput(modelOutput: Parameters<typeof fromNimiRuntimeProtoStruct>[0], methodName: string): NimiJsonObject {
-  if (!modelOutput) {
+function requireAcceptedFirewallVerdict(verdict: unknown, methodName: string): void {
+  const normalized = normalizeText(verdict).toUpperCase();
+  if (!normalized.startsWith('ACCEPTED_')) {
     throw new NimiMastraRuntimeDelegatedToolError(
-      `Runtime ${methodName} returned no model_output for delegated tool execution.`,
+      `Runtime ${methodName} returned model_output without accepted firewall verdict evidence.`,
+      'NIMI_MASTRA_RUNTIME_DELEGATED_TOOL_FIREWALL_VERDICT_REQUIRED',
+    );
+  }
+}
+
+function requireModelOutput(output: NimiJsonObject | undefined, methodName: string): NimiJsonObject {
+  if (!output) {
+    throw new NimiMastraRuntimeDelegatedToolError(
+      `Runtime ${methodName} returned no output for delegated tool execution.`,
       'NIMI_MASTRA_RUNTIME_DELEGATED_TOOL_MODEL_OUTPUT_MISSING',
     );
   }
-  return fromNimiRuntimeProtoStruct(modelOutput) as NimiJsonObject;
+  return output;
 }
 
 async function resolveText<TInput>(

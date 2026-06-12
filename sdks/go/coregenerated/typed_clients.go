@@ -451,8 +451,11 @@ type DelegatedApprovalDecision string
 
 const (
 	DELEGATEDAPPROVALDECISIONUNSPECIFIED DelegatedApprovalDecision = "DELEGATED_APPROVAL_DECISION_UNSPECIFIED"
-	DELEGATEDAPPROVALDECISIONAPPROVE DelegatedApprovalDecision = "DELEGATED_APPROVAL_DECISION_APPROVE"
-	DELEGATEDAPPROVALDECISIONREJECT DelegatedApprovalDecision = "DELEGATED_APPROVAL_DECISION_REJECT"
+	DELEGATEDAPPROVALDECISIONAPPROVEDONCE DelegatedApprovalDecision = "DELEGATED_APPROVAL_DECISION_APPROVED_ONCE"
+	DELEGATEDAPPROVALDECISIONREJECTED DelegatedApprovalDecision = "DELEGATED_APPROVAL_DECISION_REJECTED"
+	DELEGATEDAPPROVALDECISIONAPPROVEDFORSESSION DelegatedApprovalDecision = "DELEGATED_APPROVAL_DECISION_APPROVED_FOR_SESSION"
+	DELEGATEDAPPROVALDECISIONPOLICYBLOCKED DelegatedApprovalDecision = "DELEGATED_APPROVAL_DECISION_POLICY_BLOCKED"
+	DELEGATEDAPPROVALDECISIONEXPIRED DelegatedApprovalDecision = "DELEGATED_APPROVAL_DECISION_EXPIRED"
 )
 
 type DelegatedApprovalMode string
@@ -469,9 +472,11 @@ type DelegatedApprovalRequestState string
 const (
 	DELEGATEDAPPROVALREQUESTSTATEUNSPECIFIED DelegatedApprovalRequestState = "DELEGATED_APPROVAL_REQUEST_STATE_UNSPECIFIED"
 	DELEGATEDAPPROVALREQUESTSTATEPENDING DelegatedApprovalRequestState = "DELEGATED_APPROVAL_REQUEST_STATE_PENDING"
-	DELEGATEDAPPROVALREQUESTSTATEAPPROVED DelegatedApprovalRequestState = "DELEGATED_APPROVAL_REQUEST_STATE_APPROVED"
+	DELEGATEDAPPROVALREQUESTSTATEAPPROVEDONCE DelegatedApprovalRequestState = "DELEGATED_APPROVAL_REQUEST_STATE_APPROVED_ONCE"
 	DELEGATEDAPPROVALREQUESTSTATEREJECTED DelegatedApprovalRequestState = "DELEGATED_APPROVAL_REQUEST_STATE_REJECTED"
 	DELEGATEDAPPROVALREQUESTSTATEEXPIRED DelegatedApprovalRequestState = "DELEGATED_APPROVAL_REQUEST_STATE_EXPIRED"
+	DELEGATEDAPPROVALREQUESTSTATEAPPROVEDFORSESSION DelegatedApprovalRequestState = "DELEGATED_APPROVAL_REQUEST_STATE_APPROVED_FOR_SESSION"
+	DELEGATEDAPPROVALREQUESTSTATEPOLICYBLOCKED DelegatedApprovalRequestState = "DELEGATED_APPROVAL_REQUEST_STATE_POLICY_BLOCKED"
 )
 
 type DelegatedProviderKind string
@@ -5847,7 +5852,7 @@ type QueryAgentMemoryResponse struct {
 }
 
 type RawChunk struct {
-	Value *google.protobuf.Value `json:"value,omitempty"`
+	Value map[string]any `json:"value,omitempty"`
 }
 
 type ReadArtifactBytesRequest struct {
@@ -5884,6 +5889,15 @@ type RealmGroupMessageCandidateCommitHandle struct {
 	CreatedAt string `json:"created_at,omitempty"`
 	ExpiresAt string `json:"expires_at,omitempty"`
 	CommitDisposition RealmGroupMessageCandidateCommitDisposition `json:"commit_disposition,omitempty"`
+	ProfileKind string `json:"profile_kind,omitempty"`
+	IdentitySource string `json:"identity_source,omitempty"`
+	ParticipantRef string `json:"participant_ref,omitempty"`
+	ContextBlockRefs []string `json:"context_block_refs,omitempty"`
+	OutputDestination string `json:"output_destination,omitempty"`
+	MemoryReadVerdict string `json:"memory_read_verdict,omitempty"`
+	MemoryWriteVerdict string `json:"memory_write_verdict,omitempty"`
+	CapabilityScopeVerdict string `json:"capability_scope_verdict,omitempty"`
+	AuditId string `json:"audit_id,omitempty"`
 }
 
 type RealmGroupMessageCandidateEvidence struct {
@@ -5909,6 +5923,15 @@ type RealmGroupMessageCandidateEvidence struct {
 	RefusalCode string `json:"refusal_code,omitempty"`
 	RefusalReason string `json:"refusal_reason,omitempty"`
 	RefusalHash string `json:"refusal_hash,omitempty"`
+	ProfileKind string `json:"profile_kind,omitempty"`
+	IdentitySource string `json:"identity_source,omitempty"`
+	ParticipantRef string `json:"participant_ref,omitempty"`
+	ContextBlockRefs []string `json:"context_block_refs,omitempty"`
+	OutputDestination string `json:"output_destination,omitempty"`
+	MemoryReadVerdict string `json:"memory_read_verdict,omitempty"`
+	MemoryWriteVerdict string `json:"memory_write_verdict,omitempty"`
+	CapabilityScopeVerdict string `json:"capability_scope_verdict,omitempty"`
+	AuditId string `json:"audit_id,omitempty"`
 }
 
 type RealmGroupThreadRefBlock struct {
@@ -7163,7 +7186,7 @@ type ToolOrCapabilityProjectionBlock struct {
 type ToolResult struct {
 	ToolCallId string `json:"tool_call_id,omitempty"`
 	ToolName string `json:"tool_name,omitempty"`
-	Result *google.protobuf.Value `json:"result,omitempty"`
+	Result map[string]any `json:"result,omitempty"`
 	IsError bool `json:"is_error,omitempty"`
 	Preliminary bool `json:"preliminary,omitempty"`
 	Dynamic bool `json:"dynamic,omitempty"`
@@ -7727,12 +7750,71 @@ func decodeTypedResponse[T any](raw []byte) (T, error) {
 	return out, nil
 }
 
+func decodeRuntimeTypedResponse[T any](raw []byte, responseType string) (T, error) {
+	out, err := decodeTypedResponse[T](raw)
+	if err != nil {
+		return out, err
+	}
+	if err := validateCompanionParticipationResponse(responseType, any(out)); err != nil {
+		return out, err
+	}
+	return out, nil
+}
+
+func validateCompanionParticipationResponse(responseType string, value any) error {
+	switch responseType {
+	case "GetCompanionParticipationProjectionResponse":
+		return validateCompanionParticipationProjection(value.(GetCompanionParticipationProjectionResponse).Projection)
+	case "RequestCompanionParticipationResponse":
+		return validateCompanionParticipationProjection(value.(RequestCompanionParticipationResponse).Projection)
+	case "CancelCompanionParticipationResponse":
+		return validateCompanionParticipationProjection(value.(CancelCompanionParticipationResponse).Projection)
+	case "OpenCompanionParticipationReplayResponse":
+		return validateCompanionParticipationProjection(value.(OpenCompanionParticipationReplayResponse).Projection)
+	default:
+		return nil
+	}
+}
+
+func validateCompanionParticipationProjection(projection *CompanionParticipationProjection) error {
+	if projection == nil {
+		return fmt.Errorf("SDK_RUNTIME_AGENT_RESPONSE_INVALID: companion participation projection is missing")
+	}
+	if projection.ProjectionId == "" || projection.AgentId == "" || projection.ProfileRef == "" || projection.RoomOrchestrationRef == "" || projection.AuditRef == "" || projection.ConversationAnchorId == "" {
+		return fmt.Errorf("SDK_RUNTIME_AGENT_RESPONSE_INVALID: companion participation projection is missing required refs")
+	}
+	switch projection.SurfaceKind {
+	case COMPANIONPARTICIPATIONSURFACEKINDAVATARCOMPANION, COMPANIONPARTICIPATIONSURFACEKINDDESKTOPCOMPANIONPANEL, COMPANIONPARTICIPATIONSURFACEKINDAVATARDEBUGWORKBENCH:
+	default:
+		return fmt.Errorf("SDK_RUNTIME_AGENT_RESPONSE_INVALID: companion participation projection has unsupported surface_kind")
+	}
+	switch projection.TriggerSource {
+	case COMPANIONPARTICIPATIONTRIGGERSOURCEUSEREXPLICIT, COMPANIONPARTICIPATIONTRIGGERSOURCESCHEDULEDPROACTIVE, COMPANIONPARTICIPATIONTRIGGERSOURCEDOMAINEVENT:
+	default:
+		return fmt.Errorf("SDK_RUNTIME_AGENT_RESPONSE_INVALID: companion participation projection has unsupported trigger_source")
+	}
+	switch projection.Status {
+	case COMPANIONPARTICIPATIONSTATUSIDLE, COMPANIONPARTICIPATIONSTATUSADMISSIONPENDING, COMPANIONPARTICIPATIONSTATUSBLOCKED, COMPANIONPARTICIPATIONSTATUSRUNNING, COMPANIONPARTICIPATIONSTATUSFAILED, COMPANIONPARTICIPATIONSTATUSCANCELED:
+	case COMPANIONPARTICIPATIONSTATUSCANDIDATEREADY:
+		if projection.CandidateRef == "" {
+			return fmt.Errorf("SDK_RUNTIME_AGENT_RESPONSE_INVALID: companion participation candidate_ready projection missing candidate_ref")
+		}
+	case COMPANIONPARTICIPATIONSTATUSCOMMITTEDBYOWNER:
+		if projection.CommitRef == "" {
+			return fmt.Errorf("SDK_RUNTIME_AGENT_RESPONSE_INVALID: companion participation committed_by_owner projection missing commit_ref")
+		}
+	default:
+		return fmt.Errorf("SDK_RUNTIME_AGENT_RESPONSE_INVALID: companion participation projection has unsupported status")
+	}
+	return nil
+}
+
 func (c RuntimeTypedClient) BeginLogin(ctx context.Context, request BeginLoginRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (BeginLoginResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAccountService/BeginLogin", request, metadata, timeoutMS)
 	if err != nil {
 		return BeginLoginResponse{}, err
 	}
-	return decodeTypedResponse[BeginLoginResponse](raw)
+	return decodeRuntimeTypedResponse[BeginLoginResponse](raw, "BeginLoginResponse")
 }
 
 func (c RuntimeTypedClient) CompleteLogin(ctx context.Context, request CompleteLoginRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CompleteLoginResponse, error) {
@@ -7740,7 +7822,7 @@ func (c RuntimeTypedClient) CompleteLogin(ctx context.Context, request CompleteL
 	if err != nil {
 		return CompleteLoginResponse{}, err
 	}
-	return decodeTypedResponse[CompleteLoginResponse](raw)
+	return decodeRuntimeTypedResponse[CompleteLoginResponse](raw, "CompleteLoginResponse")
 }
 
 func (c RuntimeTypedClient) GetAccessToken(ctx context.Context, request GetAccessTokenRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAccessTokenResponse, error) {
@@ -7748,7 +7830,7 @@ func (c RuntimeTypedClient) GetAccessToken(ctx context.Context, request GetAcces
 	if err != nil {
 		return GetAccessTokenResponse{}, err
 	}
-	return decodeTypedResponse[GetAccessTokenResponse](raw)
+	return decodeRuntimeTypedResponse[GetAccessTokenResponse](raw, "GetAccessTokenResponse")
 }
 
 func (c RuntimeTypedClient) GetAccountSessionStatus(ctx context.Context, request GetAccountSessionStatusRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAccountSessionStatusResponse, error) {
@@ -7756,7 +7838,7 @@ func (c RuntimeTypedClient) GetAccountSessionStatus(ctx context.Context, request
 	if err != nil {
 		return GetAccountSessionStatusResponse{}, err
 	}
-	return decodeTypedResponse[GetAccountSessionStatusResponse](raw)
+	return decodeRuntimeTypedResponse[GetAccountSessionStatusResponse](raw, "GetAccountSessionStatusResponse")
 }
 
 func (c RuntimeTypedClient) IssueScopedAppBinding(ctx context.Context, request IssueScopedAppBindingRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (IssueScopedAppBindingResponse, error) {
@@ -7764,7 +7846,7 @@ func (c RuntimeTypedClient) IssueScopedAppBinding(ctx context.Context, request I
 	if err != nil {
 		return IssueScopedAppBindingResponse{}, err
 	}
-	return decodeTypedResponse[IssueScopedAppBindingResponse](raw)
+	return decodeRuntimeTypedResponse[IssueScopedAppBindingResponse](raw, "IssueScopedAppBindingResponse")
 }
 
 func (c RuntimeTypedClient) IssueWorkspaceBinding(ctx context.Context, request IssueWorkspaceBindingRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (IssueWorkspaceBindingResponse, error) {
@@ -7772,7 +7854,7 @@ func (c RuntimeTypedClient) IssueWorkspaceBinding(ctx context.Context, request I
 	if err != nil {
 		return IssueWorkspaceBindingResponse{}, err
 	}
-	return decodeTypedResponse[IssueWorkspaceBindingResponse](raw)
+	return decodeRuntimeTypedResponse[IssueWorkspaceBindingResponse](raw, "IssueWorkspaceBindingResponse")
 }
 
 func (c RuntimeTypedClient) Logout(ctx context.Context, request LogoutRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (LogoutResponse, error) {
@@ -7780,7 +7862,7 @@ func (c RuntimeTypedClient) Logout(ctx context.Context, request LogoutRequest, m
 	if err != nil {
 		return LogoutResponse{}, err
 	}
-	return decodeTypedResponse[LogoutResponse](raw)
+	return decodeRuntimeTypedResponse[LogoutResponse](raw, "LogoutResponse")
 }
 
 func (c RuntimeTypedClient) RefreshAccountSession(ctx context.Context, request RefreshAccountSessionRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RefreshAccountSessionResponse, error) {
@@ -7788,7 +7870,7 @@ func (c RuntimeTypedClient) RefreshAccountSession(ctx context.Context, request R
 	if err != nil {
 		return RefreshAccountSessionResponse{}, err
 	}
-	return decodeTypedResponse[RefreshAccountSessionResponse](raw)
+	return decodeRuntimeTypedResponse[RefreshAccountSessionResponse](raw, "RefreshAccountSessionResponse")
 }
 
 func (c RuntimeTypedClient) RevokeScopedAppBinding(ctx context.Context, request RevokeScopedAppBindingRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RevokeScopedAppBindingResponse, error) {
@@ -7796,7 +7878,7 @@ func (c RuntimeTypedClient) RevokeScopedAppBinding(ctx context.Context, request 
 	if err != nil {
 		return RevokeScopedAppBindingResponse{}, err
 	}
-	return decodeTypedResponse[RevokeScopedAppBindingResponse](raw)
+	return decodeRuntimeTypedResponse[RevokeScopedAppBindingResponse](raw, "RevokeScopedAppBindingResponse")
 }
 
 func (c RuntimeTypedClient) RevokeWorkspaceBinding(ctx context.Context, request RevokeWorkspaceBindingRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RevokeWorkspaceBindingResponse, error) {
@@ -7804,7 +7886,7 @@ func (c RuntimeTypedClient) RevokeWorkspaceBinding(ctx context.Context, request 
 	if err != nil {
 		return RevokeWorkspaceBindingResponse{}, err
 	}
-	return decodeTypedResponse[RevokeWorkspaceBindingResponse](raw)
+	return decodeRuntimeTypedResponse[RevokeWorkspaceBindingResponse](raw, "RevokeWorkspaceBindingResponse")
 }
 
 func (c RuntimeTypedClient) SubscribeAccountSessionEvents(ctx context.Context, request SubscribeAccountSessionEventsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[AccountSessionEvent], error) {
@@ -7820,7 +7902,7 @@ func (c RuntimeTypedClient) SwitchAccount(ctx context.Context, request SwitchAcc
 	if err != nil {
 		return SwitchAccountResponse{}, err
 	}
-	return decodeTypedResponse[SwitchAccountResponse](raw)
+	return decodeRuntimeTypedResponse[SwitchAccountResponse](raw, "SwitchAccountResponse")
 }
 
 func (c RuntimeTypedClient) CancelCompanionParticipation(ctx context.Context, request CancelCompanionParticipationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CancelCompanionParticipationResponse, error) {
@@ -7828,7 +7910,7 @@ func (c RuntimeTypedClient) CancelCompanionParticipation(ctx context.Context, re
 	if err != nil {
 		return CancelCompanionParticipationResponse{}, err
 	}
-	return decodeTypedResponse[CancelCompanionParticipationResponse](raw)
+	return decodeRuntimeTypedResponse[CancelCompanionParticipationResponse](raw, "CancelCompanionParticipationResponse")
 }
 
 func (c RuntimeTypedClient) CancelHook(ctx context.Context, request CancelHookRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CancelHookResponse, error) {
@@ -7836,7 +7918,7 @@ func (c RuntimeTypedClient) CancelHook(ctx context.Context, request CancelHookRe
 	if err != nil {
 		return CancelHookResponse{}, err
 	}
-	return decodeTypedResponse[CancelHookResponse](raw)
+	return decodeRuntimeTypedResponse[CancelHookResponse](raw, "CancelHookResponse")
 }
 
 func (c RuntimeTypedClient) CreateRealmGroupMessageCandidate(ctx context.Context, request CreateRealmGroupMessageCandidateRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CreateRealmGroupMessageCandidateResponse, error) {
@@ -7844,7 +7926,7 @@ func (c RuntimeTypedClient) CreateRealmGroupMessageCandidate(ctx context.Context
 	if err != nil {
 		return CreateRealmGroupMessageCandidateResponse{}, err
 	}
-	return decodeTypedResponse[CreateRealmGroupMessageCandidateResponse](raw)
+	return decodeRuntimeTypedResponse[CreateRealmGroupMessageCandidateResponse](raw, "CreateRealmGroupMessageCandidateResponse")
 }
 
 func (c RuntimeTypedClient) DescribeParticipationContextBlocks(ctx context.Context, request DescribeParticipationContextBlocksRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (DescribeParticipationContextBlocksResponse, error) {
@@ -7852,7 +7934,7 @@ func (c RuntimeTypedClient) DescribeParticipationContextBlocks(ctx context.Conte
 	if err != nil {
 		return DescribeParticipationContextBlocksResponse{}, err
 	}
-	return decodeTypedResponse[DescribeParticipationContextBlocksResponse](raw)
+	return decodeRuntimeTypedResponse[DescribeParticipationContextBlocksResponse](raw, "DescribeParticipationContextBlocksResponse")
 }
 
 func (c RuntimeTypedClient) DescribeParticipationProfiles(ctx context.Context, request DescribeParticipationProfilesRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (DescribeParticipationProfilesResponse, error) {
@@ -7860,7 +7942,7 @@ func (c RuntimeTypedClient) DescribeParticipationProfiles(ctx context.Context, r
 	if err != nil {
 		return DescribeParticipationProfilesResponse{}, err
 	}
-	return decodeTypedResponse[DescribeParticipationProfilesResponse](raw)
+	return decodeRuntimeTypedResponse[DescribeParticipationProfilesResponse](raw, "DescribeParticipationProfilesResponse")
 }
 
 func (c RuntimeTypedClient) DisableAutonomy(ctx context.Context, request DisableAutonomyRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (DisableAutonomyResponse, error) {
@@ -7868,7 +7950,7 @@ func (c RuntimeTypedClient) DisableAutonomy(ctx context.Context, request Disable
 	if err != nil {
 		return DisableAutonomyResponse{}, err
 	}
-	return decodeTypedResponse[DisableAutonomyResponse](raw)
+	return decodeRuntimeTypedResponse[DisableAutonomyResponse](raw, "DisableAutonomyResponse")
 }
 
 func (c RuntimeTypedClient) EnableAutonomy(ctx context.Context, request EnableAutonomyRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (EnableAutonomyResponse, error) {
@@ -7876,7 +7958,7 @@ func (c RuntimeTypedClient) EnableAutonomy(ctx context.Context, request EnableAu
 	if err != nil {
 		return EnableAutonomyResponse{}, err
 	}
-	return decodeTypedResponse[EnableAutonomyResponse](raw)
+	return decodeRuntimeTypedResponse[EnableAutonomyResponse](raw, "EnableAutonomyResponse")
 }
 
 func (c RuntimeTypedClient) ExecuteDelegatedCapability(ctx context.Context, request ExecuteDelegatedCapabilityRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ExecuteDelegatedCapabilityResponse, error) {
@@ -7884,7 +7966,7 @@ func (c RuntimeTypedClient) ExecuteDelegatedCapability(ctx context.Context, requ
 	if err != nil {
 		return ExecuteDelegatedCapabilityResponse{}, err
 	}
-	return decodeTypedResponse[ExecuteDelegatedCapabilityResponse](raw)
+	return decodeRuntimeTypedResponse[ExecuteDelegatedCapabilityResponse](raw, "ExecuteDelegatedCapabilityResponse")
 }
 
 func (c RuntimeTypedClient) ExecuteParticipation(ctx context.Context, request ExecuteParticipationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ExecuteParticipationResponse, error) {
@@ -7892,7 +7974,7 @@ func (c RuntimeTypedClient) ExecuteParticipation(ctx context.Context, request Ex
 	if err != nil {
 		return ExecuteParticipationResponse{}, err
 	}
-	return decodeTypedResponse[ExecuteParticipationResponse](raw)
+	return decodeRuntimeTypedResponse[ExecuteParticipationResponse](raw, "ExecuteParticipationResponse")
 }
 
 func (c RuntimeTypedClient) GetAgent(ctx context.Context, request GetAgentRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAgentResponse, error) {
@@ -7900,7 +7982,7 @@ func (c RuntimeTypedClient) GetAgent(ctx context.Context, request GetAgentReques
 	if err != nil {
 		return GetAgentResponse{}, err
 	}
-	return decodeTypedResponse[GetAgentResponse](raw)
+	return decodeRuntimeTypedResponse[GetAgentResponse](raw, "GetAgentResponse")
 }
 
 func (c RuntimeTypedClient) GetAgentCanonicalMemoryBankStatus(ctx context.Context, request GetAgentCanonicalMemoryBankStatusRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAgentCanonicalMemoryBankStatusResponse, error) {
@@ -7908,7 +7990,7 @@ func (c RuntimeTypedClient) GetAgentCanonicalMemoryBankStatus(ctx context.Contex
 	if err != nil {
 		return GetAgentCanonicalMemoryBankStatusResponse{}, err
 	}
-	return decodeTypedResponse[GetAgentCanonicalMemoryBankStatusResponse](raw)
+	return decodeRuntimeTypedResponse[GetAgentCanonicalMemoryBankStatusResponse](raw, "GetAgentCanonicalMemoryBankStatusResponse")
 }
 
 func (c RuntimeTypedClient) GetAgentState(ctx context.Context, request GetAgentStateRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAgentStateResponse, error) {
@@ -7916,7 +7998,7 @@ func (c RuntimeTypedClient) GetAgentState(ctx context.Context, request GetAgentS
 	if err != nil {
 		return GetAgentStateResponse{}, err
 	}
-	return decodeTypedResponse[GetAgentStateResponse](raw)
+	return decodeRuntimeTypedResponse[GetAgentStateResponse](raw, "GetAgentStateResponse")
 }
 
 func (c RuntimeTypedClient) GetAvatarDebugReplay(ctx context.Context, request GetAvatarDebugReplayRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAvatarDebugReplayResponse, error) {
@@ -7924,7 +8006,7 @@ func (c RuntimeTypedClient) GetAvatarDebugReplay(ctx context.Context, request Ge
 	if err != nil {
 		return GetAvatarDebugReplayResponse{}, err
 	}
-	return decodeTypedResponse[GetAvatarDebugReplayResponse](raw)
+	return decodeRuntimeTypedResponse[GetAvatarDebugReplayResponse](raw, "GetAvatarDebugReplayResponse")
 }
 
 func (c RuntimeTypedClient) GetAvatarDebugSnapshot(ctx context.Context, request GetAvatarDebugSnapshotRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAvatarDebugSnapshotResponse, error) {
@@ -7932,7 +8014,7 @@ func (c RuntimeTypedClient) GetAvatarDebugSnapshot(ctx context.Context, request 
 	if err != nil {
 		return GetAvatarDebugSnapshotResponse{}, err
 	}
-	return decodeTypedResponse[GetAvatarDebugSnapshotResponse](raw)
+	return decodeRuntimeTypedResponse[GetAvatarDebugSnapshotResponse](raw, "GetAvatarDebugSnapshotResponse")
 }
 
 func (c RuntimeTypedClient) GetCompanionParticipationProjection(ctx context.Context, request GetCompanionParticipationProjectionRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetCompanionParticipationProjectionResponse, error) {
@@ -7940,7 +8022,7 @@ func (c RuntimeTypedClient) GetCompanionParticipationProjection(ctx context.Cont
 	if err != nil {
 		return GetCompanionParticipationProjectionResponse{}, err
 	}
-	return decodeTypedResponse[GetCompanionParticipationProjectionResponse](raw)
+	return decodeRuntimeTypedResponse[GetCompanionParticipationProjectionResponse](raw, "GetCompanionParticipationProjectionResponse")
 }
 
 func (c RuntimeTypedClient) GetConversationAnchorSnapshot(ctx context.Context, request GetConversationAnchorSnapshotRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetConversationAnchorSnapshotResponse, error) {
@@ -7948,7 +8030,7 @@ func (c RuntimeTypedClient) GetConversationAnchorSnapshot(ctx context.Context, r
 	if err != nil {
 		return GetConversationAnchorSnapshotResponse{}, err
 	}
-	return decodeTypedResponse[GetConversationAnchorSnapshotResponse](raw)
+	return decodeRuntimeTypedResponse[GetConversationAnchorSnapshotResponse](raw, "GetConversationAnchorSnapshotResponse")
 }
 
 func (c RuntimeTypedClient) GetDelegatedControlSurfaceSnapshot(ctx context.Context, request GetDelegatedControlSurfaceSnapshotRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetDelegatedControlSurfaceSnapshotResponse, error) {
@@ -7956,7 +8038,7 @@ func (c RuntimeTypedClient) GetDelegatedControlSurfaceSnapshot(ctx context.Conte
 	if err != nil {
 		return GetDelegatedControlSurfaceSnapshotResponse{}, err
 	}
-	return decodeTypedResponse[GetDelegatedControlSurfaceSnapshotResponse](raw)
+	return decodeRuntimeTypedResponse[GetDelegatedControlSurfaceSnapshotResponse](raw, "GetDelegatedControlSurfaceSnapshotResponse")
 }
 
 func (c RuntimeTypedClient) GetDelegatedReplayTrace(ctx context.Context, request GetDelegatedReplayTraceRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetDelegatedReplayTraceResponse, error) {
@@ -7964,7 +8046,7 @@ func (c RuntimeTypedClient) GetDelegatedReplayTrace(ctx context.Context, request
 	if err != nil {
 		return GetDelegatedReplayTraceResponse{}, err
 	}
-	return decodeTypedResponse[GetDelegatedReplayTraceResponse](raw)
+	return decodeRuntimeTypedResponse[GetDelegatedReplayTraceResponse](raw, "GetDelegatedReplayTraceResponse")
 }
 
 func (c RuntimeTypedClient) GetParticipationCandidate(ctx context.Context, request GetParticipationCandidateRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetParticipationCandidateResponse, error) {
@@ -7972,7 +8054,7 @@ func (c RuntimeTypedClient) GetParticipationCandidate(ctx context.Context, reque
 	if err != nil {
 		return GetParticipationCandidateResponse{}, err
 	}
-	return decodeTypedResponse[GetParticipationCandidateResponse](raw)
+	return decodeRuntimeTypedResponse[GetParticipationCandidateResponse](raw, "GetParticipationCandidateResponse")
 }
 
 func (c RuntimeTypedClient) GetParticipationReplay(ctx context.Context, request GetParticipationReplayRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetParticipationReplayResponse, error) {
@@ -7980,7 +8062,7 @@ func (c RuntimeTypedClient) GetParticipationReplay(ctx context.Context, request 
 	if err != nil {
 		return GetParticipationReplayResponse{}, err
 	}
-	return decodeTypedResponse[GetParticipationReplayResponse](raw)
+	return decodeRuntimeTypedResponse[GetParticipationReplayResponse](raw, "GetParticipationReplayResponse")
 }
 
 func (c RuntimeTypedClient) GetParticipationVerdicts(ctx context.Context, request GetParticipationVerdictsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetParticipationVerdictsResponse, error) {
@@ -7988,7 +8070,7 @@ func (c RuntimeTypedClient) GetParticipationVerdicts(ctx context.Context, reques
 	if err != nil {
 		return GetParticipationVerdictsResponse{}, err
 	}
-	return decodeTypedResponse[GetParticipationVerdictsResponse](raw)
+	return decodeRuntimeTypedResponse[GetParticipationVerdictsResponse](raw, "GetParticipationVerdictsResponse")
 }
 
 func (c RuntimeTypedClient) GetPublicChatSessionSnapshot(ctx context.Context, request GetPublicChatSessionSnapshotRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetPublicChatSessionSnapshotResponse, error) {
@@ -7996,7 +8078,7 @@ func (c RuntimeTypedClient) GetPublicChatSessionSnapshot(ctx context.Context, re
 	if err != nil {
 		return GetPublicChatSessionSnapshotResponse{}, err
 	}
-	return decodeTypedResponse[GetPublicChatSessionSnapshotResponse](raw)
+	return decodeRuntimeTypedResponse[GetPublicChatSessionSnapshotResponse](raw, "GetPublicChatSessionSnapshotResponse")
 }
 
 func (c RuntimeTypedClient) GetRealmGroupMessageCandidateEvidence(ctx context.Context, request GetRealmGroupMessageCandidateEvidenceRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetRealmGroupMessageCandidateEvidenceResponse, error) {
@@ -8004,7 +8086,7 @@ func (c RuntimeTypedClient) GetRealmGroupMessageCandidateEvidence(ctx context.Co
 	if err != nil {
 		return GetRealmGroupMessageCandidateEvidenceResponse{}, err
 	}
-	return decodeTypedResponse[GetRealmGroupMessageCandidateEvidenceResponse](raw)
+	return decodeRuntimeTypedResponse[GetRealmGroupMessageCandidateEvidenceResponse](raw, "GetRealmGroupMessageCandidateEvidenceResponse")
 }
 
 func (c RuntimeTypedClient) InitializeAgent(ctx context.Context, request InitializeAgentRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (InitializeAgentResponse, error) {
@@ -8012,7 +8094,7 @@ func (c RuntimeTypedClient) InitializeAgent(ctx context.Context, request Initial
 	if err != nil {
 		return InitializeAgentResponse{}, err
 	}
-	return decodeTypedResponse[InitializeAgentResponse](raw)
+	return decodeRuntimeTypedResponse[InitializeAgentResponse](raw, "InitializeAgentResponse")
 }
 
 func (c RuntimeTypedClient) ListAgentConversationSummaries(ctx context.Context, request ListAgentConversationSummariesRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListAgentConversationSummariesResponse, error) {
@@ -8020,7 +8102,7 @@ func (c RuntimeTypedClient) ListAgentConversationSummaries(ctx context.Context, 
 	if err != nil {
 		return ListAgentConversationSummariesResponse{}, err
 	}
-	return decodeTypedResponse[ListAgentConversationSummariesResponse](raw)
+	return decodeRuntimeTypedResponse[ListAgentConversationSummariesResponse](raw, "ListAgentConversationSummariesResponse")
 }
 
 func (c RuntimeTypedClient) ListAgents(ctx context.Context, request ListAgentsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListAgentsResponse, error) {
@@ -8028,7 +8110,7 @@ func (c RuntimeTypedClient) ListAgents(ctx context.Context, request ListAgentsRe
 	if err != nil {
 		return ListAgentsResponse{}, err
 	}
-	return decodeTypedResponse[ListAgentsResponse](raw)
+	return decodeRuntimeTypedResponse[ListAgentsResponse](raw, "ListAgentsResponse")
 }
 
 func (c RuntimeTypedClient) ListAvatarDebugProbeResults(ctx context.Context, request ListAvatarDebugProbeResultsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListAvatarDebugProbeResultsResponse, error) {
@@ -8036,7 +8118,7 @@ func (c RuntimeTypedClient) ListAvatarDebugProbeResults(ctx context.Context, req
 	if err != nil {
 		return ListAvatarDebugProbeResultsResponse{}, err
 	}
-	return decodeTypedResponse[ListAvatarDebugProbeResultsResponse](raw)
+	return decodeRuntimeTypedResponse[ListAvatarDebugProbeResultsResponse](raw, "ListAvatarDebugProbeResultsResponse")
 }
 
 func (c RuntimeTypedClient) ListDelegatedApprovalRequests(ctx context.Context, request ListDelegatedApprovalRequestsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListDelegatedApprovalRequestsResponse, error) {
@@ -8044,7 +8126,7 @@ func (c RuntimeTypedClient) ListDelegatedApprovalRequests(ctx context.Context, r
 	if err != nil {
 		return ListDelegatedApprovalRequestsResponse{}, err
 	}
-	return decodeTypedResponse[ListDelegatedApprovalRequestsResponse](raw)
+	return decodeRuntimeTypedResponse[ListDelegatedApprovalRequestsResponse](raw, "ListDelegatedApprovalRequestsResponse")
 }
 
 func (c RuntimeTypedClient) ListDelegatedDiagnostics(ctx context.Context, request ListDelegatedDiagnosticsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListDelegatedDiagnosticsResponse, error) {
@@ -8052,7 +8134,7 @@ func (c RuntimeTypedClient) ListDelegatedDiagnostics(ctx context.Context, reques
 	if err != nil {
 		return ListDelegatedDiagnosticsResponse{}, err
 	}
-	return decodeTypedResponse[ListDelegatedDiagnosticsResponse](raw)
+	return decodeRuntimeTypedResponse[ListDelegatedDiagnosticsResponse](raw, "ListDelegatedDiagnosticsResponse")
 }
 
 func (c RuntimeTypedClient) ListDelegatedProviderProfiles(ctx context.Context, request ListDelegatedProviderProfilesRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListDelegatedProviderProfilesResponse, error) {
@@ -8060,7 +8142,7 @@ func (c RuntimeTypedClient) ListDelegatedProviderProfiles(ctx context.Context, r
 	if err != nil {
 		return ListDelegatedProviderProfilesResponse{}, err
 	}
-	return decodeTypedResponse[ListDelegatedProviderProfilesResponse](raw)
+	return decodeRuntimeTypedResponse[ListDelegatedProviderProfilesResponse](raw, "ListDelegatedProviderProfilesResponse")
 }
 
 func (c RuntimeTypedClient) ListParticipationAuditEvents(ctx context.Context, request ListParticipationAuditEventsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListParticipationAuditEventsResponse, error) {
@@ -8068,7 +8150,7 @@ func (c RuntimeTypedClient) ListParticipationAuditEvents(ctx context.Context, re
 	if err != nil {
 		return ListParticipationAuditEventsResponse{}, err
 	}
-	return decodeTypedResponse[ListParticipationAuditEventsResponse](raw)
+	return decodeRuntimeTypedResponse[ListParticipationAuditEventsResponse](raw, "ListParticipationAuditEventsResponse")
 }
 
 func (c RuntimeTypedClient) ListPendingHooks(ctx context.Context, request ListPendingHooksRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListPendingHooksResponse, error) {
@@ -8076,7 +8158,7 @@ func (c RuntimeTypedClient) ListPendingHooks(ctx context.Context, request ListPe
 	if err != nil {
 		return ListPendingHooksResponse{}, err
 	}
-	return decodeTypedResponse[ListPendingHooksResponse](raw)
+	return decodeRuntimeTypedResponse[ListPendingHooksResponse](raw, "ListPendingHooksResponse")
 }
 
 func (c RuntimeTypedClient) OpenCompanionParticipationReplay(ctx context.Context, request OpenCompanionParticipationReplayRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (OpenCompanionParticipationReplayResponse, error) {
@@ -8084,7 +8166,7 @@ func (c RuntimeTypedClient) OpenCompanionParticipationReplay(ctx context.Context
 	if err != nil {
 		return OpenCompanionParticipationReplayResponse{}, err
 	}
-	return decodeTypedResponse[OpenCompanionParticipationReplayResponse](raw)
+	return decodeRuntimeTypedResponse[OpenCompanionParticipationReplayResponse](raw, "OpenCompanionParticipationReplayResponse")
 }
 
 func (c RuntimeTypedClient) OpenConversationAnchor(ctx context.Context, request OpenConversationAnchorRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (OpenConversationAnchorResponse, error) {
@@ -8092,7 +8174,7 @@ func (c RuntimeTypedClient) OpenConversationAnchor(ctx context.Context, request 
 	if err != nil {
 		return OpenConversationAnchorResponse{}, err
 	}
-	return decodeTypedResponse[OpenConversationAnchorResponse](raw)
+	return decodeRuntimeTypedResponse[OpenConversationAnchorResponse](raw, "OpenConversationAnchorResponse")
 }
 
 func (c RuntimeTypedClient) QueryAgentMemory(ctx context.Context, request QueryAgentMemoryRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (QueryAgentMemoryResponse, error) {
@@ -8100,7 +8182,7 @@ func (c RuntimeTypedClient) QueryAgentMemory(ctx context.Context, request QueryA
 	if err != nil {
 		return QueryAgentMemoryResponse{}, err
 	}
-	return decodeTypedResponse[QueryAgentMemoryResponse](raw)
+	return decodeRuntimeTypedResponse[QueryAgentMemoryResponse](raw, "QueryAgentMemoryResponse")
 }
 
 func (c RuntimeTypedClient) RegisterAvatarLiveInstanceBinding(ctx context.Context, request RegisterAvatarLiveInstanceBindingRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RegisterAvatarLiveInstanceBindingResponse, error) {
@@ -8108,7 +8190,7 @@ func (c RuntimeTypedClient) RegisterAvatarLiveInstanceBinding(ctx context.Contex
 	if err != nil {
 		return RegisterAvatarLiveInstanceBindingResponse{}, err
 	}
-	return decodeTypedResponse[RegisterAvatarLiveInstanceBindingResponse](raw)
+	return decodeRuntimeTypedResponse[RegisterAvatarLiveInstanceBindingResponse](raw, "RegisterAvatarLiveInstanceBindingResponse")
 }
 
 func (c RuntimeTypedClient) RequestAgentCanonicalMemoryBankBind(ctx context.Context, request RequestAgentCanonicalMemoryBankBindRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RequestAgentCanonicalMemoryBankBindResponse, error) {
@@ -8116,7 +8198,7 @@ func (c RuntimeTypedClient) RequestAgentCanonicalMemoryBankBind(ctx context.Cont
 	if err != nil {
 		return RequestAgentCanonicalMemoryBankBindResponse{}, err
 	}
-	return decodeTypedResponse[RequestAgentCanonicalMemoryBankBindResponse](raw)
+	return decodeRuntimeTypedResponse[RequestAgentCanonicalMemoryBankBindResponse](raw, "RequestAgentCanonicalMemoryBankBindResponse")
 }
 
 func (c RuntimeTypedClient) RequestAvatarDebugProbe(ctx context.Context, request RequestAvatarDebugProbeRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RequestAvatarDebugProbeResponse, error) {
@@ -8124,7 +8206,7 @@ func (c RuntimeTypedClient) RequestAvatarDebugProbe(ctx context.Context, request
 	if err != nil {
 		return RequestAvatarDebugProbeResponse{}, err
 	}
-	return decodeTypedResponse[RequestAvatarDebugProbeResponse](raw)
+	return decodeRuntimeTypedResponse[RequestAvatarDebugProbeResponse](raw, "RequestAvatarDebugProbeResponse")
 }
 
 func (c RuntimeTypedClient) RequestCompanionParticipation(ctx context.Context, request RequestCompanionParticipationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RequestCompanionParticipationResponse, error) {
@@ -8132,7 +8214,7 @@ func (c RuntimeTypedClient) RequestCompanionParticipation(ctx context.Context, r
 	if err != nil {
 		return RequestCompanionParticipationResponse{}, err
 	}
-	return decodeTypedResponse[RequestCompanionParticipationResponse](raw)
+	return decodeRuntimeTypedResponse[RequestCompanionParticipationResponse](raw, "RequestCompanionParticipationResponse")
 }
 
 func (c RuntimeTypedClient) ResolveAvatarLiveInstanceBinding(ctx context.Context, request ResolveAvatarLiveInstanceBindingRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ResolveAvatarLiveInstanceBindingResponse, error) {
@@ -8140,7 +8222,7 @@ func (c RuntimeTypedClient) ResolveAvatarLiveInstanceBinding(ctx context.Context
 	if err != nil {
 		return ResolveAvatarLiveInstanceBindingResponse{}, err
 	}
-	return decodeTypedResponse[ResolveAvatarLiveInstanceBindingResponse](raw)
+	return decodeRuntimeTypedResponse[ResolveAvatarLiveInstanceBindingResponse](raw, "ResolveAvatarLiveInstanceBindingResponse")
 }
 
 func (c RuntimeTypedClient) ResumeDelegatedCapability(ctx context.Context, request ResumeDelegatedCapabilityRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ResumeDelegatedCapabilityResponse, error) {
@@ -8148,7 +8230,7 @@ func (c RuntimeTypedClient) ResumeDelegatedCapability(ctx context.Context, reque
 	if err != nil {
 		return ResumeDelegatedCapabilityResponse{}, err
 	}
-	return decodeTypedResponse[ResumeDelegatedCapabilityResponse](raw)
+	return decodeRuntimeTypedResponse[ResumeDelegatedCapabilityResponse](raw, "ResumeDelegatedCapabilityResponse")
 }
 
 func (c RuntimeTypedClient) SetAgentPresentationProfile(ctx context.Context, request SetAgentPresentationProfileRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SetAgentPresentationProfileResponse, error) {
@@ -8156,7 +8238,7 @@ func (c RuntimeTypedClient) SetAgentPresentationProfile(ctx context.Context, req
 	if err != nil {
 		return SetAgentPresentationProfileResponse{}, err
 	}
-	return decodeTypedResponse[SetAgentPresentationProfileResponse](raw)
+	return decodeRuntimeTypedResponse[SetAgentPresentationProfileResponse](raw, "SetAgentPresentationProfileResponse")
 }
 
 func (c RuntimeTypedClient) SetAutonomyConfig(ctx context.Context, request SetAutonomyConfigRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SetAutonomyConfigResponse, error) {
@@ -8164,7 +8246,7 @@ func (c RuntimeTypedClient) SetAutonomyConfig(ctx context.Context, request SetAu
 	if err != nil {
 		return SetAutonomyConfigResponse{}, err
 	}
-	return decodeTypedResponse[SetAutonomyConfigResponse](raw)
+	return decodeRuntimeTypedResponse[SetAutonomyConfigResponse](raw, "SetAutonomyConfigResponse")
 }
 
 func (c RuntimeTypedClient) SetDelegatedProviderState(ctx context.Context, request SetDelegatedProviderStateRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SetDelegatedProviderStateResponse, error) {
@@ -8172,7 +8254,7 @@ func (c RuntimeTypedClient) SetDelegatedProviderState(ctx context.Context, reque
 	if err != nil {
 		return SetDelegatedProviderStateResponse{}, err
 	}
-	return decodeTypedResponse[SetDelegatedProviderStateResponse](raw)
+	return decodeRuntimeTypedResponse[SetDelegatedProviderStateResponse](raw, "SetDelegatedProviderStateResponse")
 }
 
 func (c RuntimeTypedClient) SubmitDelegatedApprovalDecision(ctx context.Context, request SubmitDelegatedApprovalDecisionRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SubmitDelegatedApprovalDecisionResponse, error) {
@@ -8180,7 +8262,7 @@ func (c RuntimeTypedClient) SubmitDelegatedApprovalDecision(ctx context.Context,
 	if err != nil {
 		return SubmitDelegatedApprovalDecisionResponse{}, err
 	}
-	return decodeTypedResponse[SubmitDelegatedApprovalDecisionResponse](raw)
+	return decodeRuntimeTypedResponse[SubmitDelegatedApprovalDecisionResponse](raw, "SubmitDelegatedApprovalDecisionResponse")
 }
 
 func (c RuntimeTypedClient) SubscribeAgentEvents(ctx context.Context, request SubscribeAgentEventsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[AgentEvent], error) {
@@ -8196,7 +8278,7 @@ func (c RuntimeTypedClient) TerminateAgent(ctx context.Context, request Terminat
 	if err != nil {
 		return TerminateAgentResponse{}, err
 	}
-	return decodeTypedResponse[TerminateAgentResponse](raw)
+	return decodeRuntimeTypedResponse[TerminateAgentResponse](raw, "TerminateAgentResponse")
 }
 
 func (c RuntimeTypedClient) UpdateAgentState(ctx context.Context, request UpdateAgentStateRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UpdateAgentStateResponse, error) {
@@ -8204,7 +8286,7 @@ func (c RuntimeTypedClient) UpdateAgentState(ctx context.Context, request Update
 	if err != nil {
 		return UpdateAgentStateResponse{}, err
 	}
-	return decodeTypedResponse[UpdateAgentStateResponse](raw)
+	return decodeRuntimeTypedResponse[UpdateAgentStateResponse](raw, "UpdateAgentStateResponse")
 }
 
 func (c RuntimeTypedClient) UpsertDelegatedProviderProfile(ctx context.Context, request UpsertDelegatedProviderProfileRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UpsertDelegatedProviderProfileResponse, error) {
@@ -8212,7 +8294,7 @@ func (c RuntimeTypedClient) UpsertDelegatedProviderProfile(ctx context.Context, 
 	if err != nil {
 		return UpsertDelegatedProviderProfileResponse{}, err
 	}
-	return decodeTypedResponse[UpsertDelegatedProviderProfileResponse](raw)
+	return decodeRuntimeTypedResponse[UpsertDelegatedProviderProfileResponse](raw, "UpsertDelegatedProviderProfileResponse")
 }
 
 func (c RuntimeTypedClient) ValidateParticipation(ctx context.Context, request ValidateParticipationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ValidateParticipationResponse, error) {
@@ -8220,7 +8302,7 @@ func (c RuntimeTypedClient) ValidateParticipation(ctx context.Context, request V
 	if err != nil {
 		return ValidateParticipationResponse{}, err
 	}
-	return decodeTypedResponse[ValidateParticipationResponse](raw)
+	return decodeRuntimeTypedResponse[ValidateParticipationResponse](raw, "ValidateParticipationResponse")
 }
 
 func (c RuntimeTypedClient) WriteAgentMemory(ctx context.Context, request WriteAgentMemoryRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WriteAgentMemoryResponse, error) {
@@ -8228,7 +8310,7 @@ func (c RuntimeTypedClient) WriteAgentMemory(ctx context.Context, request WriteA
 	if err != nil {
 		return WriteAgentMemoryResponse{}, err
 	}
-	return decodeTypedResponse[WriteAgentMemoryResponse](raw)
+	return decodeRuntimeTypedResponse[WriteAgentMemoryResponse](raw, "WriteAgentMemoryResponse")
 }
 
 func (c RuntimeTypedClient) AppendRealtimeInput(ctx context.Context, request AppendRealtimeInputRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AppendRealtimeInputResponse, error) {
@@ -8236,7 +8318,7 @@ func (c RuntimeTypedClient) AppendRealtimeInput(ctx context.Context, request App
 	if err != nil {
 		return AppendRealtimeInputResponse{}, err
 	}
-	return decodeTypedResponse[AppendRealtimeInputResponse](raw)
+	return decodeRuntimeTypedResponse[AppendRealtimeInputResponse](raw, "AppendRealtimeInputResponse")
 }
 
 func (c RuntimeTypedClient) CloseRealtimeSession(ctx context.Context, request CloseRealtimeSessionRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CloseRealtimeSessionResponse, error) {
@@ -8244,7 +8326,7 @@ func (c RuntimeTypedClient) CloseRealtimeSession(ctx context.Context, request Cl
 	if err != nil {
 		return CloseRealtimeSessionResponse{}, err
 	}
-	return decodeTypedResponse[CloseRealtimeSessionResponse](raw)
+	return decodeRuntimeTypedResponse[CloseRealtimeSessionResponse](raw, "CloseRealtimeSessionResponse")
 }
 
 func (c RuntimeTypedClient) OpenRealtimeSession(ctx context.Context, request OpenRealtimeSessionRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (OpenRealtimeSessionResponse, error) {
@@ -8252,7 +8334,7 @@ func (c RuntimeTypedClient) OpenRealtimeSession(ctx context.Context, request Ope
 	if err != nil {
 		return OpenRealtimeSessionResponse{}, err
 	}
-	return decodeTypedResponse[OpenRealtimeSessionResponse](raw)
+	return decodeRuntimeTypedResponse[OpenRealtimeSessionResponse](raw, "OpenRealtimeSessionResponse")
 }
 
 func (c RuntimeTypedClient) ReadRealtimeEvents(ctx context.Context, request ReadRealtimeEventsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[RealtimeEvent], error) {
@@ -8268,7 +8350,7 @@ func (c RuntimeTypedClient) CancelScenarioJob(ctx context.Context, request Cance
 	if err != nil {
 		return CancelScenarioJobResponse{}, err
 	}
-	return decodeTypedResponse[CancelScenarioJobResponse](raw)
+	return decodeRuntimeTypedResponse[CancelScenarioJobResponse](raw, "CancelScenarioJobResponse")
 }
 
 func (c RuntimeTypedClient) DeleteVoiceAsset(ctx context.Context, request DeleteVoiceAssetRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (DeleteVoiceAssetResponse, error) {
@@ -8276,7 +8358,7 @@ func (c RuntimeTypedClient) DeleteVoiceAsset(ctx context.Context, request Delete
 	if err != nil {
 		return DeleteVoiceAssetResponse{}, err
 	}
-	return decodeTypedResponse[DeleteVoiceAssetResponse](raw)
+	return decodeRuntimeTypedResponse[DeleteVoiceAssetResponse](raw, "DeleteVoiceAssetResponse")
 }
 
 func (c RuntimeTypedClient) ExecuteScenario(ctx context.Context, request ExecuteScenarioRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ExecuteScenarioResponse, error) {
@@ -8284,7 +8366,7 @@ func (c RuntimeTypedClient) ExecuteScenario(ctx context.Context, request Execute
 	if err != nil {
 		return ExecuteScenarioResponse{}, err
 	}
-	return decodeTypedResponse[ExecuteScenarioResponse](raw)
+	return decodeRuntimeTypedResponse[ExecuteScenarioResponse](raw, "ExecuteScenarioResponse")
 }
 
 func (c RuntimeTypedClient) GetScenarioArtifacts(ctx context.Context, request GetScenarioArtifactsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetScenarioArtifactsResponse, error) {
@@ -8292,7 +8374,7 @@ func (c RuntimeTypedClient) GetScenarioArtifacts(ctx context.Context, request Ge
 	if err != nil {
 		return GetScenarioArtifactsResponse{}, err
 	}
-	return decodeTypedResponse[GetScenarioArtifactsResponse](raw)
+	return decodeRuntimeTypedResponse[GetScenarioArtifactsResponse](raw, "GetScenarioArtifactsResponse")
 }
 
 func (c RuntimeTypedClient) GetScenarioJob(ctx context.Context, request GetScenarioJobRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetScenarioJobResponse, error) {
@@ -8300,7 +8382,7 @@ func (c RuntimeTypedClient) GetScenarioJob(ctx context.Context, request GetScena
 	if err != nil {
 		return GetScenarioJobResponse{}, err
 	}
-	return decodeTypedResponse[GetScenarioJobResponse](raw)
+	return decodeRuntimeTypedResponse[GetScenarioJobResponse](raw, "GetScenarioJobResponse")
 }
 
 func (c RuntimeTypedClient) GetVoiceAsset(ctx context.Context, request GetVoiceAssetRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetVoiceAssetResponse, error) {
@@ -8308,7 +8390,7 @@ func (c RuntimeTypedClient) GetVoiceAsset(ctx context.Context, request GetVoiceA
 	if err != nil {
 		return GetVoiceAssetResponse{}, err
 	}
-	return decodeTypedResponse[GetVoiceAssetResponse](raw)
+	return decodeRuntimeTypedResponse[GetVoiceAssetResponse](raw, "GetVoiceAssetResponse")
 }
 
 func (c RuntimeTypedClient) ListPresetVoices(ctx context.Context, request ListPresetVoicesRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListPresetVoicesResponse, error) {
@@ -8316,7 +8398,7 @@ func (c RuntimeTypedClient) ListPresetVoices(ctx context.Context, request ListPr
 	if err != nil {
 		return ListPresetVoicesResponse{}, err
 	}
-	return decodeTypedResponse[ListPresetVoicesResponse](raw)
+	return decodeRuntimeTypedResponse[ListPresetVoicesResponse](raw, "ListPresetVoicesResponse")
 }
 
 func (c RuntimeTypedClient) ListScenarioProfiles(ctx context.Context, request ListScenarioProfilesRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListScenarioProfilesResponse, error) {
@@ -8324,7 +8406,7 @@ func (c RuntimeTypedClient) ListScenarioProfiles(ctx context.Context, request Li
 	if err != nil {
 		return ListScenarioProfilesResponse{}, err
 	}
-	return decodeTypedResponse[ListScenarioProfilesResponse](raw)
+	return decodeRuntimeTypedResponse[ListScenarioProfilesResponse](raw, "ListScenarioProfilesResponse")
 }
 
 func (c RuntimeTypedClient) ListVoiceAssets(ctx context.Context, request ListVoiceAssetsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListVoiceAssetsResponse, error) {
@@ -8332,7 +8414,7 @@ func (c RuntimeTypedClient) ListVoiceAssets(ctx context.Context, request ListVoi
 	if err != nil {
 		return ListVoiceAssetsResponse{}, err
 	}
-	return decodeTypedResponse[ListVoiceAssetsResponse](raw)
+	return decodeRuntimeTypedResponse[ListVoiceAssetsResponse](raw, "ListVoiceAssetsResponse")
 }
 
 func (c RuntimeTypedClient) PeekScheduling(ctx context.Context, request PeekSchedulingRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (PeekSchedulingResponse, error) {
@@ -8340,7 +8422,7 @@ func (c RuntimeTypedClient) PeekScheduling(ctx context.Context, request PeekSche
 	if err != nil {
 		return PeekSchedulingResponse{}, err
 	}
-	return decodeTypedResponse[PeekSchedulingResponse](raw)
+	return decodeRuntimeTypedResponse[PeekSchedulingResponse](raw, "PeekSchedulingResponse")
 }
 
 func (c RuntimeTypedClient) StreamScenario(ctx context.Context, request StreamScenarioRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[StreamScenarioEvent], error) {
@@ -8356,7 +8438,7 @@ func (c RuntimeTypedClient) SubmitScenarioJob(ctx context.Context, request Submi
 	if err != nil {
 		return SubmitScenarioJobResponse{}, err
 	}
-	return decodeTypedResponse[SubmitScenarioJobResponse](raw)
+	return decodeRuntimeTypedResponse[SubmitScenarioJobResponse](raw, "SubmitScenarioJobResponse")
 }
 
 func (c RuntimeTypedClient) SubscribeScenarioJobEvents(ctx context.Context, request SubscribeScenarioJobEventsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[ScenarioJobEvent], error) {
@@ -8376,7 +8458,7 @@ func (c RuntimeTypedClient) GetAccountAppLibrary(ctx context.Context, request Ge
 	if err != nil {
 		return GetAccountAppLibraryResponse{}, err
 	}
-	return decodeTypedResponse[GetAccountAppLibraryResponse](raw)
+	return decodeRuntimeTypedResponse[GetAccountAppLibraryResponse](raw, "GetAccountAppLibraryResponse")
 }
 
 func (c RuntimeTypedClient) GetAppInstallJob(ctx context.Context, request GetAppInstallJobRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAppInstallJobResponse, error) {
@@ -8384,7 +8466,7 @@ func (c RuntimeTypedClient) GetAppInstallJob(ctx context.Context, request GetApp
 	if err != nil {
 		return GetAppInstallJobResponse{}, err
 	}
-	return decodeTypedResponse[GetAppInstallJobResponse](raw)
+	return decodeRuntimeTypedResponse[GetAppInstallJobResponse](raw, "GetAppInstallJobResponse")
 }
 
 func (c RuntimeTypedClient) GetAppPackageReadiness(ctx context.Context, request GetAppPackageReadinessRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAppPackageReadinessResponse, error) {
@@ -8392,7 +8474,7 @@ func (c RuntimeTypedClient) GetAppPackageReadiness(ctx context.Context, request 
 	if err != nil {
 		return GetAppPackageReadinessResponse{}, err
 	}
-	return decodeTypedResponse[GetAppPackageReadinessResponse](raw)
+	return decodeRuntimeTypedResponse[GetAppPackageReadinessResponse](raw, "GetAppPackageReadinessResponse")
 }
 
 func (c RuntimeTypedClient) GetAppStorage(ctx context.Context, request GetAppStorageRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAppStorageResponse, error) {
@@ -8400,7 +8482,7 @@ func (c RuntimeTypedClient) GetAppStorage(ctx context.Context, request GetAppSto
 	if err != nil {
 		return GetAppStorageResponse{}, err
 	}
-	return decodeTypedResponse[GetAppStorageResponse](raw)
+	return decodeRuntimeTypedResponse[GetAppStorageResponse](raw, "GetAppStorageResponse")
 }
 
 func (c RuntimeTypedClient) HealthRepairApp(ctx context.Context, request HealthRepairAppRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (HealthRepairAppResponse, error) {
@@ -8408,7 +8490,7 @@ func (c RuntimeTypedClient) HealthRepairApp(ctx context.Context, request HealthR
 	if err != nil {
 		return HealthRepairAppResponse{}, err
 	}
-	return decodeTypedResponse[HealthRepairAppResponse](raw)
+	return decodeRuntimeTypedResponse[HealthRepairAppResponse](raw, "HealthRepairAppResponse")
 }
 
 func (c RuntimeTypedClient) InstallApp(ctx context.Context, request InstallAppRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (InstallAppResponse, error) {
@@ -8416,7 +8498,7 @@ func (c RuntimeTypedClient) InstallApp(ctx context.Context, request InstallAppRe
 	if err != nil {
 		return InstallAppResponse{}, err
 	}
-	return decodeTypedResponse[InstallAppResponse](raw)
+	return decodeRuntimeTypedResponse[InstallAppResponse](raw, "InstallAppResponse")
 }
 
 func (c RuntimeTypedClient) ListAppInstallJobs(ctx context.Context, request ListAppInstallJobsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListAppInstallJobsResponse, error) {
@@ -8424,7 +8506,7 @@ func (c RuntimeTypedClient) ListAppInstallJobs(ctx context.Context, request List
 	if err != nil {
 		return ListAppInstallJobsResponse{}, err
 	}
-	return decodeTypedResponse[ListAppInstallJobsResponse](raw)
+	return decodeRuntimeTypedResponse[ListAppInstallJobsResponse](raw, "ListAppInstallJobsResponse")
 }
 
 func (c RuntimeTypedClient) OpenApp(ctx context.Context, request OpenAppRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (OpenAppResponse, error) {
@@ -8432,7 +8514,7 @@ func (c RuntimeTypedClient) OpenApp(ctx context.Context, request OpenAppRequest,
 	if err != nil {
 		return OpenAppResponse{}, err
 	}
-	return decodeTypedResponse[OpenAppResponse](raw)
+	return decodeRuntimeTypedResponse[OpenAppResponse](raw, "OpenAppResponse")
 }
 
 func (c RuntimeTypedClient) SendAppMessage(ctx context.Context, request SendAppMessageRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SendAppMessageResponse, error) {
@@ -8440,7 +8522,7 @@ func (c RuntimeTypedClient) SendAppMessage(ctx context.Context, request SendAppM
 	if err != nil {
 		return SendAppMessageResponse{}, err
 	}
-	return decodeTypedResponse[SendAppMessageResponse](raw)
+	return decodeRuntimeTypedResponse[SendAppMessageResponse](raw, "SendAppMessageResponse")
 }
 
 func (c RuntimeTypedClient) SubscribeAppMessages(ctx context.Context, request SubscribeAppMessagesRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[AppMessageEvent], error) {
@@ -8456,7 +8538,7 @@ func (c RuntimeTypedClient) UninstallApp(ctx context.Context, request UninstallA
 	if err != nil {
 		return UninstallAppResponse{}, err
 	}
-	return decodeTypedResponse[UninstallAppResponse](raw)
+	return decodeRuntimeTypedResponse[UninstallAppResponse](raw, "UninstallAppResponse")
 }
 
 func (c RuntimeTypedClient) UpdateApp(ctx context.Context, request UpdateAppRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UpdateAppResponse, error) {
@@ -8464,7 +8546,7 @@ func (c RuntimeTypedClient) UpdateApp(ctx context.Context, request UpdateAppRequ
 	if err != nil {
 		return UpdateAppResponse{}, err
 	}
-	return decodeTypedResponse[UpdateAppResponse](raw)
+	return decodeRuntimeTypedResponse[UpdateAppResponse](raw, "UpdateAppResponse")
 }
 
 func (c RuntimeTypedClient) WatchAppInstallJobEvents(ctx context.Context, request WatchAppInstallJobEventsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[AppInstallJobEvent], error) {
@@ -8480,7 +8562,7 @@ func (c RuntimeTypedClient) ReadArtifactBytes(ctx context.Context, request ReadA
 	if err != nil {
 		return ReadArtifactBytesResponse{}, err
 	}
-	return decodeTypedResponse[ReadArtifactBytesResponse](raw)
+	return decodeRuntimeTypedResponse[ReadArtifactBytesResponse](raw, "ReadArtifactBytesResponse")
 }
 
 func (c RuntimeTypedClient) ExportAuditEvents(ctx context.Context, request ExportAuditEventsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[AuditExportChunk], error) {
@@ -8496,7 +8578,7 @@ func (c RuntimeTypedClient) GetRuntimeHealth(ctx context.Context, request GetRun
 	if err != nil {
 		return GetRuntimeHealthResponse{}, err
 	}
-	return decodeTypedResponse[GetRuntimeHealthResponse](raw)
+	return decodeRuntimeTypedResponse[GetRuntimeHealthResponse](raw, "GetRuntimeHealthResponse")
 }
 
 func (c RuntimeTypedClient) ListAIProviderHealth(ctx context.Context, request ListAIProviderHealthRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListAIProviderHealthResponse, error) {
@@ -8504,7 +8586,7 @@ func (c RuntimeTypedClient) ListAIProviderHealth(ctx context.Context, request Li
 	if err != nil {
 		return ListAIProviderHealthResponse{}, err
 	}
-	return decodeTypedResponse[ListAIProviderHealthResponse](raw)
+	return decodeRuntimeTypedResponse[ListAIProviderHealthResponse](raw, "ListAIProviderHealthResponse")
 }
 
 func (c RuntimeTypedClient) ListAuditEvents(ctx context.Context, request ListAuditEventsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListAuditEventsResponse, error) {
@@ -8512,7 +8594,7 @@ func (c RuntimeTypedClient) ListAuditEvents(ctx context.Context, request ListAud
 	if err != nil {
 		return ListAuditEventsResponse{}, err
 	}
-	return decodeTypedResponse[ListAuditEventsResponse](raw)
+	return decodeRuntimeTypedResponse[ListAuditEventsResponse](raw, "ListAuditEventsResponse")
 }
 
 func (c RuntimeTypedClient) ListUsageStats(ctx context.Context, request ListUsageStatsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListUsageStatsResponse, error) {
@@ -8520,7 +8602,7 @@ func (c RuntimeTypedClient) ListUsageStats(ctx context.Context, request ListUsag
 	if err != nil {
 		return ListUsageStatsResponse{}, err
 	}
-	return decodeTypedResponse[ListUsageStatsResponse](raw)
+	return decodeRuntimeTypedResponse[ListUsageStatsResponse](raw, "ListUsageStatsResponse")
 }
 
 func (c RuntimeTypedClient) SubscribeAIProviderHealthEvents(ctx context.Context, request SubscribeAIProviderHealthEventsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[AIProviderHealthEvent], error) {
@@ -8544,7 +8626,7 @@ func (c RuntimeTypedClient) OpenExternalPrincipalSession(ctx context.Context, re
 	if err != nil {
 		return OpenExternalPrincipalSessionResponse{}, err
 	}
-	return decodeTypedResponse[OpenExternalPrincipalSessionResponse](raw)
+	return decodeRuntimeTypedResponse[OpenExternalPrincipalSessionResponse](raw, "OpenExternalPrincipalSessionResponse")
 }
 
 func (c RuntimeTypedClient) OpenSession(ctx context.Context, request OpenSessionRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (OpenSessionResponse, error) {
@@ -8552,7 +8634,7 @@ func (c RuntimeTypedClient) OpenSession(ctx context.Context, request OpenSession
 	if err != nil {
 		return OpenSessionResponse{}, err
 	}
-	return decodeTypedResponse[OpenSessionResponse](raw)
+	return decodeRuntimeTypedResponse[OpenSessionResponse](raw, "OpenSessionResponse")
 }
 
 func (c RuntimeTypedClient) RefreshSession(ctx context.Context, request RefreshSessionRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RefreshSessionResponse, error) {
@@ -8560,7 +8642,7 @@ func (c RuntimeTypedClient) RefreshSession(ctx context.Context, request RefreshS
 	if err != nil {
 		return RefreshSessionResponse{}, err
 	}
-	return decodeTypedResponse[RefreshSessionResponse](raw)
+	return decodeRuntimeTypedResponse[RefreshSessionResponse](raw, "RefreshSessionResponse")
 }
 
 func (c RuntimeTypedClient) RegisterApp(ctx context.Context, request RegisterAppRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RegisterAppResponse, error) {
@@ -8568,7 +8650,7 @@ func (c RuntimeTypedClient) RegisterApp(ctx context.Context, request RegisterApp
 	if err != nil {
 		return RegisterAppResponse{}, err
 	}
-	return decodeTypedResponse[RegisterAppResponse](raw)
+	return decodeRuntimeTypedResponse[RegisterAppResponse](raw, "RegisterAppResponse")
 }
 
 func (c RuntimeTypedClient) RegisterExternalPrincipal(ctx context.Context, request RegisterExternalPrincipalRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RegisterExternalPrincipalResponse, error) {
@@ -8576,7 +8658,7 @@ func (c RuntimeTypedClient) RegisterExternalPrincipal(ctx context.Context, reque
 	if err != nil {
 		return RegisterExternalPrincipalResponse{}, err
 	}
-	return decodeTypedResponse[RegisterExternalPrincipalResponse](raw)
+	return decodeRuntimeTypedResponse[RegisterExternalPrincipalResponse](raw, "RegisterExternalPrincipalResponse")
 }
 
 func (c RuntimeTypedClient) RevokeExternalPrincipalSession(ctx context.Context, request RevokeExternalPrincipalSessionRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (Ack, error) {
@@ -8584,7 +8666,7 @@ func (c RuntimeTypedClient) RevokeExternalPrincipalSession(ctx context.Context, 
 	if err != nil {
 		return Ack{}, err
 	}
-	return decodeTypedResponse[Ack](raw)
+	return decodeRuntimeTypedResponse[Ack](raw, "Ack")
 }
 
 func (c RuntimeTypedClient) RevokeSession(ctx context.Context, request RevokeSessionRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (Ack, error) {
@@ -8592,7 +8674,7 @@ func (c RuntimeTypedClient) RevokeSession(ctx context.Context, request RevokeSes
 	if err != nil {
 		return Ack{}, err
 	}
-	return decodeTypedResponse[Ack](raw)
+	return decodeRuntimeTypedResponse[Ack](raw, "Ack")
 }
 
 func (c RuntimeTypedClient) AddLink(ctx context.Context, request AddLinkRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AddLinkResponse, error) {
@@ -8600,7 +8682,7 @@ func (c RuntimeTypedClient) AddLink(ctx context.Context, request AddLinkRequest,
 	if err != nil {
 		return AddLinkResponse{}, err
 	}
-	return decodeTypedResponse[AddLinkResponse](raw)
+	return decodeRuntimeTypedResponse[AddLinkResponse](raw, "AddLinkResponse")
 }
 
 func (c RuntimeTypedClient) CreateBank(ctx context.Context, request CreateBankRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CreateBankResponse, error) {
@@ -8608,7 +8690,7 @@ func (c RuntimeTypedClient) CreateBank(ctx context.Context, request CreateBankRe
 	if err != nil {
 		return CreateBankResponse{}, err
 	}
-	return decodeTypedResponse[CreateBankResponse](raw)
+	return decodeRuntimeTypedResponse[CreateBankResponse](raw, "CreateBankResponse")
 }
 
 func (c RuntimeTypedClient) CreateKnowledgeBank(ctx context.Context, request CreateKnowledgeBankRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CreateKnowledgeBankResponse, error) {
@@ -8616,7 +8698,7 @@ func (c RuntimeTypedClient) CreateKnowledgeBank(ctx context.Context, request Cre
 	if err != nil {
 		return CreateKnowledgeBankResponse{}, err
 	}
-	return decodeTypedResponse[CreateKnowledgeBankResponse](raw)
+	return decodeRuntimeTypedResponse[CreateKnowledgeBankResponse](raw, "CreateKnowledgeBankResponse")
 }
 
 func (c RuntimeTypedClient) DeleteBank(ctx context.Context, request DeleteBankRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (DeleteBankResponse, error) {
@@ -8624,7 +8706,7 @@ func (c RuntimeTypedClient) DeleteBank(ctx context.Context, request DeleteBankRe
 	if err != nil {
 		return DeleteBankResponse{}, err
 	}
-	return decodeTypedResponse[DeleteBankResponse](raw)
+	return decodeRuntimeTypedResponse[DeleteBankResponse](raw, "DeleteBankResponse")
 }
 
 func (c RuntimeTypedClient) DeleteKnowledgeBank(ctx context.Context, request DeleteKnowledgeBankRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (DeleteKnowledgeBankResponse, error) {
@@ -8632,7 +8714,7 @@ func (c RuntimeTypedClient) DeleteKnowledgeBank(ctx context.Context, request Del
 	if err != nil {
 		return DeleteKnowledgeBankResponse{}, err
 	}
-	return decodeTypedResponse[DeleteKnowledgeBankResponse](raw)
+	return decodeRuntimeTypedResponse[DeleteKnowledgeBankResponse](raw, "DeleteKnowledgeBankResponse")
 }
 
 func (c RuntimeTypedClient) DeleteMemory(ctx context.Context, request DeleteMemoryRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (DeleteMemoryResponse, error) {
@@ -8640,7 +8722,7 @@ func (c RuntimeTypedClient) DeleteMemory(ctx context.Context, request DeleteMemo
 	if err != nil {
 		return DeleteMemoryResponse{}, err
 	}
-	return decodeTypedResponse[DeleteMemoryResponse](raw)
+	return decodeRuntimeTypedResponse[DeleteMemoryResponse](raw, "DeleteMemoryResponse")
 }
 
 func (c RuntimeTypedClient) DeletePage(ctx context.Context, request DeletePageRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (DeletePageResponse, error) {
@@ -8648,7 +8730,7 @@ func (c RuntimeTypedClient) DeletePage(ctx context.Context, request DeletePageRe
 	if err != nil {
 		return DeletePageResponse{}, err
 	}
-	return decodeTypedResponse[DeletePageResponse](raw)
+	return decodeRuntimeTypedResponse[DeletePageResponse](raw, "DeletePageResponse")
 }
 
 func (c RuntimeTypedClient) GetBank(ctx context.Context, request GetBankRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetBankResponse, error) {
@@ -8656,7 +8738,7 @@ func (c RuntimeTypedClient) GetBank(ctx context.Context, request GetBankRequest,
 	if err != nil {
 		return GetBankResponse{}, err
 	}
-	return decodeTypedResponse[GetBankResponse](raw)
+	return decodeRuntimeTypedResponse[GetBankResponse](raw, "GetBankResponse")
 }
 
 func (c RuntimeTypedClient) GetIngestTask(ctx context.Context, request GetIngestTaskRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetIngestTaskResponse, error) {
@@ -8664,7 +8746,7 @@ func (c RuntimeTypedClient) GetIngestTask(ctx context.Context, request GetIngest
 	if err != nil {
 		return GetIngestTaskResponse{}, err
 	}
-	return decodeTypedResponse[GetIngestTaskResponse](raw)
+	return decodeRuntimeTypedResponse[GetIngestTaskResponse](raw, "GetIngestTaskResponse")
 }
 
 func (c RuntimeTypedClient) GetKnowledgeBank(ctx context.Context, request GetKnowledgeBankRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetKnowledgeBankResponse, error) {
@@ -8672,7 +8754,7 @@ func (c RuntimeTypedClient) GetKnowledgeBank(ctx context.Context, request GetKno
 	if err != nil {
 		return GetKnowledgeBankResponse{}, err
 	}
-	return decodeTypedResponse[GetKnowledgeBankResponse](raw)
+	return decodeRuntimeTypedResponse[GetKnowledgeBankResponse](raw, "GetKnowledgeBankResponse")
 }
 
 func (c RuntimeTypedClient) GetMemoryEmbeddingRuntimeIntent(ctx context.Context, request GetMemoryEmbeddingRuntimeIntentRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetMemoryEmbeddingRuntimeIntentResponse, error) {
@@ -8680,7 +8762,7 @@ func (c RuntimeTypedClient) GetMemoryEmbeddingRuntimeIntent(ctx context.Context,
 	if err != nil {
 		return GetMemoryEmbeddingRuntimeIntentResponse{}, err
 	}
-	return decodeTypedResponse[GetMemoryEmbeddingRuntimeIntentResponse](raw)
+	return decodeRuntimeTypedResponse[GetMemoryEmbeddingRuntimeIntentResponse](raw, "GetMemoryEmbeddingRuntimeIntentResponse")
 }
 
 func (c RuntimeTypedClient) GetPage(ctx context.Context, request GetPageRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetPageResponse, error) {
@@ -8688,7 +8770,7 @@ func (c RuntimeTypedClient) GetPage(ctx context.Context, request GetPageRequest,
 	if err != nil {
 		return GetPageResponse{}, err
 	}
-	return decodeTypedResponse[GetPageResponse](raw)
+	return decodeRuntimeTypedResponse[GetPageResponse](raw, "GetPageResponse")
 }
 
 func (c RuntimeTypedClient) History(ctx context.Context, request HistoryRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (HistoryResponse, error) {
@@ -8696,7 +8778,7 @@ func (c RuntimeTypedClient) History(ctx context.Context, request HistoryRequest,
 	if err != nil {
 		return HistoryResponse{}, err
 	}
-	return decodeTypedResponse[HistoryResponse](raw)
+	return decodeRuntimeTypedResponse[HistoryResponse](raw, "HistoryResponse")
 }
 
 func (c RuntimeTypedClient) IngestDocument(ctx context.Context, request IngestDocumentRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (IngestDocumentResponse, error) {
@@ -8704,7 +8786,7 @@ func (c RuntimeTypedClient) IngestDocument(ctx context.Context, request IngestDo
 	if err != nil {
 		return IngestDocumentResponse{}, err
 	}
-	return decodeTypedResponse[IngestDocumentResponse](raw)
+	return decodeRuntimeTypedResponse[IngestDocumentResponse](raw, "IngestDocumentResponse")
 }
 
 func (c RuntimeTypedClient) InspectMemoryEmbeddingRuntime(ctx context.Context, request InspectMemoryEmbeddingRuntimeRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (InspectMemoryEmbeddingRuntimeResponse, error) {
@@ -8712,7 +8794,7 @@ func (c RuntimeTypedClient) InspectMemoryEmbeddingRuntime(ctx context.Context, r
 	if err != nil {
 		return InspectMemoryEmbeddingRuntimeResponse{}, err
 	}
-	return decodeTypedResponse[InspectMemoryEmbeddingRuntimeResponse](raw)
+	return decodeRuntimeTypedResponse[InspectMemoryEmbeddingRuntimeResponse](raw, "InspectMemoryEmbeddingRuntimeResponse")
 }
 
 func (c RuntimeTypedClient) ListBacklinks(ctx context.Context, request ListBacklinksRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListBacklinksResponse, error) {
@@ -8720,7 +8802,7 @@ func (c RuntimeTypedClient) ListBacklinks(ctx context.Context, request ListBackl
 	if err != nil {
 		return ListBacklinksResponse{}, err
 	}
-	return decodeTypedResponse[ListBacklinksResponse](raw)
+	return decodeRuntimeTypedResponse[ListBacklinksResponse](raw, "ListBacklinksResponse")
 }
 
 func (c RuntimeTypedClient) ListBanks(ctx context.Context, request ListBanksRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListBanksResponse, error) {
@@ -8728,7 +8810,7 @@ func (c RuntimeTypedClient) ListBanks(ctx context.Context, request ListBanksRequ
 	if err != nil {
 		return ListBanksResponse{}, err
 	}
-	return decodeTypedResponse[ListBanksResponse](raw)
+	return decodeRuntimeTypedResponse[ListBanksResponse](raw, "ListBanksResponse")
 }
 
 func (c RuntimeTypedClient) ListKnowledgeBanks(ctx context.Context, request ListKnowledgeBanksRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListKnowledgeBanksResponse, error) {
@@ -8736,7 +8818,7 @@ func (c RuntimeTypedClient) ListKnowledgeBanks(ctx context.Context, request List
 	if err != nil {
 		return ListKnowledgeBanksResponse{}, err
 	}
-	return decodeTypedResponse[ListKnowledgeBanksResponse](raw)
+	return decodeRuntimeTypedResponse[ListKnowledgeBanksResponse](raw, "ListKnowledgeBanksResponse")
 }
 
 func (c RuntimeTypedClient) ListLinks(ctx context.Context, request ListLinksRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListLinksResponse, error) {
@@ -8744,7 +8826,7 @@ func (c RuntimeTypedClient) ListLinks(ctx context.Context, request ListLinksRequ
 	if err != nil {
 		return ListLinksResponse{}, err
 	}
-	return decodeTypedResponse[ListLinksResponse](raw)
+	return decodeRuntimeTypedResponse[ListLinksResponse](raw, "ListLinksResponse")
 }
 
 func (c RuntimeTypedClient) ListPages(ctx context.Context, request ListPagesRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListPagesResponse, error) {
@@ -8752,7 +8834,7 @@ func (c RuntimeTypedClient) ListPages(ctx context.Context, request ListPagesRequ
 	if err != nil {
 		return ListPagesResponse{}, err
 	}
-	return decodeTypedResponse[ListPagesResponse](raw)
+	return decodeRuntimeTypedResponse[ListPagesResponse](raw, "ListPagesResponse")
 }
 
 func (c RuntimeTypedClient) PutPage(ctx context.Context, request PutPageRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (PutPageResponse, error) {
@@ -8760,7 +8842,7 @@ func (c RuntimeTypedClient) PutPage(ctx context.Context, request PutPageRequest,
 	if err != nil {
 		return PutPageResponse{}, err
 	}
-	return decodeTypedResponse[PutPageResponse](raw)
+	return decodeRuntimeTypedResponse[PutPageResponse](raw, "PutPageResponse")
 }
 
 func (c RuntimeTypedClient) Recall(ctx context.Context, request RecallRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RecallResponse, error) {
@@ -8768,7 +8850,7 @@ func (c RuntimeTypedClient) Recall(ctx context.Context, request RecallRequest, m
 	if err != nil {
 		return RecallResponse{}, err
 	}
-	return decodeTypedResponse[RecallResponse](raw)
+	return decodeRuntimeTypedResponse[RecallResponse](raw, "RecallResponse")
 }
 
 func (c RuntimeTypedClient) RemoveLink(ctx context.Context, request RemoveLinkRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RemoveLinkResponse, error) {
@@ -8776,7 +8858,7 @@ func (c RuntimeTypedClient) RemoveLink(ctx context.Context, request RemoveLinkRe
 	if err != nil {
 		return RemoveLinkResponse{}, err
 	}
-	return decodeTypedResponse[RemoveLinkResponse](raw)
+	return decodeRuntimeTypedResponse[RemoveLinkResponse](raw, "RemoveLinkResponse")
 }
 
 func (c RuntimeTypedClient) RequestMemoryEmbeddingRuntimeBind(ctx context.Context, request RequestMemoryEmbeddingRuntimeBindRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RequestMemoryEmbeddingRuntimeBindResponse, error) {
@@ -8784,7 +8866,7 @@ func (c RuntimeTypedClient) RequestMemoryEmbeddingRuntimeBind(ctx context.Contex
 	if err != nil {
 		return RequestMemoryEmbeddingRuntimeBindResponse{}, err
 	}
-	return decodeTypedResponse[RequestMemoryEmbeddingRuntimeBindResponse](raw)
+	return decodeRuntimeTypedResponse[RequestMemoryEmbeddingRuntimeBindResponse](raw, "RequestMemoryEmbeddingRuntimeBindResponse")
 }
 
 func (c RuntimeTypedClient) RequestMemoryEmbeddingRuntimeCutover(ctx context.Context, request RequestMemoryEmbeddingRuntimeCutoverRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RequestMemoryEmbeddingRuntimeCutoverResponse, error) {
@@ -8792,7 +8874,7 @@ func (c RuntimeTypedClient) RequestMemoryEmbeddingRuntimeCutover(ctx context.Con
 	if err != nil {
 		return RequestMemoryEmbeddingRuntimeCutoverResponse{}, err
 	}
-	return decodeTypedResponse[RequestMemoryEmbeddingRuntimeCutoverResponse](raw)
+	return decodeRuntimeTypedResponse[RequestMemoryEmbeddingRuntimeCutoverResponse](raw, "RequestMemoryEmbeddingRuntimeCutoverResponse")
 }
 
 func (c RuntimeTypedClient) Retain(ctx context.Context, request RetainRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RetainResponse, error) {
@@ -8800,7 +8882,7 @@ func (c RuntimeTypedClient) Retain(ctx context.Context, request RetainRequest, m
 	if err != nil {
 		return RetainResponse{}, err
 	}
-	return decodeTypedResponse[RetainResponse](raw)
+	return decodeRuntimeTypedResponse[RetainResponse](raw, "RetainResponse")
 }
 
 func (c RuntimeTypedClient) SearchHybrid(ctx context.Context, request SearchHybridRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SearchHybridResponse, error) {
@@ -8808,7 +8890,7 @@ func (c RuntimeTypedClient) SearchHybrid(ctx context.Context, request SearchHybr
 	if err != nil {
 		return SearchHybridResponse{}, err
 	}
-	return decodeTypedResponse[SearchHybridResponse](raw)
+	return decodeRuntimeTypedResponse[SearchHybridResponse](raw, "SearchHybridResponse")
 }
 
 func (c RuntimeTypedClient) SearchKeyword(ctx context.Context, request SearchKeywordRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SearchKeywordResponse, error) {
@@ -8816,7 +8898,7 @@ func (c RuntimeTypedClient) SearchKeyword(ctx context.Context, request SearchKey
 	if err != nil {
 		return SearchKeywordResponse{}, err
 	}
-	return decodeTypedResponse[SearchKeywordResponse](raw)
+	return decodeRuntimeTypedResponse[SearchKeywordResponse](raw, "SearchKeywordResponse")
 }
 
 func (c RuntimeTypedClient) SetMemoryEmbeddingRuntimeIntent(ctx context.Context, request SetMemoryEmbeddingRuntimeIntentRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SetMemoryEmbeddingRuntimeIntentResponse, error) {
@@ -8824,7 +8906,7 @@ func (c RuntimeTypedClient) SetMemoryEmbeddingRuntimeIntent(ctx context.Context,
 	if err != nil {
 		return SetMemoryEmbeddingRuntimeIntentResponse{}, err
 	}
-	return decodeTypedResponse[SetMemoryEmbeddingRuntimeIntentResponse](raw)
+	return decodeRuntimeTypedResponse[SetMemoryEmbeddingRuntimeIntentResponse](raw, "SetMemoryEmbeddingRuntimeIntentResponse")
 }
 
 func (c RuntimeTypedClient) SubscribeMemoryEvents(ctx context.Context, request SubscribeMemoryEventsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[MemoryEvent], error) {
@@ -8840,7 +8922,7 @@ func (c RuntimeTypedClient) TraverseGraph(ctx context.Context, request TraverseG
 	if err != nil {
 		return TraverseGraphResponse{}, err
 	}
-	return decodeTypedResponse[TraverseGraphResponse](raw)
+	return decodeRuntimeTypedResponse[TraverseGraphResponse](raw, "TraverseGraphResponse")
 }
 
 func (c RuntimeTypedClient) CreateConnector(ctx context.Context, request CreateConnectorRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CreateConnectorResponse, error) {
@@ -8848,7 +8930,7 @@ func (c RuntimeTypedClient) CreateConnector(ctx context.Context, request CreateC
 	if err != nil {
 		return CreateConnectorResponse{}, err
 	}
-	return decodeTypedResponse[CreateConnectorResponse](raw)
+	return decodeRuntimeTypedResponse[CreateConnectorResponse](raw, "CreateConnectorResponse")
 }
 
 func (c RuntimeTypedClient) DeleteCatalogModelOverlay(ctx context.Context, request DeleteCatalogModelOverlayRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (DeleteCatalogModelOverlayResponse, error) {
@@ -8856,7 +8938,7 @@ func (c RuntimeTypedClient) DeleteCatalogModelOverlay(ctx context.Context, reque
 	if err != nil {
 		return DeleteCatalogModelOverlayResponse{}, err
 	}
-	return decodeTypedResponse[DeleteCatalogModelOverlayResponse](raw)
+	return decodeRuntimeTypedResponse[DeleteCatalogModelOverlayResponse](raw, "DeleteCatalogModelOverlayResponse")
 }
 
 func (c RuntimeTypedClient) DeleteConnector(ctx context.Context, request DeleteConnectorRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (DeleteConnectorResponse, error) {
@@ -8864,7 +8946,7 @@ func (c RuntimeTypedClient) DeleteConnector(ctx context.Context, request DeleteC
 	if err != nil {
 		return DeleteConnectorResponse{}, err
 	}
-	return decodeTypedResponse[DeleteConnectorResponse](raw)
+	return decodeRuntimeTypedResponse[DeleteConnectorResponse](raw, "DeleteConnectorResponse")
 }
 
 func (c RuntimeTypedClient) DeleteModelCatalogProvider(ctx context.Context, request DeleteModelCatalogProviderRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (DeleteModelCatalogProviderResponse, error) {
@@ -8872,7 +8954,7 @@ func (c RuntimeTypedClient) DeleteModelCatalogProvider(ctx context.Context, requ
 	if err != nil {
 		return DeleteModelCatalogProviderResponse{}, err
 	}
-	return decodeTypedResponse[DeleteModelCatalogProviderResponse](raw)
+	return decodeRuntimeTypedResponse[DeleteModelCatalogProviderResponse](raw, "DeleteModelCatalogProviderResponse")
 }
 
 func (c RuntimeTypedClient) GetCatalogModelDetail(ctx context.Context, request GetCatalogModelDetailRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetCatalogModelDetailResponse, error) {
@@ -8880,7 +8962,7 @@ func (c RuntimeTypedClient) GetCatalogModelDetail(ctx context.Context, request G
 	if err != nil {
 		return GetCatalogModelDetailResponse{}, err
 	}
-	return decodeTypedResponse[GetCatalogModelDetailResponse](raw)
+	return decodeRuntimeTypedResponse[GetCatalogModelDetailResponse](raw, "GetCatalogModelDetailResponse")
 }
 
 func (c RuntimeTypedClient) GetConnector(ctx context.Context, request GetConnectorRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetConnectorResponse, error) {
@@ -8888,7 +8970,7 @@ func (c RuntimeTypedClient) GetConnector(ctx context.Context, request GetConnect
 	if err != nil {
 		return GetConnectorResponse{}, err
 	}
-	return decodeTypedResponse[GetConnectorResponse](raw)
+	return decodeRuntimeTypedResponse[GetConnectorResponse](raw, "GetConnectorResponse")
 }
 
 func (c RuntimeTypedClient) ListCatalogProviderModels(ctx context.Context, request ListCatalogProviderModelsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListCatalogProviderModelsResponse, error) {
@@ -8896,7 +8978,7 @@ func (c RuntimeTypedClient) ListCatalogProviderModels(ctx context.Context, reque
 	if err != nil {
 		return ListCatalogProviderModelsResponse{}, err
 	}
-	return decodeTypedResponse[ListCatalogProviderModelsResponse](raw)
+	return decodeRuntimeTypedResponse[ListCatalogProviderModelsResponse](raw, "ListCatalogProviderModelsResponse")
 }
 
 func (c RuntimeTypedClient) ListConnectorModels(ctx context.Context, request ListConnectorModelsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListConnectorModelsResponse, error) {
@@ -8904,7 +8986,7 @@ func (c RuntimeTypedClient) ListConnectorModels(ctx context.Context, request Lis
 	if err != nil {
 		return ListConnectorModelsResponse{}, err
 	}
-	return decodeTypedResponse[ListConnectorModelsResponse](raw)
+	return decodeRuntimeTypedResponse[ListConnectorModelsResponse](raw, "ListConnectorModelsResponse")
 }
 
 func (c RuntimeTypedClient) ListConnectors(ctx context.Context, request ListConnectorsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListConnectorsResponse, error) {
@@ -8912,7 +8994,7 @@ func (c RuntimeTypedClient) ListConnectors(ctx context.Context, request ListConn
 	if err != nil {
 		return ListConnectorsResponse{}, err
 	}
-	return decodeTypedResponse[ListConnectorsResponse](raw)
+	return decodeRuntimeTypedResponse[ListConnectorsResponse](raw, "ListConnectorsResponse")
 }
 
 func (c RuntimeTypedClient) ListModelCatalogProviders(ctx context.Context, request ListModelCatalogProvidersRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListModelCatalogProvidersResponse, error) {
@@ -8920,7 +9002,7 @@ func (c RuntimeTypedClient) ListModelCatalogProviders(ctx context.Context, reque
 	if err != nil {
 		return ListModelCatalogProvidersResponse{}, err
 	}
-	return decodeTypedResponse[ListModelCatalogProvidersResponse](raw)
+	return decodeRuntimeTypedResponse[ListModelCatalogProvidersResponse](raw, "ListModelCatalogProvidersResponse")
 }
 
 func (c RuntimeTypedClient) ListProviderCatalog(ctx context.Context, request ListProviderCatalogRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListProviderCatalogResponse, error) {
@@ -8928,7 +9010,7 @@ func (c RuntimeTypedClient) ListProviderCatalog(ctx context.Context, request Lis
 	if err != nil {
 		return ListProviderCatalogResponse{}, err
 	}
-	return decodeTypedResponse[ListProviderCatalogResponse](raw)
+	return decodeRuntimeTypedResponse[ListProviderCatalogResponse](raw, "ListProviderCatalogResponse")
 }
 
 func (c RuntimeTypedClient) TestConnector(ctx context.Context, request TestConnectorRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (TestConnectorResponse, error) {
@@ -8936,7 +9018,7 @@ func (c RuntimeTypedClient) TestConnector(ctx context.Context, request TestConne
 	if err != nil {
 		return TestConnectorResponse{}, err
 	}
-	return decodeTypedResponse[TestConnectorResponse](raw)
+	return decodeRuntimeTypedResponse[TestConnectorResponse](raw, "TestConnectorResponse")
 }
 
 func (c RuntimeTypedClient) UpdateConnector(ctx context.Context, request UpdateConnectorRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UpdateConnectorResponse, error) {
@@ -8944,7 +9026,7 @@ func (c RuntimeTypedClient) UpdateConnector(ctx context.Context, request UpdateC
 	if err != nil {
 		return UpdateConnectorResponse{}, err
 	}
-	return decodeTypedResponse[UpdateConnectorResponse](raw)
+	return decodeRuntimeTypedResponse[UpdateConnectorResponse](raw, "UpdateConnectorResponse")
 }
 
 func (c RuntimeTypedClient) UpsertCatalogModelOverlay(ctx context.Context, request UpsertCatalogModelOverlayRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UpsertCatalogModelOverlayResponse, error) {
@@ -8952,7 +9034,7 @@ func (c RuntimeTypedClient) UpsertCatalogModelOverlay(ctx context.Context, reque
 	if err != nil {
 		return UpsertCatalogModelOverlayResponse{}, err
 	}
-	return decodeTypedResponse[UpsertCatalogModelOverlayResponse](raw)
+	return decodeRuntimeTypedResponse[UpsertCatalogModelOverlayResponse](raw, "UpsertCatalogModelOverlayResponse")
 }
 
 func (c RuntimeTypedClient) UpsertModelCatalogProvider(ctx context.Context, request UpsertModelCatalogProviderRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UpsertModelCatalogProviderResponse, error) {
@@ -8960,7 +9042,7 @@ func (c RuntimeTypedClient) UpsertModelCatalogProvider(ctx context.Context, requ
 	if err != nil {
 		return UpsertModelCatalogProviderResponse{}, err
 	}
-	return decodeTypedResponse[UpsertModelCatalogProviderResponse](raw)
+	return decodeRuntimeTypedResponse[UpsertModelCatalogProviderResponse](raw, "UpsertModelCatalogProviderResponse")
 }
 
 func (c RuntimeTypedClient) GetExternalAgentGatewayStatus(ctx context.Context, request ExternalAgentGatewayStatusRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ExternalAgentGatewayStatusResponse, error) {
@@ -8968,7 +9050,7 @@ func (c RuntimeTypedClient) GetExternalAgentGatewayStatus(ctx context.Context, r
 	if err != nil {
 		return ExternalAgentGatewayStatusResponse{}, err
 	}
-	return decodeTypedResponse[ExternalAgentGatewayStatusResponse](raw)
+	return decodeRuntimeTypedResponse[ExternalAgentGatewayStatusResponse](raw, "ExternalAgentGatewayStatusResponse")
 }
 
 func (c RuntimeTypedClient) IssueExternalAgentToken(ctx context.Context, request ExternalAgentIssueTokenRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ExternalAgentIssueTokenResponse, error) {
@@ -8976,7 +9058,7 @@ func (c RuntimeTypedClient) IssueExternalAgentToken(ctx context.Context, request
 	if err != nil {
 		return ExternalAgentIssueTokenResponse{}, err
 	}
-	return decodeTypedResponse[ExternalAgentIssueTokenResponse](raw)
+	return decodeRuntimeTypedResponse[ExternalAgentIssueTokenResponse](raw, "ExternalAgentIssueTokenResponse")
 }
 
 func (c RuntimeTypedClient) ListExternalAgentTokens(ctx context.Context, request ExternalAgentListTokensRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ExternalAgentListTokensResponse, error) {
@@ -8984,7 +9066,7 @@ func (c RuntimeTypedClient) ListExternalAgentTokens(ctx context.Context, request
 	if err != nil {
 		return ExternalAgentListTokensResponse{}, err
 	}
-	return decodeTypedResponse[ExternalAgentListTokensResponse](raw)
+	return decodeRuntimeTypedResponse[ExternalAgentListTokensResponse](raw, "ExternalAgentListTokensResponse")
 }
 
 func (c RuntimeTypedClient) RevokeExternalAgentToken(ctx context.Context, request ExternalAgentRevokeTokenRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (Ack, error) {
@@ -8992,7 +9074,7 @@ func (c RuntimeTypedClient) RevokeExternalAgentToken(ctx context.Context, reques
 	if err != nil {
 		return Ack{}, err
 	}
-	return decodeTypedResponse[Ack](raw)
+	return decodeRuntimeTypedResponse[Ack](raw, "Ack")
 }
 
 func (c RuntimeTypedClient) AuthorizeExternalPrincipal(ctx context.Context, request AuthorizeExternalPrincipalRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AuthorizeExternalPrincipalResponse, error) {
@@ -9000,7 +9082,7 @@ func (c RuntimeTypedClient) AuthorizeExternalPrincipal(ctx context.Context, requ
 	if err != nil {
 		return AuthorizeExternalPrincipalResponse{}, err
 	}
-	return decodeTypedResponse[AuthorizeExternalPrincipalResponse](raw)
+	return decodeRuntimeTypedResponse[AuthorizeExternalPrincipalResponse](raw, "AuthorizeExternalPrincipalResponse")
 }
 
 func (c RuntimeTypedClient) IssueDelegatedAccessToken(ctx context.Context, request IssueDelegatedAccessTokenRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (IssueDelegatedAccessTokenResponse, error) {
@@ -9008,7 +9090,7 @@ func (c RuntimeTypedClient) IssueDelegatedAccessToken(ctx context.Context, reque
 	if err != nil {
 		return IssueDelegatedAccessTokenResponse{}, err
 	}
-	return decodeTypedResponse[IssueDelegatedAccessTokenResponse](raw)
+	return decodeRuntimeTypedResponse[IssueDelegatedAccessTokenResponse](raw, "IssueDelegatedAccessTokenResponse")
 }
 
 func (c RuntimeTypedClient) ListTokenChain(ctx context.Context, request ListTokenChainRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListTokenChainResponse, error) {
@@ -9016,7 +9098,7 @@ func (c RuntimeTypedClient) ListTokenChain(ctx context.Context, request ListToke
 	if err != nil {
 		return ListTokenChainResponse{}, err
 	}
-	return decodeTypedResponse[ListTokenChainResponse](raw)
+	return decodeRuntimeTypedResponse[ListTokenChainResponse](raw, "ListTokenChainResponse")
 }
 
 func (c RuntimeTypedClient) RevokeAppAccessToken(ctx context.Context, request RevokeAppAccessTokenRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (Ack, error) {
@@ -9024,7 +9106,7 @@ func (c RuntimeTypedClient) RevokeAppAccessToken(ctx context.Context, request Re
 	if err != nil {
 		return Ack{}, err
 	}
-	return decodeTypedResponse[Ack](raw)
+	return decodeRuntimeTypedResponse[Ack](raw, "Ack")
 }
 
 func (c RuntimeTypedClient) ValidateAppAccessToken(ctx context.Context, request ValidateAppAccessTokenRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ValidateAppAccessTokenResponse, error) {
@@ -9032,7 +9114,7 @@ func (c RuntimeTypedClient) ValidateAppAccessToken(ctx context.Context, request 
 	if err != nil {
 		return ValidateAppAccessTokenResponse{}, err
 	}
-	return decodeTypedResponse[ValidateAppAccessTokenResponse](raw)
+	return decodeRuntimeTypedResponse[ValidateAppAccessTokenResponse](raw, "ValidateAppAccessTokenResponse")
 }
 
 func (c RuntimeTypedClient) AdmitProductControlReadyForUse(ctx context.Context, request AdmitProductControlReadyForUseRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ProductControlProjectionJson, error) {
@@ -9040,7 +9122,7 @@ func (c RuntimeTypedClient) AdmitProductControlReadyForUse(ctx context.Context, 
 	if err != nil {
 		return ProductControlProjectionJson{}, err
 	}
-	return decodeTypedResponse[ProductControlProjectionJson](raw)
+	return decodeRuntimeTypedResponse[ProductControlProjectionJson](raw, "ProductControlProjectionJson")
 }
 
 func (c RuntimeTypedClient) AppendInferenceAudit(ctx context.Context, request AppendInferenceAuditRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (Ack, error) {
@@ -9048,7 +9130,7 @@ func (c RuntimeTypedClient) AppendInferenceAudit(ctx context.Context, request Ap
 	if err != nil {
 		return Ack{}, err
 	}
-	return decodeTypedResponse[Ack](raw)
+	return decodeRuntimeTypedResponse[Ack](raw, "Ack")
 }
 
 func (c RuntimeTypedClient) AppendRuntimeAudit(ctx context.Context, request AppendRuntimeAuditRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (Ack, error) {
@@ -9056,7 +9138,7 @@ func (c RuntimeTypedClient) AppendRuntimeAudit(ctx context.Context, request Appe
 	if err != nil {
 		return Ack{}, err
 	}
-	return decodeTypedResponse[Ack](raw)
+	return decodeRuntimeTypedResponse[Ack](raw, "Ack")
 }
 
 func (c RuntimeTypedClient) ApplyProfile(ctx context.Context, request ApplyProfileRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ApplyProfileResponse, error) {
@@ -9064,7 +9146,7 @@ func (c RuntimeTypedClient) ApplyProfile(ctx context.Context, request ApplyProfi
 	if err != nil {
 		return ApplyProfileResponse{}, err
 	}
-	return decodeTypedResponse[ApplyProfileResponse](raw)
+	return decodeRuntimeTypedResponse[ApplyProfileResponse](raw, "ApplyProfileResponse")
 }
 
 func (c RuntimeTypedClient) CancelLocalEnvironmentDependencyJob(ctx context.Context, request CancelLocalEnvironmentDependencyJobRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CancelLocalEnvironmentDependencyJobResponse, error) {
@@ -9072,7 +9154,7 @@ func (c RuntimeTypedClient) CancelLocalEnvironmentDependencyJob(ctx context.Cont
 	if err != nil {
 		return CancelLocalEnvironmentDependencyJobResponse{}, err
 	}
-	return decodeTypedResponse[CancelLocalEnvironmentDependencyJobResponse](raw)
+	return decodeRuntimeTypedResponse[CancelLocalEnvironmentDependencyJobResponse](raw, "CancelLocalEnvironmentDependencyJobResponse")
 }
 
 func (c RuntimeTypedClient) CancelLocalTransfer(ctx context.Context, request CancelLocalTransferRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CancelLocalTransferResponse, error) {
@@ -9080,7 +9162,7 @@ func (c RuntimeTypedClient) CancelLocalTransfer(ctx context.Context, request Can
 	if err != nil {
 		return CancelLocalTransferResponse{}, err
 	}
-	return decodeTypedResponse[CancelLocalTransferResponse](raw)
+	return decodeRuntimeTypedResponse[CancelLocalTransferResponse](raw, "CancelLocalTransferResponse")
 }
 
 func (c RuntimeTypedClient) CheckLocalAssetHealth(ctx context.Context, request CheckLocalAssetHealthRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CheckLocalAssetHealthResponse, error) {
@@ -9088,7 +9170,7 @@ func (c RuntimeTypedClient) CheckLocalAssetHealth(ctx context.Context, request C
 	if err != nil {
 		return CheckLocalAssetHealthResponse{}, err
 	}
-	return decodeTypedResponse[CheckLocalAssetHealthResponse](raw)
+	return decodeRuntimeTypedResponse[CheckLocalAssetHealthResponse](raw, "CheckLocalAssetHealthResponse")
 }
 
 func (c RuntimeTypedClient) CheckLocalServiceHealth(ctx context.Context, request CheckLocalServiceHealthRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CheckLocalServiceHealthResponse, error) {
@@ -9096,7 +9178,7 @@ func (c RuntimeTypedClient) CheckLocalServiceHealth(ctx context.Context, request
 	if err != nil {
 		return CheckLocalServiceHealthResponse{}, err
 	}
-	return decodeTypedResponse[CheckLocalServiceHealthResponse](raw)
+	return decodeRuntimeTypedResponse[CheckLocalServiceHealthResponse](raw, "CheckLocalServiceHealthResponse")
 }
 
 func (c RuntimeTypedClient) CollectDeviceProfile(ctx context.Context, request CollectDeviceProfileRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CollectDeviceProfileResponse, error) {
@@ -9104,7 +9186,7 @@ func (c RuntimeTypedClient) CollectDeviceProfile(ctx context.Context, request Co
 	if err != nil {
 		return CollectDeviceProfileResponse{}, err
 	}
-	return decodeTypedResponse[CollectDeviceProfileResponse](raw)
+	return decodeRuntimeTypedResponse[CollectDeviceProfileResponse](raw, "CollectDeviceProfileResponse")
 }
 
 func (c RuntimeTypedClient) CompleteProductControlFirstRunDeviceEnvironmentScan(ctx context.Context, request CompleteProductControlFirstRunDeviceEnvironmentScanRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ProductControlProjectionJson, error) {
@@ -9112,7 +9194,7 @@ func (c RuntimeTypedClient) CompleteProductControlFirstRunDeviceEnvironmentScan(
 	if err != nil {
 		return ProductControlProjectionJson{}, err
 	}
-	return decodeTypedResponse[ProductControlProjectionJson](raw)
+	return decodeRuntimeTypedResponse[ProductControlProjectionJson](raw, "ProductControlProjectionJson")
 }
 
 func (c RuntimeTypedClient) EnsureEngine(ctx context.Context, request EnsureEngineRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (EnsureEngineResponse, error) {
@@ -9120,7 +9202,7 @@ func (c RuntimeTypedClient) EnsureEngine(ctx context.Context, request EnsureEngi
 	if err != nil {
 		return EnsureEngineResponse{}, err
 	}
-	return decodeTypedResponse[EnsureEngineResponse](raw)
+	return decodeRuntimeTypedResponse[EnsureEngineResponse](raw, "EnsureEngineResponse")
 }
 
 func (c RuntimeTypedClient) EnsureProductControlRecordCreated(ctx context.Context, request EnsureProductControlRecordCreatedRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ProductControlProjectionJson, error) {
@@ -9128,7 +9210,7 @@ func (c RuntimeTypedClient) EnsureProductControlRecordCreated(ctx context.Contex
 	if err != nil {
 		return ProductControlProjectionJson{}, err
 	}
-	return decodeTypedResponse[ProductControlProjectionJson](raw)
+	return decodeRuntimeTypedResponse[ProductControlProjectionJson](raw, "ProductControlProjectionJson")
 }
 
 func (c RuntimeTypedClient) ExecuteLocalStateCutover(ctx context.Context, request ExecuteLocalStateCutoverRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ExecuteLocalStateCutoverResponse, error) {
@@ -9136,7 +9218,7 @@ func (c RuntimeTypedClient) ExecuteLocalStateCutover(ctx context.Context, reques
 	if err != nil {
 		return ExecuteLocalStateCutoverResponse{}, err
 	}
-	return decodeTypedResponse[ExecuteLocalStateCutoverResponse](raw)
+	return decodeRuntimeTypedResponse[ExecuteLocalStateCutoverResponse](raw, "ExecuteLocalStateCutoverResponse")
 }
 
 func (c RuntimeTypedClient) GetEngineStatus(ctx context.Context, request GetEngineStatusRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetEngineStatusResponse, error) {
@@ -9144,7 +9226,7 @@ func (c RuntimeTypedClient) GetEngineStatus(ctx context.Context, request GetEngi
 	if err != nil {
 		return GetEngineStatusResponse{}, err
 	}
-	return decodeTypedResponse[GetEngineStatusResponse](raw)
+	return decodeRuntimeTypedResponse[GetEngineStatusResponse](raw, "GetEngineStatusResponse")
 }
 
 func (c RuntimeTypedClient) GetProductControlRecord(ctx context.Context, request GetProductControlRecordRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ProductControlProjectionJson, error) {
@@ -9152,7 +9234,7 @@ func (c RuntimeTypedClient) GetProductControlRecord(ctx context.Context, request
 	if err != nil {
 		return ProductControlProjectionJson{}, err
 	}
-	return decodeTypedResponse[ProductControlProjectionJson](raw)
+	return decodeRuntimeTypedResponse[ProductControlProjectionJson](raw, "ProductControlProjectionJson")
 }
 
 func (c RuntimeTypedClient) GetProductControlSelectedDataRoot(ctx context.Context, request GetProductControlSelectedDataRootRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ProductControlProjectionJson, error) {
@@ -9160,7 +9242,7 @@ func (c RuntimeTypedClient) GetProductControlSelectedDataRoot(ctx context.Contex
 	if err != nil {
 		return ProductControlProjectionJson{}, err
 	}
-	return decodeTypedResponse[ProductControlProjectionJson](raw)
+	return decodeRuntimeTypedResponse[ProductControlProjectionJson](raw, "ProductControlProjectionJson")
 }
 
 func (c RuntimeTypedClient) GetRecommendationFeed(ctx context.Context, request GetRecommendationFeedRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetRecommendationFeedResponse, error) {
@@ -9168,7 +9250,7 @@ func (c RuntimeTypedClient) GetRecommendationFeed(ctx context.Context, request G
 	if err != nil {
 		return GetRecommendationFeedResponse{}, err
 	}
-	return decodeTypedResponse[GetRecommendationFeedResponse](raw)
+	return decodeRuntimeTypedResponse[GetRecommendationFeedResponse](raw, "GetRecommendationFeedResponse")
 }
 
 func (c RuntimeTypedClient) ImportLocalAsset(ctx context.Context, request ImportLocalAssetRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ImportLocalAssetResponse, error) {
@@ -9176,7 +9258,7 @@ func (c RuntimeTypedClient) ImportLocalAsset(ctx context.Context, request Import
 	if err != nil {
 		return ImportLocalAssetResponse{}, err
 	}
-	return decodeTypedResponse[ImportLocalAssetResponse](raw)
+	return decodeRuntimeTypedResponse[ImportLocalAssetResponse](raw, "ImportLocalAssetResponse")
 }
 
 func (c RuntimeTypedClient) ImportLocalAssetBundle(ctx context.Context, request ImportLocalAssetBundleRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ImportLocalAssetBundleResponse, error) {
@@ -9184,7 +9266,7 @@ func (c RuntimeTypedClient) ImportLocalAssetBundle(ctx context.Context, request 
 	if err != nil {
 		return ImportLocalAssetBundleResponse{}, err
 	}
-	return decodeTypedResponse[ImportLocalAssetBundleResponse](raw)
+	return decodeRuntimeTypedResponse[ImportLocalAssetBundleResponse](raw, "ImportLocalAssetBundleResponse")
 }
 
 func (c RuntimeTypedClient) ImportLocalAssetFile(ctx context.Context, request ImportLocalAssetFileRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ImportLocalAssetFileResponse, error) {
@@ -9192,7 +9274,7 @@ func (c RuntimeTypedClient) ImportLocalAssetFile(ctx context.Context, request Im
 	if err != nil {
 		return ImportLocalAssetFileResponse{}, err
 	}
-	return decodeTypedResponse[ImportLocalAssetFileResponse](raw)
+	return decodeRuntimeTypedResponse[ImportLocalAssetFileResponse](raw, "ImportLocalAssetFileResponse")
 }
 
 func (c RuntimeTypedClient) InstallLocalService(ctx context.Context, request InstallLocalServiceRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (InstallLocalServiceResponse, error) {
@@ -9200,7 +9282,7 @@ func (c RuntimeTypedClient) InstallLocalService(ctx context.Context, request Ins
 	if err != nil {
 		return InstallLocalServiceResponse{}, err
 	}
-	return decodeTypedResponse[InstallLocalServiceResponse](raw)
+	return decodeRuntimeTypedResponse[InstallLocalServiceResponse](raw, "InstallLocalServiceResponse")
 }
 
 func (c RuntimeTypedClient) InstallModelFromPlan(ctx context.Context, request InstallModelFromPlanRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (InstallModelFromPlanResponse, error) {
@@ -9208,7 +9290,7 @@ func (c RuntimeTypedClient) InstallModelFromPlan(ctx context.Context, request In
 	if err != nil {
 		return InstallModelFromPlanResponse{}, err
 	}
-	return decodeTypedResponse[InstallModelFromPlanResponse](raw)
+	return decodeRuntimeTypedResponse[InstallModelFromPlanResponse](raw, "InstallModelFromPlanResponse")
 }
 
 func (c RuntimeTypedClient) InstallVerifiedAsset(ctx context.Context, request InstallVerifiedAssetRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (InstallVerifiedAssetResponse, error) {
@@ -9216,7 +9298,7 @@ func (c RuntimeTypedClient) InstallVerifiedAsset(ctx context.Context, request In
 	if err != nil {
 		return InstallVerifiedAssetResponse{}, err
 	}
-	return decodeTypedResponse[InstallVerifiedAssetResponse](raw)
+	return decodeRuntimeTypedResponse[InstallVerifiedAssetResponse](raw, "InstallVerifiedAssetResponse")
 }
 
 func (c RuntimeTypedClient) ListCatalogVariants(ctx context.Context, request ListCatalogVariantsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListCatalogVariantsResponse, error) {
@@ -9224,7 +9306,7 @@ func (c RuntimeTypedClient) ListCatalogVariants(ctx context.Context, request Lis
 	if err != nil {
 		return ListCatalogVariantsResponse{}, err
 	}
-	return decodeTypedResponse[ListCatalogVariantsResponse](raw)
+	return decodeRuntimeTypedResponse[ListCatalogVariantsResponse](raw, "ListCatalogVariantsResponse")
 }
 
 func (c RuntimeTypedClient) ListEngines(ctx context.Context, request ListEnginesRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListEnginesResponse, error) {
@@ -9232,7 +9314,7 @@ func (c RuntimeTypedClient) ListEngines(ctx context.Context, request ListEngines
 	if err != nil {
 		return ListEnginesResponse{}, err
 	}
-	return decodeTypedResponse[ListEnginesResponse](raw)
+	return decodeRuntimeTypedResponse[ListEnginesResponse](raw, "ListEnginesResponse")
 }
 
 func (c RuntimeTypedClient) ListLocalAssets(ctx context.Context, request ListLocalAssetsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListLocalAssetsResponse, error) {
@@ -9240,7 +9322,7 @@ func (c RuntimeTypedClient) ListLocalAssets(ctx context.Context, request ListLoc
 	if err != nil {
 		return ListLocalAssetsResponse{}, err
 	}
-	return decodeTypedResponse[ListLocalAssetsResponse](raw)
+	return decodeRuntimeTypedResponse[ListLocalAssetsResponse](raw, "ListLocalAssetsResponse")
 }
 
 func (c RuntimeTypedClient) ListLocalAudits(ctx context.Context, request ListLocalAuditsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListLocalAuditsResponse, error) {
@@ -9248,7 +9330,7 @@ func (c RuntimeTypedClient) ListLocalAudits(ctx context.Context, request ListLoc
 	if err != nil {
 		return ListLocalAuditsResponse{}, err
 	}
-	return decodeTypedResponse[ListLocalAuditsResponse](raw)
+	return decodeRuntimeTypedResponse[ListLocalAuditsResponse](raw, "ListLocalAuditsResponse")
 }
 
 func (c RuntimeTypedClient) ListLocalEnvironmentDependencyJobs(ctx context.Context, request ListLocalEnvironmentDependencyJobsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListLocalEnvironmentDependencyJobsResponse, error) {
@@ -9256,7 +9338,7 @@ func (c RuntimeTypedClient) ListLocalEnvironmentDependencyJobs(ctx context.Conte
 	if err != nil {
 		return ListLocalEnvironmentDependencyJobsResponse{}, err
 	}
-	return decodeTypedResponse[ListLocalEnvironmentDependencyJobsResponse](raw)
+	return decodeRuntimeTypedResponse[ListLocalEnvironmentDependencyJobsResponse](raw, "ListLocalEnvironmentDependencyJobsResponse")
 }
 
 func (c RuntimeTypedClient) ListLocalEnvironmentSelectedSources(ctx context.Context, request ListLocalEnvironmentSelectedSourcesRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListLocalEnvironmentSelectedSourcesResponse, error) {
@@ -9264,7 +9346,7 @@ func (c RuntimeTypedClient) ListLocalEnvironmentSelectedSources(ctx context.Cont
 	if err != nil {
 		return ListLocalEnvironmentSelectedSourcesResponse{}, err
 	}
-	return decodeTypedResponse[ListLocalEnvironmentSelectedSourcesResponse](raw)
+	return decodeRuntimeTypedResponse[ListLocalEnvironmentSelectedSourcesResponse](raw, "ListLocalEnvironmentSelectedSourcesResponse")
 }
 
 func (c RuntimeTypedClient) ListLocalServices(ctx context.Context, request ListLocalServicesRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListLocalServicesResponse, error) {
@@ -9272,7 +9354,7 @@ func (c RuntimeTypedClient) ListLocalServices(ctx context.Context, request ListL
 	if err != nil {
 		return ListLocalServicesResponse{}, err
 	}
-	return decodeTypedResponse[ListLocalServicesResponse](raw)
+	return decodeRuntimeTypedResponse[ListLocalServicesResponse](raw, "ListLocalServicesResponse")
 }
 
 func (c RuntimeTypedClient) ListLocalTransfers(ctx context.Context, request ListLocalTransfersRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListLocalTransfersResponse, error) {
@@ -9280,7 +9362,7 @@ func (c RuntimeTypedClient) ListLocalTransfers(ctx context.Context, request List
 	if err != nil {
 		return ListLocalTransfersResponse{}, err
 	}
-	return decodeTypedResponse[ListLocalTransfersResponse](raw)
+	return decodeRuntimeTypedResponse[ListLocalTransfersResponse](raw, "ListLocalTransfersResponse")
 }
 
 func (c RuntimeTypedClient) ListNodeCatalog(ctx context.Context, request ListNodeCatalogRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListNodeCatalogResponse, error) {
@@ -9288,7 +9370,7 @@ func (c RuntimeTypedClient) ListNodeCatalog(ctx context.Context, request ListNod
 	if err != nil {
 		return ListNodeCatalogResponse{}, err
 	}
-	return decodeTypedResponse[ListNodeCatalogResponse](raw)
+	return decodeRuntimeTypedResponse[ListNodeCatalogResponse](raw, "ListNodeCatalogResponse")
 }
 
 func (c RuntimeTypedClient) ListVerifiedAssets(ctx context.Context, request ListVerifiedAssetsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListVerifiedAssetsResponse, error) {
@@ -9296,7 +9378,7 @@ func (c RuntimeTypedClient) ListVerifiedAssets(ctx context.Context, request List
 	if err != nil {
 		return ListVerifiedAssetsResponse{}, err
 	}
-	return decodeTypedResponse[ListVerifiedAssetsResponse](raw)
+	return decodeRuntimeTypedResponse[ListVerifiedAssetsResponse](raw, "ListVerifiedAssetsResponse")
 }
 
 func (c RuntimeTypedClient) MintFirstRunExecutionEvidence(ctx context.Context, request MintFirstRunExecutionEvidenceRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (MintFirstRunExecutionEvidenceResponse, error) {
@@ -9304,7 +9386,7 @@ func (c RuntimeTypedClient) MintFirstRunExecutionEvidence(ctx context.Context, r
 	if err != nil {
 		return MintFirstRunExecutionEvidenceResponse{}, err
 	}
-	return decodeTypedResponse[MintFirstRunExecutionEvidenceResponse](raw)
+	return decodeRuntimeTypedResponse[MintFirstRunExecutionEvidenceResponse](raw, "MintFirstRunExecutionEvidenceResponse")
 }
 
 func (c RuntimeTypedClient) MintRuntimeBaselineReadiness(ctx context.Context, request MintRuntimeBaselineReadinessRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (MintRuntimeBaselineReadinessResponse, error) {
@@ -9312,7 +9394,7 @@ func (c RuntimeTypedClient) MintRuntimeBaselineReadiness(ctx context.Context, re
 	if err != nil {
 		return MintRuntimeBaselineReadinessResponse{}, err
 	}
-	return decodeTypedResponse[MintRuntimeBaselineReadinessResponse](raw)
+	return decodeRuntimeTypedResponse[MintRuntimeBaselineReadinessResponse](raw, "MintRuntimeBaselineReadinessResponse")
 }
 
 func (c RuntimeTypedClient) PauseLocalTransfer(ctx context.Context, request PauseLocalTransferRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (PauseLocalTransferResponse, error) {
@@ -9320,7 +9402,7 @@ func (c RuntimeTypedClient) PauseLocalTransfer(ctx context.Context, request Paus
 	if err != nil {
 		return PauseLocalTransferResponse{}, err
 	}
-	return decodeTypedResponse[PauseLocalTransferResponse](raw)
+	return decodeRuntimeTypedResponse[PauseLocalTransferResponse](raw, "PauseLocalTransferResponse")
 }
 
 func (c RuntimeTypedClient) PrepareProfileRuntimeDescriptor(ctx context.Context, request PrepareProfileRuntimeDescriptorRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (PrepareProfileRuntimeDescriptorResponse, error) {
@@ -9328,7 +9410,7 @@ func (c RuntimeTypedClient) PrepareProfileRuntimeDescriptor(ctx context.Context,
 	if err != nil {
 		return PrepareProfileRuntimeDescriptorResponse{}, err
 	}
-	return decodeTypedResponse[PrepareProfileRuntimeDescriptorResponse](raw)
+	return decodeRuntimeTypedResponse[PrepareProfileRuntimeDescriptorResponse](raw, "PrepareProfileRuntimeDescriptorResponse")
 }
 
 func (c RuntimeTypedClient) ReconcileProductControlFirstRunSetupState(ctx context.Context, request ReconcileProductControlFirstRunSetupStateRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ProductControlProjectionJson, error) {
@@ -9336,7 +9418,7 @@ func (c RuntimeTypedClient) ReconcileProductControlFirstRunSetupState(ctx contex
 	if err != nil {
 		return ProductControlProjectionJson{}, err
 	}
-	return decodeTypedResponse[ProductControlProjectionJson](raw)
+	return decodeRuntimeTypedResponse[ProductControlProjectionJson](raw, "ProductControlProjectionJson")
 }
 
 func (c RuntimeTypedClient) RecordProductControlAccountDefaultProfileEvidence(ctx context.Context, request RecordProductControlAccountDefaultProfileEvidenceRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ProductControlProjectionJson, error) {
@@ -9344,7 +9426,7 @@ func (c RuntimeTypedClient) RecordProductControlAccountDefaultProfileEvidence(ct
 	if err != nil {
 		return ProductControlProjectionJson{}, err
 	}
-	return decodeTypedResponse[ProductControlProjectionJson](raw)
+	return decodeRuntimeTypedResponse[ProductControlProjectionJson](raw, "ProductControlProjectionJson")
 }
 
 func (c RuntimeTypedClient) RecordProductControlFirstRunLocalAiReadyEvidence(ctx context.Context, request RecordProductControlFirstRunLocalAiReadyEvidenceRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ProductControlProjectionJson, error) {
@@ -9352,7 +9434,7 @@ func (c RuntimeTypedClient) RecordProductControlFirstRunLocalAiReadyEvidence(ctx
 	if err != nil {
 		return ProductControlProjectionJson{}, err
 	}
-	return decodeTypedResponse[ProductControlProjectionJson](raw)
+	return decodeRuntimeTypedResponse[ProductControlProjectionJson](raw, "ProductControlProjectionJson")
 }
 
 func (c RuntimeTypedClient) RemoveLocalAsset(ctx context.Context, request RemoveLocalAssetRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RemoveLocalAssetResponse, error) {
@@ -9360,7 +9442,7 @@ func (c RuntimeTypedClient) RemoveLocalAsset(ctx context.Context, request Remove
 	if err != nil {
 		return RemoveLocalAssetResponse{}, err
 	}
-	return decodeTypedResponse[RemoveLocalAssetResponse](raw)
+	return decodeRuntimeTypedResponse[RemoveLocalAssetResponse](raw, "RemoveLocalAssetResponse")
 }
 
 func (c RuntimeTypedClient) RemoveLocalService(ctx context.Context, request RemoveLocalServiceRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RemoveLocalServiceResponse, error) {
@@ -9368,7 +9450,7 @@ func (c RuntimeTypedClient) RemoveLocalService(ctx context.Context, request Remo
 	if err != nil {
 		return RemoveLocalServiceResponse{}, err
 	}
-	return decodeTypedResponse[RemoveLocalServiceResponse](raw)
+	return decodeRuntimeTypedResponse[RemoveLocalServiceResponse](raw, "RemoveLocalServiceResponse")
 }
 
 func (c RuntimeTypedClient) RepairLocalEnvironmentDependency(ctx context.Context, request RepairLocalEnvironmentDependencyRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RepairLocalEnvironmentDependencyResponse, error) {
@@ -9376,7 +9458,7 @@ func (c RuntimeTypedClient) RepairLocalEnvironmentDependency(ctx context.Context
 	if err != nil {
 		return RepairLocalEnvironmentDependencyResponse{}, err
 	}
-	return decodeTypedResponse[RepairLocalEnvironmentDependencyResponse](raw)
+	return decodeRuntimeTypedResponse[RepairLocalEnvironmentDependencyResponse](raw, "RepairLocalEnvironmentDependencyResponse")
 }
 
 func (c RuntimeTypedClient) RescanLocalAssetBundle(ctx context.Context, request RescanLocalAssetBundleRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RescanLocalAssetBundleResponse, error) {
@@ -9384,7 +9466,7 @@ func (c RuntimeTypedClient) RescanLocalAssetBundle(ctx context.Context, request 
 	if err != nil {
 		return RescanLocalAssetBundleResponse{}, err
 	}
-	return decodeTypedResponse[RescanLocalAssetBundleResponse](raw)
+	return decodeRuntimeTypedResponse[RescanLocalAssetBundleResponse](raw, "RescanLocalAssetBundleResponse")
 }
 
 func (c RuntimeTypedClient) ResolveFirstRunExecutionEvidence(ctx context.Context, request ResolveFirstRunExecutionEvidenceRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ResolveFirstRunExecutionEvidenceResponse, error) {
@@ -9392,7 +9474,7 @@ func (c RuntimeTypedClient) ResolveFirstRunExecutionEvidence(ctx context.Context
 	if err != nil {
 		return ResolveFirstRunExecutionEvidenceResponse{}, err
 	}
-	return decodeTypedResponse[ResolveFirstRunExecutionEvidenceResponse](raw)
+	return decodeRuntimeTypedResponse[ResolveFirstRunExecutionEvidenceResponse](raw, "ResolveFirstRunExecutionEvidenceResponse")
 }
 
 func (c RuntimeTypedClient) ResolveLocalEnvironmentActivationGate(ctx context.Context, request ResolveLocalEnvironmentActivationGateRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ResolveLocalEnvironmentActivationGateResponse, error) {
@@ -9400,7 +9482,7 @@ func (c RuntimeTypedClient) ResolveLocalEnvironmentActivationGate(ctx context.Co
 	if err != nil {
 		return ResolveLocalEnvironmentActivationGateResponse{}, err
 	}
-	return decodeTypedResponse[ResolveLocalEnvironmentActivationGateResponse](raw)
+	return decodeRuntimeTypedResponse[ResolveLocalEnvironmentActivationGateResponse](raw, "ResolveLocalEnvironmentActivationGateResponse")
 }
 
 func (c RuntimeTypedClient) ResolveLocalEnvironmentPlan(ctx context.Context, request ResolveLocalEnvironmentPlanRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ResolveLocalEnvironmentPlanResponse, error) {
@@ -9408,7 +9490,7 @@ func (c RuntimeTypedClient) ResolveLocalEnvironmentPlan(ctx context.Context, req
 	if err != nil {
 		return ResolveLocalEnvironmentPlanResponse{}, err
 	}
-	return decodeTypedResponse[ResolveLocalEnvironmentPlanResponse](raw)
+	return decodeRuntimeTypedResponse[ResolveLocalEnvironmentPlanResponse](raw, "ResolveLocalEnvironmentPlanResponse")
 }
 
 func (c RuntimeTypedClient) ResolveLocalStateReconciliation(ctx context.Context, request ResolveLocalStateReconciliationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ResolveLocalStateReconciliationResponse, error) {
@@ -9416,7 +9498,7 @@ func (c RuntimeTypedClient) ResolveLocalStateReconciliation(ctx context.Context,
 	if err != nil {
 		return ResolveLocalStateReconciliationResponse{}, err
 	}
-	return decodeTypedResponse[ResolveLocalStateReconciliationResponse](raw)
+	return decodeRuntimeTypedResponse[ResolveLocalStateReconciliationResponse](raw, "ResolveLocalStateReconciliationResponse")
 }
 
 func (c RuntimeTypedClient) ResolveModelInstallPlan(ctx context.Context, request ResolveModelInstallPlanRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ResolveModelInstallPlanResponse, error) {
@@ -9424,7 +9506,7 @@ func (c RuntimeTypedClient) ResolveModelInstallPlan(ctx context.Context, request
 	if err != nil {
 		return ResolveModelInstallPlanResponse{}, err
 	}
-	return decodeTypedResponse[ResolveModelInstallPlanResponse](raw)
+	return decodeRuntimeTypedResponse[ResolveModelInstallPlanResponse](raw, "ResolveModelInstallPlanResponse")
 }
 
 func (c RuntimeTypedClient) ResolveProfile(ctx context.Context, request ResolveProfileRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ResolveProfileResponse, error) {
@@ -9432,7 +9514,7 @@ func (c RuntimeTypedClient) ResolveProfile(ctx context.Context, request ResolveP
 	if err != nil {
 		return ResolveProfileResponse{}, err
 	}
-	return decodeTypedResponse[ResolveProfileResponse](raw)
+	return decodeRuntimeTypedResponse[ResolveProfileResponse](raw, "ResolveProfileResponse")
 }
 
 func (c RuntimeTypedClient) ResolveRuntimeBaselineReadiness(ctx context.Context, request ResolveRuntimeBaselineReadinessRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ResolveRuntimeBaselineReadinessResponse, error) {
@@ -9440,7 +9522,7 @@ func (c RuntimeTypedClient) ResolveRuntimeBaselineReadiness(ctx context.Context,
 	if err != nil {
 		return ResolveRuntimeBaselineReadinessResponse{}, err
 	}
-	return decodeTypedResponse[ResolveRuntimeBaselineReadinessResponse](raw)
+	return decodeRuntimeTypedResponse[ResolveRuntimeBaselineReadinessResponse](raw, "ResolveRuntimeBaselineReadinessResponse")
 }
 
 func (c RuntimeTypedClient) ResumeLocalTransfer(ctx context.Context, request ResumeLocalTransferRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ResumeLocalTransferResponse, error) {
@@ -9448,7 +9530,7 @@ func (c RuntimeTypedClient) ResumeLocalTransfer(ctx context.Context, request Res
 	if err != nil {
 		return ResumeLocalTransferResponse{}, err
 	}
-	return decodeTypedResponse[ResumeLocalTransferResponse](raw)
+	return decodeRuntimeTypedResponse[ResumeLocalTransferResponse](raw, "ResumeLocalTransferResponse")
 }
 
 func (c RuntimeTypedClient) RetryLocalEnvironmentDependencyJob(ctx context.Context, request RetryLocalEnvironmentDependencyJobRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RetryLocalEnvironmentDependencyJobResponse, error) {
@@ -9456,7 +9538,7 @@ func (c RuntimeTypedClient) RetryLocalEnvironmentDependencyJob(ctx context.Conte
 	if err != nil {
 		return RetryLocalEnvironmentDependencyJobResponse{}, err
 	}
-	return decodeTypedResponse[RetryLocalEnvironmentDependencyJobResponse](raw)
+	return decodeRuntimeTypedResponse[RetryLocalEnvironmentDependencyJobResponse](raw, "RetryLocalEnvironmentDependencyJobResponse")
 }
 
 func (c RuntimeTypedClient) ScaffoldOrphanAsset(ctx context.Context, request ScaffoldOrphanAssetRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ScaffoldOrphanAssetResponse, error) {
@@ -9464,7 +9546,7 @@ func (c RuntimeTypedClient) ScaffoldOrphanAsset(ctx context.Context, request Sca
 	if err != nil {
 		return ScaffoldOrphanAssetResponse{}, err
 	}
-	return decodeTypedResponse[ScaffoldOrphanAssetResponse](raw)
+	return decodeRuntimeTypedResponse[ScaffoldOrphanAssetResponse](raw, "ScaffoldOrphanAssetResponse")
 }
 
 func (c RuntimeTypedClient) ScanUnregisteredAssets(ctx context.Context, request ScanUnregisteredAssetsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ScanUnregisteredAssetsResponse, error) {
@@ -9472,7 +9554,7 @@ func (c RuntimeTypedClient) ScanUnregisteredAssets(ctx context.Context, request 
 	if err != nil {
 		return ScanUnregisteredAssetsResponse{}, err
 	}
-	return decodeTypedResponse[ScanUnregisteredAssetsResponse](raw)
+	return decodeRuntimeTypedResponse[ScanUnregisteredAssetsResponse](raw, "ScanUnregisteredAssetsResponse")
 }
 
 func (c RuntimeTypedClient) SearchCatalogModels(ctx context.Context, request SearchCatalogModelsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SearchCatalogModelsResponse, error) {
@@ -9480,7 +9562,7 @@ func (c RuntimeTypedClient) SearchCatalogModels(ctx context.Context, request Sea
 	if err != nil {
 		return SearchCatalogModelsResponse{}, err
 	}
-	return decodeTypedResponse[SearchCatalogModelsResponse](raw)
+	return decodeRuntimeTypedResponse[SearchCatalogModelsResponse](raw, "SearchCatalogModelsResponse")
 }
 
 func (c RuntimeTypedClient) SelectProductControlDataRoot(ctx context.Context, request SelectProductControlDataRootRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ProductControlProjectionJson, error) {
@@ -9488,7 +9570,7 @@ func (c RuntimeTypedClient) SelectProductControlDataRoot(ctx context.Context, re
 	if err != nil {
 		return ProductControlProjectionJson{}, err
 	}
-	return decodeTypedResponse[ProductControlProjectionJson](raw)
+	return decodeRuntimeTypedResponse[ProductControlProjectionJson](raw, "ProductControlProjectionJson")
 }
 
 func (c RuntimeTypedClient) SetProductControlFirstRunInstallLevel(ctx context.Context, request SetProductControlFirstRunInstallLevelRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ProductControlProjectionJson, error) {
@@ -9496,7 +9578,7 @@ func (c RuntimeTypedClient) SetProductControlFirstRunInstallLevel(ctx context.Co
 	if err != nil {
 		return ProductControlProjectionJson{}, err
 	}
-	return decodeTypedResponse[ProductControlProjectionJson](raw)
+	return decodeRuntimeTypedResponse[ProductControlProjectionJson](raw, "ProductControlProjectionJson")
 }
 
 func (c RuntimeTypedClient) StartEngine(ctx context.Context, request StartEngineRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (StartEngineResponse, error) {
@@ -9504,7 +9586,7 @@ func (c RuntimeTypedClient) StartEngine(ctx context.Context, request StartEngine
 	if err != nil {
 		return StartEngineResponse{}, err
 	}
-	return decodeTypedResponse[StartEngineResponse](raw)
+	return decodeRuntimeTypedResponse[StartEngineResponse](raw, "StartEngineResponse")
 }
 
 func (c RuntimeTypedClient) StartLocalAsset(ctx context.Context, request StartLocalAssetRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (StartLocalAssetResponse, error) {
@@ -9512,7 +9594,7 @@ func (c RuntimeTypedClient) StartLocalAsset(ctx context.Context, request StartLo
 	if err != nil {
 		return StartLocalAssetResponse{}, err
 	}
-	return decodeTypedResponse[StartLocalAssetResponse](raw)
+	return decodeRuntimeTypedResponse[StartLocalAssetResponse](raw, "StartLocalAssetResponse")
 }
 
 func (c RuntimeTypedClient) StartLocalEnvironmentDependencyJob(ctx context.Context, request StartLocalEnvironmentDependencyJobRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (StartLocalEnvironmentDependencyJobResponse, error) {
@@ -9520,7 +9602,7 @@ func (c RuntimeTypedClient) StartLocalEnvironmentDependencyJob(ctx context.Conte
 	if err != nil {
 		return StartLocalEnvironmentDependencyJobResponse{}, err
 	}
-	return decodeTypedResponse[StartLocalEnvironmentDependencyJobResponse](raw)
+	return decodeRuntimeTypedResponse[StartLocalEnvironmentDependencyJobResponse](raw, "StartLocalEnvironmentDependencyJobResponse")
 }
 
 func (c RuntimeTypedClient) StartLocalService(ctx context.Context, request StartLocalServiceRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (StartLocalServiceResponse, error) {
@@ -9528,7 +9610,7 @@ func (c RuntimeTypedClient) StartLocalService(ctx context.Context, request Start
 	if err != nil {
 		return StartLocalServiceResponse{}, err
 	}
-	return decodeTypedResponse[StartLocalServiceResponse](raw)
+	return decodeRuntimeTypedResponse[StartLocalServiceResponse](raw, "StartLocalServiceResponse")
 }
 
 func (c RuntimeTypedClient) StopEngine(ctx context.Context, request StopEngineRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (StopEngineResponse, error) {
@@ -9536,7 +9618,7 @@ func (c RuntimeTypedClient) StopEngine(ctx context.Context, request StopEngineRe
 	if err != nil {
 		return StopEngineResponse{}, err
 	}
-	return decodeTypedResponse[StopEngineResponse](raw)
+	return decodeRuntimeTypedResponse[StopEngineResponse](raw, "StopEngineResponse")
 }
 
 func (c RuntimeTypedClient) StopLocalAsset(ctx context.Context, request StopLocalAssetRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (StopLocalAssetResponse, error) {
@@ -9544,7 +9626,7 @@ func (c RuntimeTypedClient) StopLocalAsset(ctx context.Context, request StopLoca
 	if err != nil {
 		return StopLocalAssetResponse{}, err
 	}
-	return decodeTypedResponse[StopLocalAssetResponse](raw)
+	return decodeRuntimeTypedResponse[StopLocalAssetResponse](raw, "StopLocalAssetResponse")
 }
 
 func (c RuntimeTypedClient) StopLocalService(ctx context.Context, request StopLocalServiceRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (StopLocalServiceResponse, error) {
@@ -9552,7 +9634,7 @@ func (c RuntimeTypedClient) StopLocalService(ctx context.Context, request StopLo
 	if err != nil {
 		return StopLocalServiceResponse{}, err
 	}
-	return decodeTypedResponse[StopLocalServiceResponse](raw)
+	return decodeRuntimeTypedResponse[StopLocalServiceResponse](raw, "StopLocalServiceResponse")
 }
 
 func (c RuntimeTypedClient) WarmLocalAsset(ctx context.Context, request WarmLocalAssetRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WarmLocalAssetResponse, error) {
@@ -9560,7 +9642,7 @@ func (c RuntimeTypedClient) WarmLocalAsset(ctx context.Context, request WarmLoca
 	if err != nil {
 		return WarmLocalAssetResponse{}, err
 	}
-	return decodeTypedResponse[WarmLocalAssetResponse](raw)
+	return decodeRuntimeTypedResponse[WarmLocalAssetResponse](raw, "WarmLocalAssetResponse")
 }
 
 func (c RuntimeTypedClient) WatchLocalTransfers(ctx context.Context, request WatchLocalTransfersRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[LocalTransferProgressEvent], error) {
@@ -9576,7 +9658,7 @@ func (c RuntimeTypedClient) CheckModelHealth(ctx context.Context, request CheckM
 	if err != nil {
 		return CheckModelHealthResponse{}, err
 	}
-	return decodeTypedResponse[CheckModelHealthResponse](raw)
+	return decodeRuntimeTypedResponse[CheckModelHealthResponse](raw, "CheckModelHealthResponse")
 }
 
 func (c RuntimeTypedClient) ListModels(ctx context.Context, request ListModelsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListModelsResponse, error) {
@@ -9584,7 +9666,7 @@ func (c RuntimeTypedClient) ListModels(ctx context.Context, request ListModelsRe
 	if err != nil {
 		return ListModelsResponse{}, err
 	}
-	return decodeTypedResponse[ListModelsResponse](raw)
+	return decodeRuntimeTypedResponse[ListModelsResponse](raw, "ListModelsResponse")
 }
 
 func (c RuntimeTypedClient) PullModel(ctx context.Context, request PullModelRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (PullModelResponse, error) {
@@ -9592,7 +9674,7 @@ func (c RuntimeTypedClient) PullModel(ctx context.Context, request PullModelRequ
 	if err != nil {
 		return PullModelResponse{}, err
 	}
-	return decodeTypedResponse[PullModelResponse](raw)
+	return decodeRuntimeTypedResponse[PullModelResponse](raw, "PullModelResponse")
 }
 
 func (c RuntimeTypedClient) RemoveModel(ctx context.Context, request RemoveModelRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (Ack, error) {
@@ -9600,7 +9682,7 @@ func (c RuntimeTypedClient) RemoveModel(ctx context.Context, request RemoveModel
 	if err != nil {
 		return Ack{}, err
 	}
-	return decodeTypedResponse[Ack](raw)
+	return decodeRuntimeTypedResponse[Ack](raw, "Ack")
 }
 
 func (c RuntimeTypedClient) CancelWorkflow(ctx context.Context, request CancelWorkflowRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (Ack, error) {
@@ -9608,7 +9690,7 @@ func (c RuntimeTypedClient) CancelWorkflow(ctx context.Context, request CancelWo
 	if err != nil {
 		return Ack{}, err
 	}
-	return decodeTypedResponse[Ack](raw)
+	return decodeRuntimeTypedResponse[Ack](raw, "Ack")
 }
 
 func (c RuntimeTypedClient) GetWorkflow(ctx context.Context, request GetWorkflowRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetWorkflowResponse, error) {
@@ -9616,7 +9698,7 @@ func (c RuntimeTypedClient) GetWorkflow(ctx context.Context, request GetWorkflow
 	if err != nil {
 		return GetWorkflowResponse{}, err
 	}
-	return decodeTypedResponse[GetWorkflowResponse](raw)
+	return decodeRuntimeTypedResponse[GetWorkflowResponse](raw, "GetWorkflowResponse")
 }
 
 func (c RuntimeTypedClient) SubmitWorkflow(ctx context.Context, request SubmitWorkflowRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SubmitWorkflowResponse, error) {
@@ -9624,7 +9706,7 @@ func (c RuntimeTypedClient) SubmitWorkflow(ctx context.Context, request SubmitWo
 	if err != nil {
 		return SubmitWorkflowResponse{}, err
 	}
-	return decodeTypedResponse[SubmitWorkflowResponse](raw)
+	return decodeRuntimeTypedResponse[SubmitWorkflowResponse](raw, "SubmitWorkflowResponse")
 }
 
 func (c RuntimeTypedClient) SubscribeWorkflowEvents(ctx context.Context, request SubscribeWorkflowEventsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[WorkflowEvent], error) {

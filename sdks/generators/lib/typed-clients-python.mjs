@@ -120,9 +120,67 @@ def _model_body(value: object) -> object:
 def _decode_model(model_type: type[_T], value: object) -> _T:
     if not is_dataclass(model_type):
         return value  # type: ignore[return-value]
-    source = dict(value) if isinstance(value, Mapping) else {}
+    if not isinstance(value, Mapping):
+        error = RuntimeError("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Runtime response must be a mapping")
+        setattr(error, "code", "SDK_RUNTIME_RESPONSE_DECODE_FAILED")
+        setattr(error, "reason_code", "SDK_RUNTIME_RESPONSE_DECODE_FAILED")
+        raise error
+    source = dict(value)
     names = {field.name for field in fields(model_type)}
-    return model_type(**{key: val for key, val in source.items() if key in names})
+    decoded = model_type(**{key: val for key, val in source.items() if key in names})
+    _validate_companion_participation_response(model_type.__name__, decoded)
+    return decoded
+
+
+def _runtime_decode_error(message: str) -> RuntimeError:
+    error = RuntimeError(f"SDK_RUNTIME_RESPONSE_DECODE_FAILED: {message}")
+    setattr(error, "code", "SDK_RUNTIME_RESPONSE_DECODE_FAILED")
+    setattr(error, "reason_code", "SDK_RUNTIME_RESPONSE_DECODE_FAILED")
+    return error
+
+
+def _validate_companion_participation_response(model_name: str, decoded: object) -> None:
+    if model_name not in {
+        "GetCompanionParticipationProjectionResponse",
+        "RequestCompanionParticipationResponse",
+        "CancelCompanionParticipationResponse",
+        "OpenCompanionParticipationReplayResponse",
+    }:
+        return
+    projection = getattr(decoded, "projection", None)
+    if projection is None:
+        raise _runtime_decode_error("companion participation projection is missing")
+    required = ("projection_id", "agent_id", "profile_ref", "room_orchestration_ref", "audit_ref", "conversation_anchor_id")
+    if any(not str(getattr(projection, field_name, "") or "").strip() for field_name in required):
+        raise _runtime_decode_error("companion participation projection is missing required refs")
+    if getattr(projection, "surface_kind", None) not in {
+        "COMPANION_PARTICIPATION_SURFACE_KIND_AVATAR_COMPANION",
+        "COMPANION_PARTICIPATION_SURFACE_KIND_DESKTOP_COMPANION_PANEL",
+        "COMPANION_PARTICIPATION_SURFACE_KIND_AVATAR_DEBUG_WORKBENCH",
+    }:
+        raise _runtime_decode_error("companion participation projection has unsupported surface_kind")
+    if getattr(projection, "trigger_source", None) not in {
+        "COMPANION_PARTICIPATION_TRIGGER_SOURCE_USER_EXPLICIT",
+        "COMPANION_PARTICIPATION_TRIGGER_SOURCE_SCHEDULED_PROACTIVE",
+        "COMPANION_PARTICIPATION_TRIGGER_SOURCE_DOMAIN_EVENT",
+    }:
+        raise _runtime_decode_error("companion participation projection has unsupported trigger_source")
+    status = getattr(projection, "status", None)
+    if status == "COMPANION_PARTICIPATION_STATUS_CANDIDATE_READY" and not str(getattr(projection, "candidate_ref", "") or "").strip():
+        raise _runtime_decode_error("companion participation candidate_ready projection missing candidate_ref")
+    if status == "COMPANION_PARTICIPATION_STATUS_COMMITTED_BY_OWNER" and not str(getattr(projection, "commit_ref", "") or "").strip():
+        raise _runtime_decode_error("companion participation committed_by_owner projection missing commit_ref")
+    if status not in {
+        "COMPANION_PARTICIPATION_STATUS_IDLE",
+        "COMPANION_PARTICIPATION_STATUS_ADMISSION_PENDING",
+        "COMPANION_PARTICIPATION_STATUS_BLOCKED",
+        "COMPANION_PARTICIPATION_STATUS_RUNNING",
+        "COMPANION_PARTICIPATION_STATUS_CANDIDATE_READY",
+        "COMPANION_PARTICIPATION_STATUS_COMMITTED_BY_OWNER",
+        "COMPANION_PARTICIPATION_STATUS_FAILED",
+        "COMPANION_PARTICIPATION_STATUS_CANCELED",
+    }:
+        raise _runtime_decode_error("companion participation projection has unsupported status")
 
 
 ${runtimeEnums}
@@ -165,7 +223,12 @@ def _model_body(value: object) -> object:
 def _decode_model(model_type, value: object):
     if not is_dataclass(model_type):
         return value
-    source = dict(value) if isinstance(value, Mapping) else {}
+    if not isinstance(value, Mapping):
+        error = RuntimeError("SDK_REALM_RESPONSE_DECODE_FAILED: generated Realm response must be a mapping")
+        setattr(error, "code", "SDK_REALM_RESPONSE_DECODE_FAILED")
+        setattr(error, "reason_code", "SDK_REALM_RESPONSE_DECODE_FAILED")
+        raise error
+    source = dict(value)
     names = {field.name for field in fields(model_type)}
     return model_type(**{key: val for key, val in source.items() if key in names})
 

@@ -40,7 +40,7 @@ export function writeConformanceFixtures(runtime, realm, errorCodes, exportsMani
       },
       {
         name: 'stream_event_branch_preservation',
-        count: runtime.codec_maps.filter((entry) => entry.kind.includes('stream')).length,
+        count: runtime.codec_maps.filter((entry) => entry.kind === 'server_stream').length,
       },
       {
         name: 'error_reason_code_projection',
@@ -98,7 +98,7 @@ export function writeConformanceFixtures(runtime, realm, errorCodes, exportsMani
         response_body: { ok: true, source: 'realm-operation' },
       },
       metadata: {
-        auth: { authorization: 'Bearer conformance' },
+        auth: { 'x-nimi-access-token-id': 'conformance-token-id' },
         caller: { 'x-nimi-caller': 'sdks-conformance' },
       },
       timeout_ms: 1234,

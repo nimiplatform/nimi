@@ -1,6 +1,6 @@
 import { CoreClient, type CoreClientOptions, type CoreTransport } from '../core-client';
 import { RealmTypedClient } from '../core-generated/realm-typed-client';
-import type { CoreStreamRequest, CoreUnaryRequest } from '../types';
+import { createNimiError } from '../types';
 
 export type { CoreClientOptions, CoreTransport };
 export {
@@ -326,25 +326,6 @@ export type {
   RealmFetchTransportOptions,
 } from './fetch-transport';
 
-export class RealmCore {
-  constructor(private readonly client: CoreClient) {}
-
-  operation<Response = unknown, Body = unknown>(request: RealmOperationRequest<Body>): Promise<Response> {
-    return this.client.unary<Response, Body>({
-      ...request,
-      methodId: request.operationId,
-    });
-  }
-
-  unsafeRaw(): CoreTransport {
-    return this.client.unsafeRaw();
-  }
-}
-
-export interface RealmOperationRequest<Body = unknown> extends Omit<CoreUnaryRequest<Body>, 'methodId'> {
-  readonly operationId: string;
-}
-
 type RealmTypedMethodName = {
   readonly [Key in keyof RealmTypedClient]: RealmTypedClient[Key] extends (...args: never[]) => unknown ? Key : never;
 }[keyof RealmTypedClient] & string;
@@ -394,6 +375,8 @@ export const REALM_PERMISSION_GRANT_METHODS = [
   'requestMyAppPermissionGrant',
   'revokeMyAppPermissionGrant',
 ] as const satisfies readonly RealmTypedMethodName[];
+
+const REALM_PERMISSION_GRANT_METHOD_SET = new Set<string>(REALM_PERMISSION_GRANT_METHODS);
 
 export const REALM_SOCIAL_METHODS = [
   'addFriend',
@@ -540,7 +523,7 @@ export class Realm {
   readonly generated: RealmTypedClient;
   readonly auth: RealmAuthModule;
   readonly account: RealmAccountModule;
-  readonly permissionGrants: RealmPermissionGrantModule;
+  private readonly permissionGrantModule: RealmPermissionGrantModule;
   readonly social: RealmSocialModule;
   readonly groupChat: RealmGroupChatModule;
   readonly humanChats: RealmHumanChatModule;
@@ -555,10 +538,10 @@ export class Realm {
     const generated = options instanceof RealmTypedClient
       ? options
       : new RealmTypedClient(this.core);
-    this.generated = generated;
+    this.generated = createPublicRealmGeneratedClient(generated);
     this.auth = bindRealmModule(generated, REALM_AUTH_METHODS);
     this.account = bindRealmModule(generated, REALM_ACCOUNT_METHODS);
-    this.permissionGrants = bindRealmModule(generated, REALM_PERMISSION_GRANT_METHODS);
+    this.permissionGrantModule = bindRealmModule(generated, REALM_PERMISSION_GRANT_METHODS);
     this.social = bindRealmModule(generated, REALM_SOCIAL_METHODS);
     this.groupChat = bindRealmModule(generated, REALM_GROUP_CHAT_METHODS);
     this.humanChats = bindRealmModule(generated, REALM_HUMAN_CHAT_METHODS);
@@ -571,10 +554,6 @@ export class Realm {
 
   me(options = {}): ReturnType<RealmTypedClient['getMe']> {
     return this.account.getMe({ path: {} }, options);
-  }
-
-  unsafeRawTransport(): CoreTransport {
-    return this.core.unsafeRaw();
   }
 }
 
@@ -613,4 +592,22 @@ function bindRealmModule<const Keys extends readonly RealmTypedMethodName[]>(
     module[key] = method.bind(client);
   }
   return module as RealmMethodModule<Keys>;
+}
+
+function createPublicRealmGeneratedClient(client: RealmTypedClient): RealmTypedClient {
+  return new Proxy(client, {
+    get(target, property, receiver) {
+      if (typeof property === 'string' && REALM_PERMISSION_GRANT_METHOD_SET.has(property)) {
+        return async () => {
+          throw createNimiError({
+            message: `Realm permission grant operation ${property} must run through PermissionClient.`,
+            reasonCode: 'SDK_REALM_PERMISSION_TYPED_CLIENT_REQUIRED',
+            actionHint: 'use_permission_client',
+            source: 'sdk',
+          });
+        };
+      }
+      return Reflect.get(target, property, receiver);
+    },
+  });
 }

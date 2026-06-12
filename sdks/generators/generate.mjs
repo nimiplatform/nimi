@@ -16,7 +16,7 @@ function assertRealmOpenApiLoaded(realm) {
   throw new Error([
     'Realm OpenAPI source is required for generated Realm clients.',
     'Configured source is unavailable: ' + realm.source_label,
-    'Set NIMI_REALM_OPENAPI_PATH to the canonical OpenAPI file or fix config/realm-openapi-source.json.',
+    'Fix config/realm-openapi-source.json or the admitted tracked OpenAPI source path.',
   ].join(' '));
 }
 

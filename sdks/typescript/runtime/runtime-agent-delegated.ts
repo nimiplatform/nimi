@@ -1,5 +1,6 @@
 import {
   DelegatedApprovalDecision,
+  DelegatedApprovalRequestState,
   DelegatedProviderKind,
   DelegatedProviderState,
   DelegatedProviderTrustTier,
@@ -34,7 +35,7 @@ import {
   type NimiRuntimeAgentAuthClient,
   type NimiRuntimeAgentScopeRunner,
 } from './runtime-agent-protected';
-import { normalizeNimiRuntimeAgentText, toNimiRuntimeProtoStruct } from './runtime-agent-values';
+import { fromNimiRuntimeProtoStruct, normalizeNimiRuntimeAgentText, toNimiRuntimeProtoStruct } from './runtime-agent-values';
 import type { NimiJsonObject } from '../core/contracts';
 
 const READ_SCOPE = 'runtime.agent.delegation.read';
@@ -80,6 +81,45 @@ export interface NimiRuntimeAgentDelegatedCapabilityExecutionInput {
   readonly requiresApproval?: boolean;
 }
 
+export interface NimiRuntimeAgentDelegatedCapabilityDiagnosticProjection {
+  readonly diagnosticId?: string;
+  readonly agentId?: string;
+  readonly conversationAnchorId?: string;
+  readonly turnId?: string;
+  readonly providerProfileId?: string;
+  readonly capabilityId?: string;
+  readonly toolName?: string;
+  readonly gatewayEvidenceId?: string;
+  readonly firewallInputId?: string;
+  readonly firewallVerdict?: string;
+  readonly runtimeDecision?: string;
+  readonly reasonCode?: string;
+}
+
+export interface NimiRuntimeAgentDelegatedApprovalRequestProjection {
+  readonly approvalRequestId: string;
+  readonly agentId?: string;
+  readonly conversationAnchorId?: string;
+  readonly turnId?: string;
+  readonly providerProfileId?: string;
+  readonly capabilityId?: string;
+  readonly toolName?: string;
+  readonly firewallVerdict?: string;
+  readonly reasonCode?: string;
+  readonly state?: string;
+  readonly delegationRequestId?: string;
+  readonly effectClass?: string;
+  readonly sensitivityClass?: string;
+  readonly summaryRef?: string;
+  readonly policySnapshotId?: string;
+}
+
+export interface NimiRuntimeAgentDelegatedCapabilityResult {
+  readonly diagnostic?: NimiRuntimeAgentDelegatedCapabilityDiagnosticProjection;
+  readonly approvalRequest?: NimiRuntimeAgentDelegatedApprovalRequestProjection;
+  readonly output?: NimiJsonObject;
+}
+
 export interface NimiRuntimeAgentDelegatedCapabilitySurface {
   loadSnapshot(query: NimiRuntimeAgentDelegatedControlSurfaceQuery): Promise<DelegatedControlSurfaceSnapshot | undefined>;
   loadReplayTrace(
@@ -104,11 +144,11 @@ export interface NimiRuntimeAgentDelegatedCapabilitySurface {
   ): Promise<SubmitDelegatedApprovalDecisionResponse>;
   executeCapability(
     input: NimiRuntimeAgentDelegatedCapabilityExecutionInput,
-  ): Promise<ExecuteDelegatedCapabilityResponse>;
+  ): Promise<NimiRuntimeAgentDelegatedCapabilityResult>;
   resumeApprovedCapability(
     agentId: string,
     approvalRequestId: string,
-  ): Promise<ResumeDelegatedCapabilityResponse>;
+  ): Promise<NimiRuntimeAgentDelegatedCapabilityResult>;
 }
 
 export interface NimiHostRuntimeAgentDelegatedCapabilityClient {
@@ -145,6 +185,74 @@ export interface NimiHostRuntimeAgentDelegatedCapabilityClient {
       options?: RuntimeTypedCallOptions,
     ): Promise<GetDelegatedReplayTraceResponse>;
   };
+}
+
+function projectNimiRuntimeAgentDelegatedCapabilityResult(
+  response: ExecuteDelegatedCapabilityResponse | ResumeDelegatedCapabilityResponse,
+): NimiRuntimeAgentDelegatedCapabilityResult {
+  return {
+    diagnostic: projectNimiRuntimeAgentDelegatedDiagnostic(response.diagnostic),
+    approvalRequest: projectNimiRuntimeAgentDelegatedApprovalRequest(response.approvalRequest),
+    output: response.modelOutput
+      ? fromNimiRuntimeProtoStruct(response.modelOutput) as NimiJsonObject
+      : undefined,
+  };
+}
+
+function projectNimiRuntimeAgentDelegatedDiagnostic(
+  diagnostic: ExecuteDelegatedCapabilityResponse['diagnostic'],
+): NimiRuntimeAgentDelegatedCapabilityDiagnosticProjection | undefined {
+  if (!diagnostic) {
+    return undefined;
+  }
+  return {
+    diagnosticId: normalizeNimiRuntimeAgentText(diagnostic.diagnosticId) || undefined,
+    agentId: normalizeNimiRuntimeAgentText(diagnostic.agentId) || undefined,
+    conversationAnchorId: normalizeNimiRuntimeAgentText(diagnostic.conversationAnchorId) || undefined,
+    turnId: normalizeNimiRuntimeAgentText(diagnostic.turnId) || undefined,
+    providerProfileId: normalizeNimiRuntimeAgentText(diagnostic.providerProfileId) || undefined,
+    capabilityId: normalizeNimiRuntimeAgentText(diagnostic.capabilityId) || undefined,
+    toolName: normalizeNimiRuntimeAgentText(diagnostic.toolName) || undefined,
+    gatewayEvidenceId: normalizeNimiRuntimeAgentText(diagnostic.gatewayEvidenceId) || undefined,
+    firewallInputId: normalizeNimiRuntimeAgentText(diagnostic.firewallInputId) || undefined,
+    firewallVerdict: normalizeNimiRuntimeAgentText(diagnostic.firewallVerdict) || undefined,
+    runtimeDecision: normalizeNimiRuntimeAgentText(diagnostic.runtimeDecision) || undefined,
+    reasonCode: normalizeNimiRuntimeAgentText(diagnostic.reasonCode) || undefined,
+  };
+}
+
+function projectNimiRuntimeAgentDelegatedApprovalRequest(
+  approvalRequest: ExecuteDelegatedCapabilityResponse['approvalRequest'],
+): NimiRuntimeAgentDelegatedApprovalRequestProjection | undefined {
+  const approvalRequestId = normalizeNimiRuntimeAgentText(approvalRequest?.approvalRequestId);
+  if (!approvalRequest || !approvalRequestId) {
+    return undefined;
+  }
+  return {
+    approvalRequestId,
+    agentId: normalizeNimiRuntimeAgentText(approvalRequest.agentId) || undefined,
+    conversationAnchorId: normalizeNimiRuntimeAgentText(approvalRequest.conversationAnchorId) || undefined,
+    turnId: normalizeNimiRuntimeAgentText(approvalRequest.turnId) || undefined,
+    providerProfileId: normalizeNimiRuntimeAgentText(approvalRequest.providerProfileId) || undefined,
+    capabilityId: normalizeNimiRuntimeAgentText(approvalRequest.capabilityId) || undefined,
+    toolName: normalizeNimiRuntimeAgentText(approvalRequest.toolName) || undefined,
+    firewallVerdict: normalizeNimiRuntimeAgentText(approvalRequest.firewallVerdict) || undefined,
+    reasonCode: normalizeNimiRuntimeAgentText(approvalRequest.reasonCode) || undefined,
+    state: enumProjectionLabel(DelegatedApprovalRequestState, approvalRequest.state),
+    delegationRequestId: normalizeNimiRuntimeAgentText(approvalRequest.delegationRequestId) || undefined,
+    effectClass: enumProjectionLabel(EffectClass, approvalRequest.effectClass),
+    sensitivityClass: enumProjectionLabel(SensitivityClass, approvalRequest.sensitivityClass),
+    summaryRef: normalizeNimiRuntimeAgentText(approvalRequest.summaryRef) || undefined,
+    policySnapshotId: normalizeNimiRuntimeAgentText(approvalRequest.policySnapshotId) || undefined,
+  };
+}
+
+function enumProjectionLabel(enumObject: Readonly<Record<string, string | number>>, value: unknown): string | undefined {
+  if (typeof value !== 'number') {
+    return undefined;
+  }
+  const label = enumObject[value];
+  return typeof label === 'string' ? label.toLowerCase() : undefined;
 }
 
 export interface NimiHostRuntimeAgentDelegatedCapabilitySurfaceOptions {
@@ -292,8 +400,8 @@ export function createNimiHostRuntimeAgentDelegatedCapabilitySurface(
         agentId,
         approvalRequestId,
         decision: decision === 'approve'
-          ? DelegatedApprovalDecision.APPROVE
-          : DelegatedApprovalDecision.REJECT,
+          ? DelegatedApprovalDecision.APPROVED_ONCE
+          : DelegatedApprovalDecision.REJECTED,
         decisionReason: normalizeNimiRuntimeAgentText(decisionReason),
       }, callOptions));
     },
@@ -309,7 +417,7 @@ export function createNimiHostRuntimeAgentDelegatedCapabilitySurface(
         runtime.agent.executeDelegatedCapability,
         'executeDelegatedCapability',
       );
-      return withNimiRuntimeAgentScopes({
+      const response = await withNimiRuntimeAgentScopes({
         runtime,
         subjectUserId,
         withScopes: options.withScopes,
@@ -329,6 +437,7 @@ export function createNimiHostRuntimeAgentDelegatedCapabilitySurface(
         outputKind: normalizeNimiRuntimeAgentText(input.outputKind),
         requiresApproval: input.requiresApproval === true,
       }, callOptions));
+      return projectNimiRuntimeAgentDelegatedCapabilityResult(response);
     },
     async resumeApprovedCapability(agentIdInput, approvalRequestIdInput) {
       const approvalRequestId = requireText(approvalRequestIdInput, 'approval_request_id');
@@ -337,7 +446,7 @@ export function createNimiHostRuntimeAgentDelegatedCapabilitySurface(
         runtime.agent.resumeDelegatedCapability,
         'resumeDelegatedCapability',
       );
-      return withNimiRuntimeAgentScopes({
+      const response = await withNimiRuntimeAgentScopes({
         runtime,
         subjectUserId,
         withScopes: options.withScopes,
@@ -346,6 +455,7 @@ export function createNimiHostRuntimeAgentDelegatedCapabilitySurface(
         agentId,
         approvalRequestId,
       }, callOptions));
+      return projectNimiRuntimeAgentDelegatedCapabilityResult(response);
     },
     async loadReplayTrace(agentIdInput, decisionIdInput, conversationAnchorIdInput = '', turnIdInput = '') {
       const decisionId = requireText(decisionIdInput, 'decision_id');

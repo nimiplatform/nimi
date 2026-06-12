@@ -8,83 +8,53 @@ import {
   streamNimiAgentTextResponse,
 } from './app-ai';
 
-test('agent text generate preserves structured output success and repair failure', async () => {
+test('agent text generate fails closed instead of locally executing model turns', async () => {
+  let generateCalls = 0;
   const model = createNimiMockModel({
-    text: '{"answer":"yes"}',
-    finishReason: 'stop',
-  });
-
-  const success = await runNimiAgentTextGenerate<{ answer: string }>({
-    agent: { id: 'agent', name: 'Agent', instructions: 'Return JSON.' },
-    runtime: { model },
-    messages: [userTextMessage('answer')],
-    structuredOutput: {
-      expect: 'object',
-      validate: (value): value is { answer: string } => {
-        return typeof value === 'object'
-          && value !== null
-          && !Array.isArray(value)
-          && typeof (value as { answer?: unknown }).answer === 'string';
-      },
+    async onGenerateText() {
+      generateCalls += 1;
+      return { text: '{"answer":"yes"}', finishReason: 'stop' };
     },
   });
 
-  assert.equal(success.ok, true);
-  assert.equal(success.ok ? success.structuredOutput?.value.answer : '', 'yes');
-
-  const failure = await runNimiAgentTextGenerate({
-    agent: { id: 'agent', name: 'Agent' },
-    runtime: { model: createNimiMockModel({ text: 'not-json', finishReason: 'stop' }) },
+  const result = await runNimiAgentTextGenerate<{ answer: string }>({
+    agent: { id: 'agent', name: 'Agent', instructions: 'Return JSON.' },
+    runtime: { model },
     messages: [userTextMessage('answer')],
     structuredOutput: { expect: 'object' },
   });
 
-  assert.equal(failure.ok, false);
-  assert.equal(failure.ok ? '' : failure.error.code, 'STRUCTURED_OUTPUT_VALIDATION_FAILED');
-  assert.equal(failure.ok ? '' : failure.repairRequest?.failureReason, 'invalid-json');
+  assert.equal(result.ok, false);
+  assert.equal(result.ok ? '' : result.error.code, 'RUNTIME_AGENT_PARTICIPATION_REQUIRED');
+  assert.equal(generateCalls, 0);
 });
 
-test('agent text turn streams reasoning text and terminal snapshots', async () => {
+test('agent text turn fails closed instead of locally streaming model turns', async () => {
   const model = createNimiMockModel({
     streamEvents: [
-      { type: 'start', traceId: 'trace-turn' },
-      { type: 'reasoning-delta', text: 'think ' },
-      { type: 'text-delta', text: '{"ok":true}' },
-      { type: 'done', finishReason: 'stop', usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 } },
+      { type: 'text-delta', text: 'local bypass' },
+      { type: 'done', finishReason: 'stop' },
     ],
   });
 
   const events = [];
-  for await (const event of runNimiAgentTextTurn<{ ok: boolean }>({
+  for await (const event of runNimiAgentTextTurn({
     agent: { id: 'agent', name: 'Agent' },
     runtime: { model },
     messages: [userTextMessage('stream')],
-    structuredOutput: { expect: 'object' },
     turnId: 'turn-1',
   })) {
     events.push(event);
   }
 
-  assert.deepEqual(events.map((event) => event.type), [
-    'turn-started',
-    'reasoning-delta',
-    'text-delta',
-    'structured-output-parsed',
-    'turn-completed',
-  ]);
-  const completed = events.at(-1);
-  assert.equal(completed?.type, 'turn-completed');
-  assert.equal(completed?.type === 'turn-completed' ? completed.snapshot.reasoningText : '', 'think ');
+  assert.deepEqual(events.map((event) => event.type), ['turn-started', 'turn-failed']);
+  const failed = events.at(-1);
+  assert.equal(failed?.type, 'turn-failed');
+  assert.equal(failed?.type === 'turn-failed' ? failed.error.code : '', 'RUNTIME_AGENT_PARTICIPATION_REQUIRED');
 });
 
-test('agent text response reports stream failures without pseudo-success', async () => {
-  const model = createNimiMockModel({
-    streamEvents: [
-      { type: 'start' },
-      { type: 'text-delta', text: 'partial' },
-      { type: 'error', code: 'RUNTIME_FAILED', message: 'runtime failed' },
-    ],
-  });
+test('agent text response rejects Runtime participation bypass attempts', async () => {
+  const model = createNimiMockModel({ text: 'local bypass' });
 
   await assert.rejects(
     () => streamNimiAgentTextResponse({
@@ -92,6 +62,6 @@ test('agent text response reports stream failures without pseudo-success', async
       runtime: { model },
       messages: [userTextMessage('stream')],
     }),
-    /runtime failed/,
+    /Runtime Agent participation authority/,
   );
 });

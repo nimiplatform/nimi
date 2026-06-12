@@ -36,8 +36,8 @@
   "provenance": {
     "source_rule": "S-SURFACE-019",
     "notes": [
-      "Runtime core method truth is derived from Runtime proto.",
-      "The current sdk/ runtime-method-groups table is intentionally not used."
+      "Runtime core descriptors are derived from Runtime proto.",
+      "Public facade availability is governed by .nimi/spec/sdks/kernel/tables/runtime-method-groups.yaml; generated core descriptors preserve proto coverage and generated clients fail closed for unsupported method kinds."
     ]
   },
   "services": [
@@ -28366,6 +28366,69 @@
             "repeated": false,
             "optional": false,
             "number": 17
+          },
+          {
+            "name": "profile_kind",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 18
+          },
+          {
+            "name": "identity_source",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 19
+          },
+          {
+            "name": "participant_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 20
+          },
+          {
+            "name": "context_block_refs",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 21
+          },
+          {
+            "name": "output_destination",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 22
+          },
+          {
+            "name": "memory_read_verdict",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 23
+          },
+          {
+            "name": "memory_write_verdict",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 24
+          },
+          {
+            "name": "capability_scope_verdict",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 25
+          },
+          {
+            "name": "audit_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 26
           }
         ],
         "source_file": "proto/runtime/v1/agent_group_message_candidate.proto"
@@ -28526,6 +28589,69 @@
             "repeated": false,
             "optional": false,
             "number": 22
+          },
+          {
+            "name": "profile_kind",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 23
+          },
+          {
+            "name": "identity_source",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 24
+          },
+          {
+            "name": "participant_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 25
+          },
+          {
+            "name": "context_block_refs",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 26
+          },
+          {
+            "name": "output_destination",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 27
+          },
+          {
+            "name": "memory_read_verdict",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 28
+          },
+          {
+            "name": "memory_write_verdict",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 29
+          },
+          {
+            "name": "capability_scope_verdict",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 30
+          },
+          {
+            "name": "audit_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 31
           }
         ],
         "source_file": "proto/runtime/v1/agent_group_message_candidate.proto"
@@ -37419,8 +37545,11 @@
         "name": "DelegatedApprovalDecision",
         "values": [
           "DELEGATED_APPROVAL_DECISION_UNSPECIFIED",
-          "DELEGATED_APPROVAL_DECISION_APPROVE",
-          "DELEGATED_APPROVAL_DECISION_REJECT"
+          "DELEGATED_APPROVAL_DECISION_APPROVED_ONCE",
+          "DELEGATED_APPROVAL_DECISION_REJECTED",
+          "DELEGATED_APPROVAL_DECISION_APPROVED_FOR_SESSION",
+          "DELEGATED_APPROVAL_DECISION_POLICY_BLOCKED",
+          "DELEGATED_APPROVAL_DECISION_EXPIRED"
         ],
         "source_file": "proto/runtime/v1/delegated_control.proto"
       },
@@ -37439,9 +37568,11 @@
         "values": [
           "DELEGATED_APPROVAL_REQUEST_STATE_UNSPECIFIED",
           "DELEGATED_APPROVAL_REQUEST_STATE_PENDING",
-          "DELEGATED_APPROVAL_REQUEST_STATE_APPROVED",
+          "DELEGATED_APPROVAL_REQUEST_STATE_APPROVED_ONCE",
           "DELEGATED_APPROVAL_REQUEST_STATE_REJECTED",
-          "DELEGATED_APPROVAL_REQUEST_STATE_EXPIRED"
+          "DELEGATED_APPROVAL_REQUEST_STATE_EXPIRED",
+          "DELEGATED_APPROVAL_REQUEST_STATE_APPROVED_FOR_SESSION",
+          "DELEGATED_APPROVAL_REQUEST_STATE_POLICY_BLOCKED"
         ],
         "source_file": "proto/runtime/v1/delegated_control.proto"
       },

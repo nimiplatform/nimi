@@ -17,7 +17,7 @@ import {
 import type { UsageStats } from '../../core-generated/runtime-protobuf/runtime/v1/common';
 import type { RuntimeTypedCallOptions } from '../../core-generated/runtime-typed-client';
 import { withNimiRuntimeIdempotencyMetadata } from '../../runtime/scenario-jobs';
-import { createNimiClientId, createNimiError } from '../../types';
+import { ReasonCode, createNimiClientId, createNimiError } from '../../types';
 import type {
   NimiFinishReason,
   NimiJsonObject,
@@ -246,8 +246,8 @@ function requireRuntimeArtifactMimeType(value: string): string {
   if (!mimeType) {
     throw createNimiError({
       message: 'Runtime Scenario artifact delta did not include mimeType',
-      code: 'SDK_AI_RUNTIME_OUTPUT_INVALID',
-      reasonCode: 'SDK_AI_RUNTIME_OUTPUT_INVALID',
+      code: ReasonCode.SDK_AI_RUNTIME_OUTPUT_INVALID,
+      reasonCode: ReasonCode.SDK_AI_RUNTIME_OUTPUT_INVALID,
       actionHint: 'check_runtime_artifact_mime_type',
       source: 'sdk',
     });
@@ -260,8 +260,8 @@ function toGenerateTextResult(response: ExecuteScenarioResponse): NimiGenerateTe
   if (textOutput?.oneofKind !== 'textGenerate') {
     throw createNimiError({
       message: 'Runtime Scenario response did not contain textGenerate output',
-      code: 'SDK_AI_RUNTIME_OUTPUT_INVALID',
-      reasonCode: 'SDK_AI_RUNTIME_OUTPUT_INVALID',
+      code: ReasonCode.SDK_AI_RUNTIME_OUTPUT_INVALID,
+      reasonCode: ReasonCode.SDK_AI_RUNTIME_OUTPUT_INVALID,
       actionHint: 'check_runtime_text_scenario_output',
       source: 'sdk',
     });
@@ -472,8 +472,8 @@ function assertRequestModelMatches(requestModel: NimiModelRef, boundModel: NimiM
   if (normalizeText(requestModel.modelId) !== boundModel.modelId) {
     throw createNimiError({
       message: 'Runtime-backed Nimi AI request.model must match the bound model',
-      code: 'SDK_AI_INPUT_INVALID',
-      reasonCode: 'SDK_AI_INPUT_INVALID',
+      code: ReasonCode.SDK_AI_INPUT_INVALID,
+      reasonCode: ReasonCode.SDK_AI_INPUT_INVALID,
       actionHint: 'call_generate_or_stream_with_model_returned_by_createNimiRuntimeAIModel',
       source: 'sdk',
     });
@@ -482,8 +482,8 @@ function assertRequestModelMatches(requestModel: NimiModelRef, boundModel: NimiM
   if (requestProvider && boundModel.providerId && requestProvider !== boundModel.providerId) {
     throw createNimiError({
       message: 'Runtime-backed Nimi AI request.model providerId must match the bound model providerId',
-      code: 'SDK_AI_INPUT_INVALID',
-      reasonCode: 'SDK_AI_INPUT_INVALID',
+      code: ReasonCode.SDK_AI_INPUT_INVALID,
+      reasonCode: ReasonCode.SDK_AI_INPUT_INVALID,
       actionHint: 'call_generate_or_stream_with_model_returned_by_createNimiRuntimeAIModel',
       source: 'sdk',
     });
@@ -532,8 +532,8 @@ function sortJsonValue(value: NimiJsonValue): NimiJsonValue {
 function unsupportedRuntimeAI(feature: string, detail: string): never {
   throw createNimiError({
     message: `Runtime-backed Nimi AI does not support ${feature}: ${detail}`,
-    code: 'SDK_AI_RUNTIME_FEATURE_UNSUPPORTED',
-    reasonCode: 'SDK_AI_RUNTIME_FEATURE_UNSUPPORTED',
+    code: ReasonCode.SDK_AI_RUNTIME_FEATURE_UNSUPPORTED,
+    reasonCode: ReasonCode.SDK_AI_RUNTIME_FEATURE_UNSUPPORTED,
     actionHint: 'use_agent_or_feature_layer_for_unsupported_ai_semantics',
     source: 'sdk',
     details: { feature },
@@ -545,8 +545,8 @@ function requireText(value: unknown, message: string, actionHint: string): strin
   if (!normalized) {
     throw createNimiError({
       message,
-      code: 'SDK_AI_INPUT_INVALID',
-      reasonCode: 'SDK_AI_INPUT_INVALID',
+      code: ReasonCode.SDK_AI_INPUT_INVALID,
+      reasonCode: ReasonCode.SDK_AI_INPUT_INVALID,
       actionHint,
       source: 'sdk',
     });

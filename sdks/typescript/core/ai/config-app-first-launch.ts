@@ -12,6 +12,7 @@ import {
   assertNimiAppAIScopeRef,
   createEmptyNimiAIConfig,
 } from './config-scope';
+import { ReasonCode } from '../../types';
 import { applyNimiAIProfileToConfig, projectNimiAIProfileApply, validateNimiAIProfile } from './config-profile';
 
 export async function ensureNimiAppFirstLaunchAIConfig(
@@ -72,6 +73,19 @@ export async function ensureNimiAppFirstLaunchAIConfig(
     requirementDeclarations,
     now: options.now,
   });
+  const materializedGaps = options.validateManifestRequirements
+    ? await options.validateManifestRequirements(scopeRef, materialized)
+    : [];
+  if (materializedGaps.length > 0) {
+    return {
+      outcome: 'setup-required-no-live-config',
+      scopeRef,
+      config: null,
+      profileSource: selected.profileSource,
+      profileId: selected.profile.profileId,
+      setupRepairPlan: { unmetRequirements: [...materializedGaps] },
+    };
+  }
   let committed: NimiAIConfig;
   try {
     committed = await options.applyHostAIConfig(scopeRef, materialized);
@@ -90,16 +104,13 @@ export async function ensureNimiAppFirstLaunchAIConfig(
     );
   }
 
-  const gaps = options.validateManifestRequirements
-    ? await options.validateManifestRequirements(scopeRef, committed)
-    : [];
   return {
     outcome: 'initialized',
     scopeRef,
     config: committed,
     profileSource: selected.profileSource,
     profileId: selected.profile.profileId,
-    setupRepairPlan: gaps.length > 0 ? { unmetRequirements: [...gaps] } : null,
+    setupRepairPlan: null,
   };
 }
 
@@ -110,7 +121,7 @@ function assertFirstLaunchAuthorities(options: NimiEnsureAppFirstLaunchAIConfigO
     || typeof options.resolveRequirementDeclarations !== 'function'
     || typeof options.applyHostAIConfig !== 'function') {
     throw aiConfigError(
-      'SDK_AI_INPUT_INVALID',
+      ReasonCode.SDK_AI_INPUT_INVALID,
       'ensureNimiAppFirstLaunchAIConfig requires explicit host profile/config/requirement authorities',
       'provide_existing_config_profiles_requirements_and_apply_authorities',
     );

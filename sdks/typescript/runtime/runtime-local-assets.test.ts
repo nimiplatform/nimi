@@ -20,7 +20,7 @@ test('Runtime local asset list projects generated records to UI-readable ids and
     options?: RuntimeTypedCallOptions;
   }[] = [];
   const callOptions = {
-    metadata: { authorization: 'Bearer test' },
+    metadata: { 'x-nimi-access-token-id': 'test-token-id' },
     timeoutMs: 1234,
   } satisfies RuntimeTypedCallOptions;
   const runtime = {

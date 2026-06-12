@@ -245,10 +245,11 @@ function buildSelectedBinding(input: {
       ? input.localModels.find((model) => normalizeText(model.localModelId || model.goRuntimeLocalModelId) === localModelId)
       : input.localModels.find((model) => normalizeText(model.modelId || model.model) === normalizeText(selected.modelId || selected.model));
     if (matched) return localOptionToBinding(matched);
+    if (input.localMetadataDegraded) return null;
     return {
       ...selected,
       model: normalizeText(selected.modelId || selected.model),
-      goRuntimeStatus: normalizeText(selected.goRuntimeStatus) || (input.localMetadataDegraded ? 'degraded' : 'unavailable'),
+      goRuntimeStatus: normalizeText(selected.goRuntimeStatus) || 'unavailable',
     };
   }
   const exactCloud = input.connectors

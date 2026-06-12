@@ -311,7 +311,7 @@ REALM_OPERATIONS = [
     "operation_id": "denyMyAppPermissionGrant",
     "service": "Me / Permission Grants",
     "method": "POST",
-    "path": "/api/human/me/permission-grants/{grantId}/deny"
+    "path": "/api/human/me/permission-grants/by-id/{grantId}/deny"
   },
   {
     "operation_id": "disable2Fa",
@@ -509,7 +509,7 @@ REALM_OPERATIONS = [
     "operation_id": "expireMyAppPermissionGrant",
     "service": "Me / Permission Grants",
     "method": "POST",
-    "path": "/api/human/me/permission-grants/{grantId}/expire"
+    "path": "/api/human/me/permission-grants/by-id/{grantId}/expire"
   },
   {
     "operation_id": "ExploreController_checkStatus",
@@ -605,7 +605,7 @@ REALM_OPERATIONS = [
     "operation_id": "getMyAppPermissionGrant",
     "service": "Me / Permission Grants",
     "method": "GET",
-    "path": "/api/human/me/permission-grants/{grantId}"
+    "path": "/api/human/me/permission-grants/by-id/{grantId}"
   },
   {
     "operation_id": "getMyAppPermissionGrantProjection",
@@ -743,7 +743,7 @@ REALM_OPERATIONS = [
     "operation_id": "grantMyAppPermissionGrant",
     "service": "Me / Permission Grants",
     "method": "POST",
-    "path": "/api/human/me/permission-grants/{grantId}/grant"
+    "path": "/api/human/me/permission-grants/by-id/{grantId}/grant"
   },
   {
     "operation_id": "HumanNsfwConsentController_canManageAgentNsfw",
@@ -1097,7 +1097,7 @@ REALM_OPERATIONS = [
     "operation_id": "revokeMyAppPermissionGrant",
     "service": "Me / Permission Grants",
     "method": "POST",
-    "path": "/api/human/me/permission-grants/{grantId}/revoke"
+    "path": "/api/human/me/permission-grants/by-id/{grantId}/revoke"
   },
   {
     "operation_id": "searchHumanUsers",
@@ -1139,7 +1139,7 @@ REALM_OPERATIONS = [
     "operation_id": "supersedeMyAppPermissionGrant",
     "service": "Me / Permission Grants",
     "method": "POST",
-    "path": "/api/human/me/permission-grants/{grantId}/supersede"
+    "path": "/api/human/me/permission-grants/by-id/{grantId}/supersede"
   },
   {
     "operation_id": "syncChatEvents",
@@ -1569,6 +1569,9 @@ REALM_OPERATIONS = [
   }
 ]
 REALM_OPERATION_BY_ID = {operation["operation_id"]: operation for operation in REALM_OPERATIONS}
+REALM_TYPED_FACADE_ONLY_OPERATION_IDS = {
+    "commitRealmGroupMessageCandidate",
+}
 
 
 class RealmGeneratedClient:
@@ -1585,7 +1588,8 @@ class RealmGeneratedClient:
 
     async def operation(self, operation_id: str, body: Any, *, metadata: dict[str, str] | None = None, timeout_ms: int | None = None) -> Any:
         self.describe(operation_id)
+        if operation_id in REALM_TYPED_FACADE_ONLY_OPERATION_IDS:
+            error = RuntimeError(f"Realm operation requires its admitted typed facade: {operation_id}")
+            setattr(error, "code", "SDK_REALM_OPERATION_TYPED_FACADE_REQUIRED")
+            raise error
         return await self._core.unary(CoreUnaryRequest(method_id=operation_id, body=body, metadata=metadata, timeout_ms=timeout_ms))
-
-    def unsafe_raw(self):
-        return self._core.unsafe_raw()

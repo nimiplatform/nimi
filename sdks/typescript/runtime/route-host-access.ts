@@ -192,15 +192,15 @@ function providerHealthFromConnectorResult(
   input: NimiRuntimeRouteHealthInput,
   result: TestConnectorResponse,
 ): NimiRuntimeRouteHostProviderHealth {
-  const ok = result.ack?.ok !== false;
+  const ok = result.ack?.ok === true;
   return {
     provider: normalizeText(input.provider),
     endpoint: normalizeText(input.localProviderEndpoint || input.localOpenAiEndpoint) || null,
     model: normalizeText(input.localProviderModel || input.goRuntimeLocalModelId || input.localModelId),
     status: ok ? 'healthy' : 'degraded',
-    detail: ok ? '' : normalizeText(result.ack?.actionHint || 'connector test failed'),
+    detail: ok ? '' : normalizeText(result.ack?.actionHint || 'connector health acknowledgement missing'),
     reasonCode: reasonCodeName(result.ack?.reasonCode) || undefined,
-    actionHint: normalizeText(result.ack?.actionHint) || undefined,
+    actionHint: ok ? undefined : (normalizeText(result.ack?.actionHint) || 'verify_connector_health_ack'),
   };
 }
 

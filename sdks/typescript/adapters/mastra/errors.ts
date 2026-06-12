@@ -1,4 +1,4 @@
-export const NIMI_MASTRA_UNSUPPORTED_FEATURE_CODE = 'unsupported_mastra_adapter_feature' as const;
+export const NIMI_MASTRA_UNSUPPORTED_FEATURE_CODE = 'SDK_ADAPTER_FEATURE_UNSUPPORTED' as const;
 
 export class NimiMastraUnsupportedFeatureError extends Error {
   readonly code = NIMI_MASTRA_UNSUPPORTED_FEATURE_CODE;

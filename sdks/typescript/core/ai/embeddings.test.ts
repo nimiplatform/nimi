@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import { ExecutionMode, RoutePolicy, ScenarioType } from '../../core-generated/runtime-protobuf/runtime/v1/ai';
 import type { RuntimeTypedCallOptions } from '../../core-generated/runtime-typed-client';
+import { ReasonCode } from '../../types';
 import {
   buildRuntimeTextEmbeddingRequest,
   createNimiRuntimeEmbeddingClient,
@@ -80,10 +81,10 @@ test('Runtime-backed embedding client fails closed for invalid inputs and output
 
   await assert.rejects(
     () => embedding.embedText({ values: [] }),
-    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_AI_INPUT_INVALID',
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === ReasonCode.SDK_AI_INPUT_INVALID,
   );
   await assert.rejects(
     () => embedding.embedText({ values: ['ok'] }),
-    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_AI_RUNTIME_OUTPUT_INVALID',
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === ReasonCode.SDK_AI_RUNTIME_OUTPUT_INVALID,
   );
 });

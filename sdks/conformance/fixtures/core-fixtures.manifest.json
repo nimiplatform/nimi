@@ -30,11 +30,11 @@
     },
     {
       "name": "stream_event_branch_preservation",
-      "count": 14
+      "count": 13
     },
     {
       "name": "error_reason_code_projection",
-      "count": 75
+      "count": 237
     },
     {
       "name": "export_manifest",

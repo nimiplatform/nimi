@@ -79,7 +79,7 @@ test('tauri-ipc Runtime transport encodes and decodes protobuf unary calls', asy
       appId: 'nimi.tauri.test',
       transport: { type: 'tauri-ipc' },
       authMetadata: () => ({
-        authorization: 'Bearer tauri-token',
+        'x-nimi-access-token-id': 'tauri-token-id',
         'x-nimi-session-id': 'session-tauri',
         'x-nimi-session-token': 'session-token-tauri',
       }),
@@ -98,9 +98,32 @@ test('tauri-ipc Runtime transport encodes and decodes protobuf unary calls', asy
       sessionToken: 'session-token-tauri',
     });
     assert.equal((capturedPayload.metadata as { extra?: Record<string, string> }).extra?.['x-nimi-session-id'], undefined);
-    assert.equal(capturedPayload.authorization, 'Bearer tauri-token');
+    assert.equal((capturedPayload.metadata as { extra?: Record<string, string> }).extra?.['x-nimi-access-token-id'], 'tauri-token-id');
+    assert.equal(capturedPayload.authorization, undefined);
     assert.equal(runtime.runtimeVersion(), '0.5.0');
     assert.equal(runtime.versionCompatibility().state, 'compatible');
+  } finally {
+    restore();
+  }
+});
+
+test('tauri-ipc Runtime transport rejects authorization in caller metadata', async () => {
+  const restore = installTauriTestHook({
+    invoke: async () => {
+      throw new Error('authorization metadata validation should run before tauri invoke');
+    },
+  });
+
+  try {
+    const runtime = new Runtime({
+      transport: { type: 'tauri-ipc' },
+      authMetadata: () => ({ authorization: 'Bearer tauri-token' }),
+    });
+    await assert.rejects(
+      runtime.ready(),
+      (error: unknown) => (error as { reasonCode?: string }).reasonCode === ReasonCode.SDK_TRANSPORT_INVALID
+        && String((error as { message?: string }).message || '').includes('transport auth channel'),
+    );
   } finally {
     restore();
   }

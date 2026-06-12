@@ -3,7 +3,7 @@ import { textPart, type NimiCapabilityManifest, type NimiJsonObject } from '../.
 import type { NimiKnowledgeReference } from '../../features/knowledge-context';
 
 export const NIMI_LLAMA_INDEX_ADAPTER_ID = 'llamaindex' as const;
-export const NIMI_LLAMA_INDEX_UNSUPPORTED_FEATURE_CODE = 'unsupported_llamaindex_adapter_feature' as const;
+export const NIMI_LLAMA_INDEX_UNSUPPORTED_FEATURE_CODE = 'SDK_ADAPTER_FEATURE_UNSUPPORTED' as const;
 
 export const NIMI_LLAMA_INDEX_ADAPTER_MANIFEST = {
   adapterId: NIMI_LLAMA_INDEX_ADAPTER_ID,

@@ -316,7 +316,7 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "operationId": "denyMyAppPermissionGrant",
     "service": "Me / Permission Grants",
     "method": "POST",
-    "path": "/api/human/me/permission-grants/{grantId}/deny"
+    "path": "/api/human/me/permission-grants/by-id/{grantId}/deny"
   },
   {
     "operationId": "disable2Fa",
@@ -514,7 +514,7 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "operationId": "expireMyAppPermissionGrant",
     "service": "Me / Permission Grants",
     "method": "POST",
-    "path": "/api/human/me/permission-grants/{grantId}/expire"
+    "path": "/api/human/me/permission-grants/by-id/{grantId}/expire"
   },
   {
     "operationId": "ExploreController_checkStatus",
@@ -610,7 +610,7 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "operationId": "getMyAppPermissionGrant",
     "service": "Me / Permission Grants",
     "method": "GET",
-    "path": "/api/human/me/permission-grants/{grantId}"
+    "path": "/api/human/me/permission-grants/by-id/{grantId}"
   },
   {
     "operationId": "getMyAppPermissionGrantProjection",
@@ -748,7 +748,7 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "operationId": "grantMyAppPermissionGrant",
     "service": "Me / Permission Grants",
     "method": "POST",
-    "path": "/api/human/me/permission-grants/{grantId}/grant"
+    "path": "/api/human/me/permission-grants/by-id/{grantId}/grant"
   },
   {
     "operationId": "HumanNsfwConsentController_canManageAgentNsfw",
@@ -1102,7 +1102,7 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "operationId": "revokeMyAppPermissionGrant",
     "service": "Me / Permission Grants",
     "method": "POST",
-    "path": "/api/human/me/permission-grants/{grantId}/revoke"
+    "path": "/api/human/me/permission-grants/by-id/{grantId}/revoke"
   },
   {
     "operationId": "searchHumanUsers",
@@ -1144,7 +1144,7 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "operationId": "supersedeMyAppPermissionGrant",
     "service": "Me / Permission Grants",
     "method": "POST",
-    "path": "/api/human/me/permission-grants/{grantId}/supersede"
+    "path": "/api/human/me/permission-grants/by-id/{grantId}/supersede"
   },
   {
     "operationId": "syncChatEvents",
@@ -1578,6 +1578,10 @@ export const REALM_OPERATION_BY_ID: ReadonlyMap<string, RealmOperationDescriptor
   REALM_OPERATIONS.map((operation) => [operation.operationId, operation]),
 );
 
+const REALM_TYPED_FACADE_ONLY_OPERATION_IDS = new Set([
+  'commitRealmGroupMessageCandidate',
+]);
+
 export interface RealmCallOptions {
   readonly metadata?: CoreMetadata;
   readonly timeoutMs?: number;
@@ -1599,6 +1603,11 @@ export class RealmGeneratedClient {
 
   async operation<Response = unknown, Body = unknown>(operationId: string, body: Body, options: RealmCallOptions = {}): Promise<Response> {
     this.describe(operationId);
+    if (REALM_TYPED_FACADE_ONLY_OPERATION_IDS.has(operationId)) {
+      throw Object.assign(new Error(`Realm operation requires its admitted typed facade: ${operationId}`), {
+        code: 'SDK_REALM_OPERATION_TYPED_FACADE_REQUIRED',
+      });
+    }
     return this.core.unary<Response, Body>({
       methodId: operationId,
       body,
@@ -1608,7 +1617,4 @@ export class RealmGeneratedClient {
     });
   }
 
-  unsafeRaw() {
-    return this.core.unsafeRaw();
-  }
 }

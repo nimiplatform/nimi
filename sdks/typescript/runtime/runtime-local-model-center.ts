@@ -88,7 +88,6 @@ export {
   projectNimiRuntimeLocalEnvironmentDependencyJob,
   projectNimiRuntimeLocalEnvironmentPlan,
   projectNimiRuntimeLocalEnvironmentPlanDependency,
-  projectNimiRuntimeLocalImageNativeConsumerScope,
   projectNimiRuntimeLocalInstallPlanDescriptor,
   projectNimiRuntimeLocalProfileApplyResult,
   projectNimiRuntimeLocalProfileResolutionPlan,

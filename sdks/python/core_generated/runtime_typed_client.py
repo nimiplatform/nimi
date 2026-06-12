@@ -25,9 +25,67 @@ def _model_body(value: object) -> object:
 def _decode_model(model_type: type[_T], value: object) -> _T:
     if not is_dataclass(model_type):
         return value  # type: ignore[return-value]
-    source = dict(value) if isinstance(value, Mapping) else {}
+    if not isinstance(value, Mapping):
+        error = RuntimeError("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Runtime response must be a mapping")
+        setattr(error, "code", "SDK_RUNTIME_RESPONSE_DECODE_FAILED")
+        setattr(error, "reason_code", "SDK_RUNTIME_RESPONSE_DECODE_FAILED")
+        raise error
+    source = dict(value)
     names = {field.name for field in fields(model_type)}
-    return model_type(**{key: val for key, val in source.items() if key in names})
+    decoded = model_type(**{key: val for key, val in source.items() if key in names})
+    _validate_companion_participation_response(model_type.__name__, decoded)
+    return decoded
+
+
+def _runtime_decode_error(message: str) -> RuntimeError:
+    error = RuntimeError(f"SDK_RUNTIME_RESPONSE_DECODE_FAILED: {message}")
+    setattr(error, "code", "SDK_RUNTIME_RESPONSE_DECODE_FAILED")
+    setattr(error, "reason_code", "SDK_RUNTIME_RESPONSE_DECODE_FAILED")
+    return error
+
+
+def _validate_companion_participation_response(model_name: str, decoded: object) -> None:
+    if model_name not in {
+        "GetCompanionParticipationProjectionResponse",
+        "RequestCompanionParticipationResponse",
+        "CancelCompanionParticipationResponse",
+        "OpenCompanionParticipationReplayResponse",
+    }:
+        return
+    projection = getattr(decoded, "projection", None)
+    if projection is None:
+        raise _runtime_decode_error("companion participation projection is missing")
+    required = ("projection_id", "agent_id", "profile_ref", "room_orchestration_ref", "audit_ref", "conversation_anchor_id")
+    if any(not str(getattr(projection, field_name, "") or "").strip() for field_name in required):
+        raise _runtime_decode_error("companion participation projection is missing required refs")
+    if getattr(projection, "surface_kind", None) not in {
+        "COMPANION_PARTICIPATION_SURFACE_KIND_AVATAR_COMPANION",
+        "COMPANION_PARTICIPATION_SURFACE_KIND_DESKTOP_COMPANION_PANEL",
+        "COMPANION_PARTICIPATION_SURFACE_KIND_AVATAR_DEBUG_WORKBENCH",
+    }:
+        raise _runtime_decode_error("companion participation projection has unsupported surface_kind")
+    if getattr(projection, "trigger_source", None) not in {
+        "COMPANION_PARTICIPATION_TRIGGER_SOURCE_USER_EXPLICIT",
+        "COMPANION_PARTICIPATION_TRIGGER_SOURCE_SCHEDULED_PROACTIVE",
+        "COMPANION_PARTICIPATION_TRIGGER_SOURCE_DOMAIN_EVENT",
+    }:
+        raise _runtime_decode_error("companion participation projection has unsupported trigger_source")
+    status = getattr(projection, "status", None)
+    if status == "COMPANION_PARTICIPATION_STATUS_CANDIDATE_READY" and not str(getattr(projection, "candidate_ref", "") or "").strip():
+        raise _runtime_decode_error("companion participation candidate_ready projection missing candidate_ref")
+    if status == "COMPANION_PARTICIPATION_STATUS_COMMITTED_BY_OWNER" and not str(getattr(projection, "commit_ref", "") or "").strip():
+        raise _runtime_decode_error("companion participation committed_by_owner projection missing commit_ref")
+    if status not in {
+        "COMPANION_PARTICIPATION_STATUS_IDLE",
+        "COMPANION_PARTICIPATION_STATUS_ADMISSION_PENDING",
+        "COMPANION_PARTICIPATION_STATUS_BLOCKED",
+        "COMPANION_PARTICIPATION_STATUS_RUNNING",
+        "COMPANION_PARTICIPATION_STATUS_CANDIDATE_READY",
+        "COMPANION_PARTICIPATION_STATUS_COMMITTED_BY_OWNER",
+        "COMPANION_PARTICIPATION_STATUS_FAILED",
+        "COMPANION_PARTICIPATION_STATUS_CANCELED",
+    }:
+        raise _runtime_decode_error("companion participation projection has unsupported status")
 
 
 AccountCallerMode = Literal["ACCOUNT_CALLER_MODE_UNSPECIFIED", "ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP", "ACCOUNT_CALLER_MODE_DESKTOP_SHELL", "ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR", "ACCOUNT_CALLER_MODE_WEB_CLOUD", "ACCOUNT_CALLER_MODE_EXTERNAL_PRINCIPAL"]
@@ -72,9 +130,9 @@ ConnectorKind = Literal["CONNECTOR_KIND_UNSPECIFIED", "CONNECTOR_KIND_LOCAL_MODE
 ConnectorOwnerType = Literal["CONNECTOR_OWNER_TYPE_UNSPECIFIED", "CONNECTOR_OWNER_TYPE_SYSTEM", "CONNECTOR_OWNER_TYPE_REALM_USER"]
 ConnectorStatus = Literal["CONNECTOR_STATUS_UNSPECIFIED", "CONNECTOR_STATUS_ACTIVE", "CONNECTOR_STATUS_DISABLED"]
 ConversationAnchorStatus = Literal["CONVERSATION_ANCHOR_STATUS_UNSPECIFIED", "CONVERSATION_ANCHOR_STATUS_ACTIVE", "CONVERSATION_ANCHOR_STATUS_CLOSED"]
-DelegatedApprovalDecision = Literal["DELEGATED_APPROVAL_DECISION_UNSPECIFIED", "DELEGATED_APPROVAL_DECISION_APPROVE", "DELEGATED_APPROVAL_DECISION_REJECT"]
+DelegatedApprovalDecision = Literal["DELEGATED_APPROVAL_DECISION_UNSPECIFIED", "DELEGATED_APPROVAL_DECISION_APPROVED_ONCE", "DELEGATED_APPROVAL_DECISION_REJECTED", "DELEGATED_APPROVAL_DECISION_APPROVED_FOR_SESSION", "DELEGATED_APPROVAL_DECISION_POLICY_BLOCKED", "DELEGATED_APPROVAL_DECISION_EXPIRED"]
 DelegatedApprovalMode = Literal["DELEGATED_APPROVAL_MODE_UNSPECIFIED", "DELEGATED_APPROVAL_MODE_RUNTIME_POLICY", "DELEGATED_APPROVAL_MODE_REQUIRE_USER", "DELEGATED_APPROVAL_MODE_DISABLED"]
-DelegatedApprovalRequestState = Literal["DELEGATED_APPROVAL_REQUEST_STATE_UNSPECIFIED", "DELEGATED_APPROVAL_REQUEST_STATE_PENDING", "DELEGATED_APPROVAL_REQUEST_STATE_APPROVED", "DELEGATED_APPROVAL_REQUEST_STATE_REJECTED", "DELEGATED_APPROVAL_REQUEST_STATE_EXPIRED"]
+DelegatedApprovalRequestState = Literal["DELEGATED_APPROVAL_REQUEST_STATE_UNSPECIFIED", "DELEGATED_APPROVAL_REQUEST_STATE_PENDING", "DELEGATED_APPROVAL_REQUEST_STATE_APPROVED_ONCE", "DELEGATED_APPROVAL_REQUEST_STATE_REJECTED", "DELEGATED_APPROVAL_REQUEST_STATE_EXPIRED", "DELEGATED_APPROVAL_REQUEST_STATE_APPROVED_FOR_SESSION", "DELEGATED_APPROVAL_REQUEST_STATE_POLICY_BLOCKED"]
 DelegatedProviderKind = Literal["DELEGATED_PROVIDER_KIND_UNSPECIFIED", "DELEGATED_PROVIDER_KIND_MCP_TOOL_PROVIDER", "DELEGATED_PROVIDER_KIND_REMOTE_AGENT_SEAM", "DELEGATED_PROVIDER_KIND_RUNTIME_NATIVE_PROVIDER", "DELEGATED_PROVIDER_KIND_CONTROLLED_TEST_PROVIDER"]
 DelegatedProviderState = Literal["DELEGATED_PROVIDER_STATE_UNSPECIFIED", "DELEGATED_PROVIDER_STATE_REGISTERED", "DELEGATED_PROVIDER_STATE_DISCOVERING", "DELEGATED_PROVIDER_STATE_READY", "DELEGATED_PROVIDER_STATE_DEGRADED", "DELEGATED_PROVIDER_STATE_DISABLED", "DELEGATED_PROVIDER_STATE_QUARANTINED", "DELEGATED_PROVIDER_STATE_REMOVED"]
 DelegatedProviderTrustTier = Literal["DELEGATED_PROVIDER_TRUST_TIER_UNSPECIFIED", "DELEGATED_PROVIDER_TRUST_TIER_CONTROLLED_LOCAL", "DELEGATED_PROVIDER_TRUST_TIER_USER_ADDED_REVIEWED", "DELEGATED_PROVIDER_TRUST_TIER_ORG_MANAGED", "DELEGATED_PROVIDER_TRUST_TIER_BLOCKED"]
@@ -4328,7 +4386,7 @@ class QueryAgentMemoryResponse:
 
 @dataclass(frozen=True)
 class RawChunk:
-    value: google.protobuf.Value | None = None
+    value: Mapping[str, object] | None = None
 
 @dataclass(frozen=True)
 class ReadArtifactBytesRequest:
@@ -4365,6 +4423,15 @@ class RealmGroupMessageCandidateCommitHandle:
     created_at: str | None = None
     expires_at: str | None = None
     commit_disposition: RealmGroupMessageCandidateCommitDisposition | None = None
+    profile_kind: str | None = None
+    identity_source: str | None = None
+    participant_ref: str | None = None
+    context_block_refs: tuple[str, ...] = field(default_factory=tuple)
+    output_destination: str | None = None
+    memory_read_verdict: str | None = None
+    memory_write_verdict: str | None = None
+    capability_scope_verdict: str | None = None
+    audit_id: str | None = None
 
 @dataclass(frozen=True)
 class RealmGroupMessageCandidateEvidence:
@@ -4390,6 +4457,15 @@ class RealmGroupMessageCandidateEvidence:
     refusal_code: str | None = None
     refusal_reason: str | None = None
     refusal_hash: str | None = None
+    profile_kind: str | None = None
+    identity_source: str | None = None
+    participant_ref: str | None = None
+    context_block_refs: tuple[str, ...] = field(default_factory=tuple)
+    output_destination: str | None = None
+    memory_read_verdict: str | None = None
+    memory_write_verdict: str | None = None
+    capability_scope_verdict: str | None = None
+    audit_id: str | None = None
 
 @dataclass(frozen=True)
 class RealmGroupThreadRefBlock:
@@ -5644,7 +5720,7 @@ class ToolOrCapabilityProjectionBlock:
 class ToolResult:
     tool_call_id: str | None = None
     tool_name: str | None = None
-    result: google.protobuf.Value | None = None
+    result: Mapping[str, object] | None = None
     is_error: bool | None = None
     preliminary: bool | None = None
     dynamic: bool | None = None

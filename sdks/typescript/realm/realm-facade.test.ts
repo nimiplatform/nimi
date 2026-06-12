@@ -67,11 +67,23 @@ test('Realm facade exposes generated operation modules over CoreClient', async (
   assert.equal(transport.unaryCalls[3]?.methodId, 'WorldController_getMainWorld');
 });
 
-test('Realm facade keeps generated core explicit and unsafe raw explicit', async () => {
+test('Realm facade keeps generated core explicit and blocks generated permission bypass', async () => {
   const transport = new FakeRealmTransport();
   const realm = new Realm({ transport });
-  assert.equal(realm.unsafeRawTransport(), transport);
   assert.equal(await realm.generated.getMe({ path: {} }).then((value) => (value as { id?: string }).id), 'user-1');
+  await assert.rejects(
+    realm.generated.requestMyAppPermissionGrant({
+      path: {},
+      body: {
+        appId: 'app.example',
+        scopeFamily: 'account',
+        scopeName: 'account.read',
+        reason: 'test',
+      },
+    }),
+    (error: unknown) =>
+      (error as { reasonCode?: string }).reasonCode === 'SDK_REALM_PERMISSION_TYPED_CLIENT_REQUIRED',
+  );
 });
 
 test('Realm facade fails closed when transport is missing', () => {

@@ -1969,7 +1969,7 @@ export class RuntimeGeneratedClient {
 
   stream<Response = unknown, Body = unknown>(methodId: string, body: Body, options: RuntimeCallOptions = {}): AsyncIterable<Response> {
     const descriptor = this.describe(methodId);
-    if (!descriptor.kind.includes('stream')) {
+    if (descriptor.kind !== 'server_stream') {
       throw Object.assign(new Error(`Runtime method is not streaming: ${methodId}`), {
         code: 'SDK_RUNTIME_METHOD_UNAVAILABLE',
       });
@@ -1983,7 +1983,4 @@ export class RuntimeGeneratedClient {
     });
   }
 
-  unsafeRaw() {
-    return this.core.unsafeRaw();
-  }
 }

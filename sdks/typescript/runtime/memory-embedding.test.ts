@@ -9,7 +9,7 @@ import {
   projectNimiMemoryEmbeddingRouteAvailability,
   type NimiMemoryEmbeddingConfig,
 } from './index';
-import { ReasonCode } from './generated';
+import { ReasonCode } from '../core-generated/runtime-typed-client';
 
 const scopeRef = {
   kind: 'feature',

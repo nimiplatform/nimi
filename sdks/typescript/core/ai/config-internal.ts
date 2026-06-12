@@ -1,4 +1,4 @@
-import { createNimiError } from '../../types';
+import { createNimiError, ReasonCode } from '../../types';
 import type { NimiAIConfigFieldDiff, NimiAIHostStorage } from './config-types';
 
 const FORBIDDEN_AI_CONFIG_FIELD_NAMES = new Set([
@@ -237,7 +237,7 @@ export function normalizeText(value: unknown): string {
 export function requireNonEmptyText(value: unknown, message: string, actionHint: string): string {
   const normalized = normalizeText(value);
   if (!normalized) {
-    throw aiConfigError('SDK_AI_INPUT_INVALID', message, actionHint);
+    throw aiConfigError(ReasonCode.SDK_AI_INPUT_INVALID, message, actionHint);
   }
   return normalized;
 }

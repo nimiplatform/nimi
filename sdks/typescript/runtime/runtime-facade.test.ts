@@ -77,7 +77,7 @@ test('Runtime facade exposes active typed namespaces over generated Runtime core
   const transport = new FakeRuntimeTransport();
   const runtime = createRuntime({
     transport,
-    authMetadata: () => ({ authorization: 'Bearer test-token' }),
+    authMetadata: () => ({ 'x-nimi-access-token-id': 'test-token-id' }),
   });
 
   assert.equal(typeof runtime.ai.executeScenario, 'function');
@@ -99,7 +99,7 @@ test('Runtime facade exposes active typed namespaces over generated Runtime core
   assert.equal(response.routeDecision, RoutePolicy.LOCAL);
   assert.equal(transport.unaryCalls[0]?.methodId, '/nimi.runtime.v1.RuntimeAiService/ExecuteScenario');
   assert.equal(transport.unaryCalls[0]?.metadata?.appId, 'nimi.app');
-  assert.equal(transport.unaryCalls[0]?.metadata?.authorization, 'Bearer test-token');
+  assert.equal(transport.unaryCalls[0]?.metadata?.['x-nimi-access-token-id'], 'test-token-id');
   assert.equal(transport.unaryCalls[0]?.metadata?.['x-nimi-caller'], 'sdk-vnext-test');
   assert.equal(transport.unaryCalls[0]?.timeoutMs, 123);
 
@@ -204,5 +204,10 @@ test('Runtime facade keeps low-level generated core explicit and high-level defe
   await assert.rejects(
     runtime.generated.uploadArtifact({}),
     (error: unknown) => (error as { code?: string }).code === 'SDK_RUNTIME_METHOD_UNAVAILABLE',
+  );
+  await assert.rejects(
+    runtime.generated.installApp({ appId: 'app.example' }),
+    (error: unknown) =>
+      (error as { reasonCode?: string }).reasonCode === 'SDK_RUNTIME_APP_LIFECYCLE_TYPED_CLIENT_REQUIRED',
   );
 });

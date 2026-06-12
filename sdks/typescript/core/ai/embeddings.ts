@@ -10,7 +10,7 @@ import type { UsageStats } from '../../core-generated/runtime-protobuf/runtime/v
 import type { RuntimeTypedCallOptions } from '../../core-generated/runtime-typed-client';
 import { withNimiRuntimeIdempotencyMetadata } from '../../runtime/scenario-jobs';
 import type { CoreMetadata } from '../../types';
-import { createNimiClientId, createNimiError } from '../../types';
+import { ReasonCode, createNimiClientId, createNimiError } from '../../types';
 import type { NimiJsonObject, NimiModelRef, NimiUsage } from '../contracts';
 
 export type NimiRuntimeEmbeddingRoutePolicy = 'local' | 'cloud' | 'unspecified';
@@ -106,8 +106,8 @@ function toEmbedTextResult(response: ExecuteScenarioResponse): NimiEmbedTextResu
   if (output?.oneofKind !== 'textEmbed') {
     throw createNimiError({
       message: 'Runtime Scenario response did not contain textEmbed output',
-      code: 'SDK_AI_RUNTIME_OUTPUT_INVALID',
-      reasonCode: 'SDK_AI_RUNTIME_OUTPUT_INVALID',
+      code: ReasonCode.SDK_AI_RUNTIME_OUTPUT_INVALID,
+      reasonCode: ReasonCode.SDK_AI_RUNTIME_OUTPUT_INVALID,
       actionHint: 'check_runtime_embedding_scenario_output',
       source: 'sdk',
     });
@@ -147,8 +147,8 @@ function normalizeEmbeddingInputs(values: readonly string[]): readonly string[] 
   if (!Array.isArray(values) || values.length === 0) {
     throw createNimiError({
       message: 'Runtime embedding requires at least one input value',
-      code: 'SDK_AI_INPUT_INVALID',
-      reasonCode: 'SDK_AI_INPUT_INVALID',
+      code: ReasonCode.SDK_AI_INPUT_INVALID,
+      reasonCode: ReasonCode.SDK_AI_INPUT_INVALID,
       actionHint: 'provide_embedding_values',
       source: 'sdk',
     });
@@ -157,8 +157,8 @@ function normalizeEmbeddingInputs(values: readonly string[]): readonly string[] 
   if (normalized.some((value) => !value)) {
     throw createNimiError({
       message: 'Runtime embedding input values must be non-empty strings',
-      code: 'SDK_AI_INPUT_INVALID',
-      reasonCode: 'SDK_AI_INPUT_INVALID',
+      code: ReasonCode.SDK_AI_INPUT_INVALID,
+      reasonCode: ReasonCode.SDK_AI_INPUT_INVALID,
       actionHint: 'remove_empty_embedding_values',
       source: 'sdk',
     });
@@ -209,8 +209,8 @@ function requireText(value: unknown, message: string, actionHint: string): strin
   if (!text) {
     throw createNimiError({
       message,
-      code: 'SDK_AI_INPUT_INVALID',
-      reasonCode: 'SDK_AI_INPUT_INVALID',
+      code: ReasonCode.SDK_AI_INPUT_INVALID,
+      reasonCode: ReasonCode.SDK_AI_INPUT_INVALID,
       actionHint,
       source: 'sdk',
     });

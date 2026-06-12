@@ -27,7 +27,7 @@ export type NimiRealmPermissionGrantModule = Pick<
 >;
 
 export interface NimiRealmPermissionGrantApi {
-  readonly permissionGrants: NimiRealmPermissionGrantModule;
+  readonly permissionGrants?: NimiRealmPermissionGrantModule;
 }
 
 export interface NimiRealmPermissionTransportOptions {
@@ -49,7 +49,7 @@ const DEFAULT_SUBSCRIBE_POLL_MS = 30_000;
 const MIN_SUBSCRIBE_POLL_MS = 1_000;
 
 export function createNimiRealmPermissionTransport(
-  api: NimiRealmPermissionGrantApi | NimiRealmPermissionGrantModule,
+  api: object | NimiRealmPermissionGrantModule,
   options: NimiRealmPermissionTransportOptions = {},
 ): PermissionTransport {
   const grants = resolvePermissionGrantModule(api);
@@ -171,10 +171,12 @@ export function createNimiRealmPermissionTransport(
 }
 
 function resolvePermissionGrantModule(
-  api: NimiRealmPermissionGrantApi | NimiRealmPermissionGrantModule,
+  api: object | NimiRealmPermissionGrantModule,
 ): NimiRealmPermissionGrantModule {
-  const candidate = api as Partial<NimiRealmPermissionGrantApi>;
-  const grants = candidate.permissionGrants ?? api;
+  const candidate = api as Partial<NimiRealmPermissionGrantApi> & {
+    readonly permissionGrantModule?: NimiRealmPermissionGrantModule;
+  };
+  const grants = candidate.permissionGrantModule ?? candidate.permissionGrants ?? api;
   for (const method of [
     'getMyAppPermissionGrant',
     'getMyAppPermissionGrantStatus',

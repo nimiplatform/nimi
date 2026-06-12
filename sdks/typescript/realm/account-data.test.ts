@@ -14,7 +14,10 @@ test('Realm account-data helpers project generated success responses', async () 
     account: {
       async requestAccountDeletion(request) {
         calls.push({ method: 'requestAccountDeletion', request });
-        return {};
+        return {
+          accepted: true,
+          status: 'PENDING',
+        };
       },
       async requestDataExport(request) {
         calls.push({ method: 'requestDataExport', request });
@@ -77,7 +80,7 @@ test('Realm account-data helper preserves explicit rejection payload', async () 
         };
       },
       async requestDataExport() {
-        return {};
+        return { accepted: false, status: 'FAILED' };
       },
     },
   } as unknown as NimiRealmAccountDataApi;
@@ -91,6 +94,35 @@ test('Realm account-data helper preserves explicit rejection payload', async () 
     message: 'Deletion is temporarily disabled.',
     scheduledDeletionAt: undefined,
   });
+});
+
+test('Realm account-data helper fails closed on missing acceptance evidence', async () => {
+  const realm = {
+    account: {
+      async requestAccountDeletion() {
+        return {};
+      },
+      async requestDataExport() {
+        return { status: 'PENDING' };
+      },
+    },
+  } as unknown as NimiRealmAccountDataApi;
+
+  await assert.rejects(
+    () => requestNimiRealmAccountDeletion(realm),
+    (error: unknown) => {
+      const record = error as { readonly reasonCode?: string; readonly actionHint?: string; readonly source?: string };
+      assert.equal(record.reasonCode, ReasonCode.SDK_REALM_RESPONSE_DECODE_FAILED);
+      assert.equal(record.actionHint, 'check_realm_account_data_response');
+      assert.equal(record.source, 'realm');
+      return true;
+    },
+  );
+  await assert.rejects(
+    () => requestNimiRealmDataExport(realm),
+    (error: unknown) => (error as { readonly reasonCode?: string }).reasonCode
+      === ReasonCode.SDK_REALM_RESPONSE_DECODE_FAILED,
+  );
 });
 
 test('Realm account-data helper fail-closes unavailable backend errors', async () => {

@@ -9,7 +9,7 @@ import {
   NimiMcpUnsupportedFeatureError,
 } from './index';
 
-test('mcp adapter lists and calls auto Nimi tools', async () => {
+test('mcp adapter lists tools but fails closed on local tool execution', async () => {
   const adapter = createNimiMcpAdapter({
     tools: [
       {
@@ -33,10 +33,15 @@ test('mcp adapter lists and calls auto Nimi tools', async () => {
       inputSchema: { type: 'object' },
     },
   ]);
-  assert.deepEqual(await adapter.callTool({ name: 'echo', arguments: { ok: true } }), {
-    content: [{ type: 'text', text: '{"ok":true}' }],
-    structuredContent: { ok: true },
-  });
+  await assert.rejects(
+    adapter.callTool({ name: 'echo', arguments: { ok: true } }),
+    (error: unknown) => {
+      assert.ok(error instanceof NimiMcpUnsupportedFeatureError);
+      assert.equal(error.code, NIMI_MCP_UNSUPPORTED_FEATURE_CODE);
+      assert.equal(error.feature, 'mcp.tools.call.runtime_delegation_required');
+      return true;
+    },
+  );
 });
 
 test('mcp adapter fails closed on owner-gated approval/external semantics', async () => {
@@ -49,7 +54,7 @@ test('mcp adapter fails closed on owner-gated approval/external semantics', asyn
     (error: unknown) => {
       assert.ok(error instanceof NimiMcpUnsupportedFeatureError);
       assert.equal(error.code, NIMI_MCP_UNSUPPORTED_FEATURE_CODE);
-      assert.equal(error.feature, 'mcp.approval');
+      assert.equal(error.feature, 'mcp.tools.call.runtime_delegation_required');
       return true;
     },
   );
@@ -72,4 +77,5 @@ test('mcp manifest declares unsupported L3 behavior explicitly', () => {
   assert.equal(NIMI_MCP_ADAPTER_MANIFEST.capabilities.approval.support, 'unsupported');
   assert.equal(NIMI_MCP_ADAPTER_MANIFEST.capabilities.approval.mode, 'owner-gated');
   assert.equal(NIMI_MCP_ADAPTER_MANIFEST.capabilities.externalExecution.support, 'unsupported');
+  assert.equal(NIMI_MCP_ADAPTER_MANIFEST.capabilities['mcp.tools.call.auto'].support, 'unsupported');
 });

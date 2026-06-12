@@ -133,10 +133,10 @@ function isNimiRuntimeRouteCapabilityHealthHealthy(health: NimiRuntimeRouteHealt
     return false;
   }
   const status = normalizeText(health.status).toLowerCase();
-  if (status === 'unavailable' || status === 'unhealthy') {
+  if (status !== 'healthy') {
     return false;
   }
-  return health.healthy !== false;
+  return health.healthy === true;
 }
 
 function isNimiRuntimeRouteCapabilityHealthNotReady(
@@ -339,7 +339,13 @@ export async function buildNimiRuntimeRouteCapabilityProjection(
       reasonCode: mappedReasonCode === 'host_denied' ? 'host_denied' : 'metadata_missing',
     });
   }
-  if (!metadata || metadata.capability !== expectedMetadataCapability || metadata.metadataKind !== expectedMetadataCapability) {
+  if (
+    !metadata
+    || metadata.capability !== expectedMetadataCapability
+    || metadata.metadataKind !== expectedMetadataCapability
+    || metadata.metadataVersion !== 'v1'
+    || metadata.resolvedBindingRef !== resolvedBinding.resolvedBindingRef
+  ) {
     return createNimiRuntimeRouteCapabilityProjection(input.capability, {
       selectedBinding,
       resolvedBinding,

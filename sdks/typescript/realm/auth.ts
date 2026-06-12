@@ -310,7 +310,7 @@ function readReasonCode(error: unknown): string {
 function malformedNimiRealmAuthResponse(message: string): Error {
   return createNimiError({
     message,
-    reasonCode: 'SDK_REALM_AUTH_RESPONSE_INVALID',
+    reasonCode: ReasonCode.SDK_REALM_AUTH_RESPONSE_INVALID,
     actionHint: 'check_realm_auth_response',
     source: 'sdk',
   });

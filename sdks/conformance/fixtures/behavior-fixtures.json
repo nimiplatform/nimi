@@ -84,7 +84,7 @@
     },
     "metadata": {
       "auth": {
-        "authorization": "Bearer conformance"
+        "x-nimi-access-token-id": "conformance-token-id"
       },
       "caller": {
         "x-nimi-caller": "sdks-conformance"

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { SchedulingState } from '../../core-generated/runtime-typed-client';
+import { ReasonCode } from '../../types';
 import {
   applyNimiAIProfileToConfig,
   assertNimiAppAIScopeRef,
@@ -115,7 +116,7 @@ test('Nimi AI scope keys are explicit and reversible', () => {
   assert.deepEqual(parseNimiAIScopeRefKey(key), SCOPE);
   assert.throws(
     () => createNimiAIScopeRef({ kind: 'app', ownerId: '' }),
-    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_AI_INPUT_INVALID',
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === ReasonCode.SDK_AI_INPUT_INVALID,
   );
 });
 
@@ -133,11 +134,11 @@ test('Nimi AI scope and target validation fail closed across admitted families',
   assert.equal(parseNimiAIScopeRefKey('app:%E0%A4%A:chat'), null);
   assert.throws(
     () => assertNimiBuiltInChatAIScopeRef(SCOPE),
-    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_AI_SCOPE_INVALID',
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === ReasonCode.SDK_SCOPE_CATALOG_INVALID,
   );
   assert.throws(
     () => assertNimiAppAIScopeRef(builtInNimi),
-    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_AI_SCOPE_INVALID',
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === ReasonCode.SDK_SCOPE_CATALOG_INVALID,
   );
 
   assert.deepEqual(validateNimiAIConfigTargetRef({
@@ -312,7 +313,7 @@ test('Nimi AI profile parsing and runtime descriptor projection cover failure bo
       sourceProfileDigest: 'digest',
       requirementDeclarations: [],
     }),
-    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_AI_INPUT_INVALID',
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === ReasonCode.SDK_AI_INPUT_INVALID,
   );
   assert.throws(
     () => formNimiRuntimeProfileDescriptor({
@@ -1052,6 +1053,22 @@ test('Nimi AI first-launch app config initializes through explicit host authorit
     applyHostAIConfig: (_scope, config) => config,
   });
   assert.equal(setupRequired.outcome, 'setup-required-no-live-config');
+
+  let appliedAfterGap = false;
+  const manifestGap = await ensureNimiAppFirstLaunchAIConfig({
+    scopeRef: createNimiAppAIScopeRef('dev.nimi.gap', 'chat'),
+    getExistingAppAIConfig: () => null,
+    resolveRecommendedProfile: () => ({ profile: READY_PROFILE, manifestSatisfied: true }),
+    resolveAccountDefaultProfile: () => null,
+    resolveRequirementDeclarations: ({ scopeRef: gapScope }) => [requirementDeclaration(['text.generate'], gapScope)],
+    applyHostAIConfig: (_scope, config) => {
+      appliedAfterGap = true;
+      return config;
+    },
+    validateManifestRequirements: () => [{ requirementId: 'text.generate', detail: 'missing runtime route' }],
+  });
+  assert.equal(manifestGap.outcome, 'setup-required-no-live-config');
+  assert.equal(appliedAfterGap, false);
 });
 
 test('Nimi AI scheduling projection calls Runtime peekScheduling without embedding live bindings in AIConfig', async () => {

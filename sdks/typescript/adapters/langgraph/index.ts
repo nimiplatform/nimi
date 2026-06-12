@@ -2,7 +2,7 @@ import type { NimiAiModel } from '../../core/ai';
 import { textPart, type NimiCapabilityManifest, type NimiMessage } from '../../core/contracts';
 
 export const NIMI_LANGGRAPH_ADAPTER_ID = 'langgraph' as const;
-export const NIMI_LANGGRAPH_UNSUPPORTED_FEATURE_CODE = 'unsupported_langgraph_adapter_feature' as const;
+export const NIMI_LANGGRAPH_UNSUPPORTED_FEATURE_CODE = 'SDK_ADAPTER_FEATURE_UNSUPPORTED' as const;
 
 export const NIMI_LANGGRAPH_ADAPTER_MANIFEST = {
   adapterId: NIMI_LANGGRAPH_ADAPTER_ID,

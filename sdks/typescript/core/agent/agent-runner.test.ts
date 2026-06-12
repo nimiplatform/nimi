@@ -92,17 +92,16 @@ test('agent runner fails visibly for missing local tool executors', async () => 
     toolCalls: [createNimiToolCall('missingExecute', {}, 'tool-missing')],
   });
 
-  const result = await createNimiAgentRunner().run({
-    agent: {
-      id: 'failure-agent',
-      name: 'Failure Agent',
-      tools: [{ name: 'missingExecute', inputSchema: { type: 'object' } }],
-    },
-    model,
-    messages: [userTextMessage('fail visibly')],
-  });
-
-  const error = result.events.find((event) => event.type === 'error');
-  assert.equal(error?.type, 'error');
-  assert.equal(error?.code, 'tool_executor_missing');
+  await assert.rejects(
+    createNimiAgentRunner().run({
+      agent: {
+        id: 'failure-agent',
+        name: 'Failure Agent',
+        tools: [{ name: 'missingExecute', inputSchema: { type: 'object' } }],
+      },
+      model,
+      messages: [userTextMessage('fail visibly')],
+    }),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_AGENT_TOOL_EXECUTOR_MISSING',
+  );
 });

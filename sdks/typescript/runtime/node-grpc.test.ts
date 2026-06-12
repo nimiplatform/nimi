@@ -22,7 +22,7 @@ test('node-grpc Runtime transport encodes and decodes protobuf bytes', async () 
       assert.equal(request.endpoint, '127.0.0.1:46371');
       assert.equal(request.methodId, '/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth');
       assert.equal(request.metadata?.appId, 'nimi.app');
-      assert.equal(request.metadata?.authorization, 'Bearer bridge-token');
+      assert.equal(request.metadata?.['x-nimi-access-token-id'], 'bridge-token-id');
       assert.deepEqual(GetRuntimeHealthRequest.fromBinary(request.body), {});
       request.responseMetadataObserver?.({ 'x-nimi-runtime-version': '0.2.0' });
       return GetRuntimeHealthResponse.toBinary(GetRuntimeHealthResponse.create({
@@ -37,7 +37,7 @@ test('node-grpc Runtime transport encodes and decodes protobuf bytes', async () 
 
   const runtime = new Runtime({
     transport: { type: 'node-grpc', bridge },
-    authMetadata: () => ({ authorization: 'Bearer bridge-token' }),
+    authMetadata: () => ({ 'x-nimi-access-token-id': 'bridge-token-id' }),
   });
 
   const health = await runtime.ready();
@@ -147,5 +147,26 @@ test('node-grpc Runtime transport rejects providerApiKey over non-loopback plain
       assert.equal(shaped.actionHint, 'enable_tls_or_use_loopback_for_provider_api_key');
       return true;
     },
+  );
+});
+
+test('node-grpc Runtime transport rejects authorization in caller metadata', async () => {
+  const bridge: RuntimeNodeGrpcBridge = {
+    async unary() {
+      throw new Error('authorization metadata validation should run before bridge unary');
+    },
+    async *serverStream() {
+      throw new Error('unexpected stream call');
+    },
+  };
+  const runtime = new Runtime({
+    transport: { type: 'node-grpc', bridge },
+    authMetadata: () => ({ authorization: 'Bearer bridge-token' }),
+  });
+
+  await assert.rejects(
+    runtime.ready(),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === ReasonCode.SDK_TRANSPORT_INVALID
+      && String((error as { message?: string }).message || '').includes('transport auth channel'),
   );
 });

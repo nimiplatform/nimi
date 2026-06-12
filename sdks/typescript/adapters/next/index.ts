@@ -1,11 +1,6 @@
 import type { NimiCapabilityManifest } from '../../core/contracts';
-import type {
-  NimiOpenAICompatibleChatCompletions,
-  OpenAICompatibleChatCompletionRequest,
-} from '../openai-compatible';
-
 export const NIMI_NEXT_ADAPTER_ID = 'next' as const;
-export const NIMI_NEXT_UNSUPPORTED_FEATURE_CODE = 'unsupported_next_adapter_feature' as const;
+export const NIMI_NEXT_UNSUPPORTED_FEATURE_CODE = 'SDK_ADAPTER_FEATURE_UNSUPPORTED' as const;
 
 export const NIMI_NEXT_ADAPTER_MANIFEST = {
   adapterId: NIMI_NEXT_ADAPTER_ID,
@@ -13,23 +8,13 @@ export const NIMI_NEXT_ADAPTER_MANIFEST = {
   targetVersionRange: 'structural-route-v1',
   capabilityLevel: 'L1',
   capabilities: {
-    'route.chatCompletions.json': { support: 'supported', mode: 'adapter-mapped' },
+    'route.chatCompletions.json': { support: 'unsupported', mode: 'adapter-mapped' },
     'route.chatCompletions.stream': { support: 'unsupported', mode: 'adapter-mapped' },
     middleware: { support: 'unsupported', mode: 'adapter-mapped' },
     serverActions: { support: 'unsupported', mode: 'adapter-mapped' },
   },
   unsupportedBehavior: 'throw',
 } as const satisfies NimiCapabilityManifest;
-
-export interface NimiNextRequestLike {
-  json(): Promise<unknown>;
-}
-
-export interface NimiNextResponseLike {
-  readonly status: number;
-  readonly headers: Readonly<Record<string, string>>;
-  readonly body: unknown;
-}
 
 export class NimiNextUnsupportedFeatureError extends Error {
   readonly code = NIMI_NEXT_UNSUPPORTED_FEATURE_CODE;
@@ -44,26 +29,4 @@ export class NimiNextUnsupportedFeatureError extends Error {
 
 export function throwUnsupportedNextFeature(feature: string): never {
   throw new NimiNextUnsupportedFeatureError(feature);
-}
-
-export function createNimiNextChatCompletionRoute(options: {
-  readonly completions: NimiOpenAICompatibleChatCompletions;
-}): (request: NimiNextRequestLike) => Promise<NimiNextResponseLike> {
-  return async (request) => {
-    const body = (await request.json()) as OpenAICompatibleChatCompletionRequest;
-    if (body.stream === true) {
-      throwUnsupportedNextFeature('route.chatCompletions.stream');
-    }
-    const completion = await options.completions.create({
-      ...body,
-      stream: false,
-    });
-    return {
-      status: 200,
-      headers: {
-        'content-type': 'application/json',
-      },
-      body: completion,
-    };
-  };
 }

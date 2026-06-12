@@ -144,6 +144,42 @@ export interface RealmGroupMessageCandidateCommitHandle {
      * @generated from protobuf field: nimi.runtime.v1.RealmGroupMessageCandidateCommitDisposition commit_disposition = 17
      */
     commitDisposition: RealmGroupMessageCandidateCommitDisposition;
+    /**
+     * @generated from protobuf field: string profile_kind = 18
+     */
+    profileKind: string;
+    /**
+     * @generated from protobuf field: string identity_source = 19
+     */
+    identitySource: string;
+    /**
+     * @generated from protobuf field: string participant_ref = 20
+     */
+    participantRef: string;
+    /**
+     * @generated from protobuf field: repeated string context_block_refs = 21
+     */
+    contextBlockRefs: string[];
+    /**
+     * @generated from protobuf field: string output_destination = 22
+     */
+    outputDestination: string;
+    /**
+     * @generated from protobuf field: string memory_read_verdict = 23
+     */
+    memoryReadVerdict: string;
+    /**
+     * @generated from protobuf field: string memory_write_verdict = 24
+     */
+    memoryWriteVerdict: string;
+    /**
+     * @generated from protobuf field: string capability_scope_verdict = 25
+     */
+    capabilityScopeVerdict: string;
+    /**
+     * @generated from protobuf field: string audit_id = 26
+     */
+    auditId: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.CreateRealmGroupMessageCandidateResponse
@@ -291,6 +327,42 @@ export interface RealmGroupMessageCandidateEvidence {
      * @generated from protobuf field: string refusal_hash = 22
      */
     refusalHash: string;
+    /**
+     * @generated from protobuf field: string profile_kind = 23
+     */
+    profileKind: string;
+    /**
+     * @generated from protobuf field: string identity_source = 24
+     */
+    identitySource: string;
+    /**
+     * @generated from protobuf field: string participant_ref = 25
+     */
+    participantRef: string;
+    /**
+     * @generated from protobuf field: repeated string context_block_refs = 26
+     */
+    contextBlockRefs: string[];
+    /**
+     * @generated from protobuf field: string output_destination = 27
+     */
+    outputDestination: string;
+    /**
+     * @generated from protobuf field: string memory_read_verdict = 28
+     */
+    memoryReadVerdict: string;
+    /**
+     * @generated from protobuf field: string memory_write_verdict = 29
+     */
+    memoryWriteVerdict: string;
+    /**
+     * @generated from protobuf field: string capability_scope_verdict = 30
+     */
+    capabilityScopeVerdict: string;
+    /**
+     * @generated from protobuf field: string audit_id = 31
+     */
+    auditId: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.GetRealmGroupMessageCandidateEvidenceResponse
@@ -496,7 +568,16 @@ class RealmGroupMessageCandidateCommitHandle$Type extends MessageType<RealmGroup
             { no: 14, name: "policy_verdict_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 15, name: "created_at", kind: "message", T: () => Timestamp },
             { no: 16, name: "expires_at", kind: "message", T: () => Timestamp },
-            { no: 17, name: "commit_disposition", kind: "enum", T: () => ["nimi.runtime.v1.RealmGroupMessageCandidateCommitDisposition", RealmGroupMessageCandidateCommitDisposition, "REALM_GROUP_MESSAGE_CANDIDATE_COMMIT_DISPOSITION_"] }
+            { no: 17, name: "commit_disposition", kind: "enum", T: () => ["nimi.runtime.v1.RealmGroupMessageCandidateCommitDisposition", RealmGroupMessageCandidateCommitDisposition, "REALM_GROUP_MESSAGE_CANDIDATE_COMMIT_DISPOSITION_"] },
+            { no: 18, name: "profile_kind", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 19, name: "identity_source", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 20, name: "participant_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 21, name: "context_block_refs", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 22, name: "output_destination", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 23, name: "memory_read_verdict", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 24, name: "memory_write_verdict", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 25, name: "capability_scope_verdict", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 26, name: "audit_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<RealmGroupMessageCandidateCommitHandle>): RealmGroupMessageCandidateCommitHandle {
@@ -516,6 +597,15 @@ class RealmGroupMessageCandidateCommitHandle$Type extends MessageType<RealmGroup
         message.auditLineageRef = "";
         message.policyVerdictRef = "";
         message.commitDisposition = 0;
+        message.profileKind = "";
+        message.identitySource = "";
+        message.participantRef = "";
+        message.contextBlockRefs = [];
+        message.outputDestination = "";
+        message.memoryReadVerdict = "";
+        message.memoryWriteVerdict = "";
+        message.capabilityScopeVerdict = "";
+        message.auditId = "";
         if (value !== undefined)
             reflectionMergePartial<RealmGroupMessageCandidateCommitHandle>(this, message, value);
         return message;
@@ -575,6 +665,33 @@ class RealmGroupMessageCandidateCommitHandle$Type extends MessageType<RealmGroup
                     break;
                 case /* nimi.runtime.v1.RealmGroupMessageCandidateCommitDisposition commit_disposition */ 17:
                     message.commitDisposition = reader.int32();
+                    break;
+                case /* string profile_kind */ 18:
+                    message.profileKind = reader.string();
+                    break;
+                case /* string identity_source */ 19:
+                    message.identitySource = reader.string();
+                    break;
+                case /* string participant_ref */ 20:
+                    message.participantRef = reader.string();
+                    break;
+                case /* repeated string context_block_refs */ 21:
+                    message.contextBlockRefs.push(reader.string());
+                    break;
+                case /* string output_destination */ 22:
+                    message.outputDestination = reader.string();
+                    break;
+                case /* string memory_read_verdict */ 23:
+                    message.memoryReadVerdict = reader.string();
+                    break;
+                case /* string memory_write_verdict */ 24:
+                    message.memoryWriteVerdict = reader.string();
+                    break;
+                case /* string capability_scope_verdict */ 25:
+                    message.capabilityScopeVerdict = reader.string();
+                    break;
+                case /* string audit_id */ 26:
+                    message.auditId = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -639,6 +756,33 @@ class RealmGroupMessageCandidateCommitHandle$Type extends MessageType<RealmGroup
         /* nimi.runtime.v1.RealmGroupMessageCandidateCommitDisposition commit_disposition = 17; */
         if (message.commitDisposition !== 0)
             writer.tag(17, WireType.Varint).int32(message.commitDisposition);
+        /* string profile_kind = 18; */
+        if (message.profileKind !== "")
+            writer.tag(18, WireType.LengthDelimited).string(message.profileKind);
+        /* string identity_source = 19; */
+        if (message.identitySource !== "")
+            writer.tag(19, WireType.LengthDelimited).string(message.identitySource);
+        /* string participant_ref = 20; */
+        if (message.participantRef !== "")
+            writer.tag(20, WireType.LengthDelimited).string(message.participantRef);
+        /* repeated string context_block_refs = 21; */
+        for (let i = 0; i < message.contextBlockRefs.length; i++)
+            writer.tag(21, WireType.LengthDelimited).string(message.contextBlockRefs[i]);
+        /* string output_destination = 22; */
+        if (message.outputDestination !== "")
+            writer.tag(22, WireType.LengthDelimited).string(message.outputDestination);
+        /* string memory_read_verdict = 23; */
+        if (message.memoryReadVerdict !== "")
+            writer.tag(23, WireType.LengthDelimited).string(message.memoryReadVerdict);
+        /* string memory_write_verdict = 24; */
+        if (message.memoryWriteVerdict !== "")
+            writer.tag(24, WireType.LengthDelimited).string(message.memoryWriteVerdict);
+        /* string capability_scope_verdict = 25; */
+        if (message.capabilityScopeVerdict !== "")
+            writer.tag(25, WireType.LengthDelimited).string(message.capabilityScopeVerdict);
+        /* string audit_id = 26; */
+        if (message.auditId !== "")
+            writer.tag(26, WireType.LengthDelimited).string(message.auditId);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -838,7 +982,16 @@ class RealmGroupMessageCandidateEvidence$Type extends MessageType<RealmGroupMess
             { no: 19, name: "body_hash", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 20, name: "refusal_code", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 21, name: "refusal_reason", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 22, name: "refusal_hash", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 22, name: "refusal_hash", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 23, name: "profile_kind", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 24, name: "identity_source", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 25, name: "participant_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 26, name: "context_block_refs", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 27, name: "output_destination", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 28, name: "memory_read_verdict", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 29, name: "memory_write_verdict", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 30, name: "capability_scope_verdict", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 31, name: "audit_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<RealmGroupMessageCandidateEvidence>): RealmGroupMessageCandidateEvidence {
@@ -863,6 +1016,15 @@ class RealmGroupMessageCandidateEvidence$Type extends MessageType<RealmGroupMess
         message.refusalCode = "";
         message.refusalReason = "";
         message.refusalHash = "";
+        message.profileKind = "";
+        message.identitySource = "";
+        message.participantRef = "";
+        message.contextBlockRefs = [];
+        message.outputDestination = "";
+        message.memoryReadVerdict = "";
+        message.memoryWriteVerdict = "";
+        message.capabilityScopeVerdict = "";
+        message.auditId = "";
         if (value !== undefined)
             reflectionMergePartial<RealmGroupMessageCandidateEvidence>(this, message, value);
         return message;
@@ -937,6 +1099,33 @@ class RealmGroupMessageCandidateEvidence$Type extends MessageType<RealmGroupMess
                     break;
                 case /* string refusal_hash */ 22:
                     message.refusalHash = reader.string();
+                    break;
+                case /* string profile_kind */ 23:
+                    message.profileKind = reader.string();
+                    break;
+                case /* string identity_source */ 24:
+                    message.identitySource = reader.string();
+                    break;
+                case /* string participant_ref */ 25:
+                    message.participantRef = reader.string();
+                    break;
+                case /* repeated string context_block_refs */ 26:
+                    message.contextBlockRefs.push(reader.string());
+                    break;
+                case /* string output_destination */ 27:
+                    message.outputDestination = reader.string();
+                    break;
+                case /* string memory_read_verdict */ 28:
+                    message.memoryReadVerdict = reader.string();
+                    break;
+                case /* string memory_write_verdict */ 29:
+                    message.memoryWriteVerdict = reader.string();
+                    break;
+                case /* string capability_scope_verdict */ 30:
+                    message.capabilityScopeVerdict = reader.string();
+                    break;
+                case /* string audit_id */ 31:
+                    message.auditId = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1016,6 +1205,33 @@ class RealmGroupMessageCandidateEvidence$Type extends MessageType<RealmGroupMess
         /* string refusal_hash = 22; */
         if (message.refusalHash !== "")
             writer.tag(22, WireType.LengthDelimited).string(message.refusalHash);
+        /* string profile_kind = 23; */
+        if (message.profileKind !== "")
+            writer.tag(23, WireType.LengthDelimited).string(message.profileKind);
+        /* string identity_source = 24; */
+        if (message.identitySource !== "")
+            writer.tag(24, WireType.LengthDelimited).string(message.identitySource);
+        /* string participant_ref = 25; */
+        if (message.participantRef !== "")
+            writer.tag(25, WireType.LengthDelimited).string(message.participantRef);
+        /* repeated string context_block_refs = 26; */
+        for (let i = 0; i < message.contextBlockRefs.length; i++)
+            writer.tag(26, WireType.LengthDelimited).string(message.contextBlockRefs[i]);
+        /* string output_destination = 27; */
+        if (message.outputDestination !== "")
+            writer.tag(27, WireType.LengthDelimited).string(message.outputDestination);
+        /* string memory_read_verdict = 28; */
+        if (message.memoryReadVerdict !== "")
+            writer.tag(28, WireType.LengthDelimited).string(message.memoryReadVerdict);
+        /* string memory_write_verdict = 29; */
+        if (message.memoryWriteVerdict !== "")
+            writer.tag(29, WireType.LengthDelimited).string(message.memoryWriteVerdict);
+        /* string capability_scope_verdict = 30; */
+        if (message.capabilityScopeVerdict !== "")
+            writer.tag(30, WireType.LengthDelimited).string(message.capabilityScopeVerdict);
+        /* string audit_id = 31; */
+        if (message.auditId !== "")
+            writer.tag(31, WireType.LengthDelimited).string(message.auditId);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

@@ -42,7 +42,7 @@ import {
 import {
   RoutePolicy,
   ScenarioType,
-} from './generated';
+} from '../core-generated/runtime-typed-client';
 
 test('Runtime product-control projection parses first-run state and storage dirs', async () => {
   const state: NimiProductControlState = 'local_ai_assets_downloaded_environment_not_ready';

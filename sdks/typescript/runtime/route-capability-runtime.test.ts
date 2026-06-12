@@ -21,7 +21,7 @@ import {
   ExecutionMode,
   RoutePolicy,
   ScenarioType,
-} from './generated';
+} from '../core-generated/runtime-typed-client';
 import {
   nimiRuntimeRouteHealthInputFromResolvedBinding,
   nimiRuntimeRouteHealthResultFromProviderHealth,
@@ -369,6 +369,58 @@ test('Runtime route capability projection classifies selection, health, and meta
   });
   assert.equal(metadataMissing.reasonCode, 'metadata_missing');
 
+  const metadataBindingMismatch = await buildNimiRuntimeRouteCapabilityProjection({
+    capability: 'text.generate',
+    selectionStore: store,
+    routeRuntime: {
+      async resolve() {
+        return resolved;
+      },
+      async checkHealth() {
+        return {
+          healthy: true,
+          status: 'healthy',
+          provider: 'llama',
+          detail: '',
+          actionHint: 'none',
+        };
+      },
+      async describe() {
+        return {
+          capability: 'text.generate',
+          metadataVersion: 'v1',
+          resolvedBindingRef: 'local:text.generate:llama:other-asset',
+          metadataKind: 'text.generate',
+          metadata: createTextGenerateRouteMetadata(),
+        };
+      },
+    },
+  });
+  assert.equal(metadataBindingMismatch.reasonCode, 'metadata_missing');
+
+  const healthMissingPositiveEvidence = await buildNimiRuntimeRouteCapabilityProjection({
+    capability: 'text.generate',
+    selectionStore: store,
+    routeRuntime: {
+      async resolve() {
+        return resolved;
+      },
+      async checkHealth() {
+        return {
+          healthy: true,
+          status: 'degraded',
+          provider: 'llama',
+          detail: 'no ack',
+          actionHint: 'verify',
+        };
+      },
+      async describe() {
+        throw new Error('should not describe without positive health evidence');
+      },
+    },
+  });
+  assert.equal(healthMissingPositiveEvidence.reasonCode, 'route_unhealthy');
+
   const metadataHostDenied = await buildNimiRuntimeRouteCapabilityProjection({
     capability: 'text.generate',
     selectionStore: store,
@@ -413,7 +465,7 @@ test('Runtime route capability projection classifies selection, health, and meta
           metadataVersion: 'v1',
           resolvedBindingRef: resolved.resolvedBindingRef || '',
           metadataKind: 'text.generate',
-          metadata: { supportsThinking: true },
+          metadata: createTextGenerateRouteMetadata({ supportsThinking: true }),
         };
       },
     } satisfies NimiRuntimeRouteCapabilityRuntime,
@@ -613,10 +665,53 @@ test('Runtime route binding helpers resolve local and cloud evidence with fail-c
           label: 'Cloud',
           provider: '',
           models: ['cloud-model'],
+          modelCapabilities: {
+            'cloud-model': ['text.generate'],
+          },
         }],
       },
     }),
     /NIMI_RUNTIME_ROUTE_BINDING_PROVIDER_REQUIRED/u,
+  );
+  assert.throws(
+    () => resolveNimiRuntimeRouteBindingFromSnapshot({
+      capability: 'text.generate',
+      binding: localBinding,
+      snapshot: {
+        ...snapshot,
+        selected: null,
+        local: {
+          models: [{
+            localModelId: 'asset-selected',
+            provider: 'llama.cpp',
+            model: 'llama/route-model',
+            engine: 'llama.cpp',
+            endpoint: 'http://127.0.0.1:11434',
+          }],
+        },
+      },
+    }),
+    /NIMI_RUNTIME_ROUTE_LOCAL_EVIDENCE_REQUIRED/u,
+  );
+  assert.throws(
+    () => resolveNimiRuntimeRouteBindingFromSnapshot({
+      capability: 'text.generate',
+      binding: {
+        source: 'cloud',
+        connectorId: 'cloud-1',
+        model: 'cloud-model',
+      },
+      snapshot: {
+        ...snapshot,
+        connectors: [{
+          id: 'cloud-1',
+          label: 'Cloud One',
+          provider: 'provider-one',
+          models: ['cloud-model'],
+        }],
+      },
+    }),
+    /NIMI_RUNTIME_ROUTE_CLOUD_EVIDENCE_REQUIRED/u,
   );
   assert.throws(
     () => resolveNimiRuntimeRouteBindingFromSnapshot({

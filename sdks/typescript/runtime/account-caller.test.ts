@@ -5,21 +5,16 @@ import {
   createNimiDesktopShellRuntimeAccountCaller,
   createNimiLocalFirstPartyRuntimeAccountCaller,
 } from './index';
-import { AccountCallerMode } from './generated';
+import { AccountCallerMode } from '../core-generated/runtime-typed-client';
 
-test('Runtime account caller projection creates local first-party caller identity', () => {
-  assert.deepEqual(
-    createNimiLocalFirstPartyRuntimeAccountCaller({
+test('Runtime account caller projection rejects shape-only local first-party identity', () => {
+  assert.throws(
+    () => createNimiLocalFirstPartyRuntimeAccountCaller({
       appId: 'app.example',
       scopes: [' runtime.account ', '', 'runtime.account'],
     }),
-    {
-      appId: 'app.example',
-      appInstanceId: 'app.example.local-first-party',
-      deviceId: 'local-first-party-device',
-      mode: AccountCallerMode.LOCAL_FIRST_PARTY_APP,
-      scopes: ['runtime.account'],
-    },
+    (error: unknown) =>
+      (error as { reasonCode?: string }).reasonCode === 'SDK_RUNTIME_ACCOUNT_CALLER_REGISTRATION_REQUIRED',
   );
 });
 
@@ -47,6 +42,7 @@ test('Runtime account caller projection fails closed on missing identity', () =>
   );
   assert.throws(
     () => createNimiLocalFirstPartyRuntimeAccountCaller({ appId: 'app.example', appInstanceId: '' }),
-    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_RUNTIME_ACCOUNT_CALLER_INVALID',
+    (error: unknown) =>
+      (error as { reasonCode?: string }).reasonCode === 'SDK_RUNTIME_ACCOUNT_CALLER_REGISTRATION_REQUIRED',
   );
 });

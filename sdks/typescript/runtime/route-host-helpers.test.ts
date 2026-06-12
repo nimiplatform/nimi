@@ -17,7 +17,7 @@ import {
   ConnectorStatus,
   LocalAssetKind,
   LocalAssetStatus,
-} from './generated';
+} from '../core-generated/runtime-typed-client';
 
 function localAssetRecord(overrides: Partial<{
   localAssetId: string;
@@ -224,7 +224,7 @@ test('Runtime host route access builds call options and checks Runtime health so
   });
 });
 
-test('Runtime host route options preserve degraded local metadata and selected binding fallbacks', async () => {
+test('Runtime host route options fail closed instead of promoting degraded local metadata fallbacks', async () => {
   const calls: string[] = [];
   const mismatches: unknown[] = [];
   const scope = {};
@@ -301,11 +301,11 @@ test('Runtime host route options preserve degraded local metadata and selected b
   assert.deepEqual(first, second);
   assert.deepEqual(calls.sort(), ['connectors', 'local', 'models:cloud-1'].sort());
   assert.equal(first.capability, 'text.generate');
-  assert.equal(first.selected?.goRuntimeStatus, 'degraded');
-  assert.equal(first.local.models[0]?.status, 'unhealthy');
-  assert.equal(first.local.defaultEndpoint, 'http://127.0.0.1:11435');
+  assert.equal(first.selected, null);
+  assert.equal(first.local.models.length, 0);
+  assert.equal(first.local.defaultEndpoint, undefined);
   assert.deepEqual(first.connectors[0]?.models, ['cloud-text']);
-  assert.equal(mismatches.length, 2);
+  assert.equal(mismatches.length, 0);
 
   const directProjection = buildNimiRuntimeRouteOptionsProjection({
     capability: 'image.generate',
@@ -431,6 +431,38 @@ test('Runtime route host access fails closed and caches local warmups', async ()
   });
   assert.equal(cloudHealth.status, 'unreachable');
   assert.equal(cloudHealth.detail, 'connector offline');
+
+  const missingAckSurface = createNimiHostRuntimeRouteAccessSurface({
+    appId: 'nimi.test',
+    callerKind: 'desktop-core',
+    surfaceId: 'desktop.test',
+    getRuntime: () => ({
+      connectors: {
+        async testConnector() {
+          return {};
+        },
+      },
+      local: {
+        async checkLocalAssetHealth() {
+          return { assets: [] };
+        },
+        async listLocalAssets() {
+          return { assets: [], nextPageToken: '' };
+        },
+        async warmLocalAsset() {
+          return {};
+        },
+      },
+    }),
+  });
+  const missingAckHealth = await missingAckSurface.checkLocalHealth({
+    provider: 'tester',
+    capability: 'text.generate',
+    connectorId: 'cloud-1',
+    localProviderModel: 'tester-model',
+  });
+  assert.equal(missingAckHealth.status, 'degraded');
+  assert.equal(missingAckHealth.actionHint, 'verify_connector_health_ack');
 
   const unsupportedLocal = await surface.checkLocalHealth({
     provider: 'llama',

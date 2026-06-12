@@ -5,7 +5,8 @@
   "source_state": "openapi_loaded",
   "source_label": "../nimi-backend/api-nimi.yaml",
   "source_paths": [
-    "config/realm-openapi-source.json"
+    "config/realm-openapi-source.json",
+    "../nimi-backend/api-nimi.yaml"
   ],
   "authority_refs": [
     ".nimi/spec/sdks/kernel/realm-core-contract.md"
@@ -2741,7 +2742,7 @@
     {
       "operation_id": "denyMyAppPermissionGrant",
       "method": "POST",
-      "path": "/api/human/me/permission-grants/{grantId}/deny",
+      "path": "/api/human/me/permission-grants/by-id/{grantId}/deny",
       "service": "Me / Permission Grants",
       "tags": [
         "Me / Permission Grants"
@@ -4334,7 +4335,7 @@
     {
       "operation_id": "expireMyAppPermissionGrant",
       "method": "POST",
-      "path": "/api/human/me/permission-grants/{grantId}/expire",
+      "path": "/api/human/me/permission-grants/by-id/{grantId}/expire",
       "service": "Me / Permission Grants",
       "tags": [
         "Me / Permission Grants"
@@ -5487,7 +5488,7 @@
     {
       "operation_id": "getMyAppPermissionGrant",
       "method": "GET",
-      "path": "/api/human/me/permission-grants/{grantId}",
+      "path": "/api/human/me/permission-grants/by-id/{grantId}",
       "service": "Me / Permission Grants",
       "tags": [
         "Me / Permission Grants"
@@ -6873,7 +6874,7 @@
     {
       "operation_id": "grantMyAppPermissionGrant",
       "method": "POST",
-      "path": "/api/human/me/permission-grants/{grantId}/grant",
+      "path": "/api/human/me/permission-grants/by-id/{grantId}/grant",
       "service": "Me / Permission Grants",
       "tags": [
         "Me / Permission Grants"
@@ -9775,7 +9776,7 @@
     {
       "operation_id": "revokeMyAppPermissionGrant",
       "method": "POST",
-      "path": "/api/human/me/permission-grants/{grantId}/revoke",
+      "path": "/api/human/me/permission-grants/by-id/{grantId}/revoke",
       "service": "Me / Permission Grants",
       "tags": [
         "Me / Permission Grants"
@@ -10873,7 +10874,7 @@
     {
       "operation_id": "supersedeMyAppPermissionGrant",
       "method": "POST",
-      "path": "/api/human/me/permission-grants/{grantId}/supersede",
+      "path": "/api/human/me/permission-grants/by-id/{grantId}/supersede",
       "service": "Me / Permission Grants",
       "tags": [
         "Me / Permission Grants"
@@ -15294,7 +15295,7 @@
       "operation_id": "denyMyAppPermissionGrant",
       "service": "Me / Permission Grants",
       "method": "POST",
-      "path": "/api/human/me/permission-grants/{grantId}/deny"
+      "path": "/api/human/me/permission-grants/by-id/{grantId}/deny"
     },
     {
       "operation_id": "disable2Fa",
@@ -15492,7 +15493,7 @@
       "operation_id": "expireMyAppPermissionGrant",
       "service": "Me / Permission Grants",
       "method": "POST",
-      "path": "/api/human/me/permission-grants/{grantId}/expire"
+      "path": "/api/human/me/permission-grants/by-id/{grantId}/expire"
     },
     {
       "operation_id": "ExploreController_checkStatus",
@@ -15588,7 +15589,7 @@
       "operation_id": "getMyAppPermissionGrant",
       "service": "Me / Permission Grants",
       "method": "GET",
-      "path": "/api/human/me/permission-grants/{grantId}"
+      "path": "/api/human/me/permission-grants/by-id/{grantId}"
     },
     {
       "operation_id": "getMyAppPermissionGrantProjection",
@@ -15726,7 +15727,7 @@
       "operation_id": "grantMyAppPermissionGrant",
       "service": "Me / Permission Grants",
       "method": "POST",
-      "path": "/api/human/me/permission-grants/{grantId}/grant"
+      "path": "/api/human/me/permission-grants/by-id/{grantId}/grant"
     },
     {
       "operation_id": "HumanNsfwConsentController_canManageAgentNsfw",
@@ -16080,7 +16081,7 @@
       "operation_id": "revokeMyAppPermissionGrant",
       "service": "Me / Permission Grants",
       "method": "POST",
-      "path": "/api/human/me/permission-grants/{grantId}/revoke"
+      "path": "/api/human/me/permission-grants/by-id/{grantId}/revoke"
     },
     {
       "operation_id": "searchHumanUsers",
@@ -16122,7 +16123,7 @@
       "operation_id": "supersedeMyAppPermissionGrant",
       "service": "Me / Permission Grants",
       "method": "POST",
-      "path": "/api/human/me/permission-grants/{grantId}/supersede"
+      "path": "/api/human/me/permission-grants/by-id/{grantId}/supersede"
     },
     {
       "operation_id": "syncChatEvents",

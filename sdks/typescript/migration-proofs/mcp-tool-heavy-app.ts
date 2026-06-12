@@ -11,9 +11,9 @@ export async function runMcpToolHeavyAppProof(): Promise<NimiMigrationProofResul
   });
 
   const results = await Promise.all([
-    adapter.callTool({ name: 'read_project', arguments: { path: 'README.md' } }),
-    adapter.callTool({ name: 'summarize_file', arguments: { fileId: 'README.md' } }),
-    adapter.callTool({ name: 'write_artifact', arguments: { kind: 'report' } }),
+    expectRuntimeDelegationRequired(adapter.callTool({ name: 'read_project', arguments: { path: 'README.md' } })),
+    expectRuntimeDelegationRequired(adapter.callTool({ name: 'summarize_file', arguments: { fileId: 'README.md' } })),
+    expectRuntimeDelegationRequired(adapter.callTool({ name: 'write_artifact', arguments: { kind: 'report' } })),
   ]);
 
   return {
@@ -23,8 +23,21 @@ export async function runMcpToolHeavyAppProof(): Promise<NimiMigrationProofResul
     migratedBy: 'source-root-adapter-contract',
     adapterIds: [NIMI_MCP_ADAPTER_MANIFEST.adapterId],
     observedCapabilities: ['mcp.tools.list', 'mcp.tools.call.auto'],
-    evidence: results.map((result) => result.content[0]?.text ?? ''),
+    evidence: results,
   };
+}
+
+async function expectRuntimeDelegationRequired(call: Promise<unknown>): Promise<string> {
+  try {
+    await call;
+  } catch (error) {
+    const feature = (error as { readonly feature?: string }).feature;
+    if (feature === 'mcp.tools.call.runtime_delegation_required') {
+      return feature;
+    }
+    throw error;
+  }
+  throw new Error('MCP local tool execution must require Runtime delegation');
 }
 
 function createAutoTool(name: string, output: { readonly [key: string]: string }) {

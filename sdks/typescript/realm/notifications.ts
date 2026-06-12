@@ -6,7 +6,7 @@ import type {
   RealmTypedClient,
   UnreadNotificationCountDto,
 } from '../core-generated/realm-typed-client';
-import { createNimiError } from '../types';
+import { ReasonCode, createNimiError } from '../types';
 
 export type NimiRealmNotification = NotificationDto;
 export type NimiRealmNotificationListResult = NotificationListResultDto;
@@ -75,7 +75,7 @@ export function normalizeNimiRealmNotificationUnreadCount(
   const total = normalizeCount(record.total);
   if (total === null) {
     throw notificationError({
-      reasonCode: 'SDK_REALM_NOTIFICATION_UNREAD_CONTRACT_INVALID',
+      reasonCode: ReasonCode.SDK_REALM_NOTIFICATION_UNREAD_CONTRACT_INVALID,
       message: 'Realm notification unread count response is malformed.',
       actionHint: 'check_realm_notification_response',
     });
@@ -191,7 +191,7 @@ export async function markNimiRealmNotificationRead(
   const normalizedId = normalizeString(notificationId).trim();
   if (!normalizedId) {
     throw notificationError({
-      reasonCode: 'SDK_REALM_NOTIFICATION_ID_REQUIRED',
+      reasonCode: ReasonCode.SDK_REALM_NOTIFICATION_ID_REQUIRED,
       message: 'Realm notification id is required.',
       actionHint: 'provide_realm_notification_id',
     });

@@ -4,12 +4,6 @@ import test from 'node:test';
 import { z } from 'zod';
 
 import {
-  DelegatedApprovalRequestState,
-  EffectClass,
-  SensitivityClass,
-} from '@nimiplatform/sdk/runtime/generated';
-import {
-  toNimiRuntimeProtoStruct,
   type NimiRuntimeAgentDelegatedCapabilitySurface,
 } from '@nimiplatform/sdk/runtime';
 
@@ -57,7 +51,12 @@ test('Mastra Runtime delegated tool executes through Nimi Runtime and propagates
   const runtime = createRuntimeSurface({
     async executeCapability(input) {
       runtimeCalls.push(input);
-      return { modelOutput: toNimiRuntimeProtoStruct({ forecast: `runtime:${input.arguments?.city}` }) };
+      return {
+        diagnostic: {
+          firewallVerdict: 'ACCEPTED_OBSERVATION',
+        },
+        output: { forecast: `runtime:${input.arguments?.city}` },
+      };
     },
   });
   const fixture = createNimiFixtureModel({
@@ -126,7 +125,12 @@ test('Mastra Runtime delegated tool binding helper centralizes Nimi turn lineage
   const runtime = createRuntimeSurface({
     async executeCapability(input) {
       runtimeCalls.push(input);
-      return { modelOutput: toNimiRuntimeProtoStruct({ ok: true }) };
+      return {
+        diagnostic: {
+          firewallVerdict: 'ACCEPTED_OBSERVATION',
+        },
+        output: { ok: true },
+      };
     },
   });
   const tool = createNimiMastraRuntimeDelegatedTool({
@@ -196,10 +200,10 @@ test('Mastra Runtime delegated tool fails closed on Runtime approval-required re
           toolName: 'deleteUser',
           firewallVerdict: 'APPROVAL_REQUIRED',
           reasonCode: 'DELEG_APPROVAL_REQUIRED',
-          state: DelegatedApprovalRequestState.PENDING,
+          state: 'pending',
           delegationRequestId: 'delegation-1',
-          effectClass: EffectClass.EXTERNAL_SIDE_EFFECT,
-          sensitivityClass: SensitivityClass.UNKNOWN_SENSITIVE,
+          effectClass: 'external_side_effect',
+          sensitivityClass: 'unknown_sensitive',
           summaryRef: 'summary-1',
           policySnapshotId: 'policy-1',
         },
@@ -233,12 +237,47 @@ test('Mastra Runtime delegated tool fails closed on Runtime approval-required re
   );
 });
 
+test('Mastra Runtime delegated tool fails closed when firewall verdict evidence is missing', async () => {
+  const runtime = createRuntimeSurface({
+    async executeCapability() {
+      return { output: { ok: true } };
+    },
+  });
+  const tool = createNimiMastraRuntimeDelegatedTool({
+    id: 'search',
+    description: 'Search through Runtime',
+    inputSchema: z.object({ q: z.string() }),
+    binding: {
+      runtime,
+      agentId: 'agent-1',
+      conversationAnchorId: 'anchor-1',
+      turnId: 'turn-1',
+      providerProfileId: 'provider-1',
+      capabilityId: 'search.query',
+      descriptorHash: 'sha256:search',
+    },
+  });
+
+  await assert.rejects(
+    () => tool.execute?.({ q: 'nimi' }, {} as never),
+    (error: unknown) => (
+      (error as { readonly reasonCode?: string }).reasonCode
+      === 'NIMI_MASTRA_RUNTIME_DELEGATED_TOOL_FIREWALL_VERDICT_REQUIRED'
+    ),
+  );
+});
+
 test('Mastra Runtime delegated tool resume uses Runtime-owned approval resume', async () => {
   const resumeCalls: unknown[] = [];
   const runtime = createRuntimeSurface({
     async resumeApprovedCapability(agentId, approvalRequestId) {
       resumeCalls.push({ agentId, approvalRequestId });
-      return { modelOutput: toNimiRuntimeProtoStruct({ deleted: true, userId: 'u-1' }) };
+      return {
+        diagnostic: {
+          firewallVerdict: 'ACCEPTED_OBSERVATION',
+        },
+        output: { deleted: true, userId: 'u-1' },
+      };
     },
   });
 

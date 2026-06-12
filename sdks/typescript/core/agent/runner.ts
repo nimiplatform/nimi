@@ -1,4 +1,5 @@
 import type { NimiAiModel, NimiGenerateTextRequest, NimiGenerateTextResult } from '../ai';
+import { createNimiError } from '../../types';
 import {
   textPart,
   type NimiAgentTrace,
@@ -158,8 +159,9 @@ async function appendToolLifecycleEvents(
     }
     const tool = toolsByName.get(toolCall.name);
     if (!tool) {
-      events.push({ type: 'error', code: 'unknown_tool', message: `tool ${toolCall.name} was not registered` });
-      continue;
+      const message = `tool ${toolCall.name} was not registered`;
+      events.push({ type: 'error', code: 'unknown_tool', message });
+      throw agentToolError('SDK_AGENT_TOOL_UNKNOWN', message, toolCall.name);
     }
     if (tool.type === 'provider') {
       continue;
@@ -173,20 +175,34 @@ async function appendToolLifecycleEvents(
       continue;
     }
     if (!tool.execute) {
-      events.push({ type: 'error', code: 'tool_executor_missing', message: `tool ${tool.name} does not expose execute` });
-      continue;
+      const message = `tool ${tool.name} does not expose execute`;
+      events.push({ type: 'error', code: 'tool_executor_missing', message });
+      throw agentToolError('SDK_AGENT_TOOL_EXECUTOR_MISSING', message, tool.name);
     }
     try {
       const toolResult = await tool.execute(toolCall.arguments);
       events.push({ type: 'tool-result', toolCallId: toolCall.id, name: tool.name, result: toolResult });
     } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
       events.push({
         type: 'error',
         code: 'tool_execution_failed',
-        message: error instanceof Error ? error.message : String(error),
+        message,
       });
+      throw agentToolError('SDK_AGENT_TOOL_EXECUTION_FAILED', message, tool.name);
     }
   }
+}
+
+function agentToolError(reasonCode: string, message: string, toolName: string) {
+  return createNimiError({
+    message,
+    code: reasonCode,
+    reasonCode,
+    actionHint: 'check_agent_tool_execution',
+    source: 'sdk',
+    details: { toolName },
+  });
 }
 
 export function toNimiAgentTrace(agentId: string, events: readonly NimiAgentEvent[]): NimiAgentTrace {

@@ -17,9 +17,10 @@ import type {
   NimiUsage,
 } from '../../core/contracts';
 import { textPart } from '../../core/contracts';
+import { createNimiError } from '../../types';
 
 export const NIMI_OPENAI_COMPATIBLE_ADAPTER_ID = 'openai-compatible' as const;
-export const NIMI_OPENAI_COMPATIBLE_UNSUPPORTED_FEATURE_CODE = 'unsupported_openai_compat_feature' as const;
+export const NIMI_OPENAI_COMPATIBLE_UNSUPPORTED_FEATURE_CODE = 'SDK_ADAPTER_FEATURE_UNSUPPORTED' as const;
 
 export const NIMI_OPENAI_COMPATIBLE_ADAPTER_MANIFEST = {
   adapterId: NIMI_OPENAI_COMPATIBLE_ADAPTER_ID,
@@ -347,12 +348,24 @@ export class NimiOpenAICompatibleChatCompletions {
         sawDone = true;
         yield toChunk(id, created, request.modelName, {}, mapFinishReason(event.finishReason));
       } else if (event.type === 'error') {
-        throw new Error(`${event.code}: ${event.message}`);
+        throw createNimiError({
+          message: event.message,
+          code: event.code,
+          reasonCode: event.code,
+          actionHint: 'check_ai_stream_event',
+          source: 'sdk',
+        });
       }
     }
 
     if (!sawDone) {
-      throw new Error('openai-compatible stream ended before a Nimi done event');
+      throw createNimiError({
+        message: 'OpenAI-compatible stream ended before a Nimi done event',
+        code: 'SDK_AI_STREAM_TERMINAL_EVIDENCE_MISSING',
+        reasonCode: 'SDK_AI_STREAM_TERMINAL_EVIDENCE_MISSING',
+        actionHint: 'check_ai_stream_terminal_evidence',
+        source: 'sdk',
+      });
     }
   }
 }
@@ -581,7 +594,10 @@ function mapFinishReason(reason: NimiGenerateTextResult['finishReason']): Exclud
   if (reason === 'length' || reason === 'error' || reason === 'stop') {
     return reason;
   }
-  return 'stop';
+  throwUnsupportedOpenAICompatibleFeature(
+    'finishReason',
+    `unsupported Nimi finish reason: ${String(reason || 'unknown')}`,
+  );
 }
 
 function toOpenAIUsage(usage: NimiUsage | undefined): OpenAICompatibleUsage | undefined {

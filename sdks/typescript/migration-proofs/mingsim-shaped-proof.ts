@@ -48,7 +48,9 @@ export async function runMingSimShapedProof(): Promise<NimiMigrationProofResult>
       },
     ],
   });
-  const mcpResult = await mcp.callTool({ name: 'collect_context', arguments: {} });
+  const mcpDelegationRequired = await expectRuntimeDelegationRequired(
+    mcp.callTool({ name: 'collect_context', arguments: {} }),
+  );
 
   const fixture = createNimiProofModel({
     modelId: 'mingsim-proof-model',
@@ -106,7 +108,7 @@ export async function runMingSimShapedProof(): Promise<NimiMigrationProofResult>
   const evidence = [
     `memory:${memoryPart.type}`,
     `knowledge:${knowledgePart.type}`,
-    `mcp:${mcpResult.content[0]?.text ?? ''}`,
+    `mcp:${mcpDelegationRequired}`,
     `approval:${approvalTool.policy}`,
     `external:${externalTool.policy}`,
     `artifact:${generationJob.artifacts[0]?.id ?? ''}`,
@@ -132,6 +134,19 @@ export async function runMingSimShapedProof(): Promise<NimiMigrationProofResult>
     ],
     evidence,
   };
+}
+
+async function expectRuntimeDelegationRequired(call: Promise<unknown>): Promise<string> {
+  try {
+    await call;
+  } catch (error) {
+    const feature = (error as { readonly feature?: string }).feature;
+    if (feature === 'mcp.tools.call.runtime_delegation_required') {
+      return feature;
+    }
+    throw error;
+  }
+  throw new Error('MCP local tool execution must require Runtime delegation');
 }
 
 function createLongRunningSession(events: readonly NimiConversationFeatureEvent[]): {

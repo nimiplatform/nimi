@@ -10,10 +10,6 @@ export type ConnectorAuthAcquisitionProfileSpec = {
   redirectUri: string;
   fallbackVerificationUrl: string;
   tokenExchangeProvider: string;
-  accountIdClaimNamespace: string;
-  accountIdClaimField: string;
-  credentialAuthMode: string;
-  credentialSource: string;
   defaultPollIntervalSeconds: number;
   minPollIntervalSeconds: number;
   defaultExpiresInSeconds: number;
@@ -30,10 +26,6 @@ export const CONNECTOR_AUTH_ACQUISITION_PROFILES: Record<string, ConnectorAuthAc
     redirectUri: "https://auth.openai.com/deviceauth/callback",
     fallbackVerificationUrl: "https://auth.openai.com/codex/device",
     tokenExchangeProvider: "CODEX",
-    accountIdClaimNamespace: "https://api.openai.com/auth",
-    accountIdClaimField: "chatgpt_account_id",
-    credentialAuthMode: "chatgpt",
-    credentialSource: "device-code",
     defaultPollIntervalSeconds: 5,
     minPollIntervalSeconds: 3,
     defaultExpiresInSeconds: 900,

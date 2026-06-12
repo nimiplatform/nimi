@@ -1945,11 +1945,8 @@ class RuntimeGeneratedClient:
 
     def stream(self, method_id: str, body: Any, *, metadata: dict[str, str] | None = None, timeout_ms: int | None = None):
         descriptor = self.describe(method_id)
-        if "stream" not in descriptor["kind"]:
+        if descriptor["kind"] != "server_stream":
             error = RuntimeError(f"Runtime method is not streaming: {method_id}")
             setattr(error, "code", "SDK_RUNTIME_METHOD_UNAVAILABLE")
             raise error
         return self._core.server_stream(CoreStreamRequest(method_id=method_id, body=body, metadata=metadata, timeout_ms=timeout_ms))
-
-    def unsafe_raw(self):
-        return self._core.unsafe_raw()

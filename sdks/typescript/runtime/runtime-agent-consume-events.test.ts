@@ -52,7 +52,7 @@ import {
   DelegatedProviderTrustTier,
   DelegatedTransportKind,
   HookAdmissionState,
-} from './generated';
+} from '../core-generated/runtime-typed-client';
 
 const consumeContext = {
   runtimeAppId: 'nimi.avatar',

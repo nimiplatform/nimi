@@ -71,6 +71,11 @@ class FakeTransport implements CoreTransport {
 
 async function main() {
   const profile = process.env.SDKS_CONFORMANCE_PROFILE ?? 'descriptor-foundation';
+  if (profile !== 'descriptor-foundation' && profile !== 'typed-core') {
+    throw Object.assign(new Error(`unsupported SDKS_CONFORMANCE_PROFILE ${profile}`), {
+      code: 'SDK_CONFORMANCE_PROFILE_UNSUPPORTED',
+    });
+  }
   const transport = new FakeTransport();
   const core = new CoreClient({
     transport,
@@ -132,8 +137,6 @@ async function main() {
         return true;
       },
     );
-    assert.equal(runtime.unsafeRaw(), transport);
-    assert.equal(realm.unsafeRaw(), transport);
     console.log('sdks behavior conformance: OK (typescript typed-core)');
     return;
   }
@@ -146,7 +149,10 @@ async function main() {
   assert.deepEqual(runtimeResponse, fixtures.cases.runtime_unary.response_body);
   assert.deepEqual(transport.unaryCalls[0].body, fixtures.cases.runtime_unary.request_body);
   assert.equal(transport.unaryCalls[0].timeoutMs, fixtures.cases.timeout_ms);
-  assert.equal(transport.unaryCalls[0].metadata?.authorization, fixtures.cases.metadata.auth.authorization);
+  assert.equal(
+    transport.unaryCalls[0].metadata?.['x-nimi-access-token-id'],
+    fixtures.cases.metadata.auth['x-nimi-access-token-id'],
+  );
   assert.equal(transport.unaryCalls[0].metadata?.['x-nimi-caller'], fixtures.cases.metadata.caller['x-nimi-caller']);
 
   const events = [];
@@ -167,9 +173,6 @@ async function main() {
     runtime.call(fixtures.cases.runtime_unary.method_id, {}, { signal: abortController.signal }),
     (error: unknown) => (error as { code?: string }).code === fixtures.cases.cancellation.reason_code,
   );
-
-  assert.equal(runtime.unsafeRaw(), transport);
-  assert.equal(realm.unsafeRaw(), transport);
 
   console.log('sdks behavior conformance: OK (typescript)');
 }

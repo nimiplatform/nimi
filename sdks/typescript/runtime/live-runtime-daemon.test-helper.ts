@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { LocalAssetKind, LocalAssetStatus } from './generated';
+import { LocalAssetKind, LocalAssetStatus } from '../core-generated/runtime-typed-client';
 import { createRuntime } from './index';
 
 export type RuntimeDaemonRunContext = {

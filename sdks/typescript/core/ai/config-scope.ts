@@ -14,6 +14,7 @@ import {
   normalizeText,
   requireNonEmptyText,
 } from './config-internal';
+import { ReasonCode } from '../../types';
 
 export const NIMI_BUILT_IN_CHAT_SURFACE_IDS: readonly NimiBuiltInChatSurfaceId[] = ['nimi', 'agent'];
 
@@ -25,7 +26,7 @@ export function createNimiAIScopeRef(input: {
   const kind = input.kind;
   const ownerId = requireNonEmptyText(input.ownerId, 'ownerId is required', 'provide_ai_scope_owner_id');
   if (kind !== 'app' && kind !== 'module' && kind !== 'feature') {
-    throw aiConfigError('SDK_AI_SCOPE_INVALID', 'AI scope kind must be app, module, or feature', 'use_supported_ai_scope_kind');
+    throw aiConfigError(ReasonCode.SDK_SCOPE_CATALOG_INVALID, 'AI scope kind must be app, module, or feature', 'use_supported_ai_scope_kind');
   }
   const surfaceId = normalizeText(input.surfaceId);
   return surfaceId ? { kind, ownerId, surfaceId } : { kind, ownerId };
@@ -58,7 +59,7 @@ export function assertNimiBuiltInChatAIScopeRef(scopeRef: NimiAIScopeRef | null 
   const normalized = assertNimiAIScopeRef(scopeRef);
   if (!isNimiBuiltInChatAIScopeRef(normalized)) {
     throw aiConfigError(
-      'SDK_AI_SCOPE_INVALID',
+      ReasonCode.SDK_SCOPE_CATALOG_INVALID,
       'built-in chat AIConfig requires feature:desktop.chat:nimi or feature:desktop.chat:agent',
       'provide_built_in_chat_ai_scope_ref',
     );
@@ -82,7 +83,7 @@ export function assertNimiAppAIScopeRef(scopeRef: NimiAIScopeRef | null | undefi
   const normalized = assertNimiAIScopeRef(scopeRef);
   if (normalized.kind !== 'app') {
     throw aiConfigError(
-      'SDK_AI_SCOPE_INVALID',
+      ReasonCode.SDK_SCOPE_CATALOG_INVALID,
       'app first-launch AIConfig requires an app scopeRef',
       'provide_explicit_app_ai_scope_ref',
     );
@@ -112,7 +113,7 @@ export function parseNimiAIScopeRefKey(key: string): NimiAIScopeRef | null {
 
 export function assertNimiAIScopeRef(scopeRef: NimiAIScopeRef | null | undefined): NimiAIScopeRef {
   if (!scopeRef || typeof scopeRef !== 'object') {
-    throw aiConfigError('SDK_AI_SCOPE_REQUIRED', 'AI scopeRef is required', 'provide_explicit_ai_scope_ref');
+    throw aiConfigError(ReasonCode.SDK_SCOPE_CATALOG_INVALID, 'AI scopeRef is required', 'provide_explicit_ai_scope_ref');
   }
   return createNimiAIScopeRef(scopeRef);
 }

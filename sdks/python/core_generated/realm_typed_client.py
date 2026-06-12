@@ -23,7 +23,12 @@ def _model_body(value: object) -> object:
 def _decode_model(model_type, value: object):
     if not is_dataclass(model_type):
         return value
-    source = dict(value) if isinstance(value, Mapping) else {}
+    if not isinstance(value, Mapping):
+        error = RuntimeError("SDK_REALM_RESPONSE_DECODE_FAILED: generated Realm response must be a mapping")
+        setattr(error, "code", "SDK_REALM_RESPONSE_DECODE_FAILED")
+        setattr(error, "reason_code", "SDK_REALM_RESPONSE_DECODE_FAILED")
+        raise error
+    source = dict(value)
     names = {field.name for field in fields(model_type)}
     return model_type(**{key: val for key, val in source.items() if key in names})
 

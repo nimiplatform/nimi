@@ -2,6 +2,12 @@ import {
   CONNECTOR_AUTH_ACQUISITION_PROFILES,
   type ConnectorAuthAcquisitionProfileSpec,
 } from './connector-auth-acquisition-profiles.generated.js';
+import {
+  ConnectorAuthKind,
+  ConnectorStatus,
+  type RuntimeTypedCallOptions,
+  type RuntimeTypedClient,
+} from '../core-generated/runtime-typed-client';
 import type { JsonObject } from '../types';
 
 export type NimiConnectorAuthAcquisitionPendingState = {
@@ -59,24 +65,17 @@ export type NimiConnectorAuthAcquisitionHost = {
   ) => void;
 };
 
-export type NimiPersistManagedConnectorCredentialInput = {
-  profileId: string;
-  providerAuthProfile: string;
-  credentialJson: string;
-  accountId?: string;
-  expiresAt?: string;
-};
-
-export type NimiPersistManagedConnectorCredentialResult = {
-  connectorId?: string;
-};
+export type NimiManagedConnectorCredentialRuntime = Pick<RuntimeTypedClient, 'createConnector' | 'updateConnector'>;
 
 export type NimiAcquireManagedConnectorCredentialOptions = {
   profileId: string;
   host: NimiConnectorAuthAcquisitionHost;
-  persistCredential(
-    input: NimiPersistManagedConnectorCredentialInput,
-  ): Promise<NimiPersistManagedConnectorCredentialResult>;
+  runtime: NimiManagedConnectorCredentialRuntime;
+  connectorId?: string;
+  provider?: string;
+  endpoint?: string;
+  label?: string;
+  callOptions?: RuntimeTypedCallOptions;
   onPending?: (state: NimiConnectorAuthAcquisitionPendingState) => void;
 };
 
@@ -84,7 +83,6 @@ export type NimiManagedConnectorCredentialAcquisitionResult = {
   profileId: string;
   providerAuthProfile: string;
   connectorId?: string;
-  accountId?: string;
   expiresAt?: string;
 };
 
@@ -199,53 +197,6 @@ async function postJson(
   });
 }
 
-function decodeBase64UrlJson(segment: string): JsonObject | null {
-  const base64 = String(segment || '')
-    .replace(/-/g, '+')
-    .replace(/_/g, '/')
-    .padEnd(Math.ceil(segment.length / 4) * 4, '=');
-  try {
-    let jsonText = '';
-    if (typeof globalThis.atob === 'function') {
-      jsonText = globalThis.atob(base64);
-    } else {
-      const maybeBuffer = (globalThis as unknown as {
-        Buffer?: { from(input: string, encoding: string): { toString(encoding: string): string } };
-      }).Buffer;
-      if (!maybeBuffer) {
-        return null;
-      }
-      jsonText = maybeBuffer.from(base64, 'base64').toString('utf8');
-    }
-    const parsed = JSON.parse(jsonText);
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-      return null;
-    }
-    return parsed as JsonObject;
-  } catch {
-    return null;
-  }
-}
-
-function accountIdFromAccessToken(
-  accessToken: string,
-  profile: ConnectorAuthAcquisitionProfileSpec,
-): string {
-  const parts = String(accessToken || '').trim().split('.');
-  if (parts.length < 2 || !parts[1]) {
-    return '';
-  }
-  const claims = decodeBase64UrlJson(parts[1]);
-  if (!claims) {
-    return '';
-  }
-  const authClaims = claims[profile.accountIdClaimNamespace];
-  if (!authClaims || typeof authClaims !== 'object' || Array.isArray(authClaims)) {
-    return '';
-  }
-  return toTrimmedString((authClaims as Record<string, unknown>)[profile.accountIdClaimField]);
-}
-
 function buildManagedCredentialJson(input: {
   profile: ConnectorAuthAcquisitionProfileSpec;
   accessToken: string;
@@ -254,7 +205,7 @@ function buildManagedCredentialJson(input: {
   expiresIn?: number;
   scope?: string;
   now: number;
-}): { credentialJson: string; accountId?: string; expiresAt?: string } {
+}): { credentialJson: string; expiresAt?: string } {
   const accessToken = toTrimmedString(input.accessToken);
   if (!accessToken) {
     throw new Error('Managed OAuth credential payload requires an access token');
@@ -262,7 +213,6 @@ function buildManagedCredentialJson(input: {
   const refreshToken = toTrimmedString(input.refreshToken);
   const tokenType = toTrimmedString(input.tokenType);
   const scope = toTrimmedString(input.scope);
-  const accountId = accountIdFromAccessToken(accessToken, input.profile);
   const expiresIn = Number.isFinite(input.expiresIn) && Number(input.expiresIn) > 0
     ? Math.trunc(Number(input.expiresIn))
     : undefined;
@@ -271,7 +221,6 @@ function buildManagedCredentialJson(input: {
     : undefined;
 
   return {
-    accountId: accountId || undefined,
     expiresAt,
     credentialJson: JSON.stringify({
       access_token: accessToken,
@@ -280,9 +229,6 @@ function buildManagedCredentialJson(input: {
       scope: scope || undefined,
       expires_in: expiresIn,
       expires_at: expiresAt,
-      account_id: accountId || undefined,
-      auth_mode: input.profile.credentialAuthMode,
-      source: input.profile.credentialSource,
       issuer: input.profile.issuer,
       obtained_at: new Date(input.now).toISOString(),
     }),
@@ -296,6 +242,39 @@ function profileForId(profileId: string): ConnectorAuthAcquisitionProfileSpec {
     throw new Error(`Connector auth acquisition profile "${profileId}" is not admitted`);
   }
   return profile;
+}
+
+async function persistManagedConnectorCredentialThroughRuntime(input: {
+  options: NimiAcquireManagedConnectorCredentialOptions;
+  profile: ConnectorAuthAcquisitionProfileSpec;
+  credentialJson: string;
+}): Promise<string | undefined> {
+  const provider = toTrimmedString(input.options.provider) || input.profile.providerAuthProfile;
+  const endpoint = toTrimmedString(input.options.endpoint);
+  const label = toTrimmedString(input.options.label) || `${input.profile.providerAuthProfile} managed OAuth`;
+  const connectorId = toTrimmedString(input.options.connectorId);
+  if (connectorId) {
+    const response = await input.options.runtime.updateConnector({
+      connectorId,
+      endpoint: endpoint || undefined,
+      label: input.options.label === undefined ? undefined : label,
+      status: ConnectorStatus.UNSPECIFIED,
+      authKind: ConnectorAuthKind.OAUTH_MANAGED,
+      providerAuthProfile: input.profile.providerAuthProfile,
+      credentialJson: input.credentialJson,
+    }, input.options.callOptions);
+    return response.connector?.connectorId || connectorId;
+  }
+  const response = await input.options.runtime.createConnector({
+    provider,
+    endpoint,
+    label,
+    apiKey: '',
+    authKind: ConnectorAuthKind.OAUTH_MANAGED,
+    providerAuthProfile: input.profile.providerAuthProfile,
+    credentialJson: input.credentialJson,
+  }, input.options.callOptions);
+  return response.connector?.connectorId;
 }
 
 export async function acquireNimiManagedConnectorCredential(
@@ -464,22 +443,18 @@ export async function acquireNimiManagedConnectorCredential(
     profileId: profile.profileId,
     hasRefreshToken: Boolean(toTrimmedString(exchange.refreshToken)),
     expiresIn: Number.isFinite(exchange.expiresIn) ? exchange.expiresIn : null,
-    accountId: credential.accountId || null,
   });
 
-  const persisted = await options.persistCredential({
-    profileId: profile.profileId,
-    providerAuthProfile: profile.providerAuthProfile,
+  const connectorId = await persistManagedConnectorCredentialThroughRuntime({
+    options,
+    profile,
     credentialJson: credential.credentialJson,
-    accountId: credential.accountId,
-    expiresAt: credential.expiresAt,
   });
 
   return {
     profileId: profile.profileId,
     providerAuthProfile: profile.providerAuthProfile,
-    connectorId: persisted.connectorId,
-    accountId: credential.accountId,
+    connectorId,
     expiresAt: credential.expiresAt,
   };
 }

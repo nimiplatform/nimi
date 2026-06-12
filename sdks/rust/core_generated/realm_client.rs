@@ -317,7 +317,7 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         operation_id: "denyMyAppPermissionGrant",
         service: "Me / Permission Grants",
         method: "POST",
-        path: Some("/api/human/me/permission-grants/{grantId}/deny"),
+        path: Some("/api/human/me/permission-grants/by-id/{grantId}/deny"),
     },
     RealmOperationDescriptor {
         operation_id: "disable2Fa",
@@ -515,7 +515,7 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         operation_id: "expireMyAppPermissionGrant",
         service: "Me / Permission Grants",
         method: "POST",
-        path: Some("/api/human/me/permission-grants/{grantId}/expire"),
+        path: Some("/api/human/me/permission-grants/by-id/{grantId}/expire"),
     },
     RealmOperationDescriptor {
         operation_id: "ExploreController_checkStatus",
@@ -611,7 +611,7 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         operation_id: "getMyAppPermissionGrant",
         service: "Me / Permission Grants",
         method: "GET",
-        path: Some("/api/human/me/permission-grants/{grantId}"),
+        path: Some("/api/human/me/permission-grants/by-id/{grantId}"),
     },
     RealmOperationDescriptor {
         operation_id: "getMyAppPermissionGrantProjection",
@@ -749,7 +749,7 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         operation_id: "grantMyAppPermissionGrant",
         service: "Me / Permission Grants",
         method: "POST",
-        path: Some("/api/human/me/permission-grants/{grantId}/grant"),
+        path: Some("/api/human/me/permission-grants/by-id/{grantId}/grant"),
     },
     RealmOperationDescriptor {
         operation_id: "HumanNsfwConsentController_canManageAgentNsfw",
@@ -1103,7 +1103,7 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         operation_id: "revokeMyAppPermissionGrant",
         service: "Me / Permission Grants",
         method: "POST",
-        path: Some("/api/human/me/permission-grants/{grantId}/revoke"),
+        path: Some("/api/human/me/permission-grants/by-id/{grantId}/revoke"),
     },
     RealmOperationDescriptor {
         operation_id: "searchHumanUsers",
@@ -1145,7 +1145,7 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         operation_id: "supersedeMyAppPermissionGrant",
         service: "Me / Permission Grants",
         method: "POST",
-        path: Some("/api/human/me/permission-grants/{grantId}/supersede"),
+        path: Some("/api/human/me/permission-grants/by-id/{grantId}/supersede"),
     },
     RealmOperationDescriptor {
         operation_id: "syncChatEvents",
@@ -1575,6 +1575,10 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
     },
 ];
 
+fn realm_typed_facade_only_operation_id(operation_id: &str) -> bool {
+    matches!(operation_id, "commitRealmGroupMessageCandidate")
+}
+
 pub struct RealmGeneratedClient<T, A>
 where
     T: CoreTransport,
@@ -1603,15 +1607,14 @@ where
         if let Err(message) = self.describe(operation_id) {
             panic!("{}", message);
         }
+        if realm_typed_facade_only_operation_id(operation_id) {
+            panic!("SDK_REALM_OPERATION_TYPED_FACADE_REQUIRED: Realm operation requires its admitted typed facade {}", operation_id);
+        }
         self.core.unary(CoreUnaryRequest {
             method_id: operation_id.to_string(),
             metadata,
             body,
             timeout,
         })
-    }
-
-    pub fn unsafe_raw(&self) -> &T {
-        self.core.unsafe_raw()
     }
 }

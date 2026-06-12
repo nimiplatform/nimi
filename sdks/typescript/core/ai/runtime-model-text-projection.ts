@@ -16,7 +16,7 @@ import {
 import type { Value as RuntimeValueMessage } from '../../core-generated/runtime-protobuf/google/protobuf/struct';
 import { Value as RuntimeValue } from '../../core-generated/runtime-protobuf/google/protobuf/struct';
 import { fromNimiRuntimeProtoStruct, toNimiRuntimeProtoStruct } from '../../runtime/runtime-agent-values';
-import { createNimiError } from '../../types';
+import { ReasonCode, createNimiError } from '../../types';
 import type {
   NimiJsonObject,
   NimiJsonValue,
@@ -93,8 +93,8 @@ export function toRuntimeMessages(messages: readonly NimiMessage[]): ChatMessage
   if (!hasContent) {
     throw createNimiError({
       message: 'Runtime-backed text model requires at least one non-empty text or file message part',
-      code: 'SDK_AI_INPUT_INVALID',
-      reasonCode: 'SDK_AI_INPUT_INVALID',
+      code: ReasonCode.SDK_AI_INPUT_INVALID,
+      reasonCode: ReasonCode.SDK_AI_INPUT_INVALID,
       actionHint: 'provide_text_message_content',
       source: 'sdk',
     });
@@ -195,8 +195,8 @@ export function toNimiSource(source: RuntimeTextSource): NimiSource {
   }
   throw createNimiError({
     message: 'Runtime Scenario source did not include a supported sourceType',
-    code: 'SDK_AI_RUNTIME_OUTPUT_INVALID',
-    reasonCode: 'SDK_AI_RUNTIME_OUTPUT_INVALID',
+    code: ReasonCode.SDK_AI_RUNTIME_OUTPUT_INVALID,
+    reasonCode: ReasonCode.SDK_AI_RUNTIME_OUTPUT_INVALID,
     actionHint: 'check_runtime_text_source_type',
     source: 'sdk',
   });
@@ -336,8 +336,8 @@ function parseToolArguments(argumentsJson: string): NimiJsonValue {
   } catch (error) {
     throw createNimiError({
       message: 'Runtime Scenario tool call argumentsJson is not valid JSON',
-      code: 'SDK_AI_RUNTIME_OUTPUT_INVALID',
-      reasonCode: 'SDK_AI_RUNTIME_OUTPUT_INVALID',
+      code: ReasonCode.SDK_AI_RUNTIME_OUTPUT_INVALID,
+      reasonCode: ReasonCode.SDK_AI_RUNTIME_OUTPUT_INVALID,
       actionHint: 'check_runtime_tool_call_arguments_json',
       source: 'sdk',
       details: { cause: error instanceof Error ? error.message : String(error) },
@@ -348,8 +348,8 @@ function parseToolArguments(argumentsJson: string): NimiJsonValue {
 function unsupportedRuntimeAI(feature: string, detail: string): never {
   throw createNimiError({
     message: `Runtime-backed Nimi AI does not support ${feature}: ${detail}`,
-    code: 'SDK_AI_RUNTIME_FEATURE_UNSUPPORTED',
-    reasonCode: 'SDK_AI_RUNTIME_FEATURE_UNSUPPORTED',
+    code: ReasonCode.SDK_AI_RUNTIME_FEATURE_UNSUPPORTED,
+    reasonCode: ReasonCode.SDK_AI_RUNTIME_FEATURE_UNSUPPORTED,
     actionHint: 'use_agent_or_feature_layer_for_unsupported_ai_semantics',
     source: 'sdk',
     details: { feature },

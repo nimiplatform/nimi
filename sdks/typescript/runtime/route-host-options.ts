@@ -100,27 +100,23 @@ async function listHostData(
   context: NimiRuntimeRouteHostOptionsContext,
   deps: NimiRuntimeRouteHostOptionsDeps,
 ): Promise<HostOptionsData> {
-  const connectorDescriptorsPromise = deps.listConnectors().catch((error) => {
-    if (deps.onListConnectorsError) return deps.onListConnectorsError(error, context);
-    throw error;
-  });
+  const connectorDescriptorsPromise = deps.listConnectors();
   let localMetadataDegraded = false;
   const localMetadataPromise = deps.loadLocalRouteMetadata(context).catch(async (error) => {
     if (!deps.onLocalRouteMetadataError) throw error;
-    const fallback = await deps.onLocalRouteMetadataError(error, context);
-    localMetadataDegraded = Boolean(fallback.localMetadataDegraded);
-    return fallback.metadata;
+    localMetadataDegraded = true;
+    await deps.onLocalRouteMetadataError(error, context);
+    return {
+      snapshotAssets: [],
+      nodeCatalog: [],
+      runtimeLocalModels: [],
+    };
   });
   const [connectorDescriptors, localMetadata] = await Promise.all([connectorDescriptorsPromise, localMetadataPromise]);
   const connectors: Array<NimiRuntimeRouteConnectorProjectionInput | null> = await Promise.all((connectorDescriptors || []).map(async (descriptor) => {
     const connectorId = normalizeText(descriptor.id);
     if (!connectorId) return null;
-    const modelDescriptors = await deps.listConnectorModelDescriptors(connectorId).catch((error) => {
-      if (deps.onListConnectorModelDescriptorsError) {
-        return deps.onListConnectorModelDescriptorsError(error, { ...context, connectorId });
-      }
-      throw error;
-    });
+    const modelDescriptors = await deps.listConnectorModelDescriptors(connectorId);
     return { descriptor: { ...descriptor, id: connectorId }, modelDescriptors };
   }));
   return {

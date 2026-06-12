@@ -8,7 +8,7 @@ import type {
 } from '../../core/contracts';
 
 export const NIMI_MCP_ADAPTER_ID = 'mcp' as const;
-export const NIMI_MCP_UNSUPPORTED_FEATURE_CODE = 'unsupported_mcp_adapter_feature' as const;
+export const NIMI_MCP_UNSUPPORTED_FEATURE_CODE = 'SDK_ADAPTER_FEATURE_UNSUPPORTED' as const;
 
 export const NIMI_MCP_ADAPTER_MANIFEST = {
   adapterId: NIMI_MCP_ADAPTER_ID,
@@ -18,9 +18,9 @@ export const NIMI_MCP_ADAPTER_MANIFEST = {
   capabilities: {
     'mcp.tools.list': { support: 'supported', mode: 'adapter-mapped' },
     'mcp.tools.call.auto': {
-      support: 'supported',
-      mode: 'adapter-mapped',
-      note: 'The MCP adapter maps MCP tool calls to local NimiTool.execute when no gated policy is present.',
+      support: 'unsupported',
+      mode: 'owner-gated',
+      note: 'Tool execution must route through the Runtime delegated gateway/firewall; the SDK adapter does not execute local tools.',
     },
     'mcp.runEvents': { support: 'supported', mode: 'adapter-mapped' },
     'mcp.resources': { support: 'unsupported', mode: 'adapter-mapped' },
@@ -92,20 +92,7 @@ export function createNimiMcpAdapter(options: { readonly tools: readonly NimiToo
       if (!tool) {
         throwUnsupportedMcpFeature('mcp.tools.call.unknown_tool', request.name);
       }
-      if (tool.policy === 'approval-required') {
-        throwUnsupportedMcpFeature('mcp.approval', 'approval mapping requires owner-approved L3 semantics');
-      }
-      if (tool.policy === 'external-execution') {
-        throwUnsupportedMcpFeature('mcp.externalExecution', 'external execution mapping requires owner-approved L3 semantics');
-      }
-      if (!tool.execute) {
-        throwUnsupportedMcpFeature('mcp.tools.call.execute_missing', request.name);
-      }
-      const result = await tool.execute(request.arguments ?? {});
-      return {
-        content: [{ type: 'text', text: stringifyMcpResult(result) }],
-        structuredContent: result,
-      };
+      throwUnsupportedMcpFeature('mcp.tools.call.runtime_delegation_required', tool.name);
     },
     runEventNotifications(events, progressToken = 'nimi-run') {
       return toMcpRunEventNotifications(events, progressToken);
@@ -152,11 +139,4 @@ export function toMcpRunEventNotifications(
   }
 
   return notifications;
-}
-
-function stringifyMcpResult(value: NimiJsonValue): string {
-  if (typeof value === 'string') {
-    return value;
-  }
-  return JSON.stringify(value);
 }

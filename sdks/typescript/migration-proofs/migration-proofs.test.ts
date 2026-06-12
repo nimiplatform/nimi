@@ -115,7 +115,7 @@ test('adapter manifests match observed proof behavior', async () => {
       assert.ok(manifestByAdapter.has(adapterId), adapterId);
     }
   }
-  assert.equal(NIMI_MCP_ADAPTER_MANIFEST.capabilities['mcp.tools.call.auto'].support, 'supported');
+  assert.equal(NIMI_MCP_ADAPTER_MANIFEST.capabilities['mcp.tools.call.auto'].support, 'unsupported');
   assert.equal(NIMI_MASTRA_ADAPTER_MANIFEST.capabilities['agent.generate'].support, 'supported');
   assert.equal(NIMI_MASTRA_ADAPTER_MANIFEST.capabilities.memory.support, 'partial');
   assert.equal(NIMI_MASTRA_ADAPTER_MANIFEST.capabilities.workflows.support, 'partial');

@@ -124,7 +124,7 @@ function findNimiRuntimeLocalEvidence(
       normalizeText(item.localModelId || item.goRuntimeLocalModelId) === bindingLocalModelId
     )) || null;
     if (byLocalModelId) {
-      if (byLocalModelId.capabilities && !runtimeNimiRouteCapabilitiesMatch(byLocalModelId.capabilities, capability)) {
+      if (!runtimeNimiRouteCapabilitiesMatch(byLocalModelId.capabilities, capability)) {
         return null;
       }
       return localOptionToNimiRuntimeBinding(byLocalModelId);
@@ -142,7 +142,7 @@ function findNimiRuntimeLocalEvidence(
   if (!byModelAndEngine) {
     return null;
   }
-  if (byModelAndEngine.capabilities && !runtimeNimiRouteCapabilitiesMatch(byModelAndEngine.capabilities, capability)) {
+  if (!runtimeNimiRouteCapabilitiesMatch(byModelAndEngine.capabilities, capability)) {
     return null;
   }
   return localOptionToNimiRuntimeBinding(byModelAndEngine);
@@ -159,7 +159,7 @@ function findNimiRuntimeCloudEvidence(
   const connector = connectors.find((item) => normalizeText(item.id) === connectorId) || null;
   if (!connector || !connector.models.includes(model)) return null;
   const modelCapabilities = connector.modelCapabilities?.[model];
-  if (modelCapabilities && !runtimeNimiRouteCapabilitiesMatch(modelCapabilities, capability)) {
+  if (!runtimeNimiRouteCapabilitiesMatch(modelCapabilities, capability)) {
     return null;
   }
   return {

@@ -20,6 +20,7 @@ import type {
 } from '../types';
 
 type GrpcModule = typeof import('@grpc/grpc-js');
+const RUNTIME_NODE_GRPC_MAX_BUFFERED_STREAM_CHUNKS = 1024;
 
 export interface RuntimeNodeGrpcTlsOptions {
   readonly enabled?: boolean;
@@ -176,7 +177,7 @@ function runtimeMetadataEntries(
       );
     }
     const header = RUNTIME_METADATA_HEADERS[compactKey]
-      ?? (normalizedKey === 'authorization' || normalizedKey.startsWith('x-nimi-') ? normalizedKey : '');
+      ?? (normalizedKey.startsWith('x-nimi-') ? normalizedKey : '');
     if (header) {
       entries.push([header, normalizedValue]);
     }
@@ -193,7 +194,19 @@ function validateRuntimeMetadataSecurity(
     if (!normalizedValue) {
       continue;
     }
-    if (key.trim().toLowerCase().replaceAll('-', '') === 'providerapikey' && !transportAllowsPlaintextProviderKey(options)) {
+    const normalizedKey = key.trim().toLowerCase();
+    if (normalizedKey === 'authorization') {
+      throw toTransportError(
+        'SDK_TRANSPORT_INVALID',
+        'Runtime authorization must use the transport auth channel, not metadata.authorization',
+        { metadataKey: key },
+        {
+          actionHint: 'move_runtime_authorization_to_transport_auth',
+          retryable: false,
+        },
+      );
+    }
+    if (normalizedKey.replaceAll('-', '') === 'providerapikey' && !transportAllowsPlaintextProviderKey(options)) {
       throw toTransportError(
         'SDK_TRANSPORT_INVALID',
         'providerApiKey requires TLS or a loopback-only node-grpc endpoint',
@@ -621,7 +634,37 @@ function nodeGrpcReadableStream(
     flush();
   };
 
+  const failBackpressure = () => {
+    if (done) {
+      return;
+    }
+    pendingError = toTransportError(
+      ReasonCode.SDK_RUNTIME_NODE_GRPC_STREAM_BACKPRESSURE,
+      `${methodId} stream consumer is not draining fast enough`,
+      {
+        methodId,
+        bufferedChunks: queue.length,
+        maxBufferedChunks: RUNTIME_NODE_GRPC_MAX_BUFFERED_STREAM_CHUNKS,
+      },
+      {
+        reasonCode: ReasonCode.SDK_RUNTIME_NODE_GRPC_STREAM_BACKPRESSURE,
+        actionHint: 'consume_stream_events_or_cancel_the_stream',
+        retryable: false,
+      },
+    );
+    done = true;
+    call.cancel();
+    flush();
+  };
+
   call.on('data', (chunk: Uint8Array) => {
+    if (done) {
+      return;
+    }
+    if (queue.length >= RUNTIME_NODE_GRPC_MAX_BUFFERED_STREAM_CHUNKS && waiters.length === 0) {
+      failBackpressure();
+      return;
+    }
     queue.push(chunk);
     flush();
   });

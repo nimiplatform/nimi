@@ -15,7 +15,7 @@ import {
   type CanonicalMemoryView,
   type QueryAgentMemoryRequest,
   type RuntimeTypedCallOptions,
-} from './generated';
+} from '../core-generated/runtime-typed-client';
 
 const AGENT_REF = 'local-agent:user-1:agent-1';
 

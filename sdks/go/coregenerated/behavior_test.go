@@ -188,7 +188,7 @@ func TestGeneratedClientsWithFakeTransport(t *testing.T) {
 		if transport.unaryCalls[0].TimeoutMS != fixtures.Cases.TimeoutMS {
 			t.Fatalf("typed timeout not propagated")
 		}
-		if transport.unaryCalls[0].Metadata["authorization"] != fixtures.Cases.Metadata.Auth["authorization"] {
+		if transport.unaryCalls[0].Metadata["x-nimi-access-token-id"] != fixtures.Cases.Metadata.Auth["x-nimi-access-token-id"] {
 			t.Fatalf("typed auth metadata not propagated")
 		}
 		if transport.unaryCalls[0].Metadata["x-nimi-caller"] != fixtures.Cases.Metadata.Caller["x-nimi-caller"] {
@@ -248,9 +248,6 @@ func TestGeneratedClientsWithFakeTransport(t *testing.T) {
 		if shaped.Code != "SDK_RUNTIME_METHOD_UNAVAILABLE" || shaped.Message != "typed conformance error" || shaped.Details["fixture"] != "typed-core" {
 			t.Fatalf("typed structured error mismatch: %#v", shaped)
 		}
-		if runtimeClient.UnsafeRaw() != transport || realmClient.UnsafeRaw() != transport {
-			t.Fatalf("unsafe raw transport mismatch")
-		}
 		return
 	}
 
@@ -269,7 +266,7 @@ func TestGeneratedClientsWithFakeTransport(t *testing.T) {
 	if transport.unaryCalls[0].TimeoutMS != fixtures.Cases.TimeoutMS {
 		t.Fatalf("timeout not propagated")
 	}
-	if transport.unaryCalls[0].Metadata["authorization"] != fixtures.Cases.Metadata.Auth["authorization"] {
+	if transport.unaryCalls[0].Metadata["x-nimi-access-token-id"] != fixtures.Cases.Metadata.Auth["x-nimi-access-token-id"] {
 		t.Fatalf("auth metadata not propagated")
 	}
 	if transport.unaryCalls[0].Metadata["x-nimi-caller"] != fixtures.Cases.Metadata.Caller["x-nimi-caller"] {
@@ -302,8 +299,5 @@ func TestGeneratedClientsWithFakeTransport(t *testing.T) {
 	cancel()
 	if _, err := runtimeClient.Call(ctx, fixtures.Cases.RuntimeUnary.MethodID, nil, nil, 0); !errors.Is(err, context.Canceled) {
 		t.Fatalf("expected context cancellation, got %v", err)
-	}
-	if runtimeClient.UnsafeRaw() != transport || realmClient.UnsafeRaw() != transport {
-		t.Fatalf("unsafe raw transport mismatch")
 	}
 }

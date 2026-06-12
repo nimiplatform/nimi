@@ -77,6 +77,7 @@ const protoScalars = new Set([
   'bytes',
   'google.protobuf.Timestamp',
   'google.protobuf.Struct',
+  'google.protobuf.Value',
   'google.protobuf.Duration',
   'google.protobuf.FieldMask',
 ]);
@@ -96,7 +97,7 @@ export function openApiSuccessSchema(operation) {
 export function tsProtoType(field, runtime) {
   const inner = (type) => {
     if (type === 'string' || type === 'google.protobuf.Timestamp' || type === 'google.protobuf.Duration' || type === 'google.protobuf.FieldMask') return 'string';
-    if (type === 'google.protobuf.Struct') return 'Record<string, string | number | boolean | null>';
+    if (type === 'google.protobuf.Struct' || type === 'google.protobuf.Value') return 'Record<string, string | number | boolean | null>';
     if (type === 'bool') return 'boolean';
     if (type === 'bytes') return 'Uint8Array';
     if (['int32', 'int64', 'uint32', 'uint64', 'sint32', 'sint64', 'fixed32', 'fixed64', 'sfixed32', 'sfixed64', 'float', 'double'].includes(type)) return 'number';
@@ -110,7 +111,7 @@ export function tsProtoType(field, runtime) {
 export function pyProtoType(field, runtime) {
   const inner = (type) => {
     if (type === 'string' || type === 'google.protobuf.Timestamp' || type === 'google.protobuf.Duration' || type === 'google.protobuf.FieldMask') return 'str';
-    if (type === 'google.protobuf.Struct') return 'Mapping[str, object]';
+    if (type === 'google.protobuf.Struct' || type === 'google.protobuf.Value') return 'Mapping[str, object]';
     if (type === 'bool') return 'bool';
     if (type === 'bytes') return 'bytes';
     if (['int32', 'int64', 'uint32', 'uint64', 'sint32', 'sint64', 'fixed32', 'fixed64', 'sfixed32', 'sfixed64'].includes(type)) return 'int';
@@ -125,7 +126,7 @@ export function pyProtoType(field, runtime) {
 export function goProtoType(field, runtime) {
   const inner = (type, repeated = false) => {
     if (type === 'string' || type === 'google.protobuf.Timestamp' || type === 'google.protobuf.Duration' || type === 'google.protobuf.FieldMask') return 'string';
-    if (type === 'google.protobuf.Struct') return 'map[string]any';
+    if (type === 'google.protobuf.Struct' || type === 'google.protobuf.Value') return 'map[string]any';
     if (type === 'bool') return 'bool';
     if (type === 'bytes') return '[]byte';
     if (type === 'int32' || type === 'sint32' || type === 'sfixed32') return 'int32';
@@ -144,7 +145,7 @@ export function goProtoType(field, runtime) {
 export function rustProtoType(field, runtime) {
   const inner = (type, nested = false) => {
     if (type === 'string' || type === 'google.protobuf.Timestamp' || type === 'google.protobuf.Duration' || type === 'google.protobuf.FieldMask') return 'String';
-    if (type === 'google.protobuf.Struct') return 'BTreeMap<String, String>';
+    if (type === 'google.protobuf.Struct' || type === 'google.protobuf.Value') return 'BTreeMap<String, String>';
     if (type === 'bool') return 'bool';
     if (type === 'bytes') return 'Vec<u8>';
     if (type === 'int32' || type === 'sint32' || type === 'sfixed32') return 'i32';

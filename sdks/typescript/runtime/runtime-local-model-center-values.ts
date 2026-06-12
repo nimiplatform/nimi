@@ -19,16 +19,16 @@ export function toCanonicalNimiRuntimeLocalAssetLookupKey(value: unknown): strin
 }
 
 export function assertNimiRuntimeLocalWriteAllowed(command: string, caller: unknown): void {
-  const normalizedCaller = normalizeText(caller || 'core').toLowerCase() || 'core';
+  const normalizedCaller = normalizeText(caller).toLowerCase();
   if (normalizedCaller === 'core') {
     return;
   }
   throw createNimiError({
-    message: `Runtime local write denied for ${command}: caller=${normalizedCaller}`,
+    message: `Runtime local write denied for ${command}: caller=${normalizedCaller || '<missing>'}`,
     reasonCode: 'SDK_RUNTIME_LOCAL_WRITE_DENIED',
     actionHint: 'route_local_runtime_write_through_core',
     source: 'sdk',
-    details: { command, caller: normalizedCaller },
+    details: { command, caller: normalizedCaller || '<missing>' },
   });
 }
 

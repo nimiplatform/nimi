@@ -30,38 +30,29 @@ import { createNimiError, ReasonCode } from '../../types';
 import type { RuntimeLocalAgentIdentityInput } from '../../runtime/agent-local-identity';
 import {
   createNimiHostRuntimeAgentLifecycleSurface,
+  createNimiHostRuntimeAgentMemorySurface,
+  createNimiRuntimeAgentTurnsModule,
+  normalizeNimiRuntimeAgentText,
+  runNimiRuntimeAgentTurn,
+  toNimiRuntimeProtoStruct,
+  withNimiRuntimeAgentScopes,
+  type NimiRuntimeAgentAppAuthClient,
+  type NimiRuntimeAgentAuthClient,
+  type NimiRuntimeAgentCanonicalMemoryBankStatus,
+  type NimiRuntimeAgentConsumeEvent,
+  type NimiRuntimeAgentConsumeRequest,
   type NimiRuntimeAgentEnsureLocalAgentInitializedInput,
   type NimiRuntimeAgentInitializeLocalAgentInput,
-  type NimiRuntimeAgentTerminateLocalAgentInput,
-} from '../../runtime/runtime-agent-lifecycle';
-import {
-  createNimiHostRuntimeAgentMemorySurface,
-  type NimiRuntimeAgentCanonicalMemoryBankStatus,
-} from '../../runtime/runtime-agent-memory';
-import {
-  createNimiRuntimeAgentTurnsModule,
-} from '../../runtime/runtime-agent-turns';
-import {
-  runNimiRuntimeAgentTurn,
-  type NimiRuntimeAgentConsumeRequest,
   type NimiRuntimeAgentMessage,
+  type NimiRuntimeAgentScopeRunner,
+  type NimiRuntimeAgentSessionSnapshot,
   type NimiRuntimeAgentSessionSnapshotRequest,
+  type NimiRuntimeAgentTerminateLocalAgentInput,
   type NimiRuntimeAgentTurnInterruptRequest,
   type NimiRuntimeAgentTurnRequest,
   type NimiRuntimeAgentTurnRunnerOptions,
   type NimiRuntimeAgentTurnRunnerPart,
-} from '../../runtime/runtime-agent-turn-runner';
-import type {
-  NimiRuntimeAgentConsumeEvent,
-  NimiRuntimeAgentSessionSnapshot,
-} from '../../runtime/runtime-agent-consume-types';
-import type {
-  NimiRuntimeAgentAuthClient,
-  NimiRuntimeAgentAppAuthClient,
-  NimiRuntimeAgentScopeRunner,
-} from '../../runtime/runtime-agent-protected';
-import { withNimiRuntimeAgentScopes } from '../../runtime/runtime-agent-protected';
-import { normalizeNimiRuntimeAgentText, toNimiRuntimeProtoStruct } from '../../runtime/runtime-agent-values';
+} from '../../runtime';
 import type { NimiJsonObject } from '../contracts';
 
 export interface NimiRuntimeAgentClientRuntime {

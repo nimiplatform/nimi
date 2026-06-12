@@ -25,7 +25,7 @@ import {
   toVercelTopLevelProviderMetadata,
 } from './raw-metadata';
 
-export const NIMI_VERCEL_AI_UNSUPPORTED_FEATURE_CODE = 'unsupported_vercel_ai_adapter_feature' as const;
+export const NIMI_VERCEL_AI_UNSUPPORTED_FEATURE_CODE = 'SDK_ADAPTER_FEATURE_UNSUPPORTED' as const;
 
 export type NimiVercelLanguageModel = LanguageModelV3;
 
@@ -35,14 +35,20 @@ export interface NimiVercelLanguageModelOptions {
 
 export type NimiVercelRuntimeModelOptions =
   Omit<NimiClientRuntimeModelOptions, 'model' | 'routePolicy'> & {
-    readonly routePolicy?: NimiRuntimeAIRoutePolicy;
+    readonly routePolicy: NimiRuntimeAIRoutePolicy;
     readonly providerId?: string;
+    readonly subjectMode?: 'external-principal';
   };
 
-export interface NimiVercelProviderOptions extends NimiVercelRuntimeModelOptions {
-  readonly client?: NimiClient;
-  readonly model?: NimiAiModel;
-}
+export type NimiVercelProviderOptions =
+  | (NimiVercelRuntimeModelOptions & {
+    readonly client: NimiClient;
+    readonly model?: never;
+  })
+  | {
+    readonly model: NimiAiModel;
+    readonly client?: never;
+  };
 
 export interface NimiVercelLanguageModelProvider {
   readonly manifest: NimiCapabilityManifest;
@@ -139,6 +145,7 @@ function resolveProviderModel(options: NimiVercelProviderOptions, modelId: strin
   if (!client) {
     throwUnsupportedVercelAiFeature('provider.configuration', 'missing NimiClient');
   }
+  assertRuntimeBackedProviderOptions(options);
   return client.ai.createRuntimeModel({
     appId: options.appId,
     runtime: options.runtime,
@@ -153,4 +160,13 @@ function resolveProviderModel(options: NimiVercelProviderOptions, modelId: strin
     metadata: options.metadata,
     reasoning: options.reasoning,
   });
+}
+
+function assertRuntimeBackedProviderOptions(options: NimiVercelProviderOptions): void {
+  if (!options.routePolicy) {
+    throwUnsupportedVercelAiFeature('provider.routePolicy', 'runtime-backed providers require explicit routePolicy');
+  }
+  if (options.subjectUserId && options.subjectMode !== 'external-principal') {
+    throwUnsupportedVercelAiFeature('provider.subjectUserId', 'subjectUserId requires subjectMode external-principal');
+  }
 }

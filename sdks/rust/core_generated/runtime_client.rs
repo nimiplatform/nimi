@@ -1974,7 +1974,7 @@ where
             Ok(descriptor) => descriptor,
             Err(message) => panic!("{}", message),
         };
-        if !descriptor.kind.contains("stream") {
+        if descriptor.kind != "server_stream" {
             panic!("SDK_RUNTIME_METHOD_UNAVAILABLE: Runtime method is not streaming {}", method_id);
         }
         self.core.server_stream(CoreStreamRequest {
@@ -1983,9 +1983,5 @@ where
             body,
             timeout,
         })
-    }
-
-    pub fn unsafe_raw(&self) -> &T {
-        self.core.unsafe_raw()
     }
 }

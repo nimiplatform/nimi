@@ -8,7 +8,7 @@ import {
   type RealmGroupMessageCandidateEvidence,
   type RuntimeTypedCallOptions,
 } from '../core-generated/runtime-typed-client';
-import { createNimiError, ReasonCode, type JsonObject } from '../types';
+import { createNimiError, ReasonCode } from '../types';
 import { buildRuntimeAgentRequestContext, buildRuntimeLocalAgentRef } from './agent-local-identity';
 import {
   resolveNimiRuntimeAgentSubjectUserId,
@@ -73,7 +73,7 @@ export type NimiRuntimeRealmGroupMessageCandidateCommitInput =
     readonly membershipSnapshotRef?: unknown;
     readonly readCursorRef?: unknown;
     readonly roomOrchestrationRef?: unknown;
-    readonly contextRefs?: JsonObject;
+    readonly contextRefs?: never;
   };
 
 export interface NimiRuntimeRealmGroupMessageCandidateCommitResult {
@@ -170,24 +170,6 @@ function defaultContextRefs(input: {
     'realm.group.recent_messages.snapshot': `realm-context://group-chats/${input.realmGroupThreadId}/recent-messages/current`,
     'realm.group.policy.snapshot': `realm-context://group-chats/${input.realmGroupThreadId}/policy/current`,
   };
-}
-
-function normalizeContextRefs(
-  overrides: Record<string, unknown> | undefined,
-  defaults: Record<string, string>,
-): Record<string, string> {
-  const normalized = { ...defaults };
-  if (!overrides) {
-    return normalized;
-  }
-  for (const [key, value] of Object.entries(overrides)) {
-    const normalizedKey = optionalText(key);
-    const normalizedValue = optionalText(value);
-    if (normalizedKey && normalizedValue) {
-      normalized[normalizedKey] = normalizedValue;
-    }
-  }
-  return normalized;
 }
 
 function requireCandidateHandle(
@@ -321,6 +303,9 @@ export function createNimiHostRuntimeRealmGroupMessageCandidateSurface(
       const realmGroupThreadId = requireText(input.realmGroupThreadId, 'Realm group message candidate handoff requires Realm group thread id', 'provide_realm_group_thread');
       const triggerMessageId = requireText(input.triggerMessageId, 'Realm group message candidate handoff requires a committed Realm trigger message', 'provide_realm_group_trigger_message');
       const idempotencyKey = requireText(input.idempotencyKey, 'Realm group message candidate handoff requires idempotency key', 'provide_realm_group_candidate_idempotency_key');
+      if (Object.prototype.hasOwnProperty.call(input, 'contextRefs')) {
+        inputError('Realm group candidate context refs are Runtime-owned and cannot be caller overridden', 'use_realm_group_participation_context_projection');
+      }
       const triggerRef = `realm://group-chats/${realmGroupThreadId}/messages/${triggerMessageId}`;
       const context = buildRuntimeAgentRequestContext({
         runtimeAppId: runtime.appId,
@@ -347,13 +332,10 @@ export function createNimiHostRuntimeRealmGroupMessageCandidateSurface(
         roomOrchestrationRef: optionalText(input.roomOrchestrationRef)
           || `realm://group-chats/${realmGroupThreadId}/orchestration/current`,
         idempotencyKey,
-        contextRefs: normalizeContextRefs(
-          input.contextRefs,
-          defaultContextRefs({
-            realmGroupThreadId,
-            realmGroupAgentSlotId: slot.realmGroupAgentSlotId,
-          }),
-        ),
+        contextRefs: defaultContextRefs({
+          realmGroupThreadId,
+          realmGroupAgentSlotId: slot.realmGroupAgentSlotId,
+        }),
       }, callOptions));
       const candidate = requireCandidateHandle(candidateResponse.candidate);
       assertCandidateHandleMatchesExpectedSlot({ candidate, slot, triggerRef, realmGroupThreadId });

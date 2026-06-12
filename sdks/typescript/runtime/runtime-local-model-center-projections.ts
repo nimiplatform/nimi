@@ -47,7 +47,6 @@ import type {
   NimiRuntimeLocalExecutionPlan,
   NimiRuntimeLocalExecutionStageResult,
   NimiRuntimeLocalImageNativeAssetInput,
-  NimiRuntimeLocalImageNativeDeviceProfileInput,
   NimiRuntimeLocalImageNativeEnvironmentPlanInput,
   NimiRuntimeLocalImageNativeEnvironmentPlanRuntime,
   NimiRuntimeLocalInstallPlanDescriptor,
@@ -499,28 +498,11 @@ export function isNimiRuntimeLocalEnvironmentDependencyJobCancelledState(state: 
   return NIMI_RUNTIME_LOCAL_ENVIRONMENT_DEPENDENCY_JOB_CANCELLED_STATES.has(normalizeNimiRuntimeLocalState(state));
 }
 
-export function projectNimiRuntimeLocalImageNativeConsumerScope(
-  profile: NimiRuntimeLocalImageNativeDeviceProfileInput | undefined,
-): string {
-  const os = normalizeText(profile?.os).toLowerCase();
-  const arch = normalizeText(profile?.arch).toLowerCase();
-  const vendor = normalizeText(profile?.gpu?.vendor).toLowerCase();
-  if (os === 'darwin' && arch === 'arm64' && vendor === 'apple') {
-    return 'stable-diffusion.cpp.metal';
-  }
-  if (vendor === 'nvidia') {
-    return 'stable-diffusion.cpp.cuda';
-  }
-  return 'stable-diffusion.cpp.cpu';
-}
-
 export function buildNimiRuntimeLocalImageNativeEnvironmentPlanInput(
   asset: NimiRuntimeLocalImageNativeAssetInput,
-  profile: NimiRuntimeLocalImageNativeDeviceProfileInput | undefined,
 ): NimiRuntimeLocalImageNativeEnvironmentPlanInput {
   return {
     packId: NIMI_RUNTIME_LOCAL_IMAGE_NATIVE_PACK_ID,
-    consumerScope: projectNimiRuntimeLocalImageNativeConsumerScope(profile),
     assetId: normalizeText(asset.assetId) || undefined,
     localAssetId: normalizeText(asset.localAssetId) || undefined,
   };
@@ -530,9 +512,8 @@ export async function resolveNimiRuntimeLocalImageNativeEnvironmentPlan(input: {
   readonly runtime: NimiRuntimeLocalImageNativeEnvironmentPlanRuntime;
   readonly asset: NimiRuntimeLocalImageNativeAssetInput;
 }): Promise<NimiRuntimeLocalEnvironmentPlan> {
-  const profile = await input.runtime.collectDeviceProfile();
   return input.runtime.resolveEnvironmentPlan(
-    buildNimiRuntimeLocalImageNativeEnvironmentPlanInput(input.asset, profile),
+    buildNimiRuntimeLocalImageNativeEnvironmentPlanInput(input.asset),
   );
 }
 

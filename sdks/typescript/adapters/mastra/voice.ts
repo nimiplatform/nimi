@@ -27,7 +27,7 @@ import {
   VoiceWorkflowType,
 } from '@nimiplatform/sdk/runtime/generated';
 
-export const NIMI_MASTRA_VOICE_UNSUPPORTED_FEATURE_CODE = 'unsupported_mastra_voice_feature' as const;
+export const NIMI_MASTRA_VOICE_UNSUPPORTED_FEATURE_CODE = 'SDK_ADAPTER_FEATURE_UNSUPPORTED' as const;
 const NIMI_RUNTIME_SCENARIO_IDEMPOTENCY_KEY_MAX_LENGTH = 256;
 type NimiMastraVoiceOperation = 'speak' | 'listen';
 

@@ -295,11 +295,11 @@ test('Runtime Realm group message candidate surface builds verified commit paylo
     realmGroupThreadId: 'thread-1',
     triggerMessageId: 'message-1',
     idempotencyKey: 'idem-1',
-    contextRefs: { custom: 'realm-context://custom' },
   });
 
   assert.equal(createCalls[0]?.triggerRef, 'realm://group-chats/thread-1/messages/message-1');
-  assert.equal(createCalls[0]?.contextRefs.custom, 'realm-context://custom');
+  assert.equal(createCalls[0]?.contextRefs['realm.group.thread.snapshot'], 'realm-context://group-chats/thread-1/thread/current');
+  assert.equal('custom' in (createCalls[0]?.contextRefs ?? {}), false);
   assert.equal(evidenceCalls[0]?.candidateId, 'candidate-1');
   assert.equal(result.realmCommitPayload.commitDisposition, 'MESSAGE_CANDIDATE');
   assert.equal(result.realmCommitPayload.body, 'hello group');
@@ -318,6 +318,20 @@ test('Runtime Realm group message candidate surface builds verified commit paylo
       idempotencyKey: 'idem-2',
     }),
     /evidence does not match the candidate handle/,
+  );
+
+  await assert.rejects(
+    () => surface.createCommitPayload({
+      ...agentIdentity(),
+      participantType: 'agent',
+      currentUserId: 'user-1',
+      realmGroupAgentSlotId: 'slot-1',
+      realmGroupThreadId: 'thread-1',
+      triggerMessageId: 'message-1',
+      idempotencyKey: 'idem-3',
+      contextRefs: { custom: 'realm-context://custom' },
+    } as never),
+    /context refs are Runtime-owned/,
   );
 });
 

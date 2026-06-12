@@ -23,13 +23,11 @@ import {
   parseNimiRuntimeAgentTimeline,
   projectNimiRuntimeAgentAppMessageEvent,
   projectNimiRuntimeAgentCanonicalMemoryBankStatus,
-  projectNimiRuntimeAgentServiceEvent,
   readNimiRuntimeAgentStructuredMessageField,
   recoverNimiRuntimeAgentTerminalSnapshot,
   summarizeNimiRuntimeAgentProjectionEvent,
   summarizeNimiRuntimeAgentTimeline,
   toNimiRuntimeProtoStruct,
-  type AgentEvent,
   type AppMessageEvent,
   type NimiRuntimeAgentConsumeEvent,
   type NimiRuntimeAgentConsumeRuntime,
@@ -38,8 +36,6 @@ import {
 import {
   AgentCanonicalMemoryBankMode,
   AgentEventType,
-  AgentPresentationEventFamily,
-  AgentStateEventFamily,
   AvatarDebugProbeKind,
   AvatarDebugRequestedBy,
   CompanionParticipationStatus,
@@ -54,7 +50,7 @@ import {
   EffectClass,
   HookAdmissionState,
   SensitivityClass,
-} from './generated';
+} from '../core-generated/runtime-typed-client';
 
 const consumeContext = {
   runtimeAppId: 'nimi.avatar',
@@ -472,11 +468,11 @@ test('Runtime Agent delegated helpers build scoped provider, approval, and repla
     protocolRevision: 'v1',
     outputKind: 'observation',
     requiresApproval: true,
-  })).modelOutput, toNimiRuntimeProtoStruct({ text: 'runtime-owned result' }));
+  })).output, { text: 'runtime-owned result' });
   assert.deepEqual((await surface.resumeApprovedCapability(
     'local-agent:owner-1:agent-1',
     'approval-1',
-  )).modelOutput, toNimiRuntimeProtoStruct({ text: 'resumed result' }));
+  )).output, { text: 'resumed result' });
   assert.deepEqual(await surface.loadReplayTrace(
     'local-agent:owner-1:agent-1',
     'decision-1',
@@ -497,7 +493,7 @@ test('Runtime Agent delegated helpers build scoped provider, approval, and repla
   assert.equal(stateCall.request?.state, DelegatedProviderState.DISABLED);
   assert.equal(stateCall.request?.lifecycleReasonCode, 'disabled_for_test');
   const approvalCall = calls.find((call) => call.method === 'approval') as { readonly request?: { readonly decision?: number; readonly decisionReason?: string } };
-  assert.equal(approvalCall.request?.decision, DelegatedApprovalDecision.APPROVE);
+  assert.equal(approvalCall.request?.decision, DelegatedApprovalDecision.APPROVED_ONCE);
   assert.equal(approvalCall.request?.decisionReason, 'approved by user');
   const executeCall = calls.find((call) => call.method === 'execute') as {
     readonly request?: {
@@ -1339,76 +1335,4 @@ test('Runtime Agent consume preserves accepted request id for backlog filtering'
 
   assert.equal(projected?.eventName, 'runtime.agent.turn.accepted');
   assert.equal(projected?.detail.requestId, 'request-1');
-});
-
-test('Runtime Agent consume projects AgentService presentation and state events', () => {
-  const presentationEvent: AgentEvent = {
-    eventType: 7,
-    sequence: '1',
-    agentId: 'local-agent:owner-1:agent-1',
-    localAgentRef: 'local-agent:owner-1:agent-1',
-    ownerUserId: 'owner-1',
-    realmAgentId: 'agent-1',
-    detail: {
-      oneofKind: 'presentation',
-      presentation: {
-        family: AgentPresentationEventFamily.ACTIVITY_REQUESTED,
-        conversationAnchorId: 'anchor-1',
-        turnId: 'turn-1',
-        streamId: 'stream-1',
-        activityName: 'wave',
-        activityCategory: 'interaction',
-        activityIntensity: 'moderate',
-        activitySource: 'apml_output',
-        motionId: '',
-        motionPriority: '',
-        motionExpectedDurationMs: '0',
-        expressionId: '',
-        expressionExpectedDurationMs: '0',
-        poseId: '',
-        poseExpectedDurationMs: '0',
-        previousPoseId: '',
-        lookatTargetKind: '',
-        lookatX: 0,
-        lookatY: 0,
-        lookatZ: 0,
-        lookatHasX: false,
-        lookatHasY: false,
-        lookatHasZ: false,
-      },
-    },
-  };
-  const stateEvent: AgentEvent = {
-    eventType: 6,
-    sequence: '2',
-    agentId: 'local-agent:owner-1:agent-1',
-    localAgentRef: 'local-agent:owner-1:agent-1',
-    ownerUserId: 'owner-1',
-    realmAgentId: 'agent-1',
-    detail: {
-      oneofKind: 'state',
-      state: {
-        family: AgentStateEventFamily.EMOTION_CHANGED,
-        conversationAnchorId: 'anchor-1',
-        originatingTurnId: 'turn-1',
-        originatingStreamId: 'stream-1',
-        currentStatusText: '',
-        previousStatusText: '',
-        hasPreviousStatusText: false,
-        currentExecutionState: 2,
-        previousExecutionState: 1,
-        currentEmotion: 'joy',
-        previousEmotion: 'neutral',
-        emotionSource: 'apml_output',
-      },
-    },
-  };
-
-  const presentation = projectNimiRuntimeAgentServiceEvent(presentationEvent);
-  const state = projectNimiRuntimeAgentServiceEvent(stateEvent);
-
-  assert.equal(presentation.eventName, 'runtime.agent.presentation.activity_requested');
-  assert.equal(presentation.detail.activityName, 'wave');
-  assert.equal(state.eventName, 'runtime.agent.state.emotion_changed');
-  assert.equal(state.detail.currentEmotion, 'joy');
 });

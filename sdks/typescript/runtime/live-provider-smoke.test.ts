@@ -17,7 +17,7 @@ import {
   ScenarioType,
   VoiceReferenceKind,
   type ScenarioSpec,
-} from './generated';
+} from '../core-generated/runtime-typed-client';
 import { createNimiRuntimeFullAppRegistration } from './app-session';
 import { Runtime } from './index';
 import { withRuntimeDaemon } from './live-runtime-daemon.test-helper';

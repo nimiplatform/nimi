@@ -29,7 +29,7 @@ import {
   ScenarioType,
   UsageWindow,
   VoiceReferenceKind,
-} from './generated';
+} from '../core-generated/runtime-typed-client';
 import { ReasonCode } from '../types';
 
 test('Runtime reason message projection normalizes generated enum values and SDK reason strings', () => {

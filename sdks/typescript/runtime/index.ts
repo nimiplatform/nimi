@@ -358,6 +358,8 @@ export const RUNTIME_APP_LIFECYCLE_METHODS = [
   'openApp',
 ] as const satisfies readonly RuntimeTypedMethodName[];
 
+const RUNTIME_APP_LIFECYCLE_METHOD_SET = new Set<string>(RUNTIME_APP_LIFECYCLE_METHODS);
+
 export const RUNTIME_ARTIFACT_METHODS = [
   'readArtifactBytes',
 ] as const satisfies readonly RuntimeTypedMethodName[];
@@ -492,7 +494,7 @@ export class Runtime {
     const generated = options instanceof RuntimeTypedClient
       ? options
       : new RuntimeTypedClient(this.core);
-    this.generated = generated;
+    this.generated = createPublicRuntimeGeneratedClient(generated);
     this.account = bindRuntimeModule(generated, RUNTIME_ACCOUNT_METHODS);
     this.agents = bindRuntimeModule(generated, RUNTIME_AGENT_METHODS);
     this.ai = bindRuntimeModule(generated, RUNTIME_AI_METHODS);
@@ -636,6 +638,24 @@ function bindRuntimeModule<const Keys extends readonly RuntimeTypedMethodName[]>
     module[key] = method.bind(client);
   }
   return module as RuntimeMethodModule<Keys>;
+}
+
+function createPublicRuntimeGeneratedClient(client: RuntimeTypedClient): RuntimeTypedClient {
+  return new Proxy(client, {
+    get(target, property, receiver) {
+      if (typeof property === 'string' && RUNTIME_APP_LIFECYCLE_METHOD_SET.has(property)) {
+        return async () => {
+          throw createNimiError({
+            message: `Runtime App lifecycle operation ${property} must run through NimiRuntimeAppLifecycleClient.`,
+            reasonCode: 'SDK_RUNTIME_APP_LIFECYCLE_TYPED_CLIENT_REQUIRED',
+            actionHint: 'use_runtime_app_lifecycle_client',
+            source: 'sdk',
+          });
+        };
+      }
+      return Reflect.get(target, property, receiver);
+    },
+  });
 }
 
 function toCoreClientOptions(

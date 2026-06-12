@@ -558,6 +558,32 @@ describe('vNext app surface', () => {
         sourceRule: 'P-NAPP-004',
         admissionStatus: 'admitted',
         availableVersion: '1.0.1',
+      }, {
+        appId: 'nimi.hidden-app',
+        appKind: 'nimi-app',
+        displayName: 'Hidden App',
+        publisher: 'Nimi',
+        trustTier: 'nimi-first-party',
+        ordinaryVisibility: 'hidden-internal',
+        aiProfileSelectionRef: 'local-standard',
+        capabilitySet: ['text.generate'],
+        releaseDescriptorRef: 'nimi.hidden-app.bundled-with-nimi',
+        installStoragePolicyRef: 'nimi-data-app-roots',
+        sourceRule: 'P-NAPP-004',
+        admissionStatus: 'admitted',
+      }, {
+        appId: 'nimi.deferred-app',
+        appKind: 'nimi-app',
+        displayName: 'Deferred App',
+        publisher: 'Nimi',
+        trustTier: 'nimi-first-party',
+        ordinaryVisibility: 'ordinary-visible',
+        aiProfileSelectionRef: 'local-standard',
+        capabilitySet: ['text.generate'],
+        releaseDescriptorRef: 'nimi.deferred-app.bundled-with-nimi',
+        installStoragePolicyRef: 'nimi-data-app-roots',
+        sourceRule: 'P-NAPP-004',
+        admissionStatus: 'deferred',
       }],
       releaseDescriptors: [{
         descriptorId: 'nimi.example-app.bundled-with-nimi',
@@ -580,11 +606,36 @@ describe('vNext app surface', () => {
         mutableSourceAllowed: false,
         installDigestVerificationRequired: 'required',
         sourceRule: 'P-NAPP-004',
+      }, {
+        descriptorId: 'nimi.hidden-app.bundled-with-nimi',
+        appId: 'nimi.hidden-app',
+        version: '1.0.0',
+        descriptorClass: 'bundled-with-nimi',
+        sourceKind: 'nimi-bundle',
+        sourceRef: 'nimi-release',
+        artifactLocator: 'bundle:nimi.hidden-app',
+        digestAlgorithm: 'sha256',
+        sha256: 'def',
+        size: '42',
+        provenanceRef: 'provenance:nimi',
+        packageKind: 'nimi-app',
+        entryRef: 'index.html',
+        sandboxRef: 'sandbox:nimi.hidden-app',
+        permissionsRef: 'permissions:nimi.hidden-app',
+        storagePolicyRef: 'nimi-data-app-roots',
+        admissionPath: '.nimi/spec/platform/kernel/tables/nimi-app-registry.yaml',
+        mutableSourceAllowed: false,
+        installDigestVerificationRequired: 'required',
+        sourceRule: 'P-NAPP-004',
       }],
     });
 
+    assert.equal('registryPath' in projection, false);
+    assert.equal('packagesPath' in projection, false);
+    assert.deepEqual(projection.registryRows.map((row) => row.appId), ['nimi.example-app']);
     assert.equal(projection.registryRows[0]?.ordinaryVisibility, 'ordinary-visible');
     assert.equal(projection.registryRows[0]?.availableVersion, '1.0.1');
+    assert.deepEqual(projection.releaseDescriptors.map((descriptor) => descriptor.appId), ['nimi.example-app']);
     assert.equal(projection.releaseDescriptors[0]?.descriptorClass, 'bundled-with-nimi');
     assert.throws(
       () => parseNimiAppBridgeProjection({

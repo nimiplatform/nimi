@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import type { NimiAiModel, NimiGenerateTextRequest } from '../../core/ai';
+import type { NimiFinishReason } from '../../core/contracts';
+import { isNimiError } from '../../types';
 import {
   createNimiOpenAICompatibleAdapter,
   NIMI_OPENAI_COMPATIBLE_ADAPTER_MANIFEST,
@@ -135,6 +137,106 @@ test('openai-compatible adapter maps streaming chat chunks', async () => {
   assert.equal(chunks.at(-1)?.choices[0].finish_reason, 'stop');
 });
 
+test('openai-compatible adapter preserves structured Nimi stream errors', async () => {
+  const client = createNimiOpenAICompatibleAdapter({
+    model: createFakeModel([], {
+      stream: [
+        { type: 'text-delta', text: 'partial' },
+        { type: 'error', code: 'SDK_STREAM_TEST_FAILURE', message: 'stream failed' },
+      ],
+    }),
+  });
+  const stream = client.chat.completions.create({
+    model: 'kimi-nimi',
+    messages: [{ role: 'user', content: 'Ping?' }],
+    stream: true,
+  });
+
+  await assert.rejects(
+    async () => {
+      for await (const _chunk of stream) {
+        // Consume until the structured stream error is surfaced.
+      }
+    },
+    (error: unknown) => {
+      assert.equal(isNimiError(error), true);
+      assert.equal((error as { reasonCode?: string }).reasonCode, 'SDK_STREAM_TEST_FAILURE');
+      assert.equal((error as { code?: string }).code, 'SDK_STREAM_TEST_FAILURE');
+      assert.equal((error as { actionHint?: string }).actionHint, 'check_ai_stream_event');
+      return true;
+    },
+  );
+});
+
+test('openai-compatible adapter fails closed with structured error when stream done is missing', async () => {
+  const client = createNimiOpenAICompatibleAdapter({
+    model: createFakeModel([], {
+      stream: [{ type: 'text-delta', text: 'partial' }],
+    }),
+  });
+  const stream = client.chat.completions.create({
+    model: 'kimi-nimi',
+    messages: [{ role: 'user', content: 'Ping?' }],
+    stream: true,
+  });
+
+  await assert.rejects(
+    async () => {
+      for await (const _chunk of stream) {
+        // Consume until the missing terminal evidence is detected.
+      }
+    },
+    (error: unknown) => {
+      assert.equal(isNimiError(error), true);
+      assert.equal((error as { reasonCode?: string }).reasonCode, 'SDK_AI_STREAM_TERMINAL_EVIDENCE_MISSING');
+      return true;
+    },
+  );
+});
+
+test('openai-compatible adapter fails closed on unknown Nimi finish reasons', async () => {
+  const nonStreaming = createNimiOpenAICompatibleAdapter({
+    model: createFakeModel([], { finishReason: 'unknown' }),
+  });
+  await assert.rejects(
+    nonStreaming.chat.completions.create({
+      model: 'kimi-nimi',
+      messages: [{ role: 'user', content: 'Ping?' }],
+    }),
+    (error: unknown) => {
+      assert.equal(error instanceof NimiOpenAICompatibleUnsupportedFeatureError, true);
+      assert.equal((error as NimiOpenAICompatibleUnsupportedFeatureError).feature, 'finishReason');
+      return true;
+    },
+  );
+
+  const streaming = createNimiOpenAICompatibleAdapter({
+    model: createFakeModel([], {
+      stream: [
+        { type: 'start' },
+        { type: 'done', finishReason: 'unknown' },
+      ],
+    }),
+  });
+  const stream = streaming.chat.completions.create({
+    model: 'kimi-nimi',
+    messages: [{ role: 'user', content: 'Ping?' }],
+    stream: true,
+  });
+  await assert.rejects(
+    async () => {
+      for await (const _chunk of stream) {
+        // Consume until the terminal unsupported finish reason is observed.
+      }
+    },
+    (error: unknown) => {
+      assert.equal(error instanceof NimiOpenAICompatibleUnsupportedFeatureError, true);
+      assert.equal((error as NimiOpenAICompatibleUnsupportedFeatureError).feature, 'finishReason');
+      return true;
+    },
+  );
+});
+
 test('openai-compatible adapter fails closed on unsupported OpenAI compatibility features', () => {
   const client = createNimiOpenAICompatibleAdapter({ model: createFakeModel([]) });
 
@@ -216,12 +318,13 @@ function createFakeModel(
 
 interface OpenAICompatibleChatCompletionResultFixture {
   readonly text: string;
-  readonly finishReason: 'stop' | 'length' | 'tool-calls' | 'content-filter' | 'error' | 'unknown';
+  readonly finishReason: NimiFinishReason;
   readonly toolCalls: readonly { readonly id: string; readonly name: string; readonly arguments: { readonly [key: string]: string } }[];
   readonly stream: readonly (
     | { readonly type: 'start' }
     | { readonly type: 'text-delta'; readonly text: string }
-    | { readonly type: 'done'; readonly finishReason: 'stop' }
+    | { readonly type: 'done'; readonly finishReason: NimiFinishReason }
+    | { readonly type: 'error'; readonly code: string; readonly message: string }
   )[];
 }
 

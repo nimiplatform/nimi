@@ -22,6 +22,7 @@ import {
   type NimiRuntimeAIScenarioClient,
 } from './index';
 import type { RuntimeTypedCallOptions } from '../../core-generated/runtime-typed-client';
+import { ReasonCode } from '../../types';
 import { filePart, textPart } from '../contracts';
 
 class FakeScenarioClient implements NimiRuntimeAIScenarioClient {
@@ -213,6 +214,27 @@ test('Runtime-backed Nimi AI maps streamScenario to Nimi run events', async () =
   });
 });
 
+test('collectNimiTextStream fails closed without terminal evidence', async () => {
+  async function* missingDone() {
+    yield { type: 'text-delta' as const, text: 'partial' };
+  }
+  await assert.rejects(
+    collectNimiTextStream(missingDone()),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_AI_STREAM_TERMINAL_EVIDENCE_MISSING',
+  );
+});
+
+test('collectNimiTextStream fails closed on unknown terminal finish reason', async () => {
+  async function* unknownFinish() {
+    yield { type: 'text-delta' as const, text: 'partial' };
+    yield { type: 'done' as const, finishReason: 'unknown' as const };
+  }
+  await assert.rejects(
+    collectNimiTextStream(unknownFinish()),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_AI_STREAM_FINISH_REASON_UNKNOWN',
+  );
+});
+
 test('Runtime-backed Nimi AI maps single-turn tools, tool choice, structured output, and sampling', async () => {
   const client = new FakeScenarioClient();
   const model = createNimiRuntimeAIModel({
@@ -307,7 +329,7 @@ test('Runtime-backed Nimi AI fails closed on malformed tool call arguments', asy
       messages: [{ role: 'user', content: [textPart('Use tool.')] }],
       tools: [{ name: 'lookup', inputSchema: { type: 'object' } }],
     }),
-    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_AI_RUNTIME_OUTPUT_INVALID',
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === ReasonCode.SDK_AI_RUNTIME_OUTPUT_INVALID,
   );
 });
 
@@ -461,7 +483,7 @@ test('Runtime-backed Nimi AI fails closed for unsupported file media types', asy
       model: model.model,
       messages: [{ role: 'user', content: [textPart('read this'), filePart('application/pdf', 'JVBER')] }],
     }),
-    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_AI_RUNTIME_FEATURE_UNSUPPORTED',
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === ReasonCode.SDK_AI_RUNTIME_FEATURE_UNSUPPORTED,
   );
 });
 
@@ -479,7 +501,7 @@ test('Runtime-backed Nimi AI fails closed for subject identity and invalid input
       messages: [{ role: 'user', content: [textPart('Hi.')] }],
       parameters: { user: 'user-x' },
     }),
-    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_AI_RUNTIME_FEATURE_UNSUPPORTED',
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === ReasonCode.SDK_AI_RUNTIME_FEATURE_UNSUPPORTED,
   );
 
   await assert.rejects(
@@ -487,7 +509,7 @@ test('Runtime-backed Nimi AI fails closed for subject identity and invalid input
       model: { modelId: 'other-model' },
       messages: [{ role: 'user', content: [textPart('Mismatch.')] }],
     }),
-    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_AI_INPUT_INVALID',
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === ReasonCode.SDK_AI_INPUT_INVALID,
   );
 
   await assert.rejects(
@@ -495,6 +517,6 @@ test('Runtime-backed Nimi AI fails closed for subject identity and invalid input
       model: model.model,
       messages: [{ role: 'user', content: [textPart('')] }],
     }),
-    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_AI_INPUT_INVALID',
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === ReasonCode.SDK_AI_INPUT_INVALID,
   );
 });

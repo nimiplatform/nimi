@@ -29,7 +29,7 @@ export function writeGoTypedClients(runtime, realm) {
 	if err != nil {
 		return ${method.response_type}{}, err
 	}
-	return decodeTypedResponse[${method.response_type}](raw)
+	return decodeRuntimeTypedResponse[${method.response_type}](raw, ${quote(method.response_type)})
 }`;
     }
     if (method.kind === 'server_stream') {
@@ -143,6 +143,65 @@ func decodeTypedResponse[T any](raw []byte) (T, error) {
 		return out, err
 	}
 	return out, nil
+}
+
+func decodeRuntimeTypedResponse[T any](raw []byte, responseType string) (T, error) {
+	out, err := decodeTypedResponse[T](raw)
+	if err != nil {
+		return out, err
+	}
+	if err := validateCompanionParticipationResponse(responseType, any(out)); err != nil {
+		return out, err
+	}
+	return out, nil
+}
+
+func validateCompanionParticipationResponse(responseType string, value any) error {
+	switch responseType {
+	case "GetCompanionParticipationProjectionResponse":
+		return validateCompanionParticipationProjection(value.(GetCompanionParticipationProjectionResponse).Projection)
+	case "RequestCompanionParticipationResponse":
+		return validateCompanionParticipationProjection(value.(RequestCompanionParticipationResponse).Projection)
+	case "CancelCompanionParticipationResponse":
+		return validateCompanionParticipationProjection(value.(CancelCompanionParticipationResponse).Projection)
+	case "OpenCompanionParticipationReplayResponse":
+		return validateCompanionParticipationProjection(value.(OpenCompanionParticipationReplayResponse).Projection)
+	default:
+		return nil
+	}
+}
+
+func validateCompanionParticipationProjection(projection *CompanionParticipationProjection) error {
+	if projection == nil {
+		return fmt.Errorf("SDK_RUNTIME_AGENT_RESPONSE_INVALID: companion participation projection is missing")
+	}
+	if projection.ProjectionId == "" || projection.AgentId == "" || projection.ProfileRef == "" || projection.RoomOrchestrationRef == "" || projection.AuditRef == "" || projection.ConversationAnchorId == "" {
+		return fmt.Errorf("SDK_RUNTIME_AGENT_RESPONSE_INVALID: companion participation projection is missing required refs")
+	}
+	switch projection.SurfaceKind {
+	case COMPANIONPARTICIPATIONSURFACEKINDAVATARCOMPANION, COMPANIONPARTICIPATIONSURFACEKINDDESKTOPCOMPANIONPANEL, COMPANIONPARTICIPATIONSURFACEKINDAVATARDEBUGWORKBENCH:
+	default:
+		return fmt.Errorf("SDK_RUNTIME_AGENT_RESPONSE_INVALID: companion participation projection has unsupported surface_kind")
+	}
+	switch projection.TriggerSource {
+	case COMPANIONPARTICIPATIONTRIGGERSOURCEUSEREXPLICIT, COMPANIONPARTICIPATIONTRIGGERSOURCESCHEDULEDPROACTIVE, COMPANIONPARTICIPATIONTRIGGERSOURCEDOMAINEVENT:
+	default:
+		return fmt.Errorf("SDK_RUNTIME_AGENT_RESPONSE_INVALID: companion participation projection has unsupported trigger_source")
+	}
+	switch projection.Status {
+	case COMPANIONPARTICIPATIONSTATUSIDLE, COMPANIONPARTICIPATIONSTATUSADMISSIONPENDING, COMPANIONPARTICIPATIONSTATUSBLOCKED, COMPANIONPARTICIPATIONSTATUSRUNNING, COMPANIONPARTICIPATIONSTATUSFAILED, COMPANIONPARTICIPATIONSTATUSCANCELED:
+	case COMPANIONPARTICIPATIONSTATUSCANDIDATEREADY:
+		if projection.CandidateRef == "" {
+			return fmt.Errorf("SDK_RUNTIME_AGENT_RESPONSE_INVALID: companion participation candidate_ready projection missing candidate_ref")
+		}
+	case COMPANIONPARTICIPATIONSTATUSCOMMITTEDBYOWNER:
+		if projection.CommitRef == "" {
+			return fmt.Errorf("SDK_RUNTIME_AGENT_RESPONSE_INVALID: companion participation committed_by_owner projection missing commit_ref")
+		}
+	default:
+		return fmt.Errorf("SDK_RUNTIME_AGENT_RESPONSE_INVALID: companion participation projection has unsupported status")
+	}
+	return nil
 }
 
 ${runtimeMethods}

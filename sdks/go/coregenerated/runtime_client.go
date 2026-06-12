@@ -5,7 +5,6 @@ package coregenerated
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/nimiplatform/nimi/sdks/go/coreclient"
 	sdkstypes "github.com/nimiplatform/nimi/sdks/go/types"
@@ -302,12 +301,8 @@ func (c RuntimeGeneratedClient) Stream(ctx context.Context, methodID string, bod
 	if err != nil {
 		return nil, err
 	}
-	if !strings.Contains(descriptor.Kind, "stream") {
+	if descriptor.Kind != "server_stream" {
 		return nil, fmt.Errorf("SDK_RUNTIME_METHOD_UNAVAILABLE: Runtime method is not streaming %s", methodID)
 	}
 	return c.core.ServerStream(ctx, sdkstypes.CoreStreamRequest{Context: ctx, MethodID: methodID, Metadata: metadata, Body: body, TimeoutMS: timeoutMS})
-}
-
-func (c RuntimeGeneratedClient) UnsafeRaw() coreclient.Transport {
-	return c.core.UnsafeRaw()
 }
