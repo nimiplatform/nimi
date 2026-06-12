@@ -112,19 +112,37 @@ func (f *Firewall) Evaluate(ctx context.Context, input FirewallInput) (*Firewall
 		return f.reject(base, FirewallVerdictQuarantined, ReasonFirewallQuarantined, nil), nil
 	}
 	base.NormalizedOutput = normalized
+	// K-DELEG-068: classify the actual provider output content.
+	base.SensitivityClass = classifySensitiveData(payload)
+	// K-DELEG-069: derive the approval requirement from effect class, the
+	// classified sensitivity, confidence, and provider trust tier.
+	requirement := deriveApprovalRequirement(
+		input.EffectClass,
+		base.SensitivityClass,
+		input.Confidence,
+		input.TrustTier,
+		input.RequiresApproval,
+	)
+	base.ApprovalRequirement = requirement
+	if requirement == ApprovalRequirementPolicyBlocked {
+		return f.reject(base, FirewallVerdictPolicyBlocked, ReasonFirewallQuarantined, nil), nil
+	}
 	switch input.OutputKind {
 	case OutputKindObservation:
 		base.Verdict = FirewallVerdictAcceptedObservation
 	case OutputKindSuggestedIntent, OutputKindSuggestedPresentation:
 		base.Verdict = FirewallVerdictAcceptedSuggestion
 	case OutputKindSuggestedToolRequest:
+		// A tool request is always an action proposal; it requires approval
+		// regardless of the derived requirement for observation/suggestion.
 		base.Verdict = FirewallVerdictApprovalRequired
 		base.ReasonCode = ReasonApprovalRequired
+		base.ApprovalRequirement = ApprovalRequirementRequired
 		return base, nil
 	default:
 		return f.reject(base, FirewallVerdictSchemaInvalid, ReasonFirewallSchemaInvalid, nil), nil
 	}
-	if input.RequiresApproval || input.Confidence.RequiresUserConfirmation {
+	if requirement == ApprovalRequirementRequired {
 		base.Verdict = FirewallVerdictApprovalRequired
 		base.ReasonCode = ReasonApprovalRequired
 	}

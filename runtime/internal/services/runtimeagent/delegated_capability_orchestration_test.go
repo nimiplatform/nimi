@@ -214,6 +214,7 @@ func TestRuntimeAgentDelegatedCapabilityResumeExecutesApprovedPausedRequest(t *t
 			TrustTier:         runtimev1.DelegatedProviderTrustTier_DELEGATED_PROVIDER_TRUST_TIER_CONTROLLED_LOCAL,
 			AllowedTools: []*runtimev1.DelegatedToolAllowlistEntry{{
 				ToolName:          "calendar_lookup",
+				EffectClass: runtimev1.EffectClass_EFFECT_CLASS_READ_ONLY,
 				InputSchemaDigest: "sha256:descriptor",
 			}},
 			TransportRef: "runtime-transport://controlled-provider",
@@ -504,6 +505,7 @@ func TestRuntimeAgentDelegatedControlStatePersistsApprovedPausedRequestAcrossRes
 			TrustTier:         runtimev1.DelegatedProviderTrustTier_DELEGATED_PROVIDER_TRUST_TIER_USER_ADDED_REVIEWED,
 			AllowedTools: []*runtimev1.DelegatedToolAllowlistEntry{{
 				ToolName:          "calendar_lookup",
+				EffectClass: runtimev1.EffectClass_EFFECT_CLASS_READ_ONLY,
 				InputSchemaDigest: "sha256:descriptor",
 			}},
 			TransportRef: "runtime-transport://calendar-mcp",
@@ -663,6 +665,7 @@ func TestRuntimeAgentControlledMCPIntegrationAcceptsSafeOutput(t *testing.T) {
 	}
 	svc := testDelegatedControlSurfaceService()
 	svc.SetDelegatedCapabilityRuntime(gateway, firewall)
+	registerControlledRuntimeAgentProvider(t, svc, descriptorHash)
 
 	decision, err := svc.publicChatRuntime().executeDelegatedCapability(context.Background(), testDelegatedSession(), testDelegatedTurn(), runtimeAgentDelegatedCapabilityRequest{
 		ProviderID:       "provider-1",
@@ -721,6 +724,7 @@ func TestRuntimeAgentControlledMCPIntegrationQuarantinesUnsafeOutput(t *testing.
 	}
 	svc := testDelegatedControlSurfaceService()
 	svc.SetDelegatedCapabilityRuntime(gateway, firewall)
+	registerControlledRuntimeAgentProvider(t, svc, descriptorHash)
 	turn := testDelegatedTurn()
 	turn.TurnID = "turn-unsafe"
 	turn.RequestID = "request-unsafe"
@@ -792,6 +796,7 @@ func TestRuntimeAgentExecuteDelegatedCapabilityUsesControlSurfaceProfileAndRunti
 			TrustTier:         runtimev1.DelegatedProviderTrustTier_DELEGATED_PROVIDER_TRUST_TIER_CONTROLLED_LOCAL,
 			AllowedTools: []*runtimev1.DelegatedToolAllowlistEntry{{
 				ToolName:          "echo",
+				EffectClass: runtimev1.EffectClass_EFFECT_CLASS_READ_ONLY,
 				InputSchemaDigest: descriptorHash,
 			}},
 			TransportRef: "runtime-transport://controlled-mcp",
@@ -865,6 +870,27 @@ type controlledRuntimeAgentMCPInput struct {
 
 type controlledRuntimeAgentMCPOutput struct {
 	Text string `json:"text"`
+}
+
+// registerControlledRuntimeAgentProvider seeds the provider profile directly
+// into the control store so the firewall classification inputs (trust tier +
+// effect class) resolve, without going through UpsertDelegatedProviderProfile
+// (which rebuilds the live gateway and would replace the test's mock gateway).
+func registerControlledRuntimeAgentProvider(t *testing.T, svc *Service, descriptorHash string) {
+	t.Helper()
+	svc.delegatedMu.Lock()
+	defer svc.delegatedMu.Unlock()
+	svc.ensureDelegatedControlStoresLocked()
+	svc.delegatedProviderProfiles[delegatedProviderProfileKey("agent-1", "provider-1")] = &runtimev1.DelegatedProviderProfile{
+		ProviderProfileId: "provider-1",
+		State:             runtimev1.DelegatedProviderState_DELEGATED_PROVIDER_STATE_READY,
+		TrustTier:         runtimev1.DelegatedProviderTrustTier_DELEGATED_PROVIDER_TRUST_TIER_CONTROLLED_LOCAL,
+		AllowedTools: []*runtimev1.DelegatedToolAllowlistEntry{{
+			ToolName:          "echo",
+			InputSchemaDigest: descriptorHash,
+			EffectClass:       runtimev1.EffectClass_EFFECT_CLASS_READ_ONLY,
+		}},
+	}
 }
 
 func newControlledRuntimeAgentMCPGateway(t *testing.T) (*delegation.Gateway, string) {

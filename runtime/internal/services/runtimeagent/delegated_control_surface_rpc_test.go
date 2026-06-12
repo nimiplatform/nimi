@@ -2,11 +2,13 @@ package runtimeagent
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
+	"github.com/nimiplatform/nimi/runtime/internal/services/delegation"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/durationpb"
@@ -28,6 +30,7 @@ func TestDelegatedProviderProfilesAreRuntimeOwned(t *testing.T) {
 			TrustTier:         runtimev1.DelegatedProviderTrustTier_DELEGATED_PROVIDER_TRUST_TIER_USER_ADDED_REVIEWED,
 			AllowedTools: []*runtimev1.DelegatedToolAllowlistEntry{{
 				ToolName:          "calendar_lookup",
+				EffectClass: runtimev1.EffectClass_EFFECT_CLASS_READ_ONLY,
 				InputSchemaDigest: "sha256:calendar",
 			}},
 			CredentialRef: "connector://calendar/oauth",
@@ -81,7 +84,7 @@ func TestDelegatedProviderProfileRequiresTrustTier(t *testing.T) {
 			DisplayName:       "Calendar MCP",
 			ProviderKind:      runtimev1.DelegatedProviderKind_DELEGATED_PROVIDER_KIND_MCP_TOOL_PROVIDER,
 			TransportKind:     runtimev1.DelegatedTransportKind_DELEGATED_TRANSPORT_KIND_STDIO_COMMAND,
-			AllowedTools:      []*runtimev1.DelegatedToolAllowlistEntry{{ToolName: "calendar_lookup"}},
+			AllowedTools:      []*runtimev1.DelegatedToolAllowlistEntry{{ToolName: "calendar_lookup", EffectClass: runtimev1.EffectClass_EFFECT_CLASS_READ_ONLY}},
 			TransportRef:      "runtime-transport://calendar-mcp",
 		},
 	})
@@ -101,7 +104,7 @@ func TestDelegatedProviderProfileRejectsRawCredentialMaterial(t *testing.T) {
 			ProviderKind:      runtimev1.DelegatedProviderKind_DELEGATED_PROVIDER_KIND_MCP_TOOL_PROVIDER,
 			TransportKind:     runtimev1.DelegatedTransportKind_DELEGATED_TRANSPORT_KIND_STDIO_COMMAND,
 			TrustTier:         runtimev1.DelegatedProviderTrustTier_DELEGATED_PROVIDER_TRUST_TIER_USER_ADDED_REVIEWED,
-			AllowedTools:      []*runtimev1.DelegatedToolAllowlistEntry{{ToolName: "calendar_lookup"}},
+			AllowedTools:      []*runtimev1.DelegatedToolAllowlistEntry{{ToolName: "calendar_lookup", EffectClass: runtimev1.EffectClass_EFFECT_CLASS_READ_ONLY}},
 			CredentialRef:     "connector://calendar?token=secret",
 			TransportRef:      "runtime-transport://calendar-mcp",
 		},
@@ -123,7 +126,7 @@ func TestDelegatedProviderStateReadyRequiresRunnableProfile(t *testing.T) {
 			ProviderKind:      runtimev1.DelegatedProviderKind_DELEGATED_PROVIDER_KIND_MCP_TOOL_PROVIDER,
 			TransportKind:     runtimev1.DelegatedTransportKind_DELEGATED_TRANSPORT_KIND_STDIO_COMMAND,
 			TrustTier:         runtimev1.DelegatedProviderTrustTier_DELEGATED_PROVIDER_TRUST_TIER_USER_ADDED_REVIEWED,
-			AllowedTools:      []*runtimev1.DelegatedToolAllowlistEntry{{ToolName: "calendar_lookup"}},
+			AllowedTools:      []*runtimev1.DelegatedToolAllowlistEntry{{ToolName: "calendar_lookup", EffectClass: runtimev1.EffectClass_EFFECT_CLASS_READ_ONLY}},
 			TransportRef:      "runtime-transport://calendar-mcp",
 		},
 	})
@@ -164,7 +167,7 @@ func TestBlockedDelegatedProviderCannotBecomeReady(t *testing.T) {
 			ProviderKind:      runtimev1.DelegatedProviderKind_DELEGATED_PROVIDER_KIND_MCP_TOOL_PROVIDER,
 			TransportKind:     runtimev1.DelegatedTransportKind_DELEGATED_TRANSPORT_KIND_STDIO_COMMAND,
 			TrustTier:         runtimev1.DelegatedProviderTrustTier_DELEGATED_PROVIDER_TRUST_TIER_BLOCKED,
-			AllowedTools:      []*runtimev1.DelegatedToolAllowlistEntry{{ToolName: "calendar_lookup"}},
+			AllowedTools:      []*runtimev1.DelegatedToolAllowlistEntry{{ToolName: "calendar_lookup", EffectClass: runtimev1.EffectClass_EFFECT_CLASS_READ_ONLY}},
 			TransportRef:      "runtime-transport://calendar-mcp",
 			Command:           "calendar-mcp",
 		},
@@ -196,7 +199,7 @@ func TestDelegatedProviderStateRequiresLifecycleReason(t *testing.T) {
 			ProviderKind:      runtimev1.DelegatedProviderKind_DELEGATED_PROVIDER_KIND_MCP_TOOL_PROVIDER,
 			TransportKind:     runtimev1.DelegatedTransportKind_DELEGATED_TRANSPORT_KIND_STDIO_COMMAND,
 			TrustTier:         runtimev1.DelegatedProviderTrustTier_DELEGATED_PROVIDER_TRUST_TIER_USER_ADDED_REVIEWED,
-			AllowedTools:      []*runtimev1.DelegatedToolAllowlistEntry{{ToolName: "calendar_lookup"}},
+			AllowedTools:      []*runtimev1.DelegatedToolAllowlistEntry{{ToolName: "calendar_lookup", EffectClass: runtimev1.EffectClass_EFFECT_CLASS_READ_ONLY}},
 			TransportRef:      "runtime-transport://calendar-mcp",
 			Command:           "calendar-mcp",
 		},
@@ -455,6 +458,111 @@ func TestDelegatedReplayTraceReconstructsRuntimeOwnedLineage(t *testing.T) {
 	}
 }
 
+func TestDelegatedReplayTraceReconstructsApprovalDecisionFromAuditLineage(t *testing.T) {
+	svc := testDelegatedControlSurfaceService()
+	ctx := testDelegatedControlContext()
+	upsertDelegatedApprovalTestProfile(t, svc, "sha256:calendar")
+	svc.recordDelegatedCapabilityDecision(&runtimeAgentDelegatedCapabilityDecision{
+		DecisionID:           "deleg-decision-1",
+		AgentID:              "agent-1",
+		DelegationRequestID:  "deleg-request-1",
+		DelegationResultID:   "deleg-result-1",
+		ConversationAnchorID: "anchor-1",
+		TurnID:               "turn-1",
+		ProviderID:           "calendar-mcp",
+		CapabilityID:         "calendar.read",
+		ToolName:             "calendar_lookup",
+		DescriptorHash:       "sha256:calendar",
+		PolicySnapshotID:     delegatedApprovalPolicySnapshotID("calendar-mcp", "calendar.read", "calendar_lookup", "sha256:calendar"),
+		ApprovalPrincipalID:  "user-1",
+		ApprovalExpiresAt:    time.Now().UTC().Add(defaultDelegatedApprovalTTL),
+		GatewayEvidenceID:    "evidence-1",
+		FirewallInputID:      "fw-1",
+		FirewallVerdict:      "approval_required",
+		ReasonCode:           "requires_human_approval",
+		RuntimeDecision:      "approval_required",
+	})
+
+	if _, err := svc.SubmitDelegatedApprovalDecision(context.Background(), &runtimev1.SubmitDelegatedApprovalDecisionRequest{
+		Context:           ctx,
+		AgentId:           "agent-1",
+		ApprovalRequestId: "deleg-decision-1",
+		Decision:          runtimev1.DelegatedApprovalDecision_DELEGATED_APPROVAL_DECISION_APPROVE,
+		DecisionReason:    "user confirmed",
+	}); err != nil {
+		t.Fatalf("submit delegated approval: %v", err)
+	}
+
+	replay, err := svc.GetDelegatedReplayTrace(context.Background(), &runtimev1.GetDelegatedReplayTraceRequest{
+		Context:    ctx,
+		AgentId:    "agent-1",
+		DecisionId: "deleg-decision-1",
+	})
+	if err != nil {
+		t.Fatalf("get delegated replay trace: %v", err)
+	}
+	var approvalStage *runtimev1.DelegatedReplayTraceStage
+	for _, stage := range replay.GetTrace().GetStages() {
+		if stage.GetKind() == runtimev1.DelegatedTraceStageKind_DELEGATED_TRACE_STAGE_KIND_APPROVAL_DECISION {
+			approvalStage = stage
+			break
+		}
+	}
+	if approvalStage == nil {
+		t.Fatalf("replay trace missing approval decision stage: %+v", replay.GetTrace().GetStages())
+	}
+	if approvalStage.GetState() != "approved" {
+		t.Fatalf("approval stage status must come from the committed audit decision, got %q", approvalStage.GetState())
+	}
+	if !strings.Contains(approvalStage.GetRedactedSummary(), "reconstructed from audit lineage") {
+		t.Fatalf("approval stage must be reconstructed from audit lineage, got %q", approvalStage.GetRedactedSummary())
+	}
+
+	// The committed decision must be independently queryable by decision_id
+	// (the K-DELEG-086 join), not only via the in-memory approval object.
+	audited := svc.delegatedApprovalDecisionAuditRecord("deleg-decision-1")
+	if audited == nil || audited.ApprovalState != "approved" || audited.ApprovalID != "deleg-decision-1" {
+		t.Fatalf("approval decision audit record not joinable by decision_id: %+v", audited)
+	}
+}
+
+func TestDelegatedReplayTraceMarksSensitiveOutputPartialRedacted(t *testing.T) {
+	svc := testDelegatedControlSurfaceService()
+	ctx := testDelegatedControlContext()
+	svc.recordDelegatedCapabilityDecision(&runtimeAgentDelegatedCapabilityDecision{
+		DecisionID:               "deleg-decision-sensitive",
+		AgentID:                  "agent-1",
+		DelegationRequestID:      "deleg-request-1",
+		DelegationResultID:       "deleg-result-1",
+		ConversationAnchorID:     "anchor-1",
+		TurnID:                   "turn-1",
+		ProviderID:               "calendar-mcp",
+		CapabilityID:             "calendar.read",
+		ToolName:                 "calendar_lookup",
+		GatewayEvidenceID:        "evidence-1",
+		FirewallInputID:          "fw-1",
+		FirewallVerdict:          "ACCEPTED_OBSERVATION",
+		ReasonCode:               "DELEG_ACCEPTED",
+		RuntimeDecision:          "context_candidate",
+		FirewallSensitivityClass: delegation.SensitivityClassCredentialLike,
+	})
+
+	replay, err := svc.GetDelegatedReplayTrace(context.Background(), &runtimev1.GetDelegatedReplayTraceRequest{
+		Context:    ctx,
+		AgentId:    "agent-1",
+		DecisionId: "deleg-decision-sensitive",
+	})
+	if err != nil {
+		t.Fatalf("get delegated replay trace: %v", err)
+	}
+	if replay.GetTrace().GetOutcome() != runtimev1.DelegatedReplayOutcome_DELEGATED_REPLAY_OUTCOME_PARTIAL_REDACTED {
+		t.Fatalf("sensitive output replay must be PARTIAL_REDACTED, got %s", replay.GetTrace().GetOutcome())
+	}
+	if !replay.GetTrace().GetRedacted() {
+		t.Fatalf("replay trace must remain redacted")
+	}
+}
+
 func TestDelegatedReplayTraceRequiresRuntimeAuditRecord(t *testing.T) {
 	svc := testDelegatedControlSurfaceServiceWithoutAudit()
 	ctx := testDelegatedControlContext()
@@ -629,6 +737,7 @@ func upsertDelegatedApprovalTestProfileForAgent(t *testing.T, svc *Service, ctx 
 			TrustTier:         runtimev1.DelegatedProviderTrustTier_DELEGATED_PROVIDER_TRUST_TIER_USER_ADDED_REVIEWED,
 			AllowedTools: []*runtimev1.DelegatedToolAllowlistEntry{{
 				ToolName:          "calendar_lookup",
+				EffectClass: runtimev1.EffectClass_EFFECT_CLASS_READ_ONLY,
 				InputSchemaDigest: descriptorHash,
 			}},
 			TransportRef:        "runtime-transport://calendar-mcp",

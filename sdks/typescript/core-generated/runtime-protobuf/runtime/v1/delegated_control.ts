@@ -27,6 +27,23 @@ export interface DelegatedToolAllowlistEntry {
      * @generated from protobuf field: string input_schema_digest = 2
      */
     inputSchemaDigest: string;
+    /**
+     * K-DELEG-006 capability-descriptor classification declared at profile
+     * registration. effect_class is required on write (upsert fails closed on
+     * UNSPECIFIED); records persisted before this field derive as UNSPECIFIED
+     * and force approval-required handling instead of silently passing.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.EffectClass effect_class = 3
+     */
+    effectClass: EffectClass;
+    /**
+     * Expected sensitivity of the capability's output (K-DELEG-068). Optional
+     * on write; UNSPECIFIED derives conservatively as UNKNOWN_SENSITIVE for
+     * approval-requirement purposes.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.SensitivityClass expected_sensitivity_class = 4
+     */
+    expectedSensitivityClass: SensitivityClass;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.DelegatedProviderProfile
@@ -269,9 +286,10 @@ export interface DelegatedApprovalRequest {
      */
     expiresAt?: Timestamp;
     /**
-     * K-DELEG-091 required approval-request fields. sensitivity_class is pending
-     * its spec-authority taxonomy definition and will be added as a typed enum
-     * (next field number) once the value set is admitted.
+     * K-DELEG-091 required approval-request fields. sensitivity_class carries
+     * the K-DELEG-068 taxonomy: pre-invoke approvals derive it from the
+     * capability's declared expected sensitivity, post-firewall approvals from
+     * the firewall output classification.
      *
      * @generated from protobuf field: string delegation_request_id = 15
      */
@@ -288,6 +306,10 @@ export interface DelegatedApprovalRequest {
      * @generated from protobuf field: string policy_snapshot_id = 18
      */
     policySnapshotId: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.SensitivityClass sensitivity_class = 19
+     */
+    sensitivityClass: SensitivityClass;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ListDelegatedApprovalRequestsRequest
@@ -899,6 +921,44 @@ export enum EffectClass {
     UNSUPPORTED_EFFECT = 5
 }
 /**
+ * SensitivityClass mirrors the K-DELEG-068 sensitive-output classification
+ * consumed by the K-DELEG-091 approval request. CREDENTIAL_LIKE, REGULATED,
+ * and UNKNOWN_SENSITIVE require quarantine or explicit policy approval before
+ * further use.
+ *
+ * @generated from protobuf enum nimi.runtime.v1.SensitivityClass
+ */
+export enum SensitivityClass {
+    /**
+     * @generated from protobuf enum value: SENSITIVITY_CLASS_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: SENSITIVITY_CLASS_NONE = 1;
+     */
+    NONE = 1,
+    /**
+     * @generated from protobuf enum value: SENSITIVITY_CLASS_USER_PRIVATE = 2;
+     */
+    USER_PRIVATE = 2,
+    /**
+     * @generated from protobuf enum value: SENSITIVITY_CLASS_CREDENTIAL_LIKE = 3;
+     */
+    CREDENTIAL_LIKE = 3,
+    /**
+     * @generated from protobuf enum value: SENSITIVITY_CLASS_ORG_PRIVATE = 4;
+     */
+    ORG_PRIVATE = 4,
+    /**
+     * @generated from protobuf enum value: SENSITIVITY_CLASS_REGULATED = 5;
+     */
+    REGULATED = 5,
+    /**
+     * @generated from protobuf enum value: SENSITIVITY_CLASS_UNKNOWN_SENSITIVE = 6;
+     */
+    UNKNOWN_SENSITIVE = 6
+}
+/**
  * @generated from protobuf enum nimi.runtime.v1.DelegatedReplayOutcome
  */
 export enum DelegatedReplayOutcome {
@@ -965,13 +1025,17 @@ class DelegatedToolAllowlistEntry$Type extends MessageType<DelegatedToolAllowlis
     constructor() {
         super("nimi.runtime.v1.DelegatedToolAllowlistEntry", [
             { no: 1, name: "tool_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "input_schema_digest", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 2, name: "input_schema_digest", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "effect_class", kind: "enum", T: () => ["nimi.runtime.v1.EffectClass", EffectClass, "EFFECT_CLASS_"] },
+            { no: 4, name: "expected_sensitivity_class", kind: "enum", T: () => ["nimi.runtime.v1.SensitivityClass", SensitivityClass, "SENSITIVITY_CLASS_"] }
         ]);
     }
     create(value?: PartialMessage<DelegatedToolAllowlistEntry>): DelegatedToolAllowlistEntry {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.toolName = "";
         message.inputSchemaDigest = "";
+        message.effectClass = 0;
+        message.expectedSensitivityClass = 0;
         if (value !== undefined)
             reflectionMergePartial<DelegatedToolAllowlistEntry>(this, message, value);
         return message;
@@ -986,6 +1050,12 @@ class DelegatedToolAllowlistEntry$Type extends MessageType<DelegatedToolAllowlis
                     break;
                 case /* string input_schema_digest */ 2:
                     message.inputSchemaDigest = reader.string();
+                    break;
+                case /* nimi.runtime.v1.EffectClass effect_class */ 3:
+                    message.effectClass = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.SensitivityClass expected_sensitivity_class */ 4:
+                    message.expectedSensitivityClass = reader.int32();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1005,6 +1075,12 @@ class DelegatedToolAllowlistEntry$Type extends MessageType<DelegatedToolAllowlis
         /* string input_schema_digest = 2; */
         if (message.inputSchemaDigest !== "")
             writer.tag(2, WireType.LengthDelimited).string(message.inputSchemaDigest);
+        /* nimi.runtime.v1.EffectClass effect_class = 3; */
+        if (message.effectClass !== 0)
+            writer.tag(3, WireType.Varint).int32(message.effectClass);
+        /* nimi.runtime.v1.SensitivityClass expected_sensitivity_class = 4; */
+        if (message.expectedSensitivityClass !== 0)
+            writer.tag(4, WireType.Varint).int32(message.expectedSensitivityClass);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1618,7 +1694,8 @@ class DelegatedApprovalRequest$Type extends MessageType<DelegatedApprovalRequest
             { no: 15, name: "delegation_request_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 16, name: "effect_class", kind: "enum", T: () => ["nimi.runtime.v1.EffectClass", EffectClass, "EFFECT_CLASS_"] },
             { no: 17, name: "summary_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 18, name: "policy_snapshot_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 18, name: "policy_snapshot_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 19, name: "sensitivity_class", kind: "enum", T: () => ["nimi.runtime.v1.SensitivityClass", SensitivityClass, "SENSITIVITY_CLASS_"] }
         ]);
     }
     create(value?: PartialMessage<DelegatedApprovalRequest>): DelegatedApprovalRequest {
@@ -1637,6 +1714,7 @@ class DelegatedApprovalRequest$Type extends MessageType<DelegatedApprovalRequest
         message.effectClass = 0;
         message.summaryRef = "";
         message.policySnapshotId = "";
+        message.sensitivityClass = 0;
         if (value !== undefined)
             reflectionMergePartial<DelegatedApprovalRequest>(this, message, value);
         return message;
@@ -1699,6 +1777,9 @@ class DelegatedApprovalRequest$Type extends MessageType<DelegatedApprovalRequest
                     break;
                 case /* string policy_snapshot_id */ 18:
                     message.policySnapshotId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.SensitivityClass sensitivity_class */ 19:
+                    message.sensitivityClass = reader.int32();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1766,6 +1847,9 @@ class DelegatedApprovalRequest$Type extends MessageType<DelegatedApprovalRequest
         /* string policy_snapshot_id = 18; */
         if (message.policySnapshotId !== "")
             writer.tag(18, WireType.LengthDelimited).string(message.policySnapshotId);
+        /* nimi.runtime.v1.SensitivityClass sensitivity_class = 19; */
+        if (message.sensitivityClass !== 0)
+            writer.tag(19, WireType.Varint).int32(message.sensitivityClass);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

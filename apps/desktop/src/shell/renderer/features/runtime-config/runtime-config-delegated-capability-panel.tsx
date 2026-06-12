@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { DelegatedApprovalRequestState, DelegatedProviderState, type DelegatedControlSurfaceSnapshot, type DelegatedDiagnostic, type DelegatedReplayTrace } from '@nimiplatform/sdk/runtime/generated';
+import { DelegatedApprovalRequestState, DelegatedProviderState, EffectClass, type DelegatedControlSurfaceSnapshot, type DelegatedDiagnostic, type DelegatedReplayTrace } from '@nimiplatform/sdk/runtime/generated';
 import { ScrollArea, Surface, cn } from '@nimiplatform/kit/ui';
 import { Button, Input } from './runtime-config-primitives';
 import {
@@ -22,6 +22,10 @@ const DEFAULT_PROVIDER_DRAFT: DelegatedProviderProfileDraft = {
   args: '',
   toolName: '',
   inputSchemaDigest: '',
+  // K-DELEG-006: effect_class is required on upsert and UNSPECIFIED fails
+  // closed at Runtime, so the empty form draft must be explicitly classified
+  // by the operator before submission.
+  effectClass: EffectClass.UNSPECIFIED,
 };
 
 function stateLabel(value: unknown): string {

@@ -63,31 +63,36 @@ type runtimeAgentPausedDelegatedCapabilityRequest struct {
 }
 
 type runtimeAgentDelegatedCapabilityDecision struct {
-	DecisionID           string
-	AgentID              string
-	DelegationRequestID  string
-	DelegationResultID   string
-	TurnID               string
-	StreamID             string
-	ConversationAnchorID string
-	ProviderID           string
-	CapabilityID         string
-	ToolName             string
-	DescriptorHash       string
-	PolicySnapshotID     string
-	ApprovalPrincipalID  string
-	ApprovalExpiresAt    time.Time
-	GatewayEvidenceID    string
-	FirewallInputID      string
-	FirewallVerdict      string
-	ReasonCode           string
-	RuntimeDecision      string
-	ModelContextAdmitted bool
-	ProjectionAdmitted   bool
-	ActionAdmitted       bool
-	ModelOutputJSON      json.RawMessage
-	PausedRequest        *runtimeAgentPausedDelegatedCapabilityRequest
-	DecidedAt            time.Time
+	DecisionID               string
+	AgentID                  string
+	DelegationRequestID      string
+	DelegationResultID       string
+	TurnID                   string
+	StreamID                 string
+	ConversationAnchorID     string
+	ProviderID               string
+	CapabilityID             string
+	ToolName                 string
+	DescriptorHash           string
+	PolicySnapshotID         string
+	ApprovalPrincipalID      string
+	ApprovalExpiresAt        time.Time
+	EffectClass              runtimev1.EffectClass
+	SensitivityClass         runtimev1.SensitivityClass
+	SummaryRef               string
+	ClassificationBasis      string
+	FirewallSensitivityClass string
+	GatewayEvidenceID        string
+	FirewallInputID          string
+	FirewallVerdict          string
+	ReasonCode               string
+	RuntimeDecision          string
+	ModelContextAdmitted     bool
+	ProjectionAdmitted       bool
+	ActionAdmitted           bool
+	ModelOutputJSON          json.RawMessage
+	PausedRequest            *runtimeAgentPausedDelegatedCapabilityRequest
+	DecidedAt                time.Time
 }
 
 type delegatedCapabilityDecisionAuditRecord struct {
@@ -105,6 +110,7 @@ type delegatedCapabilityDecisionAuditRecord struct {
 	FirewallInputID       string
 	FirewallVerdict       string
 	ReasonCode            string
+	SensitivityClass      string
 	RuntimeDecision       string
 	ProjectionDisposition string
 	ActionDisposition     string
@@ -170,7 +176,12 @@ func (r publicChatRuntime) executeDelegatedCapability(
 	if strings.TrimSpace(evidenceID(evidence)) == "" {
 		return nil, fmt.Errorf("runtime agent delegated gateway evidence id is required")
 	}
-	firewallInput := buildRuntimeAgentFirewallInput(session, turn, normalized, evidence)
+	effectClass, trustTier := r.svc.delegatedFirewallClassificationInputs(
+		strings.TrimSpace(session.AgentID),
+		normalized.ProviderID,
+		normalized.ToolName,
+	)
+	firewallInput := buildRuntimeAgentFirewallInput(session, turn, normalized, evidence, effectClass, trustTier)
 	verdict, err := firewall.Evaluate(ctx, firewallInput)
 	if err != nil {
 		return nil, err
@@ -282,6 +293,8 @@ func buildRuntimeAgentFirewallInput(
 	turn publicChatTurnState,
 	req runtimeAgentDelegatedCapabilityRequest,
 	evidence *delegation.QuarantinedEvidence,
+	effectClass string,
+	trustTier string,
 ) delegation.FirewallInput {
 	now := time.Now().UTC()
 	resultID := "deleg-result-" + ulid.Make().String()
@@ -307,6 +320,8 @@ func buildRuntimeAgentFirewallInput(
 		ProtocolRevision:   req.ProtocolRevision,
 		OutputKind:         req.OutputKind,
 		RequiresApproval:   req.RequiresApproval,
+		EffectClass:        effectClass,
+		TrustTier:          trustTier,
 		Confidence: delegation.ConfidenceRecord{
 			Level:         delegation.ConfidenceLevelHigh,
 			EvidenceCount: 1,
@@ -353,6 +368,9 @@ func runtimeAgentDecisionFromFirewall(
 	}
 	decision.FirewallVerdict = strings.TrimSpace(verdict.Verdict)
 	decision.ReasonCode = strings.TrimSpace(verdict.ReasonCode)
+	// K-DELEG-068 content classification recorded for every firewall-evaluated
+	// path so the replay outcome can mark sensitive output as PARTIAL_REDACTED.
+	decision.FirewallSensitivityClass = strings.TrimSpace(verdict.SensitivityClass)
 	switch verdict.Verdict {
 	case delegation.FirewallVerdictAcceptedObservation:
 		decision.RuntimeDecision = "context_candidate"
@@ -362,6 +380,9 @@ func runtimeAgentDecisionFromFirewall(
 		decision.ModelOutputJSON = cloneJSONRawMessage(verdict.NormalizedOutput)
 	case delegation.FirewallVerdictApprovalRequired:
 		decision.RuntimeDecision = "approval_required"
+		// FirewallSensitivityClass (set above) carries the firewall's K-DELEG-068
+		// content classification of the actual output for the post-firewall
+		// approval record, rather than the declared descriptor.
 		decision.PausedRequest = &runtimeAgentPausedDelegatedCapabilityRequest{
 			AgentID:              strings.TrimSpace(session.AgentID),
 			ApprovalRequestID:    "",
@@ -416,6 +437,7 @@ func (s *Service) recordDelegatedCapabilityDecision(decision *runtimeAgentDelega
 		FirewallInputID:       strings.TrimSpace(decision.FirewallInputID),
 		FirewallVerdict:       strings.TrimSpace(decision.FirewallVerdict),
 		ReasonCode:            strings.TrimSpace(decision.ReasonCode),
+		SensitivityClass:      strings.TrimSpace(decision.FirewallSensitivityClass),
 		RuntimeDecision:       strings.TrimSpace(decision.RuntimeDecision),
 		ProjectionDisposition: projectionDispositionForDelegatedDecision(decision),
 		ActionDisposition:     actionDispositionForDelegatedDecision(decision),
@@ -424,6 +446,7 @@ func (s *Service) recordDelegatedCapabilityDecision(decision *runtimeAgentDelega
 	s.delegatedMu.Lock()
 	s.ensureDelegatedControlStoresLocked()
 	if record.RuntimeDecision == "approval_required" {
+		s.classifyDelegatedApprovalDecisionLocked(decision)
 		s.recordDelegatedApprovalRequestLocked(decision)
 		s.recordDelegatedPausedCapabilityRequestLocked(decision)
 		if err := s.persistDelegatedControlStateLocked(); err != nil && s.logger != nil {
@@ -492,6 +515,8 @@ func (s *Service) recordDelegatedApprovalRequestLocked(decision *runtimeAgentDel
 		"policy_snapshot_id":    policySnapshotID,
 		"principal_id":          strings.TrimSpace(decision.ApprovalPrincipalID),
 		"approval_kind":         delegatedApprovalKindFromDecision(decision),
+		"summary":               delegatedApprovalSummaryText(decision),
+		"classification_basis":  firstNonEmpty(strings.TrimSpace(decision.ClassificationBasis), delegatedClassificationBasisDeclared),
 	})
 	s.delegatedApprovalRequests[key] = &runtimev1.DelegatedApprovalRequest{
 		ApprovalRequestId:    approvalID,
@@ -500,22 +525,19 @@ func (s *Service) recordDelegatedApprovalRequestLocked(decision *runtimeAgentDel
 		TurnId:               strings.TrimSpace(decision.TurnID),
 		ProviderProfileId:    strings.TrimSpace(decision.ProviderID),
 		CapabilityId:         strings.TrimSpace(decision.CapabilityID),
-		// K-DELEG-091 typed approval fields promoted to top-level. effect_class,
-		// sensitivity_class, and summary_ref still require the orchestration to
-		// compute them (effect classification from the provider profile
-		// allowed_effect_classes, a firewall-reviewed summary_ref pointer, and the
-		// sensitivity_class taxonomy once admitted) and remain unset until that
-		// pipeline lands; the proto fields now exist to carry them.
-		DelegationRequestId: strings.TrimSpace(decision.DelegationRequestID),
-		PolicySnapshotId:    policySnapshotID,
-		ToolName:            strings.TrimSpace(decision.ToolName),
-		FirewallVerdict:     strings.TrimSpace(decision.FirewallVerdict),
-		ReasonCode:          strings.TrimSpace(decision.ReasonCode),
-		State:               runtimev1.DelegatedApprovalRequestState_DELEGATED_APPROVAL_REQUEST_STATE_PENDING,
-		Detail:              detail,
-		CreatedAt:           timestamppb.New(decidedAt),
-		UpdatedAt:           timestamppb.New(decidedAt),
-		ExpiresAt:           timestamppb.New(expiresAt),
+		DelegationRequestId:  strings.TrimSpace(decision.DelegationRequestID),
+		PolicySnapshotId:     policySnapshotID,
+		EffectClass:          decision.EffectClass,
+		SensitivityClass:     decision.SensitivityClass,
+		SummaryRef:           strings.TrimSpace(decision.SummaryRef),
+		ToolName:             strings.TrimSpace(decision.ToolName),
+		FirewallVerdict:      strings.TrimSpace(decision.FirewallVerdict),
+		ReasonCode:           strings.TrimSpace(decision.ReasonCode),
+		State:                runtimev1.DelegatedApprovalRequestState_DELEGATED_APPROVAL_REQUEST_STATE_PENDING,
+		Detail:               detail,
+		CreatedAt:            timestamppb.New(decidedAt),
+		UpdatedAt:            timestamppb.New(decidedAt),
+		ExpiresAt:            timestamppb.New(expiresAt),
 	}
 }
 
@@ -557,6 +579,7 @@ func (s *Service) appendDelegatedDecisionAuditEvent(record delegatedCapabilityDe
 		"firewall_input_id":      record.FirewallInputID,
 		"firewall_verdict":       record.FirewallVerdict,
 		"reason_code_text":       record.ReasonCode,
+		"sensitivity_class":      record.SensitivityClass,
 		"runtime_decision":       record.RuntimeDecision,
 		"projection_disposition": record.ProjectionDisposition,
 		"action_disposition":     record.ActionDisposition,
@@ -607,7 +630,11 @@ func (s *Service) appendDelegatedApprovalDecisionAuditEvent(agentID string, appr
 		decidedAt = time.Now().UTC()
 	}
 	payload, err := structpb.NewStruct(map[string]any{
-		"approval_request_id":    approvalID,
+		"approval_request_id": approvalID,
+		// decision_id is the explicit join key back to the capability
+		// decision_recorded event (K-DELEG-086); it equals approval_request_id
+		// because the approval request id is the orchestration decision id.
+		"decision_id":            approvalID,
 		"agent_id":               strings.TrimSpace(agentID),
 		"delegation_request_id":  delegationRequestID,
 		"conversation_anchor_id": strings.TrimSpace(approval.GetConversationAnchorId()),
@@ -697,12 +724,75 @@ func delegatedDecisionAuditRecordFromRuntimeAuditEvent(event *runtimev1.AuditEve
 		FirewallInputID:       structStringField(fields, "firewall_input_id"),
 		FirewallVerdict:       structStringField(fields, "firewall_verdict"),
 		ReasonCode:            structStringField(fields, "reason_code_text"),
+		SensitivityClass:      structStringField(fields, "sensitivity_class"),
 		RuntimeDecision:       structStringField(fields, "runtime_decision"),
 		ProjectionDisposition: structStringField(fields, "projection_disposition"),
 		ActionDisposition:     structStringField(fields, "action_disposition"),
 		RecordedAt:            recordedAt.UTC(),
 	}
 	return record, strings.TrimSpace(record.DecisionID) != ""
+}
+
+// delegatedApprovalDecisionAuditRecord is the committed approval decision
+// recovered from the runtime.agent.delegation.approval_decision audit event,
+// joined to the capability decision by decision_id (K-DELEG-086).
+type delegatedApprovalDecisionAuditRecord struct {
+	DecisionID    string
+	ApprovalID    string
+	ApprovalState string
+	ReasonCode    string
+	PrincipalID   string
+	RecordedAt    time.Time
+}
+
+// delegatedApprovalDecisionAuditRecord returns the committed approval decision
+// audit record for a decision id, or nil when no decision has been recorded
+// (i.e. the approval is still pending). It is the audit-lineage source for the
+// replay approval stage, so a reconstructed trace reflects the committed
+// decision rather than the mutable in-memory approval object.
+func (s *Service) delegatedApprovalDecisionAuditRecord(decisionID string) *delegatedApprovalDecisionAuditRecord {
+	if s == nil || s.auditStore == nil || strings.TrimSpace(decisionID) == "" {
+		return nil
+	}
+	req := &runtimev1.ListAuditEventsRequest{
+		Domain:   "runtime.delegation",
+		PageSize: 200,
+	}
+	var latest *delegatedApprovalDecisionAuditRecord
+	for {
+		resp, err := s.auditStore.ListEvents(req)
+		if err != nil {
+			return latest
+		}
+		for _, event := range resp.GetEvents() {
+			if strings.TrimSpace(event.GetOperation()) != "runtime.agent.delegation.approval_decision" {
+				continue
+			}
+			fields := event.GetPayload().GetFields()
+			if structStringField(fields, "decision_id") != decisionID {
+				continue
+			}
+			recordedAt := event.GetTimestamp().AsTime()
+			if raw := structStringField(fields, "recorded_at"); raw != "" {
+				if parsed, perr := time.Parse(time.RFC3339Nano, raw); perr == nil {
+					recordedAt = parsed
+				}
+			}
+			latest = &delegatedApprovalDecisionAuditRecord{
+				DecisionID:    decisionID,
+				ApprovalID:    structStringField(fields, "approval_request_id"),
+				ApprovalState: structStringField(fields, "approval_state"),
+				ReasonCode:    structStringField(fields, "reason_code_text"),
+				PrincipalID:   structStringField(fields, "principal_id"),
+				RecordedAt:    recordedAt.UTC(),
+			}
+		}
+		if strings.TrimSpace(resp.GetNextPageToken()) == "" {
+			break
+		}
+		req.PageToken = resp.GetNextPageToken()
+	}
+	return latest
 }
 
 func structStringField(fields map[string]*structpb.Value, name string) string {

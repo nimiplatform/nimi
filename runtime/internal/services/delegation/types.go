@@ -70,6 +70,35 @@ const (
 	ReasonGatewayMCPToolCallFailed     = "DELEG_GATEWAY_MCP_TOOL_CALL_FAILED"
 	ReasonGatewayMCPResultInvalid      = "DELEG_GATEWAY_MCP_RESULT_INVALID"
 	ReasonGatewayMCPTimeout            = "DELEG_GATEWAY_MCP_TIMEOUT"
+
+	// K-DELEG-007 effect classification (mirrors proto EffectClass without the
+	// wire enum prefix). Empty string means unclassified and is treated
+	// fail-closed by approval-requirement derivation.
+	EffectClassReadOnly           = "READ_ONLY"
+	EffectClassLocalSideEffect    = "LOCAL_SIDE_EFFECT"
+	EffectClassExternalSideEffect = "EXTERNAL_SIDE_EFFECT"
+	EffectClassSensitiveRead      = "SENSITIVE_READ"
+	EffectClassUnsupportedEffect  = "UNSUPPORTED_EFFECT"
+
+	// K-DELEG-068 sensitive output classification.
+	SensitivityClassNone             = "NONE"
+	SensitivityClassUserPrivate      = "USER_PRIVATE"
+	SensitivityClassCredentialLike   = "CREDENTIAL_LIKE"
+	SensitivityClassOrgPrivate       = "ORG_PRIVATE"
+	SensitivityClassRegulated        = "REGULATED"
+	SensitivityClassUnknownSensitive = "UNKNOWN_SENSITIVE"
+
+	// Provider trust tier (mirrors proto DelegatedProviderTrustTier). Empty
+	// string means unknown tier and is treated fail-closed.
+	TrustTierControlledLocal   = "CONTROLLED_LOCAL"
+	TrustTierUserAddedReviewed = "USER_ADDED_REVIEWED"
+	TrustTierOrgManaged        = "ORG_MANAGED"
+	TrustTierBlocked           = "BLOCKED"
+
+	// K-DELEG-069 approval requirement derivation result.
+	ApprovalRequirementNotRequired   = "NOT_REQUIRED"
+	ApprovalRequirementRequired      = "REQUIRED"
+	ApprovalRequirementPolicyBlocked = "POLICY_BLOCKED"
 )
 
 type ProviderProfile struct {
@@ -142,6 +171,8 @@ type FirewallInput struct {
 	ProtocolRevision    string
 	OutputKind          string
 	RequiresApproval    bool
+	EffectClass         string
+	TrustTier           string
 	Confidence          ConfidenceRecord
 	Provenance          ProvenanceRecord
 	StreamSegmentKind   string
@@ -178,6 +209,8 @@ type FirewallDecision struct {
 	ToolName             string
 	Verdict              string
 	ReasonCode           string
+	SensitivityClass     string
+	ApprovalRequirement  string
 	Confidence           ConfidenceRecord
 	Provenance           ProvenanceRecord
 	ThreatIndicators     []ThreatIndicator

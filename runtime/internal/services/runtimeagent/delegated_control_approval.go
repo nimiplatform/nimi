@@ -47,6 +47,18 @@ func (s *Service) validateDelegatedApprovalResumeLocked(ctx *runtimev1.AgentRequ
 	if currentDescriptor != descriptorHash {
 		return status.Error(codes.FailedPrecondition, "delegated approval descriptor drifted")
 	}
+	// K-DELEG-093 resume precondition: the request effect class must be a
+	// resolved classification and must still match the current capability
+	// descriptor. This fails closed on an approval that hydrated from a
+	// pre-classification persisted profile (UNSPECIFIED effect) or whose
+	// declared effect drifted after the approval was recorded.
+	if approval.GetEffectClass() == runtimev1.EffectClass_EFFECT_CLASS_UNSPECIFIED {
+		return status.Error(codes.FailedPrecondition, "delegated approval effect class is unclassified")
+	}
+	currentEffectClass := effectiveDelegatedEffectClass(deriveDelegatedToolEffectClass(profile, approval.GetToolName()))
+	if currentEffectClass != approval.GetEffectClass() {
+		return status.Error(codes.FailedPrecondition, "delegated approval effect class drifted")
+	}
 	expectedPolicySnapshotID := delegatedApprovalPolicySnapshotID(
 		approval.GetProviderProfileId(),
 		approval.GetCapabilityId(),

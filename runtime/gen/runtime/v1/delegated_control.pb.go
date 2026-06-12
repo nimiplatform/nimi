@@ -461,6 +461,71 @@ func (EffectClass) EnumDescriptor() ([]byte, []int) {
 	return file_runtime_v1_delegated_control_proto_rawDescGZIP(), []int{7}
 }
 
+// SensitivityClass mirrors the K-DELEG-068 sensitive-output classification
+// consumed by the K-DELEG-091 approval request. CREDENTIAL_LIKE, REGULATED,
+// and UNKNOWN_SENSITIVE require quarantine or explicit policy approval before
+// further use.
+type SensitivityClass int32
+
+const (
+	SensitivityClass_SENSITIVITY_CLASS_UNSPECIFIED       SensitivityClass = 0
+	SensitivityClass_SENSITIVITY_CLASS_NONE              SensitivityClass = 1
+	SensitivityClass_SENSITIVITY_CLASS_USER_PRIVATE      SensitivityClass = 2
+	SensitivityClass_SENSITIVITY_CLASS_CREDENTIAL_LIKE   SensitivityClass = 3
+	SensitivityClass_SENSITIVITY_CLASS_ORG_PRIVATE       SensitivityClass = 4
+	SensitivityClass_SENSITIVITY_CLASS_REGULATED         SensitivityClass = 5
+	SensitivityClass_SENSITIVITY_CLASS_UNKNOWN_SENSITIVE SensitivityClass = 6
+)
+
+// Enum value maps for SensitivityClass.
+var (
+	SensitivityClass_name = map[int32]string{
+		0: "SENSITIVITY_CLASS_UNSPECIFIED",
+		1: "SENSITIVITY_CLASS_NONE",
+		2: "SENSITIVITY_CLASS_USER_PRIVATE",
+		3: "SENSITIVITY_CLASS_CREDENTIAL_LIKE",
+		4: "SENSITIVITY_CLASS_ORG_PRIVATE",
+		5: "SENSITIVITY_CLASS_REGULATED",
+		6: "SENSITIVITY_CLASS_UNKNOWN_SENSITIVE",
+	}
+	SensitivityClass_value = map[string]int32{
+		"SENSITIVITY_CLASS_UNSPECIFIED":       0,
+		"SENSITIVITY_CLASS_NONE":              1,
+		"SENSITIVITY_CLASS_USER_PRIVATE":      2,
+		"SENSITIVITY_CLASS_CREDENTIAL_LIKE":   3,
+		"SENSITIVITY_CLASS_ORG_PRIVATE":       4,
+		"SENSITIVITY_CLASS_REGULATED":         5,
+		"SENSITIVITY_CLASS_UNKNOWN_SENSITIVE": 6,
+	}
+)
+
+func (x SensitivityClass) Enum() *SensitivityClass {
+	p := new(SensitivityClass)
+	*p = x
+	return p
+}
+
+func (x SensitivityClass) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (SensitivityClass) Descriptor() protoreflect.EnumDescriptor {
+	return file_runtime_v1_delegated_control_proto_enumTypes[8].Descriptor()
+}
+
+func (SensitivityClass) Type() protoreflect.EnumType {
+	return &file_runtime_v1_delegated_control_proto_enumTypes[8]
+}
+
+func (x SensitivityClass) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use SensitivityClass.Descriptor instead.
+func (SensitivityClass) EnumDescriptor() ([]byte, []int) {
+	return file_runtime_v1_delegated_control_proto_rawDescGZIP(), []int{8}
+}
+
 type DelegatedReplayOutcome int32
 
 const (
@@ -503,11 +568,11 @@ func (x DelegatedReplayOutcome) String() string {
 }
 
 func (DelegatedReplayOutcome) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_delegated_control_proto_enumTypes[8].Descriptor()
+	return file_runtime_v1_delegated_control_proto_enumTypes[9].Descriptor()
 }
 
 func (DelegatedReplayOutcome) Type() protoreflect.EnumType {
-	return &file_runtime_v1_delegated_control_proto_enumTypes[8]
+	return &file_runtime_v1_delegated_control_proto_enumTypes[9]
 }
 
 func (x DelegatedReplayOutcome) Number() protoreflect.EnumNumber {
@@ -516,7 +581,7 @@ func (x DelegatedReplayOutcome) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use DelegatedReplayOutcome.Descriptor instead.
 func (DelegatedReplayOutcome) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_delegated_control_proto_rawDescGZIP(), []int{8}
+	return file_runtime_v1_delegated_control_proto_rawDescGZIP(), []int{9}
 }
 
 type DelegatedTraceStageKind int32
@@ -564,11 +629,11 @@ func (x DelegatedTraceStageKind) String() string {
 }
 
 func (DelegatedTraceStageKind) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_delegated_control_proto_enumTypes[9].Descriptor()
+	return file_runtime_v1_delegated_control_proto_enumTypes[10].Descriptor()
 }
 
 func (DelegatedTraceStageKind) Type() protoreflect.EnumType {
-	return &file_runtime_v1_delegated_control_proto_enumTypes[9]
+	return &file_runtime_v1_delegated_control_proto_enumTypes[10]
 }
 
 func (x DelegatedTraceStageKind) Number() protoreflect.EnumNumber {
@@ -577,15 +642,24 @@ func (x DelegatedTraceStageKind) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use DelegatedTraceStageKind.Descriptor instead.
 func (DelegatedTraceStageKind) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_delegated_control_proto_rawDescGZIP(), []int{9}
+	return file_runtime_v1_delegated_control_proto_rawDescGZIP(), []int{10}
 }
 
 type DelegatedToolAllowlistEntry struct {
 	state             protoimpl.MessageState `protogen:"open.v1"`
 	ToolName          string                 `protobuf:"bytes,1,opt,name=tool_name,json=toolName,proto3" json:"tool_name,omitempty"`
 	InputSchemaDigest string                 `protobuf:"bytes,2,opt,name=input_schema_digest,json=inputSchemaDigest,proto3" json:"input_schema_digest,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// K-DELEG-006 capability-descriptor classification declared at profile
+	// registration. effect_class is required on write (upsert fails closed on
+	// UNSPECIFIED); records persisted before this field derive as UNSPECIFIED
+	// and force approval-required handling instead of silently passing.
+	EffectClass EffectClass `protobuf:"varint,3,opt,name=effect_class,json=effectClass,proto3,enum=nimi.runtime.v1.EffectClass" json:"effect_class,omitempty"`
+	// Expected sensitivity of the capability's output (K-DELEG-068). Optional
+	// on write; UNSPECIFIED derives conservatively as UNKNOWN_SENSITIVE for
+	// approval-requirement purposes.
+	ExpectedSensitivityClass SensitivityClass `protobuf:"varint,4,opt,name=expected_sensitivity_class,json=expectedSensitivityClass,proto3,enum=nimi.runtime.v1.SensitivityClass" json:"expected_sensitivity_class,omitempty"`
+	unknownFields            protoimpl.UnknownFields
+	sizeCache                protoimpl.SizeCache
 }
 
 func (x *DelegatedToolAllowlistEntry) Reset() {
@@ -630,6 +704,20 @@ func (x *DelegatedToolAllowlistEntry) GetInputSchemaDigest() string {
 		return x.InputSchemaDigest
 	}
 	return ""
+}
+
+func (x *DelegatedToolAllowlistEntry) GetEffectClass() EffectClass {
+	if x != nil {
+		return x.EffectClass
+	}
+	return EffectClass_EFFECT_CLASS_UNSPECIFIED
+}
+
+func (x *DelegatedToolAllowlistEntry) GetExpectedSensitivityClass() SensitivityClass {
+	if x != nil {
+		return x.ExpectedSensitivityClass
+	}
+	return SensitivityClass_SENSITIVITY_CLASS_UNSPECIFIED
 }
 
 type DelegatedProviderProfile struct {
@@ -1216,13 +1304,15 @@ type DelegatedApprovalRequest struct {
 	CreatedAt            *timestamppb.Timestamp        `protobuf:"bytes,12,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	UpdatedAt            *timestamppb.Timestamp        `protobuf:"bytes,13,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	ExpiresAt            *timestamppb.Timestamp        `protobuf:"bytes,14,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
-	// K-DELEG-091 required approval-request fields. sensitivity_class is pending
-	// its spec-authority taxonomy definition and will be added as a typed enum
-	// (next field number) once the value set is admitted.
-	DelegationRequestId string      `protobuf:"bytes,15,opt,name=delegation_request_id,json=delegationRequestId,proto3" json:"delegation_request_id,omitempty"`
-	EffectClass         EffectClass `protobuf:"varint,16,opt,name=effect_class,json=effectClass,proto3,enum=nimi.runtime.v1.EffectClass" json:"effect_class,omitempty"`
-	SummaryRef          string      `protobuf:"bytes,17,opt,name=summary_ref,json=summaryRef,proto3" json:"summary_ref,omitempty"`
-	PolicySnapshotId    string      `protobuf:"bytes,18,opt,name=policy_snapshot_id,json=policySnapshotId,proto3" json:"policy_snapshot_id,omitempty"`
+	// K-DELEG-091 required approval-request fields. sensitivity_class carries
+	// the K-DELEG-068 taxonomy: pre-invoke approvals derive it from the
+	// capability's declared expected sensitivity, post-firewall approvals from
+	// the firewall output classification.
+	DelegationRequestId string           `protobuf:"bytes,15,opt,name=delegation_request_id,json=delegationRequestId,proto3" json:"delegation_request_id,omitempty"`
+	EffectClass         EffectClass      `protobuf:"varint,16,opt,name=effect_class,json=effectClass,proto3,enum=nimi.runtime.v1.EffectClass" json:"effect_class,omitempty"`
+	SummaryRef          string           `protobuf:"bytes,17,opt,name=summary_ref,json=summaryRef,proto3" json:"summary_ref,omitempty"`
+	PolicySnapshotId    string           `protobuf:"bytes,18,opt,name=policy_snapshot_id,json=policySnapshotId,proto3" json:"policy_snapshot_id,omitempty"`
+	SensitivityClass    SensitivityClass `protobuf:"varint,19,opt,name=sensitivity_class,json=sensitivityClass,proto3,enum=nimi.runtime.v1.SensitivityClass" json:"sensitivity_class,omitempty"`
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }
@@ -1381,6 +1471,13 @@ func (x *DelegatedApprovalRequest) GetPolicySnapshotId() string {
 		return x.PolicySnapshotId
 	}
 	return ""
+}
+
+func (x *DelegatedApprovalRequest) GetSensitivityClass() SensitivityClass {
+	if x != nil {
+		return x.SensitivityClass
+	}
+	return SensitivityClass_SENSITIVITY_CLASS_UNSPECIFIED
 }
 
 type ListDelegatedApprovalRequestsRequest struct {
@@ -2655,10 +2752,12 @@ var File_runtime_v1_delegated_control_proto protoreflect.FileDescriptor
 
 const file_runtime_v1_delegated_control_proto_rawDesc = "" +
 	"\n" +
-	"\"runtime/v1/delegated_control.proto\x12\x0fnimi.runtime.v1\x1a\x1egoogle/protobuf/duration.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1druntime/v1/agent_common.proto\"j\n" +
+	"\"runtime/v1/delegated_control.proto\x12\x0fnimi.runtime.v1\x1a\x1egoogle/protobuf/duration.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1druntime/v1/agent_common.proto\"\x8c\x02\n" +
 	"\x1bDelegatedToolAllowlistEntry\x12\x1b\n" +
 	"\ttool_name\x18\x01 \x01(\tR\btoolName\x12.\n" +
-	"\x13input_schema_digest\x18\x02 \x01(\tR\x11inputSchemaDigest\"\xc1\x06\n" +
+	"\x13input_schema_digest\x18\x02 \x01(\tR\x11inputSchemaDigest\x12?\n" +
+	"\feffect_class\x18\x03 \x01(\x0e2\x1c.nimi.runtime.v1.EffectClassR\veffectClass\x12_\n" +
+	"\x1aexpected_sensitivity_class\x18\x04 \x01(\x0e2!.nimi.runtime.v1.SensitivityClassR\x18expectedSensitivityClass\"\xc1\x06\n" +
 	"\x18DelegatedProviderProfile\x12.\n" +
 	"\x13provider_profile_id\x18\x01 \x01(\tR\x11providerProfileId\x12!\n" +
 	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12K\n" +
@@ -2706,7 +2805,7 @@ const file_runtime_v1_delegated_control_proto_rawDesc = "" +
 	"\x05state\x18\x04 \x01(\x0e2'.nimi.runtime.v1.DelegatedProviderStateR\x05state\x122\n" +
 	"\x15lifecycle_reason_code\x18\x05 \x01(\tR\x13lifecycleReasonCode\"y\n" +
 	"!SetDelegatedProviderStateResponse\x12T\n" +
-	"\x10provider_profile\x18\x01 \x01(\v2).nimi.runtime.v1.DelegatedProviderProfileR\x0fproviderProfile\"\xde\x06\n" +
+	"\x10provider_profile\x18\x01 \x01(\v2).nimi.runtime.v1.DelegatedProviderProfileR\x0fproviderProfile\"\xae\a\n" +
 	"\x18DelegatedApprovalRequest\x12.\n" +
 	"\x13approval_request_id\x18\x01 \x01(\tR\x11approvalRequestId\x12\x19\n" +
 	"\bagent_id\x18\x02 \x01(\tR\aagentId\x124\n" +
@@ -2731,7 +2830,8 @@ const file_runtime_v1_delegated_control_proto_rawDesc = "" +
 	"\feffect_class\x18\x10 \x01(\x0e2\x1c.nimi.runtime.v1.EffectClassR\veffectClass\x12\x1f\n" +
 	"\vsummary_ref\x18\x11 \x01(\tR\n" +
 	"summaryRef\x12,\n" +
-	"\x12policy_snapshot_id\x18\x12 \x01(\tR\x10policySnapshotId\"\xb7\x01\n" +
+	"\x12policy_snapshot_id\x18\x12 \x01(\tR\x10policySnapshotId\x12N\n" +
+	"\x11sensitivity_class\x18\x13 \x01(\x0e2!.nimi.runtime.v1.SensitivityClassR\x10sensitivityClass\"\xb7\x01\n" +
 	"$ListDelegatedApprovalRequestsRequest\x12>\n" +
 	"\acontext\x18\x01 \x01(\v2$.nimi.runtime.v1.AgentRequestContextR\acontext\x12\x19\n" +
 	"\bagent_id\x18\x02 \x01(\tR\aagentId\x124\n" +
@@ -2892,7 +2992,15 @@ const file_runtime_v1_delegated_control_proto_rawDesc = "" +
 	"\x1eEFFECT_CLASS_LOCAL_SIDE_EFFECT\x10\x02\x12%\n" +
 	"!EFFECT_CLASS_EXTERNAL_SIDE_EFFECT\x10\x03\x12\x1f\n" +
 	"\x1bEFFECT_CLASS_SENSITIVE_READ\x10\x04\x12#\n" +
-	"\x1fEFFECT_CLASS_UNSUPPORTED_EFFECT\x10\x05*\xb2\x02\n" +
+	"\x1fEFFECT_CLASS_UNSUPPORTED_EFFECT\x10\x05*\x89\x02\n" +
+	"\x10SensitivityClass\x12!\n" +
+	"\x1dSENSITIVITY_CLASS_UNSPECIFIED\x10\x00\x12\x1a\n" +
+	"\x16SENSITIVITY_CLASS_NONE\x10\x01\x12\"\n" +
+	"\x1eSENSITIVITY_CLASS_USER_PRIVATE\x10\x02\x12%\n" +
+	"!SENSITIVITY_CLASS_CREDENTIAL_LIKE\x10\x03\x12!\n" +
+	"\x1dSENSITIVITY_CLASS_ORG_PRIVATE\x10\x04\x12\x1f\n" +
+	"\x1bSENSITIVITY_CLASS_REGULATED\x10\x05\x12'\n" +
+	"#SENSITIVITY_CLASS_UNKNOWN_SENSITIVE\x10\x06*\xb2\x02\n" +
 	"\x16DelegatedReplayOutcome\x12(\n" +
 	"$DELEGATED_REPLAY_OUTCOME_UNSPECIFIED\x10\x00\x12*\n" +
 	"&DELEGATED_REPLAY_OUTCOME_RECONSTRUCTED\x10\x01\x12-\n" +
@@ -2921,7 +3029,7 @@ func file_runtime_v1_delegated_control_proto_rawDescGZIP() []byte {
 	return file_runtime_v1_delegated_control_proto_rawDescData
 }
 
-var file_runtime_v1_delegated_control_proto_enumTypes = make([]protoimpl.EnumInfo, 10)
+var file_runtime_v1_delegated_control_proto_enumTypes = make([]protoimpl.EnumInfo, 11)
 var file_runtime_v1_delegated_control_proto_msgTypes = make([]protoimpl.MessageInfo, 27)
 var file_runtime_v1_delegated_control_proto_goTypes = []any{
 	(DelegatedProviderKind)(0),                         // 0: nimi.runtime.v1.DelegatedProviderKind
@@ -2932,101 +3040,105 @@ var file_runtime_v1_delegated_control_proto_goTypes = []any{
 	(DelegatedApprovalRequestState)(0),                 // 5: nimi.runtime.v1.DelegatedApprovalRequestState
 	(DelegatedApprovalDecision)(0),                     // 6: nimi.runtime.v1.DelegatedApprovalDecision
 	(EffectClass)(0),                                   // 7: nimi.runtime.v1.EffectClass
-	(DelegatedReplayOutcome)(0),                        // 8: nimi.runtime.v1.DelegatedReplayOutcome
-	(DelegatedTraceStageKind)(0),                       // 9: nimi.runtime.v1.DelegatedTraceStageKind
-	(*DelegatedToolAllowlistEntry)(nil),                // 10: nimi.runtime.v1.DelegatedToolAllowlistEntry
-	(*DelegatedProviderProfile)(nil),                   // 11: nimi.runtime.v1.DelegatedProviderProfile
-	(*DelegatedControlSurfaceSnapshot)(nil),            // 12: nimi.runtime.v1.DelegatedControlSurfaceSnapshot
-	(*ListDelegatedProviderProfilesRequest)(nil),       // 13: nimi.runtime.v1.ListDelegatedProviderProfilesRequest
-	(*ListDelegatedProviderProfilesResponse)(nil),      // 14: nimi.runtime.v1.ListDelegatedProviderProfilesResponse
-	(*UpsertDelegatedProviderProfileRequest)(nil),      // 15: nimi.runtime.v1.UpsertDelegatedProviderProfileRequest
-	(*UpsertDelegatedProviderProfileResponse)(nil),     // 16: nimi.runtime.v1.UpsertDelegatedProviderProfileResponse
-	(*SetDelegatedProviderStateRequest)(nil),           // 17: nimi.runtime.v1.SetDelegatedProviderStateRequest
-	(*SetDelegatedProviderStateResponse)(nil),          // 18: nimi.runtime.v1.SetDelegatedProviderStateResponse
-	(*DelegatedApprovalRequest)(nil),                   // 19: nimi.runtime.v1.DelegatedApprovalRequest
-	(*ListDelegatedApprovalRequestsRequest)(nil),       // 20: nimi.runtime.v1.ListDelegatedApprovalRequestsRequest
-	(*ListDelegatedApprovalRequestsResponse)(nil),      // 21: nimi.runtime.v1.ListDelegatedApprovalRequestsResponse
-	(*SubmitDelegatedApprovalDecisionRequest)(nil),     // 22: nimi.runtime.v1.SubmitDelegatedApprovalDecisionRequest
-	(*SubmitDelegatedApprovalDecisionResponse)(nil),    // 23: nimi.runtime.v1.SubmitDelegatedApprovalDecisionResponse
-	(*DelegatedDiagnostic)(nil),                        // 24: nimi.runtime.v1.DelegatedDiagnostic
-	(*DelegatedReplayTraceStage)(nil),                  // 25: nimi.runtime.v1.DelegatedReplayTraceStage
-	(*DelegatedReplayTrace)(nil),                       // 26: nimi.runtime.v1.DelegatedReplayTrace
-	(*ListDelegatedDiagnosticsRequest)(nil),            // 27: nimi.runtime.v1.ListDelegatedDiagnosticsRequest
-	(*ListDelegatedDiagnosticsResponse)(nil),           // 28: nimi.runtime.v1.ListDelegatedDiagnosticsResponse
-	(*GetDelegatedReplayTraceRequest)(nil),             // 29: nimi.runtime.v1.GetDelegatedReplayTraceRequest
-	(*GetDelegatedReplayTraceResponse)(nil),            // 30: nimi.runtime.v1.GetDelegatedReplayTraceResponse
-	(*GetDelegatedControlSurfaceSnapshotRequest)(nil),  // 31: nimi.runtime.v1.GetDelegatedControlSurfaceSnapshotRequest
-	(*GetDelegatedControlSurfaceSnapshotResponse)(nil), // 32: nimi.runtime.v1.GetDelegatedControlSurfaceSnapshotResponse
-	(*ExecuteDelegatedCapabilityRequest)(nil),          // 33: nimi.runtime.v1.ExecuteDelegatedCapabilityRequest
-	(*ExecuteDelegatedCapabilityResponse)(nil),         // 34: nimi.runtime.v1.ExecuteDelegatedCapabilityResponse
-	(*ResumeDelegatedCapabilityRequest)(nil),           // 35: nimi.runtime.v1.ResumeDelegatedCapabilityRequest
-	(*ResumeDelegatedCapabilityResponse)(nil),          // 36: nimi.runtime.v1.ResumeDelegatedCapabilityResponse
-	(*durationpb.Duration)(nil),                        // 37: google.protobuf.Duration
-	(*timestamppb.Timestamp)(nil),                      // 38: google.protobuf.Timestamp
-	(*AgentRequestContext)(nil),                        // 39: nimi.runtime.v1.AgentRequestContext
-	(*structpb.Struct)(nil),                            // 40: google.protobuf.Struct
+	(SensitivityClass)(0),                              // 8: nimi.runtime.v1.SensitivityClass
+	(DelegatedReplayOutcome)(0),                        // 9: nimi.runtime.v1.DelegatedReplayOutcome
+	(DelegatedTraceStageKind)(0),                       // 10: nimi.runtime.v1.DelegatedTraceStageKind
+	(*DelegatedToolAllowlistEntry)(nil),                // 11: nimi.runtime.v1.DelegatedToolAllowlistEntry
+	(*DelegatedProviderProfile)(nil),                   // 12: nimi.runtime.v1.DelegatedProviderProfile
+	(*DelegatedControlSurfaceSnapshot)(nil),            // 13: nimi.runtime.v1.DelegatedControlSurfaceSnapshot
+	(*ListDelegatedProviderProfilesRequest)(nil),       // 14: nimi.runtime.v1.ListDelegatedProviderProfilesRequest
+	(*ListDelegatedProviderProfilesResponse)(nil),      // 15: nimi.runtime.v1.ListDelegatedProviderProfilesResponse
+	(*UpsertDelegatedProviderProfileRequest)(nil),      // 16: nimi.runtime.v1.UpsertDelegatedProviderProfileRequest
+	(*UpsertDelegatedProviderProfileResponse)(nil),     // 17: nimi.runtime.v1.UpsertDelegatedProviderProfileResponse
+	(*SetDelegatedProviderStateRequest)(nil),           // 18: nimi.runtime.v1.SetDelegatedProviderStateRequest
+	(*SetDelegatedProviderStateResponse)(nil),          // 19: nimi.runtime.v1.SetDelegatedProviderStateResponse
+	(*DelegatedApprovalRequest)(nil),                   // 20: nimi.runtime.v1.DelegatedApprovalRequest
+	(*ListDelegatedApprovalRequestsRequest)(nil),       // 21: nimi.runtime.v1.ListDelegatedApprovalRequestsRequest
+	(*ListDelegatedApprovalRequestsResponse)(nil),      // 22: nimi.runtime.v1.ListDelegatedApprovalRequestsResponse
+	(*SubmitDelegatedApprovalDecisionRequest)(nil),     // 23: nimi.runtime.v1.SubmitDelegatedApprovalDecisionRequest
+	(*SubmitDelegatedApprovalDecisionResponse)(nil),    // 24: nimi.runtime.v1.SubmitDelegatedApprovalDecisionResponse
+	(*DelegatedDiagnostic)(nil),                        // 25: nimi.runtime.v1.DelegatedDiagnostic
+	(*DelegatedReplayTraceStage)(nil),                  // 26: nimi.runtime.v1.DelegatedReplayTraceStage
+	(*DelegatedReplayTrace)(nil),                       // 27: nimi.runtime.v1.DelegatedReplayTrace
+	(*ListDelegatedDiagnosticsRequest)(nil),            // 28: nimi.runtime.v1.ListDelegatedDiagnosticsRequest
+	(*ListDelegatedDiagnosticsResponse)(nil),           // 29: nimi.runtime.v1.ListDelegatedDiagnosticsResponse
+	(*GetDelegatedReplayTraceRequest)(nil),             // 30: nimi.runtime.v1.GetDelegatedReplayTraceRequest
+	(*GetDelegatedReplayTraceResponse)(nil),            // 31: nimi.runtime.v1.GetDelegatedReplayTraceResponse
+	(*GetDelegatedControlSurfaceSnapshotRequest)(nil),  // 32: nimi.runtime.v1.GetDelegatedControlSurfaceSnapshotRequest
+	(*GetDelegatedControlSurfaceSnapshotResponse)(nil), // 33: nimi.runtime.v1.GetDelegatedControlSurfaceSnapshotResponse
+	(*ExecuteDelegatedCapabilityRequest)(nil),          // 34: nimi.runtime.v1.ExecuteDelegatedCapabilityRequest
+	(*ExecuteDelegatedCapabilityResponse)(nil),         // 35: nimi.runtime.v1.ExecuteDelegatedCapabilityResponse
+	(*ResumeDelegatedCapabilityRequest)(nil),           // 36: nimi.runtime.v1.ResumeDelegatedCapabilityRequest
+	(*ResumeDelegatedCapabilityResponse)(nil),          // 37: nimi.runtime.v1.ResumeDelegatedCapabilityResponse
+	(*durationpb.Duration)(nil),                        // 38: google.protobuf.Duration
+	(*timestamppb.Timestamp)(nil),                      // 39: google.protobuf.Timestamp
+	(*AgentRequestContext)(nil),                        // 40: nimi.runtime.v1.AgentRequestContext
+	(*structpb.Struct)(nil),                            // 41: google.protobuf.Struct
 }
 var file_runtime_v1_delegated_control_proto_depIdxs = []int32{
-	0,  // 0: nimi.runtime.v1.DelegatedProviderProfile.provider_kind:type_name -> nimi.runtime.v1.DelegatedProviderKind
-	3,  // 1: nimi.runtime.v1.DelegatedProviderProfile.transport_kind:type_name -> nimi.runtime.v1.DelegatedTransportKind
-	2,  // 2: nimi.runtime.v1.DelegatedProviderProfile.state:type_name -> nimi.runtime.v1.DelegatedProviderState
-	10, // 3: nimi.runtime.v1.DelegatedProviderProfile.allowed_tools:type_name -> nimi.runtime.v1.DelegatedToolAllowlistEntry
-	37, // 4: nimi.runtime.v1.DelegatedProviderProfile.timeout:type_name -> google.protobuf.Duration
-	38, // 5: nimi.runtime.v1.DelegatedProviderProfile.created_at:type_name -> google.protobuf.Timestamp
-	38, // 6: nimi.runtime.v1.DelegatedProviderProfile.updated_at:type_name -> google.protobuf.Timestamp
-	1,  // 7: nimi.runtime.v1.DelegatedProviderProfile.trust_tier:type_name -> nimi.runtime.v1.DelegatedProviderTrustTier
-	4,  // 8: nimi.runtime.v1.DelegatedControlSurfaceSnapshot.approval_mode:type_name -> nimi.runtime.v1.DelegatedApprovalMode
-	11, // 9: nimi.runtime.v1.DelegatedControlSurfaceSnapshot.provider_profiles:type_name -> nimi.runtime.v1.DelegatedProviderProfile
-	19, // 10: nimi.runtime.v1.DelegatedControlSurfaceSnapshot.approval_requests:type_name -> nimi.runtime.v1.DelegatedApprovalRequest
-	24, // 11: nimi.runtime.v1.DelegatedControlSurfaceSnapshot.diagnostics:type_name -> nimi.runtime.v1.DelegatedDiagnostic
-	38, // 12: nimi.runtime.v1.DelegatedControlSurfaceSnapshot.observed_at:type_name -> google.protobuf.Timestamp
-	39, // 13: nimi.runtime.v1.ListDelegatedProviderProfilesRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	11, // 14: nimi.runtime.v1.ListDelegatedProviderProfilesResponse.provider_profiles:type_name -> nimi.runtime.v1.DelegatedProviderProfile
-	39, // 15: nimi.runtime.v1.UpsertDelegatedProviderProfileRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	11, // 16: nimi.runtime.v1.UpsertDelegatedProviderProfileRequest.provider_profile:type_name -> nimi.runtime.v1.DelegatedProviderProfile
-	11, // 17: nimi.runtime.v1.UpsertDelegatedProviderProfileResponse.provider_profile:type_name -> nimi.runtime.v1.DelegatedProviderProfile
-	39, // 18: nimi.runtime.v1.SetDelegatedProviderStateRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	2,  // 19: nimi.runtime.v1.SetDelegatedProviderStateRequest.state:type_name -> nimi.runtime.v1.DelegatedProviderState
-	11, // 20: nimi.runtime.v1.SetDelegatedProviderStateResponse.provider_profile:type_name -> nimi.runtime.v1.DelegatedProviderProfile
-	5,  // 21: nimi.runtime.v1.DelegatedApprovalRequest.state:type_name -> nimi.runtime.v1.DelegatedApprovalRequestState
-	40, // 22: nimi.runtime.v1.DelegatedApprovalRequest.detail:type_name -> google.protobuf.Struct
-	38, // 23: nimi.runtime.v1.DelegatedApprovalRequest.created_at:type_name -> google.protobuf.Timestamp
-	38, // 24: nimi.runtime.v1.DelegatedApprovalRequest.updated_at:type_name -> google.protobuf.Timestamp
-	38, // 25: nimi.runtime.v1.DelegatedApprovalRequest.expires_at:type_name -> google.protobuf.Timestamp
-	7,  // 26: nimi.runtime.v1.DelegatedApprovalRequest.effect_class:type_name -> nimi.runtime.v1.EffectClass
-	39, // 27: nimi.runtime.v1.ListDelegatedApprovalRequestsRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	19, // 28: nimi.runtime.v1.ListDelegatedApprovalRequestsResponse.approval_requests:type_name -> nimi.runtime.v1.DelegatedApprovalRequest
-	39, // 29: nimi.runtime.v1.SubmitDelegatedApprovalDecisionRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	6,  // 30: nimi.runtime.v1.SubmitDelegatedApprovalDecisionRequest.decision:type_name -> nimi.runtime.v1.DelegatedApprovalDecision
-	19, // 31: nimi.runtime.v1.SubmitDelegatedApprovalDecisionResponse.approval_request:type_name -> nimi.runtime.v1.DelegatedApprovalRequest
-	38, // 32: nimi.runtime.v1.DelegatedDiagnostic.observed_at:type_name -> google.protobuf.Timestamp
-	9,  // 33: nimi.runtime.v1.DelegatedReplayTraceStage.kind:type_name -> nimi.runtime.v1.DelegatedTraceStageKind
-	38, // 34: nimi.runtime.v1.DelegatedReplayTraceStage.observed_at:type_name -> google.protobuf.Timestamp
-	8,  // 35: nimi.runtime.v1.DelegatedReplayTrace.outcome:type_name -> nimi.runtime.v1.DelegatedReplayOutcome
-	25, // 36: nimi.runtime.v1.DelegatedReplayTrace.stages:type_name -> nimi.runtime.v1.DelegatedReplayTraceStage
-	38, // 37: nimi.runtime.v1.DelegatedReplayTrace.observed_at:type_name -> google.protobuf.Timestamp
-	39, // 38: nimi.runtime.v1.ListDelegatedDiagnosticsRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	24, // 39: nimi.runtime.v1.ListDelegatedDiagnosticsResponse.diagnostics:type_name -> nimi.runtime.v1.DelegatedDiagnostic
-	39, // 40: nimi.runtime.v1.GetDelegatedReplayTraceRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	26, // 41: nimi.runtime.v1.GetDelegatedReplayTraceResponse.trace:type_name -> nimi.runtime.v1.DelegatedReplayTrace
-	39, // 42: nimi.runtime.v1.GetDelegatedControlSurfaceSnapshotRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	12, // 43: nimi.runtime.v1.GetDelegatedControlSurfaceSnapshotResponse.snapshot:type_name -> nimi.runtime.v1.DelegatedControlSurfaceSnapshot
-	39, // 44: nimi.runtime.v1.ExecuteDelegatedCapabilityRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	40, // 45: nimi.runtime.v1.ExecuteDelegatedCapabilityRequest.arguments:type_name -> google.protobuf.Struct
-	24, // 46: nimi.runtime.v1.ExecuteDelegatedCapabilityResponse.diagnostic:type_name -> nimi.runtime.v1.DelegatedDiagnostic
-	26, // 47: nimi.runtime.v1.ExecuteDelegatedCapabilityResponse.replay_trace:type_name -> nimi.runtime.v1.DelegatedReplayTrace
-	40, // 48: nimi.runtime.v1.ExecuteDelegatedCapabilityResponse.model_output:type_name -> google.protobuf.Struct
-	19, // 49: nimi.runtime.v1.ExecuteDelegatedCapabilityResponse.approval_request:type_name -> nimi.runtime.v1.DelegatedApprovalRequest
-	39, // 50: nimi.runtime.v1.ResumeDelegatedCapabilityRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	24, // 51: nimi.runtime.v1.ResumeDelegatedCapabilityResponse.diagnostic:type_name -> nimi.runtime.v1.DelegatedDiagnostic
-	26, // 52: nimi.runtime.v1.ResumeDelegatedCapabilityResponse.replay_trace:type_name -> nimi.runtime.v1.DelegatedReplayTrace
-	40, // 53: nimi.runtime.v1.ResumeDelegatedCapabilityResponse.model_output:type_name -> google.protobuf.Struct
-	19, // 54: nimi.runtime.v1.ResumeDelegatedCapabilityResponse.approval_request:type_name -> nimi.runtime.v1.DelegatedApprovalRequest
-	55, // [55:55] is the sub-list for method output_type
-	55, // [55:55] is the sub-list for method input_type
-	55, // [55:55] is the sub-list for extension type_name
-	55, // [55:55] is the sub-list for extension extendee
-	0,  // [0:55] is the sub-list for field type_name
+	7,  // 0: nimi.runtime.v1.DelegatedToolAllowlistEntry.effect_class:type_name -> nimi.runtime.v1.EffectClass
+	8,  // 1: nimi.runtime.v1.DelegatedToolAllowlistEntry.expected_sensitivity_class:type_name -> nimi.runtime.v1.SensitivityClass
+	0,  // 2: nimi.runtime.v1.DelegatedProviderProfile.provider_kind:type_name -> nimi.runtime.v1.DelegatedProviderKind
+	3,  // 3: nimi.runtime.v1.DelegatedProviderProfile.transport_kind:type_name -> nimi.runtime.v1.DelegatedTransportKind
+	2,  // 4: nimi.runtime.v1.DelegatedProviderProfile.state:type_name -> nimi.runtime.v1.DelegatedProviderState
+	11, // 5: nimi.runtime.v1.DelegatedProviderProfile.allowed_tools:type_name -> nimi.runtime.v1.DelegatedToolAllowlistEntry
+	38, // 6: nimi.runtime.v1.DelegatedProviderProfile.timeout:type_name -> google.protobuf.Duration
+	39, // 7: nimi.runtime.v1.DelegatedProviderProfile.created_at:type_name -> google.protobuf.Timestamp
+	39, // 8: nimi.runtime.v1.DelegatedProviderProfile.updated_at:type_name -> google.protobuf.Timestamp
+	1,  // 9: nimi.runtime.v1.DelegatedProviderProfile.trust_tier:type_name -> nimi.runtime.v1.DelegatedProviderTrustTier
+	4,  // 10: nimi.runtime.v1.DelegatedControlSurfaceSnapshot.approval_mode:type_name -> nimi.runtime.v1.DelegatedApprovalMode
+	12, // 11: nimi.runtime.v1.DelegatedControlSurfaceSnapshot.provider_profiles:type_name -> nimi.runtime.v1.DelegatedProviderProfile
+	20, // 12: nimi.runtime.v1.DelegatedControlSurfaceSnapshot.approval_requests:type_name -> nimi.runtime.v1.DelegatedApprovalRequest
+	25, // 13: nimi.runtime.v1.DelegatedControlSurfaceSnapshot.diagnostics:type_name -> nimi.runtime.v1.DelegatedDiagnostic
+	39, // 14: nimi.runtime.v1.DelegatedControlSurfaceSnapshot.observed_at:type_name -> google.protobuf.Timestamp
+	40, // 15: nimi.runtime.v1.ListDelegatedProviderProfilesRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	12, // 16: nimi.runtime.v1.ListDelegatedProviderProfilesResponse.provider_profiles:type_name -> nimi.runtime.v1.DelegatedProviderProfile
+	40, // 17: nimi.runtime.v1.UpsertDelegatedProviderProfileRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	12, // 18: nimi.runtime.v1.UpsertDelegatedProviderProfileRequest.provider_profile:type_name -> nimi.runtime.v1.DelegatedProviderProfile
+	12, // 19: nimi.runtime.v1.UpsertDelegatedProviderProfileResponse.provider_profile:type_name -> nimi.runtime.v1.DelegatedProviderProfile
+	40, // 20: nimi.runtime.v1.SetDelegatedProviderStateRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	2,  // 21: nimi.runtime.v1.SetDelegatedProviderStateRequest.state:type_name -> nimi.runtime.v1.DelegatedProviderState
+	12, // 22: nimi.runtime.v1.SetDelegatedProviderStateResponse.provider_profile:type_name -> nimi.runtime.v1.DelegatedProviderProfile
+	5,  // 23: nimi.runtime.v1.DelegatedApprovalRequest.state:type_name -> nimi.runtime.v1.DelegatedApprovalRequestState
+	41, // 24: nimi.runtime.v1.DelegatedApprovalRequest.detail:type_name -> google.protobuf.Struct
+	39, // 25: nimi.runtime.v1.DelegatedApprovalRequest.created_at:type_name -> google.protobuf.Timestamp
+	39, // 26: nimi.runtime.v1.DelegatedApprovalRequest.updated_at:type_name -> google.protobuf.Timestamp
+	39, // 27: nimi.runtime.v1.DelegatedApprovalRequest.expires_at:type_name -> google.protobuf.Timestamp
+	7,  // 28: nimi.runtime.v1.DelegatedApprovalRequest.effect_class:type_name -> nimi.runtime.v1.EffectClass
+	8,  // 29: nimi.runtime.v1.DelegatedApprovalRequest.sensitivity_class:type_name -> nimi.runtime.v1.SensitivityClass
+	40, // 30: nimi.runtime.v1.ListDelegatedApprovalRequestsRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	20, // 31: nimi.runtime.v1.ListDelegatedApprovalRequestsResponse.approval_requests:type_name -> nimi.runtime.v1.DelegatedApprovalRequest
+	40, // 32: nimi.runtime.v1.SubmitDelegatedApprovalDecisionRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	6,  // 33: nimi.runtime.v1.SubmitDelegatedApprovalDecisionRequest.decision:type_name -> nimi.runtime.v1.DelegatedApprovalDecision
+	20, // 34: nimi.runtime.v1.SubmitDelegatedApprovalDecisionResponse.approval_request:type_name -> nimi.runtime.v1.DelegatedApprovalRequest
+	39, // 35: nimi.runtime.v1.DelegatedDiagnostic.observed_at:type_name -> google.protobuf.Timestamp
+	10, // 36: nimi.runtime.v1.DelegatedReplayTraceStage.kind:type_name -> nimi.runtime.v1.DelegatedTraceStageKind
+	39, // 37: nimi.runtime.v1.DelegatedReplayTraceStage.observed_at:type_name -> google.protobuf.Timestamp
+	9,  // 38: nimi.runtime.v1.DelegatedReplayTrace.outcome:type_name -> nimi.runtime.v1.DelegatedReplayOutcome
+	26, // 39: nimi.runtime.v1.DelegatedReplayTrace.stages:type_name -> nimi.runtime.v1.DelegatedReplayTraceStage
+	39, // 40: nimi.runtime.v1.DelegatedReplayTrace.observed_at:type_name -> google.protobuf.Timestamp
+	40, // 41: nimi.runtime.v1.ListDelegatedDiagnosticsRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	25, // 42: nimi.runtime.v1.ListDelegatedDiagnosticsResponse.diagnostics:type_name -> nimi.runtime.v1.DelegatedDiagnostic
+	40, // 43: nimi.runtime.v1.GetDelegatedReplayTraceRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	27, // 44: nimi.runtime.v1.GetDelegatedReplayTraceResponse.trace:type_name -> nimi.runtime.v1.DelegatedReplayTrace
+	40, // 45: nimi.runtime.v1.GetDelegatedControlSurfaceSnapshotRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	13, // 46: nimi.runtime.v1.GetDelegatedControlSurfaceSnapshotResponse.snapshot:type_name -> nimi.runtime.v1.DelegatedControlSurfaceSnapshot
+	40, // 47: nimi.runtime.v1.ExecuteDelegatedCapabilityRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	41, // 48: nimi.runtime.v1.ExecuteDelegatedCapabilityRequest.arguments:type_name -> google.protobuf.Struct
+	25, // 49: nimi.runtime.v1.ExecuteDelegatedCapabilityResponse.diagnostic:type_name -> nimi.runtime.v1.DelegatedDiagnostic
+	27, // 50: nimi.runtime.v1.ExecuteDelegatedCapabilityResponse.replay_trace:type_name -> nimi.runtime.v1.DelegatedReplayTrace
+	41, // 51: nimi.runtime.v1.ExecuteDelegatedCapabilityResponse.model_output:type_name -> google.protobuf.Struct
+	20, // 52: nimi.runtime.v1.ExecuteDelegatedCapabilityResponse.approval_request:type_name -> nimi.runtime.v1.DelegatedApprovalRequest
+	40, // 53: nimi.runtime.v1.ResumeDelegatedCapabilityRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	25, // 54: nimi.runtime.v1.ResumeDelegatedCapabilityResponse.diagnostic:type_name -> nimi.runtime.v1.DelegatedDiagnostic
+	27, // 55: nimi.runtime.v1.ResumeDelegatedCapabilityResponse.replay_trace:type_name -> nimi.runtime.v1.DelegatedReplayTrace
+	41, // 56: nimi.runtime.v1.ResumeDelegatedCapabilityResponse.model_output:type_name -> google.protobuf.Struct
+	20, // 57: nimi.runtime.v1.ResumeDelegatedCapabilityResponse.approval_request:type_name -> nimi.runtime.v1.DelegatedApprovalRequest
+	58, // [58:58] is the sub-list for method output_type
+	58, // [58:58] is the sub-list for method input_type
+	58, // [58:58] is the sub-list for extension type_name
+	58, // [58:58] is the sub-list for extension extendee
+	0,  // [0:58] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_delegated_control_proto_init() }
@@ -3040,7 +3152,7 @@ func file_runtime_v1_delegated_control_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_delegated_control_proto_rawDesc), len(file_runtime_v1_delegated_control_proto_rawDesc)),
-			NumEnums:      10,
+			NumEnums:      11,
 			NumMessages:   27,
 			NumExtensions: 0,
 			NumServices:   0,

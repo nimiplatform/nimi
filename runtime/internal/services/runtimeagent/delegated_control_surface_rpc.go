@@ -328,6 +328,18 @@ func normalizeDelegatedProviderProfile(input *runtimev1.DelegatedProviderProfile
 		if tool.ToolName == "" {
 			return nil, status.Error(codes.InvalidArgument, "delegated provider allowed tool name is required")
 		}
+		// K-DELEG-006 capability descriptor: effect_class is a required typed
+		// classification on write; persisted pre-classification records remain
+		// readable and derive as approval-required instead.
+		if tool.EffectClass == runtimev1.EffectClass_EFFECT_CLASS_UNSPECIFIED {
+			return nil, status.Error(codes.InvalidArgument, "delegated provider allowed tool effect_class is required (K-DELEG-006)")
+		}
+		if _, ok := runtimev1.EffectClass_name[int32(tool.EffectClass)]; !ok {
+			return nil, status.Error(codes.InvalidArgument, "delegated provider allowed tool effect_class is not an admitted value")
+		}
+		if _, ok := runtimev1.SensitivityClass_name[int32(tool.ExpectedSensitivityClass)]; !ok {
+			return nil, status.Error(codes.InvalidArgument, "delegated provider allowed tool expected_sensitivity_class is not an admitted value")
+		}
 		if _, ok := seen[tool.ToolName]; ok {
 			return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("delegated provider allowed tool duplicated: %s", tool.ToolName))
 		}
@@ -599,13 +611,29 @@ func (s *Service) buildDelegatedReplayTrace(agentID string, record delegatedCapa
 				delegatedReplayStage(runtimev1.DelegatedTraceStageKind_DELEGATED_TRACE_STAGE_KIND_FIREWALL_VERDICT, record.FirewallInputID, record.FirewallVerdict, record.ReasonCode, "Firewall verdict required approval after provider execution", observedAt),
 			)
 		}
+		// K-DELEG-086: a committed approval decision is reconstructed from its
+		// audit event (joined by decision_id), not from the mutable in-memory
+		// approval object. The live object supplies the pending state only while
+		// no decision has been recorded yet.
+		approvalRefID := approval.GetApprovalRequestId()
+		approvalState := approvalStateName(approval.GetState())
+		approvalReason := approval.GetReasonCode()
+		approvalObservedAt := approval.GetUpdatedAt()
+		approvalDetail := "Runtime approval request state recorded; operator note is redacted"
+		if audited := s.delegatedApprovalDecisionAuditRecord(record.DecisionID); audited != nil {
+			approvalRefID = firstNonEmpty(audited.ApprovalID, approvalRefID)
+			approvalState = firstNonEmpty(audited.ApprovalState, approvalState)
+			approvalReason = firstNonEmpty(audited.ReasonCode, approvalReason)
+			approvalObservedAt = timestamppb.New(audited.RecordedAt)
+			approvalDetail = "Runtime approval decision reconstructed from audit lineage; operator note is redacted"
+		}
 		stages = append(stages, delegatedReplayStage(
 			runtimev1.DelegatedTraceStageKind_DELEGATED_TRACE_STAGE_KIND_APPROVAL_DECISION,
-			approval.GetApprovalRequestId(),
-			approvalStateName(approval.GetState()),
-			approval.GetReasonCode(),
-			"Runtime approval request state recorded; operator note is redacted",
-			approval.GetUpdatedAt(),
+			approvalRefID,
+			approvalState,
+			approvalReason,
+			approvalDetail,
+			approvalObservedAt,
 		))
 	}
 	stages = append(stages,
@@ -737,7 +765,25 @@ func delegatedReplayOutcome(record delegatedCapabilityDecisionAuditRecord) runti
 		}
 		return runtimev1.DelegatedReplayOutcome_DELEGATED_REPLAY_OUTCOME_PARTIAL_REDACTED
 	}
+	// K-DELEG-087: a reconstructed trace whose underlying output carried
+	// sensitive content (classified non-NONE by the firewall) is reported as
+	// PARTIAL_REDACTED so the consumer knows protected content was withheld.
+	if sensitiveDelegatedOutputClass(record.SensitivityClass) {
+		return runtimev1.DelegatedReplayOutcome_DELEGATED_REPLAY_OUTCOME_PARTIAL_REDACTED
+	}
 	return runtimev1.DelegatedReplayOutcome_DELEGATED_REPLAY_OUTCOME_RECONSTRUCTED
+}
+
+// sensitiveDelegatedOutputClass reports whether a recorded sensitivity class
+// represents content that must be redacted from replay views (K-DELEG-087).
+// NONE and an empty/unclassified value are not redaction-bearing.
+func sensitiveDelegatedOutputClass(class string) bool {
+	switch strings.TrimSpace(class) {
+	case "", delegation.SensitivityClassNone:
+		return false
+	default:
+		return true
+	}
 }
 
 func (s *Service) delegatedApprovalRequest(agentID string, approvalID string) *runtimev1.DelegatedApprovalRequest {

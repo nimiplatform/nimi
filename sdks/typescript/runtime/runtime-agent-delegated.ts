@@ -4,6 +4,8 @@ import {
   DelegatedProviderState,
   DelegatedProviderTrustTier,
   DelegatedTransportKind,
+  EffectClass,
+  SensitivityClass,
   type DelegatedControlSurfaceSnapshot,
   type DelegatedProviderProfile,
   type DelegatedReplayTrace,
@@ -49,6 +51,12 @@ export interface NimiRuntimeAgentDelegatedProviderProfileDraft {
   readonly args: string;
   readonly toolName: string;
   readonly inputSchemaDigest: string;
+  // K-DELEG-006 capability descriptor: effect_class is required; an undeclared
+  // effect fails closed at Runtime upsert rather than passing as UNSPECIFIED.
+  readonly effectClass: EffectClass;
+  // K-DELEG-068 expected output sensitivity (optional; UNSPECIFIED derives
+  // conservatively as UNKNOWN_SENSITIVE for approval-requirement purposes).
+  readonly expectedSensitivityClass?: SensitivityClass;
 }
 
 export interface NimiRuntimeAgentDelegatedControlSurfaceQuery {
@@ -193,6 +201,8 @@ export function buildNimiRuntimeAgentDelegatedProviderProfileFromDraft(
     allowedTools: [{
       toolName,
       inputSchemaDigest: normalizeNimiRuntimeAgentText(draft.inputSchemaDigest),
+      effectClass: draft.effectClass ?? EffectClass.UNSPECIFIED,
+      expectedSensitivityClass: draft.expectedSensitivityClass ?? SensitivityClass.UNSPECIFIED,
     }],
     credentialRef: normalizeNimiRuntimeAgentText(draft.credentialRef),
     transportRef,

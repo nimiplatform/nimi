@@ -51,7 +51,9 @@ import {
   DelegatedProviderState,
   DelegatedProviderTrustTier,
   DelegatedTransportKind,
+  EffectClass,
   HookAdmissionState,
+  SensitivityClass,
 } from './generated';
 
 const consumeContext = {
@@ -336,13 +338,20 @@ test('Runtime Agent delegated helpers build scoped provider, approval, and repla
     args: 'server.js --stdio',
     toolName: 'search',
     inputSchemaDigest: 'sha256:abc',
+    effectClass: EffectClass.READ_ONLY,
+    expectedSensitivityClass: SensitivityClass.NONE,
   }), {
     providerProfileId: 'provider-1',
     displayName: 'provider-1',
     providerKind: DelegatedProviderKind.MCP_TOOL_PROVIDER,
     transportKind: DelegatedTransportKind.STDIO_COMMAND,
     state: DelegatedProviderState.READY,
-    allowedTools: [{ toolName: 'search', inputSchemaDigest: 'sha256:abc' }],
+    allowedTools: [{
+      toolName: 'search',
+      inputSchemaDigest: 'sha256:abc',
+      effectClass: EffectClass.READ_ONLY,
+      expectedSensitivityClass: SensitivityClass.NONE,
+    }],
     credentialRef: 'credential-1',
     transportRef: 'stdio:provider-1',
     trustTier: DelegatedProviderTrustTier.USER_ADDED_REVIEWED,
@@ -781,6 +790,68 @@ test('Runtime Agent consume client registers Avatar live instance binding throug
         },
         avatarInstanceId: 'avatar-1',
         conversationAnchorId: 'anchor-1',
+      },
+      options: callOptions,
+    },
+  ]);
+});
+
+test('Runtime Agent consume client resolves Avatar live instance binding through Runtime Agent', async () => {
+  const calls: { request: unknown; options?: unknown }[] = [];
+  const callOptions = { timeoutMs: 5000 };
+  const runtime = createUnexpectedRuntimeAgentConsumeRuntime({
+    async resolveAvatarLiveInstanceBinding(request, options) {
+      calls.push({ request, options });
+      return {
+        binding: {
+          avatarInstanceId: 'avatar-1',
+          conversationAnchorId: 'anchor-1',
+          agentId: 'local-agent:owner-1:agent-1',
+          subjectUserId: 'subject-1',
+          localAgentRef: 'local-agent:owner-1:agent-1',
+          ownerUserId: 'owner-1',
+          realmAgentId: 'agent-1',
+          callerAppId: 'nimi.avatar',
+        },
+        snapshot: {
+          anchor: {
+            conversationAnchorId: 'anchor-1',
+            agentId: 'local-agent:owner-1:agent-1',
+            subjectUserId: 'subject-1',
+            status: 1,
+            lastTurnId: '',
+            lastMessageId: '',
+            localAgentRef: 'local-agent:owner-1:agent-1',
+            ownerUserId: 'owner-1',
+            realmAgentId: 'agent-1',
+          },
+          activeTurnId: '',
+          activeStreamId: '',
+        },
+      };
+    },
+  });
+
+  const client = createNimiRuntimeAgentConsumeClient({ runtime, runtimeAppId: 'nimi.avatar' });
+  const result = await client.anchors.resolveAvatarLiveInstance({
+    ...consumeContext,
+    subjectUserId: 'subject-1',
+    avatarInstanceId: 'avatar-1',
+  }, callOptions);
+
+  assert.equal(result.binding.avatarInstanceId, 'avatar-1');
+  assert.equal(result.snapshot.anchor?.conversationAnchorId, 'anchor-1');
+  assert.deepEqual(calls, [
+    {
+      request: {
+        context: {
+          appId: 'nimi.avatar',
+          subjectUserId: 'subject-1',
+          ownerUserId: 'owner-1',
+          realmAgentId: 'agent-1',
+          localAgentRef: 'local-agent:owner-1:agent-1',
+        },
+        avatarInstanceId: 'avatar-1',
       },
       options: callOptions,
     },

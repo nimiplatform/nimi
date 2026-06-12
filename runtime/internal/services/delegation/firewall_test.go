@@ -22,6 +22,130 @@ func TestFirewallAcceptsCleanObservation(t *testing.T) {
 	if decision.ModelContextAdmitted || decision.ProjectionAdmitted || decision.ActionAdmitted {
 		t.Fatalf("wave-3 firewall must not directly admit consumers: %+v", decision)
 	}
+	if decision.SensitivityClass != SensitivityClassNone {
+		t.Fatalf("clean output must classify as NONE, got %s", decision.SensitivityClass)
+	}
+	if decision.ApprovalRequirement != ApprovalRequirementNotRequired {
+		t.Fatalf("read-only controlled-local clean output must not require approval, got %s", decision.ApprovalRequirement)
+	}
+}
+
+func TestFirewallClassifiesCredentialOutputAndRequiresApproval(t *testing.T) {
+	firewall := newTestFirewall(t)
+	decision, err := firewall.Evaluate(context.Background(), cleanFirewallInput(t, OutputKindObservation, rawMCPTextResult(t, "your api_key=sk-abcdef0123456789 is ready")))
+	if err != nil {
+		t.Fatalf("Evaluate returned error: %v", err)
+	}
+	if decision.SensitivityClass != SensitivityClassCredentialLike {
+		t.Fatalf("credential-bearing output must classify CREDENTIAL_LIKE, got %s", decision.SensitivityClass)
+	}
+	if decision.ApprovalRequirement != ApprovalRequirementRequired {
+		t.Fatalf("credential-like output must require approval, got %s", decision.ApprovalRequirement)
+	}
+	if decision.Verdict != FirewallVerdictApprovalRequired {
+		t.Fatalf("credential-like observation must become APPROVAL_REQUIRED, got %s", decision.Verdict)
+	}
+}
+
+func TestFirewallFailsClosedOnUnknownEffectOrTrust(t *testing.T) {
+	firewall := newTestFirewall(t)
+	input := cleanFirewallInput(t, OutputKindObservation, rawMCPTextResult(t, "ordinary clean result"))
+	input.EffectClass = ""
+	input.TrustTier = ""
+	decision, err := firewall.Evaluate(context.Background(), input)
+	if err != nil {
+		t.Fatalf("Evaluate returned error: %v", err)
+	}
+	if decision.ApprovalRequirement != ApprovalRequirementRequired {
+		t.Fatalf("unclassified effect/trust must require approval, got %s", decision.ApprovalRequirement)
+	}
+	if decision.Verdict != FirewallVerdictApprovalRequired {
+		t.Fatalf("unclassified effect/trust observation must become APPROVAL_REQUIRED, got %s", decision.Verdict)
+	}
+}
+
+func TestFirewallPolicyBlocksBlockedTrustTier(t *testing.T) {
+	firewall := newTestFirewall(t)
+	input := cleanFirewallInput(t, OutputKindObservation, rawMCPTextResult(t, "ordinary clean result"))
+	input.TrustTier = TrustTierBlocked
+	decision, err := firewall.Evaluate(context.Background(), input)
+	if err != nil {
+		t.Fatalf("Evaluate returned error: %v", err)
+	}
+	if decision.ApprovalRequirement != ApprovalRequirementPolicyBlocked {
+		t.Fatalf("blocked trust tier must derive POLICY_BLOCKED, got %s", decision.ApprovalRequirement)
+	}
+	if decision.Verdict != FirewallVerdictPolicyBlocked {
+		t.Fatalf("blocked trust tier must yield POLICY_BLOCKED verdict, got %s", decision.Verdict)
+	}
+}
+
+func TestFirewallClassifiesRealCredentialFormatsAsSensitive(t *testing.T) {
+	// The audit's confirmed fail-open inputs: bare vendor keys, JWT, and the
+	// colon/keyword forms must all classify as sensitive (not NONE) so the
+	// approval gate engages.
+	credentialOutputs := []string{
+		"AKIAIOSFODNN7EXAMPLE",
+		"wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+		"ghp_16C7e42F292c6912E7710c838347Ae178B4a",
+		"sk-abcdef0123456789ABCDEF0123",
+		"xoxb-1234567890-abcdefABCDEF",
+		"eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N",
+		"password: hunter2value",
+		"token=abcdef0123456789ABCD",
+	}
+	firewall := newTestFirewall(t)
+	for _, output := range credentialOutputs {
+		decision, err := firewall.Evaluate(context.Background(), cleanFirewallInput(t, OutputKindObservation, rawMCPTextResult(t, output)))
+		if err != nil {
+			t.Fatalf("Evaluate(%q) returned error: %v", output, err)
+		}
+		if decision.SensitivityClass == SensitivityClassNone {
+			t.Fatalf("credential output %q classified NONE (fail-open)", output)
+		}
+		if decision.ApprovalRequirement != ApprovalRequirementRequired {
+			t.Fatalf("credential output %q did not require approval: %s", output, decision.ApprovalRequirement)
+		}
+		if decision.Verdict != FirewallVerdictApprovalRequired {
+			t.Fatalf("credential output %q did not become APPROVAL_REQUIRED: %s", output, decision.Verdict)
+		}
+	}
+}
+
+func TestFirewallFlagsHighEntropySecretButNotHexDigest(t *testing.T) {
+	firewall := newTestFirewall(t)
+	// Mixed-case high-entropy token without a recognized vendor prefix → UNKNOWN_SENSITIVE.
+	secret, err := firewall.Evaluate(context.Background(), cleanFirewallInput(t, OutputKindObservation, rawMCPTextResult(t, "Zk9Qm2VrXt7LpB4nWcA1sFhJ6dYgE0uT")))
+	if err != nil {
+		t.Fatalf("Evaluate returned error: %v", err)
+	}
+	if secret.SensitivityClass != SensitivityClassUnknownSensitive {
+		t.Fatalf("high-entropy mixed-case token must be UNKNOWN_SENSITIVE, got %s", secret.SensitivityClass)
+	}
+	if secret.ApprovalRequirement != ApprovalRequirementRequired {
+		t.Fatalf("unknown-sensitive output must require approval, got %s", secret.ApprovalRequirement)
+	}
+	// A lowercase-hex sha256-style digest must NOT over-trigger.
+	digest, err := firewall.Evaluate(context.Background(), cleanFirewallInput(t, OutputKindObservation, rawMCPTextResult(t, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")))
+	if err != nil {
+		t.Fatalf("Evaluate returned error: %v", err)
+	}
+	if digest.SensitivityClass != SensitivityClassNone {
+		t.Fatalf("hex digest must classify NONE, got %s", digest.SensitivityClass)
+	}
+}
+
+func TestFirewallExternalSideEffectRequiresApproval(t *testing.T) {
+	firewall := newTestFirewall(t)
+	input := cleanFirewallInput(t, OutputKindObservation, rawMCPTextResult(t, "ordinary clean result"))
+	input.EffectClass = EffectClassExternalSideEffect
+	decision, err := firewall.Evaluate(context.Background(), input)
+	if err != nil {
+		t.Fatalf("Evaluate returned error: %v", err)
+	}
+	if decision.ApprovalRequirement != ApprovalRequirementRequired {
+		t.Fatalf("external side effect must require approval, got %s", decision.ApprovalRequirement)
+	}
 }
 
 func TestFirewallBlocksPromptInjectionFixture(t *testing.T) {
@@ -234,6 +358,8 @@ func cleanFirewallInput(t *testing.T, outputKind string, rawResult json.RawMessa
 		ProtocolName:       "mcp",
 		ProtocolRevision:   "2025-06-18",
 		OutputKind:         outputKind,
+		EffectClass:        EffectClassReadOnly,
+		TrustTier:          TrustTierControlledLocal,
 		Confidence: ConfidenceRecord{
 			Level:         ConfidenceLevelHigh,
 			EvidenceCount: 2,

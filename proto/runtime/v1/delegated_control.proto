@@ -71,6 +71,20 @@ enum EffectClass {
   EFFECT_CLASS_UNSUPPORTED_EFFECT = 5;
 }
 
+// SensitivityClass mirrors the K-DELEG-068 sensitive-output classification
+// consumed by the K-DELEG-091 approval request. CREDENTIAL_LIKE, REGULATED,
+// and UNKNOWN_SENSITIVE require quarantine or explicit policy approval before
+// further use.
+enum SensitivityClass {
+  SENSITIVITY_CLASS_UNSPECIFIED = 0;
+  SENSITIVITY_CLASS_NONE = 1;
+  SENSITIVITY_CLASS_USER_PRIVATE = 2;
+  SENSITIVITY_CLASS_CREDENTIAL_LIKE = 3;
+  SENSITIVITY_CLASS_ORG_PRIVATE = 4;
+  SENSITIVITY_CLASS_REGULATED = 5;
+  SENSITIVITY_CLASS_UNKNOWN_SENSITIVE = 6;
+}
+
 enum DelegatedReplayOutcome {
   DELEGATED_REPLAY_OUTCOME_UNSPECIFIED = 0;
   DELEGATED_REPLAY_OUTCOME_RECONSTRUCTED = 1;
@@ -93,6 +107,15 @@ enum DelegatedTraceStageKind {
 message DelegatedToolAllowlistEntry {
   string tool_name = 1;
   string input_schema_digest = 2;
+  // K-DELEG-006 capability-descriptor classification declared at profile
+  // registration. effect_class is required on write (upsert fails closed on
+  // UNSPECIFIED); records persisted before this field derive as UNSPECIFIED
+  // and force approval-required handling instead of silently passing.
+  EffectClass effect_class = 3;
+  // Expected sensitivity of the capability's output (K-DELEG-068). Optional
+  // on write; UNSPECIFIED derives conservatively as UNKNOWN_SENSITIVE for
+  // approval-requirement purposes.
+  SensitivityClass expected_sensitivity_class = 4;
 }
 
 message DelegatedProviderProfile {
@@ -169,13 +192,15 @@ message DelegatedApprovalRequest {
   google.protobuf.Timestamp created_at = 12;
   google.protobuf.Timestamp updated_at = 13;
   google.protobuf.Timestamp expires_at = 14;
-  // K-DELEG-091 required approval-request fields. sensitivity_class is pending
-  // its spec-authority taxonomy definition and will be added as a typed enum
-  // (next field number) once the value set is admitted.
+  // K-DELEG-091 required approval-request fields. sensitivity_class carries
+  // the K-DELEG-068 taxonomy: pre-invoke approvals derive it from the
+  // capability's declared expected sensitivity, post-firewall approvals from
+  // the firewall output classification.
   string delegation_request_id = 15;
   EffectClass effect_class = 16;
   string summary_ref = 17;
   string policy_snapshot_id = 18;
+  SensitivityClass sensitivity_class = 19;
 }
 
 message ListDelegatedApprovalRequestsRequest {

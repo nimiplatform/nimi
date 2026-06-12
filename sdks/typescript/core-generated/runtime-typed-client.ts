@@ -71,7 +71,7 @@ export { RuntimeHealthStatus, UsageWindow } from "./runtime-protobuf/runtime/v1/
 export { AppMode, ExternalProofType, WorldRelation } from "./runtime-protobuf/runtime/v1/auth";
 export { CallerKind, ExternalPrincipalType, ReasonCode } from "./runtime-protobuf/runtime/v1/common";
 export { CatalogModelSource, ConnectorAuthKind, ConnectorKind, ConnectorOwnerType, ConnectorStatus, LocalConnectorCategory, ModelCatalogProviderSource } from "./runtime-protobuf/runtime/v1/connector";
-export { DelegatedApprovalDecision, DelegatedApprovalMode, DelegatedApprovalRequestState, DelegatedProviderKind, DelegatedProviderState, DelegatedProviderTrustTier, DelegatedReplayOutcome, DelegatedTraceStageKind, DelegatedTransportKind, EffectClass } from "./runtime-protobuf/runtime/v1/delegated_control";
+export { DelegatedApprovalDecision, DelegatedApprovalMode, DelegatedApprovalRequestState, DelegatedProviderKind, DelegatedProviderState, DelegatedProviderTrustTier, DelegatedReplayOutcome, DelegatedTraceStageKind, DelegatedTransportKind, EffectClass, SensitivityClass } from "./runtime-protobuf/runtime/v1/delegated_control";
 export { AuthorizationPreset, PolicyMode } from "./runtime-protobuf/runtime/v1/grant";
 export { KnowledgeBankScope, KnowledgeIngestTaskStatus } from "./runtime-protobuf/runtime/v1/knowledge";
 export { LocalAssetKind, LocalAssetStatus, LocalBundleState, LocalEngineRuntimeMode, LocalExecutionEntryKind, LocalProfileEntryKind, LocalServiceStatus, LocalWarmState } from "./runtime-protobuf/runtime/v1/local_runtime_asset_catalog";
