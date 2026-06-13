@@ -22,10 +22,10 @@ owner: '@team'
 sources:
   human_spec: ../transit-contract.md
   openapi:
-    - realm-backend://api-nimi.yaml
-  prisma: realm-backend://prisma/schema.prisma
+    - realm-openapi://nimi
+  prisma: realm-schema://primary
   services:
-    - realm-backend://libs/domains/world/src/transit.service.ts
+    - realm-implementation://private-evidence
 rule_id_prefix: R-TRANSIT-
 rules:
   - rule_id: R-TRANSIT-001

@@ -6,7 +6,7 @@
 
 | 层 | 策略 |
 |---|---|
-| `nimi-realm` | 闭源 |
+| `Realm source authority` | 闭源 |
 | `runtime` / `sdk` / `proto` | 开源 (Apache-2.0) |
 | `apps/desktop` / `apps/web` | 开源 (MIT) |
 | `docs` / `spec` | 开源 (CC-BY-4.0) |

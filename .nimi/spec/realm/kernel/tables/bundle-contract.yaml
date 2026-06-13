@@ -21,10 +21,10 @@ owner: '@team'
 sources:
   human_spec: ../bundle-contract.md
   openapi:
-    - realm-backend://api-nimi.yaml
-  prisma: realm-backend://prisma/schema.prisma
+    - realm-openapi://nimi
+  prisma: realm-schema://primary
   services:
-    - realm-backend://libs/domains/bundle/src/bundle.service.ts
+    - realm-implementation://private-evidence
 rule_id_prefix: R-BNDL-
 rules:
   - rule_id: R-BNDL-001

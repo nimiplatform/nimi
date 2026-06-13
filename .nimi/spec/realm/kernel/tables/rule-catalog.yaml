@@ -832,7 +832,7 @@ rules:
     domain: oauth-authority
     level: must
     title: realm-is-oauth-authorization-server
-    statement: Realm is the OAuth 2.0 authorization server for native/public clients in nimi-realm; PKCE-protected authorization code flow is the sole admitted method on this contract's endpoints.
+    statement: Realm is the OAuth 2.0 authorization server for native/public clients in Realm source authority; PKCE-protected authorization code flow is the sole admitted method on this contract's endpoints.
     source: .nimi/spec/realm/kernel/oauth-authority-contract.md
   - rule_id: R-OAUTH-002
     domain: oauth-authority

@@ -39,7 +39,7 @@ arrow below corresponds to an admitted contract surface:
 ```
 desktop      ->  nimi-sdk         : unified developer surface
 desktop      ->  nimi-runtime     : gRPC runtime access
-nimi-apps    ->  nimi-realm       : REST + WS realm access
+nimi-apps    ->  Realm source authority       : REST + WS realm access
 nimi-runtime <-> nimi-cognition   : runtime bridge / consume overlap
                                     (authority remains with cognition)
 ```

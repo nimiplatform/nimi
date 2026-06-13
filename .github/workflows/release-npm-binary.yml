@@ -140,9 +140,16 @@ jobs:
           if (archives.length === 0) {
             throw new Error('no runtime archives were downloaded');
           }
-          const missing = archives.filter((name) => !names.has(name));
+          const requiredGeneratedNames = archives.flatMap((name) => [
+            `${name}.spdx.json`,
+            `${name}.sig`,
+            `${name}.pem`,
+            `${name}.spdx.json.sig`,
+            `${name}.spdx.json.pem`,
+          ]);
+          const missing = requiredGeneratedNames.filter((name) => !names.has(name));
           if (missing.length > 0) {
-            throw new Error(`runtime archives missing from signing manifest: ${missing.join(', ')}`);
+            throw new Error(`runtime archive signing artifacts missing from signing manifest: ${missing.join(', ')}`);
           }
           NODE
 

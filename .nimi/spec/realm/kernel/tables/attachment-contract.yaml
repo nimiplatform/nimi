@@ -21,14 +21,14 @@ owner: '@team'
 sources:
   human_spec: ../attachment-contract.md
   openapi:
-    - realm-backend://api-nimi.yaml
-  prisma: realm-backend://prisma/schema.prisma
+    - realm-openapi://nimi
+  prisma: realm-schema://primary
   services:
-    - realm-backend://libs/domains/resource/src/attachment-read-model.ts
-    - realm-backend://libs/domains/content/src/domains/post.service.ts
-    - realm-backend://libs/domains/chat/src/domains/chat.service.ts
-    - realm-backend://libs/domains/discovery-engine/src/discovery/discovery-engine.service.ts
-    - realm-backend://apps/api/src/modules/@admin/moderation/admin-moderation.service.ts
+    - realm-implementation://private-evidence
+    - realm-implementation://private-evidence
+    - realm-implementation://private-evidence
+    - realm-implementation://private-evidence
+    - realm-implementation://private-evidence
 rule_id_prefix: R-ATTACH-
 rules:
   - rule_id: R-ATTACH-001

@@ -14,7 +14,7 @@ public top-layer architecture text `MUST` 同时暴露 cross-repo read path：
 
 - public canonical 入口在 `nimi/.nimi/spec/**`
 - private realm / backend / dashboard / creator-side authority 保留在
-  `nimi-realm/.nimi/spec/**`
+  `Realm source authority/.nimi/spec/**`
 上述 framing 只负责 cross-repo topology 与 authority routing；不得把 private
 repo 的 semantic owner 静默迁回当前 public root。
 

@@ -59,7 +59,7 @@ owner surfaces are not public docs authority. They can provide
 evidence or implementation context, but they do not silently become
 the source of public product truth.
 
-Private repositories (for example, `nimi-realm/.nimi/spec/**` for
+Private repositories (for example, `Realm source authority/.nimi/spec/**` for
 backend, dashboard, and creator-side authority) are referenced
 from the public docs only by name, not by content. Those public
 mentions are placement information; they do not promote private

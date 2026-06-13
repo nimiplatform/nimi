@@ -46,19 +46,19 @@ owner: '@team'
 sources:
   human_spec: ../truth-contract.md
   openapi:
-    - realm-backend://api-nimi.yaml
-    - realm-backend://api-dashboard.yaml
-  prisma: realm-backend://prisma/schema.prisma
+    - realm-openapi://nimi
+    - realm-openapi://dashboard
+  prisma: realm-schema://primary
   services:
-    - realm-backend://libs/domains/world/src/world-rule.service.ts
-    - realm-backend://libs/domains/world/src/agent-rule.service.ts
-    - realm-backend://libs/domains/world/src/world-release.service.ts
-    - realm-backend://libs/domains/world/src/projection/projection.service.ts
-    - realm-backend://apps/api/src/modules/@admin/world/admin-world-package.service.ts
-    - realm-backend://libs/domains/world/src/world-control.service.ts
-    - realm-backend://apps/api/src/modules/user/user.controller.ts
-    - realm-backend://libs/domains/agent/src/domains/agent.service.ts
-    - realm-backend://libs/domains/agent/src/dtos/agent-owner-settings.dto.ts
+    - realm-implementation://private-evidence
+    - realm-implementation://private-evidence
+    - realm-implementation://private-evidence
+    - realm-implementation://private-evidence
+    - realm-implementation://private-evidence
+    - realm-implementation://private-evidence
+    - realm-implementation://private-evidence
+    - realm-implementation://private-evidence
+    - realm-implementation://private-evidence
 rule_id_prefix: R-TRUTH-
 rules:
   - rule_id: R-TRUTH-001

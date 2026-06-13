@@ -13,7 +13,7 @@ updated: 2026-03-26
 
 ## Scope
 
-This contract defines `OwnableAsset` as the Realm-level formal object family for independently ownable digital assets in `nimi-realm`. The asset rule family intentionally retains the `101..105` numbering series to stay aligned with the external open-spec asset anchors; `001..100` remain reserved and are not active local rules.
+This contract defines `OwnableAsset` as the Realm-level formal object family for independently ownable digital assets in `Realm source authority`. The asset rule family intentionally retains the `101..105` numbering series to stay aligned with the external open-spec asset anchors; `001..100` remain reserved and are not active local rules.
 
 ## R-ASSET-101
 

@@ -25,11 +25,11 @@ entries:
 owner: '@team'
 sources:
   human_spec: ../projection-contract.md
-  prisma: realm-backend://prisma/schema.prisma
+  prisma: realm-schema://primary
   services:
-    - realm-backend://libs/domains/world/src/projection/projection.service.ts
-    - realm-backend://libs/domains/world/src/world-release.service.ts
-    - realm-backend://libs/domains/world/src/worldview.service.ts
+    - realm-implementation://private-evidence
+    - realm-implementation://private-evidence
+    - realm-implementation://private-evidence
 rule_id_prefix: R-PROJ-
 rules:
   - rule_id: R-PROJ-001

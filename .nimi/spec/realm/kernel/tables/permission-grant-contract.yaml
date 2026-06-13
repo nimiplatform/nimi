@@ -29,11 +29,11 @@ owner: '@team'
 sources:
   human_spec: ../permission-grant-contract.md
   openapi:
-    - realm-backend://api-nimi.yaml
-  prisma: realm-backend://prisma/schema.prisma
+    - realm-openapi://nimi
+  prisma: realm-schema://primary
   services:
-    - realm-backend://apps/api/src/modules/runtime-surface/runtime-realm-grants.controller.ts
-    - realm-backend://libs/runtime/control-plane/src/control-plane.service.ts
+    - realm-implementation://private-evidence
+    - realm-implementation://private-evidence
 rule_id_prefix: R-PERM-
 rules:
   - rule_id: R-PERM-001

@@ -13,7 +13,7 @@ updated: 2026-05-22
 
 ## Scope
 
-This contract defines `Binding` as the only durable object-to-host relation family in `nimi-realm`.
+This contract defines `Binding` as the only durable object-to-host relation family in `Realm source authority`.
 
 ## R-BIND-001
 

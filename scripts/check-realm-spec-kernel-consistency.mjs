@@ -8,10 +8,14 @@ const PROJECT_ROOT = process.cwd();
 const REALM_ROOT = path.join(PROJECT_ROOT, '.nimi', 'spec', 'realm');
 const KERNEL_ROOT = path.join(REALM_ROOT, 'kernel');
 const TABLES_DIR = path.join(KERNEL_ROOT, 'tables');
-const REALM_BACKEND_LOCATOR_PREFIX = 'realm-backend://';
-const REALM_TESTS_LOCATOR_PREFIX = 'realm-tests://';
+const DELEGATED_REALM_EVIDENCE_PREFIXES = [
+  'realm-implementation://',
+  'realm-test-evidence://',
+  'realm-openapi://',
+  'realm-schema://',
+];
 
-const RULE_FAMILIES = ['TRUTH', 'PROJ', 'WSTATE', 'WHIST', 'CHAT', 'SOC', 'ECON', 'ATTACH', 'ASSET', 'RSRC', 'BIND', 'BNDL', 'TRANSIT', 'OAUTH', 'FEED'];
+const RULE_FAMILIES = ['TRUTH', 'PROJ', 'WSTATE', 'WHIST', 'CHAT', 'SOC', 'PERM', 'ECON', 'ATTACH', 'ASSET', 'RSRC', 'BIND', 'BNDL', 'TRANSIT', 'OAUTH', 'FEED', 'ADMIT'];
 const EXPECTED_ID_PATTERN = `^R-(${RULE_FAMILIES.join('|')})-[0-9]{3}$`;
 const RULE_ID_PATTERN = new RegExp(`^R-(${RULE_FAMILIES.join('|')})-[0-9]{3}$`);
 const BLOCKED_BIND_RULE_ID_PATTERN = /^R-BIND-[0-9]{3}$/;
@@ -23,6 +27,15 @@ const DOMAIN_STATE_MACHINES_PATH = path.join(TABLES_DIR, 'domain-state-machines.
 const OPEN_SPEC_ALIGNMENT_MAP_PATH = path.join(TABLES_DIR, 'open-spec-alignment-map.yaml');
 const COMMIT_AUTHORIZATION_MATRIX_PATH = path.join(TABLES_DIR, 'commit-authorization-matrix.yaml');
 const UNDER_SPEC_REGISTRY_PATH = path.join(TABLES_DIR, 'under-spec-registry.yaml');
+const DELEGATED_PROJECTION_ADMISSIONS_PATH = path.join(
+  PROJECT_ROOT,
+  '.nimi',
+  'spec',
+  'platform',
+  'kernel',
+  'tables',
+  'delegated-projection-admissions.yaml',
+);
 
 const DOMAIN_DOCS = [
   path.join(REALM_ROOT, 'truth.md'),
@@ -63,37 +76,43 @@ function locatorSuffix(value, prefix) {
   return suffix;
 }
 
-function resolveRealmEvidenceLocator(filePath) {
-  const backendSuffix = locatorSuffix(filePath, REALM_BACKEND_LOCATOR_PREFIX);
-  if (backendSuffix) {
-    return path.join(PROJECT_ROOT, '..', 'nimi-backend', backendSuffix);
+function isDelegatedRealmEvidenceLocator(value) {
+  if (typeof value !== 'string') return false;
+  return DELEGATED_REALM_EVIDENCE_PREFIXES.some((prefix) => Boolean(locatorSuffix(value, prefix)));
+}
+
+function validateDelegatedRealmEvidenceLocator(issues, scope, owner, kind, value, admittedPrefixes) {
+  if (typeof value !== 'string') return false;
+  const matchingPrefix = DELEGATED_REALM_EVIDENCE_PREFIXES.find((prefix) => value.startsWith(prefix));
+  if (!matchingPrefix) {
+    if (/^realm-[a-z-]+:\/\//u.test(value)) {
+      pushIssue(issues, scope, `${owner}: ${kind} uses unadmitted delegated locator ${value}`);
+    }
+    return false;
   }
-  const testsSuffix = locatorSuffix(filePath, REALM_TESTS_LOCATOR_PREFIX);
-  if (testsSuffix) {
-    return path.join(PROJECT_ROOT, '..', 'tests', testsSuffix);
+  if (!admittedPrefixes.has(matchingPrefix)) {
+    pushIssue(issues, scope, `${owner}: ${kind} delegated locator prefix is not admitted ${matchingPrefix}`);
+    return true;
   }
-  return null;
+  if (!locatorSuffix(value, matchingPrefix)) {
+    pushIssue(issues, scope, `${owner}: ${kind} delegated locator has unsafe or empty suffix ${value}`);
+  }
+  return true;
 }
 
 function resolveWorkspacePath(filePath) {
-  const locatorPath = resolveRealmEvidenceLocator(filePath);
-  if (locatorPath) {
-    return locatorPath;
-  }
-  const candidates = [
-    path.join(PROJECT_ROOT, filePath),
-    path.join(PROJECT_ROOT, '..', filePath),
-  ];
-  for (const candidate of candidates) {
-    if (fs.existsSync(candidate)) {
-      return candidate;
-    }
-  }
-  return candidates[0];
+  return path.join(PROJECT_ROOT, filePath);
 }
 
 function readYaml(absPath) {
   return readYamlWithFragments(absPath) ?? {};
+}
+
+function readAdmittedDelegatedRealmEvidencePrefixes() {
+  const admissions = readYaml(DELEGATED_PROJECTION_ADMISSIONS_PATH);
+  const rows = Array.isArray(admissions.admissions) ? admissions.admissions : [];
+  const realmAdmission = rows.find((row) => row?.id === 'realm-parent-spec-projection');
+  return new Set(asStringArray(realmAdmission?.delegated_declared_evidence_prefixes));
 }
 
 function asStringArray(value) {
@@ -111,7 +130,11 @@ function pushIssue(issues, scope, message) {
 }
 
 function checkEvidenceFilesExist(issues, ruleId, kind, filePaths) {
+  const admittedPrefixes = readAdmittedDelegatedRealmEvidencePrefixes();
   for (const filePath of filePaths) {
+    if (validateDelegatedRealmEvidenceLocator(issues, 'rule-evidence', ruleId, kind, filePath, admittedPrefixes)) {
+      continue;
+    }
     const absPath = resolveWorkspacePath(filePath);
     if (!fs.existsSync(absPath)) {
       pushIssue(issues, 'rule-evidence', `${ruleId}: ${kind} file not found ${filePath}`);
@@ -125,6 +148,7 @@ function checkEvidenceFilesExist(issues, ruleId, kind, filePaths) {
 
 function resolveContractSourcePath(contractYamlPath, filePath) {
   if (typeof filePath !== 'string' || filePath.trim().length === 0) return '';
+  if (isDelegatedRealmEvidenceLocator(filePath)) return filePath;
   if (filePath.startsWith('.')) {
     return path.resolve(path.dirname(contractYamlPath), filePath);
   }
@@ -132,6 +156,7 @@ function resolveContractSourcePath(contractYamlPath, filePath) {
 }
 
 function checkContractSourcesExist(issues, contractYamlPath, sources) {
+  const admittedPrefixes = readAdmittedDelegatedRealmEvidencePrefixes();
   if (!sources || typeof sources !== 'object' || Array.isArray(sources)) {
     pushIssue(issues, 'contract-table', `${rel(contractYamlPath)}: sources must be a mapping`);
     return;
@@ -143,6 +168,18 @@ function checkContractSourcesExist(issues, contractYamlPath, sources) {
       continue;
     }
     for (const filePath of filePaths) {
+      if (
+        validateDelegatedRealmEvidenceLocator(
+          issues,
+          'contract-table',
+          rel(contractYamlPath),
+          `${kind} source`,
+          filePath,
+          admittedPrefixes,
+        )
+      ) {
+        continue;
+      }
       const absPath = resolveContractSourcePath(contractYamlPath, filePath);
       if (!absPath || !fs.existsSync(absPath)) {
         pushIssue(issues, 'contract-table', `${rel(contractYamlPath)}: ${kind} source not found ${filePath}`);
@@ -173,9 +210,10 @@ function collectMarkdownRuleIds(absPath) {
 }
 
 function resolveEvidence(profiles, entry) {
-  const resolved = { openapi: [], prisma_models: [], service_files: [], test_files: [] };
+  const resolved = { openapi: [], prisma_models: [], service_files: [], test_files: [], governance_only: false };
   const merge = (source) => {
     if (!source) return;
+    if (source.governance_only === true) resolved.governance_only = true;
     resolved.openapi.push(...asStringArray(source.openapi));
     resolved.prisma_models.push(...asStringArray(source.prisma_models));
     resolved.service_files.push(...asStringArray(source.service_files));
@@ -337,10 +375,12 @@ function main() {
         pushIssue(issues, 'rule-evidence', `${ruleId}: spec_anchor missing anchor ${anchor}`);
       }
     }
-    if (resolved.openapi.length === 0) pushIssue(issues, 'rule-evidence', `${ruleId}: openapi evidence is empty`);
-    if (resolved.prisma_models.length === 0) pushIssue(issues, 'rule-evidence', `${ruleId}: prisma evidence is empty`);
-    if (resolved.service_files.length === 0) pushIssue(issues, 'rule-evidence', `${ruleId}: service evidence is empty`);
-    if (resolved.test_files.length === 0) pushIssue(issues, 'rule-evidence', `${ruleId}: test evidence is empty`);
+    if (!resolved.governance_only) {
+      if (resolved.openapi.length === 0) pushIssue(issues, 'rule-evidence', `${ruleId}: openapi evidence is empty`);
+      if (resolved.prisma_models.length === 0) pushIssue(issues, 'rule-evidence', `${ruleId}: prisma evidence is empty`);
+      if (resolved.service_files.length === 0) pushIssue(issues, 'rule-evidence', `${ruleId}: service evidence is empty`);
+      if (resolved.test_files.length === 0) pushIssue(issues, 'rule-evidence', `${ruleId}: test evidence is empty`);
+    }
     checkEvidenceFilesExist(issues, ruleId, 'service_files', resolved.service_files ?? []);
     checkEvidenceFilesExist(issues, ruleId, 'test_files', resolved.test_files ?? []);
   }

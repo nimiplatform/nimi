@@ -13,7 +13,7 @@ updated: 2026-03-23
 
 ## Scope
 
-This contract defines canonical happened-fact storage for `nimi-realm`.
+This contract defines canonical happened-fact storage for `Realm source authority`.
 
 ## R-WHIST-001
 

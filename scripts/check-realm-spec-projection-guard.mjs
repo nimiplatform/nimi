@@ -1,15 +1,22 @@
 #!/usr/bin/env node
 
 import fs from 'node:fs';
+import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import process from 'node:process';
 import YAML from 'yaml';
 
 const REALM_SPEC_ROOT = '.nimi/spec/realm';
 const BYPASS_ENV = 'NIMI_ALLOW_REALM_SPEC_PROJECTION_SYNC';
+const REALM_SOURCE_ROOT_ENV = 'NIMI_REALM_SOURCE_ROOT';
 const DELEGATED_PROJECTION_ADMISSIONS =
   '.nimi/spec/platform/kernel/tables/delegated-projection-admissions.yaml';
 const REALM_ADMISSION_ID = 'realm-parent-spec-projection';
+const REALM_SOURCE_CHECK_COMMANDS = new Map([
+  ['realm-source-check://nimi-sync', 'pnpm spec:realm:check:nimi-sync'],
+  ['realm-source-check://drift', 'pnpm spec:realm:check:drift'],
+  ['realm-source-check://nimi-generated', 'pnpm spec:realm:check:nimi-generated'],
+]);
 
 function runGit(args) {
   const result = spawnSync('git', args, {
@@ -24,9 +31,43 @@ function runGit(args) {
   return String(result.stdout || '');
 }
 
-function runShell(command) {
+function isRealmSourceRoot(sourceRoot) {
+  if (!sourceRoot) return false;
+  const packageJsonPath = path.join(sourceRoot, 'package.json');
+  const syncScriptPath = path.join(sourceRoot, 'scripts', 'spec', 'realm', 'sync-nimi-open-spec.ts');
+  const projectedRootPath = path.join(sourceRoot, 'nimi', REALM_SPEC_ROOT);
+  if (!fs.existsSync(packageJsonPath) || !fs.existsSync(syncScriptPath) || !fs.existsSync(projectedRootPath)) {
+    return false;
+  }
+  try {
+    const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+    const scripts = packageJson && typeof packageJson === 'object' ? packageJson.scripts : null;
+    return Boolean(
+      scripts?.['spec:realm:check:nimi-sync'] &&
+      scripts?.['spec:realm:check:drift'] &&
+      scripts?.['spec:realm:check:nimi-generated'],
+    );
+  } catch {
+    return false;
+  }
+}
+
+function resolveRealmSourceRoot() {
+  const explicit = String(process.env[REALM_SOURCE_ROOT_ENV] || '').trim();
+  if (explicit) {
+    const resolved = path.resolve(process.cwd(), explicit);
+    if (!isRealmSourceRoot(resolved)) {
+      throw new Error(`${REALM_SOURCE_ROOT_ENV} is not a Realm source checkout with projection check scripts: ${resolved}`);
+    }
+    return resolved;
+  }
+  const parent = path.resolve(process.cwd(), '..');
+  return isRealmSourceRoot(parent) ? parent : null;
+}
+
+function runShell(command, cwd) {
   const result = spawnSync(command, {
-    cwd: process.cwd(),
+    cwd,
     shell: true,
     stdio: 'inherit',
   });
@@ -61,11 +102,29 @@ function loadRealmProjectionAdmission() {
   return { commands };
 }
 
-function runRequiredProjectionVerification() {
+function runRequiredProjectionVerification({ requireSource }) {
   const admission = loadRealmProjectionAdmission();
-  for (const command of admission.commands) {
-    runShell(command);
+  const sourceRoot = resolveRealmSourceRoot();
+  if (!sourceRoot) {
+    if (requireSource) {
+      throw new Error(
+        [
+          'Realm projection changes require source-authority verification.',
+          `Set ${REALM_SOURCE_ROOT_ENV} to the Realm source checkout, or run from the nested checkout layout.`,
+          `Do not use ${BYPASS_ENV}=1 without a successful source-authority projection check.`,
+        ].join('\n'),
+      );
+    }
+    return 'skipped-no-local-source-clean-projection';
   }
+  for (const command of admission.commands) {
+    const shellCommand = REALM_SOURCE_CHECK_COMMANDS.get(command);
+    if (!shellCommand) {
+      throw new Error(`unsupported delegated Realm source check locator: ${command}`);
+    }
+    runShell(shellCommand, sourceRoot);
+  }
+  return `verified:${sourceRoot}`;
 }
 
 function listRealmSpecChanges() {
@@ -86,22 +145,21 @@ function listRealmSpecChanges() {
 function printBlockedMessage(paths) {
   process.stderr.write(
     [
-      `ERROR: ${REALM_SPEC_ROOT}/ is a projection from the parent nimi-realm repo.`,
+      `ERROR: ${REALM_SPEC_ROOT}/ is a delegated Realm source projection.`,
       '',
-      'Do not edit Realm spec projection files directly in the nested nimi repo.',
+      'Do not edit Realm spec projection files directly in this repository.',
       '',
       'Fix:',
-      '  cd ~/nimi-realm',
-      '  edit .nimi/spec/realm',
-      '  pnpm spec:realm:generate',
-      '  pnpm spec:realm:sync:nimi',
-      '  pnpm spec:realm:check:nimi-sync',
+      '  update the Realm source authority',
+      '  regenerate the Realm projection',
+      '  sync the projection into this repository',
+      '  run the Realm source projection checks',
       '',
-      'Only for projection-sync commits produced by the parent repo, after the root gate passes:',
+      'Only for projection-sync commits produced by the Realm source authority, after the source gate passes:',
       `  ${BYPASS_ENV}=1 <gate-or-commit-command>`,
       '',
       `${BYPASS_ENV} is not a general force switch. It only acknowledges that this diff`,
-      'came from parent root projection sync.',
+      'came from Realm source projection sync.',
       '',
       'Blocked Realm spec projection changes:',
       ...paths.map((filePath) => `  - ${filePath}`),
@@ -111,10 +169,12 @@ function printBlockedMessage(paths) {
 }
 
 function main() {
-  runRequiredProjectionVerification();
   const paths = listRealmSpecChanges();
+  const verification = runRequiredProjectionVerification({
+    requireSource: paths.length > 0 || process.env[BYPASS_ENV] === '1',
+  });
   if (paths.length === 0) {
-    process.stdout.write('realm spec projection guard passed with delegated verification\n');
+    process.stdout.write(`realm spec projection guard passed (${verification})\n`);
     return;
   }
 

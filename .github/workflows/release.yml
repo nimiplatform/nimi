@@ -590,6 +590,12 @@ jobs:
             --channel stable \
             --commit "${GITHUB_SHA}"
 
+      # Release-only pre-bundle consistency gates must run before tauri-action can publish assets.
+      - name: gate.desktop.release-sync
+        run: pnpm --filter @nimiplatform/desktop run check:desktop-release-sync -- --expected "${RELEASE_VERSION}"
+      - name: gate.desktop.version-sync
+        run: pnpm --filter @nimiplatform/desktop run check:version-sync -- --expected "${RELEASE_VERSION}"
+
       - name: Build desktop artifacts (non-macOS)
         id: tauri_build_non_macos
         if: matrix.platform != 'macos-latest'
@@ -697,12 +703,8 @@ jobs:
           } >> "${GITHUB_ENV}"
 
       # >>> nimi-release-gate-projection: release-target-desktop-release-checks >>>
-      - name: gate.desktop.release-sync
-        run: pnpm --filter @nimiplatform/desktop run check:desktop-release-sync
       - name: gate.desktop.updater-artifacts
         run: pnpm --filter @nimiplatform/desktop run check:desktop-updater-artifacts
-      - name: gate.desktop.version-sync
-        run: pnpm --filter @nimiplatform/desktop run check:version-sync
       - name: gate.security.runtime-release-signing
         run: pnpm check:runtime-release-signing
       # <<< nimi-release-gate-projection: release-target-desktop-release-checks <<<

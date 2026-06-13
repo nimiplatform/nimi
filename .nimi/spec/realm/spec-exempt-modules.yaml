@@ -7,61 +7,61 @@ description: >
 
 modules:
   - module: ExploreModule
-    path: realm-backend://apps/api/src/modules/explore
+    path: realm-implementation://private-evidence
     reason: Search/discovery aggregation layer; no domain-specific active realm kernel rules apply
     product_area: discovery
 
   - module: InvitationModule
-    path: realm-backend://apps/api/src/modules/invitation
+    path: realm-implementation://private-evidence
     reason: Invitation system for user onboarding; not in kernel scope
     product_area: growth
 
   - module: WorldSurfaceModule
-    path: realm-backend://apps/api/src/modules/world-surface
+    path: realm-implementation://private-evidence
     reason: World surface rendering layer; primarily serves UI composition
     product_area: world-presentation
 
   - module: PostModule
-    path: realm-backend://apps/api/src/modules/post
+    path: realm-implementation://private-evidence
     reason: Content publishing system; not governed by kernel contracts
     product_area: content
 
   - module: SearchModule
-    path: realm-backend://apps/api/src/modules/search
+    path: realm-implementation://private-evidence
     reason: Full-text search infrastructure; not in kernel scope
     product_area: discovery
 
   - module: TranslationModule
-    path: realm-backend://apps/api/src/modules/translation
+    path: realm-implementation://private-evidence
     reason: Content translation infrastructure; not in kernel scope
     product_area: i18n
 
   - module: NotificationModule
-    path: realm-backend://apps/api/src/modules/notification
+    path: realm-implementation://private-evidence
     reason: Push notification delivery; not in kernel scope
     product_area: infrastructure
 
   - module: DiscoveryEngineModule
-    path: realm-backend://libs/domains/discovery-engine
+    path: realm-implementation://private-evidence
     reason: Recommendation/embedding engine; not in kernel scope
     product_area: discovery
 
   - module: GovernanceModule
-    path: realm-backend://apps/api/src/modules/governance
+    path: realm-implementation://private-evidence
     reason: Content moderation/reporting; not in kernel scope
     product_area: trust-safety
 
   - module: CoreModule
-    path: realm-backend://libs/core
+    path: realm-implementation://private-evidence
     reason: Shared infrastructure utilities (Redis, config, health); not in kernel scope
     product_area: infrastructure
 
   - module: BlockchainModule
-    path: realm-backend://libs/infra/blockchain
+    path: realm-implementation://private-evidence
     reason: On-chain integration infrastructure; not in kernel scope
     product_area: blockchain
 
   - module: IndexerApp
-    path: realm-backend://apps/indexer
+    path: realm-implementation://private-evidence
     reason: Blockchain event indexer application; not in kernel scope
     product_area: blockchain

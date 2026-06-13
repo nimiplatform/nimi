@@ -54,10 +54,10 @@ export const PROJECTION_KEY_CATALOG = {
     excludeIdSubstrings: ['e2e', 'macos-smoke', 'runtime-release-signing', 'updater-artifacts'],
   },
   'release-target-desktop-release-checks': {
-    description: 'release.yml release-desktop pre-bundle gates',
+    description: 'release.yml release-desktop post-bundle artifact gates',
     tierFilter: 'release-target:desktop',
     targetFilter: 'desktop',
-    includeIdSubstrings: ['version-sync', 'release-sync', 'updater-artifacts', 'runtime-release-signing'],
+    includeIdSubstrings: ['updater-artifacts', 'runtime-release-signing'],
     intersectFilter: true,
   },
   'release-target-proto-checks': {

@@ -35,11 +35,11 @@ owner: '@team'
 sources:
   human_spec: ../feed-contract.md
   openapi:
-    - realm-backend://api-nimi.yaml
-  prisma: realm-backend://prisma/schema.prisma
+    - realm-openapi://nimi
+  prisma: realm-schema://primary
   services:
-    - realm-backend://libs/domains/content/src/domains/post.service.ts
-    - realm-backend://apps/api/src/modules/post/post.controller.ts
+    - realm-implementation://private-evidence
+    - realm-implementation://private-evidence
 rule_id_prefix: R-FEED-
 rules:
   - rule_id: R-FEED-001

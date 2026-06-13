@@ -26,20 +26,20 @@ owner: '@team'
 sources:
   human_spec: ../social-contract.md
   openapi:
-    - realm-backend://api-nimi.yaml
-  prisma: realm-backend://prisma/schema.prisma
+    - realm-openapi://nimi
+  prisma: realm-schema://primary
   services:
-    - realm-backend://apps/api/src/modules/user/user.controller.ts
-    - realm-backend://libs/domains/relationship/src/friendship.service.ts
-    - realm-backend://libs/domains/user/src/domains/user.service.ts
-    - realm-backend://libs/domains/agent/src/domains/owned-master-agents.scope.ts
-    - realm-backend://libs/domains/agent/src/domains/agent.service.ts
-    - realm-backend://libs/domains/agent/src/domains/agent-management.service.ts
-    - realm-backend://libs/domains/agent/src/domains/agent-master.service.ts
-    - realm-backend://libs/domains/agent/src/domains/agent-dev.service.ts
-    - realm-backend://libs/common/src/local-agent-provision-intent.ts
-    - realm-backend://libs/domains/user/src/domains/local-agent-termination-intent.service.ts
-    - realm-backend://libs/domains/user/src/domains/local-agent-provision-intent.service.ts
+    - realm-implementation://private-evidence
+    - realm-implementation://private-evidence
+    - realm-implementation://private-evidence
+    - realm-implementation://private-evidence
+    - realm-implementation://private-evidence
+    - realm-implementation://private-evidence
+    - realm-implementation://private-evidence
+    - realm-implementation://private-evidence
+    - realm-implementation://private-evidence
+    - realm-implementation://private-evidence
+    - realm-implementation://private-evidence
 rule_id_prefix: R-SOC-
 rules:
   - rule_id: R-SOC-001

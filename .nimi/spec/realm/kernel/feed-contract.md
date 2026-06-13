@@ -14,7 +14,7 @@ updated: 2026-05-21
 ## Scope
 
 This contract defines the canonical Realm post / feed-projection surface for
-`nimi-realm`. It retro-specs the already-implemented Realm post primitive
+`Realm source authority`. It retro-specs the already-implemented Realm post primitive
 (`Post` entity, `PostDto` / `FeedResponseDto`, `getHomeFeed` 等
 `PostService` feed reads) as a normative `.nimi/spec/**` contract; it does not
 redesign the Realm post backend.
@@ -39,7 +39,7 @@ Create Post / publish 的 admission 边界。它消费但不重新定义下述�
 ## R-FEED-001
 
 Realm owns the Post / Feed domain. Post is the canonical public-activity
-publishing primitive of `nimi-realm`, and Feed is the canonical viewer-scoped
+publishing primitive of `Realm source authority`, and Feed is the canonical viewer-scoped
 projection over Post truth. A Post is a world-attached, author-attributed,
 attachment-bearing public-activity record; the Feed is read-only projection and
 must not be a parallel truth store.

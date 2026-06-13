@@ -59,20 +59,20 @@ profiles:
       - WorldLorebook
       - Scene
     service_files:
-      - realm-backend://apps/api/src/modules/@admin/world/admin-world-package.service.ts
-      - realm-backend://libs/domains/world/src/world-control.service.ts
-      - realm-backend://libs/domains/world/src/world-rule.service.ts
-      - realm-backend://libs/domains/world/src/agent-rule.service.ts
-      - realm-backend://libs/domains/world/src/world-release.service.ts
-      - realm-backend://libs/domains/world/src/projection/projection.service.ts
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
     test_files:
-      - realm-backend://apps/api/src/modules/@admin/world/admin-world-package.service.spec.ts
-      - realm-backend://apps/api/src/modules/@admin/world/admin-world-package.controller.spec.ts
-      - realm-backend://libs/domains/world/src/world-control.service.unit.spec.ts
-      - realm-backend://libs/domains/world/src/world-rule.service.spec.ts
-      - realm-backend://libs/domains/world/src/agent-rule.service.spec.ts
-      - realm-backend://libs/domains/world/src/world-release.service.spec.ts
-      - realm-tests://arch/world.spec.ts
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
+      - realm-test-evidence://arch/world.spec.ts
   projection:
     openapi:
       - GET /api/world/by-id/{id}/detail-with-agents
@@ -85,14 +85,14 @@ profiles:
       - Worldview
       - WorldLorebook
     service_files:
-      - realm-backend://libs/domains/world/src/projection/projection.service.ts
-      - realm-backend://libs/domains/world/src/world-release.service.ts
-      - realm-backend://libs/domains/world/src/worldview.service.ts
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
     test_files:
-      - realm-backend://libs/domains/world/src/world-release.service.spec.ts
-      - realm-backend://libs/domains/world/src/projection/projection.service.spec.ts
-      - realm-backend://libs/domains/world/src/world-projection.service.spec.ts
-      - realm-tests://arch/world.spec.ts
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
+      - realm-test-evidence://arch/world.spec.ts
   world_state:
     openapi:
       - GET /api/worlds/{worldId}/state
@@ -100,13 +100,13 @@ profiles:
     prisma_models:
       - WorldStateRecord
     service_files:
-      - realm-backend://libs/common/src/realm-commit-policy.ts
-      - realm-backend://libs/domains/world/src/world-control.service.ts
-      - realm-backend://libs/domains/world/src/world-truth-validator.service.ts
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
     test_files:
-      - realm-backend://libs/domains/world/src/world-control.service.unit.spec.ts
-      - realm-backend://libs/domains/world/src/world-truth-validator.service.spec.ts
-      - realm-tests://arch/world.spec.ts
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
+      - realm-test-evidence://arch/world.spec.ts
   world_history:
     openapi:
       - GET /api/worlds/{worldId}/history
@@ -114,11 +114,11 @@ profiles:
     prisma_models:
       - WorldHistoryEvent
     service_files:
-      - realm-backend://libs/common/src/realm-commit-policy.ts
-      - realm-backend://libs/domains/world/src/world-control.service.ts
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
     test_files:
-      - realm-backend://libs/domains/world/src/world-control.service.unit.spec.ts
-      - realm-tests://arch/world.spec.ts
+      - realm-implementation://private-evidence
+      - realm-test-evidence://arch/world.spec.ts
   chat:
     openapi:
       - GET /api/human/chats
@@ -151,15 +151,15 @@ profiles:
       - ChatParticipant
       - Message
     service_files:
-      - realm-backend://libs/domains/chat/src/domains/chat.service.ts
-      - realm-backend://apps/api/src/modules/chat/chat.controller.ts
-      - realm-backend://libs/domains/chat/src/domains/group-chat.service.ts
-      - realm-backend://apps/api/src/modules/group-chat/group-chat.controller.ts
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
     test_files:
-      - realm-backend://apps/api/src/modules/chat/chat.controller.spec.ts
-      - realm-backend://libs/domains/chat/src/domains/chat.service.spec.ts
-      - realm-backend://libs/domains/chat/src/domains/group-chat.service.spec.ts
-      - realm-tests://arch/social.spec.ts
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
+      - realm-test-evidence://arch/social.spec.ts
     notes:
       - Group admission/admin authority is owned by Chat; Social only gates human admission preconditions.
       - Agent-authored group posts require owner/slot validation to prevent spoofed authorship.
@@ -194,12 +194,12 @@ profiles:
       - PostAttachment
       - PostLike
     service_files:
-      - realm-backend://libs/domains/content/src/domains/post.service.ts
-      - realm-backend://apps/api/src/modules/post/post.controller.ts
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
     test_files:
-      - realm-backend://apps/api/src/modules/post/post.controller.spec.ts
-      - realm-backend://apps/api/src/modules/post/world-post.controller.spec.ts
-      - realm-backend://libs/domains/content/src/domains/post.service.spec.ts
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
   attachment:
     openapi:
       - POST /api/world/posts
@@ -218,16 +218,16 @@ profiles:
       - PostAttachment
       - Message
     service_files:
-      - realm-backend://libs/domains/resource/src/attachment-read-model.ts
-      - realm-backend://libs/domains/content/src/domains/post.service.ts
-      - realm-backend://libs/domains/chat/src/domains/chat.service.ts
-      - realm-backend://libs/domains/discovery-engine/src/discovery/discovery-engine.service.ts
-      - realm-backend://apps/api/src/modules/@admin/moderation/admin-moderation.service.ts
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
     test_files:
-      - realm-backend://libs/domains/content/src/domains/post.service.spec.ts
-      - realm-backend://libs/domains/chat/src/domains/chat.service.spec.ts
-      - realm-backend://libs/domains/discovery-engine/src/discovery/discovery-engine.service.spec.ts
-      - realm-backend://apps/api/src/modules/@admin/moderation/admin-moderation.service.spec.ts
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
   binding:
     openapi:
       - GET /api/world/by-id/{id}/bindings
@@ -237,13 +237,13 @@ profiles:
     prisma_models:
       - Binding
     service_files:
-      - realm-backend://libs/domains/binding/src/binding.service.ts
-      - realm-backend://libs/domains/world/src/world.service.ts
-      - realm-backend://libs/domains/world/src/world-control.service.ts
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
     test_files:
-      - realm-backend://libs/domains/binding/src/binding.service.spec.ts
-      - realm-backend://libs/domains/world/src/world-public-assets.service.spec.ts
-      - realm-backend://libs/domains/world/src/world-control.service.unit.spec.ts
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
   social:
     openapi:
       - GET /api/human/accounts/{id}/friends
@@ -255,13 +255,13 @@ profiles:
     prisma_models:
       - Friendship
     service_files:
-      - realm-backend://libs/domains/relationship/src/friendship.service.ts
-      - realm-backend://libs/domains/user/src/domains/user.service.ts
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
     test_files:
-      - realm-backend://apps/api/src/modules/user/user.controller.spec.ts
-      - realm-backend://libs/domains/user/src/domains/user.service.spec.ts
-      - realm-backend://libs/domains/relationship/src/friendship.service.spec.ts
-      - realm-tests://arch/social.spec.ts
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
+      - realm-test-evidence://arch/social.spec.ts
   economy:
     openapi:
       - GET /api/economy/subscription
@@ -277,18 +277,18 @@ profiles:
       - Review
       - CurrencyTransaction
     service_files:
-      - realm-backend://libs/domains/economy/src/gift/gift.service.ts
-      - realm-backend://libs/domains/economy/src/review/review.service.ts
-      - realm-backend://libs/domains/economy/src/revenue-share/revenue-share.service.ts
-      - realm-backend://libs/domains/economy/src/subscription/subscription.service.ts
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
     test_files:
-      - realm-backend://apps/api/src/modules/economy/economy.controller.spec.ts
-      - realm-backend://apps/api/src/modules/economy/review.controller.spec.ts
-      - realm-backend://libs/domains/economy/src/gift/gift.service.spec.ts
-      - realm-backend://libs/domains/economy/src/review/review.service.spec.ts
-      - realm-backend://libs/domains/economy/src/revenue-share/revenue-share.service.spec.ts
-      - realm-backend://libs/domains/economy/src/subscription/subscription.service.spec.ts
-      - realm-tests://arch/economy.spec.ts
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
+      - realm-test-evidence://arch/economy.spec.ts
   resource:
     openapi:
       - POST /api/resources/images/direct-upload
@@ -303,12 +303,12 @@ profiles:
     prisma_models:
       - Resource
     service_files:
-      - realm-backend://libs/domains/resource/src/resource.service.ts
-      - realm-backend://libs/infra/resource/src/infra/resource-infra.service.ts
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
     test_files:
-      - realm-backend://apps/api/src/modules/resources/resources.controller.spec.ts
-      - realm-backend://libs/infra/resource/src/infra/resource-infra.service.spec.ts
-      - realm-backend://libs/domains/resource/src/resource.service.spec.ts
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
   asset:
     openapi:
       - GET /api/assets
@@ -319,10 +319,10 @@ profiles:
     prisma_models:
       - OwnableAsset
     service_files:
-      - realm-backend://libs/domains/asset/src/ownable-asset.service.ts
+      - realm-implementation://private-evidence
     test_files:
-      - realm-backend://apps/api/src/modules/assets/assets.controller.spec.ts
-      - realm-backend://libs/domains/asset/src/ownable-asset.service.spec.ts
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
   bundle:
     openapi:
       - GET /api/bundles
@@ -335,10 +335,10 @@ profiles:
       - Bundle
       - BundleMember
     service_files:
-      - realm-backend://libs/domains/bundle/src/bundle.service.ts
+      - realm-implementation://private-evidence
     test_files:
-      - realm-backend://apps/api/src/modules/bundles/bundles.controller.spec.ts
-      - realm-backend://libs/domains/bundle/src/bundle.service.spec.ts
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
   transit:
     openapi:
       - POST /api/world/by-id/{id}/transit
@@ -348,10 +348,10 @@ profiles:
     prisma_models:
       - Transit
     service_files:
-      - realm-backend://libs/domains/world/src/transit.service.ts
+      - realm-implementation://private-evidence
     test_files:
-      - realm-backend://libs/domains/world/src/transit.service.spec.ts
-      - realm-tests://arch/world.spec.ts
+      - realm-implementation://private-evidence
+      - realm-test-evidence://arch/world.spec.ts
   oauth_authority:
     openapi:
       - GET /api/auth/oauth/authorize
@@ -359,11 +359,11 @@ profiles:
     prisma_models:
       - OauthAuthorizationCode
     service_files:
-      - realm-backend://apps/api/src/modules/auth/auth.controller.ts
-      - realm-backend://libs/infra/auth/src/oauth-authority.service.ts
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
     test_files:
-      - realm-backend://libs/infra/auth/src/oauth-authority.service.spec.ts
-      - realm-backend://apps/api/src/modules/auth/auth.controller.spec.ts
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
   permission_grant:
     openapi:
       - GET /api/human/me/permission-grants
@@ -380,13 +380,13 @@ profiles:
       - AppPermissionGrant
       - AppPermissionGrantAuditEvent
     service_files:
-      - realm-backend://apps/api/src/modules/user/me-permission-grants.controller.ts
-      - realm-backend://libs/domains/user/src/dtos/app-permission-grant.dto.ts
-      - realm-backend://libs/domains/user/src/domains/app-permission-grant.service.ts
-      - realm-backend://libs/domains/user/src/domains/user.module.ts
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
     test_files:
-      - realm-backend://apps/api/src/modules/user/me-permission-grants.controller.spec.ts
-      - realm-backend://libs/domains/user/src/domains/app-permission-grant.service.spec.ts
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
   admission_discipline:
     governance_only: true
     note: governance-only meta-rule domain; no API or persistence surface.

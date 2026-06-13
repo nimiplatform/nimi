@@ -21,10 +21,10 @@ owner: '@team'
 sources:
   human_spec: ../asset-contract.md
   openapi:
-    - realm-backend://api-nimi.yaml
-  prisma: realm-backend://prisma/schema.prisma
+    - realm-openapi://nimi
+  prisma: realm-schema://primary
   services:
-    - realm-backend://libs/domains/asset/src/ownable-asset.service.ts
+    - realm-implementation://private-evidence
 rule_id_prefix: R-ASSET-
 rules:
   - rule_id: R-ASSET-101

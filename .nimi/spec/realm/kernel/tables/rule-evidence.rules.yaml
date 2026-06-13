@@ -267,12 +267,12 @@ rules:
       - GET /api/me/agents/{agentId}/settings
       - PATCH /api/me/agents/{agentId}/settings
     service_files:
-      - realm-backend://apps/api/src/modules/user/user.controller.ts
-      - realm-backend://libs/domains/agent/src/domains/agent.service.ts
-      - realm-backend://libs/domains/agent/src/dtos/agent-owner-settings.dto.ts
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
     test_files:
-      - realm-backend://apps/api/src/modules/user/user.controller.spec.ts
-      - realm-backend://libs/domains/agent/src/domains/agent.service.spec.ts
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
   R-PROJ-001:
     domain: projection
     spec_anchor: .nimi/spec/realm/kernel/projection-contract.md#R-PROJ-001
@@ -534,13 +534,13 @@ rules:
     profile_refs:
       - social
     service_files:
-      - realm-backend://libs/domains/agent/src/domains/owned-master-agents.scope.ts
-      - realm-backend://libs/domains/agent/src/domains/agent.service.ts
-      - realm-backend://libs/domains/agent/src/domains/agent-management.service.ts
-      - realm-backend://libs/domains/agent/src/domains/agent-master.service.ts
-      - realm-backend://libs/domains/agent/src/domains/agent-dev.service.ts
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
     test_files:
-      - realm-backend://libs/domains/agent/src/domains/r-soc-006.spec.ts
+      - realm-implementation://private-evidence
   R-SOC-007:
     domain: social
     spec_anchor: .nimi/spec/realm/kernel/social-contract.md#R-SOC-007
@@ -550,13 +550,13 @@ rules:
       - Friendship
       - LocalAgentTerminationIntent
     service_files:
-      - realm-backend://libs/domains/relationship/src/friendship.service.ts
-      - realm-backend://libs/domains/user/src/domains/local-agent-termination-intent.service.ts
-      - realm-backend://libs/domains/user/src/domains/user.service.ts
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
     test_files:
-      - realm-backend://libs/domains/relationship/src/friendship.service.spec.ts
-      - realm-backend://libs/domains/user/src/domains/local-agent-termination-intent.service.spec.ts
-      - realm-backend://apps/api/src/modules/user/user.controller.spec.ts
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
   R-SOC-008:
     domain: social
     spec_anchor: .nimi/spec/realm/kernel/social-contract.md#R-SOC-008
@@ -568,11 +568,11 @@ rules:
     prisma_models:
       - LocalAgentTerminationIntent
     service_files:
-      - realm-backend://apps/api/src/modules/user/user.controller.ts
-      - realm-backend://libs/domains/user/src/domains/local-agent-termination-intent.service.ts
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
     test_files:
-      - realm-backend://apps/api/src/modules/user/user.controller.spec.ts
-      - realm-backend://libs/domains/user/src/domains/local-agent-termination-intent.service.spec.ts
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
   R-SOC-009:
     domain: social
     spec_anchor: .nimi/spec/realm/kernel/social-contract.md#R-SOC-009
@@ -585,16 +585,16 @@ rules:
       - LocalAgentProvisionIntent
       - LocalAgentTerminationIntent
     service_files:
-      - realm-backend://libs/common/src/local-agent-provision-intent.ts
-      - realm-backend://libs/domains/relationship/src/friendship.service.ts
-      - realm-backend://libs/domains/user/src/domains/local-agent-provision-intent.service.ts
-      - realm-backend://libs/domains/agent/src/domains/agent.service.ts
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
     test_files:
-      - realm-backend://libs/common/src/guide-agent-bootstrap.spec.ts
-      - realm-backend://libs/domains/relationship/src/friendship.service.spec.ts
-      - realm-backend://libs/domains/user/src/domains/local-agent-provision-intent.service.spec.ts
-      - realm-backend://libs/domains/agent/src/domains/agent.service.spec.ts
-      - realm-backend://apps/api/src/modules/user/user.controller.spec.ts
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
   R-FEED-001:
     domain: feed
     spec_anchor: .nimi/spec/realm/kernel/feed-contract.md#R-FEED-001
@@ -857,13 +857,13 @@ rules:
     profile_refs:
       - permission_grant
     openapi:
-      - realm-backend://api-nimi.yaml
+      - realm-openapi://nimi
     prisma_models:
       - AppPermissionGrant
     service_files:
-      - realm-backend://libs/domains/user/src/domains/app-permission-grant.service.ts
+      - realm-implementation://private-evidence
     test_files:
-      - realm-backend://libs/domains/user/src/domains/app-permission-grant.service.spec.ts
+      - realm-implementation://private-evidence
   R-PERM-002:
     domain: permission-grant
     spec_anchor: .nimi/spec/realm/kernel/permission-grant-contract.md#R-PERM-002
@@ -872,22 +872,22 @@ rules:
     prisma_models:
       - AppPermissionGrant
     service_files:
-      - realm-backend://libs/domains/user/src/domains/app-permission-grant.service.ts
+      - realm-implementation://private-evidence
     test_files:
-      - realm-backend://libs/domains/user/src/domains/app-permission-grant.service.spec.ts
+      - realm-implementation://private-evidence
   R-PERM-003:
     domain: permission-grant
     spec_anchor: .nimi/spec/realm/kernel/permission-grant-contract.md#R-PERM-003
     profile_refs:
       - permission_grant
     openapi:
-      - realm-backend://api-nimi.yaml
+      - realm-openapi://nimi
     service_files:
-      - realm-backend://apps/api/src/modules/user/me-permission-grants.controller.ts
-      - realm-backend://libs/domains/user/src/domains/app-permission-grant.service.ts
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
     test_files:
-      - realm-backend://apps/api/src/modules/user/me-permission-grants.controller.spec.ts
-      - realm-backend://libs/domains/user/src/domains/app-permission-grant.service.spec.ts
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
   R-PERM-004:
     domain: permission-grant
     spec_anchor: .nimi/spec/realm/kernel/permission-grant-contract.md#R-PERM-004
@@ -896,7 +896,7 @@ rules:
     prisma_models:
       - AppPermissionGrant
     service_files:
-      - realm-backend://libs/domains/user/src/domains/app-permission-grant.service.ts
+      - realm-implementation://private-evidence
   R-PERM-005:
     domain: permission-grant
     spec_anchor: .nimi/spec/realm/kernel/permission-grant-contract.md#R-PERM-005
@@ -906,47 +906,47 @@ rules:
       - AppPermissionGrant
       - AppPermissionGrantAuditEvent
     service_files:
-      - realm-backend://libs/domains/user/src/domains/app-permission-grant.service.ts
+      - realm-implementation://private-evidence
     test_files:
-      - realm-backend://libs/domains/user/src/domains/app-permission-grant.service.spec.ts
+      - realm-implementation://private-evidence
   R-PERM-006:
     domain: permission-grant
     spec_anchor: .nimi/spec/realm/kernel/permission-grant-contract.md#R-PERM-006
     profile_refs:
       - permission_grant
     service_files:
-      - realm-backend://libs/domains/user/src/domains/app-permission-grant.service.ts
+      - realm-implementation://private-evidence
     test_files:
-      - realm-backend://libs/domains/user/src/domains/app-permission-grant.service.spec.ts
+      - realm-implementation://private-evidence
   R-PERM-007:
     domain: permission-grant
     spec_anchor: .nimi/spec/realm/kernel/permission-grant-contract.md#R-PERM-007
     profile_refs:
       - permission_grant
     openapi:
-      - realm-backend://api-nimi.yaml
+      - realm-openapi://nimi
     service_files:
-      - realm-backend://apps/api/src/modules/user/me-permission-grants.controller.ts
-      - realm-backend://libs/domains/user/src/domains/app-permission-grant.service.ts
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
     test_files:
-      - realm-backend://apps/api/src/modules/user/me-permission-grants.controller.spec.ts
-      - realm-backend://libs/domains/user/src/domains/app-permission-grant.service.spec.ts
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
   R-PERM-008:
     domain: permission-grant
     spec_anchor: .nimi/spec/realm/kernel/permission-grant-contract.md#R-PERM-008
     profile_refs:
       - permission_grant
     openapi:
-      - realm-backend://api-nimi.yaml
+      - realm-openapi://nimi
       - POST /api/runtime/realm-grants/issue
     service_files:
-      - realm-backend://apps/api/src/modules/runtime-surface/runtime-realm-grants.controller.ts
-      - realm-backend://apps/api/src/modules/runtime-surface/runtime-realm-grants.dto.ts
-      - realm-backend://libs/runtime/control-plane/src/control-plane.service.ts
-      - realm-backend://libs/runtime/control-plane/src/runtime-realm-grant-scope.ts
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
     test_files:
-      - realm-backend://apps/api/src/modules/runtime-surface/runtime-realm-grants.controller.spec.ts
-      - realm-backend://libs/runtime/control-plane/src/control-plane.service.spec.ts
+      - realm-implementation://private-evidence
+      - realm-implementation://private-evidence
   R-ADMIT-001:
     domain: admission-discipline
     spec_anchor: .nimi/spec/realm/kernel/admission-discipline-contract.md#R-ADMIT-001

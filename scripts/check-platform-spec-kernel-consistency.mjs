@@ -1053,7 +1053,16 @@ function checkPackageAuthorityAdmissions(definedRuleIds) {
 }
 
 function isDelegatedSourceRef(ref) {
-  return ref.startsWith('parent://') || ref.startsWith('package://');
+  return ref.startsWith('package://') || ref.startsWith('realm-source://');
+}
+
+function isDelegatedEvidencePrefix(ref) {
+  return [
+    'realm-implementation://',
+    'realm-test-evidence://',
+    'realm-openapi://',
+    'realm-schema://',
+  ].includes(ref);
 }
 
 function isSafeRelativePathRef(ref) {
@@ -1104,7 +1113,7 @@ function checkDelegatedProjectionAdmissions(definedRuleIds) {
       fail(`${rel}: ${id} invalid authority_root ${authorityRoot || '<empty>'}`);
     }
     if (!isDelegatedSourceRef(sourceAuthorityRoot)) {
-      fail(`${rel}: ${id} source_authority_root must use parent:// or package://`);
+      fail(`${rel}: ${id} source_authority_root must use package:// or realm-source://`);
     }
     if (localProjectionEvidenceRoots.length === 0) {
       fail(`${rel}: ${id} must declare local_projection_evidence_roots`);
@@ -1119,14 +1128,14 @@ function checkDelegatedProjectionAdmissions(definedRuleIds) {
     }
     for (const delegatedRoot of delegatedEvidenceRoots) {
       if (!isDelegatedSourceRef(delegatedRoot)) {
-        fail(`${rel}: ${id} delegated_evidence_root must use parent:// or package://: ${delegatedRoot}`);
+        fail(`${rel}: ${id} delegated_evidence_root must use package:// or realm-source://: ${delegatedRoot}`);
       }
     }
     if (delegatedPrefixes.length === 0) {
       fail(`${rel}: ${id} must declare delegated_declared_evidence_prefixes`);
     }
     for (const prefix of delegatedPrefixes) {
-      if (!isSafeRelativePathRef(prefix) || prefix.startsWith('.nimi/spec/')) {
+      if (!isDelegatedEvidencePrefix(prefix)) {
         fail(`${rel}: ${id} invalid delegated_declared_evidence_prefix ${prefix}`);
       }
     }
@@ -1143,8 +1152,8 @@ function checkDelegatedProjectionAdmissions(definedRuleIds) {
       fail(`${rel}: ${id} must declare required_verification_commands`);
     }
     for (const command of requiredCommands) {
-      if (!command.startsWith('pnpm --dir .. spec:realm:check:')) {
-        fail(`${rel}: ${id} required_verification_command must be an explicit parent realm check: ${command}`);
+      if (!command.startsWith('realm-source-check://')) {
+        fail(`${rel}: ${id} required_verification_command must be an explicit realm source check locator: ${command}`);
       }
     }
     if (!definedRuleIds.has(source)) {

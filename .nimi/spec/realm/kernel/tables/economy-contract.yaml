@@ -23,13 +23,13 @@ owner: '@team'
 sources:
   human_spec: ../economy-contract.md
   openapi:
-    - realm-backend://api-nimi.yaml
-  prisma: realm-backend://prisma/schema.prisma
+    - realm-openapi://nimi
+  prisma: realm-schema://primary
   services:
-    - realm-backend://libs/domains/economy/src/gift/gift.service.ts
-    - realm-backend://libs/domains/economy/src/review/review.service.ts
-    - realm-backend://libs/domains/economy/src/revenue-share/revenue-share.service.ts
-    - realm-backend://libs/domains/economy/src/subscription/subscription.service.ts
+    - realm-implementation://private-evidence
+    - realm-implementation://private-evidence
+    - realm-implementation://private-evidence
+    - realm-implementation://private-evidence
 rule_id_prefix: R-ECON-
 rules:
   - rule_id: R-ECON-001

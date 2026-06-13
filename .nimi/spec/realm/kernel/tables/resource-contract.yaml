@@ -21,11 +21,11 @@ owner: '@team'
 sources:
   human_spec: ../resource-contract.md
   openapi:
-    - realm-backend://api-nimi.yaml
-  prisma: realm-backend://prisma/schema.prisma
+    - realm-openapi://nimi
+  prisma: realm-schema://primary
   services:
-    - realm-backend://libs/domains/resource/src/resource.service.ts
-    - realm-backend://libs/infra/resource/src/infra/resource-infra.service.ts
+    - realm-implementation://private-evidence
+    - realm-implementation://private-evidence
 rule_id_prefix: R-RSRC-
 rules:
   - rule_id: R-RSRC-001

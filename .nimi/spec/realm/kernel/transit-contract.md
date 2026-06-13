@@ -13,7 +13,7 @@ updated: 2026-03-21
 
 ## Scope
 
-This contract defines cross-world continuity transfer in `nimi-realm`.
+This contract defines cross-world continuity transfer in `Realm source authority`.
 
 ## R-TRANSIT-001
 

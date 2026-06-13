@@ -29,17 +29,17 @@ owner: '@team'
 sources:
   human_spec: ../oauth-authority-contract.md
   openapi:
-    - realm-backend://api-nimi.yaml
-  prisma: realm-backend://prisma/schema.prisma
+    - realm-openapi://nimi
+  prisma: realm-schema://primary
   services:
-    - realm-backend://apps/api/src/modules/auth/auth.controller.ts
-    - realm-backend://libs/infra/auth/src/oauth-authority.service.ts
+    - realm-implementation://private-evidence
+    - realm-implementation://private-evidence
 rule_id_prefix: R-OAUTH-
 rules:
   - rule_id: R-OAUTH-001
     level: must
     title: realm-is-oauth-authorization-server
-    statement: "Realm is the OAuth 2.0 authorization server for native/public clients in nimi-realm; PKCE-protected authorization code flow is the sole admitted method on this contract's endpoints."
+    statement: "Realm is the OAuth 2.0 authorization server for native/public clients in Realm source authority; PKCE-protected authorization code flow is the sole admitted method on this contract's endpoints."
   - rule_id: R-OAUTH-002
     level: must
     title: endpoint-set-closed

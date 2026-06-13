@@ -13,7 +13,7 @@ updated: 2026-05-25
 
 ## Scope
 
-This contract defines the canonical social admission layer for `nimi-realm`.
+This contract defines the canonical social admission layer for `Realm source authority`.
 
 ## R-SOC-001
 

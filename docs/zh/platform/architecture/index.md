@@ -26,7 +26,7 @@ Nimi 切成多个权威面，让任何一层都不会悄悄重写另一层的真
 ```
 desktop      ->  nimi-sdk         : 统一开发者接入面
 desktop      ->  nimi-runtime     : 走 gRPC 接入 Runtime
-nimi-apps    ->  nimi-realm       : REST + WS 接入 Realm
+nimi-apps    ->  Realm source authority       : REST + WS 接入 Realm
 nimi-runtime <-> nimi-cognition   : Runtime 桥 / 消费重叠
                                     （权威源仍归 Cognition）
 ```
