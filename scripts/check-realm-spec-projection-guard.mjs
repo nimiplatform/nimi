@@ -9,6 +9,12 @@ import YAML from 'yaml';
 const REALM_SPEC_ROOT = '.nimi/spec/realm';
 const BYPASS_ENV = 'NIMI_ALLOW_REALM_SPEC_PROJECTION_SYNC';
 const REALM_SOURCE_ROOT_ENV = 'NIMI_REALM_SOURCE_ROOT';
+const BASE_SHA_ENVS = [
+  'NIMI_REALM_SPEC_PROJECTION_BASE_SHA',
+  'NIMI_BASE_SHA',
+  'PR_BASE_SHA',
+  'GITHUB_BASE_SHA',
+];
 const DELEGATED_PROJECTION_ADMISSIONS =
   '.nimi/spec/platform/kernel/tables/delegated-projection-admissions.yaml';
 const REALM_ADMISSION_ID = 'realm-parent-spec-projection';
@@ -27,6 +33,18 @@ function runGit(args) {
   if (result.status !== 0) {
     const detail = String(result.stderr || result.stdout || '').trim();
     throw new Error(`git ${args.join(' ')} failed${detail ? `: ${detail}` : ''}`);
+  }
+  return String(result.stdout || '');
+}
+
+function tryRunGit(args) {
+  const result = spawnSync('git', args, {
+    cwd: process.cwd(),
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  if (result.status !== 0) {
+    return null;
   }
   return String(result.stdout || '');
 }
@@ -127,7 +145,13 @@ function runRequiredProjectionVerification({ requireSource }) {
   return `verified:${sourceRoot}`;
 }
 
-function listRealmSpecChanges() {
+function normalizeGitPath(rawPath) {
+  return String(rawPath || '')
+    .trim()
+    .replace(/^"(.+)"$/u, '$1');
+}
+
+function listDirtyRealmSpecChanges() {
   const output = runGit([
     'status',
     '--porcelain=v1',
@@ -137,9 +161,59 @@ function listRealmSpecChanges() {
   ]);
   const paths = output
     .split(/\r?\n/)
-    .map((line) => line.slice(3).trim())
+    .map((line) => normalizeGitPath(line.slice(3)))
     .filter(Boolean);
   return [...new Set(paths)].sort((a, b) => a.localeCompare(b));
+}
+
+function resolveCommittedDiffBase() {
+  for (const envName of BASE_SHA_ENVS) {
+    const value = String(process.env[envName] || '').trim();
+    if (value) {
+      return { ref: value, source: envName };
+    }
+  }
+  const mergeBase = tryRunGit(['merge-base', 'origin/develop', 'HEAD']);
+  const ref = String(mergeBase || '').trim();
+  if (ref) {
+    return { ref, source: 'merge-base:origin/develop' };
+  }
+  return null;
+}
+
+function listCommittedRealmSpecChanges() {
+  const base = resolveCommittedDiffBase();
+  if (!base) {
+    throw new Error(
+      [
+        'Unable to resolve a base ref for committed Realm projection diff detection.',
+        `Set ${BASE_SHA_ENVS[0]} or NIMI_BASE_SHA/PR_BASE_SHA/GITHUB_BASE_SHA,`,
+        'or fetch origin/develop so the guard can evaluate origin/develop..HEAD.',
+      ].join(' '),
+    );
+  }
+  const output = runGit([
+    'diff',
+    '--name-only',
+    `${base.ref}..HEAD`,
+    '--',
+    REALM_SPEC_ROOT,
+  ]);
+  const paths = output
+    .split(/\r?\n/)
+    .map((line) => normalizeGitPath(line))
+    .filter(Boolean);
+  return {
+    paths: [...new Set(paths)].sort((a, b) => a.localeCompare(b)),
+    base,
+  };
+}
+
+function listRealmSpecChanges() {
+  const dirty = listDirtyRealmSpecChanges();
+  const committed = listCommittedRealmSpecChanges();
+  const paths = [...new Set([...dirty, ...committed.paths])].sort((a, b) => a.localeCompare(b));
+  return { paths, dirty, committed };
 }
 
 function printBlockedMessage(paths) {
@@ -169,7 +243,8 @@ function printBlockedMessage(paths) {
 }
 
 function main() {
-  const paths = listRealmSpecChanges();
+  const changes = listRealmSpecChanges();
+  const paths = changes.paths;
   const verification = runRequiredProjectionVerification({
     requireSource: paths.length > 0 || process.env[BYPASS_ENV] === '1',
   });
@@ -179,8 +254,11 @@ function main() {
   }
 
   if (process.env[BYPASS_ENV] === '1') {
+    const committedDetail = changes.committed.base
+      ? `, committed_base=${changes.committed.base.source}:${changes.committed.base.ref}`
+      : '';
     process.stdout.write(
-      `realm spec projection guard verified and acknowledged by ${BYPASS_ENV}=1 for ${paths.length} projected file change(s)\n`,
+      `realm spec projection guard verified and acknowledged by ${BYPASS_ENV}=1 for ${paths.length} projected file change(s) (${changes.dirty.length} dirty, ${changes.committed.paths.length} committed${committedDetail})\n`,
     );
     return;
   }

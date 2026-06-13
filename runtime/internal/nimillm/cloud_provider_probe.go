@@ -1,39 +1,70 @@
 package nimillm
 
 import (
+	_ "embed"
 	"strings"
+	"sync"
 	"time"
 
 	"google.golang.org/grpc/codes"
+	"gopkg.in/yaml.v3"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
-var admittedTokenProbeProviders = map[string]struct{}{
-	"nimillm":               {},
-	"dashscope":             {},
-	"volcengine":            {},
-	"volcengine_openspeech": {},
-	"gemini":                {},
-	"minimax":               {},
-	"mimo":                  {},
-	"kimi":                  {},
-	"glm":                   {},
-	"deepseek":              {},
-	"openrouter":            {},
-	"openai":                {},
-	"openai_compatible":     {},
-	"openai_codex":          {},
+//go:embed authority/provider-probe-targets.yaml
+var providerProbeTargetsAuthorityYAML []byte
+
+var admittedTokenProbeProviderSet = sync.OnceValues(loadAdmittedTokenProbeProvidersFromAuthority)
+
+type providerProbeTargetsDocument struct {
+	Targets []providerProbeTargetEntry `yaml:"targets"`
+}
+
+type providerProbeTargetEntry struct {
+	Name     string `yaml:"name"`
+	Category string `yaml:"category"`
+}
+
+func loadAdmittedTokenProbeProvidersFromAuthority() (map[string]struct{}, error) {
+	var document providerProbeTargetsDocument
+	if err := yaml.Unmarshal(providerProbeTargetsAuthorityYAML, &document); err != nil {
+		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID)
+	}
+	out := make(map[string]struct{})
+	for _, target := range document.Targets {
+		name := strings.TrimSpace(target.Name)
+		category := strings.TrimSpace(target.Category)
+		if category != "cloud" {
+			continue
+		}
+		if !strings.HasPrefix(name, "cloud-") {
+			return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID)
+		}
+		providerID := strings.ReplaceAll(strings.TrimPrefix(name, "cloud-"), "-", "_")
+		if providerID == "" {
+			return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID)
+		}
+		out[providerID] = struct{}{}
+	}
+	if _, ok := out["nimillm"]; !ok || len(out) == 0 {
+		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID)
+	}
+	return out, nil
 }
 
 // NormalizeTokenProviderID canonicalizes public token provider identifiers.
 func NormalizeTokenProviderID(raw string) (string, error) {
 	token := normalizeProbeProviderToken(raw)
+	admitted, err := admittedTokenProbeProviderSet()
+	if err != nil {
+		return "", err
+	}
 	if token == "" {
 		return "nimillm", nil
 	}
-	if _, ok := admittedTokenProbeProviders[token]; ok {
+	if _, ok := admitted[token]; ok {
 		return token, nil
 	}
 	return "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)

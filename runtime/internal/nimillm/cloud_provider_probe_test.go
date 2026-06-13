@@ -1,6 +1,7 @@
 package nimillm
 
 import (
+	"bytes"
 	"context"
 	"net/http"
 	"net/http/httptest"
@@ -16,7 +17,11 @@ import (
 
 func TestNormalizeTokenProviderIDCanonicalOnly(t *testing.T) {
 	validCases := map[string]string{"": "nimillm"}
-	for providerID := range admittedTokenProbeProviders {
+	admitted, err := admittedTokenProbeProviderSet()
+	if err != nil {
+		t.Fatalf("load admitted provider authority: %v", err)
+	}
+	for providerID := range admitted {
 		validCases[providerID] = providerID
 	}
 	validCases["cloud-dashscope"] = "dashscope"
@@ -55,11 +60,22 @@ func TestNormalizeTokenProviderIDCanonicalOnly(t *testing.T) {
 	}
 }
 
-func TestAdmittedTokenProbeProvidersMatchAuthorityTable(t *testing.T) {
+func TestEmbeddedProviderProbeTargetsAuthorityMatchesSpec(t *testing.T) {
 	raw, err := os.ReadFile(filepath.Join("..", "..", "..", ".nimi", "spec", "runtime", "kernel", "tables", "provider-probe-targets.yaml"))
 	if err != nil {
 		t.Fatalf("read provider probe target authority: %v", err)
 	}
+	if !bytes.Equal(bytes.TrimSpace(providerProbeTargetsAuthorityYAML), bytes.TrimSpace(raw)) {
+		t.Fatalf("embedded provider probe target authority must match .nimi spec source")
+	}
+}
+
+func TestAdmittedTokenProbeProvidersLoadFromAuthorityProjection(t *testing.T) {
+	admitted, err := admittedTokenProbeProviderSet()
+	if err != nil {
+		t.Fatalf("load admitted provider authority: %v", err)
+	}
+	raw := providerProbeTargetsAuthorityYAML
 	want := map[string]struct{}{}
 	var currentName string
 	var currentCategory string
@@ -84,8 +100,8 @@ func TestAdmittedTokenProbeProvidersMatchAuthorityTable(t *testing.T) {
 		}
 	}
 	flush()
-	if !sameStringSet(admittedTokenProbeProviders, want) {
-		t.Fatalf("admitted token probe providers do not match provider-probe-target authority: got=%v want=%v", sortedSetKeys(admittedTokenProbeProviders), sortedSetKeys(want))
+	if !sameStringSet(admitted, want) {
+		t.Fatalf("admitted token probe providers do not match provider-probe-target authority: got=%v want=%v", sortedSetKeys(admitted), sortedSetKeys(want))
 	}
 }
 

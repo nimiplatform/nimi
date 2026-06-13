@@ -448,7 +448,7 @@ func ensureAppPrivateScopeOwner(store *storage.SQLiteBackend, access AppMemoryAc
 	row, err := store.GetKnowledgeScopeRow(scopeID)
 	if err != nil {
 		if errors.Is(err, storage.ErrScopeRegistryNotFound) {
-			return nil
+			return fmt.Errorf("%w: %s scope is not registered", errAppMemoryAccessDenied, operation)
 		}
 		return fmt.Errorf("%s: inspect app_private scope owner: %w", operation, err)
 	}

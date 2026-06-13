@@ -169,6 +169,40 @@ func TestAppMemoryAccessRejectsCrossAppPrivateScope(t *testing.T) {
 	}
 }
 
+func TestAppMemoryAccessRejectsUnregisteredScope(t *testing.T) {
+	c := newTestCognition(t)
+	ctx := context.Background()
+
+	page := knowledge.Page{
+		PageID:    "page-missing-scope",
+		ScopeID:   "scope-not-registered",
+		Kind:      knowledge.ProjectionKindNote,
+		Version:   1,
+		Title:     "Missing scope page",
+		Body:      []byte(`"missing scope"`),
+		Lifecycle: knowledge.ProjectionLifecycleActive,
+		CreatedAt: ts,
+		UpdatedAt: ts,
+	}
+	if err := c.AppMemoryAccessService().SaveKnowledge(ctx, validAppKnowledgeWriteAccess(), page); err == nil || !strings.Contains(err.Error(), "scope is not registered") {
+		t.Fatalf("app knowledge write to unregistered scope must be denied, got %v", err)
+	}
+
+	record := memory.Record{
+		RecordID:  "mem-missing-scope",
+		ScopeID:   "scope-not-registered",
+		Kind:      memory.RecordKindExperience,
+		Version:   1,
+		Content:   []byte(`{"summary":"missing scope"}`),
+		Lifecycle: memory.RecordLifecycleActive,
+		CreatedAt: ts,
+		UpdatedAt: ts,
+	}
+	if err := c.AppMemoryAccessService().SaveMemory(ctx, validAppMemoryWriteAccess(), record); err == nil || !strings.Contains(err.Error(), "scope is not registered") {
+		t.Fatalf("app memory write to unregistered scope must be denied, got %v", err)
+	}
+}
+
 func TestAppMemoryAccessDeniesMissingGrantAndProvenance(t *testing.T) {
 	c := newTestCognition(t)
 	access := validAppMemoryWriteAccess()
