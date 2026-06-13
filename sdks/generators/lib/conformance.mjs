@@ -93,7 +93,7 @@ export function writeConformanceFixtures(runtime, realm, errorCodes, exportsMani
         path: firstRealmOperation.path,
         path_params: { intentId: 'intent-conformance' },
         query: { include: 'projection' },
-        headers: { 'x-Realm source authority': 'conformance' },
+        headers: { 'x-realm-public-projection-boundary': 'conformance' },
         request_body: { hello: 'realm' },
         response_body: { ok: true, source: 'realm-operation' },
       },

@@ -26,6 +26,17 @@ const privateBackendLocator = ['realm', 'backend'].join('-') + '://';
 const parentRealmLocator = 'parent://' + privateRealmRepo;
 const homeRealmPath = '~/' + privateRealmRepo;
 const parentBackendPath = '../' + privateBackendRepo;
+const semanticSourceAuthority = ['Realm', 'source', 'authority'].join(' ');
+const sourceAuthorityWorkspace = ['source', 'authority', 'workspace'].join(' ');
+const parentRepo = ['parent', 'repo'].join(' ');
+const parentRootSync = ['parent', 'root', 'sync'].join(' ');
+const parentWorkspaceRoot = ['parent', 'workspace', 'root'].join(' ');
+const nestedCheckoutLayout = ['nested', 'checkout', 'layout'].join(' ');
+const sourceRootEnv = ['NIMI', 'REALM', 'SOURCE', 'ROOT'].join('_');
+const realmSourceLocator = ['realm', 'source'].join('-') + '://';
+const realmSourceCheckLocator = ['realm', 'source', 'check'].join('-') + '://';
+const syncNimiOpenSpec = ['sync', 'nimi', 'open', 'spec'].join('-') + '.ts';
+const sourceRootNimiProjection = ['sourceRoot', "'nimi'", "REALM_SPEC_ROOT"].join(', ');
 
 const forbidden = [
   privateRealmRepo,
@@ -34,6 +45,17 @@ const forbidden = [
   parentRealmLocator,
   homeRealmPath,
   parentBackendPath,
+  semanticSourceAuthority,
+  sourceAuthorityWorkspace,
+  parentRepo,
+  parentRootSync,
+  parentWorkspaceRoot,
+  nestedCheckoutLayout,
+  sourceRootEnv,
+  realmSourceLocator,
+  realmSourceCheckLocator,
+  syncNimiOpenSpec,
+  sourceRootNimiProjection,
 ].map((value) => ({ value, pattern: new RegExp(escapeRegExp(value), 'u') }));
 
 const ignoredPrefixes = [
@@ -66,7 +88,7 @@ for (const filePath of tracked) {
 if (findings.length > 0) {
   process.stderr.write([
     'Private repository topology references are forbidden in the public Nimi repository.',
-    'Keep Realm spec projections, but do not expose private repo names, parent paths, or backend locators.',
+    'Keep Realm spec projections, but do not expose private repo names, topology guesses, or backend locators.',
     ...findings,
     '',
   ].join('\n'));

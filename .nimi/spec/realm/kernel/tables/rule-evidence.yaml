@@ -165,7 +165,7 @@ entries:
   - R-OAUTH-012
   - R-ADMIT-001
   - R-ADMIT-002
-description: Rule-to-evidence map for the Realm kernel. Executable backend/code provenance paths are support evidence paths; repo-aware checks may resolve them from the current repository root or its parent workspace root. Spec-local links such as `sources.human_spec` remain contract-local.
+description: Rule-to-evidence map for the Realm kernel. Executable/backend provenance paths are delegated support evidence locators; public repository checks must not resolve them through filesystem topology guesses. Spec-local links such as `sources.human_spec` remain contract-local.
 fragments:
   profiles: rule-evidence.profiles.yaml
   rules: rule-evidence.rules.yaml

@@ -37,11 +37,11 @@ The platform spec freezes a small set of cross-layer relationships. Each
 arrow below corresponds to an admitted contract surface:
 
 ```
-desktop      ->  nimi-sdk         : unified developer surface
-desktop      ->  nimi-runtime     : gRPC runtime access
-nimi-apps    ->  Realm source authority       : REST + WS realm access
-nimi-runtime <-> nimi-cognition   : runtime bridge / consume overlap
-                                    (authority remains with cognition)
+desktop      ->  nimi-sdk                  : unified developer surface
+desktop      ->  nimi-runtime              : gRPC runtime access
+nimi-apps    ->  Realm public API boundary : REST + WS realm access
+nimi-runtime <-> nimi-cognition            : runtime bridge / consume overlap
+                                             (authority remains with cognition)
 ```
 
 Two things follow from that diagram:

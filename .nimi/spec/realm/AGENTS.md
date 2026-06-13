@@ -6,17 +6,15 @@
 
 ## Authority
 
-- In `the Realm source authority workspace`, `.nimi/spec/realm/**` is the parent Realm spec authority.
-- In `this repository`, `.nimi/spec/realm/**` is a projection from the parent
-  repo. Do not edit the nested projection as source authority.
+- In `this repository`, `.nimi/spec/realm/**` is a public projection surface.
+  Do not edit this subtree as implementation authority.
+- Projection updates must arrive with an external verification proof accepted by
+  the repository projection guard.
 
 ## Required Workflow
 
-- To change Realm spec authority:
-  1. edit `the Realm source authority workspace/.nimi/spec/realm/**`;
-  2. run `pnpm spec:realm:generate`;
-  3. run `pnpm spec:realm:sync:nimi`;
-  4. run `pnpm spec:realm:check:nimi-sync`.
-- In nested `nimi`, `NIMI_ALLOW_REALM_SPEC_PROJECTION_SYNC=1` may only bypass
-  the local projection-diff guard for commits produced by parent root sync after
-  the root gate has passed. It is not a general force switch.
+- Treat `.nimi/spec/realm/**` changes as projection updates only.
+- Run `pnpm check:realm-spec-projection-guard` before committing any projection
+  update.
+- `NIMI_ALLOW_REALM_SPEC_PROJECTION_SYNC=1` acknowledges a verified projection
+  update. It is not a general force switch.

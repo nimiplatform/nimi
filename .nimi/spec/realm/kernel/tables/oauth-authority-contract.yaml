@@ -39,7 +39,7 @@ rules:
   - rule_id: R-OAUTH-001
     level: must
     title: realm-is-oauth-authorization-server
-    statement: "Realm is the OAuth 2.0 authorization server for native/public clients in Realm source authority; PKCE-protected authorization code flow is the sole admitted method on this contract's endpoints."
+    statement: "Realm is the OAuth 2.0 authorization server for native/public clients in Realm public projection boundary; PKCE-protected authorization code flow is the sole admitted method on this contract's endpoints."
   - rule_id: R-OAUTH-002
     level: must
     title: endpoint-set-closed

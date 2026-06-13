@@ -13,7 +13,7 @@ updated: 2026-05-15
 
 ## Scope
 
-This contract defines the canonical Realm chat surface for `Realm source authority`, including its `DIRECT` and `GROUP` substrates.
+This contract defines the canonical Realm chat surface for `Realm public projection boundary`, including its `DIRECT` and `GROUP` substrates.
 
 ## R-CHAT-001
 

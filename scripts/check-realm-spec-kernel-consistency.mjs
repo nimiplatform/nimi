@@ -111,7 +111,7 @@ function readYaml(absPath) {
 function readAdmittedDelegatedRealmEvidencePrefixes() {
   const admissions = readYaml(DELEGATED_PROJECTION_ADMISSIONS_PATH);
   const rows = Array.isArray(admissions.admissions) ? admissions.admissions : [];
-  const realmAdmission = rows.find((row) => row?.id === 'realm-parent-spec-projection');
+  const realmAdmission = rows.find((row) => row?.id === 'realm-spec-projection');
   return new Set(asStringArray(realmAdmission?.delegated_declared_evidence_prefixes));
 }
 

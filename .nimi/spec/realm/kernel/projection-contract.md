@@ -13,7 +13,7 @@ updated: 2026-04-21
 
 ## Scope
 
-This contract defines the canonical `truth -> projection` seam for `Realm source authority`.
+This contract defines the canonical `truth -> projection` seam for `Realm public projection boundary`.
 
 Projection is a derived consumption layer. It is not semantic truth, not app-local
 view glue, and not ad hoc prompt assembly.

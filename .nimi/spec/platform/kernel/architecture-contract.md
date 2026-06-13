@@ -10,13 +10,14 @@ entry shell；当前由 desktop host 承载。公开外部分发、安装、授�
 
 `nimi-cognition` 作为独立 authority domain 存在，由 runtime / sdk bridge 与 consume；它不是第七条执行宿主层，也不得被 platform text 静默压回 realm 或 runtime 子章节。
 
-public top-layer architecture text `MUST` 同时暴露 cross-repo read path：
+public top-layer architecture text `MUST` expose public authority surfaces
+without private implementation topology：
 
 - public canonical 入口在 `nimi/.nimi/spec/**`
-- private realm / backend / dashboard / creator-side authority 保留在
-  `Realm source authority/.nimi/spec/**`
-上述 framing 只负责 cross-repo topology 与 authority routing；不得把 private
-repo 的 semantic owner 静默迁回当前 public root。
+- Realm-facing公开内容只通过 admitted public projection boundary 表达
+上述 framing 只负责公开边界与 authority routing；不得把 private
+implementation topology、source checkout shape、或 semantic owner 路径写入当前
+public root。
 
 ## P-ARCH-002 — 层间通信规则
 

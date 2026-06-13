@@ -72,7 +72,7 @@
         "include": "projection"
       },
       "headers": {
-        "x-Realm source authority": "conformance"
+        "x-realm-public-projection-boundary": "conformance"
       },
       "request_body": {
         "hello": "realm"

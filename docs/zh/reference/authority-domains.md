@@ -22,9 +22,9 @@
 | --- | --- | --- |
 | `desktop → nimi-sdk` | 单向 | 统一开发者面 |
 | `desktop → nimi-runtime` | 单向 | gRPC runtime 接入 |
-| `nimi-apps → Realm source authority` | 单向 | REST + WS realm 接入 |
+| `nimi-apps → Realm public API boundary` | 单向 | REST + WS realm 接入 |
 | `nimi-runtime ↔ nimi-cognition` | 双向桥 | Runtime 使用 Cognition；Cognition 保留权威 |
-| `nimi-runtime ↔ Realm source authority` | 同级 | 互不依赖；由 SDK 桥接 |
+| `nimi-runtime ↔ Realm public API boundary` | 同级 | 互不依赖；由 SDK 桥接 |
 
 ## 边界规则
 

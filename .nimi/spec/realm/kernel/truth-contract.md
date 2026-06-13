@@ -13,7 +13,7 @@ updated: 2026-05-22
 
 ## Scope
 
-This contract defines the canonical truth layer for `Realm source authority`.
+This contract defines the canonical truth layer for `Realm public projection boundary`.
 
 Truth owns the canonical publish ingress for world and agent truth, the formal
 world-to-agent derivation edge, and the governed boundary that upstream official

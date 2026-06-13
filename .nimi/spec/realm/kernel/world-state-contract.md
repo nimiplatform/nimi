@@ -13,7 +13,7 @@ updated: 2026-03-22
 
 ## Scope
 
-This contract defines the shared present-state layer for `Realm source authority`.
+This contract defines the shared present-state layer for `Realm public projection boundary`.
 
 ## R-WSTATE-001
 

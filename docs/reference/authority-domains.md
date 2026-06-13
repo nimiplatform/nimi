@@ -23,9 +23,9 @@ not own.
 | --- | --- | --- |
 | `desktop → nimi-sdk` | unidirectional | Unified developer surface |
 | `desktop → nimi-runtime` | unidirectional | gRPC runtime access |
-| `nimi-apps → Realm source authority` | unidirectional | REST + WS realm access |
+| `nimi-apps → Realm public API boundary` | unidirectional | REST + WS realm access |
 | `nimi-runtime ↔ nimi-cognition` | bidirectional bridge | Runtime consumes cognition; cognition retains authority |
-| `nimi-runtime ↔ Realm source authority` | sibling | Neither depends on the other; SDK bridges them |
+| `nimi-runtime ↔ Realm public API boundary` | sibling | Neither depends on the other; SDK bridges them |
 
 ## Boundary Rules
 

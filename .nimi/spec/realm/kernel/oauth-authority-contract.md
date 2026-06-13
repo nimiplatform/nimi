@@ -13,7 +13,7 @@ updated: 2026-05-09
 
 ## Scope
 
-This contract defines the realm's role as the OAuth 2.0 authorization server for native and public clients within `Realm source authority`. It governs the two endpoints that admitted native clients use to obtain account session material via the PKCE-protected authorization code flow.
+This contract defines the realm's role as the OAuth 2.0 authorization server for native and public clients within `Realm public projection boundary`. It governs the two endpoints that admitted native clients use to obtain account session material via the PKCE-protected authorization code flow.
 
 This contract is the realm-side counterpart to `K-ACCSVC-008` `CompleteLogin` proof envelope in [`runtime/kernel/account-session-contract.md`](../../runtime/kernel/account-session-contract.md). Runtime is the authorized consumer; realm is the authority that issues authorization codes and exchanges them for session material.
 
@@ -21,7 +21,7 @@ This contract does not govern: third-party OAuth provider linking (covered by `/
 
 ## R-OAUTH-001
 
-Realm is the OAuth 2.0 authorization server for native and public clients in `Realm source authority`. The PKCE-protected authorization code flow is the sole admitted method for native clients to obtain realm session material; no other OAuth flow is admitted on the endpoints governed by this contract.
+Realm is the OAuth 2.0 authorization server for native and public clients in `Realm public projection boundary`. The PKCE-protected authorization code flow is the sole admitted method for native clients to obtain realm session material; no other OAuth flow is admitted on the endpoints governed by this contract.
 
 ## R-OAUTH-002
 

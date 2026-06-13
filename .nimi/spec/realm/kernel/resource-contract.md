@@ -13,7 +13,7 @@ updated: 2026-03-25
 
 ## Scope
 
-This contract defines `Resource` as the lowest-level typed content carrier family in `Realm source authority`.
+This contract defines `Resource` as the lowest-level typed content carrier family in `Realm public projection boundary`.
 
 ## R-RSRC-001
 

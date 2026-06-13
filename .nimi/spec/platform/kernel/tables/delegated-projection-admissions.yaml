@@ -3,22 +3,22 @@ table_family: product_catalog
 owner: platform
 catalog_id: platform_delegated_projection_admissions
 entries:
-  - realm-parent-spec-projection
+  - realm-spec-projection
 admissions:
-  - id: realm-parent-spec-projection
+  - id: realm-spec-projection
     admission_posture: active
     owner_domain: realm
     authority_root: .nimi/spec/realm
-    source_authority_root: realm-source://spec/realm
+    source_authority_root: external-projection://realm/spec
     local_projection_evidence_roots:
       - package.json
       - scripts/check-realm-spec-projection-guard.mjs
       - scripts/generate-realm-spec-kernel-docs.mjs
       - scripts/check-realm-spec-kernel-consistency.mjs
     delegated_evidence_roots:
-      - realm-source://spec/realm
-      - realm-source://config/realm-projection-manifest
-      - realm-source://sync/nimi-open-spec
+      - external-projection://realm/spec
+      - external-projection://realm/projection-manifest
+      - external-projection://realm/sync-proof
     delegated_declared_evidence_prefixes:
       - realm-implementation://
       - realm-test-evidence://
@@ -30,7 +30,5 @@ admissions:
       - app-interconnect-model.md
       - realm-interop-mapping.md
     required_verification_commands:
-      - realm-source-check://nimi-sync
-      - realm-source-check://drift
-      - realm-source-check://nimi-generated
+      - external-verifier://realm-spec-projection
     source_rule: P-PKG-009

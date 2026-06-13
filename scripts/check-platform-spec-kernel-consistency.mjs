@@ -1053,7 +1053,7 @@ function checkPackageAuthorityAdmissions(definedRuleIds) {
 }
 
 function isDelegatedSourceRef(ref) {
-  return ref.startsWith('package://') || ref.startsWith('realm-source://');
+  return ref.startsWith('package://') || ref.startsWith('external-projection://');
 }
 
 function isDelegatedEvidencePrefix(ref) {
@@ -1113,7 +1113,7 @@ function checkDelegatedProjectionAdmissions(definedRuleIds) {
       fail(`${rel}: ${id} invalid authority_root ${authorityRoot || '<empty>'}`);
     }
     if (!isDelegatedSourceRef(sourceAuthorityRoot)) {
-      fail(`${rel}: ${id} source_authority_root must use package:// or realm-source://`);
+      fail(`${rel}: ${id} source_authority_root must use package:// or external-projection://`);
     }
     if (localProjectionEvidenceRoots.length === 0) {
       fail(`${rel}: ${id} must declare local_projection_evidence_roots`);
@@ -1128,7 +1128,7 @@ function checkDelegatedProjectionAdmissions(definedRuleIds) {
     }
     for (const delegatedRoot of delegatedEvidenceRoots) {
       if (!isDelegatedSourceRef(delegatedRoot)) {
-        fail(`${rel}: ${id} delegated_evidence_root must use package:// or realm-source://: ${delegatedRoot}`);
+        fail(`${rel}: ${id} delegated_evidence_root must use package:// or external-projection://: ${delegatedRoot}`);
       }
     }
     if (delegatedPrefixes.length === 0) {
@@ -1152,8 +1152,8 @@ function checkDelegatedProjectionAdmissions(definedRuleIds) {
       fail(`${rel}: ${id} must declare required_verification_commands`);
     }
     for (const command of requiredCommands) {
-      if (!command.startsWith('realm-source-check://')) {
-        fail(`${rel}: ${id} required_verification_command must be an explicit realm source check locator: ${command}`);
+      if (!command.startsWith('external-verifier://')) {
+        fail(`${rel}: ${id} required_verification_command must be an explicit external verifier locator: ${command}`);
       }
     }
     if (!definedRuleIds.has(source)) {

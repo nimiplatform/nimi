@@ -13,7 +13,7 @@ updated: 2026-05-25
 
 ## Scope
 
-This contract defines the canonical social admission layer for `Realm source authority`.
+This contract defines the canonical social admission layer for `Realm public projection boundary`.
 
 ## R-SOC-001
 
