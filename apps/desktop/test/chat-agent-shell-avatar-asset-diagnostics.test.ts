@@ -109,5 +109,5 @@ test('Avatar asset diagnostics fails visible before a local asset is selected', 
 
   assert.equal(presentation.status, 'missing');
   assert.equal(presentation.validationStatus, 'selection_missing');
-  assert.match(presentation.message || '', /Import a local Live2D folder or VRM file/u);
+  assert.match(presentation.message || '', /Avatar-owned package evidence/u);
 });

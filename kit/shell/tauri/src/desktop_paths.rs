@@ -50,6 +50,7 @@ pub fn resolve_nimi_data_dir() -> Result<PathBuf, String> {
 #[cfg(test)]
 mod tests {
     use super::{resolve_nimi_data_dir, resolve_nimi_dir};
+    use crate::runtime_bridge::{with_runtime_bridge_host_hooks, RuntimeBridgeHostHooks};
     use crate::test_support::with_env;
     use std::fs;
     use std::path::PathBuf;
@@ -74,16 +75,18 @@ mod tests {
     fn resolve_nimi_data_dir_has_no_silent_default() {
         let home = make_temp_dir("no-default");
         with_env(&[("HOME", home.to_str())], || {
-            let root = resolve_nimi_dir().expect("nimi dir");
-            fs::write(
-                root.join("desktop-paths.json"),
-                r#"{"nimiDataDir":"/tmp/legacy-nimi-data"}"#,
-            )
-            .expect("write legacy desktop paths");
+            with_runtime_bridge_host_hooks(RuntimeBridgeHostHooks::default(), || {
+                let root = resolve_nimi_dir().expect("nimi dir");
+                fs::write(
+                    root.join("desktop-paths.json"),
+                    r#"{"nimiDataDir":"/tmp/legacy-nimi-data"}"#,
+                )
+                .expect("write legacy desktop paths");
 
-            let err = resolve_nimi_data_dir().expect_err("missing host hook");
-            assert!(err.contains("requires an admitted host data-root hook"));
-            assert!(!home.join(".nimi").join("data").exists());
+                let err = resolve_nimi_data_dir().expect_err("missing host hook");
+                assert!(err.contains("requires an admitted host data-root hook"));
+                assert!(!home.join(".nimi").join("data").exists());
+            });
         });
         let _ = fs::remove_dir_all(home);
     }

@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import {
   isExpectedUnauthorizedAutoLogin,
+  rebootstrapRuntime,
   withTimeout,
 } from '../src/desktop-adapter/runtime-bootstrap.web.js';
 
@@ -25,6 +26,12 @@ test('runtime-bootstrap.web withTimeout resolves and times out deterministically
     async () => withTimeout(new Promise<void>(() => {}), 10, 'timeout-branch'),
     /timeout-branch timeout after 10ms/,
   );
+});
+
+test('runtime-bootstrap.web exports rebootstrapRuntime for desktop renderer parity', () => {
+  assert.equal(typeof rebootstrapRuntime, 'function');
+  assert.match(runtimeBootstrapWebSource, /export function rebootstrapRuntime\(\): Promise<void>/);
+  assert.match(runtimeBootstrapWebSource, /bootstrapPromise = null;\s*return bootstrapRuntime\(\);/);
 });
 
 test('runtime-bootstrap.web defers chat and contact hydration until UI demand', () => {

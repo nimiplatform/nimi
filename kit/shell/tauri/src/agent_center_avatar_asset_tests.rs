@@ -7,8 +7,8 @@ use crate::runtime_bridge::{set_runtime_bridge_host_hooks, RuntimeBridgeHostHook
 use crate::test_support::test_guard;
 use serde_json::json;
 use sha2::{Digest, Sha256};
-use std::future::Future;
 use std::fs;
+use std::future::Future;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Once};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -114,7 +114,12 @@ fn resolve_payload(
         backend_kind: kind.to_string(),
         local_avatar_asset_ref: local_asset_id.to_string(),
         backend_capability_profile_ref: format!("avatar.backend_profile/{kind}/basic"),
-        materialization_ref: materialization_ref(account_id, &local_agent_ref, kind, local_asset_id),
+        materialization_ref: materialization_ref(
+            account_id,
+            &local_agent_ref,
+            kind,
+            local_asset_id,
+        ),
     }
 }
 
@@ -330,8 +335,11 @@ async fn rejects_digest_mismatch_before_projecting_runtime_manifest() {
         "application/json",
         br#"{"Version":3}"#,
     );
-    fs::write(package_dir.join("files/ren.model3.json"), br#"{"Version":4}"#)
-        .expect("mutate entry");
+    fs::write(
+        package_dir.join("files/ren.model3.json"),
+        br#"{"Version":4}"#,
+    )
+    .expect("mutate entry");
 
     let error = with_admitted_data_root(&home, || async {
         nimi_avatar_resolve_agent_center_avatar_asset(resolve_payload(
@@ -374,8 +382,8 @@ async fn rejects_materialization_ref_that_does_not_match_scope() {
         "live2d",
         "live2d_ab12cd34ef56",
     );
-    payload.materialization_ref = "agent-center-avatar-asset:wrong:wrong:live2d:live2d_ab12cd34ef56"
-        .to_string();
+    payload.materialization_ref =
+        "agent-center-avatar-asset:wrong:wrong:live2d:live2d_ab12cd34ef56".to_string();
 
     let error = with_admitted_data_root(&home, || async {
         nimi_avatar_resolve_agent_center_avatar_asset(payload).await

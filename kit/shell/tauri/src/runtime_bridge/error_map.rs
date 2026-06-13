@@ -355,8 +355,10 @@ pub fn bridge_status_error(status: Status) -> String {
     let structured = parse_structured_status_payload(status.message());
     let retryable_transport_cancel = is_retryable_transport_cancel(&status, structured.as_ref());
     let status_message = sanitize_error_message(status.message());
-    let retryable_unknown_transport =
-        status.code() == Code::Unknown && status_message.to_ascii_lowercase().contains("transport error");
+    let retryable_unknown_transport = status.code() == Code::Unknown
+        && status_message
+            .to_ascii_lowercase()
+            .contains("transport error");
     let structured_reason = structured
         .as_ref()
         .map(|value| value.reason_code.trim().to_string())

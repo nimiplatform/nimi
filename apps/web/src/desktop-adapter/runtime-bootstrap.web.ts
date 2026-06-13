@@ -265,3 +265,8 @@ export function bootstrapRuntime(): Promise<void> {
 
   return bootstrapPromise;
 }
+
+export function rebootstrapRuntime(): Promise<void> {
+  bootstrapPromise = null;
+  return bootstrapRuntime();
+}

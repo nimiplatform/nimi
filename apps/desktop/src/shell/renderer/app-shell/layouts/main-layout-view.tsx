@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
 import logoImage from '../../assets/logo.svg';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
@@ -27,7 +27,11 @@ import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
 import { DesktopReleaseStrip } from './desktop-release-strip';
 import { MainLayoutPanelStack } from './main-layout-panel-stack';
 import { MainLayoutTopBar } from './main-layout-topbar';
-import { MainLayoutSettingsMenu, type SettingsSubmenuItemId } from './main-layout-settings-menu';
+import {
+  MainLayoutSettingsMenu,
+  type SettingsMenuAnchorPosition,
+  type SettingsSubmenuItemId,
+} from './main-layout-settings-menu';
 import { MainLayoutTitlebarContent } from './main-layout-titlebar-content';
 import { OfflineShellStrip } from './offline-shell-strip';
 import {
@@ -99,6 +103,10 @@ export function MainLayoutView(props: MainLayoutViewProps) {
     });
   }, []);
   const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
+  const [settingsMenuPosition, setSettingsMenuPosition] = useState<SettingsMenuAnchorPosition>({
+    top: 64,
+    right: 16,
+  });
   const settingsTriggerRef = useRef<HTMLDivElement>(null);
   const settingsMenuRef = useRef<HTMLDivElement>(null);
   const sidebarWidthClass = 'w-[60px]';
@@ -141,6 +149,35 @@ export function MainLayoutView(props: MainLayoutViewProps) {
   const sparkBalance = balancesQuery.data?.sparkBalance ?? 0;
   const gemBalance = balancesQuery.data?.gemBalance ?? 0;
   const unreadCount = unreadCountQuery.data?.total ?? 0;
+
+  const updateSettingsMenuPosition = useCallback(() => {
+    const triggerRect = settingsTriggerRef.current?.getBoundingClientRect();
+    if (!triggerRect) {
+      setSettingsMenuPosition({ top: 64, right: 16 });
+      return;
+    }
+    const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
+    setSettingsMenuPosition({
+      top: Math.max(12, Math.round(triggerRect.bottom + 12)),
+      right: Math.max(12, Math.round(viewportWidth - triggerRect.right)),
+    });
+  }, []);
+
+  useLayoutEffect(() => {
+    if (settingsMenuOpen) {
+      updateSettingsMenuPosition();
+    }
+  }, [settingsMenuOpen, updateSettingsMenuPosition]);
+
+  useEffect(() => {
+    if (!settingsMenuOpen) {
+      return;
+    }
+    window.addEventListener('resize', updateSettingsMenuPosition);
+    return () => {
+      window.removeEventListener('resize', updateSettingsMenuPosition);
+    };
+  }, [settingsMenuOpen, updateSettingsMenuPosition]);
 
   useEffect(() => {
     if (!settingsMenuOpen) {
@@ -268,7 +305,12 @@ export function MainLayoutView(props: MainLayoutViewProps) {
     props.onNav('notification');
   };
   const toggleSettingsMenuFromTitlebar = () => {
-    setSettingsMenuOpen((value) => !value);
+    if (settingsMenuOpen) {
+      setSettingsMenuOpen(false);
+      return;
+    }
+    updateSettingsMenuPosition();
+    setSettingsMenuOpen(true);
   };
 
   return (
@@ -386,6 +428,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
             userAvatarUrl={props.userAvatarUrl}
             displayName={props.displayName}
             userEmail={props.userEmail}
+            anchorPosition={settingsMenuPosition}
             developerModeEnabled={developerModeEnabled}
             isItemActive={isSettingsMenuItemActive}
             onOpenItem={openSettingsSubmenuItem}

@@ -24,6 +24,17 @@ export type AvatarAssetValidationPresentation = {
   issueRows: string[];
 };
 
+export function isAvatarAssetLaunchEvidenceReady(input: {
+  config: AgentCenterAvatarAssetModule | null;
+  validation: AvatarAssetValidationResult | null;
+}): boolean {
+  return Boolean(
+    input.config?.local_avatar_asset_ref
+      && input.validation?.status === 'valid'
+      && input.config.backend_capability_profile_ref,
+  );
+}
+
 function issueLabel(issue: AgentCenterValidationIssue): string {
   const code = issue.code.trim() || 'AVATAR_ASSET_VALIDATION_ISSUE';
   const path = issue.path?.trim();
@@ -59,7 +70,7 @@ export function buildAvatarAssetValidationPresentation(input: {
         : 'missing';
   let fallbackMessage: string | null = null;
   if (!input.configured) {
-    fallbackMessage = 'Import a local Live2D folder or VRM file before opening Avatar.';
+    fallbackMessage = 'Avatar launch requires Avatar-owned package evidence before opening.';
   } else if (capabilityProfileMissing) {
     fallbackMessage = 'Backend capability profile evidence is missing. Avatar launch remains blocked until Runtime/Avatar links backend evidence for the selected local asset.';
   } else if (input.validation?.status && input.validation.status !== 'valid') {

@@ -27,7 +27,7 @@ import {
 } from '@nimiplatform/sdk/realm';
 import { createNimiDesktopShellRuntimeAccountCaller } from '@nimiplatform/sdk/runtime';
 import { AccountSessionState } from '@nimiplatform/sdk/runtime/generated';
-import { bootstrapRuntime } from '@renderer/infra/bootstrap/runtime-bootstrap';
+import { bootstrapRuntime, rebootstrapRuntime } from '@renderer/infra/bootstrap/runtime-bootstrap';
 import { queryClient } from '@renderer/infra/query-client/query-client';
 import { desktopBridge } from '@renderer/bridge';
 import { createProxyFetch } from '@renderer/infra/bridge/proxy-fetch';
@@ -39,7 +39,6 @@ import {
 } from '@renderer/infra/realm/realm-platform-session';
 import {
   getDesktopAccountRuntime,
-  getDesktopNimiClient,
 } from '@renderer/infra/sdk/desktop-nimi-client-session';
 import { i18n } from '@renderer/i18n';
 
@@ -57,11 +56,38 @@ type OAuthLoginResultDto = NimiRealmOAuthLoginResult;
 
 const desktopRuntimeAccountCaller = createNimiDesktopShellRuntimeAccountCaller({ appId: 'nimi.desktop' });
 
+async function loadDesktopRuntimeAccountUser(): Promise<Record<string, unknown> | null> {
+  const runtime = getDesktopAccountRuntime();
+  const response = await runtime.account.getAccountSessionStatus({
+    caller: desktopRuntimeAccountCaller,
+  });
+  const projection = response.accountProjection;
+  if (response.state !== AccountSessionState.AUTHENTICATED || !projection?.accountId) {
+    return null;
+  }
+  const tokenStatus = await runtime.account.getAccessToken({
+    caller: desktopRuntimeAccountCaller,
+    requestedScopes: [],
+  });
+  if (!tokenStatus.accepted || !tokenStatus.accessToken) {
+    return null;
+  }
+  return toNimiRealmAuthUserRecord({
+    id: projection.accountId,
+    displayName: projection.displayName,
+    realmEnvironmentId: projection.realmEnvironmentId,
+  });
+}
+
 export function createDesktopRuntimeAccountBrowserBroker() {
-  return createRuntimeAccountBrowserBroker({
+  const broker = createRuntimeAccountBrowserBroker({
     caller: desktopRuntimeAccountCaller,
     beforeRequest: ensureAuthApiReady,
-    getClient: getDesktopNimiClient,
+    getClient: () => ({
+      runtime: {
+        account: getDesktopAccountRuntime().account,
+      },
+    }),
     projectUser: (projection) => projection.accountId
       ? {
           id: projection.accountId,
@@ -70,6 +96,18 @@ export function createDesktopRuntimeAccountBrowserBroker() {
         }
       : null,
   });
+  return {
+    begin: broker.begin,
+    complete: async (request: Parameters<typeof broker.complete>[0]) => {
+      await broker.complete(request);
+      await rebootstrapRuntime();
+      const user = await loadDesktopRuntimeAccountUser();
+      if (!user) {
+        throw new Error('Runtime account login completed without a usable Runtime access token.');
+      }
+      return { user };
+    },
+  };
 }
 
 export async function ensureAuthApiReady(): Promise<void> {
@@ -217,26 +255,7 @@ export function createDesktopAuthAdapter(): AuthPlatformAdapter {
         }
       }
       await ensureAuthApiReady();
-      const runtime = getDesktopAccountRuntime();
-      const response = await runtime.account.getAccountSessionStatus({
-        caller: desktopRuntimeAccountCaller,
-      });
-      const projection = response.accountProjection;
-      if (response.state !== AccountSessionState.AUTHENTICATED || !projection?.accountId) {
-        return null;
-      }
-      const tokenStatus = await runtime.account.getAccessToken({
-        caller: desktopRuntimeAccountCaller,
-        requestedScopes: [],
-      });
-      if (!tokenStatus.accepted || !tokenStatus.accessToken) {
-        return null;
-      }
-      return toNimiRealmAuthUserRecord({
-        id: projection.accountId,
-        displayName: projection.displayName,
-        realmEnvironmentId: projection.realmEnvironmentId,
-      });
+      return loadDesktopRuntimeAccountUser();
     },
 
     applyToken: async (accessToken, refreshToken) => {

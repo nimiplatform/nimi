@@ -40,7 +40,9 @@ test('Auth/OAuth preflight inventory has a real migration point closed in Kit', 
   assert.match(desktopAuthAdapter, /loginNimiRealmAuthPassword/);
   assert.match(desktopAuthAdapter, /verifyNimiRealmEmailOtp/);
   assert.match(desktopAuthAdapter, /loginNimiRealmOAuth/);
-  assert.match(desktopAuthAdapter, /getDesktopNimiClient/);
+  assert.match(desktopAuthAdapter, /getDesktopAccountRuntime/);
+  assert.match(desktopAuthAdapter, /rebootstrapRuntime/);
+  assert.match(desktopAuthAdapter, /Runtime account login completed without a usable Runtime access token/);
   assert.doesNotMatch(desktopAuthAdapter, /getPlatformClient/);
 });
 

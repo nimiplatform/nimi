@@ -16,9 +16,12 @@ function assertGuardedCall(handlerName: string): void {
   const searchEnd = nextHandlerIndex === -1 ? authAdapterSource.length : nextHandlerIndex;
   const runtimeProjectionIndex = authAdapterSource.indexOf('runtime.account.getAccountSessionStatus', start);
   const realmSecurityProjectionIndex = authAdapterSource.indexOf('updateNimiRealmPassword', start);
+  const sharedRuntimeProjectionIndex = authAdapterSource.indexOf('loadDesktopRuntimeAccountUser()', start);
   const guardedIndex = [runtimeProjectionIndex, realmSecurityProjectionIndex]
     .filter((index) => index !== -1 && index < searchEnd)
-    .at(0);
+    .at(0) ?? (sharedRuntimeProjectionIndex !== -1 && sharedRuntimeProjectionIndex < searchEnd
+      ? sharedRuntimeProjectionIndex
+      : undefined);
   assert.notEqual(guardedIndex, undefined, `${handlerName} must call a guarded Runtime/SDK auth surface`);
   assert.ok(guardIndex < guardedIndex!, `${handlerName} must guard before the auth surface call`);
 }
@@ -58,6 +61,7 @@ test('desktop auth adapter guards Runtime-backed auth API calls behind bootstrap
   assertGuardedCall('updatePassword');
   assertGuardedCall('loadCurrentUser');
   assert.match(authAdapterSource, /runtime\.account\.getAccountSessionStatus\(\{\s*caller:/s);
+  assert.match(authAdapterSource, /runtime\.account\.getAccessToken\(\{\s*caller: desktopRuntimeAccountCaller,\s*requestedScopes: \[\],\s*\}\)/s);
 });
 
 test('desktop auth adapter delegates post-login sync to query invalidation (no direct dataSync calls)', () => {

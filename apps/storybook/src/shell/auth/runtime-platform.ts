@@ -1,11 +1,17 @@
 import { createNimiClient, type NimiClient } from '@nimiplatform/sdk';
-import type { RuntimeOptions } from '@nimiplatform/sdk/runtime';
+import {
+  createNimiLocalFirstPartyRuntimeAccountCaller,
+  type NimiRuntimeAccountCaller,
+  type RuntimeOptions,
+} from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 
 export const appId = 'nimi.storybook';
 export const appTitle = 'Storybook';
 export const scaffoldProfile = 'standalone' as const;
 export const runtimeAccountLoginEnabled = true;
+const runtimeAccountAppInstanceId = 'nimi.storybook.local-first-party';
+const runtimeAccountDeviceId = 'storybook-shell-runtime-bridge';
 
 type RuntimeEnv = Record<string, string | boolean | undefined>;
 
@@ -36,6 +42,7 @@ export type StorybookRuntimePlatformProjection =
   | StorybookRuntimeAuthUnavailable;
 
 let runtimeProjection: Promise<StorybookRuntimePlatformProjection> | null = null;
+let runtimeAccountCaller: NimiRuntimeAccountCaller | null = null;
 
 function runtimeEnv(): RuntimeEnv {
   return ((import.meta as ImportMeta & { env?: RuntimeEnv }).env || {});
@@ -52,6 +59,15 @@ function resolveRuntimeAuthMode(): StorybookRuntimeAuthMode {
 
 export function clearRuntimePlatformProjection() {
   runtimeProjection = null;
+}
+
+export function getRuntimeAccountCaller(): NimiRuntimeAccountCaller {
+  runtimeAccountCaller ??= createNimiLocalFirstPartyRuntimeAccountCaller({
+    appId,
+    appInstanceId: runtimeAccountAppInstanceId,
+    deviceId: runtimeAccountDeviceId,
+  });
+  return runtimeAccountCaller;
 }
 
 export function getRuntimePlatformProjection() {

@@ -149,6 +149,7 @@ describe('Avatar shell/local-assets domain boundary', () => {
     const arbitrationTest = readRepo('apps/desktop/test/chat-agent-avatar-launch-arbitration.test.ts');
 
     assert.match(controls, /avatarAssetValid/);
+    assert.doesNotMatch(controls, /status:\s*['"]valid['"]/);
     assert.doesNotMatch(controls, /backend_capability_profile_ref/);
     assert.match(launchControls, /backendCapabilityProfileRef/);
     assert.match(launchControls, /executeArbitratedLaunch/);

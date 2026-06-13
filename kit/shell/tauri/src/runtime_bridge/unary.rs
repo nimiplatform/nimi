@@ -396,7 +396,10 @@ mod tests {
         );
         let metadata = payload.metadata.expect("metadata");
         assert_eq!(metadata.app_id.as_deref(), Some("nimi.desktop"));
-        assert_eq!(metadata.caller_id.as_deref(), Some("desktop.avatar-handoff"));
+        assert_eq!(
+            metadata.caller_id.as_deref(),
+            Some("desktop.avatar-handoff")
+        );
         assert_eq!(payload.timeout_ms, Some(5_000));
     }
 

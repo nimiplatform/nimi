@@ -228,6 +228,8 @@ test('tester auth and runtime bootstrap consume Kit shell bridge primitives', ()
   assert.match(runtimePlatform, /const runtimeDeveloperRegistrationRequested = true/);
   assert.match(runtimePlatform, /developerRegistration:\s*runtimeDeveloperRegistrationRequested/);
   assert.doesNotMatch(runtimePlatform, /import\.meta[^;\n]*env|env\.DEV|metadata:\s*[^,\n]*developerRegistration/);
+  assert.match(runtimePlatform, /getRuntimeAccountCaller/);
+  assert.doesNotMatch(runtimePlatform, /export const runtimeAccountCaller\s*=\s*createNimiLocalFirstPartyRuntimeAccountCaller/);
   assert.match(runtimePlatform, /await client\.runtime\.ready\(\);\s*await registerLocalFirstPartyRuntimeAccountCaller\(client\);/s);
   assert.match(runtimeAccountAuth, /createTauriOAuthBridge/);
   assert.match(runtimeAccountAuth, /createRuntimeAccountBrowserBroker/);

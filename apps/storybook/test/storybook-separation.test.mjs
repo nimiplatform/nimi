@@ -103,7 +103,7 @@ test('AI boundary uses AIConfig bindings with no provider/model hardcoding', () 
   const textPath = invokers.slice(0, invokers.indexOf('invokeStorybookImage'));
   assert.doesNotMatch(textPath, /model:\s*['"]auto['"]/, 'text path must not pin a model; it routes by AIConfig binding');
   // image path defers route selection to the runtime via "auto" (not a provider name)
-  assert.match(invokers, /model:\s*['"]auto['"]/);
+  assert.match(invokers, /modelId:\s*['"]auto['"]/);
 
   // no hardcoded provider/model brand anywhere in the app source
   const allSource = listFiles(path.join(root, 'src', 'storybook')).map((f) => readFileSync(f, 'utf8')).join('\n');

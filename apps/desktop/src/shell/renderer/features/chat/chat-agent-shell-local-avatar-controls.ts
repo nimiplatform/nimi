@@ -69,7 +69,18 @@ export function useAgentConversationLocalAvatarControls(input: UseAgentConversat
   });
   const backdropImageUrl = assetUrlFromFileUrl(backgroundAssetQuery.data?.file_url);
   const avatarConfigured = Boolean(avatarAssetConfig?.local_avatar_asset_ref);
-  const avatarAssetValidation = null;
+  const avatarAssetValidation = avatarConfigured
+    ? {
+      status: 'decommissioned',
+      errors: [{
+        code: 'AVATAR_CARRIER_DECOMMISSIONED',
+        message: avatarCarrierDecommissionedMessage,
+        path: 'modules.avatar_asset',
+        severity: 'error' as const,
+      }],
+      warnings: [],
+    }
+    : null;
   const avatarAssetValid = false;
   const avatarAssetChecking = false;
   const avatarAssetValidationPresentation = buildAvatarAssetValidationPresentation({

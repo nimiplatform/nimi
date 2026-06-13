@@ -41,6 +41,13 @@ test('PostFeed does not terminate pagination only because a filtered page is emp
   assert.doesNotMatch(postFeedSource, /if \(items\.length === 0\) \{/);
 });
 
+test('PostFeed classifies SDK Realm HTTP 401 from error details as session expiry', () => {
+  assert.match(postFeedSource, /details\?: \{ status\?: number \| string \}/);
+  assert.match(postFeedSource, /function apiErrorStatus\(error: ApiError\): number \| null/);
+  assert.match(postFeedSource, /Number\(error\.status \?\? error\.response\?\.status \?\? error\.details\?\.status\)/);
+  assert.match(postFeedSource, /if \(apiErrorStatus\(loadError\) === 401\)/);
+});
+
 test('HomeView remounts PostFeed per scope so scope reads are not cross-contaminated', () => {
   assert.match(homeViewSource, /postFeedKey\s*=\s*`moments-\$\{props\.feedScope\}-\$\{refreshKey\}`/);
   assert.match(homeViewSource, /<PostFeed\s+key=\{postFeedKey\}/s);

@@ -36,6 +36,6 @@ pub mod runtime_local_assets;
 pub mod session_logging;
 
 #[cfg(test)]
-mod test_support;
-#[cfg(test)]
 mod agent_center_avatar_asset_tests;
+#[cfg(test)]
+mod test_support;

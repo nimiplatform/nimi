@@ -19,6 +19,7 @@ type ApiError = {
   message?: string;
   body?: { message?: string };
   response?: { status?: number };
+  details?: { status?: number | string };
 };
 
 type PostFeedProps = {
@@ -70,6 +71,11 @@ function toErrorMessage(error: unknown, fallback: string): string {
     }
   }
   return fallback;
+}
+
+function apiErrorStatus(error: ApiError): number | null {
+  const direct = Number(error.status ?? error.response?.status ?? error.details?.status);
+  return Number.isFinite(direct) ? direct : null;
 }
 
 export function PostFeed({
@@ -156,7 +162,7 @@ export function PostFeed({
           }));
         } else {
           if (isApiError(loadError)) {
-            if (loadError.status === 401 || loadError.response?.status === 401) {
+            if (apiErrorStatus(loadError) === 401) {
               setError(i18n.t('Home.feedSessionExpired', {
                 defaultValue: 'Your session has expired. Please sign in again.',
               }));

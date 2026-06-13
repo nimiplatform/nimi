@@ -1,4 +1,3 @@
-import { createNimiLocalFirstPartyRuntimeAccountCaller } from '@nimiplatform/sdk/runtime';
 import { AccountSessionState } from '@nimiplatform/sdk/runtime/generated';
 import {
   validateRuntimeOAuthAuthorizationUrl,
@@ -7,13 +6,13 @@ import {
 } from '@nimiplatform/kit/auth';
 import { createTauriOAuthBridge } from '@nimiplatform/kit/shell/renderer/bridge';
 import {
-  appId,
+  getRuntimeAccountCaller,
   getRuntimePlatformProjection,
   runtimeAccountLoginEnabled,
   type StorybookRuntimePlatformClient,
 } from './runtime-platform.js';
 
-export const runtimeAccountCaller = createNimiLocalFirstPartyRuntimeAccountCaller({ appId });
+export { getRuntimeAccountCaller };
 
 export const nimiAppTauriOAuthBridge = createTauriOAuthBridge();
 
@@ -31,7 +30,7 @@ export async function loadRuntimeAccountUser(client: StorybookRuntimePlatformCli
   if (!runtimeAccountLoginEnabled) {
     return null;
   }
-  const response = await client.runtime.account.getAccountSessionStatus({ caller: runtimeAccountCaller });
+  const response = await client.runtime.account.getAccountSessionStatus({ caller: getRuntimeAccountCaller() });
   if (response.state !== AccountSessionState.AUTHENTICATED || !response.accountProjection?.accountId) {
     return null;
   }
@@ -53,7 +52,7 @@ export async function logoutRuntimeAccount() {
   requireRuntimeAccountLogin();
   const client = await requireRuntimePlatformClient();
   await client.runtime.account.logout({
-    caller: runtimeAccountCaller,
+    caller: getRuntimeAccountCaller(),
     reason: 'generated_app_logout',
   });
 }
@@ -64,7 +63,7 @@ export function createNimiAppRuntimeAccountBroker(): ShellAuthDesktopBrowserAuth
       requireRuntimeAccountLogin();
       const client = await requireRuntimePlatformClient();
       const response = await client.runtime.account.beginLogin({
-        caller: runtimeAccountCaller,
+        caller: getRuntimeAccountCaller(),
         redirectUri: input.callbackUrl,
         callbackOrigin: new URL(input.callbackUrl).origin,
         requestedScopes: [],
@@ -84,7 +83,7 @@ export function createNimiAppRuntimeAccountBroker(): ShellAuthDesktopBrowserAuth
       requireRuntimeAccountLogin();
       const client = await requireRuntimePlatformClient();
       const response = await client.runtime.account.completeLogin({
-        caller: runtimeAccountCaller,
+        caller: getRuntimeAccountCaller(),
         loginAttemptId: input.loginAttemptId,
         code: input.code,
         refreshToken: '',

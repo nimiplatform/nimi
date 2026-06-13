@@ -41,6 +41,18 @@ test('desktop bootstrap only projects authenticated when Runtime account token c
   );
 });
 
+test('desktop Realm transport refreshes Runtime account token once on Realm 401', () => {
+  const desktopSessionSource = readFileSync(
+    new URL('../src/shell/renderer/infra/sdk/desktop-nimi-client-session.ts', import.meta.url),
+    'utf8',
+  );
+  assert.match(desktopSessionSource, /function createRuntimeAccountRefreshingRealmFetch/);
+  assert.match(desktopSessionSource, /if \(response\.status !== 401\) \{\s*return response;\s*\}/s);
+  assert.match(desktopSessionSource, /input\.runtime\.account\.refreshAccountSession\(\{\s*caller: input\.accountCaller,\s*\}\)/s);
+  assert.match(desktopSessionSource, /input\.runtime\.account\.getAccessToken\(\{\s*caller: input\.accountCaller,\s*requestedScopes: \[\],\s*\}\)/s);
+  assert.match(desktopSessionSource, /return input\.fetchImpl\(request, retryInit\);/);
+});
+
 test('retired desktop bootstrap auth helper is deleted', () => {
   assert.equal(existsSync(retiredRuntimeBootstrapAuthUrl), false);
   assert.doesNotMatch(runtimeBootstrapSource, /runtime-bootstrap-auth/);

@@ -42,7 +42,7 @@ test('SDK auth projection only coerces object user payloads and keeps anonymous 
   assert.equal(toNimiRealmAuthUserRecord(['user-1']), null);
 
   assert.equal(isNimiRealmExpectedAnonymousSessionError({ reasonCode: ReasonCode.AUTH_TOKEN_INVALID }), true);
-  assert.equal(isNimiRealmExpectedAnonymousSessionError(new Error('HTTP_401 unauthorized')), true);
+  assert.equal(isNimiRealmExpectedAnonymousSessionError(new Error('HTTP_401 unauthorized')), false);
   assert.equal(isNimiRealmExpectedAnonymousSessionError(new Error('contract mismatch')), false);
 });
 

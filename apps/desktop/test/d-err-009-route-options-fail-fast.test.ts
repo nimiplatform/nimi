@@ -192,9 +192,7 @@ test('D-ERR-009: loadRuntimeRouteOptions degrades gracefully when local metadata
   assert.equal(options.local.models.length, 0);
   assert.equal(options.connectors.length, 1);
   assert.equal(options.connectors[0]?.id, 'connector-openai');
-  assert.ok(options.selected);
-  assert.equal(options.selected.source, 'local');
-  assert.equal(options.selected.model, 'local-model');
+  assert.equal(options.selected, null);
   assert.equal('resolvedDefault' in options, false);
   assert.equal(options.local.defaultEndpoint, undefined);
 

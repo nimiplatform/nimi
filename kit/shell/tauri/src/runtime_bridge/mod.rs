@@ -9,7 +9,7 @@ mod unary;
 use serde::Deserialize;
 use serde_json::Value;
 use std::path::PathBuf;
-use std::sync::{Arc, OnceLock};
+use std::sync::{Arc, Mutex, OnceLock};
 use tauri::AppHandle;
 
 pub use daemon_manager::http_addr;
@@ -106,27 +106,60 @@ pub struct RuntimeBridgeHostHooks {
     pub resolve_nimi_data_dir: Option<ResultPathHook>,
 }
 
-static HOST_HOOKS: OnceLock<RuntimeBridgeHostHooks> = OnceLock::new();
+static HOST_HOOKS: OnceLock<Mutex<RuntimeBridgeHostHooks>> = OnceLock::new();
 
 pub fn set_runtime_bridge_host_hooks(hooks: RuntimeBridgeHostHooks) -> Result<(), String> {
+    if HOST_HOOKS.get().is_some() {
+        #[cfg(test)]
+        {
+            let existing = HOST_HOOKS
+                .get()
+                .ok_or_else(|| "RUNTIME_BRIDGE_HOST_HOOKS_MISSING".to_string())?;
+            *existing
+                .lock()
+                .map_err(|_| "RUNTIME_BRIDGE_HOST_HOOKS_LOCK_POISONED".to_string())? = hooks;
+            return Ok(());
+        }
+        #[cfg(not(test))]
+        {
+            return Err("RUNTIME_BRIDGE_HOST_HOOKS_ALREADY_SET".to_string());
+        }
+    }
     HOST_HOOKS
-        .set(hooks)
+        .set(Mutex::new(hooks))
         .map_err(|_| "RUNTIME_BRIDGE_HOST_HOOKS_ALREADY_SET".to_string())
 }
 
-fn host_hooks() -> Option<&'static RuntimeBridgeHostHooks> {
-    HOST_HOOKS.get()
+#[cfg(test)]
+pub(crate) fn with_runtime_bridge_host_hooks<R>(
+    hooks: RuntimeBridgeHostHooks,
+    run: impl FnOnce() -> R,
+) -> R {
+    let previous = host_hooks().unwrap_or_default();
+    set_runtime_bridge_host_hooks(hooks).expect("set temporary runtime bridge host hooks");
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(run));
+    set_runtime_bridge_host_hooks(previous).expect("restore runtime bridge host hooks");
+    match result {
+        Ok(value) => value,
+        Err(payload) => std::panic::resume_unwind(payload),
+    }
+}
+
+fn host_hooks() -> Option<RuntimeBridgeHostHooks> {
+    HOST_HOOKS
+        .get()
+        .and_then(|hooks| hooks.lock().ok().map(|hooks| hooks.clone()))
 }
 
 fn call_status_override_hook() -> Result<Option<RuntimeBridgeDaemonStatus>, String> {
-    match host_hooks().and_then(|hooks| hooks.status_override.as_ref()) {
+    match host_hooks().and_then(|hooks| hooks.status_override.clone()) {
         Some(hook) => hook(),
         None => Ok(None),
     }
 }
 
 fn sync_daemon_status_hook(app: &AppHandle, status: RuntimeBridgeDaemonStatus) {
-    if let Some(hook) = host_hooks().and_then(|hooks| hooks.sync_daemon_status.as_ref()) {
+    if let Some(hook) = host_hooks().and_then(|hooks| hooks.sync_daemon_status.clone()) {
         hook(app, status);
     }
 }
@@ -134,45 +167,45 @@ fn sync_daemon_status_hook(app: &AppHandle, status: RuntimeBridgeDaemonStatus) {
 fn call_unary_override_hook(
     payload: &RuntimeBridgeUnaryPayload,
 ) -> Result<Option<RuntimeBridgeUnaryResult>, String> {
-    match host_hooks().and_then(|hooks| hooks.unary_override.as_ref()) {
+    match host_hooks().and_then(|hooks| hooks.unary_override.clone()) {
         Some(hook) => hook(payload),
         None => Ok(None),
     }
 }
 
 fn set_action_in_flight_hook(app: &AppHandle, action: Option<&'static str>) {
-    if let Some(hook) = host_hooks().and_then(|hooks| hooks.set_action_in_flight.as_ref()) {
+    if let Some(hook) = host_hooks().and_then(|hooks| hooks.set_action_in_flight.clone()) {
         hook(app, action);
     }
 }
 
 pub(crate) fn staged_runtime_binary_path_hook_result() -> Option<Option<PathBuf>> {
     host_hooks()
-        .and_then(|hooks| hooks.staged_runtime_binary_path.as_ref())
+        .and_then(|hooks| hooks.staged_runtime_binary_path.clone())
         .map(|hook| hook())
 }
 
 pub(crate) fn runtime_last_error_hook() -> Option<String> {
     host_hooks()
-        .and_then(|hooks| hooks.runtime_last_error.as_ref())
+        .and_then(|hooks| hooks.runtime_last_error.clone())
         .and_then(|hook| hook())
 }
 
 pub(crate) fn current_release_version_hook() -> Option<String> {
     host_hooks()
-        .and_then(|hooks| hooks.current_release_version.as_ref())
+        .and_then(|hooks| hooks.current_release_version.clone())
         .and_then(|hook| hook())
 }
 
 pub(crate) fn resolve_nimi_dir_hook() -> Option<Result<PathBuf, String>> {
     host_hooks()
-        .and_then(|hooks| hooks.resolve_nimi_dir.as_ref())
+        .and_then(|hooks| hooks.resolve_nimi_dir.clone())
         .map(|hook| hook())
 }
 
 pub(crate) fn resolve_nimi_data_dir_hook() -> Option<Result<PathBuf, String>> {
     host_hooks()
-        .and_then(|hooks| hooks.resolve_nimi_data_dir.as_ref())
+        .and_then(|hooks| hooks.resolve_nimi_data_dir.clone())
         .map(|hook| hook())
 }
 

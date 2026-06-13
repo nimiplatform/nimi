@@ -2,6 +2,7 @@ import { createNimiClient, type NimiClient } from '@nimiplatform/sdk';
 import {
   createNimiLocalFirstPartyRuntimeAccountCaller,
   createNimiRuntimeFullAppRegistration,
+  type NimiRuntimeAccountCaller,
   type RuntimeOptions,
 } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
@@ -9,8 +10,20 @@ export { appId, appTitle, scaffoldProfile } from './app-identity.js';
 import { appId } from './app-identity.js';
 
 export const runtimeAccountLoginEnabled = true;
-export const runtimeAccountCaller = createNimiLocalFirstPartyRuntimeAccountCaller({ appId });
 const runtimeDeveloperRegistrationRequested = true;
+const runtimeAccountAppInstanceId = `${appId}.local-dev`;
+const runtimeAccountDeviceId = 'nimi-tester-local-dev-device';
+
+let runtimeAccountCaller: NimiRuntimeAccountCaller | null = null;
+
+export function getRuntimeAccountCaller(): NimiRuntimeAccountCaller {
+  runtimeAccountCaller ??= createNimiLocalFirstPartyRuntimeAccountCaller({
+    appId,
+    appInstanceId: runtimeAccountAppInstanceId,
+    deviceId: runtimeAccountDeviceId,
+  });
+  return runtimeAccountCaller;
+}
 
 export type TesterRuntimeAuthMode =
   | 'local-first-party'
@@ -107,12 +120,13 @@ async function createLocalFirstPartyRuntimeProjection(
 }
 
 async function registerLocalFirstPartyRuntimeAccountCaller(client: TesterRuntimePlatformClient): Promise<void> {
+  const caller = getRuntimeAccountCaller();
   await createNimiRuntimeFullAppRegistration(
     () => ({ auth: client.runtime.auth }),
     {
       appId,
-      appInstanceId: runtimeAccountCaller.appInstanceId,
-      deviceId: runtimeAccountCaller.deviceId,
+      appInstanceId: caller.appInstanceId,
+      deviceId: caller.deviceId,
       developerRegistration: runtimeDeveloperRegistrationRequested,
       rejectionLabel: 'Nimi Tester Runtime account caller registration rejected',
     },

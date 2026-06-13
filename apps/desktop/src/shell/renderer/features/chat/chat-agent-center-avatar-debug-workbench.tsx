@@ -6,7 +6,6 @@ import type { AgentCenterAvatarAssetModule } from './chat-agent-center-avatar-co
 import {
   AVATAR_DEBUG_WORKBENCH_PROBES,
   AvatarDebugProbeKind,
-  AvatarDebugProbeStatus,
   avatarDebugProbePresentationStatusLabel,
   avatarDebugProbeRemediation,
   buildAvatarDebugWorkbenchDiagnostics,

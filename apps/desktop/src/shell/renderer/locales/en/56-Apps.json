@@ -45,6 +45,16 @@
     "dataDetail": "Stores durable app data under a managed nimi_data app root.",
     "runtimeDetail": "Requires a verified runtime package release."
   },
+  "aiProfile": {
+    "sectionTitle": "AI Profile",
+    "currentProfile": "Current profile",
+    "notInitialized": "Not initialized for this app",
+    "recommendedProfile": "Recommended profile",
+    "requiredCapabilities": "Required capabilities",
+    "changeProfile": "Change App Profile",
+    "modalTitle": "Apply AI Profile to App",
+    "modalHint": "Choose a profile and preview the app-scope AIConfig before applying it."
+  },
   "version": {
     "installed": "Installed {{version}}",
     "available": "Update {{version}}",

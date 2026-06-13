@@ -107,11 +107,12 @@ test('Tester auth flow consumes RuntimeAccountService without app-owned token cu
   const {
     createNimiAppDesktopBrowserAuthAdapter,
     createNimiAppRuntimeAccountBroker,
+    getRuntimeAccountCaller,
     loadRuntimeAccountUser,
     logoutRuntimeAccount,
-    runtimeAccountCaller,
   } = await importRuntimeAccountAuth();
   const { client, calls } = createFakePlatformClient();
+  const runtimeAccountCaller = getRuntimeAccountCaller();
 
   const user = await loadRuntimeAccountUser(client);
   assert.deepEqual(user, {

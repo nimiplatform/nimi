@@ -175,19 +175,14 @@ pub fn apply_metadata(
         SUPPORTED_PARTICIPANT_PROTOCOL_VERSION,
         "x-nimi-participant-protocol-version",
     )?;
-    let app_id = normalize(value.app_id.as_deref()).ok_or_else(|| {
-        bridge_error(
-            "RUNTIME_BRIDGE_METADATA_APP_ID_REQUIRED",
-            "x-nimi-app-id",
-        )
-    })?;
-    let participant_id = normalize(value.participant_id.as_deref())
-        .unwrap_or_else(|| app_id.clone());
+    let app_id = normalize(value.app_id.as_deref())
+        .ok_or_else(|| bridge_error("RUNTIME_BRIDGE_METADATA_APP_ID_REQUIRED", "x-nimi-app-id"))?;
+    let participant_id =
+        normalize(value.participant_id.as_deref()).unwrap_or_else(|| app_id.clone());
     let domain = normalize(value.domain.as_deref()).unwrap_or_else(|| "runtime.rpc".to_string());
     let caller_kind =
         normalize(value.caller_kind.as_deref()).unwrap_or_else(|| "third-party-app".to_string());
-    let caller_id = normalize(value.caller_id.as_deref())
-        .unwrap_or_else(|| app_id.clone());
+    let caller_id = normalize(value.caller_id.as_deref()).unwrap_or_else(|| app_id.clone());
     let idempotency_key = normalize(value.idempotency_key.as_deref()).unwrap_or_else(|| {
         let counter = IDEMPOTENCY_COUNTER.fetch_add(1, Ordering::Relaxed);
         let now = SystemTime::now()

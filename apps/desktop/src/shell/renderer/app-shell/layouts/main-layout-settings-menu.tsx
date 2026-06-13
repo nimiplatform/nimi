@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import type { CSSProperties } from 'react';
 import { ScrollArea, Surface } from '@nimiplatform/kit/ui';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { SHELL_CHROME_MENU_ITEM_BASE_CLASS, SHELL_CHROME_OVERLAY_CLASS } from './shell-chrome-classes';
@@ -13,6 +14,11 @@ export type SettingsSubmenuItemId =
   | 'terms-of-service'
   | 'privacy-policy'
   | 'logout';
+
+export type SettingsMenuAnchorPosition = {
+  top: number;
+  right: number;
+};
 
 const SETTINGS_SUBMENU_ITEMS: Array<{ id: SettingsSubmenuItemId; label: string; icon: string }> = [
   { id: 'profile', label: 'Profile', icon: 'profile' },
@@ -40,6 +46,7 @@ type MainLayoutSettingsMenuProps = {
   userAvatarUrl?: string | null;
   displayName: string;
   userEmail?: string | null;
+  anchorPosition: SettingsMenuAnchorPosition;
   developerModeEnabled: boolean;
   isItemActive: (itemId: SettingsSubmenuItemId) => boolean;
   onOpenItem: (itemId: SettingsSubmenuItemId) => void;
@@ -57,6 +64,10 @@ function MenuChevron() {
 
 export function MainLayoutSettingsMenu(props: MainLayoutSettingsMenuProps) {
   const { t } = useTranslation();
+  const anchorStyle: CSSProperties = {
+    top: props.anchorPosition.top,
+    right: props.anchorPosition.right,
+  };
   const items = SETTINGS_SUBMENU_ITEMS.filter((item) => (
     item.id !== 'logout'
     && item.id !== 'profile'
@@ -64,7 +75,7 @@ export function MainLayoutSettingsMenu(props: MainLayoutSettingsMenuProps) {
   ));
 
   return (
-    <div className="fixed bottom-4 left-[72px] z-[11010]">
+    <div className="fixed z-[11010]" style={anchorStyle}>
       <Surface tone="overlay" material="glass-thick" padding="none" className={`flex max-h-[calc(100vh-100px)] w-64 flex-col overflow-hidden py-2 ${SHELL_CHROME_OVERLAY_CLASS}`}>
         <div className="flex items-center gap-3 px-4 py-3">
           <EntityAvatar imageUrl={props.userAvatarUrl} name={props.displayName} kind="human" sizeClassName="h-10 w-10" textClassName="text-sm font-semibold" />

@@ -49,3 +49,10 @@ test('shell chrome retune: nav, home launcher, account menu, and tooltips consum
   assert.doesNotMatch(mainLayoutTopbarSource, /rounded-\[24px\]|rounded-\[14px\]/u);
   assert.doesNotMatch(navConfigSource, /rounded-\[18px\]|rounded-\[16px\]|rounded-xl/u);
 });
+
+test('shell chrome retune: account menu is anchored to the titlebar avatar trigger', () => {
+  assert.match(mainLayoutViewSource, /settingsTriggerRef\.current\?\.getBoundingClientRect\(\)/u);
+  assert.match(mainLayoutViewSource, /anchorPosition=\{settingsMenuPosition\}/u);
+  assert.match(mainLayoutSettingsMenuSource, /style=\{anchorStyle\}/u);
+  assert.doesNotMatch(mainLayoutSettingsMenuSource, /bottom-4|left-\[72px\]/u);
+});

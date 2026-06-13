@@ -45,6 +45,16 @@
     "dataDetail": "在受管的 nimi_data 应用根目录下存储持久应用数据。",
     "runtimeDetail": "需要经过校验的运行时包发布。"
   },
+  "aiProfile": {
+    "sectionTitle": "AI Profile",
+    "currentProfile": "当前配置",
+    "notInitialized": "此应用尚未初始化",
+    "recommendedProfile": "推荐配置",
+    "requiredCapabilities": "所需能力",
+    "changeProfile": "更换应用配置",
+    "modalTitle": "将 AI Profile 应用到 App",
+    "modalHint": "选择一个配置，并在应用前预览 app-scope AIConfig。"
+  },
   "version": {
     "installed": "已安装 {{version}}",
     "available": "更新 {{version}}",

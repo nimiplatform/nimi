@@ -6,23 +6,24 @@ import {
   type ShellAuthDesktopBrowserAuth,
 } from '@nimiplatform/kit/auth';
 import { createTauriOAuthBridge } from '@nimiplatform/kit/shell/renderer/bridge';
-import { runtimeAccountCaller, runtimeAccountLoginEnabled } from './runtime-platform.js';
+import type { NimiRuntimeAccountCaller } from '@nimiplatform/sdk/runtime';
+import { getRuntimeAccountCaller, runtimeAccountLoginEnabled } from './runtime-platform.js';
 
-export { runtimeAccountCaller };
+export { getRuntimeAccountCaller };
 
 export const nimiAppTauriOAuthBridge = createTauriOAuthBridge();
 
 type TesterRuntimeAccountClient = RuntimeAccountBrowserBrokerClient & {
   runtime: RuntimeAccountBrowserBrokerClient['runtime'] & {
     account: RuntimeAccountBrowserBrokerClient['runtime']['account'] & {
-      getAccountSessionStatus(input: { caller: typeof runtimeAccountCaller }): Promise<{
+      getAccountSessionStatus(input: { caller: NimiRuntimeAccountCaller }): Promise<{
         state: AccountSessionState;
         accountProjection?: {
           accountId?: string | null;
           displayName?: string | null;
         } | null;
       }>;
-      logout(input: { caller: typeof runtimeAccountCaller; reason: string }): Promise<unknown>;
+      logout(input: { caller: NimiRuntimeAccountCaller; reason: string }): Promise<unknown>;
     };
   };
 };
@@ -41,7 +42,7 @@ export async function loadRuntimeAccountUser(client: TesterRuntimeAccountClient)
   if (!runtimeAccountLoginEnabled) {
     return null;
   }
-  const response = await client.runtime.account.getAccountSessionStatus({ caller: runtimeAccountCaller });
+  const response = await client.runtime.account.getAccountSessionStatus({ caller: getRuntimeAccountCaller() });
   if (response.state !== AccountSessionState.AUTHENTICATED || !response.accountProjection?.accountId) {
     return null;
   }
@@ -54,7 +55,7 @@ export async function loadRuntimeAccountUser(client: TesterRuntimeAccountClient)
 export async function logoutRuntimeAccount(client: TesterRuntimeAccountClient) {
   requireRuntimeAccountLogin();
   await client.runtime.account.logout({
-    caller: runtimeAccountCaller,
+    caller: getRuntimeAccountCaller(),
     reason: 'generated_app_logout',
   });
 }
@@ -63,7 +64,7 @@ export function createNimiAppRuntimeAccountBroker(
   client: RuntimeAccountBrowserBrokerClient,
 ): ShellAuthDesktopBrowserAuth['runtimeAccountBroker'] {
   return createRuntimeAccountBrowserBroker({
-    caller: runtimeAccountCaller,
+    caller: getRuntimeAccountCaller(),
     beforeRequest: requireRuntimeAccountLogin,
     getClient: () => client,
     projectUser: (projection) => {

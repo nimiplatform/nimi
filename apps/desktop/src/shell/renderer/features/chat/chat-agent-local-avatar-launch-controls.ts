@@ -209,8 +209,8 @@ export function useAgentLocalAvatarLaunchControls(input: {
           ? 'Chat.agentCenterAvatarStartBackendEvidenceRequired'
           : 'Chat.agentCenterAvatarStartLocalAssetRequired', {
           defaultValue: input.avatarConfigured
-            ? 'Avatar launch requires backend capability evidence from the local Avatar asset resolver.'
-            : 'Avatar launch requires a selected local Avatar asset.',
+            ? 'Avatar launch requires backend capability evidence from Avatar.'
+            : 'Avatar launch requires Avatar-owned package evidence for this agent.',
         }),
       };
     }

@@ -95,11 +95,11 @@ function buildPendingHook(input: {
 
 function assertProtectedAccessOptions(options: Record<string, unknown>): void {
   assert.equal(
-    (options.metadata as Record<string, unknown> | undefined)?.['x-nimi-protected-access-token-id'],
+    (options.metadata as Record<string, unknown> | undefined)?.['x-nimi-access-token-id'],
     'protected-token-id',
   );
   assert.equal(
-    (options.metadata as Record<string, unknown> | undefined)?.['x-nimi-protected-access-secret'],
+    (options.metadata as Record<string, unknown> | undefined)?.['x-nimi-access-token-secret'],
     'protected-token-secret',
   );
   assert.equal(options.protectedAccessToken, undefined);

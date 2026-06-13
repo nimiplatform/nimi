@@ -253,12 +253,12 @@ test('desktop unmet manifest requirements surface a typed setup/repair plan', as
     },
   );
 
-  assert.equal(result.outcome, 'initialized');
-  if (result.outcome !== 'initialized') return;
+  assert.equal(result.outcome, 'setup-required-no-live-config');
+  if (result.outcome !== 'setup-required-no-live-config') return;
   assert.ok(result.setupRepairPlan);
   assert.equal(result.setupRepairPlan?.unmetRequirements[0]?.requirementId, 'local-pack.text');
-  // The config still carries the chosen profile — it was not mutated to pass.
-  assert.equal(result.config.profileOrigin?.profileId, RECOMMENDED_PROFILE.profileId);
+  assert.equal(result.config, null);
+  assert.equal(result.profileId, RECOMMENDED_PROFILE.profileId);
 });
 
 test('desktop first-launch init builds the canonical P-AISC-007 app scope and rejects a blank app id', async () => {

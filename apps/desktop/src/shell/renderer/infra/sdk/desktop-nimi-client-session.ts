@@ -254,7 +254,7 @@ function createRealmWithRuntimeAccountToken(input: {
   return new Realm({
     transport: createRealmFetchTransport({
       baseUrl: input.baseUrl,
-      fetch: input.fetchImpl,
+      fetch: createRuntimeAccountRefreshingRealmFetch(input),
       headers: async () => {
         const token = await input.runtime.account.getAccessToken({
           caller: input.accountCaller,
@@ -275,6 +275,47 @@ function createRealmWithRuntimeAccountToken(input: {
       },
     }),
   });
+}
+
+function createRuntimeAccountRefreshingRealmFetch(input: {
+  readonly fetchImpl: DesktopNimiRealmFetch;
+  readonly runtime: Runtime;
+  readonly accountCaller: NimiRuntimeAccountCaller;
+}): DesktopNimiRealmFetch {
+  return async (request, init) => {
+    const response = await input.fetchImpl(request, init);
+    if (response.status !== 401) {
+      return response;
+    }
+
+    const refreshed = await input.runtime.account.refreshAccountSession({
+      caller: input.accountCaller,
+    });
+    if (!refreshed.accepted) {
+      return response;
+    }
+
+    const token = await input.runtime.account.getAccessToken({
+      caller: input.accountCaller,
+      requestedScopes: [],
+    });
+    const accessToken = normalizeText(token.accessToken);
+    if (!token.accepted || !accessToken) {
+      return response;
+    }
+
+    const retryInit: RequestInit = {
+      ...init,
+      headers: withAuthorizationHeader(init?.headers, accessToken),
+    };
+    return input.fetchImpl(request, retryInit);
+  };
+}
+
+function withAuthorizationHeader(headers: HeadersInit | undefined, accessToken: string): Headers {
+  const next = new Headers(headers);
+  next.set('authorization', `Bearer ${accessToken}`);
+  return next;
 }
 
 function desktopSessionMissingError(surface: string): Error {

@@ -57,8 +57,14 @@ mod tests {
         assert!(!PLATFORM_AI_PROFILE_FACTORY_ROWS.is_empty());
         for row in PLATFORM_AI_PROFILE_FACTORY_ROWS {
             assert_eq!(row.source_rule, "P-AIPS-002");
-            assert!(row.local_compute_pack_refs.iter().all(|value| !value.contains("model.")));
-            assert!(row.dependency_family_refs.iter().all(|value| !value.contains("provider.")));
+            assert!(row
+                .local_compute_pack_refs
+                .iter()
+                .all(|value| !value.contains("model.")));
+            assert!(row
+                .dependency_family_refs
+                .iter()
+                .all(|value| !value.contains("provider.")));
         }
     }
 }

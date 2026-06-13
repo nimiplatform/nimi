@@ -34,7 +34,8 @@ test('single login model requires runtime account login (no dev-standalone bypas
   assert.doesNotMatch(authGateSource, /runtime-developer-session/);
   assert.doesNotMatch(authSource, /VITE_NIMI_RUNTIME_DEVELOPER_SESSION/);
   assert.match(authSource, /createNimiRuntimeFullAppRegistration/);
-  assert.match(authSource, /runtimeAccountCaller/);
+  assert.match(authSource, /getRuntimeAccountCaller/);
+  assert.doesNotMatch(authSource, /export const runtimeAccountCaller\s*=\s*createNimiLocalFirstPartyRuntimeAccountCaller/);
   assert.match(authSource, /registerLocalFirstPartyRuntimeAccountCaller/);
   assert.match(authSource, /const runtimeDeveloperRegistrationRequested = true/);
   assert.match(authSource, /developerRegistration:\s*runtimeDeveloperRegistrationRequested/);
