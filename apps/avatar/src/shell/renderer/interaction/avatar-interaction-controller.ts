@@ -243,13 +243,15 @@ export class AvatarInteractionController {
   }
 
   private setClickThrough(ignore: boolean): void {
-    if (!this.deps.isTauriRuntime() || this.clickThrough === ignore || this.clickThroughInFlight === ignore) return;
+    if (!this.deps.isTauriRuntime()) return;
+    if (this.clickThrough === ignore && this.clickThroughInFlight === null) return;
     this.clickThroughInFlight = ignore;
     void Promise.resolve(this.deps.setClickThrough(ignore))
       .then(() => {
         this.clickThrough = ignore;
       })
       .catch((error: unknown) => {
+        if (this.clickThroughInFlight === ignore) this.clickThroughInFlight = null;
         console.warn(`[avatar:interaction] set click-through failed: ${error instanceof Error ? error.message : String(error)}`);
       })
       .finally(() => {

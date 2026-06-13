@@ -32,6 +32,9 @@ export type DispatchContext = {
   interactionPhysics?: InteractionPhysicsController;
 };
 
+const RUNTIME_ACTIVITY_EVENT = 'runtime.agent.presentation.activity_requested';
+const FIXTURE_ACTIVITY_EVENT = 'avatar.fixture.presentation.activity_requested';
+
 function bundleForEvent(base: AgentDataBundle, event: AgentEvent): AgentDataBundle {
   return {
     ...base,
@@ -105,6 +108,38 @@ function parseRuntimeActivityProjection(event: AgentEvent): NonNullable<AgentDat
   };
 }
 
+function parseFixtureActivityProjection(event: AgentEvent): NonNullable<AgentDataBundle['activity']> | null {
+  const activityName = typeof event.detail['activity_name'] === 'string' ? event.detail['activity_name'].trim() : '';
+  const category = event.detail['category'];
+  const intensity = event.detail['intensity'];
+  const source = event.detail['source'];
+  if (!activityName || (category !== 'emotion' && category !== 'interaction' && category !== 'state')) {
+    return null;
+  }
+  if (source !== 'mock') {
+    return null;
+  }
+  if (intensity !== undefined && intensity !== null && intensity !== 'weak' && intensity !== 'moderate' && intensity !== 'strong') {
+    return null;
+  }
+  return {
+    name: activityName,
+    category,
+    intensity: intensity === undefined ? null : intensity,
+    source,
+  };
+}
+
+function parseActivityProjection(event: AgentEvent): NonNullable<AgentDataBundle['activity']> | null {
+  if (event.name === RUNTIME_ACTIVITY_EVENT) {
+    return parseRuntimeActivityProjection(event);
+  }
+  if (event.name === FIXTURE_ACTIVITY_EVENT) {
+    return parseFixtureActivityProjection(event);
+  }
+  return null;
+}
+
 function parseRuntimeProjectionSource(value: unknown): ActivitySource {
   return value === 'direct_api' ? value : 'apml_output';
 }
@@ -117,6 +152,38 @@ function parseRuntimeExpressionProjection(event: AgentEvent): string | null {
     ? event.detail['expression_id'].trim()
     : '';
   return expressionId || null;
+}
+
+function emitCancelable(
+  driver: AgentDataDriver,
+  event: {
+    name: string;
+    detail: Record<string, unknown>;
+  },
+): AgentEvent {
+  const emitted = driver.emitCancelable?.(event);
+  if (emitted) {
+    return emitted;
+  }
+  driver.emit(event);
+  return {
+    event_id: '',
+    name: event.name,
+    timestamp: '',
+    detail: event.detail,
+  };
+}
+
+function applyActivityStartCancellationPolicy(
+  bundle: AgentDataBundle,
+  beforeEvent: {
+    detail: Record<string, unknown>;
+  },
+): void {
+  if (bundle.execution_state === 'SUSPENDED') {
+    beforeEvent.detail['cancelled'] = true;
+    beforeEvent.detail['cancel_reason'] = 'runtime_execution_suspended';
+  }
 }
 
 export function wireEventDispatch(context: DispatchContext): () => void {
@@ -146,8 +213,8 @@ export function wireEventDispatch(context: DispatchContext): () => void {
   }
 
   const unsubscribe = driver.onEvent((event) => {
-    if (event.name === 'runtime.agent.presentation.activity_requested') {
-      const activity = parseRuntimeActivityProjection(event);
+    if (event.name === RUNTIME_ACTIVITY_EVENT || event.name === FIXTURE_ACTIVITY_EVENT) {
+      const activity = parseActivityProjection(event);
       if (!activity) return;
       const ctx = bundleForEvent({ ...driver.getBundle(), activity }, event);
       const beforeEvent = {
@@ -160,13 +227,16 @@ export function wireEventDispatch(context: DispatchContext): () => void {
           cancelled: false,
         },
       };
-      driver.emit(beforeEvent);
-      if (beforeEvent.detail.cancelled === true) {
+      applyActivityStartCancellationPolicy(ctx, beforeEvent);
+      const emittedBeforeEvent = emitCancelable(driver, beforeEvent);
+      if (emittedBeforeEvent.detail['cancelled'] === true) {
         driver.emit({
           name: 'avatar.activity.cancel',
           detail: {
             activity_name: activity.name,
-            reason: 'before_event_cancelled',
+            reason: typeof emittedBeforeEvent.detail['cancel_reason'] === 'string'
+              ? emittedBeforeEvent.detail['cancel_reason']
+              : 'before_event_cancelled',
           },
         });
         return;

@@ -1,6 +1,7 @@
 // Kit-owned VRM emote state machine. Translates emotion ontology ids (loaded as a
 // pre-parsed recipe table from vrm-emote-states.yaml) into VRM expression
-// preset weight bundles, applying easing + per-frame lerp toward target,
+// preset weight bundles, easing each expression from its weight at blend
+// start toward the bundle target over blendDurationSec of accumulated time,
 // and coordinating with the lipsync driver: when lipsyncActive=true the
 // viseme expression presets (aa/ih/ou/ee/oh) are NOT flushed this frame -
 // the lipsync driver owns viseme writes during active speech.
@@ -76,6 +77,13 @@ type TransientOverlay = {
   elapsedSec: number;
 };
 
+type BlendEntry = {
+  fromWeight: number;
+  toWeight: number;
+  durationSec: number;
+  elapsedSec: number;
+};
+
 function clamp01(value: number): number {
   if (!Number.isFinite(value)) return 0;
   if (value < 0) return 0;
@@ -148,26 +156,33 @@ export function createVrmEmoteState(input: CreateVrmEmoteStateInputs): VrmEmoteS
 
   const targetWeights = new Map<string, number>();
   const currentWeights = new Map<string, number>();
-  // Per-expression seconds-to-target (mirrors blendDurationSec of source bundle).
-  const blendDurations = new Map<string, number>();
+  // In-flight time-based blends; entries retire once elapsed >= duration.
+  const blends = new Map<string, BlendEntry>();
   const transients = new Map<string, TransientOverlay>();
 
   let activeEmote: string | null = null;
   let lipsyncActive = false;
+
+  function startBlend(name: string, toWeight: number, durationSec: number): void {
+    const fromWeight = currentWeights.get(name) ?? 0;
+    targetWeights.set(name, toWeight);
+    if (!currentWeights.has(name)) currentWeights.set(name, 0);
+    if (fromWeight === toWeight) {
+      // Already at target - nothing to animate.
+      blends.delete(name);
+      return;
+    }
+    blends.set(name, { fromWeight, toWeight, durationSec, elapsedSec: 0 });
+  }
 
   function clearActiveEmoteTargets(): void {
     if (activeEmote === null) return;
     const prev = emoteTable.emotes[activeEmote];
     if (!prev) return;
     for (const entry of prev.expressions) {
-      // Drop the bundle's contribution; transient overlays remain untouched.
-      if (!transients.has(entry.name)) {
-        targetWeights.set(entry.name, 0);
-      } else {
-        // Bundle no longer contributes; transient continues until decay.
-        targetWeights.set(entry.name, 0);
-      }
-      blendDurations.set(entry.name, prev.blendDurationSec);
+      // Drop the bundle's contribution; transient overlays remain untouched
+      // and continue until their own decay completes.
+      startBlend(entry.name, 0, prev.blendDurationSec);
     }
   }
 
@@ -182,9 +197,7 @@ export function createVrmEmoteState(input: CreateVrmEmoteStateInputs): VrmEmoteS
     // bundle on top.
     clearActiveEmoteTargets();
     for (const entry of bundle.expressions) {
-      targetWeights.set(entry.name, entry.weight);
-      blendDurations.set(entry.name, bundle.blendDurationSec);
-      if (!currentWeights.has(entry.name)) currentWeights.set(entry.name, 0);
+      startBlend(entry.name, entry.weight, bundle.blendDurationSec);
     }
     activeEmote = name;
   }
@@ -219,28 +232,24 @@ export function createVrmEmoteState(input: CreateVrmEmoteStateInputs): VrmEmoteS
 
   function tick(tickInput: { vrm: VrmExpressionWritable; deltaSec: number }): { skippedCount: number } {
     const { vrm, deltaSec } = tickInput;
-    const dt = Math.max(0, deltaSec);
+    // A non-finite delta would poison the accumulated elapsed time and leave
+    // every blend/transient stuck forever; treat it as a zero-length frame.
+    const dt = Number.isFinite(deltaSec) ? Math.max(0, deltaSec) : 0;
     let skippedCount = 0;
 
-    // Advance currentWeights toward targetWeights using easeInOutCubic over
-    // the per-expression blend duration.
-    for (const [name, target] of targetWeights) {
-      const duration = blendDurations.get(name) ?? 0.4;
-      const current = currentWeights.get(name) ?? 0;
-      if (current === target) {
-        currentWeights.set(name, target);
+    // Advance in-flight blends: accumulate elapsed time and ease between the
+    // weight captured at blend start and the target. Once elapsed reaches the
+    // blend duration the weight snaps exactly to target and the entry retires
+    // from the per-frame loop.
+    for (const [name, blend] of blends) {
+      blend.elapsedSec += dt;
+      if (blend.elapsedSec >= blend.durationSec) {
+        currentWeights.set(name, clamp01(blend.toWeight));
+        blends.delete(name);
         continue;
       }
-      // Compute fractional progress per-frame: cover dt / duration of the
-      // remaining gap, eased.
-      const stepRaw = duration > 0 ? dt / duration : 1;
-      const eased = easeInOutCubic(clamp01(stepRaw));
-      let next = current + (target - current) * eased;
-      if (target > current) {
-        if (next > target) next = target;
-      } else {
-        if (next < target) next = target;
-      }
+      const eased = easeInOutCubic(clamp01(blend.elapsedSec / blend.durationSec));
+      const next = blend.fromWeight + (blend.toWeight - blend.fromWeight) * eased;
       currentWeights.set(name, clamp01(next));
     }
 
@@ -256,9 +265,12 @@ export function createVrmEmoteState(input: CreateVrmEmoteStateInputs): VrmEmoteS
       overlay.elapsedSec += dt;
       if (overlay.elapsedSec >= overlay.fadeDurationSec) {
         transients.delete(name);
-        // Snap to bundle target (0 if not part of any bundle).
+        // Snap to bundle target (0 if not part of any bundle). Any in-flight
+        // bundle blend on this name terminates with the snap so the next
+        // frame does not pull the weight back to a mid-blend value.
         const target = targetWeights.get(name) ?? 0;
         currentWeights.set(name, clamp01(target));
+        blends.delete(name);
       } else {
         const t = clamp01(overlay.elapsedSec / overlay.fadeDurationSec);
         const eased = easeInOutCubic(t);
@@ -290,7 +302,7 @@ export function createVrmEmoteState(input: CreateVrmEmoteStateInputs): VrmEmoteS
     }
     currentWeights.clear();
     targetWeights.clear();
-    blendDurations.clear();
+    blends.clear();
     transients.clear();
     activeEmote = null;
   }

@@ -163,9 +163,13 @@ export class SdkDriver implements AgentDataDriver {
   }
 
   emit(event: AppOriginEvent): void {
-    this.emitAgentEvent(
-      toRuntimeAgentEvent(event.name, event.detail, this.now()),
-    );
+    void this.emitCancelable(event);
+  }
+
+  emitCancelable(event: AppOriginEvent): AgentEvent {
+    const agentEvent = toRuntimeAgentEvent(event.name, event.detail, this.now());
+    this.emitAgentEvent(agentEvent);
+    return agentEvent;
   }
 
   private setStatus(status: DriverStatus): void {

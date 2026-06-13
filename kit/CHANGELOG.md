@@ -22,6 +22,13 @@ Discipline.
 - Renderer telemetry now forwards through the installed Nimi shell runtime
   bridge/test hook when available, without importing Tauri bridge code from
   `kit/telemetry`.
+- VRM emote blending (`kit/features/avatar` `createVrmEmoteState`) now
+  accumulates elapsed time per blend and eases between the weight at blend
+  start and the target, so a blend completes in `blendDurationSec` under
+  real per-frame deltas. The previous per-frame incremental easing
+  (`easeInOutCubic(dt / duration)` applied to the remaining gap) converged
+  at roughly 1.7%/s at 60fps (~170s for a 0.4s blend), and its exact-float
+  completion check kept finished blends in the update loop forever.
 
 ## [0.1.3] - 2026-05-27
 

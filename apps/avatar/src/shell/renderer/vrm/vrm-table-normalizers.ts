@@ -4,6 +4,8 @@ import {
   type VrmEmoteTable,
 } from './vrm-emote-state.js';
 
+export type { VrmEmoteTable };
+
 export type VrmMotionPresetEntry = {
   id: string;
   file: string;

@@ -177,6 +177,7 @@ describe('avatar runtime carrier', () => {
         activityMotionGroups: new Map(),
         idleMotionGroup: 'Idle',
         mouthOpenParameterId: 'ParamMouthOpenY',
+        paramMouthFormSupported: false,
         missingActivity: 'idle_degraded_with_diagnostic',
       },
     });
@@ -301,6 +302,7 @@ describe('avatar runtime carrier', () => {
         ]),
         idleMotionGroup: 'RenIdle',
         mouthOpenParameterId: 'ParamMouthOpenY',
+        paramMouthFormSupported: false,
         missingActivity: 'diagnostic_no_success',
       },
     });

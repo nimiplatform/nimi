@@ -91,9 +91,14 @@ export class MockDriver implements AgentDataDriver {
   }
 
   emit(event: AppOriginEvent): void {
+    void this.emitCancelable(event);
+  }
+
+  emitCancelable(event: AppOriginEvent): AgentEvent {
     const agentEvent = this.toAgentEvent(event.name, event.detail);
     this.emitAgentEvent(agentEvent);
     this.runTriggers(agentEvent);
+    return agentEvent;
   }
 
   private setStatus(status: DriverStatus): void {

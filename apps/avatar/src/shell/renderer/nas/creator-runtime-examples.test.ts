@@ -19,6 +19,9 @@ vi.mock('./handler-sandbox.js', () => ({
     }
     return {
       meta: { description: source },
+      requires: source.includes('live2d-extension')
+        ? (['live2d-extension'] as const)
+        : undefined,
       execute: vi.fn(async () => undefined),
       dispose: vi.fn(),
     };
@@ -29,6 +32,9 @@ vi.mock('./handler-sandbox.js', () => ({
     }
     return {
       meta: { description: source },
+      requires: source.includes('live2d-extension')
+        ? (['live2d-extension'] as const)
+        : undefined,
       fps: /\bfps:\s*60\b/.test(source) ? 60 : 30,
       update: vi.fn(),
       dispose: vi.fn(),

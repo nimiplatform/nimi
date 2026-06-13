@@ -74,6 +74,10 @@ function resetModelState() {
   // loadState, error). Idle so the next setModelLoaded fires as a fresh edge.
   useAvatarStore.setState({
     model: { modelPath: null, modelId: null, loadState: 'idle', error: null },
+    shell: {
+      ...useAvatarStore.getState().shell,
+      windowSize: { width: 400, height: 600 },
+    },
   });
 }
 
@@ -208,7 +212,7 @@ describe('useWindowBoundsSync — BackendBranch.nominalBounds → set_window_siz
   });
 
   it('does not record bounds evidence or store size when set_window_size IPC fails', async () => {
-    setWindowSizeMock.mockRejectedValueOnce(new Error('native resize failed'));
+    setWindowSizeMock.mockRejectedValue(new Error('native resize failed'));
     renderWithBackend({
       width: 360,
       height: 720,

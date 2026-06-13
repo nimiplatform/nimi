@@ -233,29 +233,6 @@ export function deriveSurfacePresentation(
     };
   }
 
-  if (input.consume.authority === 'fixture') {
-    return {
-      tone: 'ready',
-      badge: 'Fixture mode',
-      title: 'Fixture companion ready',
-      summary: statusText || 'This shell is running from an explicit fixture scenario, not a live desktop bind.',
-      recovery: 'Fixture mode stays isolated from launch and runtime truth.',
-      accent: readyPresence,
-      stageLabel: 'Fixture cue',
-      stageValue: readyPresence,
-      meta: [
-        { label: 'Presence', value: readyPresence },
-        { label: 'Posture', value: readyPosture },
-        { label: 'Anchor', value: 'Not bound' },
-        { label: 'Carrier', value: `Fixture surface (${fixtureId})` },
-      ],
-      contextCards: [
-        { label: 'Presence script', value: readyPresence },
-        { label: 'Operator scope', value: 'Not bound' },
-      ],
-    };
-  }
-
   if (input.runtimeBinding.status !== 'active') {
     const reason = normalizeMessage(input.runtimeBinding.reason);
     const mapped = reason ? formatRuntimeBindingReason(reason) : null;
@@ -279,6 +256,29 @@ export function deriveSurfacePresentation(
       stageValue,
       meta: unavailableMeta(anchorId ? `Not ready (${shortenId(anchorId)})` : 'Not ready', 'Runtime unavailable'),
       contextCards: [],
+    };
+  }
+
+  if (input.consume.authority === 'fixture') {
+    return {
+      tone: 'ready',
+      badge: 'Fixture mode',
+      title: 'Fixture companion ready',
+      summary: statusText || 'This shell is running from an explicit fixture scenario, not a live desktop bind.',
+      recovery: 'Fixture mode stays isolated from launch and runtime truth.',
+      accent: readyPresence,
+      stageLabel: 'Fixture cue',
+      stageValue: readyPresence,
+      meta: [
+        { label: 'Presence', value: readyPresence },
+        { label: 'Posture', value: readyPosture },
+        { label: 'Anchor', value: 'Not bound' },
+        { label: 'Carrier', value: `Fixture surface (${fixtureId})` },
+      ],
+      contextCards: [
+        { label: 'Presence script', value: readyPresence },
+        { label: 'Operator scope', value: 'Not bound' },
+      ],
     };
   }
 

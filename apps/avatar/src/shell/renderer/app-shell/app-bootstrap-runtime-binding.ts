@@ -2,8 +2,15 @@ import { createNimiLocalFirstPartyRuntimeAccountCaller, isRuntimeLocalAgentRef, 
 import { type AccountCaller } from '@nimiplatform/sdk/runtime/generated';
 import { readNormalizedString } from './app-bootstrap-helpers.js';
 
+const AVATAR_LOCAL_FIRST_PARTY_APP_INSTANCE_ID = 'nimi.avatar.local-first-party';
+const AVATAR_LOCAL_FIRST_PARTY_DEVICE_ID = 'avatar-shell-runtime-bridge';
+
 export function createAvatarAccountCaller(appId: string): AccountCaller {
-  return createNimiLocalFirstPartyRuntimeAccountCaller({ appId });
+  return createNimiLocalFirstPartyRuntimeAccountCaller({
+    appId,
+    appInstanceId: AVATAR_LOCAL_FIRST_PARTY_APP_INSTANCE_ID,
+    deviceId: AVATAR_LOCAL_FIRST_PARTY_DEVICE_ID,
+  });
 }
 
 export function resolveLaunchAgentIdentity(input: {

@@ -138,7 +138,15 @@ describe('VRM lifecycle end-to-end (chunk 2-D)', () => {
     expect(root.getAttribute('data-avatar-vrm-state')).toBe('ready');
     expect(onAudio).toHaveBeenCalledTimes(1);
 
-    expect(evidence).toEqual([]);
+    expect(evidence).toEqual([
+      expect.objectContaining({
+        kind: 'hit_region_degraded',
+        detail: expect.objectContaining({
+          reason_code: 'device_tier_c',
+          source: 'vrm-carrier-surface',
+        }),
+      }),
+    ]);
 
     handle.shutdown();
   });
@@ -242,7 +250,22 @@ describe('VRM lifecycle end-to-end (chunk 2-D)', () => {
     // hit because each manifest has a distinct vrmFile).
     expect(loaderCalls).toEqual([manifestA.modelId, manifestB.modelId]);
 
-    expect(evidence).toEqual([]);
+    expect(evidence).toEqual([
+      expect.objectContaining({
+        kind: 'hit_region_degraded',
+        detail: expect.objectContaining({
+          reason_code: 'device_tier_c',
+          source: 'vrm-carrier-surface',
+        }),
+      }),
+      expect.objectContaining({
+        kind: 'hit_region_degraded',
+        detail: expect.objectContaining({
+          reason_code: 'device_tier_c',
+          source: 'vrm-carrier-surface',
+        }),
+      }),
+    ]);
 
     handleB.shutdown();
   });

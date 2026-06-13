@@ -131,6 +131,7 @@ describe('Live2D compatibility validation', () => {
     expect(report.adapter).toBeNull();
     expect(report.diagnostics).toEqual([]);
     expect(report.mouthOpenParameterId).toBe('ParamMouthOpenY');
+    expect(report.paramMouthFormSupported).toBe(false);
   });
 
   it('admits a semantic_basic adapter with explicit mappings and legal fixture posture', () => {
@@ -145,6 +146,51 @@ describe('Live2D compatibility validation', () => {
     expect(report.diagnostics).toEqual([]);
     expect(report.activityMotionGroups.get('greet')?.group).toBe('RenGreet');
     expect(report.missingActivity).toBe('diagnostic_no_success');
+    expect(report.paramMouthFormSupported).toBe(false);
+  });
+
+  it('projects ParamMouthForm support from the admitted adapter manifest', () => {
+    const report = validateLive2DCompatibility({
+      model,
+      settings,
+      resources,
+      adapter: createBasicManifest({
+        semantics: {
+          ...createBasicManifest().semantics,
+          lipsync: {
+            mouth_open_y_parameter: 'ParamMouthOpenY',
+            paramMouthForm: 'supported',
+            disposition: { status: 'supported' },
+          },
+        },
+      }),
+    });
+
+    expect(report.tier).toBe('semantic_basic');
+    expect(report.diagnostics).toEqual([]);
+    expect(report.paramMouthFormSupported).toBe(true);
+  });
+
+  it('preserves ParamMouthForm support when parsing a raw adapter manifest', () => {
+    const parsed = parseLive2DAdapterManifest(JSON.stringify(createBasicManifest({
+      semantics: {
+        ...createBasicManifest().semantics,
+        lipsync: {
+          mouth_open_y_parameter: 'ParamMouthOpenY',
+          paramMouthForm: 'supported',
+          disposition: { status: 'supported' },
+        },
+      },
+    })));
+    const report = validateLive2DCompatibility({
+      model,
+      settings,
+      resources,
+      adapter: parsed,
+    });
+
+    expect(parsed.semantics.lipsync.paramMouthForm).toBe('supported');
+    expect(report.paramMouthFormSupported).toBe(true);
   });
 
   it('validates the committed synthetic fixture manifest as semantic_basic behavior', () => {

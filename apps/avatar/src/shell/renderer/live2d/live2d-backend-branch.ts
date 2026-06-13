@@ -200,15 +200,6 @@ function createLive2DExtension(
   };
 }
 
-function isParamMouthFormSupported(
-  adapter: Live2DAdapterManifestV1 | null | undefined,
-): boolean {
-  const lipsync = adapter?.semantics?.lipsync as
-    | { paramMouthForm?: unknown }
-    | undefined;
-  return lipsync?.paramMouthForm === 'supported';
-}
-
 export type Live2DBackendBranchHandle = {
   branch: BackendBranch & { kind: 'live2d' };
   audioConsumer: BackendAudioConsumer;
@@ -255,7 +246,7 @@ export async function createLive2DBackendBranch(
   const surface = createLive2DCarrierSurface({
     session: backendSession,
     audioConsumer,
-    paramMouthFormSupported: isParamMouthFormSupported(backendSession.compatibility.adapter),
+    paramMouthFormSupported: backendSession.compatibility.paramMouthFormSupported,
   });
 
   const live2dExtension = createLive2DExtension(commandBus);
@@ -269,7 +260,7 @@ export async function createLive2DBackendBranch(
       model_kind: 'live2d',
       compatibility_tier: backendSession.compatibility.tier,
       adapter_id: backendSession.compatibility.adapter?.adapter_id ?? null,
-      param_mouth_form_supported: isParamMouthFormSupported(backendSession.compatibility.adapter),
+      param_mouth_form_supported: backendSession.compatibility.paramMouthFormSupported,
       hit_region_default: staticHitRegionSnapshot,
       lipsync_profile_present: profile !== null,
     }),

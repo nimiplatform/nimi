@@ -21,7 +21,10 @@ import {
 } from '../app-shell/tauri-commands.js';
 import { isTauriRuntime } from '../app-shell/tauri-lifecycle.js';
 import { useSurfaceMountEvidence } from '../app-shell/composition-events.js';
-import { recordAvatarEvidenceEventually } from '../app-shell/avatar-evidence.js';
+import {
+  recordAvatarEvidenceEventually,
+  type AvatarEvidenceKind,
+} from '../app-shell/avatar-evidence.js';
 import { isInteractiveTarget } from '../avatar-shell-utils.js';
 import type { AppOriginEvent } from '../driver/types.js';
 import type {
@@ -194,9 +197,13 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
         });
         return;
       }
-      const lifecycleKind = kind === 'load_failed' ? 'failed_closed' : kind;
+      const evidenceKind: AvatarEvidenceKind = kind === 'context_lost'
+        ? 'avatar.carrier.lifecycle.context_lost'
+        : kind === 'context_restored'
+          ? 'avatar.carrier.lifecycle.context_restored'
+          : 'avatar.carrier.lifecycle.failed_closed';
       recordAvatarEvidenceEventually({
-        kind: `avatar.carrier.lifecycle.${lifecycleKind}`,
+        kind: evidenceKind,
         detail: {
           source: 'embodiment-stage',
           model_kind: backend?.kind ?? 'unknown',

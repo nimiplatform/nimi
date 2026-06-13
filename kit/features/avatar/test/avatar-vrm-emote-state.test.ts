@@ -1,8 +1,8 @@
 // Wave 3 chunk 3-A - VrmEmoteState tests.
 //
-// Covers: setEmote ramp; unknown emote warn; emote swap decay/ramp;
-// lipsync viseme suppression; transient overlay decay; reset zeroing;
-// primary-weight cap fail-close; snapshot consistency.
+// Covers: setEmote ramp; fixed-dt blend convergence; unknown emote warn;
+// emote swap decay/ramp; lipsync viseme suppression; transient overlay decay;
+// reset zeroing; primary-weight cap fail-close; snapshot consistency.
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
@@ -79,6 +79,36 @@ describe('createVrmEmoteState', () => {
     const flushedNames = setValue.mock.calls.map((c) => c[0]);
     expect(flushedNames).toContain('happy');
     expect(flushedNames).toContain('aa');
+  });
+
+  it('converges to target within blendDurationSec under fixed 60fps stepping', () => {
+    const state = createVrmEmoteState({ emoteTable: SAMPLE_TABLE });
+    const { vrm } = createMockVrm();
+    state.setEmote('happy'); // blendDurationSec 0.4, happy -> 0.7, aa -> 0.2
+    const dt = 1 / 60;
+
+    // Halfway through the blend (12 frames = 0.2s): eased midpoint, so the
+    // weight must already be well off zero but not yet at target. The old
+    // per-frame incremental easing moved ~0.3% of the gap by this point.
+    const halfFrames = Math.round(0.2 / dt);
+    for (let i = 0; i < halfFrames; i += 1) state.tick({ vrm, deltaSec: dt });
+    const mid = state.snapshot().currentWeights.happy;
+    expect(mid).toBeGreaterThan(0.1);
+    expect(mid).toBeLessThan(0.7);
+
+    // Step through the rest of the duration plus one frame of slack for
+    // float accumulation: the blend must land exactly on target and stay.
+    const restFrames = Math.ceil(0.2 / dt) + 1;
+    for (let i = 0; i < restFrames; i += 1) state.tick({ vrm, deltaSec: dt });
+    const done = state.snapshot();
+    expect(done.currentWeights.happy).toBe(0.7);
+    expect(done.currentWeights.aa).toBe(0.2);
+
+    // Further ticks keep the converged weights stable.
+    state.tick({ vrm, deltaSec: dt });
+    const after = state.snapshot();
+    expect(after.currentWeights.happy).toBe(0.7);
+    expect(after.currentWeights.aa).toBe(0.2);
   });
 
   it('warns and no-ops on unknown emote', () => {

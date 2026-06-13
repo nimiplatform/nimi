@@ -95,6 +95,29 @@ describe('MockDriver', () => {
     expect(emissions).toContain('shy');
   });
 
+  it('returns the emitted event object for cancelable app-origin events', async () => {
+    const driver = new MockDriver({ scenario: makeScenario() });
+    await driver.start();
+    driver.onEvent((event) => {
+      if (event.name === 'avatar.before.activity.start') {
+        event.detail['cancelled'] = true;
+      }
+    });
+
+    const emitted = driver.emitCancelable({
+      name: 'avatar.before.activity.start',
+      detail: {
+        activity_name: 'happy',
+        category: 'emotion',
+        intensity: 'strong',
+        source: 'mock',
+        cancelled: false,
+      },
+    });
+
+    expect(emitted.detail['cancelled']).toBe(true);
+  });
+
   it('does not fire trigger if filter does not match', async () => {
     const scenario = makeScenario({
       triggers: [

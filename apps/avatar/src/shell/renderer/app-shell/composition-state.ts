@@ -150,7 +150,6 @@ export function deriveCompositionState(input: CompositionInput): CompositionDeri
     };
   }
 
-  // Bootstrap completed but runtime binding is not active → degraded.
   if (input.runtimeBinding.status !== 'active') {
     const reason = readNormalizedString(input.runtimeBinding.reason);
     return {
@@ -169,7 +168,7 @@ export function deriveCompositionState(input: CompositionInput): CompositionDeri
 
   const fixtureMode = input.consume.authority === 'fixture' || input.consume.mode === 'mock';
 
-  // Bootstrap completed, binding active, but driver not running → degraded.
+  // Bootstrap completed, but driver not running → degraded.
   if (!READY_DRIVER_STATUSES.has(input.driver.status)) {
     return {
       state: 'degraded_runtime_unavailable',

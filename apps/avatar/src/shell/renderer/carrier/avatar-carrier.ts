@@ -264,7 +264,7 @@ export async function startAvatarVisualCarrier(input: {
             backendHandle.branch.kind === 'live2d'
               ? backendHandle.branch.live2dExtension
               : undefined,
-          interactionPhysics,
+          ...(interactionPhysics ? { interactionPhysics } : {}),
         });
       }
       // Wave 0 of topic 2026-04-30-avatar-vrm-backend-branch: voice-lipsync

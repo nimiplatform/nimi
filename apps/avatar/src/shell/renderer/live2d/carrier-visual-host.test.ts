@@ -48,6 +48,7 @@ function createSession(input: {
       activityMotionGroups: new Map(),
       idleMotionGroup: 'Idle',
       mouthOpenParameterId: 'ParamMouthOpenY',
+      paramMouthFormSupported: false,
       missingActivity: 'idle_degraded_with_diagnostic',
     },
     framework: {

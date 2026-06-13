@@ -1,6 +1,6 @@
 import type { AgentDataBundle } from '../driver/types.js';
 import type { BackendProjection } from '../carrier/backend-branch.js';
-import type { ActivityOrEventHandler, ContinuousHandler } from './handler-types.js';
+import type { ActivityOrEventHandler, ContinuousHandler, NasHandlerExtension } from './handler-types.js';
 import { assertSandboxSourcePolicy } from './handler-sandbox-policy.js';
 
 type SandboxHandlerKind = 'activity-event' | 'continuous';
@@ -17,12 +17,14 @@ type WorkerRequest =
       requestId: string;
       ctx: AgentDataBundle;
       snapshot: SandboxProjectionSnapshot;
+      extension?: SandboxWorkerExtension;
     }
   | {
       type: 'update';
       requestId: string;
       ctx: AgentDataBundle;
       snapshot: SandboxProjectionSnapshot;
+      extension?: SandboxWorkerExtension;
     }
   | {
       type: 'abort';
@@ -65,12 +67,17 @@ type SandboxProjectionSnapshot = {
   surfaceBounds: { x: number; y: number; width: number; height: number };
 };
 
+type SandboxWorkerExtension = {
+  live2d?: true;
+};
+
 type ProjectionRpcMethod =
   | 'applyActivity'
   | 'applyEmotion'
   | 'applyMotion'
   | 'applyExpression'
-  | 'reset';
+  | 'reset'
+  | 'live2dSetParameter';
 
 type SandboxWorker = Pick<Worker, 'postMessage' | 'terminate' | 'addEventListener' | 'removeEventListener'>;
 
@@ -108,10 +115,11 @@ function errorFromUnknown(err: unknown): Error {
 }
 
 function callProjection(
-  projection: BackendProjection,
+  context: ActiveProjectionContext,
   method: ProjectionRpcMethod,
   args: unknown[],
 ): Promise<unknown> | unknown {
+  const { projection } = context;
   switch (method) {
     case 'applyActivity':
       return projection.applyActivity({
@@ -137,6 +145,28 @@ function callProjection(
       });
     case 'reset':
       return projection.reset();
+    case 'live2dSetParameter': {
+      const id = args[0];
+      const value = args[1];
+      const duration = args[2];
+      if (!context.extension?.live2d) {
+        throw new Error('NAS handler requested Live2D extension without an admitted Live2D capability');
+      }
+      if (typeof id !== 'string' || id.length === 0) {
+        throw new Error('Live2D extension setParameter requires a non-empty parameter id');
+      }
+      if (typeof value !== 'number' || !Number.isFinite(value)) {
+        throw new Error('Live2D extension setParameter requires a finite numeric value');
+      }
+      if (duration !== undefined && duration !== null && (typeof duration !== 'number' || !Number.isFinite(duration))) {
+        throw new Error('Live2D extension setParameter duration must be a finite number when provided');
+      }
+      return context.extension.live2d.setParameter(
+        id,
+        value,
+        typeof duration === 'number' ? duration : undefined,
+      );
+    }
     default:
       throw new Error(`unsupported projection method: ${method}`);
   }
@@ -183,12 +213,17 @@ class NasWorkerSandbox {
     return response;
   }
 
-  async execute(ctx: AgentDataBundle, projection: BackendProjection, signal: AbortSignal): Promise<void> {
-    await this.run('execute', ctx, projection, signal, EXECUTE_TIMEOUT_MS);
+  async execute(
+    ctx: AgentDataBundle,
+    projection: BackendProjection,
+    signal: AbortSignal,
+    extension?: NasHandlerExtension,
+  ): Promise<void> {
+    await this.run('execute', ctx, projection, signal, EXECUTE_TIMEOUT_MS, extension);
   }
 
-  async update(ctx: AgentDataBundle, projection: BackendProjection): Promise<void> {
-    await this.run('update', ctx, projection, undefined, UPDATE_TIMEOUT_MS);
+  async update(ctx: AgentDataBundle, projection: BackendProjection, extension?: NasHandlerExtension): Promise<void> {
+    await this.run('update', ctx, projection, undefined, UPDATE_TIMEOUT_MS, extension);
   }
 
   dispose(): void {
@@ -209,6 +244,7 @@ class NasWorkerSandbox {
     projection: BackendProjection,
     signal: AbortSignal | undefined,
     timeoutMs: number,
+    extension?: NasHandlerExtension,
   ): Promise<void> {
     this.ensureWorker();
     const requestId = makeRequestId();
@@ -224,7 +260,8 @@ class NasWorkerSandbox {
           height: ctx.app.window.height,
         },
       },
-    }, timeoutMs, signal, projection, ctx);
+      ...(extension?.live2d ? { extension: { live2d: true } satisfies SandboxWorkerExtension } : {}),
+    }, timeoutMs, signal, projection, ctx, extension);
     if (response.type !== 'done') {
       throw new Error(`NAS sandbox ${type} failed for ${this.sourcePath}`);
     }
@@ -242,6 +279,7 @@ class NasWorkerSandbox {
     signal?: AbortSignal,
     projection?: BackendProjection,
     ctx?: AgentDataBundle,
+    extension?: NasHandlerExtension,
   ): Promise<WorkerResponse> {
     this.ensureWorker();
     if (signal?.aborted) {
@@ -272,7 +310,7 @@ class NasWorkerSandbox {
         abortListener,
       });
       if (projection && ctx) {
-        activeProjectionContexts.set(requestId, { projection, ctx, signal });
+        activeProjectionContexts.set(requestId, { projection, ctx, signal, extension });
       }
       this.worker?.postMessage(message);
     });
@@ -312,7 +350,7 @@ class NasWorkerSandbox {
       return;
     }
     try {
-      const value = await callProjection(context.projection, message.method, message.args);
+      const value = await callProjection(context, message.method, message.args);
       this.worker?.postMessage({
         type: 'projection-result',
         requestId: message.requestId,
@@ -332,11 +370,14 @@ class NasWorkerSandbox {
   }
 }
 
-const activeProjectionContexts = new Map<string, {
+type ActiveProjectionContext = {
   projection: BackendProjection;
   ctx: AgentDataBundle;
   signal?: AbortSignal;
-}>();
+  extension?: NasHandlerExtension;
+};
+
+const activeProjectionContexts = new Map<string, ActiveProjectionContext>();
 
 export async function createSandboxedActivityOrEventHandler(
   source: string,
@@ -354,7 +395,7 @@ export async function createSandboxedActivityOrEventHandler(
       ? loadedMeta.requires.filter((value): value is 'live2d-extension' => value === 'live2d-extension')
       : undefined,
     async execute(ctx, projection, options) {
-      await sandbox.execute(ctx, projection, options.signal);
+      await sandbox.execute(ctx, projection, options.signal, options.extension);
     },
     dispose() {
       sandbox.dispose();
@@ -378,8 +419,8 @@ export async function createSandboxedContinuousHandler(
       ? loadedMeta.requires.filter((value): value is 'live2d-extension' => value === 'live2d-extension')
       : undefined,
     fps: typeof loaded.fps === 'number' && loaded.fps > 0 ? loaded.fps : 60,
-    async update(ctx, projection) {
-      await sandbox.update(ctx, projection);
+    async update(ctx, projection, options) {
+      await sandbox.update(ctx, projection, options?.extension);
     },
     dispose() {
       sandbox.dispose();

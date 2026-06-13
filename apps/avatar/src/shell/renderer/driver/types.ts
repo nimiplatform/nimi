@@ -98,4 +98,5 @@ export interface AgentDataDriver {
   onBundleChange(handler: (bundle: AgentDataBundle) => void): () => void;
   onStatusChange(handler: (status: DriverStatus) => void): () => void;
   emit(event: AppOriginEvent): void;
+  emitCancelable?(event: AppOriginEvent): AgentEvent;
 }

@@ -15,12 +15,14 @@ type WorkerRequest =
       requestId: string;
       ctx: AgentDataBundle;
       snapshot: SandboxProjectionSnapshot;
+      extension?: SandboxWorkerExtension;
     }
   | {
       type: 'update';
       requestId: string;
       ctx: AgentDataBundle;
       snapshot: SandboxProjectionSnapshot;
+      extension?: SandboxWorkerExtension;
     }
   | {
       type: 'abort';
@@ -64,23 +66,44 @@ type ProjectionRpcMethod =
   | 'applyEmotion'
   | 'applyMotion'
   | 'applyExpression'
-  | 'reset';
+  | 'reset'
+  | 'live2dSetParameter';
 
 type SandboxProjectionSnapshot = {
   surfaceBounds: { x: number; y: number; width: number; height: number };
 };
 
+type SandboxWorkerExtension = {
+  live2d?: true;
+};
+
+type WorkerLive2DExtension = {
+  setParameter(id: string, value: number, durationSec?: number): Promise<unknown>;
+};
+
+type WorkerHandlerExtension = {
+  live2d?: WorkerLive2DExtension;
+};
+
 type ActivityEventModule = {
   meta?: unknown;
   requires?: unknown;
-  execute(ctx: AgentDataBundle, projection: WorkerProjectionApi, options: { signal: AbortSignal }): Promise<void> | void;
+  execute(
+    ctx: AgentDataBundle,
+    projection: WorkerProjectionApi,
+    options: { signal: AbortSignal; extension?: WorkerHandlerExtension },
+  ): Promise<void> | void;
 };
 
 type ContinuousModule = {
   meta?: unknown;
   requires?: unknown;
   fps?: number;
-  update(ctx: AgentDataBundle, projection: WorkerProjectionApi): Promise<void> | void;
+  update(
+    ctx: AgentDataBundle,
+    projection: WorkerProjectionApi,
+    options?: { extension?: WorkerHandlerExtension },
+  ): Promise<void> | void;
 };
 
 type WorkerProjectionApi = {
@@ -194,6 +217,17 @@ function createProjection(requestId: string, snapshot: SandboxProjectionSnapshot
   };
 }
 
+function createExtension(requestId: string, extension?: SandboxWorkerExtension): WorkerHandlerExtension | undefined {
+  if (!extension?.live2d) return undefined;
+  return {
+    live2d: {
+      setParameter(id, value, durationSec) {
+        return rpc(requestId, 'live2dSetParameter', [id, value, durationSec]);
+      },
+    },
+  };
+}
+
 async function handleLoad(message: Extract<WorkerRequest, { type: 'load' }>): Promise<void> {
   const policy = validateSandboxSourcePolicy(message.source);
   if (!policy.ok) {
@@ -240,8 +274,10 @@ async function handleExecute(message: Extract<WorkerRequest, { type: 'execute' }
   const controller = new AbortController();
   abortControllers.set(message.requestId, controller);
   try {
+    const extension = createExtension(message.requestId, message.extension);
     await loadedHandler.execute(message.ctx, createProjection(message.requestId, message.snapshot), {
       signal: controller.signal,
+      ...(extension ? { extension } : {}),
     });
   } finally {
     abortControllers.delete(message.requestId);
@@ -252,7 +288,12 @@ async function handleUpdate(message: Extract<WorkerRequest, { type: 'update' }>)
   if (loadedKind !== 'continuous' || !isContinuousModule(loadedHandler)) {
     throw new Error('NAS sandbox has no continuous handler loaded');
   }
-  const returned = loadedHandler.update(message.ctx, createProjection(message.requestId, message.snapshot));
+  const extension = createExtension(message.requestId, message.extension);
+  const returned = loadedHandler.update(
+    message.ctx,
+    createProjection(message.requestId, message.snapshot),
+    extension ? { extension } : undefined,
+  );
   if (isPromiseLike(returned)) {
     throw new Error('NAS continuous update must be synchronous and must not return a Promise');
   }

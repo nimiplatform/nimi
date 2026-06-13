@@ -65,7 +65,7 @@ export function createThrottledCursorEvents(
   const nowMs = input.nowMsFn ?? defaultNowMs;
 
   let lastSentValue: boolean | null = null;
-  let lastSentAtMs = -Infinity;
+  let lastAttemptAtMs = -Infinity;
   let pendingTimer: ReturnType<typeof setTimeout> | null = null;
   let pendingValue: boolean | null = null;
   let inFlightValue: boolean | null = null;
@@ -73,11 +73,11 @@ export function createThrottledCursorEvents(
 
   const fireNow = (value: boolean): Promise<void> => {
     const sentAtMs = nowMs();
+    lastAttemptAtMs = sentAtMs;
     inFlightValue = value;
     return Promise.resolve(ipc(value))
       .then(() => {
         lastSentValue = value;
-        lastSentAtMs = sentAtMs;
       })
       .finally(() => {
         if (inFlightValue === value) inFlightValue = null;
@@ -102,9 +102,13 @@ export function createThrottledCursorEvents(
   return {
     setIgnore(value: boolean): void {
       if (disposed) return;
+      const now = nowMs();
+      const elapsed = now - lastAttemptAtMs;
       // Dedup against either the last sent OR the currently-pending value.
-      const effectiveLast = pendingValue !== null ? pendingValue : inFlightValue ?? lastSentValue;
-      if (effectiveLast === value) {
+      const sameAsPending = pendingValue === value;
+      const sameAsApplied = lastSentValue === value;
+      const sameAsRecentInFlight = inFlightValue === value && elapsed < minIntervalMs;
+      if (sameAsPending || sameAsApplied || sameAsRecentInFlight) {
         // If the pending timer would resend the same value as last sent
         // we can clear it (saves a no-op IPC).
         if (pendingValue !== null && pendingValue === lastSentValue) {
@@ -116,8 +120,6 @@ export function createThrottledCursorEvents(
         }
         return;
       }
-      const now = nowMs();
-      const elapsed = now - lastSentAtMs;
       if (elapsed >= minIntervalMs && pendingTimer === null) {
         void fireNow(value).catch((error: unknown) => {
           console.warn(`[avatar:shell] set_ignore_cursor_events failed: ${error instanceof Error ? error.message : String(error)}`);

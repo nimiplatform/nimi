@@ -99,6 +99,9 @@ export type {
   TauriAvatarModelManifest,
   VrmAvatarModelManifest,
 } from './avatar-model-manifest.js';
+export type {
+  BackendKind,
+} from './backend-branch.js';
 export {
   fromLive2DLocalModelManifest,
   fromTauriAvatarModelManifest,

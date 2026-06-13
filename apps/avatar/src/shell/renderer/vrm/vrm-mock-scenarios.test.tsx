@@ -265,7 +265,11 @@ function expectedRouteId(json: unknown, kind: string): string {
   if (!match) {
     throw new Error(`VRM mock scenario expected ${kind} is missing routeId`);
   }
-  return match[1];
+  const routeId = match[1];
+  if (typeof routeId !== 'string' || routeId.length === 0) {
+    throw new Error(`VRM mock scenario expected ${kind} has invalid routeId`);
+  }
+  return routeId;
 }
 
 function driveInput(json: unknown, kind: string): Record<string, unknown> {

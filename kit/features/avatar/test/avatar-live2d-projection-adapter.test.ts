@@ -55,6 +55,7 @@ function createCompatibility(): Live2DCompatibilityReport {
     ]),
     idleMotionGroup: 'Idle',
     mouthOpenParameterId: 'ParamMouthOpenY',
+    paramMouthFormSupported: false,
     missingActivity: 'idle_degraded_with_diagnostic',
   };
 }

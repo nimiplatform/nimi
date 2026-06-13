@@ -59,7 +59,20 @@ function createDriver(bundle = createBundle()) {
       return () => {};
     },
     emit(event) {
-      emitted.push(event);
+      void this.emitCancelable?.(event);
+    },
+    emitCancelable(event) {
+      const agentEvent: AgentEvent = {
+        event_id: `emitted-${emitted.length + 1}`,
+        name: event.name,
+        timestamp: '2026-04-26T00:00:00.000Z',
+        detail: { ...event.detail },
+      };
+      emitted.push({
+        name: agentEvent.name,
+        detail: agentEvent.detail,
+      });
+      return agentEvent;
     },
     trigger(event) {
       handlers.forEach((handler) => handler(event));
@@ -69,10 +82,7 @@ function createDriver(bundle = createBundle()) {
   return driver;
 }
 
-function createProjection(): BackendProjection & {
-  applyActivity: ReturnType<typeof vi.fn>;
-  applyExpression: ReturnType<typeof vi.fn>;
-} {
+function createProjection(): BackendProjection {
   return {
     applyActivity: vi.fn(),
     applyEmotion: vi.fn(),
@@ -96,6 +106,15 @@ function runtimeActivityEvent(detail: Record<string, unknown>): AgentEvent {
   return {
     event_id: 'event-activity',
     name: 'runtime.agent.presentation.activity_requested',
+    timestamp: '2026-04-26T00:00:01.000Z',
+    detail,
+  };
+}
+
+function fixtureActivityEvent(detail: Record<string, unknown>): AgentEvent {
+  return {
+    event_id: 'event-fixture-activity',
+    name: 'avatar.fixture.presentation.activity_requested',
     timestamp: '2026-04-26T00:00:01.000Z',
     detail,
   };
@@ -147,12 +166,16 @@ describe('Avatar NAS runtime event dispatch', () => {
   it('honors avatar.before.activity.start cancellation before running activity fallback', async () => {
     const driver = createDriver();
     const projection = createProjection();
-    const originalEmit = driver.emit.bind(driver);
-    driver.emit = (event) => {
-      if (event.name === 'avatar.before.activity.start') {
-        event.detail.cancelled = true;
+    const originalEmitCancelable = driver.emitCancelable?.bind(driver);
+    driver.emitCancelable = (event) => {
+      const emitted = originalEmitCancelable?.(event);
+      if (!emitted) {
+        throw new Error('test driver must support cancelable emit');
       }
-      originalEmit(event);
+      if (emitted.name === 'avatar.before.activity.start') {
+        emitted.detail['cancelled'] = true;
+      }
+      return emitted;
     };
     const registry = createHandlerRegistry();
     const unwire = wireEventDispatch({
@@ -180,6 +203,51 @@ describe('Avatar NAS runtime event dispatch', () => {
       activity_name: 'happy',
       reason: 'before_event_cancelled',
     });
+
+    unwire();
+  });
+
+  it('cancels production activity start while runtime execution is suspended', async () => {
+    const driver = createDriver(createBundle({ execution_state: 'SUSPENDED' }));
+    const projection = createProjection();
+    const registry = createHandlerRegistry();
+    const unwire = wireEventDispatch({
+      driver,
+      registry,
+      executor: new HandlerExecutor(),
+      projection,
+    });
+
+    driver.trigger(runtimeActivityEvent({
+      activity_name: 'happy',
+      category: 'emotion',
+      intensity: 'strong',
+      source: 'apml_output',
+      ...admissionDetail(),
+    }));
+    await Promise.resolve();
+
+    expect(projection.applyActivity).not.toHaveBeenCalled();
+    expect(driver.emitted).toEqual([
+      {
+        name: 'avatar.before.activity.start',
+        detail: {
+          activity_name: 'happy',
+          category: 'emotion',
+          intensity: 'strong',
+          source: 'apml_output',
+          cancelled: true,
+          cancel_reason: 'runtime_execution_suspended',
+        },
+      },
+      {
+        name: 'avatar.activity.cancel',
+        detail: {
+          activity_name: 'happy',
+          reason: 'runtime_execution_suspended',
+        },
+      },
+    ]);
 
     unwire();
   });
@@ -232,7 +300,7 @@ describe('Avatar NAS runtime event dispatch', () => {
     unwire();
   });
 
-  it('rejects explicit mock fixture activity events before carrier fallback', async () => {
+  it('rejects mock source on the runtime activity namespace before carrier fallback', async () => {
     const driver = createDriver();
     const projection = createProjection();
     const unwire = wireEventDispatch({
@@ -253,6 +321,46 @@ describe('Avatar NAS runtime event dispatch', () => {
 
     expect(projection.applyActivity).not.toHaveBeenCalled();
     expect(driver.emitted).toEqual([]);
+
+    unwire();
+  });
+
+  it('maps fixture activity projections into the carrier fallback without runtime admission', async () => {
+    const driver = createDriver();
+    const projection = createProjection();
+    const unwire = wireEventDispatch({
+      driver,
+      registry: createHandlerRegistry(),
+      executor: new HandlerExecutor(),
+      projection,
+    });
+
+    driver.trigger(fixtureActivityEvent({
+      activity_name: 'greet',
+      category: 'interaction',
+      intensity: null,
+      source: 'mock',
+    }));
+    await Promise.resolve();
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+    expect(projection.applyActivity).toHaveBeenCalledWith({ name: 'greet', intensity: null });
+    expect(driver.emitted).toContainEqual({
+      name: 'avatar.activity.start',
+      detail: {
+        activity_name: 'greet',
+        category: 'interaction',
+        intensity: null,
+        source: 'mock',
+      },
+    });
+    expect(driver.emitted.find((event) => event.name === 'avatar.activity.end')).toEqual({
+      name: 'avatar.activity.end',
+      detail: {
+        activity_name: 'greet',
+        source: 'default_fallback',
+      },
+    });
 
     unwire();
   });

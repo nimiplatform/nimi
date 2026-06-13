@@ -50,6 +50,13 @@ type TransientOverlay = {
   elapsedSec: number;
 };
 
+type BlendEntry = {
+  fromWeight: number;
+  toWeight: number;
+  durationSec: number;
+  elapsedSec: number;
+};
+
 const PRIMARY_CAP_EXEMPT_PRESETS: ReadonlySet<string> = new Set(['neutral']);
 
 function clamp01(value: number): number {
@@ -112,18 +119,28 @@ export function createVrmEmoteState(input: CreateVrmEmoteStateInputs): VrmEmoteS
 
   const targetWeights = new Map<string, number>();
   const currentWeights = new Map<string, number>();
-  const blendDurations = new Map<string, number>();
+  const blends = new Map<string, BlendEntry>();
   const transients = new Map<string, TransientOverlay>();
   let activeEmote: string | null = null;
   let lipsyncActive = false;
+
+  function startBlend(name: string, toWeight: number, durationSec: number): void {
+    const fromWeight = currentWeights.get(name) ?? 0;
+    targetWeights.set(name, toWeight);
+    if (!currentWeights.has(name)) currentWeights.set(name, 0);
+    if (fromWeight === toWeight) {
+      blends.delete(name);
+      return;
+    }
+    blends.set(name, { fromWeight, toWeight, durationSec, elapsedSec: 0 });
+  }
 
   function clearActiveEmoteTargets(): void {
     if (activeEmote === null) return;
     const prev = emoteTable.emotes[activeEmote];
     if (!prev) return;
     for (const entry of prev.expressions) {
-      targetWeights.set(entry.name, 0);
-      blendDurations.set(entry.name, prev.blendDurationSec);
+      startBlend(entry.name, 0, prev.blendDurationSec);
     }
   }
 
@@ -135,9 +152,7 @@ export function createVrmEmoteState(input: CreateVrmEmoteStateInputs): VrmEmoteS
     }
     clearActiveEmoteTargets();
     for (const entry of bundle.expressions) {
-      targetWeights.set(entry.name, entry.weight);
-      blendDurations.set(entry.name, bundle.blendDurationSec);
-      if (!currentWeights.has(entry.name)) currentWeights.set(entry.name, 0);
+      startBlend(entry.name, entry.weight, bundle.blendDurationSec);
     }
     activeEmote = name;
   }
@@ -170,21 +185,18 @@ export function createVrmEmoteState(input: CreateVrmEmoteStateInputs): VrmEmoteS
 
   function tick(tickInput: { vrm: VrmExpressionWritable; deltaSec: number }): { skippedCount: number } {
     const { vrm, deltaSec } = tickInput;
-    const dt = Math.max(0, deltaSec);
+    const dt = Number.isFinite(deltaSec) ? Math.max(0, deltaSec) : 0;
     let skippedCount = 0;
 
-    for (const [name, target] of targetWeights) {
-      const duration = blendDurations.get(name) ?? 0.4;
-      const current = currentWeights.get(name) ?? 0;
-      if (current === target) {
-        currentWeights.set(name, target);
+    for (const [name, blend] of blends) {
+      blend.elapsedSec += dt;
+      if (blend.elapsedSec >= blend.durationSec) {
+        currentWeights.set(name, clamp01(blend.toWeight));
+        blends.delete(name);
         continue;
       }
-      const stepRaw = duration > 0 ? dt / duration : 1;
-      const eased = easeInOutCubic(clamp01(stepRaw));
-      let next = current + (target - current) * eased;
-      if (target > current && next > target) next = target;
-      if (target < current && next < target) next = target;
+      const eased = easeInOutCubic(clamp01(blend.elapsedSec / blend.durationSec));
+      const next = blend.fromWeight + (blend.toWeight - blend.fromWeight) * eased;
       currentWeights.set(name, clamp01(next));
     }
 
@@ -218,7 +230,7 @@ export function createVrmEmoteState(input: CreateVrmEmoteStateInputs): VrmEmoteS
     }
     currentWeights.clear();
     targetWeights.clear();
-    blendDurations.clear();
+    blends.clear();
     transients.clear();
     activeEmote = null;
   }

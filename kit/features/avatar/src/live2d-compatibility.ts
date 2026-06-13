@@ -85,6 +85,7 @@ export type Live2DAdapterManifestV1 = {
     };
     lipsync: {
       mouth_open_y_parameter?: string;
+      paramMouthForm?: 'supported' | 'absent';
       disposition: Live2DFeatureDisposition;
     };
     physics: {
@@ -115,6 +116,7 @@ export type Live2DCompatibilityReport = {
   activityMotionGroups: Map<string, ActivityMotionMapping>;
   idleMotionGroup: string;
   mouthOpenParameterId: string;
+  paramMouthFormSupported: boolean;
   missingActivity: 'diagnostic_no_success' | 'idle_degraded_with_diagnostic';
 };
 
@@ -291,6 +293,7 @@ function parseManifestObject(value: unknown): Live2DAdapterManifestV1 | null {
   const expressionDisposition = readDisposition(expressions['disposition']);
   const poseDisposition = readDisposition(poses['disposition']);
   const lipsyncDisposition = readDisposition(lipsync['disposition']);
+  const paramMouthForm = lipsync['paramMouthForm'];
   const physicsDisposition = readDisposition(physics['disposition']);
   const hitRegionDisposition = readDisposition(hitRegions['disposition']);
   const physicsMode = physics['mode'];
@@ -303,6 +306,7 @@ function parseManifestObject(value: unknown): Live2DAdapterManifestV1 | null {
     !expressionDisposition ||
     !poseDisposition ||
     !lipsyncDisposition ||
+    (paramMouthForm !== undefined && paramMouthForm !== 'supported' && paramMouthForm !== 'absent') ||
     !physicsDisposition ||
     !hitRegionDisposition ||
     (physicsMode !== 'model_physics' && physicsMode !== 'absent' && physicsMode !== 'unsupported') ||
@@ -343,6 +347,9 @@ function parseManifestObject(value: unknown): Live2DAdapterManifestV1 | null {
       },
       lipsync: {
         mouth_open_y_parameter: readString(lipsync, 'mouth_open_y_parameter') ?? undefined,
+        paramMouthForm: paramMouthForm === 'supported' || paramMouthForm === 'absent'
+          ? paramMouthForm
+          : undefined,
         disposition: lipsyncDisposition,
       },
       physics: {
@@ -434,6 +441,7 @@ export function validateLive2DCompatibility(input: Live2DCompatibilityInput): Li
       activityMotionGroups: new Map(),
       idleMotionGroup: 'Idle',
       mouthOpenParameterId: DEFAULT_MOUTH_OPEN_PARAMETER,
+      paramMouthFormSupported: false,
       missingActivity: 'idle_degraded_with_diagnostic',
     };
   }
@@ -516,6 +524,7 @@ export function validateLive2DCompatibility(input: Live2DCompatibilityInput): Li
     mouthOpenParameterId: adapter.semantics.lipsync.disposition.status === 'supported'
       ? adapter.semantics.lipsync.mouth_open_y_parameter ?? DEFAULT_MOUTH_OPEN_PARAMETER
       : DEFAULT_MOUTH_OPEN_PARAMETER,
+    paramMouthFormSupported: adapter.semantics.lipsync.paramMouthForm === 'supported',
     missingActivity: adapter.semantics.motions.missing_activity,
   };
 }
