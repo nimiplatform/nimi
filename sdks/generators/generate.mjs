@@ -10,13 +10,13 @@ import { writeTypescriptRuntimeProtobuf } from './lib/runtime-protobuf-ts.mjs';
 import { writeTypedClients } from './lib/typed-clients.mjs';
 
 function assertRealmOpenApiLoaded(realm) {
-  if (realm.source_state === 'openapi_loaded') {
+  if (realm.source_state === 'openapi_loaded' || realm.source_state === 'projection_loaded') {
     return;
   }
   throw new Error([
-    'Realm OpenAPI source is required for generated Realm clients.',
+    'Realm source projection is required for generated Realm clients.',
     'Configured source is unavailable: ' + realm.source_label,
-    'Fix config/realm-openapi-source.json or the admitted tracked OpenAPI source path.',
+    'Fix config/realm-openapi-source.json or the admitted tracked Realm projection path.',
   ].join(' '));
 }
 

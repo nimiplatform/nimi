@@ -37,11 +37,12 @@ describe('app AI chat helpers', () => {
       ? request.spec.spec.textGenerate.input[0]?.content
       : '').toBe('Hello runtime');
     expect(callOptions).toEqual(expect.objectContaining({
-      metadata: {
+      metadata: expect.objectContaining({
         callerKind: 'third-party-app',
         callerId: 'nimi-kit.chat.app-ai',
         surfaceId: 'kit.features.chat',
-      },
+        idempotencyKey: expect.stringMatching(/^runtime-ai-/u),
+      }),
     }));
     expect(onResponse).toHaveBeenCalledWith({
       mode: 'generate',
@@ -99,7 +100,10 @@ describe('app AI chat helpers', () => {
     }));
     expect(callOptions).toEqual(expect.objectContaining({
       metadata: expect.objectContaining({
+        callerKind: 'third-party-app',
         callerId: 'nimi-kit.chat.app-ai',
+        surfaceId: 'kit.features.chat',
+        idempotencyKey: expect.stringMatching(/^runtime-ai-/u),
       }),
     }));
     expect(onChunk).toHaveBeenCalledTimes(2);

@@ -187,7 +187,7 @@ function toError(error: NimiAgentTextError): Error {
 
 function runtimeParticipationRequiredError(): NimiAgentTextError {
   return {
-    code: 'RUNTIME_AGENT_PARTICIPATION_REQUIRED',
+    code: 'SDK_RUNTIME_AGENT_PARTICIPATION_REQUIRED',
     message: 'Agent text execution must run through Runtime Agent participation authority.',
   };
 }

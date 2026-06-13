@@ -22,7 +22,7 @@
     {
       "name": "realm_operation_presence",
       "count": 260,
-      "source_state": "openapi_loaded"
+      "source_state": "projection_loaded"
     },
     {
       "name": "request_response_codecs",
@@ -34,7 +34,7 @@
     },
     {
       "name": "error_reason_code_projection",
-      "count": 237
+      "count": 238
     },
     {
       "name": "export_manifest",

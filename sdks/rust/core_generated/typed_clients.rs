@@ -670,7 +670,9 @@ impl Default for ConversationAnchorStatus {
 pub enum DelegatedApprovalDecision {
     DELEGATEDAPPROVALDECISIONUNSPECIFIED,
     DELEGATEDAPPROVALDECISIONAPPROVEDONCE,
+    DELEGATEDAPPROVALDECISIONAPPROVE,
     DELEGATEDAPPROVALDECISIONREJECTED,
+    DELEGATEDAPPROVALDECISIONREJECT,
     DELEGATEDAPPROVALDECISIONAPPROVEDFORSESSION,
     DELEGATEDAPPROVALDECISIONPOLICYBLOCKED,
     DELEGATEDAPPROVALDECISIONEXPIRED,
@@ -701,6 +703,7 @@ pub enum DelegatedApprovalRequestState {
     DELEGATEDAPPROVALREQUESTSTATEUNSPECIFIED,
     DELEGATEDAPPROVALREQUESTSTATEPENDING,
     DELEGATEDAPPROVALREQUESTSTATEAPPROVEDONCE,
+    DELEGATEDAPPROVALREQUESTSTATEAPPROVED,
     DELEGATEDAPPROVALREQUESTSTATEREJECTED,
     DELEGATEDAPPROVALREQUESTSTATEEXPIRED,
     DELEGATEDAPPROVALREQUESTSTATEAPPROVEDFORSESSION,
@@ -6206,7 +6209,7 @@ impl CatalogModelSummary {
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
-        for key in ["capabilities"] {
+        for key in ["capabilities", "source"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -11024,6 +11027,11 @@ impl GetMemoryEmbeddingRuntimeIntentResponse {
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
+        for key in ["binding_intent"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
 
         out.binding_intent_present = pairs.get("binding_intent_present").and_then(|value| value.parse().ok());
         out
@@ -26629,7 +26637,7 @@ impl SubmitDelegatedApprovalDecisionRequest {
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
-        for key in ["context"] {
+        for key in ["context", "decision"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -27353,7 +27361,7 @@ impl TextGenerateScenarioSpec {
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
-        for key in ["input", "tools", "reasoning", "response_format", "stop"] {
+        for key in ["input", "tools", "reasoning", "tool_choice", "response_format", "stop"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -47331,2603 +47339,1043 @@ where
         Self { core }
     }
 
-    pub fn ack_my_local_agent_provision_intent(&self, request: RealmAckMyLocalAgentProvisionIntentOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<LocalAgentProvisionIntentDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "ackMyLocalAgentProvisionIntent".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn ack_my_local_agent_provision_intent(&self, _request: RealmAckMyLocalAgentProvisionIntentOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<LocalAgentProvisionIntentDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for ackMyLocalAgentProvisionIntent");
     }
 
-    pub fn ack_my_local_agent_termination_intent(&self, request: RealmAckMyLocalAgentTerminationIntentOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<LocalAgentTerminationIntentDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "ackMyLocalAgentTerminationIntent".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn ack_my_local_agent_termination_intent(&self, _request: RealmAckMyLocalAgentTerminationIntentOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<LocalAgentTerminationIntentDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for ackMyLocalAgentTerminationIntent");
     }
 
-    pub fn add_friend(&self, request: RealmAddFriendOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "addFriend".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn add_friend(&self, _request: RealmAddFriendOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for addFriend");
     }
 
-    pub fn add_group_agent(&self, request: RealmAddGroupAgentOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GroupParticipantDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "addGroupAgent".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn add_group_agent(&self, _request: RealmAddGroupAgentOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<GroupParticipantDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for addGroupAgent");
     }
 
-    pub fn add_group_participant(&self, request: RealmAddGroupParticipantOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GroupParticipantDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "addGroupParticipant".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn add_group_participant(&self, _request: RealmAddGroupParticipantOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<GroupParticipantDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for addGroupParticipant");
     }
 
-    pub fn agent_controller_check_handle(&self, request: RealmAgentControllerCheckHandleOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<AgentHandleAvailabilityResponseDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "AgentController_checkHandle".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn agent_controller_check_handle(&self, _request: RealmAgentControllerCheckHandleOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AgentHandleAvailabilityResponseDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for AgentController_checkHandle");
     }
 
-    pub fn agent_controller_create(&self, request: RealmAgentControllerCreateOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CreateAgentResponseDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "AgentController_create".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn agent_controller_create(&self, _request: RealmAgentControllerCreateOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<CreateAgentResponseDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for AgentController_create");
     }
 
-    pub fn agent_controller_delete(&self, request: RealmAgentControllerDeleteOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<DeleteAgentOperationResponseDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "AgentController_delete".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn agent_controller_delete(&self, _request: RealmAgentControllerDeleteOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<DeleteAgentOperationResponseDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for AgentController_delete");
     }
 
-    pub fn agent_controller_get_relationships(&self, request: RealmAgentControllerGetRelationshipsOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<Vec<AgentRelationshipRecordDto>, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "AgentController_getRelationships".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn agent_controller_get_relationships(&self, _request: RealmAgentControllerGetRelationshipsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<Vec<AgentRelationshipRecordDto>, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for AgentController_getRelationships");
     }
 
-    pub fn agent_controller_get_visibility(&self, request: RealmAgentControllerGetVisibilityOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<AgentVisibilitySettingsDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "AgentController_getVisibility".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn agent_controller_get_visibility(&self, _request: RealmAgentControllerGetVisibilityOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AgentVisibilitySettingsDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for AgentController_getVisibility");
     }
 
-    pub fn agent_controller_make_public(&self, request: RealmAgentControllerMakePublicOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<MakeAgentPublicResponseDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "AgentController_makePublic".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn agent_controller_make_public(&self, _request: RealmAgentControllerMakePublicOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<MakeAgentPublicResponseDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for AgentController_makePublic");
     }
 
-    pub fn agent_controller_remove_relationship(&self, request: RealmAgentControllerRemoveRelationshipOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<DeleteRelationshipResponseDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "AgentController_removeRelationship".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn agent_controller_remove_relationship(&self, _request: RealmAgentControllerRemoveRelationshipOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<DeleteRelationshipResponseDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for AgentController_removeRelationship");
     }
 
-    pub fn agent_controller_select_avatar(&self, request: RealmAgentControllerSelectAvatarOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<DeleteAgentOperationResponseDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "AgentController_selectAvatar".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn agent_controller_select_avatar(&self, _request: RealmAgentControllerSelectAvatarOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<DeleteAgentOperationResponseDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for AgentController_selectAvatar");
     }
 
-    pub fn agent_controller_set_relationship(&self, request: RealmAgentControllerSetRelationshipOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RelationshipResponseDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "AgentController_setRelationship".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn agent_controller_set_relationship(&self, _request: RealmAgentControllerSetRelationshipOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<RelationshipResponseDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for AgentController_setRelationship");
     }
 
-    pub fn agent_controller_update_dna(&self, request: RealmAgentControllerUpdateDnaOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<DeleteAgentOperationResponseDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "AgentController_updateDna".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn agent_controller_update_dna(&self, _request: RealmAgentControllerUpdateDnaOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<DeleteAgentOperationResponseDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for AgentController_updateDna");
     }
 
-    pub fn agent_controller_update_visibility(&self, request: RealmAgentControllerUpdateVisibilityOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<AgentVisibilitySettingsDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "AgentController_updateVisibility".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn agent_controller_update_visibility(&self, _request: RealmAgentControllerUpdateVisibilityOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AgentVisibilitySettingsDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for AgentController_updateVisibility");
     }
 
-    pub fn agent_nsfw_consent_controller_update_agent_consent(&self, request: RealmAgentNsfwConsentControllerUpdateAgentConsentOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<UpdateNsfwConsentResponseDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "AgentNsfwConsentController_updateAgentConsent".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn agent_nsfw_consent_controller_update_agent_consent(&self, _request: RealmAgentNsfwConsentControllerUpdateAgentConsentOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<UpdateNsfwConsentResponseDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for AgentNsfwConsentController_updateAgentConsent");
     }
 
-    pub fn agent_rules_controller_archive_rule(&self, request: RealmAgentRulesControllerArchiveRuleOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<AgentRuleDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "AgentRulesController_archiveRule".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn agent_rules_controller_archive_rule(&self, _request: RealmAgentRulesControllerArchiveRuleOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AgentRuleDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for AgentRulesController_archiveRule");
     }
 
-    pub fn agent_rules_controller_create_rule(&self, request: RealmAgentRulesControllerCreateRuleOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<AgentRuleDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "AgentRulesController_createRule".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn agent_rules_controller_create_rule(&self, _request: RealmAgentRulesControllerCreateRuleOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AgentRuleDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for AgentRulesController_createRule");
     }
 
-    pub fn agent_rules_controller_deprecate_rule(&self, request: RealmAgentRulesControllerDeprecateRuleOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<AgentRuleDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "AgentRulesController_deprecateRule".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn agent_rules_controller_deprecate_rule(&self, _request: RealmAgentRulesControllerDeprecateRuleOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AgentRuleDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for AgentRulesController_deprecateRule");
     }
 
-    pub fn agent_rules_controller_list_rules(&self, request: RealmAgentRulesControllerListRulesOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<Vec<AgentRuleDto>, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "AgentRulesController_listRules".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn agent_rules_controller_list_rules(&self, _request: RealmAgentRulesControllerListRulesOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<Vec<AgentRuleDto>, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for AgentRulesController_listRules");
     }
 
-    pub fn agent_rules_controller_update_rule(&self, request: RealmAgentRulesControllerUpdateRuleOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<AgentRuleDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "AgentRulesController_updateRule".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn agent_rules_controller_update_rule(&self, _request: RealmAgentRulesControllerUpdateRuleOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AgentRuleDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for AgentRulesController_updateRule");
     }
 
-    pub fn archive_bundle(&self, request: RealmArchiveBundleOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<BundleDetailDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "archiveBundle".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn archive_bundle(&self, _request: RealmArchiveBundleOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<BundleDetailDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for archiveBundle");
     }
 
-    pub fn bind_email(&self, request: RealmBindEmailOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "bindEmail".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn bind_email(&self, _request: RealmBindEmailOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for bindEmail");
     }
 
-    pub fn bind_wallet(&self, request: RealmBindWalletOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<UserWalletDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "bindWallet".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn bind_wallet(&self, _request: RealmBindWalletOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<UserWalletDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for bindWallet");
     }
 
-    pub fn block_user(&self, request: RealmBlockUserOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "blockUser".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn block_user(&self, _request: RealmBlockUserOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for blockUser");
     }
 
-    pub fn change_email(&self, request: RealmChangeEmailOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "changeEmail".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn change_email(&self, _request: RealmChangeEmailOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for changeEmail");
     }
 
-    pub fn check_email(&self, request: RealmCheckEmailOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CheckEmailResponseDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "checkEmail".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn check_email(&self, _request: RealmCheckEmailOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<CheckEmailResponseDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for checkEmail");
     }
 
-    pub fn check_handle(&self, request: RealmCheckHandleOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<HandleAvailabilityDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "checkHandle".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn check_handle(&self, _request: RealmCheckHandleOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<HandleAvailabilityDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for checkHandle");
     }
 
-    pub fn clone_asset(&self, request: RealmCloneAssetOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<AssetDetailDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "cloneAsset".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn clone_asset(&self, _request: RealmCloneAssetOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AssetDetailDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for cloneAsset");
     }
 
-    pub fn commit_realm_group_message_candidate(&self, request: RealmCommitRealmGroupMessageCandidateOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RealmGroupMessageCandidateCommitResultDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "commitRealmGroupMessageCandidate".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn commit_realm_group_message_candidate(&self, _request: RealmCommitRealmGroupMessageCandidateOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<RealmGroupMessageCandidateCommitResultDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for commitRealmGroupMessageCandidate");
     }
 
-    pub fn create_asset(&self, request: RealmCreateAssetOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<AssetDetailDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "createAsset".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn create_asset(&self, _request: RealmCreateAssetOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AssetDetailDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for createAsset");
     }
 
-    pub fn create_audio_direct_upload(&self, request: RealmCreateAudioDirectUploadOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ResourceDirectUploadSessionDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "createAudioDirectUpload".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn create_audio_direct_upload(&self, _request: RealmCreateAudioDirectUploadOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<ResourceDirectUploadSessionDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for createAudioDirectUpload");
     }
 
-    pub fn create_bundle(&self, request: RealmCreateBundleOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<BundleDetailDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "createBundle".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn create_bundle(&self, _request: RealmCreateBundleOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<BundleDetailDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for createBundle");
     }
 
-    pub fn create_group(&self, request: RealmCreateGroupOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GroupChatViewDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "createGroup".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn create_group(&self, _request: RealmCreateGroupOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<GroupChatViewDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for createGroup");
     }
 
-    pub fn create_image_direct_upload(&self, request: RealmCreateImageDirectUploadOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ResourceDirectUploadSessionDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "createImageDirectUpload".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn create_image_direct_upload(&self, _request: RealmCreateImageDirectUploadOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<ResourceDirectUploadSessionDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for createImageDirectUpload");
     }
 
-    pub fn create_post(&self, request: RealmCreatePostOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<PostDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "createPost".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn create_post(&self, _request: RealmCreatePostOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<PostDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for createPost");
     }
 
-    pub fn create_text_resource(&self, request: RealmCreateTextResourceOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ResourceDetailDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "createTextResource".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn create_text_resource(&self, _request: RealmCreateTextResourceOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<ResourceDetailDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for createTextResource");
     }
 
-    pub fn create_video_direct_upload(&self, request: RealmCreateVideoDirectUploadOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ResourceDirectUploadSessionDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "createVideoDirectUpload".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn create_video_direct_upload(&self, _request: RealmCreateVideoDirectUploadOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<ResourceDirectUploadSessionDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for createVideoDirectUpload");
     }
 
-    pub fn creator_controller_batch_create_agents(&self, request: RealmCreatorControllerBatchCreateAgentsOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<BatchCreateAgentsResponseDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "CreatorController_batchCreateAgents".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn creator_controller_batch_create_agents(&self, _request: RealmCreatorControllerBatchCreateAgentsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<BatchCreateAgentsResponseDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for CreatorController_batchCreateAgents");
     }
 
-    pub fn creator_controller_create_agent(&self, request: RealmCreatorControllerCreateAgentOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<UserLiteDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "CreatorController_createAgent".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn creator_controller_create_agent(&self, _request: RealmCreatorControllerCreateAgentOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<UserLiteDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for CreatorController_createAgent");
     }
 
-    pub fn creator_controller_create_key(&self, request: RealmCreatorControllerCreateKeyOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<BTreeMap<String, String>, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "CreatorController_createKey".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn creator_controller_create_key(&self, _request: RealmCreatorControllerCreateKeyOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<BTreeMap<String, String>, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for CreatorController_createKey");
     }
 
-    pub fn creator_controller_delete_agent(&self, request: RealmCreatorControllerDeleteAgentOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<BTreeMap<String, String>, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "CreatorController_deleteAgent".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn creator_controller_delete_agent(&self, _request: RealmCreatorControllerDeleteAgentOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<BTreeMap<String, String>, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for CreatorController_deleteAgent");
     }
 
-    pub fn creator_controller_get_agent(&self, request: RealmCreatorControllerGetAgentOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CreatorAgentResponseDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "CreatorController_getAgent".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn creator_controller_get_agent(&self, _request: RealmCreatorControllerGetAgentOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<CreatorAgentResponseDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for CreatorController_getAgent");
     }
 
-    pub fn creator_controller_list_agents(&self, request: RealmCreatorControllerListAgentsOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<Vec<UserLiteDto>, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "CreatorController_listAgents".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn creator_controller_list_agents(&self, _request: RealmCreatorControllerListAgentsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<Vec<UserLiteDto>, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for CreatorController_listAgents");
     }
 
-    pub fn creator_controller_list_keys(&self, request: RealmCreatorControllerListKeysOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<Vec<BTreeMap<String, String>>, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "CreatorController_listKeys".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn creator_controller_list_keys(&self, _request: RealmCreatorControllerListKeysOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<Vec<BTreeMap<String, String>>, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for CreatorController_listKeys");
     }
 
-    pub fn creator_controller_revoke_key(&self, request: RealmCreatorControllerRevokeKeyOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "CreatorController_revokeKey".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn creator_controller_revoke_key(&self, _request: RealmCreatorControllerRevokeKeyOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for CreatorController_revokeKey");
     }
 
-    pub fn creator_controller_update_agent(&self, request: RealmCreatorControllerUpdateAgentOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CreatorAgentResponseDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "CreatorController_updateAgent".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn creator_controller_update_agent(&self, _request: RealmCreatorControllerUpdateAgentOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<CreatorAgentResponseDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for CreatorController_updateAgent");
     }
 
-    pub fn delete_post(&self, request: RealmDeletePostOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "deletePost".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn delete_post(&self, _request: RealmDeletePostOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for deletePost");
     }
 
-    pub fn delete_resource(&self, request: RealmDeleteResourceOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "deleteResource".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn delete_resource(&self, _request: RealmDeleteResourceOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for deleteResource");
     }
 
-    pub fn deny_my_app_permission_grant(&self, request: RealmDenyMyAppPermissionGrantOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<AppPermissionGrantDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "denyMyAppPermissionGrant".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn deny_my_app_permission_grant(&self, _request: RealmDenyMyAppPermissionGrantOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AppPermissionGrantDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for denyMyAppPermissionGrant");
     }
 
-    pub fn disable2_fa(&self, request: RealmDisable2FaOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<Me2faOperationResultDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "disable2Fa".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn disable2_fa(&self, _request: RealmDisable2FaOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<Me2faOperationResultDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for disable2Fa");
     }
 
-    pub fn economy_controller_accept_gift(&self, request: RealmEconomyControllerAcceptGiftOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GiftTransactionDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "EconomyController_acceptGift".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn economy_controller_accept_gift(&self, _request: RealmEconomyControllerAcceptGiftOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<GiftTransactionDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for EconomyController_acceptGift");
     }
 
-    pub fn economy_controller_calculate_withdrawal(&self, request: RealmEconomyControllerCalculateWithdrawalOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<WithdrawalSummaryDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "EconomyController_calculateWithdrawal".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn economy_controller_calculate_withdrawal(&self, _request: RealmEconomyControllerCalculateWithdrawalOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WithdrawalSummaryDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for EconomyController_calculateWithdrawal");
     }
 
-    pub fn economy_controller_cancel_subscription(&self, request: RealmEconomyControllerCancelSubscriptionOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "EconomyController_cancelSubscription".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn economy_controller_cancel_subscription(&self, _request: RealmEconomyControllerCancelSubscriptionOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for EconomyController_cancelSubscription");
     }
 
-    pub fn economy_controller_can_withdraw(&self, request: RealmEconomyControllerCanWithdrawOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CanWithdrawDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "EconomyController_canWithdraw".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn economy_controller_can_withdraw(&self, _request: RealmEconomyControllerCanWithdrawOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<CanWithdrawDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for EconomyController_canWithdraw");
     }
 
-    pub fn economy_controller_create_connect_dashboard(&self, request: RealmEconomyControllerCreateConnectDashboardOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ConnectDashboardLinkDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "EconomyController_createConnectDashboard".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn economy_controller_create_connect_dashboard(&self, _request: RealmEconomyControllerCreateConnectDashboardOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<ConnectDashboardLinkDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for EconomyController_createConnectDashboard");
     }
 
-    pub fn economy_controller_create_connect_onboarding(&self, request: RealmEconomyControllerCreateConnectOnboardingOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ConnectOnboardingResponseDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "EconomyController_createConnectOnboarding".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn economy_controller_create_connect_onboarding(&self, _request: RealmEconomyControllerCreateConnectOnboardingOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<ConnectOnboardingResponseDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for EconomyController_createConnectOnboarding");
     }
 
-    pub fn economy_controller_create_portal_session(&self, request: RealmEconomyControllerCreatePortalSessionOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<PortalSessionDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "EconomyController_createPortalSession".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn economy_controller_create_portal_session(&self, _request: RealmEconomyControllerCreatePortalSessionOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<PortalSessionDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for EconomyController_createPortalSession");
     }
 
-    pub fn economy_controller_create_spark_checkout(&self, request: RealmEconomyControllerCreateSparkCheckoutOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<SparkCheckoutSessionDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "EconomyController_createSparkCheckout".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn economy_controller_create_spark_checkout(&self, _request: RealmEconomyControllerCreateSparkCheckoutOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<SparkCheckoutSessionDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for EconomyController_createSparkCheckout");
     }
 
-    pub fn economy_controller_create_subscription_checkout(&self, request: RealmEconomyControllerCreateSubscriptionCheckoutOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<SubscriptionCheckoutSessionDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "EconomyController_createSubscriptionCheckout".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn economy_controller_create_subscription_checkout(&self, _request: RealmEconomyControllerCreateSubscriptionCheckoutOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<SubscriptionCheckoutSessionDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for EconomyController_createSubscriptionCheckout");
     }
 
-    pub fn economy_controller_create_withdrawal(&self, request: RealmEconomyControllerCreateWithdrawalOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<WithdrawalDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "EconomyController_createWithdrawal".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn economy_controller_create_withdrawal(&self, _request: RealmEconomyControllerCreateWithdrawalOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WithdrawalDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for EconomyController_createWithdrawal");
     }
 
-    pub fn economy_controller_get_agent_origin(&self, request: RealmEconomyControllerGetAgentOriginOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<AgentOriginDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "EconomyController_getAgentOrigin".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn economy_controller_get_agent_origin(&self, _request: RealmEconomyControllerGetAgentOriginOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AgentOriginDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for EconomyController_getAgentOrigin");
     }
 
-    pub fn economy_controller_get_balances(&self, request: RealmEconomyControllerGetBalancesOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CurrencyBalancesDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "EconomyController_getBalances".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn economy_controller_get_balances(&self, _request: RealmEconomyControllerGetBalancesOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<CurrencyBalancesDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for EconomyController_getBalances");
     }
 
-    pub fn economy_controller_get_connect_status(&self, request: RealmEconomyControllerGetConnectStatusOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<StripeConnectStatusDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "EconomyController_getConnectStatus".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn economy_controller_get_connect_status(&self, _request: RealmEconomyControllerGetConnectStatusOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<StripeConnectStatusDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for EconomyController_getConnectStatus");
     }
 
-    pub fn economy_controller_get_gem_history(&self, request: RealmEconomyControllerGetGemHistoryOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CurrencyTransactionHistoryDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "EconomyController_getGemHistory".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn economy_controller_get_gem_history(&self, _request: RealmEconomyControllerGetGemHistoryOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<CurrencyTransactionHistoryDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for EconomyController_getGemHistory");
     }
 
-    pub fn economy_controller_get_gift_catalog(&self, request: RealmEconomyControllerGetGiftCatalogOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<Vec<GiftCatalogItemDto>, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "EconomyController_getGiftCatalog".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn economy_controller_get_gift_catalog(&self, _request: RealmEconomyControllerGetGiftCatalogOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<Vec<GiftCatalogItemDto>, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for EconomyController_getGiftCatalog");
     }
 
-    pub fn economy_controller_get_received_gifts(&self, request: RealmEconomyControllerGetReceivedGiftsOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ReceivedGiftsResponseDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "EconomyController_getReceivedGifts".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn economy_controller_get_received_gifts(&self, _request: RealmEconomyControllerGetReceivedGiftsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<ReceivedGiftsResponseDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for EconomyController_getReceivedGifts");
     }
 
-    pub fn economy_controller_get_revenue_share_config(&self, request: RealmEconomyControllerGetRevenueShareConfigOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RevenueShareConfigDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "EconomyController_getRevenueShareConfig".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn economy_controller_get_revenue_share_config(&self, _request: RealmEconomyControllerGetRevenueShareConfigOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<RevenueShareConfigDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for EconomyController_getRevenueShareConfig");
     }
 
-    pub fn economy_controller_get_sent_gifts(&self, request: RealmEconomyControllerGetSentGiftsOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ReceivedGiftsResponseDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "EconomyController_getSentGifts".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn economy_controller_get_sent_gifts(&self, _request: RealmEconomyControllerGetSentGiftsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<ReceivedGiftsResponseDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for EconomyController_getSentGifts");
     }
 
-    pub fn economy_controller_get_spark_history(&self, request: RealmEconomyControllerGetSparkHistoryOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CurrencyTransactionHistoryDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "EconomyController_getSparkHistory".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn economy_controller_get_spark_history(&self, _request: RealmEconomyControllerGetSparkHistoryOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<CurrencyTransactionHistoryDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for EconomyController_getSparkHistory");
     }
 
-    pub fn economy_controller_get_spark_packages(&self, request: RealmEconomyControllerGetSparkPackagesOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<Vec<SparkPackageDto>, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "EconomyController_getSparkPackages".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn economy_controller_get_spark_packages(&self, _request: RealmEconomyControllerGetSparkPackagesOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<Vec<SparkPackageDto>, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for EconomyController_getSparkPackages");
     }
 
-    pub fn economy_controller_get_subscription(&self, request: RealmEconomyControllerGetSubscriptionOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<SubscriptionDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "EconomyController_getSubscription".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn economy_controller_get_subscription(&self, _request: RealmEconomyControllerGetSubscriptionOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<SubscriptionDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for EconomyController_getSubscription");
     }
 
-    pub fn economy_controller_get_subscription_tiers(&self, request: RealmEconomyControllerGetSubscriptionTiersOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<Vec<SubscriptionTierConfigDto>, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "EconomyController_getSubscriptionTiers".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn economy_controller_get_subscription_tiers(&self, _request: RealmEconomyControllerGetSubscriptionTiersOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<Vec<SubscriptionTierConfigDto>, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for EconomyController_getSubscriptionTiers");
     }
 
-    pub fn economy_controller_get_withdrawal(&self, request: RealmEconomyControllerGetWithdrawalOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<WithdrawalDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "EconomyController_getWithdrawal".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn economy_controller_get_withdrawal(&self, _request: RealmEconomyControllerGetWithdrawalOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WithdrawalDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for EconomyController_getWithdrawal");
     }
 
-    pub fn economy_controller_get_withdrawal_config(&self, request: RealmEconomyControllerGetWithdrawalConfigOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<WithdrawalConfigDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "EconomyController_getWithdrawalConfig".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn economy_controller_get_withdrawal_config(&self, _request: RealmEconomyControllerGetWithdrawalConfigOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WithdrawalConfigDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for EconomyController_getWithdrawalConfig");
     }
 
-    pub fn economy_controller_get_withdrawal_history(&self, request: RealmEconomyControllerGetWithdrawalHistoryOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<WithdrawalHistoryDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "EconomyController_getWithdrawalHistory".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn economy_controller_get_withdrawal_history(&self, _request: RealmEconomyControllerGetWithdrawalHistoryOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WithdrawalHistoryDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for EconomyController_getWithdrawalHistory");
     }
 
-    pub fn economy_controller_preview_revenue_distribution(&self, request: RealmEconomyControllerPreviewRevenueDistributionOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RevenueDistributionPreviewDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "EconomyController_previewRevenueDistribution".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn economy_controller_preview_revenue_distribution(&self, _request: RealmEconomyControllerPreviewRevenueDistributionOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<RevenueDistributionPreviewDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for EconomyController_previewRevenueDistribution");
     }
 
-    pub fn economy_controller_reject_gift(&self, request: RealmEconomyControllerRejectGiftOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GiftTransactionDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "EconomyController_rejectGift".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn economy_controller_reject_gift(&self, _request: RealmEconomyControllerRejectGiftOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<GiftTransactionDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for EconomyController_rejectGift");
     }
 
-    pub fn economy_controller_send_gift(&self, request: RealmEconomyControllerSendGiftOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GiftTransactionDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "EconomyController_sendGift".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn economy_controller_send_gift(&self, _request: RealmEconomyControllerSendGiftOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<GiftTransactionDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for EconomyController_sendGift");
     }
 
-    pub fn edit_group_message(&self, request: RealmEditGroupMessageOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GroupMessageViewDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "editGroupMessage".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn edit_group_message(&self, _request: RealmEditGroupMessageOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<GroupMessageViewDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for editGroupMessage");
     }
 
-    pub fn edit_message(&self, request: RealmEditMessageOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<MessageViewDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "editMessage".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn edit_message(&self, _request: RealmEditMessageOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<MessageViewDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for editMessage");
     }
 
-    pub fn enable2_fa(&self, request: RealmEnable2FaOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<Me2faOperationResultDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "enable2Fa".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn enable2_fa(&self, _request: RealmEnable2FaOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<Me2faOperationResultDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for enable2Fa");
     }
 
-    pub fn expire_my_app_permission_grant(&self, request: RealmExpireMyAppPermissionGrantOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<AppPermissionGrantDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "expireMyAppPermissionGrant".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn expire_my_app_permission_grant(&self, _request: RealmExpireMyAppPermissionGrantOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AppPermissionGrantDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for expireMyAppPermissionGrant");
     }
 
-    pub fn explore_controller_check_status(&self, request: RealmExploreControllerCheckStatusOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "ExploreController_checkStatus".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn explore_controller_check_status(&self, _request: RealmExploreControllerCheckStatusOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for ExploreController_checkStatus");
     }
 
-    pub fn finalize_resource(&self, request: RealmFinalizeResourceOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ResourceDetailDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "finalizeResource".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn finalize_resource(&self, _request: RealmFinalizeResourceOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<ResourceDetailDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for finalizeResource");
     }
 
-    pub fn get_agent(&self, request: RealmGetAgentOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<UserProfileDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "getAgent".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn get_agent(&self, _request: RealmGetAgentOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<UserProfileDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getAgent");
     }
 
-    pub fn get_agent_by_handle(&self, request: RealmGetAgentByHandleOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<UserProfileDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "getAgentByHandle".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn get_agent_by_handle(&self, _request: RealmGetAgentByHandleOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<UserProfileDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getAgentByHandle");
     }
 
-    pub fn get_asset(&self, request: RealmGetAssetOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<AssetDetailDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "getAsset".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn get_asset(&self, _request: RealmGetAssetOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AssetDetailDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getAsset");
     }
 
-    pub fn get_auth_jwks(&self, request: RealmGetAuthJwksOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<BTreeMap<String, String>, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "getAuthJwks".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn get_auth_jwks(&self, _request: RealmGetAuthJwksOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<BTreeMap<String, String>, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getAuthJwks");
     }
 
-    pub fn get_bundle(&self, request: RealmGetBundleOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<BundleDetailDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "getBundle".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn get_bundle(&self, _request: RealmGetBundleOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<BundleDetailDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getBundle");
     }
 
-    pub fn get_chat_by_id(&self, request: RealmGetChatByIdOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ChatViewDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "getChatById".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn get_chat_by_id(&self, _request: RealmGetChatByIdOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<ChatViewDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getChatById");
     }
 
-    pub fn get_explore_feed(&self, request: RealmGetExploreFeedOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<FeedResponseDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "getExploreFeed".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn get_explore_feed(&self, _request: RealmGetExploreFeedOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<FeedResponseDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getExploreFeed");
     }
 
-    pub fn get_group(&self, request: RealmGetGroupOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GroupChatViewDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "getGroup".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn get_group(&self, _request: RealmGetGroupOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<GroupChatViewDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getGroup");
     }
 
-    pub fn get_home_feed(&self, request: RealmGetHomeFeedOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<FeedResponseDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "getHomeFeed".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn get_home_feed(&self, _request: RealmGetHomeFeedOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<FeedResponseDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getHomeFeed");
     }
 
-    pub fn get_me(&self, request: RealmGetMeOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<UserPrivateDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "getMe".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn get_me(&self, _request: RealmGetMeOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<UserPrivateDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getMe");
     }
 
-    pub fn get_mutual_friends(&self, request: RealmGetMutualFriendsOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<BTreeMap<String, String>, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "getMutualFriends".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn get_mutual_friends(&self, _request: RealmGetMutualFriendsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<BTreeMap<String, String>, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getMutualFriends");
     }
 
-    pub fn get_mutual_friends_count(&self, request: RealmGetMutualFriendsCountOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<BTreeMap<String, String>, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "getMutualFriendsCount".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn get_mutual_friends_count(&self, _request: RealmGetMutualFriendsCountOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<BTreeMap<String, String>, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getMutualFriendsCount");
     }
 
-    pub fn get_my_agent_friend_limit(&self, request: RealmGetMyAgentFriendLimitOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<AgentFriendLimitDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "getMyAgentFriendLimit".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn get_my_agent_friend_limit(&self, _request: RealmGetMyAgentFriendLimitOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AgentFriendLimitDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getMyAgentFriendLimit");
     }
 
-    pub fn get_my_app_permission_grant(&self, request: RealmGetMyAppPermissionGrantOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<AppPermissionGrantDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "getMyAppPermissionGrant".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn get_my_app_permission_grant(&self, _request: RealmGetMyAppPermissionGrantOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AppPermissionGrantDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getMyAppPermissionGrant");
     }
 
-    pub fn get_my_app_permission_grant_projection(&self, request: RealmGetMyAppPermissionGrantProjectionOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<AccountGrantsProjectionDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "getMyAppPermissionGrantProjection".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn get_my_app_permission_grant_projection(&self, _request: RealmGetMyAppPermissionGrantProjectionOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AccountGrantsProjectionDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getMyAppPermissionGrantProjection");
     }
 
-    pub fn get_my_app_permission_grant_status(&self, request: RealmGetMyAppPermissionGrantStatusOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<AppPermissionGrantStatusDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "getMyAppPermissionGrantStatus".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn get_my_app_permission_grant_status(&self, _request: RealmGetMyAppPermissionGrantStatusOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AppPermissionGrantStatusDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getMyAppPermissionGrantStatus");
     }
 
-    pub fn get_my_blocked_users(&self, request: RealmGetMyBlockedUsersOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<BTreeMap<String, String>, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "getMyBlockedUsers".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn get_my_blocked_users(&self, _request: RealmGetMyBlockedUsersOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<BTreeMap<String, String>, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getMyBlockedUsers");
     }
 
-    pub fn get_my_capabilities(&self, request: RealmGetMyCapabilitiesOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<UserCapabilitiesDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "getMyCapabilities".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn get_my_capabilities(&self, _request: RealmGetMyCapabilitiesOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<UserCapabilitiesDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getMyCapabilities");
     }
 
-    pub fn get_my_creator_eligibility(&self, request: RealmGetMyCreatorEligibilityOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CreatorEligibilityResponseDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "getMyCreatorEligibility".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn get_my_creator_eligibility(&self, _request: RealmGetMyCreatorEligibilityOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<CreatorEligibilityResponseDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getMyCreatorEligibility");
     }
 
-    pub fn get_my_notification_settings(&self, request: RealmGetMyNotificationSettingsOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<UserNotificationSettingsDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "getMyNotificationSettings".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn get_my_notification_settings(&self, _request: RealmGetMyNotificationSettingsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<UserNotificationSettingsDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getMyNotificationSettings");
     }
 
-    pub fn get_my_pending_friend_requests(&self, request: RealmGetMyPendingFriendRequestsOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<BTreeMap<String, String>, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "getMyPendingFriendRequests".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn get_my_pending_friend_requests(&self, _request: RealmGetMyPendingFriendRequestsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<BTreeMap<String, String>, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getMyPendingFriendRequests");
     }
 
-    pub fn get_my_ppconfig(&self, request: RealmGetMyPPConfigOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<PPSlotConfigResponseDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "getMyPPConfig".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn get_my_ppconfig(&self, _request: RealmGetMyPPConfigOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<PPSlotConfigResponseDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getMyPPConfig");
     }
 
-    pub fn get_my_realm_agent(&self, request: RealmGetMyRealmAgentOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<UserLiteDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "getMyRealmAgent".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn get_my_realm_agent(&self, _request: RealmGetMyRealmAgentOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<UserLiteDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getMyRealmAgent");
     }
 
-    pub fn get_my_realm_agent_settings(&self, request: RealmGetMyRealmAgentSettingsOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<OwnerAgentSettingsDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "getMyRealmAgentSettings".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn get_my_realm_agent_settings(&self, _request: RealmGetMyRealmAgentSettingsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<OwnerAgentSettingsDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getMyRealmAgentSettings");
     }
 
-    pub fn get_my_settings(&self, request: RealmGetMySettingsOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<UserSettingsDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "getMySettings".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn get_my_settings(&self, _request: RealmGetMySettingsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<UserSettingsDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getMySettings");
     }
 
-    pub fn get_my_tiers(&self, request: RealmGetMyTiersOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<TierDetailDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "getMyTiers".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn get_my_tiers(&self, _request: RealmGetMyTiersOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<TierDetailDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getMyTiers");
     }
 
-    pub fn get_my_wallets(&self, request: RealmGetMyWalletsOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<UserWalletListResponseDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "getMyWallets".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn get_my_wallets(&self, _request: RealmGetMyWalletsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<UserWalletListResponseDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getMyWallets");
     }
 
-    pub fn get_post(&self, request: RealmGetPostOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<PostDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "getPost".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn get_post(&self, _request: RealmGetPostOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<PostDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getPost");
     }
 
-    pub fn get_public_post(&self, request: RealmGetPublicPostOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<PostDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "getPublicPost".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn get_public_post(&self, _request: RealmGetPublicPostOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<PostDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getPublicPost");
     }
 
-    pub fn get_resource(&self, request: RealmGetResourceOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ResourceDetailDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "getResource".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn get_resource(&self, _request: RealmGetResourceOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<ResourceDetailDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getResource");
     }
 
-    pub fn get_unread_count(&self, request: RealmGetUnreadCountOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<UnreadNotificationCountDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "getUnreadCount".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn get_unread_count(&self, _request: RealmGetUnreadCountOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<UnreadNotificationCountDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getUnreadCount");
     }
 
-    pub fn get_user(&self, request: RealmGetUserOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<UserProfileDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "getUser".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn get_user(&self, _request: RealmGetUserOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<UserProfileDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getUser");
     }
 
-    pub fn get_user_by_handle(&self, request: RealmGetUserByHandleOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<UserProfileDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "getUserByHandle".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn get_user_by_handle(&self, _request: RealmGetUserByHandleOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<UserProfileDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getUserByHandle");
     }
 
-    pub fn get_user_friends(&self, request: RealmGetUserFriendsOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<Vec<String>, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "getUserFriends".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn get_user_friends(&self, _request: RealmGetUserFriendsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<Vec<String>, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getUserFriends");
     }
 
-    pub fn get_world_posts(&self, request: RealmGetWorldPostsOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<FeedResponseDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "getWorldPosts".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn get_world_posts(&self, _request: RealmGetWorldPostsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<FeedResponseDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getWorldPosts");
     }
 
-    pub fn get_world_scenes(&self, request: RealmGetWorldScenesOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<PublicWorldSceneListDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "getWorldScenes".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn get_world_scenes(&self, _request: RealmGetWorldScenesOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<PublicWorldSceneListDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getWorldScenes");
     }
 
-    pub fn grant_my_app_permission_grant(&self, request: RealmGrantMyAppPermissionGrantOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<AppPermissionGrantDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "grantMyAppPermissionGrant".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn grant_my_app_permission_grant(&self, _request: RealmGrantMyAppPermissionGrantOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AppPermissionGrantDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for grantMyAppPermissionGrant");
     }
 
-    pub fn human_nsfw_consent_controller_can_manage_agent_nsfw(&self, request: RealmHumanNsfwConsentControllerCanManageAgentNsfwOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CanManageNsfwResponseDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "HumanNsfwConsentController_canManageAgentNsfw".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn human_nsfw_consent_controller_can_manage_agent_nsfw(&self, _request: RealmHumanNsfwConsentControllerCanManageAgentNsfwOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<CanManageNsfwResponseDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for HumanNsfwConsentController_canManageAgentNsfw");
     }
 
-    pub fn human_nsfw_consent_controller_check_consent(&self, request: RealmHumanNsfwConsentControllerCheckConsentOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<NsfwConsentResponseDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "HumanNsfwConsentController_checkConsent".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn human_nsfw_consent_controller_check_consent(&self, _request: RealmHumanNsfwConsentControllerCheckConsentOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<NsfwConsentResponseDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for HumanNsfwConsentController_checkConsent");
     }
 
-    pub fn human_nsfw_consent_controller_get_consent_status(&self, request: RealmHumanNsfwConsentControllerGetConsentStatusOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<NsfwConsentStatusResponseDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "HumanNsfwConsentController_getConsentStatus".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn human_nsfw_consent_controller_get_consent_status(&self, _request: RealmHumanNsfwConsentControllerGetConsentStatusOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<NsfwConsentStatusResponseDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for HumanNsfwConsentController_getConsentStatus");
     }
 
-    pub fn human_nsfw_consent_controller_update_user_consent(&self, request: RealmHumanNsfwConsentControllerUpdateUserConsentOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<UpdateNsfwConsentResponseDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "HumanNsfwConsentController_updateUserConsent".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn human_nsfw_consent_controller_update_user_consent(&self, _request: RealmHumanNsfwConsentControllerUpdateUserConsentOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<UpdateNsfwConsentResponseDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for HumanNsfwConsentController_updateUserConsent");
     }
 
-    pub fn introspect_session(&self, request: RealmIntrospectSessionOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<IntrospectSessionResponseDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "introspectSession".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn introspect_session(&self, _request: RealmIntrospectSessionOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<IntrospectSessionResponseDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for introspectSession");
     }
 
-    pub fn invitation_controller_generate_code(&self, request: RealmInvitationControllerGenerateCodeOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<InvitationCodeResponseDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "InvitationController_generateCode".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn invitation_controller_generate_code(&self, _request: RealmInvitationControllerGenerateCodeOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<InvitationCodeResponseDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for InvitationController_generateCode");
     }
 
-    pub fn invitation_controller_list_my_codes(&self, request: RealmInvitationControllerListMyCodesOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<Vec<InvitationCodeResponseDto>, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "InvitationController_listMyCodes".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn invitation_controller_list_my_codes(&self, _request: RealmInvitationControllerListMyCodesOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<Vec<InvitationCodeResponseDto>, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for InvitationController_listMyCodes");
     }
 
-    pub fn invitation_controller_verify_code(&self, request: RealmInvitationControllerVerifyCodeOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<bool, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "InvitationController_verifyCode".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn invitation_controller_verify_code(&self, _request: RealmInvitationControllerVerifyCodeOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<bool, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for InvitationController_verifyCode");
     }
 
-    pub fn issue_runtime_realm_grant(&self, request: RealmIssueRuntimeRealmGrantOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RuntimeRealmGrantIssueResponseDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "issueRuntimeRealmGrant".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn issue_runtime_realm_grant(&self, _request: RealmIssueRuntimeRealmGrantOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<RuntimeRealmGrantIssueResponseDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for issueRuntimeRealmGrant");
     }
 
-    pub fn like_post(&self, request: RealmLikePostOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "likePost".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn like_post(&self, _request: RealmLikePostOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for likePost");
     }
 
-    pub fn link_oauth(&self, request: RealmLinkOauthOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "linkOauth".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn link_oauth(&self, _request: RealmLinkOauthOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for linkOauth");
     }
 
-    pub fn list_assets(&self, request: RealmListAssetsOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<AssetListDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "listAssets".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn list_assets(&self, _request: RealmListAssetsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AssetListDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for listAssets");
     }
 
-    pub fn list_bundles(&self, request: RealmListBundlesOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<BundleListDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "listBundles".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn list_bundles(&self, _request: RealmListBundlesOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<BundleListDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for listBundles");
     }
 
-    pub fn list_chats(&self, request: RealmListChatsOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListChatsResultDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "listChats".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn list_chats(&self, _request: RealmListChatsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<ListChatsResultDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for listChats");
     }
 
-    pub fn list_group_messages(&self, request: RealmListGroupMessagesOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListGroupMessagesResultDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "listGroupMessages".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn list_group_messages(&self, _request: RealmListGroupMessagesOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<ListGroupMessagesResultDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for listGroupMessages");
     }
 
-    pub fn list_groups(&self, request: RealmListGroupsOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListGroupChatsResultDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "listGroups".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn list_groups(&self, _request: RealmListGroupsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<ListGroupChatsResultDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for listGroups");
     }
 
-    pub fn list_liked_posts(&self, request: RealmListLikedPostsOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<FeedResponseDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "listLikedPosts".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn list_liked_posts(&self, _request: RealmListLikedPostsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<FeedResponseDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for listLikedPosts");
     }
 
-    pub fn list_messages(&self, request: RealmListMessagesOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListMessagesResultDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "listMessages".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn list_messages(&self, _request: RealmListMessagesOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<ListMessagesResultDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for listMessages");
     }
 
-    pub fn list_my_app_permission_grants(&self, request: RealmListMyAppPermissionGrantsOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<AppPermissionGrantListDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "listMyAppPermissionGrants".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn list_my_app_permission_grants(&self, _request: RealmListMyAppPermissionGrantsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AppPermissionGrantListDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for listMyAppPermissionGrants");
     }
 
-    pub fn list_my_friend_ids(&self, request: RealmListMyFriendIdsOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "listMyFriendIds".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn list_my_friend_ids(&self, _request: RealmListMyFriendIdsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for listMyFriendIds");
     }
 
-    pub fn list_my_friends_with_details(&self, request: RealmListMyFriendsWithDetailsOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<FriendProfileListDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "listMyFriendsWithDetails".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn list_my_friends_with_details(&self, _request: RealmListMyFriendsWithDetailsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<FriendProfileListDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for listMyFriendsWithDetails");
     }
 
-    pub fn list_my_local_agent_provision_intents(&self, request: RealmListMyLocalAgentProvisionIntentsOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<LocalAgentProvisionIntentListDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "listMyLocalAgentProvisionIntents".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn list_my_local_agent_provision_intents(&self, _request: RealmListMyLocalAgentProvisionIntentsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<LocalAgentProvisionIntentListDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for listMyLocalAgentProvisionIntents");
     }
 
-    pub fn list_my_local_agent_termination_intents(&self, request: RealmListMyLocalAgentTerminationIntentsOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<LocalAgentTerminationIntentListDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "listMyLocalAgentTerminationIntents".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn list_my_local_agent_termination_intents(&self, _request: RealmListMyLocalAgentTerminationIntentsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<LocalAgentTerminationIntentListDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for listMyLocalAgentTerminationIntents");
     }
 
-    pub fn list_my_realm_agents(&self, request: RealmListMyRealmAgentsOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<Vec<UserLiteDto>, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "listMyRealmAgents".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn list_my_realm_agents(&self, _request: RealmListMyRealmAgentsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<Vec<UserLiteDto>, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for listMyRealmAgents");
     }
 
-    pub fn list_notifications(&self, request: RealmListNotificationsOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<NotificationListResultDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "listNotifications".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn list_notifications(&self, _request: RealmListNotificationsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<NotificationListResultDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for listNotifications");
     }
 
-    pub fn list_online_users(&self, request: RealmListOnlineUsersOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<Vec<String>, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "listOnlineUsers".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn list_online_users(&self, _request: RealmListOnlineUsersOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<Vec<String>, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for listOnlineUsers");
     }
 
-    pub fn list_resources(&self, request: RealmListResourcesOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ResourceListDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "listResources".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn list_resources(&self, _request: RealmListResourcesOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<ResourceListDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for listResources");
     }
 
-    pub fn logout(&self, request: RealmLogoutOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "logout".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn logout(&self, _request: RealmLogoutOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for logout");
     }
 
-    pub fn mark_chat_read(&self, request: RealmMarkChatReadOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "markChatRead".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn mark_chat_read(&self, _request: RealmMarkChatReadOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for markChatRead");
     }
 
-    pub fn mark_group_read(&self, request: RealmMarkGroupReadOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "markGroupRead".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn mark_group_read(&self, _request: RealmMarkGroupReadOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for markGroupRead");
     }
 
-    pub fn mark_notification_read(&self, request: RealmMarkNotificationReadOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "markNotificationRead".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn mark_notification_read(&self, _request: RealmMarkNotificationReadOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for markNotificationRead");
     }
 
-    pub fn mark_notifications_read(&self, request: RealmMarkNotificationsReadOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "markNotificationsRead".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn mark_notifications_read(&self, _request: RealmMarkNotificationsReadOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for markNotificationsRead");
     }
 
-    pub fn oauth_authorize(&self, request: RealmOauthAuthorizeOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "oauthAuthorize".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn oauth_authorize(&self, _request: RealmOauthAuthorizeOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for oauthAuthorize");
     }
 
-    pub fn oauth_login(&self, request: RealmOauthLoginOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<OAuthLoginResultDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "oauthLogin".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn oauth_login(&self, _request: RealmOauthLoginOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<OAuthLoginResultDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for oauthLogin");
     }
 
-    pub fn oauth_token(&self, request: RealmOauthTokenOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<OAuthTokenResponseDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "oauthToken".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn oauth_token(&self, _request: RealmOauthTokenOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<OAuthTokenResponseDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for oauthToken");
     }
 
-    pub fn password_login(&self, request: RealmPasswordLoginOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<OAuthLoginResultDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "passwordLogin".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn password_login(&self, _request: RealmPasswordLoginOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<OAuthLoginResultDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for passwordLogin");
     }
 
-    pub fn password_register(&self, request: RealmPasswordRegisterOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<OAuthLoginResultDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "passwordRegister".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn password_register(&self, _request: RealmPasswordRegisterOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<OAuthLoginResultDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for passwordRegister");
     }
 
-    pub fn prepare2_fa(&self, request: RealmPrepare2FaOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<Me2faPrepareResponseDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "prepare2Fa".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn prepare2_fa(&self, _request: RealmPrepare2FaOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<Me2faPrepareResponseDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for prepare2Fa");
     }
 
-    pub fn prepare_bind_wallet(&self, request: RealmPrepareBindWalletOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<WalletPrepareBindResponseDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "prepareBindWallet".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn prepare_bind_wallet(&self, _request: RealmPrepareBindWalletOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WalletPrepareBindResponseDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for prepareBindWallet");
     }
 
-    pub fn project_runtime_payload(&self, request: RealmProjectRuntimePayloadOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RuntimeProjectionResponseDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "projectRuntimePayload".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn project_runtime_payload(&self, _request: RealmProjectRuntimePayloadOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<RuntimeProjectionResponseDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for projectRuntimePayload");
     }
 
-    pub fn publish_bundle(&self, request: RealmPublishBundleOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<BundleDetailDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "publishBundle".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn publish_bundle(&self, _request: RealmPublishBundleOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<BundleDetailDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for publishBundle");
     }
 
-    pub fn recall_group_message(&self, request: RealmRecallGroupMessageOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "recallGroupMessage".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn recall_group_message(&self, _request: RealmRecallGroupMessageOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for recallGroupMessage");
     }
 
-    pub fn recall_message(&self, request: RealmRecallMessageOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "recallMessage".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn recall_message(&self, _request: RealmRecallMessageOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for recallMessage");
     }
 
-    pub fn refresh_token(&self, request: RealmRefreshTokenOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<AuthTokensDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "refreshToken".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn refresh_token(&self, _request: RealmRefreshTokenOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AuthTokensDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for refreshToken");
     }
 
-    pub fn relationship_controller_create_relationship(&self, request: RealmRelationshipControllerCreateRelationshipOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RelationshipResponseDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "RelationshipController_createRelationship".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn relationship_controller_create_relationship(&self, _request: RealmRelationshipControllerCreateRelationshipOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<RelationshipResponseDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for RelationshipController_createRelationship");
     }
 
-    pub fn relationship_controller_delete_relationship(&self, request: RealmRelationshipControllerDeleteRelationshipOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<DeleteRelationshipResponseDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "RelationshipController_deleteRelationship".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn relationship_controller_delete_relationship(&self, _request: RealmRelationshipControllerDeleteRelationshipOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<DeleteRelationshipResponseDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for RelationshipController_deleteRelationship");
     }
 
-    pub fn relationship_controller_get_my_relationships(&self, request: RealmRelationshipControllerGetMyRelationshipsOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<Vec<RelationshipResponseDto>, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "RelationshipController_getMyRelationships".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn relationship_controller_get_my_relationships(&self, _request: RealmRelationshipControllerGetMyRelationshipsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<Vec<RelationshipResponseDto>, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for RelationshipController_getMyRelationships");
     }
 
-    pub fn relationship_controller_update_relationship(&self, request: RealmRelationshipControllerUpdateRelationshipOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RelationshipResponseDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "RelationshipController_updateRelationship".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn relationship_controller_update_relationship(&self, _request: RealmRelationshipControllerUpdateRelationshipOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<RelationshipResponseDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for RelationshipController_updateRelationship");
     }
 
-    pub fn remove_friend(&self, request: RealmRemoveFriendOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "removeFriend".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn remove_friend(&self, _request: RealmRemoveFriendOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for removeFriend");
     }
 
-    pub fn remove_group_agent(&self, request: RealmRemoveGroupAgentOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "removeGroupAgent".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn remove_group_agent(&self, _request: RealmRemoveGroupAgentOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for removeGroupAgent");
     }
 
-    pub fn remove_group_participant(&self, request: RealmRemoveGroupParticipantOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "removeGroupParticipant".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn remove_group_participant(&self, _request: RealmRemoveGroupParticipantOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for removeGroupParticipant");
     }
 
-    pub fn report_controller_create_report(&self, request: RealmReportControllerCreateReportOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ReportResponseDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "ReportController_createReport".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn report_controller_create_report(&self, _request: RealmReportControllerCreateReportOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<ReportResponseDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for ReportController_createReport");
     }
 
-    pub fn request_account_deletion(&self, request: RealmRequestAccountDeletionOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "requestAccountDeletion".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn request_account_deletion(&self, _request: RealmRequestAccountDeletionOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for requestAccountDeletion");
     }
 
-    pub fn request_data_export(&self, request: RealmRequestDataExportOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "requestDataExport".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn request_data_export(&self, _request: RealmRequestDataExportOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for requestDataExport");
     }
 
-    pub fn request_email_otp(&self, request: RealmRequestEmailOtpOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<EmailOtpResponseDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "requestEmailOtp".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn request_email_otp(&self, _request: RealmRequestEmailOtpOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<EmailOtpResponseDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for requestEmailOtp");
     }
 
-    pub fn request_my_app_permission_grant(&self, request: RealmRequestMyAppPermissionGrantOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<AppPermissionGrantDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "requestMyAppPermissionGrant".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn request_my_app_permission_grant(&self, _request: RealmRequestMyAppPermissionGrantOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AppPermissionGrantDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for requestMyAppPermissionGrant");
     }
 
-    pub fn review_controller_create_review(&self, request: RealmReviewControllerCreateReviewOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ReviewDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "ReviewController_createReview".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn review_controller_create_review(&self, _request: RealmReviewControllerCreateReviewOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<ReviewDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for ReviewController_createReview");
     }
 
-    pub fn review_controller_get_reviews(&self, request: RealmReviewControllerGetReviewsOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<Vec<ReviewDto>, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "ReviewController_getReviews".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn review_controller_get_reviews(&self, _request: RealmReviewControllerGetReviewsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<Vec<ReviewDto>, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for ReviewController_getReviews");
     }
 
-    pub fn revoke_my_app_permission_grant(&self, request: RealmRevokeMyAppPermissionGrantOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<AppPermissionGrantDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "revokeMyAppPermissionGrant".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn revoke_my_app_permission_grant(&self, _request: RealmRevokeMyAppPermissionGrantOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AppPermissionGrantDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for revokeMyAppPermissionGrant");
     }
 
-    pub fn search_human_users(&self, request: RealmSearchHumanUsersOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<UserSearchResponseDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "searchHumanUsers".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn search_human_users(&self, _request: RealmSearchHumanUsersOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<UserSearchResponseDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for searchHumanUsers");
     }
 
-    pub fn search_indexed_users(&self, request: RealmSearchIndexedUsersOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<UserSearchResponseDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "searchIndexedUsers".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn search_indexed_users(&self, _request: RealmSearchIndexedUsersOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<UserSearchResponseDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for searchIndexedUsers");
     }
 
-    pub fn search_posts(&self, request: RealmSearchPostsOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<FeedResponseDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "searchPosts".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn search_posts(&self, _request: RealmSearchPostsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<FeedResponseDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for searchPosts");
     }
 
-    pub fn send_group_message(&self, request: RealmSendGroupMessageOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GroupMessageViewDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "sendGroupMessage".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn send_group_message(&self, _request: RealmSendGroupMessageOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<GroupMessageViewDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for sendGroupMessage");
     }
 
-    pub fn send_message(&self, request: RealmSendMessageOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<MessageViewDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "sendMessage".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn send_message(&self, _request: RealmSendMessageOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<MessageViewDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for sendMessage");
     }
 
-    pub fn start_chat(&self, request: RealmStartChatOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<StartChatResultDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "startChat".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn start_chat(&self, _request: RealmStartChatOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<StartChatResultDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for startChat");
     }
 
-    pub fn supersede_my_app_permission_grant(&self, request: RealmSupersedeMyAppPermissionGrantOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<AppPermissionGrantDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "supersedeMyAppPermissionGrant".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn supersede_my_app_permission_grant(&self, _request: RealmSupersedeMyAppPermissionGrantOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AppPermissionGrantDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for supersedeMyAppPermissionGrant");
     }
 
-    pub fn sync_chat_events(&self, request: RealmSyncChatEventsOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ChatSyncResultDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "syncChatEvents".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn sync_chat_events(&self, _request: RealmSyncChatEventsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<ChatSyncResultDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for syncChatEvents");
     }
 
-    pub fn sync_group_events(&self, request: RealmSyncGroupEventsOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ChatSyncResultDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "syncGroupEvents".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn sync_group_events(&self, _request: RealmSyncGroupEventsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<ChatSyncResultDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for syncGroupEvents");
     }
 
-    pub fn transit_controller_abandon(&self, request: RealmTransitControllerAbandonOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<TransitDetailDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "TransitController_abandon".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn transit_controller_abandon(&self, _request: RealmTransitControllerAbandonOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<TransitDetailDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for TransitController_abandon");
     }
 
-    pub fn transit_controller_complete(&self, request: RealmTransitControllerCompleteOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<TransitDetailDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "TransitController_complete".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn transit_controller_complete(&self, _request: RealmTransitControllerCompleteOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<TransitDetailDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for TransitController_complete");
     }
 
-    pub fn transit_controller_get_active_transit(&self, request: RealmTransitControllerGetActiveTransitOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<TransitDetailDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "TransitController_getActiveTransit".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn transit_controller_get_active_transit(&self, _request: RealmTransitControllerGetActiveTransitOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<TransitDetailDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for TransitController_getActiveTransit");
     }
 
-    pub fn transit_controller_get_transit(&self, request: RealmTransitControllerGetTransitOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<TransitDetailDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "TransitController_getTransit".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn transit_controller_get_transit(&self, _request: RealmTransitControllerGetTransitOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<TransitDetailDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for TransitController_getTransit");
     }
 
-    pub fn transit_controller_list_transits(&self, request: RealmTransitControllerListTransitsOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<Vec<TransitDetailDto>, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "TransitController_listTransits".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn transit_controller_list_transits(&self, _request: RealmTransitControllerListTransitsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<Vec<TransitDetailDto>, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for TransitController_listTransits");
     }
 
-    pub fn translate_text(&self, request: RealmTranslateTextOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<TranslateResponseDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "translateText".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn translate_text(&self, _request: RealmTranslateTextOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<TranslateResponseDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for translateText");
     }
 
-    pub fn unbind_wallet(&self, request: RealmUnbindWalletOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "unbindWallet".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn unbind_wallet(&self, _request: RealmUnbindWalletOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for unbindWallet");
     }
 
-    pub fn unblock_user(&self, request: RealmUnblockUserOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "unblockUser".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn unblock_user(&self, _request: RealmUnblockUserOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for unblockUser");
     }
 
-    pub fn unlike_post(&self, request: RealmUnlikePostOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "unlikePost".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn unlike_post(&self, _request: RealmUnlikePostOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for unlikePost");
     }
 
-    pub fn unlink_oauth(&self, request: RealmUnlinkOauthOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "unlinkOauth".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn unlink_oauth(&self, _request: RealmUnlinkOauthOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for unlinkOauth");
     }
 
-    pub fn update_asset(&self, request: RealmUpdateAssetOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<AssetDetailDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "updateAsset".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn update_asset(&self, _request: RealmUpdateAssetOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AssetDetailDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for updateAsset");
     }
 
-    pub fn update_bundle(&self, request: RealmUpdateBundleOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<BundleDetailDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "updateBundle".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn update_bundle(&self, _request: RealmUpdateBundleOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<BundleDetailDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for updateBundle");
     }
 
-    pub fn update_group(&self, request: RealmUpdateGroupOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GroupChatViewDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "updateGroup".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn update_group(&self, _request: RealmUpdateGroupOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<GroupChatViewDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for updateGroup");
     }
 
-    pub fn update_group_participant_role(&self, request: RealmUpdateGroupParticipantRoleOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GroupParticipantDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "updateGroupParticipantRole".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn update_group_participant_role(&self, _request: RealmUpdateGroupParticipantRoleOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<GroupParticipantDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for updateGroupParticipantRole");
     }
 
-    pub fn update_me(&self, request: RealmUpdateMeOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<UserPrivateDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "updateMe".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn update_me(&self, _request: RealmUpdateMeOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<UserPrivateDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for updateMe");
     }
 
-    pub fn update_my_handle(&self, request: RealmUpdateMyHandleOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<UserPrivateDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "updateMyHandle".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn update_my_handle(&self, _request: RealmUpdateMyHandleOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<UserPrivateDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for updateMyHandle");
     }
 
-    pub fn update_my_notification_settings(&self, request: RealmUpdateMyNotificationSettingsOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<UserNotificationSettingsDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "updateMyNotificationSettings".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn update_my_notification_settings(&self, _request: RealmUpdateMyNotificationSettingsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<UserNotificationSettingsDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for updateMyNotificationSettings");
     }
 
-    pub fn update_my_ppconfig(&self, request: RealmUpdateMyPPConfigOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<PPSlotConfigResponseDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "updateMyPPConfig".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn update_my_ppconfig(&self, _request: RealmUpdateMyPPConfigOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<PPSlotConfigResponseDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for updateMyPPConfig");
     }
 
-    pub fn update_my_realm_agent_settings(&self, request: RealmUpdateMyRealmAgentSettingsOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<OwnerAgentSettingsDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "updateMyRealmAgentSettings".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn update_my_realm_agent_settings(&self, _request: RealmUpdateMyRealmAgentSettingsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<OwnerAgentSettingsDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for updateMyRealmAgentSettings");
     }
 
-    pub fn update_my_settings(&self, request: RealmUpdateMySettingsOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<UserSettingsDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "updateMySettings".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn update_my_settings(&self, _request: RealmUpdateMySettingsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<UserSettingsDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for updateMySettings");
     }
 
-    pub fn update_password(&self, request: RealmUpdatePasswordOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "updatePassword".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn update_password(&self, _request: RealmUpdatePasswordOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for updatePassword");
     }
 
-    pub fn update_post(&self, request: RealmUpdatePostOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<PostDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "updatePost".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn update_post(&self, _request: RealmUpdatePostOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<PostDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for updatePost");
     }
 
-    pub fn update_resource(&self, request: RealmUpdateResourceOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ResourceDetailDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "updateResource".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn update_resource(&self, _request: RealmUpdateResourceOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<ResourceDetailDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for updateResource");
     }
 
-    pub fn v1_default_visibility_controller_apply_agent_defaults(&self, request: RealmV1DefaultVisibilityControllerApplyAgentDefaultsOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "V1DefaultVisibilityController_applyAgentDefaults".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn v1_default_visibility_controller_apply_agent_defaults(&self, _request: RealmV1DefaultVisibilityControllerApplyAgentDefaultsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for V1DefaultVisibilityController_applyAgentDefaults");
     }
 
-    pub fn v1_default_visibility_controller_apply_user_defaults(&self, request: RealmV1DefaultVisibilityControllerApplyUserDefaultsOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "V1DefaultVisibilityController_applyUserDefaults".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn v1_default_visibility_controller_apply_user_defaults(&self, _request: RealmV1DefaultVisibilityControllerApplyUserDefaultsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for V1DefaultVisibilityController_applyUserDefaults");
     }
 
-    pub fn v1_default_visibility_controller_get_default_for_scope(&self, request: RealmV1DefaultVisibilityControllerGetDefaultForScopeOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "V1DefaultVisibilityController_getDefaultForScope".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn v1_default_visibility_controller_get_default_for_scope(&self, _request: RealmV1DefaultVisibilityControllerGetDefaultForScopeOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for V1DefaultVisibilityController_getDefaultForScope");
     }
 
-    pub fn v1_default_visibility_controller_get_default_visibility(&self, request: RealmV1DefaultVisibilityControllerGetDefaultVisibilityOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "V1DefaultVisibilityController_getDefaultVisibility".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn v1_default_visibility_controller_get_default_visibility(&self, _request: RealmV1DefaultVisibilityControllerGetDefaultVisibilityOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for V1DefaultVisibilityController_getDefaultVisibility");
     }
 
-    pub fn v1_default_visibility_controller_validate_agent_visibility(&self, request: RealmV1DefaultVisibilityControllerValidateAgentVisibilityOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "V1DefaultVisibilityController_validateAgentVisibility".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn v1_default_visibility_controller_validate_agent_visibility(&self, _request: RealmV1DefaultVisibilityControllerValidateAgentVisibilityOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for V1DefaultVisibilityController_validateAgentVisibility");
     }
 
-    pub fn v1_default_visibility_controller_validate_user_visibility(&self, request: RealmV1DefaultVisibilityControllerValidateUserVisibilityOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "V1DefaultVisibilityController_validateUserVisibility".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn v1_default_visibility_controller_validate_user_visibility(&self, _request: RealmV1DefaultVisibilityControllerValidateUserVisibilityOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for V1DefaultVisibilityController_validateUserVisibility");
     }
 
-    pub fn verify2_fa(&self, request: RealmVerify2FaOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<AuthTokensDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "verify2Fa".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn verify2_fa(&self, _request: RealmVerify2FaOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<AuthTokensDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for verify2Fa");
     }
 
-    pub fn verify_email_otp(&self, request: RealmVerifyEmailOtpOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<OAuthLoginResultDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "verifyEmailOtp".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn verify_email_otp(&self, _request: RealmVerifyEmailOtpOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<OAuthLoginResultDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for verifyEmailOtp");
     }
 
-    pub fn wallet_challenge(&self, request: RealmWalletChallengeOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<WalletChallengeResponseDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "walletChallenge".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn wallet_challenge(&self, _request: RealmWalletChallengeOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WalletChallengeResponseDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for walletChallenge");
     }
 
-    pub fn wallet_login(&self, request: RealmWalletLoginOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<OAuthLoginResultDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "walletLogin".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn wallet_login(&self, _request: RealmWalletLoginOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<OAuthLoginResultDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for walletLogin");
     }
 
-    pub fn world_control_controller_append_world_history(&self, request: RealmWorldControlControllerAppendWorldHistoryOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<WorldHistoryListDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "WorldControlController_appendWorldHistory".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn world_control_controller_append_world_history(&self, _request: RealmWorldControlControllerAppendWorldHistoryOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldHistoryListDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldControlController_appendWorldHistory");
     }
 
-    pub fn world_control_controller_batch_upsert_world_bindings(&self, request: RealmWorldControlControllerBatchUpsertWorldBindingsOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<BindingListDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "WorldControlController_batchUpsertWorldBindings".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn world_control_controller_batch_upsert_world_bindings(&self, _request: RealmWorldControlControllerBatchUpsertWorldBindingsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<BindingListDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldControlController_batchUpsertWorldBindings");
     }
 
-    pub fn world_control_controller_commit_state(&self, request: RealmWorldControlControllerCommitStateOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<WorldStateDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "WorldControlController_commitState".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn world_control_controller_commit_state(&self, _request: RealmWorldControlControllerCommitStateOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldStateDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldControlController_commitState");
     }
 
-    pub fn world_control_controller_create_draft(&self, request: RealmWorldControlControllerCreateDraftOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<WorldDraftDetailDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "WorldControlController_createDraft".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn world_control_controller_create_draft(&self, _request: RealmWorldControlControllerCreateDraftOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldDraftDetailDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldControlController_createDraft");
     }
 
-    pub fn world_control_controller_delete_world_binding(&self, request: RealmWorldControlControllerDeleteWorldBindingOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "WorldControlController_deleteWorldBinding".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn world_control_controller_delete_world_binding(&self, _request: RealmWorldControlControllerDeleteWorldBindingOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<(), T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldControlController_deleteWorldBinding");
     }
 
-    pub fn world_control_controller_get_draft(&self, request: RealmWorldControlControllerGetDraftOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<WorldDraftDetailDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "WorldControlController_getDraft".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn world_control_controller_get_draft(&self, _request: RealmWorldControlControllerGetDraftOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldDraftDetailDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldControlController_getDraft");
     }
 
-    pub fn world_control_controller_get_my_access(&self, request: RealmWorldControlControllerGetMyAccessOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<WorldAccessSummaryDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "WorldControlController_getMyAccess".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn world_control_controller_get_my_access(&self, _request: RealmWorldControlControllerGetMyAccessOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldAccessSummaryDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldControlController_getMyAccess");
     }
 
-    pub fn world_control_controller_get_state(&self, request: RealmWorldControlControllerGetStateOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<WorldStateDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "WorldControlController_getState".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn world_control_controller_get_state(&self, _request: RealmWorldControlControllerGetStateOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldStateDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldControlController_getState");
     }
 
-    pub fn world_control_controller_list_drafts(&self, request: RealmWorldControlControllerListDraftsOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<WorldDraftSummaryListDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "WorldControlController_listDrafts".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn world_control_controller_list_drafts(&self, _request: RealmWorldControlControllerListDraftsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldDraftSummaryListDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldControlController_listDrafts");
     }
 
-    pub fn world_control_controller_list_my_worlds(&self, request: RealmWorldControlControllerListMyWorldsOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<WorldSummaryListDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "WorldControlController_listMyWorlds".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn world_control_controller_list_my_worlds(&self, _request: RealmWorldControlControllerListMyWorldsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldSummaryListDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldControlController_listMyWorlds");
     }
 
-    pub fn world_control_controller_list_world_bindings(&self, request: RealmWorldControlControllerListWorldBindingsOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<BindingListDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "WorldControlController_listWorldBindings".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn world_control_controller_list_world_bindings(&self, _request: RealmWorldControlControllerListWorldBindingsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<BindingListDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldControlController_listWorldBindings");
     }
 
-    pub fn world_control_controller_list_world_history(&self, request: RealmWorldControlControllerListWorldHistoryOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<WorldHistoryListDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "WorldControlController_listWorldHistory".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn world_control_controller_list_world_history(&self, _request: RealmWorldControlControllerListWorldHistoryOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldHistoryListDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldControlController_listWorldHistory");
     }
 
-    pub fn world_control_controller_list_world_lorebooks(&self, request: RealmWorldControlControllerListWorldLorebooksOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<WorldLorebookListDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "WorldControlController_listWorldLorebooks".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn world_control_controller_list_world_lorebooks(&self, _request: RealmWorldControlControllerListWorldLorebooksOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldLorebookListDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldControlController_listWorldLorebooks");
     }
 
-    pub fn world_control_controller_publish_draft(&self, request: RealmWorldControlControllerPublishDraftOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<PublishWorldDraftResultDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "WorldControlController_publishDraft".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn world_control_controller_publish_draft(&self, _request: RealmWorldControlControllerPublishDraftOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<PublishWorldDraftResultDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldControlController_publishDraft");
     }
 
-    pub fn world_control_controller_resolve_landing(&self, request: RealmWorldControlControllerResolveLandingOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<WorldLandingDecisionDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "WorldControlController_resolveLanding".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn world_control_controller_resolve_landing(&self, _request: RealmWorldControlControllerResolveLandingOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldLandingDecisionDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldControlController_resolveLanding");
     }
 
-    pub fn world_control_controller_update_draft(&self, request: RealmWorldControlControllerUpdateDraftOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<WorldDraftDetailDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "WorldControlController_updateDraft".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn world_control_controller_update_draft(&self, _request: RealmWorldControlControllerUpdateDraftOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldDraftDetailDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldControlController_updateDraft");
     }
 
-    pub fn world_controller_get_main_world(&self, request: RealmWorldControllerGetMainWorldOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<WorldDetailDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "WorldController_getMainWorld".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn world_controller_get_main_world(&self, _request: RealmWorldControllerGetMainWorldOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldDetailDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldController_getMainWorld");
     }
 
-    pub fn world_controller_get_world(&self, request: RealmWorldControllerGetWorldOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<WorldDetailDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "WorldController_getWorld".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn world_controller_get_world(&self, _request: RealmWorldControllerGetWorldOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldDetailDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldController_getWorld");
     }
 
-    pub fn world_controller_get_world_agents(&self, request: RealmWorldControllerGetWorldAgentsOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<Vec<WorldAgentSummaryDto>, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "WorldController_getWorldAgents".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn world_controller_get_world_agents(&self, _request: RealmWorldControllerGetWorldAgentsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<Vec<WorldAgentSummaryDto>, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldController_getWorldAgents");
     }
 
-    pub fn world_controller_get_world_bindings(&self, request: RealmWorldControllerGetWorldBindingsOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<PublicBindingListDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "WorldController_getWorldBindings".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn world_controller_get_world_bindings(&self, _request: RealmWorldControllerGetWorldBindingsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<PublicBindingListDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldController_getWorldBindings");
     }
 
-    pub fn world_controller_get_world_detail_with_agents(&self, request: RealmWorldControllerGetWorldDetailWithAgentsOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<WorldDetailWithAgentsDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "WorldController_getWorldDetailWithAgents".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn world_controller_get_world_detail_with_agents(&self, _request: RealmWorldControllerGetWorldDetailWithAgentsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldDetailWithAgentsDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldController_getWorldDetailWithAgents");
     }
 
-    pub fn world_controller_get_world_history(&self, request: RealmWorldControllerGetWorldHistoryOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<PublicWorldHistoryListDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "WorldController_getWorldHistory".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn world_controller_get_world_history(&self, _request: RealmWorldControllerGetWorldHistoryOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<PublicWorldHistoryListDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldController_getWorldHistory");
     }
 
-    pub fn world_controller_get_world_level_audits(&self, request: RealmWorldControllerGetWorldLevelAuditsOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<Vec<WorldLevelAuditEventDto>, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "WorldController_getWorldLevelAudits".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn world_controller_get_world_level_audits(&self, _request: RealmWorldControllerGetWorldLevelAuditsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<Vec<WorldLevelAuditEventDto>, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldController_getWorldLevelAudits");
     }
 
-    pub fn world_controller_get_world_lorebooks(&self, request: RealmWorldControllerGetWorldLorebooksOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<PublicWorldLorebookListDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "WorldController_getWorldLorebooks".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn world_controller_get_world_lorebooks(&self, _request: RealmWorldControllerGetWorldLorebooksOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<PublicWorldLorebookListDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldController_getWorldLorebooks");
     }
 
-    pub fn world_controller_get_worldview(&self, request: RealmWorldControllerGetWorldviewOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<WorldviewDetailDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "WorldController_getWorldview".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn world_controller_get_worldview(&self, _request: RealmWorldControllerGetWorldviewOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldviewDetailDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldController_getWorldview");
     }
 
-    pub fn world_controller_list_worlds(&self, request: RealmWorldControllerListWorldsOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<Vec<WorldDetailDto>, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "WorldController_listWorlds".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn world_controller_list_worlds(&self, _request: RealmWorldControllerListWorldsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<Vec<WorldDetailDto>, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldController_listWorlds");
     }
 
-    pub fn world_controller_return_to_main_world(&self, request: RealmWorldControllerReturnToMainWorldOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<TransitDetailDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "WorldController_returnToMainWorld".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn world_controller_return_to_main_world(&self, _request: RealmWorldControllerReturnToMainWorldOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<TransitDetailDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldController_returnToMainWorld");
     }
 
-    pub fn world_controller_transit_to_world(&self, request: RealmWorldControllerTransitToWorldOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<TransitDetailDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "WorldController_transitToWorld".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn world_controller_transit_to_world(&self, _request: RealmWorldControllerTransitToWorldOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<TransitDetailDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldController_transitToWorld");
     }
 
-    pub fn world_rules_controller_archive_rule(&self, request: RealmWorldRulesControllerArchiveRuleOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<WorldRuleDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "WorldRulesController_archiveRule".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn world_rules_controller_archive_rule(&self, _request: RealmWorldRulesControllerArchiveRuleOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldRuleDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldRulesController_archiveRule");
     }
 
-    pub fn world_rules_controller_check_permission(&self, request: RealmWorldRulesControllerCheckPermissionOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<PermissionCheckResponseDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "WorldRulesController_checkPermission".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn world_rules_controller_check_permission(&self, _request: RealmWorldRulesControllerCheckPermissionOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<PermissionCheckResponseDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldRulesController_checkPermission");
     }
 
-    pub fn world_rules_controller_create_rule(&self, request: RealmWorldRulesControllerCreateRuleOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<WorldRuleDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "WorldRulesController_createRule".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn world_rules_controller_create_rule(&self, _request: RealmWorldRulesControllerCreateRuleOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldRuleDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldRulesController_createRule");
     }
 
-    pub fn world_rules_controller_deprecate_rule(&self, request: RealmWorldRulesControllerDeprecateRuleOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<WorldRuleDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "WorldRulesController_deprecateRule".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn world_rules_controller_deprecate_rule(&self, _request: RealmWorldRulesControllerDeprecateRuleOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldRuleDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldRulesController_deprecateRule");
     }
 
-    pub fn world_rules_controller_get_creator_capabilities(&self, request: RealmWorldRulesControllerGetCreatorCapabilitiesOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CreatorCapabilitiesResponseDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "WorldRulesController_getCreatorCapabilities".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn world_rules_controller_get_creator_capabilities(&self, _request: RealmWorldRulesControllerGetCreatorCapabilitiesOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<CreatorCapabilitiesResponseDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldRulesController_getCreatorCapabilities");
     }
 
-    pub fn world_rules_controller_get_rules(&self, request: RealmWorldRulesControllerGetRulesOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<Vec<WorldRuleDto>, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "WorldRulesController_getRules".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn world_rules_controller_get_rules(&self, _request: RealmWorldRulesControllerGetRulesOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<Vec<WorldRuleDto>, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldRulesController_getRules");
     }
 
-    pub fn world_rules_controller_update_rule(&self, request: RealmWorldRulesControllerUpdateRuleOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<WorldRuleDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "WorldRulesController_updateRule".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn world_rules_controller_update_rule(&self, _request: RealmWorldRulesControllerUpdateRuleOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<WorldRuleDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldRulesController_updateRule");
     }
 
-    pub fn world_rules_controller_validate_rules(&self, request: RealmWorldRulesControllerValidateRulesOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RuleValidationResponseDto, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: "WorldRulesController_validateRules".to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    pub fn world_rules_controller_validate_rules(&self, _request: RealmWorldRulesControllerValidateRulesOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<RuleValidationResponseDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for WorldRulesController_validateRules");
     }
 }

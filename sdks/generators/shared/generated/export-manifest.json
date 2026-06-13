@@ -33,7 +33,7 @@
     "proto/runtime/v1/voice.proto",
     "proto/runtime/v1/workflow.proto",
     "config/realm-openapi-source.json",
-    "../nimi-backend/api-nimi.yaml",
+    "sdks/generators/shared/generated/realm-core.manifest.json",
     ".nimi/spec/sdks/kernel/tables/sdk-error-codes.yaml",
     ".nimi/spec/sdks/kernel/surface-contract.md"
   ],

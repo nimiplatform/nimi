@@ -25,7 +25,7 @@ test('agent text generate fails closed instead of locally executing model turns'
   });
 
   assert.equal(result.ok, false);
-  assert.equal(result.ok ? '' : result.error.code, 'RUNTIME_AGENT_PARTICIPATION_REQUIRED');
+  assert.equal(result.ok ? '' : result.error.code, 'SDK_RUNTIME_AGENT_PARTICIPATION_REQUIRED');
   assert.equal(generateCalls, 0);
 });
 
@@ -50,7 +50,7 @@ test('agent text turn fails closed instead of locally streaming model turns', as
   assert.deepEqual(events.map((event) => event.type), ['turn-started', 'turn-failed']);
   const failed = events.at(-1);
   assert.equal(failed?.type, 'turn-failed');
-  assert.equal(failed?.type === 'turn-failed' ? failed.error.code : '', 'RUNTIME_AGENT_PARTICIPATION_REQUIRED');
+  assert.equal(failed?.type === 'turn-failed' ? failed.error.code : '', 'SDK_RUNTIME_AGENT_PARTICIPATION_REQUIRED');
 });
 
 test('agent text response rejects Runtime participation bypass attempts', async () => {

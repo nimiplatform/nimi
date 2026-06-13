@@ -128,7 +128,10 @@ function validateSharedManifests() {
   assert(runtime.schema_types.messages.length > 0, 'runtime manifest must include message types');
   assertNoSdkSrcProvenance(runtime, 'runtime manifest');
 
-  assert(['realm_openapi', 'realm_spec_fallback'].includes(realm.source_kind), 'realm manifest must use admitted Realm source kind');
+  assert(
+    ['realm_openapi', 'realm_spec_fallback', 'public_realm_core_manifest_projection'].includes(realm.source_kind),
+    'realm manifest must use admitted Realm source kind',
+  );
   assert(realm.operations.length > 0, 'realm manifest must include operations');
   assert(realm.operation_maps.length === realm.operations.length, 'realm operation map count must match operations');
   assert(realm.service_registry.length > 0, 'realm manifest must include a service registry');

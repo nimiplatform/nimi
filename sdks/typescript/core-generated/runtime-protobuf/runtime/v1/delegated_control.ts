@@ -862,6 +862,10 @@ export enum DelegatedApprovalRequestState {
      */
     APPROVED_ONCE = 2,
     /**
+     * @generated from protobuf enum value: DELEGATED_APPROVAL_REQUEST_STATE_APPROVED_ONCE = 2;
+     */
+    APPROVED = 2,
+    /**
      * @generated from protobuf enum value: DELEGATED_APPROVAL_REQUEST_STATE_REJECTED = 3;
      */
     REJECTED = 3,
@@ -891,9 +895,17 @@ export enum DelegatedApprovalDecision {
      */
     APPROVED_ONCE = 1,
     /**
+     * @generated from protobuf enum value: DELEGATED_APPROVAL_DECISION_APPROVED_ONCE = 1;
+     */
+    APPROVE = 1,
+    /**
      * @generated from protobuf enum value: DELEGATED_APPROVAL_DECISION_REJECTED = 2;
      */
     REJECTED = 2,
+    /**
+     * @generated from protobuf enum value: DELEGATED_APPROVAL_DECISION_REJECTED = 2;
+     */
+    REJECT = 2,
     /**
      * @generated from protobuf enum value: DELEGATED_APPROVAL_DECISION_APPROVED_FOR_SESSION = 3;
      */

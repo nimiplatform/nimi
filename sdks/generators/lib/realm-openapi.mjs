@@ -17,6 +17,20 @@ function configuredRealmOpenApiSource() {
   };
 }
 
+function readProjectedRealmCore(source) {
+  if (!existsSync(source.abs_path)) {
+    return null;
+  }
+  const manifest = JSON.parse(readFileSync(source.abs_path, 'utf8'));
+  return {
+    operations: Array.isArray(manifest.operations) ? manifest.operations : [],
+    modelNames: Array.isArray(manifest.model_maps)
+      ? manifest.model_maps.map((entry) => String(entry?.name || '').trim()).filter(Boolean).sort()
+      : [],
+    modelSchemas: Array.isArray(manifest.model_schemas) ? manifest.model_schemas : [],
+  };
+}
+
 function openApiRefName(ref) {
   return typeof ref === 'string' ? ref.split('/').pop() : null;
 }
@@ -107,12 +121,26 @@ export function extractRealmCore() {
   const source = configuredRealmOpenApiSource();
   const sourcePaths = [source.config_rel, source.config.source_path].filter(Boolean);
   let sourceState = 'openapi_missing';
+  let sourceKind = 'realm_openapi_missing';
   let operations = [];
   let modelNames = [];
   let modelSchemas = [];
 
-  if (existsSync(source.abs_path)) {
+  if (source.config.source_kind === 'public_realm_core_manifest_projection') {
+    const projection = readProjectedRealmCore(source);
+    if (projection) {
+      sourceState = 'projection_loaded';
+      sourceKind = 'public_realm_core_manifest_projection';
+      operations = projection.operations;
+      modelNames = projection.modelNames;
+      modelSchemas = projection.modelSchemas;
+    } else {
+      sourceState = 'projection_missing';
+      sourceKind = 'public_realm_core_manifest_projection_missing';
+    }
+  } else if (existsSync(source.abs_path)) {
     sourceState = 'openapi_loaded';
+    sourceKind = 'realm_openapi';
     const spec = YAML.parse(readFileSync(source.abs_path, 'utf8'));
     operations = parseOpenApiOperations(spec);
     const schemas = spec?.components?.schemas || {};
@@ -134,7 +162,7 @@ export function extractRealmCore() {
   return {
     contract: 'nimi.sdks.realm-core-manifest.v1',
     generated_by: generatedBy,
-    source_kind: sourceState === 'openapi_loaded' ? 'realm_openapi' : 'realm_openapi_missing',
+    source_kind: sourceKind,
     source_state: sourceState,
     source_label: source.source_label,
     source_paths: sourcePaths,

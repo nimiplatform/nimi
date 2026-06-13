@@ -13,13 +13,20 @@ export type NimiRuntimeAccountCallerInput = {
 export function createNimiLocalFirstPartyRuntimeAccountCaller(
   input: NimiRuntimeAccountCallerInput,
 ): NimiRuntimeAccountCaller {
-  requireText(input.appId, 'appId');
-  throw createNimiError({
-    message: 'Local first-party Runtime account caller identity requires Runtime-admitted registration evidence.',
-    reasonCode: 'SDK_RUNTIME_ACCOUNT_CALLER_REGISTRATION_REQUIRED',
-    actionHint: 'request_runtime_account_caller_registration',
-    source: 'sdk',
-  });
+  if (input.appInstanceId === undefined || input.deviceId === undefined) {
+    requireText(input.appId, 'appId');
+    throw createNimiError({
+      message: 'Local first-party Runtime account caller identity requires explicit app instance and device identity before Runtime registration.',
+      reasonCode: 'SDK_RUNTIME_ACCOUNT_CALLER_REGISTRATION_REQUIRED',
+      actionHint: 'request_runtime_account_caller_registration',
+      source: 'sdk',
+    });
+  }
+  return createNimiRuntimeAccountCaller(
+    input,
+    AccountCallerMode.LOCAL_FIRST_PARTY_APP,
+    '',
+  );
 }
 
 export function createNimiDesktopShellRuntimeAccountCaller(

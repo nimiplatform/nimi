@@ -121,6 +121,7 @@ function statusRank(value: unknown): number {
 }
 
 function projectLocalModels(input: NimiRuntimeRouteOptionsProjectionInput): readonly NimiRuntimeRouteLocalOption[] {
+  if (input.localMetadataDegraded) return [];
   const snapshotByLocalId = new Map(
     (input.snapshotAssets || []).map((asset) => [normalizeText(asset.localAssetId), asset] as const),
   );

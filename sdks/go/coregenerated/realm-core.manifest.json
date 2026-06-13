@@ -1,12 +1,12 @@
 {
   "contract": "nimi.sdks.realm-core-manifest.v1",
   "generated_by": "sdks/generators/generate.mjs",
-  "source_kind": "realm_openapi",
-  "source_state": "openapi_loaded",
-  "source_label": "../nimi-backend/api-nimi.yaml",
+  "source_kind": "public_realm_core_manifest_projection",
+  "source_state": "projection_loaded",
+  "source_label": "sdks/generators/shared/generated/realm-core.manifest.json",
   "source_paths": [
     "config/realm-openapi-source.json",
-    "../nimi-backend/api-nimi.yaml"
+    "sdks/generators/shared/generated/realm-core.manifest.json"
   ],
   "authority_refs": [
     ".nimi/spec/sdks/kernel/realm-core-contract.md"

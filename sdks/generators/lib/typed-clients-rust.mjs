@@ -44,20 +44,22 @@ impl Default for ${schema.name} {
         if (kind === 'enum') return `        if let Some(value) = &self.${rustFieldName(field.name)} { pairs.push(format!("${field.name}={:?}", value)); }`;
         return `        if self.${rustFieldName(field.name)}.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode ${field.name}"); }`;
       }).filter(Boolean).join('\n');
-      const decoders = schema.fields.map((field) => {
+      const decoderEntries = schema.fields.map((field) => {
         if (field.repeated || field.type === 'map') return '';
         if (field.type === 'string' || field.type === 'google.protobuf.Timestamp' || field.type === 'google.protobuf.Duration') return `        out.${rustFieldName(field.name)} = pairs.get("${field.name}").cloned();`;
         if (field.type === 'bool') return `        out.${rustFieldName(field.name)} = pairs.get("${field.name}").and_then(|value| value.parse().ok());`;
         if (['int32', 'int64', 'uint32', 'uint64', 'sint32', 'sint64', 'fixed32', 'fixed64', 'sfixed32', 'sfixed64', 'float', 'double'].includes(field.type)) return `        out.${rustFieldName(field.name)} = pairs.get("${field.name}").and_then(|value| value.parse().ok());`;
         return '';
-      }).filter(Boolean).join('\n');
+      }).map((code, index) => ({ field: schema.fields[index], code }));
+      const decodedFields = new Set(decoderEntries.filter((entry) => entry.code).map((entry) => entry.field.name));
+      const decoders = decoderEntries.map((entry) => entry.code).filter(Boolean).join('\n');
       const toTransportBody = encoders
         ? `        let mut pairs: Vec<String> = Vec::new();
 ${encoders}
         pairs.join(";").into_bytes()`
         : '        Vec::new()';
       const unsupportedFields = schema.fields
-        .filter((field) => field.repeated || field.type === 'map' || !decoders.includes(`out.${rustFieldName(field.name)}`))
+        .filter((field) => field.repeated || field.type === 'map' || !decodedFields.has(field.name))
         .map((field) => field.name);
       const unsupportedGuard = unsupportedFields.length
         ? `        for key in [${unsupportedFields.map((name) => quote(name)).join(', ')}] {
@@ -166,13 +168,7 @@ pub struct ${base}Request {
   const realmMethods = realm.operations.map((operation) => {
     const base = realmOperationTypeBase(operation.operation_id);
     const responseType = rustOpenApiType(openApiSuccessSchema(operation));
-    return `    pub fn ${snakeCase(operation.operation_id)}(&self, request: ${base}Request, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<${responseType}, T::Error> {
-        let _raw = self.core.unary(CoreUnaryRequest {
-            method_id: ${quote(operation.operation_id)}.to_string(),
-            metadata,
-            body: format!("{:?}", request).into_bytes(),
-            timeout,
-        })?;
+    return `    pub fn ${snakeCase(operation.operation_id)}(&self, _request: ${base}Request, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<${responseType}, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for ${operation.operation_id}");
     }`;
   }).join('\n\n');
