@@ -129,6 +129,9 @@ func (v *accountProjectionOpenReadinessVerifier) VerifyOpenPermissions(ctx conte
 	if !decision.Allowed {
 		return decision, nil
 	}
+	if app.PermissionScopeRefPending {
+		return OpenAppReadinessDecision{Allowed: false, Detail: "app permission scope ref is permission_fabric_pending"}, nil
+	}
 	if len(app.PermissionScopeRefs) == 0 {
 		return OpenAppReadinessDecision{Allowed: true}, nil
 	}

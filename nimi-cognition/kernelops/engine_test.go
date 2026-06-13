@@ -308,7 +308,7 @@ func TestCommit_RejectsForbiddenKernelArtifactRefTarget(t *testing.T) {
 	}
 }
 
-func TestKnowledgePagesRejectIncomingKernelRuleCitations(t *testing.T) {
+func TestKnowledgePagesAllowStoredKernelRuleCitations(t *testing.T) {
 	_, store := newTestEngine(t)
 	pageRaw, err := json.Marshal(knowledge.Page{
 		PageID:    "p1",
@@ -329,8 +329,8 @@ func TestKnowledgePagesRejectIncomingKernelRuleCitations(t *testing.T) {
 	if err != nil {
 		t.Fatalf("marshal page: %v", err)
 	}
-	if err := store.Save("a1", storage.KindKnowledge, "p1", pageRaw); err == nil || !strings.Contains(err.Error(), "kernel_rule citations are not admitted") {
-		t.Fatalf("expected kernel citation rejection, got %v", err)
+	if err := store.Save("a1", storage.KindKnowledge, "p1", pageRaw); err != nil {
+		t.Fatalf("stored kernel_rule citation should remain readable: %v", err)
 	}
 }
 

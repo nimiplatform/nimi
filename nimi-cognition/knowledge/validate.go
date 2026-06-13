@@ -193,7 +193,6 @@ func validateCitation(c Citation) error {
 	switch c.TargetKind {
 	case CitationTargetKindMemoryRecord:
 	case CitationTargetKindKernelRule:
-		return errors.New("kernel_rule citations are not admitted as incoming kernel references")
 	case "":
 		return errors.New("target_kind is required")
 	default:

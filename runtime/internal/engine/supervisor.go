@@ -337,9 +337,11 @@ func (s *Supervisor) spawn(ctx context.Context, epoch uint64) error {
 	s.writePIDFile()
 
 	s.logger.Info("engine process started",
+		"event", "engine.process.started",
 		"engine", s.cfg.Kind,
 		"pid", cmd.Process.Pid,
 		"port", s.cfg.Port,
+		"endpoint", s.cfg.Endpoint(),
 	)
 
 	// Wait for healthy. The health wait races against process exit: a
@@ -354,16 +356,30 @@ func (s *Supervisor) spawn(ctx context.Context, epoch uint64) error {
 		}
 		s.writePIDFile()
 		s.logger.Warn("engine startup health check failed",
+			"event", "engine.process.startup_health_failed",
 			"engine", s.cfg.Kind,
 			"error", err,
 		)
 		s.setStatus(StatusUnhealthy, fmt.Sprintf("startup health failed: %v", err))
 		// Don't kill here — let the health loop handle restart.
 	} else {
+		now := time.Now()
 		s.mu.Lock()
-		s.lastHealthyAt = time.Now()
+		startedAt := s.startedAt
+		s.lastHealthyAt = now
 		s.mu.Unlock()
 		s.writePIDFile()
+		attrs := []any{
+			"event", "engine.process.healthy",
+			"engine", s.cfg.Kind,
+			"pid", cmd.Process.Pid,
+			"port", s.cfg.Port,
+			"endpoint", s.cfg.Endpoint(),
+		}
+		if !startedAt.IsZero() {
+			attrs = append(attrs, "startup_duration_ms", now.Sub(startedAt).Milliseconds())
+		}
+		s.logger.Info("engine process healthy", attrs...)
 		s.setStatus(StatusHealthy, "ready")
 	}
 
@@ -422,6 +438,7 @@ func (s *Supervisor) monitor(ctx context.Context, epoch uint64) {
 				s.mu.Unlock()
 
 				s.logger.Warn("engine health probe failed",
+					"event", "engine.process.health_probe_failed",
 					"engine", s.cfg.Kind,
 					"health_failures", failures,
 					"error", err,
@@ -487,6 +504,7 @@ func (s *Supervisor) handleCrash(ctx context.Context, crashDetail string, epoch 
 
 	s.setStatus(StatusUnhealthy, fmt.Sprintf("crash=%s attempt=%d/%d restarting", crashDetail, failures, s.cfg.MaxRestarts))
 	s.logger.Info("restarting engine after crash",
+		"event", "engine.process.restart_scheduled",
 		"engine", s.cfg.Kind,
 		"attempt", failures,
 		"delay", delay,
@@ -503,6 +521,7 @@ func (s *Supervisor) handleCrash(ctx context.Context, crashDetail string, epoch 
 	}
 	if err := s.spawn(ctx, epoch); err != nil {
 		s.logger.Error("engine restart failed",
+			"event", "engine.process.restart_failed",
 			"engine", s.cfg.Kind,
 			"error", err,
 		)

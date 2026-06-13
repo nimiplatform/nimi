@@ -537,7 +537,7 @@ func TestSupervisorAnnotatesManagedImageProgressPhase(t *testing.T) {
 	setSupervisorTestHome(t)
 
 	var logBuffer bytes.Buffer
-	logger := slog.New(slog.NewTextHandler(&logBuffer, &slog.HandlerOptions{Level: slog.LevelInfo}))
+	logger := slog.New(slog.NewTextHandler(&logBuffer, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	script := writeTestScript(t, "python3 - <<'PY'\nimport sys, time\nsys.stderr.write('loading tensors from /tmp/ae.safetensors\\n')\nsys.stderr.flush()\nsys.stdout.write('453/1095 - 43.16it/s\\r')\nsys.stdout.flush()\ntime.sleep(0.1)\nsys.stderr.write('sampling using Euler method\\n')\nsys.stderr.flush()\nsys.stdout.write('1/8 - 5.71s/it\\r')\nsys.stdout.flush()\ntime.sleep(2)\nPY")
 	cfg := testSupervisorCfg(script)
 	cfg.Kind = engineManagedImageBackend
@@ -552,8 +552,8 @@ func TestSupervisorAnnotatesManagedImageProgressPhase(t *testing.T) {
 
 	if !waitForCondition(2*time.Second, func() bool {
 		output := logBuffer.String()
-		return strings.Contains(output, "line=\"453/1095 - 43.16it/s\" phase=load_tensors") &&
-			strings.Contains(output, "line=\"1/8 - 5.71s/it\" phase=sampling")
+		return strings.Contains(output, "phase=load_tensors line=\"453/1095 - 43.16it/s\"") &&
+			strings.Contains(output, "phase=sampling line=\"1/8 - 5.71s/it\"")
 	}) {
 		t.Fatalf("expected phased progress logs, got: %s", logBuffer.String())
 	}

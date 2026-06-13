@@ -64,6 +64,9 @@ func (s *Service) ListVoiceAssets(ctx context.Context, req *runtimev1.ListVoiceA
 	if req == nil || strings.TrimSpace(req.GetAppId()) == "" || strings.TrimSpace(req.GetSubjectUserId()) == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
+	if err := authorizeVoiceAssetScope(ctx, req.GetAppId(), req.GetSubjectUserId()); err != nil {
+		return nil, err
+	}
 	s.reconcilePendingVoiceAssetDeletes(ctx, req.GetAppId(), req.GetSubjectUserId(), maxVoiceAssetReconciliationSweep)
 	items := s.voiceAssets.listAssets(req)
 	sort.Slice(items, func(i, j int) bool {
@@ -148,6 +151,10 @@ func authorizeVoiceAssetOwner(ctx context.Context, asset *runtimev1.VoiceAsset) 
 	if asset == nil {
 		return grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_VOICE_ASSET_NOT_FOUND)
 	}
+	return authorizeVoiceAssetScope(ctx, asset.GetAppId(), asset.GetSubjectUserId())
+}
+
+func authorizeVoiceAssetScope(ctx context.Context, appID string, subjectUserID string) error {
 	callerAppID := voiceAssetCallerAppID(ctx)
 	identity := authn.IdentityFromContext(ctx)
 	callerSubjectID := ""
@@ -157,7 +164,7 @@ func authorizeVoiceAssetOwner(ctx context.Context, asset *runtimev1.VoiceAsset) 
 	if callerAppID == "" || callerSubjectID == "" {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
-	if callerAppID != strings.TrimSpace(asset.GetAppId()) || callerSubjectID != strings.TrimSpace(asset.GetSubjectUserId()) {
+	if callerAppID != strings.TrimSpace(appID) || callerSubjectID != strings.TrimSpace(subjectUserID) {
 		return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_AI_VOICE_ASSET_SCOPE_FORBIDDEN)
 	}
 	return nil

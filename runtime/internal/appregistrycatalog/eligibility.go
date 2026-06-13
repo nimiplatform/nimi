@@ -78,6 +78,12 @@ func (r *Registry) CheckCallerEligibility(appID string) (CallerEligibility, erro
 	}
 	switch app.AdmissionStatus {
 	case AdmissionStatusAdmitted:
+		if app.PermissionScopeRefPending {
+			return CallerEligibility{
+				Eligible: false,
+				Reason:   string(EligibilityReasonPermissionFabricPending),
+			}, nil
+		}
 		if app.OrdinaryVisibility != OrdinaryVisibilityOrdinaryVisible {
 			return CallerEligibility{
 				Eligible: true,

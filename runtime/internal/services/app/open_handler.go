@@ -363,6 +363,14 @@ func (s *Service) verifyOpenAccountLibrary(ctx context.Context, app appregistryc
 }
 
 func (s *Service) verifyOpenPermissions(ctx context.Context, app appregistrycatalog.App) *openBlocked {
+	if app.PermissionScopeRefPending {
+		e := blocked(
+			runtimev1.AppOpenFlowStep_APP_OPEN_FLOW_STEP_VERIFY_PERMISSIONS,
+			runtimev1.ReasonCode_APP_OPEN_PERMISSION_NOT_GRANTED,
+			"app permission scope ref is permission_fabric_pending",
+		)
+		return &e
+	}
 	for _, scope := range app.PermissionScopeRefs {
 		if strings.TrimSpace(scope.ScopeFamily) == "" || strings.TrimSpace(scope.ScopeName) == "" {
 			e := blocked(

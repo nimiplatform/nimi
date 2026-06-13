@@ -13,7 +13,7 @@ import (
 //
 // It is the W1 backend bootstrap's `AgentProfile.id` for the guide agent
 // (`NIMI_GUIDE_AGENT_IDS.archivist` in
-// nimi-backend/libs/common/src/guide-agent-bootstrap.ts). It is referenced here
+// Realm source authority guide bootstrap). It is referenced here
 // only as an ordinary opaque realm_agent_id test input: the runtime treats it
 // as any other RealmAgent identifier. This is NOT a runtime-local guide
 // constant — it carries no welcome copy, no prompt, no guide branch — and the

@@ -248,7 +248,7 @@ func validateKnowledgePageCitations(store *storage.SQLiteBackend, page knowledge
 	for i, citation := range page.Citations {
 		switch citation.TargetKind {
 		case knowledge.CitationTargetKindKernelRule:
-			return fmt.Errorf("page %s citations[%d]: kernel_rule citations are not admitted as incoming kernel references", page.PageID, i)
+			continue
 		case knowledge.CitationTargetKindMemoryRecord:
 			live, err := store.IsArtifactRefTargetLive(page.ScopeID, artifactref.KindMemoryRecord, citation.TargetID)
 			if err != nil {

@@ -112,6 +112,24 @@ func TestCheckCallerEligibility_PermissionFabricPendingStatus(t *testing.T) {
 	}
 }
 
+func TestCheckCallerEligibility_AdmittedAppWithPermissionFabricPendingRef(t *testing.T) {
+	yaml := strings.ReplaceAll(sampleRegistryYAML, "permission_scope_ref: []", "permission_scope_ref: permission_fabric_pending")
+	r, err := LoadRegistry(strings.NewReader(yaml))
+	if err != nil {
+		t.Fatalf("LoadRegistry: %v", err)
+	}
+	result, err := r.CheckCallerEligibility("nimi.example-app")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Eligible {
+		t.Error("admitted app with permission_fabric_pending ref must not be eligible")
+	}
+	if result.Reason != string(EligibilityReasonPermissionFabricPending) {
+		t.Errorf("reason = %q, want %q", result.Reason, EligibilityReasonPermissionFabricPending)
+	}
+}
+
 func TestCheckCallerEligibility_RetiredStatus(t *testing.T) {
 	yaml := strings.Replace(sampleRegistryYAML, "admission_status: admitted", "admission_status: retired", 1)
 	r, _ := LoadRegistry(strings.NewReader(yaml))

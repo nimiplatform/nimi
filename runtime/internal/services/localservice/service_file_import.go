@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -55,12 +56,16 @@ func prepareImportSourcePath(rawPath string) (string, fs.FileInfo, error) {
 }
 
 func computeImportFileSHA256(path string) (string, error) {
-	raw, err := os.ReadFile(strings.TrimSpace(path))
+	file, err := os.Open(strings.TrimSpace(path))
 	if err != nil {
 		return "", err
 	}
-	sum := sha256.Sum256(raw)
-	return hex.EncodeToString(sum[:]), nil
+	defer file.Close()
+	hasher := sha256.New()
+	if _, err := io.Copy(hasher, file); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(hasher.Sum(nil)), nil
 }
 
 func runtimeManagedResolvedModelDir(modelsRoot string, logicalModelID string) string {
@@ -104,11 +109,24 @@ func maybeMoveOrCopyFile(sourcePath string, destPath string, removeSource bool) 
 }
 
 func copyFile(src, dst string, perm os.FileMode) error {
-	data, err := os.ReadFile(src)
+	source, err := os.Open(src)
 	if err != nil {
-		return fmt.Errorf("read source file: %w", err)
+		return fmt.Errorf("open source file: %w", err)
 	}
-	return os.WriteFile(dst, data, perm)
+	defer source.Close()
+	target, err := os.OpenFile(dst, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, perm)
+	if err != nil {
+		return fmt.Errorf("open destination file: %w", err)
+	}
+	_, copyErr := io.Copy(target, source)
+	closeErr := target.Close()
+	if copyErr != nil {
+		return fmt.Errorf("copy source file: %w", copyErr)
+	}
+	if closeErr != nil {
+		return fmt.Errorf("close destination file: %w", closeErr)
+	}
+	return nil
 }
 
 func copyDirRecursive(src, dst string) error {

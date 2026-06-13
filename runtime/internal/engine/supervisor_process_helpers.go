@@ -44,6 +44,7 @@ func (s *Supervisor) handleExitedProcess(ctx context.Context, process *supervise
 	}
 	crashDetail := s.buildCrashDetail(process.waitErr)
 	s.logger.Warn("engine process exited unexpectedly",
+		"event", "engine.process.exited_unexpectedly",
 		"engine", s.cfg.Kind,
 		"error", crashDetail,
 	)

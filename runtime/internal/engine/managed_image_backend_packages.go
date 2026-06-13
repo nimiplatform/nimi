@@ -1,13 +1,18 @@
 package engine
 
 import (
+	_ "embed"
 	"fmt"
-	"os"
-	"path/filepath"
 	"strings"
+	"sync"
 
 	"gopkg.in/yaml.v3"
 )
+
+//go:embed authority/managed-image-backend-packages.yaml
+var managedImageBackendPackagesAuthorityYAML []byte
+
+var managedImageBackendPackageAuthority = sync.OnceValues(loadManagedImageBackendPackageSpecsFromAuthority)
 
 type managedImageBackendPackageFormat string
 
@@ -157,16 +162,15 @@ func resolveManagedImageBackendPackageSpecForHostWithSource(backendName string, 
 }
 
 func managedImageBackendPackageSpecsFromAuthority() ([]managedImageBackendPackageSpec, error) {
-	path, err := managedImageBackendPackagesAuthorityPath()
-	if err != nil {
-		return nil, err
-	}
-	raw, err := os.ReadFile(path)
-	if err != nil {
-		return nil, fmt.Errorf("read managed image backend package authority: %w", err)
+	return managedImageBackendPackageAuthority()
+}
+
+func loadManagedImageBackendPackageSpecsFromAuthority() ([]managedImageBackendPackageSpec, error) {
+	if len(managedImageBackendPackagesAuthorityYAML) == 0 {
+		return nil, fmt.Errorf("embedded managed image backend package authority is empty")
 	}
 	var doc managedImageBackendPackagesDocument
-	if err := yaml.Unmarshal(raw, &doc); err != nil {
+	if err := yaml.Unmarshal(managedImageBackendPackagesAuthorityYAML, &doc); err != nil {
 		return nil, fmt.Errorf("parse managed image backend package authority: %w", err)
 	}
 	specs := make([]managedImageBackendPackageSpec, 0, len(doc.Entries))
@@ -223,30 +227,6 @@ func validateManagedImageBackendPackageSpec(spec managedImageBackendPackageSpec)
 		return fmt.Errorf("supported managed image backend package %q has unsupported package format %q", spec.BackendName, spec.PackageFormat)
 	}
 	return nil
-}
-
-func managedImageBackendPackagesAuthorityPath() (string, error) {
-	const relative = ".nimi/spec/runtime/kernel/tables/managed-image-backend-packages.yaml"
-	var starts []string
-	if wd, err := os.Getwd(); err == nil {
-		starts = append(starts, wd)
-	}
-	if exe, err := os.Executable(); err == nil {
-		starts = append(starts, filepath.Dir(exe))
-	}
-	for _, start := range starts {
-		for dir := filepath.Clean(start); ; dir = filepath.Dir(dir) {
-			candidate := filepath.Join(dir, relative)
-			if _, err := os.Stat(candidate); err == nil {
-				return candidate, nil
-			}
-			parent := filepath.Dir(dir)
-			if parent == dir {
-				break
-			}
-		}
-	}
-	return "", fmt.Errorf("managed image backend package authority table not found")
 }
 
 func normalizeManagedImageBackendPackageSource(raw string) managedImageBackendPackageSource {

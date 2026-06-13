@@ -1,8 +1,8 @@
 package localrouting
 
 import (
-	"os"
-	"path/filepath"
+	_ "embed"
+	"fmt"
 	"strings"
 	"sync"
 
@@ -11,6 +11,9 @@ import (
 )
 
 var authorityRoutes = sync.OnceValues(loadAuthorityRoutes)
+
+//go:embed authority/local-adapter-routing.yaml
+var authorityRoutingYAML []byte
 
 type authorityRoute struct {
 	Provider   string
@@ -174,16 +177,11 @@ func knownProviders() []string {
 }
 
 func loadAuthorityRoutes() ([]authorityRoute, error) {
-	path, err := localAdapterRoutingAuthorityPath()
-	if err != nil {
-		return nil, err
-	}
-	raw, err := os.ReadFile(path)
-	if err != nil {
-		return nil, err
+	if len(authorityRoutingYAML) == 0 {
+		return nil, fmt.Errorf("embedded local adapter routing authority is empty")
 	}
 	var doc authorityRoutingDocument
-	if err := yaml.Unmarshal(raw, &doc); err != nil {
+	if err := yaml.Unmarshal(authorityRoutingYAML, &doc); err != nil {
 		return nil, err
 	}
 	routes := make([]authorityRoute, 0, len(doc.Routes))
@@ -196,28 +194,4 @@ func loadAuthorityRoutes() ([]authorityRoute, error) {
 		routes = append(routes, authorityRoute{Provider: provider, Capability: capability})
 	}
 	return routes, nil
-}
-
-func localAdapterRoutingAuthorityPath() (string, error) {
-	const relative = ".nimi/spec/runtime/kernel/tables/local-adapter-routing.yaml"
-	var starts []string
-	if wd, err := os.Getwd(); err == nil {
-		starts = append(starts, wd)
-	}
-	if exe, err := os.Executable(); err == nil {
-		starts = append(starts, filepath.Dir(exe))
-	}
-	for _, start := range starts {
-		for dir := filepath.Clean(start); ; dir = filepath.Dir(dir) {
-			candidate := filepath.Join(dir, relative)
-			if _, err := os.Stat(candidate); err == nil {
-				return candidate, nil
-			}
-			parent := filepath.Dir(dir)
-			if parent == dir {
-				break
-			}
-		}
-	}
-	return "", os.ErrNotExist
 }

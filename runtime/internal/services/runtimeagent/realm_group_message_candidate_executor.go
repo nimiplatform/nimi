@@ -463,21 +463,20 @@ func decodeRealmGroupMessageCandidateExecutorResult(
 	if traceRef == "" {
 		return RealmGroupMessageCandidateExecutionOutput{}, status.Error(codes.InvalidArgument, "realm group message candidate executor requires runtime trace id")
 	}
-	baseRef := realmGroupMessageCandidateEvidenceRefPrefix + input.CandidateID
 	output := RealmGroupMessageCandidateExecutionOutput{
 		RuntimeTraceRef:        traceRef,
-		OutputCandidateRef:     baseRef + "/output",
-		AuditLineageRef:        baseRef + "/audit",
-		PolicyVerdictRef:       baseRef + "/policy",
+		OutputCandidateRef:     input.OutputCandidateRef,
+		AuditLineageRef:        input.AuditLineageRef,
+		PolicyVerdictRef:       input.PolicyVerdictRef,
 		ProfileKind:            "realm_group_agent",
 		IdentitySource:         "runtime_local_agent_identity",
 		ParticipantRef:         input.LocalAgentRef,
 		ContextBlockRefs:       realmGroupCandidateContextBlockRefs(input.ContextRefs),
 		OutputDestination:      "realm_group_thread:" + input.RealmGroupThreadID,
-		MemoryReadVerdict:      "PASS",
-		MemoryWriteVerdict:     "PASS",
-		CapabilityScopeVerdict: "PASS",
-		AuditID:                baseRef + "/audit",
+		MemoryReadVerdict:      input.MemoryReadVerdict,
+		MemoryWriteVerdict:     input.MemoryWriteVerdict,
+		CapabilityScopeVerdict: input.CapabilityScopeVerdict,
+		AuditID:                input.AuditID,
 	}
 	hasMessage := payload.Message != nil && strings.TrimSpace(payload.Message.Body) != ""
 	hasRefusal := payload.Refusal != nil && (strings.TrimSpace(payload.Refusal.Code) != "" || strings.TrimSpace(payload.Refusal.Reason) != "")
@@ -488,7 +487,6 @@ func decodeRealmGroupMessageCandidateExecutorResult(
 		output.CommitDisposition = runtimev1.RealmGroupMessageCandidateCommitDisposition_REALM_GROUP_MESSAGE_CANDIDATE_COMMIT_DISPOSITION_MESSAGE_CANDIDATE
 		output.MessageType = "TEXT"
 		output.Body = strings.TrimSpace(payload.Message.Body)
-		output.PolicyVerdictRef += "/message_candidate"
 		return output, nil
 	}
 	refusalCode := strings.TrimSpace(payload.Refusal.Code)
@@ -499,7 +497,6 @@ func decodeRealmGroupMessageCandidateExecutorResult(
 	output.CommitDisposition = runtimev1.RealmGroupMessageCandidateCommitDisposition_REALM_GROUP_MESSAGE_CANDIDATE_COMMIT_DISPOSITION_REFUSAL_CANDIDATE
 	output.RefusalCode = refusalCode
 	output.RefusalReason = refusalReason
-	output.PolicyVerdictRef += "/refusal_candidate"
 	return output, nil
 }
 

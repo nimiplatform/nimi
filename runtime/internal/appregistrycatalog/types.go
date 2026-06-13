@@ -80,6 +80,8 @@ func (v OrdinaryVisibility) Valid() bool {
 	return false
 }
 
+const PermissionScopeRefPending = "permission_fabric_pending"
+
 // PermissionScopeRef captures a single permission scope row from the
 // registry. Wave 5 owns the full grant lifecycle; this struct is the
 // registry-side typed reference.
@@ -103,6 +105,7 @@ type App struct {
 	CapabilitySetRefs         []string
 	LocalComputePackRefs      []string
 	RuntimeRegistrationMode   RuntimeRegistrationMode
+	PermissionScopeRefPending bool
 	PermissionScopeRefs       []PermissionScopeRef
 	HealthRepairProjection    []string
 	OrdinaryVisibility        OrdinaryVisibility
@@ -129,5 +132,6 @@ var (
 	ErrAppUnknownAdmissionStatus     = errors.New("app row admission_status is not canonical")
 	ErrAppUnknownRuntimeRegistration = errors.New("app row runtime_registration_mode is not canonical")
 	ErrAppUnknownOrdinaryVisibility  = errors.New("app row ordinary_visibility is not canonical")
+	ErrAppInvalidPermissionScopeRef  = errors.New("app row permission_scope_ref is not canonical")
 	ErrAppNotFound                   = errors.New("app not found in registry")
 )

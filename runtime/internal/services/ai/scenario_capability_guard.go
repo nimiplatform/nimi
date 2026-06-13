@@ -118,21 +118,19 @@ func (s *Service) validateScenarioCapability(
 			return nil
 		}
 	}
-	if isAdmittedLocalQwen3TTSWorkflow(scenarioType, modelResolved) {
-		if s == nil || s.speechCatalog == nil {
-			return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
-		}
-		return nil
-	}
-	if !localrouting.IsKnownProvider(providerType) && !providerregistry.Contains(providerType) {
+	catalogProviderType := scenarioCapabilityCatalogProviderType(providerType, scenarioType)
+	if catalogProviderType == "" && !isVoiceWorkflowScenario(scenarioType) {
 		return nil
 	}
 	if s == nil || s.speechCatalog == nil {
 		return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
 	}
-	supported, err := s.speechCatalog.SupportsScenarioForSubject(catalogSubjectUserIDFromContext(ctx), providerType, modelResolved, scenarioType)
+	supported, err := s.speechCatalog.SupportsScenarioForSubject(catalogSubjectUserIDFromContext(ctx), catalogProviderType, modelResolved, scenarioType)
 	if err != nil {
 		if errors.Is(err, aicatalog.ErrModelNotFound) {
+			if isVoiceWorkflowScenario(scenarioType) && localrouting.IsKnownProvider(providerType) {
+				return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED)
+			}
 			return grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND)
 		}
 		return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
@@ -143,38 +141,28 @@ func (s *Service) validateScenarioCapability(
 	return grpcerr.WithReasonCode(codes.InvalidArgument, unsupportedCapabilityReasonCode(scenarioType))
 }
 
-func isAdmittedLocalQwen3TTSWorkflow(scenarioType runtimev1.ScenarioType, modelResolved string) bool {
-	normalized := strings.ToLower(strings.TrimSpace(modelResolved))
+func isVoiceWorkflowScenario(scenarioType runtimev1.ScenarioType) bool {
 	switch scenarioType {
-	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE:
-		return isAdmittedLocalQwen3TTSWorkflowModel(normalized, []string{
-			"qwen3-tts-base-local",
-			"local/qwen3-tts-base",
-			"speech/qwen3tts-base",
-			"qwen/qwen3-tts-12hz-0.6b-base",
-		})
-	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN:
-		return isAdmittedLocalQwen3TTSWorkflowModel(normalized, []string{
-			"qwen3-tts-voicedesign-local",
-			"local/qwen3-tts-voicedesign",
-			"speech/qwen3tts-design",
-			"qwen/qwen3-tts-12hz-1.7b-voicedesign",
-		})
+	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
+		runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN:
+		return true
 	default:
 		return false
 	}
 }
 
-func isAdmittedLocalQwen3TTSWorkflowModel(normalized string, admitted []string) bool {
-	if normalized == "" {
-		return false
+func scenarioCapabilityCatalogProviderType(providerType string, scenarioType runtimev1.ScenarioType) string {
+	normalized := strings.ToLower(strings.TrimSpace(providerType))
+	if localrouting.IsKnownProvider(normalized) {
+		return "local"
 	}
-	for _, modelID := range admitted {
-		if normalized == modelID {
-			return true
-		}
+	if providerregistry.Contains(normalized) {
+		return normalized
 	}
-	return false
+	if isVoiceWorkflowScenario(scenarioType) {
+		return ""
+	}
+	return ""
 }
 
 func requiredTextGenerateCapabilities(input []*runtimev1.ChatMessage) []string {

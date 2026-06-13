@@ -382,8 +382,8 @@ func TestKnowledgeSaveRejectsInvalidCitationsAndPromptShowsSummary(t *testing.T)
 		t.Fatalf("expected missing memory citation rejection, got %v", err)
 	}
 	kernelTarget := knowledge.Page{PageID: "p_kernel_rule", ScopeID: "a1", Kind: knowledge.ProjectionKindGuide, Version: 1, Title: "Kernel rule", Body: []byte(`"body"`), Lifecycle: knowledge.ProjectionLifecycleActive, CreatedAt: ts, UpdatedAt: ts, Citations: []knowledge.Citation{{TargetKind: knowledge.CitationTargetKindKernelRule, TargetID: "rule_old", Strength: "strong_ref"}}}
-	if err := c.KnowledgeService().Save(kernelTarget); err == nil || !strings.Contains(err.Error(), "kernel_rule citations are not admitted") {
-		t.Fatalf("expected kernel rule citation rejection, got %v", err)
+	if err := c.KnowledgeService().Save(kernelTarget); err != nil {
+		t.Fatalf("stored kernel_rule citation should remain readable: %v", err)
 	}
 	ctx, err := c.NewRoutineContext("a1")
 	if err != nil {

@@ -120,6 +120,55 @@ func TestRuntimeKnowledgeBankScopeRequiresAdmittedFacade(t *testing.T) {
 	}
 }
 
+func TestAppMemoryAccessRejectsCrossAppPrivateScope(t *testing.T) {
+	c := newTestCognition(t)
+	ctx := context.Background()
+	appBAccess := validAppKnowledgeWriteAccess()
+	appBAccess.SourceAppID = "app.calendar"
+	scope, err := c.AppMemoryAccessService().CreateKnowledgeScope(ctx, appBAccess, KnowledgeScopeDescriptor{
+		Owner:       KnowledgeScopeOwner{Kind: KnowledgeScopeOwnerKindAppPrivate, AppID: "app.calendar"},
+		DisplayName: "Calendar Notes",
+	})
+	if err != nil {
+		t.Fatalf("create app B scope: %v", err)
+	}
+	if _, _, err := c.AppMemoryAccessService().ListKnowledgeScopes(ctx, validAppKnowledgeReadAccess(), KnowledgeScopeFilter{
+		Owners: []KnowledgeScopeOwner{{Kind: KnowledgeScopeOwnerKindAppPrivate, AppID: "app.calendar"}},
+	}); err == nil || !strings.Contains(err.Error(), "source_app_id") {
+		t.Fatalf("app A list of app B scopes must be denied, got %v", err)
+	}
+
+	page := knowledge.Page{
+		PageID:    "page-cross-app-1",
+		ScopeID:   scope.ScopeID,
+		Kind:      knowledge.ProjectionKindNote,
+		Version:   1,
+		Title:     "Cross app page",
+		Body:      []byte(`"cross app"`),
+		Lifecycle: knowledge.ProjectionLifecycleActive,
+		CreatedAt: ts,
+		UpdatedAt: ts,
+	}
+	if err := c.AppMemoryAccessService().SaveKnowledge(ctx, validAppKnowledgeWriteAccess(), page); err == nil || !strings.Contains(err.Error(), "owner mismatch") {
+		t.Fatalf("app A write to app B scope must be denied, got %v", err)
+	}
+	if _, err := c.AppMemoryAccessService().LoadKnowledge(ctx, validAppKnowledgeReadAccess(), scope.ScopeID, "page-cross-app-1"); err == nil || !strings.Contains(err.Error(), "owner mismatch") {
+		t.Fatalf("app A read from app B scope must be denied, got %v", err)
+	}
+	if err := c.AppMemoryAccessService().SaveMemory(ctx, validAppMemoryWriteAccess(), memory.Record{
+		RecordID:  "mem-cross-app-1",
+		ScopeID:   scope.ScopeID,
+		Kind:      memory.RecordKindExperience,
+		Version:   1,
+		Content:   []byte(`{"summary":"cross app"}`),
+		Lifecycle: memory.RecordLifecycleActive,
+		CreatedAt: ts,
+		UpdatedAt: ts,
+	}); err == nil || !strings.Contains(err.Error(), "owner mismatch") {
+		t.Fatalf("app A memory write to app B scope must be denied, got %v", err)
+	}
+}
+
 func TestAppMemoryAccessDeniesMissingGrantAndProvenance(t *testing.T) {
 	c := newTestCognition(t)
 	access := validAppMemoryWriteAccess()

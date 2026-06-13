@@ -7,6 +7,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -31,6 +32,13 @@ type testRealmGroupMessageCandidateBindingResolver struct {
 	inspect     func(PublicChatBindingResolutionRequest)
 }
 
+func newRealmGroupMessageCandidateTestService(t *testing.T) *Service {
+	t.Helper()
+	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	svc.SetAuditStore(auditlog.New(128, 128))
+	return svc
+}
+
 func (r *testRealmGroupMessageCandidateBindingResolver) ResolvePublicChatBinding(_ context.Context, req PublicChatBindingResolutionRequest) (PublicChatBindingResolution, error) {
 	r.calls++
 	if r.inspect != nil {
@@ -49,13 +57,13 @@ func (e *testRealmGroupMessageCandidateExecutor) CreateRealmGroupMessageCandidat
 		output.RuntimeTraceRef = "runtime-trace:" + input.CandidateID
 	}
 	if output.OutputCandidateRef == "" {
-		output.OutputCandidateRef = "runtime-output:" + input.CandidateID
+		output.OutputCandidateRef = input.OutputCandidateRef
 	}
 	if output.AuditLineageRef == "" {
-		output.AuditLineageRef = "runtime-audit:" + input.CandidateID
+		output.AuditLineageRef = input.AuditLineageRef
 	}
 	if output.PolicyVerdictRef == "" {
-		output.PolicyVerdictRef = "runtime-policy:" + input.CandidateID
+		output.PolicyVerdictRef = input.PolicyVerdictRef
 	}
 	if output.ProfileKind == "" {
 		output.ProfileKind = "realm_group_agent"
@@ -73,16 +81,16 @@ func (e *testRealmGroupMessageCandidateExecutor) CreateRealmGroupMessageCandidat
 		output.OutputDestination = "realm_group_thread:" + input.RealmGroupThreadID
 	}
 	if output.MemoryReadVerdict == "" {
-		output.MemoryReadVerdict = "PASS"
+		output.MemoryReadVerdict = input.MemoryReadVerdict
 	}
 	if output.MemoryWriteVerdict == "" {
-		output.MemoryWriteVerdict = "PASS"
+		output.MemoryWriteVerdict = input.MemoryWriteVerdict
 	}
 	if output.CapabilityScopeVerdict == "" {
-		output.CapabilityScopeVerdict = "PASS"
+		output.CapabilityScopeVerdict = input.CapabilityScopeVerdict
 	}
 	if output.AuditID == "" {
-		output.AuditID = "runtime-audit:" + input.CandidateID
+		output.AuditID = input.AuditID
 	}
 	return output, nil
 }
@@ -103,7 +111,7 @@ func (e *testRealmGroupMessageCandidateAI) ExecuteScenario(_ context.Context, re
 }
 
 func TestRealmGroupMessageCandidateCreatesImmutableEvidence(t *testing.T) {
-	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	svc := newRealmGroupMessageCandidateTestService(t)
 	executor := &testRealmGroupMessageCandidateExecutor{
 		output: RealmGroupMessageCandidateExecutionOutput{
 			CommitDisposition: runtimev1.RealmGroupMessageCandidateCommitDisposition_REALM_GROUP_MESSAGE_CANDIDATE_COMMIT_DISPOSITION_MESSAGE_CANDIDATE,
@@ -168,7 +176,7 @@ func TestRealmGroupMessageCandidateCreatesImmutableEvidence(t *testing.T) {
 }
 
 func TestAIBackedRealmGroupMessageCandidateExecutorCreatesMessageEvidence(t *testing.T) {
-	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	svc := newRealmGroupMessageCandidateTestService(t)
 	ai := &testRealmGroupMessageCandidateAI{
 		t:       t,
 		output:  `<realm-group-message-candidate><message>Hello from the group agent.</message></realm-group-message-candidate>`,
@@ -247,10 +255,33 @@ func TestAIBackedRealmGroupMessageCandidateExecutorCreatesMessageEvidence(t *tes
 	if got := evidenceResp.GetEvidence().GetBody(); got != "Hello from the group agent." {
 		t.Fatalf("body = %q", got)
 	}
+	evidence := evidenceResp.GetEvidence()
+	if evidence.GetMemoryReadVerdict() != realmGroupCandidateVerdictAllow {
+		t.Fatalf("memory read verdict = %q", evidence.GetMemoryReadVerdict())
+	}
+	if evidence.GetMemoryWriteVerdict() != realmGroupCandidateVerdictDeny {
+		t.Fatalf("memory write verdict = %q", evidence.GetMemoryWriteVerdict())
+	}
+	if evidence.GetCapabilityScopeVerdict() != realmGroupCandidateVerdictAllow {
+		t.Fatalf("capability scope verdict = %q", evidence.GetCapabilityScopeVerdict())
+	}
+	auditEvents, err := svc.auditStore.ListEvents(&runtimev1.ListAuditEventsRequest{
+		Domain:   realmGroupMessageCandidateAuditDomain,
+		PageSize: 10,
+	})
+	if err != nil {
+		t.Fatalf("ListEvents: %v", err)
+	}
+	if len(auditEvents.GetEvents()) != 1 {
+		t.Fatalf("audit event count = %d", len(auditEvents.GetEvents()))
+	}
+	if auditEvents.GetEvents()[0].GetAuditId() != evidence.GetAuditId() {
+		t.Fatalf("audit id mismatch: event=%q evidence=%q", auditEvents.GetEvents()[0].GetAuditId(), evidence.GetAuditId())
+	}
 }
 
 func TestAIBackedRealmGroupMessageCandidateExecutorCreatesRefusalEvidence(t *testing.T) {
-	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	svc := newRealmGroupMessageCandidateTestService(t)
 	svc.SetRealmGroupMessageCandidateExecutor(NewAIBackedRealmGroupMessageCandidateExecutorWithBinding(&testRealmGroupMessageCandidateAI{
 		t:       t,
 		output:  `<realm-group-message-candidate><refusal code="insufficient_context">Realm context refs are insufficient.</refusal></realm-group-message-candidate>`,
@@ -289,7 +320,7 @@ func TestAIBackedRealmGroupMessageCandidateExecutorCreatesRefusalEvidence(t *tes
 }
 
 func TestAIBackedRealmGroupMessageCandidateExecutorFailsClosed(t *testing.T) {
-	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	svc := newRealmGroupMessageCandidateTestService(t)
 	svc.SetRealmGroupMessageCandidateExecutor(NewAIBackedRealmGroupMessageCandidateExecutorWithBinding(&testRealmGroupMessageCandidateAI{
 		t:      t,
 		output: `<realm-group-message-candidate><message>hello</message></realm-group-message-candidate>`,
@@ -363,7 +394,7 @@ func TestAIBackedRealmGroupMessageCandidateExecutorFailsClosed(t *testing.T) {
 }
 
 func TestRealmGroupMessageCandidateRefusalHashMatchesRealm(t *testing.T) {
-	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	svc := newRealmGroupMessageCandidateTestService(t)
 	svc.SetRealmGroupMessageCandidateExecutor(&testRealmGroupMessageCandidateExecutor{
 		output: RealmGroupMessageCandidateExecutionOutput{
 			CommitDisposition: runtimev1.RealmGroupMessageCandidateCommitDisposition_REALM_GROUP_MESSAGE_CANDIDATE_COMMIT_DISPOSITION_REFUSAL_CANDIDATE,
@@ -397,9 +428,25 @@ func TestRealmGroupMessageCandidateRefusalHashMatchesRealm(t *testing.T) {
 }
 
 func TestRealmGroupMessageCandidateFailsClosed(t *testing.T) {
-	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	svc := newRealmGroupMessageCandidateTestService(t)
 	if _, err := svc.CreateRealmGroupMessageCandidate(context.Background(), validRealmGroupMessageCandidateRequest("idem-missing-executor")); status.Code(err) != codes.FailedPrecondition {
 		t.Fatalf("expected FailedPrecondition without executor, got %v", err)
+	}
+
+	noAuditSvc := newRuntimeAgentServiceForPublicChatTest(t)
+	noAuditExecutor := &testRealmGroupMessageCandidateExecutor{
+		output: RealmGroupMessageCandidateExecutionOutput{
+			CommitDisposition: runtimev1.RealmGroupMessageCandidateCommitDisposition_REALM_GROUP_MESSAGE_CANDIDATE_COMMIT_DISPOSITION_MESSAGE_CANDIDATE,
+			MessageType:       "TEXT",
+			Body:              "must not execute",
+		},
+	}
+	noAuditSvc.SetRealmGroupMessageCandidateExecutor(noAuditExecutor)
+	if _, err := noAuditSvc.CreateRealmGroupMessageCandidate(context.Background(), validRealmGroupMessageCandidateRequest("idem-missing-audit-store")); status.Code(err) != codes.FailedPrecondition {
+		t.Fatalf("expected FailedPrecondition without audit store, got %v", err)
+	}
+	if noAuditExecutor.calls != 0 {
+		t.Fatalf("executor called without audit store: %d", noAuditExecutor.calls)
 	}
 
 	svc.SetRealmGroupMessageCandidateExecutor(&testRealmGroupMessageCandidateExecutor{
@@ -450,7 +497,7 @@ func TestRealmGroupMessageCandidateFailsClosed(t *testing.T) {
 }
 
 func TestRealmGroupMessageCandidateRejectsBoundedRefsWithoutAuthorityEvidenceClass(t *testing.T) {
-	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	svc := newRealmGroupMessageCandidateTestService(t)
 	executor := &testRealmGroupMessageCandidateExecutor{
 		output: RealmGroupMessageCandidateExecutionOutput{
 			CommitDisposition: runtimev1.RealmGroupMessageCandidateCommitDisposition_REALM_GROUP_MESSAGE_CANDIDATE_COMMIT_DISPOSITION_MESSAGE_CANDIDATE,

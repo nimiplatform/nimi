@@ -48,6 +48,30 @@ func (s *Service) schedulePublicChatFollowUp(
 			Message:          message,
 		}
 	}
+	if action.PromptPayload.TriggerFamily == "event" {
+		message := "event hook trigger requires host-owned event detector admission"
+		emitErr := s.emitPublicChatFollowUpHookEvents(session, turn, action,
+			publicChatHookLifecycleTransition{state: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PROPOSED},
+			publicChatHookLifecycleTransition{
+				state:      runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_REJECTED,
+				reasonCode: runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED,
+				message:    message,
+			},
+		)
+		if emitErr != nil {
+			message = strings.TrimSpace(emitErr.Error())
+		}
+		return publicChatFollowUpOutcome{
+			Status:           "rejected",
+			ChainID:          turn.ChainID,
+			FollowUpDepth:    nextDepth,
+			MaxFollowUpTurns: maxTurns,
+			SourceTurnID:     turn.TurnID,
+			SourceActionID:   action.ActionID,
+			ReasonCode:       runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED,
+			Message:          message,
+		}
+	}
 	pendingIntent, err := publicChatFollowUpHookIntent(session, turn, action, runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING)
 	if err != nil {
 		return publicChatFollowUpOutcome{

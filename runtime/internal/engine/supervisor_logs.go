@@ -11,6 +11,22 @@ import (
 )
 
 var processProgressCounterPattern = regexp.MustCompile(`(\d+)/(\d+)`)
+var processLogPrefixPattern = regexp.MustCompile(`^\[(\d+)\]\s*(.*)$`)
+var llamaLoadingModelPattern = regexp.MustCompile(`srv\s+load_model:\s+loading model '([^']+)'`)
+var llamaOffloadedLayersPattern = regexp.MustCompile(`offloaded\s+(\d+)/(\d+)\s+layers`)
+var llamaSlotsPattern = regexp.MustCompile(`n_slots\s*=\s*(\d+)`)
+var endpointPattern = regexp.MustCompile(`https?://[^\s]+|[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+:[0-9]+`)
+
+type processLogRecord struct {
+	level               slog.Level
+	message             string
+	event               string
+	phase               string
+	component           string
+	line                string
+	attrs               []any
+	includeInStderrTail bool
+}
 
 func (s *Supervisor) streamProcessLogs(reader io.ReadCloser, stream string, level slog.Level) {
 	if reader == nil {
@@ -25,25 +41,31 @@ func (s *Supervisor) streamProcessLogs(reader io.ReadCloser, stream string, leve
 		if line == "" {
 			continue
 		}
-		if stream == "stderr" {
-			s.recordStderrTail(line)
+		record := classifyEngineProcessLog(s.cfg.Kind, stream, line, level)
+		if phase := s.trackProcessLogPhase(stream, record.line); phase != "" && record.phase == "" {
+			record.phase = phase
+		}
+		if stream == "stderr" && record.includeInStderrTail {
+			s.recordStderrTail(record.line)
 		}
 		attrs := []any{
+			"event", record.event,
 			"engine", s.cfg.Kind,
 			"stream", stream,
-			"line", line,
 		}
-		if phase := s.trackProcessLogPhase(stream, line); phase != "" {
-			attrs = append(attrs, "phase", phase)
+		if record.phase != "" {
+			attrs = append(attrs, "phase", record.phase)
 		}
-		lineLevel := level
-		if s.cfg.Kind == EngineLlama && stream == "stderr" {
-			lineLevel = classifyLlamaStderrLevel(line)
+		if record.component != "" {
+			attrs = append(attrs, "component", record.component)
 		}
-		s.logger.Log(context.Background(), lineLevel, "engine process output", attrs...)
+		attrs = append(attrs, record.attrs...)
+		attrs = append(attrs, "line", record.line)
+		s.logger.Log(context.Background(), record.level, record.message, attrs...)
 	}
 	if err := scanner.Err(); err != nil {
 		s.logger.Warn("engine log stream closed with error",
+			"event", "engine.process.log_stream_error",
 			"engine", s.cfg.Kind,
 			"stream", stream,
 			"error", err,
@@ -70,10 +92,15 @@ func splitProcessLogToken(data []byte, atEOF bool) (advance int, token []byte, e
 }
 
 func (s *Supervisor) trackProcessLogPhase(stream, line string) string {
-	if s.cfg.Kind != engineManagedImageBackend {
+	phase := ""
+	switch s.cfg.Kind {
+	case EngineLlama:
+		phase = detectLlamaProcessLogPhase(line)
+	case engineManagedImageBackend:
+		phase = detectMediaProcessLogPhase(stream, line)
+	default:
 		return ""
 	}
-	phase := detectMediaProcessLogPhase(stream, line)
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if phase != "" {
@@ -133,33 +160,220 @@ func classifyMediaProgressLine(line string) (string, bool) {
 	return "", false
 }
 
-// classifyLlamaStderrLevel returns the appropriate log level for a llama engine
-// stderr line. llama.cpp writes all output to stderr, including informational
-// model metadata, loading progress, and inference statistics. Without
-// classification these flood the log as WARN and obscure genuinely important
-// messages.
-func classifyLlamaStderrLevel(line string) slog.Level {
-	// Actual errors/warnings — keep at WARN.
+func classifyEngineProcessLog(kind EngineKind, stream, rawLine string, defaultLevel slog.Level) processLogRecord {
+	line, prefixAttrs := normalizeProcessLogLine(rawLine)
+	component := processLogComponent(line)
+	record := processLogRecord{
+		level:               defaultLevel,
+		message:             "engine process output",
+		event:               "engine.process.output",
+		component:           component,
+		line:                line,
+		attrs:               prefixAttrs,
+		includeInStderrTail: stream == "stderr",
+	}
+	if isProcessErrorLine(line) {
+		record.level = slog.LevelWarn
+		record.message = "engine process warning"
+		record.event = "engine.process.warning"
+		return record
+	}
+	switch kind {
+	case EngineLlama:
+		return classifyLlamaProcessLog(record)
+	case engineManagedImageBackend:
+		return classifyManagedImageBackendProcessLog(record, stream)
+	default:
+		if stream == "stderr" && isShellTraceLine(line) {
+			record.level = slog.LevelDebug
+			record.event = "engine.process.shell_trace"
+			record.includeInStderrTail = false
+		}
+		return record
+	}
+}
+
+func normalizeProcessLogLine(rawLine string) (string, []any) {
+	line := strings.TrimSpace(rawLine)
+	matches := processLogPrefixPattern.FindStringSubmatch(line)
+	if len(matches) != 3 {
+		return line, nil
+	}
+	return strings.TrimSpace(matches[2]), []any{"process_log_prefix", matches[1]}
+}
+
+func processLogComponent(line string) string {
+	if idx := strings.Index(line, ":"); idx > 0 {
+		component := strings.TrimSpace(line[:idx])
+		if component != "" && len(component) <= 48 {
+			return strings.Join(strings.Fields(component), " ")
+		}
+	}
+	return ""
+}
+
+func isProcessErrorLine(line string) bool {
 	lower := strings.ToLower(line)
 	for _, kw := range []string{"error", "failed", "warning", "fatal", "panic", "abort"} {
 		if strings.Contains(lower, kw) {
-			return slog.LevelWarn
+			return true
 		}
 	}
+	return false
+}
 
-	// Key lifecycle events — promote to INFO.
-	for _, prefix := range []string{
-		"main: model loaded",
-		"main: server is listening",
-		"main: starting the main loop",
-	} {
-		if strings.HasPrefix(line, prefix) {
-			return slog.LevelInfo
+func isShellTraceLine(line string) bool {
+	trimmed := strings.TrimSpace(line)
+	return strings.HasPrefix(trimmed, "+ ")
+}
+
+func classifyLlamaProcessLog(record processLogRecord) processLogRecord {
+	line := record.line
+	record.level = slog.LevelDebug
+	record.message = "llama process detail"
+	record.event = "engine.llama.detail"
+	record.includeInStderrTail = false
+	if record.phase = detectLlamaProcessLogPhase(line); record.phase != "" {
+		record.attrs = append(record.attrs, "phase_source", "line")
+	}
+	switch {
+	case strings.HasPrefix(line, "main: loading model"):
+		return record.asInfo("engine model loading", "engine.llama.model_loading", "load_model")
+	case strings.Contains(line, "load_model: loading model"):
+		record = record.asInfo("engine model loading", "engine.llama.model_loading", "load_model")
+		if matches := llamaLoadingModelPattern.FindStringSubmatch(line); len(matches) == 2 {
+			record.attrs = append(record.attrs, "model_path", matches[1])
+		}
+		return record
+	case strings.Contains(line, "loaded meta data with"):
+		return record.asInfo("engine model metadata loaded", "engine.llama.model_metadata_loaded", "load_model")
+	case strings.Contains(line, "load_tensors: loading model tensors"):
+		return record.asInfo("engine model tensors loading", "engine.llama.tensors_loading", "load_tensors")
+	case strings.Contains(line, "load_tensors: offloaded"):
+		record = record.asInfo("engine model layers offloaded", "engine.llama.layers_offloaded", "load_tensors")
+		if matches := llamaOffloadedLayersPattern.FindStringSubmatch(line); len(matches) == 3 {
+			record.attrs = append(record.attrs, "offloaded_layers", matches[1], "total_layers", matches[2])
+		}
+		return record
+	case strings.Contains(line, "llama_kv_cache: size ="):
+		return record.asInfo("engine kv cache allocated", "engine.llama.kv_cache_allocated", "allocate_context")
+	case strings.Contains(line, "warming up the model"):
+		return record.asInfo("engine model warmup started", "engine.llama.warmup_started", "warmup")
+	case strings.Contains(line, "initializing slots"):
+		record = record.asInfo("engine slots initializing", "engine.llama.slots_initializing", "init_slots")
+		if matches := llamaSlotsPattern.FindStringSubmatch(line); len(matches) == 2 {
+			record.attrs = append(record.attrs, "slots", matches[1])
+		}
+		return record
+	case strings.HasPrefix(line, "main: model loaded"):
+		return record.asInfo("engine model loaded", "engine.llama.model_loaded", "ready")
+	case strings.Contains(line, "server is listening"):
+		record = record.asInfo("engine endpoint listening", "engine.llama.endpoint_listening", "ready")
+		if endpoint := firstEndpoint(line); endpoint != "" {
+			record.attrs = append(record.attrs, "endpoint", endpoint)
+		}
+		return record
+	case line == "cmd_child_to_router:ready":
+		return record.asInfo("engine router ready", "engine.llama.router_ready", "ready")
+	case strings.Contains(line, "cleaning up before exit"),
+		strings.Contains(line, "exit command received"),
+		strings.Contains(line, "memory breakdown"),
+		strings.Contains(line, "deallocating"):
+		return record.asInfo("engine shutdown detail", "engine.llama.shutdown_detail", "shutdown")
+	default:
+		return record
+	}
+}
+
+func classifyManagedImageBackendProcessLog(record processLogRecord, stream string) processLogRecord {
+	line := record.line
+	if isShellTraceLine(line) {
+		record.level = slog.LevelDebug
+		record.message = "managed image backend shell trace"
+		record.event = "engine.managed_image.shell_trace"
+		record.phase = "bootstrap"
+		record.includeInStderrTail = false
+		return record
+	}
+	if record.phase == "" {
+		record.phase = detectMediaProcessLogPhase(stream, line)
+	}
+	switch {
+	case strings.Contains(line, "CPU info:"),
+		strings.Contains(line, "Using library:"):
+		record.level = slog.LevelInfo
+		record.message = "managed image backend environment"
+		record.event = "engine.managed_image.environment"
+		record.phase = "bootstrap"
+		record.includeInStderrTail = false
+	case strings.Contains(line, "pinned Metal source compilation"):
+		record.level = slog.LevelInfo
+		record.message = "managed image backend metal runtime patched"
+		record.event = "engine.managed_image.metal_runtime_patched"
+		record.phase = "bootstrap"
+		record.includeInStderrTail = false
+	case strings.Contains(line, "gRPC Server listening"):
+		record.level = slog.LevelInfo
+		record.message = "engine endpoint listening"
+		record.event = "engine.managed_image.endpoint_listening"
+		record.phase = "ready"
+		record.includeInStderrTail = false
+		if endpoint := firstEndpoint(line); endpoint != "" {
+			record.attrs = append(record.attrs, "endpoint", endpoint)
+		}
+	case record.phase != "":
+		record.level = slog.LevelDebug
+		record.message = "managed image backend progress"
+		record.event = "engine.managed_image.progress"
+	default:
+		if stream == "stderr" {
+			record.level = slog.LevelDebug
+			record.includeInStderrTail = false
 		}
 	}
+	return record
+}
 
-	// Everything else from llama.cpp is informational chatter → DEBUG.
-	return slog.LevelDebug
+func detectLlamaProcessLogPhase(line string) string {
+	switch {
+	case strings.Contains(line, "loading model"):
+		return "load_model"
+	case strings.Contains(line, "load_tensors"):
+		return "load_tensors"
+	case strings.Contains(line, "llama_context"),
+		strings.Contains(line, "llama_kv_cache"),
+		strings.Contains(line, "sched_reserve"):
+		return "allocate_context"
+	case strings.Contains(line, "warming up the model"):
+		return "warmup"
+	case strings.Contains(line, "initializing slots"),
+		strings.Contains(line, "new slot"):
+		return "init_slots"
+	case strings.Contains(line, "model loaded"),
+		strings.Contains(line, "server is listening"),
+		line == "cmd_child_to_router:ready":
+		return "ready"
+	case strings.Contains(line, "cleaning up before exit"),
+		strings.Contains(line, "exit command received"),
+		strings.Contains(line, "memory breakdown"),
+		strings.Contains(line, "deallocating"):
+		return "shutdown"
+	default:
+		return ""
+	}
+}
+
+func (record processLogRecord) asInfo(message, event, phase string) processLogRecord {
+	record.level = slog.LevelInfo
+	record.message = message
+	record.event = event
+	record.phase = phase
+	record.includeInStderrTail = false
+	return record
+}
+
+func firstEndpoint(line string) string {
+	return endpointPattern.FindString(line)
 }
 
 func (s *Supervisor) isRunEpochActive(epoch uint64) bool {

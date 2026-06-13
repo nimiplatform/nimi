@@ -19,31 +19,43 @@ const (
 	realmGroupMessageCandidateKind               = "REALM_GROUP_MESSAGE_CANDIDATE"
 	realmGroupMessageCandidateMetaStateKey       = "realm_group_message_candidate_state"
 	realmGroupMessageCandidateEvidenceRefPrefix  = "runtime://realm-group-message-candidates/"
+	realmGroupMessageCandidateAuditDomain        = "runtime.agent.realm_group_message_candidate"
+	realmGroupMessageCandidateAuditOperation     = "runtime.agent.realm_group_message_candidate.created"
+	realmGroupMessageCandidatePolicyVerdictOp    = "participation_policy_verdict"
 	realmGroupMessageCandidateDefaultTTL         = 5 * time.Minute
 	realmGroupMessageCandidateDispositionMessage = "MESSAGE_CANDIDATE"
 	realmGroupMessageCandidateDispositionRefusal = "REFUSAL_CANDIDATE"
+	realmGroupCandidateVerdictAllow              = "ALLOW"
+	realmGroupCandidateVerdictDeny               = "DENY"
 )
 
 type RealmGroupMessageCandidateExecutionInput struct {
-	Context               *runtimev1.AgentRequestContext
-	AppID                 string
-	SubjectUserID         string
-	RealmGroupThreadID    string
-	RealmGroupAgentSlotID string
-	OwnerUserID           string
-	RealmAgentID          string
-	LocalAgentRef         string
-	TriggerRef            string
-	MembershipSnapshotRef string
-	ReadCursorRef         string
-	ReplyTargetRef        string
-	RoomOrchestrationRef  string
-	IdempotencyKey        string
-	ContextRefs           map[string]string
-	CandidateID           string
-	CandidateEvidenceRef  string
-	CreatedAt             time.Time
-	ExpiresAt             time.Time
+	Context                *runtimev1.AgentRequestContext
+	AppID                  string
+	SubjectUserID          string
+	RealmGroupThreadID     string
+	RealmGroupAgentSlotID  string
+	OwnerUserID            string
+	RealmAgentID           string
+	LocalAgentRef          string
+	TriggerRef             string
+	MembershipSnapshotRef  string
+	ReadCursorRef          string
+	ReplyTargetRef         string
+	RoomOrchestrationRef   string
+	IdempotencyKey         string
+	ContextRefs            map[string]string
+	CandidateID            string
+	CandidateEvidenceRef   string
+	OutputCandidateRef     string
+	AuditLineageRef        string
+	PolicyVerdictRef       string
+	MemoryReadVerdict      string
+	MemoryWriteVerdict     string
+	CapabilityScopeVerdict string
+	AuditID                string
+	CreatedAt              time.Time
+	ExpiresAt              time.Time
 }
 
 type RealmGroupMessageCandidateExecutionOutput struct {
@@ -173,6 +185,9 @@ func (s *Service) CreateRealmGroupMessageCandidate(ctx context.Context, req *run
 	input.CandidateEvidenceRef = realmGroupMessageCandidateEvidenceRefPrefix + candidateID
 	input.CreatedAt = now
 	input.ExpiresAt = now.Add(realmGroupMessageCandidateDefaultTTL)
+	if err := s.prepareRealmGroupMessageCandidateExecutionEvidence(&input); err != nil {
+		return nil, err
+	}
 
 	output, err := executor.CreateRealmGroupMessageCandidate(ctx, input)
 	if err != nil {
@@ -199,6 +214,9 @@ func (s *Service) CreateRealmGroupMessageCandidate(ctx context.Context, req *run
 
 	if err := s.persistRealmGroupMessageCandidateState(snapshot); err != nil {
 		return nil, status.Errorf(codes.Internal, "persist realm group message candidate evidence: %v", err)
+	}
+	if err := s.appendRealmGroupMessageCandidateAudit(record); err != nil {
+		return nil, err
 	}
 	return &runtimev1.CreateRealmGroupMessageCandidateResponse{Candidate: record.toCommitHandle()}, nil
 }
@@ -370,8 +388,25 @@ func buildRealmGroupMessageCandidateRecord(input RealmGroupMessageCandidateExecu
 		"memory_write_verdict":     memoryWriteVerdict,
 		"capability_scope_verdict": capabilityScopeVerdict,
 	} {
-		if !isPassVerdict(value) {
-			return nil, status.Errorf(codes.InvalidArgument, "%s must be PASS", field)
+		if !isRealmGroupCandidateVerdictToken(value) {
+			return nil, status.Errorf(codes.InvalidArgument, "%s must be an admitted participation verdict token", field)
+		}
+	}
+	expectedEvidence := map[string][2]string{
+		"output_candidate_ref":     {outputCandidateRef, strings.TrimSpace(input.OutputCandidateRef)},
+		"audit_lineage_ref":        {auditLineageRef, strings.TrimSpace(input.AuditLineageRef)},
+		"policy_verdict_ref":       {policyVerdictRef, strings.TrimSpace(input.PolicyVerdictRef)},
+		"memory_read_verdict":      {memoryReadVerdict, strings.TrimSpace(input.MemoryReadVerdict)},
+		"memory_write_verdict":     {memoryWriteVerdict, strings.TrimSpace(input.MemoryWriteVerdict)},
+		"capability_scope_verdict": {capabilityScopeVerdict, strings.TrimSpace(input.CapabilityScopeVerdict)},
+		"audit_id":                 {auditID, strings.TrimSpace(input.AuditID)},
+	}
+	for field, pair := range expectedEvidence {
+		if pair[1] == "" {
+			return nil, status.Errorf(codes.Internal, "%s policy evidence input is required", field)
+		}
+		if pair[0] != pair[1] {
+			return nil, status.Errorf(codes.InvalidArgument, "%s does not match runtime policy evidence", field)
 		}
 	}
 	expiresAt := input.ExpiresAt

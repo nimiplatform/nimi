@@ -164,7 +164,7 @@ func TestListConnectorModelsForceRefreshIsNoOpAndDoesNotOutbound(t *testing.T) {
 		t.Fatalf("force_refresh must not trigger outbound discovery, got %d upstream calls", got)
 	}
 }
-func TestListConnectorModelsDynamicProviderForceRefreshUsesLiveDiscovery(t *testing.T) {
+func TestListConnectorModelsDynamicProviderForceRefreshIsNoOp(t *testing.T) {
 	svc := newTestService(t)
 	ctx := userContext("user-1")
 	var hits atomic.Int32
@@ -221,21 +221,11 @@ func TestListConnectorModelsDynamicProviderForceRefreshUsesLiveDiscovery(t *test
 	if err != nil {
 		t.Fatalf("ListConnectorModels force_refresh: %v", err)
 	}
-	if got := hits.Load(); got == 0 {
-		t.Fatal("force_refresh must trigger dynamic discovery")
+	if got := hits.Load(); got != 0 {
+		t.Fatalf("force_refresh must not trigger dynamic discovery, got %d upstream calls", got)
 	}
-	foundLiveChat := false
-	foundLiveEmbedding := false
-	for _, model := range refreshed.GetModels() {
-		switch model.GetModelId() {
-		case "openai/gpt-4.1":
-			foundLiveChat = true
-		case "openai/text-embedding-3-large":
-			foundLiveEmbedding = true
-		}
-	}
-	if !foundLiveChat || !foundLiveEmbedding {
-		t.Fatalf("force_refresh did not return live-discovered models: %+v", refreshed.GetModels())
+	if len(refreshed.GetModels()) != len(first.GetModels()) {
+		t.Fatalf("force_refresh should preserve catalog-derived model count: first=%d refreshed=%d", len(first.GetModels()), len(refreshed.GetModels()))
 	}
 }
 func TestListConnectorModelsFireworksUsesSnapshotWithoutAccountModelsEndpoint(t *testing.T) {

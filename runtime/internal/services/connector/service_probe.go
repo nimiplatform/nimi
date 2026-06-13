@@ -143,14 +143,7 @@ func (s *Service) ListConnectorModels(ctx context.Context, req *runtimev1.ListCo
 			models = buildLocalConnectorModelDescriptors(localModels, rec.LocalCategory)
 		}
 	} else {
-		entry, hasEntry := ProviderCatalog[rec.Provider]
-		if hasEntry && entry.InventoryMode == "dynamic_endpoint" && req.GetForceRefresh() {
-			models, err = s.listLiveConnectorModels(ctx, connectorID, rec)
-		} else if hasEntry && entry.InventoryMode == "dynamic_endpoint" {
-			models, err = s.listCatalogConnectorModels(ownerID, rec.Provider)
-		} else {
-			models, err = s.listCatalogConnectorModels(ownerID, rec.Provider)
-		}
+		models, err = s.listCatalogConnectorModels(ownerID, rec.Provider)
 		if err != nil {
 			return nil, err
 		}
@@ -192,62 +185,4 @@ func (s *Service) ListConnectorModels(ctx context.Context, req *runtimev1.ListCo
 		Models:        models[startIdx:endIdx],
 		NextPageToken: nextToken,
 	}, nil
-}
-
-func (s *Service) listLiveConnectorModels(ctx context.Context, connectorID string, rec ConnectorRecord) ([]*runtimev1.ConnectorModelDescriptor, error) {
-	secretPayload, err := s.store.LoadSecretPayload(connectorID)
-	if err != nil {
-		return nil, s.internalProviderError("list_connector_models.load_credential", err)
-	}
-	resolvedCredential := ResolveCredential(rec, secretPayload)
-	if resolvedCredential.APIKey == "" {
-		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_CREDENTIAL_MISSING)
-	}
-	cloud := s.cloudProvider()
-	if cloud == nil {
-		return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
-	}
-	backend, _, probeErr := cloud.ResolveProbeBackend(rec.Provider, rec.Endpoint, resolvedCredential.APIKey, resolvedCredential.Headers)
-	if probeErr != nil {
-		return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
-	}
-	liveModels, err := backend.ListModels(ctx)
-	if err != nil {
-		return nil, err
-	}
-	models := make([]*runtimev1.ConnectorModelDescriptor, 0, len(liveModels))
-	for _, model := range liveModels {
-		modelID := strings.TrimSpace(model.ModelID)
-		if modelID == "" {
-			continue
-		}
-		label := strings.TrimSpace(model.ModelLabel)
-		if label == "" {
-			label = modelID
-		}
-		models = append(models, &runtimev1.ConnectorModelDescriptor{
-			ModelId:      modelID,
-			ModelLabel:   label,
-			Available:    model.Available,
-			Capabilities: normalizeConnectorModelCapabilities(model.Capabilities),
-		})
-	}
-	return models, nil
-}
-
-func normalizeConnectorModelCapabilities(input []string) []string {
-	out := make([]string, 0, len(input))
-	seen := make(map[string]struct{}, len(input))
-	for _, item := range input {
-		normalized := strings.TrimSpace(item)
-		if normalized == "" {
-			continue
-		}
-		if _, ok := seen[normalized]; ok {
-			continue
-		}
-		seen[normalized] = struct{}{}
-		out = append(out, normalized)
-	}
-	return out
 }

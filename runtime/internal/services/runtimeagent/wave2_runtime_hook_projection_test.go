@@ -8,7 +8,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
 
-func TestWave2PublicChatEventHookProjectsPendingRuntimeHookTruth(t *testing.T) {
+func TestWave2PublicChatEventHookRejectsWithoutHostEventDetector(t *testing.T) {
 	t.Parallel()
 
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
@@ -111,8 +111,8 @@ func TestWave2PublicChatEventHookProjectsPendingRuntimeHookTruth(t *testing.T) {
 	if got := eventDetail["idle_ms"]; got != float64(120000) {
 		t.Fatalf("expected event_user_idle idle_ms=120000, got=%v", eventDetail)
 	}
-	if got := hookIntent["admission_state"]; got != "pending" {
-		t.Fatalf("expected pending event hook indication, got=%v", hookIntent)
+	if got := hookIntent["admission_state"]; got != "rejected" {
+		t.Fatalf("expected rejected event hook indication, got=%v", hookIntent)
 	}
 
 	hookStream := newAgentEventCaptureStreamLimit(context.Background(), 2)
@@ -129,7 +129,7 @@ func TestWave2PublicChatEventHookProjectsPendingRuntimeHookTruth(t *testing.T) {
 	}
 	for index, want := range []runtimev1.HookAdmissionState{
 		runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PROPOSED,
-		runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING,
+		runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_REJECTED,
 	} {
 		detail := hookStream.events[index].GetHook()
 		if got := detail.GetFamily(); got != want {
@@ -164,18 +164,21 @@ func TestWave2PublicChatEventHookProjectsPendingRuntimeHookTruth(t *testing.T) {
 
 	snapshot := requestPublicChatSessionSnapshot(t, svc, capture, anchorID, "snapshot-wave2-event-hook")
 	snapshotDetail := publicChatSessionSnapshotDetail(t, snapshot)
-	if _, present := snapshotDetail["pending_follow_up"]; !present {
-		t.Fatalf("event hook scheduling must create pending_follow_up, got=%v", snapshotDetail)
+	if _, present := snapshotDetail["pending_follow_up"]; present {
+		t.Fatalf("rejected event hook must not create pending_follow_up, got=%v", snapshotDetail)
 	}
 	lastTurn := publicChatLastTurnSnapshot(t, snapshot)
 	followUp, ok := lastTurn["follow_up"].(map[string]any)
 	if !ok {
-		t.Fatalf("expected last_turn.follow_up scheduling truth, got=%v", lastTurn)
+		t.Fatalf("expected last_turn.follow_up rejection truth, got=%v", lastTurn)
 	}
-	if got := followUp["status"]; got != "scheduled" {
-		t.Fatalf("expected scheduled follow_up status, got=%v", followUp)
+	if got := followUp["status"]; got != "rejected" {
+		t.Fatalf("expected rejected follow_up status, got=%v", followUp)
 	}
 	if got := followUp["source_action_id"]; got != "action-wave2-event" {
 		t.Fatalf("expected action-wave2-event follow_up source_action_id, got=%v", followUp)
+	}
+	if got := followUp["reason_code"]; got != runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED.String() {
+		t.Fatalf("expected AI_ROUTE_UNSUPPORTED reason, got=%v", followUp)
 	}
 }

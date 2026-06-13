@@ -60,6 +60,72 @@ func TestLoadRegistry_ParsesValidYAML(t *testing.T) {
 	}
 }
 
+func TestLoadRegistry_ParsesPermissionFabricPendingSentinel(t *testing.T) {
+	yaml := strings.Replace(sampleRegistryYAML, "permission_scope_ref: []", "permission_scope_ref: permission_fabric_pending", 1)
+	r, err := LoadRegistry(strings.NewReader(yaml))
+	if err != nil {
+		t.Fatalf("LoadRegistry returned error: %v", err)
+	}
+	app, err := r.FindByID("nimi.avatar")
+	if err != nil {
+		t.Fatalf("FindByID returned error: %v", err)
+	}
+	if !app.PermissionScopeRefPending {
+		t.Fatal("PermissionScopeRefPending = false, want true")
+	}
+	if len(app.PermissionScopeRefs) != 0 {
+		t.Fatalf("PermissionScopeRefs len = %d, want 0", len(app.PermissionScopeRefs))
+	}
+}
+
+func TestLoadRegistry_ParsesConcretePermissionScopeRefs(t *testing.T) {
+	yaml := strings.Replace(sampleRegistryYAML, "permission_scope_ref: []", `permission_scope_ref:
+      - appId: nimi.avatar
+        scopeFamily: account
+        scopeName: account.session.read`, 1)
+	r, err := LoadRegistry(strings.NewReader(yaml))
+	if err != nil {
+		t.Fatalf("LoadRegistry returned error: %v", err)
+	}
+	app, err := r.FindByID("nimi.avatar")
+	if err != nil {
+		t.Fatalf("FindByID returned error: %v", err)
+	}
+	if app.PermissionScopeRefPending {
+		t.Fatal("PermissionScopeRefPending = true, want false")
+	}
+	if len(app.PermissionScopeRefs) != 1 {
+		t.Fatalf("PermissionScopeRefs len = %d, want 1", len(app.PermissionScopeRefs))
+	}
+	if app.PermissionScopeRefs[0].ScopeName != "account.session.read" {
+		t.Fatalf("ScopeName = %q, want account.session.read", app.PermissionScopeRefs[0].ScopeName)
+	}
+}
+
+func TestLoadRegistry_RejectsUnknownPermissionScopeRefScalar(t *testing.T) {
+	bad := strings.Replace(sampleRegistryYAML, "permission_scope_ref: []", "permission_scope_ref: granted", 1)
+	_, err := LoadRegistry(strings.NewReader(bad))
+	if err == nil {
+		t.Fatal("LoadRegistry accepted unknown permission_scope_ref scalar")
+	}
+	if !errors.Is(err, ErrRegistryParse) {
+		t.Errorf("error = %v, want wrapped ErrRegistryParse", err)
+	}
+}
+
+func TestLoadRegistry_RejectsIncompletePermissionScopeRefObject(t *testing.T) {
+	bad := strings.Replace(sampleRegistryYAML, "permission_scope_ref: []", `permission_scope_ref:
+      - appId: nimi.avatar
+        scopeFamily: account`, 1)
+	_, err := LoadRegistry(strings.NewReader(bad))
+	if err == nil {
+		t.Fatal("LoadRegistry accepted incomplete permission_scope_ref object")
+	}
+	if !errors.Is(err, ErrAppInvalidPermissionScopeRef) {
+		t.Errorf("error = %v, want wrapped ErrAppInvalidPermissionScopeRef", err)
+	}
+}
+
 func TestLoadRegistry_FailsOnMissingFields(t *testing.T) {
 	bad := strings.Replace(sampleRegistryYAML, "table_family: product_catalog\n", "", 1)
 	_, err := LoadRegistry(strings.NewReader(bad))

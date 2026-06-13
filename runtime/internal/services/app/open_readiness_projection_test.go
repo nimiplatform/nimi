@@ -150,6 +150,20 @@ func TestOpenAppReadinessVerifierFailsClosedOnMissingLibraryAndExpiredGrant(t *t
 	}
 }
 
+func TestOpenAppReadinessVerifierFailsClosedForPermissionFabricPendingRef(t *testing.T) {
+	verifier, _ := newProjectionOpenReadinessVerifierForTest(t, "account_1")
+	decision, err := verifier.VerifyOpenPermissions(context.Background(), appregistrycatalog.App{
+		AppID:                     "nimi.example-app",
+		PermissionScopeRefPending: true,
+	})
+	if err != nil {
+		t.Fatalf("VerifyOpenPermissions: %v", err)
+	}
+	if decision.Allowed || !strings.Contains(decision.Detail, "permission_fabric_pending") {
+		t.Fatalf("expected pending permission fabric fail-closed decision, got %+v", decision)
+	}
+}
+
 func TestOpenAppReadinessVerifierMatchesQualifiedScopeExactly(t *testing.T) {
 	verifier, nimiDir := newProjectionOpenReadinessVerifierForTest(t, "account_1")
 	accountDir := filepath.Join(nimiDir, "accounts", runtimeProjectionAccountSegment("account_1"))

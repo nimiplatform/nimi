@@ -137,7 +137,7 @@ func TestVoiceAssetMethodsLifecycle(t *testing.T) {
 		t.Fatalf("get voice asset mismatch")
 	}
 
-	listResp, err := svc.ListVoiceAssets(context.Background(), &runtimev1.ListVoiceAssetsRequest{
+	listResp, err := svc.ListVoiceAssets(ctx, &runtimev1.ListVoiceAssetsRequest{
 		AppId:         "nimi.desktop",
 		SubjectUserId: "user-001",
 		PageSize:      10,
@@ -187,6 +187,18 @@ func TestVoiceAssetGetAndDeleteRequireOwnerContext(t *testing.T) {
 	}
 	if _, err := svc.DeleteVoiceAsset(scenarioJobUserContext("owner.app", "intruder-user"), &runtimev1.DeleteVoiceAssetRequest{VoiceAssetId: assetID}); status.Code(err) != codes.PermissionDenied {
 		t.Fatalf("DeleteVoiceAsset cross-user code=%v err=%v, want PermissionDenied", status.Code(err), err)
+	}
+	if _, err := svc.ListVoiceAssets(context.Background(), &runtimev1.ListVoiceAssetsRequest{AppId: "owner.app", SubjectUserId: "owner-user"}); status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("ListVoiceAssets without owner context code=%v err=%v, want InvalidArgument", status.Code(err), err)
+	}
+	if _, err := svc.ListVoiceAssets(scenarioJobUserContext("intruder.app", "owner-user"), &runtimev1.ListVoiceAssetsRequest{AppId: "owner.app", SubjectUserId: "owner-user"}); status.Code(err) != codes.PermissionDenied {
+		t.Fatalf("ListVoiceAssets cross-app code=%v err=%v, want PermissionDenied", status.Code(err), err)
+	}
+	if _, err := svc.ListVoiceAssets(scenarioJobUserContext("owner.app", "intruder-user"), &runtimev1.ListVoiceAssetsRequest{AppId: "owner.app", SubjectUserId: "owner-user"}); status.Code(err) != codes.PermissionDenied {
+		t.Fatalf("ListVoiceAssets cross-user code=%v err=%v, want PermissionDenied", status.Code(err), err)
+	}
+	if _, err := svc.ListVoiceAssets(scenarioJobUserContext("owner.app", "owner-user"), &runtimev1.ListVoiceAssetsRequest{AppId: "owner.app", SubjectUserId: "owner-user"}); err != nil {
+		t.Fatalf("ListVoiceAssets owner context: %v", err)
 	}
 	if _, err := svc.GetVoiceAsset(scenarioJobUserContext("owner.app", "owner-user"), &runtimev1.GetVoiceAssetRequest{VoiceAssetId: assetID}); err != nil {
 		t.Fatalf("GetVoiceAsset owner context: %v", err)
@@ -526,7 +538,8 @@ func TestListVoiceAssetsRetriesPendingVoiceDeleteReconciliation(t *testing.T) {
 		}),
 	}
 
-	resp, err := svc.ListVoiceAssets(context.Background(), &runtimev1.ListVoiceAssetsRequest{
+	ctx := scenarioJobUserContext("nimi.desktop", "user-001")
+	resp, err := svc.ListVoiceAssets(ctx, &runtimev1.ListVoiceAssetsRequest{
 		AppId:         "nimi.desktop",
 		SubjectUserId: "user-001",
 		PageSize:      10,
@@ -610,7 +623,8 @@ func TestListVoiceAssetsSkipsVoiceDeleteReconciliationWithinCooldown(t *testing.
 		}),
 	}
 
-	resp, err := svc.ListVoiceAssets(context.Background(), &runtimev1.ListVoiceAssetsRequest{
+	ctx := scenarioJobUserContext("nimi.desktop", "user-001")
+	resp, err := svc.ListVoiceAssets(ctx, &runtimev1.ListVoiceAssetsRequest{
 		AppId:         "nimi.desktop",
 		SubjectUserId: "user-001",
 		PageSize:      10,
@@ -670,7 +684,8 @@ func TestListVoiceAssetsMarksVoiceDeleteReconciliationExhaustedAfterMaxAttempts(
 		}),
 	}
 
-	resp, err := svc.ListVoiceAssets(context.Background(), &runtimev1.ListVoiceAssetsRequest{
+	ctx := scenarioJobUserContext("nimi.desktop", "user-001")
+	resp, err := svc.ListVoiceAssets(ctx, &runtimev1.ListVoiceAssetsRequest{
 		AppId:         "nimi.desktop",
 		SubjectUserId: "user-001",
 		PageSize:      10,
@@ -717,7 +732,7 @@ func TestListVoiceAssetsMarksVoiceDeleteReconciliationExhaustedAfterMaxAttempts(
 		t.Fatalf("provider_delete_retry_attempt_count=%d", got)
 	}
 
-	resp, err = svc.ListVoiceAssets(context.Background(), &runtimev1.ListVoiceAssetsRequest{
+	resp, err = svc.ListVoiceAssets(ctx, &runtimev1.ListVoiceAssetsRequest{
 		AppId:         "nimi.desktop",
 		SubjectUserId: "user-001",
 		PageSize:      10,
