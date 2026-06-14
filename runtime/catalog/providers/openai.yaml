@@ -413,6 +413,19 @@ models:
       url: https://platform.openai.com/docs/models/gpt-image-1.5
       retrieved_at: 2026-03-05
       note: OpenAI gpt-image-1.5 model card.
+    image_request_options: &a1
+      response_formats:
+        - b64_json
+        - url
+      max_images_per_request: 1
+      supports_negative_prompt: true
+      supports_reference_images: true
+      supports_mask: true
+      supports_seed: true
+      supports_size: true
+      supports_aspect_ratio: true
+      supports_quality: true
+      supports_style: true
   - model_id: gpt-image-1.5-2025-04-14
     provider: openai
     model_type: image
@@ -430,6 +443,7 @@ models:
       url: https://platform.openai.com/docs/models/gpt-image-1.5
       retrieved_at: 2026-03-05
       note: OpenAI gpt-image-1.5 model card.
+    image_request_options: *a1
   - model_id: o3
     provider: openai
     model_type: chat
@@ -518,7 +532,7 @@ models:
       url: https://platform.openai.com/docs/models/sora-2
       retrieved_at: 2026-03-05
       note: OpenAI Sora 2 video generation model card.
-    video_generation: &a1
+    video_generation: &a2
       modes:
         - t2v
         - i2v_first_frame
@@ -558,7 +572,7 @@ models:
       url: https://platform.openai.com/docs/models/sora-2
       retrieved_at: 2026-03-05
       note: OpenAI Sora 2 video generation model card.
-    video_generation: *a1
+    video_generation: *a2
 voices:
   - voice_id: alloy
     voice_set_id: openai:default-tts-v1

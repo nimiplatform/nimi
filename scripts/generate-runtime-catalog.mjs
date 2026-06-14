@@ -13,6 +13,7 @@ import {
   makeDynamicVoiceSetID,
   modelRequiresVoiceSupport,
   normalizeDynamicInventory,
+  normalizeImageRequestOptions,
   normalizeID,
   normalizeInventoryMode,
   normalizeProvider,
@@ -141,6 +142,7 @@ function generateProviderCatalog(doc) {
     const staticVoiceSetRef = normalizeString(voiceConfig.voice_set_ref || model?.preset_voice_set_ref || model?.voice_set_id);
     const voiceRequestOptions = normalizeVoiceRequestOptions(voiceConfig.request_options, provider, canonicalModelID);
     const transcription = normalizeTranscriptionOptions(model?.transcription, provider, canonicalModelID);
+    const imageRequestOptions = normalizeImageRequestOptions(model?.image_request_options, provider, canonicalModelID);
     const embedding = normalizeEmbeddingCapability(model?.embedding, provider, canonicalModelID);
     const allowedDiscoveryModes = new Set(['static_catalog', 'dynamic_user_scoped']);
     if (discoveryMode && !allowedDiscoveryModes.has(discoveryMode)) {
@@ -194,6 +196,12 @@ function generateProviderCatalog(doc) {
     if (transcription && !capabilities.map((value) => value.toLowerCase()).includes('audio.transcribe')) {
       throw new Error(`${provider} model ${canonicalModelID} declares transcription metadata without audio.transcribe support`);
     }
+    if (imageRequestOptions && !capabilities.map((value) => value.toLowerCase()).includes('image.generate')) {
+      throw new Error(`${provider} model ${canonicalModelID} declares image_request_options without image.generate support`);
+    }
+    if (capabilities.map((value) => value.toLowerCase()).includes('image.generate') && !imageRequestOptions) {
+      throw new Error(`${provider} model ${canonicalModelID} missing image_request_options`);
+    }
     if (embedding && !capabilities.map((value) => value.toLowerCase()).includes('text.embed')) {
       throw new Error(`${provider} model ${canonicalModelID} declares embedding metadata without text.embed support`);
     }
@@ -227,6 +235,9 @@ function generateProviderCatalog(doc) {
       }
       if (transcription) {
         modelEntry.transcription = transcription;
+      }
+      if (imageRequestOptions) {
+        modelEntry.image_request_options = imageRequestOptions;
       }
       if (embedding) {
         modelEntry.embedding = embedding;

@@ -580,6 +580,17 @@ models:
     model_type: image
     updated_at: 2026-03-15
     capabilities: [image.generate]
+    image_request_options:
+      response_formats: [b64_json, url]
+      max_images_per_request: 1
+      supports_negative_prompt: true
+      supports_reference_images: true
+      supports_mask: true
+      supports_seed: true
+      supports_size: true
+      supports_aspect_ratio: true
+      supports_quality: true
+      supports_style: true
     source_ids: [diffusers_flux_docs]
     aliases:
       - local/flux.1-schnell
@@ -595,6 +606,17 @@ models:
     model_type: image
     updated_at: 2026-05-21
     capabilities: [image.generate]
+    image_request_options:
+      response_formats: [b64_json, url]
+      max_images_per_request: 1
+      supports_negative_prompt: true
+      supports_reference_images: true
+      supports_mask: true
+      supports_seed: true
+      supports_size: true
+      supports_aspect_ratio: true
+      supports_quality: true
+      supports_style: true
     source_ids: [z_image_turbo_gguf_modelcard, stable_diffusion_cpp_z_image_guide]
     install:
       repo: leejet/Z-Image-Turbo-GGUF

@@ -119,6 +119,18 @@ models:
       url: https://ai.google.dev/gemini-api/docs/models/gemini-2.5-flash-image
       retrieved_at: 2026-03-05
       note: Gemini 2.5 Flash Image model card.
+    image_request_options:
+      response_formats:
+        - b64_json
+      max_images_per_request: 1
+      supports_negative_prompt: false
+      supports_reference_images: true
+      supports_mask: false
+      supports_seed: false
+      supports_size: false
+      supports_aspect_ratio: true
+      supports_quality: false
+      supports_style: false
   - model_id: gemini-3.1-pro-preview
     provider: gemini
     model_type: chat
@@ -190,6 +202,18 @@ models:
       url: https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-image-preview
       retrieved_at: 2026-03-05
       note: Gemini 3.1 Flash Image preview model card.
+    image_request_options:
+      response_formats:
+        - b64_json
+      max_images_per_request: 1
+      supports_negative_prompt: false
+      supports_reference_images: true
+      supports_mask: false
+      supports_seed: false
+      supports_size: false
+      supports_aspect_ratio: true
+      supports_quality: false
+      supports_style: false
 voices: []
 selection_profiles:
   - provider: gemini

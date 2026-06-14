@@ -96,6 +96,20 @@ type VoiceRequestOptions struct {
 	ProviderExtensions *ProviderExtensionMetadata `yaml:"provider_extensions,omitempty" json:"provider_extensions,omitempty"`
 }
 
+type ImageRequestOptions struct {
+	ResponseFormats         []string                   `yaml:"response_formats,omitempty" json:"response_formats,omitempty"`
+	MaxImagesPerRequest     int                        `yaml:"max_images_per_request,omitempty" json:"max_images_per_request,omitempty"`
+	SupportsNegativePrompt  bool                       `yaml:"supports_negative_prompt,omitempty" json:"supports_negative_prompt,omitempty"`
+	SupportsReferenceImages bool                       `yaml:"supports_reference_images,omitempty" json:"supports_reference_images,omitempty"`
+	SupportsMask            bool                       `yaml:"supports_mask,omitempty" json:"supports_mask,omitempty"`
+	SupportsSeed            bool                       `yaml:"supports_seed,omitempty" json:"supports_seed,omitempty"`
+	SupportsSize            bool                       `yaml:"supports_size,omitempty" json:"supports_size,omitempty"`
+	SupportsAspectRatio     bool                       `yaml:"supports_aspect_ratio,omitempty" json:"supports_aspect_ratio,omitempty"`
+	SupportsQuality         bool                       `yaml:"supports_quality,omitempty" json:"supports_quality,omitempty"`
+	SupportsStyle           bool                       `yaml:"supports_style,omitempty" json:"supports_style,omitempty"`
+	ProviderExtensions      *ProviderExtensionMetadata `yaml:"provider_extensions,omitempty" json:"provider_extensions,omitempty"`
+}
+
 // EmbeddingCapability is the K-MCAT-002 capability-conditional block carried by
 // `text.embed` models. It is the catalog authority for the model's output
 // embedding dimension (K-MEM-004 embedding-profile identity). Only `dimension`
@@ -212,6 +226,7 @@ type ModelEntry struct {
 	VoiceDiscoveryMode  string                     `yaml:"voice_discovery_mode,omitempty" json:"voice_discovery_mode,omitempty"`
 	VoiceRefKinds       []string                   `yaml:"voice_ref_kinds,omitempty" json:"voice_ref_kinds,omitempty"`
 	VoiceRequestOptions *VoiceRequestOptions       `yaml:"voice_request_options,omitempty" json:"voice_request_options,omitempty"`
+	ImageRequestOptions *ImageRequestOptions       `yaml:"image_request_options,omitempty" json:"image_request_options,omitempty"`
 	Transcription       *TranscriptionOptions      `yaml:"transcription,omitempty" json:"transcription,omitempty"`
 	VideoGeneration     *VideoGenerationCapability `yaml:"video_generation,omitempty" json:"video_generation,omitempty"`
 	// Embedding is the K-MCAT-002 capability-conditional block for `text.embed`

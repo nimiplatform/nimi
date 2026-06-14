@@ -1460,6 +1460,19 @@ models:
       url: https://help.aliyun.com/zh/model-studio/model-pricing
       retrieved_at: 2026-06-06
       note: DashScope official model pricing and current model listing overview.
+    image_request_options: &a13
+      response_formats:
+        - b64_json
+        - url
+      max_images_per_request: 1
+      supports_negative_prompt: true
+      supports_reference_images: true
+      supports_mask: true
+      supports_seed: true
+      supports_size: true
+      supports_aspect_ratio: true
+      supports_quality: true
+      supports_style: true
   - model_id: qwen-image-2.0-pro-2026-03-03
     provider: dashscope
     model_type: image
@@ -1477,6 +1490,7 @@ models:
       url: https://help.aliyun.com/zh/model-studio/model-pricing
       retrieved_at: 2026-06-06
       note: DashScope official model pricing and current model listing overview.
+    image_request_options: *a13
   - model_id: qwen-image-2.0
     provider: dashscope
     model_type: image
@@ -1494,6 +1508,19 @@ models:
       url: https://help.aliyun.com/zh/model-studio/model-pricing
       retrieved_at: 2026-06-06
       note: DashScope official model pricing and current model listing overview.
+    image_request_options: &a14
+      response_formats:
+        - b64_json
+        - url
+      max_images_per_request: 1
+      supports_negative_prompt: true
+      supports_reference_images: true
+      supports_mask: true
+      supports_seed: true
+      supports_size: true
+      supports_aspect_ratio: true
+      supports_quality: true
+      supports_style: true
   - model_id: qwen-image-2.0-2026-03-03
     provider: dashscope
     model_type: image
@@ -1511,6 +1538,7 @@ models:
       url: https://help.aliyun.com/zh/model-studio/model-pricing
       retrieved_at: 2026-06-06
       note: DashScope official model pricing and current model listing overview.
+    image_request_options: *a14
   - model_id: z-image-turbo
     provider: dashscope
     model_type: image
@@ -1528,6 +1556,19 @@ models:
       url: https://help.aliyun.com/zh/model-studio/model-pricing
       retrieved_at: 2026-06-06
       note: DashScope official model pricing and current model listing overview.
+    image_request_options:
+      response_formats:
+        - b64_json
+        - url
+      max_images_per_request: 1
+      supports_negative_prompt: true
+      supports_reference_images: true
+      supports_mask: true
+      supports_seed: true
+      supports_size: true
+      supports_aspect_ratio: true
+      supports_quality: true
+      supports_style: true
   - model_id: wan2.7-image-pro
     provider: dashscope
     model_type: image
@@ -1545,6 +1586,18 @@ models:
       url: https://help.aliyun.com/zh/model-studio/wan-image-generation-and-editing-api-reference
       retrieved_at: 2026-04-18
       note: Wan 2.7 image generation and editing API reference.
+    image_request_options:
+      response_formats:
+        - b64_json
+      max_images_per_request: 1
+      supports_negative_prompt: true
+      supports_reference_images: true
+      supports_mask: false
+      supports_seed: true
+      supports_size: true
+      supports_aspect_ratio: true
+      supports_quality: false
+      supports_style: false
   - model_id: wan2.7-image
     provider: dashscope
     model_type: image
@@ -1562,6 +1615,18 @@ models:
       url: https://help.aliyun.com/zh/model-studio/wan-image-generation-and-editing-api-reference
       retrieved_at: 2026-04-18
       note: Wan 2.7 image generation and editing API reference.
+    image_request_options:
+      response_formats:
+        - b64_json
+      max_images_per_request: 1
+      supports_negative_prompt: true
+      supports_reference_images: true
+      supports_mask: false
+      supports_seed: true
+      supports_size: true
+      supports_aspect_ratio: true
+      supports_quality: false
+      supports_style: false
   - model_id: wan2.6-t2i
     provider: dashscope
     model_type: image
@@ -1579,6 +1644,18 @@ models:
       url: https://help.aliyun.com/zh/model-studio/model-pricing
       retrieved_at: 2026-06-06
       note: DashScope official model pricing and current model listing overview.
+    image_request_options:
+      response_formats:
+        - b64_json
+      max_images_per_request: 1
+      supports_negative_prompt: true
+      supports_reference_images: true
+      supports_mask: false
+      supports_seed: true
+      supports_size: true
+      supports_aspect_ratio: true
+      supports_quality: false
+      supports_style: false
   - model_id: wan2.7-t2v
     provider: dashscope
     model_type: video
@@ -1762,6 +1839,19 @@ models:
       url: https://help.aliyun.com/zh/model-studio/model-pricing
       retrieved_at: 2026-06-06
       note: DashScope official model pricing and current model listing overview.
+    image_request_options:
+      response_formats:
+        - b64_json
+        - url
+      max_images_per_request: 1
+      supports_negative_prompt: true
+      supports_reference_images: true
+      supports_mask: true
+      supports_seed: true
+      supports_size: true
+      supports_aspect_ratio: true
+      supports_quality: true
+      supports_style: true
   - model_id: flux-dev
     provider: dashscope
     model_type: image
@@ -1779,6 +1869,19 @@ models:
       url: https://help.aliyun.com/zh/model-studio/model-pricing
       retrieved_at: 2026-06-06
       note: DashScope official model pricing and current model listing overview.
+    image_request_options:
+      response_formats:
+        - b64_json
+        - url
+      max_images_per_request: 1
+      supports_negative_prompt: true
+      supports_reference_images: true
+      supports_mask: true
+      supports_seed: true
+      supports_size: true
+      supports_aspect_ratio: true
+      supports_quality: true
+      supports_style: true
   - model_id: flux-merged
     provider: dashscope
     model_type: image
@@ -1796,6 +1899,19 @@ models:
       url: https://help.aliyun.com/zh/model-studio/model-pricing
       retrieved_at: 2026-06-06
       note: DashScope official model pricing and current model listing overview.
+    image_request_options:
+      response_formats:
+        - b64_json
+        - url
+      max_images_per_request: 1
+      supports_negative_prompt: true
+      supports_reference_images: true
+      supports_mask: true
+      supports_seed: true
+      supports_size: true
+      supports_aspect_ratio: true
+      supports_quality: true
+      supports_style: true
 voices:
   - voice_id: longanyang
     voice_set_id: dashscope:cosyvoice_v3_plus_voice_set

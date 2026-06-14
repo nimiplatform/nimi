@@ -198,6 +198,9 @@ func (s *Service) writeSpeechRouteDescribeHeader(
 	if setErr := grpc.SetHeader(ctx, metadata.Pairs(routeDescribeResponseHeaderKey, encoded)); setErr != nil && s.logger != nil {
 		s.logger.Warn("set speech route describe header failed", "error", setErr, "scenario_type", scenarioType.String())
 	}
+	if setErr := grpc.SetTrailer(ctx, metadata.Pairs(routeDescribeResponseHeaderKey, encoded)); setErr != nil && s.logger != nil {
+		s.logger.Warn("set speech route describe trailer failed", "error", setErr, "scenario_type", scenarioType.String())
+	}
 	return nil
 }
 

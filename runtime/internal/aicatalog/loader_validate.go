@@ -77,6 +77,17 @@ func validateSnapshot(snapshot Snapshot) error {
 				return err
 			}
 		}
+		if model.ImageRequestOptions != nil {
+			if !modelHasCapability(model, "image.generate") {
+				return fmt.Errorf("model %s:%s declares image_request_options without image.generate support", provider, modelID)
+			}
+			if err := validateImageRequestOptions(provider, modelID, model.ImageRequestOptions); err != nil {
+				return err
+			}
+		}
+		if modelHasCapability(model, "image.generate") && model.ImageRequestOptions == nil {
+			return fmt.Errorf("model %s:%s missing image_request_options", provider, modelID)
+		}
 		// K-MCAT-002 / K-MCAT-030 capability-conditional `embedding` block. It is
 		// the catalog authority for the runtime memory embedding profile dimension
 		// (K-MEM-004). It must only appear on `text.embed` models and must carry a
@@ -395,6 +406,32 @@ func validateTranscriptionOptions(provider string, modelID string, options *Tran
 		return fmt.Errorf("model %s:%s transcription.max_speaker_count requires supports_diarization=true", provider, modelID)
 	}
 	return validateProviderExtensions(provider, modelID, "transcription", options.ProviderExtensions)
+}
+
+func validateImageRequestOptions(provider string, modelID string, options *ImageRequestOptions) error {
+	if options == nil {
+		return nil
+	}
+	if len(options.ResponseFormats) == 0 {
+		return fmt.Errorf("model %s:%s image_request_options.response_formats must not be empty", provider, modelID)
+	}
+	allowedResponseFormats := map[string]struct{}{
+		"b64_json": {},
+		"url":      {},
+	}
+	for _, format := range options.ResponseFormats {
+		normalized := strings.ToLower(strings.TrimSpace(format))
+		if _, ok := allowedResponseFormats[normalized]; !ok {
+			return fmt.Errorf("model %s:%s image_request_options.response_formats contains unsupported value %q", provider, modelID, format)
+		}
+	}
+	if options.MaxImagesPerRequest <= 0 {
+		return fmt.Errorf("model %s:%s image_request_options.max_images_per_request must be > 0", provider, modelID)
+	}
+	if options.MaxImagesPerRequest > 16 {
+		return fmt.Errorf("model %s:%s image_request_options.max_images_per_request must be <= 16", provider, modelID)
+	}
+	return validateProviderExtensions(provider, modelID, "image_request_options", options.ProviderExtensions)
 }
 
 func validateVoiceWorkflowRequestOptions(

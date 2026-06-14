@@ -464,6 +464,19 @@ models:
       url: https://www.volcengine.com/docs/6492/2172373
       retrieved_at: 2026-04-18
       note: Volcengine Seedream image generation documentation.
+    image_request_options: &a3
+      response_formats:
+        - b64_json
+        - url
+      max_images_per_request: 1
+      supports_negative_prompt: true
+      supports_reference_images: true
+      supports_mask: true
+      supports_seed: true
+      supports_size: true
+      supports_aspect_ratio: true
+      supports_quality: true
+      supports_style: true
   - model_id: seedream-5.0
     provider: volcengine
     model_type: image
@@ -481,6 +494,7 @@ models:
       url: https://www.volcengine.com/docs/6492/2172373
       retrieved_at: 2026-04-18
       note: Volcengine Seedream image generation documentation.
+    image_request_options: *a3
   - model_id: doubao-seedream-4-5-251128
     provider: volcengine
     model_type: image
@@ -498,6 +512,19 @@ models:
       url: https://www.volcengine.com/docs/6492/2172373
       retrieved_at: 2026-04-18
       note: Volcengine Seedream image generation documentation.
+    image_request_options:
+      response_formats:
+        - b64_json
+        - url
+      max_images_per_request: 1
+      supports_negative_prompt: true
+      supports_reference_images: true
+      supports_mask: true
+      supports_seed: true
+      supports_size: true
+      supports_aspect_ratio: true
+      supports_quality: true
+      supports_style: true
 voices: []
 selection_profiles:
   - provider: volcengine

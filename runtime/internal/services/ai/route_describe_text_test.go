@@ -147,6 +147,10 @@ func TestExecuteScenarioTextGenerateRouteDescribeProbeWritesHeaderForLocalRoute(
 		t.Fatalf("model resolved must be set")
 	}
 	payload := decodeRouteDescribeHeader(t, transport.header)
+	trailerPayload := decodeRouteDescribeHeader(t, transport.trailer)
+	if got := trailerPayload["resolvedBindingRef"]; got != "binding-local-001" {
+		t.Fatalf("trailer resolvedBindingRef mismatch: got=%v", got)
+	}
 	if got := payload["capability"]; got != "text.generate" {
 		t.Fatalf("capability mismatch: got=%v", got)
 	}

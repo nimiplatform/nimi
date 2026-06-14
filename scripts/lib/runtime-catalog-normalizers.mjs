@@ -516,6 +516,43 @@ export function normalizeTranscriptionOptions(raw, provider, modelID) {
   return out;
 }
 
+export function normalizeImageRequestOptions(raw, provider, modelID) {
+  if (!raw || typeof raw !== 'object') {
+    return null;
+  }
+  const responseFormats = normalizeStringArray(raw.response_formats).map((value) => value.toLowerCase());
+  const allowedResponseFormats = new Set(['b64_json', 'url']);
+  if (responseFormats.length === 0) {
+    throw new Error(`${provider} model ${modelID} image_request_options.response_formats must not be empty`);
+  }
+  for (const format of responseFormats) {
+    if (!allowedResponseFormats.has(format)) {
+      throw new Error(`${provider} model ${modelID} image_request_options.response_formats contains unsupported value: ${format}`);
+    }
+  }
+  const maxImagesPerRequest = Number(raw.max_images_per_request);
+  if (!Number.isInteger(maxImagesPerRequest) || maxImagesPerRequest <= 0 || maxImagesPerRequest > 16) {
+    throw new Error(`${provider} model ${modelID} image_request_options.max_images_per_request must be an integer in 1..16`);
+  }
+  const out = {
+    response_formats: responseFormats,
+    max_images_per_request: maxImagesPerRequest,
+    supports_negative_prompt: Boolean(raw.supports_negative_prompt),
+    supports_reference_images: Boolean(raw.supports_reference_images),
+    supports_mask: Boolean(raw.supports_mask),
+    supports_seed: Boolean(raw.supports_seed),
+    supports_size: Boolean(raw.supports_size),
+    supports_aspect_ratio: Boolean(raw.supports_aspect_ratio),
+    supports_quality: Boolean(raw.supports_quality),
+    supports_style: Boolean(raw.supports_style),
+  };
+  const providerExtensions = normalizeProviderExtensions(raw.provider_extensions, provider, modelID, 'image_request_options');
+  if (providerExtensions) {
+    out.provider_extensions = providerExtensions;
+  }
+  return out;
+}
+
 // normalizeEmbeddingCapability projects the K-MCAT-002 capability-conditional
 // `embedding` block for `text.embed` models. It is the catalog authority for the
 // model output dimension consumed by the runtime memory embedding profile

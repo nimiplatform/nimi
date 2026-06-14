@@ -55,6 +55,18 @@ models:
       url: https://developers.openai.com/codex/cli/features
       retrieved_at: 2026-04-23
       note: Codex CLI features page documenting direct image generation/edit support.
+    image_request_options:
+      response_formats:
+        - b64_json
+      max_images_per_request: 1
+      supports_negative_prompt: false
+      supports_reference_images: false
+      supports_mask: false
+      supports_seed: false
+      supports_size: true
+      supports_aspect_ratio: false
+      supports_quality: true
+      supports_style: false
 voices: []
 selection_profiles:
   - provider: openai_codex

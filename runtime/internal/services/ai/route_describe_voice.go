@@ -132,6 +132,9 @@ func (s *Service) writeVoiceWorkflowRouteDescribeHeader(
 	if setErr := grpc.SetHeader(ctx, metadata.Pairs(routeDescribeResponseHeaderKey, encoded)); setErr != nil && s.logger != nil {
 		s.logger.Warn("set voice workflow route describe header failed", "error", setErr)
 	}
+	if setErr := grpc.SetTrailer(ctx, metadata.Pairs(routeDescribeResponseHeaderKey, encoded)); setErr != nil && s.logger != nil {
+		s.logger.Warn("set voice workflow route describe trailer failed", "error", setErr)
+	}
 	return nil
 }
 

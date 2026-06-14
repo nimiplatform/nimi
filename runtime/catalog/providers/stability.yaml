@@ -20,6 +20,19 @@ models:
       url: https://stability.ai/api-pricing-update-25
       retrieved_at: 2026-04-18
       note: Official Stability API pricing and deprecation update highlighting Stable Image Core, Ultra, and SD3.5 family.
+    image_request_options:
+      response_formats:
+        - b64_json
+        - url
+      max_images_per_request: 1
+      supports_negative_prompt: true
+      supports_reference_images: false
+      supports_mask: false
+      supports_seed: true
+      supports_size: false
+      supports_aspect_ratio: true
+      supports_quality: false
+      supports_style: true
   - model_id: stable-image-ultra
     provider: stability
     model_type: image
@@ -37,6 +50,19 @@ models:
       url: https://stability.ai/api-pricing-update-25
       retrieved_at: 2026-04-18
       note: Official Stability API pricing and deprecation update highlighting Stable Image Core, Ultra, and SD3.5 family.
+    image_request_options:
+      response_formats:
+        - b64_json
+        - url
+      max_images_per_request: 1
+      supports_negative_prompt: true
+      supports_reference_images: false
+      supports_mask: false
+      supports_seed: true
+      supports_size: false
+      supports_aspect_ratio: true
+      supports_quality: false
+      supports_style: true
   - model_id: stable-diffusion-3.5-large
     provider: stability
     model_type: image
@@ -54,6 +80,19 @@ models:
       url: https://stability.ai/api-pricing-update-25
       retrieved_at: 2026-04-18
       note: Official Stability API pricing and deprecation update highlighting Stable Image Core, Ultra, and SD3.5 family.
+    image_request_options: &a1
+      response_formats:
+        - b64_json
+        - url
+      max_images_per_request: 1
+      supports_negative_prompt: true
+      supports_reference_images: false
+      supports_mask: false
+      supports_seed: true
+      supports_size: false
+      supports_aspect_ratio: true
+      supports_quality: false
+      supports_style: true
   - model_id: sd3.5-large
     provider: stability
     model_type: image
@@ -71,6 +110,7 @@ models:
       url: https://stability.ai/api-pricing-update-25
       retrieved_at: 2026-04-18
       note: Official Stability API pricing and deprecation update highlighting Stable Image Core, Ultra, and SD3.5 family.
+    image_request_options: *a1
   - model_id: stable-diffusion-3.5-medium
     provider: stability
     model_type: image
@@ -88,6 +128,19 @@ models:
       url: https://stability.ai/api-pricing-update-25
       retrieved_at: 2026-04-18
       note: Official Stability API pricing and deprecation update highlighting Stable Image Core, Ultra, and SD3.5 family.
+    image_request_options: &a2
+      response_formats:
+        - b64_json
+        - url
+      max_images_per_request: 1
+      supports_negative_prompt: true
+      supports_reference_images: false
+      supports_mask: false
+      supports_seed: true
+      supports_size: false
+      supports_aspect_ratio: true
+      supports_quality: false
+      supports_style: true
   - model_id: sd3.5-medium
     provider: stability
     model_type: image
@@ -105,6 +158,7 @@ models:
       url: https://stability.ai/api-pricing-update-25
       retrieved_at: 2026-04-18
       note: Official Stability API pricing and deprecation update highlighting Stable Image Core, Ultra, and SD3.5 family.
+    image_request_options: *a2
   - model_id: stable-audio-2
     provider: stability
     model_type: music

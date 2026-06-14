@@ -97,6 +97,9 @@ func (s *Service) writeTextGenerateRouteDescribeHeader(
 	if setErr := grpc.SetHeader(ctx, metadata.Pairs(routeDescribeResponseHeaderKey, encoded)); setErr != nil && s.logger != nil {
 		s.logger.Warn("set text.generate route describe header failed", "error", setErr)
 	}
+	if setErr := grpc.SetTrailer(ctx, metadata.Pairs(routeDescribeResponseHeaderKey, encoded)); setErr != nil && s.logger != nil {
+		s.logger.Warn("set text.generate route describe trailer failed", "error", setErr)
+	}
 	return nil
 }
 

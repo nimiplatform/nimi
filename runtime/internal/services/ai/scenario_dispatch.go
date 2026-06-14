@@ -31,7 +31,14 @@ func (s *Service) ExecuteScenario(ctx context.Context, req *runtimev1.ExecuteSce
 	if err != nil {
 		return nil, err
 	}
-	if err := validateExecuteScenarioMode(req.GetScenarioType(), mode, hasVoiceDescribeProbe, hasSpeechDescribeProbe); err != nil {
+	imageDescribeProbe, hasImageDescribeProbe, err := imageGenerateRouteDescribeProbeFromExtensions(
+		req.GetScenarioType(),
+		req.GetExtensions(),
+	)
+	if err != nil {
+		return nil, err
+	}
+	if err := validateExecuteScenarioMode(req.GetScenarioType(), mode, hasVoiceDescribeProbe, hasSpeechDescribeProbe, hasImageDescribeProbe); err != nil {
 		return nil, err
 	}
 	if mode != runtimev1.ExecutionMode_EXECUTION_MODE_SYNC {
@@ -49,6 +56,11 @@ func (s *Service) ExecuteScenario(ctx context.Context, req *runtimev1.ExecuteSce
 		return executeTextGenerateScenario(ctx, s, req, ignored)
 	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_EMBED:
 		return executeTextEmbedScenario(ctx, s, req, ignored)
+	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE:
+		if !hasImageDescribeProbe {
+			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
+		}
+		return executeImageGenerateRouteDescribeScenario(ctx, s, req, ignored, imageDescribeProbe)
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN:
 		if !hasVoiceDescribeProbe {
@@ -110,7 +122,8 @@ var scenarioExtensionRegistry = map[runtimev1.ScenarioType]map[string]scenarioEx
 		textGenerateRouteDescribeExtensionNamespace: scenarioExtensionStrategyStrict,
 	},
 	runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE: {
-		"nimi.scenario.image.request": scenarioExtensionStrategyBestEffort,
+		imageGenerateRouteDescribeExtensionNamespace: scenarioExtensionStrategyStrict,
+		"nimi.scenario.image.request":                scenarioExtensionStrategyBestEffort,
 	},
 	runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE: {
 		"nimi.scenario.video.request": scenarioExtensionStrategyBestEffort,
@@ -144,7 +157,13 @@ func validateExecuteScenarioMode(
 	mode runtimev1.ExecutionMode,
 	hasVoiceDescribeProbe bool,
 	hasSpeechDescribeProbe bool,
+	hasImageDescribeProbe bool,
 ) error {
+	if mode == runtimev1.ExecutionMode_EXECUTION_MODE_SYNC && hasImageDescribeProbe {
+		if scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE {
+			return nil
+		}
+	}
 	if mode == runtimev1.ExecutionMode_EXECUTION_MODE_SYNC && hasVoiceDescribeProbe {
 		switch scenarioType {
 		case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE, runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN:

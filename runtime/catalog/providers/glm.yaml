@@ -159,6 +159,19 @@ models:
       url: https://docs.bigmodel.cn/cn/guide/models/image-generation/glm-image
       retrieved_at: 2026-04-18
       note: Current GLM-Image model card and pricing.
+    image_request_options:
+      response_formats:
+        - b64_json
+        - url
+      max_images_per_request: 1
+      supports_negative_prompt: true
+      supports_reference_images: false
+      supports_mask: false
+      supports_seed: false
+      supports_size: true
+      supports_aspect_ratio: false
+      supports_quality: false
+      supports_style: false
 voices: []
 selection_profiles:
   - provider: glm

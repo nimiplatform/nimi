@@ -179,6 +179,17 @@ models:
     model_type: image
     updated_at: 2026-03-05
     capabilities: [image.generate]
+    image_request_options:
+      response_formats: [b64_json]
+      max_images_per_request: 1
+      supports_negative_prompt: false
+      supports_reference_images: true
+      supports_mask: false
+      supports_seed: false
+      supports_size: false
+      supports_aspect_ratio: true
+      supports_quality: false
+      supports_style: false
     pricing:
       unit: request
       input: "0.04"
@@ -231,6 +242,17 @@ models:
     model_type: image
     updated_at: 2026-03-05
     capabilities: [image.generate]
+    image_request_options:
+      response_formats: [b64_json]
+      max_images_per_request: 1
+      supports_negative_prompt: false
+      supports_reference_images: true
+      supports_mask: false
+      supports_seed: false
+      supports_size: false
+      supports_aspect_ratio: true
+      supports_quality: false
+      supports_style: false
     pricing:
       unit: request
       input: "0.04"

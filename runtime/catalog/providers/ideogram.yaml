@@ -20,6 +20,18 @@ models:
       url: https://developer.ideogram.ai/
       retrieved_at: 2026-04-18
       note: Ideogram developer API overview centered on current Ideogram 3.0 endpoints.
+    image_request_options:
+      response_formats:
+        - b64_json
+      max_images_per_request: 1
+      supports_negative_prompt: true
+      supports_reference_images: false
+      supports_mask: false
+      supports_seed: true
+      supports_size: false
+      supports_aspect_ratio: true
+      supports_quality: false
+      supports_style: true
   - model_id: ideogram-v2-turbo
     provider: ideogram
     model_type: image
@@ -37,6 +49,18 @@ models:
       url: https://developer.ideogram.ai/api-reference/api-reference/generate
       retrieved_at: 2026-04-18
       note: Ideogram legacy generate endpoint reference that still documents V_2 family usage.
+    image_request_options: &a1
+      response_formats:
+        - b64_json
+      max_images_per_request: 1
+      supports_negative_prompt: true
+      supports_reference_images: false
+      supports_mask: false
+      supports_seed: true
+      supports_size: false
+      supports_aspect_ratio: true
+      supports_quality: false
+      supports_style: true
   - model_id: V_2_TURBO
     provider: ideogram
     model_type: image
@@ -54,4 +78,5 @@ models:
       url: https://developer.ideogram.ai/api-reference/api-reference/generate
       retrieved_at: 2026-04-18
       note: Ideogram legacy generate endpoint reference that still documents V_2 family usage.
+    image_request_options: *a1
 voices: []

@@ -1006,6 +1006,19 @@ models:
       url: https://huggingface.co/docs/diffusers/api/pipelines/flux
       retrieved_at: 2026-03-15
       note: Official Diffusers FLUX pipeline documentation.
+    image_request_options: &a7
+      response_formats:
+        - b64_json
+        - url
+      max_images_per_request: 1
+      supports_negative_prompt: true
+      supports_reference_images: true
+      supports_mask: true
+      supports_seed: true
+      supports_size: true
+      supports_aspect_ratio: true
+      supports_quality: true
+      supports_style: true
   - model_id: local/flux.1-schnell
     provider: local
     model_type: image
@@ -1023,6 +1036,7 @@ models:
       url: https://huggingface.co/docs/diffusers/api/pipelines/flux
       retrieved_at: 2026-03-15
       note: Official Diffusers FLUX pipeline documentation.
+    image_request_options: *a7
   - model_id: media/flux.1-schnell
     provider: local
     model_type: image
@@ -1040,6 +1054,7 @@ models:
       url: https://huggingface.co/docs/diffusers/api/pipelines/flux
       retrieved_at: 2026-03-15
       note: Official Diffusers FLUX pipeline documentation.
+    image_request_options: *a7
   - model_id: z-image-turbo-local
     provider: local
     model_type: image
@@ -1057,6 +1072,19 @@ models:
       url: https://huggingface.co/leejet/Z-Image-Turbo-GGUF
       retrieved_at: 2026-05-21
       note: Curated recommended-preset local image checkpoint (Z-Image-Turbo, stable-diffusion.cpp GGUF quants).
+    image_request_options: &a8
+      response_formats:
+        - b64_json
+        - url
+      max_images_per_request: 1
+      supports_negative_prompt: true
+      supports_reference_images: true
+      supports_mask: true
+      supports_seed: true
+      supports_size: true
+      supports_aspect_ratio: true
+      supports_quality: true
+      supports_style: true
     install:
       repo: leejet/Z-Image-Turbo-GGUF
       revision: c61c0e422dc8b541b7548cf33a4ef8302b0f8085
@@ -1373,6 +1401,7 @@ models:
       url: https://huggingface.co/leejet/Z-Image-Turbo-GGUF
       retrieved_at: 2026-05-21
       note: Curated recommended-preset local image checkpoint (Z-Image-Turbo, stable-diffusion.cpp GGUF quants).
+    image_request_options: *a8
   - model_id: media/z-image-turbo
     provider: local
     model_type: image
@@ -1390,6 +1419,7 @@ models:
       url: https://huggingface.co/leejet/Z-Image-Turbo-GGUF
       retrieved_at: 2026-05-21
       note: Curated recommended-preset local image checkpoint (Z-Image-Turbo, stable-diffusion.cpp GGUF quants).
+    image_request_options: *a8
   - model_id: leejet/Z-Image-Turbo-GGUF
     provider: local
     model_type: image
@@ -1407,6 +1437,7 @@ models:
       url: https://huggingface.co/leejet/Z-Image-Turbo-GGUF
       retrieved_at: 2026-05-21
       note: Curated recommended-preset local image checkpoint (Z-Image-Turbo, stable-diffusion.cpp GGUF quants).
+    image_request_options: *a8
   - model_id: wan2.1-video-local
     provider: local
     model_type: video
@@ -1424,7 +1455,7 @@ models:
       url: https://huggingface.co/docs/diffusers/api/pipelines/wan
       retrieved_at: 2026-03-15
       note: Official Diffusers Wan text-to-video and image-to-video pipeline documentation.
-    video_generation: &a7
+    video_generation: &a9
       modes:
         - t2v
         - i2v_first_frame
@@ -1463,7 +1494,7 @@ models:
       url: https://huggingface.co/docs/diffusers/api/pipelines/wan
       retrieved_at: 2026-03-15
       note: Official Diffusers Wan text-to-video and image-to-video pipeline documentation.
-    video_generation: *a7
+    video_generation: *a9
   - model_id: media/wan2.1-video
     provider: local
     model_type: video
@@ -1481,7 +1512,7 @@ models:
       url: https://huggingface.co/docs/diffusers/api/pipelines/wan
       retrieved_at: 2026-03-15
       note: Official Diffusers Wan text-to-video and image-to-video pipeline documentation.
-    video_generation: *a7
+    video_generation: *a9
   - model_id: ace-step-local
     provider: local
     model_type: music

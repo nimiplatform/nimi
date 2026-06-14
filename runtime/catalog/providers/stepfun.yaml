@@ -277,6 +277,19 @@ models:
       url: https://platform.stepfun.ai/docs/en/guides/models/image
       retrieved_at: 2026-04-18
       note: StepFun image model overview and API references.
+    image_request_options:
+      response_formats:
+        - b64_json
+        - url
+      max_images_per_request: 1
+      supports_negative_prompt: true
+      supports_reference_images: false
+      supports_mask: false
+      supports_seed: false
+      supports_size: true
+      supports_aspect_ratio: false
+      supports_quality: false
+      supports_style: false
   - model_id: step-1x-edit
     provider: stepfun
     model_type: image
@@ -294,6 +307,19 @@ models:
       url: https://platform.stepfun.ai/docs/en/guides/models/image
       retrieved_at: 2026-04-18
       note: StepFun image model overview and API references.
+    image_request_options:
+      response_formats:
+        - b64_json
+        - url
+      max_images_per_request: 1
+      supports_negative_prompt: true
+      supports_reference_images: false
+      supports_mask: false
+      supports_seed: false
+      supports_size: true
+      supports_aspect_ratio: false
+      supports_quality: false
+      supports_style: false
   - model_id: step-2x-large
     provider: stepfun
     model_type: image
@@ -311,6 +337,19 @@ models:
       url: https://platform.stepfun.ai/docs/en/guides/models/image
       retrieved_at: 2026-04-18
       note: StepFun image model overview and API references.
+    image_request_options:
+      response_formats:
+        - b64_json
+        - url
+      max_images_per_request: 1
+      supports_negative_prompt: true
+      supports_reference_images: false
+      supports_mask: false
+      supports_seed: false
+      supports_size: true
+      supports_aspect_ratio: false
+      supports_quality: false
+      supports_style: false
 voices:
   - voice_id: lively-girl
     voice_set_id: stepfun:tts_2_voice_set

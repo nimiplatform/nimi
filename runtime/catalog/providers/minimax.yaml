@@ -89,6 +89,19 @@ models:
       url: https://platform.minimax.io/docs/api-reference/api-overview
       retrieved_at: 2026-04-18
       note: MiniMax API overview with text, image, and video model tables.
+    image_request_options:
+      response_formats:
+        - b64_json
+        - url
+      max_images_per_request: 1
+      supports_negative_prompt: true
+      supports_reference_images: false
+      supports_mask: false
+      supports_seed: false
+      supports_size: true
+      supports_aspect_ratio: true
+      supports_quality: true
+      supports_style: true
 voices: []
 selection_profiles:
   - provider: minimax
