@@ -54,6 +54,7 @@ export type TesterAiConfigSettingsProps = {
   service: SharedAIConfigService;
   enabledCapabilities: readonly string[];
   providerResolver: (capabilityId: string) => RouteModelPickerDataProvider | null;
+  localAssetSource?: AppModelConfigSurface['localAssetSource'];
   runtimeReady: boolean;
   runtimeDetail: string | null;
   copy: Record<string, string>;
@@ -181,6 +182,7 @@ export function TesterAiConfigSettings({
   service,
   enabledCapabilities,
   providerResolver,
+  localAssetSource,
   runtimeReady,
   runtimeDetail,
   copy,
@@ -205,9 +207,10 @@ export function TesterAiConfigSettings({
     requirementDeclaration: createRequirementDeclaration(scopeRef, enabledCapabilities),
     providerResolver: (capabilityId: string) => (runtimeReady ? providerResolver(capabilityId) : null),
     projectionResolver: (capabilityId: string) => bindingStatus(config, capabilityId, runtimeReady, runtimeDetail),
+    localAssetSource,
     runtimeNotReadyLabel: runtimeDetail || 'Runtime unavailable',
     i18n: { t },
-  }), [config, enabledCapabilities, providerResolver, runtimeDetail, runtimeReady, scopeRef, service, t]);
+  }), [config, enabledCapabilities, localAssetSource, providerResolver, runtimeDetail, runtimeReady, scopeRef, service, t]);
 
   const profileCopy = useMemo(() => defaultModelConfigProfileCopy(t), [t]);
   const currentOrigin = useMemo(

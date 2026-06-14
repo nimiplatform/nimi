@@ -1,5 +1,7 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { CanonicalCapabilitySectionId } from '@nimiplatform/kit/core/runtime-capabilities';
+import type { AppModelConfigSurface, LocalAssetEntry } from '@nimiplatform/kit/features/model-config';
+import { listNimiRuntimeLocalAssetEntries } from '@nimiplatform/sdk/runtime';
 import type { TesterRuntimeInspection } from '../tester-runtime.js';
 import {
   createTesterAIConfigService,
@@ -9,6 +11,7 @@ import {
 import { createTesterRuntimeModelPickerProviderCache } from '../tester-runtime-model-provider.js';
 import { TesterAiConfigSettings } from '../../shell/ai/tester-ai-config-settings.js';
 import { testerModelConfigCopy } from '../../shell/ai/model-config-copy.js';
+import { getRuntimePlatformProjection } from '../../shell/auth/runtime-platform.js';
 
 // App-owned wrapper: injects the tester's app-scoped NimiAIConfig service, scope
 // ref, runtime model-picker provider, and copy into the scaffold-managed
@@ -48,10 +51,65 @@ const copy: Record<string, string> = {
   'Tester.settings.detailSubtitle': 'Configure models and defaults for this capability.',
 };
 
+function useTesterRuntimeLocalAssetSource(runtimeReady: boolean): AppModelConfigSurface['localAssetSource'] {
+  const [assets, setAssets] = useState<LocalAssetEntry[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!runtimeReady) {
+      setAssets([]);
+      setLoading(false);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    setLoading(true);
+    void getRuntimePlatformProjection()
+      .then(async (projection) => {
+        if (projection.status !== 'ready') {
+          return [];
+        }
+        return listNimiRuntimeLocalAssetEntries(projection.client.runtime);
+      })
+      .then((next) => {
+        if (cancelled) return;
+        setAssets(next.map((asset) => ({
+          localAssetId: asset.localAssetId,
+          assetId: asset.assetId,
+          kind: asset.kind,
+          engine: asset.engine,
+          status: asset.status,
+        })));
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setAssets([]);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [runtimeReady]);
+
+  return useMemo(() => ({
+    list: () => assets,
+    loading,
+  }), [assets, loading]);
+}
+
 export function TesterAiConfigSettingsPanel({ runtime, initialSection = null, onClose }: TesterAiConfigSettingsPanelProps) {
   const scopeRef = useMemo(() => createTesterAppLabAIScopeRef(), []);
   const service = useMemo(() => createTesterAIConfigService(), []);
   const resolveRuntimeModelPickerProvider = useMemo(() => createTesterRuntimeModelPickerProviderCache(), []);
+  const localAssetSource = useTesterRuntimeLocalAssetSource(runtime?.status === 'ready');
 
   return (
     <TesterAiConfigSettings
@@ -59,6 +117,7 @@ export function TesterAiConfigSettingsPanel({ runtime, initialSection = null, on
       service={service}
       enabledCapabilities={enabledCapabilities}
       providerResolver={resolveRuntimeModelPickerProvider}
+      localAssetSource={localAssetSource}
       runtimeReady={runtime?.status === 'ready'}
       runtimeDetail={runtime?.detail ?? null}
       copy={copy}

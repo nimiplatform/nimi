@@ -264,4 +264,70 @@ describe('ModelConfigPanel', () => {
     expect(nextImageSeed).toBe('42');
     expect(nextVideoMode).toBe('i2v-reference');
   });
+
+  it('selects image companion slots through the shared picker interaction', async () => {
+    let nextCompanionSlots: Record<string, string> = {};
+
+    await render(
+      <ImageParamsEditor
+        copy={{
+          companionModelsLabel: 'Companion Models',
+          parametersLabel: 'Parameters',
+          sizeLabel: 'Size',
+          responseFormatLabel: 'Response format',
+          seedLabel: 'Seed',
+          timeoutLabel: 'Timeout',
+          stepsLabel: 'Steps',
+          cfgScaleLabel: 'CFG Scale',
+          samplerLabel: 'Sampler',
+          schedulerLabel: 'Scheduler',
+          customOptionsLabel: 'Custom options',
+          noneLabel: 'None',
+        }}
+        params={{
+          size: '512x512',
+          responseFormat: 'auto',
+          seed: '',
+          timeoutMs: '600000',
+          steps: '25',
+          cfgScale: '',
+          sampler: '',
+          scheduler: '',
+          optionsText: '',
+        }}
+        companionSlots={{}}
+        assets={[{
+          localAssetId: 'local-vae',
+          assetId: 'Z Image AE',
+          kind: 'vae',
+          engine: 'media',
+          status: 'installed',
+        }]}
+        onParamsChange={() => undefined}
+        onCompanionSlotsChange={(next) => {
+          nextCompanionSlots = next;
+        }}
+      />,
+    );
+
+    const vaeTrigger = Array.from(container?.querySelectorAll('button') || [])
+      .find((button) => button.textContent?.includes('None'));
+    expect(vaeTrigger).toBeTruthy();
+
+    await act(async () => {
+      vaeTrigger?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await flush();
+    });
+
+    const assetOption = Array.from(document.querySelectorAll('button'))
+      .find((button) => button.textContent?.includes('Z Image AE'));
+    expect(assetOption).toBeTruthy();
+
+    await act(async () => {
+      assetOption?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await flush();
+    });
+
+    expect(nextCompanionSlots).toEqual({ vae_path: 'local-vae' });
+  });
 });

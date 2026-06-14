@@ -5,9 +5,6 @@ import {
 } from '@nimiplatform/sdk/features/generation';
 import {
   runNimiRuntimeScenarioJob,
-  toNimiRuntimeProtoStruct,
-  toNimiRuntimeVoiceReference,
-  type NimiRuntimeSpeechVoiceReference,
 } from '@nimiplatform/sdk/runtime';
 import { getTesterCapability } from './tester-capabilities.js';
 import type {
@@ -27,6 +24,12 @@ import {
   unavailableFromError,
   unavailableFromValidation,
 } from './tester-runtime-invokers-core.js';
+import {
+  imageProfileExtensions,
+  resolveImageRuntimeBinding,
+  resolveLocalRunnableAssetBinding,
+  speechSynthesisParamsFromBinding,
+} from './tester-runtime-media-bindings.js';
 
 type RuntimeMediaJobOutput = {
   readonly job?: unknown;
@@ -262,86 +265,8 @@ function runtimeLabels(
   });
 }
 
-function selectedParamRecord(resolved: ResolvedLLMBinding): Record<string, unknown> {
-  return resolved.selectedParams && typeof resolved.selectedParams === 'object' && !Array.isArray(resolved.selectedParams)
-    ? resolved.selectedParams as Record<string, unknown>
-    : {};
-}
-
 function optionalText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
-}
-
-function imageProfileExtensions(resolved: ResolvedLLMBinding) {
-  const params = selectedParamRecord(resolved);
-  const configuredEntries = Array.isArray(params.profile_entries)
-    ? params.profile_entries
-    : Array.isArray(params.profileEntries) ? params.profileEntries : null;
-  const profileEntries = configuredEntries && configuredEntries.length > 0
-    ? configuredEntries
-    : [{
-      entry_id: 'main-image',
-      kind: 'asset',
-      title: 'Main image model',
-      capability: 'image.generate',
-      asset_id: resolved.model,
-      asset_kind: 'image',
-      engine: 'media',
-      required: true,
-    }];
-  return [{
-    namespace: 'nimi.scenario.image.request',
-    payload: toNimiRuntimeProtoStruct({
-      ...params,
-      profile_entries: profileEntries,
-    }),
-  }];
-}
-
-function parseVoiceReference(value: unknown): NimiRuntimeSpeechVoiceReference | undefined {
-  if (!value) return undefined;
-  if (typeof value === 'object' && !Array.isArray(value)) {
-    const record = value as Record<string, unknown>;
-    const kind = optionalText(record.kind);
-    if (kind === 'preset_voice_id') {
-      return { kind, presetVoiceId: optionalText(record.presetVoiceId ?? record.preset_voice_id) };
-    }
-    if (kind === 'voice_asset_id') {
-      return { kind, voiceAssetId: optionalText(record.voiceAssetId ?? record.voice_asset_id) };
-    }
-    if (kind === 'provider_voice_ref') {
-      return { kind, providerVoiceRef: optionalText(record.providerVoiceRef ?? record.provider_voice_ref) };
-    }
-    const providerVoiceRef = optionalText(record.providerVoiceRef ?? record.provider_voice_ref);
-    if (providerVoiceRef) return { kind: 'provider_voice_ref', providerVoiceRef };
-    const presetVoiceId = optionalText(record.presetVoiceId ?? record.preset_voice_id);
-    if (presetVoiceId) return { kind: 'preset_voice_id', presetVoiceId };
-    const voiceAssetId = optionalText(record.voiceAssetId ?? record.voice_asset_id);
-    if (voiceAssetId) return { kind: 'voice_asset_id', voiceAssetId };
-    return undefined;
-  }
-  const text = optionalText(value);
-  if (!text) return undefined;
-  const [prefix, ...rest] = text.split(':');
-  const payload = rest.join(':').trim();
-  if (prefix === 'preset_voice_id' && payload) return { kind: 'preset_voice_id', presetVoiceId: payload };
-  if (prefix === 'voice_asset_id' && payload) return { kind: 'voice_asset_id', voiceAssetId: payload };
-  if (prefix === 'provider_voice_ref' && payload) return { kind: 'provider_voice_ref', providerVoiceRef: payload };
-  return { kind: 'provider_voice_ref', providerVoiceRef: text };
-}
-
-function voiceReferenceFromParams(resolved: ResolvedLLMBinding) {
-  const params = selectedParamRecord(resolved);
-  return toNimiRuntimeVoiceReference(parseVoiceReference(
-    params.voiceRef
-    ?? params.voice_ref
-    ?? params.providerVoiceRef
-    ?? params.provider_voice_ref
-    ?? params.presetVoiceId
-    ?? params.preset_voice_id
-    ?? params.voiceAssetId
-    ?? params.voice_asset_id,
-  ));
 }
 
 function mimeTypeForAudioUrl(url: string, contentType?: string | null): string {
@@ -379,10 +304,11 @@ export async function invokeImageGenerate(client: TesterRuntimeInvocationClient,
   if (isTesterUnavailable(resolved)) return resolved;
   const schedulingPreflight = await ensureSchedulingPreflight(client, 'image.generate', resolved);
   if (schedulingPreflight.unavailable) return schedulingPreflight.unavailable;
-  const route = routeInput(resolved);
   const subjectUserId = requireRuntimeSubjectUserId('image.generate', client);
-  const extensions = imageProfileExtensions(resolved);
   try {
+    const imageBinding = await resolveImageRuntimeBinding(client, resolved);
+    const route = routeInput(imageBinding.resolved);
+    const extensions = imageProfileExtensions(imageBinding);
     const mediaImage = client.runtime.media?.image;
     const output = mediaImage
       ? await mediaImage.generate({
@@ -390,14 +316,14 @@ export async function invokeImageGenerate(client: TesterRuntimeInvocationClient,
         subjectUserId,
         prompt,
         extensions,
-        metadata: runtimeLabels('nimi.tester.media.image.generate', resolved, schedulingPreflight.evidenceMetadata),
+        metadata: runtimeLabels('nimi.tester.media.image.generate', imageBinding.resolved, schedulingPreflight.evidenceMetadata),
       }) as RuntimeMediaJobOutput
       : await runNimiRuntimeScenarioJob({
         ai: client.runtime.ai,
-        request: buildNimiRuntimeGenerationSubmitRequest(runtimeJobHead(resolved, subjectUserId), {
+        request: buildNimiRuntimeGenerationSubmitRequest(runtimeJobHead(imageBinding.resolved, subjectUserId), {
           scenario: { kind: 'image', prompt },
           ...runtimeJobIdentity('image.generate', input.scenarioId),
-          labels: runtimeLabels('nimi.tester.ai.image.generate', resolved, schedulingPreflight.evidenceMetadata),
+          labels: runtimeLabels('nimi.tester.ai.image.generate', imageBinding.resolved, schedulingPreflight.evidenceMetadata),
           extensions,
         }),
       });
@@ -487,27 +413,47 @@ export async function invokeSpeechSynthesize(client: TesterRuntimeInvocationClie
   if (isTesterUnavailable(resolved)) return resolved;
   const schedulingPreflight = await ensureSchedulingPreflight(client, 'audio.synthesize', resolved);
   if (schedulingPreflight.unavailable) return schedulingPreflight.unavailable;
-  const route = routeInput(resolved);
   const subjectUserId = requireRuntimeSubjectUserId('audio.synthesize', client);
-  const voiceRef = voiceReferenceFromParams(resolved);
   try {
+    const speechBinding = await resolveLocalRunnableAssetBinding({
+      client,
+      resolved,
+      capabilityId: 'audio.synthesize',
+      assetKind: 'tts',
+    });
+    const route = routeInput(speechBinding);
+    const speechParams = speechSynthesisParamsFromBinding(speechBinding);
     const mediaTts = client.runtime.media?.tts;
     const output = mediaTts
       ? await mediaTts.synthesize({
         ...route,
         subjectUserId,
         text: prompt,
-        voiceRef,
-        metadata: runtimeLabels('nimi.tester.media.tts.synthesize', resolved, schedulingPreflight.evidenceMetadata),
+        voiceRef: speechParams.voiceRef,
+        language: speechParams.language,
+        audioFormat: speechParams.audioFormat,
+        responseFormat: speechParams.audioFormat,
+        speed: speechParams.speed,
+        pitch: speechParams.pitch,
+        volume: speechParams.volume,
+        timeoutMs: speechParams.timeoutMs,
+        metadata: runtimeLabels('nimi.tester.media.tts.synthesize', speechBinding, schedulingPreflight.evidenceMetadata),
       }) as RuntimeMediaJobOutput
       : await runNimiRuntimeSpeechSynthesis({
         runtime: client.runtime,
-        head: runtimeJobHead(resolved, subjectUserId),
+        head: {
+          ...runtimeJobHead(speechBinding, subjectUserId),
+          ...(speechParams.timeoutMs ? { timeoutMs: speechParams.timeoutMs } : {}),
+        },
         text: prompt,
-        voiceRef,
-        audioFormat: 'wav',
+        voiceRef: speechParams.voiceRef,
+        language: speechParams.language,
+        audioFormat: speechParams.audioFormat,
+        speed: speechParams.speed,
+        pitch: speechParams.pitch,
+        volume: speechParams.volume,
         ...runtimeJobIdentity('audio.synthesize', input.scenarioId),
-        labels: runtimeLabels('nimi.tester.ai.speech.synthesize', resolved, schedulingPreflight.evidenceMetadata),
+        labels: runtimeLabels('nimi.tester.ai.speech.synthesize', speechBinding, schedulingPreflight.evidenceMetadata),
       });
     const artifacts = artifactsFrom(output);
     const job = summariseJob(output.job);

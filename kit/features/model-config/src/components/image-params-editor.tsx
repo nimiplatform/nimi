@@ -57,6 +57,7 @@ export function ImageParamsEditor(props: ImageParamsEditorProps) {
             value={companionSlots[slot.slot] || ''}
             onChange={(value) => updateSlot(slot.slot, value)}
             assets={assets}
+            loading={props.assetsLoading}
             noneLabel={copy.noneLabel}
           />
         ))}

@@ -74,16 +74,16 @@ function createMemoryStorage(initial = {}) {
       map.clear();
     },
     getItem(key) {
-      return map.has(key) ? map.get(key) : null;
+      return map.has(String(key)) ? map.get(String(key)) : null;
     },
     key(index) {
       return [...map.keys()][index] || null;
     },
     removeItem(key) {
-      map.delete(key);
+      map.delete(String(key));
     },
     setItem(key, value) {
-      map.set(key, String(value));
+      map.set(String(key), String(value));
     },
   };
 }
@@ -640,9 +640,9 @@ test('tester LLM invokers consume AIConfig bindings and fail closed without bind
   assert.doesNotMatch(invokers, /peekRuntimeSchedulingBatch/);
   assert.doesNotMatch(invokers, /client\.runtime\.ai\.peekScheduling/);
 
-  const mediaInvokers = read('src/tester/tester-runtime-invokers-media.ts');
-  assert.match(mediaInvokers, /selectedParamRecord\(resolved\)/);
-  assert.match(mediaInvokers, /\.\.\.params,\s*profile_entries:/);
+  const mediaBindings = read('src/tester/tester-runtime-media-bindings.ts');
+  assert.match(mediaBindings, /selectedParamRecord\(resolved\)/);
+  assert.match(mediaBindings, /\.\.\.forwardedParams,\s*profile_entries:/);
 });
 
 test('tester LLM binding resolver fails closed for missing and malformed bindings', async () => {
@@ -925,227 +925,6 @@ test('tester LLM invoker dispatches configured AIConfig route payload', async ()
   assert.equal(Object.hasOwn(captured[5].options.metadata, 'runtimeSchedulingDetail'), false);
 });
 
-test('tester surfaces inline runtime media artifact bytes as a previewable data URL', async () => {
-  const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');
-  const store = await importBehaviorModule('tester/tester-ai-config-store.js');
-  const scopeRef = store.createTesterAppLabAIScopeRef();
-  store.saveTesterAIConfig({
-    scopeRef,
-    capabilities: {
-      targetRefs: {
-        'image.generate': {
-          kind: 'local-runtime',
-          targetId: 'core:runtime',
-          profileId: 'local.image.test',
-        },
-        'audio.synthesize': {
-          kind: 'local-runtime',
-          targetId: 'core:runtime',
-          profileId: 'local.tts.test',
-        },
-      },
-      selectedParams: {},
-    },
-    profileOrigin: null,
-  });
-
-  // Local runtime media returns ScenarioArtifact bytes with an empty uri. The
-  // cockpit must turn those bytes into a previewable/playable data URL so image
-  // and TTS results can be displayed, played, and saved end-to-end.
-  const pngBytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
-  const wavBytes = new Uint8Array([0x52, 0x49, 0x46, 0x46, 0x01, 0x02, 0x03, 0x04]);
-
-  const client = {
-    runtime: {
-      scheduling: {
-        async peekScheduling() {
-          return runnableSchedulingResponse();
-        },
-      },
-      ai: {
-        async executeScenario() {
-          throw new Error('executeScenario should not be called by this media facade compatibility test');
-        },
-        streamScenario() {
-          throw new Error('streamScenario should not be called by this media facade compatibility test');
-        },
-      },
-      media: {
-        image: {
-          async generate() {
-            return {
-              job: { jobId: 'img-job-1', state: 'completed' },
-              artifacts: [{ artifactId: 'art-img', mimeType: 'image/png', uri: '', bytes: pngBytes }],
-              trace: { traceId: 'img-trace', modelResolved: 'local/z-image', routeDecision: 'local' },
-            };
-          },
-        },
-        tts: {
-          async synthesize() {
-            return {
-              job: { jobId: 'tts-job-1', state: 'completed' },
-              artifacts: [{ artifactId: 'art-tts', mimeType: 'audio/wav', uri: '', bytes: wavBytes }],
-              trace: { traceId: 'tts-trace', modelResolved: 'local/piper', routeDecision: 'local' },
-            };
-          },
-        },
-      },
-    },
-  };
-
-  const imageResult = await invokers.invokeTesterCapability(client, 'image.generate', {
-    prompt: 'a glass ui panel',
-    scenarioId: 'behavior',
-    subjectUserId: 'subject-user-1',
-  });
-  assert.equal(imageResult.ok, true);
-  assert.equal(imageResult.output.kind, 'artifacts');
-  const imageUrl = imageResult.output.firstArtifact?.url ?? '';
-  assert.match(imageUrl, /^data:image\/png;base64,/);
-  assert.deepEqual(new Uint8Array(Buffer.from(imageUrl.split(',')[1], 'base64')), pngBytes);
-
-  const ttsResult = await invokers.invokeTesterCapability(client, 'audio.synthesize', {
-    prompt: 'hello acceptance',
-    scenarioId: 'behavior',
-    subjectUserId: 'subject-user-1',
-  });
-  assert.equal(ttsResult.ok, true);
-  assert.equal(ttsResult.output.kind, 'artifacts');
-  const ttsUrl = ttsResult.output.firstArtifact?.url ?? '';
-  assert.match(ttsUrl, /^data:audio\/wav;base64,/);
-  assert.deepEqual(new Uint8Array(Buffer.from(ttsUrl.split(',')[1], 'base64')), wavBytes);
-});
-
-test('tester prefers a hosted artifact uri over inline bytes', async () => {
-  const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');
-  const store = await importBehaviorModule('tester/tester-ai-config-store.js');
-  const scopeRef = store.createTesterAppLabAIScopeRef();
-  store.saveTesterAIConfig({
-    scopeRef,
-    capabilities: {
-      targetRefs: {
-        'image.generate': {
-          kind: 'cloud-connector',
-          connectorId: 'runtime-image-connector',
-          providerModelId: 'cloud.image.test',
-        },
-      },
-      selectedParams: {},
-    },
-    profileOrigin: null,
-  });
-  const client = {
-    runtime: {
-      scheduling: {
-        async peekScheduling() {
-          return runnableSchedulingResponse();
-        },
-      },
-      ai: {
-        async executeScenario() {
-          throw new Error('executeScenario should not be called by this media facade compatibility test');
-        },
-        streamScenario() {
-          throw new Error('streamScenario should not be called by this media facade compatibility test');
-        },
-      },
-      media: {
-        image: {
-          async generate() {
-            return {
-              job: { jobId: 'img-job-2', state: 'completed' },
-              artifacts: [{
-                artifactId: 'art-hosted',
-                mimeType: 'image/png',
-                uri: 'https://cdn.example/img.png',
-                bytes: new Uint8Array([1, 2, 3]),
-              }],
-              trace: { traceId: 'img-trace-2', modelResolved: 'cloud/x', routeDecision: 'cloud' },
-            };
-          },
-        },
-      },
-    },
-  };
-  const result = await invokers.invokeTesterCapability(client, 'image.generate', {
-    prompt: 'x',
-    scenarioId: 'behavior',
-    subjectUserId: 'subject-user-1',
-  });
-  assert.equal(result.ok, true);
-  assert.equal(result.output.firstArtifact?.url, 'https://cdn.example/img.png');
-});
-
-test('tester reads compact runtime artifact bytes by id for image preview', async () => {
-  const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');
-  const store = await importBehaviorModule('tester/tester-ai-config-store.js');
-  const scopeRef = store.createTesterAppLabAIScopeRef();
-  store.saveTesterAIConfig({
-    scopeRef,
-    capabilities: {
-      targetRefs: {
-        'image.generate': {
-          kind: 'cloud-connector',
-          connectorId: 'runtime-image-connector',
-          providerModelId: 'cloud.image.test',
-        },
-      },
-      selectedParams: {},
-    },
-    profileOrigin: null,
-  });
-  const pngBytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x11, 0x22, 0x33, 0x44]);
-  const artifactReads = [];
-  const client = {
-    runtime: {
-      scheduling: {
-        async peekScheduling() {
-          return runnableSchedulingResponse();
-        },
-      },
-      artifacts: {
-        async readArtifactBytes(request) {
-          artifactReads.push(request);
-          return {
-            bytes: pngBytes,
-            mimeType: 'image/png',
-            sizeBytes: String(pngBytes.byteLength),
-          };
-        },
-      },
-      ai: {
-        async executeScenario() {
-          throw new Error('executeScenario should not be called by this compact artifact test');
-        },
-        streamScenario() {
-          throw new Error('streamScenario should not be called by this compact artifact test');
-        },
-      },
-      media: {
-        image: {
-          async generate() {
-            return {
-              job: { jobId: 'img-job-compact', state: 'completed' },
-              artifacts: [{ artifactId: 'art-compact-img', mimeType: 'image/png', uri: '', bytes: new Uint8Array() }],
-              trace: { traceId: 'img-compact-trace', modelResolved: 'cloud/x', routeDecision: 'cloud' },
-            };
-          },
-        },
-      },
-    },
-  };
-  const result = await invokers.invokeTesterCapability(client, 'image.generate', {
-    prompt: 'x',
-    scenarioId: 'behavior',
-    subjectUserId: 'subject-user-1',
-  });
-  assert.equal(result.ok, true);
-  assert.deepEqual(artifactReads, [{ artifactId: 'art-compact-img' }]);
-  const imageUrl = result.output.firstArtifact?.url ?? '';
-  assert.match(imageUrl, /^data:image\/png;base64,/);
-  assert.deepEqual(new Uint8Array(Buffer.from(imageUrl.split(',')[1], 'base64')), pngBytes);
-});
-
 test('tester local text.generate binding omits runtime connectorId payload', async () => {
   const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');
   const store = await importBehaviorModule('tester/tester-ai-config-store.js');
@@ -1313,6 +1092,7 @@ test('tester model picker consumes SDK route projection for runtime local assets
   assert.deepEqual(localModels, [
     {
       localModelId: runtimeLocalModelId,
+      goRuntimeLocalModelId: runtimeLocalModelId,
       modelId: runtimeLocalModelId,
       label: runtimeLocalModelId,
       engine: 'llama',

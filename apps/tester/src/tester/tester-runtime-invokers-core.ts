@@ -27,7 +27,7 @@ import {
   type NimiRuntimeAISchedulingClient,
   type NimiRuntimeEmbeddingScenarioClient,
 } from '@nimiplatform/sdk/ai';
-import type { NimiRuntimeScenarioJobClient } from '@nimiplatform/sdk/runtime';
+import type { NimiRuntimeLocalAssetListClient, NimiRuntimeScenarioJobClient } from '@nimiplatform/sdk/runtime';
 import {
   textPart,
   type NimiMessage,
@@ -130,6 +130,7 @@ export type TesterRuntimeInvocationClient = {
       }>;
     };
     readonly scheduling: NimiRuntimeAISchedulingClient;
+    readonly local?: NimiRuntimeLocalAssetListClient['local'];
     readonly artifacts?: {
       readonly readArtifactBytes: (request: {
         readonly artifactId: string;
