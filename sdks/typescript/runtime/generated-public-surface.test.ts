@@ -15,3 +15,8 @@ test('runtime generated public barrel does not expose raw descriptor client surf
   assert.equal('RegisterAvatarLiveInstanceBindingRequest' in runtimeGenerated, false);
   assert.equal('RegisterAvatarLiveInstanceBindingResponse' in runtimeGenerated, false);
 });
+
+test('runtime generated public barrel exposes scenario enum values used by live runners', () => {
+  assert.equal(runtimeGenerated.FallbackPolicy.DENY, 1);
+  assert.equal(runtimeGenerated.VoiceReferenceKind.PRESET, 1);
+});

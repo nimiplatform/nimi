@@ -47,6 +47,7 @@ export type {
   RuntimeHealthEvent,
   ScenarioArtifact,
   ScenarioJobEvent,
+  ScenarioSpec,
   SubmitScenarioJobRequest,
   UsageStatRecord,
 } from '../core-generated/runtime-typed-client';
@@ -79,6 +80,7 @@ export {
   EffectClass,
   ExecutionMode,
   ExternalPrincipalType,
+  FallbackPolicy,
   FinishReason,
   HookAdmissionState,
   HookTriggerFamily,
@@ -97,5 +99,6 @@ export {
   ScenarioType,
   UsageWindow,
   VoiceAssetStatus,
+  VoiceReferenceKind,
   VoiceWorkflowType,
 } from '../core-generated/runtime-typed-client';

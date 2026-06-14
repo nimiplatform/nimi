@@ -219,11 +219,15 @@ function toRuntimeVideoGenerationSpec(
   const prompt = mode === VideoMode.T2V
     ? requireScenarioText(input.prompt, 'text-to-video generation requires prompt', 'provide_video_generation_prompt')
     : normalizeScenarioText(input.prompt);
+  const content = [...(input.content ?? [])];
+  if (mode === VideoMode.T2V && content.length === 0) {
+    content.push({ type: 'text', role: 'prompt', text: prompt });
+  }
   return {
     prompt,
     negativePrompt: normalizeScenarioText(input.negativePrompt),
     mode,
-    content: [...(input.content ?? [])].map(toRuntimeVideoContentItem),
+    content: content.map(toRuntimeVideoContentItem),
     options: toRuntimeVideoGenerationOptions(input.options),
   };
 }

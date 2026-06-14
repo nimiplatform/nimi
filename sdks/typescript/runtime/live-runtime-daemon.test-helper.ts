@@ -17,6 +17,7 @@ export type RuntimeDaemonRunContext = {
 const DEFAULT_RUNTIME_READY_TIMEOUT_MS = 120_000;
 const DEFAULT_RUNTIME_READY_POLL_INTERVAL_MS = 250;
 const DEFAULT_RUNTIME_READY_CALL_TIMEOUT_MS = 1_000;
+const DEFAULT_PROVIDER_HEALTH_READY_TIMEOUT_MS = 45_000;
 
 async function allocatePort(): Promise<number> {
   return new Promise((resolvePromise, reject) => {
@@ -84,6 +85,83 @@ async function waitForRuntimeReady(endpoint: string, appId: string): Promise<voi
   }
 
   throw new Error(`runtime readiness check failed after ${timeoutMs}ms: ${String(lastError)}`);
+}
+
+function expectedCloudProviderHealthNames(runtimeEnv: Readonly<Record<string, string>> | undefined): string[] {
+  if (!runtimeEnv) return [];
+  const names = new Set<string>();
+  for (const [key, value] of Object.entries(runtimeEnv)) {
+    if (!String(value || '').trim()) continue;
+    const match = key.match(/^NIMI_RUNTIME_CLOUD_(.+)_API_KEY$/);
+    if (!match) continue;
+    const provider = match[1]
+      .trim()
+      .toLowerCase()
+      .replace(/_/g, '-');
+    if (provider) names.add(`cloud-${provider}`);
+  }
+  return [...names].sort((left, right) => left.localeCompare(right));
+}
+
+async function waitForCloudProviderHealth(
+  endpoint: string,
+  appId: string,
+  providerNames: readonly string[],
+): Promise<void> {
+  if (providerNames.length === 0) return;
+
+  const runtime = createRuntime({
+    appId,
+    transport: {
+      type: 'node-grpc',
+      endpoint,
+    },
+  });
+  const wanted = new Set(providerNames.map((name) => name.trim().toLowerCase()).filter(Boolean));
+  const timeoutMs = resolveProviderHealthReadyTimeoutMs();
+  const deadline = Date.now() + timeoutMs;
+  let lastSummary = '';
+
+  while (Date.now() < deadline) {
+    const response = await runtime.audit.listAIProviderHealth({}, {
+      timeoutMs: Math.min(DEFAULT_RUNTIME_READY_CALL_TIMEOUT_MS, Math.max(1, deadline - Date.now())),
+    });
+    const byName = new Map<string, { readonly state?: string; readonly reason?: string }>();
+    for (const provider of response.providers) {
+      const providerName = String(provider.providerName || '').trim().toLowerCase();
+      if (providerName) {
+        byName.set(providerName, provider);
+      }
+      for (const subHealth of provider.subHealth || []) {
+        const subProviderName = String(subHealth.providerName || '').trim().toLowerCase();
+        if (subProviderName) {
+          byName.set(subProviderName, subHealth);
+        }
+      }
+    }
+    const missing: string[] = [];
+    const unhealthy: string[] = [];
+    for (const name of wanted) {
+      const item = byName.get(name);
+      if (!item) {
+        missing.push(name);
+        continue;
+      }
+      if (String(item.state || '').trim().toLowerCase() !== 'healthy') {
+        unhealthy.push(`${name}:${item.state || 'unknown'}:${item.reason || ''}`);
+      }
+    }
+    if (missing.length === 0 && unhealthy.length === 0) {
+      return;
+    }
+    lastSummary = [
+      missing.length > 0 ? `missing=${missing.join(',')}` : '',
+      unhealthy.length > 0 ? `unhealthy=${unhealthy.join(',')}` : '',
+    ].filter(Boolean).join(' ');
+    await new Promise((resolvePromise) => setTimeout(resolvePromise, DEFAULT_RUNTIME_READY_POLL_INTERVAL_MS));
+  }
+
+  throw new Error(`cloud provider health readiness failed after ${timeoutMs}ms for ${providerNames.join(', ')}: ${lastSummary}`);
 }
 
 async function terminateDaemon(daemon: ReturnType<typeof spawn>): Promise<void> {
@@ -171,6 +249,7 @@ export async function withRuntimeDaemon(
       throw new Error(`runtime daemon failed before ready: ${readyOrError.message}`);
     }
 
+    await waitForCloudProviderHealth(endpoint, input.appId, expectedCloudProviderHealthNames(input.runtimeEnv));
     await input.run({ endpoint, localModelsPath });
   } catch (error) {
     const detail = formatRuntimeLiveError(error);
@@ -230,4 +309,12 @@ function resolveRuntimeReadyTimeoutMs(): number {
     return configured;
   }
   return DEFAULT_RUNTIME_READY_TIMEOUT_MS;
+}
+
+function resolveProviderHealthReadyTimeoutMs(): number {
+  const configured = Number(process.env.NIMI_PROVIDER_HEALTH_READY_TIMEOUT_MS || '');
+  if (Number.isFinite(configured) && configured > 0) {
+    return configured;
+  }
+  return DEFAULT_PROVIDER_HEALTH_READY_TIMEOUT_MS;
 }

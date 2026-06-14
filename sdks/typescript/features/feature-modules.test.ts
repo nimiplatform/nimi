@@ -679,6 +679,21 @@ test('generation feature builds video speech and transcription Runtime scenarios
   assert.equal(video.spec.spec.videoGenerate.options?.durationSec, 5);
   assert.equal(video.spec.spec.videoGenerate.options?.seed, '42');
 
+  const textVideo = buildNimiRuntimeGenerationSubmitRequest(
+    { appId: 'app-1', modelId: 'video-model', routePolicy: 'cloud' },
+    {
+      scenario: createNimiVideoGenerationScenario({
+        kind: 'video',
+        mode: 't2v',
+        prompt: 'sunrise',
+      }),
+      requestId: 'req-text-video',
+      idempotencyKey: 'idem-text-video',
+    },
+  );
+  assert.equal(textVideo.spec.spec.oneofKind, 'videoGenerate');
+  assert.equal(textVideo.spec.spec.videoGenerate.content[0]?.text, 'sunrise');
+
   const speech = buildNimiRuntimeGenerationSubmitRequest(
     { appId: 'app-1', modelId: 'voice-model' },
     {
