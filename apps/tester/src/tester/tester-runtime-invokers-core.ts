@@ -27,6 +27,7 @@ import {
   type NimiRuntimeAISchedulingClient,
   type NimiRuntimeEmbeddingScenarioClient,
 } from '@nimiplatform/sdk/ai';
+import type { NimiRuntimeScenarioJobClient } from '@nimiplatform/sdk/runtime';
 import {
   textPart,
   type NimiMessage,
@@ -112,7 +113,19 @@ export type TesterInvocationResult = TesterTypedSuccess | TesterUnavailable;
 type ConversationTurnCompletedEvent = Extract<ConversationTurnEvent, { type: 'turn-completed' }>;
 export type TesterRuntimeInvocationClient = {
   readonly runtime: {
-    readonly ai: NimiRuntimeAIScenarioClient & NimiRuntimeEmbeddingScenarioClient;
+    readonly ai: NimiRuntimeAIScenarioClient & NimiRuntimeEmbeddingScenarioClient & NimiRuntimeScenarioJobClient & {
+      readonly listPresetVoices?: (request: {
+        readonly appId: string;
+        readonly subjectUserId: string;
+        readonly modelId: string;
+        readonly targetModelId: string;
+        readonly connectorId: string;
+      }) => Promise<{
+        readonly voices: readonly { readonly voiceId?: string; readonly name?: string; readonly lang?: string }[];
+        readonly modelResolved?: string;
+        readonly traceId?: string;
+      }>;
+    };
     readonly scheduling: NimiRuntimeAISchedulingClient;
     readonly media?: {
       readonly image?: { readonly generate: (input: unknown) => Promise<unknown> };
@@ -137,6 +150,7 @@ export type ResolvedLLMBinding = {
   routePolicy: Exclude<NimiRuntimeAIModelOptions['routePolicy'], 'unspecified'>;
   connectorId?: string;
   schedulingTarget: NimiAISchedulingTargetInput | null;
+  selectedParams: unknown;
   metadata: Record<string, string>;
 };
 
@@ -296,6 +310,9 @@ export function resolveTesterLLMBinding(
     routePolicy,
     ...(connectorId ? { connectorId } : {}),
     schedulingTarget: targetRefSchedulingInput(bindingCapabilityId, targetRef),
+    selectedParams: config.capabilities.selectedParams[bindingCapabilityId]
+      ?? config.capabilities.selectedParams[capabilityId]
+      ?? null,
     metadata: {
       aiConfigScopeKind: scopeRef.kind,
       aiConfigScopeOwnerId: scopeRef.ownerId,

@@ -40,7 +40,10 @@ test('single login model requires runtime account login (no dev-standalone bypas
   assert.match(authSource, /const runtimeDeveloperRegistrationRequested = true/);
   assert.match(authSource, /developerRegistration:\s*runtimeDeveloperRegistrationRequested/);
   assert.doesNotMatch(authSource, /import\.meta[^;\n]*env|env\.DEV|metadata:\s*[^,\n]*developerRegistration/);
-  assert.match(authSource, /await client\.runtime\.ready\(\);\s*await registerLocalFirstPartyRuntimeAccountCaller\(client\);/s);
+  assert.match(authSource, /const accountRuntime = new Runtime\(runtimeOptions\(\)\);\s*await accountRuntime\.ready\(\);\s*await registerLocalFirstPartyRuntimeAccountCaller\(accountRuntime\);/s);
+  assert.match(authSource, /authMetadata:\s*createRuntimeAppSessionMetadataProvider\(accountRuntime\)/);
+  assert.match(authSource, /runtimeProtectedScopes = \['ai\.spend\.meter'\]/);
+  assert.match(authSource, /accountRuntime\.grants\.authorizeExternalPrincipal/);
   assert.match(authGateSource, /loadRuntimeAccountUser/);
   assert.match(authGateSource, /clearRuntimePlatformProjection/);
   assert.match(authGateSource, /clearRuntimePlatformProjection\(\);\s*setReloadKey/s);

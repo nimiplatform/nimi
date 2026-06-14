@@ -56,7 +56,7 @@ export async function inspectRuntimeReadiness(): Promise<TesterRuntimeInspection
     return {
       status: 'ready',
       mode: projection.mode,
-      detail: `Runtime app session is ready. Realm defaults resolve to ${defaults.realm.realmBaseUrl}. Kit shell daemon bridge reports ${daemonStatus.launchMode} (${daemonVersion.severity}). Capability lanes call runtime.ai.* / runtime.media.* directly.`,
+      detail: `Runtime app session is ready. Realm defaults resolve to ${defaults.realm.realmBaseUrl}. Kit shell daemon bridge reports ${daemonStatus.launchMode} (${daemonVersion.severity}). Capability lanes call runtime.ai.* directly.`,
       healthJson: compactJson(health),
     };
   } catch (error) {

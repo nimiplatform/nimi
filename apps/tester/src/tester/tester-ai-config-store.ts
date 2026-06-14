@@ -4,6 +4,7 @@ import {
   createNimiAIHostSurface,
   createNimiAISnapshotStore,
   createNimiAppAIScopeRef,
+  encodeNimiAIScopeRef,
   parseNimiAIProfile,
   validateNimiAIConfig,
   validateNimiAIProfile,
@@ -24,6 +25,8 @@ import { appId } from '../shell/auth/app-identity.js';
 
 export const TESTER_APP_LAB_AI_SURFACE_ID = 'app-lab';
 export const TESTER_AI_CONFIG_STORAGE_KEY = 'nimiapp-tester:app-lab-ai-config:v1';
+export const TESTER_AI_CONFIG_LEGACY_STORAGE_KEY = TESTER_AI_CONFIG_STORAGE_KEY;
+export const TESTER_AI_CONFIG_SCOPE_MISMATCH_STORAGE_KEY = `${TESTER_AI_CONFIG_LEGACY_STORAGE_KEY}:scope-mismatch`;
 export const TESTER_AI_SNAPSHOT_INDEX_KEY = 'nimiapp-tester:app-lab-ai-snapshot-index:v1';
 export const TESTER_AI_SNAPSHOT_STORAGE_PREFIX = 'nimiapp-tester:app-lab-ai-snapshot:';
 export const TESTER_AI_PROFILE_LIBRARY_STORAGE_KEY = 'nimiapp-tester:app-lab-ai-profiles:v1';
@@ -64,7 +67,7 @@ function isTesterEphemeralStoreHarness(): boolean {
 
 const aiConfigStore = createNimiAIConfigStore({
   storage: () => getStorage() as NimiAIHostStorage | null,
-  configKeyForScope: () => TESTER_AI_CONFIG_STORAGE_KEY,
+  configKeyForScope: testerAIConfigStorageKeyForScopeKey,
   enableEphemeralStore: isTesterEphemeralStoreHarness(),
 });
 
@@ -137,6 +140,45 @@ function saveProfileLibraryStore(store: TesterAIProfileLibraryStore, storage: St
   storage.setItem(TESTER_AI_PROFILE_LIBRARY_STORAGE_KEY, JSON.stringify(store));
 }
 
+export function testerAIConfigStorageKeyForScopeKey(scopeKey: string): string {
+  return `${TESTER_AI_CONFIG_LEGACY_STORAGE_KEY}:${scopeKey}`;
+}
+
+function testerAIConfigStorageKeyForScopeRef(scopeRef: NimiAIScopeRef): string {
+  return testerAIConfigStorageKeyForScopeKey(encodeNimiAIScopeRef(scopeRef));
+}
+
+function localStorageRemove(storage: Storage, key: string): void {
+  if (typeof storage.removeItem === 'function') {
+    storage.removeItem(key);
+    return;
+  }
+  storage.setItem(key, '');
+}
+
+function migrateLegacyTesterAIConfigIfNeeded(scopeRef: NimiAIScopeRef): void {
+  const storage = getStorage();
+  if (!storage) return;
+  const scopedKey = testerAIConfigStorageKeyForScopeRef(scopeRef);
+  if (storage.getItem(scopedKey) !== null) return;
+  const legacyRaw = storage.getItem(TESTER_AI_CONFIG_LEGACY_STORAGE_KEY);
+  if (!legacyRaw) return;
+
+  try {
+    const parsed = JSON.parse(legacyRaw) as NimiAIConfig;
+    if (encodeNimiAIScopeRef(parsed.scopeRef) !== encodeNimiAIScopeRef(scopeRef)) {
+      storage.setItem(TESTER_AI_CONFIG_SCOPE_MISMATCH_STORAGE_KEY, legacyRaw);
+      localStorageRemove(storage, TESTER_AI_CONFIG_LEGACY_STORAGE_KEY);
+      return;
+    }
+    storage.setItem(scopedKey, legacyRaw);
+    localStorageRemove(storage, TESTER_AI_CONFIG_LEGACY_STORAGE_KEY);
+  } catch {
+    storage.setItem(`${TESTER_AI_CONFIG_LEGACY_STORAGE_KEY}:invalid`, legacyRaw);
+    localStorageRemove(storage, TESTER_AI_CONFIG_LEGACY_STORAGE_KEY);
+  }
+}
+
 export function listTesterAIProfiles(): NimiAIProfile[] {
   return [...loadProfileLibraryStore().profiles];
 }
@@ -191,6 +233,7 @@ export function importTesterAIProfileJson(rawJson: string): TesterAIProfileImpor
 }
 
 export function loadTesterAIConfig(scopeRef: NimiAIScopeRef = createTesterAppLabAIScopeRef()): NimiAIConfig {
+  migrateLegacyTesterAIConfigIfNeeded(scopeRef);
   try {
     return aiConfigStore.load(scopeRef);
   } catch (error) {
@@ -210,6 +253,7 @@ export function saveTesterAIConfig(
   scopeRef: NimiAIScopeRef = createTesterAppLabAIScopeRef(),
   options?: { readonly expectedBaseVersion?: string },
 ): NimiAIConfig {
+  migrateLegacyTesterAIConfigIfNeeded(scopeRef);
   const normalized = { ...next, scopeRef };
   const expectedBaseVersion = options?.expectedBaseVersion?.trim();
   if (expectedBaseVersion) {
@@ -265,9 +309,11 @@ export function createTesterAIConfigService(): SharedAIConfigService {
         return [...await createSurface().aiProfile.list()];
       },
       async previewApply(scopeRef: NimiAIScopeRef, profileId: string, options) {
+        migrateLegacyTesterAIConfigIfNeeded(scopeRef);
         return createSurface().aiProfile.previewApply(scopeRef, profileId, options);
       },
       async apply(scopeRef: NimiAIScopeRef, profileId: string, options) {
+        migrateLegacyTesterAIConfigIfNeeded(scopeRef);
         return createSurface().aiProfile.apply(scopeRef, profileId, options);
       },
     },

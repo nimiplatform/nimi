@@ -161,7 +161,7 @@ const STUDIO_PROFILES: Record<TesterCapabilityId, CapabilityStudioProfile> = {
   'audio.transcribe': {
     studioTag: 'Transcribe',
     inputTitle: 'Audio URL',
-    inputPlaceholder: 'https://… or file://… pointing at the audio asset',
+    inputPlaceholder: 'https://… pointing at the audio asset',
     inputKind: 'url',
     supportsAttachments: false,
     controls: [],
@@ -171,7 +171,7 @@ const STUDIO_PROFILES: Record<TesterCapabilityId, CapabilityStudioProfile> = {
     emptyTitle: 'Waiting for transcript',
     emptyHint: 'The transcript text will appear here once the job returns.',
     resultKind: 'transcript',
-    footnote: 'Provide an http(s):// or file:// URL; the runtime returns the transcript.',
+    footnote: 'Provide an http(s):// URL; the runtime returns the transcript.',
   },
   'speech.bundle': {
     studioTag: 'Voices',
@@ -187,7 +187,7 @@ const STUDIO_PROFILES: Record<TesterCapabilityId, CapabilityStudioProfile> = {
     emptyTitle: 'Waiting for catalog',
     emptyHint: 'Available runtime voices will appear here.',
     resultKind: 'voice-catalog',
-    footnote: 'Probes runtime.media.tts.listVoices for catalog readiness.',
+    footnote: 'Probes runtime.ai.listPresetVoices for catalog readiness.',
   },
   'world.generate': {
     studioTag: 'World',
@@ -215,11 +215,11 @@ const RUNTIME_METHODS: Record<TesterCapabilityId, string> = {
   'text.generate': 'runtime.ai.executeScenario:text_generate',
   'chat.stream': 'runtime.ai.streamScenario:text_generate',
   'text.embed': 'runtime.ai.executeScenario:text_embed',
-  'image.generate': 'runtime.media.image.generate',
-  'video.generate': 'runtime.media.video.generate',
-  'audio.synthesize': 'runtime.media.tts.synthesize',
-  'audio.transcribe': 'runtime.media.stt.transcribe',
-  'speech.bundle': 'runtime.media.tts.listVoices',
+  'image.generate': 'runtime.ai.submitScenarioJob:image_generate',
+  'video.generate': 'runtime.ai.submitScenarioJob:video_generate',
+  'audio.synthesize': 'runtime.ai.submitScenarioJob:speech_synthesize',
+  'audio.transcribe': 'runtime.ai.submitScenarioJob:speech_transcribe',
+  'speech.bundle': 'runtime.ai.listPresetVoices',
   'world.generate': 'tauri.open_world_tour_window',
 };
 

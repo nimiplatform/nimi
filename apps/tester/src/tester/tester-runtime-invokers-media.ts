@@ -1,5 +1,17 @@
+import {
+  buildNimiRuntimeGenerationSubmitRequest,
+  runNimiRuntimeSpeechSynthesis,
+  runNimiRuntimeSpeechTranscription,
+} from '@nimiplatform/sdk/features/generation';
+import {
+  runNimiRuntimeScenarioJob,
+  toNimiRuntimeProtoStruct,
+  toNimiRuntimeVoiceReference,
+  type NimiRuntimeSpeechVoiceReference,
+} from '@nimiplatform/sdk/runtime';
 import { getTesterCapability } from './tester-capabilities.js';
 import type {
+  ResolvedLLMBinding,
   TesterRuntimeInvocationClient,
   TesterScenarioInput,
   TesterInvocationResult,
@@ -19,6 +31,7 @@ type RuntimeMediaJobOutput = {
   readonly job?: unknown;
   readonly artifacts?: readonly unknown[];
   readonly trace?: unknown;
+  readonly traceId?: string;
 };
 
 type RuntimeTranscriptOutput = RuntimeMediaJobOutput & {
@@ -32,6 +45,8 @@ type RuntimeVoiceCatalogOutput = {
   readonly voices?: readonly { readonly voiceId?: string; readonly name?: string; readonly lang?: string }[];
   readonly traceId?: string;
 };
+
+const TESTER_APP_ID = 'nimi.tester';
 
 function artifactsFrom(output: RuntimeMediaJobOutput): readonly unknown[] {
   return Array.isArray(output.artifacts) ? output.artifacts : [];
@@ -110,11 +125,215 @@ function summariseArtifact(artifact: unknown) {
 function summariseJob(job: unknown): { jobId: string; jobState: string } {
   if (!job || typeof job !== 'object') return { jobId: '', jobState: 'unknown' };
   const record = job as Record<string, unknown>;
+  const status = record.status;
   return {
-    jobId: typeof record.jobId === 'string' ? record.jobId : '',
+    jobId: typeof record.jobId === 'string'
+      ? record.jobId
+      : typeof record.id === 'string' ? record.id : '',
     jobState: typeof record.state === 'string'
       ? record.state
-      : typeof record.status === 'string' ? (record.status as string) : 'unknown',
+      : typeof status === 'string' ? status : scenarioJobStatusLabel(status),
+  };
+}
+
+function scenarioJobStatusLabel(status: unknown): string {
+  if (typeof status !== 'number') return 'unknown';
+  switch (status) {
+    case 1: return 'submitted';
+    case 2: return 'queued';
+    case 3: return 'running';
+    case 4: return 'completed';
+    case 5: return 'failed';
+    case 6: return 'canceled';
+    case 7: return 'timeout';
+    default: return 'unknown';
+  }
+}
+
+function runtimeRoutePolicy(resolved: ResolvedLLMBinding): 'local' | 'cloud' | 'unspecified' {
+  if (resolved.routePolicy === 'local' || resolved.routePolicy === 'cloud') {
+    return resolved.routePolicy;
+  }
+  return 'unspecified';
+}
+
+function runtimeJobHead(resolved: ResolvedLLMBinding): {
+  appId: string;
+  modelId: string;
+  routePolicy: 'local' | 'cloud' | 'unspecified';
+  connectorId?: string;
+  timeoutMs: number;
+} {
+  return {
+    appId: TESTER_APP_ID,
+    modelId: resolved.model,
+    routePolicy: runtimeRoutePolicy(resolved),
+    ...(resolved.connectorId ? { connectorId: resolved.connectorId } : {}),
+    timeoutMs: 120_000,
+  };
+}
+
+function stableIdPart(value: string): string {
+  return value.trim().replace(/[^a-zA-Z0-9._:-]+/g, '-').replace(/^-+|-+$/g, '') || 'default';
+}
+
+function runtimeJobIdentity(capabilityId: string, scenarioId: string): {
+  requestId: string;
+  idempotencyKey: string;
+} {
+  const nonce = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const prefix = `nimi.tester:${capabilityId}:${stableIdPart(scenarioId)}`;
+  return {
+    requestId: `${prefix}:${nonce}`,
+    idempotencyKey: `${prefix}:${nonce}`,
+  };
+}
+
+function traceFromScenarioJob(job: unknown, traceId?: string): { traceId?: string; modelResolved?: string; routeDecision?: string } | undefined {
+  if (!job || typeof job !== 'object') {
+    return traceId ? { traceId } : undefined;
+  }
+  const record = job as Record<string, unknown>;
+  const routeDecision = record.routeDecision;
+  return {
+    traceId: traceId || (typeof record.traceId === 'string' ? record.traceId : undefined),
+    modelResolved: typeof record.modelResolved === 'string' ? record.modelResolved : undefined,
+    routeDecision: typeof routeDecision === 'string'
+      ? routeDecision
+      : typeof routeDecision === 'number' ? routePolicyLabel(routeDecision) : undefined,
+  };
+}
+
+function traceFromRuntimeOutput(output: {
+  readonly job?: unknown;
+  readonly trace?: unknown;
+  readonly traceId?: string;
+}): { traceId?: string; modelResolved?: string; routeDecision?: string } | undefined {
+  return pickTrace(output.trace) ?? traceFromScenarioJob(output.job, output.traceId);
+}
+
+function routePolicyLabel(value: number): string {
+  if (value === 1) return 'local';
+  if (value === 2) return 'cloud';
+  return 'unspecified';
+}
+
+function runtimeLabels(
+  surfaceId: string,
+  resolved: ResolvedLLMBinding,
+  evidenceMetadata: Record<string, string>,
+): Record<string, string> {
+  return buildMetadata(surfaceId, {
+    ...resolved.metadata,
+    ...evidenceMetadata,
+  });
+}
+
+function selectedParamRecord(resolved: ResolvedLLMBinding): Record<string, unknown> {
+  return resolved.selectedParams && typeof resolved.selectedParams === 'object' && !Array.isArray(resolved.selectedParams)
+    ? resolved.selectedParams as Record<string, unknown>
+    : {};
+}
+
+function optionalText(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function imageProfileExtensions(resolved: ResolvedLLMBinding) {
+  const params = selectedParamRecord(resolved);
+  const configuredEntries = Array.isArray(params.profile_entries)
+    ? params.profile_entries
+    : Array.isArray(params.profileEntries) ? params.profileEntries : null;
+  const profileEntries = configuredEntries && configuredEntries.length > 0
+    ? configuredEntries
+    : [{
+      entry_id: 'main-image',
+      kind: 'asset',
+      title: 'Main image model',
+      capability: 'image.generate',
+      asset_id: resolved.model,
+      asset_kind: 'image',
+      engine: 'media',
+      required: true,
+    }];
+  return [{
+    namespace: 'nimi.scenario.image.request',
+    payload: toNimiRuntimeProtoStruct({
+      ...params,
+      profile_entries: profileEntries,
+    }),
+  }];
+}
+
+function parseVoiceReference(value: unknown): NimiRuntimeSpeechVoiceReference | undefined {
+  if (!value) return undefined;
+  if (typeof value === 'object' && !Array.isArray(value)) {
+    const record = value as Record<string, unknown>;
+    const kind = optionalText(record.kind);
+    if (kind === 'preset_voice_id') {
+      return { kind, presetVoiceId: optionalText(record.presetVoiceId ?? record.preset_voice_id) };
+    }
+    if (kind === 'voice_asset_id') {
+      return { kind, voiceAssetId: optionalText(record.voiceAssetId ?? record.voice_asset_id) };
+    }
+    if (kind === 'provider_voice_ref') {
+      return { kind, providerVoiceRef: optionalText(record.providerVoiceRef ?? record.provider_voice_ref) };
+    }
+    const providerVoiceRef = optionalText(record.providerVoiceRef ?? record.provider_voice_ref);
+    if (providerVoiceRef) return { kind: 'provider_voice_ref', providerVoiceRef };
+    const presetVoiceId = optionalText(record.presetVoiceId ?? record.preset_voice_id);
+    if (presetVoiceId) return { kind: 'preset_voice_id', presetVoiceId };
+    const voiceAssetId = optionalText(record.voiceAssetId ?? record.voice_asset_id);
+    if (voiceAssetId) return { kind: 'voice_asset_id', voiceAssetId };
+    return undefined;
+  }
+  const text = optionalText(value);
+  if (!text) return undefined;
+  const [prefix, ...rest] = text.split(':');
+  const payload = rest.join(':').trim();
+  if (prefix === 'preset_voice_id' && payload) return { kind: 'preset_voice_id', presetVoiceId: payload };
+  if (prefix === 'voice_asset_id' && payload) return { kind: 'voice_asset_id', voiceAssetId: payload };
+  if (prefix === 'provider_voice_ref' && payload) return { kind: 'provider_voice_ref', providerVoiceRef: payload };
+  return { kind: 'provider_voice_ref', providerVoiceRef: text };
+}
+
+function voiceReferenceFromParams(resolved: ResolvedLLMBinding) {
+  const params = selectedParamRecord(resolved);
+  return toNimiRuntimeVoiceReference(parseVoiceReference(
+    params.voiceRef
+    ?? params.voice_ref
+    ?? params.providerVoiceRef
+    ?? params.provider_voice_ref
+    ?? params.presetVoiceId
+    ?? params.preset_voice_id
+    ?? params.voiceAssetId
+    ?? params.voice_asset_id,
+  ));
+}
+
+function mimeTypeForAudioUrl(url: string, contentType?: string | null): string {
+  const normalizedContentType = optionalText(contentType).split(';')[0]?.trim();
+  if (normalizedContentType) return normalizedContentType;
+  const lower = url.toLowerCase();
+  if (lower.endsWith('.mp3')) return 'audio/mpeg';
+  if (lower.endsWith('.m4a')) return 'audio/mp4';
+  if (lower.endsWith('.ogg')) return 'audio/ogg';
+  if (lower.endsWith('.flac')) return 'audio/flac';
+  return 'audio/wav';
+}
+
+async function audioBytesFromUrl(url: string): Promise<{ bytes: Uint8Array; mimeType: string }> {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`audio.transcribe audio fetch failed (${response.status}) for ${url}`);
+  }
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  if (bytes.length === 0) {
+    throw new Error('audio.transcribe audio fetch returned an empty body.');
+  }
+  return {
+    bytes,
+    mimeType: mimeTypeForAudioUrl(url, response.headers.get('content-type')),
   };
 }
 
@@ -128,19 +347,25 @@ export async function invokeImageGenerate(client: TesterRuntimeInvocationClient,
   const schedulingPreflight = await ensureSchedulingPreflight(client, 'image.generate', resolved);
   if (schedulingPreflight.unavailable) return schedulingPreflight.unavailable;
   const route = routeInput(resolved);
+  const extensions = imageProfileExtensions(resolved);
   try {
     const mediaImage = client.runtime.media?.image;
-    if (!mediaImage) {
-      throw new Error('Runtime media image facade is not exposed by vNext; migrate image.generate to Runtime Scenario jobs.');
-    }
-    const output = await mediaImage.generate({
-      ...route,
-      prompt,
-      metadata: buildMetadata('nimi.tester.media.image.generate', {
-        ...resolved.metadata,
-        ...schedulingPreflight.evidenceMetadata,
-      }),
-    }) as RuntimeMediaJobOutput;
+    const output = mediaImage
+      ? await mediaImage.generate({
+        ...route,
+        prompt,
+        extensions,
+        metadata: runtimeLabels('nimi.tester.media.image.generate', resolved, schedulingPreflight.evidenceMetadata),
+      }) as RuntimeMediaJobOutput
+      : await runNimiRuntimeScenarioJob({
+        ai: client.runtime.ai,
+        request: buildNimiRuntimeGenerationSubmitRequest(runtimeJobHead(resolved), {
+          scenario: { kind: 'image', prompt },
+          ...runtimeJobIdentity('image.generate', input.scenarioId),
+          labels: runtimeLabels('nimi.tester.ai.image.generate', resolved, schedulingPreflight.evidenceMetadata),
+          extensions,
+        }),
+      });
     const artifacts = artifactsFrom(output);
     const job = summariseJob(output.job);
     return {
@@ -155,7 +380,7 @@ export async function invokeImageGenerate(client: TesterRuntimeInvocationClient,
         artifactCount: artifacts.length,
         firstArtifact: summariseArtifact(artifacts[0]),
       },
-      trace: pickTrace(output.trace),
+      trace: traceFromRuntimeOutput(output),
     };
   } catch (error) {
     return unavailableFromError('image.generate', error);
@@ -174,19 +399,27 @@ export async function invokeVideoGenerate(client: TesterRuntimeInvocationClient,
   const route = routeInput(resolved);
   try {
     const mediaVideo = client.runtime.media?.video;
-    if (!mediaVideo) {
-      throw new Error('Runtime media video facade is not exposed by vNext; migrate video.generate to Runtime Scenario jobs.');
-    }
-    const output = await mediaVideo.generate({
-      mode: 't2v',
-      ...route,
-      prompt,
-      content: [{ type: 'text', role: 'prompt', text: prompt }],
-      metadata: buildMetadata('nimi.tester.media.video.generate', {
-        ...resolved.metadata,
-        ...schedulingPreflight.evidenceMetadata,
-      }),
-    }) as RuntimeMediaJobOutput;
+    const output = mediaVideo
+      ? await mediaVideo.generate({
+        mode: 't2v',
+        ...route,
+        prompt,
+        content: [{ type: 'text', role: 'prompt', text: prompt }],
+        metadata: runtimeLabels('nimi.tester.media.video.generate', resolved, schedulingPreflight.evidenceMetadata),
+      }) as RuntimeMediaJobOutput
+      : await runNimiRuntimeScenarioJob({
+        ai: client.runtime.ai,
+        request: buildNimiRuntimeGenerationSubmitRequest(runtimeJobHead(resolved), {
+          scenario: {
+            kind: 'video',
+            mode: 't2v',
+            prompt,
+            content: [{ type: 'text', role: 'prompt', text: prompt }],
+          },
+          ...runtimeJobIdentity('video.generate', input.scenarioId),
+          labels: runtimeLabels('nimi.tester.ai.video.generate', resolved, schedulingPreflight.evidenceMetadata),
+        }),
+      });
     const artifacts = artifactsFrom(output);
     const job = summariseJob(output.job);
     return {
@@ -201,7 +434,7 @@ export async function invokeVideoGenerate(client: TesterRuntimeInvocationClient,
         artifactCount: artifacts.length,
         firstArtifact: summariseArtifact(artifacts[0]),
       },
-      trace: pickTrace(output.trace),
+      trace: traceFromRuntimeOutput(output),
     };
   } catch (error) {
     return unavailableFromError('video.generate', error);
@@ -218,19 +451,25 @@ export async function invokeSpeechSynthesize(client: TesterRuntimeInvocationClie
   const schedulingPreflight = await ensureSchedulingPreflight(client, 'audio.synthesize', resolved);
   if (schedulingPreflight.unavailable) return schedulingPreflight.unavailable;
   const route = routeInput(resolved);
+  const voiceRef = voiceReferenceFromParams(resolved);
   try {
     const mediaTts = client.runtime.media?.tts;
-    if (!mediaTts) {
-      throw new Error('Runtime media TTS facade is not exposed by vNext; migrate audio.synthesize to Runtime Scenario jobs.');
-    }
-    const output = await mediaTts.synthesize({
-      ...route,
-      text: prompt,
-      metadata: buildMetadata('nimi.tester.media.tts.synthesize', {
-        ...resolved.metadata,
-        ...schedulingPreflight.evidenceMetadata,
-      }),
-    }) as RuntimeMediaJobOutput;
+    const output = mediaTts
+      ? await mediaTts.synthesize({
+        ...route,
+        text: prompt,
+        voiceRef,
+        metadata: runtimeLabels('nimi.tester.media.tts.synthesize', resolved, schedulingPreflight.evidenceMetadata),
+      }) as RuntimeMediaJobOutput
+      : await runNimiRuntimeSpeechSynthesis({
+        runtime: client.runtime,
+        head: runtimeJobHead(resolved),
+        text: prompt,
+        voiceRef,
+        audioFormat: 'wav',
+        ...runtimeJobIdentity('audio.synthesize', input.scenarioId),
+        labels: runtimeLabels('nimi.tester.ai.speech.synthesize', resolved, schedulingPreflight.evidenceMetadata),
+      });
     const artifacts = artifactsFrom(output);
     const job = summariseJob(output.job);
     return {
@@ -245,7 +484,7 @@ export async function invokeSpeechSynthesize(client: TesterRuntimeInvocationClie
         artifactCount: artifacts.length,
         firstArtifact: summariseArtifact(artifacts[0]),
       },
-      trace: pickTrace(output.trace),
+      trace: traceFromRuntimeOutput(output),
     };
   } catch (error) {
     return unavailableFromError('audio.synthesize', error);
@@ -266,18 +505,23 @@ export async function invokeSpeechTranscribe(client: TesterRuntimeInvocationClie
   if (schedulingPreflight.unavailable) return schedulingPreflight.unavailable;
   const route = routeInput(resolved);
   try {
+    const audio = await audioBytesFromUrl(url);
     const mediaStt = client.runtime.media?.stt;
-    if (!mediaStt) {
-      throw new Error('Runtime media STT facade is not exposed by vNext; migrate audio.transcribe to Runtime Scenario jobs.');
-    }
-    const output = await mediaStt.transcribe({
-      ...route,
-      audio: { kind: 'url', url },
-      metadata: buildMetadata('nimi.tester.media.stt.transcribe', {
-        ...resolved.metadata,
-        ...schedulingPreflight.evidenceMetadata,
-      }),
-    }) as RuntimeTranscriptOutput;
+    const output = mediaStt
+      ? await mediaStt.transcribe({
+        ...route,
+        audio: { kind: 'bytes', bytes: audio.bytes },
+        mimeType: audio.mimeType,
+        metadata: runtimeLabels('nimi.tester.media.stt.transcribe', resolved, schedulingPreflight.evidenceMetadata),
+      }) as RuntimeTranscriptOutput
+      : await runNimiRuntimeSpeechTranscription({
+        runtime: client.runtime,
+        head: runtimeJobHead(resolved),
+        audio: { type: 'bytes', bytes: audio.bytes },
+        mimeType: audio.mimeType,
+        ...runtimeJobIdentity('audio.transcribe', input.scenarioId),
+        labels: runtimeLabels('nimi.tester.ai.speech.transcribe', resolved, schedulingPreflight.evidenceMetadata),
+      });
     const artifacts = artifactsFrom(output);
     const text = output.text ?? '';
     const job = summariseJob(output.job);
@@ -293,7 +537,7 @@ export async function invokeSpeechTranscribe(client: TesterRuntimeInvocationClie
         jobState: job.jobState,
         artifactCount: artifacts.length,
       },
-      trace: pickTrace(output.trace),
+      trace: traceFromRuntimeOutput(output),
     };
   } catch (error) {
     return unavailableFromError('audio.transcribe', error);
@@ -308,16 +552,21 @@ export async function invokeSpeechBundle(client: TesterRuntimeInvocationClient, 
   const route = routeInput(resolved);
   try {
     const mediaTts = client.runtime.media?.tts;
-    if (!mediaTts) {
-      throw new Error('Runtime media TTS voice facade is not exposed by vNext; migrate speech.bundle to Runtime Scenario jobs.');
+    const output = mediaTts
+      ? await mediaTts.listVoices({
+        ...route,
+        metadata: runtimeLabels('nimi.tester.media.tts.list-voices', resolved, schedulingPreflight.evidenceMetadata),
+      }) as RuntimeVoiceCatalogOutput
+      : await client.runtime.ai.listPresetVoices?.({
+        appId: TESTER_APP_ID,
+        subjectUserId: '',
+        modelId: resolved.model,
+        targetModelId: resolved.model,
+        connectorId: resolved.connectorId ?? '',
+      }) as RuntimeVoiceCatalogOutput | undefined;
+    if (!output) {
+      throw new Error('Runtime AI voice catalog facade is not exposed by vNext.');
     }
-    const output = await mediaTts.listVoices({
-      ...route,
-      metadata: buildMetadata('nimi.tester.media.tts.list-voices', {
-        ...resolved.metadata,
-        ...schedulingPreflight.evidenceMetadata,
-      }),
-    }) as RuntimeVoiceCatalogOutput;
     const voices = output.voices ?? [];
     return {
       ok: true,

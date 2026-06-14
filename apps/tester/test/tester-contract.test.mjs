@@ -90,11 +90,16 @@ function createMemoryStorage(initial = {}) {
 
 const RUNTIME_SCENARIO_TYPE_TEXT_GENERATE = 1;
 const RUNTIME_SCENARIO_TYPE_TEXT_EMBED = 2;
+const RUNTIME_SCENARIO_TYPE_IMAGE_GENERATE = 3;
+const RUNTIME_SCENARIO_TYPE_SPEECH_SYNTHESIZE = 5;
+const RUNTIME_SCENARIO_TYPE_SPEECH_TRANSCRIBE = 6;
 const RUNTIME_EXECUTION_MODE_SYNC = 1;
 const RUNTIME_EXECUTION_MODE_STREAM = 2;
+const RUNTIME_EXECUTION_MODE_ASYNC_JOB = 3;
 const RUNTIME_ROUTE_POLICY_LOCAL = 1;
 const RUNTIME_ROUTE_POLICY_CLOUD = 2;
 const RUNTIME_FINISH_REASON_STOP = 1;
+const RUNTIME_SCENARIO_JOB_STATUS_COMPLETED = 4;
 const RUNTIME_SCHEDULING_RUNNABLE = 1;
 const RUNTIME_SCHEDULING_DENIED = 5;
 
@@ -230,7 +235,31 @@ test('tester auth and runtime bootstrap consume Kit shell bridge primitives', ()
   assert.doesNotMatch(runtimePlatform, /import\.meta[^;\n]*env|env\.DEV|metadata:\s*[^,\n]*developerRegistration/);
   assert.match(runtimePlatform, /getRuntimeAccountCaller/);
   assert.doesNotMatch(runtimePlatform, /export const runtimeAccountCaller\s*=\s*createNimiLocalFirstPartyRuntimeAccountCaller/);
-  assert.match(runtimePlatform, /await client\.runtime\.ready\(\);\s*await registerLocalFirstPartyRuntimeAccountCaller\(client\);/s);
+  assert.match(runtimePlatform, /const accountRuntime = new Runtime\(runtimeOptions\(\)\);\s*await accountRuntime\.ready\(\);\s*await registerLocalFirstPartyRuntimeAccountCaller\(accountRuntime\);/s);
+  assert.match(runtimePlatform, /createNimiRuntimeAppSessionMetadataProvider/);
+  assert.match(runtimePlatform, /authMetadata:\s*createRuntimeAppSessionMetadataProvider\(accountRuntime\)/);
+  assert.match(runtimePlatform, /accountRuntime\.account\.getAccessToken/);
+  assert.match(runtimePlatform, /createRuntimeAccountAccessTokenCallOptions/);
+  assert.match(runtimePlatform, /tester-runtime-account-access-token/);
+  assert.match(runtimePlatform, /accountRuntime\.account\.refreshAccountSession/);
+  assert.match(runtimePlatform, /createRuntimeAccountRefreshCallOptions/);
+  assert.match(runtimePlatform, /tester-runtime-account-refresh/);
+  assert.match(runtimePlatform, /const runtimeProtectedScopes = \['ai\.spend\.meter'\] as const/);
+  assert.match(runtimePlatform, /capabilities:\s*\[\.\.\.runtimeProtectedScopes\]/);
+  assert.match(runtimePlatform, /accountRuntime\.grants\.authorizeExternalPrincipal/);
+  assert.match(runtimePlatform, /withNimiRuntimeIdempotencyMetadata/);
+  assert.match(runtimePlatform, /createRuntimeProtectedAccessIdempotencyKey/);
+  assert.match(runtimePlatform, /ExternalPrincipalType\.APP/);
+  assert.match(runtimePlatform, /PolicyMode\.CUSTOM/);
+  assert.match(runtimePlatform, /AuthorizationPreset\.UNSPECIFIED/);
+  assert.match(runtimePlatform, /'x-nimi-access-token-id'/);
+  assert.match(runtimePlatform, /'x-nimi-access-token-secret'/);
+  assert.match(runtimePlatform, /\.\.\.appSessionMetadata,\s*\.\.\.protectedAccessMetadata/s);
+  assert.match(runtimeAccountAuth, /getAccessToken/);
+  assert.match(runtimeAccountAuth, /createRuntimeAccountAccessTokenCallOptions/);
+  assert.match(runtimeAccountAuth, /refreshAccountSession/);
+  assert.match(runtimeAccountAuth, /createRuntimeAccountRefreshCallOptions/);
+  assert.match(runtimeAccountAuth, /return Boolean\(retry\.accepted && String\(retry\.accessToken/);
   assert.match(runtimeAccountAuth, /createTauriOAuthBridge/);
   assert.match(runtimeAccountAuth, /createRuntimeAccountBrowserBroker/);
   assert.match(runtimePlatform, /createNimiLocalFirstPartyRuntimeAccountCaller/);
@@ -310,7 +339,7 @@ test('tester kit gallery showcases real kit components for third-party apps', ()
   assert.match(gallery, /from '@nimiplatform\/kit\/ui'/);
 });
 
-test('tester UI Recipes is an industrial three-pane kit component doc', () => {
+test('tester UI Recipes is an industrial two-pane kit component workbench', () => {
   const gallery = readTesterKitComponentGallerySurface(root);
   // Ontology taxonomy: seven canonical categories.
   for (const category of ['Foundations', 'Actions', 'Inputs', 'Selection', 'Overlays', 'Layouts', 'Data & Status']) {
@@ -324,12 +353,17 @@ test('tester UI Recipes is an industrial three-pane kit component doc', () => {
   for (const tier of ['glass-thin', 'glass-regular', 'glass-thick', 'glass-chrome']) {
     assert.match(gallery, new RegExp(tier));
   }
-  // Three-pane structure: taxonomy library + live canvas + recipe inspector.
+  // Two-pane structure: taxonomy library + recipe cards. Live/code/props/a11y/tokens
+  // are per-recipe controls, not one page-level switch that cuts the whole list.
   assert.match(gallery, /kit-doc__library/);
-  assert.match(gallery, /kit-doc__inspector/);
-  assert.match(gallery, /Selected recipe/);
-  assert.match(gallery, /Props snapshot/);
-  assert.match(gallery, /Coverage map/);
+  assert.match(gallery, /kit-doc__main/);
+  assert.match(gallery, /kit-doc__canvas/);
+  assert.match(gallery, /kit-card__tabs/);
+  assert.match(gallery, /RecipeModeContent/);
+  assert.match(gallery, /Import and usage/);
+  assert.match(gallery, /Props contract/);
+  assert.doesNotMatch(gallery, /options=\{lanes\}|onChange=\{\.\.\.\}|value=\{n\}|\{rows\}|<Button \/>|title message confirmLabel/);
+  assert.doesNotMatch(gallery, /kit-doc__modebar|kit-doc__modetabs|kit-doc__import|kit-doc__inspector|kit-doc__evidence|Selected recipe|Coverage map/);
   // It is pure component documentation — no runtime work.
   assert.match(gallery, /component documentation/);
   // The scenario-first composer was replaced by a component-first doc.
@@ -366,12 +400,15 @@ test('tester run history is the per-capability evidence surface (no standalone E
 
 test('tester capability runs consume Kit renderer telemetry', () => {
   const workbench = read('src/tester/tester-workbench.tsx');
+  const testerAiConfig = read('src/tester/tester-ai-config.ts');
+  const testerRuntime = read('src/tester/tester-runtime.ts');
 
   assert.match(workbench, /from '@nimiplatform\/kit\/telemetry'/);
   assert.match(workbench, /from '@nimiplatform\/sdk'/);
   assert.match(workbench, /from '@nimiplatform\/sdk\/types'/);
   assert.match(workbench, /loadTesterAIConfigSummary/);
-  assert.match(workbench, /from '\.\.\/shell\/auth\/runtime-platform\.js'/);
+  assert.match(testerAiConfig, /inspectRuntimeReadiness/);
+  assert.match(testerRuntime, /from '\.\.\/shell\/auth\/runtime-platform\.js'/);
   assert.doesNotMatch(workbench, /from '@nimiplatform\/sdk\/runtime'/);
   assert.match(workbench, /createNimiClientId\('run'\)/);
   assert.match(workbench, /requestWithRetry/);
@@ -607,6 +644,10 @@ test('tester LLM invokers consume AIConfig bindings and fail closed without bind
   assert.doesNotMatch(invokers, /resolveAIConfigRuntimeSchedulingTargetForCapability/);
   assert.doesNotMatch(invokers, /peekRuntimeSchedulingBatch/);
   assert.doesNotMatch(invokers, /client\.runtime\.ai\.peekScheduling/);
+
+  const mediaInvokers = read('src/tester/tester-runtime-invokers-media.ts');
+  assert.match(mediaInvokers, /selectedParamRecord\(resolved\)/);
+  assert.match(mediaInvokers, /\.\.\.params,\s*profile_entries:/);
 });
 
 test('tester LLM binding resolver fails closed for missing and malformed bindings', async () => {
@@ -972,6 +1013,204 @@ test('tester surfaces inline runtime media artifact bytes as a previewable data 
   assert.deepEqual(new Uint8Array(Buffer.from(ttsUrl.split(',')[1], 'base64')), wavBytes);
 });
 
+test('tester media lanes dispatch through Runtime Scenario jobs when vNext media facade is absent', async () => {
+  const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');
+  const store = await importBehaviorModule('tester/tester-ai-config-store.js');
+  const scopeRef = store.createTesterAppLabAIScopeRef();
+  store.saveTesterAIConfig({
+    scopeRef,
+    capabilities: {
+      targetRefs: {
+        'image.generate': {
+          kind: 'local-runtime',
+          targetId: 'core:runtime',
+          profileId: 'local.image.scenario',
+        },
+        'audio.synthesize': {
+          kind: 'local-runtime',
+          targetId: 'core:runtime',
+          profileId: 'local.tts.scenario',
+        },
+        'audio.transcribe': {
+          kind: 'local-runtime',
+          targetId: 'core:runtime',
+          profileId: 'local.stt.scenario',
+        },
+      },
+      selectedParams: {
+        'image.generate': {
+          profile_entries: [{
+            entry_id: 'main-image',
+            kind: 'asset',
+            capability: 'image.generate',
+            asset_id: 'local.image.scenario',
+            asset_kind: 'image',
+            required: true,
+          }],
+        },
+        'audio.synthesize': {
+          voiceRef: 'provider_voice_ref:aiden',
+        },
+      },
+    },
+    profileOrigin: null,
+  });
+
+  const submitted = [];
+  const jobs = new Map();
+  const client = {
+    runtime: {
+      scheduling: {
+        async peekScheduling() {
+          return runnableSchedulingResponse();
+        },
+      },
+      ai: {
+        async executeScenario() {
+          throw new Error('executeScenario should not be called by media Scenario job lanes');
+        },
+        streamScenario() {
+          throw new Error('streamScenario should not be called by media Scenario job lanes');
+        },
+        async submitScenarioJob(request) {
+          submitted.push(request);
+          const job = {
+            jobId: `job-${submitted.length}`,
+            status: RUNTIME_SCENARIO_JOB_STATUS_COMPLETED,
+            scenarioType: request.scenarioType,
+            traceId: `trace-${submitted.length}`,
+            modelResolved: request.head.modelId,
+            routeDecision: request.head.routePolicy,
+            artifacts: [],
+          };
+          jobs.set(job.jobId, job);
+          return { job };
+        },
+        async *subscribeScenarioJobEvents({ jobId }) {
+          yield {
+            eventType: RUNTIME_SCENARIO_JOB_STATUS_COMPLETED,
+            sequence: '1',
+            traceId: jobs.get(jobId)?.traceId || '',
+            job: jobs.get(jobId),
+          };
+        },
+        async getScenarioJob({ jobId }) {
+          return { job: jobs.get(jobId) };
+        },
+        async cancelScenarioJob() {
+          return { job: undefined };
+        },
+        async getScenarioArtifacts({ jobId }) {
+          const job = jobs.get(jobId);
+          if (job.scenarioType === RUNTIME_SCENARIO_TYPE_IMAGE_GENERATE) {
+            return {
+              traceId: job.traceId,
+              artifacts: [{ artifactId: 'img-art', mimeType: 'image/png', uri: '', bytes: new Uint8Array([1, 2, 3]) }],
+              output: { output: { oneofKind: undefined } },
+            };
+          }
+          if (job.scenarioType === RUNTIME_SCENARIO_TYPE_SPEECH_SYNTHESIZE) {
+            const artifact = { artifactId: 'tts-art', mimeType: 'audio/wav', uri: '', bytes: new Uint8Array([4, 5, 6]) };
+            return {
+              traceId: job.traceId,
+              artifacts: [artifact],
+              output: { output: { oneofKind: 'speechSynthesize', speechSynthesize: { artifacts: [artifact] } } },
+            };
+          }
+          return {
+            traceId: job.traceId,
+            artifacts: [],
+            output: {
+              output: {
+                oneofKind: 'speechTranscribe',
+                speechTranscribe: { text: 'accepted transcript', artifacts: [] },
+              },
+            },
+          };
+        },
+      },
+    },
+  };
+
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => ({
+    ok: true,
+    status: 200,
+    headers: { get: (name) => name.toLowerCase() === 'content-type' ? 'audio/wav; charset=binary' : null },
+    arrayBuffer: async () => new Uint8Array([7, 8, 9]).buffer,
+  });
+
+  let image;
+  let tts;
+  let stt;
+  try {
+    image = await invokers.invokeTesterCapability(client, 'image.generate', {
+      prompt: 'a glass ui panel',
+      scenarioId: 'scenario-job',
+    });
+    tts = await invokers.invokeTesterCapability(client, 'audio.synthesize', {
+      prompt: 'hello acceptance',
+      scenarioId: 'scenario-job',
+    });
+    stt = await invokers.invokeTesterCapability(client, 'audio.transcribe', {
+      prompt: 'https://example.com/sample.wav',
+      scenarioId: 'scenario-job',
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+
+  assert.equal(image.ok, true);
+  assert.equal(image.output.kind, 'artifacts');
+  assert.match(image.output.firstArtifact?.url ?? '', /^data:image\/png;base64,/);
+  assert.equal(tts.ok, true);
+  assert.equal(tts.output.kind, 'artifacts');
+  assert.match(tts.output.firstArtifact?.url ?? '', /^data:audio\/wav;base64,/);
+  assert.equal(stt.ok, true);
+  assert.equal(stt.output.kind, 'transcript');
+  assert.equal(stt.output.text, 'accepted transcript');
+
+  assert.deepEqual(submitted.map((request) => request.scenarioType), [
+    RUNTIME_SCENARIO_TYPE_IMAGE_GENERATE,
+    RUNTIME_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
+    RUNTIME_SCENARIO_TYPE_SPEECH_TRANSCRIBE,
+  ]);
+  assert.deepEqual(submitted.map((request) => request.executionMode), [
+    RUNTIME_EXECUTION_MODE_ASYNC_JOB,
+    RUNTIME_EXECUTION_MODE_ASYNC_JOB,
+    RUNTIME_EXECUTION_MODE_ASYNC_JOB,
+  ]);
+  assert.deepEqual(submitted.map((request) => request.head.modelId), [
+    'local.image.scenario',
+    'local.tts.scenario',
+    'local.stt.scenario',
+  ]);
+  assert.deepEqual(submitted.map((request) => request.head.routePolicy), [
+    RUNTIME_ROUTE_POLICY_LOCAL,
+    RUNTIME_ROUTE_POLICY_LOCAL,
+    RUNTIME_ROUTE_POLICY_LOCAL,
+  ]);
+  assert.deepEqual(submitted.map((request) => request.spec.spec.oneofKind), [
+    'imageGenerate',
+    'speechSynthesize',
+    'speechTranscribe',
+  ]);
+  assert.equal(submitted[0].extensions[0]?.namespace, 'nimi.scenario.image.request');
+  assert.equal(
+    submitted[1].spec.spec.speechSynthesize.voiceRef.reference.providerVoiceRef,
+    'aiden',
+  );
+  assert.equal(
+    submitted[2].spec.spec.speechTranscribe.audioSource.source.oneofKind,
+    'audioBytes',
+  );
+  assert.deepEqual(
+    submitted[2].spec.spec.speechTranscribe.audioSource.source.audioBytes,
+    new Uint8Array([7, 8, 9]),
+  );
+  assert.equal(submitted[2].spec.spec.speechTranscribe.mimeType, 'audio/wav');
+});
+
 test('tester prefers a hosted artifact uri over inline bytes', async () => {
   const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');
   const store = await importBehaviorModule('tester/tester-ai-config-store.js');
@@ -1224,6 +1463,91 @@ test('tester model picker consumes SDK route projection for runtime local assets
   ]);
 });
 
+test('tester model picker adapts the runtime host client to SDK route options', async () => {
+  const providerModule = await importBehaviorModule('tester/tester-runtime-model-provider.js');
+  const calls = [];
+  const provider = providerModule.createTesterRuntimeModelPickerProviderFromHostClient({
+    runtime: {
+      connectors: {
+        async listConnectors(request) {
+          calls.push(`connectors:${request.kindFilter}:${request.statusFilter}`);
+          return {
+            connectors: [{
+              connectorId: 'cloud-managed',
+              kind: 2,
+              ownerType: 0,
+              ownerId: '',
+              provider: 'cloud-provider',
+              endpoint: '',
+              label: 'Cloud Provider',
+              status: 1,
+              authKind: 0,
+              metadata: {},
+              supportedCapabilities: [],
+              createdAt: '',
+              updatedAt: '',
+            }],
+            nextPageToken: '',
+          };
+        },
+        async listConnectorModels(request) {
+          calls.push(`models:${request.connectorId}`);
+          return {
+            models: [{
+              modelId: 'remote.chat.model',
+              displayName: 'Remote Chat Model',
+              capabilities: ['text.generate'],
+              available: true,
+              metadata: {},
+              pricing: {},
+              sourceRef: {},
+            }],
+            nextPageToken: '',
+          };
+        },
+      },
+      local: {
+        async listLocalAssets(request) {
+          calls.push(`local:${request.kindFilter}:${request.statusFilter}`);
+          return {
+            assets: [{
+              localAssetId: 'local-chat-1',
+              assetId: 'local/chat-model',
+              kind: 'chat',
+              engine: 'llama',
+              entry: '',
+              files: [],
+              license: '',
+              hashes: {},
+              status: 'active',
+              installedAt: '',
+              updatedAt: '',
+              healthDetail: '',
+              capabilities: ['text.generate'],
+              logicalModelId: '',
+              family: '',
+              artifactRoles: [],
+              preferredEngine: '',
+              fallbackEngines: [],
+              bundleState: 0,
+              warmState: 0,
+              localInvokeProfileId: '',
+              endpoint: 'http://127.0.0.1:11434',
+              reasonCode: 0,
+            }],
+            nextPageToken: '',
+          };
+        },
+      },
+    },
+  }, 'text.generate');
+
+  assert.deepEqual((await provider.listLocalModels()).map((model) => model.localModelId), ['local-chat-1']);
+  assert.deepEqual((await provider.listConnectors()).map((connector) => connector.connectorId), ['cloud-managed']);
+  assert.deepEqual((await provider.listConnectorModels('cloud-managed')).map((model) => model.modelId), ['remote.chat.model']);
+  assert.deepEqual(calls, ['connectors:2:1', 'local:0:0', 'models:cloud-managed']);
+});
+
 test('tester model picker catalog uses SDK route options projection only', () => {
   const provider = read('src/tester/tester-runtime-model-provider.ts');
   const summary = read('src/tester/tester-ai-config.ts');
@@ -1231,10 +1555,13 @@ test('tester model picker catalog uses SDK route options projection only', () =>
   assert.match(provider, /createRuntimeRouteModelPickerProvider/);
   assert.match(provider, /@nimiplatform\/kit\/features\/model-picker\/runtime/);
   assert.match(provider, /getRuntimePlatformProjection/);
+  assert.match(provider, /createNimiRuntimeRouteOptionsHostDeps/);
+  assert.match(provider, /listNimiRuntimeRouteOptionsWithHost/);
   assert.match(provider, /listRuntimeRouteOptions/);
   assert.match(provider, /model catalog failed closed/);
   assert.doesNotMatch(provider, /normalizeRuntimeRouteCapabilityToken/);
   assert.doesNotMatch(provider, /createSnapshotRouteDataProvider/);
+  assert.doesNotMatch(provider, /as unknown as RuntimeRouteModelPickerClient/);
   assert.doesNotMatch(provider, /as NimiRuntimeCanonicalCapability/);
   assert.doesNotMatch(provider, /openai|anthropic|gemini|gpt-4|claude|mock.*success/i);
   assert.match(summary, /sdk\.runtime\.listNimiRuntimeRouteOptions/);

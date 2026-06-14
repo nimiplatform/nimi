@@ -65,6 +65,10 @@ function createMemoryStorage(initial = {}) {
   };
 }
 
+function encodeScopeRef(scopeRef) {
+  return [scopeRef.kind, scopeRef.ownerId, scopeRef.surfaceId ?? ''].map(encodeURIComponent).join(':');
+}
+
 test('Tester consumes the SDK host AIProfile surface for preview and apply', async () => {
   const previousWindow = globalThis.window;
   globalThis.window = { localStorage: createMemoryStorage() };
@@ -199,6 +203,114 @@ test('Tester AIConfig service sees AIProfiles imported after service creation', 
     });
     assert.equal(apply.success, true);
     assert.equal(store.loadTesterAIConfig(scopeRef).profileOrigin.profileId, profile.profileId);
+  } finally {
+    if (previousWindow === undefined) {
+      delete globalThis.window;
+    } else {
+      globalThis.window = previousWindow;
+    }
+  }
+});
+
+test('Tester AIConfig store migrates legacy App Lab config into scoped storage', async () => {
+  const previousWindow = globalThis.window;
+  const store = await importStore();
+  const scopeRef = store.createTesterAppLabAIScopeRef();
+  const legacyConfig = {
+    scopeRef,
+    capabilities: {
+      targetRefs: {
+        'text.generate': {
+          kind: 'local-runtime',
+          targetId: 'runtime-local-chat',
+          profileId: 'local-chat',
+        },
+      },
+      selectedParams: {},
+    },
+    profileOrigin: null,
+  };
+  const storage = createMemoryStorage({
+    [store.TESTER_AI_CONFIG_LEGACY_STORAGE_KEY]: JSON.stringify(legacyConfig),
+  });
+  globalThis.window = { localStorage: storage };
+  try {
+    const loaded = store.loadTesterAIConfig(scopeRef);
+    const scopedKey = store.testerAIConfigStorageKeyForScopeKey(encodeScopeRef(scopeRef));
+    assert.equal(loaded.capabilities.targetRefs['text.generate'].profileId, 'local-chat');
+    assert.equal(storage.getItem(store.TESTER_AI_CONFIG_LEGACY_STORAGE_KEY), null);
+    assert.equal(JSON.parse(storage.getItem(scopedKey)).scopeRef.surfaceId, 'app-lab');
+  } finally {
+    if (previousWindow === undefined) {
+      delete globalThis.window;
+    } else {
+      globalThis.window = previousWindow;
+    }
+  }
+});
+
+test('Tester AIConfig service quarantines legacy scope mismatch before profile preview', async () => {
+  const previousWindow = globalThis.window;
+  const store = await importStore();
+  const scopeRef = store.createTesterAppLabAIScopeRef();
+  const oldScopeConfig = {
+    scopeRef: {
+      kind: 'app',
+      ownerId: scopeRef.ownerId,
+      surfaceId: 'old-app-lab',
+    },
+    capabilities: {
+      targetRefs: {
+        'text.generate': {
+          kind: 'local-runtime',
+          targetId: 'old-runtime-local-chat',
+          profileId: 'old-local-chat',
+        },
+      },
+      selectedParams: {},
+    },
+    profileOrigin: null,
+  };
+  const storage = createMemoryStorage({
+    [store.TESTER_AI_CONFIG_LEGACY_STORAGE_KEY]: JSON.stringify(oldScopeConfig),
+  });
+  globalThis.window = { localStorage: storage };
+  try {
+    const profile = {
+      profileId: 'tester-scope-mismatch-repair',
+      title: 'Tester Scope Mismatch Repair',
+      description: '',
+      tags: [],
+      capabilities: {
+        'text.generate': {
+          targetRef: {
+            kind: 'local-runtime',
+            targetId: 'runtime-local-chat',
+            profileId: 'local-chat',
+          },
+        },
+      },
+    };
+    assert.equal(store.importTesterAIProfileJson(JSON.stringify(profile)).ok, true);
+    const service = store.createTesterAIConfigService();
+    const requirementDeclarations = [{
+      requirementId: 'tester-scope-mismatch-repair:text',
+      scopeRef,
+      requiredSlices: [{
+        requirementSliceId: 'tester:text.generate',
+        capability: 'text.generate',
+        profileSliceRef: 'tester:text.generate',
+        readinessPolicy: 'required',
+      }],
+      setupProjectionPolicy: 'sdk-ai-config-setup-projection',
+    }];
+    const preview = await service.aiProfile.previewApply(scopeRef, profile.profileId, {
+      requirementDeclarations,
+    });
+    assert.equal(preview.outcome, 'ready_to_apply');
+    assert.equal(preview.before, null);
+    assert.equal(storage.getItem(store.TESTER_AI_CONFIG_LEGACY_STORAGE_KEY), null);
+    assert.equal(JSON.parse(storage.getItem(store.TESTER_AI_CONFIG_SCOPE_MISMATCH_STORAGE_KEY)).scopeRef.surfaceId, 'old-app-lab');
   } finally {
     if (previousWindow === undefined) {
       delete globalThis.window;
