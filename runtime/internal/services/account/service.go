@@ -85,10 +85,18 @@ func (s *Service) BeginLogin(ctx context.Context, req *runtimev1.BeginLoginReque
 	if ttl <= 0 {
 		ttl = 10 * time.Minute
 	}
+	requestRedirectURI := strings.TrimSpace(req.GetRedirectUri())
+	requestCallbackOrigin := strings.TrimSpace(req.GetCallbackOrigin())
 	s.mu.RLock()
 	if s.state == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_LOGIN_PENDING {
 		for _, record := range s.loginAttempts {
-			if !record.consumed && record.attempt.ExpiresAt.After(now) {
+			// A renderer restart may leave an old loopback listener alive while
+			// the new renderer waits on a different port. Reuse only when the
+			// callback endpoint is identical, so browser success and the active
+			// desktop login promise cannot diverge.
+			if !record.consumed &&
+				record.attempt.ExpiresAt.After(now) &&
+				loginAttemptMatchesRequest(record.attempt, requestRedirectURI, requestCallbackOrigin) {
 				authorizationURL, ok := s.authorizationURLForAttempt(record.attempt)
 				s.mu.RUnlock()
 				if !ok {
@@ -126,8 +134,8 @@ func (s *Service) BeginLogin(ctx context.Context, req *runtimev1.BeginLoginReque
 		State:          randomToken(),
 		Nonce:          randomToken(),
 		PKCEVerifier:   randomToken(),
-		RedirectURI:    strings.TrimSpace(req.GetRedirectUri()),
-		CallbackOrigin: strings.TrimSpace(req.GetCallbackOrigin()),
+		RedirectURI:    requestRedirectURI,
+		CallbackOrigin: requestCallbackOrigin,
 		ExpiresAt:      now.Add(ttl),
 	}
 	attempt.PKCEChallenge = pkceChallenge(attempt.PKCEVerifier)
@@ -137,6 +145,15 @@ func (s *Service) BeginLogin(ctx context.Context, req *runtimev1.BeginLoginReque
 	}
 
 	s.mu.Lock()
+	if s.state == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_LOGIN_PENDING {
+		for id, record := range s.loginAttempts {
+			if record.consumed ||
+				!record.attempt.ExpiresAt.After(now) ||
+				!loginAttemptMatchesRequest(record.attempt, requestRedirectURI, requestCallbackOrigin) {
+				delete(s.loginAttempts, id)
+			}
+		}
+	}
 	s.loginAttempts[attempt.LoginAttemptID] = loginAttemptRecord{attempt: attempt}
 	s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_LOGIN_PENDING
 	event := s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_LOGIN_STARTED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, "")
@@ -157,6 +174,11 @@ func (s *Service) BeginLogin(ctx context.Context, req *runtimev1.BeginLoginReque
 		ReasonCode:            runtimev1.ReasonCode_ACTION_EXECUTED,
 		AccountReasonCode:     runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED,
 	}, nil
+}
+
+func loginAttemptMatchesRequest(attempt LoginAttempt, redirectURI string, callbackOrigin string) bool {
+	return strings.TrimSpace(attempt.RedirectURI) == strings.TrimSpace(redirectURI) &&
+		strings.TrimSpace(attempt.CallbackOrigin) == strings.TrimSpace(callbackOrigin)
 }
 
 func (s *Service) authorizationURLForAttempt(attempt LoginAttempt) (string, bool) {

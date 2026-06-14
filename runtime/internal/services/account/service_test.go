@@ -228,6 +228,80 @@ func TestStateMachineTransitionsAndSingleActiveAccountInvariant(t *testing.T) {
 	}
 }
 
+func TestPendingLoginReuseRequiresSameLoopbackCallback(t *testing.T) {
+	svc := newHarnessService(t, nil)
+	first, err := svc.BeginLogin(context.Background(), &runtimev1.BeginLoginRequest{
+		Caller:         firstPartyCaller(),
+		RedirectUri:    "http://127.0.0.1:41001/oauth/callback",
+		CallbackOrigin: "http://127.0.0.1:41001",
+		TtlSeconds:     60,
+	})
+	if err != nil {
+		t.Fatalf("first BeginLogin: %v", err)
+	}
+	if !first.GetAccepted() {
+		t.Fatalf("first BeginLogin not accepted: %+v", first)
+	}
+
+	reused, err := svc.BeginLogin(context.Background(), &runtimev1.BeginLoginRequest{
+		Caller:         firstPartyCaller(),
+		RedirectUri:    "http://127.0.0.1:41001/oauth/callback",
+		CallbackOrigin: "http://127.0.0.1:41001",
+		TtlSeconds:     60,
+	})
+	if err != nil {
+		t.Fatalf("matching BeginLogin: %v", err)
+	}
+	if reused.GetLoginAttemptId() != first.GetLoginAttemptId() {
+		t.Fatalf("matching pending login should reuse same attempt: first=%s reused=%s", first.GetLoginAttemptId(), reused.GetLoginAttemptId())
+	}
+
+	next, err := svc.BeginLogin(context.Background(), &runtimev1.BeginLoginRequest{
+		Caller:         firstPartyCaller(),
+		RedirectUri:    "http://127.0.0.1:41002/oauth/callback",
+		CallbackOrigin: "http://127.0.0.1:41002",
+		TtlSeconds:     60,
+	})
+	if err != nil {
+		t.Fatalf("mismatched BeginLogin: %v", err)
+	}
+	if !next.GetAccepted() {
+		t.Fatalf("mismatched BeginLogin not accepted: %+v", next)
+	}
+	if next.GetLoginAttemptId() == first.GetLoginAttemptId() {
+		t.Fatalf("mismatched loopback callback must not reuse stale pending attempt")
+	}
+
+	staleComplete, err := svc.CompleteLogin(context.Background(), &runtimev1.CompleteLoginRequest{
+		Caller:         firstPartyCaller(),
+		LoginAttemptId: first.GetLoginAttemptId(),
+		Code:           "old-code",
+		State:          first.GetState(),
+		Nonce:          first.GetNonce(),
+	})
+	if err != nil {
+		t.Fatalf("stale CompleteLogin: %v", err)
+	}
+	if staleComplete.GetAccepted() ||
+		staleComplete.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_PROOF_MISMATCHED {
+		t.Fatalf("stale callback must fail closed after loopback callback replacement: %+v", staleComplete)
+	}
+
+	complete, err := svc.CompleteLogin(context.Background(), &runtimev1.CompleteLoginRequest{
+		Caller:         firstPartyCaller(),
+		LoginAttemptId: next.GetLoginAttemptId(),
+		Code:           "auth-code",
+		State:          next.GetState(),
+		Nonce:          next.GetNonce(),
+	})
+	if err != nil {
+		t.Fatalf("new CompleteLogin: %v", err)
+	}
+	if !complete.GetAccepted() || complete.GetState() != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED {
+		t.Fatalf("new loopback callback should complete login: %+v", complete)
+	}
+}
+
 func TestRegisteredLocalFirstPartyAppReadsSingleActiveAccountProjection(t *testing.T) {
 	custody := &memoryCustody{}
 	svc := newHarnessService(t, custody, WithAppRegistry(testAppRegistry(t, firstPartyCaller(), testerCaller())))
