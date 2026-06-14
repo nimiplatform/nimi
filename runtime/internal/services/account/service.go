@@ -176,11 +176,6 @@ func (s *Service) BeginLogin(ctx context.Context, req *runtimev1.BeginLoginReque
 	}, nil
 }
 
-func loginAttemptMatchesRequest(attempt LoginAttempt, redirectURI string, callbackOrigin string) bool {
-	return strings.TrimSpace(attempt.RedirectURI) == strings.TrimSpace(redirectURI) &&
-		strings.TrimSpace(attempt.CallbackOrigin) == strings.TrimSpace(callbackOrigin)
-}
-
 func (s *Service) authorizationURLForAttempt(attempt LoginAttempt) (string, bool) {
 	provider, ok := s.exchanger.(LoginAuthorizationURLProvider)
 	if !ok {

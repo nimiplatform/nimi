@@ -13,6 +13,8 @@ export function readTesterKitComponentGallerySurface(root) {
   return readMany(root, [
     'src/tester/kit-component-gallery.tsx',
     'src/tester/kit-component-gallery-surface.tsx',
+    'src/tester/kit-component-gallery-recipes.tsx',
+    'src/tester/kit-component-gallery-demos.tsx',
   ]);
 }
 

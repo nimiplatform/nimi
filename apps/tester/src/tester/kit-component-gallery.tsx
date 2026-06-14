@@ -4,12 +4,10 @@ import { Clipboard, Search } from 'lucide-react';
 import {
   CATEGORIES,
   COLOR_TOKENS,
-  FoundationsCanvas,
   RECIPES,
-  RecipeCards,
-  countFor,
   type CategoryId,
-} from './kit-component-gallery-surface.js';
+} from './kit-component-gallery-recipes.js';
+import { FoundationsCanvas, RecipeCards, countFor } from './kit-component-gallery-surface.js';
 
 const foundationCode = `@import "@nimiplatform/kit/ui/styles.css";
 @import "@nimiplatform/kit/ui/themes/light.css";
