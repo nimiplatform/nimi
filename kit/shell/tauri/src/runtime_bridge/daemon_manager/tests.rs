@@ -1,6 +1,8 @@
+#[cfg(unix)]
+use super::{config_get, config_set};
 use super::{
-    config_get, config_set, grpc_addr, runtime_cli_command_spec, runtime_config_path, start,
-    status, stop, DEFAULT_GRPC_ADDR,
+    grpc_addr, runtime_cli_command_spec, runtime_config_path, start, status, stop,
+    DEFAULT_GRPC_ADDR,
 };
 use crate::test_support::{test_guard, with_env};
 use std::fs;
@@ -247,7 +249,26 @@ fn runtime_cli_command_spec_uses_runtime_mode_branch() {
     let _guard = test_guard();
     let dir = make_temp_dir("runtime-cli-fallback-path");
     let fake_go = dir.join("go");
-    write_executable(&fake_go, "#!/bin/sh\nexit 0\n");
+    write_executable(
+        &fake_go,
+        r#"#!/bin/sh
+out=""
+while [ "$#" -gt 0 ]; do
+  if [ "$1" = "-o" ]; then
+    shift
+    out="$1"
+  fi
+  shift
+done
+if [ -z "$out" ]; then
+  echo "missing -o" >&2
+  exit 1
+fi
+mkdir -p "$(dirname "$out")"
+printf '%s\n' '#!/bin/sh' 'printf '\''{"nimi":"0.0.0-dev"}\n'\''' > "$out"
+chmod +x "$out"
+"#,
+    );
     with_env(
         &[
             ("PATH", dir.to_str()),
@@ -256,12 +277,11 @@ fn runtime_cli_command_spec_uses_runtime_mode_branch() {
         ],
         || {
             let spec = runtime_cli_command_spec(&["config", "get", "--json"]).expect("spec");
-            assert_eq!(spec.program, "go");
-            assert_eq!(spec.args[0], "run");
-            assert_eq!(spec.args[1], "./cmd/nimi");
-            assert_eq!(spec.args[2], "config");
-            assert_eq!(spec.args[3], "get");
-            assert_eq!(spec.args[4], "--json");
+            assert!(spec.program.ends_with("dist/nimi-dev"));
+            assert!(PathBuf::from(spec.program.as_str()).exists());
+            assert_eq!(spec.args[0], "config");
+            assert_eq!(spec.args[1], "get");
+            assert_eq!(spec.args[2], "--json");
             let current_dir = spec.current_dir.expect("current dir");
             assert!(current_dir.ends_with("runtime"));
         },
@@ -277,19 +297,23 @@ fn runtime_dev_root_dir_is_debug_only() {
 
     #[cfg(debug_assertions)]
     {
-        let spec = runtime_cli_command_spec(&["version", "--json"]);
-        if let Ok(spec) = spec {
-            let current_dir = spec.current_dir.expect("runtime mode debug current dir");
-            assert!(current_dir.ends_with("runtime"));
-        }
+        with_env(&[("NIMI_RUNTIME_BRIDGE_MODE", Some("RUNTIME"))], || {
+            let spec = runtime_cli_command_spec(&["version", "--json"]);
+            if let Ok(spec) = spec {
+                let current_dir = spec.current_dir.expect("runtime mode debug current dir");
+                assert!(current_dir.ends_with("runtime"));
+            }
+        });
     }
 
     #[cfg(not(debug_assertions))]
     {
-        let error = runtime_cli_command_spec(&["version", "--json"])
-            .err()
-            .unwrap_or_default();
-        assert!(error.contains("RUNTIME_BRIDGE_RUNTIME_ROOT_NOT_FOUND"));
+        with_env(&[("NIMI_RUNTIME_BRIDGE_MODE", Some("RUNTIME"))], || {
+            let error = runtime_cli_command_spec(&["version", "--json"])
+                .err()
+                .unwrap_or_default();
+            assert!(error.contains("RUNTIME_BRIDGE_RUNTIME_ROOT_NOT_FOUND"));
+        });
     }
 }
 

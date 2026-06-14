@@ -1,4 +1,7 @@
 use std::path::{Path, PathBuf};
+#[cfg(not(test))]
+use std::sync::{Mutex, OnceLock};
+use std::{fs, process::Command};
 
 use super::{
     bridge_error, read_non_empty_env, runtime_binary, DEFAULT_RUNTIME_BRIDGE_MODE,
@@ -19,6 +22,14 @@ pub(super) enum RuntimeBridgeMode {
     Release,
 }
 
+#[cfg(not(test))]
+static RUNTIME_DEV_BINARY: OnceLock<Mutex<Option<PathBuf>>> = OnceLock::new();
+
+#[cfg(not(test))]
+fn runtime_dev_binary_cache() -> &'static Mutex<Option<PathBuf>> {
+    RUNTIME_DEV_BINARY.get_or_init(|| Mutex::new(None))
+}
+
 fn runtime_dev_root_dir() -> Option<PathBuf> {
     #[cfg(debug_assertions)]
     {
@@ -34,6 +45,107 @@ fn runtime_dev_root_dir() -> Option<PathBuf> {
     }
 
     None
+}
+
+fn runtime_dev_binary_path(runtime_dir: &Path) -> Result<PathBuf, String> {
+    let repo_root = runtime_dir.parent().ok_or_else(|| {
+        bridge_error(
+            "RUNTIME_BRIDGE_RUNTIME_ROOT_INVALID",
+            format!("runtime root has no parent: {}", runtime_dir.display()).as_str(),
+        )
+    })?;
+    let binary_name = if cfg!(windows) {
+        "nimi-dev.exe"
+    } else {
+        "nimi-dev"
+    };
+    Ok(repo_root.join("dist").join(binary_name))
+}
+
+fn build_runtime_dev_binary(runtime_dir: &Path, binary_path: &Path) -> Result<(), String> {
+    let parent = binary_path.parent().ok_or_else(|| {
+        bridge_error(
+            "RUNTIME_BRIDGE_RUNTIME_BUILD_PATH_INVALID",
+            format!(
+                "runtime dev binary has no parent: {}",
+                binary_path.display()
+            )
+            .as_str(),
+        )
+    })?;
+    fs::create_dir_all(parent).map_err(|error| {
+        bridge_error(
+            "RUNTIME_BRIDGE_RUNTIME_BUILD_DIR_FAILED",
+            format!(
+                "create runtime dev binary dir {} failed: {error}",
+                parent.display()
+            )
+            .as_str(),
+        )
+    })?;
+
+    let output = Command::new("go")
+        .args(["build", "-o"])
+        .arg(binary_path)
+        .arg("./cmd/nimi")
+        .current_dir(runtime_dir)
+        .output()
+        .map_err(|error| {
+            bridge_error(
+                "RUNTIME_BRIDGE_RUNTIME_BUILD_START_FAILED",
+                format!("spawn runtime dev build failed: {error}").as_str(),
+            )
+        })?;
+
+    if output.status.success() && binary_path.exists() {
+        return Ok(());
+    }
+
+    let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+    let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let message = if !stderr.is_empty() {
+        stderr
+    } else if !stdout.is_empty() {
+        stdout
+    } else if output.status.success() {
+        format!(
+            "go build did not create runtime dev binary {}",
+            binary_path.display()
+        )
+    } else {
+        format!("go build exit status {}", output.status)
+    };
+    Err(bridge_error(
+        "RUNTIME_BRIDGE_RUNTIME_BUILD_FAILED",
+        message.as_str(),
+    ))
+}
+
+#[cfg(not(test))]
+fn materialize_runtime_dev_binary(runtime_dir: &Path) -> Result<PathBuf, String> {
+    {
+        let guard = runtime_dev_binary_cache()
+            .lock()
+            .expect("runtime dev binary cache lock poisoned");
+        if let Some(path) = guard.as_ref().filter(|path| path.exists()) {
+            return Ok(path.clone());
+        }
+    }
+
+    let binary_path = runtime_dev_binary_path(runtime_dir)?;
+    build_runtime_dev_binary(runtime_dir, &binary_path)?;
+    let mut guard = runtime_dev_binary_cache()
+        .lock()
+        .expect("runtime dev binary cache lock poisoned");
+    *guard = Some(binary_path.clone());
+    Ok(binary_path)
+}
+
+#[cfg(test)]
+fn materialize_runtime_dev_binary(runtime_dir: &Path) -> Result<PathBuf, String> {
+    let binary_path = runtime_dev_binary_path(runtime_dir)?;
+    build_runtime_dev_binary(runtime_dir, &binary_path)?;
+    Ok(binary_path)
 }
 
 fn is_executable_available(name: &str) -> bool {
@@ -162,11 +274,10 @@ pub(super) fn runtime_cli_command_spec(args: &[&str]) -> Result<RuntimeCliComman
                     "runtime mode requires ./runtime directory in workspace",
                 )
             })?;
-            let mut resolved_args = vec!["run".to_string(), "./cmd/nimi".to_string()];
-            resolved_args.extend(args.iter().map(|value| (*value).to_string()));
+            let binary = materialize_runtime_dev_binary(runtime_dir.as_path())?;
             Ok(RuntimeCliCommandSpec {
-                program: "go".to_string(),
-                args: resolved_args,
+                program: binary.display().to_string(),
+                args: args.iter().map(|value| (*value).to_string()).collect(),
                 current_dir: Some(runtime_dir),
             })
         }
