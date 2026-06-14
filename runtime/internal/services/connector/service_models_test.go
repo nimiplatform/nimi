@@ -94,10 +94,16 @@ func TestListConnectorModelsDashScopeIncludesRepresentativeImageModels(t *testin
 	expectedImageModels := map[string]bool{"qwen-image-2.0-pro": true, "qwen-image-2.0": true, "z-image-turbo": true, "wan2.6-t2i": true, "wan2.7-image-pro": true, "wan2.7-image": true, "flux-schnell": true, "flux-dev": true, "flux-merged": true}
 	foundImageModels := map[string]bool{}
 	foundVoiceWorkflowCapabilities := map[string]string{}
+	foundSpeechSynthesizeModels := map[string]bool{}
 	for _, model := range resp.GetModels() {
 		modelID := strings.TrimSpace(model.GetModelId())
 		for _, capability := range model.GetCapabilities() {
 			switch strings.TrimSpace(capability) {
+			case "audio.synthesize":
+				switch modelID {
+				case "cosyvoice-v3.5-flash", "qwen3-tts-flash":
+					foundSpeechSynthesizeModels[modelID] = true
+				}
 			case "image.generate":
 				if !expectedImageModels[modelID] {
 					continue
@@ -110,6 +116,9 @@ func TestListConnectorModelsDashScopeIncludesRepresentativeImageModels(t *testin
 	}
 	if len(foundImageModels) != len(expectedImageModels) {
 		t.Fatalf("expected representative dashscope image models %v, found %v", expectedImageModels, foundImageModels)
+	}
+	if !foundSpeechSynthesizeModels["cosyvoice-v3.5-flash"] || !foundSpeechSynthesizeModels["qwen3-tts-flash"] {
+		t.Fatalf("expected representative dashscope audio.synthesize models, found %v", foundSpeechSynthesizeModels)
 	}
 	if foundVoiceWorkflowCapabilities["qwen3-tts-vc"] != "voice_workflow.voice_clone" {
 		t.Fatalf("expected qwen3-tts-vc voice_workflow.voice_clone, found %q", foundVoiceWorkflowCapabilities["qwen3-tts-vc"])

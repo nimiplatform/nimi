@@ -465,6 +465,82 @@ test('image.generate materializes local model and companion slots into Runtime p
   ]);
 });
 
+test('audio.synthesize fails closed when Runtime media TTS does not complete before client timeout', async (t) => {
+  installMemoryStorageHarness(t);
+  const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');
+  const store = await importBehaviorModule('tester/tester-ai-config-store.js');
+  const scopeRef = store.createTesterAppLabAIScopeRef();
+  store.saveTesterAIConfig({
+    scopeRef,
+    capabilities: {
+      targetRefs: {
+        'audio.synthesize': {
+          kind: 'local-runtime',
+          targetId: 'media',
+          profileId: 'local-tts-timeout',
+        },
+      },
+      selectedParams: {
+        'audio.synthesize': {
+          responseFormat: 'mp3',
+          timeoutMs: '20',
+        },
+      },
+    },
+    profileOrigin: null,
+  });
+
+  let capturedRequest = null;
+  const client = {
+    runtimeSubjectUserId: 'subject-user-1',
+    runtime: {
+      local: {
+        async listLocalAssets() {
+          return {
+            nextPageToken: '',
+            assets: [{
+              localAssetId: 'local-tts-timeout',
+              assetId: 'speech/qwen3-tts-timeout',
+              kind: 'tts',
+              engine: 'speech',
+              status: 'active',
+            }],
+          };
+        },
+      },
+      scheduling: {
+        async peekScheduling() {
+          return runnableSchedulingResponse();
+        },
+      },
+      media: {
+        tts: {
+          async synthesize(request) {
+            capturedRequest = request;
+            return new Promise(() => undefined);
+          },
+        },
+      },
+      ai: {},
+    },
+  };
+
+  const startedAt = Date.now();
+  const result = await invokers.invokeTesterCapability(client, 'audio.synthesize', {
+    prompt: 'timeout probe',
+    scenarioId: 'scenario-local-tts-timeout',
+    subjectUserId: 'subject-user-1',
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'runtime-call-failed');
+  assert.match(result.message, /audio\.synthesize Runtime call timed out after 20ms/);
+  assert.equal(capturedRequest?.model, 'speech/qwen3-tts-timeout');
+  assert.equal(capturedRequest?.timeoutMs, 20);
+  assert.equal(capturedRequest?.signal?.aborted, true);
+  assert.ok(Date.now() - startedAt < 1000);
+});
+
 test('tester surfaces inline runtime media artifact bytes as a previewable data URL', async (t) => {
   installMemoryStorageHarness(t);
   const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');

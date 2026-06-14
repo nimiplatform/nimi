@@ -254,6 +254,37 @@ function routePolicyLabel(value: number): string {
   return 'unspecified';
 }
 
+function runtimeCallTimeoutError(capabilityId: string, timeoutMs: number): Error {
+  const error = new Error(`${capabilityId} Runtime call timed out after ${timeoutMs}ms; the Runtime request did not complete before the configured client deadline.`);
+  error.name = 'RuntimeCallTimeoutError';
+  return error;
+}
+
+async function withRuntimeClientTimeout<T>(
+  capabilityId: string,
+  timeoutMs: number,
+  run: (signal: AbortSignal) => Promise<T>,
+): Promise<T> {
+  const normalizedTimeoutMs = Math.floor(Number(timeoutMs));
+  if (!Number.isFinite(normalizedTimeoutMs) || normalizedTimeoutMs <= 0) {
+    const controller = new AbortController();
+    return run(controller.signal);
+  }
+  const controller = new AbortController();
+  let timeout: ReturnType<typeof setTimeout> | null = null;
+  const timeoutPromise = new Promise<T>((_, reject) => {
+    timeout = setTimeout(() => {
+      reject(runtimeCallTimeoutError(capabilityId, normalizedTimeoutMs));
+      controller.abort();
+    }, normalizedTimeoutMs);
+  });
+  try {
+    return await Promise.race([run(controller.signal), timeoutPromise]);
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
+}
+
 function runtimeLabels(
   surfaceId: string,
   resolved: ResolvedLLMBinding,
@@ -423,38 +454,44 @@ export async function invokeSpeechSynthesize(client: TesterRuntimeInvocationClie
     });
     const route = routeInput(speechBinding);
     const speechParams = speechSynthesisParamsFromBinding(speechBinding);
+    const timeoutMs = speechParams.timeoutMs ?? 120_000;
     const mediaTts = client.runtime.media?.tts;
-    const output = mediaTts
-      ? await mediaTts.synthesize({
-        ...route,
-        subjectUserId,
-        text: prompt,
-        voiceRef: speechParams.voiceRef,
-        language: speechParams.language,
-        audioFormat: speechParams.audioFormat,
-        responseFormat: speechParams.audioFormat,
-        speed: speechParams.speed,
-        pitch: speechParams.pitch,
-        volume: speechParams.volume,
-        timeoutMs: speechParams.timeoutMs,
-        metadata: runtimeLabels('nimi.tester.media.tts.synthesize', speechBinding, schedulingPreflight.evidenceMetadata),
-      }) as RuntimeMediaJobOutput
-      : await runNimiRuntimeSpeechSynthesis({
-        runtime: client.runtime,
-        head: {
-          ...runtimeJobHead(speechBinding, subjectUserId),
-          ...(speechParams.timeoutMs ? { timeoutMs: speechParams.timeoutMs } : {}),
-        },
-        text: prompt,
-        voiceRef: speechParams.voiceRef,
-        language: speechParams.language,
-        audioFormat: speechParams.audioFormat,
-        speed: speechParams.speed,
-        pitch: speechParams.pitch,
-        volume: speechParams.volume,
-        ...runtimeJobIdentity('audio.synthesize', input.scenarioId),
-        labels: runtimeLabels('nimi.tester.ai.speech.synthesize', speechBinding, schedulingPreflight.evidenceMetadata),
-      });
+    const output = await withRuntimeClientTimeout('audio.synthesize', timeoutMs, async (signal) => (
+      mediaTts
+        ? await mediaTts.synthesize({
+          ...route,
+          subjectUserId,
+          text: prompt,
+          voiceRef: speechParams.voiceRef,
+          language: speechParams.language,
+          audioFormat: speechParams.audioFormat,
+          responseFormat: speechParams.audioFormat,
+          speed: speechParams.speed,
+          pitch: speechParams.pitch,
+          volume: speechParams.volume,
+          timeoutMs,
+          signal,
+          metadata: runtimeLabels('nimi.tester.media.tts.synthesize', speechBinding, schedulingPreflight.evidenceMetadata),
+        }) as RuntimeMediaJobOutput
+        : await runNimiRuntimeSpeechSynthesis({
+          runtime: client.runtime,
+          head: {
+            ...runtimeJobHead(speechBinding, subjectUserId),
+            timeoutMs,
+          },
+          text: prompt,
+          voiceRef: speechParams.voiceRef,
+          language: speechParams.language,
+          audioFormat: speechParams.audioFormat,
+          speed: speechParams.speed,
+          pitch: speechParams.pitch,
+          volume: speechParams.volume,
+          ...runtimeJobIdentity('audio.synthesize', input.scenarioId),
+          labels: runtimeLabels('nimi.tester.ai.speech.synthesize', speechBinding, schedulingPreflight.evidenceMetadata),
+          signal,
+          abortReason: `tester_audio_synthesize_timeout_${timeoutMs}ms`,
+        })
+    ));
     const artifacts = artifactsFrom(output);
     const job = summariseJob(output.job);
     return {

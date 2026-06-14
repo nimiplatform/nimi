@@ -1,4 +1,4 @@
-import { act, type ReactNode } from 'react';
+import { act, useState, type ReactNode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
@@ -190,6 +190,52 @@ describe('AudioSynthesizeParamsEditor', () => {
       kind: 'voice_asset_id',
       voiceAssetId: '01KQCHXDMP0E65RZBV4X9XQ27Q',
     });
+  });
+
+  it('writes explicit provider voice refs into the Runtime voice reference contract', async () => {
+    let next: AudioSynthesizeParamsState = { ...DEFAULT_AUDIO_SYNTHESIZE_PARAMS };
+    function Harness() {
+      const [params, setParams] = useState<AudioSynthesizeParamsState>(next);
+      next = params;
+      return (
+        <AudioSynthesizeParamsEditor
+          copy={{
+            parametersLabel: 'Parameters',
+            voiceRefLabel: 'Voice reference',
+            providerVoiceRefLabel: 'Provider voice ref',
+            speakingRateLabel: 'Speaking rate',
+            volumeLabel: 'Volume',
+            pitchSemitonesLabel: 'Pitch',
+            languageHintLabel: 'Language',
+            responseFormatLabel: 'Response format',
+            timeoutLabel: 'Timeout',
+            defaultPlaceholder: 'Default',
+          }}
+          params={params}
+          onParamsChange={setParams}
+        />
+      );
+    }
+    await render(
+      <Harness />,
+    );
+    expect(container?.textContent).toContain('Provider voice ref');
+    const providerInput = Array.from(container?.querySelectorAll('input') || [])
+      .find((input) => input.placeholder === 'provider_voice_ref') as HTMLInputElement;
+    expect(providerInput).toBeTruthy();
+    await act(async () => {
+      setInputValue(providerInput, 'alice-local-voice');
+      await flush();
+    });
+    expect(next.voiceRef).toEqual({
+      kind: 'provider_voice_ref',
+      providerVoiceRef: 'alice-local-voice',
+    });
+    await act(async () => {
+      setInputValue(providerInput, '');
+      await flush();
+    });
+    expect(next.voiceRef).toEqual(null);
   });
 });
 

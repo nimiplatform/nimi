@@ -322,4 +322,143 @@ describe('useRouteModelPickerData', () => {
       modelId: 'qwen3',
     }));
   });
+
+  it('selects the first cloud connector before loading capability-scoped models', async () => {
+    const provider = createSnapshotRouteDataProvider(async () => makeSnapshot({
+      capability: 'audio.synthesize',
+      connectors: [
+        {
+          id: 'connector-dashscope',
+          label: 'DashScope',
+          provider: 'dashscope',
+          models: ['qwen3-tts-flash'],
+          modelCapabilities: {
+            'qwen3-tts-flash': ['audio.synthesize'],
+          },
+        },
+      ],
+    }));
+    const onSelectionChange = vi.fn();
+    const latestState: { current: UseRouteModelPickerDataResult | null } = { current: null };
+
+    function Harness() {
+      latestState.current = useRouteModelPickerData({
+        provider,
+        capability: 'audio.synthesize',
+        onSelectionChange,
+      });
+      return null;
+    }
+
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    await act(async () => {
+      root?.render(createElement(Harness));
+      await flush();
+      await flush();
+    });
+
+    const loadedState = latestState.current as UseRouteModelPickerDataResult;
+    await act(async () => {
+      loadedState.changeSource('cloud');
+      await flush();
+      await flush();
+    });
+
+    const cloudState = latestState.current as UseRouteModelPickerDataResult;
+    expect(cloudState.selection.source).toBe('cloud');
+    expect(cloudState.selection.connectorId).toBe('connector-dashscope');
+    expect(cloudState.pickerState.models.map((model) => cloudState.pickerState.adapter.getId(model))).toEqual(['qwen3-tts-flash']);
+    expect(onSelectionChange).toHaveBeenCalledWith({
+      source: 'cloud',
+      connectorId: 'connector-dashscope',
+      model: '',
+    });
+  });
+
+  it('hydrates an initial cloud source with the first connector when no connector id is stored', async () => {
+    const provider = createSnapshotRouteDataProvider(async () => makeSnapshot({
+      capability: 'audio.synthesize',
+      connectors: [
+        {
+          id: 'connector-dashscope',
+          label: 'DashScope',
+          provider: 'dashscope',
+          models: ['cosyvoice-v3.5-flash'],
+          modelCapabilities: {
+            'cosyvoice-v3.5-flash': ['audio.synthesize'],
+          },
+        },
+      ],
+    }));
+    const latestState: { current: UseRouteModelPickerDataResult | null } = { current: null };
+
+    function Harness() {
+      latestState.current = useRouteModelPickerData({
+        provider,
+        capability: 'audio.synthesize',
+        initialSelection: { source: 'cloud' },
+      });
+      return null;
+    }
+
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    await act(async () => {
+      root?.render(createElement(Harness));
+      await flush();
+      await flush();
+      await flush();
+    });
+
+    const loadedState = latestState.current as UseRouteModelPickerDataResult;
+    expect(loadedState.selection.connectorId).toBe('connector-dashscope');
+    expect(loadedState.pickerState.models.map((model) => loadedState.pickerState.adapter.getId(model))).toEqual(['cosyvoice-v3.5-flash']);
+  });
+
+  it('replaces a stale cloud connector id with the first live connector', async () => {
+    const provider = createSnapshotRouteDataProvider(async () => makeSnapshot({
+      capability: 'audio.synthesize',
+      connectors: [
+        {
+          id: 'connector-dashscope',
+          label: 'DashScope',
+          provider: 'dashscope',
+          models: ['qwen3-tts-flash'],
+          modelCapabilities: {
+            'qwen3-tts-flash': ['audio.synthesize'],
+          },
+        },
+      ],
+    }));
+    const latestState: { current: UseRouteModelPickerDataResult | null } = { current: null };
+
+    function Harness() {
+      latestState.current = useRouteModelPickerData({
+        provider,
+        capability: 'audio.synthesize',
+        initialSelection: { source: 'cloud', connectorId: 'stale-connector' },
+      });
+      return null;
+    }
+
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    await act(async () => {
+      root?.render(createElement(Harness));
+      await flush();
+      await flush();
+      await flush();
+    });
+
+    const loadedState = latestState.current as UseRouteModelPickerDataResult;
+    expect(loadedState.selection.connectorId).toBe('connector-dashscope');
+    expect(loadedState.pickerState.models.map((model) => loadedState.pickerState.adapter.getId(model))).toEqual(['qwen3-tts-flash']);
+  });
 });

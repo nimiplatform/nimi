@@ -116,6 +116,57 @@ func TestMapProviderHTTPError_BadRequestAPIKeyInvalidMapsAuthFailed(t *testing.T
 	}
 }
 
+func TestMapProviderHTTPError_ServiceUnavailableVoiceOptionFailureMapsMediaOptionUnsupported(t *testing.T) {
+	err := MapProviderHTTPError(503, map[string]any{
+		"detail": map[string]any{
+			"message": "local supervised speech synthesis failed: speech driver failed: qwen3_tts synthesis requires an explicit admitted voice_ref or voice workflow handle",
+			"reason":  "speech_driver_execution_failed",
+		},
+	})
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatal("expected gRPC status error for HTTP 503 voice option failure")
+	}
+	if st.Code() != codes.InvalidArgument {
+		t.Fatalf("expected InvalidArgument, got %v", st.Code())
+	}
+	reason, ok := grpcerr.ExtractReasonCode(err)
+	if !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
+		t.Fatalf("expected AI_MEDIA_OPTION_UNSUPPORTED, got %v", reason)
+	}
+	metadata := extractErrorInfoMetadata(err)
+	if metadata["action_hint"] != "adjust_tts_voice_or_audio_options" {
+		t.Fatalf("unexpected action_hint: %q", metadata["action_hint"])
+	}
+	if !strings.Contains(metadata["provider_message"], "requires an explicit admitted voice_ref") {
+		t.Fatalf("expected provider_message to keep voice_ref detail, got %q", metadata["provider_message"])
+	}
+}
+
+func TestMapProviderHTTPError_ServiceUnavailableKeepsProviderDetail(t *testing.T) {
+	err := MapProviderHTTPError(503, map[string]any{
+		"detail": map[string]any{
+			"message": "local supervised speech synthesis failed: speech driver process unavailable",
+			"reason":  "speech_driver_execution_failed",
+		},
+	})
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatal("expected gRPC status error for HTTP 503 provider failure")
+	}
+	if st.Code() != codes.Unavailable {
+		t.Fatalf("expected Unavailable, got %v", st.Code())
+	}
+	reason, ok := grpcerr.ExtractReasonCode(err)
+	if !ok || reason != runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE {
+		t.Fatalf("expected AI_PROVIDER_UNAVAILABLE, got %v", reason)
+	}
+	metadata := extractErrorInfoMetadata(err)
+	if !strings.Contains(metadata["provider_message"], "speech driver process unavailable") {
+		t.Fatalf("expected provider_message to keep service detail, got %q", metadata["provider_message"])
+	}
+}
+
 func TestMapProviderHTTPError_ProviderInternal(t *testing.T) {
 	err := MapProviderHTTPError(500, nil)
 	st, ok := status.FromError(err)

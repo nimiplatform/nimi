@@ -440,6 +440,9 @@ export function useRouteModelPickerData({
     }
   }, [provider, connectorModelsMap]);
 
+  const firstConnectorId = connectors[0]?.connectorId ?? '';
+  const connectorIdAvailable = Boolean(connectorId && connectors.some((connector) => connector.connectorId === connectorId));
+
   useEffect(() => {
     let cancelled = false;
     void fetchData(() => cancelled);
@@ -447,6 +450,14 @@ export function useRouteModelPickerData({
       cancelled = true;
     };
   }, [fetchData]);
+
+  useEffect(() => {
+    if (source !== 'cloud') return;
+    if (!firstConnectorId) return;
+    if (connectorIdAvailable) return;
+    setConnectorId(firstConnectorId);
+    void fetchConnectorModels(firstConnectorId);
+  }, [connectorIdAvailable, fetchConnectorModels, firstConnectorId, source]);
 
   // Auto-fetch connector models when connectorId changes
   useEffect(() => {
@@ -562,13 +573,16 @@ export function useRouteModelPickerData({
   // --- Event handlers ---
   const onSourceChange = useCallback((newSource: RouteModelPickerSource) => {
     pickerState.setSearchQuery('');
+    const currentConnectorId = connectorIdAvailable ? connectorId : '';
+    const nextConnectorId = newSource === 'cloud' ? (currentConnectorId || firstConnectorId) : '';
     setSource(newSource);
     setModel('');
-    if (newSource === 'local') {
-      setConnectorId('');
+    setConnectorId(nextConnectorId);
+    if (nextConnectorId) {
+      void fetchConnectorModels(nextConnectorId);
     }
-    onSelectionChange?.({ source: newSource, connectorId: newSource === 'local' ? '' : connectorId, model: '' });
-  }, [connectorId, onSelectionChange, pickerState]);
+    onSelectionChange?.({ source: newSource, connectorId: nextConnectorId, model: '' });
+  }, [connectorId, connectorIdAvailable, fetchConnectorModels, firstConnectorId, onSelectionChange, pickerState]);
 
   const onConnectorChange = useCallback((newConnectorId: string) => {
     setConnectorId(newConnectorId);

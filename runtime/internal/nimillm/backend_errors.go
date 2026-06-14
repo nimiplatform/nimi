@@ -129,6 +129,8 @@ func classifyProviderBadRequest(providerMessage string) (codes.Code, runtimev1.R
 		"unsupported",
 		"not supported",
 		"invalid",
+		"required",
+		"requires",
 		"must be",
 		"out of range",
 		"unrecognized",
@@ -159,6 +161,40 @@ func classifyProviderBadRequest(providerMessage string) (codes.Code, runtimev1.R
 	}
 
 	return codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID, "check_input_and_extensions"
+}
+
+func providerUnavailablePayloadIsMediaOptionFailure(providerMessage string) bool {
+	normalized := strings.ToLower(strings.TrimSpace(providerMessage))
+	if normalized == "" {
+		return false
+	}
+	mentionsMediaOption := containsAnyToken(
+		normalized,
+		"voice",
+		"voice_ref",
+		"voice workflow",
+		"audio format",
+		"sample rate",
+		"speaker",
+		"speed",
+		"pitch",
+		"style",
+		"instruct",
+	)
+	if !mentionsMediaOption {
+		return false
+	}
+	return containsAnyToken(
+		normalized,
+		"unsupported",
+		"not supported",
+		"invalid",
+		"required",
+		"requires",
+		"must be",
+		"out of range",
+		"unrecognized",
+	)
 }
 
 // MapProviderRequestError maps a network/request error to gRPC status.
@@ -261,9 +297,24 @@ func MapProviderHTTPError(statusCode int, payload map[string]any) error {
 	case http.StatusInternalServerError:
 		return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
 	case http.StatusBadGateway, http.StatusServiceUnavailable:
-		return grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+		if providerUnavailablePayloadIsMediaOptionFailure(providerMessage) {
+			return grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED, grpcerr.ReasonOptions{
+				ActionHint: "adjust_tts_voice_or_audio_options",
+				Message:    genericProviderFailure,
+				Metadata:   metadata,
+			})
+		}
+		return grpcerr.WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, grpcerr.ReasonOptions{
+			ActionHint: "check_provider_endpoint_or_local_runtime_health",
+			Message:    genericProviderFailure,
+			Metadata:   metadata,
+		})
 	default:
-		return grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+		return grpcerr.WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, grpcerr.ReasonOptions{
+			ActionHint: "check_provider_endpoint_or_local_runtime_health",
+			Message:    genericProviderFailure,
+			Metadata:   metadata,
+		})
 	}
 }
 
