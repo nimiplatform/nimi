@@ -697,6 +697,26 @@ func TestResolveCloudProvidersIgnoresRegistryOnlyEnvWithoutProbeTarget(t *testin
 	}
 }
 
+func TestResolveCloudProviderTargetsResolvesEnvAPIKeyForHealthProbe(t *testing.T) {
+	clearRuntimeConfigEnv(t)
+	t.Setenv("NIMI_RUNTIME_CLOUD_GEMINI_API_KEY", "gemini-key")
+
+	targets := ResolveCloudProviderTargets(nil)
+	for _, target := range targets {
+		if target.CanonicalID != "gemini" {
+			continue
+		}
+		if target.BaseURL == "" {
+			t.Fatalf("expected gemini default base url")
+		}
+		if target.APIKey != "gemini-key" {
+			t.Fatalf("expected resolved env api key, got %q", target.APIKey)
+		}
+		return
+	}
+	t.Fatalf("expected env-only gemini provider target")
+}
+
 func TestLoadRejectsLegacyProviderKey(t *testing.T) {
 	configPath := filepath.Join(t.TempDir(), "runtime-config.json")
 	configBody := `{

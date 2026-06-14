@@ -383,7 +383,11 @@ func (p *CloudProvider) isBackendHealthy(name string) bool {
 	if p.health == nil {
 		return true
 	}
-	return p.health.IsHealthy(name)
+	if p.health.IsHealthy(name) {
+		return true
+	}
+	normalized := strings.ReplaceAll(strings.TrimSpace(name), "_", "-")
+	return normalized != name && p.health.SnapshotOf(name).State == providerhealth.StateUnknown && p.health.IsHealthy(normalized)
 }
 
 func (p *CloudProvider) rememberDecision(modelID string, backendName string) {

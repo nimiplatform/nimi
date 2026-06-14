@@ -164,6 +164,19 @@ func TestSampleAIProviderHealthSkipsManagedLoopbackProbeWhenEngineIsIdle(t *test
 	}
 }
 
+func TestProviderProbePathsIncludeOpenAICompatibleModelsFallback(t *testing.T) {
+	paths := providerProbePaths("cloud-gemini")
+	if !slices.Contains(paths, "/models") {
+		t.Fatalf("expected generic cloud probe paths to include /models fallback, got=%v", paths)
+	}
+	if got := resolveProbeEndpoint("https://api.openai.com/v1", "/v1/models"); got != "https://api.openai.com/v1/models" {
+		t.Fatalf("unexpected /v1 probe endpoint: %s", got)
+	}
+	if got := resolveProbeEndpoint("https://generativelanguage.googleapis.com/v1beta/openai", "/models"); got != "https://generativelanguage.googleapis.com/v1beta/openai/models" {
+		t.Fatalf("unexpected openai-compatible probe endpoint: %s", got)
+	}
+}
+
 func TestSampleAIProviderHealthProbesManagedLoopbackWhenActiveSupervisedAssetExists(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	t.Setenv("NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL", "http://127.0.0.1:1234/v1")

@@ -98,7 +98,7 @@ func ResolveCloudProviderTargets(fileTargets map[string]RuntimeFileTarget) []Res
 		targets = append(targets, ResolvedCloudProvider{
 			CanonicalID: binding.canonicalID,
 			BaseURL:     baseURL,
-			APIKey:      strings.TrimSpace(target.APIKey),
+			APIKey:      strings.TrimSpace(ResolveProviderAPIKey(target)),
 		})
 	}
 	return targets

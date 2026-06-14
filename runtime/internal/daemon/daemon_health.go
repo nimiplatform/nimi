@@ -267,7 +267,7 @@ func providerProbePaths(name string) []string {
 	if strings.EqualFold(strings.TrimSpace(name), "local") {
 		return []string{"/health", "/v1/models"}
 	}
-	return []string{"/healthz", "/v1/models"}
+	return []string{"/healthz", "/v1/models", "/models"}
 }
 
 func resolveProbeEndpoint(base string, path string) string {

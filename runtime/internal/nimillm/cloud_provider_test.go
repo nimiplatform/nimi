@@ -67,6 +67,43 @@ func TestCloudProviderPickBackendRejectsUnavailableExplicitPrefixWithoutFallback
 	}
 }
 
+func TestCloudProviderHealthFallsBackToProbeCanonicalNameOnlyWhenExactUnknown(t *testing.T) {
+	health := providerhealth.New()
+	if err := health.Mark("cloud-fish-audio", true, "healthy"); err != nil {
+		t.Fatalf("Mark fish audio probe target healthy: %v", err)
+	}
+	provider := NewCloudProvider(CloudConfig{
+		Providers: map[string]ProviderCredentials{
+			"fish_audio": {BaseURL: "https://api.fish.audio"},
+		},
+	}, nil, health)
+
+	backend, resolvedModelID, explicit, ok := provider.PickBackend("fish_audio/speech-1.5")
+	if backend == nil {
+		t.Fatal("expected fish_audio backend")
+	}
+	if backend.Name != "cloud-fish_audio" {
+		t.Fatalf("unexpected backend: %q", backend.Name)
+	}
+	if resolvedModelID != "speech-1.5" {
+		t.Fatalf("unexpected resolved model id: %q", resolvedModelID)
+	}
+	if !explicit || !ok {
+		t.Fatalf("expected explicit available route, explicit=%v ok=%v", explicit, ok)
+	}
+
+	if err := health.Mark("cloud-fish_audio", false, "exact backend down"); err != nil {
+		t.Fatalf("Mark exact backend unhealthy: %v", err)
+	}
+	backend, _, explicit, ok = provider.PickBackend("fish_audio/speech-1.5")
+	if backend != nil {
+		t.Fatalf("expected exact unhealthy state to fail closed, got %q", backend.Name)
+	}
+	if !explicit || ok {
+		t.Fatalf("expected explicit unavailable route after exact unhealthy, explicit=%v ok=%v", explicit, ok)
+	}
+}
+
 func TestCloudProviderPickBackendRejectsLegacyAliasPrefix(t *testing.T) {
 	provider := NewCloudProvider(CloudConfig{
 		Providers: map[string]ProviderCredentials{
