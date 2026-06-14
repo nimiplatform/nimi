@@ -5,6 +5,7 @@ import {
   type NimiRuntimeAgentCanonicalMemoryBankStatus,
 } from '@nimiplatform/sdk/runtime';
 import {
+  getDesktopAccountRuntime,
   getDesktopAppId,
   getDesktopRuntime,
 } from './sdk/desktop-nimi-client-session';
@@ -17,8 +18,11 @@ type RuntimeAgentMemoryDeps = {
 };
 
 function getDesktopRuntimeAgentMemoryClient(): NimiHostRuntimeAgentMemoryClient {
+  const accountRuntime = getDesktopAccountRuntime();
   return {
     appId: getDesktopAppId(),
+    auth: accountRuntime.auth,
+    appAuth: accountRuntime.grants,
     agent: getDesktopRuntime().agents,
   };
 }

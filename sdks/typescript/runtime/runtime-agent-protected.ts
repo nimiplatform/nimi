@@ -13,7 +13,7 @@ import {
 import { createNimiError } from '../types';
 import { normalizeNimiRuntimeAgentText, toNimiRuntimeTimestamp } from './runtime-agent-values';
 
-const RUNTIME_AGENT_SCOPE_CATALOG_VERSION = 'sdk-vnext';
+const RUNTIME_AGENT_SCOPE_CATALOG_VERSION = 'sdk-v2';
 const RUNTIME_AGENT_TOKEN_TTL_SECONDS = 3600;
 
 export interface NimiRuntimeAgentAuthClient {

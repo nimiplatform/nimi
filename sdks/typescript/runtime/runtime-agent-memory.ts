@@ -10,6 +10,13 @@ import {
 import { createNimiError } from '../types';
 import { parseRuntimeLocalAgentIdentity } from './agent-local-identity';
 import { normalizeNimiRuntimeReasonCode } from './reason-messages';
+import {
+  type NimiRuntimeAgentAppAuthClient,
+  type NimiRuntimeAgentAuthClient,
+  type NimiRuntimeAgentScopeRunner,
+  resolveNimiRuntimeAgentSubjectUserId,
+  withNimiRuntimeAgentScopes,
+} from './runtime-agent-protected';
 import { normalizeNimiRuntimeAgentText } from './runtime-agent-values';
 
 export type NimiRuntimeAgentCanonicalMemoryMode = 'baseline' | 'standard' | 'unavailable';
@@ -33,6 +40,8 @@ export interface NimiRuntimeAgentMemorySurface {
 
 export interface NimiHostRuntimeAgentMemoryClient {
   readonly appId: string;
+  readonly auth: NimiRuntimeAgentAuthClient;
+  readonly appAuth: NimiRuntimeAgentAppAuthClient;
   readonly agent: {
     getAgentCanonicalMemoryBankStatus(
       request: GetAgentCanonicalMemoryBankStatusRequest,
@@ -48,6 +57,7 @@ export interface NimiHostRuntimeAgentMemoryClient {
 export interface NimiHostRuntimeAgentMemorySurfaceOptions {
   readonly getRuntime: () => NimiHostRuntimeAgentMemoryClient;
   readonly getSubjectUserId: () => string | Promise<string | undefined> | undefined;
+  readonly withScopes?: NimiRuntimeAgentScopeRunner;
 }
 
 function projectAgentCanonicalMemoryMode(value: AgentCanonicalMemoryBankMode): NimiRuntimeAgentCanonicalMemoryMode {
@@ -96,16 +106,10 @@ export function projectNimiRuntimeAgentCanonicalMemoryBankStatus(
 async function resolveSubjectUserId(
   getSubjectUserId: () => string | Promise<string | undefined> | undefined,
 ): Promise<string> {
-  const subjectUserId = normalizeNimiRuntimeAgentText(await getSubjectUserId());
-  if (!subjectUserId) {
-    throw createNimiError({
-      message: 'Runtime Agent memory requires authenticated subject user id.',
-      reasonCode: 'SDK_RUNTIME_AGENT_SUBJECT_REQUIRED',
-      actionHint: 'provide_runtime_agent_subject_user_id',
-      source: 'sdk',
-    });
-  }
-  return subjectUserId;
+  return resolveNimiRuntimeAgentSubjectUserId(
+    getSubjectUserId,
+    'Runtime Agent memory requires authenticated subject user id.',
+  );
 }
 
 function buildAgentCanonicalMemoryRequest(
@@ -139,24 +143,36 @@ export function createNimiHostRuntimeAgentMemorySurface(
         source: 'sdk',
       });
     }
-    return buildAgentCanonicalMemoryRequest(
-      runtime,
-      await resolveSubjectUserId(options.getSubjectUserId),
-      normalizedAgentId,
-    );
+    const subjectUserId = await resolveSubjectUserId(options.getSubjectUserId);
+    return {
+      subjectUserId,
+      request: buildAgentCanonicalMemoryRequest(runtime, subjectUserId, normalizedAgentId),
+    };
   }
 
   return {
     async getCanonicalBankStatus(agentId) {
       const runtime = options.getRuntime();
-      const request = await buildRequest(runtime, agentId);
-      const response = await runtime.agent.getAgentCanonicalMemoryBankStatus(request);
+      const { request, subjectUserId } = await buildRequest(runtime, agentId);
+      const response = await withNimiRuntimeAgentScopes({
+        runtime,
+        subjectUserId,
+        withScopes: options.withScopes,
+      }, ['runtime.agent.read'], (callOptions) => (
+        runtime.agent.getAgentCanonicalMemoryBankStatus(request, callOptions)
+      ));
       return projectNimiRuntimeAgentCanonicalMemoryBankStatus(response.status);
     },
     async bindCanonicalBankStandard(agentId) {
       const runtime = options.getRuntime();
-      const request = await buildRequest(runtime, agentId);
-      const response = await runtime.agent.requestAgentCanonicalMemoryBankBind(request);
+      const { request, subjectUserId } = await buildRequest(runtime, agentId);
+      const response = await withNimiRuntimeAgentScopes({
+        runtime,
+        subjectUserId,
+        withScopes: options.withScopes,
+      }, ['runtime.agent.write'], (callOptions) => (
+        runtime.agent.requestAgentCanonicalMemoryBankBind(request, callOptions)
+      ));
       return projectNimiRuntimeAgentCanonicalMemoryBankStatus(response.status);
     },
   };

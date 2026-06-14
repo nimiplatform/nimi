@@ -73,6 +73,7 @@ export function withNimiRuntimeIdempotencyMetadata(
     metadata: {
       ...(options?.metadata ?? {}),
       idempotencyKey: normalized,
+      'x-nimi-idempotency-key': normalized,
     },
   };
 }

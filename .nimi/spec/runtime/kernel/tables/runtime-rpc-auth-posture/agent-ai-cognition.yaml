@@ -354,15 +354,15 @@ methods:
       - K-AUTHN-001
       - K-AUTH-001
   - method_id: /nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus
-    posture: anonymous_read
-    rationale: runtime-owned canonical agent memory bank status read; no JWT validation
+    posture: protected_or_scoped_binding_read
+    rationale: runtime-owned canonical agent memory bank status read requires runtime.agent.read capability
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
       - K-AGCORE-004
   - method_id: /nimi.runtime.v1.RuntimeAgentService/RequestAgentCanonicalMemoryBankBind
-    posture: anonymous_read
-    rationale: runtime-owned canonical agent memory bank bind request; no JWT validation
+    posture: protected_or_scoped_binding_write
+    rationale: runtime-owned canonical agent memory bank bind request requires runtime.agent.write capability
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001

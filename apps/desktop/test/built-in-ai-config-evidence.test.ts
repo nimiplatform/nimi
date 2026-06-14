@@ -61,6 +61,13 @@ const rendererRuntimeBootstrapSource = readFileSync(
   ),
   'utf8',
 );
+const desktopAuthAdapterSource = readFileSync(
+  resolve(
+    import.meta.dirname,
+    '../src/shell/renderer/features/auth/desktop-auth-adapter.ts',
+  ),
+  'utf8',
+);
 
 test('built-in AIConfig local writer module is registered', () => {
   assert.match(mainSource, /mod desktop_ai_config_library;/);
@@ -195,4 +202,20 @@ test('built-in AIConfig renderer init waits for Runtime account projection and p
   assert.match(rendererRuntimeBootstrapSource, /message: 'phase:built-in-ai-config:init-skipped-product-not-ready'/);
   assert.match(rendererRuntimeBootstrapSource, /if \(accountProjection\?\.accountId\) \{[\s\S]*initializeBuiltInChatScopesAfterReadyAdmission\(flowId\)/);
   assert.match(rendererRuntimeBootstrapSource, /message: 'phase:built-in-ai-config:init-deferred'/);
+});
+
+test('desktop post-login sync initializes built-in chat AIConfig without full rebootstrap', () => {
+  assert.match(desktopAuthAdapterSource, /syncDesktopBuiltInChatAIConfigAfterLogin/);
+  assert.match(desktopAuthAdapterSource, /desktopBridge\.getProductControlRecord\(\)/);
+  assert.match(desktopAuthAdapterSource, /if \(projection\.state !== 'ready_for_use'\)/);
+  assert.match(desktopAuthAdapterSource, /initializeBuiltInChatScopesFromProductControl\(\)/);
+  assert.match(desktopAuthAdapterSource, /refreshConversationCapabilityProjections\(\['text\.generate'\]\)/);
+  const completeStart = desktopAuthAdapterSource.indexOf('complete: async (request: Parameters<typeof broker.complete>[0]) => {');
+  assert.notEqual(completeStart, -1, 'desktop Runtime account browser broker complete handler must exist');
+  const completeEnd = desktopAuthAdapterSource.indexOf('\n    },', completeStart);
+  assert.doesNotMatch(
+    desktopAuthAdapterSource.slice(completeStart, completeEnd),
+    /rebootstrapRuntime|bootstrapRuntime/,
+    'post-login built-in AIConfig sync must not reintroduce full bootstrap into auth completion',
+  );
 });

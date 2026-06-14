@@ -78,6 +78,7 @@
     "APP_MODE_DOMAIN_FORBIDDEN": "应用模式域被禁止。",
     "APP_MODE_SCOPE_FORBIDDEN": "应用模式 scope 被禁止。",
     "APP_MODE_MANIFEST_INVALID": "应用模式清单无效。",
+    "RUNTIME_CALL_FAILED": "Runtime 调用失败。",
     "RUNTIME_UNAVAILABLE": "运行时不可用。",
     "RUNTIME_BRIDGE_DAEMON_UNAVAILABLE": "运行时守护进程不可用。"
   }

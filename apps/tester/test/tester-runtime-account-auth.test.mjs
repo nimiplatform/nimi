@@ -81,6 +81,17 @@ function createFakePlatformClient() {
             },
           };
         },
+        getAccessToken: async (input, options) => {
+          calls.push({ method: 'getAccessToken', input, options });
+          return {
+            accepted: true,
+            accessToken: 'runtime-owned-access-token',
+          };
+        },
+        refreshAccountSession: async (input, options) => {
+          calls.push({ method: 'refreshAccountSession', input, options });
+          return { accepted: true };
+        },
         logout: async (input) => {
           calls.push({ method: 'logout', input });
           return { accepted: true };
@@ -122,6 +133,15 @@ test('Tester auth flow consumes RuntimeAccountService without app-owned token cu
   assert.deepEqual(findCall(calls, 'getAccountSessionStatus').input, {
     caller: runtimeAccountCaller,
   });
+  const accessTokenCall = findCall(calls, 'getAccessToken');
+  assert.deepEqual(accessTokenCall.input, {
+    caller: runtimeAccountCaller,
+    requestedScopes: [],
+  });
+  assert.equal(accessTokenCall.options.metadata.callerId, 'nimi.tester');
+  assert.equal(accessTokenCall.options.metadata.surfaceId, 'runtime-account.access-token');
+  assert.equal(typeof accessTokenCall.options.metadata['x-nimi-idempotency-key'], 'string');
+  assert.equal(calls.some((entry) => entry.method === 'refreshAccountSession'), false);
 
   const broker = createNimiAppRuntimeAccountBroker(client);
   const beginResult = await broker.begin({

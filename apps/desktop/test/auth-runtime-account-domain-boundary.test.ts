@@ -41,9 +41,24 @@ test('Auth/OAuth preflight inventory has a real migration point closed in Kit', 
   assert.match(desktopAuthAdapter, /verifyNimiRealmEmailOtp/);
   assert.match(desktopAuthAdapter, /loginNimiRealmOAuth/);
   assert.match(desktopAuthAdapter, /getDesktopAccountRuntime/);
-  assert.match(desktopAuthAdapter, /rebootstrapRuntime/);
   assert.match(desktopAuthAdapter, /Runtime account login completed without a usable Runtime access token/);
   assert.doesNotMatch(desktopAuthAdapter, /getPlatformClient/);
+});
+
+test('Desktop browser auth completion is gated by Runtime account token readback, not full bootstrap', () => {
+  const desktopAuthAdapter = read('apps/desktop/src/shell/renderer/features/auth/desktop-auth-adapter.ts');
+  const completeStart = desktopAuthAdapter.indexOf('complete: async (request: Parameters<typeof broker.complete>[0]) => {');
+  assert.notEqual(completeStart, -1, 'desktop Runtime account browser broker complete handler must exist');
+  const completeEnd = desktopAuthAdapter.indexOf('\n    },', completeStart);
+  const completeSource = desktopAuthAdapter.slice(completeStart, completeEnd);
+
+  assert.match(completeSource, /await broker\.complete\(request\)/);
+  assert.match(completeSource, /await loadDesktopRuntimeAccountUser\(\)/);
+  assert.doesNotMatch(
+    completeSource,
+    /rebootstrapRuntime|bootstrapRuntime/,
+    'desktop login completion must not wait for full renderer bootstrap after loopback success',
+  );
 });
 
 test('Desktop auth DTO projection is owned by SDK Realm auth extension', () => {

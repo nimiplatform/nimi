@@ -49,13 +49,23 @@ function createRuntimeMock(statuses: Array<ReturnType<typeof runtimeStatus>>) {
     calls,
     runtime: {
       appId: 'desktop-test',
+      auth: {
+        async registerApp() {
+          return { accepted: true };
+        },
+      },
+      appAuth: {
+        async authorizeExternalPrincipal() {
+          return { tokenId: 'token-1', secret: 'secret-1' };
+        },
+      },
       agent: {
-        getAgentCanonicalMemoryBankStatus: async (input: Record<string, unknown>) => {
-          calls.getStatus.push(input);
+        getAgentCanonicalMemoryBankStatus: async (input: Record<string, unknown>, options?: Record<string, unknown>) => {
+          calls.getStatus.push({ ...input, __options: options });
           return { status: currentStatus() };
         },
-        requestAgentCanonicalMemoryBankBind: async (input: Record<string, unknown>) => {
-          calls.bind.push(input);
+        requestAgentCanonicalMemoryBankBind: async (input: Record<string, unknown>, options?: Record<string, unknown>) => {
+          calls.bind.push({ ...input, __options: options });
           index += 1;
           return {
             status: currentStatus(),
@@ -97,7 +107,8 @@ test('runtime agent memory adapter consumes Runtime Agent canonical bank status'
     cutoverAllowed: false,
   });
   assert.equal(calls.getStatus.length, 1);
-  assert.deepEqual(calls.getStatus[0], {
+  const { __options: getStatusOptions, ...getStatusRequest } = calls.getStatus[0] || {};
+  assert.deepEqual(getStatusRequest, {
     agentId: LOCAL_AGENT_REF,
     context: {
       appId: 'desktop-test',
@@ -107,6 +118,7 @@ test('runtime agent memory adapter consumes Runtime Agent canonical bank status'
       localAgentRef: LOCAL_AGENT_REF,
     },
   });
+  assert.equal((getStatusOptions as { metadata?: Record<string, string> } | undefined)?.metadata?.['x-nimi-access-token-id'], 'token-1');
 });
 
 test('runtime agent memory adapter binds through Runtime Agent without app-side intent checks', async () => {
@@ -143,4 +155,5 @@ test('runtime agent memory adapter binds through Runtime Agent without app-side 
     cutoverAllowed: false,
   });
   assert.equal(calls.bind.length, 1);
+  assert.equal((calls.bind[0]?.__options as { metadata?: Record<string, string> } | undefined)?.metadata?.['x-nimi-access-token-id'], 'token-1');
 });

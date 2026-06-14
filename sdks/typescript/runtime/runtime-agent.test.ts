@@ -170,7 +170,7 @@ test('Runtime Agent protected presentation surface requests scoped Runtime acces
           externalPrincipalId: 'sdk.test',
           effectiveScopes: request.scopes,
           policyVersion: 'runtime-agent-v1',
-          issuedScopeCatalogVersion: 'sdk-vnext',
+          issuedScopeCatalogVersion: 'sdk-v2',
           canDelegate: false,
         };
       },
@@ -247,7 +247,7 @@ test('Runtime Agent inspect surface reads, writes, and subscribes through protec
           externalPrincipalId: 'sdk.test',
           effectiveScopes: request.scopes,
           policyVersion: 'runtime-agent-v1',
-          issuedScopeCatalogVersion: 'sdk-vnext',
+          issuedScopeCatalogVersion: 'sdk-v2',
           canDelegate: false,
         };
       },
@@ -513,7 +513,7 @@ test('Runtime Agent smoke verification reads protected anchor snapshot and healt
           externalPrincipalId: 'sdk.test',
           effectiveScopes: request.scopes,
           policyVersion: 'runtime-agent-v1',
-          issuedScopeCatalogVersion: 'sdk-vnext',
+          issuedScopeCatalogVersion: 'sdk-v2',
           canDelegate: false,
         };
       },

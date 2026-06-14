@@ -1,7 +1,15 @@
-import { createNimiHostRuntimeAgentMemorySurface } from '@nimiplatform/sdk/runtime';
+import {
+  createNimiHostRuntimeAgentMemorySurface,
+  type NimiHostRuntimeAgentMemoryClient,
+  type NimiRuntimeAgentScopeRunner,
+} from '@nimiplatform/sdk/runtime';
 import { AgentCanonicalMemoryBankMode, ReasonCode } from '@nimiplatform/sdk/runtime/generated';
 
 const TESTER_LOCAL_AGENT_REF = 'local-agent:tester-user:tester-agent';
+
+function unsupportedRuntimeAgentAuth(): never {
+  throw new Error('Tester local agent memory proof must use its scoped harness and must not issue runtime agent auth grants.');
+}
 
 export function createTesterRuntimeAgentMemorySurface() {
   const status = {
@@ -22,9 +30,23 @@ export function createTesterRuntimeAgentMemorySurface() {
     bindAllowed: false,
     cutoverAllowed: true,
   };
+  const withScopes: NimiRuntimeAgentScopeRunner = async (scopes, operation) => operation({
+    metadata: {
+      callerKind: 'third-party-app',
+      callerId: 'nimi.tester',
+      surfaceId: 'tester.runtime-agent-memory',
+      requestedScopes: [...scopes].join(','),
+    },
+  });
   return createNimiHostRuntimeAgentMemorySurface({
-    getRuntime: () => ({
+    getRuntime: (): NimiHostRuntimeAgentMemoryClient => ({
       appId: 'nimi.tester',
+      auth: {
+        registerApp: unsupportedRuntimeAgentAuth,
+      },
+      appAuth: {
+        authorizeExternalPrincipal: unsupportedRuntimeAgentAuth,
+      },
       agent: {
         getAgentCanonicalMemoryBankStatus: async () => ({ status }),
         requestAgentCanonicalMemoryBankBind: async () => ({
@@ -35,6 +57,7 @@ export function createTesterRuntimeAgentMemorySurface() {
       },
     }),
     getSubjectUserId: () => 'tester-user',
+    withScopes,
   });
 }
 

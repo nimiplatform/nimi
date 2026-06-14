@@ -265,9 +265,19 @@ test('Runtime Agent memory helpers project canonical status and bind envelopes',
     getSubjectUserId: () => 'owner-1',
     getRuntime: () => ({
       appId: 'nimi.avatar',
+      auth: {
+        async registerApp() {
+          return { accepted: true };
+        },
+      },
+      appAuth: {
+        async authorizeExternalPrincipal() {
+          return { tokenId: 'token-1', secret: 'secret-1' };
+        },
+      },
       agent: {
-        async getAgentCanonicalMemoryBankStatus(request) {
-          requests.push({ method: 'get', request });
+        async getAgentCanonicalMemoryBankStatus(request, options) {
+          requests.push({ method: 'get', request, options });
           return {
             status: {
               mode: AgentCanonicalMemoryBankMode.BASELINE,
@@ -275,8 +285,8 @@ test('Runtime Agent memory helpers project canonical status and bind envelopes',
             },
           };
         },
-        async requestAgentCanonicalMemoryBankBind(request) {
-          requests.push({ method: 'bind', request });
+        async requestAgentCanonicalMemoryBankBind(request, options) {
+          requests.push({ method: 'bind', request, options });
           return {
             status: {
               mode: AgentCanonicalMemoryBankMode.STANDARD,
@@ -299,6 +309,16 @@ test('Runtime Agent memory helpers project canonical status and bind envelopes',
       getSubjectUserId: () => '',
       getRuntime: () => ({
         appId: 'nimi.avatar',
+        auth: {
+          async registerApp() {
+            throw new Error('unexpected');
+          },
+        },
+        appAuth: {
+          async authorizeExternalPrincipal() {
+            throw new Error('unexpected');
+          },
+        },
         agent: {
           async getAgentCanonicalMemoryBankStatus() {
             throw new Error('unexpected');

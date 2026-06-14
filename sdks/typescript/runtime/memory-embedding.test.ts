@@ -94,7 +94,7 @@ test('Runtime memory embedding protected surfaces project config and runtime sta
           externalPrincipalId: 'sdk.test',
           effectiveScopes: request.scopes,
           policyVersion: 'memory-embedding-v1',
-          issuedScopeCatalogVersion: 'sdk-vnext',
+          issuedScopeCatalogVersion: 'sdk-v2',
           canDelegate: false,
         };
       },

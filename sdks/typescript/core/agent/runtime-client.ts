@@ -168,9 +168,12 @@ export function createNimiRuntimeAgentClient(options: NimiRuntimeAgentClientOpti
   const memory = createNimiHostRuntimeAgentMemorySurface({
     getRuntime: () => ({
       appId: runtime.appId,
+      auth: runtime.auth,
+      appAuth: runtime.appAuth,
       agent: runtime.agent,
     }),
     getSubjectUserId: options.getSubjectUserId,
+    withScopes: options.withScopes,
   });
 
   return {

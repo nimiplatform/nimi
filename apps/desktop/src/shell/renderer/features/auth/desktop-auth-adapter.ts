@@ -27,9 +27,16 @@ import {
 } from '@nimiplatform/sdk/realm';
 import { createNimiDesktopShellRuntimeAccountCaller } from '@nimiplatform/sdk/runtime';
 import { AccountSessionState } from '@nimiplatform/sdk/runtime/generated';
-import { bootstrapRuntime, rebootstrapRuntime } from '@renderer/infra/bootstrap/runtime-bootstrap';
+import { bootstrapRuntime } from '@renderer/infra/bootstrap/runtime-bootstrap';
 import { queryClient } from '@renderer/infra/query-client/query-client';
 import { desktopBridge } from '@renderer/bridge';
+import { logRendererEvent } from '@nimiplatform/kit/telemetry';
+import {
+  initializeBuiltInChatScopesFromProductControl,
+} from '@renderer/app-shell/providers/desktop-ai-config-service';
+import {
+  refreshConversationCapabilityProjections,
+} from '@renderer/features/chat/conversation-capability-projection';
 import { createProxyFetch } from '@renderer/infra/bridge/proxy-fetch';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { callRealmApi } from '@renderer/infra/realm/realm-api';
@@ -100,7 +107,6 @@ export function createDesktopRuntimeAccountBrowserBroker() {
     begin: broker.begin,
     complete: async (request: Parameters<typeof broker.complete>[0]) => {
       await broker.complete(request);
-      await rebootstrapRuntime();
       const user = await loadDesktopRuntimeAccountUser();
       if (!user) {
         throw new Error('Runtime account login completed without a usable Runtime access token.');
@@ -108,6 +114,39 @@ export function createDesktopRuntimeAccountBrowserBroker() {
       return { user };
     },
   };
+}
+
+async function syncDesktopBuiltInChatAIConfigAfterLogin(): Promise<void> {
+  const projection = await desktopBridge.getProductControlRecord();
+  if (projection.state !== 'ready_for_use') {
+    logRendererEvent({
+      level: 'info',
+      area: 'desktop-auth',
+      message: 'phase:post-login-built-in-ai-config:skipped-product-not-ready',
+      details: {
+        productState: projection.state,
+      },
+    });
+    return;
+  }
+  await initializeBuiltInChatScopesFromProductControl();
+  await refreshConversationCapabilityProjections(['text.generate']);
+}
+
+function logDesktopPostLoginSyncFailures(results: readonly PromiseSettledResult<unknown>[]): void {
+  for (const result of results) {
+    if (result.status !== 'rejected') {
+      continue;
+    }
+    logRendererEvent({
+      level: 'warn',
+      area: 'desktop-auth',
+      message: 'phase:post-login-sync:deferred',
+      details: {
+        error: result.reason instanceof Error ? result.reason.message : String(result.reason || 'unknown'),
+      },
+    });
+  }
 }
 
 export async function ensureAuthApiReady(): Promise<void> {
@@ -293,12 +332,14 @@ export function createDesktopAuthAdapter(): AuthPlatformAdapter {
         return;
       }
 
-      // Query invalidation is enough here; each feature refetches through its
-      // Realm/SDK read surface.
-      await Promise.allSettled([
+      // Keep login completion independent from full renderer bootstrap, then
+      // materialize the built-in chat AIConfig scopes needed by Nimi Chat.
+      const results = await Promise.allSettled([
         queryClient.invalidateQueries({ queryKey: ['chats'] }),
         queryClient.invalidateQueries({ queryKey: ['contacts'] }),
+        syncDesktopBuiltInChatAIConfigAfterLogin(),
       ]);
+      logDesktopPostLoginSyncFailures(results);
     },
   };
 }

@@ -36,7 +36,7 @@ import type {
   NimiProtectedHostMemoryEmbeddingRuntimeSurfaceOptions,
 } from './memory-embedding-types';
 
-const NIMI_MEMORY_EMBEDDING_SCOPE_CATALOG_VERSION = 'sdk-vnext';
+const NIMI_MEMORY_EMBEDDING_SCOPE_CATALOG_VERSION = 'sdk-v2';
 const NIMI_MEMORY_EMBEDDING_TOKEN_TTL_SECONDS = 3600;
 
 function normalizeText(value: unknown): string {

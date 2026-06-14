@@ -1,8 +1,8 @@
 import { NimiClient, createNimiClient } from '@nimiplatform/sdk';
-import { Runtime, createNimiDesktopShellRuntimeAccountCaller, createNimiRuntimeAppSessionMetadataProvider, createNimiRuntimeFullAppRegistration, type NimiHostRuntimeAgentDelegatedCapabilityClient, type NimiHostRuntimeAgentLifecycleClient, type NimiHostRuntimeAgentPresentationProfileClient, type NimiRuntimeAccountCaller, type NimiRuntimeAgentTurnsRuntime } from '@nimiplatform/sdk/runtime';
-import { AccountSessionState } from '@nimiplatform/sdk/runtime/generated';
+import { Runtime, createNimiDesktopShellRuntimeAccountCaller, createNimiRuntimeAppSessionMetadataProvider, createNimiRuntimeFullAppRegistration, toNimiRuntimeTimestamp, withNimiRuntimeIdempotencyMetadata, type NimiHostRuntimeAgentDelegatedCapabilityClient, type NimiHostRuntimeAgentLifecycleClient, type NimiHostRuntimeAgentPresentationProfileClient, type NimiRuntimeAccountCaller, type NimiRuntimeAgentTurnsRuntime } from '@nimiplatform/sdk/runtime';
+import { AccountSessionState, AuthorizationPreset, ExternalPrincipalType, PolicyMode, type AuthorizeExternalPrincipalResponse } from '@nimiplatform/sdk/runtime/generated';
 import { Realm, createRealmFetchTransport } from '@nimiplatform/sdk/realm';
-import { createNimiError, ReasonCode, type CoreMetadata } from '@nimiplatform/sdk/types';
+import { createNimiClientId, createNimiError, ReasonCode, type CoreMetadata } from '@nimiplatform/sdk/types';
 
 export type DesktopNimiRealmFetch = typeof fetch;
 
@@ -62,6 +62,11 @@ const PLATFORM_RUNTIME_SESSION_APP_INSTANCE_SUFFIX = '.platform-runtime-session'
 const PLATFORM_RUNTIME_SESSION_DEVICE_ID = 'platform-runtime-session';
 const PLATFORM_RUNTIME_SESSION_TTL_SECONDS = 3600;
 const PLATFORM_RUNTIME_SESSION_REFRESH_SKEW_MS = 30_000;
+const DESKTOP_RUNTIME_PROTECTED_SCOPES = ['ai.spend.meter'] as const;
+const DESKTOP_RUNTIME_PROTECTED_SCOPE_CATALOG_VERSION = 'sdk-v2';
+const DESKTOP_RUNTIME_PROTECTED_TOKEN_TTL_SECONDS = 3600;
+const DESKTOP_RUNTIME_PROTECTED_TOKEN_REFRESH_SKEW_MS = 60_000;
+const DESKTOP_RUNTIME_PROTECTED_CONSENT_ID = 'desktop-shell-runtime-account';
 
 export async function configureDesktopRuntimeRealmSession(
   input: ConfigureDesktopRuntimeRealmSessionInput,
@@ -80,6 +85,7 @@ export async function configureDesktopRuntimeRealmSession(
       appId,
       appInstanceId: accountCaller.appInstanceId,
       deviceId: accountCaller.deviceId,
+      capabilities: [...DESKTOP_RUNTIME_PROTECTED_SCOPES],
       rejectionLabel: 'desktop shell Runtime account caller registration rejected',
       developerRegistration: input.developerRegistration,
     },
@@ -95,15 +101,26 @@ export async function configureDesktopRuntimeRealmSession(
     appId,
     appInstanceId: `${appId}${PLATFORM_RUNTIME_SESSION_APP_INSTANCE_SUFFIX}`,
     deviceId: PLATFORM_RUNTIME_SESSION_DEVICE_ID,
+    capabilities: [...DESKTOP_RUNTIME_PROTECTED_SCOPES],
     ttlSeconds: PLATFORM_RUNTIME_SESSION_TTL_SECONDS,
     refreshSkewMs: PLATFORM_RUNTIME_SESSION_REFRESH_SKEW_MS,
     auth: accountRuntime.auth,
   });
   const runtimeSessionMetadata = async (): Promise<CoreMetadata> => {
-    if (!(await getRuntimeSubjectUserId())) {
+    const subjectUserId = await getRuntimeSubjectUserId();
+    if (!subjectUserId || !(await ensureRuntimeAccountAccessToken(accountRuntime, accountCaller))) {
       return {};
     }
-    return requiredRuntimeSessionMetadata();
+    const appSessionMetadata = await requiredRuntimeSessionMetadata();
+    const protectedAccessMetadata = await getDesktopRuntimeProtectedAccessMetadata(
+      appId,
+      accountRuntime,
+      subjectUserId,
+    );
+    return {
+      ...appSessionMetadata,
+      ...protectedAccessMetadata,
+    };
   };
   const runtime = new Runtime({
     appId,
@@ -131,6 +148,142 @@ export async function configureDesktopRuntimeRealmSession(
   };
   currentSession = session;
   return session;
+}
+
+let protectedAccessCache: {
+  readonly appId: string;
+  readonly subjectUserId: string;
+  readonly metadata: CoreMetadata;
+  readonly expiresAtMs: number;
+} | null = null;
+let protectedAccessInflight: Promise<{
+  readonly appId: string;
+  readonly subjectUserId: string;
+  readonly metadata: CoreMetadata;
+  readonly expiresAtMs: number;
+}> | null = null;
+let protectedAccessInflightKey = '';
+
+async function ensureRuntimeAccountAccessToken(
+  accountRuntime: Runtime,
+  accountCaller: NimiRuntimeAccountCaller,
+): Promise<boolean> {
+  const token = await accountRuntime.account.getAccessToken({
+    caller: accountCaller,
+    requestedScopes: [],
+  });
+  if (token.accepted && normalizeText(token.accessToken)) {
+    return true;
+  }
+  const refreshed = await accountRuntime.account.refreshAccountSession({
+    caller: accountCaller,
+  });
+  if (!refreshed.accepted) {
+    return false;
+  }
+  const retry = await accountRuntime.account.getAccessToken({
+    caller: accountCaller,
+    requestedScopes: [],
+  });
+  return Boolean(retry.accepted && normalizeText(retry.accessToken));
+}
+
+async function getDesktopRuntimeProtectedAccessMetadata(
+  appId: string,
+  accountRuntime: Runtime,
+  subjectUserId: string,
+): Promise<CoreMetadata> {
+  if (
+    protectedAccessCache
+    && protectedAccessCache.appId === appId
+    && protectedAccessCache.subjectUserId === subjectUserId
+    && protectedAccessCache.expiresAtMs - Date.now() > DESKTOP_RUNTIME_PROTECTED_TOKEN_REFRESH_SKEW_MS
+  ) {
+    return protectedAccessCache.metadata;
+  }
+  const cacheKey = `${appId}:${subjectUserId}`;
+  if (!protectedAccessInflight || protectedAccessInflightKey !== cacheKey) {
+    protectedAccessInflightKey = cacheKey;
+    protectedAccessInflight = issueDesktopRuntimeProtectedAccessMetadata(appId, accountRuntime, subjectUserId);
+  }
+  try {
+    protectedAccessCache = await protectedAccessInflight;
+    return protectedAccessCache.metadata;
+  } finally {
+    if (protectedAccessInflightKey === cacheKey) {
+      protectedAccessInflight = null;
+      protectedAccessInflightKey = '';
+    }
+  }
+}
+
+async function issueDesktopRuntimeProtectedAccessMetadata(
+  appId: string,
+  accountRuntime: Runtime,
+  subjectUserId: string,
+): Promise<{
+  readonly appId: string;
+  readonly subjectUserId: string;
+  readonly metadata: CoreMetadata;
+  readonly expiresAtMs: number;
+}> {
+  const token = await accountRuntime.grants.authorizeExternalPrincipal({
+    domain: 'app-auth',
+    appId,
+    externalPrincipalId: appId,
+    externalPrincipalType: ExternalPrincipalType.APP,
+    subjectUserId,
+    consentId: DESKTOP_RUNTIME_PROTECTED_CONSENT_ID,
+    consentVersion: 'v1',
+    decisionAt: toNimiRuntimeTimestamp(new Date()),
+    policyVersion: 'desktop-shell-runtime-account-v1',
+    policyMode: PolicyMode.CUSTOM,
+    preset: AuthorizationPreset.UNSPECIFIED,
+    scopes: [...DESKTOP_RUNTIME_PROTECTED_SCOPES],
+    resourceSelectors: {
+      conversationIds: [],
+      messageIds: [],
+      documentIds: [],
+      labels: {},
+    },
+    canDelegate: false,
+    maxDelegationDepth: 0,
+    ttlSeconds: DESKTOP_RUNTIME_PROTECTED_TOKEN_TTL_SECONDS,
+    scopeCatalogVersion: DESKTOP_RUNTIME_PROTECTED_SCOPE_CATALOG_VERSION,
+    policyOverride: false,
+  }, withNimiRuntimeIdempotencyMetadata({
+    metadata: { domain: 'app-auth' },
+  }, createNimiClientId('desktop-runtime-protected-access')));
+  const tokenId = normalizeText(token.tokenId);
+  const secret = normalizeText(token.secret);
+  if (!tokenId || !secret) {
+    throw createNimiError({
+      message: 'Desktop Runtime protected access token response is missing credentials.',
+      reasonCode: ReasonCode.PRINCIPAL_UNAUTHORIZED,
+      actionHint: 'authorize_desktop_runtime_protected_access',
+      source: 'runtime',
+    });
+  }
+  return {
+    appId,
+    subjectUserId,
+    metadata: {
+      'x-nimi-access-token-id': tokenId,
+      'x-nimi-access-token-secret': secret,
+    },
+    expiresAtMs: runtimeAuthorizeResponseExpiresAtMs(token) || Date.now() + (DESKTOP_RUNTIME_PROTECTED_TOKEN_TTL_SECONDS * 1000),
+  };
+}
+
+function runtimeAuthorizeResponseExpiresAtMs(token: AuthorizeExternalPrincipalResponse): number {
+  const expiresAt = token.expiresAt;
+  if (!expiresAt) {
+    return 0;
+  }
+  const seconds = Number(expiresAt.seconds || 0);
+  const nanos = Number(expiresAt.nanos || 0);
+  const millis = (seconds * 1000) + Math.floor(nanos / 1_000_000);
+  return Number.isFinite(millis) && millis > 0 ? millis : 0;
 }
 
 export async function configureDesktopRealmOnlySession(

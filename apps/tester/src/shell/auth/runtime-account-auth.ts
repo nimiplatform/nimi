@@ -1,4 +1,7 @@
-import { AccountSessionState } from '@nimiplatform/sdk/runtime/generated';
+import {
+  AccountSessionState,
+  type RuntimeTypedCallOptions,
+} from '@nimiplatform/sdk/runtime/generated';
 import {
   createRuntimeAccountBrowserBroker,
   type AuthPlatformAdapter,
@@ -7,7 +10,12 @@ import {
 } from '@nimiplatform/kit/auth';
 import { createTauriOAuthBridge } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { NimiRuntimeAccountCaller } from '@nimiplatform/sdk/runtime';
-import { getRuntimeAccountCaller, runtimeAccountLoginEnabled } from './runtime-platform.js';
+import {
+  createRuntimeAccountAccessTokenCallOptions,
+  createRuntimeAccountRefreshCallOptions,
+  getRuntimeAccountCaller,
+  runtimeAccountLoginEnabled,
+} from './runtime-platform.js';
 
 export { getRuntimeAccountCaller };
 
@@ -23,6 +31,14 @@ type TesterRuntimeAccountClient = RuntimeAccountBrowserBrokerClient & {
           displayName?: string | null;
         } | null;
       }>;
+      getAccessToken(
+        input: { caller: NimiRuntimeAccountCaller; requestedScopes: string[] },
+        options?: RuntimeTypedCallOptions,
+      ): Promise<{ accepted?: boolean; accessToken?: string | null }>;
+      refreshAccountSession(
+        input: { caller: NimiRuntimeAccountCaller },
+        options?: RuntimeTypedCallOptions,
+      ): Promise<{ accepted?: boolean }>;
       logout(input: { caller: NimiRuntimeAccountCaller; reason: string }): Promise<unknown>;
     };
   };
@@ -42,14 +58,43 @@ export async function loadRuntimeAccountUser(client: TesterRuntimeAccountClient)
   if (!runtimeAccountLoginEnabled) {
     return null;
   }
-  const response = await client.runtime.account.getAccountSessionStatus({ caller: getRuntimeAccountCaller() });
+  const caller = getRuntimeAccountCaller();
+  const response = await client.runtime.account.getAccountSessionStatus({ caller });
   if (response.state !== AccountSessionState.AUTHENTICATED || !response.accountProjection?.accountId) {
+    return null;
+  }
+  if (!(await hasRuntimeAccessToken(client, caller))) {
     return null;
   }
   return {
     id: response.accountProjection.accountId,
     displayName: response.accountProjection.displayName || 'Runtime account',
   };
+}
+
+async function hasRuntimeAccessToken(
+  client: TesterRuntimeAccountClient,
+  caller: NimiRuntimeAccountCaller,
+): Promise<boolean> {
+  const token = await client.runtime.account.getAccessToken({
+    caller,
+    requestedScopes: [],
+  }, createRuntimeAccountAccessTokenCallOptions());
+  if (token.accepted && String(token.accessToken || '').trim()) {
+    return true;
+  }
+  const refreshed = await client.runtime.account.refreshAccountSession(
+    { caller },
+    createRuntimeAccountRefreshCallOptions(),
+  );
+  if (!refreshed.accepted) {
+    return false;
+  }
+  const retry = await client.runtime.account.getAccessToken({
+    caller,
+    requestedScopes: [],
+  }, createRuntimeAccountAccessTokenCallOptions());
+  return Boolean(retry.accepted && String(retry.accessToken || '').trim());
 }
 
 export async function logoutRuntimeAccount(client: TesterRuntimeAccountClient) {
