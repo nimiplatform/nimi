@@ -40,7 +40,7 @@ func TestGetScenarioJobAndArtifactsCompactVideoResponsePayloads(t *testing.T) {
 	ctx := scenarioJobUserContext("nimi.desktop", "user")
 
 	jobID := "scenario-video-compact-job"
-	originalBytes := make([]byte, maxInlineVideoArtifactResponseBytes+256)
+	originalBytes := make([]byte, maxInlineBinaryArtifactResponseBytes+256)
 	for i := range originalBytes {
 		originalBytes[i] = byte(i % 251)
 	}
@@ -100,6 +100,67 @@ func TestGetScenarioJobAndArtifactsCompactVideoResponsePayloads(t *testing.T) {
 	}
 	if got := len(storedJob.GetArtifacts()[0].GetBytes()); got != len(originalBytes) {
 		t.Fatalf("expected stored artifact bytes to remain intact, got=%d want=%d", got, len(originalBytes))
+	}
+}
+
+func TestGetScenarioJobAndArtifactsCompactLargeImageResponsePayloads(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	ctx := scenarioJobUserContext("nimi.desktop", "user")
+
+	jobID := "scenario-image-compact-job"
+	originalBytes := make([]byte, maxInlineBinaryArtifactResponseBytes+256)
+	for i := range originalBytes {
+		originalBytes[i] = byte(i % 251)
+	}
+	snapshot := svc.scenarioJobs.create(&runtimev1.ScenarioJob{
+		JobId:        jobID,
+		Head:         &runtimev1.ScenarioRequestHead{AppId: "nimi.desktop", SubjectUserId: "user", ModelId: "cloud/gemini-image", RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD},
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
+		Status:       runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED,
+		TraceId:      "trace-image-compact",
+		Artifacts: []*runtimev1.ScenarioArtifact{{
+			ArtifactId: "image-artifact-compact",
+			MimeType:   "image/png",
+			Bytes:      originalBytes,
+			SizeBytes:  int64(len(originalBytes)),
+		}},
+	}, func() {})
+	if snapshot == nil {
+		t.Fatalf("expected snapshot creation")
+	}
+
+	jobResp, err := svc.GetScenarioJob(ctx, &runtimev1.GetScenarioJobRequest{JobId: jobID})
+	if err != nil {
+		t.Fatalf("GetScenarioJob: %v", err)
+	}
+	if got := len(jobResp.GetJob().GetArtifacts()[0].GetBytes()); got != 0 {
+		t.Fatalf("expected compact image job response bytes to be stripped, got=%d", got)
+	}
+	if got := jobResp.GetJob().GetArtifacts()[0].GetArtifactId(); got != "image-artifact-compact" {
+		t.Fatalf("expected compact image job response to preserve artifact_id, got=%q", got)
+	}
+
+	artifactsResp, err := svc.GetScenarioArtifacts(ctx, &runtimev1.GetScenarioArtifactsRequest{JobId: jobID})
+	if err != nil {
+		t.Fatalf("GetScenarioArtifacts: %v", err)
+	}
+	if got := len(artifactsResp.GetArtifacts()[0].GetBytes()); got != 0 {
+		t.Fatalf("expected compact image artifact response bytes to be stripped, got=%d", got)
+	}
+	imageOutput := artifactsResp.GetOutput().GetImageGenerate()
+	if imageOutput == nil || len(imageOutput.GetArtifacts()) != 1 {
+		t.Fatalf("expected image output artifacts, got=%v", artifactsResp.GetOutput())
+	}
+	if got := len(imageOutput.GetArtifacts()[0].GetBytes()); got != 0 {
+		t.Fatalf("expected compact image output artifact bytes to be stripped, got=%d", got)
+	}
+
+	storedJob, ok := svc.scenarioJobs.get(jobID)
+	if !ok {
+		t.Fatalf("expected stored job lookup to succeed")
+	}
+	if got := len(storedJob.GetArtifacts()[0].GetBytes()); got != len(originalBytes) {
+		t.Fatalf("expected stored image artifact bytes to remain intact, got=%d want=%d", got, len(originalBytes))
 	}
 }
 

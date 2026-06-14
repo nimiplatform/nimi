@@ -162,6 +162,12 @@ func authorizeVoiceAssetScope(ctx context.Context, appID string, subjectUserID s
 		callerSubjectID = strings.TrimSpace(identity.SubjectUserID)
 	}
 	if callerAppID == "" || callerSubjectID == "" {
+		if callerAppID != "" && strings.TrimSpace(subjectUserID) == anonymousScenarioJobOwner {
+			if callerAppID != strings.TrimSpace(appID) {
+				return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_AI_VOICE_ASSET_SCOPE_FORBIDDEN)
+			}
+			return nil
+		}
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 	if callerAppID != strings.TrimSpace(appID) || callerSubjectID != strings.TrimSpace(subjectUserID) {

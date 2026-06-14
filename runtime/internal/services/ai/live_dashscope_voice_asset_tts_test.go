@@ -96,7 +96,7 @@ func runLiveSmokeDashScopeVoiceAssetBackedTTS(
 	if voiceAssetID == "" {
 		t.Fatalf("DashScope voice workflow must return voice asset")
 	}
-	ownerCtx := scenarioJobUserContext(liveSmokeMatrixAppID, liveSmokeMatrixUserID)
+	ownerCtx := scenarioJobContext(liveSmokeMatrixAppID)
 	defer func() {
 		deleteResp, deleteErr := svc.DeleteVoiceAsset(ownerCtx, &runtimev1.DeleteVoiceAssetRequest{VoiceAssetId: voiceAssetID})
 		if deleteErr != nil {

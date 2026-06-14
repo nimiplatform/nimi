@@ -205,6 +205,37 @@ func TestVoiceAssetGetAndDeleteRequireOwnerContext(t *testing.T) {
 	}
 }
 
+func TestVoiceAssetAnonymousOwnerAllowsSameAppMetadataContext(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+
+	const assetID = "asset-anonymous-scope-1"
+	svc.voiceAssets.assets[assetID] = &runtimev1.VoiceAsset{
+		VoiceAssetId:  assetID,
+		AppId:         "owner.app",
+		SubjectUserId: anonymousScenarioJobOwner,
+		Provider:      "local",
+		Persistence:   runtimev1.VoiceAssetPersistence_VOICE_ASSET_PERSISTENCE_SESSION_EPHEMERAL,
+		Status:        runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE,
+	}
+
+	if _, err := svc.GetVoiceAsset(scenarioJobContext("intruder.app"), &runtimev1.GetVoiceAssetRequest{VoiceAssetId: assetID}); status.Code(err) != codes.PermissionDenied {
+		t.Fatalf("GetVoiceAsset anonymous cross-app code=%v err=%v, want PermissionDenied", status.Code(err), err)
+	}
+	if _, err := svc.GetVoiceAsset(scenarioJobContext("owner.app"), &runtimev1.GetVoiceAssetRequest{VoiceAssetId: assetID}); err != nil {
+		t.Fatalf("GetVoiceAsset anonymous owner app context: %v", err)
+	}
+	if _, err := svc.ListVoiceAssets(scenarioJobContext("owner.app"), &runtimev1.ListVoiceAssetsRequest{AppId: "owner.app", SubjectUserId: anonymousScenarioJobOwner}); err != nil {
+		t.Fatalf("ListVoiceAssets anonymous owner app context: %v", err)
+	}
+	deleteResp, err := svc.DeleteVoiceAsset(scenarioJobContext("owner.app"), &runtimev1.DeleteVoiceAssetRequest{VoiceAssetId: assetID})
+	if err != nil {
+		t.Fatalf("DeleteVoiceAsset anonymous owner app context: %v", err)
+	}
+	if deleteResp.GetAck() == nil || !deleteResp.GetAck().GetOk() {
+		t.Fatalf("delete anonymous voice asset ack must be ok")
+	}
+}
+
 func TestDeleteVoiceAssetDeletesProviderPersistentVoiceWhenSupported(t *testing.T) {
 	var (
 		gotMethod string

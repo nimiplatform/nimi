@@ -6,21 +6,21 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
 
-const maxInlineVideoArtifactResponseBytes = 1 << 20
+const maxInlineBinaryArtifactResponseBytes = 1 << 20
 
 func sanitizeScenarioArtifactsForResponse(
 	job *runtimev1.ScenarioJob,
 	artifacts []*runtimev1.ScenarioArtifact,
 ) []*runtimev1.ScenarioArtifact {
 	cloned := cloneScenarioArtifacts(artifacts)
-	if job == nil || job.GetScenarioType() != runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE {
+	if job == nil {
 		return cloned
 	}
 	for _, artifact := range cloned {
 		if artifact == nil || len(artifact.GetBytes()) == 0 {
 			continue
 		}
-		if shouldStripInlineVideoArtifactBytes(artifact) {
+		if shouldStripInlineBinaryArtifactBytes(job.GetScenarioType(), artifact) {
 			artifact.Bytes = nil
 		}
 	}
@@ -45,16 +45,43 @@ func sanitizeScenarioJobEventForResponse(event *runtimev1.ScenarioJobEvent) *run
 	return cloned
 }
 
-func shouldStripInlineVideoArtifactBytes(artifact *runtimev1.ScenarioArtifact) bool {
+func shouldStripInlineBinaryArtifactBytes(
+	scenarioType runtimev1.ScenarioType,
+	artifact *runtimev1.ScenarioArtifact,
+) bool {
 	if artifact == nil {
 		return false
 	}
+	if !scenarioResponseBinaryArtifactsByID(scenarioType) {
+		return false
+	}
 	mimeType := strings.ToLower(strings.TrimSpace(artifact.GetMimeType()))
-	if mimeType != "" && !strings.HasPrefix(mimeType, "video/") {
+	if !isInlineResponseBinaryMIME(mimeType) {
 		return false
 	}
 	if strings.TrimSpace(artifact.GetUri()) != "" {
 		return true
 	}
-	return len(artifact.GetBytes()) > maxInlineVideoArtifactResponseBytes
+	return len(artifact.GetBytes()) > maxInlineBinaryArtifactResponseBytes
+}
+
+func scenarioResponseBinaryArtifactsByID(scenarioType runtimev1.ScenarioType) bool {
+	switch scenarioType {
+	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
+		runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE,
+		runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
+		runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE:
+		return true
+	default:
+		return false
+	}
+}
+
+func isInlineResponseBinaryMIME(mimeType string) bool {
+	if mimeType == "" {
+		return true
+	}
+	return strings.HasPrefix(mimeType, "image/") ||
+		strings.HasPrefix(mimeType, "video/") ||
+		strings.HasPrefix(mimeType, "audio/")
 }

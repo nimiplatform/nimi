@@ -248,7 +248,7 @@ func TestLiveSmokeLocalQwen3VoiceAssetLifecycle(t *testing.T) {
 	}
 
 	voiceAssetID := strings.TrimSpace(submitResp.GetAsset().GetVoiceAssetId())
-	ownerCtx := scenarioJobUserContext(liveSmokeMatrixAppID, liveSmokeMatrixUserID)
+	ownerCtx := scenarioJobContext(liveSmokeMatrixAppID)
 	assetResp, err := svc.GetVoiceAsset(ownerCtx, &runtimev1.GetVoiceAssetRequest{VoiceAssetId: voiceAssetID})
 	if err != nil {
 		t.Fatalf("GetVoiceAsset(%s): %v", voiceAssetID, err)
@@ -270,9 +270,9 @@ func TestLiveSmokeLocalQwen3VoiceAssetLifecycle(t *testing.T) {
 		t.Fatalf("voice_handle_policy_delete_semantics=%q, want runtime_authoritative_delete", got)
 	}
 
-	listResp, err := svc.ListVoiceAssets(context.Background(), &runtimev1.ListVoiceAssetsRequest{
+	listResp, err := svc.ListVoiceAssets(ownerCtx, &runtimev1.ListVoiceAssetsRequest{
 		AppId:         liveSmokeMatrixAppID,
-		SubjectUserId: liveSmokeMatrixUserID,
+		SubjectUserId: anonymousScenarioJobOwner,
 		PageSize:      20,
 	})
 	if err != nil {
@@ -445,7 +445,7 @@ func runLiveSmokeVoiceWorkflowForProvider(t *testing.T, providerID string, recor
 		t.Fatalf("voice workflow must return voice asset")
 	}
 	voiceAssetID := strings.TrimSpace(submitResp.GetAsset().GetVoiceAssetId())
-	ownerCtx := scenarioJobUserContext(liveSmokeMatrixAppID, liveSmokeMatrixUserID)
+	ownerCtx := scenarioJobContext(liveSmokeMatrixAppID)
 	defer func() {
 		deleteResp, deleteErr := svc.DeleteVoiceAsset(ownerCtx, &runtimev1.DeleteVoiceAssetRequest{VoiceAssetId: voiceAssetID})
 		if deleteErr != nil {
