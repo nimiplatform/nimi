@@ -109,9 +109,9 @@ export type Recipe = {
   props: Array<{ name: string; desc: string }>;
 };
 
-type RecipeMode = 'live' | 'code' | 'props' | 'a11y' | 'tokens';
+export type RecipeMode = 'live' | 'code' | 'props' | 'a11y' | 'tokens';
 
-const RECIPE_MODES: Array<{ id: RecipeMode; label: string }> = [
+export const RECIPE_MODES: Array<{ id: RecipeMode; label: string }> = [
   { id: 'live', label: 'Live' },
   { id: 'code', label: 'Code' },
   { id: 'props', label: 'Props' },

@@ -337,9 +337,28 @@ function formatTypedOutput(result: TesterCapabilityRunResult & { ok: true }): st
   }, null, 2);
 }
 
+function formatUnavailableOutput(result: TesterCapabilityRunResult & { ok: false }): string {
+  return [
+    unavailableReasonTitle(result.reason),
+    '',
+    `Capability: ${result.capabilityId}`,
+    `Reason: ${result.reason}`,
+    result.missingSurface ? `Missing surface: ${result.missingSurface}` : '',
+    '',
+    'Message:',
+    result.message,
+    '',
+    'Action:',
+    result.actionHint,
+  ].filter(Boolean).join('\n');
+}
+
 // Plain-text projection used for Copy / Download. Text and transcript export the
-// raw body; structured results export their typed JSON summary.
-export function resultPlainText(result: TesterCapabilityRunResult & { ok: true }): string {
+// raw body; structured successes export their typed JSON summary; unavailable
+// results export the fail-closed Runtime diagnostic without converting it into a
+// success state.
+export function resultPlainText(result: TesterCapabilityRunResult): string {
+  if (!result.ok) return formatUnavailableOutput(result);
   if (result.output.kind === 'text') return result.output.text;
   if (result.output.kind === 'transcript') return result.output.text;
   return formatTypedOutput(result);
@@ -496,8 +515,8 @@ export function StudioResult({
   const profile = getCapabilityStudioProfile(capability.id);
   const ready = result?.ok ? result : null;
   const blocked = result && !result.ok ? result : null;
-  const plainText = ready ? resultPlainText(ready) : '';
-  const canExport = Boolean(ready && plainText);
+  const plainText = result ? resultPlainText(result) : '';
+  const canExport = Boolean(result && plainText);
 
   let metric = '—';
   if (ready) {

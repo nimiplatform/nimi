@@ -176,7 +176,7 @@ function CapabilityStudio({
   }
 
   function handleCopy() {
-    if (!currentResult?.ok) return;
+    if (!currentResult) return;
     const text = resultPlainText(currentResult);
     if (!text) return;
     try {
@@ -187,13 +187,15 @@ function CapabilityStudio({
   }
 
   function handleDownload() {
-    if (!currentResult?.ok) return;
+    if (!currentResult) return;
     const stamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const output = currentResult.output;
-    if (output.kind === 'artifacts' && output.firstArtifact?.url) {
+    if (currentResult.ok && currentResult.output.kind === 'artifacts') {
+      const output = currentResult.output;
+      const firstArtifact = output.firstArtifact;
+      if (!firstArtifact?.url) return;
       void downloadArtifactUrl(
-        `${capability.id}-${stamp}.${artifactExtension(output.firstArtifact.mimeType)}`,
-        output.firstArtifact.url,
+        `${capability.id}-${stamp}.${artifactExtension(firstArtifact.mimeType)}`,
+        firstArtifact.url,
       );
       return;
     }

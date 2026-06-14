@@ -5,11 +5,13 @@ import {
   CATEGORIES,
   CHECKLIST,
   COLOR_TOKENS,
+  RECIPE_MODES,
   RECIPES,
   SCALE_TOKENS,
   TYPE_ROLES,
   type CategoryId,
   type Recipe,
+  type RecipeMode,
 } from './kit-component-gallery-recipes.js';
 
 export function countFor(category: CategoryId): number {
