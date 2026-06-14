@@ -26,7 +26,31 @@ func (p *localModelExecutionPlan) appliesToModel(modelID string, modal runtimev1
 	}
 	selector := parseLocalModelSelector(p.resolvedModelID, modal)
 	candidate := parseLocalModelSelector(modelID, modal)
-	return normalizeComparableModelID(selector.modelID) == normalizeComparableModelID(candidate.modelID)
+	candidateModelID := normalizeComparableModelID(candidate.modelID)
+	if normalizeComparableModelID(selector.modelID) == candidateModelID {
+		return true
+	}
+	if normalizeComparableModelID(p.providerModelID) == candidateModelID {
+		return true
+	}
+	return localModelMatchesComparableID(p.selected, candidateModelID)
+}
+
+func (p *localModelExecutionPlan) resolvedProviderModelID(fallback string) string {
+	if p == nil {
+		return strings.TrimSpace(fallback)
+	}
+	if trimmed := strings.TrimSpace(p.providerModelID); trimmed != "" {
+		return trimmed
+	}
+	return strings.TrimSpace(fallback)
+}
+
+func applyLocalExecutionPlanModelResolved(plan *localModelExecutionPlan, modelResolved string, remoteTarget *nimillm.RemoteTarget, selected provider) string {
+	if plan == nil || remoteTarget != nil || selected == nil || selected.Route() != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
+		return strings.TrimSpace(modelResolved)
+	}
+	return plan.resolvedProviderModelID(modelResolved)
 }
 
 func localModelPlanModalMatches(planModal runtimev1.Modal, executionModal runtimev1.Modal) bool {

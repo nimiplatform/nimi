@@ -24,6 +24,10 @@ type localModelLister interface {
 	ReleaseLocalAssetLease(context.Context, string, string) error
 }
 
+type managedLlamaModelResolver interface {
+	ResolveManagedLlamaModelByCapabilities(preferred string, capabilities ...string) (string, bool)
+}
+
 type localImageProfileResolver interface {
 	ResolveManagedMediaImageProfile(context.Context, string, map[string]any) (string, map[string]any, map[string]any, error)
 	ResolveManagedMediaBackendTarget(context.Context) (string, string, error)
@@ -44,6 +48,7 @@ type localModelSelector struct {
 type localModelExecutionPlan struct {
 	requestedModelID string
 	resolvedModelID  string
+	providerModelID  string
 	modal            runtimev1.Modal
 	selected         *runtimev1.LocalAssetRecord
 	warmEndpoint     string
@@ -205,12 +210,44 @@ func (s *Service) prepareLocalModelExecutionPlan(ctx context.Context, requestedM
 	return &localModelExecutionPlan{
 		requestedModelID: requestedModelID,
 		resolvedModelID:  resolvedModelID,
+		providerModelID:  s.resolveSelectedLocalProviderModelID(selected, resolvedModelID, modal),
 		modal:            modal,
 		selected:         selected,
 		warmEndpoint:     warmEndpoint,
 		readinessSource:  readinessSource,
 		readinessAt:      time.Now(),
 	}, nil
+}
+
+func (s *Service) resolveSelectedLocalProviderModelID(selected *runtimev1.LocalAssetRecord, requestedModelID string, modal runtimev1.Modal) string {
+	if selected == nil {
+		return strings.TrimSpace(requestedModelID)
+	}
+	if strings.EqualFold(strings.TrimSpace(selected.GetEngine()), "llama") {
+		if resolver, ok := s.localModel.(managedLlamaModelResolver); ok && resolver != nil {
+			capability := localRoutingCapabilityForModal(modal)
+			for _, preferred := range []string{
+				selected.GetLocalAssetId(),
+				requestedModelID,
+				selected.GetAssetId(),
+				selected.GetLogicalModelId(),
+			} {
+				if resolved, found := resolver.ResolveManagedLlamaModelByCapabilities(preferred, capability); found && strings.TrimSpace(resolved) != "" {
+					return strings.TrimSpace(resolved)
+				}
+			}
+		}
+	}
+	for _, candidate := range []string{
+		selected.GetAssetId(),
+		selected.GetLogicalModelId(),
+		requestedModelID,
+	} {
+		if trimmed := strings.TrimSpace(candidate); trimmed != "" {
+			return trimmed
+		}
+	}
+	return ""
 }
 
 func (s *Service) primeInstalledLocalModelRequest(ctx context.Context, selected *runtimev1.LocalAssetRecord, requestedModelID string, modal runtimev1.Modal, scenarioExtensions map[string]any) error {

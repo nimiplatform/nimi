@@ -118,7 +118,7 @@ func (s *Service) ExecuteFirstRunLocalBaseline(ctx context.Context, req FirstRun
 		)
 	}
 	routeDecision := runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL
-	modelResolved := localBackend.ResolveModelID(localModelID)
+	modelResolved := localPlan.resolvedProviderModelID(localBackend.ResolveModelID(localModelID))
 
 	releaseLease, err := s.acquireSelectedLocalModelLeaseWithPlan(ctx, localPlan, localModelID, nil, modal, "first_run_local_baseline")
 	if err != nil {

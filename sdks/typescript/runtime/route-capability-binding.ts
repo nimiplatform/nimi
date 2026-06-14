@@ -113,6 +113,33 @@ function localOptionToNimiRuntimeBinding(
   };
 }
 
+function findNimiRuntimeLocalEvidenceByRuntimeAssetId(
+  localModels: readonly NimiRuntimeRouteOptionsSnapshot['local']['models'][number][],
+  localModelId: string,
+): NimiRuntimeRouteOptionsSnapshot['local']['models'][number] | null {
+  const normalized = normalizeText(localModelId);
+  if (!normalized) return null;
+  return localModels.find((item) => (
+    normalizeText(item.localModelId || item.goRuntimeLocalModelId) === normalized
+  )) || null;
+}
+
+function findNimiRuntimeLocalEvidenceByModelToken(input: {
+  readonly capability: NimiRuntimeCanonicalCapability;
+  readonly modelToken: string;
+  readonly engineToken: string;
+  readonly localModels: readonly NimiRuntimeRouteOptionsSnapshot['local']['models'][number][];
+}): NimiRuntimeRouteOptionsSnapshot['local']['models'][number] | null {
+  const modelRoot = normalizeNimiRuntimeRouteModelRoot(input.modelToken);
+  if (!modelRoot) return null;
+  const candidates = input.localModels.filter((item) => (
+    normalizeNimiRuntimeRouteModelRoot(item.modelId || item.model) === modelRoot
+    && (!input.engineToken || normalizeNimiRuntimeRouteEngineEvidence(item.engine || item.provider) === input.engineToken)
+    && runtimeNimiRouteCapabilitiesMatch(item.capabilities, input.capability)
+  ));
+  return candidates.length === 1 ? candidates[0]! : null;
+}
+
 function findNimiRuntimeLocalEvidence(
   capability: NimiRuntimeCanonicalCapability,
   binding: NimiRuntimeRouteBinding,
@@ -120,9 +147,7 @@ function findNimiRuntimeLocalEvidence(
 ): NimiRuntimeRouteBinding | null {
   const bindingLocalModelId = normalizeText(binding.localModelId || binding.goRuntimeLocalModelId);
   if (bindingLocalModelId) {
-    const byLocalModelId = localModels.find((item) => (
-      normalizeText(item.localModelId || item.goRuntimeLocalModelId) === bindingLocalModelId
-    )) || null;
+    const byLocalModelId = findNimiRuntimeLocalEvidenceByRuntimeAssetId(localModels, bindingLocalModelId);
     if (byLocalModelId) {
       if (!runtimeNimiRouteCapabilitiesMatch(byLocalModelId.capabilities, capability)) {
         return null;
@@ -131,21 +156,17 @@ function findNimiRuntimeLocalEvidence(
     }
   }
 
-  const bindingModelRoot = normalizeNimiRuntimeRouteModelRoot(binding.modelId || binding.model);
   const bindingEngine = normalizeNimiRuntimeRouteEngineEvidence(binding.engine || binding.provider);
-  if (!bindingModelRoot || !bindingEngine) return null;
-
-  const byModelAndEngine = localModels.find((item) => (
-    normalizeNimiRuntimeRouteModelRoot(item.modelId || item.model) === bindingModelRoot
-    && normalizeNimiRuntimeRouteEngineEvidence(item.engine || item.provider) === bindingEngine
-  )) || null;
-  if (!byModelAndEngine) {
+  const byModelToken = findNimiRuntimeLocalEvidenceByModelToken({
+    capability,
+    modelToken: binding.modelId || binding.model || bindingLocalModelId,
+    engineToken: bindingEngine,
+    localModels,
+  });
+  if (!byModelToken) {
     return null;
   }
-  if (!runtimeNimiRouteCapabilitiesMatch(byModelAndEngine.capabilities, capability)) {
-    return null;
-  }
-  return localOptionToNimiRuntimeBinding(byModelAndEngine);
+  return localOptionToNimiRuntimeBinding(byModelToken);
 }
 
 function findNimiRuntimeCloudEvidence(

@@ -37,7 +37,7 @@ func (s *Service) submitScenarioAsyncJob(
 	}
 
 	prepareStartedAt := time.Now()
-	remoteTarget, err := s.prepareScenarioRequestWithExtensions(ctx, req.GetHead(), req.GetScenarioType(), req.GetExtensions())
+	remoteTarget, localPlan, err := s.prepareScenarioRequestWithExtensionsAndLocalPlan(ctx, req.GetHead(), req.GetScenarioType(), req.GetExtensions())
 	if err != nil {
 		return nil, err
 	}
@@ -79,6 +79,7 @@ func (s *Service) submitScenarioAsyncJob(
 	if err != nil {
 		return nil, err
 	}
+	modelResolved = applyLocalExecutionPlanModelResolved(localPlan, modelResolved, remoteTarget, selectedProvider)
 	if logLocalImageSubmit {
 		s.logger.Info(
 			"submit local image scenario job: provider resolved",

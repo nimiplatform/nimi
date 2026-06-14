@@ -30,6 +30,7 @@ import type { RouteModelPickerPanelProps, RouteModelPickerSource } from './compo
 
 export type RouteLocalModel = {
   localModelId: string;
+  goRuntimeLocalModelId?: string;
   modelId: string;
   label: string;
   engine: string;
@@ -114,6 +115,7 @@ export type RouteOptionsSnapshot = {
     modelId?: string;
     provider?: string;
     localModelId?: string;
+    goRuntimeLocalModelId?: string;
     engine?: string;
   } | null;
   local: {
@@ -126,6 +128,8 @@ export type RouteOptionsSnapshot = {
       provider?: string;
       endpoint?: string;
       status?: string;
+      goRuntimeLocalModelId?: string;
+      goRuntimeStatus?: string;
       capabilities?: readonly string[];
     }>;
     defaultEndpoint?: string;
@@ -208,6 +212,7 @@ export function createSnapshotRouteDataProvider(
       return (snapshot.local.models || [])
         .map((m) => ({
           localModelId: String(m.localModelId || ''),
+          goRuntimeLocalModelId: String(m.goRuntimeLocalModelId || m.localModelId || '') || undefined,
           modelId: String(m.modelId || m.model || ''),
           label: String(m.label || m.model || m.modelId || m.localModelId || ''),
           engine: String(m.engine || ''),
@@ -284,6 +289,7 @@ export type RouteModelPickerSelection = {
   modelLabel?: string;
   /** Local model metadata — populated when source === 'local'. */
   localModelId?: string;
+  goRuntimeLocalModelId?: string;
   engine?: string;
   modelId?: string;
 };
@@ -499,6 +505,7 @@ export function useRouteModelPickerData({
           ...sel,
           modelLabel: modelLabel || localModel.label || localModel.modelId,
           localModelId: localModel.localModelId,
+          goRuntimeLocalModelId: localModel.goRuntimeLocalModelId,
           engine: localModel.engine,
           modelId: localModel.modelId,
         };

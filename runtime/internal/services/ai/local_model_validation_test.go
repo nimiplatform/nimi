@@ -28,6 +28,7 @@ type fakeLocalModelLister struct {
 	startResp    *runtimev1.StartLocalAssetResponse
 	leaseCalls   []string
 	acquireDelay time.Duration
+	managedNames map[string]string
 }
 
 func (f *fakeLocalModelLister) ListLocalAssets(_ context.Context, _ *runtimev1.ListLocalAssetsRequest) (*runtimev1.ListLocalAssetsResponse, error) {
@@ -72,6 +73,14 @@ func (f *fakeLocalModelLister) AcquireLocalAssetLease(_ context.Context, localAs
 func (f *fakeLocalModelLister) ReleaseLocalAssetLease(_ context.Context, localAssetID string, reason string) error {
 	f.leaseCalls = append(f.leaseCalls, "release:"+strings.TrimSpace(localAssetID)+":"+strings.TrimSpace(reason))
 	return nil
+}
+
+func (f *fakeLocalModelLister) ResolveManagedLlamaModelByCapabilities(preferred string, _ ...string) (string, bool) {
+	if f == nil {
+		return "", false
+	}
+	resolved := strings.TrimSpace(f.managedNames[strings.TrimSpace(preferred)])
+	return resolved, resolved != ""
 }
 
 func TestParseLocalModelSelector(t *testing.T) {
@@ -173,6 +182,28 @@ func TestSelectActiveLocalModel(t *testing.T) {
 	selected, reason = selectActiveLocalModel(models, localModelSelector{modelID: "qwen", preferLocal: true})
 	if reason != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED || selected.GetEngine() != "llama" {
 		t.Fatalf("expected prefer local llama, got selected=%v reason=%v", selected.GetEngine(), reason)
+	}
+
+	selected, reason = selectActiveLocalModel([]*runtimev1.LocalAssetRecord{{
+		LocalAssetId:   "01KTEX08DS2GR9HJ1X3R459P1B",
+		AssetId:        "local-import/gemma-4-26B-A4B-it-Q8_0",
+		LogicalModelId: "nimi/gemma-4-26b-it",
+		Engine:         "llama",
+		Status:         runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+	}}, localModelSelector{modelID: "01KTEX08DS2GR9HJ1X3R459P1B"})
+	if reason != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED || selected.GetLocalAssetId() != "01KTEX08DS2GR9HJ1X3R459P1B" {
+		t.Fatalf("expected local_asset_id selector to resolve active local model, got selected=%v reason=%v", selected, reason)
+	}
+
+	selected, reason = selectActiveLocalModel([]*runtimev1.LocalAssetRecord{{
+		LocalAssetId:   "local-gemma",
+		AssetId:        "local-import/gemma-4-26B-A4B-it-Q8_0",
+		LogicalModelId: "nimi/gemma-4-26b-it",
+		Engine:         "llama",
+		Status:         runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+	}}, localModelSelector{modelID: "local/nimi/gemma-4-26b-it", preferLocal: true})
+	if reason != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED || selected.GetLogicalModelId() != "nimi/gemma-4-26b-it" {
+		t.Fatalf("expected logical_model_id selector to resolve active local model, got selected=%v reason=%v", selected, reason)
 	}
 
 	_, reason = selectActiveLocalModel(models, localModelSelector{modelID: "absent"})
@@ -288,6 +319,60 @@ func TestValidateLocalModelRequest(t *testing.T) {
 	}}}
 	if err := svc.validateLocalModelRequest(context.Background(), "local/qwen", nil, runtimev1.Modal_MODAL_UNSPECIFIED); err != nil {
 		t.Fatalf("expected local model validation success, got %v", err)
+	}
+
+	// AIConfig local-runtime refs may carry the Runtime local_asset_id while
+	// the runnable model root stays in asset_id/logical_model_id.
+	svc.localModel = &fakeLocalModelLister{responses: []*runtimev1.ListLocalAssetsResponse{{
+		Assets: []*runtimev1.LocalAssetRecord{{
+			LocalAssetId:         "01KTEX08DS2GR9HJ1X3R459P1B",
+			AssetId:              "local-import/gemma-4-26B-A4B-it-Q8_0",
+			LogicalModelId:       "nimi/gemma-4-26b-it",
+			Engine:               "llama",
+			Status:               runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+			LocalInvokeProfileId: "invoke",
+		}},
+	}}}
+	if err := svc.validateLocalModelRequest(context.Background(), "01KTEX08DS2GR9HJ1X3R459P1B", nil, runtimev1.Modal_MODAL_TEXT); err != nil {
+		t.Fatalf("expected local_asset_id model validation success, got %v", err)
+	}
+
+	svc.localModel = &fakeLocalModelLister{
+		responses: []*runtimev1.ListLocalAssetsResponse{{
+			Assets: []*runtimev1.LocalAssetRecord{{
+				LocalAssetId:         "01KTEX08DS2GR9HJ1X3R459P1B",
+				AssetId:              "local-import/gemma-4-26B-A4B-it-Q8_0",
+				LogicalModelId:       "nimi/gemma-4-26b-it",
+				Engine:               "llama",
+				Status:               runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+				LocalInvokeProfileId: "invoke",
+				Capabilities:         []string{"text.generate"},
+			}},
+		}},
+		managedNames: map[string]string{
+			"01KTEX08DS2GR9HJ1X3R459P1B": "local-import/gemma-4-26B-A4B-it-Q8_0",
+		},
+	}
+	plan, err := svc.prepareLocalModelExecutionPlan(context.Background(), "01KTEX08DS2GR9HJ1X3R459P1B", nil, runtimev1.Modal_MODAL_TEXT, nil)
+	if err != nil {
+		t.Fatalf("expected local_asset_id execution plan success, got %v", err)
+	}
+	if got := plan.resolvedProviderModelID(""); got != "local-import/gemma-4-26B-A4B-it-Q8_0" {
+		t.Fatalf("expected provider model id from managed llama resolver, got %q", got)
+	}
+
+	svc.localModel = &fakeLocalModelLister{responses: []*runtimev1.ListLocalAssetsResponse{{
+		Assets: []*runtimev1.LocalAssetRecord{{
+			LocalAssetId:         "local-gemma",
+			AssetId:              "local-import/gemma-4-26B-A4B-it-Q8_0",
+			LogicalModelId:       "nimi/gemma-4-26b-it",
+			Engine:               "llama",
+			Status:               runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+			LocalInvokeProfileId: "invoke",
+		}},
+	}}}
+	if err := svc.validateLocalModelRequest(context.Background(), "local/nimi/gemma-4-26b-it", nil, runtimev1.Modal_MODAL_TEXT); err != nil {
+		t.Fatalf("expected logical_model_id model validation success, got %v", err)
 	}
 
 	loopbackServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

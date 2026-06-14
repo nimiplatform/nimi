@@ -59,6 +59,7 @@ describe('createSnapshotRouteDataProvider', () => {
         models: [
           {
             localModelId: 'local-qwen',
+            goRuntimeLocalModelId: '01KLOCALQWEN',
             model: 'qwen3',
             modelId: 'qwen3',
             engine: 'llama',
@@ -85,6 +86,7 @@ describe('createSnapshotRouteDataProvider', () => {
     expect(models).toHaveLength(2);
     // active sorts before installed
     expect(models[0]!.localModelId).toBe('local-qwen');
+    expect(models[0]!.goRuntimeLocalModelId).toBe('01KLOCALQWEN');
     expect(models[0]!.status).toBe('active');
     expect(models[1]!.localModelId).toBe('local-flux');
     expect(models[1]!.status).toBe('installed');

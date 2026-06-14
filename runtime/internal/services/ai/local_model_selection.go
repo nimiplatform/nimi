@@ -42,7 +42,7 @@ func selectActiveLocalModel(models []*runtimev1.LocalAssetRecord, selector local
 	expectedModelID := normalizeComparableModelID(selector.modelID)
 	candidates := make([]*runtimev1.LocalAssetRecord, 0, len(models))
 	for _, model := range models {
-		if normalizeComparableModelID(model.GetAssetId()) != expectedModelID {
+		if !localModelMatchesComparableID(model, expectedModelID) {
 			continue
 		}
 		candidates = append(candidates, model)
@@ -96,7 +96,7 @@ func selectRunnableLocalModel(models []*runtimev1.LocalAssetRecord, selector loc
 		if model.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED {
 			continue
 		}
-		if normalizeComparableModelID(model.GetAssetId()) != expectedModelID {
+		if !localModelMatchesComparableID(model, expectedModelID) {
 			continue
 		}
 		candidates = append(candidates, model)
@@ -152,6 +152,22 @@ func firstRunnableLocalModel(models []*runtimev1.LocalAssetRecord, modal runtime
 		}
 	}
 	return nil
+}
+
+func localModelMatchesComparableID(model *runtimev1.LocalAssetRecord, expectedModelID string) bool {
+	if model == nil || expectedModelID == "" {
+		return false
+	}
+	for _, candidate := range []string{
+		model.GetAssetId(),
+		model.GetLogicalModelId(),
+		model.GetLocalAssetId(),
+	} {
+		if normalizeComparableModelID(candidate) == expectedModelID {
+			return true
+		}
+	}
+	return false
 }
 
 func unsupportedExplicitLocalEngineReason(selector localModelSelector) runtimev1.ReasonCode {
