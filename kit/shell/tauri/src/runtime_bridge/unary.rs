@@ -14,6 +14,7 @@ use super::RuntimeBridgeUnaryPayload;
 const EXECUTE_SCENARIO_METHOD_ID: &str = "/nimi.runtime.v1.RuntimeAiService/ExecuteScenario";
 const TEXT_GENERATE_ROUTE_DESCRIBE_EXTENSION_NAMESPACE: &str =
     "nimi.scenario.text_generate.route_describe";
+const RUNTIME_BRIDGE_UNARY_MAX_DECODING_MESSAGE_BYTES: usize = 32 * 1024 * 1024;
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -231,7 +232,8 @@ pub async fn invoke_unary(
     .map_err(|_| bridge_error("RUNTIME_BRIDGE_METHOD_INVALID", payload.method_id.as_str()))?;
     let channel =
         channel_pool::shared_unary_channel(super::daemon_manager::grpc_addr().as_str()).await?;
-    let mut grpc = Grpc::new(channel);
+    let mut grpc =
+        Grpc::new(channel).max_decoding_message_size(RUNTIME_BRIDGE_UNARY_MAX_DECODING_MESSAGE_BYTES);
 
     let mut request = tonic::Request::new(request_bytes);
     metadata::apply_metadata(
