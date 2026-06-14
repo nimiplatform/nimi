@@ -4,10 +4,15 @@ import path from 'node:path';
 import test from 'node:test';
 
 const desktopDir = path.resolve(import.meta.dirname, '..');
+const repoDir = path.resolve(desktopDir, '../..');
 const srcDir = path.join(desktopDir, 'src');
 
 function readSource(relativePath: string): string {
   return fs.readFileSync(path.join(desktopDir, relativePath), 'utf8');
+}
+
+function readRepoSource(relativePath: string): string {
+  return fs.readFileSync(path.join(repoDir, relativePath), 'utf8');
 }
 
 function listSourceFiles(dir: string): string[] {
@@ -88,4 +93,32 @@ test('conversation capability UI contract: agent bootstrap prioritizes text.gene
 test('conversation capability UI contract: projection refresh also refreshes derived agent execution resolution', () => {
   const projectionSource = readSource('src/shell/renderer/features/chat/conversation-capability-projection.ts');
   assert.match(projectionSource, /setConversationCapabilityProjections\(projections\);[\s\S]*refreshAgentEffectiveCapabilityResolution\(\);/);
+});
+
+test('conversation capability UI contract: Nimi active model selector uses Kit route model picker and writes AIConfig targetRef', () => {
+  const settingsSource = readSource('src/shell/renderer/features/chat/chat-shared-settings-panel.tsx');
+  const modelCardSource = readRepoSource('kit/features/model-config/src/components/capability-model-card.tsx');
+  const modelDetailSource = readRepoSource('kit/features/model-config/src/components/model-config-capability-detail.tsx');
+  const bindingHelpersSource = readRepoSource('kit/features/model-config/src/binding-helpers.ts');
+  const modelTypesSource = readRepoSource('kit/features/model-config/src/types.ts');
+  assert.match(modelTypesSource, /provider\?: RouteModelPickerDataProvider \| null/);
+  assert.match(modelDetailSource, /resolveProvider\([\s\S]*surface\.providerResolver\(routeCapability\)/);
+  assert.match(modelDetailSource, /provider,/);
+  assert.match(modelCardSource, /ModelSelectorTrigger/);
+  assert.match(modelCardSource, /ModelPickerModal/);
+  assert.match(modelCardSource, /targetRefToPickerSelection\(item\.targetRef\)/);
+  assert.match(modelCardSource, /pickerSelectionToTargetRef\(pickerSelection\)/);
+  assert.match(bindingHelpersSource, /targetRefToPickerSelection/);
+  assert.match(bindingHelpersSource, /pickerSelectionToTargetRef/);
+  assert.match(bindingHelpersSource, /kind: 'cloud-connector'/);
+  assert.match(bindingHelpersSource, /kind: 'local-runtime'/);
+  assert.match(settingsSource, /getDesktopRouteModelPickerProvider/);
+  assert.match(settingsSource, /providerResolver: \(routeCapability: string\) => getDesktopRouteModelPickerProvider\(routeCapability\)/);
+  assert.match(settingsSource, /Model selection required/);
+  assert.match(settingsSource, /A route is selected, but runtime describe metadata is not available yet/);
+  assert.match(settingsSource, /supported: Boolean\(projection\.selectedBinding && projection\.resolvedBinding\)/);
+  assert.doesNotMatch(settingsSource, /This capability cannot execute until runtime describe metadata is available/);
+  assert.doesNotMatch(settingsSource, /function TextRouteModelSelector/);
+  assert.doesNotMatch(settingsSource, /<select[\s\S]*settingsActiveModelSelect/);
+  assert.doesNotMatch(settingsSource, /capabilityOverrides:[\s\S]*targetControl/);
 });

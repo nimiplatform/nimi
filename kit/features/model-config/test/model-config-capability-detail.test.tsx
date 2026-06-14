@@ -11,6 +11,7 @@ import type {
   AppModelConfigSurface,
   SharedAIConfigService,
 } from '@nimiplatform/kit/core/model-config';
+import type { RouteModelPickerDataProvider } from '@nimiplatform/kit/features/model-picker';
 import type { NimiAIConfig, NimiAIScopeRef } from '@nimiplatform/kit/core/sdk-contract';
 
 (
@@ -132,6 +133,97 @@ describe('ModelConfigCapabilityDetail editorKind routing', () => {
     );
     expect(container?.textContent).toContain('ModelConfig.editor.textGenerate.temperatureLabel');
     expect(container?.textContent).toContain('ModelConfig.hub.activeModelLabel');
+  });
+
+  it('hydrates local runtime target display from the route model picker provider label', async () => {
+    const localConfig: NimiAIConfig = {
+      ...baseConfig,
+      capabilities: {
+        targetRefs: {
+          'text.generate': {
+            kind: 'local-runtime',
+            targetId: 'llama',
+            profileId: '01KTEX08DS2GR9HJ1X3R459P1B',
+            readinessRef: 'runtime-route:local:llama:01KTEX08DS2GR9HJ1X3R459P1B',
+          },
+        },
+        selectedParams: {},
+      },
+    };
+    const provider: RouteModelPickerDataProvider = {
+      listLocalModels: async () => [{
+        localModelId: '01KTEX08DS2GR9HJ1X3R459P1B',
+        modelId: 'local/local-import/gemma-4-26B-A4B-it-Q8_0',
+        label: 'gemma-4-26B-A4B-it-Q8_0',
+        engine: 'llama',
+        status: 'active',
+        capabilities: ['text.generate'],
+      }],
+      listConnectors: async () => [],
+      listConnectorModels: async () => [],
+    };
+    const surface: AppModelConfigSurface = {
+      ...makeSurface('text.generate'),
+      providerResolver: () => provider,
+    };
+    await render(
+      wrap(
+        <ModelConfigCapabilityDetail
+          capabilityId="text.generate"
+          surface={surface}
+          config={localConfig}
+        />,
+      ),
+    );
+    await act(async () => {
+      await flush();
+      await flush();
+    });
+
+    expect(container?.textContent).toContain('gemma-4-26B-A4B-it-Q8_0');
+    expect(container?.textContent).not.toContain('01KTEX08DS2GR9HJ1X3R459P1B');
+  });
+
+  it('does not expose opaque local runtime ids while provider hydration is unavailable', async () => {
+    const localConfig: NimiAIConfig = {
+      ...baseConfig,
+      capabilities: {
+        targetRefs: {
+          'text.generate': {
+            kind: 'local-runtime',
+            targetId: 'llama',
+            profileId: '01KTEX08DS2GR9HJ1X3R459P1B',
+            readinessRef: 'runtime-route:local:llama:01KTEX08DS2GR9HJ1X3R459P1B',
+          },
+        },
+        selectedParams: {},
+      },
+    };
+    const provider: RouteModelPickerDataProvider = {
+      listLocalModels: async () => [],
+      listConnectors: async () => [],
+      listConnectorModels: async () => [],
+    };
+    const surface: AppModelConfigSurface = {
+      ...makeSurface('text.generate'),
+      providerResolver: () => provider,
+    };
+    await render(
+      wrap(
+        <ModelConfigCapabilityDetail
+          capabilityId="text.generate"
+          surface={surface}
+          config={localConfig}
+        />,
+      ),
+    );
+    await act(async () => {
+      await flush();
+      await flush();
+    });
+
+    expect(container?.textContent).toContain('Local runtime model');
+    expect(container?.textContent).not.toContain('01KTEX08DS2GR9HJ1X3R459P1B');
   });
 
   it('routes image.generate to ImageParamsEditor (editorKind=image)', async () => {

@@ -82,6 +82,7 @@ test('BridgeErrors projects Local Speech failure families without Qwen-specific 
   const bridgeErrors = `${bridgeErrorsEnSource}\n${bridgeErrorsZhSource}`;
   assert.match(bridgeErrors, /LOCAL_AI_SPEECH_GPU_REQUIRED/);
   assert.match(bridgeErrors, /LOCAL_AI_SPEECH_BOOTSTRAP_FAILED/);
+  assert.match(bridgeErrors, /RUNTIME_CALL_FAILED/);
   assert.doesNotMatch(bridgeErrors, /LOCAL_AI_QWEN|Qwen TTS/);
 });
 

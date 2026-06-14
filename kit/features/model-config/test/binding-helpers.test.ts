@@ -4,6 +4,10 @@ import {
   readModelConfigTargetRef,
   summarizeTargetRef,
 } from '@nimiplatform/kit/core/model-config';
+import {
+  pickerSelectionToTargetRef,
+  targetRefToPickerSelection,
+} from '../src/binding-helpers.js';
 import type { NimiAIConfig, NimiAIConfigTargetRef, NimiAIScopeRef } from '@nimiplatform/kit/core/sdk-contract';
 
 const scopeRef: NimiAIScopeRef = { kind: 'app', ownerId: 'desktop', surfaceId: 'chat' };
@@ -66,6 +70,63 @@ describe('model config compact target-ref helpers', () => {
       retries: 0,
       seed: '',
       optional: null,
+    });
+  });
+
+  it('maps compact target refs to the standard route model picker selection shape', () => {
+    expect(targetRefToPickerSelection({
+      kind: 'cloud-connector',
+      connectorId: 'connector-dashscope',
+      provider: 'dashscope',
+      providerModelId: 'qwen3-max',
+    })).toEqual({
+      source: 'cloud',
+      connectorId: 'connector-dashscope',
+      model: 'qwen3-max',
+      provider: 'dashscope',
+      modelLabel: 'qwen3-max',
+    });
+
+    expect(targetRefToPickerSelection({
+      kind: 'local-runtime',
+      targetId: 'llama',
+      profileId: 'local.chat.qwen3',
+      readinessRef: 'local.chat.qwen3',
+    })).toEqual({
+      source: 'local',
+      connectorId: '',
+      model: 'local.chat.qwen3',
+      localModelId: 'local.chat.qwen3',
+      engine: 'llama',
+    });
+  });
+
+  it('maps standard route model picker selections back to compact target refs', () => {
+    expect(pickerSelectionToTargetRef({
+      source: 'cloud',
+      connectorId: 'connector-openai',
+      model: 'gpt-5-mini',
+      provider: 'openai',
+    })).toEqual({
+      kind: 'cloud-connector',
+      connectorId: 'connector-openai',
+      providerModelId: 'gpt-5-mini',
+      provider: 'openai',
+    });
+
+    expect(pickerSelectionToTargetRef({
+      source: 'local',
+      connectorId: '',
+      model: 'local.chat.gemma',
+      localModelId: 'local-import/gemma-4-26B-A4B-it-Q8_0',
+      goRuntimeLocalModelId: '01KLOCALGEMMA',
+      modelId: 'gemma-4-26b',
+      engine: 'llama',
+    })).toEqual({
+      kind: 'local-runtime',
+      targetId: 'llama',
+      profileId: '01KLOCALGEMMA',
+      readinessRef: 'runtime-route:local:llama:01KLOCALGEMMA',
     });
   });
 });

@@ -300,7 +300,7 @@ export function selectionStoreFromAIConfig(config: NimiAIConfig): ConversationCa
   };
 }
 
-function targetRefFromRuntimeRouteBinding(binding: NimiRuntimeRouteBinding): NimiAIConfigTargetRef | null {
+export function targetRefFromRuntimeRouteBinding(binding: NimiRuntimeRouteBinding): NimiAIConfigTargetRef | null {
   const source = String(binding.source || '').trim();
   const connectorId = String(binding.connectorId || '').trim();
   const model = String(binding.model || binding.modelId || binding.localModelId || '').trim();
@@ -353,11 +353,18 @@ function runtimeRouteBindingFromTargetRef(targetRef: NimiAIConfigTargetRef): Nim
   if (targetRef.kind === 'local-runtime') {
     const targetId = targetRef.targetId || targetRef.readinessRef || 'local-runtime';
     const profileId = targetRef.profileId || targetRef.readinessRef || targetId;
+    const engine = targetId
+      && targetId !== profileId
+      && targetId !== 'local-runtime'
+      && !targetId.startsWith('runtime-route:')
+      ? targetId
+      : '';
     return {
       source: 'local',
-      connectorId: targetId,
+      connectorId: '',
       model: profileId,
       localModelId: targetRef.profileId,
+      ...(engine ? { engine, provider: engine } : {}),
     };
   }
   return null;

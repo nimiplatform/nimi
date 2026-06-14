@@ -16,6 +16,7 @@ import {
   ensureAccountProfileLibraryLoaded,
   getCachedAccountProfileLibraryProfiles,
 } from '../runtime-config/runtime-config-profile-library';
+import { getDesktopRouteModelPickerProvider } from '../runtime-config/desktop-route-model-picker-provider';
 import { useSchedulingFeasibility, schedulingDetailKeyForJudgement, schedulingTitleKey } from './chat-shared-execution-scheduling-guard';
 import type {
   AppModelConfigSurface,
@@ -173,8 +174,10 @@ function toProjectionStatus(
         supported: false,
         tone: 'attention',
         badgeLabel: t('Chat.settingsCapabilityNeedsSetup', { defaultValue: 'Needs setup' }),
-        title: t('Chat.settingsRouteUnavailable', { defaultValue: 'Route unavailable' }),
-        detail: null,
+        title: t('Chat.settingsModelSelectionRequired', { defaultValue: 'Model selection required' }),
+        detail: t('Chat.settingsModelSelectionRequiredHint', {
+          defaultValue: 'Choose one local or cloud model route before using this conversation.',
+        }),
       };
     case 'binding_unresolved':
       return {
@@ -208,12 +211,12 @@ function toProjectionStatus(
       };
     case 'metadata_missing':
       return {
-        supported: false,
-        tone: 'attention',
+        supported: Boolean(projection.selectedBinding && projection.resolvedBinding),
+        tone: projection.selectedBinding && projection.resolvedBinding ? 'neutral' : 'attention',
         badgeLabel: t('Chat.settingsCapabilityAttention', { defaultValue: 'Attention' }),
         title: t('Chat.settingsRouteMetadataUnavailable', { defaultValue: 'Route metadata unavailable' }),
         detail: t('Chat.settingsRouteMetadataUnavailableHint', {
-          defaultValue: 'This capability cannot execute until runtime describe metadata is available.',
+          defaultValue: 'A route is selected, but runtime describe metadata is not available yet.',
         }),
       };
     case 'capability_unsupported':
@@ -300,7 +303,7 @@ function AiModeSettings(props: {
     scopeRef: aiConfig.scopeRef,
     aiConfigService,
     requirementDeclaration: chatRequirementDeclaration(aiConfig.scopeRef),
-    providerResolver: () => null,
+    providerResolver: (routeCapability: string) => getDesktopRouteModelPickerProvider(routeCapability),
     projectionResolver: (capabilityId: string) => toProjectionStatus(
       t,
       projectionByCapability[capabilityId as keyof typeof projectionByCapability] || null,
@@ -310,7 +313,14 @@ function AiModeSettings(props: {
       loading: assetsQuery.isLoading,
     },
     i18n: { t },
-  }), [aiConfig.scopeRef, aiConfigService, assetsQuery.data, assetsQuery.isLoading, projectionByCapability, t]);
+  }), [
+    aiConfig.scopeRef,
+    aiConfigService,
+    assetsQuery.data,
+    assetsQuery.isLoading,
+    projectionByCapability,
+    t,
+  ]);
   const profileCopy = useMemo(() => defaultModelConfigProfileCopy(t), [t]);
   // Prime the read-through projection of the Rust-owned account profile
   // library so the synchronous kit `userProfilesSource.list()` reflects host

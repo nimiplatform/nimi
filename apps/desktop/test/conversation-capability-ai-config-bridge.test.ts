@@ -55,3 +55,30 @@ test('conversation capability bridge hydrates cloud connector targetRefs into se
     provider: 'openrouter',
   });
 });
+
+test('conversation capability bridge hydrates local runtime targetRefs with engine identity for metadata resolution', () => {
+  const store = selectionStoreFromAIConfig({
+    scopeRef: createNimiBuiltInChatAIScopeRef('agent'),
+    capabilities: {
+      targetRefs: {
+        'text.generate': {
+          kind: 'local-runtime',
+          targetId: 'llama',
+          profileId: '01KTEX08DS2GR9HJ1X3R459P1B',
+          readinessRef: 'runtime-route:local:llama:01KTEX08DS2GR9HJ1X3R459P1B',
+        },
+      },
+      selectedParams: {},
+    },
+    profileOrigin: null,
+  });
+
+  assert.deepEqual(store.selectedBindings['text.generate'], {
+    source: 'local',
+    connectorId: '',
+    model: '01KTEX08DS2GR9HJ1X3R459P1B',
+    localModelId: '01KTEX08DS2GR9HJ1X3R459P1B',
+    engine: 'llama',
+    provider: 'llama',
+  });
+});

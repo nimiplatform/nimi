@@ -1,5 +1,6 @@
 import type { NimiRuntimeSpeechVoiceReference } from '@nimiplatform/kit/core/sdk-contract';
 import type { ModelConfigTargetRef } from '@nimiplatform/kit/core/model-config';
+import type { RouteModelPickerDataProvider } from '@nimiplatform/kit/features/model-picker';
 import type { ReactNode } from 'react';
 
 export type { ModelConfigTargetRef } from '@nimiplatform/kit/core/model-config';
@@ -24,6 +25,7 @@ export type ModelConfigCapabilityItem = {
    *  inline status dot/badge — page-level chrome carries the status. */
   activeModelLabel?: string;
   targetRef: ModelConfigTargetRef | null;
+  provider?: RouteModelPickerDataProvider | null;
   onTargetRefChange: (targetRef: ModelConfigTargetRef | null) => void;
   status?: ModelConfigCapabilityStatus | null;
   editor?: ReactNode;

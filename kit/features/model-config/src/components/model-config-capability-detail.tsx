@@ -1,4 +1,5 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
+import type { RouteModelPickerDataProvider } from '@nimiplatform/kit/features/model-picker';
 import {
   CANONICAL_CAPABILITY_CATALOG_BY_ID,
   type CanonicalCapabilityDescriptor,
@@ -90,6 +91,13 @@ function resolveOverride(
   capabilityId: string,
 ): CapabilityItemOverride {
   return surface.capabilityOverrides?.[capabilityId] ?? {};
+}
+
+function resolveProvider(
+  surface: AppModelConfigSurface,
+  routeCapability: string,
+): RouteModelPickerDataProvider | null {
+  return (surface.providerResolver(routeCapability) ?? null) as RouteModelPickerDataProvider | null;
 }
 
 function sameSpeechVoiceReference(
@@ -292,6 +300,11 @@ export function ModelConfigCapabilityDetail({
     writeCapabilityPatch(surface.aiConfigService, surface.scopeRef, capabilityId, { targetRef: next });
   }, [capabilityId, surface.aiConfigService, surface.scopeRef]);
 
+  const provider = useMemo(
+    () => (descriptor ? resolveProvider(surface, descriptor.sourceRef.capability) : null),
+    [descriptor, surface],
+  );
+
   if (!descriptor) {
     return null;
   }
@@ -309,6 +322,7 @@ export function ModelConfigCapabilityDetail({
       ? undefined
       : (activeModelLabel ?? t('ModelConfig.hub.activeModelLabel', { defaultValue: 'Active Model' })),
     targetRef,
+    provider,
     onTargetRefChange: handleTargetRefChange,
     status: projection,
     editor,

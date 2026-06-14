@@ -283,6 +283,9 @@ test('known dynamic desktop locale keys exist in both locales', async () => {
     'Chat.agentDebugCopyLabel',
     'Chat.agentDebugCopiedLabel',
     'Chat.agentDebugFollowUpLabel',
+    'Chat.settingsModelSelectionRequired',
+    'Chat.settingsModelSelectionRequiredHint',
+    'BridgeErrors.codes.RUNTIME_CALL_FAILED',
     'runtimeConfig.local.assetRemoved',
   ];
 

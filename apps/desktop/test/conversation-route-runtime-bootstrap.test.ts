@@ -5,10 +5,12 @@ import type {
   NimiRuntimeRouteHealthInput,
   NimiRuntimeRouteOptionsSnapshot,
 } from '@nimiplatform/sdk/runtime';
+import { createNimiBuiltInChatAIScopeRef } from '@nimiplatform/sdk/ai';
 import {
   buildConversationCapabilityProjection,
   createDefaultConversationCapabilitySelectionStore,
   getConversationCapabilityRouteRuntime,
+  selectionStoreFromAIConfig,
   updateConversationCapabilityBinding,
 } from '../src/shell/renderer/features/chat/conversation-capability.js';
 import {
@@ -154,6 +156,184 @@ test('desktop bootstrap route runtime resolves local import text routes through 
     (((scenarioRequest.extensions as unknown[])?.[0] as { namespace?: string } | undefined)?.namespace),
     'nimi.scenario.text_generate.route_describe',
   );
+});
+
+test('desktop bootstrap route runtime resolves AIConfig local targetRefs through runtime describe metadata', async () => {
+  const routeRuntime = createDesktopConversationCapabilityRouteRuntime({
+    loadRuntimeRouteOptions: async () => createSnapshot(selectedLocalBinding),
+    checkRuntimeRouteHealth: async (input) => ({
+      provider: 'llama',
+      endpoint: null,
+      model: String(input.localProviderModel || ''),
+      status: 'healthy',
+      detail: '',
+      checkedAt: new Date().toISOString(),
+    }),
+    buildRuntimeCallOptions: async () => ({
+      idempotencyKey: 'route-describe-idem',
+      timeoutMs: 30_000,
+      metadata: {
+        traceId: 'route-describe-trace',
+        callerKind: 'desktop-core' as const,
+        callerId: 'core.chat.agent',
+        surfaceId: 'desktop.renderer',
+      },
+    }),
+    getRuntimeClient: () => ({
+      appId: 'nimi.desktop',
+      ai: {
+        executeScenario: async (_request: unknown, options: unknown) => {
+          const extensionObserver = (options as {
+            responseMetadataObserver?: (metadata: Record<string, string>) => void;
+          }).responseMetadataObserver;
+          extensionObserver?.({
+            'x-nimi-route-describe-result': encodeRouteDescribePayload({
+              capability: 'text.generate',
+              metadataVersion: 'v1',
+              resolvedBindingRef: 'local:text.generate:llama:01KLOCALGEMMA',
+              metadataKind: 'text.generate',
+              metadata: {
+                supportsThinking: true,
+                traceModeSupport: 'separate',
+                supportsImageInput: false,
+                supportsAudioInput: false,
+                supportsVideoInput: false,
+                supportsArtifactRefInput: false,
+              },
+            }),
+          });
+          return {
+            output: {
+              output: {
+                oneofKind: 'textGenerate',
+                textGenerate: { text: '' },
+              },
+            },
+            finishReason: 1,
+            routeDecision: 1,
+            modelResolved: 'local-import/gemma-4-26B-A4B-it-Q8_0',
+            traceId: 'route-describe-response-trace',
+            ignoredExtensions: [],
+          };
+        },
+      },
+    } as never),
+  });
+
+  const store = selectionStoreFromAIConfig({
+    scopeRef: createNimiBuiltInChatAIScopeRef('agent'),
+    capabilities: {
+      targetRefs: {
+        'text.generate': {
+          kind: 'local-runtime',
+          targetId: 'llama',
+          profileId: '01KLOCALGEMMA',
+          readinessRef: 'runtime-route:local:llama:01KLOCALGEMMA',
+        },
+      },
+      selectedParams: {},
+    },
+    profileOrigin: null,
+  });
+  const projection = await buildConversationCapabilityProjection({
+    capability: 'text.generate',
+    selectionStore: store,
+    routeRuntime,
+  });
+
+  assert.equal(projection.supported, true);
+  assert.equal(projection.reasonCode, null);
+  assert.equal(projection.resolvedBinding?.resolvedBindingRef, 'local:text.generate:llama:01KLOCALGEMMA');
+});
+
+test('desktop bootstrap canonicalizes local targetRefs that stored a model route instead of the runtime asset id', async () => {
+  const routeRuntime = createDesktopConversationCapabilityRouteRuntime({
+    loadRuntimeRouteOptions: async () => createSnapshot(selectedLocalBinding),
+    checkRuntimeRouteHealth: async (input) => ({
+      provider: 'llama',
+      endpoint: null,
+      model: String(input.localProviderModel || ''),
+      status: 'healthy',
+      detail: '',
+      checkedAt: new Date().toISOString(),
+    }),
+    buildRuntimeCallOptions: async () => ({
+      idempotencyKey: 'route-describe-idem',
+      timeoutMs: 30_000,
+      metadata: {
+        traceId: 'route-describe-trace',
+        callerKind: 'desktop-core' as const,
+        callerId: 'core.chat.agent',
+        surfaceId: 'desktop.renderer',
+      },
+    }),
+    getRuntimeClient: () => ({
+      appId: 'nimi.desktop',
+      ai: {
+        executeScenario: async (_request: unknown, options: unknown) => {
+          const extensionObserver = (options as {
+            responseMetadataObserver?: (metadata: Record<string, string>) => void;
+          }).responseMetadataObserver;
+          extensionObserver?.({
+            'x-nimi-route-describe-result': encodeRouteDescribePayload({
+              capability: 'text.generate',
+              metadataVersion: 'v1',
+              resolvedBindingRef: 'local:text.generate:llama:01KLOCALGEMMA',
+              metadataKind: 'text.generate',
+              metadata: {
+                supportsThinking: true,
+                traceModeSupport: 'separate',
+                supportsImageInput: false,
+                supportsAudioInput: false,
+                supportsVideoInput: false,
+                supportsArtifactRefInput: false,
+              },
+            }),
+          });
+          return {
+            output: {
+              output: {
+                oneofKind: 'textGenerate',
+                textGenerate: { text: '' },
+              },
+            },
+            finishReason: 1,
+            routeDecision: 1,
+            modelResolved: 'local-import/gemma-4-26B-A4B-it-Q8_0',
+            traceId: 'route-describe-response-trace',
+            ignoredExtensions: [],
+          };
+        },
+      },
+    } as never),
+  });
+
+  const store = selectionStoreFromAIConfig({
+    scopeRef: createNimiBuiltInChatAIScopeRef('agent'),
+    capabilities: {
+      targetRefs: {
+        'text.generate': {
+          kind: 'local-runtime',
+          targetId: 'local-runtime',
+          profileId: 'local/local-import/gemma-4-26B-A4B-it-Q8_0',
+          readinessRef: 'runtime-route:local:local-runtime:local/local-import/gemma-4-26B-A4B-it-Q8_0',
+        },
+      },
+      selectedParams: {},
+    },
+    profileOrigin: null,
+  });
+  const projection = await buildConversationCapabilityProjection({
+    capability: 'text.generate',
+    selectionStore: store,
+    routeRuntime,
+  });
+
+  assert.equal(projection.supported, true);
+  assert.equal(projection.reasonCode, null);
+  assert.equal(projection.resolvedBinding?.localModelId, '01KLOCALGEMMA');
+  assert.equal(projection.resolvedBinding?.goRuntimeLocalModelId, '01KLOCALGEMMA');
+  assert.equal(projection.resolvedBinding?.resolvedBindingRef, 'local:text.generate:llama:01KLOCALGEMMA');
 });
 
 test('desktop bootstrap route runtime does not hydrate a selected local binding from a different local model', async () => {
