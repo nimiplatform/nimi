@@ -53,9 +53,6 @@ fn avatar_app_storage_roots_from_projection(
             projection.state
         ));
     }
-    if projection.active_release_root.trim().is_empty() {
-        return Err("avatar storage projection requires activeReleaseRoot".to_string());
-    }
     Ok(AvatarAppStorageRoots {
         data_root: absolute_package_path(&projection.durable_data_root, "dataRoot")?,
         cache_root: absolute_package_path(&projection.cache_root, "cacheRoot")?,
@@ -66,8 +63,7 @@ fn avatar_app_storage_roots_from_projection(
 pub(crate) fn avatar_app_storage_roots() -> Result<AvatarAppStorageRoots, String> {
     tauri::async_runtime::block_on(async {
         // Runtime app storage projection is the authority for Avatar data,
-        // cache, temp, and active release roots; package projections only carry
-        // package state.
+        // cache, and temp roots; package projections only carry package state.
         let request = crate::runtime_bridge::generated::GetAppStorageRequest {
             app_id: AVATAR_APP_ID.to_string(),
         };
@@ -299,7 +295,7 @@ mod tests {
         avatar_app_storage_roots_from_projection, list_instances_from_file,
         list_instances_from_file_at, load_registry_from_path,
         process_start_time_matches_projection, projection_is_fresh, validate_local_agent_scope,
-        DesktopAvatarInstanceRegistryFile,
+        DesktopAvatarInstanceRegistryFile, LIVE_PROJECTION_TTL_MS,
     };
 
     fn temp_registry_path() -> std::path::PathBuf {
@@ -404,6 +400,22 @@ mod tests {
         assert_eq!(
             roots.temp_root,
             std::path::PathBuf::from("/tmp/nimi-data/apps/nimi.avatar/tmp")
+        );
+    }
+
+    #[test]
+    fn avatar_storage_roots_do_not_require_active_release_root() {
+        let mut projection =
+            storage_projection(crate::runtime_bridge::generated::AppStorageState::Ready);
+        projection.active_release_root = String::new();
+        projection.active_version = String::new();
+
+        let roots = avatar_app_storage_roots_from_projection(&projection)
+            .expect("avatar storage roots without active release");
+
+        assert_eq!(
+            roots.data_root,
+            std::path::PathBuf::from("/tmp/nimi-data/apps/nimi.avatar/data")
         );
     }
 
@@ -562,24 +574,26 @@ mod tests {
     #[test]
     fn load_registry_from_path_ignores_stale_pre_cutover_projection_fields() {
         let path = temp_registry_path();
-        fs::write(
-            &path,
-            r#"{
+        let stale_published_at_ms = now_ms().saturating_sub(LIVE_PROJECTION_TTL_MS + 1);
+        let raw = format!(
+            r#"{{
   "schemaVersion": 2,
-  "publisherPid": 7,
-  "publishedAtMs": 100,
+  "publisherPid": {},
+  "publishedAtMs": {},
   "instances": [
-    {
+    {{
       "avatarInstanceId": "instance-1",
       "ownerUserId": "owner-1",
       "realmAgentId": "agent-1",
       "localAgentRef": "local-agent:owner-1:agent-1",
       "conversationAnchorId": "anchor-1"
-    }
+    }}
   ]
-}"#,
-        )
-        .expect("write registry");
+}}"#,
+            std::process::id(),
+            stale_published_at_ms
+        );
+        fs::write(&path, raw).expect("write registry");
 
         let loaded = load_registry_from_path(&path).expect("stale projection is ignored");
 
