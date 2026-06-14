@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import './tester-workbench.css';
+import { StatusBadge, Tooltip } from '@nimiplatform/kit/ui';
 import { createRendererFlowId, emitRuntimeLog, logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { createNimiClientId } from '@nimiplatform/sdk';
 import { requestWithRetry } from '@nimiplatform/sdk/types';
+import { Beaker, Camera, Route, Server } from 'lucide-react';
 import { getTesterCapability, testerCapabilities, type TesterCapabilityId } from './tester-capabilities.js';
 import { shouldPersistTesterArtifactRecord } from './tester-artifact-persistence.js';
 import { appendTesterRunHistory, loadTesterRunHistory, type TesterRunHistory } from './tester-history.js';
@@ -17,13 +19,11 @@ import {
   type TesterPreferenceStoreStatus,
 } from './tester-preferences.js';
 import { testerTestIds } from './tester-test-ids.js';
-import { appId } from '../shell/auth/runtime-platform.js';
 import { WorkbenchSideNav } from './workbench/workbench-side-nav.js';
 import { SectionAITesting } from './workbench/section-ai-testing.js';
 import type { WorkbenchView } from './workbench/workbench-context.js';
 import { KitComponentGallery } from './kit-component-gallery.js';
 
-const APP_VERSION = '0.1.0-dev';
 const initialCapabilityId: TesterCapabilityId = 'text.generate';
 
 type TesterWorkbenchProps = {
@@ -43,7 +43,13 @@ function getResultTraceId(result: TesterCapabilityRunResult): string | undefined
   return result.ok ? result.trace?.traceId : undefined;
 }
 
-export function TesterWorkbench(_props: TesterWorkbenchProps) {
+function runtimeBadge(summary: TesterAIConfigSummary | null): { label: string; tone: 'success' | 'warning' | 'neutral' } {
+  if (!summary) return { label: 'Checking', tone: 'neutral' };
+  if (summary.runtime.status === 'ready') return { label: 'Ready', tone: 'success' };
+  return { label: 'Blocked', tone: 'warning' };
+}
+
+export function TesterWorkbench(props: TesterWorkbenchProps) {
   const [view, setView] = useState<WorkbenchView>({ kind: 'capability', capabilityId: initialCapabilityId });
   const activeCapabilityId: TesterCapabilityId = view.kind === 'capability' ? view.capabilityId : initialCapabilityId;
   const [summary, setSummary] = useState<TesterAIConfigSummary | null>(null);
@@ -56,6 +62,7 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
   }>(() => loadTesterPreferences());
 
   const capability = useMemo(() => getTesterCapability(activeCapabilityId), [activeCapabilityId]);
+  const runtimeState = useMemo(() => runtimeBadge(summary), [summary]);
 
   const refreshHistory = useCallback(async () => {
     try {
@@ -199,34 +206,68 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
 
   return (
     <main className="workbench" data-testid={testerTestIds.root}>
-      <WorkbenchSideNav
-        view={view}
-        onSelectCapability={(id) => setView({ kind: 'capability', capabilityId: id })}
-        onSelectRecipes={() => setView({ kind: 'ui-recipes' })}
-        appId={appId}
-        appVersion={APP_VERSION}
-      />
-      <div className="workbench__main">
-        <div className="workbench__content">
-          {view.kind === 'ui-recipes' ? (
-            <KitComponentGallery
-              onOpenSection={(target) => {
-                const capabilityId = testerCapabilities.find((item) => item.id === target)?.id ?? initialCapabilityId;
-                setView({ kind: 'capability', capabilityId });
-              }}
-            />
-          ) : (
-            <SectionAITesting
-              capability={capability}
-              onResult={handleCapabilityResult}
-              onSelectCapability={(id) => setView({ kind: 'capability', capabilityId: id })}
-              summary={summary}
-              history={history}
-              lastResult={lastResult}
-              verboseConsole={preferenceState.preferences.verboseConsole}
-              draftPersistence={preferenceState.preferences.draftPersistence}
-            />
-          )}
+      <header className="workbench-topbar">
+        <div className="workbench-topbar__identity">
+          <span className="workbench-topbar__mark" aria-hidden="true">
+            <Beaker size={17} />
+          </span>
+          <div className="workbench-topbar__title">
+            <strong>{props.title}</strong>
+            <span>Runtime capability workbench</span>
+          </div>
+        </div>
+        <div className="workbench-topbar__status" aria-label="Tester runtime status">
+          <span className="workbench-topbar__chip">
+            <Server size={14} aria-hidden="true" />
+            <span>Runtime</span>
+            <StatusBadge tone={runtimeState.tone} shape="dot">{runtimeState.label}</StatusBadge>
+          </span>
+          <span className="workbench-topbar__chip workbench-topbar__chip--quiet">
+            <Route size={14} aria-hidden="true" />
+            <span>SDK routed</span>
+          </span>
+        </div>
+        <div className="workbench-topbar__actions">
+          <Tooltip content="Capture evidence" placement="bottom">
+            <button
+              type="button"
+              className="workbench-topbar__icon"
+              aria-label="Capture evidence"
+              onClick={handleCaptureEvidence}
+            >
+              <Camera size={16} aria-hidden="true" />
+            </button>
+          </Tooltip>
+        </div>
+      </header>
+      <div className="workbench__body">
+        <WorkbenchSideNav
+          view={view}
+          onSelectCapability={(id) => setView({ kind: 'capability', capabilityId: id })}
+          onSelectRecipes={() => setView({ kind: 'ui-recipes' })}
+        />
+        <div className="workbench__main">
+          <div className="workbench__content">
+            {view.kind === 'ui-recipes' ? (
+              <KitComponentGallery
+                onOpenSection={(target) => {
+                  const capabilityId = testerCapabilities.find((item) => item.id === target)?.id ?? initialCapabilityId;
+                  setView({ kind: 'capability', capabilityId });
+                }}
+              />
+            ) : (
+              <SectionAITesting
+                capability={capability}
+                onResult={handleCapabilityResult}
+                onSelectCapability={(id) => setView({ kind: 'capability', capabilityId: id })}
+                summary={summary}
+                history={history}
+                lastResult={lastResult}
+                verboseConsole={preferenceState.preferences.verboseConsole}
+                draftPersistence={preferenceState.preferences.draftPersistence}
+              />
+            )}
+          </div>
         </div>
       </div>
     </main>

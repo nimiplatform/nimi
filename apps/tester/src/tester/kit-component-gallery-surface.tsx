@@ -44,6 +44,9 @@ import {
 import {
   Boxes,
   Check,
+  Code2,
+  ListChecks,
+  Palette,
   RefreshCw,
   Search,
   Sparkles,
@@ -51,10 +54,9 @@ import {
 } from 'lucide-react';
 
 // UI Recipes — an industrial Nimi Kit component library for third-party Nimi App
-// developers. Three panes: an ontology/coverage taxonomy (left), a live canvas of
-// real `@nimiplatform/kit/ui` primitives (middle), and a recipe inspector with the
-// import code, props, and coverage evidence (right). It performs NO runtime work —
-// this is component documentation, rendered from the canonical kit surface.
+// developers. Two panes: an ontology/coverage taxonomy (left) and a live
+// workbench canvas with inline recipe evidence (right). It performs NO runtime
+// work — this is component documentation, rendered from the canonical kit surface.
 
 export type CategoryId =
   | 'foundations'
@@ -235,18 +237,29 @@ function ConfirmDemo() {
 
 // ---- Recipe registry ----
 
-type Recipe = {
+export type Recipe = {
   id: string;
   category: CategoryId;
   name: string;
   exportsLabel: string;
   importNames: string[];
+  extraImports?: string[];
   badge: { label: string; tone: 'success' | 'info' | 'warning' | 'neutral' };
   wide?: boolean;
   stage: ReactNode;
   snippet: string;
   props: Array<{ name: string; desc: string }>;
 };
+
+type RecipeMode = 'live' | 'code' | 'props' | 'a11y' | 'tokens';
+
+const RECIPE_MODES: Array<{ id: RecipeMode; label: string }> = [
+  { id: 'live', label: 'Live' },
+  { id: 'code', label: 'Code' },
+  { id: 'props', label: 'Props' },
+  { id: 'a11y', label: 'A11y' },
+  { id: 'tokens', label: 'Tokens' },
+];
 
 export const RECIPES: Recipe[] = [
   // Actions
@@ -256,6 +269,7 @@ export const RECIPES: Recipe[] = [
     name: 'Button · IconButton',
     exportsLabel: 'Button, IconButton',
     importNames: ['Button', 'IconButton'],
+    extraImports: ["import { RefreshCw, Sparkles } from 'lucide-react';"],
     badge: { label: 'live', tone: 'success' },
     stage: (
       <>
@@ -266,7 +280,13 @@ export const RECIPES: Recipe[] = [
         <IconButton aria-label="Refresh" tone="secondary" icon={<RefreshCw size={15} />} />
       </>
     ),
-    snippet: '<Button tone="primary" leadingIcon={<Sparkles />}>Run</Button>',
+    snippet: `<div className="flex flex-wrap items-center gap-3">
+  <Button tone="primary" leadingIcon={<Sparkles size={14} />}>Primary</Button>
+  <Button tone="secondary">Secondary</Button>
+  <Button tone="ghost">Ghost</Button>
+  <Button tone="danger">Danger</Button>
+  <IconButton aria-label="Refresh" tone="secondary" icon={<RefreshCw size={15} />} />
+</div>`,
     props: [
       { name: 'tone', desc: 'primary | secondary | ghost | danger' },
       { name: 'size', desc: 'sm | md | lg' },
@@ -280,6 +300,7 @@ export const RECIPES: Recipe[] = [
     name: 'App surface actions',
     exportsLabel: 'AppCardSurface, CompactAction, IconToggleAction, FieldTrigger, ScrollShell',
     importNames: ['AppCardSurface', 'CompactAction', 'IconToggleAction', 'FieldTrigger', 'ScrollShell'],
+    extraImports: ["import { Check } from 'lucide-react';"],
     badge: { label: 'app shell', tone: 'success' },
     wide: true,
     stage: (
@@ -295,7 +316,17 @@ export const RECIPES: Recipe[] = [
         </ScrollShell>
       </AppCardSurface>
     ),
-    snippet: '<AppCardSurface kind="promoted-glass"><CompactAction tone="primary">Apply</CompactAction></AppCardSurface>',
+    snippet: `<AppCardSurface kind="promoted-glass" className="kit-surface-sample">
+  <div className="flex flex-wrap items-center gap-2">
+    <CompactAction tone="primary">Apply</CompactAction>
+    <CompactAction tone="danger">Reset</CompactAction>
+    <IconToggleAction aria-label="Pin panel" icon={<Check size={14} />} active />
+  </div>
+  <FieldTrigger className="mt-3">Runtime route · text.generate</FieldTrigger>
+  <ScrollShell className="mt-3 max-h-16 text-xs text-[var(--nimi-text-secondary)]">
+    Shared app surfaces stay in Kit so Desktop, Tester, and future apps consume the same primitive.
+  </ScrollShell>
+</AppCardSurface>`,
     props: [
       { name: 'kind', desc: 'promoted-glass | operational-solid app surface recipe' },
       { name: 'tone', desc: 'neutral | primary | danger compact action tone' },
@@ -309,6 +340,7 @@ export const RECIPES: Recipe[] = [
     name: 'Field system',
     exportsLabel: 'FieldShell, TextField, SelectField',
     importNames: ['FieldShell', 'TextField', 'SearchField', 'SelectField', 'TextareaField'],
+    extraImports: ["import { Search } from 'lucide-react';"],
     badge: { label: 'forms', tone: 'info' },
     wide: true,
     stage: (
@@ -327,7 +359,22 @@ export const RECIPES: Recipe[] = [
         </FieldShell>
       </>
     ),
-    snippet: '<FieldShell label="Capability"><SelectField options={lanes} /></FieldShell>',
+    snippet: `<>
+  <FieldShell label="App identity">
+    <TextField defaultValue="nimi.tester" leading={<Search size={14} />} />
+  </FieldShell>
+  <FieldShell label="Capability route">
+    <SelectField
+      defaultValue="text.generate"
+      options={[
+        { value: 'text.generate', label: 'Text generation' },
+        { value: 'chat.stream', label: 'Chat stream' },
+        { value: 'image.generate', label: 'Image generation' },
+      ]}
+      aria-label="Capability route"
+    />
+  </FieldShell>
+</>`,
     props: [
       { name: 'label', desc: 'FieldShell heading + association' },
       { name: 'options', desc: 'closed set of { value, label } for SelectField' },
@@ -343,7 +390,10 @@ export const RECIPES: Recipe[] = [
     importNames: ['TextareaField'],
     badge: { label: 'forms', tone: 'info' },
     stage: <TextareaField rows={3} defaultValue="Write a concise acceptance note for a runtime-backed Nimi App." />,
-    snippet: '<TextareaField rows={4} value={prompt} onChange={...} />',
+    snippet: `<TextareaField
+  rows={3}
+  defaultValue="Write a concise acceptance note for a runtime-backed Nimi App."
+/>`,
     props: [
       { name: 'rows', desc: 'initial visible rows' },
       { name: 'wrap', desc: 'soft | hard text wrapping' },
@@ -355,6 +405,7 @@ export const RECIPES: Recipe[] = [
     name: 'Slider · NumberStepper',
     exportsLabel: 'Slider, NumberStepper',
     importNames: ['Slider', 'NumberStepper'],
+    extraImports: ["import { useState } from 'react';"],
     badge: { label: 'numeric', tone: 'info' },
     stage: (
       <>
@@ -362,7 +413,30 @@ export const RECIPES: Recipe[] = [
         <NumberStepperDemo />
       </>
     ),
-    snippet: '<Slider min={1} max={100} value={n} onChange={...} showValue />',
+    snippet: `function NumericControls() {
+  const [sliderValue, setSliderValue] = useState(62);
+  const [stepperValue, setStepperValue] = useState(4);
+
+  return (
+    <>
+      <Slider
+        min={1}
+        max={100}
+        value={sliderValue}
+        onChange={(event) => setSliderValue(Number(event.currentTarget.value))}
+        showValue
+        aria-label="Batch size"
+      />
+      <NumberStepper
+        value={stepperValue}
+        onValueChange={setStepperValue}
+        min={1}
+        max={16}
+        ariaLabel="Batch count"
+      />
+    </>
+  );
+}`,
     props: [
       { name: 'min / max', desc: 'numeric bounds' },
       { name: 'value', desc: 'controlled current value' },
@@ -376,6 +450,7 @@ export const RECIPES: Recipe[] = [
     name: 'Selection controls',
     exportsLabel: 'Toggle, Checkbox, SegmentedControl',
     importNames: ['Toggle', 'Checkbox', 'SegmentedControl'],
+    extraImports: ["import { useState } from 'react';"],
     badge: { label: 'state', tone: 'info' },
     wide: true,
     stage: (
@@ -385,7 +460,33 @@ export const RECIPES: Recipe[] = [
         <SegmentedDemo />
       </>
     ),
-    snippet: '<SegmentedControl value="single" items={runModes} onValueChange={...} />',
+    snippet: `function SelectionControls() {
+  const [toggleOn, setToggleOn] = useState(true);
+  const [checked, setChecked] = useState(true);
+  const [mode, setMode] = useState('single');
+
+  return (
+    <>
+      <Toggle checked={toggleOn} onChange={setToggleOn} />
+      <Checkbox
+        checked={checked}
+        onChange={(event) => setChecked(event.currentTarget.checked)}
+        label="Fail closed on missing SDK"
+      />
+      <SegmentedControl
+        items={[
+          { value: 'single', label: 'Single' },
+          { value: 'stream', label: 'Stream' },
+          { value: 'batch', label: 'Batch' },
+        ]}
+        value={mode}
+        onValueChange={setMode}
+        ariaLabel="Run mode"
+        size="sm"
+      />
+    </>
+  );
+}`,
     props: [
       { name: 'checked', desc: 'Toggle / Checkbox controlled state' },
       { name: 'items', desc: 'SegmentedControl { value, label }[]' },
@@ -397,11 +498,26 @@ export const RECIPES: Recipe[] = [
     id: 'dialog',
     category: 'overlays',
     name: 'Dialog',
-    exportsLabel: 'Dialog, DialogContent',
-    importNames: ['Dialog', 'DialogContent', 'DialogHeader', 'DialogBody'],
+    exportsLabel: 'Dialog, DialogContent, Button',
+    importNames: ['Dialog', 'DialogContent', 'DialogHeader', 'DialogBody', 'Button'],
     badge: { label: 'interactive', tone: 'info' },
     stage: <DialogDemo />,
-    snippet: '<Dialog open={open}><DialogContent>…</DialogContent></Dialog>',
+    extraImports: ["import { useState } from 'react';"],
+    snippet: `function DialogRecipe() {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <Button tone="secondary" size="sm" onClick={() => setOpen(true)}>Open dialog</Button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent onClose={() => setOpen(false)}>
+          <DialogHeader>Apply AIProfile</DialogHeader>
+          <DialogBody>Review the NimiAIConfig diff before applying it to this capability.</DialogBody>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}`,
     props: [
       { name: 'open', desc: 'controlled open state' },
       { name: 'onOpenChange', desc: 'open/close callback' },
@@ -412,11 +528,33 @@ export const RECIPES: Recipe[] = [
     id: 'overlay-shell',
     category: 'overlays',
     name: 'OverlayShell',
-    exportsLabel: 'OverlayShell',
-    importNames: ['OverlayShell'],
+    exportsLabel: 'OverlayShell, Button',
+    importNames: ['OverlayShell', 'Button'],
     badge: { label: 'interactive', tone: 'info' },
     stage: <OverlayShellDemo />,
-    snippet: '<OverlayShell open kind="drawer" size="M">…</OverlayShell>',
+    extraImports: ["import { useState } from 'react';"],
+    snippet: `function OverlayShellRecipe() {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <Button tone="secondary" size="sm" onClick={() => setOpen(true)}>Open drawer</Button>
+      <OverlayShell
+        open={open}
+        kind="drawer"
+        size="M"
+        title="SDK projection detail"
+        footer={<Button tone="primary" size="sm" onClick={() => setOpen(false)}>Done</Button>}
+        onClose={() => setOpen(false)}
+      >
+        <div className="kit-pop">
+          <strong>Consumer-owned content</strong>
+          <span>Overlay chrome comes from Kit UI.</span>
+        </div>
+      </OverlayShell>
+    </>
+  );
+}`,
     props: [
       { name: 'kind', desc: 'dialog | drawer | popover shell chrome' },
       { name: 'size', desc: 'admitted drawer width token' },
@@ -427,11 +565,24 @@ export const RECIPES: Recipe[] = [
     id: 'popover',
     category: 'overlays',
     name: 'Popover',
-    exportsLabel: 'Popover, PopoverContent',
-    importNames: ['Popover', 'PopoverTrigger', 'PopoverContent'],
+    exportsLabel: 'Popover, PopoverContent, Button',
+    importNames: ['Popover', 'PopoverTrigger', 'PopoverContent', 'Button'],
     badge: { label: 'interactive', tone: 'info' },
     stage: <PopoverDemo />,
-    snippet: '<Popover><PopoverTrigger />…<PopoverContent /></Popover>',
+    extraImports: ["import { SlidersHorizontal } from 'lucide-react';"],
+    snippet: `<Popover>
+  <PopoverTrigger asChild>
+    <Button tone="secondary" size="sm" leadingIcon={<SlidersHorizontal size={13} />}>
+      Open popover
+    </Button>
+  </PopoverTrigger>
+  <PopoverContent>
+    <div className="kit-pop">
+      <strong>Route detail</strong>
+      <span>Local runtime · text.generate</span>
+    </div>
+  </PopoverContent>
+</Popover>`,
     props: [
       { name: 'PopoverTrigger', desc: 'asChild wraps your own button' },
       { name: 'PopoverContent', desc: 'floating surface content' },
@@ -441,11 +592,15 @@ export const RECIPES: Recipe[] = [
     id: 'tooltip',
     category: 'overlays',
     name: 'Tooltip',
-    exportsLabel: 'Tooltip, TooltipProvider',
-    importNames: ['Tooltip', 'TooltipProvider'],
+    exportsLabel: 'Tooltip, TooltipProvider, Button',
+    importNames: ['Tooltip', 'TooltipProvider', 'Button'],
     badge: { label: 'interactive', tone: 'info' },
     stage: <TooltipDemo />,
-    snippet: '<Tooltip content="…"><Button /></Tooltip>',
+    snippet: `<TooltipProvider>
+  <Tooltip content="Runs through the admitted SDK surface">
+    <Button tone="ghost" size="sm">Hover for tooltip</Button>
+  </Tooltip>
+</TooltipProvider>`,
     props: [
       { name: 'content', desc: 'tooltip body node' },
       { name: 'placement', desc: 'top | bottom side' },
@@ -455,11 +610,28 @@ export const RECIPES: Recipe[] = [
     id: 'confirm',
     category: 'overlays',
     name: 'ConfirmDialog',
-    exportsLabel: 'ConfirmDialog',
-    importNames: ['ConfirmDialog'],
+    exportsLabel: 'ConfirmDialog, Button',
+    importNames: ['ConfirmDialog', 'Button'],
     badge: { label: 'interactive', tone: 'warning' },
     stage: <ConfirmDemo />,
-    snippet: '<ConfirmDialog open title message confirmLabel onConfirm onClose />',
+    extraImports: ["import { useState } from 'react';"],
+    snippet: `function ConfirmDialogRecipe() {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <Button tone="danger" size="sm" onClick={() => setOpen(true)}>Delete draft…</Button>
+      <ConfirmDialog
+        open={open}
+        title="Delete prompt draft?"
+        message="This removes the local draft for this capability. It cannot be undone."
+        confirmLabel="Delete"
+        onConfirm={() => setOpen(false)}
+        onClose={() => setOpen(false)}
+      />
+    </>
+  );
+}`,
     props: [
       { name: 'title / message', desc: 'confirmation copy' },
       { name: 'confirmTone', desc: 'danger | primary' },
@@ -481,7 +653,36 @@ export const RECIPES: Recipe[] = [
         <PillTabsDemo />
       </>
     ),
-    snippet: '<NimiTabs items={tabs} value={tab} onValueChange={setTab} />',
+    extraImports: ["import { useState } from 'react';"],
+    snippet: `function TabsRecipe() {
+  const [tabsValue, setTabsValue] = useState('overview');
+  const [pillValue, setPillValue] = useState('live');
+
+  return (
+    <>
+      <NimiTabs
+        items={[
+          { value: 'overview', label: 'Overview' },
+          { value: 'props', label: 'Props' },
+          { value: 'tokens', label: 'Tokens' },
+        ]}
+        value={tabsValue}
+        onValueChange={setTabsValue}
+        ariaLabel="Recipe view"
+      />
+      <PillTabs
+        items={[
+          { value: 'live', label: 'Live' },
+          { value: 'code', label: 'Code' },
+          { value: 'a11y', label: 'A11y' },
+        ]}
+        value={pillValue}
+        onValueChange={setPillValue}
+        ariaLabel="Preview mode"
+      />
+    </>
+  );
+}`,
     props: [
       { name: 'items', desc: '{ value, label }[]' },
       { name: 'value', desc: 'active tab value' },
@@ -504,7 +705,20 @@ export const RECIPES: Recipe[] = [
         </div>
       </ScrollArea>
     ),
-    snippet: '<ScrollArea viewportClassName="…">{rows}</ScrollArea>',
+    snippet: `<ScrollArea className="kit-scroll-demo" viewportClassName="kit-scroll-demo__vp">
+  <div className="kit-scroll-list">
+    {[
+      'text.generate',
+      'chat.stream',
+      'text.embed',
+      'image.generate',
+      'video.generate',
+      'audio.synthesize',
+    ].map((row) => (
+      <div key={row} className="kit-scroll-row"><code>{row}</code></div>
+    ))}
+  </div>
+</ScrollArea>`,
     props: [
       { name: 'viewportClassName', desc: 'styles the scrolling viewport' },
     ],
@@ -526,7 +740,13 @@ export const RECIPES: Recipe[] = [
         ))}
       </>
     ),
-    snippet: '<Surface material="glass-regular" elevation="raised">…</Surface>',
+    snippet: `<>
+  {(['solid', 'glass-thin', 'glass-regular', 'glass-thick', 'glass-chrome'] as const).map((material) => (
+    <Surface key={material} material={material} tone="panel" elevation="raised" className="kit-surface-sample">
+      <strong>{material}</strong>
+    </Surface>
+  ))}
+</>`,
     props: [
       { name: 'material', desc: 'solid | glass-thin | glass-regular | glass-thick | glass-chrome' },
       { name: 'tone', desc: 'canvas | panel | card | hero | overlay' },
@@ -550,7 +770,13 @@ export const RECIPES: Recipe[] = [
         <StatusBadge tone="neutral" shape="outline">neutral</StatusBadge>
       </>
     ),
-    snippet: '<StatusBadge tone="success" shape="dot">ready</StatusBadge>',
+    snippet: `<>
+  <StatusBadge tone="success" shape="dot">ready</StatusBadge>
+  <StatusBadge tone="warning" shape="dot">attention</StatusBadge>
+  <StatusBadge tone="danger" shape="dot">blocked</StatusBadge>
+  <StatusBadge tone="info" shape="soft">info</StatusBadge>
+  <StatusBadge tone="neutral" shape="outline">neutral</StatusBadge>
+</>`,
     props: [
       { name: 'tone', desc: 'neutral | success | warning | danger | info' },
       { name: 'shape', desc: 'soft | outline | dot' },
@@ -570,7 +796,10 @@ export const RECIPES: Recipe[] = [
         <InlineAlert tone="warning">Bind a model before running this lane.</InlineAlert>
       </div>
     ),
-    snippet: '<InlineAlert tone="warning">Bind a model first</InlineAlert>',
+    snippet: `<div className="kit-stack">
+  <InlineAlert tone="info">Runtime session is ready for this capability.</InlineAlert>
+  <InlineAlert tone="warning">Bind a model before running this lane.</InlineAlert>
+</div>`,
     props: [
       { name: 'tone', desc: 'neutral | success | warning | danger | info' },
       { name: 'icon', desc: 'optional leading icon node' },
@@ -589,7 +818,10 @@ export const RECIPES: Recipe[] = [
         <LoadingSkeleton lines={3} />
       </div>
     ),
-    snippet: '<ProgressIndicator value={72} showValue />',
+    snippet: `<div className="kit-stack" style={{ width: '100%' }}>
+  <ProgressIndicator value={72} showValue />
+  <LoadingSkeleton lines={3} />
+</div>`,
     props: [
       { name: 'value', desc: '0–100 progress percentage' },
       { name: 'lines', desc: 'LoadingSkeleton row count' },
@@ -609,7 +841,11 @@ export const RECIPES: Recipe[] = [
         <Avatar alt="Agent" fallback="A" size="lg" />
       </>
     ),
-    snippet: '<Avatar alt="Nimi" fallback="N" />',
+    snippet: `<>
+  <Avatar alt="Nimi" fallback="N" />
+  <Avatar alt="Tester" fallback="T" shape="rounded" tone="accent" />
+  <Avatar alt="Agent" fallback="A" size="lg" />
+</>`,
     props: [
       { name: 'src / alt', desc: 'image + accessible name' },
       { name: 'shape', desc: 'circle | rounded | square' },
@@ -632,7 +868,17 @@ export const RECIPES: Recipe[] = [
         action={<Button size="sm" tone="secondary" leadingIcon={<RefreshCw size={13} />}>Refresh</Button>}
       />
     ),
-    snippet: '<EmptyState icon title description action={<Button />} />',
+    extraImports: ["import { Boxes, RefreshCw } from 'lucide-react';"],
+    snippet: `<EmptyState
+  icon={<Boxes size={18} />}
+  title="No captured artifacts"
+  description="Run a real capability or resolve a typed blocker before this list fills."
+  action={
+    <Button size="sm" tone="secondary" leadingIcon={<RefreshCw size={13} />}>
+      Refresh
+    </Button>
+  }
+/>`,
     props: [
       { name: 'title / description', desc: 'empty-state copy' },
       { name: 'action', desc: 'the action that populates the surface' },
@@ -656,7 +902,20 @@ export const RECIPES: Recipe[] = [
         </TimelineGroup>
       </Timeline>
     ),
-    snippet: '<Timeline><TimelineGroup date="Today">…</TimelineGroup></Timeline>',
+    snippet: `<Timeline>
+  <TimelineGroup date="Today" secondaryLabel="21:51">
+    <div className="kit-tl-item">
+      <strong>Runtime session ready</strong>
+      <span>SDK admission surface available</span>
+    </div>
+  </TimelineGroup>
+  <TimelineGroup date="Earlier" secondaryLabel="21:40" isLast>
+    <div className="kit-tl-item">
+      <strong>Capability blocked</strong>
+      <span>NimiAIConfig binding required</span>
+    </div>
+  </TimelineGroup>
+</Timeline>`,
     props: [
       { name: 'date', desc: 'TimelineGroup heading' },
       { name: 'secondaryLabel', desc: 'right-aligned meta' },
@@ -727,32 +986,121 @@ export function FoundationsCanvas() {
   );
 }
 
-export function RecipeCards({ recipes, selectedId, onSelect }: { recipes: Recipe[]; selectedId: string; onSelect: (id: string) => void }) {
+function RecipeModeContent({ recipe, mode }: { recipe: Recipe; mode: RecipeMode }) {
+  if (mode === 'live') {
+    return <span className="kit-card__stage">{recipe.stage}</span>;
+  }
+
+  if (mode === 'code') {
+    const importBlock = [
+      `import {\n  ${recipe.importNames.join(',\n  ')}\n} from '@nimiplatform/kit/ui';`,
+      ...(recipe.extraImports ?? []),
+    ].join('\n');
+    return (
+      <div className="kit-card__mode kit-card__mode--code">
+        <div className="kit-mode-panel__head">
+          <Code2 size={15} aria-hidden="true" />
+          <strong>Import and usage</strong>
+        </div>
+        <pre className="kit-code-block">{`${importBlock}\n\n${recipe.snippet}`}</pre>
+      </div>
+    );
+  }
+
+  if (mode === 'props') {
+    return (
+      <div className="kit-card__mode">
+        <div className="kit-mode-panel__head">
+          <ListChecks size={15} aria-hidden="true" />
+          <strong>Props contract</strong>
+        </div>
+        <div className="kit-props">
+          {recipe.props.map((row) => (
+            <div key={row.name} className="kit-prop">
+              <b>{row.name}</b>
+              <span>{row.desc}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (mode === 'a11y') {
+    return (
+      <div className="kit-card__mode">
+        <div className="kit-mode-panel__head">
+          <Check size={15} aria-hidden="true" />
+          <strong>Acceptance checks</strong>
+        </div>
+        <div className="kit-checklist kit-checklist--grid">
+          {CHECKLIST.map((rule) => (
+            <div key={rule} className="kit-check">
+              <span className="kit-check__dot"><Check size={11} /></span>
+              <span>{rule}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="kit-card__mode">
+      <div className="kit-mode-panel__head">
+        <Palette size={15} aria-hidden="true" />
+        <strong>Recipe token footprint</strong>
+      </div>
+      <div className="kit-token-note">
+        <strong>{recipe.exportsLabel}</strong>
+        <span>Uses shared Kit action, surface, text, focus, and status tokens through the imported primitive.</span>
+      </div>
+    </div>
+  );
+}
+
+function RecipeCard({ recipe }: { recipe: Recipe }) {
+  const [mode, setMode] = useState<RecipeMode>('live');
+  return (
+    <Surface
+      as="article"
+      key={recipe.id}
+      material="glass-thin"
+      tone="card"
+      elevation="base"
+      className={recipe.wide ? 'kit-card kit-card--wide' : 'kit-card'}
+    >
+      <div className="kit-card__head">
+        <div className="kit-card__title">
+          <strong>{recipe.name}</strong>
+          <code>{recipe.exportsLabel}</code>
+        </div>
+        <StatusBadge tone={badgeTone(recipe.badge.tone)} shape="soft">{recipe.badge.label}</StatusBadge>
+      </div>
+      <div className="kit-card__tabs" role="tablist" aria-label={`${recipe.name} recipe view`}>
+        {RECIPE_MODES.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            className={mode === item.id ? 'kit-card-tab kit-card-tab--active' : 'kit-card-tab'}
+            role="tab"
+            aria-selected={mode === item.id}
+            onClick={() => setMode(item.id)}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+      <RecipeModeContent recipe={recipe} mode={mode} />
+    </Surface>
+  );
+}
+
+export function RecipeCards({ recipes }: { recipes: Recipe[] }) {
   return (
     <div className="kit-cards">
       {recipes.map((recipe) => (
-        <Surface
-          as="button"
-          key={recipe.id}
-          material="glass-thin"
-          tone="card"
-          elevation="base"
-          interactive
-          active={recipe.id === selectedId}
-          className={recipe.wide ? 'kit-card kit-card--wide' : 'kit-card'}
-          onClick={() => onSelect(recipe.id)}
-          aria-pressed={recipe.id === selectedId}
-        >
-          <span className="kit-card__head">
-            <span>
-              <strong>{recipe.name}</strong>
-              <code>{recipe.exportsLabel}</code>
-            </span>
-            <StatusBadge tone={badgeTone(recipe.badge.tone)} shape="soft">{recipe.badge.label}</StatusBadge>
-          </span>
-          <span className="kit-card__stage">{recipe.stage}</span>
-          <code className="kit-card__snippet">{recipe.snippet}</code>
-        </Surface>
+        <RecipeCard key={recipe.id} recipe={recipe} />
       ))}
     </div>
   );

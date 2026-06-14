@@ -11,22 +11,14 @@ import {
 } from '@nimiplatform/kit/ui';
 import {
   AlertTriangle,
-  AudioLines,
-  Compass,
   Copy as CopyIcon,
   Download as DownloadIcon,
   FileText,
-  Image as ImageIcon,
   Loader2,
-  MessageSquareText,
   Play,
   RefreshCw,
   Settings,
   ShieldCheck,
-  Sparkles,
-  TextCursorInput,
-  Video,
-  type LucideIcon,
 } from 'lucide-react';
 import type { CanonicalCapabilitySectionId } from '@nimiplatform/kit/core/runtime-capabilities';
 import { ImageAttachmentStrip, useMediaAttachments } from '../tester-multimodal-input.js';
@@ -68,6 +60,7 @@ import {
   runtimeMethodFor,
   TONE_OPTIONS,
 } from './capability-studio-profiles.js';
+import { capabilityIcons } from './capability-icons.js';
 
 // The model-config drawer (and its runtime model-picker provider) is only needed
 // when the settings gear opens it, so it loads on demand — the always-on studio
@@ -135,18 +128,6 @@ type CapabilityStatus = {
   label: 'ready' | 'blocked' | 'SDK gap' | 'tauri-only' | 'checking';
   tone: 'success' | 'warning' | 'info' | 'neutral';
   detail: string;
-};
-
-const capabilityIcons: Record<TesterCapabilityId, LucideIcon> = {
-  'text.generate': Sparkles,
-  'chat.stream': MessageSquareText,
-  'text.embed': TextCursorInput,
-  'image.generate': ImageIcon,
-  'video.generate': Video,
-  'audio.synthesize': AudioLines,
-  'audio.transcribe': AudioLines,
-  'speech.bundle': AudioLines,
-  'world.generate': Compass,
 };
 
 // Per-capability accent tones for the hero tile (recovered from the desktop
@@ -244,7 +225,7 @@ const scenarioPresets: Partial<Record<TesterCapabilityId, ScenarioPreset[]>> = {
     {
       id: 'voice-catalog',
       label: 'Voice catalog',
-      prompt: 'List voices through runtime.media.tts.listVoices.',
+      prompt: 'List voices through runtime.ai.listPresetVoices.',
     },
   ],
   'world.generate': [

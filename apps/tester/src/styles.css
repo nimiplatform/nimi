@@ -89,12 +89,13 @@ body {
 .app-shell {
   position: relative;
   /* Fixed viewport shell (Nimi Desktop parity: h-screen + overflow-hidden on the
-     AmbientBackground root). overflow:hidden CLIPS the decorative mesh halos
+     AmbientBackground root). overflow:clip CLIPS the decorative mesh halos
      (which extend ~100px past the root via bottom:-100) so they never create a
-     document-level scrollbar / empty band below the shell. Content scrolls
-     internally in the workbench content area, not at the page level. */
+     document-level scrollbar / empty band below the shell, and unlike hidden it
+     cannot be programmatically scrolled by focus/scroll anchoring. Content
+     scrolls internally in the workbench content area, not at the page level. */
   height: 100vh;
-  overflow: hidden;
+  overflow: clip;
   display: flex;
   flex-direction: column;
   isolation: isolate;
