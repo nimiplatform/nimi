@@ -14,7 +14,9 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { HumanConversationGiftModal } from '@renderer/features/turns/human-conversation-gift-modal';
 import { formatLocaleDate, formatRelativeLocaleTime } from '@renderer/i18n';
-import { loadChatList } from './data/realm-human-chat-data';
+import { queryClient } from '@renderer/infra/query-client/query-client';
+import { logRendererEvent } from '@nimiplatform/kit/telemetry';
+import { loadChatList, startChatWithTarget } from './data/realm-human-chat-data';
 import {
   HumanCanonicalComposer,
   HumanCanonicalProfileDrawer,
@@ -267,8 +269,37 @@ export function useHumanConversationModeHost(
     selectedTargetId: selectedChat ? getRealmHumanTargetId(selectedChat) : null,
     messages: canonicalMessages,
     onSelectTarget: (targetId) => {
-      setSelectedChatId(resolveCanonicalRealmHumanChatId(allChats, targetId));
+      const normalizedTargetId = String(targetId || '').trim();
+      const existingChatId = resolveCanonicalRealmHumanChatId(allChats, normalizedTargetId);
       setChatProfilePanelTarget(null);
+      if (existingChatId) {
+        setSelectedChatId(existingChatId);
+        return;
+      }
+      if (!normalizedTargetId) {
+        setSelectedChatId(null);
+        return;
+      }
+      void startChatWithTarget(normalizedTargetId, null)
+        .then((result) => {
+          const chatId = String(result.chat?.id || result.chatId || '').trim();
+          if (!chatId) {
+            return;
+          }
+          setSelectedChatId(chatId);
+          void queryClient.invalidateQueries({ queryKey: ['chats'] });
+        })
+        .catch((error) => {
+          logRendererEvent({
+            level: 'error',
+            area: 'chat',
+            message: 'action:human-target-start-chat:failed',
+            details: {
+              targetId: normalizedTargetId,
+              error: error instanceof Error ? error.message : String(error || 'unknown'),
+            },
+          });
+        });
     },
     characterData: {
       avatarUrl: String(selectedChat?.otherUser?.avatarUrl || '').trim() || undefined,

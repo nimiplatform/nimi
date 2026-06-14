@@ -24,6 +24,78 @@ import {
 
 type SocialSnapshot = Awaited<ReturnType<typeof realmSocialData.loadSocialSnapshot>>;
 
+function normalizeText(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function toAtHandle(value: unknown): string | null {
+  const handle = normalizeText(value).replace(/^@+/, '');
+  return handle ? `@${handle}` : null;
+}
+
+export function toHumanFriendTargetSummary(
+  friend: unknown,
+  options: { unknownTitle?: string } = {},
+): ConversationTargetSummary | null {
+  if (!friend || typeof friend !== 'object') {
+    return null;
+  }
+  const record = friend as Record<string, unknown>;
+  if (record.isAgent === true) {
+    return null;
+  }
+  const targetId = normalizeText(record.id);
+  if (!targetId) {
+    return null;
+  }
+  const title = normalizeText(record.displayName)
+    || normalizeText(record.name)
+    || normalizeText(record.handle)
+    || options.unknownTitle
+    || 'Unknown';
+  return {
+    id: targetId,
+    source: 'human',
+    canonicalSessionId: targetId,
+    title,
+    handle: toAtHandle(record.handle),
+    bio: normalizeText(record.bio) || null,
+    avatarUrl: normalizeText(record.avatarUrl) || null,
+    avatarFallback: title.charAt(0).toUpperCase() || 'H',
+    previewText: null,
+    updatedAt: null,
+    unreadCount: 0,
+    status: 'active',
+    isOnline: null,
+    metadata: {
+      otherUserId: targetId,
+      friendshipOnly: true,
+    },
+  };
+}
+
+export function toHumanFriendTargetsFromSocialSnapshot(
+  snapshot: { friends?: readonly unknown[] } | null | undefined,
+  options: { unknownTitle?: string } = {},
+): ConversationTargetSummary[] {
+  const friends = Array.isArray(snapshot?.friends) ? snapshot.friends : [];
+  return friends
+    .map((friend) => toHumanFriendTargetSummary(friend, options))
+    .filter((target): target is ConversationTargetSummary => Boolean(target))
+    .sort((left, right) => left.title.localeCompare(right.title));
+}
+
+export function mergeHumanChatTargetsWithFriendTargets(
+  chatTargets: readonly ConversationTargetSummary[],
+  friendTargets: readonly ConversationTargetSummary[],
+): ConversationTargetSummary[] {
+  const existingTargetIds = new Set(chatTargets.map((target) => target.id).filter(Boolean));
+  return [
+    ...chatTargets,
+    ...friendTargets.filter((target) => !existingTargetIds.has(target.id)),
+  ];
+}
+
 export function useChatTargetsForSidebar(
   authStatus: 'bootstrapping' | 'anonymous' | 'authenticated',
 ): readonly ConversationTargetSummary[] {
@@ -54,15 +126,26 @@ export function useChatTargetsForSidebar(
     staleTime: 30_000,
   });
 
+  const socialSnapshotQuery = useQuery({
+    queryKey: ['contacts', authStatus],
+    queryFn: async () => realmSocialData.loadSocialSnapshot() as Promise<SocialSnapshot>,
+    enabled: authStatus === 'authenticated',
+    staleTime: 30_000,
+  });
+
   const humanTargets = useMemo(() => {
     const allChats = ((humanChatsQuery.data as { items?: RealmChatViewDto[] } | undefined)?.items || []) as RealmChatViewDto[];
     const sorted = [...allChats].sort(compareRealmHumanChatsByRecency);
     const collapsed = collapseRealmHumanChatsToTargets(sorted);
-    return collapsed.map((chat) => toRealmHumanTargetSummary(chat, {
+    const chatTargets = collapsed.map((chat) => toRealmHumanTargetSummary(chat, {
       noMessagesFallback: t('Chat.noMessages', { defaultValue: 'No messages yet' }),
       unknownTitle: t('Common.unknown', { defaultValue: 'Unknown' }),
     }));
-  }, [humanChatsQuery.data, t]);
+    const friendTargets = toHumanFriendTargetsFromSocialSnapshot(socialSnapshotQuery.data, {
+      unknownTitle: t('Common.unknown', { defaultValue: 'Unknown' }),
+    });
+    return mergeHumanChatTargetsWithFriendTargets(chatTargets, friendTargets);
+  }, [humanChatsQuery.data, socialSnapshotQuery.data, t]);
 
   const agentTargets = useMemo(() => {
     const snapshots = agentTargetsQuery.data || [];
