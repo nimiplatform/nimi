@@ -21,6 +21,7 @@ import {
   ensureSchedulingPreflight,
   isTesterUnavailable,
   pickTrace,
+  requireRuntimeSubjectUserId,
   resolveTesterLLMBinding,
   routeInput,
   unavailableFromError,
@@ -101,7 +102,31 @@ function artifactBytesToDataUrl(bytes: unknown, mimeType: string): string | unde
   return `data:${mime};base64,${btoa(binary)}`;
 }
 
-function summariseArtifact(artifact: unknown) {
+function artifactIdFrom(record: Record<string, unknown>): string | undefined {
+  const artifactId = typeof record.artifactId === 'string'
+    ? record.artifactId
+    : typeof record.artifact_id === 'string' ? record.artifact_id : '';
+  return artifactId.trim() || undefined;
+}
+
+async function readRuntimeArtifactDataUrl(
+  client: TesterRuntimeInvocationClient,
+  artifactId: string,
+  fallbackMimeType: string,
+): Promise<{ readonly url?: string; readonly mimeType?: string }> {
+  const reader = client.runtime.artifacts?.readArtifactBytes;
+  if (!reader) return {};
+  const response = await reader({ artifactId });
+  const mimeType = typeof response.mimeType === 'string' && response.mimeType.trim()
+    ? response.mimeType
+    : fallbackMimeType;
+  return {
+    url: artifactBytesToDataUrl(response.bytes, mimeType),
+    mimeType: mimeType || undefined,
+  };
+}
+
+async function summariseArtifact(client: TesterRuntimeInvocationClient, artifact: unknown) {
   if (!artifact || typeof artifact !== 'object') return undefined;
   const record = artifact as Record<string, unknown>;
   const inline = record.inline as Record<string, unknown> | undefined;
@@ -111,12 +136,18 @@ function summariseArtifact(artifact: unknown) {
   const hostedUrl = (typeof record.uri === 'string' && record.uri.trim())
     || (typeof record.url === 'string' && record.url.trim())
     || '';
+  const artifactId = artifactIdFrom(record);
+  const inlineUrl = artifactBytesToDataUrl(record.bytes ?? inline?.bytes, mimeType ?? '');
+  const readBack = hostedUrl || inlineUrl || !artifactId
+    ? {}
+    : await readRuntimeArtifactDataUrl(client, artifactId, mimeType ?? '');
   const url = hostedUrl
-    || artifactBytesToDataUrl(record.bytes ?? inline?.bytes, mimeType ?? '')
+    || inlineUrl
+    || readBack.url
     || undefined;
   return {
-    artifactId: typeof record.artifactId === 'string' ? record.artifactId : undefined,
-    mimeType,
+    artifactId,
+    mimeType: readBack.mimeType ?? mimeType,
     url,
     displayName: typeof record.displayName === 'string' ? record.displayName : undefined,
   };
@@ -157,8 +188,9 @@ function runtimeRoutePolicy(resolved: ResolvedLLMBinding): 'local' | 'cloud' | '
   return 'unspecified';
 }
 
-function runtimeJobHead(resolved: ResolvedLLMBinding): {
+function runtimeJobHead(resolved: ResolvedLLMBinding, subjectUserId: string): {
   appId: string;
+  subjectUserId: string;
   modelId: string;
   routePolicy: 'local' | 'cloud' | 'unspecified';
   connectorId?: string;
@@ -166,6 +198,7 @@ function runtimeJobHead(resolved: ResolvedLLMBinding): {
 } {
   return {
     appId: TESTER_APP_ID,
+    subjectUserId,
     modelId: resolved.model,
     routePolicy: runtimeRoutePolicy(resolved),
     ...(resolved.connectorId ? { connectorId: resolved.connectorId } : {}),
@@ -347,19 +380,21 @@ export async function invokeImageGenerate(client: TesterRuntimeInvocationClient,
   const schedulingPreflight = await ensureSchedulingPreflight(client, 'image.generate', resolved);
   if (schedulingPreflight.unavailable) return schedulingPreflight.unavailable;
   const route = routeInput(resolved);
+  const subjectUserId = requireRuntimeSubjectUserId('image.generate', client);
   const extensions = imageProfileExtensions(resolved);
   try {
     const mediaImage = client.runtime.media?.image;
     const output = mediaImage
       ? await mediaImage.generate({
         ...route,
+        subjectUserId,
         prompt,
         extensions,
         metadata: runtimeLabels('nimi.tester.media.image.generate', resolved, schedulingPreflight.evidenceMetadata),
       }) as RuntimeMediaJobOutput
       : await runNimiRuntimeScenarioJob({
         ai: client.runtime.ai,
-        request: buildNimiRuntimeGenerationSubmitRequest(runtimeJobHead(resolved), {
+        request: buildNimiRuntimeGenerationSubmitRequest(runtimeJobHead(resolved, subjectUserId), {
           scenario: { kind: 'image', prompt },
           ...runtimeJobIdentity('image.generate', input.scenarioId),
           labels: runtimeLabels('nimi.tester.ai.image.generate', resolved, schedulingPreflight.evidenceMetadata),
@@ -378,7 +413,7 @@ export async function invokeImageGenerate(client: TesterRuntimeInvocationClient,
         jobId: job.jobId,
         jobState: job.jobState,
         artifactCount: artifacts.length,
-        firstArtifact: summariseArtifact(artifacts[0]),
+        firstArtifact: await summariseArtifact(client, artifacts[0]),
       },
       trace: traceFromRuntimeOutput(output),
     };
@@ -397,19 +432,21 @@ export async function invokeVideoGenerate(client: TesterRuntimeInvocationClient,
   const schedulingPreflight = await ensureSchedulingPreflight(client, 'video.generate', resolved);
   if (schedulingPreflight.unavailable) return schedulingPreflight.unavailable;
   const route = routeInput(resolved);
+  const subjectUserId = requireRuntimeSubjectUserId('video.generate', client);
   try {
     const mediaVideo = client.runtime.media?.video;
     const output = mediaVideo
       ? await mediaVideo.generate({
         mode: 't2v',
         ...route,
+        subjectUserId,
         prompt,
         content: [{ type: 'text', role: 'prompt', text: prompt }],
         metadata: runtimeLabels('nimi.tester.media.video.generate', resolved, schedulingPreflight.evidenceMetadata),
       }) as RuntimeMediaJobOutput
       : await runNimiRuntimeScenarioJob({
         ai: client.runtime.ai,
-        request: buildNimiRuntimeGenerationSubmitRequest(runtimeJobHead(resolved), {
+        request: buildNimiRuntimeGenerationSubmitRequest(runtimeJobHead(resolved, subjectUserId), {
           scenario: {
             kind: 'video',
             mode: 't2v',
@@ -432,7 +469,7 @@ export async function invokeVideoGenerate(client: TesterRuntimeInvocationClient,
         jobId: job.jobId,
         jobState: job.jobState,
         artifactCount: artifacts.length,
-        firstArtifact: summariseArtifact(artifacts[0]),
+        firstArtifact: await summariseArtifact(client, artifacts[0]),
       },
       trace: traceFromRuntimeOutput(output),
     };
@@ -451,19 +488,21 @@ export async function invokeSpeechSynthesize(client: TesterRuntimeInvocationClie
   const schedulingPreflight = await ensureSchedulingPreflight(client, 'audio.synthesize', resolved);
   if (schedulingPreflight.unavailable) return schedulingPreflight.unavailable;
   const route = routeInput(resolved);
+  const subjectUserId = requireRuntimeSubjectUserId('audio.synthesize', client);
   const voiceRef = voiceReferenceFromParams(resolved);
   try {
     const mediaTts = client.runtime.media?.tts;
     const output = mediaTts
       ? await mediaTts.synthesize({
         ...route,
+        subjectUserId,
         text: prompt,
         voiceRef,
         metadata: runtimeLabels('nimi.tester.media.tts.synthesize', resolved, schedulingPreflight.evidenceMetadata),
       }) as RuntimeMediaJobOutput
       : await runNimiRuntimeSpeechSynthesis({
         runtime: client.runtime,
-        head: runtimeJobHead(resolved),
+        head: runtimeJobHead(resolved, subjectUserId),
         text: prompt,
         voiceRef,
         audioFormat: 'wav',
@@ -482,7 +521,7 @@ export async function invokeSpeechSynthesize(client: TesterRuntimeInvocationClie
         jobId: job.jobId,
         jobState: job.jobState,
         artifactCount: artifacts.length,
-        firstArtifact: summariseArtifact(artifacts[0]),
+        firstArtifact: await summariseArtifact(client, artifacts[0]),
       },
       trace: traceFromRuntimeOutput(output),
     };
@@ -504,19 +543,21 @@ export async function invokeSpeechTranscribe(client: TesterRuntimeInvocationClie
   const schedulingPreflight = await ensureSchedulingPreflight(client, 'audio.transcribe', resolved);
   if (schedulingPreflight.unavailable) return schedulingPreflight.unavailable;
   const route = routeInput(resolved);
+  const subjectUserId = requireRuntimeSubjectUserId('audio.transcribe', client);
   try {
     const audio = await audioBytesFromUrl(url);
     const mediaStt = client.runtime.media?.stt;
     const output = mediaStt
       ? await mediaStt.transcribe({
         ...route,
+        subjectUserId,
         audio: { kind: 'bytes', bytes: audio.bytes },
         mimeType: audio.mimeType,
         metadata: runtimeLabels('nimi.tester.media.stt.transcribe', resolved, schedulingPreflight.evidenceMetadata),
       }) as RuntimeTranscriptOutput
       : await runNimiRuntimeSpeechTranscription({
         runtime: client.runtime,
-        head: runtimeJobHead(resolved),
+        head: runtimeJobHead(resolved, subjectUserId),
         audio: { type: 'bytes', bytes: audio.bytes },
         mimeType: audio.mimeType,
         ...runtimeJobIdentity('audio.transcribe', input.scenarioId),
@@ -550,16 +591,18 @@ export async function invokeSpeechBundle(client: TesterRuntimeInvocationClient, 
   const schedulingPreflight = await ensureSchedulingPreflight(client, 'speech.bundle', resolved);
   if (schedulingPreflight.unavailable) return schedulingPreflight.unavailable;
   const route = routeInput(resolved);
+  const subjectUserId = requireRuntimeSubjectUserId('speech.bundle', client);
   try {
     const mediaTts = client.runtime.media?.tts;
     const output = mediaTts
       ? await mediaTts.listVoices({
         ...route,
+        subjectUserId,
         metadata: runtimeLabels('nimi.tester.media.tts.list-voices', resolved, schedulingPreflight.evidenceMetadata),
       }) as RuntimeVoiceCatalogOutput
       : await client.runtime.ai.listPresetVoices?.({
         appId: TESTER_APP_ID,
-        subjectUserId: '',
+        subjectUserId,
         modelId: resolved.model,
         targetModelId: resolved.model,
         connectorId: resolved.connectorId ?? '',

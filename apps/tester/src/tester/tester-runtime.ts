@@ -77,6 +77,7 @@ export async function runTesterCapability(input: TesterCapabilityRunInput): Prom
   const result: TesterInvocationResult = await invokeTesterCapability(projection.client, input.capabilityId, {
     prompt: input.prompt,
     scenarioId: input.scenarioId || 'default',
+    subjectUserId: projection.auth.subjectUserId,
     onPartial: input.onPartial,
     attachments: input.attachments,
     directive: input.directive,

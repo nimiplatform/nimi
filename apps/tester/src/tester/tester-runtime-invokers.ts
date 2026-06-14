@@ -31,23 +31,27 @@ export async function invokeTesterCapability(
   capabilityId: TesterCapabilityId,
   input: TesterScenarioInput,
 ): Promise<TesterInvocationResult> {
+  const invocationClient: TesterRuntimeInvocationClient = {
+    ...client,
+    runtimeSubjectUserId: input.subjectUserId ?? client.runtimeSubjectUserId,
+  };
   switch (capabilityId) {
     case 'text.generate':
-      return invokeTextGenerate(client, input);
+      return invokeTextGenerate(invocationClient, input);
     case 'chat.stream':
-      return invokeChatStream(client, input);
+      return invokeChatStream(invocationClient, input);
     case 'text.embed':
-      return invokeEmbedding(client, input);
+      return invokeEmbedding(invocationClient, input);
     case 'image.generate':
-      return invokeImageGenerate(client, input);
+      return invokeImageGenerate(invocationClient, input);
     case 'video.generate':
-      return invokeVideoGenerate(client, input);
+      return invokeVideoGenerate(invocationClient, input);
     case 'audio.synthesize':
-      return invokeSpeechSynthesize(client, input);
+      return invokeSpeechSynthesize(invocationClient, input);
     case 'audio.transcribe':
-      return invokeSpeechTranscribe(client, input);
+      return invokeSpeechTranscribe(invocationClient, input);
     case 'speech.bundle':
-      return invokeSpeechBundle(client, input);
+      return invokeSpeechBundle(invocationClient, input);
     case 'world.generate':
       return unavailableFromValidation(
         'world.generate',

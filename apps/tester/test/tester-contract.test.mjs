@@ -867,18 +867,21 @@ test('tester LLM invoker dispatches configured AIConfig route payload', async ()
   const textResult = await invokers.invokeTesterCapability(client, 'text.generate', {
     prompt: 'Hello runtime',
     scenarioId: 'behavior',
+    subjectUserId: 'subject-user-1',
   });
   assert.equal(textResult.ok, true);
 
   const streamResult = await invokers.invokeTesterCapability(client, 'chat.stream', {
     prompt: 'Hello stream',
     scenarioId: 'behavior',
+    subjectUserId: 'subject-user-1',
   });
   assert.equal(streamResult.ok, true);
 
   const embedResult = await invokers.invokeTesterCapability(client, 'text.embed', {
     prompt: 'Hello embed',
     scenarioId: 'behavior',
+    subjectUserId: 'subject-user-1',
   });
   assert.equal(embedResult.ok, true);
 
@@ -895,6 +898,7 @@ test('tester LLM invoker dispatches configured AIConfig route payload', async ()
   assert.equal(captured[1].input.scenarioType, RUNTIME_SCENARIO_TYPE_TEXT_GENERATE);
   assert.equal(captured[1].input.executionMode, RUNTIME_EXECUTION_MODE_SYNC);
   assert.equal(captured[1].input.head.modelId, 'runtime-model');
+  assert.equal(captured[1].input.head.subjectUserId, 'subject-user-1');
   assert.equal(captured[1].input.head.connectorId, 'runtime-connector');
   assert.equal(captured[1].input.head.routePolicy, RUNTIME_ROUTE_POLICY_CLOUD);
   assert.equal(captured[1].options.metadata.aiConfigProfileId, 'behavior-profile');
@@ -903,6 +907,7 @@ test('tester LLM invoker dispatches configured AIConfig route payload', async ()
   assert.equal(captured[3].input.scenarioType, RUNTIME_SCENARIO_TYPE_TEXT_GENERATE);
   assert.equal(captured[3].input.executionMode, RUNTIME_EXECUTION_MODE_STREAM);
   assert.equal(captured[3].input.head.modelId, 'runtime-model');
+  assert.equal(captured[3].input.head.subjectUserId, 'subject-user-1');
   assert.equal(captured[3].input.head.connectorId, 'runtime-connector');
   assert.equal(captured[3].input.head.routePolicy, RUNTIME_ROUTE_POLICY_CLOUD);
   assert.equal(captured[3].options.metadata.aiConfigBindingCapabilityId, 'text.generate');
@@ -912,6 +917,7 @@ test('tester LLM invoker dispatches configured AIConfig route payload', async ()
   assert.equal(captured[5].input.scenarioType, RUNTIME_SCENARIO_TYPE_TEXT_EMBED);
   assert.equal(captured[5].input.executionMode, RUNTIME_EXECUTION_MODE_SYNC);
   assert.equal(captured[5].input.head.modelId, 'embedding-model');
+  assert.equal(captured[5].input.head.subjectUserId, 'subject-user-1');
   assert.equal(captured[5].input.head.connectorId, '');
   assert.equal(captured[5].input.head.routePolicy, RUNTIME_ROUTE_POLICY_LOCAL);
   assert.equal(captured[5].options.metadata.aiConfigBindingCapabilityId, 'text.embed');
@@ -990,6 +996,7 @@ test('tester surfaces inline runtime media artifact bytes as a previewable data 
   const imageResult = await invokers.invokeTesterCapability(client, 'image.generate', {
     prompt: 'a glass ui panel',
     scenarioId: 'behavior',
+    subjectUserId: 'subject-user-1',
   });
   assert.equal(imageResult.ok, true);
   assert.equal(imageResult.output.kind, 'artifacts');
@@ -1000,6 +1007,7 @@ test('tester surfaces inline runtime media artifact bytes as a previewable data 
   const ttsResult = await invokers.invokeTesterCapability(client, 'audio.synthesize', {
     prompt: 'hello acceptance',
     scenarioId: 'behavior',
+    subjectUserId: 'subject-user-1',
   });
   assert.equal(ttsResult.ok, true);
   assert.equal(ttsResult.output.kind, 'artifacts');
@@ -1062,9 +1070,80 @@ test('tester prefers a hosted artifact uri over inline bytes', async () => {
   const result = await invokers.invokeTesterCapability(client, 'image.generate', {
     prompt: 'x',
     scenarioId: 'behavior',
+    subjectUserId: 'subject-user-1',
   });
   assert.equal(result.ok, true);
   assert.equal(result.output.firstArtifact?.url, 'https://cdn.example/img.png');
+});
+
+test('tester reads compact runtime artifact bytes by id for image preview', async () => {
+  const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');
+  const store = await importBehaviorModule('tester/tester-ai-config-store.js');
+  const scopeRef = store.createTesterAppLabAIScopeRef();
+  store.saveTesterAIConfig({
+    scopeRef,
+    capabilities: {
+      targetRefs: {
+        'image.generate': {
+          kind: 'cloud-connector',
+          connectorId: 'runtime-image-connector',
+          providerModelId: 'cloud.image.test',
+        },
+      },
+      selectedParams: {},
+    },
+    profileOrigin: null,
+  });
+  const pngBytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x11, 0x22, 0x33, 0x44]);
+  const artifactReads = [];
+  const client = {
+    runtime: {
+      scheduling: {
+        async peekScheduling() {
+          return runnableSchedulingResponse();
+        },
+      },
+      artifacts: {
+        async readArtifactBytes(request) {
+          artifactReads.push(request);
+          return {
+            bytes: pngBytes,
+            mimeType: 'image/png',
+            sizeBytes: String(pngBytes.byteLength),
+          };
+        },
+      },
+      ai: {
+        async executeScenario() {
+          throw new Error('executeScenario should not be called by this compact artifact test');
+        },
+        streamScenario() {
+          throw new Error('streamScenario should not be called by this compact artifact test');
+        },
+      },
+      media: {
+        image: {
+          async generate() {
+            return {
+              job: { jobId: 'img-job-compact', state: 'completed' },
+              artifacts: [{ artifactId: 'art-compact-img', mimeType: 'image/png', uri: '', bytes: new Uint8Array() }],
+              trace: { traceId: 'img-compact-trace', modelResolved: 'cloud/x', routeDecision: 'cloud' },
+            };
+          },
+        },
+      },
+    },
+  };
+  const result = await invokers.invokeTesterCapability(client, 'image.generate', {
+    prompt: 'x',
+    scenarioId: 'behavior',
+    subjectUserId: 'subject-user-1',
+  });
+  assert.equal(result.ok, true);
+  assert.deepEqual(artifactReads, [{ artifactId: 'art-compact-img' }]);
+  const imageUrl = result.output.firstArtifact?.url ?? '';
+  assert.match(imageUrl, /^data:image\/png;base64,/);
+  assert.deepEqual(new Uint8Array(Buffer.from(imageUrl.split(',')[1], 'base64')), pngBytes);
 });
 
 test('tester local text.generate binding omits runtime connectorId payload', async () => {
@@ -1112,11 +1191,13 @@ test('tester local text.generate binding omits runtime connectorId payload', asy
   const result = await invokers.invokeTesterCapability(client, 'text.generate', {
     prompt: 'Reply with exactly: nimi runtime llm ok',
     scenarioId: 'local-behavior',
+    subjectUserId: 'subject-user-1',
   });
   assert.equal(result.ok, true);
   assert.equal(capturedInput.scenarioType, RUNTIME_SCENARIO_TYPE_TEXT_GENERATE);
   assert.equal(capturedInput.executionMode, RUNTIME_EXECUTION_MODE_SYNC);
   assert.equal(capturedInput.head.modelId, runtimeLocalModelId);
+  assert.equal(capturedInput.head.subjectUserId, 'subject-user-1');
   assert.equal(capturedInput.head.routePolicy, RUNTIME_ROUTE_POLICY_LOCAL);
   assert.equal(capturedInput.head.connectorId, '');
   assert.deepEqual(capturedSchedulingInput.targets, [{

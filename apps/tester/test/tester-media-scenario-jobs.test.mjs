@@ -188,14 +188,17 @@ test('tester media lanes dispatch through Runtime Scenario jobs when vNext media
     image = await invokers.invokeTesterCapability(client, 'image.generate', {
       prompt: 'a glass ui panel',
       scenarioId: 'scenario-job',
+      subjectUserId: 'subject-user-1',
     });
     tts = await invokers.invokeTesterCapability(client, 'audio.synthesize', {
       prompt: 'hello acceptance',
       scenarioId: 'scenario-job',
+      subjectUserId: 'subject-user-1',
     });
     stt = await invokers.invokeTesterCapability(client, 'audio.transcribe', {
       prompt: 'https://example.com/sample.wav',
       scenarioId: 'scenario-job',
+      subjectUserId: 'subject-user-1',
     });
   } finally {
     globalThis.fetch = originalFetch;
@@ -225,6 +228,11 @@ test('tester media lanes dispatch through Runtime Scenario jobs when vNext media
     'local.image.scenario',
     'local.tts.scenario',
     'local.stt.scenario',
+  ]);
+  assert.deepEqual(submitted.map((request) => request.head.subjectUserId), [
+    'subject-user-1',
+    'subject-user-1',
+    'subject-user-1',
   ]);
   assert.deepEqual(submitted.map((request) => request.head.routePolicy), [
     RUNTIME_ROUTE_POLICY_LOCAL,

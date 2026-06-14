@@ -95,6 +95,7 @@ export type TesterRuntimePlatformProjection =
       auth: {
         state: 'ready';
         source: 'runtime-local-first-party';
+        subjectUserId: string;
       };
     }
   | TesterRuntimeAuthUnavailable;
@@ -139,6 +140,7 @@ async function createLocalFirstPartyRuntimeProjection(
     const accountRuntime = new Runtime(runtimeOptions());
     await accountRuntime.ready();
     await registerLocalFirstPartyRuntimeAccountCaller(accountRuntime);
+    const subjectUserId = await requireRuntimeSubjectUserId(accountRuntime);
     const runtime = new Runtime({
       ...runtimeOptions(),
       authMetadata: createRuntimeAppSessionMetadataProvider(accountRuntime),
@@ -155,6 +157,7 @@ async function createLocalFirstPartyRuntimeProjection(
       auth: {
         state: 'ready',
         source: 'runtime-local-first-party',
+        subjectUserId,
       },
     };
   } catch (error) {
@@ -186,6 +189,16 @@ async function registerLocalFirstPartyRuntimeAccountCaller(runtime: Runtime): Pr
       rejectionLabel: 'Nimi Tester Runtime account caller registration rejected',
     },
   )();
+}
+
+async function requireRuntimeSubjectUserId(accountRuntime: Runtime): Promise<string> {
+  const session = await accountRuntime.account.getAccountSessionStatus({
+    caller: getRuntimeAccountCaller(),
+  });
+  if (session.state === AccountSessionState.AUTHENTICATED && session.accountProjection?.accountId) {
+    return session.accountProjection.accountId;
+  }
+  throw new Error('Runtime account session is not authenticated; Tester Runtime AI calls require accountProjection.accountId as subjectUserId.');
 }
 
 function createRuntimeAppSessionMetadataProvider(accountRuntime: Runtime): () => Promise<CoreMetadata> {

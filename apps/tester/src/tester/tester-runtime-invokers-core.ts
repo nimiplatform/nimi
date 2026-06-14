@@ -41,6 +41,8 @@ import type { MediaAttachment } from './tester-multimodal-input.js';
 export type TesterScenarioInput = {
   prompt: string;
   scenarioId: string;
+  /** Runtime account subject resolved by the app auth projection. */
+  subjectUserId?: string;
   /** Optional live-delta callback (chat.stream). Receives the accumulated text
    *  on each delta so the UI can render the stream token-by-token. */
   onPartial?: (accumulatedText: string) => void;
@@ -112,6 +114,7 @@ export type TesterTypedSuccess = {
 export type TesterInvocationResult = TesterTypedSuccess | TesterUnavailable;
 type ConversationTurnCompletedEvent = Extract<ConversationTurnEvent, { type: 'turn-completed' }>;
 export type TesterRuntimeInvocationClient = {
+  readonly runtimeSubjectUserId?: string;
   readonly runtime: {
     readonly ai: NimiRuntimeAIScenarioClient & NimiRuntimeEmbeddingScenarioClient & NimiRuntimeScenarioJobClient & {
       readonly listPresetVoices?: (request: {
@@ -127,6 +130,15 @@ export type TesterRuntimeInvocationClient = {
       }>;
     };
     readonly scheduling: NimiRuntimeAISchedulingClient;
+    readonly artifacts?: {
+      readonly readArtifactBytes: (request: {
+        readonly artifactId: string;
+      }) => Promise<{
+        readonly bytes?: unknown;
+        readonly mimeType?: string;
+        readonly sizeBytes?: string | number;
+      }>;
+    };
     readonly media?: {
       readonly image?: { readonly generate: (input: unknown) => Promise<unknown> };
       readonly video?: { readonly generate: (input: unknown) => Promise<unknown> };
@@ -449,7 +461,22 @@ function createTesterTextModel(client: TesterRuntimeInvocationClient, resolved: 
     },
     routePolicy: resolved.routePolicy,
     connectorId: resolved.connectorId,
+    subjectUserId: requireRuntimeSubjectUserId('text.generate', client),
   });
+}
+
+export function requireRuntimeSubjectUserId(
+  capabilityId: TesterCapabilityId,
+  client: TesterRuntimeInvocationClient,
+): string {
+  const subjectUserId = normalizeText(client.runtimeSubjectUserId);
+  if (subjectUserId) {
+    return subjectUserId;
+  }
+  throw unavailableFromAIConfig(
+    capabilityId,
+    'Runtime account subjectUserId is required for Runtime AI Scenario calls; complete Runtime account login before dispatch.',
+  );
 }
 
 function conversationRuntimeFailure(code: string, message: string): Error & {
@@ -533,6 +560,7 @@ export async function invokeChatStream(client: TesterRuntimeInvocationClient, in
       resolveRuntimeUserMessage: () => buildChatRuntimeUserMessage(prompt),
       resolveRuntimeRequest: () => ({
         ...route,
+        subjectUserId: requireRuntimeSubjectUserId('chat.stream', client),
         metadata: buildMetadata('nimi.tester.ai.chat.stream', {
           ...resolved.metadata,
           ...schedulingPreflight.evidenceMetadata,
@@ -618,6 +646,7 @@ export async function invokeEmbedding(client: TesterRuntimeInvocationClient, inp
       },
       routePolicy: resolved.routePolicy,
       connectorId: resolved.connectorId,
+      subjectUserId: requireRuntimeSubjectUserId('text.embed', client),
     });
     const output = await embedding.embedText({
       values: [prompt],
