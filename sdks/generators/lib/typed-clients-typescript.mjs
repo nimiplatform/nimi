@@ -107,6 +107,7 @@ export function writeTypescriptTypedClients(runtime, realm) {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }`;
     }
@@ -118,6 +119,7 @@ export function writeTypescriptTypedClients(runtime, realm) {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }`;
     }
@@ -180,6 +182,7 @@ export type ${base}Response = ${tsOpenApiType(openApiSuccessSchema(operation))};
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }`;
   }).join('\n\n');
@@ -187,13 +190,14 @@ export type ${base}Response = ${tsOpenApiType(openApiSuccessSchema(operation))};
 // DO NOT EDIT MANUALLY.
 
 import { CoreClient } from '../core-client';
-import type { CoreMetadata } from '../types';
+import type { CoreMetadata, CoreResponseMetadataObserver } from '../types';
 ${runtimeTypeImports}
 
 export interface RuntimeTypedCallOptions {
   readonly metadata?: CoreMetadata;
   readonly timeoutMs?: number;
   readonly signal?: AbortSignal;
+  readonly responseMetadataObserver?: CoreResponseMetadataObserver;
 }
 
 ${runtimeTypeExports}
@@ -280,11 +284,12 @@ export function getRuntimeWireCodec(methodId: string): RuntimeWireCodec {
 // DO NOT EDIT MANUALLY.
 
 import { CoreClient } from '../core-client';
-import type { CoreMetadata } from '../types';
+import type { CoreMetadata, CoreResponseMetadataObserver } from '../types';
 export interface RealmTypedCallOptions {
   readonly metadata?: CoreMetadata;
   readonly timeoutMs?: number;
   readonly signal?: AbortSignal;
+  readonly responseMetadataObserver?: CoreResponseMetadataObserver;
 }
 
 ${realmModels}

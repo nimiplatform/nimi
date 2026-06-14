@@ -22,6 +22,9 @@ import type {
 type GrpcModule = typeof import('@grpc/grpc-js');
 const RUNTIME_NODE_GRPC_MAX_BUFFERED_STREAM_CHUNKS = 1024;
 
+type GrpcMetadataLike = { get(key: string): (string | Buffer)[] };
+type GrpcStatusLike = { metadata?: GrpcMetadataLike };
+
 export interface RuntimeNodeGrpcTlsOptions {
   readonly enabled?: boolean;
   readonly rootCertPem?: string;
@@ -237,7 +240,7 @@ const RUNTIME_RESPONSE_METADATA_HEADERS = [
   'x-nimi-route-describe-result',
 ] as const;
 
-function collectResponseMetadata(metadata: { get(key: string): (string | Buffer)[] }): CoreResponseMetadata {
+function collectResponseMetadata(metadata: GrpcMetadataLike): CoreResponseMetadata {
   const result: Record<string, string> = {};
   for (const key of RUNTIME_RESPONSE_METADATA_HEADERS) {
     const values = metadata.get(key);
@@ -249,6 +252,10 @@ function collectResponseMetadata(metadata: { get(key: string): (string | Buffer)
     }
   }
   return result;
+}
+
+function collectStatusResponseMetadata(status: GrpcStatusLike): CoreResponseMetadata {
+  return status.metadata ? collectResponseMetadata(status.metadata) : {};
 }
 
 function emitResponseMetadata(
@@ -454,6 +461,29 @@ export function createRuntimeNodeGrpcTransport(
     }
     const runtime = await ensureRuntime();
     return new Promise<Uint8Array>((resolve, reject) => {
+      let responseBytes: Uint8Array | undefined;
+      let statusSeen = false;
+      let settled = false;
+
+      const rejectOnce = (error: unknown) => {
+        if (settled) return;
+        settled = true;
+        reject(error);
+      };
+      const resolveAfterStatus = () => {
+        if (settled || !statusSeen) return;
+        if (!responseBytes) {
+          rejectOnce(toTransportError(
+            'SDK_RUNTIME_NODE_GRPC_EMPTY_RESPONSE',
+            `${request.methodId} returned empty response payload`,
+            { methodId: request.methodId },
+          ));
+          return;
+        }
+        settled = true;
+        resolve(responseBytes);
+      };
+
       const call = runtime.client.makeUnaryRequest<Uint8Array, Uint8Array>(
         request.methodId,
         (value) => Buffer.from(value),
@@ -463,29 +493,27 @@ export function createRuntimeNodeGrpcTransport(
         toCallOptions(request.timeoutMs),
         (error: ServiceError | null, response?: Uint8Array) => {
           if (error) {
-            reject(normalizeServiceError(runtime.grpc, error));
+            rejectOnce(normalizeServiceError(runtime.grpc, error));
             return;
           }
-          if (!response) {
-            reject(toTransportError(
-              'SDK_RUNTIME_NODE_GRPC_EMPTY_RESPONSE',
-              `${request.methodId} returned empty response payload`,
-              { methodId: request.methodId },
-            ));
-            return;
-          }
-          resolve(response);
+          responseBytes = response;
+          resolveAfterStatus();
         },
       );
 
-      call.on('metadata', (metadata: { get(key: string): (string | Buffer)[] }) => {
+      call.on('metadata', (metadata: GrpcMetadataLike) => {
         emitResponseMetadata(request.responseMetadataObserver, collectResponseMetadata(metadata));
+      });
+      call.on('status', (status: GrpcStatusLike) => {
+        statusSeen = true;
+        emitResponseMetadata(request.responseMetadataObserver, collectStatusResponseMetadata(status));
+        resolveAfterStatus();
       });
 
       if (request.signal) {
         if (request.signal.aborted) {
           call.cancel();
-          reject(toTransportError(
+          rejectOnce(toTransportError(
             'OPERATION_ABORTED',
             `${request.methodId} was aborted`,
             { methodId: request.methodId },
@@ -496,7 +524,18 @@ export function createRuntimeNodeGrpcTransport(
           ));
           return;
         }
-        request.signal.addEventListener('abort', () => call.cancel(), { once: true });
+        request.signal.addEventListener('abort', () => {
+          call.cancel();
+          rejectOnce(toTransportError(
+            'OPERATION_ABORTED',
+            `${request.methodId} was aborted`,
+            { methodId: request.methodId },
+            {
+              actionHint: 'retry_if_still_needed',
+              retryable: false,
+            },
+          ));
+        }, { once: true });
       }
     });
   };
@@ -668,8 +707,11 @@ function nodeGrpcReadableStream(
     queue.push(chunk);
     flush();
   });
-  call.on('metadata', (metadata: { get(key: string): (string | Buffer)[] }) => {
+  call.on('metadata', (metadata: GrpcMetadataLike) => {
     emitResponseMetadata(responseMetadataObserver, collectResponseMetadata(metadata));
+  });
+  call.on('status', (status: GrpcStatusLike) => {
+    emitResponseMetadata(responseMetadataObserver, collectStatusResponseMetadata(status));
   });
   call.on('end', () => {
     done = true;

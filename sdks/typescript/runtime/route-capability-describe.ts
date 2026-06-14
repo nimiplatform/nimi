@@ -21,6 +21,7 @@ import {
   NIMI_RUNTIME_ROUTE_DESCRIBE_RESULT_RESPONSE_METADATA_KEY,
   NIMI_RUNTIME_ROUTE_DESCRIBE_TIMEOUT_MS,
   type NimiRuntimeResolvedBinding,
+  type NimiRuntimeRouteImageGenerateMetadata,
   type NimiRuntimeRouteDescribeCallOptionsBuilder,
   type NimiRuntimeRouteDescribeResult,
   type NimiRuntimeRouteExecuteScenario,
@@ -128,6 +129,30 @@ function buildNimiRuntimeRouteDescribeScenarioProbe(input: {
             volume: 0,
             emotion: '',
             timingMode: 3,
+          },
+        },
+      },
+    };
+  }
+  if (input.capability === 'image.generate') {
+    return {
+      namespace: 'nimi.scenario.image_generate.route_describe',
+      scenarioType: ScenarioType.IMAGE_GENERATE,
+      spec: {
+        spec: {
+          oneofKind: 'imageGenerate',
+          imageGenerate: {
+            prompt: ROUTE_DESCRIBE_PROBE_TEXT,
+            negativePrompt: '',
+            n: 1,
+            size: '',
+            aspectRatio: '',
+            quality: '',
+            style: '',
+            seed: '0',
+            referenceImages: [],
+            mask: '',
+            responseFormat: '',
           },
         },
       },
@@ -262,6 +287,7 @@ function decodeBase64Text(input: string): string {
 
 const NIMI_RUNTIME_ROUTE_METADATA_KINDS: readonly NimiRuntimeRouteMetadataKind[] = [
   'text.generate',
+  'image.generate',
   'audio.synthesize',
   'audio.transcribe',
   'voice_workflow.voice_clone',
@@ -379,6 +405,28 @@ function parseNimiRuntimeRouteTextGenerateMetadata(metadata: JsonObject): NimiRu
   };
 }
 
+function parseNimiRuntimeRouteImageGenerateMetadata(metadata: JsonObject): NimiRuntimeRouteImageGenerateMetadata {
+  const maxImagesPerRequest = metadata.maxImagesPerRequest;
+  if (typeof maxImagesPerRequest !== 'number' || !Number.isFinite(maxImagesPerRequest) || maxImagesPerRequest <= 0) {
+    failNimiRuntimeRouteDescribeMetadata('Runtime route describe metadata field "maxImagesPerRequest" must be a positive finite number.');
+  }
+  const result: NimiRuntimeRouteImageGenerateMetadata = {
+    supportedResponseFormats: requireRouteMetadataStringArray(metadata, 'supportedResponseFormats'),
+    maxImagesPerRequest,
+    supportsNegativePrompt: requireRouteMetadataBoolean(metadata, 'supportsNegativePrompt'),
+    supportsReferenceImages: requireRouteMetadataBoolean(metadata, 'supportsReferenceImages'),
+    supportsMask: requireRouteMetadataBoolean(metadata, 'supportsMask'),
+    supportsSeed: requireRouteMetadataBoolean(metadata, 'supportsSeed'),
+    supportsSize: requireRouteMetadataBoolean(metadata, 'supportsSize'),
+    supportsAspectRatio: requireRouteMetadataBoolean(metadata, 'supportsAspectRatio'),
+    supportsQuality: requireRouteMetadataBoolean(metadata, 'supportsQuality'),
+    supportsStyle: requireRouteMetadataBoolean(metadata, 'supportsStyle'),
+  };
+  assignOptionalRouteMetadata(result, 'defaultResponseFormat', readOptionalRouteMetadataString(metadata, 'defaultResponseFormat'));
+  assignProviderExtensionRouteMetadata(result, metadata);
+  return result;
+}
+
 function parseNimiRuntimeRouteSpeechSynthesizeMetadata(metadata: JsonObject): NimiRuntimeRouteSpeechSynthesizeMetadata {
   const voiceRenderHints = metadata.voiceRenderHints;
   if (voiceRenderHints !== undefined && (typeof voiceRenderHints !== 'object' || voiceRenderHints === null || Array.isArray(voiceRenderHints))) {
@@ -478,6 +526,8 @@ function parseNimiRuntimeRouteDescribeMetadata(
   switch (metadataKind as NimiRuntimeRouteMetadataKind) {
     case 'text.generate':
       return { ...base, metadataKind: 'text.generate', metadata: parseNimiRuntimeRouteTextGenerateMetadata(metadataObject) };
+    case 'image.generate':
+      return { ...base, metadataKind: 'image.generate', metadata: parseNimiRuntimeRouteImageGenerateMetadata(metadataObject) };
     case 'audio.synthesize':
       return { ...base, metadataKind: 'audio.synthesize', metadata: parseNimiRuntimeRouteSpeechSynthesizeMetadata(metadataObject) };
     case 'audio.transcribe':

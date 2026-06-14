@@ -2,7 +2,7 @@
 // DO NOT EDIT MANUALLY.
 
 import { CoreClient } from '../core-client';
-import type { CoreMetadata } from '../types';
+import type { CoreMetadata, CoreResponseMetadataObserver } from '../types';
 import type { AccountSessionEvent, BeginLoginRequest, BeginLoginResponse, CompleteLoginRequest, CompleteLoginResponse, GetAccessTokenRequest, GetAccessTokenResponse, GetAccountSessionStatusRequest, GetAccountSessionStatusResponse, IssueScopedAppBindingRequest, IssueScopedAppBindingResponse, IssueWorkspaceBindingRequest, IssueWorkspaceBindingResponse, LogoutRequest, LogoutResponse, RefreshAccountSessionRequest, RefreshAccountSessionResponse, RevokeScopedAppBindingRequest, RevokeScopedAppBindingResponse, RevokeWorkspaceBindingRequest, RevokeWorkspaceBindingResponse, SubscribeAccountSessionEventsRequest, SwitchAccountRequest, SwitchAccountResponse } from "./runtime-protobuf/runtime/v1/account";
 import type { CreateRealmGroupMessageCandidateRequest, CreateRealmGroupMessageCandidateResponse, GetRealmGroupMessageCandidateEvidenceRequest, GetRealmGroupMessageCandidateEvidenceResponse } from "./runtime-protobuf/runtime/v1/agent_group_message_candidate";
 import type { DescribeParticipationContextBlocksRequest, DescribeParticipationContextBlocksResponse, DescribeParticipationProfilesRequest, DescribeParticipationProfilesResponse, ExecuteParticipationRequest, ExecuteParticipationResponse, GetParticipationCandidateRequest, GetParticipationCandidateResponse, GetParticipationReplayRequest, GetParticipationReplayResponse, GetParticipationVerdictsRequest, GetParticipationVerdictsResponse, ListParticipationAuditEventsRequest, ListParticipationAuditEventsResponse, ValidateParticipationRequest, ValidateParticipationResponse } from "./runtime-protobuf/runtime/v1/agent_participation";
@@ -31,6 +31,7 @@ export interface RuntimeTypedCallOptions {
   readonly metadata?: CoreMetadata;
   readonly timeoutMs?: number;
   readonly signal?: AbortSignal;
+  readonly responseMetadataObserver?: CoreResponseMetadataObserver;
 }
 
 export type { AccountCaller, AccountProjection, AccountSessionEvent, BeginLoginRequest, BeginLoginResponse, CompleteLoginRequest, CompleteLoginResponse, GetAccessTokenRequest, GetAccessTokenResponse, GetAccountSessionStatusRequest, GetAccountSessionStatusResponse, IssueScopedAppBindingRequest, IssueScopedAppBindingResponse, IssueWorkspaceBindingRequest, IssueWorkspaceBindingResponse, LogoutRequest, LogoutResponse, RefreshAccountSessionRequest, RefreshAccountSessionResponse, RevokeScopedAppBindingRequest, RevokeScopedAppBindingResponse, RevokeWorkspaceBindingRequest, RevokeWorkspaceBindingResponse, ScopedAppBindingRelation, SubscribeAccountSessionEventsRequest, SwitchAccountRequest, SwitchAccountResponse, WorkspaceBindingRelation, WorkspaceMembershipProjection } from "./runtime-protobuf/runtime/v1/account";
@@ -96,6 +97,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -106,6 +108,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -116,6 +119,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -126,6 +130,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -136,6 +141,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -146,6 +152,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -156,6 +163,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -166,6 +174,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -176,6 +185,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -186,6 +196,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -196,6 +207,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -206,6 +218,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -216,6 +229,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -226,6 +240,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -236,6 +251,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -246,6 +262,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -256,6 +273,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -266,6 +284,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -276,6 +295,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -286,6 +306,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -296,6 +317,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -306,6 +328,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -316,6 +339,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -326,6 +350,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -336,6 +361,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -346,6 +372,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -356,6 +383,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -366,6 +394,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -376,6 +405,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -386,6 +416,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -396,6 +427,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -406,6 +438,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -416,6 +449,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -426,6 +460,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -436,6 +471,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -446,6 +482,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -456,6 +493,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -466,6 +504,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -476,6 +515,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -486,6 +526,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -496,6 +537,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -506,6 +548,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -516,6 +559,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -526,6 +570,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -536,6 +581,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -546,6 +592,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -556,6 +603,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -566,6 +614,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -576,6 +625,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -586,6 +636,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -596,6 +647,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -606,6 +658,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -616,6 +669,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -626,6 +680,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -636,6 +691,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -646,6 +702,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -656,6 +713,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -666,6 +724,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -676,6 +735,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -686,6 +746,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -696,6 +757,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -706,6 +768,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -716,6 +779,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -726,6 +790,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -736,6 +801,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -746,6 +812,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -756,6 +823,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -766,6 +834,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -776,6 +845,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -786,6 +856,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -796,6 +867,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -806,6 +878,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -816,6 +889,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -826,6 +900,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -836,6 +911,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -846,6 +922,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -856,6 +933,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -866,6 +944,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -876,6 +955,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -886,6 +966,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -902,6 +983,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -912,6 +994,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -922,6 +1005,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -932,6 +1016,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -942,6 +1027,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -952,6 +1038,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -962,6 +1049,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -972,6 +1060,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -982,6 +1071,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -992,6 +1082,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1002,6 +1093,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1012,6 +1104,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1022,6 +1115,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1032,6 +1126,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1042,6 +1137,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1052,6 +1148,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1062,6 +1159,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1072,6 +1170,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1082,6 +1181,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1092,6 +1192,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1102,6 +1203,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1112,6 +1214,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1122,6 +1225,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1132,6 +1236,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1142,6 +1247,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1152,6 +1258,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1162,6 +1269,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1172,6 +1280,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1182,6 +1291,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1192,6 +1302,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1202,6 +1313,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1212,6 +1324,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1222,6 +1335,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1232,6 +1346,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1242,6 +1357,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1252,6 +1368,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1262,6 +1379,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1272,6 +1390,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1282,6 +1401,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1292,6 +1412,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1302,6 +1423,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1312,6 +1434,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1322,6 +1445,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1332,6 +1456,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1342,6 +1467,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1352,6 +1478,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1362,6 +1489,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1372,6 +1500,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1382,6 +1511,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1392,6 +1522,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1402,6 +1533,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1412,6 +1544,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1422,6 +1555,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1432,6 +1566,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1442,6 +1577,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1452,6 +1588,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1462,6 +1599,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1472,6 +1610,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1482,6 +1621,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1492,6 +1632,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1502,6 +1643,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1512,6 +1654,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1522,6 +1665,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1532,6 +1676,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1542,6 +1687,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1552,6 +1698,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1562,6 +1709,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1572,6 +1720,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1582,6 +1731,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1592,6 +1742,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1602,6 +1753,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1612,6 +1764,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1622,6 +1775,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1632,6 +1786,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1642,6 +1797,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1652,6 +1808,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1662,6 +1819,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1672,6 +1830,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1682,6 +1841,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1692,6 +1852,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1702,6 +1863,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1712,6 +1874,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1722,6 +1885,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1732,6 +1896,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1742,6 +1907,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1752,6 +1918,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1762,6 +1929,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1772,6 +1940,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1782,6 +1951,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1792,6 +1962,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1802,6 +1973,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1812,6 +1984,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1822,6 +1995,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1832,6 +2006,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1842,6 +2017,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1852,6 +2028,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1862,6 +2039,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1872,6 +2050,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1882,6 +2061,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1892,6 +2072,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1902,6 +2083,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1912,6 +2094,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1922,6 +2105,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1932,6 +2116,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1942,6 +2127,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1952,6 +2138,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1962,6 +2149,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1972,6 +2160,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1982,6 +2171,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1992,6 +2182,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -2002,6 +2193,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -2012,6 +2204,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -2022,6 +2215,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -2032,6 +2226,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -2042,6 +2237,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -2052,6 +2248,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -2062,6 +2259,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -2072,6 +2270,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -2082,6 +2281,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -2092,6 +2292,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -2102,6 +2303,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -2112,6 +2314,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -2122,6 +2325,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -2132,6 +2336,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -2142,6 +2347,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -2152,6 +2358,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -2162,6 +2369,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -2172,6 +2380,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -2182,6 +2391,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -2192,6 +2402,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -2202,6 +2413,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -2212,6 +2424,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -2222,6 +2435,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -2232,6 +2446,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -2242,6 +2457,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -2252,6 +2468,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -2262,6 +2479,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -2272,6 +2490,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -2282,6 +2501,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -2292,6 +2512,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -2302,6 +2523,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -2312,6 +2534,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -2322,6 +2545,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -2332,6 +2556,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -2342,6 +2567,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -2352,6 +2578,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -2362,6 +2589,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -2372,6 +2600,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -2382,6 +2611,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -2392,6 +2622,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -2402,6 +2633,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -2412,6 +2644,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -2422,6 +2655,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -2432,6 +2666,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -2442,6 +2677,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -2452,6 +2688,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -2462,6 +2699,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -2472,6 +2710,7 @@ export class RuntimeTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 }

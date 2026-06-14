@@ -50,6 +50,7 @@ export interface NimiRuntimeRouteHealthResult {
 
 export type NimiRuntimeRouteMetadataKind =
   | 'text.generate'
+  | 'image.generate'
   | 'audio.synthesize'
   | 'audio.transcribe'
   | 'voice_workflow.voice_clone'
@@ -66,6 +67,22 @@ export interface NimiRuntimeRouteTextGenerateMetadata {
   readonly supportsAudioInput: boolean;
   readonly supportsVideoInput: boolean;
   readonly supportsArtifactRefInput: boolean;
+}
+
+export interface NimiRuntimeRouteImageGenerateMetadata {
+  readonly supportedResponseFormats: readonly string[];
+  readonly maxImagesPerRequest: number;
+  readonly supportsNegativePrompt: boolean;
+  readonly supportsReferenceImages: boolean;
+  readonly supportsMask: boolean;
+  readonly supportsSeed: boolean;
+  readonly supportsSize: boolean;
+  readonly supportsAspectRatio: boolean;
+  readonly supportsQuality: boolean;
+  readonly supportsStyle: boolean;
+  readonly defaultResponseFormat?: string;
+  readonly providerExtensionNamespace?: string;
+  readonly providerExtensionSchemaVersion?: string;
 }
 
 export interface NimiRuntimeRouteSpeechSynthesizeMetadata {
@@ -119,6 +136,10 @@ export type NimiRuntimeRouteDescribeResult =
   | (NimiRuntimeRouteDescribeResultBase & {
       readonly metadataKind: 'text.generate';
       readonly metadata: NimiRuntimeRouteTextGenerateMetadata;
+    })
+  | (NimiRuntimeRouteDescribeResultBase & {
+      readonly metadataKind: 'image.generate';
+      readonly metadata: NimiRuntimeRouteImageGenerateMetadata;
     })
   | (NimiRuntimeRouteDescribeResultBase & {
       readonly metadataKind: 'audio.synthesize';

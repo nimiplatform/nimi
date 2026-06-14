@@ -749,6 +749,24 @@ test('Runtime route describe builds non-text scenario probes and validates metad
     readonly metadata: Record<string, unknown>;
   }> = [
     {
+      capability: 'image.generate',
+      scenarioType: ScenarioType.IMAGE_GENERATE,
+      oneofKind: 'imageGenerate',
+      modelId: 'image-model',
+      metadata: {
+        supportedResponseFormats: ['b64_json'],
+        maxImagesPerRequest: 1,
+        supportsNegativePrompt: true,
+        supportsReferenceImages: true,
+        supportsMask: false,
+        supportsSeed: true,
+        supportsSize: true,
+        supportsAspectRatio: true,
+        supportsQuality: false,
+        supportsStyle: true,
+      },
+    },
+    {
       capability: 'audio.synthesize',
       scenarioType: ScenarioType.SPEECH_SYNTHESIZE,
       oneofKind: 'speechSynthesize',
@@ -951,29 +969,6 @@ test('Runtime route describe builds non-text scenario probes and validates metad
     }),
     hasRouteReasonCode('SDK_RUNTIME_ROUTE_DESCRIBE_METADATA_MISMATCH'),
   );
-  await assert.rejects(
-    () => describeNimiRuntimeRouteWithHost({
-      appId: 'nimi.route.test',
-      targetId: 'route.describe',
-      capability: 'image.generate',
-      resolvedBindingRef: 'local:image.generate:runtime:image-model',
-      resolved: {
-        capability: 'image.generate',
-        source: 'local',
-        connectorId: '',
-        provider: 'runtime',
-        engine: 'runtime',
-        model: 'image-model',
-        modelId: 'image-model',
-        localModelId: 'asset-image-model',
-      },
-      buildCallOptions: () => ({}),
-      async executeScenario() {
-        throw new Error('should not execute unsupported describe probe');
-      },
-    }),
-    hasRouteReasonCode('SDK_RUNTIME_ROUTE_DESCRIBE_UNSUPPORTED'),
-  );
 });
 
 test('Runtime route describe validates K-RPC-017 typed metadata variants and fails closed', async () => {
@@ -1051,7 +1046,7 @@ test('Runtime route describe validates K-RPC-017 typed metadata variants and fai
             capability: 'text.generate',
             metadataVersion: 'v1',
             resolvedBindingRef: 'local:text.generate:runtime:text-model',
-            metadataKind: 'image.generate',
+            metadataKind: 'video.generate',
             metadata: createTextGenerateRouteMetadata(),
           }),
         });

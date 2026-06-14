@@ -2,11 +2,12 @@
 // DO NOT EDIT MANUALLY.
 
 import { CoreClient } from '../core-client';
-import type { CoreMetadata } from '../types';
+import type { CoreMetadata, CoreResponseMetadataObserver } from '../types';
 export interface RealmTypedCallOptions {
   readonly metadata?: CoreMetadata;
   readonly timeoutMs?: number;
   readonly signal?: AbortSignal;
+  readonly responseMetadataObserver?: CoreResponseMetadataObserver;
 }
 
 export interface AbilityDefinitionDto {
@@ -7618,6 +7619,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -7628,6 +7630,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -7638,6 +7641,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -7648,6 +7652,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -7658,6 +7663,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -7668,6 +7674,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -7678,6 +7685,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -7688,6 +7696,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -7698,6 +7707,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -7708,6 +7718,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -7718,6 +7729,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -7728,6 +7740,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -7738,6 +7751,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -7748,6 +7762,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -7758,6 +7773,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -7768,6 +7784,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -7778,6 +7795,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -7788,6 +7806,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -7798,6 +7817,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -7808,6 +7828,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -7818,6 +7839,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -7828,6 +7850,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -7838,6 +7861,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -7848,6 +7872,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -7858,6 +7883,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -7868,6 +7894,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -7878,6 +7905,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -7888,6 +7916,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -7898,6 +7927,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -7908,6 +7938,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -7918,6 +7949,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -7928,6 +7960,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -7938,6 +7971,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -7948,6 +7982,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -7958,6 +7993,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -7968,6 +8004,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -7978,6 +8015,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -7988,6 +8026,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -7998,6 +8037,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8008,6 +8048,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8018,6 +8059,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8028,6 +8070,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8038,6 +8081,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8048,6 +8092,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8058,6 +8103,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8068,6 +8114,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8078,6 +8125,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8088,6 +8136,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8098,6 +8147,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8108,6 +8158,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8118,6 +8169,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8128,6 +8180,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8138,6 +8191,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8148,6 +8202,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8158,6 +8213,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8168,6 +8224,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8178,6 +8235,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8188,6 +8246,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8198,6 +8257,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8208,6 +8268,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8218,6 +8279,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8228,6 +8290,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8238,6 +8301,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8248,6 +8312,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8258,6 +8323,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8268,6 +8334,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8278,6 +8345,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8288,6 +8356,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8298,6 +8367,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8308,6 +8378,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8318,6 +8389,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8328,6 +8400,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8338,6 +8411,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8348,6 +8422,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8358,6 +8433,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8368,6 +8444,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8378,6 +8455,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8388,6 +8466,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8398,6 +8477,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8408,6 +8488,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8418,6 +8499,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8428,6 +8510,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8438,6 +8521,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8448,6 +8532,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8458,6 +8543,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8468,6 +8554,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8478,6 +8565,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8488,6 +8576,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8498,6 +8587,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8508,6 +8598,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8518,6 +8609,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8528,6 +8620,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8538,6 +8631,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8548,6 +8642,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8558,6 +8653,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8568,6 +8664,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8578,6 +8675,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8588,6 +8686,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8598,6 +8697,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8608,6 +8708,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8618,6 +8719,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8628,6 +8730,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8638,6 +8741,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8648,6 +8752,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8658,6 +8763,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8668,6 +8774,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8678,6 +8785,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8688,6 +8796,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8698,6 +8807,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8708,6 +8818,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8718,6 +8829,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8728,6 +8840,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8738,6 +8851,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8748,6 +8862,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8758,6 +8873,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8768,6 +8884,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8778,6 +8895,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8788,6 +8906,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8798,6 +8917,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8808,6 +8928,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8818,6 +8939,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8828,6 +8950,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8838,6 +8961,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8848,6 +8972,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8858,6 +8983,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8868,6 +8994,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8878,6 +9005,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8888,6 +9016,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8898,6 +9027,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8908,6 +9038,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8918,6 +9049,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8928,6 +9060,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8938,6 +9071,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8948,6 +9082,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8958,6 +9093,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8968,6 +9104,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8978,6 +9115,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8988,6 +9126,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -8998,6 +9137,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9008,6 +9148,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9018,6 +9159,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9028,6 +9170,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9038,6 +9181,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9048,6 +9192,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9058,6 +9203,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9068,6 +9214,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9078,6 +9225,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9088,6 +9236,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9098,6 +9247,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9108,6 +9258,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9118,6 +9269,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9128,6 +9280,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9138,6 +9291,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9148,6 +9302,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9158,6 +9313,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9168,6 +9324,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9178,6 +9335,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9188,6 +9346,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9198,6 +9357,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9208,6 +9368,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9218,6 +9379,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9228,6 +9390,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9238,6 +9401,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9248,6 +9412,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9258,6 +9423,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9268,6 +9434,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9278,6 +9445,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9288,6 +9456,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9298,6 +9467,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9308,6 +9478,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9318,6 +9489,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9328,6 +9500,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9338,6 +9511,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9348,6 +9522,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9358,6 +9533,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9368,6 +9544,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9378,6 +9555,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9388,6 +9566,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9398,6 +9577,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9408,6 +9588,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9418,6 +9599,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9428,6 +9610,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9438,6 +9621,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9448,6 +9632,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9458,6 +9643,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9468,6 +9654,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9478,6 +9665,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9488,6 +9676,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9498,6 +9687,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9508,6 +9698,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9518,6 +9709,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9528,6 +9720,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9538,6 +9731,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9548,6 +9742,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9558,6 +9753,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9568,6 +9764,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9578,6 +9775,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9588,6 +9786,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9598,6 +9797,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9608,6 +9808,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9618,6 +9819,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9628,6 +9830,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9638,6 +9841,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9648,6 +9852,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9658,6 +9863,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9668,6 +9874,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9678,6 +9885,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9688,6 +9896,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9698,6 +9907,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9708,6 +9918,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9718,6 +9929,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9728,6 +9940,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9738,6 +9951,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9748,6 +9962,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9758,6 +9973,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9768,6 +9984,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9778,6 +9995,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9788,6 +10006,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9798,6 +10017,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9808,6 +10028,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9818,6 +10039,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9828,6 +10050,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9838,6 +10061,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9848,6 +10072,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9858,6 +10083,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9868,6 +10094,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9878,6 +10105,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9888,6 +10116,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9898,6 +10127,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9908,6 +10138,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9918,6 +10149,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9928,6 +10160,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9938,6 +10171,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9948,6 +10182,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9958,6 +10193,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9968,6 +10204,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9978,6 +10215,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9988,6 +10226,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -9998,6 +10237,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -10008,6 +10248,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -10018,6 +10259,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -10028,6 +10270,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -10038,6 +10281,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -10048,6 +10292,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -10058,6 +10303,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -10068,6 +10314,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -10078,6 +10325,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -10088,6 +10336,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -10098,6 +10347,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -10108,6 +10358,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -10118,6 +10369,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -10128,6 +10380,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -10138,6 +10391,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -10148,6 +10402,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -10158,6 +10413,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -10168,6 +10424,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -10178,6 +10435,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -10188,6 +10446,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -10198,6 +10457,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -10208,6 +10468,7 @@ export class RealmTypedClient {
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
       signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 }
