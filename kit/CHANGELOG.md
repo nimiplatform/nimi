@@ -30,6 +30,14 @@ Discipline.
   at roughly 1.7%/s at 60fps (~170s for a 0.4s blend), and its exact-float
   completion check kept finished blends in the update loop forever.
 
+### Changed
+
+- Replaced the shared `DatePicker` popover with a three-column year / month /
+  day wheel selector and removed the old monthly calendar-grid panel. This is
+  a 0.x interaction break: consumers that relied on `DatePickerPanel`'s old
+  `displayMonth` / `onDisplayMonthChange` panel props must update to the new
+  wheel-panel contract.
+
 ## [0.1.3] - 2026-05-27
 
 ### Changed
