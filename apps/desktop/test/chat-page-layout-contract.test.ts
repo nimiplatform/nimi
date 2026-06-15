@@ -18,6 +18,7 @@ const chatAgentModeSource = readWorkspaceFile('src/shell/renderer/features/chat/
 const chatCanonicalModeFrameSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-canonical-mode-frame.tsx');
 const chatAgentPresentationSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-presentation.tsx');
 const chatAgentPresentationSettingsSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-presentation-settings.tsx');
+const chatAgentCenterPanelComponentsSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-center-panel-components.tsx');
 const chatAgentLocalAvatarControlsSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-local-avatar-controls.ts');
 const chatAgentCanonicalComposerSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-canonical-composer.tsx');
 const chatGroupModeSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-group-mode-content.tsx');
@@ -94,6 +95,12 @@ test('agent shell presentation disables stage panel props so desktop chat cannot
   assert.doesNotMatch(chatAgentPresentationSource, /desktopAgentBackdropBindingQueryKey/u);
   assert.doesNotMatch(chatAgentPresentationSource, /avatarStagePlacement/u);
   assert.doesNotMatch(chatAgentPresentationSource, /useAgentAvatarPlacement/u);
+});
+
+test('Agent Center Behavior section renders disabled autonomy controls without overlay dependency', () => {
+  assert.doesNotMatch(chatAgentCenterPanelComponentsSource, /import \{[^}]*\bTooltip\b[^}]*\} from '@nimiplatform\/kit\/ui'/);
+  assert.match(chatAgentCenterPanelComponentsSource, /title=\{props\.disabled && props\.disabledHint \? props\.disabledHint : undefined\}/);
+  assert.match(chatAgentCenterPanelComponentsSource, /<Toggle[\s\S]*disabled=\{props\.disabled\}/);
 });
 
 test('agent composer avatar action is keyboard reachable and package preview remains absent', () => {

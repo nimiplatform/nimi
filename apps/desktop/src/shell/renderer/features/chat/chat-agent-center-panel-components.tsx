@@ -1,5 +1,5 @@
 import { type ReactElement, type ReactNode, type SVGProps } from 'react';
-import { Toggle, Tooltip, cn } from '@nimiplatform/kit/ui';
+import { Toggle, cn } from '@nimiplatform/kit/ui';
 
 export type AgentCenterSectionId = 'overview' | 'appearance' | 'behavior' | 'model' | 'cognition' | 'advanced';
 
@@ -341,8 +341,8 @@ function ModePicker(props: {
 
 /**
  * Bottom-of-card toggle row for proactive behavior. Disabled state surfaces the
- * blocking reason via a Tooltip on hover (Linear/Vercel-style: prevention only
- * appears when the user attempts the action).
+ * blocking reason on the native title channel so rendering the Behavior section
+ * never depends on an overlay portal.
  */
 function ProactiveToggleRow(props: {
   checked: boolean;
@@ -369,14 +369,12 @@ function ProactiveToggleRow(props: {
           {props.pending ? props.updatingLabel : props.description}
         </span>
       </div>
-      {props.disabled && props.disabledHint ? (
-        <Tooltip
-          placement="top"
-          content={<span className="text-[12px] leading-[1.4] text-slate-700">{props.disabledHint}</span>}
-        >
-          {toggle}
-        </Tooltip>
-      ) : toggle}
+      <div
+        className="inline-flex"
+        title={props.disabled && props.disabledHint ? props.disabledHint : undefined}
+      >
+        {toggle}
+      </div>
     </div>
   );
 }
