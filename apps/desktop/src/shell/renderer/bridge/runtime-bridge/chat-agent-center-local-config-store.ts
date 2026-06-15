@@ -116,7 +116,16 @@ export async function putAgentCenterLocalConfig(input: {
 }): Promise<AgentCenterLocalConfig> {
   requireTauri('desktop_agent_center_config_put');
   return invokeChecked('desktop_agent_center_config_put', {
-    payload: input,
+    payload: {
+      ...input,
+      config: {
+        ...input.config,
+        account_id: input.accountId,
+        owner_user_id: input.ownerUserId,
+        realm_agent_id: input.realmAgentId,
+        local_agent_ref: input.localAgentRef,
+      },
+    },
   }, parseAgentCenterLocalConfig);
 }
 

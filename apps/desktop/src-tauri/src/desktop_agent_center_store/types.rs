@@ -294,6 +294,10 @@ pub(crate) struct AgentCenterLocalConfigModules {
 pub(crate) struct AgentCenterLocalConfig {
     pub schema_version: u8,
     pub config_kind: String,
+    pub account_id: String,
+    pub owner_user_id: String,
+    pub realm_agent_id: String,
+    pub local_agent_ref: String,
     pub modules: AgentCenterLocalConfigModules,
 }
 

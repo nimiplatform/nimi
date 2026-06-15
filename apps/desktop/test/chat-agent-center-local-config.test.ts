@@ -7,7 +7,12 @@ import {
 } from '../src/shell/renderer/features/chat/chat-agent-center-local-config';
 
 function createConfig() {
-  return createDefaultAgentCenterLocalConfig();
+  return createDefaultAgentCenterLocalConfig({
+    accountId: 'account_123',
+    ownerUserId: 'owner_123',
+    realmAgentId: 'agent_456',
+    localAgentRef: 'local-agent:owner_123:agent_456',
+  });
 }
 
 test('Agent Center local config validates the admitted module platform shape', () => {
@@ -26,23 +31,29 @@ test('Agent Center local config validates the admitted module platform shape', (
   }
 });
 
-test('Agent Center local config rejects persisted identity fields', () => {
+test('Agent Center local config admits scoped persisted identity fields', () => {
+  const config = createConfig();
+
+  const result = validateAgentCenterLocalConfig(config);
+
+  assert.equal(result.ok, true);
+  if (result.ok) {
+    assert.equal(result.config.account_id, 'account_123');
+    assert.equal(result.config.local_agent_ref, 'local-agent:owner_123:agent_456');
+  }
+});
+
+test('Agent Center local config rejects identity drift from local agent ref', () => {
   const config = {
     ...createConfig(),
-    account_id: 'account_123',
-    owner_user_id: 'owner_123',
-    realm_agent_id: 'agent_456',
-    local_agent_ref: 'local-agent:owner_123:agent_456',
+    local_agent_ref: 'local-agent:owner_123:agent_other',
   };
 
   const result = validateAgentCenterLocalConfig(config);
 
   assert.equal(result.ok, false);
   if (!result.ok) {
-    assert.ok(result.errors.some((error) => error.includes('config.account_id: unknown field')));
-    assert.ok(result.errors.some((error) => error.includes('config.owner_user_id: unknown field')));
-    assert.ok(result.errors.some((error) => error.includes('config.realm_agent_id: unknown field')));
-    assert.ok(result.errors.some((error) => error.includes('config.local_agent_ref: unknown field')));
+    assert.ok(result.errors.some((error) => error.includes('config.local_agent_ref: must equal')));
   }
 });
 

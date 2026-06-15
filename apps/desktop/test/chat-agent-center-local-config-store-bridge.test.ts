@@ -16,10 +16,18 @@ import {
   agentCenterLocalConfigQueryKey,
 } from '../src/shell/renderer/bridge/runtime-bridge/chat-agent-center-local-config-store';
 
+const CONFIG_IDENTITY = {
+  account_id: 'account_1',
+  owner_user_id: 'owner_1',
+  realm_agent_id: 'agent_1',
+  local_agent_ref: 'local-agent:owner_1:agent_1',
+} as const;
+
 test('Agent Center local config bridge parser accepts Rust store payload shape', () => {
   const result = validateAgentCenterLocalConfig({
     schema_version: 1,
     config_kind: 'agent_center_local_config',
+    ...CONFIG_IDENTITY,
     modules: {
       appearance: {
         schema_version: 1,
@@ -62,6 +70,7 @@ test('Agent Center local config bridge rejects retired selected package truth', 
   const result = validateAgentCenterLocalConfig({
     schema_version: 1,
     config_kind: 'agent_center_local_config',
+    ...CONFIG_IDENTITY,
     modules: {
       appearance: {
         schema_version: 1,
@@ -114,8 +123,15 @@ test('Agent Center local config bridge exposes stable query key shape', () => {
 });
 
 test('Agent Center local config default includes closed avatar configuration fields', () => {
-  const config = createDefaultAgentCenterLocalConfig();
+  const config = createDefaultAgentCenterLocalConfig({
+    accountId: CONFIG_IDENTITY.account_id,
+    ownerUserId: CONFIG_IDENTITY.owner_user_id,
+    realmAgentId: CONFIG_IDENTITY.realm_agent_id,
+    localAgentRef: CONFIG_IDENTITY.local_agent_ref,
+  });
 
+  assert.equal(config.account_id, CONFIG_IDENTITY.account_id);
+  assert.equal(config.local_agent_ref, CONFIG_IDENTITY.local_agent_ref);
   assert.equal(config.modules.avatar_asset.backend_kind, 'live2d');
   assert.equal(config.modules.avatar_asset.live2d_adapter_manifest_source, 'none');
   assert.equal(config.modules.avatar_asset.live2d_adapter_manifest_ref, null);
@@ -132,6 +148,7 @@ test('Agent Center local config bridge rejects retired launch package config fie
   const result = validateAgentCenterLocalConfig({
     schema_version: 1,
     config_kind: 'agent_center_local_config',
+    ...CONFIG_IDENTITY,
     modules: {
       appearance: {
         schema_version: 1,

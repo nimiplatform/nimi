@@ -186,6 +186,12 @@ fn validate_agent_center_config(config: &AgentCenterLocalConfig) -> Result<(), S
     if config.config_kind != AGENT_CENTER_CONFIG_KIND {
         return Err("config_kind must be agent_center_local_config".to_string());
     }
+    validate_normalized_id(&config.account_id, "account_id")?;
+    validate_local_agent_scope(
+        &config.owner_user_id,
+        &config.realm_agent_id,
+        &config.local_agent_ref,
+    )?;
 
     validate_module_version(
         config.modules.appearance.schema_version,
@@ -309,10 +315,31 @@ fn validate_agent_center_config(config: &AgentCenterLocalConfig) -> Result<(), S
     Ok(())
 }
 
-fn default_config() -> AgentCenterLocalConfig {
+fn validate_agent_center_config_scope(
+    config: &AgentCenterLocalConfig,
+    account_id: &str,
+    scope: &LocalAgentScope,
+) -> Result<(), String> {
+    validate_agent_center_config(config)?;
+    if config.account_id != account_id
+        || config.owner_user_id != scope.owner_user_id
+        || config.realm_agent_id != scope.realm_agent_id
+        || config.local_agent_ref != scope.local_agent_ref
+    {
+        return Err("Agent Center config identity does not match requested local agent scope"
+            .to_string());
+    }
+    Ok(())
+}
+
+fn default_config(account_id: &str, scope: &LocalAgentScope) -> AgentCenterLocalConfig {
     AgentCenterLocalConfig {
         schema_version: AGENT_CENTER_CONFIG_SCHEMA_VERSION,
         config_kind: AGENT_CENTER_CONFIG_KIND.to_string(),
+        account_id: account_id.to_string(),
+        owner_user_id: scope.owner_user_id.clone(),
+        realm_agent_id: scope.realm_agent_id.clone(),
+        local_agent_ref: scope.local_agent_ref.clone(),
         modules: AgentCenterLocalConfigModules {
             appearance: AgentCenterAppearanceModule {
                 schema_version: AGENT_CENTER_CONFIG_SCHEMA_VERSION,
@@ -361,6 +388,49 @@ fn scope_from_payload(
             &payload.local_agent_ref,
         )?,
     ))
+}
+
+fn config_from_stored_json(
+    raw: &str,
+    account_id: &str,
+    scope: &LocalAgentScope,
+) -> Result<(AgentCenterLocalConfig, bool), String> {
+    match serde_json::from_str::<AgentCenterLocalConfig>(raw) {
+        Ok(config) => {
+            validate_agent_center_config_scope(&config, account_id, scope)?;
+            Ok((config, false))
+        }
+        Err(strict_error) => {
+            let mut value = serde_json::from_str::<serde_json::Value>(raw)
+                .map_err(|_| format!("failed to parse Agent Center config: {strict_error}"))?;
+            let Some(object) = value.as_object_mut() else {
+                return Err(format!("failed to parse Agent Center config: {strict_error}"));
+            };
+            object.insert(
+                "account_id".to_string(),
+                serde_json::Value::String(account_id.to_string()),
+            );
+            object.insert(
+                "owner_user_id".to_string(),
+                serde_json::Value::String(scope.owner_user_id.clone()),
+            );
+            object.insert(
+                "realm_agent_id".to_string(),
+                serde_json::Value::String(scope.realm_agent_id.clone()),
+            );
+            object.insert(
+                "local_agent_ref".to_string(),
+                serde_json::Value::String(scope.local_agent_ref.clone()),
+            );
+            let config: AgentCenterLocalConfig = serde_json::from_value(value).map_err(|error| {
+                format!(
+                    "failed to parse Agent Center config after scoped identity projection: {error}"
+                )
+            })?;
+            validate_agent_center_config_scope(&config, account_id, scope)?;
+            Ok((config, true))
+        }
+    }
 }
 
 pub(super) fn agent_center_dir(account_id: &str, local_agent_ref: &str) -> Result<PathBuf, String> {
@@ -434,7 +504,7 @@ pub(crate) fn desktop_agent_center_config_get_blocking(
     let account_id = validate_normalized_id(account_id, "accountId")?;
     let path = config_path(&account_id, &scope.local_agent_ref)?;
     if !path.exists() {
-        return Ok(default_config());
+        return Ok(default_config(&account_id, &scope));
     }
     let raw = fs::read_to_string(&path).map_err(|error| {
         format!(
@@ -442,13 +512,12 @@ pub(crate) fn desktop_agent_center_config_get_blocking(
             path.display()
         )
     })?;
-    let config = serde_json::from_str::<AgentCenterLocalConfig>(&raw).map_err(|error| {
-        format!(
-            "failed to parse Agent Center config ({}): {error}",
-            path.display()
-        )
+    let (config, projected) = config_from_stored_json(&raw, &account_id, &scope).map_err(|error| {
+        format!("failed to parse Agent Center config ({}): {error}", path.display())
     })?;
-    validate_agent_center_config(&config)?;
+    if projected {
+        atomic_write_json(&path, &config)?;
+    }
     Ok(config)
 }
 
@@ -475,7 +544,7 @@ pub(crate) fn desktop_agent_center_config_put_blocking(
             local_agent_ref: payload.local_agent_ref,
         })?;
     let account_id = validate_normalized_id(account_id, "accountId")?;
-    validate_agent_center_config(&payload.config)?;
+    validate_agent_center_config_scope(&payload.config, &account_id, &scope)?;
     let dir = agent_center_dir(&account_id, &scope.local_agent_ref)?;
     let _lock = acquire_write_lock(&dir)?;
     let path = dir.join(CONFIG_FILE_NAME);
@@ -527,7 +596,8 @@ mod tests {
     }
 
     fn valid_config() -> AgentCenterLocalConfig {
-        let mut config = default_config();
+        let (_account_id, scope) = scope_from_payload(&scope_payload()).expect("scope");
+        let mut config = default_config("account_1", &scope);
         config.modules.avatar_asset.local_avatar_asset_ref =
             Some("live2d_ab12cd34ef56".to_string());
         config.modules.avatar_asset.backend_kind = AgentCenterAvatarBackendKind::Live2d;
@@ -558,6 +628,10 @@ mod tests {
             let config = desktop_agent_center_config_get_blocking("account_1", scope_payload())
                 .expect("default config");
             assert_eq!(config.config_kind, AGENT_CENTER_CONFIG_KIND);
+            assert_eq!(config.account_id, "account_1");
+            assert_eq!(config.owner_user_id, owner_user_id());
+            assert_eq!(config.realm_agent_id, realm_agent_id());
+            assert_eq!(config.local_agent_ref, local_agent_ref());
             assert!(config.modules.avatar_asset.local_avatar_asset_ref.is_none());
             assert!(!home
                 .join(format!(
@@ -586,6 +660,10 @@ mod tests {
             .expect("put config");
             let loaded = desktop_agent_center_config_get_blocking("account_1", scope_payload())
                 .expect("get config");
+            assert_eq!(loaded.account_id, "account_1");
+            assert_eq!(loaded.owner_user_id, owner_user_id());
+            assert_eq!(loaded.realm_agent_id, realm_agent_id());
+            assert_eq!(loaded.local_agent_ref, local_agent_ref());
             assert_eq!(
                 loaded
                     .modules
@@ -636,6 +714,57 @@ mod tests {
             )
             .expect_err("scope mismatch");
             assert!(err.contains("localAgentRef"));
+        });
+    }
+
+    #[test]
+    fn get_projects_scoped_identity_into_pre_cutover_config() {
+        let home = temp_home("identity-projection");
+        with_product_data_home(&home, || {
+            let dir = home.join(format!(
+                ".nimi/data/accounts/account_1/agents/{}/agent-center",
+                local_scope_path_segment(&local_agent_ref())
+            ));
+            fs::create_dir_all(&dir).expect("dir");
+            fs::write(
+                dir.join(CONFIG_FILE_NAME),
+                r#"{
+                  "schema_version": 1,
+                  "config_kind": "agent_center_local_config",
+                  "modules": {
+                    "appearance": {"schema_version": 1, "background_asset_id": null, "motion": "system"},
+                    "avatar_asset": {
+                      "schema_version": 1,
+                      "conversation_anchor_scope": "current_anchor",
+                      "local_avatar_asset_ref": "live2d_ab12cd34ef56",
+                      "live2d_adapter_manifest_source": "none",
+                      "live2d_adapter_manifest_ref": null,
+                      "avatar_instance_policy": "reuse_active_instance",
+                      "backend_kind": "live2d",
+                      "backend_capability_profile_ref": "avatar.backend_profile:live2d:live2d_ab12cd34ef56:import_validated",
+                      "generated_motion_provider_policy": "require_profile_support",
+                      "launch_mode": "manual",
+                      "debug_profile": "standard",
+                      "updated_at": "2026-04-27T00:00:00Z",
+                      "provenance": {"source": "runtime_projection", "evidence_ref": "agent-center-avatar-config-default"}
+                    },
+                    "local_history": {"schema_version": 1, "last_cleared_at": null},
+                    "ui": {"schema_version": 1, "last_section": "overview"}
+                  }
+                }"#,
+            )
+            .expect("write config");
+
+            let loaded = desktop_agent_center_config_get_blocking("account_1", scope_payload())
+                .expect("projected config");
+
+            assert_eq!(loaded.account_id, "account_1");
+            assert_eq!(loaded.owner_user_id, owner_user_id());
+            assert_eq!(loaded.realm_agent_id, realm_agent_id());
+            assert_eq!(loaded.local_agent_ref, local_agent_ref());
+            let persisted = fs::read_to_string(dir.join(CONFIG_FILE_NAME)).expect("persisted");
+            assert!(persisted.contains(r#""account_id": "account_1""#));
+            assert!(persisted.contains(r#""local_agent_ref": "local-agent:owner_1:agent_1""#));
         });
     }
 
