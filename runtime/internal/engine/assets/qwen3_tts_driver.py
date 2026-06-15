@@ -296,6 +296,28 @@ def normalized_speaker(value: str) -> str:
     return str(value or "").strip().lower().replace(" ", "_")
 
 
+def first_supported_speaker(model: Any) -> str:
+    speakers = getattr(model, "get_supported_speakers", None)
+    if not callable(speakers):
+        return ""
+    try:
+        values = speakers()
+    except Exception:
+        return ""
+    if not isinstance(values, list):
+        return ""
+    for item in values:
+        speaker = normalized_speaker(str(item or ""))
+        if speaker and speaker not in {"user-custom", "default"}:
+            return speaker
+    return ""
+
+
+def first_run_baseline_probe_enabled(request: dict[str, Any]) -> bool:
+    extensions = request.get("extensions")
+    return isinstance(extensions, dict) and bool(extensions.get("nimi_first_run_baseline_probe"))
+
+
 def write_audio_artifact(wav: Any, sample_rate: int) -> tuple[str, str]:
     try:
         import soundfile as sf
@@ -356,7 +378,10 @@ def synthesize_with_custom_voice(model: Any, request: dict[str, Any]) -> tuple[s
     language = normalized_language(optional_string(request, "language"))
     speaker = normalized_speaker(optional_string(request, "voice"))
     if speaker in {"", "user-custom", "default"}:
-        fail("qwen3_tts synthesis requires an explicit admitted voice_ref or voice workflow handle")
+        if first_run_baseline_probe_enabled(request):
+            speaker = first_supported_speaker(model)
+        if speaker in {"", "user-custom", "default"}:
+            fail("qwen3_tts synthesis requires an explicit admitted voice_ref or voice workflow handle")
     instruct = optional_string(request, "emotion")
     if not instruct and isinstance(request.get("extensions"), dict):
         instruct = optional_string(request["extensions"], "instruct")
@@ -405,7 +430,7 @@ def handle_synthesize(request: dict[str, Any], cli_default_model: str) -> dict[s
     if handle_kind != "design":
         if mode != "custom":
             fail(f"qwen3_tts plain synthesis requires a voice workflow handle for model_ref={model_ref}")
-        if normalized_speaker(voice) in {"", "user-custom", "default"}:
+        if normalized_speaker(voice) in {"", "user-custom", "default"} and not first_run_baseline_probe_enabled(request):
             fail("qwen3_tts synthesis requires an explicit admitted voice_ref or voice workflow handle")
     model = load_qwen_tts_model(model_ref)
     if handle_kind == "design" and handle_payload is not None:

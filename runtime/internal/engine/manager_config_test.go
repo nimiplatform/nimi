@@ -369,6 +369,48 @@ func TestManagerApplyLlamaPaths(t *testing.T) {
 	}
 }
 
+func TestManagerApplyLlamaPathsDoesNotRequireRouterPresetForExplicitManagedTarget(t *testing.T) {
+	roots := testManagedRoots(t)
+	mgr, err := NewManager(nil, roots, nil)
+	if err != nil {
+		t.Fatalf("NewManager: %v", err)
+	}
+
+	missingConfigPath := filepath.Join(t.TempDir(), "runtime", "llama-models.yaml")
+	mgr.SetLlamaPaths("/data/models", missingConfigPath)
+	cfg := mgr.applyLlamaPaths(EngineConfig{
+		Kind: EngineLlama,
+		ManagedLlamaTarget: &ManagedLlamaTarget{
+			ModelPath:  "resolved/nimi/model/model.gguf",
+			ModelAlias: "first-run-model",
+		},
+	})
+
+	if cfg.ModelsPath != "/data/models" {
+		t.Fatalf("models path mismatch: %q", cfg.ModelsPath)
+	}
+	if cfg.ModelsConfigPath != "" {
+		t.Fatalf("explicit managed llama target must not inherit router preset path, got %q", cfg.ModelsConfigPath)
+	}
+	if got := strings.Join(cfg.ExternalBackends, ","); got != "" {
+		t.Fatalf("explicit managed llama target must not detect backends from missing router preset, got %q", got)
+	}
+
+	cfg.BinaryPath = "/usr/local/bin/llama-server"
+	cfg.Port = 5555
+	cmd, err := llamaCommand(cfg)
+	if err != nil {
+		t.Fatalf("explicit managed llama target must not read missing router preset: %v", err)
+	}
+	args := strings.Join(cmd.Args[1:], " ")
+	if strings.Contains(args, "--models-preset") {
+		t.Fatalf("explicit managed llama target must not use router preset args, got %s", args)
+	}
+	if !strings.Contains(args, "--model") || !strings.Contains(args, filepath.Join("/data/models", "resolved/nimi/model/model.gguf")) {
+		t.Fatalf("explicit managed llama target command did not include model path, got %s", args)
+	}
+}
+
 func TestParseEngineKind(t *testing.T) {
 	tests := []struct {
 		input string

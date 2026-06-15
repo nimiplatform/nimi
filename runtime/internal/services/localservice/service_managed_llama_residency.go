@@ -58,6 +58,9 @@ func (s *Service) ensureManagedSupervisedLlamaLeaseReady(ctx context.Context, mo
 	if refreshed := s.modelByID(localAssetID); refreshed != nil {
 		current = refreshed
 	}
+	if err := s.SyncManagedLlamaAssets(ctx); err != nil {
+		return nil, fmt.Errorf("sync managed llama assets before lease: %w", err)
+	}
 	registration := s.managedLlamaRegistrationForModel(current)
 	if detail := strings.TrimSpace(registration.Problem); detail != "" {
 		return nil, errors.New(managedLocalModelRegistrationFailureDetail(detail))

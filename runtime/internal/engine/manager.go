@@ -184,13 +184,16 @@ func (m *Manager) applyLlamaPaths(cfg EngineConfig) EngineConfig {
 	if cfg.ModelsPath == "" {
 		cfg.ModelsPath = modelsPath
 	}
-	if cfg.ModelsConfigPath == "" {
+	if cfg.ManagedLlamaTarget == nil && cfg.ModelsConfigPath == "" {
 		cfg.ModelsConfigPath = modelsConfigPath
 	}
 	if cfg.BackendsPath == "" {
 		cfg.BackendsPath = backendsPath
 	}
-	if len(cfg.ExternalBackends) == 0 {
+	if cfg.ManagedLlamaTarget != nil {
+		cfg.ModelsConfigPath = ""
+		cfg.ExternalBackends = normalizeLlamaExternalBackends(cfg.ExternalBackends)
+	} else if len(cfg.ExternalBackends) == 0 {
 		cfg.ExternalBackends = detectLlamaExternalBackends(cfg.ModelsConfigPath)
 	} else {
 		cfg.ExternalBackends = normalizeLlamaExternalBackends(cfg.ExternalBackends)

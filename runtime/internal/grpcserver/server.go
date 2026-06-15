@@ -208,6 +208,7 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 	// localservice executionEvidenceRef minter. The adapter is internal to the
 	// runtime and carries no global state.
 	localSvc.SetFirstRunLocalExecutor(newFirstRunLocalExecutorAdapter(aiSvc))
+	localSvc.SetLocalProviderEndpointSink(aiSvc)
 	memorySvc, err := memoryservice.New(logger, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("init memory service: %w", err)

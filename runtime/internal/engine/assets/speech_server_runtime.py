@@ -75,7 +75,13 @@ def configured_driver_command(env_name: str) -> list[str]:
     raw = os.environ.get(env_name, "").strip()
     if not raw:
         return []
-    return shlex.split(raw)
+    return [strip_matching_quotes(part) for part in shlex.split(raw, posix=os.name != "nt")]
+
+
+def strip_matching_quotes(value: str) -> str:
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", '"'}:
+        return value[1:-1]
+    return value
 
 
 def driver_command_state(env_name: str, driver_kind: str) -> tuple[list[str], bool, str]:

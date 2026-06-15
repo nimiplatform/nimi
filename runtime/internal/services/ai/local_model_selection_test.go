@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -264,6 +265,60 @@ func TestExecuteFirstRunLocalBaselineUsesSpeechExecutionTimeout(t *testing.T) {
 	}
 	if allow, ok := capturedExtensions["nimi_allow_empty_transcript"].(bool); !ok || !allow {
 		t.Fatalf("first-run STT baseline did not forward allow-empty extension: %#v", capturedExtensions)
+	}
+}
+
+func TestExecuteFirstRunLocalBaselineTTSMarksPrivateBaselineProbe(t *testing.T) {
+	var capturedPayload map[string]any
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.URL.Path != "/v1/audio/speech" {
+			http.NotFound(w, r)
+			return
+		}
+		defer func() { _ = r.Body.Close() }()
+		if err := json.NewDecoder(r.Body).Decode(&capturedPayload); err != nil {
+			t.Fatalf("decode speech payload: %v", err)
+		}
+		w.Header().Set("Content-Type", "audio/wav")
+		_, _ = w.Write([]byte("first-run-tts-audio"))
+	}))
+	defer server.Close()
+
+	svc := newTestService(
+		slog.New(slog.NewTextHandler(io.Discard, nil)),
+		Config{AllowLoopbackEndpoint: true},
+	)
+	active := &runtimev1.LocalAssetRecord{
+		LocalAssetId: "asset-tts",
+		AssetId:      "local.tts.qwen3-tts-customvoice-0.6b.safetensors",
+		Engine:       "speech",
+		Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+		Endpoint:     server.URL + "/v1",
+		Capabilities: []string{"audio.synthesize"},
+	}
+	svc.localModel = &fakeLocalModelLister{
+		responses: []*runtimev1.ListLocalAssetsResponse{{
+			Assets: []*runtimev1.LocalAssetRecord{active},
+		}},
+	}
+
+	if _, err := svc.ExecuteFirstRunLocalBaseline(context.Background(), FirstRunLocalExecutionRequest{
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
+		ModelID:      active.GetAssetId(),
+	}); err != nil {
+		t.Fatalf("execute first-run TTS baseline: %v", err)
+	}
+	extensions, ok := capturedPayload["extensions"].(map[string]any)
+	if !ok {
+		t.Fatalf("speech payload missing extensions: %#v", capturedPayload)
+	}
+	if got, ok := extensions["nimi_first_run_baseline_probe"].(bool); !ok || !got {
+		t.Fatalf("baseline probe extension = %#v, want true", extensions["nimi_first_run_baseline_probe"])
+	}
+	if rawVoice, ok := capturedPayload["voice"]; ok {
+		if voice := strings.TrimSpace(rawVoice.(string)); voice != "" {
+			t.Fatalf("first-run baseline must not fabricate a public voice_ref, got %q", voice)
+		}
 	}
 }
 

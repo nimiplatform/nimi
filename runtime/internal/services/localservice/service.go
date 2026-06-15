@@ -111,6 +111,7 @@ type Service struct {
 	runtimeBaselineReadinessRecords         map[string]runtimeBaselineReadinessRecord
 	firstRunExecutionEvidenceRecords        map[string]firstRunExecutionEvidenceRecord
 	firstRunLocalExecutor                   FirstRunLocalExecution
+	localProviderEndpointSink               LocalProviderEndpointSink
 	managedLlamaLoadMu                      sync.Mutex
 
 	profileRegistry *ProfileRegistry

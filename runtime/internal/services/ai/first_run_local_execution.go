@@ -236,7 +236,7 @@ func (s *Service) runFirstRunLocalBaselineScenario(
 			Text:        firstRunBaselineTextProbe,
 			AudioFormat: firstRunBaselineAudioFormat,
 		}
-		payload, _, err := backend.SynthesizeSpeech(execCtx, backendModelID, spec, nil)
+		payload, _, err := backend.SynthesizeSpeech(execCtx, backendModelID, spec, firstRunBaselineTTSExtensions())
 		if err != nil {
 			return err
 		}
@@ -294,6 +294,12 @@ func firstRunBaselineSTTExtensions() map[string]any {
 	return map[string]any{
 		"nimi_first_run_baseline_probe": true,
 		"nimi_allow_empty_transcript":   true,
+	}
+}
+
+func firstRunBaselineTTSExtensions() map[string]any {
+	return map[string]any{
+		"nimi_first_run_baseline_probe": true,
 	}
 }
 

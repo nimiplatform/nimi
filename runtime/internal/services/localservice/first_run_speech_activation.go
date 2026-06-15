@@ -41,6 +41,7 @@ func (s *Service) ensureFirstRunSpeechEngineReady(ctx context.Context, baseline 
 		}
 		return fmt.Errorf("speech engine not healthy after activation: status=%s%s", strings.TrimSpace(info.Status), detail)
 	}
+	s.publishLocalProviderEndpoint("speech", managedEngineProviderEndpoint(info, s.managedSpeechEndpoint()))
 	if err := s.refreshFirstRunSpeechBaselineAssetHealth(ctx, baseline); err != nil {
 		return err
 	}

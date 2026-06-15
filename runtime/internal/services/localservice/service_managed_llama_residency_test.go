@@ -226,9 +226,15 @@ func TestAcquireLocalAssetLeaseStartsExplicitManagedLlamaTarget(t *testing.T) {
 		runtimev1.LocalWarmState_LOCAL_WARM_STATE_COLD,
 	)
 	recordManagedLlamaWarmKeyForTest(t, svc, beta, defaultLocalEndpoint)
+	if err := os.Remove(svc.managedLlamaModelsConfigPath); err != nil && !os.IsNotExist(err) {
+		t.Fatalf("remove generated llama models config: %v", err)
+	}
 
 	if err := svc.AcquireLocalAssetLease(context.Background(), beta.GetLocalAssetId(), "text_generate_request"); err != nil {
 		t.Fatalf("AcquireLocalAssetLease: %v", err)
+	}
+	if _, err := os.Stat(svc.managedLlamaModelsConfigPath); err != nil {
+		t.Fatalf("expected lease to regenerate llama models config: %v", err)
 	}
 	if mgr.startConfigCalls != 1 {
 		t.Fatalf("startConfigCalls = %d, want 1", mgr.startConfigCalls)

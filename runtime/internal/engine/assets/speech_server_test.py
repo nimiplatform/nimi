@@ -10,11 +10,14 @@ import tempfile
 import textwrap
 import types
 import unittest
+from unittest import mock
 
 
 def install_fastapi_stubs() -> None:
     fastapi = types.ModuleType("fastapi")
     responses = types.ModuleType("fastapi.responses")
+    starlette = types.ModuleType("starlette")
+    starlette_concurrency = types.ModuleType("starlette.concurrency")
     uvicorn = types.ModuleType("uvicorn")
 
     class FastAPI:
@@ -64,6 +67,9 @@ def install_fastapi_stubs() -> None:
     def run(*_args, **_kwargs):
         return None
 
+    async def run_in_threadpool(fn, *args, **kwargs):
+        return fn(*args, **kwargs)
+
     fastapi.FastAPI = FastAPI
     fastapi.File = File
     fastapi.Form = Form
@@ -71,10 +77,13 @@ def install_fastapi_stubs() -> None:
     fastapi.UploadFile = UploadFile
     responses.JSONResponse = JSONResponse
     responses.Response = Response
+    starlette_concurrency.run_in_threadpool = run_in_threadpool
     uvicorn.run = run
 
     sys.modules["fastapi"] = fastapi
     sys.modules["fastapi.responses"] = responses
+    sys.modules["starlette"] = starlette
+    sys.modules["starlette.concurrency"] = starlette_concurrency
     sys.modules["uvicorn"] = uvicorn
 
 
@@ -93,6 +102,31 @@ def load_speech_server_module():
 
 
 SPEECH_SERVER = load_speech_server_module()
+
+
+def load_qwen3_tts_driver_module():
+    module_path = pathlib.Path(__file__).with_name("qwen3_tts_driver.py")
+    spec = importlib.util.spec_from_file_location("qwen3_tts_driver_under_test", module_path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+QWEN3_TTS_DRIVER = load_qwen3_tts_driver_module()
+
+
+class FakeQwen3TTSModel:
+    def __init__(self) -> None:
+        self.custom_voice_calls = []
+
+    def get_supported_speakers(self):
+        return ["Serena", "Ryan"]
+
+    def generate_custom_voice(self, **kwargs):
+        self.custom_voice_calls.append(kwargs)
+        return [[0.1, 0.2]], 24000
 
 
 def write_manifest(
@@ -137,6 +171,46 @@ def restore_env(name: str, old_value: str | None) -> None:
     else:
         os.environ[name] = old_value
 class SpeechServerTests(unittest.TestCase):
+    def tearDown(self) -> None:
+        QWEN3_TTS_DRIVER._MODEL_CACHE.clear()
+        QWEN3_TTS_DRIVER._MODEL_PATH_CACHE.clear()
+
+    def test_configured_driver_command_preserves_windows_paths(self) -> None:
+        speech_server_runtime = sys.modules["speech_server_runtime"]
+        old_tts = os.environ.get(SPEECH_SERVER.QWEN3_TTS_DRIVER_ENV)
+        try:
+            os.environ[SPEECH_SERVER.QWEN3_TTS_DRIVER_ENV] = r'"C:\Program Files\Python\python.exe" "C:\Temp\qwen3_tts_driver.py"'
+            self.assertEqual(
+                speech_server_runtime.configured_driver_command(SPEECH_SERVER.QWEN3_TTS_DRIVER_ENV),
+                [r"C:\Program Files\Python\python.exe", r"C:\Temp\qwen3_tts_driver.py"],
+            )
+        finally:
+            restore_env(SPEECH_SERVER.QWEN3_TTS_DRIVER_ENV, old_tts)
+
+    def test_qwen3_tts_empty_voice_still_fails_without_first_run_probe(self) -> None:
+        model = FakeQwen3TTSModel()
+        with mock.patch.object(QWEN3_TTS_DRIVER, "load_qwen_tts_model", return_value=model):
+            with self.assertRaisesRegex(RuntimeError, "requires an explicit admitted voice_ref"):
+                QWEN3_TTS_DRIVER.handle_request(
+                    {"operation": "audio.synthesize", "input": "hello"},
+                    "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice",
+                )
+
+    def test_qwen3_tts_first_run_probe_uses_model_supported_speaker(self) -> None:
+        model = FakeQwen3TTSModel()
+        with mock.patch.object(QWEN3_TTS_DRIVER, "load_qwen_tts_model", return_value=model), \
+            mock.patch.object(QWEN3_TTS_DRIVER, "write_audio_artifact", return_value=("/tmp/out.wav", "audio/wav")):
+            response = QWEN3_TTS_DRIVER.handle_request(
+                {
+                    "operation": "audio.synthesize",
+                    "input": "hello",
+                    "extensions": {"nimi_first_run_baseline_probe": True},
+                },
+                "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice",
+            )
+        self.assertEqual(response["audio_path"], "/tmp/out.wav")
+        self.assertEqual(model.custom_voice_calls[0]["speaker"], "serena")
+
     def test_safe_uploaded_audio_path_uses_generated_basename_for_path_filename(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             audio_path = SPEECH_SERVER.safe_uploaded_audio_path(temp_dir, "../../secret/input.wav", "audio/wav")
