@@ -178,8 +178,16 @@ function run(command, args, options = {}) {
   });
 }
 
+function runPnpm(args, options = {}) {
+  if (process.platform !== 'win32') {
+    run('pnpm', args, options);
+    return;
+  }
+  run('cmd.exe', ['/d', '/c', 'pnpm', ...args], options);
+}
+
 function runTypescriptBehavior(profile) {
-  run('pnpm', [
+  runPnpm([
     '--filter',
     '@nimiplatform/sdk',
     'exec',
@@ -189,7 +197,7 @@ function runTypescriptBehavior(profile) {
 }
 
 function runPythonBehavior(profile) {
-  run('python3', ['sdks/conformance/behavior/python.py'], {
+  run(process.platform === 'win32' ? 'python' : 'python3', ['sdks/conformance/behavior/python.py'], {
     env: { PYTHONPATH: repoRoot, SDKS_CONFORMANCE_PROFILE: profile },
   });
 }
@@ -239,11 +247,13 @@ function runRustBehavior(profile) {
       ].join('\n'),
       'utf8',
     );
-    execFileSync('rustc', ['--crate-type', 'lib', '--test', path.join(dir, 'lib.rs'), '-o', path.join(dir, 'sdks_rust_behavior_test')], {
+    const outputName = process.platform === 'win32' ? 'sdks_rust_behavior_test.exe' : 'sdks_rust_behavior_test';
+    const outputPath = path.join(dir, outputName);
+    execFileSync('rustc', ['--crate-type', 'lib', '--test', path.join(dir, 'lib.rs'), '-o', outputPath], {
       cwd: dir,
       stdio: 'inherit',
     });
-    execFileSync(path.join(dir, 'sdks_rust_behavior_test'), [], {
+    execFileSync(outputPath, [], {
       cwd: dir,
       stdio: 'inherit',
       env: { ...process.env, SDKS_CONFORMANCE_PROFILE: profile },
