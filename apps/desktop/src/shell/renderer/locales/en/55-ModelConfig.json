@@ -214,6 +214,7 @@
     "aggregateEmpty": "No capabilities configured",
     "detailTitleFormat": "{{section}} Configuration",
     "activeModelLabel": "Active Model",
+    "activeModelHint": "Click to change model",
     "detailStatusReady": "Runtime Ready",
     "detailStatusAttention": "Needs Setup",
     "detailStatusNeutral": "Not Configured"

@@ -50,7 +50,7 @@ export function ModelSelectorTrigger({
         hasModel
           ? 'border-slate-200 bg-white hover:border-slate-300'
           : 'border-dashed border-slate-200 bg-slate-50/50 hover:border-emerald-400',
-        disabled ? 'cursor-not-allowed opacity-60' : '',
+        disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer',
         className,
       )}
     >

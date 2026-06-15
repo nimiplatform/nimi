@@ -214,6 +214,7 @@
     "aggregateEmpty": "未配置任何能力",
     "detailTitleFormat": "{{section}}配置",
     "activeModelLabel": "活跃模型",
+    "activeModelHint": "点击更改模型",
     "detailStatusReady": "运行就绪",
     "detailStatusAttention": "需要配置",
     "detailStatusNeutral": "未配置"

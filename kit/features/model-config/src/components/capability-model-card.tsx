@@ -158,8 +158,13 @@ export function CapabilityModelCard({ item }: CapabilityModelCardProps) {
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center gap-2">
+      <div className={headerLabel ? 'grid gap-0.5' : 'flex items-center gap-2'}>
         {labelNode}
+        {headerLabel && item.activeModelHint ? (
+          <span className="text-[11px] font-medium text-[var(--nimi-text-muted,#94a3b8)]">
+            {item.activeModelHint}
+          </span>
+        ) : null}
         {!headerLabel && item.status ? (
           <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${statusClasses.dot}`} />
         ) : null}

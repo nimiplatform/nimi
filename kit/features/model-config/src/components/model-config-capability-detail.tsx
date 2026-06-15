@@ -64,6 +64,7 @@ export type ModelConfigCapabilityDetailProps = {
   surface: AppModelConfigSurface;
   config: NimiAIConfig;
   activeModelLabel?: string | null;
+  activeModelHint?: string | null;
 };
 
 function readParams(config: NimiAIConfig, capabilityId: string): Readonly<Record<string, unknown>> {
@@ -286,11 +287,21 @@ function buildVideoCopy(t: AppModelConfigSurface['i18n']['t']) {
   };
 }
 
+function translateWithDefault(
+  t: AppModelConfigSurface['i18n']['t'],
+  key: string,
+  defaultValue: string,
+): string {
+  const translated = t(key, { defaultValue });
+  return translated === key ? defaultValue : translated;
+}
+
 export function ModelConfigCapabilityDetail({
   capabilityId,
   surface,
   config,
   activeModelLabel,
+  activeModelHint,
 }: ModelConfigCapabilityDetailProps) {
   const descriptor = CANONICAL_CAPABILITY_CATALOG_BY_ID[capabilityId];
   const override = resolveOverride(surface, capabilityId);
@@ -321,6 +332,9 @@ export function ModelConfigCapabilityDetail({
     activeModelLabel: activeModelLabel === null
       ? undefined
       : (activeModelLabel ?? t('ModelConfig.hub.activeModelLabel', { defaultValue: 'Active Model' })),
+    activeModelHint: activeModelHint === null
+      ? undefined
+      : (activeModelHint ?? translateWithDefault(t, 'ModelConfig.hub.activeModelHint', 'Click to change model')),
     targetRef,
     provider,
     onTargetRefChange: handleTargetRefChange,

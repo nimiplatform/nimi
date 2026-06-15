@@ -133,6 +133,7 @@ describe('ModelConfigCapabilityDetail editorKind routing', () => {
     );
     expect(container?.textContent).toContain('ModelConfig.editor.textGenerate.temperatureLabel');
     expect(container?.textContent).toContain('ModelConfig.hub.activeModelLabel');
+    expect(container?.textContent).toContain('Click to change model');
   });
 
   it('hydrates local runtime target display from the route model picker provider label', async () => {

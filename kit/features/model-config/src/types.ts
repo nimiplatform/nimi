@@ -24,6 +24,8 @@ export type ModelConfigCapabilityItem = {
    *  the card renders this instead of the per-capability `label` row and hides the
    *  inline status dot/badge — page-level chrome carries the status. */
   activeModelLabel?: string;
+  /** Optional hint rendered directly under `activeModelLabel` to expose the selector affordance. */
+  activeModelHint?: string;
   targetRef: ModelConfigTargetRef | null;
   provider?: RouteModelPickerDataProvider | null;
   onTargetRefChange: (targetRef: ModelConfigTargetRef | null) => void;
