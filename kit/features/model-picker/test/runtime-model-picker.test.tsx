@@ -1,6 +1,6 @@
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   useRuntimeModelPicker,
   useRuntimeModelPickerPanel,
@@ -8,6 +8,7 @@ import {
   type RuntimeModelCatalogService,
 } from '../src/runtime.js';
 import { RuntimeModelPickerPanel } from '../src/ui.js';
+import { ModelPickerModal } from '../src/components/model-picker-modal.js';
 
 (
   globalThis as typeof globalThis & {
@@ -207,5 +208,59 @@ describe('useRuntimeModelPicker', () => {
     expect(container.textContent).toContain('Fast text model');
     expect(container.textContent).toContain('Pricing');
     expect(container.textContent).toContain('Use acme/text-fast');
+  });
+});
+
+describe('ModelPickerModal', () => {
+  it('preserves goRuntimeLocalModelId when selecting a local runtime model', async () => {
+    const onSelect = vi.fn();
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    await act(async () => {
+      root?.render(
+        <ModelPickerModal
+          open
+          onClose={() => undefined}
+          capability="text.generate"
+          capabilityLabel="Chat"
+          provider={{
+            listLocalModels: async () => [{
+              localModelId: 'desktop-local-chat',
+              goRuntimeLocalModelId: 'go-runtime-local-chat',
+              modelId: 'local-import/gemma-4-26B-A4B-it-Q8_0',
+              label: 'gemma-4-26B-A4B-it-Q8_0',
+              engine: 'llama',
+              status: 'active',
+              capabilities: ['text.generate'],
+            }],
+            listConnectors: async () => [],
+            listConnectorModels: async () => [],
+          }}
+          onSelect={onSelect}
+        />,
+      );
+      await flush();
+      await flush();
+    });
+
+    const option = Array.from(document.body.querySelectorAll('button'))
+      .find((button) => button.textContent?.includes('gemma-4-26B-A4B-it-Q8_0'));
+    expect(option).toBeTruthy();
+
+    await act(async () => {
+      option?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await flush();
+    });
+
+    expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({
+      source: 'local',
+      model: 'desktop-local-chat',
+      localModelId: 'desktop-local-chat',
+      goRuntimeLocalModelId: 'go-runtime-local-chat',
+      modelId: 'local-import/gemma-4-26B-A4B-it-Q8_0',
+      engine: 'llama',
+    }));
   });
 });

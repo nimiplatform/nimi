@@ -7,7 +7,7 @@ import {
 import {
   pickerSelectionToTargetRef,
   targetRefToPickerSelection,
-} from '../src/binding-helpers.js';
+} from '../src/model-picker-selection-adapter.js';
 import type { NimiAIConfig, NimiAIConfigTargetRef, NimiAIScopeRef } from '@nimiplatform/kit/core/sdk-contract';
 
 const scopeRef: NimiAIScopeRef = { kind: 'app', ownerId: 'desktop', surfaceId: 'chat' };

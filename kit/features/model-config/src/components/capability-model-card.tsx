@@ -3,7 +3,7 @@ import type { RouteModelPickerSelection } from '@nimiplatform/kit/features/model
 import { ModelPickerModal, ModelSelectorTrigger } from '@nimiplatform/kit/features/model-picker/ui';
 import { summarizeTargetRef } from '@nimiplatform/kit/core/model-config';
 import type { ModelConfigTargetRef } from '@nimiplatform/kit/core/model-config';
-import { pickerSelectionToTargetRef, targetRefToPickerSelection } from '../binding-helpers.js';
+import { pickerSelectionToTargetRef, targetRefToPickerSelection } from '../model-picker-selection-adapter.js';
 import type { CapabilityModelCardProps, ModelConfigCapabilityStatus } from '../types.js';
 
 function statusToneClasses(status: ModelConfigCapabilityStatus | null | undefined): {

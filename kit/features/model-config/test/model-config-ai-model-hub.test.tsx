@@ -129,6 +129,7 @@ const ALL_SECTION_CAPABILITIES = [
   'audio.synthesize', // tts
   'audio.transcribe', // stt
   'image.generate', // image
+  'image.edit', // image edit
   'video.generate', // video
   'voice_workflow.voice_clone', // tts workflow
   'text.embed', // embed
@@ -235,5 +236,40 @@ describe('ModelConfigAiModelHub', () => {
     expect(container?.textContent).toContain('ModelConfig.editor.textGenerate.temperatureLabel');
 
     expect(container?.textContent).toContain('Setup required');
+  });
+
+  it('labels multiple capability cards in one section by capability instead of a generic active model label', async () => {
+    const service = stubService();
+    const surface: AppModelConfigSurface = {
+      ...makeSurface(service),
+      requirementDeclaration: requirementDeclaration(['image.generate', 'image.edit']),
+    };
+    await render(
+      wrap(
+        <ModelConfigAiModelHub
+          surface={surface}
+          profile={emptyProfileController}
+          superSections={[{
+            id: 'media',
+            label: 'Media',
+            sections: ['image'],
+          }]}
+        />,
+      ),
+    );
+
+    const imageButton = Array.from(container?.querySelectorAll('button') || [])
+      .find((button) => button.textContent?.includes('ModelConfig.section.image.title'));
+    expect(imageButton).toBeTruthy();
+
+    await act(async () => {
+      click(imageButton as HTMLButtonElement);
+      await flush();
+      await flush();
+    });
+
+    expect(container?.textContent).toContain('ModelConfig.capability.imageGenerate.title');
+    expect(container?.textContent).toContain('ModelConfig.capability.imageEdit.title');
+    expect(container?.textContent).not.toContain('ModelConfig.hub.activeModelLabel');
   });
 });

@@ -118,6 +118,7 @@ export function ModelPickerModal({
       const localModel = localModels.find((m) => m.localModelId === modelId);
       if (localModel) {
         base.localModelId = localModel.localModelId;
+        base.goRuntimeLocalModelId = localModel.goRuntimeLocalModelId;
         base.engine = localModel.engine;
         base.modelId = localModel.modelId;
         base.modelLabel = modelLabel || localModel.label || localModel.modelId;

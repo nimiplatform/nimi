@@ -316,6 +316,7 @@ export function ModelConfigAiModelHub(props: ModelConfigAiModelHubProps) {
               capabilityId={descriptor.capabilityId}
               surface={surface}
               config={config}
+              activeModelLabel={detailDescriptors.length > 1 ? t(descriptor.i18nKeys.title) : undefined}
             />
           ))}
         </div>
