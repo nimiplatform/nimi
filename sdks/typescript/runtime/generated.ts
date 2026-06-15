@@ -26,6 +26,8 @@ export type {
   CatalogVideoGenerationCapability,
   CatalogVoiceEntry,
   CatalogWorkflowModel,
+  ChatContentPart,
+  ChatMessage,
   DelegatedControlSurfaceSnapshot,
   DelegatedDiagnostic,
   DelegatedReplayTrace,
@@ -54,6 +56,7 @@ export type {
   ScenarioSpec,
   SpeechSynthesizeScenarioSpec,
   SubmitScenarioJobRequest,
+  TextGenerateScenarioSpec,
   UsageStatRecord,
 } from '../core-generated/runtime-typed-client';
 export {
@@ -75,6 +78,7 @@ export {
   ConnectorStatus,
   ConversationAnchorStatus,
   AuthorizationPreset,
+  ChatContentPartType,
   DelegatedApprovalMode,
   DelegatedApprovalRequestState,
   DelegatedProviderKind,

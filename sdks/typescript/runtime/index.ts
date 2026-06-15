@@ -346,6 +346,10 @@ export const RUNTIME_APP_MESSAGE_METHODS = [
 ] as const satisfies readonly RuntimeTypedMethodName[];
 
 export const RUNTIME_APP_LIFECYCLE_METHODS = [
+  'getAccountAppInventory',
+  'adoptLocalApp',
+  'listLocalAppAdoptions',
+  'removeLocalAppAdoption',
   'installApp',
   'uninstallApp',
   'getAppStorage',

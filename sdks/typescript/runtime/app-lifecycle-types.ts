@@ -1,7 +1,11 @@
 import type {
+  AdoptLocalAppRequest,
+  AdoptLocalAppResponse,
   AppInstallJobEvent,
   GetAppInstallJobRequest,
   GetAppInstallJobResponse,
+  GetAccountAppInventoryRequest,
+  GetAccountAppInventoryResponse,
   GetAppPackageReadinessRequest,
   GetAppPackageReadinessResponse,
   GetAppStorageRequest,
@@ -12,8 +16,12 @@ import type {
   InstallAppResponse,
   ListAppInstallJobsRequest,
   ListAppInstallJobsResponse,
+  ListLocalAppAdoptionsRequest,
+  ListLocalAppAdoptionsResponse,
   OpenAppRequest,
   OpenAppResponse,
+  RemoveLocalAppAdoptionRequest,
+  RemoveLocalAppAdoptionResponse,
   RuntimeTypedCallOptions,
   UninstallAppRequest,
   UninstallAppResponse,
@@ -62,6 +70,28 @@ export type NimiRuntimeAppHealthRepairAction =
   | 'repair'
   | 'reinstall';
 
+export type NimiRuntimeAccountAppInventoryState =
+  | 'verified'
+  | 'entitled'
+  | 'disabled'
+  | 'removed'
+  | 'revoked';
+
+export type NimiRuntimeAccountAppInstallState =
+  | 'not-installed'
+  | 'installed'
+  | 'adopted-local'
+  | 'removed';
+
+export type NimiRuntimeLocalAppAdoptionState =
+  | 'adopted'
+  | 'repair-required'
+  | 'removed';
+
+export type NimiRuntimeLocalAppAdoptionTrust =
+  | 'explicit-local'
+  | 'developer-local';
+
 export type NimiRuntimeAppInstallStorage = {
   readonly appRoot: string;
   readonly releaseRoot: string;
@@ -87,6 +117,48 @@ export type NimiRuntimeAppPackageReadinessProjection = {
   readonly sha256?: string;
   readonly verificationState?: string;
   readonly state: NimiRuntimeAppPackageReadinessState;
+  readonly reasonCode?: string;
+  readonly detail?: string;
+};
+
+export type NimiRuntimeAccountAppInventoryRow = {
+  readonly appId: string;
+  readonly accountState: NimiRuntimeAccountAppInventoryState;
+  readonly installState: NimiRuntimeAccountAppInstallState;
+  readonly lastOpenedAt?: string;
+  readonly dataPolicy: string;
+  readonly verifiedAt?: string;
+  readonly source?: string;
+  readonly detail?: string;
+};
+
+export type NimiRuntimeAccountAppInventoryRecord = {
+  readonly schemaVersion: 2;
+  readonly accountId: string;
+  readonly updatedAt: string;
+  readonly apps: readonly NimiRuntimeAccountAppInventoryRow[];
+};
+
+export type NimiRuntimeAccountAppInventoryProjection = {
+  readonly exists: boolean;
+  readonly record?: NimiRuntimeAccountAppInventoryRecord;
+  readonly reasonCode?: string;
+  readonly detail?: string;
+};
+
+export type NimiRuntimeLocalAppAdoption = {
+  readonly appId: string;
+  readonly rootPath: string;
+  readonly manifestPath: string;
+  readonly displayName: string;
+  readonly version: string;
+  readonly entryRef: string;
+  readonly permissionScopeRef: string;
+  readonly storagePolicyRef: string;
+  readonly state: NimiRuntimeLocalAppAdoptionState;
+  readonly trust: NimiRuntimeLocalAppAdoptionTrust;
+  readonly adoptedAt?: string;
+  readonly updatedAt?: string;
   readonly reasonCode?: string;
   readonly detail?: string;
 };
@@ -182,7 +254,30 @@ export type NimiRuntimeAppOpenInput = {
   readonly scope: NimiRuntimeAppOpenScopeRef;
 };
 
+export type NimiRuntimeAdoptLocalAppInput = {
+  readonly rootPath: string;
+  readonly expectedAppId?: string;
+};
+
+export type NimiRuntimeRemoveLocalAppAdoptionInput = {
+  readonly appId: string;
+  readonly deleteDurableDataConfirmed?: boolean;
+};
+
 export interface NimiRuntimeAppLifecycleGeneratedClient {
+  getAccountAppInventory(
+    request: GetAccountAppInventoryRequest,
+    options?: RuntimeTypedCallOptions,
+  ): Promise<GetAccountAppInventoryResponse>;
+  adoptLocalApp(request: AdoptLocalAppRequest, options?: RuntimeTypedCallOptions): Promise<AdoptLocalAppResponse>;
+  listLocalAppAdoptions(
+    request: ListLocalAppAdoptionsRequest,
+    options?: RuntimeTypedCallOptions,
+  ): Promise<ListLocalAppAdoptionsResponse>;
+  removeLocalAppAdoption(
+    request: RemoveLocalAppAdoptionRequest,
+    options?: RuntimeTypedCallOptions,
+  ): Promise<RemoveLocalAppAdoptionResponse>;
   installApp(request: InstallAppRequest, options?: RuntimeTypedCallOptions): Promise<InstallAppResponse>;
   uninstallApp(request: UninstallAppRequest, options?: RuntimeTypedCallOptions): Promise<UninstallAppResponse>;
   getAppStorage(request: GetAppStorageRequest, options?: RuntimeTypedCallOptions): Promise<GetAppStorageResponse>;
@@ -205,6 +300,16 @@ export interface NimiRuntimeAppLifecycleGeneratedClient {
 }
 
 export interface NimiRuntimeAppLifecycleClient {
+  accountInventory(options?: RuntimeTypedCallOptions): Promise<NimiRuntimeAccountAppInventoryProjection>;
+  adoptLocal(
+    input: NimiRuntimeAdoptLocalAppInput,
+    options?: RuntimeTypedCallOptions,
+  ): Promise<NimiRuntimeLocalAppAdoption>;
+  listLocalAdoptions(options?: RuntimeTypedCallOptions): Promise<NimiRuntimeLocalAppAdoption[]>;
+  removeLocalAdoption(
+    input: NimiRuntimeRemoveLocalAppAdoptionInput,
+    options?: RuntimeTypedCallOptions,
+  ): Promise<NimiRuntimeLocalAppAdoption>;
   install(input: NimiRuntimeAppInstallInput, options?: RuntimeTypedCallOptions): Promise<NimiRuntimeAppInstallJob>;
   uninstall(input: NimiRuntimeAppUninstallInput, options?: RuntimeTypedCallOptions): Promise<NimiRuntimeAppUninstallResult>;
   storage(input: { readonly appId: string }, options?: RuntimeTypedCallOptions): Promise<NimiRuntimeAppStorageProjection>;
@@ -213,9 +318,9 @@ export interface NimiRuntimeAppLifecycleClient {
     options?: RuntimeTypedCallOptions,
   ): Promise<NimiRuntimeAppPackageReadinessProjection>;
   getJob(input: { readonly jobId: string }, options?: RuntimeTypedCallOptions): Promise<NimiRuntimeAppInstallJob>;
-  listJobs(input?: { readonly appId?: string }, options?: RuntimeTypedCallOptions): Promise<NimiRuntimeAppInstallJob[]>;
+  listJobs(input: { readonly appId: string }, options?: RuntimeTypedCallOptions): Promise<NimiRuntimeAppInstallJob[]>;
   watchJobEvents(
-    input?: { readonly jobId?: string },
+    input: { readonly jobId: string },
     options?: RuntimeTypedCallOptions,
   ): AsyncIterable<NimiRuntimeAppInstallJobEvent>;
   update(input: NimiRuntimeAppUpdateInput, options?: RuntimeTypedCallOptions): Promise<NimiRuntimeAppInstallJob>;

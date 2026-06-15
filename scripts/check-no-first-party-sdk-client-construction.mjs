@@ -3,6 +3,7 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import YAML from 'yaml';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
@@ -39,6 +40,11 @@ const ALLOWLIST = new Set([
   'apps/web/src/post-permalink-page.tsx',
 ]);
 
+const FIRST_PARTY_RUNTIME_CALLER_MODES = new Set([
+  'desktop-shell',
+  'local-first-party',
+]);
+
 const CHECKS = [
   {
     label: 'new Runtime',
@@ -56,9 +62,40 @@ function getLine(source, index) {
   return source.slice(0, index).split('\n').length;
 }
 
-function shouldSkipFile(relativePath) {
+async function loadCheckedAppRoots() {
+  const tablePath = path.join(repoRoot, '.nimi/spec/platform/kernel/tables/nimi-app-identity-surfaces.yaml');
+  const source = await fs.readFile(tablePath, 'utf8');
+  const parsed = YAML.parse(source);
+  const apps = Array.isArray(parsed?.apps) ? parsed.apps : [];
+  const roots = new Set();
+  for (const app of apps) {
+    const sourceRoot = typeof app?.source_root === 'string' ? app.source_root.trim() : '';
+    const callerMode = typeof app?.runtime_caller_mode === 'string' ? app.runtime_caller_mode.trim() : '';
+    if (sourceRoot && FIRST_PARTY_RUNTIME_CALLER_MODES.has(callerMode)) {
+      roots.add(sourceRoot.replaceAll(path.sep, '/').replace(/\/+$/, ''));
+    }
+  }
+  if (roots.size === 0) {
+    throw new Error('no first-party app roots found in nimi-app-identity-surfaces.yaml');
+  }
+  return roots;
+}
+
+function isUnderCheckedAppRoot(normalized, checkedAppRoots) {
+  for (const root of checkedAppRoots) {
+    if (normalized === root || normalized.startsWith(`${root}/`)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function shouldSkipFile(relativePath, checkedAppRoots) {
   const normalized = relativePath.split(path.sep).join('/');
   if (!normalized.startsWith('apps/')) {
+    return true;
+  }
+  if (!isUnderCheckedAppRoot(normalized, checkedAppRoots)) {
     return true;
   }
   if (ALLOWLIST.has(normalized)) {
@@ -96,13 +133,14 @@ async function walk(dir, visitor) {
 
 async function main() {
   const violations = [];
+  const checkedAppRoots = await loadCheckedAppRoots();
 
   await walk(path.join(repoRoot, 'apps'), async (fullPath) => {
     const relativePath = path.relative(repoRoot, fullPath);
     if (!SOURCE_EXTENSIONS.has(path.extname(relativePath))) {
       return;
     }
-    if (shouldSkipFile(relativePath)) {
+    if (shouldSkipFile(relativePath, checkedAppRoots)) {
       return;
     }
 

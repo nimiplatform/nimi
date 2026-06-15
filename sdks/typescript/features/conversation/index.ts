@@ -180,6 +180,9 @@ export function buildNimiConversationTokenWindow(
 
   for (let index = messages.length - 1; index >= 0 && selected.length < maxMessages; index -= 1) {
     const message = messages[index];
+    if (!message) {
+      continue;
+    }
     const nextTokens = tokens + (message.tokenEstimate ?? estimateNimiConversationTokens(message.text));
     if (nextTokens > maxTokenEstimate && selected.length > 0) {
       break;

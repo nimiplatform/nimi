@@ -2,6 +2,14 @@ import type {
   AppKind,
   AppLaunchReadiness,
   NimiAppInstallVerificationState,
+  NimiAppInventoryEntry,
+  NimiAppInventoryInstallState,
+  NimiAppInventoryJobSummary,
+  NimiAppInventoryNextAction,
+  NimiAppInventorySource,
+  NimiAppAccountInventorySourceRow,
+  NimiAppLocalAdoptionRow,
+  NimiAppOpenReadiness,
   NimiAppOrdinaryVisibility,
   NimiAppPackageReadinessRow,
   NimiAppReleaseDescriptorRow,
@@ -10,6 +18,11 @@ import type {
   NimiAppTransport,
   TrustTierId,
 } from './index.js';
+import type {
+  NimiAppAccountInventoryProjection,
+  NimiAppAccountInventoryRecord,
+  NimiAppAccountInventoryRow,
+} from './account-inventory.js';
 
 export type NimiAppAdmissionStatus =
   | 'admitted'
@@ -40,9 +53,23 @@ export interface NimiAppRegistryTransportOptions {
   readonly loadRows: () => Promise<readonly NimiAppRegistrySourceRow[]> | readonly NimiAppRegistrySourceRow[];
   readonly loadReleaseDescriptors: () =>
     Promise<readonly NimiAppReleaseDescriptorRow[]> | readonly NimiAppReleaseDescriptorRow[];
+  readonly loadAccountInventory?: () =>
+    Promise<NimiAppAccountInventoryProjection | NimiAppAccountInventoryRecord | null | undefined>
+    | NimiAppAccountInventoryProjection
+    | NimiAppAccountInventoryRecord
+    | null
+    | undefined;
+  readonly loadLocalAdoptions?: () =>
+    Promise<readonly NimiAppLocalAdoptionRow[] | null | undefined>
+    | readonly NimiAppLocalAdoptionRow[]
+    | null
+    | undefined;
   readonly loadPackageReadiness?: (
     appId: string,
   ) => Promise<NimiAppPackageReadinessRow | undefined> | NimiAppPackageReadinessRow | undefined;
+  readonly loadActiveJobs?: (
+    appId: string,
+  ) => Promise<readonly NimiAppInventoryJobSummary[] | undefined> | readonly NimiAppInventoryJobSummary[] | undefined;
 }
 
 export class NimiAppRegistryTransportError extends Error {
@@ -62,31 +89,14 @@ export class NimiAppRegistryTransportError extends Error {
 export function createNimiAppRegistryTransport(options: NimiAppRegistryTransportOptions): NimiAppTransport {
   assertRegistryTransportOptions(options);
   return {
-    async list(): Promise<readonly NimiAppRow[]> {
-      const [rows, descriptors] = await Promise.all([
-        loadRows(options.loadRows),
-        loadReleaseDescriptors(options.loadReleaseDescriptors),
-      ]);
-      return rows
-        .filter((row) => resolveOrdinaryVisibleDescriptor(row, descriptors).ok)
-        .map(toClientRow);
+    async list(): Promise<readonly NimiAppInventoryEntry[]> {
+      return composeInventory(options);
     },
-    async get(appId: string): Promise<NimiAppRow> {
-      const [rows, descriptors] = await Promise.all([
-        loadRows(options.loadRows),
-        loadReleaseDescriptors(options.loadReleaseDescriptors),
-      ]);
-      const row = rows.find((candidate) => candidate.appId === appId);
-      if (!row) {
-        throw missingRow(appId);
-      }
-      if (!resolveOrdinaryVisibleDescriptor(row, descriptors).ok) {
-        throw new NimiAppRegistryTransportError(
-          'missing-registry-row',
-          `Nimi App "${appId}" is not ordinary-visible with a resolved release descriptor and storage policy`,
-        );
-      }
-      return toClientRow(row);
+    async get(appId: string): Promise<NimiAppInventoryEntry> {
+      const entries = await composeInventory(options);
+      const entry = entries.find((candidate) => candidate.appId === appId);
+      if (!entry) throw missingRow(appId);
+      return entry;
     },
     async status(appId: string): Promise<NimiAppStatus> {
       const [rows, descriptors] = await Promise.all([
@@ -100,6 +110,112 @@ export function createNimiAppRegistryTransport(options: NimiAppRegistryTransport
       const packageReadiness = await loadPackageReadiness(options.loadPackageReadiness, appId);
       return defaultStatus(row, descriptors, packageReadiness);
     },
+  };
+}
+
+async function composeInventory(options: NimiAppRegistryTransportOptions): Promise<readonly NimiAppInventoryEntry[]> {
+  const [rows, descriptors] = await Promise.all([
+    loadRows(options.loadRows),
+    loadReleaseDescriptors(options.loadReleaseDescriptors),
+  ]);
+  const catalogById = new Map<string, NimiAppRow>();
+  for (const row of rows) {
+    if (resolveOrdinaryVisibleDescriptor(row, descriptors).ok) {
+      catalogById.set(row.appId, toClientRow(row));
+    }
+  }
+
+  const accountResult = await loadOptionalAccountInventory(options.loadAccountInventory);
+  const accountById = new Map<string, NimiAppAccountInventoryRow>();
+  if (accountResult.record) {
+    for (const row of accountResult.record.apps) accountById.set(row.appId, row);
+  }
+
+  const localResult = await loadOptionalLocalAdoptions(options.loadLocalAdoptions);
+  const localById = new Map<string, NimiAppLocalAdoptionRow>();
+  if (localResult.rows) {
+    for (const row of localResult.rows) localById.set(row.appId, row);
+  }
+
+  const appIds = new Set<string>([
+    ...catalogById.keys(),
+    ...accountById.keys(),
+    ...localById.keys(),
+  ]);
+
+  const entries = await Promise.all([...appIds].sort().map(async (appId) => {
+    const packageReadiness = await loadOptionalPackageReadiness(options.loadPackageReadiness, appId);
+    const activeJobs = await loadOptionalActiveJobs(options.loadActiveJobs, appId);
+    return composeInventoryEntry({
+      appId,
+      catalog: catalogById.get(appId),
+      account: accountById.get(appId),
+      local: localById.get(appId),
+      accountDegraded: accountResult.degraded,
+      localDegraded: localResult.degraded,
+      packageReadiness,
+      activeJobs,
+    });
+  }));
+
+  return entries.filter(Boolean) as readonly NimiAppInventoryEntry[];
+}
+
+function composeInventoryEntry(input: {
+  readonly appId: string;
+  readonly catalog?: NimiAppRow;
+  readonly account?: NimiAppAccountInventoryRow;
+  readonly local?: NimiAppLocalAdoptionRow;
+  readonly accountDegraded?: DegradedSource;
+  readonly localDegraded?: DegradedSource;
+  readonly packageReadiness: OptionalSourceLoad<NimiAppPackageReadinessRow>;
+  readonly activeJobs: OptionalSourceLoad<readonly NimiAppInventoryJobSummary[]>;
+}): NimiAppInventoryEntry {
+  const sources = {
+    catalog: input.catalog ? present(input.catalog) : absent<NimiAppRow>(),
+    account: input.account
+      ? present(toAccountInventorySourceRow(input.account))
+      : input.accountDegraded
+        ? degraded<NimiAppAccountInventorySourceRow>(input.accountDegraded)
+        : absent<NimiAppAccountInventorySourceRow>(),
+    local: input.local
+      ? present(input.local)
+      : input.localDegraded
+        ? degraded<NimiAppLocalAdoptionRow>(input.localDegraded)
+        : absent<NimiAppLocalAdoptionRow>(),
+    packageReadiness: input.packageReadiness.value
+      ? present(input.packageReadiness.value)
+      : input.packageReadiness.degraded
+        ? degraded<NimiAppPackageReadinessRow>(input.packageReadiness.degraded)
+        : absent<NimiAppPackageReadinessRow>(),
+  };
+  const activeJobs = input.activeJobs.value ? [...input.activeJobs.value] : [];
+  const installState = resolveInstallState(input.account, input.local, input.packageReadiness.value, activeJobs);
+  const openReadiness = resolveOpenReadiness(input.account, input.local, input.packageReadiness.value, installState);
+  return {
+    appId: input.appId,
+    displayName: input.catalog?.displayName || input.local?.displayName || input.appId,
+    ...(input.catalog?.appKind ? { appKind: input.catalog.appKind } : {}),
+    ...(input.catalog?.publisher ? { publisher: input.catalog.publisher } : input.local ? { publisher: 'Local' } : {}),
+    ...(input.catalog?.aiProfileSelectionRef ? { aiProfileSelectionRef: input.catalog.aiProfileSelectionRef } : {}),
+    ...(input.catalog?.releaseDescriptorRef ? { releaseDescriptorRef: input.catalog.releaseDescriptorRef } : {}),
+    ...(input.catalog?.installStoragePolicyRef ? { installStoragePolicyRef: input.catalog.installStoragePolicyRef } : {}),
+    trustTier: resolveInventoryTrustTier(input.catalog, input.local),
+    capabilitySet: input.catalog ? [...input.catalog.capabilitySet] : [],
+    sources,
+    installState,
+    openReadiness,
+    activeJobs,
+    nextActions: resolveNextActions({
+      account: input.account,
+      local: input.local,
+      catalog: input.catalog,
+      openReadiness,
+      installState,
+      activeJobs,
+    }),
+    ...(input.packageReadiness.value?.reasonCode ? { reasonCode: input.packageReadiness.value.reasonCode } : {}),
+    ...(input.packageReadiness.value?.detail ? { detail: input.packageReadiness.value.detail } : {}),
   };
 }
 
@@ -241,6 +357,212 @@ function packageReadinessToReadiness(packageReadiness: NimiAppPackageReadinessRo
 type DescriptorResolution =
   | { readonly ok: true; readonly descriptor: NimiAppReleaseDescriptorRow }
   | { readonly ok: false; readonly reason: string; readonly descriptor?: NimiAppReleaseDescriptorRow };
+
+type DegradedSource = {
+  readonly reasonCode: string;
+  readonly detail: string;
+};
+
+type OptionalSourceLoad<T> =
+  | { readonly value?: T; readonly degraded?: undefined }
+  | { readonly value?: undefined; readonly degraded: DegradedSource };
+
+async function loadOptionalAccountInventory(
+  load: NimiAppRegistryTransportOptions['loadAccountInventory'],
+): Promise<{ readonly record?: NimiAppAccountInventoryRecord; readonly degraded?: DegradedSource }> {
+  if (!load) return {};
+  try {
+    const projection = await load();
+    if (!projection) return {};
+    if ('exists' in projection) {
+      if (projection.exists !== true) return {};
+      if (!projection.record) {
+        return {
+          degraded: sourceDegraded('SDK_APP_ACCOUNT_INVENTORY_RECORD_MISSING', 'account inventory exists without record'),
+        };
+      }
+      return { record: projection.record };
+    }
+    return { record: projection };
+  } catch (error) {
+    return {
+      degraded: sourceDegraded('SDK_APP_ACCOUNT_INVENTORY_SOURCE_FAILED', errorDetail(error)),
+    };
+  }
+}
+
+async function loadOptionalLocalAdoptions(
+  load: NimiAppRegistryTransportOptions['loadLocalAdoptions'],
+): Promise<{ readonly rows?: readonly NimiAppLocalAdoptionRow[]; readonly degraded?: DegradedSource }> {
+  if (!load) return {};
+  try {
+    const rows = await load();
+    if (!rows) return {};
+    if (!Array.isArray(rows)) {
+      return {
+        degraded: sourceDegraded('SDK_APP_LOCAL_ADOPTIONS_SOURCE_INVALID', 'local app adoptions source did not return an array'),
+      };
+    }
+    return { rows };
+  } catch (error) {
+    return {
+      degraded: sourceDegraded('SDK_APP_LOCAL_ADOPTIONS_SOURCE_FAILED', errorDetail(error)),
+    };
+  }
+}
+
+async function loadOptionalPackageReadiness(
+  load: NimiAppRegistryTransportOptions['loadPackageReadiness'],
+  appId: string,
+): Promise<OptionalSourceLoad<NimiAppPackageReadinessRow>> {
+  if (!load) return {};
+  try {
+    const projection = await load(appId);
+    if (!projection) return {};
+    if (projection.appId !== appId) {
+      return {
+        degraded: sourceDegraded(
+          'SDK_APP_PACKAGE_READINESS_APP_ID_MISMATCH',
+          `package readiness source returned ${projection.appId} for ${appId}`,
+        ),
+      };
+    }
+    return { value: projection };
+  } catch (error) {
+    return {
+      degraded: sourceDegraded('SDK_APP_PACKAGE_READINESS_SOURCE_FAILED', errorDetail(error)),
+    };
+  }
+}
+
+async function loadOptionalActiveJobs(
+  load: NimiAppRegistryTransportOptions['loadActiveJobs'],
+  appId: string,
+): Promise<OptionalSourceLoad<readonly NimiAppInventoryJobSummary[]>> {
+  if (!load) return {};
+  try {
+    const jobs = await load(appId);
+    if (!jobs) return {};
+    if (!Array.isArray(jobs)) {
+      return {
+        degraded: sourceDegraded('SDK_APP_ACTIVE_JOBS_SOURCE_INVALID', 'active jobs source did not return an array'),
+      };
+    }
+    return { value: jobs.filter((job) => job.appId === appId) };
+  } catch (error) {
+    return {
+      degraded: sourceDegraded('SDK_APP_ACTIVE_JOBS_SOURCE_FAILED', errorDetail(error)),
+    };
+  }
+}
+
+function present<T>(value: T): NimiAppInventorySource<T> {
+  return { status: 'present', value };
+}
+
+function absent<T>(): NimiAppInventorySource<T> {
+  return { status: 'absent' };
+}
+
+function degraded<T>(source: DegradedSource): NimiAppInventorySource<T> {
+  return {
+    status: 'degraded',
+    reasonCode: source.reasonCode,
+    detail: source.detail,
+  };
+}
+
+function sourceDegraded(reasonCode: string, detail: string): DegradedSource {
+  return { reasonCode, detail };
+}
+
+function errorDetail(error: unknown): string {
+  if (error instanceof Error && error.message.trim()) return error.message.trim();
+  return String(error || 'source failed');
+}
+
+function toAccountInventorySourceRow(row: NimiAppAccountInventoryRow): NimiAppAccountInventorySourceRow {
+  return { ...row };
+}
+
+function resolveInventoryTrustTier(
+  catalog: NimiAppRow | undefined,
+  local: NimiAppLocalAdoptionRow | undefined,
+): NimiAppInventoryEntry['trustTier'] {
+  if (catalog) return catalog.trustTier;
+  if (local?.trust === 'developer-local') return 'local-developer';
+  if (local) return 'local-explicit';
+  return 'unknown';
+}
+
+function resolveInstallState(
+  account: NimiAppAccountInventoryRow | undefined,
+  local: NimiAppLocalAdoptionRow | undefined,
+  readiness: NimiAppPackageReadinessRow | undefined,
+  activeJobs: readonly NimiAppInventoryJobSummary[],
+): NimiAppInventoryInstallState {
+  const activeJob = activeJobs.find((job) => job.state === 'queued' || job.state === 'in_progress');
+  if (activeJob?.kind === 'install') return 'installing';
+  if (activeJob?.kind === 'update') return 'updating';
+  if (activeJob?.kind === 'repair') return 'repair-required';
+  if (local?.state === 'adopted') return 'adopted-local';
+  if (local?.state === 'repair-required') return 'repair-required';
+  if (account?.installState === 'installed') return 'installed';
+  if (account?.installState === 'adopted-local') return 'adopted-local';
+  if (account?.installState === 'removed') return 'removed';
+  if (readiness?.state === 'repair_required' || readiness?.state === 'blocked') return 'repair-required';
+  return account ? 'not-installed' : 'unknown';
+}
+
+function resolveOpenReadiness(
+  account: NimiAppAccountInventoryRow | undefined,
+  local: NimiAppLocalAdoptionRow | undefined,
+  readiness: NimiAppPackageReadinessRow | undefined,
+  installState: NimiAppInventoryInstallState,
+): NimiAppOpenReadiness {
+  if (!account) return 'sign-in-required';
+  if (!isLaunchableAccountInventoryRow(account)) {
+    return 'unsupported';
+  }
+  if (account.installState !== 'installed' && account.installState !== 'adopted-local') {
+    return 'install-required';
+  }
+  if (local?.state === 'repair-required' || installState === 'repair-required') return 'repair-required';
+  if (account.installState === 'adopted-local' && local?.state === 'adopted') return 'ready';
+  if (!readiness) return 'install-required';
+  return packageReadinessToReadiness(readiness);
+}
+
+function isLaunchableAccountInventoryRow(account: NimiAppAccountInventoryRow): boolean {
+  return account.accountState === 'verified' || account.accountState === 'entitled';
+}
+
+function resolveNextActions(input: {
+  readonly account?: NimiAppAccountInventoryRow;
+  readonly local?: NimiAppLocalAdoptionRow;
+  readonly catalog?: NimiAppRow;
+  readonly openReadiness: NimiAppOpenReadiness;
+  readonly installState: NimiAppInventoryInstallState;
+  readonly activeJobs: readonly NimiAppInventoryJobSummary[];
+}): readonly NimiAppInventoryNextAction[] {
+  if (input.activeJobs.some((job) => job.state === 'queued' || job.state === 'in_progress')) {
+    return [];
+  }
+  const actions = new Set<NimiAppInventoryNextAction>();
+  const launchableAccount = input.account && isLaunchableAccountInventoryRow(input.account);
+  if (input.openReadiness === 'ready') actions.add('open');
+  if (input.openReadiness === 'sign-in-required') actions.add('sign-in');
+  if (input.openReadiness === 'permission-required') actions.add('review-permissions');
+  if (input.openReadiness === 'repair-required' || input.installState === 'repair-required') actions.add('repair');
+  if (input.openReadiness === 'update-required') actions.add('update');
+  if (launchableAccount && input.installState === 'not-installed' && input.catalog) actions.add('install');
+  if (launchableAccount && input.installState === 'not-installed' && !input.catalog) actions.add('connect-local');
+  if (launchableAccount && input.installState === 'installed' && input.catalog) {
+    actions.add('uninstall');
+  }
+  if (input.local && input.local.state !== 'removed') actions.add('remove-local-adoption');
+  return [...actions];
+}
 
 function resolveOrdinaryVisibleDescriptor(
   row: NimiAppRegistrySourceRow,

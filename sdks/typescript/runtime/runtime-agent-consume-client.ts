@@ -680,6 +680,9 @@ function mergeNimiRuntimeAgentStreams(
           continue;
         }
         const entry = entries[entryIndex];
+        if (!entry) {
+          continue;
+        }
         entry.next = entry.iterator.next().then((result) => ({
           index: entry.index,
           result,

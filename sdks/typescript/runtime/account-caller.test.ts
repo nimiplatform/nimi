@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  createNimiDeveloperRegisteredRuntimeAccountCaller,
   createNimiDesktopShellRuntimeAccountCaller,
   createNimiLocalFirstPartyRuntimeAccountCaller,
 } from './index';
@@ -31,6 +32,24 @@ test('Runtime account caller projection builds explicit local first-party identi
       appInstanceId: 'app.example.local-dev',
       deviceId: 'developer-machine',
       mode: AccountCallerMode.LOCAL_FIRST_PARTY_APP,
+      scopes: ['runtime.account'],
+    },
+  );
+});
+
+test('Runtime account caller projection builds explicit developer-registered local identity', () => {
+  assert.deepEqual(
+    createNimiDeveloperRegisteredRuntimeAccountCaller({
+      appId: 'nimi.tester',
+      appInstanceId: 'nimi.tester.local-developer',
+      deviceId: 'tester-local-developer-device',
+      scopes: [' runtime.account ', '', 'runtime.account'],
+    }),
+    {
+      appId: 'nimi.tester',
+      appInstanceId: 'nimi.tester.local-developer',
+      deviceId: 'tester-local-developer-device',
+      mode: AccountCallerMode.LOCAL_DEVELOPER_APP,
       scopes: ['runtime.account'],
     },
   );
@@ -66,6 +85,14 @@ test('Runtime account caller projection fails closed on missing identity', () =>
     () => createNimiLocalFirstPartyRuntimeAccountCaller({
       appId: 'app.example',
       appInstanceId: 'app.example.local-dev',
+      deviceId: '',
+    }),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_RUNTIME_ACCOUNT_CALLER_INVALID',
+  );
+  assert.throws(
+    () => createNimiDeveloperRegisteredRuntimeAccountCaller({
+      appId: 'nimi.tester',
+      appInstanceId: 'nimi.tester.local-developer',
       deviceId: '',
     }),
     (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_RUNTIME_ACCOUNT_CALLER_INVALID',

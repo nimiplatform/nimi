@@ -1,5 +1,14 @@
 import { createNimiError } from '../../types';
+import {
+  validateNimiAppInventoryEntry,
+  validateNimiAppStatus,
+} from './inventory-types.js';
 import type { NimiAppAIProfileFactoryRow } from './platform-catalog.generated.js';
+import type {
+  NimiAppInventoryEntry,
+  NimiAppStatus,
+  NimiAppTransport,
+} from './inventory-types.js';
 import {
   isCanonicalGrantState,
   isCanonicalPermissionScopeFamily,
@@ -38,18 +47,22 @@ export {
   parseNimiAppBridgeRegistryRow,
   parseNimiAppBridgeReleaseDescriptorRow,
 } from './bridge-projection.js';
+export * from './inventory-types.js';
 export {
-  parseNimiAppAccountLibraryRecord,
-  parseNimiAppAccountLibraryRow,
-  parseOptionalNimiAppAccountLibraryRecord,
-} from './account-library.js';
+  parseNimiAppAccountInventoryProjection,
+  parseNimiAppAccountInventoryRecord,
+  parseNimiAppAccountInventoryRow,
+  parseOptionalNimiAppAccountInventoryProjection,
+  parseOptionalNimiAppAccountInventoryRecord,
+} from './account-inventory.js';
 export type { NimiAppBridgeProjection } from './bridge-projection.js';
 export type {
-  NimiAppAccountLibraryDataPolicy,
-  NimiAppAccountLibraryRecord,
-  NimiAppAccountLibraryRow,
-  NimiAppAccountLibraryState,
-} from './account-library.js';
+  NimiAppAccountInstallState,
+  NimiAppAccountInventoryProjection,
+  NimiAppAccountInventoryRecord,
+  NimiAppAccountInventoryRow,
+  NimiAppAccountInventoryState,
+} from './account-inventory.js';
 export type {
   NimiAppAdmissionStatus,
   NimiAppRegistrySourceRow,
@@ -83,158 +96,7 @@ export type {
   ScopeCatalogRevokeResult,
   ScopeManifest,
 } from './permission-types.js';
-
-export type TrustTierId = 'nimi-first-party' | 'nimi-verified-partner' | 'nimi-community';
-export type AppKind = 'nimi-app';
-export type NimiAppOrdinaryVisibility =
-  | 'ordinary-visible'
-  | 'hidden-internal'
-  | 'developer-only'
-  | 'not-admitted-visible';
-export type AppLaunchReadiness =
-  | 'ready'
-  | 'install-required'
-  | 'update-required'
-  | 'repair-required'
-  | 'permission-required'
-  | 'blocked-by-master-gate'
-  | 'unsupported';
-
-export const CANONICAL_TRUST_TIERS: readonly TrustTierId[] = [
-  'nimi-first-party',
-  'nimi-verified-partner',
-  'nimi-community',
-];
-export const CANONICAL_APP_KINDS: readonly AppKind[] = ['nimi-app'];
-export const CANONICAL_ORDINARY_VISIBILITY: readonly NimiAppOrdinaryVisibility[] = [
-  'ordinary-visible',
-  'hidden-internal',
-  'developer-only',
-  'not-admitted-visible',
-];
-export const CANONICAL_LAUNCH_READINESS: readonly AppLaunchReadiness[] = [
-  'ready',
-  'install-required',
-  'update-required',
-  'repair-required',
-  'permission-required',
-  'blocked-by-master-gate',
-  'unsupported',
-];
-
-export interface NimiAppRow {
-  readonly appId: string;
-  readonly appKind: AppKind;
-  readonly displayName: string;
-  readonly trustTier: TrustTierId;
-  readonly publisher: string;
-  readonly aiProfileSelectionRef: string;
-  readonly capabilitySet: readonly string[];
-  readonly releaseDescriptorRef: string;
-  readonly installStoragePolicyRef: string;
-  readonly sourceRule: string;
-}
-
-export interface NimiAppStatus {
-  readonly appId: string;
-  readonly launchReadiness: AppLaunchReadiness;
-  readonly releaseDescriptorRef?: string;
-  readonly installStoragePolicyRef?: string;
-  readonly storageRoots?: NimiAppStorageRoots;
-  readonly verificationState?: NimiAppInstallVerificationState;
-  readonly installedVersion?: string;
-  readonly availableVersion?: string;
-  readonly detail?: string;
-}
-
-export type NimiAppReleaseDescriptorClass =
-  | 'bundled-with-nimi'
-  | 'external-immutable-artifact';
-
-export type NimiAppReleaseSourceKind =
-  | 'nimi-bundle'
-  | 'github-release'
-  | 'github-commit'
-  | 'npm-package';
-
-export interface NimiAppReleaseDescriptorRow {
-  readonly descriptorId: string;
-  readonly appId: string;
-  readonly version: string;
-  readonly descriptorClass: NimiAppReleaseDescriptorClass;
-  readonly sourceKind: NimiAppReleaseSourceKind;
-  readonly sourceRef: string;
-  readonly artifactLocator: string;
-  readonly digestAlgorithm: 'sha256';
-  readonly sha256: string;
-  readonly size: string;
-  readonly provenanceRef: string;
-  readonly packageKind: AppKind;
-  readonly entryRef: string;
-  readonly sandboxRef: string;
-  readonly permissionsRef: string;
-  readonly storagePolicyRef: string;
-  readonly admissionPath: string;
-  readonly mutableSourceAllowed: boolean;
-  readonly installDigestVerificationRequired: string;
-  readonly sourceRule: string;
-}
-
-export type NimiAppInstallVerificationState =
-  | 'not-installed'
-  | 'digest-verified'
-  | 'bundled-source'
-  | 'digest-mismatch'
-  | 'blocked'
-  | 'unsupported';
-
-export type NimiAppPackageReadinessState =
-  | 'ready'
-  | 'install_required'
-  | 'update_required'
-  | 'repair_required'
-  | 'blocked';
-
-export interface NimiAppPackageReadinessRow {
-  readonly appId: string;
-  readonly releaseDescriptorRef: string;
-  readonly storagePolicyRef: string;
-  readonly expectedVersion?: string;
-  readonly activeVersion?: string;
-  readonly installedVersion?: string;
-  readonly sha256?: string;
-  readonly verificationState?: string;
-  readonly state: NimiAppPackageReadinessState;
-  readonly reasonCode?: string;
-  readonly detail?: string;
-}
-
-export interface NimiAppStorageRoots {
-  readonly releaseRoot: string;
-  readonly dataRoot: string;
-  readonly cacheRoot: string;
-  readonly tempRoot: string;
-}
-
-export interface NimiAppTransport {
-  list(): Promise<readonly NimiAppRow[]>;
-  get(appId: string): Promise<NimiAppRow>;
-  status(appId: string): Promise<NimiAppStatus>;
-}
-
 export type NimiFirstRunInstallLevel = 'minimal' | 'recommended';
-
-export function isCanonicalTrustTier(value: unknown): value is TrustTierId {
-  return typeof value === 'string' && CANONICAL_TRUST_TIERS.includes(value as TrustTierId);
-}
-
-export function isCanonicalAppKind(value: unknown): value is AppKind {
-  return typeof value === 'string' && CANONICAL_APP_KINDS.includes(value as AppKind);
-}
-
-export function isCanonicalLaunchReadiness(value: unknown): value is AppLaunchReadiness {
-  return typeof value === 'string' && CANONICAL_LAUNCH_READINESS.includes(value as AppLaunchReadiness);
-}
 
 export class NimiAppClient {
   constructor(private readonly transport: NimiAppTransport) {
@@ -243,27 +105,30 @@ export class NimiAppClient {
     }
   }
 
-  async list(): Promise<readonly NimiAppRow[]> {
+  async list(): Promise<readonly NimiAppInventoryEntry[]> {
     try {
-      const rows = await this.transport.list();
-      if (!Array.isArray(rows)) {
+      const entries = await this.transport.list();
+      if (!Array.isArray(entries)) {
         appError('SDK_APP_RESPONSE_INVALID', 'Nimi app list response must be an array', 'fix_app_transport_response');
       }
-      for (const row of rows) {
-        validateNimiAppRow(row);
+      for (const entry of entries) {
+        validateNimiAppInventoryEntry(entry);
       }
-      return rows;
+      return entries;
     } catch (error) {
       throw wrapTransportError(error, 'list Nimi apps');
     }
   }
 
-  async get(appId: string): Promise<NimiAppRow> {
+  async get(appId: string): Promise<NimiAppInventoryEntry> {
     const normalizedAppId = requireText(appId, 'appId is required', 'SDK_APP_ID_REQUIRED', 'set_app_id');
     try {
-      const row = await this.transport.get(normalizedAppId);
-      validateNimiAppRow(row);
-      return row;
+      const entry = await this.transport.get(normalizedAppId);
+      validateNimiAppInventoryEntry(entry);
+      if (entry.appId !== normalizedAppId) {
+        appError('SDK_APP_RESPONSE_INVALID', 'Nimi app inventory entry appId does not match request', 'fix_app_transport_response');
+      }
+      return entry;
     } catch (error) {
       throw wrapTransportError(error, 'get Nimi app');
     }
@@ -482,52 +347,6 @@ export function selectNimiAppFactoryAIProfileForFirstRun(
     return candidates.find((row) => !row.firstRunInstallLevels.includes('minimal')) ?? candidates[0] ?? null;
   }
   return candidates[0] ?? null;
-}
-
-function validateNimiAppRow(row: NimiAppRow | null | undefined): void {
-  if (!row || typeof row !== 'object') {
-    appError('SDK_APP_RESPONSE_INVALID', 'Nimi app row is missing', 'fix_app_transport_response');
-  }
-  requireText(row.appId, 'Nimi app row missing appId', 'SDK_APP_RESPONSE_INVALID', 'fix_app_registry_row');
-  requireText(row.displayName, 'Nimi app row missing displayName', 'SDK_APP_RESPONSE_INVALID', 'fix_app_registry_row');
-  if (!isCanonicalAppKind(row.appKind)) {
-    appError('SDK_APP_KIND_INVALID', `Nimi app kind "${String(row.appKind)}" is not admitted`, 'use_admitted_nimi_app_kind');
-  }
-  if (!isCanonicalTrustTier(row.trustTier)) {
-    appError('SDK_APP_RESPONSE_INVALID', `Nimi app trust tier "${String(row.trustTier)}" is not canonical`, 'fix_app_registry_row');
-  }
-  for (const [field, value] of [
-    ['publisher', row.publisher],
-    ['aiProfileSelectionRef', row.aiProfileSelectionRef],
-    ['releaseDescriptorRef', row.releaseDescriptorRef],
-    ['installStoragePolicyRef', row.installStoragePolicyRef],
-    ['sourceRule', row.sourceRule],
-  ] as const) {
-    requireText(value, `Nimi app row missing ${field}`, 'SDK_APP_RESPONSE_INVALID', 'fix_app_registry_row');
-  }
-  if (!Array.isArray(row.capabilitySet) || row.capabilitySet.length === 0) {
-    appError('SDK_APP_RESPONSE_INVALID', 'Nimi app row missing capabilitySet', 'fix_app_registry_row');
-  }
-  for (const [index, capability] of row.capabilitySet.entries()) {
-    requireText(
-      capability,
-      `Nimi app row capabilitySet[${index}] is empty`,
-      'SDK_APP_RESPONSE_INVALID',
-      'fix_app_registry_row',
-    );
-  }
-}
-
-function validateNimiAppStatus(status: NimiAppStatus | null | undefined, expectedAppId: string): void {
-  if (!status || typeof status !== 'object') {
-    appError('SDK_APP_RESPONSE_INVALID', 'Nimi app status is missing', 'fix_app_transport_response');
-  }
-  if (normalizeText(status.appId) !== expectedAppId) {
-    appError('SDK_APP_RESPONSE_INVALID', 'Nimi app status appId does not match request', 'fix_app_transport_response');
-  }
-  if (!isCanonicalLaunchReadiness(status.launchReadiness)) {
-    appError('SDK_APP_RESPONSE_INVALID', `launchReadiness "${String(status.launchReadiness)}" is not canonical`, 'fix_app_status_projection');
-  }
 }
 
 function validateScopeRef(scopeRef: NimiAppScopeRef | null | undefined): void {

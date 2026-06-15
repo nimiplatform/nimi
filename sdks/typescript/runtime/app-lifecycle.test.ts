@@ -2,6 +2,10 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  AccountAppInstallState,
+  AccountAppInventoryState,
+  LocalAppAdoptionState,
+  LocalAppAdoptionTrust,
   AppHealthRepairAction,
   AppInstallJobPhase,
   AppInstallJobState,
@@ -12,15 +16,19 @@ import {
   AppPackageReadinessState,
   AppStorageState,
   ReasonCode as RuntimeGeneratedReasonCode,
+  type AdoptLocalAppRequest,
   type AppInstallJob,
   type AppInstallJobEvent,
+  type GetAccountAppInventoryRequest,
   type GetAppInstallJobRequest,
   type GetAppPackageReadinessRequest,
   type GetAppStorageRequest,
   type HealthRepairAppRequest,
   type InstallAppRequest,
   type ListAppInstallJobsRequest,
+  type ListLocalAppAdoptionsRequest,
   type OpenAppRequest,
+  type RemoveLocalAppAdoptionRequest,
   type RuntimeTypedCallOptions,
   type UninstallAppRequest,
   type UpdateAppRequest,
@@ -74,7 +82,50 @@ function generatedJob(overrides: Partial<AppInstallJob> = {}): AppInstallJob {
   };
 }
 
+function generatedLocalAdoption(overrides: Partial<{
+  appId: string;
+  rootPath: string;
+  manifestPath: string;
+  displayName: string;
+  version: string;
+  entryRef: string;
+  permissionScopeRef: string;
+  storagePolicyRef: string;
+  state: LocalAppAdoptionState;
+  trust: LocalAppAdoptionTrust;
+  adoptedAt: string;
+  updatedAt: string;
+  reasonCode: RuntimeGeneratedReasonCode;
+  detail: string;
+}> = {}) {
+  const rootPath = overrides.rootPath || '/Users/test/local-notes';
+  return {
+    appId: 'local.notes',
+    rootPath,
+    manifestPath: `${rootPath}/nimi.app.yaml`,
+    displayName: 'Local Notes',
+    version: '1.0.0',
+    entryRef: 'app://local.notes/main',
+    permissionScopeRef: 'permission-scope:local.notes',
+    storagePolicyRef: 'storage-policy:local.notes',
+    state: LocalAppAdoptionState.ADOPTED,
+    trust: LocalAppAdoptionTrust.EXPLICIT_LOCAL,
+    adoptedAt: '2026-06-05T01:00:00.000Z',
+    updatedAt: '2026-06-05T01:00:00.000Z',
+    reasonCode: RuntimeGeneratedReasonCode.ACTION_EXECUTED,
+    detail: '',
+    ...overrides,
+  };
+}
+
 function createClientStub(overrides: Partial<NimiRuntimeAppLifecycleGeneratedClient> = {}) {
+  const accountInventoryCalls: Array<{ request: GetAccountAppInventoryRequest; options?: RuntimeTypedCallOptions }> = [];
+  const adoptLocalCalls: Array<{ request: AdoptLocalAppRequest; options?: RuntimeTypedCallOptions }> = [];
+  const listLocalAdoptionCalls: Array<{ request: ListLocalAppAdoptionsRequest; options?: RuntimeTypedCallOptions }> = [];
+  const removeLocalAdoptionCalls: Array<{
+    request: RemoveLocalAppAdoptionRequest;
+    options?: RuntimeTypedCallOptions;
+  }> = [];
   const installCalls: Array<{ request: InstallAppRequest; options?: RuntimeTypedCallOptions }> = [];
   const uninstallCalls: Array<{ request: UninstallAppRequest; options?: RuntimeTypedCallOptions }> = [];
   const storageCalls: Array<{ request: GetAppStorageRequest; options?: RuntimeTypedCallOptions }> = [];
@@ -86,6 +137,60 @@ function createClientStub(overrides: Partial<NimiRuntimeAppLifecycleGeneratedCli
   const healthRepairCalls: HealthRepairAppRequest[] = [];
   const openCalls: OpenAppRequest[] = [];
   const client: NimiRuntimeAppLifecycleGeneratedClient = {
+    async getAccountAppInventory(request, options) {
+      accountInventoryCalls.push({ request, options });
+      return {
+        exists: true,
+        record: {
+          schemaVersion: 2,
+          accountId: 'acct_1',
+          updatedAt: '2026-06-05T01:00:00.000Z',
+          apps: [{
+            appId: 'nimi.notes',
+            accountState: AccountAppInventoryState.VERIFIED,
+            installState: AccountAppInstallState.NOT_INSTALLED,
+            lastOpenedAt: '',
+            dataPolicy: 'keep_on_uninstall',
+            verifiedAt: '2026-06-04T00:00:00.000Z',
+            source: 'account',
+            detail: '',
+          }],
+        },
+        reasonCode: RuntimeGeneratedReasonCode.ACTION_EXECUTED,
+        detail: '',
+      };
+    },
+    async adoptLocalApp(request, options) {
+      adoptLocalCalls.push({ request, options });
+      return {
+        adoption: generatedLocalAdoption({
+          appId: request.expectedAppId || 'local.notes',
+          rootPath: request.rootPath,
+        }),
+        reasonCode: RuntimeGeneratedReasonCode.ACTION_EXECUTED,
+        detail: '',
+      };
+    },
+    async listLocalAppAdoptions(request, options) {
+      listLocalAdoptionCalls.push({ request, options });
+      return {
+        adoptions: [generatedLocalAdoption()],
+        reasonCode: RuntimeGeneratedReasonCode.ACTION_EXECUTED,
+        detail: '',
+      };
+    },
+    async removeLocalAppAdoption(request, options) {
+      removeLocalAdoptionCalls.push({ request, options });
+      return {
+        adoption: generatedLocalAdoption({
+          appId: request.appId,
+          state: LocalAppAdoptionState.REMOVED,
+          reasonCode: RuntimeGeneratedReasonCode.ACTION_EXECUTED,
+        }),
+        reasonCode: RuntimeGeneratedReasonCode.ACTION_EXECUTED,
+        detail: '',
+      };
+    },
     async installApp(request, options) {
       installCalls.push({ request, options });
       return { job: generatedJob() };
@@ -201,6 +306,10 @@ function createClientStub(overrides: Partial<NimiRuntimeAppLifecycleGeneratedCli
   };
   return {
     client,
+    accountInventoryCalls,
+    adoptLocalCalls,
+    listLocalAdoptionCalls,
+    removeLocalAdoptionCalls,
     installCalls,
     uninstallCalls,
     storageCalls,
@@ -238,6 +347,10 @@ test('Nimi Runtime app lifecycle client decodes generated jobs to canonical stri
 test('Nimi Runtime app lifecycle client maps all lifecycle request envelopes', async () => {
   const {
     client,
+    accountInventoryCalls,
+    adoptLocalCalls,
+    listLocalAdoptionCalls,
+    removeLocalAdoptionCalls,
     uninstallCalls,
     storageCalls,
     readinessCalls,
@@ -248,6 +361,38 @@ test('Nimi Runtime app lifecycle client maps all lifecycle request envelopes', a
   } = createClientStub();
   const lifecycle = createNimiRuntimeAppLifecycleClient({ client });
   const options = { timeoutMs: 250, metadata: { callerId: 'lifecycle-test' } };
+
+  const accountInventory = await lifecycle.accountInventory(options);
+  assert.equal(accountInventory.exists, true);
+  assert.equal(accountInventory.record?.schemaVersion, 2);
+  assert.equal(accountInventory.record?.apps[0]?.accountState, 'verified');
+  assert.equal(accountInventory.record?.apps[0]?.installState, 'not-installed');
+  assert.deepEqual(accountInventoryCalls, [{ request: {}, options }]);
+
+  const localAdoption = await lifecycle.adoptLocal({
+    rootPath: ' /Users/test/local-notes ',
+    expectedAppId: ' local.notes ',
+  }, options);
+  assert.equal(localAdoption.appId, 'local.notes');
+  assert.equal(localAdoption.trust, 'explicit-local');
+  assert.deepEqual(adoptLocalCalls, [{
+    request: { rootPath: '/Users/test/local-notes', expectedAppId: 'local.notes' },
+    options,
+  }]);
+
+  const localAdoptions = await lifecycle.listLocalAdoptions(options);
+  assert.equal(localAdoptions[0]?.appId, 'local.notes');
+  assert.deepEqual(listLocalAdoptionCalls, [{ request: {}, options }]);
+
+  const removedAdoption = await lifecycle.removeLocalAdoption({
+    appId: ' local.notes ',
+    deleteDurableDataConfirmed: true,
+  }, options);
+  assert.equal(removedAdoption.state, 'removed');
+  assert.deepEqual(removeLocalAdoptionCalls, [{
+    request: { appId: 'local.notes', deleteDurableDataConfirmed: true },
+    options,
+  }]);
 
   const uninstall = await lifecycle.uninstall({
     appId: ' nimi.notes ',
@@ -281,13 +426,8 @@ test('Nimi Runtime app lifecycle client maps all lifecycle request envelopes', a
   assert.deepEqual(getJobCalls, [{ request: { jobId: 'job-2' }, options }]);
 
   const scopedJobs = await lifecycle.listJobs({ appId: ' nimi.notes ' }, options);
-  const allJobs = await lifecycle.listJobs(undefined, options);
   assert.equal(scopedJobs[0]?.appId, 'nimi.notes');
-  assert.equal(allJobs[0]?.appId, 'nimi.notes');
-  assert.deepEqual(listJobCalls, [
-    { request: { appId: 'nimi.notes' }, options },
-    { request: { appId: '' }, options },
-  ]);
+  assert.deepEqual(listJobCalls, [{ request: { appId: 'nimi.notes' }, options }]);
 
   const update = await lifecycle.update({ appId: ' nimi.notes ', confirmed: false }, options);
   assert.equal(update.kind, 'update');
@@ -298,11 +438,24 @@ test('Nimi Runtime app lifecycle client maps all lifecycle request envelopes', a
   }]);
 
   const events = [];
-  for await (const event of lifecycle.watchJobEvents(undefined, options)) {
+  for await (const event of lifecycle.watchJobEvents({ jobId: ' job-1 ' }, options)) {
     events.push(event.job.jobId);
   }
   assert.deepEqual(events, ['job-1']);
-  assert.deepEqual(watchJobCalls, [{ request: { jobId: '' }, options }]);
+  assert.deepEqual(watchJobCalls, [{ request: { jobId: 'job-1' }, options }]);
+
+  await assert.rejects(
+    lifecycle.listJobs(undefined as never, options),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === SdkReasonCode.SDK_RUNTIME_APP_LIFECYCLE_APP_ID_REQUIRED,
+  );
+  await assert.rejects(
+    async () => {
+      for await (const _ of lifecycle.watchJobEvents(undefined as never, options)) {
+        // no-op
+      }
+    },
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === SdkReasonCode.SDK_RUNTIME_APP_LIFECYCLE_JOB_ID_REQUIRED,
+  );
 });
 
 test('Nimi Runtime app lifecycle client maps repair action and validates open scope', async () => {

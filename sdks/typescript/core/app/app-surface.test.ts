@@ -19,12 +19,13 @@ import {
   loadNimiAppAIProfileFactoryCatalog,
   loadNimiAppRegistryRows,
   loadNimiAppReleaseDescriptorRows,
-  parseNimiAppAccountLibraryRecord,
+  parseNimiAppAccountInventoryRecord,
   parseNimiAppBridgeProjection,
-  parseOptionalNimiAppAccountLibraryRecord,
+  parseOptionalNimiAppAccountInventoryRecord,
   selectNimiAppFactoryAIProfileForFirstRun,
   type GrantSpec,
   type GrantStatus,
+  type NimiAppInventoryEntry,
   type NimiAppRow,
   type NimiAppRegistrySourceRow,
   type NimiAppReleaseDescriptorRow,
@@ -32,11 +33,12 @@ import {
   type NimiAppStatus,
   type NimiAppTransport,
   type NimiAppPackageReadinessRow,
+  type NimiAppLocalAdoptionRow,
   type PermissionGrantEvent,
   type PermissionStatusSnapshot,
   type PermissionTransport,
   type NimiAppAIProfileFactoryRow,
-  type NimiAppAccountLibraryRecord,
+  type NimiAppAccountInventoryRecord,
 } from './index';
 
 const appRow: NimiAppRow = {
@@ -62,6 +64,30 @@ const readyPackage: NimiAppPackageReadinessRow = {
   verificationState: 'bundled-source',
   state: 'ready',
 };
+
+function inventoryEntry(row: NimiAppRow = appRow): NimiAppInventoryEntry {
+  return {
+    appId: row.appId,
+    displayName: row.displayName,
+    appKind: row.appKind,
+    publisher: row.publisher,
+    aiProfileSelectionRef: row.aiProfileSelectionRef,
+    releaseDescriptorRef: row.releaseDescriptorRef,
+    installStoragePolicyRef: row.installStoragePolicyRef,
+    trustTier: row.trustTier,
+    capabilitySet: [...row.capabilitySet],
+    sources: {
+      catalog: { status: 'present', value: row },
+      account: { status: 'absent' },
+      local: { status: 'absent' },
+      packageReadiness: { status: 'absent' },
+    },
+    installState: 'not-installed',
+    openReadiness: 'install-required',
+    activeJobs: [],
+    nextActions: [],
+  };
+}
 
 function registryRow(overrides: Partial<NimiAppRegistrySourceRow> = {}): NimiAppRegistrySourceRow {
   const appId = overrides.appId ?? 'nimi.example-app';
@@ -130,23 +156,64 @@ function readinessRow(
   };
 }
 
+function accountInventoryRecord(
+  rows: NimiAppAccountInventoryRecord['apps'],
+): NimiAppAccountInventoryRecord {
+  return {
+    schemaVersion: 2,
+    accountId: 'account-1',
+    updatedAt: '2026-06-05T00:00:00.000Z',
+    apps: rows,
+  };
+}
+
+function accountInventoryRow(
+  overrides: Partial<NimiAppAccountInventoryRecord['apps'][number]> = {},
+): NimiAppAccountInventoryRecord['apps'][number] {
+  return {
+    appId: 'nimi.example-app',
+    accountState: 'verified',
+    installState: 'not-installed',
+    dataPolicy: 'keep_on_uninstall',
+    source: 'account',
+    ...overrides,
+  };
+}
+
+function localAdoptionRow(overrides: Partial<NimiAppLocalAdoptionRow> = {}): NimiAppLocalAdoptionRow {
+  const appId = overrides.appId ?? 'nimi.example-app';
+  return {
+    appId,
+    rootPath: `/apps/${appId}`,
+    manifestPath: `/apps/${appId}/nimi.app.yaml`,
+    displayName: 'Example Local App',
+    version: '1.0.0',
+    entryRef: `app://${appId}/main`,
+    permissionScopeRef: 'account:account.session.read',
+    storagePolicyRef: 'nimi-data-app-roots',
+    state: 'adopted',
+    trust: 'explicit-local',
+    ...overrides,
+  };
+}
+
 class StubAppTransport implements NimiAppTransport {
   constructor(private readonly behavior: {
-    readonly list?: readonly NimiAppRow[] | Error | null;
-    readonly get?: NimiAppRow | Error | null;
+    readonly list?: readonly NimiAppInventoryEntry[] | Error | null;
+    readonly get?: NimiAppInventoryEntry | Error | null;
     readonly status?: NimiAppStatus | Error | null;
   } = {}) {}
 
-  async list(): Promise<readonly NimiAppRow[]> {
+  async list(): Promise<readonly NimiAppInventoryEntry[]> {
     if (this.behavior.list instanceof Error) throw this.behavior.list;
-    if (this.behavior.list === null) return null as unknown as readonly NimiAppRow[];
-    return this.behavior.list ?? [appRow];
+    if (this.behavior.list === null) return null as unknown as readonly NimiAppInventoryEntry[];
+    return this.behavior.list ?? [inventoryEntry()];
   }
 
-  async get(appId: string): Promise<NimiAppRow> {
+  async get(appId: string): Promise<NimiAppInventoryEntry> {
     if (this.behavior.get instanceof Error) throw this.behavior.get;
-    if (this.behavior.get === null) return null as unknown as NimiAppRow;
-    return this.behavior.get ?? { ...appRow, appId };
+    if (this.behavior.get === null) return null as unknown as NimiAppInventoryEntry;
+    return this.behavior.get ?? inventoryEntry({ ...appRow, appId });
   }
 
   async status(appId: string): Promise<NimiAppStatus> {
@@ -246,37 +313,52 @@ describe('vNext app surface', () => {
     }
   });
 
-  it('parses Runtime account app-library projections with canonical SDK app names', () => {
-    const parsed: NimiAppAccountLibraryRecord = parseNimiAppAccountLibraryRecord({
-      schemaVersion: 1,
+  it('parses Runtime account app-inventory projections with canonical SDK app names', () => {
+    const parsed: NimiAppAccountInventoryRecord = parseNimiAppAccountInventoryRecord({
+      schemaVersion: 2,
       accountId: 'account-1',
       updatedAt: '2026-06-05T00:00:00.000Z',
       apps: [{
         appId: 'nimi.example-app',
-        libraryState: 'enabled',
-        installed: true,
+        accountState: 'verified',
+        installState: 'not-installed',
         lastOpenedAt: '2026-06-05T00:01:00.000Z',
         dataPolicy: 'keep_on_uninstall',
+        verifiedAt: '2026-06-04T00:00:00.000Z',
+        source: 'account',
       }],
     });
 
     assert.equal(parsed.accountId, 'account-1');
     assert.equal(parsed.apps[0]?.appId, 'nimi.example-app');
-    assert.equal(parsed.apps[0]?.libraryState, 'enabled');
-    assert.equal(parseOptionalNimiAppAccountLibraryRecord(null), null);
+    assert.equal(parsed.apps[0]?.accountState, 'verified');
+    assert.equal(parsed.apps[0]?.installState, 'not-installed');
+    assert.equal(parseOptionalNimiAppAccountInventoryRecord(null), null);
     assert.throws(
-      () => parseNimiAppAccountLibraryRecord({
-        schemaVersion: 1,
+      () => parseNimiAppAccountInventoryRecord({
+        schemaVersion: 2,
         accountId: 'account-1',
         updatedAt: '2026-06-05T00:00:00.000Z',
         apps: [{
           appId: 'nimi.example-app',
-          libraryState: 'unknown',
-          installed: true,
+          accountState: 'unknown',
+          installState: 'not-installed',
           dataPolicy: 'keep_on_uninstall',
         }],
       }),
-      (error: unknown) => (error as { code?: string }).code === 'SDK_APP_ACCOUNT_LIBRARY_CONTRACT_INVALID',
+      (error: unknown) => (error as { code?: string }).code === 'SDK_APP_ACCOUNT_INVENTORY_CONTRACT_INVALID',
+    );
+    assert.throws(
+      () => parseNimiAppAccountInventoryRecord({
+        schemaVersion: 2,
+        accountId: 'account-1',
+        updatedAt: '2026-06-05T00:00:00.000Z',
+        apps: [
+          accountInventoryRow(),
+          accountInventoryRow({ installState: 'installed' }),
+        ],
+      }),
+      (error: unknown) => (error as { code?: string }).code === 'SDK_APP_ACCOUNT_INVENTORY_CONTRACT_INVALID',
     );
   });
 
@@ -448,11 +530,11 @@ describe('vNext app surface', () => {
     });
 
     assert.deepEqual((await transport.list()).map((row) => row.appId), [
-      'nimi.ready',
-      'nimi.install',
-      'nimi.update',
-      'nimi.repair',
       'nimi.blocked',
+      'nimi.install',
+      'nimi.ready',
+      'nimi.repair',
+      'nimi.update',
     ]);
     await assert.rejects(
       transport.get('nimi.mutable'),
@@ -498,6 +580,115 @@ describe('vNext app surface', () => {
     );
   });
 
+  it('does not project open from package readiness without launchable account inventory', async () => {
+    const transport = createNimiAppRegistryTransport({
+      loadRows: () => [registryRow()],
+      loadReleaseDescriptors: () => [releaseDescriptor()],
+      loadPackageReadiness: () => readyPackage,
+    });
+
+    const [entry] = await transport.list();
+    assert.equal(entry?.openReadiness, 'sign-in-required');
+    assert.equal(entry?.installState, 'unknown');
+    assert.deepEqual(entry?.nextActions, ['sign-in']);
+  });
+
+  it('requires account materialization as well as package readiness before exposing open', async () => {
+    const notInstalled = createNimiAppRegistryTransport({
+      loadRows: () => [registryRow()],
+      loadReleaseDescriptors: () => [releaseDescriptor()],
+      loadAccountInventory: () => accountInventoryRecord([accountInventoryRow()]),
+      loadPackageReadiness: () => readyPackage,
+    });
+    const [notInstalledEntry] = await notInstalled.list();
+    assert.equal(notInstalledEntry?.openReadiness, 'install-required');
+    assert.equal(notInstalledEntry?.installState, 'not-installed');
+    assert.deepEqual(notInstalledEntry?.nextActions, ['install']);
+
+    const installedButNoPackage = createNimiAppRegistryTransport({
+      loadRows: () => [registryRow()],
+      loadReleaseDescriptors: () => [releaseDescriptor()],
+      loadAccountInventory: () => accountInventoryRecord([accountInventoryRow({ installState: 'installed' })]),
+    });
+    const [installedButNoPackageEntry] = await installedButNoPackage.list();
+    assert.equal(installedButNoPackageEntry?.openReadiness, 'install-required');
+    assert.equal(installedButNoPackageEntry?.installState, 'installed');
+    assert.equal(installedButNoPackageEntry?.nextActions.includes('open'), false);
+
+    const ready = createNimiAppRegistryTransport({
+      loadRows: () => [registryRow()],
+      loadReleaseDescriptors: () => [releaseDescriptor()],
+      loadAccountInventory: () => accountInventoryRecord([accountInventoryRow({ installState: 'installed' })]),
+      loadPackageReadiness: () => readyPackage,
+    });
+    const [readyEntry] = await ready.list();
+    assert.equal(readyEntry?.openReadiness, 'ready');
+    assert.equal(readyEntry?.installState, 'installed');
+    assert.equal(readyEntry?.nextActions.includes('open'), true);
+    assert.equal(readyEntry?.nextActions.includes('uninstall'), true);
+  });
+
+  it('does not expose lifecycle actions for non-launchable account inventory rows', async () => {
+    const disabledCatalog = createNimiAppRegistryTransport({
+      loadRows: () => [registryRow()],
+      loadReleaseDescriptors: () => [releaseDescriptor()],
+      loadAccountInventory: () => accountInventoryRecord([
+        accountInventoryRow({ accountState: 'disabled', installState: 'not-installed' }),
+      ]),
+      loadPackageReadiness: () => readyPackage,
+    });
+    const [disabledCatalogEntry] = await disabledCatalog.list();
+    assert.equal(disabledCatalogEntry?.openReadiness, 'unsupported');
+    assert.equal(disabledCatalogEntry?.nextActions.includes('install'), false);
+
+    const disabledAccountOnly = createNimiAppRegistryTransport({
+      loadRows: () => [],
+      loadReleaseDescriptors: () => [],
+      loadAccountInventory: () => accountInventoryRecord([
+        accountInventoryRow({ accountState: 'revoked', installState: 'not-installed' }),
+      ]),
+    });
+    const [disabledAccountOnlyEntry] = await disabledAccountOnly.list();
+    assert.equal(disabledAccountOnlyEntry?.openReadiness, 'unsupported');
+    assert.equal(disabledAccountOnlyEntry?.nextActions.includes('connect-local'), false);
+
+    const disabledInstalled = createNimiAppRegistryTransport({
+      loadRows: () => [registryRow()],
+      loadReleaseDescriptors: () => [releaseDescriptor()],
+      loadAccountInventory: () => accountInventoryRecord([
+        accountInventoryRow({ accountState: 'disabled', installState: 'installed' }),
+      ]),
+      loadPackageReadiness: () => readyPackage,
+    });
+    const [disabledInstalledEntry] = await disabledInstalled.list();
+    assert.equal(disabledInstalledEntry?.openReadiness, 'unsupported');
+    assert.equal(disabledInstalledEntry?.nextActions.includes('uninstall'), false);
+  });
+
+  it('requires account adopted-local state before opening local adoption entries', async () => {
+    const localWithoutAccount = createNimiAppRegistryTransport({
+      loadRows: () => [],
+      loadReleaseDescriptors: () => [],
+      loadLocalAdoptions: () => [localAdoptionRow()],
+    });
+    const [signInRequired] = await localWithoutAccount.list();
+    assert.equal(signInRequired?.openReadiness, 'sign-in-required');
+    assert.equal(signInRequired?.installState, 'adopted-local');
+    assert.deepEqual([...(signInRequired?.nextActions ?? [])].sort(), ['remove-local-adoption', 'sign-in'].sort());
+
+    const localWithAccount = createNimiAppRegistryTransport({
+      loadRows: () => [],
+      loadReleaseDescriptors: () => [],
+      loadLocalAdoptions: () => [localAdoptionRow()],
+      loadAccountInventory: () => accountInventoryRecord([accountInventoryRow({ installState: 'adopted-local' })]),
+    });
+    const [readyLocal] = await localWithAccount.list();
+    assert.equal(readyLocal?.openReadiness, 'ready');
+    assert.equal(readyLocal?.nextActions.includes('open'), true);
+    assert.equal(readyLocal?.nextActions.includes('remove-local-adoption'), true);
+    assert.equal(readyLocal?.nextActions.includes('uninstall'), false);
+  });
+
   it('admits only immutable external release descriptor source refs', async () => {
     const acceptedRefs = [
       ['nimi.npm-exact', 'npm-package', '@nimi/app@1.2.3'],
@@ -529,7 +720,10 @@ describe('vNext app surface', () => {
       loadReleaseDescriptors: () => descriptors,
     });
 
-    assert.deepEqual((await transport.list()).map((row) => row.appId), acceptedRefs.map(([appId]) => appId));
+    assert.deepEqual(
+      (await transport.list()).map((row) => row.appId),
+      acceptedRefs.map(([appId]) => appId).sort(),
+    );
     for (const [appId] of rejectedRefs) {
       assert.equal((await transport.status(appId)).launchReadiness, 'unsupported');
       await assert.rejects(
@@ -664,7 +858,7 @@ describe('vNext app surface', () => {
   it('fails closed on non-canonical app rows and status', async () => {
     await assert.rejects(
       createNimiAppClient(new StubAppTransport({
-        list: [{ ...appRow, appKind: 'external-app' as 'nimi-app' }],
+        list: [inventoryEntry({ ...appRow, appKind: 'external-app' as 'nimi-app' })],
       })).list(),
       (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_APP_KIND_INVALID',
     );

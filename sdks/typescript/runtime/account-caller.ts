@@ -29,6 +29,25 @@ export function createNimiLocalFirstPartyRuntimeAccountCaller(
   );
 }
 
+export function createNimiDeveloperRegisteredRuntimeAccountCaller(
+  input: NimiRuntimeAccountCallerInput,
+): NimiRuntimeAccountCaller {
+  if (input.appInstanceId === undefined || input.deviceId === undefined) {
+    requireText(input.appId, 'appId');
+    throw createNimiError({
+      message: 'Developer-registered Runtime account caller identity requires explicit app instance and device identity before Runtime registration.',
+      reasonCode: 'SDK_RUNTIME_ACCOUNT_CALLER_REGISTRATION_REQUIRED',
+      actionHint: 'request_runtime_account_caller_registration',
+      source: 'sdk',
+    });
+  }
+  return createNimiRuntimeAccountCaller(
+    input,
+    AccountCallerMode.LOCAL_DEVELOPER_APP,
+    '',
+  );
+}
+
 export function createNimiDesktopShellRuntimeAccountCaller(
   input: NimiRuntimeAccountCallerInput,
 ): NimiRuntimeAccountCaller {
