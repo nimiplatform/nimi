@@ -12,7 +12,7 @@ export function SettingsSdkRows(props: SettingsRouteViewProps) {
       localRuntimeExecutionPlanProjection,
       localRuntimeServiceNodeProjection,
       appBridgeProjection,
-      accountAppLibraryProjection,
+      accountAppInventoryProjection,
       runtimeAuditWireProjection,
       runtimeHealthCoordinatorProjection,
       runtimeAgentConsumerProjection,
@@ -58,9 +58,9 @@ export function SettingsSdkRows(props: SettingsRouteViewProps) {
         </StatusBadge>
       </div>
       <div className="setting-row">
-        <span>SDK account app-library projection</span>
+        <span>SDK account app-inventory projection</span>
         <StatusBadge tone="neutral">
-          {accountAppLibraryProjection.accountId}: {accountAppLibraryProjection.apps[0]?.libraryState ?? 'none'}
+          {accountAppInventoryProjection.accountId}: {accountAppInventoryProjection.apps[0]?.installState ?? 'none'} / {accountAppInventoryProjection.apps[0]?.accountState ?? 'none'}
         </StatusBadge>
       </div>
       <div className="setting-row">

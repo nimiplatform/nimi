@@ -28,8 +28,8 @@ gate then admits the local app under a real logged-in account. This is local
 development material only; it is not listing admission, installed-app truth, or a
 permission grant.
 
-When `--app-id nimi.tester` is used, the generator emits the first-party
-developer tester product surface: Runtime-authenticated shell, Nimi Kit glass
+When `--app-id nimi.tester` is used, the generator emits the non-first-party
+developer reference tester product surface: Runtime-authenticated shell, Nimi Kit glass
 workbench, typed AI capability lanes, app-owned history storage, standalone
 world-tour viewer commands, and local acceptance tests. It is not a summary-card
 starter page.

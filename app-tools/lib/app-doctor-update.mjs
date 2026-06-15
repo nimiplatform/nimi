@@ -5,6 +5,7 @@ import {
   buildAppScaffoldSnapshot,
   buildAppScaffoldSnapshotFromIntent,
   hashScaffoldContent,
+  isScaffoldOmittedPath,
   SCAFFOLD_BUILD_PROFILE_PATH,
   SCAFFOLD_INTENT_PATH,
   SCAFFOLD_LOCK_PATH,
@@ -149,7 +150,7 @@ function assertSameJson(actual, expected, label) {
   }
 }
 
-function expectedSnapshotFromLock(lock, versions) {
+function expectedSnapshotFromLock(lock, versions, intent = null) {
   assertSupportedLock(lock);
   return buildAppScaffoldSnapshot({
     profile: lock.profile,
@@ -158,6 +159,9 @@ function expectedSnapshotFromLock(lock, versions) {
     appTitle: lock.appTitle,
     packageName: lock.packageName,
     author: lock.packageAuthor || '',
+    accentPack: lock.accentPack || lock.appIdentity?.accentPack || 'nimi-accent',
+    permissionDeclarations: intent?.permissionDeclarations || lock.permissionDeclarations || lock.appIdentity?.permissionDeclarations,
+    scaffoldOmissions: intent?.scaffoldOmissions || lock.scaffoldOmissions || lock.appIdentity?.scaffoldOmissions,
   });
 }
 
@@ -166,16 +170,33 @@ function readContentForHash(filePath) {
 }
 
 function ensureLockMatchesCurrentGenerator(lock, snapshot) {
+  assertSameJson(lock.scaffoldVersion, snapshot.lock.scaffoldVersion, 'Scaffold version');
   assertSameJson(lock.appIdentity, snapshot.lock.appIdentity, 'App identity');
   assertSameJson(lock.packageName, snapshot.lock.packageName, 'Package name');
   assertSameJson(lock.packageAuthor, snapshot.lock.packageAuthor, 'Package author');
   assertSameJson(lock.cargoPackageName, snapshot.lock.cargoPackageName, 'Cargo package name');
   assertSameJson(lock.tauriIdentifier, snapshot.lock.tauriIdentifier, 'Tauri identifier');
+  assertSameJson(lock.accentPack, snapshot.lock.accentPack, 'Accent pack');
+  assertSameJson(lock.permissionDeclarations, snapshot.lock.permissionDeclarations, 'Permission declarations');
+  assertSameJson(lock.scaffoldOmissions, snapshot.lock.scaffoldOmissions, 'Scaffold omissions');
   assertSameJson(lock.managedFileTaxonomy, snapshot.lock.managedFileTaxonomy, 'Managed file taxonomy');
   assertSameJson(lock.dependencyMatrix, snapshot.lock.dependencyMatrix, 'Dependency matrix');
   assertSameJson(lock.managedFileHashes, snapshot.lock.managedFileHashes, 'Managed file hashes');
-  assertSameJson(lock.appOwnedInitialHashes, snapshot.lock.appOwnedInitialHashes, 'App-owned taxonomy hashes');
+  assertSameJson(
+    projectHashClasses(lock.appOwnedInitialHashes),
+    projectHashClasses(snapshot.lock.appOwnedInitialHashes),
+    'App-owned taxonomy',
+  );
   assertSameJson(lock.semantics, snapshot.lock.semantics, 'Scaffold semantics');
+}
+
+function projectHashClasses(entries) {
+  return Object.fromEntries(
+    Object.entries(entries || {}).map(([relativePath, entry]) => [
+      relativePath,
+      { class: entry?.class || '' },
+    ]),
+  );
 }
 
 function collectTextFiles(rootDir) {
@@ -198,6 +219,7 @@ function collectTextFiles(rootDir) {
         relativePath.startsWith('.nimi/config/')
         || relativePath.startsWith('.nimi/contracts/')
         || relativePath.startsWith('.nimi/methodology/')
+        || relativePath.startsWith('.nimi/spec/')
         || relativePath.startsWith('.nimi/local/')
         || relativePath.startsWith('.nimi/cache/')
       ) {
@@ -350,6 +372,9 @@ function assertManifestPermissionDeclarations(manifest, manifestPath) {
 function assertRequiredSupportFiles(targetDir, snapshot) {
   const missing = [];
   for (const file of snapshot.files) {
+    if (!snapshot.lock.managedFileHashes[file.path]) {
+      continue;
+    }
     if (!existsSync(path.join(targetDir, file.path))) {
       missing.push(file.path);
     }
@@ -551,10 +576,10 @@ export function doctorApp(cwd, options = {}, versions, runners = {}) {
 function collectExpectedClasses(snapshot) {
   const entries = new Map();
   for (const [relativePath, entry] of Object.entries(snapshot.lock.managedFileHashes)) {
-    entries.set(relativePath, entry.class);
+    entries.set(relativePath, { class: entry.class, owner: 'managed' });
   }
   for (const [relativePath, entry] of Object.entries(snapshot.lock.appOwnedInitialHashes)) {
-    entries.set(relativePath, entry.class);
+    entries.set(relativePath, { class: entry.class, owner: 'app-owned' });
   }
   return entries;
 }
@@ -562,14 +587,24 @@ function collectExpectedClasses(snapshot) {
 function assertNoClassificationConflict(lock, snapshot) {
   const currentClasses = collectExpectedClasses(snapshot);
   for (const [relativePath, entry] of Object.entries(lock.managedFileHashes || {})) {
-    if (currentClasses.get(relativePath) !== entry.class) {
-      throw new Error(`Scaffold classification conflict: ${relativePath}`);
+    const current = currentClasses.get(relativePath);
+    if (current?.owner === 'managed' && current.class === entry.class) {
+      continue;
     }
+    if (isScaffoldOmittedPath(relativePath, snapshot.lock.scaffoldOmissions)) {
+      continue;
+    }
+    throw new Error(`Scaffold classification conflict: ${relativePath}`);
   }
   for (const [relativePath, entry] of Object.entries(lock.appOwnedInitialHashes || {})) {
-    if (currentClasses.get(relativePath) !== entry.class) {
-      throw new Error(`Scaffold classification conflict: ${relativePath}`);
+    const current = currentClasses.get(relativePath);
+    if (current?.owner === 'app-owned' && current.class === entry.class) {
+      continue;
     }
+    if (isScaffoldOmittedPath(relativePath, snapshot.lock.scaffoldOmissions)) {
+      continue;
+    }
+    throw new Error(`Scaffold classification conflict: ${relativePath}`);
   }
 }
 
@@ -582,7 +617,8 @@ function writeScaffoldFile(targetDir, file) {
 export function updateApp(cwd, options = {}, versions, runners = {}) {
   const targetDir = resolveTargetDir(cwd, options);
   const lock = readLock(targetDir);
-  const snapshot = expectedSnapshotFromLock(lock, versions);
+  const intent = existsSync(path.join(targetDir, SCAFFOLD_INTENT_PATH)) ? readIntent(targetDir) : null;
+  const snapshot = expectedSnapshotFromLock(lock, versions, intent);
   assertNoClassificationConflict(lock, snapshot);
   if (!runners?.runNimicodingSync) {
     throw new Error('Missing nimicoding sync runner');

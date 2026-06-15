@@ -5,7 +5,9 @@ import {
   clearRuntimePlatformProjection,
   getRuntimePlatformProjection,
   runtimeAccountLoginEnabled,
-  type TesterRuntimePlatformProjection,
+  type RuntimePlatformLoginRequiredProjection,
+  type RuntimePlatformReadyProjection,
+  type RuntimePlatformUnavailableProjection,
 } from './runtime-platform.js';
 import { loadRuntimeAccountUser } from './runtime-account-auth.js';
 import { RuntimeLoginPage } from './runtime-login-page.js';
@@ -13,17 +15,19 @@ import { RuntimeUnavailablePage } from './runtime-unavailable-page.js';
 
 const runtimeGateOfflineCoordinator = new OfflineCoordinator();
 
+type RuntimePlatformLoginProjection = RuntimePlatformLoginRequiredProjection | RuntimePlatformReadyProjection;
+
 type GateState =
   | { kind: 'checking' }
-  | { kind: 'ready'; projection: Extract<TesterRuntimePlatformProjection, { status: 'ready' }> }
+  | { kind: 'ready'; projection: RuntimePlatformReadyProjection }
   | {
       kind: 'login-required';
-      projection: Extract<TesterRuntimePlatformProjection, { status: 'ready' | 'login-required' }>;
+      projection: RuntimePlatformLoginProjection;
       message?: string;
     }
   | {
       kind: 'blocked';
-      projection?: Exclude<TesterRuntimePlatformProjection, { status: 'ready' | 'login-required' }>;
+      projection?: RuntimePlatformUnavailableProjection;
       message?: string;
       offlineTier: OfflineTier;
     };

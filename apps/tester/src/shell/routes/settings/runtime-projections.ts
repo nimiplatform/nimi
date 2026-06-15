@@ -1,6 +1,6 @@
 import {
   NIMI_APP_AI_PROFILE_FACTORY_ROWS,
-  parseNimiAppAccountLibraryRecord,
+  parseNimiAppAccountInventoryRecord,
   parseNimiAppBridgeProjection,
   selectNimiAppFactoryAIProfileForFirstRun,
 } from '@nimiplatform/sdk/app';
@@ -470,14 +470,14 @@ export function createTesterSettingsRuntimeProjections() {
       sourceRule: 'tester-fixture',
     }],
   });
-  const accountAppLibraryProjection = parseNimiAppAccountLibraryRecord({
-    schemaVersion: 1,
+  const accountAppInventoryProjection = parseNimiAppAccountInventoryRecord({
+    schemaVersion: 2,
     accountId: 'tester-account',
     updatedAt: '2026-05-31T00:00:00Z',
     apps: [{
       appId: 'tester.app',
-      libraryState: 'enabled',
-      installed: true,
+      accountState: 'verified',
+      installState: 'installed',
       dataPolicy: 'keep_on_uninstall',
     }],
   });
@@ -616,7 +616,7 @@ export function createTesterSettingsRuntimeProjections() {
     localRuntimeExecutionPlanProjection,
     localRuntimeServiceNodeProjection,
     appBridgeProjection,
-    accountAppLibraryProjection,
+    accountAppInventoryProjection,
     runtimeAuditWireProjection,
     runtimeHealthCoordinatorProjection,
     runtimeAgentConsumerProjection,

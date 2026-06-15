@@ -203,7 +203,7 @@ test('standalone scaffold forks the reference app with rewritten identity', () =
     assert.match(generated.read('nimi.app.yaml'), /app_id: acme\.widget/);
     assert.match(generated.read('nimi.app.yaml'), /profile: standalone/);
     assert.match(generated.read('src/shell/auth/app-identity.ts'), /appId = 'acme\.widget'/);
-    assert.match(generated.read('src/shell/auth/runtime-platform.ts'), /import \{ appId \} from '\.\/app-identity\.js'/);
+    assert.match(generated.read('src/shell/auth/runtime-platform.ts'), /import \{ appId, appTitle \} from '\.\/app-identity\.js'/);
     const tauri = JSON.parse(generated.read('src-tauri/tauri.conf.json'));
     assert.equal(tauri.identifier, 'ai.nimi.apps.acme.widget');
     assert.equal(tauri.productName, 'Acme Widget');
@@ -232,11 +232,19 @@ test('standalone scaffold forks the reference app with rewritten identity', () =
     // Reference-app product code is the baseline product surface for every app.
     assert.match(generated.read('src/shell/routes/product-area.tsx'), /TesterWorkbench/);
     assert.match(generated.read('src/tester/tester-runtime.ts'), /invokeTesterCapability/);
+    assert.match(generated.read('src/main.tsx'), /entry:acme-widget-app/);
+    assert.match(generated.read('src/tester/tester-history.ts'), /from '\.\/tester-app-storage\.js'/);
+    assert.ok(existsSync(path.join(generated.target, 'src/tester/tester-app-storage.ts')));
+    assert.doesNotMatch(generated.read('src/tester/tester-history.ts'), /acme-widget-app-storage/);
+    assert.match(generated.read('src/shell/routes/settings.tsx'), /Settings/);
+    assert.match(generated.read('src/shell/ai/tester-ai-config-settings.tsx'), /TesterAiConfigSettings/);
 
     // Taxonomy: tester product is app-owned; shell/auth + packaging glue is managed.
     const lock = generated.lock();
     const appOwned = lock.managedFileTaxonomy.appOwnedProductCode;
     assert.ok(appOwned.includes('src/shell/routes/product-area.tsx'));
+    assert.ok(appOwned.includes('src/shell/routes/settings.tsx'));
+    assert.ok(appOwned.includes('src/shell/ai/tester-ai-config-settings.tsx'));
     assert.ok(appOwned.includes('src/tester/tester-workbench.tsx'));
     assert.ok(appOwned.includes('src-tauri/src/tester_storage.rs'));
     assert.ok(appOwned.includes('test/tester-contract.test.mjs'));
@@ -248,9 +256,10 @@ test('standalone scaffold forks the reference app with rewritten identity', () =
     assertTauriIconSupport(generated);
     const runtimePlatform = generated.read('src/shell/auth/runtime-platform.ts');
     assert.match(runtimePlatform, /createNimiClient/);
-    assert.match(runtimePlatform, /createLocalFirstPartyRuntimeProjection/);
+    assert.match(runtimePlatform, /createDeveloperRegisteredRuntimeProjection/);
     assert.match(runtimePlatform, /runtimeAccountLoginEnabled = true/);
-    assert.match(runtimePlatform, /source: 'runtime-local-first-party'/);
+    assert.match(runtimePlatform, /source: 'runtime-local-developer-app'/);
+    assert.doesNotMatch(runtimePlatform, /createLocalFirstPartyRuntimeProjection/);
     assert.doesNotMatch(runtimePlatform, /dev-standalone/);
     assert.match(generated.read('nimi.app.yaml'), /manifest_role: submitted-input/);
     assert.match(generated.read('.nimi/admission/submission.yaml'), /submission_role: developer-submitted-input/);
@@ -563,6 +572,94 @@ test('doctor fails closed on managed drift and update preserves app-owned produc
   }
 });
 
+test('update regenerates submitted manifest permission declarations from scaffold intent', () => {
+  const generated = cliScaffold('standalone');
+  try {
+    const intentPath = path.join(generated.target, '.nimi/app-scaffold/intent.json');
+    const intent = JSON.parse(generated.read('.nimi/app-scaffold/intent.json'));
+    intent.permissionDeclarations = [
+      {
+        scope: 'ai.spend.meter',
+        purpose: 'Meter Runtime AI execution.',
+      },
+      {
+        scope: 'ai_profile.selection.consume',
+        purpose: 'Consume Runtime profile selections.',
+      },
+      {
+        scope: 'file.read.scoped',
+        qualifier: 'app-local-drafts',
+        purpose: 'Read drafts owned by this app during author testing.',
+      },
+      {
+        scope: 'file.write.scoped',
+        qualifier: 'app-local-drafts',
+        purpose: 'Store drafts owned by this app during author testing.',
+      },
+    ];
+    writeFileSync(intentPath, `${JSON.stringify(intent, null, 2)}\n`);
+
+    let result = runNimiApp(['update', '--dir', generated.target], generated.tempRoot, { env: generated.env });
+    assert.equal(result.status, 0, result.stderr);
+    result = runNimiApp(['doctor', '--dir', generated.target], generated.tempRoot, { env: generated.env });
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(generated.read('nimi.app.yaml'), /scope: ai\.spend\.meter/);
+    assert.match(generated.read('nimi.app.yaml'), /scope: ai_profile\.selection\.consume/);
+    const lock = JSON.parse(generated.read('.nimi/app-scaffold/lock.json'));
+    assert.deepEqual(lock.permissionDeclarations, intent.permissionDeclarations);
+  } finally {
+    generated.cleanup();
+  }
+});
+
+test('scaffold omissions are explicit app-specific input and do not shrink the tester template', () => {
+  const generated = cliScaffold('standalone');
+  try {
+    assert.match(generated.read('src/shell/routes/settings.tsx'), /Settings/);
+    assert.match(generated.read('src/shell/ai/tester-ai-config-settings.tsx'), /TesterAiConfigSettings/);
+
+    const intentPath = path.join(generated.target, '.nimi/app-scaffold/intent.json');
+    const intent = JSON.parse(generated.read('.nimi/app-scaffold/intent.json'));
+    intent.scaffoldOmissions = [
+      'dev-preview.html',
+      'src/dev-preview.tsx',
+      'src/shell/ai/**',
+      'src/shell/routes/settings.tsx',
+      'src/shell/routes/settings/**',
+      'src/tester/**',
+      'src-tauri/src/tester_storage.rs',
+      'src-tauri/src/world_tour.rs',
+      'test/settings-surface-read.mjs',
+      'test/tester-*',
+      'test/tsc-build.mjs',
+      'test/world-tour-contract.test.mjs',
+    ];
+    writeFileSync(intentPath, `${JSON.stringify(intent, null, 2)}\n`);
+    rmSync(path.join(generated.target, 'src/shell/ai'), { recursive: true, force: true });
+    rmSync(path.join(generated.target, 'src/shell/routes/settings.tsx'), { force: true });
+    rmSync(path.join(generated.target, 'src/shell/routes/settings'), { recursive: true, force: true });
+    rmSync(path.join(generated.target, 'src/tester'), { recursive: true, force: true });
+
+    let result = runNimiApp(['update', '--dir', generated.target], generated.tempRoot, { env: generated.env });
+    assert.equal(result.status, 0, result.stderr);
+    result = runNimiApp(['doctor', '--dir', generated.target], generated.tempRoot, { env: generated.env });
+    assert.equal(result.status, 0, result.stderr);
+
+    const lock = JSON.parse(generated.read('.nimi/app-scaffold/lock.json'));
+    assert.deepEqual(lock.scaffoldOmissions, [...intent.scaffoldOmissions].sort((left, right) => left.localeCompare(right)));
+    const taxonomy = [
+      ...lock.managedFileTaxonomy.packageOwnedProjection,
+      ...lock.managedFileTaxonomy.scaffoldManagedGlue,
+      ...lock.managedFileTaxonomy.appOwnedProductCode,
+    ];
+    assert.equal(taxonomy.some((file) => file.startsWith('src/shell/ai/')), false);
+    assert.equal(taxonomy.some((file) => file === 'src/shell/routes/settings.tsx' || file.startsWith('src/shell/routes/settings/')), false);
+    assert.equal(taxonomy.some((file) => file.startsWith('src/tester/')), false);
+  } finally {
+    generated.cleanup();
+  }
+});
+
 test('doctor fails closed on missing lock and retired package names', () => {
   const missingLock = cliScaffold('standalone');
   try {
@@ -703,6 +800,15 @@ test('update fails closed on unsupported locks and classification conflicts', ()
   }
 });
 
+test('doctor and update hard cut scaffold locks to the current generator version', () => {
+  const source = readFileSync(path.join(testDir, '..', 'lib', 'app-doctor-update.mjs'), 'utf8');
+  const legacyListIdentifier = ['SUPPORTED', 'LOCK', 'SCAFFOLD', 'VERSIONS'].join('_');
+  assert.doesNotMatch(source, new RegExp(`\\b${legacyListIdentifier}\\b`));
+  assert.doesNotMatch(source, /\bnew\s+Set\s*\(\s*\[\s*SCAFFOLD_VERSION/s);
+  assert.doesNotMatch(source, /\.has\s*\(\s*lock\?\.scaffoldVersion\s*\)/);
+  assert.match(source, /lock\?\.scaffoldVersion !== SCAFFOLD_VERSION/);
+});
+
 test('app scaffold generator is deterministic and free of inlined product strings', () => {
   const source = readFileSync(path.join(testDir, '..', 'lib', 'app-scaffold.mjs'), 'utf8');
   for (const volatilePattern of [
@@ -715,7 +821,7 @@ test('app scaffold generator is deterministic and free of inlined product string
   ]) {
     assert.doesNotMatch(source, volatilePattern);
   }
-  assert.ok(source.split('\n').length < 700);
+  assert.ok(source.split('\n').length < 760);
   // Product UI strings live in the apps/tester snapshot, never inlined in the generator.
   assert.doesNotMatch(source, /DesktopShellAuthPage/);
   assert.doesNotMatch(source, /Nimi App Runtime Tester/);

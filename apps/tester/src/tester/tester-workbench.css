@@ -1368,6 +1368,7 @@
 .kit-metric { padding: 7px; border: 1px solid var(--nimi-border-subtle); border-radius: 8px; background: color-mix(in srgb, var(--nimi-surface-card) 50%, transparent); }
 .kit-metric strong { display: block; font-size: 17px; line-height: 1; }
 .kit-metric span { display: block; margin-top: 4px; font-size: 9.5px; color: var(--nimi-text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.kit-doc__coverage-progress { grid-column: 1 / -1; min-width: 0; }
 
 .kit-doc__taxonomy { min-height: 0; overflow: auto; display: grid; align-content: start; gap: 6px; }
 .kit-tax {
@@ -1409,6 +1410,7 @@
 .kit-doc__hero h2 { margin: 0; font-size: 20px; line-height: 1.1; letter-spacing: 0; }
 .kit-doc__hero p { margin: 4px 0 0; color: var(--nimi-text-secondary); font-size: 12px; line-height: 1.4; }
 .kit-doc__hero-actions { display: flex; gap: 8px; align-items: center; flex: 0 0 auto; }
+.kit-overlay-preview-copy { margin: 0; color: var(--nimi-text-secondary); font-size: 13px; line-height: 1.55; }
 
 .kit-doc__canvas {
   min-width: 0;
@@ -1449,6 +1451,7 @@
 .kit-card { min-width: 0; display: grid; grid-template-rows: auto auto 1fr; gap: 10px; padding: 14px; text-align: left; }
 .kit-card--wide { grid-column: auto; }
 .kit-card__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.kit-card__head-actions { display: flex; align-items: center; gap: 6px; flex: 0 0 auto; }
 .kit-card__title { min-width: 0; display: grid; gap: 3px; }
 .kit-card__head strong { display: block; font-size: 14px; }
 .kit-card__head code { display: block; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10.5px; color: var(--nimi-text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1512,11 +1515,16 @@
   color: var(--nimi-action-primary-bg);
 }
 
-.kit-code-block {
+.kit-code-scroll {
   margin: 0;
   min-height: 0;
   max-height: 220px;
   overflow: auto;
+}
+
+.kit-code-block {
+  margin: 0;
+  min-height: 0;
   padding: 12px;
   border-radius: 10px;
   background: #101827;

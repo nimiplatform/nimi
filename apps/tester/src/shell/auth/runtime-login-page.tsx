@@ -2,10 +2,10 @@ import { useMemo, useState } from 'react';
 import { DesktopShellAuthPage } from '@nimiplatform/kit/auth';
 import { InlineAlert } from '@nimiplatform/kit/ui';
 import { createNimiAppDesktopBrowserAuthAdapter, createNimiAppRuntimeAccountBroker, nimiAppTauriOAuthBridge } from './runtime-account-auth.js';
-import type { TesterRuntimePlatformClient } from './runtime-platform.js';
+import type { RuntimePlatformReadyProjection } from './runtime-platform.js';
 
 type RuntimeLoginPageProps = {
-  client: TesterRuntimePlatformClient;
+  client: RuntimePlatformReadyProjection['client'];
   errorMessage?: string;
   onReady: () => void;
 };

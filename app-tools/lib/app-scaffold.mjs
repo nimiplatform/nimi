@@ -28,6 +28,58 @@ const MINIMAL_TAURI_ICON_PNG = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4nGNgAAIAAAUAAXpeqz8AAAAASUVORK5CYII=',
   'base64',
 );
+const CANONICAL_PERMISSION_SCOPES = new Set('account.read account.session.read data.scope.read data.scope.write agent.identity.project agent.identity.bind ai.spend.meter ai.spend.delegate memory.read.bounded memory.write.admitted knowledge.read.bounded knowledge.write.admitted notification.send notification.subscribe file.read.scoped file.write.scoped device.use.scoped audit.read.scoped ai_profile.selection.consume'.split(' '));
+const DEFAULT_PERMISSION_DECLARATIONS = Object.freeze([
+  Object.freeze({
+    scope: 'file.read.scoped',
+    qualifier: 'app-local-drafts',
+    purpose: 'Read drafts owned by this app during author testing.',
+  }),
+  Object.freeze({
+    scope: 'file.write.scoped',
+    qualifier: 'app-local-drafts',
+    purpose: 'Store drafts owned by this app during author testing.',
+  }),
+]);
+
+function normalizeScaffoldOmissions(input) {
+  const source = Array.isArray(input) ? input : [];
+  const seen = new Set();
+  for (const raw of source) {
+    const value = String(raw || '').trim().replaceAll('\\', '/');
+    if (!value || value.startsWith('/') || value.includes('..')) {
+      throw new Error(`Invalid scaffold omission path: ${String(raw || 'missing')}`);
+    }
+    seen.add(value);
+  }
+  return normalizePathList(seen);
+}
+
+function wildcardPatternToRegExp(pattern) {
+  let source = '^';
+  for (let index = 0; index < pattern.length; index += 1) {
+    const char = pattern[index];
+    if (char === '*' && pattern[index + 1] === '*') {
+      source += '.*';
+      index += 1;
+    } else if (char === '*') {
+      source += '[^/]*';
+    } else {
+      source += char.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+  }
+  return new RegExp(`${source}$`);
+}
+
+export function isScaffoldOmittedPath(relativePath, omissions = [], matched = null) {
+  for (const pattern of omissions || []) {
+    if (relativePath === pattern || (pattern.includes('*') && wildcardPatternToRegExp(pattern).test(relativePath))) {
+      matched?.add(pattern);
+      return true;
+    }
+  }
+  return false;
+}
 
 const CI_WORKFLOW = [
   'name: pre-submission-self-check',
@@ -160,7 +212,34 @@ function deriveScaffoldDevPort(appId) {
   return 1430 + hash;
 }
 
-function buildAppIdentity(profile, appId, appTitle, packageName, author = '') {
+function normalizePermissionDeclarations(input) {
+  const source = Array.isArray(input) && input.length > 0
+    ? input
+    : DEFAULT_PERMISSION_DECLARATIONS;
+  const seen = new Set();
+  return source.map((entry, index) => {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+      throw new Error(`Invalid permission declaration ${index}`);
+    }
+    const scope = String(entry.scope || '').trim();
+    const qualifier = String(entry.qualifier || '').trim();
+    const purpose = String(entry.purpose || '').trim();
+    if (!CANONICAL_PERMISSION_SCOPES.has(scope)) {
+      throw new Error(`Invalid permission declaration scope: ${scope || 'missing'}`);
+    }
+    if (!purpose) {
+      throw new Error(`Invalid permission declaration purpose for ${scope}`);
+    }
+    const key = `${scope}\u0000${qualifier}`;
+    if (seen.has(key)) {
+      throw new Error(`Duplicate permission declaration: ${scope}${qualifier ? `:${qualifier}` : ''}`);
+    }
+    seen.add(key);
+    return qualifier ? { scope, qualifier, purpose } : { scope, purpose };
+  });
+}
+
+function buildAppIdentity(profile, appId, appTitle, packageName, author = '', accentPack = 'nimi-accent', permissionDeclarations = undefined, scaffoldOmissions = undefined) {
   const resolvedPackageName = packageName || packageSafeName(appId);
   return {
     appId,
@@ -170,6 +249,10 @@ function buildAppIdentity(profile, appId, appTitle, packageName, author = '') {
     cargoPackageName: `${cargoSafeNameFromPackageName(resolvedPackageName)}-shell`,
     tauriIdentifier: tauriIdentifierFromAppId(appId),
     appSlug: appSlugFromAppId(appId),
+    rendererEntryId: `${appSlugFromAppId(appId)}-app`,
+    accentPack: String(accentPack || '').trim() || 'nimi-accent',
+    permissionDeclarations: normalizePermissionDeclarations(permissionDeclarations),
+    scaffoldOmissions: normalizeScaffoldOmissions(scaffoldOmissions),
     devPort: deriveScaffoldDevPort(appId),
     author: String(author || '').trim(),
   };
@@ -254,6 +337,8 @@ function targetIdentityMap(identity) {
     appId: identity.appId,
     appTitle: identity.appTitle,
     appSlug: identity.appSlug,
+    rendererEntryId: identity.rendererEntryId,
+    accentPack: identity.accentPack,
     devPort: String(identity.devPort),
   };
 }
@@ -261,6 +346,9 @@ function targetIdentityMap(identity) {
 function applyIdentityReplacement(content, manifest, target) {
   let rendered = content;
   for (const field of manifest.identityReplacementOrder) {
+    if (field === 'rendererEntryId') {
+      continue;
+    }
     const from = manifest.sourceIdentity[field];
     const to = target[field];
     if (from === undefined || to === undefined) {
@@ -268,13 +356,42 @@ function applyIdentityReplacement(content, manifest, target) {
     }
     rendered = rendered.split(from).join(to);
   }
+  const sourceEntryId = manifest.sourceIdentity.rendererEntryId;
+  const targetEntryId = target.rendererEntryId;
+  if (sourceEntryId && targetEntryId) {
+    rendered = rendered.split(`entry:${sourceEntryId}`).join(`entry:${targetEntryId}`);
+  }
   return rendered;
 }
 
-function applyProfileSeam(relativePath, content, profile, versions, manifest) {
+function renderPermissionDeclarations(declarations) {
+  const lines = [];
+  for (const declaration of declarations) {
+    lines.push(`    - scope: ${declaration.scope}`);
+    if (declaration.qualifier) {
+      lines.push(`      qualifier: ${declaration.qualifier}`);
+    }
+    lines.push(`      purpose: ${declaration.purpose}`);
+  }
+  return lines;
+}
+
+function buildNimiAppManifest(identity) {
+  return [
+    `app_id: ${identity.appId}`,
+    `display_name: ${identity.appTitle}`,
+    `profile: ${identity.profile}`,
+    'manifest_role: submitted-input',
+    'permissions:',
+    '  declared_nimi_api_scopes:',
+    ...renderPermissionDeclarations(identity.permissionDeclarations),
+    '',
+  ].join('\n');
+}
+
+function applyProfileSeam(relativePath, content, profile, versions, manifest, identity) {
   if (relativePath === 'nimi.app.yaml') {
-    const source = manifest.sourceIdentity.profile || 'standalone';
-    return content.replace(new RegExp(`^profile: ${source}$`, 'm'), `profile: ${profile}`);
+    return buildNimiAppManifest(identity);
   }
   if (relativePath === 'src-tauri/Cargo.toml') {
     const workspaceLine = 'nimi-shell-tauri = { path = "../../../kit/shell/tauri" }';
@@ -286,10 +403,16 @@ function applyProfileSeam(relativePath, content, profile, versions, manifest) {
 function buildSnapshotFiles(identity, profile, versions) {
   const { baseDir, manifest } = loadAppSource();
   const target = targetIdentityMap(identity);
-  return manifest.files.map((entry) => {
+  const matchedOmissions = new Set();
+  const files = manifest.files.filter((entry) => !isScaffoldOmittedPath(entry.path, identity.scaffoldOmissions, matchedOmissions));
+  const unmatchedOmissions = identity.scaffoldOmissions.filter((pattern) => !matchedOmissions.has(pattern));
+  if (unmatchedOmissions.length > 0) {
+    throw new Error(`Scaffold omissions did not match reference app paths: ${unmatchedOmissions.join(', ')}`);
+  }
+  return files.map((entry) => {
     const raw = readAppSourceFile(baseDir, entry.path);
     const identityApplied = applyIdentityReplacement(raw, manifest, target);
-    const content = applyProfileSeam(entry.path, identityApplied, profile, versions, manifest);
+    const content = applyProfileSeam(entry.path, identityApplied, profile, versions, manifest, identity);
     return {
       path: entry.path,
       content,
@@ -350,6 +473,9 @@ function buildScaffoldIntent(identity, versions) {
     packageAuthor: identity.author || null,
     cargoPackageName: identity.cargoPackageName,
     tauriIdentifier: identity.tauriIdentifier,
+    accentPack: identity.accentPack,
+    permissionDeclarations: identity.permissionDeclarations,
+    scaffoldOmissions: identity.scaffoldOmissions,
     devPort: identity.devPort,
     dependencyMatrix: buildDependencyMatrix(identity.profile, versions),
     semantics: {
@@ -510,6 +636,9 @@ function buildScaffoldLock(identity, versions, files) {
     packageAuthor: identity.author || null,
     cargoPackageName: identity.cargoPackageName,
     tauriIdentifier: identity.tauriIdentifier,
+    accentPack: identity.accentPack,
+    permissionDeclarations: identity.permissionDeclarations,
+    scaffoldOmissions: identity.scaffoldOmissions,
     appIdentity: {
       appId: identity.appId,
       appTitle: identity.appTitle,
@@ -517,6 +646,9 @@ function buildScaffoldLock(identity, versions, files) {
       packageAuthor: identity.author || null,
       cargoPackageName: identity.cargoPackageName,
       tauriIdentifier: identity.tauriIdentifier,
+      accentPack: identity.accentPack,
+      permissionDeclarations: identity.permissionDeclarations,
+      scaffoldOmissions: identity.scaffoldOmissions,
       identityRole: 'scaffold-generated-authoring-input',
     },
     managedFileTaxonomy: {
@@ -542,8 +674,8 @@ function buildScaffoldLock(identity, versions, files) {
   };
 }
 
-export function buildAppScaffoldSnapshot({ profile, versions, appId, appTitle, packageName, author }) {
-  const identity = buildAppIdentity(profile, appId, appTitle, packageName, author);
+export function buildAppScaffoldSnapshot({ profile, versions, appId, appTitle, packageName, author, accentPack, permissionDeclarations, scaffoldOmissions }) {
+  const identity = buildAppIdentity(profile, appId, appTitle, packageName, author, accentPack, permissionDeclarations, scaffoldOmissions);
   const createFiles = [
     ...buildScaffoldFiles(identity, versions),
     buildScaffoldIntentFile(identity, versions),
@@ -600,6 +732,9 @@ export function buildAppScaffoldSnapshotFromIntent({ intent, versions }) {
     appTitle: intent.appTitle,
     packageName: intent.packageName,
     author: intent.packageAuthor || '',
+    accentPack: intent.accentPack || 'nimi-accent',
+    permissionDeclarations: intent.permissionDeclarations || intent.appIdentity?.permissionDeclarations,
+    scaffoldOmissions: intent.scaffoldOmissions || intent.appIdentity?.scaffoldOmissions,
   });
 }
 

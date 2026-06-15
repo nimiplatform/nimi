@@ -57,8 +57,18 @@ export function createTesterAppLabAIScopeRef(): NimiAIScopeRef {
   return createNimiAppAIScopeRef(appId, TESTER_APP_LAB_AI_SURFACE_ID);
 }
 
+function isUsableHostStorage(value: unknown): value is Storage {
+  return Boolean(
+    value
+      && typeof value === 'object'
+      && typeof (value as Partial<Storage>).getItem === 'function'
+      && typeof (value as Partial<Storage>).setItem === 'function',
+  );
+}
+
 function getStorage(): Storage | null {
-  return resolveBrowserStorage('local');
+  const storage = resolveBrowserStorage('local');
+  return isUsableHostStorage(storage) ? storage : null;
 }
 
 function isTesterEphemeralStoreHarness(): boolean {
@@ -115,6 +125,7 @@ function parseStoredProfileLibrary(raw: string): TesterAIProfileLibraryStore {
 }
 
 function loadProfileLibraryStore(storage: Storage | null = getStorage()): TesterAIProfileLibraryStore {
+  storage = isUsableHostStorage(storage) ? storage : null;
   if (!storage) {
     if (!isTesterEphemeralStoreHarness()) {
       throw new Error('Tester AIProfile library requires browser local storage.');
@@ -130,6 +141,7 @@ function loadProfileLibraryStore(storage: Storage | null = getStorage()): Tester
 }
 
 function saveProfileLibraryStore(store: TesterAIProfileLibraryStore, storage: Storage | null = getStorage()): void {
+  storage = isUsableHostStorage(storage) ? storage : null;
   if (!storage) {
     if (!isTesterEphemeralStoreHarness()) {
       throw new Error('Tester AIProfile library requires browser local storage.');

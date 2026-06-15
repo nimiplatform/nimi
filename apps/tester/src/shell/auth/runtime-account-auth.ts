@@ -1,6 +1,6 @@
+import type { NimiClient } from '@nimiplatform/sdk';
 import {
   AccountSessionState,
-  type RuntimeTypedCallOptions,
 } from '@nimiplatform/sdk/runtime/generated';
 import {
   createRuntimeAccountBrowserBroker,
@@ -11,8 +11,6 @@ import {
 import { createTauriOAuthBridge } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { NimiRuntimeAccountCaller } from '@nimiplatform/sdk/runtime';
 import {
-  createRuntimeAccountAccessTokenCallOptions,
-  createRuntimeAccountRefreshCallOptions,
   getRuntimeAccountCaller,
   runtimeAccountLoginEnabled,
 } from './runtime-platform.js';
@@ -21,9 +19,9 @@ export { getRuntimeAccountCaller };
 
 export const nimiAppTauriOAuthBridge = createTauriOAuthBridge();
 
-type TesterRuntimeAccountClient = RuntimeAccountBrowserBrokerClient & {
-  runtime: RuntimeAccountBrowserBrokerClient['runtime'] & {
-    account: RuntimeAccountBrowserBrokerClient['runtime']['account'] & {
+type RuntimeAccountClient = RuntimeAccountBrowserBrokerClient & Pick<NimiClient, 'runtime'> & {
+  runtime: RuntimeAccountBrowserBrokerClient['runtime'] & NimiClient['runtime'] & {
+    account: RuntimeAccountBrowserBrokerClient['runtime']['account'] & NimiClient['runtime']['account'] & {
       getAccountSessionStatus(input: { caller: NimiRuntimeAccountCaller }): Promise<{
         state: AccountSessionState;
         accountProjection?: {
@@ -31,14 +29,6 @@ type TesterRuntimeAccountClient = RuntimeAccountBrowserBrokerClient & {
           displayName?: string | null;
         } | null;
       }>;
-      getAccessToken(
-        input: { caller: NimiRuntimeAccountCaller; requestedScopes: string[] },
-        options?: RuntimeTypedCallOptions,
-      ): Promise<{ accepted?: boolean; accessToken?: string | null }>;
-      refreshAccountSession(
-        input: { caller: NimiRuntimeAccountCaller },
-        options?: RuntimeTypedCallOptions,
-      ): Promise<{ accepted?: boolean }>;
       logout(input: { caller: NimiRuntimeAccountCaller; reason: string }): Promise<unknown>;
     };
   };
@@ -54,7 +44,7 @@ function unsupported<T>(): Promise<T> {
   return Promise.reject(new Error('This shell uses Runtime account browser login only; app-owned credential login is forbidden.'));
 }
 
-export async function loadRuntimeAccountUser(client: TesterRuntimeAccountClient) {
+export async function loadRuntimeAccountUser(client: RuntimeAccountClient | NimiClient) {
   if (!runtimeAccountLoginEnabled) {
     return null;
   }
@@ -63,50 +53,20 @@ export async function loadRuntimeAccountUser(client: TesterRuntimeAccountClient)
   if (response.state !== AccountSessionState.AUTHENTICATED || !response.accountProjection?.accountId) {
     return null;
   }
-  if (!(await hasRuntimeAccessToken(client, caller))) {
-    return null;
-  }
   return {
     id: response.accountProjection.accountId,
     displayName: response.accountProjection.displayName || 'Runtime account',
   };
 }
 
-async function hasRuntimeAccessToken(
-  client: TesterRuntimeAccountClient,
-  caller: NimiRuntimeAccountCaller,
-): Promise<boolean> {
-  const token = await client.runtime.account.getAccessToken({
-    caller,
-    requestedScopes: [],
-  }, createRuntimeAccountAccessTokenCallOptions());
-  if (token.accepted && String(token.accessToken || '').trim()) {
-    return true;
-  }
-  const refreshed = await client.runtime.account.refreshAccountSession(
-    { caller },
-    createRuntimeAccountRefreshCallOptions(),
-  );
-  if (!refreshed.accepted) {
-    return false;
-  }
-  const retry = await client.runtime.account.getAccessToken({
-    caller,
-    requestedScopes: [],
-  }, createRuntimeAccountAccessTokenCallOptions());
-  return Boolean(retry.accepted && String(retry.accessToken || '').trim());
-}
-
-export async function logoutRuntimeAccount(client: TesterRuntimeAccountClient) {
+export async function logoutRuntimeAccount(client: RuntimeAccountClient) {
+  void client;
   requireRuntimeAccountLogin();
-  await client.runtime.account.logout({
-    caller: getRuntimeAccountCaller(),
-    reason: 'generated_app_logout',
-  });
+  throw new Error('Generated Nimi App shell cannot own Runtime account logout. Sign out from the first-party Desktop account surface.');
 }
 
 export function createNimiAppRuntimeAccountBroker(
-  client: RuntimeAccountBrowserBrokerClient,
+  client: RuntimeAccountClient,
 ): ShellAuthDesktopBrowserAuth['runtimeAccountBroker'] {
   return createRuntimeAccountBrowserBroker({
     caller: getRuntimeAccountCaller(),
@@ -126,7 +86,7 @@ export function createNimiAppRuntimeAccountBroker(
 
 export function createNimiAppDesktopBrowserAuthAdapter(
   onLoginComplete: () => void | Promise<void>,
-  client: TesterRuntimeAccountClient,
+  client: RuntimeAccountClient,
 ): AuthPlatformAdapter {
   return {
     checkEmail: unsupported,

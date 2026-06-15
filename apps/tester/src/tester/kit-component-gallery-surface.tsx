@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { StatusBadge, Surface } from '@nimiplatform/kit/ui';
+import { AppCardSurface, CompactAction, IconToggleAction, ScrollShell, StatusBadge, Surface } from '@nimiplatform/kit/ui';
 import { Check, Code2, ListChecks, Palette } from 'lucide-react';
 import {
   CATEGORIES,
@@ -86,7 +86,9 @@ function RecipeModeContent({ recipe, mode }: { recipe: Recipe; mode: RecipeMode 
           <Code2 size={15} aria-hidden="true" />
           <strong>Import and usage</strong>
         </div>
-        <pre className="kit-code-block">{`${importBlock}\n\n${recipe.snippet}`}</pre>
+        <ScrollShell className="kit-code-scroll">
+          <pre className="kit-code-block">{`${importBlock}\n\n${recipe.snippet}`}</pre>
+        </ScrollShell>
       </div>
     );
   }
@@ -146,12 +148,10 @@ function RecipeModeContent({ recipe, mode }: { recipe: Recipe; mode: RecipeMode 
 function RecipeCard({ recipe }: { recipe: Recipe }) {
   const [mode, setMode] = useState<RecipeMode>('live');
   return (
-    <Surface
+    <AppCardSurface
       as="article"
       key={recipe.id}
-      material="glass-thin"
-      tone="card"
-      elevation="base"
+      kind={recipe.wide ? 'promoted-glass' : 'operational-solid'}
       className={recipe.wide ? 'kit-card kit-card--wide' : 'kit-card'}
     >
       <div className="kit-card__head">
@@ -159,24 +159,33 @@ function RecipeCard({ recipe }: { recipe: Recipe }) {
           <strong>{recipe.name}</strong>
           <code>{recipe.exportsLabel}</code>
         </div>
-        <StatusBadge tone={badgeTone(recipe.badge.tone)} shape="soft">{recipe.badge.label}</StatusBadge>
+        <div className="kit-card__head-actions">
+          <StatusBadge tone={badgeTone(recipe.badge.tone)} shape="soft">{recipe.badge.label}</StatusBadge>
+          <IconToggleAction
+            aria-label={`${recipe.name} live preview`}
+            icon={<Check size={13} />}
+            active={mode === 'live'}
+            onClick={() => setMode('live')}
+          />
+        </div>
       </div>
       <div className="kit-card__tabs" role="tablist" aria-label={`${recipe.name} recipe view`}>
         {RECIPE_MODES.map((item) => (
-          <button
+          <CompactAction
             key={item.id}
             type="button"
             className={mode === item.id ? 'kit-card-tab kit-card-tab--active' : 'kit-card-tab'}
+            tone={mode === item.id ? 'primary' : 'neutral'}
             role="tab"
             aria-selected={mode === item.id}
             onClick={() => setMode(item.id)}
           >
             {item.label}
-          </button>
+          </CompactAction>
         ))}
       </div>
       <RecipeModeContent recipe={recipe} mode={mode} />
-    </Surface>
+    </AppCardSurface>
   );
 }
 

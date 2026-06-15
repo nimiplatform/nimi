@@ -65,17 +65,26 @@ const SOURCE_IDENTITY = {
   appId: 'nimi.tester',
   appTitle: 'Nimi Tester',
   appSlug: 'nimi-tester',
+  rendererEntryId: 'tester-app',
+  accentPack: 'nimi-accent',
   devPort: '1468',
 };
 
 // Identity field => ordered replacement key. Order is by descending literal
 // length, computed once so apply/check and the generator stay identical.
 const IDENTITY_REPLACEMENT_ORDER = Object.entries(SOURCE_IDENTITY)
+  .filter(([field]) => field !== 'rendererEntryId')
   .sort(([, left], [, right]) => right.length - left.length)
   .map(([field]) => field);
 
 function isAppOwnedProductCode(relativePath) {
   if (relativePath === 'src/shell/routes/product-area.tsx') {
+    return true;
+  }
+  if (relativePath.startsWith('src/shell/ai/')) {
+    return true;
+  }
+  if (relativePath === 'src/shell/routes/settings.tsx' || relativePath.startsWith('src/shell/routes/settings/')) {
     return true;
   }
   if (relativePath === 'src/dev-preview.tsx' || relativePath === 'dev-preview.html') {

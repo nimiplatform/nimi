@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Button, StatusBadge, Surface } from '@nimiplatform/kit/ui';
+import { Button, IconButton, OverlayShell, ProgressIndicator, StatusBadge, Surface, TooltipProvider } from '@nimiplatform/kit/ui';
 import { Clipboard, Search } from 'lucide-react';
 import {
   CATEGORIES,
@@ -21,6 +21,7 @@ const foundationCode = `@import "@nimiplatform/kit/ui/styles.css";
 
 export function KitComponentGallery(_props: { onOpenSection?: (target: string) => void }) {
   const [category, setCategory] = useState<CategoryId>('foundations');
+  const [overlayPreviewOpen, setOverlayPreviewOpen] = useState(false);
 
   const recipesInCategory = useMemo(() => RECIPES.filter((recipe) => recipe.category === category), [category]);
   const activeCategory = CATEGORIES.find((entry) => entry.id === category) ?? CATEGORIES[0];
@@ -42,7 +43,8 @@ export function KitComponentGallery(_props: { onOpenSection?: (target: string) =
   }
 
   return (
-    <div className="kit-doc" data-testid="nimi-tester-ui-recipes">
+    <TooltipProvider>
+      <div className="kit-doc" data-testid="nimi-tester-ui-recipes">
       {/* Left — taxonomy + coverage */}
       <Surface as="aside" material="glass-regular" padding="none" elevation="raised" className="kit-doc__library" aria-label="Kit taxonomy">
         <div className="kit-doc__intro">
@@ -59,6 +61,7 @@ export function KitComponentGallery(_props: { onOpenSection?: (target: string) =
           <div className="kit-metric"><strong>{totalExports}</strong><span>exports</span></div>
           <div className="kit-metric"><strong>{CATEGORIES.length}</strong><span>categories</span></div>
           <div className="kit-metric"><strong>100%</strong><span>covered</span></div>
+          <ProgressIndicator className="kit-doc__coverage-progress" value={totalExports} max={totalExports} showValue aria-label="Kit gallery coverage" />
         </div>
         <nav className="kit-doc__taxonomy">
           {CATEGORIES.map((entry) => {
@@ -93,7 +96,9 @@ export function KitComponentGallery(_props: { onOpenSection?: (target: string) =
           </div>
           <div className="kit-doc__hero-actions">
             <StatusBadge tone="info" shape="soft">{countFor(category)} entries</StatusBadge>
+            <IconButton tone="secondary" size="sm" icon={<Clipboard size={13} />} aria-label="Copy imports" onClick={copyImport} />
             <Button tone="secondary" size="sm" leadingIcon={<Clipboard size={13} />} onClick={copyImport}>Copy</Button>
+            <Button tone="secondary" size="sm" onClick={() => setOverlayPreviewOpen(true)}>Overlay</Button>
           </div>
         </Surface>
 
@@ -101,6 +106,15 @@ export function KitComponentGallery(_props: { onOpenSection?: (target: string) =
           {category === 'foundations' ? <FoundationsCanvas /> : <RecipeCards recipes={recipesInCategory} />}
         </div>
       </section>
+      <OverlayShell
+        open={overlayPreviewOpen}
+        onClose={() => setOverlayPreviewOpen(false)}
+        title="Kit overlay"
+        footer={<Button tone="primary" size="sm" onClick={() => setOverlayPreviewOpen(false)}>Close</Button>}
+      >
+        <p className="kit-overlay-preview-copy">OverlayShell renders dialog, drawer, and popover shells with the same app chrome.</p>
+      </OverlayShell>
     </div>
+    </TooltipProvider>
   );
 }
