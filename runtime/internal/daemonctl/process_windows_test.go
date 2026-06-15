@@ -46,3 +46,14 @@ func TestDefaultProcessAliveRejectsInvalidPID(t *testing.T) {
 		t.Fatal("expected invalid pid to be reported as not alive")
 	}
 }
+
+func TestWindowsExecutableIdentityMatchesGoBuildBackupImage(t *testing.T) {
+	expected := `D:\nimi-realm\nimi\dist\nimi.exe`
+	actual := `D:\nimi-realm\nimi\dist\nimi.exe~`
+	if !windowsExecutableIdentityMatches(actual, expected) {
+		t.Fatal("expected Go build backup image path to match original executable identity")
+	}
+	if windowsExecutableIdentityMatches(`D:\nimi-realm\nimi\dist\other.exe~`, expected) {
+		t.Fatal("unexpected match for different executable backup path")
+	}
+}

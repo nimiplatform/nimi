@@ -262,6 +262,12 @@ func (m *Manager) Stop(timeout time.Duration, force bool) (StopResult, error) {
 		if metadataExists && metadata.PID == status.PID {
 			expectedExecutable = strings.TrimSpace(metadata.ExecutablePath)
 		}
+	} else if status.Mode == ModeExternal {
+		executable, executableErr := m.executablePath()
+		if executableErr != nil {
+			return StopResult{}, fmt.Errorf("resolve current executable for external runtime stop: %w", executableErr)
+		}
+		expectedExecutable = strings.TrimSpace(executable)
 	}
 	if err := m.stopProcess(status.PID, expectedExecutable, force); err != nil && m.isProcessAlive(status.PID) {
 		return StopResult{}, err

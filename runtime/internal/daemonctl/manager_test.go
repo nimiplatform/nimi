@@ -383,6 +383,13 @@ func TestManagerStopCanStopExternalInstance(t *testing.T) {
 	manager, paths, alive := newTestManager(t)
 	alive[109] = true
 	writePID(t, paths.LockFile, 109)
+	var gotExecutable string
+	manager.stopProcess = func(pid int, executable string, _ bool) error {
+		delete(alive, pid)
+		gotExecutable = executable
+		_ = os.Remove(paths.LockFile)
+		return nil
+	}
 
 	result, err := manager.Stop(20*time.Millisecond, false)
 	if err != nil {
@@ -390,6 +397,9 @@ func TestManagerStopCanStopExternalInstance(t *testing.T) {
 	}
 	if result.Mode != ModeExternal || result.PID != 109 {
 		t.Fatalf("unexpected stop result: %#v", result)
+	}
+	if gotExecutable != "/usr/local/bin/nimi" {
+		t.Fatalf("unexpected external executable identity: %q", gotExecutable)
 	}
 }
 
