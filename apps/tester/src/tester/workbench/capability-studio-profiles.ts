@@ -70,7 +70,7 @@ export function countStudioWords(text: string): number {
 const STUDIO_PROFILES: Record<TesterCapabilityId, CapabilityStudioProfile> = {
   'text.generate': {
     studioTag: 'Text',
-    inputTitle: 'What should Nimi write?',
+    inputTitle: 'Test text generation',
     inputPlaceholder: 'Describe what you want Nimi to write…',
     inputKind: 'prompt',
     supportsAttachments: true,
@@ -85,7 +85,7 @@ const STUDIO_PROFILES: Record<TesterCapabilityId, CapabilityStudioProfile> = {
   },
   'chat.stream': {
     studioTag: 'Chat',
-    inputTitle: 'Start a conversation turn',
+    inputTitle: 'Test chat streaming',
     inputPlaceholder: 'Type a message for Nimi to continue…',
     inputKind: 'prompt',
     supportsAttachments: true,
@@ -100,7 +100,7 @@ const STUDIO_PROFILES: Record<TesterCapabilityId, CapabilityStudioProfile> = {
   },
   'text.embed': {
     studioTag: 'Embeddings',
-    inputTitle: 'Text to embed',
+    inputTitle: 'Test embeddings',
     inputPlaceholder: 'Enter the text to convert into an embedding vector…',
     inputKind: 'prompt',
     supportsAttachments: false,
@@ -115,7 +115,7 @@ const STUDIO_PROFILES: Record<TesterCapabilityId, CapabilityStudioProfile> = {
   },
   'image.generate': {
     studioTag: 'Image',
-    inputTitle: 'Describe the image',
+    inputTitle: 'Test image generation',
     inputPlaceholder: 'Describe the image you want the runtime to render…',
     inputKind: 'prompt',
     supportsAttachments: false,
@@ -130,7 +130,7 @@ const STUDIO_PROFILES: Record<TesterCapabilityId, CapabilityStudioProfile> = {
   },
   'video.generate': {
     studioTag: 'Video',
-    inputTitle: 'Describe the clip',
+    inputTitle: 'Test video generation',
     inputPlaceholder: 'Describe the short clip you want to generate…',
     inputKind: 'prompt',
     supportsAttachments: false,
@@ -145,7 +145,7 @@ const STUDIO_PROFILES: Record<TesterCapabilityId, CapabilityStudioProfile> = {
   },
   'audio.synthesize': {
     studioTag: 'Speech',
-    inputTitle: 'Text to speak',
+    inputTitle: 'Test speech synthesis',
     inputPlaceholder: 'Enter the text to synthesize into speech…',
     inputKind: 'prompt',
     supportsAttachments: false,
@@ -160,7 +160,7 @@ const STUDIO_PROFILES: Record<TesterCapabilityId, CapabilityStudioProfile> = {
   },
   'audio.transcribe': {
     studioTag: 'Transcribe',
-    inputTitle: 'Audio URL',
+    inputTitle: 'Test speech transcription',
     inputPlaceholder: 'https://… pointing at the audio asset',
     inputKind: 'url',
     supportsAttachments: false,
@@ -175,7 +175,7 @@ const STUDIO_PROFILES: Record<TesterCapabilityId, CapabilityStudioProfile> = {
   },
   'speech.bundle': {
     studioTag: 'Voices',
-    inputTitle: 'Voice catalog',
+    inputTitle: 'Test voice catalog',
     inputPlaceholder: '',
     inputKind: 'none',
     inputNote: 'No input required — this lists the runtime voice catalog.',
@@ -191,7 +191,7 @@ const STUDIO_PROFILES: Record<TesterCapabilityId, CapabilityStudioProfile> = {
   },
   'world.generate': {
     studioTag: 'World',
-    inputTitle: 'World viewer',
+    inputTitle: 'Open world tour',
     inputPlaceholder: '',
     inputKind: 'none',
     inputNote: 'Opens a standalone Tauri window for the local world fixture.',

@@ -89,6 +89,14 @@ export type TesterRuntimeAuthUnavailable = {
 
 export type TesterRuntimePlatformProjection =
   | {
+      status: 'login-required';
+      mode: TesterRuntimeAuthMode;
+      client: TesterRuntimePlatformClient;
+      reasonCode: string;
+      actionHint: string;
+      message: string;
+    }
+  | {
       status: 'ready';
       mode: TesterRuntimeAuthMode;
       client: TesterRuntimePlatformClient;
@@ -140,7 +148,21 @@ async function createLocalFirstPartyRuntimeProjection(
     const accountRuntime = new Runtime(runtimeOptions());
     await accountRuntime.ready();
     await registerLocalFirstPartyRuntimeAccountCaller(accountRuntime);
-    const subjectUserId = await requireRuntimeSubjectUserId(accountRuntime);
+    const accountClient = createNimiClient({
+      appId,
+      runtime: accountRuntime,
+    });
+    const subjectUserId = await readRuntimeSubjectUserId(accountRuntime);
+    if (!subjectUserId) {
+      return loginRequired({
+        status: 'login-required',
+        mode,
+        client: accountClient,
+        reasonCode: 'ACCOUNT_SESSION_NOT_AUTHENTICATED',
+        actionHint: 'complete_runtime_local_first_party_account_setup',
+        message: 'Runtime account session is not authenticated; sign in with Runtime account login to provide accountProjection.accountId as subjectUserId.',
+      });
+    }
     const runtime = new Runtime({
       ...runtimeOptions(),
       authMetadata: createRuntimeAppSessionMetadataProvider(accountRuntime),
@@ -191,14 +213,14 @@ async function registerLocalFirstPartyRuntimeAccountCaller(runtime: Runtime): Pr
   )();
 }
 
-async function requireRuntimeSubjectUserId(accountRuntime: Runtime): Promise<string> {
+async function readRuntimeSubjectUserId(accountRuntime: Runtime): Promise<string | null> {
   const session = await accountRuntime.account.getAccountSessionStatus({
     caller: getRuntimeAccountCaller(),
   });
   if (session.state === AccountSessionState.AUTHENTICATED && session.accountProjection?.accountId) {
     return session.accountProjection.accountId;
   }
-  throw new Error('Runtime account session is not authenticated; Tester Runtime AI calls require accountProjection.accountId as subjectUserId.');
+  return null;
 }
 
 function createRuntimeAppSessionMetadataProvider(accountRuntime: Runtime): () => Promise<CoreMetadata> {
@@ -372,6 +394,12 @@ function runtimeOptions(): RuntimeOptions {
 }
 
 function unavailable(input: TesterRuntimeAuthUnavailable): TesterRuntimeAuthUnavailable {
+  return input;
+}
+
+function loginRequired(
+  input: Extract<TesterRuntimePlatformProjection, { status: 'login-required' }>,
+): Extract<TesterRuntimePlatformProjection, { status: 'login-required' }> {
   return input;
 }
 

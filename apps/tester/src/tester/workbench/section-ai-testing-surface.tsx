@@ -2,18 +2,15 @@ import { Component, lazy, Suspense, useEffect, useMemo, useState, type ReactNode
 import {
   Button,
   EmptyState,
-  IconButton,
-  SegmentedControl,
-  SelectField,
-  StatusBadge,
-  Surface,
-  TextareaField,
 } from '@nimiplatform/kit/ui';
 import {
   AlertTriangle,
+  CircleHelp,
+  Cloud,
   Copy as CopyIcon,
   Download as DownloadIcon,
   FileText,
+  HardDrive,
   Loader2,
   Play,
   RefreshCw,
@@ -21,17 +18,20 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import type { CanonicalCapabilitySectionId } from '@nimiplatform/kit/core/runtime-capabilities';
-import { ImageAttachmentStrip, useMediaAttachments } from '../tester-multimodal-input.js';
 import {
-  testerCapabilities,
   type TesterCapability,
   type TesterCapabilityId,
 } from '../tester-capabilities.js';
 import type { TesterAIConfigSummary } from '../tester-ai-config.js';
 import {
   formatTesterRunTimestamp,
-  getTesterRunStatusLabel,
+  getTesterRunMetricSummary,
+  getTesterRunModelLabel,
+  getTesterRunModelSource,
+  getTesterRunPromptSummary,
+  getTesterRunResultSummary,
   getTesterRunStatusTone,
+  type TesterRunModelSource,
   type TesterRunHistory,
   type TesterRunHistoryRecord,
 } from '../tester-history.js';
@@ -60,7 +60,6 @@ import {
   runtimeMethodFor,
   TONE_OPTIONS,
 } from './capability-studio-profiles.js';
-import { capabilityIcons } from './capability-icons.js';
 
 // The model-config drawer (and its runtime model-picker provider) is only needed
 // when the settings gear opens it, so it loads on demand — the always-on studio
@@ -109,8 +108,7 @@ export const CAPABILITY_TO_SECTION: Record<TesterCapabilityId, CanonicalCapabili
 
 export type SectionAITestingProps = {
   capability: TesterCapability;
-  onResult: (result: TesterCapabilityRunResult, prompt: string) => void | Promise<void>;
-  onSelectCapability: (id: TesterCapabilityId) => void;
+  onResult: (result: TesterCapabilityRunResult, prompt: string) => TesterRunHistoryRecord | null | Promise<TesterRunHistoryRecord | null>;
   summary: TesterAIConfigSummary | null;
   history: TesterRunHistory | null;
   lastResult: TesterCapabilityRunResult | null;
@@ -130,47 +128,8 @@ type CapabilityStatus = {
   detail: string;
 };
 
-// Per-capability accent tones for the hero tile (recovered from the desktop
-// tester TONE_PALETTE — decorative content treatment only).
-type CapTone = 'mint' | 'blue' | 'violet' | 'pink';
-const capabilityTones: Record<TesterCapabilityId, CapTone> = {
-  'text.generate': 'mint',
-  'chat.stream': 'mint',
-  'text.embed': 'blue',
-  'image.generate': 'violet',
-  'video.generate': 'pink',
-  'audio.synthesize': 'blue',
-  'audio.transcribe': 'blue',
-  'speech.bundle': 'violet',
-  'world.generate': 'mint',
-};
-const tonePalette: Record<CapTone, { soft: string; glow: string; ink: string }> = {
-  mint: { soft: 'rgba(167,243,208,0.45)', glow: '#a7f3d0', ink: '#065F46' },
-  blue: { soft: 'rgba(191,219,254,0.55)', glow: '#bfdbfe', ink: '#1E3A8A' },
-  violet: { soft: 'rgba(221,214,254,0.55)', glow: '#ddd6fe', ink: '#4C1D95' },
-  pink: { soft: 'rgba(252,231,243,0.55)', glow: '#fce7f3', ink: '#831843' },
-};
-
-export function CapHeroTile({ capability, size = 40 }: { capability: TesterCapability; size?: number }) {
-  const Icon = capabilityIcons[capability.id];
-  const tone = tonePalette[capabilityTones[capability.id]];
-  return (
-    <div
-      className="studio__tile"
-      aria-hidden="true"
-      style={{
-        width: size,
-        height: size,
-        background: `radial-gradient(circle at 30% 30%, ${tone.glow}, ${tone.soft})`,
-        color: tone.ink,
-        borderColor: tone.soft,
-      }}
-    >
-      <Icon size={Math.round(size * 0.48)} />
-    </div>
-  );
-}
-
+// Scenario presets stay app-local; runtime/model selection remains owned by the
+// shared AI model config surface and the runtime trace.
 const scenarioPresets: Partial<Record<TesterCapabilityId, ScenarioPreset[]>> = {
   'text.generate': [
     {
@@ -502,6 +461,7 @@ export function StudioResult({
   verboseConsole,
   onCopy,
   onDownload,
+  onRegenerate,
 }: {
   result: TesterCapabilityRunResult | null;
   running: boolean;
@@ -511,6 +471,7 @@ export function StudioResult({
   verboseConsole: boolean;
   onCopy: () => void;
   onDownload: () => void;
+  onRegenerate: () => void;
 }) {
   const profile = getCapabilityStudioProfile(capability.id);
   const ready = result?.ok ? result : null;
@@ -575,6 +536,9 @@ export function StudioResult({
           <button type="button" className="studio-result__action" onClick={onDownload} disabled={!canExport}>
             <DownloadIcon size={13} aria-hidden="true" /> Download
           </button>
+          <button type="button" className="studio-result__action" onClick={onRegenerate} disabled={running}>
+            <RefreshCw size={13} aria-hidden="true" /> Regenerate
+          </button>
         </div>
       </div>
       <RuntimeDetails capability={capability} result={result} admission={admission} verboseConsole={verboseConsole} />
@@ -584,7 +548,7 @@ export function StudioResult({
 
 // Per-capability local run history, recovered from the desktop tester history
 // panel. Reads only the app-owned localStorage history store (no runtime claim).
-function badgeToneForRun(record: TesterRunHistoryRecord): 'success' | 'warning' | 'info' | 'neutral' {
+function historyToneForRun(record: TesterRunHistoryRecord): 'success' | 'warning' | 'info' | 'neutral' {
   const tone = getTesterRunStatusTone(record.status);
   if (tone === 'success') return 'success';
   if (tone === 'info') return 'info';
@@ -592,46 +556,86 @@ function badgeToneForRun(record: TesterRunHistoryRecord): 'success' | 'warning' 
   return 'neutral';
 }
 
+function historyTitleForRun(record: TesterRunHistoryRecord): string {
+  const prompt = getTesterRunPromptSummary(record).trim();
+  return prompt || getTesterRunResultSummary(record);
+}
+
+function historyLabelForRun(record: TesterRunHistoryRecord): string {
+  const prompt = historyTitleForRun(record);
+  const model = getTesterRunModelLabel(record);
+  const source = getTesterRunModelSource(record);
+  const metrics = getTesterRunMetricSummary(record);
+  return [source === 'unknown' ? model : `${source} model: ${model}`, formatTesterRunTimestamp(record.createdAt), metrics, prompt ? `Prompt: ${prompt}` : ''].filter(Boolean).join(' / ');
+}
+
+function historyModelSourceLabel(source: TesterRunModelSource): string {
+  if (source === 'local') return 'Local model';
+  if (source === 'cloud') return 'Cloud model';
+  return 'Model source not captured';
+}
+
+function HistoryModelSourceIcon({ source }: { source: TesterRunModelSource }) {
+  const label = historyModelSourceLabel(source);
+  return (
+    <span className={`studio-recent__source studio-recent__source--${source}`} title={label} aria-label={label}>
+      {source === 'cloud' ? <Cloud size={13} aria-hidden="true" /> : source === 'local' ? <HardDrive size={13} aria-hidden="true" /> : <CircleHelp size={13} aria-hidden="true" />}
+    </span>
+  );
+}
+
 export function CapabilityRunHistory({
   capability,
   history,
+  activeRunId,
+  onSelectRun,
 }: {
   capability: TesterCapability;
   history: TesterRunHistory | null;
+  activeRunId: string | null;
+  onSelectRun: (record: TesterRunHistoryRecord) => void;
 }) {
-  const records = (history?.[capability.id] ?? []).slice(0, 8);
+  const records = (history?.[capability.id] ?? []).slice(0, 12);
+
   return (
-    <Surface className="studio-recent" material="glass-thin" tone="panel" elevation="base" padding="none" aria-label="Recent runs">
+    <aside className="studio-history" aria-label="Recent runs History">
       <div className="studio-recent__head">
-        <div className="studio-card__head">
-          <RefreshCw size={15} aria-hidden="true" />
-          <strong>Recent</strong>
+        <div className="studio-history__title">
+          <strong>History</strong>
         </div>
       </div>
       {records.length === 0 ? (
         <p className="studio-recent__empty">No local run records for {capability.label} yet. Run with Runtime to start the app-owned history.</p>
       ) : (
         <>
-          <div className="studio-recent__row studio-recent__row--head">
-            <span>Status</span>
-            <span>Prompt</span>
-            <span>Updated</span>
-          </div>
           <ul className="studio-recent__rows">
             {records.map((record) => (
-              <li key={record.id} className="studio-recent__row">
-                <StatusBadge tone={badgeToneForRun(record)} shape="dot">{getTesterRunStatusLabel(record.status)}</StatusBadge>
-                <span className="studio-recent__prompt" title={record.prompt || record.message}>
-                  {record.prompt || record.message}
-                </span>
-                <time dateTime={record.createdAt}>{formatTesterRunTimestamp(record.createdAt)}</time>
+              <li key={record.id}>
+                <button
+                  type="button"
+                  className={record.id === activeRunId ? 'studio-recent__row studio-recent__row--active' : 'studio-recent__row'}
+                  onClick={() => onSelectRun(record)}
+                  aria-current={record.id === activeRunId ? 'true' : undefined}
+                  aria-label={historyLabelForRun(record)}
+                >
+                  <span className={`studio-recent__dot studio-recent__dot--${historyToneForRun(record)}`} aria-hidden="true" />
+                  <span className="studio-recent__model-line">
+                    <HistoryModelSourceIcon source={getTesterRunModelSource(record)} />
+                    <span className="studio-recent__model" title={getTesterRunModelLabel(record)}>
+                      {getTesterRunModelLabel(record)}
+                    </span>
+                  </span>
+                  <time dateTime={record.createdAt}>{formatTesterRunTimestamp(record.createdAt)}</time>
+                  <span className="studio-recent__metrics" title={historyTitleForRun(record)}>
+                    {getTesterRunMetricSummary(record)}
+                  </span>
+                </button>
               </li>
             ))}
           </ul>
-          <p className="studio-recent__count">{records.length} result{records.length === 1 ? '' : 's'}</p>
         </>
       )}
-    </Surface>
+    </aside>
   );
 }
 

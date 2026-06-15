@@ -1,13 +1,19 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import './tester-workbench.css';
-import { StatusBadge, Tooltip } from '@nimiplatform/kit/ui';
+import { Tooltip } from '@nimiplatform/kit/ui';
 import { createRendererFlowId, emitRuntimeLog, logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { createNimiClientId } from '@nimiplatform/sdk';
 import { requestWithRetry } from '@nimiplatform/sdk/types';
-import { Beaker, Camera, Route, Server } from 'lucide-react';
+import { Beaker, Camera } from 'lucide-react';
 import { getTesterCapability, testerCapabilities, type TesterCapabilityId } from './tester-capabilities.js';
 import { shouldPersistTesterArtifactRecord } from './tester-artifact-persistence.js';
-import { appendTesterRunHistory, loadTesterRunHistory, type TesterRunHistory } from './tester-history.js';
+import {
+  appendTesterRunHistory,
+  createTesterRunHistoryResultSnapshot,
+  loadTesterRunHistory,
+  type TesterRunHistory,
+  type TesterRunHistoryRecord,
+} from './tester-history.js';
 import { appendTesterImageHistoryRecord } from './tester-image-history.js';
 import { loadTesterAIConfigSummary, type TesterAIConfigSummary } from './tester-ai-config.js';
 import type { TesterCapabilityRunResult } from './tester-runtime.js';
@@ -49,6 +55,32 @@ function runtimeBadge(summary: TesterAIConfigSummary | null): { label: string; t
   return { label: 'Blocked', tone: 'warning' };
 }
 
+function runtimeUserMessage(summary: TesterAIConfigSummary | null): string {
+  if (!summary) return 'Checking the Runtime connection.';
+  if (summary.runtime.status === 'ready') return 'Runtime is connected. You can generate text and stream responses.';
+  return 'Runtime is unavailable. Open App Lab in the desktop runtime, or start and repair Runtime before generating.';
+}
+
+function TopbarStatusTooltip({
+  title,
+  rows,
+}: {
+  title: string;
+  rows: readonly { label: string; value: string }[];
+}) {
+  return (
+    <div className="workbench-topbar-tooltip">
+      <strong>{title}</strong>
+      {rows.map((row) => (
+        <span key={row.label}>
+          <b>{row.label}</b>
+          <em>{row.value}</em>
+        </span>
+      ))}
+    </div>
+  );
+}
+
 export function TesterWorkbench(props: TesterWorkbenchProps) {
   const [view, setView] = useState<WorkbenchView>({ kind: 'capability', capabilityId: initialCapabilityId });
   const activeCapabilityId: TesterCapabilityId = view.kind === 'capability' ? view.capabilityId : initialCapabilityId;
@@ -63,6 +95,13 @@ export function TesterWorkbench(props: TesterWorkbenchProps) {
 
   const capability = useMemo(() => getTesterCapability(activeCapabilityId), [activeCapabilityId]);
   const runtimeState = useMemo(() => runtimeBadge(summary), [summary]);
+  const runtimeTooltipRows = useMemo(
+    () => [
+      { label: 'Status', value: runtimeState.label },
+      { label: 'What it means', value: runtimeUserMessage(summary) },
+    ],
+    [runtimeState.label, summary],
+  );
 
   const refreshHistory = useCallback(async () => {
     try {
@@ -124,21 +163,23 @@ export function TesterWorkbench(props: TesterWorkbenchProps) {
   }, []);
 
   const handleCapabilityResult = useCallback(
-    async (result: TesterCapabilityRunResult, prompt: string) => {
+    async (result: TesterCapabilityRunResult, prompt: string): Promise<TesterRunHistoryRecord> => {
       setLastResult(result);
       const runId = makeRecordId();
       const flowId = createRendererFlowId('tester-capability-run');
       const traceId = getResultTraceId(result);
       const createdAt = new Date().toISOString();
+      const record: TesterRunHistoryRecord = {
+        id: runId,
+        capabilityId: result.capabilityId,
+        prompt,
+        status: result.capabilityId === 'world.generate' && result.ok ? 'local-fixture' : result.ok ? 'ready' : 'unavailable',
+        message: result.message,
+        createdAt,
+        result: createTesterRunHistoryResultSnapshot(result),
+      };
       try {
-        const next = await appendTesterRunHistory({
-          id: runId,
-          capabilityId: result.capabilityId,
-          prompt,
-          status: result.capabilityId === 'world.generate' && result.ok ? 'local-fixture' : result.ok ? 'ready' : 'unavailable',
-          message: result.message,
-          createdAt,
-        });
+        const next = await appendTesterRunHistory(record);
         setHistory(next);
         setHistoryError(null);
         if (shouldPersistTesterArtifactRecord(result)) {
@@ -200,6 +241,7 @@ export function TesterWorkbench(props: TesterWorkbenchProps) {
       if (preferenceState.preferences.evidenceCaptureMode === 'after-run') {
         handleCaptureEvidence();
       }
+      return record;
     },
     [handleCaptureEvidence, preferenceState.preferences.evidenceCaptureMode],
   );
@@ -213,25 +255,37 @@ export function TesterWorkbench(props: TesterWorkbenchProps) {
           </span>
           <div className="workbench-topbar__title">
             <strong>{props.title}</strong>
-            <span>Runtime capability workbench</span>
           </div>
         </div>
         <div className="workbench-topbar__status" aria-label="Tester runtime status">
-          <span className="workbench-topbar__chip">
-            <Server size={14} aria-hidden="true" />
-            <span>Runtime</span>
-            <StatusBadge tone={runtimeState.tone} shape="dot">{runtimeState.label}</StatusBadge>
-          </span>
-          <span className="workbench-topbar__chip workbench-topbar__chip--quiet">
-            <Route size={14} aria-hidden="true" />
-            <span>SDK routed</span>
-          </span>
+          <Tooltip
+            content={<TopbarStatusTooltip title="Runtime" rows={runtimeTooltipRows} />}
+            placement="bottom"
+            contentClassName="workbench-topbar-tooltip__bubble"
+          >
+            <span className={`workbench-topbar__attachment workbench-topbar__attachment--${runtimeState.tone}`}>
+              <span className="workbench-topbar__dot" aria-hidden="true" />
+              <span>Runtime</span>
+            </span>
+          </Tooltip>
         </div>
         <div className="workbench-topbar__actions">
-          <Tooltip content="Capture evidence" placement="bottom">
+          <Tooltip
+            content={(
+              <TopbarStatusTooltip
+                title="Evidence"
+                rows={[
+                  { label: 'Action', value: 'Capture the current App Lab evidence snapshot.' },
+                  { label: 'Mode', value: preferenceState.preferences.evidenceCaptureMode },
+                ]}
+              />
+            )}
+            placement="bottom"
+            contentClassName="workbench-topbar-tooltip__bubble"
+          >
             <button
               type="button"
-              className="workbench-topbar__icon"
+              className="workbench-topbar__attachment workbench-topbar__attachment--icon"
               aria-label="Capture evidence"
               onClick={handleCaptureEvidence}
             >
@@ -259,7 +313,6 @@ export function TesterWorkbench(props: TesterWorkbenchProps) {
               <SectionAITesting
                 capability={capability}
                 onResult={handleCapabilityResult}
-                onSelectCapability={(id) => setView({ kind: 'capability', capabilityId: id })}
                 summary={summary}
                 history={history}
                 lastResult={lastResult}

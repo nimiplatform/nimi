@@ -47,6 +47,10 @@ test('single login model requires runtime account login (no dev-standalone bypas
   assert.match(authGateSource, /loadRuntimeAccountUser/);
   assert.match(authGateSource, /clearRuntimePlatformProjection/);
   assert.match(authGateSource, /clearRuntimePlatformProjection\(\);\s*setReloadKey/s);
+  assert.match(authSource, /status: 'login-required'/);
+  assert.match(authSource, /ACCOUNT_SESSION_NOT_AUTHENTICATED/);
+  assert.match(authGateSource, /projection\.status === 'login-required'/);
+  assert.match(authGateSource, /<RuntimeLoginPage client=\{state\.projection\.client\}/);
   assert.match(runtimeAccountAuthSource, /createRuntimeAccountBrowserBroker/);
   assert.match(authSource, /createNimiLocalFirstPartyRuntimeAccountCaller/);
   assert.doesNotMatch(runtimeAccountAuthSource, /getPlatformClient\(/);

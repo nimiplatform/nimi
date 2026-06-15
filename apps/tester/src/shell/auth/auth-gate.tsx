@@ -18,12 +18,12 @@ type GateState =
   | { kind: 'ready'; projection: Extract<TesterRuntimePlatformProjection, { status: 'ready' }> }
   | {
       kind: 'login-required';
-      projection: Extract<TesterRuntimePlatformProjection, { status: 'ready' }>;
+      projection: Extract<TesterRuntimePlatformProjection, { status: 'ready' | 'login-required' }>;
       message?: string;
     }
   | {
       kind: 'blocked';
-      projection?: Exclude<TesterRuntimePlatformProjection, { status: 'ready' }>;
+      projection?: Exclude<TesterRuntimePlatformProjection, { status: 'ready' | 'login-required' }>;
       message?: string;
       offlineTier: OfflineTier;
     };
@@ -34,6 +34,10 @@ function toMessage(error: unknown): string {
 
 async function resolveGateState(): Promise<GateState> {
   const projection = await getRuntimePlatformProjection();
+  if (projection.status === 'login-required') {
+    runtimeGateOfflineCoordinator.markRuntimeReachable(true);
+    return { kind: 'login-required', projection, message: projection.message };
+  }
   if (projection.status !== 'ready') {
     runtimeGateOfflineCoordinator.markRuntimeReachable(false);
     return { kind: 'blocked', projection, offlineTier: runtimeGateOfflineCoordinator.getTier() };

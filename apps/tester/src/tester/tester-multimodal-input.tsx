@@ -131,10 +131,12 @@ export function ImageAttachmentStrip(props: {
   onRemove: (id: string) => void;
   onOpenPicker: () => void;
   disabled?: boolean;
+  variant?: 'default' | 'icon';
 }) {
-  const { attachments, fileInputRef, onAddFiles, onRemove, onOpenPicker, disabled } = props;
+  const { attachments, fileInputRef, onAddFiles, onRemove, onOpenPicker, disabled, variant = 'default' } = props;
+  const iconVariant = variant === 'icon';
   return (
-    <div className="tester-attach-strip">
+    <div className={iconVariant ? 'tester-attach-strip tester-attach-strip--icon' : 'tester-attach-strip'}>
       <input
         ref={fileInputRef}
         type="file"
@@ -148,9 +150,11 @@ export function ImageAttachmentStrip(props: {
         className="tester-attach-strip__add"
         onClick={onOpenPicker}
         disabled={disabled}
+        aria-label="Attach context"
+        title="Attach context"
       >
         {ATTACH_ICON}
-        Attach context (optional)
+        {iconVariant ? null : <span>Attach context (optional)</span>}
       </button>
       {attachments.map((item) => (
         <span key={item.id} className="tester-attach-chip">

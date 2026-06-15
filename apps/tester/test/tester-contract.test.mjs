@@ -376,8 +376,11 @@ test('tester run history is the per-capability evidence surface (no standalone E
   assert.match(capabilities, /function CapabilityRunHistory/);
   assert.match(capabilities, /Recent runs/);
   assert.match(capabilities, /getTesterRunStatusLabel/);
+  assert.match(capabilities, /getTesterRunResultSummary/);
+  assert.match(capabilities, /TextStudioHistorySnapshotBody/);
   assert.match(capabilities, /No local run records for/);
-  for (const helper of ['getTesterRunStatusLabel', 'getTesterRunStatusTone', 'formatTesterRunTimestamp', 'flattenTesterRunHistory']) {
+  assert.doesNotMatch(capabilities, /does not contain the full generated body/);
+  for (const helper of ['createTesterRunHistoryResultSnapshot', 'getTesterRunResultSummary', 'getTesterRunResultTags', 'getTesterRunStatusLabel', 'getTesterRunStatusTone', 'formatTesterRunTimestamp', 'flattenTesterRunHistory']) {
     assert.match(historyStore, new RegExp(helper));
   }
   assert.match(appStorage, /resolveNimiRuntimeAppStorageRoots/);
@@ -391,6 +394,53 @@ test('tester run history is the per-capability evidence surface (no standalone E
   // Single-level capability workspace: no app-lab / evidence / settings routes.
   assert.match(workbench, /WorkbenchView/);
   assert.doesNotMatch(workbench, /SectionEvidence|SectionSettings|SectionAppLab/);
+});
+
+test('tester run history timestamps use English date labels and omit today date labels', () => {
+  const historyStore = read('src/tester/tester-history.ts');
+
+  assert.match(historyStore, /new Intl\.DateTimeFormat\('en-US'/);
+  assert.match(historyStore, /hourCycle:\s*'h23'/);
+  assert.match(historyStore, /formatTesterRunTimestamp\(value: string, now = new Date\(\)\)/);
+  assert.match(historyStore, /if \(isSameLocalCalendarDate\(date, now\)\) return testerRunTimeFormatter\.format\(date\);/);
+  assert.doesNotMatch(historyStore, /toLocaleString\(\[\]/);
+});
+
+test('tester run history rows prioritize model identity and run metrics', () => {
+  const capabilities = readTesterAiTestingSurface(root);
+  const historyStore = read('src/tester/tester-history.ts');
+  const styles = read('src/tester/tester-workbench.css');
+
+  assert.match(historyStore, /function formatTesterTokenUsage/);
+  assert.match(historyStore, /export function getTesterRunModelLabel/);
+  assert.match(historyStore, /export function getTesterRunModelSource/);
+  assert.match(historyStore, /cleanTesterRunModelName/);
+  assert.match(historyStore, /\^\(local-import\|local\|cloud\)\\\//);
+  assert.match(historyStore, /routeDecisionModelSource/);
+  assert.match(historyStore, /export function getTesterRunMetricSummary/);
+  assert.match(historyStore, /modelResolved/);
+  assert.match(historyStore, /inputTokens/);
+  assert.match(historyStore, /outputTokens/);
+  assert.match(historyStore, /totalTokens/);
+  assert.match(capabilities, /historyLabelForRun/);
+  assert.match(capabilities, /HistoryModelSourceIcon/);
+  assert.match(capabilities, /getTesterRunModelSource\(record\)/);
+  assert.match(capabilities, /studio-recent__source--\$\{source\}/);
+  assert.match(capabilities, /<Cloud size=\{13\}/);
+  assert.match(capabilities, /<HardDrive size=\{13\}/);
+  assert.match(capabilities, /<CircleHelp size=\{13\}/);
+  assert.match(capabilities, /studio-recent__model-line/);
+  assert.match(capabilities, /studio-recent__model/);
+  assert.match(capabilities, /studio-recent__metrics/);
+  assert.match(capabilities, /aria-label=\{historyLabelForRun\(record\)\}/);
+  assert.match(styles, /grid-template-rows:\s*auto auto/);
+  assert.match(styles, /grid-template-columns:\s*minmax\(0,\s*1fr\)\s*minmax\(260px,\s*300px\)/);
+  assert.match(styles, /\.studio-history \.studio-recent__model-line/);
+  assert.match(styles, /\.studio-history \.studio-recent__source--local/);
+  assert.match(styles, /\.studio-history \.studio-recent__source--cloud/);
+  assert.match(styles, /\.studio-history \.studio-recent__model/);
+  assert.match(styles, /max-width:\s*152px/);
+  assert.match(styles, /\.studio-history \.studio-recent__metrics/);
 });
 
 test('tester capability runs consume Kit renderer telemetry', () => {
