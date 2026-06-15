@@ -1,9 +1,31 @@
-import { createNimiLocalFirstPartyRuntimeAccountCaller, isRuntimeLocalAgentRef, parseRuntimeLocalAgentIdentity, projectRuntimeLocalAgentIdentity } from '@nimiplatform/sdk/runtime';
+import {
+  createNimiLocalFirstPartyRuntimeAccountCaller,
+  createNimiRuntimeFullAppRegistration,
+  isRuntimeLocalAgentRef,
+  parseRuntimeLocalAgentIdentity,
+  projectRuntimeLocalAgentIdentity,
+  type NimiRuntimeAppRegistrationClient,
+} from '@nimiplatform/sdk/runtime';
 import { type AccountCaller } from '@nimiplatform/sdk/runtime/generated';
 import { readNormalizedString } from './app-bootstrap-helpers.js';
 
 const AVATAR_LOCAL_FIRST_PARTY_APP_INSTANCE_ID = 'nimi.avatar.local-first-party';
 const AVATAR_LOCAL_FIRST_PARTY_DEVICE_ID = 'avatar-shell-runtime-bridge';
+
+export function registerAvatarRuntimeApp(
+  auth: NimiRuntimeAppRegistrationClient,
+  appId: string,
+): Promise<void> {
+  return createNimiRuntimeFullAppRegistration(
+    () => ({ auth }),
+    {
+      appId,
+      appInstanceId: AVATAR_LOCAL_FIRST_PARTY_APP_INSTANCE_ID,
+      deviceId: AVATAR_LOCAL_FIRST_PARTY_DEVICE_ID,
+      rejectionLabel: 'Avatar Runtime app registration was rejected',
+    },
+  )();
+}
 
 export function createAvatarAccountCaller(appId: string): AccountCaller {
   return createNimiLocalFirstPartyRuntimeAccountCaller({

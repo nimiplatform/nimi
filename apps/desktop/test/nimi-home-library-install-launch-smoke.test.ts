@@ -38,7 +38,7 @@ describe('Nimi Home Library / install / launch smoke', () => {
     assert.equal(
       discovery.entries.some((entry) => entry.app.appId === 'nimi.avatar'),
       false,
-      'Avatar must not appear in installable Discovery while master gate is open',
+      'Avatar must not appear in installable Discovery while hidden-internal',
     );
   });
 

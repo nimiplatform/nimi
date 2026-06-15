@@ -68,8 +68,27 @@ describe('avatar headless renderer resolution', () => {
     });
   });
 
+  it('uses reviewed profile media urls as static sprite2d presentation assets', () => {
+    const renderer = resolveAvatarStageRendererModel({
+      presentation: {
+        backendKind: 'sprite2d',
+        avatarAssetRef: 'profile_media_url:https://cdn.nimi.test/cbdb/su-zhe.png',
+        defaultVoiceReference: 'preset_voice_id:zh_narrator',
+      },
+    });
+
+    expect(renderer).toMatchObject({
+      kind: 'sprite2d',
+      mediaUrl: 'https://cdn.nimi.test/cbdb/su-zhe.png',
+      posterUrl: 'https://cdn.nimi.test/cbdb/su-zhe.png',
+      backendLabel: 'Sprite 2D',
+      prefersMotion: false,
+    });
+  });
+
   it('exposes stable backend labels for badge rendering', () => {
     expect(resolveAvatarBackendLabel('vrm')).toBe('VRM');
     expect(resolveAvatarBackendLabel('live2d')).toBe('Live2D');
+    expect(resolveAvatarBackendLabel('sprite2d')).toBe('Sprite 2D');
   });
 });

@@ -73,5 +73,8 @@ func formatNimiAppRegistryViolations(violations []appregistrycatalog.CrossTableV
 }
 
 func defaultFirstPartyMigrationLaunchGate() *firstpartymigration.LaunchGate {
-	return firstpartymigration.NewLaunchGate()
+	return firstpartymigration.NewLaunchGate(
+		firstpartymigration.WithAvatarMasterGateAcked(true),
+		firstpartymigration.WithMigrationNotRequired("nimi.avatar"),
+	)
 }

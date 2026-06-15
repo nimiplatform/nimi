@@ -7,6 +7,7 @@ import { readNormalizedString } from './app-bootstrap-helpers.js';
 export type FirstPartyBootstrapStage =
   | 'runtime_daemon_prepare'
   | 'runtime_client_ready'
+  | 'runtime_app_registration'
   | 'account_session_status'
   | 'account_access_token'
   | 'conversation_context'

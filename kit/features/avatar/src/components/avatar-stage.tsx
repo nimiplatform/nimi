@@ -9,6 +9,7 @@ import {
 import { createLive2dAvatarRenderer } from '../live2d.js';
 import { createVrmAvatarRenderer } from '../vrm.js';
 import type {
+  AvatarBackendKind,
   AvatarStageBackendRenderer,
   AvatarStageRendererRegistry,
   AvatarStageSize,
@@ -101,9 +102,38 @@ function phaseLabel(phase: AvatarStageSnapshot['interaction']['phase']): string 
   }
 }
 
-const DEFAULT_RENDERERS: Record<'vrm' | 'live2d', AvatarStageBackendRenderer> = {
+function renderStaticMediaSurface(context: Parameters<AvatarStageBackendRenderer>[0]): ReactNode {
+  const imageUrl = context.renderer.mediaUrl || context.renderer.posterUrl;
+  return (
+    <div className="relative flex h-full w-full items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.98),rgba(226,232,240,0.94)_55%,rgba(203,213,225,0.84))]">
+      {context.renderer.kind === 'video' && imageUrl ? (
+        <video
+          src={imageUrl}
+          className="absolute inset-0 h-full w-full object-cover"
+          muted
+          loop
+          playsInline
+          autoPlay
+        />
+      ) : imageUrl ? (
+        <img
+          src={imageUrl}
+          alt={context.label}
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+      ) : (
+        <span className="text-2xl font-semibold text-slate-500">{context.fallback}</span>
+      )}
+    </div>
+  );
+}
+
+const DEFAULT_RENDERERS: Record<AvatarBackendKind, AvatarStageBackendRenderer> = {
   vrm: createVrmAvatarRenderer(),
   live2d: createLive2dAvatarRenderer(),
+  sprite2d: renderStaticMediaSurface,
+  canvas2d: renderStaticMediaSurface,
+  video: renderStaticMediaSurface,
 };
 
 export function AvatarStage({

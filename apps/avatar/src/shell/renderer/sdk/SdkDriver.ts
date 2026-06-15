@@ -320,7 +320,7 @@ export class SdkDriver implements AgentDataDriver {
       custom: mergeCustomRecord(this.bundle.custom, {
         session_status: snapshot.sessionStatus || null,
         transcript_message_count: snapshot.transcriptMessageCount ?? null,
-        execution_binding: snapshot.executionBinding ?? null,
+        execution_bindings: snapshot.executionBindings ?? null,
       }),
     };
     if (snapshot.activeTurn?.turnId) {

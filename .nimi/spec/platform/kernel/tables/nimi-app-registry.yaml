@@ -8,7 +8,7 @@ entries:
   - registry rows must reference admitted trust tier, package signature policy, release channel, factory AIProfile selection, canonical capability ids, and local compute pack rows
   - registry must not admit a row with package_kind outside nimi-app
   - registry rows must not embed provider, connector, engine, or model identifier strings
-  - avatar registry row admission_status must remain gated_by_avatar_master_gate until the avatar productization master gate clears
+  - avatar registry row admission_status is admitted after Avatar productization master gate clearance
   - ordinary Apps visibility requires admission_status admitted and ordinary_visibility ordinary-visible
   - no ordinary-visible first-party app is admitted in this cut
   - Avatar must remain hidden-internal for ordinary Apps even when package/update coordination rows exist
@@ -16,7 +16,7 @@ entries:
     this cut so standalone desktop dev-shell account registration can fail
     closed through Runtime registry truth instead of app-local session shims
   - every installable non-bundled version must resolve to an immutable release descriptor with digest verification before unpack or execution
-  - permission_scope_ref must remain permission_fabric_pending until an admitted permission fabric provides concrete scope sets
+  - permission_scope_ref carries the admitted first-party Avatar seed grant set
 
 # Canonical Nimi App registry — Platform admission/catalog authority.
 # See nimi-app-admission-contract.md (P-NAPP-001..P-NAPP-011; P-NAPP-013..P-NAPP-032).
@@ -89,7 +89,33 @@ apps:
       - local-image-native
       - local-gpu-support
     runtime_registration_mode: app-managed
-    permission_scope_ref: permission_fabric_pending
+    permission_scope_ref:
+      - appId: nimi.avatar
+        scopeFamily: account
+        scopeName: account.session.read
+      - appId: nimi.avatar
+        scopeFamily: agent
+        scopeName: agent.identity.project
+      - appId: nimi.avatar
+        scopeFamily: memory
+        scopeName: memory.read.bounded
+        qualifier: persona-scoped
+      - appId: nimi.avatar
+        scopeFamily: memory
+        scopeName: memory.write.admitted
+        qualifier: session-scoped
+      - appId: nimi.avatar
+        scopeFamily: ai_spend
+        scopeName: ai.spend.meter
+      - appId: nimi.avatar
+        scopeFamily: file_device
+        scopeName: device.use.scoped
+      - appId: nimi.avatar
+        scopeFamily: file_device
+        scopeName: file.read.scoped
+      - appId: nimi.avatar
+        scopeFamily: ai_profile
+        scopeName: ai_profile.selection.consume
     health_repair_projection:
       - unavailable
       - setup-required
@@ -103,5 +129,5 @@ apps:
     release_descriptor_ref: nimi.avatar.bundled-with-nimi
     install_storage_policy_ref: nimi-data-app-roots
     source_repo_url: null
-    admission_status: gated_by_avatar_master_gate
+    admission_status: admitted
     source_rule: P-NAPP-011

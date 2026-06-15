@@ -200,6 +200,12 @@ export function resolveAvatarBackendLabel(backendKind: AvatarBackendKind): strin
   switch (backendKind) {
     case 'vrm':
       return 'VRM';
+    case 'sprite2d':
+      return 'Sprite 2D';
+    case 'canvas2d':
+      return 'Canvas 2D';
+    case 'video':
+      return 'Video';
     case 'live2d':
     default:
       return 'Live2D';
@@ -242,12 +248,24 @@ export function resolveAvatarStagePosterUrl(
   return fallbackImageUrl || null;
 }
 
+function resolveAvatarAssetMediaUrl(avatarAssetRef: string | null | undefined): string | null {
+  if (!isConcreteAvatarAssetRef(avatarAssetRef)) {
+    return null;
+  }
+  const normalized = String(avatarAssetRef);
+  const profileMediaPrefix = 'profile_media_url:';
+  if (normalized.startsWith(profileMediaPrefix)) {
+    return normalized.slice(profileMediaPrefix.length) || null;
+  }
+  return normalized;
+}
+
 export function resolveAvatarStageRendererModel(input: {
   presentation: AvatarPresentationProfile;
   imageUrl?: string | null;
 }): AvatarStageRendererModel {
   const { presentation } = input;
-  const concreteAssetRef = isConcreteAvatarAssetRef(presentation.avatarAssetRef) ? presentation.avatarAssetRef : null;
+  const concreteAssetRef = resolveAvatarAssetMediaUrl(presentation.avatarAssetRef);
   switch (presentation.backendKind) {
     case 'vrm':
       return {
@@ -265,6 +283,33 @@ export function resolveAvatarStageRendererModel(input: {
         mediaUrl: concreteAssetRef,
         posterUrl: input.imageUrl || null,
         backendLabel: resolveAvatarBackendLabel('live2d'),
+        prefersMotion: true,
+      };
+    case 'sprite2d':
+      return {
+        kind: 'sprite2d',
+        assetRef: presentation.avatarAssetRef,
+        mediaUrl: concreteAssetRef,
+        posterUrl: input.imageUrl || concreteAssetRef,
+        backendLabel: resolveAvatarBackendLabel('sprite2d'),
+        prefersMotion: false,
+      };
+    case 'canvas2d':
+      return {
+        kind: 'canvas2d',
+        assetRef: presentation.avatarAssetRef,
+        mediaUrl: concreteAssetRef,
+        posterUrl: input.imageUrl || null,
+        backendLabel: resolveAvatarBackendLabel('canvas2d'),
+        prefersMotion: true,
+      };
+    case 'video':
+      return {
+        kind: 'video',
+        assetRef: presentation.avatarAssetRef,
+        mediaUrl: concreteAssetRef,
+        posterUrl: input.imageUrl || null,
+        backendLabel: resolveAvatarBackendLabel('video'),
         prefersMotion: true,
       };
     default:

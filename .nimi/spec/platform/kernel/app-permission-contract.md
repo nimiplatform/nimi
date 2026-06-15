@@ -125,7 +125,8 @@ scope set 时的 fail-closed 状态，不能被应用当作 granted scope。
   `ai.spend.meter`, `device.use.scoped`, `file.read.scoped`,
   `ai_profile.selection.consume`。
 `MUST NOT`：first-party seed grant 不得 admit 超出本枚举的 scope；
-Avatar 集成仍受 Avatar 产品化 master gate 约束。
+Avatar first-party seed grants are admitted only for the hardcut `nimi.avatar`
+row and do not expand ordinary Apps visibility.
 
 ## P-PERM-010 — Cross-Kernel Backend Retention
 

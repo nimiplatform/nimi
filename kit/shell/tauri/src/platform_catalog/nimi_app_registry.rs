@@ -61,7 +61,7 @@ pub const PLATFORM_NIMI_APP_REGISTRY_ROWS: &[PlatformNimiAppRegistryRow] =
         ],
         release_descriptor_ref: "nimi.avatar.bundled-with-nimi",
         install_storage_policy_ref: "nimi-data-app-roots",
-        admission_status: "gated_by_avatar_master_gate",
+        admission_status: "admitted",
         source_rule: "P-NAPP-011",
     }];
 

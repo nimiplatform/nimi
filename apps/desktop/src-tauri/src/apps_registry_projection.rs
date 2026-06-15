@@ -146,15 +146,14 @@ mod tests {
     }
 
     #[test]
-    fn gated_avatar_routes_install_state_blocked() {
+    fn admitted_hidden_avatar_routes_install_state_bundled() {
         let record = build_apps_registry_record().expect("record");
         let avatar = record
             .apps
             .iter()
             .find(|row| row.app_id == "nimi.avatar")
             .expect("avatar row");
-        // Avatar is gated_by_avatar_master_gate -> blocked, not bundled.
-        assert_eq!(avatar.install_state, "blocked");
+        assert_eq!(avatar.install_state, "bundled");
     }
 
     #[test]

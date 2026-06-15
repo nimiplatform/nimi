@@ -57,20 +57,21 @@ Runtime registration；registration mode 必须匹配 registry row 中的
 `MUST NOT`：app 不得绕过 SDK Nimi App client 直接调用 Runtime registration
 私有 RPC；不得在 launch path 中自行 sandbox / supervise 进程。
 
-## P-FPI-006 — Avatar Master Gate Dependency
+## P-FPI-006 — Avatar Master Gate Clearance
 
-`MUST`：Avatar 集成实施必须满足下列任一前置条件：
+`MUST`：Avatar first-party integration now treats the Avatar productization
+master gate as cleared for the default `nimi.avatar` app. The canonical
+`tables/nimi-app-registry.yaml` Avatar row must remain `admission_status:
+admitted` while ordinary Apps exposure stays controlled by
+`ordinary_visibility: hidden-internal`.
 
-- Avatar 产品化 master gate 对 Avatar 必需的 readiness 已 accepted
-- Avatar master gate 明确 delegate Nimi App 集成 scope
+`MUST`：Avatar launch must register the `nimi.avatar` local first-party Runtime
+app instance before reading Runtime account session status. Account, agent,
+permission, and storage checks must continue to fail closed through Runtime and
+Platform registry truth.
 
-在前置条件未满足前，`tables/nimi-app-registry.yaml` 的 Avatar row
-`admission_status` 必须保持为 `gated_by_avatar_master_gate`。first-party
-integration 只能在前置条件满足后通过显式 admission 步骤把 Avatar 推升到
-`admitted`。
-
-`MUST NOT`：不得在 Avatar master gate 未清场前把 Avatar admission_status
-切到 `admitted`。
+`MUST NOT`：不得恢复 standalone ordinary-user launch truth、parallel admission
+truth，或通过 app-local session shim 绕过 Runtime `RegisterApp`。
 
 ## P-FPI-007 — No Standalone Ordinary-User Truth After Hard Cut
 

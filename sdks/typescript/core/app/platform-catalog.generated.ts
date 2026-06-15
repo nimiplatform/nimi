@@ -233,7 +233,7 @@ export const NIMI_APP_REGISTRY_ROWS = [
     "releaseDescriptorRef": "nimi.avatar.bundled-with-nimi",
     "installStoragePolicyRef": "nimi-data-app-roots",
     "sourceRule": "P-NAPP-011",
-    "admissionStatus": "gated_by_avatar_master_gate"
+    "admissionStatus": "admitted"
   }
 ] as const satisfies readonly NimiAppRegistrySourceRow[];
 

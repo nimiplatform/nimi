@@ -58,7 +58,7 @@ describe('resolveAvatarConversationContext', () => {
       realmAgentId: REALM_AGENT_ID,
       localAgentRef: LOCAL_AGENT_REF,
       avatarInstanceId: 'instance-1',
-    });
+    }, undefined);
   });
 
   it('fails closed on registered live-instance binding permission errors', async () => {

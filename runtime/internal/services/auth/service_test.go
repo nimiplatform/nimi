@@ -137,18 +137,18 @@ func testNimiAppRegistryCatalog() *appregistrycatalog.Registry {
 				OrdinaryVisibility:      appregistrycatalog.OrdinaryVisibilityHiddenInternal,
 				ReleaseDescriptorRef:    "nimi.avatar.bundled-with-nimi",
 				InstallStoragePolicyRef: "nimi-data-app-roots",
-				AdmissionStatus:         appregistrycatalog.AdmissionStatusGatedByAvatarMasterGate,
+				AdmissionStatus:         appregistrycatalog.AdmissionStatusAdmitted,
 				SourceRule:              "P-NAPP-011",
 			},
 		},
 	}
 }
 
-func testNimiAppRegistryCatalogWithAvatarAdmitted() *appregistrycatalog.Registry {
+func testNimiAppRegistryCatalogWithAvatarGated() *appregistrycatalog.Registry {
 	registry := testNimiAppRegistryCatalog()
 	for index := range registry.Apps {
 		if registry.Apps[index].AppID == "nimi.avatar" {
-			registry.Apps[index].AdmissionStatus = appregistrycatalog.AdmissionStatusAdmitted
+			registry.Apps[index].AdmissionStatus = appregistrycatalog.AdmissionStatusGatedByAvatarMasterGate
 		}
 	}
 	return registry
@@ -425,23 +425,23 @@ func TestRegisterAppChecksNimiAppRegistryProjection(t *testing.T) {
 	if err != nil {
 		t.Fatalf("register avatar: %v", err)
 	}
-	if avatarResp.GetAccepted() {
-		t.Fatalf("expected Avatar row gated by master gate to be rejected")
-	}
-	if avatarResp.GetReasonCode() != runtimev1.ReasonCode_APP_AUTHORIZATION_DENIED {
-		t.Fatalf("unexpected avatar reason code: %v", avatarResp.GetReasonCode())
+	if !avatarResp.GetAccepted() {
+		t.Fatalf("expected internal admitted Avatar row to register, reason=%v", avatarResp.GetReasonCode())
 	}
 
-	svc.SetNimiAppRegistryCatalog(testNimiAppRegistryCatalogWithAvatarAdmitted())
-	admittedAvatarResp, err := svc.RegisterApp(context.Background(), &runtimev1.RegisterAppRequest{
+	svc.SetNimiAppRegistryCatalog(testNimiAppRegistryCatalogWithAvatarGated())
+	gatedAvatarResp, err := svc.RegisterApp(context.Background(), &runtimev1.RegisterAppRequest{
 		AppId:        "nimi.avatar",
 		ModeManifest: validFullAppModeManifest(),
 	})
 	if err != nil {
-		t.Fatalf("register admitted avatar: %v", err)
+		t.Fatalf("register gated avatar: %v", err)
 	}
-	if !admittedAvatarResp.GetAccepted() {
-		t.Fatalf("expected internal admitted Avatar row to register, reason=%v", admittedAvatarResp.GetReasonCode())
+	if gatedAvatarResp.GetAccepted() {
+		t.Fatalf("expected explicitly gated Avatar row to be rejected")
+	}
+	if gatedAvatarResp.GetReasonCode() != runtimev1.ReasonCode_APP_AUTHORIZATION_DENIED {
+		t.Fatalf("unexpected gated avatar reason code: %v", gatedAvatarResp.GetReasonCode())
 	}
 }
 

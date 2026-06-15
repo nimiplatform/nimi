@@ -1,6 +1,12 @@
 import { createNimiClient } from '@nimiplatform/sdk';
 import { getSharedAudioPipelineController } from '@nimiplatform/kit/features/avatar/headless';
-import { createNimiRuntimeAgentConsumeClient, runNimiRuntimeScenarioJob, type NimiRuntimeAgentCompanionParticipationProjection } from '@nimiplatform/sdk/runtime';
+import {
+  createNimiRuntimeAgentConsumeClient,
+  runNimiRuntimeScenarioJob,
+  withNimiRuntimeAgentScopes,
+  type NimiRuntimeAgentCompanionParticipationProjection,
+  type NimiRuntimeAgentScopeRunner,
+} from '@nimiplatform/sdk/runtime';
 import { AccountReasonCode, AccountSessionState, ReasonCode } from '@nimiplatform/sdk/runtime/generated';
 import {
   buildNimiRuntimeGenerationSubmitRequest,
@@ -21,6 +27,7 @@ import { resolveAvatarConversationContext } from './avatar-conversation-context.
 import { useAvatarStore } from './app-store.js';
 import {
   createAvatarAccountCaller,
+  registerAvatarRuntimeApp,
   resolveLaunchAgentIdentity,
 } from './app-bootstrap-runtime-binding.js';
 import { recordLocalAvatarAssetResolved } from './app-bootstrap-package-evidence.js';
@@ -250,6 +257,7 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
         // playback for this session.
         getSharedAudioPipelineController().setRuntime(runtime);
         const accountCaller = createAvatarAccountCaller(runtimeAppId);
+        await runFirstPartyStage('runtime_app_registration', () => registerAvatarRuntimeApp(runtime.auth, runtimeAppId));
         const accountStatus = await runFirstPartyStage('account_session_status', () => runtime.account.getAccountSessionStatus({ caller: accountCaller }));
         const accountId = readNormalizedString(accountStatus.accountProjection?.accountId);
         if (accountStatus.state !== AccountSessionState.AUTHENTICATED || !accountId) {
@@ -345,8 +353,17 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
 
         const avatarInstanceId = readNormalizedString(launchContext.avatarInstanceId) || `avatar-${Date.now()}`;
         currentAvatarInstanceId = avatarInstanceId;
+        const withAvatarRuntimeAgentScopes: NimiRuntimeAgentScopeRunner = (scopes, operation) => withNimiRuntimeAgentScopes({
+          runtime: {
+            appId: runtimeAppId,
+            auth: runtime.auth,
+            appAuth: runtime.grants,
+          },
+          subjectUserId: accountId,
+        }, scopes, operation);
         const conversationContext = await runFirstPartyStage('conversation_context', () => resolveAvatarConversationContext({
           runtimeAgent,
+          withScopes: withAvatarRuntimeAgentScopes,
           accountId,
           ownerUserId,
           realmAgentId,

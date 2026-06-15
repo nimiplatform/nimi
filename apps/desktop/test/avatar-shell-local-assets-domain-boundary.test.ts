@@ -105,7 +105,7 @@ describe('Avatar shell/local-assets domain boundary', () => {
     assert.match(registryBridge, /accessToken/);
   });
 
-  it('keeps Agent Center local resource storage out of Desktop-local avatar package custody', () => {
+  it('keeps Agent Center Avatar asset import bounded to local materialization custody', () => {
     const resources = readRepo('apps/desktop/src-tauri/src/desktop_agent_center_store/resources.rs');
     const resourceTypes = readRepo('apps/desktop/src-tauri/src/desktop_agent_center_store/types.rs');
     const localConfig = readRepo(
@@ -119,7 +119,7 @@ describe('Avatar shell/local-assets domain boundary', () => {
     );
 
     assert.match(resources, /VALIDATION_FILE_NAME/);
-    assert.doesNotMatch(resources, /MAX_AVATAR_ASSET_BYTES/);
+    assert.match(resources, /MAX_AVATAR_ASSET_BYTES/);
     assert.doesNotMatch(resources, /resources_avatar_asset/);
     assert.doesNotMatch(resources, /CAPABILITY_PROFILE_FILE_NAME/);
     assert.doesNotMatch(resources, /capability-profile\.json/);
@@ -130,11 +130,11 @@ describe('Avatar shell/local-assets domain boundary', () => {
     assert.match(localConfig, /validateAgentCenterLocalConfig/);
     assert.match(avatarConfigTypes, /backend_capability_profile_ref/);
     assert.match(avatarConfigTypes, /local_avatar_asset_ref/);
-    assert.doesNotMatch(resourceTypes, /DesktopAgentCenterAvatarAssetImportPayload/);
-    assert.doesNotMatch(resourceTypes, /AgentCenterAvatarAssetValidationStatus/);
-    assert.doesNotMatch(bridge, /validateAgentCenterAvatarAssetImportResult/);
-    assert.doesNotMatch(bridge, /desktop_agent_center_avatar_asset_import/);
-    assert.doesNotMatch(bridge, /desktop_agent_center_avatar_asset_validate/);
+    assert.match(resourceTypes, /DesktopAgentCenterAvatarAssetImportPayload/);
+    assert.match(resourceTypes, /AgentCenterAvatarAssetValidationStatus/);
+    assert.match(bridge, /validateAgentCenterAvatarAssetImportResult/);
+    assert.match(bridge, /desktop_agent_center_avatar_asset_import/);
+    assert.match(bridge, /desktop_agent_center_avatar_asset_validate/);
     assert.doesNotMatch(bridge, /desktop_avatar_launch_handoff/);
   });
 
@@ -149,8 +149,7 @@ describe('Avatar shell/local-assets domain boundary', () => {
     const arbitrationTest = readRepo('apps/desktop/test/chat-agent-avatar-launch-arbitration.test.ts');
 
     assert.match(controls, /avatarAssetValid/);
-    assert.doesNotMatch(controls, /status:\s*['"]valid['"]/);
-    assert.doesNotMatch(controls, /backend_capability_profile_ref/);
+    assert.match(controls, /isAvatarAssetLaunchEvidenceReady/);
     assert.match(launchControls, /backendCapabilityProfileRef/);
     assert.match(launchControls, /executeArbitratedLaunch/);
     assert.match(launchControls, /launchDesktopAvatarHandoff/);

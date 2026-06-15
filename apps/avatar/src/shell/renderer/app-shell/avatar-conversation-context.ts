@@ -3,7 +3,11 @@ import {
   resolveBrowserStorage,
   writeStorageJsonTo,
 } from '@nimiplatform/kit/core/storage-json';
-import type { NimiRuntimeAgentConsumeClient } from '@nimiplatform/sdk/runtime';
+import type {
+  NimiRuntimeAgentConsumeClient,
+  NimiRuntimeAgentScopeRunner,
+} from '@nimiplatform/sdk/runtime';
+import type { RuntimeTypedCallOptions } from '@nimiplatform/sdk/runtime/generated';
 
 const STORAGE_KEY = 'nimi.avatar.conversation-context.v2';
 const SCHEMA_VERSION = 2;
@@ -141,18 +145,23 @@ function readPersistedContext(input: {
 
 async function validatePersistedAnchor(input: {
   runtimeAgent: NimiRuntimeAgentConsumeClient;
+  withScopes?: NimiRuntimeAgentScopeRunner;
   ownerUserId: string;
   realmAgentId: string;
   localAgentRef: string;
   conversationAnchorId: string;
 }): Promise<AvatarConversationContextResult | null> {
   try {
-    const snapshot = await input.runtimeAgent.anchors.getSnapshot({
-      ownerUserId: input.ownerUserId,
-      realmAgentId: input.realmAgentId,
-      localAgentRef: input.localAgentRef,
-      conversationAnchorId: input.conversationAnchorId,
-    });
+    const snapshot = await withRuntimeAgentScopes(
+      input.withScopes,
+      ['runtime.agent.read'],
+      (options) => input.runtimeAgent.anchors.getSnapshot({
+        ownerUserId: input.ownerUserId,
+        realmAgentId: input.realmAgentId,
+        localAgentRef: input.localAgentRef,
+        conversationAnchorId: input.conversationAnchorId,
+      }, options),
+    );
     const anchor = snapshot.anchor;
     const conversationAnchorId = normalizeText(anchor?.conversationAnchorId);
     const anchorAgentId = normalizeText(anchor?.agentId);
@@ -176,18 +185,23 @@ async function validatePersistedAnchor(input: {
 
 async function resolveRegisteredLiveInstanceAnchor(input: {
   runtimeAgent: NimiRuntimeAgentConsumeClient;
+  withScopes?: NimiRuntimeAgentScopeRunner;
   ownerUserId: string;
   realmAgentId: string;
   localAgentRef: string;
   avatarInstanceId: string;
 }): Promise<AvatarConversationContextResult | null> {
   try {
-    const result = await input.runtimeAgent.anchors.resolveAvatarLiveInstance({
-      ownerUserId: input.ownerUserId,
-      realmAgentId: input.realmAgentId,
-      localAgentRef: input.localAgentRef,
-      avatarInstanceId: input.avatarInstanceId,
-    });
+    const result = await withRuntimeAgentScopes(
+      input.withScopes,
+      ['runtime.agent.read'],
+      (options) => input.runtimeAgent.anchors.resolveAvatarLiveInstance({
+        ownerUserId: input.ownerUserId,
+        realmAgentId: input.realmAgentId,
+        localAgentRef: input.localAgentRef,
+        avatarInstanceId: input.avatarInstanceId,
+      }, options),
+    );
     const binding = result.binding;
     const snapshot = result.snapshot;
     const anchor = snapshot.anchor;
@@ -223,6 +237,7 @@ async function resolveRegisteredLiveInstanceAnchor(input: {
 
 export async function resolveAvatarConversationContext(input: {
   runtimeAgent: NimiRuntimeAgentConsumeClient;
+  withScopes?: NimiRuntimeAgentScopeRunner;
   accountId: string;
   ownerUserId: string;
   realmAgentId: string;
@@ -234,6 +249,7 @@ export async function resolveAvatarConversationContext(input: {
   }
   const registered = await resolveRegisteredLiveInstanceAnchor({
     runtimeAgent: input.runtimeAgent,
+    withScopes: input.withScopes,
     ownerUserId: input.ownerUserId,
     realmAgentId: input.realmAgentId,
     localAgentRef: input.localAgentRef,
@@ -257,6 +273,7 @@ export async function resolveAvatarConversationContext(input: {
   if (persisted) {
     const recovered = await validatePersistedAnchor({
       runtimeAgent: input.runtimeAgent,
+      withScopes: input.withScopes,
       ownerUserId: input.ownerUserId,
       realmAgentId: input.realmAgentId,
       localAgentRef: input.localAgentRef,
@@ -273,11 +290,15 @@ export async function resolveAvatarConversationContext(input: {
     }
   }
 
-  const opened = await input.runtimeAgent.anchors.open({
-    ownerUserId: input.ownerUserId,
-    realmAgentId: input.realmAgentId,
-    localAgentRef: input.localAgentRef,
-  });
+  const opened = await withRuntimeAgentScopes(
+    input.withScopes,
+    ['runtime.agent.write'],
+    (options) => input.runtimeAgent.anchors.open({
+      ownerUserId: input.ownerUserId,
+      realmAgentId: input.realmAgentId,
+      localAgentRef: input.localAgentRef,
+    }, options),
+  );
   const anchor = opened.anchor;
   const conversationAnchorId = normalizeText(anchor?.conversationAnchorId);
   const anchorAgentId = normalizeText(anchor?.agentId);
@@ -300,4 +321,15 @@ export async function resolveAvatarConversationContext(input: {
     subjectUserId,
     recovered: false,
   };
+}
+
+function withRuntimeAgentScopes<T>(
+  runner: NimiRuntimeAgentScopeRunner | undefined,
+  scopes: readonly string[],
+  operation: (options?: RuntimeTypedCallOptions) => Promise<T>,
+): Promise<T> {
+  if (!runner) {
+    return operation(undefined);
+  }
+  return runner(scopes, operation);
 }

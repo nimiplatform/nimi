@@ -16,6 +16,8 @@ const bindAvatarRuntimeIdentityMock = vi.fn();
 const driverStopMock = vi.fn();
 const createNimiClientMock = vi.fn();
 const runtimeReadyMock = vi.fn();
+const registerAppMock = vi.fn();
+const authorizeExternalPrincipalMock = vi.fn();
 const getAccountSessionStatusMock = vi.fn();
 const getAccessTokenMock = vi.fn();
 const openAnchorMock = vi.fn();
@@ -39,6 +41,12 @@ const recordAvatarEvidenceEventuallyMock = vi.fn();
 
 const runtimeMock = {
   ready: (...args: unknown[]) => runtimeReadyMock(...args),
+  auth: {
+    registerApp: (...args: unknown[]) => registerAppMock(...args),
+  },
+  grants: {
+    authorizeExternalPrincipal: (...args: unknown[]) => authorizeExternalPrincipalMock(...args),
+  },
   account: {
     getAccountSessionStatus: (...args: unknown[]) => getAccountSessionStatusMock(...args),
     getAccessToken: (...args: unknown[]) => getAccessTokenMock(...args),
@@ -104,8 +112,6 @@ function runtimeAgentContextMatcher() {
 function openAnchorRequestMatcher() {
   return expect.objectContaining({
     context: runtimeAgentContextMatcher(),
-    agentId: LOCAL_AGENT_REF,
-    subjectUserId: OWNER_USER_ID,
     localAgentRef: LOCAL_AGENT_REF,
     ownerUserId: OWNER_USER_ID,
     realmAgentId: REALM_AGENT_ID,
@@ -117,6 +123,15 @@ function anchorSnapshotRequestMatcher(conversationAnchorId: string) {
     context: runtimeAgentContextMatcher(),
     agentId: LOCAL_AGENT_REF,
     conversationAnchorId,
+  });
+}
+
+function protectedAccessOptionsMatcher() {
+  return expect.objectContaining({
+    metadata: expect.objectContaining({
+      'x-nimi-access-token-id': 'avatar-protected-token-id',
+      'x-nimi-access-token-secret': 'avatar-protected-token-secret',
+    }),
   });
 }
 
@@ -273,6 +288,8 @@ describe('bootstrapAvatar', () => {
     driverStopMock.mockReset();
     createNimiClientMock.mockReset();
     runtimeReadyMock.mockReset();
+    registerAppMock.mockReset();
+    authorizeExternalPrincipalMock.mockReset();
     getAccountSessionStatusMock.mockReset();
     getAccessTokenMock.mockReset();
     openAnchorMock.mockReset();
@@ -336,6 +353,11 @@ describe('bootstrapAvatar', () => {
       },
     });
     runtimeReadyMock.mockResolvedValue(undefined);
+    registerAppMock.mockResolvedValue({
+      accepted: true,
+      reasonCode: ReasonCode.ACTION_EXECUTED,
+      appInstanceId: 'nimi.avatar.local-first-party',
+    });
     getAccountSessionStatusMock.mockResolvedValue({
       state: 3,
       accountProjection: { accountId: 'account-runtime' },
@@ -343,6 +365,14 @@ describe('bootstrapAvatar', () => {
     getAccessTokenMock.mockResolvedValue({
       accepted: true,
       accessToken: 'runtime-issued-short-lived-token',
+    });
+    authorizeExternalPrincipalMock.mockResolvedValue({
+      tokenId: 'avatar-protected-token-id',
+      secret: 'avatar-protected-token-secret',
+      expiresAt: {
+        seconds: String(Math.floor(Date.now() / 1000) + 3600),
+        nanos: 0,
+      },
     });
     openAnchorMock.mockResolvedValue({
       anchor: {
@@ -435,6 +465,20 @@ describe('bootstrapAvatar', () => {
     }));
     expect(createNimiClientMock.mock.calls[0]?.[0]).not.toHaveProperty('accessToken');
     expect(createNimiClientMock.mock.calls[0]?.[0]).not.toHaveProperty('refreshTokenProvider');
+    expect(registerAppMock).toHaveBeenCalledWith(expect.objectContaining({
+      appId: 'nimi.avatar',
+      appInstanceId: 'nimi.avatar.local-first-party',
+      deviceId: 'avatar-shell-runtime-bridge',
+      appVersion: '1',
+      capabilities: [],
+      developerRegistration: false,
+      modeManifest: {
+        appMode: 3,
+        runtimeRequired: true,
+        realmRequired: true,
+        worldRelation: 1,
+      },
+    }), expect.any(Object));
     expect(getAccountSessionStatusMock).toHaveBeenCalledWith({
       caller: expect.objectContaining({
         appId: 'nimi.avatar',
@@ -451,7 +495,7 @@ describe('bootstrapAvatar', () => {
       requestedScopes: [],
     });
     expect(getAnchorSnapshotMock).not.toHaveBeenCalled();
-    expect(openAnchorMock).toHaveBeenCalledWith(openAnchorRequestMatcher(), undefined);
+    expect(openAnchorMock).toHaveBeenCalledWith(openAnchorRequestMatcher(), protectedAccessOptionsMatcher());
     expect(resolveLocalAvatarAssetManifestMock).toHaveBeenCalledWith({
       accountId: OWNER_USER_ID,
       ownerUserId: OWNER_USER_ID,
@@ -579,7 +623,7 @@ describe('bootstrapAvatar', () => {
     expect(getDaemonStatusMock).toHaveBeenCalledTimes(1);
     expect(startDaemonMock).toHaveBeenCalledTimes(1);
     expect(createNimiClientMock).toHaveBeenCalledTimes(1);
-    expect(openAnchorMock).toHaveBeenCalledWith(openAnchorRequestMatcher(), undefined);
+    expect(openAnchorMock).toHaveBeenCalledWith(openAnchorRequestMatcher(), protectedAccessOptionsMatcher());
     expect(useAvatarStore.getState().runtime.binding.status).toBe('active');
 
     await handle.shutdown();
@@ -638,7 +682,7 @@ describe('bootstrapAvatar', () => {
       launchSource: null,
     });
     expect(useAvatarStore.getState().runtime.binding.status).toBe('active');
-    expect(openAnchorMock).toHaveBeenCalledWith(openAnchorRequestMatcher(), undefined);
+    expect(openAnchorMock).toHaveBeenCalledWith(openAnchorRequestMatcher(), protectedAccessOptionsMatcher());
     expect(useAvatarStore.getState().consume.avatarInstanceId).toBe('avatar-1777420800000');
     expect(createDriverMock).toHaveBeenCalledTimes(1);
     expect(createDriverMock.mock.calls[0]?.[0]?.sdk).not.toHaveProperty('scopedBinding');
@@ -669,7 +713,7 @@ describe('bootstrapAvatar', () => {
 
     const handle = await bootstrapAvatar();
 
-    expect(getAnchorSnapshotMock).toHaveBeenCalledWith(anchorSnapshotRequestMatcher('anchor-recovered'), undefined);
+    expect(getAnchorSnapshotMock).toHaveBeenCalledWith(anchorSnapshotRequestMatcher('anchor-recovered'), protectedAccessOptionsMatcher());
     expect(openAnchorMock).not.toHaveBeenCalled();
     expect(useAvatarStore.getState().consume.conversationAnchorId).toBe('anchor-recovered');
     expect(window.localStorage.getItem('nimi.avatar.conversation-context.v2')).toContain('anchor-recovered');
@@ -701,7 +745,7 @@ describe('bootstrapAvatar', () => {
     const handle = await bootstrapAvatar();
 
     expect(getAnchorSnapshotMock).not.toHaveBeenCalled();
-    expect(openAnchorMock).toHaveBeenCalledWith(openAnchorRequestMatcher(), undefined);
+    expect(openAnchorMock).toHaveBeenCalledWith(openAnchorRequestMatcher(), protectedAccessOptionsMatcher());
     expect(useAvatarStore.getState().consume.conversationAnchorId).toBe('anchor-runtime');
 
     await handle.shutdown();
@@ -731,8 +775,8 @@ describe('bootstrapAvatar', () => {
 
     const handle = await bootstrapAvatar();
 
-    expect(getAnchorSnapshotMock).toHaveBeenCalledWith(anchorSnapshotRequestMatcher('anchor-stale'), undefined);
-    expect(openAnchorMock).toHaveBeenCalledWith(openAnchorRequestMatcher(), undefined);
+    expect(getAnchorSnapshotMock).toHaveBeenCalledWith(anchorSnapshotRequestMatcher('anchor-stale'), protectedAccessOptionsMatcher());
+    expect(openAnchorMock).toHaveBeenCalledWith(openAnchorRequestMatcher(), protectedAccessOptionsMatcher());
     expect(useAvatarStore.getState().runtime.binding.status).toBe('active');
     expect(useAvatarStore.getState().consume.conversationAnchorId).toBe('anchor-runtime');
     expect(window.localStorage.getItem('nimi.avatar.conversation-context.v2')).toContain('anchor-runtime');
@@ -776,7 +820,7 @@ describe('bootstrapAvatar', () => {
 
     const handle = await bootstrapAvatar();
 
-    expect(getAnchorSnapshotMock).toHaveBeenCalledWith(anchorSnapshotRequestMatcher('anchor-instance-2'), undefined);
+    expect(getAnchorSnapshotMock).toHaveBeenCalledWith(anchorSnapshotRequestMatcher('anchor-instance-2'), protectedAccessOptionsMatcher());
     expect(useAvatarStore.getState().consume.avatarInstanceId).toBe('instance-2');
     expect(useAvatarStore.getState().consume.conversationAnchorId).toBe('anchor-instance-2');
     expect(openAnchorMock).not.toHaveBeenCalled();
@@ -801,7 +845,7 @@ describe('bootstrapAvatar', () => {
     const handle = await bootstrapAvatar();
 
     expect(getAnchorSnapshotMock).not.toHaveBeenCalled();
-    expect(openAnchorMock).toHaveBeenCalledWith(openAnchorRequestMatcher(), undefined);
+    expect(openAnchorMock).toHaveBeenCalledWith(openAnchorRequestMatcher(), protectedAccessOptionsMatcher());
     expect(useAvatarStore.getState().consume.agentId).toBe(LOCAL_AGENT_REF);
     expect(useAvatarStore.getState().consume.conversationAnchorId).toBe('anchor-runtime');
 
@@ -819,6 +863,29 @@ describe('bootstrapAvatar', () => {
 
     expect(useAvatarStore.getState().runtime.binding.status).toBe('unavailable');
     expect(useAvatarStore.getState().runtime.binding.reason).toBe('runtime_account_session_unavailable');
+    expect(getAccessTokenMock).not.toHaveBeenCalled();
+    expect(openAnchorMock).not.toHaveBeenCalled();
+    expect(createDriverMock).not.toHaveBeenCalled();
+    expect(handle.driver).toBeNull();
+
+    await handle.shutdown();
+  });
+
+  it('fails closed before account status when Avatar Runtime app registration is rejected', async () => {
+    registerAppMock.mockResolvedValue({
+      accepted: false,
+      reasonCode: ReasonCode.APP_AUTHORIZATION_DENIED,
+      appInstanceId: '',
+    });
+    const { bootstrapAvatar } = await import('./app-bootstrap.js');
+
+    const handle = await bootstrapAvatar();
+
+    expect(useAvatarStore.getState().runtime.binding.status).toBe('unavailable');
+    expect(useAvatarStore.getState().runtime.binding.reason).toBe(
+      'runtime_app_registration: APP_AUTHORIZATION_DENIED / register_runtime_app_first',
+    );
+    expect(getAccountSessionStatusMock).not.toHaveBeenCalled();
     expect(getAccessTokenMock).not.toHaveBeenCalled();
     expect(openAnchorMock).not.toHaveBeenCalled();
     expect(createDriverMock).not.toHaveBeenCalled();

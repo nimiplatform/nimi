@@ -13,6 +13,7 @@ import (
 )
 
 const defaultAppStoragePolicyRef = "nimi-data-app-roots"
+const avatarAppID = "nimi.avatar"
 
 // GetAppStorage returns the Runtime-owned app-scoped storage truth projection.
 // It is intentionally independent from install job state: runtime-registered
@@ -99,6 +100,16 @@ func (s *Service) GetAppStorage(ctx context.Context, req *runtimev1.GetAppStorag
 			activeErr.Error(),
 		)}, nil
 	}
+	if isDesktopCoreAvatarStorageProjection(ctx, appID) {
+		return &runtimev1.GetAppStorageResponse{Projection: appStorageProjectionFromPlan(
+			appID,
+			roots,
+			runtimev1.AppStorageState_APP_STORAGE_STATE_READY,
+			"",
+			runtimev1.ReasonCode_ACTION_EXECUTED,
+			"",
+		)}, nil
+	}
 
 	state := runtimev1.AppStorageState_APP_STORAGE_STATE_READY
 	reason := runtimev1.ReasonCode_ACTION_EXECUTED
@@ -116,6 +127,10 @@ func (s *Service) GetAppStorage(ctx context.Context, req *runtimev1.GetAppStorag
 		reason,
 		detail,
 	)}, nil
+}
+
+func isDesktopCoreAvatarStorageProjection(ctx context.Context, appID string) bool {
+	return strings.TrimSpace(appID) == avatarAppID && isDesktopCoreLifecycleController(ctx)
 }
 
 func (s *Service) resolveStorageDescriptor(appID string) (appreleasecatalog.Descriptor, bool) {

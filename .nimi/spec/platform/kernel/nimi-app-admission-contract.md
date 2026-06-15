@@ -158,11 +158,10 @@ subordinate authority semantics 与本契约 admission 并行存在；两者互�
 
 ## P-NAPP-011 — First-Party Seed
 
-`MUST`：first-party seed row 仅包含 Avatar master-gate hardcut target：
+`MUST`：first-party seed row 仅包含 Avatar hardcut target：
 
-- `nimi.avatar` — `admission_status: gated_by_avatar_master_gate`。Avatar
-  productization master gate 必须先清场，才能切换为 `admitted`。即使
-  future status becomes `admitted` for package/update coordination, ordinary
+- `nimi.avatar` — `admission_status: admitted` after Avatar productization
+  master-gate clearance. Even with admitted package/update coordination, ordinary
   Apps visibility remains `hidden-internal` unless a later product authority
   explicitly changes Avatar Apps posture.
 
