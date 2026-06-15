@@ -28,8 +28,8 @@
     "@ai-sdk/provider": "3.0.10",
     "@nimiplatform/sdk": "workspace:*",
     "@types/node": "^25.9.1",
-    "ai": "6.0.190",
-    "tsx": "^4.22.3",
+    "ai": "6.0.205",
+    "tsx": "^4.22.4",
     "typescript": "^5.9.3",
     "zod": "4.4.3"
   },
