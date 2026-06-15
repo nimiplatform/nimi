@@ -10,7 +10,8 @@ import {
   type RegisterAppResponse,
   type RuntimeTypedCallOptions,
 } from '../core-generated/runtime-typed-client';
-import { createNimiError } from '../types';
+import { createNimiClientId, createNimiError } from '../types';
+import { withNimiRuntimeIdempotencyMetadata } from './scenario-jobs';
 import { normalizeNimiRuntimeAgentText, toNimiRuntimeTimestamp } from './runtime-agent-values';
 
 const RUNTIME_AGENT_SCOPE_CATALOG_VERSION = 'sdk-v2';
@@ -86,7 +87,10 @@ async function issueNimiRuntimeAgentCallOptions(input: {
       realmRequired: true,
       worldRelation: WorldRelation.NONE,
     },
-  });
+  }, withNimiRuntimeIdempotencyMetadata(
+    undefined,
+    createNimiClientId('runtime-agent-protected-register'),
+  ));
   if (!registration.accepted) {
     throw createNimiError({
       message: 'Runtime Agent protected access registration was rejected.',
@@ -114,9 +118,10 @@ async function issueNimiRuntimeAgentCallOptions(input: {
     ttlSeconds: RUNTIME_AGENT_TOKEN_TTL_SECONDS,
     scopeCatalogVersion: RUNTIME_AGENT_SCOPE_CATALOG_VERSION,
     policyOverride: false,
-  }, {
-    metadata: { domain: 'app-auth' },
-  });
+  }, withNimiRuntimeIdempotencyMetadata(
+    { metadata: { domain: 'app-auth' } },
+    createNimiClientId(`runtime-agent-protected-authorize-${protectedScopeSignature(scopes)}`),
+  ));
   const tokenId = normalizeNimiRuntimeAgentText(token.tokenId);
   const secret = normalizeNimiRuntimeAgentText(token.secret);
   if (!tokenId || !secret) {
@@ -133,6 +138,19 @@ async function issueNimiRuntimeAgentCallOptions(input: {
       'x-nimi-access-token-secret': secret,
     },
   };
+}
+
+function protectedScopeSignature(scopes: readonly string[]): string {
+  let hash = 0x811c9dc5;
+  for (const scope of scopes) {
+    for (let index = 0; index < scope.length; index += 1) {
+      hash ^= scope.charCodeAt(index);
+      hash = Math.imul(hash, 0x01000193) >>> 0;
+    }
+    hash ^= 0x7c;
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return `s${scopes.length}-${hash.toString(36)}`;
 }
 
 export async function withNimiRuntimeAgentScopes<T>(

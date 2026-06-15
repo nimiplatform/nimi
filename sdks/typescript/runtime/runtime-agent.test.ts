@@ -147,11 +147,16 @@ test('Runtime Agent builders produce generated Runtime requests without old alia
 test('Runtime Agent protected presentation surface requests scoped Runtime access', async () => {
   const issuedScopes: string[][] = [];
   const issuedOptions: RuntimeTypedCallOptions[] = [];
+  const registerOptions: RuntimeTypedCallOptions[] = [];
+  const authorizeOptions: RuntimeTypedCallOptions[] = [];
   const requests: unknown[] = [];
   const runtime = {
     appId: 'sdk.test',
     auth: {
-      async registerApp() {
+      async registerApp(_request: unknown, options?: RuntimeTypedCallOptions) {
+        if (options) {
+          registerOptions.push(options);
+        }
         return {
           appInstanceId: 'sdk.test.runtime-agent',
           accepted: true,
@@ -160,8 +165,11 @@ test('Runtime Agent protected presentation surface requests scoped Runtime acces
       },
     },
     appAuth: {
-      async authorizeExternalPrincipal(request: { scopes: string[] }) {
+      async authorizeExternalPrincipal(request: { scopes: string[] }, options?: RuntimeTypedCallOptions) {
         issuedScopes.push(request.scopes);
+        if (options) {
+          authorizeOptions.push(options);
+        }
         return {
           tokenId: 'token-1',
           secret: 'secret-1',
@@ -198,6 +206,15 @@ test('Runtime Agent protected presentation surface requests scoped Runtime acces
   });
 
   assert.deepEqual(issuedScopes, [['runtime.agent.write']]);
+  assert.match(
+    String(registerOptions[0]?.metadata?.['x-nimi-idempotency-key'] ?? ''),
+    /^runtime-agent-protected-register-/u,
+  );
+  assert.match(
+    String(authorizeOptions[0]?.metadata?.['x-nimi-idempotency-key'] ?? ''),
+    /^runtime-agent-protected-authorize-/u,
+  );
+  assert.equal(authorizeOptions[0]?.metadata?.domain, 'app-auth');
   assert.equal(issuedOptions[0]?.metadata?.['x-nimi-access-token-id'], 'token-1');
   assert.equal(requests.length, 1);
 });
