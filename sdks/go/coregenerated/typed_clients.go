@@ -9999,8 +9999,6 @@ type AgentProfileDto struct {
 	WorldId string `json:"worldId,omitempty"`
 }
 
-type AgentRelationType string
-
 type AgentRelationshipOtherAccountDto struct {
 	AvatarUrl string `json:"avatarUrl,omitempty"`
 	DisplayName string `json:"displayName,omitempty"`
@@ -10018,6 +10016,8 @@ type AgentRelationshipRecordDto struct {
 	Strength float64 `json:"strength,omitempty"`
 	Type any `json:"type,omitempty"`
 }
+
+type AgentRelationType string
 
 type AgentResponseMetadataDto struct {
 	ActiveWorldId string `json:"activeWorldId,omitempty"`
@@ -10135,6 +10135,8 @@ type AgentVoiceConfigDto struct {
 	Description string `json:"description,omitempty"`
 	EmotionEnabled bool `json:"emotionEnabled,omitempty"`
 	Pitch float64 `json:"pitch,omitempty"`
+	SpeechModelId string `json:"speechModelId,omitempty"`
+	SpeechRoutePolicy string `json:"speechRoutePolicy,omitempty"`
 	Speed float64 `json:"speed,omitempty"`
 	VoiceId string `json:"voiceId,omitempty"`
 }
@@ -10142,6 +10144,13 @@ type AgentVoiceConfigDto struct {
 type AgentWakeStrategy string
 
 type ApiKeyType string
+
+type AppendWorldHistoryDto struct {
+	Commit *MutationCommitEnvelopeDto `json:"commit,omitempty"`
+	HistoryAppends []WorldHistoryAppendItemDto `json:"historyAppends,omitempty"`
+	IfSnapshotVersion string `json:"ifSnapshotVersion,omitempty"`
+	Reason string `json:"reason,omitempty"`
+}
 
 type AppPermissionGrantDecisionDto struct {
 	ExpectedVersion float64 `json:"expectedVersion,omitempty"`
@@ -10207,13 +10216,6 @@ type AppPermissionGrantSupersedeDto struct {
 type AppPermissionScopeFamily string
 
 type AppPermissionScopeName string
-
-type AppendWorldHistoryDto struct {
-	Commit *MutationCommitEnvelopeDto `json:"commit,omitempty"`
-	HistoryAppends []WorldHistoryAppendItemDto `json:"historyAppends,omitempty"`
-	IfSnapshotVersion string `json:"ifSnapshotVersion,omitempty"`
-	Reason string `json:"reason,omitempty"`
-}
 
 type AssetDetailDto struct {
 	AuthorId string `json:"authorId,omitempty"`
@@ -10519,6 +10521,41 @@ type CausalityRuleDto struct {
 	Id string `json:"id,omitempty"`
 	Probability float64 `json:"probability,omitempty"`
 	Trigger string `json:"trigger,omitempty"`
+}
+
+type CbdbCuratedAgentChatReadinessDto struct {
+	AgentId string `json:"agentId,omitempty"`
+	AgentRuleCount float64 `json:"agentRuleCount,omitempty"`
+	ConsumerSurface string `json:"consumerSurface,omitempty"`
+	Gates *CbdbCuratedAgentChatReadinessGatesDto `json:"gates,omitempty"`
+	OwnerScope string `json:"ownerScope,omitempty"`
+	Profile *CbdbCuratedAgentChatReadinessProfileDto `json:"profile,omitempty"`
+	RawRuleContentExposed bool `json:"rawRuleContentExposed,omitempty"`
+	RuntimeProjectionChecksum string `json:"runtimeProjectionChecksum,omitempty"`
+	SelectedInputCount float64 `json:"selectedInputCount,omitempty"`
+	SelectedOwnerSettingFields []string `json:"selectedOwnerSettingFields,omitempty"`
+	SuppressedInputCount float64 `json:"suppressedInputCount,omitempty"`
+	WorldId string `json:"worldId,omitempty"`
+	WorldRuleCount float64 `json:"worldRuleCount,omitempty"`
+}
+
+type CbdbCuratedAgentChatReadinessGatesDto struct {
+	LocalAgentIdentityReady bool `json:"localAgentIdentityReady,omitempty"`
+	OwnerSettingsReady bool `json:"ownerSettingsReady,omitempty"`
+	ProfileContextReady bool `json:"profileContextReady,omitempty"`
+	ProfileMediaReady bool `json:"profileMediaReady,omitempty"`
+	SpeechRouteReady bool `json:"speechRouteReady,omitempty"`
+	VoiceReferenceReady bool `json:"voiceReferenceReady,omitempty"`
+}
+
+type CbdbCuratedAgentChatReadinessProfileDto struct {
+	AvatarUrl string `json:"avatarUrl,omitempty"`
+	DefaultVoiceReference string `json:"defaultVoiceReference,omitempty"`
+	DisplayName string `json:"displayName,omitempty"`
+	Handle string `json:"handle,omitempty"`
+	ProfileCoverUrl string `json:"profileCoverUrl,omitempty"`
+	SpeechModelId string `json:"speechModelId,omitempty"`
+	SpeechRoutePolicy string `json:"speechRoutePolicy,omitempty"`
 }
 
 type ChangeEmailDto struct {
@@ -11019,6 +11056,237 @@ type FinalizeResourceDto struct {
 	TraceId string `json:"traceId,omitempty"`
 	Width float64 `json:"width,omitempty"`
 	WorldId string `json:"worldId,omitempty"`
+}
+
+type ForgeAgentCandidateCapabilityCellDto struct {
+	EvidenceTruthRefCount float64 `json:"evidenceTruthRefCount,omitempty"`
+	EvidenceTruthRefs []string `json:"evidenceTruthRefs,omitempty"`
+	PredicateId string `json:"predicateId,omitempty"`
+	Requirements []ForgeAgentCandidateRequirementDto `json:"requirements,omitempty"`
+	Status string `json:"status,omitempty"`
+	Surface string `json:"surface,omitempty"`
+}
+
+type ForgeAgentCandidateDto struct {
+	AgentRef string `json:"agentRef,omitempty"`
+	CapabilityVector []ForgeAgentCandidateCapabilityCellDto `json:"capabilityVector,omitempty"`
+	CompletenessIntent string `json:"completenessIntent,omitempty"`
+	EntityRef string `json:"entityRef,omitempty"`
+	Id string `json:"id,omitempty"`
+	Name string `json:"name,omitempty"`
+	RuntimeMaterialization *ForgeAgentCandidateRuntimeMaterializationDto `json:"runtimeMaterialization,omitempty"`
+	SourceProfiles []ForgeAgentCandidateSourceProfileDto `json:"sourceProfiles,omitempty"`
+	WorldId string `json:"worldId,omitempty"`
+}
+
+type ForgeAgentCandidateQueryFiltersDto struct {
+	Query string `json:"query,omitempty"`
+	Status string `json:"status,omitempty"`
+	Surface string `json:"surface,omitempty"`
+}
+
+type ForgeAgentCandidateQueryResultDto struct {
+	Candidates []ForgeAgentCandidateDto `json:"candidates,omitempty"`
+	Filters *ForgeAgentCandidateQueryFiltersDto `json:"filters,omitempty"`
+	PackageId string `json:"packageId,omitempty"`
+	Returned float64 `json:"returned,omitempty"`
+	SchemaVersion string `json:"schemaVersion,omitempty"`
+	Slug string `json:"slug,omitempty"`
+	Total float64 `json:"total,omitempty"`
+}
+
+type ForgeAgentCandidateRequirementDto struct {
+	Actual float64 `json:"actual,omitempty"`
+	Gap float64 `json:"gap,omitempty"`
+	GapKind string `json:"gapKind,omitempty"`
+	Id string `json:"id,omitempty"`
+	Passed bool `json:"passed,omitempty"`
+	Required float64 `json:"required,omitempty"`
+}
+
+type ForgeAgentCandidateRuntimeMaterializationDto struct {
+	MaterializedRuntimeAgent bool `json:"materializedRuntimeAgent,omitempty"`
+	RoleplayRuntimeEligible bool `json:"roleplayRuntimeEligible,omitempty"`
+}
+
+type ForgeAgentCandidateSourceProfileDto struct {
+	Archetype string `json:"archetype,omitempty"`
+	AuthorityRank string `json:"authorityRank,omitempty"`
+	EvidenceLocatorKind string `json:"evidenceLocatorKind,omitempty"`
+	Profile string `json:"profile,omitempty"`
+	SourceId string `json:"sourceId,omitempty"`
+}
+
+type ForgeProductArtifactRefDto struct {
+	Checksum string `json:"checksum,omitempty"`
+	Kind string `json:"kind,omitempty"`
+	Path string `json:"path,omitempty"`
+}
+
+type ForgeProductCapabilitySummaryDto struct {
+	AgentCandidates float64 `json:"agentCandidates,omitempty"`
+	CompletenessIntentCounts map[string]any `json:"completenessIntentCounts,omitempty"`
+	MaterializedRuntimeAgents float64 `json:"materializedRuntimeAgents,omitempty"`
+	RuntimeReadyCandidates float64 `json:"runtimeReadyCandidates,omitempty"`
+	SurfaceStatusCounts map[string]any `json:"surfaceStatusCounts,omitempty"`
+}
+
+type ForgeProductCountsDto struct {
+	AgentBlueprints float64 `json:"agentBlueprints,omitempty"`
+	AgentCapabilities float64 `json:"agentCapabilities,omitempty"`
+	AgentExemplars float64 `json:"agentExemplars,omitempty"`
+	AgentRelationships float64 `json:"agentRelationships,omitempty"`
+	EvidenceRecords float64 `json:"evidenceRecords,omitempty"`
+	ProjectionInputs float64 `json:"projectionInputs,omitempty"`
+	Scenes float64 `json:"scenes,omitempty"`
+	WorldEntities float64 `json:"worldEntities,omitempty"`
+	WorldEvents float64 `json:"worldEvents,omitempty"`
+	WorldRelationships float64 `json:"worldRelationships,omitempty"`
+	WorldRules float64 `json:"worldRules,omitempty"`
+	WorldSystems float64 `json:"worldSystems,omitempty"`
+}
+
+type ForgeProductEvalScorecardDto struct {
+	AdmissionAuthority string `json:"admissionAuthority,omitempty"`
+	ArtifactPath string `json:"artifactPath,omitempty"`
+	Checksum string `json:"checksum,omitempty"`
+	PublicDataset bool `json:"publicDataset,omitempty"`
+	Suite string `json:"suite,omitempty"`
+	TrustTier string `json:"trustTier,omitempty"`
+}
+
+type ForgeProductOptionalArtifactQualityDto struct {
+	ArtifactPath string `json:"artifactPath,omitempty"`
+	Checksum string `json:"checksum,omitempty"`
+}
+
+type ForgeProductQualityDto struct {
+	EvalScorecards []ForgeProductEvalScorecardDto `json:"evalScorecards,omitempty"`
+	PresetZeroing map[string]any `json:"presetZeroing,omitempty"`
+	UpdateRun map[string]any `json:"updateRun,omitempty"`
+	Validation *ForgeProductValidationQualityDto `json:"validation,omitempty"`
+}
+
+type ForgeProductShardIndexDto struct {
+	PackageId string `json:"packageId,omitempty"`
+	PackageVersion string `json:"packageVersion,omitempty"`
+	SchemaVersion string `json:"schemaVersion,omitempty"`
+	ShardManifest *ForgeProductShardManifestRefDto `json:"shardManifest,omitempty"`
+	Shards []ForgeProductShardIndexItemDto `json:"shards,omitempty"`
+	Slug string `json:"slug,omitempty"`
+}
+
+type ForgeProductShardIndexItemDto struct {
+	ByteSize float64 `json:"byteSize,omitempty"`
+	Checksum string `json:"checksum,omitempty"`
+	ExportKeys []string `json:"exportKeys,omitempty"`
+	Kind string `json:"kind,omitempty"`
+	Path string `json:"path,omitempty"`
+}
+
+type ForgeProductShardIntegrityItemDto struct {
+	ActualChecksum string `json:"actualChecksum,omitempty"`
+	ByteSize float64 `json:"byteSize,omitempty"`
+	Error string `json:"error,omitempty"`
+	ExpectedChecksum string `json:"expectedChecksum,omitempty"`
+	ExportKeys []string `json:"exportKeys,omitempty"`
+	Kind string `json:"kind,omitempty"`
+	Path string `json:"path,omitempty"`
+	Status string `json:"status,omitempty"`
+}
+
+type ForgeProductShardIntegrityReportDto struct {
+	PackageId string `json:"packageId,omitempty"`
+	PackageVersion string `json:"packageVersion,omitempty"`
+	SchemaVersion string `json:"schemaVersion,omitempty"`
+	ShardManifest *ForgeProductShardManifestRefDto `json:"shardManifest,omitempty"`
+	Shards []ForgeProductShardIntegrityItemDto `json:"shards,omitempty"`
+	Slug string `json:"slug,omitempty"`
+	Status string `json:"status,omitempty"`
+}
+
+type ForgeProductShardManifestRefDto struct {
+	Checksum string `json:"checksum,omitempty"`
+	Path string `json:"path,omitempty"`
+}
+
+type ForgeProductShardReadDto struct {
+	Checksum string `json:"checksum,omitempty"`
+	Kind string `json:"kind,omitempty"`
+	PackageId string `json:"packageId,omitempty"`
+	PackageVersion string `json:"packageVersion,omitempty"`
+	Record map[string]any `json:"record,omitempty"`
+	SchemaVersion string `json:"schemaVersion,omitempty"`
+	Slug string `json:"slug,omitempty"`
+}
+
+type ForgeProductSourceProfileDto struct {
+	Archetype string `json:"archetype,omitempty"`
+	AuthorityRank string `json:"authorityRank,omitempty"`
+	EvidenceLocatorKind string `json:"evidenceLocatorKind,omitempty"`
+	InputCount float64 `json:"inputCount,omitempty"`
+	LocaleProfile string `json:"localeProfile,omitempty"`
+	Profile string `json:"profile,omitempty"`
+	SourceId string `json:"sourceId,omitempty"`
+	Title string `json:"title,omitempty"`
+}
+
+type ForgeProductUpdateRunQualityDto struct {
+	ArtifactPath string `json:"artifactPath,omitempty"`
+	Checksum string `json:"checksum,omitempty"`
+	RunStatus string `json:"runStatus,omitempty"`
+}
+
+type ForgeProductValidationQualityDto struct {
+	ArtifactPath string `json:"artifactPath,omitempty"`
+	Checksum string `json:"checksum,omitempty"`
+	Status string `json:"status,omitempty"`
+}
+
+type ForgeProductWorldRefDto struct {
+	Id string `json:"id,omitempty"`
+	Name string `json:"name,omitempty"`
+}
+
+type ForgeWorldCatalogDto struct {
+	QualitySummary *ForgeWorldCatalogQualitySummaryDto `json:"qualitySummary,omitempty"`
+	RootDir string `json:"rootDir,omitempty"`
+	SchemaVersion string `json:"schemaVersion,omitempty"`
+	Worlds []ForgeWorldProductDto `json:"worlds,omitempty"`
+}
+
+type ForgeWorldCatalogQualitySummaryDto struct {
+	EvalScorecards float64 `json:"evalScorecards,omitempty"`
+	GoldenGateScorecards float64 `json:"goldenGateScorecards,omitempty"`
+	PublicReferenceScorecards float64 `json:"publicReferenceScorecards,omitempty"`
+	ReportOnlyScorecards float64 `json:"reportOnlyScorecards,omitempty"`
+	UpdateRunBlocked float64 `json:"updateRunBlocked,omitempty"`
+	UpdateRunFailed float64 `json:"updateRunFailed,omitempty"`
+	UpdateRunNoop float64 `json:"updateRunNoop,omitempty"`
+	UpdateRunSuccess float64 `json:"updateRunSuccess,omitempty"`
+	ValidationFail float64 `json:"validationFail,omitempty"`
+	ValidationPass float64 `json:"validationPass,omitempty"`
+	Worlds float64 `json:"worlds,omitempty"`
+	WorldsWithGoldenGate float64 `json:"worldsWithGoldenGate,omitempty"`
+	WorldsWithPresetZeroing float64 `json:"worldsWithPresetZeroing,omitempty"`
+	WorldsWithPublicReference float64 `json:"worldsWithPublicReference,omitempty"`
+	WorldsWithUpdateRun float64 `json:"worldsWithUpdateRun,omitempty"`
+}
+
+type ForgeWorldProductDto struct {
+	Artifacts []ForgeProductArtifactRefDto `json:"artifacts,omitempty"`
+	CapabilitySummary *ForgeProductCapabilitySummaryDto `json:"capabilitySummary,omitempty"`
+	Counts *ForgeProductCountsDto `json:"counts,omitempty"`
+	DistributionShape string `json:"distributionShape,omitempty"`
+	PackageId string `json:"packageId,omitempty"`
+	PackageVersion string `json:"packageVersion,omitempty"`
+	ProductId string `json:"productId,omitempty"`
+	Quality *ForgeProductQualityDto `json:"quality,omitempty"`
+	SchemaVersion string `json:"schemaVersion,omitempty"`
+	Slug string `json:"slug,omitempty"`
+	SourceMix []ForgeProductSourceProfileDto `json:"sourceMix,omitempty"`
+	Target string `json:"target,omitempty"`
+	World *ForgeProductWorldRefDto `json:"world,omitempty"`
 }
 
 type FriendProfileDto struct {
@@ -11575,22 +11843,6 @@ type OwnerAgentSettingsDto struct {
 	WorldId string `json:"worldId,omitempty"`
 }
 
-type PPSlotConfigDto struct {
-	Slot1 *PPSlotItemDto `json:"slot1,omitempty"`
-	Slot2 *PPSlotItemDto `json:"slot2,omitempty"`
-	Slot3 *PPSlotItemDto `json:"slot3,omitempty"`
-	Slot4 *PPSlotItemDto `json:"slot4,omitempty"`
-}
-
-type PPSlotConfigResponseDto struct {
-	PpSlotConfig *PPSlotConfigDto `json:"ppSlotConfig,omitempty"`
-}
-
-type PPSlotItemDto struct {
-	Id string `json:"id,omitempty"`
-	Type string `json:"type,omitempty"`
-}
-
 type PasswordLoginDto struct {
 	Identifier string `json:"identifier,omitempty"`
 	Password string `json:"password,omitempty"`
@@ -11673,6 +11925,22 @@ type PowerTierDto struct {
 	Level float64 `json:"level,omitempty"`
 	Name string `json:"name,omitempty"`
 	Requirements []string `json:"requirements,omitempty"`
+}
+
+type PPSlotConfigDto struct {
+	Slot1 *PPSlotItemDto `json:"slot1,omitempty"`
+	Slot2 *PPSlotItemDto `json:"slot2,omitempty"`
+	Slot3 *PPSlotItemDto `json:"slot3,omitempty"`
+	Slot4 *PPSlotItemDto `json:"slot4,omitempty"`
+}
+
+type PPSlotConfigResponseDto struct {
+	PpSlotConfig *PPSlotConfigDto `json:"ppSlotConfig,omitempty"`
+}
+
+type PPSlotItemDto struct {
+	Id string `json:"id,omitempty"`
+	Type string `json:"type,omitempty"`
 }
 
 type PresenceStatus string
@@ -12297,6 +12565,11 @@ type UpdateAgentNsfwConsentDto struct {
 	Enabled bool `json:"enabled,omitempty"`
 }
 
+type UpdateAgentProfileMediaDto struct {
+	AvatarUrl string `json:"avatarUrl,omitempty"`
+	ProfileCoverUrl string `json:"profileCoverUrl,omitempty"`
+}
+
 type UpdateAgentRuleDto struct {
 	Category string `json:"category,omitempty"`
 	ConflictsWith []string `json:"conflictsWith,omitempty"`
@@ -12319,6 +12592,16 @@ type UpdateAgentVisibilityDto struct {
 	DefaultPostVisibility any `json:"defaultPostVisibility,omitempty"`
 	DmVisibility any `json:"dmVisibility,omitempty"`
 	ProfileVisibility any `json:"profileVisibility,omitempty"`
+}
+
+type UpdateAgentVoiceDto struct {
+	Description string `json:"description,omitempty"`
+	EmotionEnabled bool `json:"emotionEnabled,omitempty"`
+	Pitch float64 `json:"pitch,omitempty"`
+	SpeechModelId string `json:"speechModelId,omitempty"`
+	SpeechRoutePolicy string `json:"speechRoutePolicy,omitempty"`
+	Speed float64 `json:"speed,omitempty"`
+	VoiceId string `json:"voiceId,omitempty"`
 }
 
 type UpdateAssetDto struct {
@@ -12376,10 +12659,6 @@ type UpdateOwnerAgentSettingsDto struct {
 	Positioning *OwnerAgentPositioningSettingsDto `json:"positioning,omitempty"`
 }
 
-type UpdatePPSlotConfigDto struct {
-	PpSlotConfig *PPSlotConfigDto `json:"ppSlotConfig,omitempty"`
-}
-
 type UpdateParticipantRoleInputDto struct {
 	Role string `json:"role,omitempty"`
 }
@@ -12391,6 +12670,10 @@ type UpdatePasswordRequestDto struct {
 
 type UpdatePostDto struct {
 	Visibility any `json:"visibility,omitempty"`
+}
+
+type UpdatePPSlotConfigDto struct {
+	PpSlotConfig *PPSlotConfigDto `json:"ppSlotConfig,omitempty"`
 }
 
 type UpdateRelationshipDto struct {
@@ -15041,6 +15324,125 @@ type RealmFinalizeResourceOperationRequest struct {
 	Body    FinalizeResourceDto `json:"body,omitempty"`
 }
 
+type RealmForgeProductCatalogControllerGetAgentCandidatesOperationPath struct {
+	Slug string `json:"slug,omitempty"`
+}
+
+type RealmForgeProductCatalogControllerGetAgentCandidatesOperationQuery struct {
+	IncludeEvidenceRefs bool `json:"includeEvidenceRefs,omitempty"`
+	Limit float64 `json:"limit,omitempty"`
+	Status string `json:"status,omitempty"`
+	Surface string `json:"surface,omitempty"`
+	Query string `json:"query,omitempty"`
+}
+
+type RealmForgeProductCatalogControllerGetAgentCandidatesOperationHeaders struct {
+
+}
+
+type RealmForgeProductCatalogControllerGetAgentCandidatesOperationRequest struct {
+	Path    RealmForgeProductCatalogControllerGetAgentCandidatesOperationPath `json:"path,omitempty"`
+	Query   RealmForgeProductCatalogControllerGetAgentCandidatesOperationQuery `json:"query,omitempty"`
+	Headers RealmForgeProductCatalogControllerGetAgentCandidatesOperationHeaders `json:"headers,omitempty"`
+	Body    struct{} `json:"body,omitempty"`
+}
+
+type RealmForgeProductCatalogControllerGetCatalogOperationPath struct {
+
+}
+
+type RealmForgeProductCatalogControllerGetCatalogOperationQuery struct {
+
+}
+
+type RealmForgeProductCatalogControllerGetCatalogOperationHeaders struct {
+
+}
+
+type RealmForgeProductCatalogControllerGetCatalogOperationRequest struct {
+	Path    RealmForgeProductCatalogControllerGetCatalogOperationPath `json:"path,omitempty"`
+	Query   RealmForgeProductCatalogControllerGetCatalogOperationQuery `json:"query,omitempty"`
+	Headers RealmForgeProductCatalogControllerGetCatalogOperationHeaders `json:"headers,omitempty"`
+	Body    struct{} `json:"body,omitempty"`
+}
+
+type RealmForgeProductCatalogControllerGetProductOperationPath struct {
+	Slug string `json:"slug,omitempty"`
+}
+
+type RealmForgeProductCatalogControllerGetProductOperationQuery struct {
+
+}
+
+type RealmForgeProductCatalogControllerGetProductOperationHeaders struct {
+
+}
+
+type RealmForgeProductCatalogControllerGetProductOperationRequest struct {
+	Path    RealmForgeProductCatalogControllerGetProductOperationPath `json:"path,omitempty"`
+	Query   RealmForgeProductCatalogControllerGetProductOperationQuery `json:"query,omitempty"`
+	Headers RealmForgeProductCatalogControllerGetProductOperationHeaders `json:"headers,omitempty"`
+	Body    struct{} `json:"body,omitempty"`
+}
+
+type RealmForgeProductCatalogControllerGetProductShardOperationPath struct {
+	Kind string `json:"kind,omitempty"`
+	Slug string `json:"slug,omitempty"`
+}
+
+type RealmForgeProductCatalogControllerGetProductShardOperationQuery struct {
+
+}
+
+type RealmForgeProductCatalogControllerGetProductShardOperationHeaders struct {
+
+}
+
+type RealmForgeProductCatalogControllerGetProductShardOperationRequest struct {
+	Path    RealmForgeProductCatalogControllerGetProductShardOperationPath `json:"path,omitempty"`
+	Query   RealmForgeProductCatalogControllerGetProductShardOperationQuery `json:"query,omitempty"`
+	Headers RealmForgeProductCatalogControllerGetProductShardOperationHeaders `json:"headers,omitempty"`
+	Body    struct{} `json:"body,omitempty"`
+}
+
+type RealmForgeProductCatalogControllerGetProductShardIndexOperationPath struct {
+	Slug string `json:"slug,omitempty"`
+}
+
+type RealmForgeProductCatalogControllerGetProductShardIndexOperationQuery struct {
+
+}
+
+type RealmForgeProductCatalogControllerGetProductShardIndexOperationHeaders struct {
+
+}
+
+type RealmForgeProductCatalogControllerGetProductShardIndexOperationRequest struct {
+	Path    RealmForgeProductCatalogControllerGetProductShardIndexOperationPath `json:"path,omitempty"`
+	Query   RealmForgeProductCatalogControllerGetProductShardIndexOperationQuery `json:"query,omitempty"`
+	Headers RealmForgeProductCatalogControllerGetProductShardIndexOperationHeaders `json:"headers,omitempty"`
+	Body    struct{} `json:"body,omitempty"`
+}
+
+type RealmForgeProductCatalogControllerVerifyProductShardsOperationPath struct {
+	Slug string `json:"slug,omitempty"`
+}
+
+type RealmForgeProductCatalogControllerVerifyProductShardsOperationQuery struct {
+
+}
+
+type RealmForgeProductCatalogControllerVerifyProductShardsOperationHeaders struct {
+
+}
+
+type RealmForgeProductCatalogControllerVerifyProductShardsOperationRequest struct {
+	Path    RealmForgeProductCatalogControllerVerifyProductShardsOperationPath `json:"path,omitempty"`
+	Query   RealmForgeProductCatalogControllerVerifyProductShardsOperationQuery `json:"query,omitempty"`
+	Headers RealmForgeProductCatalogControllerVerifyProductShardsOperationHeaders `json:"headers,omitempty"`
+	Body    struct{} `json:"body,omitempty"`
+}
+
 type RealmGetAgentOperationPath struct {
 	Id string `json:"id,omitempty"`
 }
@@ -15133,6 +15535,63 @@ type RealmGetBundleOperationRequest struct {
 	Path    RealmGetBundleOperationPath `json:"path,omitempty"`
 	Query   RealmGetBundleOperationQuery `json:"query,omitempty"`
 	Headers RealmGetBundleOperationHeaders `json:"headers,omitempty"`
+	Body    struct{} `json:"body,omitempty"`
+}
+
+type RealmGetCbdbCuratedSystemAgentOperationPath struct {
+	AgentId string `json:"agentId,omitempty"`
+}
+
+type RealmGetCbdbCuratedSystemAgentOperationQuery struct {
+
+}
+
+type RealmGetCbdbCuratedSystemAgentOperationHeaders struct {
+
+}
+
+type RealmGetCbdbCuratedSystemAgentOperationRequest struct {
+	Path    RealmGetCbdbCuratedSystemAgentOperationPath `json:"path,omitempty"`
+	Query   RealmGetCbdbCuratedSystemAgentOperationQuery `json:"query,omitempty"`
+	Headers RealmGetCbdbCuratedSystemAgentOperationHeaders `json:"headers,omitempty"`
+	Body    struct{} `json:"body,omitempty"`
+}
+
+type RealmGetCbdbCuratedSystemAgentChatReadinessOperationPath struct {
+	AgentId string `json:"agentId,omitempty"`
+}
+
+type RealmGetCbdbCuratedSystemAgentChatReadinessOperationQuery struct {
+
+}
+
+type RealmGetCbdbCuratedSystemAgentChatReadinessOperationHeaders struct {
+
+}
+
+type RealmGetCbdbCuratedSystemAgentChatReadinessOperationRequest struct {
+	Path    RealmGetCbdbCuratedSystemAgentChatReadinessOperationPath `json:"path,omitempty"`
+	Query   RealmGetCbdbCuratedSystemAgentChatReadinessOperationQuery `json:"query,omitempty"`
+	Headers RealmGetCbdbCuratedSystemAgentChatReadinessOperationHeaders `json:"headers,omitempty"`
+	Body    struct{} `json:"body,omitempty"`
+}
+
+type RealmGetCbdbCuratedSystemAgentSettingsOperationPath struct {
+	AgentId string `json:"agentId,omitempty"`
+}
+
+type RealmGetCbdbCuratedSystemAgentSettingsOperationQuery struct {
+
+}
+
+type RealmGetCbdbCuratedSystemAgentSettingsOperationHeaders struct {
+
+}
+
+type RealmGetCbdbCuratedSystemAgentSettingsOperationRequest struct {
+	Path    RealmGetCbdbCuratedSystemAgentSettingsOperationPath `json:"path,omitempty"`
+	Query   RealmGetCbdbCuratedSystemAgentSettingsOperationQuery `json:"query,omitempty"`
+	Headers RealmGetCbdbCuratedSystemAgentSettingsOperationHeaders `json:"headers,omitempty"`
 	Body    struct{} `json:"body,omitempty"`
 }
 
@@ -16002,6 +16461,25 @@ type RealmListBundlesOperationRequest struct {
 	Path    RealmListBundlesOperationPath `json:"path,omitempty"`
 	Query   RealmListBundlesOperationQuery `json:"query,omitempty"`
 	Headers RealmListBundlesOperationHeaders `json:"headers,omitempty"`
+	Body    struct{} `json:"body,omitempty"`
+}
+
+type RealmListCbdbCuratedSystemAgentsOperationPath struct {
+
+}
+
+type RealmListCbdbCuratedSystemAgentsOperationQuery struct {
+
+}
+
+type RealmListCbdbCuratedSystemAgentsOperationHeaders struct {
+
+}
+
+type RealmListCbdbCuratedSystemAgentsOperationRequest struct {
+	Path    RealmListCbdbCuratedSystemAgentsOperationPath `json:"path,omitempty"`
+	Query   RealmListCbdbCuratedSystemAgentsOperationQuery `json:"query,omitempty"`
+	Headers RealmListCbdbCuratedSystemAgentsOperationHeaders `json:"headers,omitempty"`
 	Body    struct{} `json:"body,omitempty"`
 }
 
@@ -17341,6 +17819,63 @@ type RealmUpdateBundleOperationRequest struct {
 	Query   RealmUpdateBundleOperationQuery `json:"query,omitempty"`
 	Headers RealmUpdateBundleOperationHeaders `json:"headers,omitempty"`
 	Body    UpdateBundleDto `json:"body,omitempty"`
+}
+
+type RealmUpdateCbdbCuratedSystemAgentProfileMediaOperationPath struct {
+	AgentId string `json:"agentId,omitempty"`
+}
+
+type RealmUpdateCbdbCuratedSystemAgentProfileMediaOperationQuery struct {
+
+}
+
+type RealmUpdateCbdbCuratedSystemAgentProfileMediaOperationHeaders struct {
+
+}
+
+type RealmUpdateCbdbCuratedSystemAgentProfileMediaOperationRequest struct {
+	Path    RealmUpdateCbdbCuratedSystemAgentProfileMediaOperationPath `json:"path,omitempty"`
+	Query   RealmUpdateCbdbCuratedSystemAgentProfileMediaOperationQuery `json:"query,omitempty"`
+	Headers RealmUpdateCbdbCuratedSystemAgentProfileMediaOperationHeaders `json:"headers,omitempty"`
+	Body    UpdateAgentProfileMediaDto `json:"body,omitempty"`
+}
+
+type RealmUpdateCbdbCuratedSystemAgentSettingsOperationPath struct {
+	AgentId string `json:"agentId,omitempty"`
+}
+
+type RealmUpdateCbdbCuratedSystemAgentSettingsOperationQuery struct {
+
+}
+
+type RealmUpdateCbdbCuratedSystemAgentSettingsOperationHeaders struct {
+
+}
+
+type RealmUpdateCbdbCuratedSystemAgentSettingsOperationRequest struct {
+	Path    RealmUpdateCbdbCuratedSystemAgentSettingsOperationPath `json:"path,omitempty"`
+	Query   RealmUpdateCbdbCuratedSystemAgentSettingsOperationQuery `json:"query,omitempty"`
+	Headers RealmUpdateCbdbCuratedSystemAgentSettingsOperationHeaders `json:"headers,omitempty"`
+	Body    UpdateOwnerAgentSettingsDto `json:"body,omitempty"`
+}
+
+type RealmUpdateCbdbCuratedSystemAgentVoiceOperationPath struct {
+	AgentId string `json:"agentId,omitempty"`
+}
+
+type RealmUpdateCbdbCuratedSystemAgentVoiceOperationQuery struct {
+
+}
+
+type RealmUpdateCbdbCuratedSystemAgentVoiceOperationHeaders struct {
+
+}
+
+type RealmUpdateCbdbCuratedSystemAgentVoiceOperationRequest struct {
+	Path    RealmUpdateCbdbCuratedSystemAgentVoiceOperationPath `json:"path,omitempty"`
+	Query   RealmUpdateCbdbCuratedSystemAgentVoiceOperationQuery `json:"query,omitempty"`
+	Headers RealmUpdateCbdbCuratedSystemAgentVoiceOperationHeaders `json:"headers,omitempty"`
+	Body    UpdateAgentVoiceDto `json:"body,omitempty"`
 }
 
 type RealmUpdateGroupOperationPath struct {
@@ -19143,6 +19678,54 @@ func (c RealmTypedClient) FinalizeResource(ctx context.Context, request RealmFin
 	return decodeTypedResponse[ResourceDetailDto](raw)
 }
 
+func (c RealmTypedClient) ForgeProductCatalogControllerGetAgentCandidates(ctx context.Context, request RealmForgeProductCatalogControllerGetAgentCandidatesOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ForgeAgentCandidateQueryResultDto, error) {
+	raw, err := c.operationTyped(ctx, "ForgeProductCatalogController_getAgentCandidates", request, metadata, timeoutMS)
+	if err != nil {
+		return ForgeAgentCandidateQueryResultDto{}, err
+	}
+	return decodeTypedResponse[ForgeAgentCandidateQueryResultDto](raw)
+}
+
+func (c RealmTypedClient) ForgeProductCatalogControllerGetCatalog(ctx context.Context, request RealmForgeProductCatalogControllerGetCatalogOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ForgeWorldCatalogDto, error) {
+	raw, err := c.operationTyped(ctx, "ForgeProductCatalogController_getCatalog", request, metadata, timeoutMS)
+	if err != nil {
+		return ForgeWorldCatalogDto{}, err
+	}
+	return decodeTypedResponse[ForgeWorldCatalogDto](raw)
+}
+
+func (c RealmTypedClient) ForgeProductCatalogControllerGetProduct(ctx context.Context, request RealmForgeProductCatalogControllerGetProductOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ForgeWorldProductDto, error) {
+	raw, err := c.operationTyped(ctx, "ForgeProductCatalogController_getProduct", request, metadata, timeoutMS)
+	if err != nil {
+		return ForgeWorldProductDto{}, err
+	}
+	return decodeTypedResponse[ForgeWorldProductDto](raw)
+}
+
+func (c RealmTypedClient) ForgeProductCatalogControllerGetProductShard(ctx context.Context, request RealmForgeProductCatalogControllerGetProductShardOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ForgeProductShardReadDto, error) {
+	raw, err := c.operationTyped(ctx, "ForgeProductCatalogController_getProductShard", request, metadata, timeoutMS)
+	if err != nil {
+		return ForgeProductShardReadDto{}, err
+	}
+	return decodeTypedResponse[ForgeProductShardReadDto](raw)
+}
+
+func (c RealmTypedClient) ForgeProductCatalogControllerGetProductShardIndex(ctx context.Context, request RealmForgeProductCatalogControllerGetProductShardIndexOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ForgeProductShardIndexDto, error) {
+	raw, err := c.operationTyped(ctx, "ForgeProductCatalogController_getProductShardIndex", request, metadata, timeoutMS)
+	if err != nil {
+		return ForgeProductShardIndexDto{}, err
+	}
+	return decodeTypedResponse[ForgeProductShardIndexDto](raw)
+}
+
+func (c RealmTypedClient) ForgeProductCatalogControllerVerifyProductShards(ctx context.Context, request RealmForgeProductCatalogControllerVerifyProductShardsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ForgeProductShardIntegrityReportDto, error) {
+	raw, err := c.operationTyped(ctx, "ForgeProductCatalogController_verifyProductShards", request, metadata, timeoutMS)
+	if err != nil {
+		return ForgeProductShardIntegrityReportDto{}, err
+	}
+	return decodeTypedResponse[ForgeProductShardIntegrityReportDto](raw)
+}
+
 func (c RealmTypedClient) GetAgent(ctx context.Context, request RealmGetAgentOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UserProfileDto, error) {
 	raw, err := c.operationTyped(ctx, "getAgent", request, metadata, timeoutMS)
 	if err != nil {
@@ -19181,6 +19764,30 @@ func (c RealmTypedClient) GetBundle(ctx context.Context, request RealmGetBundleO
 		return BundleDetailDto{}, err
 	}
 	return decodeTypedResponse[BundleDetailDto](raw)
+}
+
+func (c RealmTypedClient) GetCbdbCuratedSystemAgent(ctx context.Context, request RealmGetCbdbCuratedSystemAgentOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UserLiteDto, error) {
+	raw, err := c.operationTyped(ctx, "getCbdbCuratedSystemAgent", request, metadata, timeoutMS)
+	if err != nil {
+		return UserLiteDto{}, err
+	}
+	return decodeTypedResponse[UserLiteDto](raw)
+}
+
+func (c RealmTypedClient) GetCbdbCuratedSystemAgentChatReadiness(ctx context.Context, request RealmGetCbdbCuratedSystemAgentChatReadinessOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CbdbCuratedAgentChatReadinessDto, error) {
+	raw, err := c.operationTyped(ctx, "getCbdbCuratedSystemAgentChatReadiness", request, metadata, timeoutMS)
+	if err != nil {
+		return CbdbCuratedAgentChatReadinessDto{}, err
+	}
+	return decodeTypedResponse[CbdbCuratedAgentChatReadinessDto](raw)
+}
+
+func (c RealmTypedClient) GetCbdbCuratedSystemAgentSettings(ctx context.Context, request RealmGetCbdbCuratedSystemAgentSettingsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (OwnerAgentSettingsDto, error) {
+	raw, err := c.operationTyped(ctx, "getCbdbCuratedSystemAgentSettings", request, metadata, timeoutMS)
+	if err != nil {
+		return OwnerAgentSettingsDto{}, err
+	}
+	return decodeTypedResponse[OwnerAgentSettingsDto](raw)
 }
 
 func (c RealmTypedClient) GetChatById(ctx context.Context, request RealmGetChatByIdOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ChatViewDto, error) {
@@ -19541,6 +20148,14 @@ func (c RealmTypedClient) ListBundles(ctx context.Context, request RealmListBund
 		return BundleListDto{}, err
 	}
 	return decodeTypedResponse[BundleListDto](raw)
+}
+
+func (c RealmTypedClient) ListCbdbCuratedSystemAgents(ctx context.Context, request RealmListCbdbCuratedSystemAgentsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) ([]UserLiteDto, error) {
+	raw, err := c.operationTyped(ctx, "listCbdbCuratedSystemAgents", request, metadata, timeoutMS)
+	if err != nil {
+		return []UserLiteDto{}, err
+	}
+	return decodeTypedResponse[[]UserLiteDto](raw)
 }
 
 func (c RealmTypedClient) ListChats(ctx context.Context, request RealmListChatsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListChatsResultDto, error) {
@@ -20077,6 +20692,30 @@ func (c RealmTypedClient) UpdateBundle(ctx context.Context, request RealmUpdateB
 		return BundleDetailDto{}, err
 	}
 	return decodeTypedResponse[BundleDetailDto](raw)
+}
+
+func (c RealmTypedClient) UpdateCbdbCuratedSystemAgentProfileMedia(ctx context.Context, request RealmUpdateCbdbCuratedSystemAgentProfileMediaOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UserLiteDto, error) {
+	raw, err := c.operationTyped(ctx, "updateCbdbCuratedSystemAgentProfileMedia", request, metadata, timeoutMS)
+	if err != nil {
+		return UserLiteDto{}, err
+	}
+	return decodeTypedResponse[UserLiteDto](raw)
+}
+
+func (c RealmTypedClient) UpdateCbdbCuratedSystemAgentSettings(ctx context.Context, request RealmUpdateCbdbCuratedSystemAgentSettingsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (OwnerAgentSettingsDto, error) {
+	raw, err := c.operationTyped(ctx, "updateCbdbCuratedSystemAgentSettings", request, metadata, timeoutMS)
+	if err != nil {
+		return OwnerAgentSettingsDto{}, err
+	}
+	return decodeTypedResponse[OwnerAgentSettingsDto](raw)
+}
+
+func (c RealmTypedClient) UpdateCbdbCuratedSystemAgentVoice(ctx context.Context, request RealmUpdateCbdbCuratedSystemAgentVoiceOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UserLiteDto, error) {
+	raw, err := c.operationTyped(ctx, "updateCbdbCuratedSystemAgentVoice", request, metadata, timeoutMS)
+	if err != nil {
+		return UserLiteDto{}, err
+	}
+	return decodeTypedResponse[UserLiteDto](raw)
 }
 
 func (c RealmTypedClient) UpdateGroup(ctx context.Context, request RealmUpdateGroupOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GroupChatViewDto, error) {

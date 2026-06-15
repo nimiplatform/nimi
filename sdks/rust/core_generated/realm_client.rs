@@ -530,6 +530,42 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         path: Some("/api/resources/{resourceId}/finalize"),
     },
     RealmOperationDescriptor {
+        operation_id: "ForgeProductCatalogController_getAgentCandidates",
+        service: "Forge World Products",
+        method: "GET",
+        path: Some("/api/world-products/{slug}/agent-candidates"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "ForgeProductCatalogController_getCatalog",
+        service: "Forge World Products",
+        method: "GET",
+        path: Some("/api/world-products/catalog"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "ForgeProductCatalogController_getProduct",
+        service: "Forge World Products",
+        method: "GET",
+        path: Some("/api/world-products/{slug}"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "ForgeProductCatalogController_getProductShard",
+        service: "Forge World Products",
+        method: "GET",
+        path: Some("/api/world-products/{slug}/shards/{kind}"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "ForgeProductCatalogController_getProductShardIndex",
+        service: "Forge World Products",
+        method: "GET",
+        path: Some("/api/world-products/{slug}/shards"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "ForgeProductCatalogController_verifyProductShards",
+        service: "Forge World Products",
+        method: "GET",
+        path: Some("/api/world-products/{slug}/shards/integrity"),
+    },
+    RealmOperationDescriptor {
         operation_id: "getAgent",
         service: "Agents",
         method: "GET",
@@ -558,6 +594,24 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         service: "Bundles",
         method: "GET",
         path: Some("/api/bundles/{bundleId}"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "getCbdbCuratedSystemAgent",
+        service: "Agent / Curated System",
+        method: "GET",
+        path: Some("/api/agent/curated-system/cbdb/agents/{agentId}"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "getCbdbCuratedSystemAgentChatReadiness",
+        service: "Agent / Curated System",
+        method: "GET",
+        path: Some("/api/agent/curated-system/cbdb/agents/{agentId}/chat-readiness"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "getCbdbCuratedSystemAgentSettings",
+        service: "Agent / Curated System",
+        method: "GET",
+        path: Some("/api/agent/curated-system/cbdb/agents/{agentId}/settings"),
     },
     RealmOperationDescriptor {
         operation_id: "getChatById",
@@ -828,6 +882,12 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         service: "Bundles",
         method: "GET",
         path: Some("/api/bundles"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "listCbdbCuratedSystemAgents",
+        service: "Agent / Curated System",
+        method: "GET",
+        path: Some("/api/agent/curated-system/cbdb/agents"),
     },
     RealmOperationDescriptor {
         operation_id: "listChats",
@@ -1230,6 +1290,24 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         service: "Bundles",
         method: "PATCH",
         path: Some("/api/bundles/{bundleId}"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "updateCbdbCuratedSystemAgentProfileMedia",
+        service: "Agent / Curated System",
+        method: "PATCH",
+        path: Some("/api/agent/curated-system/cbdb/agents/{agentId}/profile-media"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "updateCbdbCuratedSystemAgentSettings",
+        service: "Agent / Curated System",
+        method: "PATCH",
+        path: Some("/api/agent/curated-system/cbdb/agents/{agentId}/settings"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "updateCbdbCuratedSystemAgentVoice",
+        service: "Agent / Curated System",
+        method: "PATCH",
+        path: Some("/api/agent/curated-system/cbdb/agents/{agentId}/voice"),
     },
     RealmOperationDescriptor {
         operation_id: "updateGroup",

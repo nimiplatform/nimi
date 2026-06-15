@@ -200,8 +200,6 @@ class AgentProfileDto:
     stats: AgentStatsDto | None = None
     worldId: str | None = None
 
-AgentRelationType = Literal["ALLY", "RIVAL", "ENEMY"]
-
 @dataclass(frozen=True)
 class AgentRelationshipOtherAccountDto:
     avatarUrl: str | None = None
@@ -219,6 +217,8 @@ class AgentRelationshipRecordDto:
     otherAccount: AgentRelationshipOtherAccountDto | None = None
     strength: float | None = None
     type: AgentRelationType | None = None
+
+AgentRelationType = Literal["ALLY", "RIVAL", "ENEMY"]
 
 @dataclass(frozen=True)
 class AgentResponseMetadataDto:
@@ -337,12 +337,21 @@ class AgentVoiceConfigDto:
     description: str | None = None
     emotionEnabled: bool | None = None
     pitch: float | None = None
+    speechModelId: str | None = None
+    speechRoutePolicy: Literal["local", "cloud"] | None = None
     speed: float | None = None
     voiceId: str | None = None
 
 AgentWakeStrategy = Literal["PASSIVE", "PROACTIVE"]
 
 ApiKeyType = Literal["PERSONAL", "ENTERPRISE"]
+
+@dataclass(frozen=True)
+class AppendWorldHistoryDto:
+    commit: MutationCommitEnvelopeDto | None = None
+    historyAppends: tuple[WorldHistoryAppendItemDto, ...] = field(default_factory=tuple)
+    ifSnapshotVersion: str | None = None
+    reason: str | None = None
 
 @dataclass(frozen=True)
 class AppPermissionGrantDecisionDto:
@@ -408,13 +417,6 @@ class AppPermissionGrantSupersedeDto:
 AppPermissionScopeFamily = Literal["account", "data", "agent", "ai_spend", "memory", "knowledge", "notification", "file_device", "audit", "ai_profile"]
 
 AppPermissionScopeName = Literal["account.read", "account.session.read", "data.scope.read", "data.scope.write", "agent.identity.project", "agent.identity.bind", "ai.spend.meter", "ai.spend.delegate", "memory.read.bounded", "memory.write.admitted", "knowledge.read.bounded", "knowledge.write.admitted", "notification.send", "notification.subscribe", "file.read.scoped", "file.write.scoped", "device.use.scoped", "audit.read.scoped", "ai_profile.selection.consume"]
-
-@dataclass(frozen=True)
-class AppendWorldHistoryDto:
-    commit: MutationCommitEnvelopeDto | None = None
-    historyAppends: tuple[WorldHistoryAppendItemDto, ...] = field(default_factory=tuple)
-    ifSnapshotVersion: str | None = None
-    reason: str | None = None
 
 @dataclass(frozen=True)
 class AssetDetailDto:
@@ -721,6 +723,41 @@ class CausalityRuleDto:
     id: str | None = None
     probability: float | None = None
     trigger: str | None = None
+
+@dataclass(frozen=True)
+class CbdbCuratedAgentChatReadinessDto:
+    agentId: str | None = None
+    agentRuleCount: float | None = None
+    consumerSurface: str | None = None
+    gates: CbdbCuratedAgentChatReadinessGatesDto | None = None
+    ownerScope: str | None = None
+    profile: CbdbCuratedAgentChatReadinessProfileDto | None = None
+    rawRuleContentExposed: bool | None = None
+    runtimeProjectionChecksum: str | None = None
+    selectedInputCount: float | None = None
+    selectedOwnerSettingFields: tuple[str, ...] = field(default_factory=tuple)
+    suppressedInputCount: float | None = None
+    worldId: str | None = None
+    worldRuleCount: float | None = None
+
+@dataclass(frozen=True)
+class CbdbCuratedAgentChatReadinessGatesDto:
+    localAgentIdentityReady: bool | None = None
+    ownerSettingsReady: bool | None = None
+    profileContextReady: bool | None = None
+    profileMediaReady: bool | None = None
+    speechRouteReady: bool | None = None
+    voiceReferenceReady: bool | None = None
+
+@dataclass(frozen=True)
+class CbdbCuratedAgentChatReadinessProfileDto:
+    avatarUrl: str | None = None
+    defaultVoiceReference: str | None = None
+    displayName: str | None = None
+    handle: str | None = None
+    profileCoverUrl: str | None = None
+    speechModelId: str | None = None
+    speechRoutePolicy: str | None = None
 
 @dataclass(frozen=True)
 class ChangeEmailDto:
@@ -1221,6 +1258,237 @@ class FinalizeResourceDto:
     traceId: str | None = None
     width: float | None = None
     worldId: str | None = None
+
+@dataclass(frozen=True)
+class ForgeAgentCandidateCapabilityCellDto:
+    evidenceTruthRefCount: float | None = None
+    evidenceTruthRefs: tuple[str, ...] = field(default_factory=tuple)
+    predicateId: str | None = None
+    requirements: tuple[ForgeAgentCandidateRequirementDto, ...] = field(default_factory=tuple)
+    status: Literal["ready", "sparse", "blocked"] | None = None
+    surface: str | None = None
+
+@dataclass(frozen=True)
+class ForgeAgentCandidateDto:
+    agentRef: str | None = None
+    capabilityVector: tuple[ForgeAgentCandidateCapabilityCellDto, ...] = field(default_factory=tuple)
+    completenessIntent: str | None = None
+    entityRef: str | None = None
+    id: str | None = None
+    name: str | None = None
+    runtimeMaterialization: ForgeAgentCandidateRuntimeMaterializationDto | None = None
+    sourceProfiles: tuple[ForgeAgentCandidateSourceProfileDto, ...] = field(default_factory=tuple)
+    worldId: str | None = None
+
+@dataclass(frozen=True)
+class ForgeAgentCandidateQueryFiltersDto:
+    query: str | None = None
+    status: Literal["ready", "sparse", "blocked"] | None = None
+    surface: str | None = None
+
+@dataclass(frozen=True)
+class ForgeAgentCandidateQueryResultDto:
+    candidates: tuple[ForgeAgentCandidateDto, ...] = field(default_factory=tuple)
+    filters: ForgeAgentCandidateQueryFiltersDto | None = None
+    packageId: str | None = None
+    returned: float | None = None
+    schemaVersion: str | None = None
+    slug: str | None = None
+    total: float | None = None
+
+@dataclass(frozen=True)
+class ForgeAgentCandidateRequirementDto:
+    actual: float | None = None
+    gap: float | None = None
+    gapKind: Literal["open", "bounded"] | None = None
+    id: str | None = None
+    passed: bool | None = None
+    required: float | None = None
+
+@dataclass(frozen=True)
+class ForgeAgentCandidateRuntimeMaterializationDto:
+    materializedRuntimeAgent: bool | None = None
+    roleplayRuntimeEligible: bool | None = None
+
+@dataclass(frozen=True)
+class ForgeAgentCandidateSourceProfileDto:
+    archetype: str | None = None
+    authorityRank: str | None = None
+    evidenceLocatorKind: str | None = None
+    profile: str | None = None
+    sourceId: str | None = None
+
+@dataclass(frozen=True)
+class ForgeProductArtifactRefDto:
+    checksum: str | None = None
+    kind: str | None = None
+    path: str | None = None
+
+@dataclass(frozen=True)
+class ForgeProductCapabilitySummaryDto:
+    agentCandidates: float | None = None
+    completenessIntentCounts: Mapping[str, object] = field(default_factory=dict)
+    materializedRuntimeAgents: float | None = None
+    runtimeReadyCandidates: float | None = None
+    surfaceStatusCounts: Mapping[str, object] = field(default_factory=dict)
+
+@dataclass(frozen=True)
+class ForgeProductCountsDto:
+    agentBlueprints: float | None = None
+    agentCapabilities: float | None = None
+    agentExemplars: float | None = None
+    agentRelationships: float | None = None
+    evidenceRecords: float | None = None
+    projectionInputs: float | None = None
+    scenes: float | None = None
+    worldEntities: float | None = None
+    worldEvents: float | None = None
+    worldRelationships: float | None = None
+    worldRules: float | None = None
+    worldSystems: float | None = None
+
+@dataclass(frozen=True)
+class ForgeProductEvalScorecardDto:
+    admissionAuthority: str | None = None
+    artifactPath: str | None = None
+    checksum: str | None = None
+    publicDataset: bool | None = None
+    suite: str | None = None
+    trustTier: str | None = None
+
+@dataclass(frozen=True)
+class ForgeProductOptionalArtifactQualityDto:
+    artifactPath: str | None = None
+    checksum: str | None = None
+
+@dataclass(frozen=True)
+class ForgeProductQualityDto:
+    evalScorecards: tuple[ForgeProductEvalScorecardDto, ...] = field(default_factory=tuple)
+    presetZeroing: Mapping[str, object] = field(default_factory=dict)
+    updateRun: Mapping[str, object] = field(default_factory=dict)
+    validation: ForgeProductValidationQualityDto | None = None
+
+@dataclass(frozen=True)
+class ForgeProductShardIndexDto:
+    packageId: str | None = None
+    packageVersion: str | None = None
+    schemaVersion: str | None = None
+    shardManifest: ForgeProductShardManifestRefDto | None = None
+    shards: tuple[ForgeProductShardIndexItemDto, ...] = field(default_factory=tuple)
+    slug: str | None = None
+
+@dataclass(frozen=True)
+class ForgeProductShardIndexItemDto:
+    byteSize: float | None = None
+    checksum: str | None = None
+    exportKeys: tuple[str, ...] = field(default_factory=tuple)
+    kind: str | None = None
+    path: str | None = None
+
+@dataclass(frozen=True)
+class ForgeProductShardIntegrityItemDto:
+    actualChecksum: str | None = None
+    byteSize: float | None = None
+    error: str | None = None
+    expectedChecksum: str | None = None
+    exportKeys: tuple[str, ...] = field(default_factory=tuple)
+    kind: str | None = None
+    path: str | None = None
+    status: Literal["pass", "failed"] | None = None
+
+@dataclass(frozen=True)
+class ForgeProductShardIntegrityReportDto:
+    packageId: str | None = None
+    packageVersion: str | None = None
+    schemaVersion: str | None = None
+    shardManifest: ForgeProductShardManifestRefDto | None = None
+    shards: tuple[ForgeProductShardIntegrityItemDto, ...] = field(default_factory=tuple)
+    slug: str | None = None
+    status: Literal["pass", "failed"] | None = None
+
+@dataclass(frozen=True)
+class ForgeProductShardManifestRefDto:
+    checksum: str | None = None
+    path: str | None = None
+
+@dataclass(frozen=True)
+class ForgeProductShardReadDto:
+    checksum: str | None = None
+    kind: str | None = None
+    packageId: str | None = None
+    packageVersion: str | None = None
+    record: Mapping[str, object] = field(default_factory=dict)
+    schemaVersion: str | None = None
+    slug: str | None = None
+
+@dataclass(frozen=True)
+class ForgeProductSourceProfileDto:
+    archetype: str | None = None
+    authorityRank: str | None = None
+    evidenceLocatorKind: str | None = None
+    inputCount: float | None = None
+    localeProfile: str | None = None
+    profile: str | None = None
+    sourceId: str | None = None
+    title: str | None = None
+
+@dataclass(frozen=True)
+class ForgeProductUpdateRunQualityDto:
+    artifactPath: str | None = None
+    checksum: str | None = None
+    runStatus: Literal["success", "failed", "blocked", "no-op"] | None = None
+
+@dataclass(frozen=True)
+class ForgeProductValidationQualityDto:
+    artifactPath: str | None = None
+    checksum: str | None = None
+    status: Literal["PASS", "FAIL"] | None = None
+
+@dataclass(frozen=True)
+class ForgeProductWorldRefDto:
+    id: str | None = None
+    name: str | None = None
+
+@dataclass(frozen=True)
+class ForgeWorldCatalogDto:
+    qualitySummary: ForgeWorldCatalogQualitySummaryDto | None = None
+    rootDir: str | None = None
+    schemaVersion: str | None = None
+    worlds: tuple[ForgeWorldProductDto, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class ForgeWorldCatalogQualitySummaryDto:
+    evalScorecards: float | None = None
+    goldenGateScorecards: float | None = None
+    publicReferenceScorecards: float | None = None
+    reportOnlyScorecards: float | None = None
+    updateRunBlocked: float | None = None
+    updateRunFailed: float | None = None
+    updateRunNoop: float | None = None
+    updateRunSuccess: float | None = None
+    validationFail: float | None = None
+    validationPass: float | None = None
+    worlds: float | None = None
+    worldsWithGoldenGate: float | None = None
+    worldsWithPresetZeroing: float | None = None
+    worldsWithPublicReference: float | None = None
+    worldsWithUpdateRun: float | None = None
+
+@dataclass(frozen=True)
+class ForgeWorldProductDto:
+    artifacts: tuple[ForgeProductArtifactRefDto, ...] = field(default_factory=tuple)
+    capabilitySummary: ForgeProductCapabilitySummaryDto | None = None
+    counts: ForgeProductCountsDto | None = None
+    distributionShape: Literal["authoring-package", "compact-shards"] | None = None
+    packageId: str | None = None
+    packageVersion: str | None = None
+    productId: str | None = None
+    quality: ForgeProductQualityDto | None = None
+    schemaVersion: str | None = None
+    slug: str | None = None
+    sourceMix: tuple[ForgeProductSourceProfileDto, ...] = field(default_factory=tuple)
+    target: str | None = None
+    world: ForgeProductWorldRefDto | None = None
 
 @dataclass(frozen=True)
 class FriendProfileDto:
@@ -1777,22 +2045,6 @@ class OwnerAgentSettingsDto:
     worldId: str | None = None
 
 @dataclass(frozen=True)
-class PPSlotConfigDto:
-    slot1: PPSlotItemDto | None = None
-    slot2: PPSlotItemDto | None = None
-    slot3: PPSlotItemDto | None = None
-    slot4: PPSlotItemDto | None = None
-
-@dataclass(frozen=True)
-class PPSlotConfigResponseDto:
-    ppSlotConfig: PPSlotConfigDto | None = None
-
-@dataclass(frozen=True)
-class PPSlotItemDto:
-    id: str | None = None
-    type: str | None = None
-
-@dataclass(frozen=True)
 class PasswordLoginDto:
     identifier: str | None = None
     password: str | None = None
@@ -1875,6 +2127,22 @@ class PowerTierDto:
     level: float | None = None
     name: str | None = None
     requirements: tuple[str, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class PPSlotConfigDto:
+    slot1: PPSlotItemDto | None = None
+    slot2: PPSlotItemDto | None = None
+    slot3: PPSlotItemDto | None = None
+    slot4: PPSlotItemDto | None = None
+
+@dataclass(frozen=True)
+class PPSlotConfigResponseDto:
+    ppSlotConfig: PPSlotConfigDto | None = None
+
+@dataclass(frozen=True)
+class PPSlotItemDto:
+    id: str | None = None
+    type: str | None = None
 
 PresenceStatus = Literal["online", "invisible"]
 
@@ -2499,6 +2767,11 @@ class UpdateAgentNsfwConsentDto:
     enabled: bool | None = None
 
 @dataclass(frozen=True)
+class UpdateAgentProfileMediaDto:
+    avatarUrl: str | None = None
+    profileCoverUrl: str | None = None
+
+@dataclass(frozen=True)
 class UpdateAgentRuleDto:
     category: Literal["CONSTRAINT", "MECHANISM", "DEFINITION", "RELATION", "POLICY"] | None = None
     conflictsWith: tuple[str, ...] = field(default_factory=tuple)
@@ -2521,6 +2794,16 @@ class UpdateAgentVisibilityDto:
     defaultPostVisibility: Visibility | None = None
     dmVisibility: Visibility | None = None
     profileVisibility: Visibility | None = None
+
+@dataclass(frozen=True)
+class UpdateAgentVoiceDto:
+    description: str | None = None
+    emotionEnabled: bool | None = None
+    pitch: float | None = None
+    speechModelId: str | None = None
+    speechRoutePolicy: Literal["local", "cloud"] | None = None
+    speed: float | None = None
+    voiceId: str | None = None
 
 @dataclass(frozen=True)
 class UpdateAssetDto:
@@ -2578,10 +2861,6 @@ class UpdateOwnerAgentSettingsDto:
     positioning: OwnerAgentPositioningSettingsDto | None = None
 
 @dataclass(frozen=True)
-class UpdatePPSlotConfigDto:
-    ppSlotConfig: PPSlotConfigDto | None = None
-
-@dataclass(frozen=True)
 class UpdateParticipantRoleInputDto:
     role: Literal["admin", "member"] | None = None
 
@@ -2593,6 +2872,10 @@ class UpdatePasswordRequestDto:
 @dataclass(frozen=True)
 class UpdatePostDto:
     visibility: Visibility | None = None
+
+@dataclass(frozen=True)
+class UpdatePPSlotConfigDto:
+    ppSlotConfig: PPSlotConfigDto | None = None
 
 @dataclass(frozen=True)
 class UpdateRelationshipDto:
@@ -5501,6 +5784,143 @@ class RealmFinalizeResourceOperationRequest:
     body: FinalizeResourceDto | None = None
 
 @dataclass(frozen=True)
+class RealmForgeProductCatalogControllerGetAgentCandidatesOperationPath:
+    slug: str
+
+
+@dataclass(frozen=True)
+class RealmForgeProductCatalogControllerGetAgentCandidatesOperationQuery:
+    includeEvidenceRefs: bool | None = None
+    limit: float | None = None
+    status: Literal["ready", "sparse", "blocked"] | None = None
+    surface: str | None = None
+    query: str | None = None
+
+
+@dataclass(frozen=True)
+class RealmForgeProductCatalogControllerGetAgentCandidatesOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmForgeProductCatalogControllerGetAgentCandidatesOperationRequest:
+    path: RealmForgeProductCatalogControllerGetAgentCandidatesOperationPath
+    query: RealmForgeProductCatalogControllerGetAgentCandidatesOperationQuery | None = None
+    headers: RealmForgeProductCatalogControllerGetAgentCandidatesOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
+class RealmForgeProductCatalogControllerGetCatalogOperationPath:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmForgeProductCatalogControllerGetCatalogOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmForgeProductCatalogControllerGetCatalogOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmForgeProductCatalogControllerGetCatalogOperationRequest:
+    path: RealmForgeProductCatalogControllerGetCatalogOperationPath
+    query: RealmForgeProductCatalogControllerGetCatalogOperationQuery | None = None
+    headers: RealmForgeProductCatalogControllerGetCatalogOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
+class RealmForgeProductCatalogControllerGetProductOperationPath:
+    slug: str
+
+
+@dataclass(frozen=True)
+class RealmForgeProductCatalogControllerGetProductOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmForgeProductCatalogControllerGetProductOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmForgeProductCatalogControllerGetProductOperationRequest:
+    path: RealmForgeProductCatalogControllerGetProductOperationPath
+    query: RealmForgeProductCatalogControllerGetProductOperationQuery | None = None
+    headers: RealmForgeProductCatalogControllerGetProductOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
+class RealmForgeProductCatalogControllerGetProductShardOperationPath:
+    kind: Literal["package-meta", "world-source", "world-rules", "agent-blueprints", "truth", "sufficiency", "capability", "derivation", "projection", "evidence", "governance", "agent-relationships", "scenes", "world-lorebooks", "agent-lorebooks", "resources-bindings", "world-drafts"]
+    slug: str
+
+
+@dataclass(frozen=True)
+class RealmForgeProductCatalogControllerGetProductShardOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmForgeProductCatalogControllerGetProductShardOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmForgeProductCatalogControllerGetProductShardOperationRequest:
+    path: RealmForgeProductCatalogControllerGetProductShardOperationPath
+    query: RealmForgeProductCatalogControllerGetProductShardOperationQuery | None = None
+    headers: RealmForgeProductCatalogControllerGetProductShardOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
+class RealmForgeProductCatalogControllerGetProductShardIndexOperationPath:
+    slug: str
+
+
+@dataclass(frozen=True)
+class RealmForgeProductCatalogControllerGetProductShardIndexOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmForgeProductCatalogControllerGetProductShardIndexOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmForgeProductCatalogControllerGetProductShardIndexOperationRequest:
+    path: RealmForgeProductCatalogControllerGetProductShardIndexOperationPath
+    query: RealmForgeProductCatalogControllerGetProductShardIndexOperationQuery | None = None
+    headers: RealmForgeProductCatalogControllerGetProductShardIndexOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
+class RealmForgeProductCatalogControllerVerifyProductShardsOperationPath:
+    slug: str
+
+
+@dataclass(frozen=True)
+class RealmForgeProductCatalogControllerVerifyProductShardsOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmForgeProductCatalogControllerVerifyProductShardsOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmForgeProductCatalogControllerVerifyProductShardsOperationRequest:
+    path: RealmForgeProductCatalogControllerVerifyProductShardsOperationPath
+    query: RealmForgeProductCatalogControllerVerifyProductShardsOperationQuery | None = None
+    headers: RealmForgeProductCatalogControllerVerifyProductShardsOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
 class RealmGetAgentOperationPath:
     id: str
 
@@ -5608,6 +6028,72 @@ class RealmGetBundleOperationRequest:
     path: RealmGetBundleOperationPath
     query: RealmGetBundleOperationQuery | None = None
     headers: RealmGetBundleOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
+class RealmGetCbdbCuratedSystemAgentOperationPath:
+    agentId: str
+
+
+@dataclass(frozen=True)
+class RealmGetCbdbCuratedSystemAgentOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmGetCbdbCuratedSystemAgentOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmGetCbdbCuratedSystemAgentOperationRequest:
+    path: RealmGetCbdbCuratedSystemAgentOperationPath
+    query: RealmGetCbdbCuratedSystemAgentOperationQuery | None = None
+    headers: RealmGetCbdbCuratedSystemAgentOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
+class RealmGetCbdbCuratedSystemAgentChatReadinessOperationPath:
+    agentId: str
+
+
+@dataclass(frozen=True)
+class RealmGetCbdbCuratedSystemAgentChatReadinessOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmGetCbdbCuratedSystemAgentChatReadinessOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmGetCbdbCuratedSystemAgentChatReadinessOperationRequest:
+    path: RealmGetCbdbCuratedSystemAgentChatReadinessOperationPath
+    query: RealmGetCbdbCuratedSystemAgentChatReadinessOperationQuery | None = None
+    headers: RealmGetCbdbCuratedSystemAgentChatReadinessOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
+class RealmGetCbdbCuratedSystemAgentSettingsOperationPath:
+    agentId: str
+
+
+@dataclass(frozen=True)
+class RealmGetCbdbCuratedSystemAgentSettingsOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmGetCbdbCuratedSystemAgentSettingsOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmGetCbdbCuratedSystemAgentSettingsOperationRequest:
+    path: RealmGetCbdbCuratedSystemAgentSettingsOperationPath
+    query: RealmGetCbdbCuratedSystemAgentSettingsOperationQuery | None = None
+    headers: RealmGetCbdbCuratedSystemAgentSettingsOperationHeaders | None = None
     body: None | None = None
 
 @dataclass(frozen=True)
@@ -6612,6 +7098,28 @@ class RealmListBundlesOperationRequest:
     path: RealmListBundlesOperationPath
     query: RealmListBundlesOperationQuery | None = None
     headers: RealmListBundlesOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
+class RealmListCbdbCuratedSystemAgentsOperationPath:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmListCbdbCuratedSystemAgentsOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmListCbdbCuratedSystemAgentsOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmListCbdbCuratedSystemAgentsOperationRequest:
+    path: RealmListCbdbCuratedSystemAgentsOperationPath
+    query: RealmListCbdbCuratedSystemAgentsOperationQuery | None = None
+    headers: RealmListCbdbCuratedSystemAgentsOperationHeaders | None = None
     body: None | None = None
 
 @dataclass(frozen=True)
@@ -8152,6 +8660,72 @@ class RealmUpdateBundleOperationRequest:
     query: RealmUpdateBundleOperationQuery | None = None
     headers: RealmUpdateBundleOperationHeaders | None = None
     body: UpdateBundleDto | None = None
+
+@dataclass(frozen=True)
+class RealmUpdateCbdbCuratedSystemAgentProfileMediaOperationPath:
+    agentId: str
+
+
+@dataclass(frozen=True)
+class RealmUpdateCbdbCuratedSystemAgentProfileMediaOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmUpdateCbdbCuratedSystemAgentProfileMediaOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmUpdateCbdbCuratedSystemAgentProfileMediaOperationRequest:
+    path: RealmUpdateCbdbCuratedSystemAgentProfileMediaOperationPath
+    query: RealmUpdateCbdbCuratedSystemAgentProfileMediaOperationQuery | None = None
+    headers: RealmUpdateCbdbCuratedSystemAgentProfileMediaOperationHeaders | None = None
+    body: UpdateAgentProfileMediaDto | None = None
+
+@dataclass(frozen=True)
+class RealmUpdateCbdbCuratedSystemAgentSettingsOperationPath:
+    agentId: str
+
+
+@dataclass(frozen=True)
+class RealmUpdateCbdbCuratedSystemAgentSettingsOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmUpdateCbdbCuratedSystemAgentSettingsOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmUpdateCbdbCuratedSystemAgentSettingsOperationRequest:
+    path: RealmUpdateCbdbCuratedSystemAgentSettingsOperationPath
+    query: RealmUpdateCbdbCuratedSystemAgentSettingsOperationQuery | None = None
+    headers: RealmUpdateCbdbCuratedSystemAgentSettingsOperationHeaders | None = None
+    body: UpdateOwnerAgentSettingsDto | None = None
+
+@dataclass(frozen=True)
+class RealmUpdateCbdbCuratedSystemAgentVoiceOperationPath:
+    agentId: str
+
+
+@dataclass(frozen=True)
+class RealmUpdateCbdbCuratedSystemAgentVoiceOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmUpdateCbdbCuratedSystemAgentVoiceOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmUpdateCbdbCuratedSystemAgentVoiceOperationRequest:
+    path: RealmUpdateCbdbCuratedSystemAgentVoiceOperationPath
+    query: RealmUpdateCbdbCuratedSystemAgentVoiceOperationQuery | None = None
+    headers: RealmUpdateCbdbCuratedSystemAgentVoiceOperationHeaders | None = None
+    body: UpdateAgentVoiceDto | None = None
 
 @dataclass(frozen=True)
 class RealmUpdateGroupOperationPath:
@@ -10285,6 +10859,66 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="finalizeResource", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ResourceDetailDto, raw)
 
+    async def forge_product_catalog_controller_get_agent_candidates(self, request: RealmForgeProductCatalogControllerGetAgentCandidatesOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmForgeProductCatalogControllerGetAgentCandidatesOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="ForgeProductCatalogController_getAgentCandidates", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(ForgeAgentCandidateQueryResultDto, raw)
+
+    async def forge_product_catalog_controller_get_catalog(self, request: RealmForgeProductCatalogControllerGetCatalogOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmForgeProductCatalogControllerGetCatalogOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="ForgeProductCatalogController_getCatalog", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(ForgeWorldCatalogDto, raw)
+
+    async def forge_product_catalog_controller_get_product(self, request: RealmForgeProductCatalogControllerGetProductOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmForgeProductCatalogControllerGetProductOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="ForgeProductCatalogController_getProduct", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(ForgeWorldProductDto, raw)
+
+    async def forge_product_catalog_controller_get_product_shard(self, request: RealmForgeProductCatalogControllerGetProductShardOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmForgeProductCatalogControllerGetProductShardOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="ForgeProductCatalogController_getProductShard", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(ForgeProductShardReadDto, raw)
+
+    async def forge_product_catalog_controller_get_product_shard_index(self, request: RealmForgeProductCatalogControllerGetProductShardIndexOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmForgeProductCatalogControllerGetProductShardIndexOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="ForgeProductCatalogController_getProductShardIndex", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(ForgeProductShardIndexDto, raw)
+
+    async def forge_product_catalog_controller_verify_product_shards(self, request: RealmForgeProductCatalogControllerVerifyProductShardsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmForgeProductCatalogControllerVerifyProductShardsOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="ForgeProductCatalogController_verifyProductShards", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(ForgeProductShardIntegrityReportDto, raw)
+
     async def get_agent(self, request: RealmGetAgentOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetAgentOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
@@ -10334,6 +10968,36 @@ class RealmTypedClient:
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="getBundle", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(BundleDetailDto, raw)
+
+    async def get_cbdb_curated_system_agent(self, request: RealmGetCbdbCuratedSystemAgentOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetCbdbCuratedSystemAgentOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="getCbdbCuratedSystemAgent", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(UserLiteDto, raw)
+
+    async def get_cbdb_curated_system_agent_chat_readiness(self, request: RealmGetCbdbCuratedSystemAgentChatReadinessOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetCbdbCuratedSystemAgentChatReadinessOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="getCbdbCuratedSystemAgentChatReadiness", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(CbdbCuratedAgentChatReadinessDto, raw)
+
+    async def get_cbdb_curated_system_agent_settings(self, request: RealmGetCbdbCuratedSystemAgentSettingsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetCbdbCuratedSystemAgentSettingsOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="getCbdbCuratedSystemAgentSettings", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(OwnerAgentSettingsDto, raw)
 
     async def get_chat_by_id(self, request: RealmGetChatByIdOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetChatByIdOperationResponse:
         envelope: dict[str, object] = {
@@ -10784,6 +11448,16 @@ class RealmTypedClient:
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="listBundles", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(BundleListDto, raw)
+
+    async def list_cbdb_curated_system_agents(self, request: RealmListCbdbCuratedSystemAgentsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmListCbdbCuratedSystemAgentsOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="listCbdbCuratedSystemAgents", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(tuple[UserLiteDto, ...], raw)
 
     async def list_chats(self, request: RealmListChatsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmListChatsOperationResponse:
         envelope: dict[str, object] = {
@@ -11454,6 +12128,36 @@ class RealmTypedClient:
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="updateBundle", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(BundleDetailDto, raw)
+
+    async def update_cbdb_curated_system_agent_profile_media(self, request: RealmUpdateCbdbCuratedSystemAgentProfileMediaOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmUpdateCbdbCuratedSystemAgentProfileMediaOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="updateCbdbCuratedSystemAgentProfileMedia", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(UserLiteDto, raw)
+
+    async def update_cbdb_curated_system_agent_settings(self, request: RealmUpdateCbdbCuratedSystemAgentSettingsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmUpdateCbdbCuratedSystemAgentSettingsOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="updateCbdbCuratedSystemAgentSettings", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(OwnerAgentSettingsDto, raw)
+
+    async def update_cbdb_curated_system_agent_voice(self, request: RealmUpdateCbdbCuratedSystemAgentVoiceOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmUpdateCbdbCuratedSystemAgentVoiceOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="updateCbdbCuratedSystemAgentVoice", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(UserLiteDto, raw)
 
     async def update_group(self, request: RealmUpdateGroupOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmUpdateGroupOperationResponse:
         envelope: dict[str, object] = {

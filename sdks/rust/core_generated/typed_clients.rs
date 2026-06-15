@@ -37833,8 +37833,6 @@ pub struct AgentProfileDto {
     pub world_id: String,
 }
 
-pub type AgentRelationType = String;
-
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct AgentRelationshipOtherAccountDto {
     pub avatar_url: String,
@@ -37854,6 +37852,8 @@ pub struct AgentRelationshipRecordDto {
     pub strength: f64,
     pub r#type: String,
 }
+
+pub type AgentRelationType = String;
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct AgentResponseMetadataDto {
@@ -37981,6 +37981,8 @@ pub struct AgentVoiceConfigDto {
     pub description: String,
     pub emotion_enabled: bool,
     pub pitch: f64,
+    pub speech_model_id: String,
+    pub speech_route_policy: String,
     pub speed: f64,
     pub voice_id: String,
 }
@@ -37988,6 +37990,14 @@ pub struct AgentVoiceConfigDto {
 pub type AgentWakeStrategy = String;
 
 pub type ApiKeyType = String;
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AppendWorldHistoryDto {
+    pub commit: Box<MutationCommitEnvelopeDto>,
+    pub history_appends: Vec<WorldHistoryAppendItemDto>,
+    pub if_snapshot_version: String,
+    pub reason: String,
+}
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct AppPermissionGrantDecisionDto {
@@ -38060,14 +38070,6 @@ pub struct AppPermissionGrantSupersedeDto {
 pub type AppPermissionScopeFamily = String;
 
 pub type AppPermissionScopeName = String;
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AppendWorldHistoryDto {
-    pub commit: Box<MutationCommitEnvelopeDto>,
-    pub history_appends: Vec<WorldHistoryAppendItemDto>,
-    pub if_snapshot_version: String,
-    pub reason: String,
-}
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct AssetDetailDto {
@@ -38405,6 +38407,44 @@ pub struct CausalityRuleDto {
     pub id: String,
     pub probability: f64,
     pub trigger: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CbdbCuratedAgentChatReadinessDto {
+    pub agent_id: String,
+    pub agent_rule_count: f64,
+    pub consumer_surface: String,
+    pub gates: Box<CbdbCuratedAgentChatReadinessGatesDto>,
+    pub owner_scope: String,
+    pub profile: Box<CbdbCuratedAgentChatReadinessProfileDto>,
+    pub raw_rule_content_exposed: bool,
+    pub runtime_projection_checksum: String,
+    pub selected_input_count: f64,
+    pub selected_owner_setting_fields: Vec<String>,
+    pub suppressed_input_count: f64,
+    pub world_id: String,
+    pub world_rule_count: f64,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CbdbCuratedAgentChatReadinessGatesDto {
+    pub local_agent_identity_ready: bool,
+    pub owner_settings_ready: bool,
+    pub profile_context_ready: bool,
+    pub profile_media_ready: bool,
+    pub speech_route_ready: bool,
+    pub voice_reference_ready: bool,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CbdbCuratedAgentChatReadinessProfileDto {
+    pub avatar_url: String,
+    pub default_voice_reference: String,
+    pub display_name: String,
+    pub handle: String,
+    pub profile_cover_url: String,
+    pub speech_model_id: String,
+    pub speech_route_policy: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -38966,6 +39006,263 @@ pub struct FinalizeResourceDto {
     pub trace_id: String,
     pub width: f64,
     pub world_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ForgeAgentCandidateCapabilityCellDto {
+    pub evidence_truth_ref_count: f64,
+    pub evidence_truth_refs: Vec<String>,
+    pub predicate_id: String,
+    pub requirements: Vec<ForgeAgentCandidateRequirementDto>,
+    pub status: String,
+    pub surface: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ForgeAgentCandidateDto {
+    pub agent_ref: String,
+    pub capability_vector: Vec<ForgeAgentCandidateCapabilityCellDto>,
+    pub completeness_intent: String,
+    pub entity_ref: String,
+    pub id: String,
+    pub name: String,
+    pub runtime_materialization: Box<ForgeAgentCandidateRuntimeMaterializationDto>,
+    pub source_profiles: Vec<ForgeAgentCandidateSourceProfileDto>,
+    pub world_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ForgeAgentCandidateQueryFiltersDto {
+    pub query: String,
+    pub status: String,
+    pub surface: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ForgeAgentCandidateQueryResultDto {
+    pub candidates: Vec<ForgeAgentCandidateDto>,
+    pub filters: Box<ForgeAgentCandidateQueryFiltersDto>,
+    pub package_id: String,
+    pub returned: f64,
+    pub schema_version: String,
+    pub slug: String,
+    pub total: f64,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ForgeAgentCandidateRequirementDto {
+    pub actual: f64,
+    pub gap: f64,
+    pub gap_kind: String,
+    pub id: String,
+    pub passed: bool,
+    pub required: f64,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ForgeAgentCandidateRuntimeMaterializationDto {
+    pub materialized_runtime_agent: bool,
+    pub roleplay_runtime_eligible: bool,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ForgeAgentCandidateSourceProfileDto {
+    pub archetype: String,
+    pub authority_rank: String,
+    pub evidence_locator_kind: String,
+    pub profile: String,
+    pub source_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ForgeProductArtifactRefDto {
+    pub checksum: String,
+    pub kind: String,
+    pub path: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ForgeProductCapabilitySummaryDto {
+    pub agent_candidates: f64,
+    pub completeness_intent_counts: BTreeMap<String, String>,
+    pub materialized_runtime_agents: f64,
+    pub runtime_ready_candidates: f64,
+    pub surface_status_counts: BTreeMap<String, String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ForgeProductCountsDto {
+    pub agent_blueprints: f64,
+    pub agent_capabilities: f64,
+    pub agent_exemplars: f64,
+    pub agent_relationships: f64,
+    pub evidence_records: f64,
+    pub projection_inputs: f64,
+    pub scenes: f64,
+    pub world_entities: f64,
+    pub world_events: f64,
+    pub world_relationships: f64,
+    pub world_rules: f64,
+    pub world_systems: f64,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ForgeProductEvalScorecardDto {
+    pub admission_authority: String,
+    pub artifact_path: String,
+    pub checksum: String,
+    pub public_dataset: bool,
+    pub suite: String,
+    pub trust_tier: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ForgeProductOptionalArtifactQualityDto {
+    pub artifact_path: String,
+    pub checksum: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ForgeProductQualityDto {
+    pub eval_scorecards: Vec<ForgeProductEvalScorecardDto>,
+    pub preset_zeroing: BTreeMap<String, String>,
+    pub update_run: BTreeMap<String, String>,
+    pub validation: Box<ForgeProductValidationQualityDto>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ForgeProductShardIndexDto {
+    pub package_id: String,
+    pub package_version: String,
+    pub schema_version: String,
+    pub shard_manifest: Box<ForgeProductShardManifestRefDto>,
+    pub shards: Vec<ForgeProductShardIndexItemDto>,
+    pub slug: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ForgeProductShardIndexItemDto {
+    pub byte_size: f64,
+    pub checksum: String,
+    pub export_keys: Vec<String>,
+    pub kind: String,
+    pub path: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ForgeProductShardIntegrityItemDto {
+    pub actual_checksum: String,
+    pub byte_size: f64,
+    pub error: String,
+    pub expected_checksum: String,
+    pub export_keys: Vec<String>,
+    pub kind: String,
+    pub path: String,
+    pub status: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ForgeProductShardIntegrityReportDto {
+    pub package_id: String,
+    pub package_version: String,
+    pub schema_version: String,
+    pub shard_manifest: Box<ForgeProductShardManifestRefDto>,
+    pub shards: Vec<ForgeProductShardIntegrityItemDto>,
+    pub slug: String,
+    pub status: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ForgeProductShardManifestRefDto {
+    pub checksum: String,
+    pub path: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ForgeProductShardReadDto {
+    pub checksum: String,
+    pub kind: String,
+    pub package_id: String,
+    pub package_version: String,
+    pub record: BTreeMap<String, String>,
+    pub schema_version: String,
+    pub slug: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ForgeProductSourceProfileDto {
+    pub archetype: String,
+    pub authority_rank: String,
+    pub evidence_locator_kind: String,
+    pub input_count: f64,
+    pub locale_profile: String,
+    pub profile: String,
+    pub source_id: String,
+    pub title: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ForgeProductUpdateRunQualityDto {
+    pub artifact_path: String,
+    pub checksum: String,
+    pub run_status: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ForgeProductValidationQualityDto {
+    pub artifact_path: String,
+    pub checksum: String,
+    pub status: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ForgeProductWorldRefDto {
+    pub id: String,
+    pub name: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ForgeWorldCatalogDto {
+    pub quality_summary: Box<ForgeWorldCatalogQualitySummaryDto>,
+    pub root_dir: String,
+    pub schema_version: String,
+    pub worlds: Vec<ForgeWorldProductDto>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ForgeWorldCatalogQualitySummaryDto {
+    pub eval_scorecards: f64,
+    pub golden_gate_scorecards: f64,
+    pub public_reference_scorecards: f64,
+    pub report_only_scorecards: f64,
+    pub update_run_blocked: f64,
+    pub update_run_failed: f64,
+    pub update_run_noop: f64,
+    pub update_run_success: f64,
+    pub validation_fail: f64,
+    pub validation_pass: f64,
+    pub worlds: f64,
+    pub worlds_with_golden_gate: f64,
+    pub worlds_with_preset_zeroing: f64,
+    pub worlds_with_public_reference: f64,
+    pub worlds_with_update_run: f64,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ForgeWorldProductDto {
+    pub artifacts: Vec<ForgeProductArtifactRefDto>,
+    pub capability_summary: Box<ForgeProductCapabilitySummaryDto>,
+    pub counts: Box<ForgeProductCountsDto>,
+    pub distribution_shape: String,
+    pub package_id: String,
+    pub package_version: String,
+    pub product_id: String,
+    pub quality: Box<ForgeProductQualityDto>,
+    pub schema_version: String,
+    pub slug: String,
+    pub source_mix: Vec<ForgeProductSourceProfileDto>,
+    pub target: String,
+    pub world: Box<ForgeProductWorldRefDto>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -39585,25 +39882,6 @@ pub struct OwnerAgentSettingsDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct PPSlotConfigDto {
-    pub slot1: Box<PPSlotItemDto>,
-    pub slot2: Box<PPSlotItemDto>,
-    pub slot3: Box<PPSlotItemDto>,
-    pub slot4: Box<PPSlotItemDto>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct PPSlotConfigResponseDto {
-    pub pp_slot_config: Box<PPSlotConfigDto>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct PPSlotItemDto {
-    pub id: String,
-    pub r#type: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct PasswordLoginDto {
     pub identifier: String,
     pub password: String,
@@ -39695,6 +39973,25 @@ pub struct PowerTierDto {
     pub level: f64,
     pub name: String,
     pub requirements: Vec<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct PPSlotConfigDto {
+    pub slot1: Box<PPSlotItemDto>,
+    pub slot2: Box<PPSlotItemDto>,
+    pub slot3: Box<PPSlotItemDto>,
+    pub slot4: Box<PPSlotItemDto>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct PPSlotConfigResponseDto {
+    pub pp_slot_config: Box<PPSlotConfigDto>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct PPSlotItemDto {
+    pub id: String,
+    pub r#type: String,
 }
 
 pub type PresenceStatus = String;
@@ -40396,6 +40693,12 @@ pub struct UpdateAgentNsfwConsentDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct UpdateAgentProfileMediaDto {
+    pub avatar_url: String,
+    pub profile_cover_url: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct UpdateAgentRuleDto {
     pub category: String,
     pub conflicts_with: Vec<String>,
@@ -40419,6 +40722,17 @@ pub struct UpdateAgentVisibilityDto {
     pub default_post_visibility: String,
     pub dm_visibility: String,
     pub profile_visibility: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct UpdateAgentVoiceDto {
+    pub description: String,
+    pub emotion_enabled: bool,
+    pub pitch: f64,
+    pub speech_model_id: String,
+    pub speech_route_policy: String,
+    pub speed: f64,
+    pub voice_id: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -40483,11 +40797,6 @@ pub struct UpdateOwnerAgentSettingsDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct UpdatePPSlotConfigDto {
-    pub pp_slot_config: Box<PPSlotConfigDto>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct UpdateParticipantRoleInputDto {
     pub role: String,
 }
@@ -40501,6 +40810,11 @@ pub struct UpdatePasswordRequestDto {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct UpdatePostDto {
     pub visibility: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct UpdatePPSlotConfigDto {
+    pub pp_slot_config: Box<PPSlotConfigDto>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -43587,6 +43901,149 @@ pub struct RealmFinalizeResourceOperationRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmForgeProductCatalogControllerGetAgentCandidatesOperationPath {
+    pub slug: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmForgeProductCatalogControllerGetAgentCandidatesOperationQuery {
+    pub include_evidence_refs: Option<bool>,
+    pub limit: Option<f64>,
+    pub status: Option<String>,
+    pub surface: Option<String>,
+    pub query: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmForgeProductCatalogControllerGetAgentCandidatesOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmForgeProductCatalogControllerGetAgentCandidatesOperationRequest {
+    pub path: RealmForgeProductCatalogControllerGetAgentCandidatesOperationPath,
+    pub query: RealmForgeProductCatalogControllerGetAgentCandidatesOperationQuery,
+    pub headers: RealmForgeProductCatalogControllerGetAgentCandidatesOperationHeaders,
+    pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmForgeProductCatalogControllerGetCatalogOperationPath {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmForgeProductCatalogControllerGetCatalogOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmForgeProductCatalogControllerGetCatalogOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmForgeProductCatalogControllerGetCatalogOperationRequest {
+    pub path: RealmForgeProductCatalogControllerGetCatalogOperationPath,
+    pub query: RealmForgeProductCatalogControllerGetCatalogOperationQuery,
+    pub headers: RealmForgeProductCatalogControllerGetCatalogOperationHeaders,
+    pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmForgeProductCatalogControllerGetProductOperationPath {
+    pub slug: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmForgeProductCatalogControllerGetProductOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmForgeProductCatalogControllerGetProductOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmForgeProductCatalogControllerGetProductOperationRequest {
+    pub path: RealmForgeProductCatalogControllerGetProductOperationPath,
+    pub query: RealmForgeProductCatalogControllerGetProductOperationQuery,
+    pub headers: RealmForgeProductCatalogControllerGetProductOperationHeaders,
+    pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmForgeProductCatalogControllerGetProductShardOperationPath {
+    pub kind: String,
+    pub slug: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmForgeProductCatalogControllerGetProductShardOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmForgeProductCatalogControllerGetProductShardOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmForgeProductCatalogControllerGetProductShardOperationRequest {
+    pub path: RealmForgeProductCatalogControllerGetProductShardOperationPath,
+    pub query: RealmForgeProductCatalogControllerGetProductShardOperationQuery,
+    pub headers: RealmForgeProductCatalogControllerGetProductShardOperationHeaders,
+    pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmForgeProductCatalogControllerGetProductShardIndexOperationPath {
+    pub slug: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmForgeProductCatalogControllerGetProductShardIndexOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmForgeProductCatalogControllerGetProductShardIndexOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmForgeProductCatalogControllerGetProductShardIndexOperationRequest {
+    pub path: RealmForgeProductCatalogControllerGetProductShardIndexOperationPath,
+    pub query: RealmForgeProductCatalogControllerGetProductShardIndexOperationQuery,
+    pub headers: RealmForgeProductCatalogControllerGetProductShardIndexOperationHeaders,
+    pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmForgeProductCatalogControllerVerifyProductShardsOperationPath {
+    pub slug: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmForgeProductCatalogControllerVerifyProductShardsOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmForgeProductCatalogControllerVerifyProductShardsOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmForgeProductCatalogControllerVerifyProductShardsOperationRequest {
+    pub path: RealmForgeProductCatalogControllerVerifyProductShardsOperationPath,
+    pub query: RealmForgeProductCatalogControllerVerifyProductShardsOperationQuery,
+    pub headers: RealmForgeProductCatalogControllerVerifyProductShardsOperationHeaders,
+    pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealmGetAgentOperationPath {
     pub id: String,
 }
@@ -43698,6 +44155,75 @@ pub struct RealmGetBundleOperationRequest {
     pub path: RealmGetBundleOperationPath,
     pub query: RealmGetBundleOperationQuery,
     pub headers: RealmGetBundleOperationHeaders,
+    pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetCbdbCuratedSystemAgentOperationPath {
+    pub agent_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetCbdbCuratedSystemAgentOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetCbdbCuratedSystemAgentOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetCbdbCuratedSystemAgentOperationRequest {
+    pub path: RealmGetCbdbCuratedSystemAgentOperationPath,
+    pub query: RealmGetCbdbCuratedSystemAgentOperationQuery,
+    pub headers: RealmGetCbdbCuratedSystemAgentOperationHeaders,
+    pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetCbdbCuratedSystemAgentChatReadinessOperationPath {
+    pub agent_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetCbdbCuratedSystemAgentChatReadinessOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetCbdbCuratedSystemAgentChatReadinessOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetCbdbCuratedSystemAgentChatReadinessOperationRequest {
+    pub path: RealmGetCbdbCuratedSystemAgentChatReadinessOperationPath,
+    pub query: RealmGetCbdbCuratedSystemAgentChatReadinessOperationQuery,
+    pub headers: RealmGetCbdbCuratedSystemAgentChatReadinessOperationHeaders,
+    pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetCbdbCuratedSystemAgentSettingsOperationPath {
+    pub agent_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetCbdbCuratedSystemAgentSettingsOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetCbdbCuratedSystemAgentSettingsOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetCbdbCuratedSystemAgentSettingsOperationRequest {
+    pub path: RealmGetCbdbCuratedSystemAgentSettingsOperationPath,
+    pub query: RealmGetCbdbCuratedSystemAgentSettingsOperationQuery,
+    pub headers: RealmGetCbdbCuratedSystemAgentSettingsOperationHeaders,
     pub body: (),
 }
 
@@ -44747,6 +45273,29 @@ pub struct RealmListBundlesOperationRequest {
     pub path: RealmListBundlesOperationPath,
     pub query: RealmListBundlesOperationQuery,
     pub headers: RealmListBundlesOperationHeaders,
+    pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmListCbdbCuratedSystemAgentsOperationPath {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmListCbdbCuratedSystemAgentsOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmListCbdbCuratedSystemAgentsOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmListCbdbCuratedSystemAgentsOperationRequest {
+    pub path: RealmListCbdbCuratedSystemAgentsOperationPath,
+    pub query: RealmListCbdbCuratedSystemAgentsOperationQuery,
+    pub headers: RealmListCbdbCuratedSystemAgentsOperationHeaders,
     pub body: (),
 }
 
@@ -46354,6 +46903,75 @@ pub struct RealmUpdateBundleOperationRequest {
     pub query: RealmUpdateBundleOperationQuery,
     pub headers: RealmUpdateBundleOperationHeaders,
     pub body: UpdateBundleDto,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmUpdateCbdbCuratedSystemAgentProfileMediaOperationPath {
+    pub agent_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmUpdateCbdbCuratedSystemAgentProfileMediaOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmUpdateCbdbCuratedSystemAgentProfileMediaOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmUpdateCbdbCuratedSystemAgentProfileMediaOperationRequest {
+    pub path: RealmUpdateCbdbCuratedSystemAgentProfileMediaOperationPath,
+    pub query: RealmUpdateCbdbCuratedSystemAgentProfileMediaOperationQuery,
+    pub headers: RealmUpdateCbdbCuratedSystemAgentProfileMediaOperationHeaders,
+    pub body: UpdateAgentProfileMediaDto,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmUpdateCbdbCuratedSystemAgentSettingsOperationPath {
+    pub agent_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmUpdateCbdbCuratedSystemAgentSettingsOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmUpdateCbdbCuratedSystemAgentSettingsOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmUpdateCbdbCuratedSystemAgentSettingsOperationRequest {
+    pub path: RealmUpdateCbdbCuratedSystemAgentSettingsOperationPath,
+    pub query: RealmUpdateCbdbCuratedSystemAgentSettingsOperationQuery,
+    pub headers: RealmUpdateCbdbCuratedSystemAgentSettingsOperationHeaders,
+    pub body: UpdateOwnerAgentSettingsDto,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmUpdateCbdbCuratedSystemAgentVoiceOperationPath {
+    pub agent_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmUpdateCbdbCuratedSystemAgentVoiceOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmUpdateCbdbCuratedSystemAgentVoiceOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmUpdateCbdbCuratedSystemAgentVoiceOperationRequest {
+    pub path: RealmUpdateCbdbCuratedSystemAgentVoiceOperationPath,
+    pub query: RealmUpdateCbdbCuratedSystemAgentVoiceOperationQuery,
+    pub headers: RealmUpdateCbdbCuratedSystemAgentVoiceOperationHeaders,
+    pub body: UpdateAgentVoiceDto,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -48041,6 +48659,30 @@ where
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for finalizeResource");
     }
 
+    pub fn forge_product_catalog_controller_get_agent_candidates(&self, _request: RealmForgeProductCatalogControllerGetAgentCandidatesOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<ForgeAgentCandidateQueryResultDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for ForgeProductCatalogController_getAgentCandidates");
+    }
+
+    pub fn forge_product_catalog_controller_get_catalog(&self, _request: RealmForgeProductCatalogControllerGetCatalogOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<ForgeWorldCatalogDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for ForgeProductCatalogController_getCatalog");
+    }
+
+    pub fn forge_product_catalog_controller_get_product(&self, _request: RealmForgeProductCatalogControllerGetProductOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<ForgeWorldProductDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for ForgeProductCatalogController_getProduct");
+    }
+
+    pub fn forge_product_catalog_controller_get_product_shard(&self, _request: RealmForgeProductCatalogControllerGetProductShardOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<ForgeProductShardReadDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for ForgeProductCatalogController_getProductShard");
+    }
+
+    pub fn forge_product_catalog_controller_get_product_shard_index(&self, _request: RealmForgeProductCatalogControllerGetProductShardIndexOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<ForgeProductShardIndexDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for ForgeProductCatalogController_getProductShardIndex");
+    }
+
+    pub fn forge_product_catalog_controller_verify_product_shards(&self, _request: RealmForgeProductCatalogControllerVerifyProductShardsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<ForgeProductShardIntegrityReportDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for ForgeProductCatalogController_verifyProductShards");
+    }
+
     pub fn get_agent(&self, _request: RealmGetAgentOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<UserProfileDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getAgent");
     }
@@ -48059,6 +48701,18 @@ where
 
     pub fn get_bundle(&self, _request: RealmGetBundleOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<BundleDetailDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getBundle");
+    }
+
+    pub fn get_cbdb_curated_system_agent(&self, _request: RealmGetCbdbCuratedSystemAgentOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<UserLiteDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getCbdbCuratedSystemAgent");
+    }
+
+    pub fn get_cbdb_curated_system_agent_chat_readiness(&self, _request: RealmGetCbdbCuratedSystemAgentChatReadinessOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<CbdbCuratedAgentChatReadinessDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getCbdbCuratedSystemAgentChatReadiness");
+    }
+
+    pub fn get_cbdb_curated_system_agent_settings(&self, _request: RealmGetCbdbCuratedSystemAgentSettingsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<OwnerAgentSettingsDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for getCbdbCuratedSystemAgentSettings");
     }
 
     pub fn get_chat_by_id(&self, _request: RealmGetChatByIdOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<ChatViewDto, T::Error> {
@@ -48239,6 +48893,10 @@ where
 
     pub fn list_bundles(&self, _request: RealmListBundlesOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<BundleListDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for listBundles");
+    }
+
+    pub fn list_cbdb_curated_system_agents(&self, _request: RealmListCbdbCuratedSystemAgentsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<Vec<UserLiteDto>, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for listCbdbCuratedSystemAgents");
     }
 
     pub fn list_chats(&self, _request: RealmListChatsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<ListChatsResultDto, T::Error> {
@@ -48507,6 +49165,18 @@ where
 
     pub fn update_bundle(&self, _request: RealmUpdateBundleOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<BundleDetailDto, T::Error> {
         panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for updateBundle");
+    }
+
+    pub fn update_cbdb_curated_system_agent_profile_media(&self, _request: RealmUpdateCbdbCuratedSystemAgentProfileMediaOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<UserLiteDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for updateCbdbCuratedSystemAgentProfileMedia");
+    }
+
+    pub fn update_cbdb_curated_system_agent_settings(&self, _request: RealmUpdateCbdbCuratedSystemAgentSettingsOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<OwnerAgentSettingsDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for updateCbdbCuratedSystemAgentSettings");
+    }
+
+    pub fn update_cbdb_curated_system_agent_voice(&self, _request: RealmUpdateCbdbCuratedSystemAgentVoiceOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<UserLiteDto, T::Error> {
+        panic!("SDK_REALM_RESPONSE_DECODE_FAILED: generated Rust Realm typed client has no admitted response decoder for updateCbdbCuratedSystemAgentVoice");
     }
 
     pub fn update_group(&self, _request: RealmUpdateGroupOperationRequest, _metadata: CoreMetadata, _timeout: Option<std::time::Duration>) -> Result<GroupChatViewDto, T::Error> {

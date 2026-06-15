@@ -524,6 +524,42 @@ REALM_OPERATIONS = [
     "path": "/api/resources/{resourceId}/finalize"
   },
   {
+    "operation_id": "ForgeProductCatalogController_getAgentCandidates",
+    "service": "Forge World Products",
+    "method": "GET",
+    "path": "/api/world-products/{slug}/agent-candidates"
+  },
+  {
+    "operation_id": "ForgeProductCatalogController_getCatalog",
+    "service": "Forge World Products",
+    "method": "GET",
+    "path": "/api/world-products/catalog"
+  },
+  {
+    "operation_id": "ForgeProductCatalogController_getProduct",
+    "service": "Forge World Products",
+    "method": "GET",
+    "path": "/api/world-products/{slug}"
+  },
+  {
+    "operation_id": "ForgeProductCatalogController_getProductShard",
+    "service": "Forge World Products",
+    "method": "GET",
+    "path": "/api/world-products/{slug}/shards/{kind}"
+  },
+  {
+    "operation_id": "ForgeProductCatalogController_getProductShardIndex",
+    "service": "Forge World Products",
+    "method": "GET",
+    "path": "/api/world-products/{slug}/shards"
+  },
+  {
+    "operation_id": "ForgeProductCatalogController_verifyProductShards",
+    "service": "Forge World Products",
+    "method": "GET",
+    "path": "/api/world-products/{slug}/shards/integrity"
+  },
+  {
     "operation_id": "getAgent",
     "service": "Agents",
     "method": "GET",
@@ -552,6 +588,24 @@ REALM_OPERATIONS = [
     "service": "Bundles",
     "method": "GET",
     "path": "/api/bundles/{bundleId}"
+  },
+  {
+    "operation_id": "getCbdbCuratedSystemAgent",
+    "service": "Agent / Curated System",
+    "method": "GET",
+    "path": "/api/agent/curated-system/cbdb/agents/{agentId}"
+  },
+  {
+    "operation_id": "getCbdbCuratedSystemAgentChatReadiness",
+    "service": "Agent / Curated System",
+    "method": "GET",
+    "path": "/api/agent/curated-system/cbdb/agents/{agentId}/chat-readiness"
+  },
+  {
+    "operation_id": "getCbdbCuratedSystemAgentSettings",
+    "service": "Agent / Curated System",
+    "method": "GET",
+    "path": "/api/agent/curated-system/cbdb/agents/{agentId}/settings"
   },
   {
     "operation_id": "getChatById",
@@ -822,6 +876,12 @@ REALM_OPERATIONS = [
     "service": "Bundles",
     "method": "GET",
     "path": "/api/bundles"
+  },
+  {
+    "operation_id": "listCbdbCuratedSystemAgents",
+    "service": "Agent / Curated System",
+    "method": "GET",
+    "path": "/api/agent/curated-system/cbdb/agents"
   },
   {
     "operation_id": "listChats",
@@ -1224,6 +1284,24 @@ REALM_OPERATIONS = [
     "service": "Bundles",
     "method": "PATCH",
     "path": "/api/bundles/{bundleId}"
+  },
+  {
+    "operation_id": "updateCbdbCuratedSystemAgentProfileMedia",
+    "service": "Agent / Curated System",
+    "method": "PATCH",
+    "path": "/api/agent/curated-system/cbdb/agents/{agentId}/profile-media"
+  },
+  {
+    "operation_id": "updateCbdbCuratedSystemAgentSettings",
+    "service": "Agent / Curated System",
+    "method": "PATCH",
+    "path": "/api/agent/curated-system/cbdb/agents/{agentId}/settings"
+  },
+  {
+    "operation_id": "updateCbdbCuratedSystemAgentVoice",
+    "service": "Agent / Curated System",
+    "method": "PATCH",
+    "path": "/api/agent/curated-system/cbdb/agents/{agentId}/voice"
   },
   {
     "operation_id": "updateGroup",

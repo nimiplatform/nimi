@@ -151,7 +151,6 @@ export interface AgentProfileDto {
   readonly stats?: AgentStatsDto;
   readonly worldId?: string;
 }
-export type AgentRelationType = "ALLY" | "RIVAL" | "ENEMY";
 export interface AgentRelationshipOtherAccountDto {
   readonly avatarUrl: string;
   readonly displayName: string;
@@ -168,6 +167,7 @@ export interface AgentRelationshipRecordDto {
   readonly strength: number;
   readonly type: AgentRelationType;
 }
+export type AgentRelationType = "ALLY" | "RIVAL" | "ENEMY";
 export interface AgentResponseMetadataDto {
   readonly activeWorldId?: string;
   readonly category?: string;
@@ -274,11 +274,19 @@ export interface AgentVoiceConfigDto {
   readonly description?: string;
   readonly emotionEnabled?: boolean;
   readonly pitch?: number;
+  readonly speechModelId?: string;
+  readonly speechRoutePolicy?: "local" | "cloud";
   readonly speed?: number;
   readonly voiceId?: string;
 }
 export type AgentWakeStrategy = "PASSIVE" | "PROACTIVE";
 export type ApiKeyType = "PERSONAL" | "ENTERPRISE";
+export interface AppendWorldHistoryDto {
+  readonly commit: MutationCommitEnvelopeDto;
+  readonly historyAppends: readonly (WorldHistoryAppendItemDto)[];
+  readonly ifSnapshotVersion?: string;
+  readonly reason?: string;
+}
 export interface AppPermissionGrantDecisionDto {
   readonly expectedVersion: number;
   readonly reason?: string;
@@ -334,12 +342,6 @@ export interface AppPermissionGrantSupersedeDto {
 }
 export type AppPermissionScopeFamily = "account" | "data" | "agent" | "ai_spend" | "memory" | "knowledge" | "notification" | "file_device" | "audit" | "ai_profile";
 export type AppPermissionScopeName = "account.read" | "account.session.read" | "data.scope.read" | "data.scope.write" | "agent.identity.project" | "agent.identity.bind" | "ai.spend.meter" | "ai.spend.delegate" | "memory.read.bounded" | "memory.write.admitted" | "knowledge.read.bounded" | "knowledge.write.admitted" | "notification.send" | "notification.subscribe" | "file.read.scoped" | "file.write.scoped" | "device.use.scoped" | "audit.read.scoped" | "ai_profile.selection.consume";
-export interface AppendWorldHistoryDto {
-  readonly commit: MutationCommitEnvelopeDto;
-  readonly historyAppends: readonly (WorldHistoryAppendItemDto)[];
-  readonly ifSnapshotVersion?: string;
-  readonly reason?: string;
-}
 export interface AssetDetailDto {
   readonly authorId: string;
   readonly clonePolicy: "ALLOW" | "DENY" | "INHERIT";
@@ -611,6 +613,38 @@ export interface CausalityRuleDto {
   readonly id: string;
   readonly probability?: number;
   readonly trigger: string;
+}
+export interface CbdbCuratedAgentChatReadinessDto {
+  readonly agentId: string;
+  readonly agentRuleCount: number;
+  readonly consumerSurface: string;
+  readonly gates: CbdbCuratedAgentChatReadinessGatesDto;
+  readonly ownerScope: string;
+  readonly profile: CbdbCuratedAgentChatReadinessProfileDto;
+  readonly rawRuleContentExposed: boolean;
+  readonly runtimeProjectionChecksum: string;
+  readonly selectedInputCount: number;
+  readonly selectedOwnerSettingFields: readonly (string)[];
+  readonly suppressedInputCount: number;
+  readonly worldId: string;
+  readonly worldRuleCount: number;
+}
+export interface CbdbCuratedAgentChatReadinessGatesDto {
+  readonly localAgentIdentityReady: boolean;
+  readonly ownerSettingsReady: boolean;
+  readonly profileContextReady: boolean;
+  readonly profileMediaReady: boolean;
+  readonly speechRouteReady: boolean;
+  readonly voiceReferenceReady: boolean;
+}
+export interface CbdbCuratedAgentChatReadinessProfileDto {
+  readonly avatarUrl: string;
+  readonly defaultVoiceReference: string;
+  readonly displayName: string;
+  readonly handle: string;
+  readonly profileCoverUrl: string;
+  readonly speechModelId: string;
+  readonly speechRoutePolicy: string;
 }
 export interface ChangeEmailDto {
   readonly emailOtpCode: string;
@@ -1048,6 +1082,211 @@ export interface FinalizeResourceDto {
   readonly traceId?: string;
   readonly width?: number;
   readonly worldId?: string;
+}
+export interface ForgeAgentCandidateCapabilityCellDto {
+  readonly evidenceTruthRefCount: number;
+  readonly evidenceTruthRefs?: readonly (string)[];
+  readonly predicateId: string;
+  readonly requirements: readonly (ForgeAgentCandidateRequirementDto)[];
+  readonly status: "ready" | "sparse" | "blocked";
+  readonly surface: string;
+}
+export interface ForgeAgentCandidateDto {
+  readonly agentRef?: string;
+  readonly capabilityVector: readonly (ForgeAgentCandidateCapabilityCellDto)[];
+  readonly completenessIntent: string;
+  readonly entityRef?: string;
+  readonly id: string;
+  readonly name: string;
+  readonly runtimeMaterialization: ForgeAgentCandidateRuntimeMaterializationDto;
+  readonly sourceProfiles: readonly (ForgeAgentCandidateSourceProfileDto)[];
+  readonly worldId: string;
+}
+export interface ForgeAgentCandidateQueryFiltersDto {
+  readonly query?: string;
+  readonly status?: "ready" | "sparse" | "blocked";
+  readonly surface?: string;
+}
+export interface ForgeAgentCandidateQueryResultDto {
+  readonly candidates: readonly (ForgeAgentCandidateDto)[];
+  readonly filters: ForgeAgentCandidateQueryFiltersDto;
+  readonly packageId: string;
+  readonly returned: number;
+  readonly schemaVersion: string;
+  readonly slug: string;
+  readonly total: number;
+}
+export interface ForgeAgentCandidateRequirementDto {
+  readonly actual: number;
+  readonly gap: number;
+  readonly gapKind: "open" | "bounded";
+  readonly id: string;
+  readonly passed: boolean;
+  readonly required: number;
+}
+export interface ForgeAgentCandidateRuntimeMaterializationDto {
+  readonly materializedRuntimeAgent: boolean;
+  readonly roleplayRuntimeEligible: boolean;
+}
+export interface ForgeAgentCandidateSourceProfileDto {
+  readonly archetype: string;
+  readonly authorityRank: string;
+  readonly evidenceLocatorKind: string;
+  readonly profile: string;
+  readonly sourceId: string;
+}
+export interface ForgeProductArtifactRefDto {
+  readonly checksum: string;
+  readonly kind: string;
+  readonly path: string;
+}
+export interface ForgeProductCapabilitySummaryDto {
+  readonly agentCandidates: number;
+  readonly completenessIntentCounts: Record<string, unknown>;
+  readonly materializedRuntimeAgents: number;
+  readonly runtimeReadyCandidates: number;
+  readonly surfaceStatusCounts: Record<string, unknown>;
+}
+export interface ForgeProductCountsDto {
+  readonly agentBlueprints: number;
+  readonly agentCapabilities: number;
+  readonly agentExemplars: number;
+  readonly agentRelationships: number;
+  readonly evidenceRecords: number;
+  readonly projectionInputs: number;
+  readonly scenes: number;
+  readonly worldEntities: number;
+  readonly worldEvents: number;
+  readonly worldRelationships: number;
+  readonly worldRules: number;
+  readonly worldSystems: number;
+}
+export interface ForgeProductEvalScorecardDto {
+  readonly admissionAuthority: string;
+  readonly artifactPath: string;
+  readonly checksum: string;
+  readonly publicDataset: boolean;
+  readonly suite: string;
+  readonly trustTier: string;
+}
+export interface ForgeProductOptionalArtifactQualityDto {
+  readonly artifactPath: string;
+  readonly checksum: string;
+}
+export interface ForgeProductQualityDto {
+  readonly evalScorecards: readonly (ForgeProductEvalScorecardDto)[];
+  readonly presetZeroing?: Record<string, unknown>;
+  readonly updateRun?: Record<string, unknown>;
+  readonly validation: ForgeProductValidationQualityDto;
+}
+export interface ForgeProductShardIndexDto {
+  readonly packageId: string;
+  readonly packageVersion: string;
+  readonly schemaVersion: string;
+  readonly shardManifest: ForgeProductShardManifestRefDto;
+  readonly shards: readonly (ForgeProductShardIndexItemDto)[];
+  readonly slug: string;
+}
+export interface ForgeProductShardIndexItemDto {
+  readonly byteSize: number;
+  readonly checksum: string;
+  readonly exportKeys: readonly (string)[];
+  readonly kind: string;
+  readonly path: string;
+}
+export interface ForgeProductShardIntegrityItemDto {
+  readonly actualChecksum: string;
+  readonly byteSize: number;
+  readonly error: string;
+  readonly expectedChecksum: string;
+  readonly exportKeys: readonly (string)[];
+  readonly kind: string;
+  readonly path: string;
+  readonly status: "pass" | "failed";
+}
+export interface ForgeProductShardIntegrityReportDto {
+  readonly packageId: string;
+  readonly packageVersion: string;
+  readonly schemaVersion: string;
+  readonly shardManifest: ForgeProductShardManifestRefDto;
+  readonly shards: readonly (ForgeProductShardIntegrityItemDto)[];
+  readonly slug: string;
+  readonly status: "pass" | "failed";
+}
+export interface ForgeProductShardManifestRefDto {
+  readonly checksum: string;
+  readonly path: string;
+}
+export interface ForgeProductShardReadDto {
+  readonly checksum: string;
+  readonly kind: string;
+  readonly packageId: string;
+  readonly packageVersion: string;
+  readonly record: Record<string, unknown>;
+  readonly schemaVersion: string;
+  readonly slug: string;
+}
+export interface ForgeProductSourceProfileDto {
+  readonly archetype: string;
+  readonly authorityRank: string;
+  readonly evidenceLocatorKind: string;
+  readonly inputCount: number;
+  readonly localeProfile: string;
+  readonly profile: string;
+  readonly sourceId: string;
+  readonly title: string;
+}
+export interface ForgeProductUpdateRunQualityDto {
+  readonly artifactPath: string;
+  readonly checksum: string;
+  readonly runStatus: "success" | "failed" | "blocked" | "no-op";
+}
+export interface ForgeProductValidationQualityDto {
+  readonly artifactPath: string;
+  readonly checksum: string;
+  readonly status: "PASS" | "FAIL";
+}
+export interface ForgeProductWorldRefDto {
+  readonly id: string;
+  readonly name: string;
+}
+export interface ForgeWorldCatalogDto {
+  readonly qualitySummary: ForgeWorldCatalogQualitySummaryDto;
+  readonly rootDir: string;
+  readonly schemaVersion: string;
+  readonly worlds: readonly (ForgeWorldProductDto)[];
+}
+export interface ForgeWorldCatalogQualitySummaryDto {
+  readonly evalScorecards: number;
+  readonly goldenGateScorecards: number;
+  readonly publicReferenceScorecards: number;
+  readonly reportOnlyScorecards: number;
+  readonly updateRunBlocked: number;
+  readonly updateRunFailed: number;
+  readonly updateRunNoop: number;
+  readonly updateRunSuccess: number;
+  readonly validationFail: number;
+  readonly validationPass: number;
+  readonly worlds: number;
+  readonly worldsWithGoldenGate: number;
+  readonly worldsWithPresetZeroing: number;
+  readonly worldsWithPublicReference: number;
+  readonly worldsWithUpdateRun: number;
+}
+export interface ForgeWorldProductDto {
+  readonly artifacts: readonly (ForgeProductArtifactRefDto)[];
+  readonly capabilitySummary: ForgeProductCapabilitySummaryDto;
+  readonly counts: ForgeProductCountsDto;
+  readonly distributionShape: "authoring-package" | "compact-shards";
+  readonly packageId: string;
+  readonly packageVersion: string;
+  readonly productId: string;
+  readonly quality: ForgeProductQualityDto;
+  readonly schemaVersion: string;
+  readonly slug: string;
+  readonly sourceMix: readonly (ForgeProductSourceProfileDto)[];
+  readonly target: string;
+  readonly world: ForgeProductWorldRefDto;
 }
 export interface FriendProfileDto {
   readonly agent?: AgentMetadataDto;
@@ -1532,19 +1771,6 @@ export interface OwnerAgentSettingsDto {
   readonly updatedAt: string;
   readonly worldId: string;
 }
-export interface PPSlotConfigDto {
-  readonly slot1?: PPSlotItemDto;
-  readonly slot2?: PPSlotItemDto;
-  readonly slot3?: PPSlotItemDto;
-  readonly slot4?: PPSlotItemDto;
-}
-export interface PPSlotConfigResponseDto {
-  readonly ppSlotConfig: PPSlotConfigDto;
-}
-export interface PPSlotItemDto {
-  readonly id: string;
-  readonly type: string;
-}
 export interface PasswordLoginDto {
   readonly identifier: string;
   readonly password: string;
@@ -1618,6 +1844,19 @@ export interface PowerTierDto {
   readonly level: number;
   readonly name: string;
   readonly requirements?: readonly (string)[];
+}
+export interface PPSlotConfigDto {
+  readonly slot1?: PPSlotItemDto;
+  readonly slot2?: PPSlotItemDto;
+  readonly slot3?: PPSlotItemDto;
+  readonly slot4?: PPSlotItemDto;
+}
+export interface PPSlotConfigResponseDto {
+  readonly ppSlotConfig: PPSlotConfigDto;
+}
+export interface PPSlotItemDto {
+  readonly id: string;
+  readonly type: string;
 }
 export type PresenceStatus = "online" | "invisible";
 export interface PublicBindingDto {
@@ -2160,6 +2399,10 @@ export interface UpdateAgentDnaDto {
 export interface UpdateAgentNsfwConsentDto {
   readonly enabled: boolean;
 }
+export interface UpdateAgentProfileMediaDto {
+  readonly avatarUrl?: string;
+  readonly profileCoverUrl?: string;
+}
 export interface UpdateAgentRuleDto {
   readonly category?: "CONSTRAINT" | "MECHANISM" | "DEFINITION" | "RELATION" | "POLICY";
   readonly conflictsWith?: readonly (string)[];
@@ -2181,6 +2424,15 @@ export interface UpdateAgentVisibilityDto {
   readonly defaultPostVisibility?: Visibility;
   readonly dmVisibility?: Visibility;
   readonly profileVisibility?: Visibility;
+}
+export interface UpdateAgentVoiceDto {
+  readonly description?: string;
+  readonly emotionEnabled?: boolean;
+  readonly pitch?: number;
+  readonly speechModelId?: string;
+  readonly speechRoutePolicy?: "local" | "cloud";
+  readonly speed?: number;
+  readonly voiceId?: string;
 }
 export interface UpdateAssetDto {
   readonly clonePolicy?: "ALLOW" | "DENY" | "INHERIT";
@@ -2231,9 +2483,6 @@ export interface UpdateOwnerAgentSettingsDto {
   readonly personality?: OwnerAgentPersonalitySettingsDto;
   readonly positioning?: OwnerAgentPositioningSettingsDto;
 }
-export interface UpdatePPSlotConfigDto {
-  readonly ppSlotConfig: PPSlotConfigDto;
-}
 export interface UpdateParticipantRoleInputDto {
   readonly role: "admin" | "member";
 }
@@ -2243,6 +2492,9 @@ export interface UpdatePasswordRequestDto {
 }
 export interface UpdatePostDto {
   readonly visibility?: Visibility;
+}
+export interface UpdatePPSlotConfigDto {
+  readonly ppSlotConfig: PPSlotConfigDto;
 }
 export interface UpdateRelationshipDto {
   readonly context?: string;
@@ -3719,9 +3971,9 @@ export interface RealmTypedModelMap {
   readonly "AgentOwnershipType": AgentOwnershipType;
   readonly "AgentPersonalityDto": AgentPersonalityDto;
   readonly "AgentProfileDto": AgentProfileDto;
-  readonly "AgentRelationType": AgentRelationType;
   readonly "AgentRelationshipOtherAccountDto": AgentRelationshipOtherAccountDto;
   readonly "AgentRelationshipRecordDto": AgentRelationshipRecordDto;
+  readonly "AgentRelationType": AgentRelationType;
   readonly "AgentResponseMetadataDto": AgentResponseMetadataDto;
   readonly "AgentResponseProfileDto": AgentResponseProfileDto;
   readonly "AgentResponseProfileStatsDto": AgentResponseProfileStatsDto;
@@ -3735,6 +3987,7 @@ export interface RealmTypedModelMap {
   readonly "AgentVoiceConfigDto": AgentVoiceConfigDto;
   readonly "AgentWakeStrategy": AgentWakeStrategy;
   readonly "ApiKeyType": ApiKeyType;
+  readonly "AppendWorldHistoryDto": AppendWorldHistoryDto;
   readonly "AppPermissionGrantDecisionDto": AppPermissionGrantDecisionDto;
   readonly "AppPermissionGrantDto": AppPermissionGrantDto;
   readonly "AppPermissionGrantGrantDto": AppPermissionGrantGrantDto;
@@ -3745,7 +3998,6 @@ export interface RealmTypedModelMap {
   readonly "AppPermissionGrantSupersedeDto": AppPermissionGrantSupersedeDto;
   readonly "AppPermissionScopeFamily": AppPermissionScopeFamily;
   readonly "AppPermissionScopeName": AppPermissionScopeName;
-  readonly "AppendWorldHistoryDto": AppendWorldHistoryDto;
   readonly "AssetDetailDto": AssetDetailDto;
   readonly "AssetListDto": AssetListDto;
   readonly "AttachmentDisplayKind": AttachmentDisplayKind;
@@ -3780,6 +4032,9 @@ export interface RealmTypedModelMap {
   readonly "CanWithdrawDto": CanWithdrawDto;
   readonly "CausalityModelDto": CausalityModelDto;
   readonly "CausalityRuleDto": CausalityRuleDto;
+  readonly "CbdbCuratedAgentChatReadinessDto": CbdbCuratedAgentChatReadinessDto;
+  readonly "CbdbCuratedAgentChatReadinessGatesDto": CbdbCuratedAgentChatReadinessGatesDto;
+  readonly "CbdbCuratedAgentChatReadinessProfileDto": CbdbCuratedAgentChatReadinessProfileDto;
   readonly "ChangeEmailDto": ChangeEmailDto;
   readonly "ChatEventEnvelopeDto": ChatEventEnvelopeDto;
   readonly "ChatFriendRequestPayloadDto": ChatFriendRequestPayloadDto;
@@ -3843,6 +4098,32 @@ export interface RealmTypedModelMap {
   readonly "FeedPageMetaDto": FeedPageMetaDto;
   readonly "FeedResponseDto": FeedResponseDto;
   readonly "FinalizeResourceDto": FinalizeResourceDto;
+  readonly "ForgeAgentCandidateCapabilityCellDto": ForgeAgentCandidateCapabilityCellDto;
+  readonly "ForgeAgentCandidateDto": ForgeAgentCandidateDto;
+  readonly "ForgeAgentCandidateQueryFiltersDto": ForgeAgentCandidateQueryFiltersDto;
+  readonly "ForgeAgentCandidateQueryResultDto": ForgeAgentCandidateQueryResultDto;
+  readonly "ForgeAgentCandidateRequirementDto": ForgeAgentCandidateRequirementDto;
+  readonly "ForgeAgentCandidateRuntimeMaterializationDto": ForgeAgentCandidateRuntimeMaterializationDto;
+  readonly "ForgeAgentCandidateSourceProfileDto": ForgeAgentCandidateSourceProfileDto;
+  readonly "ForgeProductArtifactRefDto": ForgeProductArtifactRefDto;
+  readonly "ForgeProductCapabilitySummaryDto": ForgeProductCapabilitySummaryDto;
+  readonly "ForgeProductCountsDto": ForgeProductCountsDto;
+  readonly "ForgeProductEvalScorecardDto": ForgeProductEvalScorecardDto;
+  readonly "ForgeProductOptionalArtifactQualityDto": ForgeProductOptionalArtifactQualityDto;
+  readonly "ForgeProductQualityDto": ForgeProductQualityDto;
+  readonly "ForgeProductShardIndexDto": ForgeProductShardIndexDto;
+  readonly "ForgeProductShardIndexItemDto": ForgeProductShardIndexItemDto;
+  readonly "ForgeProductShardIntegrityItemDto": ForgeProductShardIntegrityItemDto;
+  readonly "ForgeProductShardIntegrityReportDto": ForgeProductShardIntegrityReportDto;
+  readonly "ForgeProductShardManifestRefDto": ForgeProductShardManifestRefDto;
+  readonly "ForgeProductShardReadDto": ForgeProductShardReadDto;
+  readonly "ForgeProductSourceProfileDto": ForgeProductSourceProfileDto;
+  readonly "ForgeProductUpdateRunQualityDto": ForgeProductUpdateRunQualityDto;
+  readonly "ForgeProductValidationQualityDto": ForgeProductValidationQualityDto;
+  readonly "ForgeProductWorldRefDto": ForgeProductWorldRefDto;
+  readonly "ForgeWorldCatalogDto": ForgeWorldCatalogDto;
+  readonly "ForgeWorldCatalogQualitySummaryDto": ForgeWorldCatalogQualitySummaryDto;
+  readonly "ForgeWorldProductDto": ForgeWorldProductDto;
   readonly "FriendProfileDto": FriendProfileDto;
   readonly "FriendProfileListDto": FriendProfileListDto;
   readonly "Gender": Gender;
@@ -3914,9 +4195,6 @@ export interface RealmTypedModelMap {
   readonly "OwnerAgentPersonalitySettingsDto": OwnerAgentPersonalitySettingsDto;
   readonly "OwnerAgentPositioningSettingsDto": OwnerAgentPositioningSettingsDto;
   readonly "OwnerAgentSettingsDto": OwnerAgentSettingsDto;
-  readonly "PPSlotConfigDto": PPSlotConfigDto;
-  readonly "PPSlotConfigResponseDto": PPSlotConfigResponseDto;
-  readonly "PPSlotItemDto": PPSlotItemDto;
   readonly "PasswordLoginDto": PasswordLoginDto;
   readonly "PasswordRegisterDto": PasswordRegisterDto;
   readonly "PermissionCheckResponseDto": PermissionCheckResponseDto;
@@ -3927,6 +4205,9 @@ export interface RealmTypedModelMap {
   readonly "PowerSystemLevelDto": PowerSystemLevelDto;
   readonly "PowerSystemTabooDto": PowerSystemTabooDto;
   readonly "PowerTierDto": PowerTierDto;
+  readonly "PPSlotConfigDto": PPSlotConfigDto;
+  readonly "PPSlotConfigResponseDto": PPSlotConfigResponseDto;
+  readonly "PPSlotItemDto": PPSlotItemDto;
   readonly "PresenceStatus": PresenceStatus;
   readonly "PublicBindingDto": PublicBindingDto;
   readonly "PublicBindingListDto": PublicBindingListDto;
@@ -4008,18 +4289,20 @@ export interface RealmTypedModelMap {
   readonly "UnreadNotificationCountDto": UnreadNotificationCountDto;
   readonly "UpdateAgentDnaDto": UpdateAgentDnaDto;
   readonly "UpdateAgentNsfwConsentDto": UpdateAgentNsfwConsentDto;
+  readonly "UpdateAgentProfileMediaDto": UpdateAgentProfileMediaDto;
   readonly "UpdateAgentRuleDto": UpdateAgentRuleDto;
   readonly "UpdateAgentVisibilityDto": UpdateAgentVisibilityDto;
+  readonly "UpdateAgentVoiceDto": UpdateAgentVoiceDto;
   readonly "UpdateAssetDto": UpdateAssetDto;
   readonly "UpdateBundleDto": UpdateBundleDto;
   readonly "UpdateCreatorAgentDto": UpdateCreatorAgentDto;
   readonly "UpdateGroupInputDto": UpdateGroupInputDto;
   readonly "UpdateNsfwConsentResponseDto": UpdateNsfwConsentResponseDto;
   readonly "UpdateOwnerAgentSettingsDto": UpdateOwnerAgentSettingsDto;
-  readonly "UpdatePPSlotConfigDto": UpdatePPSlotConfigDto;
   readonly "UpdateParticipantRoleInputDto": UpdateParticipantRoleInputDto;
   readonly "UpdatePasswordRequestDto": UpdatePasswordRequestDto;
   readonly "UpdatePostDto": UpdatePostDto;
+  readonly "UpdatePPSlotConfigDto": UpdatePPSlotConfigDto;
   readonly "UpdateRelationshipDto": UpdateRelationshipDto;
   readonly "UpdateResourceDto": UpdateResourceDto;
   readonly "UpdateUserDto": UpdateUserDto;
@@ -5254,6 +5537,89 @@ export interface RealmFinalizeResourceOperationRequest {
   readonly body: FinalizeResourceDto;
 }
 export type RealmFinalizeResourceOperationResponse = ResourceDetailDto;
+export interface RealmForgeProductCatalogControllerGetAgentCandidatesOperationRequest {
+  readonly path: {
+    readonly slug: string;
+  };
+  readonly query?: {
+    readonly includeEvidenceRefs?: boolean;
+    readonly limit?: number;
+    readonly status?: "ready" | "sparse" | "blocked";
+    readonly surface?: string;
+    readonly query?: string;
+  };
+  readonly headers?: {
+
+  };
+  readonly body?: Record<string, never>;
+}
+export type RealmForgeProductCatalogControllerGetAgentCandidatesOperationResponse = ForgeAgentCandidateQueryResultDto;
+export interface RealmForgeProductCatalogControllerGetCatalogOperationRequest {
+  readonly path: {
+
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body?: Record<string, never>;
+}
+export type RealmForgeProductCatalogControllerGetCatalogOperationResponse = ForgeWorldCatalogDto;
+export interface RealmForgeProductCatalogControllerGetProductOperationRequest {
+  readonly path: {
+    readonly slug: string;
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body?: Record<string, never>;
+}
+export type RealmForgeProductCatalogControllerGetProductOperationResponse = ForgeWorldProductDto;
+export interface RealmForgeProductCatalogControllerGetProductShardOperationRequest {
+  readonly path: {
+    readonly kind: "package-meta" | "world-source" | "world-rules" | "agent-blueprints" | "truth" | "sufficiency" | "capability" | "derivation" | "projection" | "evidence" | "governance" | "agent-relationships" | "scenes" | "world-lorebooks" | "agent-lorebooks" | "resources-bindings" | "world-drafts";
+    readonly slug: string;
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body?: Record<string, never>;
+}
+export type RealmForgeProductCatalogControllerGetProductShardOperationResponse = ForgeProductShardReadDto;
+export interface RealmForgeProductCatalogControllerGetProductShardIndexOperationRequest {
+  readonly path: {
+    readonly slug: string;
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body?: Record<string, never>;
+}
+export type RealmForgeProductCatalogControllerGetProductShardIndexOperationResponse = ForgeProductShardIndexDto;
+export interface RealmForgeProductCatalogControllerVerifyProductShardsOperationRequest {
+  readonly path: {
+    readonly slug: string;
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body?: Record<string, never>;
+}
+export type RealmForgeProductCatalogControllerVerifyProductShardsOperationResponse = ForgeProductShardIntegrityReportDto;
 export interface RealmGetAgentOperationRequest {
   readonly path: {
     readonly id: string;
@@ -5319,6 +5685,45 @@ export interface RealmGetBundleOperationRequest {
   readonly body?: Record<string, never>;
 }
 export type RealmGetBundleOperationResponse = BundleDetailDto;
+export interface RealmGetCbdbCuratedSystemAgentOperationRequest {
+  readonly path: {
+    readonly agentId: string;
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body?: Record<string, never>;
+}
+export type RealmGetCbdbCuratedSystemAgentOperationResponse = UserLiteDto;
+export interface RealmGetCbdbCuratedSystemAgentChatReadinessOperationRequest {
+  readonly path: {
+    readonly agentId: string;
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body?: Record<string, never>;
+}
+export type RealmGetCbdbCuratedSystemAgentChatReadinessOperationResponse = CbdbCuratedAgentChatReadinessDto;
+export interface RealmGetCbdbCuratedSystemAgentSettingsOperationRequest {
+  readonly path: {
+    readonly agentId: string;
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body?: Record<string, never>;
+}
+export type RealmGetCbdbCuratedSystemAgentSettingsOperationResponse = OwnerAgentSettingsDto;
 export interface RealmGetChatByIdOperationRequest {
   readonly path: {
     readonly chatId: string;
@@ -5918,6 +6323,19 @@ export interface RealmListBundlesOperationRequest {
   readonly body?: Record<string, never>;
 }
 export type RealmListBundlesOperationResponse = BundleListDto;
+export interface RealmListCbdbCuratedSystemAgentsOperationRequest {
+  readonly path: {
+
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body?: Record<string, never>;
+}
+export type RealmListCbdbCuratedSystemAgentsOperationResponse = readonly (UserLiteDto)[];
 export interface RealmListChatsOperationRequest {
   readonly path: {
 
@@ -6854,6 +7272,45 @@ export interface RealmUpdateBundleOperationRequest {
   readonly body: UpdateBundleDto;
 }
 export type RealmUpdateBundleOperationResponse = BundleDetailDto;
+export interface RealmUpdateCbdbCuratedSystemAgentProfileMediaOperationRequest {
+  readonly path: {
+    readonly agentId: string;
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body: UpdateAgentProfileMediaDto;
+}
+export type RealmUpdateCbdbCuratedSystemAgentProfileMediaOperationResponse = UserLiteDto;
+export interface RealmUpdateCbdbCuratedSystemAgentSettingsOperationRequest {
+  readonly path: {
+    readonly agentId: string;
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body: UpdateOwnerAgentSettingsDto;
+}
+export type RealmUpdateCbdbCuratedSystemAgentSettingsOperationResponse = OwnerAgentSettingsDto;
+export interface RealmUpdateCbdbCuratedSystemAgentVoiceOperationRequest {
+  readonly path: {
+    readonly agentId: string;
+  };
+  readonly query?: {
+
+  };
+  readonly headers?: {
+
+  };
+  readonly body: UpdateAgentVoiceDto;
+}
+export type RealmUpdateCbdbCuratedSystemAgentVoiceOperationResponse = UserLiteDto;
 export interface RealmUpdateGroupOperationRequest {
   readonly path: {
     readonly chatId: string;
@@ -8558,6 +9015,72 @@ export class RealmTypedClient {
     });
   }
 
+  async forgeProductCatalogControllerGetAgentCandidates(request: RealmForgeProductCatalogControllerGetAgentCandidatesOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmForgeProductCatalogControllerGetAgentCandidatesOperationResponse> {
+    return this.core.unary<RealmForgeProductCatalogControllerGetAgentCandidatesOperationResponse, RealmForgeProductCatalogControllerGetAgentCandidatesOperationRequest>({
+      methodId: "ForgeProductCatalogController_getAgentCandidates",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async forgeProductCatalogControllerGetCatalog(request: RealmForgeProductCatalogControllerGetCatalogOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmForgeProductCatalogControllerGetCatalogOperationResponse> {
+    return this.core.unary<RealmForgeProductCatalogControllerGetCatalogOperationResponse, RealmForgeProductCatalogControllerGetCatalogOperationRequest>({
+      methodId: "ForgeProductCatalogController_getCatalog",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async forgeProductCatalogControllerGetProduct(request: RealmForgeProductCatalogControllerGetProductOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmForgeProductCatalogControllerGetProductOperationResponse> {
+    return this.core.unary<RealmForgeProductCatalogControllerGetProductOperationResponse, RealmForgeProductCatalogControllerGetProductOperationRequest>({
+      methodId: "ForgeProductCatalogController_getProduct",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async forgeProductCatalogControllerGetProductShard(request: RealmForgeProductCatalogControllerGetProductShardOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmForgeProductCatalogControllerGetProductShardOperationResponse> {
+    return this.core.unary<RealmForgeProductCatalogControllerGetProductShardOperationResponse, RealmForgeProductCatalogControllerGetProductShardOperationRequest>({
+      methodId: "ForgeProductCatalogController_getProductShard",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async forgeProductCatalogControllerGetProductShardIndex(request: RealmForgeProductCatalogControllerGetProductShardIndexOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmForgeProductCatalogControllerGetProductShardIndexOperationResponse> {
+    return this.core.unary<RealmForgeProductCatalogControllerGetProductShardIndexOperationResponse, RealmForgeProductCatalogControllerGetProductShardIndexOperationRequest>({
+      methodId: "ForgeProductCatalogController_getProductShardIndex",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async forgeProductCatalogControllerVerifyProductShards(request: RealmForgeProductCatalogControllerVerifyProductShardsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmForgeProductCatalogControllerVerifyProductShardsOperationResponse> {
+    return this.core.unary<RealmForgeProductCatalogControllerVerifyProductShardsOperationResponse, RealmForgeProductCatalogControllerVerifyProductShardsOperationRequest>({
+      methodId: "ForgeProductCatalogController_verifyProductShards",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
   async getAgent(request: RealmGetAgentOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetAgentOperationResponse> {
     return this.core.unary<RealmGetAgentOperationResponse, RealmGetAgentOperationRequest>({
       methodId: "getAgent",
@@ -8605,6 +9128,39 @@ export class RealmTypedClient {
   async getBundle(request: RealmGetBundleOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetBundleOperationResponse> {
     return this.core.unary<RealmGetBundleOperationResponse, RealmGetBundleOperationRequest>({
       methodId: "getBundle",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async getCbdbCuratedSystemAgent(request: RealmGetCbdbCuratedSystemAgentOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetCbdbCuratedSystemAgentOperationResponse> {
+    return this.core.unary<RealmGetCbdbCuratedSystemAgentOperationResponse, RealmGetCbdbCuratedSystemAgentOperationRequest>({
+      methodId: "getCbdbCuratedSystemAgent",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async getCbdbCuratedSystemAgentChatReadiness(request: RealmGetCbdbCuratedSystemAgentChatReadinessOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetCbdbCuratedSystemAgentChatReadinessOperationResponse> {
+    return this.core.unary<RealmGetCbdbCuratedSystemAgentChatReadinessOperationResponse, RealmGetCbdbCuratedSystemAgentChatReadinessOperationRequest>({
+      methodId: "getCbdbCuratedSystemAgentChatReadiness",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async getCbdbCuratedSystemAgentSettings(request: RealmGetCbdbCuratedSystemAgentSettingsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmGetCbdbCuratedSystemAgentSettingsOperationResponse> {
+    return this.core.unary<RealmGetCbdbCuratedSystemAgentSettingsOperationResponse, RealmGetCbdbCuratedSystemAgentSettingsOperationRequest>({
+      methodId: "getCbdbCuratedSystemAgentSettings",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -9100,6 +9656,17 @@ export class RealmTypedClient {
   async listBundles(request: RealmListBundlesOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmListBundlesOperationResponse> {
     return this.core.unary<RealmListBundlesOperationResponse, RealmListBundlesOperationRequest>({
       methodId: "listBundles",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async listCbdbCuratedSystemAgents(request: RealmListCbdbCuratedSystemAgentsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmListCbdbCuratedSystemAgentsOperationResponse> {
+    return this.core.unary<RealmListCbdbCuratedSystemAgentsOperationResponse, RealmListCbdbCuratedSystemAgentsOperationRequest>({
+      methodId: "listCbdbCuratedSystemAgents",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -9837,6 +10404,39 @@ export class RealmTypedClient {
   async updateBundle(request: RealmUpdateBundleOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmUpdateBundleOperationResponse> {
     return this.core.unary<RealmUpdateBundleOperationResponse, RealmUpdateBundleOperationRequest>({
       methodId: "updateBundle",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async updateCbdbCuratedSystemAgentProfileMedia(request: RealmUpdateCbdbCuratedSystemAgentProfileMediaOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmUpdateCbdbCuratedSystemAgentProfileMediaOperationResponse> {
+    return this.core.unary<RealmUpdateCbdbCuratedSystemAgentProfileMediaOperationResponse, RealmUpdateCbdbCuratedSystemAgentProfileMediaOperationRequest>({
+      methodId: "updateCbdbCuratedSystemAgentProfileMedia",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async updateCbdbCuratedSystemAgentSettings(request: RealmUpdateCbdbCuratedSystemAgentSettingsOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmUpdateCbdbCuratedSystemAgentSettingsOperationResponse> {
+    return this.core.unary<RealmUpdateCbdbCuratedSystemAgentSettingsOperationResponse, RealmUpdateCbdbCuratedSystemAgentSettingsOperationRequest>({
+      methodId: "updateCbdbCuratedSystemAgentSettings",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async updateCbdbCuratedSystemAgentVoice(request: RealmUpdateCbdbCuratedSystemAgentVoiceOperationRequest, options: RealmTypedCallOptions = {}): Promise<RealmUpdateCbdbCuratedSystemAgentVoiceOperationResponse> {
+    return this.core.unary<RealmUpdateCbdbCuratedSystemAgentVoiceOperationResponse, RealmUpdateCbdbCuratedSystemAgentVoiceOperationRequest>({
+      methodId: "updateCbdbCuratedSystemAgentVoice",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,

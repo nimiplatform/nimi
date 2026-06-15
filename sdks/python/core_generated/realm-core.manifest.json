@@ -4468,6 +4468,481 @@
       ]
     },
     {
+      "operation_id": "ForgeProductCatalogController_getAgentCandidates",
+      "method": "GET",
+      "path": "/api/world-products/{slug}/agent-candidates",
+      "service": "Forge World Products",
+      "tags": [
+        "Forge World Products"
+      ],
+      "parameters": [
+        {
+          "name": "includeEvidenceRefs",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "boolean",
+            "format": null
+          }
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null
+          }
+        },
+        {
+          "name": "status",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "enum",
+            "values": [
+              "ready",
+              "sparse",
+              "blocked"
+            ]
+          }
+        },
+        {
+          "name": "surface",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        },
+        {
+          "name": "query",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        },
+        {
+          "name": "slug",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "path_parameters": [
+        {
+          "name": "slug",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "query_parameters": [
+        {
+          "name": "includeEvidenceRefs",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "boolean",
+            "format": null
+          }
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null
+          }
+        },
+        {
+          "name": "status",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "enum",
+            "values": [
+              "ready",
+              "sparse",
+              "blocked"
+            ]
+          }
+        },
+        {
+          "name": "surface",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        },
+        {
+          "name": "query",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/ForgeAgentCandidateQueryResultDto",
+            "ref_name": "ForgeAgentCandidateQueryResultDto"
+          },
+          "schema_ref": "#/components/schemas/ForgeAgentCandidateQueryResultDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/ForgeAgentCandidateQueryResultDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "ForgeProductCatalogController_getCatalog",
+      "method": "GET",
+      "path": "/api/world-products/catalog",
+      "service": "Forge World Products",
+      "tags": [
+        "Forge World Products"
+      ],
+      "parameters": [],
+      "path_parameters": [],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/ForgeWorldCatalogDto",
+            "ref_name": "ForgeWorldCatalogDto"
+          },
+          "schema_ref": "#/components/schemas/ForgeWorldCatalogDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/ForgeWorldCatalogDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "ForgeProductCatalogController_getProduct",
+      "method": "GET",
+      "path": "/api/world-products/{slug}",
+      "service": "Forge World Products",
+      "tags": [
+        "Forge World Products"
+      ],
+      "parameters": [
+        {
+          "name": "slug",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "path_parameters": [
+        {
+          "name": "slug",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/ForgeWorldProductDto",
+            "ref_name": "ForgeWorldProductDto"
+          },
+          "schema_ref": "#/components/schemas/ForgeWorldProductDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/ForgeWorldProductDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "ForgeProductCatalogController_getProductShard",
+      "method": "GET",
+      "path": "/api/world-products/{slug}/shards/{kind}",
+      "service": "Forge World Products",
+      "tags": [
+        "Forge World Products"
+      ],
+      "parameters": [
+        {
+          "name": "kind",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "enum",
+            "values": [
+              "package-meta",
+              "world-source",
+              "world-rules",
+              "agent-blueprints",
+              "truth",
+              "sufficiency",
+              "capability",
+              "derivation",
+              "projection",
+              "evidence",
+              "governance",
+              "agent-relationships",
+              "scenes",
+              "world-lorebooks",
+              "agent-lorebooks",
+              "resources-bindings",
+              "world-drafts"
+            ]
+          }
+        },
+        {
+          "name": "slug",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "path_parameters": [
+        {
+          "name": "kind",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "enum",
+            "values": [
+              "package-meta",
+              "world-source",
+              "world-rules",
+              "agent-blueprints",
+              "truth",
+              "sufficiency",
+              "capability",
+              "derivation",
+              "projection",
+              "evidence",
+              "governance",
+              "agent-relationships",
+              "scenes",
+              "world-lorebooks",
+              "agent-lorebooks",
+              "resources-bindings",
+              "world-drafts"
+            ]
+          }
+        },
+        {
+          "name": "slug",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/ForgeProductShardReadDto",
+            "ref_name": "ForgeProductShardReadDto"
+          },
+          "schema_ref": "#/components/schemas/ForgeProductShardReadDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/ForgeProductShardReadDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "ForgeProductCatalogController_getProductShardIndex",
+      "method": "GET",
+      "path": "/api/world-products/{slug}/shards",
+      "service": "Forge World Products",
+      "tags": [
+        "Forge World Products"
+      ],
+      "parameters": [
+        {
+          "name": "slug",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "path_parameters": [
+        {
+          "name": "slug",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/ForgeProductShardIndexDto",
+            "ref_name": "ForgeProductShardIndexDto"
+          },
+          "schema_ref": "#/components/schemas/ForgeProductShardIndexDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/ForgeProductShardIndexDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "ForgeProductCatalogController_verifyProductShards",
+      "method": "GET",
+      "path": "/api/world-products/{slug}/shards/integrity",
+      "service": "Forge World Products",
+      "tags": [
+        "Forge World Products"
+      ],
+      "parameters": [
+        {
+          "name": "slug",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "path_parameters": [
+        {
+          "name": "slug",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/ForgeProductShardIntegrityReportDto",
+            "ref_name": "ForgeProductShardIntegrityReportDto"
+          },
+          "schema_ref": "#/components/schemas/ForgeProductShardIntegrityReportDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/ForgeProductShardIntegrityReportDto"
+        }
+      ]
+    },
+    {
       "operation_id": "getAgent",
       "method": "GET",
       "path": "/api/agent/accounts/{id}",
@@ -4788,6 +5263,189 @@
         {
           "status": "200",
           "schema_ref": "#/components/schemas/BundleDetailDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "getCbdbCuratedSystemAgent",
+      "method": "GET",
+      "path": "/api/agent/curated-system/cbdb/agents/{agentId}",
+      "service": "Agent / Curated System",
+      "tags": [
+        "Agent / Curated System"
+      ],
+      "parameters": [
+        {
+          "name": "agentId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "path_parameters": [
+        {
+          "name": "agentId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/UserLiteDto",
+            "ref_name": "UserLiteDto"
+          },
+          "schema_ref": "#/components/schemas/UserLiteDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/UserLiteDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "getCbdbCuratedSystemAgentChatReadiness",
+      "method": "GET",
+      "path": "/api/agent/curated-system/cbdb/agents/{agentId}/chat-readiness",
+      "service": "Agent / Curated System",
+      "tags": [
+        "Agent / Curated System"
+      ],
+      "parameters": [
+        {
+          "name": "agentId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "path_parameters": [
+        {
+          "name": "agentId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/CbdbCuratedAgentChatReadinessDto",
+            "ref_name": "CbdbCuratedAgentChatReadinessDto"
+          },
+          "schema_ref": "#/components/schemas/CbdbCuratedAgentChatReadinessDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/CbdbCuratedAgentChatReadinessDto"
+        }
+      ],
+      "request": {
+        "body_schema": null,
+        "schema_ref": null
+      },
+      "responses": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/CbdbCuratedAgentChatReadinessDto",
+            "ref_name": "CbdbCuratedAgentChatReadinessDto"
+          },
+          "schema_ref": "#/components/schemas/CbdbCuratedAgentChatReadinessDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "getCbdbCuratedSystemAgentSettings",
+      "method": "GET",
+      "path": "/api/agent/curated-system/cbdb/agents/{agentId}/settings",
+      "service": "Agent / Curated System",
+      "tags": [
+        "Agent / Curated System"
+      ],
+      "parameters": [
+        {
+          "name": "agentId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "path_parameters": [
+        {
+          "name": "agentId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/OwnerAgentSettingsDto",
+            "ref_name": "OwnerAgentSettingsDto"
+          },
+          "schema_ref": "#/components/schemas/OwnerAgentSettingsDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/OwnerAgentSettingsDto"
         }
       ]
     },
@@ -7378,6 +8036,38 @@
           "schema_ref": "#/components/schemas/BundleListDto"
         }
       ]
+    },
+    {
+      "operation_id": "listCbdbCuratedSystemAgents",
+      "method": "GET",
+      "path": "/api/agent/curated-system/cbdb/agents",
+      "service": "Agent / Curated System",
+      "tags": [
+        "Agent / Curated System"
+      ],
+      "parameters": [],
+      "path_parameters": [],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "array",
+            "items": {
+              "kind": "ref",
+              "ref": "#/components/schemas/UserLiteDto",
+              "ref_name": "UserLiteDto"
+            }
+          },
+          "schema_ref": null
+        }
+      ],
+      "response_schema_refs": []
     },
     {
       "operation_id": "listChats",
@@ -11758,6 +12448,180 @@
       ]
     },
     {
+      "operation_id": "updateCbdbCuratedSystemAgentProfileMedia",
+      "method": "PATCH",
+      "path": "/api/agent/curated-system/cbdb/agents/{agentId}/profile-media",
+      "service": "Agent / Curated System",
+      "tags": [
+        "Agent / Curated System"
+      ],
+      "parameters": [
+        {
+          "name": "agentId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "path_parameters": [
+        {
+          "name": "agentId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "ref",
+        "ref": "#/components/schemas/UpdateAgentProfileMediaDto",
+        "ref_name": "UpdateAgentProfileMediaDto"
+      },
+      "request_schema_ref": "#/components/schemas/UpdateAgentProfileMediaDto",
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/UserLiteDto",
+            "ref_name": "UserLiteDto"
+          },
+          "schema_ref": "#/components/schemas/UserLiteDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/UserLiteDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "updateCbdbCuratedSystemAgentSettings",
+      "method": "PATCH",
+      "path": "/api/agent/curated-system/cbdb/agents/{agentId}/settings",
+      "service": "Agent / Curated System",
+      "tags": [
+        "Agent / Curated System"
+      ],
+      "parameters": [
+        {
+          "name": "agentId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "path_parameters": [
+        {
+          "name": "agentId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "ref",
+        "ref": "#/components/schemas/UpdateOwnerAgentSettingsDto",
+        "ref_name": "UpdateOwnerAgentSettingsDto"
+      },
+      "request_schema_ref": "#/components/schemas/UpdateOwnerAgentSettingsDto",
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/OwnerAgentSettingsDto",
+            "ref_name": "OwnerAgentSettingsDto"
+          },
+          "schema_ref": "#/components/schemas/OwnerAgentSettingsDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/OwnerAgentSettingsDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "updateCbdbCuratedSystemAgentVoice",
+      "method": "PATCH",
+      "path": "/api/agent/curated-system/cbdb/agents/{agentId}/voice",
+      "service": "Agent / Curated System",
+      "tags": [
+        "Agent / Curated System"
+      ],
+      "parameters": [
+        {
+          "name": "agentId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "path_parameters": [
+        {
+          "name": "agentId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null
+          }
+        }
+      ],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "ref",
+        "ref": "#/components/schemas/UpdateAgentVoiceDto",
+        "ref_name": "UpdateAgentVoiceDto"
+      },
+      "request_schema_ref": "#/components/schemas/UpdateAgentVoiceDto",
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/UserLiteDto",
+            "ref_name": "UserLiteDto"
+          },
+          "schema_ref": "#/components/schemas/UserLiteDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/UserLiteDto"
+        }
+      ]
+    },
+    {
       "operation_id": "updateGroup",
       "method": "PATCH",
       "path": "/api/human/group-chats/{chatId}",
@@ -15508,6 +16372,42 @@
       "path": "/api/resources/{resourceId}/finalize"
     },
     {
+      "operation_id": "ForgeProductCatalogController_getAgentCandidates",
+      "service": "Forge World Products",
+      "method": "GET",
+      "path": "/api/world-products/{slug}/agent-candidates"
+    },
+    {
+      "operation_id": "ForgeProductCatalogController_getCatalog",
+      "service": "Forge World Products",
+      "method": "GET",
+      "path": "/api/world-products/catalog"
+    },
+    {
+      "operation_id": "ForgeProductCatalogController_getProduct",
+      "service": "Forge World Products",
+      "method": "GET",
+      "path": "/api/world-products/{slug}"
+    },
+    {
+      "operation_id": "ForgeProductCatalogController_getProductShard",
+      "service": "Forge World Products",
+      "method": "GET",
+      "path": "/api/world-products/{slug}/shards/{kind}"
+    },
+    {
+      "operation_id": "ForgeProductCatalogController_getProductShardIndex",
+      "service": "Forge World Products",
+      "method": "GET",
+      "path": "/api/world-products/{slug}/shards"
+    },
+    {
+      "operation_id": "ForgeProductCatalogController_verifyProductShards",
+      "service": "Forge World Products",
+      "method": "GET",
+      "path": "/api/world-products/{slug}/shards/integrity"
+    },
+    {
       "operation_id": "getAgent",
       "service": "Agents",
       "method": "GET",
@@ -15536,6 +16436,24 @@
       "service": "Bundles",
       "method": "GET",
       "path": "/api/bundles/{bundleId}"
+    },
+    {
+      "operation_id": "getCbdbCuratedSystemAgent",
+      "service": "Agent / Curated System",
+      "method": "GET",
+      "path": "/api/agent/curated-system/cbdb/agents/{agentId}"
+    },
+    {
+      "operation_id": "getCbdbCuratedSystemAgentChatReadiness",
+      "service": "Agent / Curated System",
+      "method": "GET",
+      "path": "/api/agent/curated-system/cbdb/agents/{agentId}/chat-readiness"
+    },
+    {
+      "operation_id": "getCbdbCuratedSystemAgentSettings",
+      "service": "Agent / Curated System",
+      "method": "GET",
+      "path": "/api/agent/curated-system/cbdb/agents/{agentId}/settings"
     },
     {
       "operation_id": "getChatById",
@@ -15806,6 +16724,12 @@
       "service": "Bundles",
       "method": "GET",
       "path": "/api/bundles"
+    },
+    {
+      "operation_id": "listCbdbCuratedSystemAgents",
+      "service": "Agent / Curated System",
+      "method": "GET",
+      "path": "/api/agent/curated-system/cbdb/agents"
     },
     {
       "operation_id": "listChats",
@@ -16210,6 +17134,24 @@
       "path": "/api/bundles/{bundleId}"
     },
     {
+      "operation_id": "updateCbdbCuratedSystemAgentProfileMedia",
+      "service": "Agent / Curated System",
+      "method": "PATCH",
+      "path": "/api/agent/curated-system/cbdb/agents/{agentId}/profile-media"
+    },
+    {
+      "operation_id": "updateCbdbCuratedSystemAgentSettings",
+      "service": "Agent / Curated System",
+      "method": "PATCH",
+      "path": "/api/agent/curated-system/cbdb/agents/{agentId}/settings"
+    },
+    {
+      "operation_id": "updateCbdbCuratedSystemAgentVoice",
+      "service": "Agent / Curated System",
+      "method": "PATCH",
+      "path": "/api/agent/curated-system/cbdb/agents/{agentId}/voice"
+    },
+    {
       "operation_id": "updateGroup",
       "service": "Group Chats",
       "method": "PATCH",
@@ -16554,6 +17496,18 @@
   ],
   "service_registry": [
     {
+      "name": "Agent / Curated System",
+      "operation_ids": [
+        "getCbdbCuratedSystemAgent",
+        "getCbdbCuratedSystemAgentChatReadiness",
+        "getCbdbCuratedSystemAgentSettings",
+        "listCbdbCuratedSystemAgents",
+        "updateCbdbCuratedSystemAgentProfileMedia",
+        "updateCbdbCuratedSystemAgentSettings",
+        "updateCbdbCuratedSystemAgentVoice"
+      ]
+    },
+    {
       "name": "Agent NSFW Consent",
       "operation_ids": [
         "AgentNsfwConsentController_updateAgentConsent"
@@ -16684,6 +17638,17 @@
       "operation_ids": [
         "ExploreController_checkStatus",
         "getExploreFeed"
+      ]
+    },
+    {
+      "name": "Forge World Products",
+      "operation_ids": [
+        "ForgeProductCatalogController_getAgentCandidates",
+        "ForgeProductCatalogController_getCatalog",
+        "ForgeProductCatalogController_getProduct",
+        "ForgeProductCatalogController_getProductShard",
+        "ForgeProductCatalogController_getProductShardIndex",
+        "ForgeProductCatalogController_verifyProductShards"
       ]
     },
     {
@@ -17252,6 +18217,15 @@
       "name": "CausalityRuleDto"
     },
     {
+      "name": "CbdbCuratedAgentChatReadinessDto"
+    },
+    {
+      "name": "CbdbCuratedAgentChatReadinessGatesDto"
+    },
+    {
+      "name": "CbdbCuratedAgentChatReadinessProfileDto"
+    },
+    {
       "name": "ChangeEmailDto"
     },
     {
@@ -17439,6 +18413,84 @@
     },
     {
       "name": "FinalizeResourceDto"
+    },
+    {
+      "name": "ForgeAgentCandidateCapabilityCellDto"
+    },
+    {
+      "name": "ForgeAgentCandidateDto"
+    },
+    {
+      "name": "ForgeAgentCandidateQueryFiltersDto"
+    },
+    {
+      "name": "ForgeAgentCandidateQueryResultDto"
+    },
+    {
+      "name": "ForgeAgentCandidateRequirementDto"
+    },
+    {
+      "name": "ForgeAgentCandidateRuntimeMaterializationDto"
+    },
+    {
+      "name": "ForgeAgentCandidateSourceProfileDto"
+    },
+    {
+      "name": "ForgeProductArtifactRefDto"
+    },
+    {
+      "name": "ForgeProductCapabilitySummaryDto"
+    },
+    {
+      "name": "ForgeProductCountsDto"
+    },
+    {
+      "name": "ForgeProductEvalScorecardDto"
+    },
+    {
+      "name": "ForgeProductOptionalArtifactQualityDto"
+    },
+    {
+      "name": "ForgeProductQualityDto"
+    },
+    {
+      "name": "ForgeProductShardIndexDto"
+    },
+    {
+      "name": "ForgeProductShardIndexItemDto"
+    },
+    {
+      "name": "ForgeProductShardIntegrityItemDto"
+    },
+    {
+      "name": "ForgeProductShardIntegrityReportDto"
+    },
+    {
+      "name": "ForgeProductShardManifestRefDto"
+    },
+    {
+      "name": "ForgeProductShardReadDto"
+    },
+    {
+      "name": "ForgeProductSourceProfileDto"
+    },
+    {
+      "name": "ForgeProductUpdateRunQualityDto"
+    },
+    {
+      "name": "ForgeProductValidationQualityDto"
+    },
+    {
+      "name": "ForgeProductWorldRefDto"
+    },
+    {
+      "name": "ForgeWorldCatalogDto"
+    },
+    {
+      "name": "ForgeWorldCatalogQualitySummaryDto"
+    },
+    {
+      "name": "ForgeWorldProductDto"
     },
     {
       "name": "FriendProfileDto"
@@ -17936,10 +18988,16 @@
       "name": "UpdateAgentNsfwConsentDto"
     },
     {
+      "name": "UpdateAgentProfileMediaDto"
+    },
+    {
       "name": "UpdateAgentRuleDto"
     },
     {
       "name": "UpdateAgentVisibilityDto"
+    },
+    {
+      "name": "UpdateAgentVoiceDto"
     },
     {
       "name": "UpdateAssetDto"
@@ -19467,17 +20525,6 @@
       }
     },
     {
-      "name": "AgentRelationType",
-      "schema": {
-        "kind": "enum",
-        "values": [
-          "ALLY",
-          "RIVAL",
-          "ENEMY"
-        ]
-      }
-    },
-    {
       "name": "AgentRelationshipOtherAccountDto",
       "schema": {
         "kind": "object",
@@ -19606,6 +20653,17 @@
           }
         ],
         "additional_properties": null
+      }
+    },
+    {
+      "name": "AgentRelationType",
+      "schema": {
+        "kind": "enum",
+        "values": [
+          "ALLY",
+          "RIVAL",
+          "ENEMY"
+        ]
       }
     },
     {
@@ -20588,6 +21646,26 @@
             }
           },
           {
+            "name": "speechModelId",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "speechRoutePolicy",
+            "required": false,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "local",
+                "cloud"
+              ]
+            }
+          },
+          {
             "name": "speed",
             "required": false,
             "schema": {
@@ -20627,6 +21705,54 @@
           "PERSONAL",
           "ENTERPRISE"
         ]
+      }
+    },
+    {
+      "name": "AppendWorldHistoryDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "commit",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/MutationCommitEnvelopeDto",
+              "ref_name": "MutationCommitEnvelopeDto"
+            }
+          },
+          {
+            "name": "historyAppends",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "ref",
+                "ref": "#/components/schemas/WorldHistoryAppendItemDto",
+                "ref_name": "WorldHistoryAppendItemDto"
+              }
+            }
+          },
+          {
+            "name": "ifSnapshotVersion",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "reason",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          }
+        ],
+        "additional_properties": null
       }
     },
     {
@@ -21122,54 +22248,6 @@
           "audit.read.scoped",
           "ai_profile.selection.consume"
         ]
-      }
-    },
-    {
-      "name": "AppendWorldHistoryDto",
-      "schema": {
-        "kind": "object",
-        "properties": [
-          {
-            "name": "commit",
-            "required": true,
-            "schema": {
-              "kind": "ref",
-              "ref": "#/components/schemas/MutationCommitEnvelopeDto",
-              "ref_name": "MutationCommitEnvelopeDto"
-            }
-          },
-          {
-            "name": "historyAppends",
-            "required": true,
-            "schema": {
-              "kind": "array",
-              "items": {
-                "kind": "ref",
-                "ref": "#/components/schemas/WorldHistoryAppendItemDto",
-                "ref_name": "WorldHistoryAppendItemDto"
-              }
-            }
-          },
-          {
-            "name": "ifSnapshotVersion",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null
-            }
-          },
-          {
-            "name": "reason",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null
-            }
-          }
-        ],
-        "additional_properties": null
       }
     },
     {
@@ -23565,6 +24643,280 @@
             "required": true,
             "schema": {
               "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "CbdbCuratedAgentChatReadinessDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "agentId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "agentRuleCount",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "consumerSurface",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "enum": [
+                "AGENT_CHAT_READINESS"
+              ],
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "gates",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/CbdbCuratedAgentChatReadinessGatesDto",
+              "ref_name": "CbdbCuratedAgentChatReadinessGatesDto"
+            }
+          },
+          {
+            "name": "ownerScope",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "enum": [
+                "cbdb-curated-system"
+              ],
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "profile",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/CbdbCuratedAgentChatReadinessProfileDto",
+              "ref_name": "CbdbCuratedAgentChatReadinessProfileDto"
+            }
+          },
+          {
+            "name": "rawRuleContentExposed",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "boolean",
+              "format": null
+            }
+          },
+          {
+            "name": "runtimeProjectionChecksum",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "selectedInputCount",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "selectedOwnerSettingFields",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "scalar",
+                "type": "string",
+                "format": null
+              }
+            }
+          },
+          {
+            "name": "suppressedInputCount",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "worldId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "worldRuleCount",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "CbdbCuratedAgentChatReadinessGatesDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "localAgentIdentityReady",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "boolean",
+              "format": null
+            }
+          },
+          {
+            "name": "ownerSettingsReady",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "boolean",
+              "format": null
+            }
+          },
+          {
+            "name": "profileContextReady",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "boolean",
+              "format": null
+            }
+          },
+          {
+            "name": "profileMediaReady",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "boolean",
+              "format": null
+            }
+          },
+          {
+            "name": "speechRouteReady",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "boolean",
+              "format": null
+            }
+          },
+          {
+            "name": "voiceReferenceReady",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "boolean",
+              "format": null
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "CbdbCuratedAgentChatReadinessProfileDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "avatarUrl",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "defaultVoiceReference",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "displayName",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "handle",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "profileCoverUrl",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "speechModelId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "speechRoutePolicy",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "enum": [
+                "local",
+                "cloud"
+              ],
               "type": "string",
               "format": null
             }
@@ -27292,6 +28644,1676 @@
               "kind": "scalar",
               "type": "string",
               "format": null
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "ForgeAgentCandidateCapabilityCellDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "evidenceTruthRefCount",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "evidenceTruthRefs",
+            "required": false,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "scalar",
+                "type": "string",
+                "format": null
+              }
+            }
+          },
+          {
+            "name": "predicateId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "requirements",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "ref",
+                "ref": "#/components/schemas/ForgeAgentCandidateRequirementDto",
+                "ref_name": "ForgeAgentCandidateRequirementDto"
+              }
+            }
+          },
+          {
+            "name": "status",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "ready",
+                "sparse",
+                "blocked"
+              ]
+            }
+          },
+          {
+            "name": "surface",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "ForgeAgentCandidateDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "agentRef",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "capabilityVector",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "ref",
+                "ref": "#/components/schemas/ForgeAgentCandidateCapabilityCellDto",
+                "ref_name": "ForgeAgentCandidateCapabilityCellDto"
+              }
+            }
+          },
+          {
+            "name": "completenessIntent",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "entityRef",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "name",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "runtimeMaterialization",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/ForgeAgentCandidateRuntimeMaterializationDto",
+              "ref_name": "ForgeAgentCandidateRuntimeMaterializationDto"
+            }
+          },
+          {
+            "name": "sourceProfiles",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "ref",
+                "ref": "#/components/schemas/ForgeAgentCandidateSourceProfileDto",
+                "ref_name": "ForgeAgentCandidateSourceProfileDto"
+              }
+            }
+          },
+          {
+            "name": "worldId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "ForgeAgentCandidateQueryFiltersDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "query",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "ready",
+                "sparse",
+                "blocked"
+              ]
+            }
+          },
+          {
+            "name": "surface",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "ForgeAgentCandidateQueryResultDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "candidates",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "ref",
+                "ref": "#/components/schemas/ForgeAgentCandidateDto",
+                "ref_name": "ForgeAgentCandidateDto"
+              }
+            }
+          },
+          {
+            "name": "filters",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/ForgeAgentCandidateQueryFiltersDto",
+              "ref_name": "ForgeAgentCandidateQueryFiltersDto"
+            }
+          },
+          {
+            "name": "packageId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "returned",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "schemaVersion",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "slug",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "total",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "ForgeAgentCandidateRequirementDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "actual",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "gap",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "gapKind",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "open",
+                "bounded"
+              ]
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "passed",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "boolean",
+              "format": null
+            }
+          },
+          {
+            "name": "required",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "ForgeAgentCandidateRuntimeMaterializationDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "materializedRuntimeAgent",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "boolean",
+              "format": null
+            }
+          },
+          {
+            "name": "roleplayRuntimeEligible",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "boolean",
+              "format": null
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "ForgeAgentCandidateSourceProfileDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "archetype",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "authorityRank",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "evidenceLocatorKind",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "profile",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "sourceId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "ForgeProductArtifactRefDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "checksum",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "path",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "ForgeProductCapabilitySummaryDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "agentCandidates",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "completenessIntentCounts",
+            "required": true,
+            "schema": {
+              "kind": "object",
+              "properties": [],
+              "additional_properties": null
+            }
+          },
+          {
+            "name": "materializedRuntimeAgents",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "runtimeReadyCandidates",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "surfaceStatusCounts",
+            "required": true,
+            "schema": {
+              "kind": "object",
+              "properties": [],
+              "additional_properties": null
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "ForgeProductCountsDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "agentBlueprints",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "agentCapabilities",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "agentExemplars",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "agentRelationships",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "evidenceRecords",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "projectionInputs",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "scenes",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "worldEntities",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "worldEvents",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "worldRelationships",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "worldRules",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "worldSystems",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "ForgeProductEvalScorecardDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "admissionAuthority",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "artifactPath",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "checksum",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "publicDataset",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "boolean",
+              "format": null
+            }
+          },
+          {
+            "name": "suite",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "trustTier",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "ForgeProductOptionalArtifactQualityDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "artifactPath",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "checksum",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "ForgeProductQualityDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "evalScorecards",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "ref",
+                "ref": "#/components/schemas/ForgeProductEvalScorecardDto",
+                "ref_name": "ForgeProductEvalScorecardDto"
+              }
+            }
+          },
+          {
+            "name": "presetZeroing",
+            "required": false,
+            "schema": {
+              "kind": "object",
+              "properties": [],
+              "additional_properties": null
+            }
+          },
+          {
+            "name": "updateRun",
+            "required": false,
+            "schema": {
+              "kind": "object",
+              "properties": [],
+              "additional_properties": null
+            }
+          },
+          {
+            "name": "validation",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/ForgeProductValidationQualityDto",
+              "ref_name": "ForgeProductValidationQualityDto"
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "ForgeProductShardIndexDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "packageId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "packageVersion",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "schemaVersion",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "shardManifest",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/ForgeProductShardManifestRefDto",
+              "ref_name": "ForgeProductShardManifestRefDto"
+            }
+          },
+          {
+            "name": "shards",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "ref",
+                "ref": "#/components/schemas/ForgeProductShardIndexItemDto",
+                "ref_name": "ForgeProductShardIndexItemDto"
+              }
+            }
+          },
+          {
+            "name": "slug",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "ForgeProductShardIndexItemDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "byteSize",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "checksum",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "exportKeys",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "scalar",
+                "type": "string",
+                "format": null
+              }
+            }
+          },
+          {
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "path",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "ForgeProductShardIntegrityItemDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "actualChecksum",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "byteSize",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "error",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "expectedChecksum",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "exportKeys",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "scalar",
+                "type": "string",
+                "format": null
+              }
+            }
+          },
+          {
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "path",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "status",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "pass",
+                "failed"
+              ]
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "ForgeProductShardIntegrityReportDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "packageId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "packageVersion",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "schemaVersion",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "shardManifest",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/ForgeProductShardManifestRefDto",
+              "ref_name": "ForgeProductShardManifestRefDto"
+            }
+          },
+          {
+            "name": "shards",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "ref",
+                "ref": "#/components/schemas/ForgeProductShardIntegrityItemDto",
+                "ref_name": "ForgeProductShardIntegrityItemDto"
+              }
+            }
+          },
+          {
+            "name": "slug",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "status",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "pass",
+                "failed"
+              ]
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "ForgeProductShardManifestRefDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "checksum",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "path",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "ForgeProductShardReadDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "checksum",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "packageId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "packageVersion",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "record",
+            "required": true,
+            "schema": {
+              "kind": "object",
+              "properties": [],
+              "additional_properties": null
+            }
+          },
+          {
+            "name": "schemaVersion",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "slug",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "ForgeProductSourceProfileDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "archetype",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "authorityRank",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "evidenceLocatorKind",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "inputCount",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "localeProfile",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "profile",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "sourceId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "title",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "ForgeProductUpdateRunQualityDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "artifactPath",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "checksum",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "runStatus",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "success",
+                "failed",
+                "blocked",
+                "no-op"
+              ]
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "ForgeProductValidationQualityDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "artifactPath",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "checksum",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "status",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "PASS",
+                "FAIL"
+              ]
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "ForgeProductWorldRefDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "id",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "name",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "ForgeWorldCatalogDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "qualitySummary",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/ForgeWorldCatalogQualitySummaryDto",
+              "ref_name": "ForgeWorldCatalogQualitySummaryDto"
+            }
+          },
+          {
+            "name": "rootDir",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "schemaVersion",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "worlds",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "ref",
+                "ref": "#/components/schemas/ForgeWorldProductDto",
+                "ref_name": "ForgeWorldProductDto"
+              }
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "ForgeWorldCatalogQualitySummaryDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "evalScorecards",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "goldenGateScorecards",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "publicReferenceScorecards",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "reportOnlyScorecards",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "updateRunBlocked",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "updateRunFailed",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "updateRunNoop",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "updateRunSuccess",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "validationFail",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "validationPass",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "worlds",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "worldsWithGoldenGate",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "worldsWithPresetZeroing",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "worldsWithPublicReference",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "worldsWithUpdateRun",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "ForgeWorldProductDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "artifacts",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "ref",
+                "ref": "#/components/schemas/ForgeProductArtifactRefDto",
+                "ref_name": "ForgeProductArtifactRefDto"
+              }
+            }
+          },
+          {
+            "name": "capabilitySummary",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/ForgeProductCapabilitySummaryDto",
+              "ref_name": "ForgeProductCapabilitySummaryDto"
+            }
+          },
+          {
+            "name": "counts",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/ForgeProductCountsDto",
+              "ref_name": "ForgeProductCountsDto"
+            }
+          },
+          {
+            "name": "distributionShape",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "authoring-package",
+                "compact-shards"
+              ]
+            }
+          },
+          {
+            "name": "packageId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "packageVersion",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "productId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "quality",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/ForgeProductQualityDto",
+              "ref_name": "ForgeProductQualityDto"
+            }
+          },
+          {
+            "name": "schemaVersion",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "slug",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "sourceMix",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "ref",
+                "ref": "#/components/schemas/ForgeProductSourceProfileDto",
+                "ref_name": "ForgeProductSourceProfileDto"
+              }
+            }
+          },
+          {
+            "name": "target",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "world",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/ForgeProductWorldRefDto",
+              "ref_name": "ForgeProductWorldRefDto"
             }
           }
         ],
@@ -31318,96 +34340,6 @@
       }
     },
     {
-      "name": "PPSlotConfigDto",
-      "schema": {
-        "kind": "object",
-        "properties": [
-          {
-            "name": "slot1",
-            "required": false,
-            "schema": {
-              "kind": "ref",
-              "ref": "#/components/schemas/PPSlotItemDto",
-              "ref_name": "PPSlotItemDto"
-            }
-          },
-          {
-            "name": "slot2",
-            "required": false,
-            "schema": {
-              "kind": "ref",
-              "ref": "#/components/schemas/PPSlotItemDto",
-              "ref_name": "PPSlotItemDto"
-            }
-          },
-          {
-            "name": "slot3",
-            "required": false,
-            "schema": {
-              "kind": "ref",
-              "ref": "#/components/schemas/PPSlotItemDto",
-              "ref_name": "PPSlotItemDto"
-            }
-          },
-          {
-            "name": "slot4",
-            "required": false,
-            "schema": {
-              "kind": "ref",
-              "ref": "#/components/schemas/PPSlotItemDto",
-              "ref_name": "PPSlotItemDto"
-            }
-          }
-        ],
-        "additional_properties": null
-      }
-    },
-    {
-      "name": "PPSlotConfigResponseDto",
-      "schema": {
-        "kind": "object",
-        "properties": [
-          {
-            "name": "ppSlotConfig",
-            "required": true,
-            "schema": {
-              "kind": "ref",
-              "ref": "#/components/schemas/PPSlotConfigDto",
-              "ref_name": "PPSlotConfigDto"
-            }
-          }
-        ],
-        "additional_properties": null
-      }
-    },
-    {
-      "name": "PPSlotItemDto",
-      "schema": {
-        "kind": "object",
-        "properties": [
-          {
-            "name": "id",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null
-            }
-          },
-          {
-            "name": "type",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null
-            }
-          }
-        ],
-        "additional_properties": null
-      }
-    },
-    {
       "name": "PasswordLoginDto",
       "schema": {
         "kind": "object",
@@ -32040,6 +34972,96 @@
                 "type": "string",
                 "format": null
               }
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "PPSlotConfigDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "slot1",
+            "required": false,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/PPSlotItemDto",
+              "ref_name": "PPSlotItemDto"
+            }
+          },
+          {
+            "name": "slot2",
+            "required": false,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/PPSlotItemDto",
+              "ref_name": "PPSlotItemDto"
+            }
+          },
+          {
+            "name": "slot3",
+            "required": false,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/PPSlotItemDto",
+              "ref_name": "PPSlotItemDto"
+            }
+          },
+          {
+            "name": "slot4",
+            "required": false,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/PPSlotItemDto",
+              "ref_name": "PPSlotItemDto"
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "PPSlotConfigResponseDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "ppSlotConfig",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/PPSlotConfigDto",
+              "ref_name": "PPSlotConfigDto"
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "PPSlotItemDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "id",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "type",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
             }
           }
         ],
@@ -36675,6 +39697,33 @@
       }
     },
     {
+      "name": "UpdateAgentProfileMediaDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "avatarUrl",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "profileCoverUrl",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
       "name": "UpdateAgentRuleDto",
       "schema": {
         "kind": "object",
@@ -36893,6 +39942,80 @@
                   "ref_name": "Visibility"
                 }
               ]
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "UpdateAgentVoiceDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "description",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "emotionEnabled",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "boolean",
+              "format": null
+            }
+          },
+          {
+            "name": "pitch",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "speechModelId",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "speechRoutePolicy",
+            "required": false,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "local",
+                "cloud"
+              ]
+            }
+          },
+          {
+            "name": "speed",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "voiceId",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
             }
           }
         ],
@@ -37314,24 +40437,6 @@
       }
     },
     {
-      "name": "UpdatePPSlotConfigDto",
-      "schema": {
-        "kind": "object",
-        "properties": [
-          {
-            "name": "ppSlotConfig",
-            "required": true,
-            "schema": {
-              "kind": "ref",
-              "ref": "#/components/schemas/PPSlotConfigDto",
-              "ref_name": "PPSlotConfigDto"
-            }
-          }
-        ],
-        "additional_properties": null
-      }
-    },
-    {
       "name": "UpdateParticipantRoleInputDto",
       "schema": {
         "kind": "object",
@@ -37395,6 +40500,24 @@
                   "ref_name": "Visibility"
                 }
               ]
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "UpdatePPSlotConfigDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "ppSlotConfig",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/PPSlotConfigDto",
+              "ref_name": "PPSlotConfigDto"
             }
           }
         ],

@@ -529,6 +529,42 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/resources/{resourceId}/finalize"
   },
   {
+    "operationId": "ForgeProductCatalogController_getAgentCandidates",
+    "service": "Forge World Products",
+    "method": "GET",
+    "path": "/api/world-products/{slug}/agent-candidates"
+  },
+  {
+    "operationId": "ForgeProductCatalogController_getCatalog",
+    "service": "Forge World Products",
+    "method": "GET",
+    "path": "/api/world-products/catalog"
+  },
+  {
+    "operationId": "ForgeProductCatalogController_getProduct",
+    "service": "Forge World Products",
+    "method": "GET",
+    "path": "/api/world-products/{slug}"
+  },
+  {
+    "operationId": "ForgeProductCatalogController_getProductShard",
+    "service": "Forge World Products",
+    "method": "GET",
+    "path": "/api/world-products/{slug}/shards/{kind}"
+  },
+  {
+    "operationId": "ForgeProductCatalogController_getProductShardIndex",
+    "service": "Forge World Products",
+    "method": "GET",
+    "path": "/api/world-products/{slug}/shards"
+  },
+  {
+    "operationId": "ForgeProductCatalogController_verifyProductShards",
+    "service": "Forge World Products",
+    "method": "GET",
+    "path": "/api/world-products/{slug}/shards/integrity"
+  },
+  {
     "operationId": "getAgent",
     "service": "Agents",
     "method": "GET",
@@ -557,6 +593,24 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "service": "Bundles",
     "method": "GET",
     "path": "/api/bundles/{bundleId}"
+  },
+  {
+    "operationId": "getCbdbCuratedSystemAgent",
+    "service": "Agent / Curated System",
+    "method": "GET",
+    "path": "/api/agent/curated-system/cbdb/agents/{agentId}"
+  },
+  {
+    "operationId": "getCbdbCuratedSystemAgentChatReadiness",
+    "service": "Agent / Curated System",
+    "method": "GET",
+    "path": "/api/agent/curated-system/cbdb/agents/{agentId}/chat-readiness"
+  },
+  {
+    "operationId": "getCbdbCuratedSystemAgentSettings",
+    "service": "Agent / Curated System",
+    "method": "GET",
+    "path": "/api/agent/curated-system/cbdb/agents/{agentId}/settings"
   },
   {
     "operationId": "getChatById",
@@ -827,6 +881,12 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "service": "Bundles",
     "method": "GET",
     "path": "/api/bundles"
+  },
+  {
+    "operationId": "listCbdbCuratedSystemAgents",
+    "service": "Agent / Curated System",
+    "method": "GET",
+    "path": "/api/agent/curated-system/cbdb/agents"
   },
   {
     "operationId": "listChats",
@@ -1229,6 +1289,24 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "service": "Bundles",
     "method": "PATCH",
     "path": "/api/bundles/{bundleId}"
+  },
+  {
+    "operationId": "updateCbdbCuratedSystemAgentProfileMedia",
+    "service": "Agent / Curated System",
+    "method": "PATCH",
+    "path": "/api/agent/curated-system/cbdb/agents/{agentId}/profile-media"
+  },
+  {
+    "operationId": "updateCbdbCuratedSystemAgentSettings",
+    "service": "Agent / Curated System",
+    "method": "PATCH",
+    "path": "/api/agent/curated-system/cbdb/agents/{agentId}/settings"
+  },
+  {
+    "operationId": "updateCbdbCuratedSystemAgentVoice",
+    "service": "Agent / Curated System",
+    "method": "PATCH",
+    "path": "/api/agent/curated-system/cbdb/agents/{agentId}/voice"
   },
   {
     "operationId": "updateGroup",
