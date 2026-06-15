@@ -1,16 +1,29 @@
 #!/usr/bin/env node
 import { spawn, spawnSync } from 'node:child_process';
+import { copyFileSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
 const DESKTOP_BINARY_NAME = process.platform === 'win32'
   ? 'nimiplatform-desktop.exe'
   : 'nimiplatform-desktop';
-const DEV_CERT_SUBJECT = 'CN=Nimi Local Development Code Signing';
+const DESKTOP_LAUNCH_BINARY_NAME = process.platform === 'win32'
+  ? 'nimiplatform-desktop-dev-run.exe'
+  : DESKTOP_BINARY_NAME;
+const DESKTOP_REPLACEMENT_MARKER_NAME = '.nimiplatform-desktop-dev-run.replace.json';
 const DESKTOP_SPAWN_MAX_ATTEMPTS = 8;
+const DESKTOP_SHUTDOWN_GRACE_MS = 5000;
+const DESKTOP_REPLACEMENT_MARKER_MAX_AGE_MS = 15000;
+const SIGNAL_EXIT_CODES = new Map([
+  ['SIGINT', 130],
+  ['SIGTERM', 143],
+  ['SIGHUP', 129],
+]);
 const childEnv = {
   ...process.env,
   CARGO_TERM_PROGRESS_WHEN: process.env.CARGO_TERM_PROGRESS_WHEN || 'never',
 };
+let activeDesktopChild = null;
+let shuttingDown = false;
 
 function runCargo(args) {
   const result = spawnSync('cargo', args, {
@@ -63,25 +76,79 @@ function resolveDesktopBinary(cargoArgs) {
     : path.join(targetDir, profile, DESKTOP_BINARY_NAME);
 }
 
+function resolveDesktopLaunchBinary(cargoBinaryPath) {
+  if (process.platform !== 'win32') {
+    return cargoBinaryPath;
+  }
+  return path.join(path.dirname(cargoBinaryPath), DESKTOP_LAUNCH_BINARY_NAME);
+}
+
+function resolveReplacementMarkerPath(launchBinaryPath) {
+  if (process.platform !== 'win32') {
+    return null;
+  }
+  return path.join(path.dirname(launchBinaryPath), DESKTOP_REPLACEMENT_MARKER_NAME);
+}
+
 function isRetryableDesktopSpawnError(error) {
   const code = String(error?.code || '').toUpperCase();
   return code === 'UNKNOWN' || code === 'EBUSY' || code === 'EACCES' || code === 'EPERM';
 }
 
-function spawnDesktopBinary(binaryPath, appArgs, attempt = 1) {
+function terminateProcessTree(child) {
+  if (!child?.pid || child.exitCode !== null || child.signalCode !== null) {
+    return;
+  }
+  if (process.platform === 'win32') {
+    spawnSync('taskkill.exe', ['/pid', String(child.pid), '/t', '/f'], {
+      stdio: 'ignore',
+    });
+    return;
+  }
+  child.kill('SIGTERM');
+}
+
+function exitFromSignal(signal) {
+  if (shuttingDown) {
+    return;
+  }
+  shuttingDown = true;
+  terminateProcessTree(activeDesktopChild);
+  process.exit(SIGNAL_EXIT_CODES.get(signal) ?? 1);
+}
+
+function wasReplacedByNewRunner(childPid, replacementMarkerPath) {
+  if (!replacementMarkerPath || !childPid) {
+    return false;
+  }
+  try {
+    const marker = JSON.parse(readFileSync(replacementMarkerPath, 'utf8'));
+    const createdAtMs = Date.parse(marker.createdAt);
+    if (!Number.isFinite(createdAtMs) || Date.now() - createdAtMs > DESKTOP_REPLACEMENT_MARKER_MAX_AGE_MS) {
+      return false;
+    }
+    return Array.isArray(marker.pids) && marker.pids.includes(childPid);
+  } catch {
+    return false;
+  }
+}
+
+function spawnDesktopBinary(binaryPath, appArgs, options = {}, attempt = 1) {
   const child = spawn(binaryPath, appArgs, {
     cwd: process.cwd(),
     env: childEnv,
     stdio: 'inherit',
   });
+  activeDesktopChild = child;
   child.on('error', (error) => {
+    activeDesktopChild = null;
     if (attempt < DESKTOP_SPAWN_MAX_ATTEMPTS && isRetryableDesktopSpawnError(error)) {
       const delayMs = attempt * 250;
       process.stderr.write(
         `[tauri-dev-runner] desktop binary spawn attempt ${attempt} failed (${error.code || error.message}); retrying in ${delayMs}ms\n`,
       );
       setTimeout(() => {
-        spawnDesktopBinary(binaryPath, appArgs, attempt + 1);
+        spawnDesktopBinary(binaryPath, appArgs, options, attempt + 1);
       }, delayMs);
       return;
     }
@@ -89,8 +156,12 @@ function spawnDesktopBinary(binaryPath, appArgs, attempt = 1) {
     process.exit(1);
   });
   child.on('exit', (code, signal) => {
+    activeDesktopChild = null;
+    if (process.platform === 'win32' && wasReplacedByNewRunner(child.pid, options.replacementMarkerPath)) {
+      process.exit(0);
+    }
     if (signal) {
-      process.kill(process.pid, signal);
+      process.exit(SIGNAL_EXIT_CODES.get(signal) ?? 1);
       return;
     }
     process.exit(code ?? 0);
@@ -116,50 +187,53 @@ function runPowerShell(script) {
   }
 }
 
-function signWindowsDevBinary(binaryPath) {
+function stopExistingWindowsDevBinary(binaryPath, options = {}) {
   const escapedBinary = binaryPath.replaceAll("'", "''");
-  const escapedSubject = DEV_CERT_SUBJECT.replaceAll("'", "''");
+  const escapedReplacementMarkerPath = options.replacementMarkerPath
+    ? options.replacementMarkerPath.replaceAll("'", "''")
+    : '';
   runPowerShell(`
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
-$Subject = '${escapedSubject}'
-$BinaryPath = '${escapedBinary}'
-$Cert = Get-ChildItem Cert:\\CurrentUser\\My\\ -CodeSigningCert |
-  Where-Object { $_.Subject -eq $Subject } |
-  Sort-Object NotAfter -Descending |
-  Select-Object -First 1
-if (-not $Cert) {
-  $Cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject $Subject -KeyUsage DigitalSignature -KeyAlgorithm RSA -KeyLength 3072 -HashAlgorithm SHA256 -CertStoreLocation Cert:\\CurrentUser\\My -NotAfter (Get-Date).AddYears(2)
+$BinaryPath = [System.IO.Path]::GetFullPath('${escapedBinary}')
+$ReplacementMarkerPath = '${escapedReplacementMarkerPath}'
+$BinaryName = [System.IO.Path]::GetFileName($BinaryPath).Replace("'", "''")
+function Get-TargetProcesses {
+  @(Get-CimInstance Win32_Process -Filter "Name = '$BinaryName'" |
+    Where-Object {
+      $_.ExecutablePath -and ([System.IO.Path]::GetFullPath($_.ExecutablePath) -ieq $BinaryPath)
+    })
 }
-$TrustedPublisher = Get-ChildItem Cert:\\CurrentUser\\TrustedPublisher\\ |
-  Where-Object { $_.Thumbprint -eq $Cert.Thumbprint } |
-  Select-Object -First 1
-if (-not $TrustedPublisher) {
-  $CertPath = Join-Path $env:TEMP "nimi-dev-code-signing-$($Cert.Thumbprint).cer"
-  Export-Certificate -Cert $Cert -FilePath $CertPath -Force | Out-Null
-  certutil.exe -user -addstore TrustedPublisher $CertPath | Out-Null
-  if ($LASTEXITCODE -ne 0) {
-    throw "certutil TrustedPublisher import failed with exit code $LASTEXITCODE"
+$Processes = @(Get-TargetProcesses)
+if ($Processes.Count -eq 0) {
+  return
+}
+if (-not [string]::IsNullOrWhiteSpace($ReplacementMarkerPath)) {
+  $Marker = [pscustomobject]@{
+    reason = 'replace-dev-run'
+    binaryPath = $BinaryPath
+    pids = @($Processes | ForEach-Object { $_.ProcessId })
+    createdAt = (Get-Date).ToUniversalTime().ToString('o')
   }
+  $Marker | ConvertTo-Json -Compress | Set-Content -LiteralPath $ReplacementMarkerPath -Encoding UTF8
 }
-$LastError = $null
-for ($Attempt = 1; $Attempt -le 12; $Attempt++) {
-  try {
-    $Signature = Set-AuthenticodeSignature -FilePath $BinaryPath -Certificate $Cert -HashAlgorithm SHA256
-    if (-not $Signature.SignerCertificate) {
-      throw "Set-AuthenticodeSignature did not attach a signer certificate"
-    }
-    [Console]::Out.WriteLine("[tauri-dev-runner] signed $BinaryPath with $($Cert.Thumbprint)")
+foreach ($ProcessInfo in $Processes) {
+  & taskkill.exe /pid $ProcessInfo.ProcessId /t /f | Out-Null
+  if ($LASTEXITCODE -ne 0 -and $LASTEXITCODE -ne 128) {
+    throw "taskkill failed for stale dev binary PID $($ProcessInfo.ProcessId) with exit code $LASTEXITCODE"
+  }
+  [Console]::Out.WriteLine("[tauri-dev-runner] stopped stale dev binary process $($ProcessInfo.ProcessId) for $BinaryPath")
+}
+$Deadline = (Get-Date).AddMilliseconds(${DESKTOP_SHUTDOWN_GRACE_MS})
+while ((Get-Date) -lt $Deadline) {
+  $Remaining = @(Get-TargetProcesses)
+  if ($Remaining.Count -eq 0) {
     return
-  } catch {
-    $LastError = $_
-    Start-Sleep -Milliseconds 250
   }
+  Start-Sleep -Milliseconds 100
 }
-if ($null -ne $LastError) {
-  [Console]::Error.WriteLine($LastError.Exception.Message)
-}
-exit 1
+$RemainingIds = (@(Get-TargetProcesses) | ForEach-Object { $_.ProcessId }) -join ', '
+throw "stale dev binary process still running for \${BinaryPath}: $RemainingIds"
 `);
 }
 
@@ -168,7 +242,21 @@ if (process.platform !== 'win32' || rawArgs[0] !== 'run') {
   runCargo(rawArgs);
 }
 
+for (const signal of SIGNAL_EXIT_CODES.keys()) {
+  process.on(signal, () => exitFromSignal(signal));
+}
+
 const { cargoArgs, appArgs } = splitRunArgs(rawArgs.slice(1));
+const binaryPath = resolveDesktopBinary(cargoArgs);
+const launchBinaryPath = resolveDesktopLaunchBinary(binaryPath);
+const replacementMarkerPath = resolveReplacementMarkerPath(launchBinaryPath);
+try {
+  stopExistingWindowsDevBinary(binaryPath);
+} catch (error) {
+  process.stderr.write(`[tauri-dev-runner] failed to stop stale Windows dev binary: ${String(error?.message ?? error)}\n`);
+  process.exit(1);
+}
+
 const buildArgs = ['build', '--quiet', ...cargoArgs];
 const buildResult = spawnSync('cargo', buildArgs, {
   cwd: process.cwd(),
@@ -183,12 +271,12 @@ if (buildResult.status !== 0) {
   process.exit(buildResult.status ?? 1);
 }
 
-const binaryPath = resolveDesktopBinary(cargoArgs);
 try {
-  signWindowsDevBinary(binaryPath);
+  stopExistingWindowsDevBinary(launchBinaryPath, { replacementMarkerPath });
+  copyFileSync(binaryPath, launchBinaryPath);
 } catch (error) {
-  process.stderr.write(`[tauri-dev-runner] failed to sign Windows dev binary: ${String(error?.message ?? error)}\n`);
+  process.stderr.write(`[tauri-dev-runner] failed to prepare Windows dev binary: ${String(error?.message ?? error)}\n`);
   process.exit(1);
 }
 
-spawnDesktopBinary(binaryPath, appArgs);
+spawnDesktopBinary(launchBinaryPath, appArgs, { replacementMarkerPath });
