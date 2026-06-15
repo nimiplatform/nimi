@@ -33,13 +33,24 @@ export async function syncRuntimeLocalModelsConfig(input: {
   dataRootPath: string;
   localModelsPath: string;
   localStatePath?: string;
+  forceManagedRuntimeRestartWhenUnchanged?: boolean;
   bridge: RuntimeLocalModelsConfigSyncBridge;
 }): Promise<RuntimeBridgeDaemonStatus> {
-  const { daemonStatus, dataRootPath, localModelsPath, localStatePath, bridge } = input;
+  const {
+    daemonStatus,
+    dataRootPath,
+    localModelsPath,
+    localStatePath,
+    forceManagedRuntimeRestartWhenUnchanged,
+    bridge,
+  } = input;
 
   const current = await bridge.getRuntimeBridgeConfig();
   const { nextConfig, changed } = mergeRuntimeLocalModelsConfig(current.config, dataRootPath, localModelsPath, localStatePath);
   if (!changed) {
+    if (forceManagedRuntimeRestartWhenUnchanged && daemonStatus.running && daemonStatus.managed) {
+      return bridge.restartRuntimeBridge();
+    }
     return daemonStatus;
   }
 
@@ -87,8 +98,10 @@ export async function syncRuntimeStorageConfig(input: {
   daemonStatus?: RuntimeBridgeDaemonStatus;
   /** Omit the local runtime state path from the sync when true. */
   preserveLocalRuntimeStatePath?: boolean;
+  /** Restart a managed runtime even when the bridge config already matches. */
+  forceManagedRuntimeRestartWhenUnchanged?: boolean;
 }): Promise<RuntimeBridgeDaemonStatus> {
-  const { bridge, preserveLocalRuntimeStatePath } = input;
+  const { bridge, preserveLocalRuntimeStatePath, forceManagedRuntimeRestartWhenUnchanged } = input;
   const daemonStatus = input.daemonStatus ?? (await bridge.getRuntimeBridgeStatus());
   const runtimeStorageDirs = await bridge.getDesktopStorageDirs();
   return syncRuntimeLocalModelsConfig({
@@ -98,6 +111,7 @@ export async function syncRuntimeStorageConfig(input: {
     localStatePath: preserveLocalRuntimeStatePath
       ? undefined
       : runtimeStorageDirs.localRuntimeStatePath,
+    forceManagedRuntimeRestartWhenUnchanged,
     bridge,
   });
 }

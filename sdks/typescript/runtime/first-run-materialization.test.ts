@@ -238,6 +238,14 @@ test('First-run materialization projects progress, retryable jobs, and repairabl
     retryable: true,
     recoveryDisposition: 'auto_retry_transient',
   });
+  const manualRetryFailed = job({
+    jobId: 'manual-retry-failed',
+    dependencyFamily: 'runtime',
+    dependencyId: 'server-config',
+    state: 'failed',
+    retryable: true,
+    recoveryDisposition: 'manual_retry',
+  });
   const repairing = dependency({
     dependencyFamily: 'driver',
     dependencyId: 'gpu-driver',
@@ -253,6 +261,7 @@ test('First-run materialization projects progress, retryable jobs, and repairabl
       { packId: 'pack', dependency: dependency({ dependencyFamily: 'models', dependencyId: 'text-model' }), job: downloading },
       { packId: 'pack', dependency: dependency({ dependencyFamily: 'models', dependencyId: 'vision-model' }), job: verifying },
       { packId: 'pack', dependency: dependency({ dependencyFamily: 'runtime', dependencyId: 'server' }), job: failed },
+      { packId: 'pack', dependency: dependency({ dependencyFamily: 'runtime', dependencyId: 'server-config' }), job: manualRetryFailed },
       { packId: 'pack', dependency: repairing, job: null },
     ],
   } as const;
@@ -264,7 +273,7 @@ test('First-run materialization projects progress, retryable jobs, and repairabl
     speedBytesPerSec: 100,
     etaSeconds: 4,
   });
-  assert.deepEqual(retryableInterruptedNimiFirstRunMaterializationJobs(projection), [failed]);
+  assert.deepEqual(retryableInterruptedNimiFirstRunMaterializationJobs(projection), [failed, manualRetryFailed]);
   assert.deepEqual(repairableNimiFirstRunMaterializationDependencies({
     ...projection,
     status: 'repair_required',

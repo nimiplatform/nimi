@@ -1,15 +1,17 @@
 import type { NimiProductControlState } from '@renderer/bridge';
 import {
   cancelNimiFirstRunMaterializationJob,
+  isNimiRuntimeLocalEnvironmentDependencyJobCancelledState,
+  isNimiRuntimeLocalEnvironmentDependencyJobFailedState,
   repairNimiFirstRunMaterializationDependency,
   repairableNimiFirstRunMaterializationDependencies,
   resolveNimiFirstRunMaterializationProjection,
   retryNimiFirstRunMaterializationJob,
-  retryableInterruptedNimiFirstRunMaterializationJobs,
   startNimiFirstRunMaterialization,
   type NimiFirstRunMaterializationInput,
   type NimiFirstRunMaterializationProjection,
   type NimiFirstRunMaterializationRuntime,
+  type NimiRuntimeLocalEnvironmentDependencyJob,
   type NimiRuntimeLocalEnvironmentPlanDependency,
 } from '@nimiplatform/sdk/runtime';
 import { firstRunRuntimeLocalClient } from './first-run-runtime-local-client.js';
@@ -56,7 +58,16 @@ export function retryableInterruptedNimiFirstRunMaterializationJobsForProductSta
   projection: NimiFirstRunMaterializationProjection,
 ) {
   if (!isConfirmedNimiFirstRunSetupState(productState)) return [];
-  return retryableInterruptedNimiFirstRunMaterializationJobs(projection);
+  if (projection.status !== 'failed' && projection.status !== 'cancelled') return [];
+  return projection.dependencies
+    .map(({ job }) => job)
+    .filter((job): job is NimiRuntimeLocalEnvironmentDependencyJob =>
+      job !== null
+      && job.retryable
+      && (
+        isNimiRuntimeLocalEnvironmentDependencyJobFailedState(job.state)
+        || isNimiRuntimeLocalEnvironmentDependencyJobCancelledState(job.state)
+      ));
 }
 
 export function repairableConfirmedNimiFirstRunMaterializationDependencies(

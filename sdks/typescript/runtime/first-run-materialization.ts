@@ -171,7 +171,7 @@ export function retryableInterruptedNimiFirstRunMaterializationJobs(
     .filter(({ dependency }) => !dependencyReady(dependency))
     .map(({ job }) => job)
     .filter((job): job is NimiRuntimeLocalEnvironmentDependencyJob =>
-      job !== null && isAutoRecoverableNimiFirstRunMaterializationFailure(job));
+      job !== null && isRetryableNimiFirstRunMaterializationFailure(job));
 }
 
 export function repairableNimiFirstRunMaterializationDependencies(
@@ -290,10 +290,6 @@ function withProductState(
   };
 }
 
-function normalizeState(value: string | undefined): string {
-  return String(value || '').trim().toLowerCase();
-}
-
 function unique(values: readonly string[]): string[] {
   return Array.from(new Set(values.map((value) => value.trim()).filter(Boolean)));
 }
@@ -361,15 +357,14 @@ function dependencyInNimiFirstRunMaterializationScope(
   return profileDependencyFamilies.includes(dependency.dependencyFamily);
 }
 
-function isAutoRecoverableNimiFirstRunMaterializationFailure(
+function isRetryableNimiFirstRunMaterializationFailure(
   job: NimiRuntimeLocalEnvironmentDependencyJob,
 ): boolean {
   if (
     !isNimiRuntimeLocalEnvironmentDependencyJobFailedState(job.state)
     && !isNimiRuntimeLocalEnvironmentDependencyJobCancelledState(job.state)
   ) return false;
-  if (!job.retryable) return false;
-  return normalizeState(job.recoveryDisposition) === 'auto_retry_transient';
+  return job.retryable;
 }
 
 function statusForNimiFirstRunMaterialization(

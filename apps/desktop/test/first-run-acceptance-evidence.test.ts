@@ -221,6 +221,25 @@ test('renderer evidence: continuing from the Local AI phase records the install 
   assert.match(markup, /data-testid="first-run-step-local-ai" data-active="true"/);
   assert.match(productControlWorkflowSource, /setProductFirstRunInstallLevel/);
   assert.match(productControlWorkflowSource, /startDesktopNimiFirstRunMaterialization/);
+  assert.match(productControlWorkflowSource, /syncFirstRunRuntimeDataRootConfig/);
+  const installLevelIndex = productControlWorkflowSource.indexOf('await persistInstallLevel(installLevel)');
+  const runtimeStorageSyncIndex = productControlWorkflowSource.indexOf('await syncFirstRunRuntimeDataRootConfig', installLevelIndex);
+  const materializationStartIndex = productControlWorkflowSource.indexOf(
+    'await startDesktopNimiFirstRunMaterialization',
+    runtimeStorageSyncIndex,
+  );
+  assert.ok(installLevelIndex >= 0, 'Local AI continue must persist install level');
+  assert.ok(runtimeStorageSyncIndex > installLevelIndex, 'Local AI continue must sync Runtime data root after install level');
+  assert.ok(
+    materializationStartIndex > runtimeStorageSyncIndex,
+    'Local AI continue must start materialization only after Runtime data-root sync',
+  );
+  assert.ok(
+    productControlWorkflowSource
+      .slice(runtimeStorageSyncIndex, materializationStartIndex)
+      .includes('forceManagedRuntimeRestartWhenUnchanged: true'),
+    'Local AI continue must force managed Runtime restart before materialization when config already matches',
+  );
   assert.match(productControlWorkflowSource, /await projectMaterialization\(next, afterLevel\.state\)/);
   assert.doesNotMatch(productControlWorkflowSource, /next\.productState === 'local_ai_ready'[\s\S]*?prepareProductFirstRunLocalAiReady/);
   assert.match(productControlWorkflowSource, /materializationReadyForFinalization/);

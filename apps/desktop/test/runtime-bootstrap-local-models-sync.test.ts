@@ -212,6 +212,55 @@ test('syncRuntimeLocalModelsConfig skips write when product data root and manage
   assert.equal(result.pid, 3003);
 });
 
+test('syncRuntimeLocalModelsConfig can restart managed runtime when matching config must be re-applied', async () => {
+  let setCalls = 0;
+  let restartCalls = 0;
+
+  const result = await syncRuntimeLocalModelsConfig({
+    daemonStatus: createDaemonStatus({ running: true, managed: true, pid: 4004 }),
+    dataRootPath: 'D:\\nimi_data',
+    localModelsPath: 'D:\\nimi_data\\models',
+    localStatePath: 'D:\\nimi_data\\state.json',
+    forceManagedRuntimeRestartWhenUnchanged: true,
+    bridge: {
+      async getRuntimeBridgeConfig() {
+        return {
+          path: '/tmp/config.json',
+          config: {
+            schemaVersion: 1,
+            dataRootRef: 'D:\\nimi_data',
+            managedRoots: {
+              models: 'D:\\nimi_data\\models',
+              dependencies: 'D:\\nimi_data/dependencies',
+              environments: 'D:\\nimi_data/environments',
+              logs: 'D:\\nimi_data/logs',
+              audit: 'D:\\nimi_data/audit',
+            },
+            localStatePath: 'D:\\nimi_data\\state.json',
+          },
+        };
+      },
+      async setRuntimeBridgeConfig(configJson: string) {
+        void configJson;
+        setCalls += 1;
+        return {
+          path: '/tmp/config.json',
+          reasonCode: ReasonCode.CONFIG_APPLIED,
+          config: {},
+        };
+      },
+      async restartRuntimeBridge() {
+        restartCalls += 1;
+        return createDaemonStatus({ running: true, managed: true, pid: 5005 });
+      },
+    },
+  });
+
+  assert.equal(setCalls, 0);
+  assert.equal(restartCalls, 1);
+  assert.equal(result.pid, 5005);
+});
+
 function storageDirs(overrides: Partial<DesktopStorageDirs> = {}): DesktopStorageDirs {
   return {
     nimiDir: '/Users/eric/.nimi',

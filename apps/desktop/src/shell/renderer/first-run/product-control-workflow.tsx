@@ -383,6 +383,11 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
       // 2) Start Runtime materialization (explicit confirmation — this is the
       //    first storage/network-heavy step) and persist the resulting setup
       //    state so the gate advances into the Setup phase.
+      // Re-assert the selected data root immediately before materialization so
+      // Runtime cannot start the heavy setup path with a stale in-process config.
+      await syncFirstRunRuntimeDataRootConfig({
+        forceManagedRuntimeRestartWhenUnchanged: true,
+      });
       const next = await startDesktopNimiFirstRunMaterialization({
         profile: plan,
         runtimeDataRoot: dataRoot,

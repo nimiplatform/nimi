@@ -237,6 +237,7 @@ pub(crate) fn complete_first_run_device_environment_scan_with_profile(
 
 pub(crate) async fn authenticated_runtime_account_id() -> Result<String, String> {
     let caller = product_control_runtime_account_caller();
+    ensure_product_control_runtime_app_registered(&caller).await?;
     let request = crate::runtime_bridge::generated::GetAccountSessionStatusRequest {
         caller: Some(caller.clone()),
     };
@@ -264,6 +265,58 @@ pub(crate) async fn authenticated_runtime_account_id() -> Result<String, String>
             "authenticated Runtime account session did not include account_id".to_string()
         })?;
     Ok(account_id)
+}
+
+async fn ensure_product_control_runtime_app_registered(
+    caller: &crate::runtime_bridge::generated::AccountCaller,
+) -> Result<(), String> {
+    let request = product_control_runtime_app_registration_request(caller);
+    let response: crate::runtime_bridge::generated::RegisterAppResponse =
+        crate::runtime_bridge::invoke_unary_typed_with_metadata(
+            nimi_shell_tauri::runtime_bridge::RUNTIME_AUTH_REGISTER_APP_METHOD_ID,
+            request,
+            super::product_control_runtime_bridge_metadata(),
+            Some(10_000),
+        )
+        .await?;
+    if !response.accepted {
+        let reason = crate::runtime_bridge::generated::ReasonCode::try_from(response.reason_code)
+            .unwrap_or(crate::runtime_bridge::generated::ReasonCode::Unspecified);
+        return Err(format!(
+            "Runtime app registration rejected for desktop product-control caller app_id={} app_instance_id={} device_id={}: reason_code={}",
+            caller.app_id.trim(),
+            caller.app_instance_id.trim(),
+            caller.device_id.trim(),
+            reason.as_str_name()
+        ));
+    }
+    if response.app_instance_id.trim() != caller.app_instance_id.trim() {
+        return Err(format!(
+            "Runtime app registration returned unexpected app_instance_id for desktop product-control caller: expected={} actual={}",
+            caller.app_instance_id.trim(),
+            response.app_instance_id.trim()
+        ));
+    }
+    Ok(())
+}
+
+fn product_control_runtime_app_registration_request(
+    caller: &crate::runtime_bridge::generated::AccountCaller,
+) -> crate::runtime_bridge::generated::RegisterAppRequest {
+    crate::runtime_bridge::generated::RegisterAppRequest {
+        app_id: caller.app_id.trim().to_string(),
+        app_instance_id: caller.app_instance_id.trim().to_string(),
+        device_id: caller.device_id.trim().to_string(),
+        app_version: "1".to_string(),
+        capabilities: Vec::new(),
+        mode_manifest: Some(crate::runtime_bridge::generated::AppModeManifest {
+            app_mode: crate::runtime_bridge::generated::AppMode::Full as i32,
+            runtime_required: true,
+            realm_required: true,
+            world_relation: crate::runtime_bridge::generated::WorldRelation::None as i32,
+        }),
+        developer_registration: false,
+    }
 }
 
 fn runtime_account_status_rejection_error(
@@ -757,6 +810,31 @@ mod tests {
         assert_eq!(
             caller.mode,
             crate::runtime_bridge::generated::AccountCallerMode::DesktopShell as i32
+        );
+    }
+
+    #[test]
+    fn product_control_account_registration_uses_same_admitted_desktop_caller() {
+        let caller = super::product_control_runtime_account_caller();
+        let request = super::product_control_runtime_app_registration_request(&caller);
+
+        assert_eq!(request.app_id, "nimi.desktop");
+        assert_eq!(request.app_instance_id, "nimi.desktop.local-first-party");
+        assert_eq!(request.device_id, "desktop-shell");
+        assert_eq!(request.app_version, "1");
+        assert!(request.capabilities.is_empty());
+        assert!(!request.developer_registration);
+
+        let mode = request.mode_manifest.expect("mode manifest");
+        assert_eq!(
+            mode.app_mode,
+            crate::runtime_bridge::generated::AppMode::Full as i32
+        );
+        assert!(mode.runtime_required);
+        assert!(mode.realm_required);
+        assert_eq!(
+            mode.world_relation,
+            crate::runtime_bridge::generated::WorldRelation::None as i32
         );
     }
 

@@ -237,6 +237,43 @@ export function bootstrapRuntime(): Promise<void> {
     const defaults = await desktopBridge.getRuntimeDefaults();
     useAppStore.getState().setRuntimeDefaults(defaults);
     let daemonStatus = await desktopBridge.getRuntimeBridgeStatus();
+    let runtimeUnavailable = runtimeDaemonUnavailable(daemonStatus);
+    if (desktopBridge.hasTauriInvoke() && runtimeUnavailable) {
+      try {
+        daemonStatus = await desktopBridge.startRuntimeBridge();
+        runtimeUnavailable = runtimeDaemonUnavailable(daemonStatus);
+        logRendererEvent({
+          level: runtimeUnavailable ? 'warn' : 'info',
+          area: 'renderer-bootstrap',
+          message: runtimeUnavailable
+            ? 'phase:runtime-bridge:start-unavailable'
+            : 'phase:runtime-bridge:started',
+          flowId,
+          details: {
+            running: daemonStatus.running,
+            managed: daemonStatus.managed,
+            grpcAddr: daemonStatus.grpcAddr,
+            launchMode: daemonStatus.launchMode,
+            lastError: daemonStatus.lastError || null,
+          },
+        });
+      } catch (error) {
+        daemonStatus = {
+          ...daemonStatus,
+          running: false,
+          lastError: safeBootstrapErrorMessage(error),
+        };
+        logRendererEvent({
+          level: 'warn',
+          area: 'renderer-bootstrap',
+          message: 'phase:runtime-bridge:start-failed',
+          flowId,
+          details: {
+            error: daemonStatus.lastError,
+          },
+        });
+      }
+    }
     const configSync = await syncDesktopRuntimeBootstrapConfig({
       daemonStatus,
       realmDefaults: defaults.realm,
@@ -244,7 +281,7 @@ export function bootstrapRuntime(): Promise<void> {
       preserveLocalRuntimeStatePath: macosSmokeContext.scenarioId === 'chat.live2d-avatar-product-smoke',
     });
     daemonStatus = configSync.daemonStatus;
-    let runtimeUnavailable = configSync.runtimeUnavailable;
+    runtimeUnavailable = configSync.runtimeUnavailable;
     const bootstrapRuntimeConfigWarning = configSync.bootstrapRuntimeConfigWarning;
     if (desktopBridge.hasTauriInvoke() && runtimeUnavailable) {
       try {

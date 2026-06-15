@@ -152,6 +152,17 @@ test('confirmed first-run setup gates SDK retryable materialization jobs', () =>
   );
 });
 
+test('confirmed first-run setup retries stale manual-retry materialization jobs once observer handles them', () => {
+  const staleFailedJob = dependencyJob('runtime engine manager unavailable');
+  assert.deepEqual(
+    retryableInterruptedNimiFirstRunMaterializationJobsForProductState(
+      'local_ai_profile_selected_environment_not_ready',
+      projection('failed', [staleFailedJob]),
+    ).map((job) => job.jobId),
+    ['job-model'],
+  );
+});
+
 test('confirmed first-run setup auto-repairs repair-required materialization dependencies once observer handles them', () => {
   const tts = repairRequiredDependency();
   const asr = repairRequiredDependency({
