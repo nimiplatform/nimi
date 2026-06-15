@@ -226,6 +226,7 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 	agentSvc.SetAuditStore(auditStore)
 	agentSvc.SetRuntimeArtifactStore(artifactStore)
 	agentSvc.SetRuntimePrivateAIBridge(runtimeagentservice.NewAIBackedRuntimePrivateAIBridge(aiSvc))
+	agentSvc.SetVoiceLipsyncScenarioExecutor(aiSvc, "", runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED)
 	memorySvc.SetMemoryEmbeddingTargetAuthorizer(agentSvc.AuthorizeMemoryEmbeddingTarget)
 	runtimev1.RegisterRuntimeAgentServiceServer(g, agentSvc)
 

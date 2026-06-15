@@ -15232,3 +15232,6939 @@ pub mod runtime_audit_service_client {
         }
     }
 }
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AgentRequestContext {
+    #[prost(string, tag = "1")]
+    pub app_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub subject_user_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "3")]
+    pub scoped_binding: ::core::option::Option<ScopedRuntimeBindingAttachment>,
+    #[prost(string, tag = "4")]
+    pub owner_user_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub realm_agent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub local_agent_ref: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct MemoryRequestContext {
+    #[prost(string, tag = "1")]
+    pub app_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub subject_user_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AgentCoreBankOwner {
+    #[prost(string, tag = "1")]
+    pub agent_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AgentDyadicBankOwner {
+    #[prost(string, tag = "1")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub user_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct WorldSharedBankOwner {
+    #[prost(string, tag = "1")]
+    pub world_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AppPrivateBankOwner {
+    #[prost(string, tag = "1")]
+    pub account_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub app_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct WorkspacePrivateBankOwner {
+    #[prost(string, tag = "1")]
+    pub account_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub workspace_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct MemoryBankLocator {
+    #[prost(enumeration = "MemoryBankScope", tag = "1")]
+    pub scope: i32,
+    #[prost(oneof = "memory_bank_locator::Owner", tags = "2, 3, 4, 5, 6")]
+    pub owner: ::core::option::Option<memory_bank_locator::Owner>,
+}
+/// Nested message and enum types in `MemoryBankLocator`.
+pub mod memory_bank_locator {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Owner {
+        #[prost(message, tag = "2")]
+        AgentCore(super::AgentCoreBankOwner),
+        #[prost(message, tag = "3")]
+        AgentDyadic(super::AgentDyadicBankOwner),
+        #[prost(message, tag = "4")]
+        WorldShared(super::WorldSharedBankOwner),
+        #[prost(message, tag = "5")]
+        AppPrivate(super::AppPrivateBankOwner),
+        #[prost(message, tag = "6")]
+        WorkspacePrivate(super::WorkspacePrivateBankOwner),
+    }
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct PublicMemoryBankLocator {
+    #[prost(oneof = "public_memory_bank_locator::Locator", tags = "1, 2")]
+    pub locator: ::core::option::Option<public_memory_bank_locator::Locator>,
+}
+/// Nested message and enum types in `PublicMemoryBankLocator`.
+pub mod public_memory_bank_locator {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Locator {
+        #[prost(message, tag = "1")]
+        AppPrivate(super::AppPrivateBankOwner),
+        #[prost(message, tag = "2")]
+        WorkspacePrivate(super::WorkspacePrivateBankOwner),
+    }
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct MemoryBankOwnerFilter {
+    #[prost(oneof = "memory_bank_owner_filter::Owner", tags = "1, 2, 3, 4, 5")]
+    pub owner: ::core::option::Option<memory_bank_owner_filter::Owner>,
+}
+/// Nested message and enum types in `MemoryBankOwnerFilter`.
+pub mod memory_bank_owner_filter {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Owner {
+        #[prost(message, tag = "1")]
+        AgentCore(super::AgentCoreBankOwner),
+        #[prost(message, tag = "2")]
+        AgentDyadic(super::AgentDyadicBankOwner),
+        #[prost(message, tag = "3")]
+        WorldShared(super::WorldSharedBankOwner),
+        #[prost(message, tag = "4")]
+        AppPrivate(super::AppPrivateBankOwner),
+        #[prost(message, tag = "5")]
+        WorkspacePrivate(super::WorkspacePrivateBankOwner),
+    }
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct MemoryEmbeddingProfile {
+    #[prost(string, tag = "1")]
+    pub provider: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub model_id: ::prost::alloc::string::String,
+    #[prost(int32, tag = "3")]
+    pub dimension: i32,
+    #[prost(enumeration = "MemoryDistanceMetric", tag = "4")]
+    pub distance_metric: i32,
+    #[prost(string, tag = "5")]
+    pub version: ::prost::alloc::string::String,
+    #[prost(enumeration = "MemoryMigrationPolicy", tag = "6")]
+    pub migration_policy: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct MemoryEmbeddingCloudBindingRef {
+    #[prost(string, tag = "1")]
+    pub connector_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub model_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct MemoryEmbeddingLocalBindingRef {
+    #[prost(string, tag = "1")]
+    pub target_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct MemoryEmbeddingBindingIntentSnapshot {
+    #[prost(string, tag = "1")]
+    pub source_kind: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub cloud_binding: ::core::option::Option<MemoryEmbeddingCloudBindingRef>,
+    #[prost(message, optional, tag = "3")]
+    pub local_binding: ::core::option::Option<MemoryEmbeddingLocalBindingRef>,
+    #[prost(string, tag = "4")]
+    pub revision_token: ::prost::alloc::string::String,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct MemoryEmbeddingOperationReadiness {
+    #[prost(bool, tag = "1")]
+    pub bind_allowed: bool,
+    #[prost(bool, tag = "2")]
+    pub cutover_allowed: bool,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MemoryBank {
+    #[prost(string, tag = "1")]
+    pub bank_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub locator: ::core::option::Option<MemoryBankLocator>,
+    #[prost(message, optional, tag = "3")]
+    pub embedding_profile: ::core::option::Option<MemoryEmbeddingProfile>,
+    #[prost(string, tag = "4")]
+    pub display_name: ::prost::alloc::string::String,
+    #[prost(bool, tag = "5")]
+    pub canonical_agent_scope: bool,
+    #[prost(bool, tag = "6")]
+    pub public_api_writable: bool,
+    #[prost(message, optional, tag = "7")]
+    pub metadata: ::core::option::Option<::prost_types::Struct>,
+    #[prost(message, optional, tag = "8")]
+    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "9")]
+    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct MemoryProvenance {
+    #[prost(string, tag = "1")]
+    pub source_system: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub source_event_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub author_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub trace_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "5")]
+    pub committed_at: ::core::option::Option<::prost_types::Timestamp>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct EpisodicMemoryRecord {
+    #[prost(string, tag = "1")]
+    pub summary: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub occurred_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(string, repeated, tag = "3")]
+    pub participants: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SemanticMemoryRecord {
+    #[prost(string, tag = "1")]
+    pub subject: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub predicate: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub object: ::prost::alloc::string::String,
+    #[prost(double, tag = "4")]
+    pub confidence: f64,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ObservationalMemoryRecord {
+    #[prost(string, tag = "1")]
+    pub observation: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub observed_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(string, tag = "3")]
+    pub source_ref: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MemoryRecordInput {
+    #[prost(enumeration = "MemoryRecordKind", tag = "1")]
+    pub kind: i32,
+    #[prost(enumeration = "MemoryCanonicalClass", tag = "2")]
+    pub canonical_class: i32,
+    #[prost(message, optional, tag = "3")]
+    pub provenance: ::core::option::Option<MemoryProvenance>,
+    #[prost(message, optional, tag = "4")]
+    pub metadata: ::core::option::Option<::prost_types::Struct>,
+    #[prost(message, optional, tag = "5")]
+    pub extensions: ::core::option::Option<::prost_types::Struct>,
+    #[prost(oneof = "memory_record_input::Payload", tags = "10, 11, 12")]
+    pub payload: ::core::option::Option<memory_record_input::Payload>,
+}
+/// Nested message and enum types in `MemoryRecordInput`.
+pub mod memory_record_input {
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Payload {
+        #[prost(message, tag = "10")]
+        Episodic(super::EpisodicMemoryRecord),
+        #[prost(message, tag = "11")]
+        Semantic(super::SemanticMemoryRecord),
+        #[prost(message, tag = "12")]
+        Observational(super::ObservationalMemoryRecord),
+    }
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct MemoryReplicationPending {
+    #[prost(string, tag = "1")]
+    pub basis_version: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub enqueued_at: ::core::option::Option<::prost_types::Timestamp>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct MemoryReplicationSynced {
+    #[prost(string, tag = "1")]
+    pub realm_version: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub synced_at: ::core::option::Option<::prost_types::Timestamp>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct MemoryReplicationConflict {
+    #[prost(string, tag = "1")]
+    pub conflict_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub local_version: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub remote_version: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub conflict_reason: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "5")]
+    pub detected_at: ::core::option::Option<::prost_types::Timestamp>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct MemoryInvalidation {
+    #[prost(string, tag = "1")]
+    pub invalidation_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub invalidated_version: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub authority: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub invalidation_reason: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "5")]
+    pub invalidated_at: ::core::option::Option<::prost_types::Timestamp>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct MemoryReplicationState {
+    #[prost(enumeration = "MemoryReplicationOutcome", tag = "1")]
+    pub outcome: i32,
+    #[prost(string, tag = "2")]
+    pub local_version: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub basis_version: ::prost::alloc::string::String,
+    #[prost(oneof = "memory_replication_state::Detail", tags = "10, 11, 12, 13")]
+    pub detail: ::core::option::Option<memory_replication_state::Detail>,
+}
+/// Nested message and enum types in `MemoryReplicationState`.
+pub mod memory_replication_state {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Detail {
+        #[prost(message, tag = "10")]
+        Pending(super::MemoryReplicationPending),
+        #[prost(message, tag = "11")]
+        Synced(super::MemoryReplicationSynced),
+        #[prost(message, tag = "12")]
+        Conflict(super::MemoryReplicationConflict),
+        #[prost(message, tag = "13")]
+        Invalidation(super::MemoryInvalidation),
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MemoryRecord {
+    #[prost(string, tag = "1")]
+    pub memory_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub bank: ::core::option::Option<MemoryBankLocator>,
+    #[prost(enumeration = "MemoryRecordKind", tag = "3")]
+    pub kind: i32,
+    #[prost(enumeration = "MemoryCanonicalClass", tag = "4")]
+    pub canonical_class: i32,
+    #[prost(message, optional, tag = "5")]
+    pub provenance: ::core::option::Option<MemoryProvenance>,
+    #[prost(message, optional, tag = "6")]
+    pub replication: ::core::option::Option<MemoryReplicationState>,
+    #[prost(message, optional, tag = "7")]
+    pub metadata: ::core::option::Option<::prost_types::Struct>,
+    #[prost(message, optional, tag = "8")]
+    pub extensions: ::core::option::Option<::prost_types::Struct>,
+    #[prost(message, optional, tag = "20")]
+    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "21")]
+    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(oneof = "memory_record::Payload", tags = "10, 11, 12")]
+    pub payload: ::core::option::Option<memory_record::Payload>,
+}
+/// Nested message and enum types in `MemoryRecord`.
+pub mod memory_record {
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Payload {
+        #[prost(message, tag = "10")]
+        Episodic(super::EpisodicMemoryRecord),
+        #[prost(message, tag = "11")]
+        Semantic(super::SemanticMemoryRecord),
+        #[prost(message, tag = "12")]
+        Observational(super::ObservationalMemoryRecord),
+    }
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct MemoryRecallQuery {
+    #[prost(string, tag = "1")]
+    pub query: ::prost::alloc::string::String,
+    #[prost(enumeration = "MemoryRecordKind", repeated, tag = "2")]
+    pub kinds: ::prost::alloc::vec::Vec<i32>,
+    #[prost(int32, tag = "3")]
+    pub limit: i32,
+    #[prost(message, optional, tag = "4")]
+    pub start_time: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "5")]
+    pub end_time: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(enumeration = "MemoryCanonicalClass", repeated, tag = "6")]
+    pub canonical_classes: ::prost::alloc::vec::Vec<i32>,
+    #[prost(bool, tag = "7")]
+    pub include_invalidated: bool,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct MemoryHistoryQuery {
+    #[prost(enumeration = "MemoryRecordKind", repeated, tag = "1")]
+    pub kinds: ::prost::alloc::vec::Vec<i32>,
+    #[prost(message, optional, tag = "2")]
+    pub start_time: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "3")]
+    pub end_time: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(int32, tag = "4")]
+    pub page_size: i32,
+    #[prost(string, tag = "5")]
+    pub page_token: ::prost::alloc::string::String,
+    #[prost(bool, tag = "6")]
+    pub include_invalidated: bool,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MemoryRecallHit {
+    #[prost(message, optional, tag = "1")]
+    pub record: ::core::option::Option<MemoryRecord>,
+    #[prost(double, tag = "2")]
+    pub relevance_score: f64,
+    #[prost(string, tag = "3")]
+    pub match_reason: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct NarrativeRecallHit {
+    #[prost(string, tag = "1")]
+    pub narrative_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub topic: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub content: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "4")]
+    pub source_memory_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(bool, tag = "5")]
+    pub is_stale: bool,
+    #[prost(double, tag = "6")]
+    pub relevance_score: f64,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct MemoryReflectionRequest {
+    #[prost(enumeration = "MemoryRecordKind", repeated, tag = "1")]
+    pub source_kinds: ::prost::alloc::vec::Vec<i32>,
+    #[prost(message, optional, tag = "2")]
+    pub start_time: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "3")]
+    pub end_time: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(int32, tag = "4")]
+    pub target_record_count: i32,
+    #[prost(string, tag = "5")]
+    pub reflection_reason: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MemoryReflectionResult {
+    #[prost(message, repeated, tag = "1")]
+    pub created_records: ::prost::alloc::vec::Vec<MemoryRecord>,
+    #[prost(int32, tag = "2")]
+    pub source_record_count: i32,
+    #[prost(message, optional, tag = "3")]
+    pub completed_at: ::core::option::Option<::prost_types::Timestamp>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct MemoryDeletedDetail {
+    #[prost(string, repeated, tag = "1")]
+    pub memory_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "2")]
+    pub reason: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct MemoryReplicationObservedDetail {
+    #[prost(string, tag = "1")]
+    pub memory_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub replication: ::core::option::Option<MemoryReplicationState>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MemoryEvent {
+    #[prost(enumeration = "MemoryEventType", tag = "1")]
+    pub event_type: i32,
+    #[prost(uint64, tag = "2")]
+    pub sequence: u64,
+    #[prost(message, optional, tag = "3")]
+    pub bank: ::core::option::Option<MemoryBankLocator>,
+    #[prost(message, optional, tag = "4")]
+    pub timestamp: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(oneof = "memory_event::Detail", tags = "10, 11, 12, 13, 14, 15")]
+    pub detail: ::core::option::Option<memory_event::Detail>,
+}
+/// Nested message and enum types in `MemoryEvent`.
+pub mod memory_event {
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Detail {
+        #[prost(message, tag = "10")]
+        BankCreated(super::MemoryBank),
+        #[prost(message, tag = "11")]
+        BankDeleted(super::MemoryBank),
+        #[prost(message, tag = "12")]
+        RecordRetained(super::MemoryRecord),
+        #[prost(message, tag = "13")]
+        RecordDeleted(super::MemoryDeletedDetail),
+        #[prost(message, tag = "14")]
+        ReflectionCompleted(super::MemoryReflectionResult),
+        #[prost(message, tag = "15")]
+        ReplicationUpdated(super::MemoryReplicationObservedDetail),
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CreateBankRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<MemoryRequestContext>,
+    #[prost(message, optional, tag = "2")]
+    pub locator: ::core::option::Option<PublicMemoryBankLocator>,
+    /// Optional. When omitted, the bank remains valid with no bound embedding profile.
+    #[prost(message, optional, tag = "3")]
+    pub embedding_profile: ::core::option::Option<MemoryEmbeddingProfile>,
+    #[prost(string, tag = "4")]
+    pub display_name: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "5")]
+    pub metadata: ::core::option::Option<::prost_types::Struct>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CreateBankResponse {
+    #[prost(message, optional, tag = "1")]
+    pub bank: ::core::option::Option<MemoryBank>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetBankRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<MemoryRequestContext>,
+    #[prost(message, optional, tag = "2")]
+    pub locator: ::core::option::Option<MemoryBankLocator>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetBankResponse {
+    #[prost(message, optional, tag = "1")]
+    pub bank: ::core::option::Option<MemoryBank>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListBanksRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<MemoryRequestContext>,
+    #[prost(enumeration = "MemoryBankScope", repeated, tag = "2")]
+    pub scope_filters: ::prost::alloc::vec::Vec<i32>,
+    #[prost(message, repeated, tag = "3")]
+    pub owner_filters: ::prost::alloc::vec::Vec<MemoryBankOwnerFilter>,
+    #[prost(int32, tag = "4")]
+    pub page_size: i32,
+    #[prost(string, tag = "5")]
+    pub page_token: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListBanksResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub banks: ::prost::alloc::vec::Vec<MemoryBank>,
+    #[prost(string, tag = "2")]
+    pub next_page_token: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct DeleteBankRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<MemoryRequestContext>,
+    #[prost(message, optional, tag = "2")]
+    pub locator: ::core::option::Option<PublicMemoryBankLocator>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct DeleteBankResponse {
+    #[prost(message, optional, tag = "1")]
+    pub ack: ::core::option::Option<Ack>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct RetainRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<MemoryRequestContext>,
+    #[prost(message, optional, tag = "2")]
+    pub bank: ::core::option::Option<MemoryBankLocator>,
+    #[prost(message, repeated, tag = "3")]
+    pub records: ::prost::alloc::vec::Vec<MemoryRecordInput>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct RetainResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub records: ::prost::alloc::vec::Vec<MemoryRecord>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RecallRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<MemoryRequestContext>,
+    #[prost(message, optional, tag = "2")]
+    pub bank: ::core::option::Option<MemoryBankLocator>,
+    #[prost(message, optional, tag = "3")]
+    pub query: ::core::option::Option<MemoryRecallQuery>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct RecallResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub hits: ::prost::alloc::vec::Vec<MemoryRecallHit>,
+    #[prost(message, repeated, tag = "2")]
+    pub narrative_hits: ::prost::alloc::vec::Vec<NarrativeRecallHit>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct HistoryRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<MemoryRequestContext>,
+    #[prost(message, optional, tag = "2")]
+    pub bank: ::core::option::Option<MemoryBankLocator>,
+    #[prost(message, optional, tag = "3")]
+    pub query: ::core::option::Option<MemoryHistoryQuery>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct HistoryResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub records: ::prost::alloc::vec::Vec<MemoryRecord>,
+    #[prost(string, tag = "2")]
+    pub next_page_token: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct DeleteMemoryRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<MemoryRequestContext>,
+    #[prost(message, optional, tag = "2")]
+    pub bank: ::core::option::Option<MemoryBankLocator>,
+    #[prost(string, repeated, tag = "3")]
+    pub memory_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "4")]
+    pub reason: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct DeleteMemoryResponse {
+    #[prost(message, optional, tag = "1")]
+    pub ack: ::core::option::Option<Ack>,
+    #[prost(string, repeated, tag = "2")]
+    pub deleted_memory_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SubscribeMemoryEventsRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<MemoryRequestContext>,
+    #[prost(enumeration = "MemoryBankScope", repeated, tag = "2")]
+    pub scope_filters: ::prost::alloc::vec::Vec<i32>,
+    #[prost(message, repeated, tag = "3")]
+    pub owner_filters: ::prost::alloc::vec::Vec<MemoryBankOwnerFilter>,
+    #[prost(string, tag = "4")]
+    pub cursor: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetMemoryEmbeddingRuntimeIntentRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<MemoryRequestContext>,
+    #[prost(message, optional, tag = "2")]
+    pub locator: ::core::option::Option<MemoryBankLocator>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetMemoryEmbeddingRuntimeIntentResponse {
+    #[prost(bool, tag = "1")]
+    pub binding_intent_present: bool,
+    #[prost(message, optional, tag = "2")]
+    pub binding_intent: ::core::option::Option<MemoryEmbeddingBindingIntentSnapshot>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SetMemoryEmbeddingRuntimeIntentRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<MemoryRequestContext>,
+    #[prost(message, optional, tag = "2")]
+    pub locator: ::core::option::Option<MemoryBankLocator>,
+    /// Omit or send an empty binding_intent to clear the Runtime-owned binding intent.
+    #[prost(message, optional, tag = "3")]
+    pub binding_intent: ::core::option::Option<MemoryEmbeddingBindingIntentSnapshot>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SetMemoryEmbeddingRuntimeIntentResponse {
+    #[prost(bool, tag = "1")]
+    pub accepted: bool,
+    #[prost(message, optional, tag = "2")]
+    pub binding_intent: ::core::option::Option<MemoryEmbeddingBindingIntentSnapshot>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct InspectMemoryEmbeddingRuntimeRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<MemoryRequestContext>,
+    #[prost(message, optional, tag = "2")]
+    pub locator: ::core::option::Option<MemoryBankLocator>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct InspectMemoryEmbeddingRuntimeResponse {
+    #[prost(bool, tag = "1")]
+    pub binding_intent_present: bool,
+    #[prost(string, tag = "2")]
+    pub binding_source_kind: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub resolution_state: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "4")]
+    pub resolved_profile: ::core::option::Option<MemoryEmbeddingProfile>,
+    #[prost(string, tag = "5")]
+    pub canonical_bank_status: ::prost::alloc::string::String,
+    #[prost(enumeration = "ReasonCode", tag = "6")]
+    pub blocked_reason_code: i32,
+    #[prost(message, optional, tag = "7")]
+    pub operation_readiness: ::core::option::Option<MemoryEmbeddingOperationReadiness>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RequestMemoryEmbeddingRuntimeBindRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<MemoryRequestContext>,
+    #[prost(message, optional, tag = "2")]
+    pub locator: ::core::option::Option<MemoryBankLocator>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RequestMemoryEmbeddingRuntimeBindResponse {
+    #[prost(string, tag = "1")]
+    pub outcome: ::prost::alloc::string::String,
+    #[prost(enumeration = "ReasonCode", tag = "2")]
+    pub blocked_reason_code: i32,
+    #[prost(string, tag = "3")]
+    pub canonical_bank_status_after: ::prost::alloc::string::String,
+    #[prost(bool, tag = "4")]
+    pub pending_cutover: bool,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RequestMemoryEmbeddingRuntimeCutoverRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<MemoryRequestContext>,
+    #[prost(message, optional, tag = "2")]
+    pub locator: ::core::option::Option<MemoryBankLocator>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RequestMemoryEmbeddingRuntimeCutoverResponse {
+    #[prost(string, tag = "1")]
+    pub outcome: ::prost::alloc::string::String,
+    #[prost(enumeration = "ReasonCode", tag = "2")]
+    pub blocked_reason_code: i32,
+    #[prost(string, tag = "3")]
+    pub canonical_bank_status_after: ::prost::alloc::string::String,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum MemoryBankScope {
+    Unspecified = 0,
+    AgentCore = 1,
+    AgentDyadic = 2,
+    WorldShared = 3,
+    AppPrivate = 4,
+    WorkspacePrivate = 5,
+}
+impl MemoryBankScope {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "MEMORY_BANK_SCOPE_UNSPECIFIED",
+            Self::AgentCore => "MEMORY_BANK_SCOPE_AGENT_CORE",
+            Self::AgentDyadic => "MEMORY_BANK_SCOPE_AGENT_DYADIC",
+            Self::WorldShared => "MEMORY_BANK_SCOPE_WORLD_SHARED",
+            Self::AppPrivate => "MEMORY_BANK_SCOPE_APP_PRIVATE",
+            Self::WorkspacePrivate => "MEMORY_BANK_SCOPE_WORKSPACE_PRIVATE",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "MEMORY_BANK_SCOPE_UNSPECIFIED" => Some(Self::Unspecified),
+            "MEMORY_BANK_SCOPE_AGENT_CORE" => Some(Self::AgentCore),
+            "MEMORY_BANK_SCOPE_AGENT_DYADIC" => Some(Self::AgentDyadic),
+            "MEMORY_BANK_SCOPE_WORLD_SHARED" => Some(Self::WorldShared),
+            "MEMORY_BANK_SCOPE_APP_PRIVATE" => Some(Self::AppPrivate),
+            "MEMORY_BANK_SCOPE_WORKSPACE_PRIVATE" => Some(Self::WorkspacePrivate),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum MemoryRecordKind {
+    Unspecified = 0,
+    Episodic = 1,
+    Semantic = 2,
+    Observational = 3,
+}
+impl MemoryRecordKind {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "MEMORY_RECORD_KIND_UNSPECIFIED",
+            Self::Episodic => "MEMORY_RECORD_KIND_EPISODIC",
+            Self::Semantic => "MEMORY_RECORD_KIND_SEMANTIC",
+            Self::Observational => "MEMORY_RECORD_KIND_OBSERVATIONAL",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "MEMORY_RECORD_KIND_UNSPECIFIED" => Some(Self::Unspecified),
+            "MEMORY_RECORD_KIND_EPISODIC" => Some(Self::Episodic),
+            "MEMORY_RECORD_KIND_SEMANTIC" => Some(Self::Semantic),
+            "MEMORY_RECORD_KIND_OBSERVATIONAL" => Some(Self::Observational),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum MemoryCanonicalClass {
+    Unspecified = 0,
+    None = 1,
+    PublicShared = 2,
+    WorldShared = 3,
+    Dyadic = 4,
+}
+impl MemoryCanonicalClass {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "MEMORY_CANONICAL_CLASS_UNSPECIFIED",
+            Self::None => "MEMORY_CANONICAL_CLASS_NONE",
+            Self::PublicShared => "MEMORY_CANONICAL_CLASS_PUBLIC_SHARED",
+            Self::WorldShared => "MEMORY_CANONICAL_CLASS_WORLD_SHARED",
+            Self::Dyadic => "MEMORY_CANONICAL_CLASS_DYADIC",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "MEMORY_CANONICAL_CLASS_UNSPECIFIED" => Some(Self::Unspecified),
+            "MEMORY_CANONICAL_CLASS_NONE" => Some(Self::None),
+            "MEMORY_CANONICAL_CLASS_PUBLIC_SHARED" => Some(Self::PublicShared),
+            "MEMORY_CANONICAL_CLASS_WORLD_SHARED" => Some(Self::WorldShared),
+            "MEMORY_CANONICAL_CLASS_DYADIC" => Some(Self::Dyadic),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum MemoryDistanceMetric {
+    Unspecified = 0,
+    Cosine = 1,
+    Euclidean = 2,
+}
+impl MemoryDistanceMetric {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "MEMORY_DISTANCE_METRIC_UNSPECIFIED",
+            Self::Cosine => "MEMORY_DISTANCE_METRIC_COSINE",
+            Self::Euclidean => "MEMORY_DISTANCE_METRIC_EUCLIDEAN",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "MEMORY_DISTANCE_METRIC_UNSPECIFIED" => Some(Self::Unspecified),
+            "MEMORY_DISTANCE_METRIC_COSINE" => Some(Self::Cosine),
+            "MEMORY_DISTANCE_METRIC_EUCLIDEAN" => Some(Self::Euclidean),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum MemoryMigrationPolicy {
+    Unspecified = 0,
+    Reindex = 1,
+    Freeze = 2,
+}
+impl MemoryMigrationPolicy {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "MEMORY_MIGRATION_POLICY_UNSPECIFIED",
+            Self::Reindex => "MEMORY_MIGRATION_POLICY_REINDEX",
+            Self::Freeze => "MEMORY_MIGRATION_POLICY_FREEZE",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "MEMORY_MIGRATION_POLICY_UNSPECIFIED" => Some(Self::Unspecified),
+            "MEMORY_MIGRATION_POLICY_REINDEX" => Some(Self::Reindex),
+            "MEMORY_MIGRATION_POLICY_FREEZE" => Some(Self::Freeze),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum MemoryReplicationOutcome {
+    Unspecified = 0,
+    Pending = 1,
+    Synced = 2,
+    Conflict = 3,
+    Invalidated = 4,
+}
+impl MemoryReplicationOutcome {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "MEMORY_REPLICATION_OUTCOME_UNSPECIFIED",
+            Self::Pending => "MEMORY_REPLICATION_OUTCOME_PENDING",
+            Self::Synced => "MEMORY_REPLICATION_OUTCOME_SYNCED",
+            Self::Conflict => "MEMORY_REPLICATION_OUTCOME_CONFLICT",
+            Self::Invalidated => "MEMORY_REPLICATION_OUTCOME_INVALIDATED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "MEMORY_REPLICATION_OUTCOME_UNSPECIFIED" => Some(Self::Unspecified),
+            "MEMORY_REPLICATION_OUTCOME_PENDING" => Some(Self::Pending),
+            "MEMORY_REPLICATION_OUTCOME_SYNCED" => Some(Self::Synced),
+            "MEMORY_REPLICATION_OUTCOME_CONFLICT" => Some(Self::Conflict),
+            "MEMORY_REPLICATION_OUTCOME_INVALIDATED" => Some(Self::Invalidated),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum MemoryEventType {
+    Unspecified = 0,
+    BankCreated = 1,
+    BankDeleted = 2,
+    RecordRetained = 3,
+    RecordDeleted = 4,
+    ReflectionCompleted = 5,
+    ReplicationUpdated = 6,
+}
+impl MemoryEventType {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "MEMORY_EVENT_TYPE_UNSPECIFIED",
+            Self::BankCreated => "MEMORY_EVENT_TYPE_BANK_CREATED",
+            Self::BankDeleted => "MEMORY_EVENT_TYPE_BANK_DELETED",
+            Self::RecordRetained => "MEMORY_EVENT_TYPE_RECORD_RETAINED",
+            Self::RecordDeleted => "MEMORY_EVENT_TYPE_RECORD_DELETED",
+            Self::ReflectionCompleted => "MEMORY_EVENT_TYPE_REFLECTION_COMPLETED",
+            Self::ReplicationUpdated => "MEMORY_EVENT_TYPE_REPLICATION_UPDATED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "MEMORY_EVENT_TYPE_UNSPECIFIED" => Some(Self::Unspecified),
+            "MEMORY_EVENT_TYPE_BANK_CREATED" => Some(Self::BankCreated),
+            "MEMORY_EVENT_TYPE_BANK_DELETED" => Some(Self::BankDeleted),
+            "MEMORY_EVENT_TYPE_RECORD_RETAINED" => Some(Self::RecordRetained),
+            "MEMORY_EVENT_TYPE_RECORD_DELETED" => Some(Self::RecordDeleted),
+            "MEMORY_EVENT_TYPE_REFLECTION_COMPLETED" => Some(Self::ReflectionCompleted),
+            "MEMORY_EVENT_TYPE_REPLICATION_UPDATED" => Some(Self::ReplicationUpdated),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct DelegatedToolAllowlistEntry {
+    #[prost(string, tag = "1")]
+    pub tool_name: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub input_schema_digest: ::prost::alloc::string::String,
+    /// K-DELEG-006 capability-descriptor classification declared at profile
+    /// registration. effect_class is required on write (upsert fails closed on
+    /// UNSPECIFIED); records persisted before this field derive as UNSPECIFIED
+    /// and force approval-required handling instead of silently passing.
+    #[prost(enumeration = "EffectClass", tag = "3")]
+    pub effect_class: i32,
+    /// Expected sensitivity of the capability's output (K-DELEG-068). Optional
+    /// on write; UNSPECIFIED derives conservatively as UNKNOWN_SENSITIVE for
+    /// approval-requirement purposes.
+    #[prost(enumeration = "SensitivityClass", tag = "4")]
+    pub expected_sensitivity_class: i32,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DelegatedProviderProfile {
+    #[prost(string, tag = "1")]
+    pub provider_profile_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub display_name: ::prost::alloc::string::String,
+    #[prost(enumeration = "DelegatedProviderKind", tag = "3")]
+    pub provider_kind: i32,
+    #[prost(enumeration = "DelegatedTransportKind", tag = "4")]
+    pub transport_kind: i32,
+    #[prost(enumeration = "DelegatedProviderState", tag = "5")]
+    pub state: i32,
+    #[prost(message, repeated, tag = "6")]
+    pub allowed_tools: ::prost::alloc::vec::Vec<DelegatedToolAllowlistEntry>,
+    #[prost(string, tag = "7")]
+    pub credential_ref: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "8")]
+    pub timeout: ::core::option::Option<::prost_types::Duration>,
+    #[prost(message, optional, tag = "9")]
+    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "10")]
+    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(string, tag = "11")]
+    pub transport_ref: ::prost::alloc::string::String,
+    #[prost(enumeration = "DelegatedProviderTrustTier", tag = "12")]
+    pub trust_tier: i32,
+    #[prost(string, tag = "13")]
+    pub lifecycle_reason_code: ::prost::alloc::string::String,
+    #[prost(string, tag = "14")]
+    pub command: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "15")]
+    pub args: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DelegatedControlSurfaceSnapshot {
+    #[prost(string, tag = "1")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "DelegatedApprovalMode", tag = "3")]
+    pub approval_mode: i32,
+    #[prost(message, repeated, tag = "4")]
+    pub provider_profiles: ::prost::alloc::vec::Vec<DelegatedProviderProfile>,
+    #[prost(message, repeated, tag = "5")]
+    pub approval_requests: ::prost::alloc::vec::Vec<DelegatedApprovalRequest>,
+    #[prost(message, repeated, tag = "6")]
+    pub diagnostics: ::prost::alloc::vec::Vec<DelegatedDiagnostic>,
+    #[prost(message, optional, tag = "7")]
+    pub observed_at: ::core::option::Option<::prost_types::Timestamp>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ListDelegatedProviderProfilesRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<AgentRequestContext>,
+    #[prost(string, tag = "2")]
+    pub agent_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListDelegatedProviderProfilesResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub provider_profiles: ::prost::alloc::vec::Vec<DelegatedProviderProfile>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UpsertDelegatedProviderProfileRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<AgentRequestContext>,
+    #[prost(string, tag = "2")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "3")]
+    pub provider_profile: ::core::option::Option<DelegatedProviderProfile>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UpsertDelegatedProviderProfileResponse {
+    #[prost(message, optional, tag = "1")]
+    pub provider_profile: ::core::option::Option<DelegatedProviderProfile>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SetDelegatedProviderStateRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<AgentRequestContext>,
+    #[prost(string, tag = "2")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub provider_profile_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "DelegatedProviderState", tag = "4")]
+    pub state: i32,
+    #[prost(string, tag = "5")]
+    pub lifecycle_reason_code: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SetDelegatedProviderStateResponse {
+    #[prost(message, optional, tag = "1")]
+    pub provider_profile: ::core::option::Option<DelegatedProviderProfile>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DelegatedApprovalRequest {
+    #[prost(string, tag = "1")]
+    pub approval_request_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub turn_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub provider_profile_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub capability_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub tool_name: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub firewall_verdict: ::prost::alloc::string::String,
+    #[prost(string, tag = "9")]
+    pub reason_code: ::prost::alloc::string::String,
+    #[prost(enumeration = "DelegatedApprovalRequestState", tag = "10")]
+    pub state: i32,
+    #[prost(message, optional, tag = "11")]
+    pub detail: ::core::option::Option<::prost_types::Struct>,
+    #[prost(message, optional, tag = "12")]
+    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "13")]
+    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "14")]
+    pub expires_at: ::core::option::Option<::prost_types::Timestamp>,
+    /// K-DELEG-091 required approval-request fields. sensitivity_class carries
+    /// the K-DELEG-068 taxonomy: pre-invoke approvals derive it from the
+    /// capability's declared expected sensitivity, post-firewall approvals from
+    /// the firewall output classification.
+    #[prost(string, tag = "15")]
+    pub delegation_request_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "EffectClass", tag = "16")]
+    pub effect_class: i32,
+    #[prost(string, tag = "17")]
+    pub summary_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "18")]
+    pub policy_snapshot_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "SensitivityClass", tag = "19")]
+    pub sensitivity_class: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ListDelegatedApprovalRequestsRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<AgentRequestContext>,
+    #[prost(string, tag = "2")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListDelegatedApprovalRequestsResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub approval_requests: ::prost::alloc::vec::Vec<DelegatedApprovalRequest>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SubmitDelegatedApprovalDecisionRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<AgentRequestContext>,
+    #[prost(string, tag = "2")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub approval_request_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "DelegatedApprovalDecision", tag = "4")]
+    pub decision: i32,
+    #[prost(string, tag = "5")]
+    pub decision_reason: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SubmitDelegatedApprovalDecisionResponse {
+    #[prost(message, optional, tag = "1")]
+    pub approval_request: ::core::option::Option<DelegatedApprovalRequest>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct DelegatedDiagnostic {
+    #[prost(string, tag = "1")]
+    pub diagnostic_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub turn_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub provider_profile_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub capability_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub tool_name: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub gateway_evidence_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "9")]
+    pub firewall_input_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "10")]
+    pub firewall_verdict: ::prost::alloc::string::String,
+    #[prost(string, tag = "11")]
+    pub runtime_decision: ::prost::alloc::string::String,
+    #[prost(string, tag = "12")]
+    pub reason_code: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "13")]
+    pub observed_at: ::core::option::Option<::prost_types::Timestamp>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct DelegatedReplayTraceStage {
+    #[prost(enumeration = "DelegatedTraceStageKind", tag = "1")]
+    pub kind: i32,
+    #[prost(string, tag = "2")]
+    pub stage_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub state: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub reason_code: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub redacted_summary: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "6")]
+    pub observed_at: ::core::option::Option<::prost_types::Timestamp>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DelegatedReplayTrace {
+    #[prost(string, tag = "1")]
+    pub replay_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub turn_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub provider_profile_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub capability_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub tool_name: ::prost::alloc::string::String,
+    #[prost(enumeration = "DelegatedReplayOutcome", tag = "8")]
+    pub outcome: i32,
+    #[prost(string, tag = "9")]
+    pub reason_code: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "10")]
+    pub stages: ::prost::alloc::vec::Vec<DelegatedReplayTraceStage>,
+    #[prost(string, tag = "11")]
+    pub projection_disposition: ::prost::alloc::string::String,
+    #[prost(string, tag = "12")]
+    pub action_disposition: ::prost::alloc::string::String,
+    #[prost(bool, tag = "13")]
+    pub redacted: bool,
+    #[prost(message, optional, tag = "14")]
+    pub observed_at: ::core::option::Option<::prost_types::Timestamp>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ListDelegatedDiagnosticsRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<AgentRequestContext>,
+    #[prost(string, tag = "2")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListDelegatedDiagnosticsResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub diagnostics: ::prost::alloc::vec::Vec<DelegatedDiagnostic>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetDelegatedReplayTraceRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<AgentRequestContext>,
+    #[prost(string, tag = "2")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub decision_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub turn_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetDelegatedReplayTraceResponse {
+    #[prost(message, optional, tag = "1")]
+    pub trace: ::core::option::Option<DelegatedReplayTrace>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetDelegatedControlSurfaceSnapshotRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<AgentRequestContext>,
+    #[prost(string, tag = "2")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetDelegatedControlSurfaceSnapshotResponse {
+    #[prost(message, optional, tag = "1")]
+    pub snapshot: ::core::option::Option<DelegatedControlSurfaceSnapshot>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ExecuteDelegatedCapabilityRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<AgentRequestContext>,
+    #[prost(string, tag = "2")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub turn_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub stream_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub request_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub provider_profile_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub capability_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "9")]
+    pub tool_name: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "10")]
+    pub arguments: ::core::option::Option<::prost_types::Struct>,
+    #[prost(string, tag = "11")]
+    pub descriptor_hash: ::prost::alloc::string::String,
+    #[prost(string, tag = "12")]
+    pub protocol_revision: ::prost::alloc::string::String,
+    #[prost(string, tag = "13")]
+    pub output_kind: ::prost::alloc::string::String,
+    #[prost(bool, tag = "14")]
+    pub requires_approval: bool,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ExecuteDelegatedCapabilityResponse {
+    #[prost(message, optional, tag = "1")]
+    pub diagnostic: ::core::option::Option<DelegatedDiagnostic>,
+    #[prost(message, optional, tag = "2")]
+    pub replay_trace: ::core::option::Option<DelegatedReplayTrace>,
+    #[prost(message, optional, tag = "3")]
+    pub model_output: ::core::option::Option<::prost_types::Struct>,
+    #[prost(message, optional, tag = "4")]
+    pub approval_request: ::core::option::Option<DelegatedApprovalRequest>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ResumeDelegatedCapabilityRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<AgentRequestContext>,
+    #[prost(string, tag = "2")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub approval_request_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ResumeDelegatedCapabilityResponse {
+    #[prost(message, optional, tag = "1")]
+    pub diagnostic: ::core::option::Option<DelegatedDiagnostic>,
+    #[prost(message, optional, tag = "2")]
+    pub replay_trace: ::core::option::Option<DelegatedReplayTrace>,
+    #[prost(message, optional, tag = "3")]
+    pub model_output: ::core::option::Option<::prost_types::Struct>,
+    #[prost(message, optional, tag = "4")]
+    pub approval_request: ::core::option::Option<DelegatedApprovalRequest>,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum DelegatedProviderKind {
+    Unspecified = 0,
+    McpToolProvider = 1,
+    RemoteAgentSeam = 2,
+    RuntimeNativeProvider = 3,
+    ControlledTestProvider = 4,
+}
+impl DelegatedProviderKind {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "DELEGATED_PROVIDER_KIND_UNSPECIFIED",
+            Self::McpToolProvider => "DELEGATED_PROVIDER_KIND_MCP_TOOL_PROVIDER",
+            Self::RemoteAgentSeam => "DELEGATED_PROVIDER_KIND_REMOTE_AGENT_SEAM",
+            Self::RuntimeNativeProvider => {
+                "DELEGATED_PROVIDER_KIND_RUNTIME_NATIVE_PROVIDER"
+            }
+            Self::ControlledTestProvider => {
+                "DELEGATED_PROVIDER_KIND_CONTROLLED_TEST_PROVIDER"
+            }
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "DELEGATED_PROVIDER_KIND_UNSPECIFIED" => Some(Self::Unspecified),
+            "DELEGATED_PROVIDER_KIND_MCP_TOOL_PROVIDER" => Some(Self::McpToolProvider),
+            "DELEGATED_PROVIDER_KIND_REMOTE_AGENT_SEAM" => Some(Self::RemoteAgentSeam),
+            "DELEGATED_PROVIDER_KIND_RUNTIME_NATIVE_PROVIDER" => {
+                Some(Self::RuntimeNativeProvider)
+            }
+            "DELEGATED_PROVIDER_KIND_CONTROLLED_TEST_PROVIDER" => {
+                Some(Self::ControlledTestProvider)
+            }
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum DelegatedProviderTrustTier {
+    Unspecified = 0,
+    ControlledLocal = 1,
+    UserAddedReviewed = 2,
+    OrgManaged = 3,
+    Blocked = 4,
+}
+impl DelegatedProviderTrustTier {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "DELEGATED_PROVIDER_TRUST_TIER_UNSPECIFIED",
+            Self::ControlledLocal => "DELEGATED_PROVIDER_TRUST_TIER_CONTROLLED_LOCAL",
+            Self::UserAddedReviewed => {
+                "DELEGATED_PROVIDER_TRUST_TIER_USER_ADDED_REVIEWED"
+            }
+            Self::OrgManaged => "DELEGATED_PROVIDER_TRUST_TIER_ORG_MANAGED",
+            Self::Blocked => "DELEGATED_PROVIDER_TRUST_TIER_BLOCKED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "DELEGATED_PROVIDER_TRUST_TIER_UNSPECIFIED" => Some(Self::Unspecified),
+            "DELEGATED_PROVIDER_TRUST_TIER_CONTROLLED_LOCAL" => {
+                Some(Self::ControlledLocal)
+            }
+            "DELEGATED_PROVIDER_TRUST_TIER_USER_ADDED_REVIEWED" => {
+                Some(Self::UserAddedReviewed)
+            }
+            "DELEGATED_PROVIDER_TRUST_TIER_ORG_MANAGED" => Some(Self::OrgManaged),
+            "DELEGATED_PROVIDER_TRUST_TIER_BLOCKED" => Some(Self::Blocked),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum DelegatedProviderState {
+    Unspecified = 0,
+    Registered = 1,
+    Discovering = 2,
+    Ready = 3,
+    Degraded = 4,
+    Disabled = 5,
+    Quarantined = 6,
+    Removed = 7,
+}
+impl DelegatedProviderState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "DELEGATED_PROVIDER_STATE_UNSPECIFIED",
+            Self::Registered => "DELEGATED_PROVIDER_STATE_REGISTERED",
+            Self::Discovering => "DELEGATED_PROVIDER_STATE_DISCOVERING",
+            Self::Ready => "DELEGATED_PROVIDER_STATE_READY",
+            Self::Degraded => "DELEGATED_PROVIDER_STATE_DEGRADED",
+            Self::Disabled => "DELEGATED_PROVIDER_STATE_DISABLED",
+            Self::Quarantined => "DELEGATED_PROVIDER_STATE_QUARANTINED",
+            Self::Removed => "DELEGATED_PROVIDER_STATE_REMOVED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "DELEGATED_PROVIDER_STATE_UNSPECIFIED" => Some(Self::Unspecified),
+            "DELEGATED_PROVIDER_STATE_REGISTERED" => Some(Self::Registered),
+            "DELEGATED_PROVIDER_STATE_DISCOVERING" => Some(Self::Discovering),
+            "DELEGATED_PROVIDER_STATE_READY" => Some(Self::Ready),
+            "DELEGATED_PROVIDER_STATE_DEGRADED" => Some(Self::Degraded),
+            "DELEGATED_PROVIDER_STATE_DISABLED" => Some(Self::Disabled),
+            "DELEGATED_PROVIDER_STATE_QUARANTINED" => Some(Self::Quarantined),
+            "DELEGATED_PROVIDER_STATE_REMOVED" => Some(Self::Removed),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum DelegatedTransportKind {
+    Unspecified = 0,
+    StdioCommand = 1,
+}
+impl DelegatedTransportKind {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "DELEGATED_TRANSPORT_KIND_UNSPECIFIED",
+            Self::StdioCommand => "DELEGATED_TRANSPORT_KIND_STDIO_COMMAND",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "DELEGATED_TRANSPORT_KIND_UNSPECIFIED" => Some(Self::Unspecified),
+            "DELEGATED_TRANSPORT_KIND_STDIO_COMMAND" => Some(Self::StdioCommand),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum DelegatedApprovalMode {
+    Unspecified = 0,
+    RuntimePolicy = 1,
+    RequireUser = 2,
+    Disabled = 3,
+}
+impl DelegatedApprovalMode {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "DELEGATED_APPROVAL_MODE_UNSPECIFIED",
+            Self::RuntimePolicy => "DELEGATED_APPROVAL_MODE_RUNTIME_POLICY",
+            Self::RequireUser => "DELEGATED_APPROVAL_MODE_REQUIRE_USER",
+            Self::Disabled => "DELEGATED_APPROVAL_MODE_DISABLED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "DELEGATED_APPROVAL_MODE_UNSPECIFIED" => Some(Self::Unspecified),
+            "DELEGATED_APPROVAL_MODE_RUNTIME_POLICY" => Some(Self::RuntimePolicy),
+            "DELEGATED_APPROVAL_MODE_REQUIRE_USER" => Some(Self::RequireUser),
+            "DELEGATED_APPROVAL_MODE_DISABLED" => Some(Self::Disabled),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum DelegatedApprovalRequestState {
+    Unspecified = 0,
+    Pending = 1,
+    ApprovedOnce = 2,
+    Rejected = 3,
+    Expired = 4,
+    ApprovedForSession = 5,
+    PolicyBlocked = 6,
+}
+impl DelegatedApprovalRequestState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "DELEGATED_APPROVAL_REQUEST_STATE_UNSPECIFIED",
+            Self::Pending => "DELEGATED_APPROVAL_REQUEST_STATE_PENDING",
+            Self::ApprovedOnce => "DELEGATED_APPROVAL_REQUEST_STATE_APPROVED_ONCE",
+            Self::Rejected => "DELEGATED_APPROVAL_REQUEST_STATE_REJECTED",
+            Self::Expired => "DELEGATED_APPROVAL_REQUEST_STATE_EXPIRED",
+            Self::ApprovedForSession => {
+                "DELEGATED_APPROVAL_REQUEST_STATE_APPROVED_FOR_SESSION"
+            }
+            Self::PolicyBlocked => "DELEGATED_APPROVAL_REQUEST_STATE_POLICY_BLOCKED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "DELEGATED_APPROVAL_REQUEST_STATE_UNSPECIFIED" => Some(Self::Unspecified),
+            "DELEGATED_APPROVAL_REQUEST_STATE_PENDING" => Some(Self::Pending),
+            "DELEGATED_APPROVAL_REQUEST_STATE_APPROVED_ONCE" => Some(Self::ApprovedOnce),
+            "DELEGATED_APPROVAL_REQUEST_STATE_REJECTED" => Some(Self::Rejected),
+            "DELEGATED_APPROVAL_REQUEST_STATE_EXPIRED" => Some(Self::Expired),
+            "DELEGATED_APPROVAL_REQUEST_STATE_APPROVED_FOR_SESSION" => {
+                Some(Self::ApprovedForSession)
+            }
+            "DELEGATED_APPROVAL_REQUEST_STATE_POLICY_BLOCKED" => {
+                Some(Self::PolicyBlocked)
+            }
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum DelegatedApprovalDecision {
+    Unspecified = 0,
+    ApprovedOnce = 1,
+    Rejected = 2,
+    ApprovedForSession = 3,
+    PolicyBlocked = 4,
+    Expired = 5,
+}
+impl DelegatedApprovalDecision {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "DELEGATED_APPROVAL_DECISION_UNSPECIFIED",
+            Self::ApprovedOnce => "DELEGATED_APPROVAL_DECISION_APPROVED_ONCE",
+            Self::Rejected => "DELEGATED_APPROVAL_DECISION_REJECTED",
+            Self::ApprovedForSession => {
+                "DELEGATED_APPROVAL_DECISION_APPROVED_FOR_SESSION"
+            }
+            Self::PolicyBlocked => "DELEGATED_APPROVAL_DECISION_POLICY_BLOCKED",
+            Self::Expired => "DELEGATED_APPROVAL_DECISION_EXPIRED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "DELEGATED_APPROVAL_DECISION_UNSPECIFIED" => Some(Self::Unspecified),
+            "DELEGATED_APPROVAL_DECISION_APPROVED_ONCE" => Some(Self::ApprovedOnce),
+            "DELEGATED_APPROVAL_DECISION_REJECTED" => Some(Self::Rejected),
+            "DELEGATED_APPROVAL_DECISION_APPROVED_FOR_SESSION" => {
+                Some(Self::ApprovedForSession)
+            }
+            "DELEGATED_APPROVAL_DECISION_POLICY_BLOCKED" => Some(Self::PolicyBlocked),
+            "DELEGATED_APPROVAL_DECISION_EXPIRED" => Some(Self::Expired),
+            _ => None,
+        }
+    }
+}
+/// EffectClass enumerates the K-DELEG-007 effect classification consumed by the
+/// K-DELEG-091 approval request. Values mirror the effect_classes table in
+/// delegation-provider-profiles.yaml (source_rule K-DELEG-007).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum EffectClass {
+    Unspecified = 0,
+    ReadOnly = 1,
+    LocalSideEffect = 2,
+    ExternalSideEffect = 3,
+    SensitiveRead = 4,
+    UnsupportedEffect = 5,
+}
+impl EffectClass {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "EFFECT_CLASS_UNSPECIFIED",
+            Self::ReadOnly => "EFFECT_CLASS_READ_ONLY",
+            Self::LocalSideEffect => "EFFECT_CLASS_LOCAL_SIDE_EFFECT",
+            Self::ExternalSideEffect => "EFFECT_CLASS_EXTERNAL_SIDE_EFFECT",
+            Self::SensitiveRead => "EFFECT_CLASS_SENSITIVE_READ",
+            Self::UnsupportedEffect => "EFFECT_CLASS_UNSUPPORTED_EFFECT",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "EFFECT_CLASS_UNSPECIFIED" => Some(Self::Unspecified),
+            "EFFECT_CLASS_READ_ONLY" => Some(Self::ReadOnly),
+            "EFFECT_CLASS_LOCAL_SIDE_EFFECT" => Some(Self::LocalSideEffect),
+            "EFFECT_CLASS_EXTERNAL_SIDE_EFFECT" => Some(Self::ExternalSideEffect),
+            "EFFECT_CLASS_SENSITIVE_READ" => Some(Self::SensitiveRead),
+            "EFFECT_CLASS_UNSUPPORTED_EFFECT" => Some(Self::UnsupportedEffect),
+            _ => None,
+        }
+    }
+}
+/// SensitivityClass mirrors the K-DELEG-068 sensitive-output classification
+/// consumed by the K-DELEG-091 approval request. CREDENTIAL_LIKE, REGULATED,
+/// and UNKNOWN_SENSITIVE require quarantine or explicit policy approval before
+/// further use.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum SensitivityClass {
+    Unspecified = 0,
+    None = 1,
+    UserPrivate = 2,
+    CredentialLike = 3,
+    OrgPrivate = 4,
+    Regulated = 5,
+    UnknownSensitive = 6,
+}
+impl SensitivityClass {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "SENSITIVITY_CLASS_UNSPECIFIED",
+            Self::None => "SENSITIVITY_CLASS_NONE",
+            Self::UserPrivate => "SENSITIVITY_CLASS_USER_PRIVATE",
+            Self::CredentialLike => "SENSITIVITY_CLASS_CREDENTIAL_LIKE",
+            Self::OrgPrivate => "SENSITIVITY_CLASS_ORG_PRIVATE",
+            Self::Regulated => "SENSITIVITY_CLASS_REGULATED",
+            Self::UnknownSensitive => "SENSITIVITY_CLASS_UNKNOWN_SENSITIVE",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "SENSITIVITY_CLASS_UNSPECIFIED" => Some(Self::Unspecified),
+            "SENSITIVITY_CLASS_NONE" => Some(Self::None),
+            "SENSITIVITY_CLASS_USER_PRIVATE" => Some(Self::UserPrivate),
+            "SENSITIVITY_CLASS_CREDENTIAL_LIKE" => Some(Self::CredentialLike),
+            "SENSITIVITY_CLASS_ORG_PRIVATE" => Some(Self::OrgPrivate),
+            "SENSITIVITY_CLASS_REGULATED" => Some(Self::Regulated),
+            "SENSITIVITY_CLASS_UNKNOWN_SENSITIVE" => Some(Self::UnknownSensitive),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum DelegatedReplayOutcome {
+    Unspecified = 0,
+    Reconstructed = 1,
+    PartialRedacted = 2,
+    PartialMissingEvidence = 3,
+    BlockedByPolicy = 4,
+    InvalidLineage = 5,
+}
+impl DelegatedReplayOutcome {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "DELEGATED_REPLAY_OUTCOME_UNSPECIFIED",
+            Self::Reconstructed => "DELEGATED_REPLAY_OUTCOME_RECONSTRUCTED",
+            Self::PartialRedacted => "DELEGATED_REPLAY_OUTCOME_PARTIAL_REDACTED",
+            Self::PartialMissingEvidence => {
+                "DELEGATED_REPLAY_OUTCOME_PARTIAL_MISSING_EVIDENCE"
+            }
+            Self::BlockedByPolicy => "DELEGATED_REPLAY_OUTCOME_BLOCKED_BY_POLICY",
+            Self::InvalidLineage => "DELEGATED_REPLAY_OUTCOME_INVALID_LINEAGE",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "DELEGATED_REPLAY_OUTCOME_UNSPECIFIED" => Some(Self::Unspecified),
+            "DELEGATED_REPLAY_OUTCOME_RECONSTRUCTED" => Some(Self::Reconstructed),
+            "DELEGATED_REPLAY_OUTCOME_PARTIAL_REDACTED" => Some(Self::PartialRedacted),
+            "DELEGATED_REPLAY_OUTCOME_PARTIAL_MISSING_EVIDENCE" => {
+                Some(Self::PartialMissingEvidence)
+            }
+            "DELEGATED_REPLAY_OUTCOME_BLOCKED_BY_POLICY" => Some(Self::BlockedByPolicy),
+            "DELEGATED_REPLAY_OUTCOME_INVALID_LINEAGE" => Some(Self::InvalidLineage),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum DelegatedTraceStageKind {
+    Unspecified = 0,
+    Request = 1,
+    GatewayEvidence = 2,
+    FirewallVerdict = 3,
+    ApprovalDecision = 4,
+    RuntimeDecision = 5,
+    ProjectionDisposition = 6,
+}
+impl DelegatedTraceStageKind {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "DELEGATED_TRACE_STAGE_KIND_UNSPECIFIED",
+            Self::Request => "DELEGATED_TRACE_STAGE_KIND_REQUEST",
+            Self::GatewayEvidence => "DELEGATED_TRACE_STAGE_KIND_GATEWAY_EVIDENCE",
+            Self::FirewallVerdict => "DELEGATED_TRACE_STAGE_KIND_FIREWALL_VERDICT",
+            Self::ApprovalDecision => "DELEGATED_TRACE_STAGE_KIND_APPROVAL_DECISION",
+            Self::RuntimeDecision => "DELEGATED_TRACE_STAGE_KIND_RUNTIME_DECISION",
+            Self::ProjectionDisposition => {
+                "DELEGATED_TRACE_STAGE_KIND_PROJECTION_DISPOSITION"
+            }
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "DELEGATED_TRACE_STAGE_KIND_UNSPECIFIED" => Some(Self::Unspecified),
+            "DELEGATED_TRACE_STAGE_KIND_REQUEST" => Some(Self::Request),
+            "DELEGATED_TRACE_STAGE_KIND_GATEWAY_EVIDENCE" => Some(Self::GatewayEvidence),
+            "DELEGATED_TRACE_STAGE_KIND_FIREWALL_VERDICT" => Some(Self::FirewallVerdict),
+            "DELEGATED_TRACE_STAGE_KIND_APPROVAL_DECISION" => {
+                Some(Self::ApprovalDecision)
+            }
+            "DELEGATED_TRACE_STAGE_KIND_RUNTIME_DECISION" => Some(Self::RuntimeDecision),
+            "DELEGATED_TRACE_STAGE_KIND_PROJECTION_DISPOSITION" => {
+                Some(Self::ProjectionDisposition)
+            }
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RuntimeConversationAnchorRefBlock {
+    #[prost(string, tag = "1")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RealmGroupThreadRefBlock {
+    #[prost(string, tag = "1")]
+    pub thread_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct TriggerMessageRefBlock {
+    #[prost(string, tag = "1")]
+    pub message_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ParticipantProjectionBlock {
+    #[prost(string, tag = "1")]
+    pub participant_ref: ::prost::alloc::string::String,
+    #[prost(enumeration = "ParticipationIdentitySource", tag = "2")]
+    pub identity_source: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RecentGroupTranscriptProjectionBlock {
+    #[prost(string, tag = "1")]
+    pub transcript_ref: ::prost::alloc::string::String,
+    #[prost(enumeration = "ParticipationInputTrust", tag = "2")]
+    pub trust_posture: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AgentSlotProjectionBlock {
+    #[prost(string, tag = "1")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub slot_ref: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ScenarioPackageRefBlock {
+    #[prost(string, tag = "1")]
+    pub scenario_package_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ScenarioRunRefBlock {
+    #[prost(string, tag = "1")]
+    pub scenario_run_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ScenarioBranchRefBlock {
+    #[prost(string, tag = "1")]
+    pub scenario_branch_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct VisibleSceneStateBlock {
+    #[prost(string, tag = "1")]
+    pub scene_state_ref: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RecentSandboxTranscriptProjectionBlock {
+    #[prost(string, tag = "1")]
+    pub transcript_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub branch_ref: ::prost::alloc::string::String,
+    #[prost(enumeration = "ParticipationInputTrust", tag = "3")]
+    pub trust_posture: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct WorldContextRefBlock {
+    #[prost(string, tag = "1")]
+    pub world_context_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct WorldEventRefBlock {
+    #[prost(string, tag = "1")]
+    pub world_event_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct VisibleWorldStateProjectionBlock {
+    #[prost(string, tag = "1")]
+    pub world_state_ref: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RecentWorldTranscriptOrEventProjectionBlock {
+    #[prost(string, tag = "1")]
+    pub event_or_transcript_ref: ::prost::alloc::string::String,
+    #[prost(enumeration = "ParticipationInputTrust", tag = "2")]
+    pub trust_posture: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ExternalParticipantIdentityRefBlock {
+    #[prost(string, tag = "1")]
+    pub external_participant_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "ParticipationIdentitySource", tag = "2")]
+    pub identity_source: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ExternalPayloadRefBlock {
+    #[prost(string, tag = "1")]
+    pub payload_ref: ::prost::alloc::string::String,
+    #[prost(enumeration = "ParticipationExternalProtocolKind", tag = "2")]
+    pub protocol_kind: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GatewayVerdictRefBlock {
+    #[prost(string, tag = "1")]
+    pub gateway_verdict_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct DomainContextRefBlock {
+    #[prost(string, tag = "1")]
+    pub domain_ref: ::prost::alloc::string::String,
+    #[prost(enumeration = "ParticipationTranscriptOwner", tag = "2")]
+    pub transcript_owner: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ToolOrCapabilityProjectionBlock {
+    #[prost(string, tag = "1")]
+    pub capability_ref: ::prost::alloc::string::String,
+    /// K-DELEG-007 effect classification, reference-only boundary
+    /// (agent-participation-capability-scopes.yaml k_deleg_boundary).
+    #[prost(enumeration = "EffectClass", tag = "2")]
+    pub effect_class: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct DiagnosticProbeRefBlock {
+    #[prost(string, tag = "1")]
+    pub probe_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub probe_kind: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ParticipationContextBlock {
+    #[prost(
+        oneof = "participation_context_block::Block",
+        tags = "1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21"
+    )]
+    pub block: ::core::option::Option<participation_context_block::Block>,
+}
+/// Nested message and enum types in `ParticipationContextBlock`.
+pub mod participation_context_block {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Block {
+        #[prost(message, tag = "1")]
+        RuntimeConversationAnchorRef(super::RuntimeConversationAnchorRefBlock),
+        #[prost(message, tag = "2")]
+        RealmGroupThreadRef(super::RealmGroupThreadRefBlock),
+        #[prost(message, tag = "3")]
+        TriggerMessageRef(super::TriggerMessageRefBlock),
+        #[prost(message, tag = "4")]
+        ParticipantProjection(super::ParticipantProjectionBlock),
+        #[prost(message, tag = "5")]
+        RecentGroupTranscriptProjection(super::RecentGroupTranscriptProjectionBlock),
+        #[prost(message, tag = "6")]
+        AgentSlotProjection(super::AgentSlotProjectionBlock),
+        #[prost(message, tag = "7")]
+        ScenarioPackageRef(super::ScenarioPackageRefBlock),
+        #[prost(message, tag = "8")]
+        ScenarioRunRef(super::ScenarioRunRefBlock),
+        #[prost(message, tag = "9")]
+        ScenarioBranchRef(super::ScenarioBranchRefBlock),
+        #[prost(message, tag = "10")]
+        VisibleSceneState(super::VisibleSceneStateBlock),
+        #[prost(message, tag = "11")]
+        RecentSandboxTranscriptProjection(super::RecentSandboxTranscriptProjectionBlock),
+        #[prost(message, tag = "12")]
+        WorldContextRef(super::WorldContextRefBlock),
+        #[prost(message, tag = "13")]
+        WorldEventRef(super::WorldEventRefBlock),
+        #[prost(message, tag = "14")]
+        VisibleWorldStateProjection(super::VisibleWorldStateProjectionBlock),
+        #[prost(message, tag = "15")]
+        RecentWorldTranscriptOrEventProjection(
+            super::RecentWorldTranscriptOrEventProjectionBlock,
+        ),
+        #[prost(message, tag = "16")]
+        ExternalParticipantIdentityRef(super::ExternalParticipantIdentityRefBlock),
+        #[prost(message, tag = "17")]
+        ExternalPayloadRef(super::ExternalPayloadRefBlock),
+        #[prost(message, tag = "18")]
+        GatewayVerdictRef(super::GatewayVerdictRefBlock),
+        #[prost(message, tag = "19")]
+        DomainContextRef(super::DomainContextRefBlock),
+        #[prost(message, tag = "20")]
+        ToolOrCapabilityProjection(super::ToolOrCapabilityProjectionBlock),
+        #[prost(message, tag = "21")]
+        DiagnosticProbeRef(super::DiagnosticProbeRefBlock),
+    }
+}
+/// One row of agent-participation-profiles.yaml (K-AGCORE-074..080).
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ParticipationProfileDescriptor {
+    #[prost(enumeration = "ParticipationProfileKind", tag = "1")]
+    pub profile_kind: i32,
+    #[prost(enumeration = "ParticipationTranscriptOwner", tag = "2")]
+    pub transcript_owner: i32,
+    #[prost(enumeration = "ParticipationIdentitySource", tag = "3")]
+    pub identity_source: i32,
+    #[prost(enumeration = "ParticipationIdentitySource", repeated, tag = "4")]
+    pub additional_identity_sources: ::prost::alloc::vec::Vec<i32>,
+    #[prost(enumeration = "ParticipationExecutionOwner", tag = "5")]
+    pub execution_owner: i32,
+    #[prost(enumeration = "ParticipationMemoryReadScope", tag = "6")]
+    pub memory_read_scope: i32,
+    #[prost(enumeration = "ParticipationMemoryWriteDefault", tag = "7")]
+    pub memory_write_default: i32,
+    #[prost(enumeration = "ParticipationCapabilityScope", tag = "8")]
+    pub capability_scope: i32,
+    #[prost(enumeration = "ParticipationInputTrust", tag = "9")]
+    pub input_trust: i32,
+    #[prost(enumeration = "ParticipationInputTrust", repeated, tag = "10")]
+    pub additional_input_trust: ::prost::alloc::vec::Vec<i32>,
+    #[prost(enumeration = "ParticipationOutputDestination", tag = "11")]
+    pub output_destination: i32,
+    #[prost(enumeration = "ParticipationPromotionPosture", tag = "12")]
+    pub promotion_posture: i32,
+    #[prost(enumeration = "ParticipationExecutionConcurrency", tag = "13")]
+    pub execution_concurrency: i32,
+    #[prost(string, tag = "14")]
+    pub posture: ::prost::alloc::string::String,
+}
+/// One row of agent-participation-context-blocks.yaml. block_kind values are
+/// the table ids and match ParticipationContextBlock oneof field names.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ParticipationContextBlockDescriptor {
+    #[prost(string, tag = "1")]
+    pub block_kind: ::prost::alloc::string::String,
+    #[prost(enumeration = "ParticipationProfileKind", repeated, tag = "2")]
+    pub allowed_profile_kinds: ::prost::alloc::vec::Vec<i32>,
+    #[prost(string, repeated, tag = "3")]
+    pub required_fields: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ParticipationRequestSpec {
+    #[prost(enumeration = "ParticipationProfileKind", tag = "1")]
+    pub profile_kind: i32,
+    #[prost(string, tag = "2")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub participant_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub trigger_ref: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "5")]
+    pub context_blocks: ::prost::alloc::vec::Vec<ParticipationContextBlock>,
+    /// Caller-supplied idempotency key; replays of the same request_id must not
+    /// create a second execution.
+    #[prost(string, tag = "6")]
+    pub request_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ParticipationVerdict {
+    #[prost(enumeration = "ParticipationVerdictDecision", tag = "1")]
+    pub decision: i32,
+    #[prost(string, tag = "2")]
+    pub reason_code: ::prost::alloc::string::String,
+}
+/// Resolved verdict set for one participation (K-AGCORE-067..069, 073, 084).
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ParticipationVerdictSet {
+    #[prost(message, optional, tag = "1")]
+    pub memory_read: ::core::option::Option<ParticipationVerdict>,
+    #[prost(message, optional, tag = "2")]
+    pub memory_write: ::core::option::Option<ParticipationVerdict>,
+    #[prost(message, optional, tag = "3")]
+    pub capability_scope: ::core::option::Option<ParticipationVerdict>,
+    #[prost(message, optional, tag = "4")]
+    pub concurrency: ::core::option::Option<ParticipationVerdict>,
+    #[prost(enumeration = "ParticipationMemoryReadScope", tag = "5")]
+    pub resolved_memory_read_scope: i32,
+    #[prost(enumeration = "ParticipationMemoryWriteDefault", tag = "6")]
+    pub resolved_memory_write_default: i32,
+    #[prost(enumeration = "ParticipationCapabilityScope", tag = "7")]
+    pub resolved_capability_scope: i32,
+    #[prost(enumeration = "ParticipationExecutionConcurrency", tag = "8")]
+    pub resolved_concurrency: i32,
+}
+/// K-AGCORE-082 candidate record. candidate_ref points into the owning
+/// destination surface; candidate content is never inlined here.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ParticipationCandidateRecord {
+    #[prost(string, tag = "1")]
+    pub participation_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "ParticipationProfileKind", tag = "2")]
+    pub profile_kind: i32,
+    #[prost(enumeration = "ParticipationIdentitySource", tag = "3")]
+    pub identity_source: i32,
+    #[prost(string, tag = "4")]
+    pub participant_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub trigger_ref: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "6")]
+    pub context_block_refs: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(enumeration = "ParticipationOutputDestination", tag = "7")]
+    pub output_destination: i32,
+    #[prost(string, tag = "8")]
+    pub candidate_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "9")]
+    pub policy_verdict_ref: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "10")]
+    pub memory_read_verdict: ::core::option::Option<ParticipationVerdict>,
+    #[prost(message, optional, tag = "11")]
+    pub memory_write_verdict: ::core::option::Option<ParticipationVerdict>,
+    #[prost(message, optional, tag = "12")]
+    pub capability_scope_verdict: ::core::option::Option<ParticipationVerdict>,
+    #[prost(string, tag = "13")]
+    pub audit_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "14")]
+    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+}
+/// Audit read projection (K-AGCORE-083, K-AUDIT boundary reference-only).
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ParticipationAuditEvent {
+    #[prost(string, tag = "1")]
+    pub audit_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub participation_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub event_kind: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub reason_code: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub actor_ref: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "6")]
+    pub observed_at: ::core::option::Option<::prost_types::Timestamp>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ParticipationReplayStage {
+    #[prost(string, tag = "1")]
+    pub stage_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub state: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub reason_code: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub redacted_summary: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "5")]
+    pub observed_at: ::core::option::Option<::prost_types::Timestamp>,
+}
+/// Replay projection aligned with the delegated replay envelope posture:
+/// redaction is preserved, lineage failures surface as FAILED, sensitive
+/// stages carry redacted_summary only.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ParticipationReplay {
+    #[prost(string, tag = "1")]
+    pub replay_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub participation_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "ParticipationProfileKind", tag = "4")]
+    pub profile_kind: i32,
+    #[prost(enumeration = "ParticipationReplayOutcome", tag = "5")]
+    pub outcome: i32,
+    #[prost(string, tag = "6")]
+    pub reason_code: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "7")]
+    pub stages: ::prost::alloc::vec::Vec<ParticipationReplayStage>,
+    #[prost(bool, tag = "8")]
+    pub redacted: bool,
+    #[prost(message, optional, tag = "9")]
+    pub observed_at: ::core::option::Option<::prost_types::Timestamp>,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct DescribeParticipationProfilesRequest {}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DescribeParticipationProfilesResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub profiles: ::prost::alloc::vec::Vec<ParticipationProfileDescriptor>,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct DescribeParticipationContextBlocksRequest {
+    /// Optional filter; UNSPECIFIED returns all blocks.
+    #[prost(enumeration = "ParticipationProfileKind", tag = "1")]
+    pub profile_kind: i32,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DescribeParticipationContextBlocksResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub context_blocks: ::prost::alloc::vec::Vec<ParticipationContextBlockDescriptor>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ValidateParticipationRequest {
+    #[prost(message, optional, tag = "1")]
+    pub spec: ::core::option::Option<ParticipationRequestSpec>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ValidateParticipationResponse {
+    #[prost(bool, tag = "1")]
+    pub admitted: bool,
+    #[prost(message, optional, tag = "2")]
+    pub verdicts: ::core::option::Option<ParticipationVerdictSet>,
+    #[prost(enumeration = "ParticipationOutputDestination", tag = "3")]
+    pub resolved_output_destination: i32,
+    #[prost(string, tag = "4")]
+    pub refusal_reason: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ExecuteParticipationRequest {
+    #[prost(message, optional, tag = "1")]
+    pub spec: ::core::option::Option<ParticipationRequestSpec>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ExecuteParticipationResponse {
+    #[prost(string, tag = "1")]
+    pub participation_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "ParticipationStatus", tag = "2")]
+    pub status: i32,
+    #[prost(string, tag = "3")]
+    pub candidate_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub refusal_reason: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub audit_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetParticipationCandidateRequest {
+    #[prost(string, tag = "1")]
+    pub participation_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetParticipationCandidateResponse {
+    #[prost(message, optional, tag = "1")]
+    pub candidate: ::core::option::Option<ParticipationCandidateRecord>,
+    #[prost(enumeration = "ParticipationStatus", tag = "2")]
+    pub status: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetParticipationVerdictsRequest {
+    #[prost(string, tag = "1")]
+    pub participation_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetParticipationVerdictsResponse {
+    #[prost(message, optional, tag = "1")]
+    pub verdicts: ::core::option::Option<ParticipationVerdictSet>,
+    #[prost(string, tag = "2")]
+    pub policy_verdict_ref: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ListParticipationAuditEventsRequest {
+    #[prost(string, tag = "1")]
+    pub participation_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(int32, tag = "3")]
+    pub page_size: i32,
+    #[prost(string, tag = "4")]
+    pub page_token: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListParticipationAuditEventsResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub events: ::prost::alloc::vec::Vec<ParticipationAuditEvent>,
+    #[prost(string, tag = "2")]
+    pub next_page_token: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetParticipationReplayRequest {
+    #[prost(string, tag = "1")]
+    pub participation_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetParticipationReplayResponse {
+    #[prost(message, optional, tag = "1")]
+    pub replay: ::core::option::Option<ParticipationReplay>,
+}
+/// K-AGCORE-074 closed profile registry.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum ParticipationProfileKind {
+    Unspecified = 0,
+    CanonicalAgentChat = 1,
+    RealmGroupAgent = 2,
+    ScenarioSandbox = 3,
+    OasisWorldParticipation = 4,
+    ExternalAgentEntry = 5,
+    DebugOrProbe = 6,
+}
+impl ParticipationProfileKind {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "PARTICIPATION_PROFILE_KIND_UNSPECIFIED",
+            Self::CanonicalAgentChat => "PARTICIPATION_PROFILE_KIND_CANONICAL_AGENT_CHAT",
+            Self::RealmGroupAgent => "PARTICIPATION_PROFILE_KIND_REALM_GROUP_AGENT",
+            Self::ScenarioSandbox => "PARTICIPATION_PROFILE_KIND_SCENARIO_SANDBOX",
+            Self::OasisWorldParticipation => {
+                "PARTICIPATION_PROFILE_KIND_OASIS_WORLD_PARTICIPATION"
+            }
+            Self::ExternalAgentEntry => "PARTICIPATION_PROFILE_KIND_EXTERNAL_AGENT_ENTRY",
+            Self::DebugOrProbe => "PARTICIPATION_PROFILE_KIND_DEBUG_OR_PROBE",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "PARTICIPATION_PROFILE_KIND_UNSPECIFIED" => Some(Self::Unspecified),
+            "PARTICIPATION_PROFILE_KIND_CANONICAL_AGENT_CHAT" => {
+                Some(Self::CanonicalAgentChat)
+            }
+            "PARTICIPATION_PROFILE_KIND_REALM_GROUP_AGENT" => Some(Self::RealmGroupAgent),
+            "PARTICIPATION_PROFILE_KIND_SCENARIO_SANDBOX" => Some(Self::ScenarioSandbox),
+            "PARTICIPATION_PROFILE_KIND_OASIS_WORLD_PARTICIPATION" => {
+                Some(Self::OasisWorldParticipation)
+            }
+            "PARTICIPATION_PROFILE_KIND_EXTERNAL_AGENT_ENTRY" => {
+                Some(Self::ExternalAgentEntry)
+            }
+            "PARTICIPATION_PROFILE_KIND_DEBUG_OR_PROBE" => Some(Self::DebugOrProbe),
+            _ => None,
+        }
+    }
+}
+/// K-AGCORE-064 transcript_owner axis.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum ParticipationTranscriptOwner {
+    Unspecified = 0,
+    Runtime = 1,
+    Realm = 2,
+    ScenarioModule = 3,
+    OasisWorldDomain = 4,
+    ExternalDomain = 5,
+    Ephemeral = 6,
+}
+impl ParticipationTranscriptOwner {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "PARTICIPATION_TRANSCRIPT_OWNER_UNSPECIFIED",
+            Self::Runtime => "PARTICIPATION_TRANSCRIPT_OWNER_RUNTIME",
+            Self::Realm => "PARTICIPATION_TRANSCRIPT_OWNER_REALM",
+            Self::ScenarioModule => "PARTICIPATION_TRANSCRIPT_OWNER_SCENARIO_MODULE",
+            Self::OasisWorldDomain => "PARTICIPATION_TRANSCRIPT_OWNER_OASIS_WORLD_DOMAIN",
+            Self::ExternalDomain => "PARTICIPATION_TRANSCRIPT_OWNER_EXTERNAL_DOMAIN",
+            Self::Ephemeral => "PARTICIPATION_TRANSCRIPT_OWNER_EPHEMERAL",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "PARTICIPATION_TRANSCRIPT_OWNER_UNSPECIFIED" => Some(Self::Unspecified),
+            "PARTICIPATION_TRANSCRIPT_OWNER_RUNTIME" => Some(Self::Runtime),
+            "PARTICIPATION_TRANSCRIPT_OWNER_REALM" => Some(Self::Realm),
+            "PARTICIPATION_TRANSCRIPT_OWNER_SCENARIO_MODULE" => {
+                Some(Self::ScenarioModule)
+            }
+            "PARTICIPATION_TRANSCRIPT_OWNER_OASIS_WORLD_DOMAIN" => {
+                Some(Self::OasisWorldDomain)
+            }
+            "PARTICIPATION_TRANSCRIPT_OWNER_EXTERNAL_DOMAIN" => {
+                Some(Self::ExternalDomain)
+            }
+            "PARTICIPATION_TRANSCRIPT_OWNER_EPHEMERAL" => Some(Self::Ephemeral),
+            _ => None,
+        }
+    }
+}
+/// K-AGCORE-065 identity_source axis. SANDBOX_PROJECTION and NPC_WORLD_ACTOR
+/// are not aliases (K-AGCORE-065, sandbox_projection_npc_alias: forbidden).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum ParticipationIdentitySource {
+    Unspecified = 0,
+    UserOwnedNimiAgent = 1,
+    ExternalA2aAgent = 2,
+    McpBackedAiCapability = 3,
+    SandboxProjection = 4,
+    NpcWorldActor = 5,
+}
+impl ParticipationIdentitySource {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "PARTICIPATION_IDENTITY_SOURCE_UNSPECIFIED",
+            Self::UserOwnedNimiAgent => {
+                "PARTICIPATION_IDENTITY_SOURCE_USER_OWNED_NIMI_AGENT"
+            }
+            Self::ExternalA2aAgent => "PARTICIPATION_IDENTITY_SOURCE_EXTERNAL_A2A_AGENT",
+            Self::McpBackedAiCapability => {
+                "PARTICIPATION_IDENTITY_SOURCE_MCP_BACKED_AI_CAPABILITY"
+            }
+            Self::SandboxProjection => "PARTICIPATION_IDENTITY_SOURCE_SANDBOX_PROJECTION",
+            Self::NpcWorldActor => "PARTICIPATION_IDENTITY_SOURCE_NPC_WORLD_ACTOR",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "PARTICIPATION_IDENTITY_SOURCE_UNSPECIFIED" => Some(Self::Unspecified),
+            "PARTICIPATION_IDENTITY_SOURCE_USER_OWNED_NIMI_AGENT" => {
+                Some(Self::UserOwnedNimiAgent)
+            }
+            "PARTICIPATION_IDENTITY_SOURCE_EXTERNAL_A2A_AGENT" => {
+                Some(Self::ExternalA2aAgent)
+            }
+            "PARTICIPATION_IDENTITY_SOURCE_MCP_BACKED_AI_CAPABILITY" => {
+                Some(Self::McpBackedAiCapability)
+            }
+            "PARTICIPATION_IDENTITY_SOURCE_SANDBOX_PROJECTION" => {
+                Some(Self::SandboxProjection)
+            }
+            "PARTICIPATION_IDENTITY_SOURCE_NPC_WORLD_ACTOR" => Some(Self::NpcWorldActor),
+            _ => None,
+        }
+    }
+}
+/// K-AGCORE-066 execution_owner axis.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum ParticipationExecutionOwner {
+    Unspecified = 0,
+    Runtime = 1,
+    ExternalRuntimeViaAdmittedGateway = 2,
+    NotAdmitted = 3,
+}
+impl ParticipationExecutionOwner {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "PARTICIPATION_EXECUTION_OWNER_UNSPECIFIED",
+            Self::Runtime => "PARTICIPATION_EXECUTION_OWNER_RUNTIME",
+            Self::ExternalRuntimeViaAdmittedGateway => {
+                "PARTICIPATION_EXECUTION_OWNER_EXTERNAL_RUNTIME_VIA_ADMITTED_GATEWAY"
+            }
+            Self::NotAdmitted => "PARTICIPATION_EXECUTION_OWNER_NOT_ADMITTED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "PARTICIPATION_EXECUTION_OWNER_UNSPECIFIED" => Some(Self::Unspecified),
+            "PARTICIPATION_EXECUTION_OWNER_RUNTIME" => Some(Self::Runtime),
+            "PARTICIPATION_EXECUTION_OWNER_EXTERNAL_RUNTIME_VIA_ADMITTED_GATEWAY" => {
+                Some(Self::ExternalRuntimeViaAdmittedGateway)
+            }
+            "PARTICIPATION_EXECUTION_OWNER_NOT_ADMITTED" => Some(Self::NotAdmitted),
+            _ => None,
+        }
+    }
+}
+/// K-AGCORE-067 memory_read_scope axis.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum ParticipationMemoryReadScope {
+    Unspecified = 0,
+    CanonicalOwnerPolicy = 1,
+    DyadicPrivateAllowed = 2,
+    DyadicPrivateExcluded = 3,
+    PublicSharedOnly = 4,
+    DomainSharedOnly = 5,
+    NoMemoryRead = 6,
+}
+impl ParticipationMemoryReadScope {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "PARTICIPATION_MEMORY_READ_SCOPE_UNSPECIFIED",
+            Self::CanonicalOwnerPolicy => {
+                "PARTICIPATION_MEMORY_READ_SCOPE_CANONICAL_OWNER_POLICY"
+            }
+            Self::DyadicPrivateAllowed => {
+                "PARTICIPATION_MEMORY_READ_SCOPE_DYADIC_PRIVATE_ALLOWED"
+            }
+            Self::DyadicPrivateExcluded => {
+                "PARTICIPATION_MEMORY_READ_SCOPE_DYADIC_PRIVATE_EXCLUDED"
+            }
+            Self::PublicSharedOnly => {
+                "PARTICIPATION_MEMORY_READ_SCOPE_PUBLIC_SHARED_ONLY"
+            }
+            Self::DomainSharedOnly => {
+                "PARTICIPATION_MEMORY_READ_SCOPE_DOMAIN_SHARED_ONLY"
+            }
+            Self::NoMemoryRead => "PARTICIPATION_MEMORY_READ_SCOPE_NO_MEMORY_READ",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "PARTICIPATION_MEMORY_READ_SCOPE_UNSPECIFIED" => Some(Self::Unspecified),
+            "PARTICIPATION_MEMORY_READ_SCOPE_CANONICAL_OWNER_POLICY" => {
+                Some(Self::CanonicalOwnerPolicy)
+            }
+            "PARTICIPATION_MEMORY_READ_SCOPE_DYADIC_PRIVATE_ALLOWED" => {
+                Some(Self::DyadicPrivateAllowed)
+            }
+            "PARTICIPATION_MEMORY_READ_SCOPE_DYADIC_PRIVATE_EXCLUDED" => {
+                Some(Self::DyadicPrivateExcluded)
+            }
+            "PARTICIPATION_MEMORY_READ_SCOPE_PUBLIC_SHARED_ONLY" => {
+                Some(Self::PublicSharedOnly)
+            }
+            "PARTICIPATION_MEMORY_READ_SCOPE_DOMAIN_SHARED_ONLY" => {
+                Some(Self::DomainSharedOnly)
+            }
+            "PARTICIPATION_MEMORY_READ_SCOPE_NO_MEMORY_READ" => Some(Self::NoMemoryRead),
+            _ => None,
+        }
+    }
+}
+/// K-AGCORE-068 memory_write_default axis.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum ParticipationMemoryWriteDefault {
+    Unspecified = 0,
+    CanonicalWriteAllowed = 1,
+    WriteNone = 2,
+    PromotionGated = 3,
+}
+impl ParticipationMemoryWriteDefault {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "PARTICIPATION_MEMORY_WRITE_DEFAULT_UNSPECIFIED",
+            Self::CanonicalWriteAllowed => {
+                "PARTICIPATION_MEMORY_WRITE_DEFAULT_CANONICAL_WRITE_ALLOWED"
+            }
+            Self::WriteNone => "PARTICIPATION_MEMORY_WRITE_DEFAULT_WRITE_NONE",
+            Self::PromotionGated => "PARTICIPATION_MEMORY_WRITE_DEFAULT_PROMOTION_GATED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "PARTICIPATION_MEMORY_WRITE_DEFAULT_UNSPECIFIED" => Some(Self::Unspecified),
+            "PARTICIPATION_MEMORY_WRITE_DEFAULT_CANONICAL_WRITE_ALLOWED" => {
+                Some(Self::CanonicalWriteAllowed)
+            }
+            "PARTICIPATION_MEMORY_WRITE_DEFAULT_WRITE_NONE" => Some(Self::WriteNone),
+            "PARTICIPATION_MEMORY_WRITE_DEFAULT_PROMOTION_GATED" => {
+                Some(Self::PromotionGated)
+            }
+            _ => None,
+        }
+    }
+}
+/// K-AGCORE-069 capability_scope axis.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum ParticipationCapabilityScope {
+    Unspecified = 0,
+    CanonicalAgentScope = 1,
+    ProfileLimited = 2,
+    DomainLimited = 3,
+    DiagnosticReadOnly = 4,
+    ExternalGatewayLimited = 5,
+    None = 6,
+}
+impl ParticipationCapabilityScope {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "PARTICIPATION_CAPABILITY_SCOPE_UNSPECIFIED",
+            Self::CanonicalAgentScope => {
+                "PARTICIPATION_CAPABILITY_SCOPE_CANONICAL_AGENT_SCOPE"
+            }
+            Self::ProfileLimited => "PARTICIPATION_CAPABILITY_SCOPE_PROFILE_LIMITED",
+            Self::DomainLimited => "PARTICIPATION_CAPABILITY_SCOPE_DOMAIN_LIMITED",
+            Self::DiagnosticReadOnly => {
+                "PARTICIPATION_CAPABILITY_SCOPE_DIAGNOSTIC_READ_ONLY"
+            }
+            Self::ExternalGatewayLimited => {
+                "PARTICIPATION_CAPABILITY_SCOPE_EXTERNAL_GATEWAY_LIMITED"
+            }
+            Self::None => "PARTICIPATION_CAPABILITY_SCOPE_NONE",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "PARTICIPATION_CAPABILITY_SCOPE_UNSPECIFIED" => Some(Self::Unspecified),
+            "PARTICIPATION_CAPABILITY_SCOPE_CANONICAL_AGENT_SCOPE" => {
+                Some(Self::CanonicalAgentScope)
+            }
+            "PARTICIPATION_CAPABILITY_SCOPE_PROFILE_LIMITED" => {
+                Some(Self::ProfileLimited)
+            }
+            "PARTICIPATION_CAPABILITY_SCOPE_DOMAIN_LIMITED" => Some(Self::DomainLimited),
+            "PARTICIPATION_CAPABILITY_SCOPE_DIAGNOSTIC_READ_ONLY" => {
+                Some(Self::DiagnosticReadOnly)
+            }
+            "PARTICIPATION_CAPABILITY_SCOPE_EXTERNAL_GATEWAY_LIMITED" => {
+                Some(Self::ExternalGatewayLimited)
+            }
+            "PARTICIPATION_CAPABILITY_SCOPE_NONE" => Some(Self::None),
+            _ => None,
+        }
+    }
+}
+/// K-AGCORE-070 input_trust axis.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum ParticipationInputTrust {
+    Unspecified = 0,
+    TrustedUser = 1,
+    UntrustedMultiPartyTranscript = 2,
+    SandboxScript = 3,
+    ExternalA2aPayload = 4,
+    ToolProviderPayload = 5,
+    WorldContext = 6,
+    DiagnosticInput = 7,
+}
+impl ParticipationInputTrust {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "PARTICIPATION_INPUT_TRUST_UNSPECIFIED",
+            Self::TrustedUser => "PARTICIPATION_INPUT_TRUST_TRUSTED_USER",
+            Self::UntrustedMultiPartyTranscript => {
+                "PARTICIPATION_INPUT_TRUST_UNTRUSTED_MULTI_PARTY_TRANSCRIPT"
+            }
+            Self::SandboxScript => "PARTICIPATION_INPUT_TRUST_SANDBOX_SCRIPT",
+            Self::ExternalA2aPayload => "PARTICIPATION_INPUT_TRUST_EXTERNAL_A2A_PAYLOAD",
+            Self::ToolProviderPayload => {
+                "PARTICIPATION_INPUT_TRUST_TOOL_PROVIDER_PAYLOAD"
+            }
+            Self::WorldContext => "PARTICIPATION_INPUT_TRUST_WORLD_CONTEXT",
+            Self::DiagnosticInput => "PARTICIPATION_INPUT_TRUST_DIAGNOSTIC_INPUT",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "PARTICIPATION_INPUT_TRUST_UNSPECIFIED" => Some(Self::Unspecified),
+            "PARTICIPATION_INPUT_TRUST_TRUSTED_USER" => Some(Self::TrustedUser),
+            "PARTICIPATION_INPUT_TRUST_UNTRUSTED_MULTI_PARTY_TRANSCRIPT" => {
+                Some(Self::UntrustedMultiPartyTranscript)
+            }
+            "PARTICIPATION_INPUT_TRUST_SANDBOX_SCRIPT" => Some(Self::SandboxScript),
+            "PARTICIPATION_INPUT_TRUST_EXTERNAL_A2A_PAYLOAD" => {
+                Some(Self::ExternalA2aPayload)
+            }
+            "PARTICIPATION_INPUT_TRUST_TOOL_PROVIDER_PAYLOAD" => {
+                Some(Self::ToolProviderPayload)
+            }
+            "PARTICIPATION_INPUT_TRUST_WORLD_CONTEXT" => Some(Self::WorldContext),
+            "PARTICIPATION_INPUT_TRUST_DIAGNOSTIC_INPUT" => Some(Self::DiagnosticInput),
+            _ => None,
+        }
+    }
+}
+/// K-AGCORE-071 output_destination axis. Direct domain commit from runtime
+/// participation is forbidden; every non-canonical destination is
+/// candidate-first (K-AGCORE-062).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum ParticipationOutputDestination {
+    Unspecified = 0,
+    CanonicalChat = 1,
+    RealmGroupMessageCandidate = 2,
+    ScenarioTurnCandidate = 3,
+    WorldEventCandidate = 4,
+    ExternalReplyCandidate = 5,
+    DiagnosticCandidate = 6,
+    Ephemeral = 7,
+}
+impl ParticipationOutputDestination {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "PARTICIPATION_OUTPUT_DESTINATION_UNSPECIFIED",
+            Self::CanonicalChat => "PARTICIPATION_OUTPUT_DESTINATION_CANONICAL_CHAT",
+            Self::RealmGroupMessageCandidate => {
+                "PARTICIPATION_OUTPUT_DESTINATION_REALM_GROUP_MESSAGE_CANDIDATE"
+            }
+            Self::ScenarioTurnCandidate => {
+                "PARTICIPATION_OUTPUT_DESTINATION_SCENARIO_TURN_CANDIDATE"
+            }
+            Self::WorldEventCandidate => {
+                "PARTICIPATION_OUTPUT_DESTINATION_WORLD_EVENT_CANDIDATE"
+            }
+            Self::ExternalReplyCandidate => {
+                "PARTICIPATION_OUTPUT_DESTINATION_EXTERNAL_REPLY_CANDIDATE"
+            }
+            Self::DiagnosticCandidate => {
+                "PARTICIPATION_OUTPUT_DESTINATION_DIAGNOSTIC_CANDIDATE"
+            }
+            Self::Ephemeral => "PARTICIPATION_OUTPUT_DESTINATION_EPHEMERAL",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "PARTICIPATION_OUTPUT_DESTINATION_UNSPECIFIED" => Some(Self::Unspecified),
+            "PARTICIPATION_OUTPUT_DESTINATION_CANONICAL_CHAT" => {
+                Some(Self::CanonicalChat)
+            }
+            "PARTICIPATION_OUTPUT_DESTINATION_REALM_GROUP_MESSAGE_CANDIDATE" => {
+                Some(Self::RealmGroupMessageCandidate)
+            }
+            "PARTICIPATION_OUTPUT_DESTINATION_SCENARIO_TURN_CANDIDATE" => {
+                Some(Self::ScenarioTurnCandidate)
+            }
+            "PARTICIPATION_OUTPUT_DESTINATION_WORLD_EVENT_CANDIDATE" => {
+                Some(Self::WorldEventCandidate)
+            }
+            "PARTICIPATION_OUTPUT_DESTINATION_EXTERNAL_REPLY_CANDIDATE" => {
+                Some(Self::ExternalReplyCandidate)
+            }
+            "PARTICIPATION_OUTPUT_DESTINATION_DIAGNOSTIC_CANDIDATE" => {
+                Some(Self::DiagnosticCandidate)
+            }
+            "PARTICIPATION_OUTPUT_DESTINATION_EPHEMERAL" => Some(Self::Ephemeral),
+            _ => None,
+        }
+    }
+}
+/// K-AGCORE-072 promotion_posture axis.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum ParticipationPromotionPosture {
+    Unspecified = 0,
+    NotAllowed = 1,
+    ExplicitCandidate = 2,
+    ExplicitCommitFlow = 3,
+    ExistingCanonicalPolicy = 4,
+}
+impl ParticipationPromotionPosture {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "PARTICIPATION_PROMOTION_POSTURE_UNSPECIFIED",
+            Self::NotAllowed => "PARTICIPATION_PROMOTION_POSTURE_NOT_ALLOWED",
+            Self::ExplicitCandidate => {
+                "PARTICIPATION_PROMOTION_POSTURE_EXPLICIT_CANDIDATE"
+            }
+            Self::ExplicitCommitFlow => {
+                "PARTICIPATION_PROMOTION_POSTURE_EXPLICIT_COMMIT_FLOW"
+            }
+            Self::ExistingCanonicalPolicy => {
+                "PARTICIPATION_PROMOTION_POSTURE_EXISTING_CANONICAL_POLICY"
+            }
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "PARTICIPATION_PROMOTION_POSTURE_UNSPECIFIED" => Some(Self::Unspecified),
+            "PARTICIPATION_PROMOTION_POSTURE_NOT_ALLOWED" => Some(Self::NotAllowed),
+            "PARTICIPATION_PROMOTION_POSTURE_EXPLICIT_CANDIDATE" => {
+                Some(Self::ExplicitCandidate)
+            }
+            "PARTICIPATION_PROMOTION_POSTURE_EXPLICIT_COMMIT_FLOW" => {
+                Some(Self::ExplicitCommitFlow)
+            }
+            "PARTICIPATION_PROMOTION_POSTURE_EXISTING_CANONICAL_POLICY" => {
+                Some(Self::ExistingCanonicalPolicy)
+            }
+            _ => None,
+        }
+    }
+}
+/// K-AGCORE-073 execution_concurrency axis.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum ParticipationExecutionConcurrency {
+    Unspecified = 0,
+    CanonicalChatBudget = 1,
+    PerAgentParticipationQueue = 2,
+    ProfileIsolatedBudget = 3,
+    DomainTriggerQueue = 4,
+    RejectWhileActive = 5,
+    GatewayBudgetQueue = 6,
+    LowPriorityCancelable = 7,
+}
+impl ParticipationExecutionConcurrency {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "PARTICIPATION_EXECUTION_CONCURRENCY_UNSPECIFIED",
+            Self::CanonicalChatBudget => {
+                "PARTICIPATION_EXECUTION_CONCURRENCY_CANONICAL_CHAT_BUDGET"
+            }
+            Self::PerAgentParticipationQueue => {
+                "PARTICIPATION_EXECUTION_CONCURRENCY_PER_AGENT_PARTICIPATION_QUEUE"
+            }
+            Self::ProfileIsolatedBudget => {
+                "PARTICIPATION_EXECUTION_CONCURRENCY_PROFILE_ISOLATED_BUDGET"
+            }
+            Self::DomainTriggerQueue => {
+                "PARTICIPATION_EXECUTION_CONCURRENCY_DOMAIN_TRIGGER_QUEUE"
+            }
+            Self::RejectWhileActive => {
+                "PARTICIPATION_EXECUTION_CONCURRENCY_REJECT_WHILE_ACTIVE"
+            }
+            Self::GatewayBudgetQueue => {
+                "PARTICIPATION_EXECUTION_CONCURRENCY_GATEWAY_BUDGET_QUEUE"
+            }
+            Self::LowPriorityCancelable => {
+                "PARTICIPATION_EXECUTION_CONCURRENCY_LOW_PRIORITY_CANCELABLE"
+            }
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "PARTICIPATION_EXECUTION_CONCURRENCY_UNSPECIFIED" => Some(Self::Unspecified),
+            "PARTICIPATION_EXECUTION_CONCURRENCY_CANONICAL_CHAT_BUDGET" => {
+                Some(Self::CanonicalChatBudget)
+            }
+            "PARTICIPATION_EXECUTION_CONCURRENCY_PER_AGENT_PARTICIPATION_QUEUE" => {
+                Some(Self::PerAgentParticipationQueue)
+            }
+            "PARTICIPATION_EXECUTION_CONCURRENCY_PROFILE_ISOLATED_BUDGET" => {
+                Some(Self::ProfileIsolatedBudget)
+            }
+            "PARTICIPATION_EXECUTION_CONCURRENCY_DOMAIN_TRIGGER_QUEUE" => {
+                Some(Self::DomainTriggerQueue)
+            }
+            "PARTICIPATION_EXECUTION_CONCURRENCY_REJECT_WHILE_ACTIVE" => {
+                Some(Self::RejectWhileActive)
+            }
+            "PARTICIPATION_EXECUTION_CONCURRENCY_GATEWAY_BUDGET_QUEUE" => {
+                Some(Self::GatewayBudgetQueue)
+            }
+            "PARTICIPATION_EXECUTION_CONCURRENCY_LOW_PRIORITY_CANCELABLE" => {
+                Some(Self::LowPriorityCancelable)
+            }
+            _ => None,
+        }
+    }
+}
+/// Participation execution lifecycle, aligned with the companion
+/// participation status family. COMMITTED_BY_OWNER is reported only from
+/// owning-domain commit evidence, never inferred from candidate text
+/// (K-AGCORE-062, S-RUNTIME-230 posture).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum ParticipationStatus {
+    Unspecified = 0,
+    AdmissionPending = 1,
+    Blocked = 2,
+    Running = 3,
+    CandidateReady = 4,
+    CommittedByOwner = 5,
+    Failed = 6,
+    Canceled = 7,
+}
+impl ParticipationStatus {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "PARTICIPATION_STATUS_UNSPECIFIED",
+            Self::AdmissionPending => "PARTICIPATION_STATUS_ADMISSION_PENDING",
+            Self::Blocked => "PARTICIPATION_STATUS_BLOCKED",
+            Self::Running => "PARTICIPATION_STATUS_RUNNING",
+            Self::CandidateReady => "PARTICIPATION_STATUS_CANDIDATE_READY",
+            Self::CommittedByOwner => "PARTICIPATION_STATUS_COMMITTED_BY_OWNER",
+            Self::Failed => "PARTICIPATION_STATUS_FAILED",
+            Self::Canceled => "PARTICIPATION_STATUS_CANCELED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "PARTICIPATION_STATUS_UNSPECIFIED" => Some(Self::Unspecified),
+            "PARTICIPATION_STATUS_ADMISSION_PENDING" => Some(Self::AdmissionPending),
+            "PARTICIPATION_STATUS_BLOCKED" => Some(Self::Blocked),
+            "PARTICIPATION_STATUS_RUNNING" => Some(Self::Running),
+            "PARTICIPATION_STATUS_CANDIDATE_READY" => Some(Self::CandidateReady),
+            "PARTICIPATION_STATUS_COMMITTED_BY_OWNER" => Some(Self::CommittedByOwner),
+            "PARTICIPATION_STATUS_FAILED" => Some(Self::Failed),
+            "PARTICIPATION_STATUS_CANCELED" => Some(Self::Canceled),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum ParticipationVerdictDecision {
+    Unspecified = 0,
+    Allow = 1,
+    Deny = 2,
+}
+impl ParticipationVerdictDecision {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "PARTICIPATION_VERDICT_DECISION_UNSPECIFIED",
+            Self::Allow => "PARTICIPATION_VERDICT_DECISION_ALLOW",
+            Self::Deny => "PARTICIPATION_VERDICT_DECISION_DENY",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "PARTICIPATION_VERDICT_DECISION_UNSPECIFIED" => Some(Self::Unspecified),
+            "PARTICIPATION_VERDICT_DECISION_ALLOW" => Some(Self::Allow),
+            "PARTICIPATION_VERDICT_DECISION_DENY" => Some(Self::Deny),
+            _ => None,
+        }
+    }
+}
+/// External payload protocol family for external_agent_entry context.
+/// Closed to the two admitted identity-source protocol families
+/// (K-AGCORE-065, K-AGCORE-079); K-DELEG remains reference-only boundary.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum ParticipationExternalProtocolKind {
+    Unspecified = 0,
+    Mcp = 1,
+    A2a = 2,
+}
+impl ParticipationExternalProtocolKind {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "PARTICIPATION_EXTERNAL_PROTOCOL_KIND_UNSPECIFIED",
+            Self::Mcp => "PARTICIPATION_EXTERNAL_PROTOCOL_KIND_MCP",
+            Self::A2a => "PARTICIPATION_EXTERNAL_PROTOCOL_KIND_A2A",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "PARTICIPATION_EXTERNAL_PROTOCOL_KIND_UNSPECIFIED" => Some(Self::Unspecified),
+            "PARTICIPATION_EXTERNAL_PROTOCOL_KIND_MCP" => Some(Self::Mcp),
+            "PARTICIPATION_EXTERNAL_PROTOCOL_KIND_A2A" => Some(Self::A2a),
+            _ => None,
+        }
+    }
+}
+/// K-AGCORE-085 replay outcome family, aligned with DelegatedReplayOutcome.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum ParticipationReplayOutcome {
+    Unspecified = 0,
+    Completed = 1,
+    PartialRedacted = 2,
+    Failed = 3,
+}
+impl ParticipationReplayOutcome {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "PARTICIPATION_REPLAY_OUTCOME_UNSPECIFIED",
+            Self::Completed => "PARTICIPATION_REPLAY_OUTCOME_COMPLETED",
+            Self::PartialRedacted => "PARTICIPATION_REPLAY_OUTCOME_PARTIAL_REDACTED",
+            Self::Failed => "PARTICIPATION_REPLAY_OUTCOME_FAILED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "PARTICIPATION_REPLAY_OUTCOME_UNSPECIFIED" => Some(Self::Unspecified),
+            "PARTICIPATION_REPLAY_OUTCOME_COMPLETED" => Some(Self::Completed),
+            "PARTICIPATION_REPLAY_OUTCOME_PARTIAL_REDACTED" => {
+                Some(Self::PartialRedacted)
+            }
+            "PARTICIPATION_REPLAY_OUTCOME_FAILED" => Some(Self::Failed),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CreateRealmGroupMessageCandidateRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<AgentRequestContext>,
+    #[prost(string, tag = "2")]
+    pub realm_group_thread_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub realm_group_agent_slot_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub owner_user_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub realm_agent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub local_agent_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub trigger_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub membership_snapshot_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "9")]
+    pub read_cursor_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "10")]
+    pub reply_target_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "11")]
+    pub room_orchestration_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "12")]
+    pub idempotency_key: ::prost::alloc::string::String,
+    #[prost(map = "string, string", tag = "13")]
+    pub context_refs: ::std::collections::HashMap<
+        ::prost::alloc::string::String,
+        ::prost::alloc::string::String,
+    >,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RealmGroupMessageCandidateCommitHandle {
+    #[prost(string, tag = "1")]
+    pub candidate_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub candidate_kind: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub candidate_evidence_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub evidence_hash: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub runtime_trace_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub realm_group_thread_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub realm_group_agent_slot_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub owner_user_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "9")]
+    pub realm_agent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "10")]
+    pub local_agent_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "11")]
+    pub trigger_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "12")]
+    pub output_candidate_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "13")]
+    pub audit_lineage_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "14")]
+    pub policy_verdict_ref: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "15")]
+    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "16")]
+    pub expires_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(enumeration = "RealmGroupMessageCandidateCommitDisposition", tag = "17")]
+    pub commit_disposition: i32,
+    #[prost(string, tag = "18")]
+    pub profile_kind: ::prost::alloc::string::String,
+    #[prost(string, tag = "19")]
+    pub identity_source: ::prost::alloc::string::String,
+    #[prost(string, tag = "20")]
+    pub participant_ref: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "21")]
+    pub context_block_refs: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "22")]
+    pub output_destination: ::prost::alloc::string::String,
+    #[prost(string, tag = "23")]
+    pub memory_read_verdict: ::prost::alloc::string::String,
+    #[prost(string, tag = "24")]
+    pub memory_write_verdict: ::prost::alloc::string::String,
+    #[prost(string, tag = "25")]
+    pub capability_scope_verdict: ::prost::alloc::string::String,
+    #[prost(string, tag = "26")]
+    pub audit_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CreateRealmGroupMessageCandidateResponse {
+    #[prost(message, optional, tag = "1")]
+    pub candidate: ::core::option::Option<RealmGroupMessageCandidateCommitHandle>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetRealmGroupMessageCandidateEvidenceRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<AgentRequestContext>,
+    #[prost(string, tag = "2")]
+    pub candidate_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub candidate_kind: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub candidate_evidence_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub evidence_hash: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub runtime_trace_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub expected_realm_group_agent_slot_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub expected_local_agent_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "9")]
+    pub trigger_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "10")]
+    pub target_realm_group_thread_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RealmGroupMessageCandidateEvidence {
+    #[prost(string, tag = "1")]
+    pub candidate_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub candidate_kind: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub realm_group_thread_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub realm_group_agent_slot_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub owner_user_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub realm_agent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub local_agent_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub trigger_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "9")]
+    pub output_candidate_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "10")]
+    pub evidence_hash: ::prost::alloc::string::String,
+    #[prost(string, tag = "11")]
+    pub runtime_trace_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "12")]
+    pub audit_lineage_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "13")]
+    pub policy_verdict_ref: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "14")]
+    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "15")]
+    pub expires_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(enumeration = "RealmGroupMessageCandidateCommitDisposition", tag = "16")]
+    pub commit_disposition: i32,
+    #[prost(string, tag = "17")]
+    pub message_type: ::prost::alloc::string::String,
+    #[prost(string, tag = "18")]
+    pub body: ::prost::alloc::string::String,
+    #[prost(string, tag = "19")]
+    pub body_hash: ::prost::alloc::string::String,
+    #[prost(string, tag = "20")]
+    pub refusal_code: ::prost::alloc::string::String,
+    #[prost(string, tag = "21")]
+    pub refusal_reason: ::prost::alloc::string::String,
+    #[prost(string, tag = "22")]
+    pub refusal_hash: ::prost::alloc::string::String,
+    #[prost(string, tag = "23")]
+    pub profile_kind: ::prost::alloc::string::String,
+    #[prost(string, tag = "24")]
+    pub identity_source: ::prost::alloc::string::String,
+    #[prost(string, tag = "25")]
+    pub participant_ref: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "26")]
+    pub context_block_refs: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "27")]
+    pub output_destination: ::prost::alloc::string::String,
+    #[prost(string, tag = "28")]
+    pub memory_read_verdict: ::prost::alloc::string::String,
+    #[prost(string, tag = "29")]
+    pub memory_write_verdict: ::prost::alloc::string::String,
+    #[prost(string, tag = "30")]
+    pub capability_scope_verdict: ::prost::alloc::string::String,
+    #[prost(string, tag = "31")]
+    pub audit_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetRealmGroupMessageCandidateEvidenceResponse {
+    #[prost(message, optional, tag = "1")]
+    pub evidence: ::core::option::Option<RealmGroupMessageCandidateEvidence>,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum RealmGroupMessageCandidateCommitDisposition {
+    Unspecified = 0,
+    MessageCandidate = 1,
+    RefusalCandidate = 2,
+}
+impl RealmGroupMessageCandidateCommitDisposition {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => {
+                "REALM_GROUP_MESSAGE_CANDIDATE_COMMIT_DISPOSITION_UNSPECIFIED"
+            }
+            Self::MessageCandidate => {
+                "REALM_GROUP_MESSAGE_CANDIDATE_COMMIT_DISPOSITION_MESSAGE_CANDIDATE"
+            }
+            Self::RefusalCandidate => {
+                "REALM_GROUP_MESSAGE_CANDIDATE_COMMIT_DISPOSITION_REFUSAL_CANDIDATE"
+            }
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "REALM_GROUP_MESSAGE_CANDIDATE_COMMIT_DISPOSITION_UNSPECIFIED" => {
+                Some(Self::Unspecified)
+            }
+            "REALM_GROUP_MESSAGE_CANDIDATE_COMMIT_DISPOSITION_MESSAGE_CANDIDATE" => {
+                Some(Self::MessageCandidate)
+            }
+            "REALM_GROUP_MESSAGE_CANDIDATE_COMMIT_DISPOSITION_REFUSAL_CANDIDATE" => {
+                Some(Self::RefusalCandidate)
+            }
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AgentAutonomyConfig {
+    #[prost(int64, tag = "1")]
+    pub daily_token_budget: i64,
+    #[prost(int64, tag = "2")]
+    pub max_tokens_per_hook: i64,
+    #[prost(message, optional, tag = "3")]
+    pub min_hook_interval: ::core::option::Option<::prost_types::Duration>,
+    #[prost(message, optional, tag = "4")]
+    pub suspend_until: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(enumeration = "AgentAutonomyMode", tag = "5")]
+    pub mode: i32,
+    #[prost(message, optional, tag = "10")]
+    pub extensions: ::core::option::Option<::prost_types::Struct>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AgentAutonomyState {
+    #[prost(bool, tag = "1")]
+    pub enabled: bool,
+    #[prost(message, optional, tag = "2")]
+    pub config: ::core::option::Option<AgentAutonomyConfig>,
+    #[prost(int64, tag = "3")]
+    pub used_tokens_in_window: i64,
+    #[prost(message, optional, tag = "4")]
+    pub window_started_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(bool, tag = "5")]
+    pub budget_exhausted: bool,
+    #[prost(message, optional, tag = "6")]
+    pub suspended_until: ::core::option::Option<::prost_types::Timestamp>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AgentRecord {
+    #[prost(string, tag = "1")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub display_name: ::prost::alloc::string::String,
+    #[prost(enumeration = "AgentLifecycleStatus", tag = "3")]
+    pub lifecycle_status: i32,
+    #[prost(message, optional, tag = "4")]
+    pub autonomy: ::core::option::Option<AgentAutonomyState>,
+    #[prost(message, optional, tag = "5")]
+    pub metadata: ::core::option::Option<::prost_types::Struct>,
+    #[prost(message, optional, tag = "6")]
+    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "7")]
+    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(string, tag = "20")]
+    pub local_agent_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "21")]
+    pub owner_user_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "22")]
+    pub realm_agent_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AgentStateProjection {
+    #[prost(enumeration = "AgentExecutionState", tag = "1")]
+    pub execution_state: i32,
+    #[prost(string, tag = "2")]
+    pub status_text: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub active_world_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub active_user_id: ::prost::alloc::string::String,
+    #[prost(map = "string, string", tag = "5")]
+    pub attributes: ::std::collections::HashMap<
+        ::prost::alloc::string::String,
+        ::prost::alloc::string::String,
+    >,
+    #[prost(message, optional, tag = "6")]
+    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+    /// K-AGCORE-038: current_emotion is durable-until-replace runtime state and
+    /// must project through AgentStateProjection.current_emotion. Emitting only
+    /// runtime.agent.state.emotion_changed without writing here is authority
+    /// drift: GetAgentState / snapshot / recovery would not observe committed
+    /// emotion truth.
+    #[prost(string, tag = "7")]
+    pub current_emotion: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AgentStateSetStatusText {
+    #[prost(string, tag = "1")]
+    pub status_text: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AgentStateSetWorldContext {
+    #[prost(string, tag = "1")]
+    pub world_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AgentStateClearWorldContext {}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AgentStateSetDyadicContext {
+    #[prost(string, tag = "1")]
+    pub user_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AgentStateClearDyadicContext {}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AgentStatePutAttribute {
+    #[prost(string, tag = "1")]
+    pub key: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub value: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AgentStateRemoveAttribute {
+    #[prost(string, tag = "1")]
+    pub key: ::prost::alloc::string::String,
+}
+/// K-AGCORE-023 runtime-owned persistent presentation truth. This shape is
+/// intentionally narrow and stable; renderer-local execution state must remain
+/// on transient app/runtime seams rather than being smuggled here.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AgentPresentationProfile {
+    #[prost(enumeration = "AgentPresentationBackendKind", tag = "1")]
+    pub backend_kind: i32,
+    #[prost(string, tag = "2")]
+    pub avatar_asset_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub expression_profile_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub idle_preset: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub interaction_policy_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub default_voice_reference: ::prost::alloc::string::String,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ClearAgentPresentationProfile {}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AgentStateMutation {
+    #[prost(oneof = "agent_state_mutation::Mutation", tags = "1, 2, 3, 4, 5, 6, 7")]
+    pub mutation: ::core::option::Option<agent_state_mutation::Mutation>,
+}
+/// Nested message and enum types in `AgentStateMutation`.
+pub mod agent_state_mutation {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Mutation {
+        #[prost(message, tag = "1")]
+        SetStatusText(super::AgentStateSetStatusText),
+        #[prost(message, tag = "2")]
+        SetWorldContext(super::AgentStateSetWorldContext),
+        #[prost(message, tag = "3")]
+        ClearWorldContext(super::AgentStateClearWorldContext),
+        #[prost(message, tag = "4")]
+        SetDyadicContext(super::AgentStateSetDyadicContext),
+        #[prost(message, tag = "5")]
+        ClearDyadicContext(super::AgentStateClearDyadicContext),
+        #[prost(message, tag = "6")]
+        PutAttribute(super::AgentStatePutAttribute),
+        #[prost(message, tag = "7")]
+        RemoveAttribute(super::AgentStateRemoveAttribute),
+    }
+}
+/// K-AGCORE-041 HookIntent admitted trigger detail shapes.
+/// `time(delay)` uses a relative delay applied at admission time.
+/// `event(user_idle, idle_for)` and `event(chat_ended)` are the only admitted
+/// event-family details. No absolute-time, turn-completed, state-condition,
+/// world-event, or compound trigger is admitted in the v1 matrix.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct HookTriggerTimeDetail {
+    #[prost(message, optional, tag = "1")]
+    pub delay: ::core::option::Option<::prost_types::Duration>,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct HookTriggerEventUserIdleDetail {
+    #[prost(message, optional, tag = "1")]
+    pub idle_for: ::core::option::Option<::prost_types::Duration>,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct HookTriggerEventChatEndedDetail {}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct HookTriggerDetail {
+    #[prost(oneof = "hook_trigger_detail::Detail", tags = "10, 11, 12")]
+    pub detail: ::core::option::Option<hook_trigger_detail::Detail>,
+}
+/// Nested message and enum types in `HookTriggerDetail`.
+pub mod hook_trigger_detail {
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Detail {
+        #[prost(message, tag = "10")]
+        Time(super::HookTriggerTimeDetail),
+        #[prost(message, tag = "11")]
+        EventUserIdle(super::HookTriggerEventUserIdleDetail),
+        #[prost(message, tag = "12")]
+        EventChatEnded(super::HookTriggerEventChatEndedDetail),
+    }
+}
+/// K-AGCORE-041 HookIntent minimum typed shape.
+/// `intent_id` is hook identity across the admission lifecycle.
+/// `trigger_family` + `trigger_detail` + `effect` + `admission_state` together
+/// form the committed runtime truth projected on `runtime.agent.hook.*`.
+/// Origin linkage (`conversation_anchor_id`, `originating_turn_id`,
+/// `originating_stream_id`) is preserved when present but never fabricated.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct HookIntent {
+    #[prost(string, tag = "1")]
+    pub intent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub originating_turn_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub originating_stream_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "HookTriggerFamily", tag = "6")]
+    pub trigger_family: i32,
+    #[prost(message, optional, tag = "7")]
+    pub trigger_detail: ::core::option::Option<HookTriggerDetail>,
+    #[prost(enumeration = "HookEffect", tag = "8")]
+    pub effect: i32,
+    #[prost(enumeration = "HookAdmissionState", tag = "9")]
+    pub admission_state: i32,
+    #[prost(message, optional, tag = "10")]
+    pub not_before: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "11")]
+    pub expires_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(string, tag = "12")]
+    pub reason: ::prost::alloc::string::String,
+}
+/// HookExecutionOutcome projects a single admission-state transition of a
+/// `HookIntent`. `reason_code` is populated only on rejected/failed states;
+/// `reason` is populated only on canceled state. `observed_at` is the
+/// committed transition time.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct HookExecutionOutcome {
+    #[prost(message, optional, tag = "1")]
+    pub intent: ::core::option::Option<HookIntent>,
+    #[prost(message, optional, tag = "2")]
+    pub observed_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(enumeration = "ReasonCode", tag = "3")]
+    pub reason_code: i32,
+    #[prost(string, tag = "4")]
+    pub message: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub reason: ::prost::alloc::string::String,
+}
+/// PendingHook represents admitted scheduler truth for a HookIntent that has
+/// reached `pending` admission state. The embedded HookIntent carries all
+/// admitted hook vocabulary; there is no parallel trigger/next-intent shape.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct PendingHook {
+    #[prost(message, optional, tag = "1")]
+    pub intent: ::core::option::Option<HookIntent>,
+    #[prost(message, optional, tag = "2")]
+    pub scheduled_for: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "3")]
+    pub admitted_at: ::core::option::Option<::prost_types::Timestamp>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CanonicalMemoryCandidate {
+    #[prost(enumeration = "MemoryCanonicalClass", tag = "1")]
+    pub canonical_class: i32,
+    #[prost(message, optional, tag = "2")]
+    pub target_bank: ::core::option::Option<MemoryBankLocator>,
+    #[prost(message, optional, tag = "3")]
+    pub record: ::core::option::Option<MemoryRecordInput>,
+    #[prost(string, tag = "4")]
+    pub source_event_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub policy_reason: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "10")]
+    pub extensions: ::core::option::Option<::prost_types::Struct>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CanonicalMemoryView {
+    #[prost(enumeration = "MemoryCanonicalClass", tag = "1")]
+    pub canonical_class: i32,
+    #[prost(message, optional, tag = "2")]
+    pub source_bank: ::core::option::Option<MemoryBankLocator>,
+    #[prost(message, optional, tag = "3")]
+    pub record: ::core::option::Option<MemoryRecord>,
+    #[prost(double, tag = "4")]
+    pub recall_score: f64,
+    #[prost(string, tag = "5")]
+    pub policy_reason: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CanonicalMemoryRejection {
+    #[prost(string, tag = "1")]
+    pub source_event_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "ReasonCode", tag = "2")]
+    pub reason_code: i32,
+    #[prost(string, tag = "3")]
+    pub message: ::prost::alloc::string::String,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AgentLifecycleEventDetail {
+    #[prost(enumeration = "AgentLifecycleStatus", tag = "1")]
+    pub previous_status: i32,
+    #[prost(enumeration = "AgentLifecycleStatus", tag = "2")]
+    pub current_status: i32,
+}
+/// AgentHookEventDetail projects a `runtime.agent.hook.*` event per
+/// K-AGCORE-042. `family` is the first-class runtime-owned discriminator
+/// (mirror of `intent.admission_state`) and maps 1:1 to the mounted public
+/// seam family name (`runtime.agent.hook.intent_proposed` / `pending` /
+/// `rejected` / `running` / `completed` / `failed` / `canceled` /
+/// `rescheduled`). Consumers MUST read `family` to dispatch; reading
+/// `intent.admission_state` alone is admitted but treated as an internal
+/// consistency check, not as the discriminator.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AgentHookEventDetail {
+    #[prost(enumeration = "HookAdmissionState", tag = "1")]
+    pub family: i32,
+    #[prost(message, optional, tag = "2")]
+    pub intent: ::core::option::Option<HookIntent>,
+    #[prost(message, optional, tag = "3")]
+    pub observed_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(enumeration = "ReasonCode", tag = "4")]
+    pub reason_code: i32,
+    #[prost(string, tag = "5")]
+    pub message: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub reason: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AgentMemoryEventDetail {
+    #[prost(message, repeated, tag = "1")]
+    pub accepted: ::prost::alloc::vec::Vec<CanonicalMemoryView>,
+    #[prost(message, repeated, tag = "2")]
+    pub rejected: ::prost::alloc::vec::Vec<CanonicalMemoryRejection>,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AgentBudgetEventDetail {
+    #[prost(bool, tag = "1")]
+    pub budget_exhausted: bool,
+    #[prost(int64, tag = "2")]
+    pub remaining_tokens: i64,
+    #[prost(message, optional, tag = "3")]
+    pub window_started_at: ::core::option::Option<::prost_types::Timestamp>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AgentReplicationEventDetail {
+    #[prost(string, tag = "1")]
+    pub memory_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub replication: ::core::option::Option<MemoryReplicationState>,
+}
+/// K-AGCORE-037 PostureProjection is the canonical schema alias for
+/// runtime.agent.state.posture_changed.detail.current_posture. Only the
+/// narrow read-only projection admitted through K-AGCORE-037 may cross the
+/// public RuntimeAgentService surface; runtime-private posture truth (truth
+/// basis ids, transition reason, posture class) is not exposed here.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AgentPostureProjection {
+    #[prost(string, tag = "1")]
+    pub action_family: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub interrupt_mode: ::prost::alloc::string::String,
+}
+/// AgentStateEventDetail projects runtime.agent.state.\* events per
+/// K-AGCORE-037 / state_envelope. `agent_id` is REQUIRED at the AgentEvent
+/// envelope level; origin linkage (`conversation_anchor_id` /
+/// `originating_turn_id` / `originating_stream_id`) is OPTIONAL and is carried
+/// ONLY when the state projection is traceable to a specific continuity
+/// branch. Runtime MUST NOT fabricate origin linkage for no-origin state
+/// transitions (admin posture change, lifecycle-driven state, etc.).
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AgentStateEventDetail {
+    #[prost(enumeration = "AgentStateEventFamily", tag = "1")]
+    pub family: i32,
+    /// Optional origin linkage (state_envelope.optional_origin_fields).
+    #[prost(string, tag = "2")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub originating_turn_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub originating_stream_id: ::prost::alloc::string::String,
+    /// Family-specific payload fields. Exactly one family's block is populated
+    /// per event; discriminator is `family`.
+    #[prost(string, tag = "10")]
+    pub current_status_text: ::prost::alloc::string::String,
+    #[prost(string, tag = "11")]
+    pub previous_status_text: ::prost::alloc::string::String,
+    #[prost(bool, tag = "12")]
+    pub has_previous_status_text: bool,
+    #[prost(enumeration = "AgentExecutionState", tag = "20")]
+    pub current_execution_state: i32,
+    #[prost(enumeration = "AgentExecutionState", tag = "21")]
+    pub previous_execution_state: i32,
+    #[prost(string, tag = "30")]
+    pub current_emotion: ::prost::alloc::string::String,
+    #[prost(string, tag = "31")]
+    pub previous_emotion: ::prost::alloc::string::String,
+    #[prost(string, tag = "32")]
+    pub emotion_source: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "40")]
+    pub current_posture: ::core::option::Option<AgentPostureProjection>,
+    #[prost(message, optional, tag = "41")]
+    pub previous_posture: ::core::option::Option<AgentPostureProjection>,
+}
+/// AgentPresentationEventDetail projects runtime.agent.presentation.\* events
+/// per K-AGCORE-037 / presentation_envelope. `agent_id` is REQUIRED at the
+/// AgentEvent envelope level; `conversation_anchor_id`, `turn_id`, and
+/// `stream_id` are ALSO REQUIRED on every presentation event because
+/// presentation is stream-scoped transient projection derived from committed
+/// runtime interpretation. Runtime MUST NOT emit presentation events without
+/// real stream-identity linkage.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AgentPresentationEventDetail {
+    #[prost(enumeration = "AgentPresentationEventFamily", tag = "1")]
+    pub family: i32,
+    #[prost(string, tag = "2")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub turn_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub stream_id: ::prost::alloc::string::String,
+    /// activity_requested
+    #[prost(string, tag = "10")]
+    pub activity_name: ::prost::alloc::string::String,
+    #[prost(string, tag = "11")]
+    pub activity_category: ::prost::alloc::string::String,
+    #[prost(string, tag = "12")]
+    pub activity_intensity: ::prost::alloc::string::String,
+    #[prost(string, tag = "13")]
+    pub activity_source: ::prost::alloc::string::String,
+    /// motion_requested
+    #[prost(string, tag = "20")]
+    pub motion_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "21")]
+    pub motion_priority: ::prost::alloc::string::String,
+    #[prost(int64, tag = "22")]
+    pub motion_expected_duration_ms: i64,
+    /// expression_requested
+    #[prost(string, tag = "30")]
+    pub expression_id: ::prost::alloc::string::String,
+    #[prost(int64, tag = "31")]
+    pub expression_expected_duration_ms: i64,
+    /// pose_requested / pose_cleared
+    #[prost(string, tag = "40")]
+    pub pose_id: ::prost::alloc::string::String,
+    #[prost(int64, tag = "41")]
+    pub pose_expected_duration_ms: i64,
+    #[prost(string, tag = "42")]
+    pub previous_pose_id: ::prost::alloc::string::String,
+    /// lookat_requested
+    #[prost(string, tag = "50")]
+    pub lookat_target_kind: ::prost::alloc::string::String,
+    #[prost(double, tag = "51")]
+    pub lookat_x: f64,
+    #[prost(double, tag = "52")]
+    pub lookat_y: f64,
+    #[prost(double, tag = "53")]
+    pub lookat_z: f64,
+    #[prost(bool, tag = "54")]
+    pub lookat_has_x: bool,
+    #[prost(bool, tag = "55")]
+    pub lookat_has_y: bool,
+    #[prost(bool, tag = "56")]
+    pub lookat_has_z: bool,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AvatarDebugProbeRequestEnvelope {
+    #[prost(string, tag = "1")]
+    pub probe_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "AvatarDebugProbeKind", tag = "4")]
+    pub probe_kind: i32,
+    #[prost(message, optional, tag = "5")]
+    pub requested_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(enumeration = "AvatarDebugRequestedBy", tag = "6")]
+    pub requested_by: i32,
+    #[prost(string, tag = "7")]
+    pub turn_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub stream_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "9")]
+    pub avatar_instance_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "10")]
+    pub runtime_replay_ref: ::prost::alloc::string::String,
+    #[prost(bool, tag = "11")]
+    pub replay_requested: bool,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AvatarDebugProbeResultEnvelope {
+    #[prost(string, tag = "1")]
+    pub probe_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "AvatarDebugProbeKind", tag = "4")]
+    pub probe_kind: i32,
+    #[prost(enumeration = "AvatarDebugProbeStatus", tag = "5")]
+    pub status: i32,
+    #[prost(message, optional, tag = "6")]
+    pub observed_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(string, repeated, tag = "7")]
+    pub evidence_refs: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "8")]
+    pub reason_code: ::prost::alloc::string::String,
+    #[prost(string, tag = "9")]
+    pub result_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AvatarDebugReplayRef {
+    #[prost(string, tag = "1")]
+    pub probe_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub replay_ref: ::prost::alloc::string::String,
+    #[prost(enumeration = "AvatarDebugReplayRedactionState", tag = "3")]
+    pub redaction_state: i32,
+    #[prost(enumeration = "AvatarDebugReplayVisibility", tag = "4")]
+    pub visibility: i32,
+    #[prost(message, optional, tag = "5")]
+    pub linked_at: ::core::option::Option<::prost_types::Timestamp>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AgentAvatarDebugEventDetail {
+    #[prost(enumeration = "AvatarDebugEventFamily", tag = "1")]
+    pub family: i32,
+    #[prost(message, optional, tag = "2")]
+    pub request: ::core::option::Option<AvatarDebugProbeRequestEnvelope>,
+    #[prost(message, optional, tag = "3")]
+    pub result: ::core::option::Option<AvatarDebugProbeResultEnvelope>,
+    #[prost(message, optional, tag = "4")]
+    pub replay: ::core::option::Option<AvatarDebugReplayRef>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AgentEvent {
+    #[prost(enumeration = "AgentEventType", tag = "1")]
+    pub event_type: i32,
+    #[prost(uint64, tag = "2")]
+    pub sequence: u64,
+    #[prost(string, tag = "3")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "4")]
+    pub timestamp: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(string, tag = "20")]
+    pub local_agent_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "21")]
+    pub owner_user_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "22")]
+    pub realm_agent_id: ::prost::alloc::string::String,
+    #[prost(oneof = "agent_event::Detail", tags = "10, 11, 12, 13, 14, 15, 16, 17")]
+    pub detail: ::core::option::Option<agent_event::Detail>,
+}
+/// Nested message and enum types in `AgentEvent`.
+pub mod agent_event {
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Detail {
+        #[prost(message, tag = "10")]
+        Lifecycle(super::AgentLifecycleEventDetail),
+        #[prost(message, tag = "11")]
+        Hook(super::AgentHookEventDetail),
+        #[prost(message, tag = "12")]
+        Memory(super::AgentMemoryEventDetail),
+        #[prost(message, tag = "13")]
+        Budget(super::AgentBudgetEventDetail),
+        #[prost(message, tag = "14")]
+        Replication(super::AgentReplicationEventDetail),
+        #[prost(message, tag = "15")]
+        State(super::AgentStateEventDetail),
+        #[prost(message, tag = "16")]
+        Presentation(super::AgentPresentationEventDetail),
+        #[prost(message, tag = "17")]
+        AvatarDebug(super::AgentAvatarDebugEventDetail),
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct InitializeAgentRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<AgentRequestContext>,
+    #[prost(string, tag = "2")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub display_name: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "4")]
+    pub autonomy_config: ::core::option::Option<AgentAutonomyConfig>,
+    #[prost(string, tag = "5")]
+    pub world_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "6")]
+    pub metadata: ::core::option::Option<::prost_types::Struct>,
+    #[prost(string, tag = "20")]
+    pub local_agent_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "21")]
+    pub owner_user_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "22")]
+    pub realm_agent_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct InitializeAgentResponse {
+    #[prost(message, optional, tag = "1")]
+    pub agent: ::core::option::Option<AgentRecord>,
+    #[prost(message, optional, tag = "2")]
+    pub state: ::core::option::Option<AgentStateProjection>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct TerminateAgentRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<AgentRequestContext>,
+    #[prost(string, tag = "2")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub reason: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct TerminateAgentResponse {
+    #[prost(message, optional, tag = "1")]
+    pub ack: ::core::option::Option<Ack>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetAgentRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<AgentRequestContext>,
+    #[prost(string, tag = "2")]
+    pub agent_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetAgentResponse {
+    #[prost(message, optional, tag = "1")]
+    pub agent: ::core::option::Option<AgentRecord>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ListAgentsRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<AgentRequestContext>,
+    #[prost(enumeration = "AgentLifecycleStatus", tag = "2")]
+    pub lifecycle_filter: i32,
+    #[prost(bool, optional, tag = "3")]
+    pub autonomy_enabled: ::core::option::Option<bool>,
+    #[prost(int32, tag = "4")]
+    pub page_size: i32,
+    #[prost(string, tag = "5")]
+    pub page_token: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListAgentsResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub agents: ::prost::alloc::vec::Vec<AgentRecord>,
+    #[prost(string, tag = "2")]
+    pub next_page_token: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetAgentStateRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<AgentRequestContext>,
+    #[prost(string, tag = "2")]
+    pub agent_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetAgentStateResponse {
+    #[prost(message, optional, tag = "1")]
+    pub state: ::core::option::Option<AgentStateProjection>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UpdateAgentStateRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<AgentRequestContext>,
+    #[prost(string, tag = "2")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "3")]
+    pub mutations: ::prost::alloc::vec::Vec<AgentStateMutation>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UpdateAgentStateResponse {
+    #[prost(message, optional, tag = "1")]
+    pub state: ::core::option::Option<AgentStateProjection>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct EnableAutonomyRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<AgentRequestContext>,
+    #[prost(string, tag = "2")]
+    pub agent_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct EnableAutonomyResponse {
+    #[prost(message, optional, tag = "1")]
+    pub autonomy: ::core::option::Option<AgentAutonomyState>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct DisableAutonomyRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<AgentRequestContext>,
+    #[prost(string, tag = "2")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub reason: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DisableAutonomyResponse {
+    #[prost(message, optional, tag = "1")]
+    pub autonomy: ::core::option::Option<AgentAutonomyState>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SetAutonomyConfigRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<AgentRequestContext>,
+    #[prost(string, tag = "2")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "3")]
+    pub config: ::core::option::Option<AgentAutonomyConfig>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SetAutonomyConfigResponse {
+    #[prost(message, optional, tag = "1")]
+    pub autonomy: ::core::option::Option<AgentAutonomyState>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SetAgentPresentationProfileRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<AgentRequestContext>,
+    #[prost(string, tag = "2")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(oneof = "set_agent_presentation_profile_request::Mutation", tags = "3, 4")]
+    pub mutation: ::core::option::Option<
+        set_agent_presentation_profile_request::Mutation,
+    >,
+}
+/// Nested message and enum types in `SetAgentPresentationProfileRequest`.
+pub mod set_agent_presentation_profile_request {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Mutation {
+        #[prost(message, tag = "3")]
+        Profile(super::AgentPresentationProfile),
+        #[prost(message, tag = "4")]
+        Clear(super::ClearAgentPresentationProfile),
+    }
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SetAgentPresentationProfileResponse {
+    #[prost(message, optional, tag = "1")]
+    pub profile: ::core::option::Option<AgentPresentationProfile>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ListPendingHooksRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<AgentRequestContext>,
+    #[prost(string, tag = "2")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "HookTriggerFamily", tag = "3")]
+    pub trigger_family_filter: i32,
+    #[prost(enumeration = "HookAdmissionState", tag = "4")]
+    pub admission_state_filter: i32,
+    #[prost(int32, tag = "5")]
+    pub page_size: i32,
+    #[prost(string, tag = "6")]
+    pub page_token: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListPendingHooksResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub hooks: ::prost::alloc::vec::Vec<PendingHook>,
+    #[prost(string, tag = "2")]
+    pub next_page_token: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CancelHookRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<AgentRequestContext>,
+    #[prost(string, tag = "2")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub intent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub reason: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CancelHookResponse {
+    #[prost(message, optional, tag = "1")]
+    pub outcome: ::core::option::Option<HookExecutionOutcome>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct QueryAgentMemoryRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<AgentRequestContext>,
+    #[prost(string, tag = "2")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub query: ::prost::alloc::string::String,
+    #[prost(int32, tag = "4")]
+    pub limit: i32,
+    #[prost(enumeration = "MemoryCanonicalClass", repeated, tag = "5")]
+    pub canonical_classes: ::prost::alloc::vec::Vec<i32>,
+    #[prost(enumeration = "MemoryRecordKind", repeated, tag = "6")]
+    pub kinds: ::prost::alloc::vec::Vec<i32>,
+    #[prost(bool, tag = "7")]
+    pub include_invalidated: bool,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct QueryAgentMemoryResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub memories: ::prost::alloc::vec::Vec<CanonicalMemoryView>,
+    #[prost(message, repeated, tag = "2")]
+    pub narratives: ::prost::alloc::vec::Vec<NarrativeRecallHit>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct WriteAgentMemoryRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<AgentRequestContext>,
+    #[prost(string, tag = "2")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "3")]
+    pub candidates: ::prost::alloc::vec::Vec<CanonicalMemoryCandidate>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct WriteAgentMemoryResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub accepted: ::prost::alloc::vec::Vec<CanonicalMemoryView>,
+    #[prost(message, repeated, tag = "2")]
+    pub rejected: ::prost::alloc::vec::Vec<CanonicalMemoryRejection>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AgentCanonicalMemoryBankStatus {
+    #[prost(enumeration = "AgentCanonicalMemoryBankMode", tag = "1")]
+    pub mode: i32,
+    #[prost(string, tag = "2")]
+    pub bank_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "3")]
+    pub embedding_profile: ::core::option::Option<MemoryEmbeddingProfile>,
+    #[prost(string, tag = "4")]
+    pub binding_source_kind: ::prost::alloc::string::String,
+    #[prost(enumeration = "ReasonCode", tag = "5")]
+    pub blocked_reason_code: i32,
+    #[prost(bool, tag = "6")]
+    pub pending_cutover: bool,
+    #[prost(string, tag = "7")]
+    pub canonical_bank_status: ::prost::alloc::string::String,
+    #[prost(bool, tag = "8")]
+    pub bind_allowed: bool,
+    #[prost(bool, tag = "9")]
+    pub cutover_allowed: bool,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetAgentCanonicalMemoryBankStatusRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<AgentRequestContext>,
+    #[prost(string, tag = "2")]
+    pub agent_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetAgentCanonicalMemoryBankStatusResponse {
+    #[prost(message, optional, tag = "1")]
+    pub status: ::core::option::Option<AgentCanonicalMemoryBankStatus>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RequestAgentCanonicalMemoryBankBindRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<AgentRequestContext>,
+    #[prost(string, tag = "2")]
+    pub agent_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RequestAgentCanonicalMemoryBankBindResponse {
+    #[prost(message, optional, tag = "1")]
+    pub status: ::core::option::Option<AgentCanonicalMemoryBankStatus>,
+    #[prost(string, tag = "2")]
+    pub outcome: ::prost::alloc::string::String,
+    #[prost(enumeration = "ReasonCode", tag = "3")]
+    pub blocked_reason_code: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SubscribeAgentEventsRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<AgentRequestContext>,
+    #[prost(string, tag = "2")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub cursor: ::prost::alloc::string::String,
+    #[prost(enumeration = "AgentEventType", repeated, tag = "4")]
+    pub event_filters: ::prost::alloc::vec::Vec<i32>,
+}
+/// K-AGCORE-034 ConversationAnchor boundary: runtime-owned continuity anchor.
+/// `conversation_anchor_id` is the only admitted cross-surface continuity
+/// scope; `agent_id` is agent identity only. `turn_id` and `message_id` are
+/// anchor-scoped. `subject_user_id` is explicit runtime truth at anchor-open
+/// time; hosts must not infer anchor continuity from agent identity.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ConversationAnchor {
+    #[prost(string, tag = "1")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub subject_user_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "ConversationAnchorStatus", tag = "4")]
+    pub status: i32,
+    #[prost(string, tag = "5")]
+    pub last_turn_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub last_message_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "7")]
+    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "8")]
+    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "9")]
+    pub metadata: ::core::option::Option<::prost_types::Struct>,
+    #[prost(string, tag = "20")]
+    pub local_agent_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "21")]
+    pub owner_user_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "22")]
+    pub realm_agent_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ConversationAnchorSnapshot {
+    #[prost(message, optional, tag = "1")]
+    pub anchor: ::core::option::Option<ConversationAnchor>,
+    #[prost(string, tag = "2")]
+    pub active_turn_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub active_stream_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct OpenConversationAnchorRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<AgentRequestContext>,
+    #[prost(string, tag = "2")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub subject_user_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "4")]
+    pub metadata: ::core::option::Option<::prost_types::Struct>,
+    #[prost(string, tag = "20")]
+    pub local_agent_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "21")]
+    pub owner_user_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "22")]
+    pub realm_agent_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct OpenConversationAnchorResponse {
+    #[prost(message, optional, tag = "1")]
+    pub snapshot: ::core::option::Option<ConversationAnchorSnapshot>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetConversationAnchorSnapshotRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<AgentRequestContext>,
+    #[prost(string, tag = "2")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetConversationAnchorSnapshotResponse {
+    #[prost(message, optional, tag = "1")]
+    pub snapshot: ::core::option::Option<ConversationAnchorSnapshot>,
+}
+/// K-AGCORE-138 AvatarLiveInstanceBinding boundary: runtime-owned recovery
+/// binding from an Avatar window instance to an already-open ConversationAnchor.
+/// Desktop may register this binding after opening an anchor; Avatar may resolve
+/// it after validating launch `agent_id` through Runtime/SDK. This binding is
+/// not launch payload authority and MUST NOT create anchors.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AvatarLiveInstanceBinding {
+    #[prost(string, tag = "1")]
+    pub avatar_instance_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub subject_user_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "5")]
+    pub registered_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "6")]
+    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(string, tag = "20")]
+    pub local_agent_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "21")]
+    pub owner_user_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "22")]
+    pub realm_agent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "23")]
+    pub caller_app_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RegisterAvatarLiveInstanceBindingRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<AgentRequestContext>,
+    #[prost(string, tag = "2")]
+    pub avatar_instance_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct RegisterAvatarLiveInstanceBindingResponse {
+    #[prost(message, optional, tag = "1")]
+    pub binding: ::core::option::Option<AvatarLiveInstanceBinding>,
+    #[prost(message, optional, tag = "2")]
+    pub snapshot: ::core::option::Option<ConversationAnchorSnapshot>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ResolveAvatarLiveInstanceBindingRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<AgentRequestContext>,
+    #[prost(string, tag = "2")]
+    pub avatar_instance_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ResolveAvatarLiveInstanceBindingResponse {
+    #[prost(message, optional, tag = "1")]
+    pub binding: ::core::option::Option<AvatarLiveInstanceBinding>,
+    #[prost(message, optional, tag = "2")]
+    pub snapshot: ::core::option::Option<ConversationAnchorSnapshot>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetPublicChatSessionSnapshotRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<AgentRequestContext>,
+    #[prost(string, tag = "2")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub request_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub world_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetPublicChatSessionSnapshotResponse {
+    #[prost(message, optional, tag = "1")]
+    pub snapshot: ::core::option::Option<::prost_types::Struct>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AgentConversationSummary {
+    #[prost(message, optional, tag = "1")]
+    pub anchor: ::core::option::Option<ConversationAnchor>,
+    #[prost(string, tag = "2")]
+    pub title: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub last_message_role: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub last_message_text: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub last_message_id: ::prost::alloc::string::String,
+    #[prost(int32, tag = "6")]
+    pub transcript_message_count: i32,
+    #[prost(message, optional, tag = "7")]
+    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ListAgentConversationSummariesRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<AgentRequestContext>,
+    #[prost(string, tag = "2")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "ConversationAnchorStatus", repeated, tag = "3")]
+    pub status_filter: ::prost::alloc::vec::Vec<i32>,
+    #[prost(int32, tag = "4")]
+    pub page_size: i32,
+    #[prost(string, tag = "5")]
+    pub page_token: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListAgentConversationSummariesResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub summaries: ::prost::alloc::vec::Vec<AgentConversationSummary>,
+    #[prost(string, tag = "2")]
+    pub next_page_token: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CompanionParticipationProjection {
+    #[prost(string, tag = "1")]
+    pub projection_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "CompanionParticipationSurfaceKind", tag = "3")]
+    pub surface_kind: i32,
+    #[prost(string, tag = "4")]
+    pub profile_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub room_orchestration_ref: ::prost::alloc::string::String,
+    #[prost(enumeration = "CompanionParticipationTriggerSource", tag = "6")]
+    pub trigger_source: i32,
+    #[prost(enumeration = "CompanionParticipationStatus", tag = "7")]
+    pub status: i32,
+    #[prost(string, tag = "8")]
+    pub candidate_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "9")]
+    pub commit_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "10")]
+    pub refusal_reason: ::prost::alloc::string::String,
+    #[prost(string, tag = "11")]
+    pub presentation_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "12")]
+    pub audit_ref: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "13")]
+    pub observed_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(string, tag = "14")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "15")]
+    pub turn_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "16")]
+    pub stream_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetCompanionParticipationProjectionRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<AgentRequestContext>,
+    #[prost(string, tag = "2")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "CompanionParticipationSurfaceKind", tag = "4")]
+    pub surface_kind: i32,
+    #[prost(enumeration = "CompanionParticipationTriggerSource", tag = "5")]
+    pub trigger_source: i32,
+    #[prost(string, tag = "6")]
+    pub profile_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub room_orchestration_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub request_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetCompanionParticipationProjectionResponse {
+    #[prost(message, optional, tag = "1")]
+    pub projection: ::core::option::Option<CompanionParticipationProjection>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RequestCompanionParticipationRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<AgentRequestContext>,
+    #[prost(string, tag = "2")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "CompanionParticipationSurfaceKind", tag = "4")]
+    pub surface_kind: i32,
+    #[prost(enumeration = "CompanionParticipationTriggerSource", tag = "5")]
+    pub trigger_source: i32,
+    #[prost(string, tag = "6")]
+    pub profile_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub room_orchestration_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub request_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "9")]
+    pub text: ::prost::alloc::string::String,
+    #[prost(string, tag = "10")]
+    pub thread_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "11")]
+    pub world_id: ::prost::alloc::string::String,
+    #[prost(int32, tag = "12")]
+    pub max_output_tokens: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RequestCompanionParticipationResponse {
+    #[prost(message, optional, tag = "1")]
+    pub projection: ::core::option::Option<CompanionParticipationProjection>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CancelCompanionParticipationRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<AgentRequestContext>,
+    #[prost(string, tag = "2")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "CompanionParticipationSurfaceKind", tag = "4")]
+    pub surface_kind: i32,
+    #[prost(enumeration = "CompanionParticipationTriggerSource", tag = "5")]
+    pub trigger_source: i32,
+    #[prost(string, tag = "6")]
+    pub profile_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub room_orchestration_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub projection_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "9")]
+    pub turn_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "10")]
+    pub reason: ::prost::alloc::string::String,
+    #[prost(string, tag = "11")]
+    pub request_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CancelCompanionParticipationResponse {
+    #[prost(message, optional, tag = "1")]
+    pub projection: ::core::option::Option<CompanionParticipationProjection>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct OpenCompanionParticipationReplayRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<AgentRequestContext>,
+    #[prost(string, tag = "2")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "CompanionParticipationSurfaceKind", tag = "4")]
+    pub surface_kind: i32,
+    #[prost(enumeration = "CompanionParticipationTriggerSource", tag = "5")]
+    pub trigger_source: i32,
+    #[prost(string, tag = "6")]
+    pub profile_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub room_orchestration_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub projection_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "9")]
+    pub request_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct OpenCompanionParticipationReplayResponse {
+    #[prost(string, tag = "1")]
+    pub replay_ref: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub projection: ::core::option::Option<CompanionParticipationProjection>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetAvatarDebugSnapshotRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<AgentRequestContext>,
+    #[prost(string, tag = "2")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetAvatarDebugSnapshotResponse {
+    #[prost(string, tag = "1")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "3")]
+    pub probe_results: ::prost::alloc::vec::Vec<AvatarDebugProbeResultEnvelope>,
+    #[prost(message, repeated, tag = "4")]
+    pub replay_refs: ::prost::alloc::vec::Vec<AvatarDebugReplayRef>,
+    #[prost(message, optional, tag = "5")]
+    pub observed_at: ::core::option::Option<::prost_types::Timestamp>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RequestAvatarDebugProbeRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<AgentRequestContext>,
+    #[prost(string, tag = "2")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "AvatarDebugProbeKind", tag = "4")]
+    pub probe_kind: i32,
+    #[prost(enumeration = "AvatarDebugRequestedBy", tag = "5")]
+    pub requested_by: i32,
+    #[prost(string, tag = "6")]
+    pub probe_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub turn_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub stream_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "9")]
+    pub avatar_instance_id: ::prost::alloc::string::String,
+    #[prost(bool, tag = "10")]
+    pub replay_requested: bool,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RequestAvatarDebugProbeResponse {
+    #[prost(message, optional, tag = "1")]
+    pub request: ::core::option::Option<AvatarDebugProbeRequestEnvelope>,
+    #[prost(message, optional, tag = "2")]
+    pub result: ::core::option::Option<AvatarDebugProbeResultEnvelope>,
+    #[prost(message, optional, tag = "3")]
+    pub replay_ref: ::core::option::Option<AvatarDebugReplayRef>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ListAvatarDebugProbeResultsRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<AgentRequestContext>,
+    #[prost(string, tag = "2")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "AvatarDebugProbeKind", tag = "4")]
+    pub probe_kind: i32,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListAvatarDebugProbeResultsResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub probe_results: ::prost::alloc::vec::Vec<AvatarDebugProbeResultEnvelope>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetAvatarDebugReplayRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<AgentRequestContext>,
+    #[prost(string, tag = "2")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub probe_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetAvatarDebugReplayResponse {
+    #[prost(message, optional, tag = "1")]
+    pub request: ::core::option::Option<AvatarDebugProbeRequestEnvelope>,
+    #[prost(message, optional, tag = "2")]
+    pub result: ::core::option::Option<AvatarDebugProbeResultEnvelope>,
+    #[prost(message, optional, tag = "3")]
+    pub replay_ref: ::core::option::Option<AvatarDebugReplayRef>,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AgentLifecycleStatus {
+    Unspecified = 0,
+    Initializing = 1,
+    Active = 2,
+    Suspended = 3,
+    Terminating = 4,
+    Terminated = 5,
+}
+impl AgentLifecycleStatus {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AGENT_LIFECYCLE_STATUS_UNSPECIFIED",
+            Self::Initializing => "AGENT_LIFECYCLE_STATUS_INITIALIZING",
+            Self::Active => "AGENT_LIFECYCLE_STATUS_ACTIVE",
+            Self::Suspended => "AGENT_LIFECYCLE_STATUS_SUSPENDED",
+            Self::Terminating => "AGENT_LIFECYCLE_STATUS_TERMINATING",
+            Self::Terminated => "AGENT_LIFECYCLE_STATUS_TERMINATED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AGENT_LIFECYCLE_STATUS_UNSPECIFIED" => Some(Self::Unspecified),
+            "AGENT_LIFECYCLE_STATUS_INITIALIZING" => Some(Self::Initializing),
+            "AGENT_LIFECYCLE_STATUS_ACTIVE" => Some(Self::Active),
+            "AGENT_LIFECYCLE_STATUS_SUSPENDED" => Some(Self::Suspended),
+            "AGENT_LIFECYCLE_STATUS_TERMINATING" => Some(Self::Terminating),
+            "AGENT_LIFECYCLE_STATUS_TERMINATED" => Some(Self::Terminated),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AgentExecutionState {
+    Unspecified = 0,
+    Idle = 1,
+    ChatActive = 2,
+    LifePending = 3,
+    LifeRunning = 4,
+    Suspended = 5,
+}
+impl AgentExecutionState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AGENT_EXECUTION_STATE_UNSPECIFIED",
+            Self::Idle => "AGENT_EXECUTION_STATE_IDLE",
+            Self::ChatActive => "AGENT_EXECUTION_STATE_CHAT_ACTIVE",
+            Self::LifePending => "AGENT_EXECUTION_STATE_LIFE_PENDING",
+            Self::LifeRunning => "AGENT_EXECUTION_STATE_LIFE_RUNNING",
+            Self::Suspended => "AGENT_EXECUTION_STATE_SUSPENDED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AGENT_EXECUTION_STATE_UNSPECIFIED" => Some(Self::Unspecified),
+            "AGENT_EXECUTION_STATE_IDLE" => Some(Self::Idle),
+            "AGENT_EXECUTION_STATE_CHAT_ACTIVE" => Some(Self::ChatActive),
+            "AGENT_EXECUTION_STATE_LIFE_PENDING" => Some(Self::LifePending),
+            "AGENT_EXECUTION_STATE_LIFE_RUNNING" => Some(Self::LifeRunning),
+            "AGENT_EXECUTION_STATE_SUSPENDED" => Some(Self::Suspended),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AgentTrackType {
+    Unspecified = 0,
+    Chat = 1,
+    Life = 2,
+}
+impl AgentTrackType {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AGENT_TRACK_TYPE_UNSPECIFIED",
+            Self::Chat => "AGENT_TRACK_TYPE_CHAT",
+            Self::Life => "AGENT_TRACK_TYPE_LIFE",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AGENT_TRACK_TYPE_UNSPECIFIED" => Some(Self::Unspecified),
+            "AGENT_TRACK_TYPE_CHAT" => Some(Self::Chat),
+            "AGENT_TRACK_TYPE_LIFE" => Some(Self::Life),
+            _ => None,
+        }
+    }
+}
+/// K-AGCORE-041 HookIntent trigger family is limited to `time` and `event`.
+/// Non-admitted trigger families (turn_completed, scheduled_time absolute,
+/// state_condition, world_event, compound) are not part of the mounted
+/// vocabulary and must not be reintroduced by implementation rename.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum HookTriggerFamily {
+    Unspecified = 0,
+    Time = 1,
+    Event = 2,
+}
+impl HookTriggerFamily {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "HOOK_TRIGGER_FAMILY_UNSPECIFIED",
+            Self::Time => "HOOK_TRIGGER_FAMILY_TIME",
+            Self::Event => "HOOK_TRIGGER_FAMILY_EVENT",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "HOOK_TRIGGER_FAMILY_UNSPECIFIED" => Some(Self::Unspecified),
+            "HOOK_TRIGGER_FAMILY_TIME" => Some(Self::Time),
+            "HOOK_TRIGGER_FAMILY_EVENT" => Some(Self::Event),
+            _ => None,
+        }
+    }
+}
+/// K-AGCORE-041 admitted effect is limited to `follow-up-turn`. Widening
+/// beyond this matrix requires a later dedicated runtime rule.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum HookEffect {
+    Unspecified = 0,
+    FollowUpTurn = 1,
+}
+impl HookEffect {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "HOOK_EFFECT_UNSPECIFIED",
+            Self::FollowUpTurn => "HOOK_EFFECT_FOLLOW_UP_TURN",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "HOOK_EFFECT_UNSPECIFIED" => Some(Self::Unspecified),
+            "HOOK_EFFECT_FOLLOW_UP_TURN" => Some(Self::FollowUpTurn),
+            _ => None,
+        }
+    }
+}
+/// K-AGCORE-041 admission states that must remain reconstructable through
+/// committed runtime truth.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum HookAdmissionState {
+    Unspecified = 0,
+    Proposed = 1,
+    Pending = 2,
+    Rejected = 3,
+    Running = 4,
+    Completed = 5,
+    Failed = 6,
+    Canceled = 7,
+    Rescheduled = 8,
+}
+impl HookAdmissionState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "HOOK_ADMISSION_STATE_UNSPECIFIED",
+            Self::Proposed => "HOOK_ADMISSION_STATE_PROPOSED",
+            Self::Pending => "HOOK_ADMISSION_STATE_PENDING",
+            Self::Rejected => "HOOK_ADMISSION_STATE_REJECTED",
+            Self::Running => "HOOK_ADMISSION_STATE_RUNNING",
+            Self::Completed => "HOOK_ADMISSION_STATE_COMPLETED",
+            Self::Failed => "HOOK_ADMISSION_STATE_FAILED",
+            Self::Canceled => "HOOK_ADMISSION_STATE_CANCELED",
+            Self::Rescheduled => "HOOK_ADMISSION_STATE_RESCHEDULED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "HOOK_ADMISSION_STATE_UNSPECIFIED" => Some(Self::Unspecified),
+            "HOOK_ADMISSION_STATE_PROPOSED" => Some(Self::Proposed),
+            "HOOK_ADMISSION_STATE_PENDING" => Some(Self::Pending),
+            "HOOK_ADMISSION_STATE_REJECTED" => Some(Self::Rejected),
+            "HOOK_ADMISSION_STATE_RUNNING" => Some(Self::Running),
+            "HOOK_ADMISSION_STATE_COMPLETED" => Some(Self::Completed),
+            "HOOK_ADMISSION_STATE_FAILED" => Some(Self::Failed),
+            "HOOK_ADMISSION_STATE_CANCELED" => Some(Self::Canceled),
+            "HOOK_ADMISSION_STATE_RESCHEDULED" => Some(Self::Rescheduled),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AgentEventType {
+    Unspecified = 0,
+    Lifecycle = 1,
+    Hook = 2,
+    Memory = 3,
+    Budget = 4,
+    Replication = 5,
+    State = 6,
+    Presentation = 7,
+    AvatarDebug = 8,
+}
+impl AgentEventType {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AGENT_EVENT_TYPE_UNSPECIFIED",
+            Self::Lifecycle => "AGENT_EVENT_TYPE_LIFECYCLE",
+            Self::Hook => "AGENT_EVENT_TYPE_HOOK",
+            Self::Memory => "AGENT_EVENT_TYPE_MEMORY",
+            Self::Budget => "AGENT_EVENT_TYPE_BUDGET",
+            Self::Replication => "AGENT_EVENT_TYPE_REPLICATION",
+            Self::State => "AGENT_EVENT_TYPE_STATE",
+            Self::Presentation => "AGENT_EVENT_TYPE_PRESENTATION",
+            Self::AvatarDebug => "AGENT_EVENT_TYPE_AVATAR_DEBUG",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AGENT_EVENT_TYPE_UNSPECIFIED" => Some(Self::Unspecified),
+            "AGENT_EVENT_TYPE_LIFECYCLE" => Some(Self::Lifecycle),
+            "AGENT_EVENT_TYPE_HOOK" => Some(Self::Hook),
+            "AGENT_EVENT_TYPE_MEMORY" => Some(Self::Memory),
+            "AGENT_EVENT_TYPE_BUDGET" => Some(Self::Budget),
+            "AGENT_EVENT_TYPE_REPLICATION" => Some(Self::Replication),
+            "AGENT_EVENT_TYPE_STATE" => Some(Self::State),
+            "AGENT_EVENT_TYPE_PRESENTATION" => Some(Self::Presentation),
+            "AGENT_EVENT_TYPE_AVATAR_DEBUG" => Some(Self::AvatarDebug),
+            _ => None,
+        }
+    }
+}
+/// K-AGCORE-037 AgentStateEventFamily discriminates runtime.agent.state.\* event
+/// families. Mapping is 1:1 to the mounted public family names
+/// (runtime.agent.state.{status_text_changed|execution_state_changed|
+/// emotion_changed|posture_changed}). Consumers MUST dispatch on `family`;
+/// reading payload fields alone is not a substitute for the discriminator.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AgentStateEventFamily {
+    Unspecified = 0,
+    StatusTextChanged = 1,
+    ExecutionStateChanged = 2,
+    EmotionChanged = 3,
+    PostureChanged = 4,
+}
+impl AgentStateEventFamily {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AGENT_STATE_EVENT_FAMILY_UNSPECIFIED",
+            Self::StatusTextChanged => "AGENT_STATE_EVENT_FAMILY_STATUS_TEXT_CHANGED",
+            Self::ExecutionStateChanged => {
+                "AGENT_STATE_EVENT_FAMILY_EXECUTION_STATE_CHANGED"
+            }
+            Self::EmotionChanged => "AGENT_STATE_EVENT_FAMILY_EMOTION_CHANGED",
+            Self::PostureChanged => "AGENT_STATE_EVENT_FAMILY_POSTURE_CHANGED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AGENT_STATE_EVENT_FAMILY_UNSPECIFIED" => Some(Self::Unspecified),
+            "AGENT_STATE_EVENT_FAMILY_STATUS_TEXT_CHANGED" => {
+                Some(Self::StatusTextChanged)
+            }
+            "AGENT_STATE_EVENT_FAMILY_EXECUTION_STATE_CHANGED" => {
+                Some(Self::ExecutionStateChanged)
+            }
+            "AGENT_STATE_EVENT_FAMILY_EMOTION_CHANGED" => Some(Self::EmotionChanged),
+            "AGENT_STATE_EVENT_FAMILY_POSTURE_CHANGED" => Some(Self::PostureChanged),
+            _ => None,
+        }
+    }
+}
+/// K-AGCORE-037 AgentPresentationEventFamily discriminates
+/// runtime.agent.presentation.\* families. Mapping is 1:1 to
+/// runtime.agent.presentation.{activity_requested|motion_requested|
+/// expression_requested|pose_requested|pose_cleared|lookat_requested}.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AgentPresentationEventFamily {
+    Unspecified = 0,
+    ActivityRequested = 1,
+    MotionRequested = 2,
+    ExpressionRequested = 3,
+    PoseRequested = 4,
+    PoseCleared = 5,
+    LookatRequested = 6,
+}
+impl AgentPresentationEventFamily {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AGENT_PRESENTATION_EVENT_FAMILY_UNSPECIFIED",
+            Self::ActivityRequested => {
+                "AGENT_PRESENTATION_EVENT_FAMILY_ACTIVITY_REQUESTED"
+            }
+            Self::MotionRequested => "AGENT_PRESENTATION_EVENT_FAMILY_MOTION_REQUESTED",
+            Self::ExpressionRequested => {
+                "AGENT_PRESENTATION_EVENT_FAMILY_EXPRESSION_REQUESTED"
+            }
+            Self::PoseRequested => "AGENT_PRESENTATION_EVENT_FAMILY_POSE_REQUESTED",
+            Self::PoseCleared => "AGENT_PRESENTATION_EVENT_FAMILY_POSE_CLEARED",
+            Self::LookatRequested => "AGENT_PRESENTATION_EVENT_FAMILY_LOOKAT_REQUESTED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AGENT_PRESENTATION_EVENT_FAMILY_UNSPECIFIED" => Some(Self::Unspecified),
+            "AGENT_PRESENTATION_EVENT_FAMILY_ACTIVITY_REQUESTED" => {
+                Some(Self::ActivityRequested)
+            }
+            "AGENT_PRESENTATION_EVENT_FAMILY_MOTION_REQUESTED" => {
+                Some(Self::MotionRequested)
+            }
+            "AGENT_PRESENTATION_EVENT_FAMILY_EXPRESSION_REQUESTED" => {
+                Some(Self::ExpressionRequested)
+            }
+            "AGENT_PRESENTATION_EVENT_FAMILY_POSE_REQUESTED" => Some(Self::PoseRequested),
+            "AGENT_PRESENTATION_EVENT_FAMILY_POSE_CLEARED" => Some(Self::PoseCleared),
+            "AGENT_PRESENTATION_EVENT_FAMILY_LOOKAT_REQUESTED" => {
+                Some(Self::LookatRequested)
+            }
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AvatarDebugProbeKind {
+    Unspecified = 0,
+    PackageValidation = 1,
+    LaunchReadiness = 2,
+    BackendLoad = 3,
+    CapabilityProfile = 4,
+    RouteSupportMatrix = 5,
+    GeneratedMotion = 6,
+    EmotionExpression = 7,
+    SpeechLipsync = 8,
+    WindowHitRegion = 9,
+}
+impl AvatarDebugProbeKind {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AVATAR_DEBUG_PROBE_KIND_UNSPECIFIED",
+            Self::PackageValidation => "AVATAR_DEBUG_PROBE_KIND_PACKAGE_VALIDATION",
+            Self::LaunchReadiness => "AVATAR_DEBUG_PROBE_KIND_LAUNCH_READINESS",
+            Self::BackendLoad => "AVATAR_DEBUG_PROBE_KIND_BACKEND_LOAD",
+            Self::CapabilityProfile => "AVATAR_DEBUG_PROBE_KIND_CAPABILITY_PROFILE",
+            Self::RouteSupportMatrix => "AVATAR_DEBUG_PROBE_KIND_ROUTE_SUPPORT_MATRIX",
+            Self::GeneratedMotion => "AVATAR_DEBUG_PROBE_KIND_GENERATED_MOTION",
+            Self::EmotionExpression => "AVATAR_DEBUG_PROBE_KIND_EMOTION_EXPRESSION",
+            Self::SpeechLipsync => "AVATAR_DEBUG_PROBE_KIND_SPEECH_LIPSYNC",
+            Self::WindowHitRegion => "AVATAR_DEBUG_PROBE_KIND_WINDOW_HIT_REGION",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AVATAR_DEBUG_PROBE_KIND_UNSPECIFIED" => Some(Self::Unspecified),
+            "AVATAR_DEBUG_PROBE_KIND_PACKAGE_VALIDATION" => Some(Self::PackageValidation),
+            "AVATAR_DEBUG_PROBE_KIND_LAUNCH_READINESS" => Some(Self::LaunchReadiness),
+            "AVATAR_DEBUG_PROBE_KIND_BACKEND_LOAD" => Some(Self::BackendLoad),
+            "AVATAR_DEBUG_PROBE_KIND_CAPABILITY_PROFILE" => Some(Self::CapabilityProfile),
+            "AVATAR_DEBUG_PROBE_KIND_ROUTE_SUPPORT_MATRIX" => {
+                Some(Self::RouteSupportMatrix)
+            }
+            "AVATAR_DEBUG_PROBE_KIND_GENERATED_MOTION" => Some(Self::GeneratedMotion),
+            "AVATAR_DEBUG_PROBE_KIND_EMOTION_EXPRESSION" => Some(Self::EmotionExpression),
+            "AVATAR_DEBUG_PROBE_KIND_SPEECH_LIPSYNC" => Some(Self::SpeechLipsync),
+            "AVATAR_DEBUG_PROBE_KIND_WINDOW_HIT_REGION" => Some(Self::WindowHitRegion),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AvatarDebugProbeStatus {
+    Unspecified = 0,
+    Passed = 1,
+    Failed = 2,
+    Unsupported = 3,
+    Blocked = 4,
+    Invalid = 5,
+}
+impl AvatarDebugProbeStatus {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AVATAR_DEBUG_PROBE_STATUS_UNSPECIFIED",
+            Self::Passed => "AVATAR_DEBUG_PROBE_STATUS_PASSED",
+            Self::Failed => "AVATAR_DEBUG_PROBE_STATUS_FAILED",
+            Self::Unsupported => "AVATAR_DEBUG_PROBE_STATUS_UNSUPPORTED",
+            Self::Blocked => "AVATAR_DEBUG_PROBE_STATUS_BLOCKED",
+            Self::Invalid => "AVATAR_DEBUG_PROBE_STATUS_INVALID",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AVATAR_DEBUG_PROBE_STATUS_UNSPECIFIED" => Some(Self::Unspecified),
+            "AVATAR_DEBUG_PROBE_STATUS_PASSED" => Some(Self::Passed),
+            "AVATAR_DEBUG_PROBE_STATUS_FAILED" => Some(Self::Failed),
+            "AVATAR_DEBUG_PROBE_STATUS_UNSUPPORTED" => Some(Self::Unsupported),
+            "AVATAR_DEBUG_PROBE_STATUS_BLOCKED" => Some(Self::Blocked),
+            "AVATAR_DEBUG_PROBE_STATUS_INVALID" => Some(Self::Invalid),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AvatarDebugRequestedBy {
+    Unspecified = 0,
+    DesktopDebugWorkbench = 1,
+    RuntimePolicy = 2,
+}
+impl AvatarDebugRequestedBy {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AVATAR_DEBUG_REQUESTED_BY_UNSPECIFIED",
+            Self::DesktopDebugWorkbench => {
+                "AVATAR_DEBUG_REQUESTED_BY_DESKTOP_DEBUG_WORKBENCH"
+            }
+            Self::RuntimePolicy => "AVATAR_DEBUG_REQUESTED_BY_RUNTIME_POLICY",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AVATAR_DEBUG_REQUESTED_BY_UNSPECIFIED" => Some(Self::Unspecified),
+            "AVATAR_DEBUG_REQUESTED_BY_DESKTOP_DEBUG_WORKBENCH" => {
+                Some(Self::DesktopDebugWorkbench)
+            }
+            "AVATAR_DEBUG_REQUESTED_BY_RUNTIME_POLICY" => Some(Self::RuntimePolicy),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AvatarDebugEventFamily {
+    Unspecified = 0,
+    ProbeRequested = 1,
+    ProbeResult = 2,
+    ReplayLinked = 3,
+}
+impl AvatarDebugEventFamily {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AVATAR_DEBUG_EVENT_FAMILY_UNSPECIFIED",
+            Self::ProbeRequested => "AVATAR_DEBUG_EVENT_FAMILY_PROBE_REQUESTED",
+            Self::ProbeResult => "AVATAR_DEBUG_EVENT_FAMILY_PROBE_RESULT",
+            Self::ReplayLinked => "AVATAR_DEBUG_EVENT_FAMILY_REPLAY_LINKED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AVATAR_DEBUG_EVENT_FAMILY_UNSPECIFIED" => Some(Self::Unspecified),
+            "AVATAR_DEBUG_EVENT_FAMILY_PROBE_REQUESTED" => Some(Self::ProbeRequested),
+            "AVATAR_DEBUG_EVENT_FAMILY_PROBE_RESULT" => Some(Self::ProbeResult),
+            "AVATAR_DEBUG_EVENT_FAMILY_REPLAY_LINKED" => Some(Self::ReplayLinked),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AvatarDebugReplayRedactionState {
+    Unspecified = 0,
+    Redacted = 1,
+    Visible = 2,
+    Forbidden = 3,
+}
+impl AvatarDebugReplayRedactionState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AVATAR_DEBUG_REPLAY_REDACTION_STATE_UNSPECIFIED",
+            Self::Redacted => "AVATAR_DEBUG_REPLAY_REDACTION_STATE_REDACTED",
+            Self::Visible => "AVATAR_DEBUG_REPLAY_REDACTION_STATE_VISIBLE",
+            Self::Forbidden => "AVATAR_DEBUG_REPLAY_REDACTION_STATE_FORBIDDEN",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AVATAR_DEBUG_REPLAY_REDACTION_STATE_UNSPECIFIED" => Some(Self::Unspecified),
+            "AVATAR_DEBUG_REPLAY_REDACTION_STATE_REDACTED" => Some(Self::Redacted),
+            "AVATAR_DEBUG_REPLAY_REDACTION_STATE_VISIBLE" => Some(Self::Visible),
+            "AVATAR_DEBUG_REPLAY_REDACTION_STATE_FORBIDDEN" => Some(Self::Forbidden),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AvatarDebugReplayVisibility {
+    Unspecified = 0,
+    DesktopDebugWorkbench = 1,
+    SdkDiagnostics = 2,
+    RuntimeAuditOnly = 3,
+}
+impl AvatarDebugReplayVisibility {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AVATAR_DEBUG_REPLAY_VISIBILITY_UNSPECIFIED",
+            Self::DesktopDebugWorkbench => {
+                "AVATAR_DEBUG_REPLAY_VISIBILITY_DESKTOP_DEBUG_WORKBENCH"
+            }
+            Self::SdkDiagnostics => "AVATAR_DEBUG_REPLAY_VISIBILITY_SDK_DIAGNOSTICS",
+            Self::RuntimeAuditOnly => "AVATAR_DEBUG_REPLAY_VISIBILITY_RUNTIME_AUDIT_ONLY",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AVATAR_DEBUG_REPLAY_VISIBILITY_UNSPECIFIED" => Some(Self::Unspecified),
+            "AVATAR_DEBUG_REPLAY_VISIBILITY_DESKTOP_DEBUG_WORKBENCH" => {
+                Some(Self::DesktopDebugWorkbench)
+            }
+            "AVATAR_DEBUG_REPLAY_VISIBILITY_SDK_DIAGNOSTICS" => {
+                Some(Self::SdkDiagnostics)
+            }
+            "AVATAR_DEBUG_REPLAY_VISIBILITY_RUNTIME_AUDIT_ONLY" => {
+                Some(Self::RuntimeAuditOnly)
+            }
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AgentAutonomyMode {
+    Unspecified = 0,
+    Off = 1,
+    Low = 2,
+    Medium = 3,
+    High = 4,
+}
+impl AgentAutonomyMode {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AGENT_AUTONOMY_MODE_UNSPECIFIED",
+            Self::Off => "AGENT_AUTONOMY_MODE_OFF",
+            Self::Low => "AGENT_AUTONOMY_MODE_LOW",
+            Self::Medium => "AGENT_AUTONOMY_MODE_MEDIUM",
+            Self::High => "AGENT_AUTONOMY_MODE_HIGH",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AGENT_AUTONOMY_MODE_UNSPECIFIED" => Some(Self::Unspecified),
+            "AGENT_AUTONOMY_MODE_OFF" => Some(Self::Off),
+            "AGENT_AUTONOMY_MODE_LOW" => Some(Self::Low),
+            "AGENT_AUTONOMY_MODE_MEDIUM" => Some(Self::Medium),
+            "AGENT_AUTONOMY_MODE_HIGH" => Some(Self::High),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AgentPresentationBackendKind {
+    Unspecified = 0,
+    Vrm = 1,
+    Live2d = 2,
+    Sprite2d = 3,
+    Canvas2d = 4,
+    Video = 5,
+}
+impl AgentPresentationBackendKind {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AGENT_PRESENTATION_BACKEND_KIND_UNSPECIFIED",
+            Self::Vrm => "AGENT_PRESENTATION_BACKEND_KIND_VRM",
+            Self::Live2d => "AGENT_PRESENTATION_BACKEND_KIND_LIVE2D",
+            Self::Sprite2d => "AGENT_PRESENTATION_BACKEND_KIND_SPRITE2D",
+            Self::Canvas2d => "AGENT_PRESENTATION_BACKEND_KIND_CANVAS2D",
+            Self::Video => "AGENT_PRESENTATION_BACKEND_KIND_VIDEO",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AGENT_PRESENTATION_BACKEND_KIND_UNSPECIFIED" => Some(Self::Unspecified),
+            "AGENT_PRESENTATION_BACKEND_KIND_VRM" => Some(Self::Vrm),
+            "AGENT_PRESENTATION_BACKEND_KIND_LIVE2D" => Some(Self::Live2d),
+            "AGENT_PRESENTATION_BACKEND_KIND_SPRITE2D" => Some(Self::Sprite2d),
+            "AGENT_PRESENTATION_BACKEND_KIND_CANVAS2D" => Some(Self::Canvas2d),
+            "AGENT_PRESENTATION_BACKEND_KIND_VIDEO" => Some(Self::Video),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum ConversationAnchorStatus {
+    Unspecified = 0,
+    Active = 1,
+    Closed = 2,
+}
+impl ConversationAnchorStatus {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "CONVERSATION_ANCHOR_STATUS_UNSPECIFIED",
+            Self::Active => "CONVERSATION_ANCHOR_STATUS_ACTIVE",
+            Self::Closed => "CONVERSATION_ANCHOR_STATUS_CLOSED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "CONVERSATION_ANCHOR_STATUS_UNSPECIFIED" => Some(Self::Unspecified),
+            "CONVERSATION_ANCHOR_STATUS_ACTIVE" => Some(Self::Active),
+            "CONVERSATION_ANCHOR_STATUS_CLOSED" => Some(Self::Closed),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AgentCanonicalMemoryBankMode {
+    Unspecified = 0,
+    Baseline = 1,
+    Standard = 2,
+    Unavailable = 3,
+}
+impl AgentCanonicalMemoryBankMode {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AGENT_CANONICAL_MEMORY_BANK_MODE_UNSPECIFIED",
+            Self::Baseline => "AGENT_CANONICAL_MEMORY_BANK_MODE_BASELINE",
+            Self::Standard => "AGENT_CANONICAL_MEMORY_BANK_MODE_STANDARD",
+            Self::Unavailable => "AGENT_CANONICAL_MEMORY_BANK_MODE_UNAVAILABLE",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AGENT_CANONICAL_MEMORY_BANK_MODE_UNSPECIFIED" => Some(Self::Unspecified),
+            "AGENT_CANONICAL_MEMORY_BANK_MODE_BASELINE" => Some(Self::Baseline),
+            "AGENT_CANONICAL_MEMORY_BANK_MODE_STANDARD" => Some(Self::Standard),
+            "AGENT_CANONICAL_MEMORY_BANK_MODE_UNAVAILABLE" => Some(Self::Unavailable),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum CompanionParticipationSurfaceKind {
+    Unspecified = 0,
+    AvatarCompanion = 1,
+    DesktopCompanionPanel = 2,
+    AvatarDebugWorkbench = 3,
+}
+impl CompanionParticipationSurfaceKind {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "COMPANION_PARTICIPATION_SURFACE_KIND_UNSPECIFIED",
+            Self::AvatarCompanion => {
+                "COMPANION_PARTICIPATION_SURFACE_KIND_AVATAR_COMPANION"
+            }
+            Self::DesktopCompanionPanel => {
+                "COMPANION_PARTICIPATION_SURFACE_KIND_DESKTOP_COMPANION_PANEL"
+            }
+            Self::AvatarDebugWorkbench => {
+                "COMPANION_PARTICIPATION_SURFACE_KIND_AVATAR_DEBUG_WORKBENCH"
+            }
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "COMPANION_PARTICIPATION_SURFACE_KIND_UNSPECIFIED" => Some(Self::Unspecified),
+            "COMPANION_PARTICIPATION_SURFACE_KIND_AVATAR_COMPANION" => {
+                Some(Self::AvatarCompanion)
+            }
+            "COMPANION_PARTICIPATION_SURFACE_KIND_DESKTOP_COMPANION_PANEL" => {
+                Some(Self::DesktopCompanionPanel)
+            }
+            "COMPANION_PARTICIPATION_SURFACE_KIND_AVATAR_DEBUG_WORKBENCH" => {
+                Some(Self::AvatarDebugWorkbench)
+            }
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum CompanionParticipationTriggerSource {
+    Unspecified = 0,
+    UserExplicit = 1,
+    ScheduledProactive = 2,
+    DomainEvent = 3,
+}
+impl CompanionParticipationTriggerSource {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "COMPANION_PARTICIPATION_TRIGGER_SOURCE_UNSPECIFIED",
+            Self::UserExplicit => "COMPANION_PARTICIPATION_TRIGGER_SOURCE_USER_EXPLICIT",
+            Self::ScheduledProactive => {
+                "COMPANION_PARTICIPATION_TRIGGER_SOURCE_SCHEDULED_PROACTIVE"
+            }
+            Self::DomainEvent => "COMPANION_PARTICIPATION_TRIGGER_SOURCE_DOMAIN_EVENT",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "COMPANION_PARTICIPATION_TRIGGER_SOURCE_UNSPECIFIED" => {
+                Some(Self::Unspecified)
+            }
+            "COMPANION_PARTICIPATION_TRIGGER_SOURCE_USER_EXPLICIT" => {
+                Some(Self::UserExplicit)
+            }
+            "COMPANION_PARTICIPATION_TRIGGER_SOURCE_SCHEDULED_PROACTIVE" => {
+                Some(Self::ScheduledProactive)
+            }
+            "COMPANION_PARTICIPATION_TRIGGER_SOURCE_DOMAIN_EVENT" => {
+                Some(Self::DomainEvent)
+            }
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum CompanionParticipationStatus {
+    Unspecified = 0,
+    Idle = 1,
+    AdmissionPending = 2,
+    Blocked = 3,
+    Running = 4,
+    CandidateReady = 5,
+    CommittedByOwner = 6,
+    Failed = 7,
+    Canceled = 8,
+}
+impl CompanionParticipationStatus {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "COMPANION_PARTICIPATION_STATUS_UNSPECIFIED",
+            Self::Idle => "COMPANION_PARTICIPATION_STATUS_IDLE",
+            Self::AdmissionPending => "COMPANION_PARTICIPATION_STATUS_ADMISSION_PENDING",
+            Self::Blocked => "COMPANION_PARTICIPATION_STATUS_BLOCKED",
+            Self::Running => "COMPANION_PARTICIPATION_STATUS_RUNNING",
+            Self::CandidateReady => "COMPANION_PARTICIPATION_STATUS_CANDIDATE_READY",
+            Self::CommittedByOwner => "COMPANION_PARTICIPATION_STATUS_COMMITTED_BY_OWNER",
+            Self::Failed => "COMPANION_PARTICIPATION_STATUS_FAILED",
+            Self::Canceled => "COMPANION_PARTICIPATION_STATUS_CANCELED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "COMPANION_PARTICIPATION_STATUS_UNSPECIFIED" => Some(Self::Unspecified),
+            "COMPANION_PARTICIPATION_STATUS_IDLE" => Some(Self::Idle),
+            "COMPANION_PARTICIPATION_STATUS_ADMISSION_PENDING" => {
+                Some(Self::AdmissionPending)
+            }
+            "COMPANION_PARTICIPATION_STATUS_BLOCKED" => Some(Self::Blocked),
+            "COMPANION_PARTICIPATION_STATUS_RUNNING" => Some(Self::Running),
+            "COMPANION_PARTICIPATION_STATUS_CANDIDATE_READY" => {
+                Some(Self::CandidateReady)
+            }
+            "COMPANION_PARTICIPATION_STATUS_COMMITTED_BY_OWNER" => {
+                Some(Self::CommittedByOwner)
+            }
+            "COMPANION_PARTICIPATION_STATUS_FAILED" => Some(Self::Failed),
+            "COMPANION_PARTICIPATION_STATUS_CANCELED" => Some(Self::Canceled),
+            _ => None,
+        }
+    }
+}
+/// Generated client implementations.
+pub mod runtime_agent_service_client {
+    #![allow(
+        unused_variables,
+        dead_code,
+        missing_docs,
+        clippy::wildcard_imports,
+        clippy::let_unit_value,
+    )]
+    use tonic::codegen::*;
+    use tonic::codegen::http::Uri;
+    #[derive(Debug, Clone)]
+    pub struct RuntimeAgentServiceClient<T> {
+        inner: tonic::client::Grpc<T>,
+    }
+    impl RuntimeAgentServiceClient<tonic::transport::Channel> {
+        /// Attempt to create a new client by connecting to a given endpoint.
+        pub async fn connect<D>(dst: D) -> Result<Self, tonic::transport::Error>
+        where
+            D: TryInto<tonic::transport::Endpoint>,
+            D::Error: Into<StdError>,
+        {
+            let conn = tonic::transport::Endpoint::new(dst)?.connect().await?;
+            Ok(Self::new(conn))
+        }
+    }
+    impl<T> RuntimeAgentServiceClient<T>
+    where
+        T: tonic::client::GrpcService<tonic::body::Body>,
+        T::Error: Into<StdError>,
+        T::ResponseBody: Body<Data = Bytes> + std::marker::Send + 'static,
+        <T::ResponseBody as Body>::Error: Into<StdError> + std::marker::Send,
+    {
+        pub fn new(inner: T) -> Self {
+            let inner = tonic::client::Grpc::new(inner);
+            Self { inner }
+        }
+        pub fn with_origin(inner: T, origin: Uri) -> Self {
+            let inner = tonic::client::Grpc::with_origin(inner, origin);
+            Self { inner }
+        }
+        pub fn with_interceptor<F>(
+            inner: T,
+            interceptor: F,
+        ) -> RuntimeAgentServiceClient<InterceptedService<T, F>>
+        where
+            F: tonic::service::Interceptor,
+            T::ResponseBody: Default,
+            T: tonic::codegen::Service<
+                http::Request<tonic::body::Body>,
+                Response = http::Response<
+                    <T as tonic::client::GrpcService<tonic::body::Body>>::ResponseBody,
+                >,
+            >,
+            <T as tonic::codegen::Service<
+                http::Request<tonic::body::Body>,
+            >>::Error: Into<StdError> + std::marker::Send + std::marker::Sync,
+        {
+            RuntimeAgentServiceClient::new(InterceptedService::new(inner, interceptor))
+        }
+        /// Compress requests with the given encoding.
+        ///
+        /// This requires the server to support it otherwise it might respond with an
+        /// error.
+        #[must_use]
+        pub fn send_compressed(mut self, encoding: CompressionEncoding) -> Self {
+            self.inner = self.inner.send_compressed(encoding);
+            self
+        }
+        /// Enable decompressing responses.
+        #[must_use]
+        pub fn accept_compressed(mut self, encoding: CompressionEncoding) -> Self {
+            self.inner = self.inner.accept_compressed(encoding);
+            self
+        }
+        /// Limits the maximum size of a decoded message.
+        ///
+        /// Default: `4MB`
+        #[must_use]
+        pub fn max_decoding_message_size(mut self, limit: usize) -> Self {
+            self.inner = self.inner.max_decoding_message_size(limit);
+            self
+        }
+        /// Limits the maximum size of an encoded message.
+        ///
+        /// Default: `usize::MAX`
+        #[must_use]
+        pub fn max_encoding_message_size(mut self, limit: usize) -> Self {
+            self.inner = self.inner.max_encoding_message_size(limit);
+            self
+        }
+        pub async fn initialize_agent(
+            &mut self,
+            request: impl tonic::IntoRequest<super::InitializeAgentRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::InitializeAgentResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/InitializeAgent",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "InitializeAgent",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn terminate_agent(
+            &mut self,
+            request: impl tonic::IntoRequest<super::TerminateAgentRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::TerminateAgentResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/TerminateAgent",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "TerminateAgent",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn get_agent(
+            &mut self,
+            request: impl tonic::IntoRequest<super::GetAgentRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetAgentResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/GetAgent",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new("nimi.runtime.v1.RuntimeAgentService", "GetAgent"),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn list_agents(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ListAgentsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListAgentsResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/ListAgents",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new("nimi.runtime.v1.RuntimeAgentService", "ListAgents"),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn open_conversation_anchor(
+            &mut self,
+            request: impl tonic::IntoRequest<super::OpenConversationAnchorRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::OpenConversationAnchorResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "OpenConversationAnchor",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn get_conversation_anchor_snapshot(
+            &mut self,
+            request: impl tonic::IntoRequest<super::GetConversationAnchorSnapshotRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetConversationAnchorSnapshotResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "GetConversationAnchorSnapshot",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn register_avatar_live_instance_binding(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::RegisterAvatarLiveInstanceBindingRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::RegisterAvatarLiveInstanceBindingResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "RegisterAvatarLiveInstanceBinding",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn resolve_avatar_live_instance_binding(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::ResolveAvatarLiveInstanceBindingRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::ResolveAvatarLiveInstanceBindingResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "ResolveAvatarLiveInstanceBinding",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn get_public_chat_session_snapshot(
+            &mut self,
+            request: impl tonic::IntoRequest<super::GetPublicChatSessionSnapshotRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetPublicChatSessionSnapshotResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "GetPublicChatSessionSnapshot",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn list_agent_conversation_summaries(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::ListAgentConversationSummariesRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::ListAgentConversationSummariesResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/ListAgentConversationSummaries",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "ListAgentConversationSummaries",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn get_companion_participation_projection(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::GetCompanionParticipationProjectionRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::GetCompanionParticipationProjectionResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/GetCompanionParticipationProjection",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "GetCompanionParticipationProjection",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn request_companion_participation(
+            &mut self,
+            request: impl tonic::IntoRequest<super::RequestCompanionParticipationRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::RequestCompanionParticipationResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/RequestCompanionParticipation",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "RequestCompanionParticipation",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn cancel_companion_participation(
+            &mut self,
+            request: impl tonic::IntoRequest<super::CancelCompanionParticipationRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::CancelCompanionParticipationResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/CancelCompanionParticipation",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "CancelCompanionParticipation",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn open_companion_participation_replay(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::OpenCompanionParticipationReplayRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::OpenCompanionParticipationReplayResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/OpenCompanionParticipationReplay",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "OpenCompanionParticipationReplay",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn create_realm_group_message_candidate(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::CreateRealmGroupMessageCandidateRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::CreateRealmGroupMessageCandidateResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/CreateRealmGroupMessageCandidate",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "CreateRealmGroupMessageCandidate",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn get_realm_group_message_candidate_evidence(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::GetRealmGroupMessageCandidateEvidenceRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::GetRealmGroupMessageCandidateEvidenceResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/GetRealmGroupMessageCandidateEvidence",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "GetRealmGroupMessageCandidateEvidence",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn get_avatar_debug_snapshot(
+            &mut self,
+            request: impl tonic::IntoRequest<super::GetAvatarDebugSnapshotRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetAvatarDebugSnapshotResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugSnapshot",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "GetAvatarDebugSnapshot",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn request_avatar_debug_probe(
+            &mut self,
+            request: impl tonic::IntoRequest<super::RequestAvatarDebugProbeRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::RequestAvatarDebugProbeResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/RequestAvatarDebugProbe",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "RequestAvatarDebugProbe",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn list_avatar_debug_probe_results(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ListAvatarDebugProbeResultsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListAvatarDebugProbeResultsResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/ListAvatarDebugProbeResults",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "ListAvatarDebugProbeResults",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn get_avatar_debug_replay(
+            &mut self,
+            request: impl tonic::IntoRequest<super::GetAvatarDebugReplayRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetAvatarDebugReplayResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugReplay",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "GetAvatarDebugReplay",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn get_agent_state(
+            &mut self,
+            request: impl tonic::IntoRequest<super::GetAgentStateRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetAgentStateResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/GetAgentState",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "GetAgentState",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn update_agent_state(
+            &mut self,
+            request: impl tonic::IntoRequest<super::UpdateAgentStateRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::UpdateAgentStateResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "UpdateAgentState",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn set_agent_presentation_profile(
+            &mut self,
+            request: impl tonic::IntoRequest<super::SetAgentPresentationProfileRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::SetAgentPresentationProfileResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "SetAgentPresentationProfile",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn enable_autonomy(
+            &mut self,
+            request: impl tonic::IntoRequest<super::EnableAutonomyRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::EnableAutonomyResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/EnableAutonomy",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "EnableAutonomy",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn disable_autonomy(
+            &mut self,
+            request: impl tonic::IntoRequest<super::DisableAutonomyRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::DisableAutonomyResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "DisableAutonomy",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn set_autonomy_config(
+            &mut self,
+            request: impl tonic::IntoRequest<super::SetAutonomyConfigRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::SetAutonomyConfigResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/SetAutonomyConfig",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "SetAutonomyConfig",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn list_pending_hooks(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ListPendingHooksRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListPendingHooksResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/ListPendingHooks",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "ListPendingHooks",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn cancel_hook(
+            &mut self,
+            request: impl tonic::IntoRequest<super::CancelHookRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::CancelHookResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/CancelHook",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new("nimi.runtime.v1.RuntimeAgentService", "CancelHook"),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn list_delegated_provider_profiles(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ListDelegatedProviderProfilesRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListDelegatedProviderProfilesResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedProviderProfiles",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "ListDelegatedProviderProfiles",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn upsert_delegated_provider_profile(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::UpsertDelegatedProviderProfileRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::UpsertDelegatedProviderProfileResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/UpsertDelegatedProviderProfile",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "UpsertDelegatedProviderProfile",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn set_delegated_provider_state(
+            &mut self,
+            request: impl tonic::IntoRequest<super::SetDelegatedProviderStateRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::SetDelegatedProviderStateResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/SetDelegatedProviderState",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "SetDelegatedProviderState",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn list_delegated_approval_requests(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ListDelegatedApprovalRequestsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListDelegatedApprovalRequestsResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedApprovalRequests",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "ListDelegatedApprovalRequests",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn submit_delegated_approval_decision(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::SubmitDelegatedApprovalDecisionRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::SubmitDelegatedApprovalDecisionResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/SubmitDelegatedApprovalDecision",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "SubmitDelegatedApprovalDecision",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn list_delegated_diagnostics(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ListDelegatedDiagnosticsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListDelegatedDiagnosticsResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedDiagnostics",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "ListDelegatedDiagnostics",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn get_delegated_replay_trace(
+            &mut self,
+            request: impl tonic::IntoRequest<super::GetDelegatedReplayTraceRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetDelegatedReplayTraceResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedReplayTrace",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "GetDelegatedReplayTrace",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn get_delegated_control_surface_snapshot(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::GetDelegatedControlSurfaceSnapshotRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::GetDelegatedControlSurfaceSnapshotResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedControlSurfaceSnapshot",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "GetDelegatedControlSurfaceSnapshot",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn execute_delegated_capability(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ExecuteDelegatedCapabilityRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ExecuteDelegatedCapabilityResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/ExecuteDelegatedCapability",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "ExecuteDelegatedCapability",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn resume_delegated_capability(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ResumeDelegatedCapabilityRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ResumeDelegatedCapabilityResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/ResumeDelegatedCapability",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "ResumeDelegatedCapability",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn query_agent_memory(
+            &mut self,
+            request: impl tonic::IntoRequest<super::QueryAgentMemoryRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::QueryAgentMemoryResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/QueryAgentMemory",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "QueryAgentMemory",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn write_agent_memory(
+            &mut self,
+            request: impl tonic::IntoRequest<super::WriteAgentMemoryRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::WriteAgentMemoryResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/WriteAgentMemory",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "WriteAgentMemory",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn get_agent_canonical_memory_bank_status(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::GetAgentCanonicalMemoryBankStatusRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::GetAgentCanonicalMemoryBankStatusResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "GetAgentCanonicalMemoryBankStatus",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn request_agent_canonical_memory_bank_bind(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::RequestAgentCanonicalMemoryBankBindRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::RequestAgentCanonicalMemoryBankBindResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/RequestAgentCanonicalMemoryBankBind",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "RequestAgentCanonicalMemoryBankBind",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        /// Runtime Agent Participation surface (K-AGCORE-061..088, K-PROTO-012).
+        pub async fn describe_participation_profiles(
+            &mut self,
+            request: impl tonic::IntoRequest<super::DescribeParticipationProfilesRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::DescribeParticipationProfilesResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/DescribeParticipationProfiles",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "DescribeParticipationProfiles",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn describe_participation_context_blocks(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::DescribeParticipationContextBlocksRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::DescribeParticipationContextBlocksResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/DescribeParticipationContextBlocks",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "DescribeParticipationContextBlocks",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn validate_participation(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ValidateParticipationRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ValidateParticipationResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/ValidateParticipation",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "ValidateParticipation",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn execute_participation(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ExecuteParticipationRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ExecuteParticipationResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/ExecuteParticipation",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "ExecuteParticipation",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn get_participation_candidate(
+            &mut self,
+            request: impl tonic::IntoRequest<super::GetParticipationCandidateRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetParticipationCandidateResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/GetParticipationCandidate",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "GetParticipationCandidate",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn get_participation_verdicts(
+            &mut self,
+            request: impl tonic::IntoRequest<super::GetParticipationVerdictsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetParticipationVerdictsResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/GetParticipationVerdicts",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "GetParticipationVerdicts",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn list_participation_audit_events(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ListParticipationAuditEventsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListParticipationAuditEventsResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/ListParticipationAuditEvents",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "ListParticipationAuditEvents",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn get_participation_replay(
+            &mut self,
+            request: impl tonic::IntoRequest<super::GetParticipationReplayRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetParticipationReplayResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/GetParticipationReplay",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "GetParticipationReplay",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn subscribe_agent_events(
+            &mut self,
+            request: impl tonic::IntoRequest<super::SubscribeAgentEventsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<tonic::codec::Streaming<super::AgentEvent>>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "SubscribeAgentEvents",
+                    ),
+                );
+            self.inner.server_streaming(req, path, codec).await
+        }
+    }
+}

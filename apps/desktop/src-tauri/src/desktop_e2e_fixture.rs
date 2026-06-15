@@ -346,8 +346,8 @@ mod enabled {
                     updated_at: "2026-01-01T00:00:00.000Z".to_string(),
                     apps: vec![runtime_bridge_generated::AccountAppInventoryRow {
                         app_id: "nimi.example-app".to_string(),
-                        account_state:
-                            runtime_bridge_generated::AccountAppInventoryState::Verified as i32,
+                        account_state: runtime_bridge_generated::AccountAppInventoryState::Verified
+                            as i32,
                         install_state:
                             runtime_bridge_generated::AccountAppInstallState::NotInstalled as i32,
                         last_opened_at: String::new(),
@@ -385,6 +385,286 @@ mod enabled {
         Ok(encode_unary_response(
             runtime_bridge_generated::ListAppInstallJobsResponse { jobs: Vec::new() },
         ))
+    }
+
+    fn fixture_timestamp() -> prost_types::Timestamp {
+        prost_types::Timestamp {
+            seconds: 1_786_752_000,
+            nanos: 0,
+        }
+    }
+
+    fn normalize_fixture_text(value: &str) -> String {
+        value.trim().to_string()
+    }
+
+    fn request_identity(
+        context: Option<&runtime_bridge_generated::AgentRequestContext>,
+        local_agent_ref: &str,
+        owner_user_id: &str,
+        realm_agent_id: &str,
+    ) -> (String, String, String) {
+        let normalized_local_agent_ref = normalize_fixture_text(local_agent_ref);
+        let normalized_owner_user_id = normalize_fixture_text(owner_user_id);
+        let normalized_realm_agent_id = normalize_fixture_text(realm_agent_id);
+        let context_local_agent_ref = context
+            .map(|value| normalize_fixture_text(value.local_agent_ref.as_str()))
+            .unwrap_or_default();
+        let context_owner_user_id = context
+            .map(|value| normalize_fixture_text(value.owner_user_id.as_str()))
+            .unwrap_or_default();
+        let context_realm_agent_id = context
+            .map(|value| normalize_fixture_text(value.realm_agent_id.as_str()))
+            .unwrap_or_default();
+        (
+            if normalized_local_agent_ref.is_empty() {
+                context_local_agent_ref
+            } else {
+                normalized_local_agent_ref
+            },
+            if normalized_owner_user_id.is_empty() {
+                context_owner_user_id
+            } else {
+                normalized_owner_user_id
+            },
+            if normalized_realm_agent_id.is_empty() {
+                context_realm_agent_id
+            } else {
+                normalized_realm_agent_id
+            },
+        )
+    }
+
+    fn runtime_agent_record(
+        local_agent_ref: String,
+        owner_user_id: String,
+        realm_agent_id: String,
+        display_name: String,
+    ) -> runtime_bridge_generated::AgentRecord {
+        runtime_bridge_generated::AgentRecord {
+            agent_id: local_agent_ref.clone(),
+            display_name: if display_name.trim().is_empty() {
+                local_agent_ref.clone()
+            } else {
+                display_name
+            },
+            lifecycle_status: runtime_bridge_generated::AgentLifecycleStatus::Active as i32,
+            autonomy: None,
+            metadata: None,
+            created_at: Some(fixture_timestamp()),
+            updated_at: Some(fixture_timestamp()),
+            local_agent_ref,
+            owner_user_id,
+            realm_agent_id,
+        }
+    }
+
+    fn runtime_agent_get_response(
+        payload: &RuntimeBridgeUnaryPayload,
+    ) -> Result<RuntimeBridgeUnaryResult, String> {
+        let request: runtime_bridge_generated::GetAgentRequest = decode_unary_request(payload)?;
+        let (local_agent_ref, owner_user_id, realm_agent_id) =
+            request_identity(request.context.as_ref(), request.agent_id.as_str(), "", "");
+        Ok(encode_unary_response(
+            runtime_bridge_generated::GetAgentResponse {
+                agent: Some(runtime_agent_record(
+                    local_agent_ref,
+                    owner_user_id,
+                    realm_agent_id,
+                    String::new(),
+                )),
+            },
+        ))
+    }
+
+    fn runtime_agent_initialize_response(
+        payload: &RuntimeBridgeUnaryPayload,
+    ) -> Result<RuntimeBridgeUnaryResult, String> {
+        let request: runtime_bridge_generated::InitializeAgentRequest =
+            decode_unary_request(payload)?;
+        let (local_agent_ref, owner_user_id, realm_agent_id) = request_identity(
+            request.context.as_ref(),
+            request.local_agent_ref.as_str(),
+            request.owner_user_id.as_str(),
+            request.realm_agent_id.as_str(),
+        );
+        Ok(encode_unary_response(
+            runtime_bridge_generated::InitializeAgentResponse {
+                agent: Some(runtime_agent_record(
+                    local_agent_ref,
+                    owner_user_id,
+                    realm_agent_id,
+                    request.display_name,
+                )),
+                state: Some(runtime_bridge_generated::AgentStateProjection {
+                    execution_state: runtime_bridge_generated::AgentExecutionState::Idle as i32,
+                    status_text: "ready".to_string(),
+                    active_world_id: request.world_id,
+                    active_user_id: String::new(),
+                    attributes: Default::default(),
+                    updated_at: Some(fixture_timestamp()),
+                    current_emotion: String::new(),
+                }),
+            },
+        ))
+    }
+
+    fn runtime_agent_set_presentation_profile_response(
+        payload: &RuntimeBridgeUnaryPayload,
+    ) -> Result<RuntimeBridgeUnaryResult, String> {
+        let request: runtime_bridge_generated::SetAgentPresentationProfileRequest =
+            decode_unary_request(payload)?;
+        let profile = match request.mutation {
+            Some(
+                runtime_bridge_generated::set_agent_presentation_profile_request::Mutation::Profile(
+                    profile,
+                ),
+            ) => Some(profile),
+            Some(
+                runtime_bridge_generated::set_agent_presentation_profile_request::Mutation::Clear(
+                    _,
+                ),
+            )
+            | None => None,
+        };
+        Ok(encode_unary_response(
+            runtime_bridge_generated::SetAgentPresentationProfileResponse { profile },
+        ))
+    }
+
+    fn runtime_agent_anchor_snapshot(
+        local_agent_ref: String,
+        owner_user_id: String,
+        realm_agent_id: String,
+        subject_user_id: String,
+        conversation_anchor_id: String,
+        metadata: Option<prost_types::Struct>,
+    ) -> runtime_bridge_generated::ConversationAnchorSnapshot {
+        runtime_bridge_generated::ConversationAnchorSnapshot {
+            anchor: Some(runtime_bridge_generated::ConversationAnchor {
+                conversation_anchor_id,
+                agent_id: local_agent_ref.clone(),
+                subject_user_id,
+                status: runtime_bridge_generated::ConversationAnchorStatus::Active as i32,
+                last_turn_id: String::new(),
+                last_message_id: String::new(),
+                created_at: Some(fixture_timestamp()),
+                updated_at: Some(fixture_timestamp()),
+                metadata,
+                local_agent_ref,
+                owner_user_id,
+                realm_agent_id,
+            }),
+            active_turn_id: String::new(),
+            active_stream_id: String::new(),
+        }
+    }
+
+    fn runtime_agent_open_anchor_response(
+        payload: &RuntimeBridgeUnaryPayload,
+    ) -> Result<RuntimeBridgeUnaryResult, String> {
+        let request: runtime_bridge_generated::OpenConversationAnchorRequest =
+            decode_unary_request(payload)?;
+        let (local_agent_ref, owner_user_id, realm_agent_id) = request_identity(
+            request.context.as_ref(),
+            request.local_agent_ref.as_str(),
+            request.owner_user_id.as_str(),
+            request.realm_agent_id.as_str(),
+        );
+        let subject_user_id = normalize_fixture_text(request.subject_user_id.as_str())
+            .if_empty_then(owner_user_id.as_str());
+        let anchor_id = format!("e2e-anchor:{}", local_agent_ref);
+        Ok(encode_unary_response(
+            runtime_bridge_generated::OpenConversationAnchorResponse {
+                snapshot: Some(runtime_agent_anchor_snapshot(
+                    local_agent_ref,
+                    owner_user_id,
+                    realm_agent_id,
+                    subject_user_id,
+                    anchor_id,
+                    request.metadata,
+                )),
+            },
+        ))
+    }
+
+    fn runtime_agent_get_anchor_snapshot_response(
+        payload: &RuntimeBridgeUnaryPayload,
+    ) -> Result<RuntimeBridgeUnaryResult, String> {
+        let request: runtime_bridge_generated::GetConversationAnchorSnapshotRequest =
+            decode_unary_request(payload)?;
+        let (local_agent_ref, owner_user_id, realm_agent_id) =
+            request_identity(request.context.as_ref(), request.agent_id.as_str(), "", "");
+        let subject_user_id = request
+            .context
+            .as_ref()
+            .map(|value| normalize_fixture_text(value.subject_user_id.as_str()))
+            .unwrap_or_default()
+            .if_empty_then(owner_user_id.as_str());
+        Ok(encode_unary_response(
+            runtime_bridge_generated::GetConversationAnchorSnapshotResponse {
+                snapshot: Some(runtime_agent_anchor_snapshot(
+                    local_agent_ref,
+                    owner_user_id,
+                    realm_agent_id,
+                    subject_user_id,
+                    request.conversation_anchor_id,
+                    None,
+                )),
+            },
+        ))
+    }
+
+    fn runtime_agent_list_conversation_summaries_response(
+        payload: &RuntimeBridgeUnaryPayload,
+    ) -> Result<RuntimeBridgeUnaryResult, String> {
+        let request: runtime_bridge_generated::ListAgentConversationSummariesRequest =
+            decode_unary_request(payload)?;
+        let (local_agent_ref, owner_user_id, realm_agent_id) =
+            request_identity(request.context.as_ref(), request.agent_id.as_str(), "", "");
+        let subject_user_id = request
+            .context
+            .as_ref()
+            .map(|value| normalize_fixture_text(value.subject_user_id.as_str()))
+            .unwrap_or_default()
+            .if_empty_then(owner_user_id.as_str());
+        let anchor = runtime_agent_anchor_snapshot(
+            local_agent_ref.clone(),
+            owner_user_id,
+            realm_agent_id,
+            subject_user_id,
+            format!("e2e-anchor:{}", local_agent_ref),
+            None,
+        )
+        .anchor;
+        Ok(encode_unary_response(
+            runtime_bridge_generated::ListAgentConversationSummariesResponse {
+                summaries: vec![runtime_bridge_generated::AgentConversationSummary {
+                    anchor,
+                    title: "CBDB Su Zhe".to_string(),
+                    last_message_role: String::new(),
+                    last_message_text: String::new(),
+                    last_message_id: String::new(),
+                    transcript_message_count: 0,
+                    updated_at: Some(fixture_timestamp()),
+                }],
+                next_page_token: String::new(),
+            },
+        ))
+    }
+
+    trait EmptyStringFallback {
+        fn if_empty_then(self, fallback: &str) -> String;
+    }
+
+    impl EmptyStringFallback for String {
+        fn if_empty_then(self, fallback: &str) -> String {
+            if self.trim().is_empty() {
+                fallback.to_string()
+            } else {
+                self
+            }
+        }
     }
 
     pub fn runtime_bridge_unary_override(
@@ -442,6 +722,30 @@ mod enabled {
         nimi_shell_tauri::runtime_bridge::RUNTIME_APP_GET_APP_PACKAGE_READINESS_METHOD_ID => {
             append_backend_log("runtime_app_fixture method=getAppPackageReadiness accepted=true");
             runtime_app_package_readiness_response(payload).map(Some)
+        }
+        nimi_shell_tauri::runtime_bridge::RUNTIME_AGENT_GET_AGENT_METHOD_ID => {
+            append_backend_log("runtime_agent_fixture method=getAgent accepted=true");
+            runtime_agent_get_response(payload).map(Some)
+        }
+        nimi_shell_tauri::runtime_bridge::RUNTIME_AGENT_INITIALIZE_AGENT_METHOD_ID => {
+            append_backend_log("runtime_agent_fixture method=initializeAgent accepted=true");
+            runtime_agent_initialize_response(payload).map(Some)
+        }
+        nimi_shell_tauri::runtime_bridge::RUNTIME_AGENT_SET_AGENT_PRESENTATION_PROFILE_METHOD_ID => {
+            append_backend_log("runtime_agent_fixture method=setAgentPresentationProfile accepted=true");
+            runtime_agent_set_presentation_profile_response(payload).map(Some)
+        }
+        nimi_shell_tauri::runtime_bridge::RUNTIME_AGENT_OPEN_CONVERSATION_ANCHOR_METHOD_ID => {
+            append_backend_log("runtime_agent_fixture method=openConversationAnchor accepted=true");
+            runtime_agent_open_anchor_response(payload).map(Some)
+        }
+        nimi_shell_tauri::runtime_bridge::RUNTIME_AGENT_GET_CONVERSATION_ANCHOR_SNAPSHOT_METHOD_ID => {
+            append_backend_log("runtime_agent_fixture method=getConversationAnchorSnapshot accepted=true");
+            runtime_agent_get_anchor_snapshot_response(payload).map(Some)
+        }
+        nimi_shell_tauri::runtime_bridge::RUNTIME_AGENT_LIST_AGENT_CONVERSATION_SUMMARIES_METHOD_ID => {
+            append_backend_log("runtime_agent_fixture method=listAgentConversationSummaries accepted=true");
+            runtime_agent_list_conversation_summaries_response(payload).map(Some)
         }
         _ => Ok(None),
     }
@@ -625,6 +929,120 @@ mod enabled {
             assert_eq!(
                 response.reason_code,
                 runtime_bridge_generated::ReasonCode::ActionExecuted as i32
+            );
+        }
+
+        fn fixture_payload<Request>(method_id: &str, request: Request) -> RuntimeBridgeUnaryPayload
+        where
+            Request: Message,
+        {
+            RuntimeBridgeUnaryPayload {
+                method_id: method_id.to_string(),
+                request_bytes_base64: base64::engine::general_purpose::STANDARD
+                    .encode(request.encode_to_vec()),
+                metadata: None,
+                authorization: None,
+                protected_access_token: None,
+                app_session: None,
+                timeout_ms: None,
+            }
+        }
+
+        fn decode_fixture_response<Response>(result: RuntimeBridgeUnaryResult) -> Response
+        where
+            Response: Message + Default,
+        {
+            let bytes = base64::engine::general_purpose::STANDARD
+                .decode(result.response_bytes_base64)
+                .expect("decode response");
+            Response::decode(bytes.as_slice()).expect("decode fixture response")
+        }
+
+        #[test]
+        fn runtime_agent_fixture_projects_cbdb_chat_open_chain() {
+            let local_agent_ref =
+                "local-agent:user-e2e-primary:cbdb-song-slice-real-20260614-agent-8af2c5ca8a"
+                    .to_string();
+            let owner_user_id = "user-e2e-primary".to_string();
+            let realm_agent_id = "cbdb-song-slice-real-20260614-agent-8af2c5ca8a".to_string();
+            let context = runtime_bridge_generated::AgentRequestContext {
+                app_id: "nimi.desktop".to_string(),
+                subject_user_id: owner_user_id.clone(),
+                scoped_binding: None,
+                owner_user_id: owner_user_id.clone(),
+                realm_agent_id: realm_agent_id.clone(),
+                local_agent_ref: local_agent_ref.clone(),
+            };
+
+            let get_agent = runtime_agent_get_response(&fixture_payload(
+                nimi_shell_tauri::runtime_bridge::RUNTIME_AGENT_GET_AGENT_METHOD_ID,
+                runtime_bridge_generated::GetAgentRequest {
+                    context: Some(context.clone()),
+                    agent_id: local_agent_ref.clone(),
+                },
+            ))
+            .expect("get agent fixture");
+            let get_agent_response: runtime_bridge_generated::GetAgentResponse =
+                decode_fixture_response(get_agent);
+            let agent = get_agent_response.agent.expect("agent projection");
+            assert_eq!(agent.local_agent_ref, local_agent_ref);
+            assert_eq!(agent.owner_user_id, owner_user_id);
+            assert_eq!(agent.realm_agent_id, realm_agent_id);
+            assert_eq!(
+                agent.lifecycle_status,
+                runtime_bridge_generated::AgentLifecycleStatus::Active as i32
+            );
+
+            let open_anchor = runtime_agent_open_anchor_response(&fixture_payload(
+                nimi_shell_tauri::runtime_bridge::RUNTIME_AGENT_OPEN_CONVERSATION_ANCHOR_METHOD_ID,
+                runtime_bridge_generated::OpenConversationAnchorRequest {
+                    context: Some(context.clone()),
+                    agent_id: String::new(),
+                    subject_user_id: owner_user_id.clone(),
+                    metadata: None,
+                    local_agent_ref: local_agent_ref.clone(),
+                    owner_user_id: owner_user_id.clone(),
+                    realm_agent_id: realm_agent_id.clone(),
+                },
+            ))
+            .expect("open anchor fixture");
+            let open_anchor_response: runtime_bridge_generated::OpenConversationAnchorResponse =
+                decode_fixture_response(open_anchor);
+            let anchor = open_anchor_response
+                .snapshot
+                .and_then(|snapshot| snapshot.anchor)
+                .expect("conversation anchor");
+            assert_eq!(
+                anchor.conversation_anchor_id,
+                format!("e2e-anchor:{local_agent_ref}")
+            );
+            assert_eq!(
+                anchor.status,
+                runtime_bridge_generated::ConversationAnchorStatus::Active as i32
+            );
+            assert_eq!(anchor.local_agent_ref, local_agent_ref);
+
+            let summaries = runtime_agent_list_conversation_summaries_response(&fixture_payload(
+                nimi_shell_tauri::runtime_bridge::RUNTIME_AGENT_LIST_AGENT_CONVERSATION_SUMMARIES_METHOD_ID,
+                runtime_bridge_generated::ListAgentConversationSummariesRequest {
+                    context: Some(context),
+                    agent_id: local_agent_ref.clone(),
+                    status_filter: vec![runtime_bridge_generated::ConversationAnchorStatus::Active as i32],
+                    page_size: 1,
+                    page_token: String::new(),
+                },
+            ))
+            .expect("conversation summaries fixture");
+            let summaries_response: runtime_bridge_generated::ListAgentConversationSummariesResponse =
+                decode_fixture_response(summaries);
+            assert_eq!(summaries_response.summaries.len(), 1);
+            assert_eq!(summaries_response.summaries[0].title, "CBDB Su Zhe");
+            assert_eq!(
+                summaries_response.summaries[0]
+                    .anchor
+                    .as_ref()
+                    .map(|anchor| anchor.local_agent_ref.as_str()),
+                Some(local_agent_ref.as_str())
             );
         }
     }

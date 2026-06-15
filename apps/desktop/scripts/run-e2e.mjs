@@ -420,6 +420,7 @@ async function runScenario(scenarioId, runIndex) {
   const driverHost = process.env.NIMI_E2E_DRIVER_HOST || '127.0.0.1';
   const { driverPort, nativeDriverPort } = await resolveDriverPorts(driverHost);
   const artifactsDir = path.join(artifactRoot(), `${String(runIndex).padStart(2, '0')}-${scenarioId}`);
+  const desktopSpecPath = path.relative(desktopRoot, path.join(repoRoot, scenario.spec));
   fs.mkdirSync(artifactsDir, { recursive: true });
   const backendLogPath = path.join(artifactsDir, 'backend.log');
   const scenarioManifestPath = path.join(artifactsDir, 'scenario-manifest.json');
@@ -495,12 +496,14 @@ async function runScenario(scenarioId, runIndex) {
     await spawnLogged(
       'pnpm',
       [
+        '--filter',
+        '@nimiplatform/desktop',
         'exec',
         'wdio',
         'run',
-        'apps/desktop/wdio.conf.mjs',
+        'wdio.conf.mjs',
         '--spec',
-        scenario.spec,
+        desktopSpecPath,
       ],
       {
         cwd: repoRoot,

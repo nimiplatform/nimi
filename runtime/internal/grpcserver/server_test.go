@@ -90,6 +90,9 @@ func TestNewConfiguresRuntimeAgentDefaultExecutors(t *testing.T) {
 	if !agentSvc.HasRealmGroupMessageCandidateExecutor() {
 		t.Fatal("expected realm group message candidate executor to be configured")
 	}
+	if !agentSvc.HasVoiceLipsyncScenarioExecutor() {
+		t.Fatal("expected voice/lipsync scenario executor to be configured")
+	}
 	if !appSvc.HasInternalConsumer("runtime.agent.internal.chat_track_sidecar") {
 		t.Fatal("expected runtime.agent.internal.chat_track_sidecar app consumer to be configured")
 	}
@@ -295,7 +298,7 @@ func TestDefaultFirstPartyMigrationLaunchGate(t *testing.T) {
 		t.Fatalf("non-hardcut app should admit immediately: %+v", nonHardcut)
 	}
 	avatar := gate.Evaluate("nimi.avatar")
-	if avatar.Admitted {
-		t.Fatalf("Avatar must remain blocked until master gate ack: %+v", avatar)
+	if !avatar.Admitted {
+		t.Fatalf("Avatar should be admitted after master gate clearance: %+v", avatar)
 	}
 }

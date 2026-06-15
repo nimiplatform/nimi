@@ -52,7 +52,7 @@ async function collectRendererErrors() {
 
 export const config = {
   runner: 'local',
-  specs: ['apps/desktop/e2e/specs/**/*.e2e.mjs'],
+  specs: ['e2e/specs/**/*.e2e.mjs'],
   maxInstances: 1,
   logLevel: 'info',
   baseUrl: 'tauri://localhost',

@@ -49,6 +49,10 @@ const chatLive2dRenderSmokeSpecSource = fs.readFileSync(
   path.join(root, 'e2e/specs/chat.live2d-render-smoke.e2e.mjs'),
   'utf8',
 );
+const wdioConfigSource = fs.readFileSync(
+  path.join(root, 'wdio.conf.mjs'),
+  'utf8',
+);
 
 test('desktop E2E runner resolves native WebDriver command names to executable paths', () => {
   assert.match(runnerSource, /function resolveNativeDriverPath\(nativeDriver\)/);
@@ -115,6 +119,14 @@ test('desktop E2E fixture Realm origin is admitted by the packaged HTTP bridge a
 
 test('desktop E2E runner builds the fixture surface only through an explicit Cargo feature', () => {
   assert.match(runnerSource, /'--features',\s*'desktop-e2e-fixture'/);
+});
+
+test('desktop E2E runner launches WDIO from the desktop package dependency context', () => {
+  assert.match(runnerSource, /'--filter',\s*'@nimiplatform\/desktop',\s*'exec',\s*'wdio'/);
+  assert.match(runnerSource, /const desktopSpecPath = path\.relative\(desktopRoot, path\.join\(repoRoot, scenario\.spec\)\);/);
+  assert.match(runnerSource, /'wdio\.conf\.mjs'/);
+  assert.match(runnerSource, /desktopSpecPath/);
+  assert.match(wdioConfigSource, /specs:\s*\['e2e\/specs\/\*\*\/\*\.e2e\.mjs'\]/);
 });
 
 test('authenticated desktop boot smoke fails closed on missing account projection', () => {

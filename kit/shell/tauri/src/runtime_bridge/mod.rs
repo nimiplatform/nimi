@@ -81,6 +81,18 @@ pub const RUNTIME_APP_LIST_LOCAL_APP_ADOPTIONS_METHOD_ID: &str =
     "/nimi.runtime.v1.RuntimeAppService/ListLocalAppAdoptions";
 pub const RUNTIME_APP_LIST_APP_INSTALL_JOBS_METHOD_ID: &str =
     "/nimi.runtime.v1.RuntimeAppService/ListAppInstallJobs";
+pub const RUNTIME_AGENT_GET_AGENT_METHOD_ID: &str =
+    "/nimi.runtime.v1.RuntimeAgentService/GetAgent";
+pub const RUNTIME_AGENT_INITIALIZE_AGENT_METHOD_ID: &str =
+    "/nimi.runtime.v1.RuntimeAgentService/InitializeAgent";
+pub const RUNTIME_AGENT_SET_AGENT_PRESENTATION_PROFILE_METHOD_ID: &str =
+    "/nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile";
+pub const RUNTIME_AGENT_OPEN_CONVERSATION_ANCHOR_METHOD_ID: &str =
+    "/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor";
+pub const RUNTIME_AGENT_GET_CONVERSATION_ANCHOR_SNAPSHOT_METHOD_ID: &str =
+    "/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot";
+pub const RUNTIME_AGENT_LIST_AGENT_CONVERSATION_SUMMARIES_METHOD_ID: &str =
+    "/nimi.runtime.v1.RuntimeAgentService/ListAgentConversationSummaries";
 
 const DEFAULT_EVENT_NAMESPACE: &str = "runtime_bridge";
 
@@ -243,6 +255,7 @@ pub struct RuntimeBridgeUnaryPayload {
 #[serde(rename_all = "camelCase")]
 pub struct RuntimeBridgeStreamOpenPayload {
     pub method_id: String,
+    pub stream_id: Option<String>,
     pub request_bytes_base64: String,
     pub metadata: Option<RuntimeBridgeMetadata>,
     pub authorization: Option<String>,

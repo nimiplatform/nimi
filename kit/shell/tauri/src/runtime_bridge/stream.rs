@@ -147,6 +147,24 @@ fn next_stream_id() -> String {
     format!("runtime-stream-{}-{}", now, counter)
 }
 
+fn resolve_stream_id(payload: &RuntimeBridgeStreamOpenPayload) -> Result<String, String> {
+    let requested = payload.stream_id.as_deref().unwrap_or("").trim();
+    if requested.is_empty() {
+        return Ok(next_stream_id());
+    }
+    if requested.len() > 160
+        || !requested
+            .chars()
+            .all(|ch| ch.is_ascii_alphanumeric() || ch == '-' || ch == '_')
+    {
+        return Err(bridge_error(
+            "RUNTIME_BRIDGE_STREAM_ID_INVALID",
+            "streamId must contain only ASCII letters, digits, hyphen, or underscore",
+        ));
+    }
+    Ok(requested.to_string())
+}
+
 pub async fn open_stream(
     app: &AppHandle,
     payload: &RuntimeBridgeStreamOpenPayload,
@@ -187,7 +205,7 @@ pub async fn open_stream(
         .map_err(bridge_status_error)?;
     let mut stream = response.into_inner();
 
-    let stream_id = next_stream_id();
+    let stream_id = resolve_stream_id(payload)?;
     let event_name = super::stream_event_name_with_namespace(
         payload.event_namespace.as_deref().unwrap_or(""),
         stream_id.as_str(),
@@ -271,6 +289,7 @@ mod tests {
     fn payload(method_id: &str, request_bytes_base64: &str) -> RuntimeBridgeStreamOpenPayload {
         RuntimeBridgeStreamOpenPayload {
             method_id: method_id.to_string(),
+            stream_id: None,
             request_bytes_base64: request_bytes_base64.to_string(),
             metadata: None,
             authorization: None,

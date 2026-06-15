@@ -1,7 +1,8 @@
 #[cfg(unix)]
 use super::{config_get, config_set};
 use super::{
-    grpc_addr, runtime_cli_command_spec, runtime_config_path, start, status, stop,
+    grpc_addr, runtime_cli_command_spec, runtime_config_path, source_dev_app_registry_path, start,
+    status, stop,
     DEFAULT_GRPC_ADDR,
 };
 use crate::test_support::{test_guard, with_env};
@@ -65,6 +66,29 @@ fn runtime_config_path_prefers_env_override() {
         },
     );
     let _ = fs::remove_dir_all(home);
+}
+
+#[test]
+fn source_dev_app_registry_path_resolves_from_runtime_current_dir() {
+    let _guard = test_guard();
+    let repo = make_temp_dir("source-dev-registry");
+    let runtime_dir = repo.join("runtime");
+    let registry = repo.join(".nimi/spec/platform/kernel/tables/nimi-app-registry.yaml");
+    fs::create_dir_all(&runtime_dir).expect("create runtime dir");
+    fs::create_dir_all(registry.parent().expect("registry parent")).expect("create registry dir");
+    fs::write(&registry, "catalog_id: platform_nimi_app_registry\n").expect("write registry");
+
+    with_env(&[("NIMI_RUNTIME_APP_REGISTRY_PATH", None)], || {
+        assert_eq!(
+            source_dev_app_registry_path(Some(runtime_dir.as_path())),
+            Some(registry.clone())
+        );
+    });
+    with_env(&[("NIMI_RUNTIME_APP_REGISTRY_PATH", Some("explicit.yaml"))], || {
+        assert_eq!(source_dev_app_registry_path(Some(runtime_dir.as_path())), None);
+    });
+
+    let _ = fs::remove_dir_all(repo);
 }
 
 #[test]

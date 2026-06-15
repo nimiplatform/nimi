@@ -194,6 +194,9 @@ fn avatar_runtime_env_pairs_forward_runtime_defaults_without_realm_or_token() {
     )
     .expect("write avatar install evidence");
     let fixture_path = fixture_dir.join("fixture.json");
+    let selected_data_root_json =
+        serde_json::to_string(&selected_data_root.to_string_lossy().to_string())
+            .expect("encode selected data root path");
     fs::write(
         &fixture_path,
         format!(
@@ -205,7 +208,7 @@ fn avatar_runtime_env_pairs_forward_runtime_defaults_without_realm_or_token() {
       "productVersion": "0.1.0",
       "state": "ready_for_use",
       "dataRoot": {{
-        "path": "{}",
+        "path": {},
         "status": "ready",
         "selectedAt": "2026-03-15T00:00:00.000Z",
         "verifiedAt": "2026-03-15T00:00:00.000Z",
@@ -235,7 +238,7 @@ fn avatar_runtime_env_pairs_forward_runtime_defaults_without_realm_or_token() {
     }}
   }}
 }}"#,
-            selected_data_root.display()
+            selected_data_root_json
         ),
     )
     .expect("write fixture");

@@ -227,6 +227,7 @@ function assertAuthenticatedFixtureSurfaceParity() {
     '/api/economy/balances',
     '/api/economy/subscription',
     '/api/human/notifications/unread-count',
+    '/api/human/me/friends/agent-limit',
     '/api/world/posts',
   ]) {
     if (!fixtureServerSource.includes(required)) {

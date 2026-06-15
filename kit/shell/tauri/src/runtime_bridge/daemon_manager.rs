@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::sync::{Mutex, OnceLock};
 
@@ -231,6 +231,29 @@ fn debug_log_path() -> Option<PathBuf> {
     Some(std::env::temp_dir().join(format!("nimi-daemon-{}.log", std::process::id())))
 }
 
+fn source_dev_app_registry_path(runtime_current_dir: Option<&Path>) -> Option<PathBuf> {
+    if read_non_empty_env("NIMI_RUNTIME_APP_REGISTRY_PATH").is_some() {
+        return None;
+    }
+    let runtime_dir = runtime_current_dir?;
+    let repo_root = runtime_dir.parent()?;
+    let path = repo_root.join(".nimi/spec/platform/kernel/tables/nimi-app-registry.yaml");
+    if path.exists() {
+        Some(path)
+    } else {
+        None
+    }
+}
+
+fn apply_source_dev_runtime_env(command: &mut Command, runtime_current_dir: Option<&Path>) {
+    if let Some(path) = source_dev_app_registry_path(runtime_current_dir) {
+        command.env(
+            "NIMI_RUNTIME_APP_REGISTRY_PATH",
+            path.to_string_lossy().to_string(),
+        );
+    }
+}
+
 pub async fn start_async() -> Result<RuntimeBridgeDaemonStatus, String> {
     let current = status_async().await;
     if current.running {
@@ -244,9 +267,11 @@ pub async fn start_async() -> Result<RuntimeBridgeDaemonStatus, String> {
     })?;
     let mut command = Command::new(spec.program.as_str());
     command.args(spec.args);
-    if let Some(current_dir) = spec.current_dir {
+    let current_dir = spec.current_dir.clone();
+    if let Some(current_dir) = current_dir.as_ref() {
         command.current_dir(current_dir);
     }
+    apply_source_dev_runtime_env(&mut command, current_dir.as_deref());
     let resolved_data_dir = tauri::async_runtime::spawn_blocking(resolve_nimi_data_dir_hook)
         .await
         .ok()
