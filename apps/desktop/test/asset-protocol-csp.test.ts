@@ -60,6 +60,25 @@ test('desktop CSP allows tauri asset protocol for VRM avatar loading', () => {
   );
 });
 
+test('desktop CSP allows reviewed remote profile media without widening script execution', () => {
+  const imgDirective = csp.match(/\bimg-src\b[^;]*/)?.[0] || '';
+  const mediaDirective = csp.match(/\bmedia-src\b[^;]*/)?.[0] || '';
+  const scriptDirective = csp.match(/\bscript-src\b[^;]*/)?.[0] || '';
+
+  assert.ok(
+    imgDirective.includes('https:'),
+    'img-src must allow HTTPS reviewed portrait URLs promoted from Realm Agent Studio',
+  );
+  assert.ok(
+    mediaDirective.includes('https:'),
+    'media-src must allow HTTPS reviewed voice/profile media URLs promoted from Realm Agent Studio',
+  );
+  assert.ok(
+    !scriptDirective.includes('https:'),
+    'script-src must not allow remote scripts when enabling reviewed remote profile media',
+  );
+});
+
 test('desktop CSP allows blob module scripts for packaged renderer dependencies', () => {
   const scriptDirective = csp.match(/\bscript-src\b[^;]*/)?.[0] || '';
 
