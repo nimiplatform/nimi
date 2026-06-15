@@ -235,6 +235,7 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
   // at 60–120 Hz on macOS and would otherwise produce one IPC round-trip
   // per event).
   const dragRef = useRef<{
+    mode: 'armed' | 'manual';
     lastScreenX: number;
     lastScreenY: number;
     pointerId: number;
@@ -439,6 +440,9 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
           const dx = event.screenX - drag.lastScreenX;
           const dy = event.screenY - drag.lastScreenY;
           if (dx !== 0 || dy !== 0) {
+            if (drag.mode === 'armed') {
+              drag.mode = 'manual';
+            }
             drag.lastScreenX = event.screenX;
             drag.lastScreenY = event.screenY;
             drag.pendingDx += dx;
@@ -465,10 +469,12 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
       onPointerDown={(event) => {
         if (isInteractiveTarget(event.target)) return;
         if (event.button === 0) {
+          setClickThrough(false);
           // Capture pointer so subsequent move/up events fire here even when
           // the cursor leaves the element while dragging.
           (event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId);
           dragRef.current = {
+            mode: 'armed',
             lastScreenX: event.screenX,
             lastScreenY: event.screenY,
             pointerId: event.pointerId,
@@ -481,7 +487,9 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
       }}
       onPointerUp={(event) => {
         const drag = dragRef.current;
+        let consumedDrag = false;
         if (drag && drag.pointerId === event.pointerId) {
+          consumedDrag = drag.mode !== 'armed';
           (event.currentTarget as HTMLElement).releasePointerCapture?.(event.pointerId);
           if (drag.rafHandle !== null) {
             cancelAnimationFrame(drag.rafHandle);
@@ -491,7 +499,13 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
             flushDragDelta();
           }
           dragRef.current = null;
-          void constrainWindowToVisibleArea();
+          if (consumedDrag) {
+            void constrainWindowToVisibleArea();
+          }
+        }
+        if (consumedDrag) {
+          controller.pointerCancel();
+          return;
         }
         if (isInteractiveTarget(event.target)) return;
         controller.pointerUp(event);

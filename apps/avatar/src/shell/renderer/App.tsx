@@ -23,7 +23,6 @@ import { CompanionSurface } from './companion-surface/companion-surface.js';
 import { DegradedSurface } from './degraded-surface/degraded-surface.js';
 import {
   bindCompanionState,
-  collapseCompanionBubble,
   createCompanionAnchorKey,
   ingestAssistantMessage,
   initialCompanionState,
@@ -409,21 +408,8 @@ export function App() {
   ]);
 
   // ── Bubble auto-collapse ─────────────────────────────────────────────────────
-  useEffect(() => {
-    if (!shellSettings.bubbleAutoCollapse) return;
-    if (!companion.bubbleVisible || companion.sendState === 'sending') return;
-    const timer = window.setTimeout(() => {
-      setCompanion((current) => collapseCompanionBubble(current));
-    }, 9_000);
-    return () => {
-      window.clearTimeout(timer);
-    };
-  }, [
-    companion.bubbleVisible,
-    companion.sendState,
-    companion.latestAssistantMessage?.at,
-    shellSettings.bubbleAutoCollapse,
-  ]);
+  // Bubble auto-collapse is hard-disabled: the assistant history stays
+  // visible until the user explicitly closes it.
 
   // ── Helpers ──────────────────────────────────────────────────────────────────
   const beginVoiceOperation = (anchorKey: string | null): number => {
@@ -603,16 +589,6 @@ export function App() {
             <span className="avatar-settings-popover__toggle-text">
               <span className="avatar-settings-popover__toggle-label">{t('Avatar.settings.bubble_auto_open.label')}</span>
               <span className="avatar-settings-popover__toggle-help">{t('Avatar.settings.bubble_auto_open.help')}</span>
-            </span>
-          </div>
-          <div className="avatar-settings-popover__toggle">
-            <Toggle
-              checked={shellSettings.bubbleAutoCollapse}
-              onChange={(checked) => persistShellSettings({ ...shellSettings, bubbleAutoCollapse: checked })}
-            />
-            <span className="avatar-settings-popover__toggle-text">
-              <span className="avatar-settings-popover__toggle-label">{t('Avatar.settings.bubble_auto_collapse.label')}</span>
-              <span className="avatar-settings-popover__toggle-help">{t('Avatar.settings.bubble_auto_collapse.help')}</span>
             </span>
           </div>
           <div className="avatar-settings-popover__toggle">

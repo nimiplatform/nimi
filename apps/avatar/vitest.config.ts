@@ -1,7 +1,26 @@
 import { defineConfig } from 'vitest/config';
 import path from 'node:path';
+import fs from 'node:fs';
 
+const repoRoot = path.resolve(__dirname, '../..');
+const pnpmRoot = path.join(repoRoot, 'node_modules/.pnpm');
 const sdkVNextDist = path.resolve(__dirname, '../../sdks/typescript/dist');
+
+function pnpmPackageRoot(packageName: string): string {
+  const packageDirectoryName = packageName.startsWith('@')
+    ? packageName.replace('/', '+')
+    : packageName;
+  const match = fs.readdirSync(pnpmRoot)
+    .filter((entry) => (
+      entry.startsWith(`${packageDirectoryName}@`)
+      || entry.startsWith(`${packageDirectoryName}_`)
+    ))
+    .sort()[0];
+  if (!match) {
+    throw new Error(`Missing pnpm package for ${packageName}`);
+  }
+  return path.join(pnpmRoot, match, 'node_modules', packageName);
+}
 
 export default defineConfig({
   test: {
@@ -11,13 +30,14 @@ export default defineConfig({
     include: ['src/**/*.test.{ts,tsx}'],
   },
   resolve: {
-    dedupe: ['react', 'react-dom', 'scheduler'],
+    dedupe: ['react', 'react-dom', 'scheduler', '@radix-ui/react-switch'],
     alias: [
       { find: 'react/jsx-dev-runtime', replacement: path.resolve(__dirname, 'node_modules/react/jsx-dev-runtime.js') },
       { find: 'react/jsx-runtime', replacement: path.resolve(__dirname, 'node_modules/react/jsx-runtime.js') },
       { find: 'react-dom/client', replacement: path.resolve(__dirname, 'node_modules/react-dom/client.js') },
       { find: 'react-dom', replacement: path.resolve(__dirname, 'node_modules/react-dom/index.js') },
       { find: 'react', replacement: path.resolve(__dirname, 'node_modules/react/index.js') },
+      { find: '@radix-ui/react-switch', replacement: pnpmPackageRoot('@radix-ui/react-switch') },
       { find: '@renderer', replacement: path.resolve(__dirname, 'src/shell/renderer') },
       { find: '@framework', replacement: path.resolve(__dirname, '.cache/assets/js/CubismSdkForWeb-5-r.5/Framework/src') },
       { find: '@live2d', replacement: path.resolve(__dirname, 'src/shell/renderer/live2d') },

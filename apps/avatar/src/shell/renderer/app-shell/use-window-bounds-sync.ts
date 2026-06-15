@@ -17,7 +17,7 @@
 
 import { useEffect, useMemo } from 'react';
 import { useAvatarStore } from './app-store.js';
-import { setWindowSize } from './tauri-commands.js';
+import { setIgnoreCursorEvents, setWindowSize } from './tauri-commands.js';
 import { isTauriRuntime } from './tauri-lifecycle.js';
 import { recordAvatarEvidenceEventually } from './avatar-evidence.js';
 import {
@@ -72,9 +72,10 @@ export function useWindowBoundsSync(input: UseWindowBoundsSyncInput): void {
     return createWindowBoundsRecomputer({
       getEmbodimentBounds,
       getCompanionFootprint: readCompanionFootprint,
-      applySize: (size) => {
+      applySize: async (size) => {
         if (!isTauriRuntime()) return;
-        return setWindowSize(size.width, size.height);
+        await setWindowSize(size.width, size.height);
+        await setIgnoreCursorEvents(false);
       },
       onRecomputed: ({ trigger, width, height, clamped, embodimentBounds, companionFootprint }) => {
         recordAvatarEvidenceEventually({

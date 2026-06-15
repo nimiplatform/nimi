@@ -28,6 +28,7 @@ import {
 import type { BackendNominalBounds } from '../carrier/backend-branch.js';
 
 const setWindowSizeMock = vi.fn<(...args: unknown[]) => Promise<void>>();
+const setIgnoreCursorEventsMock = vi.fn<(...args: unknown[]) => Promise<void>>();
 let tauriRuntime = true;
 
 vi.mock('./tauri-commands.js', () => ({
@@ -37,7 +38,7 @@ vi.mock('./tauri-commands.js', () => ({
   // load-time failures if downstream re-imports change.
   startWindowDrag: vi.fn(),
   dragWindowBy: vi.fn(),
-  setIgnoreCursorEvents: vi.fn(),
+  setIgnoreCursorEvents: (...args: unknown[]) => setIgnoreCursorEventsMock(...args),
   constrainWindowToVisibleArea: vi.fn(),
   setAlwaysOnTop: vi.fn(),
 }));
@@ -84,6 +85,8 @@ function resetModelState() {
 beforeEach(() => {
   setWindowSizeMock.mockReset();
   setWindowSizeMock.mockResolvedValue();
+  setIgnoreCursorEventsMock.mockReset();
+  setIgnoreCursorEventsMock.mockResolvedValue();
   vi.mocked(recordAvatarEvidenceEventually).mockReset();
   tauriRuntime = true;
   resetModelState();
@@ -118,6 +121,7 @@ describe('useWindowBoundsSync — BackendBranch.nominalBounds → set_window_siz
 
     expect(setWindowSizeMock).toHaveBeenCalledTimes(1);
     expect(setWindowSizeMock).toHaveBeenCalledWith(expectedWidth, expectedHeight);
+    expect(setIgnoreCursorEventsMock).toHaveBeenCalledWith(false);
   });
 
   it('forwards Live2D 400×600 nominalBounds to nimi_avatar_set_window_size on model_load', async () => {
@@ -193,6 +197,7 @@ describe('useWindowBoundsSync — BackendBranch.nominalBounds → set_window_siz
     });
 
     expect(setWindowSizeMock).not.toHaveBeenCalled();
+    expect(setIgnoreCursorEventsMock).not.toHaveBeenCalled();
   });
 
   it('does not call IPC outside Tauri runtime even with a valid backend', async () => {

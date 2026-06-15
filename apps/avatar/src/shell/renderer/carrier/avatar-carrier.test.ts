@@ -18,6 +18,10 @@ const backendUnloadMock = vi.fn();
 
 function admissionDetail(): Record<string, string> {
   return {
+    agent_id: 'local-agent:owner-product:agent-product-01',
+    conversation_anchor_id: 'anchor-01',
+    turn_id: 'turn-01',
+    stream_id: 'stream-01',
     runtime_admission_ref: 'runtime.admission/avatar-presentation-1',
     gateway_verdict_ref: 'runtime.gateway/avatar-presentation-1',
     firewall_verdict_ref: 'runtime.firewall/avatar-presentation-1',

@@ -254,7 +254,7 @@ namespaces: &avatar_i18n_key_entries
 
   - id: settings
     spec_anchor: "app-shell-contract.md §4.2 + §7.9 K-NAV-SHELL-COMPANION-009"
-    description: "Settings popover (4 toggles) anchored to status-row cog."
+    description: "Settings popover (3 toggles) anchored to status-row cog."
     keys:
       - key: Avatar.settings.popover_aria
         english_baseline: "Companion settings"
@@ -276,12 +276,6 @@ namespaces: &avatar_i18n_key_entries
         usage: "src/shell/renderer/App.tsx"
       - key: Avatar.settings.bubble_auto_open.help
         english_baseline: "Reveal fresh assistant replies immediately."
-        usage: "src/shell/renderer/App.tsx"
-      - key: Avatar.settings.bubble_auto_collapse.label
-        english_baseline: "Auto-collapse quiet bubble"
-        usage: "src/shell/renderer/App.tsx"
-      - key: Avatar.settings.bubble_auto_collapse.help
-        english_baseline: "Settle the bubble after a calm pause."
         usage: "src/shell/renderer/App.tsx"
       - key: Avatar.settings.show_voice_captions.label
         english_baseline: "Show voice captions"

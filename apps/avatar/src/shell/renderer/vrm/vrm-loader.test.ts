@@ -20,6 +20,8 @@ const mocks = vi.hoisted(() => {
       };
     }),
     loadAsync: vi.fn<(url: string) => Promise<unknown>>(),
+    parse: vi.fn<(data: ArrayBuffer, path: string) => Promise<unknown>>(),
+    invoke: vi.fn<(command: string, args?: Record<string, unknown>) => Promise<unknown>>(),
     GLTFLoaderCtor: vi.fn(),
   };
 });
@@ -63,9 +65,22 @@ vi.mock('three/examples/jsm/loaders/GLTFLoader.js', () => {
       loadAsync(url: string): Promise<unknown> {
         return mocks.loadAsync(url);
       }
+      parse(
+        data: ArrayBuffer,
+        path: string,
+        onLoad: (gltf: unknown) => void,
+        onError?: (error: unknown) => void,
+      ): void {
+        mocks.parse(data, path).then(onLoad, onError);
+      }
     },
   };
 });
+
+vi.mock('@tauri-apps/api/core', () => ({
+  convertFileSrc: (path: string) => `asset://${path}`,
+  invoke: mocks.invoke,
+}));
 
 vi.mock('./vrm-pose.js', () => ({
   applyIdlePose: mocks.applyIdlePose,
@@ -118,14 +133,18 @@ beforeEach(() => {
   mocks.applyIdlePose.mockClear();
   mocks.suspendCreateImageBitmap.mockClear();
   mocks.loadAsync.mockReset();
+  mocks.parse.mockReset();
+  mocks.invoke.mockReset();
   mocks.GLTFLoaderCtor.mockClear();
   __resetVrmLoaderForTests();
   clearVrmCache();
+  delete (window as unknown as Record<string, unknown>)['__TAURI_IPC__'];
 });
 
 afterEach(() => {
   clearVrmCache();
   __resetVrmLoaderForTests();
+  delete (window as unknown as Record<string, unknown>)['__TAURI_IPC__'];
 });
 
 describe('getVrmLoader', () => {
@@ -222,6 +241,47 @@ describe('loadVrmFromManifest', () => {
     expect(mocks.loadAsync.mock.calls.length).toBe(1);
     // Cache hit path skips suspend wrap entirely (nothing is loading).
     expect(mocks.callOrder).toEqual([]);
+  });
+
+  it('loads Tauri local VRM files through Avatar-owned binary read instead of fetch', async () => {
+    (window as unknown as Record<string, unknown>)['__TAURI_IPC__'] = true;
+    const fake = makeFakeVrm();
+    mocks.invoke.mockResolvedValue([0x67, 0x6c, 0x54, 0x46]);
+    mocks.parse.mockImplementation(async () => {
+      mocks.callOrder.push('parse');
+      return { userData: fake };
+    });
+
+    await loadVrmFromManifest(vrmManifest('\\\\?\\D:\\DataNimi\\avatar\\AliciaSolid.vrm'));
+
+    expect(mocks.invoke).toHaveBeenCalledWith('nimi_avatar_read_binary_file', {
+      path: '\\\\?\\D:\\DataNimi\\avatar\\AliciaSolid.vrm',
+    });
+    expect(mocks.loadAsync).not.toHaveBeenCalled();
+    expect(mocks.parse).toHaveBeenCalledTimes(1);
+    expect(mocks.parse.mock.calls[0]?.[0]).toBeInstanceOf(ArrayBuffer);
+    expect(mocks.callOrder).toEqual([
+      'suspend',
+      'parse',
+      'rotateVRM0',
+      'applyIdlePose',
+      'traverse',
+      'restore',
+    ]);
+  });
+
+  it('treats normal Windows drive VRM paths as local Tauri files', async () => {
+    (window as unknown as Record<string, unknown>)['__TAURI_IPC__'] = true;
+    const fake = makeFakeVrm();
+    mocks.invoke.mockResolvedValue([0x67, 0x6c, 0x54, 0x46]);
+    mocks.parse.mockResolvedValue({ userData: fake });
+
+    await loadVrmFromManifest(vrmManifest('D:\\DataNimi\\avatar\\AliciaSolid.vrm'));
+
+    expect(mocks.invoke).toHaveBeenCalledWith('nimi_avatar_read_binary_file', {
+      path: 'D:\\DataNimi\\avatar\\AliciaSolid.vrm',
+    });
+    expect(mocks.loadAsync).not.toHaveBeenCalled();
   });
 });
 

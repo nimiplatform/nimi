@@ -102,10 +102,6 @@
         "label": "自动展开新回复",
         "help": "助手有新回复时立即展开气泡。"
       },
-      "bubble_auto_collapse": {
-        "label": "安静后自动收起气泡",
-        "help": "在一段安静后自动收起气泡。"
-      },
       "show_voice_captions": {
         "label": "显示语音字幕",
         "help": "仅显示受限的前台语音字幕。",

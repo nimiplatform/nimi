@@ -28,6 +28,12 @@ const recordAvatarEvidenceEventuallyMock = vi.fn();
 const setIgnoreCursorEventsMock = vi.fn();
 const getCursorClientPositionMock = vi.fn();
 const registerLipsyncSinkMock = vi.fn();
+const startWindowDragMock = vi.fn();
+const dragWindowByMock = vi.fn();
+const constrainWindowToVisibleAreaMock = vi.fn();
+const runtimeFlags = vi.hoisted(() => ({
+  tauriRuntime: false,
+}));
 
 vi.mock('../app-shell/avatar-evidence.js', () => ({
   recordAvatarEvidenceEventually: (...args: unknown[]) =>
@@ -35,16 +41,16 @@ vi.mock('../app-shell/avatar-evidence.js', () => ({
 }));
 
 vi.mock('../app-shell/tauri-commands.js', () => ({
-  startWindowDrag: vi.fn(),
-  dragWindowBy: vi.fn(),
+  startWindowDrag: (...args: unknown[]) => startWindowDragMock(...args),
+  dragWindowBy: (...args: unknown[]) => dragWindowByMock(...args),
   setIgnoreCursorEvents: (...args: unknown[]) => setIgnoreCursorEventsMock(...args),
   getCursorClientPosition: (...args: unknown[]) => getCursorClientPositionMock(...args),
-  constrainWindowToVisibleArea: vi.fn(),
+  constrainWindowToVisibleArea: (...args: unknown[]) => constrainWindowToVisibleAreaMock(...args),
   setAlwaysOnTop: vi.fn(),
 }));
 
 vi.mock('../app-shell/tauri-lifecycle.js', () => ({
-  isTauriRuntime: () => false,
+  isTauriRuntime: () => runtimeFlags.tauriRuntime,
   onLaunchContextUpdated: () => Promise.resolve(() => {}),
 }));
 
@@ -120,6 +126,13 @@ beforeEach(() => {
   recordAvatarEvidenceEventuallyMock.mockReset();
   setIgnoreCursorEventsMock.mockReset();
   getCursorClientPositionMock.mockReset();
+  startWindowDragMock.mockReset();
+  startWindowDragMock.mockResolvedValue(undefined);
+  dragWindowByMock.mockReset();
+  dragWindowByMock.mockResolvedValue(undefined);
+  constrainWindowToVisibleAreaMock.mockReset();
+  constrainWindowToVisibleAreaMock.mockResolvedValue(undefined);
+  runtimeFlags.tauriRuntime = false;
   getCursorClientPositionMock.mockResolvedValue({
     screenX: 200,
     screenY: 200,
@@ -357,6 +370,103 @@ describe('EmbodimentStage — pointermove click-through (chunk 4-C)', () => {
 
     expect(getCursorClientPositionMock).toHaveBeenCalled();
     expect(setIgnoreCursorEventsMock).toHaveBeenCalledWith(false);
+  });
+
+  it('Windows drag uses manual window movement and freezes click-through during the drag', async () => {
+    runtimeFlags.tauriRuntime = true;
+    Object.defineProperty(window.navigator, 'platform', {
+      value: 'Win32',
+      configurable: true,
+    });
+    const isOpaqueAtClientPoint = vi.fn(() => false);
+    const backend = createMockBackend({
+      hitRegion: {
+        body: { left: 0, top: 0, right: 1, bottom: 1 },
+        drag: { left: 0, top: 0, right: 1, bottom: 1 },
+        isOpaqueAtClientPoint,
+      },
+    });
+    render(<EmbodimentStage {...baseProps} backend={backend} />);
+    setIgnoreCursorEventsMock.mockClear();
+    const stage = screen.getByTestId('avatar-embodiment-stage');
+
+    fireEvent.pointerDown(stage, {
+      button: 0,
+      buttons: 1,
+      pointerId: 7,
+      clientX: 120,
+      clientY: 220,
+      screenX: 800,
+      screenY: 500,
+    });
+    await Promise.resolve();
+
+    expect(setIgnoreCursorEventsMock).toHaveBeenCalledWith(false);
+    setIgnoreCursorEventsMock.mockClear();
+    isOpaqueAtClientPoint.mockClear();
+
+    fireEvent.pointerMove(stage, {
+      button: 0,
+      buttons: 1,
+      pointerId: 7,
+      clientX: 180,
+      clientY: 260,
+      screenX: 860,
+      screenY: 540,
+    });
+    act(() => {
+      vi.advanceTimersByTime(100);
+    });
+
+    expect(dragWindowByMock).toHaveBeenCalled();
+    expect(isOpaqueAtClientPoint).not.toHaveBeenCalled();
+    expect(setIgnoreCursorEventsMock).not.toHaveBeenCalled();
+  });
+
+  it('zero-delta pointermove while armed does not consume a click as drag', async () => {
+    runtimeFlags.tauriRuntime = true;
+    const emit = vi.fn();
+    const backend = createMockBackend({
+      hitRegion: {
+        body: { left: 0, top: 0, right: 1, bottom: 1 },
+        drag: { left: 0, top: 0, right: 1, bottom: 1 },
+        isOpaqueAtClientPoint: () => true,
+      },
+    });
+    render(<EmbodimentStage {...baseProps} backend={backend} emit={emit} />);
+    const stage = screen.getByTestId('avatar-embodiment-stage');
+
+    fireEvent.pointerDown(stage, {
+      button: 0,
+      buttons: 1,
+      pointerId: 9,
+      clientX: 120,
+      clientY: 220,
+      screenX: 800,
+      screenY: 500,
+    });
+    fireEvent.pointerMove(stage, {
+      button: 0,
+      buttons: 1,
+      pointerId: 9,
+      clientX: 120,
+      clientY: 220,
+      screenX: 800,
+      screenY: 500,
+    });
+    fireEvent.pointerUp(stage, {
+      button: 0,
+      buttons: 0,
+      pointerId: 9,
+      clientX: 120,
+      clientY: 220,
+      screenX: 800,
+      screenY: 500,
+    });
+
+    expect(dragWindowByMock).not.toHaveBeenCalled();
+    expect(constrainWindowToVisibleAreaMock).not.toHaveBeenCalled();
+    expect(emit).toHaveBeenCalledWith(expect.objectContaining({ name: 'avatar.user.click' }));
   });
 
   it('60Hz cap: 1000 rapid pointermove events → ≤ 2 IPC calls', () => {

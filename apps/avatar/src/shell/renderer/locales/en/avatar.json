@@ -102,10 +102,6 @@
         "label": "Auto-open new replies",
         "help": "Reveal fresh assistant replies immediately."
       },
-      "bubble_auto_collapse": {
-        "label": "Auto-collapse quiet bubble",
-        "help": "Settle the bubble after a calm pause."
-      },
       "show_voice_captions": {
         "label": "Show voice captions",
         "help": "Bounded foreground voice captions only.",

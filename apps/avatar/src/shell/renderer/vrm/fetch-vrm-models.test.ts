@@ -110,8 +110,10 @@ describe('VRM_SAMPLE_DEFINITIONS', () => {
 describe('resolveSamplePath', () => {
   it('returns the cache directory + filename for a known sample id', () => {
     const r = resolveSamplePath('vrm1-constraint-twist');
-    expect(r.filePath).toMatch(/\.cache\/assets\/vrm-models\/VRM1_Constraint_Twist_Sample\.vrm$/);
-    expect(r.cacheDir).toMatch(/\.cache\/assets\/vrm-models$/);
+    const filePath = r.filePath.replaceAll('\\', '/');
+    const cacheDir = r.cacheDir.replaceAll('\\', '/');
+    expect(filePath).toMatch(/\.cache\/assets\/vrm-models\/VRM1_Constraint_Twist_Sample\.vrm$/);
+    expect(cacheDir).toMatch(/\.cache\/assets\/vrm-models$/);
   });
 
   it('throws on unknown sample id', () => {

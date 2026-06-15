@@ -7,7 +7,6 @@ import {
 export type AvatarShellSettings = {
   alwaysOnTop: boolean;
   bubbleAutoOpen: boolean;
-  bubbleAutoCollapse: boolean;
   showVoiceCaptions: boolean;
 };
 
@@ -20,7 +19,6 @@ export const AVATAR_SHELL_SETTINGS_STORAGE_KEY = 'nimi.avatar.shell-settings.v1'
 export const defaultAvatarShellSettings: AvatarShellSettings = {
   alwaysOnTop: true,
   bubbleAutoOpen: true,
-  bubbleAutoCollapse: true,
   showVoiceCaptions: true,
 };
 
@@ -47,7 +45,6 @@ export function readAvatarShellSettings(): AvatarShellSettings {
   return {
     alwaysOnTop: readBoolean(stored.alwaysOnTop, defaultAvatarShellSettings.alwaysOnTop),
     bubbleAutoOpen: readBoolean(stored.bubbleAutoOpen, defaultAvatarShellSettings.bubbleAutoOpen),
-    bubbleAutoCollapse: readBoolean(stored.bubbleAutoCollapse, defaultAvatarShellSettings.bubbleAutoCollapse),
     showVoiceCaptions: readBoolean(stored.showVoiceCaptions, defaultAvatarShellSettings.showVoiceCaptions),
   };
 }

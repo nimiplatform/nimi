@@ -9,11 +9,11 @@
 // Load order is governed by vrm-backend-contract.md §2.1 (K-NAV-VRM-001):
 //
 //     1. suspendCreateImageBitmapForTauriVrmLoad()    // Tauri WKWebView quirk
-//     2. loader.loadAsync(url)
+//     2. load VRM GLTF via loader.loadAsync(url) or Tauri binary read + parse()
 //     3. VRMUtils.rotateVRM0(vrm)                     // VRM 0.x → 1.0 orient
 //     4. applyIdlePose(vrm)                           // avoid T-pose flash
 //     5. scene.traverse(o => o.frustumCulled = false) // close-up cull guard
-//     6. setCachedVrm(url, vrm)
+//     6. setCachedVrm(vrmFile, vrm)
 //
 // Steps 3 → 4 → 5 are STRICT and order-asserted in vrm-loader.test.ts.
 // Step 1's restore() runs in a `finally` so a loader failure still un-pins
@@ -31,6 +31,15 @@ import { applyIdlePose } from './vrm-pose.js';
 import { suspendCreateImageBitmapForTauriVrmLoad } from './vrm-tauri-quirks.js';
 
 let loaderSingleton: GLTFLoader | null = null;
+type VrmGltfLoadResult = Awaited<ReturnType<GLTFLoader['loadAsync']>>;
+type GltfParserRuntime = {
+  parse(
+    data: ArrayBuffer,
+    path: string,
+    onLoad: (gltf: VrmGltfLoadResult) => void,
+    onError?: (error: unknown) => void,
+  ): void;
+};
 
 /**
  * Return the process-singleton GLTFLoader. Plugins are registered on
@@ -78,13 +87,13 @@ export function __resetVrmLoaderForTests(): void {
 }
 
 /**
- * Convert a manifest model file path into a URL the GLTFLoader can fetch.
+ * Convert a remote/browser model path into a URL the GLTFLoader can fetch.
  *
  * In a Tauri runtime the renderer is served from `tauri://localhost` and
- * raw filesystem paths must be passed through `convertFileSrc` to be
- * routed through the asset protocol. In dev / SSR / test environments the
- * path is returned unchanged (callers are expected to feed already-URL
- * strings in those contexts, e.g. fixtures served by Vite).
+ * browser-fetchable filesystem URLs must be passed through `convertFileSrc`.
+ * Avatar-owned local VRM package files are loaded through the Avatar Tauri
+ * binary-read command instead, because Windows `\\?\` paths are not valid
+ * browser fetch targets.
  *
  * The Tauri import is dynamic so non-Tauri bundles don't pay the cost
  * and the test environment can mock the module.
@@ -110,6 +119,46 @@ function isTauriRuntime(): boolean {
   return Boolean(w['__TAURI_INTERNALS__']) || Boolean(w['__TAURI_IPC__']);
 }
 
+function isRemoteOrBrowserUrl(path: string): boolean {
+  if (/^[a-z]:[\\/]/iu.test(path)) return false;
+  return /^[a-z][a-z0-9+.-]*:/iu.test(path) && !/^file:/iu.test(path);
+}
+
+async function readTauriBinaryFile(path: string): Promise<ArrayBuffer> {
+  const mod = (await import('@tauri-apps/api/core')) as {
+    invoke?: <T>(command: string, args?: Record<string, unknown>) => Promise<T>;
+  };
+  if (typeof mod.invoke !== 'function') {
+    throw new Error('VRM local file loading requires Tauri invoke');
+  }
+  const bytes = await mod.invoke<number[]>('nimi_avatar_read_binary_file', { path });
+  return new Uint8Array(bytes).buffer;
+}
+
+function parseVrmGltfFromArrayBuffer(
+  loader: GLTFLoader,
+  data: ArrayBuffer,
+): Promise<VrmGltfLoadResult> {
+  const parser = loader as unknown as GltfParserRuntime;
+  return new Promise((resolve, reject) => {
+    parser.parse(
+      data,
+      '',
+      (gltf) => resolve(gltf as VrmGltfLoadResult),
+      (error) => reject(error),
+    );
+  });
+}
+
+async function loadVrmGltf(path: string): Promise<VrmGltfLoadResult> {
+  if (isTauriRuntime() && !isRemoteOrBrowserUrl(path)) {
+    const data = await readTauriBinaryFile(path);
+    return parseVrmGltfFromArrayBuffer(getVrmLoader(), data);
+  }
+  const url = await convertModelFilePathToUrl(path);
+  return getVrmLoader().loadAsync(url);
+}
+
 /**
  * Load a VRM model from a resolved manifest. Honours the strict load order
  * from vrm-backend-contract.md §2.1 and the createImageBitmap suspend wrap
@@ -125,13 +174,13 @@ export async function loadVrmFromManifest(manifest: VrmAvatarModelManifest): Pro
   if (manifest.kind !== 'vrm') {
     throw new Error('loadVrmFromManifest expects manifest.kind === "vrm"');
   }
-  const url = await convertModelFilePathToUrl(manifest.vrm.vrmFile);
-  const cached = getCachedVrm(url);
+  const cacheKey = manifest.vrm.vrmFile;
+  const cached = getCachedVrm(cacheKey);
   if (cached) return cached;
 
   const restore = suspendCreateImageBitmapForTauriVrmLoad();
   try {
-    const gltf = await getVrmLoader().loadAsync(url);
+    const gltf = await loadVrmGltf(manifest.vrm.vrmFile);
     const vrm = (gltf.userData as { vrm?: VRM }).vrm;
     if (!vrm) {
       throw new Error('Asset is not a valid VRM (gltf.userData.vrm missing)');
@@ -142,7 +191,7 @@ export async function loadVrmFromManifest(manifest: VrmAvatarModelManifest): Pro
     vrm.scene.traverse((object: { frustumCulled?: boolean }) => {
       object.frustumCulled = false;
     });
-    setCachedVrm(url, vrm);
+    setCachedVrm(cacheKey, vrm);
     return vrm;
   } finally {
     restore();
