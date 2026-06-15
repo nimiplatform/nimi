@@ -170,7 +170,12 @@ function DrumColumn({
   const scrollToIndex = useCallback(
     (idx: number, smooth = false) => {
       const nextTop = idx * itemHeight;
-      colRef.current?.scrollTo({ top: nextTop, behavior: smooth ? 'smooth' : 'auto' });
+      const column = colRef.current;
+      if (typeof column?.scrollTo === 'function') {
+        column.scrollTo({ top: nextTop, behavior: smooth ? 'smooth' : 'auto' });
+      } else if (column) {
+        column.scrollTop = nextTop;
+      }
       setScrollTop(nextTop);
     },
     [itemHeight],

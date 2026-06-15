@@ -26,8 +26,9 @@ describe('avatar VRM generated motion protocol', () => {
     const provider: VrmGeneratedMotionProvider<TestVrm, TestClip> = {
       generate(input) {
         return {
-          ok: true,
+          status: 'ok',
           clip: { clipId: input.routeId },
+          routeId: input.routeId,
           evidence: { routeId: input.routeId, providerKind: 'test' },
         };
       },
@@ -42,8 +43,9 @@ describe('avatar VRM generated motion protocol', () => {
     };
 
     expect(provider.generate({ vrm: { sceneId: 'vrm' }, routeId: 'idle_subtle', intensity: null, loop: false })).toEqual({
-      ok: true,
+      status: 'ok',
       clip: { clipId: 'idle_subtle' },
+      routeId: 'idle_subtle',
       evidence: { routeId: 'idle_subtle', providerKind: 'test' },
     });
     expect(runtime.snapshot().activeRouteId).toBe('idle_subtle');

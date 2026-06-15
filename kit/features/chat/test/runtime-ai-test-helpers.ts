@@ -52,7 +52,14 @@ export function createRuntimeAiTestRuntime(options: RuntimeAiTestRuntimeOptions 
       output: {
         output: {
           oneofKind: 'textGenerate',
-          textGenerate: { text: result.text ?? 'Generated reply' },
+          textGenerate: {
+            text: result.text ?? 'Generated reply',
+            toolCalls: [],
+            toolResults: [],
+            toolApprovalRequests: [],
+            sources: [],
+            rawChunks: [],
+          },
         },
       },
       finishReason: toRuntimeFinishReason(result.finishReason),
@@ -202,6 +209,10 @@ function toRuntimeScenarioStreamEvent(event: NimiRunEvent, sequence: number): Ru
         },
       };
     case 'tool-call':
+    case 'tool-result':
+    case 'tool-approval-request':
+    case 'source':
+    case 'raw':
     case 'trace':
     case 'warning':
       throw new Error(`Runtime AI test helper does not project ${event.type} events yet.`);
@@ -228,5 +239,7 @@ function toRuntimeUsage(usage: NimiUsage | undefined) {
     inputTokens: String(usage?.promptTokens ?? 0),
     outputTokens: String(usage?.completionTokens ?? 0),
     computeMs: '0',
+    cachedInputTokens: String(usage?.cachedInputTokens ?? 0),
+    reasoningOutputTokens: String(usage?.reasoningOutputTokens ?? 0),
   };
 }
