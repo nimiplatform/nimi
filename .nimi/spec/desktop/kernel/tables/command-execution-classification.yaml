@@ -462,23 +462,6 @@ registered_command_families:
       - sync_lock_contention
     source_rule: D-GATE-092
 
-  - family: account_app_library
-    match:
-      exact:
-        - account_app_library_get
-    origin_crate: apps/desktop/src-tauri
-    owner_domain: runtime-account-app-library-projection
-    execution_class: request_response_async
-    remediation_required: false
-    admitted_risks:
-      - std_fs
-      - cpu_hash_or_codec
-      - spawn_blocking
-      - runtime_bridge_block_on
-      - block_on_variants
-      - sync_lock_contention
-    source_rule: D-GATE-092
-
   - family: world_tour_launch_and_acceptance
     match:
       regex: "^(claim_world_tour_viewer_launch|world_tour_render_acceptance_load|world_tour_render_acceptance_save)$"

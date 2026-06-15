@@ -152,7 +152,7 @@ binding 事件家族（与 `K-ACCSVC-006` 一致）：
 `IssueScopedAppBinding` 必须从 Runtime account custody 内部派生 subject / account 上下文。
 
 - 调用方不得提供 `subject_user_id`、Realm token、refresh token、或 raw JWT。
-- 调用方必须是 Runtime app registry/admission policy 已登记的 local first-party app instance；`caller.app_id` / `caller.app_instance_id` 必须与待发放 binding relation 精确一致。
+- 调用方必须是 Runtime app registry/admission policy 已登记的 local first-party app instance，或经 developer-registration double gate admitted 的 local developer app instance；`caller.app_id` / `caller.app_instance_id` 必须与待发放 binding relation 精确一致。
 - account state 不为 `authenticated` 时，binding 发放必须 fail-close（reason `account_unavailable`）。
 - account state 从 `authenticated` 转出时，active/issued binding 必须 revoke 或 suspend；覆盖 custody unavailable、refresh failure / reauth-required、logout、switch、daemon restart no-custody、policy revoke。
 - 切换 / logout / reauth-required / custody-unavailable 期间，正在飞的 binding issuance 必须取消并发出 `binding.revoked` reason `account_expired` / `user_switch` / `logout` / `account_unavailable`。
@@ -161,7 +161,7 @@ binding 事件家族（与 `K-ACCSVC-006` 一致）：
 
 `RuntimeGrantService`（`K-GRANT-*`）继续负责 external-principal grant 与 caller-supplied subject 流程。external-principal grant 与本契约不互通：
 
-- local first-party scoped binding 必须由 `RuntimeAccountService.IssueScopedAppBinding` 发出，subject 由 Runtime 内部派生。
+- local first-party / developer-registered local scoped binding 必须由 `RuntimeAccountService.IssueScopedAppBinding` 发出，subject 由 Runtime 内部派生。
 - external-principal grant 仍由 `RuntimeGrantService` 发出，使用现有 `subject_user_id` 流程。
 - 二者 binding ID 命名空间必须可区分，且不可互相赎回。
 

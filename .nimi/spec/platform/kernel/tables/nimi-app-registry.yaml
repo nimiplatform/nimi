@@ -19,7 +19,7 @@ entries:
   - permission_scope_ref must remain permission_fabric_pending until an admitted permission fabric provides concrete scope sets
 
 # Canonical Nimi App registry — Platform admission/catalog authority.
-# See nimi-app-admission-contract.md (P-NAPP-001..P-NAPP-011; P-NAPP-013..P-NAPP-030).
+# See nimi-app-admission-contract.md (P-NAPP-001..P-NAPP-011; P-NAPP-013..P-NAPP-032).
 
 app_schema:
   owner: platform_nimi_app_registry

@@ -113,7 +113,7 @@ rules:
   - rule_id: S-APP-016
     evidence_refs:
       - sdk_kernel_consistency
-    note: Generated-app Runtime platform client auth helper admits exact exported names and the local-first-party / third-party-nimi-app / dev-standalone mode split. SDK helper and generated scaffold auth tests are required.
+    note: Generated-app Runtime platform client auth helper admits exact exported names and the first-party-local-app / developer-registered-local-app / third-party-nimi-app / dev-standalone mode split. SDK helper and generated scaffold auth tests are required.
     evidence_requirement: required
   - rule_id: S-APP-017
     evidence_refs:
@@ -131,5 +131,5 @@ rules:
     evidence_refs:
       - sdk_kernel_consistency
       - sdk_behavioral_test
-    note: SDK account app-library accessor is backed by Runtime GetAccountAppLibrary and must not read account-scoped projection files locally.
+    note: SDK account app-inventory accessor is backed by Runtime GetAccountAppInventory and must not read account-scoped projection files locally.
     evidence_requirement: required

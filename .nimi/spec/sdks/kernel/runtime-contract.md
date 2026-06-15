@@ -431,6 +431,7 @@ because Desktop launched it.
 
 - SDK 必须暴露 typed Runtime account projection consumer：状态查询（映射 `GetAccountSessionStatus`）、事件订阅（映射 `SubscribeAccountSessionEvents`）。
 - SDK 必须暴露或内部使用 Runtime-backed short-lived access-token provider（映射 `GetAccessToken` 或等价方法），用于 admitted local first-party Realm data client。
+- SDK 必须暴露 developer-registered local app account caller helper；该 helper 只能消费 Runtime account projection、login broker、Runtime app session、和 scoped binding，不得调用或包装 `GetAccessToken`。
 - SDK 必须暴露 typed scoped binding consumer：解析 binding 状态、订阅 binding 事件、关闭使用方时通知 Runtime。
 - SDK 不得在 local first-party mode 接收 app-provided `auth.accessToken`、`auth.refreshToken`、`subjectContext`、`subject_user_id`、token provider、refresh callback、session store、或 JWT 解析 hook。
 - SDK 可在 local first-party mode 暴露 Realm data client，但只能使用 Runtime-backed short-lived access-token provider；不得暴露 Realm identity bootstrap、`MeService.getMe` 作为 account truth、Realm `passwordLogin` / `oauthLogin` / `requestEmailOtp` / `verifyEmailOtp` / `walletLogin` 直接登录调用面、或 SDK-owned 401 refresh token flow。
@@ -452,7 +453,7 @@ because Desktop launched it.
   suspended / superseded / replay / relation mismatch / scope mismatch 作为 typed
   binding unavailable / permission failure 投影给使用方，使用方据此关闭
   interaction / voice / activity 而不影响 visual carrier。
-- SDK 必须使用稳定 mode discriminator（`local-first-party` vs `web-cloud-adapter` vs `external-principal`），且 mode 一旦确定不可在运行期跨切换。
+- SDK 必须使用稳定 mode discriminator（`first-party-local-app` vs `developer-registered-local-app` vs `web-cloud-adapter` vs `external-principal`），且 mode 一旦确定不可在运行期跨切换。
 - SDK 必须把 Runtime account / binding 事件以 typed 投影暴露，不得使 app 直接读取底层事件 envelope。
 - SDK 必须保留对 Runtime account projection 缺失字段、未知 state、或断流（`replay_truncated`）的 fail-close 行为。
 
@@ -460,7 +461,7 @@ Web/cloud adapter 与 external-principal mode 仍可保留 app-provided token / 
 
 ## S-RUNTIME-110 Login Adapter Surface
 
-local first-party login UX 由 kit / Desktop 提供 UX，登录结果通过 Runtime `BeginLogin` / `CompleteLogin`（`K-ACCSVC-005`）回流。SDK 在该 mode 仅扮演投影：
+local first-party 与 developer-registered local app login UX 由 kit / Desktop 提供 UX，登录结果通过 Runtime `BeginLogin` / `CompleteLogin`（`K-ACCSVC-005`）回流。SDK 在该 mode 仅扮演投影：
 
 - SDK 必须暴露 typed `beginLogin(...)`、`completeLogin(...)` 包装，转发到 Runtime；不得在 SDK 层完成 token exchange 或解码 JWT。
 - SDK 不得在 local first-party mode 暴露 Realm 直接登录路径；登录只允许通过 Runtime Nimi Auth Browser callback proof。

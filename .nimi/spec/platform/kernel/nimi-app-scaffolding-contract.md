@@ -74,7 +74,7 @@ are authoritative for this scaffolding contract:
 |---|---|
 | A0 | App authoring CLI authority stays `nimi-app create|init|doctor|update`; it does not move under the runtime-occupied `nimi app send|watch` namespace. |
 | A1 | Public Rust crate delivery name is `nimi-shell-tauri`; standalone targets the published crate channel after API/publication mechanics are admitted, and workspace apps use Cargo path dependency. |
-| A2 | SDK auth cuts a generated-app helper shape with modes `local-first-party`, `third-party-nimi-app`, and `dev-standalone`; third-party apps must not reuse first-party helper paths as self-declared first-party. |
+| A2 | SDK auth cuts a generated-app helper shape with modes `first-party-local-app`, `developer-registered-local-app`, `third-party-nimi-app`, and `dev-standalone`; generated local apps use developer registration for Runtime-shared auth and must not reuse first-party helper paths as self-declared first-party. |
 | A3 | Explicit `workspace-app` scaffolding may auto-write monorepo app-slice admission under `P-APP-*`; standalone scaffolding never writes admitted truth. |
 | A4 | `dev-standalone` auth uses an explicit developer app session or returns typed unavailable; mock auth, disabled auth gates, pseudo-success, and first-party self-declaration are forbidden. |
 | A5 | Default scaffold content cannot import `kit/features/model-test` until Kit admits that feature surface. |

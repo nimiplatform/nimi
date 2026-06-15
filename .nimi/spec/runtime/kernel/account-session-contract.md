@@ -4,11 +4,11 @@
 
 ## K-ACCSVC-001 服务职责
 
-`RuntimeAccountService` 拥有本地机器层的 account session truth、custody、login lifecycle、refresh、logout、user switch、daemon restart recovery、首方 short-lived app access-token projection、和首方 scoped app binding issuance。它是 local first-party account authority 与 refresh-token custody 的唯一所有者。
+`RuntimeAccountService` 拥有本地机器层的 account session truth、custody、login lifecycle、refresh、logout、user switch、daemon restart recovery、首方 short-lived app access-token projection、和 Runtime-issued scoped app binding issuance。它是 local account authority 与 refresh-token custody 的唯一所有者。
 
 `RuntimeAuthService`（`K-AUTHSVC-*`）继续负责 app session 与 external-principal session，二者不互相替代。`RuntimeAccountService` 不接受调用方提供的 `subject_user_id` 作为 account 真相，account subject 必须从 Runtime account custody 内部派生。
 
-`RuntimeAccountService` 不是所有 Realm data request 的 RPC proxy。Admitted local first-party app 可以通过 Runtime-issued short-lived access token 继续直接调用 Realm data API；但 app 不得拥有 refresh token、durable session、login bootstrap、或 subject truth。
+`RuntimeAccountService` 不是所有 Realm data request 的 RPC proxy。Admitted local first-party app 可以通过 Runtime-issued short-lived access token 继续直接调用 Realm data API；developer-registered local app 只能使用 Runtime-owned account projection、app session、和 scoped binding，不能获得 raw Realm access token。任何 app 都不得拥有 refresh token、durable session、login bootstrap、或 subject truth。
 
 ## K-ACCSVC-002 方法集合（权威）
 
@@ -76,7 +76,7 @@ undergo a new rule admission before proto / RPC table projection.
 - `SubscribeAccountSessionEvents`: server-stream，必须先返回 `account.status` snapshot，再按单调 sequence 顺序投递事件。重连时若 replay 不可用，必须发出 `replay_truncated` 标志。
 - `BeginLogin`: 创建 login attempt，返回 UX instruction envelope（如 `oauth_authorization_url`、`callback_origin`、`pkce_challenge`、`state`、`expires_at`）。kit / Desktop 不得获得 PKCE verifier。
 - `CompleteLogin`: 接受 typed proof envelope（见 K-ACCSVC-008）。Runtime 验证后写入 custody 并转换状态。
-- `GetAccessToken`: 向 admitted local first-party app instance 返回当前 short-lived access token，或在 Runtime 内部 refresh 后返回新 access token。不得返回 refresh token、durable session、raw subject、或任何可由 app 自行刷新 token 的材料。Explicit binding-only Avatar embodiment 必须被拒绝；default `nimi.avatar` first-party app instance may use this method when registry-admitted.
+- `GetAccessToken`: 向 registry-admitted true local first-party app instance 返回当前 short-lived access token，或在 Runtime 内部 refresh 后返回新 access token。不得返回 refresh token、durable session、raw subject、或任何可由 app 自行刷新 token 的材料。Developer-registered local app 与 explicit binding-only Avatar embodiment 必须被拒绝；default `nimi.avatar` first-party app instance may use this method when registry-admitted.
 - `RefreshAccountSession`: Runtime 主动或被动刷新；调用方不得提交 refresh token。
 - `Logout`: Runtime 撤销 local session 与所有 binding；幂等。Caller-facing
   logout success may be projected only after Runtime has accepted/completed the
@@ -88,13 +88,13 @@ undergo a new rule admission before proto / RPC table projection.
 - `IssueScopedAppBinding`: 见 `scoped-app-binding-contract.md`。account subject 内部派生。
 - `RevokeScopedAppBinding`: 见 `scoped-app-binding-contract.md`。
 
-Public local first-party account status / lifecycle RPCs (`GetAccountSessionStatus`, `RefreshAccountSession`, `Logout`, and `SwitchAccount`) require Runtime app registry admitted caller registration before status projection, refresh, logout, or switch execution. Unauthenticated / anonymous status may be returned to the Desktop login UI only when the caller is an explicitly admitted Desktop shell or local first-party app instance; shape-only caller identity is not sufficient.
+Public local account status / lifecycle RPCs require Runtime app registry admitted caller registration before status projection, refresh, logout, or switch execution. Developer-registered local app callers may use `GetAccountSessionStatus`, `SubscribeAccountSessionEvents`, `BeginLogin`, `CompleteLogin`, `RefreshAccountSession`, and scoped binding issuance after the developer-registration double gate admits the instance, but must be rejected for `GetAccessToken`, `Logout`, and `SwitchAccount`. Unauthenticated / anonymous status may be returned to the Desktop login UI only when the caller is an explicitly admitted Desktop shell, local first-party app instance, or developer-registered local app instance; shape-only caller identity is not sufficient.
 
 任何方法都不允许接受 raw Realm token、refresh token、raw JWT、或 caller 提供的 `subject_user_id` 作为 account truth。
 
 `GetAccessToken` 允许返回 Realm access token，或未来 backend-issued scoped app token，但必须满足：
 
-- caller 是 admitted local first-party app mode；
+- caller 是 registry-admitted true local first-party app mode；
 - caller app / instance registration 与 Runtime-owned app registry/admission policy 精确匹配；caller 不得通过 Desktop、SDK、Avatar、test fixture、或 app-local shape 自声明 first-party 权限；
 - account state 为 `authenticated`，或 Runtime 能先完成 refresh；
 - token 短生命、app-memory-only；
@@ -242,6 +242,7 @@ binding 在 daemon 重启时全部失效；调用方必须重新申请。Runtime
 |---|---|---|---|---|
 | Desktop shell | Runtime-mediated app registration | `authenticated` 或 anonymous（仅 UX shell） | Runtime account broker + optional short-lived access-token projection | durable token custody、refresh token、app-owned login |
 | SDK local first-party app | Runtime local mode 注册 | 操作要求 authenticated 时必须 `authenticated` | Runtime-issued binding + optional short-lived access-token projection | app-provided token / subject providers、refresh token、session store |
+| SDK developer-registered local app | Runtime developer-registration double gate | 操作要求 authenticated 时必须 `authenticated` | Runtime-issued app session + scoped binding | `GetAccessToken` raw Realm token、first-party permission ceiling、logout/switch authority、app-provided token / subject providers |
 | Default Avatar app (`nimi.avatar`) | Runtime local first-party app registration | 同 local first-party app | Runtime account broker + optional short-lived access-token projection | independent auth truth、refresh token、durable session、Desktop launch auth/package/anchor truth |
 | Binding-only Avatar mode | 不允许直接 account registration | N/A | Runtime-issued scoped binding from owner surface | account access token、refresh token、anchor 创建、independent auth truth |
 | Web / cloud app | 显式 Web/cloud adapter | Web/cloud session | Web/cloud adapter | local Runtime account authority claim |

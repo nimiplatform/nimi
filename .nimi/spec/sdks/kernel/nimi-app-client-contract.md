@@ -25,10 +25,11 @@ health-repair 的唯一 admitted access path。
 
 `MUST`：SDK 暴露以下 logical operation：
 
-- `app.list()` — 列出当前 ordinary visible Nimi App 集合。该集合必须来自
-  Platform registry/package projection and must filter to
-  `admission_status=admitted` + `ordinary_visibility=ordinary-visible`.
-- `app.get(appId)` — 获取单个 app admission row 与 projection state。
+- `app.list()` — 列出当前用户可见的 unified Apps inventory。该集合由
+  Platform ordinary catalog source、Runtime authenticated account inventory
+  source、Runtime local adoption source 合成；source 必须保留，不能互相推断。
+- `app.get(appId)` — 获取单个 app inventory entry 与 source/state/action
+  projection。
 - `app.install(appId, options?)` — 触发 Platform-mediated install
   flow；返回 typed job projection。
 - `app.update(appId)` — 触发 Platform-mediated update flow；遵守
@@ -96,10 +97,10 @@ updated / uninstalled / launching / launched / failed / repair-required
 `MUST NOT`：subscription 不承载 audit / permission / spend 事件；permission
 fabric 与 Realm audit 拥有 audit truth。
 
-## S-APP-009 — Ordinary Visibility Filter
+## S-APP-009 — Catalog Source Ordinary Visibility Filter
 
-`MUST`：SDK `app.list()` and Desktop Apps consumers must only project apps whose
-registry row resolves as ordinary visible:
+`MUST`：SDK `app.list()` 的 catalog source and Desktop Apps consumers must only
+project catalog-sourced apps whose registry row resolves as ordinary visible:
 
 - `admission_status=admitted`
 - `ordinary_visibility=ordinary-visible`
@@ -107,11 +108,13 @@ registry row resolves as ordinary visible:
 - release descriptor resolves
 - trust/runtime/permission/storage policy refs resolve
 
-Avatar must not appear in `app.list()` for ordinary Apps, even when an internal
-registry row exists for bundled package/update coordination.
+Avatar must not appear from the catalog source for ordinary Apps, even when an
+internal registry row exists for bundled package/update coordination.
 
 `MUST NOT`：SDK must not expose unadmitted workspace apps, app-local spec rows,
-Avatar hidden-internal rows, or source-discovered packages as ordinary Apps.
+Avatar hidden-internal rows, or source-discovered packages as catalog Apps.
+Account inventory and local adoption sources are admitted separately by
+`S-APP-020` / `S-APP-021`; they MUST NOT be relabeled as ordinary catalog truth.
 
 ## S-APP-010 — Install Descriptor Verification
 
@@ -380,10 +383,11 @@ review-evidence accessor is NOT in S-PERM), parent invariants
 **Background fact.** Platform `P-SCAF-*` admits Nimi app scaffolding and
 requires generated apps to consume SDK/Runtime auth/session authority without
 self-declaring first-party status, owning tokens, or calling Realm login routes.
-Runtime `K-ACCSVC-*` owns local first-party account session truth and
+Runtime `K-ACCSVC-*` owns local account session truth and first-party
 short-lived access-token projection; Runtime `K-BIND-*` owns scoped app binding;
 Runtime `K-APP-*` owns app launch / lifecycle projection. This rule admits the
-SDK generated-app helper surface only.
+SDK generated-app helper surface only and keeps product trust tier separate from
+Runtime local developer registration.
 
 `MUST` (exported names). SDK admits the following exact public exported names
 for generated Nimi app auth/client construction:
@@ -397,23 +401,32 @@ for generated Nimi app auth/client construction:
 
 `MUST` (mode set). `NimiAppAuthMode` is a closed mode set:
 
-- `local-first-party`;
+- `first-party-local-app`;
+- `developer-registered-local-app`;
 - `third-party-nimi-app`;
 - `dev-standalone`.
 
-`MUST` (`local-first-party`). `local-first-party` is admitted only for local
-first-party apps or workspace apps whose caller registration is admitted by the
-Runtime app registry/admission policy. This mode may consume
-`RuntimeAccountService` account status and short-lived access-token projection
-only under `K-ACCSVC-*` exact registration policy. Shape-only app id,
+`MUST` (`first-party-local-app`). `first-party-local-app` is admitted only for
+true local first-party apps whose caller registration is admitted by Runtime app
+registry / admission policy as first-party. This mode may consume
+`RuntimeAccountService` account status and first-party short-lived access-token
+projection only under `K-ACCSVC-*` exact registration policy. Shape-only app id,
 workspace folder presence, generated scaffold state, or app-local spec presence
 is not enough to enter this mode.
+
+`MUST` (`developer-registered-local-app`). `developer-registered-local-app` is
+the local development mode for generated / non-first-party Nimi Apps launched
+with `pnpm dev:shell`. It may use Runtime-owned account custody, browser login,
+account projection, Runtime app session, and scoped binding only after
+Runtime's developer-registration double gate admits the app. It MUST NOT call
+`RuntimeAccountService.GetAccessToken` or any first-party helper as a
+self-declared first-party path.
 
 `MUST` (`third-party-nimi-app`). `third-party-nimi-app` is the generated app
 mode for third-party Nimi Apps. It consumes Runtime-issued app session and/or
 scoped app binding surfaces admitted by Runtime authority. It MUST NOT call
 `createLocalFirstPartyRuntimePlatformClient`, `RuntimeAccountService.GetAccessToken`,
-or any local-first-party helper as a self-declared first-party path.
+or any first-party-local helper as a self-declared first-party path.
 
 `MUST` (`dev-standalone`). `dev-standalone` uses an explicit
 `NimiAppDeveloperSession` supplied by developer tooling or Runtime development
@@ -442,9 +455,9 @@ authority, not app-owned login.
 
 `MUST NOT` (no pseudo-success). `dev-standalone` must not use mock auth,
 disabled auth gates, anonymous subject fallback, fixture-mode success, or
-local-first-party self-declaration. `third-party-nimi-app` must not become
-`local-first-party` by setting a mode string, app id, app instance id, or
-workspace profile flag.
+first-party self-declaration. `third-party-nimi-app` and
+`developer-registered-local-app` must not become `first-party-local-app` by
+setting a mode string, app id, app instance id, or workspace profile flag.
 
 Cross-references: `P-SCAF-002` (A2/A4 accepted mode split and fail-closed
 dev-standalone requirement), `P-SCAF-008` (generated app authoring command
@@ -484,18 +497,57 @@ as canonical package truth. SDK orchestration here is non-authoritative: it
 submits explicit typed requests to Runtime and maps the Runtime projection
 without hiding fail-closed states.
 
-## S-APP-019 — Account App-Library Truth Accessor
+## S-APP-019 — Account App-Inventory Truth Accessor
 
-`MUST`：SDK may expose typed app-facing access, request builders, response
-parsers, and decoders for Runtime `GetAccountAppLibrary` (`K-APP-024`). The
-Runtime request carries no app- or renderer-supplied `account_id`; Runtime
-resolves the authenticated account binding and validates the projection.
+`MUST`：SDK exposes typed access, request builders, response parsers, and
+decoders for Runtime `GetAccountAppInventory` (`K-APP-024`). The Runtime
+request carries no app- or renderer-supplied `account_id`; Runtime resolves the
+authenticated account binding and validates the projection.
+
+`MUST`：schema version 2 separates account visibility (`verified` /
+`entitled` / `disabled` / `removed` / `revoked`) from local materialization
+(`not-installed` / `installed` / `adopted-local` / `removed`). An account
+verified row with `not-installed` is a valid Apps inventory entry.
 
 `MUST NOT`：SDK must not read
-`~/.nimi/accounts/<account-id>/apps/library.json`, infer account directories,
-or convert absent/corrupt library state into success. SDK helpers may preserve
-the explicit `exists=false` response and parse present records, but Runtime
-owns account app-library validation, writes, and fail-closed reason codes.
+`~/.nimi/accounts/<account-id>/apps/inventory.json`, infer account directories,
+or convert absent/corrupt inventory state into success. SDK helpers may
+preserve the explicit `exists=false` response and parse present records, but
+Runtime owns account app-inventory validation, writes, and fail-closed reason
+codes.
+
+## S-APP-020 — Unified Apps Inventory Composition
+
+`MUST`：`NimiAppClient.list()` returns `NimiAppInventoryEntry[]`. Each entry
+MUST carry:
+
+- `appId` and display metadata;
+- `sources.catalog?`, `sources.account?`, and `sources.local?`;
+- closed `trustTier`, `installState`, `openReadiness`, `activeJobs[]`,
+  `nextActions[]`, and typed `reasonCode/detail`.
+
+`MUST`：composition is deterministic by `appId`. A source failure is emitted as
+a typed source-degraded projection and MUST NOT fabricate entries from another
+source. Valid entries from other sources may remain visible only with the
+source-degraded reason preserved.
+
+`MUST NOT`：SDK must not collapse account entitlement, local adoption, and
+ordinary catalog admission into a single boolean `installed` or `ready`; it
+must not infer account visibility from install evidence or infer local adoption
+from file existence.
+
+## S-APP-021 — Local App Adoption Accessor
+
+`MUST`：SDK exposes Runtime `AdoptLocalApp`, `ListLocalAppAdoptions`, and
+`RemoveLocalAppAdoption` typed accessors. Local adoption is explicit:
+the caller supplies a user-selected root and optional expected app id; Runtime
+validates `nimi.app.yaml` / `nimi.app.json` and writes Runtime-owned adoption
+truth only after validation passes.
+
+`MUST NOT`：SDK/Desktop/apps must not scan workspaces, source trees, package
+manager installs, or app-local specs to manufacture Apps inventory entries.
+Local adoption is not Platform public admission and MUST NOT bypass Runtime
+OpenApp permissions, AIConfig, storage, account/session, or manifest gates.
 
 ## Fact Sources
 
@@ -504,7 +556,7 @@ owns account app-library validation, writes, and fail-closed reason codes.
 - `.nimi/spec/sdks/kernel/surface-contract.md` — `S-SURFACE-*`
 - `.nimi/spec/sdks/kernel/error-projection.md` — `S-ERROR-*`
 - `.nimi/spec/sdks/kernel/nimi-permission-client-contract.md` — `S-PERM-001..S-PERM-010` (`S-PERM-010` records the S-APP-vs-S-PERM placement anti-target for the review-evidence accessor admitted at `S-APP-015`)
-- `.nimi/spec/platform/kernel/nimi-app-admission-contract.md` — `P-NAPP-001..P-NAPP-030` (`P-NAPP-015` storage policy, `P-NAPP-018` descriptor shape, `P-NAPP-019` typed sizes/dates, `P-NAPP-025` review-decision schema, `P-NAPP-027`/`P-NAPP-028` storage posture)
+- `.nimi/spec/platform/kernel/nimi-app-admission-contract.md` — `P-NAPP-001..P-NAPP-032` (`P-NAPP-015` storage policy, `P-NAPP-018` descriptor shape, `P-NAPP-019` typed sizes/dates, `P-NAPP-025` review-decision schema, `P-NAPP-027`/`P-NAPP-028` storage posture, `P-NAPP-031` unified inventory, `P-NAPP-032` local adoption)
 - `.nimi/spec/platform/kernel/app-permission-contract.md` — `P-PERM-001..P-PERM-011` (`P-PERM-002` closed scope enum, `P-PERM-006` cross-app authorization, `P-PERM-011` `app-local-drafts` qualifier semantics)
 - `.nimi/spec/platform/kernel/nimi-app-audit-pipeline-contract.md` — `P-AUDIT-001..P-AUDIT-006` (`P-AUDIT-006` review-evidence shape)
 - `.nimi/spec/platform/kernel/mod-extension-retirement-contract.md` — `P-MOEX-001..P-MOEX-006`
@@ -513,7 +565,7 @@ owns account app-library validation, writes, and fail-closed reason codes.
 - `.nimi/spec/platform/kernel/ai-profile-selection-policy-contract.md` — `P-AIPS-001..P-AIPS-013`
 - `.nimi/spec/platform/kernel/ai-scope-contract.md` — `P-AISC-001..P-AISC-007`
 - `.nimi/spec/runtime/kernel/local-engine-contract.md` — `K-LENG-024..K-LENG-028`
-- `.nimi/spec/runtime/kernel/app-messaging-contract.md` — `K-APP-014` (uninstall lifecycle), `K-APP-017` (launch gate), `K-APP-018` (Runtime-mediated file-API non-admission), `K-APP-022` (app storage), `K-APP-023` (package readiness), `K-APP-024` (account app-library)
+- `.nimi/spec/runtime/kernel/app-messaging-contract.md` — `K-APP-014` (uninstall lifecycle), `K-APP-017` (launch gate), `K-APP-018` (Runtime-mediated file-API non-admission), `K-APP-022` (app storage), `K-APP-023` (package readiness), `K-APP-024` (account app-inventory), `K-APP-025` (local adoption)
 - `.nimi/spec/runtime/kernel/account-session-contract.md` — `K-ACCSVC-*` (Runtime account/session and short-lived access-token projection authority consumed by `S-APP-016`)
 - `.nimi/spec/runtime/kernel/scoped-app-binding-contract.md` — `K-BIND-*` (Runtime-issued scoped app binding authority consumed by `S-APP-016`)
 - `.nimi/spec/platform/kernel/nimi-app-scaffolding-contract.md` — `P-SCAF-*` (generated-app auth helper naming, auth modes, dev-standalone fail-closed posture, and no first-party self-declaration consumed by `S-APP-016`)

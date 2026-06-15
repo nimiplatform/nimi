@@ -414,7 +414,13 @@ services:
         type: unary
       - name: GetAppStorage
         type: unary
-      - name: GetAccountAppLibrary
+      - name: GetAccountAppInventory
+        type: unary
+      - name: AdoptLocalApp
+        type: unary
+      - name: ListLocalAppAdoptions
+        type: unary
+      - name: RemoveLocalAppAdoption
         type: unary
       - name: GetAppPackageReadiness
         type: unary

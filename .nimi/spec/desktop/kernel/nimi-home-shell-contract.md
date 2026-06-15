@@ -44,13 +44,15 @@ authority 缺失仍按 `P-COLD-001` 状态投影。
 ## D-HOME-004 — Apps Surface Placement
 
 `MUST`：Apps surface placement 是 Desktop primary navigation 的 ordinary
-入口之一。Apps 行的数据 source 由 Nimi App registry / package projection、
-SDK Nimi App client projection、与 Runtime registration projection 提供；本
-契约只锁定 placement 与非 owner 边界。
+入口之一。Apps 行的数据 source 由 SDK `NimiAppClient.list()` 的 unified
+inventory projection 提供；该 projection 保留 Platform catalog、Runtime
+authenticated account inventory、Runtime local adoption 三个 source。
+Desktop 只负责呈现 source/state/action，不拥有 source truth。
 
 `MUST NOT`：Apps 不得拥有 app admission truth、marketplace truth、或
-package trust truth；不得读取 app-local spec、workspace source tree、或未
-admitted registry row 作为可见性来源；不得显示 Avatar。
+package trust truth；不得读取 app-local spec、workspace source tree、package
+manager install roots、或未 admitted registry row 作为 catalog 可见性来源；
+不得把 local adoption 投影为 ordinary catalog admission；不得显示 Avatar。
 
 ## D-HOME-005 — Apps Card State Placement
 
@@ -64,6 +66,10 @@ admitted registry row 作为可见性来源；不得显示 Avatar。
 fail-closed 状态压缩为单一 `Unavailable` / `Blocked`；admission state 由
 Nimi App registry 拥有，package readiness 由 package/runtime projection
 拥有。
+
+`MUST`：Apps 必须为 local adoption 提供显式 "connect local app" action。
+该 action 只能调用 SDK/Runtime local adoption surface；Desktop 不得扫描本地
+app、不得写 adoption truth、不得从 renderer-local in-flight state 推断接入成功。
 
 ## D-HOME-006 — Agent Chat Placement
 

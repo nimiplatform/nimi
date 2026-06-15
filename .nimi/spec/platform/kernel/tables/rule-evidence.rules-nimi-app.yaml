@@ -53,6 +53,8 @@ entries:
 - P-NAPP-028
 - P-NAPP-029
 - P-NAPP-030
+- P-NAPP-031
+- P-NAPP-032
 - P-MOEX-001
 - P-MOEX-002
 - P-MOEX-003
@@ -243,6 +245,16 @@ rules:
   evidence_requirement: structural_required
   evidence_scope_note: structural only; listing closure field set enforcement is downstream
     review-tool consumer validation and SDK projection consumer validation
+- rule_id: P-NAPP-031
+  evidence_refs:
+  - platform_kernel_consistency
+  evidence_requirement: structural_required
+  evidence_scope_note: structural only; unified inventory composition is enforced by SDK inventory composer and Desktop Apps projection tests under their owner evidence catalogs.
+- rule_id: P-NAPP-032
+  evidence_refs:
+  - platform_kernel_consistency
+  evidence_requirement: structural_required
+  evidence_scope_note: structural only; explicit local adoption is enforced by Runtime adoption validation and SDK typed lifecycle accessors under their owner evidence catalogs.
 - rule_id: P-MOEX-001
   evidence_refs:
   - platform_kernel_consistency

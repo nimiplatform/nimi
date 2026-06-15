@@ -736,6 +736,46 @@ resolution as implied by `release_descriptor_ref` resolution) fails
 the row out of `ordinary-visible` projection by violating the
 admitted conjunction.
 
+## P-NAPP-031 — Unified Apps Inventory Source Model
+
+`MUST`：the Desktop/SDK Apps surface projects a unified inventory composed from
+three admitted source families:
+
+- `catalog` — Platform registry rows that satisfy the `P-NAPP-009` /
+  `P-NAPP-030` ordinary listing predicate;
+- `account` — Runtime authenticated account app inventory rows
+  (`K-APP-024`) whose account state is verified or entitled, including rows
+  whose local install state is `not-installed`;
+- `local` — Runtime local adoption rows (`K-APP-025`) written only after an
+  explicit local adoption validation succeeds.
+
+`MUST`：source identity is part of the projection. A single `app_id` may carry
+more than one source, but source truth must remain independently inspectable.
+Catalog admission, account verification, and local adoption are not
+interchangeable.
+
+`MUST NOT`：`P-NAPP-031` MUST NOT redefine the `P-NAPP-009` ordinary listing
+predicate. It admits an inventory composition above that predicate; it does not
+allow hidden-internal, app-local spec, source-discovered, or workspace apps to
+enter catalog truth.
+
+## P-NAPP-032 — Explicit Local Adoption Boundary
+
+`MUST`：a locally installed external app can enter Nimi only through explicit
+Runtime local adoption. The user-selected root must contain a validated
+`nimi.app.yaml` or `nimi.app.json` with app id, display name, version, runtime
+entry ref, permission scope ref, and storage policy ref. Runtime owns the
+adoption record and may expose it as an inventory source.
+
+`MUST`：local adoption establishes a local trust posture, not public Platform
+admission. It does not grant ordinary visibility, mirror rights, publisher
+identity assurance, review decision, or release descriptor admission.
+
+`MUST NOT`：Nimi MUST NOT infer local adoption from npm/npx installs, cloned
+repositories, PATH entries, process liveness, filesystem presence, or app-local
+spec slices. Local adoption MUST NOT bypass permission, account/session,
+AIConfig, storage, or Runtime OpenApp gates.
+
 ## Fact Sources
 
 - `.nimi/spec/platform/kernel/architecture-contract.md` — `P-ARCH-001..P-ARCH-021`
@@ -751,6 +791,6 @@ admitted conjunction.
 - `.nimi/spec/platform/kernel/tables/nimi-app-registry.yaml`
 - `.nimi/spec/platform/kernel/tables/nimi-app-release-descriptors.yaml`
 - `.nimi/spec/platform/kernel/tables/nimi-app-trust-tiers.yaml`
-- `.nimi/spec/sdks/kernel/nimi-app-client-contract.md` — `S-APP-001..S-APP-008`
+- `.nimi/spec/sdks/kernel/nimi-app-client-contract.md` — `S-APP-001..S-APP-021`
 - `.nimi/spec/runtime/kernel/local-engine-contract.md` — `K-LENG-024..K-LENG-028`
 - `.nimi/spec/desktop/kernel/nimi-home-shell-contract.md` — `D-HOME-001..D-HOME-012`

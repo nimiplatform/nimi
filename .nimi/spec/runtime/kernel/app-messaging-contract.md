@@ -11,12 +11,13 @@
 3. `InstallApp` — 触发 Runtime-owned Nimi App install lifecycle（见 `K-APP-011`）
 4. `UninstallApp` — 触发 Runtime-owned Nimi App uninstall lifecycle（见 `K-APP-014`）
 5. `GetAppStorage` — 读取 app-scoped storage truth projection（见 `K-APP-022`）
-6. `GetAccountAppLibrary` — 读取 authenticated account app-library truth projection（见 `K-APP-024`）
-7. `GetAppPackageReadiness` — 读取 active release / install evidence package readiness projection（见 `K-APP-023`）
-8. `GetAppInstallJob` — 读取单个 install job 的 typed projection（见 `K-APP-012`）
-9. `ListAppInstallJobs` — 列出 install job 的 typed projection（见 `K-APP-012`）
-10. `WatchAppInstallJobEvents` — 订阅 install job 进度事件流（见 `K-APP-013`）
-11. `UpdateApp` — 触发 Runtime-owned Nimi App atomic update lifecycle（见 `K-APP-015`）
+6. `GetAccountAppInventory` — 读取 authenticated account app-inventory truth projection（见 `K-APP-024`）
+7. `AdoptLocalApp` / `ListLocalAppAdoptions` / `RemoveLocalAppAdoption` — 显式本地 app 接入、读取、移除（见 `K-APP-025`）
+8. `GetAppPackageReadiness` — 读取 active release / install evidence package readiness projection（见 `K-APP-023`）
+9. `GetAppInstallJob` — 读取单个 install job 的 typed projection（见 `K-APP-012`）
+10. `ListAppInstallJobs` — 列出 install job 的 typed projection（见 `K-APP-012`）
+11. `WatchAppInstallJobEvents` — 订阅 install job 进度事件流（见 `K-APP-013`）
+12. `UpdateApp` — 触发 Runtime-owned Nimi App atomic update lifecycle（见 `K-APP-015`）
 12. `HealthRepairApp` — 触发 Runtime-owned Nimi App health/repair lifecycle（见 `K-APP-016`）
 13. `OpenApp` — 触发 Runtime-owned Nimi App launch/open flow（见 `K-APP-017`）
 
@@ -722,20 +723,57 @@ an alternate package authority. SDK may expose typed decoders and compose this
 projection with Platform registry/admission rows for developer ergonomics, but
 the readiness facts remain Runtime-owned.
 
-## K-APP-024 Account App-Library Truth Projection
+## K-APP-024 Account App-Inventory Truth Projection
 
-`MUST`：`GetAccountAppLibrary()` 是 Runtime-owned authenticated account
-app-library truth projection。Runtime resolves the account id from the current
-authenticated Runtime account projection; the request must not accept a renderer-
-or app-supplied `account_id`.
+`MUST`：`GetAccountAppInventory()` 是 Runtime-owned authenticated account
+app-inventory truth projection。Runtime resolves the account id from the
+current authenticated Runtime account projection; the request must not accept a
+renderer- or app-supplied `account_id`.
+
+`MUST`：schema version 2 separates account visibility from local
+materialization. `AccountAppInventoryRow.account_state` carries
+`verified | entitled | disabled | removed | revoked` semantics; `install_state`
+carries `not-installed | installed | adopted-local | removed`. A verified or
+entitled row with `not-installed` is valid and is the authority for "Nimi
+account verified but not installed" Apps visibility.
+
+`MUST`：install, uninstall, and local-adoption lifecycle mutations may only
+change local materialization fields. They MUST NOT create account entitlement
+truth or silently upgrade a row to verified.
 
 `MUST`：the response distinguishes an absent projection (`exists=false`) from a
-present, validated `AccountAppLibraryRecord`. Corrupt JSON, unsupported schema,
-account-id mismatch, invalid row state, or invalid data policy must fail closed
-with `APP_OPEN_LIBRARY_STATE_INVALID`.
+present, validated `AccountAppInventoryRecord`. Corrupt JSON, unsupported
+schema, account-id mismatch, invalid row state, invalid install state, or
+invalid data policy must fail closed with
+`APP_OPEN_LIBRARY_STATE_INVALID`.
 
 `MUST NOT`：Desktop, SDK, Kit, or apps must not read
-`~/.nimi/accounts/<account-id>/apps/library.json`, derive the authenticated
-account directory, or expose a mutation path as an alternate library authority.
-SDK may expose typed request/response helpers and decoders over this Runtime
-surface, but Runtime remains the writer and validator.
+`~/.nimi/accounts/<account-id>/apps/inventory.json`, derive the authenticated
+account directory, or expose a mutation path as an alternate inventory
+authority. SDK may expose typed request/response helpers and decoders over this
+Runtime surface, but Runtime remains the writer and validator.
+
+## K-APP-025 Local App Adoption Truth Projection
+
+`MUST`：`AdoptLocalApp(root_path, expected_app_id?)` is the only Runtime RPC that
+can admit a locally installed external app into the Apps inventory. Runtime
+canonicalizes `root_path`, reads `nimi.app.yaml` or `nimi.app.json`, validates
+app id, display name, version, entry ref, permission scope ref, storage policy
+ref, manifest shape, and local path containment, then writes a Runtime-owned
+local adoption record. Any missing/invalid field fails closed before a record
+is written.
+
+`MUST`：`ListLocalAppAdoptions()` returns only Runtime-owned local adoption
+records. `RemoveLocalAppAdoption(app_id, delete_durable_data_confirmed=false)`
+marks the adoption removed and may delete durable data only when the destructive
+confirmation is explicit.
+
+`MUST`：local adoption is not Platform public admission. It may create a local
+inventory source, but OpenApp must still pass account/session, app data,
+permissions, AIConfig, manifest, and storage gates. A local-adopted app without
+an authenticated account may be visible as sign-in-required but MUST NOT launch.
+
+`MUST NOT`：Runtime, Desktop, SDK, Kit, or apps must not scan package-manager
+install roots, workspaces, source trees, app-local specs, or file presence to
+manufacture Apps inventory. Local adoption must not bypass `P-NAPP-*`,
+`P-PERM-*`, `S-AICONF-*`, or scoped app binding gates.

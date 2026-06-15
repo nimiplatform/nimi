@@ -74,7 +74,7 @@ apps:
     canonical_app_id: nimi.storybook
     sdk_app_id: nimi.storybook
     runtime_app_id: nimi.storybook
-    runtime_caller_mode: local-first-party
+    runtime_caller_mode: local-developer-app
     tauri_identifier: ai.nimi.apps.nimi.storybook
     tauri_identifier_required: true
     npm_package: "@nimiplatform/storybook"
@@ -86,7 +86,7 @@ apps:
     canonical_app_id: nimi.tester
     sdk_app_id: nimi.tester
     runtime_app_id: nimi.tester
-    runtime_caller_mode: local-first-party
+    runtime_caller_mode: local-developer-app
     tauri_identifier: ai.nimi.apps.nimi.tester
     tauri_identifier_required: true
     npm_package: "@nimiplatform/tester"

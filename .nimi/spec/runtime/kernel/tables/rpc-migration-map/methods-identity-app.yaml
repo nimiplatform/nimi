@@ -19,7 +19,7 @@ services:
   - RuntimeExternalAgentService
   - RuntimeAccountService
   - RuntimeAppService
-method_count: 41
+method_count: 44
 method_mappings:
   - design_service: RuntimeAuthService
     design_method: RegisterApp
@@ -187,9 +187,24 @@ method_mappings:
     proto_method: GetAppStorage
     mapping_posture: aligned
   - design_service: RuntimeAppService
-    design_method: GetAccountAppLibrary
+    design_method: GetAccountAppInventory
     proto_service: RuntimeAppService
-    proto_method: GetAccountAppLibrary
+    proto_method: GetAccountAppInventory
+    mapping_posture: aligned
+  - design_service: RuntimeAppService
+    design_method: AdoptLocalApp
+    proto_service: RuntimeAppService
+    proto_method: AdoptLocalApp
+    mapping_posture: aligned
+  - design_service: RuntimeAppService
+    design_method: ListLocalAppAdoptions
+    proto_service: RuntimeAppService
+    proto_method: ListLocalAppAdoptions
+    mapping_posture: aligned
+  - design_service: RuntimeAppService
+    design_method: RemoveLocalAppAdoption
+    proto_service: RuntimeAppService
+    proto_method: RemoveLocalAppAdoption
     mapping_posture: aligned
   - design_service: RuntimeAppService
     design_method: GetAppPackageReadiness

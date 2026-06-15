@@ -175,9 +175,9 @@ methods:
       - K-AUTHN-006
       - K-AUTH-001
       - K-APP-022
-  - method_id: /nimi.runtime.v1.RuntimeAppService/GetAccountAppLibrary
+  - method_id: /nimi.runtime.v1.RuntimeAppService/GetAccountAppInventory
     posture: authenticated_required
-    rationale: authenticated account app-library truth read; Runtime resolves the account binding before projecting Runtime-owned library state
+    rationale: authenticated account app-inventory truth read; Runtime resolves the account binding before projecting verified/entitled rows and local materialization state
     kernel_refs:
       - K-AUTHN-001
       - K-AUTHN-006

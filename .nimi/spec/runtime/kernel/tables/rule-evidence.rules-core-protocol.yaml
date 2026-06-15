@@ -49,6 +49,7 @@ entries:
   - K-APP-022
   - K-APP-023
   - K-APP-024
+  - K-APP-025
   - K-CONN-001
   - K-CONN-002
   - K-CONN-003
@@ -271,7 +272,15 @@ rules:
       - runtime_go_test
       - sdk_runtime_test
       - desktop_boundary_test
-    note: GetAccountAppLibrary is the Runtime-owned authenticated account app-library truth projection; tests cover Runtime validation and Desktop/SDK consumption without Desktop-local file reads.
+    note: GetAccountAppInventory is the Runtime-owned authenticated account app-inventory truth projection; tests cover verified-but-not-installed rows and Desktop/SDK consumption without Desktop-local file reads.
+    evidence_requirement: required
+  - rule_id: K-APP-025
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - sdk_runtime_test
+      - desktop_boundary_test
+    note: Local app adoption is Runtime-owned explicit adoption truth; tests cover manifest/path/permission/storage validation, typed SDK accessors, and Desktop consumption without local source scanning.
     evidence_requirement: required
   - rule_id: K-CONN-001
     evidence_refs:
