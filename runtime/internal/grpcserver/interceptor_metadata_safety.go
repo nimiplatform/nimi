@@ -17,16 +17,14 @@ func newStreamCredentialScrubInterceptor() grpc.StreamServerInterceptor {
 	return func(srv any, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 		return handler(srv, &credentialScrubServerStream{
 			ServerStream: ss,
-			ctx:          envelope.ScrubIncomingCredentialMetadata(ss.Context()),
 		})
 	}
 }
 
 type credentialScrubServerStream struct {
 	grpc.ServerStream
-	ctx context.Context
 }
 
 func (s *credentialScrubServerStream) Context() context.Context {
-	return s.ctx
+	return envelope.ScrubIncomingCredentialMetadata(s.ServerStream.Context())
 }

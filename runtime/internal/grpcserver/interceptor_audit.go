@@ -126,12 +126,13 @@ func newStreamAuditInterceptor(store *auditlog.Store) grpc.StreamServerIntercept
 			return status.Error(codes.Internal, "audit store is required")
 		}
 		startedAt := time.Now().UTC()
-		streamCtx, queueWaitRecorder := usagemetrics.WithQueueWaitRecorder(ss.Context())
+		_, queueWaitRecorder := usagemetrics.WithQueueWaitRecorder(ss.Context())
 		wrapped := &auditStream{
-			ServerStream: ss,
-			ctx:          streamCtx,
+			ServerStream:      ss,
+			queueWaitRecorder: queueWaitRecorder,
 		}
 		err := handler(srv, wrapped)
+		streamCtx := wrapped.Context()
 		request, usage, modelResolved, traceID := wrapped.snapshot()
 
 		domain, operation, capability := methodDescriptor(info.FullMethod)
@@ -209,12 +210,12 @@ func newStreamAuditInterceptor(store *auditlog.Store) grpc.StreamServerIntercept
 
 type auditStream struct {
 	grpc.ServerStream
-	request       any
-	usage         *runtimev1.UsageStats
-	modelResolved string
-	traceID       string
-	ctx           context.Context
-	mu            sync.RWMutex
+	request           any
+	usage             *runtimev1.UsageStats
+	modelResolved     string
+	traceID           string
+	queueWaitRecorder *usagemetrics.QueueWaitRecorder
+	mu                sync.RWMutex
 }
 
 func (s *auditStream) RecvMsg(m any) error {
@@ -231,10 +232,7 @@ func (s *auditStream) RecvMsg(m any) error {
 }
 
 func (s *auditStream) Context() context.Context {
-	if s.ctx != nil {
-		return s.ctx
-	}
-	return s.ServerStream.Context()
+	return usagemetrics.WithExistingQueueWaitRecorder(s.ServerStream.Context(), s.queueWaitRecorder)
 }
 
 func (s *auditStream) SendMsg(m any) error {

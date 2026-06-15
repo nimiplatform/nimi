@@ -26,6 +26,17 @@ func WithQueueWaitRecorder(ctx context.Context) (context.Context, *QueueWaitReco
 	return context.WithValue(ctx, queueWaitKey{}, recorder), recorder
 }
 
+// WithExistingQueueWaitRecorder attaches an existing mutable queue-wait recorder to context.
+func WithExistingQueueWaitRecorder(ctx context.Context, recorder *QueueWaitRecorder) context.Context {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if recorder == nil {
+		return ctx
+	}
+	return context.WithValue(ctx, queueWaitKey{}, recorder)
+}
+
 // SetQueueWaitMS sets queue wait when a recorder exists in context.
 func SetQueueWaitMS(ctx context.Context, waitMs int64) {
 	recorder, ok := RecorderFromContext(ctx)
