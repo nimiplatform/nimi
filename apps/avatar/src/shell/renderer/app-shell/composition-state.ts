@@ -170,10 +170,11 @@ export function deriveCompositionState(input: CompositionInput): CompositionDeri
 
   // Bootstrap completed, but driver not running → degraded.
   if (!READY_DRIVER_STATUSES.has(input.driver.status)) {
+    const driverError = readNormalizedString(input.driver.error);
     return {
       state: 'degraded_runtime_unavailable',
       variant: 'degraded',
-      reason: `driver_${input.driver.status}`,
+      reason: driverError ? `driver_${input.driver.status}: ${driverError}` : `driver_${input.driver.status}`,
       reasonCode: null,
       accountReasonCode: null,
       actionHint: null,

@@ -50,6 +50,7 @@ export type AvatarAppState = {
   };
   driver: {
     status: DriverStatus;
+    error: string | null;
   };
   bundle: AgentDataBundle | null;
   markShellReady(size: { width: number; height: number }): void;
@@ -91,7 +92,7 @@ export type AvatarAppState = {
   clearRuntimeBinding(): void;
   setLaunchContext(context: AvatarLaunchContext): void;
   setRuntimeDefaults(defaults: RuntimeDefaults): void;
-  setDriverStatus(status: DriverStatus): void;
+  setDriverStatus(status: DriverStatus, error?: string | null): void;
   setBundle(bundle: AgentDataBundle): void;
   clearBundle(): void;
 };
@@ -137,6 +138,7 @@ export const useAvatarStore = create<AvatarAppState>((set) => ({
   },
   driver: {
     status: 'idle',
+    error: null,
   },
   bundle: null,
 
@@ -261,8 +263,8 @@ export const useAvatarStore = create<AvatarAppState>((set) => ({
   setRuntimeDefaults(defaults) {
     set((state) => ({ runtime: { ...state.runtime, defaults } }));
   },
-  setDriverStatus(status) {
-    set({ driver: { status } });
+  setDriverStatus(status, error = null) {
+    set({ driver: { status, error: status === 'error' ? error : null } });
   },
   setBundle(bundle) {
     set({ bundle });

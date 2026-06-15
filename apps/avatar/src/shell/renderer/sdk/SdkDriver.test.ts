@@ -153,7 +153,7 @@ describe('SdkDriver', () => {
     await driver.stop();
   });
 
-  it('starts runtime consumption through protected read scopes while preserving abort signal', async () => {
+  it('starts runtime consumption through protected read and turn stream scopes while preserving abort signal', async () => {
     async function* stream() {
       await new Promise(() => {});
     }
@@ -190,7 +190,7 @@ describe('SdkDriver', () => {
     expect(withScopes).toHaveBeenCalledTimes(2);
     expect(withScopes.mock.calls.map(([scopes]) => scopes)).toEqual([
       ['runtime.agent.read'],
-      ['runtime.agent.read'],
+      ['runtime.agent.read', 'runtime.agent.turn.read'],
     ]);
     for (const call of [getSessionSnapshot.mock.calls[0], subscribe.mock.calls[0]]) {
       expect(call?.[1]).toEqual(expect.objectContaining({
@@ -232,6 +232,7 @@ describe('SdkDriver', () => {
     await waitForTasks();
 
     expect(driver.status).toBe('error');
+    expect(driver.getLastError()).toBe('avatar runtime event stream closed unexpectedly');
     errorSpy.mockRestore();
   });
 

@@ -17,6 +17,7 @@ const driverStopMock = vi.fn();
 const createNimiClientMock = vi.fn();
 const runtimeReadyMock = vi.fn();
 const registerAppMock = vi.fn();
+const openSessionMock = vi.fn();
 const authorizeExternalPrincipalMock = vi.fn();
 const getAccountSessionStatusMock = vi.fn();
 const getAccessTokenMock = vi.fn();
@@ -43,6 +44,7 @@ const runtimeMock = {
   ready: (...args: unknown[]) => runtimeReadyMock(...args),
   auth: {
     registerApp: (...args: unknown[]) => registerAppMock(...args),
+    openSession: (...args: unknown[]) => openSessionMock(...args),
   },
   grants: {
     authorizeExternalPrincipal: (...args: unknown[]) => authorizeExternalPrincipalMock(...args),
@@ -129,6 +131,8 @@ function anchorSnapshotRequestMatcher(conversationAnchorId: string) {
 function protectedAccessOptionsMatcher() {
   return expect.objectContaining({
     metadata: expect.objectContaining({
+      'x-nimi-session-id': 'avatar-app-session-id',
+      'x-nimi-session-token': 'avatar-app-session-token',
       'x-nimi-access-token-id': 'avatar-protected-token-id',
       'x-nimi-access-token-secret': 'avatar-protected-token-secret',
     }),
@@ -289,6 +293,7 @@ describe('bootstrapAvatar', () => {
     createNimiClientMock.mockReset();
     runtimeReadyMock.mockReset();
     registerAppMock.mockReset();
+    openSessionMock.mockReset();
     authorizeExternalPrincipalMock.mockReset();
     getAccountSessionStatusMock.mockReset();
     getAccessTokenMock.mockReset();
@@ -357,6 +362,19 @@ describe('bootstrapAvatar', () => {
       accepted: true,
       reasonCode: ReasonCode.ACTION_EXECUTED,
       appInstanceId: 'nimi.avatar.local-first-party',
+    });
+    openSessionMock.mockResolvedValue({
+      sessionId: 'avatar-app-session-id',
+      sessionToken: 'avatar-app-session-token',
+      issuedAt: {
+        seconds: String(Math.floor(Date.now() / 1000)),
+        nanos: 0,
+      },
+      expiresAt: {
+        seconds: String(Math.floor(Date.now() / 1000) + 3600),
+        nanos: 0,
+      },
+      reasonCode: ReasonCode.ACTION_EXECUTED,
     });
     getAccountSessionStatusMock.mockResolvedValue({
       state: 3,

@@ -1,10 +1,13 @@
 import {
   createNimiLocalFirstPartyRuntimeAccountCaller,
+  createNimiRuntimeAppSessionMetadataProvider,
   createNimiRuntimeFullAppRegistration,
   isRuntimeLocalAgentRef,
   parseRuntimeLocalAgentIdentity,
   projectRuntimeLocalAgentIdentity,
   type NimiRuntimeAppRegistrationClient,
+  type NimiRuntimeAppSessionClient,
+  type NimiRuntimeAppSessionMetadataProvider,
 } from '@nimiplatform/sdk/runtime';
 import { type AccountCaller } from '@nimiplatform/sdk/runtime/generated';
 import { readNormalizedString } from './app-bootstrap-helpers.js';
@@ -25,6 +28,19 @@ export function registerAvatarRuntimeApp(
       rejectionLabel: 'Avatar Runtime app registration was rejected',
     },
   )();
+}
+
+export function createAvatarRuntimeAppSessionMetadataProvider(
+  auth: NimiRuntimeAppRegistrationClient & NimiRuntimeAppSessionClient,
+  appId: string,
+): NimiRuntimeAppSessionMetadataProvider {
+  return createNimiRuntimeAppSessionMetadataProvider({
+    auth,
+    appId,
+    appInstanceId: AVATAR_LOCAL_FIRST_PARTY_APP_INSTANCE_ID,
+    deviceId: AVATAR_LOCAL_FIRST_PARTY_DEVICE_ID,
+    rejectionLabel: 'Avatar Runtime app session registration was rejected',
+  });
 }
 
 export function createAvatarAccountCaller(appId: string): AccountCaller {

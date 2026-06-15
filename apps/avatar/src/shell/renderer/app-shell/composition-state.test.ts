@@ -29,6 +29,7 @@ function input(overrides: Partial<CompositionInput> = {}): CompositionInput {
     },
     driver: {
       status: 'running',
+      error: null,
     },
     launchContext: null,
     relaunchPending: false,
@@ -83,6 +84,7 @@ describe('deriveCompositionState', () => {
       },
       driver: {
         status: 'stopped',
+        error: null,
       },
     }));
 
@@ -112,6 +114,22 @@ describe('deriveCompositionState', () => {
       state: 'degraded_runtime_unavailable',
       variant: 'degraded',
       reason: 'runtime binding unavailable',
+      ready: false,
+    });
+  });
+
+  it('surfaces the driver error detail when runtime consumption fails after startup', () => {
+    const state = deriveCompositionState(input({
+      driver: {
+        status: 'error',
+        error: 'avatar runtime event stream closed unexpectedly',
+      },
+    }));
+
+    expect(state).toMatchObject({
+      state: 'degraded_runtime_unavailable',
+      variant: 'degraded',
+      reason: 'driver_error: avatar runtime event stream closed unexpectedly',
       ready: false,
     });
   });

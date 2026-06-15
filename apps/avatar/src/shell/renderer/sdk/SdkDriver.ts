@@ -42,6 +42,10 @@ type InternalEvents = {
   'status-change': DriverStatus;
 };
 
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error || 'unknown avatar sdk driver error');
+}
+
 export type SdkDriverOptions = {
   runtimeAgent: NimiRuntimeAgentConsumeClient;
   withScopes?: NimiRuntimeAgentScopeRunner;
@@ -77,6 +81,7 @@ export class SdkDriver implements AgentDataDriver {
   private readonly bus = createEventBus<InternalEvents>();
   private streamAbort: AbortController | null = null;
   private bundle: AgentDataBundle;
+  private lastError: string | null = null;
 
   constructor(options: SdkDriverOptions) {
     this.runtimeAgent = options.runtimeAgent;
@@ -97,6 +102,10 @@ export class SdkDriver implements AgentDataDriver {
 
   get status(): DriverStatus {
     return this._status;
+  }
+
+  getLastError(): string | null {
+    return this.lastError;
   }
 
   async start(): Promise<void> {
@@ -120,7 +129,7 @@ export class SdkDriver implements AgentDataDriver {
         ),
       );
       this.applySessionSnapshot(snapshot);
-      const stream = await this.withRuntimeAgentRead(
+      const stream = await this.withRuntimeAgentTurnSubscribe(
         (options) => this.runtimeAgent.turns.subscribe(
           {
             ownerUserId: this.ownerUserId,
@@ -137,12 +146,13 @@ export class SdkDriver implements AgentDataDriver {
         if (abortController.signal.aborted) {
           return;
         }
-        console.error(`[avatar:sdk] consume stream failed: ${error instanceof Error ? error.message : String(error)}`);
-        this.setStatus('error');
+        const message = errorMessage(error);
+        console.error(`[avatar:sdk] consume stream failed: ${message}`);
+        this.setStatus('error', message);
       });
     } catch (error) {
       this.streamAbort = null;
-      this.setStatus('error');
+      this.setStatus('error', errorMessage(error));
       throw error instanceof Error
         ? error
         : new Error(`avatar sdk driver failed to start: ${String(error)}`);
@@ -185,8 +195,9 @@ export class SdkDriver implements AgentDataDriver {
     return agentEvent;
   }
 
-  private setStatus(status: DriverStatus): void {
+  private setStatus(status: DriverStatus, error: string | null = null): void {
     this._status = status;
+    this.lastError = status === 'error' ? error : null;
     this.bus.emit('status-change', status);
   }
 
@@ -197,6 +208,15 @@ export class SdkDriver implements AgentDataDriver {
       return operation({});
     }
     return this.withScopes(['runtime.agent.read'], operation);
+  }
+
+  private withRuntimeAgentTurnSubscribe<T>(
+    operation: (options: RuntimeTypedCallOptions) => Promise<T>,
+  ): Promise<T> {
+    if (!this.withScopes) {
+      return operation({});
+    }
+    return this.withScopes(['runtime.agent.read', 'runtime.agent.turn.read'], operation);
   }
 
   private createInitialBundle(): AgentDataBundle {

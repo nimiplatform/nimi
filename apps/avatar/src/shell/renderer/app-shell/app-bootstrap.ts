@@ -27,6 +27,7 @@ import { resolveAvatarConversationContext } from './avatar-conversation-context.
 import { useAvatarStore } from './app-store.js';
 import {
   createAvatarAccountCaller,
+  createAvatarRuntimeAppSessionMetadataProvider,
   registerAvatarRuntimeApp,
   resolveLaunchAgentIdentity,
 } from './app-bootstrap-runtime-binding.js';
@@ -353,14 +354,24 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
 
         const avatarInstanceId = readNormalizedString(launchContext.avatarInstanceId) || `avatar-${Date.now()}`;
         currentAvatarInstanceId = avatarInstanceId;
-        const withAvatarRuntimeAgentScopes: NimiRuntimeAgentScopeRunner = (scopes, operation) => withNimiRuntimeAgentScopes({
-          runtime: {
-            appId: runtimeAppId,
-            auth: runtime.auth,
-            appAuth: runtime.grants,
-          },
-          subjectUserId: accountId,
-        }, scopes, operation);
+        const avatarRuntimeAppSessionMetadata = createAvatarRuntimeAppSessionMetadataProvider(runtime.auth, runtimeAppId);
+        const withAvatarRuntimeAgentScopes: NimiRuntimeAgentScopeRunner = async (scopes, operation) => {
+          const sessionMetadata = await avatarRuntimeAppSessionMetadata();
+          return withNimiRuntimeAgentScopes({
+            runtime: {
+              appId: runtimeAppId,
+              auth: runtime.auth,
+              appAuth: runtime.grants,
+            },
+            subjectUserId: accountId,
+          }, scopes, async (options) => operation({
+            ...options,
+            metadata: {
+              ...sessionMetadata,
+              ...(options.metadata ?? {}),
+            },
+          }));
+        };
         const conversationContext = await runFirstPartyStage('conversation_context', () => resolveAvatarConversationContext({
           runtimeAgent,
           withScopes: withAvatarRuntimeAgentScopes,
@@ -558,15 +569,33 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
       return buildHandle();
     }
 
-    unsubscribeStatus = driver.onStatusChange((status) => {
-      useAvatarStore.getState().setDriverStatus(status);
+    const activeDriver = driver;
+    unsubscribeStatus = activeDriver.onStatusChange((status) => {
+      const driverError = status === 'error'
+        ? readNormalizedString(activeDriver.getLastError?.())
+        : null;
+      const state = useAvatarStore.getState();
+      state.setDriverStatus(status, driverError);
+      if (status === 'error') {
+        recordAvatarEvidenceEventually({
+          kind: 'avatar.runtime.driver-error',
+          detail: {
+            agentId: state.consume.agentId || state.launch.context?.agentId || '',
+            avatar_instance_id: state.consume.avatarInstanceId || state.launch.context?.avatarInstanceId || null,
+            launch_source: state.launch.context?.launchSource || null,
+            runtime_app_id: AVATAR_FIRST_PARTY_APP_ID,
+            conversation_anchor_id: state.consume.conversationAnchorId || null,
+            driver_status: status,
+            error_message: driverError,
+          },
+        });
+      }
     });
 
     unsubscribeBundle = driver.onBundleChange((bundle) => {
       useAvatarStore.getState().setBundle(bundle);
     });
 
-    const activeDriver = driver;
     try {
       await runFirstPartyStageWithTimeout(
         'driver_start',

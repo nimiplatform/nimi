@@ -91,6 +91,7 @@ export type DriverStatus = 'idle' | 'starting' | 'running' | 'stopping' | 'stopp
 export interface AgentDataDriver {
   readonly kind: 'mock' | 'sdk';
   readonly status: DriverStatus;
+  getLastError?(): string | null;
   start(): Promise<void>;
   stop(): Promise<void>;
   getBundle(): AgentDataBundle;

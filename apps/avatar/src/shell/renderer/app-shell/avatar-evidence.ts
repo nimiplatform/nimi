@@ -20,6 +20,7 @@ export type AvatarEvidenceKind =
   | 'avatar.runtime.bind-failed'
   | 'avatar.runtime.bound'
   | 'avatar.runtime.consume-ready'
+  | 'avatar.runtime.driver-error'
   | 'avatar.model.load'
   | 'avatar.carrier.visual'
   | 'avatar.carrier.lifecycle.context_lost'
