@@ -663,12 +663,20 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "UploadArtifactResponse"
   },
   {
-    "methodId": "/nimi.runtime.v1.RuntimeAppService/GetAccountAppLibrary",
+    "methodId": "/nimi.runtime.v1.RuntimeAppService/AdoptLocalApp",
     "service": "RuntimeAppService",
-    "method": "GetAccountAppLibrary",
+    "method": "AdoptLocalApp",
     "kind": "unary",
-    "requestType": "GetAccountAppLibraryRequest",
-    "responseType": "GetAccountAppLibraryResponse"
+    "requestType": "AdoptLocalAppRequest",
+    "responseType": "AdoptLocalAppResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAppService/GetAccountAppInventory",
+    "service": "RuntimeAppService",
+    "method": "GetAccountAppInventory",
+    "kind": "unary",
+    "requestType": "GetAccountAppInventoryRequest",
+    "responseType": "GetAccountAppInventoryResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeAppService/GetAppInstallJob",
@@ -719,12 +727,28 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ListAppInstallJobsResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAppService/ListLocalAppAdoptions",
+    "service": "RuntimeAppService",
+    "method": "ListLocalAppAdoptions",
+    "kind": "unary",
+    "requestType": "ListLocalAppAdoptionsRequest",
+    "responseType": "ListLocalAppAdoptionsResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAppService/OpenApp",
     "service": "RuntimeAppService",
     "method": "OpenApp",
     "kind": "unary",
     "requestType": "OpenAppRequest",
     "responseType": "OpenAppResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppAdoption",
+    "service": "RuntimeAppService",
+    "method": "RemoveLocalAppAdoption",
+    "kind": "unary",
+    "requestType": "RemoveLocalAppAdoptionRequest",
+    "responseType": "RemoveLocalAppAdoptionResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeAppService/SendAppMessage",

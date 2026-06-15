@@ -73,10 +73,14 @@ pub const RUNTIME_LOCAL_RECONCILE_PRODUCT_CONTROL_FIRST_RUN_SETUP_STATE_METHOD_I
     "/nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState";
 pub const RUNTIME_APP_GET_APP_STORAGE_METHOD_ID: &str =
     "/nimi.runtime.v1.RuntimeAppService/GetAppStorage";
-pub const RUNTIME_APP_GET_ACCOUNT_APP_LIBRARY_METHOD_ID: &str =
-    "/nimi.runtime.v1.RuntimeAppService/GetAccountAppLibrary";
+pub const RUNTIME_APP_GET_ACCOUNT_APP_INVENTORY_METHOD_ID: &str =
+    "/nimi.runtime.v1.RuntimeAppService/GetAccountAppInventory";
 pub const RUNTIME_APP_GET_APP_PACKAGE_READINESS_METHOD_ID: &str =
     "/nimi.runtime.v1.RuntimeAppService/GetAppPackageReadiness";
+pub const RUNTIME_APP_LIST_LOCAL_APP_ADOPTIONS_METHOD_ID: &str =
+    "/nimi.runtime.v1.RuntimeAppService/ListLocalAppAdoptions";
+pub const RUNTIME_APP_LIST_APP_INSTALL_JOBS_METHOD_ID: &str =
+    "/nimi.runtime.v1.RuntimeAppService/ListAppInstallJobs";
 
 const DEFAULT_EVENT_NAMESPACE: &str = "runtime_bridge";
 

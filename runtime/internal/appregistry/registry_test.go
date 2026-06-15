@@ -57,6 +57,35 @@ func TestRegistryUpsertRejectsEmptyAppID(t *testing.T) {
 	}
 }
 
+func TestRegistryAdmissionDistinguishesFirstPartyAndDeveloperInstances(t *testing.T) {
+	registry := New()
+	manifest := &runtimev1.AppModeManifest{
+		AppMode:         runtimev1.AppMode_APP_MODE_FULL,
+		RuntimeRequired: true,
+		RealmRequired:   true,
+		WorldRelation:   runtimev1.WorldRelation_WORLD_RELATION_NONE,
+	}
+	if err := registry.UpsertInstanceWithAdmission("nimi.tester", "nimi.tester.local-developer", "developer-device", manifest, nil, true); err != nil {
+		t.Fatalf("UpsertInstanceWithAdmission developer: %v", err)
+	}
+	if registry.AdmitLocalFirstPartyInstance("nimi.tester", "nimi.tester.local-developer") {
+		t.Fatalf("developer-registration instance must not be admitted as local first-party")
+	}
+	if !registry.AdmitLocalDeveloperInstance("nimi.tester", "nimi.tester.local-developer") {
+		t.Fatalf("developer-registration instance should be admitted as local developer")
+	}
+
+	if err := registry.UpsertInstance("nimi.avatar", "nimi.avatar.local-first-party", "avatar-device", manifest, nil); err != nil {
+		t.Fatalf("UpsertInstance first-party: %v", err)
+	}
+	if !registry.AdmitLocalFirstPartyInstance("nimi.avatar", "nimi.avatar.local-first-party") {
+		t.Fatalf("registry-admitted first-party instance should be admitted as local first-party")
+	}
+	if registry.AdmitLocalDeveloperInstance("nimi.avatar", "nimi.avatar.local-first-party") {
+		t.Fatalf("first-party instance must not be admitted as local developer")
+	}
+}
+
 func TestValidateManifestRejectsLiteExtensionWorldRelation(t *testing.T) {
 	reasonCode, actionHint, ok := ValidateManifest(&runtimev1.AppModeManifest{
 		AppMode:         runtimev1.AppMode_APP_MODE_LITE,

@@ -11,6 +11,27 @@ import (
 	sdkstypes "github.com/nimiplatform/nimi/sdks/go/types"
 )
 
+type AccountAppInstallState string
+
+const (
+	ACCOUNTAPPINSTALLSTATEUNSPECIFIED AccountAppInstallState = "ACCOUNT_APP_INSTALL_STATE_UNSPECIFIED"
+	ACCOUNTAPPINSTALLSTATENOTINSTALLED AccountAppInstallState = "ACCOUNT_APP_INSTALL_STATE_NOT_INSTALLED"
+	ACCOUNTAPPINSTALLSTATEINSTALLED AccountAppInstallState = "ACCOUNT_APP_INSTALL_STATE_INSTALLED"
+	ACCOUNTAPPINSTALLSTATEADOPTEDLOCAL AccountAppInstallState = "ACCOUNT_APP_INSTALL_STATE_ADOPTED_LOCAL"
+	ACCOUNTAPPINSTALLSTATEREMOVED AccountAppInstallState = "ACCOUNT_APP_INSTALL_STATE_REMOVED"
+)
+
+type AccountAppInventoryState string
+
+const (
+	ACCOUNTAPPINVENTORYSTATEUNSPECIFIED AccountAppInventoryState = "ACCOUNT_APP_INVENTORY_STATE_UNSPECIFIED"
+	ACCOUNTAPPINVENTORYSTATEVERIFIED AccountAppInventoryState = "ACCOUNT_APP_INVENTORY_STATE_VERIFIED"
+	ACCOUNTAPPINVENTORYSTATEENTITLED AccountAppInventoryState = "ACCOUNT_APP_INVENTORY_STATE_ENTITLED"
+	ACCOUNTAPPINVENTORYSTATEDISABLED AccountAppInventoryState = "ACCOUNT_APP_INVENTORY_STATE_DISABLED"
+	ACCOUNTAPPINVENTORYSTATEREMOVED AccountAppInventoryState = "ACCOUNT_APP_INVENTORY_STATE_REMOVED"
+	ACCOUNTAPPINVENTORYSTATEREVOKED AccountAppInventoryState = "ACCOUNT_APP_INVENTORY_STATE_REVOKED"
+)
+
 type AccountCallerMode string
 
 const (
@@ -20,6 +41,7 @@ const (
 	ACCOUNTCALLERMODEDESKTOPLAUNCHEDAVATAR AccountCallerMode = "ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR"
 	ACCOUNTCALLERMODEWEBCLOUD AccountCallerMode = "ACCOUNT_CALLER_MODE_WEB_CLOUD"
 	ACCOUNTCALLERMODEEXTERNALPRINCIPAL AccountCallerMode = "ACCOUNT_CALLER_MODE_EXTERNAL_PRINCIPAL"
+	ACCOUNTCALLERMODELOCALDEVELOPERAPP AccountCallerMode = "ACCOUNT_CALLER_MODE_LOCAL_DEVELOPER_APP"
 )
 
 type AccountEventType string
@@ -452,9 +474,7 @@ type DelegatedApprovalDecision string
 const (
 	DELEGATEDAPPROVALDECISIONUNSPECIFIED DelegatedApprovalDecision = "DELEGATED_APPROVAL_DECISION_UNSPECIFIED"
 	DELEGATEDAPPROVALDECISIONAPPROVEDONCE DelegatedApprovalDecision = "DELEGATED_APPROVAL_DECISION_APPROVED_ONCE"
-	DELEGATEDAPPROVALDECISIONAPPROVE DelegatedApprovalDecision = "DELEGATED_APPROVAL_DECISION_APPROVE"
 	DELEGATEDAPPROVALDECISIONREJECTED DelegatedApprovalDecision = "DELEGATED_APPROVAL_DECISION_REJECTED"
-	DELEGATEDAPPROVALDECISIONREJECT DelegatedApprovalDecision = "DELEGATED_APPROVAL_DECISION_REJECT"
 	DELEGATEDAPPROVALDECISIONAPPROVEDFORSESSION DelegatedApprovalDecision = "DELEGATED_APPROVAL_DECISION_APPROVED_FOR_SESSION"
 	DELEGATEDAPPROVALDECISIONPOLICYBLOCKED DelegatedApprovalDecision = "DELEGATED_APPROVAL_DECISION_POLICY_BLOCKED"
 	DELEGATEDAPPROVALDECISIONEXPIRED DelegatedApprovalDecision = "DELEGATED_APPROVAL_DECISION_EXPIRED"
@@ -475,7 +495,6 @@ const (
 	DELEGATEDAPPROVALREQUESTSTATEUNSPECIFIED DelegatedApprovalRequestState = "DELEGATED_APPROVAL_REQUEST_STATE_UNSPECIFIED"
 	DELEGATEDAPPROVALREQUESTSTATEPENDING DelegatedApprovalRequestState = "DELEGATED_APPROVAL_REQUEST_STATE_PENDING"
 	DELEGATEDAPPROVALREQUESTSTATEAPPROVEDONCE DelegatedApprovalRequestState = "DELEGATED_APPROVAL_REQUEST_STATE_APPROVED_ONCE"
-	DELEGATEDAPPROVALREQUESTSTATEAPPROVED DelegatedApprovalRequestState = "DELEGATED_APPROVAL_REQUEST_STATE_APPROVED"
 	DELEGATEDAPPROVALREQUESTSTATEREJECTED DelegatedApprovalRequestState = "DELEGATED_APPROVAL_REQUEST_STATE_REJECTED"
 	DELEGATEDAPPROVALREQUESTSTATEEXPIRED DelegatedApprovalRequestState = "DELEGATED_APPROVAL_REQUEST_STATE_EXPIRED"
 	DELEGATEDAPPROVALREQUESTSTATEAPPROVEDFORSESSION DelegatedApprovalRequestState = "DELEGATED_APPROVAL_REQUEST_STATE_APPROVED_FOR_SESSION"
@@ -653,6 +672,23 @@ const (
 	KNOWLEDGEINGESTTASKSTATUSRUNNING KnowledgeIngestTaskStatus = "KNOWLEDGE_INGEST_TASK_STATUS_RUNNING"
 	KNOWLEDGEINGESTTASKSTATUSCOMPLETED KnowledgeIngestTaskStatus = "KNOWLEDGE_INGEST_TASK_STATUS_COMPLETED"
 	KNOWLEDGEINGESTTASKSTATUSFAILED KnowledgeIngestTaskStatus = "KNOWLEDGE_INGEST_TASK_STATUS_FAILED"
+)
+
+type LocalAppAdoptionState string
+
+const (
+	LOCALAPPADOPTIONSTATEUNSPECIFIED LocalAppAdoptionState = "LOCAL_APP_ADOPTION_STATE_UNSPECIFIED"
+	LOCALAPPADOPTIONSTATEADOPTED LocalAppAdoptionState = "LOCAL_APP_ADOPTION_STATE_ADOPTED"
+	LOCALAPPADOPTIONSTATEREPAIRREQUIRED LocalAppAdoptionState = "LOCAL_APP_ADOPTION_STATE_REPAIR_REQUIRED"
+	LOCALAPPADOPTIONSTATEREMOVED LocalAppAdoptionState = "LOCAL_APP_ADOPTION_STATE_REMOVED"
+)
+
+type LocalAppAdoptionTrust string
+
+const (
+	LOCALAPPADOPTIONTRUSTUNSPECIFIED LocalAppAdoptionTrust = "LOCAL_APP_ADOPTION_TRUST_UNSPECIFIED"
+	LOCALAPPADOPTIONTRUSTEXPLICITLOCAL LocalAppAdoptionTrust = "LOCAL_APP_ADOPTION_TRUST_EXPLICIT_LOCAL"
+	LOCALAPPADOPTIONTRUSTDEVELOPERLOCAL LocalAppAdoptionTrust = "LOCAL_APP_ADOPTION_TRUST_DEVELOPER_LOCAL"
 )
 
 type LocalAssetKind string
@@ -1738,19 +1774,22 @@ type AIProviderSubHealth struct {
 	LastCheckedAt string `json:"last_checked_at,omitempty"`
 }
 
-type AccountAppLibraryRecord struct {
+type AccountAppInventoryRecord struct {
 	SchemaVersion uint32 `json:"schema_version,omitempty"`
 	AccountId string `json:"account_id,omitempty"`
 	UpdatedAt string `json:"updated_at,omitempty"`
-	Apps []AccountAppLibraryRow `json:"apps,omitempty"`
+	Apps []AccountAppInventoryRow `json:"apps,omitempty"`
 }
 
-type AccountAppLibraryRow struct {
+type AccountAppInventoryRow struct {
 	AppId string `json:"app_id,omitempty"`
-	LibraryState string `json:"library_state,omitempty"`
-	Installed bool `json:"installed,omitempty"`
+	AccountState AccountAppInventoryState `json:"account_state,omitempty"`
+	InstallState AccountAppInstallState `json:"install_state,omitempty"`
 	LastOpenedAt string `json:"last_opened_at,omitempty"`
 	DataPolicy string `json:"data_policy,omitempty"`
+	VerifiedAt string `json:"verified_at,omitempty"`
+	Source string `json:"source,omitempty"`
+	Detail string `json:"detail,omitempty"`
 }
 
 type AccountCaller struct {
@@ -1804,6 +1843,17 @@ type AddLinkResponse struct {
 type AdmitProductControlReadyForUseRequest struct {
 	AccountDefaultProfileEvidenceJson string `json:"account_default_profile_evidence_json,omitempty"`
 	BuiltInAiConfigEvidenceJson string `json:"built_in_ai_config_evidence_json,omitempty"`
+}
+
+type AdoptLocalAppRequest struct {
+	RootPath string `json:"root_path,omitempty"`
+	ExpectedAppId string `json:"expected_app_id,omitempty"`
+}
+
+type AdoptLocalAppResponse struct {
+	Adoption *LocalAppAdoption `json:"adoption,omitempty"`
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
+	Detail string `json:"detail,omitempty"`
 }
 
 type AgentAutonomyConfig struct {
@@ -3359,13 +3409,13 @@ type GetAccessTokenResponse struct {
 	ProductionInert bool `json:"production_inert,omitempty"`
 }
 
-type GetAccountAppLibraryRequest struct {
+type GetAccountAppInventoryRequest struct {
 
 }
 
-type GetAccountAppLibraryResponse struct {
+type GetAccountAppInventoryResponse struct {
 	Exists bool `json:"exists,omitempty"`
-	Record *AccountAppLibraryRecord `json:"record,omitempty"`
+	Record *AccountAppInventoryRecord `json:"record,omitempty"`
 	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 	Detail string `json:"detail,omitempty"`
 }
@@ -4275,6 +4325,16 @@ type ListLinksResponse struct {
 	NextPageToken string `json:"next_page_token,omitempty"`
 }
 
+type ListLocalAppAdoptionsRequest struct {
+
+}
+
+type ListLocalAppAdoptionsResponse struct {
+	Adoptions []LocalAppAdoption `json:"adoptions,omitempty"`
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
+	Detail string `json:"detail,omitempty"`
+}
+
 type ListLocalAssetsRequest struct {
 	StatusFilter LocalAssetStatus `json:"status_filter,omitempty"`
 	KindFilter LocalAssetKind `json:"kind_filter,omitempty"`
@@ -4505,6 +4565,23 @@ type ListVoiceAssetsRequest struct {
 type ListVoiceAssetsResponse struct {
 	Assets []VoiceAsset `json:"assets,omitempty"`
 	NextPageToken string `json:"next_page_token,omitempty"`
+}
+
+type LocalAppAdoption struct {
+	AppId string `json:"app_id,omitempty"`
+	RootPath string `json:"root_path,omitempty"`
+	ManifestPath string `json:"manifest_path,omitempty"`
+	DisplayName string `json:"display_name,omitempty"`
+	Version string `json:"version,omitempty"`
+	EntryRef string `json:"entry_ref,omitempty"`
+	PermissionScopeRef string `json:"permission_scope_ref,omitempty"`
+	StoragePolicyRef string `json:"storage_policy_ref,omitempty"`
+	State LocalAppAdoptionState `json:"state,omitempty"`
+	Trust LocalAppAdoptionTrust `json:"trust,omitempty"`
+	AdoptedAt string `json:"adopted_at,omitempty"`
+	UpdatedAt string `json:"updated_at,omitempty"`
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
+	Detail string `json:"detail,omitempty"`
 }
 
 type LocalAssetHealth struct {
@@ -6120,6 +6197,17 @@ type RemoveLinkRequest struct {
 
 type RemoveLinkResponse struct {
 	Ack *Ack `json:"ack,omitempty"`
+}
+
+type RemoveLocalAppAdoptionRequest struct {
+	AppId string `json:"app_id,omitempty"`
+	DeleteDurableDataConfirmed bool `json:"delete_durable_data_confirmed,omitempty"`
+}
+
+type RemoveLocalAppAdoptionResponse struct {
+	Adoption *LocalAppAdoption `json:"adoption,omitempty"`
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
+	Detail string `json:"detail,omitempty"`
 }
 
 type RemoveLocalAssetRequest struct {
@@ -8456,12 +8544,20 @@ func (c RuntimeTypedClient) UploadArtifact(context.Context, UploadArtifactReques
 	return UploadArtifactResponse{}, fmt.Errorf("SDK_RUNTIME_METHOD_UNAVAILABLE: Runtime method kind is not supported by the unary/server-stream core transport: /nimi.runtime.v1.RuntimeAiService/UploadArtifact")
 }
 
-func (c RuntimeTypedClient) GetAccountAppLibrary(ctx context.Context, request GetAccountAppLibraryRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAccountAppLibraryResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppService/GetAccountAppLibrary", request, metadata, timeoutMS)
+func (c RuntimeTypedClient) AdoptLocalApp(ctx context.Context, request AdoptLocalAppRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AdoptLocalAppResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppService/AdoptLocalApp", request, metadata, timeoutMS)
 	if err != nil {
-		return GetAccountAppLibraryResponse{}, err
+		return AdoptLocalAppResponse{}, err
 	}
-	return decodeRuntimeTypedResponse[GetAccountAppLibraryResponse](raw, "GetAccountAppLibraryResponse")
+	return decodeRuntimeTypedResponse[AdoptLocalAppResponse](raw, "AdoptLocalAppResponse")
+}
+
+func (c RuntimeTypedClient) GetAccountAppInventory(ctx context.Context, request GetAccountAppInventoryRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAccountAppInventoryResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppService/GetAccountAppInventory", request, metadata, timeoutMS)
+	if err != nil {
+		return GetAccountAppInventoryResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[GetAccountAppInventoryResponse](raw, "GetAccountAppInventoryResponse")
 }
 
 func (c RuntimeTypedClient) GetAppInstallJob(ctx context.Context, request GetAppInstallJobRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAppInstallJobResponse, error) {
@@ -8512,12 +8608,28 @@ func (c RuntimeTypedClient) ListAppInstallJobs(ctx context.Context, request List
 	return decodeRuntimeTypedResponse[ListAppInstallJobsResponse](raw, "ListAppInstallJobsResponse")
 }
 
+func (c RuntimeTypedClient) ListLocalAppAdoptions(ctx context.Context, request ListLocalAppAdoptionsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListLocalAppAdoptionsResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppService/ListLocalAppAdoptions", request, metadata, timeoutMS)
+	if err != nil {
+		return ListLocalAppAdoptionsResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[ListLocalAppAdoptionsResponse](raw, "ListLocalAppAdoptionsResponse")
+}
+
 func (c RuntimeTypedClient) OpenApp(ctx context.Context, request OpenAppRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (OpenAppResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppService/OpenApp", request, metadata, timeoutMS)
 	if err != nil {
 		return OpenAppResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[OpenAppResponse](raw, "OpenAppResponse")
+}
+
+func (c RuntimeTypedClient) RemoveLocalAppAdoption(ctx context.Context, request RemoveLocalAppAdoptionRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RemoveLocalAppAdoptionResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppAdoption", request, metadata, timeoutMS)
+	if err != nil {
+		return RemoveLocalAppAdoptionResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[RemoveLocalAppAdoptionResponse](raw, "RemoveLocalAppAdoptionResponse")
 }
 
 func (c RuntimeTypedClient) SendAppMessage(ctx context.Context, request SendAppMessageRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SendAppMessageResponse, error) {

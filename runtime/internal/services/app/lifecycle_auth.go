@@ -24,7 +24,7 @@ func isDesktopCoreLifecycleController(ctx context.Context) bool {
 // requireAppLifecycleSession enforces app-session credential validation for
 // app-owned lifecycle callers. The desktop host is the product lifecycle
 // controller for RuntimeAppService app targets; install/open still go through
-// account-library and permission gates before mutating or launching anything.
+// account-inventory and permission gates before mutating or launching anything.
 func (s *Service) requireAppLifecycleSession(ctx context.Context, appID string) error {
 	if contextAppID := appIDFromContext(ctx); contextAppID != "" && contextAppID != appID {
 		if isDesktopCoreLifecycleController(ctx) {

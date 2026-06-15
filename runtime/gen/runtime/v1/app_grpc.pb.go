@@ -24,7 +24,10 @@ const (
 	RuntimeAppService_InstallApp_FullMethodName               = "/nimi.runtime.v1.RuntimeAppService/InstallApp"
 	RuntimeAppService_UninstallApp_FullMethodName             = "/nimi.runtime.v1.RuntimeAppService/UninstallApp"
 	RuntimeAppService_GetAppStorage_FullMethodName            = "/nimi.runtime.v1.RuntimeAppService/GetAppStorage"
-	RuntimeAppService_GetAccountAppLibrary_FullMethodName     = "/nimi.runtime.v1.RuntimeAppService/GetAccountAppLibrary"
+	RuntimeAppService_GetAccountAppInventory_FullMethodName   = "/nimi.runtime.v1.RuntimeAppService/GetAccountAppInventory"
+	RuntimeAppService_AdoptLocalApp_FullMethodName            = "/nimi.runtime.v1.RuntimeAppService/AdoptLocalApp"
+	RuntimeAppService_ListLocalAppAdoptions_FullMethodName    = "/nimi.runtime.v1.RuntimeAppService/ListLocalAppAdoptions"
+	RuntimeAppService_RemoveLocalAppAdoption_FullMethodName   = "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppAdoption"
 	RuntimeAppService_GetAppPackageReadiness_FullMethodName   = "/nimi.runtime.v1.RuntimeAppService/GetAppPackageReadiness"
 	RuntimeAppService_GetAppInstallJob_FullMethodName         = "/nimi.runtime.v1.RuntimeAppService/GetAppInstallJob"
 	RuntimeAppService_ListAppInstallJobs_FullMethodName       = "/nimi.runtime.v1.RuntimeAppService/ListAppInstallJobs"
@@ -44,7 +47,10 @@ type RuntimeAppServiceClient interface {
 	InstallApp(ctx context.Context, in *InstallAppRequest, opts ...grpc.CallOption) (*InstallAppResponse, error)
 	UninstallApp(ctx context.Context, in *UninstallAppRequest, opts ...grpc.CallOption) (*UninstallAppResponse, error)
 	GetAppStorage(ctx context.Context, in *GetAppStorageRequest, opts ...grpc.CallOption) (*GetAppStorageResponse, error)
-	GetAccountAppLibrary(ctx context.Context, in *GetAccountAppLibraryRequest, opts ...grpc.CallOption) (*GetAccountAppLibraryResponse, error)
+	GetAccountAppInventory(ctx context.Context, in *GetAccountAppInventoryRequest, opts ...grpc.CallOption) (*GetAccountAppInventoryResponse, error)
+	AdoptLocalApp(ctx context.Context, in *AdoptLocalAppRequest, opts ...grpc.CallOption) (*AdoptLocalAppResponse, error)
+	ListLocalAppAdoptions(ctx context.Context, in *ListLocalAppAdoptionsRequest, opts ...grpc.CallOption) (*ListLocalAppAdoptionsResponse, error)
+	RemoveLocalAppAdoption(ctx context.Context, in *RemoveLocalAppAdoptionRequest, opts ...grpc.CallOption) (*RemoveLocalAppAdoptionResponse, error)
 	GetAppPackageReadiness(ctx context.Context, in *GetAppPackageReadinessRequest, opts ...grpc.CallOption) (*GetAppPackageReadinessResponse, error)
 	GetAppInstallJob(ctx context.Context, in *GetAppInstallJobRequest, opts ...grpc.CallOption) (*GetAppInstallJobResponse, error)
 	ListAppInstallJobs(ctx context.Context, in *ListAppInstallJobsRequest, opts ...grpc.CallOption) (*ListAppInstallJobsResponse, error)
@@ -125,10 +131,40 @@ func (c *runtimeAppServiceClient) GetAppStorage(ctx context.Context, in *GetAppS
 	return out, nil
 }
 
-func (c *runtimeAppServiceClient) GetAccountAppLibrary(ctx context.Context, in *GetAccountAppLibraryRequest, opts ...grpc.CallOption) (*GetAccountAppLibraryResponse, error) {
+func (c *runtimeAppServiceClient) GetAccountAppInventory(ctx context.Context, in *GetAccountAppInventoryRequest, opts ...grpc.CallOption) (*GetAccountAppInventoryResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetAccountAppLibraryResponse)
-	err := c.cc.Invoke(ctx, RuntimeAppService_GetAccountAppLibrary_FullMethodName, in, out, cOpts...)
+	out := new(GetAccountAppInventoryResponse)
+	err := c.cc.Invoke(ctx, RuntimeAppService_GetAccountAppInventory_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAppServiceClient) AdoptLocalApp(ctx context.Context, in *AdoptLocalAppRequest, opts ...grpc.CallOption) (*AdoptLocalAppResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AdoptLocalAppResponse)
+	err := c.cc.Invoke(ctx, RuntimeAppService_AdoptLocalApp_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAppServiceClient) ListLocalAppAdoptions(ctx context.Context, in *ListLocalAppAdoptionsRequest, opts ...grpc.CallOption) (*ListLocalAppAdoptionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListLocalAppAdoptionsResponse)
+	err := c.cc.Invoke(ctx, RuntimeAppService_ListLocalAppAdoptions_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAppServiceClient) RemoveLocalAppAdoption(ctx context.Context, in *RemoveLocalAppAdoptionRequest, opts ...grpc.CallOption) (*RemoveLocalAppAdoptionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RemoveLocalAppAdoptionResponse)
+	err := c.cc.Invoke(ctx, RuntimeAppService_RemoveLocalAppAdoption_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -224,7 +260,10 @@ type RuntimeAppServiceServer interface {
 	InstallApp(context.Context, *InstallAppRequest) (*InstallAppResponse, error)
 	UninstallApp(context.Context, *UninstallAppRequest) (*UninstallAppResponse, error)
 	GetAppStorage(context.Context, *GetAppStorageRequest) (*GetAppStorageResponse, error)
-	GetAccountAppLibrary(context.Context, *GetAccountAppLibraryRequest) (*GetAccountAppLibraryResponse, error)
+	GetAccountAppInventory(context.Context, *GetAccountAppInventoryRequest) (*GetAccountAppInventoryResponse, error)
+	AdoptLocalApp(context.Context, *AdoptLocalAppRequest) (*AdoptLocalAppResponse, error)
+	ListLocalAppAdoptions(context.Context, *ListLocalAppAdoptionsRequest) (*ListLocalAppAdoptionsResponse, error)
+	RemoveLocalAppAdoption(context.Context, *RemoveLocalAppAdoptionRequest) (*RemoveLocalAppAdoptionResponse, error)
 	GetAppPackageReadiness(context.Context, *GetAppPackageReadinessRequest) (*GetAppPackageReadinessResponse, error)
 	GetAppInstallJob(context.Context, *GetAppInstallJobRequest) (*GetAppInstallJobResponse, error)
 	ListAppInstallJobs(context.Context, *ListAppInstallJobsRequest) (*ListAppInstallJobsResponse, error)
@@ -260,8 +299,17 @@ func (UnimplementedRuntimeAppServiceServer) UninstallApp(context.Context, *Unins
 func (UnimplementedRuntimeAppServiceServer) GetAppStorage(context.Context, *GetAppStorageRequest) (*GetAppStorageResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetAppStorage not implemented")
 }
-func (UnimplementedRuntimeAppServiceServer) GetAccountAppLibrary(context.Context, *GetAccountAppLibraryRequest) (*GetAccountAppLibraryResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method GetAccountAppLibrary not implemented")
+func (UnimplementedRuntimeAppServiceServer) GetAccountAppInventory(context.Context, *GetAccountAppInventoryRequest) (*GetAccountAppInventoryResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetAccountAppInventory not implemented")
+}
+func (UnimplementedRuntimeAppServiceServer) AdoptLocalApp(context.Context, *AdoptLocalAppRequest) (*AdoptLocalAppResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method AdoptLocalApp not implemented")
+}
+func (UnimplementedRuntimeAppServiceServer) ListLocalAppAdoptions(context.Context, *ListLocalAppAdoptionsRequest) (*ListLocalAppAdoptionsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListLocalAppAdoptions not implemented")
+}
+func (UnimplementedRuntimeAppServiceServer) RemoveLocalAppAdoption(context.Context, *RemoveLocalAppAdoptionRequest) (*RemoveLocalAppAdoptionResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RemoveLocalAppAdoption not implemented")
 }
 func (UnimplementedRuntimeAppServiceServer) GetAppPackageReadiness(context.Context, *GetAppPackageReadinessRequest) (*GetAppPackageReadinessResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetAppPackageReadiness not implemented")
@@ -387,20 +435,74 @@ func _RuntimeAppService_GetAppStorage_Handler(srv interface{}, ctx context.Conte
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RuntimeAppService_GetAccountAppLibrary_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetAccountAppLibraryRequest)
+func _RuntimeAppService_GetAccountAppInventory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAccountAppInventoryRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RuntimeAppServiceServer).GetAccountAppLibrary(ctx, in)
+		return srv.(RuntimeAppServiceServer).GetAccountAppInventory(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: RuntimeAppService_GetAccountAppLibrary_FullMethodName,
+		FullMethod: RuntimeAppService_GetAccountAppInventory_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAppServiceServer).GetAccountAppLibrary(ctx, req.(*GetAccountAppLibraryRequest))
+		return srv.(RuntimeAppServiceServer).GetAccountAppInventory(ctx, req.(*GetAccountAppInventoryRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAppService_AdoptLocalApp_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AdoptLocalAppRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAppServiceServer).AdoptLocalApp(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAppService_AdoptLocalApp_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAppServiceServer).AdoptLocalApp(ctx, req.(*AdoptLocalAppRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAppService_ListLocalAppAdoptions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListLocalAppAdoptionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAppServiceServer).ListLocalAppAdoptions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAppService_ListLocalAppAdoptions_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAppServiceServer).ListLocalAppAdoptions(ctx, req.(*ListLocalAppAdoptionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAppService_RemoveLocalAppAdoption_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RemoveLocalAppAdoptionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAppServiceServer).RemoveLocalAppAdoption(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAppService_RemoveLocalAppAdoption_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAppServiceServer).RemoveLocalAppAdoption(ctx, req.(*RemoveLocalAppAdoptionRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -548,8 +650,20 @@ var RuntimeAppService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _RuntimeAppService_GetAppStorage_Handler,
 		},
 		{
-			MethodName: "GetAccountAppLibrary",
-			Handler:    _RuntimeAppService_GetAccountAppLibrary_Handler,
+			MethodName: "GetAccountAppInventory",
+			Handler:    _RuntimeAppService_GetAccountAppInventory_Handler,
+		},
+		{
+			MethodName: "AdoptLocalApp",
+			Handler:    _RuntimeAppService_AdoptLocalApp_Handler,
+		},
+		{
+			MethodName: "ListLocalAppAdoptions",
+			Handler:    _RuntimeAppService_ListLocalAppAdoptions_Handler,
+		},
+		{
+			MethodName: "RemoveLocalAppAdoption",
+			Handler:    _RuntimeAppService_RemoveLocalAppAdoption_Handler,
 		},
 		{
 			MethodName: "GetAppPackageReadiness",

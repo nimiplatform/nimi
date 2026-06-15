@@ -92,6 +92,21 @@ func validFullAppModeManifest() *runtimev1.AppModeManifest {
 	}
 }
 
+func TestNormalizeNimiAppRegistryIDRejectsBundleNamespace(t *testing.T) {
+	cases := map[string]string{
+		"nimi.avatar":           "nimi.avatar",
+		"app.nimi.avatar":       "nimi.avatar",
+		"ai.nimi.apps.avatar":   "ai.nimi.apps.avatar",
+		"ai.nimi.apps.parentos": "ai.nimi.apps.parentos",
+		"third.party.runtime":   "third.party.runtime",
+	}
+	for input, expected := range cases {
+		if actual := normalizeNimiAppRegistryID(input); actual != expected {
+			t.Fatalf("normalizeNimiAppRegistryID(%q) = %q, want %q", input, actual, expected)
+		}
+	}
+}
+
 func testNimiAppRegistryCatalog() *appregistrycatalog.Registry {
 	return &appregistrycatalog.Registry{
 		Version:     1,
@@ -253,6 +268,57 @@ func TestOpenSessionLocalFirstPartyRejectsCallerProvidedSubject(t *testing.T) {
 	}
 	if accepted.GetSessionId() == "" || accepted.GetSessionToken() == "" {
 		t.Fatalf("local first-party app-only session must issue app session credentials: %+v", accepted)
+	}
+}
+
+func TestOpenSessionDeveloperRegisteredLocalAppOnlySession(t *testing.T) {
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	svc.SetNimiAppRegistryCatalog(testNimiAppRegistryCatalog())
+	svc.SetDeveloperRegistrationEnabled(true)
+	ctx := context.Background()
+
+	registerResp, err := svc.RegisterApp(ctx, &runtimev1.RegisterAppRequest{
+		AppId:                 "nimi.parentos",
+		AppInstanceId:         "nimi.parentos.platform-runtime-session",
+		DeviceId:              "platform-runtime-session",
+		ModeManifest:          validFullAppModeManifest(),
+		DeveloperRegistration: true,
+	})
+	if err != nil {
+		t.Fatalf("register developer local app: %v", err)
+	}
+	if !registerResp.GetAccepted() {
+		t.Fatalf("developer local app registration rejected: %v", registerResp.GetReasonCode())
+	}
+
+	accepted, err := svc.OpenSession(ctx, &runtimev1.OpenSessionRequest{
+		AppId:         "nimi.parentos",
+		AppInstanceId: registerResp.GetAppInstanceId(),
+		DeviceId:      "platform-runtime-session",
+		TtlSeconds:    600,
+	})
+	if err != nil {
+		t.Fatalf("open developer local app-only session: %v", err)
+	}
+	if accepted.GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED {
+		t.Fatalf("expected app-only session accepted, got %v", accepted.GetReasonCode())
+	}
+	if accepted.GetSessionId() == "" || accepted.GetSessionToken() == "" {
+		t.Fatalf("developer local app-only session must issue credentials: %+v", accepted)
+	}
+
+	rejected, err := svc.OpenSession(ctx, &runtimev1.OpenSessionRequest{
+		AppId:         "nimi.parentos",
+		AppInstanceId: registerResp.GetAppInstanceId(),
+		DeviceId:      "platform-runtime-session",
+		SubjectUserId: "caller-user-001",
+		TtlSeconds:    600,
+	})
+	if err != nil {
+		t.Fatalf("open reverse-DNS first-party session with subject should return reason, got error: %v", err)
+	}
+	if rejected.GetReasonCode() != runtimev1.ReasonCode_APP_AUTHORIZATION_DENIED {
+		t.Fatalf("expected caller subject rejected, got %v", rejected.GetReasonCode())
 	}
 }
 

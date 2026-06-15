@@ -197,6 +197,8 @@ func isWriteMethod(fullMethod string) bool {
 		"/nimi.runtime.v1.RuntimeAppService/SendAppMessage",
 		"/nimi.runtime.v1.RuntimeAppService/InstallApp",
 		"/nimi.runtime.v1.RuntimeAppService/UninstallApp",
+		"/nimi.runtime.v1.RuntimeAppService/AdoptLocalApp",
+		"/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppAdoption",
 		"/nimi.runtime.v1.RuntimeAppService/UpdateApp",
 		"/nimi.runtime.v1.RuntimeAppService/HealthRepairApp",
 		"/nimi.runtime.v1.RuntimeAppService/OpenApp",

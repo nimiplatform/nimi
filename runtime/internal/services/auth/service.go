@@ -24,13 +24,14 @@ import (
 )
 
 type appRegistration struct {
-	AppID         string
-	AppInstanceID string
-	DeviceID      string
-	AppVersion    string
-	Capabilities  []string
-	ModeManifest  *runtimev1.AppModeManifest
-	RegisteredAt  time.Time
+	AppID                 string
+	AppInstanceID         string
+	DeviceID              string
+	AppVersion            string
+	Capabilities          []string
+	ModeManifest          *runtimev1.AppModeManifest
+	DeveloperRegistration bool
+	RegisteredAt          time.Time
 }
 
 type appSession struct {
@@ -200,16 +201,17 @@ func (s *Service) RegisterApp(ctx context.Context, req *runtimev1.RegisterAppReq
 
 	now := time.Now().UTC()
 	registration := appRegistration{
-		AppID:         appID,
-		AppInstanceID: instanceID,
-		DeviceID:      strings.TrimSpace(req.GetDeviceId()),
-		AppVersion:    strings.TrimSpace(req.GetAppVersion()),
-		Capabilities:  append([]string(nil), req.GetCapabilities()...),
-		ModeManifest:  cloneModeManifest(req.GetModeManifest()),
-		RegisteredAt:  now,
+		AppID:                 appID,
+		AppInstanceID:         instanceID,
+		DeviceID:              strings.TrimSpace(req.GetDeviceId()),
+		AppVersion:            strings.TrimSpace(req.GetAppVersion()),
+		Capabilities:          append([]string(nil), req.GetCapabilities()...),
+		ModeManifest:          cloneModeManifest(req.GetModeManifest()),
+		DeveloperRegistration: developerAdmission,
+		RegisteredAt:          now,
 	}
 
-	if err := s.registry.UpsertInstance(appID, instanceID, req.GetDeviceId(), req.GetModeManifest(), req.GetCapabilities()); err != nil {
+	if err := s.registry.UpsertInstanceWithAdmission(appID, instanceID, req.GetDeviceId(), req.GetModeManifest(), req.GetCapabilities(), developerAdmission); err != nil {
 		return nil, status.Error(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID.String())
 	}
 	s.mu.Lock()
@@ -338,8 +340,9 @@ func (s *Service) OpenSession(ctx context.Context, req *runtimev1.OpenSessionReq
 		isLocalFirstPartyModeManifest(registration.ModeManifest)
 	if localFirstParty && subjectUserID != "" {
 		s.emitAuditWithPayload(ctx, "OpenSession", appID, subjectUserID, runtimev1.ReasonCode_APP_AUTHORIZATION_DENIED, map[string]any{
-			"subject_source": "caller_provided",
-			"session_mode":   "local_first_party",
+			"subject_source":         "caller_provided",
+			"session_mode":           runtimeAccountSessionMode(registration),
+			"developer_registration": registration.DeveloperRegistration,
 		})
 		return &runtimev1.OpenSessionResponse{ReasonCode: runtimev1.ReasonCode_APP_AUTHORIZATION_DENIED}, nil
 	}
@@ -378,7 +381,9 @@ func (s *Service) OpenSession(ctx context.Context, req *runtimev1.OpenSessionReq
 	s.mu.Unlock()
 
 	s.emitAuditWithPayload(ctx, "OpenSession", appID, subjectUserID, runtimev1.ReasonCode_ACTION_EXECUTED, map[string]any{
-		"session_id": sessionID,
+		"session_id":             sessionID,
+		"session_mode":           runtimeAccountSessionMode(registration),
+		"developer_registration": registration.DeveloperRegistration,
 	})
 	return &runtimev1.OpenSessionResponse{
 		SessionId:    sessionID,
@@ -393,6 +398,13 @@ func isLocalFirstPartyModeManifest(manifest *runtimev1.AppModeManifest) bool {
 	return manifest.GetAppMode() == runtimev1.AppMode_APP_MODE_FULL &&
 		manifest.GetRuntimeRequired() &&
 		manifest.GetRealmRequired()
+}
+
+func runtimeAccountSessionMode(registration appRegistration) string {
+	if registration.DeveloperRegistration {
+		return "developer_registered_local_app"
+	}
+	return "local_first_party"
 }
 
 func (s *Service) RefreshSession(ctx context.Context, req *runtimev1.RefreshSessionRequest) (*runtimev1.RefreshSessionResponse, error) {

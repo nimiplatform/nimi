@@ -23,9 +23,10 @@ type Record struct {
 }
 
 type InstanceRecord struct {
-	AppInstanceID string
-	DeviceID      string
-	RegisteredAt  time.Time
+	AppInstanceID         string
+	DeviceID              string
+	RegisteredAt          time.Time
+	DeveloperRegistration bool
 }
 
 // Registry stores app registration state in-memory.
@@ -60,10 +61,14 @@ func (r *Registry) Upsert(appID string, manifest *runtimev1.AppModeManifest, cap
 }
 
 func (r *Registry) UpsertInstance(appID string, appInstanceID string, deviceID string, manifest *runtimev1.AppModeManifest, capabilities []string) error {
+	return r.UpsertInstanceWithAdmission(appID, appInstanceID, deviceID, manifest, capabilities, false)
+}
+
+func (r *Registry) UpsertInstanceWithAdmission(appID string, appInstanceID string, deviceID string, manifest *runtimev1.AppModeManifest, capabilities []string, developerRegistration bool) error {
 	appID = strings.TrimSpace(appID)
 	appInstanceID = strings.TrimSpace(appInstanceID)
 	if appID == "" || appInstanceID == "" {
-		return fmt.Errorf("appregistry.UpsertInstance: %w", ErrEmptyAppID)
+		return fmt.Errorf("appregistry.UpsertInstanceWithAdmission: %w", ErrEmptyAppID)
 	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -77,9 +82,10 @@ func (r *Registry) UpsertInstance(appID string, appInstanceID string, deviceID s
 		record.Instances = make(map[string]InstanceRecord)
 	}
 	record.Instances[appInstanceID] = InstanceRecord{
-		AppInstanceID: appInstanceID,
-		DeviceID:      strings.TrimSpace(deviceID),
-		RegisteredAt:  now,
+		AppInstanceID:         appInstanceID,
+		DeviceID:              strings.TrimSpace(deviceID),
+		RegisteredAt:          now,
+		DeveloperRegistration: developerRegistration,
 	}
 	r.apps[appID] = record
 	return nil
@@ -114,6 +120,37 @@ func (r *Registry) AdmitLocalFirstPartyInstance(appID string, appInstanceID stri
 		return false
 	}
 	if _, ok := record.Instances[appInstanceID]; !ok {
+		return false
+	}
+	instance := record.Instances[appInstanceID]
+	if instance.DeveloperRegistration {
+		return false
+	}
+	if reasonCode, _, ok := ValidateManifest(record.Manifest); !ok || reasonCode != runtimev1.ReasonCode_ACTION_EXECUTED {
+		return false
+	}
+	switch record.Manifest.GetAppMode() {
+	case runtimev1.AppMode_APP_MODE_FULL:
+		return record.Manifest.GetRuntimeRequired() && record.Manifest.GetRealmRequired()
+	default:
+		return false
+	}
+}
+
+func (r *Registry) AdmitLocalDeveloperInstance(appID string, appInstanceID string) bool {
+	appID = strings.TrimSpace(appID)
+	appInstanceID = strings.TrimSpace(appInstanceID)
+	if appID == "" || appInstanceID == "" {
+		return false
+	}
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	record, ok := r.apps[appID]
+	if !ok {
+		return false
+	}
+	instance, ok := record.Instances[appInstanceID]
+	if !ok || !instance.DeveloperRegistration {
 		return false
 	}
 	if reasonCode, _, ok := ValidateManifest(record.Manifest); !ok || reasonCode != runtimev1.ReasonCode_ACTION_EXECUTED {

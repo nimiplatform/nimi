@@ -21,6 +21,37 @@ fn parse_pairs(raw: &[u8]) -> BTreeMap<String, String> {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AccountAppInstallState {
+    ACCOUNTAPPINSTALLSTATEUNSPECIFIED,
+    ACCOUNTAPPINSTALLSTATENOTINSTALLED,
+    ACCOUNTAPPINSTALLSTATEINSTALLED,
+    ACCOUNTAPPINSTALLSTATEADOPTEDLOCAL,
+    ACCOUNTAPPINSTALLSTATEREMOVED,
+}
+
+impl Default for AccountAppInstallState {
+    fn default() -> Self {
+        Self::ACCOUNTAPPINSTALLSTATEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AccountAppInventoryState {
+    ACCOUNTAPPINVENTORYSTATEUNSPECIFIED,
+    ACCOUNTAPPINVENTORYSTATEVERIFIED,
+    ACCOUNTAPPINVENTORYSTATEENTITLED,
+    ACCOUNTAPPINVENTORYSTATEDISABLED,
+    ACCOUNTAPPINVENTORYSTATEREMOVED,
+    ACCOUNTAPPINVENTORYSTATEREVOKED,
+}
+
+impl Default for AccountAppInventoryState {
+    fn default() -> Self {
+        Self::ACCOUNTAPPINVENTORYSTATEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum AccountCallerMode {
     ACCOUNTCALLERMODEUNSPECIFIED,
     ACCOUNTCALLERMODELOCALFIRSTPARTYAPP,
@@ -28,6 +59,7 @@ pub enum AccountCallerMode {
     ACCOUNTCALLERMODEDESKTOPLAUNCHEDAVATAR,
     ACCOUNTCALLERMODEWEBCLOUD,
     ACCOUNTCALLERMODEEXTERNALPRINCIPAL,
+    ACCOUNTCALLERMODELOCALDEVELOPERAPP,
 }
 
 impl Default for AccountCallerMode {
@@ -670,9 +702,7 @@ impl Default for ConversationAnchorStatus {
 pub enum DelegatedApprovalDecision {
     DELEGATEDAPPROVALDECISIONUNSPECIFIED,
     DELEGATEDAPPROVALDECISIONAPPROVEDONCE,
-    DELEGATEDAPPROVALDECISIONAPPROVE,
     DELEGATEDAPPROVALDECISIONREJECTED,
-    DELEGATEDAPPROVALDECISIONREJECT,
     DELEGATEDAPPROVALDECISIONAPPROVEDFORSESSION,
     DELEGATEDAPPROVALDECISIONPOLICYBLOCKED,
     DELEGATEDAPPROVALDECISIONEXPIRED,
@@ -703,7 +733,6 @@ pub enum DelegatedApprovalRequestState {
     DELEGATEDAPPROVALREQUESTSTATEUNSPECIFIED,
     DELEGATEDAPPROVALREQUESTSTATEPENDING,
     DELEGATEDAPPROVALREQUESTSTATEAPPROVEDONCE,
-    DELEGATEDAPPROVALREQUESTSTATEAPPROVED,
     DELEGATEDAPPROVALREQUESTSTATEREJECTED,
     DELEGATEDAPPROVALREQUESTSTATEEXPIRED,
     DELEGATEDAPPROVALREQUESTSTATEAPPROVEDFORSESSION,
@@ -976,6 +1005,33 @@ pub enum KnowledgeIngestTaskStatus {
 impl Default for KnowledgeIngestTaskStatus {
     fn default() -> Self {
         Self::KNOWLEDGEINGESTTASKSTATUSUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum LocalAppAdoptionState {
+    LOCALAPPADOPTIONSTATEUNSPECIFIED,
+    LOCALAPPADOPTIONSTATEADOPTED,
+    LOCALAPPADOPTIONSTATEREPAIRREQUIRED,
+    LOCALAPPADOPTIONSTATEREMOVED,
+}
+
+impl Default for LocalAppAdoptionState {
+    fn default() -> Self {
+        Self::LOCALAPPADOPTIONSTATEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum LocalAppAdoptionTrust {
+    LOCALAPPADOPTIONTRUSTUNSPECIFIED,
+    LOCALAPPADOPTIONTRUSTEXPLICITLOCAL,
+    LOCALAPPADOPTIONTRUSTDEVELOPERLOCAL,
+}
+
+impl Default for LocalAppAdoptionTrust {
+    fn default() -> Self {
+        Self::LOCALAPPADOPTIONTRUSTUNSPECIFIED
     }
 }
 
@@ -2588,14 +2644,14 @@ impl AIProviderSubHealth {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct AccountAppLibraryRecord {
+pub struct AccountAppInventoryRecord {
     pub schema_version: Option<u32>,
     pub account_id: Option<String>,
     pub updated_at: Option<String>,
-    pub apps: Vec<Box<AccountAppLibraryRow>>,
+    pub apps: Vec<Box<AccountAppInventoryRow>>,
 }
 
-impl AccountAppLibraryRecord {
+impl AccountAppInventoryRecord {
     pub fn to_transport(&self) -> Vec<u8> {
         let mut pairs: Vec<String> = Vec::new();
         if let Some(value) = &self.schema_version { pairs.push(format!("schema_version={}", value)); }
@@ -2622,34 +2678,46 @@ impl AccountAppLibraryRecord {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct AccountAppLibraryRow {
+pub struct AccountAppInventoryRow {
     pub app_id: Option<String>,
-    pub library_state: Option<String>,
-    pub installed: Option<bool>,
+    pub account_state: Option<AccountAppInventoryState>,
+    pub install_state: Option<AccountAppInstallState>,
     pub last_opened_at: Option<String>,
     pub data_policy: Option<String>,
+    pub verified_at: Option<String>,
+    pub source: Option<String>,
+    pub detail: Option<String>,
 }
 
-impl AccountAppLibraryRow {
+impl AccountAppInventoryRow {
     pub fn to_transport(&self) -> Vec<u8> {
         let mut pairs: Vec<String> = Vec::new();
         if let Some(value) = &self.app_id { pairs.push(format!("app_id={}", value)); }
-        if let Some(value) = &self.library_state { pairs.push(format!("library_state={}", value)); }
-        if let Some(value) = &self.installed { pairs.push(format!("installed={}", value)); }
+        if let Some(value) = &self.account_state { pairs.push(format!("account_state={:?}", value)); }
+        if let Some(value) = &self.install_state { pairs.push(format!("install_state={:?}", value)); }
         if let Some(value) = &self.last_opened_at { pairs.push(format!("last_opened_at={}", value)); }
         if let Some(value) = &self.data_policy { pairs.push(format!("data_policy={}", value)); }
+        if let Some(value) = &self.verified_at { pairs.push(format!("verified_at={}", value)); }
+        if let Some(value) = &self.source { pairs.push(format!("source={}", value)); }
+        if let Some(value) = &self.detail { pairs.push(format!("detail={}", value)); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
+        for key in ["account_state", "install_state"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
 
         out.app_id = pairs.get("app_id").cloned();
-        out.library_state = pairs.get("library_state").cloned();
-        out.installed = pairs.get("installed").and_then(|value| value.parse().ok());
         out.last_opened_at = pairs.get("last_opened_at").cloned();
         out.data_policy = pairs.get("data_policy").cloned();
+        out.verified_at = pairs.get("verified_at").cloned();
+        out.source = pairs.get("source").cloned();
+        out.detail = pairs.get("detail").cloned();
         out
     }
 }
@@ -2893,6 +2961,60 @@ impl AdmitProductControlReadyForUseRequest {
 
         out.account_default_profile_evidence_json = pairs.get("account_default_profile_evidence_json").cloned();
         out.built_in_ai_config_evidence_json = pairs.get("built_in_ai_config_evidence_json").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AdoptLocalAppRequest {
+    pub root_path: Option<String>,
+    pub expected_app_id: Option<String>,
+}
+
+impl AdoptLocalAppRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.root_path { pairs.push(format!("root_path={}", value)); }
+        if let Some(value) = &self.expected_app_id { pairs.push(format!("expected_app_id={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.root_path = pairs.get("root_path").cloned();
+        out.expected_app_id = pairs.get("expected_app_id").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AdoptLocalAppResponse {
+    pub adoption: Option<Box<LocalAppAdoption>>,
+    pub reason_code: Option<ReasonCode>,
+    pub detail: Option<String>,
+}
+
+impl AdoptLocalAppResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if self.adoption.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode adoption"); }
+        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
+        if let Some(value) = &self.detail { pairs.push(format!("detail={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["adoption", "reason_code"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.detail = pairs.get("detail").cloned();
         out
     }
 }
@@ -9830,11 +9952,11 @@ impl GetAccessTokenResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct GetAccountAppLibraryRequest {
+pub struct GetAccountAppInventoryRequest {
 
 }
 
-impl GetAccountAppLibraryRequest {
+impl GetAccountAppInventoryRequest {
     pub fn to_transport(&self) -> Vec<u8> {
         Vec::new()
     }
@@ -9848,14 +9970,14 @@ impl GetAccountAppLibraryRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct GetAccountAppLibraryResponse {
+pub struct GetAccountAppInventoryResponse {
     pub exists: Option<bool>,
-    pub record: Option<Box<AccountAppLibraryRecord>>,
+    pub record: Option<Box<AccountAppInventoryRecord>>,
     pub reason_code: Option<ReasonCode>,
     pub detail: Option<String>,
 }
 
-impl GetAccountAppLibraryResponse {
+impl GetAccountAppInventoryResponse {
     pub fn to_transport(&self) -> Vec<u8> {
         let mut pairs: Vec<String> = Vec::new();
         if let Some(value) = &self.exists { pairs.push(format!("exists={}", value)); }
@@ -14583,6 +14705,54 @@ impl ListLinksResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct ListLocalAppAdoptionsRequest {
+
+}
+
+impl ListLocalAppAdoptionsRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        Vec::new()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        if !raw.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client received undecodable response payload");
+        }
+        Self::default()
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ListLocalAppAdoptionsResponse {
+    pub adoptions: Vec<Box<LocalAppAdoption>>,
+    pub reason_code: Option<ReasonCode>,
+    pub detail: Option<String>,
+}
+
+impl ListLocalAppAdoptionsResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if !self.adoptions.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode adoptions"); }
+        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
+        if let Some(value) = &self.detail { pairs.push(format!("detail={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["adoptions", "reason_code"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.detail = pairs.get("detail").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ListLocalAssetsRequest {
     pub status_filter: Option<LocalAssetStatus>,
     pub kind_filter: Option<LocalAssetKind>,
@@ -15733,6 +15903,68 @@ impl ListVoiceAssetsResponse {
         }
 
         out.next_page_token = pairs.get("next_page_token").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppAdoption {
+    pub app_id: Option<String>,
+    pub root_path: Option<String>,
+    pub manifest_path: Option<String>,
+    pub display_name: Option<String>,
+    pub version: Option<String>,
+    pub entry_ref: Option<String>,
+    pub permission_scope_ref: Option<String>,
+    pub storage_policy_ref: Option<String>,
+    pub state: Option<LocalAppAdoptionState>,
+    pub trust: Option<LocalAppAdoptionTrust>,
+    pub adopted_at: Option<String>,
+    pub updated_at: Option<String>,
+    pub reason_code: Option<ReasonCode>,
+    pub detail: Option<String>,
+}
+
+impl LocalAppAdoption {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.app_id { pairs.push(format!("app_id={}", value)); }
+        if let Some(value) = &self.root_path { pairs.push(format!("root_path={}", value)); }
+        if let Some(value) = &self.manifest_path { pairs.push(format!("manifest_path={}", value)); }
+        if let Some(value) = &self.display_name { pairs.push(format!("display_name={}", value)); }
+        if let Some(value) = &self.version { pairs.push(format!("version={}", value)); }
+        if let Some(value) = &self.entry_ref { pairs.push(format!("entry_ref={}", value)); }
+        if let Some(value) = &self.permission_scope_ref { pairs.push(format!("permission_scope_ref={}", value)); }
+        if let Some(value) = &self.storage_policy_ref { pairs.push(format!("storage_policy_ref={}", value)); }
+        if let Some(value) = &self.state { pairs.push(format!("state={:?}", value)); }
+        if let Some(value) = &self.trust { pairs.push(format!("trust={:?}", value)); }
+        if let Some(value) = &self.adopted_at { pairs.push(format!("adopted_at={}", value)); }
+        if let Some(value) = &self.updated_at { pairs.push(format!("updated_at={}", value)); }
+        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
+        if let Some(value) = &self.detail { pairs.push(format!("detail={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["state", "trust", "reason_code"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.app_id = pairs.get("app_id").cloned();
+        out.root_path = pairs.get("root_path").cloned();
+        out.manifest_path = pairs.get("manifest_path").cloned();
+        out.display_name = pairs.get("display_name").cloned();
+        out.version = pairs.get("version").cloned();
+        out.entry_ref = pairs.get("entry_ref").cloned();
+        out.permission_scope_ref = pairs.get("permission_scope_ref").cloned();
+        out.storage_policy_ref = pairs.get("storage_policy_ref").cloned();
+        out.adopted_at = pairs.get("adopted_at").cloned();
+        out.updated_at = pairs.get("updated_at").cloned();
+        out.detail = pairs.get("detail").cloned();
         out
     }
 }
@@ -22491,6 +22723,60 @@ impl RemoveLinkResponse {
         }
 
 
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RemoveLocalAppAdoptionRequest {
+    pub app_id: Option<String>,
+    pub delete_durable_data_confirmed: Option<bool>,
+}
+
+impl RemoveLocalAppAdoptionRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.app_id { pairs.push(format!("app_id={}", value)); }
+        if let Some(value) = &self.delete_durable_data_confirmed { pairs.push(format!("delete_durable_data_confirmed={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+
+        out.app_id = pairs.get("app_id").cloned();
+        out.delete_durable_data_confirmed = pairs.get("delete_durable_data_confirmed").and_then(|value| value.parse().ok());
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RemoveLocalAppAdoptionResponse {
+    pub adoption: Option<Box<LocalAppAdoption>>,
+    pub reason_code: Option<ReasonCode>,
+    pub detail: Option<String>,
+}
+
+impl RemoveLocalAppAdoptionResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if self.adoption.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode adoption"); }
+        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
+        if let Some(value) = &self.detail { pairs.push(format!("detail={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["adoption", "reason_code"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.detail = pairs.get("detail").cloned();
         out
     }
 }
@@ -30048,13 +30334,13 @@ impl From<Vec<u8>> for AIProviderSubHealth {
     }
 }
 
-impl From<Vec<u8>> for AccountAppLibraryRecord {
+impl From<Vec<u8>> for AccountAppInventoryRecord {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
 }
 
-impl From<Vec<u8>> for AccountAppLibraryRow {
+impl From<Vec<u8>> for AccountAppInventoryRow {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -30097,6 +30383,18 @@ impl From<Vec<u8>> for AddLinkResponse {
 }
 
 impl From<Vec<u8>> for AdmitProductControlReadyForUseRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for AdoptLocalAppRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for AdoptLocalAppResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -31260,13 +31558,13 @@ impl From<Vec<u8>> for GetAccessTokenResponse {
     }
 }
 
-impl From<Vec<u8>> for GetAccountAppLibraryRequest {
+impl From<Vec<u8>> for GetAccountAppInventoryRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
 }
 
-impl From<Vec<u8>> for GetAccountAppLibraryResponse {
+impl From<Vec<u8>> for GetAccountAppInventoryResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -32190,6 +32488,18 @@ impl From<Vec<u8>> for ListLinksResponse {
     }
 }
 
+impl From<Vec<u8>> for ListLocalAppAdoptionsRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for ListLocalAppAdoptionsResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for ListLocalAssetsRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -32413,6 +32723,12 @@ impl From<Vec<u8>> for ListVoiceAssetsRequest {
 }
 
 impl From<Vec<u8>> for ListVoiceAssetsResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for LocalAppAdoption {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -33457,6 +33773,18 @@ impl From<Vec<u8>> for RemoveLinkRequest {
 }
 
 impl From<Vec<u8>> for RemoveLinkResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for RemoveLocalAppAdoptionRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for RemoveLocalAppAdoptionResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -35684,14 +36012,24 @@ where
         panic!("SDK_RUNTIME_METHOD_UNAVAILABLE: Runtime method kind is not supported by the unary/server-stream core transport: /nimi.runtime.v1.RuntimeAiService/UploadArtifact");
     }
 
-    pub fn get_account_app_library(&self, request: GetAccountAppLibraryRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetAccountAppLibraryResponse, T::Error> {
+    pub fn adopt_local_app(&self, request: AdoptLocalAppRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<AdoptLocalAppResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeAppService/GetAccountAppLibrary".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAppService/AdoptLocalApp".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
         })?;
-        Ok(GetAccountAppLibraryResponse::from_transport(&raw))
+        Ok(AdoptLocalAppResponse::from_transport(&raw))
+    }
+
+    pub fn get_account_app_inventory(&self, request: GetAccountAppInventoryRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetAccountAppInventoryResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAppService/GetAccountAppInventory".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(GetAccountAppInventoryResponse::from_transport(&raw))
     }
 
     pub fn get_app_install_job(&self, request: GetAppInstallJobRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetAppInstallJobResponse, T::Error> {
@@ -35754,6 +36092,16 @@ where
         Ok(ListAppInstallJobsResponse::from_transport(&raw))
     }
 
+    pub fn list_local_app_adoptions(&self, request: ListLocalAppAdoptionsRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListLocalAppAdoptionsResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAppService/ListLocalAppAdoptions".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(ListLocalAppAdoptionsResponse::from_transport(&raw))
+    }
+
     pub fn open_app(&self, request: OpenAppRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<OpenAppResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeAppService/OpenApp".to_string(),
@@ -35762,6 +36110,16 @@ where
             timeout,
         })?;
         Ok(OpenAppResponse::from_transport(&raw))
+    }
+
+    pub fn remove_local_app_adoption(&self, request: RemoveLocalAppAdoptionRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RemoveLocalAppAdoptionResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppAdoption".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(RemoveLocalAppAdoptionResponse::from_transport(&raw))
     }
 
     pub fn send_app_message(&self, request: SendAppMessageRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<SendAppMessageResponse, T::Error> {

@@ -39,18 +39,18 @@ type scopedBindingValidator interface {
 
 // OpenAppReadinessDecision is a typed fail-closed decision returned by the
 // canonical launch-readiness verifier. It is a carrier only; it does not own
-// account-library or permission truth.
+// account-inventory or permission truth.
 type OpenAppReadinessDecision struct {
 	Allowed bool
 	Detail  string
 }
 
 // OpenAppReadinessVerifier verifies the OpenApp gates whose truth is owned by
-// admitted account-library and permission authorities. Runtime OpenApp consumes
+// admitted account-inventory and permission authorities. Runtime OpenApp consumes
 // this verifier and fails closed when it is absent; it must not infer grant
 // state from package or registry structure.
 type OpenAppReadinessVerifier interface {
-	VerifyOpenAccountLibrary(ctx context.Context, app appregistrycatalog.App) (OpenAppReadinessDecision, error)
+	VerifyOpenAccountInventory(ctx context.Context, app appregistrycatalog.App) (OpenAppReadinessDecision, error)
 	VerifyOpenPermissions(ctx context.Context, app appregistrycatalog.App) (OpenAppReadinessDecision, error)
 }
 
@@ -87,7 +87,8 @@ type Service struct {
 	appStorageDataRoot string
 	openReadiness      OpenAppReadinessVerifier
 	accountProjection  runtimeAccountProjectionProvider
-	accountLibrary     *accountAppLibraryStore
+	accountInventory   *accountAppInventoryStore
+	localAdoptions     *localAppAdoptionStore
 }
 
 func WithSessionValidator(validator sessionValidator) Option {
@@ -128,9 +129,9 @@ func WithAppStorageDataRoot(dataRootRef string) Option {
 	}
 }
 
-// WithOpenAppReadinessVerifier injects the canonical account-library/permission
+// WithOpenAppReadinessVerifier injects the canonical account-inventory/permission
 // verifier consumed by K-APP-017. Without this verifier, OpenApp blocks at the
-// account-library step instead of treating missing authority as success.
+// account-inventory step instead of treating missing authority as success.
 func WithOpenAppReadinessVerifier(verifier OpenAppReadinessVerifier) Option {
 	return func(s *Service) {
 		s.openReadiness = verifier
@@ -143,9 +144,15 @@ func WithRuntimeAccountProjectionProvider(provider runtimeAccountProjectionProvi
 	}
 }
 
-func WithAccountAppLibraryStoreForTest(store *accountAppLibraryStore) Option {
+func WithAccountAppInventoryStoreForTest(store *accountAppInventoryStore) Option {
 	return func(s *Service) {
-		s.accountLibrary = store
+		s.accountInventory = store
+	}
+}
+
+func WithLocalAppAdoptionStoreForTest(store *localAppAdoptionStore) Option {
+	return func(s *Service) {
+		s.localAdoptions = store
 	}
 }
 
@@ -163,8 +170,11 @@ func New(logger *slog.Logger, opts ...Option) *Service {
 			opt(svc)
 		}
 	}
-	if svc.accountLibrary == nil {
-		svc.accountLibrary = newAccountAppLibraryStore(defaultNimiDir)
+	if svc.accountInventory == nil {
+		svc.accountInventory = newAccountAppInventoryStore(defaultNimiDir)
+	}
+	if svc.localAdoptions == nil {
+		svc.localAdoptions = newLocalAppAdoptionStore(defaultNimiDir)
 	}
 	svc.installJobs = newInstallJobManager(svc.now)
 	return svc

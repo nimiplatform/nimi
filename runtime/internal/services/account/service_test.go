@@ -14,6 +14,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/appregistry"
+	"google.golang.org/protobuf/proto"
 )
 
 type memoryCustody struct {
@@ -147,6 +148,15 @@ func testerCaller() *runtimev1.AccountCaller {
 	}
 }
 
+func localDeveloperCaller() *runtimev1.AccountCaller {
+	return &runtimev1.AccountCaller{
+		AppId:         "nimi.tester",
+		AppInstanceId: "nimi.tester.local-developer",
+		DeviceId:      "tester-local-developer-device",
+		Mode:          runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_LOCAL_DEVELOPER_APP,
+	}
+}
+
 func testAppRegistry(t *testing.T, callers ...*runtimev1.AccountCaller) *appregistry.Registry {
 	t.Helper()
 	registry := appregistry.New()
@@ -162,6 +172,20 @@ func testAppRegistry(t *testing.T, callers ...*runtimev1.AccountCaller) *appregi
 		}, nil); err != nil {
 			t.Fatalf("register test app caller: %v", err)
 		}
+	}
+	return registry
+}
+
+func testDeveloperAppRegistry(t *testing.T, caller *runtimev1.AccountCaller) *appregistry.Registry {
+	t.Helper()
+	registry := testAppRegistry(t, firstPartyCaller())
+	if err := registry.UpsertInstanceWithAdmission(caller.GetAppId(), caller.GetAppInstanceId(), caller.GetDeviceId(), &runtimev1.AppModeManifest{
+		AppMode:         runtimev1.AppMode_APP_MODE_FULL,
+		RuntimeRequired: true,
+		RealmRequired:   true,
+		WorldRelation:   runtimev1.WorldRelation_WORLD_RELATION_NONE,
+	}, nil, true); err != nil {
+		t.Fatalf("register developer app caller: %v", err)
 	}
 	return registry
 }
@@ -647,6 +671,91 @@ func TestGetAccessTokenRejectsUnregisteredLocalFirstPartyCaller(t *testing.T) {
 	}
 	if resp.GetAccepted() || resp.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED {
 		t.Fatalf("unregistered caller must not receive access token: %+v", resp)
+	}
+}
+
+func TestLocalDeveloperAppAccountSurfaceRejectsFirstPartyTokenAndControlAuthority(t *testing.T) {
+	developer := localDeveloperCaller()
+	svc := newHarnessService(
+		t,
+		nil,
+		WithAppRegistry(testDeveloperAppRegistry(t, developer)),
+		WithRefresher(staticRefresher{material: testMaterial("acct-1", "access-2", "refresh-2")}),
+	)
+	completeLogin(t, svc)
+
+	status, err := svc.GetAccountSessionStatus(context.Background(), &runtimev1.GetAccountSessionStatusRequest{Caller: developer})
+	if err != nil {
+		t.Fatalf("developer GetAccountSessionStatus: %v", err)
+	}
+	if status.GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED ||
+		status.GetAccountProjection().GetAccountId() != "acct-1" {
+		t.Fatalf("developer caller should receive Runtime account projection: %+v", status)
+	}
+
+	refresh, err := svc.RefreshAccountSession(context.Background(), &runtimev1.RefreshAccountSessionRequest{Caller: developer})
+	if err != nil {
+		t.Fatalf("developer RefreshAccountSession: %v", err)
+	}
+	if !refresh.GetAccepted() || refresh.GetAccountProjection().GetAccountId() != "acct-1" {
+		t.Fatalf("developer caller should refresh through Runtime custody: %+v", refresh)
+	}
+
+	binding, err := svc.IssueScopedAppBinding(context.Background(), &runtimev1.IssueScopedAppBindingRequest{
+		Caller: developer,
+		Relation: &runtimev1.ScopedAppBindingRelation{
+			RuntimeAppId:  developer.GetAppId(),
+			AppInstanceId: developer.GetAppInstanceId(),
+			AgentId:       "agent-1",
+			Purpose:       runtimev1.ScopedAppBindingPurpose_SCOPED_APP_BINDING_PURPOSE_APP_SCOPED_RUNTIME,
+		},
+	})
+	if err != nil {
+		t.Fatalf("developer IssueScopedAppBinding: %v", err)
+	}
+	if !binding.GetAccepted() || binding.GetBindingId() == "" {
+		t.Fatalf("developer caller should issue scoped app binding: %+v", binding)
+	}
+
+	token, err := svc.GetAccessToken(context.Background(), &runtimev1.GetAccessTokenRequest{Caller: developer})
+	if err != nil {
+		t.Fatalf("developer GetAccessToken: %v", err)
+	}
+	if token.GetAccepted() || token.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED {
+		t.Fatalf("developer caller must not receive raw Realm access token: %+v", token)
+	}
+
+	logout, err := svc.Logout(context.Background(), &runtimev1.LogoutRequest{Caller: developer})
+	if err != nil {
+		t.Fatalf("developer Logout: %v", err)
+	}
+	if logout.GetAccepted() || logout.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED {
+		t.Fatalf("developer caller must not own logout authority: %+v", logout)
+	}
+
+	switchAccount, err := svc.SwitchAccount(context.Background(), &runtimev1.SwitchAccountRequest{Caller: developer})
+	if err != nil {
+		t.Fatalf("developer SwitchAccount: %v", err)
+	}
+	if switchAccount.GetAccepted() || switchAccount.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED {
+		t.Fatalf("developer caller must not own switch authority: %+v", switchAccount)
+	}
+}
+
+func TestLocalDeveloperRegistrationCannotBeClaimedAsLocalFirstPartyCaller(t *testing.T) {
+	developer := localDeveloperCaller()
+	firstPartyClaim := proto.Clone(developer).(*runtimev1.AccountCaller)
+	firstPartyClaim.Mode = runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP
+
+	svc := newHarnessService(t, nil, WithAppRegistry(testDeveloperAppRegistry(t, developer)))
+	completeLogin(t, svc)
+
+	token, err := svc.GetAccessToken(context.Background(), &runtimev1.GetAccessTokenRequest{Caller: firstPartyClaim})
+	if err != nil {
+		t.Fatalf("claimed first-party GetAccessToken: %v", err)
+	}
+	if token.GetAccepted() || token.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED {
+		t.Fatalf("developer-registered instance must not become first-party by caller mode: %+v", token)
 	}
 }
 

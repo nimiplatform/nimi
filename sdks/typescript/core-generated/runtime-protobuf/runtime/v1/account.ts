@@ -1031,7 +1031,11 @@ export enum AccountCallerMode {
     /**
      * @generated from protobuf enum value: ACCOUNT_CALLER_MODE_EXTERNAL_PRINCIPAL = 6;
      */
-    EXTERNAL_PRINCIPAL = 6
+    EXTERNAL_PRINCIPAL = 6,
+    /**
+     * @generated from protobuf enum value: ACCOUNT_CALLER_MODE_LOCAL_DEVELOPER_APP = 7;
+     */
+    LOCAL_DEVELOPER_APP = 7
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ScopedAppBindingState

@@ -53,7 +53,7 @@ func TestUninstallAppEmitsWatchableUninstallJob(t *testing.T) {
 	}
 }
 
-func TestUninstallAppUpdatesRuntimeOwnedAccountLibraryProjection(t *testing.T) {
+func TestUninstallAppUpdatesRuntimeOwnedAccountInventoryProjection(t *testing.T) {
 	svc, _ := newBundledInstallService(t)
 	installBundledAppForOpen(t, svc)
 
@@ -64,20 +64,20 @@ func TestUninstallAppUpdatesRuntimeOwnedAccountLibraryProjection(t *testing.T) {
 	if resp.GetJob().GetState() != runtimev1.AppInstallJobState_APP_INSTALL_JOB_STATE_UNINSTALLED {
 		t.Fatalf("job state = %v detail=%q, want UNINSTALLED", resp.GetJob().GetState(), resp.GetJob().GetFailureDetail())
 	}
-	record, err := svc.accountLibrary.readOrEmpty("account_1")
+	record, err := svc.accountInventory.readOrEmpty("account_1")
 	if err != nil {
-		t.Fatalf("read account library: %v", err)
+		t.Fatalf("read account inventory: %v", err)
 	}
 	if len(record.Apps) != 1 {
-		t.Fatalf("library apps = %d, want 1", len(record.Apps))
+		t.Fatalf("inventory apps = %d, want 1", len(record.Apps))
 	}
 	row := record.Apps[0]
-	if row.AppID != "nimi.example-app" || row.LibraryState != accountAppLibraryStateEnabled || row.Installed {
-		t.Fatalf("unexpected account library row after uninstall: %+v", row)
+	if row.AppID != "nimi.example-app" || row.AccountState != accountAppInventoryStateVerified || row.InstallState != accountAppInstallStateNotInstalled {
+		t.Fatalf("unexpected account inventory row after uninstall: %+v", row)
 	}
 }
 
-func TestUninstallAppDestructiveDeleteRemovesRuntimeOwnedAccountLibraryRow(t *testing.T) {
+func TestUninstallAppDestructiveDeleteMarksRuntimeOwnedAccountInventoryRemoved(t *testing.T) {
 	svc, _ := newBundledInstallService(t)
 	installBundledAppForOpen(t, svc)
 
@@ -92,16 +92,16 @@ func TestUninstallAppDestructiveDeleteRemovesRuntimeOwnedAccountLibraryRow(t *te
 	if resp.GetJob().GetState() != runtimev1.AppInstallJobState_APP_INSTALL_JOB_STATE_UNINSTALLED {
 		t.Fatalf("job state = %v detail=%q, want UNINSTALLED", resp.GetJob().GetState(), resp.GetJob().GetFailureDetail())
 	}
-	record, err := svc.accountLibrary.readOrEmpty("account_1")
+	record, err := svc.accountInventory.readOrEmpty("account_1")
 	if err != nil {
-		t.Fatalf("read account library: %v", err)
+		t.Fatalf("read account inventory: %v", err)
 	}
 	if len(record.Apps) != 1 {
-		t.Fatalf("library apps = %d, want 1", len(record.Apps))
+		t.Fatalf("inventory apps = %d, want 1", len(record.Apps))
 	}
 	row := record.Apps[0]
-	if row.AppID != "nimi.example-app" || row.LibraryState != accountAppLibraryStateRemoved || row.Installed {
-		t.Fatalf("unexpected account library row after destructive uninstall: %+v", row)
+	if row.AppID != "nimi.example-app" || row.AccountState != accountAppInventoryStateVerified || row.InstallState != accountAppInstallStateRemoved {
+		t.Fatalf("unexpected account inventory row after destructive uninstall: %+v", row)
 	}
 }
 

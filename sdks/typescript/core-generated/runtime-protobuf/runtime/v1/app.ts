@@ -439,25 +439,25 @@ export interface GetAppStorageResponse {
     projection?: AppStorageProjection;
 }
 /**
- * AccountAppLibraryRow is one Runtime-owned account app-library projection row.
- * Runtime app lifecycle writes this projection; app consumers read it through
- * GetAccountAppLibrary rather than resolving account-scoped files.
+ * AccountAppInventoryRow is one Runtime-owned account app inventory row.
+ * Consumers read it through GetAccountAppInventory; no renderer/app-supplied
+ * account_id is accepted.
  *
- * @generated from protobuf message nimi.runtime.v1.AccountAppLibraryRow
+ * @generated from protobuf message nimi.runtime.v1.AccountAppInventoryRow
  */
-export interface AccountAppLibraryRow {
+export interface AccountAppInventoryRow {
     /**
      * @generated from protobuf field: string app_id = 1
      */
     appId: string;
     /**
-     * @generated from protobuf field: string library_state = 2
+     * @generated from protobuf field: nimi.runtime.v1.AccountAppInventoryState account_state = 2
      */
-    libraryState: string;
+    accountState: AccountAppInventoryState;
     /**
-     * @generated from protobuf field: bool installed = 3
+     * @generated from protobuf field: nimi.runtime.v1.AccountAppInstallState install_state = 3
      */
-    installed: boolean;
+    installState: AccountAppInstallState;
     /**
      * @generated from protobuf field: string last_opened_at = 4
      */
@@ -466,13 +466,27 @@ export interface AccountAppLibraryRow {
      * @generated from protobuf field: string data_policy = 5
      */
     dataPolicy: string;
+    /**
+     * @generated from protobuf field: string verified_at = 6
+     */
+    verifiedAt: string;
+    /**
+     * @generated from protobuf field: string source = 7
+     */
+    source: string;
+    /**
+     * @generated from protobuf field: string detail = 8
+     */
+    detail: string;
 }
 /**
- * AccountAppLibraryRecord is the account-scoped app-library projection.
+ * AccountAppInventoryRecord is the authenticated account-scoped app inventory
+ * projection. Schema version 2 hard-cuts the previous install-after-write
+ * library shape: account visibility and local materialization are distinct.
  *
- * @generated from protobuf message nimi.runtime.v1.AccountAppLibraryRecord
+ * @generated from protobuf message nimi.runtime.v1.AccountAppInventoryRecord
  */
-export interface AccountAppLibraryRecord {
+export interface AccountAppInventoryRecord {
     /**
      * @generated from protobuf field: uint32 schema_version = 1
      */
@@ -486,33 +500,176 @@ export interface AccountAppLibraryRecord {
      */
     updatedAt: string;
     /**
-     * @generated from protobuf field: repeated nimi.runtime.v1.AccountAppLibraryRow apps = 4
+     * @generated from protobuf field: repeated nimi.runtime.v1.AccountAppInventoryRow apps = 4
      */
-    apps: AccountAppLibraryRow[];
+    apps: AccountAppInventoryRow[];
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.GetAccountAppLibraryRequest
+ * @generated from protobuf message nimi.runtime.v1.GetAccountAppInventoryRequest
  */
-export interface GetAccountAppLibraryRequest {
+export interface GetAccountAppInventoryRequest {
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.GetAccountAppLibraryResponse
+ * @generated from protobuf message nimi.runtime.v1.GetAccountAppInventoryResponse
  */
-export interface GetAccountAppLibraryResponse {
+export interface GetAccountAppInventoryResponse {
     /**
      * @generated from protobuf field: bool exists = 1
      */
     exists: boolean;
     /**
-     * @generated from protobuf field: nimi.runtime.v1.AccountAppLibraryRecord record = 2
+     * @generated from protobuf field: nimi.runtime.v1.AccountAppInventoryRecord record = 2
      */
-    record?: AccountAppLibraryRecord;
+    record?: AccountAppInventoryRecord;
     /**
      * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 3
      */
     reasonCode: ReasonCode;
     /**
      * @generated from protobuf field: string detail = 4
+     */
+    detail: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalAppAdoption
+ */
+export interface LocalAppAdoption {
+    /**
+     * @generated from protobuf field: string app_id = 1
+     */
+    appId: string;
+    /**
+     * @generated from protobuf field: string root_path = 2
+     */
+    rootPath: string;
+    /**
+     * @generated from protobuf field: string manifest_path = 3
+     */
+    manifestPath: string;
+    /**
+     * @generated from protobuf field: string display_name = 4
+     */
+    displayName: string;
+    /**
+     * @generated from protobuf field: string version = 5
+     */
+    version: string;
+    /**
+     * @generated from protobuf field: string entry_ref = 6
+     */
+    entryRef: string;
+    /**
+     * @generated from protobuf field: string permission_scope_ref = 7
+     */
+    permissionScopeRef: string;
+    /**
+     * @generated from protobuf field: string storage_policy_ref = 8
+     */
+    storagePolicyRef: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalAppAdoptionState state = 9
+     */
+    state: LocalAppAdoptionState;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalAppAdoptionTrust trust = 10
+     */
+    trust: LocalAppAdoptionTrust;
+    /**
+     * @generated from protobuf field: string adopted_at = 11
+     */
+    adoptedAt: string;
+    /**
+     * @generated from protobuf field: string updated_at = 12
+     */
+    updatedAt: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 13
+     */
+    reasonCode: ReasonCode;
+    /**
+     * @generated from protobuf field: string detail = 14
+     */
+    detail: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.AdoptLocalAppRequest
+ */
+export interface AdoptLocalAppRequest {
+    /**
+     * @generated from protobuf field: string root_path = 1
+     */
+    rootPath: string;
+    /**
+     * @generated from protobuf field: string expected_app_id = 2
+     */
+    expectedAppId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.AdoptLocalAppResponse
+ */
+export interface AdoptLocalAppResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalAppAdoption adoption = 1
+     */
+    adoption?: LocalAppAdoption;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 2
+     */
+    reasonCode: ReasonCode;
+    /**
+     * @generated from protobuf field: string detail = 3
+     */
+    detail: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ListLocalAppAdoptionsRequest
+ */
+export interface ListLocalAppAdoptionsRequest {
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ListLocalAppAdoptionsResponse
+ */
+export interface ListLocalAppAdoptionsResponse {
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalAppAdoption adoptions = 1
+     */
+    adoptions: LocalAppAdoption[];
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 2
+     */
+    reasonCode: ReasonCode;
+    /**
+     * @generated from protobuf field: string detail = 3
+     */
+    detail: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.RemoveLocalAppAdoptionRequest
+ */
+export interface RemoveLocalAppAdoptionRequest {
+    /**
+     * @generated from protobuf field: string app_id = 1
+     */
+    appId: string;
+    /**
+     * @generated from protobuf field: bool delete_durable_data_confirmed = 2
+     */
+    deleteDurableDataConfirmed: boolean;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.RemoveLocalAppAdoptionResponse
+ */
+export interface RemoveLocalAppAdoptionResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalAppAdoption adoption = 1
+     */
+    adoption?: LocalAppAdoption;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 2
+     */
+    reasonCode: ReasonCode;
+    /**
+     * @generated from protobuf field: string detail = 3
      */
     detail: string;
 }
@@ -542,7 +699,8 @@ export interface GetAppPackageReadinessResponse {
  */
 export interface ListAppInstallJobsRequest {
     /**
-     * app_id optionally filters jobs to a single app. Empty lists every job.
+     * app_id filters jobs to a single app. Empty fails closed; global install-job
+     * enumeration is not admitted for Apps inventory projection.
      *
      * @generated from protobuf field: string app_id = 1
      */
@@ -562,8 +720,8 @@ export interface ListAppInstallJobsResponse {
  */
 export interface WatchAppInstallJobEventsRequest {
     /**
-     * job_id optionally scopes the stream to a single install job. Empty
-     * streams progress events for every install job.
+     * job_id scopes the stream to one Runtime-emitted lifecycle job. Empty fails
+     * closed; global job event streams are not admitted.
      *
      * @generated from protobuf field: string job_id = 1
      */
@@ -1156,6 +1314,113 @@ export enum AppPackageReadinessState {
     BLOCKED = 5
 }
 /**
+ * AccountAppInventoryState is the account-side authority for an app row. It is
+ * not derived from local install evidence: a verified/entitled app may be
+ * visible before any package is installed or adopted on this machine.
+ *
+ * @generated from protobuf enum nimi.runtime.v1.AccountAppInventoryState
+ */
+export enum AccountAppInventoryState {
+    /**
+     * @generated from protobuf enum value: ACCOUNT_APP_INVENTORY_STATE_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: ACCOUNT_APP_INVENTORY_STATE_VERIFIED = 1;
+     */
+    VERIFIED = 1,
+    /**
+     * @generated from protobuf enum value: ACCOUNT_APP_INVENTORY_STATE_ENTITLED = 2;
+     */
+    ENTITLED = 2,
+    /**
+     * @generated from protobuf enum value: ACCOUNT_APP_INVENTORY_STATE_DISABLED = 3;
+     */
+    DISABLED = 3,
+    /**
+     * @generated from protobuf enum value: ACCOUNT_APP_INVENTORY_STATE_REMOVED = 4;
+     */
+    REMOVED = 4,
+    /**
+     * @generated from protobuf enum value: ACCOUNT_APP_INVENTORY_STATE_REVOKED = 5;
+     */
+    REVOKED = 5
+}
+/**
+ * AccountAppInstallState is the account inventory's local materialization
+ * overlay. Runtime install/uninstall/adoption lifecycles mutate this field;
+ * they do not create account entitlement truth.
+ *
+ * @generated from protobuf enum nimi.runtime.v1.AccountAppInstallState
+ */
+export enum AccountAppInstallState {
+    /**
+     * @generated from protobuf enum value: ACCOUNT_APP_INSTALL_STATE_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: ACCOUNT_APP_INSTALL_STATE_NOT_INSTALLED = 1;
+     */
+    NOT_INSTALLED = 1,
+    /**
+     * @generated from protobuf enum value: ACCOUNT_APP_INSTALL_STATE_INSTALLED = 2;
+     */
+    INSTALLED = 2,
+    /**
+     * @generated from protobuf enum value: ACCOUNT_APP_INSTALL_STATE_ADOPTED_LOCAL = 3;
+     */
+    ADOPTED_LOCAL = 3,
+    /**
+     * @generated from protobuf enum value: ACCOUNT_APP_INSTALL_STATE_REMOVED = 4;
+     */
+    REMOVED = 4
+}
+/**
+ * LocalAppAdoptionState is Runtime-owned local external app adoption state. It
+ * is written only by the explicit AdoptLocalApp lifecycle and never by source
+ * scanning or Desktop renderer state.
+ *
+ * @generated from protobuf enum nimi.runtime.v1.LocalAppAdoptionState
+ */
+export enum LocalAppAdoptionState {
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_ADOPTION_STATE_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_ADOPTION_STATE_ADOPTED = 1;
+     */
+    ADOPTED = 1,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_ADOPTION_STATE_REPAIR_REQUIRED = 2;
+     */
+    REPAIR_REQUIRED = 2,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_ADOPTION_STATE_REMOVED = 3;
+     */
+    REMOVED = 3
+}
+/**
+ * LocalAppAdoptionTrust is the local trust posture. Local adoption is not public
+ * Platform admission and must not be projected as ordinary catalog truth.
+ *
+ * @generated from protobuf enum nimi.runtime.v1.LocalAppAdoptionTrust
+ */
+export enum LocalAppAdoptionTrust {
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_ADOPTION_TRUST_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_ADOPTION_TRUST_EXPLICIT_LOCAL = 1;
+     */
+    EXPLICIT_LOCAL = 1,
+    /**
+     * @generated from protobuf enum value: LOCAL_APP_ADOPTION_TRUST_DEVELOPER_LOCAL = 2;
+     */
+    DEVELOPER_LOCAL = 2
+}
+/**
  * AppOpenFlowStep is the typed Open-flow step (K-APP-017). It surfaces the
  * concrete checkpoint the launch is at so a failed Open names the exact step
  * rather than a generic failure. It is never inferred.
@@ -1181,7 +1446,7 @@ export enum AppOpenFlowStep {
      */
     VERIFY_PACKAGE = 2,
     /**
-     * VERIFY_LIBRARY verifies the account app-library state for the app.
+     * VERIFY_LIBRARY verifies the account app-inventory state for the app.
      *
      * @generated from protobuf enum value: APP_OPEN_FLOW_STEP_VERIFY_LIBRARY = 3;
      */
@@ -2401,28 +2666,34 @@ class GetAppStorageResponse$Type extends MessageType<GetAppStorageResponse> {
  */
 export const GetAppStorageResponse = new GetAppStorageResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class AccountAppLibraryRow$Type extends MessageType<AccountAppLibraryRow> {
+class AccountAppInventoryRow$Type extends MessageType<AccountAppInventoryRow> {
     constructor() {
-        super("nimi.runtime.v1.AccountAppLibraryRow", [
+        super("nimi.runtime.v1.AccountAppInventoryRow", [
             { no: 1, name: "app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "library_state", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "installed", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 2, name: "account_state", kind: "enum", T: () => ["nimi.runtime.v1.AccountAppInventoryState", AccountAppInventoryState, "ACCOUNT_APP_INVENTORY_STATE_"] },
+            { no: 3, name: "install_state", kind: "enum", T: () => ["nimi.runtime.v1.AccountAppInstallState", AccountAppInstallState, "ACCOUNT_APP_INSTALL_STATE_"] },
             { no: 4, name: "last_opened_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 5, name: "data_policy", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 5, name: "data_policy", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "verified_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "source", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "detail", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
-    create(value?: PartialMessage<AccountAppLibraryRow>): AccountAppLibraryRow {
+    create(value?: PartialMessage<AccountAppInventoryRow>): AccountAppInventoryRow {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.appId = "";
-        message.libraryState = "";
-        message.installed = false;
+        message.accountState = 0;
+        message.installState = 0;
         message.lastOpenedAt = "";
         message.dataPolicy = "";
+        message.verifiedAt = "";
+        message.source = "";
+        message.detail = "";
         if (value !== undefined)
-            reflectionMergePartial<AccountAppLibraryRow>(this, message, value);
+            reflectionMergePartial<AccountAppInventoryRow>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AccountAppLibraryRow): AccountAppLibraryRow {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AccountAppInventoryRow): AccountAppInventoryRow {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
@@ -2430,17 +2701,26 @@ class AccountAppLibraryRow$Type extends MessageType<AccountAppLibraryRow> {
                 case /* string app_id */ 1:
                     message.appId = reader.string();
                     break;
-                case /* string library_state */ 2:
-                    message.libraryState = reader.string();
+                case /* nimi.runtime.v1.AccountAppInventoryState account_state */ 2:
+                    message.accountState = reader.int32();
                     break;
-                case /* bool installed */ 3:
-                    message.installed = reader.bool();
+                case /* nimi.runtime.v1.AccountAppInstallState install_state */ 3:
+                    message.installState = reader.int32();
                     break;
                 case /* string last_opened_at */ 4:
                     message.lastOpenedAt = reader.string();
                     break;
                 case /* string data_policy */ 5:
                     message.dataPolicy = reader.string();
+                    break;
+                case /* string verified_at */ 6:
+                    message.verifiedAt = reader.string();
+                    break;
+                case /* string source */ 7:
+                    message.source = reader.string();
+                    break;
+                case /* string detail */ 8:
+                    message.detail = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2453,22 +2733,31 @@ class AccountAppLibraryRow$Type extends MessageType<AccountAppLibraryRow> {
         }
         return message;
     }
-    internalBinaryWrite(message: AccountAppLibraryRow, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+    internalBinaryWrite(message: AccountAppInventoryRow, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
         /* string app_id = 1; */
         if (message.appId !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.appId);
-        /* string library_state = 2; */
-        if (message.libraryState !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.libraryState);
-        /* bool installed = 3; */
-        if (message.installed !== false)
-            writer.tag(3, WireType.Varint).bool(message.installed);
+        /* nimi.runtime.v1.AccountAppInventoryState account_state = 2; */
+        if (message.accountState !== 0)
+            writer.tag(2, WireType.Varint).int32(message.accountState);
+        /* nimi.runtime.v1.AccountAppInstallState install_state = 3; */
+        if (message.installState !== 0)
+            writer.tag(3, WireType.Varint).int32(message.installState);
         /* string last_opened_at = 4; */
         if (message.lastOpenedAt !== "")
             writer.tag(4, WireType.LengthDelimited).string(message.lastOpenedAt);
         /* string data_policy = 5; */
         if (message.dataPolicy !== "")
             writer.tag(5, WireType.LengthDelimited).string(message.dataPolicy);
+        /* string verified_at = 6; */
+        if (message.verifiedAt !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.verifiedAt);
+        /* string source = 7; */
+        if (message.source !== "")
+            writer.tag(7, WireType.LengthDelimited).string(message.source);
+        /* string detail = 8; */
+        if (message.detail !== "")
+            writer.tag(8, WireType.LengthDelimited).string(message.detail);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -2476,30 +2765,30 @@ class AccountAppLibraryRow$Type extends MessageType<AccountAppLibraryRow> {
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.AccountAppLibraryRow
+ * @generated MessageType for protobuf message nimi.runtime.v1.AccountAppInventoryRow
  */
-export const AccountAppLibraryRow = new AccountAppLibraryRow$Type();
+export const AccountAppInventoryRow = new AccountAppInventoryRow$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class AccountAppLibraryRecord$Type extends MessageType<AccountAppLibraryRecord> {
+class AccountAppInventoryRecord$Type extends MessageType<AccountAppInventoryRecord> {
     constructor() {
-        super("nimi.runtime.v1.AccountAppLibraryRecord", [
+        super("nimi.runtime.v1.AccountAppInventoryRecord", [
             { no: 1, name: "schema_version", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
             { no: 2, name: "account_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "updated_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "apps", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => AccountAppLibraryRow }
+            { no: 4, name: "apps", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => AccountAppInventoryRow }
         ]);
     }
-    create(value?: PartialMessage<AccountAppLibraryRecord>): AccountAppLibraryRecord {
+    create(value?: PartialMessage<AccountAppInventoryRecord>): AccountAppInventoryRecord {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.schemaVersion = 0;
         message.accountId = "";
         message.updatedAt = "";
         message.apps = [];
         if (value !== undefined)
-            reflectionMergePartial<AccountAppLibraryRecord>(this, message, value);
+            reflectionMergePartial<AccountAppInventoryRecord>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AccountAppLibraryRecord): AccountAppLibraryRecord {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AccountAppInventoryRecord): AccountAppInventoryRecord {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
@@ -2513,8 +2802,8 @@ class AccountAppLibraryRecord$Type extends MessageType<AccountAppLibraryRecord> 
                 case /* string updated_at */ 3:
                     message.updatedAt = reader.string();
                     break;
-                case /* repeated nimi.runtime.v1.AccountAppLibraryRow apps */ 4:
-                    message.apps.push(AccountAppLibraryRow.internalBinaryRead(reader, reader.uint32(), options));
+                case /* repeated nimi.runtime.v1.AccountAppInventoryRow apps */ 4:
+                    message.apps.push(AccountAppInventoryRow.internalBinaryRead(reader, reader.uint32(), options));
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2527,7 +2816,7 @@ class AccountAppLibraryRecord$Type extends MessageType<AccountAppLibraryRecord> 
         }
         return message;
     }
-    internalBinaryWrite(message: AccountAppLibraryRecord, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+    internalBinaryWrite(message: AccountAppInventoryRecord, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
         /* uint32 schema_version = 1; */
         if (message.schemaVersion !== 0)
             writer.tag(1, WireType.Varint).uint32(message.schemaVersion);
@@ -2537,9 +2826,9 @@ class AccountAppLibraryRecord$Type extends MessageType<AccountAppLibraryRecord> 
         /* string updated_at = 3; */
         if (message.updatedAt !== "")
             writer.tag(3, WireType.LengthDelimited).string(message.updatedAt);
-        /* repeated nimi.runtime.v1.AccountAppLibraryRow apps = 4; */
+        /* repeated nimi.runtime.v1.AccountAppInventoryRow apps = 4; */
         for (let i = 0; i < message.apps.length; i++)
-            AccountAppLibraryRow.internalBinaryWrite(message.apps[i], writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+            AccountAppInventoryRow.internalBinaryWrite(message.apps[i], writer.tag(4, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -2547,21 +2836,21 @@ class AccountAppLibraryRecord$Type extends MessageType<AccountAppLibraryRecord> 
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.AccountAppLibraryRecord
+ * @generated MessageType for protobuf message nimi.runtime.v1.AccountAppInventoryRecord
  */
-export const AccountAppLibraryRecord = new AccountAppLibraryRecord$Type();
+export const AccountAppInventoryRecord = new AccountAppInventoryRecord$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class GetAccountAppLibraryRequest$Type extends MessageType<GetAccountAppLibraryRequest> {
+class GetAccountAppInventoryRequest$Type extends MessageType<GetAccountAppInventoryRequest> {
     constructor() {
-        super("nimi.runtime.v1.GetAccountAppLibraryRequest", []);
+        super("nimi.runtime.v1.GetAccountAppInventoryRequest", []);
     }
-    create(value?: PartialMessage<GetAccountAppLibraryRequest>): GetAccountAppLibraryRequest {
+    create(value?: PartialMessage<GetAccountAppInventoryRequest>): GetAccountAppInventoryRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         if (value !== undefined)
-            reflectionMergePartial<GetAccountAppLibraryRequest>(this, message, value);
+            reflectionMergePartial<GetAccountAppInventoryRequest>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetAccountAppLibraryRequest): GetAccountAppLibraryRequest {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetAccountAppInventoryRequest): GetAccountAppInventoryRequest {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
@@ -2577,7 +2866,7 @@ class GetAccountAppLibraryRequest$Type extends MessageType<GetAccountAppLibraryR
         }
         return message;
     }
-    internalBinaryWrite(message: GetAccountAppLibraryRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+    internalBinaryWrite(message: GetAccountAppInventoryRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -2585,29 +2874,29 @@ class GetAccountAppLibraryRequest$Type extends MessageType<GetAccountAppLibraryR
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.GetAccountAppLibraryRequest
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetAccountAppInventoryRequest
  */
-export const GetAccountAppLibraryRequest = new GetAccountAppLibraryRequest$Type();
+export const GetAccountAppInventoryRequest = new GetAccountAppInventoryRequest$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class GetAccountAppLibraryResponse$Type extends MessageType<GetAccountAppLibraryResponse> {
+class GetAccountAppInventoryResponse$Type extends MessageType<GetAccountAppInventoryResponse> {
     constructor() {
-        super("nimi.runtime.v1.GetAccountAppLibraryResponse", [
+        super("nimi.runtime.v1.GetAccountAppInventoryResponse", [
             { no: 1, name: "exists", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 2, name: "record", kind: "message", T: () => AccountAppLibraryRecord },
+            { no: 2, name: "record", kind: "message", T: () => AccountAppInventoryRecord },
             { no: 3, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
             { no: 4, name: "detail", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
-    create(value?: PartialMessage<GetAccountAppLibraryResponse>): GetAccountAppLibraryResponse {
+    create(value?: PartialMessage<GetAccountAppInventoryResponse>): GetAccountAppInventoryResponse {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.exists = false;
         message.reasonCode = 0;
         message.detail = "";
         if (value !== undefined)
-            reflectionMergePartial<GetAccountAppLibraryResponse>(this, message, value);
+            reflectionMergePartial<GetAccountAppInventoryResponse>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetAccountAppLibraryResponse): GetAccountAppLibraryResponse {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetAccountAppInventoryResponse): GetAccountAppInventoryResponse {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
@@ -2615,8 +2904,8 @@ class GetAccountAppLibraryResponse$Type extends MessageType<GetAccountAppLibrary
                 case /* bool exists */ 1:
                     message.exists = reader.bool();
                     break;
-                case /* nimi.runtime.v1.AccountAppLibraryRecord record */ 2:
-                    message.record = AccountAppLibraryRecord.internalBinaryRead(reader, reader.uint32(), options, message.record);
+                case /* nimi.runtime.v1.AccountAppInventoryRecord record */ 2:
+                    message.record = AccountAppInventoryRecord.internalBinaryRead(reader, reader.uint32(), options, message.record);
                     break;
                 case /* nimi.runtime.v1.ReasonCode reason_code */ 3:
                     message.reasonCode = reader.int32();
@@ -2635,13 +2924,13 @@ class GetAccountAppLibraryResponse$Type extends MessageType<GetAccountAppLibrary
         }
         return message;
     }
-    internalBinaryWrite(message: GetAccountAppLibraryResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+    internalBinaryWrite(message: GetAccountAppInventoryResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
         /* bool exists = 1; */
         if (message.exists !== false)
             writer.tag(1, WireType.Varint).bool(message.exists);
-        /* nimi.runtime.v1.AccountAppLibraryRecord record = 2; */
+        /* nimi.runtime.v1.AccountAppInventoryRecord record = 2; */
         if (message.record)
-            AccountAppLibraryRecord.internalBinaryWrite(message.record, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+            AccountAppInventoryRecord.internalBinaryWrite(message.record, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
         /* nimi.runtime.v1.ReasonCode reason_code = 3; */
         if (message.reasonCode !== 0)
             writer.tag(3, WireType.Varint).int32(message.reasonCode);
@@ -2655,9 +2944,495 @@ class GetAccountAppLibraryResponse$Type extends MessageType<GetAccountAppLibrary
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.GetAccountAppLibraryResponse
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetAccountAppInventoryResponse
  */
-export const GetAccountAppLibraryResponse = new GetAccountAppLibraryResponse$Type();
+export const GetAccountAppInventoryResponse = new GetAccountAppInventoryResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalAppAdoption$Type extends MessageType<LocalAppAdoption> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppAdoption", [
+            { no: 1, name: "app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "root_path", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "manifest_path", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "display_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "version", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "entry_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "permission_scope_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "storage_policy_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 9, name: "state", kind: "enum", T: () => ["nimi.runtime.v1.LocalAppAdoptionState", LocalAppAdoptionState, "LOCAL_APP_ADOPTION_STATE_"] },
+            { no: 10, name: "trust", kind: "enum", T: () => ["nimi.runtime.v1.LocalAppAdoptionTrust", LocalAppAdoptionTrust, "LOCAL_APP_ADOPTION_TRUST_"] },
+            { no: 11, name: "adopted_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 12, name: "updated_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 13, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
+            { no: 14, name: "detail", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppAdoption>): LocalAppAdoption {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.appId = "";
+        message.rootPath = "";
+        message.manifestPath = "";
+        message.displayName = "";
+        message.version = "";
+        message.entryRef = "";
+        message.permissionScopeRef = "";
+        message.storagePolicyRef = "";
+        message.state = 0;
+        message.trust = 0;
+        message.adoptedAt = "";
+        message.updatedAt = "";
+        message.reasonCode = 0;
+        message.detail = "";
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppAdoption>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppAdoption): LocalAppAdoption {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string app_id */ 1:
+                    message.appId = reader.string();
+                    break;
+                case /* string root_path */ 2:
+                    message.rootPath = reader.string();
+                    break;
+                case /* string manifest_path */ 3:
+                    message.manifestPath = reader.string();
+                    break;
+                case /* string display_name */ 4:
+                    message.displayName = reader.string();
+                    break;
+                case /* string version */ 5:
+                    message.version = reader.string();
+                    break;
+                case /* string entry_ref */ 6:
+                    message.entryRef = reader.string();
+                    break;
+                case /* string permission_scope_ref */ 7:
+                    message.permissionScopeRef = reader.string();
+                    break;
+                case /* string storage_policy_ref */ 8:
+                    message.storagePolicyRef = reader.string();
+                    break;
+                case /* nimi.runtime.v1.LocalAppAdoptionState state */ 9:
+                    message.state = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.LocalAppAdoptionTrust trust */ 10:
+                    message.trust = reader.int32();
+                    break;
+                case /* string adopted_at */ 11:
+                    message.adoptedAt = reader.string();
+                    break;
+                case /* string updated_at */ 12:
+                    message.updatedAt = reader.string();
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 13:
+                    message.reasonCode = reader.int32();
+                    break;
+                case /* string detail */ 14:
+                    message.detail = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppAdoption, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string app_id = 1; */
+        if (message.appId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.appId);
+        /* string root_path = 2; */
+        if (message.rootPath !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.rootPath);
+        /* string manifest_path = 3; */
+        if (message.manifestPath !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.manifestPath);
+        /* string display_name = 4; */
+        if (message.displayName !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.displayName);
+        /* string version = 5; */
+        if (message.version !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.version);
+        /* string entry_ref = 6; */
+        if (message.entryRef !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.entryRef);
+        /* string permission_scope_ref = 7; */
+        if (message.permissionScopeRef !== "")
+            writer.tag(7, WireType.LengthDelimited).string(message.permissionScopeRef);
+        /* string storage_policy_ref = 8; */
+        if (message.storagePolicyRef !== "")
+            writer.tag(8, WireType.LengthDelimited).string(message.storagePolicyRef);
+        /* nimi.runtime.v1.LocalAppAdoptionState state = 9; */
+        if (message.state !== 0)
+            writer.tag(9, WireType.Varint).int32(message.state);
+        /* nimi.runtime.v1.LocalAppAdoptionTrust trust = 10; */
+        if (message.trust !== 0)
+            writer.tag(10, WireType.Varint).int32(message.trust);
+        /* string adopted_at = 11; */
+        if (message.adoptedAt !== "")
+            writer.tag(11, WireType.LengthDelimited).string(message.adoptedAt);
+        /* string updated_at = 12; */
+        if (message.updatedAt !== "")
+            writer.tag(12, WireType.LengthDelimited).string(message.updatedAt);
+        /* nimi.runtime.v1.ReasonCode reason_code = 13; */
+        if (message.reasonCode !== 0)
+            writer.tag(13, WireType.Varint).int32(message.reasonCode);
+        /* string detail = 14; */
+        if (message.detail !== "")
+            writer.tag(14, WireType.LengthDelimited).string(message.detail);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppAdoption
+ */
+export const LocalAppAdoption = new LocalAppAdoption$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AdoptLocalAppRequest$Type extends MessageType<AdoptLocalAppRequest> {
+    constructor() {
+        super("nimi.runtime.v1.AdoptLocalAppRequest", [
+            { no: 1, name: "root_path", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "expected_app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<AdoptLocalAppRequest>): AdoptLocalAppRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.rootPath = "";
+        message.expectedAppId = "";
+        if (value !== undefined)
+            reflectionMergePartial<AdoptLocalAppRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AdoptLocalAppRequest): AdoptLocalAppRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string root_path */ 1:
+                    message.rootPath = reader.string();
+                    break;
+                case /* string expected_app_id */ 2:
+                    message.expectedAppId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AdoptLocalAppRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string root_path = 1; */
+        if (message.rootPath !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.rootPath);
+        /* string expected_app_id = 2; */
+        if (message.expectedAppId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.expectedAppId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AdoptLocalAppRequest
+ */
+export const AdoptLocalAppRequest = new AdoptLocalAppRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AdoptLocalAppResponse$Type extends MessageType<AdoptLocalAppResponse> {
+    constructor() {
+        super("nimi.runtime.v1.AdoptLocalAppResponse", [
+            { no: 1, name: "adoption", kind: "message", T: () => LocalAppAdoption },
+            { no: 2, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
+            { no: 3, name: "detail", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<AdoptLocalAppResponse>): AdoptLocalAppResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.reasonCode = 0;
+        message.detail = "";
+        if (value !== undefined)
+            reflectionMergePartial<AdoptLocalAppResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AdoptLocalAppResponse): AdoptLocalAppResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.LocalAppAdoption adoption */ 1:
+                    message.adoption = LocalAppAdoption.internalBinaryRead(reader, reader.uint32(), options, message.adoption);
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 2:
+                    message.reasonCode = reader.int32();
+                    break;
+                case /* string detail */ 3:
+                    message.detail = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AdoptLocalAppResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.LocalAppAdoption adoption = 1; */
+        if (message.adoption)
+            LocalAppAdoption.internalBinaryWrite(message.adoption, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ReasonCode reason_code = 2; */
+        if (message.reasonCode !== 0)
+            writer.tag(2, WireType.Varint).int32(message.reasonCode);
+        /* string detail = 3; */
+        if (message.detail !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.detail);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AdoptLocalAppResponse
+ */
+export const AdoptLocalAppResponse = new AdoptLocalAppResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListLocalAppAdoptionsRequest$Type extends MessageType<ListLocalAppAdoptionsRequest> {
+    constructor() {
+        super("nimi.runtime.v1.ListLocalAppAdoptionsRequest", []);
+    }
+    create(value?: PartialMessage<ListLocalAppAdoptionsRequest>): ListLocalAppAdoptionsRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<ListLocalAppAdoptionsRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListLocalAppAdoptionsRequest): ListLocalAppAdoptionsRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListLocalAppAdoptionsRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ListLocalAppAdoptionsRequest
+ */
+export const ListLocalAppAdoptionsRequest = new ListLocalAppAdoptionsRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListLocalAppAdoptionsResponse$Type extends MessageType<ListLocalAppAdoptionsResponse> {
+    constructor() {
+        super("nimi.runtime.v1.ListLocalAppAdoptionsResponse", [
+            { no: 1, name: "adoptions", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAppAdoption },
+            { no: 2, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
+            { no: 3, name: "detail", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ListLocalAppAdoptionsResponse>): ListLocalAppAdoptionsResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.adoptions = [];
+        message.reasonCode = 0;
+        message.detail = "";
+        if (value !== undefined)
+            reflectionMergePartial<ListLocalAppAdoptionsResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListLocalAppAdoptionsResponse): ListLocalAppAdoptionsResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* repeated nimi.runtime.v1.LocalAppAdoption adoptions */ 1:
+                    message.adoptions.push(LocalAppAdoption.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 2:
+                    message.reasonCode = reader.int32();
+                    break;
+                case /* string detail */ 3:
+                    message.detail = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListLocalAppAdoptionsResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated nimi.runtime.v1.LocalAppAdoption adoptions = 1; */
+        for (let i = 0; i < message.adoptions.length; i++)
+            LocalAppAdoption.internalBinaryWrite(message.adoptions[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ReasonCode reason_code = 2; */
+        if (message.reasonCode !== 0)
+            writer.tag(2, WireType.Varint).int32(message.reasonCode);
+        /* string detail = 3; */
+        if (message.detail !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.detail);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ListLocalAppAdoptionsResponse
+ */
+export const ListLocalAppAdoptionsResponse = new ListLocalAppAdoptionsResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class RemoveLocalAppAdoptionRequest$Type extends MessageType<RemoveLocalAppAdoptionRequest> {
+    constructor() {
+        super("nimi.runtime.v1.RemoveLocalAppAdoptionRequest", [
+            { no: 1, name: "app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "delete_durable_data_confirmed", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+    create(value?: PartialMessage<RemoveLocalAppAdoptionRequest>): RemoveLocalAppAdoptionRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.appId = "";
+        message.deleteDurableDataConfirmed = false;
+        if (value !== undefined)
+            reflectionMergePartial<RemoveLocalAppAdoptionRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RemoveLocalAppAdoptionRequest): RemoveLocalAppAdoptionRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string app_id */ 1:
+                    message.appId = reader.string();
+                    break;
+                case /* bool delete_durable_data_confirmed */ 2:
+                    message.deleteDurableDataConfirmed = reader.bool();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RemoveLocalAppAdoptionRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string app_id = 1; */
+        if (message.appId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.appId);
+        /* bool delete_durable_data_confirmed = 2; */
+        if (message.deleteDurableDataConfirmed !== false)
+            writer.tag(2, WireType.Varint).bool(message.deleteDurableDataConfirmed);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.RemoveLocalAppAdoptionRequest
+ */
+export const RemoveLocalAppAdoptionRequest = new RemoveLocalAppAdoptionRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class RemoveLocalAppAdoptionResponse$Type extends MessageType<RemoveLocalAppAdoptionResponse> {
+    constructor() {
+        super("nimi.runtime.v1.RemoveLocalAppAdoptionResponse", [
+            { no: 1, name: "adoption", kind: "message", T: () => LocalAppAdoption },
+            { no: 2, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
+            { no: 3, name: "detail", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<RemoveLocalAppAdoptionResponse>): RemoveLocalAppAdoptionResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.reasonCode = 0;
+        message.detail = "";
+        if (value !== undefined)
+            reflectionMergePartial<RemoveLocalAppAdoptionResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RemoveLocalAppAdoptionResponse): RemoveLocalAppAdoptionResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.LocalAppAdoption adoption */ 1:
+                    message.adoption = LocalAppAdoption.internalBinaryRead(reader, reader.uint32(), options, message.adoption);
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 2:
+                    message.reasonCode = reader.int32();
+                    break;
+                case /* string detail */ 3:
+                    message.detail = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RemoveLocalAppAdoptionResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.LocalAppAdoption adoption = 1; */
+        if (message.adoption)
+            LocalAppAdoption.internalBinaryWrite(message.adoption, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ReasonCode reason_code = 2; */
+        if (message.reasonCode !== 0)
+            writer.tag(2, WireType.Varint).int32(message.reasonCode);
+        /* string detail = 3; */
+        if (message.detail !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.detail);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.RemoveLocalAppAdoptionResponse
+ */
+export const RemoveLocalAppAdoptionResponse = new RemoveLocalAppAdoptionResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class GetAppPackageReadinessRequest$Type extends MessageType<GetAppPackageReadinessRequest> {
     constructor() {

@@ -13,7 +13,7 @@ import (
 
 type allowOpenReadinessVerifier struct{}
 
-func (allowOpenReadinessVerifier) VerifyOpenAccountLibrary(context.Context, appregistrycatalog.App) (OpenAppReadinessDecision, error) {
+func (allowOpenReadinessVerifier) VerifyOpenAccountInventory(context.Context, appregistrycatalog.App) (OpenAppReadinessDecision, error) {
 	return OpenAppReadinessDecision{Allowed: true}, nil
 }
 
@@ -22,12 +22,12 @@ func (allowOpenReadinessVerifier) VerifyOpenPermissions(context.Context, appregi
 }
 
 type testOpenReadinessVerifier struct {
-	library    OpenAppReadinessDecision
+	inventory  OpenAppReadinessDecision
 	permission OpenAppReadinessDecision
 }
 
-func (v testOpenReadinessVerifier) VerifyOpenAccountLibrary(context.Context, appregistrycatalog.App) (OpenAppReadinessDecision, error) {
-	return v.library, nil
+func (v testOpenReadinessVerifier) VerifyOpenAccountInventory(context.Context, appregistrycatalog.App) (OpenAppReadinessDecision, error) {
+	return v.inventory, nil
 }
 
 func (v testOpenReadinessVerifier) VerifyOpenPermissions(context.Context, appregistrycatalog.App) (OpenAppReadinessDecision, error) {
@@ -109,7 +109,7 @@ func TestOpenAppFailsClosedWithoutAccountLibraryVerifier(t *testing.T) {
 
 func TestOpenAppFailsClosedWhenAccountLibraryVerifierBlocks(t *testing.T) {
 	svc, _ := newBundledInstallServiceWithOpenReadiness(t, testOpenReadinessVerifier{
-		library: OpenAppReadinessDecision{Allowed: false, Detail: "library row is removed"},
+		inventory: OpenAppReadinessDecision{Allowed: false, Detail: "inventory row is removed"},
 	})
 	installBundledAppForOpen(t, svc)
 
@@ -127,14 +127,14 @@ func TestOpenAppFailsClosedWhenAccountLibraryVerifierBlocks(t *testing.T) {
 	if proj.GetReasonCode() != runtimev1.ReasonCode_APP_OPEN_LIBRARY_STATE_INVALID {
 		t.Fatalf("reason code = %v, want APP_OPEN_LIBRARY_STATE_INVALID", proj.GetReasonCode())
 	}
-	if !strings.Contains(proj.GetDetail(), "library row is removed") {
+	if !strings.Contains(proj.GetDetail(), "inventory row is removed") {
 		t.Fatalf("detail = %q, want verifier detail", proj.GetDetail())
 	}
 }
 
 func TestOpenAppFailsClosedWhenPermissionVerifierBlocks(t *testing.T) {
 	svc, _ := newBundledInstallServiceWithRegistry(t, bundledRegistryWithPermission(t), testOpenReadinessVerifier{
-		library:    OpenAppReadinessDecision{Allowed: true},
+		inventory:  OpenAppReadinessDecision{Allowed: true},
 		permission: OpenAppReadinessDecision{Allowed: false, Detail: "grant is revoked"},
 	})
 	installBundledAppForOpen(t, svc)

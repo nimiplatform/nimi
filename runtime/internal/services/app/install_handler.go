@@ -40,6 +40,9 @@ func (s *Service) InstallApp(ctx context.Context, req *runtimev1.InstallAppReque
 	if accountErr != nil {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
 	}
+	if err := s.requireAccountAppLifecycleLaunchable(accountID, appID); err != nil {
+		return nil, appLifecycleAccountInventoryError(err)
+	}
 
 	if existing := s.installJobs.activeJobForApp(appID); existing != nil {
 		return &runtimev1.InstallAppResponse{Job: existing}, nil
@@ -124,10 +127,10 @@ func (s *Service) runLifecycleJob(jobID string, descriptor appreleasecatalog.Des
 		return
 	}
 	storage := storageProjectionFromPlan(installed.Plan)
-	if err := s.applyAccountAppLibraryLifecycleMutation(accountID, descriptor.AppID, accountAppLibraryMutationInstalledEnabled); err != nil {
+	if err := s.applyAccountAppInventoryLifecycleMutation(accountID, descriptor.AppID, accountAppInventoryMutationInstalled); err != nil {
 		s.installJobs.markFailed(jobID, runtimev1.ReasonCode_APP_INSTALL_INTERNAL, err.Error())
 		if s.logger != nil {
-			s.logger.Warn("account app-library mutation failed", "job_id", jobID, "app_id", descriptor.AppID, "kind", kind.String(), "error", err)
+			s.logger.Warn("account app-inventory mutation failed", "job_id", jobID, "app_id", descriptor.AppID, "kind", kind.String(), "error", err)
 		}
 		return
 	}
@@ -228,6 +231,9 @@ func (s *Service) UninstallApp(ctx context.Context, req *runtimev1.UninstallAppR
 	if accountErr != nil {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
 	}
+	if err := s.requireAccountAppLifecycleLaunchable(accountID, appID); err != nil {
+		return nil, appLifecycleAccountInventoryError(err)
+	}
 	plan, err := s.installRuntime.plan(descriptor)
 	if err != nil {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_APP_INSTALL_STORAGE_VIOLATION)
@@ -268,14 +274,14 @@ func (s *Service) UninstallApp(ctx context.Context, req *runtimev1.UninstallAppR
 		return &runtimev1.UninstallAppResponse{Job: orJob(failed, job)}, nil
 	}
 
-	mutation := accountAppLibraryMutationUninstalledKeepRecord
+	mutation := accountAppInventoryMutationUninstalled
 	if req.GetDeleteDurableData() {
-		mutation = accountAppLibraryMutationRemovedFromLibrary
+		mutation = accountAppInventoryMutationRemoved
 	}
-	if err := s.applyAccountAppLibraryLifecycleMutation(accountID, appID, mutation); err != nil {
+	if err := s.applyAccountAppInventoryLifecycleMutation(accountID, appID, mutation); err != nil {
 		failed := s.installJobs.markFailed(job.GetJobId(), runtimev1.ReasonCode_APP_INSTALL_INTERNAL, err.Error())
 		if s.logger != nil {
-			s.logger.Warn("account app-library mutation failed", "job_id", job.GetJobId(), "app_id", appID, "error", err)
+			s.logger.Warn("account app-inventory mutation failed", "job_id", job.GetJobId(), "app_id", appID, "error", err)
 		}
 		return &runtimev1.UninstallAppResponse{Job: orJob(failed, job)}, nil
 	}
@@ -306,6 +312,12 @@ func installResolveError(err error) error {
 		// App not admitted, descriptor unbound, registry/descriptor not found.
 		return grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_APP_INSTALL_DESCRIPTOR_NOT_FOUND)
 	}
+}
+
+func appLifecycleAccountInventoryError(err error) error {
+	return grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_APP_OPEN_LIBRARY_STATE_INVALID, grpcerr.ReasonOptions{
+		Message: err.Error(),
+	})
 }
 
 // installFailureReason maps a gateway install error to a typed, distinct

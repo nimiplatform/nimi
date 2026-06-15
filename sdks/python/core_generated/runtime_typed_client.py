@@ -88,7 +88,9 @@ def _validate_companion_participation_response(model_name: str, decoded: object)
         raise _runtime_decode_error("companion participation projection has unsupported status")
 
 
-AccountCallerMode = Literal["ACCOUNT_CALLER_MODE_UNSPECIFIED", "ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP", "ACCOUNT_CALLER_MODE_DESKTOP_SHELL", "ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR", "ACCOUNT_CALLER_MODE_WEB_CLOUD", "ACCOUNT_CALLER_MODE_EXTERNAL_PRINCIPAL"]
+AccountAppInstallState = Literal["ACCOUNT_APP_INSTALL_STATE_UNSPECIFIED", "ACCOUNT_APP_INSTALL_STATE_NOT_INSTALLED", "ACCOUNT_APP_INSTALL_STATE_INSTALLED", "ACCOUNT_APP_INSTALL_STATE_ADOPTED_LOCAL", "ACCOUNT_APP_INSTALL_STATE_REMOVED"]
+AccountAppInventoryState = Literal["ACCOUNT_APP_INVENTORY_STATE_UNSPECIFIED", "ACCOUNT_APP_INVENTORY_STATE_VERIFIED", "ACCOUNT_APP_INVENTORY_STATE_ENTITLED", "ACCOUNT_APP_INVENTORY_STATE_DISABLED", "ACCOUNT_APP_INVENTORY_STATE_REMOVED", "ACCOUNT_APP_INVENTORY_STATE_REVOKED"]
+AccountCallerMode = Literal["ACCOUNT_CALLER_MODE_UNSPECIFIED", "ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP", "ACCOUNT_CALLER_MODE_DESKTOP_SHELL", "ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR", "ACCOUNT_CALLER_MODE_WEB_CLOUD", "ACCOUNT_CALLER_MODE_EXTERNAL_PRINCIPAL", "ACCOUNT_CALLER_MODE_LOCAL_DEVELOPER_APP"]
 AccountEventType = Literal["ACCOUNT_EVENT_TYPE_UNSPECIFIED", "ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS", "ACCOUNT_EVENT_TYPE_LOGIN_STARTED", "ACCOUNT_EVENT_TYPE_LOGIN_COMPLETED", "ACCOUNT_EVENT_TYPE_LOGIN_FAILED", "ACCOUNT_EVENT_TYPE_LOGIN_TIMED_OUT", "ACCOUNT_EVENT_TYPE_REFRESH_STARTED", "ACCOUNT_EVENT_TYPE_REFRESH_COMPLETED", "ACCOUNT_EVENT_TYPE_REFRESH_FAILED", "ACCOUNT_EVENT_TYPE_LOGOUT_STARTED", "ACCOUNT_EVENT_TYPE_LOGOUT_COMPLETED", "ACCOUNT_EVENT_TYPE_SWITCH_STARTED", "ACCOUNT_EVENT_TYPE_SWITCH_COMPLETED", "ACCOUNT_EVENT_TYPE_CUSTODY_UNAVAILABLE", "ACCOUNT_EVENT_TYPE_CUSTODY_RECOVERED", "ACCOUNT_EVENT_TYPE_BINDING_ISSUED", "ACCOUNT_EVENT_TYPE_BINDING_ACTIVATED", "ACCOUNT_EVENT_TYPE_BINDING_SUSPENDED", "ACCOUNT_EVENT_TYPE_BINDING_REVOKED", "ACCOUNT_EVENT_TYPE_BINDING_EXPIRED", "ACCOUNT_EVENT_TYPE_BINDING_SUPERSEDED", "ACCOUNT_EVENT_TYPE_BINDING_REPLAY_DETECTED"]
 AccountReasonCode = Literal["ACCOUNT_REASON_CODE_UNSPECIFIED", "ACCOUNT_REASON_CODE_ACTION_EXECUTED", "ACCOUNT_REASON_CODE_INERT_NOT_ACTIVATED", "ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE", "ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE", "ACCOUNT_REASON_CODE_PROOF_EXPIRED", "ACCOUNT_REASON_CODE_PROOF_MISMATCHED", "ACCOUNT_REASON_CODE_PROOF_CONSUMED", "ACCOUNT_REASON_CODE_PROOF_UNSUPPORTED", "ACCOUNT_REASON_CODE_REFRESH_REUSE_DETECTED", "ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED", "ACCOUNT_REASON_CODE_AVATAR_BINDING_ONLY", "ACCOUNT_REASON_CODE_BINDING_NOT_FOUND", "ACCOUNT_REASON_CODE_BINDING_STALE", "ACCOUNT_REASON_CODE_BINDING_REPLAY", "ACCOUNT_REASON_CODE_LOGIN_EXCHANGE_UNAVAILABLE"]
 AccountSessionState = Literal["ACCOUNT_SESSION_STATE_UNSPECIFIED", "ACCOUNT_SESSION_STATE_ANONYMOUS", "ACCOUNT_SESSION_STATE_LOGIN_PENDING", "ACCOUNT_SESSION_STATE_AUTHENTICATED", "ACCOUNT_SESSION_STATE_REFRESH_PENDING", "ACCOUNT_SESSION_STATE_EXPIRED", "ACCOUNT_SESSION_STATE_REAUTH_REQUIRED", "ACCOUNT_SESSION_STATE_SWITCHING", "ACCOUNT_SESSION_STATE_LOGGING_OUT", "ACCOUNT_SESSION_STATE_UNAVAILABLE"]
@@ -130,9 +132,9 @@ ConnectorKind = Literal["CONNECTOR_KIND_UNSPECIFIED", "CONNECTOR_KIND_LOCAL_MODE
 ConnectorOwnerType = Literal["CONNECTOR_OWNER_TYPE_UNSPECIFIED", "CONNECTOR_OWNER_TYPE_SYSTEM", "CONNECTOR_OWNER_TYPE_REALM_USER"]
 ConnectorStatus = Literal["CONNECTOR_STATUS_UNSPECIFIED", "CONNECTOR_STATUS_ACTIVE", "CONNECTOR_STATUS_DISABLED"]
 ConversationAnchorStatus = Literal["CONVERSATION_ANCHOR_STATUS_UNSPECIFIED", "CONVERSATION_ANCHOR_STATUS_ACTIVE", "CONVERSATION_ANCHOR_STATUS_CLOSED"]
-DelegatedApprovalDecision = Literal["DELEGATED_APPROVAL_DECISION_UNSPECIFIED", "DELEGATED_APPROVAL_DECISION_APPROVED_ONCE", "DELEGATED_APPROVAL_DECISION_APPROVE", "DELEGATED_APPROVAL_DECISION_REJECTED", "DELEGATED_APPROVAL_DECISION_REJECT", "DELEGATED_APPROVAL_DECISION_APPROVED_FOR_SESSION", "DELEGATED_APPROVAL_DECISION_POLICY_BLOCKED", "DELEGATED_APPROVAL_DECISION_EXPIRED"]
+DelegatedApprovalDecision = Literal["DELEGATED_APPROVAL_DECISION_UNSPECIFIED", "DELEGATED_APPROVAL_DECISION_APPROVED_ONCE", "DELEGATED_APPROVAL_DECISION_REJECTED", "DELEGATED_APPROVAL_DECISION_APPROVED_FOR_SESSION", "DELEGATED_APPROVAL_DECISION_POLICY_BLOCKED", "DELEGATED_APPROVAL_DECISION_EXPIRED"]
 DelegatedApprovalMode = Literal["DELEGATED_APPROVAL_MODE_UNSPECIFIED", "DELEGATED_APPROVAL_MODE_RUNTIME_POLICY", "DELEGATED_APPROVAL_MODE_REQUIRE_USER", "DELEGATED_APPROVAL_MODE_DISABLED"]
-DelegatedApprovalRequestState = Literal["DELEGATED_APPROVAL_REQUEST_STATE_UNSPECIFIED", "DELEGATED_APPROVAL_REQUEST_STATE_PENDING", "DELEGATED_APPROVAL_REQUEST_STATE_APPROVED_ONCE", "DELEGATED_APPROVAL_REQUEST_STATE_APPROVED", "DELEGATED_APPROVAL_REQUEST_STATE_REJECTED", "DELEGATED_APPROVAL_REQUEST_STATE_EXPIRED", "DELEGATED_APPROVAL_REQUEST_STATE_APPROVED_FOR_SESSION", "DELEGATED_APPROVAL_REQUEST_STATE_POLICY_BLOCKED"]
+DelegatedApprovalRequestState = Literal["DELEGATED_APPROVAL_REQUEST_STATE_UNSPECIFIED", "DELEGATED_APPROVAL_REQUEST_STATE_PENDING", "DELEGATED_APPROVAL_REQUEST_STATE_APPROVED_ONCE", "DELEGATED_APPROVAL_REQUEST_STATE_REJECTED", "DELEGATED_APPROVAL_REQUEST_STATE_EXPIRED", "DELEGATED_APPROVAL_REQUEST_STATE_APPROVED_FOR_SESSION", "DELEGATED_APPROVAL_REQUEST_STATE_POLICY_BLOCKED"]
 DelegatedProviderKind = Literal["DELEGATED_PROVIDER_KIND_UNSPECIFIED", "DELEGATED_PROVIDER_KIND_MCP_TOOL_PROVIDER", "DELEGATED_PROVIDER_KIND_REMOTE_AGENT_SEAM", "DELEGATED_PROVIDER_KIND_RUNTIME_NATIVE_PROVIDER", "DELEGATED_PROVIDER_KIND_CONTROLLED_TEST_PROVIDER"]
 DelegatedProviderState = Literal["DELEGATED_PROVIDER_STATE_UNSPECIFIED", "DELEGATED_PROVIDER_STATE_REGISTERED", "DELEGATED_PROVIDER_STATE_DISCOVERING", "DELEGATED_PROVIDER_STATE_READY", "DELEGATED_PROVIDER_STATE_DEGRADED", "DELEGATED_PROVIDER_STATE_DISABLED", "DELEGATED_PROVIDER_STATE_QUARANTINED", "DELEGATED_PROVIDER_STATE_REMOVED"]
 DelegatedProviderTrustTier = Literal["DELEGATED_PROVIDER_TRUST_TIER_UNSPECIFIED", "DELEGATED_PROVIDER_TRUST_TIER_CONTROLLED_LOCAL", "DELEGATED_PROVIDER_TRUST_TIER_USER_ADDED_REVIEWED", "DELEGATED_PROVIDER_TRUST_TIER_ORG_MANAGED", "DELEGATED_PROVIDER_TRUST_TIER_BLOCKED"]
@@ -151,6 +153,8 @@ HookEffect = Literal["HOOK_EFFECT_UNSPECIFIED", "HOOK_EFFECT_FOLLOW_UP_TURN"]
 HookTriggerFamily = Literal["HOOK_TRIGGER_FAMILY_UNSPECIFIED", "HOOK_TRIGGER_FAMILY_TIME", "HOOK_TRIGGER_FAMILY_EVENT"]
 KnowledgeBankScope = Literal["KNOWLEDGE_BANK_SCOPE_UNSPECIFIED", "KNOWLEDGE_BANK_SCOPE_APP_PRIVATE", "KNOWLEDGE_BANK_SCOPE_WORKSPACE_PRIVATE"]
 KnowledgeIngestTaskStatus = Literal["KNOWLEDGE_INGEST_TASK_STATUS_UNSPECIFIED", "KNOWLEDGE_INGEST_TASK_STATUS_QUEUED", "KNOWLEDGE_INGEST_TASK_STATUS_RUNNING", "KNOWLEDGE_INGEST_TASK_STATUS_COMPLETED", "KNOWLEDGE_INGEST_TASK_STATUS_FAILED"]
+LocalAppAdoptionState = Literal["LOCAL_APP_ADOPTION_STATE_UNSPECIFIED", "LOCAL_APP_ADOPTION_STATE_ADOPTED", "LOCAL_APP_ADOPTION_STATE_REPAIR_REQUIRED", "LOCAL_APP_ADOPTION_STATE_REMOVED"]
+LocalAppAdoptionTrust = Literal["LOCAL_APP_ADOPTION_TRUST_UNSPECIFIED", "LOCAL_APP_ADOPTION_TRUST_EXPLICIT_LOCAL", "LOCAL_APP_ADOPTION_TRUST_DEVELOPER_LOCAL"]
 LocalAssetKind = Literal["LOCAL_ASSET_KIND_UNSPECIFIED", "LOCAL_ASSET_KIND_CHAT", "LOCAL_ASSET_KIND_IMAGE", "LOCAL_ASSET_KIND_VIDEO", "LOCAL_ASSET_KIND_TTS", "LOCAL_ASSET_KIND_STT", "LOCAL_ASSET_KIND_EMBEDDING", "LOCAL_ASSET_KIND_VAE", "LOCAL_ASSET_KIND_CLIP", "LOCAL_ASSET_KIND_LORA", "LOCAL_ASSET_KIND_CONTROLNET", "LOCAL_ASSET_KIND_AUXILIARY"]
 LocalAssetStatus = Literal["LOCAL_ASSET_STATUS_UNSPECIFIED", "LOCAL_ASSET_STATUS_INSTALLED", "LOCAL_ASSET_STATUS_ACTIVE", "LOCAL_ASSET_STATUS_UNHEALTHY", "LOCAL_ASSET_STATUS_REMOVED"]
 LocalBundleState = Literal["LOCAL_BUNDLE_STATE_UNSPECIFIED", "LOCAL_BUNDLE_STATE_RESOLVING", "LOCAL_BUNDLE_STATE_READY", "LOCAL_BUNDLE_STATE_DEGRADED", "LOCAL_BUNDLE_STATE_INVALID", "LOCAL_BUNDLE_STATE_REMOVED"]
@@ -269,19 +273,22 @@ class AIProviderSubHealth:
     last_checked_at: str | None = None
 
 @dataclass(frozen=True)
-class AccountAppLibraryRecord:
+class AccountAppInventoryRecord:
     schema_version: int | None = None
     account_id: str | None = None
     updated_at: str | None = None
-    apps: tuple[AccountAppLibraryRow, ...] = field(default_factory=tuple)
+    apps: tuple[AccountAppInventoryRow, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
-class AccountAppLibraryRow:
+class AccountAppInventoryRow:
     app_id: str | None = None
-    library_state: str | None = None
-    installed: bool | None = None
+    account_state: AccountAppInventoryState | None = None
+    install_state: AccountAppInstallState | None = None
     last_opened_at: str | None = None
     data_policy: str | None = None
+    verified_at: str | None = None
+    source: str | None = None
+    detail: str | None = None
 
 @dataclass(frozen=True)
 class AccountCaller:
@@ -335,6 +342,17 @@ class AddLinkResponse:
 class AdmitProductControlReadyForUseRequest:
     account_default_profile_evidence_json: str | None = None
     built_in_ai_config_evidence_json: str | None = None
+
+@dataclass(frozen=True)
+class AdoptLocalAppRequest:
+    root_path: str | None = None
+    expected_app_id: str | None = None
+
+@dataclass(frozen=True)
+class AdoptLocalAppResponse:
+    adoption: LocalAppAdoption | None = None
+    reason_code: ReasonCode | None = None
+    detail: str | None = None
 
 @dataclass(frozen=True)
 class AgentAutonomyConfig:
@@ -1890,13 +1908,13 @@ class GetAccessTokenResponse:
     production_inert: bool | None = None
 
 @dataclass(frozen=True)
-class GetAccountAppLibraryRequest:
+class GetAccountAppInventoryRequest:
     pass
 
 @dataclass(frozen=True)
-class GetAccountAppLibraryResponse:
+class GetAccountAppInventoryResponse:
     exists: bool | None = None
-    record: AccountAppLibraryRecord | None = None
+    record: AccountAppInventoryRecord | None = None
     reason_code: ReasonCode | None = None
     detail: str | None = None
 
@@ -2806,6 +2824,16 @@ class ListLinksResponse:
     next_page_token: str | None = None
 
 @dataclass(frozen=True)
+class ListLocalAppAdoptionsRequest:
+    pass
+
+@dataclass(frozen=True)
+class ListLocalAppAdoptionsResponse:
+    adoptions: tuple[LocalAppAdoption, ...] = field(default_factory=tuple)
+    reason_code: ReasonCode | None = None
+    detail: str | None = None
+
+@dataclass(frozen=True)
 class ListLocalAssetsRequest:
     status_filter: LocalAssetStatus | None = None
     kind_filter: LocalAssetKind | None = None
@@ -3036,6 +3064,23 @@ class ListVoiceAssetsRequest:
 class ListVoiceAssetsResponse:
     assets: tuple[VoiceAsset, ...] = field(default_factory=tuple)
     next_page_token: str | None = None
+
+@dataclass(frozen=True)
+class LocalAppAdoption:
+    app_id: str | None = None
+    root_path: str | None = None
+    manifest_path: str | None = None
+    display_name: str | None = None
+    version: str | None = None
+    entry_ref: str | None = None
+    permission_scope_ref: str | None = None
+    storage_policy_ref: str | None = None
+    state: LocalAppAdoptionState | None = None
+    trust: LocalAppAdoptionTrust | None = None
+    adopted_at: str | None = None
+    updated_at: str | None = None
+    reason_code: ReasonCode | None = None
+    detail: str | None = None
 
 @dataclass(frozen=True)
 class LocalAssetHealth:
@@ -4651,6 +4696,17 @@ class RemoveLinkRequest:
 @dataclass(frozen=True)
 class RemoveLinkResponse:
     ack: Ack | None = None
+
+@dataclass(frozen=True)
+class RemoveLocalAppAdoptionRequest:
+    app_id: str | None = None
+    delete_durable_data_confirmed: bool | None = None
+
+@dataclass(frozen=True)
+class RemoveLocalAppAdoptionResponse:
+    adoption: LocalAppAdoption | None = None
+    reason_code: ReasonCode | None = None
+    detail: str | None = None
 
 @dataclass(frozen=True)
 class RemoveLocalAssetRequest:
@@ -6561,9 +6617,13 @@ class RuntimeTypedClient:
     async def upload_artifact(self, request: UploadArtifactRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> UploadArtifactResponse:
         raise RuntimeError("SDK_RUNTIME_METHOD_UNAVAILABLE: Runtime method kind is not supported by the unary/server-stream core transport: /nimi.runtime.v1.RuntimeAiService/UploadArtifact")
 
-    async def get_account_app_library(self, request: GetAccountAppLibraryRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetAccountAppLibraryResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAppService/GetAccountAppLibrary", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(GetAccountAppLibraryResponse, raw)
+    async def adopt_local_app(self, request: AdoptLocalAppRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AdoptLocalAppResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAppService/AdoptLocalApp", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(AdoptLocalAppResponse, raw)
+
+    async def get_account_app_inventory(self, request: GetAccountAppInventoryRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetAccountAppInventoryResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAppService/GetAccountAppInventory", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(GetAccountAppInventoryResponse, raw)
 
     async def get_app_install_job(self, request: GetAppInstallJobRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetAppInstallJobResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAppService/GetAppInstallJob", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
@@ -6589,9 +6649,17 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAppService/ListAppInstallJobs", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListAppInstallJobsResponse, raw)
 
+    async def list_local_app_adoptions(self, request: ListLocalAppAdoptionsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListLocalAppAdoptionsResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAppService/ListLocalAppAdoptions", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(ListLocalAppAdoptionsResponse, raw)
+
     async def open_app(self, request: OpenAppRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> OpenAppResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAppService/OpenApp", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(OpenAppResponse, raw)
+
+    async def remove_local_app_adoption(self, request: RemoveLocalAppAdoptionRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RemoveLocalAppAdoptionResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppAdoption", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(RemoveLocalAppAdoptionResponse, raw)
 
     async def send_app_message(self, request: SendAppMessageRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> SendAppMessageResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAppService/SendAppMessage", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))

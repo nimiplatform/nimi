@@ -844,11 +844,38 @@
           "response_stream": false
         },
         {
-          "name": "GetAccountAppLibrary",
-          "method_id": "/nimi.runtime.v1.RuntimeAppService/GetAccountAppLibrary",
+          "name": "GetAccountAppInventory",
+          "method_id": "/nimi.runtime.v1.RuntimeAppService/GetAccountAppInventory",
           "kind": "unary",
-          "request_type": "GetAccountAppLibraryRequest",
-          "response_type": "GetAccountAppLibraryResponse",
+          "request_type": "GetAccountAppInventoryRequest",
+          "response_type": "GetAccountAppInventoryResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "AdoptLocalApp",
+          "method_id": "/nimi.runtime.v1.RuntimeAppService/AdoptLocalApp",
+          "kind": "unary",
+          "request_type": "AdoptLocalAppRequest",
+          "response_type": "AdoptLocalAppResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "ListLocalAppAdoptions",
+          "method_id": "/nimi.runtime.v1.RuntimeAppService/ListLocalAppAdoptions",
+          "kind": "unary",
+          "request_type": "ListLocalAppAdoptionsRequest",
+          "response_type": "ListLocalAppAdoptionsResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "RemoveLocalAppAdoption",
+          "method_id": "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppAdoption",
+          "kind": "unary",
+          "request_type": "RemoveLocalAppAdoptionRequest",
+          "response_type": "RemoveLocalAppAdoptionResponse",
           "request_stream": false,
           "response_stream": false
         },
@@ -2365,14 +2392,17 @@
     "/nimi.runtime.v1.RuntimeAiService/SubmitScenarioJob",
     "/nimi.runtime.v1.RuntimeAiService/SubscribeScenarioJobEvents",
     "/nimi.runtime.v1.RuntimeAiService/UploadArtifact",
-    "/nimi.runtime.v1.RuntimeAppService/GetAccountAppLibrary",
+    "/nimi.runtime.v1.RuntimeAppService/AdoptLocalApp",
+    "/nimi.runtime.v1.RuntimeAppService/GetAccountAppInventory",
     "/nimi.runtime.v1.RuntimeAppService/GetAppInstallJob",
     "/nimi.runtime.v1.RuntimeAppService/GetAppPackageReadiness",
     "/nimi.runtime.v1.RuntimeAppService/GetAppStorage",
     "/nimi.runtime.v1.RuntimeAppService/HealthRepairApp",
     "/nimi.runtime.v1.RuntimeAppService/InstallApp",
     "/nimi.runtime.v1.RuntimeAppService/ListAppInstallJobs",
+    "/nimi.runtime.v1.RuntimeAppService/ListLocalAppAdoptions",
     "/nimi.runtime.v1.RuntimeAppService/OpenApp",
+    "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppAdoption",
     "/nimi.runtime.v1.RuntimeAppService/SendAppMessage",
     "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages",
     "/nimi.runtime.v1.RuntimeAppService/UninstallApp",
@@ -3174,12 +3204,20 @@
       "response_type": "UploadArtifactResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeAppService/GetAccountAppLibrary",
+      "method_id": "/nimi.runtime.v1.RuntimeAppService/AdoptLocalApp",
       "service": "RuntimeAppService",
-      "method": "GetAccountAppLibrary",
+      "method": "AdoptLocalApp",
       "kind": "unary",
-      "request_type": "GetAccountAppLibraryRequest",
-      "response_type": "GetAccountAppLibraryResponse"
+      "request_type": "AdoptLocalAppRequest",
+      "response_type": "AdoptLocalAppResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAppService/GetAccountAppInventory",
+      "service": "RuntimeAppService",
+      "method": "GetAccountAppInventory",
+      "kind": "unary",
+      "request_type": "GetAccountAppInventoryRequest",
+      "response_type": "GetAccountAppInventoryResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAppService/GetAppInstallJob",
@@ -3230,12 +3268,28 @@
       "response_type": "ListAppInstallJobsResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAppService/ListLocalAppAdoptions",
+      "service": "RuntimeAppService",
+      "method": "ListLocalAppAdoptions",
+      "kind": "unary",
+      "request_type": "ListLocalAppAdoptionsRequest",
+      "response_type": "ListLocalAppAdoptionsResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAppService/OpenApp",
       "service": "RuntimeAppService",
       "method": "OpenApp",
       "kind": "unary",
       "request_type": "OpenAppRequest",
       "response_type": "OpenAppResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppAdoption",
+      "service": "RuntimeAppService",
+      "method": "RemoveLocalAppAdoption",
+      "kind": "unary",
+      "request_type": "RemoveLocalAppAdoptionRequest",
+      "response_type": "RemoveLocalAppAdoptionResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAppService/SendAppMessage",
@@ -5088,12 +5142,20 @@
       "response_type": "UploadArtifactResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeAppService/GetAccountAppLibrary",
+      "method_id": "/nimi.runtime.v1.RuntimeAppService/AdoptLocalApp",
       "service": "RuntimeAppService",
-      "method": "GetAccountAppLibrary",
+      "method": "AdoptLocalApp",
       "kind": "unary",
-      "request_type": "GetAccountAppLibraryRequest",
-      "response_type": "GetAccountAppLibraryResponse"
+      "request_type": "AdoptLocalAppRequest",
+      "response_type": "AdoptLocalAppResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAppService/GetAccountAppInventory",
+      "service": "RuntimeAppService",
+      "method": "GetAccountAppInventory",
+      "kind": "unary",
+      "request_type": "GetAccountAppInventoryRequest",
+      "response_type": "GetAccountAppInventoryResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAppService/GetAppInstallJob",
@@ -5144,12 +5206,28 @@
       "response_type": "ListAppInstallJobsResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAppService/ListLocalAppAdoptions",
+      "service": "RuntimeAppService",
+      "method": "ListLocalAppAdoptions",
+      "kind": "unary",
+      "request_type": "ListLocalAppAdoptionsRequest",
+      "response_type": "ListLocalAppAdoptionsResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAppService/OpenApp",
       "service": "RuntimeAppService",
       "method": "OpenApp",
       "kind": "unary",
       "request_type": "OpenAppRequest",
       "response_type": "OpenAppResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppAdoption",
+      "service": "RuntimeAppService",
+      "method": "RemoveLocalAppAdoption",
+      "kind": "unary",
+      "request_type": "RemoveLocalAppAdoptionRequest",
+      "response_type": "RemoveLocalAppAdoptionResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAppService/SendAppMessage",
@@ -6357,8 +6435,8 @@
       "AIProviderHealthEvent",
       "AIProviderHealthSnapshot",
       "AIProviderSubHealth",
-      "AccountAppLibraryRecord",
-      "AccountAppLibraryRow",
+      "AccountAppInventoryRecord",
+      "AccountAppInventoryRow",
       "AccountCaller",
       "AccountProjection",
       "AccountSessionEvent",
@@ -6366,6 +6444,8 @@
       "AddLinkRequest",
       "AddLinkResponse",
       "AdmitProductControlReadyForUseRequest",
+      "AdoptLocalAppRequest",
+      "AdoptLocalAppResponse",
       "AgentAutonomyConfig",
       "AgentAutonomyState",
       "AgentAvatarDebugEventDetail",
@@ -6559,8 +6639,8 @@
       "GatewayVerdictRefBlock",
       "GetAccessTokenRequest",
       "GetAccessTokenResponse",
-      "GetAccountAppLibraryRequest",
-      "GetAccountAppLibraryResponse",
+      "GetAccountAppInventoryRequest",
+      "GetAccountAppInventoryResponse",
       "GetAccountSessionStatusRequest",
       "GetAccountSessionStatusResponse",
       "GetAgentCanonicalMemoryBankStatusRequest",
@@ -6714,6 +6794,8 @@
       "ListKnowledgeBanksResponse",
       "ListLinksRequest",
       "ListLinksResponse",
+      "ListLocalAppAdoptionsRequest",
+      "ListLocalAppAdoptionsResponse",
       "ListLocalAssetsRequest",
       "ListLocalAssetsResponse",
       "ListLocalAuditsRequest",
@@ -6752,6 +6834,7 @@
       "ListVerifiedAssetsResponse",
       "ListVoiceAssetsRequest",
       "ListVoiceAssetsResponse",
+      "LocalAppAdoption",
       "LocalAssetHealth",
       "LocalAssetRecord",
       "LocalAssetSource",
@@ -6926,6 +7009,8 @@
       "RegisterExternalPrincipalResponse",
       "RemoveLinkRequest",
       "RemoveLinkResponse",
+      "RemoveLocalAppAdoptionRequest",
+      "RemoveLocalAppAdoptionResponse",
       "RemoveLocalAssetRequest",
       "RemoveLocalAssetResponse",
       "RemoveLocalServiceRequest",
@@ -7159,6 +7244,8 @@
       "WriteAgentMemoryResponse"
     ],
     "enums": [
+      "AccountAppInstallState",
+      "AccountAppInventoryState",
       "AccountCallerMode",
       "AccountEventType",
       "AccountReasonCode",
@@ -7222,6 +7309,8 @@
       "HookTriggerFamily",
       "KnowledgeBankScope",
       "KnowledgeIngestTaskStatus",
+      "LocalAppAdoptionState",
+      "LocalAppAdoptionTrust",
       "LocalAssetKind",
       "LocalAssetStatus",
       "LocalBundleState",
@@ -7311,7 +7400,7 @@
     ],
     "message_schemas": [
       {
-        "name": "AccountAppLibraryRecord",
+        "name": "AccountAppInventoryRecord",
         "fields": [
           {
             "name": "schema_version",
@@ -7336,7 +7425,7 @@
           },
           {
             "name": "apps",
-            "type": "AccountAppLibraryRow",
+            "type": "AccountAppInventoryRow",
             "repeated": true,
             "optional": false,
             "number": 4
@@ -7345,7 +7434,7 @@
         "source_file": "proto/runtime/v1/app.proto"
       },
       {
-        "name": "AccountAppLibraryRow",
+        "name": "AccountAppInventoryRow",
         "fields": [
           {
             "name": "app_id",
@@ -7355,15 +7444,15 @@
             "number": 1
           },
           {
-            "name": "library_state",
-            "type": "string",
+            "name": "account_state",
+            "type": "AccountAppInventoryState",
             "repeated": false,
             "optional": false,
             "number": 2
           },
           {
-            "name": "installed",
-            "type": "bool",
+            "name": "install_state",
+            "type": "AccountAppInstallState",
             "repeated": false,
             "optional": false,
             "number": 3
@@ -7381,6 +7470,27 @@
             "repeated": false,
             "optional": false,
             "number": 5
+          },
+          {
+            "name": "verified_at",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "source",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "detail",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 8
           }
         ],
         "source_file": "proto/runtime/v1/app.proto"
@@ -7650,6 +7760,53 @@
           }
         ],
         "source_file": "proto/runtime/v1/local_runtime.proto"
+      },
+      {
+        "name": "AdoptLocalAppRequest",
+        "fields": [
+          {
+            "name": "root_path",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "expected_app_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "AdoptLocalAppResponse",
+        "fields": [
+          {
+            "name": "adoption",
+            "type": "LocalAppAdoption",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "detail",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
       },
       {
         "name": "AgentAutonomyConfig",
@@ -15739,12 +15896,12 @@
         "source_file": "proto/runtime/v1/account.proto"
       },
       {
-        "name": "GetAccountAppLibraryRequest",
+        "name": "GetAccountAppInventoryRequest",
         "fields": [],
         "source_file": "proto/runtime/v1/app.proto"
       },
       {
-        "name": "GetAccountAppLibraryResponse",
+        "name": "GetAccountAppInventoryResponse",
         "fields": [
           {
             "name": "exists",
@@ -15755,7 +15912,7 @@
           },
           {
             "name": "record",
-            "type": "AccountAppLibraryRecord",
+            "type": "AccountAppInventoryRecord",
             "repeated": false,
             "optional": false,
             "number": 2
@@ -19770,6 +19927,38 @@
         "source_file": "proto/runtime/v1/knowledge.proto"
       },
       {
+        "name": "ListLocalAppAdoptionsRequest",
+        "fields": [],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "ListLocalAppAdoptionsResponse",
+        "fields": [
+          {
+            "name": "adoptions",
+            "type": "LocalAppAdoption",
+            "repeated": true,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "detail",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
         "name": "ListLocalAssetsRequest",
         "fields": [
           {
@@ -20790,6 +20979,110 @@
           }
         ],
         "source_file": "proto/runtime/v1/voice.proto"
+      },
+      {
+        "name": "LocalAppAdoption",
+        "fields": [
+          {
+            "name": "app_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "root_path",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "manifest_path",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "display_name",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "version",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "entry_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "permission_scope_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "storage_policy_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 8
+          },
+          {
+            "name": "state",
+            "type": "LocalAppAdoptionState",
+            "repeated": false,
+            "optional": false,
+            "number": 9
+          },
+          {
+            "name": "trust",
+            "type": "LocalAppAdoptionTrust",
+            "repeated": false,
+            "optional": false,
+            "number": 10
+          },
+          {
+            "name": "adopted_at",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 11
+          },
+          {
+            "name": "updated_at",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 12
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 13
+          },
+          {
+            "name": "detail",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 14
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
       },
       {
         "name": "LocalAssetHealth",
@@ -29479,6 +29772,53 @@
         "source_file": "proto/runtime/v1/knowledge.proto"
       },
       {
+        "name": "RemoveLocalAppAdoptionRequest",
+        "fields": [
+          {
+            "name": "app_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "delete_durable_data_confirmed",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "RemoveLocalAppAdoptionResponse",
+        "fields": [
+          {
+            "name": "adoption",
+            "type": "LocalAppAdoption",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "detail",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
         "name": "RemoveLocalAssetRequest",
         "fields": [
           {
@@ -37064,6 +37404,29 @@
     ],
     "enum_schemas": [
       {
+        "name": "AccountAppInstallState",
+        "values": [
+          "ACCOUNT_APP_INSTALL_STATE_UNSPECIFIED",
+          "ACCOUNT_APP_INSTALL_STATE_NOT_INSTALLED",
+          "ACCOUNT_APP_INSTALL_STATE_INSTALLED",
+          "ACCOUNT_APP_INSTALL_STATE_ADOPTED_LOCAL",
+          "ACCOUNT_APP_INSTALL_STATE_REMOVED"
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "AccountAppInventoryState",
+        "values": [
+          "ACCOUNT_APP_INVENTORY_STATE_UNSPECIFIED",
+          "ACCOUNT_APP_INVENTORY_STATE_VERIFIED",
+          "ACCOUNT_APP_INVENTORY_STATE_ENTITLED",
+          "ACCOUNT_APP_INVENTORY_STATE_DISABLED",
+          "ACCOUNT_APP_INVENTORY_STATE_REMOVED",
+          "ACCOUNT_APP_INVENTORY_STATE_REVOKED"
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
         "name": "AccountCallerMode",
         "values": [
           "ACCOUNT_CALLER_MODE_UNSPECIFIED",
@@ -37071,7 +37434,8 @@
           "ACCOUNT_CALLER_MODE_DESKTOP_SHELL",
           "ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR",
           "ACCOUNT_CALLER_MODE_WEB_CLOUD",
-          "ACCOUNT_CALLER_MODE_EXTERNAL_PRINCIPAL"
+          "ACCOUNT_CALLER_MODE_EXTERNAL_PRINCIPAL",
+          "ACCOUNT_CALLER_MODE_LOCAL_DEVELOPER_APP"
         ],
         "source_file": "proto/runtime/v1/account.proto"
       },
@@ -37546,9 +37910,7 @@
         "values": [
           "DELEGATED_APPROVAL_DECISION_UNSPECIFIED",
           "DELEGATED_APPROVAL_DECISION_APPROVED_ONCE",
-          "DELEGATED_APPROVAL_DECISION_APPROVE",
           "DELEGATED_APPROVAL_DECISION_REJECTED",
-          "DELEGATED_APPROVAL_DECISION_REJECT",
           "DELEGATED_APPROVAL_DECISION_APPROVED_FOR_SESSION",
           "DELEGATED_APPROVAL_DECISION_POLICY_BLOCKED",
           "DELEGATED_APPROVAL_DECISION_EXPIRED"
@@ -37571,7 +37933,6 @@
           "DELEGATED_APPROVAL_REQUEST_STATE_UNSPECIFIED",
           "DELEGATED_APPROVAL_REQUEST_STATE_PENDING",
           "DELEGATED_APPROVAL_REQUEST_STATE_APPROVED_ONCE",
-          "DELEGATED_APPROVAL_REQUEST_STATE_APPROVED",
           "DELEGATED_APPROVAL_REQUEST_STATE_REJECTED",
           "DELEGATED_APPROVAL_REQUEST_STATE_EXPIRED",
           "DELEGATED_APPROVAL_REQUEST_STATE_APPROVED_FOR_SESSION",
@@ -37769,6 +38130,25 @@
           "KNOWLEDGE_INGEST_TASK_STATUS_FAILED"
         ],
         "source_file": "proto/runtime/v1/knowledge.proto"
+      },
+      {
+        "name": "LocalAppAdoptionState",
+        "values": [
+          "LOCAL_APP_ADOPTION_STATE_UNSPECIFIED",
+          "LOCAL_APP_ADOPTION_STATE_ADOPTED",
+          "LOCAL_APP_ADOPTION_STATE_REPAIR_REQUIRED",
+          "LOCAL_APP_ADOPTION_STATE_REMOVED"
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "LocalAppAdoptionTrust",
+        "values": [
+          "LOCAL_APP_ADOPTION_TRUST_UNSPECIFIED",
+          "LOCAL_APP_ADOPTION_TRUST_EXPLICIT_LOCAL",
+          "LOCAL_APP_ADOPTION_TRUST_DEVELOPER_LOCAL"
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
       },
       {
         "name": "LocalAssetKind",

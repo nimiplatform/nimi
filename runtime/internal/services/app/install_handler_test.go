@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log/slog"
 	"os"
@@ -14,6 +15,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/appinstallgateway"
 	"github.com/nimiplatform/nimi/runtime/internal/appregistrycatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/appreleasecatalog"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/metadata"
 )
 
@@ -184,6 +186,17 @@ func newBundledInstallServiceWithOpenReadiness(t *testing.T, verifier OpenAppRea
 }
 
 func newBundledInstallServiceWithRegistry(t *testing.T, registry *appregistrycatalog.Registry, verifier OpenAppReadinessVerifier) (*Service, string) {
+	svc, dataRoot, _ := newBundledInstallServiceWithRegistryAndAccountRow(t, registry, verifier, accountAppInventoryStateVerified, accountAppInstallStateNotInstalled)
+	return svc, dataRoot
+}
+
+func newBundledInstallServiceWithRegistryAndAccountRow(
+	t *testing.T,
+	registry *appregistrycatalog.Registry,
+	verifier OpenAppReadinessVerifier,
+	accountState string,
+	installState string,
+) (*Service, string, string) {
 	t.Helper()
 	dataRoot := t.TempDir()
 	bundledRoot := t.TempDir()
@@ -214,9 +227,34 @@ func newBundledInstallServiceWithRegistry(t *testing.T, registry *appregistrycat
 			projection: &runtimev1.AccountProjection{AccountId: "account_1"},
 			ok:         true,
 		}),
-		WithAccountAppLibraryStoreForTest(newAccountAppLibraryStoreForTest(nimiDir)),
+		WithAccountAppInventoryStoreForTest(newAccountAppInventoryStoreForTest(nimiDir)),
 	)
-	return svc, dataRoot
+	seedAccountInventoryStateForTest(t, nimiDir, "account_1", "nimi.example-app", accountState, installState)
+	return svc, dataRoot, nimiDir
+}
+
+func seedAccountInventoryForTest(t *testing.T, nimiDir string, accountID string, appID string, installState string) {
+	t.Helper()
+	seedAccountInventoryStateForTest(t, nimiDir, accountID, appID, accountAppInventoryStateVerified, installState)
+}
+
+func seedAccountInventoryStateForTest(t *testing.T, nimiDir string, accountID string, appID string, accountState string, installState string) {
+	t.Helper()
+	accountDir := filepath.Join(nimiDir, "accounts", accountPathSegment(accountID))
+	writeRuntimeProjectionJSON(t, filepath.Join(accountDir, "apps", "inventory.json"), fmt.Sprintf(`{
+  "schemaVersion": 2,
+  "accountId": %q,
+  "updatedAt": "2026-06-02T00:00:00.000Z",
+  "apps": [{
+    "appId": %q,
+    "accountState": %q,
+    "installState": %q,
+    "lastOpenedAt": null,
+    "dataPolicy": "keep_on_uninstall",
+    "verifiedAt": "2026-06-01T00:00:00.000Z",
+    "source": "nimi-account"
+  }]
+}`, accountID, appID, accountState, installState))
 }
 
 func waitForTerminalJob(t *testing.T, svc *Service, jobID string) *runtimev1.AppInstallJob {
@@ -254,7 +292,7 @@ func TestInstallAppBundledReachesInstalled(t *testing.T) {
 	}
 }
 
-func TestInstallAppWritesRuntimeOwnedAccountLibraryProjection(t *testing.T) {
+func TestInstallAppUpdatesRuntimeOwnedAccountInventoryProjection(t *testing.T) {
 	svc, _ := newBundledInstallService(t)
 	resp, err := svc.InstallApp(context.Background(), &runtimev1.InstallAppRequest{AppId: "nimi.example-app", Confirmed: true})
 	if err != nil {
@@ -264,16 +302,16 @@ func TestInstallAppWritesRuntimeOwnedAccountLibraryProjection(t *testing.T) {
 	if job.GetState() != runtimev1.AppInstallJobState_APP_INSTALL_JOB_STATE_INSTALLED {
 		t.Fatalf("install job state = %v detail=%q, want INSTALLED", job.GetState(), job.GetFailureDetail())
 	}
-	record, err := svc.accountLibrary.readOrEmpty("account_1")
+	record, err := svc.accountInventory.readOrEmpty("account_1")
 	if err != nil {
-		t.Fatalf("read account library: %v", err)
+		t.Fatalf("read account inventory: %v", err)
 	}
 	if len(record.Apps) != 1 {
-		t.Fatalf("library apps = %d, want 1", len(record.Apps))
+		t.Fatalf("inventory apps = %d, want 1", len(record.Apps))
 	}
 	row := record.Apps[0]
-	if row.AppID != "nimi.example-app" || row.LibraryState != accountAppLibraryStateEnabled || !row.Installed {
-		t.Fatalf("unexpected account library row: %+v", row)
+	if row.AppID != "nimi.example-app" || row.AccountState != accountAppInventoryStateVerified || row.InstallState != accountAppInstallStateInstalled {
+		t.Fatalf("unexpected account inventory row: %+v", row)
 	}
 }
 
@@ -290,6 +328,63 @@ func TestInstallAppRequiresInstallRuntime(t *testing.T) {
 	_, err := svc.InstallApp(context.Background(), &runtimev1.InstallAppRequest{AppId: "nimi.example-app"})
 	if err == nil {
 		t.Fatal("expected fail-closed without install runtime")
+	}
+}
+
+func TestInstallAppRejectsNonLaunchableAccountInventoryBeforeCreatingJob(t *testing.T) {
+	svc, dataRoot, _ := newBundledInstallServiceWithRegistryAndAccountRow(
+		t,
+		bundledRegistry(t),
+		allowOpenReadinessVerifier{},
+		accountAppInventoryStateDisabled,
+		accountAppInstallStateNotInstalled,
+	)
+	_, err := svc.InstallApp(context.Background(), &runtimev1.InstallAppRequest{AppId: "nimi.example-app", Confirmed: true})
+	if err == nil {
+		t.Fatal("expected non-launchable account app-inventory row rejection")
+	}
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_APP_OPEN_LIBRARY_STATE_INVALID {
+		t.Fatalf("reason = %v ok=%v, want APP_OPEN_LIBRARY_STATE_INVALID", reason, ok)
+	}
+	if jobs := svc.installJobs.listJobs("nimi.example-app"); len(jobs) != 0 {
+		t.Fatalf("install preflight must not create jobs, got %d", len(jobs))
+	}
+	if entries, readErr := os.ReadDir(dataRoot); readErr != nil || len(entries) != 0 {
+		t.Fatalf("install preflight must not materialize package payloads, entries=%d err=%v", len(entries), readErr)
+	}
+}
+
+func TestUninstallAppRejectsNonLaunchableAccountInventoryBeforeRemovingRelease(t *testing.T) {
+	svc, _, nimiDir := newBundledInstallServiceWithRegistryAndAccountRow(
+		t,
+		bundledRegistry(t),
+		allowOpenReadinessVerifier{},
+		accountAppInventoryStateVerified,
+		accountAppInstallStateNotInstalled,
+	)
+	resp, err := svc.InstallApp(context.Background(), &runtimev1.InstallAppRequest{AppId: "nimi.example-app", Confirmed: true})
+	if err != nil {
+		t.Fatalf("InstallApp: %v", err)
+	}
+	job := waitForTerminalJob(t, svc, resp.GetJob().GetJobId())
+	if job.GetState() != runtimev1.AppInstallJobState_APP_INSTALL_JOB_STATE_INSTALLED {
+		t.Fatalf("install job state = %v detail=%q, want INSTALLED", job.GetState(), job.GetFailureDetail())
+	}
+	beforeJobs := len(svc.installJobs.listJobs("nimi.example-app"))
+	seedAccountInventoryStateForTest(t, nimiDir, "account_1", "nimi.example-app", accountAppInventoryStateRevoked, accountAppInstallStateInstalled)
+
+	_, err = svc.UninstallApp(context.Background(), &runtimev1.UninstallAppRequest{AppId: "nimi.example-app"})
+	if err == nil {
+		t.Fatal("expected non-launchable account app-inventory row rejection")
+	}
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_APP_OPEN_LIBRARY_STATE_INVALID {
+		t.Fatalf("reason = %v ok=%v, want APP_OPEN_LIBRARY_STATE_INVALID", reason, ok)
+	}
+	if afterJobs := len(svc.installJobs.listJobs("nimi.example-app")); afterJobs != beforeJobs {
+		t.Fatalf("uninstall preflight must not create a new job, before=%d after=%d", beforeJobs, afterJobs)
+	}
+	if _, statErr := os.Stat(job.GetStorage().GetReleaseRoot()); statErr != nil {
+		t.Fatalf("uninstall preflight must not remove release root: %v", statErr)
 	}
 }
 

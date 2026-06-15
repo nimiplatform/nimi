@@ -390,7 +390,7 @@ func (s *Service) Logout(ctx context.Context, req *runtimev1.LogoutRequest) (*ru
 	if !s.isActivated() {
 		return &runtimev1.LogoutResponse{Accepted: false, State: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE, ReasonCode: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_INERT_NOT_ACTIVATED, ProductionInert: true}, nil
 	}
-	if reason, ok := s.validateRuntimeAdmittedCaller(req.GetCaller(), false); !ok {
+	if reason, ok := s.validateRuntimeAccountControlCaller(req.GetCaller()); !ok {
 		return &runtimev1.LogoutResponse{Accepted: false, State: s.currentState(), ReasonCode: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, AccountReasonCode: reason}, nil
 	}
 	return s.logout(ctx, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED)
@@ -400,7 +400,7 @@ func (s *Service) SwitchAccount(ctx context.Context, req *runtimev1.SwitchAccoun
 	if !s.isActivated() {
 		return &runtimev1.SwitchAccountResponse{Accepted: false, State: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE, ReasonCode: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_INERT_NOT_ACTIVATED, ProductionInert: true}, nil
 	}
-	if reason, ok := s.validateRuntimeAdmittedCaller(req.GetCaller(), false); !ok {
+	if reason, ok := s.validateRuntimeAccountControlCaller(req.GetCaller()); !ok {
 		return &runtimev1.SwitchAccountResponse{Accepted: false, State: s.currentState(), ReasonCode: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, AccountReasonCode: reason}, nil
 	}
 	s.mu.Lock()

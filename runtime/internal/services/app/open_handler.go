@@ -70,6 +70,9 @@ func (s *Service) OpenApp(ctx context.Context, req *runtimev1.OpenAppRequest) (*
 	// Step 1 — resolve the admitted Nimi App registry row + bound descriptor.
 	app, descriptor, resolveErr := s.installRuntime.resolveDescriptor(appID)
 	if resolveErr != nil {
+		if response, handled := s.openLocalAdoptedApp(ctx, appID, scope, resolveErr); handled {
+			return response, nil
+		}
 		if blockErr := classifyResolveForOpen(resolveErr); blockErr != nil {
 			return openBlockedResponse(appID, scope, *blockErr), nil
 		}
@@ -100,11 +103,11 @@ func (s *Service) OpenApp(ctx context.Context, req *runtimev1.OpenAppRequest) (*
 		return openBlockedResponse(appID, scope, *packageErr), nil
 	}
 
-	// Step 3 — verify the account app-library state. Runtime consumes an
+	// Step 3 — verify the account app-inventory state. Runtime consumes an
 	// admitted verifier and fails closed when that authority is absent; it never
-	// treats the verified package as a substitute for account-library truth.
-	if libraryErr := s.verifyOpenAccountLibrary(ctx, app); libraryErr != nil {
-		return openBlockedResponse(appID, scope, *libraryErr), nil
+	// treats the verified package as a substitute for account-inventory truth.
+	if inventoryErr := s.verifyOpenAccountInventory(ctx, app); inventoryErr != nil {
+		return openBlockedResponse(appID, scope, *inventoryErr), nil
 	}
 
 	// Step 4 — verify the durable app-data root is resolvable and uncorrupted.
@@ -154,6 +157,169 @@ func (s *Service) OpenApp(ctx context.Context, req *runtimev1.OpenAppRequest) (*
 			ReasonCode:    runtimev1.ReasonCode_ACTION_EXECUTED,
 		},
 	}, nil
+}
+
+func (s *Service) openLocalAdoptedApp(
+	ctx context.Context,
+	appID string,
+	scope *runtimev1.AppOpenScopeRef,
+	resolveErr error,
+) (*runtimev1.OpenAppResponse, bool) {
+	if s.localAdoptions == nil {
+		return nil, false
+	}
+	adoption, ok, err := s.localAdoptions.findAdopted(appID)
+	if err != nil {
+		return openBlockedResponse(appID, scope, blocked(
+			runtimev1.AppOpenFlowStep_APP_OPEN_FLOW_STEP_RESOLVE_REGISTRY,
+			runtimev1.ReasonCode_APP_INSTALL_DESCRIPTOR_NOT_FOUND,
+			err.Error(),
+		)), true
+	}
+	if !ok {
+		return nil, false
+	}
+	app, manifestErr := appFromLocalAdoption(adoption)
+	if manifestErr != nil {
+		return openBlockedResponse(appID, scope, *manifestErr), true
+	}
+	if packageErr := verifyOpenLocalPackage(adoption); packageErr != nil {
+		return openBlockedResponse(appID, scope, *packageErr), true
+	}
+	if inventoryErr := s.verifyOpenAccountInventory(ctx, app); inventoryErr != nil {
+		return openBlockedResponse(appID, scope, *inventoryErr), true
+	}
+	plan, planErr := s.localAdoptionAppRoots(adoption)
+	if planErr != nil {
+		return openBlockedResponse(appID, scope, blocked(
+			runtimev1.AppOpenFlowStep_APP_OPEN_FLOW_STEP_VERIFY_APP_DATA,
+			runtimev1.ReasonCode_APP_OPEN_APP_DATA_INVALID,
+			planErr.Error(),
+		)), true
+	}
+	if dataErr := verifyOpenAppData(plan); dataErr != nil {
+		return openBlockedResponse(appID, scope, *dataErr), true
+	}
+	if permErr := s.verifyOpenPermissions(ctx, app); permErr != nil {
+		return openBlockedResponse(appID, scope, *permErr), true
+	}
+	if manifestErr := verifyOpenLocalManifest(adoption); manifestErr != nil {
+		return openBlockedResponse(appID, scope, *manifestErr), true
+	}
+	if s.logger != nil {
+		s.logger.Info("local app open flow launched",
+			"app_id", appID,
+			"active_version", adoption.Version,
+			"scope_owner", scope.GetOwnerId(),
+			"scope_surface", scope.GetSurfaceId(),
+			"registry_resolve_error", resolveErr.Error(),
+		)
+	}
+	return &runtimev1.OpenAppResponse{
+		Projection: &runtimev1.AppOpenProjection{
+			AppId:         appID,
+			State:         runtimev1.AppOpenState_APP_OPEN_STATE_LAUNCHED,
+			ReachedStep:   runtimev1.AppOpenFlowStep_APP_OPEN_FLOW_STEP_LAUNCH,
+			Launched:      true,
+			ActiveVersion: adoption.Version,
+			Scope:         scope,
+			ReasonCode:    runtimev1.ReasonCode_ACTION_EXECUTED,
+		},
+	}, true
+}
+
+func (s *Service) localAdoptionAppRoots(adoption localAppAdoptionRecord) (appstorage.Plan, error) {
+	dataRootRef := strings.TrimSpace(s.appStorageDataRoot)
+	if dataRootRef == "" && s.installRuntime != nil {
+		dataRootRef = strings.TrimSpace(s.installRuntime.dataRootRef)
+	}
+	return appstorage.ResolveAppRoots(dataRootRef, adoption.AppID, adoption.StoragePolicyRef)
+}
+
+func appFromLocalAdoption(adoption localAppAdoptionRecord) (appregistrycatalog.App, *openBlocked) {
+	scopes, ok := localPermissionScopeRefs(adoption.AppID, adoption.PermissionScopeRef)
+	if !ok {
+		e := blocked(
+			runtimev1.AppOpenFlowStep_APP_OPEN_FLOW_STEP_VERIFY_PERMISSIONS,
+			runtimev1.ReasonCode_APP_OPEN_PERMISSION_NOT_GRANTED,
+			"local app adoption permissionScopeRef is not structurally parseable",
+		)
+		return appregistrycatalog.App{}, &e
+	}
+	return appregistrycatalog.App{
+		AppID:                   adoption.AppID,
+		DisplayLabel:            adoption.DisplayName,
+		Publisher:               "Local",
+		PackageKind:             appregistrycatalog.PackageKindNimiApp,
+		PermissionScopeRefs:     scopes,
+		OrdinaryVisibility:      appregistrycatalog.OrdinaryVisibilityOrdinaryVisible,
+		AdmissionStatus:         appregistrycatalog.AdmissionStatusAdmitted,
+		InstallStoragePolicyRef: adoption.StoragePolicyRef,
+		SourceRule:              "local_adoption",
+	}, nil
+}
+
+func localPermissionScopeRefs(appID string, ref string) ([]appregistrycatalog.PermissionScopeRef, bool) {
+	normalized := strings.TrimSpace(ref)
+	if normalized == "" {
+		return nil, false
+	}
+	if parts := strings.SplitN(normalized, ":", 2); len(parts) == 2 {
+		family := strings.TrimSpace(parts[0])
+		name := strings.TrimSpace(parts[1])
+		return []appregistrycatalog.PermissionScopeRef{{
+			AppID:       appID,
+			ScopeFamily: family,
+			ScopeName:   name,
+		}}, family != "" && name != ""
+	}
+	if strings.Contains(normalized, ".") {
+		return []appregistrycatalog.PermissionScopeRef{{
+			AppID:       appID,
+			ScopeFamily: "app",
+			ScopeName:   normalized,
+		}}, true
+	}
+	return nil, false
+}
+
+func verifyOpenLocalPackage(adoption localAppAdoptionRecord) *openBlocked {
+	candidate, err := resolveLocalAppAdoptionCandidate(adoption.RootPath, adoption.AppID)
+	if err != nil {
+		e := blocked(
+			runtimev1.AppOpenFlowStep_APP_OPEN_FLOW_STEP_VERIFY_PACKAGE,
+			runtimev1.ReasonCode_APP_OPEN_PACKAGE_NOT_VERIFIED,
+			err.Error(),
+		)
+		return &e
+	}
+	if candidate.Version != adoption.Version ||
+		candidate.EntryRef != adoption.EntryRef ||
+		candidate.PermissionScopeRef != adoption.PermissionScopeRef ||
+		candidate.StoragePolicyRef != adoption.StoragePolicyRef ||
+		candidate.ManifestPath != adoption.ManifestPath {
+		e := blocked(
+			runtimev1.AppOpenFlowStep_APP_OPEN_FLOW_STEP_VERIFY_PACKAGE,
+			runtimev1.ReasonCode_APP_OPEN_PACKAGE_NOT_VERIFIED,
+			"local app adoption manifest no longer matches the Runtime adoption record",
+		)
+		return &e
+	}
+	return nil
+}
+
+func verifyOpenLocalManifest(adoption localAppAdoptionRecord) *openBlocked {
+	if strings.TrimSpace(adoption.EntryRef) == "" ||
+		strings.TrimSpace(adoption.PermissionScopeRef) == "" ||
+		strings.TrimSpace(adoption.StoragePolicyRef) == "" {
+		e := blocked(
+			runtimev1.AppOpenFlowStep_APP_OPEN_FLOW_STEP_VALIDATE_MANIFEST,
+			runtimev1.ReasonCode_APP_OPEN_MANIFEST_REQUIREMENT_UNSATISFIED,
+			"local app adoption manifest is missing entry, permission, or storage declarations",
+		)
+		return &e
+	}
+	return nil
 }
 
 // validateOpenScope validates the explicit app-launch AIConfig scope against
@@ -330,27 +496,26 @@ func verifyOpenAppData(plan appstorage.Plan) *openBlocked {
 	return nil
 }
 
-// verifyOpenPermissions verifies the app's declared permission scope refs are
-// structurally complete. A registry row that declares a permission scope with
-// a missing family/name fails the Open flow closed — launch never proceeds
-// against an unresolvable permission declaration.
-func (s *Service) verifyOpenAccountLibrary(ctx context.Context, app appregistrycatalog.App) *openBlocked {
+// verifyOpenAccountInventory verifies the authenticated account app-inventory
+// row for the target app. Package verification never substitutes for account
+// visibility or local materialization truth.
+func (s *Service) verifyOpenAccountInventory(ctx context.Context, app appregistrycatalog.App) *openBlocked {
 	if s.openReadiness == nil {
 		e := blocked(
 			runtimev1.AppOpenFlowStep_APP_OPEN_FLOW_STEP_VERIFY_LIBRARY,
 			runtimev1.ReasonCode_APP_OPEN_LIBRARY_STATE_INVALID,
-			"Runtime OpenApp account-library verifier is not configured",
+			"Runtime OpenApp account-inventory verifier is not configured",
 		)
 		return &e
 	}
-	decision, err := s.openReadiness.VerifyOpenAccountLibrary(ctx, app)
+	decision, err := s.openReadiness.VerifyOpenAccountInventory(ctx, app)
 	if err != nil || !decision.Allowed {
 		detail := strings.TrimSpace(decision.Detail)
 		if detail == "" && err != nil {
 			detail = err.Error()
 		}
 		if detail == "" {
-			detail = "account app-library state is not launchable"
+			detail = "account app-inventory state is not launchable"
 		}
 		e := blocked(
 			runtimev1.AppOpenFlowStep_APP_OPEN_FLOW_STEP_VERIFY_LIBRARY,

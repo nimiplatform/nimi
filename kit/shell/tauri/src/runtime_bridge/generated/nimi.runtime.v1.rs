@@ -1956,6 +1956,7 @@ pub enum AccountCallerMode {
     DesktopLaunchedAvatar = 3,
     WebCloud = 5,
     ExternalPrincipal = 6,
+    LocalDeveloperApp = 7,
 }
 impl AccountCallerMode {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -1970,6 +1971,7 @@ impl AccountCallerMode {
             Self::DesktopLaunchedAvatar => "ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR",
             Self::WebCloud => "ACCOUNT_CALLER_MODE_WEB_CLOUD",
             Self::ExternalPrincipal => "ACCOUNT_CALLER_MODE_EXTERNAL_PRINCIPAL",
+            Self::LocalDeveloperApp => "ACCOUNT_CALLER_MODE_LOCAL_DEVELOPER_APP",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -1983,6 +1985,7 @@ impl AccountCallerMode {
             }
             "ACCOUNT_CALLER_MODE_WEB_CLOUD" => Some(Self::WebCloud),
             "ACCOUNT_CALLER_MODE_EXTERNAL_PRINCIPAL" => Some(Self::ExternalPrincipal),
+            "ACCOUNT_CALLER_MODE_LOCAL_DEVELOPER_APP" => Some(Self::LocalDeveloperApp),
             _ => None,
         }
     }
@@ -13118,25 +13121,33 @@ pub struct GetAppStorageResponse {
     #[prost(message, optional, tag = "1")]
     pub projection: ::core::option::Option<AppStorageProjection>,
 }
-/// AccountAppLibraryRow is one Runtime-owned account app-library projection row.
-/// Runtime app lifecycle writes this projection; app consumers read it through
-/// GetAccountAppLibrary rather than resolving account-scoped files.
+/// AccountAppInventoryRow is one Runtime-owned account app inventory row.
+/// Consumers read it through GetAccountAppInventory; no renderer/app-supplied
+/// account_id is accepted.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct AccountAppLibraryRow {
+pub struct AccountAppInventoryRow {
     #[prost(string, tag = "1")]
     pub app_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub library_state: ::prost::alloc::string::String,
-    #[prost(bool, tag = "3")]
-    pub installed: bool,
+    #[prost(enumeration = "AccountAppInventoryState", tag = "2")]
+    pub account_state: i32,
+    #[prost(enumeration = "AccountAppInstallState", tag = "3")]
+    pub install_state: i32,
     #[prost(string, tag = "4")]
     pub last_opened_at: ::prost::alloc::string::String,
     #[prost(string, tag = "5")]
     pub data_policy: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub verified_at: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub source: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub detail: ::prost::alloc::string::String,
 }
-/// AccountAppLibraryRecord is the account-scoped app-library projection.
+/// AccountAppInventoryRecord is the authenticated account-scoped app inventory
+/// projection. Schema version 2 hard-cuts the previous install-after-write
+/// library shape: account visibility and local materialization are distinct.
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct AccountAppLibraryRecord {
+pub struct AccountAppInventoryRecord {
     #[prost(uint32, tag = "1")]
     pub schema_version: u32,
     #[prost(string, tag = "2")]
@@ -13144,19 +13155,93 @@ pub struct AccountAppLibraryRecord {
     #[prost(string, tag = "3")]
     pub updated_at: ::prost::alloc::string::String,
     #[prost(message, repeated, tag = "4")]
-    pub apps: ::prost::alloc::vec::Vec<AccountAppLibraryRow>,
+    pub apps: ::prost::alloc::vec::Vec<AccountAppInventoryRow>,
 }
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct GetAccountAppLibraryRequest {}
+pub struct GetAccountAppInventoryRequest {}
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct GetAccountAppLibraryResponse {
+pub struct GetAccountAppInventoryResponse {
     #[prost(bool, tag = "1")]
     pub exists: bool,
     #[prost(message, optional, tag = "2")]
-    pub record: ::core::option::Option<AccountAppLibraryRecord>,
+    pub record: ::core::option::Option<AccountAppInventoryRecord>,
     #[prost(enumeration = "ReasonCode", tag = "3")]
     pub reason_code: i32,
     #[prost(string, tag = "4")]
+    pub detail: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppAdoption {
+    #[prost(string, tag = "1")]
+    pub app_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub root_path: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub manifest_path: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub display_name: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub version: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub entry_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub permission_scope_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub storage_policy_ref: ::prost::alloc::string::String,
+    #[prost(enumeration = "LocalAppAdoptionState", tag = "9")]
+    pub state: i32,
+    #[prost(enumeration = "LocalAppAdoptionTrust", tag = "10")]
+    pub trust: i32,
+    #[prost(string, tag = "11")]
+    pub adopted_at: ::prost::alloc::string::String,
+    #[prost(string, tag = "12")]
+    pub updated_at: ::prost::alloc::string::String,
+    #[prost(enumeration = "ReasonCode", tag = "13")]
+    pub reason_code: i32,
+    #[prost(string, tag = "14")]
+    pub detail: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AdoptLocalAppRequest {
+    #[prost(string, tag = "1")]
+    pub root_path: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub expected_app_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AdoptLocalAppResponse {
+    #[prost(message, optional, tag = "1")]
+    pub adoption: ::core::option::Option<LocalAppAdoption>,
+    #[prost(enumeration = "ReasonCode", tag = "2")]
+    pub reason_code: i32,
+    #[prost(string, tag = "3")]
+    pub detail: ::prost::alloc::string::String,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ListLocalAppAdoptionsRequest {}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListLocalAppAdoptionsResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub adoptions: ::prost::alloc::vec::Vec<LocalAppAdoption>,
+    #[prost(enumeration = "ReasonCode", tag = "2")]
+    pub reason_code: i32,
+    #[prost(string, tag = "3")]
+    pub detail: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RemoveLocalAppAdoptionRequest {
+    #[prost(string, tag = "1")]
+    pub app_id: ::prost::alloc::string::String,
+    #[prost(bool, tag = "2")]
+    pub delete_durable_data_confirmed: bool,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RemoveLocalAppAdoptionResponse {
+    #[prost(message, optional, tag = "1")]
+    pub adoption: ::core::option::Option<LocalAppAdoption>,
+    #[prost(enumeration = "ReasonCode", tag = "2")]
+    pub reason_code: i32,
+    #[prost(string, tag = "3")]
     pub detail: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -13173,7 +13258,8 @@ pub struct GetAppPackageReadinessResponse {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ListAppInstallJobsRequest {
-    /// app_id optionally filters jobs to a single app. Empty lists every job.
+    /// app_id filters jobs to a single app. Empty fails closed; global install-job
+    /// enumeration is not admitted for Apps inventory projection.
     #[prost(string, tag = "1")]
     pub app_id: ::prost::alloc::string::String,
 }
@@ -13184,8 +13270,8 @@ pub struct ListAppInstallJobsResponse {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct WatchAppInstallJobEventsRequest {
-    /// job_id optionally scopes the stream to a single install job. Empty
-    /// streams progress events for every install job.
+    /// job_id scopes the stream to one Runtime-emitted lifecycle job. Empty fails
+    /// closed; global job event streams are not admitted.
     #[prost(string, tag = "1")]
     pub job_id: ::prost::alloc::string::String,
 }
@@ -13709,6 +13795,151 @@ impl AppPackageReadinessState {
         }
     }
 }
+/// AccountAppInventoryState is the account-side authority for an app row. It is
+/// not derived from local install evidence: a verified/entitled app may be
+/// visible before any package is installed or adopted on this machine.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AccountAppInventoryState {
+    Unspecified = 0,
+    Verified = 1,
+    Entitled = 2,
+    Disabled = 3,
+    Removed = 4,
+    Revoked = 5,
+}
+impl AccountAppInventoryState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "ACCOUNT_APP_INVENTORY_STATE_UNSPECIFIED",
+            Self::Verified => "ACCOUNT_APP_INVENTORY_STATE_VERIFIED",
+            Self::Entitled => "ACCOUNT_APP_INVENTORY_STATE_ENTITLED",
+            Self::Disabled => "ACCOUNT_APP_INVENTORY_STATE_DISABLED",
+            Self::Removed => "ACCOUNT_APP_INVENTORY_STATE_REMOVED",
+            Self::Revoked => "ACCOUNT_APP_INVENTORY_STATE_REVOKED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "ACCOUNT_APP_INVENTORY_STATE_UNSPECIFIED" => Some(Self::Unspecified),
+            "ACCOUNT_APP_INVENTORY_STATE_VERIFIED" => Some(Self::Verified),
+            "ACCOUNT_APP_INVENTORY_STATE_ENTITLED" => Some(Self::Entitled),
+            "ACCOUNT_APP_INVENTORY_STATE_DISABLED" => Some(Self::Disabled),
+            "ACCOUNT_APP_INVENTORY_STATE_REMOVED" => Some(Self::Removed),
+            "ACCOUNT_APP_INVENTORY_STATE_REVOKED" => Some(Self::Revoked),
+            _ => None,
+        }
+    }
+}
+/// AccountAppInstallState is the account inventory's local materialization
+/// overlay. Runtime install/uninstall/adoption lifecycles mutate this field;
+/// they do not create account entitlement truth.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AccountAppInstallState {
+    Unspecified = 0,
+    NotInstalled = 1,
+    Installed = 2,
+    AdoptedLocal = 3,
+    Removed = 4,
+}
+impl AccountAppInstallState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "ACCOUNT_APP_INSTALL_STATE_UNSPECIFIED",
+            Self::NotInstalled => "ACCOUNT_APP_INSTALL_STATE_NOT_INSTALLED",
+            Self::Installed => "ACCOUNT_APP_INSTALL_STATE_INSTALLED",
+            Self::AdoptedLocal => "ACCOUNT_APP_INSTALL_STATE_ADOPTED_LOCAL",
+            Self::Removed => "ACCOUNT_APP_INSTALL_STATE_REMOVED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "ACCOUNT_APP_INSTALL_STATE_UNSPECIFIED" => Some(Self::Unspecified),
+            "ACCOUNT_APP_INSTALL_STATE_NOT_INSTALLED" => Some(Self::NotInstalled),
+            "ACCOUNT_APP_INSTALL_STATE_INSTALLED" => Some(Self::Installed),
+            "ACCOUNT_APP_INSTALL_STATE_ADOPTED_LOCAL" => Some(Self::AdoptedLocal),
+            "ACCOUNT_APP_INSTALL_STATE_REMOVED" => Some(Self::Removed),
+            _ => None,
+        }
+    }
+}
+/// LocalAppAdoptionState is Runtime-owned local external app adoption state. It
+/// is written only by the explicit AdoptLocalApp lifecycle and never by source
+/// scanning or Desktop renderer state.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum LocalAppAdoptionState {
+    Unspecified = 0,
+    Adopted = 1,
+    RepairRequired = 2,
+    Removed = 3,
+}
+impl LocalAppAdoptionState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "LOCAL_APP_ADOPTION_STATE_UNSPECIFIED",
+            Self::Adopted => "LOCAL_APP_ADOPTION_STATE_ADOPTED",
+            Self::RepairRequired => "LOCAL_APP_ADOPTION_STATE_REPAIR_REQUIRED",
+            Self::Removed => "LOCAL_APP_ADOPTION_STATE_REMOVED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "LOCAL_APP_ADOPTION_STATE_UNSPECIFIED" => Some(Self::Unspecified),
+            "LOCAL_APP_ADOPTION_STATE_ADOPTED" => Some(Self::Adopted),
+            "LOCAL_APP_ADOPTION_STATE_REPAIR_REQUIRED" => Some(Self::RepairRequired),
+            "LOCAL_APP_ADOPTION_STATE_REMOVED" => Some(Self::Removed),
+            _ => None,
+        }
+    }
+}
+/// LocalAppAdoptionTrust is the local trust posture. Local adoption is not public
+/// Platform admission and must not be projected as ordinary catalog truth.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum LocalAppAdoptionTrust {
+    Unspecified = 0,
+    ExplicitLocal = 1,
+    DeveloperLocal = 2,
+}
+impl LocalAppAdoptionTrust {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "LOCAL_APP_ADOPTION_TRUST_UNSPECIFIED",
+            Self::ExplicitLocal => "LOCAL_APP_ADOPTION_TRUST_EXPLICIT_LOCAL",
+            Self::DeveloperLocal => "LOCAL_APP_ADOPTION_TRUST_DEVELOPER_LOCAL",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "LOCAL_APP_ADOPTION_TRUST_UNSPECIFIED" => Some(Self::Unspecified),
+            "LOCAL_APP_ADOPTION_TRUST_EXPLICIT_LOCAL" => Some(Self::ExplicitLocal),
+            "LOCAL_APP_ADOPTION_TRUST_DEVELOPER_LOCAL" => Some(Self::DeveloperLocal),
+            _ => None,
+        }
+    }
+}
 /// AppOpenFlowStep is the typed Open-flow step (K-APP-017). It surfaces the
 /// concrete checkpoint the launch is at so a failed Open names the exact step
 /// rather than a generic failure. It is never inferred.
@@ -13721,7 +13952,7 @@ pub enum AppOpenFlowStep {
     /// VERIFY_PACKAGE verifies the materialized release package + install
     /// evidence (active release pointer, digest-verified payload).
     VerifyPackage = 2,
-    /// VERIFY_LIBRARY verifies the account app-library state for the app.
+    /// VERIFY_LIBRARY verifies the account app-inventory state for the app.
     VerifyLibrary = 3,
     /// VERIFY_APP_DATA verifies the durable app-data root state.
     VerifyAppData = 4,
@@ -14035,11 +14266,11 @@ pub mod runtime_app_service_client {
                 );
             self.inner.unary(req, path, codec).await
         }
-        pub async fn get_account_app_library(
+        pub async fn get_account_app_inventory(
             &mut self,
-            request: impl tonic::IntoRequest<super::GetAccountAppLibraryRequest>,
+            request: impl tonic::IntoRequest<super::GetAccountAppInventoryRequest>,
         ) -> std::result::Result<
-            tonic::Response<super::GetAccountAppLibraryResponse>,
+            tonic::Response<super::GetAccountAppInventoryResponse>,
             tonic::Status,
         > {
             self.inner
@@ -14052,14 +14283,98 @@ pub mod runtime_app_service_client {
                 })?;
             let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAppService/GetAccountAppLibrary",
+                "/nimi.runtime.v1.RuntimeAppService/GetAccountAppInventory",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAppService",
-                        "GetAccountAppLibrary",
+                        "GetAccountAppInventory",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn adopt_local_app(
+            &mut self,
+            request: impl tonic::IntoRequest<super::AdoptLocalAppRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::AdoptLocalAppResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAppService/AdoptLocalApp",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new("nimi.runtime.v1.RuntimeAppService", "AdoptLocalApp"),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn list_local_app_adoptions(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ListLocalAppAdoptionsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListLocalAppAdoptionsResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAppService/ListLocalAppAdoptions",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAppService",
+                        "ListLocalAppAdoptions",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn remove_local_app_adoption(
+            &mut self,
+            request: impl tonic::IntoRequest<super::RemoveLocalAppAdoptionRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::RemoveLocalAppAdoptionResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppAdoption",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAppService",
+                        "RemoveLocalAppAdoption",
                     ),
                 );
             self.inner.unary(req, path, codec).await

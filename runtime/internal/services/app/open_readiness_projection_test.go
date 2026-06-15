@@ -54,16 +54,18 @@ func runtimeProjectionAccountSegment(accountID string) string {
 func TestOpenAppReadinessVerifierAllowsEnabledInstalledAppAndGrantedPermissions(t *testing.T) {
 	verifier, nimiDir := newProjectionOpenReadinessVerifierForTest(t, "account/one")
 	accountDir := filepath.Join(nimiDir, "accounts", runtimeProjectionAccountSegment("account/one"))
-	writeRuntimeProjectionJSON(t, filepath.Join(accountDir, "apps", "library.json"), `{
-  "schemaVersion": 1,
+	writeRuntimeProjectionJSON(t, filepath.Join(accountDir, "apps", "inventory.json"), `{
+  "schemaVersion": 2,
   "accountId": "account/one",
   "updatedAt": "2026-06-02T00:00:00.000Z",
   "apps": [{
     "appId": "nimi.example-app",
-    "libraryState": "enabled",
-    "installed": true,
+    "accountState": "verified",
+    "installState": "installed",
     "lastOpenedAt": null,
-    "dataPolicy": "keep_on_uninstall"
+    "dataPolicy": "keep_on_uninstall",
+    "verifiedAt": "2026-06-01T00:00:00.000Z",
+    "source": "nimi-account"
   }]
 }`)
 	writeRuntimeProjectionJSON(t, filepath.Join(accountDir, "permissions", "grants.json"), `{
@@ -90,12 +92,12 @@ func TestOpenAppReadinessVerifierAllowsEnabledInstalledAppAndGrantedPermissions(
 			ScopeName:   "account.session.read",
 		}},
 	}
-	library, err := verifier.VerifyOpenAccountLibrary(context.Background(), app)
+	inventory, err := verifier.VerifyOpenAccountInventory(context.Background(), app)
 	if err != nil {
-		t.Fatalf("VerifyOpenAccountLibrary: %v", err)
+		t.Fatalf("VerifyOpenAccountInventory: %v", err)
 	}
-	if !library.Allowed {
-		t.Fatalf("library gate blocked: %+v", library)
+	if !inventory.Allowed {
+		t.Fatalf("inventory gate blocked: %+v", inventory)
 	}
 	permissions, err := verifier.VerifyOpenPermissions(context.Background(), app)
 	if err != nil {
@@ -106,7 +108,7 @@ func TestOpenAppReadinessVerifierAllowsEnabledInstalledAppAndGrantedPermissions(
 	}
 }
 
-func TestOpenAppReadinessVerifierFailsClosedOnMissingLibraryAndExpiredGrant(t *testing.T) {
+func TestOpenAppReadinessVerifierFailsClosedOnMissingInventoryAndExpiredGrant(t *testing.T) {
 	verifier, nimiDir := newProjectionOpenReadinessVerifierForTest(t, "account_1")
 	app := appregistrycatalog.App{
 		AppID: "nimi.example-app",
@@ -116,12 +118,12 @@ func TestOpenAppReadinessVerifierFailsClosedOnMissingLibraryAndExpiredGrant(t *t
 			ScopeName:   "account.session.read",
 		}},
 	}
-	library, err := verifier.VerifyOpenAccountLibrary(context.Background(), app)
+	inventory, err := verifier.VerifyOpenAccountInventory(context.Background(), app)
 	if err != nil {
-		t.Fatalf("VerifyOpenAccountLibrary: %v", err)
+		t.Fatalf("VerifyOpenAccountInventory: %v", err)
 	}
-	if library.Allowed || !strings.Contains(library.Detail, "missing") {
-		t.Fatalf("expected missing library fail-closed decision, got %+v", library)
+	if inventory.Allowed || !strings.Contains(inventory.Detail, "missing") {
+		t.Fatalf("expected missing inventory fail-closed decision, got %+v", inventory)
 	}
 
 	accountDir := filepath.Join(nimiDir, "accounts", runtimeProjectionAccountSegment("account_1"))
@@ -297,9 +299,9 @@ func TestOpenAppReadinessVerifierFailsClosedForEmptyGrantQualifier(t *testing.T)
 
 func TestOpenAppReadinessVerifierRequiresAuthenticatedRuntimeAccount(t *testing.T) {
 	verifier := NewAccountProjectionOpenAppReadinessVerifier(testRuntimeAccountProjectionProvider{})
-	decision, err := verifier.VerifyOpenAccountLibrary(context.Background(), appregistrycatalog.App{AppID: "nimi.example-app"})
+	decision, err := verifier.VerifyOpenAccountInventory(context.Background(), appregistrycatalog.App{AppID: "nimi.example-app"})
 	if err != nil {
-		t.Fatalf("VerifyOpenAccountLibrary: %v", err)
+		t.Fatalf("VerifyOpenAccountInventory: %v", err)
 	}
 	if decision.Allowed || !strings.Contains(decision.Detail, "authenticated Runtime account session") {
 		t.Fatalf("expected authenticated account fail-closed decision, got %+v", decision)

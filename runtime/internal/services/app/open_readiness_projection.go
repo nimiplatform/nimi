@@ -15,11 +15,8 @@ import (
 )
 
 const (
-	accountAppLibrarySchemaVersion = 1
-	accountGrantsSchemaVersion     = 1
-
-	accountAppLibraryStateEnabled = "enabled"
-	accountGrantStateGranted      = "granted"
+	accountGrantsSchemaVersion = 1
+	accountGrantStateGranted   = "granted"
 )
 
 type runtimeAccountProjectionProvider interface {
@@ -55,7 +52,7 @@ func WithOpenAppReadinessClockForTest(now func() time.Time) OpenAppReadinessProj
 }
 
 // NewAccountProjectionOpenAppReadinessVerifier builds the production Runtime
-// verifier for K-APP-017 account-library and permission gates. The verifier
+// verifier for K-APP-017 account-inventory and permission gates. The verifier
 // consumes Runtime AccountService authenticated projection and governed
 // account-scoped files under ~/.nimi/accounts/<account-id>/...; it never
 // treats package verification or registry structure as launch permission.
@@ -100,12 +97,12 @@ func (v *accountProjectionOpenReadinessVerifier) accountID(ctx context.Context) 
 	return accountID, OpenAppReadinessDecision{Allowed: true}
 }
 
-func (v *accountProjectionOpenReadinessVerifier) VerifyOpenAccountLibrary(ctx context.Context, app appregistrycatalog.App) (OpenAppReadinessDecision, error) {
+func (v *accountProjectionOpenReadinessVerifier) VerifyOpenAccountInventory(ctx context.Context, app appregistrycatalog.App) (OpenAppReadinessDecision, error) {
 	accountID, decision := v.accountID(ctx)
 	if !decision.Allowed {
 		return decision, nil
 	}
-	record, err := v.readAccountAppLibrary(accountID)
+	record, err := v.readAccountAppInventory(accountID)
 	if err != nil {
 		return OpenAppReadinessDecision{Allowed: false, Detail: err.Error()}, nil
 	}
@@ -113,15 +110,17 @@ func (v *accountProjectionOpenReadinessVerifier) VerifyOpenAccountLibrary(ctx co
 		if strings.TrimSpace(row.AppID) != strings.TrimSpace(app.AppID) {
 			continue
 		}
-		if row.LibraryState != accountAppLibraryStateEnabled {
-			return OpenAppReadinessDecision{Allowed: false, Detail: "account app-library row is not enabled"}, nil
+		if !accountStateLaunchable(row.AccountState) {
+			return OpenAppReadinessDecision{Allowed: false, Detail: "account app-inventory row is not verified or entitled"}, nil
 		}
-		if !row.Installed {
-			return OpenAppReadinessDecision{Allowed: false, Detail: "account app-library row is not installed"}, nil
+		switch strings.TrimSpace(row.InstallState) {
+		case accountAppInstallStateInstalled, accountAppInstallStateAdoptedLocal:
+			return OpenAppReadinessDecision{Allowed: true}, nil
+		default:
+			return OpenAppReadinessDecision{Allowed: false, Detail: "account app-inventory row is not locally materialized"}, nil
 		}
-		return OpenAppReadinessDecision{Allowed: true}, nil
 	}
-	return OpenAppReadinessDecision{Allowed: false, Detail: "account app-library row is missing"}, nil
+	return OpenAppReadinessDecision{Allowed: false, Detail: "account app-inventory row is missing"}, nil
 }
 
 func (v *accountProjectionOpenReadinessVerifier) VerifyOpenPermissions(ctx context.Context, app appregistrycatalog.App) (OpenAppReadinessDecision, error) {
@@ -150,21 +149,6 @@ func (v *accountProjectionOpenReadinessVerifier) VerifyOpenPermissions(ctx conte
 	return OpenAppReadinessDecision{Allowed: true}, nil
 }
 
-type accountAppLibraryRecord struct {
-	SchemaVersion uint32                 `json:"schemaVersion"`
-	AccountID     string                 `json:"accountId"`
-	UpdatedAt     string                 `json:"updatedAt"`
-	Apps          []accountAppLibraryRow `json:"apps"`
-}
-
-type accountAppLibraryRow struct {
-	AppID        string  `json:"appId"`
-	LibraryState string  `json:"libraryState"`
-	Installed    bool    `json:"installed"`
-	LastOpenedAt *string `json:"lastOpenedAt"`
-	DataPolicy   string  `json:"dataPolicy"`
-}
-
 type accountGrantsRecord struct {
 	SchemaVersion uint32            `json:"schemaVersion"`
 	AccountID     string            `json:"accountId"`
@@ -184,17 +168,17 @@ type accountGrantRow struct {
 	Version          *uint64 `json:"version"`
 }
 
-func (v *accountProjectionOpenReadinessVerifier) readAccountAppLibrary(accountID string) (accountAppLibraryRecord, error) {
-	path, err := v.accountAppLibraryPath(accountID)
+func (v *accountProjectionOpenReadinessVerifier) readAccountAppInventory(accountID string) (accountAppInventoryRecord, error) {
+	path, err := v.accountAppInventoryPath(accountID)
 	if err != nil {
-		return accountAppLibraryRecord{}, err
+		return accountAppInventoryRecord{}, err
 	}
-	var record accountAppLibraryRecord
+	var record accountAppInventoryRecord
 	if err := readRequiredJSON(path, &record); err != nil {
-		return accountAppLibraryRecord{}, err
+		return accountAppInventoryRecord{}, err
 	}
-	if err := validateAccountAppLibraryRecord(record, accountID); err != nil {
-		return accountAppLibraryRecord{}, err
+	if err := validateAccountAppInventoryRecord(record, accountID); err != nil {
+		return accountAppInventoryRecord{}, err
 	}
 	return record, nil
 }
@@ -249,12 +233,12 @@ func (v *accountProjectionOpenReadinessVerifier) readAccountGrants(accountID str
 	return record, nil
 }
 
-func (v *accountProjectionOpenReadinessVerifier) accountAppLibraryPath(accountID string) (string, error) {
+func (v *accountProjectionOpenReadinessVerifier) accountAppInventoryPath(accountID string) (string, error) {
 	root, err := v.nimiDir()
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(root, "accounts", accountPathSegment(accountID), "apps", "library.json"), nil
+	return filepath.Join(root, "accounts", accountPathSegment(accountID), "apps", "inventory.json"), nil
 }
 
 func (v *accountProjectionOpenReadinessVerifier) accountGrantsPath(accountID string) (string, error) {

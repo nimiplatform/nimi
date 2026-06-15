@@ -279,33 +279,127 @@ message GetAppStorageResponse {
   AppStorageProjection projection = 1;
 }
 
-// AccountAppLibraryRow is one Runtime-owned account app-library projection row.
-// Runtime app lifecycle writes this projection; app consumers read it through
-// GetAccountAppLibrary rather than resolving account-scoped files.
-message AccountAppLibraryRow {
-  string app_id = 1;
-  string library_state = 2;
-  bool installed = 3;
-  string last_opened_at = 4;
-  string data_policy = 5;
+// AccountAppInventoryState is the account-side authority for an app row. It is
+// not derived from local install evidence: a verified/entitled app may be
+// visible before any package is installed or adopted on this machine.
+enum AccountAppInventoryState {
+  ACCOUNT_APP_INVENTORY_STATE_UNSPECIFIED = 0;
+  ACCOUNT_APP_INVENTORY_STATE_VERIFIED = 1;
+  ACCOUNT_APP_INVENTORY_STATE_ENTITLED = 2;
+  ACCOUNT_APP_INVENTORY_STATE_DISABLED = 3;
+  ACCOUNT_APP_INVENTORY_STATE_REMOVED = 4;
+  ACCOUNT_APP_INVENTORY_STATE_REVOKED = 5;
 }
 
-// AccountAppLibraryRecord is the account-scoped app-library projection.
-message AccountAppLibraryRecord {
+// AccountAppInstallState is the account inventory's local materialization
+// overlay. Runtime install/uninstall/adoption lifecycles mutate this field;
+// they do not create account entitlement truth.
+enum AccountAppInstallState {
+  ACCOUNT_APP_INSTALL_STATE_UNSPECIFIED = 0;
+  ACCOUNT_APP_INSTALL_STATE_NOT_INSTALLED = 1;
+  ACCOUNT_APP_INSTALL_STATE_INSTALLED = 2;
+  ACCOUNT_APP_INSTALL_STATE_ADOPTED_LOCAL = 3;
+  ACCOUNT_APP_INSTALL_STATE_REMOVED = 4;
+}
+
+// AccountAppInventoryRow is one Runtime-owned account app inventory row.
+// Consumers read it through GetAccountAppInventory; no renderer/app-supplied
+// account_id is accepted.
+message AccountAppInventoryRow {
+  string app_id = 1;
+  AccountAppInventoryState account_state = 2;
+  AccountAppInstallState install_state = 3;
+  string last_opened_at = 4;
+  string data_policy = 5;
+  string verified_at = 6;
+  string source = 7;
+  string detail = 8;
+}
+
+// AccountAppInventoryRecord is the authenticated account-scoped app inventory
+// projection. Schema version 2 hard-cuts the previous install-after-write
+// library shape: account visibility and local materialization are distinct.
+message AccountAppInventoryRecord {
   uint32 schema_version = 1;
   string account_id = 2;
   string updated_at = 3;
-  repeated AccountAppLibraryRow apps = 4;
+  repeated AccountAppInventoryRow apps = 4;
 }
 
-message GetAccountAppLibraryRequest {
+message GetAccountAppInventoryRequest {
 }
 
-message GetAccountAppLibraryResponse {
+message GetAccountAppInventoryResponse {
   bool exists = 1;
-  AccountAppLibraryRecord record = 2;
+  AccountAppInventoryRecord record = 2;
   ReasonCode reason_code = 3;
   string detail = 4;
+}
+
+// LocalAppAdoptionState is Runtime-owned local external app adoption state. It
+// is written only by the explicit AdoptLocalApp lifecycle and never by source
+// scanning or Desktop renderer state.
+enum LocalAppAdoptionState {
+  LOCAL_APP_ADOPTION_STATE_UNSPECIFIED = 0;
+  LOCAL_APP_ADOPTION_STATE_ADOPTED = 1;
+  LOCAL_APP_ADOPTION_STATE_REPAIR_REQUIRED = 2;
+  LOCAL_APP_ADOPTION_STATE_REMOVED = 3;
+}
+
+// LocalAppAdoptionTrust is the local trust posture. Local adoption is not public
+// Platform admission and must not be projected as ordinary catalog truth.
+enum LocalAppAdoptionTrust {
+  LOCAL_APP_ADOPTION_TRUST_UNSPECIFIED = 0;
+  LOCAL_APP_ADOPTION_TRUST_EXPLICIT_LOCAL = 1;
+  LOCAL_APP_ADOPTION_TRUST_DEVELOPER_LOCAL = 2;
+}
+
+message LocalAppAdoption {
+  string app_id = 1;
+  string root_path = 2;
+  string manifest_path = 3;
+  string display_name = 4;
+  string version = 5;
+  string entry_ref = 6;
+  string permission_scope_ref = 7;
+  string storage_policy_ref = 8;
+  LocalAppAdoptionState state = 9;
+  LocalAppAdoptionTrust trust = 10;
+  string adopted_at = 11;
+  string updated_at = 12;
+  ReasonCode reason_code = 13;
+  string detail = 14;
+}
+
+message AdoptLocalAppRequest {
+  string root_path = 1;
+  string expected_app_id = 2;
+}
+
+message AdoptLocalAppResponse {
+  LocalAppAdoption adoption = 1;
+  ReasonCode reason_code = 2;
+  string detail = 3;
+}
+
+message ListLocalAppAdoptionsRequest {
+}
+
+message ListLocalAppAdoptionsResponse {
+  repeated LocalAppAdoption adoptions = 1;
+  ReasonCode reason_code = 2;
+  string detail = 3;
+}
+
+message RemoveLocalAppAdoptionRequest {
+  string app_id = 1;
+  bool delete_durable_data_confirmed = 2;
+}
+
+message RemoveLocalAppAdoptionResponse {
+  LocalAppAdoption adoption = 1;
+  ReasonCode reason_code = 2;
+  string detail = 3;
 }
 
 message GetAppPackageReadinessRequest {
@@ -319,7 +413,8 @@ message GetAppPackageReadinessResponse {
 }
 
 message ListAppInstallJobsRequest {
-  // app_id optionally filters jobs to a single app. Empty lists every job.
+  // app_id filters jobs to a single app. Empty fails closed; global install-job
+  // enumeration is not admitted for Apps inventory projection.
   string app_id = 1;
 }
 
@@ -328,8 +423,8 @@ message ListAppInstallJobsResponse {
 }
 
 message WatchAppInstallJobEventsRequest {
-  // job_id optionally scopes the stream to a single install job. Empty
-  // streams progress events for every install job.
+  // job_id scopes the stream to one Runtime-emitted lifecycle job. Empty fails
+  // closed; global job event streams are not admitted.
   string job_id = 1;
 }
 
@@ -445,7 +540,7 @@ enum AppOpenFlowStep {
   // VERIFY_PACKAGE verifies the materialized release package + install
   // evidence (active release pointer, digest-verified payload).
   APP_OPEN_FLOW_STEP_VERIFY_PACKAGE = 2;
-  // VERIFY_LIBRARY verifies the account app-library state for the app.
+  // VERIFY_LIBRARY verifies the account app-inventory state for the app.
   APP_OPEN_FLOW_STEP_VERIFY_LIBRARY = 3;
   // VERIFY_APP_DATA verifies the durable app-data root state.
   APP_OPEN_FLOW_STEP_VERIFY_APP_DATA = 4;
@@ -524,7 +619,10 @@ service RuntimeAppService {
   rpc InstallApp(InstallAppRequest) returns (InstallAppResponse);
   rpc UninstallApp(UninstallAppRequest) returns (UninstallAppResponse);
   rpc GetAppStorage(GetAppStorageRequest) returns (GetAppStorageResponse);
-  rpc GetAccountAppLibrary(GetAccountAppLibraryRequest) returns (GetAccountAppLibraryResponse);
+  rpc GetAccountAppInventory(GetAccountAppInventoryRequest) returns (GetAccountAppInventoryResponse);
+  rpc AdoptLocalApp(AdoptLocalAppRequest) returns (AdoptLocalAppResponse);
+  rpc ListLocalAppAdoptions(ListLocalAppAdoptionsRequest) returns (ListLocalAppAdoptionsResponse);
+  rpc RemoveLocalAppAdoption(RemoveLocalAppAdoptionRequest) returns (RemoveLocalAppAdoptionResponse);
   rpc GetAppPackageReadiness(GetAppPackageReadinessRequest) returns (GetAppPackageReadinessResponse);
   rpc GetAppInstallJob(GetAppInstallJobRequest) returns (GetAppInstallJobResponse);
   rpc ListAppInstallJobs(ListAppInstallJobsRequest) returns (ListAppInstallJobsResponse);
