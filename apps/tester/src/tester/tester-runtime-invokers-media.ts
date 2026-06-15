@@ -30,6 +30,7 @@ import {
   resolveLocalRunnableAssetBinding,
   speechSynthesisParamsFromBinding,
 } from './tester-runtime-media-bindings.js';
+import type { TesterUnavailable } from './tester-unavailable.js';
 
 type RuntimeMediaJobOutput = {
   readonly job?: unknown;
@@ -300,6 +301,113 @@ function optionalText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
+function selectedParamRecord(resolved: ResolvedLLMBinding): Record<string, unknown> {
+  return resolved.selectedParams && typeof resolved.selectedParams === 'object' && !Array.isArray(resolved.selectedParams)
+    ? resolved.selectedParams as Record<string, unknown>
+    : {};
+}
+
+function optionalFiniteNumber(
+  capabilityId: 'video.generate' | 'audio.transcribe',
+  value: unknown,
+  fieldName: string,
+): number | TesterUnavailable | undefined {
+  const raw = typeof value === 'number' ? String(value) : optionalText(value);
+  if (!raw || raw.toLowerCase() === 'default' || raw.toLowerCase() === 'auto') return undefined;
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed)) {
+    return unavailableFromValidation(capabilityId, `NimiAIConfig selectedParams.${fieldName} must be a finite number.`);
+  }
+  return parsed;
+}
+
+function optionalPositiveInteger(
+  capabilityId: 'video.generate' | 'audio.transcribe',
+  value: unknown,
+  fieldName: string,
+): number | TesterUnavailable | undefined {
+  const parsed = optionalFiniteNumber(capabilityId, value, fieldName);
+  if (parsed === undefined || isTesterUnavailable(parsed)) return parsed;
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    return unavailableFromValidation(capabilityId, `NimiAIConfig selectedParams.${fieldName} must be a positive integer.`);
+  }
+  return parsed;
+}
+
+function isUnavailable(value: unknown): value is TesterUnavailable {
+  return isTesterUnavailable(value);
+}
+
+function booleanParam(value: unknown): boolean | undefined {
+  return typeof value === 'boolean' ? value : undefined;
+}
+
+function videoParamsFromBinding(resolved: ResolvedLLMBinding): {
+  mode: 't2v' | 'i2v-first-frame' | 'i2v-first-last' | 'i2v-reference';
+  negativePrompt?: string;
+  options: {
+    ratio?: string;
+    durationSec?: number;
+    resolution?: string;
+    fps?: number;
+    seed?: string;
+    cameraFixed?: boolean;
+    generateAudio?: boolean;
+  };
+  timeoutMs?: number;
+} | TesterUnavailable {
+  const params = selectedParamRecord(resolved);
+  const mode = optionalText(params.mode) || 't2v';
+  if (!['t2v', 'i2v-first-frame', 'i2v-first-last', 'i2v-reference'].includes(mode)) {
+    return unavailableFromValidation('video.generate', `NimiAIConfig selectedParams.mode is not supported: ${mode}.`);
+  }
+  const durationSec = optionalFiniteNumber('video.generate', params.durationSec, 'durationSec');
+  if (isUnavailable(durationSec)) return durationSec;
+  const fps = optionalPositiveInteger('video.generate', params.fps, 'fps');
+  if (isUnavailable(fps)) return fps;
+  const timeoutMs = optionalPositiveInteger('video.generate', params.timeoutMs, 'timeoutMs');
+  if (isUnavailable(timeoutMs)) return timeoutMs;
+  return {
+    mode: mode as 't2v' | 'i2v-first-frame' | 'i2v-first-last' | 'i2v-reference',
+    negativePrompt: optionalText(params.negativePrompt) || undefined,
+    options: {
+      ratio: optionalText(params.ratio) || undefined,
+      durationSec,
+      resolution: optionalText(params.resolution) || undefined,
+      fps,
+      seed: optionalText(params.seed) || undefined,
+      cameraFixed: booleanParam(params.cameraFixed),
+      generateAudio: booleanParam(params.generateAudio),
+    },
+    timeoutMs,
+  };
+}
+
+function transcriptionParamsFromBinding(resolved: ResolvedLLMBinding): {
+  language?: string;
+  responseFormat?: string;
+  speakerCount?: number;
+  prompt?: string;
+  timestamps?: boolean;
+  diarization?: boolean;
+  timeoutMs?: number;
+} | TesterUnavailable {
+  const params = selectedParamRecord(resolved);
+  const speakerCount = optionalPositiveInteger('audio.transcribe', params.speakerCount, 'speakerCount');
+  if (isUnavailable(speakerCount)) return speakerCount;
+  const timeoutMs = optionalPositiveInteger('audio.transcribe', params.timeoutMs, 'timeoutMs');
+  if (isUnavailable(timeoutMs)) return timeoutMs;
+  return {
+    language: optionalText(params.language) || undefined,
+    responseFormat: optionalText(params.responseFormat) || undefined,
+    speakerCount,
+    prompt: optionalText(params.prompt) || undefined,
+    timestamps: booleanParam(params.timestamps),
+    diarization: booleanParam(params.diarization),
+    timeoutMs,
+  };
+}
+
 function mimeTypeForAudioUrl(url: string, contentType?: string | null): string {
   const normalizedContentType = optionalText(contentType).split(';')[0]?.trim();
   if (normalizedContentType) return normalizedContentType;
@@ -391,29 +499,42 @@ export async function invokeVideoGenerate(client: TesterRuntimeInvocationClient,
   const route = routeInput(resolved);
   const subjectUserId = requireRuntimeSubjectUserId('video.generate', client);
   try {
+    const videoParams = videoParamsFromBinding(resolved);
+    if (isUnavailable(videoParams)) return videoParams;
+    const timeoutMs = videoParams.timeoutMs ?? 120_000;
     const mediaVideo = client.runtime.media?.video;
-    const output = mediaVideo
-      ? await mediaVideo.generate({
-        mode: 't2v',
-        ...route,
-        subjectUserId,
-        prompt,
-        content: [{ type: 'text', role: 'prompt', text: prompt }],
-        metadata: runtimeLabels('nimi.tester.media.video.generate', resolved, schedulingPreflight.evidenceMetadata),
-      }) as RuntimeMediaJobOutput
-      : await runNimiRuntimeScenarioJob({
-        ai: client.runtime.ai,
-        request: buildNimiRuntimeGenerationSubmitRequest(runtimeJobHead(resolved, subjectUserId), {
-          scenario: {
-            kind: 'video',
-            mode: 't2v',
-            prompt,
-            content: [{ type: 'text', role: 'prompt', text: prompt }],
-          },
-          ...runtimeJobIdentity('video.generate', input.scenarioId),
-          labels: runtimeLabels('nimi.tester.ai.video.generate', resolved, schedulingPreflight.evidenceMetadata),
-        }),
-      });
+    const output = await withRuntimeClientTimeout('video.generate', timeoutMs, async (signal) => (
+      mediaVideo
+        ? await mediaVideo.generate({
+          mode: videoParams.mode,
+          ...route,
+          subjectUserId,
+          prompt,
+          negativePrompt: videoParams.negativePrompt,
+          options: videoParams.options,
+          content: [{ type: 'text', role: 'prompt', text: prompt }],
+          timeoutMs,
+          signal,
+          metadata: runtimeLabels('nimi.tester.media.video.generate', resolved, schedulingPreflight.evidenceMetadata),
+        }) as RuntimeMediaJobOutput
+        : await runNimiRuntimeScenarioJob({
+          ai: client.runtime.ai,
+          request: buildNimiRuntimeGenerationSubmitRequest({ ...runtimeJobHead(resolved, subjectUserId), timeoutMs }, {
+            scenario: {
+              kind: 'video',
+              mode: videoParams.mode,
+              prompt,
+              negativePrompt: videoParams.negativePrompt,
+              content: [{ type: 'text', role: 'prompt', text: prompt }],
+              options: videoParams.options,
+            },
+            ...runtimeJobIdentity('video.generate', input.scenarioId),
+            labels: runtimeLabels('nimi.tester.ai.video.generate', resolved, schedulingPreflight.evidenceMetadata),
+          }),
+          signal,
+          abortReason: `tester_video_generate_timeout_${timeoutMs}ms`,
+        })
+    ));
     const artifacts = artifactsFrom(output);
     const job = summariseJob(output.job);
     return {
@@ -528,24 +649,45 @@ export async function invokeSpeechTranscribe(client: TesterRuntimeInvocationClie
   const route = routeInput(resolved);
   const subjectUserId = requireRuntimeSubjectUserId('audio.transcribe', client);
   try {
+    const transcriptionParams = transcriptionParamsFromBinding(resolved);
+    if (isUnavailable(transcriptionParams)) return transcriptionParams;
+    const timeoutMs = transcriptionParams.timeoutMs ?? 120_000;
     const audio = await audioBytesFromUrl(url);
     const mediaStt = client.runtime.media?.stt;
-    const output = mediaStt
-      ? await mediaStt.transcribe({
-        ...route,
-        subjectUserId,
-        audio: { kind: 'bytes', bytes: audio.bytes },
-        mimeType: audio.mimeType,
-        metadata: runtimeLabels('nimi.tester.media.stt.transcribe', resolved, schedulingPreflight.evidenceMetadata),
-      }) as RuntimeTranscriptOutput
-      : await runNimiRuntimeSpeechTranscription({
-        runtime: client.runtime,
-        head: runtimeJobHead(resolved, subjectUserId),
-        audio: { type: 'bytes', bytes: audio.bytes },
-        mimeType: audio.mimeType,
-        ...runtimeJobIdentity('audio.transcribe', input.scenarioId),
-        labels: runtimeLabels('nimi.tester.ai.speech.transcribe', resolved, schedulingPreflight.evidenceMetadata),
-      });
+    const output = await withRuntimeClientTimeout('audio.transcribe', timeoutMs, async (signal) => (
+      mediaStt
+        ? await mediaStt.transcribe({
+          ...route,
+          subjectUserId,
+          audio: { kind: 'bytes', bytes: audio.bytes },
+          mimeType: audio.mimeType,
+          language: transcriptionParams.language,
+          responseFormat: transcriptionParams.responseFormat,
+          speakerCount: transcriptionParams.speakerCount,
+          prompt: transcriptionParams.prompt,
+          timestamps: transcriptionParams.timestamps,
+          diarization: transcriptionParams.diarization,
+          timeoutMs,
+          signal,
+          metadata: runtimeLabels('nimi.tester.media.stt.transcribe', resolved, schedulingPreflight.evidenceMetadata),
+        }) as RuntimeTranscriptOutput
+        : await runNimiRuntimeSpeechTranscription({
+          runtime: client.runtime,
+          head: { ...runtimeJobHead(resolved, subjectUserId), timeoutMs },
+          audio: { type: 'bytes', bytes: audio.bytes },
+          mimeType: audio.mimeType,
+          language: transcriptionParams.language,
+          responseFormat: transcriptionParams.responseFormat,
+          speakerCount: transcriptionParams.speakerCount,
+          prompt: transcriptionParams.prompt,
+          timestamps: transcriptionParams.timestamps,
+          diarization: transcriptionParams.diarization,
+          ...runtimeJobIdentity('audio.transcribe', input.scenarioId),
+          labels: runtimeLabels('nimi.tester.ai.speech.transcribe', resolved, schedulingPreflight.evidenceMetadata),
+          signal,
+          abortReason: `tester_audio_transcribe_timeout_${timeoutMs}ms`,
+        })
+    ));
     const artifacts = artifactsFrom(output);
     const text = output.text ?? '';
     const job = summariseJob(output.job);

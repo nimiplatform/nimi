@@ -3,6 +3,30 @@ import { getTesterCapability, type TesterCapabilityId } from './tester-capabilit
 import { withTesterDataStorageRoot } from './tester-app-storage.js';
 import { isJsonObject } from '@nimiplatform/sdk/types';
 import type { TesterCapabilityRunResult } from './tester-runtime.js';
+import type { TesterRunTargetSummary } from './tester-run-target.js';
+
+export type TesterRunConfigSnapshot = {
+  target: Pick<
+    TesterRunTargetSummary,
+    | 'capabilityId'
+    | 'bindingCapabilityId'
+    | 'section'
+    | 'status'
+    | 'source'
+    | 'modelLabel'
+    | 'detail'
+    | 'paramsSummary'
+    | 'profileOrigin'
+  >;
+  promptControls: {
+    tone?: string;
+    length?: string;
+    contextAttached: boolean;
+    context?: string;
+    attachmentCount: number;
+  };
+  traceId?: string;
+};
 
 export type TesterRunHistoryResultSnapshot =
   | {
@@ -90,6 +114,7 @@ export type TesterRunHistoryRecord = {
   message: string;
   createdAt: string;
   result?: TesterRunHistoryResultSnapshot;
+  runConfig?: TesterRunConfigSnapshot;
 };
 
 export type TesterRunHistory = Record<string, TesterRunHistoryRecord[]>;
@@ -289,10 +314,8 @@ export function getTesterRunPromptSummary(record: TesterRunHistoryRecord): strin
 }
 
 function formatTesterTokenUsage(inputTokens?: number, outputTokens?: number, totalTokens?: number): string {
-  if (inputTokens !== undefined && outputTokens !== undefined) {
-    return `${inputTokens} in / ${outputTokens} out / ${totalTokens ?? inputTokens + outputTokens} total`;
-  }
-  if (totalTokens !== undefined) return `${totalTokens} tokens`;
+  const resolvedTotal = totalTokens ?? (inputTokens !== undefined && outputTokens !== undefined ? inputTokens + outputTokens : undefined);
+  if (resolvedTotal !== undefined) return `${resolvedTotal} tokens`;
   return '';
 }
 
@@ -316,6 +339,9 @@ function modelNameSource(value: string | undefined): TesterRunModelSource {
 }
 
 export function getTesterRunModelLabel(record: TesterRunHistoryRecord): string {
+  if (record.runConfig?.target.modelLabel) {
+    return cleanTesterRunModelName(record.runConfig.target.modelLabel);
+  }
   const result = record.result;
   if (result?.ok) {
     const modelResolved = 'modelResolved' in result ? result.modelResolved?.trim() : '';
@@ -327,6 +353,9 @@ export function getTesterRunModelLabel(record: TesterRunHistoryRecord): string {
 }
 
 export function getTesterRunModelSource(record: TesterRunHistoryRecord): TesterRunModelSource {
+  const targetSource = record.runConfig?.target.source;
+  if (targetSource === 'local' || targetSource === 'local-fixture') return 'local';
+  if (targetSource === 'cloud') return 'cloud';
   const result = record.result;
   if (!result?.ok) return record.status === 'local-fixture' ? 'local' : 'unknown';
   const routeDecision = 'routeDecision' in result ? result.routeDecision : undefined;
@@ -360,13 +389,15 @@ export function getTesterRunMetricSummary(record: TesterRunHistoryRecord): strin
 
 export function getTesterRunResultTags(record: TesterRunHistoryRecord): string[] {
   const result = record.result;
-  if (!result) return [record.status === 'ready' ? 'Runtime' : getTesterRunStatusLabel(record.status)];
+  const params = record.runConfig?.target.paramsSummary ?? [];
+  if (!result) return [record.status === 'ready' ? 'Runtime' : getTesterRunStatusLabel(record.status), ...params.slice(0, 2)];
   if (!result.ok) return [result.reason];
   if (result.kind === 'text') {
     return [
       result.streamed ? 'Stream' : 'Runtime',
       `${result.charCount} chars`,
       result.totalTokens === undefined ? '' : `${result.totalTokens} tokens`,
+      ...params.slice(0, 2),
     ].filter(Boolean);
   }
   if (result.kind === 'embedding') return [`${result.dimensions} dims`, `${result.vectorCount} vector${result.vectorCount === 1 ? '' : 's'}`];

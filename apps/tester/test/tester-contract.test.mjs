@@ -411,10 +411,17 @@ test('tester run history rows prioritize model identity and run metrics', () => 
   assert.match(historyStore, /\^\(local-import\|local\|cloud\)\\\//);
   assert.match(historyStore, /routeDecisionModelSource/);
   assert.match(historyStore, /export function getTesterRunMetricSummary/);
+  assert.match(historyStore, /export type TesterRunConfigSnapshot/);
+  assert.match(historyStore, /runConfig\?: TesterRunConfigSnapshot/);
+  assert.match(historyStore, /record\.runConfig\?\.target\.modelLabel/);
+  assert.match(historyStore, /record\.runConfig\?\.target\.source/);
+  assert.match(historyStore, /record\.runConfig\?\.target\.paramsSummary/);
   assert.match(historyStore, /modelResolved/);
   assert.match(historyStore, /inputTokens/);
   assert.match(historyStore, /outputTokens/);
   assert.match(historyStore, /totalTokens/);
+  assert.doesNotMatch(historyStore, /\bin \/.*\bout/);
+  assert.doesNotMatch(historyStore, /\bout \/.*\btotal/);
   assert.match(capabilities, /historyLabelForRun/);
   assert.match(capabilities, /HistoryModelSourceIcon/);
   assert.match(capabilities, /getTesterRunModelSource\(record\)/);
@@ -425,6 +432,8 @@ test('tester run history rows prioritize model identity and run metrics', () => 
   assert.match(capabilities, /studio-recent__model-line/);
   assert.match(capabilities, /studio-recent__model/);
   assert.match(capabilities, /studio-recent__metrics/);
+  assert.match(capabilities, /createRunConfigSnapshot/);
+  assert.match(capabilities, /record\.runConfig\?\.promptControls\.context/);
   assert.match(capabilities, /aria-label=\{historyLabelForRun\(record\)\}/);
   assert.match(styles, /grid-template-rows:\s*auto auto/);
   assert.match(styles, /grid-template-columns:\s*minmax\(0,\s*1fr\)\s*minmax\(260px,\s*300px\)/);
@@ -434,6 +443,7 @@ test('tester run history rows prioritize model identity and run metrics', () => 
   assert.match(styles, /\.studio-history \.studio-recent__model/);
   assert.match(styles, /max-width:\s*152px/);
   assert.match(styles, /\.studio-history \.studio-recent__metrics/);
+  assert.match(styles, /\.studio-result\s*\{[^}]*border-radius:\s*18px/s);
 });
 
 test('tester capability runs consume Kit renderer telemetry', () => {
@@ -560,6 +570,8 @@ test('tester AI config is the Kit model-config surface in Settings with real SDK
   const surface = read('src/shell/ai/tester-ai-config-settings.tsx');
   const panel = read('src/tester/workbench/tester-ai-config-settings-panel.tsx');
   const capabilities = readTesterAiTestingSurface(root);
+  const runTarget = read('src/tester/tester-run-target.ts');
+  const styles = read('src/tester/tester-workbench.css');
 
   for (const required of [
     'NimiAIProfile',
@@ -629,6 +641,33 @@ test('tester AI config is the Kit model-config surface in Settings with real SDK
   assert.match(capabilities, /TesterAiConfigSettingsPanel/);
   assert.match(capabilities, /CAPABILITY_TO_SECTION/);
   assert.match(capabilities, /onOpenConfig/);
+  assert.doesNotMatch(capabilities, /function RunTargetBar/);
+  assert.doesNotMatch(capabilities, /data-testid="studio-run-target"/);
+  assert.match(capabilities, /createTesterRunTargetSummary/);
+  assert.match(capabilities, /canDispatch=\{runTarget\.canDispatch\}/);
+  assert.match(capabilities, /if \(!runTarget\.canDispatch\) return/);
+  assert.match(runTarget, /export type TesterRunTargetSummary/);
+  for (const required of [
+    'capabilityId',
+    'bindingCapabilityId',
+    'section',
+    'status',
+    'source',
+    'modelLabel',
+    'detail',
+    'canDispatch',
+    'paramsSummary',
+    'profileOrigin',
+  ]) {
+    assert.match(runTarget, new RegExp(required));
+  }
+  assert.match(runTarget, /targetRef\.kind === 'profile-slice'/);
+  assert.match(runTarget, /runtime\.status !== 'ready'/);
+  assert.match(runTarget, /Choose a Runtime model target/);
+  assert.doesNotMatch(runTarget, /gpt-4|claude|gemini|openai|anthropic|model:\s*['"]auto['"]/i);
+  assert.doesNotMatch(styles, /\.studio-run-target/);
+  assert.doesNotMatch(styles, /\.studio-run-target__params/);
+  assert.match(styles, /@media \(max-width:\s*720px\)[\s\S]*\.section-ai-testing__drawer[\s\S]*position:\s*fixed/);
 });
 
 test('tester product-local persistence consumes Kit core storage helpers', () => {
@@ -659,6 +698,16 @@ test('tester LLM invokers consume AIConfig bindings and fail closed without bind
   assert.doesNotMatch(llmInvokers, /model:\s*['"]auto['"]/);
   assert.match(unavailable, /ai-config-binding-missing/);
   assert.match(invokers, /resolveTesterLLMBinding/);
+  assert.match(invokers, /textRuntimeParametersFromBinding/);
+  assert.match(invokers, /optionalFiniteParam\(capabilityId, params, 'temperature'\)/);
+  assert.match(invokers, /optionalPositiveIntegerParam\(capabilityId, params, 'timeoutMs'\)/);
+  assert.match(invokers, /stopSequences/);
+  assert.match(invokers, /must be a finite number/);
+  assert.match(invokers, /must be a positive integer/);
+  assert.match(invokers, /createTesterTextModel\(client, resolved, textParams\.timeoutMs\)/);
+  assert.match(invokers, /\.\.\.textParams\.parameters/);
+  assert.match(invokers, /temperature: textParams\.parameters\.temperature/);
+  assert.match(invokers, /timeoutMs: textParams\.timeoutMs/);
   assert.match(invokers, /text\.generate' \|\| capabilityId === 'chat\.stream'/);
   assert.match(invokers, /capabilityId === 'text\.embed'/);
   assert.match(invokers, /Runtime invocation failed closed before request dispatch/);
@@ -684,8 +733,17 @@ test('tester LLM invokers consume AIConfig bindings and fail closed without bind
   assert.doesNotMatch(invokers, /client\.runtime\.ai\.peekScheduling/);
 
   const mediaBindings = read('src/tester/tester-runtime-media-bindings.ts');
+  const mediaInvokers = read('src/tester/tester-runtime-invokers-media.ts');
   assert.match(mediaBindings, /selectedParamRecord\(resolved\)/);
   assert.match(mediaBindings, /\.\.\.forwardedParams,\s*profile_entries:/);
+  assert.match(mediaInvokers, /videoParamsFromBinding/);
+  assert.match(mediaInvokers, /transcriptionParamsFromBinding/);
+  assert.match(mediaInvokers, /mode: videoParams\.mode/);
+  assert.match(mediaInvokers, /negativePrompt: videoParams\.negativePrompt/);
+  assert.match(mediaInvokers, /options: videoParams\.options/);
+  assert.match(mediaInvokers, /speakerCount: transcriptionParams\.speakerCount/);
+  assert.match(mediaInvokers, /diarization: transcriptionParams\.diarization/);
+  assert.match(mediaInvokers, /timeoutMs,\s*signal/s);
 });
 
 test('tester LLM binding resolver fails closed for missing and malformed bindings', async () => {
@@ -966,6 +1024,284 @@ test('tester LLM invoker dispatches configured AIConfig route payload', async ()
   assert.equal(captured[5].options.metadata.aiConfigBindingCapabilityId, 'text.embed');
   assert.equal(captured[5].options.metadata.runtimeSchedulingState, 'runnable');
   assert.equal(Object.hasOwn(captured[5].options.metadata, 'runtimeSchedulingDetail'), false);
+});
+
+test('tester LLM invokers forward selectedParams and timeout to Runtime payloads', async () => {
+  const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');
+  const store = await importBehaviorModule('tester/tester-ai-config-store.js');
+  const scopeRef = store.createTesterAppLabAIScopeRef();
+  store.saveTesterAIConfig({
+    scopeRef,
+    capabilities: {
+      targetRefs: {
+        'text.generate': {
+          kind: 'cloud-connector',
+          connectorId: 'runtime-connector',
+          providerModelId: 'runtime-model',
+        },
+      },
+      selectedParams: {
+        'text.generate': {
+          temperature: '0.25',
+          topP: 0.8,
+          topK: '40',
+          maxTokens: '128',
+          presencePenalty: '0.1',
+          frequencyPenalty: '0.2',
+          stopSequences: ['END', ''],
+          timeoutMs: '90000',
+        },
+      },
+    },
+    profileOrigin: {
+      profileId: 'params-profile',
+      title: 'Params Profile',
+      appliedAt: '2026-06-03T00:00:00.000Z',
+    },
+  });
+
+  const captured = [];
+  const client = {
+    runtime: {
+      scheduling: {
+        async peekScheduling(input, options) {
+          captured.push({ surface: 'peekScheduling', input, options });
+          return runnableSchedulingResponse();
+        },
+      },
+      ai: {
+        async executeScenario(input, options) {
+          captured.push({ surface: 'executeScenario', input, options });
+          return textGenerateScenarioResponse(input);
+        },
+        streamScenario(input, options) {
+          captured.push({ surface: 'streamScenario', input, options });
+          return textScenarioStream(input);
+        },
+      },
+    },
+  };
+
+  const textResult = await invokers.invokeTesterCapability(client, 'text.generate', {
+    prompt: 'Hello with params',
+    scenarioId: 'selected-params',
+    subjectUserId: 'subject-user-1',
+  });
+  assert.equal(textResult.ok, true);
+
+  const streamResult = await invokers.invokeTesterCapability(client, 'chat.stream', {
+    prompt: 'Hello stream params',
+    scenarioId: 'selected-params',
+    subjectUserId: 'subject-user-1',
+  });
+  assert.equal(streamResult.ok, true);
+
+  const generateCall = captured.find((entry) => entry.surface === 'executeScenario');
+  const generateSpec = generateCall.input.spec.spec.textGenerate;
+  assert.equal(generateCall.input.head.timeoutMs, 90000);
+  assert.equal(generateSpec.temperature, 0.25);
+  assert.equal(generateSpec.topP, 0.8);
+  assert.equal(generateSpec.topK, 40);
+  assert.equal(generateSpec.maxTokens, 128);
+  assert.equal(generateSpec.presencePenalty, 0.1);
+  assert.equal(generateSpec.frequencyPenalty, 0.2);
+  assert.deepEqual(generateSpec.stop, ['END']);
+  assert.equal(generateCall.options.metadata.aiConfigBindingCapabilityId, 'text.generate');
+
+  const streamCall = captured.find((entry) => entry.surface === 'streamScenario');
+  const streamSpec = streamCall.input.spec.spec.textGenerate;
+  assert.equal(streamCall.input.head.timeoutMs, 90000);
+  assert.equal(streamSpec.temperature, 0.25);
+  assert.equal(streamSpec.topP, 0.8);
+  assert.equal(streamSpec.maxTokens, 128);
+  assert.equal(streamSpec.topK, 0);
+  assert.equal(streamSpec.presencePenalty, 0);
+  assert.equal(streamSpec.frequencyPenalty, 0);
+  assert.deepEqual(streamSpec.stop, []);
+});
+
+test('tester LLM selectedParams validation fails closed before dispatch', async () => {
+  const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');
+  const store = await importBehaviorModule('tester/tester-ai-config-store.js');
+  const scopeRef = store.createTesterAppLabAIScopeRef();
+  store.saveTesterAIConfig({
+    scopeRef,
+    capabilities: {
+      targetRefs: {
+        'text.generate': {
+          kind: 'cloud-connector',
+          connectorId: 'runtime-connector',
+          providerModelId: 'runtime-model',
+        },
+      },
+      selectedParams: {
+        'text.generate': {
+          maxTokens: 'not-a-number',
+        },
+      },
+    },
+    profileOrigin: null,
+  });
+
+  const captured = [];
+  const client = {
+    runtime: {
+      scheduling: {
+        async peekScheduling(input) {
+          captured.push({ surface: 'peekScheduling', input });
+          return runnableSchedulingResponse();
+        },
+      },
+      ai: {
+        async executeScenario(input) {
+          captured.push({ surface: 'executeScenario', input });
+          return textGenerateScenarioResponse(input);
+        },
+        streamScenario(input) {
+          captured.push({ surface: 'streamScenario', input });
+          return textScenarioStream(input);
+        },
+      },
+    },
+  };
+
+  const result = await invokers.invokeTesterCapability(client, 'text.generate', {
+    prompt: 'This must not dispatch',
+    scenarioId: 'invalid-selected-params',
+    subjectUserId: 'subject-user-1',
+  });
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'input-invalid');
+  assert.match(result.message, /selectedParams\.maxTokens must be a finite number/);
+  assert.deepEqual(captured, []);
+
+  store.saveTesterAIConfig({
+    scopeRef,
+    capabilities: {
+      targetRefs: {
+        'text.generate': {
+          kind: 'cloud-connector',
+          connectorId: 'runtime-connector',
+          providerModelId: 'runtime-model',
+        },
+      },
+      selectedParams: {
+        'text.generate': {
+          maxTokens: '12.5',
+        },
+      },
+    },
+    profileOrigin: null,
+  });
+
+  const fractionalResult = await invokers.invokeTesterCapability(client, 'text.generate', {
+    prompt: 'This fractional integer must not dispatch',
+    scenarioId: 'fractional-selected-params',
+    subjectUserId: 'subject-user-1',
+  });
+  assert.equal(fractionalResult.ok, false);
+  assert.equal(fractionalResult.reason, 'input-invalid');
+  assert.match(fractionalResult.message, /selectedParams\.maxTokens must be a positive integer/);
+  assert.deepEqual(captured, []);
+});
+
+test('tester video invoker forwards selected media params to Runtime media lane', async () => {
+  const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');
+  const store = await importBehaviorModule('tester/tester-ai-config-store.js');
+  const scopeRef = store.createTesterAppLabAIScopeRef();
+  store.saveTesterAIConfig({
+    scopeRef,
+    capabilities: {
+      targetRefs: {
+        'video.generate': {
+          kind: 'cloud-connector',
+          connectorId: 'runtime-video-connector',
+          providerModelId: 'runtime-video-model',
+        },
+      },
+      selectedParams: {
+        'video.generate': {
+          mode: 't2v',
+          negativePrompt: 'blur',
+          ratio: '9:16',
+          durationSec: '6',
+          resolution: '720p',
+          fps: '24',
+          seed: '42',
+          cameraFixed: true,
+          generateAudio: true,
+          timeoutMs: '123000',
+        },
+      },
+    },
+    profileOrigin: {
+      profileId: 'video-profile',
+      title: 'Video Profile',
+      appliedAt: '2026-06-03T00:00:00.000Z',
+    },
+  });
+
+  let capturedVideo = null;
+  const client = {
+    runtime: {
+      scheduling: {
+        async peekScheduling() {
+          return runnableSchedulingResponse();
+        },
+      },
+      ai: {
+        async executeScenario() {
+          throw new Error('executeScenario should not run when media.video.generate is available');
+        },
+        streamScenario() {
+          throw new Error('streamScenario should not be called');
+        },
+      },
+      media: {
+        video: {
+          async generate(input) {
+            capturedVideo = input;
+            return {
+              job: {
+                jobId: 'video-job-1',
+                state: 'completed',
+                modelResolved: 'runtime-video-model',
+                routeDecision: 'cloud',
+                traceId: 'video-trace-1',
+              },
+              artifacts: [],
+              traceId: 'video-trace-1',
+            };
+          },
+        },
+      },
+    },
+  };
+
+  const result = await invokers.invokeTesterCapability(client, 'video.generate', {
+    prompt: 'Generate a moving product shot',
+    scenarioId: 'video-selected-params',
+    subjectUserId: 'subject-user-1',
+  });
+  assert.equal(result.ok, true);
+  assert.equal(capturedVideo.mode, 't2v');
+  assert.equal(capturedVideo.connectorId, 'runtime-video-connector');
+  assert.equal(capturedVideo.model, 'runtime-video-model');
+  assert.equal(capturedVideo.subjectUserId, 'subject-user-1');
+  assert.equal(capturedVideo.prompt, 'Generate a moving product shot');
+  assert.equal(capturedVideo.negativePrompt, 'blur');
+  assert.deepEqual(capturedVideo.options, {
+    ratio: '9:16',
+    durationSec: 6,
+    resolution: '720p',
+    fps: 24,
+    seed: '42',
+    cameraFixed: true,
+    generateAudio: true,
+  });
+  assert.equal(capturedVideo.timeoutMs, 123000);
+  assert.equal(capturedVideo.signal instanceof AbortSignal, true);
+  assert.equal(capturedVideo.metadata.aiConfigBindingCapabilityId, 'video.generate');
 });
 
 test('tester local text.generate binding omits runtime connectorId payload', async () => {

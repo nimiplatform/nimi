@@ -11,6 +11,7 @@ import {
   appendTesterRunHistory,
   createTesterRunHistoryResultSnapshot,
   loadTesterRunHistory,
+  type TesterRunConfigSnapshot,
   type TesterRunHistory,
   type TesterRunHistoryRecord,
 } from './tester-history.js';
@@ -163,7 +164,11 @@ export function TesterWorkbench(props: TesterWorkbenchProps) {
   }, []);
 
   const handleCapabilityResult = useCallback(
-    async (result: TesterCapabilityRunResult, prompt: string): Promise<TesterRunHistoryRecord> => {
+    async (
+      result: TesterCapabilityRunResult,
+      prompt: string,
+      runConfig?: TesterRunConfigSnapshot,
+    ): Promise<TesterRunHistoryRecord> => {
       setLastResult(result);
       const runId = makeRecordId();
       const flowId = createRendererFlowId('tester-capability-run');
@@ -177,6 +182,7 @@ export function TesterWorkbench(props: TesterWorkbenchProps) {
         message: result.message,
         createdAt,
         result: createTesterRunHistoryResultSnapshot(result),
+        runConfig: runConfig ? { ...runConfig, traceId } : undefined,
       };
       try {
         const next = await appendTesterRunHistory(record);

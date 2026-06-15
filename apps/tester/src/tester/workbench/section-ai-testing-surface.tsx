@@ -2,10 +2,12 @@ import { Component, lazy, Suspense, useEffect, useMemo, useState, type ReactNode
 import {
   Button,
   EmptyState,
+  Surface,
 } from '@nimiplatform/kit/ui';
 import {
   AlertTriangle,
   CircleHelp,
+  Clock,
   Cloud,
   Copy as CopyIcon,
   Download as DownloadIcon,
@@ -16,12 +18,13 @@ import {
   RefreshCw,
   Settings,
   ShieldCheck,
+  Sparkles,
 } from 'lucide-react';
-import type { CanonicalCapabilitySectionId } from '@nimiplatform/kit/core/runtime-capabilities';
 import {
   type TesterCapability,
   type TesterCapabilityId,
 } from '../tester-capabilities.js';
+import { CAPABILITY_TO_SECTION } from '../tester-capability-sections.js';
 import type { TesterAIConfigSummary } from '../tester-ai-config.js';
 import {
   formatTesterRunTimestamp,
@@ -31,6 +34,7 @@ import {
   getTesterRunPromptSummary,
   getTesterRunResultSummary,
   getTesterRunStatusTone,
+  type TesterRunConfigSnapshot,
   type TesterRunModelSource,
   type TesterRunHistory,
   type TesterRunHistoryRecord,
@@ -92,23 +96,9 @@ export class DrawerErrorBoundary extends Component<{ onClose: () => void; childr
   }
 }
 
-// Maps each tester capability to the canonical NimiAIConfig section its settings
-// gear opens (mirrors the desktop tester CAPABILITY_TO_SECTION).
-export const CAPABILITY_TO_SECTION: Record<TesterCapabilityId, CanonicalCapabilitySectionId> = {
-  'text.generate': 'chat',
-  'chat.stream': 'chat',
-  'text.embed': 'embed',
-  'image.generate': 'image',
-  'video.generate': 'video',
-  'audio.synthesize': 'tts',
-  'audio.transcribe': 'stt',
-  'speech.bundle': 'voice',
-  'world.generate': 'world',
-};
-
 export type SectionAITestingProps = {
   capability: TesterCapability;
-  onResult: (result: TesterCapabilityRunResult, prompt: string) => TesterRunHistoryRecord | null | Promise<TesterRunHistoryRecord | null>;
+  onResult: (result: TesterCapabilityRunResult, prompt: string, runConfig?: TesterRunConfigSnapshot) => TesterRunHistoryRecord | null | Promise<TesterRunHistoryRecord | null>;
   summary: TesterAIConfigSummary | null;
   history: TesterRunHistory | null;
   lastResult: TesterCapabilityRunResult | null;
@@ -452,11 +442,80 @@ function RuntimeDetails({
   );
 }
 
+type StudioResultStat = {
+  label: string;
+  value: string;
+};
+
+function cleanStudioModelName(value: string): string {
+  const normalized = value.trim();
+  return normalized.replace(/^(local-import|local|cloud)\//i, '').trim() || normalized;
+}
+
+function studioResultModelLabel(result: TesterCapabilityRunResult | null, capability: TesterCapability): string {
+  if (result?.ok) {
+    const traceModel = result.trace?.modelResolved?.trim();
+    if (traceModel) return cleanStudioModelName(traceModel);
+    if (result.output.kind === 'voice-catalog' && result.output.modelResolved.trim()) return cleanStudioModelName(result.output.modelResolved);
+  }
+  if (result && !result.ok) return 'sdk unavailable';
+  return capability.label;
+}
+
+function formatStudioTokenCount(inputTokens?: number, outputTokens?: number, totalTokens?: number): string {
+  if (typeof totalTokens === 'number') return String(totalTokens);
+  if (typeof inputTokens === 'number' && typeof outputTokens === 'number') return String(inputTokens + outputTokens);
+  return 'not captured';
+}
+
+function studioResultStats(result: TesterCapabilityRunResult | null, running: boolean, fallbackMetric: string): StudioResultStat[] {
+  if (running) return [{ label: 'Status', value: 'Running' }];
+  if (!result) return [{ label: 'Status', value: 'Waiting' }];
+  if (!result.ok) return [{ label: 'Status', value: 'Blocked' }];
+  const output = result.output;
+  if (output.kind === 'text') {
+    return [
+      { label: 'Tokens', value: formatStudioTokenCount(output.inputTokens, output.outputTokens, output.totalTokens) },
+      { label: 'Characters', value: String(output.text.length) },
+    ];
+  }
+  if (output.kind === 'transcript') {
+    return [
+      { label: 'Characters', value: String(output.text.length) },
+      { label: 'Artifacts', value: String(output.artifactCount) },
+    ];
+  }
+  if (output.kind === 'embedding') {
+    return [
+      { label: 'Tokens', value: formatStudioTokenCount(undefined, undefined, output.totalTokens) },
+      { label: 'Vectors', value: String(output.vectorCount) },
+      { label: 'Dimensions', value: String(output.dimensions) },
+    ];
+  }
+  if (output.kind === 'artifacts') {
+    return [
+      { label: 'Artifacts', value: String(output.artifactCount) },
+      { label: 'State', value: output.jobState || 'unknown' },
+    ];
+  }
+  return [
+    { label: 'Voices', value: String(output.voiceCount) },
+    { label: 'Result', value: fallbackMetric },
+  ];
+}
+
+function studioResultTraceLabel(result: TesterCapabilityRunResult | null, running: boolean): string {
+  if (running) return 'pending';
+  if (result?.ok) return result.trace?.traceId?.trim() || 'not captured';
+  return result ? 'not captured' : 'pending';
+}
+
 export function StudioResult({
   result,
   running,
   capability,
   admission,
+  createdAt,
   streamingText,
   verboseConsole,
   onCopy,
@@ -467,6 +526,7 @@ export function StudioResult({
   running: boolean;
   capability: TesterCapability;
   admission: CapabilityStatus;
+  createdAt?: string;
   streamingText?: string | null;
   verboseConsole: boolean;
   onCopy: () => void;
@@ -478,6 +538,9 @@ export function StudioResult({
   const blocked = result && !result.ok ? result : null;
   const plainText = result ? resultPlainText(result) : '';
   const canExport = Boolean(result && plainText);
+  const modelLabel = studioResultModelLabel(result, capability);
+  const traceLabel = studioResultTraceLabel(result, running);
+  const runTimeLabel = createdAt ? formatTesterRunTimestamp(createdAt) : running ? 'Running' : 'Not recorded';
 
   let metric = '—';
   if (ready) {
@@ -525,24 +588,51 @@ export function StudioResult({
   }
 
   return (
-    <div className="studio-result">
-      <div className="studio-result__body">{body}</div>
-      <div className="studio-result__foot">
-        <span className="studio-result__metric">{metric}</span>
+    <Surface className="studio-result" material="glass-regular" tone="panel" elevation="floating" padding="none">
+      <div className="studio-result__top">
+        <div className="studio-result__identity">
+          <span className="studio-result__avatar" aria-hidden="true">
+            <Sparkles size={20} />
+          </span>
+          <strong className="studio-result__model" title={modelLabel}>{modelLabel}</strong>
+          <span className="studio-result__copy-dot" aria-hidden="true" />
+          <span className="studio-result__time">
+            <Clock size={14} aria-hidden="true" />
+            <time dateTime={createdAt}>{runTimeLabel}</time>
+          </span>
+        </div>
         <div className="studio-result__actions">
-          <button type="button" className="studio-result__action" onClick={onCopy} disabled={!canExport}>
-            <CopyIcon size={13} aria-hidden="true" /> Copy
+          <button type="button" className="studio-result__action" onClick={onCopy} disabled={!canExport} aria-label="Copy generation" title="Copy">
+            <CopyIcon size={18} aria-hidden="true" />
+            <span className="studio-result__action-label">Copy</span>
           </button>
-          <button type="button" className="studio-result__action" onClick={onDownload} disabled={!canExport}>
-            <DownloadIcon size={13} aria-hidden="true" /> Download
+          <button type="button" className="studio-result__action" onClick={onDownload} disabled={!canExport} aria-label="Download generation" title="Download">
+            <DownloadIcon size={18} aria-hidden="true" />
+            <span className="studio-result__action-label">Download</span>
           </button>
-          <button type="button" className="studio-result__action" onClick={onRegenerate} disabled={running}>
-            <RefreshCw size={13} aria-hidden="true" /> Regenerate
+          <button type="button" className="studio-result__action" onClick={onRegenerate} disabled={running} aria-label="Regenerate" title="Regenerate">
+            <RefreshCw size={18} aria-hidden="true" />
+            <span className="studio-result__action-label">Regenerate</span>
           </button>
         </div>
       </div>
+      <div className="studio-result__body">{body}</div>
+      <div className="studio-result__foot">
+        <div className="studio-result__stats">
+          {studioResultStats(result, running, metric).map((stat) => (
+            <span key={stat.label} className="studio-result__metric">
+              <span>{stat.label}</span>
+              <strong>{stat.value}</strong>
+            </span>
+          ))}
+        </div>
+        <span className="studio-result__trace">
+          <span>Trace</span>
+          <code>{traceLabel}</code>
+        </span>
+      </div>
       <RuntimeDetails capability={capability} result={result} admission={admission} verboseConsole={verboseConsole} />
-    </div>
+    </Surface>
   );
 }
 

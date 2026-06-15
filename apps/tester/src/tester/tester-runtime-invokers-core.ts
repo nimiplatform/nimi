@@ -172,8 +172,21 @@ export type SchedulingPreflightResult = {
   evidenceMetadata: Record<string, string>;
 };
 
-export function isTesterUnavailable(value: ResolvedLLMBinding | TesterUnavailable): value is TesterUnavailable {
-  return 'ok' in value && value.ok === false;
+type TextRuntimeParameterSet = {
+  parameters: {
+    temperature?: number;
+    topP?: number;
+    topK?: number;
+    maxTokens?: number;
+    presencePenalty?: number;
+    frequencyPenalty?: number;
+    stop?: string[];
+  };
+  timeoutMs?: number;
+};
+
+export function isTesterUnavailable(value: unknown): value is TesterUnavailable {
+  return Boolean(value && typeof value === 'object' && 'ok' in value && value.ok === false);
 }
 
 export function buildMetadata(surfaceId: string, extra?: Record<string, string | undefined>): Record<string, string> {
@@ -263,6 +276,89 @@ function bindingCapabilityFor(capabilityId: TesterCapabilityId): string | null {
 
 function normalizeText(value: unknown): string {
   return String(value ?? '').trim();
+}
+
+function selectedParamRecord(resolved: ResolvedLLMBinding): Record<string, unknown> {
+  return resolved.selectedParams && typeof resolved.selectedParams === 'object' && !Array.isArray(resolved.selectedParams)
+    ? resolved.selectedParams as Record<string, unknown>
+    : {};
+}
+
+function optionalFiniteParam(
+  capabilityId: TesterCapabilityId,
+  params: Record<string, unknown>,
+  key: string,
+): number | TesterUnavailable | undefined {
+  const raw = params[key];
+  const value = typeof raw === 'number' ? String(raw) : normalizeText(raw);
+  if (!value) return undefined;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return unavailableFromValidation(capabilityId, `NimiAIConfig selectedParams.${key} must be a finite number.`);
+  }
+  return parsed;
+}
+
+function optionalPositiveIntegerParam(
+  capabilityId: TesterCapabilityId,
+  params: Record<string, unknown>,
+  key: string,
+): number | TesterUnavailable | undefined {
+  const parsed = optionalFiniteParam(capabilityId, params, key);
+  if (parsed === undefined || isTesterUnavailable(parsed)) return parsed;
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    return unavailableFromValidation(capabilityId, `NimiAIConfig selectedParams.${key} must be a positive integer.`);
+  }
+  return parsed;
+}
+
+function optionalStopSequences(
+  capabilityId: TesterCapabilityId,
+  params: Record<string, unknown>,
+): string[] | TesterUnavailable | undefined {
+  const raw = params.stopSequences ?? params.stop;
+  if (raw === undefined) return undefined;
+  if (!Array.isArray(raw)) {
+    return unavailableFromValidation(capabilityId, 'NimiAIConfig selectedParams.stopSequences must be a string array.');
+  }
+  const values = raw.map((entry) => normalizeText(entry)).filter(Boolean);
+  return values.length > 0 ? values : undefined;
+}
+
+function textRuntimeParametersFromBinding(
+  capabilityId: Extract<TesterCapabilityId, 'text.generate' | 'chat.stream'>,
+  resolved: ResolvedLLMBinding,
+): TextRuntimeParameterSet | TesterUnavailable {
+  const params = selectedParamRecord(resolved);
+  const temperature = optionalFiniteParam(capabilityId, params, 'temperature');
+  if (isTesterUnavailable(temperature)) return temperature;
+  const topP = optionalFiniteParam(capabilityId, params, 'topP');
+  if (isTesterUnavailable(topP)) return topP;
+  const topK = optionalPositiveIntegerParam(capabilityId, params, 'topK');
+  if (isTesterUnavailable(topK)) return topK;
+  const maxTokens = optionalPositiveIntegerParam(capabilityId, params, 'maxTokens');
+  if (isTesterUnavailable(maxTokens)) return maxTokens;
+  const presencePenalty = optionalFiniteParam(capabilityId, params, 'presencePenalty');
+  if (isTesterUnavailable(presencePenalty)) return presencePenalty;
+  const frequencyPenalty = optionalFiniteParam(capabilityId, params, 'frequencyPenalty');
+  if (isTesterUnavailable(frequencyPenalty)) return frequencyPenalty;
+  const timeoutMs = optionalPositiveIntegerParam(capabilityId, params, 'timeoutMs');
+  if (isTesterUnavailable(timeoutMs)) return timeoutMs;
+  const stop = optionalStopSequences(capabilityId, params);
+  if (isTesterUnavailable(stop)) return stop;
+
+  return {
+    parameters: {
+      ...(temperature !== undefined ? { temperature } : {}),
+      ...(topP !== undefined ? { topP } : {}),
+      ...(topK !== undefined ? { topK } : {}),
+      ...(maxTokens !== undefined ? { maxTokens } : {}),
+      ...(presencePenalty !== undefined ? { presencePenalty } : {}),
+      ...(frequencyPenalty !== undefined ? { frequencyPenalty } : {}),
+      ...(stop !== undefined ? { stop } : {}),
+    },
+    ...(timeoutMs !== undefined ? { timeoutMs } : {}),
+  };
 }
 
 function targetRefModel(targetRef: NimiAIConfigTargetRef): string {
@@ -452,7 +548,7 @@ function buildChatRuntimeUserMessage(prompt: string): ConversationRuntimeTextMes
   };
 }
 
-function createTesterTextModel(client: TesterRuntimeInvocationClient, resolved: ResolvedLLMBinding) {
+function createTesterTextModel(client: TesterRuntimeInvocationClient, resolved: ResolvedLLMBinding, timeoutMs?: number) {
   return createNimiRuntimeAIModel({
     runtime: client.runtime,
     appId: TESTER_APP_ID,
@@ -463,6 +559,7 @@ function createTesterTextModel(client: TesterRuntimeInvocationClient, resolved: 
     routePolicy: resolved.routePolicy,
     connectorId: resolved.connectorId,
     subjectUserId: requireRuntimeSubjectUserId('text.generate', client),
+    timeoutMs,
   });
 }
 
@@ -500,16 +597,19 @@ export async function invokeTextGenerate(client: TesterRuntimeInvocationClient, 
   if (attachmentUnavailable) return attachmentUnavailable;
   const resolved = resolveTesterLLMBinding('text.generate');
   if (isTesterUnavailable(resolved)) return resolved;
+  const textParams = textRuntimeParametersFromBinding('text.generate', resolved);
+  if (isTesterUnavailable(textParams)) return textParams;
   const schedulingPreflight = await ensureSchedulingPreflight(client, 'text.generate', resolved);
   if (schedulingPreflight.unavailable) return schedulingPreflight.unavailable;
   const directedPrompt = input.directive ? `${input.directive}\n\n${prompt}` : prompt;
-  const model = createTesterTextModel(client, resolved);
+  const model = createTesterTextModel(client, resolved, textParams.timeoutMs);
   const result = await runNimiTextGenerate({
     runtime: { model },
     request: {
       model: model.model,
       messages: buildNimiUserMessages(directedPrompt),
       parameters: {
+        ...textParams.parameters,
         metadata: buildMetadata('nimi.tester.ai.text.generate', {
           ...resolved.metadata,
           ...schedulingPreflight.evidenceMetadata,
@@ -548,6 +648,8 @@ export async function invokeChatStream(client: TesterRuntimeInvocationClient, in
   if (attachmentUnavailable) return attachmentUnavailable;
   const resolved = resolveTesterLLMBinding('chat.stream');
   if (isTesterUnavailable(resolved)) return resolved;
+  const textParams = textRuntimeParametersFromBinding('chat.stream', resolved);
+  if (isTesterUnavailable(textParams)) return textParams;
   const schedulingPreflight = await ensureSchedulingPreflight(client, 'chat.stream', resolved);
   if (schedulingPreflight.unavailable) return schedulingPreflight.unavailable;
   const route = routeInput(resolved);
@@ -562,6 +664,10 @@ export async function invokeChatStream(client: TesterRuntimeInvocationClient, in
       resolveRuntimeRequest: () => ({
         ...route,
         subjectUserId: requireRuntimeSubjectUserId('chat.stream', client),
+        temperature: textParams.parameters.temperature,
+        topP: textParams.parameters.topP,
+        maxTokens: textParams.parameters.maxTokens,
+        timeoutMs: textParams.timeoutMs,
         metadata: buildMetadata('nimi.tester.ai.chat.stream', {
           ...resolved.metadata,
           ...schedulingPreflight.evidenceMetadata,

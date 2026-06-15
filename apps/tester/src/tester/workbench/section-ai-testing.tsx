@@ -17,14 +17,24 @@ import {
 import type { CanonicalCapabilitySectionId } from '@nimiplatform/kit/core/runtime-capabilities';
 import { ImageAttachmentStrip, useMediaAttachments } from '../tester-multimodal-input.js';
 import { type TesterCapability } from '../tester-capabilities.js';
+import { CAPABILITY_TO_SECTION } from '../tester-capability-sections.js';
 import {
   formatTesterRunTimestamp,
   getTesterRunResultTags,
   getTesterRunStatusLabel,
+  type TesterRunConfigSnapshot,
   type TesterRunHistory,
   type TesterRunHistoryRecord,
   type TesterRunHistoryResultSnapshot,
 } from '../tester-history.js';
+import {
+  createTesterAIConfigService,
+  createTesterAppLabAIScopeRef,
+} from '../tester-ai-config-store.js';
+import {
+  createTesterRunTargetSummary,
+  type TesterRunTargetSummary,
+} from '../tester-run-target.js';
 import {
   runTesterCapability,
   type TesterCapabilityRunResult,
@@ -48,7 +58,6 @@ import {
   TONE_OPTIONS,
 } from './capability-studio-profiles.js';
 import {
-  CAPABILITY_TO_SECTION,
   CapabilityRunHistory,
   DrawerErrorBoundary,
   STATUS_PILL_LABEL,
@@ -108,6 +117,63 @@ function ModelSummaryChip({ label, onOpen }: { label: string; onOpen: () => void
   );
 }
 
+function useTesterRunTargetSummary(
+  capability: TesterCapability,
+  runtime: TesterRuntimeInspection | null,
+): TesterRunTargetSummary {
+  const scopeRef = useMemo(() => createTesterAppLabAIScopeRef(), []);
+  const service = useMemo(() => createTesterAIConfigService(), []);
+  const [config, setConfig] = useState(() => {
+    try {
+      return service.aiConfig.get(scopeRef);
+    } catch {
+      return null;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      setConfig(service.aiConfig.get(scopeRef));
+      return service.aiConfig.subscribe(scopeRef, setConfig);
+    } catch {
+      setConfig(null);
+      return undefined;
+    }
+  }, [scopeRef, service]);
+
+  return useMemo(() => createTesterRunTargetSummary({ capability, runtime, config }), [capability, config, runtime]);
+}
+
+function createRunConfigSnapshot(input: {
+  target: TesterRunTargetSummary;
+  tone: string;
+  length: string;
+  context: string;
+  attachmentCount: number;
+}): TesterRunConfigSnapshot {
+  const { target } = input;
+  return {
+    target: {
+      capabilityId: target.capabilityId,
+      bindingCapabilityId: target.bindingCapabilityId,
+      section: target.section,
+      status: target.status,
+      source: target.source,
+      modelLabel: target.modelLabel,
+      detail: target.detail,
+      paramsSummary: [...target.paramsSummary],
+      profileOrigin: target.profileOrigin,
+    },
+    promptControls: {
+      tone: input.tone,
+      length: input.length,
+      contextAttached: Boolean(input.context.trim()),
+      context: input.context.trim(),
+      attachmentCount: input.attachmentCount,
+    },
+  };
+}
+
 function TextStudioComposer({
   capability,
   prompt,
@@ -118,6 +184,7 @@ function TextStudioComposer({
   lengthSelected,
   running,
   media,
+  canDispatch,
   compact = false,
   onPromptChange,
   onContextChange,
@@ -134,6 +201,7 @@ function TextStudioComposer({
   lengthSelected: boolean;
   running: boolean;
   media: ReturnType<typeof useMediaAttachments>;
+  canDispatch: boolean;
   compact?: boolean;
   onPromptChange: (value: string) => void;
   onContextChange: (value: string) => void;
@@ -213,7 +281,7 @@ function TextStudioComposer({
           className="studio-generate-action"
           aria-label={running ? profile.primaryRunningLabel : profile.primaryLabel}
           title={running ? profile.primaryRunningLabel : profile.primaryLabel}
-          disabled={running || (requiresPrompt && !prompt.trim())}
+          disabled={running || !canDispatch || (requiresPrompt && !prompt.trim())}
           onClick={onSubmit}
         >
           {running ? <RefreshCw size={17} aria-hidden="true" className="studio-spin" /> : <ArrowUp size={19} aria-hidden="true" />}
@@ -459,6 +527,7 @@ function TextStudioResultState({
               running={running}
               capability={capability}
               admission={admission}
+              createdAt={activeRun.createdAt}
               streamingText={streamingText}
               verboseConsole={verboseConsole}
               onCopy={onCopy}
@@ -488,7 +557,7 @@ function TextStudioShell({
   capability: TesterCapability;
   runtime: TesterRuntimeInspection | null;
   lastResult: TesterCapabilityRunResult | null;
-  onResult: (result: TesterCapabilityRunResult, prompt: string) => TesterRunHistoryRecord | null | Promise<TesterRunHistoryRecord | null>;
+  onResult: (result: TesterCapabilityRunResult, prompt: string, runConfig?: TesterRunConfigSnapshot) => TesterRunHistoryRecord | null | Promise<TesterRunHistoryRecord | null>;
   verboseConsole: boolean;
   draftPersistence: boolean;
   onOpenConfig: (section: CanonicalCapabilitySectionId) => void;
@@ -516,6 +585,7 @@ function TextStudioShell({
   const media = useMediaAttachments();
   const currentResult = activeRun?.result ?? (lastResult?.capabilityId === capability.id ? lastResult : null);
   const admission = statusForCapability(capability, runtime, currentResult);
+  const runTarget = useTesterRunTargetSummary(capability, runtime);
   const isWorldTour = capability.execution === 'standalone-tauri';
   const requiresPrompt = profile.inputKind !== 'none';
   const supportsMedia = profile.supportsAttachments;
@@ -550,6 +620,7 @@ function TextStudioShell({
   async function run(nextPrompt = prompt, nextContext = context) {
     const displayPrompt = nextPrompt.trim();
     if (requiresPrompt && !displayPrompt) return;
+    if (!runTarget.canDispatch) return;
     const pendingRun: TextStudioActiveRun = {
       id: `pending-${Date.now()}`,
       prompt: displayPrompt || preset.prompt,
@@ -593,7 +664,14 @@ function TextStudioShell({
           attachments: supportsMedia ? media.attachments : undefined,
         });
       }
-      const record = await onResult(result, displayPrompt);
+      const runConfig = createRunConfigSnapshot({
+        target: runTarget,
+        tone,
+        length,
+        context: nextContext,
+        attachmentCount: supportsMedia ? media.attachments.length : 0,
+      });
+      const record = await onResult(result, displayPrompt, runConfig);
       const finishedRun: TextStudioActiveRun = {
         ...pendingRun,
         id: record?.id ?? pendingRun.id,
@@ -652,7 +730,7 @@ function TextStudioShell({
     setActiveRun({
       id: record.id,
       prompt: record.prompt,
-      context: '',
+      context: record.runConfig?.promptControls.context ?? '',
       createdAt: record.createdAt,
       result: null,
       record,
@@ -673,6 +751,7 @@ function TextStudioShell({
       lengthSelected={lengthSelected}
       running={running}
       media={media}
+      canDispatch={runTarget.canDispatch}
       compact={Boolean(activeRun)}
       onPromptChange={updatePrompt}
       onContextChange={setContext}
