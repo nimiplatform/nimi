@@ -57,7 +57,18 @@ const wdioConfigSource = fs.readFileSync(
 test('desktop E2E runner resolves native WebDriver command names to executable paths', () => {
   assert.match(runnerSource, /function resolveNativeDriverPath\(nativeDriver\)/);
   assert.match(runnerSource, /os\.platform\(\) === 'win32' \? 'where\.exe' : 'which'/);
-  assert.match(runnerSource, /const nativeDriver = resolveNativeDriverPath\(process\.env\.NIMI_E2E_NATIVE_DRIVER\);/);
+  assert.match(runnerSource, /const nativeDriver = await resolveNativeDriverPath\(process\.env\.NIMI_E2E_NATIVE_DRIVER\);/);
+});
+
+test('desktop E2E runner provisions matching Edge WebDriver on Windows by default', () => {
+  assert.match(runnerSource, /async function ensureWindowsEdgeDriverPath\(\)/);
+  assert.match(runnerSource, /resolveCommandPath\('msedgedriver\.exe'\)/);
+  assert.match(runnerSource, /function resolveWindowsEdgeVersion\(\)/);
+  assert.match(runnerSource, /apps\/desktop\/\.cache\/tools\/msedgedriver/);
+  assert.match(runnerSource, /https:\/\/msedgedriver\.microsoft\.com\/\$\{version\}\/edgedriver_win64\.zip/);
+  assert.match(runnerSource, /failed to download Edge WebDriver/);
+  assert.match(runnerSource, /Expand-Archive -LiteralPath/);
+  assert.match(runnerSource, /set NIMI_E2E_NATIVE_DRIVER to a compatible native WebDriver binary/);
 });
 
 test('desktop E2E runner isolates WebDriver ports per scenario', () => {

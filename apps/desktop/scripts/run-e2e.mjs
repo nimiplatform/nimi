@@ -193,33 +193,121 @@ function hasPathSeparator(input) {
   return /[\\/]/.test(input);
 }
 
-function resolveNativeDriverPath(nativeDriver) {
-  const normalized = String(nativeDriver || '').trim();
-  if (!normalized || hasPathSeparator(normalized)) {
-    return normalized;
-  }
+function firstOutputLine(value) {
+  return String(value || '')
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .find(Boolean) || '';
+}
 
+function shellSingleQuote(value) {
+  return `'${String(value).replaceAll("'", "''")}'`;
+}
+
+function resolveCommandPath(command) {
   const resolver = os.platform() === 'win32' ? 'where.exe' : 'which';
-  const probe = spawnSync(resolver, [normalized], {
+  const probe = spawnSync(resolver, [command], {
     cwd: repoRoot,
     env: process.env,
     encoding: 'utf8',
   });
   if (probe.error || probe.status !== 0) {
-    const detail = [probe.error?.message, probe.stderr, probe.stdout]
+    return '';
+  }
+  return firstOutputLine(probe.stdout);
+}
+
+function resolveWindowsEdgeVersion() {
+  const script = [
+    "$paths = @(",
+    "  Join-Path ${env:ProgramFiles(x86)} 'Microsoft\\Edge\\Application\\msedge.exe',",
+    "  Join-Path ${env:ProgramFiles} 'Microsoft\\Edge\\Application\\msedge.exe'",
+    ")",
+    "foreach ($path in $paths) {",
+    "  if (Test-Path -LiteralPath $path) {",
+    "    $version = (Get-Item -LiteralPath $path).VersionInfo.ProductVersion",
+    "    if ($version) { Write-Output $version; exit 0 }",
+    "  }",
+    "}",
+    "$beacon = Get-ItemProperty 'HKCU:\\Software\\Microsoft\\Edge\\BLBeacon' -ErrorAction SilentlyContinue",
+    "if ($beacon.version) { Write-Output $beacon.version; exit 0 }",
+    "exit 1",
+  ].join('\n');
+  const probe = spawnSync('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', script], {
+    cwd: repoRoot,
+    env: process.env,
+    encoding: 'utf8',
+  });
+  if (probe.error || probe.status !== 0) {
+    return '';
+  }
+  return firstOutputLine(probe.stdout);
+}
+
+async function ensureWindowsEdgeDriverPath() {
+  const fromPath = resolveCommandPath('msedgedriver.exe');
+  if (fromPath) {
+    return fromPath;
+  }
+
+  const version = resolveWindowsEdgeVersion();
+  if (!version) {
+    throw new Error('msedgedriver.exe is not on PATH and Microsoft Edge version could not be resolved; set NIMI_E2E_NATIVE_DRIVER to a compatible native WebDriver binary');
+  }
+
+  const driverDir = path.join(repoRoot, 'apps/desktop/.cache/tools/msedgedriver', version);
+  const driverPath = path.join(driverDir, 'msedgedriver.exe');
+  if (fs.existsSync(driverPath)) {
+    return driverPath;
+  }
+
+  fs.mkdirSync(driverDir, { recursive: true });
+  const zipPath = path.join(driverDir, 'edgedriver_win64.zip');
+  const url = `https://msedgedriver.microsoft.com/${version}/edgedriver_win64.zip`;
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`failed to download Edge WebDriver ${version}: ${response.status} ${response.statusText}`);
+  }
+  fs.writeFileSync(zipPath, Buffer.from(await response.arrayBuffer()));
+  const extract = spawnSync('powershell.exe', [
+    '-NoProfile',
+    '-ExecutionPolicy',
+    'Bypass',
+    '-Command',
+    `Expand-Archive -LiteralPath ${shellSingleQuote(zipPath)} -DestinationPath ${shellSingleQuote(driverDir)} -Force`,
+  ], {
+    cwd: repoRoot,
+    env: process.env,
+    encoding: 'utf8',
+  });
+  if (extract.error || extract.status !== 0) {
+    const detail = [extract.error?.message, extract.stderr, extract.stdout]
       .map((value) => String(value || '').trim())
       .filter(Boolean)
       .join(' | ');
-    throw new Error(detail
-      ? `native WebDriver binary ${JSON.stringify(normalized)} is not resolvable: ${detail}`
-      : `native WebDriver binary ${JSON.stringify(normalized)} is not resolvable`);
+    throw new Error(detail ? `failed to extract Edge WebDriver ${version}: ${detail}` : `failed to extract Edge WebDriver ${version}`);
   }
-  const resolved = String(probe.stdout || '')
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .find(Boolean);
+  if (!fs.existsSync(driverPath)) {
+    throw new Error(`Edge WebDriver ${version} archive did not produce ${driverPath}`);
+  }
+  return driverPath;
+}
+
+async function resolveNativeDriverPath(nativeDriver) {
+  const normalized = String(nativeDriver || '').trim();
+  if (!normalized) {
+    if (os.platform() === 'win32') {
+      return ensureWindowsEdgeDriverPath();
+    }
+    return '';
+  }
+  if (hasPathSeparator(normalized)) {
+    return normalized;
+  }
+
+  const resolved = resolveCommandPath(normalized);
   if (!resolved) {
-    throw new Error(`native WebDriver binary ${JSON.stringify(normalized)} resolved to an empty path`);
+    throw new Error(`native WebDriver binary ${JSON.stringify(normalized)} is not resolvable`);
   }
   return resolved;
 }
@@ -416,7 +504,7 @@ async function runScenario(scenarioId, runIndex) {
     throw new Error(`desktop E2E application not found: ${appPath}`);
   }
 
-  const nativeDriver = resolveNativeDriverPath(process.env.NIMI_E2E_NATIVE_DRIVER);
+  const nativeDriver = await resolveNativeDriverPath(process.env.NIMI_E2E_NATIVE_DRIVER);
   const driverHost = process.env.NIMI_E2E_DRIVER_HOST || '127.0.0.1';
   const { driverPort, nativeDriverPort } = await resolveDriverPorts(driverHost);
   const artifactsDir = path.join(artifactRoot(), `${String(runIndex).padStart(2, '0')}-${scenarioId}`);
